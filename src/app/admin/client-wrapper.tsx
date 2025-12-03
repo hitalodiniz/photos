@@ -3,10 +3,10 @@
 import { useState, useEffect, useMemo, useRef } from 'react';
 import { useFormStatus } from 'react-dom';
 import { maskPhone } from "@/utils/masks"; 
-import { createGaleria, updateGaleria, getGalerias, deleteGaleria } from '@/actions/galeria'; 
+// AGORA IMPORTAMOS 'updateGaleria'
+import { createGaleria, getGalerias, deleteGaleria, updateGaleria } from '@/actions/galeria'; 
 import { Galeria } from '@prisma/client/edge';
-// Importa todos os componentes de UI
-import { ConfirmationModal, SubmitButton, Toast, EditGaleriaModal } from '@/components/AdminUI'; 
+import { ConfirmationModal, SubmitButton, Toast, EditGaleriaModal } from '@/components/AdminUI'; // Importa todos os componentes de UI
 
 // Define quantos cards carregar por vez
 const CARDS_PER_PAGE = 6; 
@@ -29,10 +29,25 @@ function getColorSeed(str: string): number {
 
 const coverColors = ["556B2F", "FF7F50", "4682B4", "9370DB", "20B2AA", "DC143C", "FFA07A", "40E0D0"];
 
+// NOVO: Função para formatar o SLUG com data (AAAA/MM/DD/titulo-galeria)
+function formatDatedSlug(dateString: string, title: string): string {
+    const safeTitle = normalizeString(title).replace(/\s+/g, '-');
+    
+    // A data no estado é YYYY-MM-DD
+    if (dateString && dateString.length >= 10) {
+        const [year, month, day] = dateString.split('-');
+        if (year && month && day) {
+            return `${year}/${month}/${day}/${safeTitle}`;
+        }
+    }
+    // Fallback se a data for inválida
+    return `sem-data/${safeTitle}`;
+}
+
+
 // =========================================================================
 // COMPONENTE CLIENTE PRINCIPAL
 // =========================================================================
-
 
 export default function ClientAdminWrapper({ initialGalerias: initialGalerias }: { initialGalerias: Galeria[] }) {
     // Referência ao formulário
@@ -168,7 +183,7 @@ export default function ClientAdminWrapper({ initialGalerias: initialGalerias }:
         setIsConfirmModalOpen(true);
     };
 
-    // Lógica para editar (ATUALIZADO)
+    // Lógica para editar
     const handleEditClick = (galeria: any, e: React.MouseEvent) => {
         e.preventDefault(); 
         e.stopPropagation();
@@ -176,10 +191,14 @@ export default function ClientAdminWrapper({ initialGalerias: initialGalerias }:
         setIsEditModalOpen(true); // Abre o novo modal
     };
 
-// Lógica para atualizar a galeria (AGORA CHAMA A SERVER ACTION REAL)
+    // Lógica para atualizar a galeria (AGORA CHAMA A SERVER ACTION REAL E ATUALIZA O SLUG)
     const handleUpdateGaleria = async (galeriaId: string, updatedData: any) => {
         
-        // --- CHAMADA REAL À SERVER ACTION DE ATUALIZAÇÃO ---
+        // --- 1. GERA O NOVO SLUG COM FORMATO DE DATA ---
+        // A Server Action updateGaleria precisa desse campo atualizado
+        updatedData.slug = formatDatedSlug(updatedData.date, updatedData.title);
+
+        // --- 2. CHAMADA REAL À SERVER ACTION DE ATUALIZAÇÃO ---
         const result = await updateGaleria(galeriaId, updatedData); 
         // ----------------------------------------------------
 
@@ -548,35 +567,35 @@ export default function ClientAdminWrapper({ initialGalerias: initialGalerias }:
                                                             </div>
                                                         </div>
                                                     </div>
-                                                </div>
 
-                                                {/* RODAPÉ: BOTÕES DE AÇÃO */}
-                                                <div className="flex space-x-2 mt-4 pt-2 border-t border-[#E0E3E7] w-full p-3 bg-white justify-end">
-                                                        
-                                                    {/* NOVO BOTÃO: Editar */}
-                                                    <button 
-                                                        onClick={(e) => handleEditClick(galeria, e)}
-                                                        className="flex items-center justify-center p-2 rounded-full text-[#444746] hover:bg-[#E9EEF6] hover:text-[#0B57D0] transition-colors" 
-                                                        title="Editar Galeria"
-                                                    >
-                                                        <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-                                                            <path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"></path>
-                                                            <path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"></path>
-                                                        </svg>
-                                                    </button>
-                                                        
-                                                    {/* Botão Deletar (Lixeira) */}
-                                                    <button 
-                                                        onClick={(e) => handleDeleteClick(galeria, e)}
-                                                        disabled={isDeleting}
-                                                        className="flex items-center justify-center p-2 rounded-full text-[#444746] hover:bg-[#FFDAD6] hover:text-[#B3261E] transition-colors" 
-                                                        title="Mover para lixeira"
-                                                    >
-                                                        <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-                                                            <polyline points="3 6 5 6 21 6"></polyline>
-                                                            <path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"></path>
-                                                        </svg>
-                                                    </button>
+                                                    {/* RODAPÉ: BOTÕES DE AÇÃO */}
+                                                    <div className="flex space-x-2 mt-4 pt-2 border-t border-[#E0E3E7] w-full p-3 bg-white justify-end">
+                                                            
+                                                        {/* NOVO BOTÃO: Editar */}
+                                                        <button 
+                                                            onClick={(e) => handleEditClick(galeria, e)}
+                                                            className="flex items-center justify-center p-2 rounded-full text-[#444746] hover:bg-[#E9EEF6] hover:text-[#0B57D0] transition-colors" 
+                                                            title="Editar Galeria"
+                                                        >
+                                                            <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                                                                <path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"></path>
+                                                                <path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"></path>
+                                                            </svg>
+                                                        </button>
+                                                            
+                                                        {/* Botão Deletar (Lixeira) */}
+                                                        <button 
+                                                            onClick={(e) => handleDeleteClick(galeria, e)}
+                                                            disabled={isDeleting}
+                                                            className="flex items-center justify-center p-2 rounded-full text-[#444746] hover:bg-[#FFDAD6] hover:text-[#B3261E] transition-colors" 
+                                                            title="Mover para lixeira"
+                                                        >
+                                                            <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                                                                <polyline points="3 6 5 6 21 6"></polyline>
+                                                                <path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"></path>
+                                                            </svg>
+                                                        </button>
+                                                    </div>
                                                 </div>
                                             </div>
                                         </div>
