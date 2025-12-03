@@ -8,10 +8,10 @@ const nextConfig = {
       },
       {
         protocol: 'https',
-        hostname: 'lh3.googleusercontent.com', // Domínio comum para thumbnails do Google
+        hostname: 'lh3.googleusercontent.com',
       },
     ],
   },
 };
 
-module.exports = nextConfig;
+export default nextConfig;

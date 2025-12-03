@@ -1,0 +1,20 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "sqlite" // Mude para "postgresql" quando for para produção (Vercel/Neon)
+  url      = env("DATABASE_URL")
+}
+
+model Session {
+  id             String   @id @default(cuid())
+  title          String
+  slug           String   @unique
+  date           DateTime
+  location       String?
+  driveFolderId  String
+  createdAt      DateTime @default(now())
+  clientName     String
+  clientWhatsapp String
+}
