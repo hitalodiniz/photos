@@ -3,8 +3,8 @@ import { Metadata } from 'next';
 
 // Definição dos metadados da página para SEO
 export const metadata: Metadata = {
-  title: 'Portfólio de Fotografia Profissional',
-  description: 'Galeria de fotos de sessões de clientes, gerenciada via Google Drive e Next.js.',
+  title: 'Sua Galeria - O portal das suas lembranças',
+  description: 'Seu momento especial, acessível a um clique. Bem-vindo à Sua Galeria.',
   // Adicione mais metadados (og:image, keywords) conforme necessário
 };
 

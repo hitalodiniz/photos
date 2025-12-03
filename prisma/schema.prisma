@@ -7,7 +7,7 @@ datasource db {
   url      = env("DATABASE_URL")
 }
 
-model Session {
+model Galeria {
   id             String   @id @default(cuid())
   title          String
   slug           String   @unique
@@ -17,4 +17,6 @@ model Session {
   createdAt      DateTime @default(now())
   clientName     String
   clientWhatsapp String
+  isPublic       Boolean?
+  password       String?
 }
