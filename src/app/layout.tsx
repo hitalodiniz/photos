@@ -18,9 +18,9 @@ export default function RootLayout({
     // Removida a classe de fonte do next/font. A fonte (Barlow) é aplicada via globals.css
     <html lang="pt-BR">
 
-      <body className="bg-gray-100 text-gray-800 antialiased min-h-screen">
+      <body className="bg-gray-100 text-gray-800 antialiased">
         {/* Adiciona classes básicas de fundo e texto ao body */}
-        <div className="min-h-screen bg-[#F8FAFD] p-4 lg:p-8 font-sans">
+        <div className="bg-[#F8FAFD] p-4 lg:p-8 font-sans">
 
           {/* Header estilo Google Drive (Mantido para contexto do tema) */}
           <div className="max-w-[1600px] mx-auto mb-8 flex items-center justify-between">
@@ -36,7 +36,7 @@ export default function RootLayout({
             </div>
 
 
-              <AuthStatusButton />
+            <AuthStatusButton />
 
           </div>
 
