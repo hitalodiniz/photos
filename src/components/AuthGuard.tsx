@@ -23,7 +23,7 @@ export default function AuthGuard({ children, redirectTo = '/' }: AuthGuardProps
     // Retorna um estado de carregamento enquanto o Supabase verifica a sessão
     return (
       <div style={{ padding: '20px', textAlign: 'center' }}>
-        Carregando autenticação...
+        Autenticando...
       </div>
     );
   }
