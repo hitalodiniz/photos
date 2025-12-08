@@ -1,59 +1,7 @@
 'use client';
-
-import React, { useState, useEffect } from 'react';
-import { useRouter } from 'next/navigation';
-import { supabase } from '../lib/supabase';
+import React from 'react';
 import GoogleSignInButton from './GoogleSignInButton';
-
-export default function LoginGate() {
-    // CORREÇÃO: Declarar os hooks useState no início do componente.
-    const [session, setSession] = useState(null);
-    const [loading, setLoading] = useState(true);
-
-    const router = useRouter();
-
-    // Lógica de Autenticação (useEffect)
-    useEffect(() => {
-        // 1. Obtém a sessão imediatamente ao montar o componente
-        supabase.auth.getSession().then(({ data: { session } }) => {
-            setSession(session);
-            setLoading(false);
-            if (session) {
-                router.replace('/admin');
-            }
-        });
-
-        // 2. Listener para mudanças futuras (login/logout)
-        const { data: { subscription } } = supabase.auth.onAuthStateChange((_event, session) => {
-            setSession(session);
-            setLoading(false);
-            if (session) {
-                router.replace('/admin');
-            }
-        });
-
-        return () => subscription.unsubscribe();
-    }, [router]);
-
-
-    // ----------------------------------------------------
-    // O erro 'ReferenceError: loading is not defined' ocorria aqui:
-    if (loading) {
-        // Estado de carregamento centralizado (Spinner Material)
-        return (
-            <div className="min-h-screen flex items-center justify-center bg-[#F8FAFD]">
-                <div className="animate-spin rounded-full h-10 w-10 border-b-2 border-[#0B57D0]"></div>
-            </div>
-        );
-    }
-    // ----------------------------------------------------
-
-    if (session) {
-        return null; // Redirecionamento já ocorreu no useEffect
-    }
-
-    // SE NÃO ESTIVER LOGADO (Renderiza a Landing Page)
-
+export default function LandingPageContent() {
     return (
         <div 
         className="min-h-screen flex flex-col items-center justify-start p-4 bg-[#F8FAFD] font-sans relative overflow-hidden">

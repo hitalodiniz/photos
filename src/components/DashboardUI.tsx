@@ -4,7 +4,6 @@ import { useState, useEffect, useMemo } from 'react';
 import { useFormStatus } from 'react-dom';
 
 // Importa a tipagem do seu arquivo de tipos (assumindo que Galeria e ToastType foram movidos para lá)
-import { Galeria } from '@prisma/client/edge'; // Use a importação do Prisma para a tipagem real
 
 // Tipagem básica para os componentes auxiliares
 type ToastType = 'success' | 'error';

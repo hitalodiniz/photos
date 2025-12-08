@@ -1,7 +1,6 @@
 import { getGalerias } from '@/actions/galeria';
 import ClientAdminWrapper from './client-wrapper';
 import { Metadata } from 'next'; // Adicionado para Metadados
-import { requireAuth } from '@/lib/auth.server'; // Importe a nova função helper
 
 export const metadata: Metadata = {
   title: 'Dashboard do Fotógrafo | Sua galeria de fotos', // Nome sugerido
@@ -13,5 +12,9 @@ export default async function AdminPage() {
     const initialGalerias= await getGalerias();
     
     // Passa os dados para o componente cliente que gerencia a interatividade
-    return <ClientAdminWrapper initialGalerias={initialGalerias} />;
+    return (
+        // 2. O ProfileGuard verifica e só renderiza o ClientWrapper se o perfil for válido
+            <ClientAdminWrapper initialGalerias={initialGalerias} />
+
+    );
 }

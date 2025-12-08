@@ -15,7 +15,7 @@ export default function UrlCleaner(): null {
     // Se houver qualquer indicação de token na URL
     if (hasHash || hasQueryToken) {
       
-      // Obtém a URL base (protocolo, domínio e caminho, ex: http://localhost:3000/admin)
+      // Obtém a URL base (protocolo, domínio e caminho, ex: http://localhost:3000/dashboard)
       // O replaceState usará esta URL base e removerá o restante.
       const cleanUrl = window.location.origin + window.location.pathname; 
 

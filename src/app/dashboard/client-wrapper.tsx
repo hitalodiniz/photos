@@ -3,14 +3,28 @@
 import { useState, useEffect, useMemo, useRef } from 'react';
 import { useFormStatus } from 'react-dom';
 import { maskPhone } from "@/utils/masks";
-// AGORA IMPORTAMOS 'updateGaleria'
 import { createGaleria, getGalerias, deleteGaleria, updateGaleria } from '@/actions/galeria';
-import { Galeria } from '@prisma/client/edge';
-import { ConfirmationModal, SubmitButton, Toast, EditGaleriaModal } from '@/components/AdminUI'; // Importa todos os componentes de UI
-import UrlCleaner from '../../components/UrlCleaner'; // 1. Importe o componente de limpeza
+import { ConfirmationModal, SubmitButton, Toast, EditGaleriaModal } from '@/components/DashboardUI'; 
+//import UrlCleaner from '../../components/UrlCleaner'; 
 import AuthGuard from '../../components/AuthGuard';
-import AuthStatusButton from '../../components/AuthStatusButton'; // Ajuste o caminho
 
+
+// NOVO: Tipagem simplificada para os dados recebidos do Server Action (Supabase)
+interface Galeria {
+    id: string;
+    user_id: string;      // Novo campo obrigatório
+    studio_id: string;    // Novo campo obrigatório
+    title: string;
+    slug: string;
+    date: string;         // Recebida como ISO string do Supabase
+    location: string | null;
+    client_name: string;
+    client_whatsapp: string | null;
+    drive_folder_id: string; // Coluna snake_case, mas usada como camelCase no formulário
+    is_public: boolean;
+    password: string | null;
+    coverImageUrl: string | null; // Assumindo que você manteve o nome no map do getGalerias
+}
 
 // Define quantos cards carregar por vez
 const CARDS_PER_PAGE = 6;
@@ -54,8 +68,7 @@ function formatDatedSlug(dateString: string, title: string): string {
 // COMPONENTE CLIENTE PRINCIPAL
 // =========================================================================
 
-export default function ClientAdminWrapper({ initialGalerias: initialGalerias }: { initialGalerias: Galeria[] }) {
-    // Referência ao formulário
+export default function ClientAdminWrapper({ initialGalerias: initialGalerias }: { initialGalerias: Galeria[] }) {    // Referência ao formulário
     const formRef = useRef<HTMLFormElement>(null);
     // Referência para o elemento que marca o final da página (para o Intersection Observer)
     const loadMoreRef = useRef<HTMLDivElement>(null);
@@ -295,10 +308,7 @@ export default function ClientAdminWrapper({ initialGalerias: initialGalerias }:
 
     return (
         <AuthGuard>
-            <UrlCleaner />
-
-
-
+    
             {toastMessage && <Toast message={toastMessage} type={toastType} onClose={() => setToastMessage('')} />}
 
             <ConfirmationModal galeria={galeriaToDelete} isOpen={isConfirmModalOpen} onClose={() => setIsConfirmModalOpen(false)} onConfirm={handleConfirmDelete} />

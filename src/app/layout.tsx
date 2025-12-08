@@ -34,12 +34,8 @@ export default function RootLayout({
               </div>
               <span className="text-2xl text-[#1F1F1F] font-medium">SUA GALERIA DE FOTOS</span>
             </div>
-
-
             <AuthStatusButton />
-
           </div>
-
           {children}
         </div>
       </body>

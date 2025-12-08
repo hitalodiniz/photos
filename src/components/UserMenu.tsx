@@ -2,7 +2,7 @@
 
 import React, { useState, useRef, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
-import { supabase } from '../lib/supabase'; // Ajuste o caminho
+import { supabase } from '@/lib/supabase.client'
 
 // Recebe a sessão do AuthStatusButton
 export default function UserMenu({ session, handleLogout }: { session: any, handleLogout: () => void }) {

@@ -1,7 +1,7 @@
 'use client';
 
 // Assumindo que '../lib/supabase' exporta o cliente supabase configurado.
-import { supabase } from '../lib/supabase';
+import { supabase } from '@/lib/supabase.client'
 
 // 1. A função signInWithGoogle deve ser declarada como uma arrow function ou ter o corpo corrigido.
 // Removi o 'export' desnecessário, pois ela é uma função interna do componente.
@@ -13,8 +13,15 @@ async function signInWithGoogle() {
       // Utilizamos a rota de callback explícita (http://localhost:3000/auth/callback)
       // se o ambiente for local. Caso contrário, você deve usar o domínio de produção.
       // Para o desenvolvimento local, esta URL é mais segura.
-      redirectTo: `${window.location.origin}/dashboard`
+      redirectTo: `${window.location.origin}/app`,
+      // Opcional (Recomendado): Força o Google a mostrar a seleção de contas
+      //queryParams: {
+      //  prompt: 'select_account',
+     // }
     },
+
+
+
   }); // <-- A sintaxe de fechamento do objeto e da função está correta aqui.
 
   if (error) {
