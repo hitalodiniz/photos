@@ -1,28 +1,45 @@
-// lib/supabase.client.ts
-'use client';
+// lib/supabase/client.ts (FINAL E SIMPLIFICADO)
+/*'use client'
 
-import { createBrowserClient, type CookieOptions } from '@supabase/ssr';
-// Certifique-se de que o caminho para o seu projeto esteja definido
+import { createClient } from '@supabase/supabase-js'
+
 const SUPABASE_URL = process.env.NEXT_PUBLIC_SUPABASE_URL!;
 const SUPABASE_ANON_KEY = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!;
 
+export const supabase = createClient(
+  SUPABASE_URL,
+  SUPABASE_ANON_KEY,
+  {
+    auth: {
+      storage: globalThis.sessionStorage, // 🚨 Volta para o Local Storage (o mais estável)
+      persistSession: true,
+    },
+  }
+);*/
 
-/**
- * Cria e retorna um cliente Supabase para o lado do cliente (Browser).
- * Este cliente é configurado para armazenar o token de autenticação como HTTP Cookies.
- */
-export function createClient() {
-  return createBrowserClient(
+'use client'
+
+import { createClient } from '@supabase/supabase-js'
+
+const SUPABASE_URL = process.env.NEXT_PUBLIC_SUPABASE_URL!;
+const SUPABASE_ANON_KEY = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!;
+
+// 🚨 SUBSTITUA PELA SUA REFERÊNCIA REAL DE PROJETO
+const PROJECT_REF = 'bdgqiyvasucvhihaueuk'; 
+
+// Define a chave exata que o Supabase usará no Local Storage
+const LOCAL_STORAGE_KEY = `sb-${PROJECT_REF}-auth-token`; 
+
+
+export const supabase = createClient(
     SUPABASE_URL,
     SUPABASE_ANON_KEY,
     {
-        // Garante que o SDK saiba que o armazenamento deve ser feito via cookies
-        cookieOptions: {
-            name: 'sb-auth-token', // Nome padrão do cookie de autenticação
-        }
+        auth: {
+            // 🚨 MUDANÇA: Usa o Local Storage para persistência de longo prazo
+            storage: globalThis.localStorage, 
+            storageKey: LOCAL_STORAGE_KEY, 
+            persistSession: true, 
+        },
     }
-  )
-}
-
-// O cliente principal que deve ser usado em todos os Client Components
-export const supabase = createClient();
+);

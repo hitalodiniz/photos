@@ -3,7 +3,7 @@
 
 import { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
-import { supabase } from '@/lib/supabase'; // Ajuste o caminho conforme necessário
+import { supabase } from '@/lib/supabase.client'; // Ajuste o caminho conforme necessário
 
 interface AuthStatus {
     session: any;
@@ -48,6 +48,7 @@ export default function useAuthStatus(): AuthStatus {
             setLoading(false); // Define loading como false após a leitura inicial
         });
 
+        
         return () => subscription.unsubscribe();
     }, [router]);
     

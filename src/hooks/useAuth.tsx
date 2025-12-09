@@ -4,7 +4,7 @@ import { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation'; // Use 'next/navigation' se estiver no App Router
 // Se estiver no Pages Router, use: import { useRouter } from 'next/router';
 
-import { supabase } from '@/lib/supabase.js';
+import { supabase } from '@/lib/supabase.client'; // Ajuste o caminho conforme necessário
 
 type User = {
   id: string;

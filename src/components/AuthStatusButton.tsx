@@ -18,7 +18,7 @@ if (loading) {
             </div>
         );
     }
-console.log('AuthStatusButton - Sessão atual:', session);
+
     if (session) {
         // Agora, UserMenu recebe a sessão e o manipulador de logout
         return <UserMenu session={session} handleLogout={handleLogout} />; 

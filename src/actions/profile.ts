@@ -1,134 +1,142 @@
+// src/actions/profile.ts
 "use server";
 
 import { createSupabaseServerClient } from "@/lib/supabase.server";
-import { suggestUsernameFromEmail } from "@/utils/userUtils"; // Importe a função que criamos
+import { createSupabaseDbClient } from "@/lib/supabase.db"; 
+import { suggestUsernameFromEmail } from "@/utils/userUtils"; 
 import { redirect } from "next/navigation";
 import { revalidatePath } from "next/cache";
 
-// Tipagem básica para os dados que vêm do formulário
+// --- Tipagem ---
 interface ProfileFormData {
-  username: string;
-  full_name: string;
-  mini_bio: string;
-  phone_contact: string;
-  instagram_link: string;
-  operating_cities: string[];
-  profile_picture_url: string;
+    username: string;
+    full_name: string;
+    mini_bio: string;
+    phone_contact: string;
+    instagram_link: string;
+    operating_cities: string[];
+    profile_picture_url: string;
 }
 
+// --------------------------------------------------------------------------
+// 🔑 FUNÇÃO DE LEITURA (Usada pelo OnboardingPage)
+// --------------------------------------------------------------------------
+
 /**
- * Busca o perfil existente do usuário logado.
+ * Busca o perfil existente do usuário logado de forma segura, usando o JWT para autenticar a consulta SQL.
  */
 export async function getProfileData() {
-  const supabase = createSupabaseServerClient();
-  const {
-    data: { user },
-  } = await supabase.auth.getUser();
+    const supabaseAuth = createSupabaseServerClient();
+    // 🚨 Usa getSession() para tentar obter o JWT do cache/storage
+    const { data: { session } } = await supabaseAuth.auth.getSession(); 
+    
+    if (!session) { 
+        console.error("Usuário não autenticado.");
+        redirect("/"); 
+    }
+    
+    // 🔑 Cria um cliente de DB autenticado para prosseguir com a consulta
+    const supabaseDb = createSupabaseDbClient(session.access_token);
 
-  if (!user) {
-    // Redireciona para o login se não estiver autenticado
-    redirect("/");
-  }
+    // 3. Busca o perfil na tb_profiles
+    const { data: profile, error } = await supabaseDb
+        .from("tb_profiles")
+        .select("*")
+        .eq("id", user.id)
+        .maybeSingle();
 
-  // Busca o perfil na tb_profiles
-  const { data: profile, error } = await supabase
-    .from("tb_profiles")
-    .select("*")
-    .eq("id", user.id)
-    .maybeSingle();
+    if (error) {
+        console.error("Erro ao buscar perfil:", error);
+        return {
+            user_id: user.id,
+            profile: null,
+            email: user.email,
+            error: error.message,
+        };
+    }
 
-  console.log("DEBUG: Perfil Encontrado (Primeiro Login?):", profile);
-  console.log("DEBUG: E-mail do Usuário:", user.email);
+    // Calcula o username sugerido caso o perfil não exista (primeiro login)
+    const suggestedUsername = suggestUsernameFromEmail(user.email);
 
-  if (error) {
-    console.error("Erro ao buscar perfil:", error);
-    // Retorna um objeto que permite ao frontend continuar
     return {
-      user_id: user.id,
-      profile: null,
-      email: user.email,
-      error: error.message,
+        user_id: user.id,
+        profile: profile, // Será nulo se for o primeiro login, mas a função não falha.
+        email: user.email,
+        suggestedUsername: suggestedUsername,
     };
-  }
-
-  // Calcula o username sugerido caso o perfil não exista (primeiro login)
-  const suggestedUsername = suggestUsernameFromEmail(user.email);
-
-  return {
-    user_id: user.id,
-    profile: profile,
-    email: user.email,
-    suggestedUsername: suggestedUsername,
-  };
 }
 
+// --------------------------------------------------------------------------
+// 💾 FUNÇÃO DE ESCRITA (Usada pelo OnboardingForm.tsx)
+// --------------------------------------------------------------------------
+
 /**
- * Cria ou atualiza o perfil do fotógrafo.
- * @param formData Dados do formulário
+ * Cria ou atualiza o perfil do fotógrafo de forma robusta (UPSERT).
  */
 export async function upsertProfile(formData: ProfileFormData) {
-  const supabase = createSupabaseServerClient();
-  const {
-    data: { user },
-  } = await supabase.auth.getUser();
+    // 1. Obtém a SESSÃO e o JWT
+    const supabaseAuth = createSupabaseServerClient(); 
+    const { data: { session, user } } = await supabaseAuth.auth.getSession();
 
-  if (!user) {
-    return { success: false, error: "Usuário não autenticado." };
-  }
+    if (!user || !session) {
+        return { success: false, error: "Usuário não autenticado." };
+    }
+    
+    // 2. CRIA CLIENTE COM JWT para todas as operações de banco de dados (Escrita Segura)
+    const supabaseDb = createSupabaseDbClient(session.access_token); 
 
-  const {
-    username,
-    full_name,
-    mini_bio,
-    phone_contact,
-    instagram_link,
-    operating_cities,
-    profile_picture_url,
-  } = formData;
+    const {
+        username,
+        full_name,
+        mini_bio,
+        phone_contact,
+        instagram_link,
+        operating_cities,
+        profile_picture_url,
+    } = formData;
 
-  // 1. Validação de Unicidade do Username (excluindo o usuário atual)
-  const { data: existingUser, error: checkError } = await supabase
-    .from("tb_profiles")
-    .select("id")
-    .eq("username", username)
-    .neq("id", user.id) // Ignora o próprio usuário se estiver editando
-    .maybeSingle();
+    // 3. Validação de Unicidade do Username (Usando o cliente DB autenticado)
+    const { data: existingUser, error: checkError } = await supabaseDb
+        .from("tb_profiles")
+        .select("id")
+        .eq("username", username)
+        .neq("id", user.id) 
+        .maybeSingle();
 
-  if (existingUser) {
-    return { success: false, error: "Este nome de usuário já está em uso." };
-  }
+    if (existingUser) {
+        return { success: false, error: "Este nome de usuário já está em uso." };
+    }
 
-  if (checkError) {
-    console.error("Erro na verificação de unicidade:", checkError);
-    return {
-      success: false,
-      error: "Erro interno na verificação do nome de usuário.",
-    };
-  }
+    if (checkError) {
+        console.error("Erro na verificação de unicidade:", checkError);
+        return {
+            success: false,
+            error: "Erro interno na verificação do nome de usuário.",
+        };
+    }
 
-  // 2. Inserção ou Atualização (UPSERT)
-  // O trigger já criou um registro com ID e studio_id, então fazemos um UPDATE.
-  // Usamos o ID do usuário como chave para o UPDATE.
-  const { error } = await supabase
-    .from("tb_profiles")
-    .update({
-      username: username,
-      full_name: full_name,
-      mini_bio: mini_bio,
-      phone_contact: phone_contact.replace(/\D/g, "") || null, // Limpa o telefone
-      instagram_link: instagram_link,
-      operating_cities: operating_cities, // Assumindo que o frontend enviará um array
-      profile_picture_url: profile_picture_url,
-      updated_at: new Date().toISOString(),
-    })
-    .eq("id", user.id); // Garante que apenas o próprio usuário possa atualizar
+    // 4. INSERÇÃO OU ATUALIZAÇÃO (UPSERT)
+    const { error } = await supabaseDb
+        .from("tb_profiles")
+        .upsert({ 
+            id: user.id, // Chave primária necessária para o upsert
+            username: username,
+            full_name: full_name,
+            mini_bio: mini_bio,
+            phone_contact: phone_contact.replace(/\D/g, "") || null, 
+            instagram_link: instagram_link,
+            operating_cities: operating_cities, 
+            profile_picture_url: profile_picture_url,
+            updated_at: new Date().toISOString(),
+        })
+        .select(); 
 
-  if (error) {
-    console.error("Erro ao salvar perfil:", error);
-    return { success: false, error: error.message };
-  }
+    if (error) {
+        console.error("Erro ao salvar perfil (UPSERT):", error);
+        return { success: false, error: error.message };
+    }
 
-  // 3. Revalida e Redireciona
-  revalidatePath("/dashboard");
-  redirect("/app"); // Redireciona para o App Gateway para re-verificação.
+    // 5. Revalida e Redireciona
+    revalidatePath("/dashboard");
+    redirect("/app"); 
 }
