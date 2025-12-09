@@ -26,18 +26,15 @@ interface ProfileFormData {
  * Busca o perfil existente do usuário logado de forma segura, usando o JWT para autenticar a consulta SQL.
  */
 export async function getProfileData() {
-    const supabaseAuth = createSupabaseServerClient();
-    // 🚨 Usa getSession() para tentar obter o JWT do cache/storage
-    const { data: { session } } = await supabaseAuth.auth.getSession(); 
+    const supabase = createSupabaseServerClient();
     
-    if (!session) { 
-        console.error("Usuário não autenticado.");
-        redirect("/"); 
+    // Obtém a sessão do usuário logado
+    const { data: { user } } = await supabase.auth.getUser();
+
+    if (!user) {
+        return { userId: null, studioId: null };
     }
     
-    // 🔑 Cria um cliente de DB autenticado para prosseguir com a consulta
-    const supabaseDb = createSupabaseDbClient(session.access_token);
-
     // 3. Busca o perfil na tb_profiles
     const { data: profile, error } = await supabaseDb
         .from("tb_profiles")

@@ -74,6 +74,11 @@ export default function AppClientGuard() {
         );
     }
 
+    if (!session) {
+        router.replace('/');
+        return null;
+    }
+    
     // Retorna nulo no final, pois o componente irá navegar via router.replace()
     return null;
 }
