@@ -4,11 +4,10 @@ import { cookies } from 'next/headers';
 import { redirect } from 'next/navigation';
 import slugify from 'slugify';
 
-// OBRIGATÓRIO: Cliente Supabase adaptado para Server Actions
-import { createSupabaseServerClient } from '@/lib/supabase.server'; 
-
-// Chave do cookie (deve ser consistente em todo o projeto)
-const ACCESS_COOKIE_KEY = 'galeria_acesso_'; 
+import { createSupabaseServerClient } from "@/lib/supabase.server"; 
+import { createSupabaseDbClient } from "@/lib/supabase.db"; 
+import { suggestUsernameFromEmail } from "@/utils/userUtils"; 
+import { revalidatePath } from "next/cache"
 
 // =========================================================================
 // FUNÇÕES AUXILIARES DE DADOS
@@ -19,13 +18,15 @@ const ACCESS_COOKIE_KEY = 'galeria_acesso_';
  * @returns {object} { userId: string, studioId: string } ou { null }
  */
 async function getAuthAndStudioIds() {
-    const supabase = createSupabaseServerClient();
+    // 1. INICIALIZAÇÃO: Usa o cliente centralizado que já trata a leitura do cookie
+    const supabaseAuth = createSupabaseServerClient(); 
     
-    // Obtém a sessão do usuário logado
-    const { data: { user } } = await supabase.auth.getUser();
+    // 2. Obtém a SESSÃO e o JWT
+    const { data: { session } } = await supabaseAuth.auth.getSession();
+    const user = session?.user;
 
     if (!user) {
-        return { userId: null, studioId: null };
+        return { success: false, error: "Usuário não autenticado." };
     }
 
     // Busca o profile para obter o studio_id e o username (para segurança e RLS)
@@ -204,7 +205,7 @@ export async function getGalerias() {
 
     if (!userId) {
         // Se não houver userId, retorna vazio para evitar erros
-        return [];
+        return { success: false, error: "Usuário não autenticado." };
     }
 
     try {

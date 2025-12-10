@@ -22,8 +22,8 @@ if (loading) {
     if (session) {
         // Agora, UserMenu recebe a sessão e o manipulador de logout
         return <UserMenu session={session} handleLogout={handleLogout} />; 
-    } else {
+    } /*else {
         // Se deslogado: Mostra o botão de Login
         return <GoogleSignInButton />;
-    }
+    }*/
 }

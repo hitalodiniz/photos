@@ -108,9 +108,11 @@ export default function ClientAdminWrapper({ initialGalerias: initialGalerias }:
         const locationLower = normalizeString(filterLocation);
         const dateFilter = filterDate;
 
-        return galerias.filter(galeria => {
+        const safeGalerias = Array.isArray(galerias) ? galerias : [];
+
+        return safeGalerias.filter(galeria => {
             const galeriaTitle = normalizeString(galeria.title);
-            const clientName = normalizeString(galeria.clientName || '');
+            const clientName = normalizeString(galeria.client_name || '');
             const galeriaLocation = normalizeString(galeria.location || '');
 
             const matchesName = nameLower === '' || galeriaTitle.includes(nameLower) || clientName.includes(nameLower);
@@ -454,7 +456,7 @@ export default function ClientAdminWrapper({ initialGalerias: initialGalerias }:
                 </div>
 
                 {/* ==================== COLUNA DIREITA: LISTA (MEU DRIVE) ==================== */}
-                <div className="order-1 lg:order-2">
+                <div className="order-2 lg:order-2">
                     <div className="bg-white p-8 rounded-[16px] shadow-xl w-full">
                         <h2 className="text-2xl font-extrabold mb-6 text-gray-800 border-b pb-2">
                             Galerias Recentes ({filteredGalerias.length} de {galerias.length})

@@ -14,15 +14,14 @@ async function signInWithGoogle() {
       // se o ambiente for local. Caso contrário, você deve usar o domínio de produção.
       // Para o desenvolvimento local, esta URL é mais segura.
       redirectTo: `${window.location.origin}/app`,
-      // Opcional (Recomendado): Força o Google a mostrar a seleção de contas
+      // Opcional (Recomendado): Força o Google a mostrar a seleção de contas
       //queryParams: {
       //  prompt: 'select_account',
-     // }
+      // }
     },
 
-
-
   }); // <-- A sintaxe de fechamento do objeto e da função está correta aqui.
+
 
   if (error) {
     console.error('Erro ao iniciar o login com Google:', error.message);

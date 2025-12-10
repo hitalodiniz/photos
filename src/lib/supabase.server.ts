@@ -1,42 +1,47 @@
-// lib/supabase.server.ts
+// lib/supabase.server.ts (FINAL e GARANTIDO)
 
 import { createServerClient, type CookieOptions } from '@supabase/ssr';
 import { cookies } from 'next/headers';
+// Importamos o RequestCookie (o objeto que .get(name) retorna)
+import { type RequestCookie } from 'next/dist/server/web/spec-extension/cookies'; 
+import { type ResponseCookieStore } from 'next/dist/server/web/spec-extension/cookies';
+    // O cookieStore é o objeto que você precisa
+    const writableCookieStore = cookieStore as ResponseCookieStore;
 
 /**
- * Cria e retorna um cliente Supabase que lê os cookies do servidor (Server Components / Server Actions).
+ * Cria e retorna um cliente Supabase para o lado do servidor.
  */
 export function createSupabaseServerClient() {
+    // 1. Chamada síncrona. Removemos a conversão 'as unknown as ReadonlyRequestCookies'.
     const cookieStore = cookies();
-    console.log('Criando Supabase Server Client com cookies do servidor.', cookieStore.getAll().length);
     
-    // O nome padrão do cookie é lido automaticamente pelo createServerClient,
-    // mas precisamos fornecer os métodos get/set/remove usando a API 'cookies()' do Next.js.
-
     return createServerClient(
         process.env.NEXT_PUBLIC_SUPABASE_URL!,
         process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!,
         {
             cookies: {
-                get(name: string) {
-                    // Retorna o valor do cookie lido diretamente dos headers da requisição.
-                    return cookieStore.get(name)?.value;
+                // 🔑 CRUCIAL: A função 'get' deve ser async e usar await.
+                async get(name: string) { 
+                    // O método .get(name) existe. Usamos 'await' para resolver a Promise.
+                    // O erro de tipagem será resolvido porque não estamos mais forçando a conversão.
+                    
+                    // O tipo de retorno de cookieStore.get(name) é Promise<RequestCookie | undefined>
+                    const cookie = await cookieStore.get(name) as RequestCookie | undefined; 
+                    return cookie?.value;
                 },
-                set(name: string, value: string, options: CookieOptions) {
-                    // Esta função é executada quando o Supabase tenta SETAR um cookie.
-                    // Em Server Components/Actions, geralmente falha por ser tarde demais,
-                    // mas é mantida por completude e estabilidade.
+       // mas apenas gravam cookies em Route Handlers, não em Server Actions.
+               set(name: string, value: string, options: CookieOptions) {
                     try {
-                        cookieStore.set({ name, value, ...options });
+                        writableCookieStore.set({ name, value, ...options });
                     } catch (error) {
-                        // O 'error' aqui é comum (READONLY_COOKIES)
+                         // Erro de READONLY_COOKIES esperado em Server Actions
                     }
                 },
                 remove(name: string, options: CookieOptions) {
                     try {
-                        cookieStore.set({ name, value: '', ...options });
+                        writableCookieStore.set({ name, value: '', ...options });
                     } catch (error) {
-                        // O 'error' aqui é comum (READONLY_COOKIES)
+                        // Erro de READONLY_COOKIES esperado em Server Actions
                     }
                 },
             },

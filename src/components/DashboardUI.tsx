@@ -20,8 +20,8 @@ interface EditModalProps {
 // =========================================================================
 
 // Estilos Material Design
-const inputClass = "mt-1 block w-full rounded-lg border-none bg-[#F0F4F9] p-3 text-[#1F1F1F] placeholder-gray-500 focus:ring-2 focus:ring-[#0B57D0] focus:bg-white transition-all outline-none";
-const labelClass = "block text-xs font-medium text-[#444746] ml-1";
+const inputClass = "mt-1 block w-full rounded-lg border-none bg-[#F0F4F9] p-2 text-[#1F1F1F] placeholder-gray-500 focus:ring-2 focus:ring-[#0B57D0] focus:bg-white transition-all outline-none";
+const labelClass = "block text-sm font-medium text-[#444746] ml-1";
 
 // Função para aplicar a máscara (reimplementada aqui para evitar circular dependency no hook)
 const maskPhoneInternal = (value: string): string => {
