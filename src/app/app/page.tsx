@@ -101,7 +101,7 @@ export default function AppClientGuard() {
     if (authLoading || profileLoading || cookieSyncing) { // Inclui o novo estado
         return (
             <div className="min-h-screen flex items-center justify-center p-8 bg-[#F8FAFD] text-gray-700">
-                <p>{cookieSyncing ? 'Sincronizando sessão no servidor...' : 'Verificando seu acesso...'}</p>
+                <p>{'Verificando seu acesso...'}</p>
             </div>
         );
     }

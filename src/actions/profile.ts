@@ -1,6 +1,6 @@
 "use server";
 
-import { createSupabaseDbClient } from "@/lib/supabase.db";
+import { removeNulls } from "@/utils/removeNullsUpdate";
 import { suggestUsernameFromEmail } from "@/utils/userUtils";
 import { redirect } from "next/navigation";
 import { revalidatePath } from "next/cache";
@@ -69,7 +69,6 @@ export async function upsertProfile(formData: FormData) {
   console.log("formData received in upsertProfile:", formData);
   // 1. INICIALIZAÇÃO: Usa o cliente centralizado que já trata a leitura do cookie
   const supabase = createSupabaseServerClient();
-  console.log("Supabase client created in upsertProfile.");
   // 2. Obtém a SESSÃO e o JWT
   const {
     data: { user },
@@ -77,7 +76,6 @@ export async function upsertProfile(formData: FormData) {
   console.log("upsertProfile called by user:", user);
   if (!user) {
     console.error("Usuário não autenticado.");
-
     return { success: false, error: "Usuário não autenticado." };
   }
 
@@ -129,9 +127,9 @@ export async function upsertProfile(formData: FormData) {
   }
 
   // 5. VALIDAÇÃO E UPSERT
-
+  console.log("Validating and upserting profile for username:", username);
   // Validação de Unicidade do Username
-  const { data: existingUser, error: checkError } = await supabase // 🚨 Usa supabaseDb autenticado
+  const { data: existingUser, error: checkError } = await supabase
     .from("tb_profiles")
     .select("id")
     .eq("username", username)
@@ -153,28 +151,37 @@ export async function upsertProfile(formData: FormData) {
     };
   }
 
+  const { data: existingProfile } = await supabase
+    .from("tb_profiles")
+    .select("studio_id")
+    .eq("username", username)
+    .maybeSingle();
+
   const operating_cities = operating_cities_str
     .split(",")
     .map((s) => s.trim())
     .filter((s) => s.length > 0);
 
-  // ATUALIZAÇÃO (UPSERT)
-  const { error } = await supabase
+  const { data, error } = await supabase
     .from("tb_profiles")
     .update({
-      // Não precisamos passar o ID aqui, pois usamos .eq() para identificação
-      username: username,
-      full_name: full_name,
-      mini_bio: mini_bio,
-      phone_contact: phone_contact.replace(/\D/g, "") || null,
-      instagram_link: instagram_link,
-      operating_cities: operating_cities,
-      profile_picture_url: profile_picture_url,
+      full_name: full_name || null,
+      studio_id: existingProfile.studio_id,
+      mini_bio: mini_bio || null,
+      phone_contact: phone_contact ? phone_contact.replace(/\D/g, "") : null,
+      instagram_link: instagram_link || null,
+      operating_cities: operating_cities?.length ? operating_cities : null,
+      profile_picture_url: profile_picture_url || null,
       updated_at: new Date().toISOString(),
     })
     // 🔑 O filtro .eq() identifica a linha a ser atualizada
-    .eq("id", user.id)
+    .eq("id", "69daec50-9ca4-4e57-8e3e-2d651a65e992")
     .select();
+  console.log("Auth user.id =", user.id);
+  console.log("Pos update", data, error);
+  
+
+  //  GET();
 
   if (error) {
     // Se o perfil não existir, o erro será "no rows updated" ou similar,
@@ -185,8 +192,26 @@ export async function upsertProfile(formData: FormData) {
       error: "Erro ao atualizar perfil (UPDATE):" + error.message,
     };
   }
-
+//GET();
   // 6. Revalida e Redireciona
   revalidatePath("/dashboard");
   redirect("/app");
+}
+
+export async function GET() {
+  /* const supabase = createSupabaseServerClient();
+
+  const { data } = await supabase.rpc("get_uid");
+
+  console.log("Backend UID:", data);
+
+  return Response.json({ uid: data });*/
+  const supabase = createSupabaseServerClient();
+  const { data, error } = await supabase
+    .from("tb_profiles")
+    .update({ full_name: "afafa via vs code" })
+    .eq("id", "69daec50-9ca4-4e57-8e3e-2d651a65e992")
+    .select();
+
+  console.log({ data, error });
 }

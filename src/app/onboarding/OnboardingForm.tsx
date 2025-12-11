@@ -110,11 +110,11 @@ export default function OnboardingForm({ initialData, suggestedUsername, email, 
     return (
         <div className="w-full max-w-3xl bg-white p-6 md:p-10 rounded-xl shadow-xl border border-[#E0E3E7] relative z-10 gap-6">
 
-            <h1 className="text-3xl font-extrabold text-[#1F1F1F] mb-2">
+            <h1 className="text-2xl font-extrabold text-[#1F1F1F] mb-2">
                 {isEditMode ? 'Editar perfil profissional' : 'Finalize seu cadastro'}
             </h1>
             <p className="text-[#444746] mb-6">
-                {isEditMode ? 'Atualize seus dados..' : `Seu e-mail foi confirmado. Por favor, preencha os dados abaixo para ativar sua conta.`}
+                {isEditMode ? '' : `Seu e-mail foi confirmado. Por favor, preencha os dados abaixo para ativar sua conta.`}
             </p>
 
             {formError && <p className="text-[#B3261E] bg-[#FFDAD6] p-3 rounded-lg mb-4">{formError}</p>}

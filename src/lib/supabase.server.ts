@@ -6,6 +6,7 @@ export function createSupabaseServerClient() {
   return createServerClient(
     process.env.NEXT_PUBLIC_SUPABASE_URL!,
     process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!,
+
     {
       cookies: {
         async get(name: string) {
@@ -21,8 +22,8 @@ export function createSupabaseServerClient() {
         async remove(name: string, options: any) {
           const store = await cookies();
           store.set(name, "", { ...options, maxAge: 0 });
-        }
-      }
+        },
+      },
     }
   );
 }

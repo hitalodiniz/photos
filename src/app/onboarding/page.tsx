@@ -27,11 +27,6 @@ export default async function OnboardingPage() {
     // Embora o Client Guard deva evitar que chegue aqui, esta é uma guarda de segurança do Server Side.
     const isProfileComplete = profile && profile.full_name && profile.username && profile.mini_bio;
 
-    if (isProfileComplete) {
-        // Se, por algum motivo, o usuário chegar aqui com o perfil completo, redireciona para o dashboard.
-        redirect('/dashboard');
-    }
-
     // 3. Renderiza o Client Component com os dados iniciais
     return (
         <AuthGuard>

@@ -19,10 +19,10 @@ import { revalidatePath } from "next/cache"
  */
 async function getAuthAndStudioIds() {
     // 1. INICIALIZAÇÃO: Usa o cliente centralizado que já trata a leitura do cookie
-    const supabaseAuth = createSupabaseServerClient(); 
+    const supabase = createSupabaseServerClient(); 
     
     // 2. Obtém a SESSÃO e o JWT
-    const { data: { session } } = await supabaseAuth.auth.getSession();
+    const { data: { session } } = await supabase.auth.getSession();
     const user = session?.user;
 
     if (!user) {
