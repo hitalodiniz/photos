@@ -19,10 +19,10 @@ import { revalidatePath } from "next/cache"
  */
 async function getAuthAndStudioIds() {
     // 1. INICIALIZAÇÃO: Usa o cliente centralizado que já trata a leitura do cookie
-    const supabaseAuth = createSupabaseServerClient(); 
+    const supabase = createSupabaseServerClient(); 
     
     // 2. Obtém a SESSÃO e o JWT
-    const { data: { session } } = await supabaseAuth.auth.getSession();
+    const { data: { session } } = await supabase.auth.getSession();
     const user = session?.user;
 
     if (!user) {
@@ -39,7 +39,7 @@ async function getAuthAndStudioIds() {
     if (error || !profile) {
         // Se o usuário estiver autenticado, mas não tiver profile, algo está errado
         console.error("Erro ao buscar profile do usuário logado:", error);
-        return { userId: null, studioId: null };
+        return { success: false, error: "Erro ao buscar profile do usuário logado." };
     }
 
     return { userId: user.id, studioId: profile.studio_id };

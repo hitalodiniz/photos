@@ -6,10 +6,6 @@ import { supabase } from '@/lib/supabase.client'; // Cliente de browser
 import { useRouter } from 'next/navigation';
 import { useEffect, useState } from 'react';
 import { useSearchParams } from 'next/navigation'; // Adicionado para limpeza de URL
-import { createClient } from '@supabase/supabase-js'
-const supabase_url = process.env.NEXT_PUBLIC_SUPABASE_URL!;
-const anon_key = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!;
-
 
 // Define a estrutura mínima do perfil
 interface Profile {

@@ -20,6 +20,7 @@ export default async function OnboardingPage() {
         // Se houver erro ou o usuário não estiver logado (token inválido no servidor),
         // redireciona para a raiz para o Cliente tratar o login.
         console.error("Erro ao carregar dados do perfil ou usuário deslogado:", error);
+        
         //   redirect('/'); 
     }
 

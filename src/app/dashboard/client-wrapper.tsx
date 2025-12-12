@@ -309,8 +309,8 @@ export default function ClientAdminWrapper({ initialGalerias: initialGalerias }:
     const labelClass = "block text-xs font-medium text-[#444746] ml-1";
 
     return (
-        <AuthGuard>
-    
+      //  <AuthGuard>
+    <div>
             {toastMessage && <Toast message={toastMessage} type={toastType} onClose={() => setToastMessage('')} />}
 
             <ConfirmationModal galeria={galeriaToDelete} isOpen={isConfirmModalOpen} onClose={() => setIsConfirmModalOpen(false)} onConfirm={handleConfirmDelete} />
@@ -616,6 +616,7 @@ export default function ClientAdminWrapper({ initialGalerias: initialGalerias }:
                     </div>
                 </div>
             </div>
-        </AuthGuard>
+            </div>
+ //       </AuthGuard>
     );
 }

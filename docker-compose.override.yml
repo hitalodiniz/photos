@@ -1,0 +1,10 @@
+version: "3.8"
+
+services:
+  # Nome usado em versões mais novas do Supabase CLI
+  edgeRuntime:
+    profiles: ["disabled"]
+
+  # Nome usado em versões anteriores / alguns logs
+  edge-runtime:
+    profiles: ["disabled"]

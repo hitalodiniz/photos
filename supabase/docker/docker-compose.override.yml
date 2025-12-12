@@ -1,0 +1,7 @@
+version: "3.8"
+
+services:
+  edgeRuntime:
+    profiles: ["disabled"]
+  edge-runtime:
+    profiles: ["disabled"]
