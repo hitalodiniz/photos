@@ -1,7 +1,11 @@
-// app/page.tsx (Última tentativa de Server Component)
+// app/page.tsx (Home Page Principal com Checagem de Autenticação Server-Side)
 
 import { redirect } from 'next/navigation';
 import LandingPageContent from '@/components/LandingPageContent'; 
+
+// Importe sua função de criação do cliente Supabase para o servidor
+// ATENÇÃO: Verifique o caminho real no seu projeto!
+import { createSupabaseServerClient } from "@/lib/supabase.server"; 
 
 // Adicione um componente de Spinner simples
 const LoadingSpinner = () => (
@@ -10,6 +14,6 @@ const LoadingSpinner = () => (
     </div>
 );
 
-export default async function HomePage() { 
-    return <LandingPageContent />; 
+export default async function HomePage() {
+  return <LandingPageContent />;
 }

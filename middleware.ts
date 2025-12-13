@@ -1,29 +1,24 @@
+// middleware.ts
 import { NextResponse } from "next/server";
 import type { NextRequest } from "next/server";
 import { createServerClient } from "@supabase/ssr";
 
-export async function middleware(req: NextRequest) {
-  const url = req.nextUrl;
-  const host = req.headers.get("host") || "";
-  const isLocalhost = host.includes("localhost");
+// Cache simples em memória para subdomínios válidos
+const subdomainCache = new Map<
+  string,
+  { username: string; use_subdomain: boolean; createdAt: number }
+>();
 
-  // Exemplo: hitalo.localhost:3000 → subdomain = "hitalo"
-  const subdomain = isLocalhost
-    ? host.split(".")[0] // localhost:3000 → "localhost"
-    : host.split(".")[0];
+const SUBDOMAIN_CACHE_TTL = 1000 * 60 * 5; // 5 minutos
 
-  // Se for localhost puro, não é subdomínio
-  const isSubdomain =
-    isLocalhost && subdomain !== "localhost"
-      ? true
-      : !isLocalhost && host.split(".").length > 2;
+async function getProfileBySubdomain(subdomain: string, req: NextRequest) {
+  const now = Date.now();
+  const cached = subdomainCache.get(subdomain);
 
-  // Se NÃO for subdomínio → segue fluxo normal
-  if (!isSubdomain) {
-    return NextResponse.next();
+  if (cached && now - cached.createdAt < SUBDOMAIN_CACHE_TTL) {
+    return cached;
   }
 
-  // Se for subdomínio, precisamos verificar se existe fotógrafo com esse username
   const supabase = createServerClient(
     process.env.NEXT_PUBLIC_SUPABASE_URL!,
     process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!,
@@ -32,12 +27,8 @@ export async function middleware(req: NextRequest) {
         get(name) {
           return req.cookies.get(name)?.value;
         },
-        set(name, value, options) {
-          // Não precisa setar cookies aqui
-        },
-        remove(name, options) {
-          // Não precisa remover cookies aqui
-        },
+        set() {},
+        remove() {},
       },
     }
   );
@@ -48,27 +39,93 @@ export async function middleware(req: NextRequest) {
     .eq("username", subdomain)
     .single();
 
-  // Se o subdomínio não pertence a ninguém → 404
   if (!profile || !profile.use_subdomain) {
-    return NextResponse.rewrite(new URL("/404", req.url));
+    return null;
   }
 
-  // Agora sabemos que o subdomínio é válido
-  // Vamos reescrever a URL para a rota interna correta
+  const item = {
+    username: profile.username,
+    use_subdomain: profile.use_subdomain,
+    createdAt: now,
+  };
 
-  // Exemplo:
-  // hitalo.localhost:3000/2025/10/05/casamento
-  // vira:
-  // localhost:3000/_subdomain/hitalo/2025/10/05/casamento
+  subdomainCache.set(subdomain, item);
+  return item;
+}
 
-  const newUrl = req.nextUrl.clone();
-  newUrl.pathname = `/_subdomain/${profile.username}${url.pathname}`;
+export async function middleware(req: NextRequest) {
+  const url = req.nextUrl;
+  const host = req.headers.get("host") || "";
+  const isLocalhost = host.includes("localhost");
 
-  return NextResponse.rewrite(newUrl);
+  // ============================
+  // 1. PROTEÇÃO DO DASHBOARD
+  // ============================
+  if (url.pathname.startsWith("/dashboard")) {
+    const supabase = createServerClient(
+      process.env.NEXT_PUBLIC_SUPABASE_URL!,
+      process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!,
+      {
+        cookies: {
+          get(name) {
+            return req.cookies.get(name)?.value;
+          },
+          set() {},
+          remove() {},
+        },
+      }
+    );
+
+    const {
+      data: { session },
+    } = await supabase.auth.getSession();
+
+    if (!session) {
+      const loginUrl = new URL("/auth/login", req.url);
+      loginUrl.searchParams.set("next", url.pathname + url.search);
+      return NextResponse.redirect(loginUrl);
+    }
+
+    return NextResponse.next();
+  }
+
+  // ============================
+  // 2. LÓGICA DE SUBDOMÍNIO
+  // ============================
+
+  const subdomain = isLocalhost
+    ? host.split(".")[0]
+    : host.split(".")[0];
+
+  const isSubdomain =
+    isLocalhost && subdomain !== "localhost"
+      ? true
+      : !isLocalhost && host.split(".").length > 2;
+
+  if (isSubdomain) {
+    const profile = await getProfileBySubdomain(subdomain, req);
+
+    if (!profile) {
+      return NextResponse.rewrite(new URL("/404", req.url));
+    }
+
+    const newUrl = req.nextUrl.clone();
+    newUrl.pathname = `/_subdomain/${profile.username}${url.pathname}`;
+
+    return NextResponse.rewrite(newUrl);
+  }
+
+  // ============================
+  // 3. GALERIAS (PÚBLICAS OU PRIVADAS)
+  // ============================
+  // O middleware NÃO bloqueia galerias privadas.
+  // A página da galeria é responsável por pedir senha.
+
+  return NextResponse.next();
 }
 
 export const config = {
   matcher: [
-    "/((?!_next|api|static|favicon.ico|robots.txt).*)",
+    "/((?!_next|api/auth/callback|api/auth|api|static|favicon.ico|robots.txt).*)",
   ],
 };

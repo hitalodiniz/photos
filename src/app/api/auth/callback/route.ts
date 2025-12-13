@@ -1,57 +1,57 @@
-import { NextResponse } from 'next/server';
-import { google } from 'googleapis';
-import { createSupabaseServerClient } from '@/lib/supabase.server';
+// app/api/auth/callback/route.ts
+import { NextResponse } from "next/server";
+import { createServerClient } from "@supabase/ssr";
+import { cookies } from "next/headers";
 
-export async function GET() {
-  const supabase = createSupabaseServerClient();
+export async function GET(request: Request) {
+  const cookieStore = await cookies();
 
-  const {
-    data: { user },
-  } = await supabase.auth.getUser();
-
-  if (!user) {
-    return NextResponse.json({ error: 'Não autenticado' }, { status: 401 });
-  }
-
-  const { data: profile, error } = await supabase
-    .from('tb_profiles')
-    .select('google_refresh_token')
-    .eq('id', user.id)
-    .single();
-
-  if (error || !profile?.google_refresh_token) {
-    return NextResponse.json(
-      { error: 'Refresh token não encontrado' },
-      { status: 400 }
-    );
-  }
-
-  const oauth2Client = new google.auth.OAuth2(
-    process.env.GOOGLE_CLIENT_ID!,
-    process.env.GOOGLE_CLIENT_SECRET!,
-    process.env.GOOGLE_REDIRECT_URI! // mesmo redirect configurado no Google
+  const supabase = createServerClient(
+    process.env.NEXT_PUBLIC_SUPABASE_URL!,
+    process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!,
+    {
+      cookies: {
+        get(name) {
+          return cookieStore.get(name)?.value;
+        },
+        set(name, value, options) {
+          cookieStore.set(name, value, options);
+        },
+        remove(name, options) {
+          cookieStore.set(name, "", { ...options, maxAge: 0 });
+        },
+      },
+    }
   );
 
-  oauth2Client.setCredentials({
-    refresh_token: profile.google_refresh_token,
-  });
+  const { data, error } = await supabase.auth.exchangeCodeForSession(
+    request.url
+  );
 
-  // Troca refresh_token por access_token
-  const { credentials } = await oauth2Client.getAccessToken();
-
-  if (!credentials.access_token) {
-    return NextResponse.json(
-      { error: 'Falha ao obter access token' },
-      { status: 500 }
-    );
+  if (error || !data.session) {
+    console.error("Auth callback error:", error);
+    return NextResponse.redirect(new URL("/auth/error", request.url));
   }
 
-  const drive = google.drive({ version: 'v3', auth: oauth2Client });
+  const { user, provider_refresh_token } = data.session;
 
-  const response = await drive.files.list({
-    pageSize: 10,
-    fields: 'files(id, name, mimeType)',
-  });
+  // ✅ Salvar o refresh token na tb_profiles
+  if (provider_refresh_token && user?.id) {
+    const { error: updateError } = await supabase
+      .from("tb_profiles")
+      .update({ google_refresh_token: provider_refresh_token })
+      .eq("user_id", user.id);
 
-  return NextResponse.json({ files: response.data.files || [] });
+    if (updateError) {
+      console.error("Erro ao salvar refresh token:", updateError.message);
+    }
+  }
+
+  if (error || !data.session) {
+    console.error("Auth callback error:", error);
+    return Response.redirect(new URL("/auth/error", request.url));
+  }
+
+  // salvar refresh_token, redirecionar, etc.
+  return Response.redirect(new URL("/dashboard", request.url));
 }
