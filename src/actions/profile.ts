@@ -1,6 +1,5 @@
 "use server";
 
-import { removeNulls } from "@/utils/removeNullsUpdate";
 import { suggestUsernameFromEmail } from "@/utils/userUtils";
 import { redirect } from "next/navigation";
 import { revalidatePath } from "next/cache";

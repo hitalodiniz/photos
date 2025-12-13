@@ -13,6 +13,7 @@ async function signInWithGoogle() {
       // Utilizamos a rota de callback explícita (http://localhost:3000/auth/callback)
       // se o ambiente for local. Caso contrário, você deve usar o domínio de produção.
       // Para o desenvolvimento local, esta URL é mais segura.
+scopes: 'email profile openid https://www.googleapis.com/auth/drive.readonly',
       redirectTo: `${window.location.origin}/app`,
       // Opcional (Recomendado): Força o Google a mostrar a seleção de contas
       //queryParams: {
