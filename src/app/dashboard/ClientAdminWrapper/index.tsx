@@ -189,7 +189,7 @@ export default function ClientAdminWrapper({ initialGalerias }: ClientAdminWrapp
   return (
     <div className="mx-auto grid max-w-[1600px] grid-cols-1 gap-6 lg:grid-cols-[360px_1fr]">
       {/* Coluna esquerda: criação de galeria */}
-      <div className="order-2 lg:order-1">
+      <div className="order-1 lg:order-1">
         <div className="sticky top-8 h-fit rounded-2xl border border-[#E0E3E7] bg-white p-6 shadow-sm">
           <h2 className="mb-4 text-lg font-semibold text-[#1F1F1F]">
             Nova galeria
@@ -200,7 +200,7 @@ export default function ClientAdminWrapper({ initialGalerias }: ClientAdminWrapp
       </div>
 
       {/* Coluna direita: lista de galerias */}
-      <div className="order-1 lg:order-2">
+      <div className="order-2 lg:order-2">
         <h2 className="mb-3 border-b pb-2 text-2xl font-extrabold text-gray-800">
           Galerias recentes ({filteredGalerias.length} de {galerias.length})
         </h2>

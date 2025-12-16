@@ -1,8 +1,8 @@
 // app/dashboard/page.tsx
 import { redirect } from 'next/navigation';
-import { createSupabaseServerClient } from '@/lib/supabase.server';
+import { createSupabaseServerClientReadOnly } from '@/lib/supabase.server';
 import { getGalerias } from '@/actions/galeria';
-import ClientAdminWrapper from './client-wrapper';
+import ClientAdminWrapper from './ClientAdminWrapper';
 import { Metadata } from 'next';
 
 export const metadata: Metadata = {
@@ -10,16 +10,19 @@ export const metadata: Metadata = {
 };
 
 export default async function DashboardPage() {
-  const supabase = createSupabaseServerClient();
+// 1. Cria a instância Supabase READ-ONLY para o servidor
+    // É uma boa prática não usar 'await' na chamada da função se ela já for assíncrona
+    const supabase = await createSupabaseServerClientReadOnly(); 
 
-  // 1. Usuário autenticado (validado pelo Supabase)
-  const {
-    data: { user },
-  } = await supabase.auth.getUser();
+    // 2. Chama getUser() na instância correta
+    const {
+        data: { user },
+    } = await supabase.auth.getUser(); 
 
-  if (!user) {
-    redirect('/');
-  }
+    if (!user) {
+        // Se a sessão expirou ou não existe, redireciona para login
+        redirect('/');
+    }
 
   // 2. Busca o perfil via RLS
   const { data: profile, error: profileError } = await supabase

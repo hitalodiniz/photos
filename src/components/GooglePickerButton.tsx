@@ -1,177 +1,169 @@
-// components/GooglePickerButton.tsx
 "use client";
 
-import { useEffect, useState, useMemo } from 'react';
-// Importa diretamente a instância exportada
-import { supabase } from '@/lib/supabase.client';
+import { useEffect, useState } from 'react';
+// Importa a instância exportada do cliente Supabase para o cliente
+import { supabase } from '@/lib/supabase.client'; 
+// Importa as Server Actions para o lado do servidor
+import { getParentFolderIdServer, getDriveFolderName } from '@/actions/google'; 
 
 // Tipagem para as propriedades do componente
 interface GooglePickerProps {
-    onFolderSelect: (folderId: string) => void;
-    currentDriveId: string;
+    // Retorna o ID e o Nome
+    onFolderSelect: (folderId: string, folderName: string) => void;
+    currentDriveId: string | null;
+    // Propriedade para tratamento de erro
+    onError: (message: string) => void; 
 }
 
-// Declaração de variáveis globais do Google
+// Declarações globais (mantidas)
 declare global {
     interface Window {
         gapi: any;
         google: any;
-        onGoogleLibraryLoad: () => void;
+        onGoogleLibraryLoad: (() => void) | undefined; // Definido como opcional
     }
 }
 
-let isGoogleApiReady = false;
+// Variáveis estáticas para controle de carregamento (limpas)
+let isPickerLoaded = false;
 
-// Função que faz a chamada API no navegador
-const getParentFolderIdClient = async (fileId: string, accessToken: string): Promise<string | null> => {
-    if (!window.gapi || !window.gapi.client || !window.gapi.client.drive) {
-        console.error("GAPI Drive Client não está carregado.");
-        return null;
+// Função de carregamento do GAPI e Picker (simplificada, focada em reatividade)
+const loadGoogleLibraries = (callback: () => void) => {
+    if (isPickerLoaded) {
+        callback();
+        return;
     }
 
-    try {
-        // Define o Access Token para a requisição
-        window.gapi.client.setToken({ access_token: accessToken });
-
-        // Faz a chamada files.get para obter os metadados do arquivo (APENAS o campo 'parents')
-        const response = await window.gapi.client.drive.files.get({
-            fileId: fileId,
-            fields: 'parents',
+    if (window.gapi) {
+        window.gapi.load('picker', () => {
+            isPickerLoaded = true;
+            callback();
         });
-
-        const parents = response.result.parents;
-        
-        if (parents && parents.length > 0) {
-            // Retorna o ID da pasta-mãe
-            return parents[0];
-        }
-
-        return null;
-
-    } catch (error) {
-        console.error('Erro ao obter pasta-mãe (Client):', error);
-        return null;
-    }
-};
-
-export default function GooglePickerButton({ onFolderSelect, currentDriveId }: GooglePickerProps) {
-    const [loading, setLoading] = useState(false);
-    const [isLoaded, setIsLoaded] = useState(isGoogleApiReady);
-
-    // NÃO PRECISAMOS DE useMemo PARA CRIAR O CLIENTE, POIS IMPORTAMOS DIRETAMENTE
-
-    // --- Etapa 1: Carregar/Monitorar as bibliotecas do Google (GAPI e GSI) ---
-    useEffect(() => {
-        if (isGoogleApiReady) {
-            setIsLoaded(true);
-            return;
-        }
-
+    } else {
+        // Assume que o script está carregando e espera o evento global
         window.onGoogleLibraryLoad = () => {
             if (window.gapi) {
-                // Carrega a biblioteca Picker
                 window.gapi.load('picker', () => {
-                    isGoogleApiReady = true;
-                    setIsLoaded(true);
+                    isPickerLoaded = true;
+                    callback();
                 });
             }
         };
-    }, []);
+    }
+};
 
-    // --- Etapa 2: Funções para obter o token e construir o Picker ---
+// ====================================================================
+// COMPONENTE PRINCIPAL
+// ====================================================================
 
-    // Obtém o Google Access Token do Supabase Session
-    const getGoogleAccessToken = async (): Promise<string | null> => {
-        // Usa a instância 'supabase' importada
+// Funções obsoletas (getParentFolderIdClient e getGoogleAccessToken) foram removidas daqui.
+
+export default function GooglePickerButton({ onFolderSelect, currentDriveId, onError }: GooglePickerProps) {
+    const [loading, setLoading] = useState(false);
+    // Estado que reflete a capacidade real de ABRIR o Picker
+    const [isReadyToOpen, setIsReadyToOpen] = useState(isPickerLoaded); 
+
+    // --- 1. Monitorar o Evento de Carregamento Global ---
+    useEffect(() => {
+        if (isReadyToOpen) return;
+
+        loadGoogleLibraries(() => {
+            setIsReadyToOpen(true);
+        });
+
+        return () => {
+             // Limpeza do listener global para evitar vazamento de memória.
+             window.onGoogleLibraryLoad = undefined; 
+        };
+
+    }, [isReadyToOpen]); 
+
+
+    // Obtém o Access Token e User ID necessários (Client-Side)
+    const getAuthDetails = async (): Promise<{ accessToken: string | null, userId: string | null }> => {
         const { data: { session } } = await supabase.auth.getSession();
 
-        // O Supabase armazena o token de acesso do Google como 'provider_token'
-        if (session && session.provider_token) {
-            return session.provider_token;
+        if (session && session.provider_token && session.user.id) {
+            return { accessToken: session.provider_token, userId: session.user.id };
         }
-        return null;
+        return { accessToken: null, userId: null };
     };
+
 
     // Função principal que abre o modal do Picker
     const openPicker = async () => {
-        if (!isLoaded) {
-            alert('Bibliotecas do Google ainda não carregadas.');
+        if (!isReadyToOpen) {
+            // Usa o novo prop onError
+            onError('As bibliotecas do Google Drive não foram carregadas completamente.');
             return;
         }
 
         setLoading(true);
-        const accessToken = await getGoogleAccessToken();
+        const { accessToken, userId } = await getAuthDetails();
 
-        if (!accessToken) {
-            alert('Erro: Não foi possível obter o token de acesso do Google. Refaça o login.');
+        if (!accessToken || !userId) {
+            // Usa o novo prop onError
+            onError('Erro: Usuário não autenticado ou token de acesso Google expirado. Por favor, refaça o login.');
             setLoading(false);
             return;
         }
 
-       try {
-        // --- 1. CONFIGURAÇÃO DA VIEW PARA PASTA E ARQUIVOS ---
-        // Usamos DocsView com ViewId.DOCS, que lista tanto arquivos quanto pastas.
-        const view = new window.google.picker.DocsView(window.google.picker.ViewId.DOCS)
-            // Filtra o que aparece na lista: Pasta e Tipos de Imagem (JPEG, PNG, etc.)
-            .setMimeTypes('application/vnd.google-apps.folder,image/jpeg,image/png,image/tiff') 
-            .setMode(window.google.picker.DocsViewMode.GRID) // Modo Grade é melhor para fotos (como na Imagem 7)
-            // ESTA LINHA É CRÍTICA: Permite que o usuário selecione o objeto Pasta.
-            .setSelectFolderEnabled(true); 
+        try {
+            // --- 1. CONFIGURAÇÃO DA VIEW ---
+            const view = new window.google.picker.DocsView(window.google.picker.ViewId.DOCS)
+                .setMimeTypes('application/vnd.google-apps.folder,image/jpeg,image/png,image/tiff')
+                .setMode(window.google.picker.DocsViewMode.GRID)
+                .setSelectFolderEnabled(false); // O Picker seleciona um ARQUIVO, e o servidor busca a PASTA PAI.
 
-        // --- 2. CONSTRUÇÃO DO PICKER ---
-        const picker = new window.google.picker.PickerBuilder()
-            .setAppId(process.env.NEXT_PUBLIC_GOOGLE_CLIENT_ID!) 
-            .setOAuthToken(accessToken)
-            .addView(view) 
-            .enableFeature(window.google.picker.Feature.NAVIGATE_TO_DRIVE) 
-            .setLocale('pt-BR')
-            .setCallback(async (data: any) => {
-                /*if (data.action === window.google.picker.Action.PICKED) {
-                    const file = data.docs[0];
-                    
-                    // O item selecionado será uma Pasta (MimeType = 'application/vnd.google-apps.folder')
-                    // ou um Arquivo (MimeType = 'image/jpeg').
+            // --- 2. CONSTRUÇÃO DO PICKER ---
+            const picker = new window.google.picker.PickerBuilder()
+                .setAppId(process.env.NEXT_PUBLIC_GOOGLE_CLIENT_ID!)
+                .setOAuthToken(accessToken)
+                .addView(view)
+                .enableFeature(window.google.picker.Feature.NAVIGATE_TO_DRIVE)
+                .setLocale('pt-BR')
+                .setCallback(async (data: any) => {
+                    setLoading(true); // Reativa o loading durante o processamento do callback
+                    if (data.action === window.google.picker.Action.PICKED) {
+                        const coverFileId = data.docs[0].id; // ID do Arquivo Selecionado
 
-                    // Se a intenção é SÓ pegar o ID da PASTA, você pode adicionar uma validação aqui
-            /*        if (file.mimeType === 'application/vnd.google-apps.folder') {
-                        onFolderSelect(file.id); 
-                    } else {
-                        // Opcional: Avisar o usuário que apenas pastas devem ser selecionadas
-                        alert("Por favor, selecione uma pasta inteira, e não um arquivo de foto individual.");
-                        // Não chamar onFolderSelect para manter o estado vazio
+                        // 3. CHAMA SERVER ACTION para obter a PASTA (Renova Token)
+                        const driveFolderId = await getParentFolderIdServer(coverFileId, userId);
+
+                        if (driveFolderId) {
+                            // 4. CHAMA SERVER ACTION para obter o NOME DA PASTA
+                            const driveFolderName = await getDriveFolderName(driveFolderId, userId);
+
+                            // 5. Retorna o ID e o Nome (usando o ID como fallback se o nome falhar)
+                            onFolderSelect(driveFolderId, driveFolderName || `ID: ${driveFolderId}`);
+                        } else {
+                            // Erro de falha de token/permissão
+                            onError("Não foi possível determinar a pasta-mãe. Verifique as permissões do Drive.");
+                        }
                     }
-                        
-                }*/
-               if (data.action === window.google.picker.Action.PICKED) {
-                    const coverFileId = data.docs[0].id; // ID do Arquivo
+                    setLoading(false); // Finaliza o loading após o callback
+                })
+                .build();
 
-                    // Como você está no cliente, use a função que definimos para buscar a pasta:
-                    const driveFolderId = await getParentFolderIdClient(coverFileId, accessToken);
+            picker.setVisible(true);
 
-                    if (driveFolderId) {
-                        // O nome 'onFolderSelect' é confuso, mas passará o ID da PASTA
-                        onFolderSelect(driveFolderId); 
-                        
-                        // Você precisará de outro callback para salvar o coverFileId no estado do componente pai
-                        // Ex: onCoverFileSelect(coverFileId); 
-                        
-                    } else {
-                        alert("Erro: Não foi possível determinar a pasta-mãe da foto selecionada.");
-                    }
-                }
-            })
-            .build();
-        
-        picker.setVisible(true);
-
-    } catch (error) {
-        // ...
-    } finally {
-        setLoading(false);
-    }
+        } catch (error) {
+            console.error("Erro geral ao abrir/configurar o Google Picker:", error);
+            onError("Falha ao iniciar a seleção do Drive. Verifique a consola para detalhes.");
+        } finally {
+            // ATENÇÃO: Se o picker for aberto com sucesso, não limpe o loading aqui. 
+            // O loading deve ser limpo DENTRO do setCallback.
+            // Apenas limpa se a abertura inicial falhar.
+            if (!isReadyToOpen) {
+                setLoading(false);
+            }
+        }
     };
 
-    // ... (restante do JSX para o botão)
+    // --- JSX DO BOTÃO ---
+    // Inclui o loading no disabled do botão
+    const isDisabled = !isReadyToOpen || loading; 
+
     const buttonText = currentDriveId
         ? 'Pasta Selecionada'
         : 'Selecionar Pasta do Drive';
@@ -180,15 +172,15 @@ export default function GooglePickerButton({ onFolderSelect, currentDriveId }: G
         <button
             type="button"
             onClick={openPicker}
-            disabled={!isLoaded || loading}
+            disabled={isDisabled}
             className={`flex items-center justify-center w-full p-3 rounded-lg font-medium text-white transition-colors
-                ${!isLoaded || loading ? 'bg-gray-400 cursor-not-allowed' : 'bg-[#0B57D0] hover:bg-[#0848AA]'}
+                ${isDisabled ? 'bg-gray-400 cursor-not-allowed' : 'bg-[#0B57D0] hover:bg-[#0848AA]'}
             `}
         >
             {loading ? (
                 <>
                     <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-white mr-2"></div>
-                    Carregando Picker...
+                    Processando...
                 </>
             ) : (
                 <>

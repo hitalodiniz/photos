@@ -62,6 +62,7 @@ export default async function UsernameGaleriaPage({ params }: UsernameGaleriaPag
   // Se pública ou privada com senha válida → busca fotos no Drive
   let photos = [];
   if (galeria.drive_folder_id) {
+    // Acesso: Usa o ID do perfil encontrado (que é o user_id do fotógrafo)
     const accessToken = await getDriveAccessTokenForUser(profile.id);
     if (accessToken) {
       photos = await listPhotosFromDriveFolder(galeria.drive_folder_id, accessToken);

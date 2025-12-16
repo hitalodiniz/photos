@@ -5,9 +5,12 @@ import { redirect } from "next/navigation";
 import slugify from "slugify";
 import { revalidatePath } from "next/cache";
 
-import { createSupabaseServerClient } from "@/lib/supabase.server";
-// import { createSupabaseDbClient } from "@/lib/supabase.db"; // se não estiver usando, pode remover
-// import { suggestUsernameFromEmail } from "@/utils/userUtils"; // idem
+import {
+  createSupabaseServerClient,
+  createSupabaseServerClientReadOnly,
+} from "@/lib/supabase.server";
+import { listPhotosFromDriveFolder, DrivePhoto } from "@/lib/google-drive";
+import { getDriveAccessTokenForUser } from "@/lib/google-auth";
 
 // =========================================================================
 // TIPOS AUXILIARES
@@ -84,7 +87,7 @@ const ACCESS_COOKIE_KEY = "galeria_access_";
  * Obtém o ID do usuário logado (fotógrafo) e o studio_id associado.
  */
 async function getAuthAndStudioIds(): Promise<AuthContext> {
-  const supabase = createSupabaseServerClient();
+  const supabase = await createSupabaseServerClientReadOnly();
 
   const {
     data: { user },
@@ -136,7 +139,7 @@ async function generateUniqueDatedSlug(
   dateStr: string,
   currentId?: string
 ): Promise<string> {
-  const supabase = createSupabaseServerClient();
+  const supabase = await createSupabaseServerClient();
 
   // 1. Obter usuário autenticado
   const {
@@ -196,16 +199,17 @@ async function generateUniqueDatedSlug(
   return uniqueSlug;
 }
 
-
 // =========================================================================
 // 3. CREATE GALERIA
 // =========================================================================
 
-export async function createGaleria(
-  formData: FormData
-): Promise<ActionResult> {
-  const { success, userId, studioId, error: authError } =
-    await getAuthAndStudioIds();
+export async function createGaleria(formData: FormData): Promise<ActionResult> {
+  const {
+    success,
+    userId,
+    studioId,
+    error: authError,
+  } = await getAuthAndStudioIds();
 
   if (!success || !userId || !studioId) {
     return {
@@ -235,7 +239,7 @@ export async function createGaleria(
   const slug = await generateUniqueDatedSlug(title, dateStr);
 
   try {
-    const supabase = createSupabaseServerClient();
+    const supabase = await createSupabaseServerClient();
 
     const { error } = await supabase.from("tb_galerias").insert({
       user_id: userId,
@@ -255,9 +259,9 @@ export async function createGaleria(
     if (error) throw error;
 
     revalidatePath("/dashboard");
-    redirect("/dashboard");
+    return { success: true, message: "Galeria criada com sucesso!", data: {} };
   } catch (err) {
-    console.error("Erro ao salvar no banco:", err);
+    console.error("Erro real ao salvar no banco:", err);
     return { success: false, error: "Falha ao salvar a nova galeria." };
   }
 }
@@ -338,11 +342,13 @@ export async function updateGaleria(
 // 5. GET GALERIAS (Apenas do usuário logado)
 // =========================================================================
 
-export async function getGalerias(): Promise<
-  ActionResult<GaleriaWithCover[]>
-> {
-  const { success, userId, studioId, error: authError } =
-    await getAuthAndStudioIds();
+export async function getGalerias(): Promise<ActionResult<GaleriaWithCover[]>> {
+  const {
+    success,
+    userId,
+    studioId,
+    error: authError,
+  } = await getAuthAndStudioIds();
 
   if (!success || !userId) {
     return {
@@ -353,7 +359,7 @@ export async function getGalerias(): Promise<
   }
 
   try {
-    const supabase = createSupabaseServerClient();
+    const supabase = await createSupabaseServerClient();
 
     const { data, error } = await supabase
       .from("tb_galerias")
@@ -468,34 +474,71 @@ export async function authenticateGaleriaAccess(
   return { success: false, error: "Senha incorreta." };
 }
 
-// =========================================================================
 /**
- * Busca o refresh token do Google do usuário.
+ * =========================================================================
+ * 8. BUSCAR FOTOS DA GALERIA NO GOOGLE DRIVE
+ * =========================================================================
  */
-async function getGoogleRefreshToken(
-  userId: string
-): Promise<string | null> {
-  const supabase = createSupabaseServerClient();
 
-  const { data, error } = await supabase
-    .from("tb_profiles")
-    .select("google_refresh_token")
-    .eq("id", userId)
-    .single();
+/**
+ * Autentica o usuário logado, busca o ID da pasta do Drive no DB,
+ * renova o Access Token do Google e lista as fotos.
+ * * @param galeriaId O ID da galeria que contém o driveFolderId.
+ * @returns A lista de fotos (DrivePhoto[]) ou um objeto de erro.
+ */
+export async function getGaleriaPhotos(
+  galeriaId: string
+): Promise<ActionResult<DrivePhoto[]>> {
+  // 1. AUTENTICAÇÃO E CONTEXTO
+  const { success, userId, error: authError } = await getAuthAndStudioIds();
 
-  if (!error && data && data.google_refresh_token) {
-    return data.google_refresh_token;
+  if (!success || !userId) {
+    return {
+      success: false,
+      error: authError || "Usuário não autenticado.",
+      data: [],
+    };
   }
 
-  console.error("Refresh token não encontrado no profile.");
+  const supabase = await createSupabaseServerClientReadOnly();
 
-  const {
-    data: { user },
-    error: userError,
-  } = await supabase.auth.getUser();
+  // 2. BUSCAR O ID DA PASTA DA GALERIA
+  const { data: galeria, error: galeriaError } = await supabase
+    .from("tb_galerias")
+    .select("drive_folder_id")
+    .eq("id", galeriaId)
+    .eq("user_id", userId) // RLS: Garante que o usuário só acesse suas próprias galerias
+    .maybeSingle();
 
-  if (userError || !user) return null;
+  if (galeriaError || !galeria || !galeria.drive_folder_id) {
+    return {
+      success: false,
+      error: "Galeria não encontrada ou pasta do Drive não definida.",
+      data: [],
+    };
+  }
 
-  // CORREÇÃO: user.app_metadata, não user.user.app_metadata
-  return (user.app_metadata as any)?.provider_refresh_token || null;
+  const driveFolderId = galeria.drive_folder_id;
+
+  // 3. RENOVAR O ACCESS TOKEN
+  // Esta função (em lib/google-auth.ts) busca o refresh token no DB e o troca por um novo access token.
+  const accessToken = await getDriveAccessTokenForUser(userId);
+
+  if (!accessToken) {
+    return {
+      success: false,
+      error: "Falha na integração Google Drive. Refaça o login/integração.",
+      data: [],
+    };
+  }
+
+  // 4. LISTAR FOTOS DO DRIVE
+  // Esta função (em lib/google-drive.ts) faz a requisição final ao Google Drive.
+  const photos = await listPhotosFromDriveFolder(driveFolderId, accessToken);
+
+  if (photos.length === 0) {
+    return { success: true, data: [] }; // Retorna sucesso, mas com lista vazia.
+  }
+
+  return { success: true, data: photos };
 }

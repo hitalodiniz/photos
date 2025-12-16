@@ -4,7 +4,7 @@ import { cookies } from "next/headers";
 import { createSupabaseServerClientReadOnly } from "@/lib/supabase.server";
 import GaleriaView from "@/components/GaleriaView";
 import { PasswordPrompt } from "@/components/PasswordPrompt";
-import { listPhotosFromDriveFolder } from "@/lib/google-drive";
+import { listPhotosFromDriveFolder, DrivePhoto } from "@/lib/google-drive"; // Garanta que DrivePhoto é importado
 import { getDriveAccessTokenForUser } from "@/lib/google-auth";
 import type { Galeria } from "@/types/galeria";
 
@@ -58,11 +58,23 @@ export default async function SubdomainGaleriaPage({ params }: SubdomainGaleriaP
     }
   }
 
-  let photos = [];
+// =======================================================
+  // 🎯 CARREGAMENTO DAS FOTOS DO GOOGLE DRIVE (Server-Side)
+  // =======================================================
+  let photos: DrivePhoto[] = [];
+  
   if (galeria.drive_folder_id) {
+    // 1. Renovação do Access Token
     const accessToken = await getDriveAccessTokenForUser(profile.id);
-    if (accessToken) {
-      photos = await listPhotosFromDriveFolder(galeria.drive_folder_id, accessToken);
+    
+    if (!accessToken) {
+        console.warn(`[Galeria ${galeria.id}] Não foi possível obter Access Token. Usuário precisa refazer a integração.`);
+    } else {
+        // 2. Listagem das Fotos
+        photos = await listPhotosFromDriveFolder(galeria.drive_folder_id, accessToken);
+        if (photos.length === 0) {
+             console.warn(`[Galeria ${galeria.id}] Nenhuma foto encontrada no Drive para a pasta: ${galeria.drive_folder_id}`);
+        }
     }
   }
 

@@ -15,20 +15,19 @@ export default function GoogleSignInButton() {
           const baseUrl = getBaseUrl();
 
       // 2. Montar o redirectTo correto
-      const redirectTo = `${baseUrl}/api/auth/callback`;
-      
+      const redirectTo = `${baseUrl}/api/auth/callback`;     
 
       // 3. Iniciar o login
       const { error } = await supabase.auth.signInWithOAuth({
-        provider: "google",
+        provider: "google",        
         options: {
           scopes:
             "email profile openid https://www.googleapis.com/auth/drive.readonly",
-          redirectTo,
+          redirectTo,          
           queryParams: {
             access_type: "offline",
             prompt: "consent",
-          },
+          }, 
         },
       });
 

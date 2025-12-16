@@ -124,8 +124,5 @@ export async function middleware(req: NextRequest) {
   return NextResponse.next();
 }
 
-export const config = {
-  matcher: [
-    "/((?!_next|api/auth/callback|api/auth|api|static|favicon.ico|robots.txt).*)",
-  ],
-};
+
+export const config = { matcher: [ "/((?!_next|api/auth/callback|api/auth|api|static|favicon.ico|robots.txt).*)", ], };

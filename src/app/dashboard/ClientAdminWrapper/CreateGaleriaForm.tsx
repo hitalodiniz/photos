@@ -6,6 +6,7 @@ import GooglePickerButton from "@/components/GooglePickerButton";
 import { maskPhone } from "@/utils/masks";
 import { createGaleria } from "@/actions/galeria";
 
+
 export default function CreateGaleriaForm({ onSuccess }) {
   const formRef = useRef<HTMLFormElement>(null);
 
@@ -13,15 +14,43 @@ export default function CreateGaleriaForm({ onSuccess }) {
   const [password, setPassword] = useState("");
   const [clientWhatsapp, setClientWhatsapp] = useState("");
   const [driveFolderId, setDriveFolderId] = useState("");
+  // Estado para armazenar o nome amigável da pasta (item 1 resolvido)
+  const [driveFolderName, setDriveFolderName] = useState('Nenhuma pasta selecionada');
+  // Estado para exibir o erro do Google Picker (item 2 resolvido)
+  const [error, setError] = useState<string | null>(null); 
+
+  // Novo handler, usa o nome e o ID da pasta (item 1 resolvido)
+  const handleFolderSelect = (id: string, name: string) => {
+    setDriveFolderId(id);
+    setDriveFolderName(name);
+    setError(null); // Limpa qualquer erro anterior
+  };
+  
+  // Novo handler para erros do Picker (item 2 resolvido)
+  const handlePickerError = (message: string) => {
+      setError(message);
+      setDriveFolderId(""); // Limpa o ID se a seleção falhou
+      setDriveFolderName('Nenhuma pasta selecionada');
+  };
 
   const handleSubmit = async (formData: FormData) => {
+    // Adiciona o check de erro para ser mais claro
+    if (error) {
+        onSuccess(false, error); // Usa o erro do picker se ele estiver ativo
+        return;
+    }
+    
     if (!driveFolderId) {
       onSuccess(false, "Selecione uma pasta do Google Drive.");
       return;
     }
 
     formData.append("isPublic", isPublic.toString());
-    formData.append("drive_folder_id", driveFolderId);
+    formData.append("driveFolderId", driveFolderId); // <- O nome da coluna do DB deve ser drive_folder_id
+    formData.append("drive_folder_id", driveFolderId); 
+    formData.append("coverFileId", driveFolderId); // <- Ajuste: Se você não está selecionando a capa separadamente, 
+                                                   // o ID da pasta pode ser usado como fallback para a capa
+                                                   // Se você seleciona a capa separadamente, você precisará de outro estado (coverFileId)
 
     if (!isPublic) {
       if (password.length < 4) {
@@ -38,6 +67,8 @@ export default function CreateGaleriaForm({ onSuccess }) {
       setPassword("");
       setClientWhatsapp("");
       setDriveFolderId("");
+      setDriveFolderName('Nenhuma pasta selecionada'); // <- LIMPA O NOME
+      setError(null); // Limpa o erro
       setIsPublic(true);
       onSuccess(true, "Galeria criada com sucesso!");
     } else {
@@ -84,17 +115,37 @@ export default function CreateGaleriaForm({ onSuccess }) {
         </div>
       </div>
 
+      {/* SEÇÃO GOOGLE DRIVE */}
       <div>
-        <label className="text-xs font-medium ml-1">Pasta do Google Drive</label>
-        <GooglePickerButton onFolderSelect={setDriveFolderId} currentDriveId={driveFolderId} />
+        <label className="text-xs font-medium ml-1">Pasta do Google </label>
+        <GooglePickerButton 
+            onFolderSelect={handleFolderSelect} 
+            onError={handlePickerError} // <--- NOVO: Tratamento de erro do Picker
+            currentDriveId={driveFolderId} 
+        />
       </div>
+      
+      {/* Exibe o nome da pasta */}
+      <p className="text-xs font-medium ml-1">
+          Pasta selecionada: 
+          <strong className="text-xs font-medium ml-1">
+              {driveFolderName === driveFolderId ? `ID: ${driveFolderId}` : driveFolderName}
+          </strong>
+      </p>
+      
+      {/* Exibe o erro do Picker */}
+      {error && (
+          <div className="mt-2 p-3 bg-red-100 text-sm border border-red-400 text-red-700 rounded-lg">
+              {error}
+          </div>
+      )}
+      <input type="hidden" name="driveFolderId" value={driveFolderId} />
 
       <div className="pt-2 border-t space-y-3">
         <label className="flex items-center gap-2">
           <input type="radio" checked={isPublic} onChange={() => setIsPublic(true)} />
           Galeria Pública
         </label>
-
         <label className="flex items-center gap-2">
           <input type="radio" checked={!isPublic} onChange={() => setIsPublic(false)} />
           Galeria Privada

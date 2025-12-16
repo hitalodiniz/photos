@@ -1,10 +1,10 @@
 import { notFound, redirect } from 'next/navigation';
 import { prisma } from '@/lib/db';
 // Importa suas Server Actions e funções do Google Drive
-import { getPhotosFromSession } from '@/lib/googleDrive'; 
+import { getPhotosFromSession } from '@/lib/google-drive'; 
 import Image from 'next/image';
 // IMPORTAÇÃO CORRIGIDA: Importa o componente CLIENTE
-import { PasswordPrompt } from './PasswordPromptClient'; 
+import { PasswordPrompt } from '../../../components/PasswordPrompt'; 
 import { cookies } from 'next/headers'; 
 import { authenticateGaleriaAccess } from '@/actions/galeria'; // NOVO: Importa a Server Action de autenticação
 
@@ -118,7 +118,6 @@ export default async function GaleriaPage({ params }: GaleriaPageProps) {
                     galeriaTitle={galeria.title} 
                     galeriaId={galeria.id} 
                     fullSlug={fullSlug} 
-                    onSuccess={setAccessCookie} // Passa a Server Action
                 />
             </main>
         );
