@@ -93,13 +93,13 @@ export default function LandingPageContent() {
                 <input
                   id="gallery-code"
                   type="text"
-                  placeholder="CÓDIGO DA GALERIA"
+                  placeholder="Código da galeria"
                   className="
             w-48 md:w-64 px-4 py-3 
-            bg-white text-black font-bold text-center text-lg uppercase
+            bg-white text-black font-bold text-center text-lg
             border-2 border-gray-400 rounded-xl outline-none
             transition-all duration-300
-            placeholder:text-gray-300 placeholder:font-normal placeholder:tracking-normal
+            placeholder:text-gray-400 placeholder:font-normal placeholder:tracking-normal
             focus:border-[#4285F4] 
             focus:ring-4 focus:ring-[#4285F4]/10 
             focus:shadow-[0_0_15px_rgba(66,133,244,0.2)]"
