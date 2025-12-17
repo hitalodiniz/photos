@@ -121,8 +121,7 @@ export default function LandingPageContent() {
           </div>
         </section>
       </main >
-      {/* RODAPÉ ARTÍSTICO CLARO */}
-      {/* RODAPÉ ARTÍSTICO REFINADO */}
+      {/* RODAPÉ */}
       <footer className="bg-[#2D2E30] border-t border-white/5 py-10 px-6 w-full mt-auto">
         <div className="max-w-6xl mx-auto flex flex-col md:flex-row justify-between items-center gap-8">
 
@@ -142,19 +141,26 @@ export default function LandingPageContent() {
             </p>
           </div>
 
-          {/* Lado Direito: Social Icons */}
+          {/* Lado Direito: Social Icons com Glow Artístico */}
           <div className="flex items-center gap-4">
             <a
               href="#"
-              className="p-3 bg-white/5 rounded-full text-gray-400 hover:text-[#E1306C] border border-white/10 transition-all hover:bg-white/10"
+              className="group p-3 bg-white/5 rounded-full text-gray-400 border border-white/10 transition-all duration-300 
+               hover:text-[#E1306C] hover:border-[#E1306C]/50 hover:bg-[#E1306C]/10 
+               hover:shadow-[0_0_15px_rgba(225,48,108,0.3)]"
+              title="Siga no Instagram"
             >
-              <Instagram size={22} />
+              <Instagram size={22} className="transition-transform duration-300 group-hover:scale-110" />
             </a>
+
             <a
               href="#"
-              className="p-3 bg-white/5 rounded-full text-gray-400 hover:text-[#25D366] border border-white/10 transition-all hover:bg-white/10"
+              className="group p-3 bg-white/5 rounded-full text-gray-400 border border-white/10 transition-all duration-300 
+               hover:text-[#25D366] hover:border-[#25D366]/50 hover:bg-[#25D366]/10 
+               hover:shadow-[0_0_15px_rgba(37,211,102,0.3)]"
+              title="Fale conosco no WhatsApp"
             >
-              <MessageCircle size={22} />
+              <MessageCircle size={22} className="transition-transform duration-300 group-hover:scale-110" />
             </a>
           </div>
         </div>
