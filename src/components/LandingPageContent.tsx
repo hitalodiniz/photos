@@ -1,51 +1,198 @@
 'use client';
 import React from 'react';
 import GoogleSignInButton from './GoogleSignInButton';
+import { Instagram, MessageCircle, Cloud, Zap, Smartphone, Camera } from 'lucide-react';
+
 export default function LandingPageContent() {
-    return (
-        <div 
-        className="min-h-screen flex flex-col items-center justify-start p-4 bg-[#F8FAFD] font-sans relative overflow-hidden">
+  return (
+    <div className="min-h-screen flex flex-col font-sans bg-[#F1F3F4]">
+      {/* HERO SECTION - Conteúdo movido para o topo com estilo artístico */}
+      <header className="relative h-[40vh] min-h-[450px] w-full flex items-start justify-center overflow-hidden shrink-0 pt-8 md:pt-12">
+        {/* Camada da Imagem Local */}
+        <div
+          className="absolute inset-0 z-0 bg-cover bg-center transition-transform duration-1000"
+          style={{
+            backgroundImage: `linear-gradient(to bottom, rgba(0,0,0,0.8) 0%, rgba(0,0,0,0.4) 50%, transparent 100%), url('/hero-bg.jpg')`
+          }}
+        />
+        {/* Overlay para contraste */}
 
-            {/* ELEMENTO DE FUNDO SUTIL (Adiciona profundidade, estilo Material) */}
-            <div className="absolute top-0 left-0 w-full h-1/2 bg-[#E9EEF6] opacity-50 transform skew-y-3 origin-top-left"></div>
-            {/* CONTEÚDO PRINCIPAL (Card Branco Elevado) */}
-            <div className="max-w-3xl w-full text-center p-8 lg:p-10 bg-white rounded-2xl shadow-2xl border border-[#E0E3E7] relative z-10">
-                {/* Ícone e Título */}
-                <div className="flex flex-col items-center mb-6">
-                    <svg xmlns="http://www.w3.org/2000/svg" className="w-12 h-12 text-[#0B57D0] mb-3" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-                        <rect x="3" y="3" width="18" height="18" rx="2" ry="2"></rect>
-                        <path d="M7 10l5 5 5-5"></path>
-                    </svg>
 
-                    {/* HEADLINE / PROPOSTA DE VALOR */}
-                    <h1 className="text-2xl lg:text-3xl font-extrabold text-[#1F1F1F] mb-3">
-                        A entrega de fotos que seus clientes merecem.
-                    </h1>
-                    <p className="text-[#444746] text-base lg:text-md">
-                        Crie galerias integradas ao Google Drive, automatize a entrega e encante o seu cliente.
-                    </p>
-                </div>
+        {/* Conteúdo do Hero */}
+        <div className="relative z-20 text-center px-4">
+          <div className="flex flex-col items-center gap-4 md:gap-6">
 
-                {/* SEÇÃO DE RECURSOS / VANTAGENS (Material Grid) */}
-                <div className="grid grid-cols-3 gap-3 mb-8 mt-6 text-[#1F1F1F] border-t border-b border-[#E0E3E7] py-4">
-                    <FeatureItem icon="✅" label="100% integrado ao Google Drive" color="#00A651" />
-                    <FeatureItem icon="⏱️" label="Entrega Rápida" color="#FBBC05" />
-                    <FeatureItem icon="☁️" label="Custo Zero de Storage" color="#4285F4" />
-                </div>
-
-                {/* CTA PRINCIPAL (Botão Google) */}
-                <GoogleSignInButton />
+            {/* Ícone com borda dourada suave e fundo blur */}
+            <div className="p-3 md:p-4 bg-white/5 backdrop-blur-xl rounded-full border border-yellow-200/30 shadow-2xl">
+              <Camera className="text-[#F3E5AB] w-8 h-8 md:w-10 md:h-10 drop-shadow-[0_0_8px_rgba(243,229,171,0.5)]" />
             </div>
+
+            {/* Título Artístico Serifado */}
+            <h1
+              className="text-4xl md:text-5xl font-bold text-white tracking-tight drop-shadow-2xl italic"
+              style={{ fontFamily: "'Playfair Display', serif" }}
+            >
+              Sua Galeria de Fotos
+            </h1>
+
+            {/* Subtítulo em linha única com destaque no verde do Drive */}
+            <p className="text-sm md:text-xl text-white/90 font-light tracking-wide italic whitespace-nowrap">
+              Transformando o Google Drive™ em uma <span className="font-bold border-b-2 border-[#34A853] text-white">Galeria Profissional</span>
+            </p>
+
+            {/* Botão de Login */}
+            <div className="w-full max-w-sm mt-2 transition-transform hover:scale-105">
+              <GoogleSignInButton />
+            </div>
+          </div>
         </div>
-    );
+      </header>
+
+      {/* CONTEÚDO PRINCIPAL */}
+      <main className="bg-[#F1F3F4] flex-grow">
+        {/* SEÇÃO DE FEATURES */}
+        <section className="relative z-20 -mt-20 px-4">
+          <div className="max-w-5xl mx-auto bg-white rounded-3xl shadow-[0_20px_50px_rgba(0,0,0,0.1)] border border-gray-100 p-8 md:p-12">
+            <div className="grid grid-cols-1 md:grid-cols-3 gap-12 md:gap-8">
+              <FeatureItem
+                icon={<Cloud className="w-10 h-10 text-[#4285F4] drop-shadow-[0_0_8px_rgba(66,133,244,0.4)]" />}
+                title="Cloud Power"
+                desc="Use o armazenamento que você já possui no Drive sem custos extras."
+                bgColor="bg-blue-50"
+              />
+              <FeatureItem
+                icon={<Zap className="w-10 h-10 text-[#FBBC05] fill-[#FBBC05] drop-shadow-[0_0_8px_rgba(251,188,5,0.4)]" />}
+                title="Entrega Instantânea"
+                desc="Subiu no Drive, está na galeria. Simples assim."
+                bgColor="bg-yellow-50"
+              />
+              <FeatureItem
+                icon={<Smartphone className="w-10 h-10 text-[#34A853] drop-shadow-[0_0_8px_rgba(52,168,83,0.4)]" />}
+                title="Foco em Mobile"
+                desc="Galerias otimizadas para WhatsApp e visualização em smartphones."
+                bgColor="bg-green-50"
+              />
+            </div>
+          </div>
+        </section>
+
+        {/* ACESSO CLIENTE */}
+        <section className="px-4 py-8 bg-[#F8F9FA]">
+          <div className="max-w-6xl mx-auto flex flex-col lg:flex-row items-center justify-center gap-4 md:gap-6">
+            {/* Título sem quebra */}
+            <label
+              className="text-xl md:text-2xl font-bold text-[#3C4043] tracking-tight whitespace-nowrap"
+              htmlFor="gallery-code"
+            >
+              Acesse sua Galeria de Fotos
+            </label>
+
+            {/* Formulário em linha única */}
+            <form className="flex items-center gap-3 w-full md:w-auto">
+              <div className="relative group">
+                <input
+                  id="gallery-code"
+                  type="text"
+                  placeholder="CÓDIGO DA GALERIA"
+                  className="
+            w-48 md:w-64 px-4 py-3 
+            bg-white text-black font-bold text-center text-lg uppercase
+            border-2 border-gray-400 rounded-xl outline-none
+            transition-all duration-300
+            placeholder:text-gray-300 placeholder:font-normal placeholder:tracking-normal
+            focus:border-[#4285F4] 
+            focus:ring-4 focus:ring-[#4285F4]/10 
+            focus:shadow-[0_0_15px_rgba(66,133,244,0.2)]"
+                />
+              </div>
+
+              <button
+                type="submit"
+                className="
+          bg-[#1A73E8] hover:bg-[#174EA6] 
+          text-white font-bold py-3.5 px-8 
+          rounded-xl transition-all shadow-md hover:shadow-lg
+          text-sm uppercase tracking-widest active:scale-95
+        "
+              >
+                Entrar
+              </button>
+            </form>
+          </div>
+        </section>
+      </main >
+      {/* RODAPÉ ARTÍSTICO CLARO */}
+      {/* RODAPÉ ARTÍSTICO REFINADO */}
+      <footer className="bg-[#2D2E30] border-t border-white/5 py-10 px-6 w-full mt-auto">
+        <div className="max-w-6xl mx-auto flex flex-col md:flex-row justify-between items-center gap-8">
+
+          {/* Lado Esquerdo: Branding e Texto */}
+          <div className="flex flex-col items-center md:items-start gap-1">
+            <div className="flex items-center gap-2">
+              <Camera className="w-6 h-6 text-[#F3E5AB]" />
+              <span
+                className="text-xl font-bold tracking-tight text-white italic"
+                style={{ fontFamily: "'Playfair Display', serif" }}
+              >
+                Sua Galeria de Fotos
+              </span>
+            </div>
+            <p className="text-gray-400 text-[11px] font-medium tracking-wide uppercase">
+              © 2025 • Integrado com Google Drive™
+            </p>
+          </div>
+
+          {/* Lado Direito: Social Icons */}
+          <div className="flex items-center gap-4">
+            <a
+              href="#"
+              className="p-3 bg-white/5 rounded-full text-gray-400 hover:text-[#E1306C] border border-white/10 transition-all hover:bg-white/10"
+            >
+              <Instagram size={22} />
+            </a>
+            <a
+              href="#"
+              className="p-3 bg-white/5 rounded-full text-gray-400 hover:text-[#25D366] border border-white/10 transition-all hover:bg-white/10"
+            >
+              <MessageCircle size={22} />
+            </a>
+          </div>
+        </div>
+      </footer>
+    </div >
+  );
 }
 
-// NOVO COMPONENTE AUXILIAR (Para manter o ClientAdminWrapper limpo)
-function FeatureItem({ icon, label, color }) {
-    return (
-        <div className="flex flex-col items-center p-1">
-            <span style={{ color: color, fontSize: '2rem' }}>{icon}</span>
-            <span className="text-xs font-medium text-[#1F1F1F] mt-1">{label}</span>
-        </div>
-    );
+function FeatureItem({
+  icon,
+  title,
+  desc,
+  bgColor
+}: {
+  icon: React.ReactNode,
+  title: string,
+  desc: string,
+  bgColor: string
+}) {
+  return (
+    <div className="flex flex-col items-center text-center group cursor-default">
+      {/* Container do Ícone com Animação no Hover */}
+      <div className={`
+        mb-6 p-5 ${bgColor} rounded-2xl 
+        transition-all duration-500 
+        group-hover:animate-pulse-slow 
+        group-hover:shadow-[0_0_20px_rgba(0,0,0,0.05)]
+      `}>
+        {icon}
+      </div>
+
+      <h3 className="text-xl font-bold text-[#202124] mb-2 tracking-tight group-hover:text-[#1A73E8] transition-colors">
+        {title}
+      </h3>
+
+      <p className="text-[#5F6368] text-sm leading-relaxed max-w-[220px]">
+        {desc}
+      </p>
+    </div>
+  );
 }
