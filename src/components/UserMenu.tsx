@@ -5,8 +5,6 @@
 import React, { useState, useRef, useEffect } from 'react';
 import Link from 'next/link';
 import Image from 'next/image';
-import { useRouter } from 'next/navigation';
-import { supabase } from '@/lib/supabase.client'
 
 // Adicione o novo prop: avatarUrl
 export default function UserMenu({

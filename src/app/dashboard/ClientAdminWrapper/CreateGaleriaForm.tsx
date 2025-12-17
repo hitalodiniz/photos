@@ -13,17 +13,10 @@ export default function CreateGaleriaForm({ onSuccess }) {
   const [password, setPassword] = useState("");
   const [clientWhatsapp, setClientWhatsapp] = useState("");
   const [driveFolderId, setDriveFolderId] = useState("");
-
-  // Estado para armazenar o ID da foto de capa selecionada
   const [coverFileId, setCoverFileId] = useState("");
-
-  // Estado para armazenar o nome amigável da pasta
   const [driveFolderName, setDriveFolderName] = useState('Nenhuma pasta selecionada');
-
-  // Estado para exibir o erro do Google Picker
   const [error, setError] = useState<string | null>(null);
 
-  // Novo handler para sucesso no Picker
   const handleFolderSelect = (folderId: string, folderName: string, coverFileId: string) => {
     setDriveFolderId(folderId);
     setDriveFolderName(folderName);
@@ -31,7 +24,6 @@ export default function CreateGaleriaForm({ onSuccess }) {
     setError(null);
   };
 
-  // Handler para erros do Picker
   const handlePickerError = (message: string) => {
     setError(message);
     setDriveFolderId("");
@@ -39,52 +31,74 @@ export default function CreateGaleriaForm({ onSuccess }) {
     setDriveFolderName('Nenhuma pasta selecionada');
   };
 
-  const handleSubmit = async (formData: FormData) => {
-    if (error) {
-      onSuccess(false, error);
-      return;
-    }
+  // FUNÇÃO CORRIGIDA: Agora vinculada ao onSubmit
+  const handleSubmit = async (e: React.FormEvent<HTMLFormElement>) => {
+    e.preventDefault();
 
+    // 1. Validação prévia (impede o envio se faltar a pasta)
     if (!driveFolderId) {
-      onSuccess(false, "Selecione uma pasta do Google Drive.");
+      onSuccess(false, "Por favor, selecione uma pasta no Google Drive.");
       return;
     }
 
-    // Adiciona dados dos estados ao FormData
-    formData.append("isPublic", isPublic.toString());
-    formData.append("drive_folder_id", driveFolderId);
-    formData.append("drive_folder_name", driveFolderName);
-
-    // Enviando o ID para a capa (pode ser o ID da foto ou da pasta)
-    formData.append("coverFileId", coverFileId || driveFolderId);
-
-    if (!isPublic) {
-      if (password.length < 4) {
-        onSuccess(false, "A senha deve ter pelo menos 4 dígitos.");
-        return;
-      }
-      formData.append("password", password);
+    // 2. Validação de senha para galerias privadas
+    if (!isPublic && password.length < 4) {
+      onSuccess(false, "A senha deve ter pelo menos 4 dígitos.");
+      return;
     }
 
-    const result = await createGaleria(formData);
+    // 3. Captura os dados dos inputs (Título, Nome, Data, etc.)
+    const formData = new FormData(e.currentTarget);
 
-    if (result.success) {
-      // Limpeza do formulário e estados após sucesso
-      formRef.current?.reset();
-      setPassword("");
-      setClientWhatsapp("");
-      setDriveFolderId("");
-      setCoverFileId("");
-      setDriveFolderName('Nenhuma pasta selecionada');
-      setIsPublic(true);
-      onSuccess(true, "Galeria criada com sucesso!");
-    } else {
-      onSuccess(false, result.error || "Erro ao criar galeria.");
+    // 4. Injeta os estados manuais (Google Drive e Privacidade)
+    // Usamos .set() para garantir que o valor seja único e substitua qualquer lixo
+    formData.set("is_public", String(isPublic));
+    formData.set("drive_folder_id", driveFolderId);
+    formData.set("drive_folder_name", driveFolderName);
+    formData.set("cover_image_url", coverFileId || driveFolderId);
+
+    // Garante que o WhatsApp vá sem máscara para o banco
+    formData.set("client_whatsapp", clientWhatsapp.replace(/\D/g, ""));
+
+    // Se for privada, garante que a senha vá no FormData
+    if (!isPublic && password) {
+      formData.set("password", password);
+    }
+
+    // LOG DE DEBUG: Abra o console do navegador e veja se os dados aparecem aqui
+    console.log("Dados que estão saindo para o servidor:", Object.fromEntries(formData.entries()));
+
+    try {
+      const result = await createGaleria(formData);
+
+      if (result.success) {
+        // 5. LIMPEZA: Só ocorre se o servidor responder sucesso
+        formRef.current?.reset();
+        setPassword("");
+        setClientWhatsapp("");
+        setDriveFolderId("");
+        setCoverFileId("");
+        setDriveFolderName('Nenhuma pasta selecionada');
+        setIsPublic(true);
+
+        onSuccess(true, "Galeria criada com sucesso!");
+      } else {
+        // O erro do servidor aparece no Toast, mas o formulário NÃO reseta
+        onSuccess(false, result.error || "Erro ao criar galeria no banco de dados.");
+      }
+    } catch (err) {
+      console.error("Erro na comunicação com a Action:", err);
+      onSuccess(false, "Erro de conexão. Verifique sua internet.");
     }
   };
 
   return (
-    <form ref={formRef} action={handleSubmit} className="space-y-4">
+    // IMPORTANTE: Mudamos de 'action' para 'onSubmit'
+    <form ref={formRef} onSubmit={handleSubmit} className="space-y-4">
+      <input type="hidden" name="drive_folder_id" value={driveFolderId} />
+      <input type="hidden" name="drive_folder_name" value={driveFolderName} />
+      <input type="hidden" name="cover_image_url" value={coverFileId || driveFolderId} />
+      <input type="hidden" name="is_public" value={String(isPublic)} />
       <div>
         <label className="text-xs font-medium ml-1 text-gray-700">Nome do cliente</label>
         <input
@@ -103,7 +117,6 @@ export default function CreateGaleriaForm({ onSuccess }) {
           className="w-full bg-[#F0F4F9] p-3 rounded-lg outline-none focus:ring-2 focus:ring-blue-500"
           placeholder="(00) 00000-0000"
         />
-        <input type="hidden" name="clientWhatsapp" value={clientWhatsapp} />
       </div>
 
       <div>
@@ -163,11 +176,11 @@ export default function CreateGaleriaForm({ onSuccess }) {
       <div className="pt-2 border-t space-y-3">
         <div className="flex gap-4">
           <label className="flex items-center gap-2 cursor-pointer text-sm">
-            <input type="radio" name="privacy" checked={isPublic} onChange={() => setIsPublic(true)} className="w-4 h-4 text-blue-600" />
+            <input type="radio" checked={isPublic} onChange={() => setIsPublic(true)} className="w-4 h-4 text-blue-600" />
             Galeria Pública
           </label>
           <label className="flex items-center gap-2 cursor-pointer text-sm">
-            <input type="radio" name="privacy" checked={!isPublic} onChange={() => setIsPublic(false)} className="w-4 h-4 text-blue-600" />
+            <input type="radio" checked={!isPublic} onChange={() => setIsPublic(false)} className="w-4 h-4 text-blue-600" />
             Galeria Privada
           </label>
         </div>
@@ -177,7 +190,7 @@ export default function CreateGaleriaForm({ onSuccess }) {
             <label className="text-[10px] font-bold text-gray-500 ml-1 uppercase">Senha de Acesso</label>
             <input
               name="password"
-              type="text"
+              type="password"
               value={password}
               onChange={(e) => setPassword(e.target.value.replace(/\D/g, "").slice(0, 8))}
               className="w-full bg-[#F0F4F9] p-3 rounded-lg outline-none focus:ring-2 focus:ring-blue-500"
@@ -187,7 +200,6 @@ export default function CreateGaleriaForm({ onSuccess }) {
           </div>
         )}
       </div>
-
       <SubmitButton />
     </form>
   );

@@ -6,7 +6,7 @@ import { maskPhone } from "@/utils/masks";
 import GooglePickerButton from "@/components/GooglePickerButton";
 import { X } from "lucide-react";
 
-export default function EditGaleriaModal({ galeria, isOpen, onClose, onSuccess }) {
+export default function EditGaleriaModal({ galeria, isOpen, onClose, onSuccess, isUpdating }) {
     const [loading, setLoading] = useState(false);
     const [formData, setFormData] = useState({ ...galeria });
     const [isPublic, setIsPublic] = useState(galeria?.is_public ?? true);
@@ -45,7 +45,7 @@ export default function EditGaleriaModal({ galeria, isOpen, onClose, onSuccess }
         setLoading(false);
 
         if (result.success) {
-            onSuccess(true, result.message);
+            onSuccess(true, data);
             onClose();
         } else {
             onSuccess(false, result.error);

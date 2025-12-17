@@ -3,8 +3,7 @@
 
 import { useEffect, useMemo, useState } from "react";
 import { Toast, ConfirmationModal } from "@/components/DashboardUI";
-import { getGalerias, deleteGaleria, updateGaleria } from "@/actions/galeria";
-import { useRouter } from "next/navigation";
+import { getGalerias, deleteGaleria } from "@/actions/galeria";
 
 import type { Galeria } from "./types";
 import CreateGaleriaForm from "./CreateGaleriaForm";
@@ -12,7 +11,7 @@ import EditGaleriaModal from "./EditGaleriaModal";
 import Filters from "./Filters";
 import GaleriaList from "./GaleriaList";
 
-const CARDS_PER_PAGE = 12;
+const CARDS_PER_PAGE = 6;
 
 function normalizeString(str: string): string {
   return str.normalize("NFD").replace(/[\u0300-\u036f]/g, "").toLowerCase().trim();
@@ -23,66 +22,106 @@ interface ClientAdminWrapperProps {
 }
 
 export default function ClientAdminWrapper({ initialGalerias }: ClientAdminWrapperProps) {
+  // Estado principal que rege a lista exibida
   const [galerias, setGalerias] = useState<Galeria[]>(initialGalerias ?? []);
   const [cardsToShow, setCardsToShow] = useState(
     Math.min(initialGalerias?.length ?? 0, CARDS_PER_PAGE)
   );
   const [loadingMore, setLoadingMore] = useState(false);
 
+  // Estados de Filtros
   const [filterName, setFilterName] = useState("");
   const [filterLocation, setFilterLocation] = useState("");
   const [filterDate, setFilterDate] = useState("");
 
+  // Estados de Feedback (Toast)
   const [toastMessage, setToastMessage] = useState("");
-  const [toastType, setToastType] = useState<"success" | "error">("success");
+  const [toastType, setToastType] = useState<"success" | "error">("success")
 
+  const [updatingId, setUpdatingId] = useState<string | null>(null);
+
+  // Estados de Modais (Delete e Edit)
   const [galeriaToDelete, setGaleriaToDelete] = useState<Galeria | null>(null);
   const [isDeleting, setIsDeleting] = useState(false);
-
   const [galeriaToEdit, setGaleriaToEdit] = useState<Galeria | null>(null);
 
-  const handleEditClick = (galeria: Galeria) => {
-    setGaleriaToEdit(galeria);
-  };
+  // Sincroniza estado se as props iniciais mudarem (ex: navegação)
+  useEffect(() => {
+    setGalerias(initialGalerias ?? []);
+  }, [initialGalerias]);
 
   // ------------------------
-  // Carregar / recarregar galerias do server
+  // Lógica de Atualização (Edit Flow)
   // ------------------------
-  const reloadGalerias = async () => {
-    const result = await getGalerias();
-    if (result.success && Array.isArray(result.data)) {
-      setGalerias(result.data);
-      setCardsToShow(Math.min(result.data.length, CARDS_PER_PAGE));
-    } else if (!result.success) {
+  const handleUpdate = (success: boolean, data: any) => {
+    
+    if (success) {
+      // 1. Primeiro fechamos o modal para evitar conflito de renderização
+      setGaleriaToEdit(null);
+      setUpdatingId(null); // Remove o estado de loading do card
+
+      // 2. Atualizamos os dados locais
+      setGalerias((prev) => {
+        const novaLista = prev.map((g) => (g.id === data.id ? { ...g, ...data } : g));
+        return [...novaLista];
+      });
+
+      // 3. O SEGREDO: Limpamos o estado e usamos um delay maior
+      // para garantir que o Next.js terminou de revalidar a página no background
+      setToastMessage("");
+
+      setTimeout(() => {
+        setToastType("success");
+        setToastMessage(`Galeria atualizada!`);
+      }, 500);
+    } else {
+      setUpdatingId(null);
       setToastType("error");
-      setToastMessage(result.error || "Erro ao carregar galerias.");
+      setToastMessage(typeof data === "string" ? data : "Erro ao atualizar galeria toast index.");
     }
   };
 
   // ------------------------
-  // Filtros
+  // Lógica de Deleção
+  // ------------------------
+  const handleConfirmDelete = async () => {
+    if (!galeriaToDelete) return;
+    setIsDeleting(true);
+
+    const result = await deleteGaleria(galeriaToDelete.id);
+
+    if (result.success) {
+      setToastType("success");
+      setToastMessage(result.message || "Excluído com sucesso");
+      // Remove da lista local imediatamente
+      setGalerias((prev) => prev.filter((g) => g.id !== galeriaToDelete.id));
+    } else {
+      setToastType("error");
+      setToastMessage(result.error || "Erro ao excluir");
+    }
+
+    setIsDeleting(false);
+    setGaleriaToDelete(null);
+  };
+
+  // ------------------------
+  // Filtros e Visibilidade
   // ------------------------
   const filteredGalerias = useMemo(() => {
     if (!Array.isArray(galerias)) return [];
 
     const nameLower = normalizeString(filterName);
     const locationLower = normalizeString(filterLocation);
-    const dateFilter = filterDate;
 
     return galerias.filter((g) => {
       const titleNorm = normalizeString(g.title || "");
       const clientNorm = normalizeString(g.client_name || "");
       const locNorm = normalizeString(g.location || "");
-      const galeriaDate = g.date.substring(0, 10);
+      const galeriaDate = g.date?.substring(0, 10) || "";
 
-      const matchesName =
-        !nameLower ||
-        titleNorm.includes(nameLower) ||
-        clientNorm.includes(nameLower);
-
+      const matchesName = !nameLower || titleNorm.includes(nameLower) || clientNorm.includes(nameLower);
       const matchesLocation = !locationLower || locNorm.includes(locationLower);
-
-      const matchesDate = !dateFilter || galeriaDate === dateFilter;
+      const matchesDate = !filterDate || galeriaDate === filterDate;
 
       return matchesName && matchesLocation && matchesDate;
     });
@@ -95,35 +134,6 @@ export default function ClientAdminWrapper({ initialGalerias }: ClientAdminWrapp
 
   const hasMore = filteredGalerias.length > cardsToShow;
 
-  // ------------------------
-  // Infinite scroll simples (load more on scroll bottom)
-  // ------------------------
-  useEffect(() => {
-    if (!hasMore) return;
-    const handleScroll = () => {
-      if (loadingMore) return;
-      const scrollY = window.scrollY;
-      const viewportHeight = window.innerHeight;
-      const fullHeight = document.body.scrollHeight;
-
-      if (scrollY + viewportHeight + 200 >= fullHeight) {
-        setLoadingMore(true);
-        setTimeout(() => {
-          setCardsToShow((prev) =>
-            Math.min(prev + CARDS_PER_PAGE, filteredGalerias.length)
-          );
-          setLoadingMore(false);
-        }, 200);
-      }
-    };
-
-    window.addEventListener("scroll", handleScroll);
-    return () => window.removeEventListener("scroll", handleScroll);
-  }, [hasMore, loadingMore, filteredGalerias.length]);
-
-  // ------------------------
-  // Reset filtros
-  // ------------------------
   const resetFilters = () => {
     setFilterName("");
     setFilterLocation("");
@@ -131,86 +141,28 @@ export default function ClientAdminWrapper({ initialGalerias }: ClientAdminWrapp
     setCardsToShow(Math.min(galerias.length, CARDS_PER_PAGE));
   };
 
-  // ------------------------
-  // Delete flow
-  // ------------------------
-  const handleDelete = (galeria: Galeria) => {
-    setGaleriaToDelete(galeria);
-  };
-
-  // 2. Função chamada ao confirmar no Modal
-  const handleConfirmDelete = async () => {
-    if (!galeriaToDelete) return;
-
-    setIsDeleting(true);
-    const result = await deleteGaleria(galeriaToDelete.id);
-
-    if (result.success) {
-      setToastType("success");
-      setToastMessage(result.message || "Excluído com sucesso");
-
-      // Atualiza a lista localmente ou recarrega do banco
-      await reloadGalerias();
-    } else {
-      setToastType("error");
-      setToastMessage(result.error || "Erro ao excluir");
-    }
-
-    setIsDeleting(false);
-    setGaleriaToDelete(null); // Fecha o modal
-  };
-
-  // ------------------------
-  // Edit flow
-  // ------------------------
-  const handleEdit = (galeria: Galeria) => {
-    setGaleriaToEdit(galeria);
-  };
-
-  // 4. Função que recebe o resultado do Modal de Edição
-  const handleUpdate = (success: boolean, data: any) => {
-    console.log("2. Index recebeu o sinal!", success, data);
-    
-    if (success && data?.id) {
-    setGalerias((current) => {
-      // Criamos uma cópia nova do array para garantir reatividade
-      const updatedList = current.map((g) => 
-        g.id === data.id ? { ...g, ...data } : g
-      );
-      return [...updatedList]; 
-    });
-    
-    setGaleriaToEdit(null);
-  }
-  };
-
-  // ------------------------
-  // Create flow (via CreateGaleriaForm)
-  // ------------------------
   const handleCreateResult = async (ok: boolean, message: string) => {
     setToastType(ok ? "success" : "error");
     setToastMessage(message);
     if (ok) {
-      await reloadGalerias();
+      // Para criação, recarregamos do servidor para obter os dados completos e IDs
+      const result = await getGalerias();
+      if (result.success) setGalerias(result.data);
     }
   };
 
-
   return (
     <div className="mx-auto grid max-w-[1600px] grid-cols-1 gap-6 lg:grid-cols-[360px_1fr]">
-      {/* Coluna esquerda: criação de galeria */}
-      <div className="order-1 lg:order-1">
+      {/* Coluna Esquerda: Formulário de Criação */}
+      <div className="order-1">
         <div className="sticky top-8 h-fit rounded-2xl border border-[#E0E3E7] bg-white p-6 shadow-sm">
-          <h2 className="mb-4 text-lg font-semibold text-[#1F1F1F]">
-            Nova galeria
-          </h2>
-
+          <h2 className="mb-4 text-lg font-semibold text-[#1F1F1F]">Nova galeria</h2>
           <CreateGaleriaForm onSuccess={handleCreateResult} />
         </div>
       </div>
 
-      {/* Coluna direita: lista de galerias */}
-      <div className="order-2 lg:order-2">
+      {/* Coluna Direita: Lista e Filtros */}
+      <div className="order-2">
         <h2 className="mb-3 border-b pb-2 text-2xl font-extrabold text-gray-800">
           Galerias recentes ({filteredGalerias.length} de {galerias.length})
         </h2>
@@ -227,67 +179,31 @@ export default function ClientAdminWrapper({ initialGalerias }: ClientAdminWrapp
 
         {filteredGalerias.length === 0 ? (
           <div className="flex flex-col items-center justify-center rounded-2xl border border-[#E0E3E7] bg-white py-16 text-center">
-            <svg
-              className="mb-4 h-20 w-20 text-[#B3261E] opacity-20"
-              fill="currentColor"
-              viewBox="0 0 24 24"
-            >
-              <path d="M20 6h-8l-2-2H4C2.9 4 2 4.9 2 6v12c0 1.1.9 2 2 2h16c1.1 0 2-.9 2-2V8c0-1.1-.9-2-2-2zm0 12H4V8h16v10z" />
-            </svg>
-            <p className="text-sm font-medium text-[#1F1F1F]">
-              Nenhuma galeria encontrada com os filtros atuais.
-            </p>
-            <button
-              onClick={resetFilters}
-              className="mt-3 rounded-full bg-[#E9EEF6] px-4 py-1.5 text-xs font-medium text-[#444746] hover:bg-[#E2E7EB]"
-            >
-              Limpar filtros
-            </button>
+            <p className="text-sm font-medium text-gray-500">Nenhuma galeria encontrada.</p>
+            <button onClick={resetFilters} className="mt-2 text-xs text-blue-600 underline">Limpar filtros</button>
           </div>
         ) : (
-          <>
-            <GaleriaList
-              galerias={visibleGalerias}
-              onEdit={handleEdit}
-              onDelete={handleDelete}
-              isDeleting={isDeleting}
-            />
+          <GaleriaList
+            galerias={visibleGalerias}
+            onEdit={(g) => setGaleriaToEdit(g)}
+            onDelete={(g) => setGaleriaToDelete(g)}
+            isDeleting={isDeleting}
+            updatingId={updatingId}
+          />
+        )}
 
-            {hasMore && (
-              <div className="flex justify-center py-8 text-sm text-[#444746]">
-                {loadingMore ? (
-                  <div className="flex items-center gap-3">
-                    <div className="h-6 w-6 animate-spin rounded-full border-b-2 border-[#0B57D0]" />
-                    <span>Carregando mais galerias...</span>
-                  </div>
-                ) : (
-                  <button
-                    onClick={() =>
-                      setCardsToShow((prev) =>
-                        Math.min(prev + CARDS_PER_PAGE, filteredGalerias.length)
-                      )
-                    }
-                    className="rounded-full border border-[#E0E3E7] px-4 py-1.5 text-xs font-medium text-[#444746] hover:bg-[#F8FAFD]"
-                  >
-                    Carregar mais
-                  </button>
-                )}
-              </div>
-            )}
-          </>
+        {hasMore && (
+          <div className="mt-6 flex justify-center">
+            <button
+              onClick={() => setCardsToShow((prev) => prev + CARDS_PER_PAGE)}
+              className="rounded-full border px-6 py-2 text-xs font-bold hover:bg-gray-50"
+            >
+              Carregar mais
+            </button>
+          </div>
         )}
       </div>
 
-      {/* Toast */}
-      {toastMessage && (
-        <Toast
-          message={toastMessage}
-          type={toastType}
-          onClose={() => setToastMessage("")}
-        />
-      )}
-
-      {/* Modal de confirmação de delete */}
       <ConfirmationModal
         galeria={galeriaToDelete}
         isOpen={!!galeriaToDelete}
@@ -296,13 +212,22 @@ export default function ClientAdminWrapper({ initialGalerias }: ClientAdminWrapp
         isDeleting={isDeleting}
       />
 
-      {/* Modal de edição */}
       <EditGaleriaModal
         galeria={galeriaToEdit}
         isOpen={!!galeriaToEdit}
         onClose={() => setGaleriaToEdit(null)}
-        onSuccess={handleUpdate}
+        onSuccess={handleUpdate} // Esta prop deve ser chamada no Modal
+        isUpdating={updatingId}
       />
+
+      {/* Componentes de Feedback e Modais */}
+      {toastMessage && (
+        <Toast
+          message={toastMessage}
+          type={toastType}
+          onClose={() => setToastMessage("")}
+        />
+      )}
     </div>
   );
 }

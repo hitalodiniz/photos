@@ -201,7 +201,7 @@ async function generateUniqueDatedSlug(
 }
 
 // =========================================================================
-// 3. CREATE GALERIA
+// 3. CREATE GALERIA - CORRIGIDO
 // =========================================================================
 
 export async function createGaleria(formData: FormData): Promise<ActionResult> {
@@ -219,22 +219,34 @@ export async function createGaleria(formData: FormData): Promise<ActionResult> {
     };
   }
 
+  revalidatePath("/dashboard");
+
+  // ALINHAMENTO DE CHAVES: Devem ser idênticas ao que o frontend envia no .set() ou .append()
   const clientName = (formData.get("clientName") as string) || "";
-  const clientWhatsapp = (formData.get("clientWhatsapp") as string) || "";
+  const clientWhatsapp = (formData.get("client_whatsapp") as string) || ""; // Ajustado
   const title = (formData.get("title") as string) || "";
   const dateStr = (formData.get("date") as string) || "";
   const location = (formData.get("location") as string) || "";
-  const driveFolderId = (formData.get("driveFolderId") as string) || "";
-  const driveFolderName = (formData.get("driveFolderName") as string) || "";
-  const coverFileId = (formData.get("coverFileId") as string) || "";
-  const isPublicString = (formData.get("isPublic") as string) || "false";
+
+  // Pegando os nomes corretos definidos no handleSubmit do componente
+  const driveFolderId = (formData.get("drive_folder_id") as string) || "";
+  const driveFolderName = (formData.get("drive_folder_name") as string) || "";
+  const coverFileId = (formData.get("cover_image_url") as string) || ""; // Ajustado
+
+  const isPublicString = (formData.get("is_public") as string) || "true"; // Ajustado
   const isPublic = isPublicString === "true";
   const password = (formData.get("password") as string) || "";
 
-  if (!title || !driveFolderId || !clientName || !dateStr || !coverFileId) {
+  // LOG DE DEBUG PARA VOCÊ VER NO TERMINAL DO VS CODE
+  console.log("--- DADOS NO SERVIDOR ---");
+  console.log({ title, driveFolderId, coverFileId, isPublic });
+
+  // Validação dos campos obrigatórios
+  if (!title || !driveFolderId || !clientName || !dateStr) {
     return {
       success: false,
-      error: "Preencha todos os campos obrigatórios.",
+      error:
+        "Preencha todos os campos obrigatórios, incluindo a pasta do Drive.",
     };
   }
 
@@ -256,13 +268,13 @@ export async function createGaleria(formData: FormData): Promise<ActionResult> {
       client_whatsapp: clientWhatsapp.replace(/\D/g, "") || null,
       is_public: isPublic,
       password: isPublic ? null : password || null,
-      cover_image_url: coverFileId, // se essa for sua coluna
+      cover_image_url: coverFileId,
     });
 
     if (error) throw error;
 
     revalidatePath("/dashboard");
-    return { success: true, message: "Galeria criada com sucesso!", data: {} };
+    return { success: true, message: "Galeria criada com sucesso!" };
   } catch (err) {
     console.error("Erro real ao salvar no banco:", err);
     return { success: false, error: "Falha ao salvar a nova galeria." };
@@ -273,21 +285,30 @@ export async function createGaleria(formData: FormData): Promise<ActionResult> {
 // 4. UPDATE GALERIA
 // =========================================================================
 
-export async function updateGaleria(id: string, formData: FormData): Promise<ActionResult> {
+export async function updateGaleria(
+  id: string,
+  formData: FormData
+): Promise<ActionResult> {
   try {
     const supabase = await createSupabaseServerClient();
 
     const updates = {
       title: formData.get("title") as string,
       client_name: formData.get("clientName") as string,
-      client_whatsapp: (formData.get("clientWhatsapp") as string).replace(/\D/g, ""),
+      client_whatsapp: (formData.get("clientWhatsapp") as string).replace(
+        /\D/g,
+        ""
+      ),
       date: new Date(formData.get("date") as string).toISOString(),
       location: formData.get("location") as string,
       drive_folder_id: formData.get("driveFolderId") as string,
       drive_folder_name: formData.get("driveFolderName") as string,
       cover_image_url: formData.get("coverFileId") as string,
       is_public: formData.get("isPublic") === "true",
-      password: formData.get("isPublic") === "true" ? null : (formData.get("password") as string || null),
+      password:
+        formData.get("isPublic") === "true"
+          ? null
+          : (formData.get("password") as string) || null,
     };
 
     const { error } = await supabase
@@ -298,10 +319,9 @@ export async function updateGaleria(id: string, formData: FormData): Promise<Act
     if (error) throw error;
 
     revalidatePath("/dashboard");
-    return { success: true, message: "Galeria atualizada com sucesso!" };
-  } catch (err) {
-    console.error("Erro na atualização:", err);
-    return { success: false, error: "Falha ao atualizar os dados." };
+    return { success: true };
+  } catch (error) {
+    return { success: false, error: "Falha ao atualizar" };
   }
 }
 
@@ -368,17 +388,17 @@ export async function deleteGaleria(id: string): Promise<ActionResult> {
   try {
     const supabase = await createSupabaseServerClient();
 
-    const { error } = await supabase
-      .from("tb_galerias")
-      .delete()
-      .eq("id", id);
+    const { error } = await supabase.from("tb_galerias").delete().eq("id", id);
 
     if (error) throw error;
 
     // Atualiza o cache do servidor para a rota do dashboard
     revalidatePath("/dashboard");
 
-    return { success: true, message: "Galeria movida para a lixeira com sucesso!" };
+    return {
+      success: true,
+      message: "Galeria movida para a lixeira com sucesso!",
+    };
   } catch (err) {
     console.error("Erro ao deletar galeria:", err);
     return { success: false, error: "Não foi possível excluir a galeria." };

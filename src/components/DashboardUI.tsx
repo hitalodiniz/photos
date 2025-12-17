@@ -59,14 +59,51 @@ const maskPhoneInternal = (value: string): string => {
 // =========================================================================
 
 export function Toast({ message, type, onClose }: ToastProps) {
-    const baseClasses = "fixed bottom-6 left-6 py-3 px-6 rounded-md shadow-lg text-white text-sm flex items-center justify-between z-50 min-w-[300px] animate-in slide-in-from-bottom-5 fade-in duration-300";
-    const colorClasses = type === 'success' ? "bg-[#323232]" : "bg-[#B3261E]";
-    
-    useEffect(() => { const timer = setTimeout(() => { onClose(); }, 5000); return () => clearTimeout(timer); }, [message, onClose]);
-    if (!message) return null;
-    return (<div className={`${baseClasses} ${colorClasses}`}><span>{message}</span><button onClick={onClose} className="ml-4 text-[#A8C7FA] hover:text-white font-medium text-sm uppercase">Fechar</button></div>);
-}
+  // Aumentamos min-w para 600px, py para 5, px para 8 e text para lg
+  const baseClasses = `
+    fixed bottom-10 left-1/2 -translate-x-1/2 
+    py-5 px-8 rounded-xl shadow-2xl 
+    text-white text-lg font-medium
+    flex items-center justify-between 
+    z-[9999] min-w-[600px] max-w-[90vw]
+    pointer-events-auto 
+    animate-in slide-in-from-bottom-10 fade-in duration-500
+  `;
+  
+  const colorClasses = type === 'success' ? "bg-[#323232]" : "bg-[#B3261E]";
+  
+  useEffect(() => {
+    if (!message) return;
+    const timer = setTimeout(() => { onClose(); }, 5000);
+    return () => clearTimeout(timer);
+  }, [message, onClose]);
 
+  if (!message) return null;
+
+  return (
+    <div className={`${baseClasses} ${colorClasses}`}>
+      <div className="flex items-center gap-4">
+        {/* Ícone opcional para preencher mais espaço e dar feedback visual */}
+        {type === 'success' ? (
+          <div className="h-3 w-3 rounded-full bg-green-500" />
+        ) : (
+          <div className="h-3 w-3 rounded-full bg-white animate-pulse" />
+        )}
+        <span>{message}</span>
+      </div>
+      
+      <button 
+        onClick={(e) => {
+          e.preventDefault();
+          onClose();
+        }} 
+        className="ml-8 text-[#A8C7FA] hover:text-white font-bold text-sm uppercase tracking-widest transition-colors"
+      >
+        Fechar
+      </button>
+    </div>
+  );
+}
 // =========================================================================
 // 2. SubmitButton (Botão Pílula Azul Google)
 // =========================================================================

@@ -3,6 +3,7 @@
 
 import { useRouter } from "next/navigation";
 import { motion } from "framer-motion";
+import { AnimatePresence } from "framer-motion";
 import {
   Calendar,
   MapPin,
@@ -21,19 +22,27 @@ interface GaleriaCardProps {
   onEdit: (galeria: Galeria) => void;
   onDelete: (galeria: Galeria) => void;
   isDeleting: boolean;
+  isUpdating?: boolean;
 }
 
-export default function GaleriaCard({ galeria, onEdit, onDelete, isDeleting }: GaleriaCardProps) {
+export default function GaleriaCard({ galeria, onEdit, onDelete, isDeleting, isUpdating = false }: GaleriaCardProps) {
   const router = useRouter();
+
+  // Função para formatar data ignorando o fuso horário (Timezone) do navegador
+  const formatDateSafely = (dateString: string) => {
+    if (!dateString) return "---";
+    // Divide a string "2025-11-04" e reorganiza para o padrão brasileiro sem usar 'new Date' direto
+    const [datePart] = dateString.split("T");
+    const [year, month, day] = datePart.split("-");
+    return `${day}/${month}/${year}`;
+  };
 
   const getImageUrl = (fileId: string | null) => {
     if (!fileId) return "https://placehold.co/400x250?text=Sem+Capa";
-
-    // IMPORTANTE: Use https e o parâmetro =w400-h250-p para forçar o redimensionamento e permissão
+    // Endpoint otimizado e estável para exibir miniaturas do Google Drive
     return `https://lh3.googleusercontent.com/d/${fileId}=w400-h250-p`;
   };
 
-  // No seu componente, certifique-se de que a variável imageUrl usa essa função
   const imageUrl = galeria.cover_image_url?.includes("http")
     ? galeria.cover_image_url
     : getImageUrl(galeria.cover_image_url);
@@ -45,8 +54,33 @@ export default function GaleriaCard({ galeria, onEdit, onDelete, isDeleting }: G
       onClick={() => router.push(`/galeria/${galeria.slug}`)}
       className="group flex cursor-pointer flex-col overflow-hidden rounded-xl border border-gray-200 bg-white shadow-sm transition-all hover:border-blue-400 hover:shadow-md h-full"
       whileHover={{ y: -3 }}
-      style={{ maxWidth: '320px' }}
-    >
+      style={{ maxWidth: '320px' }}>
+      {/* Overlay de Loading */}
+      <AnimatePresence>
+        {isUpdating && (
+          <motion.div
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            exit={{ opacity: 0 }}
+            className="absolute inset-0 z-20 flex flex-col items-center justify-center bg-white/80 backdrop-blur-sm transition-all"
+          >
+            <motion.div
+              animate={{ rotate: 360 }}
+              transition={{ repeat: Infinity, duration: 1, ease: "linear" }}
+              className="h-8 w-8 rounded-full border-4 border-blue-600 border-t-transparent"
+            />
+            <motion.span
+              initial={{ y: 5, opacity: 0 }}
+              animate={{ y: 0, opacity: 1 }}
+              transition={{ delay: 0.2 }}
+              className="mt-2 text-[10px] font-bold text-blue-600 uppercase tracking-widest"
+            >
+              Atualizando...
+            </motion.span>
+          </motion.div>
+        )}
+      </AnimatePresence>
+
       {/* Imagem de Capa */}
       <div className="relative aspect-[16/9] w-full overflow-hidden bg-gray-50 border-b border-gray-100">
         <img
@@ -91,7 +125,8 @@ export default function GaleriaCard({ galeria, onEdit, onDelete, isDeleting }: G
           <div className="flex items-center justify-between text-[11px]">
             <div className="flex items-center gap-1 text-gray-500">
               <Calendar size={12} />
-              <span>{new Date(galeria.date).toLocaleDateString("pt-BR")}</span>
+              {/* CORREÇÃO: Usando a função que ignora o fuso horário */}
+              <span>{formatDateSafely(galeria.date)}</span>
             </div>
             <div className="flex items-center gap-1 font-semibold text-amber-600 bg-amber-50 px-1.5 py-0.5 rounded border border-amber-100 max-w-[130px]">
               <FolderOpen size={11} className="flex-shrink-0" />
