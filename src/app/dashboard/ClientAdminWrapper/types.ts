@@ -13,4 +13,5 @@ export interface Galeria {
   is_public: boolean;
   password: string | null;
   cover_image_url: string | null;
+  drive_folder_name: string;
 }

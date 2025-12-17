@@ -6,7 +6,6 @@ import GooglePickerButton from "@/components/GooglePickerButton";
 import { maskPhone } from "@/utils/masks";
 import { createGaleria } from "@/actions/galeria";
 
-
 export default function CreateGaleriaForm({ onSuccess }) {
   const formRef = useRef<HTMLFormElement>(null);
 
@@ -14,43 +13,50 @@ export default function CreateGaleriaForm({ onSuccess }) {
   const [password, setPassword] = useState("");
   const [clientWhatsapp, setClientWhatsapp] = useState("");
   const [driveFolderId, setDriveFolderId] = useState("");
-  // Estado para armazenar o nome amigável da pasta (item 1 resolvido)
-  const [driveFolderName, setDriveFolderName] = useState('Nenhuma pasta selecionada');
-  // Estado para exibir o erro do Google Picker (item 2 resolvido)
-  const [error, setError] = useState<string | null>(null); 
 
-  // Novo handler, usa o nome e o ID da pasta (item 1 resolvido)
-  const handleFolderSelect = (id: string, name: string) => {
-    setDriveFolderId(id);
-    setDriveFolderName(name);
-    setError(null); // Limpa qualquer erro anterior
+  // Estado para armazenar o ID da foto de capa selecionada
+  const [coverFileId, setCoverFileId] = useState("");
+
+  // Estado para armazenar o nome amigável da pasta
+  const [driveFolderName, setDriveFolderName] = useState('Nenhuma pasta selecionada');
+
+  // Estado para exibir o erro do Google Picker
+  const [error, setError] = useState<string | null>(null);
+
+  // Novo handler para sucesso no Picker
+  const handleFolderSelect = (folderId: string, folderName: string, coverFileId: string) => {
+    setDriveFolderId(folderId);
+    setDriveFolderName(folderName);
+    setCoverFileId(coverFileId);
+    setError(null);
   };
-  
-  // Novo handler para erros do Picker (item 2 resolvido)
+
+  // Handler para erros do Picker
   const handlePickerError = (message: string) => {
-      setError(message);
-      setDriveFolderId(""); // Limpa o ID se a seleção falhou
-      setDriveFolderName('Nenhuma pasta selecionada');
+    setError(message);
+    setDriveFolderId("");
+    setCoverFileId("");
+    setDriveFolderName('Nenhuma pasta selecionada');
   };
 
   const handleSubmit = async (formData: FormData) => {
-    // Adiciona o check de erro para ser mais claro
     if (error) {
-        onSuccess(false, error); // Usa o erro do picker se ele estiver ativo
-        return;
+      onSuccess(false, error);
+      return;
     }
-    
+
     if (!driveFolderId) {
       onSuccess(false, "Selecione uma pasta do Google Drive.");
       return;
     }
 
+    // Adiciona dados dos estados ao FormData
     formData.append("isPublic", isPublic.toString());
-    formData.append("driveFolderId", driveFolderId); // <- O nome da coluna do DB deve ser drive_folder_id
-    formData.append("drive_folder_id", driveFolderId); 
-    formData.append("coverFileId", driveFolderId); // <- Ajuste: Se você não está selecionando a capa separadamente, 
-                                                   // o ID da pasta pode ser usado como fallback para a capa
-                                                   // Se você seleciona a capa separadamente, você precisará de outro estado (coverFileId)
+    formData.append("drive_folder_id", driveFolderId);
+    formData.append("drive_folder_name", driveFolderName);
+
+    // Enviando o ID para a capa (pode ser o ID da foto ou da pasta)
+    formData.append("coverFileId", coverFileId || driveFolderId);
 
     if (!isPublic) {
       if (password.length < 4) {
@@ -63,12 +69,13 @@ export default function CreateGaleriaForm({ onSuccess }) {
     const result = await createGaleria(formData);
 
     if (result.success) {
+      // Limpeza do formulário e estados após sucesso
       formRef.current?.reset();
       setPassword("");
       setClientWhatsapp("");
       setDriveFolderId("");
-      setDriveFolderName('Nenhuma pasta selecionada'); // <- LIMPA O NOME
-      setError(null); // Limpa o erro
+      setCoverFileId("");
+      setDriveFolderName('Nenhuma pasta selecionada');
       setIsPublic(true);
       onSuccess(true, "Galeria criada com sucesso!");
     } else {
@@ -79,86 +86,105 @@ export default function CreateGaleriaForm({ onSuccess }) {
   return (
     <form ref={formRef} action={handleSubmit} className="space-y-4">
       <div>
-        <label className="text-xs font-medium ml-1">Nome do cliente</label>
+        <label className="text-xs font-medium ml-1 text-gray-700">Nome do cliente</label>
         <input
           name="clientName"
           required
-          className="w-full bg-[#F0F4F9] p-3 rounded-lg"
+          className="w-full bg-[#F0F4F9] p-3 rounded-lg outline-none focus:ring-2 focus:ring-blue-500"
         />
       </div>
 
       <div>
-        <label className="text-xs font-medium ml-1">WhatsApp</label>
+        <label className="text-xs font-medium ml-1 text-gray-700">WhatsApp</label>
         <input
           value={clientWhatsapp}
           onChange={(e) => setClientWhatsapp(maskPhone(e))}
           maxLength={15}
-          className="w-full bg-[#F0F4F9] p-3 rounded-lg"
+          className="w-full bg-[#F0F4F9] p-3 rounded-lg outline-none focus:ring-2 focus:ring-blue-500"
+          placeholder="(00) 00000-0000"
         />
         <input type="hidden" name="clientWhatsapp" value={clientWhatsapp} />
       </div>
 
       <div>
-        <label className="text-xs font-medium ml-1">Título</label>
-        <input name="title" required className="w-full bg-[#F0F4F9] p-3 rounded-lg" />
+        <label className="text-xs font-medium ml-1 text-gray-700">Título da Galeria</label>
+        <input name="title" required className="w-full bg-[#F0F4F9] p-3 rounded-lg outline-none focus:ring-2 focus:ring-blue-500" />
       </div>
 
       <div className="grid grid-cols-2 gap-3">
         <div>
-          <label className="text-xs font-medium ml-1">Data</label>
-          <input name="date" type="date" required className="w-full bg-[#F0F4F9] p-3 rounded-lg" />
+          <label className="text-xs font-medium ml-1 text-gray-700">Data</label>
+          <input name="date" type="date" required className="w-full bg-[#F0F4F9] p-3 rounded-lg outline-none focus:ring-2 focus:ring-blue-500" />
         </div>
 
         <div>
-          <label className="text-xs font-medium ml-1">Local</label>
-          <input name="location" className="w-full bg-[#F0F4F9] p-3 rounded-lg" />
+          <label className="text-xs font-medium ml-1 text-gray-700">Local</label>
+          <input name="location" className="w-full bg-[#F0F4F9] p-3 rounded-lg outline-none focus:ring-2 focus:ring-blue-500" />
         </div>
       </div>
 
       {/* SEÇÃO GOOGLE DRIVE */}
-      <div>
-        <label className="text-xs font-medium ml-1">Pasta do Google </label>
-        <GooglePickerButton 
-            onFolderSelect={handleFolderSelect} 
-            onError={handlePickerError} // <--- NOVO: Tratamento de erro do Picker
-            currentDriveId={driveFolderId} 
-        />
-      </div>
-      
-      {/* Exibe o nome da pasta */}
-      <p className="text-xs font-medium ml-1">
-          Pasta selecionada: 
-          <strong className="text-xs font-medium ml-1">
-              {driveFolderName === driveFolderId ? `ID: ${driveFolderId}` : driveFolderName}
-          </strong>
-      </p>
-      
-      {/* Exibe o erro do Picker */}
-      {error && (
-          <div className="mt-2 p-3 bg-red-100 text-sm border border-red-400 text-red-700 rounded-lg">
-              {error}
-          </div>
-      )}
-      <input type="hidden" name="driveFolderId" value={driveFolderId} />
+      <div className="rounded-xl border border-dashed border-gray-300 p-4 bg-gray-50">
+        <div className="flex items-center gap-2 mb-3">
+          <svg className="w-4 h-4" viewBox="0 0 48 48">
+            <path fill="#4285F4" d="M24 9.5c3.54 0 6.71 1.22 9.21 3.6l6.85-6.85C35.9 2.38 30.47 0 24 0 14.62 0 6.51 5.38 2.56 13.22l7.98 6.19C12.43 13.72 17.74 9.5 24 9.5z" />
+            <path fill="#34A853" d="M46.98 24.55c0-1.57-.15-3.09-.38-4.55H24v9.02h12.94c-.58 2.96-2.26 5.48-4.78 7.18l7.73 6c4.51-4.18 7.09-10.36 7.09-17.65z" />
+            <path fill="#FBBC05" d="M10.53 28.59c-.48-1.45-.76-2.99-.76-4.59s.27-3.14.76-4.59l-7.98-6.19C.92 16.46 0 20.12 0 24c0 3.88.92 7.54 2.56 10.78l7.97-6.19z" />
+            <path fill="#EA4335" d="M24 48c6.48 0 11.93-2.13 15.89-5.81l-7.73-6c-2.15 1.45-4.92 2.3-8.16 2.3-6.26 0-11.57-4.22-13.47-9.91l-7.98 6.19C6.51 42.62 14.62 48 24 48z" />
+          </svg>
+          <label className="text-xs font-bold tracking-wider text-gray-600 uppercase">
+            Conteúdo do Google Drive
+          </label>
+        </div>
 
+        <GooglePickerButton
+          onFolderSelect={handleFolderSelect}
+          onError={handlePickerError}
+          currentDriveId={driveFolderId}
+        />
+
+        {driveFolderId ? (
+          <div className="mt-3 flex items-center gap-2 text-sm text-blue-700 bg-blue-50 p-2.5 rounded-lg border border-blue-100">
+            <div className="h-2 w-2 rounded-full bg-blue-500 animate-pulse" />
+            <span className="font-medium truncate">Pasta vinculada: {driveFolderName}</span>
+          </div>
+        ) : (
+          <p className="mt-2 text-xs text-gray-400 italic">Nenhuma pasta vinculada ainda.</p>
+        )}
+      </div>
+
+      {error && (
+        <div className="mt-2 p-3 bg-red-100 text-sm border border-red-400 text-red-700 rounded-lg flex items-center gap-2">
+          <span className="font-bold">!</span> {error}
+        </div>
+      )}
+
+      {/* Opções de Privacidade */}
       <div className="pt-2 border-t space-y-3">
-        <label className="flex items-center gap-2">
-          <input type="radio" checked={isPublic} onChange={() => setIsPublic(true)} />
-          Galeria Pública
-        </label>
-        <label className="flex items-center gap-2">
-          <input type="radio" checked={!isPublic} onChange={() => setIsPublic(false)} />
-          Galeria Privada
-        </label>
+        <div className="flex gap-4">
+          <label className="flex items-center gap-2 cursor-pointer text-sm">
+            <input type="radio" name="privacy" checked={isPublic} onChange={() => setIsPublic(true)} className="w-4 h-4 text-blue-600" />
+            Galeria Pública
+          </label>
+          <label className="flex items-center gap-2 cursor-pointer text-sm">
+            <input type="radio" name="privacy" checked={!isPublic} onChange={() => setIsPublic(false)} className="w-4 h-4 text-blue-600" />
+            Galeria Privada
+          </label>
+        </div>
 
         {!isPublic && (
-          <input
-            name="password"
-            value={password}
-            onChange={(e) => setPassword(e.target.value.replace(/\D/g, "").slice(0, 8))}
-            className="w-full bg-[#F0F4F9] p-3 rounded-lg"
-            placeholder="Senha (4-8 dígitos)"
-          />
+          <div className="animate-in fade-in slide-in-from-top-1 duration-200">
+            <label className="text-[10px] font-bold text-gray-500 ml-1 uppercase">Senha de Acesso</label>
+            <input
+              name="password"
+              type="text"
+              value={password}
+              onChange={(e) => setPassword(e.target.value.replace(/\D/g, "").slice(0, 8))}
+              className="w-full bg-[#F0F4F9] p-3 rounded-lg outline-none focus:ring-2 focus:ring-blue-500"
+              placeholder="4 a 8 dígitos"
+              required={!isPublic}
+            />
+          </div>
         )}
       </div>
 

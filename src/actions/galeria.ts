@@ -20,6 +20,7 @@ interface ActionResult<T = unknown> {
   success: boolean;
   data?: T;
   error?: string;
+  message?: string;
 }
 
 interface AuthContext {
@@ -224,6 +225,7 @@ export async function createGaleria(formData: FormData): Promise<ActionResult> {
   const dateStr = (formData.get("date") as string) || "";
   const location = (formData.get("location") as string) || "";
   const driveFolderId = (formData.get("driveFolderId") as string) || "";
+  const driveFolderName = (formData.get("driveFolderName") as string) || "";
   const coverFileId = (formData.get("coverFileId") as string) || "";
   const isPublicString = (formData.get("isPublic") as string) || "false";
   const isPublic = isPublicString === "true";
@@ -249,6 +251,7 @@ export async function createGaleria(formData: FormData): Promise<ActionResult> {
       date: new Date(dateStr).toISOString(),
       location,
       drive_folder_id: driveFolderId,
+      drive_folder_name: driveFolderName,
       client_name: clientName,
       client_whatsapp: clientWhatsapp.replace(/\D/g, "") || null,
       is_public: isPublic,
@@ -270,71 +273,35 @@ export async function createGaleria(formData: FormData): Promise<ActionResult> {
 // 4. UPDATE GALERIA
 // =========================================================================
 
-export async function updateGaleria(
-  galeriaId: string,
-  data: GaleriaInputUpdate
-): Promise<ActionResult> {
-  const { success, userId, error: authError } = await getAuthAndStudioIds();
-
-  if (!success || !userId) {
-    return { success: false, error: authError || "Usuário não autenticado." };
-  }
-
-  if (!galeriaId) {
-    return {
-      success: false,
-      error: "ID da galeria é obrigatório para atualização.",
-    };
-  }
-
-  const isPublic =
-    data.isPublic === true || data.isPublic === "true" ? true : false;
-
-  const newSlug = await generateUniqueDatedSlug(
-    data.title,
-    data.date,
-    galeriaId
-  );
-
-  const updateData: Partial<GaleriaRecord> = {
-    title: data.title,
-    date: new Date(data.date).toISOString(),
-    location: data.location || null,
-    drive_folder_id: data.driveFolderId,
-    client_name: data.clientName,
-    client_whatsapp: data.clientWhatsapp
-      ? data.clientWhatsapp.replace(/\D/g, "")
-      : null,
-    is_public: isPublic,
-    slug: newSlug,
-  };
-
-  if (isPublic) {
-    updateData.password = null;
-  } else {
-    updateData.password = data.password || null;
-  }
-
+export async function updateGaleria(id: string, formData: FormData): Promise<ActionResult> {
   try {
-    const supabase = createSupabaseServerClient();
+    const supabase = await createSupabaseServerClient();
 
-    const { error, data: updated } = await supabase
+    const updates = {
+      title: formData.get("title") as string,
+      client_name: formData.get("clientName") as string,
+      client_whatsapp: (formData.get("clientWhatsapp") as string).replace(/\D/g, ""),
+      date: new Date(formData.get("date") as string).toISOString(),
+      location: formData.get("location") as string,
+      drive_folder_id: formData.get("driveFolderId") as string,
+      drive_folder_name: formData.get("driveFolderName") as string,
+      cover_image_url: formData.get("coverFileId") as string,
+      is_public: formData.get("isPublic") === "true",
+      password: formData.get("isPublic") === "true" ? null : (formData.get("password") as string || null),
+    };
+
+    const { error } = await supabase
       .from("tb_galerias")
-      .update(updateData)
-      .eq("id", galeriaId)
-      .eq("user_id", userId)
-      .select()
-      .maybeSingle();
+      .update(updates)
+      .eq("id", id);
 
     if (error) throw error;
 
     revalidatePath("/dashboard");
-    redirect("/dashboard");
-
-    return { success: true, data: updated };
+    return { success: true, message: "Galeria atualizada com sucesso!" };
   } catch (err) {
-    console.error("Erro ao atualizar galeria:", err);
-    return { success: false, error: "Falha ao atualizar a galeria." };
+    console.error("Erro na atualização:", err);
+    return { success: false, error: "Falha ao atualizar os dados." };
   }
 }
 
@@ -397,39 +364,26 @@ export async function getGalerias(): Promise<ActionResult<GaleriaWithCover[]>> {
 // =========================================================================
 // 6. DELETE GALERIA
 // =========================================================================
-
 export async function deleteGaleria(id: string): Promise<ActionResult> {
-  const { success, userId, error: authError } = await getAuthAndStudioIds();
-
-  if (!success || !userId) {
-    return { success: false, error: authError || "Usuário não autenticado." };
-  }
-
-  if (!id) {
-    return { success: false, error: "ID da galeria não fornecido." };
-  }
-
   try {
-    const supabase = createSupabaseServerClient();
+    const supabase = await createSupabaseServerClient();
 
     const { error } = await supabase
       .from("tb_galerias")
       .delete()
-      .eq("id", id)
-      .eq("user_id", userId);
+      .eq("id", id);
 
     if (error) throw error;
 
+    // Atualiza o cache do servidor para a rota do dashboard
     revalidatePath("/dashboard");
-    redirect("/dashboard");
 
-    return { success: true };
+    return { success: true, message: "Galeria movida para a lixeira com sucesso!" };
   } catch (err) {
     console.error("Erro ao deletar galeria:", err);
-    return { success: false, error: "Falha ao deletar a galeria." };
+    return { success: false, error: "Não foi possível excluir a galeria." };
   }
 }
-
 // =========================================================================
 // 7. AUTENTICAÇÃO DE ACESSO À GALERIA POR SENHA (COOKIE)
 // =========================================================================

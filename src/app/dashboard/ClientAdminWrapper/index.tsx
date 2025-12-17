@@ -2,11 +2,13 @@
 "use client";
 
 import { useEffect, useMemo, useState } from "react";
-import { Toast, ConfirmationModal, EditGaleriaModal } from "@/components/DashboardUI";
+import { Toast, ConfirmationModal } from "@/components/DashboardUI";
 import { getGalerias, deleteGaleria, updateGaleria } from "@/actions/galeria";
+import { useRouter } from "next/navigation";
 
 import type { Galeria } from "./types";
 import CreateGaleriaForm from "./CreateGaleriaForm";
+import EditGaleriaModal from "./EditGaleriaModal";
 import Filters from "./Filters";
 import GaleriaList from "./GaleriaList";
 
@@ -35,8 +37,13 @@ export default function ClientAdminWrapper({ initialGalerias }: ClientAdminWrapp
   const [toastType, setToastType] = useState<"success" | "error">("success");
 
   const [galeriaToDelete, setGaleriaToDelete] = useState<Galeria | null>(null);
-  const [galeriaToEdit, setGaleriaToEdit] = useState<Galeria | null>(null);
   const [isDeleting, setIsDeleting] = useState(false);
+
+  const [galeriaToEdit, setGaleriaToEdit] = useState<Galeria | null>(null);
+
+  const handleEditClick = (galeria: Galeria) => {
+    setGaleriaToEdit(galeria);
+  };
 
   // ------------------------
   // Carregar / recarregar galerias do server
@@ -131,23 +138,26 @@ export default function ClientAdminWrapper({ initialGalerias }: ClientAdminWrapp
     setGaleriaToDelete(galeria);
   };
 
+  // 2. Função chamada ao confirmar no Modal
   const handleConfirmDelete = async () => {
     if (!galeriaToDelete) return;
-    setIsDeleting(true);
 
+    setIsDeleting(true);
     const result = await deleteGaleria(galeriaToDelete.id);
 
     if (result.success) {
       setToastType("success");
-      setToastMessage("Galeria deletada com sucesso!");
+      setToastMessage(result.message || "Excluído com sucesso");
+
+      // Atualiza a lista localmente ou recarrega do banco
       await reloadGalerias();
     } else {
       setToastType("error");
-      setToastMessage(result.error || "Erro ao deletar galeria.");
+      setToastMessage(result.error || "Erro ao excluir");
     }
 
     setIsDeleting(false);
-    setGaleriaToDelete(null);
+    setGaleriaToDelete(null); // Fecha o modal
   };
 
   // ------------------------
@@ -157,22 +167,21 @@ export default function ClientAdminWrapper({ initialGalerias }: ClientAdminWrapp
     setGaleriaToEdit(galeria);
   };
 
-  const handleUpdate = async (
-    galeriaId: string,
-    updatedData: Partial<Galeria> & { isPublic: boolean }
-  ) => {
-    const result = await updateGaleria(galeriaId, updatedData);
-
-    if (result.success) {
-      setToastType("success");
-      setToastMessage("Galeria atualizada com sucesso!");
-      await reloadGalerias();
-    } else {
-      setToastType("error");
-      setToastMessage(result.error || "Erro ao atualizar galeria.");
-    }
-
+  // 4. Função que recebe o resultado do Modal de Edição
+  const handleUpdate = (success: boolean, data: any) => {
+    console.log("2. Index recebeu o sinal!", success, data);
+    
+    if (success && data?.id) {
+    setGalerias((current) => {
+      // Criamos uma cópia nova do array para garantir reatividade
+      const updatedList = current.map((g) => 
+        g.id === data.id ? { ...g, ...data } : g
+      );
+      return [...updatedList]; 
+    });
+    
     setGaleriaToEdit(null);
+  }
   };
 
   // ------------------------
@@ -185,6 +194,7 @@ export default function ClientAdminWrapper({ initialGalerias }: ClientAdminWrapp
       await reloadGalerias();
     }
   };
+
 
   return (
     <div className="mx-auto grid max-w-[1600px] grid-cols-1 gap-6 lg:grid-cols-[360px_1fr]">
@@ -288,10 +298,10 @@ export default function ClientAdminWrapper({ initialGalerias }: ClientAdminWrapp
 
       {/* Modal de edição */}
       <EditGaleriaModal
-        galeriaToEdit={galeriaToEdit}
+        galeria={galeriaToEdit}
         isOpen={!!galeriaToEdit}
         onClose={() => setGaleriaToEdit(null)}
-        onUpdate={handleUpdate}
+        onSuccess={handleUpdate}
       />
     </div>
   );

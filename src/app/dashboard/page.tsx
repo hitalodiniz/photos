@@ -10,19 +10,19 @@ export const metadata: Metadata = {
 };
 
 export default async function DashboardPage() {
-// 1. Cria a instância Supabase READ-ONLY para o servidor
-    // É uma boa prática não usar 'await' na chamada da função se ela já for assíncrona
-    const supabase = await createSupabaseServerClientReadOnly(); 
+  // 1. Cria a instância Supabase READ-ONLY para o servidor
+  // É uma boa prática não usar 'await' na chamada da função se ela já for assíncrona
+  const supabase = await createSupabaseServerClientReadOnly();
 
-    // 2. Chama getUser() na instância correta
-    const {
-        data: { user },
-    } = await supabase.auth.getUser(); 
+  // 2. Chama getUser() na instância correta
+  const {
+    data: { user },
+  } = await supabase.auth.getUser();
 
-    if (!user) {
-        // Se a sessão expirou ou não existe, redireciona para login
-        redirect('/');
-    }
+  if (!user) {
+    // Se a sessão expirou ou não existe, redireciona para login
+    redirect('/');
+  }
 
   // 2. Busca o perfil via RLS
   const { data: profile, error: profileError } = await supabase
@@ -44,14 +44,17 @@ export default async function DashboardPage() {
     redirect('/onboarding');
   }
 
-  // 4. Busca galerias via SSR (com RLS)
-  const initialGalerias = await getGalerias(user.id);
+  // 4. Busca galerias via SSR
+  const result = await getGalerias(); // A action já busca o ID internamente no servidor
 
-  // 5. Renderiza o Client Component com dados SSR
+  // Extrai apenas os dados se a operação for um sucesso
+  const initialGalerias = result.success ? result.data : [];
+
+  // 5. Renderiza o Client Component com o array puro
   return (
     <ClientAdminWrapper
       profile={profile}
-      initialGalerias={initialGalerias}
+      initialGalerias={initialGalerias || []}
     />
   );
 }

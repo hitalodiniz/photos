@@ -1,209 +1,165 @@
-// components/DashboardUI/EditGaleriaModal.tsx
 "use client";
 
-import { useEffect, useState } from "react";
-import { motion, AnimatePresence } from "framer-motion";
-import type { Galeria } from "@/app/dashboard/ClientAdminWrapper/types";
+import { useState, useEffect } from "react";
+import { updateGaleria } from "@/actions/galeria";
+import { maskPhone } from "@/utils/masks";
 import GooglePickerButton from "@/components/GooglePickerButton";
+import { X } from "lucide-react";
 
-interface EditGaleriaModalProps {
-  galeriaToEdit: Galeria | null;
-  isOpen: boolean;
-  onClose: () => void;
-  onUpdate: (id: string, data: Partial<Galeria> & { isPublic: boolean }) => void;
-}
+export default function EditGaleriaModal({ galeria, isOpen, onClose, onSuccess }) {
+  const [loading, setLoading] = useState(false);
+  const [formData, setFormData] = useState({ ...galeria });
+  const [isPublic, setIsPublic] = useState(galeria?.is_public ?? true);
+  const [errorMessage, setErrorMessage] = useState<string | null>(null);
 
-export default function EditGaleriaModal({
-  galeriaToEdit,
-  isOpen,
-  onClose,
-  onUpdate,
-}: EditGaleriaModalProps) {
-  const [title, setTitle] = useState("");
-  const [date, setDate] = useState("");
-  const [location, setLocation] = useState("");
-  const [clientName, setClientName] = useState("");
-  const [clientWhatsapp, setClientWhatsapp] = useState("");
-  const [driveFolderId, setDriveFolderId] = useState("");
-  const [isPublic, setIsPublic] = useState(true);
-  const [password, setPassword] = useState("");
-
+  // Sincroniza o estado quando a galeria mudar
   useEffect(() => {
-    if (!galeriaToEdit) return;
-    setTitle(galeriaToEdit.title ?? "");
-    setDate(galeriaToEdit.date?.substring(0, 10) ?? "");
-    setLocation(galeriaToEdit.location ?? "");
-    setClientName(galeriaToEdit.client_name ?? "");
-    setClientWhatsapp(galeriaToEdit.client_whatsapp ?? "");
-    setDriveFolderId(galeriaToEdit.drive_folder_id ?? "");
-    setIsPublic(galeriaToEdit.is_public ?? true);
-    setPassword(galeriaToEdit.password ?? "");
-  }, [galeriaToEdit]);
+    if (galeria) {
+      setFormData({ ...galeria });
+      setIsPublic(galeria.is_public);
+    }
+  }, [galeria]);
 
-  const handleSave = () => {
-    if (!galeriaToEdit) return;
+  if (!isOpen || !galeria) return null;
 
-    onUpdate(galeriaToEdit.id, {
-      title,
-      date,
-      location,
-      client_name: clientName,
-      client_whatsapp: clientWhatsapp,
-      drive_folder_id: driveFolderId,
-      isPublic, // campo extra para o server decidir is_public/password
-      password: isPublic ? null : password || galeriaToEdit.password,
-    });
+  const handlePickerSuccess = (folderId: string, folderName: string, coverFileId: string) => {
+    setFormData(prev => ({
+      ...prev,
+      drive_folder_id: folderId,
+      drive_folder_name: folderName,
+      cover_image_url: coverFileId
+    }));
+  };
+
+  const handleSubmit = async (e: React.FormEvent<HTMLFormElement>) => {
+    e.preventDefault();
+    setLoading(true);
+    setErrorMessage(null); // Agora funciona porque você adicionou o estado
+
+    try {
+      const data = new FormData(e.currentTarget);
+
+      // 1. Incluímos manualmente os dados que estão em estados do React
+      data.append("isPublic", isPublic.toString());
+      data.append("driveFolderId", formData.drive_folder_id);
+      data.append("driveFolderName", formData.drive_folder_name);
+      data.append("coverFileId", formData.cover_image_url);
+
+      // 2. Chamada para a Server Action de atualização
+      const result = await updateGaleria(galeria.id, data);
+      setLoading(false);
+
+      if (result.success) {
+        // 3. Montamos o objeto atualizado para refletir no Dashboard sem F5
+        const updatedData = {
+          ...galeria, // Importante: mantém o ID e outros campos fixos
+          title: data.get("title") as string,
+          client_name: data.get("clientName") as string,
+          location: data.get("location") as string,
+          date: data.get("date") as string,
+          client_whatsapp: (data.get("clientWhatsapp") as string).replace(/\D/g, ""),
+          is_public: isPublic,
+          drive_folder_name: formData.drive_folder_name,
+          cover_image_url: formData.cover_image_url,
+          // Senha só é atualizada se for informada
+          password: isPublic ? null : (data.get("password") as string || galeria.password)
+        };
+
+        // 4. Enviamos o objeto para o handleUpdate no index.tsx
+        onSuccess(true, updatedData);
+        console.log("1. Modal enviando dados...");
+        onClose(); // Fecha o modal
+      } else {
+        // Caso a Server Action retorne erro (ex: banco de dados offline)
+        setErrorMessage(result.error || "Erro ao atualizar galeria.");
+        onSuccess(false, result.error);
+      }
+    } catch (err) {
+      setLoading(false);
+      setErrorMessage("Ocorreu um erro inesperado ao salvar.");
+      console.error(err);
+    }
   };
 
   return (
-    <AnimatePresence>
-      {isOpen && galeriaToEdit && (
-        <motion.div
-          className="fixed inset-0 z-40 flex items-center justify-center bg-black/40"
-          initial={{ opacity: 0 }}
-          animate={{ opacity: 1 }}
-          exit={{ opacity: 0 }}
-        >
-          <motion.div
-            className="w-full max-w-xl rounded-2xl bg-white p-6 shadow-xl"
-            initial={{ y: 30, opacity: 0 }}
-            animate={{ y: 0, opacity: 1 }}
-            exit={{ y: 20, opacity: 0 }}
-          >
-            <h2 className="mb-4 text-lg font-semibold text-gray-900">
-              Editar galeria
-            </h2>
+    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 backdrop-blur-sm p-4">
+      <div className="w-full max-w-2xl bg-white rounded-3xl shadow-2xl overflow-hidden animate-in fade-in zoom-in duration-200">
+        <div className="flex items-center justify-between p-6 border-b">
+          <h2 className="text-xl font-bold text-gray-800">Editar Galeria: {galeria.title}</h2>
+          <button onClick={onClose} className="p-2 hover:bg-gray-100 rounded-full transition-colors">
+            <X size={24} className="text-gray-500" />
+          </button>
+        </div>
 
-            <div className="space-y-3">
-              <div>
-                <label className="text-xs font-medium text-gray-700 ml-1">
-                  Título
-                </label>
-                <input
-                  value={title}
-                  onChange={(e) => setTitle(e.target.value)}
-                  className="mt-1 w-full rounded-lg bg-[#F0F4F9] p-2 text-sm outline-none ring-0 focus:ring-2 focus:ring-[#0B57D0]"
-                />
-              </div>
-
-              <div className="grid grid-cols-2 gap-3">
-                <div>
-                  <label className="text-xs font-medium text-gray-700 ml-1">
-                    Data
-                  </label>
-                  <input
-                    type="date"
-                    value={date}
-                    onChange={(e) => setDate(e.target.value)}
-                    className="mt-1 w-full rounded-lg bg-[#F0F4F9] p-2 text-sm outline-none ring-0 focus:ring-2 focus:ring-[#0B57D0]"
-                  />
-                </div>
-                <div>
-                  <label className="text-xs font-medium text-gray-700 ml-1">
-                    Local
-                  </label>
-                  <input
-                    value={location}
-                    onChange={(e) => setLocation(e.target.value)}
-                    className="mt-1 w-full rounded-lg bg-[#F0F4F9] p-2 text-sm outline-none ring-0 focus:ring-2 focus:ring-[#0B57D0]"
-                  />
-                </div>
-              </div>
-
-              <div>
-                <label className="text-xs font-medium text-gray-700 ml-1">
-                  Nome do cliente
-                </label>
-                <input
-                  value={clientName}
-                  onChange={(e) => setClientName(e.target.value)}
-                  className="mt-1 w-full rounded-lg bg-[#F0F4F9] p-2 text-sm outline-none ring-0 focus:ring-2 focus:ring-[#0B57D0]"
-                />
-              </div>
-
-              <div>
-                <label className="text-xs font-medium text-gray-700 ml-1">
-                  WhatsApp do cliente
-                </label>
-                <input
-                  value={clientWhatsapp}
-                  onChange={(e) => setClientWhatsapp(e.target.value)}
-                  className="mt-1 w-full rounded-lg bg-[#F0F4F9] p-2 text-sm outline-none ring-0 focus:ring-2 focus:ring-[#0B57D0]"
-                />
-              </div>
-
-              <div>
-                <label className="text-xs font-medium text-gray-700 ml-1">
-                  Pasta do Google Drive
-                </label>
-                <div className="mt-1 flex items-center gap-2">
-                  <GooglePickerButton
-                    onFolderSelect={setDriveFolderId}
-                    currentDriveId={driveFolderId}
-                  />
-                  {driveFolderId && (
-                    <span className="truncate text-xs text-[#0B57D0]">
-                      {driveFolderId}
-                    </span>
-                  )}
-                </div>
-              </div>
-
-              <div className="mt-2 border-t border-gray-200 pt-3 space-y-2">
-                <p className="text-xs font-medium text-gray-700">
-                  Opções de acesso
-                </p>
-                <label className="flex items-center gap-2 text-sm text-gray-800">
-                  <input
-                    type="radio"
-                    checked={isPublic}
-                    onChange={() => setIsPublic(true)}
-                  />
-                  Galeria pública
-                </label>
-                <label className="flex items-center gap-2 text-sm text-gray-800">
-                  <input
-                    type="radio"
-                    checked={!isPublic}
-                    onChange={() => setIsPublic(false)}
-                  />
-                  Galeria privada (com senha)
-                </label>
-
-                {!isPublic && (
-                  <div>
-                    <label className="text-xs font-medium text-gray-700 ml-1">
-                      Senha (4–8 dígitos)
-                    </label>
-                    <input
-                      value={password}
-                      onChange={(e) =>
-                        setPassword(e.target.value.replace(/\D/g, "").slice(0, 8))
-                      }
-                      className="mt-1 w-full rounded-lg bg-[#F0F4F9] p-2 text-sm outline-none ring-0 focus:ring-2 focus:ring-[#0B57D0]"
-                    />
-                  </div>
-                )}
-              </div>
+        <form onSubmit={handleSubmit} className="p-6 space-y-4 max-h-[80vh] overflow-y-auto">
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+            <div>
+              <label className="text-xs font-bold text-gray-500 uppercase ml-1">Título</label>
+              <input name="title" defaultValue={galeria.title} required className="w-full bg-gray-50 p-3 rounded-xl border focus:ring-2 focus:ring-blue-500 outline-none" />
             </div>
-
-            <div className="mt-6 flex justify-end gap-2">
-              <button
-                onClick={onClose}
-                className="rounded-full border border-gray-300 px-3 py-1.5 text-sm text-gray-700 hover:bg-gray-100"
-              >
-                Cancelar
-              </button>
-              <button
-                onClick={handleSave}
-                className="rounded-full bg-[#0B57D0] px-4 py-1.5 text-sm font-medium text-white hover:bg-[#0842a4]"
-              >
-                Salvar
-              </button>
+            <div>
+              <label className="text-xs font-bold text-gray-500 uppercase ml-1">Nome do Cliente</label>
+              <input name="clientName" defaultValue={galeria.client_name} required className="w-full bg-gray-50 p-3 rounded-xl border focus:ring-2 focus:ring-blue-500 outline-none" />
             </div>
-          </motion.div>
-        </motion.div>
-      )}
-    </AnimatePresence>
+          </div>
+
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+            <div>
+              <label className="text-xs font-bold text-gray-500 uppercase ml-1">Data</label>
+              <input name="date" type="date" defaultValue={galeria.date?.split('T')[0]} required className="w-full bg-gray-50 p-3 rounded-xl border" />
+            </div>
+            <div>
+              <label className="text-xs font-bold text-gray-500 uppercase ml-1">WhatsApp</label>
+              <input
+                name="clientWhatsapp"
+                defaultValue={maskPhone({ target: { value: galeria.client_whatsapp } } as any)}
+                onChange={(e) => e.target.value = maskPhone(e)}
+                className="w-full bg-gray-50 p-3 rounded-xl border"
+              />
+            </div>
+          </div>
+
+          <div className="p-4 bg-blue-50 rounded-2xl border border-blue-100">
+            <label className="text-xs font-bold text-blue-600 uppercase mb-2 block">Vínculo com Google Drive</label>
+            <GooglePickerButton
+              onFolderSelect={handlePickerSuccess}
+              currentDriveId={formData.drive_folder_id}
+              onError={(msg) => alert(msg)}
+            />
+            <p className="mt-2 text-sm text-blue-800 font-medium">
+              Pasta Atual: {formData.drive_folder_name || galeria.drive_folder_name}
+            </p>
+          </div>
+
+          <div className="flex gap-6 py-2">
+            <label className="flex items-center gap-2 cursor-pointer font-medium">
+              <input type="radio" checked={isPublic} onChange={() => setIsPublic(true)} className="w-4 h-4 text-blue-600" />
+              Pública
+            </label>
+            <label className="flex items-center gap-2 cursor-pointer font-medium text-red-600">
+              <input type="radio" checked={!isPublic} onChange={() => setIsPublic(false)} className="w-4 h-4" />
+              Privada
+            </label>
+          </div>
+
+          {!isPublic && (
+            <input
+              name="password"
+              placeholder="Nova senha (deixe vazio para manter)"
+              className="w-full bg-red-50 p-3 rounded-xl border border-red-100"
+            />
+          )}
+
+          <div className="flex justify-end gap-3 pt-4 border-t">
+            <button type="button" onClick={onClose} className="px-6 py-2.5 font-semibold text-gray-500 hover:bg-gray-100 rounded-full transition-colors">
+              Cancelar
+            </button>
+            <button disabled={loading} type="submit" className="px-10 py-2.5 font-bold text-white bg-blue-600 hover:bg-blue-700 rounded-full shadow-lg disabled:opacity-50 transition-all">
+              {loading ? "Salvando..." : "Salvar Alterações"}
+            </button>
+          </div>
+        </form>
+      </div>
+    </div>
   );
 }

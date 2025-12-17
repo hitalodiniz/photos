@@ -2,17 +2,16 @@
 
 import { useEffect, useState } from 'react';
 // Importa a instância exportada do cliente Supabase para o cliente
-import { supabase } from '@/lib/supabase.client'; 
+import { supabase } from '@/lib/supabase.client';
 // Importa as Server Actions para o lado do servidor
-import { getParentFolderIdServer, getDriveFolderName } from '@/actions/google'; 
+import { getParentFolderIdServer, getDriveFolderName } from '@/actions/google';
 
 // Tipagem para as propriedades do componente
 interface GooglePickerProps {
-    // Retorna o ID e o Nome
-    onFolderSelect: (folderId: string, folderName: string) => void;
+    // Agora envia: folderId, folderName, coverFileId
+    onFolderSelect: (folderId: string, folderName: string, coverFileId: string) => void;
     currentDriveId: string | null;
-    // Propriedade para tratamento de erro
-    onError: (message: string) => void; 
+    onError: (message: string) => void;
 }
 
 // Declarações globais (mantidas)
@@ -61,7 +60,7 @@ const loadGoogleLibraries = (callback: () => void) => {
 export default function GooglePickerButton({ onFolderSelect, currentDriveId, onError }: GooglePickerProps) {
     const [loading, setLoading] = useState(false);
     // Estado que reflete a capacidade real de ABRIR o Picker
-    const [isReadyToOpen, setIsReadyToOpen] = useState(isPickerLoaded); 
+    const [isReadyToOpen, setIsReadyToOpen] = useState(isPickerLoaded);
 
     // --- 1. Monitorar o Evento de Carregamento Global ---
     useEffect(() => {
@@ -72,21 +71,28 @@ export default function GooglePickerButton({ onFolderSelect, currentDriveId, onE
         });
 
         return () => {
-             // Limpeza do listener global para evitar vazamento de memória.
-             window.onGoogleLibraryLoad = undefined; 
+            // Limpeza do listener global para evitar vazamento de memória.
+            window.onGoogleLibraryLoad = undefined;
         };
 
-    }, [isReadyToOpen]); 
+    }, [isReadyToOpen]);
 
 
     // Obtém o Access Token e User ID necessários (Client-Side)
-    const getAuthDetails = async (): Promise<{ accessToken: string | null, userId: string | null }> => {
-        const { data: { session } } = await supabase.auth.getSession();
+    const getAuthDetails = async () => {
+        // Força o Supabase a verificar/atualizar a sessão atual
+        const { data: { session }, error } = await supabase.auth.getSession();
 
-        if (session && session.provider_token && session.user.id) {
-            return { accessToken: session.provider_token, userId: session.user.id };
+        if (error || !session?.provider_token) {
+            // Se o token não existir, o usuário precisa fazer login novamente 
+            // com o Google para gerar um novo provider_token
+            return { accessToken: null, userId: null };
         }
-        return { accessToken: null, userId: null };
+
+        return {
+            accessToken: session.provider_token,
+            userId: session.user.id
+        };
     };
 
 
@@ -123,25 +129,29 @@ export default function GooglePickerButton({ onFolderSelect, currentDriveId, onE
                 .enableFeature(window.google.picker.Feature.NAVIGATE_TO_DRIVE)
                 .setLocale('pt-BR')
                 .setCallback(async (data: any) => {
-                    setLoading(true); // Reativa o loading durante o processamento do callback
+                    setLoading(true);
                     if (data.action === window.google.picker.Action.PICKED) {
-                        const coverFileId = data.docs[0].id; // ID do Arquivo Selecionado
+                        // Este é o ID da foto específica que o usuário clicou
+                        const coverFileId = data.docs[0].id;
 
-                        // 3. CHAMA SERVER ACTION para obter a PASTA (Renova Token)
+                        // 3. Busca a pasta pai no servidor
                         const driveFolderId = await getParentFolderIdServer(coverFileId, userId);
 
                         if (driveFolderId) {
-                            // 4. CHAMA SERVER ACTION para obter o NOME DA PASTA
+                            // 4. Busca o nome da pasta no servidor
                             const driveFolderName = await getDriveFolderName(driveFolderId, userId);
 
-                            // 5. Retorna o ID e o Nome (usando o ID como fallback se o nome falhar)
-                            onFolderSelect(driveFolderId, driveFolderName || `ID: ${driveFolderId}`);
+                            // 5. Envia as TRÊS informações para o formulário
+                            onFolderSelect(
+                                driveFolderId,
+                                driveFolderName || `ID: ${driveFolderId}`,
+                                coverFileId // <--- Envia o ID da foto aqui
+                            );
                         } else {
-                            // Erro de falha de token/permissão
                             onError("Não foi possível determinar a pasta-mãe. Verifique as permissões do Drive.");
                         }
                     }
-                    setLoading(false); // Finaliza o loading após o callback
+                    setLoading(false);
                 })
                 .build();
 
@@ -162,7 +172,7 @@ export default function GooglePickerButton({ onFolderSelect, currentDriveId, onE
 
     // --- JSX DO BOTÃO ---
     // Inclui o loading no disabled do botão
-    const isDisabled = !isReadyToOpen || loading; 
+    const isDisabled = !isReadyToOpen || loading;
 
     const buttonText = currentDriveId
         ? 'Pasta Selecionada'
@@ -173,7 +183,7 @@ export default function GooglePickerButton({ onFolderSelect, currentDriveId, onE
             type="button"
             onClick={openPicker}
             disabled={isDisabled}
-            className={`flex items-center justify-center w-full p-3 rounded-lg font-medium text-white transition-colors
+            className={`flex items-center justify-center w-full p-2 rounded-lg text-sm text-white transition-colors
                 ${isDisabled ? 'bg-gray-400 cursor-not-allowed' : 'bg-[#0B57D0] hover:bg-[#0848AA]'}
             `}
         >
