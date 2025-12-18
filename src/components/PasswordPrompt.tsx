@@ -63,6 +63,8 @@ export function PasswordPrompt({
         <form onSubmit={handleCheckPassword} className="space-y-4">
           <input
             type="password"
+            inputMode="numeric" // abrir o teclado numérico no celular
+            pattern="[0-9]*"    // validação nativa
             placeholder="Senha (4-8 dígitos)"
             value={password}
             onChange={(e) =>

@@ -51,7 +51,7 @@ export default function GaleriaCard({ galeria, onEdit, onDelete, isDeleting, isU
 
   return (
     <motion.div
-      onClick={() => router.push(`/galeria/${galeria.slug}`)}
+      onClick={() => window.open(`/${galeria.slug}`, '_blank')}
       className="group flex cursor-pointer flex-col overflow-hidden rounded-xl border border-gray-200 bg-white shadow-sm transition-all hover:border-blue-400 hover:shadow-md h-full"
       whileHover={{ y: -3 }}
       style={{ maxWidth: '320px' }}>

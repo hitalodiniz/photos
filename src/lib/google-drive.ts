@@ -51,3 +51,26 @@ export async function listPhotosFromDriveFolder(
     webViewUrl: file.webViewLink,
   }));
 }
+
+export async function makeFolderPublic(folderId: string, accessToken: string) {
+  try {
+    await fetch(
+      `https://www.googleapis.com/drive/v3/files/${folderId}/permissions`,
+      {
+        method: 'POST',
+        headers: {
+          Authorization: `Bearer ${accessToken}`,
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          role: 'reader',
+          type: 'anyone',
+        }),
+      }
+    );
+    return true;
+  } catch (error) {
+    console.error("Erro ao tornar pasta pública:", error);
+    return false;
+  }
+}

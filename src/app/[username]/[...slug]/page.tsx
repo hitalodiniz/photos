@@ -9,45 +9,44 @@ import { getDriveAccessTokenForUser } from "@/lib/google-auth";
 import type { Galeria } from "@/types/galeria";
 
 type UsernameGaleriaPageProps = {
-  params: {
+  params: Promise<{
     username: string;
     slug: string[];
-  };
+  }>;
 };
 
 export default async function UsernameGaleriaPage({ params }: UsernameGaleriaPageProps) {
-  const { username, slug } = params;
+  // Ajuste Next.js 15: Aguardar os parâmetros
+  const { username, slug } = await params;
+  const fullSlug = `${username}/${slug.join("/")}`;
 
   const supabase = await createSupabaseServerClientReadOnly();
 
+  // 1. Busca o perfil para vincular ao ID do Google Auth
   const { data: profile } = await supabase
     .from("tb_profiles")
-    .select("id, username, use_subdomain")
+    .select("id, username")
     .eq("username", username)
     .single();
 
-  if (!profile) {
-    notFound();
-  }
+  if (!profile) notFound();
 
-  const fullSlug = `${username}/${slug.join("/")}`;
-
+  // 2. Busca os dados da galeria
   const { data: galeria } = await supabase
     .from("tb_galerias")
     .select("*")
     .eq("slug", fullSlug)
     .single<Galeria>();
 
-  if (!galeria) {
-    notFound();
-  }
+  if (!galeria) notFound();
 
-  // Se privada: checa senha via cookie + PasswordPrompt (como já tínhamos)
+  // 3. Verificação de Privacidade e Senha
   if (!galeria.is_public) {
     const cookieStore = await cookies();
     const cookieKey = `galeria-${galeria.id}-auth`;
     const savedToken = cookieStore.get(cookieKey)?.value;
 
+    // Se não houver cookie ou a senha salva estiver incorreta/desatualizada
     if (!savedToken || savedToken !== galeria.password) {
       return (
         <PasswordPrompt
@@ -59,21 +58,27 @@ export default async function UsernameGaleriaPage({ params }: UsernameGaleriaPag
     }
   }
 
-  // Se pública ou privada com senha válida → busca fotos no Drive
+  // 4. Busca de fotos reais no Google Drive
   let photos = [];
   if (galeria.drive_folder_id) {
-    // Acesso: Usa o ID do perfil encontrado (que é o user_id do fotógrafo)
-    const accessToken = await getDriveAccessTokenForUser(profile.id);
-    if (accessToken) {
-      photos = await listPhotosFromDriveFolder(galeria.drive_folder_id, accessToken);
+    try {
+      // Obtém token de acesso usando o ID do dono da galeria (fotógrafo)
+      const accessToken = await getDriveAccessTokenForUser(profile.id);
+      
+      if (accessToken) {
+        photos = await listPhotosFromDriveFolder(galeria.drive_folder_id, accessToken);
+      }
+    } catch (error) {
+      console.error("Erro ao listar fotos do Drive:", error);
     }
   }
 
+  // 5. Renderiza a visualização final com os dados reais
   return <GaleriaView galeria={galeria} photos={photos} />;
 }
 
 export async function generateMetadata({ params }: UsernameGaleriaPageProps) {
-  const { username, slug } = params;
+  const { username, slug } = await params;
   const fullSlug = `${username}/${slug.join("/")}`;
 
   const supabase = await createSupabaseServerClientReadOnly();
@@ -84,12 +89,11 @@ export async function generateMetadata({ params }: UsernameGaleriaPageProps) {
     .eq("slug", fullSlug)
     .single();
 
-  if (!galeria) return {};
+  if (!galeria) return { title: "Galeria não encontrada" };
 
   const title = `${galeria.title} | ${galeria.client_name}`;
-  const description = `Galeria de fotos de ${galeria.client_name}, realizada em ${new Date(
-    galeria.date
-  ).toLocaleDateString("pt-BR")}.`;
+  const formattedDate = new Date(galeria.date).toLocaleDateString("pt-BR");
+  const description = `Confira a galeria de ${galeria.client_name} realizada em ${formattedDate}.`;
 
   return {
     title,
@@ -97,7 +101,7 @@ export async function generateMetadata({ params }: UsernameGaleriaPageProps) {
     openGraph: {
       title,
       description,
-      images: galeria.cover_image_url ? [galeria.cover_image_url] : [],
+      images: galeria.cover_image_url ? [{ url: galeria.cover_image_url }] : [],
     },
     twitter: {
       card: "summary_large_image",

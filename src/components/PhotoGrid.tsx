@@ -1,55 +1,74 @@
+// components/PhotoGrid.tsx
 'use client';
 import React, { useState } from 'react';
-import { Download, Heart, Maximize2 } from 'lucide-react';
 import Lightbox from './Lightbox';
 
-export default function PhotoGrid() {
+interface PhotoGridProps {
+  photos: any[];
+  galleryTitle: string;
+  location: string;
+}
+
+export default function PhotoGrid({ photos, galleryTitle, location }: PhotoGridProps) {
   const [selectedPhotoIndex, setSelectedPhotoIndex] = useState<number | null>(null);
 
-  const photos = [
-    { id: 1, url: 'https://images.unsplash.com/photo-1532712938310-34cb3982ef74?q=80&w=2070' },
-    { id: 2, url: 'https://images.unsplash.com/photo-1492691523567-61723c295fe3?q=80&w=2070' },
-    { id: 3, url: 'https://images.unsplash.com/photo-1542038784456-1ea8e935640e?q=80&w=2070' },
-  ];
+const getImageUrl = (fileId: string) => {
+  if (!fileId) return null;
+  // ✅ Otimizado para miniaturas (carregamento instantâneo)
+  return `https://lh3.googleusercontent.com/d/${fileId}=w400`;
+};
 
-  const handleNext = () => {
-    if (selectedPhotoIndex !== null) {
-      setSelectedPhotoIndex((selectedPhotoIndex + 1) % photos.length);
-    }
-  };
-
-  const handlePrev = () => {
-    if (selectedPhotoIndex !== null) {
-      setSelectedPhotoIndex((selectedPhotoIndex - 1 + photos.length) % photos.length);
-    }
-  };
+  if (!photos || photos.length === 0) {
+    return (
+      <div className="text-center py-20 bg-white rounded-3xl border border-dashed border-gray-300">
+        <p className="text-gray-400">Nenhuma foto encontrada nesta pasta.</p>
+      </div>
+    );
+  }
 
   return (
     <>
       <div className="columns-1 sm:columns-2 lg:columns-3 gap-6 space-y-6">
-        {photos.map((photo, index) => (
-          <div 
-            key={photo.id} 
-            onClick={() => setSelectedPhotoIndex(index)}
-            className="relative group overflow-hidden rounded-2xl bg-white shadow-sm hover:shadow-2xl transition-all duration-500 break-inside-avoid cursor-zoom-in"
-          >
-            <img 
-              src={photo.url} 
-              alt="Foto" 
-              className="w-full h-auto object-cover transition-transform duration-1000 group-hover:scale-105"
-            />
-            {/* ... overlay anterior aqui ... */}
-          </div>
-        ))}
+        {photos.map((photo, index) => {
+          const src = getImageUrl(photo);
+
+          if (!src) return null;
+
+          return (
+            <div
+              key={photo.id || index}
+              onClick={() => setSelectedPhotoIndex(index)}
+              className="relative group overflow-hidden rounded-2xl bg-white shadow-sm hover:shadow-2xl transition-all duration-500 break-inside-avoid cursor-zoom-in"
+            >
+              <img
+                src={src}
+                alt={`Foto ${index + 1}`}
+                loading="lazy"
+                className="w-full h-auto object-cover transition-transform duration-1000 group-hover:scale-105"
+                onError={(e) => {
+                  // Fallback visual caso o Google bloqueie a imagem
+                  e.currentTarget.src = "https://placehold.co/600x400?text=Erro+de+Permissao+no+Drive";
+                }}
+              />
+              <div className="absolute inset-0 bg-black/0 group-hover:bg-black/10 transition-colors duration-300" />
+            </div>
+          );
+        })}
       </div>
 
-      {/* Renderiza o Lightbox se houver uma foto selecionada */}
       {selectedPhotoIndex !== null && (
-        <Lightbox 
-          photo={photos[selectedPhotoIndex]} 
+        <Lightbox
+          photo={{
+            ...photos[selectedPhotoIndex],
+            url: getImageUrl(photos[selectedPhotoIndex]) || ""
+          }}
+          totalPhotos={photos.length}
+          currentNumber={selectedPhotoIndex + 1}
+          galleryTitle={galleryTitle}
+          location={location}
           onClose={() => setSelectedPhotoIndex(null)}
-          onNext={handleNext}
-          onPrev={handlePrev}
+          onNext={() => setSelectedPhotoIndex((selectedPhotoIndex + 1) % photos.length)}
+          onPrev={() => setSelectedPhotoIndex((selectedPhotoIndex - 1 + photos.length) % photos.length)}
         />
       )}
     </>

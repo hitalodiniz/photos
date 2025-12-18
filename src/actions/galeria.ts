@@ -237,10 +237,6 @@ export async function createGaleria(formData: FormData): Promise<ActionResult> {
   const isPublic = isPublicString === "true";
   const password = (formData.get("password") as string) || "";
 
-  // LOG DE DEBUG PARA VOCÊ VER NO TERMINAL DO VS CODE
-  console.log("--- DADOS NO SERVIDOR ---");
-  console.log({ title, driveFolderId, coverFileId, isPublic });
-
   // Validação dos campos obrigatórios
   if (!title || !driveFolderId || !clientName || !dateStr) {
     return {
@@ -248,6 +244,13 @@ export async function createGaleria(formData: FormData): Promise<ActionResult> {
       error:
         "Preencha todos os campos obrigatórios, incluindo a pasta do Drive.",
     };
+  }
+
+  // GARANTIR PERMISSÃO NO DRIVE ANTES DE SALVAR
+  const accessToken = await getDriveAccessTokenForUser(userId);
+  if (accessToken) {
+    // Tentamos tornar a pasta pública para que os clientes vejam as fotos
+    await makeFolderPublic(driveFolderId, accessToken);
   }
 
   const slug = await generateUniqueDatedSlug(title, dateStr);
@@ -289,8 +292,22 @@ export async function updateGaleria(
   id: string,
   formData: FormData
 ): Promise<ActionResult> {
+
+  const { success: authSuccess, userId } = await getAuthAndStudioIds();
+  if (!authSuccess || !userId) return { success: false, error: "Não autorizado" };
+
   try {
     const supabase = await createSupabaseServerClient();
+
+    const driveFolderId = formData.get("driveFolderId") as string;
+
+
+    //SE MUDOU A PASTA, GARANTE PERMISSÃO NA NOVA ---
+    if (driveFolderId) {
+      const accessToken = await getDriveAccessTokenForUser(userId);
+
+      if (accessToken) await makeFolderPublic(driveFolderId, accessToken);
+    }
 
     const updates = {
       title: formData.get("title") as string,
@@ -409,45 +426,43 @@ export async function deleteGaleria(id: string): Promise<ActionResult> {
 // =========================================================================
 
 export async function authenticateGaleriaAccess(
-  galeriaSlug: string,
+  galeriaId: string,
   fullSlug: string,
   password: string
-): Promise<ActionResult> {
-  const supabase = createSupabaseServerClient();
+) {
+  const supabase = await createSupabaseServerClientReadOnly();
 
+  // 1. Busca a galeria para validar a senha
   const { data: galeria, error } = await supabase
     .from("tb_galerias")
-    .select("id, password, is_public")
-    .eq("slug", galeriaSlug)
+    .select("password")
+    .eq("id", galeriaId)
     .single();
 
   if (error || !galeria) {
     return { success: false, error: "Galeria não encontrada." };
   }
 
-  if (galeria.is_public) {
-    return {
-      success: false,
-      error: "Galeria é pública e não requer senha.",
-    };
+  // 2. Valida a senha
+  if (galeria.password !== password) {
+    return { success: false, error: "Senha incorreta. Tente novamente." };
   }
 
-  if (galeria.password === password) {
-    const cookieStore = cookies();
+  // 3. Define o Cookie de Acesso
+  // O nome do cookie deve bater com o que a page.tsx procura: `galeria-${id}-auth`
+  const cookieStore = await cookies();
+  cookieStore.set(`galeria-${galeriaId}-auth`, password, {
+    path: "/",
+    httpOnly: true,
+    secure: process.env.NODE_ENV === "production",
+    maxAge: 60 * 60 * 24, // Acesso por 24 horas
+    sameSite: "lax",
+  });
 
-    cookieStore.set(ACCESS_COOKIE_KEY + galeria.id, password, {
-      httpOnly: true,
-      secure: process.env.NODE_ENV === "production",
-      maxAge: 60 * 60 * 24,
-      path: `/galeria/${fullSlug}`,
-    });
-
-    redirect(`/galeria/${fullSlug}`);
-  }
-
-  return { success: false, error: "Senha incorreta." };
+  // 4. Redireciona para a mesma página para disparar o re-render do Servidor
+  // Agora o Servidor vai ler o cookie e liberar o acesso
+  redirect(`/${fullSlug}`);
 }
-
 /**
  * =========================================================================
  * 8. BUSCAR FOTOS DA GALERIA NO GOOGLE DRIVE
@@ -515,4 +530,37 @@ export async function getGaleriaPhotos(
   }
 
   return { success: true, data: photos };
+}
+
+/**
+ * Torna uma pasta do Google Drive pública para leitura (Qualquer pessoa com o link).
+ */
+async function makeFolderPublic(folderId: string, accessToken: string) {
+  console.log(" makeFolderPublic executada, id: ", folderId);
+  try {
+    const response = await fetch(
+      `https://www.googleapis.com/drive/v3/files/${folderId}/permissions`,
+      {
+        method: 'POST',
+        headers: {
+          Authorization: `Bearer ${accessToken}`,
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          role: 'reader',
+          type: 'anyone',
+        }),
+      }
+    );
+    
+    if (response.status === 403) {
+      console.warn("Aviso: Escopo insuficiente para tornar a pasta pública automaticamente. O fotógrafo precisará compartilhar manualmente.");
+      return false;
+    }
+    
+    return response.ok;
+  } catch (error) {
+    console.error("Erro de rede ao tentar mudar permissão:", error);
+    return false;
+  }
 }
