@@ -4,6 +4,7 @@ import './globals.css';
 import Navbar from '../components/Navbar';
 import { Metadata } from 'next';
 import Script from 'next/script';
+import CookieBanner from '@/components/CookieBanner' // Certifique-se de que o caminho está correto
 
 // Definição de metadados
 export const metadata: Metadata = {
@@ -58,7 +59,8 @@ export default function RootLayout({
                     async // Para não bloquear
 
                 />
-
+                {/* O Banner fica aqui para ser global */}
+                <CookieBanner />
             </body>
         </html >
     );

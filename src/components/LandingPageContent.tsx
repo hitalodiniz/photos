@@ -136,8 +136,9 @@ export default function LandingPageContent() {
                 Sua Galeria de Fotos
               </span>
             </div>
-            <p className="text-gray-400 text-[11px] font-medium tracking-wide uppercase">
-              © 2025 • Integrado com Google Drive™
+            <p className="text-gray-400 text-[11px] font-medium tracking-wide uppercase flex gap-4">
+              <span>© {new Date().getFullYear()} • Integrado com Google Drive™</span>
+              <a href="/privacidade" className="hover:text-[#D4AF37] underline underline-offset-4">Política de Privacidade</a>
             </p>
           </div>
 
