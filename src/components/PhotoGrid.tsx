@@ -1,6 +1,7 @@
 // components/PhotoGrid.tsx
 'use client';
 import React, { useState, useEffect } from 'react';
+import Masonry from 'react-masonry-css';
 import Lightbox from './Lightbox';
 
 interface PhotoGridProps {
@@ -13,6 +14,14 @@ export default function PhotoGrid({ photos, galleryTitle, location }: PhotoGridP
   const [selectedPhotoIndex, setSelectedPhotoIndex] = useState<number | null>(null);
   const [displayLimit, setDisplayLimit] = useState(12);
 
+  // Configuração de quantas colunas exibir em cada tamanho de tela
+  const breakpointColumnsObj = {
+    default: 3,
+    1100: 3,
+    700: 2,
+    500: 1
+  };
+
   // Função de URL corrigida com template literals ${}
   const getImageUrl = (photo: any) => {
     const fileId = typeof photo === 'string' ? photo : photo.id;
@@ -21,17 +30,13 @@ export default function PhotoGrid({ photos, galleryTitle, location }: PhotoGridP
     return `https://lh3.googleusercontent.com/d/${fileId}=w400`;
   };
 
-  // Lógica de Infinite Scroll
+  // Infinite Scroll
   useEffect(() => {
     const handleScroll = () => {
-      if (
-        window.innerHeight + document.documentElement.scrollTop >=
-        document.documentElement.offsetHeight - 100
-      ) {
+      if (window.innerHeight + document.documentElement.scrollTop >= document.documentElement.offsetHeight - 100) {
         setDisplayLimit((prev) => Math.min(prev + 12, photos.length));
       }
     };
-
     window.addEventListener('scroll', handleScroll);
     return () => window.removeEventListener('scroll', handleScroll);
   }, [photos.length]);
@@ -47,7 +52,11 @@ export default function PhotoGrid({ photos, galleryTitle, location }: PhotoGridP
   return (
     <div className="w-full">
       {/* Container de Colunas (Masonry Style) */}
-      <div className="columns-1 sm:columns-2 lg:columns-3 gap-4 space-y-4">
+      <Masonry
+        breakpointCols={breakpointColumnsObj}
+        className="flex w-auto -ml-4" // Compensação de margem negativa para o gap
+        columnClassName="pl-4 bg-clip-padding" // Padding para criar o espaço entre colunas
+      >
         {photos.slice(0, displayLimit).map((photo, index) => {
           // Agora o bloco está correto com chaves { } e return ( )
           const src = getImageUrl(photo);
@@ -57,7 +66,7 @@ export default function PhotoGrid({ photos, galleryTitle, location }: PhotoGridP
             <div
               key={photo.id || index}
               onClick={() => setSelectedPhotoIndex(index)}
-              className="relative group overflow-hidden rounded-2xl bg-white shadow-sm hover:shadow-2xl transition-all duration-500 break-inside-avoid cursor-zoom-in mb-4"
+              className="relative group overflow-hidden rounded-2xl bg-white shadow-sm hover:shadow-2xl transition-all duration-500 break-inside-avoid cursor-zoom-in mb-4 animate-in fade-in zoom-in-95 duration-700"
             >
               <img
                 src={src}
@@ -69,37 +78,40 @@ export default function PhotoGrid({ photos, galleryTitle, location }: PhotoGridP
                 loading="lazy"
                 decoding="async"
               />
+
               {/* Overlay sutil */}
               <div className="absolute inset-0 bg-black/0 group-hover:bg-black/10 transition-colors pointer-events-none" />
             </div>
           );
         })}
-      </div>
+      </Masonry>
 
-      {/* Indicador de carregamento posicionado fora das colunas */}
+
+      {/* Indicador de carregamento */}
       {displayLimit < photos.length && (
         <div className="flex justify-center py-10 w-full">
-          <div className="animate-pulse text-gray-400 text-sm font-medium tracking-widest uppercase">
-            Carregando mais fotos...
-          </div>
+          <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-[#F3E5AB]"></div>
         </div>
-      )}
+      )
+      }
 
-      {selectedPhotoIndex !== null && (
-        <Lightbox
-          photo={{
-            ...photos[selectedPhotoIndex],
-            url: `https://lh3.googleusercontent.com/d/$${photos[selectedPhotoIndex].id}=w1600` // Alta qualidade para o Lightbox
-          }}
-          totalPhotos={photos.length}
-          currentNumber={selectedPhotoIndex + 1}
-          galleryTitle={galleryTitle}
-          location={location}
-          onClose={() => setSelectedPhotoIndex(null)}
-          onNext={() => setSelectedPhotoIndex((selectedPhotoIndex + 1) % photos.length)}
-          onPrev={() => setSelectedPhotoIndex((selectedPhotoIndex - 1 + photos.length) % photos.length)}
-        />
-      )}
-    </div>
+      {
+        selectedPhotoIndex !== null && (
+          <Lightbox
+            photo={{
+              ...photos[selectedPhotoIndex],
+              url: `https://lh3.googleusercontent.com/d/$${photos[selectedPhotoIndex].id}=w1600` // Alta qualidade para o Lightbox
+            }}
+            totalPhotos={photos.length}
+            currentNumber={selectedPhotoIndex + 1}
+            galleryTitle={galleryTitle}
+            location={location}
+            onClose={() => setSelectedPhotoIndex(null)}
+            onNext={() => setSelectedPhotoIndex((selectedPhotoIndex + 1) % photos.length)}
+            onPrev={() => setSelectedPhotoIndex((selectedPhotoIndex - 1 + photos.length) % photos.length)}
+          />
+        )
+      }
+    </div >
   );
 }
