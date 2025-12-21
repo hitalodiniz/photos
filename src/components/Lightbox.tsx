@@ -56,7 +56,7 @@ export default function Lightbox({
     const photo = photos[activeIndex];
 
     // URLs
-    const getImageUrl = (photoId: string | number, suffix: string = "w1280") => 
+    const getImageUrl = (photoId: string | number, suffix: string = "w400") => 
         `https://lh3.googleusercontent.com/d/${photoId}=${suffix}`;
 
     const getHighResImageUrl = (photoId: string | number) => 

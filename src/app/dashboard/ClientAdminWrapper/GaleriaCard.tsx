@@ -49,10 +49,11 @@ export default function GaleriaCard({ galeria, onEdit, onDelete, isDeleting, isU
 
   const isPrivate = !galeria.is_public;
 
+
   return (
     <motion.div
       onClick={() => window.open(`/${galeria.slug}`, '_blank')}
-      className="group flex cursor-pointer flex-col overflow-hidden rounded-xl border border-gray-200 bg-white shadow-sm transition-all hover:border-blue-400 hover:shadow-md h-full"
+      className="group flex cursor-pointer flex-col overflow-hidden rounded-xl border border-gray-200 bg-white shadow-sm w-full h-full"
       whileHover={{ y: -3 }}
       style={{ maxWidth: '320px' }}>
       {/* Overlay de Loading */}
@@ -93,47 +94,55 @@ export default function GaleriaCard({ galeria, onEdit, onDelete, isDeleting, isU
           }}
         />
         <div className="absolute top-2 left-2">
-          <span className={`flex items-center gap-1 rounded-full px-2 py-0.5 text-[9px] font-bold uppercase tracking-tight shadow-sm ${isPrivate ? "bg-red-50 text-red-600 border border-red-100" : "bg-emerald-50 text-emerald-600 border border-emerald-100"
+          <span className={`flex items-center gap-1 rounded-full px-2 py-0.5 
+          text-[12px] tracking-tight shadow-sm ${isPrivate ? "bg-red-50 text-red-600 border border-red-100" : "bg-emerald-50 text-emerald-600 border border-emerald-100"
             }`}>
             {isPrivate ? <Lock size={10} /> : <Globe size={10} />}
-            {isPrivate ? "PRIVADA" : "PÚBLICA"}
+            {isPrivate ? "Privada" : "Pública"}
           </span>
         </div>
       </div>
 
       {/* Conteúdo Compacto */}
       <div className="flex flex-col p-3.5 gap-y-2">
-        <h3 className="line-clamp-1 text-sm font-bold text-gray-900 group-hover:text-blue-600">
+        <h3 className="line-clamp-1 text-base font-bold text-gray-900 group-hover:text-blue-600">
           {galeria.title}
         </h3>
 
         {/* Metadados Agrupados */}
         <div className="space-y-1.5">
           {/* Cliente e Local */}
-          <div className="flex items-center justify-between gap-x-2 text-[12px]">
-            <div className="flex items-center gap-1.5 text-gray-700 min-w-0">
-              <User size={13} className="text-blue-500 flex-shrink-0" />
-              <span className="truncate font-medium">{galeria.client_name}</span>
-            </div>
-            <div className="flex items-center gap-1 text-gray-400 flex-shrink-0">
-              <MapPin size={12} />
-              <span className="truncate max-w-[70px]">{galeria.location || "---"}</span>
-            </div>
+          <div className="flex items-center gap-1.5 text-gray-700 min-w-0 text-[16px]">
+            <User size={13} className="text-blue-500 flex-shrink-0" />
+            <span className="truncate font-medium">{galeria.client_name}</span>
+          </div>
+          <div className="flex items-center gap-1 text-gray-400 flex-shrink-0 text-[14px]">
+            <MapPin size={12} />
+            <span className="truncate max-w-[200px]">{galeria.location || "---"}</span>
           </div>
 
           {/* Data e Nome da Pasta */}
-          <div className="flex items-center justify-between text-[11px]">
+          <div className="flex items-center justify-between text-[14px]">
             <div className="flex items-center gap-1 text-gray-500">
               <Calendar size={12} />
               {/* CORREÇÃO: Usando a função que ignora o fuso horário */}
               <span>{formatDateSafely(galeria.date)}</span>
             </div>
-            <div className="flex items-center gap-1 font-semibold text-amber-600 bg-amber-50 px-1.5 py-0.5 rounded border border-amber-100 max-w-[130px]">
+
+            {/* LINK PARA A PASTA DO DRIVE */}
+            <a
+              href={`https://drive.google.com/drive/folders/${galeria.drive_folder_id}`} // ID da pasta vindo da galeria
+              target="_blank"
+              rel="noopener noreferrer"
+              onClick={(e) => e.stopPropagation()} // IMPORTANTE: impede que o card abra a galeria ao clicar no link
+              className="flex items-center gap-1 text-amber-600 bg-amber-50 px-1.5 py-0.5 rounded border
+     border-amber-100 max-w-[130px] hover:bg-amber-100 transition-colors"
+            >
               <FolderOpen size={11} className="flex-shrink-0" />
-              <span className="truncate uppercase tracking-tighter">
+              <span className="truncate tracking-tighter truncate max-w-[80px]">
                 {galeria.drive_folder_name || "PASTA S/ NOME"}
               </span>
-            </div>
+            </a>
           </div>
         </div>
 
@@ -141,10 +150,14 @@ export default function GaleriaCard({ galeria, onEdit, onDelete, isDeleting, isU
         <div className="mt-1 flex items-center justify-between border-t border-gray-100 pt-3">
           {galeria.client_whatsapp ? (
             <a
-              href={`https://wa.me/${galeria.client_whatsapp.replace(/\D/g, "")}`}
+              href={`https://wa.me/${galeria.client_whatsapp.replace(/\D/g, "")}?text=${encodeURIComponent(
+                `Olá, \n\nA galeria de fotos "${galeria.title}" já está pronta! Você pode visualizar e baixar as fotos clicando no link abaixo:\n\n${window.location.origin}/${galeria.slug}\n\nEspero que goste do resultado!`
+              )}`}
               onClick={(e) => e.stopPropagation()}
               target="_blank"
-              className="flex items-center gap-1 text-[11px] font-bold text-green-600 hover:text-green-700"
+              className="flex items-center gap-1 text-[14px] font-bold text-green-600 hover:text-green-700 transition-colors"
+              title="Enviar link da galeria para o cliente"
+              aria-label="Enviar link da galeria para o cliente via WhatsApp"
             >
               <MessageCircle size={14} />
               WhatsApp
@@ -152,18 +165,25 @@ export default function GaleriaCard({ galeria, onEdit, onDelete, isDeleting, isU
           ) : <div />}
 
           <div className="flex gap-1">
+            {/* Botão de Edição */}
             <button
               onClick={(e) => { e.stopPropagation(); onEdit(galeria); }}
               className="p-1.5 text-gray-400 hover:bg-blue-50 hover:text-blue-600 rounded-md transition-colors"
+              title="Editar galeria"
+              aria-label="Editar galeria"
             >
-              <Pencil size={14} />
+              <Pencil size={16} />
             </button>
+
+            {/* Botão de Exclusão */}
             <button
               onClick={(e) => { e.stopPropagation(); onDelete(galeria); }}
               disabled={isDeleting}
               className="p-1.5 text-gray-400 hover:bg-red-50 hover:text-red-500 rounded-md transition-colors disabled:opacity-30"
+              title="Excluir galeria"
+              aria-label="Excluir galeria"
             >
-              <Trash2 size={14} />
+              <Trash2 size={16} />
             </button>
           </div>
         </div>

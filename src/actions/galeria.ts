@@ -9,7 +9,10 @@ import {
   createSupabaseServerClient,
   createSupabaseServerClientReadOnly,
 } from "@/lib/supabase.server";
-import { listPhotosFromDriveFolder, DrivePhoto } from "@/lib/google-drive";
+import {
+  listPhotosFromDriveFolder,
+  makeFolderPublic as makeFolderPublicLib,
+} from "@/lib/google-drive";
 import { getDriveAccessTokenForUser } from "@/lib/google-auth";
 
 // =========================================================================
@@ -248,9 +251,32 @@ export async function createGaleria(formData: FormData): Promise<ActionResult> {
 
   // GARANTIR PERMISSÃO NO DRIVE ANTES DE SALVAR
   const accessToken = await getDriveAccessTokenForUser(userId);
+
   if (accessToken) {
-    // Tentamos tornar a pasta pública para que os clientes vejam as fotos
-    await makeFolderPublic(driveFolderId, accessToken);
+    try {
+      // Chama a função da LIB (importada no topo)
+      await makeFolderPublicLib(driveFolderId, accessToken);
+    } catch (error: any) {
+      console.error("Aviso de Permissão:", error.message);
+
+      // Se for erro de permissão (403), não travamos o salvamento,
+      // mas avisamos que o fotógrafo terá que fazer manual
+      if (
+        error.message.includes("403") ||
+        error.message.includes("insufficientPermissions")
+      ) {
+        console.warn(
+          "Aviso: Escopo insuficiente para tornar pública automaticamente."
+        );
+        // Opcional: Você pode retornar um warning aqui se sua interface suportar
+      } else {
+        // Se for outro erro grave, podemos interromper
+        return {
+          success: false,
+          error: `Erro no Google Drive: ${error.message}`,
+        };
+      }
+    }
   }
 
   const slug = await generateUniqueDatedSlug(title, dateStr);
@@ -292,40 +318,46 @@ export async function updateGaleria(
   id: string,
   formData: FormData
 ): Promise<ActionResult> {
-
   const { success: authSuccess, userId } = await getAuthAndStudioIds();
-  if (!authSuccess || !userId) return { success: false, error: "Não autorizado" };
+  if (!authSuccess || !userId)
+    return { success: false, error: "Não autorizado" };
+
+  // Validação básica de campos obrigatórios no Update
+  const title = formData.get("title") as string;
+  const driveFolderId = formData.get("driveFolderId") as string;
+  const clientName = formData.get("clientName") as string;
+
+  if (!title || !driveFolderId || !clientName) {
+    return { success: false, error: "Campos obrigatórios ausentes." };
+  }
 
   try {
     const supabase = await createSupabaseServerClient();
 
-    const driveFolderId = formData.get("driveFolderId") as string;
-
-
-    //SE MUDOU A PASTA, GARANTE PERMISSÃO NA NOVA ---
-    if (driveFolderId) {
-      const accessToken = await getDriveAccessTokenForUser(userId);
-
-      if (accessToken) await makeFolderPublic(driveFolderId, accessToken);
+    // GARANTE PERMISSÃO NO DRIVE
+    const accessToken = await getDriveAccessTokenForUser(userId);
+    if (accessToken && driveFolderId) {
+      try {
+        // CORREÇÃO: Usando o nome correto da lib importada
+        await makeFolderPublicLib(driveFolderId, accessToken);
+      } catch (e) {
+        console.warn("Aviso: Falha ao atualizar permissões da pasta no Drive.");
+      }
     }
 
     const updates = {
-      title: formData.get("title") as string,
-      client_name: formData.get("clientName") as string,
-      client_whatsapp: (formData.get("clientWhatsapp") as string).replace(
-        /\D/g,
-        ""
-      ),
+      title,
+      client_name: clientName,
+      client_whatsapp: (formData.get("clientWhatsapp") as string)?.replace(/\D/g, "") || null,
       date: new Date(formData.get("date") as string).toISOString(),
       location: formData.get("location") as string,
-      drive_folder_id: formData.get("driveFolderId") as string,
+      drive_folder_id: driveFolderId,
       drive_folder_name: formData.get("driveFolderName") as string,
       cover_image_url: formData.get("coverFileId") as string,
       is_public: formData.get("isPublic") === "true",
-      password:
-        formData.get("isPublic") === "true"
-          ? null
-          : (formData.get("password") as string) || null,
+      password: formData.get("isPublic") === "true" 
+        ? null 
+        : (formData.get("password") as string) || null,
     };
 
     const { error } = await supabase
@@ -336,9 +368,10 @@ export async function updateGaleria(
     if (error) throw error;
 
     revalidatePath("/dashboard");
-    return { success: true };
+    return { success: true, message: "Galeria atualizada com sucesso!" };
   } catch (error) {
-    return { success: false, error: "Falha ao atualizar" };
+    console.error("Erro no update:", error);
+    return { success: false, error: "Falha ao atualizar a galeria." };
   }
 }
 
@@ -530,37 +563,4 @@ export async function getGaleriaPhotos(
   }
 
   return { success: true, data: photos };
-}
-
-/**
- * Torna uma pasta do Google Drive pública para leitura (Qualquer pessoa com o link).
- */
-async function makeFolderPublic(folderId: string, accessToken: string) {
-  console.log(" makeFolderPublic executada, id: ", folderId);
-  try {
-    const response = await fetch(
-      `https://www.googleapis.com/drive/v3/files/${folderId}/permissions`,
-      {
-        method: 'POST',
-        headers: {
-          Authorization: `Bearer ${accessToken}`,
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify({
-          role: 'reader',
-          type: 'anyone',
-        }),
-      }
-    );
-    
-    if (response.status === 403) {
-      console.warn("Aviso: Escopo insuficiente para tornar a pasta pública automaticamente. O fotógrafo precisará compartilhar manualmente.");
-      return false;
-    }
-    
-    return response.ok;
-  } catch (error) {
-    console.error("Erro de rede ao tentar mudar permissão:", error);
-    return false;
-  }
 }

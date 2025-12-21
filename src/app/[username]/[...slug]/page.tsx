@@ -1,4 +1,4 @@
-// app/[username]/galeria/[...slug]/page.tsx
+// src/app/[username]/[...slug]/page.tsx
 import { notFound } from "next/navigation";
 import { cookies } from "next/headers";
 import { createSupabaseServerClientReadOnly } from "@/lib/supabase.server";
@@ -16,37 +16,51 @@ type UsernameGaleriaPageProps = {
 };
 
 export default async function UsernameGaleriaPage({ params }: UsernameGaleriaPageProps) {
-  // Ajuste Next.js 15: Aguardar os parâmetros
+  // 1. Aguardar os parâmetros (Next.js 15)
   const { username, slug } = await params;
+
+  /**
+   * RECONSTRUÇÃO DO SLUG:
+   * Se a URL é /hitalodiniz/2025/12/15/formatura
+   * username = "hitalodiniz"
+   * slug = ["2025", "12", "15", "formatura"]
+   * fullSlug abaixo resultará em "hitalodiniz/2025/12/15/formatura"
+   */
   const fullSlug = `${username}/${slug.join("/")}`;
 
   const supabase = await createSupabaseServerClientReadOnly();
 
-  // 1. Busca o perfil para vincular ao ID do Google Auth
+  // 2. Busca o perfil do fotógrafo para obter o ID necessário para o Token do Drive
   const { data: profile } = await supabase
     .from("tb_profiles")
-    .select("id, username")
+    .select("id")
     .eq("username", username)
     .single();
 
-  if (!profile) notFound();
+  if (!profile) {
+    console.error("Perfil não encontrado para o username:", username);
+    notFound();
+  }
 
-  // 2. Busca os dados da galeria
-  const { data: galeria } = await supabase
+  // 3. Busca os dados da galeria comparando com o slug completo do banco
+  const { data: galeria, error: galeriaError } = await supabase
     .from("tb_galerias")
     .select("*")
     .eq("slug", fullSlug)
     .single<Galeria>();
 
-  if (!galeria) notFound();
+  // Se der 404 aqui, verifique se o slug no banco inclui ou não o username no início
+  if (galeriaError || !galeria) {
+    console.error("Galeria não encontrada para o slug:", fullSlug);
+    notFound();
+  }
 
-  // 3. Verificação de Privacidade e Senha
+  // 4. Verificação de Privacidade e Senha
   if (!galeria.is_public) {
     const cookieStore = await cookies();
     const cookieKey = `galeria-${galeria.id}-auth`;
     const savedToken = cookieStore.get(cookieKey)?.value;
 
-    // Se não houver cookie ou a senha salva estiver incorreta/desatualizada
     if (!savedToken || savedToken !== galeria.password) {
       return (
         <PasswordPrompt
@@ -58,13 +72,11 @@ export default async function UsernameGaleriaPage({ params }: UsernameGaleriaPag
     }
   }
 
-  // 4. Busca de fotos reais no Google Drive
-  let photos = [];
+  // 5. Busca de fotos reais no Google Drive
+  let photos: any[] = [];
   if (galeria.drive_folder_id) {
     try {
-      // Obtém token de acesso usando o ID do dono da galeria (fotógrafo)
       const accessToken = await getDriveAccessTokenForUser(profile.id);
-      
       if (accessToken) {
         photos = await listPhotosFromDriveFolder(galeria.drive_folder_id, accessToken);
       }
@@ -73,10 +85,10 @@ export default async function UsernameGaleriaPage({ params }: UsernameGaleriaPag
     }
   }
 
-  // 5. Renderiza a visualização final com os dados reais
   return <GaleriaView galeria={galeria} photos={photos} />;
 }
 
+// Metadata corrigido para seguir a mesma lógica de slug
 export async function generateMetadata({ params }: UsernameGaleriaPageProps) {
   const { username, slug } = await params;
   const fullSlug = `${username}/${slug.join("/")}`;
@@ -92,22 +104,11 @@ export async function generateMetadata({ params }: UsernameGaleriaPageProps) {
   if (!galeria) return { title: "Galeria não encontrada" };
 
   const title = `${galeria.title} | ${galeria.client_name}`;
-  const formattedDate = new Date(galeria.date).toLocaleDateString("pt-BR");
-  const description = `Confira a galeria de ${galeria.client_name} realizada em ${formattedDate}.`;
-
   return {
     title,
-    description,
+    description: `Galeria de fotos de ${galeria.client_name}.`,
     openGraph: {
-      title,
-      description,
       images: galeria.cover_image_url ? [{ url: galeria.cover_image_url }] : [],
-    },
-    twitter: {
-      card: "summary_large_image",
-      title,
-      description,
-      images: galeria.cover_image_url ? [galeria.cover_image_url] : [],
     },
   };
 }

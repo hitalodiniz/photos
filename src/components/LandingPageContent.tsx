@@ -66,7 +66,8 @@ export default function LandingPageContent() {
         {/* FEATURES (MEIO) - flex-grow preenche o espaço sem empurrar o footer para fora */}
         <main className="flex-grow flex items-center justify-center px-4 py-8">
           
-          <section className="w-full max-w-5xl mx-auto bg-white/95 backdrop-blur-md rounded-[2.5rem] p-4 md:p-6 shadow-2xl border border-white/20">
+          <section className="w-full max-w-5xl mx-auto bg-white/95 backdrop-blur-md rounded-[2.5rem] 
+          p-4 md:p-6 shadow-2xl border border-white/20">
             <div className="grid grid-cols-1 sm:grid-cols-3 gap-8 md:gap-12 text-center">
               <FeatureItem
                 icon={<Cloud className="w-10 h-10 text-[#4285F4]" />}

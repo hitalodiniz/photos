@@ -1,15 +1,14 @@
 'use client';
 import React from 'react';
-import { Camera, ArrowLeft, ShieldCheck, Lock, EyeOff } from 'lucide-react';
+import { Camera, ArrowLeft, ShieldCheck, Database, Share2, Cookie } from 'lucide-react';
 import Link from 'next/link';
 
 export default function PrivacidadePage() {
   return (
     <div className="min-h-screen bg-[#F8F9FA] flex flex-col font-sans">
       
-      {/* HEADER EDITORIAL (Estilo Landing Page) */}
+      {/* HEADER EDITORIAL */}
       <header className="relative py-10 px-6 overflow-hidden bg-white border-b border-gray-100">
-        {/* Elemento Decorativo (Nuvem/Blur) similar ao Hero */}
         <div className="absolute top-0 right-0 w-[500px] h-[500px] bg-[#D4AF37]/5 rounded-full blur-[120px] -z-10" />
         
         <div className="max-w-4xl mx-auto text-center md:text-left">
@@ -22,7 +21,6 @@ export default function PrivacidadePage() {
           </Link>
 
           <div className="flex flex-col md:flex-row items-center md:items-start gap-6">
-             {/* Ícone da Câmera Idêntico ao da Home */}
             <div className="flex items-center justify-center w-16 h-16 border border-[#D4AF37]/50 rounded-full bg-[#D4AF37]/5 backdrop-blur-sm">
               <Camera className="text-[#D4AF37] w-8 h-8" />
             </div>
@@ -32,63 +30,81 @@ export default function PrivacidadePage() {
                 className="text-3xl md:text-5xl font-bold italic text-[#3C4043] tracking-tight leading-tight"
                 style={{ fontFamily: "'Playfair Display', serif" }}
               >
-                Privacidade & Segurança
+                Privacidade & Transparência
               </h1>
               <div className="flex items-center justify-center md:justify-start gap-2 text-[10px] md:text-xs uppercase tracking-[0.4em] text-[#D4AF37] font-bold">
                 <ShieldCheck size={14} />
-                <span>Compromisso com suas Memórias</span>
+                <span>Integração Segura com Google Drive™</span>
               </div>
             </div>
           </div>
         </div>
       </header>
 
-      {/* CONTEÚDO ARTÍSTICO */}
-      <main className="max-w-4xl mx-auto py-6 px-6">
+      {/* CONTEÚDO */}
+      <main className="max-w-4xl mx-auto py-12 px-6">
         <div className="space-y-16">
           
-          {/* Item 1 */}
+          {/* Item 1 - Uso dos Dados do Google */}
           <section className="group">
-            <h3 className="text-2xl font-bold text-[#3C4043] mb-2 flex items-center gap-3 italic" style={{ fontFamily: "'Playfair Display', serif" }}>
+            <h3 className="text-2xl font-bold text-[#3C4043] mb-4 flex items-center gap-3 italic" style={{ fontFamily: "'Playfair Display', serif" }}>
               <span className="text-[#D4AF37] not-italic text-sm font-sans font-bold">01.</span> 
-              Sua Propriedade
+              Uso de Dados do Google Drive™
             </h3>
-            <p className="text-gray-500 leading-relaxed text-lg font-light">
-              Nossa plataforma atua apenas como uma vitrine de luxo para o seu conteúdo hospedado no <strong>Google Drive™</strong>. 
-              Não armazenamos, replicamos ou reivindicamos direitos sobre qualquer imagem visualizada. O controle total permanece em sua conta original.
+            <p className="text-gray-500 leading-relaxed text-lg font-light mb-4">
+              Ao conectar sua conta, solicitamos acesso ao escopo <strong>auth/drive</strong> para automatizar a experiência do fotógrafo. Nossa plataforma utiliza essa permissão estritamente para:
             </p>
+            <ul className="grid grid-cols-1 md:grid-cols-2 gap-4 text-gray-500 font-light italic">
+              <li className="flex items-start gap-2">
+                <Share2 size={18} className="text-[#D4AF37] mt-1 shrink-0" />
+                <span>Configurar permissões de visualização das pastas selecionadas.</span>
+              </li>
+              <li className="flex items-start gap-2">
+                <Database size={18} className="text-[#D4AF37] mt-1 shrink-0" />
+                <span>Listar imagens e gerar links de visualização direta.</span>
+              </li>
+            </ul>
           </section>
 
-          {/* Item 2 */}
+          {/* Item 2 - Armazenamento */}
           <section className="group">
             <h3 className="text-2xl font-bold text-[#3C4043] mb-2 flex items-center gap-3 italic" style={{ fontFamily: "'Playfair Display', serif" }}>
               <span className="text-[#D4AF37] not-italic text-sm font-sans font-bold">02.</span> 
-              Acesso Restrito
+              Sua Propriedade Intelectual
             </h3>
             <p className="text-gray-500 leading-relaxed text-lg font-light">
-              O acesso às galerias é protegido por códigos exclusivos gerados pelo fotógrafo. Utilizamos criptografia de ponta a ponta 
-              fornecida pela infraestrutura do Google para garantir que sua privacidade nunca seja comprometida por terceiros.
+              Nossa plataforma não realiza o <strong>download, cópia ou armazenamento permanente</strong> de suas fotos em servidores próprios. Atuamos como um espelhamento dinâmico: as imagens permanecem hospedadas no seu Google Drive™, e você pode revogar o acesso a qualquer momento através das configurações da sua conta Google.
             </p>
           </section>
 
-          {/* Item 3 */}
+          {/* Item 3 - Segurança de Acesso */}
           <section className="group">
             <h3 className="text-2xl font-bold text-[#3C4043] mb-2 flex items-center gap-3 italic" style={{ fontFamily: "'Playfair Display', serif" }}>
               <span className="text-[#D4AF37] not-italic text-sm font-sans font-bold">03.</span> 
-              Cookies Técnicos
+              Segurança do Cliente Final
             </h3>
             <p className="text-gray-500 leading-relaxed text-lg font-light">
-              Utilizamos cookies apenas para funções vitais: manter sua sessão ativa durante a visualização e carregar o <strong>Visualizador de Fotos</strong> de forma ultra-rápida. 
-              Não rastreamos seu comportamento para fins de publicidade.
+              Para galerias privadas, implementamos uma camada de autenticação via senha protegida por cookies técnicos. Estes cookies servem apenas para validar o acesso à galeria específica e expiram automaticamente em 24 horas, garantindo que o link não permaneça exposto indefinidamente.
+            </p>
+          </section>
+
+          {/* Item 4 - LGPD */}
+          <section className="group">
+            <h3 className="text-2xl font-bold text-[#3C4043] mb-2 flex items-center gap-3 italic" style={{ fontFamily: "'Playfair Display', serif" }}>
+              <span className="text-[#D4AF37] not-italic text-sm font-sans font-bold">04.</span> 
+              Conformidade com a LGPD
+            </h3>
+            <p className="text-gray-500 leading-relaxed text-lg font-light">
+              Em total conformidade com a Lei Geral de Proteção de Dados (LGPD), garantimos que nenhum dado pessoal ou biométrico contido nas fotos é coletado ou processado por nossa inteligência de dados. O processamento limita-se à exibição visual e organização estrutural das pastas.
             </p>
           </section>
 
         </div>
 
-        {/* CITAÇÃO FINAL (Estilo Editorial) */}
-        <div className="mt-16 p-6 bg-white rounded-[2rem] border border-gray-100 shadow-sm text-center">
+        {/* CITAÇÃO FINAL */}
+        <div className="mt-20 p-8 bg-white rounded-[2rem] border border-gray-100 shadow-sm text-center">
           <p className="text-[#3C4043] text-xl md:text-2xl italic font-medium leading-relaxed max-w-2xl mx-auto" style={{ fontFamily: "'Playfair Display', serif" }}>
-            "A confiança é a moldura que protege as memórias mais valiosas."
+            "A tecnologia deve ser o véu que protege a arte, nunca o obstáculo que a compromete."
           </p>
           <div className="mt-8 w-12 h-[2px] bg-[#D4AF37] mx-auto opacity-30" />
           <p className="mt-6 text-[12px] tracking-[0.5em] text-gray-400 font-bold">
@@ -97,11 +113,19 @@ export default function PrivacidadePage() {
         </div>
       </main>
 
-      {/* RODAPÉ (Igual ao da Home) */}
+      {/* RODAPÉ */}
       <footer className="bg-[#2D2E30] py-16 px-6 text-center">
-        <p className="text-gray-500 text-[10px] uppercase tracking-[0.4em]">
-          Protegido por LGPD • Conexão Segura SSL
-        </p>
+        <div className="max-w-4xl mx-auto space-y-4">
+          <p className="text-gray-500 text-[10px] uppercase tracking-[0.4em]">
+            App de Uso Profissional • Autenticação Google OAuth 2.0
+          </p>
+          <p className="text-gray-600 text-[9px] uppercase tracking-[0.2em] max-w-lg mx-auto leading-loose">
+            O uso das informações recebidas das APIs do Google está em conformidade com a 
+            <a href="https://developers.google.com/terms/api-services-user-data-policy" className="underline hover:text-[#D4AF37] ml-1">
+              Política de Dados do Usuário dos Serviços de API do Google
+            </a>, incluindo os requisitos de Uso Limitado.
+          </p>
+        </div>
       </footer>
     </div>
   );

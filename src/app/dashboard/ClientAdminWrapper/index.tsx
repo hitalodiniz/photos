@@ -152,8 +152,8 @@ export default function ClientAdminWrapper({ initialGalerias }: ClientAdminWrapp
   };
 
   return (
-    <div className="mx-auto grid max-w-[1600px] grid-cols-1 gap-6 lg:grid-cols-[360px_1fr] py-2">
-      {/* Coluna Esquerda: Formulário de Criação */}
+<div className="mx-auto grid max-w-[1600px] grid-cols-1 gap-4 lg:grid-cols-[340px_1fr] px-4 md:px-8 py-2">
+        {/* Coluna Esquerda: Formulário de Criação */}
       <div className="order-1">
         <div className="sticky top-8 h-fit rounded-2xl border border-[#E0E3E7] bg-white p-6 shadow-sm">
           <h2 className="mb-4 text-lg font-semibold text-[#1F1F1F]">Nova galeria</h2>

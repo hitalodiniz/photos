@@ -22,7 +22,7 @@ export default function GoogleSignInButton() {
         provider: "google",        
         options: {
           scopes:
-            "email profile openid https://www.googleapis.com/auth/drive.readonly https://www.googleapis.com/auth/drive.metadata",
+            "email profile openid https://www.googleapis.com/auth/drive",
           redirectTo,          
           queryParams: {
             access_type: "offline",

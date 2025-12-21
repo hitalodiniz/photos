@@ -1,4 +1,3 @@
-// lib/google-drive.ts
 export interface DrivePhoto {
   id: string;
   name: string;
@@ -7,36 +6,41 @@ export interface DrivePhoto {
 }
 
 /**
- * Lista fotos de uma pasta do Google Drive.
- * Você precisa fornecer um accessToken válido.
+ * Lista fotos de uma pasta do Google Drive com tratamento de erro.
  */
 export async function listPhotosFromDriveFolder(
   driveFolderId: string,
   accessToken: string
 ): Promise<DrivePhoto[]> {
-  if (!driveFolderId) return [];
+  if (!driveFolderId) {
+    throw new Error("O ID da pasta do Google Drive não foi configurado.");
+  }
 
-  // Exemplo usando a Google Drive API v3.
-  // Aqui você precisa ter o accessToken com escopo de drive.readonly.
-  const query = encodeURIComponent(`'${driveFolderId}' in parents and mimeType contains 'image/' and trashed = false`);
+  const query = encodeURIComponent(
+    `'${driveFolderId}' in parents and mimeType contains 'image/' and trashed = false`
+  );
   const fields = encodeURIComponent("files(id, name, thumbnailLink, webViewLink)");
-
   const url = `https://www.googleapis.com/drive/v3/files?q=${query}&fields=${fields}`;
 
   const res = await fetch(url, {
     headers: {
       Authorization: `Bearer ${accessToken}`,
     },
-    cache: "no-store", // pode ajustar conforme necessidade
+    cache: "no-store",
   });
 
   if (!res.ok) {
-    console.error("Erro ao buscar fotos no Google Drive", await res.text());
-    return [];
+    const errorBody = await res.json();
+    const message = errorBody.error?.message || "Erro desconhecido ao acessar o Drive.";
+    
+    // Tratamento de erros comuns para o usuário
+    if (res.status === 401) throw new Error("Sua sessão expirou. Por favor, faça login novamente.");
+    if (res.status === 404) throw new Error("A pasta selecionada não foi encontrada no seu Google Drive.");
+    
+    throw new Error(`Google Drive API: ${message}`);
   }
 
   const data = await res.json();
-
   const files = (data.files || []) as Array<{
     id: string;
     name: string;
@@ -52,25 +56,32 @@ export async function listPhotosFromDriveFolder(
   }));
 }
 
+/**
+ * Torna a pasta pública e lança erro caso falhe.
+ */
 export async function makeFolderPublic(folderId: string, accessToken: string) {
-  try {
-    await fetch(
-      `https://www.googleapis.com/drive/v3/files/${folderId}/permissions`,
-      {
-        method: 'POST',
-        headers: {
-          Authorization: `Bearer ${accessToken}`,
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify({
-          role: 'reader',
-          type: 'anyone',
-        }),
-      }
-    );
-    return true;
-  } catch (error) {
-    console.error("Erro ao tornar pasta pública:", error);
+  const res = await fetch(
+    `https://www.googleapis.com/drive/v3/files/${folderId}/permissions`,
+    {
+      method: 'POST',
+      headers: {
+        Authorization: `Bearer ${accessToken}`,
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify({
+        role: 'reader',
+        type: 'anyone',
+      }),
+    }
+  );
+
+  if (!res.ok) {
+    const errorBody = await res.json();
+    // Isso vai printar o erro REAL do Google no seu console
+    console.error("ERRO GOOGLE DRIVE:", JSON.stringify(errorBody, null, 2));
     return false;
   }
+
+  console.log("Sucesso: Pasta agora é pública!");
+  return true;
 }
