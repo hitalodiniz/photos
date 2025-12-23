@@ -1,108 +1,250 @@
 'use client';
 
-import { useState } from 'react';
-import { supabase } from '@/lib/supabase.client';
+import { useState, useEffect, useRef } from 'react';
 import { useRouter } from 'next/navigation';
+import { useFormStatus } from 'react-dom';
+import {
+  Camera, User, AtSign, FileText, Sparkles, Loader2,
+  MessageCircle, Instagram, Upload, MapPin, X, CheckCircle2, Save,
+  AlertCircle, Pencil
+} from 'lucide-react';
 
-interface Profile {
-  full_name: string | null;
-  username: string | null;
-  mini_bio: string | null;
+import { upsertProfile } from '@/actions/profile';
+import { supabase } from '@/lib/supabase.client';
+import { maskPhone } from "@/utils/masks";
+import ProfilePreview from './ProfilePreview';
+
+// --- AUXILIARES ---
+const fetchStates = async () => {
+  const response = await fetch("https://servicodados.ibge.gov.br/api/v1/localidades/estados?orderBy=nome");
+  return await response.json();
+};
+
+const fetchCitiesByState = async (uf: string, query: string) => {
+  if (query.length < 2) return [];
+  try {
+    const response = await fetch(`https://servicodados.ibge.gov.br/api/v1/localidades/estados/${uf}/municipios`);
+    const data = await response.json();
+    return data
+      .filter((item: any) => item.nome.toLowerCase().includes(query.toLowerCase()))
+      .map((item: any) => `${item.nome}, ${uf}`);
+  } catch (error) {
+    console.error("Erro IBGE:", error);
+    return [];
+  }
+};
+
+export function SubmitOnboarding() {
+  const { pending } = useFormStatus();
+  return (
+    <button
+      type="submit"
+      disabled={pending}
+      className={`w-full py-5 rounded-2xl font-bold uppercase text-xs tracking-[0.2em] shadow-lg transition-all active:scale-95 flex items-center justify-center gap-2 ${pending ? 'bg-slate-100 text-slate-400 cursor-not-allowed' : 'bg-[#F3E5AB] hover:bg-[#e6d595] text-slate-900 shadow-[#F3E5AB]/20'
+        }`}
+    >
+      {pending ? <><Loader2 className="animate-spin" size={18} /> Salvando...</> : <><Save size={16} /> Salvar perfil</>}
+    </button>
+  );
 }
 
-export default function OnboardingForm({
-  initialData,
-  email,
-  suggestedUsername,
-  isEditMode,
-}: {
-  initialData: Profile | null;
-  email: string;
-  suggestedUsername: string;
-  isEditMode: boolean;
-}) {
+export default function OnboardingForm({ initialData, suggestedUsername, isEditMode }: any) {
   const router = useRouter();
+  const fileInputRef = useRef<HTMLInputElement>(null);
 
   const [fullName, setFullName] = useState(initialData?.full_name || '');
-  const [username, setUsername] = useState(
-    initialData?.username || suggestedUsername
-  );
+  const [username, setUsername] = useState(initialData?.username || suggestedUsername);
   const [miniBio, setMiniBio] = useState(initialData?.mini_bio || '');
-  const [saving, setSaving] = useState(false);
+  const [phone, setPhone] = useState(initialData?.phone_contact || '');
+  const [instagram, setInstagram] = useState(initialData?.instagram_link || '');
+  const [selectedCities, setSelectedCities] = useState<string[]>(initialData?.operating_cities || []);
+  const [states, setStates] = useState<{ sigla: string; nome: string }[]>([]);
+  const [selectedUF, setSelectedUF] = useState('');
+  const [cityInput, setCityInput] = useState('');
+  const [suggestions, setSuggestions] = useState<string[]>([]);
+  const [photoFile, setPhotoFile] = useState<File | null>(null);
+  const [photoPreview, setPhotoPreview] = useState<string | null>(initialData?.profile_picture_url || null);
+  const [isChecking, setIsChecking] = useState(false);
+  const [isAvailable, setIsAvailable] = useState<boolean | null>(null);
 
-  const handleSave = async () => {
-    setSaving(true);
+  useEffect(() => { fetchStates().then(setStates); }, []);
 
-    const {
-      data: { user },
-    } = await supabase.auth.getUser();
+  useEffect(() => {
+    const timer = setTimeout(async () => {
+      if (cityInput.length >= 2 && selectedUF) {
+        const results = await fetchCitiesByState(selectedUF, cityInput);
+        setSuggestions(results);
+      } else { setSuggestions([]); }
+    }, 300);
+    return () => clearTimeout(timer);
+  }, [cityInput, selectedUF]);
 
-    if (!user) {
-      router.replace('/');
-      return;
-    }
+  useEffect(() => {
+    if (!username || username === initialData?.username) { setIsAvailable(null); return; }
+    const check = async () => {
+      setIsChecking(true);
+      const { data } = await supabase.from('tb_profiles').select('username').eq('username', username.toLowerCase()).maybeSingle();
+      setIsAvailable(!data);
+      setIsChecking(false);
+    };
+    const timer = setTimeout(check, 500);
+    return () => clearTimeout(timer);
+  }, [username, initialData?.username]);
 
-    const { error } = await supabase
-      .from('tb_profiles')
-      .update({
-        full_name: fullName,
-        username,
-        mini_bio: miniBio,
-      })
-      .eq('id', user.id);
-
-    setSaving(false);
-
-    if (error) {
-      console.error('Erro ao salvar perfil:', error);
-      alert('Erro ao salvar. Tente novamente.');
-      return;
-    }
-
-    router.replace('/dashboard');
+  const handleSelectCity = (city: string) => {
+    if (!selectedCities.includes(city)) setSelectedCities(prev => [...prev, city]);
+    setCityInput('');
+    setSuggestions([]);
   };
 
+  const clientAction = async (formData: FormData) => {
+    formData.append('operating_cities_json', JSON.stringify(selectedCities));
+    if (photoFile) formData.append('profile_picture_file', photoFile);
+    else if (photoPreview) formData.append('profile_picture_url_existing', photoPreview);
+    const result = await upsertProfile(formData);
+    if (result?.success) router.push('/dashboard');
+    else alert(result?.error || "Erro ao salvar");
+  };
+
+  const inputStyle = "w-full bg-[#F8F9FA] border border-gray-200 p-3 rounded-xl outline-none focus:border-[#D4AF37] focus:ring-1 focus:ring-[#D4AF37] text-sm text-[#4F5B66] font-medium transition-all placeholder:text-gray-300";
+  const labelStyle = "text-sm font-bold text-[#4F5B66] mb-1.5 flex items-center gap-2 ml-1";
+
+  // ESTRUTURA: Fixed garante o topo 0.
+  const containerBaseClass = "fixed inset-0 top-0 bg-white flex w-full font-sans z-[9999] overflow-hidden";
+
   return (
-    <div className="max-w-md w-full bg-white shadow-sm rounded-lg p-6">
-      <h1 className="text-xl font-semibold mb-4">
-        {isEditMode ? 'Atualize seu perfil' : 'Bem-vindo! Vamos começar'}
-      </h1>
+    <div className={containerBaseClass}>
+      {/* SIDEBAR (40%) - h-full + overflow-y-auto permite scroll interno no form */}
+      <aside className="w-[40%] bg-white border-r border-slate-100 p-8 pt-10 flex flex-col h-full relative z-20 overflow-y-auto no-scrollbar shadow-2xl">
+        <div className="flex items-center gap-3 mb-8 shrink-0">
+          <div className="p-2 bg-[#F3E5AB]/20 rounded-lg">
+            <Camera className="text-[#D4AF37]" size={24} />
+          </div>
+          <div>
+            <h1 className="font-bold text-slate-900 text-lg tracking-tight">Configuração Profissional</h1>
+            <p className="text-[9px] text-slate-400 font-bold uppercase tracking-[0.2em]">Live Editor</p>
+          </div>
+        </div>
 
-      <label className="block mb-3">
-        <span className="text-sm text-gray-700">Nome completo</span>
-        <input
-          className="mt-1 w-full border rounded px-3 py-2 text-sm"
-          value={fullName}
-          onChange={(e) => setFullName(e.target.value)}
+        <form action={clientAction} className="space-y-5 flex-grow pb-10">
+          {/* FOTO GOOGLE STYLE */}
+          <div className="space-y-3 flex flex-col items-center">
+            <label className={`${labelStyle} w-full text-left`}>
+              <Camera size={14} className="text-[#D4AF37]" /> Foto Editorial
+            </label>
+            <div className="relative group">
+              <div
+                onClick={() => fileInputRef.current?.click()}
+                className="relative w-32 h-32 rounded-full border-4 border-white shadow-xl cursor-pointer transition-all overflow-hidden bg-slate-50"
+              >
+                <div className="w-full h-full rounded-full overflow-hidden flex items-center justify-center">
+                  {photoPreview ? (
+                    <img src={photoPreview} className="w-full h-full object-cover" alt="Preview" />
+                  ) : (
+                    <Upload size={30} className="text-slate-200" />
+                  )}
+                </div>
+                <div className="absolute inset-0 bg-black/20 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity rounded-full">
+                  <Camera size={24} className="text-white" />
+                </div>
+              </div>
+              <button
+                type="button"
+                onClick={() => fileInputRef.current?.click()}
+                className="absolute bottom-1 right-1 bg-white border border-slate-200 p-2 rounded-full shadow-lg text-slate-600 hover:text-[#D4AF37] transition-colors z-10"
+              >
+                <Pencil size={14} />
+              </button>
+            </div>
+          </div>
+
+          <div className="grid grid-cols-2 gap-4">
+            <div>
+              <label className={labelStyle}><User size={14} className="text-[#D4AF37]" /> Nome Completo</label>
+              <input name="full_name" value={fullName} onChange={(e) => setFullName(e.target.value)} required className={inputStyle} />
+            </div>
+            <div>
+              <label className={labelStyle}><AtSign size={14} className="text-[#D4AF37]" /> Username</label>
+              <div className="relative">
+                <input name="username" value={username} onChange={(e) => setUsername(e.target.value.toLowerCase())} required className={inputStyle} />
+                <div className="absolute right-3 top-1/2 -translate-y-1/2">
+                  {isChecking ? <Loader2 size={12} className="animate-spin" /> : isAvailable === true ? <CheckCircle2 size={12} className="text-green-500" /> : isAvailable === false ? <AlertCircle size={12} className="text-red-500" /> : null}
+                </div>
+              </div>
+            </div>
+          </div>
+
+          <div className="grid grid-cols-2 gap-4">
+            <div>
+              <label className={labelStyle}><MessageCircle size={14} className="text-[#D4AF37]" /> WhatsApp</label>
+              <input name="phone_contact" value={phone} onChange={(e) => setPhone(maskPhone(e))} placeholder="(00) 00000-0000" className={inputStyle} />
+            </div>
+            <div>
+              <label className={labelStyle}><Instagram size={14} className="text-[#D4AF37]" /> Instagram</label>
+              <input name="instagram_link" value={instagram} onChange={(e) => setInstagram(e.target.value)} placeholder="@seu.perfil" className={inputStyle} />
+            </div>
+          </div>
+
+          <div className="rounded-2xl border border-[#D4AF37]/20 p-4 bg-[#FAF7ED]">
+            <div className="flex items-center gap-2 mb-3 text-[#D4AF37]">
+              <MapPin size={16} />
+              <label className="text-sm font-bold tracking-wider text-[#4F5B66]">Área de Atuação ({selectedCities.length})</label>
+            </div>
+            <div className="flex flex-wrap gap-1.5 mb-3">
+              {selectedCities.map(city => (
+                <span key={city} className="bg-white border border-[#D4AF37]/20 text-slate-900 text-[10px] font-bold px-2 py-1 rounded-lg flex items-center gap-1 shadow-sm">
+                  {city} <X size={10} className="cursor-pointer text-slate-300 hover:text-red-500" onClick={() => setSelectedCities(selectedCities.filter(c => c !== city))} />
+                </span>
+              ))}
+            </div>
+            <div className="flex gap-2">
+              <select value={selectedUF} onChange={(e) => { setSelectedUF(e.target.value); setCityInput(''); }} className="w-20 bg-white border border-gray-200 rounded-xl px-2 py-2 text-xs font-bold text-[#4F5B66] outline-none">
+                <option value="">UF</option>
+                {states.map(uf => <option key={uf.sigla} value={uf.sigla}>{uf.sigla}</option>)}
+              </select>
+              <div className="relative flex-grow">
+                <input disabled={!selectedUF} value={cityInput} onChange={(e) => setCityInput(e.target.value)} className="w-full bg-white border border-gray-200 rounded-xl px-4 py-2 text-xs outline-none" placeholder="Buscar cidade..." />
+              </div>
+            </div>
+          </div>
+
+          <div>
+            <label className={labelStyle}><FileText size={14} className="text-[#D4AF37]" /> Mini Bio Editorial</label>
+            <textarea name="mini_bio" value={miniBio || ''} onChange={(e) => setMiniBio(e.target.value)} rows={3} className={inputStyle} />
+          </div>
+
+          <SubmitOnboarding />
+        </form>
+      </aside>
+
+      {/* PREVIEW (60%) - h-full + overflow-y-auto garante que o Preview possa rolar */}
+      <main className="w-[60%] h-full bg-black overflow-y-auto custom-scrollbar">
+        {/* Badge Flutuante - Agora posicionada absolutamente sobre o Preview */}
+        <div className="absolute top-10 left-70% z-[100] flex items-center gap-4 px-6 pointer-events-none">
+
+          {/* Linha decorativa vertical dourada */}
+          <div className="w-1.5 h-14 bg-[#F3E5AB] rounded-full animate-pulse shadow-[0_0_20px_rgba(243,229,171,0.8)]"></div>
+
+          <div className="flex flex-col justify-center">
+            <p className="text-[14px] text-[#F3E5AB] font-bold uppercase tracking-[0.5em] leading-none mb-1 drop-shadow-lg">
+              Live Editorial
+            </p>
+            <p className="text-[18px] text-white/90 font-serif italic tracking-wide leading-none py-2 drop-shadow-md">
+              Preview do Perfil
+            </p>
+          </div>
+        </div>
+
+        <ProfilePreview
+          fullName={fullName}
+          username={username}
+          miniBio={miniBio || ''}
+          phone={phone}
+          instagram={instagram}
+          photoPreview={photoPreview}
+          cities={selectedCities}
         />
-      </label>
-
-      <label className="block mb-3">
-        <span className="text-sm text-gray-700">Username</span>
-        <input
-          className="mt-1 w-full border rounded px-3 py-2 text-sm"
-          value={username}
-          onChange={(e) => setUsername(e.target.value)}
-        />
-      </label>
-
-      <label className="block mb-4">
-        <span className="text-sm text-gray-700">Mini bio</span>
-        <textarea
-          className="mt-1 w-full border rounded px-3 py-2 text-sm"
-          rows={3}
-          value={miniBio}
-          onChange={(e) => setMiniBio(e.target.value)}
-        />
-      </label>
-
-      <button
-        onClick={handleSave}
-        disabled={saving}
-        className="w-full bg-black text-white py-2 rounded hover:bg-gray-900 disabled:opacity-50"
-      >
-        {saving ? 'Salvando...' : 'Salvar e continuar'}
-      </button>
+      </main>
     </div>
   );
 }

@@ -1,38 +1,41 @@
 'use client';
 
 import { useEffect, ReactNode } from 'react';
-import { useAuth } from '@/hooks/useAuth'; // Seu hook de autenticação
+import { useAuth } from '@/hooks/useAuth';
+import { Loader2 } from 'lucide-react';
 
-// Tipagem para os 'children' (o conteúdo que será protegido)
 interface AuthGuardProps {
   children: ReactNode;
-  redirectTo?: string; // Opcional, para onde redirecionar se deslogado
+  redirectTo?: string;
 }
 
 export default function AuthGuard({ children, redirectTo = '/' }: AuthGuardProps) {
   const { user, isLoading, protectRoute } = useAuth();
 
-  // 1. Lógica de Redirecionamento
+  // 1. Redirecionamento assistido pelo Cliente
   useEffect(() => {
-    // A função protectRoute já tem a lógica de 'se não estiver carregando E não há user, redirecione'
     protectRoute(redirectTo); 
   }, [isLoading, user, redirectTo, protectRoute]); 
 
-  // 2. Estado de Carregamento
+  // 2. Estado de Carregamento Editorial
   if (isLoading) {
-    // Retorna um estado de carregamento enquanto o Supabase verifica a sessão
     return (
-      <div style={{ padding: '20px', textAlign: 'center' }}>
-        Autenticando...
+      <div className="min-h-screen bg-[#F8F9FA] flex flex-col items-center justify-center gap-4">
+        <div className="relative">
+          <Loader2 className="w-10 h-10 text-[#D4AF37] animate-spin" />
+          <div className="absolute inset-0 blur-xl bg-[#F3E5AB] opacity-20 animate-pulse"></div>
+        </div>
+        <p className="text-[10px] font-bold text-slate-400 uppercase tracking-[0.3em] animate-pulse">
+          Validando Acesso
+        </p>
       </div>
     );
   }
 
-  // 3. Renderiza o conteúdo (children) se o usuário estiver logado
+  // 3. Renderização Segura
   if (user) {
     return <>{children}</>;
   }
   
-  // 4. Se não estiver carregando e não tiver user, retorna null (o redirecionamento já ocorreu no useEffect)
   return null;
 }

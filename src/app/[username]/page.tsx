@@ -63,36 +63,6 @@ export default function PhotographerProfile() {
 
                                 <div className="w-24 h-[1px] bg-[#D4AF37]/20 mx-auto" />
 
-                                {/* Mantivemos os botões centralizados e compactos para não perderem a elegância */}
-                                <div className="grid grid-cols-1 md:grid-cols-2 gap-3 pt-2 w-full max-w-lg mx-auto">
-
-                                    <a href={`https://wa.me/${profile.phone.replace(/\D/g, '')}`}
-                                        className="flex items-center justify-between px-5 py-3 rounded-xl bg-[#F3E5AB] hover:bg-[#e6d595] text-slate-900 shadow-md transition-all active:scale-95 group"
-
-                                    >
-                                        <div className="flex items-center gap-3">
-                                            <MessageCircle size={16} />
-                                            <div className="flex flex-col items-start leading-none">
-                                                <span className="text-[10px] font-bold tracking-wider uppercase">WhatsApp</span>
-                                                <span className="text-[9px] font-normal opacity-70">Orçamentos</span>
-                                            </div>
-                                        </div>
-                                        <Share2 size={12} className="opacity-0 group-hover:opacity-100 transition-opacity" />
-                                    </a>
-
-                                    <a href={profile.instagram_url}
-                                        className="flex items-center justify-between px-5 py-3 rounded-xl bg-[#F3E5AB] hover:bg-[#e6d595] text-slate-900 shadow-md transition-all active:scale-95 group">
-                                        <div className="flex items-center gap-3">
-                                            <Instagram size={16} />
-                                            <div className="flex flex-col items-start leading-none">
-                                                <span className="text-[10px] font-bold tracking-wider uppercase">Instagram</span>
-                                                <span className="text-[9px] font-normal opacity-70">Portfólio</span>
-                                            </div>
-                                        </div>
-                                        <Share2 size={12} className="opacity-0 group-hover:opacity-100 transition-opacity" />
-                                    </a>
-
-                                </div>
 
                                 <div className="flex flex-col md:flex-row items-center justify-center gap-8 pt-4 w-full">
 
@@ -104,7 +74,7 @@ export default function PhotographerProfile() {
                                     >
                                         <MessageCircle size={18} />
                                         <span className="uppercase">WhatsApp</span>
-                                                                                        <span className="text-[9px] font-normal opacity-70">Orçamentos</span>
+                                        <span className="text-[12px] font-normal opacity-70">Orçamentos</span>
 
                                     </a>
 
@@ -114,10 +84,14 @@ export default function PhotographerProfile() {
                                         className="w-full md:w-auto flex items-center justify-center gap-2 px-8 py-3.5 md:py-4 rounded-xl font-bold 
       transition-all shadow-lg active:scale-95 text-xs md:text-sm tracking-widest bg-[#F3E5AB] hover:bg-[#e6d595] text-slate-900 whitespace-nowrap"
                                     >
-                                        <Instagram size={18} />
-                                        <span className="uppercase">Instagram</span>
+                                        <div className="flex flex-col md:flex-row items-center justify-center gap-8 pt-4 w-full">
+                                            <Instagram size={18} />
+                                            <span className="uppercase">Instagram</span>
+                                            <span className="text-[12px] font-normal opacity-70">Portfólio</span>
+                                        </div>
+
                                     </a>
-                                </div>                                
+                                </div>
                             </div>
                         </section>
                     </div>

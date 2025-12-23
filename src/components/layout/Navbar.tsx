@@ -7,12 +7,10 @@ import { supabase } from '@/lib/supabase.client';
 import Link from 'next/link';
 
 export default function Navbar() {
-  const pathname = usePathname();
+const pathname = usePathname();
   const [session, setSession] = useState<any>(null);
 
-  const isOnboardingPage = pathname === '/onboarding';
-  const isDashboardPage = pathname === '/dashboard';
-
+  // Monitoramento de sessão
   useEffect(() => {
     supabase.auth.getSession().then(({ data: { session } }) => {
       setSession(session);
@@ -25,12 +23,17 @@ export default function Navbar() {
     return () => subscription.unsubscribe();
   }, []);
 
-  if (!isOnboardingPage || !isDashboardPage || !session) return null;
+  // Lógica de exibição corrigida: 
+  // Exibe APENAS se houver sessão E se estiver no Dashboard ou Onboarding
+  const showNavbar = session && (pathname === '/dashboard' || pathname === '/onboarding');
 
+  if (!showNavbar) return null;
+  
   return (
     <>
       {/* 1. Alterado para fixed, top-0 e left-0 */}
-      <nav className="fixed top-0 left-0 w-full z-50 flex items-center justify-between px-6 md:px-10 py-4 bg-white/90 backdrop-blur-md border-b border-[#DADCE0] shadow-sm">
+      <nav className="fixed top-0 left-0 w-full z-50 flex items-center justify-between px-6 md:px-10 
+      py-3 bg-white/90 backdrop-blur-md border-b border-[#DADCE0] shadow-sm">
         <Link
           href="/dashboard"
           className="flex items-center gap-2 group transition-opacity hover:opacity-80"

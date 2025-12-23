@@ -1,4 +1,3 @@
-// middleware.ts
 import { NextResponse } from "next/server";
 import type { NextRequest } from "next/server";
 import { createServerClient } from "@supabase/ssr";
@@ -58,47 +57,47 @@ export async function middleware(req: NextRequest) {
   const host = req.headers.get("host") || "";
   const isLocalhost = host.includes("localhost");
 
+  // Inicia o cliente Supabase para verificar sessão
+  const res = NextResponse.next();
+  const supabase = createServerClient(
+    process.env.NEXT_PUBLIC_SUPABASE_URL!,
+    process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!,
+    {
+      cookies: {
+        get(name) {
+          return req.cookies.get(name)?.value;
+        },
+        set(name, value, options) {
+          res.cookies.set({ name, value, ...options });
+        },
+        remove(name, options) {
+          res.cookies.delete({ name, ...options });
+        },
+      },
+    }
+  );
+
   // ============================
   // 1. PROTEÇÃO DO DASHBOARD
   // ============================
   if (url.pathname.startsWith("/dashboard")) {
-    const supabase = createServerClient(
-      process.env.NEXT_PUBLIC_SUPABASE_URL!,
-      process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!,
-      {
-        cookies: {
-          get(name) {
-            return req.cookies.get(name)?.value;
-          },
-          set() {},
-          remove() {},
-        },
-      }
-    );
-
     const {
       data: { session },
     } = await supabase.auth.getSession();
 
+    // Se não estiver logado, redireciona para a home
     if (!session) {
-      const loginUrl = new URL("/auth/login", req.url);
-      loginUrl.searchParams.set("next", url.pathname + url.search);
-      return NextResponse.redirect(loginUrl);
+      const homeUrl = new URL("/", req.url);
+      return NextResponse.redirect(homeUrl);
     }
-
-    return NextResponse.next();
+    return res;
   }
 
   // ============================
   // 2. LÓGICA DE SUBDOMÍNIO
   // ============================
-
-  const subdomain = isLocalhost
-    ? host.split(".")[0]
-    : host.split(".")[0];
-
-  const isSubdomain =
-    isLocalhost && subdomain !== "localhost"
+  const subdomain = isLocalhost ? host.split(".")[0] : host.split(".")[0];
+  const isSubdomain = isLocalhost && subdomain !== "localhost"
       ? true
       : !isLocalhost && host.split(".").length > 2;
 
@@ -111,18 +110,12 @@ export async function middleware(req: NextRequest) {
 
     const newUrl = req.nextUrl.clone();
     newUrl.pathname = `/_subdomain/${profile.username}${url.pathname}`;
-
     return NextResponse.rewrite(newUrl);
   }
 
-  // ============================
-  // 3. GALERIAS (PÚBLICAS OU PRIVADAS)
-  // ============================
-  // O middleware NÃO bloqueia galerias privadas.
-  // A página da galeria é responsável por pedir senha.
-
-  return NextResponse.next();
+  return res;
 }
 
-
-export const config = { matcher: [ "/((?!_next|api/auth/callback|api/auth|api|static|favicon.ico|robots.txt).*)", ], };
+export const config = {
+  matcher: ["/((?!_next|api/auth/callback|api/auth|api|static|favicon.ico|robots.txt).*)"],
+};

@@ -1,45 +1,37 @@
-// app/onboarding/page.tsx
 import { getProfileData } from '@/actions/profile';
-import {AuthGuard} from '@/components/auth';
-
-import GoogleSignInButton from "@/components/auth/GoogleSignInButton";
-
-// Componente Cliente (o formulário de preenchimento de dados)
+import { AuthGuard } from '@/components/auth';
+import { redirect } from 'next/navigation';
 import OnboardingForm from './OnboardingForm';
 
-// =========================================================================
-// SERVER COMPONENT (Busca de Dados e Guarda de Segurança)
-// =========================================================================
-
+/**
+ * SERVER COMPONENT: OnboardingPage
+ * Gerencia a busca de dados inicial e a proteção de rota no servidor.
+ */
 export default async function OnboardingPage() {
-    // 1. Busca os dados de autenticação e perfil
-    // NOTE: Esta função deve ter sido atualizada para usar a nova abordagem de autenticação
-    // por Header JWT ou deve usar a leitura de cookies do Server Component, conforme a arquitetura que você escolheu.
-    const { user_id, profile, email, suggestedUsername, error } = await getProfileData();
+  // 1. Busca os dados do perfil via Server Action
+  const data = await getProfileData();
 
-    if (error || !user_id) {
-        // Se houver erro ou o usuário não estiver logado (token inválido no servidor),
-        // redireciona para a raiz para o Cliente tratar o login.
-        console.error("Erro ao carregar dados do perfil ou usuário deslogado:", error);
-        //   redirect('/'); 
-    }
+  // 2. Proteção de Segurança: Redireciona se não houver usuário autenticado
+  if (!data.success || !data.user_id) {
+    console.error("Erro no Onboarding:", data.error);
+    redirect('/'); 
+  }
 
-    // 2. Verifica se o perfil JÁ está completo.
-    // Embora o Client Guard deva evitar que chegue aqui, esta é uma guarda de segurança do Server Side.
-    const isProfileComplete = profile && profile.full_name && profile.username && profile.mini_bio;
-
-    // 3. Renderiza o Client Component com os dados iniciais
-    return (
-        <AuthGuard>
-            <div className="min-h-screen flex items-center justify-center bg-[#F8FAFD]">
-                <OnboardingForm
-                    initialData={profile} // Dados existentes (podem ser parciais)
-                    suggestedUsername={suggestedUsername}
-                    email={email || "email@exemplo.com"}
-                    // isEditMode será true se já existir um perfil no banco, mesmo que incompleto
-                    isEditMode={isProfileComplete}
-                />
-            </div>
-        </AuthGuard>
-    );
+  // 3. Define se o perfil já está completo para alternar entre "Novo Perfil" e "Editar"
+  const profile = data.profile;
+  const isProfileComplete = !!(profile?.full_name && profile?.username && profile?.mini_bio);
+console.log("isProfileComplete" + isProfileComplete);
+  return (
+    <AuthGuard>
+      {/* Container removido o centramento para o formulário ocupar 100% da largura e altura */}
+      <div className="min-h-screen bg-[#F8F9FA]">
+        <OnboardingForm
+          initialData={profile}
+          suggestedUsername={data.suggestedUsername}
+          email={data.email || ""}
+          isEditMode={isProfileComplete}
+        />
+      </div>
+    </AuthGuard>
+  );
 }

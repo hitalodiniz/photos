@@ -25,9 +25,9 @@ export default function LandingPageContent() {
         </div>
         {/* SEÇÃO DE FEATURES - flex-grow centraliza a section entre o header e footer */}
         <main className="flex-grow flex items-center justify-center px-6 py-4 md:px-4 md:py-8">        
-          <section className="w-full max-w-[92%] sm:max-w-5xl mx-auto bg-white/90 rounded-[2.5rem] md:rounded-[4rem] p-6 md:p-14 shadow-2xl border border-white/50">
+          <section className="w-full max-w-[92%] sm:max-w-5xl mx-auto bg-white/90 rounded-[2.5rem] md:rounded-[4rem] p-6 md:p-10 shadow-2xl border border-white/50">
             {/* Simetria lateral: justify-items-center e px equilibrado */}
-            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-y-8 md:gap-y-12 gap-x-6 md:gap-x-12 lg:gap-x-20 justify-items-center">
+            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-y-6 md:gap-y-8 gap-x-6 md:gap-x-12 lg:gap-x-20 justify-items-center">
               <FeatureItem
                 icon={<Cloud size={30} />}
                 title="Cloud Power"
