@@ -11,6 +11,7 @@ export default function Navbar() {
   const [session, setSession] = useState<any>(null);
 
   const isHomePage = pathname === '/';
+  const isPrivacidadePage = pathname === '/privacidade';
   const isGalleryView = pathname?.split('/').filter(Boolean).length >= 2;
 
   useEffect(() => {
@@ -25,7 +26,7 @@ export default function Navbar() {
     return () => subscription.unsubscribe();
   }, []);
 
-  if (isHomePage || isGalleryView || !session) return null;
+  if (isHomePage || isPrivacidadePage || isGalleryView || !session) return null;
 
   return (
     <>
