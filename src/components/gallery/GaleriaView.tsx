@@ -1,6 +1,6 @@
 'use client';
 import React from 'react';
-import PhotoGrid from './PhotoGrid';
+import { PhotoGrid } from '@/components/gallery';
 import type { Galeria } from '@/types/galeria';
 
 interface GaleriaViewProps {

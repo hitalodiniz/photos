@@ -3,7 +3,7 @@
 import { useState, useEffect } from "react";
 import { updateGaleria } from "@/actions/galeria";
 import { maskPhone } from "@/utils/masks";
-import GooglePickerButton from "@/components/GooglePickerButton";
+import {GooglePickerButton} from "@/components/google-drive";
 import { X, Camera, User, Type, Calendar, MapPin, FolderSync, Lock, Unlock, Loader2 } from "lucide-react";
 import type { Galeria } from "./types";
 

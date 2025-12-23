@@ -4,7 +4,7 @@ import { authenticateGaleriaAccess } from "@/actions/galeria";
 import React, { useState, useEffect } from 'react';
 import { Camera, Lock } from 'lucide-react';
 
-export function PasswordPrompt({
+export default function PasswordPrompt({
   galeriaTitle,
   galeriaId,
   fullSlug,

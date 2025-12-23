@@ -1,7 +1,7 @@
 'use client';
 import React, { useState, useEffect } from 'react';
 import { Camera, MapPin } from 'lucide-react';
-import GoogleSignInButton from './GoogleSignInButton';
+import GoogleSignInButton from '../auth/GoogleSignInButton';
 
 export default function HeroSection() {
   // 1. Array com os nomes exatos dos arquivos da sua pasta pública
@@ -20,8 +20,4 @@ export default function HeroSection() {
     const randomIndex = Math.floor(Math.random() * heroImages.length);
     setBgImage(heroImages[randomIndex]);
   }, []);
-
-  return (
-
-  );
 }

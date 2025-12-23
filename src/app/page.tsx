@@ -1,7 +1,7 @@
 // app/page.tsx (Home Page Principal com Checagem de Autenticação Server-Side)
 
 import { redirect } from 'next/navigation';
-import LandingPageContent from '@/components/LandingPageContent'; 
+import {LandingPageContent} from '@/components/sections'; 
 
 // Importe sua função de criação do cliente Supabase para o servidor
 // ATENÇÃO: Verifique o caminho real no seu projeto!

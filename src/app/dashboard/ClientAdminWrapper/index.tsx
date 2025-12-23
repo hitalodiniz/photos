@@ -1,8 +1,8 @@
 "use client";
 
 import { useEffect, useMemo, useState } from "react";
-import { Camera, FolderSync, LayoutGrid, Plus, Search } from "lucide-react";
-import { Toast, ConfirmationModal } from "@/components/DashboardUI";
+import { Camera, LayoutGrid, Plus, Search } from "lucide-react";
+import { Toast, ConfirmationModal } from "@/components/sections/DashboardUI";
 import { getGalerias, deleteGaleria } from "@/actions/galeria";
 
 import type { Galeria } from "./types";

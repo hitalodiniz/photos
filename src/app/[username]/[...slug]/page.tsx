@@ -2,8 +2,8 @@
 import { notFound } from "next/navigation";
 import { cookies } from "next/headers";
 import { createSupabaseServerClientReadOnly } from "@/lib/supabase.server";
-import GaleriaView from "@/components/GaleriaView";
-import { PasswordPrompt } from "@/components/PasswordPrompt";
+import GaleriaView from "@/components/gallery/GaleriaView";
+import { PasswordPrompt } from "@/components/gallery";
 import { listPhotosFromDriveFolder } from "@/lib/google-drive";
 import { getDriveAccessTokenForUser } from "@/lib/google-auth";
 import type { Galeria } from "@/types/galeria";

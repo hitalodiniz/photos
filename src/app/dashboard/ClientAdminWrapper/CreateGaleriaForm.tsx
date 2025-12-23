@@ -1,8 +1,8 @@
 "use client";
 
 import { useState, useRef } from "react";
-import { SubmitButton } from "@/components/DashboardUI";
-import GooglePickerButton from "@/components/GooglePickerButton";
+import { SubmitButton } from "@/components/sections/DashboardUI";
+import {GooglePickerButton} from "@/components/google-drive";
 import { maskPhone } from "@/utils/masks";
 import { createGaleria } from "@/actions/galeria";
 import { Lock, Unlock, Calendar, MapPin, User, Type, FolderSync } from "lucide-react";

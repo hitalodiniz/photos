@@ -1,10 +1,10 @@
 // app/layout.tsx (CÓDIGO REVISADO)
 
 import './globals.css';
-import Navbar from '../components/Navbar';
+import Navbar from '../components/layout/Navbar';
 import { Metadata } from 'next';
 import Script from 'next/script';
-import CookieBanner from '@/components/CookieBanner' // Certifique-se de que o caminho está correto
+import { CookieBanner } from '@/components/ui';
 
 // Definição de metadados
 export const metadata: Metadata = {

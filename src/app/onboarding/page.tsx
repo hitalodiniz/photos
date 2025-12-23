@@ -1,7 +1,8 @@
 // app/onboarding/page.tsx
 import { getProfileData } from '@/actions/profile';
-import { redirect } from 'next/navigation';
-import AuthGuard from '../../components/AuthGuard';
+import {AuthGuard} from '@/components/auth';
+
+import GoogleSignInButton from "@/components/auth/GoogleSignInButton";
 
 // Componente Cliente (o formulário de preenchimento de dados)
 import OnboardingForm from './OnboardingForm';

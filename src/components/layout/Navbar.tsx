@@ -1,7 +1,7 @@
 'use client';
 import { usePathname } from 'next/navigation';
 import { Camera } from 'lucide-react';
-import AuthStatusButton from './AuthStatusButton';
+import AuthStatusButton from '../auth/AuthStatusButton';
 import { useEffect, useState } from 'react';
 import { supabase } from '@/lib/supabase.client';
 import Link from 'next/link';
@@ -10,9 +10,8 @@ export default function Navbar() {
   const pathname = usePathname();
   const [session, setSession] = useState<any>(null);
 
-  const isHomePage = pathname === '/';
-  const isPrivacidadePage = pathname === '/privacidade';
-  const isGalleryView = pathname?.split('/').filter(Boolean).length >= 2;
+  const isOnboardingPage = pathname === '/onboarding';
+  const isDashboardPage = pathname === '/dashboard';
 
   useEffect(() => {
     supabase.auth.getSession().then(({ data: { session } }) => {
@@ -26,7 +25,7 @@ export default function Navbar() {
     return () => subscription.unsubscribe();
   }, []);
 
-  if (isHomePage || isPrivacidadePage || isGalleryView || !session) return null;
+  if (!isOnboardingPage || !isDashboardPage || !session) return null;
 
   return (
     <>

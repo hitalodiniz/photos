@@ -2,8 +2,7 @@
 import React, { useState } from 'react';
 import { Camera, Download, Share2, ArrowLeft, Heart, ExternalLink } from 'lucide-react';
 import Link from 'next/link';
-import PhotoGrid from '@/components/PhotoGrid';
-import Navbar from '@/components/Navbar'; // Aquela que criamos para aparecer logado
+import {PhotoGrid} from '@/components/gallery';
 
 export default function GaleriaPage() {
   // Simulação de dados que viriam do Google Drive
