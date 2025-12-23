@@ -1,7 +1,7 @@
-// app/dashboard/ClientAdminWrapper/index.tsx
 "use client";
 
 import { useEffect, useMemo, useState } from "react";
+import { Camera, FolderSync, LayoutGrid, Plus, Search } from "lucide-react";
 import { Toast, ConfirmationModal } from "@/components/DashboardUI";
 import { getGalerias, deleteGaleria } from "@/actions/galeria";
 
@@ -22,94 +22,60 @@ interface ClientAdminWrapperProps {
 }
 
 export default function ClientAdminWrapper({ initialGalerias }: ClientAdminWrapperProps) {
-  // Estado principal que rege a lista exibida
   const [galerias, setGalerias] = useState<Galeria[]>(initialGalerias ?? []);
-  const [cardsToShow, setCardsToShow] = useState(
-    Math.min(initialGalerias?.length ?? 0, CARDS_PER_PAGE)
-  );
-  const [loadingMore, setLoadingMore] = useState(false);
-
-  // Estados de Filtros
+  const [cardsToShow, setCardsToShow] = useState(CARDS_PER_PAGE);
   const [filterName, setFilterName] = useState("");
   const [filterLocation, setFilterLocation] = useState("");
   const [filterDate, setFilterDate] = useState("");
 
-  // Estados de Feedback (Toast)
   const [toastMessage, setToastMessage] = useState("");
-  const [toastType, setToastType] = useState<"success" | "error">("success")
+  const [toastType, setToastType] = useState<"success" | "error">("success");
 
   const [updatingId, setUpdatingId] = useState<string | null>(null);
-
-  // Estados de Modais (Delete e Edit)
   const [galeriaToDelete, setGaleriaToDelete] = useState<Galeria | null>(null);
   const [isDeleting, setIsDeleting] = useState(false);
   const [galeriaToEdit, setGaleriaToEdit] = useState<Galeria | null>(null);
 
-  // Sincroniza estado se as props iniciais mudarem (ex: navegação)
   useEffect(() => {
     setGalerias(initialGalerias ?? []);
   }, [initialGalerias]);
 
-  // ------------------------
-  // Lógica de Atualização (Edit Flow)
-  // ------------------------
   const handleUpdate = (success: boolean, data: any) => {
-    
     if (success) {
-      // 1. Primeiro fechamos o modal para evitar conflito de renderização
       setGaleriaToEdit(null);
-      setUpdatingId(null); // Remove o estado de loading do card
-
-      // 2. Atualizamos os dados locais
-      setGalerias((prev) => {
-        const novaLista = prev.map((g) => (g.id === data.id ? { ...g, ...data } : g));
-        return [...novaLista];
-      });
-
-      // 3. O SEGREDO: Limpamos o estado e usamos um delay maior
-      // para garantir que o Next.js terminou de revalidar a página no background
+      setUpdatingId(null);
+      setGalerias((prev) => prev.map((g) => (g.id === data.id ? { ...g, ...data } : g)));
       setToastMessage("");
-
       setTimeout(() => {
         setToastType("success");
-        setToastMessage(`Galeria atualizada!`);
-      }, 500);
+        setToastMessage(`Galeria atualizada com sucesso!`);
+      }, 300);
     } else {
       setUpdatingId(null);
       setToastType("error");
-      setToastMessage(typeof data === "string" ? data : "Erro ao atualizar galeria toast index.");
+      setToastMessage(typeof data === "string" ? data : "Erro ao atualizar.");
     }
   };
 
-  // ------------------------
-  // Lógica de Deleção
-  // ------------------------
   const handleConfirmDelete = async () => {
     if (!galeriaToDelete) return;
     setIsDeleting(true);
-
     const result = await deleteGaleria(galeriaToDelete.id);
 
     if (result.success) {
       setToastType("success");
       setToastMessage(result.message || "Excluído com sucesso");
-      // Remove da lista local imediatamente
       setGalerias((prev) => prev.filter((g) => g.id !== galeriaToDelete.id));
     } else {
       setToastType("error");
       setToastMessage(result.error || "Erro ao excluir");
     }
-
     setIsDeleting(false);
     setGaleriaToDelete(null);
   };
 
-  // ------------------------
-  // Filtros e Visibilidade
-  // ------------------------
   const filteredGalerias = useMemo(() => {
     if (!Array.isArray(galerias)) return [];
-
     const nameLower = normalizeString(filterName);
     const locationLower = normalizeString(filterLocation);
 
@@ -119,11 +85,11 @@ export default function ClientAdminWrapper({ initialGalerias }: ClientAdminWrapp
       const locNorm = normalizeString(g.location || "");
       const galeriaDate = g.date?.substring(0, 10) || "";
 
-      const matchesName = !nameLower || titleNorm.includes(nameLower) || clientNorm.includes(nameLower);
-      const matchesLocation = !locationLower || locNorm.includes(locationLower);
-      const matchesDate = !filterDate || galeriaDate === filterDate;
-
-      return matchesName && matchesLocation && matchesDate;
+      return (
+        (!nameLower || titleNorm.includes(nameLower) || clientNorm.includes(nameLower)) &&
+        (!locationLower || locNorm.includes(locationLower)) &&
+        (!filterDate || galeriaDate === filterDate)
+      );
     });
   }, [galerias, filterName, filterLocation, filterDate]);
 
@@ -132,77 +98,125 @@ export default function ClientAdminWrapper({ initialGalerias }: ClientAdminWrapp
     [filteredGalerias, cardsToShow]
   );
 
-  const hasMore = filteredGalerias.length > cardsToShow;
-
   const resetFilters = () => {
     setFilterName("");
     setFilterLocation("");
     setFilterDate("");
-    setCardsToShow(Math.min(galerias.length, CARDS_PER_PAGE));
+    setCardsToShow(CARDS_PER_PAGE);
   };
 
   const handleCreateResult = async (ok: boolean, message: string) => {
     setToastType(ok ? "success" : "error");
     setToastMessage(message);
     if (ok) {
-      // Para criação, recarregamos do servidor para obter os dados completos e IDs
       const result = await getGalerias();
       if (result.success) setGalerias(result.data);
     }
   };
 
   return (
-<div className="mx-auto grid max-w-[1600px] grid-cols-1 gap-4 lg:grid-cols-[340px_1fr] px-4 md:px-8 py-2">
-        {/* Coluna Esquerda: Formulário de Criação */}
-      <div className="order-1">
-        <div className="sticky top-8 h-fit rounded-2xl border border-[#E0E3E7] bg-white p-6 shadow-sm">
-          <h2 className="mb-4 text-lg font-semibold text-[#1F1F1F]">Nova galeria</h2>
+    <div className="mx-auto grid max-w-[1600px] grid-cols-1 gap-6 lg:grid-cols-[340px_1fr] px-2 md:px-4 py-4 bg-[#F8F9FA] min-h-screen font-sans">
+
+      {/* COLUNA ESQUERDA: FORMULÁRIO */}
+      <aside className="order-2 lg:order-1">
+        <div className="lg:sticky lg:top-16 h-fit rounded-[24px] border border-[#E0E3E7] bg-white p-6 shadow-sm">
+          <div className="flex items-center gap-4 mb-8">
+            <div className="flex items-center justify-center w-10 h-10 rounded-2xl bg-[#D4AF37]/5 text-[#D4AF37] border border-[#D4AF37]/10">
+              <Plus size={24} />
+            </div>
+            <h2 className="text-base font-bold text-[#3C4043] tracking-tight">Nova galeria</h2>
+          </div>
           <CreateGaleriaForm onSuccess={handleCreateResult} />
         </div>
-      </div>
+      </aside>
 
-      {/* Coluna Direita: Lista e Filtros */}
-      <div className="order-2">
-        <h2 className="mb-3 border-b pb-2 text-2xl font-extrabold text-gray-800">
-          Galerias recentes ({filteredGalerias.length} de {galerias.length})
-        </h2>
+      {/* COLUNA DIREITA: CONTEÚDO */}
+      <main className="order-1 lg:order-2 space-y-4">
 
-        <Filters
-          filterName={filterName}
-          filterLocation={filterLocation}
-          filterDate={filterDate}
-          setFilterName={setFilterName}
-          setFilterLocation={setFilterLocation}
-          setFilterDate={setFilterDate}
-          resetFilters={resetFilters}
-        />
+        {/* PÍLULA MESTRE: TÍTULO + FILTROS + STATUS */}
+        <header className="w-full">
+          <div className="flex flex-col md:flex-row items-center px-4 py-2 md:rounded-full border border-[#D4AF37]/30 bg-[#FAF7ED] shadow-sm rounded-[24px]">
 
-        {filteredGalerias.length === 0 ? (
-          <div className="flex flex-col items-center justify-center rounded-2xl border border-[#E0E3E7] bg-white py-16 text-center">
-            <p className="text-sm font-medium text-gray-500">Nenhuma galeria encontrada.</p>
-            <button onClick={resetFilters} className="mt-2 text-xs text-blue-600 underline">Limpar filtros</button>
+            {/* 1. Título */}
+            <div className="flex items-center gap-3 px-4 py-2">
+              <Camera size={18} className="text-[#D4AF37]" />
+              <h1 className="text-base font-bold text-[#4F5B66] tracking-tight whitespace-nowrap">
+                Galerias recentes
+              </h1>
+            </div>
+
+
+
+            {/* 3. Área de Filtros (Integrada sem divisões bruscas) */}
+            <div className="flex-1 w-full md:w-auto border-t md:border-t-0 md:border-l border-[#D4AF37]/20 px-4 py-1">
+              <Filters
+                filterName={filterName}
+                filterLocation={filterLocation}
+                filterDate={filterDate}
+                setFilterName={setFilterName}
+                setFilterLocation={setFilterLocation}
+                setFilterDate={setFilterDate}
+                resetFilters={resetFilters}
+                variant="minimal"
+              />
+            </div>
+                        {/* 2. Status e Contagem (Agora com mesmo estilo e cor) */}
+            <div className="flex items-center gap-4 border-t md:border-t-0 md:border-l 
+            border-[#D4AF37]/20 px-6 py-2 w-full md:w-auto">
+              <div className="flex items-center gap-2">
+                <LayoutGrid size={16} className="text-[#D4AF37]" />
+                <span className="whitespace-nowrap text-base font-bold text-[#4F5B66]">
+                  Exibindo {visibleGalerias.length} de {galerias.length}
+                </span>
+              </div>
+
+            </div>
           </div>
-        ) : (
-          <GaleriaList
-            galerias={visibleGalerias}
-            onEdit={(g) => setGaleriaToEdit(g)}
-            onDelete={(g) => setGaleriaToDelete(g)}
-            isDeleting={isDeleting}
-            updatingId={updatingId}
-          />
-        )}
+        </header>
+        {/* LISTAGEM */}
+        <div className="min-h-[500px]">
+          {filteredGalerias.length === 0 ? (
+            <div className="flex flex-col items-center justify-center rounded-[40px] border-2 border-dashed border-gray-200 
+            bg-white/50 py-16 text-center backdrop-blur-sm">
+              <Search className="text-[#D4AF37]/30 w-10 h-10 mb-6" />
+              <p className="text-xl font-bold text-[#3C4043] tracking-tight">Busca sem resultados</p>
+              <button onClick={resetFilters}
+                className="items-center justify-center gap-3 px-2 py-4 
+        rounded-2xl font-bold transition-all shadow-lg active:scale-95 
+        text-[11px] md:text-xs tracking-[0.25em]
+        bg-[#F3E5AB] hover:bg-[#e6d595] text-slate-900 
+        disabled:opacity-70 disabled:cursor-wait disabled:shadow-none
+              mt-8 px-8 py-3 rounded-full border border-[#D4AF37]/30 
+              text-[11px] font-bold text-[#D4AF37] 
+              hover:bg-[#D4AF37] hover:text-white transition-all uppercase tracking-[0.3em]">
 
-        {hasMore && (
-          <div className="mt-6 flex justify-center">
+                Limpar Busca
+              </button>
+            </div>
+          ) : (
+            <GaleriaList
+              galerias={visibleGalerias}
+              onEdit={(g) => setGaleriaToEdit(g)}
+              onDelete={(g) => setGaleriaToDelete(g)}
+              isDeleting={isDeleting}
+              updatingId={updatingId}
+            />
+          )}
+        </div>
+
+        {/* BOTÃO CARREGAR MAIS */}
+        {filteredGalerias.length > cardsToShow && (
+          <div className="mt-12 flex justify-center pb-16">
             <button
               onClick={() => setCardsToShow((prev) => prev + CARDS_PER_PAGE)}
-              className="rounded-full border px-6 py-2 text-xs font-bold hover:bg-gray-50"
+              className="group relative overflow-hidden rounded-full bg-[#1A1C1E] text-white px-12 py-4 text-[10px] font-black uppercase tracking-[0.4em] transition-all hover:scale-105 active:scale-95 shadow-lg shadow-black/10"
             >
-              Carregar mais
+              <span className="relative z-10">Expandir Acervo</span>
+              <div className="absolute inset-0 bg-[#D4AF37] translate-y-full group-hover:translate-y-0 transition-transform duration-500 ease-out" />
             </button>
           </div>
         )}
-      </div>
+      </main>
 
       <ConfirmationModal
         galeria={galeriaToDelete}
@@ -211,22 +225,15 @@ export default function ClientAdminWrapper({ initialGalerias }: ClientAdminWrapp
         onConfirm={handleConfirmDelete}
         isDeleting={isDeleting}
       />
-
       <EditGaleriaModal
         galeria={galeriaToEdit}
         isOpen={!!galeriaToEdit}
         onClose={() => setGaleriaToEdit(null)}
-        onSuccess={handleUpdate} // Esta prop deve ser chamada no Modal
-        isUpdating={updatingId}
+        onSuccess={handleUpdate}
+        isUpdating={updatingId !== null}
       />
-
-      {/* Componentes de Feedback e Modais */}
       {toastMessage && (
-        <Toast
-          message={toastMessage}
-          type={toastType}
-          onClose={() => setToastMessage("")}
-        />
+        <Toast message={toastMessage} type={toastType} onClose={() => setToastMessage("")} />
       )}
     </div>
   );

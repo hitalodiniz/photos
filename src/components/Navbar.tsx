@@ -4,19 +4,13 @@ import { Camera } from 'lucide-react';
 import AuthStatusButton from './AuthStatusButton';
 import { useEffect, useState } from 'react';
 import { supabase } from '@/lib/supabase.client';
+import Link from 'next/link';
 
 export default function Navbar() {
   const pathname = usePathname();
   const [session, setSession] = useState<any>(null);
 
-  // Lógica de visibilidade:
   const isHomePage = pathname === '/';
-  
-  /**
-   * Identifica se é uma página de galeria pública.
-   * Geralmente essas URLs têm o formato /fotografo/2025/10/ensaio
-   * Verificamos se o caminho tem mais de 2 partes (ex: ['', 'username', 'slug'])
-   */
   const isGalleryView = pathname?.split('/').filter(Boolean).length >= 2;
 
   useEffect(() => {
@@ -31,25 +25,32 @@ export default function Navbar() {
     return () => subscription.unsubscribe();
   }, []);
 
-  // Condicionais de exibição:
-  // Agora também oculta se for uma página de Galeria (isGalleryView)
   if (isHomePage || isGalleryView || !session) return null;
 
   return (
-    <nav className="relative w-full z-50 flex items-center justify-between px-10 py-4 bg-white border-b border-[#DADCE0] transition-all duration-300 shadow-sm">
-      <div className="flex items-center gap-2">
-        <Camera className="text-[#34A853] w-6 h-6 md:w-8 md:h-8" />
-        <span 
-          className="text-xl font-bold tracking-tight text-[#3C4043] italic"
-          style={{ fontFamily: "'Playfair Display', serif" }}
+    <>
+      {/* 1. Alterado para fixed, top-0 e left-0 */}
+      <nav className="fixed top-0 left-0 w-full z-50 flex items-center justify-between px-6 md:px-10 py-4 bg-white/90 backdrop-blur-md border-b border-[#DADCE0] shadow-sm">
+        <Link
+          href="/dashboard"
+          className="flex items-center gap-2 group transition-opacity hover:opacity-80"
         >
-          Sua Galeria de Fotos
-        </span>
-      </div>
+          <Camera className="text-[#34A853] w-6 h-6 md:w-8 md:h-8 transition-transform group-hover:scale-105" />
+          <span
+            className="text-lg md:text-xl font-bold tracking-tight text-[#3C4043] italic"
+            style={{ fontFamily: "'Playfair Display', serif" }}
+          >
+            Sua Galeria de Fotos
+          </span>
+        </Link>
 
-      <div className="flex items-center gap-4">
-        <AuthStatusButton />
-      </div>
-    </nav>
+        <div className="flex items-center gap-4">
+          <AuthStatusButton />
+        </div>
+      </nav>
+
+      {/* 2. Elemento de espaçamento (Spacer) */}
+      <div className="h-[72px] w-full" />
+    </>
   );
 }

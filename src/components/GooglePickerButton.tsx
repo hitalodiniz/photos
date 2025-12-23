@@ -183,19 +183,31 @@ export default function GooglePickerButton({ onFolderSelect, currentDriveId, onE
             type="button"
             onClick={openPicker}
             disabled={isDisabled}
-            className={`flex items-center justify-center w-full p-2 rounded-lg text-sm text-white transition-colors
-                ${isDisabled ? 'bg-gray-400 cursor-not-allowed' : 'bg-[#0B57D0] hover:bg-[#0848AA]'}
-            `}
+            className={`
+        flex items-center justify-center w-full p-3 rounded-xl transition-all duration-300
+        text-[11px] font-bold uppercase shadow-sm
+        ${isDisabled
+                    ? 'bg-slate-100 text-slate-400 cursor-not-allowed opacity-50'
+                    : 'bg-white border border-[#D4AF37]/30 text-slate-900 hover:bg-[#F3E5AB] hover:border-[#D4AF37] active:scale-[0.98]'
+                }
+    `}
         >
             {loading ? (
-                <>
-                    <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-white mr-2"></div>
-                    Processando...
-                </>
+                <div className="flex items-center">
+                    <div className="animate-spin rounded-full h-3 w-3 border-b-2 border-slate-900 mr-2"></div>
+                    <span>Processando</span>
+                </div>
             ) : (
                 <>
-                    <svg className="w-5 h-5 mr-2" fill="currentColor" viewBox="0 0 24 24"><path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm0 15.5l-4-4 1.41-1.41L11 14.6V7.5h2v7.19l1.59-1.59L16 13.5l-4 4z" /></svg>
-                    {buttonText}
+                    {/* Ícone sutil em Dourado */}
+                    <svg
+                        className={`w-4 h-4 mr-2 ${isDisabled ? 'text-slate-300' : 'text-[#D4AF37]'}`}
+                        fill="currentColor"
+                        viewBox="0 0 24 24"
+                    >
+                        <path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm0 15.5l-4-4 1.41-1.41L11 14.6V7.5h2v7.19l1.59-1.59L16 13.5l-4 4z" />
+                    </svg>
+                    <span>{buttonText}</span>
                 </>
             )}
         </button>

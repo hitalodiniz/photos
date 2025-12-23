@@ -6,33 +6,32 @@ import Link from 'next/link';
 export default function PrivacidadePage() {
   return (
     <div className="min-h-screen bg-[#F8F9FA] flex flex-col font-sans">
-      
+
       {/* HEADER EDITORIAL */}
       <header className="relative py-10 px-6 overflow-hidden bg-white border-b border-gray-100">
         <div className="absolute top-0 right-0 w-[500px] h-[500px] bg-[#D4AF37]/5 rounded-full blur-[120px] -z-10" />
-        
+
         <div className="max-w-4xl mx-auto text-center md:text-left">
-          <Link 
-            href="/" 
-            className="inline-flex items-center gap-2 text-[#D4AF37] hover:opacity-70 transition-all mb-6 text-xs font-bold uppercase tracking-[0.3em]"
+          <Link
+            href="/"
+            className="inline-flex items-center gap-2 px-5 py-2.5 mb-8 text-[10px] font-bold tracking-[0.3em] text-[#D4AF37] bg-[#D4AF37]/5 border border-[#D4AF37]/20 rounded-full hover:bg-[#D4AF37]/10 hover:border-[#D4AF37]/40 transition-all duration-300 backdrop-blur-sm group"
           >
-            <ArrowLeft size={14} />
+            <ArrowLeft size={14} className="group-hover:-translate-x-1 transition-transform duration-300" />
             Voltar ao Início
           </Link>
-
           <div className="flex flex-col md:flex-row items-center md:items-start gap-6">
             <div className="flex items-center justify-center w-16 h-16 border border-[#D4AF37]/50 rounded-full bg-[#D4AF37]/5 backdrop-blur-sm">
               <Camera className="text-[#D4AF37] w-8 h-8" />
             </div>
 
             <div className="flex flex-col gap-2">
-              <h1 
+              <h1
                 className="text-3xl md:text-5xl font-bold italic text-[#3C4043] tracking-tight leading-tight"
                 style={{ fontFamily: "'Playfair Display', serif" }}
               >
                 Privacidade & Transparência
               </h1>
-              <div className="flex items-center justify-center md:justify-start gap-2 text-[10px] md:text-xs uppercase tracking-[0.4em] text-[#D4AF37] font-bold">
+              <div className="flex items-center justify-center md:justify-start gap-2 text-[12px] md:text-xs  tracking-[0.4em] text-[#D4AF37] font-bold">
                 <ShieldCheck size={14} />
                 <span>Integração Segura com Google Drive™</span>
               </div>
@@ -44,11 +43,11 @@ export default function PrivacidadePage() {
       {/* CONTEÚDO */}
       <main className="max-w-4xl mx-auto py-12 px-6">
         <div className="space-y-16">
-          
+
           {/* Item 1 - Uso dos Dados do Google */}
           <section className="group">
             <h3 className="text-2xl font-bold text-[#3C4043] mb-4 flex items-center gap-3 italic" style={{ fontFamily: "'Playfair Display', serif" }}>
-              <span className="text-[#D4AF37] not-italic text-sm font-sans font-bold">01.</span> 
+              <span className="text-[#D4AF37] not-italic text-sm font-sans font-bold">01.</span>
               Uso de Dados do Google Drive™
             </h3>
             <p className="text-gray-500 leading-relaxed text-lg font-light mb-4">
@@ -69,7 +68,7 @@ export default function PrivacidadePage() {
           {/* Item 2 - Armazenamento */}
           <section className="group">
             <h3 className="text-2xl font-bold text-[#3C4043] mb-2 flex items-center gap-3 italic" style={{ fontFamily: "'Playfair Display', serif" }}>
-              <span className="text-[#D4AF37] not-italic text-sm font-sans font-bold">02.</span> 
+              <span className="text-[#D4AF37] not-italic text-sm font-sans font-bold">02.</span>
               Sua Propriedade Intelectual
             </h3>
             <p className="text-gray-500 leading-relaxed text-lg font-light">
@@ -80,7 +79,7 @@ export default function PrivacidadePage() {
           {/* Item 3 - Segurança de Acesso */}
           <section className="group">
             <h3 className="text-2xl font-bold text-[#3C4043] mb-2 flex items-center gap-3 italic" style={{ fontFamily: "'Playfair Display', serif" }}>
-              <span className="text-[#D4AF37] not-italic text-sm font-sans font-bold">03.</span> 
+              <span className="text-[#D4AF37] not-italic text-sm font-sans font-bold">03.</span>
               Segurança do Cliente Final
             </h3>
             <p className="text-gray-500 leading-relaxed text-lg font-light">
@@ -91,7 +90,7 @@ export default function PrivacidadePage() {
           {/* Item 4 - LGPD */}
           <section className="group">
             <h3 className="text-2xl font-bold text-[#3C4043] mb-2 flex items-center gap-3 italic" style={{ fontFamily: "'Playfair Display', serif" }}>
-              <span className="text-[#D4AF37] not-italic text-sm font-sans font-bold">04.</span> 
+              <span className="text-[#D4AF37] not-italic text-sm font-sans font-bold">04.</span>
               Conformidade com a LGPD
             </h3>
             <p className="text-gray-500 leading-relaxed text-lg font-light">
@@ -116,11 +115,11 @@ export default function PrivacidadePage() {
       {/* RODAPÉ */}
       <footer className="bg-[#2D2E30] py-16 px-6 text-center">
         <div className="max-w-4xl mx-auto space-y-4">
-          <p className="text-gray-500 text-[10px] uppercase tracking-[0.4em]">
-            App de Uso Profissional • Autenticação Google OAuth 2.0
+          <p className="text-gray-500 text-[10px] tracking-[0.4em]">
+            App para uso profissional • Autenticação Google OAuth 2.0
           </p>
-          <p className="text-gray-600 text-[9px] uppercase tracking-[0.2em] max-w-lg mx-auto leading-loose">
-            O uso das informações recebidas das APIs do Google está em conformidade com a 
+          <p className="text-gray-600 text-[9px] tracking-[0.2em] max-w-lg mx-auto leading-loose">
+            O uso das informações recebidas das APIs do Google está em conformidade com a
             <a href="https://developers.google.com/terms/api-services-user-data-policy" className="underline hover:text-[#D4AF37] ml-1">
               Política de Dados do Usuário dos Serviços de API do Google
             </a>, incluindo os requisitos de Uso Limitado.

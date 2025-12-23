@@ -1,9 +1,6 @@
-// app/dashboard/ClientAdminWrapper/GaleriaCard.tsx
 "use client";
 
 import { useRouter } from "next/navigation";
-import { motion } from "framer-motion";
-import { AnimatePresence } from "framer-motion";
 import {
   Calendar,
   MapPin,
@@ -13,7 +10,8 @@ import {
   MessageCircle,
   Pencil,
   Trash2,
-  FolderOpen
+  FolderOpen,
+  Loader2
 } from "lucide-react";
 import type { Galeria } from "./types";
 
@@ -28,10 +26,8 @@ interface GaleriaCardProps {
 export default function GaleriaCard({ galeria, onEdit, onDelete, isDeleting, isUpdating = false }: GaleriaCardProps) {
   const router = useRouter();
 
-  // Função para formatar data ignorando o fuso horário (Timezone) do navegador
   const formatDateSafely = (dateString: string) => {
     if (!dateString) return "---";
-    // Divide a string "2025-11-04" e reorganiza para o padrão brasileiro sem usar 'new Date' direto
     const [datePart] = dateString.split("T");
     const [year, month, day] = datePart.split("-");
     return `${day}/${month}/${year}`;
@@ -39,8 +35,7 @@ export default function GaleriaCard({ galeria, onEdit, onDelete, isDeleting, isU
 
   const getImageUrl = (fileId: string | null) => {
     if (!fileId) return "https://placehold.co/400x250?text=Sem+Capa";
-    // Endpoint otimizado e estável para exibir miniaturas do Google Drive
-    return `https://lh3.googleusercontent.com/d/${fileId}=w400-h250-p`;
+    return `https://lh3.googleusercontent.com/u/0/d/${fileId}=w400-h250-p-k-nu`;
   };
 
   const imageUrl = galeria.cover_image_url?.includes("http")
@@ -48,146 +43,130 @@ export default function GaleriaCard({ galeria, onEdit, onDelete, isDeleting, isU
     : getImageUrl(galeria.cover_image_url);
 
   const isPrivate = !galeria.is_public;
-
+  const rowStyle = "flex items-center gap-2 text-[#4F5B66] min-w-0";
 
   return (
-    <motion.div
+    <div
       onClick={() => window.open(`/${galeria.slug}`, '_blank')}
-      className="group flex cursor-pointer flex-col overflow-hidden rounded-xl border border-gray-200 bg-white shadow-sm w-full h-full"
-      whileHover={{ y: -3 }}
-      style={{ maxWidth: '320px' }}>
+      className="group relative flex cursor-pointer flex-col 
+      overflow-hidden rounded-[20px] border border-gray-100 bg-white shadow-sm hover:shadow-md transition-all duration-300 w-full"
+      style={{ maxWidth: '400px' }}
+    >
       {/* Overlay de Loading */}
-      <AnimatePresence>
-        {isUpdating && (
-          <motion.div
-            initial={{ opacity: 0 }}
-            animate={{ opacity: 1 }}
-            exit={{ opacity: 0 }}
-            className="absolute inset-0 z-20 flex flex-col items-center justify-center bg-white/80 backdrop-blur-sm transition-all"
-          >
-            <motion.div
-              animate={{ rotate: 360 }}
-              transition={{ repeat: Infinity, duration: 1, ease: "linear" }}
-              className="h-8 w-8 rounded-full border-4 border-blue-600 border-t-transparent"
-            />
-            <motion.span
-              initial={{ y: 5, opacity: 0 }}
-              animate={{ y: 0, opacity: 1 }}
-              transition={{ delay: 0.2 }}
-              className="mt-2 text-[10px] font-bold text-blue-600 uppercase tracking-widest"
-            >
-              Atualizando...
-            </motion.span>
-          </motion.div>
-        )}
-      </AnimatePresence>
+      {isUpdating && (
+        <div className="absolute inset-0 z-20 flex flex-col items-center justify-center bg-white/80 backdrop-blur-sm">
+          <Loader2 className="h-6 w-6 animate-spin text-[#D4AF37]" />
+          <span className="mt-2 text-[9px] font-black text-slate-900 uppercase tracking-[0.2em]">
+            Atualizando
+          </span>
+        </div>
+      )}
 
       {/* Imagem de Capa */}
-      <div className="relative aspect-[16/9] w-full overflow-hidden bg-gray-50 border-b border-gray-100">
+      <div className="relative aspect-[16/9] w-full overflow-hidden bg-slate-50 border-b border-gray-50">
         <img
           src={imageUrl}
-          alt={galeria.title}
+          alt={`Capa da galeria ${galeria.title}`}
           referrerPolicy="no-referrer"
-          className="h-full w-full object-cover transition-transform duration-500 group-hover:scale-105"
+          className="h-full w-full object-cover transition-transform duration-700 group-hover:scale-105"
           onError={(e) => {
-            (e.target as HTMLImageElement).src = "https://placehold.co/400x250/F0F4F9/444746?text=Sem+Capa";
+            (e.target as HTMLImageElement).src = "https://placehold.co/400x250/F8F9FA/D4AF37?text=Sem+Capa";
           }}
         />
+
         <div className="absolute top-2 left-2">
-          <span className={`flex items-center gap-1 rounded-full px-2 py-0.5 
-          text-[12px] tracking-tight shadow-sm ${isPrivate ? "bg-red-50 text-red-600 border border-red-100" : "bg-emerald-50 text-emerald-600 border border-emerald-100"
-            }`}>
-            {isPrivate ? <Lock size={10} /> : <Globe size={10} />}
+          <span
+            title={isPrivate ? "Esta galeria é privada" : "Esta galeria é pública"}
+            className={`flex items-center gap-1.5 rounded-full px-2.5 py-1.5 
+            text-[12px] font-bold tracking-[0.05em] ${isPrivate
+                ? "bg-slate-600/80 text-white"
+                : "border-[#D4AF37]/30 bg-[#FAF7ED] text-[#4F5B66] shadow-sm "
+              }`}
+          >
+            {isPrivate ? <Lock size={9} strokeWidth={3} /> : <Globe size={9} strokeWidth={3} />}
             {isPrivate ? "Privada" : "Pública"}
           </span>
         </div>
       </div>
 
-      {/* Conteúdo Compacto */}
-      <div className="flex flex-col p-3.5 gap-y-2">
-        <h3 className="line-clamp-1 text-base font-bold text-gray-900 group-hover:text-blue-600">
+      {/* Conteúdo */}
+      <div className="flex flex-col p-4 gap-y-2.5">
+        <h3 className="truncate text-base font-bold text-slate-900 group-hover:text-[#D4AF37] transition-colors tracking-tight">
           {galeria.title}
         </h3>
 
-        {/* Metadados Agrupados */}
         <div className="space-y-1.5">
-          {/* Cliente e Local */}
-          <div className="flex items-center gap-1.5 text-gray-700 min-w-0 text-[16px]">
-            <User size={13} className="text-blue-500 flex-shrink-0" />
-            <span className="truncate font-medium">{galeria.client_name}</span>
-          </div>
-          <div className="flex items-center gap-1 text-gray-400 flex-shrink-0 text-[14px]">
-            <MapPin size={12} />
-            <span className="truncate max-w-[200px]">{galeria.location || "---"}</span>
+          <div className={rowStyle} title="Cliente">
+            <User size={15} className="text-[#D4AF37] flex-shrink-0" />
+            <span className="truncate font-bold text-base">{galeria.client_name}</span>
           </div>
 
-          {/* Data e Nome da Pasta */}
-          <div className="flex items-center justify-between text-[14px]">
-            <div className="flex items-center gap-1 text-gray-500">
-              <Calendar size={12} />
-              {/* CORREÇÃO: Usando a função que ignora o fuso horário */}
-              <span>{formatDateSafely(galeria.date)}</span>
-            </div>
-
-            {/* LINK PARA A PASTA DO DRIVE */}
-            <a
-              href={`https://drive.google.com/drive/folders/${galeria.drive_folder_id}`} // ID da pasta vindo da galeria
-              target="_blank"
-              rel="noopener noreferrer"
-              onClick={(e) => e.stopPropagation()} // IMPORTANTE: impede que o card abra a galeria ao clicar no link
-              className="flex items-center gap-1 text-amber-600 bg-amber-50 px-1.5 py-0.5 rounded border
-     border-amber-100 max-w-[130px] hover:bg-amber-100 transition-colors"
-            >
-              <FolderOpen size={11} className="flex-shrink-0" />
-              <span className="truncate tracking-tighter truncate max-w-[80px]">
-                {galeria.drive_folder_name || "PASTA S/ NOME"}
-              </span>
-            </a>
+          <div className={rowStyle} title="Localização">
+            <MapPin size={15} className="text-[#D4AF37]/40 flex-shrink-0" />
+            <span className="truncate text-[12px]">{galeria.location || "Local não informado"}</span>
           </div>
+
+          <div className={rowStyle} title="Data do evento">
+            <Calendar size={15} className="text-[#D4AF37]/40 flex-shrink-0" />
+            <span className="text-[12px]">{formatDateSafely(galeria.date)}</span>
+          </div>
+
+          <a
+            href={`https://drive.google.com/drive/folders/${galeria.drive_folder_id}`}
+            target="_blank"
+            rel="noopener noreferrer"
+            title="Abrir pasta no Google Drive"
+            onClick={(e) => e.stopPropagation()}
+            className="flex items-center gap-2 text-slate-700 bg-[#FAF7ED] px-2.5 py-1.5 rounded-lg border border-[#D4AF37]/10 hover:bg-[#F3E5AB] transition-all group/drive mt-1"
+          >
+            <FolderOpen size={15} className="text-[#D4AF37] flex-shrink-0" />
+            <span className="truncate text-[9px] font-bold uppercase tracking-[0.1em]">
+              {galeria.drive_folder_name || "Abrir Pasta"}
+            </span>
+          </a>
         </div>
 
-        {/* Rodapé e Ações */}
-        <div className="mt-1 flex items-center justify-between border-t border-gray-100 pt-3">
+        {/* Ações */}
+        {/* Rodapé de Ações - Borda em Tom Champanhe */}
+        <div className="mt-1 flex items-center justify-between border-t border-[#D4AF37]/20 pt-4">
           {galeria.client_whatsapp ? (
             <a
-              href={`https://wa.me/${galeria.client_whatsapp.replace(/\D/g, "")}?text=${encodeURIComponent(
-                `Olá, \n\nA galeria de fotos "${galeria.title}" já está pronta! Você pode visualizar e baixar as fotos clicando no link abaixo:\n\n${window.location.origin}/${galeria.slug}\n\nEspero que goste do resultado!`
-              )}`}
+              href={`https://wa.me/${galeria.client_whatsapp.replace(/\D/g, "")}`}
               onClick={(e) => e.stopPropagation()}
               target="_blank"
-              className="flex items-center gap-1 text-[14px] font-bold text-green-600 hover:text-green-700 transition-colors"
-              title="Enviar link da galeria para o cliente"
-              aria-label="Enviar link da galeria para o cliente via WhatsApp"
+              title="Enviar galeria via WhatsApp"
+              aria-label="Enviar galeria via WhatsApp"
+              className="flex items-center gap-1.5 text-[14px] font-bold tracking-tight text-emerald-600 hover:text-emerald-700 transition-colors"
             >
-              <MessageCircle size={14} />
+              <MessageCircle size={20} />
               WhatsApp
             </a>
           ) : <div />}
 
-          <div className="flex gap-1">
-            {/* Botão de Edição */}
+          <div className="flex gap-2">
+            {/* Botão de Edição - Estilo Champanhe Sutil */}
             <button
               onClick={(e) => { e.stopPropagation(); onEdit(galeria); }}
-              className="p-1.5 text-gray-400 hover:bg-blue-50 hover:text-blue-600 rounded-md transition-colors"
               title="Editar galeria"
               aria-label="Editar galeria"
+              className="p-2 text-slate-500 bg-slate-50 border border-slate-100 hover:bg-[#F3E5AB] hover:border-[#D4AF37]/30 hover:text-slate-900 rounded-xl transition-all shadow-sm active:scale-90"
             >
-              <Pencil size={16} />
+              <Pencil size={20} />
             </button>
 
-            {/* Botão de Exclusão */}
+            {/* Botão de Exclusão - Estilo Alerta Sutil */}
             <button
               onClick={(e) => { e.stopPropagation(); onDelete(galeria); }}
               disabled={isDeleting}
-              className="p-1.5 text-gray-400 hover:bg-red-50 hover:text-red-500 rounded-md transition-colors disabled:opacity-30"
               title="Excluir galeria"
               aria-label="Excluir galeria"
+              className="p-2 text-slate-500 bg-slate-50 border border-slate-100 hover:bg-red-50 hover:border-red-200 hover:text-red-600 rounded-xl transition-all shadow-sm active:scale-90 disabled:opacity-30 disabled:cursor-not-allowed"
             >
-              <Trash2 size={16} />
+              <Trash2 size={20} />
             </button>
           </div>
         </div>
       </div>
-    </motion.div>
+    </div>
   );
 }

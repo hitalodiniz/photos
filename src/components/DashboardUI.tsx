@@ -1,77 +1,58 @@
 "use client";
 
-import { useState, useEffect, useMemo } from 'react';
+import { useState, useEffect } from 'react';
 import { useFormStatus } from 'react-dom';
+import { 
+  Loader2, 
+  Plus, 
+  Trash2, 
+  X, 
+  AlertCircle, 
+  CheckCircle2, 
+  Lock 
+} from 'lucide-react';
 
-// Importe a tipagem Galeria do seu arquivo de tipos (assumindo que ClientAdminWrapper/types.ts)
-// Nota: Você deve garantir que esta interface Galeria reflete as chaves do banco de dados (snake_case).
-interface Galeria {
-  id: string;
-  user_id: string;
-  studio_id: string;
-  title: string;
-  slug: string;
-  date: string;
-  location: string | null;
-  client_name: string;      // <- Usando snake_case para leitura
-  client_whatsapp: string | null; // <- Usando snake_case para leitura
-  drive_folder_id: string; // <- Usando snake_case para leitura
-  is_public: boolean;
-  password: string | null;
-  cover_image_url: string | null;
+// =========================================================================
+// 1. SubmitButton (Estilo Champanhe Editorial - Unificado)
+// =========================================================================
+
+export function SubmitButton({ className = "" }) {
+  const { pending } = useFormStatus();
+
+  return (
+    <button
+      type="submit"
+      disabled={pending}
+      className={`
+        uppercase
+        w-full flex items-center justify-center gap-3 px-2 py-4 
+        rounded-2xl font-bold transition-all shadow-lg active:scale-95 
+        text-[11px] md:text-xs tracking-[0.25em]
+        bg-[#F3E5AB] hover:bg-[#e6d595] text-slate-900 
+        disabled:opacity-70 disabled:cursor-wait disabled:shadow-none
+        ${className}
+      `}
+    >
+      {pending ? (
+        <div className="flex items-center gap-2">
+          <Loader2 className="animate-spin h-4 w-4 text-slate-900" />
+          <span>Processando</span>
+        </div>
+      ) : (
+        <>
+          <Plus size={16} strokeWidth={3} className="text-slate-900" />
+          <span>Criar Galeria</span>
+        </>
+      )}
+    </button>
+  );
 }
 
-// Tipagem básica para os componentes auxiliares
-type ToastType = 'success' | 'error';
-interface ToastProps { message: string; type: ToastType; onClose: () => void; }
-interface ConfirmationModalProps { 
-    galeria: Galeria | null; 
-    isOpen: boolean; 
-    onClose: () => void; 
-    onConfirm: (id: string) => void; 
-    isDeleting: boolean; 
-}
-interface EditModalProps {
-    galeriaToEdit: Galeria | null; // Tipagem corrigida para aceitar null
-    isOpen: boolean;
-    onClose: () => void;
-    onUpdate: (galeriaId: string, updatedData: any) => void;
-}
-
 // =========================================================================
-// FUNÇÕES AUXILIARES (DE UI)
+// 2. Toast (Snackbar com detalhes em Dourado/Slate)
 // =========================================================================
 
-const inputClass = "mt-1 block w-full rounded-lg border-none bg-[#F0F4F9] p-2 text-[#1F1F1F] placeholder-gray-500 focus:ring-2 focus:ring-[#0B57D0] focus:bg-white transition-all outline-none";
-const labelClass = "block text-sm font-medium text-[#444746] ml-1";
-
-// Função para aplicar a máscara (reimplementada aqui para evitar circular dependency no hook)
-const maskPhoneInternal = (value: string): string => {
-    value = value.replace(/\D/g, "");
-    value = value.replace(/^(\d{2})(\d)/, "($1) $2");
-    value = value.replace(/(\d)(\d{4})$/, "$1-$2");
-    return value;
-};
-
-
-// =========================================================================
-// 1. Toast (Snackbar estilo Google)
-// =========================================================================
-
-export function Toast({ message, type, onClose }: ToastProps) {
-  // Aumentamos min-w para 600px, py para 5, px para 8 e text para lg
-  const baseClasses = `
-    fixed bottom-10 left-1/2 -translate-x-1/2 
-    py-5 px-8 rounded-xl shadow-2xl 
-    text-white text-lg font-medium
-    flex items-center justify-between 
-    z-[9999] min-w-[600px] max-w-[90vw]
-    pointer-events-auto 
-    animate-in slide-in-from-bottom-10 fade-in duration-500
-  `;
-  
-  const colorClasses = type === 'success' ? "bg-[#323232]" : "bg-[#B3261E]";
-  
+export function Toast({ message, type, onClose }: { message: string, type: 'success' | 'error', onClose: () => void }) {
   useEffect(() => {
     if (!message) return;
     const timer = setTimeout(() => { onClose(); }, 5000);
@@ -81,71 +62,79 @@ export function Toast({ message, type, onClose }: ToastProps) {
   if (!message) return null;
 
   return (
-    <div className={`${baseClasses} ${colorClasses}`}>
-      <div className="flex items-center gap-4">
-        {/* Ícone opcional para preencher mais espaço e dar feedback visual */}
-        {type === 'success' ? (
-          <div className="h-3 w-3 rounded-full bg-green-500" />
-        ) : (
-          <div className="h-3 w-3 rounded-full bg-white animate-pulse" />
-        )}
-        <span>{message}</span>
+    <div className="fixed bottom-10 left-1/2 -translate-x-1/2 z-[9999] min-w-[320px] md:min-w-[550px] max-w-[90vw] 
+    pointer-events-none animate-in slide-in-from-bottom-5 fade-in duration-300">
+      <div className={`
+        flex items-center justify-between gap-4 p-5 rounded-2xl shadow-2xl border pointer-events-auto
+        ${type === 'success' 
+          ? "bg-slate-900 border-white/5 text-white" 
+          : "bg-red-600 border-white/5 text-white"}
+      `}>
+        <div className="flex items-center gap-4">
+          {type === 'success' 
+            ? <CheckCircle2 size={30} className="text-[#F3E5AB]" /> 
+            : <AlertCircle size={30} className="text-white" />
+          }
+          <span className="text-lg font-bold tracking-tight">{message}</span>
+        </div>
+        
+        <button 
+          onClick={onClose} 
+          className="text-base font-bold uppercase tracking-widest text-[#F3E5AB]/70 hover:text-[#F3E5AB]"
+        >
+          Fechar
+        </button>
       </div>
-      
-      <button 
-        onClick={(e) => {
-          e.preventDefault();
-          onClose();
-        }} 
-        className="ml-8 text-[#A8C7FA] hover:text-white font-bold text-sm uppercase tracking-widest transition-colors"
-      >
-        Fechar
-      </button>
     </div>
   );
 }
-// =========================================================================
-// 2. SubmitButton (Botão Pílula Azul Google)
-// =========================================================================
-
-// Usamos esta versão no formulário de CRIAÇÃO (no CreateGaleriaForm)
-export function SubmitButton() {
-    const { pending } = useFormStatus();
-    return (<button type="submit" aria-disabled={pending} disabled={pending} className="w-full bg-[#0B57D0] text-white font-medium text-sm py-3 px-6 rounded-full hover:bg-[#09429E] hover:shadow-md transition-all duration-200 flex items-center justify-center gap-2 disabled:opacity-70 disabled:cursor-not-allowed disabled:shadow-none">{pending ? (<span className="flex items-center justify-center space-x-2"><svg className="animate-spin h-4 w-4 text-white" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24"><circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle><path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path></svg><span>Criando...</span></span>) : (<><span className="text-xl leading-none font-light mb-0.5">+</span><span>Criar Galeria</span></>)}</button>);
-}
 
 // =========================================================================
-// 3. ConfirmationModal
+// 3. ConfirmationModal (Luxo Elevation - Ajustado)
 // =========================================================================
 
-export function ConfirmationModal({ galeria, isOpen, onClose, onConfirm, isDeleting }: ConfirmationModalProps) {
-    if (!isOpen || !galeria) return null;
-    
-    return (
-        <div className="fixed inset-0 bg-black/30 backdrop-blur-[1px] flex items-center justify-center z-50 p-4">
-            <div className="bg-white p-6 rounded-[28px] shadow-xl max-w-sm w-full">
-                <h3 className="text-lg font-bold text-gray-900 mb-2">Excluir galeria?</h3>
-                <p className="text-sm text-gray-500 mb-6">
-                    Tem certeza que deseja excluir <strong>{galeria.title}</strong>? Esta ação não pode ser desfeita.
-                </p>
-                
-                <div className="flex justify-end gap-3">
-                    <button 
-                        onClick={onClose} 
-                        disabled={isDeleting}
-                        className="px-4 py-2 text-sm font-medium text-gray-600 hover:bg-gray-100 rounded-full"
-                    >
-                        Cancelar
-                    </button>
-                    <button 
-                        onClick={() => onConfirm(galeria.id)} 
-                        disabled={isDeleting}
-                        className="px-4 py-2 text-sm font-medium text-white bg-red-500 hover:bg-red-600 rounded-full disabled:opacity-50"
-                    >
-                        {isDeleting ? "Excluindo..." : "Confirmar Exclusão"}
-                    </button>
-                </div>
-            </div>
+export function ConfirmationModal({ galeria, isOpen, onClose, onConfirm, isDeleting }: any) {
+  if (!isOpen || !galeria) return null;
+  
+  return (
+    <div className="fixed inset-0 bg-slate-900/60 backdrop-blur-md flex items-center justify-center z-[100] p-4 animate-in fade-in duration-300">
+      <div className="bg-white p-8 md:p-10 rounded-[32px] shadow-2xl max-w-sm w-full border border-white/20">
+        
+        {/* Cabeçalho Horizontal */}
+        <div className="flex items-center gap-4 mb-6">
+          <div className="w-12 h-12 bg-red-50 rounded-2xl flex items-center justify-center text-red-500 shrink-0">
+            <Trash2 size={24} />
+          </div>
+          <h3 className="text-xl font-bold text-slate-900 tracking-tight">
+            Excluir galeria?
+          </h3>
         </div>
-    );
+
+        {/* Texto com quebra após a interrogação */}
+        <p className="text-sm text-slate-500 mb-8 leading-relaxed">
+          Tem certeza que deseja excluir <strong>{galeria.title}</strong>?<br />
+          Esta ação removerá permanentemente todos os acessos.
+        </p>
+        
+        <div className="flex flex-col gap-3">
+          <button 
+            onClick={() => onConfirm(galeria.id)} 
+            disabled={isDeleting}
+            className="w-full py-5 text-xs font-black uppercase tracking-[0.2em] text-white bg-red-600 hover:bg-red-700 rounded-2xl transition-all shadow-lg shadow-red-600/20 disabled:opacity-50"
+          >
+            {isDeleting ? <Loader2 className="animate-spin mx-auto" size={18}/> : "Confirmar Exclusão"}
+          </button>
+          
+          {/* Botão Cancelar com Borda e Estilo Padronizado */}
+          <button 
+            onClick={onClose} 
+            disabled={isDeleting}
+            className="w-full py-4 text-xs font-bold uppercase tracking-[0.2em] text-slate-500 border border-slate-200 bg-slate-50/50 hover:bg-slate-100 hover:text-slate-700 rounded-2xl transition-all"
+          >
+            Cancelar
+          </button>
+        </div>
+      </div>
+    </div>
+  );
 }

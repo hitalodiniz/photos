@@ -322,12 +322,15 @@ export async function updateGaleria(
   if (!authSuccess || !userId)
     return { success: false, error: "Não autorizado" };
 
-  // Validação básica de campos obrigatórios no Update
+  // --- CORREÇÃO DE NOMENCLATURA ---
+  // Capturando conforme os nomes definidos no Modal (data.set)
   const title = formData.get("title") as string;
-  const driveFolderId = formData.get("driveFolderId") as string;
+  const driveFolderId = formData.get("drive_folder_id") as string; // era driveFolderId
   const clientName = formData.get("clientName") as string;
 
+  // Log para debug caso falte algo
   if (!title || !driveFolderId || !clientName) {
+    console.log("Validação falhou:", { title, driveFolderId, clientName });
     return { success: false, error: "Campos obrigatórios ausentes." };
   }
 
@@ -338,27 +341,34 @@ export async function updateGaleria(
     const accessToken = await getDriveAccessTokenForUser(userId);
     if (accessToken && driveFolderId) {
       try {
-        // CORREÇÃO: Usando o nome correto da lib importada
         await makeFolderPublicLib(driveFolderId, accessToken);
       } catch (e) {
         console.warn("Aviso: Falha ao atualizar permissões da pasta no Drive.");
       }
     }
 
+    // Montando o objeto de update com os nomes corretos do FormData
     const updates = {
       title,
       client_name: clientName,
-      client_whatsapp: (formData.get("clientWhatsapp") as string)?.replace(/\D/g, "") || null,
+      client_whatsapp: (formData.get("client_whatsapp") as string)?.replace(/\D/g, "") || null,
       date: new Date(formData.get("date") as string).toISOString(),
       location: formData.get("location") as string,
       drive_folder_id: driveFolderId,
-      drive_folder_name: formData.get("driveFolderName") as string,
-      cover_image_url: formData.get("coverFileId") as string,
-      is_public: formData.get("isPublic") === "true",
-      password: formData.get("isPublic") === "true" 
-        ? null 
-        : (formData.get("password") as string) || null,
+      drive_folder_name: formData.get("drive_folder_name") as string, // era driveFolderName
+      cover_image_url: formData.get("cover_image_url") as string, // era coverFileId
+      is_public: formData.get("is_public") === "true", // era isPublic
     };
+
+    // Lógica da senha: só atualiza se for enviado algo no campo password
+    const newPassword = formData.get("password") as string;
+    if (formData.get("is_public") === "true") {
+       (updates as any).password = null;
+    } else if (newPassword && newPassword.trim() !== "") {
+       (updates as any).password = newPassword;
+    }
+    // Se is_public for false e password for nulo/vazio, o Supabase mantém a senha antiga 
+    // porque não incluímos o campo 'password' no objeto 'updates'.
 
     const { error } = await supabase
       .from("tb_galerias")
@@ -374,7 +384,6 @@ export async function updateGaleria(
     return { success: false, error: "Falha ao atualizar a galeria." };
   }
 }
-
 // =========================================================================
 // 5. GET GALERIAS (Apenas do usuário logado)
 // =========================================================================
