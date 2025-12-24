@@ -36,9 +36,8 @@ export default function GaleriaView({ galeria, photos }: GaleriaViewProps) {
         <div
           className="absolute inset-0 bg-cover bg-center"
           style={{
-            backgroundPosition: 'center 35%',
-            backgroundImage: `url('${getCoverUrl(galeria.cover_image_url)}')`,
-            transform: `scale(${1 + scrollY * 0.0003})`,
+            backgroundPosition: 'center 50%',
+            backgroundImage: `url('${getCoverUrl(galeria.cover_image_url)}')`
           }}
         />
         {/* Camada que transiciona da transparência para o Champanhe Perolado */}
@@ -53,21 +52,38 @@ export default function GaleriaView({ galeria, photos }: GaleriaViewProps) {
 
       {/* 2. CONTEÚDO DA PÁGINA */}
       <div className="relative z-10">
+        {/* HEADER COM TITULO E AVATAR INTEGRADOS */}
+        <header className="relative h-[30vh] md:h-[40vh] flex items-center pt-10">
+  {/* Removido gradiente fixo para manter as cores reais da foto de capa */}
+  
+  <div className="relative w-full max-w-[1600px] mx-auto px-6 md:px-12 flex flex-col md:flex-row items-center justify-between gap-10">
+    
+    {/* BLOCO ESQUERDO: TITULO COM SUB-BARRA DINÂMICA */}
+    <div className="flex flex-col gap-2 text-center md:text-left items-center md:items-start">            
+      {/* Container inline para garantir que a barra acompanhe o texto */}
+      <div className="inline-block relative">
+        <h1
+          className="text-3xl md:text-5xl lg:text-7xl font-bold text-white italic leading-tight drop-shadow-[0_10px_40px_rgba(0,0,0,0.7)]"
+          style={{ fontFamily: "'Playfair Display', serif" }}
+        >
+          {galeria.title}
+        </h1>
 
-        {/* HEADER REDUZIDO (40vh) */}
-        <header className="relative h-[40vh] md:h-[45vh] flex items-center justify-center">
-          <div className="text-center px-4 w-full max-w-6xl">
-            <h1
-              className="text-4xl md:text-5xl lg:text-6xl font-bold text-white italic leading-tight drop-shadow-[0_2px_15px_rgba(0,0,0,0.8)] px-2"
-              style={{
-                fontFamily: "'Playfair Display', serif",
-                opacity: 1 - (scrollY / 300)
-              }}
-            >
-              {galeria.title}
-            </h1>
-          </div>
-        </header>
+        {/* Barra dourada que preenche exatamente a largura do título */}
+        <div className="h-1.5 w-full bg-[#D4AF37] mt-2 rounded-full shadow-lg" />
+      </div>
+    </div>
+
+    {/* BLOCO DIREITO: AVATAR INTEGRADO */}
+    <div className="flex-shrink-0 md:mt-6">
+      <PhotographerAvatar
+        galeria={galeria}
+        position="top-page"
+        isVisible={scrollY < 300} 
+      />
+    </div>
+  </div>
+</header>
 
         {/* MAIN CONTENT (Grid de Fotos) */}
         <main className="relative z-30 isolate w-full max-w-[1600px] mx-auto px-4 md:px-8 pb-10 mt-4 flex justify-center">
@@ -120,9 +136,6 @@ export default function GaleriaView({ galeria, photos }: GaleriaViewProps) {
           </div>
         </footer>
       </div >
-      <div className="lightbox-parent-container">
-      <PhotographerAvatar galeria={galeria} position="top-page" />
-      </div>
     </div >
   );
 }

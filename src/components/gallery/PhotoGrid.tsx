@@ -1,7 +1,7 @@
 'use client';
 import React, { useState, useEffect, useCallback } from 'react';
 import Masonry from 'react-masonry-css';
-import { Lightbox } from '@/components/gallery';
+import { Lightbox, PhotographerAvatar } from '@/components/gallery';
 import { Camera, Image as ImageIcon, Calendar, MapPin, Download, Heart, Loader2, Filter } from 'lucide-react';
 import { saveAs } from 'file-saver';
 import JSZip from 'jszip';
@@ -187,10 +187,7 @@ export default function PhotoGrid({ photos, galeria }: any) {
   return (
     <div className="w-full flex flex-col items-center gap-10 min-h-screen pb-10">
       {/* 1. BARRA DE INFORMAÇÕES EDITORIAL (ESTILOS PADRONIZADOS) */}
-      <div className="flex flex-col md:flex-row items-center justify-center gap-3 
-  md:gap-4 bg-black/45 backdrop-blur-lg p-5 md:p-2 md:px-5 rounded-[2.5rem] md:rounded-full border border-white/10 
-  shadow-2xl inline-flex w-auto max-w-[95%] md:max-w-max mx-auto transition-all mt-14 md:mt-0 z-[40]">
-
+      <div className="flex flex-col md:flex-row items-center justify-center gap-3 md:gap-4 bg-black/45 backdrop-blur-lg p-5 md:p-2 md:px-5 rounded-[2.5rem] md:rounded-full border border-white/10 shadow-2xl inline-flex w-auto max-w-[95%] md:max-w-max mx-auto transition-all mt-14 md:mt-0 z-[40]">
         {/* SEÇÃO: INFOS DA GALERIA */}
         <div className="flex items-center gap-3 text-white text-sm md:text-base font-medium italic h-9">
           <div className="flex items-center gap-1.5">
@@ -232,9 +229,7 @@ export default function PhotoGrid({ photos, galeria }: any) {
             {/* BOTÃO FILTRAR */}
             <button
               onClick={() => setShowOnlyFavorites(!showOnlyFavorites)}
-              className={`flex items-center justify-center gap-2 px-5 h-9 rounded-full border transition-all active:scale-95
-        duration-300 text-[12px] md:text-[13px] font-bold tracking-widest whitespace-nowrap
-        ${showOnlyFavorites ? "bg-[#E67E70] border-[#E67E70] text-white shadow-lg" : "bg-white/10 border-white/10 text-white hover:bg-white/20"}`}
+              className={`flex items-center justify-center gap-2 px-5 h-9 rounded-full border transition-all active:scale-95 duration-300 text-[12px] md:text-[13px] font-bold tracking-widest whitespace-nowrap ${showOnlyFavorites ? "bg-[#E67E70] border-[#E67E70] text-white shadow-lg" : "bg-white/10 border-white/10 text-white hover:bg-white/20"}`}
             >
               <Filter size={14} />
               {showOnlyFavorites ? `Ver Todas` : `Filtrar (${favorites.length})`}
@@ -244,8 +239,7 @@ export default function PhotoGrid({ photos, galeria }: any) {
             <button
               onClick={handleDownloadFavorites}
               disabled={isDownloadingFavs}
-              className="flex items-center justify-center bg-[#E67E70] hover:bg-[#D66D5F] text-white gap-2 px-5 h-9 active:scale-95
-        rounded-full text-[12px] md:text-[13px] font-bold tracking-widest transition-all shadow-lg"
+              className="flex items-center justify-center bg-[#E67E70] hover:bg-[#D66D5F] text-white gap-2 px-5 h-9 active:scale-95 rounded-full text-[12px] md:text-[13px] font-bold tracking-widest transition-all shadow-lg"
             >
               {isDownloadingFavs ? (
                 <Loader2 className="animate-spin h-4 w-4" />
@@ -261,10 +255,7 @@ export default function PhotoGrid({ photos, galeria }: any) {
           <button
             onClick={downloadAllAsZip}
             disabled={isDownloading || isDownloadingFavs || isOverLimit}
-            className={`flex items-center justify-center gap-2 px-5 h-9
-      rounded-full transition-all shadow-lg active:scale-95 text-[12px] md:text-[13px] font-bold tracking-widest whitespace-nowrap
-      ${isOverLimit ? 'bg-gray-500/20 text-gray-400' : 'bg-[#F3E5AB] hover:bg-[#e6d595] text-slate-900'}`}
-          >
+            className={`flex items-center justify-center gap-2 px-5 h-9  rounded-full transition-all shadow-lg active:scale-95 text-[12px] md:text-[13px] font-bold tracking-widest whitespace-nowrap ${isOverLimit ? 'bg-gray-500/20 text-gray-400' : 'bg-[#F3E5AB] hover:bg-[#e6d595] text-slate-900'}`}>
             {isDownloading ? (
               <Loader2 className="animate-spin h-4 w-4" />
             ) : (
@@ -287,19 +278,66 @@ export default function PhotoGrid({ photos, galeria }: any) {
             className="my-masonry-grid"
             columnClassName="my-masonry-grid_column"
           >
-            {displayedPhotos.slice(0, displayLimit).map((photo: any, index: number) => (
-              <div
-                key={photo.id}
-                onClick={() => setSelectedPhotoIndex(photos.indexOf(photo))}
-                className="group cursor-zoom-in mb-4 transition-transform duration-300 hover:-translate-y-1"
-              >
-                <GridImage
-                  src={getImageUrl(photo.id, "w600")}
-                  alt={`Foto ${index + 1}`}
-                  priority={index < QTD_FOTO_EXIBIDAS}
-                />
-              </div>
-            ))}
+            {displayedPhotos.slice(0, displayLimit).map((photo: any, index: number) => {
+              const isSelected = favorites.includes(photo.id);
+              const toggleFavoriteFromGrid = (photoId: string) => {
+                const isSelected = favorites.includes(photoId);
+                let newFavs;
+
+                if (isSelected) {
+                  newFavs = favorites.filter(id => id !== photoId);
+                } else {
+                  newFavs = [...favorites, photoId];
+
+                  // Alerta de dispositivo no primeiro clique (caso queira manter)
+                  if (favorites.length === 0) {
+                    setToastMessage("Sua seleção fica salva apenas neste dispositivo.");
+                    setToastType('info');
+                  }
+                }
+
+                setFavorites(newFavs);
+                localStorage.setItem(`fav_${galeria.id}`, JSON.stringify(newFavs));
+              };
+              return (
+                <div
+                  key={photo.id}
+                  className="group relative cursor-zoom-in mb-4 transition-transform duration-300 hover:-translate-y-1"
+                >
+                  {/* BOTÃO DE SELEÇÃO RÁPIDA (CANTO SUPERIOR ESQUERDO) */}
+                  <button
+                    onClick={(e) => {
+                      e.stopPropagation(); // Impede que o Lightbox abra ao selecionar
+                      toggleFavoriteFromGrid(photo.id);
+                    }}
+                    className={`absolute top-4 left-4 z-30 w-10 h-10 rounded-full border-2 flex items-center justify-center transition-all duration-300 active:scale-90
+          ${isSelected
+                        ? "bg-[#E67E70] border-[#E67E70] shadow-lg scale-100"
+                        : "bg-black/20 border-white/50 hover:border-white opacity-0 group-hover:opacity-100"}`}
+                  >
+                    <Heart
+                      size={20}
+                      fill={isSelected ? "white" : "none"}
+                      className={isSelected ? "text-white" : "text-white"}
+                    />
+                  </button>
+
+                  {/* CLICK NA IMAGEM PARA LIGHTBOX */}
+                  <div onClick={() => setSelectedPhotoIndex(photos.indexOf(photo))}>
+                    <GridImage
+                      src={getImageUrl(photo.id, "w600")}
+                      alt={`Foto ${index + 1}`}
+                      priority={index < QTD_FOTO_EXIBIDAS}
+                    />
+                  </div>
+
+                  {/* BORDA DE DESTAQUE QUANDO SELECIONADA */}
+                  {isSelected && (
+                    <div className="absolute inset-0 border-[3px] border-[#E67E70] rounded-2xl pointer-events-none animate-in fade-in duration-300" />
+                  )}
+                </div>
+              );
+            })}
           </Masonry>
         )}
       </div>
@@ -328,6 +366,37 @@ export default function PhotoGrid({ photos, galeria }: any) {
           onPrev={() => setSelectedPhotoIndex((selectedPhotoIndex - 1 + photos.length) % photos.length)}
         />
       )}
+
+      {/* BOTÃO FLUTUANTE DE DOWNLOAD RÁPIDO */}
+      {favorites.length > 0 && (
+        <div className="fixed bottom-6 left-1/2 -translate-x-1/2 z-[60] animate-in fade-in zoom-in slide-in-from-bottom-10 duration-500">
+          <button
+            onClick={handleDownloadFavorites}
+            disabled={isDownloadingFavs}
+            className="flex items-center gap-3 bg-[#E67E70] hover:bg-[#D66D5F] text-white px-6 py-4 rounded-full shadow-[0_10px_40px_rgba(230,126,112,0.4)] transition-all active:scale-95 group border border-white/20"
+          >
+            {isDownloadingFavs ? (
+              <div className="flex items-center gap-3">
+                <Loader2 className="animate-spin h-5 w-5" />
+                <span className="font-bold tracking-widest text-sm">
+                  A baixar ({Math.round(favDownloadProgress)}%)
+                </span>
+              </div>
+            ) : (
+              <>
+                <div className="bg-white/20 p-1.5 rounded-full group-hover:bg-white/30 transition-colors">
+                  <Download size={18} />
+                </div>
+                <div className="flex flex-col items-start leading-none">
+                  <span className="gap-1.5 text-white text-sm md:text-base font-medium italic">Baixar favoritas</span>
+                  <span className="text-[10px] md:text-[14px] opacity-80 italic">{favorites.length} {favorites.length === 1 ? 'foto escolhida' : 'fotos escolhidas'}</span>
+                </div>
+              </>
+            )}
+          </button>
+        </div>
+      )}
+
     </div>
   );
 }

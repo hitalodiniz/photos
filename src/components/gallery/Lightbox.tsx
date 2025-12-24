@@ -1,6 +1,6 @@
 'use client';
 import React, { useEffect, useState } from 'react';
-import { X, ChevronLeft, ChevronRight, Download, MessageCircle, Loader2, Camera, MapPin, Heart, FolderDown} from 'lucide-react';
+import { X, ChevronLeft, ChevronRight, Download, MessageCircle, Loader2, Camera, MapPin, Heart, FolderDown } from 'lucide-react';
 import PhotographerAvatar from './PhotographerAvatar'; // Importação do componente
 import type { Galeria } from '@/types/galeria';
 
@@ -283,7 +283,7 @@ export default function Lightbox({
                             <X size={24} />
                         </button>
 
-                       
+
                     </div>
                 </div>
 
@@ -330,7 +330,10 @@ export default function Lightbox({
                 </div>
             </div>
             {/* Componente de Avatar integrado no final do modal */}
-            <PhotographerAvatar galeria={galeria} position="bottom-lightbox" />
+            <PhotographerAvatar
+                galeria={galeria}
+                position="bottom-lightbox" // Aqui deve ser bottom-lightbox
+            />
         </div>
     );
 }

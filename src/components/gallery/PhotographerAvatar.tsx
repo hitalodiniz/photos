@@ -5,20 +5,20 @@ import type { Galeria } from '@/types/galeria';
 interface PhotographerAvatarProps {
   galeria: Galeria;
   position: 'top-page' | 'bottom-lightbox';
+  isVisible?: boolean; // Propriedade para controle de visibilidade
 }
 
-export default function PhotographerAvatar({ galeria, position }: PhotographerAvatarProps) {
-  // Ajuste de Z-INDEX e INTERAÇÃO:
-  // top-page: z-[50] para ficar acima do conteúdo mas abaixo de modais.
-  // bottom-lightbox: z-[99999] para garantir que fique acima de QUALQUER camada do lightbox.
-// Dentro do PhotographerAvatar.tsx
+export default function PhotographerAvatar({ galeria, position, isVisible = true }: PhotographerAvatarProps) {
+  // Oculta o avatar do topo se não estiver visível
+  if (!isVisible && position === 'top-page') return null;
+
 const positionClasses = position === 'top-page'
-  ? "absolute top-12 right-6 md:top-14 md:right-8 z-[1] group-has-[.yarl__portal]:hidden" 
-  : "fixed bottom-8 right-8 scale-90 md:scale-100 z-[999999]";
+  ? "relative z-10 animate-in fade-in slide-in-from-right-10 duration-700" 
+  : "fixed bottom-28 right-8 scale-90 md:scale-100 z-[999999]";
 
   return (
     /* Removido pointer-events-none do pai para simplificar a interatividade */
-<div className={`${positionClasses} flex flex-col items-center gap-1 animate-in fade-in duration-500`}>
+    <div className={`${positionClasses} flex flex-col items-center gap-1 animate-in fade-in duration-500`}>
       {/* Avatar Centralizado */}
       <div className="relative group flex flex-col items-center cursor-pointer">
         <div className="absolute -inset-1.5 bg-gradient-to-tr from-[#D4AF37] 
