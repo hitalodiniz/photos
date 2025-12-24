@@ -39,7 +39,7 @@ const GridImage = ({ src, alt, priority }: { src: string; alt: string; priority?
   );
 };
 
-export default function PhotoGrid({ photos, galeria }: any) {  
+export default function PhotoGrid({ photos, galeria }: any) {
   const QTD_FOTO_EXIBIDAS = 24;
   const getCurrentColumns = () => {
     const width = window.innerWidth;
@@ -86,7 +86,7 @@ export default function PhotoGrid({ photos, galeria }: any) {
     768: 1         // md/sm
   };
 
-  
+
   const getImageUrl = (photoId: string, suffix: string = "w400") => {
     return `https://lh3.googleusercontent.com/d/${photoId}=${suffix}`;
   };
@@ -173,16 +173,15 @@ export default function PhotoGrid({ photos, galeria }: any) {
   if (!photos || photos.length === 0) return null;
 
   return (
-    <div className="w-full flex flex-col items-center gap-12 min-h-screen pb-20">
+    <div className="w-full flex flex-col items-center gap-10 min-h-screen pb-10">
       {/* BARRA DE INFORMAÇÕES EDITORIAL */}
       <div className="flex flex-col md:flex-row items-center justify-center gap-4 
       md:gap-6 bg-black/45 backdrop-blur-lg p-5 md:p-2.5 md:px-6 rounded-[2.5rem] md:rounded-full border border-white/10 
-      shadow-2xl inline-flex w-auto max-w-[95%] md:max-w-max mx-auto transition-all mt-14 md:mt-2 z-[40]">
-
-        <div className="flex items-center gap-4 text-white text-xs md:text-sm font-medium italic">
+      shadow-2xl inline-flex w-auto max-w-[95%] md:max-w-max mx-auto transition-all mt-14 md:mt-0 z-[40]">
+        <div className="flex items-center gap-4 text-white text-sm md:text-base font-medium italic">
           <div className="flex items-center gap-2">
             <Camera className="text-[#F3E5AB] w-4 h-4" />
-            <span className="whitespace-nowrap tracking-widest text-[10px] md:text-xs">
+            <span className="whitespace-nowrap tracking-widest">
               {galeria.is_public ? 'Galeria Pública' : 'Acesso Restrito'}
             </span>
           </div>
@@ -194,14 +193,15 @@ export default function PhotoGrid({ photos, galeria }: any) {
 
         <div className="hidden md:block w-[1px] h-4 bg-white/20"></div>
 
-        <div className="flex items-center gap-4 text-white text-xs md:text-sm font-medium italic">
+        <div className="flex items-center gap-4 text-white text-sm md:text-base font-medium italic">
           <span className="flex items-center gap-2 whitespace-nowrap">
             <Calendar size={14} className="text-[#F3E5AB]" />
             {new Date(galeria.date).toLocaleDateString('pt-BR', { day: '2-digit', month: 'long', year: 'numeric' })}
           </span>
           {galeria.location && (
             <span className="flex items-center gap-2 border-l border-white/20 pl-4 whitespace-nowrap max-w-[120px] md:max-w-[300px] truncate">
-              <MapPin size={14} className="text-[#F3E5AB]" /> {galeria.location}
+              <MapPin size={14} className="text-[#F3E5AB]" />
+              {galeria.location}
             </span>
           )}
         </div>
@@ -242,6 +242,8 @@ export default function PhotoGrid({ photos, galeria }: any) {
           </button>
         </div>
       </div>
+
+
 
       {/* GRID MASONRY */}
       <div className="w-full max-w-[1600px] mx-auto px-4 md:px-8">

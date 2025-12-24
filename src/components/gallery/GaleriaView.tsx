@@ -36,6 +36,7 @@ export default function GaleriaView({ galeria, photos }: GaleriaViewProps) {
         <div
           className="absolute inset-0 bg-cover bg-center"
           style={{
+            backgroundPosition: 'center 35%',
             backgroundImage: `url('${getCoverUrl(galeria.cover_image_url)}')`,
             transform: `scale(${1 + scrollY * 0.0003})`,
           }}
