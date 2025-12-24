@@ -147,8 +147,8 @@ export default function Lightbox({
                 {/* BARRA SUPERIOR */}
                 <div className="absolute top-0 left-0 right-0 flex flex-row items-center justify-between p-4 md:px-14 md:py-8 text-white/90 z-[70] bg-gradient-to-b from-black/90 via-black/40 to-transparent pointer-events-none">
                     <div className="flex items-center gap-4 pointer-events-auto">
-                        <div className="flex-shrink-0 flex items-center justify-center w-10 h-10 md:w-12 md:h-12 border border-[#F3E5AB]/30 rounded-full bg-black/20 backdrop-blur-md">
-                            <Camera className="text-[#F3E5AB] w-5 h-5 md:w-6 md:h-6" />
+                        <div className="flex-shrink-0 flex items-center justify-center w-10 h-10 md:w-16 md:h-16 border border-[#F3E5AB]/30 rounded-full bg-black/20 backdrop-blur-md">
+                            <Camera className="text-[#F3E5AB] w-8 h-8 md:w-10 md:h-10" />
                         </div>
                         <div className="flex flex-col text-left">
                             <h2 className="text-lg md:text-2xl font-bold italic font-serif leading-tight text-white drop-shadow-md">
@@ -165,14 +165,14 @@ export default function Lightbox({
                     <div className="flex items-center gap-2 md:gap-4 bg-black/40 backdrop-blur-xl p-1.5 px-3 md:p-2 md:px-6 rounded-full border border-white/10 shadow-2xl pointer-events-auto">
                         <button onClick={handleShareWhatsApp} className="flex flex-col items-center hover:text-[#F3E5AB] transition-colors">
                             <MessageCircle size={20} />
-                            <span className="hidden md:block text-[10px] font-bold uppercase tracking-wider">WhatsApp</span>
+                            <span className="hidden md:block text-[10px] font-bold uppercase tracking-wider p-2">WhatsApp</span>
                         </button>
 
                         <div className="w-[1px] h-4 bg-white/10" />
 
                         <button onClick={handleDownload} className="flex flex-col items-center hover:text-[#F3E5AB] transition-colors">
                             {isDownloading ? <Loader2 size={18} className="animate-spin text-[#F3E5AB]" /> : <Download size={18} />}
-                            <span className="hidden md:block text-[10px] font-bold uppercase tracking-wider">
+                            <span className="hidden md:block text-[10px] font-bold uppercase tracking-wider p-2">
                                 {isDownloading ? "Processando..." : "Download"}
                             </span>
                         </button>
