@@ -16,46 +16,43 @@ type UsernameGaleriaPageProps = {
 };
 
 export default async function UsernameGaleriaPage({ params }: UsernameGaleriaPageProps) {
-  // 1. Aguardar os parâmetros (Next.js 15)
   const { username, slug } = await params;
-
-  /**
-   * RECONSTRUÇÃO DO SLUG:
-   * Se a URL é /hitalodiniz/2025/12/15/formatura
-   * username = "hitalodiniz"
-   * slug = ["2025", "12", "15", "formatura"]
-   * fullSlug abaixo resultará em "hitalodiniz/2025/12/15/formatura"
-   */
   const fullSlug = `${username}/${slug.join("/")}`;
-
   const supabase = await createSupabaseServerClientReadOnly();
 
-  // 2. Busca o perfil do fotógrafo para obter o ID necessário para o Token do Drive
-  const { data: profile } = await supabase
-    .from("tb_profiles")
-    .select("id")
-    .eq("username", username)
+  // 1. Busca os dados da galeria E os dados do fotógrafo (JOIN)
+  const { data: galeriaRaw, error: galeriaError } = await supabase
+    .from("tb_galerias")
+    .select(`
+      *,
+      photographer:tb_profiles!user_id (
+        id,
+        full_name,
+        username,
+        profile_picture_url,
+        phone_contact,
+        instagram_link
+      )
+    `)
+    .eq("slug", fullSlug)
     .single();
 
-  if (!profile) {
-    console.error("Perfil não encontrado para o username:", username);
+  if (galeriaError || !galeriaRaw) {
+    console.error("Galeria não encontrada:", fullSlug);
     notFound();
   }
 
-  // 3. Busca os dados da galeria comparando com o slug completo do banco
-  const { data: galeria, error: galeriaError } = await supabase
-    .from("tb_galerias")
-    .select("*")
-    .eq("slug", fullSlug)
-    .single<Galeria>();
+  // 2. Mapeamento para garantir que o objeto siga a interface Galeria
+  const galeria: Galeria = {
+    ...galeriaRaw,
+    photographer_name: galeriaRaw.photographer?.full_name,
+    photographer_id: galeriaRaw.photographer?.username,
+    photographer_avatar_url: galeriaRaw.photographer?.profile_picture_url,
+    photographer_phone: galeriaRaw.photographer?.phone_contact,
+    photographer_instagram: galeriaRaw.photographer?.instagram_link,
+  };
 
-  // Se der 404 aqui, verifique se o slug no banco inclui ou não o username no início
-  if (galeriaError || !galeria) {
-    console.error("Galeria não encontrada para o slug:", fullSlug);
-    notFound();
-  }
-
-  // 4. Verificação de Privacidade e Senha
+  // 3. Verificação de Privacidade e Senha
   if (!galeria.is_public) {
     const cookieStore = await cookies();
     const cookieKey = `galeria-${galeria.id}-auth`;
@@ -72,11 +69,11 @@ export default async function UsernameGaleriaPage({ params }: UsernameGaleriaPag
     }
   }
 
-  // 5. Busca de fotos reais no Google Drive
+  // 4. Busca de fotos no Google Drive usando o ID interno do fotógrafo
   let photos: any[] = [];
-  if (galeria.drive_folder_id) {
+  if (galeria.drive_folder_id && galeriaRaw.photographer?.id) {
     try {
-      const accessToken = await getDriveAccessTokenForUser(profile.id);
+      const accessToken = await getDriveAccessTokenForUser(galeriaRaw.photographer.id);
       if (accessToken) {
         photos = await listPhotosFromDriveFolder(galeria.drive_folder_id, accessToken);
       }
@@ -88,25 +85,31 @@ export default async function UsernameGaleriaPage({ params }: UsernameGaleriaPag
   return <GaleriaView galeria={galeria} photos={photos} />;
 }
 
-// Metadata corrigido para seguir a mesma lógica de slug
 export async function generateMetadata({ params }: UsernameGaleriaPageProps) {
   const { username, slug } = await params;
   const fullSlug = `${username}/${slug.join("/")}`;
-
   const supabase = await createSupabaseServerClientReadOnly();
 
   const { data: galeria } = await supabase
     .from("tb_galerias")
-    .select("title, client_name, date, cover_image_url")
+    .select(`
+      title, 
+      client_name, 
+      cover_image_url,
+      photographer:tb_profiles!user_id (full_name)
+    `)
     .eq("slug", fullSlug)
     .single();
 
   if (!galeria) return { title: "Galeria não encontrada" };
 
-  const title = `${galeria.title} | ${galeria.client_name}`;
+  // Metadata incluindo o nome do fotógrafo para SEO
+  const photographerSuffix = galeria.photographer?.full_name ? ` by ${galeria.photographer.full_name}` : "";
+  const title = `${galeria.title} | ${galeria.client_name}${photographerSuffix}`;
+
   return {
     title,
-    description: `Galeria de fotos de ${galeria.client_name}.`,
+    description: `Galeria de fotos de ${galeria.client_name}.${photographerSuffix}`,
     openGraph: {
       images: galeria.cover_image_url ? [{ url: galeria.cover_image_url }] : [],
     },

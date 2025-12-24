@@ -8,4 +8,6 @@ export interface Galeria {
   drive_folder_id: string | null;
   is_public: boolean;
   password: string | null;
+  photographer_id?: string;
+  photographer_name?: string;
 }
