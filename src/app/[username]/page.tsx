@@ -31,7 +31,8 @@ export default function PhotographerProfile() {
 
                         {/* FOTO CENTRALIZADA */}
                         <div className="absolute top-0 left-1/2 -translate-x-1/2 -translate-y-1/2 z-20">
-                            <div className="relative w-28 h-28 md:w-36 md:h-36 rounded-full border-[3px] border-[#F3E5AB]/60 p-0.5 shadow-2xl bg-black">
+                            <div className="relative w-28 h-28 md:w-36 md:h-36 rounded-full 
+                            border-[3px] border-[#F3E5AB]/60 p-0.5 shadow-2xl bg-black">
                                 <div className="w-full h-full rounded-full overflow-hidden border border-white/10">
                                     <img
                                         src={profile.avatar_url}

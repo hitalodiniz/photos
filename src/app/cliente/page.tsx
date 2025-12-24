@@ -42,11 +42,11 @@ export default function GaleriaPage() {
             </div>
 
             <div className="flex items-center gap-3 w-full md:w-auto">
-              <button className="flex-1 md:flex-none flex items-center justify-center gap-2 bg-white border border-gray-300 text-gray-700 px-5 py-3 rounded-xl font-bold hover:bg-gray-50 transition-all shadow-sm">
+              <button >
                 <Share2 size={18} />
                 <span>Compartilhar</span>
               </button>
-              <button className="flex-1 md:flex-none flex items-center justify-center gap-2 bg-[#1A73E8] text-white px-6 py-3 rounded-xl font-bold hover:bg-[#1557b0] transition-all shadow-md active:scale-95">
+              <button >
                 <Download size={18} />
                 <span>Download All</span>
               </button>

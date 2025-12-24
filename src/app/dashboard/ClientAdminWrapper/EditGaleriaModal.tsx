@@ -123,10 +123,6 @@ export default function EditGaleriaModal({ galeria, isOpen, onClose, onSuccess }
         }
     };
 
-    // Estilos levemente mais compactos (p-2.5 em vez de p-3)
-    const inputStyle = "w-full bg-[#F8F9FA] border border-gray-200 p-2.5 rounded-xl outline-none focus:border-[#D4AF37] focus:ring-1 focus:ring-[#D4AF37] text-sm text-[#4F5B66] font-medium transition-all placeholder:text-gray-300";
-    const labelStyle = "text-sm tracking-wider font-bold text-[#4F5B66] mb-1 flex items-center gap-2 ml-1";
-
     return (
         <div className="fixed inset-0 z-[100] flex items-center justify-center bg-slate-900/40 backdrop-blur-md p-4 md:p-6 animate-in fade-in duration-300">
             {/* Modal ajustado para ocupar 90% da altura da tela */}
@@ -168,17 +164,17 @@ export default function EditGaleriaModal({ galeria, isOpen, onClose, onSuccess }
                     {/* Grid de Cliente e WhatsApp */}
                     <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                         <div className="space-y-1.5">
-                            <label className={labelStyle}><User size={12} /> Nome do cliente</label>
-                            <input name="clientName" defaultValue={galeria.client_name} required className={inputStyle} />
+                            <label><User size={12} /> Nome do cliente</label>
+                            <input name="clientName" defaultValue={galeria.client_name} required  />
                         </div>
                         <div className="space-y-1.5">
-                            <label className={labelStyle}>WhatsApp</label>
+                            <label>WhatsApp</label>
                             <input
                                 name="clientWhatsapp"
                                 value={clientWhatsapp}
                                 onChange={(e) => setClientWhatsapp(maskPhone(e))}
                                 maxLength={15}
-                                className={inputStyle}
+                                
                                 placeholder="(00) 00000-0000"
                             />
                         </div>
@@ -186,25 +182,25 @@ export default function EditGaleriaModal({ galeria, isOpen, onClose, onSuccess }
 
                     {/* Título */}
                     <div className="space-y-1.5">
-                        <label className={labelStyle}><Type size={12} /> Título da galeria</label>
-                        <input name="title" defaultValue={galeria.title} required className={inputStyle} />
+                        <label><Type size={12} /> Título da galeria</label>
+                        <input name="title" defaultValue={galeria.title} required  />
                     </div>
 
                     {/* Data e Localização */}
                     <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                         <div className="space-y-1.5">
-                            <label className={labelStyle}><Calendar size={12} /> Data</label>
+                            <label><Calendar size={12} /> Data</label>
                             <input
                                 name="date"
                                 type="date"
                                 defaultValue={galeria.date?.substring(0, 10)}
                                 required
-                                className={inputStyle}
+                                
                             />
                         </div>
                         <div className="space-y-1.5">
-                            <label className={labelStyle}><MapPin size={12} /> Localização</label>
-                            <input name="location" defaultValue={galeria.location || ""} className={inputStyle} />
+                            <label><MapPin size={12} /> Localização</label>
+                            <input name="location" defaultValue={galeria.location || ""}  />
                         </div>
                     </div>
 
@@ -263,11 +259,11 @@ export default function EditGaleriaModal({ galeria, isOpen, onClose, onSuccess }
 
                         {!isPublic && (
                             <div className="animate-in fade-in slide-in-from-top-2">
-                                <label className={labelStyle}>Nova senha de acesso</label>
+                                <label>Nova senha de acesso</label>
                                 <input
                                     name="password"
                                     type="password"
-                                    className={inputStyle}
+                                    
                                     placeholder="Deixe em branco para manter a atual"
                                 />
                             </div>

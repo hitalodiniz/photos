@@ -2,7 +2,7 @@
 
 import { useState, useRef } from "react";
 import { SubmitButton } from "@/components/sections/DashboardUI";
-import {GooglePickerButton} from "@/components/google-drive";
+import { GooglePickerButton } from "@/components/google-drive";
 import { maskPhone } from "@/utils/masks";
 import { createGaleria } from "@/actions/galeria";
 import { Lock, Unlock, Calendar, MapPin, User, Type, FolderSync } from "lucide-react";
@@ -75,10 +75,6 @@ export default function CreateGaleriaForm({ onSuccess }) {
     }
   };
 
-  // Estilos padronizados
-  const inputStyle = "w-full bg-[#F8F9FA] border border-gray-200 p-3 rounded-xl outline-none focus:border-[#D4AF37] focus:ring-1 focus:ring-[#D4AF37] text-sm text-[#4F5B66] font-medium transition-all placeholder:text-gray-300";
-  const labelStyle = "text-sm font-bold text-[#4F5B66] mb-1.5 flex items-center gap-2 ml-1";
-
   return (
     <form ref={formRef} onSubmit={handleSubmit} className="space-y-5">
       <input type="hidden" name="drive_folder_id" value={driveFolderId} />
@@ -88,42 +84,42 @@ export default function CreateGaleriaForm({ onSuccess }) {
 
       {/* Nome do Cliente */}
       <div>
-        <label className={labelStyle}><User size={14} className="text-[#D4AF37]" /> Nome do cliente</label>
-        <input name="clientName" required className={inputStyle} placeholder="Ex: Maria Silva" />
+        <label ><User size={14} className="text-[#D4AF37]" /> Nome do cliente</label>
+        <input name="clientName" required placeholder="Ex: Maria Silva" />
       </div>
 
       {/* WhatsApp */}
       <div>
-        <label className={labelStyle}>WhatsApp</label>
+        <label >WhatsApp</label>
         <input
           value={clientWhatsapp}
           onChange={(e) => setClientWhatsapp(maskPhone(e))}
           maxLength={15}
-          className={inputStyle}
+
           placeholder="(00) 00000-0000"
         />
       </div>
 
       {/* Título da Galeria */}
       <div>
-        <label className={labelStyle}><Type size={14} className="text-[#D4AF37]" /> Título da galeria</label>
-        <input name="title" required className={inputStyle} placeholder="Ex: Ensaio Pré-Wedding" />
+        <label ><Type size={14} className="text-[#D4AF37]" /> Título da galeria</label>
+        <input name="title" required placeholder="Ex: Ensaio Pré-Wedding" />
       </div>
 
       {/* Data */}
       <div>
-        <label className={labelStyle}><Calendar size={14} className="text-[#D4AF37]" /> Data</label>
-        <input name="date" type="date" required className={inputStyle} />
+        <label ><Calendar size={14} className="text-[#D4AF37]" /> Data</label>
+        <input name="date" type="date" required />
       </div>
 
       {/* Local (Agora abaixo da data) */}
       <div>
-        <label className={labelStyle}><MapPin size={14} className="text-[#D4AF37]" /> Local</label>
-        <input name="location" className={inputStyle} placeholder="Cidade/UF" />
+        <label ><MapPin size={14} className="text-[#D4AF37]" /> Local</label>
+        <input name="location" placeholder="Cidade/UF" />
       </div>
 
       {/* SEÇÃO GOOGLE DRIVE */}
-      
+
       <div className="rounded-2xl border border-[#D4AF37]/20 p-3 bg-[#FAF7ED]">
         <div className="flex items-center gap-2 mb-2 text-[#D4AF37]">
           <FolderSync size={16} />
@@ -150,33 +146,83 @@ export default function CreateGaleriaForm({ onSuccess }) {
 
       {/* Opções de Privacidade */}
       <div className="pt-2 border-t border-gray-50">
-        <div className="flex gap-8 mb-2">
-          <label className={`flex items-center gap-3 cursor-pointer text-sm font-bold tracking-widest transition-all ${isPublic ? 'text-[#D4AF37]' : 'text-slate-300'}`}>
-            <input type="radio" checked={isPublic} onChange={() => setIsPublic(true)} className="hidden" />
-            <div className={`w-5 h-5 rounded-full border-2 flex items-center justify-center transition-all ${isPublic ? 'border-[#D4AF37] bg-[#D4AF37]/5' : 'border-slate-200'}`}>
-              {isPublic && <div className="w-2.5 h-2.5 rounded-full bg-[#D4AF37]" />}
-            </div>
-            <Unlock size={16} /> Pública
-          </label>
+{/* DIVISOR EDITORIAL CENTRALIZADO */}
+<div className="flex items-center gap-4 pt-2 pb-2"> {/* Reduzi pt-6 para pt-2 */}
+  <div className="h-[1px] flex-grow bg-slate-100"></div>
+  <span className="text-[9px] font-bold text-slate-300 uppercase tracking-[0.2em] whitespace-nowrap">
+    Privacidade
+  </span>
+  <div className="h-[1px] flex-grow bg-slate-100"></div> {/* Mudei w-10 para flex-grow para centralizar */}
+</div>
 
-          <label className={`flex items-center gap-3 cursor-pointer text-sm font-bold tracking-widest transition-all ${!isPublic ? 'text-[#D4AF37]' : 'text-slate-300'}`}>
-            <input type="radio" checked={!isPublic} onChange={() => setIsPublic(false)} className="hidden" />
-            <div className={`w-5 h-5 rounded-full border-2 flex items-center justify-center transition-all ${!isPublic ? 'border-[#D4AF37] bg-[#D4AF37]/5' : 'border-slate-200'}`}>
-              {!isPublic && <div className="w-2.5 h-2.5 rounded-full bg-[#D4AF37]" />}
-            </div>
-            <Lock size={16} /> Privada
-          </label>
-        </div>
+<div className="flex gap-8 mt-2 mb-8 ml-1 items-start">
+  
+  {/* OPÇÃO PÚBLICA */}
+  <div className="relative group/tooltip whitespace-nowrap"> {/* whitespace-nowrap evita a quebra */}
+    <label className={`group !mb-0 !ml-0 flex items-center gap-3 cursor-pointer transition-all ${isPublic ? 'text-[#D4AF37]' : ''}`}>
+      <input
+        type="radio"
+        checked={isPublic}
+        onChange={() => setIsPublic(true)}
+        className="hidden"
+      />
+      <div className={`w-5 h-5 rounded-full border-[1.5px] flex items-center justify-center transition-all duration-300 shrink-0 ${isPublic ? 'border-[#D4AF37] bg-[#F3E5AB]/10 shadow-[0_0_10px_rgba(212,175,55,0.2)]' : 'border-slate-200 bg-slate-50 group-hover:border-slate-300'}`}>
+        <div className={`w-2 h-2 rounded-full bg-[#D4AF37] transition-all duration-300 ${isPublic ? 'scale-100 opacity-100' : 'scale-0 opacity-0'}`} />
+      </div>
+      
+      <div className="flex items-center gap-2">
+        <Unlock size={14} className={`transition-colors shrink-0 ${isPublic ? 'text-[#D4AF37]' : 'text-slate-300'}`} />
+        <span className="tracking-[0.1em]">Pública</span>
+      </div>
+    </label>
+
+    {/* TOOLTIP */}
+    <div className="absolute bottom-full left-0 mb-2 w-56 p-3 bg-[#FAF7ED] border border-[#F3E5AB] rounded-xl shadow-xl opacity-0 invisible group-hover/tooltip:opacity-100 group-hover/tooltip:visible transition-all duration-300 z-50 pointer-events-none -translate-y-1">
+      <p className="text-[10px] text-slate-500 italic leading-snug whitespace-normal">
+        Seu portfólio estará visível para todos os visitantes e motores de busca.
+      </p>
+      <div className="absolute top-full left-6 w-2 h-2 bg-[#FAF7ED] border-r border-b border-[#F3E5AB] rotate-45 -mt-1"></div>
+    </div>
+  </div>
+
+  {/* OPÇÃO PRIVADA */}
+  <div className="relative group/tooltip whitespace-nowrap">
+    <label className={`group !mb-0 !ml-0 flex items-center gap-3 cursor-pointer transition-all ${!isPublic ? 'text-[#D4AF37]' : ''}`}>
+      <input
+        type="radio"
+        checked={!isPublic}
+        onChange={() => setIsPublic(false)}
+        className="hidden"
+      />
+      <div className={`w-5 h-5 rounded-full border-[1.5px] flex items-center justify-center transition-all duration-300 shrink-0 ${!isPublic ? 'border-[#D4AF37] bg-[#F3E5AB]/10 shadow-[0_0_10px_rgba(212,175,55,0.2)]' : 'border-slate-200 bg-slate-50 group-hover:border-slate-300'}`}>
+        <div className={`w-2 h-2 rounded-full bg-[#D4AF37] transition-all duration-300 ${!isPublic ? 'scale-100 opacity-100' : 'scale-0 opacity-0'}`} />
+      </div>
+      
+      <div className="flex items-center gap-2">
+        <Lock size={14} className={`transition-colors shrink-0 ${!isPublic ? 'text-[#D4AF37]' : 'text-slate-300'}`} />
+        <span className="tracking-[0.1em]">Privada</span>
+      </div>
+    </label>
+
+    {/* TOOLTIP */}
+    <div className="absolute bottom-full left-0 mb-2 w-56 p-3 bg-[#FAF7ED] border border-[#F3E5AB] rounded-xl shadow-xl opacity-0 invisible group-hover/tooltip:opacity-100 group-hover/tooltip:visible transition-all duration-300 z-50 pointer-events-none -translate-y-1">
+      <p className="text-[10px] text-slate-500 italic leading-snug whitespace-normal">
+        Apenas pessoas com o link direto poderão visualizar seu trabalho.
+      </p>
+      <div className="absolute top-full left-6 w-2 h-2 bg-[#FAF7ED] border-r border-b border-[#F3E5AB] rotate-45 -mt-1"></div>
+    </div>
+  </div>
+</div>
 
         {!isPublic && (
           <div className="animate-in fade-in slide-in-from-top-2 duration-300">
-            <label className={labelStyle}>Senha de acesso</label>
+            <label >Senha de acesso</label>
             <input
               name="password"
               type="password"
               value={password}
               onChange={(e) => setPassword(e.target.value.replace(/\D/g, "").slice(0, 8))}
-              className={inputStyle}
+
               placeholder="Mínimo 4 dígitos"
               required={!isPublic}
             />

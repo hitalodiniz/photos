@@ -1,28 +1,28 @@
-@import url('https://fonts.googleapis.com/css2?family=Playfair+Display:ital,wght@0,700;0,900;1,700&family=Barlow:wght@400;500;700;800&display=swap');
-@import url('https://fonts.googleapis.com/css2?family=Playfair+Display:ital,wght@0,700;1,700&display=swap');
+@import url("https://fonts.googleapis.com/css2?family=Playfair+Display:ital,wght@0,700;0,900;1,700&family=Barlow:wght@400;500;700;800&display=swap");
+@import url("https://fonts.googleapis.com/css2?family=Playfair+Display:ital,wght@0,700;1,700&display=swap");
 
 @tailwind base;
 @tailwind components;
 @tailwind utilities;
 
 /* Opção com Inter: Mais moderna e sofisticada que Verdana */
-@import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;600&display=swap');
+@import url("https://fonts.googleapis.com/css2?family=Inter:wght@300;400;600&display=swap");
 
 html {
-  font-family: 'Inter', sans-serif;
+  font-family: "Inter", sans-serif;
   -webkit-font-smoothing: antialiased; /* Deixa a fonte mais fina e elegante */
-  color: #3C4043;
+  color: #3c4043;
 }
 
 .font-artistic {
-  font-family: 'Playfair Display', serif;
+  font-family: "Playfair Display", serif;
 }
 /* Padrão do botão GSI (Continue com Google) */
 .btn-gsi-custom {
   /* Fundo Branco, Borda Padrão */
-  background-color: #FFFFFF; 
-  color: #1F1F1F; /* Texto escuro */
-  border: 1px solid #DADCE0; /* Borda sutil e cinza */
+  background-color: #ffffff;
+  color: #1f1f1f; /* Texto escuro */
+  border: 1px solid #dadce0; /* Borda sutil e cinza */
   border-radius: 8px; /* Cantos arredondados do GSI */
   padding: 10px 16px; /* Espaçamento interno padrão (alto) */
   font-weight: 500;
@@ -34,6 +34,60 @@ html {
 }
 
 .btn-gsi-custom:hover {
-  background-color: #F8F9FA; /* Fundo levemente acinzentado */
+  background-color: #f8f9fa; /* Fundo levemente acinzentado */
   box-shadow: 0 3px 3px 0 rgba(0, 0, 0, 0.1);
+}
+
+@layer base {
+  /* Labels: Menos "pesadas", mais elegantes */
+  label {
+    @apply text-[13px] font-medium text-slate-700 mb-2 flex
+    items-center gap-2 ml-1;
+  }
+
+  /* Label específica para Radio e Checkbox (estilo inline) */
+  input[type="radio"] + label,
+  input[type="checkbox"] + label {
+    @apply mb-0 ml-2 cursor-pointer inline-flex items-center 
+    text-slate-700 hover:text-[#D4AF37];
+  }
+
+  /* Customização do próprio círculo do Radio para combinar com o editorial */
+  input[type="radio"] {
+    @apply w-4 h-4 border-gray-300 text-[#D4AF37] focus:ring-[#F3E5AB]/50 cursor-pointer;
+  }
+
+  /* Inputs: Mantendo a consistência com labels mais leves */
+  input:not([type="file"]),
+  textarea,
+  select {
+    @apply w-full bg-[#F8F9FA] border border-gray-100 p-3 rounded-xl outline-none 
+           focus:border-[#D4AF37] focus:ring-1 focus:ring-[#D4AF37] 
+           text-sm text-slate-700 font-normal transition-all 
+           placeholder:text-gray-300;
+  }
+  /* Botão Principal (Editorial Primary) */
+  button[type="submit"],
+  .btn-primary {
+    @apply w-full py-4 rounded-2xl font-bold 
+    uppercase text-xs tracking-[0.2em] 
+           transition-all active:scale-95 flex items-center justify-center gap-2
+           bg-[#F3E5AB] text-slate-900 shadow-lg shadow-[#F3E5AB]/20 
+           hover:bg-[#e6d595] disabled:bg-slate-100 disabled:text-slate-400 
+           disabled:cursor-not-allowed;
+  }
+
+  /* Botão Secundário (Editorial Secondary - Usado no Modal) */
+  .btn-secondary {
+    @apply w-full py-4 bg-white border border-slate-100 text-slate-400 
+           rounded-2xl font-bold uppercase text-[10px] tracking-[0.2em] 
+           transition-all hover:bg-slate-50 active:scale-95;
+  }
+
+  /* Botão de Destaque (Preto - Usado para Visualizar Perfil) */
+  .btn-dark {
+    @apply w-full py-4 bg-slate-900 text-white rounded-2xl font-bold 
+           uppercase text-[10px] tracking-[0.2em] transition-all 
+           flex items-center justify-center gap-2 shadow-xl hover:bg-black;
+  }
 }

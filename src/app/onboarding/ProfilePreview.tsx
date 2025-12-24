@@ -27,7 +27,7 @@ export default function ProfilePreview({
     return (
         /* min-h-full e relative garantem que o fundo preto e a imagem cubram toda a lateral direita */
         <div className="min-h-full w-full flex flex-col bg-black overflow-x-hidden">
-            
+
             {/* O Background Dinâmico agora é forçado a preencher todo o espaço absoluto sem deixar frestas no topo ou direita */}
             <div className="absolute inset-0 z-0">
                 <DynamicHeroBackground />
@@ -46,15 +46,21 @@ export default function ProfilePreview({
                 <main className="flex-grow flex flex-col items-center justify-start px-6 pt-32 pb-20">
                     <div className="relative w-full max-w-xl">
 
-                        {/* FOTO CENTRALIZADA - Estilo Google Profile */}
+                        {/* FOTO CENTRALIZADA - ESTILO GOOGLE PROFILE */}
                         <div className="absolute top-0 left-1/2 -translate-x-1/2 -translate-y-1/2 z-20">
-                            <div className="relative w-32 h-32 md:w-40 md:h-40 rounded-full border-[4px] border-[#F3E5AB] p-1 shadow-2xl bg-black">
-                                <div className="w-full h-full rounded-full overflow-hidden bg-slate-900 flex items-center justify-center border border-white/10">
-                                    {photoPreview ? (
-                                        <img src={photoPreview} alt={fullName} className="w-full h-full object-cover" />
-                                    ) : (
-                                        <UserIcon size={40} className="text-slate-600 opacity-50" />
-                                    )}
+                            <div className="relative w-32 h-32 md:w-40 md:h-40 p-[3px] rounded-full bg-gradient-to-tr from-[#34A853] via-[#FBBC05] via-[#EA4335] to-[#4285F4] shadow-2xl">
+                                <div className="w-full h-full rounded-full overflow-hidden bg-black flex items-center justify-center p-[2px]">
+                                    <div className="w-full h-full rounded-full overflow-hidden bg-slate-900 flex items-center justify-center">
+                                        {photoPreview ? (
+                                            <img
+                                                src={photoPreview}
+                                                alt={fullName}
+                                                className="w-full h-full object-cover object-center scale-110"
+                                            />
+                                        ) : (
+                                            <UserIcon size={40} className="text-slate-600 opacity-50" />
+                                        )}
+                                    </div>
                                 </div>
                             </div>
                         </div>

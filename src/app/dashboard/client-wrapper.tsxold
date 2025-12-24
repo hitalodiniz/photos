@@ -439,7 +439,7 @@ export default function ClientAdminWrapper({ initialGalerias: initialGalerias }:
                                 className="bg-[#F8FAFD] border border-[#747775] text-sm rounded-lg px-3 py-1.5 outline-none focus:bg-[#E8F0FE] focus:focus:border-[#0B57D0] focus:text-[#0B57D0] placeholder-gray-500 transition-colors w-full sm:w-auto flex-1" />
                             <input type="date" placeholder="Data" value={filterDate} onChange={(e) => setFilterDate(e.target.value)}
                                 className="bg-[#F8FAFD] border border-[#747775] text-sm rounded-lg px-3 py-1.5 outline-none focus:bg-[#E8F0FE] focus:border-[#0B57D0] focus:text-[#0B57D0] placeholder-gray-500 transition-colors w-full sm:w-auto" />
-                            <button onClick={resetFilters} className="px-4 py-1.5 bg-[#E9EEF6] text-[#444746] text-sm rounded-full hover:bg-[#E2E7EB] transition-colors font-medium ml-auto" title="Limpar todos os filtros de busca">Limpar</button>
+                            Limpar</button>
                         </div>
 
                         {/* Grid de Cards (Mantido) */}

@@ -164,14 +164,14 @@ export default function Lightbox({
 
                     {/* BOTÕES DE AÇÃO - pointer-events-auto */}
                     <div className="flex items-center gap-2 md:gap-4 bg-black/40 backdrop-blur-xl p-1.5 px-3 md:p-2 md:px-6 rounded-full border border-white/10 shadow-2xl pointer-events-auto">
-                        <button onClick={handleShareWhatsApp} className="flex items-center gap-2 px-3 py-2 rounded-full hover:bg-white/5 text-white/90 hover:text-[#25D366] transition-all group">
+                        <button onClick={handleShareWhatsApp}>
                             <MessageCircle size={20} className="group-hover:scale-110 transition-transform" />
                             <span className="text-[10px] font-bold uppercase tracking-wider">WhatsApp</span>
                         </button>
 
                         <div className="w-[1px] h-4 bg-white/10" />
 
-                        <button onClick={handleDownload} disabled={isDownloading} className="flex items-center gap-2 px-3 py-2 rounded-full hover:bg-white/5 text-white/90 hover:text-[#F3E5AB] transition-all group disabled:opacity-50">
+                        <button onClick={handleDownload}>
                             {isDownloading ? <Loader2 size={18} className="animate-spin text-[#F3E5AB]" /> : <Download size={18} className="group-hover:translate-y-0.5 transition-transform" />}
                             <span className="text-[10px] font-bold uppercase tracking-wider">
                                 {isDownloading ? "Processando..." : "Alta Resolução"}
@@ -180,7 +180,7 @@ export default function Lightbox({
 
                         <div className="w-[1px] h-4 bg-white/10" />
 
-                        <button onClick={onClose} className="p-2 text-white/70 hover:text-white hover:bg-white/10 rounded-full transition-all">
+                        <button onClick={onClose}>
                             <X size={24} />
                         </button>
                     </div>

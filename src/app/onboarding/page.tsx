@@ -20,7 +20,7 @@ export default async function OnboardingPage() {
   // 3. Define se o perfil já está completo para alternar entre "Novo Perfil" e "Editar"
   const profile = data.profile;
   const isProfileComplete = !!(profile?.full_name && profile?.username && profile?.mini_bio);
-console.log("isProfileComplete" + isProfileComplete);
+
   return (
     <AuthGuard>
       {/* Container removido o centramento para o formulário ocupar 100% da largura e altura */}

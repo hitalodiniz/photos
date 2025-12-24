@@ -1,6 +1,6 @@
 "use client";
 
-import { X } from "lucide-react";
+import { X, Search, MapPin, Calendar } from "lucide-react";
 
 export default function Filters({
   filterName,
@@ -14,40 +14,46 @@ export default function Filters({
 }) {
   const isMinimal = variant === "minimal";
 
-  // Estilo padronizado: Mesma cor, tamanho e peso do Header
+  // Base de estilo para manter a consistência editorial e o recuo correto para o ícone
+const inputBaseClass = "w-full !pl-12 pr-4 py-3 outline-none transition-all duration-300 rounded-xl text-sm border-[#D4AF37]";  
   const sharedInputClass = isMinimal 
-    ? "bg-transparent border-none focus:ring-0 text-[#4F5B66] text-base placeholder:text-[#4F5B66]/60 placeholder:not-italic" 
-    : "bg-[#F8FAFD] border border-gray-200 rounded-lg px-3 py-1.5 text-base text-[#4F5B66]";
+    ? `${inputBaseClass} bg-[#F8F9FA] border border-gray-200 focus:bg-white focus:border-[#D4AF37] focus:ring-4 focus:ring-[#F3E5AB]/30 text-slate-600 placeholder:text-gray-300`
+    : `${inputBaseClass} bg-[#F8F9FA] border border-gray-200 focus:bg-white focus:border-[#D4AF37] focus:ring-4 focus:ring-[#F3E5AB]/30 text-slate-600 placeholder:text-gray-300`;
 
   return (
-    <div className={`flex flex-wrap md:flex-nowrap gap-2 items-center w-full ${isMinimal ? 
-    'bg-transparent' : 'bg-white p-2 mb-4 rounded-xl shadow-sm'}`}>
+    <div className={`flex flex-wrap md:flex-nowrap gap-3 items-center w-full ${isMinimal ? 
+    'bg-transparent' : 'bg-white p-3 mb-6 rounded-2xl shadow-sm border border-slate-50'}`}>
       
       {/* Input Nome/Título */}
-      <input
-        placeholder="Pesquisar por cliente/galeria..."
-        value={filterName}
-        onChange={(e) => setFilterName(e.target.value)}
-        className={`flex-1 min-w-[150px] outline-none transition-all ${sharedInputClass}`}
-      />
+      <div className="relative flex-[2] min-w-[200px] group">
+        <Search size={16} className="absolute left-4 top-1/2 -translate-y-1/2 text-slate-300 group-focus-within:text-[#D4AF37] transition-colors z-10" />
+        <input
+          placeholder="Pesquisar por cliente..."
+          value={filterName}
+          onChange={(e) => setFilterName(e.target.value)}
+          className={`${sharedInputClass} !pl-12`} 
+        />
+      </div>
 
       {/* Input Local */}
-      <div className={`flex items-center flex-1 min-w-[120px] ${isMinimal ? 'border-l border-[#D4AF37]/20 pl-4' : ''}`}>
+      <div className={`relative flex-1 min-w-[160px] group ${isMinimal ? 'md:border-l border-slate-100' : ''}`}>
+        <MapPin size={16} className="absolute left-4 top-1/2 -translate-y-1/2 text-slate-300 group-focus-within:text-[#D4AF37] transition-colors z-10" />
         <input
-          placeholder="Pesquisar por localização..."
+          placeholder="Localização..."
           value={filterLocation}
           onChange={(e) => setFilterLocation(e.target.value)}
-          className={`w-full outline-none transition-all ${sharedInputClass}`}
+          className={`${sharedInputClass} !pl-12`} 
         />
       </div>
 
       {/* Input Data */}
-      <div className={`flex items-center ${isMinimal ? 'border-l border-[#D4AF37]/20 pl-4' : ''}`}>
+      <div className={`relative min-w-[160px] group ${isMinimal ? 'md:border-l border-slate-100' : ''}`}>
+        <Calendar size={16} className="absolute left-4 top-1/2 -translate-y-1/2 text-slate-300 group-focus-within:text-[#D4AF37] transition-colors z-10 pointer-events-none" />
         <input
           type="date"
           value={filterDate}
           onChange={(e) => setFilterDate(e.target.value)}
-          className={`outline-none cursor-pointer transition-all  ${sharedInputClass}`}
+          className={`${sharedInputClass} !pl-12 cursor-pointer`}
         />
       </div>
 
@@ -55,14 +61,10 @@ export default function Filters({
       {(filterName || filterLocation || filterDate) && (
         <button
           onClick={resetFilters}
-          className={`flex items-center justify-center transition-all ${
-            isMinimal
-            ? "p-2 text-[#D4AF37] hover:bg-[#D4AF37]/10 rounded-full ml-2"
-            : "px-4 py-1.5 bg-[#E9EEF6] rounded-full text-xs font-bold ml-auto"
-          }`}
+          className="p-3 text-slate-400 hover:text-red-500 hover:bg-red-50 rounded-xl transition-all duration-300 flex items-center justify-center shrink-0"
           title="Limpar filtros"
         >
-          <X size={16} strokeWidth={3} />
+          <X size={18} strokeWidth={2.5} />
         </button>
       )}
     </div>

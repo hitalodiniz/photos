@@ -23,15 +23,7 @@ export function SubmitButton({ className = "" }) {
     <button
       type="submit"
       disabled={pending}
-      className={`
-        uppercase
-        w-full flex items-center justify-center gap-3 px-2 py-4 
-        rounded-2xl font-bold transition-all shadow-lg active:scale-95 
-        text-[11px] md:text-xs tracking-[0.25em]
-        bg-[#F3E5AB] hover:bg-[#e6d595] text-slate-900 
-        disabled:opacity-70 disabled:cursor-wait disabled:shadow-none
-        ${className}
-      `}
+
     >
       {pending ? (
         <div className="flex items-center gap-2">

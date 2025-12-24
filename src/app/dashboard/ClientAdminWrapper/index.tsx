@@ -116,7 +116,6 @@ export default function ClientAdminWrapper({ initialGalerias }: ClientAdminWrapp
 
   return (
     <div className="mx-auto grid max-w-[1600px] grid-cols-1 gap-6 lg:grid-cols-[340px_1fr] px-2 md:px-4 py-4 bg-[#F8F9FA] min-h-screen font-sans">
-
       {/* COLUNA ESQUERDA: FORMULÁRIO */}
       <aside className="order-2 lg:order-1">
         <div className="lg:sticky lg:top-16 h-fit rounded-[24px] border border-[#E0E3E7] bg-white p-6 shadow-sm">
@@ -135,20 +134,18 @@ export default function ClientAdminWrapper({ initialGalerias }: ClientAdminWrapp
 
         {/* PÍLULA MESTRE: TÍTULO + FILTROS + STATUS */}
         <header className="w-full">
-          <div className="flex flex-col md:flex-row items-center px-4 py-2 md:rounded-full border border-[#D4AF37]/30 bg-[#FAF7ED] shadow-sm rounded-[24px]">
+          <div className="flex flex-col md:flex-row items-center md:rounded-full border border-[#D4AF37]/30 
+          bg-[#FAF7ED] shadow-sm rounded-[24px]">
 
-            {/* 1. Título */}
-            <div className="flex items-center gap-3 px-4 py-2">
+            <div className="flex items-center gap-3 px-4 py-2 font-[12px] font-medium">
               <Camera size={18} className="text-[#D4AF37]" />
-              <h1 className="text-base font-bold text-[#4F5B66] tracking-tight whitespace-nowrap">
                 Galerias recentes
-              </h1>
-            </div>
+           </div>
 
 
 
             {/* 3. Área de Filtros (Integrada sem divisões bruscas) */}
-            <div className="flex-1 w-full md:w-auto border-t md:border-t-0 md:border-l border-[#D4AF37]/20 px-4 py-1">
+            <div className="flex-1 w-full md:w-auto border-t border-b md:border-t-0 md:border-l border-[#D4AF37]/20 px-4 py-1">
               <Filters
                 filterName={filterName}
                 filterLocation={filterLocation}
@@ -161,15 +158,11 @@ export default function ClientAdminWrapper({ initialGalerias }: ClientAdminWrapp
               />
             </div>
                         {/* 2. Status e Contagem (Agora com mesmo estilo e cor) */}
-            <div className="flex items-center gap-4 border-t md:border-t-0 md:border-l 
-            border-[#D4AF37]/20 px-6 py-2 w-full md:w-auto">
-              <div className="flex items-center gap-2">
+ 
+              
+            <div className="flex items-center gap-3 px-4 py-2 font-[1px] md:font-[12px] font-medium">
                 <LayoutGrid size={16} className="text-[#D4AF37]" />
-                <span className="whitespace-nowrap text-base font-bold text-[#4F5B66]">
                   Exibindo {visibleGalerias.length} de {galerias.length}
-                </span>
-              </div>
-
             </div>
           </div>
         </header>
