@@ -29,7 +29,7 @@ export default function GaleriaView({ galeria, photos }: GaleriaViewProps) {
   return (
     /* Cor de fundo base alterada para Champanhe Perolado (#FDF8E7) */
 
-    <div className="relative min-h-screen font-sans bg-[#D4AF37]">
+    <div className="relative min-h-screen font-sans bg-[#FFF">
 
       {/* 1. BACKGROUND DINÂMICO FIXO */}
       <div className="fixed inset-0 z-0">

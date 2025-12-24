@@ -1,19 +1,16 @@
 'use client';
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
 import Masonry from 'react-masonry-css';
 import { Lightbox } from '@/components/gallery';
-import { Camera, Image as ImageIcon, Calendar, MapPin, Download, User } from 'lucide-react';
+import { Camera, Image as ImageIcon, Calendar, MapPin, Download, Heart, Loader2, Filter } from 'lucide-react';
 import { saveAs } from 'file-saver';
 import JSZip from 'jszip';
-
-
 
 // Sub-componente otimizado para evitar o "piscar"
 const GridImage = ({ src, alt, priority }: { src: string; alt: string; priority?: boolean }) => {
   const [isLoaded, setIsLoaded] = useState(false);
   const imgRef = React.useRef<HTMLImageElement>(null);
 
-  // Forçar verificação de cache na montagem
   useEffect(() => {
     if (imgRef.current?.complete) {
       setIsLoaded(true);
@@ -27,12 +24,10 @@ const GridImage = ({ src, alt, priority }: { src: string; alt: string; priority?
         src={src}
         alt={alt}
         onLoad={() => setIsLoaded(true)}
-        /* REMOVIDO opacity-0: Agora a imagem começa com 1 mas borrada */
         className={`
           w-full h-auto object-cover rounded-2xl transition-all duration-300 ease-out
           ${isLoaded ? 'blur-0 scale-100' : 'blur-md scale-105 opacity-30'}
         `}
-        /* Forçar prioridade para as primeiras 24 fotos */
         loading={priority ? "eager" : "lazy"}
       />
     </div>
@@ -41,9 +36,24 @@ const GridImage = ({ src, alt, priority }: { src: string; alt: string; priority?
 
 export default function PhotoGrid({ photos, galeria }: any) {
   const QTD_FOTO_EXIBIDAS = 24;
-  const getCurrentColumns = () => {
-    const width = window.innerWidth;
 
+  // --- ESTADOS DE CONTROLE ORIGINAIS ---
+  const [selectedPhotoIndex, setSelectedPhotoIndex] = useState<number | null>(null);
+  const [masonryKey, setMasonryKey] = useState(0);
+
+  // --- ESTADOS DE DOWNLOAD SEPARADOS ---
+  const [isDownloading, setIsDownloading] = useState(false);
+  const [downloadProgress, setDownloadProgress] = useState(0);
+  const [isDownloadingFavs, setIsDownloadingFavs] = useState(false);
+  const [favDownloadProgress, setFavDownloadProgress] = useState(0);
+
+  // --- ESTADOS DE FAVORITOS E FILTRO ---
+  const [favorites, setFavorites] = useState<string[]>([]);
+  const [showOnlyFavorites, setShowOnlyFavorites] = useState(false);
+
+  const getCurrentColumns = () => {
+    if (typeof window === 'undefined') return 4;
+    const width = window.innerWidth;
     if (width >= 1536) return 4;
     if (width >= 1280) return 3;
     if (width >= 1024) return 2;
@@ -59,19 +69,26 @@ export default function PhotoGrid({ photos, galeria }: any) {
     return normalizeLimit(QTD_FOTO_EXIBIDAS, cols);
   });
 
-  const [masonryKey, setMasonryKey] = useState(0);
+  // --- CARREGAR FAVORITOS DO LOCALSTORAGE ---
+  useEffect(() => {
+    const saved = localStorage.getItem(`fav_${galeria.id}`);
+    if (saved) {
+      setFavorites(JSON.parse(saved));
+    }
+  }, [galeria.id]);
 
   useEffect(() => {
-    // só recria quando realmente adiciona fotos
     if (displayLimit > QTD_FOTO_EXIBIDAS) {
       setMasonryKey(prev => prev + 1);
     }
   }, [displayLimit]);
 
-  const [selectedPhotoIndex, setSelectedPhotoIndex] = useState<number | null>(null);
-  const [isDownloading, setIsDownloading] = useState(false);
-  const [downloadProgress, setDownloadProgress] = useState(0);
+  // --- LÓGICA DE FILTRAGEM ---
+  const displayedPhotos = showOnlyFavorites
+    ? photos.filter((photo: any) => favorites.includes(photo.id))
+    : photos;
 
+  // --- CONFIGURAÇÕES DE DOWNLOAD E LIMITES ---
   const MAX_PHOTOS = 150;
   const isOverLimit = photos.length > MAX_PHOTOS;
   const ESTIMATED_MB_PER_PHOTO = 10;
@@ -79,204 +96,222 @@ export default function PhotoGrid({ photos, galeria }: any) {
   const isVeryHeavy = totalSizeMB > 500;
 
   const breakpointColumnsObj = {
-    default: 4,    // 4 colunas em telas muito grandes
-    1536: 3,       // 2xl
-    1280: 3,       // xl
-    1024: 2,       // lg
-    768: 1         // md/sm
+    default: 4,
+    1536: 3,
+    1280: 3,
+    1024: 2,
+    768: 1
   };
-
 
   const getImageUrl = (photoId: string, suffix: string = "w400") => {
     return `https://lh3.googleusercontent.com/d/${photoId}=${suffix}`;
   };
 
-  const downloadAllAsZip = async () => {
-    if (isOverLimit || isDownloading) return;
+  // --- LÓGICA DE DOWNLOAD REFINADA (COM ESTADOS INDEPENDENTES) ---
+  const handleDownloadZip = async (targetList: any[], zipSuffix: string, isFavAction: boolean) => {
+    if (isDownloading || isDownloadingFavs || targetList.length === 0) return;
+
+    const setProgress = isFavAction ? setFavDownloadProgress : setDownloadProgress;
+    const setStatus = isFavAction ? setIsDownloadingFavs : setIsDownloading;
 
     try {
-      setIsDownloading(true);
-      setDownloadProgress(0);
+      setStatus(true);
+      setProgress(0);
       const zip = new JSZip();
 
-      const downloadPromises = photos.map(async (photo, index) => {
-        const fileId = typeof photo === 'string' ? photo : photo.id;
+      for (let i = 0; i < targetList.length; i++) {
+        const photo = targetList[i];
+        const fileId = photo.id;
         const url = `https://lh3.googleusercontent.com/d/${fileId}=s0`;
 
         try {
           const response = await fetch(url);
           if (!response.ok) throw new Error("Erro na rede");
           const blob = await response.blob();
-          zip.file(`foto-${index + 1}.jpg`, blob);
-          setDownloadProgress((prev) => prev + (100 / photos.length));
+          zip.file(`foto-${i + 1}.jpg`, blob);
+          // Atualiza progresso específico do botão clicado
+          setProgress(((i + 1) / targetList.length) * 100);
         } catch (err) {
-          console.error(`Erro ao processar foto ${index}:`, err);
+          console.error(`Erro ao processar foto ${i}:`, err);
         }
-      });
-
-      await Promise.all(downloadPromises);
-
-      if (Object.keys(zip.files).length === 0) {
-        alert("Nenhum arquivo pôde ser baixado.");
-        return;
       }
 
       const content = await zip.generateAsync({ type: "blob", compression: "STORE" });
-      saveAs(content, `${galeria.title.replace(/\s+/g, '_')}_alta_res.zip`);
+      saveAs(content, `${galeria.title.replace(/\s+/g, '_')}_${zipSuffix}.zip`);
 
     } catch (error) {
       console.error("Erro no ZIP:", error);
       alert("Erro ao gerar o arquivo ZIP.");
     } finally {
-      setIsDownloading(false);
-      setDownloadProgress(0);
+      setStatus(false);
+      setProgress(0);
     }
   };
 
-  // INFINITE SCROLL COM THRESHOLD ANTECIPADO
+  const downloadAllAsZip = () => handleDownloadZip(photos, 'completa', false);
+  const handleDownloadFavorites = () => {
+    const favPhotos = photos.filter((p: any) => favorites.includes(p.id));
+    handleDownloadZip(favPhotos, 'favoritas', true);
+  };
+
+  // --- INFINITE SCROLL ---
   useEffect(() => {
     let isThrottled = false;
-
     const handleScroll = () => {
-      if (isThrottled || displayLimit >= photos.length) return;
-
+      if (isThrottled || displayLimit >= displayedPhotos.length) return;
       const scrollHeight = document.documentElement.scrollHeight;
       const scrollTop = window.scrollY;
       const clientHeight = window.innerHeight;
 
       if (scrollTop + clientHeight >= scrollHeight - 1000) {
         isThrottled = true;
-
         setDisplayLimit(prev => {
           const cols = getCurrentColumns();
-
-          // carrega sempre linhas completas
           const next = prev + cols * 3;
-
-          return Math.min(
-            normalizeLimit(next, cols),
-            photos.length
-          );
+          return Math.min(normalizeLimit(next, cols), displayedPhotos.length);
         });
-
-        setTimeout(() => {
-          isThrottled = false;
-        }, 200);
+        setTimeout(() => { isThrottled = false; }, 200);
       }
     };
-
     window.addEventListener('scroll', handleScroll, { passive: true });
     return () => window.removeEventListener('scroll', handleScroll);
-  }, [displayLimit, photos.length]);
-
+  }, [displayLimit, displayedPhotos.length]);
 
   if (!photos || photos.length === 0) return null;
 
+  const refreshFavorites = () => {
+    const saved = localStorage.getItem(`fav_${galeria.id}`);
+    setFavorites(saved ? JSON.parse(saved) : []);
+  };
+
   return (
     <div className="w-full flex flex-col items-center gap-10 min-h-screen pb-10">
-      {/* BARRA DE INFORMAÇÕES EDITORIAL */}
-      <div className="flex flex-col md:flex-row items-center justify-center gap-4 
-      md:gap-6 bg-black/45 backdrop-blur-lg p-5 md:p-2.5 md:px-6 rounded-[2.5rem] md:rounded-full border border-white/10 
-      shadow-2xl inline-flex w-auto max-w-[95%] md:max-w-max mx-auto transition-all mt-14 md:mt-0 z-[40]">
-        <div className="flex items-center gap-4 text-white text-sm md:text-base font-medium italic">
-          <div className="flex items-center gap-2">
-            <Camera className="text-[#F3E5AB] w-4 h-4" />
-            <span className="whitespace-nowrap tracking-widest">
+      {/* 1. BARRA DE INFORMAÇÕES EDITORIAL (ESTILOS PADRONIZADOS) */}
+      <div className="flex flex-col md:flex-row items-center justify-center gap-3 
+  md:gap-4 bg-black/45 backdrop-blur-lg p-5 md:p-2 md:px-5 rounded-[2.5rem] md:rounded-full border border-white/10 
+  shadow-2xl inline-flex w-auto max-w-[95%] md:max-w-max mx-auto transition-all mt-14 md:mt-0 z-[40]">
+
+        {/* SEÇÃO: INFOS DA GALERIA */}
+        <div className="flex items-center gap-3 text-white text-sm md:text-base font-medium italic h-9">
+          <div className="flex items-center gap-1.5">
+            <Camera size={18} className="text-[#F3E5AB]" />
+            <span className="whitespace-nowrap tracking-widest ">
               {galeria.is_public ? 'Galeria Pública' : 'Acesso Restrito'}
             </span>
           </div>
-          <div className="flex items-center gap-2 border-l border-white/20 pl-4">
-            <ImageIcon size={14} className="text-[#F3E5AB]" />
+          <div className="flex items-center gap-1.5 border-l border-white/20 pl-3 h-5">
+            <ImageIcon size={18} className="text-[#F3E5AB]" />
             <span className="whitespace-nowrap italic">{photos.length} fotos</span>
           </div>
         </div>
 
         <div className="hidden md:block w-[1px] h-4 bg-white/20"></div>
 
-        <div className="flex items-center gap-4 text-white text-sm md:text-base font-medium italic">
-          <span className="flex items-center gap-2 whitespace-nowrap">
-            <Calendar size={14} className="text-[#F3E5AB]" />
+        {/* SEÇÃO: DATA E LOCALIZAÇÃO */}
+        <div className="flex items-center gap-3 text-white text-sm md:text-base font-medium italic h-9">
+          <span className="flex items-center gap-1.5 whitespace-nowrap border-l border-white/20 pl-3 h-5 ml-1">
+            <Calendar size={18} className="text-[#F3E5AB]" />
             {new Date(galeria.date).toLocaleDateString('pt-BR', { day: '2-digit', month: 'long', year: 'numeric' })}
           </span>
           {galeria.location && (
-            <span className="flex items-center gap-2 border-l border-white/20 pl-4 whitespace-nowrap max-w-[120px] md:max-w-[300px] truncate">
-              <MapPin size={14} className="text-[#F3E5AB]" />
+            <span className="flex items-center gap-1.5 border-l border-white/20 pl-3 h-5 whitespace-nowrap max-w-[120px] md:max-w-[300px] truncate">
+              <MapPin size={18} className="text-[#F3E5AB]" />
               {galeria.location}
             </span>
           )}
         </div>
 
-        <div className="relative group flex flex-col items-center w-full md:w-auto">
-          {(isVeryHeavy || isOverLimit) && !isDownloading && (
-            <div className="absolute bottom-full mb-3 flex flex-col items-center transition-all duration-300 opacity-0 group-hover:opacity-100 group-active:opacity-100 translate-y-2 group-hover:translate-y-0 pointer-events-none z-50">
-              <div className="bg-slate-900/95 backdrop-blur-md border border-white/10 text-white px-4 py-2 rounded-xl shadow-2xl">
-                <p className="text-[10px] md:text-[11px] leading-tight text-center whitespace-nowrap">
-                  {isOverLimit ? 'LIMITE EXCEDIDO' : 'ARQUIVO GRANDE'}
-                  <span className="text-white/70 italic font-light block">
-                    ~{Math.round(totalSizeMB)}MB
-                  </span>
-                </p>
-              </div>
-              <div className="w-2.5 h-2.5 bg-slate-900/95 rotate-45 -mt-1.5 border-r border-b border-white/10"></div>
+        {/* SEÇÃO: AÇÕES DE FAVORITOS (RENDERIZA APENAS SE > 0) */}
+        {favorites.length > 0 && (
+          <div className="flex items-center gap-2 h-9 border-l border-white/20 pl-3 ml-1 animate-in fade-in slide-in-from-left-2 duration-300">
+            <div className="flex items-center gap-1.5 text-white text-sm md:text-base font-medium italic whitespace-nowrap mr-1">
+              <Heart size={16} className="text-[#E67E70]" fill="#E67E70" />
+              <span>Favoritos:</span>
             </div>
-          )}
 
+            {/* BOTÃO FILTRAR */}
+            <button
+              onClick={() => setShowOnlyFavorites(!showOnlyFavorites)}
+              className={`flex items-center justify-center gap-2 px-5 h-9 rounded-full border transition-all active:scale-95
+        duration-300 text-[12px] md:text-[13px] font-bold tracking-widest whitespace-nowrap
+        ${showOnlyFavorites ? "bg-[#E67E70] border-[#E67E70] text-white shadow-lg" : "bg-white/10 border-white/10 text-white hover:bg-white/20"}`}
+            >
+              <Filter size={14} />
+              {showOnlyFavorites ? `Ver Todas` : `Filtrar (${favorites.length})`}
+            </button>
+
+            {/* BOTÃO BAIXAR FAVORITAS */}
+            <button
+              onClick={handleDownloadFavorites}
+              disabled={isDownloadingFavs}
+              className="flex items-center justify-center bg-[#E67E70] hover:bg-[#D66D5F] text-white gap-2 px-5 h-9 active:scale-95
+        rounded-full text-[12px] md:text-[13px] font-bold tracking-widest transition-all shadow-lg"
+            >
+              {isDownloadingFavs ? (
+                <Loader2 className="animate-spin h-4 w-4" />
+              ) : (
+                <><Download size={14} /> Baixar</>
+              )}
+            </button>
+          </div>
+        )}
+
+        {/* BOTÃO BAIXAR TODAS (COMPLETA) */}
+        <div className="flex items-center border-l border-white/20 pl-3 h-5 ml-1 relative group">
           <button
             onClick={downloadAllAsZip}
-            disabled={isDownloading || isOverLimit}
-            className={`w-full md:w-auto flex items-center justify-center gap-2 px-6 py-3.5 md:py-2 rounded-xl font-bold 
-              transition-all shadow-lg active:scale-95 text-xs md:text-sm tracking-widest md:ml-2 whitespace-nowrap
-            ${isOverLimit ? 'bg-gray-500/20 text-gray-400 cursor-not-allowed border border-white/10' : 'bg-[#F3E5AB] hover:bg-[#e6d595] text-slate-900'}`}
+            disabled={isDownloading || isDownloadingFavs || isOverLimit}
+            className={`flex items-center justify-center gap-2 px-5 h-9
+      rounded-full transition-all shadow-lg active:scale-95 text-[12px] md:text-[13px] font-bold tracking-widest whitespace-nowrap
+      ${isOverLimit ? 'bg-gray-500/20 text-gray-400' : 'bg-[#F3E5AB] hover:bg-[#e6d595] text-slate-900'}`}
           >
             {isDownloading ? (
-              <span className="flex items-center gap-2 tabular-nums">
-                <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-slate-900" />
-                {Math.round(downloadProgress)}%
-              </span>
+              <Loader2 className="animate-spin h-4 w-4" />
             ) : (
-              <span className="flex items-center gap-2">
-                <Download size={16} />
-                {isOverLimit ? 'Bloqueado' : 'Baixar todas'}
-              </span>
+              <><Download size={14} /> {isOverLimit ? 'Bloqueado' : 'Baixar todas'}</>
             )}
           </button>
         </div>
       </div>
-
-
-
-      {/* GRID MASONRY */}
+      {/* 3. GRID MASONRY */}
       <div className="w-full max-w-[1600px] mx-auto px-4 md:px-8">
-        <Masonry
-          key={masonryKey}
-          breakpointCols={breakpointColumnsObj}
-          className="my-masonry-grid"
-          columnClassName="my-masonry-grid_column"
-        >
-          {photos.slice(0, displayLimit).map((photo: any, index: number) => (
-            <div
-              key={photo.id} // ❗ NUNCA use index aqui
-              onClick={() => setSelectedPhotoIndex(index)}
-              className="group cursor-zoom-in mb-4 transition-transform duration-300 hover:-translate-y-1"
-            >
-              <GridImage
-                src={getImageUrl(photo.id, "w600")}
-                alt={`Foto ${index + 1}`}
-                priority={index < QTD_FOTO_EXIBIDAS}
-              />
-            </div>
-          ))}
-        </Masonry>
-
+        {showOnlyFavorites && displayedPhotos.length === 0 ? (
+          <div className="text-center py-20 text-[#D4AF37]">
+            <p className="italic font-serif text-lg">Você ainda não selecionou nenhuma foto favorita.</p>
+            <button onClick={() => setShowOnlyFavorites(false)} className="mt-4 underline text-sm uppercase tracking-tighter">Voltar para a galeria completa</button>
+          </div>
+        ) : (
+          <Masonry
+            key={masonryKey}
+            breakpointCols={breakpointColumnsObj}
+            className="my-masonry-grid"
+            columnClassName="my-masonry-grid_column"
+          >
+            {displayedPhotos.slice(0, displayLimit).map((photo: any, index: number) => (
+              <div
+                key={photo.id}
+                onClick={() => setSelectedPhotoIndex(photos.indexOf(photo))}
+                className="group cursor-zoom-in mb-4 transition-transform duration-300 hover:-translate-y-1"
+              >
+                <GridImage
+                  src={getImageUrl(photo.id, "w600")}
+                  alt={`Foto ${index + 1}`}
+                  priority={index < QTD_FOTO_EXIBIDAS}
+                />
+              </div>
+            ))}
+          </Masonry>
+        )}
       </div>
-      {/* INDICADOR DE CARREGAMENTO */}
-      {displayLimit < photos.length && (
+
+      {/* 4. INDICADOR DE CARREGAMENTO */}
+      {displayLimit < displayedPhotos.length && (
         <div className="flex justify-center py-20 w-full">
           <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-[#F3E5AB]" />
         </div>
       )}
 
-      {/* LIGHTBOX */}
+      {/* 5. LIGHTBOX */}
       {selectedPhotoIndex !== null && photos.length > 0 && (
         <Lightbox
           photos={photos}
@@ -285,7 +320,10 @@ export default function PhotoGrid({ photos, galeria }: any) {
           galleryTitle={galeria.title}
           galeria={galeria}
           location={galeria.location || ""}
-          onClose={() => setSelectedPhotoIndex(null)}
+          onClose={() => {
+            setSelectedPhotoIndex(null);
+            refreshFavorites(); // Força a barra a atualizar ao fechar
+          }}
           onNext={() => setSelectedPhotoIndex((selectedPhotoIndex + 1) % photos.length)}
           onPrev={() => setSelectedPhotoIndex((selectedPhotoIndex - 1 + photos.length) % photos.length)}
         />
