@@ -43,6 +43,8 @@ interface GaleriaInputCreate {
   coverFileId: string;
   isPublic: boolean;
   password?: string | null;
+  category: string; // ex: "esporte", "casamento"
+  has_contracting_client: boolean; // define se há um cliente pagador
 }
 
 interface GaleriaInputUpdate {
@@ -54,6 +56,8 @@ interface GaleriaInputUpdate {
   clientWhatsapp?: string;
   isPublic: boolean | string;
   password?: string | null;
+  category?: string | null;
+  has_contracting_client?: boolean | null;
 }
 
 interface GaleriaRecord {
@@ -70,6 +74,8 @@ interface GaleriaRecord {
   is_public: boolean;
   password: string | null;
   cover_image_url?: string | null;
+  category: string;
+  has_contracting_client: boolean;
   // relacionamento opcional
   tb_profiles?: {
     username: string;
@@ -230,6 +236,9 @@ export async function createGaleria(formData: FormData): Promise<ActionResult> {
   const title = (formData.get("title") as string) || "";
   const dateStr = (formData.get("date") as string) || "";
   const location = (formData.get("location") as string) || "";
+  const category = (formData.get("category") as string) || "";
+  const hasContractingClient =
+    (formData.get("has_contracting_client") as string) === "true";
 
   // Pegando os nomes corretos definidos no handleSubmit do componente
   const driveFolderId = (formData.get("drive_folder_id") as string) || "";
@@ -298,6 +307,8 @@ export async function createGaleria(formData: FormData): Promise<ActionResult> {
       is_public: isPublic,
       password: isPublic ? null : password || null,
       cover_image_url: coverFileId,
+      category,
+      has_contracting_client: hasContractingClient,
     });
 
     if (error) throw error;
@@ -351,23 +362,26 @@ export async function updateGaleria(
     const updates = {
       title,
       client_name: clientName,
-      client_whatsapp: (formData.get("client_whatsapp") as string)?.replace(/\D/g, "") || null,
+      client_whatsapp:
+        (formData.get("client_whatsapp") as string)?.replace(/\D/g, "") || null,
       date: new Date(formData.get("date") as string).toISOString(),
       location: formData.get("location") as string,
       drive_folder_id: driveFolderId,
       drive_folder_name: formData.get("drive_folder_name") as string, // era driveFolderName
       cover_image_url: formData.get("cover_image_url") as string, // era coverFileId
       is_public: formData.get("is_public") === "true", // era isPublic
+      category: (formData.get("category") as string) || "esporte",
+      has_contracting_client: formData.get("has_contracting_client") as string,
     };
 
     // Lógica da senha: só atualiza se for enviado algo no campo password
     const newPassword = formData.get("password") as string;
     if (formData.get("is_public") === "true") {
-       (updates as any).password = null;
+      (updates as any).password = null;
     } else if (newPassword && newPassword.trim() !== "") {
-       (updates as any).password = newPassword;
+      (updates as any).password = newPassword;
     }
-    // Se is_public for false e password for nulo/vazio, o Supabase mantém a senha antiga 
+    // Se is_public for false e password for nulo/vazio, o Supabase mantém a senha antiga
     // porque não incluímos o campo 'password' no objeto 'updates'.
 
     const { error } = await supabase

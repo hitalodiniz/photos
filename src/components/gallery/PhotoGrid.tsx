@@ -1,47 +1,75 @@
 'use client';
-
 import React, { useState, useEffect } from 'react';
 import Masonry from 'react-masonry-css';
-import Lightbox from './Lightbox';
-import JSZip from 'jszip';
+import { Lightbox, PhotographerAvatar } from '@/components/gallery';
+import { Camera, Image as ImageIcon, Calendar, MapPin, Download, User } from 'lucide-react';
 import { saveAs } from 'file-saver';
-import { Camera, Image as ImageIcon, Calendar, MapPin, Download } from 'lucide-react';
+import JSZip from 'jszip';
 
-// Sub-componente para gerenciar o Lazy Loading com efeito Blur-up
-const GridImage = ({ src, alt }: { src: string; alt: string }) => {
+
+
+// Sub-componente otimizado para evitar o "piscar"
+const GridImage = ({ src, alt, priority }: { src: string; alt: string; priority?: boolean }) => {
   const [isLoaded, setIsLoaded] = useState(false);
+  const imgRef = React.useRef<HTMLImageElement>(null);
+
+  // Forçar verificação de cache na montagem
+  useEffect(() => {
+    if (imgRef.current?.complete) {
+      setIsLoaded(true);
+    }
+  }, []);
 
   return (
-    <div className="relative w-full h-auto overflow-hidden rounded-2xl bg-slate-100">
+    <div className={`relative w-full h-auto overflow-hidden rounded-2xl transition-colors duration-300 ${isLoaded ? 'bg-transparent' : 'bg-[#FFF9F0]'}`}>
       <img
+        ref={imgRef}
         src={src}
         alt={alt}
         onLoad={() => setIsLoaded(true)}
+        /* REMOVIDO opacity-0: Agora a imagem começa com 1 mas borrada */
         className={`
-          w-full h-auto object-cover rounded-2xl transition-all duration-700 ease-in-out
-          ${isLoaded ? 'blur-0 scale-100 opacity-100' : 'blur-xl scale-110 opacity-0'}
+          w-full h-auto object-cover rounded-2xl transition-all duration-300 ease-out
+          ${isLoaded ? 'blur-0 scale-100' : 'blur-md scale-105 opacity-30'}
         `}
-        loading="lazy"
+        /* Forçar prioridade para as primeiras 24 fotos */
+        loading={priority ? "eager" : "lazy"}
       />
-      {/* Overlay suave de interação */}
-      <div className="absolute inset-0 bg-black/0 group-hover:bg-black/10 transition-colors pointer-events-none" />
     </div>
   );
 };
 
-interface PhotoGridProps {
-  photos: any[];
-  galeria: {
-    title: string;
-    date: string;
-    location?: string;
-    is_public: boolean;
-  };
-}
+export default function PhotoGrid({ photos, galeria }: any) {
+  const QTD_FOTO_EXIBIDAS = 24;
+  const getCurrentColumns = () => {
+    const width = window.innerWidth;
 
-export default function PhotoGrid({ photos, galeria }: PhotoGridProps) {
+    if (width >= 1536) return 4;
+    if (width >= 1280) return 3;
+    if (width >= 1024) return 2;
+    return 1;
+  };
+
+  const normalizeLimit = (limit: number, cols: number) =>
+    Math.ceil(limit / cols) * cols;
+
+  const [displayLimit, setDisplayLimit] = useState(() => {
+    if (typeof window === 'undefined') return QTD_FOTO_EXIBIDAS;
+    const cols = getCurrentColumns();
+    return normalizeLimit(QTD_FOTO_EXIBIDAS, cols);
+  });
+
+
+const [masonryKey, setMasonryKey] = useState(0);
+
+useEffect(() => {
+  // só recria quando realmente adiciona fotos
+  if (displayLimit > QTD_FOTO_EXIBIDAS) {
+    setMasonryKey(prev => prev + 1);
+  }
+}, [displayLimit]);
+
   const [selectedPhotoIndex, setSelectedPhotoIndex] = useState<number | null>(null);
-  const [displayLimit, setDisplayLimit] = useState(12);
   const [isDownloading, setIsDownloading] = useState(false);
   const [downloadProgress, setDownloadProgress] = useState(0);
 
@@ -52,10 +80,11 @@ export default function PhotoGrid({ photos, galeria }: PhotoGridProps) {
   const isVeryHeavy = totalSizeMB > 500;
 
   const breakpointColumnsObj = {
-    default: 3,
-    1100: 3,
-    700: 2,
-    500: 1
+    default: 4,    // 4 colunas em telas muito grandes
+    1536: 3,       // 2xl
+    1280: 3,       // xl
+    1024: 2,       // lg
+    768: 1         // md/sm
   };
 
   const getImageUrl = (photoId: string, suffix: string = "w400") => {
@@ -73,7 +102,7 @@ export default function PhotoGrid({ photos, galeria }: PhotoGridProps) {
       const downloadPromises = photos.map(async (photo, index) => {
         const fileId = typeof photo === 'string' ? photo : photo.id;
         const url = `https://lh3.googleusercontent.com/d/${fileId}=s0`;
-        
+
         try {
           const response = await fetch(url);
           if (!response.ok) throw new Error("Erro na rede");
@@ -104,7 +133,7 @@ export default function PhotoGrid({ photos, galeria }: PhotoGridProps) {
     }
   };
 
-  // ✅ INFINITE SCROLL ESTABILIZADO (600px de threshold)
+  // INFINITE SCROLL COM THRESHOLD ANTECIPADO
   useEffect(() => {
     let isThrottled = false;
 
@@ -112,25 +141,39 @@ export default function PhotoGrid({ photos, galeria }: PhotoGridProps) {
       if (isThrottled || displayLimit >= photos.length) return;
 
       const scrollHeight = document.documentElement.scrollHeight;
-      const scrollTop = document.documentElement.scrollTop || window.pageYOffset;
+      const scrollTop = window.scrollY;
       const clientHeight = window.innerHeight;
 
-      if (scrollTop + clientHeight >= scrollHeight - 600) {
+      if (scrollTop + clientHeight >= scrollHeight - 1000) {
         isThrottled = true;
-        setDisplayLimit((prev) => Math.min(prev + 12, photos.length));
-        setTimeout(() => { isThrottled = false; }, 250);
+
+        setDisplayLimit(prev => {
+          const cols = getCurrentColumns();
+
+          // carrega sempre linhas completas
+          const next = prev + cols * 3;
+
+          return Math.min(
+            normalizeLimit(next, cols),
+            photos.length
+          );
+        });
+
+        setTimeout(() => {
+          isThrottled = false;
+        }, 200);
       }
     };
 
     window.addEventListener('scroll', handleScroll, { passive: true });
     return () => window.removeEventListener('scroll', handleScroll);
-  }, [photos.length, displayLimit]);
+  }, [displayLimit, photos.length]);
+
 
   if (!photos || photos.length === 0) return null;
 
   return (
-    <div className="w-full flex flex-col items-center gap-12 min-h-screen pb-20">
-      
+    <div className="w-full flex flex-col items-center gap-12 min-h-screen pb-20">     
       {/* BARRA DE INFORMAÇÕES EDITORIAL */}
       <div className="flex flex-col md:flex-row items-center justify-center gap-4 
       md:gap-6 bg-black/45 backdrop-blur-lg p-5 md:p-2.5 md:px-6 rounded-[2.5rem] md:rounded-full border border-white/10 
@@ -200,28 +243,30 @@ export default function PhotoGrid({ photos, galeria }: PhotoGridProps) {
         </div>
       </div>
 
-      {/* GRID MASONRY COM LAZY LOADING PROGRESSIVO */}
-      <div className="w-full px-4 max-w-[1600px]">
-        <Masonry
-          breakpointCols={breakpointColumnsObj}
-          className="flex w-auto -ml-4"
-          columnClassName="pl-4 bg-clip-padding"
-        >
-          {photos.slice(0, displayLimit).map((photo, index) => (
-            <div
-              key={photo.id || `photo-${index}`}
-              onClick={() => setSelectedPhotoIndex(index)}
-              className="group cursor-zoom-in mb-4 transition-transform duration-300 hover:-translate-y-1"
-            >
-              <GridImage 
-                src={getImageUrl(photo.id, "w400")} 
-                alt={`Foto ${index + 1} - ${galeria.title}`} 
-              />
-            </div>
-          ))}
-        </Masonry>
-      </div>
+      {/* GRID MASONRY */}
+      <div className="w-full max-w-[1600px] mx-auto px-4 md:px-8">
+<Masonry
+  key={masonryKey}
+  breakpointCols={breakpointColumnsObj}
+  className="my-masonry-grid"
+  columnClassName="my-masonry-grid_column"
+>
+  {photos.slice(0, displayLimit).map((photo: any, index: number) => (
+    <div
+      key={photo.id} // ❗ NUNCA use index aqui
+      onClick={() => setSelectedPhotoIndex(index)}
+      className="group cursor-zoom-in mb-4 transition-transform duration-300 hover:-translate-y-1"
+    >
+      <GridImage
+        src={getImageUrl(photo.id, "w600")}
+        alt={`Foto ${index + 1}`}
+        priority={index < QTD_FOTO_EXIBIDAS}
+      />
+    </div>
+  ))}
+</Masonry>
 
+      </div>
       {/* INDICADOR DE CARREGAMENTO */}
       {displayLimit < photos.length && (
         <div className="flex justify-center py-20 w-full">
@@ -236,6 +281,7 @@ export default function PhotoGrid({ photos, galeria }: PhotoGridProps) {
           activeIndex={selectedPhotoIndex}
           totalPhotos={photos.length}
           galleryTitle={galeria.title}
+          galeria={galeria}
           location={galeria.location || ""}
           onClose={() => setSelectedPhotoIndex(null)}
           onNext={() => setSelectedPhotoIndex((selectedPhotoIndex + 1) % photos.length)}

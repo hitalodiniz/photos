@@ -50,7 +50,7 @@ export default function AuthErrorPage() {
         {/* Botão voltar */}
         <motion.div whileHover={{ scale: 1.03 }} whileTap={{ scale: 0.97 }}>
           <Link
-            href="/auth/login"
+            href="/"
             className="inline-block w-full bg-[#0B57D0] text-white py-2.5 rounded-lg text-sm font-medium hover:bg-[#0842a4] transition-colors"
           >
             Tentar novamente

@@ -10,4 +10,6 @@ export interface Galeria {
   password: string | null;
   photographer_id?: string;
   photographer_name?: string;
+  has_contracting_client?: string;
+  category?: string
 }

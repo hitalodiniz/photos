@@ -1,4 +1,3 @@
-// src/app/[username]/[...slug]/page.tsx
 import { notFound } from "next/navigation";
 import { cookies } from "next/headers";
 import { createSupabaseServerClientReadOnly } from "@/lib/supabase.server";
@@ -6,21 +5,16 @@ import GaleriaView from "@/components/gallery/GaleriaView";
 import { PasswordPrompt } from "@/components/gallery";
 import { listPhotosFromDriveFolder } from "@/lib/google-drive";
 import { getDriveAccessTokenForUser } from "@/lib/google-auth";
-import type { Galeria } from "@/types/galeria";
 
-type UsernameGaleriaPageProps = {
-  params: Promise<{
-    username: string;
-    slug: string[];
-  }>;
-};
-
-export default async function UsernameGaleriaPage({ params }: UsernameGaleriaPageProps) {
-  const { username, slug } = await params;
+export default async function UsernameGaleriaPage({ params }: { params: Promise<any> }) {
+  // 1. Await params corretamente
+  const resolvedParams = await params;
+  const { username, slug } = resolvedParams;
   const fullSlug = `${username}/${slug.join("/")}`;
+  
   const supabase = await createSupabaseServerClientReadOnly();
 
-  // 1. Busca os dados da galeria E os dados do fotógrafo (JOIN)
+  // 2. Busca com JOIN
   const { data: galeriaRaw, error: galeriaError } = await supabase
     .from("tb_galerias")
     .select(`
@@ -37,81 +31,42 @@ export default async function UsernameGaleriaPage({ params }: UsernameGaleriaPag
     .eq("slug", fullSlug)
     .single();
 
-  if (galeriaError || !galeriaRaw) {
-    console.error("Galeria não encontrada:", fullSlug);
-    notFound();
-  }
+  if (galeriaError || !galeriaRaw) notFound();
 
-  // 2. Mapeamento para garantir que o objeto siga a interface Galeria
-  const galeria: Galeria = {
+  // 3. Serialização Manual: Garanta que passamos APENAS dados
+  const galeriaData = {
     ...galeriaRaw,
-    photographer_name: galeriaRaw.photographer?.full_name,
-    photographer_id: galeriaRaw.photographer?.username,
-    photographer_avatar_url: galeriaRaw.photographer?.profile_picture_url,
-    photographer_phone: galeriaRaw.photographer?.phone_contact,
-    photographer_instagram: galeriaRaw.photographer?.instagram_link,
+    photographer_name: galeriaRaw.photographer?.full_name || "Fotógrafo",
+    photographer_id: galeriaRaw.photographer?.username || username,
+    photographer_avatar_url: galeriaRaw.photographer?.profile_picture_url || null,
+    photographer_phone: galeriaRaw.photographer?.phone_contact || null,
+    photographer_instagram: galeriaRaw.photographer?.instagram_link || null,
   };
 
-  // 3. Verificação de Privacidade e Senha
-  if (!galeria.is_public) {
+  // 4. Verificação de Senha (se houver)
+  if (!galeriaData.is_public) {
     const cookieStore = await cookies();
-    const cookieKey = `galeria-${galeria.id}-auth`;
-    const savedToken = cookieStore.get(cookieKey)?.value;
+    const savedToken = (await cookieStore).get(`galeria-${galeriaData.id}-auth`)?.value;
 
-    if (!savedToken || savedToken !== galeria.password) {
-      return (
-        <PasswordPrompt
-          galeriaTitle={galeria.title}
-          galeriaId={galeria.id}
-          fullSlug={fullSlug}
-        />
-      );
+    if (savedToken !== galeriaData.password) {
+      return <PasswordPrompt galeriaTitle={galeriaData.title} galeriaId={galeriaData.id} fullSlug={fullSlug} />;
     }
   }
 
-  // 4. Busca de fotos no Google Drive usando o ID interno do fotógrafo
+  // 5. Busca de fotos usando o UUID (photographer.id)
   let photos: any[] = [];
-  if (galeria.drive_folder_id && galeriaRaw.photographer?.id) {
-    try {
-      const accessToken = await getDriveAccessTokenForUser(galeriaRaw.photographer.id);
-      if (accessToken) {
-        photos = await listPhotosFromDriveFolder(galeria.drive_folder_id, accessToken);
+  try {
+    const uuid = galeriaRaw.photographer?.id;
+    if (galeriaData.drive_folder_id && uuid) {
+      const token = await getDriveAccessTokenForUser(uuid);
+      if (token) {
+        photos = await listPhotosFromDriveFolder(galeriaData.drive_folder_id, token);
       }
-    } catch (error) {
-      console.error("Erro ao listar fotos do Drive:", error);
     }
+  } catch (e) {
+    console.error("Drive Error:", e);
   }
 
-  return <GaleriaView galeria={galeria} photos={photos} />;
-}
-
-export async function generateMetadata({ params }: UsernameGaleriaPageProps) {
-  const { username, slug } = await params;
-  const fullSlug = `${username}/${slug.join("/")}`;
-  const supabase = await createSupabaseServerClientReadOnly();
-
-  const { data: galeria } = await supabase
-    .from("tb_galerias")
-    .select(`
-      title, 
-      client_name, 
-      cover_image_url,
-      photographer:tb_profiles!user_id (full_name)
-    `)
-    .eq("slug", fullSlug)
-    .single();
-
-  if (!galeria) return { title: "Galeria não encontrada" };
-
-  // Metadata incluindo o nome do fotógrafo para SEO
-  const photographerSuffix = galeria.photographer?.full_name ? ` by ${galeria.photographer.full_name}` : "";
-  const title = `${galeria.title} | ${galeria.client_name}${photographerSuffix}`;
-
-  return {
-    title,
-    description: `Galeria de fotos de ${galeria.client_name}.${photographerSuffix}`,
-    openGraph: {
-      images: galeria.cover_image_url ? [{ url: galeria.cover_image_url }] : [],
-    },
-  };
+  // Passamos objetos puros para o Client Component
+  return <GaleriaView galeria={JSON.parse(JSON.stringify(galeriaData))} photos={photos} />;
 }

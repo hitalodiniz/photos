@@ -3,6 +3,7 @@
 import { authenticateGaleriaAccess } from "@/actions/galeria";
 import React, { useState, useEffect } from 'react';
 import { Camera, Lock } from 'lucide-react';
+import { DynamicHeroBackground } from '@/components/layout';
 
 export default function PasswordPrompt({
   galeriaTitle,
@@ -18,20 +19,7 @@ export default function PasswordPrompt({
   const [isChecking, setIsChecking] = useState(false);
   const [bgImage, setBgImage] = useState('');
 
-  const heroImages = [
-    '/hero-bg-1.jpg', '/hero-bg-2.jpg', '/hero-bg-3.jpg',
-    '/hero-bg-4.jpg', '/hero-bg-5.jpg', '/hero-bg-6.jpg',
-    '/hero-bg-7.jpg', '/hero-bg-8.jpg', '/hero-bg-9.jpg',
-    '/hero-bg-10.jpg', '/hero-bg-11.jpg', '/hero-bg-12.jpg'
-  ];
 
-  useEffect(() => {
-    const randomIndex = Math.floor(Math.random() * heroImages.length);
-    const selectedImage = heroImages[randomIndex];
-    const img = new Image();
-    img.src = selectedImage;
-    img.onload = () => setBgImage(selectedImage);
-  }, []);
 
   const handleCheckPassword = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -47,46 +35,34 @@ export default function PasswordPrompt({
         setError(result.error || "Senha incorreta.");
       }
     } catch (e) {
-      setError("Erro de conexão.");
+      //setError("Erro de conexão.");
     }
     setIsChecking(false);
   };
 
   return (
     <div className="relative min-h-screen w-full flex items-center justify-center overflow-hidden bg-black font-sans px-4">
-      
-      {/* BACKGROUND COM OVERLAY */}
-      <div className="fixed inset-0 z-0">
-        <div
-          className="absolute inset-0 w-full h-full transition-opacity duration-1000"
-          style={{
-            backgroundImage: `linear-gradient(to bottom, rgba(0,0,0,0.85) 0%, rgba(0,0,0,0.5) 50%, rgba(0,0,0,0.9) 100%), url('${bgImage}')`,
-            backgroundSize: 'cover',
-            backgroundPosition: '50% 30%',
-            opacity: bgImage ? 1 : 0
-          }}
-        />
-      </div>
+      <DynamicHeroBackground />
 
       {/* CARD DE ACESSO (ESTILO BARRA CHAMPANHE DO PHOTO GRID) */}
       <div className="relative z-10 w-full max-w-md">
         <div className="bg-black/45 backdrop-blur-lg rounded-[2.5rem] p-8 md:p-12 border border-white/10 shadow-2xl text-center">
-          
+
           {/* ÍCONE DE CÂMERA CHAMPANHE */}
           <div className="mx-auto w-16 h-16 bg-white/5 rounded-full flex items-center justify-center mb-6 border border-white/10 shadow-[0_0_15px_rgba(243,229,171,0.1)]">
-             <Camera className="text-[#F3E5AB] w-8 h-8 drop-shadow-[0_0_8px_rgba(243,229,171,0.4)]" />
+            <Camera className="text-[#F3E5AB] w-8 h-8 drop-shadow-[0_0_8px_rgba(243,229,171,0.4)]" />
           </div>
 
           {/* TÍTULO DA GALERIA SERIFADO */}
-          <h1 
+          <h1
             className="text-2xl md:text-3xl font-bold text-white mb-2 italic leading-tight drop-shadow-lg pb-4"
             style={{ fontFamily: "'Playfair Display', serif" }}
           >
             {galeriaTitle}
           </h1>
-          
+
           <form onSubmit={handleCheckPassword} className="space-y-8">
-            
+
             {/* ESTRUTURA LABEL + INPUT */}
             <div className="text-left">
 
@@ -100,9 +76,9 @@ export default function PasswordPrompt({
                 maxLength={8}
                 required
                 className="w-full rounded-2xl border 
-                border-white/10 bg-black/20 p-4 text-white placeholder-white/20 
+                border-white/10 bg-black/20 p-4 text-white  
                 focus:ring-2 focus:ring-[#F3E5AB] focus:bg-black/40 transition-all 
-                outline-none text-center text-2x1 tracking-[0.5em]"
+                outline-none text-center text-2x1 tracking-[0.2em]"
               />
             </div>
 
@@ -133,9 +109,9 @@ export default function PasswordPrompt({
           </form>
 
           {/* RODAPÉ DISCRETO */}
-          <div className="mt-12 opacity-20 flex flex-col items-center gap-3">
+          <div className="mt-12 opacity-80 flex flex-col items-center gap-3">
             <div className="w-10 h-[1px] bg-white"></div>
-            <p className="text-[12px] text-white tracking-[0.6em] font-medium">
+            <p className="text-[12px] text-white tracking-[0.2em] font-medium">
               Acesso exclusivo
             </p>
           </div>

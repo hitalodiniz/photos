@@ -1,6 +1,8 @@
 'use client';
 import React, { useEffect, useState } from 'react';
 import { X, ChevronLeft, ChevronRight, Download, MessageCircle, Loader2, Camera, MapPin } from 'lucide-react';
+import PhotographerAvatar from './PhotographerAvatar'; // Importação do componente
+import type { Galeria } from '@/types/galeria';
 
 interface Photo {
     id: string | number;
@@ -12,6 +14,7 @@ interface LightboxProps {
     totalPhotos: number;
     galleryTitle: string;
     location: string;
+    galeria: Galeria; 
     onClose: () => void;
     onNext: () => void;
     onPrev: () => void;
@@ -23,6 +26,7 @@ export default function Lightbox({
     totalPhotos,
     galleryTitle,
     location,
+    galeria,
     onClose,
     onNext,
     onPrev
@@ -55,11 +59,12 @@ export default function Lightbox({
     if (!photos || !photos[activeIndex]) return null;
     const photo = photos[activeIndex];
 
-    // URLs
-    const getImageUrl = (photoId: string | number, suffix: string = "w400") => 
+    // CORREÇÃO CRÍTICA: Adicionado o "$" para interpolação correta da variável
+    const getImageUrl = (photoId: string | number, suffix: string = "w1000") =>        
         `https://lh3.googleusercontent.com/d/${photoId}=${suffix}`;
 
-    const getHighResImageUrl = (photoId: string | number) => 
+
+    const getHighResImageUrl = (photoId: string | number) =>
         `https://lh3.googleusercontent.com/d/${photoId}=s0`;
 
     const currentUrl = getImageUrl(photo.id);
@@ -87,34 +92,28 @@ export default function Lightbox({
         };
     }, [onClose, onNext, onPrev]);
 
-    // Ações: WhatsApp e Download
-    // Função de Compartilhar (Tenta enviar o ARQUIVO no celular)
     const handleShareWhatsApp = async () => {
         const highResUrl = getHighResImageUrl(photo.id);
         const shareText = `Confira esta foto da galeria "${galleryTitle}"`;
         const isMobile = /iPhone|iPad|iPod|Android/i.test(navigator.userAgent);
 
-        if (isMobile && navigator.share && navigator.canShare) {
+        if (isMobile && navigator.share) {
             try {
                 const response = await fetch(highResUrl);
                 const blob = await response.blob();
                 const file = new File([blob], "foto.jpg", { type: "image/jpeg" });
-                
-                if (navigator.canShare({ files: [file] })) {
-                    await navigator.share({
-                        files: [file],
-                        title: galleryTitle,
-                        text: shareText
-                    });
-                    return;
-                }
+
+                await navigator.share({
+                    files: [file],
+                    title: galleryTitle,
+                    text: shareText
+                });
+                return;
             } catch (e) {
                 console.error("Erro ao compartilhar arquivo:", e);
             }
         }
-        
-        // Fallback Desktop: Envia o link direto
-        const whatsappUrl = `https://api.whatsapp.com/send?text=${encodeURIComponent(shareText + ": " + highResUrl + "&img=.jpg")}`;
+        const whatsappUrl = `https://api.whatsapp.com/send?text=${encodeURIComponent(shareText + ": " + highResUrl)}`;
         window.open(whatsappUrl, '_blank');
     };
 
@@ -144,8 +143,8 @@ export default function Lightbox({
             onTouchEnd={onTouchEnd}
         >
             <div className="fixed inset-0 z-[9999] flex flex-col bg-black animate-in fade-in duration-300 select-none">
-                
-                {/* BARRA SUPERIOR - z-[70] e pointer-events-none */}
+
+                {/* BARRA SUPERIOR */}
                 <div className="absolute top-0 left-0 right-0 flex flex-row items-center justify-between p-4 md:px-14 md:py-8 text-white/90 z-[70] bg-gradient-to-b from-black/90 via-black/40 to-transparent pointer-events-none">
                     <div className="flex items-center gap-4 pointer-events-auto">
                         <div className="flex-shrink-0 flex items-center justify-center w-10 h-10 md:w-12 md:h-12 border border-[#F3E5AB]/30 rounded-full bg-black/20 backdrop-blur-md">
@@ -162,35 +161,36 @@ export default function Lightbox({
                         </div>
                     </div>
 
-                    {/* BOTÕES DE AÇÃO - pointer-events-auto */}
+                    {/* BOTÕES DE AÇÃO */}
                     <div className="flex items-center gap-2 md:gap-4 bg-black/40 backdrop-blur-xl p-1.5 px-3 md:p-2 md:px-6 rounded-full border border-white/10 shadow-2xl pointer-events-auto">
-                        <button onClick={handleShareWhatsApp}>
-                            <MessageCircle size={20} className="group-hover:scale-110 transition-transform" />
-                            <span className="text-[10px] font-bold uppercase tracking-wider">WhatsApp</span>
+                        <button onClick={handleShareWhatsApp} className="flex flex-col items-center hover:text-[#F3E5AB] transition-colors">
+                            <MessageCircle size={20} />
+                            <span className="hidden md:block text-[10px] font-bold uppercase tracking-wider">WhatsApp</span>
                         </button>
 
                         <div className="w-[1px] h-4 bg-white/10" />
 
-                        <button onClick={handleDownload}>
-                            {isDownloading ? <Loader2 size={18} className="animate-spin text-[#F3E5AB]" /> : <Download size={18} className="group-hover:translate-y-0.5 transition-transform" />}
-                            <span className="text-[10px] font-bold uppercase tracking-wider">
-                                {isDownloading ? "Processando..." : "Alta Resolução"}
+                        <button onClick={handleDownload} className="flex flex-col items-center hover:text-[#F3E5AB] transition-colors">
+                            {isDownloading ? <Loader2 size={18} className="animate-spin text-[#F3E5AB]" /> : <Download size={18} />}
+                            <span className="hidden md:block text-[10px] font-bold uppercase tracking-wider">
+                                {isDownloading ? "Processando..." : "Download"}
                             </span>
                         </button>
 
                         <div className="w-[1px] h-4 bg-white/10" />
 
-                        <button onClick={onClose}>
+                        <button onClick={onClose} className="hover:text-red-400 transition-colors">
                             <X size={24} />
                         </button>
                     </div>
                 </div>
 
-                {/* ÁREA CENTRAL - w-full e max-h-full para ocupar tudo horizontalmente */}
+                {/* ÁREA CENTRAL */}
                 <div className="relative w-full h-full flex items-center justify-center overflow-hidden bg-black">
                     <button
                         onClick={onPrev}
-                        className="absolute left-0 z-50 h-full px-6 text-white/10 hover:text-[#F3E5AB] hover:bg-black/10 transition-all hidden md:block"
+                        disabled={activeIndex === 0}
+                        className="absolute left-0 z-50 h-full px-6 text-white/10 hover:text-[#F3E5AB] hover:bg-black/10 transition-all hidden md:block disabled:opacity-0"
                     >
                         <ChevronLeft size={64} strokeWidth={1} />
                     </button>
@@ -207,13 +207,7 @@ export default function Lightbox({
                             src={currentUrl}
                             alt="Visualização"
                             onLoad={() => setIsImageLoading(false)}
-                            /* AJUSTE AQUI: 
-                               w-full: Garante que fotos horizontais ocupem toda a largura.
-                               max-h-full: Garante que fotos verticais não ultrapassem a altura da tela.
-                               object-contain: Mantém a proporção sem cortar a imagem.
-                            */
-                            className={`w-full max-h-full object-contain transition-all duration-700 ease-out ${isImageLoading ? 'opacity-0 scale-95 blur-md' : 'opacity-100 scale-100 blur-0'
-                                }`}
+                            className={`w-full max-h-full object-contain transition-all duration-700 ease-out ${isImageLoading ? 'opacity-0 scale-95 blur-md' : 'opacity-100 scale-100 blur-0'}`}
                         />
                     </div>
 
@@ -227,12 +221,14 @@ export default function Lightbox({
                 </div>
 
                 {/* RODAPÉ */}
-                <div className="absolute bottom-6 right-6 md:bottom-10 md:right-14 z-50 pointer-events-none">
-                    <p className="text-white/60 text-sm italic font-serif">
+                <div className="absolute bottom-6 left-6 md:bottom-10 md:left-14 z-50 pointer-events-none">
+                    <p className="text-white/60 text-base md:text-[20px] italic font-serif">
                         Foto <span className="text-white font-medium">{activeIndex + 1}</span> de {totalPhotos}
                     </p>
                 </div>
             </div>
+            {/* Componente de Avatar integrado no final do modal */}
+            <PhotographerAvatar galeria={galeria} position="bottom-lightbox" />
         </div>
     );
 }

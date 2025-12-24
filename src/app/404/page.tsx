@@ -39,7 +39,7 @@ export default function NotFoundPage() {
             Voltar para a página inicial
           </Link>
           <Link
-            href="/auth/login"
+            href="/"
             className="inline-block w-full text-xs text-[#444746] hover:text-[#0B57D0] transition-colors"
           >
             Ir para a área de login

@@ -1,12 +1,9 @@
-// src/app/onboarding/UserMenu.tsx
-
 'use client';
 
 import React, { useState, useRef, useEffect } from 'react';
 import Link from 'next/link';
 import Image from 'next/image';
 
-// Adicione o novo prop: avatarUrl
 export default function UserMenu({
     session,
     handleLogout,
@@ -17,22 +14,17 @@ export default function UserMenu({
     avatarUrl?: string | null
 }) {
     const [isOpen, setIsOpen] = useState(false);
-    const menuRef = useRef(null);
+    const [isLoggingOut, setIsLoggingOut] = useState(false);
+    const menuRef = useRef<HTMLDivElement>(null);
 
     const userEmail = session.user.email || 'Usuário';
-    
-    // Tenta obter o full_name ou usa o nome antes do @ do email como fallback
     const fullName = session.user.user_metadata?.full_name || userEmail.split('@')[0];
-    
-    avatarUrl = avatarUrl || session.user.user_metadata?.avatar_url || null;
-
-    // Obtém a primeira letra do nome completo para o fallback
+    const displayAvatar = avatarUrl || session.user.user_metadata?.avatar_url || null;
     const initialLetter = fullName.charAt(0).toUpperCase();
 
-    // Lógica para fechar o menu (sem alteração)
     useEffect(() => {
         const handleClickOutside = (event: MouseEvent) => {
-            if (menuRef.current && !(menuRef.current as HTMLElement).contains(event.target as Node)) {
+            if (menuRef.current && !menuRef.current.contains(event.target as Node)) {
                 setIsOpen(false);
             }
         };
@@ -40,107 +32,120 @@ export default function UserMenu({
         return () => document.removeEventListener("mousedown", handleClickOutside);
     }, []);
 
-    const handleMenuItemClick = () => {
-        setIsOpen(false);
+    const onLogoutClick = async () => {
+        setIsLoggingOut(true);
+        try {
+            await handleLogout();
+        } catch (error) {
+            setIsLoggingOut(false);
+            console.error("Erro ao sair:", error);
+        }
     };
 
-    // Estilos Google (Ajustados)
-    const avatarClass = "relative w-9 h-9 rounded-full cursor-pointer bg-[#D9E3F5] text-[#0B57D0] flex items-center justify-center font-semibold transition-shadow duration-150 hover:shadow-md overflow-hidden";
-    const popoverClass = "absolute right-0 mt-2 w-64 bg-white rounded-xl shadow-2xl py-2 z-50"; 
-    const menuItemClass = "w-full flex items-center gap-3 px-6 py-2.5 text-sm text-[#1F1F1F] font-medium hover:bg-[#F0F0F0] rounded-none transition-colors cursor-pointer";
-    const menuItemDangerClass = "w-full flex items-center gap-3 px-6 py-2.5 text-sm text-[#B3261E] font-medium hover:bg-[#F0F0F0] rounded-none transition-colors cursor-pointer";
-
-    // Função auxiliar para renderizar o Avatar com Borda Colorida
-    const renderAvatar = (sizeClass: string, textClass: string, hasBorder: boolean = false) => {
-        // Define as classes de borda colorida do Google (simplificadas)
-        const avatarContainerClasses = hasBorder ? "border-4 border-[#DADCE0]" : "border-none"; 
+    const renderAvatarContent = (sizeClass: string, textClass: string, isLarge: boolean = false) => {
+        // Borda estilo Onboarding: sutilmente dourada quando em destaque
+        const borderStyle = isLarge ? "border-2 border-[#F3E5AB]" : "border border-[#F3E5AB]/50";
         
-        // Se houver um URL de avatar válido, renderiza o Image
-        if (avatarUrl) {
+        if (displayAvatar) {
             return (
-                <div className={`${sizeClass} rounded-full overflow-hidden relative flex-shrink-0 ${hasBorder ? avatarContainerClasses : ''}`}>
+                <div className={`${sizeClass} rounded-full overflow-hidden relative flex-shrink-0 ${borderStyle} shadow-sm transition-all duration-300`}>
                     <Image
-                        src={avatarUrl}
-                        alt="Avatar do Usuário"
+                        src={displayAvatar}
+                        alt="Avatar"
                         fill
-                        style={{ objectFit: 'cover' }}
-                        sizes={sizeClass} 
-                        priority={true} 
+                        className="object-cover"
+                        sizes="100px"
+                        priority
                     />
                 </div>
             );
         }
-        // Caso contrário, retorna a letra inicial como fallback
         return (
-            <div className={`${sizeClass} rounded-full bg-[#0B57D0] text-white flex items-center justify-center ${textClass} ${hasBorder ? avatarContainerClasses : ''}`}>
+            <div className={`${sizeClass} rounded-full bg-[#0B57D0] text-white flex items-center justify-center ${textClass} font-semibold ${borderStyle} shadow-sm`}>
                 {initialLetter}
             </div>
         );
     };
 
-
     return (
-        <div className="ml-auto" >
+        <div className="ml-auto">
             <div className="relative" ref={menuRef}>
-                {/* Botão Avatar (Gatilho) */}
-                <div className={avatarClass} onClick={() => setIsOpen(!isOpen)} title={userEmail}>
-                    {/* CHAMA A FUNÇÃO AQUI para renderizar o Avatar no botão */}
-                    {renderAvatar("w-9 h-9", "text-base font-semibold")}
-                </div>
+                {/* Botão Gatilho - Segue o padrão de botões globais com active:scale-95 */}
+                <button 
+                    onClick={() => setIsOpen(!isOpen)}
+                    className="relative p-0.5 rounded-full hover:bg-[#F3E5AB]/20 transition-all duration-200 focus:outline-none focus:ring-2 focus:ring-[#D4AF37]/40 active:scale-95 disabled:opacity-50"
+                    disabled={isLoggingOut}
+                >
+                    {renderAvatarContent("w-10 h-10", "text-sm")}
+                </button>
 
-                {/* Menu Dropdown */}
+                {/* Popover Estilo Google Onboarding */}
                 {isOpen && (
-                    <div className={popoverClass}>
-
-                        {/* 1. SEÇÃO DE INFORMAÇÕES DO USUÁRIO (Estilo Google) */}
-                        <div className="flex flex-col items-center px-6 pt-2 pb-4">
-                            {/* CHAMA A FUNÇÃO AQUI para renderizar o Avatar grande no cabeçalho */}
-                            {renderAvatar("w-20 h-20 mb-3", "text-2xl font-bold", true)} 
+                    <div className="absolute right-0 mt-3 w-72 bg-white rounded-[28px] shadow-[0_12px_40px_rgba(212,175,55,0.15)] border border-[#F3E5AB]/40 py-5 z-[100] animate-in fade-in zoom-in-95 duration-200">
+                        
+                        <div className="flex flex-col items-center px-6 pb-4">
+                            <span className="text-[10px] font-bold text-[#D4AF37] uppercase tracking-[0.2em] mb-4">Sua Conta</span>
                             
-                            {/* Email no topo, como no Google (hitalodiniz@gmail.com) */}
-                            <p className="text-sm text-[#444746] mb-0.5">{userEmail}</p>
+                            {/* Avatar Central com borda reforçada */}
+                            <div className="mb-3 p-1 rounded-full bg-white shadow-sm ring-1 ring-[#F3E5AB]">
+                                {renderAvatarContent("w-20 h-20", "text-3xl", true)}
+                            </div>
 
-                            {/* Nome Completo como saudação (Olá, Hitalo!) */}
-                            <p className="text-2xl font-normal text-[#1F1F1F] mb-4">Olá, {fullName.split(' ')[0]}!</p>
+                            <p className="text-base font-semibold text-[#1F1F1F] truncate w-full text-center">
+                                {fullName}
+                            </p>
+                            <p className="text-sm text-gray-500 mb-6 truncate w-full text-center font-normal">
+                                {userEmail}
+                            </p>
                             
-                            {/* Botão de Ação "Gerenciar/Editar Perfil" */}
+                            {/* Botão Segue Padrão Global do Onboarding */}
                             <Link 
                                 href="/onboarding" 
-                                onClick={handleMenuItemClick}
-                                className="inline-flex items-center justify-center h-10 px-4 text-sm font-medium text-[#0B57D0] border border-[#DADCE0] rounded-full hover:bg-[#F0F0F0] transition-colors whitespace-nowrap"
+                                onClick={() => setIsOpen(false)}
+                                className="btn-primary text[10px]"
                             >
-                                Gerenciar seu Perfil
+                                Gerenciar conta
                             </Link>
-
                         </div>
                         
-                        {/* Linha Divisória Fina */}
-                        <div className="my-2 border-t border-[#E0E0E0]"></div>
+                        <div className="mx-6 border-t border-[#F3E5AB]/20 my-2"></div>
 
-                        {/* 2. ITEM: SAIR (Logout) */}
-                        <button
-                            onClick={handleLogout}
-                            className={menuItemClass}
-                        >
-                            {/* ÍCONE SVG: Sair (Door + Arrow) */}
-                            <svg
-                                className="w-5 h-5 text-[#444746]"
-                                fill="none"
-                                stroke="currentColor"
-                                viewBox="0 0 24 24"
-                                strokeWidth="2"
-                                strokeLinecap="round"
-                                strokeLinejoin="round"
+                        <div className="px-3">
+                            <button
+                                onClick={onLogoutClick}
+                                disabled={isLoggingOut}
+                                className={`w-full flex items-center gap-3 px-5 py-3.5 text-sm font-bold rounded-2xl transition-all group ${
+                                    isLoggingOut 
+                                    ? 'bg-gray-50 text-gray-400 cursor-not-allowed' 
+                                    : 'text-[#B3261E] hover:bg-red-50'
+                                }`}
                             >
-                                <path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"></path>
-                                <polyline points="16 17 21 12 16 7"></polyline>
-                                <line x1="21" y1="12" x2="9" y2="12"></line>
-                            </svg>
-                            Sair da conta
-                        </button>
+                                {isLoggingOut ? (
+                                    <div className="animate-spin rounded-full h-4 w-4 border-2 border-gray-300 border-t-red-600 mr-1"></div>
+                                ) : (
+                                    <div className="p-1.5 rounded-lg bg-red-50 group-hover:bg-red-100 transition-colors">
+                                        <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M17 16l4-4m0 0l-4-4m4 4H7m6 4v1a3 3 0 01-3 3H6a3 3 0 01-3-3V7a3 3 0 013-3h4a3 3 0 013 3v1" />
+                                        </svg>
+                                    </div>
+                                )}
+                                {isLoggingOut ? 'Saindo da conta...' : 'Sair da conta'}
+                            </button>
+                        </div>
+
+                        <div className="px-6 pt-4 flex justify-center gap-5 text-[10px] font-bold text-gray-400 uppercase tracking-widest">
+                            <Link href="#" className="hover:text-[#D4AF37] transition-colors">Privacidade</Link>
+                            <Link href="#" className="hover:text-[#D4AF37] transition-colors">Termos</Link>
+                        </div>
                     </div>
                 )}
             </div>
-        </div >
+            
+            {isLoggingOut && (
+                <div className="fixed bottom-8 left-1/2 -translate-x-1/2 z-[110] bg-[#1F1F1F] text-[#FDF8E7] px-8 py-3.5 rounded-full text-xs font-bold shadow-2xl animate-in slide-in-from-bottom-4 border border-[#D4AF37]/30 tracking-widest uppercase">
+                    Encerrando sessão com segurança
+                </div>
+            )}
+        </div>
     );
 }

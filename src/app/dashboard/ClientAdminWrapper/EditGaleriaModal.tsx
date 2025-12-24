@@ -3,8 +3,9 @@
 import { useState, useEffect } from "react";
 import { updateGaleria } from "@/actions/galeria";
 import { maskPhone } from "@/utils/masks";
-import {GooglePickerButton} from "@/components/google-drive";
-import { X, Camera, User, Type, Calendar, MapPin, FolderSync, Lock, Unlock, Loader2 } from "lucide-react";
+import { GooglePickerButton } from "@/components/google-drive";
+import { CategorySelect } from "@/components/gallery"; // Importação do novo componente
+import { X, Camera, User, Type, Calendar, MapPin, FolderSync, Lock, Unlock, Loader2, Briefcase, MessageCircle } from "lucide-react";
 import type { Galeria } from "./types";
 
 interface EditGaleriaModalProps {
@@ -19,6 +20,8 @@ export default function EditGaleriaModal({ galeria, isOpen, onClose, onSuccess }
     const [errorMessage, setErrorMessage] = useState<string | null>(null);
     const [isPublic, setIsPublic] = useState(true);
     const [clientWhatsapp, setClientWhatsapp] = useState("");
+    const [category, setCategory] = useState("");
+    const [hasContractingClient, setHasContractingClient] = useState(true);
 
     const [formData, setFormData] = useState({
         drive_folder_id: "",
@@ -31,6 +34,8 @@ export default function EditGaleriaModal({ galeria, isOpen, onClose, onSuccess }
             setIsPublic(galeria.is_public);
             const initialPhone = galeria.client_whatsapp || "";
             setClientWhatsapp(maskPhone({ target: { value: initialPhone } } as any));
+            setCategory(galeria.category || "");
+            setHasContractingClient(galeria.has_contracting_client ?? true);
 
             setFormData({
                 drive_folder_id: galeria.drive_folder_id || "",
@@ -70,27 +75,36 @@ export default function EditGaleriaModal({ galeria, isOpen, onClose, onSuccess }
 
     const handleSubmit = async (e: React.FormEvent<HTMLFormElement>) => {
         e.preventDefault();
+        e.stopPropagation();
         setLoading(true);
         setErrorMessage(null);
 
-        const currentDriveId = formData.drive_folder_id;
-        const currentDriveName = formData.drive_folder_name;
-        const currentCover = formData.cover_image_url;
-
         try {
             const data = new FormData(e.currentTarget);
-            data.set("drive_folder_id", currentDriveId || "");
-            data.set("drive_folder_name", currentDriveName || "");
-            data.set("cover_image_url", currentCover || "");
-            data.set("is_public", String(isPublic));
-            data.set("client_whatsapp", clientWhatsapp.replace(/\D/g, ""));
 
-            if (!currentDriveId) {
+            // 1. Ajuste de Modelo de Negócio
+            if (!hasContractingClient) {
+                data.set("clientName", "Venda Direta");
+                data.set("client_whatsapp", "");
+            } else {
+                data.set("client_whatsapp", clientWhatsapp.replace(/\D/g, ""));
+            }
+
+            // 2. Sincronização usando o estado formData (Corrigindo os 'current')
+            data.set("drive_folder_id", formData.drive_folder_id);
+            data.set("drive_folder_name", formData.drive_folder_name);
+            data.set("cover_image_url", formData.cover_image_url);
+            data.set("is_public", String(isPublic));
+            data.set("category", category);
+            data.set("has_contracting_client", String(hasContractingClient));
+
+            if (!formData.drive_folder_id) {
                 setErrorMessage("Selecione uma pasta do Google Drive.");
                 setLoading(false);
                 return;
             }
 
+            // 3. Lógica de senha
             const passwordValue = data.get("password") as string;
             if (isPublic || !passwordValue || passwordValue.trim() === "") {
                 data.delete("password");
@@ -99,20 +113,27 @@ export default function EditGaleriaModal({ galeria, isOpen, onClose, onSuccess }
             const result = await updateGaleria(galeria.id, data);
 
             if (result.success) {
+                // Criando o objeto atualizado com os dados corretos para o Dashboard
                 const updatedData = {
                     ...galeria,
                     title: data.get("title") as string,
                     client_name: data.get("clientName") as string,
                     location: data.get("location") as string,
                     date: data.get("date") as string,
-                    client_whatsapp: clientWhatsapp.replace(/\D/g, ""),
+                    client_whatsapp: data.get("client_whatsapp") as string,
                     is_public: isPublic,
-                    drive_folder_id: currentDriveId,
-                    drive_folder_name: currentDriveName,
-                    cover_image_url: currentCover,
+                    drive_folder_id: formData.drive_folder_id,
+                    drive_folder_name: formData.drive_folder_name,
+                    cover_image_url: formData.cover_image_url,
+                    category: category,
+                    has_contracting_client: hasContractingClient,
                 };
-                onSuccess(true, updatedData);
-                onClose();
+
+                // Verifique se updatedData existe antes de passar
+                if (updatedData && updatedData.id) {
+                    onSuccess(true, updatedData);
+                    onClose(); // Agora o onClose vai funcionar pois o erro de JS acima dele foi resolvido
+                }
             } else {
                 setErrorMessage(result.error || "Erro ao atualizar.");
             }
@@ -124,9 +145,12 @@ export default function EditGaleriaModal({ galeria, isOpen, onClose, onSuccess }
     };
 
     return (
-        <div className="fixed inset-0 z-[100] flex items-center justify-center bg-slate-900/40 backdrop-blur-md p-4 md:p-6 animate-in fade-in duration-300">
+        <div className="fixed inset-0 z-[100] flex items-center justify-center 
+        bg-slate-900/40 backdrop-blur-md p-4 md:p-6 animate-in fade-in duration-300">
             {/* Modal ajustado para ocupar 90% da altura da tela */}
-            <div className="w-full max-w-2xl h-[90vh] max-h-[850px] bg-white rounded-[40px] shadow-2xl overflow-hidden border border-white/20 animate-in zoom-in-95 duration-300 flex flex-col">
+            <div className="w-full max-w-2xl h-[90vh] max-h-[850px] bg-white rounded-[40px] 
+            shadow-2xl overflow-hidden border border-white/20 animate-in zoom-in-95 
+            duration-300 flex flex-col">
 
                 {/* Header Otimizado - Fixo no topo (shrink-0) */}
                 <div className="flex items-center justify-between py-5 px-8 border-b border-slate-50 bg-[#FAF7ED]/50 shrink-0">
@@ -153,39 +177,75 @@ export default function EditGaleriaModal({ galeria, isOpen, onClose, onSuccess }
                 </div>
 
                 {/* FORMULÁRIO: Ocupa o espaço central (flex-1) com scroll interno se necessário */}
-                <form
+                <form id="edit-gallery-form"
                     onSubmit={handleSubmit}
-                    className="p-6 space-y-4 overflow-y-auto flex-1 custom-scrollbar"
+                    className="p-4 space-y-4 overflow-y-auto flex-1 custom-scrollbar"
                 >
                     <input type="hidden" name="drive_folder_id" value={formData.drive_folder_id} />
                     <input type="hidden" name="drive_folder_name" value={formData.drive_folder_name} />
                     <input type="hidden" name="cover_image_url" value={formData.cover_image_url} />
 
-                    {/* Grid de Cliente e WhatsApp */}
-                    <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                        <div className="space-y-1.5">
-                            <label><User size={12} /> Nome do cliente</label>
-                            <input name="clientName" defaultValue={galeria.client_name} required  />
-                        </div>
-                        <div className="space-y-1.5">
-                            <label>WhatsApp</label>
-                            <input
-                                name="clientWhatsapp"
-                                value={clientWhatsapp}
-                                onChange={(e) => setClientWhatsapp(maskPhone(e))}
-                                maxLength={15}
-                                
-                                placeholder="(00) 00000-0000"
-                            />
+                    {/* Modelo de Negócio */}
+                    <div className="space-y-2">
+                        <label className="text-slate-700 text-sm font-bold flex items-center gap-2">
+                            <Briefcase size={14} className="text-[#D4AF37]" /> Modelo de Negócio
+                        </label>
+                        <div className="grid grid-cols-2 gap-3">
+                            <button
+                                type="button"
+                                onClick={() => setHasContractingClient(true)}
+                                className={`py-3 px-4 rounded-2xl border text-[10px] font-black uppercase tracking-widest transition-all ${hasContractingClient ? 'bg-[#F3E5AB] border-[#D4AF37] text-slate-900' : 'bg-slate-50 border-slate-100 text-slate-400'}`}
+                            >
+                                Serviço Contratado
+                            </button>
+                            <button
+                                type="button"
+                                onClick={() => {
+                                    setHasContractingClient(false);
+                                    setIsPublic(true); // Sugestão: Venda de fotos geralmente é pública
+                                }}
+                                className={`py-3 px-4 rounded-2xl border text-[10px] font-black uppercase tracking-widest transition-all ${!hasContractingClient ? 'bg-[#F3E5AB] border-[#D4AF37] text-slate-900' : 'bg-slate-50 border-slate-100 text-slate-400'}`}
+                            >
+                                Venda de Fotos
+                            </button>
                         </div>
                     </div>
+
+                    {/* EXIBIÇÃO CONDICIONAL: Apenas se for serviço contratado */}
+                    {hasContractingClient && (
+                        <div className="grid grid-cols-1 md:grid-cols-2 gap-6 animate-in fade-in slide-in-from-top-2 duration-300">
+                            <div className="space-y-1.5">
+                                <label><User size={12} /> Nome do cliente</label>
+                                <input name="clientName" defaultValue={galeria.client_name}
+                                    required={hasContractingClient} />
+                            </div>
+                            <div className="space-y-1.5">
+                                <label>              <MessageCircle size={14} className="text-[#D4AF37]" />
+                                    WhatsApp</label>
+                                <input
+                                    value={clientWhatsapp}
+                                    onChange={(e) => setClientWhatsapp(maskPhone(e))}
+                                    required={hasContractingClient}
+                                    maxLength={15}
+                                    placeholder="(00) 00000-0000"
+                                />
+                            </div>
+                        </div>
+                    )}
 
                     {/* Título */}
-                    <div className="space-y-1.5">
-                        <label><Type size={12} /> Título da galeria</label>
-                        <input name="title" defaultValue={galeria.title} required  />
-                    </div>
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-6 animate-in fade-in slide-in-from-top-2 duration-300">
 
+                        <div className="space-y-1.5">
+                            <label><Type size={12} /> Título da galeria</label>
+                            <input name="title" defaultValue={galeria.title} required />
+                        </div>
+                        {/* Categoria Padronizada */}
+                        <CategorySelect
+                            value={category}
+                            onChange={(val) => setCategory(val)}
+                        />
+                    </div>
                     {/* Data e Localização */}
                     <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                         <div className="space-y-1.5">
@@ -195,12 +255,12 @@ export default function EditGaleriaModal({ galeria, isOpen, onClose, onSuccess }
                                 type="date"
                                 defaultValue={galeria.date?.substring(0, 10)}
                                 required
-                                
+
                             />
                         </div>
                         <div className="space-y-1.5">
                             <label><MapPin size={12} /> Localização</label>
-                            <input name="location" defaultValue={galeria.location || ""}  />
+                            <input name="location" defaultValue={galeria.location || ""} />
                         </div>
                     </div>
 
@@ -263,7 +323,7 @@ export default function EditGaleriaModal({ galeria, isOpen, onClose, onSuccess }
                                 <input
                                     name="password"
                                     type="password"
-                                    
+
                                     placeholder="Deixe em branco para manter a atual"
                                 />
                             </div>
@@ -289,11 +349,7 @@ export default function EditGaleriaModal({ galeria, isOpen, onClose, onSuccess }
                         </button>
                         <button
                             type="submit"
-                            onClick={(e) => {
-                                // Como o botão está fora do formulário mas dentro da estrutura flex, 
-                                // garantimos que ele submeta o form correto
-                                document.querySelector('form')?.requestSubmit();
-                            }}
+                            form="edit-gallery-form"
                             disabled={loading}
                             className="flex-[2] bg-[#F3E5AB] hover:bg-[#D4AF37] hover:text-white text-slate-900 font-black py-4 rounded-2xl shadow-xl shadow-[#D4AF37]/10 text-[11px] tracking-[0.3em] uppercase flex items-center justify-center gap-3 transition-all active:scale-[0.98] disabled:opacity-50"
                         >

@@ -129,7 +129,7 @@ export default function OnboardingForm({ initialData, suggestedUsername, isEditM
   };
 
   // ESTRUTURA: Fixed garante o topo 0.
-  const containerBaseClass = "fixed inset-0 top-0 bg-white flex w-full font-sans z-[9999] overflow-hidden";
+  const containerBaseClass = "fixed inset-0 top-0 bg-white flex w-full font-sans z-[9999] overflow-hidden ";
 
   return (
     <div className={containerBaseClass}>

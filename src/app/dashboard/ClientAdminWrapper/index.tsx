@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect, useMemo, useState } from "react";
-import { Camera, LayoutGrid, Plus, Search } from "lucide-react";
+import { LayoutGrid, Filter, Plus, Search } from "lucide-react";
 import { Toast, ConfirmationModal } from "@/components/sections/DashboardUI";
 import { getGalerias, deleteGaleria } from "@/actions/galeria";
 
@@ -27,6 +27,8 @@ export default function ClientAdminWrapper({ initialGalerias }: ClientAdminWrapp
   const [filterName, setFilterName] = useState("");
   const [filterLocation, setFilterLocation] = useState("");
   const [filterDate, setFilterDate] = useState("");
+  const [filterCategory, setFilterCategory] = useState("");
+  const [filterType, setFilterType] = useState("");
 
   const [toastMessage, setToastMessage] = useState("");
   const [toastType, setToastType] = useState<"success" | "error">("success");
@@ -41,7 +43,16 @@ export default function ClientAdminWrapper({ initialGalerias }: ClientAdminWrapp
   }, [initialGalerias]);
 
   const handleUpdate = (success: boolean, data: any) => {
-    if (success) {
+    if (success && data?.id) { // O "?." e "data.id" evitam o erro que você recebeu
+      setGaleriaToEdit(null);
+      setUpdatingId(null);
+      setGalerias((prev) =>
+        prev.map((g) => (g.id === data.id ? { ...g, ...data } : g))
+      );
+
+      // Lógica do seu Toast
+      setToastType("success");
+      setToastMessage("Galeria atualizada com sucesso!");
       setGaleriaToEdit(null);
       setUpdatingId(null);
       setGalerias((prev) => prev.map((g) => (g.id === data.id ? { ...g, ...data } : g)));
@@ -50,11 +61,14 @@ export default function ClientAdminWrapper({ initialGalerias }: ClientAdminWrapp
         setToastType("success");
         setToastMessage(`Galeria atualizada com sucesso!`);
       }, 300);
+      setGalerias(prev => prev.map(g => g.id === data.id ? data : g));
     } else {
       setUpdatingId(null);
       setToastType("error");
       setToastMessage(typeof data === "string" ? data : "Erro ao atualizar.");
     }
+
+
   };
 
   const handleConfirmDelete = async () => {
@@ -76,6 +90,7 @@ export default function ClientAdminWrapper({ initialGalerias }: ClientAdminWrapp
 
   const filteredGalerias = useMemo(() => {
     if (!Array.isArray(galerias)) return [];
+
     const nameLower = normalizeString(filterName);
     const locationLower = normalizeString(filterLocation);
 
@@ -85,13 +100,22 @@ export default function ClientAdminWrapper({ initialGalerias }: ClientAdminWrapp
       const locNorm = normalizeString(g.location || "");
       const galeriaDate = g.date?.substring(0, 10) || "";
 
-      return (
+      // Lógica para Nome, Local e Data
+      const matchesBasic =
         (!nameLower || titleNorm.includes(nameLower) || clientNorm.includes(nameLower)) &&
         (!locationLower || locNorm.includes(locationLower)) &&
-        (!filterDate || galeriaDate === filterDate)
-      );
+        (!filterDate || galeriaDate === filterDate);
+
+      // Nova lógica: Categoria (ex: 'esporte', 'casamento')
+      const matchesCategory = !filterCategory || g.category === filterCategory;
+
+      // Nova lógica: Modelo de Negócio (Contrato vs Venda Direta)
+      // Convertemos o booleano do banco para string para bater com o valor do select ('true'/'false')
+      const matchesType = !filterType || String(g.has_contracting_client) === filterType;
+
+      return matchesBasic && matchesCategory && matchesType;
     });
-  }, [galerias, filterName, filterLocation, filterDate]);
+  }, [galerias, filterName, filterLocation, filterDate, filterCategory, filterType]);
 
   const visibleGalerias = useMemo(
     () => filteredGalerias.slice(0, cardsToShow),
@@ -103,6 +127,8 @@ export default function ClientAdminWrapper({ initialGalerias }: ClientAdminWrapp
     setFilterLocation("");
     setFilterDate("");
     setCardsToShow(CARDS_PER_PAGE);
+    setFilterCategory(""); // Limpa categoria
+    setFilterType("");     // Limpa tipo
   };
 
   const handleCreateResult = async (ok: boolean, message: string) => {
@@ -133,39 +159,56 @@ export default function ClientAdminWrapper({ initialGalerias }: ClientAdminWrapp
       <main className="order-1 lg:order-2 space-y-4">
 
         {/* PÍLULA MESTRE: TÍTULO + FILTROS + STATUS */}
-        <header className="w-full">
-          <div className="flex flex-col md:flex-row items-center md:rounded-full border border-[#D4AF37]/30 
-          bg-[#FAF7ED] shadow-sm rounded-[24px]">
+        <header className="w-full mb-2">
+          <div className="flex flex-col md:flex-row items-center bg-[#FAF7ED] border border-[#D4AF37]/30 shadow-sm rounded-[24px] md:rounded-full overflow-hidden transition-all duration-300">
 
-            <div className="flex items-center gap-3 px-4 py-2 font-[12px] font-medium">
-              <Camera size={18} className="text-[#D4AF37]" />
-                Galerias recentes
-           </div>
+            {/* Identificador de Filtros */}
+            <div className="flex items-center gap-2.5 px-8 py-4 bg-white/40 border-b md:border-b-0 md:border-r border-[#D4AF37]/20">
+              <Filter size={14} className="text-[#D4AF37]" />
+              <span className="text-[11px] font-black uppercase tracking-[0.25em] text-slate-500">
+                Filtros
+              </span>
+            </div>
 
-
-
-            {/* 3. Área de Filtros (Integrada sem divisões bruscas) */}
-            <div className="flex-1 w-full md:w-auto border-t border-b md:border-t-0 md:border-l border-[#D4AF37]/20 px-4 py-1">
+            {/* Área de Filtros */}
+            <div className="flex-1 w-full px-4 py-1.5">
               <Filters
                 filterName={filterName}
                 filterLocation={filterLocation}
                 filterDate={filterDate}
+                filterCategory={filterCategory}
+                filterType={filterType}
                 setFilterName={setFilterName}
                 setFilterLocation={setFilterLocation}
                 setFilterDate={setFilterDate}
+                setFilterCategory={setFilterCategory}
+                setFilterType={setFilterType}
                 resetFilters={resetFilters}
                 variant="minimal"
               />
             </div>
-                        {/* 2. Status e Contagem (Agora com mesmo estilo e cor) */}
- 
-              
-            <div className="flex items-center gap-3 px-4 py-2 font-[1px] md:font-[12px] font-medium">
-                <LayoutGrid size={16} className="text-[#D4AF37]" />
-                  Exibindo {visibleGalerias.length} de {galerias.length}
-            </div>
           </div>
         </header>
+        {/* Container Flutuante de Resultados */}
+        {/* Contador Flutuante com Rolagem */}
+        <div className="fixed bottom-8 right-8 z-50 flex flex-col items-end gap-2 animate-in fade-in slide-in-from-bottom-4 duration-500">
+
+          {/* Pílula de Contagem Premium */}
+          <div className="flex items-center gap-3 bg-white border-2 border-[#D4AF37]/20 px-6 py-3 rounded-full shadow-[0_8px_30px_rgb(0,0,0,0.12)] hover:scale-105 transition-all">
+            <LayoutGrid size={16} className="text-[#D4AF37]" />
+            <div className="flex items-center gap-2 text-base tracking-tight">
+              Exibindo 
+              <span className="text-[#D4AF37] font-black text-lg tabular-nums">
+               {visibleGalerias.length}
+              </span>
+              <span className="text-slate-200 font-medium">/</span>
+              <span className="text-slate-800 tabular-nums text-lg font-black ">
+                {galerias.length}
+              </span>
+            </div>
+          </div>
+        </div>
+
         {/* LISTAGEM */}
         <div className="min-h-[500px]">
           {filteredGalerias.length === 0 ? (
@@ -223,11 +266,11 @@ export default function ClientAdminWrapper({ initialGalerias }: ClientAdminWrapp
         isOpen={!!galeriaToEdit}
         onClose={() => setGaleriaToEdit(null)}
         onSuccess={handleUpdate}
-        isUpdating={updatingId !== null}
       />
       {toastMessage && (
         <Toast message={toastMessage} type={toastType} onClose={() => setToastMessage("")} />
       )}
+
     </div>
   );
 }

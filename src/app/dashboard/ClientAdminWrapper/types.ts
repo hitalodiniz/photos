@@ -14,4 +14,6 @@ export interface Galeria {
   password: string | null;
   cover_image_url: string | null;
   drive_folder_name: string;
+  category: string | null;
+  has_contracting_client: boolean;
 }

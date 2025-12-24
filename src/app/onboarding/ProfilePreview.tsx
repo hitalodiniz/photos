@@ -43,7 +43,7 @@ export default function ProfilePreview({
                     showBackButton={false}
                 />
 
-                <main className="flex-grow flex flex-col items-center justify-start px-6 pt-32 pb-20">
+                <main className="flex-grow flex flex-col items-center justify-start px-6 pt-60 pb-40">
                     <div className="relative w-full max-w-xl">
 
                         {/* FOTO CENTRALIZADA - ESTILO GOOGLE PROFILE */}

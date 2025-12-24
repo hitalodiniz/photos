@@ -184,8 +184,7 @@ export default function GooglePickerButton({ onFolderSelect, currentDriveId, onE
             onClick={openPicker}
             disabled={isDisabled}
             className={`
-        flex items-center justify-center w-full p-3 rounded-xl transition-all duration-300
-        text-[11px] font-bold uppercase shadow-sm
+        flex items-center justify-center w-full p-3 rounded-xl transition-all duration-300 text-[11px] font-bold uppercase shadow-sm
         ${isDisabled
                     ? 'bg-slate-100 text-slate-400 cursor-not-allowed opacity-50'
                     : 'bg-white border border-[#D4AF37]/30 text-slate-900 hover:bg-[#F3E5AB] hover:border-[#D4AF37] active:scale-[0.98]'

@@ -1,0 +1,28 @@
+export const GALLERY_CATEGORIES = [
+  { id: 'aniversario', label: 'Aniversário / Festas', icon: '🎂' },
+  { id: 'automobilismo', label: 'Auto / Motociclismo', icon: '🏎️' },
+  { id: 'batizado', label: 'Batizado / Religioso', icon: '🕊️' },
+  { id: 'boudoir', label: 'Boudoir / Sensual', icon: '🌹' },
+  { id: 'casamento', label: 'Casamento / Pré-Wedding', icon: '💍' },
+  { id: 'corporativo', label: 'Corporativo / Palestras', icon: '🏢' },
+  { id: 'cosplay', label: 'Cosplay / Temático', icon: '🎭' },
+  { id: 'quinze-anos', label: 'Debutante (15 anos)', icon: '💃' },
+  { id: 'ensaio', label: 'Ensaio Individual / Moda', icon: '📷' },
+  { id: 'casal', label: 'Ensaio de Casal / Família', icon: '👩‍❤️‍👨' },
+  { id: 'esporte', label: 'Esporte / Aventura', icon: '🚴' },
+  { id: 'futebol', label: 'Futebol / Coletivos', icon: '⚽' },
+  { id: 'formatura', label: 'Formatura / Colação', icon: '🎓' },
+  { id: 'gastronomia', label: 'Gastronomia / Culinária', icon: '🍽️' },
+  { id: 'gestante', label: 'Gestante / Newborn', icon: '👶' },
+  { id: 'imobiliario', label: 'Imobiliário / Arquitetura', icon: '🏠' },
+  { id: 'natureza', label: 'Natureza / Vida Selvagem', icon: '🌿' },
+  { id: 'pet', label: 'Pet / Animais', icon: '🐾' },
+  { id: 'produto', label: 'Produto / E-commerce', icon: '📦' },
+  { id: 'show', label: 'Show / Festival / Balada', icon: '🎸' },
+  { id: 'surf', label: 'Surf / Praia', icon: '🏄' },
+  { id: 'teatro', label: 'Teatro / Espetáculo', icon: '🎬' },
+  { id: 'viagem', label: 'Viagem / Turismo', icon: '✈️' },
+  { id: 'outros', label: 'Outros / Especial', icon: '✨' },
+] as const;
+
+export type GalleryCategory = typeof GALLERY_CATEGORIES[number]['id'];
