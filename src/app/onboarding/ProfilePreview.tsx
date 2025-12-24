@@ -79,29 +79,33 @@ export default function ProfilePreview({
 
                                 <div className="w-24 h-[1px] bg-[#D4AF37]/20 mx-auto" />
 
-                                <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 pt-4">
-                                    <div className={`${btnStyle} opacity-90 hover:opacity-100 cursor-default select-none`}>
-                                        <div className="flex items-center gap-3">
-                                            <MessageCircle size={20} />
-                                            <div className="flex flex-col items-start leading-none text-left">
-                                                <span className="text-[10px] uppercase tracking-tighter font-black">WhatsApp</span>
-                                                <span className="text-[9px] font-normal opacity-70">Orçamentos</span>
-                                            </div>
-                                        </div>
-                                        <Share2 size={14} className="opacity-30" />
-                                    </div>
+<div className="grid grid-cols-1 sm:grid-cols-2 gap-4 pt-4 px-2">
+  {/* WhatsApp */}
+  <div className={`${btnStyle} flex items-center justify-between p-4 bg-white/10 border border-white/20 rounded-[20px] backdrop-blur-md opacity-90 hover:opacity-100 transition-all cursor-default select-none group`}>
+    <div className="flex items-center gap-3">
+      {/* Ícone em tom champanhe para destaque editorial */}
+      <MessageCircle size={22} className="text-[#F3E5AB] shrink-0" />
+      <div className="flex flex-col items-start leading-tight text-left">
+        {/* Título em branco para contraste máximo */}
+        <span className="text-[11px] uppercase tracking-widest font-black text-white">WhatsApp</span>
+        <span className="text-[10px] font-medium text-[#F3E5AB] opacity-80">Orçamentos</span>
+      </div>
+    </div>
+    <Share2 size={14} className="opacity-20 text-white group-hover:opacity-60 transition-opacity" />
+  </div>
 
-                                    <div className={`${btnStyle} opacity-90 hover:opacity-100 cursor-default select-none`}>
-                                        <div className="flex items-center gap-3">
-                                            <Instagram size={20} />
-                                            <div className="flex flex-col items-start leading-none text-left">
-                                                <span className="text-[10px] uppercase tracking-tighter font-black">Instagram</span>
-                                                <span className="text-[9px] font-normal opacity-70">Portfólio</span>
-                                            </div>
-                                        </div>
-                                        <Share2 size={14} className="opacity-30" />
-                                    </div>
-                                </div>
+  {/* Instagram */}
+  <div className={`${btnStyle} flex items-center justify-between p-4 bg-white/10 border border-white/20 rounded-[20px] backdrop-blur-md opacity-90 hover:opacity-100 transition-all cursor-default select-none group`}>
+    <div className="flex items-center gap-3">
+      <Instagram size={22} className="text-[#F3E5AB] shrink-0" />
+      <div className="flex flex-col items-start leading-tight text-left">
+        <span className="text-[11px] uppercase tracking-widest font-black text-white">Instagram</span>
+        <span className="text-[10px] font-medium text-[#F3E5AB] opacity-80">Portfólio</span>
+      </div>
+    </div>
+    <Share2 size={14} className="opacity-20 text-white group-hover:opacity-60 transition-opacity" />
+  </div>
+</div>
                             </div>
                         </section>
                     </div>

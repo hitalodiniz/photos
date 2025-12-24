@@ -1,7 +1,7 @@
 'use client';
 import React, { useState, useEffect } from 'react';
 import Masonry from 'react-masonry-css';
-import { Lightbox, PhotographerAvatar } from '@/components/gallery';
+import { Lightbox } from '@/components/gallery';
 import { Camera, Image as ImageIcon, Calendar, MapPin, Download, User } from 'lucide-react';
 import { saveAs } from 'file-saver';
 import JSZip from 'jszip';
@@ -39,7 +39,7 @@ const GridImage = ({ src, alt, priority }: { src: string; alt: string; priority?
   );
 };
 
-export default function PhotoGrid({ photos, galeria }: any) {
+export default function PhotoGrid({ photos, galeria }: any) {  
   const QTD_FOTO_EXIBIDAS = 24;
   const getCurrentColumns = () => {
     const width = window.innerWidth;
@@ -59,15 +59,14 @@ export default function PhotoGrid({ photos, galeria }: any) {
     return normalizeLimit(QTD_FOTO_EXIBIDAS, cols);
   });
 
+  const [masonryKey, setMasonryKey] = useState(0);
 
-const [masonryKey, setMasonryKey] = useState(0);
-
-useEffect(() => {
-  // só recria quando realmente adiciona fotos
-  if (displayLimit > QTD_FOTO_EXIBIDAS) {
-    setMasonryKey(prev => prev + 1);
-  }
-}, [displayLimit]);
+  useEffect(() => {
+    // só recria quando realmente adiciona fotos
+    if (displayLimit > QTD_FOTO_EXIBIDAS) {
+      setMasonryKey(prev => prev + 1);
+    }
+  }, [displayLimit]);
 
   const [selectedPhotoIndex, setSelectedPhotoIndex] = useState<number | null>(null);
   const [isDownloading, setIsDownloading] = useState(false);
@@ -87,6 +86,7 @@ useEffect(() => {
     768: 1         // md/sm
   };
 
+  
   const getImageUrl = (photoId: string, suffix: string = "w400") => {
     return `https://lh3.googleusercontent.com/d/${photoId}=${suffix}`;
   };
@@ -173,7 +173,7 @@ useEffect(() => {
   if (!photos || photos.length === 0) return null;
 
   return (
-    <div className="w-full flex flex-col items-center gap-12 min-h-screen pb-20">     
+    <div className="w-full flex flex-col items-center gap-12 min-h-screen pb-20">
       {/* BARRA DE INFORMAÇÕES EDITORIAL */}
       <div className="flex flex-col md:flex-row items-center justify-center gap-4 
       md:gap-6 bg-black/45 backdrop-blur-lg p-5 md:p-2.5 md:px-6 rounded-[2.5rem] md:rounded-full border border-white/10 
@@ -245,26 +245,26 @@ useEffect(() => {
 
       {/* GRID MASONRY */}
       <div className="w-full max-w-[1600px] mx-auto px-4 md:px-8">
-<Masonry
-  key={masonryKey}
-  breakpointCols={breakpointColumnsObj}
-  className="my-masonry-grid"
-  columnClassName="my-masonry-grid_column"
->
-  {photos.slice(0, displayLimit).map((photo: any, index: number) => (
-    <div
-      key={photo.id} // ❗ NUNCA use index aqui
-      onClick={() => setSelectedPhotoIndex(index)}
-      className="group cursor-zoom-in mb-4 transition-transform duration-300 hover:-translate-y-1"
-    >
-      <GridImage
-        src={getImageUrl(photo.id, "w600")}
-        alt={`Foto ${index + 1}`}
-        priority={index < QTD_FOTO_EXIBIDAS}
-      />
-    </div>
-  ))}
-</Masonry>
+        <Masonry
+          key={masonryKey}
+          breakpointCols={breakpointColumnsObj}
+          className="my-masonry-grid"
+          columnClassName="my-masonry-grid_column"
+        >
+          {photos.slice(0, displayLimit).map((photo: any, index: number) => (
+            <div
+              key={photo.id} // ❗ NUNCA use index aqui
+              onClick={() => setSelectedPhotoIndex(index)}
+              className="group cursor-zoom-in mb-4 transition-transform duration-300 hover:-translate-y-1"
+            >
+              <GridImage
+                src={getImageUrl(photo.id, "w600")}
+                alt={`Foto ${index + 1}`}
+                priority={index < QTD_FOTO_EXIBIDAS}
+              />
+            </div>
+          ))}
+        </Masonry>
 
       </div>
       {/* INDICADOR DE CARREGAMENTO */}

@@ -119,7 +119,9 @@ export default function GaleriaView({ galeria, photos }: GaleriaViewProps) {
           </div>
         </footer>
       </div >
+      <div className="lightbox-parent-container">
       <PhotographerAvatar galeria={galeria} position="top-page" />
+      </div>
     </div >
   );
 }

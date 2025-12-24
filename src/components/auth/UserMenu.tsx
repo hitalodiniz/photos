@@ -101,7 +101,6 @@ export default function UserMenu({
                             {/* Botão Segue Padrão Global do Onboarding */}
                             <Link 
                                 href="/onboarding" 
-                                onClick={() => setIsOpen(false)}
                                 className="btn-primary text[10px]"
                             >
                                 Gerenciar conta
