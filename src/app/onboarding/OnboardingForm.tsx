@@ -40,8 +40,11 @@ export function SubmitOnboarding() {
     <button
       type="submit"
       disabled={pending}
-      className={`w-full py-5 rounded-2xl font-bold uppercase text-xs tracking-[0.2em] shadow-lg transition-all active:scale-95 flex items-center justify-center gap-2 ${pending ? 'bg-slate-100 text-slate-400 cursor-not-allowed' : 'bg-[#F3E5AB] hover:bg-[#e6d595] text-slate-900 shadow-[#F3E5AB]/20'
-        }`}
+      className={`w-full py-5 rounded-2xl font-bold uppercase text-xs tracking-[0.2em] shadow-lg transition-all active:scale-95 flex items-center justify-center gap-2 ${
+        pending 
+          ? 'bg-slate-100 text-slate-400 cursor-not-allowed' 
+          : 'bg-[#F3E5AB] hover:bg-[#e6d595] text-slate-900 shadow-[#F3E5AB]/20'
+      }`}
     >
       {pending ? <><Loader2 className="animate-spin" size={18} /> Salvando...</> : <><Save size={16} /> Salvar perfil</>}
     </button>
@@ -81,7 +84,6 @@ export default function OnboardingForm({ initialData, suggestedUsername, isEditM
     return () => clearTimeout(timer);
   }, [cityInput, selectedUF]);
 
-  // FIX: Aplica a máscara no WhatsApp assim que os dados carregam
   useEffect(() => {
     if (initialData?.phone_contact) {
       const masked = maskPhone({ target: { value: initialData.phone_contact } } as any);
@@ -89,9 +91,6 @@ export default function OnboardingForm({ initialData, suggestedUsername, isEditM
     }
   }, [initialData]);
 
-  useEffect(() => { fetchStates().then(setStates); }, []);
-
-  // Validação: Remove tudo que não é número e checa se tem 11 dígitos
   const isPhoneValid = phone.replace(/\D/g, '').length >= 11;
 
   useEffect(() => {
@@ -112,6 +111,16 @@ export default function OnboardingForm({ initialData, suggestedUsername, isEditM
     setSuggestions([]);
   };
 
+  const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (file) {
+      setPhotoFile(file);
+      const reader = new FileReader();
+      reader.onloadend = () => setPhotoPreview(reader.result as string);
+      reader.readAsDataURL(file);
+    }
+  };
+
   const clientAction = async (formData: FormData) => {
     setIsSaving(true);
     formData.append('operating_cities_json', JSON.stringify(selectedCities));
@@ -122,18 +131,16 @@ export default function OnboardingForm({ initialData, suggestedUsername, isEditM
 
     setIsSaving(false);
     if (result?.success) {
-      setShowSuccessModal(true); // Ativa o modal de finalização
+      setShowSuccessModal(true);
     } else {
       alert(result?.error || "Erro ao salvar");
     }
   };
 
-  // ESTRUTURA: Fixed garante o topo 0.
   const containerBaseClass = "fixed inset-0 top-0 bg-white flex w-full font-sans z-[9999] overflow-hidden ";
 
   return (
     <div className={containerBaseClass}>
-      {/* SIDEBAR (40%) - h-full + overflow-y-auto permite scroll interno no form */}
       <aside className="w-[40%] bg-white border-r border-slate-100 p-8 pt-10 flex flex-col h-full relative z-20 overflow-y-auto no-scrollbar shadow-2xl">
         <div className="flex items-center gap-3 mb-8 shrink-0">
           <div className="p-2 bg-[#F3E5AB]/20 rounded-lg">
@@ -146,19 +153,23 @@ export default function OnboardingForm({ initialData, suggestedUsername, isEditM
         </div>
 
         <form action={clientAction} className="space-y-5 flex-grow pb-10">
-          {/* FOTO GOOGLE STYLE */}
           <div className="space-y-3 flex flex-col items-center">
-            <label className={`w-full text-left`}>
+            <label className={`w-full text-left font-bold text-xs text-slate-500 uppercase tracking-wider flex items-center gap-2`}>
               <Camera size={14} className="text-[#D4AF37]" /> Foto Editorial
             </label>
 
             <div className="relative group">
-              {/* Arco Colorido Gradiente */}
+              <input 
+                type="file" 
+                ref={fileInputRef} 
+                className="hidden" 
+                accept="image/*" 
+                onChange={handleFileChange}
+              />
               <div
                 onClick={() => fileInputRef.current?.click()}
                 className="relative w-32 h-32 rounded-full p-[3px] bg-gradient-to-tr from-[#34A853] via-[#FBBC05] via-[#EA4335] to-[#4285F4] shadow-xl cursor-pointer transition-all hover:scale-105 active:scale-95 overflow-hidden"
               >
-                {/* Borda interna de respiro preta/branca */}
                 <div className="w-full h-full rounded-full overflow-hidden bg-white flex items-center justify-center p-[2px]">
                   <div className="w-full h-full rounded-full overflow-hidden bg-slate-50 flex items-center justify-center relative">
                     {photoPreview ? (
@@ -170,16 +181,12 @@ export default function OnboardingForm({ initialData, suggestedUsername, isEditM
                     ) : (
                       <Upload size={30} className="text-slate-200" />
                     )}
-
-                    {/* Overlay de Hover */}
                     <div className="absolute inset-0 bg-black/20 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity">
                       <Camera size={24} className="text-white" />
                     </div>
                   </div>
                 </div>
               </div>
-
-              {/* Botão de Lápis Flutuante */}
               <button
                 type="button"
                 onClick={() => fileInputRef.current?.click()}
@@ -188,7 +195,6 @@ export default function OnboardingForm({ initialData, suggestedUsername, isEditM
                 <Pencil size={14} />
               </button>
             </div>
-
             <p className="text-[10px] text-slate-400 font-medium uppercase tracking-tighter">
               {photoPreview ? "Clique para alterar" : "Carregar foto de perfil"}
             </p>
@@ -196,13 +202,29 @@ export default function OnboardingForm({ initialData, suggestedUsername, isEditM
 
           <div className="grid grid-cols-2 gap-4">
             <div>
-              <label><User size={14} className="text-[#D4AF37]" /> Nome Completo</label>
-              <input name="full_name" value={fullName} onChange={(e) => setFullName(e.target.value)} required  />
+              <label className="text-xs font-bold text-slate-500 flex items-center gap-2 uppercase mb-1">
+                <User size={14} className="text-[#D4AF37]" /> Nome Completo
+              </label>
+              <input 
+                name="full_name" 
+                className="w-full bg-slate-50 border border-slate-100 rounded-xl px-4 py-3 text-sm focus:outline-none focus:ring-2 focus:ring-[#F3E5AB]"
+                value={fullName} 
+                onChange={(e) => setFullName(e.target.value)} 
+                required  
+              />
             </div>
             <div>
-              <label><AtSign size={14} className="text-[#D4AF37]" /> Username</label>
+              <label className="text-xs font-bold text-slate-500 flex items-center gap-2 uppercase mb-1">
+                <AtSign size={14} className="text-[#D4AF37]" /> Username
+              </label>
               <div className="relative">
-                <input name="username" value={username} onChange={(e) => setUsername(e.target.value.toLowerCase())} required  />
+                <input 
+                  name="username" 
+                  className="w-full bg-slate-50 border border-slate-100 rounded-xl px-4 py-3 text-sm focus:outline-none focus:ring-2 focus:ring-[#F3E5AB]"
+                  value={username} 
+                  onChange={(e) => setUsername(e.target.value.toLowerCase())} 
+                  required  
+                />
                 <div className="absolute right-3 top-1/2 -translate-y-1/2">
                   {isChecking ? <Loader2 size={12} className="animate-spin" /> : isAvailable === true ? <CheckCircle2 size={12} className="text-green-500" /> : isAvailable === false ? <AlertCircle size={12} className="text-red-500" /> : null}
                 </div>
@@ -212,22 +234,29 @@ export default function OnboardingForm({ initialData, suggestedUsername, isEditM
 
           <div className="grid grid-cols-2 gap-4">
             <div>
-              <label>
+              <label className="text-xs font-bold text-slate-500 flex items-center gap-2 uppercase mb-1">
                 <MessageCircle size={14} className="text-[#D4AF37]" /> WhatsApp
-                {/* Feedback visual de validação */}
                 {!isPhoneValid && phone.length > 0 && <span className="text-[10px] text-red-500 font-medium ml-auto">Incompleto</span>}
               </label>
               <input
                 name="phone_contact"
+                className={`w-full bg-slate-50 border border-slate-100 rounded-xl px-4 py-3 text-sm focus:outline-none focus:ring-2 focus:ring-[#F3E5AB] ${!isPhoneValid && phone.length > 0 ? 'border-red-400 bg-red-50/30' : ''}`}
                 value={phone}
                 onChange={(e) => setPhone(maskPhone(e))}
                 placeholder="(00) 00000-0000"
-                className={`${!isPhoneValid && phone.length > 0 ? 'border-red-400 bg-red-50/30' : ''}`}
               />
             </div>
             <div>
-              <label><Instagram size={14} className="text-[#D4AF37]" /> Instagram</label>
-              <input name="instagram_link" value={instagram} onChange={(e) => setInstagram(e.target.value)} placeholder="@seu.perfil"  />
+              <label className="text-xs font-bold text-slate-500 flex items-center gap-2 uppercase mb-1">
+                <Instagram size={14} className="text-[#D4AF37]" /> Instagram
+              </label>
+              <input 
+                name="instagram_link" 
+                className="w-full bg-slate-50 border border-slate-100 rounded-xl px-4 py-3 text-sm focus:outline-none focus:ring-2 focus:ring-[#F3E5AB]"
+                value={instagram} 
+                onChange={(e) => setInstagram(e.target.value)} 
+                placeholder="@seu.perfil"  
+              />
             </div>
           </div>
 
@@ -264,8 +293,6 @@ export default function OnboardingForm({ initialData, suggestedUsername, isEditM
                   className="w-full bg-white border border-gray-200 rounded-xl px-4 py-2 text-xs outline-none"
                   placeholder={selectedUF ? "Digite a cidade..." : "Selecione a UF primeiro"}
                 />
-
-                {/* MENU DE SUGESTÕES DE CIDADES*/}
                 {suggestions.length > 0 && (
                   <div className="absolute z-[100] w-full bg-white border border-slate-200 rounded-xl mt-1 shadow-2xl max-h-48 overflow-y-auto no-scrollbar">
                     {suggestions.map((city) => (
@@ -285,22 +312,25 @@ export default function OnboardingForm({ initialData, suggestedUsername, isEditM
           </div>
 
           <div>
-            <label><FileText size={14} className="text-[#D4AF37]" /> Mini Bio Editorial</label>
-            <textarea name="mini_bio" value={miniBio || ''} onChange={(e) => setMiniBio(e.target.value)} rows={3}  />
+            <label className="text-xs font-bold text-slate-500 flex items-center gap-2 uppercase mb-1">
+              <FileText size={14} className="text-[#D4AF37]" /> Mini Bio Editorial
+            </label>
+            <textarea 
+              name="mini_bio" 
+              className="w-full bg-slate-50 border border-slate-100 rounded-xl px-4 py-3 text-sm focus:outline-none focus:ring-2 focus:ring-[#F3E5AB]"
+              value={miniBio || ''} 
+              onChange={(e) => setMiniBio(e.target.value)} 
+              rows={3}  
+            />
           </div>
 
           <SubmitOnboarding />
         </form>
       </aside>
 
-      {/* PREVIEW (60%) - h-full + overflow-y-auto garante que o Preview possa rolar */}
-      <main className="w-[60%] h-full bg-black overflow-y-auto custom-scrollbar">
-        {/* Badge Flutuante - Agora posicionada absolutamente sobre o Preview */}
-        <div className="absolute top-10 left-70% z-[100] flex items-center gap-4 px-6 pointer-events-none">
-
-          {/* Linha decorativa vertical dourada */}
+      <main className="w-[60%] h-full bg-black overflow-y-auto custom-scrollbar relative">
+        <div className="absolute top-10 left-10 z-[100] flex items-center gap-4 px-6 pointer-events-none">
           <div className="w-1.5 h-14 bg-[#F3E5AB] rounded-full animate-pulse shadow-[0_0_20px_rgba(243,229,171,0.8)]"></div>
-
           <div className="flex flex-col justify-center">
             <p className="text-[14px] text-[#F3E5AB] font-bold uppercase tracking-[0.5em] leading-none mb-1 drop-shadow-lg">
               Editorial
@@ -312,44 +342,37 @@ export default function OnboardingForm({ initialData, suggestedUsername, isEditM
         </div>
 
         <ProfilePreview
-          fullName={fullName}
-          username={username}
-          miniBio={miniBio || ''}
-          phone={phone}
-          instagram={instagram}
-          photoPreview={photoPreview}
-          cities={selectedCities}
+          initialData={{
+            full_name: fullName,
+            username: username,
+            mini_bio: miniBio,
+            phone_contact: phone,
+            instagram_link: instagram,
+            avatar_url: photoPreview,
+            cities: selectedCities
+          }}
         />
       </main>
-      {/* MODAL DE FINALIZAÇÃO */}
+
       {showSuccessModal && (
         <div className="fixed inset-0 z-[10000] flex items-center justify-center p-4 bg-black/60 backdrop-blur-sm animate-in fade-in duration-300">
-          <div className="bg-white rounded-[2.5rem] p-10 max-w-md w-full shadow-2xl text-center scale-up-center border border-white/20">
-
-            {/* Ícone de Sucesso Editorial */}
+          <div className="bg-white rounded-[2.5rem] p-10 max-w-md w-full shadow-2xl text-center border border-white/20">
             <div className="w-20 h-20 bg-green-50 text-green-600 rounded-full flex items-center justify-center mx-auto mb-6 shadow-inner">
               <CheckCircle2 size={40} />
             </div>
-
             <h2 className="text-2xl font-bold text-slate-900 mb-2 tracking-tight">Perfil Consolidado!</h2>
             <p className="text-slate-500 mb-8 leading-relaxed text-sm">
               Sua presença editorial foi atualizada com sucesso. Como deseja prosseguir?
             </p>
-
             <div className="flex flex-col gap-3">
-              {/* Visualizar Perfil */}
-              <a href={`/${username}`} target="_blank" className="btn-dark">
-                <Sparkles size={16} className="text-[#F3E5AB]" />
+              <a href={`/${username}`} target="_blank" className="w-full flex items-center justify-center gap-2 bg-slate-900 text-[#F3E5AB] py-4 rounded-xl font-bold text-sm hover:bg-slate-800 transition-colors">
+                <Sparkles size={16} />
                 Visualizar Perfil Público
               </a>
-
-              {/* Ir para Dashboard */}
-              <button onClick={() => router.push('/dashboard')} className="btn-primary">
+              <button onClick={() => router.push('/dashboard')} className="w-full bg-[#F3E5AB] text-slate-900 py-4 rounded-xl font-bold text-sm hover:bg-[#e6d595] transition-colors">
                 Ir para o Dashboard
               </button>
-
-              {/* Continuar Refinando */}
-              <button onClick={() => setShowSuccessModal(false)} className="btn-secondary">
+              <button onClick={() => setShowSuccessModal(false)} className="w-full text-slate-400 py-2 text-xs font-bold hover:text-slate-600 transition-colors">
                 Continuar Refinando
               </button>
             </div>

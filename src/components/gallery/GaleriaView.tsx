@@ -63,7 +63,7 @@ export default function GaleriaView({ galeria, photos }: GaleriaViewProps) {
       {/* Container inline para garantir que a barra acompanhe o texto */}
       <div className="inline-block relative">
         <h1
-          className="text-3xl md:text-5xl lg:text-7xl font-bold text-white italic leading-tight drop-shadow-[0_10px_40px_rgba(0,0,0,0.7)]"
+          className="text-2xl md:text-4xl lg:text-6xl font-bold text-white italic leading-tight drop-shadow-[0_10px_40px_rgba(0,0,0,0.7)]"
           style={{ fontFamily: "'Playfair Display', serif" }}
         >
           {galeria.title}
