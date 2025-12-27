@@ -29,7 +29,7 @@ export default function GaleriaView({ galeria, photos }: GaleriaViewProps) {
   const opacity = Math.min(scrollY / 400, 1);
 
   return (
-    <div className="relative min-h-screen font-sans bg-[#FDF8E7]">
+    <div className="relative min-h-screen font-sans bg-[#F9F5F0]">
       {/* 1. BACKGROUND DINÂMICO FIXO */}
       <div className="fixed inset-0 z-0">
         <div

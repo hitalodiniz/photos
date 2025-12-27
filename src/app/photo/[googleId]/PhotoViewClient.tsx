@@ -13,6 +13,7 @@ export default function PhotoViewClient({ googleId, slug }: { googleId: string, 
     const [data, setData] = useState<any>(null);
     const [loading, setLoading] = useState(true);
     const [isDownloading, setIsDownloading] = useState(false);
+    const [showButtonText, setShowButtonText] = useState(true);
 
     const imageUrlHigh = `https://lh3.googleusercontent.com/d/${googleId}=s0`;
     const currentImageUrl = `https://lh3.googleusercontent.com/d/${googleId}=s800`;
@@ -38,6 +39,13 @@ export default function PhotoViewClient({ googleId, slug }: { googleId: string, 
         }
         fetchInfo();
     }, [slug]);
+
+        //Efeito dos botões de ação
+    useEffect(() => {
+        // Oculta o texto após 3 segundos da primeira abertura
+        const timer = setTimeout(() => setShowButtonText(false), 3000);
+        return () => clearTimeout(timer);
+    }, []);
 
     const handleDownload = async () => {
         try {
@@ -108,7 +116,8 @@ export default function PhotoViewClient({ googleId, slug }: { googleId: string, 
                             )}
                         </div>
 
-                        <div className="flex flex-col items-start gap-0.5 leading-none">
+                        {/* Container de texto com animação de expansão */}
+                        <div className={`flex flex-col items-start gap-0.5 leading-none transition-all duration-500 overflow-hidden ${showButtonText ? 'max-w-[120px] opacity-100 ml-2' : 'max-w-0 opacity-0 ml-0'}`}>
                             <span className="text-[10px] md:text-[11px] font-bold uppercase tracking-widest italic text-white group-hover:text-[#F3E5AB]">
                                 Download
                             </span>
@@ -118,32 +127,32 @@ export default function PhotoViewClient({ googleId, slug }: { googleId: string, 
                         </div>
                     </button>
 
-{/* BOTÃO VER GALERIA - CAPTURANDO A URL DO PARÂMETRO 's' */}
-<button
-    onClick={() => {
-      // Extrai o caminho da galeria a partir do parâmetro 's' na URL atual
-      const params = new URLSearchParams(window.location.search);
-      const galleryPath = params.get('s');
-      
-      // Se o parâmetro existir, redireciona para ele, caso contrário volta um nível
-      window.location.href = galleryPath ? decodeURIComponent(galleryPath) : './';
-    }}
-    aria-label="Voltar para a galeria de fotos"
-    className="flex items-center gap-3 pl-2 md:pl-4 hover:text-[#F3E5AB] focus:outline-none focus:ring-2 focus:ring-[#F3E5AB] focus:ring-offset-2 focus:ring-offset-black transition-all group"
->
-    <div className="flex items-center justify-center w-9 h-9 md:w-11 md:h-11 rounded-full bg-white/10 group-hover:bg-white/20 transition-colors">
-        <Camera size={20} className="text-white group-hover:text-[#F3E5AB]" />
-    </div>
+                    {/* BOTÃO VER GALERIA - CAPTURANDO A URL DO PARÂMETRO 's' */}
+                    <button
+                        onClick={() => {
+                            const params = new URLSearchParams(window.location.search);
+                            const galleryPath = params.get('s');
+                            window.location.href = galleryPath ? decodeURIComponent(galleryPath) : './';
+                        }}
+                        aria-label="Voltar para a galeria de fotos"
+                        /* Ajustado gap-0 para o modo reduzido e pl-2 para respiro */
+                        className="flex items-center gap-0 hover:gap-2 pl-2 hover:text-[#F3E5AB] focus:outline-none focus:ring-2 focus:ring-[#F3E5AB] focus:ring-offset-2 focus:ring-offset-black transition-all duration-500 group"
+                    >
+                        {/* Ícone circular padronizado */}
+                        <div className="flex items-center justify-center w-9 h-9 md:w-11 md:h-11 rounded-full bg-white/10 group-hover:bg-white/20 transition-colors shrink-0">
+                            <Camera size={20} className="text-white group-hover:text-[#F3E5AB]" />
+                        </div>
 
-    <div className="hidden md:flex flex-col items-start gap-0.5 leading-none">
-        <span className="text-[10px] md:text-[11px] font-bold uppercase tracking-widest italic text-white group-hover:text-[#F3E5AB]">
-            Ver Galeria
-        </span>
-        <span className="text-[11px] opacity-70 uppercase tracking-[0.1em] font-bold text-white/70">
-            De Fotos
-        </span>
-    </div>
-</button>
+                        {/* Container de texto com animação de expansão */}
+                        <div className={`flex flex-col items-start gap-0.5 leading-none transition-all duration-500 overflow-hidden ${showButtonText ? 'max-w-[120px] opacity-100 ml-2' : 'max-w-0 opacity-0 ml-0'}`}>
+                            <span className="text-[10px] md:text-[11px] font-bold uppercase tracking-widest italic text-white whitespace-nowrap">
+                                Ver Galeria
+                            </span>
+                            <span className="text-[11px] opacity-70 uppercase tracking-[0.1em] font-bold text-white/70 whitespace-nowrap">
+                                De Fotos
+                            </span>
+                        </div>
+                    </button>
                 </div>
             </header>
 

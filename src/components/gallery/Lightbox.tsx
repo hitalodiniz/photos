@@ -36,6 +36,7 @@ export default function Lightbox({
     const [isDownloading, setIsDownloading] = useState(false);
     const [touchStart, setTouchStart] = useState<number | null>(null);
     const [touchEnd, setTouchEnd] = useState<number | null>(null);
+    const [showButtonText, setShowButtonText] = useState(true);
 
     const minSwipeDistance = 50;
 
@@ -91,6 +92,13 @@ export default function Lightbox({
         setFavorites(newFavs);
         localStorage.setItem(`fav_${galeria.id}`, JSON.stringify(newFavs));
     };
+
+    //Efeito dos botões de ação
+    useEffect(() => {
+        // Oculta o texto após 5 segundos da primeira abertura
+        const timer = setTimeout(() => setShowButtonText(false), 3000);
+        return () => clearTimeout(timer);
+    }, []);
 
     const handleDownloadFavorites = async () => {
         // Filtra as fotos da galeria que estão nos favoritos
@@ -227,105 +235,62 @@ export default function Lightbox({
 
                     {/* BARRA DE FERRAMENTAS PREMIUM - LIGHTBOX */}
                     <div
-                        className="flex items-center bg-black/75 backdrop-blur-xl p-2 px-3 md:p-2 md:px-3 rounded-2xl border border-white/20 shadow-2xl pointer-events-auto transition-all"
+                        className="flex items-center bg-black/75 backdrop-blur-xl p-2 px-3 md:p-2 md:px-3 rounded-2xl border border-white/20 shadow-2xl pointer-events-auto transition-all duration-500 ease-in-out"
+                        onMouseEnter={() => setShowButtonText(true)}
+                        onMouseLeave={() => setShowButtonText(false)}
                         role="toolbar"
-                        aria-label="Ferramentas da foto">
+                    >
                         {/* WHATSAPP */}
                         <button
                             onClick={handleShareWhatsApp}
-                            aria-label="Compartilhar esta foto no WhatsApp"
-                            className="flex items-center gap-2 hover:text-[#25D366] focus:outline-none focus:ring-2 focus:ring-[#25D366] focus:ring-offset-2 focus:ring-offset-black transition-all group border-r border-white/20 pr-3 md:pr-4"
+                            className="flex items-center gap-0 hover:gap-2 transition-all duration-500 group border-r border-white/20 pr-3 md:pr-4"
                         >
-                            <div className="flex items-center justify-center w-9 h-9 md:w-11 md:h-11 rounded-full bg-white/10 group-hover:bg-[#25D366]/20 transition-colors">
+                            <div className="flex items-center justify-center w-9 h-9 md:w-11 md:h-11 rounded-full bg-white/10 group-hover:bg-[#25D366]/20 transition-colors shrink-0">
                                 <MessageCircle size={18} className="text-white group-hover:text-[#25D366]" />
                             </div>
-                            <div className="hidden md:flex flex-col items-start gap-0.5 leading-none">
-                                <span className="text-[10px] md:text-[11px] font-bold uppercase tracking-widest italic text-white group-hover:text-[#F3E5AB]">
-                                    WhatsApp
-                                </span>
-                                <span className="text-[11px] opacity-90 uppercase tracking-[0.1em] font-bold text-white/70">
-                                    Compartilhar
-                                </span>
+                            <div className={`flex flex-col items-start gap-0.5 leading-none transition-all duration-500 overflow-hidden ${showButtonText ? 'max-w-[120px] opacity-100 ml-2' : 'max-w-0 opacity-0 ml-0'}`}>
+                                <span className="text-[10px] md:text-[11px] font-bold uppercase tracking-widest italic text-white whitespace-nowrap">WhatsApp</span>
+                                <span className="text-[11px] opacity-90 uppercase tracking-[0.1em] font-bold text-white/70 whitespace-nowrap">Compartilhar</span>
                             </div>
                         </button>
 
-                        {/* FAVORITAR COM BALÃO HINT */}
+                        {/* FAVORITAR */}
                         <div className="relative flex items-center border-r border-white/20 pr-3 md:pr-4">
-                            {showHint && (
-                                <div
-                                    role="alert"
-                                    /* Alterado para top-full e mt-6 para aparecer embaixo da barra */
-                                    className="absolute top-full mt-6 left-1/2 -translate-x-1/2 w-48 p-3 bg-white text-black text-[10px] md:text-[12px] font-medium rounded-xl shadow-2xl animate-in fade-in zoom-in slide-in-from-top-2 duration-300 z-[100000]"
-                                >
-                                    <p className="leading-tight text-center">
-                                        Seus favoritos serão salvos <strong>apenas neste dispositivo</strong>.
-                                    </p>
-                                    {/* Setinha ajustada para o topo do balão, apontando para cima */}
-                                    <div className="absolute bottom-full left-1/2 -translate-x-1/2 border-8 border-transparent border-b-white"></div>
-                                    <button
-                                        onClick={() => setShowHint(false)}
-                                        aria-label="Fechar aviso"
-                                        className="absolute -top-1 -right-1 bg-black text-white rounded-full w-4 h-4 flex items-center justify-center text-[10px] hover:bg-red-500 transition-colors"
-                                    >
-                                        ×
-                                    </button>
-                                </div>
-                            )}
-
+                            {/* ... (mantenha seu código de Hint aqui) ... */}
                             <button
                                 onClick={toggleFavorite}
-                                aria-label={isFavorited ? "Remover dos favoritos" : "Adicionar aos favoritos"}
-                                aria-pressed={isFavorited}
-                                className={`pl-1 flex items-center gap-2 transition-all focus:outline-none focus:ring-2 focus:ring-[#E67E70] focus:ring-offset-2 focus:ring-offset-black rounded-full group ${isFavorited ? 'text-[#E67E70]' : 'hover:text-[#F3E5AB]'}`}
+                                className={`pl-1 flex items-center gap-0 hover:gap-2 transition-all duration-500 group ${isFavorited ? 'text-[#E67E70]' : 'hover:text-[#F3E5AB]'}`}
                             >
-                                <div className={`flex items-center justify-center w-9 h-9 md:w-11 md:h-11 rounded-full transition-colors ${isFavorited ? 'bg-[#E67E70]/20' : 'bg-white/10 group-hover:bg-[#E67E70]/20'}`}>
-                                    <Heart
-                                        size={18}
-                                        fill={isFavorited ? "currentColor" : "none"}
-                                        className={isFavorited ? "animate-pulse" : "text-white group-hover:text-[#E67E70]"}
-                                    />
+                                <div className={`flex items-center justify-center w-9 h-9 md:w-11 md:h-11 rounded-full transition-colors shrink-0 ${isFavorited ? 'bg-[#E67E70]/20' : 'bg-white/10 group-hover:bg-[#E67E70]/20'}`}>
+                                    <Heart size={18} fill={isFavorited ? "currentColor" : "none"} className={isFavorited ? "animate-pulse" : "text-white group-hover:text-[#E67E70]"} />
                                 </div>
-                                <div className="hidden md:flex flex-col items-start gap-0.5 leading-none">
-                                    <span className="text-[10px] md:text-[11px] font-bold uppercase tracking-widest italic text-white group-hover:text-[#F3E5AB]">
-                                        {isFavorited ? "Favorito" : "Favoritar"}
-                                    </span>
-                                    <span className="text-[11px] opacity-90 uppercase tracking-[0.1em] font-bold text-white/70">
-                                        {totalFavorites > 0 ? `(${totalFavorites}) Selecionadas` : "Peça Única"}
-                                    </span>
+                                <div className={`flex flex-col items-start gap-0.5 leading-none transition-all duration-500 overflow-hidden ${showButtonText ? 'max-w-[120px] opacity-100 ml-2' : 'max-w-0 opacity-0 ml-0'}`}>
+                                    <span className="text-[10px] md:text-[11px] font-bold uppercase tracking-widest italic text-white whitespace-nowrap">{isFavorited ? "Favorito" : "Favoritar"}</span>
+                                    <span className="text-[11px] opacity-90 uppercase tracking-[0.1em] font-bold text-white/70 whitespace-nowrap">{totalFavorites > 0 ? `(${totalFavorites}) Selecionadas` : "Foto única"}</span>
                                 </div>
                             </button>
                         </div>
 
-                        {/* DOWNLOAD ALTA RESOLUÇÃO */}
+                        {/* DOWNLOAD */}
                         <button
                             onClick={handleDownload}
-                            aria-label="Baixar esta foto em alta resolução"
-                            className="pl-1 flex items-center gap-2 hover:text-[#F3E5AB] focus:outline-none focus:ring-2 focus:ring-[#F3E5AB] focus:ring-offset-2 focus:ring-offset-black transition-all group border-r border-white/20 pr-3 md:pr-4"
+                            className="pl-1 flex items-center gap-0 hover:gap-2 transition-all duration-500 group border-r border-white/20 pr-3 md:pr-4"
                         >
-                            <div className="flex items-center justify-center w-9 h-9 md:w-11 md:h-11 rounded-full bg-white/10 group-hover:bg-white/20 transition-colors">
-                                {isDownloading ? (
-                                    <Loader2 size={16} className="animate-spin text-[#F3E5AB]" />
-                                ) : (
-                                    <Download size={18} className="text-white group-hover:text-[#F3E5AB]" />
-                                )}
+                            <div className="flex items-center justify-center w-9 h-9 md:w-11 md:h-11 rounded-full bg-white/10 group-hover:bg-white/20 transition-colors shrink-0">
+                                {isDownloading ? <Loader2 size={16} className="animate-spin text-[#F3E5AB]" /> : <Download size={18} className="text-white group-hover:text-[#F3E5AB]" />}
                             </div>
-                            <div className="hidden md:flex flex-col items-start gap-0.5 leading-none">
-                                <span className="text-[10px] md:text-[11px] font-bold uppercase tracking-widest italic text-white group-hover:text-[#F3E5AB]">
-                                    {isDownloading ? "Baixando" : "Download"}
-                                </span>
-                                <span className="text-[11px] opacity-90 uppercase tracking-[0.1em] font-bold text-white/70">
-                                    Alta Resolução
-                                </span>
+                            <div className={`flex flex-col items-start gap-0.5 leading-none transition-all duration-500 overflow-hidden ${showButtonText ? 'max-w-[120px] opacity-100 ml-2' : 'max-w-0 opacity-0 ml-0'}`}>
+                                <span className="text-[10px] md:text-[11px] font-bold uppercase tracking-widest italic text-white whitespace-nowrap">{isDownloading ? "Baixando" : "Download"}</span>
+                                <span className="text-[11px] opacity-90 uppercase tracking-[0.1em] font-bold text-white/70 whitespace-nowrap">Alta Resolução</span>
                             </div>
                         </button>
 
-                        {/* SAIR (SEM TEXTO) */}
+                        {/* SAIR */}
                         <button
                             onClick={onClose}
-                            aria-label="Sair e voltar para a galeria principal"
                             className="flex items-center justify-center focus:outline-none focus:ring-2 focus:ring-red-400 focus:ring-offset-2 focus:ring-offset-black rounded-full transition-all group pl-1 md:pl-2"
                         >
-                            <div className="flex items-center justify-center w-9 h-9 md:w-11 md:h-11 rounded-full bg-white/5 group-hover:bg-red-500/20 transition-colors">
+                            <div className="flex items-center justify-center w-9 h-9 md:w-11 md:h-11 rounded-full bg-white/5 group-hover:bg-red-500/20 transition-colors shrink-0">
                                 <X size={22} className="text-white group-hover:text-red-400" />
                             </div>
                         </button>
