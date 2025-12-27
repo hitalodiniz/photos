@@ -14,7 +14,7 @@ export default function PhotographerAvatar({ galeria, position, isVisible = true
 
 const positionClasses = position === 'top-page'
   ? "relative z-10 animate-in fade-in slide-in-from-right-10 duration-700" 
-  : "fixed bottom-28 right-8 scale-90 md:scale-100 z-[999999]";
+  : "fixed bottom-10 right-8 scale-90 md:scale-100 z-[999999]";
 
   return (
     /* Removido pointer-events-none do pai para simplificar a interatividade */
