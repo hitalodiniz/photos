@@ -52,7 +52,7 @@ export default function GaleriaView({ galeria, photos }: GaleriaViewProps) {
           <div className="relative w-full max-w-[1600px] mx-auto px-6 md:px-12 flex flex-col md:flex-row items-center justify-between gap-8 md:gap-10">
 
             {/* BLOCO ESQUERDO: TITULO */}
-            <div className="flex flex-col gap-2 text-center md:text-left items-center md:items-start w-full">
+            <div className="flex flex-col gap-2 text-left items-center md:items-start w-full">
               <div className="inline-block relative">
 
                 {/* CONJUNTO CÂMARA + TÍTULO */}

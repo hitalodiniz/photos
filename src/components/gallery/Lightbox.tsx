@@ -1,7 +1,8 @@
 'use client';
 import React, { useEffect, useState } from 'react';
 import { X, ChevronLeft, ChevronRight, Download, MessageCircle, Loader2, Camera, MapPin, Heart, FolderDown } from 'lucide-react';
-import PhotographerAvatar from './PhotographerAvatar'; // Importação do componente
+import { GalleryHeader, PhotographerAvatar } from '@/components/gallery';
+
 import type { Galeria } from '@/types/galeria';
 
 interface Photo {
@@ -208,138 +209,147 @@ export default function Lightbox({
     };
 
     return (
-        <div
-            className="fixed inset-0 z-[999] bg-black flex flex-col items-center justify-center overflow-hidden touch-none"
-            onTouchStart={onTouchStart}
-            onTouchMove={onTouchMove}
-            onTouchEnd={onTouchEnd}
-        >
-            <div className="fixed inset-0 z-[999] flex flex-col bg-black animate-in fade-in duration-300 select-none">
+
+<div
+    /* Removido o touch-none para permitir scroll no mobile quando o conteúdo cresce */
+    className="fixed inset-0 z-[999] bg-black flex flex-col items-center overflow-y-auto md:overflow-hidden select-none"
+    onTouchStart={onTouchStart}
+    onTouchMove={onTouchMove}
+    onTouchEnd={onTouchEnd}
+>
+    <div 
+        /* Alterado de fixed para relative no mobile para que a div cresça com o conteúdo interno (imagem + avatar) */
+        className="relative md:fixed inset-0 z-[999] flex flex-col bg-black animate-in fade-in duration-300 min-h-full"
+    >
 
                 {/* BARRA SUPERIOR */}
-                <div className="absolute top-0 left-0 right-0 flex flex-row items-center justify-between p-4 md:px-12 md:py-8 text-white/90 z-[70] bg-gradient-to-b from-black/90 via-black/40 to-transparent pointer-events-none">
-                    <div className="flex items-center gap-4 pointer-events-auto">
-                        <div className="p-4 bg-white/5 backdrop-blur-2xl rounded-full shadow-2xl border border-[#F3E5AB]/60 rounded-full bg-black/20 backdrop-blur-md">
-                            <Camera size={22} className="text-[#F3E5AB] w-6 h-6 md:w-8 md:h-8 drop-shadow-[0_0_15px_rgba(243,229,171,0.3)]" />
-                        </div>
-                        <div className="flex flex-col text-left">
-                            <h2 className="text-lg md:text-2xl font-bold italic font-serif leading-tight text-white drop-shadow-md">
-                                {galleryTitle}
-                            </h2>
-                            <div className="flex items-center gap-2 text-[12px] md:text-[14px] tracking-widest text-[#F3E5AB] font-medium mt-1">
-                                <MapPin size={12} />
-                                <span>{location || "Local não informado"}</span>
-                            </div>
-                        </div>
-                    </div>
+                <div className="relative md:absolute top-0 left-0 right-0 flex flex-col md:flex-row items-center justify-between p-6 md:px-14 md:py-8 text-white/90 z-[70] bg-gradient-to-b from-black/90 via-black/40 to-transparent w-full gap-6">
 
-                    {/* BARRA DE FERRAMENTAS PREMIUM - LIGHTBOX */}
-                    <div
-                        className="flex items-center bg-black/75 backdrop-blur-xl p-2 px-3 md:p-2 md:px-3 rounded-2xl border border-white/20 shadow-2xl pointer-events-auto transition-all duration-500 ease-in-out"
-                        onMouseEnter={() => setShowButtonText(true)}
-                        onMouseLeave={() => setShowButtonText(false)}
-                        role="toolbar"
-                    >
-                        {/* WHATSAPP */}
-                        <button
-                            onClick={handleShareWhatsApp}
-                            className="flex items-center gap-0 hover:gap-2 transition-all duration-500 group border-r border-white/20 pr-3 md:pr-4"
+                    {/* Título e Localização (Header) */}
+
+                    <GalleryHeader
+                        title={galleryTitle}
+                        location={location}
+                        isLightbox={true}
+                    />
+
+                    {/* Barra de Ferramentas Premium - Mobile: Alinhada à direita ou centro */}
+                    {/* Barra de Ferramentas (Direita no Desktop, Centro no Mobile) */}
+                    <div className="w-full md:w-auto flex justify-center md:justify-end pointer-events-auto z-[100]">
+                        <div
+                            className="flex items-center bg-black/80 backdrop-blur-2xl p-1.5 px-3 md:p-2 md:px-3 rounded-2xl border border-white/20 shadow-2xl transition-all duration-500 ease-in-out"
+                            onMouseEnter={() => setShowButtonText(true)}
+                            onMouseLeave={() => setShowButtonText(false)}
+                            role="toolbar"
                         >
-                            <div className="flex items-center justify-center w-9 h-9 md:w-11 md:h-11 rounded-full bg-white/10 group-hover:bg-[#25D366]/20 transition-colors shrink-0">
-                                <MessageCircle size={18} className="text-white group-hover:text-[#25D366]" />
-                            </div>
-                            <div className={`flex flex-col items-start gap-0.5 leading-none transition-all duration-500 overflow-hidden ${showButtonText ? 'max-w-[120px] opacity-100 ml-2' : 'max-w-0 opacity-0 ml-0'}`}>
-                                <span className="text-[10px] md:text-[11px] font-bold uppercase tracking-widest italic text-white whitespace-nowrap">WhatsApp</span>
-                                <span className="text-[11px] opacity-90 uppercase tracking-[0.1em] font-bold text-white/70 whitespace-nowrap">Compartilhar</span>
-                            </div>
-                        </button>
-
-                        {/* FAVORITAR */}
-                        <div className="relative flex items-center border-r border-white/20 pr-3 md:pr-4">
-                            {/* ... (mantenha seu código de Hint aqui) ... */}
+                            {/* WHATSAPP - Texto restaurado com controle de visibilidade */}
                             <button
-                                onClick={toggleFavorite}
-                                className={`pl-1 flex items-center gap-0 hover:gap-2 transition-all duration-500 group ${isFavorited ? 'text-[#E67E70]' : 'hover:text-[#F3E5AB]'}`}
+                                onClick={handleShareWhatsApp}
+                                className="flex items-center gap-0 hover:gap-2 transition-all duration-500 group border-r border-white/10 pr-3"
                             >
-                                <div className={`flex items-center justify-center w-9 h-9 md:w-11 md:h-11 rounded-full transition-colors shrink-0 ${isFavorited ? 'bg-[#E67E70]/20' : 'bg-white/10 group-hover:bg-[#E67E70]/20'}`}>
-                                    <Heart size={18} fill={isFavorited ? "currentColor" : "none"} className={isFavorited ? "animate-pulse" : "text-white group-hover:text-[#E67E70]"} />
+                                <div className="flex items-center justify-center w-8 h-8 md:w-11 md:h-11 rounded-full bg-white/5 group-hover:bg-[#25D366]/20 transition-colors shrink-0">
+                                    <MessageCircle size={16} className="text-white group-hover:text-[#25D366]" />
                                 </div>
-                                <div className={`flex flex-col items-start gap-0.5 leading-none transition-all duration-500 overflow-hidden ${showButtonText ? 'max-w-[120px] opacity-100 ml-2' : 'max-w-0 opacity-0 ml-0'}`}>
-                                    <span className="text-[10px] md:text-[11px] font-bold uppercase tracking-widest italic text-white whitespace-nowrap">{isFavorited ? "Favorito" : "Favoritar"}</span>
-                                    <span className="text-[11px] opacity-90 uppercase tracking-[0.1em] font-bold text-white/70 whitespace-nowrap">{totalFavorites > 0 ? `(${totalFavorites}) Selecionadas` : "Foto única"}</span>
+                                {/* O container abaixo garante que o texto apareça no hover ou no timer inicial */}
+                                <div className={`flex flex-col items-start leading-none transition-all duration-500 overflow-hidden ${showButtonText ? 'max-w-[100px] opacity-100 ml-2' : 'max-w-0 opacity-0 ml-0'}`}>
+                                    <span className="text-[9px] md:text-[11px] font-bold uppercase tracking-widest italic text-white whitespace-nowrap">WhatsApp</span>
+                                    <span className="text-[8px] md:text-[11px] opacity-60 uppercase font-bold text-white/70 whitespace-nowrap">Compartilhar</span>
+                                </div>
+                            </button>
+
+                            {/* FAVORITAR */}
+                            <div className="relative flex items-center border-r border-white/10 pr-3 ml-2">
+                                <button
+                                    onClick={toggleFavorite}
+                                    className={`flex items-center gap-0 transition-all duration-500 group ${isFavorited ? 'text-[#E67E70]' : 'hover:text-[#F3E5AB]'}`}
+                                >
+                                    <div className={`flex items-center justify-center w-8 h-8 md:w-11 md:h-11 rounded-full transition-colors shrink-0 ${isFavorited ? 'bg-[#E67E70]/20' : 'bg-white/5'}`}>
+                                        <Heart size={16} fill={isFavorited ? "currentColor" : "none"} className={isFavorited ? "animate-pulse" : "text-white"} />
+                                    </div>
+                                    <div className={`flex flex-col items-start leading-none transition-all duration-500 overflow-hidden ${showButtonText ? 'max-w-[100px] opacity-100 ml-2' : 'max-w-0 opacity-0 ml-0'}`}>
+                                        <span className="text-[9px] md:text-[11px] font-bold uppercase tracking-widest italic text-white whitespace-nowrap">Favoritar</span>
+                                        <span className="text-[8px] md:text-[11px] opacity-60 uppercase font-bold text-white/70 whitespace-nowrap">{totalFavorites > 0 ? `(${totalFavorites})` : "Foto"}</span>
+                                    </div>
+                                </button>
+                            </div>
+
+                            {/* DOWNLOAD */}
+                            <button
+                                onClick={handleDownload}
+                                className="flex items-center gap-0 transition-all duration-500 group border-r border-white/10 pr-3 ml-2"
+                            >
+                                <div className="flex items-center justify-center w-8 h-8 md:w-11 md:h-11 rounded-full bg-white/5 group-hover:bg-white/10 transition-colors shrink-0">
+                                    {isDownloading ? <Loader2 size={14} className="animate-spin text-[#F3E5AB]" /> : <Download size={16} className="text-white" />}
+                                </div>
+                                <div className={`flex flex-col items-start leading-none transition-all duration-500 overflow-hidden ${showButtonText ? 'max-w-[100px] opacity-100 ml-2' : 'max-w-0 opacity-0 ml-0'}`}>
+                                    <span className="text-[9px] md:text-[11px] font-bold uppercase tracking-widest italic text-white whitespace-nowrap">Download</span>
+                                    <span className="text-[8px] md:text-[11px] opacity-60 uppercase font-bold text-white/70 whitespace-nowrap">Alta Res.</span>
+                                </div>
+                            </button>
+
+                            {/* FECHAR */}
+                            <button onClick={onClose} className="flex items-center justify-center pl-2 ml-1  ">
+                                <div className="flex items-center justify-center w-8 h-8 md:w-11 md:h-11 rounded-full bg-white/5 hover:bg-red-500/20 transition-colors shrink-0">
+                                    <X size={20} className="text-white hover:text-red-400" />
                                 </div>
                             </button>
                         </div>
-
-                        {/* DOWNLOAD */}
-                        <button
-                            onClick={handleDownload}
-                            className="pl-1 flex items-center gap-0 hover:gap-2 transition-all duration-500 group border-r border-white/20 pr-3 md:pr-4"
-                        >
-                            <div className="flex items-center justify-center w-9 h-9 md:w-11 md:h-11 rounded-full bg-white/10 group-hover:bg-white/20 transition-colors shrink-0">
-                                {isDownloading ? <Loader2 size={16} className="animate-spin text-[#F3E5AB]" /> : <Download size={18} className="text-white group-hover:text-[#F3E5AB]" />}
-                            </div>
-                            <div className={`flex flex-col items-start gap-0.5 leading-none transition-all duration-500 overflow-hidden ${showButtonText ? 'max-w-[120px] opacity-100 ml-2' : 'max-w-0 opacity-0 ml-0'}`}>
-                                <span className="text-[10px] md:text-[11px] font-bold uppercase tracking-widest italic text-white whitespace-nowrap">{isDownloading ? "Baixando" : "Download"}</span>
-                                <span className="text-[11px] opacity-90 uppercase tracking-[0.1em] font-bold text-white/70 whitespace-nowrap">Alta Resolução</span>
-                            </div>
-                        </button>
-
-                        {/* SAIR */}
-                        <button
-                            onClick={onClose}
-                            className="flex items-center justify-center focus:outline-none focus:ring-2 focus:ring-red-400 focus:ring-offset-2 focus:ring-offset-black rounded-full transition-all group pl-1 md:pl-2"
-                        >
-                            <div className="flex items-center justify-center w-9 h-9 md:w-11 md:h-11 rounded-full bg-white/5 group-hover:bg-red-500/20 transition-colors shrink-0">
-                                <X size={22} className="text-white group-hover:text-red-400" />
-                            </div>
-                        </button>
                     </div>
                 </div>
-
                 {/* ÁREA CENTRAL */}
-                <div className="relative w-full h-full flex items-center justify-center overflow-hidden bg-black">
-                    <button
-                        onClick={onPrev}
-                        disabled={activeIndex === 0}
-                        className="absolute left-0 z-50 h-full px-6 text-white/10 hover:text-[#F3E5AB] hover:bg-black/10 transition-all hidden md:block disabled:opacity-0"
-                    >
+                <div className="relative w-full h-full flex items-center justify-center bg-black overflow-hidden">
+
+                    {/* Setas Laterais (Desktop) */}
+                    <button onClick={onPrev} className="absolute left-0 z-[80] h-full px-6 text-white/10 hover:text-[#F3E5AB] hidden md:block">
                         <ChevronLeft size={64} strokeWidth={1} />
                     </button>
 
-                    <div className="w-full h-full flex items-center justify-center">
-                        {isImageLoading && (
-                            <div className="absolute inset-0 flex flex-col items-center justify-center z-10 bg-black/40 backdrop-blur-sm">
-                                <Loader2 className="w-10 h-10 text-[#F3E5AB] animate-spin mb-2" />
-                            </div>
-                        )}
+                    {/* Container Principal da Foto + Avatar */}
+                    <div className="flex flex-col items-center justify-center w-full h-full max-h-screen p-4 md:p-0">
+                        <div className="relative flex flex-col items-center">
+                            {isImageLoading && (
+                                <div className="absolute inset-0 flex items-center justify-center z-10">
+                                    <Loader2 className="w-10 h-10 text-[#F3E5AB] animate-spin" />
+                                </div>
+                            )}
 
-                        <img
-                            key={photo.id}
-                            src={currentUrl}
-                            alt="Visualização"
-                            onLoad={() => setIsImageLoading(false)}
-                            className={`w-full max-h-full object-contain transition-all duration-700 ease-out ${isImageLoading ? 'opacity-0 scale-95 blur-md' : 'opacity-100 scale-100 blur-0'}`}
-                        />
+                            <img
+                                key={photo.id}
+                                src={currentUrl}
+                                alt="Visualização"
+                                onLoad={() => setIsImageLoading(false)}
+                                className={`max-w-full max-h-[65vh] md:max-h-[80vh] object-contain transition-all duration-700 ${isImageLoading ? 'opacity-0 scale-95' : 'opacity-100 scale-100'}`}
+                            />
+                            {/* 3. RODAPÉ - CONTADOR FIXO ESTILO PHOTO VIEW CLIENT */}
+                            <div className="block md:hidden">
+                                <div className="flex bottom-6 left-6 md:bottom-10 md:left-14 z-[90] pointer-events-none">
+                                    <div className="flex items-center gap-3 bg-black/40 backdrop-blur-md p-2 px-4 rounded-full border border-white/10 shadow-lg">
+                                        <div className="w-8 h-8 rounded-full border border-[#F3E5AB]/40 flex items-center justify-center text-[#F3E5AB] text-[10px] font-black">
+                                            N
+                                        </div>
+                                        <p className="text-white/80 text-sm md:text-lg italic font-serif">
+                                            Foto <span className="text-[#F3E5AB] font-bold">{activeIndex + 1}</span> de {totalPhotos}
+                                        </p>
+                                    </div>
+                                </div>
+
+                            </div>
+                        </div>
                     </div>
 
-                    <button
-                        onClick={onNext}
-                        disabled={activeIndex === photos.length - 1}
-                        className="absolute right-0 z-10 h-full px-6 text-white/10 hover:text-[#F3E5AB] hover:bg-black/10 transition-all hidden md:block disabled:opacity-0"
-                    >
+                    <button onClick={onNext} className="absolute right-0 z-[80] h-full px-6 text-white/10 hover:text-[#F3E5AB] hidden md:block">
                         <ChevronRight size={64} strokeWidth={1} />
                     </button>
                 </div>
-
                 {/* RODAPÉ */}
-                <div className="absolute bottom-6 left-6 md:bottom-10 md:left-14 z-50 pointer-events-none">
+                <div className="absolute bottom-6 md:block hidden center md:bottom-10 md:left-14 z-50 pointer-events-none">
                     <p className="text-white/60 text-base md:text-[20px] italic font-serif">
                         Foto <span className="text-white font-medium">{activeIndex + 1}</span> de {totalPhotos}
                     </p>
                 </div>
             </div>
             {/* Componente de Avatar integrado no final do modal */}
+            
             <PhotographerAvatar
                 galeria={galeria}
                 position="bottom-lightbox" // Aqui deve ser bottom-lightbox

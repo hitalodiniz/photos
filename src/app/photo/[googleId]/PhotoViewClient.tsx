@@ -1,7 +1,7 @@
 'use client';
 import React, { useEffect, useState } from 'react';
 import { Download, Calendar, MapPin, Sparkles, Camera, Loader2, ImageIcon } from 'lucide-react';
-import PhotographerAvatar from '@/components/gallery/PhotographerAvatar';
+import { GalleryHeader, PhotographerAvatar } from '@/components/gallery';
 import { createClient } from '@supabase/supabase-js';
 
 const supabase = createClient(
@@ -40,7 +40,7 @@ export default function PhotoViewClient({ googleId, slug }: { googleId: string, 
         fetchInfo();
     }, [slug]);
 
-        //Efeito dos botões de ação
+    //Efeito dos botões de ação
     useEffect(() => {
         // Oculta o texto após 3 segundos da primeira abertura
         const timer = setTimeout(() => setShowButtonText(false), 3000);
@@ -81,23 +81,15 @@ export default function PhotoViewClient({ googleId, slug }: { googleId: string, 
             <header className="relative md:absolute top-0 left-0 right-0 flex flex-col md:flex-row items-center justify-between p-6 md:px-14 md:py-8 text-white/90 z-[70] bg-gradient-to-b from-black/90 via-black/40 to-transparent w-full gap-6">
 
                 {/* TÍTULO À ESQUERDA */}
-                <div className="flex items-center gap-4 self-start md:self-center">
-                    <div className="p-4 bg-white/5 backdrop-blur-2xl rounded-full shadow-2xl border border-[#F3E5AB]/30 rounded-full bg-black/20 backdrop-blur-md">
-                        <Camera size={20} className="text-[#F3E5AB] w-8 h-8 md:w-10 md:h-10 drop-shadow-[0_0_15px_rgba(243,229,171,0.3)]" />
-                    </div>
-                    <div className="flex flex-col text-left">
-                        <h1 className="text-xl md:text-2xl font-bold italic font-serif leading-tight text-white drop-shadow-md">
-                            {data?.title}
-                        </h1>
-                        <div className="flex items-center gap-2 text-[12px] md:text-[14px] tracking-widest text-[#F3E5AB] font-medium mt-1">
-                            <MapPin size={12} />
-                            <span>{data?.location || "Local não informado"}</span>
-                        </div>
-                    </div>
-                </div>
-
+                <GalleryHeader
+                    title={data?.title}
+                    location={data?.location || "Local não informado"}
+                />
                 {/* BARRA DE BOTÕES - AJUSTADA PARA FUNDO CHAMPANHE CLARO */}
                 <div
+                    /* Eventos adicionados para reexibir o texto ao passar o mouse */
+                    onMouseEnter={() => setShowButtonText(true)}
+                    onMouseLeave={() => setShowButtonText(false)}
                     className="flex items-center bg-black/75 backdrop-blur-xl p-2 px-4 md:p-2 md:px-5 rounded-2xl border border-white/20 shadow-2xl pointer-events-auto transition-all"
                     role="toolbar"
                     aria-label="Ferramentas da galeria"
@@ -106,9 +98,9 @@ export default function PhotoViewClient({ googleId, slug }: { googleId: string, 
                     <button
                         onClick={handleDownload}
                         aria-label="Baixar todas as fotos em alta resolução"
-                        className="flex items-center gap-3 pl-1 hover:text-[#F3E5AB] focus:outline-none focus:ring-2 focus:ring-[#F3E5AB] focus:ring-offset-2 focus:ring-offset-black transition-all group border-r border-white/20 pr-3 md:pr-5"
+                        className="flex items-center gap-0 hover:gap-3 pl-1 hover:text-[#F3E5AB] focus:outline-none focus:ring-2 focus:ring-[#F3E5AB] focus:ring-offset-2 focus:ring-offset-black transition-all group border-r border-white/20"
                     >
-                        <div className="flex items-center justify-center w-9 h-9 md:w-11 md:h-11 rounded-full bg-white/10 group-hover:bg-white/20 transition-colors">
+                        <div className="flex items-center justify-center w-9 h-9 md:w-11 md:h-11 rounded-full bg-white/10 group-hover:bg-white/20 transition-colors shrink-0">
                             {isDownloading ? (
                                 <Loader2 size={16} className="animate-spin text-[#F3E5AB]" />
                             ) : (
@@ -116,18 +108,17 @@ export default function PhotoViewClient({ googleId, slug }: { googleId: string, 
                             )}
                         </div>
 
-                        {/* Container de texto com animação de expansão */}
-                        <div className={`flex flex-col items-start gap-0.5 leading-none transition-all duration-500 overflow-hidden ${showButtonText ? 'max-w-[120px] opacity-100 ml-2' : 'max-w-0 opacity-0 ml-0'}`}>
-                            <span className="text-[10px] md:text-[11px] font-bold uppercase tracking-widest italic text-white group-hover:text-[#F3E5AB]">
+                        <div className={`flex flex-col items-start gap-0.5 leading-none transition-all duration-500 overflow-hidden ${showButtonText ? 'max-w-[120px] opacity-100 ml-2 pr-3' : 'max-w-0 opacity-0 ml-0'}`}>
+                            <span className="text-[10px] md:text-[11px] font-bold uppercase tracking-widest italic text-white group-hover:text-[#F3E5AB] whitespace-nowrap">
                                 Download
                             </span>
-                            <span className="text-[11px] opacity-90 uppercase tracking-[0.1em] font-bold text-white/70">
+                            <span className="text-[11px] opacity-90 uppercase tracking-[0.1em] font-bold text-white/70 whitespace-nowrap">
                                 Alta Resolução
                             </span>
                         </div>
                     </button>
 
-                    {/* BOTÃO VER GALERIA - CAPTURANDO A URL DO PARÂMETRO 's' */}
+                    {/* BOTÃO VER GALERIA */}
                     <button
                         onClick={() => {
                             const params = new URLSearchParams(window.location.search);
@@ -135,16 +126,13 @@ export default function PhotoViewClient({ googleId, slug }: { googleId: string, 
                             window.location.href = galleryPath ? decodeURIComponent(galleryPath) : './';
                         }}
                         aria-label="Voltar para a galeria de fotos"
-                        /* Ajustado gap-0 para o modo reduzido e pl-2 para respiro */
                         className="flex items-center gap-0 hover:gap-2 pl-2 hover:text-[#F3E5AB] focus:outline-none focus:ring-2 focus:ring-[#F3E5AB] focus:ring-offset-2 focus:ring-offset-black transition-all duration-500 group"
                     >
-                        {/* Ícone circular padronizado */}
                         <div className="flex items-center justify-center w-9 h-9 md:w-11 md:h-11 rounded-full bg-white/10 group-hover:bg-white/20 transition-colors shrink-0">
                             <Camera size={20} className="text-white group-hover:text-[#F3E5AB]" />
                         </div>
 
-                        {/* Container de texto com animação de expansão */}
-                        <div className={`flex flex-col items-start gap-0.5 leading-none transition-all duration-500 overflow-hidden ${showButtonText ? 'max-w-[120px] opacity-100 ml-2' : 'max-w-0 opacity-0 ml-0'}`}>
+                        <div className={`flex flex-col items-start gap-0.5 leading-none transition-all duration-500 overflow-hidden ${showButtonText ? 'max-w-[120px] opacity-100 ml-2 pr-2' : 'max-w-0 opacity-0 ml-0'}`}>
                             <span className="text-[10px] md:text-[11px] font-bold uppercase tracking-widest italic text-white whitespace-nowrap">
                                 Ver Galeria
                             </span>

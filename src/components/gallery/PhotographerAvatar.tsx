@@ -39,10 +39,10 @@ export default function PhotographerAvatar({ galeria, position, isVisible = true
         {/* Conteúdo de Texto e Botões à Direita */}
         <div className="flex flex-col items-start gap-2">
           <div className="flex flex-col items-start">
-            <p className="text-[8px] md:text-[9px] tracking-[0.1em] text-[#F3E5AB] font-bold opacity-80 uppercase leading-none mb-1">
+            <p className="text-[8px] md:text-[10px] italic tracking-[0.1em] text-[#F3E5AB] font-medium opacity-80  leading-none mb-1">
               Fotografado por
             </p>
-            <span className="text-sm md:text-lg font-serif italic text-white leading-tight">
+            <span className="text-sm md:text-base font-serif italic text-white leading-tight">
               {galeria.photographer_name}
             </span>
           </div>
