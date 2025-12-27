@@ -100,7 +100,7 @@ export default function GaleriaView({ galeria, photos }: GaleriaViewProps) {
         </main>
 
         {/* 3. RODAPÉ EDITORIAL */}
-        <footer className="relative z-20 w-full pt-6 pb-16 px-6 border-t border-[#D4AF37]/60 bg-[#FFF9F0] backdrop-blur-sm">
+        <footer className="relative z-20 w-full pt-6 pb-24 px-6 border-t border-[#D4AF37]/60 bg-[#FFF9F0] backdrop-blur-sm">
 
           <div className="max-w-7xl mx-auto flex flex-col items-center gap-8">
 

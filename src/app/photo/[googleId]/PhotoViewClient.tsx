@@ -1,7 +1,6 @@
 'use client';
 import React, { useEffect, useState } from 'react';
-import { Download, ArrowLeft, Calendar, MapPin, Sparkles, Camera, Loader2 } from 'lucide-react';
-import { DynamicHeroBackground } from '@/components/layout';
+import { Download, Calendar, MapPin, Sparkles, Camera, Loader2, ImageIcon } from 'lucide-react';
 import PhotographerAvatar from '@/components/gallery/PhotographerAvatar';
 import { createClient } from '@supabase/supabase-js';
 
@@ -19,39 +18,26 @@ export default function PhotoViewClient({ googleId, slug }: { googleId: string, 
     const currentImageUrl = `https://lh3.googleusercontent.com/d/${googleId}=s1024`;
 
     useEffect(() => {
-    async function fetchInfo() {
-        if (!slug) return;
+        async function fetchInfo() {
+            if (!slug) return;
+            try {
+                const cleanedSlug = slug.startsWith('/') ? slug.substring(1) : slug;
+                const { data: galData, error } = await supabase
+                    .from('tb_galerias')
+                    .select(`*, photographer:tb_profiles (*)`)
+                    .eq('slug', cleanedSlug)
+                    .single();
 
-        try {
-            // LIMPEZA: Remove o "%2F" inicial (que vira "/") se existir
-            const cleanedSlug = slug.startsWith('/') ? slug.substring(1) : slug;
-            
-            console.log("Slug para busca:", cleanedSlug);
-
-            const { data: galData, error } = await supabase
-                .from('tb_galerias')
-                .select(`
-                    *, 
-                    photographer:tb_profiles (*)
-                `)
-                .eq('slug', cleanedSlug) // Busca com o slug limpo
-                .single();
-
-            if (error) {
-                console.error("Supabase Error:", error.message);
-                throw error;
+                if (error) throw error;
+                setData(galData);
+            } catch (err: any) {
+                console.error("Erro na busca:", err.message);
+            } finally {
+                setLoading(false);
             }
-
-            setData(galData);
-        } catch (err: any) {
-            // Agora o log mostrará o erro real, não apenas {}
-            console.error("Erro detalhado na busca:", err.message || err);
-        } finally {
-            setLoading(false);
         }
-    }
-    fetchInfo();
-}, [slug]);
+        fetchInfo();
+    }, [slug]);
 
     const handleDownload = async () => {
         try {
@@ -75,94 +61,108 @@ export default function PhotoViewClient({ googleId, slug }: { googleId: string, 
 
     if (loading) return (
         <div className="min-h-screen bg-black flex items-center justify-center text-[#F3E5AB] animate-pulse font-serif italic">
-            Sincronizando peça exclusiva...
+            Carregando foto exclusiva...
         </div>
     );
 
     return (
-        <div className="fixed inset-0 z-[999] bg-black flex flex-col items-center justify-center overflow-hidden select-none">
-            <div className="fixed inset-0 z-0 opacity-20">
-                <DynamicHeroBackground />
-            </div>
+        /* Ajustado para overflow-y-auto no mobile para permitir rolagem vertical da pilha */
+        <div className="md:fixed md:inset-0 z-[999] bg-black flex flex-col items-center overflow-y-auto md:overflow-hidden select-none min-h-screen">
 
-            {/* BARRA SUPERIOR - ESTILO LIGHTBOX */}
-            <div className="absolute top-0 left-0 right-0 flex flex-row items-center justify-between p-4 md:px-14 md:py-8 text-white/90 z-[70] bg-gradient-to-b from-black/90 via-black/40 to-transparent">
+            {/* BARRA SUPERIOR - No mobile vira um bloco no topo da pilha */}
+            <header className="relative md:absolute top-0 left-0 right-0 flex flex-col md:flex-row items-center justify-between p-6 md:px-14 md:py-8 text-white/90 z-[70] bg-gradient-to-b from-black/90 via-black/40 to-transparent w-full gap-6">
 
                 {/* TÍTULO À ESQUERDA */}
-                <div className="flex items-center gap-4">
-                    <div className="flex-shrink-0 flex items-center justify-center w-10 h-10 md:w-16 md:h-16 border border-[#F3E5AB]/30 rounded-full bg-black/20 backdrop-blur-md">
-                        <Camera size={24} className="text-[#F3E5AB] md:w-8 md:h-8" />
+                <div className="flex items-center gap-4 self-start md:self-center">
+                    <div className="p-4 bg-white/5 backdrop-blur-2xl rounded-full shadow-2xl border border-[#F3E5AB]/30 rounded-full bg-black/20 backdrop-blur-md">
+                        <Camera size={20} className="text-[#F3E5AB] w-6 h-6 md:w-8 md:h-8 drop-shadow-[0_0_15px_rgba(243,229,171,0.3)]" />
                     </div>
                     <div className="flex flex-col text-left">
-                        <h2 className="text-lg md:text-2xl font-bold italic font-serif leading-tight text-white drop-shadow-md">
+                        <h1 className="text-xl md:text-2xl font-bold italic font-serif leading-tight text-white drop-shadow-md">
                             {data?.title}
-                        </h2>
-                        <div className="flex items-center gap-2 text-[9px] md:text-[12px] tracking-widest text-[#F3E5AB] font-bold mt-1 uppercase">
+                        </h1>
+                        <div className="flex items-center gap-2 text-[10px] md:text-[12px] tracking-widest text-[#F3E5AB] font-bold mt-1 uppercase">
                             <MapPin size={12} />
                             <span>{data?.location || "Local não informado"}</span>
                         </div>
                     </div>
                 </div>
 
-                {/* BOTÕES DE AÇÃO À DIREITA */}
-                <div className="flex items-center gap-2 md:gap-4 bg-black/40 backdrop-blur-xl p-1.5 px-3 md:p-2 md:px-6 rounded-full border border-white/10 shadow-2xl">
-
-                    {/* BOTÃO BAIXAR (DOIS NÍVEIS) */}
-                    <button onClick={handleDownload} className="flex items-center gap-3 hover:text-[#F3E5AB] transition-colors border-r border-white/10 pr-4">
-                        {isDownloading ? <Loader2 size={18} className="animate-spin" /> : <Download size={20} />}
-                        <div className="flex flex-col items-start leading-none hidden md:flex">
-                            <span className="text-[11px] font-black uppercase tracking-wider italic">Baixar</span>
-                            <span className="text-[8px] opacity-60 uppercase tracking-widest">Alta Resolução</span>
+                {/* BARRA DE BOTÕES - Alinhada abaixo no mobile */}
+                <div className="flex items-center gap-4 md:gap-2 bg-black/60 backdrop-blur-2xl 
+                p-2 px-6 md:px-4 rounded-full border border-white/20 shadow-2xl pointer-events-auto transition-all duration-300">
+                    <button
+                        onClick={handleDownload}
+                        className="flex items-center hover:text-[#F3E5AB] transition-all group 
+                         border-r border-white/20 pr-4 md:pr-4"
+                    >
+                        <div className="flex items-center justify-center w-10 h-10 rounded-full bg-white/10 group-hover:bg-white/20 transition-colors">
+                            {isDownloading ? (
+                                <Loader2 size={18} className="animate-spin text-[#F3E5AB]" />
+                            ) : (
+                                <Download size={20} className="text-white group-hover:text-[#F3E5AB]" />
+                            )}
                         </div>
+                                                <span className="text-[10px] md:text-[11px] font-bold uppercase tracking-widest italic text-white group-hover:text-[#F3E5AB]">
+                                Baixar Alta Resolução
+                            </span>
+                    
                     </button>
 
-                    {/* BOTÃO VER GALERIA (VOLTAR) */}
                     <button
                         onClick={() => window.history.back()}
-                        className="flex flex-col items-center hover:text-red-400 transition-colors"
+                        className="flex items-center gap-3 hover:text-[#F3E5AB] transition-all group"
                     >
-                        <ArrowLeft size={22} />
-                        <span className="hidden md:block text-[9px] font-bold uppercase tracking-widest mt-1">Ver Galeria</span>
+                        <ImageIcon size={18} 
+                        strokeWidth={2.5} className="text-white group-hover:text-red-400 transition-colors" />
+                        <span className="text-[10px] md:text-[11px] font-bold uppercase tracking-widest italic text-white group-hover:text-[#F3E5AB]">
+                            Ver Galeria de Fotos
+                        </span>
                     </button>
                 </div>
-            </div>
+            </header>
 
-            {/* ÁREA CENTRAL - FOTO OCUPANDO ESPAÇO MÁXIMO */}
-            <div className="relative w-full h-full flex items-center justify-center p-2 md:p-12 overflow-hidden bg-black">
-                <img
-                    src={currentImageUrl}
-                    className="w-full h-full object-contain transition-all duration-700 ease-out shadow-2xl"
-                    alt="Visualização Editorial"
-                />
+            {/* ÁREA CENTRAL - FOTO */}
+            <main className="relative flex-grow w-full flex flex-col items-center justify-center bg-black md:overflow-hidden pt-0">
+                <div className="relative w-full h-full flex flex-col items-center justify-center p-0 md:p-4">
+                    <img
+                        src={currentImageUrl}
+                        className="w-full h-auto md:h-full object-contain transition-all duration-700 ease-out"
+                        alt="Visualização Editorial"
+                    />
 
-                {/* BARRA DE INFORMAÇÕES (DATA E EXCLUSIVO) SEMPRE ABAIXO DA FOTO */}
-                <div className="absolute bottom-24 md:bottom-12 left-1/2 -translate-x-1/2 z-50">
-                    <div className="flex items-center gap-4 bg-black/50 backdrop-blur-lg px-6 py-2.5 rounded-full border border-white/10 shadow-2xl">
-                        <div className="flex items-center gap-2 text-white text-[13px] md:text-[14px] font-medium italic">
-                            <Calendar size={16} className="text-[#F3E5AB]" />
-                            <span>{data?.date && new Date(data.date).toLocaleDateString('pt-BR', { day: '2-digit', month: 'long', year: 'numeric' })}</span>
-                        </div>
-                        <div className="w-[1px] h-4 bg-white/20"></div>
-                        <div className="flex items-center gap-2 text-white text-[13px] md:text-[14px] font-medium italic">
-                            <Sparkles size={16} className="text-[#F3E5AB]" />
-                            <span>Acesso Exclusivo</span>
+                    {/* BARRA DE INFORMAÇÕES - Abaixo da foto no mobile e absoluta no desktop */}
+                    <div className="relative md:absolute mt-2 md:mt-0 md:bottom-6 left-0 md:left-1/2 md:-translate-x-1/2 z-50 w-full flex justify-center pb-0">
+                        <div className="flex items-center gap-4 bg-black/50 backdrop-blur-lg px-6 py-2.5 rounded-full border border-white/10 shadow-2xl">
+                            <div className="flex items-center gap-2 text-white text-[13px] md:text-[14px] font-medium italic">
+                                <Calendar size={16} className="text-[#F3E5AB]" />
+                                <span>{data?.date && new Date(data.date).toLocaleDateString('pt-BR', { day: '2-digit', month: 'long', year: 'numeric' })}</span>
+                            </div>
+                            <div className="w-[1px] h-4 bg-white/20"></div>
+                            <div className="flex items-center gap-2 text-white text-[13px] md:text-[14px] font-medium italic">
+                                <Sparkles size={16} className="text-[#F3E5AB]" />
+                                <span>Acesso Exclusivo</span>
+                            </div>
                         </div>
                     </div>
                 </div>
-            </div>
+            </main>
 
-            {/* AVATAR DO FOTÓGRAFO (POSIÇÃO OFICIAL DO LIGHTBOX) */}
+            {/* AVATAR DO FOTÓGRAFO - No mobile flui para o fim da página */}
             {data?.photographer && (
-                <PhotographerAvatar
-                    galeria={{
-                        ...data,
-                        photographer_name: data.photographer.full_name,
-                        photographer_avatar_url: data.photographer.profile_picture_url,
-                        photographer_phone: data.photographer.phone_contact,
-                        photographer_instagram: data.photographer.instagram_link,
-                    }}
-                    position="bottom-lightbox"
-                />
+                <div className="relative md:absolute md:bottom-0 md:right-0 md:p-0">
+                    <PhotographerAvatar
+                        galeria={{
+                            ...data,
+                            photographer_name: data.photographer.full_name,
+                            photographer_avatar_url: data.photographer.profile_picture_url,
+                            photographer_phone: data.photographer.phone_contact,
+                            photographer_instagram: data.photographer.instagram_link,
+                            photographer_id: data.photographer.username,
+                        }}
+                        position="bottom-lightbox"
+                    />
+                </div>
             )}
         </div>
     );

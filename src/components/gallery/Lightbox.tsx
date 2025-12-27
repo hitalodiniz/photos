@@ -149,30 +149,38 @@ export default function Lightbox({
     }, [onClose, onNext, onPrev]);
 
     const handleShareWhatsApp = async () => {
-        const highResUrl = getHighResImageUrl(photo.id);
-        const shareText = `Confira esta foto da galeria "${galleryTitle}"`;
-        const isMobile = /iPhone|iPad|iPod|Android/i.test(navigator.userAgent);
+    // Limpeza para evitar a barra extra que causava erro no banco
+    const rawSlug = galeria.slug || "";
+    const cleanedSlug = rawSlug.startsWith('/') ? rawSlug.substring(1) : rawSlug;
 
-        if (isMobile && navigator.share) {
-            try {
-                const response = await fetch(highResUrl);
-                const blob = await response.blob();
-                const file = new File([blob], "foto.jpg", { type: "image/jpeg" });
+    // URL Editorial: hitalodiniz/2025/10/25/casamento/ID_DA_FOTO
+    const shareUrl = `${window.location.origin}/photo/${photo.id}?s=${cleanedSlug}`;
+    
+    const shareText = `Confira esta foto exclusiva: ${galleryTitle}`;
+    const isMobile = /iPhone|iPad|iPod|Android/i.test(navigator.userAgent);
 
-                await navigator.share({
-                    files: [file],
-                    title: galleryTitle,
-                    text: shareText
-                });
-                return;
-            } catch (e) {
-                console.error("Erro ao compartilhar arquivo:", e);
-            }
+    if (isMobile && navigator.share) {
+        try {
+            // Compartilhamento nativo com o arquivo da foto
+            const response = await fetch(getHighResImageUrl(photo.id));
+            const blob = await response.blob();
+            const file = new File([blob], "foto.jpg", { type: "image/jpeg" });
+
+            await navigator.share({
+                files: [file],
+                title: galleryTitle,
+                text: `${shareText}\n\nLink: ${shareUrl}`
+            });
+            return;
+        } catch (e) {
+            console.error("Erro no Share nativo:", e);
         }
-        const whatsappUrl = `https://api.whatsapp.com/send?text=${encodeURIComponent(shareText + ": " + highResUrl)}`;
-        window.open(whatsappUrl, '_blank');
-    };
+    }
 
+    // Fallback: Link direto
+    const whatsappUrl = `https://api.whatsapp.com/send?text=${encodeURIComponent(shareText + " " + shareUrl)}`;
+    window.open(whatsappUrl, '_blank');
+};
     const handleDownload = async () => {
         try {
             setIsDownloading(true);

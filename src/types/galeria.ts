@@ -11,5 +11,5 @@ export interface Galeria {
   photographer_id?: string;
   photographer_name?: string;
   has_contracting_client?: string;
-  category?: string
+  category?: string;
 }
