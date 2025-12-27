@@ -103,7 +103,7 @@ export default function PhotoGrid({ photos, galeria }: any) {
     768: 1
   };
 
-  const getImageUrl = (photoId: string, suffix: string = "w400") => {
+  const getImageUrl = (photoId: string, suffix: string = "w600") => {
     return `https://lh3.googleusercontent.com/d/${photoId}=${suffix}`;
   };
 
@@ -185,11 +185,12 @@ export default function PhotoGrid({ photos, galeria }: any) {
   };
 
   return (
-    <div className="w-full flex flex-col items-center gap-10 min-h-screen pb-10">
-      {/* 1. BARRA DE INFORMAÇÕES EDITORIAL (ESTILOS PADRONIZADOS) */}
-      <div className="flex flex-col md:flex-row items-center justify-center gap-3 md:gap-4 bg-black/45 backdrop-blur-lg p-5 md:p-2 md:px-5 rounded-[2.5rem] md:rounded-full border border-white/10 shadow-2xl inline-flex w-auto max-w-[95%] md:max-w-max mx-auto transition-all mt-14 md:mt-0 z-[40]">
+ <div className="w-full flex flex-col items-center gap-10 min-h-screen pb-10">
+      {/* 1. BARRA DE INFORMAÇÕES EDITORIAL: Ajustada para flex-col no mobile */}
+      <div className="flex flex-col md:flex-row items-center justify-center gap-4 md:gap-4 bg-black/45 backdrop-blur-lg p-5 md:p-2 md:px-5 rounded-[2rem] md:rounded-full border border-white/10 shadow-2xl w-full max-w-[95%] md:max-w-max mx-auto transition-all z-[40]">
+        
         {/* SEÇÃO: INFOS DA GALERIA */}
-        <div className="flex items-center gap-3 text-white text-sm md:text-base font-medium italic h-9">
+        <div className="flex items-center justify-center gap-3 text-white text-sm md:text-[14px] font-medium italic">
           <div className="flex items-center gap-1.5">
             <Camera size={18} className="text-[#F3E5AB]" />
             <span className="whitespace-nowrap tracking-widest ">
@@ -198,69 +199,46 @@ export default function PhotoGrid({ photos, galeria }: any) {
           </div>
           <div className="flex items-center gap-1.5 border-l border-white/20 pl-3 h-5">
             <ImageIcon size={18} className="text-[#F3E5AB]" />
-            <span className="whitespace-nowrap italic">{photos.length} fotos</span>
+            <span className="whitespace-nowrap">{photos.length} fotos</span>
           </div>
         </div>
 
         <div className="hidden md:block w-[1px] h-4 bg-white/20"></div>
 
         {/* SEÇÃO: DATA E LOCALIZAÇÃO */}
-        <div className="flex items-center gap-3 text-white text-sm md:text-base font-medium italic h-9">
-          <span className="flex items-center gap-1.5 whitespace-nowrap border-l border-white/20 pl-3 h-5 ml-1">
+        <div className="flex flex-wrap items-center justify-center gap-3 text-white text-sm md:text-[14px]  font-medium italic">
+          <span className="flex items-center gap-1.5 whitespace-nowrap md:border-l md:border-white/20 md:pl-3 h-5">
             <Calendar size={18} className="text-[#F3E5AB]" />
             {new Date(galeria.date).toLocaleDateString('pt-BR', { day: '2-digit', month: 'long', year: 'numeric' })}
           </span>
           {galeria.location && (
-            <span className="flex items-center gap-1.5 border-l border-white/20 pl-3 h-5 whitespace-nowrap max-w-[120px] md:max-w-[300px] truncate">
+            <span className="flex items-center gap-1.5 border-l border-white/20 pl-3 h-5 whitespace-nowrap max-w-[200px] md:max-w-[300px] truncate">
               <MapPin size={18} className="text-[#F3E5AB]" />
               {galeria.location}
             </span>
           )}
         </div>
 
-        {/* SEÇÃO: AÇÕES DE FAVORITOS (RENDERIZA APENAS SE > 0) */}
-        {favorites.length > 0 && (
-          <div className="flex items-center gap-2 h-9 border-l border-white/20 pl-3 ml-1 animate-in fade-in slide-in-from-left-2 duration-300">
-            <div className="flex items-center gap-1.5 text-white text-sm md:text-base font-medium italic whitespace-nowrap mr-1">
-              <Heart size={16} className="text-[#E67E70]" fill="#E67E70" />
-              <span>Favoritos:</span>
-            </div>
+        {/* SEÇÃO: AÇÕES E DOWNLOADS - Ajustado para não quebrar layout */}
+        <div className="flex flex-wrap items-center justify-center gap-2 pt-2 md:pt-0 md:border-l md:border-white/20 md:pl-3">
+          {favorites.length > 0 && (
+            <>
+              <button
+                onClick={() => setShowOnlyFavorites(!showOnlyFavorites)}
+                className={`flex items-center justify-center gap-2 px-4 h-9 rounded-full border transition-all text-[11px] md:text-[12px] font-bold tracking-widest ${showOnlyFavorites ? "bg-[#E67E70] border-[#E67E70] text-white" : "bg-white/10 border-white/10 text-white"}`}
+              >
+                <Filter size={14} />
+                {showOnlyFavorites ? `Todas` : `Favoritos (${favorites.length})`}
+              </button>
+            </>
+          )}
 
-            {/* BOTÃO FILTRAR */}
-            <button
-              onClick={() => setShowOnlyFavorites(!showOnlyFavorites)}
-              className={`flex items-center justify-center gap-2 px-5 h-9 rounded-full border transition-all active:scale-95 duration-300 text-[12px] md:text-[13px] font-bold tracking-widest whitespace-nowrap ${showOnlyFavorites ? "bg-[#E67E70] border-[#E67E70] text-white shadow-lg" : "bg-white/10 border-white/10 text-white hover:bg-white/20"}`}
-            >
-              <Filter size={14} />
-              {showOnlyFavorites ? `Ver Todas` : `Filtrar (${favorites.length})`}
-            </button>
-
-            {/* BOTÃO BAIXAR FAVORITAS */}
-            <button
-              onClick={handleDownloadFavorites}
-              disabled={isDownloadingFavs}
-              className="flex items-center justify-center bg-[#E67E70] hover:bg-[#D66D5F] text-white gap-2 px-5 h-9 active:scale-95 rounded-full text-[12px] md:text-[13px] font-bold tracking-widest transition-all shadow-lg"
-            >
-              {isDownloadingFavs ? (
-                <Loader2 className="animate-spin h-4 w-4" />
-              ) : (
-                <><Download size={14} /> Baixar</>
-              )}
-            </button>
-          </div>
-        )}
-
-        {/* BOTÃO BAIXAR TODAS (COMPLETA) */}
-        <div className="flex items-center border-l border-white/20 pl-3 h-5 ml-1 relative group">
           <button
             onClick={downloadAllAsZip}
-            disabled={isDownloading || isDownloadingFavs || isOverLimit}
-            className={`flex items-center justify-center gap-2 px-5 h-9  rounded-full transition-all shadow-lg active:scale-95 text-[12px] md:text-[13px] font-bold tracking-widest whitespace-nowrap ${isOverLimit ? 'bg-gray-500/20 text-gray-400' : 'bg-[#F3E5AB] hover:bg-[#e6d595] text-slate-900'}`}>
-            {isDownloading ? (
-              <Loader2 className="animate-spin h-4 w-4" />
-            ) : (
-              <><Download size={14} /> {isOverLimit ? 'Bloqueado' : 'Baixar todas'}</>
-            )}
+            disabled={isDownloading || isOverLimit}
+            className={`flex items-center justify-center gap-2 px-4 h-9 rounded-full text-[11px] md:text-[12px] font-bold tracking-widest ${isOverLimit ? 'bg-gray-500/20 text-gray-400' : 'bg-[#F3E5AB] text-slate-900'}`}
+          >
+            {isDownloading ? <Loader2 className="animate-spin h-4 w-4" /> : <><Download size={14} /> {isOverLimit ? 'Limite' : 'Baixar todas'}</>}
           </button>
         </div>
       </div>
@@ -373,10 +351,10 @@ export default function PhotoGrid({ photos, galeria }: any) {
           <button
             onClick={handleDownloadFavorites}
             disabled={isDownloadingFavs}
-            className="flex items-center gap-3 bg-[#E67E70] hover:bg-[#D66D5F] text-white px-6 py-4 rounded-full shadow-[0_10px_40px_rgba(230,126,112,0.4)] transition-all active:scale-95 group border border-white/20"
+            className="flex items-center gap-3 bg-[#E67E70] hover:bg-[#D66D5F] text-white px-4 md:px-4 py-2 md:py-2 rounded-full shadow-[0_10px_40px_rgba(230,126,112,0.4)] transition-all active:scale-95 group border border-white/20"
           >
             {isDownloadingFavs ? (
-              <div className="flex items-center gap-3">
+              <div className="flex items-center gap-">
                 <Loader2 className="animate-spin h-5 w-5" />
                 <span className="font-bold tracking-widest text-sm">
                   A baixar ({Math.round(favDownloadProgress)}%)
@@ -388,8 +366,8 @@ export default function PhotoGrid({ photos, galeria }: any) {
                   <Download size={18} />
                 </div>
                 <div className="flex flex-col items-start leading-none">
-                  <span className="gap-1.5 text-white text-sm md:text-base font-medium italic">Baixar favoritas</span>
-                  <span className="text-[10px] md:text-[14px] opacity-80 italic">{favorites.length} {favorites.length === 1 ? 'foto escolhida' : 'fotos escolhidas'}</span>
+                  <span className="gap-1.5 text-white text-sm md:text-[14px] font-medium italic">Baixar favoritas</span>
+                  <span className="text-[10px] md:text-[12px] opacity-80 italic">{favorites.length} {favorites.length === 1 ? 'foto escolhida' : 'fotos escolhidas'}</span>
                 </div>
               </>
             )}

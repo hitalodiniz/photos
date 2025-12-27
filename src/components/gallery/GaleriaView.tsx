@@ -2,6 +2,8 @@
 import React, { useState, useEffect } from 'react';
 import { PhotoGrid, PhotographerAvatar } from '@/components/gallery';
 import type { Galeria } from '@/types/galeria';
+import { Camera } from 'lucide-react';
+
 
 interface GaleriaViewProps {
   galeria: Galeria;
@@ -27,10 +29,7 @@ export default function GaleriaView({ galeria, photos }: GaleriaViewProps) {
   const opacity = Math.min(scrollY / 400, 1);
 
   return (
-    /* Cor de fundo base alterada para Champanhe Perolado (#FDF8E7) */
-
-    <div className="relative min-h-screen font-sans bg-[#FFF">
-
+    <div className="relative min-h-screen font-sans bg-[#FDF8E7]">
       {/* 1. BACKGROUND DINÂMICO FIXO */}
       <div className="fixed inset-0 z-0">
         <div
@@ -40,53 +39,55 @@ export default function GaleriaView({ galeria, photos }: GaleriaViewProps) {
             backgroundImage: `url('${getCoverUrl(galeria.cover_image_url)}')`
           }}
         />
-        {/* Camada que transiciona da transparência para o Champanhe Perolado */}
         <div
           className="absolute inset-0 transition-opacity duration-300"
-          style={{
-            backgroundColor: '#FDF8E7',
-            opacity: opacity
-          }}
+          style={{ backgroundColor: '#F9F5F0', opacity: opacity }}
         />
       </div>
 
       {/* 2. CONTEÚDO DA PÁGINA */}
       <div className="relative z-10">
-        {/* HEADER COM TITULO E AVATAR INTEGRADOS */}
-        <header className="relative h-[30vh] md:h-[40vh] flex items-center pt-10">
-  {/* Removido gradiente fixo para manter as cores reais da foto de capa */}
-  
-  <div className="relative w-full max-w-[1600px] mx-auto px-6 md:px-12 flex flex-col md:flex-row items-center justify-between gap-10">
-    
-    {/* BLOCO ESQUERDO: TITULO COM SUB-BARRA DINÂMICA */}
-    <div className="flex flex-col gap-2 text-center md:text-left items-center md:items-start">            
-      {/* Container inline para garantir que a barra acompanhe o texto */}
-      <div className="inline-block relative">
-        <h1
-          className="text-2xl md:text-4xl lg:text-6xl font-bold text-white italic leading-tight drop-shadow-[0_10px_40px_rgba(0,0,0,0.7)]"
-          style={{ fontFamily: "'Playfair Display', serif" }}
-        >
-          {galeria.title}
-        </h1>
+        {/* HEADER AJUSTADO PARA MOBILE: h-auto e flex-col */}
+        <header className="relative min-h-[30vh] md:h-[40vh] flex items-center pt-16 pb-8 md:pt-10">
+          <div className="relative w-full max-w-[1600px] mx-auto px-6 md:px-12 flex flex-col md:flex-row items-center justify-between gap-8 md:gap-10">
 
-        {/* Barra dourada que preenche exatamente a largura do título */}
-        <div className="h-1.5 w-full bg-[#D4AF37] mt-2 rounded-full shadow-lg" />
-      </div>
-    </div>
+            {/* BLOCO ESQUERDO: TITULO */}
+            <div className="flex flex-col gap-2 text-center md:text-left items-center md:items-start w-full">
+              <div className="inline-block relative">
 
-    {/* BLOCO DIREITO: AVATAR INTEGRADO */}
-    <div className="flex-shrink-0 md:mt-6">
-      <PhotographerAvatar
-        galeria={galeria}
-        position="top-page"
-        isVisible={scrollY < 300} 
-      />
-    </div>
-  </div>
-</header>
+                {/* CONJUNTO CÂMARA + TÍTULO */}
+                <div className="flex items-center gap-3 md:gap-5 mb-1.5 md:mb-3">
+                  {/* Ícone da Câmara ajustado para mobile e desktop */}
+                  <div className="flex-shrink-0 flex items-center justify-center w-8 h-8 md:w-14 md:h-14 border border-[#F3E5AB]/60 rounded-full bg-black/30 backdrop-blur-md shadow-xl">
+                    <Camera className="text-[#F3E5AB] w-4 h-4 md:w-8 md:h-8" />
+                  </div>
 
-        {/* MAIN CONTENT (Grid de Fotos) */}
-        <main className="relative z-30 isolate w-full max-w-[1600px] mx-auto px-4 md:px-8 pb-10 mt-4 flex justify-center">
+                  <h1
+                    className="text-2xl md:text-4xl lg:text-5xl font-bold text-white italic leading-none drop-shadow-[0_10px_30px_rgba(0,0,0,0.8)]"
+                    style={{ fontFamily: "'Playfair Display', serif" }}
+                  >
+                    {galeria.title}
+                  </h1>
+                </div>
+
+                {/* BARRA DOURADA OTIMIZADA: Mais fina no mobile e proporcional no desktop */}
+                <div className="h-[3px] md:h-1.5 w-full bg-gradient-to-r from-[#D4AF37] via-[#F3E5AB] to-[#D4AF37] rounded-full shadow-[0_2px_10px_rgba(212,175,55,0.4)]" />
+              </div>
+            </div>
+
+            {/* BLOCO DIREITO: AVATAR - Ajustado margem mobile */}
+            <div className="flex-shrink-0">
+              <PhotographerAvatar
+                galeria={galeria}
+                position="top-page"
+                isVisible={scrollY < 300}
+              />
+            </div>
+          </div>
+        </header>
+
+        {/* MAIN CONTENT */}
+        <main className="relative z-30 isolate w-full max-w-[1600px] mx-auto px-4 md:px-8 pb-10 mt-2 md:mt-4 flex justify-center">
           <div className="w-full">
             {photos && photos.length > 0 ? (
               <PhotoGrid photos={photos} galeria={galeria} />
@@ -102,7 +103,7 @@ export default function GaleriaView({ galeria, photos }: GaleriaViewProps) {
         {/* 3. RODAPÉ EDITORIAL */}
         <footer className="relative z-20 w-full pt-6 pb-24 px-6 border-t border-[#D4AF37]/60 bg-[#FFF9F0] backdrop-blur-sm">
 
-          <div className="max-w-7xl mx-auto flex flex-col items-center gap-8">
+          <div className="max-w-7xl mx-auto flex flex-col items-center gap-4">
 
             {/* Botão Voltar ao Topo */}
             <button

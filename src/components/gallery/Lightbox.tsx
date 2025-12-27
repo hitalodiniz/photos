@@ -149,38 +149,38 @@ export default function Lightbox({
     }, [onClose, onNext, onPrev]);
 
     const handleShareWhatsApp = async () => {
-    // Limpeza para evitar a barra extra que causava erro no banco
-    const rawSlug = galeria.slug || "";
-    const cleanedSlug = rawSlug.startsWith('/') ? rawSlug.substring(1) : rawSlug;
+        // Limpeza para evitar a barra extra que causava erro no banco
+        const rawSlug = galeria.slug || "";
+        const cleanedSlug = rawSlug.startsWith('/') ? rawSlug.substring(1) : rawSlug;
 
-    // URL Editorial: hitalodiniz/2025/10/25/casamento/ID_DA_FOTO
-    const shareUrl = `${window.location.origin}/photo/${photo.id}?s=${cleanedSlug}`;
-    
-    const shareText = `Confira esta foto exclusiva: ${galleryTitle}`;
-    const isMobile = /iPhone|iPad|iPod|Android/i.test(navigator.userAgent);
+        // URL Editorial: hitalodiniz/2025/10/25/casamento/ID_DA_FOTO
+        const shareUrl = `${window.location.origin}/photo/${photo.id}?s=${cleanedSlug}`;
 
-    if (isMobile && navigator.share) {
-        try {
-            // Compartilhamento nativo com o arquivo da foto
-            const response = await fetch(getHighResImageUrl(photo.id));
-            const blob = await response.blob();
-            const file = new File([blob], "foto.jpg", { type: "image/jpeg" });
+        const shareText = `Confira esta foto exclusiva: ${galleryTitle}`;
+        const isMobile = /iPhone|iPad|iPod|Android/i.test(navigator.userAgent);
 
-            await navigator.share({
-                files: [file],
-                title: galleryTitle,
-                text: `${shareText}\n\nLink: ${shareUrl}`
-            });
-            return;
-        } catch (e) {
-            console.error("Erro no Share nativo:", e);
+        if (isMobile && navigator.share) {
+            try {
+                // Compartilhamento nativo com o arquivo da foto
+                const response = await fetch(getHighResImageUrl(photo.id));
+                const blob = await response.blob();
+                const file = new File([blob], "foto.jpg", { type: "image/jpeg" });
+
+                await navigator.share({
+                    files: [file],
+                    title: galleryTitle,
+                    text: `${shareText}\n\nLink: ${shareUrl}`
+                });
+                return;
+            } catch (e) {
+                console.error("Erro no Share nativo:", e);
+            }
         }
-    }
 
-    // Fallback: Link direto
-    const whatsappUrl = `https://api.whatsapp.com/send?text=${encodeURIComponent(shareText + " " + shareUrl)}`;
-    window.open(whatsappUrl, '_blank');
-};
+        // Fallback: Link direto
+        const whatsappUrl = `https://api.whatsapp.com/send?text=${encodeURIComponent(shareText + " " + shareUrl)}`;
+        window.open(whatsappUrl, '_blank');
+    };
     const handleDownload = async () => {
         try {
             setIsDownloading(true);
@@ -209,89 +209,126 @@ export default function Lightbox({
             <div className="fixed inset-0 z-[999] flex flex-col bg-black animate-in fade-in duration-300 select-none">
 
                 {/* BARRA SUPERIOR */}
-                <div className="absolute top-0 left-0 right-0 flex flex-row items-center justify-between p-4 md:px-14 md:py-8 text-white/90 z-[70] bg-gradient-to-b from-black/90 via-black/40 to-transparent pointer-events-none">
+                <div className="absolute top-0 left-0 right-0 flex flex-row items-center justify-between p-4 md:px-12 md:py-8 text-white/90 z-[70] bg-gradient-to-b from-black/90 via-black/40 to-transparent pointer-events-none">
                     <div className="flex items-center gap-4 pointer-events-auto">
-                        <div className="flex-shrink-0 flex items-center justify-center w-10 h-10 md:w-16 md:h-16 border border-[#F3E5AB]/30 rounded-full bg-black/20 backdrop-blur-md">
-                            <Camera className="text-[#F3E5AB] w-8 h-8 md:w-10 md:h-10" />
+                        <div className="p-4 bg-white/5 backdrop-blur-2xl rounded-full shadow-2xl border border-[#F3E5AB]/60 rounded-full bg-black/20 backdrop-blur-md">
+                            <Camera size={22} className="text-[#F3E5AB] w-6 h-6 md:w-8 md:h-8 drop-shadow-[0_0_15px_rgba(243,229,171,0.3)]" />
                         </div>
                         <div className="flex flex-col text-left">
                             <h2 className="text-lg md:text-2xl font-bold italic font-serif leading-tight text-white drop-shadow-md">
                                 {galleryTitle}
                             </h2>
-                            <div className="flex items-center gap-2 text-[9px] md:text-[12px] tracking-widest text-[#F3E5AB] font-bold mt-1 uppercase">
+                            <div className="flex items-center gap-2 text-[12px] md:text-[14px] tracking-widest text-[#F3E5AB] font-medium mt-1">
                                 <MapPin size={12} />
                                 <span>{location || "Local não informado"}</span>
                             </div>
                         </div>
                     </div>
 
-                    {/* BOTÕES DE AÇÃO */}
-                    <div className="flex items-center gap-2 md:gap-4 bg-black/40 backdrop-blur-xl p-1.5 px-3 md:p-2 md:px-6 rounded-full border border-white/10 shadow-2xl pointer-events-auto">
-
+                    {/* BARRA DE FERRAMENTAS PREMIUM - LIGHTBOX */}
+                    <div
+                        className="flex items-center bg-black/75 backdrop-blur-xl p-2 px-3 md:p-2 md:px-3 rounded-2xl border border-white/20 shadow-2xl pointer-events-auto transition-all"
+                        role="toolbar"
+                        aria-label="Ferramentas da foto">
                         {/* WHATSAPP */}
-                        <button onClick={handleShareWhatsApp} className="flex flex-col items-center hover:text-[#F3E5AB] transition-colors">
-                            <MessageCircle size={20} />
-                            <span className="hidden md:block text-[10px] font-bold uppercase tracking-wider p-2">WhatsApp</span>
-                        </button>
-
-                        <div className="w-[1px] h-4 bg-white/10" />
-
-                        {/* FAVORITAR - Com lógica de estado visual */}
-
-                        {/* BALÃO INFORMATIVO (HINT) ABAIXO DO BOTÃO */}
-                        {showHint && (
-                            <div className="absolute top-full mt-4 w-48 p-3 bg-white text-black md:text-[16px] text-[10px] font-medium rounded-xl shadow-2xl animate-in fade-in zoom-in slide-in-from-top-2 duration-300 z-[100000]">
-                                <p className="leading-tight">
-                                    Seus favoritos serão salvos <strong>apenas neste dispositivo</strong>.
-                                </p>
-
-                                {/* Setinha do balão (agora no topo, apontando para cima) */}
-                                <div className="absolute bottom-full left-1/2 -translate-x-1/2 border-8 border-transparent border-b-white"></div>
-
-                                {/* Botão fechar balão */}
-                                <button
-                                    onClick={() => setShowHint(false)}
-                                    className="absolute -top-1 -right-1 bg-black text-white rounded-full w-4 h-4 flex items-center justify-center text-[10px] hover:bg-red-500 transition-colors"
-                                >
-                                    ×
-                                </button>
-                            </div>
-                        )}
-
-                        {/* BOTÃO FAVORITAR */}
                         <button
-                            onClick={toggleFavorite}
-                            className={`flex flex-col items-center transition-all min-w-[95px] ${isFavorited ? 'text-red-500' : 'hover:text-[#F3E5AB]'}`}
+                            onClick={handleShareWhatsApp}
+                            aria-label="Compartilhar esta foto no WhatsApp"
+                            className="flex items-center gap-2 hover:text-[#25D366] focus:outline-none focus:ring-2 focus:ring-[#25D366] focus:ring-offset-2 focus:ring-offset-black transition-all group border-r border-white/20 pr-3 md:pr-4"
                         >
-                            <Heart
-                                size={20}
-                                fill={isFavorited ? "currentColor" : "none"}
-                                className={isFavorited ? "animate-pulse" : ""}
-                            />
-                            <span className="hidden md:block text-[10px] font-bold uppercase tracking-wider p-2 whitespace-nowrap">
-                                {totalFavorites > 0 && <span className="mr-1">({totalFavorites})</span>}
-                                {isFavorited ? "Favorito" : "Favoritar"}
-                            </span>
+                            <div className="flex items-center justify-center w-9 h-9 md:w-11 md:h-11 rounded-full bg-white/10 group-hover:bg-[#25D366]/20 transition-colors">
+                                <MessageCircle size={18} className="text-white group-hover:text-[#25D366]" />
+                            </div>
+                            <div className="hidden md:flex flex-col items-start gap-0.5 leading-none">
+                                <span className="text-[10px] md:text-[11px] font-bold uppercase tracking-widest italic text-white group-hover:text-[#F3E5AB]">
+                                    WhatsApp
+                                </span>
+                                <span className="text-[11px] opacity-90 uppercase tracking-[0.1em] font-bold text-white/70">
+                                    Compartilhar
+                                </span>
+                            </div>
                         </button>
 
-                        <div className="w-[1px] h-4 bg-white/10" />
+                        {/* FAVORITAR COM BALÃO HINT */}
+                        <div className="relative flex items-center border-r border-white/20 pr-3 md:pr-4">
+                            {showHint && (
+                                <div
+                                    role="alert"
+                                    /* Alterado para top-full e mt-6 para aparecer embaixo da barra */
+                                    className="absolute top-full mt-6 left-1/2 -translate-x-1/2 w-48 p-3 bg-white text-black text-[10px] md:text-[12px] font-medium rounded-xl shadow-2xl animate-in fade-in zoom-in slide-in-from-top-2 duration-300 z-[100000]"
+                                >
+                                    <p className="leading-tight text-center">
+                                        Seus favoritos serão salvos <strong>apenas neste dispositivo</strong>.
+                                    </p>
+                                    {/* Setinha ajustada para o topo do balão, apontando para cima */}
+                                    <div className="absolute bottom-full left-1/2 -translate-x-1/2 border-8 border-transparent border-b-white"></div>
+                                    <button
+                                        onClick={() => setShowHint(false)}
+                                        aria-label="Fechar aviso"
+                                        className="absolute -top-1 -right-1 bg-black text-white rounded-full w-4 h-4 flex items-center justify-center text-[10px] hover:bg-red-500 transition-colors"
+                                    >
+                                        ×
+                                    </button>
+                                </div>
+                            )}
 
-                        {/* DOWNLOAD */}
-                        <button onClick={handleDownload} className="flex flex-col items-center hover:text-[#F3E5AB] transition-colors">
-                            {isDownloading ? <Loader2 size={18} className="animate-spin text-[#F3E5AB]" /> : <Download size={18} />}
-                            <span className="hidden md:block text-[10px] font-bold uppercase tracking-wider p-2">
-                                {isDownloading ? "Processando..." : "Download"}
-                            </span>
+                            <button
+                                onClick={toggleFavorite}
+                                aria-label={isFavorited ? "Remover dos favoritos" : "Adicionar aos favoritos"}
+                                aria-pressed={isFavorited}
+                                className={`pl-1 flex items-center gap-2 transition-all focus:outline-none focus:ring-2 focus:ring-[#E67E70] focus:ring-offset-2 focus:ring-offset-black rounded-full group ${isFavorited ? 'text-[#E67E70]' : 'hover:text-[#F3E5AB]'}`}
+                            >
+                                <div className={`flex items-center justify-center w-9 h-9 md:w-11 md:h-11 rounded-full transition-colors ${isFavorited ? 'bg-[#E67E70]/20' : 'bg-white/10 group-hover:bg-[#E67E70]/20'}`}>
+                                    <Heart
+                                        size={18}
+                                        fill={isFavorited ? "currentColor" : "none"}
+                                        className={isFavorited ? "animate-pulse" : "text-white group-hover:text-[#E67E70]"}
+                                    />
+                                </div>
+                                <div className="hidden md:flex flex-col items-start gap-0.5 leading-none">
+                                    <span className="text-[10px] md:text-[11px] font-bold uppercase tracking-widest italic text-white group-hover:text-[#F3E5AB]">
+                                        {isFavorited ? "Favorito" : "Favoritar"}
+                                    </span>
+                                    <span className="text-[11px] opacity-90 uppercase tracking-[0.1em] font-bold text-white/70">
+                                        {totalFavorites > 0 ? `(${totalFavorites}) Selecionadas` : "Peça Única"}
+                                    </span>
+                                </div>
+                            </button>
+                        </div>
+
+                        {/* DOWNLOAD ALTA RESOLUÇÃO */}
+                        <button
+                            onClick={handleDownload}
+                            aria-label="Baixar esta foto em alta resolução"
+                            className="pl-1 flex items-center gap-2 hover:text-[#F3E5AB] focus:outline-none focus:ring-2 focus:ring-[#F3E5AB] focus:ring-offset-2 focus:ring-offset-black transition-all group border-r border-white/20 pr-3 md:pr-4"
+                        >
+                            <div className="flex items-center justify-center w-9 h-9 md:w-11 md:h-11 rounded-full bg-white/10 group-hover:bg-white/20 transition-colors">
+                                {isDownloading ? (
+                                    <Loader2 size={16} className="animate-spin text-[#F3E5AB]" />
+                                ) : (
+                                    <Download size={18} className="text-white group-hover:text-[#F3E5AB]" />
+                                )}
+                            </div>
+                            <div className="hidden md:flex flex-col items-start gap-0.5 leading-none">
+                                <span className="text-[10px] md:text-[11px] font-bold uppercase tracking-widest italic text-white group-hover:text-[#F3E5AB]">
+                                    {isDownloading ? "Baixando" : "Download"}
+                                </span>
+                                <span className="text-[11px] opacity-90 uppercase tracking-[0.1em] font-bold text-white/70">
+                                    Alta Resolução
+                                </span>
+                            </div>
                         </button>
 
-                        <div className="w-[1px] h-4 bg-white/10" />
-
-                        {/* FECHAR */}
-                        <button onClick={onClose} className="hover:text-red-400 transition-colors">
-                            <X size={24} />
+                        {/* SAIR (SEM TEXTO) */}
+                        <button
+                            onClick={onClose}
+                            aria-label="Sair e voltar para a galeria principal"
+                            className="flex items-center justify-center focus:outline-none focus:ring-2 focus:ring-red-400 focus:ring-offset-2 focus:ring-offset-black rounded-full transition-all group pl-1 md:pl-2"
+                        >
+                            <div className="flex items-center justify-center w-9 h-9 md:w-11 md:h-11 rounded-full bg-white/5 group-hover:bg-red-500/20 transition-colors">
+                                <X size={22} className="text-white group-hover:text-red-400" />
+                            </div>
                         </button>
-
-
                     </div>
                 </div>
 

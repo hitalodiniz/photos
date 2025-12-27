@@ -15,7 +15,7 @@ export default function PhotoViewClient({ googleId, slug }: { googleId: string, 
     const [isDownloading, setIsDownloading] = useState(false);
 
     const imageUrlHigh = `https://lh3.googleusercontent.com/d/${googleId}=s0`;
-    const currentImageUrl = `https://lh3.googleusercontent.com/d/${googleId}=s1024`;
+    const currentImageUrl = `https://lh3.googleusercontent.com/d/${googleId}=s800`;
 
     useEffect(() => {
         async function fetchInfo() {
@@ -75,50 +75,75 @@ export default function PhotoViewClient({ googleId, slug }: { googleId: string, 
                 {/* TÍTULO À ESQUERDA */}
                 <div className="flex items-center gap-4 self-start md:self-center">
                     <div className="p-4 bg-white/5 backdrop-blur-2xl rounded-full shadow-2xl border border-[#F3E5AB]/30 rounded-full bg-black/20 backdrop-blur-md">
-                        <Camera size={20} className="text-[#F3E5AB] w-6 h-6 md:w-8 md:h-8 drop-shadow-[0_0_15px_rgba(243,229,171,0.3)]" />
+                        <Camera size={20} className="text-[#F3E5AB] w-8 h-8 md:w-10 md:h-10 drop-shadow-[0_0_15px_rgba(243,229,171,0.3)]" />
                     </div>
                     <div className="flex flex-col text-left">
                         <h1 className="text-xl md:text-2xl font-bold italic font-serif leading-tight text-white drop-shadow-md">
                             {data?.title}
                         </h1>
-                        <div className="flex items-center gap-2 text-[10px] md:text-[12px] tracking-widest text-[#F3E5AB] font-bold mt-1 uppercase">
+                        <div className="flex items-center gap-2 text-[12px] md:text-[14px] tracking-widest text-[#F3E5AB] font-medium mt-1">
                             <MapPin size={12} />
                             <span>{data?.location || "Local não informado"}</span>
                         </div>
                     </div>
                 </div>
 
-                {/* BARRA DE BOTÕES - Alinhada abaixo no mobile */}
-                <div className="flex items-center gap-4 md:gap-2 bg-black/60 backdrop-blur-2xl 
-                p-2 px-6 md:px-4 rounded-full border border-white/20 shadow-2xl pointer-events-auto transition-all duration-300">
+                {/* BARRA DE BOTÕES - AJUSTADA PARA FUNDO CHAMPANHE CLARO */}
+                <div
+                    className="flex items-center bg-black/75 backdrop-blur-xl p-2 px-4 md:p-2 md:px-5 rounded-2xl border border-white/20 shadow-2xl pointer-events-auto transition-all"
+                    role="toolbar"
+                    aria-label="Ferramentas da galeria"
+                >
+                    {/* BOTÃO BAIXAR */}
                     <button
                         onClick={handleDownload}
-                        className="flex items-center hover:text-[#F3E5AB] transition-all group 
-                         border-r border-white/20 pr-4 md:pr-4"
+                        aria-label="Baixar todas as fotos em alta resolução"
+                        className="flex items-center gap-3 pl-1 hover:text-[#F3E5AB] focus:outline-none focus:ring-2 focus:ring-[#F3E5AB] focus:ring-offset-2 focus:ring-offset-black transition-all group border-r border-white/20 pr-3 md:pr-5"
                     >
-                        <div className="flex items-center justify-center w-10 h-10 rounded-full bg-white/10 group-hover:bg-white/20 transition-colors">
+                        <div className="flex items-center justify-center w-9 h-9 md:w-11 md:h-11 rounded-full bg-white/10 group-hover:bg-white/20 transition-colors">
                             {isDownloading ? (
-                                <Loader2 size={18} className="animate-spin text-[#F3E5AB]" />
+                                <Loader2 size={16} className="animate-spin text-[#F3E5AB]" />
                             ) : (
-                                <Download size={20} className="text-white group-hover:text-[#F3E5AB]" />
+                                <Download size={18} className="text-white group-hover:text-[#F3E5AB]" />
                             )}
                         </div>
-                                                <span className="text-[10px] md:text-[11px] font-bold uppercase tracking-widest italic text-white group-hover:text-[#F3E5AB]">
-                                Baixar Alta Resolução
+
+                        <div className="flex flex-col items-start gap-0.5 leading-none">
+                            <span className="text-[10px] md:text-[11px] font-bold uppercase tracking-widest italic text-white group-hover:text-[#F3E5AB]">
+                                Download
                             </span>
-                    
+                            <span className="text-[11px] opacity-90 uppercase tracking-[0.1em] font-bold text-white/70">
+                                Alta Resolução
+                            </span>
+                        </div>
                     </button>
 
-                    <button
-                        onClick={() => window.history.back()}
-                        className="flex items-center gap-3 hover:text-[#F3E5AB] transition-all group"
-                    >
-                        <ImageIcon size={18} 
-                        strokeWidth={2.5} className="text-white group-hover:text-red-400 transition-colors" />
-                        <span className="text-[10px] md:text-[11px] font-bold uppercase tracking-widest italic text-white group-hover:text-[#F3E5AB]">
-                            Ver Galeria de Fotos
-                        </span>
-                    </button>
+{/* BOTÃO VER GALERIA - CAPTURANDO A URL DO PARÂMETRO 's' */}
+<button
+    onClick={() => {
+      // Extrai o caminho da galeria a partir do parâmetro 's' na URL atual
+      const params = new URLSearchParams(window.location.search);
+      const galleryPath = params.get('s');
+      
+      // Se o parâmetro existir, redireciona para ele, caso contrário volta um nível
+      window.location.href = galleryPath ? decodeURIComponent(galleryPath) : './';
+    }}
+    aria-label="Voltar para a galeria de fotos"
+    className="flex items-center gap-3 pl-2 md:pl-4 hover:text-[#F3E5AB] focus:outline-none focus:ring-2 focus:ring-[#F3E5AB] focus:ring-offset-2 focus:ring-offset-black transition-all group"
+>
+    <div className="flex items-center justify-center w-9 h-9 md:w-11 md:h-11 rounded-full bg-white/10 group-hover:bg-white/20 transition-colors">
+        <Camera size={20} className="text-white group-hover:text-[#F3E5AB]" />
+    </div>
+
+    <div className="hidden md:flex flex-col items-start gap-0.5 leading-none">
+        <span className="text-[10px] md:text-[11px] font-bold uppercase tracking-widest italic text-white group-hover:text-[#F3E5AB]">
+            Ver Galeria
+        </span>
+        <span className="text-[11px] opacity-70 uppercase tracking-[0.1em] font-bold text-white/70">
+            De Fotos
+        </span>
+    </div>
+</button>
                 </div>
             </header>
 
