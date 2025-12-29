@@ -1,21 +1,17 @@
 'use client';
-import React from 'react';
+import React, { useState } from 'react';
 import { useRouter } from 'next/navigation';
-import { Check, X, Crown, Sparkles } from 'lucide-react';
+import { Check, X, Crown, Sparkles, Lock, Loader2 } from 'lucide-react';
 import { EditorialHeader, DynamicHeroBackground, Footer } from '@/components/layout';
-import { PLANS } from '@/config/plans';
-
-// ESTILOS PADRONIZADOS PARA LEGIBILIDADE EXTREMA
-const STYLES = {
-  label: "py-5 px-2 border-b border-black/10 font-bold text-slate-900 text-[10px] md:text-[13px] tracking-[0.1em] leading-relaxed",
-  cellText: "text-[10px] md:text-[13px] font-semibold text-slate-800",
-  premiumCell: "text-[10px] md:text-[13px] bg-[#F3E5AB]/30 border-x border-[#F3E5AB]/30 text-slate-950 font-bold shadow-inner",
-  categoryHeader: "py-8 px-4 border-b-2 border-slate-900 text-slate-950 font-serif italic text-2xl tracking-tight"
-};
+import { PLANS, PlanKey } from '@/config/plans';
+import { PaymentService } from '@/services/payment-service';
 
 export default function PlanosPage() {
   const router = useRouter();
-  const planosData = Object.values(PLANS);
+  const [loadingPlan, setLoadingPlan] = useState<string | null>(null);
+  const [hoveredPlan, setHoveredPlan] = useState<string | null>(null);
+
+  const planosKeys = Object.keys(PLANS) as PlanKey[];
 
   const features = [
     { label: "Galerias Ativas", key: "maxGalleries" },
@@ -23,90 +19,136 @@ export default function PlanosPage() {
     { label: "Perfil do Fotógrafo", values: ["Foto + Nome", "Full (Bio + Links)", "Full (Bio + Links)", "Full (Bio + Links)"] },
     { label: "Redes Sociais", values: [false, true, true, true] },
     { label: "Enviar fotos via WhatsApp", values: [false, true, true, true] },
-    { label: "Download de todos as fotos (ZIP)", values: [false, "Sem Marca d'água", "Sem Marca d'água", "Sem Marca d'água"] },
+    { label: "Download ZIP", values: [false, true, true, true] },
     { label: "Analytics Básico", values: [false, "Cliques Totais", "Cliques + Origem", "Cliques + Origem"] },
     { label: "Analytics de Fotos", values: [false, false, "Ranking Favoritas", "Ranking Favoritas"] },
-    { label: "Suporte", values: ["Via Ticket", "Via Ticket", "WhatsApp VIP", "WhatsApp VIP"] },
+    { label: "Suporte por mensagens", values: ["Via Ticket", "Via Ticket", "WhatsApp VIP", "WhatsApp VIP"] },
+    { label: "Suporte por chamada", values: [false, false, false, "Google Meet"] },
   ];
 
+  const handleSubscribe = async (planKey: PlanKey) => {
+    setLoadingPlan(planKey);
+    try {
+      const result = await PaymentService.createCheckout(planKey);
+      window.location.href = result.url;
+    } finally {
+      setLoadingPlan(null);
+    }
+  };
+
   return (
-    <div className="relative min-h-screen w-full flex flex-col overflow-hidden bg-black ">
+    <div className="relative min-h-screen w-full flex flex-col overflow-hidden bg-black">
       <DynamicHeroBackground />
-      
+
       <div className="relative z-10 flex flex-col min-h-screen">
         <EditorialHeader
           title="Planos & Investimento"
           subtitle={<>Escolha a vitrine ideal para a sua <span className="font-bold border-b-2 border-[#F3E5AB] text-white">carreira fotográfica</span></>}
         />
 
-        <main className="flex-grow flex items-center justify-center py-10 px-4 ">
-          <section className="w-full max-w-6xl mx-auto bg-white/98 backdrop-blur-3xl rounded-[3rem] md:rounded-[4rem] p-6 md:p-12 shadow-[0_50px_100px_rgba(0,0,0,0.5)] 
-          border border-white/20 overflow-x-auto relative bg-[#FFF]/100">
-            
-            <table className="w-full text-left border-collapse min-w-[850px] relative ">
+        <main className="flex-grow flex items-center justify-center py-10 px-4">
+          <section className="w-full max-w-6xl mx-auto bg-white rounded-[3rem] md:rounded-[4rem] p-6 md:p-12 shadow-2xl border border-white/20 overflow-x-auto relative">
+
+            <table className="w-full text-left border-separate border-spacing-0 min-w-[850px]">
               <thead>
-                <tr>
-                  <th className={STYLES.categoryHeader}>Categoria</th>
-                  {planosData.map((p) => {
-                    const isPremium = p.name === "Premium";
+                <tr className="sticky top-0 z-30 bg-white/95 backdrop-blur-md shadow-sm">
+                  <th className="py-8 px-4 border-b-2 border-slate-900 text-slate-950 font-serif italic text-2xl tracking-tight bg-white">
+                    Categoria
+                  </th>
+                  {planosKeys.map((key) => {
+                    const p = PLANS[key];
+                    const isPremium = key === "PREMIUM";
+                    const isHovered = hoveredPlan === key;
                     return (
-                      <th key={p.id} className={`py-8 px-4 border-b-2 border-slate-900 text-center relative ${isPremium ? 'bg-[#F3E5AB]/30' : ''}`}>
+                      <th
+                        key={key}
+                        className={`py-8 px-4 border-b-2 border-slate-900 text-center relative transition-colors duration-300
+                        ${isPremium || isHovered ? 'bg-[#F3E5AB]/20' : 'bg-white'}`}
+                      >
                         {isPremium && (
-                          <div className="absolute top-0 left-1/2 -translate-x-1/2 -translate-y-6 bg-slate-950 text-[#F3E5AB] text-[10px] font-black uppercase tracking-[0.25em] px-5 py-1.5 rounded-full shadow-xl flex items-center gap-1.5 animate-pulse border border-[#F3E5AB]/30">
-                            <Sparkles size={12} /> Recomendado
+                          <div className="absolute top-0 left-1/2 -translate-x-1/2 -translate-y-4 bg-slate-950 text-[#F3E5AB] text-[9px] font-black uppercase tracking-[0.25em] px-4 py-1 rounded-full flex items-center gap-1 animate-pulse">
+                            <Sparkles size={10} /> Recomendado
                           </div>
                         )}
                         <div className="flex flex-col items-center gap-1.5">
-                          <span className={`uppercase tracking-[0.25em] text-[11px] font-black ${isPremium ? 'text-amber-600' : 'text-slate-400'}`}>
+                          <span className={`uppercase tracking-[0.15em] text-[11px] font-bold ${isPremium ? 'text-amber-600' : 'text-slate-500'}`}>
                             {p.name}
                           </span>
                           <span className="text-3xl font-black text-slate-950">
-                            R$ {p.price}<span className="text-[13px] text-slate-500 font-bold ml-0.5">/mês</span>
+                            R$ {p.price}<span className="text-[13px] text-slate-700 font-bold ml-0.5">/mês</span>
                           </span>
-                          <span className="text-[12px] md:text-[13px] italic font-semibold text-slate-900">{p.conceito}</span>
                         </div>
                       </th>
                     );
                   })}
                 </tr>
               </thead>
-              
+
               <tbody>
                 {features.map((row, idx) => (
-                  <tr key={idx} className="hover:bg-slate-50 transition-colors group">
-                    <td className={STYLES.label}>
+                  <tr key={idx} className="hover:bg-slate-50/50 transition-colors">
+                    <td className="py-5 px-4 border-b border-black/10 font-bold text-slate-900 text-[10px] md:text-[13px] tracking-[0.1em] leading-relaxed">
                       {row.label}
                     </td>
-                    {planosData.map((p, i) => {
-                      const cellValue = row.key ? (p as any)[row.key] : row.values?.[i];
-                      const isPremiumCol = p.name === "Premium";
-                      
+                    {planosKeys.map((key) => {
+                      const p = PLANS[key];
+                      const cellValue = row.key ? (p as any)[row.key] : row.values?.[planosKeys.indexOf(key)];
+                      const isHighlighted = key === "PREMIUM" || hoveredPlan === key;
+
                       return (
-                        <td key={p.id} className={`py-5 px-4 border-b border-slate-200 text-center ${isPremiumCol ? STYLES.premiumCell : STYLES.cellText}`}>
-                          {cellValue === true ? <Check size={20} strokeWidth={3} className={`mx-auto ${isPremiumCol ? 'text-amber-600' : 'text-[#D4AF37]'}`} /> : 
-                           cellValue === false ? <X size={20} strokeWidth={3} className="mx-auto text-slate-300" /> : 
-                           cellValue === Infinity ? "Ilimitadas" : 
-                           typeof cellValue === "number" ? `Até ${cellValue.toString().padStart(2, '0')}` : cellValue}
+                        <td key={key} className={`py-5 px-4 border-b border-slate-200 text-center transition-colors duration-300
+                          ${isHighlighted ? 'bg-[#F3E5AB]/10 text-slate-950 font-bold' : 'text-slate-800 font-semibold'}`}>
+                          {cellValue === true ? <Check size={20} strokeWidth={3} className="mx-auto text-amber-600" /> :
+                            cellValue === false ? <X size={20} strokeWidth={3} className="mx-auto text-slate-300" /> :
+                              cellValue === Infinity ? "Ilimitadas" :
+                                typeof cellValue === "number" ? `Até ${cellValue.toString().padStart(2, '0')}` : cellValue}
                         </td>
                       );
                     })}
                   </tr>
                 ))}
+
+                {/* LINHA DE AÇÃO COM ÍCONES DINÂMICOS */}
+                <tr>
+                  <td className="p-8 bg-white border-t border-slate-100"></td>
+                  {planosKeys.map((key) => {
+                    const IconePlano = PLANS[key].icon;
+                    const isPremium = key === "PREMIUM";
+                    return (
+                      <td
+                        key={key}
+                        className={`p-6 text-center transition-colors ${isPremium || hoveredPlan === key ? 'bg-[#F3E5AB]/10' : ''}`}
+                        onMouseEnter={() => setHoveredPlan(key)}
+                        onMouseLeave={() => setHoveredPlan(null)}
+                      >
+                        <button
+                          onClick={() => handleSubscribe(key)}
+                          disabled={!!loadingPlan}
+                          // Adicionado gap-2 e removido padding duplicado para melhor simetria
+                          className={`w-full py-4 px-4 rounded-2xl font-bold text-[10px] md:text-[12px] uppercase tracking-widest transition-all flex items-center justify-center gap-2
+                            ${isPremium
+                              ? 'bg-slate-950 text-[#F3E5AB] hover:scale-105 shadow-xl'
+                              : 'bg-white text-slate-950 border-2 border-slate-950 hover:bg-slate-950 hover:text-white'
+                            } disabled:opacity-50 group`} // Adicionado 'group' para controlar o hover do ícone
+                        >
+                          {loadingPlan === key ? (
+                            <Loader2 size={18} className="animate-spin text-inherit" />
+                          ) : (
+                            <>
+                              <IconePlano
+                                size={18}
+                                className={`shrink-0 transition-colors ${isPremium ? 'text-[#F3E5AB]' : 'text-slate-950 group-hover:text-white'}`}
+                              />
+                              <span className="leading-none">{PLANS[key].cta}</span>
+                            </>
+                          )}
+                        </button>
+                      </td>
+                    );
+                  })}
+                </tr>
               </tbody>
             </table>
-
-            <div className="mt-16 flex flex-col items-center gap-4">
-               <button 
-                onClick={() => router.push('/login')}
-                className="px-16 py-6 bg-slate-950 text-[#F3E5AB] rounded-2xl font-black text-sm uppercase tracking-[0.2em] hover:bg-amber-600 hover:text-white transition-all transform hover:scale-[1.03] shadow-[0_30px_60px_rgba(0,0,0,0.3)] border border-[#F3E5AB]/20 flex items-center gap-4 group"
-               >
-                 <Crown size={24} className="group-hover:rotate-12 transition-transform" /> 
-                 Assinar Plano de Elite
-               </button>
-               <p className="text-[12px]  tracking-[0.2em] text-slate-500 font-bold">
-                 * Transação segura via criptografia SSL
-               </p>
-            </div>
           </section>
         </main>
         <Footer />
