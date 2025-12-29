@@ -46,7 +46,7 @@ export default function PlanosPage() {
           subtitle={<>Escolha a vitrine ideal para a sua <span className="font-bold border-b-2 border-[#F3E5AB] text-white">carreira fotográfica</span></>}
         />
 
-        <main className="flex-grow flex items-center justify-center py-10 px-4">
+        <main className="flex-grow flex items-center justify-center py-4 px-4">
           <section className="w-full max-w-6xl mx-auto bg-white rounded-[3rem] md:rounded-[4rem] p-6 md:p-12 shadow-2xl border border-white/20 overflow-x-auto relative">
 
             <table className="w-full text-left border-separate border-spacing-0 min-w-[850px]">
@@ -149,9 +149,15 @@ export default function PlanosPage() {
                 </tr>
               </tbody>
             </table>
+            <div className="mt-2 flex flex-col items-center gap-2">
+              <p className="flex items-center justify-center gap-1.5 text-[9px] md:text-[11px] uppercase tracking-[0.1em] text-slate-500 font-bold whitespace-nowrap">
+                <Lock size={14} className="text-[#D4AF37] shrink-0" />
+                <span className="leading-none text-slate-700">Transação segura via criptografia SSL</span>
+              </p>
+            </div>
           </section>
         </main>
-        <Footer />
+        <Footer/>
       </div>
     </div>
   );
