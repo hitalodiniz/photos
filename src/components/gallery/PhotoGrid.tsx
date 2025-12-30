@@ -1,6 +1,8 @@
 'use client';
-import React, { useState, useEffect } from 'react';
-import Masonry from 'react-masonry-css';
+
+import React, { useState, useEffect, useMemo, useCallback } from 'react';
+import PhotoAlbum from 'react-photo-album';
+import 'react-photo-album/rows.css';
 import { Lightbox } from '@/components/gallery';
 import {
   Lock,
@@ -22,134 +24,166 @@ import JSZip from 'jszip';
 import Image from 'next/image';
 
 // Sub-componente otimizado para evitar o "piscar"
-const GridImage = ({
-  src,
-  alt,
-  priority,
-  index,
-}: {
-  src: string;
-  alt: string;
-  priority?: boolean;
-  index: number;
-}) => {
+// Sub-componente para renderizar cada foto no álbum
+// 1. RENDERIZADOR DE FOTO CORRIGIDO
+// src/components/gallery/PhotoGrid.tsx
+
+// 1. RENDERIZADOR SEM DISTORÇÃO
+const RenderPhoto = ({ photo, containerProps }: any) => {
+  const custom = photo?.customData;
+  if (!custom) return null;
+
+  const { isSelected, toggleFavorite, index, onOpenLightbox } = custom;
   const [isLoaded, setIsLoaded] = useState(false);
 
   return (
     <div
-      className={`relative w-full overflow-hidden rounded-2xl transition-all duration-500 ${
-        isLoaded ? 'bg-transparent' : 'bg-slate-100 animate-pulse'
-      }`}
+      {...containerProps}
+      className="group overflow-hidden rounded-2xl transition-all duration-300 bg-[#F9F5F0]"
       style={{
-        // Reserva um espaço visual baseado em uma média para evitar buracos no Masonry
-        aspectRatio: '3/4',
-        minHeight: '200px',
+        ...containerProps.style,
+        position: 'relative',
+        // O segredo: Trava a proporção do container para a imagem não esticar
+        aspectRatio: '4 / 3',
       }}
     >
-      <Image
-        src={src}
-        alt={alt}
-        width={600}
-        height={800} // Definir altura ajuda o Next.js a calcular o aspect-ratio
-        onLoad={() => setIsLoaded(true)}
-        // Prioridade real para as primeiras 12 fotos para carregamento instantâneo
-        priority={index < 12}
-        // Prefetching: o navegador carrega a imagem antes dela entrar na tela
-        loading={index < 12 ? undefined : 'lazy'}
-        unoptimized
-        className={`
-          w-full h-auto block object-cover transition-all duration-1000 ease-in-out
-          ${isLoaded ? 'opacity-100 scale-100 blur-0' : 'opacity-0 scale-105 blur-lg'}
-        `}
+      {/* BOTÃO DE FAVORITO À ESQUERDA */}
+      <button
+        type="button"
+        onClick={(e) => {
+          e.preventDefault();
+          e.stopPropagation();
+          toggleFavorite(photo.id);
+        }}
+        className={`absolute top-3 left-3 z-[50] w-10 h-10 rounded-full border flex items-center justify-center transition-all shadow-xl
+        ${isSelected ? 'bg-[#E67E70] border-transparent shadow-lg' : 'bg-black/40 border-white/20 hover:bg-black/60'}`}
+      >
+        <Heart
+          size={20}
+          fill={isSelected ? 'white' : 'none'}
+          className="text-white"
+        />
+      </button>
+
+      {/* ÁREA DE CLIQUE PARA LIGHTBOX */}
+      <div
+        className="absolute inset-0 z-10 cursor-zoom-in"
+        onClick={() => onOpenLightbox(index)}
       />
+
+      <Image
+        fill
+        src={photo.src}
+        alt={photo.alt || 'Galeria'}
+        unoptimized
+        onLoad={() => setIsLoaded(true)}
+        // O object-cover preenche o container que já está na proporção correta
+        className={`object-cover transition-all duration-700 ${
+          isLoaded ? 'opacity-100 blur-0' : 'opacity-0 blur-2xl'
+        }`}
+      />
+
+      {isSelected && (
+        <div className="absolute inset-0 border-4 border-[#E67E70] rounded-2xl pointer-events-none z-20" />
+      )}
     </div>
   );
 };
-
 export default function PhotoGrid({ photos, galeria }: any) {
-  const QTD_FOTO_EXIBIDAS = 36;
-
-  // --- ESTADOS DE CONTROLE ORIGINAIS ---
+  // --- 1. ESTADOS DE INTERFACE E UI ---
   const [selectedPhotoIndex, setSelectedPhotoIndex] = useState<number | null>(
     null,
   );
-  const [masonryKey, setMasonryKey] = useState(0);
+  const [displayLimit, setDisplayLimit] = useState(36);
+  const [isScrolled, setIsScrolled] = useState(false);
+  const [isHovered, setIsHovered] = useState(false);
+  const [activeHint, setActiveHint] = useState<string | null>(null);
 
-  // --- ESTADOS DE DOWNLOAD SEPARADOS ---
-  const [isDownloading, setIsDownloading] = useState(false);
-  const [setDownloadProgress] = useState(0);
-  const [isDownloadingFavs, setIsDownloadingFavs] = useState(false);
-  const [favDownloadProgress, setFavDownloadProgress] = useState(0);
-
-  // --- ESTADOS DE FAVORITOS E FILTRO ---
+  // --- 2. ESTADOS DE DADOS E FAVORITOS ---
   const [favorites, setFavorites] = useState<string[]>([]);
   const [showOnlyFavorites, setShowOnlyFavorites] = useState(false);
 
-  const [activeHint, setActiveHint] = useState<string | null>(null);
+  // --- 3. ESTADOS DE DOWNLOAD ---
+  const [isDownloading, setIsDownloading] = useState(false);
+  const [isDownloadingFavs, setIsDownloadingFavs] = useState(false);
+  const [downloadProgress, setDownloadProgress] = useState(0);
+  const [favDownloadProgress, setFavDownloadProgress] = useState(0);
 
-  const triggerHint = (message: string) => {
-    setActiveHint(message);
-    // Aumentamos o tempo para 4 segundos para dar tempo de ler as informações completas
-    setTimeout(() => setActiveHint(null), 4000);
-  };
-
-  const getCurrentColumns = () => {
-    if (typeof window === 'undefined') return 5;
-    const width = window.innerWidth;
-    if (width >= 1536) return 4;
-    if (width >= 1024) return 3; // Unificando 1280 e 1024 conforme seu objeto
-    return 2; // Retorno para telas abaixo de 768px
-  };
-
-  const normalizeLimit = (limit: number, cols: number) =>
-    Math.ceil(limit / cols) * cols;
-
-  const [displayLimit, setDisplayLimit] = useState(36); // Começa com mais fotos para preencher a tela inicial
-  /*const [displayLimit, setDisplayLimit] = useState(() => {
-    if (typeof window === 'undefined') return QTD_FOTO_EXIBIDAS;
-    const cols = getCurrentColumns();
-    return normalizeLimit(QTD_FOTO_EXIBIDAS, cols);
-  });*/
-
-  // --- CARREGAR FAVORITOS DO LOCALSTORAGE ---
+  // --- 4. PERSISTÊNCIA E CARREGAMENTO DE FAVORITOS ---
   useEffect(() => {
     const saved = localStorage.getItem(`fav_${galeria.id}`);
     if (saved) {
-      setFavorites(JSON.parse(saved));
+      try {
+        setFavorites(JSON.parse(saved));
+      } catch (e) {
+        console.error('Erro ao parsear favoritos', e);
+      }
     }
   }, [galeria.id]);
 
-  useEffect(() => {
-    if (displayLimit > QTD_FOTO_EXIBIDAS) {
-      setMasonryKey((prev) => prev + 1);
-    }
-  }, [displayLimit]);
+  const toggleFavoriteFromGrid = useCallback(
+    (id: string) => {
+      setFavorites((prev) => {
+        const isFav = prev.includes(id);
+        const newFavs = isFav ? prev.filter((f) => f !== id) : [...prev, id];
+        localStorage.setItem(`fav_${galeria.id}`, JSON.stringify(newFavs));
+        return newFavs;
+      });
+    },
+    [galeria.id],
+  );
 
-  // --- LÓGICA DE FILTRAGEM ---
-  const displayedPhotos = showOnlyFavorites
-    ? photos.filter((photo: any) => favorites.includes(photo.id))
-    : photos;
+  // --- 5. UTILITÁRIOS E HELPERS ---
+  // Adicione o useCallback para estabilizar a função
+  const getImageUrl = useCallback(
+    (photoId: string, suffix: string = 'w800') => {
+      return `https://lh3.googleusercontent.com/d/${photoId}=${suffix}`;
+    },
+    [],
+  );
 
-  // --- CONFIGURAÇÕES DE DOWNLOAD E LIMITES ---
-  const MAX_PHOTOS = 150;
-  const isOverLimit = photos.length > MAX_PHOTOS;
-  const ESTIMATED_MB_PER_PHOTO = 10;
-  const totalSizeMB = photos.length * ESTIMATED_MB_PER_PHOTO;
-  const isVeryHeavy = totalSizeMB > 500;
-
-  const breakpointColumnsObj = {
-    default: 5,
-    1536: 4,
-    1280: 3,
-    1024: 3,
-    768: 2,
+  const triggerHint = (message: string) => {
+    setActiveHint(message);
+    setTimeout(() => setActiveHint(null), 4000);
   };
 
-  const getImageUrl = (photoId: string, suffix: string = 'w600') => {
-    return `https://lh3.googleusercontent.com/d/${photoId}=${suffix}`;
-  };
+  // --- 6. LÓGICA DE FILTRAGEM E PREPARAÇÃO DO ÁLBUM ---
+  const albumPhotos = useMemo(() => {
+    const list = showOnlyFavorites
+      ? photos.filter((p: any) => favorites.includes(p.id))
+      : photos;
 
-  // --- LÓGICA DE DOWNLOAD REFINADA (COM ESTADOS INDEPENDENTES) ---
+    return list.slice(0, displayLimit).map((p: any) => {
+      // Tenta pegar a largura/altura real, se não tiver, usa 800x600
+      const width = p.imageMediaMetadata?.width || p.width || 800;
+      const height = p.imageMediaMetadata?.height || p.height || 600;
+
+      console.log('Largura ' + width);
+      console.log(photos[0]);
+
+      return {
+        id: p.id,
+        src: getImageUrl(p.id, 'w800'),
+        width,
+        height,
+        customData: {
+          index: photos.indexOf(p),
+          isSelected: favorites.includes(p.id),
+          toggleFavorite: toggleFavoriteFromGrid,
+          onOpenLightbox: setSelectedPhotoIndex,
+        },
+      };
+    });
+  }, [
+    showOnlyFavorites,
+    photos,
+    favorites,
+    displayLimit,
+    toggleFavoriteFromGrid,
+    getImageUrl,
+  ]);
+
+  // --- 7. AÇÕES DE DOWNLOAD ZIP ---
   const handleDownloadZip = async (
     targetList: any[],
     zipSuffix: string,
@@ -157,41 +191,28 @@ export default function PhotoGrid({ photos, galeria }: any) {
   ) => {
     if (isDownloading || isDownloadingFavs || targetList.length === 0) return;
 
+    const setStatus = isFavAction ? setIsDownloadingFavs : setIsDownloading;
     const setProgress = isFavAction
       ? setFavDownloadProgress
       : setDownloadProgress;
-    const setStatus = isFavAction ? setIsDownloadingFavs : setIsDownloading;
 
     try {
       setStatus(true);
-      setProgress(0);
       const zip = new JSZip();
 
       for (let i = 0; i < targetList.length; i++) {
-        const photo = targetList[i];
-        const fileId = photo.id;
-        const url = `https://lh3.googleusercontent.com/d/${fileId}=s0`;
-
-        try {
-          const response = await fetch(url);
-          if (!response.ok) throw new Error('Erro na rede');
-          const blob = await response.blob();
-          zip.file(`foto-${i + 1}.jpg`, blob);
-          // Atualiza progresso específico do botão clicado
-          setProgress(((i + 1) / targetList.length) * 100);
-        } catch (err) {
-          console.error(`Erro ao processar foto ${i}:`, err);
-        }
+        const response = await fetch(getImageUrl(targetList[i].id, 's0'));
+        if (!response.ok) throw new Error('Falha no download');
+        const blob = await response.blob();
+        zip.file(`foto-${i + 1}.jpg`, blob);
+        setProgress(((i + 1) / targetList.length) * 100);
       }
 
-      const content = await zip.generateAsync({
-        type: 'blob',
-        compression: 'STORE',
-      });
-      saveAs(content, `${galeria.title.replace(/\s+/g, '_')}_${zipSuffix}.zip`);
+      const content = await zip.generateAsync({ type: 'blob' });
+      saveAs(content, `${galeria.title}_${zipSuffix}.zip`);
     } catch (error) {
-      console.error('Erro no ZIP:', error);
-      alert('Erro ao gerar o arquivo ZIP.');
+      console.error(error);
+      alert('Erro ao gerar arquivo ZIP. Verifique sua conexão.');
     } finally {
       setStatus(false);
       setProgress(0);
@@ -199,80 +220,11 @@ export default function PhotoGrid({ photos, galeria }: any) {
   };
 
   const downloadAllAsZip = () => handleDownloadZip(photos, 'completa', false);
+
   const handleDownloadFavorites = () => {
     const favPhotos = photos.filter((p: any) => favorites.includes(p.id));
     handleDownloadZip(favPhotos, 'favoritas', true);
   };
-
-  // --- INFINITE SCROLL ---
-  // No seu Infinite Scroll
-  /*useEffect(() => {
-    let isThrottled = false;
-    const handleScroll = () => {
-      if (isThrottled || displayLimit >= displayedPhotos.length) return;
-
-      const scrollHeight = document.documentElement.scrollHeight;
-      const scrollTop = window.scrollY;
-      const clientHeight = window.innerHeight;
-
-      if (scrollTop + clientHeight >= scrollHeight - 1200) {
-        // Aumentado o threshold para carregar antes
-        isThrottled = true;
-        setDisplayLimit((prev) => {
-          const cols = getCurrentColumns();
-          // Carrega 3 linhas completas por vez
-          const next = prev + cols * 3;
-          return Math.min(next, displayedPhotos.length);
-        });
-
-        setTimeout(() => {
-          isThrottled = false;
-        }, 200);
-      }
-    };
-    window.addEventListener('scroll', handleScroll, { passive: true });
-    return () => window.removeEventListener('scroll', handleScroll);
-  }, [displayLimit, displayedPhotos.length]);*/
-  useEffect(() => {
-    const handleScroll = () => {
-      if (displayLimit >= displayedPhotos.length) return;
-
-      const scrollHeight = document.documentElement.scrollHeight;
-      const currentPosition = window.innerHeight + window.scrollY;
-
-      // Gatilho agressivo: quando faltar 2000px para o fim (cerca de 2 telas), já carrega.
-      if (currentPosition >= scrollHeight - 2000) {
-        setDisplayLimit((prev) => {
-          const cols = getCurrentColumns();
-          // Carrega 24 fotos por vez (garante várias linhas em qualquer coluna)
-          return Math.min(prev + 24, displayedPhotos.length);
-        });
-      }
-    };
-
-    window.addEventListener('scroll', handleScroll, { passive: true });
-    return () => window.removeEventListener('scroll', handleScroll);
-  }, [displayLimit, displayedPhotos.length]);
-
-  if (!photos || photos.length === 0) return null;
-
-  const refreshFavorites = () => {
-    const saved = localStorage.getItem(`fav_${galeria.id}`);
-    setFavorites(saved ? JSON.parse(saved) : []);
-  };
-
-  const [isScrolled, setIsScrolled] = useState(false);
-  const [isHovered, setIsHovered] = useState(false);
-
-  useEffect(() => {
-    const handleScroll = () => {
-      // Ativa o modo compacto após 100px de scroll
-      setIsScrolled(window.scrollY > 100);
-    };
-    window.addEventListener('scroll', handleScroll);
-    return () => window.removeEventListener('scroll', handleScroll);
-  }, []);
-
   return (
     <div className="w-full flex flex-col items-center gap-6 min-h-screen pb-10">
       {' '}
@@ -395,9 +347,6 @@ export default function PhotoGrid({ photos, galeria }: any) {
       {/* 1. BARRA DE AÇÕES EDITORIAL ULTRA-COMPACTA para mobile */}
       <div className="w-full flex flex-col items-center z-[50] sticky top-6 md:hidden">
         {/* HINT DINÂMICO UNIFICADO (Fica acima da barra) */}
-        {/* CONTÊINER DE HINT UNIFICADO */}
-        {/* CONTÊINER DE HINT UNIFICADO */}
-        {/* CONTÊINER DE HINT UNIFICADO (ABAIXO DA BARRA) */}
         <div className="relative w-full flex justify-center">
           <div
             className={`absolute transition-all duration-500 transform 
@@ -549,79 +498,31 @@ export default function PhotoGrid({ photos, galeria }: any) {
           </button>
         </div>
       )}
-      {/* 3. GRID MASONRY */}
-      {/* 2. GRID MASONRY - Reduzido px-4 para px-1 no mobile para "colar" nas bordas */}
+      {/* 2. GRID CORRIGIDO PARA VÁRIAS COLUNAS */}
       <div className="w-full max-w-[1600px] mx-auto px-1 md:px-8">
-        {showOnlyFavorites && displayedPhotos.length === 0 ? (
-          <div className="text-center py-20 text-[#D4AF37]">
-            <p className="italic font-serif text-lg text-slate-500">
-              Nenhuma foto favorita selecionada.
-            </p>
+        {showOnlyFavorites && albumPhotos.length === 0 ? (
+          <div className="text-center py-20 text-[#D4AF37] italic font-serif text-lg">
+            Nenhuma foto favorita selecionada.
           </div>
         ) : (
-          <Masonry
-            key={masonryKey}
-            breakpointCols={breakpointColumnsObj}
-            className="my-masonry-grid"
-            columnClassName="my-masonry-grid_column"
-          >
-            {displayedPhotos
-              .slice(0, displayLimit) // Garanta que o displayLimit seja múltiplo das colunas
-              .map((photo: any, index: number) => {
-                const isSelected = favorites.includes(photo.id);
-
-                return (
-                  <div
-                    key={photo.id}
-                    /* Reduzido mb-4 para mb-0 pois o CSS já controla o margin-bottom */
-                    className="group relative cursor-zoom-in transition-transform duration-300 hover:scale-[1.01] active:scale-95"
-                  >
-                    {/* BOTÃO DE CORAÇÃO - Menor no mobile para não poluir */}
-                    <button
-                      onClick={(e) => {
-                        e.stopPropagation();
-                        toggleFavoriteFromGrid(photo.id);
-                      }}
-                      className={`absolute top-2 left-2 md:top-4 md:left-4 z-30 w-8 h-8 md:w-10 md:h-10 rounded-full border flex items-center justify-center transition-all 
-                      ${isSelected ? 'bg-[#E67E70] border-transparent shadow-lg' : 'bg-black/20 border-white/20'}`}
-                    >
-                      <Heart
-                        size={16}
-                        fill={isSelected ? 'white' : 'none'}
-                        className="text-white"
-                      />
-                    </button>
-
-                    {/* CLICK NA IMAGEM */}
-                    <div
-                      onClick={() =>
-                        setSelectedPhotoIndex(photos.indexOf(photo))
-                      }
-                    >
-                      <GridImage
-                        src={getImageUrl(photo.id, 'w600')}
-                        alt={`Foto ${index + 1}`}
-                        priority={index < QTD_FOTO_EXIBIDAS}
-                      />
-                    </div>
-
-                    {/* BORDA DE SELEÇÃO - Mais fina para parecer compacta */}
-                    {isSelected && (
-                      <div className="absolute inset-0 border-2 border-[#E67E70] rounded-2xl pointer-events-none" />
-                    )}
-                  </div>
-                );
-              })}
-          </Masonry>
+          <div className="w-full max-w-[1600px] mx-auto px-1 md:px-8">
+            <PhotoAlbum
+              layout="rows"
+              photos={albumPhotos}
+              render={{ photo: RenderPhoto }} // Sintaxe correta para v3
+              spacing={16}
+              targetRowHeight={300} // Diminua para 200 se quiser mais colunas
+            />
+          </div>
         )}
       </div>
-      {/* 4. INDICADOR DE CARREGAMENTO */}
-      {displayLimit < displayedPhotos.length && (
-        <div className="flex justify-center py-20 w-full">
-          <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-[#F3E5AB]" />
+      {/* 3. INFINITE SCROLL INDICATOR */}
+      {displayLimit < photos.length && !showOnlyFavorites && (
+        <div className="flex justify-center py-10">
+          <Loader2 className="animate-spin h-8 w-8 text-[#F3E5AB]" />
         </div>
       )}
-      {/* 5. LIGHTBOX */}
+      {/* 4. LIGHTBOX */}
       {selectedPhotoIndex !== null && photos.length > 0 && (
         <Lightbox
           photos={photos}
