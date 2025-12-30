@@ -303,36 +303,39 @@ export default function PhotoGrid({ photos, galeria }: any) {
 <div className="w-full flex flex-col items-center z-[50] sticky top-6 md:hidden">
 
   {/* HINT DINÂMICO UNIFICADO (Fica acima da barra) */}
-  <div className="relative w-full flex justify-center">
-    <div className={`absolute transition-all duration-500 transform 
-      ${activeHint ? 'opacity-100 translate-y-0' : 'opacity-0 translate-y-2 pointer-events-none'}
-      ${activeHint === 'social' ? '-top-14' : '-top-28'}`}
-    >
-      <div className="bg-[#F3E5AB] text-black rounded-2xl shadow-2xl border border-white/20 p-2 px-4 flex flex-col items-center justify-center min-w-max">
-        {activeHint === 'social' ? (
-          <div className="flex items-center gap-4 py-1">
-            <span className="text-[12px] font-semibold tracking-widest border-r border-black/10 pr-3">Fotógrafo</span>
-            <div className="flex items-center gap-3">
-              <button onClick={() => window.open(`https://wa.me/${galeria.photographer_whatsapp}`)} className="active:scale-125 transition-transform">
-                <MessageCircle size={18} />
-              </button>
-              <button onClick={() => window.open(`https://instagram.com/${galeria.photographer_instagram}`)} className="active:scale-125 transition-transform">
-                <Instagram size={18} />
-              </button>
-              <button onClick={() => window.open(galeria.photographer_website)} className="active:scale-125 transition-transform">
-                <User size={18} />
-              </button>
-            </div>
+{/* CONTÊINER DE HINT UNIFICADO */}
+{/* CONTÊINER DE HINT UNIFICADO */}
+{/* CONTÊINER DE HINT UNIFICADO (ABAIXO DA BARRA) */}
+<div className="relative w-full flex justify-center">
+  <div className={`absolute transition-all duration-500 transform 
+    ${activeHint ? 'opacity-100 translate-y-0' : 'opacity-0 -translate-y-2 pointer-events-none'}
+    /* Posicionamento abaixo da barra: top-14 ou top-16 conforme o conteúdo */
+    ${activeHint === 'social' ? 'top-14' : 'top-16'}`}
+  >
+    <div className="bg-[#F3E5AB] text-black rounded-2xl shadow-2xl border border-white/20 p-2 px-5 flex flex-col items-center justify-center min-w-max">
+      
+      {/* Triângulo indicador invertido (agora no topo do balão) */}
+      <div className="w-3 h-3 bg-[#F3E5AB] rotate-45 mx-auto -mt-3.5 mb-1 shadow-sm"></div>
+
+      {activeHint === 'social' ? (
+        /* CONTEÚDO SOCIAL */
+        <div className="flex items-center gap-4 py-1">
+          <span className="text-[12px] font-bold uppercase tracking-widest border-r border-black/10 pr-3">Fotógrafo</span>
+          <div className="flex items-center gap-3">
+            <button onClick={() => window.open(`https://wa.me/${galeria.photographer_whatsapp}`)} className="text-black active:scale-125 transition-transform"><MessageCircle size={18} /></button>
+            <button onClick={() => window.open(`https://instagram.com/${galeria.photographer_instagram}`)} className="text-black active:scale-125 transition-transform"><Instagram size={18} /></button>
+            <button onClick={() => window.open(galeria.photographer_website)} className="text-black active:scale-125 transition-transform"><User size={18} /></button>
           </div>
-        ) : (
-          <div className="text-[12px] font-semibold tracking-wider whitespace-pre-line text-left leading-relaxed py-1">
-            {activeHint}
-          </div>
-        )}
-        <div className="w-3 h-3 bg-[#F3E5AB] rotate-45 mx-auto -mb-3.5 mt-1 shadow-xl"></div>
-      </div>
+        </div>
+      ) : (
+        /* CONTEÚDO DE TEXTO (INFO OU FILTRO) */
+        <div className="text-[13px] font-bold tracking-tight whitespace-pre-line text-left leading-relaxed py-1">
+          {activeHint}
+        </div>
+      )}
     </div>
   </div>
+</div>
 
   {/* BARRA MOBILE "FANTASMA" */}
   <div className={`
@@ -413,7 +416,7 @@ export default function PhotoGrid({ photos, galeria }: any) {
           >
             <Download size={16} />
             <div className="flex flex-col items-start leading-tight">
-              <span className="text-[10px] font-bold uppercase tracking-widest">Baixar Seleção</span>
+              <span className="text-[10px] font-bold uppercase tracking-widest">Baixar favoritas</span>
               <span className="text-[8px] opacity-80 italic">{favorites.length} fotos</span>
             </div>
           </button>
