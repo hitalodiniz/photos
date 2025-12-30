@@ -48,7 +48,7 @@ export default function GaleriaView({ galeria, photos }: GaleriaViewProps) {
       {/* 2. CONTEÚDO DA PÁGINA */}
       <div className="relative z-10">
         {/* HEADER AJUSTADO PARA MOBILE: h-auto e flex-col */}
-        <header className="relative min-h-[30vh] md:h-[40vh] flex items-center pt-16 pb-8 md:pt-10">
+        <header className="relative min-h-[10vh] md:h-[20vh] flex items-center pt-6 pb-4 md:pt-10">
           <div className="relative w-full max-w-[1600px] mx-auto px-6 md:px-12 flex flex-col md:flex-row items-center justify-between gap-8 md:gap-10">
 
             {/* BLOCO ESQUERDO: TITULO */}
@@ -76,7 +76,7 @@ export default function GaleriaView({ galeria, photos }: GaleriaViewProps) {
             </div>
 
             {/* BLOCO DIREITO: AVATAR - Ajustado margem mobile */}
-            <div className="flex-shrink-0">
+            <div className="flex-shrink-0 hidden md:flex">
               <PhotographerAvatar
                 galeria={galeria}
                 position="top-page"
