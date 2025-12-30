@@ -84,7 +84,9 @@ export default function PhotoViewClient({ googleId, slug }: { googleId: string, 
                 <GalleryHeader
                     title={data?.title}
                     location={data?.location || "Local não informado"}
+                    data={data.date}
                 />
+                
                 {/* BARRA DE BOTÕES - AJUSTADA PARA FUNDO CHAMPANHE CLARO */}
                 <div
                     /* Eventos adicionados para reexibir o texto ao passar o mouse */
@@ -98,7 +100,7 @@ export default function PhotoViewClient({ googleId, slug }: { googleId: string, 
                     <button
                         onClick={handleDownload}
                         aria-label="Baixar todas as fotos em alta resolução"
-                        className="flex items-center gap-0 hover:gap-3 pl-1 hover:text-[#F3E5AB] focus:outline-none focus:ring-2 focus:ring-[#F3E5AB] focus:ring-offset-2 focus:ring-offset-black transition-all group border-r border-white/20"
+                        className="flex items-center gap-0 hover:gap-3 pr-4 hover:text-[#F3E5AB] focus:outline-none focus:ring-2 focus:ring-[#F3E5AB] focus:ring-offset-2 focus:ring-offset-black transition-all group border-r border-white/20"
                     >
                         <div className="flex items-center justify-center w-9 h-9 md:w-11 md:h-11 rounded-full bg-white/10 group-hover:bg-white/20 transition-colors shrink-0">
                             {isDownloading ? (
@@ -153,20 +155,7 @@ export default function PhotoViewClient({ googleId, slug }: { googleId: string, 
                         alt="Visualização Editorial"
                     />
 
-                    {/* BARRA DE INFORMAÇÕES - Abaixo da foto no mobile e absoluta no desktop */}
-                    <div className="relative md:absolute mt-2 md:mt-0 md:bottom-6 left-0 md:left-1/2 md:-translate-x-1/2 z-50 w-full flex justify-center pb-0">
-                        <div className="flex items-center gap-4 bg-black/50 backdrop-blur-lg px-6 py-2.5 rounded-full border border-white/10 shadow-2xl">
-                            <div className="flex items-center gap-2 text-white text-[13px] md:text-[14px] font-medium italic">
-                                <Calendar size={16} className="text-[#F3E5AB]" />
-                                <span>{data?.date && new Date(data.date).toLocaleDateString('pt-BR', { day: '2-digit', month: 'long', year: 'numeric' })}</span>
-                            </div>
-                            <div className="w-[1px] h-4 bg-white/20"></div>
-                            <div className="flex items-center gap-2 text-white text-[13px] md:text-[14px] font-medium italic">
-                                <Sparkles size={16} className="text-[#F3E5AB]" />
-                                <span>Acesso Exclusivo</span>
-                            </div>
-                        </div>
-                    </div>
+                    
                 </div>
             </main>
 

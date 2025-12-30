@@ -185,10 +185,10 @@ export default function PhotoGrid({ photos, galeria }: any) {
   };
 
   return (
- <div className="w-full flex flex-col items-center gap-10 min-h-screen pb-10">
+    <div className="w-full flex flex-col items-center gap-10 min-h-screen pb-10">
       {/* 1. BARRA DE INFORMAÇÕES EDITORIAL: Ajustada para flex-col no mobile */}
       <div className="flex flex-col md:flex-row items-center justify-center gap-4 md:gap-4 bg-black/45 backdrop-blur-lg p-5 md:p-2 md:px-5 rounded-[2rem] md:rounded-full border border-white/10 shadow-2xl w-full max-w-[95%] md:max-w-max mx-auto transition-all z-[40]">
-        
+
         {/* SEÇÃO: INFOS DA GALERIA */}
         <div className="flex items-center justify-center gap-3 text-white text-sm md:text-[14px] font-medium italic">
           <div className="flex items-center gap-1.5">
@@ -289,7 +289,7 @@ export default function PhotoGrid({ photos, galeria }: any) {
                       toggleFavoriteFromGrid(photo.id);
                     }}
                     className={`absolute top-4 left-4 z-30 w-10 h-10 rounded-full border-2 flex items-center justify-center transition-all duration-300 active:scale-90
-          ${isSelected
+                        ${isSelected
                         ? "bg-[#E67E70] border-[#E67E70] shadow-lg scale-100"
                         : "bg-black/20 border-white/50 hover:border-white opacity-0 group-hover:opacity-100"}`}
                   >
