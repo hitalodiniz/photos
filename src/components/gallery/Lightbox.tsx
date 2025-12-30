@@ -38,6 +38,36 @@ export default function Lightbox({
     const [touchStart, setTouchStart] = useState<number | null>(null);
     const [touchEnd, setTouchEnd] = useState<number | null>(null);
     const [showButtonText, setShowButtonText] = useState(true);
+    const [showInterface, setShowInterface] = useState(true);
+
+    //Efeito que oculta tudo da tela, exceto a foto, quando não mexe o mouse
+    useEffect(() => {
+
+        // Detecta se é mobile (largura menor que 768px)
+        const isMobile = window.innerWidth < 768;
+        if (isMobile) {
+            setShowInterface(true);
+            return;
+        }
+
+        let timer: NodeJS.Timeout;
+        const handleActivity = () => {
+            setShowInterface(true); // Reativa a interface ao mover ou tocar
+            clearTimeout(timer);
+            timer = setTimeout(() => setShowInterface(false), 2000); // Oculta após 2s
+        };
+
+        window.addEventListener('mousemove', handleActivity);
+        window.addEventListener('touchstart', handleActivity);
+        window.addEventListener('keydown', handleActivity);
+
+        return () => {
+            window.removeEventListener('mousemove', handleActivity);
+            window.removeEventListener('touchstart', handleActivity);
+            window.removeEventListener('keydown', handleActivity);
+            clearTimeout(timer);
+        };
+    }, []);
 
     const minSwipeDistance = 50;
 
@@ -209,35 +239,33 @@ export default function Lightbox({
     };
 
     return (
-       <div
-    className="fixed inset-0 z-[999] bg-black flex flex-col items-center overflow-x-hidden overflow-y-auto md:overflow-hidden select-none scrollbar-hide"
-    onTouchStart={onTouchStart}
-    onTouchMove={onTouchMove}
-    onTouchEnd={onTouchEnd}
->
-    <div
-        className="relative md:fixed inset-0 z-[999] flex flex-col bg-black animate-in fade-in duration-300 min-h-full"
-    >
-        {/* BARRA SUPERIOR - Ajustada com flex-col no mobile para evitar sobreposição */}
-        <div className="relative md:absolute top-0 left-0 right-0 flex flex-col md:flex-row items-center justify-between p-4 md:px-14 md:py-8 text-white/90 z-[70] bg-gradient-to-b from-black/95 via-black/20 to-transparent w-full gap-4 md:gap-6">
-            
-            {/* Título ocupa largura total no mobile para garantir alinhamento */}
-            <div className="w-full md:w-auto flex justify-start">
-                <GalleryHeader
-                    title={galleryTitle}
-                    location={location}
-                    data={galeria.date}
-                />
-            </div>
+        <div
+            className="fixed inset-0 z-[999] bg-black flex flex-col items-center overflow-x-hidden overflow-y-auto md:overflow-hidden select-none scrollbar-hide"
+            onTouchStart={onTouchStart}
+            onTouchMove={onTouchMove}
+            onTouchEnd={onTouchEnd}
+        >
+            <div className="relative md:fixed inset-0 z-[999] flex flex-col bg-black animate-in fade-in duration-300 min-h-full">
 
-            {/* Barra de Ferramentas centralizada no mobile e à direita no desktop */}
-            <div className="w-full md:w-auto flex justify-center md:justify-end pointer-events-auto z-[200]">
-                <div
-                    className="flex items-center bg-black/80 backdrop-blur-2xl p-2 px-3 md:p-2 md:px-3 rounded-2xl border border-white/20 shadow-2xl transition-all duration-500 ease-in-out"
-                    onMouseEnter={() => setShowButtonText(true)}
-                    onMouseLeave={() => setShowButtonText(false)}
-                    role="toolbar"
-                >
+                {/* BARRA SUPERIOR - Ajustada com flex-col no mobile para evitar sobreposição */}
+                <div className={`relative md:absolute top-0 left-0 right-0 flex flex-col md:flex-row items-center justify-between p-4 md:px-14 md:py-8 text-white/90 z-[200] bg-gradient-to-b from-black/95 via-black/40 to-transparent w-full gap-4 md:gap-6 transition-all duration-700 ease-in-out ${showInterface ? 'opacity-100 translate-y-0' : 'md:opacity-0 md:translate-y-4 md:pointer-events-none'}`}>
+                    {/* Título ocupa largura total no mobile para garantir alinhamento */}
+                    <div className="w-full md:w-auto flex justify-start">
+                        <GalleryHeader
+                            title={galleryTitle}
+                            location={location}
+                            data={galeria.date}
+                        />
+                    </div>
+
+                    {/* Barra de Ferramentas centralizada no mobile e à direita no desktop */}
+                    <div className="w-full md:w-auto flex justify-center md:justify-end pointer-events-auto z-[200]">
+                        <div
+                            className="flex items-center bg-black/80 backdrop-blur-2xl p-2 px-3 md:p-2 md:px-3 rounded-2xl border border-white/20 shadow-2xl transition-all duration-500 ease-in-out relative"
+                            onMouseEnter={() => setShowButtonText(true)}
+                            onMouseLeave={() => setShowButtonText(false)}
+                            role="toolbar"
+                        >
                             <button onClick={handleShareWhatsApp} className="flex items-center gap-0 hover:gap-2 transition-all duration-500 group border-r border-white/10 pr-3">
                                 <div className="flex items-center justify-center w-8 h-8 md:w-11 md:h-11 rounded-full bg-white/5 group-hover:bg-[#25D366]/20 transition-colors shrink-0">
                                     <MessageCircle className="text-white group-hover:text-[#25D366] w-[20px] h-[20px] md:w-[24px] md:h-[24px]" />
@@ -271,10 +299,17 @@ export default function Lightbox({
                                     <span className="text-[8px] md:text-[11px] opacity-60 uppercase font-bold text-white/70 whitespace-nowrap">Alta Res.</span>
                                 </div>
                             </button>
-
-                            <button onClick={onClose} className="flex items-center justify-center pl-2 ml-1">
+                            {/* BOTÃO FECHAR - Adicionado e.preventDefault e cursor reforçado */}
+                            <button
+                                onClick={(e) => {
+                                    e.preventDefault();
+                                    e.stopPropagation();
+                                    onClose();
+                                }}
+                                className="flex items-center justify-center pl-2 ml-1 relative z-[210] cursor-pointer hover:scale-110 active:scale-95 transition-transform"
+                            >
                                 <div className="flex items-center justify-center w-8 h-8 md:w-11 md:h-11 rounded-full bg-white/5 hover:bg-red-500/20 transition-colors shrink-0">
-                                    <X size={20} className="text-white hover:text-red-400 w-[20px] h-[20px] md:w-[24px] md:h-[24px]" />
+                                    <X className="text-white hover:text-red-400 w-[20px] h-[20px] md:w-[24px] md:h-[24px]" />
                                 </div>
                             </button>
                         </div>
@@ -283,7 +318,11 @@ export default function Lightbox({
 
                 {/* ÁREA CENTRAL - Foto Ocupando Máximo de Espaço com Efeito de Brilho */}
                 <div className="flex-1 relative w-full flex flex-col items-center justify-center px-2 md:px-0 py-2 md:py-0">
-                    <button onClick={onPrev} className="absolute left-0 z-[80] h-full px-4 text-white/60 hover:text-[#F3E5AB] hidden md:block">
+                    {/* 1. SETA ESQUERDA - Área de clique centralizada verticalmente */}
+                    <button
+                        onClick={onPrev}
+                        className={`absolute left-0 top-1/2 -translate-y-1/2 z-[80] h-fit py-20 px-4 text-white/10 hover:text-[#F3E5AB] hidden md:block transition-all duration-300 transition-all duration-700 ${showInterface ? 'opacity-100' : 'md:opacity-0 md:translate-y-4 md:pointer-events-none'}`}
+                    >
                         <ChevronLeft size={64} strokeWidth={1} />
                     </button>
 
@@ -295,23 +334,26 @@ export default function Lightbox({
                                 </div>
                             )}
                             <img
-                                key={photo.id}
-                                src={currentUrl}
-                                alt="Visualização"
+                                key={photos[activeIndex].id}
+                                src={getImageUrl(photos[activeIndex].id)}
                                 onLoad={() => setIsImageLoading(false)}
-                                /* Aplicado brilho dinâmico e ocupação de 85vh no desktop */
-                                className={`max-w-full max-h-[75vh] md:max-h-screen object-contain transition-all duration-1000 shadow-2xl ${isImageLoading ? 'opacity-0 scale-95 blur-sm' : 'opacity-100 scale-100 blur-0 brightness-110'}`}
+                                /* Transição de 1s, brilho e sombra projetada */
+                                className={`max-w-full max-h-[75vh] md:max-h-screen object-contain transition-all duration-1000 ease-out shadow-[0_0_80px_rgba(0,0,0,0.9)] 
+        ${isImageLoading ? 'opacity-0 scale-95 blur-sm' : 'opacity-100 scale-100 blur-0 brightness-110'}`}
                             />
                         </div>
                     </div>
-
-                    <button onClick={onNext} className="absolute right-0 z-[80] h-full px-6 text-white/60 hover:text-[#F3E5AB] hidden md:block">
+                    {/* 2. SETA DIREITA - Libera o topo para o botão X */}
+                    <button
+                        onClick={onNext}
+                        className={`absolute right-0 top-1/2 -translate-y-1/2 z-[80] h-fit py-20 px-6 text-white/10 hover:text-[#F3E5AB] hidden md:block transition-all duration-300 transition-all duration-700 ${showInterface ? 'opacity-100' : 'md:opacity-0 md:translate-y-4 md:pointer-events-none'}`}
+                    >
                         <ChevronRight size={64} strokeWidth={1} />
                     </button>
                 </div>
 
                 {/* RODAPÉ UNIFICADO - Contador Inteligente e Avatar */}
-                <div className="relative w-full flex flex-col items-center justify-center gap-2 pb-6 md:pb-0 md:pt-0">
+                <div className={`relative w-full flex flex-col items-center justify-center gap-2 pb-6 md:pb-0 md:pt-0 transition-all duration-700 ease-in-out ${showInterface ? 'opacity-100 translate-y-0' : 'md:opacity-0 md:translate-y-4 md:pointer-events-none'}`}>
                     <div className="z-[90] pointer-events-none md:absolute md:left-14 md:bottom-10">
                         <div className="flex items-center gap-3 bg-black/40 backdrop-blur-md p-2 px-6 rounded-full border border-white/10 shadow-lg">
                             <p className="text-white/80 text-sm md:text-lg italic font-serif text-center md:text-left">
@@ -328,6 +370,6 @@ export default function Lightbox({
                     </div>
                 </div>
             </div>
-        </div>
+        </div >
     );
 }
