@@ -26,47 +26,48 @@ const GridImage = ({
   src,
   alt,
   priority,
+  index,
 }: {
   src: string;
   alt: string;
   priority?: boolean;
+  index: number;
 }) => {
   const [isLoaded, setIsLoaded] = useState(false);
-  const imgRef = React.useRef<HTMLImageElement>(null);
-
-  useEffect(() => {
-    if (imgRef.current?.complete) {
-      // O requestAnimationFrame joga a atualização para o próximo frame,
-      // evitando o "cascading render" síncrono que o linter condena.
-      requestAnimationFrame(() => {
-        setIsLoaded(true);
-      });
-    }
-  }, []);
 
   return (
     <div
-      className={`relative w-full h-auto overflow-hidden rounded-2xl transition-colors duration-300 ${isLoaded ? 'bg-transparent' : 'bg-[#FFF9F0]'}`}
+      className={`relative w-full overflow-hidden rounded-2xl transition-all duration-500 ${
+        isLoaded ? 'bg-transparent' : 'bg-slate-100 animate-pulse'
+      }`}
+      style={{
+        // Reserva um espaço visual baseado em uma média para evitar buracos no Masonry
+        aspectRatio: '3/4',
+        minHeight: '200px',
+      }}
     >
       <Image
         src={src}
         alt={alt}
-        // O Next.js não precisa do ref para o onLoad funcionar
+        width={600}
+        height={800} // Definir altura ajuda o Next.js a calcular o aspect-ratio
         onLoad={() => setIsLoaded(true)}
-        // Next.js Image usa 'priority' booleano em vez de loading='eager'
-        priority={priority}
-        fill
+        // Prioridade real para as primeiras 12 fotos para carregamento instantâneo
+        priority={index < 12}
+        // Prefetching: o navegador carrega a imagem antes dela entrar na tela
+        loading={index < 12 ? undefined : 'lazy'}
+        unoptimized
         className={`
-      w-full h-auto object-cover transition-all duration-700 ease-out
-      ${isLoaded ? 'blur-0 scale-100 opacity-100' : 'blur-md scale-105 opacity-30'}
-    `}
+          w-full h-auto block object-cover transition-all duration-1000 ease-in-out
+          ${isLoaded ? 'opacity-100 scale-100 blur-0' : 'opacity-0 scale-105 blur-lg'}
+        `}
       />
     </div>
   );
 };
 
 export default function PhotoGrid({ photos, galeria }: any) {
-  const QTD_FOTO_EXIBIDAS = 24;
+  const QTD_FOTO_EXIBIDAS = 36;
 
   // --- ESTADOS DE CONTROLE ORIGINAIS ---
   const [selectedPhotoIndex, setSelectedPhotoIndex] = useState<number | null>(
@@ -103,11 +104,12 @@ export default function PhotoGrid({ photos, galeria }: any) {
   const normalizeLimit = (limit: number, cols: number) =>
     Math.ceil(limit / cols) * cols;
 
-  const [displayLimit, setDisplayLimit] = useState(() => {
+  const [displayLimit, setDisplayLimit] = useState(36); // Começa com mais fotos para preencher a tela inicial
+  /*const [displayLimit, setDisplayLimit] = useState(() => {
     if (typeof window === 'undefined') return QTD_FOTO_EXIBIDAS;
     const cols = getCurrentColumns();
     return normalizeLimit(QTD_FOTO_EXIBIDAS, cols);
-  });
+  });*/
 
   // --- CARREGAR FAVORITOS DO LOCALSTORAGE ---
   useEffect(() => {
@@ -203,26 +205,51 @@ export default function PhotoGrid({ photos, galeria }: any) {
   };
 
   // --- INFINITE SCROLL ---
-  useEffect(() => {
+  // No seu Infinite Scroll
+  /*useEffect(() => {
     let isThrottled = false;
     const handleScroll = () => {
       if (isThrottled || displayLimit >= displayedPhotos.length) return;
+
       const scrollHeight = document.documentElement.scrollHeight;
       const scrollTop = window.scrollY;
       const clientHeight = window.innerHeight;
 
-      if (scrollTop + clientHeight >= scrollHeight - 1000) {
+      if (scrollTop + clientHeight >= scrollHeight - 1200) {
+        // Aumentado o threshold para carregar antes
         isThrottled = true;
         setDisplayLimit((prev) => {
           const cols = getCurrentColumns();
+          // Carrega 3 linhas completas por vez
           const next = prev + cols * 3;
-          return Math.min(normalizeLimit(next, cols), displayedPhotos.length);
+          return Math.min(next, displayedPhotos.length);
         });
+
         setTimeout(() => {
           isThrottled = false;
         }, 200);
       }
     };
+    window.addEventListener('scroll', handleScroll, { passive: true });
+    return () => window.removeEventListener('scroll', handleScroll);
+  }, [displayLimit, displayedPhotos.length]);*/
+  useEffect(() => {
+    const handleScroll = () => {
+      if (displayLimit >= displayedPhotos.length) return;
+
+      const scrollHeight = document.documentElement.scrollHeight;
+      const currentPosition = window.innerHeight + window.scrollY;
+
+      // Gatilho agressivo: quando faltar 2000px para o fim (cerca de 2 telas), já carrega.
+      if (currentPosition >= scrollHeight - 2000) {
+        setDisplayLimit((prev) => {
+          const cols = getCurrentColumns();
+          // Carrega 24 fotos por vez (garante várias linhas em qualquer coluna)
+          return Math.min(prev + 24, displayedPhotos.length);
+        });
+      }
+    };
+
     window.addEventListener('scroll', handleScroll, { passive: true });
     return () => window.removeEventListener('scroll', handleScroll);
   }, [displayLimit, displayedPhotos.length]);
@@ -365,7 +392,6 @@ export default function PhotoGrid({ photos, galeria }: any) {
           </button>
         </div>
       </div>
-      {/* 1. BARRA DE AÇÕES EDITORIAL ULTRA-COMPACTA para mobile */}
       {/* 1. BARRA DE AÇÕES EDITORIAL ULTRA-COMPACTA para mobile */}
       <div className="w-full flex flex-col items-center z-[50] sticky top-6 md:hidden">
         {/* HINT DINÂMICO UNIFICADO (Fica acima da barra) */}
@@ -540,7 +566,7 @@ export default function PhotoGrid({ photos, galeria }: any) {
             columnClassName="my-masonry-grid_column"
           >
             {displayedPhotos
-              .slice(0, displayLimit)
+              .slice(0, displayLimit) // Garanta que o displayLimit seja múltiplo das colunas
               .map((photo: any, index: number) => {
                 const isSelected = favorites.includes(photo.id);
 

@@ -1,21 +1,21 @@
-@import url("https://fonts.googleapis.com/css2?family=Playfair+Display:ital,wght@0,700;0,900;1,700&family=Barlow:wght@400;500;700;800&display=swap");
-@import url("https://fonts.googleapis.com/css2?family=Playfair+Display:ital,wght@0,700;1,700&display=swap");
+@import url('https://fonts.googleapis.com/css2?family=Playfair+Display:ital,wght@0,700;0,900;1,700&family=Barlow:wght@400;500;700;800&display=swap');
+@import url('https://fonts.googleapis.com/css2?family=Playfair+Display:ital,wght@0,700;1,700&display=swap');
 
 @tailwind base;
 @tailwind components;
 @tailwind utilities;
 
 /* Opção com Inter: Mais moderna e sofisticada que Verdana */
-@import url("https://fonts.googleapis.com/css2?family=Inter:wght@300;400;600&display=swap");
+@import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;600&display=swap');
 
 html {
-  font-family: "Inter", sans-serif;
+  font-family: 'Inter', sans-serif;
   -webkit-font-smoothing: antialiased; /* Deixa a fonte mais fina e elegante */
   color: #3c4043;
 }
 
 .font-artistic {
-  font-family: "Playfair Display", serif;
+  font-family: 'Playfair Display', serif;
 }
 /* Padrão do botão GSI (Continue com Google) */
 .btn-gsi-custom {
@@ -30,7 +30,9 @@ html {
   text-align: center;
   box-shadow: 0 2px 2px 0 rgba(0, 0, 0, 0.05); /* Sombra sutil */
   cursor: pointer;
-  transition: background-color 0.15s ease, box-shadow 0.15s ease;
+  transition:
+    background-color 0.15s ease,
+    box-shadow 0.15s ease;
 }
 
 .btn-gsi-custom:hover {
@@ -38,33 +40,46 @@ html {
   box-shadow: 0 3px 3px 0 rgba(0, 0, 0, 0.1);
 }
 
-/* Ajuste Fino do Grid Masonry */
+/* globals.css */
+
+/* Container principal do Masonry */
 .my-masonry-grid {
   display: flex;
-  margin-left: -8px; /* Espaço entre colunas no mobile */
+  margin-left: -16px; /* Gap entre colunas */
   width: auto;
+  animation: fadeIn 0.6s ease-out;
 }
 
+/* Colunas individuais */
 .my-masonry-grid_column {
-  padding-left: 8px; /* Deve ser igual ao margin-left negativo acima */
+  padding-left: 16px; /* Gap entre colunas */
   background-clip: padding-box;
 }
 
-/* Espaçamento vertical entre as fotos no mobile */
-.my-masonry-grid_column > div { 
-  margin-bottom: 8px; 
+/* globals.css */
+.my-masonry-grid_column > div {
+  width: 100%;
+  margin-bottom: 16px;
+  display: block;
+  /* Importante para evitar o pisca inicial */
+  min-height: 250px;
+  contain: paint; /* Ajuda o navegador a otimizar a renderização */
 }
 
-/* Ajuste para Desktop (Telas maiores) */
-@media (min-width: 1024px) {
-  .my-masonry-grid {
-    margin-left: -14px;
+/* Suaviza a entrada das imagens */
+.my-masonry-grid_column img {
+  will-change: opacity, transform;
+}
+
+/* Animação de entrada */
+@keyframes fadeIn {
+  from {
+    opacity: 0;
+    transform: translateY(10px);
   }
-  .my-masonry-grid_column {
-    padding-left: 14px;
-  }
-  .my-masonry-grid_column > div { 
-    margin-bottom: 14px; 
+  to {
+    opacity: 1;
+    transform: translateY(0);
   }
 }
 
@@ -80,19 +95,19 @@ html {
   }
 
   /* Label específica para Radio e Checkbox (estilo inline) */
-  input[type="radio"] + label,
-  input[type="checkbox"] + label {
+  input[type='radio'] + label,
+  input[type='checkbox'] + label {
     @apply mb-0 ml-2 cursor-pointer inline-flex items-center 
     text-slate-700 hover:text-[#D4AF37];
   }
 
   /* Customização do próprio círculo do Radio para combinar com o editorial */
-  input[type="radio"] {
+  input[type='radio'] {
     @apply w-4 h-4 border-gray-300 text-[#D4AF37] focus:ring-[#F3E5AB]/50 cursor-pointer;
   }
 
   /* Inputs: Mantendo a consistência com labels mais leves */
-  input:not([type="file"]),
+  input:not([type='file']),
   textarea,
   select {
     @apply w-full bg-[#F8F9FA] border border-gray-100 p-3 rounded-xl outline-none 
@@ -101,7 +116,7 @@ html {
            placeholder:text-gray-300;
   }
   /* Botão Principal (Editorial Primary) */
-  button[type="submit"],
+  button[type='submit'],
   .btn-primary {
     @apply w-full py-4 rounded-2xl font-bold 
     uppercase text-xs tracking-[0.2em] 

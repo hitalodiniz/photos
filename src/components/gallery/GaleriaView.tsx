@@ -4,7 +4,6 @@ import { PhotoGrid, PhotographerAvatar } from '@/components/gallery';
 import type { Galeria } from '@/types/galeria';
 import { Camera } from 'lucide-react';
 
-
 interface GaleriaViewProps {
   galeria: Galeria;
   photos: any[];
@@ -22,7 +21,7 @@ export default function GaleriaView({ galeria, photos }: GaleriaViewProps) {
   const getCoverUrl = (fileId: string) => {
     if (!fileId) return '/hero-bg.jpg';
     // Correção da interpolação com backticks para o ID real
-    return `https://lh3.googleusercontent.com/d/${fileId}=w1600`;
+    return `https://lh3.googleusercontent.com/d/${fileId}=w1000`;
   };
 
   // Efeito de transição para o Champanhe: atinge 100% aos 400px de scroll
@@ -36,7 +35,7 @@ export default function GaleriaView({ galeria, photos }: GaleriaViewProps) {
           className="absolute inset-0 bg-cover bg-center"
           style={{
             backgroundPosition: 'center 50%',
-            backgroundImage: `url('${getCoverUrl(galeria.cover_image_url)}')`
+            backgroundImage: `url('${getCoverUrl(galeria.cover_image_url)}')`,
           }}
         />
         <div
@@ -50,11 +49,9 @@ export default function GaleriaView({ galeria, photos }: GaleriaViewProps) {
         {/* HEADER AJUSTADO PARA MOBILE: h-auto e flex-col */}
         <header className="relative min-h-[10vh] md:h-[20vh] flex items-center pt-6 pb-4 md:pt-10">
           <div className="relative w-full max-w-[1600px] mx-auto px-6 md:px-12 flex flex-col md:flex-row items-center justify-between gap-8 md:gap-10">
-
             {/* BLOCO ESQUERDO: TITULO */}
             <div className="flex flex-col gap-2 text-left items-center md:items-start w-full">
               <div className="inline-block relative">
-
                 {/* CONJUNTO CÂMARA + TÍTULO */}
                 <div className="flex items-center gap-3 md:gap-5 mb-1.5 md:mb-3">
                   {/* Ícone da Câmara ajustado para mobile e desktop */}
@@ -94,7 +91,9 @@ export default function GaleriaView({ galeria, photos }: GaleriaViewProps) {
             ) : (
               <div className="flex flex-col items-center justify-center py-24 text-[#D4AF37]">
                 <div className="animate-spin rounded-full h-10 w-10 border-b-2 border-[#D4AF37] mb-6"></div>
-                <p className="font-serif italic text-xl tracking-wide">Preparando sua experiência...</p>
+                <p className="font-serif italic text-xl tracking-wide">
+                  Preparando sua experiência...
+                </p>
               </div>
             )}
           </div>
@@ -102,20 +101,29 @@ export default function GaleriaView({ galeria, photos }: GaleriaViewProps) {
 
         {/* 3. RODAPÉ EDITORIAL */}
         <footer className="relative z-20 w-full pt-6 pb-24 px-6 border-t border-[#D4AF37]/60 bg-[#FFF9F0] backdrop-blur-sm">
-
           <div className="max-w-7xl mx-auto flex flex-col items-center gap-4">
-
             {/* Botão Voltar ao Topo */}
             <button
               onClick={() => window.scrollTo({ top: 0, behavior: 'smooth' })}
               className="group flex flex-col items-center gap-2 text-[#D4AF37] transition-all hover:text-slate-900"
             >
               <div className="p-3 rounded-full border border-[#D4AF37]/30 group-hover:bg-[#D4AF37] group-hover:text-[#FDF8E7] transition-all duration-500 shadow-md">
-                <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                <svg
+                  width="20"
+                  height="20"
+                  viewBox="0 0 24 24"
+                  fill="none"
+                  stroke="currentColor"
+                  strokeWidth="2"
+                  strokeLinecap="round"
+                  strokeLinejoin="round"
+                >
                   <path d="m18 15-6-6-6 6" />
                 </svg>
               </div>
-              <span className="text-[10px] uppercase tracking-[0.3em] font-bold">Voltar ao Topo</span>
+              <span className="text-[10px] uppercase tracking-[0.3em] font-bold">
+                Voltar ao Topo
+              </span>
             </button>
 
             {/* Informações Finais */}
@@ -125,18 +133,23 @@ export default function GaleriaView({ galeria, photos }: GaleriaViewProps) {
                 {galeria.title}
               </h3>
               <p className="text-slate-500 text-xs md:text-[14px] tracking-wider max-w-md leading-relaxed">
-                Todas as imagens são de propriedade de <span className="text-[#D4AF37] font-semibold">{galeria.photographer_name}</span>.
+                Todas as imagens são de propriedade de{' '}
+                <span className="text-[#D4AF37] font-semibold">
+                  {galeria.photographer_name}
+                </span>
+                .
               </p>
               <p className="text-slate-500 text-xs md:text-[14px] tracking-wider max-w-md leading-relaxed">
                 A reprodução não autorizada é proibida.
               </p>
             </div>
             <div className="text-[10px] md:text-[14px] tracking-widest text-slate-400 ">
-              Powered by Sua Galeria de Fotos•  <span>© {new Date().getFullYear()}</span>
+              Powered by Sua Galeria de Fotos•{' '}
+              <span>© {new Date().getFullYear()}</span>
             </div>
           </div>
         </footer>
-      </div >
-    </div >
+      </div>
+    </div>
   );
 }
