@@ -5,7 +5,7 @@ import {
   fetchGalleryBySlug,
   formatGalleryData,
   fetchDrivePhotos,
-} from '@/lib/gallery-logic';
+} from '@/lib/gallery/gallery-logic';
 import { GaleriaView, PasswordPrompt } from '@/components/gallery';
 
 export default async function UsernameGaleriaPage({

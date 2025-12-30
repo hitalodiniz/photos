@@ -23,10 +23,15 @@ export default function DynamicHeroBackground() {
   const [isLoaded, setIsLoaded] = useState(false);
 
   useEffect(() => {
-    // Sorteio síncrono para evitar frames em branco
+    // 1. O sorteio acontece apenas no Cliente para evitar erro de hidratação
     const randomIndex = Math.floor(Math.random() * heroImages.length);
-    setBgImage(heroImages[randomIndex]);
-  }, []);
+
+    // 2. Usamos requestAnimationFrame para "quebrar" a sincronia.
+    // Isso avisa ao React: "Termine o primeiro render e, no próximo frame, troque a imagem".
+    requestAnimationFrame(() => {
+      setBgImage(heroImages[randomIndex]);
+    });
+  }, []); // Adicione heroImages como dependência se ele for externo
 
   return (
     <div className="fixed inset-0 z-0 bg-black">

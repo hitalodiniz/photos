@@ -1,12 +1,21 @@
 'use client';
-import React, { useState, useEffect } from 'react';
 import { GoogleSignInButton } from '@/components/auth';
-import { EditorialHeader, DynamicHeroBackground, Footer } from '@/components/layout';
-import { Zap, Smartphone, Camera, CloudUpload, Infinity, Cloud } from 'lucide-react';
+import {
+  EditorialHeader,
+  DynamicHeroBackground,
+  Footer,
+} from '@/components/layout';
+import {
+  Zap,
+  Smartphone,
+  Camera,
+  CloudUpload,
+  Infinity,
+  Cloud,
+} from 'lucide-react';
 import { FeatureItem } from '@/components/ui';
 
 export default function LandingPageContent() {
-
   return (
     <div className="relative min-h-screen w-full flex flex-col overflow-hidden bg-[#000]">
       {/* BACKGROUND FIXO - Gradiente padronizado */}
@@ -16,15 +25,21 @@ export default function LandingPageContent() {
       <div className="relative z-10 flex flex-col min-h-screen">
         <EditorialHeader
           title="Sua Galeria de Fotos"
-          subtitle={<>Transformando o Google Drive™ em uma <span className="font-bold border-b-2 border-[#34A853] text-white">Galeria Profissional</span></>}
+          subtitle={
+            <>
+              Transformando o Google Drive™ em uma{' '}
+              <span className="font-bold border-b-2 border-[#34A853] text-white">
+                Galeria Profissional
+              </span>
+            </>
+          }
           showBackButton={false}
         />
-          <div className="flex flex-col items-center justify-center w-full pt-6 pb-0 md:pt-10 transition-transform hover:scale-105">
-            
+        <div className="flex flex-col items-center justify-center w-full pt-6 pb-0 md:pt-10 transition-transform hover:scale-105">
           <GoogleSignInButton />
         </div>
         {/* SEÇÃO DE FEATURES - flex-grow centraliza a section entre o header e footer */}
-        <main className="flex-grow flex items-center justify-center px-6 py-4 md:px-4 md:py-8">        
+        <main className="flex-grow flex items-center justify-center px-6 py-4 md:px-4 md:py-8">
           <section className="w-full max-w-[92%] sm:max-w-5xl mx-auto bg-white/90 rounded-[2.5rem] md:rounded-[4rem] p-6 md:p-10 shadow-2xl border border-white/50">
             {/* Simetria lateral: justify-items-center e px equilibrado */}
             <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-y-6 md:gap-y-8 gap-x-6 md:gap-x-12 lg:gap-x-20 justify-items-center">
@@ -68,4 +83,3 @@ export default function LandingPageContent() {
     </div>
   );
 }
-

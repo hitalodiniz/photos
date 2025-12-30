@@ -3,9 +3,10 @@
 import { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
 import { supabase } from '@/lib/supabase.client';
+import { Session } from '@supabase/supabase-js';
 
 interface AuthStatus {
-  session: any;
+  session: Session;
   loading: boolean;
   handleLogout: () => void;
 }
@@ -13,7 +14,7 @@ interface AuthStatus {
 const DESTINATION_PATH = '/dashboard';
 
 export default function useAuthStatus(): AuthStatus {
-  const [session, setSession] = useState<any>(null);
+  const [session, setSession] = useState<Session>(null);
   const [loading, setLoading] = useState(true);
   const router = useRouter();
 
@@ -26,24 +27,24 @@ export default function useAuthStatus(): AuthStatus {
     let initialLoad = true;
 
     // Listener de mudanças de autenticação
-    const { data: { subscription } } = supabase.auth.onAuthStateChange(
-      (event, newSession) => {
-        setSession(newSession);
+    const {
+      data: { subscription },
+    } = supabase.auth.onAuthStateChange((event, newSession) => {
+      setSession(newSession);
 
-        const currentPath = window.location.pathname;
+      const currentPath = window.location.pathname;
 
-        if (
-          event === 'SIGNED_OUT' &&
-          (currentPath === DESTINATION_PATH || currentPath === '/onboarding')
-        ) {
-          router.replace('/');
-        }
-
-        if (!initialLoad) {
-          setLoading(false);
-        }
+      if (
+        event === 'SIGNED_OUT' &&
+        (currentPath === DESTINATION_PATH || currentPath === '/onboarding')
+      ) {
+        router.replace('/');
       }
-    );
+
+      if (!initialLoad) {
+        setLoading(false);
+      }
+    });
 
     // Carrega sessão inicial
     supabase.auth.getSession().then(({ data: { session } }) => {

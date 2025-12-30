@@ -3,7 +3,7 @@
 import useAuthStatus from '@/hooks/useAuthStatus';
 import { supabase } from '@/lib/supabase.client';
 import { useRouter } from 'next/navigation';
-import { useEffect, useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 
 interface Profile {
   full_name: string | null;
@@ -15,7 +15,7 @@ export default function AppClientGuard() {
   const { session, loading: authLoading } = useAuthStatus();
   const [profileLoading, setProfileLoading] = useState(true);
   const router = useRouter();
-  const [cookieSyncing, setCookieSyncing] = useState(false);
+  /*const [cookieSyncing, setCookieSyncing] = useState(false);
 
   // 1. Força sincronização do cookie HTTP
   useEffect(() => {
@@ -31,7 +31,28 @@ export default function AppClientGuard() {
         .catch((e) => console.error('Falha ao sincronizar cookie:', e))
         .finally(() => setCookieSyncing(false));
     }
-  }, [session, cookieSyncing]);
+  }, [session, cookieSyncing]);*/
+
+  // 1. Troque o useState por useRef para a trava de controle
+  const isSyncingRef = useRef(false);
+
+  useEffect(() => {
+    const hasTokenInStorage = !!localStorage.getItem(
+      'sb-bdgqiyvasucvhihaueuk-auth-token',
+    );
+
+    // 2. Verificamos a Ref em vez do estado
+    if (session && hasTokenInStorage && !isSyncingRef.current) {
+      isSyncingRef.current = true;
+
+      supabase.auth
+        .refreshSession()
+        .catch((e) => console.error('Falha ao sincronizar cookie:', e))
+        .finally(() => {
+          isSyncingRef.current = false;
+        });
+    }
+  }, [session]); // 3. Removemos o cookieSyncing daqui. O efeito só roda se a sessão mudar.
 
   // 2. Busca o perfil e redireciona
   useEffect(() => {

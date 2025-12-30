@@ -1,8 +1,8 @@
 // components/DashboardUI/ConfirmationModal.tsx
-"use client";
+'use client';
 
-import { motion, AnimatePresence } from "framer-motion";
-import type { Galeria } from "@/app/dashboard/ClientAdminWrapper/types";
+import { motion, AnimatePresence } from 'framer-motion';
+import type { Galeria } from '@/app/(dashboard)/dashboard/ClientAdminWrapper/types';
 
 interface ConfirmationModalProps {
   galeria: Galeria | null;
@@ -39,7 +39,7 @@ export default function ConfirmationModal({
             </h2>
 
             <p className="mb-4 text-sm text-gray-700">
-              Tem certeza que deseja excluir a galeria{" "}
+              Tem certeza que deseja excluir a galeria{' '}
               <span className="font-semibold">{galeria.title}</span>? Essa ação
               não pode ser desfeita.
             </p>

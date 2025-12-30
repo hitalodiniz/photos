@@ -1,7 +1,7 @@
 'use client';
 import React, { useState, useEffect } from 'react';
 import Masonry from 'react-masonry-css';
-import { Lightbox, PhotographerAvatar } from '@/components/gallery';
+import { Lightbox } from '@/components/gallery';
 import {
   Lock,
   Globe,
@@ -19,6 +19,7 @@ import {
 } from 'lucide-react';
 import { saveAs } from 'file-saver';
 import JSZip from 'jszip';
+import Image from 'next/image';
 
 // Sub-componente otimizado para evitar o "piscar"
 const GridImage = ({
@@ -35,7 +36,11 @@ const GridImage = ({
 
   useEffect(() => {
     if (imgRef.current?.complete) {
-      setIsLoaded(true);
+      // O requestAnimationFrame joga a atualização para o próximo frame,
+      // evitando o "cascading render" síncrono que o linter condena.
+      requestAnimationFrame(() => {
+        setIsLoaded(true);
+      });
     }
   }, []);
 
@@ -43,16 +48,18 @@ const GridImage = ({
     <div
       className={`relative w-full h-auto overflow-hidden rounded-2xl transition-colors duration-300 ${isLoaded ? 'bg-transparent' : 'bg-[#FFF9F0]'}`}
     >
-      <img
-        ref={imgRef}
+      <Image
         src={src}
         alt={alt}
+        // O Next.js não precisa do ref para o onLoad funcionar
         onLoad={() => setIsLoaded(true)}
+        // Next.js Image usa 'priority' booleano em vez de loading='eager'
+        priority={priority}
+        fill
         className={`
-          w-full h-auto object-cover rounded-2xl transition-all duration-300 ease-out
-          ${isLoaded ? 'blur-0 scale-100' : 'blur-md scale-105 opacity-30'}
-        `}
-        loading={priority ? 'eager' : 'lazy'}
+      w-full h-auto object-cover transition-all duration-700 ease-out
+      ${isLoaded ? 'blur-0 scale-100 opacity-100' : 'blur-md scale-105 opacity-30'}
+    `}
       />
     </div>
   );
@@ -69,7 +76,7 @@ export default function PhotoGrid({ photos, galeria }: any) {
 
   // --- ESTADOS DE DOWNLOAD SEPARADOS ---
   const [isDownloading, setIsDownloading] = useState(false);
-  const [downloadProgress, setDownloadProgress] = useState(0);
+  const [setDownloadProgress] = useState(0);
   const [isDownloadingFavs, setIsDownloadingFavs] = useState(false);
   const [favDownloadProgress, setFavDownloadProgress] = useState(0);
 
