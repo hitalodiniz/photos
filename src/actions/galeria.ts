@@ -10,6 +10,7 @@ import {
   createSupabaseServerClientReadOnly,
 } from '@/lib/supabase.server';
 import {
+  DrivePhoto,
   listPhotosFromDriveFolder,
   makeFolderPublic as makeFolderPublicLib,
 } from '@/lib/google-drive';
@@ -83,8 +84,9 @@ const ACCESS_COOKIE_KEY = 'galeria_access_';
 /**
  * Obtém o ID do usuário logado (fotógrafo) e o studio_id associado.
  */
-async function getAuthAndStudioIds(): Promise<AuthContext> {
-  const supabase = await createSupabaseServerClientReadOnly();
+async function getAuthAndStudioIds(supabaseClient?: any): Promise<AuthContext> {
+  const supabase =
+    supabaseClient || (await createSupabaseServerClientReadOnly());
 
   const {
     data: { user },
@@ -131,12 +133,13 @@ async function getAuthAndStudioIds(): Promise<AuthContext> {
  * Gera um slug único no formato AAAA/MM/DD/titulo-galeria
  * Se estiver editando, passa o currentId para não conflitar com o próprio registro.
  */
-async function generateUniqueDatedSlug(
+export async function generateUniqueDatedSlug(
   title: string,
   dateStr: string,
   currentId?: string,
+  supabaseClient?: any,
 ): Promise<string> {
-  const supabase = await createSupabaseServerClient();
+  const supabase = supabaseClient || (await createSupabaseServerClient());
 
   // 1. Obter usuário autenticado
   const {
@@ -200,13 +203,16 @@ async function generateUniqueDatedSlug(
 // 3. CREATE GALERIA
 // =========================================================================
 
-export async function createGaleria(formData: FormData): Promise<ActionResult> {
+export async function createGaleria(
+  formData: FormData,
+  supabaseClient?: any,
+): Promise<ActionResult> {
   const {
     success,
     userId,
     studioId,
     error: authError,
-  } = await getAuthAndStudioIds();
+  } = await getAuthAndStudioIds(supabaseClient);
 
   if (!success || !userId || !studioId) {
     return { success: false, error: authError || 'Não autenticado.' };
@@ -237,10 +243,15 @@ export async function createGaleria(formData: FormData): Promise<ActionResult> {
     }
   }
 
-  const slug = await generateUniqueDatedSlug(title, dateStr);
+  const slug = await generateUniqueDatedSlug(
+    title,
+    dateStr,
+    undefined,
+    supabaseClient,
+  );
 
   try {
-    const supabase = await createSupabaseServerClient();
+    const supabase = supabaseClient || (await createSupabaseServerClient());
     const isPublic = formData.get('is_public') === 'true';
 
     const { error } = await supabase.from('tb_galerias').insert({
@@ -285,12 +296,14 @@ export async function createGaleria(formData: FormData): Promise<ActionResult> {
 export async function updateGaleria(
   id: string,
   formData: FormData,
+  supabaseClient?: any,
 ): Promise<ActionResult> {
-  const { success: authSuccess, userId } = await getAuthAndStudioIds();
+  const supabase = supabaseClient || (await createSupabaseServerClient());
+  const { success: authSuccess, userId } = await getAuthAndStudioIds(supabase);
+
   if (!authSuccess || !userId)
     return { success: false, error: 'Não autorizado' };
 
-  // --- CORREÇÃO DE NOMENCLATURA ---
   // Capturando conforme os nomes definidos no Modal (data.set)
   const title = formData.get('title') as string;
   const driveFolderId = formData.get('drive_folder_id') as string; // era driveFolderId
@@ -359,13 +372,14 @@ export async function updateGaleria(
 // 5. GET GALERIAS (Apenas do usuário logado)
 // =========================================================================
 
-export async function getGalerias(): Promise<ActionResult<GaleriaWithCover[]>> {
+export async function getGalerias(
+  supabaseClient?: any,
+): Promise<ActionResult<GaleriaWithCover[]>> {
   const {
     success,
     userId,
-    studioId,
     error: authError,
-  } = await getAuthAndStudioIds();
+  } = await getAuthAndStudioIds(supabaseClient);
 
   if (!success || !userId) {
     return {
@@ -376,8 +390,7 @@ export async function getGalerias(): Promise<ActionResult<GaleriaWithCover[]>> {
   }
 
   try {
-    const supabase = await createSupabaseServerClient();
-
+    const supabase = supabaseClient || (await createSupabaseServerClient());
     const { data, error } = await supabase
       .from('tb_galerias')
       .select(
@@ -414,11 +427,18 @@ export async function getGalerias(): Promise<ActionResult<GaleriaWithCover[]>> {
 // =========================================================================
 // 6. DELETE GALERIA
 // =========================================================================
-export async function deleteGaleria(id: string): Promise<ActionResult> {
+export async function deleteGaleria(
+  id: string,
+  supabaseClient?: any,
+): Promise<ActionResult> {
   try {
-    const supabase = await createSupabaseServerClient();
-
-    const { error } = await supabase.from('tb_galerias').delete().eq('id', id);
+    const supabase = supabaseClient || (await createSupabaseServerClient());
+    const { userId } = await getAuthAndStudioIds(supabase);
+    const { error } = await supabase
+      .from('tb_galerias')
+      .delete()
+      .eq('id', id)
+      .eq('user_id', userId);
 
     if (error) throw error;
 
