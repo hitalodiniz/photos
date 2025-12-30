@@ -1,7 +1,7 @@
-"use client";
+'use client';
 
-import { authenticateGaleriaAccess } from "@/actions/galeria";
-import React, { useState, useEffect } from 'react';
+import { authenticateGaleriaAccess } from '@/actions/galeria';
+import React, { useState } from 'react';
 import { Camera, Lock } from 'lucide-react';
 import { DynamicHeroBackground } from '@/components/layout';
 
@@ -14,28 +14,29 @@ export default function PasswordPrompt({
   galeriaId: string;
   fullSlug: string;
 }) {
-  const [password, setPassword] = useState("");
-  const [error, setError] = useState("");
+  const [password, setPassword] = useState('');
+  const [error, setError] = useState('');
   const [isChecking, setIsChecking] = useState(false);
-  const [bgImage, setBgImage] = useState('');
-
-
 
   const handleCheckPassword = async (e: React.FormEvent) => {
     e.preventDefault();
-    setError("");
+    setError('');
     if (password.length < 4) {
-      setError("Mínimo de 4 dígitos.");
+      setError('Mínimo de 4 dígitos.');
       return;
     }
     setIsChecking(true);
     try {
-      const result = await authenticateGaleriaAccess(galeriaId, fullSlug, password);
+      const result = await authenticateGaleriaAccess(
+        galeriaId,
+        fullSlug,
+        password,
+      );
       if (result && !result.success) {
-        setError(result.error || "Senha incorreta.");
+        setError(result.error || 'Senha incorreta.');
       }
     } catch (e) {
-      //setError("Erro de conexão.");
+      setError('Erro de conexão.', e);
     }
     setIsChecking(false);
   };
@@ -47,7 +48,6 @@ export default function PasswordPrompt({
       {/* CARD DE ACESSO (ESTILO BARRA CHAMPANHE DO PHOTO GRID) */}
       <div className="relative z-10 w-full max-w-md">
         <div className="bg-black/45 backdrop-blur-lg rounded-[2.5rem] p-8 md:p-12 border border-white/10 shadow-2xl text-center">
-
           {/* ÍCONE DE CÂMERA CHAMPANHE */}
           <div className="mx-auto w-16 h-16 bg-white/5 rounded-full flex items-center justify-center mb-6 border border-white/10 shadow-[0_0_15px_rgba(243,229,171,0.1)]">
             <Camera className="text-[#F3E5AB] w-8 h-8 drop-shadow-[0_0_8px_rgba(243,229,171,0.4)]" />
@@ -62,17 +62,17 @@ export default function PasswordPrompt({
           </h1>
 
           <form onSubmit={handleCheckPassword} className="space-y-8">
-
             {/* ESTRUTURA LABEL + INPUT */}
             <div className="text-left">
-
               <input
                 type="password"
                 inputMode="numeric"
                 pattern="[0-9]*"
                 placeholder="Inserir senha"
                 value={password}
-                onChange={(e) => setPassword(e.target.value.replace(/\D/g, "").slice(0, 8))}
+                onChange={(e) =>
+                  setPassword(e.target.value.replace(/\D/g, '').slice(0, 8))
+                }
                 maxLength={8}
                 required
                 className="w-full rounded-2xl border 

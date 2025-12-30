@@ -1,30 +1,23 @@
-"use server";
+'use server';
 
-import { cookies } from "next/headers";
-import { redirect } from "next/navigation";
-import slugify from "slugify";
-import { revalidatePath } from "next/cache";
+import { cookies } from 'next/headers';
+import { redirect } from 'next/navigation';
+import slugify from 'slugify';
+import { revalidatePath } from 'next/cache';
 
 import {
   createSupabaseServerClient,
   createSupabaseServerClientReadOnly,
-} from "@/lib/supabase.server";
+} from '@/lib/supabase.server';
 import {
   listPhotosFromDriveFolder,
   makeFolderPublic as makeFolderPublicLib,
-} from "@/lib/google-drive";
-import { getDriveAccessTokenForUser } from "@/lib/google-auth";
+} from '@/lib/google-drive';
+import { getDriveAccessTokenForUser } from '@/lib/google-auth';
 
 // =========================================================================
 // TIPOS AUXILIARES
 // =========================================================================
-
-interface ActionResult<T = unknown> {
-  success: boolean;
-  data?: T;
-  error?: string;
-  message?: string;
-}
 
 interface AuthContext {
   success: boolean;
@@ -32,34 +25,28 @@ interface AuthContext {
   studioId: string | null;
   error?: string;
 }
-
-interface GaleriaInputCreate {
-  clientName: string;
-  clientWhatsapp?: string;
-  title: string;
-  date: string; // string de formulário, ex: "2025-12-30"
-  location?: string;
-  driveFolderId: string;
-  coverFileId: string;
-  isPublic: boolean;
-  password?: string | null;
-  category: string; // ex: "esporte", "casamento"
-  has_contracting_client: boolean; // define se há um cliente pagador
+interface ActionResult<T = unknown> {
+  success: boolean;
+  data?: T;
+  error?: string;
+  message?: string;
 }
 
-interface GaleriaInputUpdate {
-  title: string;
-  date: string;
+// Interface para o objeto de atualização (Evita o erro de 'any')
+interface GaleriaUpdatePayload {
+  title?: string;
+  client_name?: string;
+  client_whatsapp?: string | null;
+  date?: string;
   location?: string;
-  driveFolderId: string;
-  clientName: string;
-  clientWhatsapp?: string;
-  isPublic: boolean | string;
+  drive_folder_id?: string;
+  drive_folder_name?: string;
+  cover_image_url?: string;
+  is_public?: boolean;
+  category?: string;
+  has_contracting_client?: boolean;
   password?: string | null;
-  category?: string | null;
-  has_contracting_client?: boolean | null;
 }
-
 interface GaleriaRecord {
   id: string;
   user_id: string;
@@ -87,7 +74,7 @@ interface GaleriaWithCover extends GaleriaRecord {
 }
 
 // Se você tiver uma constante para o nome do cookie de acesso:
-const ACCESS_COOKIE_KEY = "galeria_access_";
+const ACCESS_COOKIE_KEY = 'galeria_access_';
 
 // =========================================================================
 // 1. AUTENTICAÇÃO E CONTEXTO (userId + studioId)
@@ -109,23 +96,23 @@ async function getAuthAndStudioIds(): Promise<AuthContext> {
       success: false,
       userId: null,
       studioId: null,
-      error: "Usuário não autenticado.",
+      error: 'Usuário não autenticado.',
     };
   }
 
   const { data: profile, error: profileError } = await supabase
-    .from("tb_profiles")
-    .select("studio_id")
-    .eq("id", user.id)
+    .from('tb_profiles')
+    .select('studio_id')
+    .eq('id', user.id)
     .single();
 
   if (profileError || !profile) {
-    console.error("Erro ao buscar profile do usuário logado:", profileError);
+    console.error('Erro ao buscar profile do usuário logado:', profileError);
     return {
       success: false,
       userId: null,
       studioId: null,
-      error: "Profile do usuário não encontrado ou incompleto.",
+      error: 'Profile do usuário não encontrado ou incompleto.',
     };
   }
 
@@ -147,7 +134,7 @@ async function getAuthAndStudioIds(): Promise<AuthContext> {
 async function generateUniqueDatedSlug(
   title: string,
   dateStr: string,
-  currentId?: string
+  currentId?: string,
 ): Promise<string> {
   const supabase = await createSupabaseServerClient();
 
@@ -157,44 +144,44 @@ async function generateUniqueDatedSlug(
   } = await supabase.auth.getUser();
 
   if (!user) {
-    throw new Error("Usuário não autenticado ao gerar slug.");
+    throw new Error('Usuário não autenticado ao gerar slug.');
   }
 
   // 2. Buscar username e se usa subdomínio
   const { data: profile, error: profileError } = await supabase
-    .from("tb_profiles")
-    .select("username, use_subdomain")
-    .eq("id", user.id)
+    .from('tb_profiles')
+    .select('username, use_subdomain')
+    .eq('id', user.id)
     .single();
 
   if (profileError || !profile) {
-    throw new Error("Não foi possível carregar o profile do usuário.");
+    throw new Error('Não foi possível carregar o profile do usuário.');
   }
 
   const username = profile.username;
   const usesSubdomain = profile.use_subdomain === true;
 
   // 3. Montar partes do slug
-  const safeTitle = slugify(title, { lower: true, strict: true, locale: "pt" });
-  const datePart = dateStr.substring(0, 10).replace(/-/g, "/");
+  const safeTitle = slugify(title, { lower: true, strict: true, locale: 'pt' });
+  const datePart = dateStr.substring(0, 10).replace(/-/g, '/');
 
   // 4. Se NÃO usa subdomínio → incluir username
-  const prefix = usesSubdomain ? "" : `${username}/`;
+  const prefix = usesSubdomain ? '' : `${username}/`;
 
-  let baseSlug = `${prefix}${datePart}/${safeTitle}`;
+  const baseSlug = `${prefix}${datePart}/${safeTitle}`;
   let uniqueSlug = baseSlug;
   let suffix = 0;
 
   // 5. Garantir unicidade
   while (true) {
     const { data: existing, error } = await supabase
-      .from("tb_galerias")
-      .select("id")
-      .eq("slug", uniqueSlug)
+      .from('tb_galerias')
+      .select('id')
+      .eq('slug', uniqueSlug)
       .maybeSingle();
 
     if (error) {
-      console.error("Erro ao verificar slug existente:", error);
+      console.error('Erro ao verificar slug existente:', error);
       break;
     }
 
@@ -210,7 +197,7 @@ async function generateUniqueDatedSlug(
 }
 
 // =========================================================================
-// 3. CREATE GALERIA - CORRIGIDO
+// 3. CREATE GALERIA
 // =========================================================================
 
 export async function createGaleria(formData: FormData): Promise<ActionResult> {
@@ -222,69 +209,31 @@ export async function createGaleria(formData: FormData): Promise<ActionResult> {
   } = await getAuthAndStudioIds();
 
   if (!success || !userId || !studioId) {
+    return { success: false, error: authError || 'Não autenticado.' };
+  }
+
+  // Extração segura dos dados
+  const title = String(formData.get('title') || '');
+  const driveFolderId = String(formData.get('drive_folder_id') || '');
+  const dateStr = String(formData.get('date') || '');
+
+  if (!title || !driveFolderId || !dateStr) {
     return {
       success: false,
-      error: authError || "Usuário não autenticado ou profile incompleto.",
+      error: 'Título, Data e Pasta do Drive são obrigatórios.',
     };
   }
 
-  revalidatePath("/dashboard");
-
-  // ALINHAMENTO DE CHAVES: Devem ser idênticas ao que o frontend envia no .set() ou .append()
-  const clientName = (formData.get("clientName") as string) || "";
-  const clientWhatsapp = (formData.get("client_whatsapp") as string) || ""; // Ajustado
-  const title = (formData.get("title") as string) || "";
-  const dateStr = (formData.get("date") as string) || "";
-  const location = (formData.get("location") as string) || "";
-  const category = (formData.get("category") as string) || "";
-  const hasContractingClient =
-    (formData.get("has_contracting_client") as string) === "true";
-
-  // Pegando os nomes corretos definidos no handleSubmit do componente
-  const driveFolderId = (formData.get("drive_folder_id") as string) || "";
-  const driveFolderName = (formData.get("drive_folder_name") as string) || "";
-  const coverFileId = (formData.get("cover_image_url") as string) || ""; // Ajustado
-
-  const isPublicString = (formData.get("is_public") as string) || "true"; // Ajustado
-  const isPublic = isPublicString === "true";
-  const password = (formData.get("password") as string) || "";
-
-  // Validação dos campos obrigatórios
-  if (!title || !driveFolderId || !clientName || !dateStr) {
-    return {
-      success: false,
-      error:
-        "Preencha todos os campos obrigatórios, incluindo a pasta do Drive.",
-    };
-  }
-
-  // GARANTIR PERMISSÃO NO DRIVE ANTES DE SALVAR
+  // 1. Tentar tornar a pasta pública no Google Drive
   const accessToken = await getDriveAccessTokenForUser(userId);
-
   if (accessToken) {
     try {
-      // Chama a função da LIB (importada no topo)
       await makeFolderPublicLib(driveFolderId, accessToken);
-    } catch (error: any) {
-      console.error("Aviso de Permissão:", error.message);
-
-      // Se for erro de permissão (403), não travamos o salvamento,
-      // mas avisamos que o fotógrafo terá que fazer manual
-      if (
-        error.message.includes("403") ||
-        error.message.includes("insufficientPermissions")
-      ) {
-        console.warn(
-          "Aviso: Escopo insuficiente para tornar pública automaticamente."
-        );
-        // Opcional: Você pode retornar um warning aqui se sua interface suportar
-      } else {
-        // Se for outro erro grave, podemos interromper
-        return {
-          success: false,
-          error: `Erro no Google Drive: ${error.message}`,
-        };
-      }
+    } catch (error: unknown) {
+      const errorMsg =
+        error instanceof Error ? error.message : 'Erro desconhecido';
+      console.warn('Google Drive Permission Warning:', errorMsg);
+      // Não interrompemos o fluxo, apenas logamos.
     }
   }
 
@@ -292,32 +241,40 @@ export async function createGaleria(formData: FormData): Promise<ActionResult> {
 
   try {
     const supabase = await createSupabaseServerClient();
+    const isPublic = formData.get('is_public') === 'true';
 
-    const { error } = await supabase.from("tb_galerias").insert({
+    const { error } = await supabase.from('tb_galerias').insert({
       user_id: userId,
       studio_id: studioId,
       title,
       slug,
       date: new Date(dateStr).toISOString(),
-      location,
+      location: String(formData.get('location') || ''),
       drive_folder_id: driveFolderId,
-      drive_folder_name: driveFolderName,
-      client_name: clientName,
-      client_whatsapp: clientWhatsapp.replace(/\D/g, "") || null,
+      drive_folder_name: String(formData.get('drive_folder_name') || ''),
+      client_name: String(formData.get('clientName') || ''),
+      client_whatsapp:
+        String(formData.get('client_whatsapp') || '').replace(/\D/g, '') ||
+        null,
       is_public: isPublic,
-      password: isPublic ? null : password || null,
-      cover_image_url: coverFileId,
-      category,
-      has_contracting_client: hasContractingClient,
+      password: isPublic
+        ? null
+        : String(formData.get('password') || '') || null,
+      cover_image_url: String(formData.get('cover_image_url') || ''),
+      category: String(formData.get('category') || 'esporte'),
+      has_contracting_client: formData.get('has_contracting_client') === 'true',
     });
 
     if (error) throw error;
 
-    revalidatePath("/dashboard");
-    return { success: true, message: "Galeria criada com sucesso!" };
+    revalidatePath('/dashboard');
+    return { success: true, message: 'Galeria criada com sucesso!' };
   } catch (err) {
-    console.error("Erro real ao salvar no banco:", err);
-    return { success: false, error: "Falha ao salvar a nova galeria." };
+    console.error('Erro ao salvar galeria:', err);
+    return {
+      success: false,
+      error: 'Erro interno ao salvar no banco de dados.',
+    };
   }
 }
 
@@ -327,22 +284,22 @@ export async function createGaleria(formData: FormData): Promise<ActionResult> {
 
 export async function updateGaleria(
   id: string,
-  formData: FormData
+  formData: FormData,
 ): Promise<ActionResult> {
   const { success: authSuccess, userId } = await getAuthAndStudioIds();
   if (!authSuccess || !userId)
-    return { success: false, error: "Não autorizado" };
+    return { success: false, error: 'Não autorizado' };
 
   // --- CORREÇÃO DE NOMENCLATURA ---
   // Capturando conforme os nomes definidos no Modal (data.set)
-  const title = formData.get("title") as string;
-  const driveFolderId = formData.get("drive_folder_id") as string; // era driveFolderId
-  const clientName = formData.get("clientName") as string;
+  const title = formData.get('title') as string;
+  const driveFolderId = formData.get('drive_folder_id') as string; // era driveFolderId
+  const clientName = formData.get('clientName') as string;
 
   // Log para debug caso falte algo
   if (!title || !driveFolderId || !clientName) {
-    console.log("Validação falhou:", { title, driveFolderId, clientName });
-    return { success: false, error: "Campos obrigatórios ausentes." };
+    console.log('Validação falhou:', { title, driveFolderId, clientName });
+    return { success: false, error: 'Campos obrigatórios ausentes.' };
   }
 
   try {
@@ -354,7 +311,7 @@ export async function updateGaleria(
       try {
         await makeFolderPublicLib(driveFolderId, accessToken);
       } catch (e) {
-        console.warn("Aviso: Falha ao atualizar permissões da pasta no Drive.");
+        console.warn('Aviso: Falha ao atualizar permissões da pasta no Drive.');
       }
     }
 
@@ -363,39 +320,39 @@ export async function updateGaleria(
       title,
       client_name: clientName,
       client_whatsapp:
-        (formData.get("client_whatsapp") as string)?.replace(/\D/g, "") || null,
-      date: new Date(formData.get("date") as string).toISOString(),
-      location: formData.get("location") as string,
+        (formData.get('client_whatsapp') as string)?.replace(/\D/g, '') || null,
+      date: new Date(formData.get('date') as string).toISOString(),
+      location: formData.get('location') as string,
       drive_folder_id: driveFolderId,
-      drive_folder_name: formData.get("drive_folder_name") as string, // era driveFolderName
-      cover_image_url: formData.get("cover_image_url") as string, // era coverFileId
-      is_public: formData.get("is_public") === "true", // era isPublic
-      category: (formData.get("category") as string) || "esporte",
-      has_contracting_client: formData.get("has_contracting_client") as string,
+      drive_folder_name: formData.get('drive_folder_name') as string, // era driveFolderName
+      cover_image_url: formData.get('cover_image_url') as string, // era coverFileId
+      is_public: formData.get('is_public') === 'true', // era isPublic
+      category: (formData.get('category') as string) || 'esporte',
+      has_contracting_client: formData.get('has_contracting_client') as string,
     };
 
     // Lógica da senha: só atualiza se for enviado algo no campo password
-    const newPassword = formData.get("password") as string;
-    if (formData.get("is_public") === "true") {
+    const newPassword = formData.get('password') as string;
+    if (formData.get('is_public') === 'true') {
       (updates as any).password = null;
-    } else if (newPassword && newPassword.trim() !== "") {
+    } else if (newPassword && newPassword.trim() !== '') {
       (updates as any).password = newPassword;
     }
     // Se is_public for false e password for nulo/vazio, o Supabase mantém a senha antiga
     // porque não incluímos o campo 'password' no objeto 'updates'.
 
     const { error } = await supabase
-      .from("tb_galerias")
+      .from('tb_galerias')
       .update(updates)
-      .eq("id", id);
+      .eq('id', id);
 
     if (error) throw error;
 
-    revalidatePath("/dashboard");
-    return { success: true, message: "Galeria atualizada com sucesso!" };
+    revalidatePath('/dashboard');
+    return { success: true, message: 'Galeria atualizada com sucesso!' };
   } catch (error) {
-    console.error("Erro no update:", error);
-    return { success: false, error: "Falha ao atualizar a galeria." };
+    console.error('Erro no update:', error);
+    return { success: false, error: 'Falha ao atualizar a galeria.' };
   }
 }
 // =========================================================================
@@ -413,7 +370,7 @@ export async function getGalerias(): Promise<ActionResult<GaleriaWithCover[]>> {
   if (!success || !userId) {
     return {
       success: false,
-      error: authError || "Usuário não autenticado.",
+      error: authError || 'Usuário não autenticado.',
       data: [],
     };
   }
@@ -422,17 +379,17 @@ export async function getGalerias(): Promise<ActionResult<GaleriaWithCover[]>> {
     const supabase = await createSupabaseServerClient();
 
     const { data, error } = await supabase
-      .from("tb_galerias")
+      .from('tb_galerias')
       .select(
         `
           *,
           tb_profiles!tb_galerias_user_id_fkey(username)
-        `
+        `,
       )
-      .eq("user_id", userId)
+      .eq('user_id', userId)
       // Se quiser multi-tenant real:
       // .eq("studio_id", studioId)
-      .order("date", { ascending: false });
+      .order('date', { ascending: false });
 
     if (error) throw error;
 
@@ -445,10 +402,10 @@ export async function getGalerias(): Promise<ActionResult<GaleriaWithCover[]>> {
 
     return { success: true, data: galeriasWithCovers };
   } catch (err) {
-    console.error("Erro ao buscar galerias:", err);
+    console.error('Erro ao buscar galerias:', err);
     return {
       success: false,
-      error: "Falha ao buscar galerias.",
+      error: 'Falha ao buscar galerias.',
       data: [],
     };
   }
@@ -461,20 +418,20 @@ export async function deleteGaleria(id: string): Promise<ActionResult> {
   try {
     const supabase = await createSupabaseServerClient();
 
-    const { error } = await supabase.from("tb_galerias").delete().eq("id", id);
+    const { error } = await supabase.from('tb_galerias').delete().eq('id', id);
 
     if (error) throw error;
 
     // Atualiza o cache do servidor para a rota do dashboard
-    revalidatePath("/dashboard");
+    revalidatePath('/dashboard');
 
     return {
       success: true,
-      message: "Galeria movida para a lixeira com sucesso!",
+      message: 'Galeria movida para a lixeira com sucesso!',
     };
   } catch (err) {
-    console.error("Erro ao deletar galeria:", err);
-    return { success: false, error: "Não foi possível excluir a galeria." };
+    console.error('Erro ao deletar galeria:', err);
+    return { success: false, error: 'Não foi possível excluir a galeria.' };
   }
 }
 // =========================================================================
@@ -484,35 +441,35 @@ export async function deleteGaleria(id: string): Promise<ActionResult> {
 export async function authenticateGaleriaAccess(
   galeriaId: string,
   fullSlug: string,
-  password: string
+  password: string,
 ) {
   const supabase = await createSupabaseServerClientReadOnly();
 
   // 1. Busca a galeria para validar a senha
   const { data: galeria, error } = await supabase
-    .from("tb_galerias")
-    .select("password")
-    .eq("id", galeriaId)
+    .from('tb_galerias')
+    .select('password')
+    .eq('id', galeriaId)
     .single();
 
   if (error || !galeria) {
-    return { success: false, error: "Galeria não encontrada." };
+    return { success: false, error: 'Galeria não encontrada.' };
   }
 
   // 2. Valida a senha
   if (galeria.password !== password) {
-    return { success: false, error: "Senha incorreta. Tente novamente." };
+    return { success: false, error: 'Senha incorreta. Tente novamente.' };
   }
 
   // 3. Define o Cookie de Acesso
   // O nome do cookie deve bater com o que a page.tsx procura: `galeria-${id}-auth`
   const cookieStore = await cookies();
   cookieStore.set(`galeria-${galeriaId}-auth`, password, {
-    path: "/",
+    path: '/',
     httpOnly: true,
-    secure: process.env.NODE_ENV === "production",
+    secure: process.env.NODE_ENV === 'production',
     maxAge: 60 * 60 * 24, // Acesso por 24 horas
-    sameSite: "lax",
+    sameSite: 'lax',
   });
 
   // 4. Redireciona para a mesma página para disparar o re-render do Servidor
@@ -532,7 +489,7 @@ export async function authenticateGaleriaAccess(
  * @returns A lista de fotos (DrivePhoto[]) ou um objeto de erro.
  */
 export async function getGaleriaPhotos(
-  galeriaId: string
+  galeriaId: string,
 ): Promise<ActionResult<DrivePhoto[]>> {
   // 1. AUTENTICAÇÃO E CONTEXTO
   const { success, userId, error: authError } = await getAuthAndStudioIds();
@@ -540,7 +497,7 @@ export async function getGaleriaPhotos(
   if (!success || !userId) {
     return {
       success: false,
-      error: authError || "Usuário não autenticado.",
+      error: authError || 'Usuário não autenticado.',
       data: [],
     };
   }
@@ -549,16 +506,16 @@ export async function getGaleriaPhotos(
 
   // 2. BUSCAR O ID DA PASTA DA GALERIA
   const { data: galeria, error: galeriaError } = await supabase
-    .from("tb_galerias")
-    .select("drive_folder_id")
-    .eq("id", galeriaId)
-    .eq("user_id", userId) // RLS: Garante que o usuário só acesse suas próprias galerias
+    .from('tb_galerias')
+    .select('drive_folder_id')
+    .eq('id', galeriaId)
+    .eq('user_id', userId) // RLS: Garante que o usuário só acesse suas próprias galerias
     .maybeSingle();
 
   if (galeriaError || !galeria || !galeria.drive_folder_id) {
     return {
       success: false,
-      error: "Galeria não encontrada ou pasta do Drive não definida.",
+      error: 'Galeria não encontrada ou pasta do Drive não definida.',
       data: [],
     };
   }
@@ -572,7 +529,7 @@ export async function getGaleriaPhotos(
   if (!accessToken) {
     return {
       success: false,
-      error: "Falha na integração Google Drive. Refaça o login/integração.",
+      error: 'Falha na integração Google Drive. Refaça o login/integração.',
       data: [],
     };
   }

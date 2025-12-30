@@ -1,7 +1,11 @@
 'use client';
-import { Camera, ArrowLeft, FileText, Globe, UserCheck, ShieldAlert } from 'lucide-react';
+import { FileText, Globe, UserCheck, ShieldAlert } from 'lucide-react';
 import { useRouter } from 'next/navigation';
-import { EditorialHeader, DynamicHeroBackground, Footer } from '@/components/layout';
+import {
+  EditorialHeader,
+  DynamicHeroBackground,
+  Footer,
+} from '@/components/layout';
 import { FeatureItem } from '@/components/ui';
 
 export default function TermosDeUsoPage() {
@@ -14,14 +18,22 @@ export default function TermosDeUsoPage() {
       <div className="relative z-10 flex flex-col min-h-screen">
         <EditorialHeader
           title="Termos de Uso"
-          subtitle={<>Regras e diretrizes para uma <span className="font-bold border-b-2 border-[#F3E5AB]/50 text-white">experiência profissional</span></>}
+          subtitle={
+            <>
+              Regras e diretrizes para uma{' '}
+              <span className="font-bold border-b-2 border-[#F3E5AB]/50 text-white">
+                experiência profissional
+              </span>
+            </>
+          }
         />
         {/* CONTEÚDO NO CONTAINER BRANCO PADRONIZADO */}
         <main className="flex-grow flex items-center justify-center py-10">
-          <section className="w-full max-w-5xl mx-auto bg-white/90 backdrop-blur-xl 
-          rounded-[3rem] md:rounded-[4rem] p-6 md:p-12 shadow-2xl border border-white/50">
+          <section
+            className="w-full max-w-5xl mx-auto bg-white/90 backdrop-blur-xl 
+          rounded-[3rem] md:rounded-[4rem] p-6 md:p-12 shadow-2xl border border-white/50"
+          >
             <div className="grid grid-cols-1 md:grid-cols-1 gap-y-6 px-2 md:px-6">
-
               <FeatureItem
                 icon={<UserCheck size={30} />}
                 title="Aceitação dos Termos"
@@ -45,7 +57,6 @@ export default function TermosDeUsoPage() {
                 title="Modificações no Serviço"
                 desc="Reservamos o direito de atualizar funcionalidades ou ajustar termos para refletir melhorias técnicas ou mudanças legais, sempre visando a estabilidade e segurança da sua galeria profissional."
               />
-
             </div>
           </section>
         </main>

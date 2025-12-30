@@ -1,20 +1,17 @@
 'use client';
 import React from 'react';
 
-interface FeatureItemProps {
-  icon: React.ReactNode;
-  title: string;
-  desc: string;
+{
+  /* Componente FeatureItem - Design Compacto e Alinhado */
 }
-
-{/* Componente FeatureItem - Design Compacto e Alinhado */ }
 export default function FeatureItem({ icon, title, desc }) {
   return (
-
     <div className="flex flex-row items-center gap-4 group transition-all w-full">
       {/* Ícone: Fundo sólido suave para destacar no branco translúcido */}
-      <div className="w-12 h-12 md:w-16 md:h-16 shrink-0 bg-[#FAF7ED] rounded-2xl flex items-center justify-center 
-        border border-[#D4AF37]/50 group-hover:border-[#D4AF37] group-hover:bg-[#F3E5AB] transition-all text-[#D4AF37] shadow-sm">
+      <div
+        className="w-12 h-12 md:w-16 md:h-16 shrink-0 bg-[#FAF7ED] rounded-2xl flex items-center justify-center 
+        border border-[#D4AF37]/50 group-hover:border-[#D4AF37] group-hover:bg-[#F3E5AB] transition-all text-[#D4AF37] shadow-sm"
+      >
         {icon}
       </div>
 
@@ -23,7 +20,8 @@ export default function FeatureItem({ icon, title, desc }) {
         <h3 className="text-slate-900 font-bold text-[12px] md:text-[16px] leading-tight mb-1">
           {title}
         </h3>
-        <p className="text-slate-500 text-[12px] md:text-[14px] leading-tight transition-all 
+        <p
+          className="text-slate-500 text-[12px] md:text-[14px] leading-tight transition-all 
         group-hover:text-slate-800 italic truncate 
         sm:whitespace-normal
         font-light tracking-wide whitespace-normal break-words"

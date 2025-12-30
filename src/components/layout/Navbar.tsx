@@ -2,25 +2,26 @@
 
 import { usePathname } from 'next/navigation';
 import { Camera } from 'lucide-react';
-import {UserMenu} from '@/components/auth'; 
+import { UserMenu } from '@/components/auth';
 import { useEffect, useState } from 'react';
 import { supabase } from '@/lib/supabase.client';
+import { Session, User } from '@supabase/supabase-js'; // Importação do tipo oficial
 import Link from 'next/link';
 
 export default function Navbar() {
   const pathname = usePathname();
-  const [session, setSession] = useState<any>(null);
+  const [session, setSession] = useState<Session | null>(null);
   const [avatarUrl, setAvatarUrl] = useState<string | null>(null);
 
   useEffect(() => {
-    const fetchProfileData = async (user: any) => {
+    const fetchProfileData = async (user: User) => {
       if (!user) return;
       const { data } = await supabase
         .from('tb_profiles')
         .select('profile_picture_url')
         .eq('id', user.id)
         .single();
-      
+
       if (data?.profile_picture_url) {
         setAvatarUrl(data.profile_picture_url);
       }
@@ -31,7 +32,9 @@ export default function Navbar() {
       if (session?.user) fetchProfileData(session.user);
     });
 
-    const { data: { subscription } } = supabase.auth.onAuthStateChange((_event, session) => {
+    const {
+      data: { subscription },
+    } = supabase.auth.onAuthStateChange((_event, session) => {
       setSession(session);
       if (session?.user) fetchProfileData(session.user);
     });
@@ -44,18 +47,23 @@ export default function Navbar() {
     window.location.href = '/';
   };
 
-  const showNavbar = session && (pathname === '/dashboard' || pathname === '/onboarding' || pathname.includes('/dashboard/'));
+  const showNavbar =
+    session &&
+    (pathname === '/dashboard' ||
+      pathname === '/onboarding' ||
+      pathname.includes('/dashboard/'));
 
   if (!showNavbar) return null;
-  
+
   return (
     <>
       {/* Ajuste de Cor: 'bg-[#FFF9F0]/80' para o tom champanhe suave 
         Ajuste de Borda: 'border-[#F3E5AB]' para harmonia cromática
       */}
-      <nav className="fixed top-0 left-0 w-full z-[110] flex items-center justify-between px-6 md:px-10 
-      py-1 bg-[#FFF9F0]/90 backdrop-blur-md border-b border-[#F3E5AB] shadow-sm">
-        
+      <nav
+        className="fixed top-0 left-0 w-full z-[110] flex items-center justify-between px-6 md:px-10 
+      py-1 bg-[#FFF9F0]/90 backdrop-blur-md border-b border-[#F3E5AB] shadow-sm"
+      >
         {/* Branding Editorial com cores ajustadas para o fundo champanhe */}
         <Link
           href="/dashboard"
@@ -75,9 +83,9 @@ export default function Navbar() {
 
         {/* Menu do Usuário Integrado */}
         <div className="flex items-center gap-4">
-          <UserMenu 
-            session={session} 
-            handleLogout={handleLogout} 
+          <UserMenu
+            session={session}
+            handleLogout={handleLogout}
             avatarUrl={avatarUrl}
           />
         </div>
