@@ -3,6 +3,8 @@ export interface DrivePhoto {
   name: string;
   thumbnailUrl: string;
   webViewUrl: string;
+  width?: number;
+  height?: number;
 }
 
 /**
@@ -10,33 +12,40 @@ export interface DrivePhoto {
  */
 export async function listPhotosFromDriveFolder(
   driveFolderId: string,
-  accessToken: string
+  accessToken: string,
 ): Promise<DrivePhoto[]> {
   if (!driveFolderId) {
-    throw new Error("O ID da pasta do Google Drive não foi configurado.");
+    throw new Error('O ID da pasta do Google Drive não foi configurado.');
   }
 
   const query = encodeURIComponent(
-    `'${driveFolderId}' in parents and mimeType contains 'image/' and trashed = false`
+    `'${driveFolderId}' in parents and mimeType contains 'image/' and trashed = false`,
   );
-  const fields = encodeURIComponent("files(id, name, thumbnailLink, webViewLink)");
+  const fields = encodeURIComponent(
+    'files(id, name, thumbnailLink, webViewLink, imageMediaMetadata(width,height))',
+  );
   const url = `https://www.googleapis.com/drive/v3/files?q=${query}&fields=${fields}`;
 
   const res = await fetch(url, {
     headers: {
       Authorization: `Bearer ${accessToken}`,
     },
-    cache: "no-store",
+    cache: 'no-store',
   });
 
   if (!res.ok) {
     const errorBody = await res.json();
-    const message = errorBody.error?.message || "Erro desconhecido ao acessar o Drive.";
-    
+    const message =
+      errorBody.error?.message || 'Erro desconhecido ao acessar o Drive.';
+
     // Tratamento de erros comuns para o usuário
-    if (res.status === 401) throw new Error("Sua sessão expirou. Por favor, faça login novamente.");
-    if (res.status === 404) throw new Error("A pasta selecionada não foi encontrada no seu Google Drive.");
-    
+    if (res.status === 401)
+      throw new Error('Sua sessão expirou. Por favor, faça login novamente.');
+    if (res.status === 404)
+      throw new Error(
+        'A pasta selecionada não foi encontrada no seu Google Drive.',
+      );
+
     throw new Error(`Google Drive API: ${message}`);
   }
 
@@ -46,6 +55,7 @@ export async function listPhotosFromDriveFolder(
     name: string;
     thumbnailLink: string;
     webViewLink: string;
+    imageMediaMetadata?: { width?: number; height?: number };
   }>;
 
   return files.map((file) => ({
@@ -53,6 +63,8 @@ export async function listPhotosFromDriveFolder(
     name: file.name,
     thumbnailUrl: file.thumbnailLink,
     webViewUrl: file.webViewLink,
+    width: file.imageMediaMetadata?.width,
+    height: file.imageMediaMetadata?.height,
   }));
 }
 
@@ -72,16 +84,16 @@ export async function makeFolderPublic(folderId: string, accessToken: string) {
         role: 'reader',
         type: 'anyone',
       }),
-    }
+    },
   );
 
   if (!res.ok) {
     const errorBody = await res.json();
     // Isso vai printar o erro REAL do Google no seu console
-    console.error("ERRO GOOGLE DRIVE:", JSON.stringify(errorBody, null, 2));
+    console.error('ERRO GOOGLE DRIVE:', JSON.stringify(errorBody, null, 2));
     return false;
   }
 
-  console.log("Sucesso: Pasta agora é pública!");
+  console.log('Sucesso: Pasta agora é pública!');
   return true;
 }

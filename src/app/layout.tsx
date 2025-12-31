@@ -1,69 +1,84 @@
-// app/layout.tsx (CÓDIGO REVISADO)
-
-import './globals.css';
+// app/layout.tsx
+import './theme.css';
+import { Inter, Playfair_Display, Barlow } from 'next/font/google';
 import Navbar from '../components/layout/Navbar';
 import { Metadata } from 'next';
 import Script from 'next/script';
 import { CookieBanner } from '@/components/ui';
 
-// Definição de metadados
+// 1. Configuração das fontes (Next.js as baixa e serve localmente)
+const inter = Inter({
+  subsets: ['latin'],
+  weight: ['300', '400', '600'],
+  variable: '--font-inter',
+});
+
+const playfair = Playfair_Display({
+  subsets: ['latin'],
+  weight: ['700', '900'],
+  style: ['normal', 'italic'],
+  variable: '--font-playfair',
+});
+
+const barlow = Barlow({
+  subsets: ['latin'],
+  weight: ['400', '500', '700', '800'],
+  variable: '--font-barlow',
+});
+
 export const metadata: Metadata = {
-    title: 'Sua Galeria de Fotos - O portal das suas lembranças',
-    description: 'Seu momento especial, acessível a um clique. Bem-vindo à Sua Galeria de Fotos.',
-    icons: {
-        icon: "data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='%23D4AF37' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'><path d='M14.5 4h-5L7 7H4a2 2 0 0 0-2 2v9a2 2 0 0 0 2 2h16a2 2 0 0 0 2-2V9a2 2 0 0 0-2-2h-3l-2.5-3z'/><circle cx='12' cy='13' r='3'/></svg>",
-    },
+  title: 'Sua Galeria de Fotos - O portal das suas lembranças',
+  description:
+    'Seu momento especial, acessível a um clique. Bem-vindo à Sua Galeria de Fotos.',
+  icons: {
+    icon: "data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='%23D4AF37' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'><path d='M14.5 4h-5L7 7H4a2 2 0 0 0-2 2v9a2 2 0 0 0 2 2h16a2 2 0 0 0 2-2V9a2 2 0 0 0-2-2h-3l-2.5-3z'/><circle cx='12' cy='13' r='3'/></svg>",
+  },
 };
 
-// Declaração global para que o componente useClient (GooglePickerButton) possa escutar
 declare global {
-    interface Window {
-        gapi: any;
-        google: any;
-        // Esta função deve ser chamada quando AMBAS as libs estiverem disponíveis
-        onGoogleLibraryLoad: (() => void) | undefined;
-    }
+  interface Window {
+    gapi: any;
+    google: any;
+    onGoogleLibraryLoad: (() => void) | undefined;
+  }
 }
 
 export default function RootLayout({
-    children,
+  children,
 }: {
-    children: React.ReactNode;
+  children: React.ReactNode;
 }) {
-    return (
-        <html lang="pt-BR">
-            <head>
-                {/* Metadados */}
-                <meta charSet="UTF-8" />
-                <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-            </head>
-            <body className="bg-[#F1F3F4] antialiased">
-                {/* A Navbar agora controla sua própria visibilidade e estilo */}
-                <Navbar />
-                <main className="w-full">{children}</main>
-                {/* ========================================================= */}
-                {/* CARREGAMENTO DOS SCRIPTS GOOGLE COM next/script */}
-                {/* Estratégia: Carregar o mais rápido possível e garantir que a GAPI exista */}
-                {/* ========================================================= */}
+  return (
+    <html
+      lang="pt-BR"
+      className={`${inter.variable} ${playfair.variable} ${barlow.variable}`}
+    >
+      <head>
+        <meta charSet="UTF-8" />
+        <meta name="viewport" content="width=device-width, initial-scale=1.0" />
 
-                {/* 1. GAPI Client Library (Usado para o Google Drive Files API e Picker) */}
-                <Script
-                    src="https://apis.google.com/js/api.js"
-                    strategy="beforeInteractive" // Carrega o script antes do Next.js
-                    async // Para não bloquear o carregamento
-                // No GooglePickerButton, você precisa checar window.gapi, mas não injetar o picker aqui
-                />
+        {/* LightGallery CSS via CDN - Resolve o SyntaxError do Webpack definitivamente */}
+        <link
+          rel="stylesheet"
+          href="https://cdnjs.cloudflare.com/ajax/libs/lightgallery/2.7.2/css/lightgallery-bundle.min.css"
+        />
+      </head>
+      <body className={`${inter.className} bg-[#F1F3F4] antialiased`}>
+        <Navbar />
+        <main className="w-full">{children}</main>
 
-                {/* 2. Google Identity Services (GSI) - Necessário para o Auth moderno */}
-                <Script
-                    src="https://accounts.google.com/gsi/client"
-                    strategy="beforeInteractive"
-                    async // Para não bloquear
+        {/* SCRIPTS GOOGLE */}
+        <Script
+          src="https://apis.google.com/js/api.js"
+          strategy="beforeInteractive"
+        />
+        <Script
+          src="https://accounts.google.com/gsi/client"
+          strategy="beforeInteractive"
+        />
 
-                />
-                {/* O Banner fica aqui para ser global */}
-                <CookieBanner />
-            </body>
-        </html >
-    );
+        <CookieBanner />
+      </body>
+    </html>
+  );
 }

@@ -1,0 +1,93 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+/* 1. Camada de Base: Estilos globais de elementos HTML */
+@layer base {
+  html {
+    font-family: var(--font-inter), 'Inter', sans-serif;
+    -webkit-font-smoothing: antialiased;
+    color: #3c4043;
+  }
+
+  label {
+    @apply text-[13px] font-medium text-slate-700 mb-2 flex items-center gap-2 ml-1;
+  }
+
+  input[type='radio'] + label,
+  input[type='checkbox'] + label {
+    @apply mb-0 ml-2 cursor-pointer inline-flex items-center text-slate-700 hover:text-[#D4AF37];
+  }
+
+  input[type='radio'] {
+    @apply w-4 h-4 border-gray-300 text-[#D4AF37] focus:ring-[#F3E5AB]/50 cursor-pointer;
+  }
+
+  /* Localize este bloco por volta da linha 22 e substitua: */
+  input:not([type='file']),
+  textarea,
+  select {
+    @apply w-full bg-[#F8F9FA] border border-gray-100 p-3 rounded-xl outline-none focus:border-[#D4AF37] focus:ring-1 focus:ring-[#D4AF37] text-sm text-slate-700 font-normal transition-all placeholder:text-gray-300;
+  }
+
+  button[type='submit'],
+  .btn-primary {
+    @apply w-full py-4 rounded-2xl font-bold uppercase text-xs tracking-[0.2em] 
+           transition-all active:scale-95 flex items-center justify-center gap-2
+           bg-[#F3E5AB] text-slate-900 shadow-lg shadow-[#F3E5AB]/20 
+           hover:bg-[#e6d595] disabled:bg-slate-100 disabled:text-slate-400 
+           disabled:cursor-not-allowed;
+  }
+
+  .btn-secondary {
+    @apply w-full py-4 bg-white border border-slate-100 text-slate-400 
+           rounded-2xl font-bold uppercase text-[10px] tracking-[0.2em] 
+           transition-all hover:bg-slate-50 active:scale-95;
+  }
+
+  .btn-dark {
+    @apply w-full py-4 bg-slate-900 text-white rounded-2xl font-bold 
+           uppercase text-[10px] tracking-[0.2em] transition-all 
+           flex items-center justify-center gap-2 shadow-xl hover:bg-black;
+  }
+}
+
+/* 2. Camada de Componentes: Classes reutilizáveis */
+@layer components {
+  .font-artistic {
+    font-family: var(--font-playfair), 'Playfair Display', serif;
+  }
+
+  .btn-gsi-custom {
+    @apply bg-white text-[#1f1f1f] border border-[#dadce0] rounded-lg 
+           px-4 py-[10px] font-medium text-base text-center shadow-sm 
+           cursor-pointer transition-all hover:bg-[#f8f9fa] hover:shadow-md;
+  }
+
+  .my-masonry-grid {
+    @apply flex w-auto -ml-4;
+  }
+
+  .my-masonry-grid_column {
+    @apply pl-4 bg-clip-padding;
+  }
+
+  .my-masonry-grid_column > div {
+    @apply mb-4;
+  }
+
+  .barra-fantasma {
+    transition: all 0.6s cubic-bezier(0.4, 0, 0.2, 1);
+  }
+
+  @layer utilities {
+    /* Para esconder a barra de rolagem mas manter a funcionalidade */
+    .scrollbar-hide::-webkit-scrollbar {
+      display: none;
+    }
+    .scrollbar-hide {
+      -ms-overflow-style: none;
+      scrollbar-width: none;
+    }
+  }
+}

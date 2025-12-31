@@ -1,27 +1,28 @@
-/** @type {import('next').NextConfig} */
-const nextConfig = {
+import type { NextConfig } from 'next';
+
+const nextConfig: NextConfig = {
+  // Transpilação necessária para evitar o erro de SyntaxError no CSS da biblioteca
+  transpilePackages: ['lightgallery'],
   images: {
     remotePatterns: [
       {
-        protocol: "https",
-        hostname: "drive.google.com",
+        protocol: 'https',
+        hostname: 'drive.google.com',
       },
       {
-        protocol: "https",
-        hostname: "lh3.googleusercontent.com", // Domínio comum para thumbnails do Google
+        protocol: 'http',
+        hostname: 'googleusercontent.com',
       },
       {
-        domains: ["lh3.googleusercontent.com"],
+        protocol: 'https',
+        hostname: 'lh3.googleusercontent.com',
       },
       {
-        protocol: "https",
-        hostname: "bdgqiyvasucvhihaueuk.supabase.co",
-        // Optional: you can specify port and pathname if needed
-        // port: '',
-        // pathname: '/storage/v1/object/public/profile_pictures/**',
+        protocol: 'https',
+        hostname: 'bdgqiyvasucvhihaueuk.supabase.co',
       },
     ],
   },
 };
 
-module.exports = nextConfig;
+export default nextConfig;
