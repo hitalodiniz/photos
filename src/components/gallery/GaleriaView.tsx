@@ -81,7 +81,7 @@ export default function GaleriaView({ galeria, photos }: GaleriaViewProps) {
         </header>
 
         {/* MAIN CONTENT */}
-        <main className="relative z-30 isolate w-full max-w-[1600px] mx-auto px-4 md:px-8 pb-10 mt-2 md:mt-4 flex justify-center">
+        <main className="relative z-30 isolate w-full max-w-[1600px] mx-auto px-4 md:px-8 mt-2 md:mt-4 flex justify-center">
           <div className="w-full">
             {photos && photos.length > 0 ? (
               <PhotoGrid photos={photos} galeria={galeria} />
@@ -97,7 +97,7 @@ export default function GaleriaView({ galeria, photos }: GaleriaViewProps) {
         </main>
 
         {/* 3. RODAPÉ EDITORIAL */}
-        <footer className="relative z-20 w-full pt-6 pb-24 px-6 border-t border-[#D4AF37]/60 bg-[#FFF9F0] backdrop-blur-sm">
+        <footer className="relative z-20 w-full pt-2 pb-16 px-6 border-t border-[#D4AF37]/60 bg-[#FFF9F0] backdrop-blur-sm">
           <div className="max-w-7xl mx-auto flex flex-col items-center gap-4">
             {/* Botão Voltar ao Topo */}
             <button

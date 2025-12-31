@@ -22,6 +22,7 @@ export const InfoBarDesktop = ({
   isHovered,
   isDownloading,
   downloadProgress,
+  setIsHovered,
 }: any) => {
   return (
     <div
@@ -35,7 +36,7 @@ export const InfoBarDesktop = ({
     } 
   `}
     >
-      <div className="flex items-center gap-3 text-white text-[13px] font-semibold italic">
+      <div className="flex items-center gap-3 text-white text-[14px] font-semibold italic">
         <div className="flex items-center gap-2">
           {galeria.is_public ? (
             <Globe
@@ -50,7 +51,7 @@ export const InfoBarDesktop = ({
           )}
 
           {(!isScrolled || isHovered) && (
-            <span className="whitespace-nowrap animate-in fade-in slide-in-from-left-2 duration-500">
+            <span className="whitespace-nowrap animate-in fade-in slide-in-from-left-2 duration-200">
               {galeria.is_public ? 'Galeria Pública' : 'Acesso Restrito'}
             </span>
           )}
@@ -64,7 +65,7 @@ export const InfoBarDesktop = ({
             className="text-[#F3E5AB] drop-shadow-[0_0_3px_rgba(243,229,171,0.5)]"
           />
           {(!isScrolled || isHovered) && (
-            <span className="whitespace-nowrap animate-in fade-in duration-500">
+            <span className="whitespace-nowrap animate-in fade-in duration-200">
               {photos.length} fotos
             </span>
           )}
@@ -74,13 +75,13 @@ export const InfoBarDesktop = ({
       <div className="w-[1px] h-4 bg-white/20"></div>
 
       {/* SEÇÃO: DATA E LOCALIZAÇÃO (CORRIGIDA) */}
-      <div className="flex items-center gap-3 text-white text-[13px] font-semibold italic">
+      <div className="flex items-center gap-3 text-white text-[14px] font-semibold italic">
         <div className="flex items-center gap-2">
           <Calendar
             size={18}
             className="text-[#F3E5AB] drop-shadow-[0_0_3px_rgba(243,229,171,0.5)]"
           />
-          <span className="whitespace-nowrap animate-in fade-in duration-500">
+          <span className="whitespace-nowrap animate-in fade-in duration-200">
             {(!isScrolled || isHovered) &&
               new Date(galeria.date).toLocaleDateString('pt-BR', {
                 day: '2-digit',
@@ -92,7 +93,7 @@ export const InfoBarDesktop = ({
         {/* LOCALIZAÇÃO: Agora garantindo exibição no estado expandido */}
 
         {galeria.location && (
-          <div className="flex items-center gap-3 animate-in fade-in slide-in-from-left-3 duration-700">
+          <div className="flex items-center gap-3 animate-in fade-in slide-in-from-left-3 duration-200">
             <div className="w-[1px] h-4 bg-white/20"></div>
             <div className="flex items-center gap-2 max-w-[250px] truncate">
               <MapPin
@@ -112,40 +113,60 @@ export const InfoBarDesktop = ({
         {favorites.length > 0 && (
           <button
             onClick={() => setShowOnlyFavorites(!showOnlyFavorites)}
-            className={`flex items-center justify-center gap-2 rounded-full transition-all duration-500 active:scale-90
-              ${showOnlyFavorites ? 'bg-[#E67E70] text-white shadow-lg' : 'bg-white/10 text-white hover:bg-white/20'}
-              ${isScrolled && !isHovered ? 'w-9 h-9 border border-white/20' : 'px-5 h-10 border border-white/10 text-[11px] font-bold tracking-widest'}
-            `}
+            onMouseEnter={() => setIsHovered(true)}
+            onMouseLeave={() => setIsHovered(false)}
+            className={`
+    flex items-center justify-center rounded-full transition-all duration-300 ease-out overflow-hidden h-10
+    ${showOnlyFavorites ? 'bg-[#E67E70] text-white shadow-lg' : 'bg-white/10 text-white hover:bg-white/20'}
+    ${
+      isScrolled && !isHovered
+        ? 'w-10 border border-white/20'
+        : 'w-[130px] border border-white/10 px-4 gap-2'
+    }
+  `}
           >
-            <Filter size={16} />
-            {(!isScrolled || isHovered) && <span>Favoritos</span>}
+            <div className="flex-shrink-0">
+              <Filter size={16} />
+            </div>
+
+            {(!isScrolled || isHovered) && (
+              <span className="text-[14px] font-semibold tracking-widest whitespace-nowrap animate-in fade-in duration-300">
+                Favoritos
+              </span>
+            )}
           </button>
         )}
 
         <button
           onClick={downloadAllAsZip}
+          onMouseEnter={() => setIsHovered(true)}
+          onMouseLeave={() => setIsHovered(false)}
           disabled={isDownloading}
-          className={`md:min-w-[140px] flex items-center justify-center gap-2 rounded-full bg-[#F3E5AB] text-slate-900 transition-all duration-500 shadow-xl active:scale-95
-            ${isScrolled && !isHovered ? 'w-9 h-9 md:min-w-[10px]' : 'px-5 h-10 text-[12px] font-bold '}
-            
-          `}
+          className={`
+    flex items-center justify-center rounded-full bg-[#F3E5AB] text-slate-900 shadow-xl 
+    transition-all duration-100 ease-out overflow-hidden h-10
+    ${
+      isScrolled && !isHovered && !isDownloading
+        ? 'w-10'
+        : 'w-[150px] px-4 gap-2'
+    }
+  `}
         >
-          {isDownloading ? (
-            <>
-              <Loader2 className="h-4 w-4 animate-spin" />
-              <span className="tabular-nums">
-                {downloadProgress < 95
-                  ? `${Math.round(downloadProgress)}%`
-                  : 'Preparando...'}
-              </span>
-            </>
-          ) : (
-            <>
+          <div className="flex-shrink-0">
+            {isDownloading ? (
+              <Loader2 size={16} className="animate-spin" />
+            ) : (
               <Download size={16} />
-              {(!isScrolled || isHovered) && (
-                <span className="tracking-tight">Baixar tudo</span>
-              )}
-            </>
+            )}
+          </div>
+
+          {/* O span só existe se o botão estiver expandido, evitando que ele ocupe espaço invisível */}
+          {(isDownloading || !isScrolled || isHovered) && (
+            <span className="text-[14px] font-semibold whitespace-nowrap animate-in fade-in duration-100">
+              {isDownloading
+                ? `${Math.round(downloadProgress)}%`
+                : 'Baixar tudo'}
+            </span>
           )}
         </button>
       </div>

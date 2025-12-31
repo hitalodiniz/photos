@@ -16,8 +16,8 @@ export default function PhotoGrid({ photos, galeria }: any) {
   const [selectedPhotoIndex, setSelectedPhotoIndex] = useState<number | null>(
     null,
   );
-  const [masonryKey, setMasonryKey] = useState(0);
-  const [displayLimit, setDisplayLimit] = useState(QTD_FOTO_EXIBIDAS);
+  const [setMasonryKey] = useState(0);
+  const [displayLimit] = useState(QTD_FOTO_EXIBIDAS);
 
   // --- ESTADOS DE DOWNLOAD ---
   const [isDownloading, setIsDownloading] = useState(false);
@@ -28,12 +28,6 @@ export default function PhotoGrid({ photos, galeria }: any) {
   // --- ESTADOS DE FAVORITOS ---
   const [favorites, setFavorites] = useState<string[]>([]);
   const [showOnlyFavorites, setShowOnlyFavorites] = useState(false);
-
-  // --- LÓGICA DE ESTIMATIVA DE PESO ---
-  const ESTIMATED_MB_PER_PHOTO = 5; // Média de 5MB por foto em alta resolução
-  const totalPhotosCount = photos?.length || 0;
-  const totalEstimatedSizeMB = totalPhotosCount * ESTIMATED_MB_PER_PHOTO;
-  const isTooHeavy = totalEstimatedSizeMB > 1000; // Alerta se passar de 1GB
 
   const toggleFavoriteFromGrid = (id: string) => {
     setFavorites((prev) =>
@@ -196,7 +190,7 @@ export default function PhotoGrid({ photos, galeria }: any) {
   const sentinelRef = useRef<HTMLDivElement | null>(null);
 
   return (
-    <div className="w-full flex flex-col items-center gap-6 pb-10">
+    <div className="w-full flex flex-col items-center gap-6">
       {/* 1. BARRA DE INFORMAÇÕES EDITORIAL: DESKTOP */}
       <div
         onMouseEnter={() => setIsHovered(true)}
@@ -270,7 +264,6 @@ export default function PhotoGrid({ photos, galeria }: any) {
           }
         />
       )}
-      {/* BOTÃO FLUTUANTE DE DOWNLOAD RÁPIDO */}
       {/* 2. BOTÃO FLUTUANTE DE DOWNLOAD FAVORITOS */}
       {favorites.length > 0 && (
         <div className="fixed bottom-6 left-1/2 -translate-x-1/2 z-[60] animate-in fade-in zoom-in slide-in-from-bottom-10 duration-500">
@@ -294,10 +287,10 @@ export default function PhotoGrid({ photos, galeria }: any) {
                   <Download size={18} />
                 </div>
                 <div className="flex flex-col items-start leading-none overflow-hidden">
-                  <span className="text-white text-sm font-medium italic truncate w-full">
+                  <span className="text-white text-sm md:text-[15px] font-semibold truncate w-full">
                     Baixar {favorites.length === 1 ? 'favorita' : 'favoritas'}
                   </span>
-                  <span className="text-[10px] opacity-80 italic">
+                  <span className="text-[12px] md:text-[14px] opacity-80 italic">
                     {favorites.length}{' '}
                     {favorites.length === 1 ? 'foto' : 'fotos'}
                   </span>
@@ -308,7 +301,7 @@ export default function PhotoGrid({ photos, galeria }: any) {
         </div>
       )}
 
-      <div ref={sentinelRef} className="h-10" />
+      <div ref={sentinelRef} />
 
       <ConfirmationModal
         isOpen={downloadConfirm.isOpen}

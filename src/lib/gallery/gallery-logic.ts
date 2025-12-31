@@ -43,6 +43,7 @@ export function formatGalleryData(
     title: raw.title,
     client_name: raw.client_name,
     date: raw.date,
+    location: raw.location,
     cover_image_url: raw.cover_image_url,
     drive_folder_id: raw.drive_folder_id,
     is_public: raw.is_public,

@@ -113,8 +113,9 @@ const MasonryGrid = ({
                         e.preventDefault(); // impede LG padrão
                         setSelectedPhotoIndex(index); // sincroniza com seu lightbox customizado
                       }}
-                      className="block cursor-zoom-in"
+                      className="block cursor-zoom-in relative overflow-hidden rounded-2xl bg-slate-200"
                     >
+                      <div className="absolute inset-0 z-0 animate-pulse bg-gradient-to-r from-slate-200 via-slate-100 to-slate-200" />
                       <Image
                         src={getImageUrl(photo.id, 'w600')}
                         alt={`Foto ${index + 1}`}
@@ -123,8 +124,23 @@ const MasonryGrid = ({
                         style={{
                           aspectRatio: `${photo.width} / ${photo.height}`,
                         }}
-                        className="rounded-2xl w-full h-auto object-cover transition-transform duration-300 group-hover:scale-[1.01]"
+                        className="relative z-10 rounded-2xl w-full h-auto object-cover transition-opacity duration-700 opacity-0 group-hover:scale-[1.01]"
+                        // Lógica robusta para remover o skeleton
+                        onLoad={(e) => {
+                          const img = e.currentTarget;
+                          if (img.complete) {
+                            img.classList.remove('opacity-0');
+                            // Busca o skeleton no mesmo container pai e o esconde
+                            const container = img.parentElement;
+                            const skeleton =
+                              container?.querySelector('.animate-pulse');
+                            if (skeleton) skeleton.classList.add('hidden');
+                          }
+                        }}
                         loading="lazy"
+                        placeholder="blur"
+                        // Gera um borrão minúsculo baseado na própria imagem enquanto carrega
+                        blurDataURL="data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR42mNkYAAAAAYAAjCB0C8AAAAASUVORK5CYII="
                         onError={(e) => {
                           e.currentTarget.src = '/fallback.png';
                         }}
@@ -202,22 +218,31 @@ const MasonryGrid = ({
             </div>
           </LightGallery>
 
-          {/* Spinner de carregamento */}
+          {/* Spinner de carregamento elegante */}
           {isLoading && (
-            <div className="flex justify-center py-6">
-              <div className="w-8 h-8 border-4 border-[#E67E70] border-t-transparent rounded-full animate-spin"></div>
+            <div className="flex flex-col items-center justify-center py-12 animate-in fade-in duration-700">
+              <div className="relative w-12 h-12">
+                {/* Círculo de fundo suave */}
+                <div className="absolute inset-0 rounded-full border-2 border-[#F3E5AB]/20"></div>
+
+                {/* Arco de brilho principal (Champanhe) */}
+                <div className="absolute inset-0 rounded-full border-t-2 border-r-2 border-[#F3E5AB] animate-spin shadow-[0_0_15px_rgba(243,229,171,0.4)]"></div>
+
+                {/* Ponto de luz pulsante no centro */}
+                <div className="absolute inset-0 flex items-center justify-center">
+                  <div className="w-1.5 h-1.5 bg-[#F3E5AB] rounded-full animate-pulse shadow-[0_0_10px_#F3E5AB]"></div>
+                </div>
+              </div>
+
+              {/* Texto sutil de status */}
+              <p className="mt-4 text-[11px] md:text-[14px] uppercase tracking-[0.2em] text-[#F3E5AB]/60 font-medium">
+                Carregando memórias
+              </p>
             </div>
           )}
 
           {/* Sentinela invisível para scroll infinito */}
-          <div ref={sentinelRef} className="h-10" />
-
-          {/* Mensagem de fim da galeria */}
-          {displayLimit >= displayedPhotos.length && (
-            <div className="text-center py-6 text-slate-400 italic">
-              Fim da galeria
-            </div>
-          )}
+          <div ref={sentinelRef} />
         </>
       )}
     </div>
