@@ -170,8 +170,8 @@ export default function PhotoGrid({ photos, galeria }: any) {
 
   const downloadAllAsZip = () => handleDownloadZip(photos, 'completa', false);
   const handleDownloadFavorites = () => {
-    const favPhotos = photos.filter((p: any) => favorites.includes(p.id));
-    handleDownloadZip(favPhotos, 'favoritas', true);
+    // Passa a lista de favoritos, o sufixo do arquivo e 'true' para indicar ação de favoritos
+    handleDownloadZip(favorites, 'favoritas', true);
   };
 
   if (!photos || photos.length === 0) return null;
@@ -271,27 +271,38 @@ export default function PhotoGrid({ photos, galeria }: any) {
         />
       )}
       {/* BOTÃO FLUTUANTE DE DOWNLOAD RÁPIDO */}
+      {/* 2. BOTÃO FLUTUANTE DE DOWNLOAD FAVORITOS */}
       {favorites.length > 0 && (
         <div className="fixed bottom-6 left-1/2 -translate-x-1/2 z-[60] animate-in fade-in zoom-in slide-in-from-bottom-10 duration-500">
           <button
             onClick={handleDownloadFavorites}
             disabled={isDownloadingFavs}
-            className="flex items-center gap-3 bg-[#E67E70] hover:bg-[#D66D5F] text-white px-6 py-3 rounded-full shadow-2xl transition-all"
+            className="flex items-center justify-center gap-3 bg-[#E67E70] hover:bg-[#D66D5F] text-white px-0 py-2 rounded-full shadow-[0_10px_40px_rgba(230,126,112,0.4)] transition-all active:scale-95 group border border-white/20 w-[170px] h-[52px] flex-shrink-0"
           >
             {isDownloadingFavs ? (
-              <div className="flex items-center gap-2">
-                <Loader2 className="h-5 w-5 animate-spin" />
-                <span className="font-bold">
-                  Baixando ({Math.round(favDownloadProgress)}%)
+              <div className="flex items-center gap-2 justify-center w-full">
+                <Loader2 className="animate-spin h-5 w-5 flex-shrink-0" />
+                <span className="font-bold tracking-tight text-sm tabular-nums whitespace-nowrap">
+                  {favDownloadProgress < 95
+                    ? `Baixando ${Math.round(favDownloadProgress)}%`
+                    : 'Finalizando...'}
                 </span>
               </div>
             ) : (
-              <>
-                <Download size={20} />
-                <span className="font-medium">
-                  Baixar {favorites.length} favoritas
-                </span>
-              </>
+              <div className="flex items-center gap-3 w-full justify-center">
+                <div className="bg-white/20 p-1.5 rounded-full flex-shrink-0">
+                  <Download size={18} />
+                </div>
+                <div className="flex flex-col items-start leading-none overflow-hidden">
+                  <span className="text-white text-sm font-medium italic truncate w-full">
+                    Baixar {favorites.length === 1 ? 'favorita' : 'favoritas'}
+                  </span>
+                  <span className="text-[10px] opacity-80 italic">
+                    {favorites.length}{' '}
+                    {favorites.length === 1 ? 'foto' : 'fotos'}
+                  </span>
+                </div>
+              </div>
             )}
           </button>
         </div>

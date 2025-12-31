@@ -38,34 +38,38 @@ export const InfoBarMobile = ({
     setTimeout(() => setActiveHint(null), 4000);
   };
 
-  // 1. Adicione um useRef no topo do componente
+  // Dentro do seu InfoBarMobile.tsx
   const wasDownloading = React.useRef(false);
 
-  // 2. Atualize o useEffect de monitoramento
   useEffect(() => {
-    // Caso 1: Download em andamento
-    if (isDownloading) {
+    // 1. MONITORAMENTO DE DOWNLOAD (TUDO OU FAVORITAS)
+    const activelyDownloading = isDownloading || isDownloadingFavs;
+    const currentProgress = isDownloading
+      ? downloadProgress
+      : favDownloadProgress;
+
+    if (activelyDownloading) {
       const message =
-        downloadProgress < 95
-          ? `Preparando download: ${Math.round(downloadProgress)}%`
+        currentProgress < 95
+          ? `Preparando ${isDownloadingFavs ? 'favoritas' : 'download'}: ${Math.round(currentProgress)}%`
           : 'Finalizando arquivo ZIP...';
+
       setActiveHint(message);
-      wasDownloading.current = true; // Marca que estávamos baixando
+      wasDownloading.current = true;
     }
 
-    // Caso 2: O download acabou de terminar (estava baixando e parou)
-    if (!isDownloading && wasDownloading.current) {
+    // 2. GATILHO DE CONCLUSÃO
+    if (!activelyDownloading && wasDownloading.current) {
       setActiveHint('Download concluído!');
       wasDownloading.current = false;
 
-      // Timer para sumir sozinho após o sucesso
       const timer = setTimeout(() => {
         setActiveHint(null);
       }, 3000);
 
       return () => clearTimeout(timer);
     }
-  }, [downloadProgress, isDownloading]);
+  }, [downloadProgress, favDownloadProgress, isDownloading, isDownloadingFavs]);
 
   return (
     <div className="w-full flex flex-col items-center pb-2">
@@ -195,41 +199,6 @@ export const InfoBarMobile = ({
           </div>
         </div>
       </div>
-
-      {/* 2. BOTÃO FLUTUANTE DE DOWNLOAD FAVORITOS */}
-      {favorites.length > 0 && (
-        <div className="fixed bottom-6 left-1/2 -translate-x-1/2 z-[60] animate-in fade-in zoom-in slide-in-from-bottom-10 duration-500">
-          <button
-            onClick={handleDownloadFavorites}
-            disabled={isDownloadingFavs}
-            className="flex items-center gap-3 bg-[#E67E70] hover:bg-[#D66D5F] text-white px-4 py-2 rounded-full shadow-[0_10px_40px_rgba(230,126,112,0.4)] transition-all active:scale-95 group border border-white/20"
-          >
-            {isDownloadingFavs ? (
-              <div className="flex items-center gap-2">
-                <Loader2 className="animate-spin h-5 w-5" />
-                <span className="font-bold tracking-widest text-sm">
-                  A baixar ({Math.round(favDownloadProgress)}%)
-                </span>
-              </div>
-            ) : (
-              <>
-                <div className="bg-white/20 p-1.5 rounded-full group-hover:bg-white/30 transition-colors">
-                  <Download size={18} />
-                </div>
-                <div className="flex flex-col items-start leading-none">
-                  <span className="text-white text-sm font-medium italic">
-                    Baixar favoritas
-                  </span>
-                  <span className="text-[10px] opacity-80 italic">
-                    {favorites.length}{' '}
-                    {favorites.length === 1 ? 'foto' : 'fotos'}
-                  </span>
-                </div>
-              </>
-            )}
-          </button>
-        </div>
-      )}
     </div>
   );
 };
