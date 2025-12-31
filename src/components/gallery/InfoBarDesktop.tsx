@@ -126,7 +126,8 @@ export const InfoBarDesktop = ({
           onClick={downloadAllAsZip}
           disabled={isDownloading}
           className={`md:min-w-[140px] flex items-center justify-center gap-2 rounded-full bg-[#F3E5AB] text-slate-900 transition-all duration-500 shadow-xl active:scale-95
-            ${isScrolled && !isHovered ? 'w-9 h-9' : 'px-5 h-10 text-[12px] font-bold '}
+            ${isScrolled && !isHovered ? 'w-9 h-9 md:min-w-[10px]' : 'px-5 h-10 text-[12px] font-bold '}
+            
           `}
         >
           {isDownloading ? (
@@ -141,7 +142,9 @@ export const InfoBarDesktop = ({
           ) : (
             <>
               <Download size={16} />
-              <span>Baixar tudo</span>
+              {(!isScrolled || isHovered) && (
+                <span className="tracking-tight">Baixar tudo</span>
+              )}
             </>
           )}
         </button>

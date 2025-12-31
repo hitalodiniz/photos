@@ -1,5 +1,5 @@
 'use client';
-import React, { useState, useCallback } from 'react';
+import React, { useState, useCallback, useEffect } from 'react';
 import {
   Filter,
   Download,
@@ -37,6 +37,35 @@ export const InfoBarMobile = ({
     setActiveHint(message);
     setTimeout(() => setActiveHint(null), 4000);
   };
+
+  // 1. Adicione um useRef no topo do componente
+  const wasDownloading = React.useRef(false);
+
+  // 2. Atualize o useEffect de monitoramento
+  useEffect(() => {
+    // Caso 1: Download em andamento
+    if (isDownloading) {
+      const message =
+        downloadProgress < 95
+          ? `Preparando download: ${Math.round(downloadProgress)}%`
+          : 'Finalizando arquivo ZIP...';
+      setActiveHint(message);
+      wasDownloading.current = true; // Marca que estávamos baixando
+    }
+
+    // Caso 2: O download acabou de terminar (estava baixando e parou)
+    if (!isDownloading && wasDownloading.current) {
+      setActiveHint('Download concluído!');
+      wasDownloading.current = false;
+
+      // Timer para sumir sozinho após o sucesso
+      const timer = setTimeout(() => {
+        setActiveHint(null);
+      }, 3000);
+
+      return () => clearTimeout(timer);
+    }
+  }, [downloadProgress, isDownloading]);
 
   return (
     <div className="w-full flex flex-col items-center pb-2">
@@ -146,10 +175,16 @@ export const InfoBarMobile = ({
             )}
             <button
               onClick={() => {
-                downloadAllAsZip();
-                triggerHint('Gerando arquivo ZIP...');
+                if (!isDownloading) {
+                  downloadAllAsZip();
+                  // O useEffect acima cuidará de manter o hint atualizado
+                }
               }}
-              className="w-9 h-9 rounded-full bg-white/10 text-white flex items-center justify-center active:bg-white/30"
+              className={`w-9 h-9 rounded-full flex items-center justify-center transition-all ${
+                isDownloading
+                  ? 'bg-[#F3E5AB] text-black'
+                  : 'bg-white/10 text-white'
+              }`}
             >
               {isDownloading ? (
                 <Loader2 size={16} className="animate-spin" />
