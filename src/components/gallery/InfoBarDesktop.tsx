@@ -8,6 +8,7 @@ import {
   MapPin,
   Filter,
   Download,
+  Loader2,
 } from 'lucide-react';
 
 export const InfoBarDesktop = ({
@@ -19,6 +20,8 @@ export const InfoBarDesktop = ({
   downloadAllAsZip,
   isScrolled,
   isHovered,
+  isDownloading,
+  downloadProgress,
 }: any) => {
   return (
     <div
@@ -121,13 +124,25 @@ export const InfoBarDesktop = ({
 
         <button
           onClick={downloadAllAsZip}
-          className={`flex items-center justify-center gap-2 rounded-full bg-[#F3E5AB] text-slate-900 transition-all duration-500 shadow-xl active:scale-95
+          disabled={isDownloading}
+          className={`md:min-w-[140px] flex items-center justify-center gap-2 rounded-full bg-[#F3E5AB] text-slate-900 transition-all duration-500 shadow-xl active:scale-95
             ${isScrolled && !isHovered ? 'w-9 h-9' : 'px-5 h-10 text-[12px] font-bold '}
           `}
         >
-          <Download size={16} />
-          {(!isScrolled || isHovered) && (
-            <span className="tracking-tight">Baixar tudo</span>
+          {isDownloading ? (
+            <>
+              <Loader2 className="h-4 w-4 animate-spin" />
+              <span className="tabular-nums">
+                {downloadProgress < 95
+                  ? `${Math.round(downloadProgress)}%`
+                  : 'Preparando...'}
+              </span>
+            </>
+          ) : (
+            <>
+              <Download size={16} />
+              <span>Baixar tudo</span>
+            </>
           )}
         </button>
       </div>

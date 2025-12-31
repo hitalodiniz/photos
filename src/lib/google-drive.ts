@@ -1,6 +1,7 @@
 export interface DrivePhoto {
   id: string;
   name: string;
+  size: string;
   thumbnailUrl: string;
   webViewUrl: string;
   width?: number;
@@ -22,7 +23,7 @@ export async function listPhotosFromDriveFolder(
     `'${driveFolderId}' in parents and mimeType contains 'image/' and trashed = false`,
   );
   const fields = encodeURIComponent(
-    'files(id, name, thumbnailLink, webViewLink, imageMediaMetadata(width,height))',
+    'files(id, name, size, thumbnailLink, webViewLink, imageMediaMetadata(width,height))',
   );
   const url = `https://www.googleapis.com/drive/v3/files?q=${query}&fields=${fields}`;
 
@@ -53,6 +54,7 @@ export async function listPhotosFromDriveFolder(
   const files = (data.files || []) as Array<{
     id: string;
     name: string;
+    size: string;
     thumbnailLink: string;
     webViewLink: string;
     imageMediaMetadata?: { width?: number; height?: number };
@@ -61,6 +63,7 @@ export async function listPhotosFromDriveFolder(
   return files.map((file) => ({
     id: file.id,
     name: file.name,
+    size: file.size || '0',
     thumbnailUrl: file.thumbnailLink,
     webViewUrl: file.webViewLink,
     width: file.imageMediaMetadata?.width,

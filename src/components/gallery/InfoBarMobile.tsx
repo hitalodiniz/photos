@@ -29,15 +29,7 @@ export const InfoBarMobile = ({
   handleDownloadFavorites,
   isDownloadingFavs,
   favDownloadProgress,
-  displayedPhotos,
-  displayLimit,
-  toggleFavoriteFromGrid,
-  setSelectedPhotoIndex,
-  getImageUrl,
-  QTD_FOTO_EXIBIDAS,
-  masonryKey,
-  breakpointColumnsObj,
-  refreshFavorites,
+  downloadProgress,
 }: any) => {
   const [activeHint, setActiveHint] = useState<string | null>(null);
 

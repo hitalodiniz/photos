@@ -1,46 +1,45 @@
 'use client';
 import React, { useState, useEffect, useRef } from 'react';
-import imagesLoaded from 'imagesloaded';
 import { Lightbox } from '@/components/gallery';
-import { Download, Heart, Loader2 } from 'lucide-react';
+import { Download, Loader2 } from 'lucide-react';
 import { saveAs } from 'file-saver';
 import JSZip from 'jszip';
 import { InfoBarDesktop } from './InfoBarDesktop';
 import { InfoBarMobile } from './InfoBarMobile';
 import MasonryGrid from './MasonryGrid';
+import { ConfirmationModal } from '../ui';
 
 export default function PhotoGrid({ photos, galeria }: any) {
   const QTD_FOTO_EXIBIDAS = 24;
 
-  // --- ESTADOS DE CONTROLE ORIGINAIS ---
+  // --- ESTADOS DE CONTROLE ---
   const [selectedPhotoIndex, setSelectedPhotoIndex] = useState<number | null>(
     null,
   );
   const [masonryKey, setMasonryKey] = useState(0);
+  const [displayLimit, setDisplayLimit] = useState(QTD_FOTO_EXIBIDAS);
 
-  // --- ESTADOS DE DOWNLOAD SEPARADOS ---
+  // --- ESTADOS DE DOWNLOAD ---
   const [isDownloading, setIsDownloading] = useState(false);
-  const [setDownloadProgress] = useState(0);
+  const [downloadProgress, setDownloadProgress] = useState(0);
   const [isDownloadingFavs, setIsDownloadingFavs] = useState(false);
   const [favDownloadProgress, setFavDownloadProgress] = useState(0);
 
-  // --- ESTADOS DE FAVORITOS E FILTRO ---
+  // --- ESTADOS DE FAVORITOS ---
   const [favorites, setFavorites] = useState<string[]>([]);
   const [showOnlyFavorites, setShowOnlyFavorites] = useState(false);
 
-  // Defina a função aqui
+  // --- LÓGICA DE ESTIMATIVA DE PESO ---
+  const ESTIMATED_MB_PER_PHOTO = 5; // Média de 5MB por foto em alta resolução
+  const totalPhotosCount = photos?.length || 0;
+  const totalEstimatedSizeMB = totalPhotosCount * ESTIMATED_MB_PER_PHOTO;
+  const isTooHeavy = totalEstimatedSizeMB > 1000; // Alerta se passar de 1GB
+
   const toggleFavoriteFromGrid = (id: string) => {
     setFavorites((prev) =>
       prev.includes(id) ? prev.filter((f) => f !== id) : [...prev, id],
     );
   };
-
-  const [displayLimit, setDisplayLimit] = useState(QTD_FOTO_EXIBIDAS);
-  /*const [displayLimit, setDisplayLimit] = useState(() => {
-    if (typeof window === 'undefined') return QTD_FOTO_EXIBIDAS;
-    const cols = getCurrentColumns();
-    return normalizeLimit(QTD_FOTO_EXIBIDAS, cols);
-  });*/
 
   // --- CARREGAR FAVORITOS DO LOCALSTORAGE ---
   useEffect(() => {
@@ -62,32 +61,56 @@ export default function PhotoGrid({ photos, galeria }: any) {
     : photos;
 
   // --- CONFIGURAÇÕES DE DOWNLOAD E LIMITES ---
-  const MAX_PHOTOS = 150;
-  const isOverLimit = photos.length > MAX_PHOTOS;
-  const ESTIMATED_MB_PER_PHOTO = 10;
-  const totalSizeMB = photos.length * ESTIMATED_MB_PER_PHOTO;
-  const isVeryHeavy = totalSizeMB > 500;
+  const MAX_PHOTOS_LIMIT = 200; // Limite para alerta de quantidade
+  const HEAVY_SIZE_THRESHOLD_MB = 100; // Limite para alerta de peso (500MB)
 
-  const breakpointColumnsObj = {
-    default: 5,
-    1536: 4,
-    1280: 3,
-    1024: 3,
-    768: 2,
-  };
+  // Dentro do PhotoGrid.tsx
+  const [downloadConfirm, setDownloadConfirm] = useState<{
+    isOpen: boolean;
+    targetList: any[];
+    zipSuffix: string;
+    isFavAction: boolean;
+    totalMB: number;
+  }>({
+    isOpen: false,
+    targetList: [],
+    zipSuffix: '',
+    isFavAction: false,
+    totalMB: 0,
+  });
 
-  const getImageUrl = (photoId: string, suffix: string = 'w600') => {
-    return `https://lh3.googleusercontent.com/d/${photoId}=${suffix}`;
-  };
-
-  // --- LÓGICA DE DOWNLOAD REFINADA (COM ESTADOS INDEPENDENTES) ---
+  // --- LÓGICA DE DOWNLOAD REFINADA COM PROCESSAMENTO EM LOTE ---
   const handleDownloadZip = async (
     targetList: any[],
     zipSuffix: string,
     isFavAction: boolean,
+    confirmed = false,
   ) => {
     if (isDownloading || isDownloadingFavs || targetList.length === 0) return;
 
+    const totalSizeBytes = targetList.reduce(
+      (acc, photo) => acc + (Number(photo.size) || 0),
+      0,
+    );
+    const totalMB = totalSizeBytes / (1024 * 1024);
+
+    // Gatilho do Modal em vez de confirm nativo
+    if (
+      !confirmed &&
+      (targetList.length > MAX_PHOTOS_LIMIT ||
+        totalMB > HEAVY_SIZE_THRESHOLD_MB)
+    ) {
+      setDownloadConfirm({
+        isOpen: true,
+        targetList,
+        zipSuffix,
+        isFavAction,
+        totalMB,
+      });
+      return;
+    }
+
+    const BATCH_SIZE = 100; // Limite de 100 fotos por lote para estabilidade
     const setProgress = isFavAction
       ? setFavDownloadProgress
       : setDownloadProgress;
@@ -97,35 +120,51 @@ export default function PhotoGrid({ photos, galeria }: any) {
       setStatus(true);
       setProgress(0);
       const zip = new JSZip();
+      let completedCount = 0; // Contador manual para precisão
 
-      for (let i = 0; i < targetList.length; i++) {
-        const photo = targetList[i];
-        const fileId = photo.id;
-        const url = `https://lh3.googleusercontent.com/d/${fileId}=s0`;
-
-        try {
-          const response = await fetch(url);
-          if (!response.ok) throw new Error('Erro na rede');
-          const blob = await response.blob();
-          zip.file(`foto-${i + 1}.jpg`, blob);
-          // Atualiza progresso específico do botão clicado
-          setProgress(((i + 1) / targetList.length) * 100);
-        } catch (err) {
-          console.error(`Erro ao processar foto ${i}:`, err);
-        }
+      // Loop em saltos de 100 fotos
+      // FASE 1: DOWNLOAD (Vai ocupar de 0% a 90% da barra)
+      // FASE 1: Download rápido em paralelo
+      for (let i = 0; i < targetList.length; i += 100) {
+        const currentBatch = targetList.slice(i, i + 100);
+        await Promise.all(
+          currentBatch.map(async (photo) => {
+            try {
+              const res = await fetch(
+                `https://lh3.googleusercontent.com/d/${photoId}=s0`,
+              );
+              const blob = await res.blob();
+              zip.file(`foto-${completedCount + 1}.jpg`, blob);
+              completedCount++;
+              setProgress((completedCount / targetList.length) * 95); // Vai até 95% no download
+            } catch (e) {
+              completedCount++;
+            }
+          }),
+        );
       }
 
-      const content = await zip.generateAsync({
-        type: 'blob',
-        compression: 'STORE',
-      });
+      // FASE 2: Compactação com prioridade de velocidade
+      const content = await zip.generateAsync(
+        { type: 'blob', compression: 'STORE', streamFiles: true }, // streamFiles ajuda na velocidade
+        (meta) => {
+          if (meta.percent > 0) setProgress(95 + meta.percent * 0.05); // Os últimos 5% são rápidos
+        },
+      );
+
+      // FASE 3: Disparo imediato
       saveAs(content, `${galeria.title.replace(/\s+/g, '_')}_${zipSuffix}.zip`);
+
+      // Feedback de sucesso imediato
+      setProgress(100);
     } catch (error) {
-      console.error('Erro no ZIP:', error);
-      alert('Erro ao gerar o arquivo ZIP.');
+      console.error(error);
     } finally {
-      setStatus(false);
-      setProgress(0);
+      // Reduzimos o delay do finally para o botão liberar mais rápido
+      setTimeout(() => {
+        setStatus(false);
+        setProgress(0);
+      }, 500);
     }
   };
 
@@ -134,23 +173,6 @@ export default function PhotoGrid({ photos, galeria }: any) {
     const favPhotos = photos.filter((p: any) => favorites.includes(p.id));
     handleDownloadZip(favPhotos, 'favoritas', true);
   };
-
-  useEffect(() => {
-    const handleScroll = () => {
-      const scrollHeight = document.documentElement.scrollHeight;
-      const currentPosition = window.innerHeight + window.scrollY;
-
-      // Quando faltar ~2000px para o fim, carrega mais
-      if (currentPosition >= scrollHeight - 2000) {
-        setDisplayLimit((prev) =>
-          Math.min(prev + QTD_FOTO_EXIBIDAS, displayedPhotos.length),
-        );
-      }
-    };
-
-    window.addEventListener('scroll', handleScroll);
-    return () => window.removeEventListener('scroll', handleScroll);
-  }, [displayedPhotos.length]);
 
   if (!photos || photos.length === 0) return null;
 
@@ -171,30 +193,7 @@ export default function PhotoGrid({ photos, galeria }: any) {
     return () => window.removeEventListener('scroll', handleScroll);
   }, []);
 
-  const observer = useRef<IntersectionObserver | null>(null);
   const sentinelRef = useRef<HTMLDivElement | null>(null);
-
-  useEffect(() => {
-    observer.current = new IntersectionObserver((entries) => {
-      if (entries[0].isIntersecting) {
-        setDisplayLimit((prev) => Math.min(prev + 24, displayedPhotos.length));
-      }
-    });
-    if (sentinelRef.current) {
-      observer.current.observe(sentinelRef.current);
-    }
-    return () => observer.current?.disconnect();
-  }, [displayedPhotos.length]);
-
-  const gridRef = useRef(null);
-  const [isReady, setIsReady] = useState(false);
-  useEffect(() => {
-    if (gridRef.current) {
-      imagesLoaded(gridRef.current, () => {
-        setIsReady(true);
-      });
-    }
-  }, [displayedPhotos]);
 
   return (
     <div className="w-full flex flex-col items-center gap-6 pb-10">
@@ -215,6 +214,7 @@ export default function PhotoGrid({ photos, galeria }: any) {
             showOnlyFavorites={showOnlyFavorites}
             setShowOnlyFavorites={setShowOnlyFavorites}
             isDownloading={isDownloading}
+            downloadProgress={downloadProgress}
             downloadAllAsZip={downloadAllAsZip}
             isScrolled={isScrolled}
             isHovered={isHovered}
@@ -230,10 +230,9 @@ export default function PhotoGrid({ photos, galeria }: any) {
             favorites={favorites}
             showOnlyFavorites={showOnlyFavorites}
             setShowOnlyFavorites={setShowOnlyFavorites}
-            downloadAllAsZip={() =>
-              handleDownloadZip(photos, 'completa', false)
-            }
+            downloadAllAsZip={downloadAllAsZip}
             isDownloading={isDownloading}
+            downloadProgress={downloadProgress}
             isScrolled={isScrolled}
           />
         </div>
@@ -247,14 +246,7 @@ export default function PhotoGrid({ photos, galeria }: any) {
         setSelectedPhotoIndex={setSelectedPhotoIndex}
         photos={photos}
         showOnlyFavorites={showOnlyFavorites}
-        masonryKey={masonryKey}
       />
-      {/* 4. INDICADOR DE CARREGAMENTO */}
-      {displayLimit < displayedPhotos.length && (
-        <div className="flex justify-center py-20 w-full">
-          <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-[#F3E5AB]" />
-        </div>
-      )}
       {/* 5. LIGHTBOX */}
       {selectedPhotoIndex !== null && photos.length > 0 && (
         <Lightbox
@@ -284,37 +276,60 @@ export default function PhotoGrid({ photos, galeria }: any) {
           <button
             onClick={handleDownloadFavorites}
             disabled={isDownloadingFavs}
-            className="flex items-center gap-3 bg-[#E67E70] hover:bg-[#D66D5F] text-white px-4 md:px-4 py-2 md:py-2 rounded-full shadow-[0_10px_40px_rgba(230,126,112,0.4)] transition-all active:scale-95 group border border-white/20"
+            className="flex items-center gap-3 bg-[#E67E70] hover:bg-[#D66D5F] text-white px-6 py-3 rounded-full shadow-2xl transition-all"
           >
             {isDownloadingFavs ? (
-              <div className="flex items-center gap-">
-                <Loader2 className="animate-spin h-5 w-5" />
-                <span className="font-bold tracking-widest text-sm">
-                  A baixar ({Math.round(favDownloadProgress)}%)
+              <div className="flex items-center gap-2">
+                <Loader2 className="h-5 w-5 animate-spin" />
+                <span className="font-bold">
+                  Baixando ({Math.round(favDownloadProgress)}%)
                 </span>
               </div>
             ) : (
               <>
-                <div className="bg-white/20 p-1.5 rounded-full group-hover:bg-white/30 transition-colors">
-                  <Download size={18} />
-                </div>
-                <div className="flex flex-col items-start leading-none">
-                  <span className="gap-1.5 text-white text-sm md:text-[14px] font-medium italic">
-                    Baixar favoritas
-                  </span>
-                  <span className="text-[10px] md:text-[12px] opacity-80 italic">
-                    {favorites.length}{' '}
-                    {favorites.length === 1
-                      ? 'foto escolhida'
-                      : 'fotos escolhidas'}
-                  </span>
-                </div>
+                <Download size={20} />
+                <span className="font-medium">
+                  Baixar {favorites.length} favoritas
+                </span>
               </>
             )}
           </button>
         </div>
       )}
+
       <div ref={sentinelRef} className="h-10" />
+
+      <ConfirmationModal
+        isOpen={downloadConfirm.isOpen}
+        title="Download volumoso"
+        variant="primary"
+        confirmText="Baixar agora"
+        onClose={() =>
+          setDownloadConfirm((prev) => ({ ...prev, isOpen: false }))
+        }
+        onConfirm={() => {
+          setDownloadConfirm((prev) => ({ ...prev, isOpen: false }));
+          handleDownloadZip(
+            downloadConfirm.targetList,
+            downloadConfirm.zipSuffix,
+            downloadConfirm.isFavAction,
+            true,
+          );
+        }}
+        message={
+          <p>
+            Você está baixando{' '}
+            <span className="font-bold">
+              {downloadConfirm.targetList.length} fotos
+            </span>
+            . O tamanho estimado é de{' '}
+            <span className="font-bold">
+              {downloadConfirm.totalMB.toFixed(0)}MB
+            </span>
+            . Isso pode levar alguns minutos.
+          </p>
+        }
+      />
     </div>
   );
 }

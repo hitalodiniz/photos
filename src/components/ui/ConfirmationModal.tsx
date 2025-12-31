@@ -1,66 +1,68 @@
-// components/DashboardUI/ConfirmationModal.tsx
 'use client';
-
 import { motion, AnimatePresence } from 'framer-motion';
-import type { Galeria } from '@/app/(dashboard)/dashboard/ClientAdminWrapper/types';
 
 interface ConfirmationModalProps {
-  galeria: Galeria | null;
   isOpen: boolean;
   onClose: () => void;
   onConfirm: () => void;
-  isDeleting?: boolean;
+  title: string;
+  message: React.ReactNode;
+  confirmText?: string;
+  variant?: 'danger' | 'primary';
+  isLoading?: boolean;
 }
 
 export default function ConfirmationModal({
-  galeria,
   isOpen,
   onClose,
   onConfirm,
-  isDeleting = false,
+  title,
+  message,
+  confirmText = 'Confirmar',
+  variant = 'danger',
+  isLoading = false,
 }: ConfirmationModalProps) {
   return (
     <AnimatePresence>
-      {isOpen && galeria && (
+      {isOpen && (
         <motion.div
-          className="fixed inset-0 z-40 flex items-center justify-center bg-black/40"
+          className="fixed inset-0 z-[200] flex items-center justify-center bg-black/40 backdrop-blur-sm"
           initial={{ opacity: 0 }}
           animate={{ opacity: 1 }}
           exit={{ opacity: 0 }}
         >
           <motion.div
-            className="w-full max-w-sm rounded-2xl bg-white p-5 shadow-xl"
+            className="w-full max-w-sm rounded-2xl bg-white p-6 shadow-xl"
             initial={{ scale: 0.92, opacity: 0 }}
             animate={{ scale: 1, opacity: 1 }}
             exit={{ scale: 0.9, opacity: 0 }}
           >
             <h2 className="mb-2 text-lg font-semibold text-gray-900">
-              Excluir galeria?
+              {title}
             </h2>
-
-            <p className="mb-4 text-sm text-gray-700">
-              Tem certeza que deseja excluir a galeria{' '}
-              <span className="font-semibold">{galeria.title}</span>? Essa ação
-              não pode ser desfeita.
-            </p>
+            <div className="mb-6 text-sm text-gray-700">{message}</div>
 
             <div className="flex justify-end gap-2">
               <button
                 onClick={onClose}
-                disabled={isDeleting}
-                className="rounded-full border border-gray-300 px-3 py-1.5 text-sm text-gray-700 hover:bg-gray-100 disabled:cursor-not-allowed disabled:opacity-60"
+                disabled={isLoading}
+                className="rounded-full border border-gray-300 px-4 py-2 text-sm text-gray-700 hover:bg-gray-100 disabled:opacity-60"
               >
                 Cancelar
               </button>
               <button
                 onClick={onConfirm}
-                disabled={isDeleting}
-                className="flex items-center gap-2 rounded-full bg-red-600 px-3 py-1.5 text-sm text-white hover:bg-red-700 disabled:cursor-not-allowed disabled:opacity-60"
+                disabled={isLoading}
+                className={`flex items-center gap-2 rounded-full px-4 py-2 text-sm text-white transition-colors disabled:opacity-60 ${
+                  variant === 'danger'
+                    ? 'bg-red-600 hover:bg-red-700'
+                    : 'bg-slate-900 hover:bg-black'
+                }`}
               >
-                {isDeleting && (
-                  <span className="inline-block h-3 w-3 animate-spin rounded-full border border-white border-t-transparent" />
+                {isLoading && (
+                  <span className="h-3 w-3 animate-spin rounded-full border border-white border-t-transparent" />
                 )}
-                Deletar
+                {confirmText}
               </button>
             </div>
           </motion.div>
