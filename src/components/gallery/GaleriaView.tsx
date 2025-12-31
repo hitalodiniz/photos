@@ -34,9 +34,9 @@ export default function GaleriaView({ galeria, photos }: GaleriaViewProps) {
         <div
           className="absolute inset-0 bg-cover bg-center"
           style={{
-            backgroundPosition: 'center 70%',
+            backgroundPosition: 'center 50%',
             backgroundImage: `url('${getCoverUrl(galeria.cover_image_url)}')`,
-            filter: 'brightness(0.6) contrast(0.8)',
+            filter: 'brightness(0.6) contrast(1)',
           }}
         />
       </div>
