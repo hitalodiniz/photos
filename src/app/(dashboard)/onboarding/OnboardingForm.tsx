@@ -4,32 +4,53 @@ import { useState, useEffect, useRef } from 'react';
 import { useRouter } from 'next/navigation';
 import { useFormStatus } from 'react-dom';
 import {
-  Camera, User, AtSign, FileText, Sparkles, Loader2,
-  MessageCircle, Instagram, Upload, MapPin, X, CheckCircle2, Save,
-  AlertCircle, Pencil
+  Camera,
+  User,
+  AtSign,
+  FileText,
+  Sparkles,
+  Loader2,
+  MessageCircle,
+  Instagram,
+  Upload,
+  MapPin,
+  X,
+  CheckCircle2,
+  Save,
+  AlertCircle,
+  Pencil,
+  ArrowLeft,
+  LayoutDashboard,
 } from 'lucide-react';
 
 import { upsertProfile } from '@/actions/profile';
 import { supabase } from '@/lib/supabase.client';
-import { maskPhone } from "@/utils/masks";
+import { maskPhone } from '@/utils/masks';
 import ProfilePreview from './ProfilePreview';
+import { div } from 'framer-motion/client';
 
 // --- AUXILIARES ---
 const fetchStates = async () => {
-  const response = await fetch("https://servicodados.ibge.gov.br/api/v1/localidades/estados?orderBy=nome");
+  const response = await fetch(
+    'https://servicodados.ibge.gov.br/api/v1/localidades/estados?orderBy=nome',
+  );
   return await response.json();
 };
 
 const fetchCitiesByState = async (uf: string, query: string) => {
   if (query.length < 2) return [];
   try {
-    const response = await fetch(`https://servicodados.ibge.gov.br/api/v1/localidades/estados/${uf}/municipios`);
+    const response = await fetch(
+      `https://servicodados.ibge.gov.br/api/v1/localidades/estados/${uf}/municipios`,
+    );
     const data = await response.json();
     return data
-      .filter((item: any) => item.nome.toLowerCase().includes(query.toLowerCase()))
+      .filter((item: any) =>
+        item.nome.toLowerCase().includes(query.toLowerCase()),
+      )
       .map((item: any) => `${item.nome}, ${uf}`);
   } catch (error) {
-    console.error("Erro IBGE:", error);
+    console.error('Erro IBGE:', error);
     return [];
   }
 };
@@ -41,52 +62,76 @@ export function SubmitOnboarding() {
       type="submit"
       disabled={pending}
       className={`w-full py-5 rounded-2xl font-bold uppercase text-xs tracking-[0.2em] shadow-lg transition-all active:scale-95 flex items-center justify-center gap-2 ${
-        pending 
-          ? 'bg-slate-100 text-slate-400 cursor-not-allowed' 
+        pending
+          ? 'bg-slate-100 text-slate-400 cursor-not-allowed'
           : 'bg-[#F3E5AB] hover:bg-[#e6d595] text-slate-900 shadow-[#F3E5AB]/20'
       }`}
     >
-      {pending ? <><Loader2 className="animate-spin" size={18} /> Salvando...</> : <><Save size={16} /> Salvar perfil</>}
+      {pending ? (
+        <>
+          <Loader2 className="animate-spin" size={18} /> Salvando...
+        </>
+      ) : (
+        <>
+          <Save size={16} /> Salvar perfil
+        </>
+      )}
     </button>
   );
 }
 
-export default function OnboardingForm({ initialData, suggestedUsername, isEditMode }: any) {
+export default function OnboardingForm({
+  initialData,
+  suggestedUsername,
+  isEditMode,
+}: any) {
   const router = useRouter();
   const fileInputRef = useRef<HTMLInputElement>(null);
 
   const [fullName, setFullName] = useState(initialData?.full_name || '');
-  const [username, setUsername] = useState(initialData?.username || suggestedUsername);
+  const [username, setUsername] = useState(
+    initialData?.username || suggestedUsername,
+  );
   const [miniBio, setMiniBio] = useState(initialData?.mini_bio || '');
   const [phone, setPhone] = useState(initialData?.phone_contact || '');
   const [instagram, setInstagram] = useState(initialData?.instagram_link || '');
-  const [selectedCities, setSelectedCities] = useState<string[]>(initialData?.operating_cities || []);
+  const [selectedCities, setSelectedCities] = useState<string[]>(
+    initialData?.operating_cities || [],
+  );
   const [states, setStates] = useState<{ sigla: string; nome: string }[]>([]);
   const [selectedUF, setSelectedUF] = useState('');
   const [cityInput, setCityInput] = useState('');
   const [suggestions, setSuggestions] = useState<string[]>([]);
   const [photoFile, setPhotoFile] = useState<File | null>(null);
-  const [photoPreview, setPhotoPreview] = useState<string | null>(initialData?.profile_picture_url || null);
+  const [photoPreview, setPhotoPreview] = useState<string | null>(
+    initialData?.profile_picture_url || null,
+  );
   const [isChecking, setIsChecking] = useState(false);
   const [isAvailable, setIsAvailable] = useState<boolean | null>(null);
   const [showSuccessModal, setShowSuccessModal] = useState(false);
   const [isSaving, setIsSaving] = useState(false);
 
-  useEffect(() => { fetchStates().then(setStates); }, []);
+  useEffect(() => {
+    fetchStates().then(setStates);
+  }, []);
 
   useEffect(() => {
     const timer = setTimeout(async () => {
       if (cityInput.length >= 2 && selectedUF) {
         const results = await fetchCitiesByState(selectedUF, cityInput);
         setSuggestions(results);
-      } else { setSuggestions([]); }
+      } else {
+        setSuggestions([]);
+      }
     }, 300);
     return () => clearTimeout(timer);
   }, [cityInput, selectedUF]);
 
   useEffect(() => {
     if (initialData?.phone_contact) {
-      const masked = maskPhone({ target: { value: initialData.phone_contact } } as any);
+      const masked = maskPhone({
+        target: { value: initialData.phone_contact },
+      } as any);
       setPhone(masked);
     }
   }, [initialData]);
@@ -94,10 +139,17 @@ export default function OnboardingForm({ initialData, suggestedUsername, isEditM
   const isPhoneValid = phone.replace(/\D/g, '').length >= 11;
 
   useEffect(() => {
-    if (!username || username === initialData?.username) { setIsAvailable(null); return; }
+    if (!username || username === initialData?.username) {
+      setIsAvailable(null);
+      return;
+    }
     const check = async () => {
       setIsChecking(true);
-      const { data } = await supabase.from('tb_profiles').select('username').eq('username', username.toLowerCase()).maybeSingle();
+      const { data } = await supabase
+        .from('tb_profiles')
+        .select('username')
+        .eq('username', username.toLowerCase())
+        .maybeSingle();
       setIsAvailable(!data);
       setIsChecking(false);
     };
@@ -106,7 +158,8 @@ export default function OnboardingForm({ initialData, suggestedUsername, isEditM
   }, [username, initialData?.username]);
 
   const handleSelectCity = (city: string) => {
-    if (!selectedCities.includes(city)) setSelectedCities(prev => [...prev, city]);
+    if (!selectedCities.includes(city))
+      setSelectedCities((prev) => [...prev, city]);
     setCityInput('');
     setSuggestions([]);
   };
@@ -125,7 +178,8 @@ export default function OnboardingForm({ initialData, suggestedUsername, isEditM
     setIsSaving(true);
     formData.append('operating_cities_json', JSON.stringify(selectedCities));
     if (photoFile) formData.append('profile_picture_file', photoFile);
-    else if (photoPreview) formData.append('profile_picture_url_existing', photoPreview);
+    else if (photoPreview)
+      formData.append('profile_picture_url_existing', photoPreview);
 
     const result = await upsertProfile(formData);
 
@@ -133,37 +187,47 @@ export default function OnboardingForm({ initialData, suggestedUsername, isEditM
     if (result?.success) {
       setShowSuccessModal(true);
     } else {
-      alert(result?.error || "Erro ao salvar");
+      alert(result?.error || 'Erro ao salvar');
     }
   };
 
-  const containerBaseClass = "fixed inset-0 top-0 bg-white flex w-full font-sans z-[9999] overflow-hidden ";
+  const containerBaseClass =
+    'fixed inset-0 top-0 bg-white flex w-full font-sans z-[9999] overflow-hidden ';
 
   return (
     <div className={containerBaseClass}>
-      <aside className="w-[40%] bg-white border-r border-slate-100 p-8 pt-10 flex flex-col h-full relative z-20 overflow-y-auto no-scrollbar shadow-2xl">
-        <div className="flex items-center gap-3 mb-8 shrink-0">
+      {/* ASIDE REFINADO - ESTILO LUXO EDITORIAL */}
+      <aside className="w-[35%] bg-white border-r border-slate-100 p-6 pt-8 flex flex-col h-full relative z-20 overflow-y-auto no-scrollbar shadow-xl">
+        {/* 1. Botão Secundário de Voltar (Compacto) */}
+        {isEditMode && (
+          <button
+            type="button"
+            onClick={() => router.push('/dashboard')}
+            className="w-full py-3 mb-6 rounded-xl font-bold uppercase text-[10px] tracking-[0.2em] transition-all active:scale-95 flex items-center justify-center gap-2 border border-slate-200 text-slate-500 hover:bg-slate-50 hover:text-slate-900"
+          >
+            <LayoutDashboard size={14} />
+            Voltar ao espaço premium
+          </button>
+        )}
+        <div className="flex items-center gap-3 shrink-0">
           <div className="p-2 bg-[#F3E5AB]/20 rounded-lg">
             <Camera className="text-[#D4AF37]" size={24} />
           </div>
           <div>
-            <h1 className="font-bold text-slate-900 text-lg tracking-tight">Configuração Profissional</h1>
-            <p className="text-[9px] text-slate-400 font-bold uppercase tracking-[0.2em]">Live Editor</p>
+            <h1 className="font-bold text-slate-900 text-[14px] md:text-[18px] tracking-tight uppercase">
+              {isEditMode ? 'Editar Perfil' : 'Configuração Profissional'}
+            </h1>
           </div>
         </div>
 
         <form action={clientAction} className="space-y-5 flex-grow pb-10">
-          <div className="space-y-3 flex flex-col items-center">
-            <label className={`w-full text-left font-bold text-xs text-slate-500 uppercase tracking-wider flex items-center gap-2`}>
-              <Camera size={14} className="text-[#D4AF37]" /> Foto Editorial
-            </label>
-
+          <div className="flex flex-col items-center">
             <div className="relative group">
-              <input 
-                type="file" 
-                ref={fileInputRef} 
-                className="hidden" 
-                accept="image/*" 
+              <input
+                type="file"
+                ref={fileInputRef}
+                className="hidden"
+                accept="image/*"
                 onChange={handleFileChange}
               />
               <div
@@ -196,37 +260,43 @@ export default function OnboardingForm({ initialData, suggestedUsername, isEditM
               </button>
             </div>
             <p className="text-[10px] text-slate-400 font-medium uppercase tracking-tighter">
-              {photoPreview ? "Clique para alterar" : "Carregar foto de perfil"}
+              {photoPreview ? 'Clique para alterar' : 'Carregar foto de perfil'}
             </p>
           </div>
 
           <div className="grid grid-cols-2 gap-4">
             <div>
-              <label className="text-xs font-bold text-slate-500 flex items-center gap-2 uppercase mb-1">
+              <label>
                 <User size={14} className="text-[#D4AF37]" /> Nome Completo
               </label>
-              <input 
-                name="full_name" 
+              <input
+                name="full_name"
                 className="w-full bg-slate-50 border border-slate-100 rounded-xl px-4 py-3 text-sm focus:outline-none focus:ring-2 focus:ring-[#F3E5AB]"
-                value={fullName} 
-                onChange={(e) => setFullName(e.target.value)} 
-                required  
+                value={fullName}
+                onChange={(e) => setFullName(e.target.value)}
+                required
               />
             </div>
             <div>
-              <label className="text-xs font-bold text-slate-500 flex items-center gap-2 uppercase mb-1">
+              <label>
                 <AtSign size={14} className="text-[#D4AF37]" /> Username
               </label>
               <div className="relative">
-                <input 
-                  name="username" 
+                <input
+                  name="username"
                   className="w-full bg-slate-50 border border-slate-100 rounded-xl px-4 py-3 text-sm focus:outline-none focus:ring-2 focus:ring-[#F3E5AB]"
-                  value={username} 
-                  onChange={(e) => setUsername(e.target.value.toLowerCase())} 
-                  required  
+                  value={username}
+                  onChange={(e) => setUsername(e.target.value.toLowerCase())}
+                  required
                 />
                 <div className="absolute right-3 top-1/2 -translate-y-1/2">
-                  {isChecking ? <Loader2 size={12} className="animate-spin" /> : isAvailable === true ? <CheckCircle2 size={12} className="text-green-500" /> : isAvailable === false ? <AlertCircle size={12} className="text-red-500" /> : null}
+                  {isChecking ? (
+                    <Loader2 size={12} className="animate-spin" />
+                  ) : isAvailable === true ? (
+                    <CheckCircle2 size={12} className="text-green-500" />
+                  ) : isAvailable === false ? (
+                    <AlertCircle size={12} className="text-red-500" />
+                  ) : null}
                 </div>
               </div>
             </div>
@@ -234,9 +304,13 @@ export default function OnboardingForm({ initialData, suggestedUsername, isEditM
 
           <div className="grid grid-cols-2 gap-4">
             <div>
-              <label className="text-xs font-bold text-slate-500 flex items-center gap-2 uppercase mb-1">
+              <label>
                 <MessageCircle size={14} className="text-[#D4AF37]" /> WhatsApp
-                {!isPhoneValid && phone.length > 0 && <span className="text-[10px] text-red-500 font-medium ml-auto">Incompleto</span>}
+                {!isPhoneValid && phone.length > 0 && (
+                  <span className="text-[10px] text-red-500 font-medium ml-auto">
+                    Incompleto
+                  </span>
+                )}
               </label>
               <input
                 name="phone_contact"
@@ -247,15 +321,15 @@ export default function OnboardingForm({ initialData, suggestedUsername, isEditM
               />
             </div>
             <div>
-              <label className="text-xs font-bold text-slate-500 flex items-center gap-2 uppercase mb-1">
+              <label>
                 <Instagram size={14} className="text-[#D4AF37]" /> Instagram
               </label>
-              <input 
-                name="instagram_link" 
+              <input
+                name="instagram_link"
                 className="w-full bg-slate-50 border border-slate-100 rounded-xl px-4 py-3 text-sm focus:outline-none focus:ring-2 focus:ring-[#F3E5AB]"
-                value={instagram} 
-                onChange={(e) => setInstagram(e.target.value)} 
-                placeholder="@seu.perfil"  
+                value={instagram}
+                onChange={(e) => setInstagram(e.target.value)}
+                placeholder="@seu.perfil"
               />
             </div>
           </div>
@@ -263,14 +337,25 @@ export default function OnboardingForm({ initialData, suggestedUsername, isEditM
           <div className="rounded-2xl border border-[#D4AF37]/20 p-4 bg-[#FAF7ED]">
             <div className="flex items-center gap-2 mb-3 text-[#D4AF37]">
               <MapPin size={16} />
-              <label className="text-sm font-bold tracking-wider text-[#4F5B66]">Área de Atuação ({selectedCities.length})</label>
+              <label>Área de Atuação ({selectedCities.length})</label>
             </div>
 
             <div className="flex flex-wrap gap-1.5 mb-3">
-              {selectedCities.map(city => (
-                <span key={city} className="bg-white border border-[#D4AF37]/20 text-slate-900 text-[10px] font-bold px-2 py-1 rounded-lg flex items-center gap-1 shadow-sm">
+              {selectedCities.map((city) => (
+                <span
+                  key={city}
+                  className="bg-white border border-[#D4AF37]/20 text-slate-900 text-[10px] font-bold px-2 py-1 rounded-lg flex items-center gap-1 shadow-sm"
+                >
                   {city}
-                  <X size={10} className="cursor-pointer text-slate-300 hover:text-red-500" onClick={() => setSelectedCities(selectedCities.filter(c => c !== city))} />
+                  <X
+                    size={10}
+                    className="cursor-pointer text-slate-300 hover:text-red-500"
+                    onClick={() =>
+                      setSelectedCities(
+                        selectedCities.filter((c) => c !== city),
+                      )
+                    }
+                  />
                 </span>
               ))}
             </div>
@@ -278,11 +363,19 @@ export default function OnboardingForm({ initialData, suggestedUsername, isEditM
             <div className="flex gap-2">
               <select
                 value={selectedUF}
-                onChange={(e) => { setSelectedUF(e.target.value); setCityInput(''); setSuggestions([]); }}
+                onChange={(e) => {
+                  setSelectedUF(e.target.value);
+                  setCityInput('');
+                  setSuggestions([]);
+                }}
                 className="w-20 bg-white border border-gray-200 rounded-xl px-2 py-2 text-xs font-bold text-[#4F5B66] outline-none"
               >
                 <option value="">UF</option>
-                {states.map(uf => <option key={uf.sigla} value={uf.sigla}>{uf.sigla}</option>)}
+                {states.map((uf) => (
+                  <option key={uf.sigla} value={uf.sigla}>
+                    {uf.sigla}
+                  </option>
+                ))}
               </select>
 
               <div className="relative flex-grow">
@@ -291,7 +384,11 @@ export default function OnboardingForm({ initialData, suggestedUsername, isEditM
                   value={cityInput}
                   onChange={(e) => setCityInput(e.target.value)}
                   className="w-full bg-white border border-gray-200 rounded-xl px-4 py-2 text-xs outline-none"
-                  placeholder={selectedUF ? "Digite a cidade..." : "Selecione a UF primeiro"}
+                  placeholder={
+                    selectedUF
+                      ? 'Digite a cidade...'
+                      : 'Selecione a UF primeiro'
+                  }
                 />
                 {suggestions.length > 0 && (
                   <div className="absolute z-[100] w-full bg-white border border-slate-200 rounded-xl mt-1 shadow-2xl max-h-48 overflow-y-auto no-scrollbar">
@@ -312,15 +409,16 @@ export default function OnboardingForm({ initialData, suggestedUsername, isEditM
           </div>
 
           <div>
-            <label className="text-xs font-bold text-slate-500 flex items-center gap-2 uppercase mb-1">
-              <FileText size={14} className="text-[#D4AF37]" /> Mini Bio Editorial
+            <label>
+              <FileText size={14} className="text-[#D4AF37]" /> Mini Bio
+              Editorial
             </label>
-            <textarea 
-              name="mini_bio" 
+            <textarea
+              name="mini_bio"
               className="w-full bg-slate-50 border border-slate-100 rounded-xl px-4 py-3 text-sm focus:outline-none focus:ring-2 focus:ring-[#F3E5AB]"
-              value={miniBio || ''} 
-              onChange={(e) => setMiniBio(e.target.value)} 
-              rows={3}  
+              value={miniBio || ''}
+              onChange={(e) => setMiniBio(e.target.value)}
+              rows={3}
             />
           </div>
 
@@ -349,7 +447,7 @@ export default function OnboardingForm({ initialData, suggestedUsername, isEditM
             phone_contact: phone,
             instagram_link: instagram,
             avatar_url: photoPreview,
-            cities: selectedCities
+            cities: selectedCities,
           }}
         />
       </main>
@@ -360,19 +458,32 @@ export default function OnboardingForm({ initialData, suggestedUsername, isEditM
             <div className="w-20 h-20 bg-green-50 text-green-600 rounded-full flex items-center justify-center mx-auto mb-6 shadow-inner">
               <CheckCircle2 size={40} />
             </div>
-            <h2 className="text-2xl font-bold text-slate-900 mb-2 tracking-tight">Perfil Consolidado!</h2>
+            <h2 className="text-2xl font-bold text-slate-900 mb-2 tracking-tight">
+              Perfil Consolidado!
+            </h2>
             <p className="text-slate-500 mb-8 leading-relaxed text-sm">
-              Sua presença editorial foi atualizada com sucesso. Como deseja prosseguir?
+              Sua presença editorial foi atualizada com sucesso. Como deseja
+              prosseguir?
             </p>
             <div className="flex flex-col gap-3">
-              <a href={`/${username}`} target="_blank" className="w-full flex items-center justify-center gap-2 bg-slate-900 text-[#F3E5AB] py-4 rounded-xl font-bold text-sm hover:bg-slate-800 transition-colors">
+              <a
+                href={`/${username}`}
+                target="_blank"
+                className="w-full flex items-center justify-center gap-2 bg-slate-900 text-[#F3E5AB] py-4 rounded-xl font-bold text-sm hover:bg-slate-800 transition-colors"
+              >
                 <Sparkles size={16} />
                 Visualizar Perfil Público
               </a>
-              <button onClick={() => router.push('/dashboard')} className="w-full bg-[#F3E5AB] text-slate-900 py-4 rounded-xl font-bold text-sm hover:bg-[#e6d595] transition-colors">
+              <button
+                onClick={() => router.push('/dashboard')}
+                className="w-full bg-[#F3E5AB] text-slate-900 py-4 rounded-xl font-bold text-sm hover:bg-[#e6d595] transition-colors"
+              >
                 Ir para o Dashboard
               </button>
-              <button onClick={() => setShowSuccessModal(false)} className="w-full text-slate-400 py-2 text-xs font-bold hover:text-slate-600 transition-colors">
+              <button
+                onClick={() => setShowSuccessModal(false)}
+                className="w-full text-slate-400 py-2 text-xs font-bold hover:text-slate-600 transition-colors"
+              >
                 Continuar Refinando
               </button>
             </div>

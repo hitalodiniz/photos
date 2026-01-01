@@ -96,9 +96,27 @@ export default function PhotographerProfileContent({
                     : '"Sua essência editorial aparecerá aqui..."'}
                 </p>
 
-                <div className="flex items-center justify-center gap-1.5 text-[#D4AF37] text-[10px] md:text-[14px] tracking-[0.1em] font-semibold px-4">
-                  <MapPin size={12} className="flex-shrink-0" />
-                  <span className="leading-relaxed">{locationDisplay}</span>
+                {/* Container de Localização Refinado */}
+                <div className="flex flex-col items-center gap-2 px-6 max-w-md mx-auto">
+                  <div className="flex items-center gap-1.5 text-[#D4AF37]">
+                    <MapPin size={14} className="flex-shrink-0" />
+                    <span className="text-[10px] tracking-[0.2em] uppercase font-bold">
+                      Cidades de Atuação
+                    </span>
+                  </div>
+
+                  <p className="text-slate-700 text-[11px] md:text-[13px] leading-relaxed font-medium text-center">
+                    {cities.map((city, index) => (
+                      <React.Fragment key={city}>
+                        <span className="whitespace-nowrap">{city}</span>
+                        {index < cities.length - 1 && (
+                          <span className="mx-2 text-[#D4AF37]/40 text-[8px] md:text-[10px] inline-block align-middle">
+                            •
+                          </span>
+                        )}
+                      </React.Fragment>
+                    ))}
+                  </p>
                 </div>
 
                 <div className="w-16 h-px bg-[#D4AF37]/20 mx-auto" />
