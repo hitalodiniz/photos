@@ -18,10 +18,10 @@ export default async function UsernameGaleriaPage({
 
   // Execução limpa das lógicas
   const galeriaRaw = await fetchGalleryBySlug(fullSlug);
+
   if (!galeriaRaw) notFound();
 
   const galeriaData = formatGalleryData(galeriaRaw, username);
-
   // Verificação de segurança
   if (!galeriaData.is_public) {
     const cookieStore = await cookies();

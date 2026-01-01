@@ -37,15 +37,17 @@ export default function PhotographerAvatar({
       `}
       >
         {/* Foto do Fotógrafo à Esquerda */}
-        <div className="relative group flex-shrink-0 cursor-pointer">
+        <div className="relative group flex-shrink-0 cursor-pointer w-12 h-12 md:w-16 md:h-16 rounded-full overflow-hidden">
+          {/* Efeito de brilho ao fundo */}
           <div className="absolute -inset-1 bg-gradient-to-tr from-[#D4AF37] to-[#F3E5AB] rounded-full blur-sm opacity-30 group-hover:opacity-60 transition duration-700"></div>
+
           <Image
             src={galeria.photographer_avatar_url || '/default-avatar.jpg'}
             alt={galeria.photographer_name || 'Fotógrafo'}
-            fill // Preenche o container responsivo (w-12 ou w-16)
-            sizes="(max-width: 768px) 48px, 64px" // Informa ao browser os tamanhos reais
-            className="object-cover transition-transform duration-500 group-hover:scale-105"
-            priority // Recomendado para fotos de perfil que aparecem no topo da página
+            fill // Agora ele sabe que deve preencher os 48px ou 64px do pai
+            sizes="(max-width: 768px) 48px, 64px"
+            className="object-cover transition-transform duration-500 group-hover:scale-105 z-10 rounded-full"
+            priority
           />
         </div>
 
