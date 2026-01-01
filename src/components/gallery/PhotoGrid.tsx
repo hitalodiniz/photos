@@ -126,57 +126,64 @@ export default function PhotoGrid({ photos, galeria }: any) {
       const zip = new JSZip();
       let completedCount = 0;
 
-      // FASE 1: DOWNLOAD EM LOTES DE 100 (SUA ESTRUTURA ORIGINAL)
+      // FASE 1: DOWNLOAD EM LOTES
       for (let i = 0; i < targetList.length; i += 100) {
         const currentBatch = targetList.slice(i, i + 100);
 
         await Promise.all(
-          currentBatch.map(async (photo) => {
+          currentBatch.map(async (photo, indexInBatch) => {
             try {
-              // CORREÇÃO 1: URL com Proxy para evitar o "Failed to fetch" (CORS)
+              // CORREÇÃO 1: URL com Proxy para evitar CORS
               const res = await fetch(`/api/proxy-image?id=${photo.id}`);
               if (!res.ok) throw new Error(`Erro ${res.status}`);
 
+              // CORREÇÃO 2: Baixar como BLOB de imagem (NÃO ZIP AQUI)
               const blob = await res.blob();
 
-              // CORREÇÃO 3: binary: true para processamento mais rápido no ZIP
-              zip.file(`foto-${completedCount + 1}.jpg`, blob, {
+              // Garante que o arquivo tenha a extensão .jpg dentro do ZIP
+              const photoIndex = i + indexInBatch + 1;
+              zip.file(`foto-${photoIndex}.jpg`, blob, {
                 binary: true,
               });
             } catch (e) {
               console.error(`Erro na foto ${photo.id}:`, e);
             } finally {
               completedCount++;
-              // Progresso vai até 98% para diminuir a percepção de trava no final
-              setProgress((completedCount / targetList.length) * 98);
+              setProgress((completedCount / targetList.length) * 95);
             }
           }),
         );
 
-        // Pequena pausa para o navegador "respirar" entre lotes de 100
         if (i + 100 < targetList.length) {
           await new Promise((resolve) => setTimeout(resolve, 100));
         }
       }
 
-      // FASE 2: COMPACTAÇÃO (MODO EXPRESSO)
-      // Removido o callback de progresso aqui para evitar o travamento de 1 minuto
+      // FASE 2: GERAR O ZIP FINAL
       const content = await zip.generateAsync({
         type: 'blob',
-        compression: 'STORE',
+        compression: 'STORE', // 'STORE' é mais rápido para imagens já compactadas
         streamFiles: true,
       });
 
-      // FASE 3: DISPARO
-      saveAs(content, `${galeria.title.replace(/\s+/g, '_')}_${zipSuffix}.zip`);
+      // CORREÇÃO 3: Forçar o tipo MIME do arquivo final para ZIP
+      const finalZip = new Blob([content], { type: 'application/zip' });
+
+      // FASE 3: DISPARO DO DOWNLOAD
+      const fileName = `${galeria.title.replace(/\s+/g, '_')}_${zipSuffix}.zip`;
+
+      // Uso do saveAs (ou link temporário se saveAs falhar)
+      saveAs(finalZip, fileName);
+
       setProgress(100);
     } catch (error) {
       console.error('Erro no ZIP:', error);
+      alert('Erro ao gerar o arquivo compactado.');
     } finally {
       setTimeout(() => {
         setStatus(false);
         setProgress(0);
-      }, 1000);
+      }, 1500);
     }
   };
 

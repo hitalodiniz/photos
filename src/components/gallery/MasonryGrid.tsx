@@ -203,19 +203,44 @@ const MasonryGrid = ({
                           <button
                             onClick={async (e) => {
                               e.stopPropagation();
-                              const response = await fetch(
-                                `/api/proxy-image?id=${photo.id}`,
-                              );
-                              const blob = await response.blob();
-                              const url = URL.createObjectURL(blob);
-                              const link = document.createElement('a');
-                              link.href = url;
-                              link.download = getDownloadFileName(
-                                index,
-                                galleryTitle,
-                              );
-                              link.click();
-                              URL.revokeObjectURL(url);
+                              try {
+                                // 1. Buscamos a imagem via proxy
+                                const response = await fetch(
+                                  `/api/proxy-image?id=${photo.id}`,
+                                );
+
+                                if (!response.ok)
+                                  throw new Error('Falha no download');
+
+                                // 2. Convertemos para blob garantindo o tipo MIME
+                                const blob = await response.blob();
+                                const imageBlob = new Blob([blob], {
+                                  type: 'image/jpeg',
+                                });
+
+                                // 3. Criamos o link de download
+                                const url =
+                                  window.URL.createObjectURL(imageBlob);
+                                const link = document.createElement('a');
+                                link.href = url;
+                                link.download = getDownloadFileName(
+                                  index,
+                                  galleryTitle,
+                                );
+
+                                // 4. Disparamos o download e limpamos a memória
+                                document.body.appendChild(link);
+                                link.click();
+                                document.body.removeChild(link);
+                                window.URL.revokeObjectURL(url);
+                              } catch (error) {
+                                console.error('Erro ao baixar foto:', error);
+                                // Fallback: tenta abrir a imagem original em nova aba se o blob falhar
+                                window.open(
+                                  getHighResImageUrl(photo.id),
+                                  '_blank',
+                                );
+                              }
                             }}
                             className="absolute top-2 right-2 z-[50] w-8 h-8 md:w-10 md:h-10 rounded-full border bg-black/40 border-white/20 flex items-center justify-center hover:scale-110 transition-all pointer-events-auto cursor-pointer"
                           >
