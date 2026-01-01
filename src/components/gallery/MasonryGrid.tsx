@@ -142,12 +142,17 @@ const MasonryGrid = ({
                       href={getImageUrl(photo.id, 'w800')}
                       data-src={getImageUrl(photo.id, 'w800')}
                       onClick={(e) => {
-                        e.preventDefault(); // impede LG padrão
-                        setSelectedPhotoIndex(index); // sincroniza com seu lightbox customizado
+                        e.preventDefault();
+                        setSelectedPhotoIndex(index);
                       }}
-                      className="block cursor-zoom-in relative overflow-hidden rounded-2xl bg-slate-200"
+                      className="block cursor-zoom-in relative overflow-hidden rounded-2xl bg-slate-100 z-10"
                     >
-                      <div className="absolute inset-0 z-0 animate-pulse bg-gradient-to-r from-slate-200 via-slate-100 to-slate-200" />
+                      {/* SKELETON COM SPINNER CENTRALIZADO */}
+                      <div className="absolute inset-0 z-0 flex items-center justify-center animate-pulse bg-gradient-to-r from-slate-200 via-slate-100 to-slate-200">
+                        {/* Micro Spinner Sutil */}
+                        <div className="w-5 h-5 border-2 border-[#D4AF37]/20 border-t-[#D4AF37] rounded-full animate-spin" />
+                      </div>
+
                       <Image
                         src={getImageUrl(photo.id, 'w600')}
                         alt={`Foto ${index + 1}`}
@@ -156,36 +161,24 @@ const MasonryGrid = ({
                         style={{
                           aspectRatio: `${photo.width} / ${photo.height}`,
                         }}
-                        className="relative z-10 rounded-2xl w-full h-auto object-cover transition-opacity duration-700 opacity-0 group-hover:scale-[1.01]"
-                        // Lógica robusta para remover o skeleton
+                        // Começa invisível e ganha opacidade ao carregar
+                        className="relative z-10 rounded-2xl w-full h-auto object-cover transition-opacity duration-1000 opacity-0"
                         onLoad={(e) => {
                           const img = e.currentTarget;
                           if (img.complete) {
                             img.classList.remove('opacity-0');
-                            // Busca o skeleton no mesmo container pai e o esconde
-                            const container = img.parentElement;
+                            // Busca o container do skeleton para esconder
                             const skeleton =
-                              container?.querySelector('.animate-pulse');
+                              img.parentElement?.querySelector(
+                                '.animate-pulse',
+                              );
                             if (skeleton) skeleton.classList.add('hidden');
                           }
                         }}
                         loading="lazy"
                         placeholder="blur"
-                        // Gera um borrão minúsculo baseado na própria imagem enquanto carrega
                         blurDataURL="data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR42mNkYAAAAAYAAjCB0C8AAAAASUVORK5CYII="
-                        onError={(e) => {
-                          e.currentTarget.src = '/fallback.png';
-                        }}
-                        srcSet={`
-                          ${getImageUrl(photo.id, 'w400')} 400w,
-                          ${getImageUrl(photo.id, 'w600')} 600w,
-                          ${getImageUrl(photo.id, 'w800')} 800w,
-                          ${getImageUrl(photo.id, 'w1200')} 1200w
-                        `}
-                        sizes="(max-width: 640px) 100vw,
-                               (max-width: 1024px) 50vw,
-                               (max-width: 1280px) 33vw,
-                               25vw"
+                        // ... restante das props (srcSet, sizes, etc)
                       />
                     </a>
 
@@ -197,13 +190,14 @@ const MasonryGrid = ({
                         toggleFavoriteFromGrid(photo.id);
                       }}
                       className={`
-                        absolute top-2 left-2 md:top-2 md:left-2 z-30
+                        absolute top-2 left-2 md:top-2 md:left-2 z-[50]
                         w-8 h-8 md:w-10 md:h-10 rounded-full border
-                        flex items-center justify-center transition-all
+                        flex items-center justify-center transition-all 
+                        duration-200 cursor-pointer pointer-events-auto
                         ${
                           isSelected
-                            ? 'bg-[#E67E70] border-transparent shadow-lg'
-                            : 'bg-black/40 border-white/20'
+                            ? 'bg-[#E67E70] border-transparent shadow-lg scale-110'
+                            : 'bg-black/40 border-white/20 hover:bg-black/60 hover:scale-110'
                         }
                       `}
                     >
@@ -232,10 +226,11 @@ const MasonryGrid = ({
                         link.click();
                         URL.revokeObjectURL(url);
                       }}
-                      className="absolute top-2 right-2 md:top-2 md:right-2 z-30
+                      className="absolute top-2 right-2 md:top-2 md:right-2 z-[50]
                         w-8 h-8 md:w-10 md:h-10 rounded-full border
                         flex items-center justify-center transition-all
-                        bg-black/40 border-white/20 hover:bg-black/40"
+                        bg-black/40 border-white/20 hover:bg-black/40
+                        hover:scale-110 pointer-events-auto cursor-pointer"
                     >
                       <Download size={16} className="text-white" />
                     </button>

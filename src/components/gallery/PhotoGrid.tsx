@@ -36,9 +36,19 @@ export default function PhotoGrid({ photos, galeria }: any) {
   });
 
   const toggleFavoriteFromGrid = (id: string) => {
-    setFavorites((prev) =>
-      prev.includes(id) ? prev.filter((f) => f !== id) : [...prev, id],
-    );
+    // A atualização ocorre imediatamente no estado local
+    setFavorites((prev) => {
+      const isRemoving = prev.includes(id);
+
+      // Se estiver removendo e o filtro de favoritos estiver ativo,
+      // a foto sumirá do grid conforme o estado limpa
+      if (isRemoving) {
+        return prev.filter((f) => f !== id);
+      }
+
+      // Caso contrário, adiciona ao array
+      return [...prev, id];
+    });
   };
 
   // Salva no localStorage sempre que 'favorites' mudar
