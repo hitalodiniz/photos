@@ -1,39 +1,57 @@
 // components/DashboardUI/Toast.tsx
-"use client";
+'use client';
 
-import { motion, AnimatePresence } from "framer-motion";
+import { motion, AnimatePresence } from 'framer-motion';
+import { AlertCircle, CheckCircle2, X } from 'lucide-react'; // Importe ícones para melhor feedback
 
 interface ToastProps {
   message: string;
-  type: "success" | "error";
+  type: 'success' | 'error';
   onClose: () => void;
 }
 
 export default function Toast({ message, type, onClose }: ToastProps) {
-  const color =
-    type === "success"
-      ? "bg-emerald-50 border-emerald-300 text-emerald-900"
-      : "bg-red-50 border-red-300 text-red-900";
+  // Cores refinadas: Champanhe para Sucesso e um Vermelho sutil para Erro
+  const styles =
+    type === 'success'
+      ? 'bg-[#FAF7ED] border-[#D4AF37]/40 text-slate-900 shadow-[0_10px_30px_rgba(212,175,55,0.15)]'
+      : 'bg-red-50 border-red-200 text-red-900 shadow-[0_10px_30px_rgba(220,38,38,0.1)]';
 
   return (
     <AnimatePresence>
       {message && (
         <motion.div
-          className="fixed bottom-4 right-4 z-50"
+          className="fixed bottom-8 right-8 z-[200]" // Z-index maior que o modal (100)
           initial={{ opacity: 0, y: 20, scale: 0.95 }}
           animate={{ opacity: 1, y: 0, scale: 1 }}
           exit={{ opacity: 0, y: 20, scale: 0.95 }}
-          transition={{ duration: 0.18 }}
+          transition={{ duration: 0.3, ease: 'easeOut' }}
         >
           <div
-            className={`flex items-center gap-3 rounded-lg border px-4 py-3 shadow-sm ${color}`}
+            className={`flex items-center gap-4 rounded-2xl border px-5 py-4 min-w-[320px] backdrop-blur-md ${styles}`}
           >
-            <span className="text-sm">{message}</span>
+            <div className="shrink-0">
+              {type === 'success' ? (
+                <CheckCircle2 size={20} className="text-[#D4AF37]" />
+              ) : (
+                <AlertCircle size={20} className="text-red-500" />
+              )}
+            </div>
+
+            <div className="flex flex-col gap-0.5 flex-1">
+              <span className="text-[10px] uppercase tracking-[0.2em] font-bold opacity-50">
+                {type === 'success' ? 'Sucesso' : 'Atenção'}
+              </span>
+              <span className="text-sm font-medium leading-tight">
+                {message}
+              </span>
+            </div>
+
             <button
               onClick={onClose}
-              className="text-xs text-gray-600 hover:text-gray-900"
+              className="p-1.5 hover:bg-black/5 rounded-full transition-colors text-slate-400"
             >
-              fechar
+              <X size={16} />
             </button>
           </div>
         </motion.div>

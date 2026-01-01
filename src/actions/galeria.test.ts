@@ -243,12 +243,12 @@ describe('Ações de Galeria', () => {
       const mockSupabase = await supabaseServer.createSupabaseServerClient();
 
       // Simula falha no Google Drive
-      vi.spyOn(googleDrive, 'makeFolderPublic').mockRejectedValue(
+      /*vi.spyOn(googleDrive, 'makeFolderPublic').mockRejectedValue(
         new Error('Drive Error'),
       );
       vi.spyOn(googleAuth, 'getDriveAccessTokenForUser').mockResolvedValue(
         'token_valido',
-      );
+      );*/
 
       const formData = new FormData();
       formData.append('title', 'Teste Erro Drive');

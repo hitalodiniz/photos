@@ -72,7 +72,7 @@ export async function listPhotosFromDriveFolder(
 }
 
 /**
- * Torna a pasta pública e lança erro caso falhe.
+ * Torna a pasta pública e lança erro caso falhe. - não usada a partir de 01/01/2026
  */
 export async function makeFolderPublic(folderId: string, accessToken: string) {
   const res = await fetch(

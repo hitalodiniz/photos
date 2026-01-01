@@ -35,7 +35,8 @@ export default function PrivacidadePage() {
               <FeatureItem
                 icon={<Share2 size={30} />}
                 title="Uso de Dados do Google Drive™"
-                desc="Ao conectar sua conta, solicitamos acesso ao escopo auth/drive para automatizar a experiência do fotógrafo. Nossa plataforma utiliza essa permissão estritamente para configurar permissões de visualização e listar imagens via links diretos."
+                //desc="Ao conectar sua conta, solicitamos acesso ao escopo auth/drive para automatizar a experiência do fotógrafo. Nossa plataforma utiliza essa permissão estritamente para configurar permissões de visualização e listar imagens via links diretos."
+                desc="Nossa plataforma utiliza o escopo 'drive.readonly' estritamente para listar arquivos e gerar miniaturas de visualização. Não realizamos alterações, edições ou exclusões em seus arquivos originais, garantindo a integridade total da sua conta."
               />
 
               <FeatureItem

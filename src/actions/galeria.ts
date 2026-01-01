@@ -12,7 +12,7 @@ import {
 import {
   DrivePhoto,
   listPhotosFromDriveFolder,
-  makeFolderPublic as makeFolderPublicLib,
+  //makeFolderPublic as makeFolderPublicLib,
 } from '@/lib/google-drive';
 import { getDriveAccessTokenForUser } from '@/lib/google-auth';
 
@@ -230,8 +230,8 @@ export async function createGaleria(
     };
   }
 
-  // 1. Tentar tornar a pasta pública no Google Drive
-  const accessToken = await getDriveAccessTokenForUser(userId);
+  // 1. Tentar tornar a pasta pública no Google Drive - não utilizada, pois o escopo é somente de leitura do drive - 01-01-2026
+  /*const accessToken = await getDriveAccessTokenForUser(userId);
   if (accessToken) {
     try {
       await makeFolderPublicLib(driveFolderId, accessToken);
@@ -241,7 +241,7 @@ export async function createGaleria(
       console.warn('Google Drive Permission Warning:', errorMsg);
       // Não interrompemos o fluxo, apenas logamos.
     }
-  }
+  }*/
 
   const slug = await generateUniqueDatedSlug(
     title,
@@ -318,15 +318,15 @@ export async function updateGaleria(
   try {
     const supabase = await createSupabaseServerClient();
 
-    // GARANTE PERMISSÃO NO DRIVE
-    const accessToken = await getDriveAccessTokenForUser(userId);
+    // GARANTE PERMISSÃO NO DRIVE  - não utilizada, pois o escopo é somente de leitura do drive - 01-01-2026
+    /*const accessToken = await getDriveAccessTokenForUser(userId);
     if (accessToken && driveFolderId) {
       try {
         await makeFolderPublicLib(driveFolderId, accessToken);
       } catch (e) {
         console.warn('Aviso: Falha ao atualizar permissões da pasta no Drive.');
       }
-    }
+    }*/
 
     // Montando o objeto de update com os nomes corretos do FormData
     const updates = {
