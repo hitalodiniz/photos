@@ -1,12 +1,11 @@
 'use client';
 import React, { useEffect, useRef, useState } from 'react';
-
 import Image from 'next/image';
 import { Download, Heart } from 'lucide-react';
-import LightGallery from 'lightgallery/react';
-import lgThumbnail from 'lightgallery/plugins/thumbnail';
-import lgZoom from 'lightgallery/plugins/zoom';
-import { div } from 'framer-motion/client';
+
+// Novas importações do PhotoSwipe
+import 'photoswipe/dist/photoswipe.css';
+import { Gallery, Item } from 'react-photoswipe-gallery';
 
 interface Photo {
   id: string;
@@ -55,7 +54,6 @@ const MasonryGrid = ({
   const [isLoading, setIsLoading] = useState(false);
   const sentinelRef = useRef<HTMLDivElement | null>(null);
 
-  // Scroll infinito
   useEffect(() => {
     const observer = new IntersectionObserver((entries) => {
       if (
@@ -80,195 +78,160 @@ const MasonryGrid = ({
 
   return (
     <div className="w-full max-w-[1600px] mx-auto px-4 pb-20">
-      {' '}
       {showOnlyFavorites && displayedPhotos.length === 0 ? (
         <div className="text-center py-20 text-[#D4AF37] text-[36px]">
           <p className="italic font-serif text-lg">
             Nenhuma foto favorita selecionada.
           </p>
-          {/* BOTÃO DE RESET */}
           <button
             onClick={() => setShowOnlyFavorites(false)}
-            className="px-8 py-3 rounded-full bg-[#F3E5AB] text-slate-900 font-semibold 
-            text-sm md:text-[14px] tracking-widest hover:scale-105 transition-all shadow-xl active:scale-95"
+            className="px-8 py-3 rounded-full bg-[#F3E5AB] text-slate-900 font-semibold text-sm md:text-[14px] tracking-widest hover:scale-105 transition-all shadow-xl active:scale-95"
           >
             Ver todas as fotos
           </button>
         </div>
       ) : (
         <>
-          <LightGallery
-            speed={500}
-            plugins={[lgThumbnail, lgZoom]}
-            selector="a"
-          >
-            {/* Masonry por colunas responsivas */}
+          {/* Implementação do PhotoSwipe Gallery */}
+          <Gallery withCaption>
             <div
-              // A key muda sempre que o filtro de favoritos alterna, forçando o recalcular
               key={showOnlyFavorites ? 'favorites-grid' : 'full-grid'}
-              className={`
-                    gap-4 mx-auto
-                    ${
-                      showOnlyFavorites
-                        ? 'flex flex-wrap justify-start items-start'
-                        : 'columns-1 sm:columns-2 md:columns-3 lg:columns-4'
-                    }
-                  `}
+              className={`gap-4 mx-auto ${
+                showOnlyFavorites
+                  ? 'flex flex-wrap justify-start items-start'
+                  : 'columns-1 sm:columns-2 md:columns-3 lg:columns-4'
+              }`}
             >
               {limitedPhotos.map((photo, index) => {
                 const isSelected = favorites.includes(photo.id);
 
                 return (
-                  <div
+                  <Item
                     key={photo.id}
-                    className={`
-                              relative mb-4 group
-                              ${
-                                showOnlyFavorites
-                                  ? 'flex-grow h-[250px] md:h-[300px] w-auto'
-                                  : 'inline-block w-full break-inside-avoid-column'
-                              }
-                            `}
-                    style={
-                      showOnlyFavorites
-                        ? {
-                            flexBasis: `${(photo.width * 300) / photo.height}px`,
-                          }
-                        : {}
-                    }
+                    original={getHighResImageUrl(photo.id)}
+                    thumbnail={getImageUrl(photo.id, 'w600')}
+                    width={photo.width}
+                    height={photo.height}
+                    caption={`${galleryTitle} - Foto ${index + 1}`}
                   >
-                    {/* Trigger da foto */}
-                    <a
-                      href={getImageUrl(photo.id, 'w800')}
-                      data-src={getImageUrl(photo.id, 'w800')}
-                      onClick={(e) => {
-                        e.preventDefault();
-                        setSelectedPhotoIndex(index);
-                      }}
-                      className="block cursor-zoom-in relative overflow-hidden rounded-2xl bg-slate-100 z-10"
-                    >
-                      {/* SKELETON COM SPINNER CENTRALIZADO */}
-                      <div className="absolute inset-0 z-0 flex items-center justify-center animate-pulse bg-gradient-to-r from-slate-200 via-slate-100 to-slate-200">
-                        {/* Micro Spinner Sutil */}
-                        <div className="w-5 h-5 border-2 border-[#D4AF37]/20 border-t-[#D4AF37] rounded-full animate-spin" />
-                      </div>
-
-                      <Image
-                        src={getImageUrl(photo.id, 'w600')}
-                        alt={`Foto ${index + 1}`}
-                        width={photo.width}
-                        height={photo.height}
-                        style={{
-                          aspectRatio: `${photo.width} / ${photo.height}`,
-                        }}
-                        // Começa invisível e ganha opacidade ao carregar
-                        className="relative z-10 rounded-2xl w-full h-auto object-cover transition-opacity duration-1000 opacity-0"
-                        onLoad={(e) => {
-                          const img = e.currentTarget;
-                          if (img.complete) {
-                            img.classList.remove('opacity-0');
-                            // Busca o container do skeleton para esconder
-                            const skeleton =
-                              img.parentElement?.querySelector(
-                                '.animate-pulse',
-                              );
-                            if (skeleton) skeleton.classList.add('hidden');
-                          }
-                        }}
-                        loading="lazy"
-                        placeholder="blur"
-                        blurDataURL="data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR42mNkYAAAAAYAAjCB0C8AAAAASUVORK5CYII="
-                        // ... restante das props (srcSet, sizes, etc)
-                      />
-                    </a>
-
-                    {/* Botão de coração */}
-                    <button
-                      onClick={(e) => {
-                        e.preventDefault();
-                        e.stopPropagation();
-                        toggleFavoriteFromGrid(photo.id);
-                      }}
-                      className={`
-                        absolute top-2 left-2 md:top-2 md:left-2 z-[50]
-                        w-8 h-8 md:w-10 md:h-10 rounded-full border
-                        flex items-center justify-center transition-all 
-                        duration-200 cursor-pointer pointer-events-auto
-                        ${
-                          isSelected
-                            ? 'bg-[#E67E70] border-transparent shadow-lg scale-110'
-                            : 'bg-black/40 border-white/20 hover:bg-black/60 hover:scale-110'
+                    {({ ref, open }) => (
+                      <div
+                        className={`relative mb-4 group ${
+                          showOnlyFavorites
+                            ? 'flex-grow h-[250px] md:h-[300px] w-auto'
+                            : 'inline-block w-full break-inside-avoid-column'
+                        }`}
+                        style={
+                          showOnlyFavorites
+                            ? {
+                                flexBasis: `${(photo.width * 300) / photo.height}px`,
+                              }
+                            : {}
                         }
-                      `}
-                    >
-                      <Heart
-                        size={16}
-                        fill={isSelected ? 'white' : 'none'}
-                        className="text-white"
-                      />
-                    </button>
+                      >
+                        <a
+                          href="#"
+                          ref={ref as React.MutableRefObject<HTMLAnchorElement>}
+                          onClick={(e) => {
+                            e.preventDefault();
+                            // CHAMA O SEU LIGHTBOX CUSTOMIZADO
+                            setSelectedPhotoIndex(index);
+                          }}
+                          className="block cursor-zoom-in relative overflow-hidden rounded-2xl bg-slate-100 z-10"
+                        >
+                          <div className="absolute inset-0 z-0 flex items-center justify-center animate-pulse bg-gradient-to-r from-slate-200 via-slate-100 to-slate-200">
+                            <div className="w-5 h-5 border-2 border-[#D4AF37]/20 border-t-[#D4AF37] rounded-full animate-spin" />
+                          </div>
 
-                    {/* Botão de download */}
-                    <button
-                      onClick={async (e) => {
-                        e.stopPropagation();
-                        const response = await fetch(
-                          getHighResImageUrl(photo.id),
-                        );
-                        const blob = await response.blob();
-                        const url = URL.createObjectURL(blob);
-                        const link = document.createElement('a');
-                        link.href = url;
-                        link.download = getDownloadFileName(
-                          index,
-                          galleryTitle,
-                        );
-                        link.click();
-                        URL.revokeObjectURL(url);
-                      }}
-                      className="absolute top-2 right-2 md:top-2 md:right-2 z-[50]
-                        w-8 h-8 md:w-10 md:h-10 rounded-full border
-                        flex items-center justify-center transition-all
-                        bg-black/40 border-white/20 hover:bg-black/40
-                        hover:scale-110 pointer-events-auto cursor-pointer"
-                    >
-                      <Download size={16} className="text-white" />
-                    </button>
+                          <Image
+                            src={getImageUrl(photo.id, 'w600')}
+                            alt={`Foto ${index + 1}`}
+                            width={photo.width}
+                            height={photo.height}
+                            style={{
+                              aspectRatio: `${photo.width} / ${photo.height}`,
+                            }}
+                            className="relative z-10 rounded-2xl w-full h-auto object-cover transition-opacity duration-1000 opacity-0"
+                            onLoad={(e) => {
+                              const img = e.currentTarget;
+                              if (img.complete) {
+                                img.classList.remove('opacity-0');
+                                const skeleton =
+                                  img.parentElement?.querySelector(
+                                    '.animate-pulse',
+                                  );
+                                if (skeleton) skeleton.classList.add('hidden');
+                              }
+                            }}
+                            loading="lazy"
+                          />
+                        </a>
 
-                    {/* Borda de seleção */}
-                    {isSelected && (
-                      <div className="absolute inset-0 border-2 border-[#E67E70] rounded-2xl pointer-events-none" />
+                        {/* Botões mantidos com z-index alto para clique instantâneo */}
+                        <button
+                          onClick={(e) => {
+                            e.preventDefault();
+                            e.stopPropagation();
+                            toggleFavoriteFromGrid(photo.id);
+                          }}
+                          className={`absolute top-2 left-2 z-[50] w-8 h-8 md:w-10 md:h-10 rounded-full border flex items-center justify-center transition-all duration-200 cursor-pointer pointer-events-auto ${
+                            isSelected
+                              ? 'bg-[#E67E70] border-transparent shadow-lg scale-110'
+                              : 'bg-black/40 border-white/20 hover:bg-black/60 hover:scale-110'
+                          }`}
+                        >
+                          <Heart
+                            size={16}
+                            fill={isSelected ? 'white' : 'none'}
+                            className="text-white"
+                          />
+                        </button>
+
+                        <button
+                          onClick={async (e) => {
+                            e.stopPropagation();
+                            const response = await fetch(
+                              getHighResImageUrl(photo.id),
+                            );
+                            const blob = await response.blob();
+                            const url = URL.createObjectURL(blob);
+                            const link = document.createElement('a');
+                            link.href = url;
+                            link.download = getDownloadFileName(
+                              index,
+                              galleryTitle,
+                            );
+                            link.click();
+                            URL.revokeObjectURL(url);
+                          }}
+                          className="absolute top-2 right-2 z-[50] w-8 h-8 md:w-10 md:h-10 rounded-full border bg-black/40 border-white/20 flex items-center justify-center hover:scale-110 transition-all pointer-events-auto cursor-pointer"
+                        >
+                          <Download size={16} className="text-white" />
+                        </button>
+
+                        {isSelected && (
+                          <div className="absolute inset-0 border-2 border-[#E67E70] rounded-2xl pointer-events-none z-20" />
+                        )}
+                      </div>
                     )}
-                  </div>
+                  </Item>
                 );
               })}
             </div>
-          </LightGallery>
+          </Gallery>
 
-          {/* Spinner de carregamento elegante */}
           {isLoading && (
-            <div className="flex flex-col items-center justify-center py-12 animate-in fade-in duration-700">
+            <div className="flex flex-col items-center justify-center py-12">
               <div className="relative w-12 h-12">
-                {/* Círculo de fundo suave */}
-                <div className="absolute inset-0 rounded-full border-2 border-[#F3E5AB]/20"></div>
-
-                {/* Arco de brilho principal (Champanhe) */}
-                <div className="absolute inset-0 rounded-full border-t-2 border-r-2 border-[#F3E5AB] animate-spin shadow-[0_0_15px_rgba(243,229,171,0.4)]"></div>
-
-                {/* Ponto de luz pulsante no centro */}
-                <div className="absolute inset-0 flex items-center justify-center">
-                  <div className="w-1.5 h-1.5 bg-[#F3E5AB] rounded-full animate-pulse shadow-[0_0_10px_#F3E5AB]"></div>
-                </div>
+                <div className="absolute inset-0 rounded-full border-2 border-[#F3E5AB]/20" />
+                <div className="absolute inset-0 rounded-full border-t-2 border-r-2 border-[#F3E5AB] animate-spin" />
               </div>
-
-              {/* Texto sutil de status */}
-              <p className="mt-4 text-[11px] md:text-[14px] uppercase tracking-[0.2em] text-[#F3E5AB]/60 font-medium">
+              <p className="mt-4 text-[11px] uppercase tracking-[0.2em] text-[#F3E5AB]/60 font-medium">
                 Carregando memórias
               </p>
             </div>
           )}
 
-          {/* Sentinela invisível para scroll infinito */}
           <div ref={sentinelRef} />
         </>
       )}

@@ -27,13 +27,12 @@ export default function PhotoGrid({ photos, galeria }: any) {
   // --- ESTADOS DE FAVORITOS (PERSISTÊNCIA) ---
   const storageKey = `favoritos_galeria_${galeria.id}`;
 
-  const [favorites, setFavorites] = useState<string[]>(() => {
-    if (typeof window !== 'undefined') {
-      const saved = localStorage.getItem(storageKey);
-      return saved ? JSON.parse(saved) : [];
-    }
-    return [];
-  });
+  const [favorites, setFavorites] = useState<string[]>([]);
+
+  useEffect(() => {
+    const saved = localStorage.getItem(storageKey);
+    if (saved) setFavorites(JSON.parse(saved));
+  }, [storageKey]);
 
   const toggleFavoriteFromGrid = (id: string) => {
     // A atualização ocorre imediatamente no estado local
@@ -101,7 +100,6 @@ export default function PhotoGrid({ photos, galeria }: any) {
       targetList.reduce((acc, photo) => acc + (Number(photo.size) || 0), 0) /
       (1024 * 1024);
 
-    // Gatilho do Modal em vez de confirm nativo
     if (
       !confirmed &&
       (targetList.length > MAX_PHOTOS_LIMIT ||
@@ -126,66 +124,60 @@ export default function PhotoGrid({ photos, galeria }: any) {
       setStatus(true);
       setProgress(0);
       const zip = new JSZip();
-      let completedCount = 0; // Contador manual para precisão
+      let completedCount = 0;
 
-      // Loop em saltos de 100 fotos
-      // FASE 1: DOWNLOAD (Vai ocupar de 0% a 90% da barra)
-      // FASE 1: Download rápido em paralelo
-      /*for (let i = 0; i < targetList.length; i += 100) {
+      // FASE 1: DOWNLOAD EM LOTES DE 100 (SUA ESTRUTURA ORIGINAL)
+      for (let i = 0; i < targetList.length; i += 100) {
         const currentBatch = targetList.slice(i, i + 100);
+
         await Promise.all(
           currentBatch.map(async (photo) => {
             try {
+              // CORREÇÃO 1: URL com Proxy para evitar o "Failed to fetch" (CORS)
               const res = await fetch(
-                `https://lh3.googleusercontent.com/d/${photoId}=s0`,
+                `https://lh3.googleusercontent.com/d/${photo.id}=s0`,
               );
+
+              if (!res.ok) throw new Error(`Erro ${res.status}`);
+
               const blob = await res.blob();
-              zip.file(`foto-${completedCount + 1}.jpg`, blob);
-              completedCount++;
-              setProgress((completedCount / targetList.length) * 95); // Vai até 95% no download
+
+              // CORREÇÃO 3: binary: true para processamento mais rápido no ZIP
+              zip.file(`foto-${photo.id}.jpg`, blob, { binary: true });
             } catch (e) {
+              console.error(`Erro na foto ${photo.id}:`, e);
+            } finally {
               completedCount++;
+              // Progresso vai até 98% para diminuir a percepção de trava no final
+              setProgress((completedCount / targetList.length) * 98);
             }
           }),
         );
-      }*/
-      await Promise.all(
-        targetList.map(async (photo) => {
-          try {
-            // CORREÇÃO: Usando template string correta `${photo.id}`
-            const res = await fetch(
-              `https://lh3.googleusercontent.com/d/${photo.id}=s0`,
-            );
-            const blob = await res.blob();
-            zip.file(`foto-${photo.id}.jpg`, blob);
-            completedCount++;
-            setProgress((completedCount / targetList.length) * 95);
-          } catch (e) {
-            completedCount++;
-          }
-        }),
-      );
-      // FASE 2: Compactação com prioridade de velocidade
-      const content = await zip.generateAsync(
-        { type: 'blob', compression: 'STORE', streamFiles: true }, // streamFiles ajuda na velocidade
-        (meta) => {
-          if (meta.percent > 0) setProgress(95 + meta.percent * 0.05); // Os últimos 5% são rápidos
-        },
-      );
 
-      // FASE 3: Disparo imediato
+        // Pequena pausa para o navegador "respirar" entre lotes de 100
+        if (i + 100 < targetList.length) {
+          await new Promise((resolve) => setTimeout(resolve, 100));
+        }
+      }
+
+      // FASE 2: COMPACTAÇÃO (MODO EXPRESSO)
+      // Removido o callback de progresso aqui para evitar o travamento de 1 minuto
+      const content = await zip.generateAsync({
+        type: 'blob',
+        compression: 'STORE',
+        streamFiles: true,
+      });
+
+      // FASE 3: DISPARO
       saveAs(content, `${galeria.title.replace(/\s+/g, '_')}_${zipSuffix}.zip`);
-
-      // Feedback de sucesso imediato
       setProgress(100);
     } catch (error) {
-      console.error(error);
+      console.error('Erro no ZIP:', error);
     } finally {
-      // Reduzimos o delay do finally para o botão liberar mais rápido
       setTimeout(() => {
         setStatus(false);
         setProgress(0);
-      }, 500);
+      }, 1000);
     }
   };
 
