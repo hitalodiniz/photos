@@ -36,11 +36,7 @@ export default function PhotographerProfileContent({
   showBackButton = false,
 }: ProfileContentProps) {
   const locationDisplay =
-    cities.length > 0
-      ? cities.length <= 2
-        ? cities.join(' • ')
-        : `${cities.slice(0, 2).join(', ')} + ${cities.length - 2}`
-      : 'SUA LOCALIZAÇÃO';
+    cities.length > 0 ? cities.join(' • ') : 'SUA LOCALIZAÇÃO';
 
   return (
     <div className="min-h-screen w-full flex flex-col bg-black overflow-x-hidden relative font-sans">
@@ -100,9 +96,9 @@ export default function PhotographerProfileContent({
                     : '"Sua essência editorial aparecerá aqui..."'}
                 </p>
 
-                <div className="flex items-center justify-center gap-1.5 text-[#D4AF37] text-[10px] tracking-[0.2em] uppercase font-bold">
-                  <MapPin size={12} />
-                  {locationDisplay}
+                <div className="flex items-center justify-center gap-1.5 text-[#D4AF37] text-[10px] md:text-[14px] tracking-[0.1em] font-semibold px-4">
+                  <MapPin size={12} className="flex-shrink-0" />
+                  <span className="leading-relaxed">{locationDisplay}</span>
                 </div>
 
                 <div className="w-16 h-px bg-[#D4AF37]/20 mx-auto" />
