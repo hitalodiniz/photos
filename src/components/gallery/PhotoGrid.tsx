@@ -134,16 +134,15 @@ export default function PhotoGrid({ photos, galeria }: any) {
           currentBatch.map(async (photo) => {
             try {
               // CORREÇÃO 1: URL com Proxy para evitar o "Failed to fetch" (CORS)
-              const res = await fetch(
-                `https://lh3.googleusercontent.com/d/${photo.id}=s0`,
-              );
-
+              const res = await fetch(`/api/proxy-image?id=${photo.id}`);
               if (!res.ok) throw new Error(`Erro ${res.status}`);
 
               const blob = await res.blob();
 
               // CORREÇÃO 3: binary: true para processamento mais rápido no ZIP
-              zip.file(`foto-${photo.id}.jpg`, blob, { binary: true });
+              zip.file(`foto-${completedCount + 1}.jpg`, blob, {
+                binary: true,
+              });
             } catch (e) {
               console.error(`Erro na foto ${photo.id}:`, e);
             } finally {
@@ -206,7 +205,7 @@ export default function PhotoGrid({ photos, galeria }: any) {
   const sentinelRef = useRef<HTMLDivElement | null>(null);
 
   return (
-    <div className="w-full flex flex-col items-center gap-6">
+    <div className="relative min-h-screen w-full">
       {/* 1. BARRA DE INFORMAÇÕES EDITORIAL: DESKTOP */}
       <div
         onMouseEnter={() => setIsHovered(true)}
@@ -248,6 +247,7 @@ export default function PhotoGrid({ photos, galeria }: any) {
       </div>
       {/* 2. GRID MASONRY */}
       <MasonryGrid
+        galeria={galeria}
         galleryTitle={galeria.title}
         displayedPhotos={displayedPhotos}
         favorites={favorites}
