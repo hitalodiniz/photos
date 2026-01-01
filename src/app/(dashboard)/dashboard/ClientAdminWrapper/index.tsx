@@ -2,7 +2,6 @@
 
 import { useEffect, useMemo, useState } from 'react';
 import { LayoutGrid, Filter, Plus, Search } from 'lucide-react';
-import { Toast, ConfirmationModal } from '@/components/sections/DashboardUI';
 import { getGalerias, deleteGaleria } from '@/actions/galeria';
 
 import type { Galeria } from './types';
@@ -10,6 +9,7 @@ import CreateGaleriaForm from './CreateGaleriaForm';
 import EditGaleriaModal from './EditGaleriaModal';
 import Filters from './Filters';
 import GaleriaList from './GaleriaList';
+import { ConfirmationModal, Toast } from '@/components/ui';
 
 const CARDS_PER_PAGE = 6;
 
@@ -36,8 +36,17 @@ export default function ClientAdminWrapper({
   const [filterCategory, setFilterCategory] = useState('');
   const [filterType, setFilterType] = useState('');
 
-  const [toastMessage, setToastMessage] = useState('');
-  const [toastType, setToastType] = useState<'success' | 'error'>('success');
+  const [toastConfig, setToastConfig] = useState<{
+    message: string;
+    type: 'success' | 'error';
+  } | null>(null);
+
+  const handleFeedback = (ok: boolean, message: string) => {
+    setToastConfig({
+      message: message,
+      type: ok ? 'success' : 'error',
+    });
+  };
 
   const [updatingId, setUpdatingId] = useState<string | null>(null);
   const [galeriaToDelete, setGaleriaToDelete] = useState<Galeria | null>(null);
@@ -50,53 +59,52 @@ export default function ClientAdminWrapper({
     });
   }, [initialGalerias]);
 
+  // No ClientAdminWrapper (index)
   const handleUpdate = (success: boolean, data: any) => {
-    if (success && data?.id) {
-      // O "?." e "data.id" evitam o erro que você recebeu
-      setGaleriaToEdit(null);
-      setUpdatingId(null);
-      setGalerias((prev) =>
-        prev.map((g) => (g.id === data.id ? { ...g, ...data } : g)),
-      );
-
-      // Lógica do seu Toast
-      setToastType('success');
-      setToastMessage('Galeria atualizada com sucesso!');
-      setGaleriaToEdit(null);
-      setUpdatingId(null);
-      setGalerias((prev) =>
-        prev.map((g) => (g.id === data.id ? { ...g, ...data } : g)),
-      );
-      setToastMessage('');
-      setTimeout(() => {
-        setToastType('success');
-        setToastMessage(`Galeria atualizada com sucesso!`);
-      }, 300);
+    if (success && typeof data === 'object') {
+      // Caso de sucesso: atualiza a lista
       setGalerias((prev) => prev.map((g) => (g.id === data.id ? data : g)));
+      setToastConfig({
+        message: 'Galeria atualizada com sucesso!',
+        type: 'success',
+      });
+      setGaleriaToEdit(null);
     } else {
-      setUpdatingId(null);
-      setToastType('error');
-      setToastMessage(typeof data === 'string' ? data : 'Erro ao atualizar.');
+      // Caso de erro (recebido do Edit ou do Create)
+      setToastConfig({
+        message: typeof data === 'string' ? data : 'Erro na operação',
+        type: 'error',
+      });
     }
   };
 
   const handleConfirmDelete = async () => {
     if (!galeriaToDelete) return;
+
     setIsDeleting(true);
     const result = await deleteGaleria(galeriaToDelete.id);
 
     if (result.success) {
-      setToastType('success');
-      setToastMessage(result.message || 'Excluído com sucesso');
+      // 1. Remove a galeria da lista local
       setGalerias((prev) => prev.filter((g) => g.id !== galeriaToDelete.id));
+
+      // 2. Feedback de sucesso no novo Toast
+      setToastConfig({
+        message: result.message || 'Galeria excluída com sucesso.',
+        type: 'success',
+      });
     } else {
-      setToastType('error');
-      setToastMessage(result.error || 'Erro ao excluir');
+      // 3. Feedback de erro no novo Toast
+      setToastConfig({
+        message: result.error || 'Não foi possível excluir a galeria.',
+        type: 'error',
+      });
     }
+
+    // 4. Limpa estados de exclusão
     setIsDeleting(false);
     setGaleriaToDelete(null);
   };
-
   const filteredGalerias = useMemo(() => {
     if (!Array.isArray(galerias)) return [];
 
@@ -151,8 +159,11 @@ export default function ClientAdminWrapper({
   };
 
   const handleCreateResult = async (ok: boolean, message: string) => {
-    setToastType(ok ? 'success' : 'error');
-    setToastMessage(message);
+    setToastConfig({
+      message: message,
+      type: ok ? 'success' : 'error',
+    });
+
     if (ok) {
       const result = await getGalerias();
       if (result.success) setGalerias(result.data);
@@ -290,11 +301,12 @@ export default function ClientAdminWrapper({
         onClose={() => setGaleriaToEdit(null)}
         onSuccess={handleUpdate}
       />
-      {toastMessage && (
+      {/* Certifique-se de usar o componente Toast.tsx que configuramos com Z-index 10001 */}
+      {toastConfig && (
         <Toast
-          message={toastMessage}
-          type={toastType}
-          onClose={() => setToastMessage('')}
+          message={toastConfig.message}
+          type={toastConfig.type}
+          onClose={() => setToastConfig(null)}
         />
       )}
     </div>

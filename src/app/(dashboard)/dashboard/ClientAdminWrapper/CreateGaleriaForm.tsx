@@ -17,6 +17,8 @@ import {
   Briefcase,
   MessageCircle,
   Sparkles,
+  AlertCircle,
+  X,
 } from 'lucide-react';
 
 export default function CreateGaleriaForm({ onSuccess }) {
@@ -39,6 +41,7 @@ export default function CreateGaleriaForm({ onSuccess }) {
     folderName: string,
     coverFileId: string,
   ) => {
+    console.log('Pasta Selecionada:', { folderId, folderName }); // Debug essencial
     setDriveFolderId(folderId);
     setDriveFolderName(folderName);
     setCoverFileId(coverFileId);
@@ -46,7 +49,18 @@ export default function CreateGaleriaForm({ onSuccess }) {
   };
 
   const handlePickerError = (message: string) => {
-    setError(message);
+    // Se a mensagem for sobre privacidade ou se o picker fechar sem permissão
+    const userGuide =
+      message.includes('Privada') || message.includes('permission')
+        ? "Acesso Negado: No Google Drive, altere a configuração da pasta para 'Qualquer pessoa com o link' antes de selecionar."
+        : message;
+
+    // Se você estiver usando o 'onSuccess' que veio via props para mostrar erros:
+    onSuccess(false, userGuide);
+
+    // Ou se estiver usando uma biblioteca de Toast externa:
+    // toast.error(userGuide);
+
     setDriveFolderId('');
     setCoverFileId('');
     setDriveFolderName('Nenhuma pasta selecionada');
@@ -213,28 +227,61 @@ export default function CreateGaleriaForm({ onSuccess }) {
 
       {/* SEÇÃO GOOGLE DRIVE */}
 
-      <div className="rounded-2xl border border-[#D4AF37]/20 p-3 bg-[#FAF7ED]">
-        <div className="flex items-center gap-2 mb-2 text-[#D4AF37]">
-          <FolderSync size={16} />
-          <label className="text-sm font-bold tracking-wider">
-            Google Drive
-          </label>
+      {/* SEÇÃO GOOGLE DRIVE REFINADA */}
+      <div className="rounded-2xl border border-[#D4AF37]/20 p-4 bg-[#FAF7ED]/50 transition-all">
+        <div className="flex items-center justify-between mb-3">
+          <div className="flex items-center gap-2 text-[#D4AF37]">
+            <FolderSync size={16} />
+            <label className="text-[10px] font-black uppercase tracking-[0.2em]">
+              Google Drive
+            </label>
+          </div>
+          {driveFolderId && (
+            <span className="text-[9px] text-green-600 font-bold uppercase flex items-center gap-1">
+              <Sparkles size={10} /> Conectado
+            </span>
+          )}
         </div>
 
-        <GooglePickerButton
-          onFolderSelect={handleFolderSelect}
-          onError={handlePickerError}
-          currentDriveId={driveFolderId}
-        />
+        {/* O Botão agora limpa o erro ao ser clicado */}
+        <div onClick={() => setError(null)}>
+          <GooglePickerButton
+            onFolderSelect={handleFolderSelect}
+            onError={handlePickerError}
+            currentDriveId={driveFolderId}
+          />
+        </div>
 
+        {/* Feedback Visual da Pasta Selecionada */}
         {driveFolderId ? (
-          <div className="mt-3 flex items-center gap-2 text-xs text-[#4F5B66] bg-white/60 p-3 rounded-lg border border-[#D4AF37]/10">
-            <div className="h-2 w-2 rounded-full bg-[#D4AF37] animate-pulse" />
-            <span className="font-bold truncate">{driveFolderName}</span>
+          <div className="mt-3 flex items-center justify-between gap-2 text-xs text-[#4F5B66] bg-white p-3 rounded-xl border border-[#D4AF37]/10 shadow-sm animate-in fade-in zoom-in duration-300">
+            <div className="flex items-center gap-2 truncate">
+              <div className="h-2 w-2 rounded-full bg-[#D4AF37] animate-pulse shrink-0" />
+              <span className="font-bold truncate">{driveFolderName}</span>
+            </div>
+            <button
+              type="button"
+              onClick={() => {
+                setDriveFolderId('');
+                setDriveFolderName('Nenhuma pasta selecionada');
+              }}
+              className="text-slate-300 hover:text-red-400 transition-colors"
+            >
+              <X size={14} />
+            </button>
           </div>
         ) : (
-          <p className="mt-3 text-[11px] text-gray-400 italic font-medium">
-            Nenhuma pasta vinculada.
+          <div className="mt-3 p-3 border border-dashed border-slate-200 rounded-xl flex items-center justify-center">
+            <p className="text-[10px] text-gray-400 italic font-medium">
+              Aguardando conexão com a pasta...
+            </p>
+          </div>
+        )}
+
+        {/* Exibição de Erros da API do Google */}
+        {error && (
+          <p className="mt-2 text-[10px] text-red-500 font-bold flex items-center gap-1 animate-bounce">
+            <AlertCircle size={12} /> {error}
           </p>
         )}
       </div>

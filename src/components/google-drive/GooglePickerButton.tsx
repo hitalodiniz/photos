@@ -183,7 +183,9 @@ export default function GooglePickerButton({
                   coverFileId,
                 );
               } else {
-                onError('Pasta Privada...');
+                onError(
+                  'Esta pasta está privada. No seu Google Drive, mude o acesso para "Qualquer pessoa com o link" para continuar.',
+                );
               }
             }
           }

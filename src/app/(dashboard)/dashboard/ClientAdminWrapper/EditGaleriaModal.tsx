@@ -42,10 +42,6 @@ export default function EditGaleriaModal({
   const [clientWhatsapp, setClientWhatsapp] = useState('');
   const [category, setCategory] = useState('');
   const [hasContractingClient, setHasContractingClient] = useState(true);
-  const [toastConfig, setToastConfig] = useState<{
-    message: string;
-    type: 'success' | 'error';
-  } | null>(null);
 
   const [formData, setFormData] = useState({
     drive_folder_id: '',
@@ -93,20 +89,17 @@ export default function EditGaleriaModal({
     folderName: string,
     coverFileId: string,
   ) => {
-    // 1. Atualiza os dados do formulário
     setFormData({
       drive_folder_id: folderId,
       drive_folder_name: folderName,
       cover_image_url: coverFileId,
     });
 
-    // 2. Limpa erros e avisa o sistema que houve troca
     setErrorMessage(null);
-    setToastConfig(null);
 
-    // 3. Força um pequeno feedback visual de sucesso se quiser
+    // Dispara o Toast unificado (visto na imagem de sucesso)
     setToastConfig({
-      message: 'Pasta selecionada com sucesso!',
+      message: 'Pasta vinculada com sucesso!',
       type: 'success',
     });
   };
@@ -169,17 +162,17 @@ export default function EditGaleriaModal({
 
         // Verifique se updatedData existe antes de passar
         if (updatedData && updatedData.id) {
+          // PASSAGEM DE DADOS CORRIGIDA:
+          // Passamos 'true' para o status e o objeto 'updatedData' para atualizar a lista.
           onSuccess(true, updatedData);
-          onClose(); // Agora o onClose vai funcionar pois o erro de JS acima dele foi resolvido
+          onClose();
         }
       } else {
-        setToastConfig({
-          message: result.error || 'Erro ao atualizar.',
-          type: 'error',
-        });
+        // Para erros, passamos 'false' e a mensagem.
+        onSuccess(false, result.error || 'Erro ao atualizar');
       }
     } catch (e) {
-      setToastConfig({ message: 'Erro inesperado.', type: 'error' });
+      onSuccess(false, e.error || 'Erro ao atualizar');
     } finally {
       setLoading(false);
     }
@@ -336,37 +329,48 @@ export default function EditGaleriaModal({
             </div>
 
             {/* Google Drive Section */}
-            {/* Seção Google Drive - Tudo em uma única linha */}
             <div
-              key={formData.drive_folder_id}
-              className="rounded-[28px] border border-[#D4AF37]/20 p-4 bg-[#FAF7ED]"
+              className={`rounded-[28px] border p-4 transition-all ${errorMessage ? 'border-red-200 bg-red-50' : 'border-[#D4AF37]/20 bg-[#FAF7ED]'}`}
             >
               <div className="flex flex-row items-center gap-2">
-                {/* 1. Título Google Drive */}
                 <div className="flex items-center gap-2 text-[#D4AF37] shrink-0">
                   <FolderSync size={18} />
-                  <label className="text-xs font-bold tracking-widest whitespace-nowrap">
+                  <label className="text-xs font-bold tracking-widest whitespace-nowrap uppercase">
                     Google Drive
                   </label>
                 </div>
 
-                {/* 2. Botão de Selecionar Pasta */}
                 <div className="shrink-0">
                   <GooglePickerButton
                     onFolderSelect={handlePickerSuccess}
                     currentDriveId={formData.drive_folder_id}
-                    onError={(msg) => setErrorMessage(msg)}
+                    onError={(msg) => {
+                      const isPrivate =
+                        msg.includes('permission') ||
+                        msg.includes('Privada') ||
+                        msg.includes('access');
+
+                      const userMessage = isPrivate
+                        ? "Acesso Negado: No seu Google Drive, mude o acesso para 'Qualquer pessoa com o link' para continuar."
+                        : msg;
+
+                      // EM VEZ DE setToastConfig, use o onSuccess que vem do pai:
+                      onSuccess(false, userMessage);
+
+                      setErrorMessage(null); // Limpa o erro em vermelho do modal
+                    }}
                   />
                 </div>
 
-                {/* 3. Nome da Pasta Selecionada */}
-                <div
-                  key={formData.drive_folder_id} // ISSO FORÇA O REACT A ATUALIZAR O TEXTO
-                  className="flex-1 flex items-center gap-3 bg-white px-4 py-2.5 rounded-2xl border border-[#D4AF37]/10 shadow-sm min-w-0 h-[42px]"
-                >
-                  <div className="h-2 w-2 rounded-full bg-[#D4AF37] shrink-0" />
-                  <span className="text-sm font-bold truncate text-slate-700">
-                    {formData.drive_folder_name || 'Nenhuma pasta selecionada'}
+                <div className="flex-1 flex items-center gap-3 bg-white px-4 py-2.5 rounded-2xl border border-[#D4AF37]/10 shadow-sm min-w-0 h-[42px]">
+                  <div
+                    className={`h-2 w-2 rounded-full shrink-0 ${formData.drive_folder_id ? 'bg-[#D4AF37] animate-pulse' : 'bg-slate-200'}`}
+                  />
+                  <span
+                    className={`text-sm font-bold truncate ${formData.drive_folder_id ? 'text-slate-700' : 'text-slate-400 italic'}`}
+                  >
+                    {formData.drive_folder_name ||
+                      'Selecione uma nova pasta...'}
                   </span>
                 </div>
               </div>
@@ -453,14 +457,6 @@ export default function EditGaleriaModal({
           </div>
         </div>
       </div>
-      {/* RENDERIZAÇÃO DO TOAST */}
-      {toastConfig && (
-        <Toast
-          message={toastConfig.message}
-          type={toastConfig.type}
-          onClose={() => setToastConfig(null)}
-        />
-      )}
     </>
   );
 }
