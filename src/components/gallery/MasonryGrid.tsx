@@ -6,6 +6,7 @@ import { Download, Heart } from 'lucide-react';
 import LightGallery from 'lightgallery/react';
 import lgThumbnail from 'lightgallery/plugins/thumbnail';
 import lgZoom from 'lightgallery/plugins/zoom';
+import { div } from 'framer-motion/client';
 
 interface Photo {
   id: string;
@@ -22,6 +23,7 @@ interface MasonryGridProps {
   setSelectedPhotoIndex: (index: number) => void;
   photos: Photo[];
   showOnlyFavorites: boolean;
+  setShowOnlyFavorites: (value: boolean) => void;
 }
 
 const getImageUrl = (
@@ -47,6 +49,7 @@ const MasonryGrid = ({
   setSelectedPhotoIndex,
   photos,
   showOnlyFavorites,
+  setShowOnlyFavorites,
 }: MasonryGridProps) => {
   const [displayLimit, setDisplayLimit] = useState(24);
   const [isLoading, setIsLoading] = useState(false);
@@ -76,12 +79,21 @@ const MasonryGrid = ({
   const limitedPhotos = displayedPhotos.slice(0, displayLimit);
 
   return (
-    <div className="w-full max-w-[1600px] mx-auto px-4">
+    <div className="w-full max-w-[1600px] mx-auto px-4 pb-20">
+      {' '}
       {showOnlyFavorites && displayedPhotos.length === 0 ? (
-        <div className="text-center py-20 text-[#D4AF37]">
-          <p className="italic font-serif text-lg text-slate-500">
+        <div className="text-center py-20 text-[#D4AF37] text-[36px]">
+          <p className="italic font-serif text-lg">
             Nenhuma foto favorita selecionada.
           </p>
+          {/* BOTÃO DE RESET */}
+          <button
+            onClick={() => setShowOnlyFavorites(false)}
+            className="px-8 py-3 rounded-full bg-[#F3E5AB] text-slate-900 font-semibold 
+            text-sm md:text-[14px] tracking-widest hover:scale-105 transition-all shadow-xl active:scale-95"
+          >
+            Ver todas as fotos
+          </button>
         </div>
       ) : (
         <>
@@ -92,10 +104,16 @@ const MasonryGrid = ({
           >
             {/* Masonry por colunas responsivas */}
             <div
-              className="
-                columns-1 sm:columns-2 md:columns-3 lg:columns-4
-                gap-2
-              "
+              // A key muda sempre que o filtro de favoritos alterna, forçando o recalcular
+              key={showOnlyFavorites ? 'favorites-grid' : 'full-grid'}
+              className={`
+                    gap-4 mx-auto
+                    ${
+                      showOnlyFavorites
+                        ? 'flex flex-wrap justify-start items-start'
+                        : 'columns-1 sm:columns-2 md:columns-3 lg:columns-4'
+                    }
+                  `}
             >
               {limitedPhotos.map((photo, index) => {
                 const isSelected = favorites.includes(photo.id);
@@ -103,7 +121,21 @@ const MasonryGrid = ({
                 return (
                   <div
                     key={photo.id}
-                    className="masonry-item relative inline-block w-full mb-4 break-inside-avoid-column group"
+                    className={`
+                              relative mb-4 group
+                              ${
+                                showOnlyFavorites
+                                  ? 'flex-grow h-[250px] md:h-[300px] w-auto'
+                                  : 'inline-block w-full break-inside-avoid-column'
+                              }
+                            `}
+                    style={
+                      showOnlyFavorites
+                        ? {
+                            flexBasis: `${(photo.width * 300) / photo.height}px`,
+                          }
+                        : {}
+                    }
                   >
                     {/* Trigger da foto */}
                     <a

@@ -253,6 +253,7 @@ export default function PhotoGrid({ photos, galeria }: any) {
         setSelectedPhotoIndex={setSelectedPhotoIndex}
         photos={photos}
         showOnlyFavorites={showOnlyFavorites}
+        setShowOnlyFavorites={setShowOnlyFavorites}
       />
       {/* 5. LIGHTBOX */}
       {selectedPhotoIndex !== null && photos.length > 0 && (

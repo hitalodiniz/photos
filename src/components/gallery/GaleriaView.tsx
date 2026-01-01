@@ -97,52 +97,68 @@ export default function GaleriaView({ galeria, photos }: GaleriaViewProps) {
         </main>
 
         {/* 3. RODAPÉ EDITORIAL */}
-        <footer className="relative z-20 w-full pt-2 pb-16 px-6 border-t border-[#D4AF37]/60 bg-[#FFF9F0] backdrop-blur-sm">
-          <div className="max-w-7xl mx-auto flex flex-col items-center gap-4">
-            {/* Botão Voltar ao Topo */}
+        <footer className="relative z-20 w-full mt-16 clear-both pt-10 pb-20 px-6 border-t border-[#D4AF37]/30 bg-[#FFF9F0] backdrop-blur-sm">
+          <div className="max-w-7xl mx-auto flex flex-col items-center gap-10">
+            {/* Botão Voltar ao Topo - Estilo Medalhão */}
             <button
               onClick={() => window.scrollTo({ top: 0, behavior: 'smooth' })}
-              className="group flex flex-col items-center gap-2 text-[#D4AF37] transition-all hover:text-slate-900"
+              className="group flex flex-col items-center gap-3 text-[#D4AF37] transition-all"
             >
-              <div className="p-3 rounded-full border border-[#D4AF37]/30 group-hover:bg-[#D4AF37] group-hover:text-[#FDF8E7] transition-all duration-500 shadow-md">
+              <div className="p-4 rounded-full border border-[#D4AF37]/40 group-hover:bg-[#D4AF37] group-hover:text-white transition-all duration-700 shadow-[0_0_15px_rgba(212,175,55,0.2)] group-hover:shadow-[0_0_25px_rgba(212,175,55,0.4)] relative overflow-hidden">
                 <svg
-                  width="20"
-                  height="20"
+                  width="24"
+                  height="24"
                   viewBox="0 0 24 24"
                   fill="none"
                   stroke="currentColor"
-                  strokeWidth="2"
+                  strokeWidth="1.5"
                   strokeLinecap="round"
                   strokeLinejoin="round"
+                  className="relative z-10"
                 >
                   <path d="m18 15-6-6-6 6" />
                 </svg>
               </div>
-              <span className="text-[10px] uppercase tracking-[0.3em] font-bold">
+              <span className="text-[9px] md:text-[14px] tracking-[0.4em] font-semibold opacity-70 group-hover:opacity-100 transition-opacity">
                 Voltar ao Topo
               </span>
             </button>
 
-            {/* Informações Finais */}
-            <div className="flex flex-col items-center text-center gap-4">
-              <div className="h-px w-20 bg-[#D4AF37]/30" />
-              <h3 className="font-serif italic text-base md:text-4xl text-slate-900">
-                {galeria.title}
-              </h3>
-              <p className="text-slate-500 text-xs md:text-[14px] tracking-wider max-w-md leading-relaxed">
-                Todas as imagens são de propriedade de{' '}
-                <span className="text-[#D4AF37] font-semibold">
-                  {galeria.photographer_name}
-                </span>
-                .
-              </p>
-              <p className="text-slate-500 text-xs md:text-[14px] tracking-wider max-w-md leading-relaxed">
-                A reprodução não autorizada é proibida.
-              </p>
+            {/* Informações Finais - Layout Editorial */}
+            <div className="flex flex-col items-center text-center gap-3">
+              <div className="h-px w-24 bg-gradient-to-r from-transparent via-[#D4AF37]/50 to-transparent" />
+
+              <div className="space-y-2">
+                <h3 className="font-serif italic text-2xl md:text-4xl text-slate-900 tracking-tight">
+                  {galeria.title}
+                </h3>
+                <p className="text-[10px] md:text-[12px] uppercase tracking-[0.3em] text-[#D4AF37] font-medium">
+                  Memórias Eternizadas
+                </p>
+              </div>
+
+              <div className="space-y-1 max-w-md">
+                <p className="text-slate-500 text-xs md:text-sm tracking-wide leading-relaxed">
+                  Fotografias capturadas por{' '}
+                  <span className="text-slate-900 font-bold border-b border-[#D4AF37]/30">
+                    {galeria.photographer_name}
+                  </span>
+                </p>
+                <p className="text-slate-400 text-[10px] md:text-xs italic">
+                  Direitos Autorais Reservados • A reprodução não autorizada é
+                  protegida por lei.
+                </p>
+              </div>
             </div>
-            <div className="text-[10px] md:text-[14px] tracking-widest text-slate-400 ">
-              Powered by Sua Galeria de Fotos•{' '}
-              <span>© {new Date().getFullYear()}</span>
+
+            {/* Branding Final */}
+            <div className="flex flex-col items-center gap-2 pt-2 border-t border-slate-200/50 w-full max-w-xs">
+              <div className="text-[9px] md:text-[11px] tracking-[0.2em] text-slate-400 uppercase font-medium">
+                Powered by <span className="text-slate-600">Sua Galeria</span>
+              </div>
+              <span className="text-[10px] text-slate-300 font-serif">
+                © {new Date().getFullYear()}
+              </span>
             </div>
           </div>
         </footer>
