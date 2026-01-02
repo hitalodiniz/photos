@@ -56,7 +56,7 @@ export default function PhotographerProfileContent({
               </span>
             </>
           }
-          showBackButton={showBackButton}
+          showBackButton={false}
         />
 
         <main className="flex-grow flex flex-col items-center justify-start px-6 pt-20 pb-10">

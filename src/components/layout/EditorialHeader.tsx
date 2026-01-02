@@ -20,8 +20,14 @@ export default function EditorialHeader({
   const [canGoBack, setCanGoBack] = useState(false);
 
   useEffect(() => {
-    // Verifica se existe histórico disponível (length > 1 indica que há uma página anterior)
-    if (typeof window !== 'undefined' && window.history.length > 1) {
+    const hasHistory =
+      typeof window !== 'undefined' && window.history.length > 1;
+    // Opcional: Verifica se o usuário veio de dentro do seu próprio site
+    const isInternalNavigation = document.referrer.includes(
+      window.location.host,
+    );
+
+    if (hasHistory || isInternalNavigation) {
       setCanGoBack(true);
     }
   }, []);
@@ -33,7 +39,7 @@ export default function EditorialHeader({
         <div className="fixed left-4 md:left-10 top-8 md:top-12 z-50 animate-in fade-in slide-in-from-left-4 duration-500">
           <button
             onClick={() => router.back()}
-            className="inline-flex items-center gap-2.5 px-6 py-2.5 text-[12px] md:text-[14px] font-black tracking-[0.3em] text-[#D4AF37] bg-black/20 border border-[#D4AF37]/20 rounded-full hover:bg-black/40 hover:border-[#D4AF37]/40 transition-all duration-300 backdrop-blur-xl group uppercase shadow-2xl"
+            className="inline-flex items-center gap-2.5 px-6 py-2.5 text-[10px] md:text-[12px] font-black tracking-[0.3em] text-[#D4AF37] bg-black/40 border border-[#D4AF37]/20 rounded-full hover:bg-black/60 hover:border-[#D4AF37]/40 transition-all duration-300 backdrop-blur-xl group uppercase shadow-2xl"
           >
             <ArrowLeft
               size={16}
