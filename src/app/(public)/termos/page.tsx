@@ -1,5 +1,11 @@
 'use client';
-import { FileText, Globe, UserCheck, ShieldAlert } from 'lucide-react';
+import {
+  FileText,
+  Globe,
+  UserCheck,
+  ShieldAlert,
+  ShieldCheck,
+} from 'lucide-react';
 import { useRouter } from 'next/navigation';
 import {
   EditorialHeader,
@@ -7,6 +13,7 @@ import {
   Footer,
 } from '@/components/layout';
 import { FeatureItem } from '@/components/ui';
+import { div } from 'framer-motion/client';
 
 export default function TermosDeUsoPage() {
   const router = useRouter();
@@ -31,25 +38,31 @@ export default function TermosDeUsoPage() {
         <main className="flex-grow flex items-center justify-center py-10">
           <section
             className="w-full max-w-5xl mx-auto bg-white/90 backdrop-blur-xl 
-          rounded-[3rem] md:rounded-[4rem] p-6 md:p-12 shadow-2xl border border-white/50"
+    rounded-[3rem] md:rounded-[4rem] p-6 md:p-12 shadow-2xl border border-white/50"
           >
             <div className="grid grid-cols-1 md:grid-cols-1 gap-y-6 px-2 md:px-6">
               <FeatureItem
                 icon={<UserCheck size={30} />}
                 title="Aceitação dos Termos"
-                desc="Ao acessar e utilizar esta plataforma, você concorda integralmente com estas diretrizes. O serviço é destinado a fotógrafos profissionais que buscam otimizar a entrega de arquivos via Google Drive™."
+                desc="Ao utilizar esta plataforma, você concorda com estas diretrizes. O serviço é um visualizador de mídia otimizado para fotógrafos que utilizam o Google Drive™ como servidor de armazenamento de fotos e vídeos."
               />
 
               <FeatureItem
                 icon={<Globe size={30} />}
-                title="Licença de Uso"
-                desc="Concedemos uma licença limitada e revogável para utilizar nossa interface de galeria. Você retém todos os direitos sobre suas imagens, sendo responsável pelo conteúdo hospedado em sua conta Google."
+                title="Licença e Propriedade"
+                desc="Você mantém 100% da propriedade intelectual de suas mídias. Concedemos uma licença de uso da nossa interface. A disponibilidade das fotos depende exclusivamente da manutenção dos arquivos e permissões em sua conta Google pessoal."
+              />
+
+              <FeatureItem
+                icon={<ShieldCheck size={30} />}
+                title="Segurança e Dados (LGPD)"
+                desc="Atuamos em conformidade com a Lei Geral de Proteção de Dados (LGPD). Não armazenamos suas fotos em nossos servidores. O usuário é responsável por configurar a pasta no Google Drive™ como 'Qualquer pessoa com o link' para viabilizar a exibição."
               />
 
               <FeatureItem
                 icon={<ShieldAlert size={30} />}
-                title="Responsabilidade do Usuário"
-                desc="O usuário é o único responsável pela gestão de suas credenciais de acesso e pela legalidade das fotos publicadas em suas galerias, isentando a plataforma de qualquer uso indevido de terceiros."
+                title="Limites de Uso e Planos"
+                desc="O acesso a recursos como Analytics, Perfil Profissional e vídeos é determinado pelo plano contratado (Start, Intermediate, Pro ou Premium). O uso indevido para fins ilegais resultará em suspensão imediata."
               />
 
               <FeatureItem
