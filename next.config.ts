@@ -1,8 +1,6 @@
 import type { NextConfig } from 'next';
 
 const nextConfig: NextConfig = {
-  // Transpilação necessária para evitar o erro de SyntaxError no CSS da biblioteca
-  transpilePackages: ['lightgallery'],
   images: {
     remotePatterns: [
       {
@@ -16,12 +14,18 @@ const nextConfig: NextConfig = {
       {
         protocol: 'https',
         hostname: 'lh3.googleusercontent.com',
+        pathname: '/d/**',
       },
       {
         protocol: 'https',
         hostname: 'bdgqiyvasucvhihaueuk.supabase.co',
       },
     ],
+  },
+  experimental: {
+    // Resolve o erro de Cross-Origin no terminal entre hitalodiniz.lvh.me e o servidor
+    // @ts-ignore
+    allowedDevOrigins: ['hitalodiniz.lvh.me', 'localhost:3000'],
   },
 };
 

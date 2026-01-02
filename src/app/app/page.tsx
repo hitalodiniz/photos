@@ -10,24 +10,22 @@ interface Profile {
   full_name: string | null;
   mini_bio: string | null;
   username: string | null;
+  use_subdomain: boolean; // Adicionado para controle
 }
 
 export default function AppClientGuard() {
   const { session, loading: authLoading } = useAuthStatus();
   const [profileLoading, setProfileLoading] = useState(true);
   const router = useRouter();
-
-  // 1. Trava de controle com useRef para evitar loops de sincronização
   const isSyncingRef = useRef(false);
 
+  // 1. Sincronização de Sessão (Mantido)
   useEffect(() => {
     const hasTokenInStorage = !!localStorage.getItem(
       'sb-bdgqiyvasucvhihaueuk-auth-token',
     );
-
     if (session && hasTokenInStorage && !isSyncingRef.current) {
       isSyncingRef.current = true;
-
       supabase.auth
         .refreshSession()
         .catch((e) => console.error('Falha ao sincronizar cookie:', e))
@@ -37,52 +35,74 @@ export default function AppClientGuard() {
     }
   }, [session]);
 
-  // 2. Busca o perfil e redireciona
+  // 2. Busca o perfil e gerencia subdomínios
   useEffect(() => {
-    if (!authLoading && !session) {
+    if (authLoading) return;
+
+    if (!session) {
       router.replace('/');
       return;
     }
 
     const fetchProfile = async () => {
-      if (!session) return; // Removido cookieSyncing daqui
-
-      const user = session.user;
-
       const { data } = await supabase
         .from('tb_profiles')
-        .select('full_name, username, mini_bio')
-        .eq('id', user.id)
+        .select('full_name, username, mini_bio, use_subdomain')
+        .eq('id', session.user.id)
         .single();
 
-      const profile: Profile = data || {
-        full_name: null,
-        username: null,
-        mini_bio: null,
-      };
+      const profile = data as Profile;
 
+      // Validação de Onboarding
       const isComplete =
-        profile.full_name && profile.username && profile.mini_bio;
+        profile?.full_name && profile?.username && profile?.mini_bio;
 
       if (!isComplete) {
         router.replace('/onboarding');
-      } else {
-        router.replace('/dashboard');
+        setProfileLoading(false);
+        return;
       }
 
+      // --- LÓGICA DE SINCRONIZAÇÃO DE SUBDOMÍNIO ---
+      const host = window.location.hostname;
+      const isLocal = host.includes('localhost');
+      const chunks = host.split('.');
+
+      // Identifica o subdomínio atual na URL
+      const currentSubdomain = isLocal
+        ? chunks.length > 1 && chunks[chunks.length - 1] === 'localhost'
+          ? chunks[0]
+          : ''
+        : chunks.length > 2
+          ? chunks[0]
+          : '';
+
+      // Se o fotógrafo deve usar subdomínio e está no domínio principal (ou subdomínio errado)
+      if (
+        profile.use_subdomain &&
+        profile.username !== currentSubdomain &&
+        currentSubdomain !== 'www'
+      ) {
+        const protocol = window.location.protocol;
+        const port = window.location.port ? `:${window.location.port}` : '';
+        const domainBase = isLocal ? 'localhost' : 'suagaleria.com.br';
+
+        // Redirecionamento forçado (Cross-domain exige window.location.href)
+        window.location.href = `${protocol}//${profile.username}.${domainBase}${port}/dashboard`;
+        return;
+      }
+
+      // Se já estiver no domínio/subdomínio correto
+      router.replace('/dashboard');
       setProfileLoading(false);
     };
 
-    if (session) {
-      fetchProfile();
-    }
-    // Removido cookieSyncing das dependências abaixo
+    fetchProfile();
   }, [session, authLoading, router]);
 
-  // 3. Condição de carregamento elegante e minimalista
+  // 3. CORREÇÃO: Removido o 'return;' extra que impedia a renderização
   if (authLoading || profileLoading) {
-    return;
-    <LoadingScreen message="Verificando seu acesso" />;
+    return <LoadingScreen message="Verificando seu acesso..." />;
   }
 
   return null;

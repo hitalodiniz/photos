@@ -18,6 +18,7 @@ export async function fetchGalleryBySlug(fullSlug: string) {
         id,
         full_name,
         username,
+        use_subdomain,
         profile_picture_url,
         phone_contact,
         instagram_link

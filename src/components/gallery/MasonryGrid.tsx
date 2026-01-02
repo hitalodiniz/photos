@@ -176,6 +176,7 @@ const MasonryGrid = ({
                                     skeleton.classList.add('hidden');
                                 }
                               }}
+                              unoptimized
                               loading="lazy"
                             />
                           </a>
