@@ -76,6 +76,15 @@ export async function upsertProfile(formData: FormData, supabaseClient?: any) {
 
   // 3. UPLOAD DE FOTO DE PERFIL
   if (profilePictureFile && profilePictureFile.size > 0) {
+    // Verificação preventiva de tamanho no servidor
+    if (profilePictureFile.size > 5 * 1024 * 1024) {
+      // Exemplo: 5MB
+      return {
+        success: false,
+        error: 'A imagem é muito grande. Escolha uma foto de até 5MB.',
+      };
+    }
+
     const fileExt = profilePictureFile.name.split('.').pop();
     const fileName = `avatar-${Date.now()}.${fileExt}`;
     const filePath = `${user.id}/${fileName}`;
@@ -86,12 +95,16 @@ export async function upsertProfile(formData: FormData, supabaseClient?: any) {
 
     if (uploadError) {
       console.error('Erro upload:', uploadError);
-    } else {
-      const {
-        data: { publicUrl },
-      } = supabase.storage.from('profile_pictures').getPublicUrl(filePath);
-      profile_picture_url = publicUrl;
+      return {
+        success: false,
+        error: 'Erro ao enviar a foto para o servidor.',
+      };
     }
+
+    const {
+      data: { publicUrl },
+    } = supabase.storage.from('profile_pictures').getPublicUrl(filePath);
+    profile_picture_url = publicUrl;
   }
 
   // 4. PERSISTÊNCIA NO BANCO DE DADOS

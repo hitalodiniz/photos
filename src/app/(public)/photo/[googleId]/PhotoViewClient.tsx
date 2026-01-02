@@ -3,6 +3,7 @@ import React, { useEffect, useState } from 'react';
 import { Download, Camera, Loader2 } from 'lucide-react';
 import { GalleryHeader, PhotographerAvatar } from '@/components/gallery';
 import { createClient } from '@supabase/supabase-js';
+import LoadingScreen from '@/components/ui/LoadingScreen';
 
 const supabase = createClient(
   process.env.NEXT_PUBLIC_SUPABASE_URL!,
@@ -75,9 +76,9 @@ export default function PhotoViewClient({
 
   if (loading)
     return (
-      <div className="min-h-screen bg-black flex items-center justify-center text-[#F3E5AB] animate-pulse font-serif italic">
-        Carregando foto exclusiva...
-      </div>
+      <>
+        <LoadingScreen message="Carregando foto exclusiva..." />
+      </>
     );
 
   return (

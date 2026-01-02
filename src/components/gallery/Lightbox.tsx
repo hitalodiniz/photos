@@ -228,6 +228,7 @@ export default function Lightbox({
     const whatsappUrl = `https://api.whatsapp.com/send?text=${encodeURIComponent(shareText + ' ' + shareUrl)}`;
     window.open(whatsappUrl, '_blank');
   };
+
   const handleDownload = async () => {
     try {
       setIsDownloading(true);
@@ -286,12 +287,12 @@ export default function Lightbox({
                   <MessageCircle className="text-white group-hover:text-[#25D366] w-[20px] h-[20px] md:w-[24px] md:h-[24px]" />
                 </div>
                 <div
-                  className={`flex flex-col items-start leading-none transition-all duration-500 overflow-hidden ${showButtonText ? 'max-w-[100px] opacity-100 ml-2' : 'max-w-0 opacity-0 ml-0'}`}
+                  className={`gap-y-1 flex flex-col items-start leading-none transition-all duration-500 overflow-hidden ${showButtonText ? 'max-w-[100px] opacity-100 ml-2' : 'max-w-0 opacity-0 ml-0'}`}
                 >
                   <span className="text-[9px] md:text-[11px] font-bold uppercase tracking-widest italic text-white whitespace-nowrap">
                     WhatsApp
                   </span>
-                  <span className="text-[8px] md:text-[11px] opacity-60 uppercase font-bold text-white/70 whitespace-nowrap">
+                  <span className="text-[8px] md:text-[11px] opacity-60 font-semibold text-white/70 whitespace-nowrap">
                     Compartilhar
                   </span>
                 </div>
@@ -311,12 +312,12 @@ export default function Lightbox({
                     />{' '}
                   </div>
                   <div
-                    className={`flex flex-col items-start leading-none transition-all duration-500 overflow-hidden ${showButtonText ? 'max-w-[100px] opacity-100 ml-2' : 'max-w-0 opacity-0 ml-0'}`}
+                    className={`gap-y-1 flex flex-col items-start leading-none transition-all duration-500 overflow-hidden ${showButtonText ? 'max-w-[100px] opacity-100 ml-2' : 'max-w-0 opacity-0 ml-0'}`}
                   >
                     <span className="text-[9px] md:text-[11px] font-bold uppercase tracking-widest italic text-white whitespace-nowrap">
                       Favoritar
                     </span>
-                    <span className="text-[8px] md:text-[11px] opacity-60 uppercase font-bold text-white/70 whitespace-nowrap">
+                    <span className="text-[8px] md:text-[11px] opacity-60  font-semibold text-white/70 whitespace-nowrap">
                       {totalFavorites > 0 ? `(${totalFavorites})` : 'Foto'}
                     </span>
                   </div>
@@ -335,13 +336,13 @@ export default function Lightbox({
                   )}
                 </div>
                 <div
-                  className={`flex flex-col items-start leading-none transition-all duration-500 overflow-hidden ${showButtonText ? 'max-w-[100px] opacity-100 ml-2' : 'max-w-0 opacity-0 ml-0'}`}
+                  className={`gap-y-1 flex flex-col items-start leading-none transition-all duration-500 overflow-hidden ${showButtonText ? 'max-w-[100px] opacity-100 ml-2' : 'max-w-0 opacity-0 ml-0'}`}
                 >
                   <span className="text-[9px] md:text-[11px] font-bold uppercase tracking-widest italic text-white whitespace-nowrap">
                     Download
                   </span>
-                  <span className="text-[8px] md:text-[11px] opacity-60 uppercase font-bold text-white/70 whitespace-nowrap">
-                    Alta Res.
+                  <span className="text-[8px] md:text-[11px] opacity-60  font-bold text-white/70 whitespace-nowrap">
+                    Alta Resolução
                   </span>
                 </div>
               </button>

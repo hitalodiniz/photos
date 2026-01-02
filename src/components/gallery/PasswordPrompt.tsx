@@ -21,24 +21,38 @@ export default function PasswordPrompt({
   const handleCheckPassword = async (e: React.FormEvent) => {
     e.preventDefault();
     setError('');
+
     if (password.length < 4) {
       setError('Mínimo de 4 dígitos.');
       return;
     }
+
     setIsChecking(true);
+
+    // 1. Executamos a lógica de validação
+    // O redirect NÃO deve ser capturado pelo catch como um erro comum
     try {
       const result = await authenticateGaleriaAccess(
         galeriaId,
         fullSlug,
         password,
       );
+
+      // Se o código chegar aqui, significa que NÃO houve redirect (ou seja, houve erro de senha)
       if (result && !result.success) {
         setError(result.error || 'Senha incorreta.');
+        setIsChecking(false);
       }
-    } catch (e) {
-      setError('Erro de conexão.', e);
+    } catch (e: any) {
+      // Verificamos se o erro é o do próprio redirect do Next.js
+      if (e.message === 'NEXT_REDIRECT') {
+        throw e; // Lança novamente para o Next.js processar
+      }
+
+      console.error('Erro real:', e);
+      setError('Erro de conexão ou servidor.');
+      setIsChecking(false);
     }
-    setIsChecking(false);
   };
 
   return (
@@ -65,6 +79,7 @@ export default function PasswordPrompt({
             {/* ESTRUTURA LABEL + INPUT */}
             <div className="text-left">
               <input
+                autoFocus
                 type="password"
                 inputMode="numeric"
                 pattern="[0-9]*"
@@ -78,7 +93,8 @@ export default function PasswordPrompt({
                 className="w-full rounded-2xl border 
                 border-white/10 bg-black/20 p-4 text-white  
                 focus:ring-2 focus:ring-[#F3E5AB] focus:bg-black/40 transition-all 
-                outline-none text-center text-2x1 tracking-[0.2em]"
+                outline-none text-center text-2x1 tracking-[0.2em]
+                placeholder:text-white/60 placeholder:font-medium"
               />
             </div>
 
