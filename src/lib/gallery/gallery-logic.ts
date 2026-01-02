@@ -45,15 +45,34 @@ export function formatGalleryData(
     client_name: raw.client_name,
     date: raw.date,
     location: raw.location,
+    slug: raw.slug, // Adicionei o slug que faltava no seu retorno
     cover_image_url: raw.cover_image_url,
     drive_folder_id: raw.drive_folder_id,
     is_public: raw.is_public,
     password: raw.password,
+
+    // Mapeamento do objeto photographer completo para as interfaces novas
+    photographer: raw.photographer
+      ? {
+          id: raw.photographer.id,
+          full_name: raw.photographer.full_name,
+          username: raw.photographer.username,
+          profile_picture_url: raw.photographer.profile_picture_url,
+          phone_contact: raw.photographer.phone_contact,
+          instagram_link: raw.photographer.instagram_link,
+          use_subdomain: !!raw.photographer.use_subdomain, // Garante que vira boolean true/false
+        }
+      : undefined,
+
+    // Mantendo seus campos legados para não quebrar componentes antigos
     photographer_name: raw.photographer?.full_name || 'Fotógrafo',
-    photographer_id: raw.photographer?.username || username,
     photographer_avatar_url: raw.photographer?.profile_picture_url || null,
     photographer_phone: raw.photographer?.phone_contact || null,
     photographer_instagram: raw.photographer?.instagram_link || null,
+
+    // Campos extras úteis para o utilitário de URL
+    photographer_username: raw.photographer?.username || username,
+    use_subdomain: !!raw.photographer?.use_subdomain,
   };
 }
 
