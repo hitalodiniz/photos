@@ -24,7 +24,7 @@ export default function LoadingScreen({
 
       {/* Texto com tracking (espaçamento) editorial */}
       <div className="mt-8 flex flex-col items-center gap-2">
-        <p className="text-[10px] md:text-[12px] lg:text-[14px] uppercase tracking-[0.4em] text-[#D4AF37] font-bold animate-pulse text-center px-4">
+        <p className="text-[10px] md:text-[12px] lg:text-[14px] tracking-[0.4em] text-[#D4AF37] font-medium animate-pulse text-center px-4">
           {message}
         </p>
         <div className="h-px w-8 bg-[#D4AF37]/30" />

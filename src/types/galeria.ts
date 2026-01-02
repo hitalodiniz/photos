@@ -31,7 +31,7 @@ export interface GaleriaBase {
   client_name: string;
   date: string;
   location: string;
-  slug: string; // Adicionado pois você usa no filtro
+  slug: string;
   cover_image_url: string | null;
   drive_folder_id: string | null;
   is_public: boolean;
@@ -45,6 +45,7 @@ export interface GaleriaRawResponse {
   client_name: string;
   date: string;
   location: string;
+  slug: string;
   cover_image_url: string | null;
   drive_folder_id: string | null;
   is_public: boolean;

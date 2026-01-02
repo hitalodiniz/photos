@@ -11,7 +11,6 @@ interface GaleriaViewProps {
 
 export default function GaleriaView({ galeria, photos }: GaleriaViewProps) {
   const [scrollY, setScrollY] = useState(0);
-
   useEffect(() => {
     const handleScroll = () => setScrollY(window.scrollY);
     window.addEventListener('scroll', handleScroll, { passive: true });

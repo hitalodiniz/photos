@@ -135,10 +135,10 @@ export default function PhotoViewClient({
           <button
             onClick={() => {
               const params = new URLSearchParams(window.location.search);
-              const galleryPath = params.get('s');
-              window.location.href = galleryPath
-                ? decodeURIComponent(galleryPath)
-                : './';
+              const sParam = params.get('s');
+              window.location.href = sParam
+                ? `/${decodeURIComponent(sParam).replace(/^\/+/, '')}`
+                : '/';
             }}
             aria-label="Voltar para a galeria de fotos"
             className="flex items-center gap-0 hover:gap-2 pl-2 hover:text-[#F3E5AB] focus:outline-none focus:ring-2 focus:ring-[#F3E5AB] focus:ring-offset-2 focus:ring-offset-black transition-all duration-500 group"
