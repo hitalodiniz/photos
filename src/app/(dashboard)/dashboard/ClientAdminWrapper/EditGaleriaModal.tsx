@@ -95,12 +95,6 @@ export default function EditGaleriaModal({
     });
 
     setErrorMessage(null);
-
-    // Dispara o Toast unificado (visto na imagem de sucesso)
-    setToastConfig({
-      message: 'Pasta vinculada com sucesso!',
-      type: 'success',
-    });
   };
 
   const handleSubmit = async (e: React.FormEvent<HTMLFormElement>) => {
