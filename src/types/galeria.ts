@@ -44,6 +44,7 @@ export interface Galeria extends GaleriaBase {
   photographer_avatar_url: string | null;
   photographer_phone?: string | null;
   photographer_instagram?: string | null;
+  photographer_email?: string | null;
 
   // Atalhos úteis para facilitar o acesso no GaleriaCard
   photographer_username?: string;

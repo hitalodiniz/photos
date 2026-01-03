@@ -8,6 +8,7 @@ import {
 } from '@/lib/gallery/gallery-logic';
 import { GaleriaView, PasswordPrompt } from '@/components/gallery';
 import { getGalleryMetadata } from '@/lib/gallery/metadata-helper';
+import { getImageUrl } from '@/utils/url-helper';
 
 export default async function UsernameGaleriaPage({
   params,
@@ -23,6 +24,7 @@ export default async function UsernameGaleriaPage({
   if (!galeriaRaw) notFound();
 
   const galeriaData = formatGalleryData(galeriaRaw, username);
+  const coverUrl = getImageUrl(galeriaData.cover_image_url, 'w1600', 40);
 
   galeriaData.slug = fullSlug;
   // Verificação de segurança
@@ -33,9 +35,9 @@ export default async function UsernameGaleriaPage({
     if (savedToken !== galeriaData.password) {
       return (
         <PasswordPrompt
-          galeriaTitle={galeriaData.title}
-          galeriaId={galeriaData.id}
+          galeria={galeriaData}
           fullSlug={fullSlug}
+          coverImageUrl={coverUrl}
         />
       );
     }

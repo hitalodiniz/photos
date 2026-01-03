@@ -2,17 +2,18 @@
 
 import { authenticateGaleriaAccess } from '@/actions/galeria';
 import React, { useState } from 'react';
-import { Camera, Lock, Loader2 } from 'lucide-react';
-import { DynamicHeroBackground } from '@/components/layout';
+import { Camera, Lock, Loader2, CheckCircle2, Send, X } from 'lucide-react';
+import { Galeria } from '@/types/galeria';
+import { sendAccessRequestAction } from '@/actions/email';
 
 export default function PasswordPrompt({
-  galeriaTitle,
-  galeriaId,
+  galeria,
   fullSlug,
+  coverImageUrl,
 }: {
-  galeriaTitle: string;
-  galeriaId: string;
+  galeria: Galeria;
   fullSlug: string;
+  coverImageUrl?: string;
 }) {
   const [password, setPassword] = useState('');
   const [error, setError] = useState('');
@@ -31,7 +32,7 @@ export default function PasswordPrompt({
 
     try {
       const result = await authenticateGaleriaAccess(
-        galeriaId,
+        galeria.id,
         fullSlug,
         password,
       );
@@ -52,10 +53,21 @@ export default function PasswordPrompt({
     }
   };
 
+  const [isModalOpen, setIsModalOpen] = useState(false);
+
   return (
     <div className="relative min-h-screen w-full flex items-center justify-center overflow-hidden bg-black font-sans px-4">
-      <DynamicHeroBackground />
-
+      {/* 📸 NOVO BACKGROUND COM A FOTO DA GALERIA */}
+      <div className="absolute inset-0 z-0">
+        <div
+          className="absolute inset-0 bg-cover bg-center bg-no-state scale-105"
+          style={{
+            backgroundImage: `url(${coverImageUrl})`,
+          }}
+        />
+        {/* Overlay gradiente para garantir contraste */}
+        <div className="absolute inset-0 bg-gradient-to-b from-black/70 via-black/40 to-black/80" />
+      </div>
       <div className="relative z-10 w-full max-w-md">
         <div className="bg-black/45 backdrop-blur-xl rounded-[2.5rem] p-8 md:p-12 border border-white/10 shadow-2xl text-center ring-1 ring-white/5">
           {/* ÍCONE DE CÂMERA COM GLOW */}
@@ -67,7 +79,7 @@ export default function PasswordPrompt({
             className="text-2xl md:text-3xl font-bold text-white mb-2 italic leading-tight drop-shadow-lg pb-6"
             style={{ fontFamily: "'Playfair Display', serif" }}
           >
-            {galeriaTitle}
+            {galeria.title}
           </h1>
 
           <form onSubmit={handleCheckPassword} className="space-y-6">
@@ -116,12 +128,159 @@ export default function PasswordPrompt({
             </button>
           </form>
 
+          <div className="mt-8">
+            <button
+              onClick={() => setIsModalOpen(true)}
+              className="text-[#F3E5AB]/60 hover:text-[#F3E5AB] text-[10px] tracking-[0.2em] uppercase font-bold transition-all border-b border-[#F3E5AB]/20 pb-1"
+            >
+              Não tenho a senha
+            </button>
+          </div>
+
+          {/* Modal */}
+          <AccessRequestModal
+            isOpen={isModalOpen}
+            onClose={() => setIsModalOpen(false)}
+            galeriaTitle={galeria.title}
+            photographerEmail={galeria.photographer_email}
+          />
           <div className="mt-12 opacity-40 flex flex-col items-center gap-3">
             <div className="w-8 h-[1px] bg-white"></div>
             <p className="text-[10px] text-white tracking-[0.3em] font-light uppercase">
               Memórias Protegidas
             </p>
           </div>
+        </div>
+      </div>
+    </div>
+  );
+}
+
+export function AccessRequestModal({
+  isOpen,
+  onClose,
+  galeriaTitle,
+  photographerEmail,
+}: {
+  isOpen: boolean;
+  onClose: () => void;
+  galeriaTitle: string;
+  photographerEmail: string;
+}) {
+  const [loading, setLoading] = useState(false);
+  const [sent, setSent] = useState(false);
+
+  if (!isOpen) return null;
+
+  const handleSubmit = async (e: React.FormEvent<HTMLFormElement>) => {
+    e.preventDefault();
+    setLoading(true);
+
+    const formData = new FormData(e.currentTarget);
+    const data = {
+      name: formData.get('name'),
+      email: formData.get('email'),
+      whatsapp: formData.get('whatsapp'),
+      galeria: galeriaTitle,
+      to: photographerEmail,
+    };
+
+    try {
+      const result = await sendAccessRequestAction({
+        name: String(formData.get('name')),
+        email: String(formData.get('email')),
+        whatsapp: String(formData.get('whatsapp')),
+        galeriaTitle,
+        photographerEmail,
+      });
+
+      if (result.success) {
+        setSent(true);
+      } else {
+        alert('Erro ao enviar: ' + result.error);
+      }
+    } catch (error) {
+      console.error(error);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  return (
+    <div className="fixed inset-0 z-[100] flex items-center justify-center p-4 bg-black/80 backdrop-blur-sm animate-in fade-in duration-300">
+      <div className="bg-[#1A1A1A] border border-white/10 w-full max-w-md rounded-[2rem] overflow-hidden shadow-2xl">
+        <div className="p-8">
+          {!sent ? (
+            <>
+              <div className="flex justify-between items-start mb-6">
+                <div>
+                  <h3 className="text-xl font-serif italic text-white">
+                    Solicitar Acesso
+                  </h3>
+                  <p className="text-xs text-[#F3E5AB]/60 mt-1 uppercase tracking-widest">
+                    Identifique-se para o fotógrafo
+                  </p>
+                </div>
+                <button
+                  onClick={onClose}
+                  className="text-white/40 hover:text-white transition-colors"
+                >
+                  <X size={24} />
+                </button>
+              </div>
+
+              <form onSubmit={handleSubmit} className="space-y-4">
+                <input
+                  name="name"
+                  placeholder="Seu Nome Completo"
+                  required
+                  className="w-full bg-white/5 border border-white/10 rounded-xl p-3 text-white outline-none focus:border-[#F3E5AB]/50 transition-all"
+                />
+                <input
+                  name="email"
+                  type="email"
+                  placeholder="Seu melhor E-mail"
+                  required
+                  className="w-full bg-white/5 border border-white/10 rounded-xl p-3 text-white outline-none focus:border-[#F3E5AB]/50 transition-all"
+                />
+                <input
+                  name="whatsapp"
+                  placeholder="WhatsApp (com DDD)"
+                  required
+                  className="w-full bg-white/5 border border-white/10 rounded-xl p-3 text-white outline-none focus:border-[#F3E5AB]/50 transition-all"
+                />
+
+                <button
+                  disabled={loading}
+                  className="w-full bg-[#F3E5AB] text-black font-bold py-4 rounded-xl flex items-center justify-center gap-2 hover:bg-[#FAF0CA] transition-all disabled:opacity-50"
+                >
+                  {loading ? (
+                    <Loader2 className="animate-spin" />
+                  ) : (
+                    <>
+                      <Send size={18} /> Enviar Solicitação
+                    </>
+                  )}
+                </button>
+              </form>
+            </>
+          ) : (
+            <div className="text-center py-10 animate-in zoom-in duration-500">
+              <CheckCircle2 size={60} className="text-[#F3E5AB] mx-auto mb-4" />
+              <h3 className="text-xl text-white font-medium">
+                Solicitação Enviada!
+              </h3>
+              <p className="text-white/60 mt-2 text-sm">
+                O fotógrafo analisará seu pedido em breve.
+              </p>
+              <button
+                onClick={onClose}
+                className="mt-8 text-[#F3E5AB] uppercase tracking-widest text-xs font-bold border-b border-[#F3E5AB]"
+              >
+                Fechar
+              </button>
+            </div>
+          )}
         </div>
       </div>
     </div>

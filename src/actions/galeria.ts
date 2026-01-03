@@ -379,7 +379,8 @@ export async function getGalerias(
           use_subdomain,
           profile_picture_url,
           phone_contact,
-          instagram_link
+          instagram_link,
+          email
         )
       `,
       )
