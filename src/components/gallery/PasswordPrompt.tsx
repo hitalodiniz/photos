@@ -85,7 +85,7 @@ export default function PasswordPrompt({
                 }
                 maxLength={8}
                 required
-                className="w-full rounded-2xl border border-white/10 bg-black/40 p-4 text-white text-center text-2xl tracking-[0.3em] focus:ring-2 focus:ring-[#F3E5AB]/50 focus:border-[#F3E5AB]/50 transition-all outline-none placeholder:text-white/30 placeholder:text-sm placeholder:tracking-normal placeholder:font-light"
+                className="w-full rounded-2xl border border-white/10 bg-black/40 p-4 text-white text-center text-2xl tracking-[0.3em] focus:ring-2 focus:ring-[#F3E5AB]/50 focus:border-[#F3E5AB]/50 transition-all outline-none placeholder:text-white/80 placeholder:text-base placeholder:tracking-normal placeholder:font-light"
               />
             </div>
 
@@ -101,15 +101,15 @@ export default function PasswordPrompt({
             <button
               type="submit"
               disabled={isChecking}
-              className={`w-full flex items-center justify-center gap-3 px-6 py-5 rounded-2xl font-bold 
-                transition-all shadow-lg active:scale-[0.98] text-xs tracking-[0.25em] uppercase
+              className={`w-full flex items-center justify-center gap-3 px-6 py-5 rounded-2xl font-semibold 
+                transition-all shadow-lg active:scale-[0.98] text-sm md:text[14px] tracking-[0.25em] uppercase
                 bg-[#F3E5AB] hover:bg-[#FAF0CA] text-slate-900 disabled:opacity-50 disabled:cursor-not-allowed`}
             >
               {isChecking ? (
                 <Loader2 className="animate-spin h-5 w-5" />
               ) : (
                 <>
-                  <Lock size={14} strokeWidth={2.5} />
+                  <Lock size={14} />
                   <span>Desbloquear Galeria</span>
                 </>
               )}

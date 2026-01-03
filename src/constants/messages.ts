@@ -20,6 +20,23 @@ export const GALLERY_MESSAGES = {
       url,
       '',
       'Espero que goste! ✨',
+      '---',
+      '💎 _Sua Galeria de Fotos_',
+    ].join('\n');
+  },
+  PHOTO_SHARE: (title: string, url: string) => {
+    return [
+      'Olá! ✨',
+      '',
+      '✨ *Um detalhe especial para você...*',
+      '',
+      `Selecionei esta foto da galeria *${title}* que acredito que você vai adorar! 📸`,
+      '',
+      '📍 *Visualize em alta qualidade aqui:*',
+      url,
+      '',
+      '---',
+      '💎 _Sua Galeria de Fotos_',
     ].join('\n');
   },
 };

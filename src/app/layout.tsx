@@ -26,8 +26,13 @@ const barlow = Barlow({
   variable: '--font-barlow',
 });
 
+// app/layout.tsx
+
 export const metadata: Metadata = {
-  title: 'Sua Galeria de Fotos - O portal das suas lembranças',
+  title: {
+    default: 'Sua Galeria de Fotos - O portal das suas lembranças', // Título da Home
+    template: '%s | Sua Galeria de Fotos', // O %s recebe o título da página interna
+  },
   description:
     'Seu momento especial, acessível a um clique. Bem-vindo à Sua Galeria de Fotos.',
   icons: {

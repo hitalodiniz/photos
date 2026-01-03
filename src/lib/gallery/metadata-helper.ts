@@ -3,7 +3,8 @@ import { fetchGalleryBySlug } from '@/lib/gallery/gallery-logic';
 
 export async function getGalleryMetadata(fullSlug: string) {
   const galeriaRaw = await fetchGalleryBySlug(fullSlug);
-  if (!galeriaRaw) return { title: 'Galeria não encontrada' };
+  if (!galeriaRaw)
+    return { title: 'Sua Galeria de Fotos - O portal das suas lembranças' };
 
   const title = `${galeriaRaw.title} — ${galeriaRaw.client_name}`;
   const isPrivate = !galeriaRaw.is_public;

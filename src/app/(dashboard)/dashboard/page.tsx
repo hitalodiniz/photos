@@ -3,10 +3,9 @@ import { redirect } from 'next/navigation';
 import { createSupabaseServerClientReadOnly } from '@/lib/supabase.server';
 import { getGalerias } from '@/actions/galeria';
 import ClientAdminWrapper from './ClientAdminWrapper';
-import { Metadata } from 'next';
 
-export const metadata: Metadata = {
-  title: 'Dashboard do Fotógrafo | Sua galeria de fotos',
+export const metadata = {
+  title: 'Dashboard',
 };
 
 export default async function DashboardPage() {

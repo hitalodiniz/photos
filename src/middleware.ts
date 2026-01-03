@@ -13,9 +13,11 @@ const SUBDOMAIN_CACHE_TTL = 1000 * 60 * 10; // 10 minutos
 
 async function getProfileBySubdomain(subdomain: string, req: NextRequest) {
   const now = Date.now();
+  const isLocalhost = process.env.NEXT_PUBLIC_NODE_ENV === 'development'; // 🎯 Detecta ambiente
   const cached = subdomainCache.get(subdomain);
 
-  if (cached && now - cached.createdAt < SUBDOMAIN_CACHE_TTL) {
+  // Só usa o cache se NÃO for localhost e se estiver no TTL
+  if (!isLocalhost && cached && now - cached.createdAt < SUBDOMAIN_CACHE_TTL) {
     return cached;
   }
 
@@ -48,7 +50,10 @@ async function getProfileBySubdomain(subdomain: string, req: NextRequest) {
     createdAt: now,
   };
 
-  subdomainCache.set(subdomain, item);
+  // Só alimenta o cache se não for localhost para evitar stale data
+  if (!isLocalhost) {
+    subdomainCache.set(subdomain, item);
+  }
   return item;
 }
 
@@ -130,7 +135,20 @@ export async function middleware(req: NextRequest) {
       );
 
       const response = NextResponse.rewrite(rewriteUrl);
-      // ... (headers de cache)
+
+      const isLocalhost = process.env.NODE_ENV === 'development';
+
+      if (isLocalhost) {
+        // 🎯 Força o navegador e o Next.js a não cachearem o rewrite no dev
+        response.headers.set('Cache-Control', 'no-store, max-age=0');
+      } else {
+        response.headers.set(
+          'Cache-Control',
+          'public, s-maxage=60, stale-while-revalidate=30',
+        );
+      }
+
+      response.headers.set('x-subdomain-variant', 'true');
       return response;
     }
 

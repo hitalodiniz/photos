@@ -16,6 +16,9 @@ export default function PhotographerAvatar({
 }: PhotographerAvatarProps) {
   if (!isVisible && position === 'top-page') return null;
 
+  // Atalho para facilitar o acesso aos dados do fotógrafo
+  const photographer = galeria.photographer;
+
   const positionClasses =
     position === 'top-page'
       ? 'relative z-10 animate-in fade-in scale-90 md:scale-100 slide-in-from-right-10 duration-700'
@@ -25,7 +28,6 @@ export default function PhotographerAvatar({
     <div
       className={`${positionClasses} flex items-center gap-3 animate-in fade-in duration-500`}
     >
-      {/* Card Dark Glass - Layout Horizontal */}
       <div
         className={`
         flex items-center gap-4 p-3 pr-5 rounded-[1.2rem] border shadow-2xl
@@ -36,37 +38,36 @@ export default function PhotographerAvatar({
         }
       `}
       >
-        {/* Foto do Fotógrafo à Esquerda */}
+        {/* Foto do Fotógrafo */}
         <div className="relative group flex-shrink-0 cursor-pointer w-12 h-12 md:w-16 md:h-16 rounded-full overflow-hidden">
-          {/* Efeito de brilho ao fundo */}
           <div className="absolute -inset-1 bg-gradient-to-tr from-[#D4AF37] to-[#F3E5AB] rounded-full blur-sm opacity-30 group-hover:opacity-60 transition duration-700"></div>
 
           <Image
-            src={galeria.photographer_avatar_url || '/default-avatar.jpg'}
-            alt={galeria.photographer_name || 'Fotógrafo'}
-            fill // Agora ele sabe que deve preencher os 48px ou 64px do pai
+            src={photographer?.profile_picture_url || '/default-avatar.jpg'}
+            alt={photographer?.full_name || 'Fotógrafo'}
+            fill
             sizes="(max-width: 768px) 48px, 64px"
             className="object-cover transition-transform duration-500 group-hover:scale-105 z-10 rounded-full"
             priority
           />
         </div>
 
-        {/* Conteúdo de Texto e Botões à Direita */}
+        {/* Texto e Botões */}
         <div className="flex flex-col items-start gap-2">
           <div className="flex flex-col items-start">
-            <p className="text-[8px] md:text-[10px] italic tracking-[0.1em] text-[#F3E5AB] font-medium opacity-80  leading-none mb-1">
+            <p className="text-[8px] md:text-[10px] italic tracking-[0.1em] text-[#F3E5AB] font-medium opacity-80 leading-none mb-1">
               Fotografado por
             </p>
             <span className="text-sm md:text-base font-serif italic text-white leading-tight">
-              {galeria.photographer_name}
+              {photographer?.full_name || 'Fotógrafo'}
             </span>
           </div>
 
-          {/* Mini Botões de Ação */}
           <div className="flex items-center gap-2 relative z-10">
-            {galeria.photographer_phone && (
+            {/* 🎯 FIX: Verificação correta do WhatsApp */}
+            {photographer?.phone_contact && (
               <a
-                href={`https://wa.me/${galeria.photographer_phone.replace(/\D/g, '')}`}
+                href={`https://wa.me/${photographer.phone_contact.replace(/\D/g, '')}`}
                 target="_blank"
                 rel="noopener noreferrer"
                 className="p-1.5 bg-white/10 text-white rounded-full hover:bg-[#25D366] transition-all border border-white/10 hover:scale-110 active:scale-95"
@@ -83,9 +84,10 @@ export default function PhotographerAvatar({
               </a>
             )}
 
-            {galeria.photographer_instagram && (
+            {/* 🎯 FIX: Verificação correta do Instagram */}
+            {photographer?.instagram_link && (
               <a
-                href={`https://instagram.com/${galeria.photographer_instagram.replace('@', '')}`}
+                href={`https://instagram.com/${photographer.instagram_link.replace('@', '')}`}
                 target="_blank"
                 rel="noopener noreferrer"
                 className="p-1.5 bg-white/10 text-white rounded-full hover:bg-gradient-to-tr hover:from-[#f09433] hover:via-[#dc2743] hover:to-[#bc1888] transition-all border border-white/10 hover:scale-110"
@@ -103,7 +105,7 @@ export default function PhotographerAvatar({
             )}
 
             <a
-              href={`/${galeria.photographer_id}`}
+              href={`/${photographer?.username}`}
               className="p-1.5 bg-white/10 text-white rounded-full hover:bg-[#D4AF37] transition-all border border-white/10 hover:scale-110"
               target="_blank"
               onClick={(e) => e.stopPropagation()}

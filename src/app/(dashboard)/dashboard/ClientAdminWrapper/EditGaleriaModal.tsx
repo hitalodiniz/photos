@@ -236,27 +236,44 @@ export default function EditGaleriaModal({
               value={formData.cover_image_url}
             />
 
-            {/* Modelo de Negócio */}
-            <div className="space-y-2">
+            {/* Modelo de Negócio com Fundo Deslizante */}
+            <div className="space-y-3">
               <label className="text-slate-700 text-sm font-bold flex items-center gap-2">
                 <Briefcase size={14} className="text-[#D4AF37]" /> Modelo de
                 Negócio
               </label>
-              <div className="grid grid-cols-2 gap-3">
+
+              <div className="relative flex w-full p-1 bg-slate-100 rounded-xl border border-slate-200/50">
+                {/* Fundo Deslizante Colorido (Ativo) */}
+                <div
+                  className={`absolute top-1 bottom-1 w-[calc(50%-4px)] rounded-lg shadow-sm transition-all duration-300 ease-out border ${
+                    hasContractingClient
+                      ? 'left-1 bg-[#F3E5AB] border-[#D4AF37]/30'
+                      : 'left-[calc(50%+2px)] bg-[#F3E5AB] border-[#D4AF37]/30'
+                  }`}
+                />
+
+                {/* Opção 1: Serviço Contratado */}
                 <button
                   type="button"
                   onClick={() => setHasContractingClient(true)}
-                  className={`py-3 px-4 rounded-2xl border text-[10px] font-black uppercase tracking-widest transition-all ${hasContractingClient ? 'bg-[#F3E5AB] border-[#D4AF37] text-slate-900' : 'bg-slate-50 border-slate-100 text-slate-400'}`}
+                  className={`relative z-10 flex-1 py-2 text-[10px] md:text-[11px] font-black uppercase tracking-wider transition-colors duration-300 ${
+                    hasContractingClient ? 'text-slate-900' : 'text-slate-400'
+                  }`}
                 >
                   Serviço Contratado
                 </button>
+
+                {/* Opção 2: Venda de Fotos */}
                 <button
                   type="button"
                   onClick={() => {
                     setHasContractingClient(false);
-                    setIsPublic(true); // Sugestão: Venda de fotos geralmente é pública
+                    setIsPublic(true); // Venda de fotos geralmente requer acesso público
                   }}
-                  className={`py-3 px-4 rounded-2xl border text-[10px] font-black uppercase tracking-widest transition-all ${!hasContractingClient ? 'bg-[#F3E5AB] border-[#D4AF37] text-slate-900' : 'bg-slate-50 border-slate-100 text-slate-400'}`}
+                  className={`relative z-10 flex-1 py-2 text-[10px] md:text-[11px] font-black uppercase tracking-wider transition-colors duration-300 ${
+                    !hasContractingClient ? 'text-slate-900' : 'text-slate-400'
+                  }`}
                 >
                   Venda de Fotos
                 </button>

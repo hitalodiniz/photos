@@ -172,7 +172,7 @@ describe('Ações de Galeria', () => {
       // Verificações
       expect(result.success).toBe(true);
       expect(result.data).toHaveLength(1);
-      expect(result.data?.[0].coverImageUrl).toBe('foto.jpg');
+      expect(result.data?.[0].cover_image_url).toBe('foto.jpg');
     });
   });
 

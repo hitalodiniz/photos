@@ -12,6 +12,7 @@ import {
 import { GalleryHeader, PhotographerAvatar } from '@/components/gallery';
 
 import type { Galeria } from '@/types/galeria';
+import { GALLERY_MESSAGES } from '@/constants/messages';
 
 interface Photo {
   id: string | number;
@@ -194,21 +195,20 @@ export default function Lightbox({
   }, [onClose, onNext, onPrev]);
 
   const handleShareWhatsApp = async () => {
-    // Limpeza para evitar a barra extra que causava erro no banco
+    // Limpeza para evitar a barra extra
     const rawSlug = galeria.slug || '';
     const cleanedSlug = rawSlug.startsWith('/')
       ? rawSlug.substring(1)
       : rawSlug;
 
-    // URL Editorial: hitalodiniz/2025/10/25/casamento/ID_DA_FOTO
     const shareUrl = `${window.location.origin}/photo/${photo.id}?s=${cleanedSlug}`;
 
-    const shareText = `Confira esta foto exclusiva: ${galleryTitle}`;
+    // 🎯 Nova mensagem de luxo
+    const shareText = GALLERY_MESSAGES.PHOTO_SHARE(galleryTitle, shareUrl);
     const isMobile = /iPhone|iPad|iPod|Android/i.test(navigator.userAgent);
 
     if (isMobile && navigator.share) {
       try {
-        // Compartilhamento nativo com o arquivo da foto
         const response = await fetch(getHighResImageUrl(photo.id));
         const blob = await response.blob();
         const file = new File([blob], 'foto.jpg', { type: 'image/jpeg' });
@@ -216,7 +216,7 @@ export default function Lightbox({
         await navigator.share({
           files: [file],
           title: galleryTitle,
-          text: `${shareText}\n\nLink: ${shareUrl}`,
+          text: shareText, // 🎯 Texto formatado já inclui a URL
         });
         return;
       } catch (e) {
@@ -224,8 +224,8 @@ export default function Lightbox({
       }
     }
 
-    // Fallback: Link direto
-    const whatsappUrl = `https://api.whatsapp.com/send?text=${encodeURIComponent(shareText + ' ' + shareUrl)}`;
+    // Fallback: Link direto com a mensagem completa
+    const whatsappUrl = `https://api.whatsapp.com/send?text=${encodeURIComponent(shareText)}`;
     window.open(whatsappUrl, '_blank');
   };
 
@@ -341,7 +341,7 @@ export default function Lightbox({
                   <span className="text-[9px] md:text-[11px] font-bold uppercase tracking-widest italic text-white whitespace-nowrap">
                     Download
                   </span>
-                  <span className="text-[8px] md:text-[11px] opacity-60  font-bold text-white/70 whitespace-nowrap">
+                  <span className="text-[8px] md:text-[11px] opacity-60  font-semibold text-white/70 whitespace-nowrap">
                     Alta Resolução
                   </span>
                 </div>
