@@ -20,8 +20,7 @@ import {
   Briefcase,
   MessageCircle,
 } from 'lucide-react';
-import type { Galeria } from './types';
-import { checkFolderPublicPermission } from '@/actions/google';
+import type { Galeria } from '@/types/galeria';
 
 interface EditGaleriaModalProps {
   galeria: Galeria | null;
