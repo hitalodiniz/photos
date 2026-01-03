@@ -2,7 +2,7 @@
 'use server';
 
 import { getDriveAccessTokenForUser } from '@/lib/google-auth';
-
+import { createSupabaseServerClient } from '@/lib/supabase.server';
 /**
  * Busca o ID da pasta-mãe (parent) de um arquivo no Google Drive
  * @param fileId O ID do arquivo selecionado no Google Picker.
@@ -157,5 +157,48 @@ export async function checkFolderPublicPermission(
   } catch (error) {
     console.error('Erro de rede ao checar permissões pública:', error);
     return false;
+  }
+}
+
+export async function getValidGoogleToken(userId: string) {
+  // 🎯 Use a sua função exportada (Opção 1 do seu arquivo)
+  const supabase = await createSupabaseServerClient();
+
+  // 1. Busca o refresh_token no seu perfil
+  const { data: profile, error } = await supabase
+    .from('tb_profiles')
+    .select('google_refresh_token')
+    .eq('id', userId)
+    .single();
+
+  if (error || !profile?.google_refresh_token) {
+    console.error('Erro ao buscar perfil no Supabase:', error);
+    throw new Error('Nenhum token do Google encontrado para este fotógrafo.');
+  }
+
+  // 2. Faz o Refresh manualmente com a API do Google
+  try {
+    const response = await fetch('https://oauth2.googleapis.com/token', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        client_id: process.env.NEXT_PUBLIC_GOOGLE_CLIENT_ID,
+        client_secret: process.env.GOOGLE_CLIENT_SECRET, // Garanta que esta variável existe no .env
+        refresh_token: profile.google_refresh_token,
+        grant_type: 'refresh_token',
+      }),
+    });
+
+    const data = await response.json();
+
+    if (!data.access_token) {
+      console.error('Resposta inválida do Google OAuth:', data);
+      throw new Error('Falha ao renovar o acesso com o Google.');
+    }
+
+    return data.access_token;
+  } catch (fetchError) {
+    console.error('Erro na requisição ao Google OAuth:', fetchError);
+    throw new Error('Erro de conexão com o servidor do Google.');
   }
 }

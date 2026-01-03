@@ -63,11 +63,10 @@ export async function copyToClipboard(text: string) {
  */
 export const getImageUrl = (
   photoId: string | number,
-  suffix: string = 'w800',
-  quality: number = 30,
+  suffix: string = 'w1000',
 ) => {
   if (!photoId) return '';
-  return `https://lh3.googleusercontent.com/d/${photoId}=${suffix}-q${quality}`;
+  return `https://lh3.googleusercontent.com/d/${photoId}=${suffix}`;
 };
 
 // Retorna a URL da imagem em resolução máxima (Original)

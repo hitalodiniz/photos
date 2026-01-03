@@ -53,7 +53,7 @@ export default async function SubdomainGaleriaPage({
   // 3. Formatação
   const galeriaData = formatGalleryData(galeriaRaw, username);
   galeriaData.slug = fullSlug;
-  const coverUrl = getImageUrl(galeriaData.cover_image_url, 'w1600', 40);
+  const coverUrl = getImageUrl(galeriaData.cover_image_url, 'w600');
 
   // 4. Verificação de senha
   if (!galeriaData.is_public) {

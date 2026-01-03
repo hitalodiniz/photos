@@ -146,7 +146,6 @@ const MasonryGrid = ({
                             <div className="absolute inset-0 z-0 flex items-center justify-center animate-pulse bg-gradient-to-r from-slate-200 via-slate-100 to-slate-200">
                               <div className="w-5 h-5 border-2 border-[#D4AF37]/20 border-t-[#D4AF37] rounded-full animate-spin" />
                             </div>
-
                             <Image
                               src={getImageUrl(photo.id, 'w600')}
                               alt={`Foto ${index + 1}`}

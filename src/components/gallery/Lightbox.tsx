@@ -10,18 +10,9 @@ import {
   Heart,
 } from 'lucide-react';
 import { GalleryHeader, PhotographerAvatar } from '@/components/gallery';
+import { getImageUrl, getHighResImageUrl } from '@/utils/url-helper';
 
 import type { Galeria } from '@/types/galeria';
-import { GALLERY_MESSAGES } from '@/constants/messages';
-import { getImageUrl, getHighResImageUrl } from '@/utils/url-helper';
-import { group } from 'console';
-import { px, vh } from 'framer-motion';
-import { col, p, b, object } from 'framer-motion/client';
-import { translate } from 'googleapis/build/src/apis/translate';
-import { w, y } from 'node_modules/vitest/dist/chunks/reporters.d.Rsi0PyxX';
-import { relative } from 'path';
-import { start } from 'repl';
-import { text } from 'stream/consumers';
 
 interface Photo {
   id: string | number;
@@ -171,8 +162,6 @@ export default function Lightbox({
   if (!photos || !photos[activeIndex]) return null;
   const photo = photos[activeIndex];
 
-  const currentUrl = getImageUrl(photo.id);
-
   // Pre-load e Scroll lock
   useEffect(() => {
     setIsImageLoading(true);
@@ -197,20 +186,21 @@ export default function Lightbox({
   }, [onClose, onNext, onPrev]);
 
   const handleShareWhatsApp = async () => {
-    // Limpeza para evitar a barra extra
+    // Limpeza para evitar a barra extra que causava erro no banco
     const rawSlug = galeria.slug || '';
     const cleanedSlug = rawSlug.startsWith('/')
       ? rawSlug.substring(1)
       : rawSlug;
 
+    // URL Editorial: hitalodiniz/2025/10/25/casamento/ID_DA_FOTO
     const shareUrl = `${window.location.origin}/photo/${photo.id}?s=${cleanedSlug}`;
 
-    // 🎯 Nova mensagem de luxo
-    const shareText = GALLERY_MESSAGES.PHOTO_SHARE(galleryTitle, shareUrl);
+    const shareText = `Confira esta foto exclusiva: ${galleryTitle}`;
     const isMobile = /iPhone|iPad|iPod|Android/i.test(navigator.userAgent);
 
     if (isMobile && navigator.share) {
       try {
+        // Compartilhamento nativo com o arquivo da foto
         const response = await fetch(getHighResImageUrl(photo.id));
         const blob = await response.blob();
         const file = new File([blob], 'foto.jpg', { type: 'image/jpeg' });
@@ -218,7 +208,7 @@ export default function Lightbox({
         await navigator.share({
           files: [file],
           title: galleryTitle,
-          text: shareText, // 🎯 Texto formatado já inclui a URL
+          text: `${shareText}\n\nLink: ${shareUrl}`,
         });
         return;
       } catch (e) {
@@ -226,8 +216,8 @@ export default function Lightbox({
       }
     }
 
-    // Fallback: Link direto com a mensagem completa
-    const whatsappUrl = `https://api.whatsapp.com/send?text=${encodeURIComponent(shareText)}`;
+    // Fallback: Link direto
+    const whatsappUrl = `https://api.whatsapp.com/send?text=${encodeURIComponent(shareText + ' ' + shareUrl)}`;
     window.open(whatsappUrl, '_blank');
   };
 
@@ -240,7 +230,7 @@ export default function Lightbox({
       const url = window.URL.createObjectURL(blob);
       const link = document.createElement('a');
       link.href = url;
-      link.download = `Foto_${activeIndex + 1}-${galleryTitle.replace(/\s+/g, '_')}.jpg`;
+      link.download = `${galleryTitle.replace(/\s+/g, '_')}_foto_${activeIndex + 1}.jpg`;
       document.body.appendChild(link);
       link.click();
       document.body.removeChild(link);
@@ -343,7 +333,7 @@ export default function Lightbox({
                   <span className="text-[9px] md:text-[11px] font-bold uppercase tracking-widest italic text-white whitespace-nowrap">
                     Download
                   </span>
-                  <span className="text-[8px] md:text-[11px] opacity-60  font-semibold text-white/70 whitespace-nowrap">
+                  <span className="text-[8px] md:text-[11px] opacity-60  font-bold text-white/70 whitespace-nowrap">
                     Alta Resolução
                   </span>
                 </div>

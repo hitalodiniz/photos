@@ -8,6 +8,7 @@ import {
   getParentFolderIdServer,
   getDriveFolderName,
   checkFolderPublicPermission,
+  getValidGoogleToken,
 } from '@/actions/google';
 
 // Tipagem para as propriedades do componente
@@ -97,22 +98,24 @@ export default function GooglePickerButton({
 
   // Obtém o Access Token e User ID necessários (Client-Side)
   const getAuthDetails = async () => {
-    // Força o Supabase a verificar/atualizar a sessão atual
     const {
       data: { session },
-      error,
     } = await supabase.auth.getSession();
 
-    if (error || !session?.provider_token) {
-      // Se o token não existir, o usuário precisa fazer login novamente
-      // com o Google para gerar um novo provider_token
+    if (!session?.user) return { accessToken: null, userId: null };
+
+    try {
+      // 🎯 CHAMADA CRÍTICA: Busca um token sempre válido do lado do servidor
+      const accessToken = await getValidGoogleToken(session.user.id);
+
+      return {
+        accessToken: accessToken, // Token novo ou renovado
+        userId: session.user.id,
+      };
+    } catch (err) {
+      console.error('Falha ao obter token do Google:', err);
       return { accessToken: null, userId: null };
     }
-
-    return {
-      accessToken: session.provider_token,
-      userId: session.user.id,
-    };
   };
 
   // Função principal que abre o modal do Picker

@@ -24,7 +24,7 @@ export default async function UsernameGaleriaPage({
   if (!galeriaRaw) notFound();
 
   const galeriaData = formatGalleryData(galeriaRaw, username);
-  const coverUrl = getImageUrl(galeriaData.cover_image_url, 'w1600', 40);
+  const coverUrl = getImageUrl(galeriaData.cover_image_url, 'w600');
 
   galeriaData.slug = fullSlug;
   // Verificação de segurança
