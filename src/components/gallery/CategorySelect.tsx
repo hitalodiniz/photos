@@ -1,17 +1,19 @@
 'use client';
 import { GALLERY_CATEGORIES } from '@/constants/categories';
-import { Group } from "lucide-react";
+import { Group } from 'lucide-react';
 
-
-export default function CategorySelect({ value, onChange }: CategorySelectProps) {
+export default function CategorySelect({
+  value,
+  onChange,
+}: CategorySelectProps) {
   return (
     <div className="flex flex-col gap-1">
       {/* Label padronizado com o formulário */}
       <label>
-         <Group size={14} className="text-[#D4AF37]" />
-         Categoria da galeria
+        <Group size={14} className="text-[#D4AF37]" />
+        Categoria da galeria
       </label>
-      
+
       <div className="relative">
         <select
           value={value}
@@ -26,17 +28,28 @@ export default function CategorySelect({ value, onChange }: CategorySelectProps)
           <option value="" disabled hidden>
             Selecione uma categoria
           </option>
-          
+
           {GALLERY_CATEGORIES.map((cat) => (
-            <option key={cat.id} value={cat.id} className="bg-white text-slate-900">
-              {cat.icon} {cat.label}
+            <option
+              key={cat.id}
+              value={cat.id}
+              className="bg-white text-slate-900"
+            >
+              {cat.label} {cat.icon}
             </option>
           ))}
         </select>
 
         {/* Seta customizada */}
         <div className="absolute right-4 top-1/2 -translate-y-1/2 pointer-events-none text-slate-400">
-          <svg width="12" height="12" fill="none" stroke="currentColor" strokeWidth="2.5" viewBox="0 0 24 24">
+          <svg
+            width="12"
+            height="12"
+            fill="none"
+            stroke="currentColor"
+            strokeWidth="2.5"
+            viewBox="0 0 24 24"
+          >
             <path d="M6 9l6 6 6-6" />
           </svg>
         </div>

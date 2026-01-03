@@ -107,7 +107,6 @@ export default function EditGaleriaModal({
   const handleSubmit = async (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault();
     setLoading(true);
-    setToastConfig(null); // Limpa toasts antigos
     setErrorMessage(null); // Limpa o erro do modal
 
     try {
