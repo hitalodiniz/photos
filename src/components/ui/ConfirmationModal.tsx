@@ -4,7 +4,7 @@ import { motion, AnimatePresence } from 'framer-motion';
 interface ConfirmationModalProps {
   isOpen: boolean;
   onClose: () => void;
-  onConfirm: () => void;
+  onConfirm: () => void | Promise<void>;
   title: string;
   message: React.ReactNode;
   confirmText?: string;

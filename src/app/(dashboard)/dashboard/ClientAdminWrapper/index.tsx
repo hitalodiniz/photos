@@ -282,11 +282,20 @@ export default function ClientAdminWrapper({
       </main>
 
       <ConfirmationModal
-        galeria={galeriaToDelete}
         isOpen={!!galeriaToDelete}
         onClose={() => setGaleriaToDelete(null)}
         onConfirm={handleConfirmDelete}
-        isDeleting={isDeleting}
+        isLoading={isDeleting}
+        title="Excluir Galeria"
+        confirmText="Excluir"
+        variant="danger"
+        message={
+          <p>
+            Tem certeza que deseja excluir a galeria{' '}
+            <strong>{galeriaToDelete?.title}</strong>? Esta ação não poderá ser
+            desfeita.
+          </p>
+        }
       />
       <EditGaleriaModal
         galeria={galeriaToEdit}
