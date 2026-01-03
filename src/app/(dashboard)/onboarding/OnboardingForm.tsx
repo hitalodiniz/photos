@@ -297,7 +297,7 @@ export default function OnboardingForm({
                 />
                 <div
                   onClick={() => fileInputRef.current?.click()}
-                  className="relative w-32 h-32 rounded-full p-[3px] bg-gradient-to-tr from-[#34A853] via-[#FBBC05] via-[#EA4335] to-[#4285F4] shadow-xl cursor-pointer transition-all hover:scale-105 active:scale-95 overflow-hidden"
+                  className="relative w-16 h-16 md:w-24 md:h-24 rounded-full p-[3px] bg-gradient-to-tr from-[#34A853] via-[#FBBC05] via-[#EA4335] to-[#4285F4] shadow-xl cursor-pointer transition-all hover:scale-105 active:scale-95 overflow-hidden"
                 >
                   <div className="w-full h-full rounded-full overflow-hidden bg-white flex items-center justify-center p-[2px]">
                     <div className="w-full h-full rounded-full overflow-hidden bg-slate-50 flex items-center justify-center relative">
@@ -494,7 +494,10 @@ export default function OnboardingForm({
           </form>
         </aside>
 
-        <main className="w-[60%] h-full bg-black overflow-y-auto custom-scrollbar relative">
+        <main
+          className="w-[60%] h-full bg-black overflow-y-auto 
+        custom-scrollbar relative flex-grow"
+        >
           <div className="absolute top-10 left-10 z-[100] flex items-center gap-4 px-6 pointer-events-none">
             <div className="w-1.5 h-14 bg-[#F3E5AB] rounded-full animate-pulse shadow-[0_0_20px_rgba(243,229,171,0.8)]"></div>
             <div className="flex flex-col justify-center">

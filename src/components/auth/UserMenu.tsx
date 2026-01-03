@@ -114,7 +114,7 @@ export default function UserMenu({
 
               {/* Botão Segue Padrão Global do Onboarding */}
               <Link href="/onboarding" className="btn-primary text[10px]">
-                Gerenciar conta
+                Gerenciar perfil
               </Link>
             </div>
 
