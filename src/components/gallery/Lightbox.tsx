@@ -107,7 +107,7 @@ export default function Lightbox({
 
   // 3. CORREÇÃO DO ERRO: Use activeIndex em vez de index
   const currentPhotoId = photos[activeIndex]?.id;
-  const isFavorited = favorites.includes(currentPhotoId);
+  const isFavorited = favorites.includes(String(currentPhotoId));
   // Contador de quantos favoritos existem no total nesta galeria
   const totalFavorites = favorites.length;
 
@@ -141,7 +141,7 @@ export default function Lightbox({
 
   const handleDownloadFavorites = async () => {
     // Filtra as fotos da galeria que estão nos favoritos
-    const toDownload = photos.filter((p) => favorites.includes(p.id));
+    const toDownload = photos.filter((p) => favorites.includes(String(p.id)));
 
     if (toDownload.length === 0) return;
 

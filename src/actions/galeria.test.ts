@@ -7,7 +7,6 @@ import {
   deleteGaleria,
 } from './galeria';
 import * as supabaseServer from '@/lib/supabase.server';
-import { createSupabaseServerClientReadOnly } from '@/lib/supabase.server';
 import * as googleAuth from '@/lib/google-auth';
 import * as googleDrive from '@/lib/google-drive';
 import { revalidatePath } from 'next/cache';

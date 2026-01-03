@@ -2,10 +2,7 @@
 import { GALLERY_CATEGORIES } from '@/constants/categories';
 import { Group } from 'lucide-react';
 
-export default function CategorySelect({
-  value,
-  onChange,
-}: CategorySelectProps) {
+export default function CategorySelect({ value, onChange }) {
   return (
     <div className="flex flex-col gap-1">
       {/* Label padronizado com o formulário */}

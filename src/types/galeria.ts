@@ -2,9 +2,11 @@
 export interface DrivePhoto {
   id: string;
   name: string;
-  thumbnailLink: string;
-  webContentLink: string; // Link de alta resolução
-  mimeType: string;
+  size: string;
+  thumbnailUrl: string;
+  webViewUrl: string;
+  width?: number;
+  height?: number;
 }
 
 // Perfil do Fotógrafo (Dados do tb_profiles)
