@@ -50,10 +50,5 @@ export default async function DashboardPage() {
   const initialGalerias = result.success ? result.data : [];
 
   // 5. Renderiza o Client Component com o array puro
-  return (
-    <ClientAdminWrapper
-      profile={profile}
-      initialGalerias={initialGalerias || []}
-    />
-  );
+  return <ClientAdminWrapper initialGalerias={initialGalerias || []} />;
 }
