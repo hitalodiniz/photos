@@ -41,7 +41,6 @@ export default function CreateGaleriaForm({ onSuccess }) {
     folderName: string,
     coverFileId: string,
   ) => {
-    console.log('Pasta Selecionada:', { folderId, folderName }); // Debug essencial
     setDriveFolderId(folderId);
     setDriveFolderName(folderName);
     setCoverFileId(coverFileId);

@@ -1,7 +1,9 @@
 'use client';
+
 import React, { useEffect, useState, use } from 'react';
 import { createClient } from '@supabase/supabase-js';
 import { PhotographerProfile } from '@/components/profile';
+import { notFound } from 'next/navigation'; // Importação necessária
 
 const supabase = createClient(
   process.env.NEXT_PUBLIC_SUPABASE_URL!,
@@ -24,6 +26,7 @@ export default function PhotographerPage({
         .select('*')
         .eq('username', resolvedParams.username)
         .single();
+
       setProfile(data);
       setLoading(false);
     }
@@ -36,12 +39,15 @@ export default function PhotographerPage({
         Carregando perfil do fotógrafo...
       </div>
     );
-  if (!profile)
-    return (
-      <div className="min-h-screen bg-black flex items-center justify-center text-[#F3E5AB]">
-        Perfil não encontrado.
-      </div>
-    );
+
+  /**
+   * TRAVA DE SEGURANÇA:
+   * Se o perfil não existe OU se o fotógrafo tem use_subdomain como falso,
+   * disparamos o notFound() para exibir a página 404 padrão do Next.js.
+   */
+  if (!profile || profile.use_subdomain === false) {
+    return notFound();
+  }
 
   return (
     <PhotographerProfile

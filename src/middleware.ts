@@ -39,11 +39,12 @@ async function getProfileBySubdomain(subdomain: string, req: NextRequest) {
     .eq('username', subdomain)
     .single();
 
-  if (!profile || !profile.use_subdomain) return null;
+  // Retorna null apenas se o perfil realmente não existir no banco
+  if (!profile) return null;
 
   const item = {
     username: profile.username,
-    use_subdomain: profile.use_subdomain,
+    use_subdomain: !!profile.use_subdomain, // Garante booleano
     createdAt: now,
   };
 
@@ -83,7 +84,7 @@ export async function middleware(req: NextRequest) {
       'dashboard',
       'onboarding',
       'login',
-      'site-interno',
+      'subdomain',
       'planos',
       'public',
       'static',
@@ -101,9 +102,6 @@ export async function middleware(req: NextRequest) {
         newUrl.hostname = `${potentialUsername}.${cleanMainDomain}`;
         if (port) newUrl.port = port;
 
-        console.log(
-          `🔀 Redirecionando ${host}${pathname} -> ${newUrl.hostname}${newPath}`,
-        );
         return NextResponse.redirect(newUrl);
       }
     }
@@ -121,25 +119,31 @@ export async function middleware(req: NextRequest) {
   if (subdomain && subdomain !== 'www') {
     const profile = await getProfileBySubdomain(subdomain, req);
 
-    if (profile) {
+    // CASO 1: Perfil existe E permite subdomínio (Fluxo Normal)
+    if (profile && profile.use_subdomain) {
       const cleanPathname = pathname.startsWith('/')
         ? pathname
         : `/${pathname}`;
       const rewriteUrl = new URL(
-        `/site-interno/${profile.username}${cleanPathname}`,
+        `/subdomain/${profile.username}${cleanPathname}`,
         req.url,
       );
 
-      console.log('🎯 Rewrite destino:', rewriteUrl.toString());
-
       const response = NextResponse.rewrite(rewriteUrl);
-      response.headers.set(
-        'Cache-Control',
-        'public, s-maxage=60, stale-while-revalidate=30',
-      );
-      response.headers.set('x-subdomain-variant', 'true');
+      // ... (headers de cache)
       return response;
     }
+
+    // CASO 2: Perfil existe mas NÃO permite subdomínio (Trava de Segurança)
+    if (profile && !profile.use_subdomain) {
+      console.warn(
+        `[Middleware] Acesso negado: Subdomínio desativado para ${subdomain}`,
+      );
+      // Força o erro 404 para não vazar a existência da rota interna
+      return NextResponse.rewrite(new URL('/_not-found', req.url));
+    }
+
+    // CASO 3: Perfil não existe
     return NextResponse.rewrite(new URL('/404', req.url));
   }
 

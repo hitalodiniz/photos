@@ -15,6 +15,8 @@ import {
   //makeFolderPublic as makeFolderPublicLib,
 } from '@/lib/google-drive';
 import { getDriveAccessTokenForUser } from '@/lib/google-auth';
+import { formatGalleryData } from '@/lib/gallery/gallery-logic';
+import { Galeria } from '@/types/galeria';
 
 // =========================================================================
 // TIPOS AUXILIARES
@@ -33,21 +35,6 @@ interface ActionResult<T = unknown> {
   message?: string;
 }
 
-// Interface para o objeto de atualização (Evita o erro de 'any')
-interface GaleriaUpdatePayload {
-  title?: string;
-  client_name?: string;
-  client_whatsapp?: string | null;
-  date?: string;
-  location?: string;
-  drive_folder_id?: string;
-  drive_folder_name?: string;
-  cover_image_url?: string;
-  is_public?: boolean;
-  category?: string;
-  has_contracting_client?: boolean;
-  password?: string | null;
-}
 interface GaleriaRecord {
   id: string;
   user_id: string;
@@ -230,19 +217,6 @@ export async function createGaleria(
     };
   }
 
-  // 1. Tentar tornar a pasta pública no Google Drive - não utilizada, pois o escopo é somente de leitura do drive - 01-01-2026
-  /*const accessToken = await getDriveAccessTokenForUser(userId);
-  if (accessToken) {
-    try {
-      await makeFolderPublicLib(driveFolderId, accessToken);
-    } catch (error: unknown) {
-      const errorMsg =
-        error instanceof Error ? error.message : 'Erro desconhecido';
-      console.warn('Google Drive Permission Warning:', errorMsg);
-      // Não interrompemos o fluxo, apenas logamos.
-    }
-  }*/
-
   const slug = await generateUniqueDatedSlug(
     title,
     dateStr,
@@ -311,7 +285,6 @@ export async function updateGaleria(
 
   // Log para debug caso falte algo
   if (!title || !driveFolderId || !clientName) {
-    console.log('Validação falhou:', { title, driveFolderId, clientName });
     return { success: false, error: 'Campos obrigatórios ausentes.' };
   }
 
@@ -374,7 +347,8 @@ export async function updateGaleria(
 
 export async function getGalerias(
   supabaseClient?: any,
-): Promise<ActionResult<GaleriaWithCover[]>> {
+): Promise<ActionResult<Galeria[]>> {
+  // Alterado para retornar Galeria[]
   const {
     success,
     userId,
@@ -391,29 +365,36 @@ export async function getGalerias(
 
   try {
     const supabase = supabaseClient || (await createSupabaseServerClient());
+
+    // 🎯 AJUSTE NO SELECT: Agora traz todos os campos necessários do perfil
     const { data, error } = await supabase
       .from('tb_galerias')
       .select(
         `
-          *,
-          tb_profiles!tb_galerias_user_id_fkey(username)
-        `,
+        *,
+        photographer:tb_profiles!user_id (
+          id,
+          full_name,
+          username,
+          use_subdomain,
+          profile_picture_url,
+          phone_contact,
+          instagram_link
+        )
+      `,
       )
       .eq('user_id', userId)
-      // Se quiser multi-tenant real:
-      // .eq("studio_id", studioId)
       .order('date', { ascending: false });
 
     if (error) throw error;
 
-    const galerias = (data || []) as GaleriaRecord[];
+    // 🎯 AJUSTE NO MAP: Usa a função formatGalleryData para garantir que o objeto photographer exista
+    // Importe a formatGalleryData aqui
+    const galeriasFormatadas = (data || []).map((raw) =>
+      formatGalleryData(raw as any, raw.photographer?.username || ''),
+    );
 
-    const galeriasWithCovers: GaleriaWithCover[] = galerias.map((galeria) => ({
-      ...galeria,
-      coverImageUrl: galeria.cover_image_url || null,
-    }));
-
-    return { success: true, data: galeriasWithCovers };
+    return { success: true, data: galeriasFormatadas };
   } catch (err) {
     console.error('Erro ao buscar galerias:', err);
     return {
@@ -423,7 +404,6 @@ export async function getGalerias(
     };
   }
 }
-
 // =========================================================================
 // 6. DELETE GALERIA
 // =========================================================================
@@ -465,37 +445,37 @@ export async function authenticateGaleriaAccess(
 ) {
   const supabase = await createSupabaseServerClientReadOnly();
 
-  // 1. Busca a galeria para validar a senha
-  const { data: galeria, error } = await supabase
+  const { data: galeria } = await supabase
     .from('tb_galerias')
-    .select('password')
+    .select('password, user_id, tb_profiles!user_id(username, use_subdomain)')
     .eq('id', galeriaId)
     .single();
 
-  if (error || !galeria) {
-    return { success: false, error: 'Galeria não encontrada.' };
+  if (!galeria || galeria.password !== password) {
+    return { success: false, error: 'Senha incorreta.' };
   }
 
-  // 2. Valida a senha
-  if (galeria.password !== password) {
-    return { success: false, error: 'Senha incorreta. Tente novamente.' };
-  }
-
-  // 3. Define o Cookie de Acesso
-  // O nome do cookie deve bater com o que a page.tsx procura: `galeria-${id}-auth`
   const cookieStore = await cookies();
   cookieStore.set(`galeria-${galeriaId}-auth`, password, {
     path: '/',
     httpOnly: true,
     secure: process.env.NODE_ENV === 'production',
-    maxAge: 60 * 60 * 24, // Acesso por 24 horas
+    maxAge: 60 * 60 * 24 * 7, // 7 dias de acesso
     sameSite: 'lax',
   });
 
-  // 4. Redireciona para a mesma página para disparar o re-render do Servidor
-  // Agora o Servidor vai ler o cookie e liberar o acesso
+  // 🎯 Redirecionamento inteligente:
+  // Se for subdomínio, redireciona para o caminho limpo.
+  const profile = galeria.tb_profiles as any;
+  if (profile?.use_subdomain) {
+    const cleanPath = fullSlug.replace(`${profile.username}/`, '');
+    // Nota: O redirect aqui assume que você está no domínio correto via Middleware
+    redirect(`/${cleanPath}`);
+  }
+
   redirect(`/${fullSlug}`);
 }
+
 /**
  * =========================================================================
  * 8. BUSCAR FOTOS DA GALERIA NO GOOGLE DRIVE

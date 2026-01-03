@@ -4,7 +4,7 @@ import { useEffect, useMemo, useState } from 'react';
 import { LayoutGrid, Filter, Plus, Search } from 'lucide-react';
 import { getGalerias, deleteGaleria } from '@/actions/galeria';
 
-import type { Galeria } from './types';
+import type { Galeria } from '@/types/galeria';
 import CreateGaleriaForm from './CreateGaleriaForm';
 import EditGaleriaModal from './EditGaleriaModal';
 import Filters from './Filters';
@@ -40,13 +40,6 @@ export default function ClientAdminWrapper({
     message: string;
     type: 'success' | 'error';
   } | null>(null);
-
-  const handleFeedback = (ok: boolean, message: string) => {
-    setToastConfig({
-      message: message,
-      type: ok ? 'success' : 'error',
-    });
-  };
 
   const [updatingId, setUpdatingId] = useState<string | null>(null);
   const [galeriaToDelete, setGaleriaToDelete] = useState<Galeria | null>(null);

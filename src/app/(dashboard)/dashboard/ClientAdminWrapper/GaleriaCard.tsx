@@ -1,6 +1,5 @@
 'use client';
 
-import { useRouter } from 'next/navigation';
 import {
   Calendar,
   MapPin,
@@ -16,15 +15,16 @@ import {
   Check,
   Copy,
 } from 'lucide-react';
+import { useState, useEffect } from 'react';
 import type { Galeria } from '@/types/galeria';
 import { GALLERY_CATEGORIES } from '@/constants/categories';
 import {
   getPublicGalleryUrl,
   copyToClipboard,
   getWhatsAppShareLink,
-  getLuxuryWhatsAppLink,
+  getLuxuryMessageData,
 } from '@/utils/url-helper';
-import { useState, useEffect } from 'react';
+import { GALLERY_MESSAGES } from '@/constants/messages';
 
 interface GaleriaCardProps {
   galeria: Galeria;
@@ -41,19 +41,24 @@ export default function GaleriaCard({
   isDeleting,
   isUpdating = false,
 }: GaleriaCardProps) {
-  const router = useRouter();
   const [mounted, setMounted] = useState(false);
   const [copied, setCopied] = useState(false);
   const [links, setLinks] = useState({ url: '', whatsapp: '', message: '' });
-
-  // 1. Evita Hydration Mismatch garantindo que links dinâmicos só apareçam no cliente
+  // 1. Centraliza a geração de links no Cliente para evitar Hydration Error
+  // No useEffect do seu GaleriaCard.tsx:
   useEffect(() => {
-    setMounted(true);
-    const url = getPublicGalleryUrl(galeria.photographer, galeria.slug);
-    const fullMsg = getLuxuryWhatsAppLink(galeria, url);
-    const waLink = getWhatsAppShareLink(galeria.client_whatsapp, fullMsg);
+    if (galeria) {
+      // 1. Gera a URL correta baseada no plano do fotógrafo (Pro/Subdomínio ou Padrão)
+      const url = getPublicGalleryUrl(galeria.photographer, galeria.slug);
+      // 2. Gera a mensagem de luxo utilizando a URL correta
+      const message = getLuxuryMessageData(galeria, url);
 
-    setLinks({ url, whatsapp: waLink, message: fullMsg });
+      // 3. Gera o link final do WhatsApp
+      const whatsapp = getWhatsAppShareLink(galeria.client_whatsapp, message);
+
+      setLinks({ url, whatsapp, message });
+      setMounted(true);
+    }
   }, [galeria]);
 
   const categoryInfo = GALLERY_CATEGORIES.find(
@@ -67,7 +72,7 @@ export default function GaleriaCard({
     return `${day}/${month}/${year}`;
   };
 
-  // 2. Correção da URL de Imagem (Template Literals e novo domínio lh3)
+  // 2. Correção da URL de Imagem (Template Literal corrigido de {id} para ${id})
   const getImageUrl = (fileId: string | null) => {
     if (!fileId) return 'https://placehold.co/400x250?text=Sem+Capa';
     return `https://lh3.googleusercontent.com/d/${fileId}=w400-h250-p-k-nu`;
@@ -82,6 +87,8 @@ export default function GaleriaCard({
 
   const handleCopy = async (e: React.MouseEvent) => {
     e.stopPropagation();
+    if (!links.message) return;
+
     const success = await copyToClipboard(links.message);
     if (success) {
       setCopied(true);
@@ -99,7 +106,6 @@ export default function GaleriaCard({
       className="group relative flex cursor-pointer flex-col overflow-hidden rounded-[20px] border border-gray-100 bg-white shadow-sm hover:shadow-md transition-all duration-300 w-full"
       style={{ maxWidth: '400px' }}
     >
-      {/* Overlay de Loading */}
       {isUpdating && (
         <div className="absolute inset-0 z-20 flex flex-col items-center justify-center bg-white/80 backdrop-blur-sm">
           <Loader2 className="h-6 w-6 animate-spin text-[#D4AF37]" />
@@ -109,7 +115,6 @@ export default function GaleriaCard({
         </div>
       )}
 
-      {/* Imagem de Capa */}
       <div className="relative aspect-[16/9] w-full overflow-hidden bg-slate-50 border-b border-gray-50">
         <img
           src={imageUrl}
@@ -118,7 +123,6 @@ export default function GaleriaCard({
           className="h-full w-full object-cover transition-transform duration-700 group-hover:scale-105"
         />
 
-        {/* Badges superiores */}
         <div className="absolute top-2 left-2 flex flex-col gap-1.5">
           <span
             className={`flex items-center gap-1.5 rounded-full px-2.5 py-1 text-[10px] md:text-[12px] font-medium tracking-[0.05em] shadow-sm ${isPrivate ? 'bg-slate-800 text-white ' : 'bg-white text-slate-700'}`}
@@ -131,6 +135,7 @@ export default function GaleriaCard({
             {isPrivate ? 'Privada' : 'Pública'}
           </span>
         </div>
+
         <div className="absolute top-2 right-2 flex flex-col gap-1.5">
           <span
             className={`flex items-center gap-1.5 rounded-full px-2.5 py-1 text-[10px] md:text-[12px] font-medium tracking-[0.05em] shadow-sm ${galeria.has_contracting_client ? 'bg-blue-50 text-blue-700 border border-blue-100' : 'bg-amber-50 text-amber-700 border border-amber-100'}`}
@@ -139,6 +144,7 @@ export default function GaleriaCard({
             {galeria.has_contracting_client ? 'Contrato' : 'Venda Direta'}
           </span>
         </div>
+
         {categoryInfo && (
           <div className="absolute bottom-2 right-2">
             <span className="flex items-center gap-1.5 rounded-lg px-2 py-1 bg-black/60 backdrop-blur-md text-white text-[10px] md:text-[12px] font-medium tracking-widest border border-white/10">
@@ -202,10 +208,8 @@ export default function GaleriaCard({
         </div>
       </div>
 
-      {/* Rodapé de Ações */}
       <div className="mt-1 flex items-center justify-between border-t border-[#D4AF37]/20 pt-4 px-4 pb-4">
         <div className="flex gap-2">
-          {/* Botão WhatsApp - Só renderiza link real no cliente */}
           {mounted &&
             galeria.has_contracting_client &&
             galeria.client_whatsapp && (
@@ -226,6 +230,7 @@ export default function GaleriaCard({
                 ? 'bg-green-50 text-green-600 border-green-200'
                 : 'bg-slate-50 text-slate-500 border-slate-100 hover:bg-slate-100'
             }`}
+            title="Copiar mensagem personalizada"
           >
             {copied ? <Check size={20} /> : <Copy size={20} />}
           </button>

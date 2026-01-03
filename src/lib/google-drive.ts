@@ -97,6 +97,5 @@ export async function makeFolderPublic(folderId: string, accessToken: string) {
     return false;
   }
 
-  console.log('Sucesso: Pasta agora é pública!');
   return true;
 }

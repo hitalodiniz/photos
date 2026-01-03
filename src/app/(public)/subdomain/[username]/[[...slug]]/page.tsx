@@ -6,6 +6,7 @@ import {
   fetchDrivePhotos,
 } from '@/lib/gallery/gallery-logic';
 import { GaleriaView, PasswordPrompt } from '@/components/gallery';
+import { getGalleryMetadata } from '@/lib/gallery/metadata-helper';
 
 type SubdomainGaleriaPageProps = {
   params: Promise<{
@@ -19,29 +20,18 @@ export default async function SubdomainGaleriaPage({
 }: SubdomainGaleriaPageProps) {
   const { username, slug } = await params;
 
-  console.log('🔥 CHEGOU NA PAGINA INTERNA!');
-  console.log('📝 Params recebidos:', { username, slug });
-
   // 1. Tratamento da Raiz do Subdomínio
   if (!slug || slug.length === 0) {
-    console.log(
-      `[Subdomain] Usuário ${username} acessou a raiz. Redirecionando ou exibindo 404.`,
-    );
     // Opcional: Você pode buscar uma galeria "vitrine" aqui ou manter o notFound
     notFound();
   }
 
   const fullSlug = `${username}/${slug.join('/')}`;
-  console.log(`[Subdomain] Buscando galeria com slug: ${fullSlug}`);
-
   // 2. Busca os dados brutos
   const galeriaRaw = await fetchGalleryBySlug(fullSlug);
 
   // Verificação detalhada para Debug
   if (!galeriaRaw) {
-    console.error(
-      `[Subdomain] Galeria não encontrada no banco para o slug: ${fullSlug}`,
-    );
     notFound();
   }
 
@@ -51,10 +41,7 @@ export default async function SubdomainGaleriaPage({
     );
     notFound();
   }
-  console.log(
-    `[Subdomain] Fotografo tem subdmonio:`,
-    galeriaRaw.photographer?.use_subdomain,
-  );
+
   if (!galeriaRaw.photographer?.use_subdomain) {
     console.error(
       `[Subdomain] O fotógrafo ${username} não tem permissão de subdomínio ativa.`,
@@ -92,21 +79,9 @@ export default async function SubdomainGaleriaPage({
   return <GaleriaView galeria={galeriaData} photos={photos} />;
 }
 
-export async function generateMetadata({ params }: SubdomainGaleriaPageProps) {
+export async function generateMetadata({ params }: { params: any }) {
   const { username, slug } = await params;
   if (!slug) return {};
-
   const fullSlug = `${username}/${slug.join('/')}`;
-  const galeriaRaw = await fetchGalleryBySlug(fullSlug);
-
-  if (!galeriaRaw) return {};
-
-  const title = `${galeriaRaw.title} | ${galeriaRaw.client_name}`;
-  return {
-    title,
-    openGraph: {
-      title,
-      images: galeriaRaw.cover_image_url ? [galeriaRaw.cover_image_url] : [],
-    },
-  };
+  return getGalleryMetadata(fullSlug);
 }

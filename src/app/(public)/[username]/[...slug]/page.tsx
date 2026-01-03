@@ -7,6 +7,7 @@ import {
   fetchDrivePhotos,
 } from '@/lib/gallery/gallery-logic';
 import { GaleriaView, PasswordPrompt } from '@/components/gallery';
+import { getGalleryMetadata } from '@/lib/gallery/metadata-helper';
 
 export default async function UsernameGaleriaPage({
   params,
@@ -46,4 +47,9 @@ export default async function UsernameGaleriaPage({
   );
 
   return <GaleriaView galeria={galeriaData} photos={photos} />;
+}
+export async function generateMetadata({ params }: { params: any }) {
+  const { username, slug } = await params;
+  const fullSlug = `${username}/${slug}`;
+  return getGalleryMetadata(fullSlug);
 }
