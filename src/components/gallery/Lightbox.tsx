@@ -13,6 +13,15 @@ import { GalleryHeader, PhotographerAvatar } from '@/components/gallery';
 
 import type { Galeria } from '@/types/galeria';
 import { GALLERY_MESSAGES } from '@/constants/messages';
+import { getImageUrl, getHighResImageUrl } from '@/utils/url-helper';
+import { group } from 'console';
+import { px, vh } from 'framer-motion';
+import { col, p, b, object } from 'framer-motion/client';
+import { translate } from 'googleapis/build/src/apis/translate';
+import { w, y } from 'node_modules/vitest/dist/chunks/reporters.d.Rsi0PyxX';
+import { relative } from 'path';
+import { start } from 'repl';
+import { text } from 'stream/consumers';
 
 interface Photo {
   id: string | number;
@@ -162,13 +171,6 @@ export default function Lightbox({
   if (!photos || !photos[activeIndex]) return null;
   const photo = photos[activeIndex];
 
-  // CORREÇÃO CRÍTICA: Adicionado o "$" para interpolação correta da variável
-  const getImageUrl = (photoId: string | number, suffix: string = 'w1000') =>
-    `https://lh3.googleusercontent.com/d/${photoId}=${suffix}`;
-
-  const getHighResImageUrl = (photoId: string | number) =>
-    `https://lh3.googleusercontent.com/d/${photoId}=s0`;
-
   const currentUrl = getImageUrl(photo.id);
 
   // Pre-load e Scroll lock
@@ -238,7 +240,7 @@ export default function Lightbox({
       const url = window.URL.createObjectURL(blob);
       const link = document.createElement('a');
       link.href = url;
-      link.download = `${galleryTitle.replace(/\s+/g, '_')}_foto_${activeIndex + 1}.jpg`;
+      link.download = `Foto_${activeIndex + 1}-${galleryTitle.replace(/\s+/g, '_')}.jpg`;
       document.body.appendChild(link);
       link.click();
       document.body.removeChild(link);

@@ -23,6 +23,7 @@ import {
   copyToClipboard,
   getWhatsAppShareLink,
   getLuxuryMessageData,
+  getImageUrl,
 } from '@/utils/url-helper';
 import { GALLERY_MESSAGES } from '@/constants/messages';
 
@@ -70,12 +71,6 @@ export default function GaleriaCard({
     const [datePart] = dateString.split('T');
     const [year, month, day] = datePart.split('-');
     return `${day}/${month}/${year}`;
-  };
-
-  // 2. Correção da URL de Imagem (Template Literal corrigido de {id} para ${id})
-  const getImageUrl = (fileId: string | null) => {
-    if (!fileId) return 'https://placehold.co/400x250?text=Sem+Capa';
-    return `https://lh3.googleusercontent.com/d/${fileId}=w400-h250-p-k-nu`;
   };
 
   const imageUrl = galeria.cover_image_url?.includes('http')

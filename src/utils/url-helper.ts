@@ -50,3 +50,29 @@ export async function copyToClipboard(text: string) {
     return false;
   }
 }
+/**
+ * Utilitários para tratamento de URLs de imagens do Google Drive
+ */
+
+// Retorna a URL da imagem com um sufixo de tamanho específico (padrão w1000)
+/**
+ * Gera a URL da imagem com parâmetros de tamanho e qualidade.
+ * @param photoId ID da foto no Google Drive
+ * @param suffix Tamanho da imagem (ex: w800, w1000, s1600)
+ * @param quality Nível de compressão (1-100)
+ */
+export const getImageUrl = (
+  photoId: string | number,
+  suffix: string = 'w800',
+  quality: number = 30,
+) => {
+  if (!photoId) return '';
+  return `https://lh3.googleusercontent.com/d/${photoId}=${suffix}-q${quality}`;
+};
+
+// Retorna a URL da imagem em resolução máxima (Original)
+export const getHighResImageUrl = (photoId: string | number) => {
+  if (!photoId) return '';
+  // "s0" indica o tamanho original sem compressão
+  return `https://lh3.googleusercontent.com/d/${photoId}=s0`;
+};

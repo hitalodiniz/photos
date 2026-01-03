@@ -8,6 +8,7 @@ import 'photoswipe/dist/photoswipe.css';
 import { Gallery, Item } from 'react-photoswipe-gallery';
 import { div } from 'framer-motion/client';
 import { Galeria } from '@/types/galeria';
+import { getHighResImageUrl, getImageUrl } from '@/utils/url-helper';
 
 interface Photo {
   id: string;
@@ -27,15 +28,6 @@ interface MasonryGridProps {
   showOnlyFavorites: boolean;
   setShowOnlyFavorites: (value: boolean) => void;
 }
-
-const getImageUrl = (
-  photoId: string | number,
-  suffix: string = 'w800',
-  quality: number = 30,
-) => `https://lh3.googleusercontent.com/d/${photoId}=${suffix}-q${quality}`;
-
-const getHighResImageUrl = (photoId: string | number) =>
-  `https://lh3.googleusercontent.com/d/${photoId}=s0`;
 
 const getDownloadFileName = (index: number, galleryTitle: string) => {
   const cleanTitle = galleryTitle.replace(/[^a-zA-Z0-9 ]/g, '');
