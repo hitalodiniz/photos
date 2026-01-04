@@ -24,9 +24,19 @@ export function getPublicGalleryUrl(photographer: any, slug: string) {
 }
 
 export function getWhatsAppShareLink(phone: string | null, message: string) {
-  if (!phone) return '';
-  const cleanPhone = phone.replace(/\D/g, '');
-  return `https://wa.me/${cleanPhone}?text=${encodeURIComponent(message)}`;
+  // 1. Limpa o telefone para garantir que só tenha números
+  const cleanPhone = phone ? phone.replace(/\D/g, '') : '';
+
+  // 2. Transforma emojis e quebras de linha em códigos seguros (UTF-8)
+  // Isso evita que o navegador tente "adivinhar" o caractere e gere o erro ὏8
+  const encodedText = encodeURIComponent(message);
+
+  // 3. Retorna o link usando o padrão universal do WhatsApp
+  if (!cleanPhone) {
+    return `https://api.whatsapp.com/send?text=${encodedText}`;
+  }
+
+  return `https://wa.me/${cleanPhone}?text=${encodedText}`;
 }
 
 export function getLuxuryMessageData(galeria: any, url: string) {

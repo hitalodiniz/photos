@@ -21,11 +21,12 @@ import { GALLERY_CATEGORIES } from '@/constants/categories';
 import {
   getPublicGalleryUrl,
   copyToClipboard,
+  getImageUrl,
   getWhatsAppShareLink,
   getLuxuryMessageData,
-  getImageUrl,
 } from '@/utils/url-helper';
 import { GALLERY_MESSAGES } from '@/constants/messages';
+import { url } from 'inspector';
 
 interface GaleriaCardProps {
   galeria: Galeria;
@@ -44,23 +45,34 @@ export default function GaleriaCard({
 }: GaleriaCardProps) {
   const [mounted, setMounted] = useState(false);
   const [copied, setCopied] = useState(false);
-  const [links, setLinks] = useState({ url: '', whatsapp: '', message: '' });
-  // 1. Centraliza a geração de links no Cliente para evitar Hydration Error
-  // No useEffect do seu GaleriaCard.tsx:
+  const [links, setLinks] = useState({
+    url: '',
+    whatsapp: '',
+    message: '', // Adicionado aqui
+  });
+
   useEffect(() => {
-    if (galeria) {
-      // 1. Gera a URL correta baseada no plano do fotógrafo (Pro/Subdomínio ou Padrão)
-      const url = getPublicGalleryUrl(galeria.photographer, galeria.slug);
-      // 2. Gera a mensagem de luxo utilizando a URL correta
-      const message = getLuxuryMessageData(galeria, url);
+    setMounted(true);
+  }, []);
 
-      // 3. Gera o link final do WhatsApp
-      const whatsapp = getWhatsAppShareLink(galeria.client_whatsapp, message);
+  useEffect(() => {
+    if (galeria && mounted) {
+      const publicUrl = getPublicGalleryUrl(galeria.photographer, galeria.slug);
 
-      setLinks({ url, whatsapp, message });
-      setMounted(true);
+      const message = GALLERY_MESSAGES.LUXURY_SHARE(
+        galeria.client_name,
+        galeria.title,
+        galeria.date,
+        publicUrl,
+      );
+
+      setLinks({
+        url: publicUrl,
+        message: message, // Salva a mensagem para o handleCopy e WhatsApp
+        whatsapp: '',
+      });
     }
-  }, [galeria]);
+  }, [galeria, mounted]);
 
   const categoryInfo = GALLERY_CATEGORIES.find(
     (c) => c.id === galeria.category,
@@ -93,6 +105,27 @@ export default function GaleriaCard({
 
   const handleCardClick = () => {
     if (links.url) window.open(links.url, '_blank');
+  };
+
+  const handleWhatsAppShare = (e: React.MouseEvent) => {
+    e.preventDefault();
+    e.stopPropagation();
+
+    // Se não houver mensagem pronta, não faz nada
+    if (!links.message) return;
+
+    // 1. Limpa o telefone (Sempre garanta que só tenha números)
+    const phone = galeria.client_whatsapp
+      ? galeria.client_whatsapp.replace(/\D/g, '')
+      : '';
+
+    // 2. Codifica a mensagem de forma pura (Igual à URL 1 que você mandou)
+    const encodedText = encodeURIComponent(links.message);
+
+    // 3. Monta a URL manualmente para garantir que não haja parâmetros extras quebrando tudo
+    const whatsappUrl = `https://api.whatsapp.com/send?phone=${phone}&text=${encodedText}`;
+
+    window.open(whatsappUrl, '_blank');
   };
 
   return (
@@ -208,14 +241,15 @@ export default function GaleriaCard({
           {mounted &&
             galeria.has_contracting_client &&
             galeria.client_whatsapp && (
-              <a
-                href={links.whatsapp}
-                onClick={(e) => e.stopPropagation()}
-                target="_blank"
-                className="p-3 text-emerald-600 bg-emerald-50 border border-emerald-100 hover:bg-emerald-500 hover:text-white rounded-xl transition-all shadow-sm active:scale-90 flex items-center justify-center"
+              <button
+                type="button"
+                onClick={handleWhatsAppShare}
+                // Mantivemos EXATAMENTE as suas classes originais do link <a>
+                className="p-3 text-emerald-600 bg-emerald-50 border border-emerald-100 hover:bg-emerald-500 hover:text-white rounded-xl transition-all shadow-sm active:scale-90 flex items-center justify-center cursor-pointer"
+                title="Enviar via WhatsApp"
               >
                 <MessageCircle size={20} />
-              </a>
+              </button>
             )}
 
           <button

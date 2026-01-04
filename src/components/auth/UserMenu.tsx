@@ -39,6 +39,11 @@ export default function UserMenu({
     setIsLoggingOut(true);
     try {
       await handleLogout();
+
+      // Em produção (Vercel), redireciona para o logout do Google para limpar a sessão do provedor
+      if (process.env.NODE_ENV === 'production') {
+        window.location.href = 'https://accounts.google.com/Logout';
+      }
     } catch (error) {
       setIsLoggingOut(false);
       console.error('Erro ao sair:', error);

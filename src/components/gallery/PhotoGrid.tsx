@@ -284,6 +284,8 @@ export default function PhotoGrid({ photos, galeria }: any) {
               (selectedPhotoIndex - 1 + photos.length) % photos.length,
             )
           }
+          favorites={favorites}
+          onToggleFavorite={toggleFavoriteFromGrid}
         />
       )}
       {/* BOTÃO FLUTUANTE DE DOWNLOAD FAVORITOS */}

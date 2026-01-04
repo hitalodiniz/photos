@@ -8,7 +8,6 @@ import {
 } from './galeria';
 import * as supabaseServer from '@/lib/supabase.server';
 import * as googleAuth from '@/lib/google-auth';
-import * as googleDrive from '@/lib/google-drive';
 import { revalidatePath } from 'next/cache';
 
 // Mock do revalidatePath
@@ -29,11 +28,8 @@ describe('Ações de Galeria', () => {
     profileData = mockProfile,
     existingSlug = null,
   ) => {
-    const mockSupabase = {
-      auth: {
-        getUser: vi.fn().mockResolvedValue({ data: { user: mockUser } }),
-      },
-      from: vi.fn().mockReturnThis(),
+    // 1. Criamos o mock do Query Builder (o resultado de .from())
+    const mockQueryBuilder = {
       select: vi.fn().mockReturnThis(),
       eq: vi.fn().mockReturnThis(),
       order: vi.fn().mockReturnThis(),
@@ -41,14 +37,25 @@ describe('Ações de Galeria', () => {
       maybeSingle: vi.fn().mockResolvedValue({ data: existingSlug }),
       insert: vi.fn().mockResolvedValue({ error: null }),
       update: vi.fn().mockReturnThis(),
+      delete: vi.fn().mockReturnThis(),
     };
+
+    // 2. Criamos o mock do Cliente Supabase
+    const mockSupabase = {
+      auth: {
+        getUser: vi.fn().mockResolvedValue({ data: { user: mockUser } }),
+      },
+      from: vi.fn().mockReturnValue(mockQueryBuilder),
+    };
+
     (supabaseServer.createSupabaseServerClient as any).mockResolvedValue(
       mockSupabase,
     );
     (
       supabaseServer.createSupabaseServerClientReadOnly as any
     ).mockResolvedValue(mockSupabase);
-    return mockSupabase;
+
+    return { mockSupabase, mockQueryBuilder };
   };
 
   beforeEach(() => {
@@ -74,13 +81,13 @@ describe('Ações de Galeria', () => {
     });
 
     it('deve resolver colisão de slugs adicionando sufixo incremental', async () => {
-      const mockSupabase = setupSupabaseMock({
+      const { mockQueryBuilder } = setupSupabaseMock({
         ...mockProfile,
         use_subdomain: true,
       });
 
       // Simula que o primeiro slug já existe, mas o segundo (-1) está livre
-      mockSupabase.maybeSingle
+      mockQueryBuilder.maybeSingle
         .mockResolvedValueOnce({ data: { id: 'original' } })
         .mockResolvedValueOnce({ data: null });
 
@@ -106,11 +113,11 @@ describe('Ações de Galeria', () => {
       formData.append('clientName', 'João Silva');
       formData.append('client_whatsapp', '(31) 98888-7777'); // Input sujo
 
-      const mockSupabase = setupSupabaseMock();
+      const { mockQueryBuilder } = setupSupabaseMock();
       await createGaleria(formData);
 
       // Verifica se o insert recebeu o número limpo
-      expect(mockSupabase.insert).toHaveBeenCalledWith(
+      expect(mockQueryBuilder.insert).toHaveBeenCalledWith(
         expect.objectContaining({
           client_whatsapp: '31988887777',
         }),
@@ -133,19 +140,25 @@ describe('Ações de Galeria', () => {
   // =========================================================================
   describe('getGalerias', () => {
     it('deve retornar as galerias ordenadas por data descendente', async () => {
-      // 1. Obtemos a instância do cliente (que vem do seu vitest.setup)
-      const mockSupabase =
-        await supabaseServer.createSupabaseServerClientReadOnly();
-
-      // 2. Garantimos que os métodos existam como funções mock do Vitest
-      mockSupabase.from = vi.fn().mockReturnThis();
-      mockSupabase.select = vi.fn().mockReturnThis();
-      mockSupabase.eq = vi.fn().mockReturnThis();
-      mockSupabase.order = vi.fn().mockReturnThis();
-      mockSupabase.single = vi.fn(); // Definimos explicitamente como mock
+      // 1. Configuração manual do mock estruturado
+      const mockQueryBuilder = {
+        select: vi.fn().mockReturnThis(),
+        eq: vi.fn().mockReturnThis(),
+        order: vi.fn().mockReturnThis(),
+        single: vi.fn(),
+      };
+      const mockSupabase = {
+        auth: {
+          getUser: vi.fn().mockResolvedValue({ data: { user: mockUser } }),
+        },
+        from: vi.fn().mockReturnValue(mockQueryBuilder),
+      };
+      (
+        supabaseServer.createSupabaseServerClientReadOnly as any
+      ).mockResolvedValue(mockSupabase);
 
       // 3. Resposta para o Profile (Primeira chamada interna)
-      (mockSupabase.single as any).mockResolvedValueOnce({
+      mockQueryBuilder.single.mockResolvedValueOnce({
         data: { studio_id: 'studio_123', username: 'hitalo' },
         error: null,
       });
@@ -161,7 +174,7 @@ describe('Ações de Galeria', () => {
       ];
 
       // Interceptamos o final da corrente (.order) para retornar os dados
-      (mockSupabase.order as any).mockReturnValue({
+      mockQueryBuilder.order.mockReturnValue({
         then: (resolve: any) => resolve({ data: mockDbData, error: null }),
       });
 
@@ -185,10 +198,26 @@ describe('Ações de Galeria', () => {
 
     it('deve atualizar os dados da galeria e sanitizar o WhatsApp', async () => {
       // 1. Mock do Cliente Supabase
-      const mockSupabase = await supabaseServer.createSupabaseServerClient();
+      const mockQueryBuilder = {
+        select: vi.fn().mockReturnThis(),
+        eq: vi.fn().mockReturnThis(),
+        update: vi.fn().mockReturnThis(),
+        single: vi.fn(),
+      };
+      const mockSupabase = {
+        auth: {
+          getUser: vi
+            .fn()
+            .mockResolvedValue({ data: { user: { id: mockUserId } } }),
+        },
+        from: vi.fn().mockReturnValue(mockQueryBuilder),
+      };
+      (supabaseServer.createSupabaseServerClient as any).mockResolvedValue(
+        mockSupabase,
+      );
 
       // Mock do Profile (necessário para getAuthAndStudioIds)
-      (mockSupabase.single as any).mockResolvedValue({
+      mockQueryBuilder.single.mockResolvedValue({
         data: { studio_id: 'studio_999' },
         error: null,
       });
@@ -209,18 +238,36 @@ describe('Ações de Galeria', () => {
       expect(result.success).toBe(true);
 
       // Verifica se o update foi chamado com o WhatsApp limpo e ID correto
-      expect(mockSupabase.update).toHaveBeenCalledWith(
+      expect(mockQueryBuilder.update).toHaveBeenCalledWith(
         expect.objectContaining({
           client_whatsapp: '31999998888',
           title: 'Evento Atualizado',
         }),
       );
-      expect(mockSupabase.eq).toHaveBeenCalledWith('id', galeriaId);
+      expect(mockQueryBuilder.eq).toHaveBeenCalledWith('id', galeriaId);
       expect(revalidatePath).toHaveBeenCalledWith('/dashboard');
     });
 
     it('deve definir password como null quando a galeria for alterada para pública', async () => {
-      const mockSupabase = await supabaseServer.createSupabaseServerClient();
+      const mockQueryBuilder = {
+        update: vi.fn().mockReturnThis(),
+        eq: vi.fn().mockResolvedValue({ error: null }),
+        select: vi.fn().mockReturnThis(),
+        single: vi
+          .fn()
+          .mockResolvedValue({ data: { studio_id: 'studio_999' } }),
+      };
+      const mockSupabase = {
+        auth: {
+          getUser: vi
+            .fn()
+            .mockResolvedValue({ data: { user: { id: mockUserId } } }),
+        },
+        from: vi.fn().mockReturnValue(mockQueryBuilder),
+      };
+      (supabaseServer.createSupabaseServerClient as any).mockResolvedValue(
+        mockSupabase,
+      );
 
       const formData = new FormData();
       formData.append('title', 'Galeria Pública');
@@ -231,7 +278,7 @@ describe('Ações de Galeria', () => {
 
       await updateGaleria(galeriaId, formData);
 
-      expect(mockSupabase.update).toHaveBeenCalledWith(
+      expect(mockQueryBuilder.update).toHaveBeenCalledWith(
         expect.objectContaining({
           password: null,
         }),
@@ -239,7 +286,25 @@ describe('Ações de Galeria', () => {
     });
 
     it('deve manter a execução mesmo se a atualização de permissão no Google Drive falhar', async () => {
-      const mockSupabase = await supabaseServer.createSupabaseServerClient();
+      const mockQueryBuilder = {
+        update: vi.fn().mockReturnThis(),
+        eq: vi.fn().mockResolvedValue({ error: null }),
+        select: vi.fn().mockReturnThis(),
+        single: vi
+          .fn()
+          .mockResolvedValue({ data: { studio_id: 'studio_999' } }),
+      };
+      const mockSupabase = {
+        auth: {
+          getUser: vi
+            .fn()
+            .mockResolvedValue({ data: { user: { id: mockUserId } } }),
+        },
+        from: vi.fn().mockReturnValue(mockQueryBuilder),
+      };
+      (supabaseServer.createSupabaseServerClient as any).mockResolvedValue(
+        mockSupabase,
+      );
 
       // Simula falha no Google Drive
       /*vi.spyOn(googleDrive, 'makeFolderPublic').mockRejectedValue(
@@ -259,7 +324,7 @@ describe('Ações de Galeria', () => {
       // A action deve retornar sucesso mesmo se o Drive avisar erro
       // (conforme a lógica de try-catch isolada no seu código)
       expect(result.success).toBe(true);
-      expect(mockSupabase.update).toHaveBeenCalled();
+      expect(mockQueryBuilder.update).toHaveBeenCalled();
     });
   });
 
@@ -272,20 +337,35 @@ describe('Ações de Galeria', () => {
 
     it('deve eliminar uma galeria com sucesso e revalidar o dashboard', async () => {
       // 1. Mock do Cliente Supabase
-      const mockSupabase = await supabaseServer.createSupabaseServerClient();
+      const mockQueryBuilder = {
+        delete: vi.fn().mockReturnThis(),
+        // A primeira chamada .eq() retorna um objeto que tem a segunda chamada .eq(),
+        // que por sua vez resolve a promessa final.
+        eq: vi
+          .fn()
+          .mockReturnValue({ eq: vi.fn().mockResolvedValue({ error: null }) }),
+        single: vi.fn(),
+        // Adicionado para a chamada interna de getAuthAndStudioIds
+        select: vi.fn().mockReturnThis(),
+      };
+      const mockSupabase = {
+        auth: {
+          getUser: vi
+            .fn()
+            .mockResolvedValue({ data: { user: { id: 'user_123' } } }),
+        },
+        from: vi.fn().mockReturnValue(mockQueryBuilder),
+      };
+      (supabaseServer.createSupabaseServerClient as any).mockResolvedValue(
+        mockSupabase,
+      );
 
       // 2. Mock do Profile (necessário para o getAuthAndStudioIds dentro da action)
       // Usamos mockResolvedValueOnce para a primeira chamada (getAuthAndStudioIds)
-      (mockSupabase.single as any).mockResolvedValueOnce({
+      mockQueryBuilder.single.mockResolvedValueOnce({
         data: { studio_id: 'studio_999' },
         error: null,
       });
-
-      // 3. Configurar o encadeamento do delete com os dois filtros .eq()
-      mockSupabase.delete = vi.fn().mockReturnThis();
-      mockSupabase.from = vi.fn().mockReturnThis();
-      // O eq() deve retornar o próprio objeto para permitir o encadeamento: .eq('id', id).eq('user_id', userId)
-      mockSupabase.eq = vi.fn().mockReturnThis();
 
       // 2. Executar a Action
       const result = await deleteGaleria(galeriaId);
@@ -295,21 +375,26 @@ describe('Ações de Galeria', () => {
       expect(result.message).toContain('sucesso');
 
       // Verifica se os métodos corretos do banco foram chamados
-      expect(mockSupabase.delete).toHaveBeenCalled();
-      expect(mockSupabase.eq).toHaveBeenCalledWith('id', galeriaId);
+      expect(mockQueryBuilder.delete).toHaveBeenCalled();
+      expect(mockQueryBuilder.eq).toHaveBeenCalledWith('id', galeriaId);
 
       // Garante que o Next.js vai atualizar a lista na interface
       expect(revalidatePath).toHaveBeenCalledWith('/dashboard');
     });
 
     it('deve retornar erro quando a eliminação no Supabase falha', async () => {
-      const mockSupabase = await supabaseServer.createSupabaseServerClient();
+      const mockQueryBuilder = {
+        delete: vi.fn().mockReturnThis(),
+        eq: vi.fn().mockResolvedValue({ error: { message: 'Database error' } }),
+      };
+      const mockSupabase = {
+        from: vi.fn().mockReturnValue(mockQueryBuilder),
+      };
+      (supabaseServer.createSupabaseServerClient as any).mockResolvedValue(
+        mockSupabase,
+      );
 
       // Simula um erro vindo do banco de dados (ex: erro de RLS ou violação de chave)
-      mockSupabase.delete = vi.fn().mockReturnThis();
-      mockSupabase.eq = vi.fn().mockResolvedValue({
-        error: { message: 'Database error' },
-      });
 
       const result = await deleteGaleria(galeriaId);
 

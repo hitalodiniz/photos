@@ -1,14 +1,19 @@
 'use client';
 import React, { useEffect, useRef, useState } from 'react';
 import Image from 'next/image';
-import { Download, Heart } from 'lucide-react';
+import { Download, Heart, MessageCircle } from 'lucide-react';
 
 // Novas importações do PhotoSwipe
 import 'photoswipe/dist/photoswipe.css';
 import { Gallery, Item } from 'react-photoswipe-gallery';
 import { div } from 'framer-motion/client';
 import { Galeria } from '@/types/galeria';
-import { getHighResImageUrl, getImageUrl } from '@/utils/url-helper';
+import {
+  getHighResImageUrl,
+  getImageUrl,
+  getWhatsAppShareLink,
+} from '@/utils/url-helper';
+import { GALLERY_MESSAGES } from '@/constants/messages';
 
 interface Photo {
   id: string;
@@ -75,6 +80,22 @@ const MasonryGrid = ({
 
   const limitedPhotos = displayedPhotos.slice(0, displayLimit);
 
+  const handleShareWhatsAppGrid = (photoId: string) => {
+    const rawSlug = galeria.slug || '';
+    const cleanedSlug = rawSlug.startsWith('/')
+      ? rawSlug.substring(1)
+      : rawSlug;
+
+    // URL Editorial da foto específica
+    const shareUrl = `${window.location.origin}/photo/${photoId}?s=${cleanedSlug}`;
+
+    // Gera a mensagem usando a constante centralizada
+    const shareText = GALLERY_MESSAGES.PHOTO_SHARE(galleryTitle, shareUrl);
+
+    // Abre o WhatsApp (passando null no telefone para abrir a lista de contatos)
+    const whatsappUrl = getWhatsAppShareLink(null, shareText);
+    window.open(whatsappUrl, '_blank');
+  };
   return (
     <div className="w-full h-auto">
       {' '}
@@ -133,9 +154,7 @@ const MasonryGrid = ({
                         >
                           <a
                             href="#"
-                            ref={
-                              ref as React.MutableRefObject<HTMLAnchorElement>
-                            }
+                            ref={ref as any}
                             onClick={(e) => {
                               e.preventDefault();
                               // CHAMA O SEU LIGHTBOX CUSTOMIZADO
@@ -184,6 +203,7 @@ const MasonryGrid = ({
                                 ? 'bg-[#E67E70] border-transparent shadow-lg scale-110'
                                 : 'bg-black/40 border-white/20 hover:bg-black/60 hover:scale-110'
                             }`}
+                            title="Favoritar foto"
                           >
                             <Heart
                               size={16}
@@ -191,7 +211,21 @@ const MasonryGrid = ({
                               className="text-white"
                             />
                           </button>
-
+                          {/* Botão de WhatsApp (Novo) */}
+                          <button
+                            onClick={(e) => {
+                              e.preventDefault();
+                              e.stopPropagation();
+                              handleShareWhatsAppGrid(photo.id);
+                            }}
+                            className="absolute top-2 right-14 z-[50] w-8 h-8 md:w-10 md:h-10 rounded-full border bg-black/40 border-white/20 flex items-center justify-center hover:bg-[#25D366]/20 hover:scale-110 transition-all pointer-events-auto cursor-pointer group/wa"
+                            title="Compartilhar no WhatsApp"
+                          >
+                            <MessageCircle
+                              size={16}
+                              className="text-white group-hover/wa:text-[#25D366]"
+                            />
+                          </button>
                           <button
                             onClick={async (e) => {
                               e.stopPropagation();
@@ -234,6 +268,7 @@ const MasonryGrid = ({
                                 );
                               }
                             }}
+                            title="Download em alta resolução"
                             className="absolute top-2 right-2 z-[50] w-8 h-8 md:w-10 md:h-10 rounded-full border bg-black/40 border-white/20 flex items-center justify-center hover:scale-110 transition-all pointer-events-auto cursor-pointer"
                           >
                             <Download size={16} className="text-white" />

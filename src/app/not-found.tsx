@@ -59,13 +59,17 @@ export default function NotFound() {
               </div>
 
               <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                <FeatureItem
-                  /* COR CHAMPANHE NOS ÍCONES */
-                  icon={<Home size={30} />}
-                  title="Página Inicial"
-                  desc="Clique aqui para retornar à vitrine principal e explorar outras galerias profissionais disponíveis."
+                <div
                   onClick={() => router.push('/')}
-                />
+                  className="cursor-pointer"
+                >
+                  <FeatureItem
+                    /* COR CHAMPANHE NOS ÍCONES */
+                    icon={<Home size={30} />}
+                    title="Página Inicial"
+                    desc="Clique aqui para retornar à vitrine principal e explorar outras galerias profissionais disponíveis."
+                  />
+                </div>
 
                 <FeatureItem
                   icon={<Globe size={30} />}

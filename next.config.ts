@@ -28,8 +28,14 @@ const nextConfig: NextConfig = {
   },
   experimental: {
     // Resolve o erro de Cross-Origin no terminal entre hitalodiniz.lvh.me e o servidor
-    // @ts-ignore
-    allowedDevOrigins: ['hitalodiniz.lvh.me', 'localhost:3000'],
+    serverActions: {
+      allowedOrigins: [
+        'hitalodiniz.lvh.me',
+        'localhost:3000',
+        'suagaleria.com.br',
+        'www.suagaleria.com.br',
+      ],
+    },
   },
 };
 

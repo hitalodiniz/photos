@@ -10,7 +10,12 @@ import {
   Heart,
 } from 'lucide-react';
 import { GalleryHeader, PhotographerAvatar } from '@/components/gallery';
-import { getImageUrl, getHighResImageUrl } from '@/utils/url-helper';
+import {
+  getImageUrl,
+  getHighResImageUrl,
+  getWhatsAppShareLink,
+} from '@/utils/url-helper';
+import { GALLERY_MESSAGES } from '@/constants/messages';
 
 import type { Galeria } from '@/types/galeria';
 
@@ -28,6 +33,8 @@ interface LightboxProps {
   onClose: () => void;
   onNext: () => void;
   onPrev: () => void;
+  favorites: string[];
+  onToggleFavorite: (id: string) => void;
 }
 
 export default function Lightbox({
@@ -40,8 +47,10 @@ export default function Lightbox({
   onClose,
   onNext,
   onPrev,
+  favorites,
+  onToggleFavorite,
 }: LightboxProps) {
-  const [setShowHint] = useState(false);
+  const [, setShowHint] = useState(false);
   const [isImageLoading, setIsImageLoading] = useState(true);
   const [isDownloading, setIsDownloading] = useState(false);
   const [touchStart, setTouchStart] = useState<number | null>(null);
@@ -96,15 +105,6 @@ export default function Lightbox({
     else if (distance < -minSwipeDistance) onPrev();
   };
 
-  // 1. Defina o estado de favoritos no topo do componente
-  const [favorites, setFavorites] = useState<string[]>([]);
-
-  // 2. Carregar favoritos do dispositivo (localStorage)
-  useEffect(() => {
-    const saved = localStorage.getItem(`fav_${galeria.id}`);
-    if (saved) setFavorites(JSON.parse(saved));
-  }, [galeria.id]);
-
   // 3. CORREÇÃO DO ERRO: Use activeIndex em vez de index
   const currentPhotoId = photos[activeIndex]?.id;
   const isFavorited = favorites.includes(String(currentPhotoId));
@@ -124,12 +124,7 @@ export default function Lightbox({
     setTimeout(() => setShowHint(false), 2000);
     //}
 
-    const newFavs = isFavorited
-      ? favorites.filter((id) => id !== currentPhotoId)
-      : [...favorites, currentPhotoId];
-
-    setFavorites(newFavs);
-    localStorage.setItem(`fav_${galeria.id}`, JSON.stringify(newFavs));
+    onToggleFavorite(String(currentPhotoId));
   };
 
   //Efeito dos botões de ação
@@ -148,7 +143,7 @@ export default function Lightbox({
     // Dispara o download individual de cada uma (o navegador pode pedir permissão para múltiplos arquivos)
     for (const photo of toDownload) {
       const link = document.createElement('a');
-      link.href = photo.url_high_res || photo.url;
+      link.href = getHighResImageUrl(photo.id);
       link.download = `foto-${photo.id}.jpg`;
       document.body.appendChild(link);
       link.click();
@@ -186,21 +181,22 @@ export default function Lightbox({
   }, [onClose, onNext, onPrev]);
 
   const handleShareWhatsApp = async () => {
-    // Limpeza para evitar a barra extra que causava erro no banco
     const rawSlug = galeria.slug || '';
     const cleanedSlug = rawSlug.startsWith('/')
       ? rawSlug.substring(1)
       : rawSlug;
 
-    // URL Editorial: hitalodiniz/2025/10/25/casamento/ID_DA_FOTO
+    // Monta a URL da foto
     const shareUrl = `${window.location.origin}/photo/${photo.id}?s=${cleanedSlug}`;
 
-    const shareText = `Confira esta foto exclusiva: ${galleryTitle}`;
+    // Usa a função de mensagem (certifique-se que ela retorna uma string)
+    const shareText = GALLERY_MESSAGES.PHOTO_SHARE(galleryTitle, shareUrl);
+
     const isMobile = /iPhone|iPad|iPod|Android/i.test(navigator.userAgent);
 
     if (isMobile && navigator.share) {
       try {
-        // Compartilhamento nativo com o arquivo da foto
+        // Tenta compartilhar o arquivo real (melhor experiência mobile)
         const response = await fetch(getHighResImageUrl(photo.id));
         const blob = await response.blob();
         const file = new File([blob], 'foto.jpg', { type: 'image/jpeg' });
@@ -208,7 +204,7 @@ export default function Lightbox({
         await navigator.share({
           files: [file],
           title: galleryTitle,
-          text: `${shareText}\n\nLink: ${shareUrl}`,
+          text: shareText,
         });
         return;
       } catch (e) {
@@ -216,8 +212,9 @@ export default function Lightbox({
       }
     }
 
-    // Fallback: Link direto
-    const whatsappUrl = `https://api.whatsapp.com/send?text=${encodeURIComponent(shareText + ' ' + shareUrl)}`;
+    // Fallback: Abre o WhatsApp com a mensagem pronta
+    // Passamos 'null' como primeiro argumento para abrir a seleção de contatos
+    const whatsappUrl = getWhatsAppShareLink(null, shareText);
     window.open(whatsappUrl, '_blank');
   };
 
@@ -274,6 +271,7 @@ export default function Lightbox({
               <button
                 onClick={handleShareWhatsApp}
                 className="flex items-center gap-0 hover:gap-2 transition-all duration-500 group border-r border-white/10 pr-3"
+                title="Compartilhar no WhatsApp"
               >
                 <div className="flex items-center justify-center w-8 h-8 md:w-11 md:h-11 rounded-full bg-white/5 group-hover:bg-[#25D366]/20 transition-colors shrink-0">
                   <MessageCircle className="text-white group-hover:text-[#25D366] w-[20px] h-[20px] md:w-[24px] md:h-[24px]" />
@@ -294,6 +292,7 @@ export default function Lightbox({
                 <button
                   onClick={toggleFavorite}
                   className={`flex items-center gap-0 transition-all duration-500 group ${isFavorited ? 'text-[#E67E70]' : 'hover:text-[#F3E5AB]'}`}
+                  title="Favoritar foto"
                 >
                   <div
                     className={`flex items-center justify-center w-8 h-8 md:w-11 md:h-11 rounded-full transition-colors shrink-0 ${isFavorited ? 'bg-[#E67E70]/20' : 'bg-white/5'}`}
@@ -319,6 +318,7 @@ export default function Lightbox({
               <button
                 onClick={handleDownload}
                 className="flex items-center gap-0 transition-all duration-500 group border-r border-white/10 pr-3 ml-2"
+                title="Download em alta resolução"
               >
                 <div className="flex items-center justify-center w-8 h-8 md:w-11 md:h-11 rounded-full bg-white/5 group-hover:bg-white/10 transition-colors shrink-0">
                   {isDownloading ? (

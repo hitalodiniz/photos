@@ -24,6 +24,30 @@ export const GALLERY_MESSAGES = {
       '💎 _Sua Galeria de Fotos_',
     ].join('\n');
   },
+  CARD_SHARE: (clientName: string, title: string, url: string) => {
+    // \u{2728} = ✨
+    const saudacao = clientName
+      ? `Olá, *${clientName}*! \u{2728}`
+      : 'Olá! \u{2728}';
+
+    return [
+      saudacao,
+      '',
+      // \u{1F4F8} = 📸
+      `Sua experiência fotográfica *${title}* está pronta! \u{1F4F8}`,
+      '',
+      'Preparamos uma galeria exclusiva para você visualizar e baixar suas memórias em alta qualidade.',
+      '',
+      // \u{1F4CD} = 📍
+      '\u{1F4CD} *Acesse aqui:*',
+      url,
+      '',
+      'Espero que goste! \u{2728}',
+      '---',
+      // \u{1F48E} = 💎
+      '\u{1F48E} _Sua Galeria de Fotos_',
+    ].join('\n');
+  },
   PHOTO_SHARE: (title: string, url: string) => {
     return [
       'Olá! ✨',

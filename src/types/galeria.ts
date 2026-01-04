@@ -7,6 +7,10 @@ export interface DrivePhoto {
   webViewUrl: string;
   width?: number;
   height?: number;
+  createdTime?: string;
+  imageMediaMetadata?: {
+    time?: string;
+  };
 }
 
 // Perfil do Fotógrafo (Dados do tb_profiles)
@@ -50,6 +54,7 @@ export interface Galeria extends GaleriaBase {
 
   // Atalhos úteis para facilitar o acesso no GaleriaCard
   photographer_username?: string;
+  photographer_id?: string;
   use_subdomain?: boolean;
 }
 

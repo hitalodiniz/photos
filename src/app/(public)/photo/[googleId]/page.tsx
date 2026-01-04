@@ -25,7 +25,7 @@ export async function generateMetadata({
     .eq('slug', cleanedSlug)
     .single();
 
-  const title = `${galeria?.title || 'Fotografia'} • ${galeria?.photographer.full_name || 'Fotógrafo'}`;
+  const title = `${galeria?.title || 'Fotografia'} • ${(galeria?.photographer as any)?.full_name || 'Fotógrafo'}`;
   const photoUrl = `https://lh3.googleusercontent.com/d/${googleId}=s800`;
 
   return {

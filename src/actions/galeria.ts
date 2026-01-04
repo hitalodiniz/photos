@@ -539,6 +539,22 @@ export async function getGaleriaPhotos(
   // Esta função (em lib/google-drive.ts) faz a requisição final ao Google Drive.
   const photos = await listPhotosFromDriveFolder(driveFolderId, accessToken);
 
+  // Ordenação: Data (mais recente) > Nome (alfabético)
+  photos.sort((a, b) => {
+    // Cast para any para garantir acesso caso a interface importada de lib/google-drive esteja desatualizada
+    const pA = a as any;
+    const pB = b as any;
+
+    const dateAStr = pA.createdTime || pA.imageMediaMetadata?.time;
+    const dateBStr = pB.createdTime || pB.imageMediaMetadata?.time;
+
+    const dateA = dateAStr ? new Date(dateAStr).getTime() : 0;
+    const dateB = dateBStr ? new Date(dateBStr).getTime() : 0;
+
+    if (dateA !== dateB) return dateB - dateA; // Data: Decrescente
+    return a.name.localeCompare(b.name, undefined, { numeric: true }); // Nome: Crescente
+  });
+
   if (photos.length === 0) {
     return { success: true, data: [] }; // Retorna sucesso, mas com lista vazia.
   }
