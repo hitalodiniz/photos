@@ -4,6 +4,7 @@ import LoadingScreen from '@/components/ui/LoadingScreen';
 import useAuthStatus from '@/hooks/useAuthStatus';
 import { supabase } from '@/lib/supabase.client';
 import { useRouter } from 'next/navigation';
+import router from 'next/router';
 import { useEffect, useRef, useState } from 'react';
 
 interface Profile {
@@ -20,10 +21,16 @@ export default function AppClientGuard() {
   const isSyncingRef = useRef(false);
 
   // 1. Sincronização de Sessão (Mantido)
+  // No arquivo da imagem 3d2479
   useEffect(() => {
-    const hasTokenInStorage = !!localStorage.getItem(
-      'sb-bdgqiyvasucvhihaueuk-auth-token',
-    );
+    // 🎯 Ajuste: Busca a chave dinâmica em vez da fixa 'bdgqiy...'
+    const projectId = process.env.NEXT_PUBLIC_SUPABASE_URL
+      ? new URL(process.env.NEXT_PUBLIC_SUPABASE_URL).hostname.split('.')[0]
+      : '';
+    const storageKey = `sb-${projectId}-auth-token`;
+
+    const hasTokenInStorage = !!localStorage.getItem(storageKey);
+
     if (session && hasTokenInStorage && !isSyncingRef.current) {
       isSyncingRef.current = true;
       supabase.auth
