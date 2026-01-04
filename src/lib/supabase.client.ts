@@ -16,12 +16,13 @@ export const supabase = createBrowserClient(SUPABASE_URL, SUPABASE_ANON_KEY, {
     persistSession: true,
     autoRefreshToken: true,
     detectSessionInUrl: true,
-storageKey: `sb-${projectId}-auth-token`,
+    storageKey: `sb-${projectId}-auth-token`,
   },
   cookieOptions: {
     domain: COOKIE_DOMAIN,
     path: '/',
     sameSite: 'lax',
     // Verifica se não está em localhost para ativar o Secure
-secure: process.env.NEXT_PUBLIC_NODE_ENV === 'production',
+    secure: process.env.NEXT_PUBLIC_NODE_ENV === 'production',
+  },
 });
