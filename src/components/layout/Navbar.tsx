@@ -27,24 +27,41 @@ export default function Navbar() {
       }
     };
 
+    // 1. Busca a sessão inicial ao carregar a página
     supabase.auth.getSession().then(({ data: { session } }) => {
       setSession(session);
       if (session?.user) fetchProfileData(session.user);
     });
 
+    // 2. Escuta mudanças de estado (Login, Logout, Token Refreshed)
     const {
       data: { subscription },
-    } = supabase.auth.onAuthStateChange((_event, session) => {
+    } = supabase.auth.onAuthStateChange((event, session) => {
       setSession(session);
-      if (session?.user) fetchProfileData(session.user);
+
+      if (event === 'SIGNED_IN' && session?.user) {
+        // Busca dados do perfil apenas quando o login for confirmado
+        fetchProfileData(session.user);
+      } else if (event === 'SIGNED_OUT') {
+        // Limpa os estados locais imediatamente para evitar "vazamento" de dados na UI
+        setAvatarUrl(null);
+        setSession(null);
+      }
     });
 
+    // Limpa a inscrição ao desmontar o componente para evitar vazamento de memória
     return () => subscription.unsubscribe();
   }, []);
 
   const handleLogout = async () => {
+    // 1. Encerra a sessão no Supabase
     await supabase.auth.signOut();
-    window.location.href = '/';
+
+    // 2. Redireciona para o domínio principal (sem subdomínio)
+    // Isso garante que o usuário saia da área logada do subdomínio
+    const mainDomain =
+      process.env.NEXT_PUBLIC_BASE_URL || 'http://localhost:3000';
+    window.location.href = mainDomain;
   };
 
   const showNavbar =
