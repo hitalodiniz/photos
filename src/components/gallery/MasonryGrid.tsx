@@ -218,7 +218,7 @@ const MasonryGrid = ({
                               e.stopPropagation();
                               handleShareWhatsAppGrid(photo.id);
                             }}
-                            className="absolute top-2 right-14 z-[50] w-8 h-8 md:w-10 md:h-10 rounded-full border bg-black/40 border-white/20 flex items-center justify-center hover:bg-[#25D366]/20 hover:scale-110 transition-all pointer-events-auto cursor-pointer group/wa"
+                            className="absolute top-2 right-12 md:right-14 z-[50] w-8 h-8 md:w-10 md:h-10 rounded-full border bg-black/40 border-white/20 flex items-center justify-center hover:bg-[#25D366]/20 hover:scale-110 transition-all pointer-events-auto cursor-pointer group/wa"
                             title="Compartilhar no WhatsApp"
                           >
                             <MessageCircle

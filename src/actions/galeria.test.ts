@@ -10,10 +10,20 @@ import * as supabaseServer from '@/lib/supabase.server';
 import * as googleAuth from '@/lib/google-auth';
 import { revalidatePath } from 'next/cache';
 
-// Mock do revalidatePath
+// Mock do revalidatePath (Dependência externa)
 vi.mock('next/cache', () => ({
   revalidatePath: vi.fn(),
 }));
+
+// Mock do Supabase (Dependência externa)
+vi.mock('@/lib/supabase.server', () => ({
+  createSupabaseServerClient: vi.fn(),
+  createSupabaseServerClientReadOnly: vi.fn(),
+}));
+
+// Mock do Google Drive (Dependência externa)
+vi.mock('@/lib/google-auth');
+vi.mock('@/lib/google-drive');
 
 describe('Ações de Galeria', () => {
   const mockUser = { id: 'user_hitalo' };
@@ -48,12 +58,13 @@ describe('Ações de Galeria', () => {
       from: vi.fn().mockReturnValue(mockQueryBuilder),
     };
 
-    (supabaseServer.createSupabaseServerClient as any).mockResolvedValue(
-      mockSupabase,
+    // Mockar AMBOS os clientes (Escrita e Leitura)
+    vi.mocked(supabaseServer.createSupabaseServerClient).mockResolvedValue(
+      mockSupabase as any,
     );
-    (
-      supabaseServer.createSupabaseServerClientReadOnly as any
-    ).mockResolvedValue(mockSupabase);
+    vi.mocked(
+      supabaseServer.createSupabaseServerClientReadOnly,
+    ).mockResolvedValue(mockSupabase as any);
 
     return { mockSupabase, mockQueryBuilder };
   };
@@ -138,54 +149,31 @@ describe('Ações de Galeria', () => {
   // =========================================================================
   // TESTES DE BUSCA
   // =========================================================================
-  describe('getGalerias', () => {
-    it('deve retornar as galerias ordenadas por data descendente', async () => {
-      // 1. Configuração manual do mock estruturado
-      const mockQueryBuilder = {
-        select: vi.fn().mockReturnThis(),
-        eq: vi.fn().mockReturnThis(),
-        order: vi.fn().mockReturnThis(),
-        single: vi.fn(),
-      };
-      const mockSupabase = {
-        auth: {
-          getUser: vi.fn().mockResolvedValue({ data: { user: mockUser } }),
-        },
-        from: vi.fn().mockReturnValue(mockQueryBuilder),
-      };
-      (
-        supabaseServer.createSupabaseServerClientReadOnly as any
-      ).mockResolvedValue(mockSupabase);
+  it('deve retornar as galerias ordenadas por data descendente', async () => {
+    // 1. Configura os mocks do Supabase para que a função interna passe na autenticação
+    const { mockQueryBuilder } = setupSupabaseMock();
 
-      // 3. Resposta para o Profile (Primeira chamada interna)
-      mockQueryBuilder.single.mockResolvedValueOnce({
-        data: { studio_id: 'studio_123', username: 'hitalo' },
-        error: null,
-      });
+    // 2. Mock dos dados das galerias (Segunda chamada da action)
+    const mockDbData = [
+      {
+        id: 'gal_1',
+        title: 'Casamento',
+        cover_image_url: 'foto.jpg',
+        user_id: 'user_hitalo', // Mesmo ID do mockUser no topo
+        photographer: { username: 'hitalodiniz' },
+      },
+    ];
 
-      // 4. Resposta para as Galerias (Segunda chamada)
-      const mockDbData = [
-        {
-          id: 'gal_1',
-          title: 'Casamento',
-          cover_image_url: 'foto.jpg',
-          tb_profiles: { username: 'hitalo' },
-        },
-      ];
+    // Forçamos o retorno específico para a listagem
+    mockQueryBuilder.order.mockResolvedValue({ data: mockDbData, error: null });
 
-      // Interceptamos o final da corrente (.order) para retornar os dados
-      mockQueryBuilder.order.mockReturnValue({
-        then: (resolve: any) => resolve({ data: mockDbData, error: null }),
-      });
+    // 3. Execução
+    const result = await getGalerias();
 
-      // 5. Execução
-      const result = await getGalerias();
-
-      // Verificações
-      expect(result.success).toBe(true);
-      expect(result.data).toHaveLength(1);
-      expect(result.data?.[0].cover_image_url).toBe('foto.jpg');
-    });
+    // 4. Verificações
+    expect(result.success).toBe(true);
+    expect(result.data).toBeDefined();
+    expect(result.data![0].cover_image_url).toBe('foto.jpg');
   });
 
   describe('updateGaleria', () => {
@@ -200,7 +188,7 @@ describe('Ações de Galeria', () => {
       // 1. Mock do Cliente Supabase
       const mockQueryBuilder = {
         select: vi.fn().mockReturnThis(),
-        eq: vi.fn().mockReturnThis(),
+        eq: vi.fn(),
         update: vi.fn().mockReturnThis(),
         single: vi.fn(),
       };
@@ -215,6 +203,11 @@ describe('Ações de Galeria', () => {
       (supabaseServer.createSupabaseServerClient as any).mockResolvedValue(
         mockSupabase,
       );
+
+      // Configura o eq para retornar 'this' na primeira chamada (getAuth) e o resultado na segunda (update)
+      mockQueryBuilder.eq
+        .mockReturnValueOnce(mockQueryBuilder)
+        .mockResolvedValue({ error: null });
 
       // Mock do Profile (necessário para getAuthAndStudioIds)
       mockQueryBuilder.single.mockResolvedValue({
@@ -251,7 +244,7 @@ describe('Ações de Galeria', () => {
     it('deve definir password como null quando a galeria for alterada para pública', async () => {
       const mockQueryBuilder = {
         update: vi.fn().mockReturnThis(),
-        eq: vi.fn().mockResolvedValue({ error: null }),
+        eq: vi.fn(),
         select: vi.fn().mockReturnThis(),
         single: vi
           .fn()
@@ -268,6 +261,10 @@ describe('Ações de Galeria', () => {
       (supabaseServer.createSupabaseServerClient as any).mockResolvedValue(
         mockSupabase,
       );
+
+      mockQueryBuilder.eq
+        .mockReturnValueOnce(mockQueryBuilder)
+        .mockResolvedValue({ error: null });
 
       const formData = new FormData();
       formData.append('title', 'Galeria Pública');
@@ -288,7 +285,7 @@ describe('Ações de Galeria', () => {
     it('deve manter a execução mesmo se a atualização de permissão no Google Drive falhar', async () => {
       const mockQueryBuilder = {
         update: vi.fn().mockReturnThis(),
-        eq: vi.fn().mockResolvedValue({ error: null }),
+        eq: vi.fn(),
         select: vi.fn().mockReturnThis(),
         single: vi
           .fn()
@@ -305,6 +302,10 @@ describe('Ações de Galeria', () => {
       (supabaseServer.createSupabaseServerClient as any).mockResolvedValue(
         mockSupabase,
       );
+
+      mockQueryBuilder.eq
+        .mockReturnValueOnce(mockQueryBuilder)
+        .mockResolvedValue({ error: null });
 
       // Simula falha no Google Drive
       /*vi.spyOn(googleDrive, 'makeFolderPublic').mockRejectedValue(
@@ -341,9 +342,7 @@ describe('Ações de Galeria', () => {
         delete: vi.fn().mockReturnThis(),
         // A primeira chamada .eq() retorna um objeto que tem a segunda chamada .eq(),
         // que por sua vez resolve a promessa final.
-        eq: vi
-          .fn()
-          .mockReturnValue({ eq: vi.fn().mockResolvedValue({ error: null }) }),
+        eq: vi.fn(),
         single: vi.fn(),
         // Adicionado para a chamada interna de getAuthAndStudioIds
         select: vi.fn().mockReturnThis(),
@@ -359,6 +358,14 @@ describe('Ações de Galeria', () => {
       (supabaseServer.createSupabaseServerClient as any).mockResolvedValue(
         mockSupabase,
       );
+
+      // 1. getAuthAndStudioIds: .eq('id', user.id) -> retorna builder
+      // 2. delete: .eq('id', id) -> retorna builder
+      // 3. delete: .eq('user_id', userId) -> retorna Promise
+      mockQueryBuilder.eq
+        .mockReturnValueOnce(mockQueryBuilder)
+        .mockReturnValueOnce(mockQueryBuilder)
+        .mockResolvedValue({ error: null });
 
       // 2. Mock do Profile (necessário para o getAuthAndStudioIds dentro da action)
       // Usamos mockResolvedValueOnce para a primeira chamada (getAuthAndStudioIds)
