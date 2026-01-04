@@ -116,53 +116,42 @@ export async function middleware(req: NextRequest) {
   // 4. LÓGICA DE REWRITE: Subdomínio -> Pasta Interna
   // Ex: hitalodiniz.localhost:3000/2025... -> /site-interno/hitalodiniz/2025...
   // ---------------------------------------------------------
+  // ---------------------------------------------------------
+  // 4. LÓGICA DE REWRITE: Subdomínio -> Pasta Interna (Apenas Galerias)
+  // ---------------------------------------------------------
   let subdomain = '';
   if (isSubdomainRequest) {
     subdomain = cleanHost.replace(`.${cleanMainDomain}`, '');
   }
 
+  // Só entra na lógica se houver um subdomínio válido e não for 'www'
   if (subdomain && subdomain !== 'www') {
-    const profile = await getProfileBySubdomain(subdomain, req);
+    // 🎯 A CHAVE: Só faz o rewrite se o caminho NÃO for uma rota de sistema.
+    // Como o Next.js já ignora /api e /_next no matcher,
+    // basta verificarmos se o pathname está vazio (home do fotógrafo)
+    // ou se parece com uma estrutura de galeria (ex: /2025/10/...)
+    const isGalleryPath = pathname === '/' || /^\/\d{4}/.test(pathname);
 
-    // CASO 1: Perfil existe E permite subdomínio (Fluxo Normal)
-    if (profile && profile.use_subdomain) {
-      const cleanPathname = pathname.startsWith('/')
-        ? pathname
-        : `/${pathname}`;
-      const rewriteUrl = new URL(
-        `/subdomain/${profile.username}${cleanPathname}`,
-        req.url,
-      );
+    if (isGalleryPath) {
+      const profile = await getProfileBySubdomain(subdomain, req);
 
-      const response = NextResponse.rewrite(rewriteUrl);
-
-      const isLocalhost = process.env.NODE_ENV === 'development';
-
-      if (isLocalhost) {
-        // 🎯 Força o navegador e o Next.js a não cachearem o rewrite no dev
-        response.headers.set('Cache-Control', 'no-store, max-age=0');
-      } else {
-        response.headers.set(
-          'Cache-Control',
-          'public, s-maxage=60, stale-while-revalidate=30',
+      if (profile && profile.use_subdomain) {
+        const rewriteUrl = new URL(
+          `/subdomain/${profile.username}${pathname}`,
+          req.url,
         );
+
+        const response = NextResponse.rewrite(rewriteUrl);
+        const isLocalhost = process.env.NODE_ENV === 'development';
+
+        if (isLocalhost) {
+          response.headers.set('Cache-Control', 'no-store, max-age=0');
+        }
+
+        response.headers.set('x-subdomain-variant', 'true');
+        return response;
       }
-
-      response.headers.set('x-subdomain-variant', 'true');
-      return response;
     }
-
-    // CASO 2: Perfil existe mas NÃO permite subdomínio (Trava de Segurança)
-    if (profile && !profile.use_subdomain) {
-      console.warn(
-        `[Middleware] Acesso negado: Subdomínio desativado para ${subdomain}`,
-      );
-      // Força o erro 404 para não vazar a existência da rota interna
-      return NextResponse.rewrite(new URL('/_not-found', req.url));
-    }
-
-    // CASO 3: Perfil não existe
-    return NextResponse.rewrite(new URL('/404', req.url));
   }
 
   // 5. PROTEÇÃO DE ROTAS DASHBOARD/ONBOARDING
