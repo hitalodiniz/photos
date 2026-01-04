@@ -12,7 +12,7 @@ export async function GET(request: Request) {
     return NextResponse.redirect(new URL('/', request.url));
   }
 
-  const isProduction = process.env.NODE_ENV === 'production';
+  const isProduction = process.env.NEXT_PUBLIC_NODE_ENV === 'production';
 
   const supabase = createServerClient(
     process.env.NEXT_PUBLIC_SUPABASE_URL!,
