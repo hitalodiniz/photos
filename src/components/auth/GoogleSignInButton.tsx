@@ -1,40 +1,18 @@
 'use client';
 
 import { useState } from 'react';
-import { supabase } from '@/lib/supabase.client';
-import { getBaseUrl } from '@/lib/get-base-url';
+import { authService } from '@/core/services/auth.service';
 
 export default function GoogleSignInButton() {
   const [loading, setLoading] = useState(false);
 
-  const signInWithGoogle = async () => {
+  const handleLogin = async () => {
     try {
       setLoading(true);
-
-      // 1. Buscar o domínio correto (local, subdomínio ou produção)
-      const baseUrl = getBaseUrl();
-
-      // 2. Montar o redirectTo correto
-      const redirectTo = `${baseUrl}/api/auth/callback`;
-
-      // 3. Iniciar o login
-      const { error } = await supabase.auth.signInWithOAuth({
-        provider: 'google',
-        options: {
-          scopes:
-            'email profile openid https://www.googleapis.com/auth/drive.readonly',
-          redirectTo,
-          queryParams: {
-            access_type: 'offline',
-            prompt: 'consent',
-          },
-        },
-      });
-
-      if (error) {
-        console.error('Erro ao iniciar login:', error);
-        alert('Erro ao iniciar login: ' + error.message);
-      }
+      await authService.signInWithGoogle(); // 🎯 Chamada isolada ao "Back"
+    } catch (error: any) {
+      console.error('Erro ao iniciar login:', error);
+      alert('Erro ao iniciar login: ' + error.message);
     } finally {
       setLoading(false);
     }
@@ -42,7 +20,7 @@ export default function GoogleSignInButton() {
 
   return (
     <button
-      onClick={signInWithGoogle}
+      onClick={handleLogin}
       disabled={loading}
       className={`
     relative flex items-center justify-center 

@@ -1,5 +1,13 @@
 // vitest.setup.ts
 import { vi } from 'vitest';
+import '@testing-library/jest-dom/vitest';
+import { cleanup } from '@testing-library/react';
+import { afterEach } from 'vitest';
+
+// Limpa o DOM após cada teste para evitar poluição entre testes
+afterEach(() => {
+  cleanup();
+});
 
 // 1. Criamos uma função que gera o objeto de mock sempre limpo e completo
 const createMockClient = () => {
