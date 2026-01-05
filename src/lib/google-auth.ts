@@ -29,7 +29,7 @@ export async function getDriveAccessTokenForUser(
   const { data: profile, error } = await supabase
     .from('tb_profiles')
     .select('google_refresh_token')
-    .eq('user_id', userId)
+    .eq('id', userId)
     .single();
 
   if (error || !profile || !profile.google_refresh_token) {
