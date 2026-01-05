@@ -8,7 +8,6 @@ import {
   Footer,
 } from '@/components/layout';
 import { PLANS, PlanKey } from '@/config/plans';
-import { PaymentService } from '@/services/payment-service';
 
 export default function PlanosPage() {
   const [loadingPlan, setLoadingPlan] = useState<string | null>(null);
@@ -60,7 +59,7 @@ export default function PlanosPage() {
   const handleSubscribe = async (planKey: PlanKey) => {
     setLoadingPlan(planKey);
     try {
-      const result = await PaymentService.createCheckout(planKey);
+      const result = null;
       window.location.href = result.url;
     } finally {
       setLoadingPlan(null);
