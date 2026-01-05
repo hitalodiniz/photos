@@ -20,9 +20,9 @@ export function getBaseUrl(): string {
   }
 
   // Localhost
-  if (process.env.BASE_URL) {
-    console.warn('Usando BASE_URL como fallback no server-side.');
-    return process.env.BASE_URL;
+  if (process.env.NEXT_PUBLIC_BASE_URL) {
+    console.warn('Usando NEXT_PUBLIC_BASE_URL como fallback no server-side.');
+    return process.env.NEXT_PUBLIC_BASE_URL;
   }
 
   return 'http://localhost:3000';

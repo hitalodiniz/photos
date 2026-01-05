@@ -2,11 +2,13 @@
 
 import { createClient } from '@supabase/supabase-js';
 
-const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL;
+const supabaseUrl = process.env.NEXT_PUBLIC_SUPANEXT_PUBLIC_BASE_URL;
 const supabaseAnonKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY;
 
 if (!supabaseUrl || !supabaseAnonKey) {
-  throw new Error('SUPABASE_URL e SUPABASE_ANON_KEY devem ser definidos.');
+  throw new Error(
+    'SUPANEXT_PUBLIC_BASE_URL e SUPABASE_ANON_KEY devem ser definidos.',
+  );
 }
 
 export const supabase = createClient(supabaseUrl, supabaseAnonKey, {

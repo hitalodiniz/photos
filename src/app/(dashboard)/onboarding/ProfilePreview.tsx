@@ -7,7 +7,7 @@ import PhotographerProfileContent from '@/components/ui/PhotographerProfileConte
 import LoadingScreen from '@/components/ui/LoadingScreen';
 
 const supabase = createClient(
-  process.env.NEXT_PUBLIC_SUPABASE_URL!,
+  process.env.NEXT_PUBLIC_SUPANEXT_PUBLIC_BASE_URL!,
   process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!,
 );
 

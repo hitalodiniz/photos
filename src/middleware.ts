@@ -3,7 +3,8 @@ import type { NextRequest } from 'next/server';
 import { createServerClient } from '@supabase/ssr';
 
 // Define o domínio base (ex: localhost:3000 ou suagaleria.com.br)
-const MAIN_DOMAIN = process.env.MAIN_DOMAIN || 'localhost:3000';
+const NEXT_PUBLIC_MAIN_DOMAIN =
+  process.env.NEXT_PUBLIC_MAIN_DOMAIN || 'localhost:3000';
 
 const subdomainCache = new Map<
   string,
@@ -24,7 +25,7 @@ async function getProfileBySubdomain(subdomain: string, req: NextRequest) {
   }
 
   const supabase = createServerClient(
-    process.env.NEXT_PUBLIC_SUPABASE_URL!,
+    process.env.NEXT_PUBLIC_SUPANEXT_PUBLIC_BASE_URL!,
     process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!,
     {
       cookies: {
@@ -76,9 +77,9 @@ export async function middleware(req: NextRequest) {
   const pathParts = pathname.split('/').filter(Boolean);
 
   // 2. DETECÇÃO DE SUBDOMÍNIO EXISTENTE
-  // Verifica se o host atual já é um subdomínio do MAIN_DOMAIN
+  // Verifica se o host atual já é um subdomínio do NEXT_PUBLIC_MAIN_DOMAIN
   const cleanHost = host.split(':')[0];
-  const cleanMainDomain = MAIN_DOMAIN.split(':')[0];
+  const cleanMainDomain = NEXT_PUBLIC_MAIN_DOMAIN.split(':')[0];
   const isSubdomainRequest = cleanHost.endsWith(`.${cleanMainDomain}`);
 
   // ---------------------------------------------------------
@@ -173,7 +174,7 @@ export async function middleware(req: NextRequest) {
   if (pathname.startsWith('/dashboard') || pathname.startsWith('/onboarding')) {
     const res = NextResponse.next();
     const supabase = createServerClient(
-      process.env.NEXT_PUBLIC_SUPABASE_URL!,
+      process.env.NEXT_PUBLIC_SUPANEXT_PUBLIC_BASE_URL!,
       process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!,
       {
         cookies: {

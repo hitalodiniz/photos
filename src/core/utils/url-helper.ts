@@ -1,7 +1,8 @@
 // src/lib/utils/url-helper.ts
 import { GALLERY_MESSAGES } from '@/constants/messages';
 
-const MAIN_DOMAIN = process.env.MAIN_DOMAIN || 'localhost:3000';
+const NEXT_PUBLIC_MAIN_DOMAIN =
+  process.env.NEXT_PUBLIC_MAIN_DOMAIN || 'localhost:3000';
 
 export function getPublicGalleryUrl(photographer: any, slug: string) {
   const isProd = process.env.NODE_ENV === 'production';
@@ -16,11 +17,11 @@ export function getPublicGalleryUrl(photographer: any, slug: string) {
     const finalPath = cleanSlug.startsWith('/')
       ? cleanSlug.slice(1)
       : cleanSlug;
-    return `${protocol}//${photographer.username}.${MAIN_DOMAIN}/${finalPath}`;
+    return `${protocol}//${photographer.username}.${NEXT_PUBLIC_MAIN_DOMAIN}/${finalPath}`;
   }
 
   const finalPath = slug.startsWith('/') ? slug.slice(1) : slug;
-  return `${protocol}//${MAIN_DOMAIN}/${finalPath}`;
+  return `${protocol}//${NEXT_PUBLIC_MAIN_DOMAIN}/${finalPath}`;
 }
 
 export function getWhatsAppShareLink(phone: string | null, message: string) {
