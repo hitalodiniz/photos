@@ -14,7 +14,7 @@ export async function GET(request: Request) {
   }
 
   // Pegamos a URL do projeto bdgqiy do seu .env.local
-  const supabaseUrl = process.env.NEXT_PUBLIC_SUPANEXT_PUBLIC_BASE_URL;
+  const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL;
   const baseUrl = process.env.NEXT_PUBLIC_BASE_URL; // http://localhost:3000
 
   const supabaseCallbackUrl = new URL(`${supabaseUrl}/auth/v1/callback`);

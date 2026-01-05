@@ -25,7 +25,7 @@ async function getProfileBySubdomain(subdomain: string, req: NextRequest) {
   }
 
   const supabase = createServerClient(
-    process.env.NEXT_PUBLIC_SUPANEXT_PUBLIC_BASE_URL!,
+    process.env.NEXT_PUBLIC_SUPABASE_URL!,
     process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!,
     {
       cookies: {
@@ -174,7 +174,7 @@ export async function middleware(req: NextRequest) {
   if (pathname.startsWith('/dashboard') || pathname.startsWith('/onboarding')) {
     const res = NextResponse.next();
     const supabase = createServerClient(
-      process.env.NEXT_PUBLIC_SUPANEXT_PUBLIC_BASE_URL!,
+      process.env.NEXT_PUBLIC_SUPABASE_URL!,
       process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!,
       {
         cookies: {

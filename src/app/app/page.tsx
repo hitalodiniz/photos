@@ -24,10 +24,8 @@ export default function AppClientGuard() {
   // No arquivo da imagem 3d2479
   useEffect(() => {
     // 🎯 Ajuste: Busca a chave dinâmica em vez da fixa 'bdgqiy...'
-    const projectId = process.env.NEXT_PUBLIC_SUPANEXT_PUBLIC_BASE_URL
-      ? new URL(
-          process.env.NEXT_PUBLIC_SUPANEXT_PUBLIC_BASE_URL,
-        ).hostname.split('.')[0]
+    const projectId = process.env.NEXT_PUBLIC_SUPABASE_URL
+      ? new URL(process.env.NEXT_PUBLIC_SUPABASE_URL).hostname.split('.')[0]
       : '';
     const storageKey = `sb-${projectId}-auth-token`;
 

@@ -3,8 +3,7 @@
 
 import { createBrowserClient } from '@supabase/ssr';
 
-const SUPANEXT_PUBLIC_BASE_URL =
-  process.env.NEXT_PUBLIC_SUPANEXT_PUBLIC_BASE_URL!;
+const SUPANEXT_PUBLIC_BASE_URL = process.env.NEXT_PUBLIC_SUPABASE_URL!;
 const SUPABASE_ANON_KEY = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!;
 // Puxa do .env ou usa o host atual como fallback de segurança
 const COOKIE_DOMAIN = process.env.NEXT_PUBLIC_COOKIE_DOMAIN;
