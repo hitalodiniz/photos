@@ -9,6 +9,7 @@
     "test:ui": "vitest --ui",
     "lint": "eslint .",
     "test": "vitest",
+    "test:clean": "vitest --clearCache && npx vitest src/contexts/AuthContext.spec.tsx",
     "prepare": "husky"
   },
   "dependencies": {

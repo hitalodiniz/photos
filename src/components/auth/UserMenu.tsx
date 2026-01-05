@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useState, useRef, useEffect } from 'react';
+import React, { useState, useRef, useEffect, useMemo } from 'react';
 import Link from 'next/link';
 import Image from 'next/image';
 
@@ -9,7 +9,7 @@ export default function UserMenu({
   handleLogout,
   avatarUrl,
 }: {
-  session: { id: string; email?: string } | any;
+  session: { id: string; email?: string; name?: string } | any;
   handleLogout: () => void;
   avatarUrl?: string | null;
 }) {
@@ -17,8 +17,20 @@ export default function UserMenu({
   const [isLoggingOut, setIsLoggingOut] = useState(false);
   const menuRef = useRef<HTMLDivElement>(null);
 
+  // --- Lógica de Dados (Pode ser extraída para um hook se crescer) ---
   const userEmail = session?.email || 'Usuário';
 
+  // UseMemo evita re-cálculos desnecessários a cada render
+  const { fullName, displayAvatar, initialLetter } = useMemo(() => {
+    const name = session?.name || userEmail.split('@')[0];
+    return {
+      fullName: name,
+      displayAvatar: avatarUrl || null,
+      initialLetter: name.charAt(0).toUpperCase(),
+    };
+  }, [session, avatarUrl, userEmail]);
+
+  // --- Efeitos ---
   useEffect(() => {
     const handleClickOutside = (event: MouseEvent) => {
       if (menuRef.current && !menuRef.current.contains(event.target as Node)) {
@@ -39,15 +51,16 @@ export default function UserMenu({
     }
   };
 
+  // --- Sub-componente de UI ---
   const renderAvatarContent = (
     sizeClass: string,
     textClass: string,
-    isLarge: boolean = false,
+    isLarge = false,
   ) => {
-    // Borda estilo Onboarding: sutilmente dourada quando em destaque
+    // 🎯 Usando variáveis de design centralizadas
     const borderStyle = isLarge
-      ? 'border-2 border-[#F3E5AB]'
-      : 'border border-[#F3E5AB]/50';
+      ? 'border-2 border-champagne-dark'
+      : 'border border-champagne-dark/50';
 
     if (displayAvatar) {
       return (
@@ -67,7 +80,7 @@ export default function UserMenu({
     }
     return (
       <div
-        className={`${sizeClass} rounded-full bg-[#0B57D0] text-white flex items-center justify-center ${textClass} font-semibold ${borderStyle} shadow-sm`}
+        className={`${sizeClass} rounded-full bg-blue-600 text-white flex items-center justify-center ${textClass} font-semibold ${borderStyle} shadow-sm`}
       >
         {initialLetter}
       </div>
@@ -80,7 +93,7 @@ export default function UserMenu({
         {/* Botão Gatilho - Segue o padrão de botões globais com active:scale-95 */}
         <button
           onClick={() => setIsOpen(!isOpen)}
-          className="relative p-0.5 rounded-full hover:bg-champagne-dark/20 transition-all duration-200 focus:outline-none focus:ring-2 focus:ring-[#D4AF37]/40 active:scale-95 disabled:opacity-50"
+          className="relative p-0.5 rounded-full hover:bg-champagne-dark/20 transition-all duration-200 focus:outline-none focus:ring-2 focus:ring-gold/40 active:scale-95 disabled:opacity-50"
           disabled={isLoggingOut}
         >
           {renderAvatarContent('w-10 h-10', 'text-sm')}
@@ -88,32 +101,29 @@ export default function UserMenu({
 
         {/* Popover Estilo Google Onboarding */}
         {isOpen && (
-          <div className="absolute right-0 mt-3 w-72 bg-white rounded-[28px] shadow-[0_12px_40px_rgba(212,175,55,0.15)] border border-[#F3E5AB]/40 py-5 z-[100] animate-in fade-in zoom-in-95 duration-200">
+          <div className="absolute right-0 mt-3 w-72 bg-white rounded-[28px] shadow-[0_12px_40px_rgba(212,175,55,0.15)] border border-champagne-dark/40 py-5 z-[100] animate-in fade-in zoom-in-95 duration-200">
             <div className="flex flex-col items-center px-6 pb-4">
-              <span className="text-[10px] font-bold text-[#D4AF37] uppercase tracking-[0.2em] mb-4">
+              <span className="text-[10px] font-bold text-gold uppercase tracking-[0.2em] mb-4">
                 Sua Conta
               </span>
 
-              {/* Avatar Central com borda reforçada */}
-              <div className="mb-3 p-1 rounded-full bg-white shadow-sm ring-1 ring-[#F3E5AB]">
+              <div className="mb-3 p-1 rounded-full bg-white shadow-sm ring-1 ring-champagne-dark">
                 {renderAvatarContent('w-20 h-20', 'text-3xl', true)}
               </div>
 
-              <p className="text-base font-semibold text-[#1F1F1F] truncate w-full text-center">
+              <p className="text-base font-semibold text-slate-900 truncate w-full text-center">
                 {fullName}
               </p>
-              <p className="text-sm text-gray-500 mb-6 truncate w-full text-center font-normal">
+              <p className="text-sm text-slate-500 mb-6 truncate w-full text-center font-normal">
                 {userEmail}
               </p>
 
-              {/* Botão Segue Padrão Global do Onboarding */}
-              <Link href="/onboarding" className="btn-primary text[10px]">
+              <Link href="/onboarding" className="btn-primary py-2 text-[10px]">
                 Gerenciar perfil
               </Link>
             </div>
 
-            <div className="mx-6 border-t border-[#F3E5AB]/20 my-2"></div>
-
+            <div className="mx-6 border-t border-champagne-dark/20 my-2"></div>
             <div className="px-3">
               <button
                 onClick={onLogoutClick}
