@@ -14,7 +14,7 @@ export default function Toast({ message, type, onClose }: ToastProps) {
   // Estilos sutos: Champanhe para sucesso e Rosé suave para erro
   const styles =
     type === 'success'
-      ? 'bg-[#FAF7ED]/90 border-[#D4AF37]/30 text-slate-900 shadow-[0_20px_50px_rgba(212,175,55,0.1)]'
+      ? 'bg-[#FAF7ED]/90 border-gold/30 text-slate-900 shadow-[0_20px_50px_rgba(212,175,55,0.1)]'
       : 'bg-[#FFF5F5]/90 border-red-100 text-[#991B1B] shadow-[0_20px_50px_rgba(153,27,27,0.05)]';
   // Timer para fechar automaticamente após 6 segundos
   useEffect(() => {

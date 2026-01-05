@@ -1,7 +1,7 @@
 'use client';
 import React, { useState, useEffect } from 'react';
 import { PhotoGrid, PhotographerAvatar } from '@/components/gallery';
-import type { Galeria } from '@/types/galeria';
+import type { Galeria } from '@/core/types/galeria';
 import { Camera } from 'lucide-react';
 
 interface GaleriaViewProps {
@@ -86,7 +86,7 @@ export default function GaleriaView({ galeria, photos }: GaleriaViewProps) {
               <PhotoGrid photos={photos} galeria={galeria} />
             ) : (
               <div className="flex flex-col items-center justify-center py-24 text-[#D4AF37]">
-                <div className="animate-spin rounded-full h-10 w-10 border-b-2 border-[#D4AF37] mb-6"></div>
+                <div className="animate-spin rounded-full h-10 w-10 border-b-2 border-gold mb-6"></div>
                 <p className="font-serif italic text-xl tracking-wide">
                   Preparando sua experiência...
                 </p>

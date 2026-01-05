@@ -113,10 +113,6 @@ export async function middleware(req: NextRequest) {
   }
 
   // ---------------------------------------------------------
-  // 4. LÓGICA DE REWRITE: Subdomínio -> Pasta Interna
-  // Ex: hitalodiniz.localhost:3000/2025... -> /site-interno/hitalodiniz/2025...
-  // ---------------------------------------------------------
-  // ---------------------------------------------------------
   // 4. LÓGICA DE REWRITE: Subdomínio -> Pasta Interna (Apenas Galerias)
   // ---------------------------------------------------------
   let subdomain = '';

@@ -2,7 +2,7 @@
 'use client';
 
 import GaleriaCard from './GaleriaCard';
-import type { Galeria } from '@/types/galeria';
+import type { Galeria } from '@/core/types/galeria';
 
 interface GaleriaListProps {
   galerias: Galeria[];

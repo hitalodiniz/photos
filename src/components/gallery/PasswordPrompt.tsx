@@ -3,7 +3,7 @@
 import { authenticateGaleriaAccess } from '@/actions/galeria';
 import React, { useState } from 'react';
 import { Camera, Lock, Loader2, CheckCircle2, Send, X } from 'lucide-react';
-import { Galeria } from '@/types/galeria';
+import { Galeria } from '@/core/types/galeria';
 import { sendAccessRequestAction } from '@/actions/email';
 
 export default function PasswordPrompt({
@@ -115,7 +115,7 @@ export default function PasswordPrompt({
               disabled={isChecking}
               className={`w-full flex items-center justify-center gap-3 px-6 py-5 rounded-2xl font-semibold 
                 transition-all shadow-lg active:scale-[0.98] text-sm md:text[14px] tracking-[0.25em] uppercase
-                bg-[#F3E5AB] hover:bg-[#FAF0CA] text-slate-900 disabled:opacity-50 disabled:cursor-not-allowed`}
+                bg-champagne-dark hover:bg-[#FAF0CA] text-slate-900 disabled:opacity-50 disabled:cursor-not-allowed`}
             >
               {isChecking ? (
                 <Loader2 className="animate-spin h-5 w-5" />
@@ -252,7 +252,7 @@ export function AccessRequestModal({
 
                 <button
                   disabled={loading}
-                  className="w-full bg-[#F3E5AB] text-black font-bold py-4 rounded-xl flex items-center justify-center gap-2 hover:bg-[#FAF0CA] transition-all disabled:opacity-50"
+                  className="w-full bg-champagne-dark text-black font-bold py-4 rounded-xl flex items-center justify-center gap-2 hover:bg-[#FAF0CA] transition-all disabled:opacity-50"
                 >
                   {loading ? (
                     <Loader2 className="animate-spin" />

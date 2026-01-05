@@ -100,7 +100,7 @@ export default function PlanosPage() {
                       <th
                         key={key}
                         className={`py-8 px-4 border-b-2 border-slate-900 text-center relative transition-colors duration-300
-                        ${isPremium || isHovered ? 'bg-[#F3E5AB]/20' : 'bg-white'}`}
+                        ${isPremium || isHovered ? 'bg-champagne-dark/20' : 'bg-white'}`}
                       >
                         {isPremium && (
                           <div className="absolute top-0 left-1/2 -translate-x-1/2 -translate-y-4 bg-slate-950 text-[#F3E5AB] text-[9px] font-black uppercase tracking-[0.25em] px-4 py-1 rounded-full flex items-center gap-1 animate-pulse">
@@ -147,7 +147,7 @@ export default function PlanosPage() {
                         <td
                           key={key}
                           className={`py-5 px-4 border-b border-slate-200 text-center transition-colors duration-300
-                          ${isHighlighted ? 'bg-[#F3E5AB]/10 text-slate-950 font-bold' : 'text-slate-800 font-semibold'}`}
+                          ${isHighlighted ? 'bg-champagne-dark/10 text-slate-950 font-bold' : 'text-slate-800 font-semibold'}`}
                         >
                           {cellValue === true ? (
                             <Check
@@ -183,7 +183,7 @@ export default function PlanosPage() {
                     return (
                       <td
                         key={key}
-                        className={`p-6 text-center transition-colors ${isPremium || hoveredPlan === key ? 'bg-[#F3E5AB]/10' : ''}`}
+                        className={`p-6 text-center transition-colors ${isPremium || hoveredPlan === key ? 'bg-champagne-dark/10' : ''}`}
                         onMouseEnter={() => setHoveredPlan(key)}
                         onMouseLeave={() => setHoveredPlan(null)}
                       >

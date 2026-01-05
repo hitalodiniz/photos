@@ -4,7 +4,7 @@ import { useEffect, useMemo, useState } from 'react';
 import { LayoutGrid, Filter, Plus, Search } from 'lucide-react';
 import { getGalerias, deleteGaleria } from '@/actions/galeria';
 
-import type { Galeria } from '@/types/galeria';
+import type { Galeria } from '@/core/types/galeria';
 import CreateGaleriaForm from './CreateGaleriaForm';
 import EditGaleriaModal from './EditGaleriaModal';
 import Filters from './Filters';
@@ -169,7 +169,7 @@ export default function ClientAdminWrapper({
       <aside className="order-2 lg:order-1">
         <div className="lg:sticky lg:top-16 h-fit rounded-[24px] border border-[#E0E3E7] bg-white p-6 shadow-sm">
           <div className="flex items-center gap-4 mb-8">
-            <div className="flex items-center justify-center w-10 h-10 rounded-2xl bg-[#D4AF37]/5 text-[#D4AF37] border border-[#D4AF37]/10">
+            <div className="flex items-center justify-center w-10 h-10 rounded-2xl bg-[#D4AF37]/5 text-[#D4AF37] border border-gold/10">
               <Plus size={24} />
             </div>
             <h2 className="text-base font-bold text-[#3C4043] tracking-tight">
@@ -184,9 +184,9 @@ export default function ClientAdminWrapper({
       <main className="order-1 lg:order-2 space-y-4">
         {/* PÍLULA MESTRE: TÍTULO + FILTROS + STATUS */}
         <header className="w-full mb-2">
-          <div className="flex flex-col md:flex-row items-center bg-[#FAF7ED] border border-[#D4AF37]/30 shadow-sm rounded-[24px] md:rounded-full overflow-hidden transition-all duration-300">
+          <div className="flex flex-col md:flex-row items-center bg-[#FAF7ED] border border-gold/30 shadow-sm rounded-[24px] md:rounded-full overflow-hidden transition-all duration-300">
             {/* Identificador de Filtros */}
-            <div className="flex items-center gap-2.5 px-8 py-4 bg-white/40 border-b md:border-b-0 md:border-r border-[#D4AF37]/20">
+            <div className="flex items-center gap-2.5 px-8 py-4 bg-white/40 border-b md:border-b-0 md:border-r border-gold/20">
               <Filter size={14} className="text-[#D4AF37]" />
               <span className="text-[11px] font-black uppercase tracking-[0.25em] text-slate-500">
                 Filtros
@@ -216,7 +216,7 @@ export default function ClientAdminWrapper({
         {/* Contador Flutuante com Rolagem */}
         <div className="fixed bottom-8 right-8 z-50 flex flex-col items-end gap-2 animate-in fade-in slide-in-from-bottom-4 duration-500">
           {/* Pílula de Contagem Premium */}
-          <div className="flex items-center gap-3 bg-white border-2 border-[#D4AF37]/20 px-6 py-3 rounded-full shadow-[0_8px_30px_rgb(0,0,0,0.12)] hover:scale-105 transition-all">
+          <div className="flex items-center gap-3 bg-white border-2 border-gold/20 px-6 py-3 rounded-full shadow-[0_8px_30px_rgb(0,0,0,0.12)] hover:scale-105 transition-all">
             <LayoutGrid size={16} className="text-[#D4AF37]" />
             <div className="flex items-center gap-2 text-base tracking-tight">
               Exibindo
@@ -247,9 +247,9 @@ export default function ClientAdminWrapper({
                 className="items-center justify-center gap-3 px-2 py-4 
         rounded-2xl font-bold transition-all shadow-lg active:scale-95 
         text-[11px] md:text-xs tracking-[0.25em]
-        bg-[#F3E5AB] hover:bg-[#e6d595] text-slate-900 
+        bg-champagne-dark hover:bg-[#e6d595] text-slate-900 
         disabled:opacity-70 disabled:cursor-wait disabled:shadow-none
-              mt-8 px-8 py-3 rounded-full border border-[#D4AF37]/30 
+              mt-8 px-8 py-3 rounded-full border border-gold/30 
               text-[11px] font-bold text-[#D4AF37] 
               hover:bg-[#D4AF37] hover:text-white transition-all uppercase tracking-[0.3em]"
               >

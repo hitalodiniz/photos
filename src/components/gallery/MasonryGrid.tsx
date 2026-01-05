@@ -106,7 +106,7 @@ const MasonryGrid = ({
           </p>
           <button
             onClick={() => setShowOnlyFavorites(false)}
-            className="px-8 py-3 rounded-full bg-[#F3E5AB] text-slate-900 font-semibold text-sm md:text-[14px] tracking-widest hover:scale-105 transition-all shadow-xl active:scale-95"
+            className="px-8 py-3 rounded-full bg-champagne-dark text-slate-900 font-semibold text-sm md:text-[14px] tracking-widest hover:scale-105 transition-all shadow-xl active:scale-95"
           >
             Ver todas as fotos
           </button>
@@ -163,7 +163,7 @@ const MasonryGrid = ({
                             className="block cursor-zoom-in relative rounded-2xl bg-slate-100 z-10"
                           >
                             <div className="absolute inset-0 z-0 flex items-center justify-center animate-pulse bg-gradient-to-r from-slate-200 via-slate-100 to-slate-200">
-                              <div className="w-5 h-5 border-2 border-[#D4AF37]/20 border-t-[#D4AF37] rounded-full animate-spin" />
+                              <div className="w-5 h-5 border-2 border-gold/20 border-t-[#D4AF37] rounded-full animate-spin" />
                             </div>
                             <Image
                               src={getImageUrl(photo.id, 'w600')}
@@ -309,7 +309,7 @@ const MasonryGrid = ({
 
           {/* RENDERIZAÇÃO CONDICIONAL DO RODAPÉ */}
           {allLoaded && !showOnlyFavorites && (
-            <footer className="relative z-20 w-full mt-4 pt-6 border-t border-[#D4AF37]/20 bg-[#FFF9F0]">
+            <footer className="relative z-20 w-full mt-4 pt-6 border-t border-gold/20 bg-[#FFF9F0]">
               <div className="max-w-[1600px] mx-auto flex flex-col items-center gap-10">
                 {/* 1. Botão Voltar ao Topo Minimalista */}
                 <button
@@ -318,7 +318,7 @@ const MasonryGrid = ({
                   }
                   className="group flex flex-col items-center gap-2 transition-all duration-500"
                 >
-                  <div className="p-3 rounded-full border border-[#D4AF37]/30 group-hover:border-[#D4AF37] transition-all">
+                  <div className="p-3 rounded-full border border-gold/30 group-hover:border-gold transition-all">
                     <svg
                       width="20"
                       height="20"
@@ -398,7 +398,7 @@ const MasonryGrid = ({
                         <a
                           href={`/${galeria.photographer_id}`}
                           target="_blank"
-                          className="p-2 text-slate-700 hover:text-[#D4AF37] transition-all border border-transparent hover:border-[#D4AF37]/20 rounded-full"
+                          className="p-2 text-slate-700 hover:text-[#D4AF37] transition-all border border-transparent hover:border-gold/20 rounded-full"
                         >
                           <svg
                             width="18"

@@ -2,7 +2,7 @@
 
 import { revalidatePath } from 'next/cache';
 import { createSupabaseServerClient } from '@/lib/supabase.server';
-import { suggestUsernameFromEmail } from '@/utils/userUtils';
+import { suggestUsernameFromEmail } from '@/core/utils/userUtils';
 
 export async function getProfileData(supabaseClient?: any) {
   const supabase = supabaseClient || (await createSupabaseServerClient());

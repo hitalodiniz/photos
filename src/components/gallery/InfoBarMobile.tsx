@@ -81,8 +81,8 @@ export const InfoBarMobile = ({
             ${activeHint ? 'opacity-100 translate-y-0' : 'opacity-0 -translate-y-2 pointer-events-none'}
             ${activeHint === 'social' ? 'top-14' : 'top-16'}`}
           >
-            <div className="bg-[#F3E5AB] text-black rounded-2xl shadow-2xl border border-white/20 p-2 px-5 flex flex-col items-center justify-center min-w-max">
-              <div className="w-3 h-3 bg-[#F3E5AB] rotate-45 mx-auto -mt-3.5 mb-1 shadow-sm"></div>
+            <div className="bg-champagne-dark text-black rounded-2xl shadow-2xl border border-white/20 p-2 px-5 flex flex-col items-center justify-center min-w-max">
+              <div className="w-3 h-3 bg-champagne-dark rotate-45 mx-auto -mt-3.5 mb-1 shadow-sm"></div>
               {activeHint === 'social' ? (
                 <div className="flex items-center gap-4 py-1">
                   <span className="text-[12px] font-bold uppercase tracking-widest border-r border-black/10 pr-3">
@@ -142,7 +142,7 @@ export const InfoBarMobile = ({
                 className={`w-9 h-9 rounded-full border-2 object-cover transition-colors ${activeHint === 'social' ? 'border-[#F3E5AB]' : 'border-[#F3E5AB]/40'}`}
                 alt="Fotógrafo"
               />
-              <div className="absolute -bottom-0.5 -right-0.5 bg-[#F3E5AB] rounded-full p-0.5 border border-black">
+              <div className="absolute -bottom-0.5 -right-0.5 bg-champagne-dark rounded-full p-0.5 border border-black">
                 <div className="w-1.5 h-1.5 rounded-full bg-black animate-pulse" />
               </div>
             </div>
@@ -150,7 +150,7 @@ export const InfoBarMobile = ({
           <div className="w-[1px] h-5 bg-white/10" />
           {/* INFO */}
           <button
-            className={`w-9 h-9 rounded-full flex items-center justify-center transition-all ${activeHint && activeHint !== 'social' ? 'bg-[#F3E5AB] text-black' : 'bg-white/10 text-[#F3E5AB]'}`}
+            className={`w-9 h-9 rounded-full flex items-center justify-center transition-all ${activeHint && activeHint !== 'social' ? 'bg-champagne-dark text-black' : 'bg-white/10 text-[#F3E5AB]'}`}
             onClick={() => {
               const status = galeria.is_public ? '🔓 Pública' : '🔒 Privada';
               const data = `📅 ${new Date(galeria.date).toLocaleDateString('pt-BR')}`;
@@ -186,7 +186,7 @@ export const InfoBarMobile = ({
               }}
               className={`w-9 h-9 rounded-full flex items-center justify-center transition-all ${
                 isDownloading
-                  ? 'bg-[#F3E5AB] text-black'
+                  ? 'bg-champagne-dark text-black'
                   : 'bg-white/10 text-white'
               }`}
             >

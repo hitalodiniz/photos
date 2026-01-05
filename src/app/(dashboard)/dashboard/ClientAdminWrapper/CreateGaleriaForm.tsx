@@ -4,7 +4,7 @@ import { useState, useRef } from 'react';
 import { SubmitButton } from '@/components/sections/DashboardUI';
 import { GooglePickerButton } from '@/components/google-drive';
 import { CategorySelect } from '@/components/gallery';
-import { maskPhone } from '@/utils/masks';
+import { maskPhone } from '@/core/utils/masks';
 import { createGaleria } from '@/actions/galeria';
 import {
   Lock,
@@ -136,8 +136,8 @@ export default function CreateGaleriaForm({ onSuccess }) {
         <div
           className={`absolute top-1 bottom-1 w-[calc(50%-4px)] rounded-lg shadow-sm transition-all duration-300 ease-out border ${
             hasContractingClient
-              ? 'left-1 bg-[#F3E5AB] border-[#D4AF37]/30'
-              : 'left-[calc(50%+2px)] bg-[#F3E5AB] border-[#D4AF37]/30'
+              ? 'left-1 bg-champagne-dark border-gold/30'
+              : 'left-[calc(50%+2px)] bg-champagne-dark border-gold/30'
           }`}
         />
 
@@ -227,7 +227,7 @@ export default function CreateGaleriaForm({ onSuccess }) {
       {/* SEÇÃO GOOGLE DRIVE */}
 
       {/* SEÇÃO GOOGLE DRIVE REFINADA */}
-      <div className="rounded-2xl border border-[#D4AF37]/20 p-4 bg-[#FAF7ED]/50 transition-all">
+      <div className="rounded-2xl border border-gold/20 p-4 bg-[#FAF7ED]/50 transition-all">
         <div className="flex items-center justify-between mb-3">
           <div className="flex items-center gap-2 text-[#D4AF37]">
             <FolderSync size={16} />
@@ -253,7 +253,7 @@ export default function CreateGaleriaForm({ onSuccess }) {
 
         {/* Feedback Visual da Pasta Selecionada */}
         {driveFolderId ? (
-          <div className="mt-3 flex items-center justify-between gap-2 text-xs text-[#4F5B66] bg-white p-3 rounded-xl border border-[#D4AF37]/10 shadow-sm animate-in fade-in zoom-in duration-300">
+          <div className="mt-3 flex items-center justify-between gap-2 text-xs text-[#4F5B66] bg-white p-3 rounded-xl border border-gold/10 shadow-sm animate-in fade-in zoom-in duration-300">
             <div className="flex items-center gap-2 truncate">
               <div className="h-2 w-2 rounded-full bg-[#D4AF37] animate-pulse shrink-0" />
               <span className="font-bold truncate">{driveFolderName}</span>
@@ -314,7 +314,7 @@ export default function CreateGaleriaForm({ onSuccess }) {
                 className="hidden"
               />
               <div
-                className={`w-5 h-5 rounded-full border-[1.5px] flex items-center justify-center transition-all duration-300 shrink-0 ${isPublic ? 'border-[#D4AF37] bg-[#F3E5AB]/10 shadow-[0_0_10px_rgba(212,175,55,0.2)]' : 'border-slate-200 bg-slate-50 group-hover:border-slate-300'}`}
+                className={`w-5 h-5 rounded-full border-[1.5px] flex items-center justify-center transition-all duration-300 shrink-0 ${isPublic ? 'border-gold bg-champagne-dark/10 shadow-[0_0_10px_rgba(212,175,55,0.2)]' : 'border-slate-200 bg-slate-50 group-hover:border-slate-300'}`}
               >
                 <div
                   className={`w-2 h-2 rounded-full bg-[#D4AF37] transition-all duration-300 ${isPublic ? 'scale-100 opacity-100' : 'scale-0 opacity-0'}`}
@@ -351,7 +351,7 @@ export default function CreateGaleriaForm({ onSuccess }) {
                 className="hidden"
               />
               <div
-                className={`w-5 h-5 rounded-full border-[1.5px] flex items-center justify-center transition-all duration-300 shrink-0 ${!isPublic ? 'border-[#D4AF37] bg-[#F3E5AB]/10 shadow-[0_0_10px_rgba(212,175,55,0.2)]' : 'border-slate-200 bg-slate-50 group-hover:border-slate-300'}`}
+                className={`w-5 h-5 rounded-full border-[1.5px] flex items-center justify-center transition-all duration-300 shrink-0 ${!isPublic ? 'border-gold bg-champagne-dark/10 shadow-[0_0_10px_rgba(212,175,55,0.2)]' : 'border-slate-200 bg-slate-50 group-hover:border-slate-300'}`}
               >
                 <div
                   className={`w-2 h-2 rounded-full bg-[#D4AF37] transition-all duration-300 ${!isPublic ? 'scale-100 opacity-100' : 'scale-0 opacity-0'}`}

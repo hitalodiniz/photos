@@ -16,7 +16,7 @@ import {
 } from '@/lib/google-drive';
 import { getDriveAccessTokenForUser } from '@/lib/google-auth';
 import { formatGalleryData } from '@/lib/gallery/gallery-logic';
-import { Galeria } from '@/types/galeria';
+import { Galeria } from '@/core/types/galeria';
 
 // =========================================================================
 // TIPOS AUXILIARES

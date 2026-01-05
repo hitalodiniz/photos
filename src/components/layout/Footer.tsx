@@ -9,7 +9,6 @@ export default function Footer() {
       <div className="max-w-6xl mx-auto flex flex-col md:flex-row justify-between items-center gap-4 md:gap-10">
         {/* Lado Esquerdo: Logo e Info */}
         <div className="flex flex-col items-center md:items-start gap-2">
-
           <div className="flex items-center gap-3">
             <Camera className="w-6 h-6 text-[#F3E5AB]" />
             <span
@@ -20,9 +19,13 @@ export default function Footer() {
             </span>
           </div>
 
-          <div className="text-white/60 text-xs md:text-sm flex flex-wrap justify-center md:justify-start gap-1 md:gap-2
-           italic">
-            <span>© {new Date().getFullYear()} • Integrado com Google Drive™</span>
+          <div
+            className="text-white/60 text-xs md:text-sm flex flex-wrap justify-center md:justify-start gap-1 md:gap-2
+           italic"
+          >
+            <span>
+              © {new Date().getFullYear()} • Integrado com Google Drive™
+            </span>
             <div className="flex items-center gap-2">
               <Link
                 href="/privacidade"
@@ -59,15 +62,25 @@ export default function Footer() {
   );
 }
 
-{/* Componente Interno SocialIcon Padronizado */ }
-function SocialIcon({ icon, title, href }: { icon: React.ReactNode, title: string, href: string }) {
+{
+  /* Componente Interno SocialIcon Padronizado */
+}
+function SocialIcon({
+  icon,
+  title,
+  href,
+}: {
+  icon: React.ReactNode;
+  title: string;
+  href: string;
+}) {
   return (
     <a
       href={href}
       target="_blank"
       rel="noopener noreferrer"
       className="p-4 bg-white/5 rounded-full text-[#F3E5AB] border border-white/5 transition-all 
-      duration-500 hover:text-black hover:bg-[#F3E5AB] shadow-2xl"
+      duration-500 hover:text-black hover:bg-champagne-dark shadow-2xl"
       title={title}
     >
       {icon}

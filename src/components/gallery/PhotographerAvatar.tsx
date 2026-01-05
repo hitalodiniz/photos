@@ -1,6 +1,6 @@
 'use client';
 import React from 'react';
-import type { Galeria } from '@/types/galeria';
+import type { Galeria } from '@/core/types/galeria';
 import Image from 'next/image';
 
 interface PhotographerAvatarProps {

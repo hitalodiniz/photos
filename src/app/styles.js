@@ -27,7 +27,7 @@
   textarea,
   select {
     @apply w-full bg-[#F8F9FA] border border-gray-100 p-3 rounded-xl outline-none 
-           focus:border-[#D4AF37] focus:ring-1 focus:ring-[#D4AF37] 
+           focus:border-gold focus:ring-1 focus:ring-[#D4AF37] 
            text-sm text-slate-700 font-normal transition-all 
            placeholder:text-gray-300;
   }
@@ -36,7 +36,7 @@
   .btn-primary {
     @apply w-full py-4 rounded-2xl font-bold uppercase text-xs tracking-[0.2em] 
            transition-all active:scale-95 flex items-center justify-center gap-2
-           bg-[#F3E5AB] text-slate-900 shadow-lg shadow-[#F3E5AB]/20 
+           bg-champagne-dark text-slate-900 shadow-lg shadow-[#F3E5AB]/20 
            hover:bg-[#e6d595] disabled:bg-slate-100 disabled:text-slate-400 
            disabled:cursor-not-allowed;
   }

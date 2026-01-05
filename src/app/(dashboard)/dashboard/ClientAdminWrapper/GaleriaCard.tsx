@@ -223,7 +223,7 @@ export default function GaleriaCard({
             target="_blank"
             rel="noopener noreferrer"
             onClick={(e) => e.stopPropagation()}
-            className="flex items-center gap-3 text-slate-700 bg-[#FAF7ED] px-4 py-2.5 rounded-xl border border-[#D4AF37]/10 hover:bg-[#F3E5AB] transition-all mt-3 group/drive shadow-sm"
+            className="flex items-center gap-3 text-slate-700 bg-[#FAF7ED] px-4 py-2.5 rounded-xl border border-gold/10 hover:bg-champagne-dark transition-all mt-3 group/drive shadow-sm"
           >
             <FolderOpen
               size={16}
@@ -236,7 +236,7 @@ export default function GaleriaCard({
         </div>
       </div>
 
-      <div className="mt-1 flex items-center justify-between border-t border-[#D4AF37]/20 pt-4 px-4 pb-4">
+      <div className="mt-1 flex items-center justify-between border-t border-gold/20 pt-4 px-4 pb-4">
         <div className="flex gap-2">
           {mounted &&
             galeria.has_contracting_client &&
@@ -271,7 +271,7 @@ export default function GaleriaCard({
               e.stopPropagation();
               onEdit(galeria);
             }}
-            className="p-3 text-slate-500 bg-slate-50 border border-slate-100 hover:bg-[#F3E5AB] hover:border-[#D4AF37]/30 hover:text-slate-900 rounded-xl transition-all shadow-sm active:scale-90 flex items-center justify-center"
+            className="p-3 text-slate-500 bg-slate-50 border border-slate-100 hover:bg-champagne-dark hover:border-gold/30 hover:text-slate-900 rounded-xl transition-all shadow-sm active:scale-90 flex items-center justify-center"
           >
             <Pencil size={20} />
           </button>

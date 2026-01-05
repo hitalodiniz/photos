@@ -11,10 +11,10 @@ export default function LoadingScreen({
     <div className="min-h-screen flex flex-col items-center justify-center bg-black animate-in fade-in duration-700">
       <div className="relative w-16 h-16">
         {/* Círculo de fundo estático */}
-        <div className="absolute inset-0 rounded-full border-2 border-[#D4AF37]/10" />
+        <div className="absolute inset-0 rounded-full border-2 border-gold/10" />
 
         {/* Spinner animado em tom Champanhe/Dourado */}
-        <div className="absolute inset-0 rounded-full border-t-2 border-r-2 border-[#D4AF37] animate-spin shadow-[0_0_15px_rgba(212,175,55,0.2)]" />
+        <div className="absolute inset-0 rounded-full border-t-2 border-r-2 border-gold animate-spin shadow-[0_0_15px_rgba(212,175,55,0.2)]" />
 
         {/* Ponto central pulsante */}
         <div className="absolute inset-0 flex items-center justify-center">

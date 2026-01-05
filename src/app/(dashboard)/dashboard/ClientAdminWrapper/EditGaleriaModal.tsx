@@ -240,8 +240,8 @@ export default function EditGaleriaModal({
                 <div
                   className={`absolute top-1 bottom-1 w-[calc(50%-4px)] rounded-lg shadow-sm transition-all duration-300 ease-out border ${
                     hasContractingClient
-                      ? 'left-1 bg-[#F3E5AB] border-[#D4AF37]/30'
-                      : 'left-[calc(50%+2px)] bg-[#F3E5AB] border-[#D4AF37]/30'
+                      ? 'left-1 bg-champagne-dark border-gold/30'
+                      : 'left-[calc(50%+2px)] bg-champagne-dark border-gold/30'
                   }`}
                 />
 
@@ -339,7 +339,7 @@ export default function EditGaleriaModal({
 
             {/* Google Drive Section */}
             <div
-              className={`rounded-[28px] border p-4 transition-all ${errorMessage ? 'border-red-200 bg-red-50' : 'border-[#D4AF37]/20 bg-[#FAF7ED]'}`}
+              className={`rounded-[28px] border p-4 transition-all ${errorMessage ? 'border-red-200 bg-red-50' : 'border-gold/20 bg-[#FAF7ED]'}`}
             >
               <div className="flex flex-row items-center gap-2">
                 <div className="flex items-center gap-2 text-[#D4AF37] shrink-0">
@@ -371,7 +371,7 @@ export default function EditGaleriaModal({
                   />
                 </div>
 
-                <div className="flex-1 flex items-center gap-3 bg-white px-4 py-2.5 rounded-2xl border border-[#D4AF37]/10 shadow-sm min-w-0 h-[42px]">
+                <div className="flex-1 flex items-center gap-3 bg-white px-4 py-2.5 rounded-2xl border border-gold/10 shadow-sm min-w-0 h-[42px]">
                   <div
                     className={`h-2 w-2 rounded-full shrink-0 ${formData.drive_folder_id ? 'bg-[#D4AF37] animate-pulse' : 'bg-slate-200'}`}
                   />
@@ -398,7 +398,7 @@ export default function EditGaleriaModal({
                     className="hidden"
                   />
                   <div
-                    className={`w-5 h-5 rounded-full border-2 flex items-center justify-center transition-all ${isPublic ? 'border-[#D4AF37] bg-[#D4AF37]/5' : 'border-slate-200'}`}
+                    className={`w-5 h-5 rounded-full border-2 flex items-center justify-center transition-all ${isPublic ? 'border-gold bg-[#D4AF37]/5' : 'border-slate-200'}`}
                   >
                     {isPublic && (
                       <div className="w-2.5 h-2.5 rounded-full bg-[#D4AF37]" />
@@ -417,7 +417,7 @@ export default function EditGaleriaModal({
                     className="hidden"
                   />
                   <div
-                    className={`w-5 h-5 rounded-full border-2 flex items-center justify-center transition-all ${!isPublic ? 'border-[#D4AF37] bg-[#D4AF37]/5' : 'border-slate-200'}`}
+                    className={`w-5 h-5 rounded-full border-2 flex items-center justify-center transition-all ${!isPublic ? 'border-gold bg-[#D4AF37]/5' : 'border-slate-200'}`}
                   >
                     {!isPublic && (
                       <div className="w-2.5 h-2.5 rounded-full bg-[#D4AF37]" />
@@ -454,7 +454,7 @@ export default function EditGaleriaModal({
                 type="submit"
                 form="edit-gallery-form"
                 disabled={loading}
-                className="flex-[2] bg-[#F3E5AB] hover:bg-[#D4AF37] hover:text-white text-slate-900 font-black py-4 rounded-2xl shadow-xl shadow-[#D4AF37]/10 text-[11px] tracking-[0.3em] uppercase flex items-center justify-center gap-3 transition-all active:scale-[0.98] disabled:opacity-50"
+                className="flex-[2] bg-champagne-dark hover:bg-[#D4AF37] hover:text-white text-slate-900 font-black py-4 rounded-2xl shadow-xl shadow-[#D4AF37]/10 text-[11px] tracking-[0.3em] uppercase flex items-center justify-center gap-3 transition-all active:scale-[0.98] disabled:opacity-50"
               >
                 {loading ? (
                   <Loader2 className="animate-spin" size={18} />

@@ -3,14 +3,13 @@
 import React, { useState, useRef, useEffect } from 'react';
 import Link from 'next/link';
 import Image from 'next/image';
-import { Session } from '@supabase/supabase-js';
 
 export default function UserMenu({
   session,
   handleLogout,
   avatarUrl,
 }: {
-  session: Session;
+  session: { id: string; email?: string } | any;
   handleLogout: () => void;
   avatarUrl?: string | null;
 }) {
@@ -18,12 +17,7 @@ export default function UserMenu({
   const [isLoggingOut, setIsLoggingOut] = useState(false);
   const menuRef = useRef<HTMLDivElement>(null);
 
-  const userEmail = session.user.email || 'Usuário';
-  const fullName =
-    session.user.user_metadata?.full_name || userEmail.split('@')[0];
-  const displayAvatar =
-    avatarUrl || session.user.user_metadata?.avatar_url || null;
-  const initialLetter = fullName.charAt(0).toUpperCase();
+  const userEmail = session?.email || 'Usuário';
 
   useEffect(() => {
     const handleClickOutside = (event: MouseEvent) => {
@@ -39,11 +33,6 @@ export default function UserMenu({
     setIsLoggingOut(true);
     try {
       await handleLogout();
-
-      // Em produção (Vercel), redireciona para o logout do Google para limpar a sessão do provedor
-      if (process.env.NODE_ENV === 'production') {
-        window.location.href = 'https://accounts.google.com/Logout';
-      }
     } catch (error) {
       setIsLoggingOut(false);
       console.error('Erro ao sair:', error);
@@ -91,7 +80,7 @@ export default function UserMenu({
         {/* Botão Gatilho - Segue o padrão de botões globais com active:scale-95 */}
         <button
           onClick={() => setIsOpen(!isOpen)}
-          className="relative p-0.5 rounded-full hover:bg-[#F3E5AB]/20 transition-all duration-200 focus:outline-none focus:ring-2 focus:ring-[#D4AF37]/40 active:scale-95 disabled:opacity-50"
+          className="relative p-0.5 rounded-full hover:bg-champagne-dark/20 transition-all duration-200 focus:outline-none focus:ring-2 focus:ring-[#D4AF37]/40 active:scale-95 disabled:opacity-50"
           disabled={isLoggingOut}
         >
           {renderAvatarContent('w-10 h-10', 'text-sm')}
@@ -171,7 +160,7 @@ export default function UserMenu({
       </div>
 
       {isLoggingOut && (
-        <div className="fixed bottom-8 left-1/2 -translate-x-1/2 z-[110] bg-[#1F1F1F] text-[#FDF8E7] px-8 py-3.5 rounded-full text-xs font-bold shadow-2xl animate-in slide-in-from-bottom-4 border border-[#D4AF37]/30 tracking-widest uppercase">
+        <div className="fixed bottom-8 left-1/2 -translate-x-1/2 z-[110] bg-[#1F1F1F] text-[#FDF8E7] px-8 py-3.5 rounded-full text-xs font-bold shadow-2xl animate-in slide-in-from-bottom-4 border border-gold/30 tracking-widest uppercase">
           Encerrando sessão com segurança
         </div>
       )}

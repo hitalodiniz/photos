@@ -143,7 +143,7 @@ export const InfoBarDesktop = ({
           onMouseLeave={() => setIsHovered(false)}
           disabled={isDownloading}
           className={`
-    flex items-center justify-center rounded-full bg-[#F3E5AB] text-slate-900 shadow-xl 
+    flex items-center justify-center rounded-full bg-champagne-dark text-slate-900 shadow-xl 
     transition-all duration-100 ease-out overflow-hidden h-10
     ${
       isScrolled && !isHovered && !isDownloading

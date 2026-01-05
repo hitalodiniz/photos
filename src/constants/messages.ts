@@ -12,9 +12,9 @@ export const GALLERY_MESSAGES = {
     return [
       saudacao,
       '',
-      `Sua experiência fotográfica *${title}* está pronta! 📸`,
+      `As fotos do seu ensaio fotográfico *${title}* estão prontas! 📸`,
       '',
-      'Preparamos uma galeria exclusiva para você visualizar e baixar suas memórias em alta qualidade.',
+      'Preparamos uma galeria exclusiva para você visualizar e baixar suas fotos em alta qualidade.',
       '',
       '📍 *Acesse aqui:*',
       url,
@@ -34,9 +34,9 @@ export const GALLERY_MESSAGES = {
       saudacao,
       '',
       // \u{1F4F8} = 📸
-      `Sua experiência fotográfica *${title}* está pronta! \u{1F4F8}`,
+      `As fotos do seu ensaio fotográfico *${title}* estão prontas! \u{1F4F8}`,
       '',
-      'Preparamos uma galeria exclusiva para você visualizar e baixar suas memórias em alta qualidade.',
+      'Preparamos uma galeria exclusiva para você visualizar e baixar suas fotos em alta qualidade.',
       '',
       // \u{1F4CD} = 📍
       '\u{1F4CD} *Acesse aqui:*',

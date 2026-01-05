@@ -5,7 +5,7 @@ import {
   fetchGalleryBySlug,
 } from './gallery-logic';
 import { createSupabaseServerClientReadOnly } from '@/lib/supabase.server';
-import { GaleriaRawResponse, DrivePhoto } from '@/types/galeria';
+import { GaleriaRawResponse, DrivePhoto } from '@/core/types/galeria';
 import * as googleAuth from '@/lib/google-auth';
 import * as googleDrive from '@/lib/google-drive';
 

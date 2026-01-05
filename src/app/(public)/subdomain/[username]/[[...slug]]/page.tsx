@@ -7,7 +7,7 @@ import {
 } from '@/lib/gallery/gallery-logic';
 import { GaleriaView, PasswordPrompt } from '@/components/gallery';
 import { getGalleryMetadata } from '@/lib/gallery/metadata-helper';
-import { getImageUrl } from '@/utils/url-helper';
+import { getImageUrl } from '@/core/utils/url-helper';
 
 type SubdomainGaleriaPageProps = {
   params: Promise<{

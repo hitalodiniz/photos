@@ -16,7 +16,7 @@ export const GalleryHeader: React.FC<GalleryHeaderProps> = ({
     <div className="flex items-center gap-4 pointer-events-auto drop-shadow-2xl">
       {/* ÍCONE DE CÂMERA PADRONIZADO */}
       <div className="relative group shrink-0">
-        <div className="absolute inset-0 bg-[#F3E5AB]/20 rounded-full blur-xl group-hover:bg-[#F3E5AB]/30 transition-all duration-700" />
+        <div className="absolute inset-0 bg-champagne-dark/20 rounded-full blur-xl group-hover:bg-champagne-dark/30 transition-all duration-700" />
         <div className="relative p-3 md:p-4 bg-black/40 backdrop-blur-2xl rounded-full border border-[#F3E5AB]/40 shadow-2xl transition-transform duration-500 hover:scale-105">
           <Camera
             size={20}

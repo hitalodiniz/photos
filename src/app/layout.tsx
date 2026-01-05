@@ -5,6 +5,7 @@ import Navbar from '../components/layout/Navbar';
 import { Metadata } from 'next';
 import Script from 'next/script';
 import { CookieBanner } from '@/components/ui';
+import { AuthProvider } from '@/contexts/AuthContext';
 
 // 1. Configuração das fontes (Next.js as baixa e serve localmente)
 const inter = Inter({
@@ -69,20 +70,22 @@ export default function RootLayout({
         />
       </head>
       <body className={`${inter.className} bg-[#F1F3F4] antialiased`}>
-        <Navbar />
-        <main className="w-full">{children}</main>
+        <AuthProvider>
+          <Navbar />
+          <main className="w-full">{children}</main>
 
-        {/* SCRIPTS GOOGLE */}
-        <Script
-          src="https://apis.google.com/js/api.js"
-          strategy="beforeInteractive"
-        />
-        <Script
-          src="https://accounts.google.com/gsi/client"
-          strategy="beforeInteractive"
-        />
+          {/* SCRIPTS GOOGLE */}
+          <Script
+            src="https://apis.google.com/js/api.js"
+            strategy="beforeInteractive"
+          />
+          <Script
+            src="https://accounts.google.com/gsi/client"
+            strategy="beforeInteractive"
+          />
 
-        <CookieBanner />
+          <CookieBanner />
+        </AuthProvider>
       </body>
     </html>
   );

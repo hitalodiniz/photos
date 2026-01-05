@@ -25,7 +25,7 @@ import {
 
 import { upsertProfile } from '@/actions/profile';
 import { supabase } from '@/lib/supabase.client';
-import { maskPhone } from '@/utils/masks';
+import { maskPhone } from '@/core/utils/masks';
 import ProfilePreview from './ProfilePreview';
 import { div } from 'framer-motion/client';
 import { Toast } from '@/components/ui';
@@ -89,7 +89,7 @@ export function SubmitOnboarding() {
       className={`w-full py-5 rounded-2xl font-bold uppercase text-xs tracking-[0.2em] shadow-lg transition-all active:scale-95 flex items-center justify-center gap-2 ${
         pending
           ? 'bg-slate-100 text-slate-400 cursor-not-allowed'
-          : 'bg-[#F3E5AB] hover:bg-[#e6d595] text-slate-900 shadow-[#F3E5AB]/20'
+          : 'bg-champagne-dark hover:bg-[#e6d595] text-slate-900 shadow-[#F3E5AB]/20'
       }`}
     >
       {pending ? (
@@ -275,7 +275,7 @@ export default function OnboardingForm({
             </button>
           )}
           <div className="flex items-center gap-3 shrink-0">
-            <div className="p-2 bg-[#F3E5AB]/20 rounded-lg">
+            <div className="p-2 bg-champagne-dark/20 rounded-lg">
               <Camera className="text-[#D4AF37]" size={24} />
             </div>
             <div>
@@ -402,7 +402,7 @@ export default function OnboardingForm({
               </div>
             </div>
 
-            <div className="rounded-2xl border border-[#D4AF37]/20 p-4 bg-[#FAF7ED]">
+            <div className="rounded-2xl border border-gold/20 p-4 bg-[#FAF7ED]">
               <div className="flex items-center gap-2 mb-3 text-[#D4AF37]">
                 <MapPin size={16} />
                 <label>Área de Atuação ({selectedCities.length})</label>
@@ -412,7 +412,7 @@ export default function OnboardingForm({
                 {selectedCities.map((city) => (
                   <span
                     key={city}
-                    className="bg-white border border-[#D4AF37]/20 text-slate-900 text-[10px] font-bold px-2 py-1 rounded-lg flex items-center gap-1 shadow-sm"
+                    className="bg-white border border-gold/20 text-slate-900 text-[10px] font-bold px-2 py-1 rounded-lg flex items-center gap-1 shadow-sm"
                   >
                     {city}
                     <X
@@ -499,7 +499,7 @@ export default function OnboardingForm({
         custom-scrollbar relative flex-grow"
         >
           <div className="absolute top-10 left-10 z-[100] flex items-center gap-4 px-6 pointer-events-none">
-            <div className="w-1.5 h-14 bg-[#F3E5AB] rounded-full animate-pulse shadow-[0_0_20px_rgba(243,229,171,0.8)]"></div>
+            <div className="w-1.5 h-14 bg-champagne-dark rounded-full animate-pulse shadow-[0_0_20px_rgba(243,229,171,0.8)]"></div>
             <div className="flex flex-col justify-center">
               <p className="text-[14px] text-[#F3E5AB] font-bold uppercase tracking-[0.5em] leading-none mb-1 drop-shadow-lg">
                 Editorial
@@ -547,7 +547,7 @@ export default function OnboardingForm({
                 </a>
                 <button
                   onClick={() => router.push('/dashboard')}
-                  className="w-full bg-[#F3E5AB] text-slate-900 py-4 rounded-xl font-bold text-sm hover:bg-[#e6d595] transition-colors"
+                  className="w-full bg-champagne-dark text-slate-900 py-4 rounded-xl font-bold text-sm hover:bg-[#e6d595] transition-colors"
                 >
                   Ir para o Dashboard
                 </button>

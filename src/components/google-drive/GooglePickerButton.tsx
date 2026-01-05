@@ -230,7 +230,7 @@ export default function GooglePickerButton({
         ${
           isDisabled
             ? 'bg-slate-100 text-slate-400 cursor-not-allowed opacity-50'
-            : 'bg-white border border-[#D4AF37]/30 text-slate-900 hover:bg-[#F3E5AB] hover:border-[#D4AF37] active:scale-[0.98]'
+            : 'bg-white border border-gold/30 text-slate-900 hover:bg-champagne-dark hover:border-gold active:scale-[0.98]'
         }
     `}
     >
