@@ -1,7 +1,7 @@
 // src/lib/utils/url-helper.ts
 import { GALLERY_MESSAGES } from '@/constants/messages';
 
-const MAIN_DOMAIN = process.env.NEXT_PUBLIC_MAIN_DOMAIN || 'localhost:3000';
+const MAIN_DOMAIN = process.env.MAIN_DOMAIN || 'localhost:3000';
 
 export function getPublicGalleryUrl(photographer: any, slug: string) {
   const isProd = process.env.NODE_ENV === 'production';

@@ -2,10 +2,9 @@
 
 import { useState, useEffect } from 'react';
 import { updateGaleria } from '@/actions/galeria';
-import { maskPhone } from '@/utils/masks';
+import { maskPhone } from '@/core/utils/masks';
 import { GooglePickerButton } from '@/components/google-drive';
 import { CategorySelect } from '@/components/gallery'; // Importação do novo componente
-import Toast from '@/components/ui/Toast';
 import {
   X,
   Camera,
@@ -20,7 +19,7 @@ import {
   Briefcase,
   MessageCircle,
 } from 'lucide-react';
-import type { Galeria } from '@/types/galeria';
+import type { Galeria } from '@/core/types/galeria';
 
 interface EditGaleriaModalProps {
   galeria: Galeria | null;

@@ -153,7 +153,7 @@ export default function GooglePickerButton({
 
       // --- 2. CONSTRUÇÃO DO PICKER ---
       const picker = new window.google.picker.PickerBuilder()
-        .setAppId(process.env.NEXT_PUBLIC_GOOGLE_CLIENT_ID!)
+        .setAppId(process.env.GOOGLE_CLIENT_ID!)
         .setOAuthToken(accessToken)
         .addView(view)
         .enableFeature(window.google.picker.Feature.NAVIGATE_TO_DRIVE)

@@ -67,7 +67,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
   const logout = async () => {
     await authService.signOut();
-    window.location.href = process.env.NEXT_PUBLIC_BASE_URL || '/';
+    window.location.href = process.env.BASE_URL || '/';
   };
 
   return (

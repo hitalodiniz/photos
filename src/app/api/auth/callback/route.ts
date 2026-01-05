@@ -12,7 +12,7 @@ export async function GET(request: Request) {
     return NextResponse.redirect(new URL('/', request.url));
   }
 
-  const isProduction = process.env.NEXT_PUBLIC_NODE_ENV === 'production';
+  const isProduction = process.env.NODE_ENV === 'production';
 
   const supabase = createServerClient(
     process.env.NEXT_PUBLIC_SUPABASE_URL!,
@@ -26,7 +26,7 @@ export async function GET(request: Request) {
             // .localhost (dev) ou .suagaleria.com.br (Vercel)
             cookieStore.set(name, value, {
               ...options,
-              domain: process.env.NEXT_PUBLIC_COOKIE_DOMAIN,
+              domain: process.env.COOKIE_DOMAIN,
               path: '/',
               sameSite: 'lax',
               // 🎯 HTTPS OBRIGATÓRIO: Na Vercel deve ser true para o PKCE funcionar

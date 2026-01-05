@@ -1,7 +1,7 @@
 // app/auth/logout/route.ts
-import { NextResponse } from "next/server";
-import { createServerClient } from "@supabase/ssr";
-import { cookies } from "next/headers";
+import { NextResponse } from 'next/server';
+import { createServerClient } from '@supabase/ssr';
+import { cookies } from 'next/headers';
 
 export async function GET(request: Request) {
   const cookieStore = await cookies();
@@ -18,13 +18,13 @@ export async function GET(request: Request) {
           cookieStore.set(name, value, options);
         },
         remove(name: string, options: any) {
-          cookieStore.set(name, "", { ...options, maxAge: 0 });
+          cookieStore.set(name, '', { ...options, maxAge: 0 });
         },
       },
-    }
+    },
   );
 
   await supabase.auth.signOut();
 
-  return NextResponse.redirect(new URL("/auth/login", request.url));
+  return NextResponse.redirect(new URL('/auth/login', request.url));
 }

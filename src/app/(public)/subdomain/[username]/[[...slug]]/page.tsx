@@ -8,6 +8,7 @@ import {
 import { GaleriaView, PasswordPrompt } from '@/components/gallery';
 import { getGalleryMetadata } from '@/lib/gallery/metadata-helper';
 import { getImageUrl } from '@/core/utils/url-helper';
+import PhotographerProfileContainer from '@/components/profile/PhotographerProfileContainer';
 
 type SubdomainGaleriaPageProps = {
   params: Promise<{
@@ -24,7 +25,7 @@ export default async function SubdomainGaleriaPage({
   // 1. Tratamento da Raiz do Subdomínio
   if (!slug || slug.length === 0) {
     // Opcional: Você pode buscar uma galeria "vitrine" aqui ou manter o notFound
-    notFound();
+    return <PhotographerProfileContainer username={username} />;
   }
 
   const fullSlug = `${username}/${slug.join('/')}`;

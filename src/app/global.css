@@ -2,59 +2,54 @@
 @tailwind components;
 @tailwind utilities;
 
-/* 0. Definição de Variáveis Core (Ponte Front-Back) */
+/* 0. Definição de Variáveis Core */
 @layer base {
   :root {
-    /* Tons Editoriais e Premium */
-    --color-champagne: #fff9f0; /* Fundo ultra suave */
-    --color-champagne-dark: #f3e5ab; /* Borda e Detalhes Principais */
-    --color-gold: #d4af37; /* Destaques e Ícones */
+    --color-champagne: #fff9f0;
+    --color-champagne-dark: #f3e5ab;
+    --color-gold: #d4af37;
     --color-gold-light: rgba(212, 175, 55, 0.15);
-
-    /* Tons de Texto e UI */
     --color-slate-800: #1e293b;
     --color-text-google: #3c4043;
     --color-error-red: #b3261e;
   }
 }
 
-/* 1. Camada de Base: Estilos globais de elementos HTML */
+/* 1. Camada de Base */
 @layer base {
   html {
     font-family: var(--font-inter), 'Inter', sans-serif;
     -webkit-font-smoothing: antialiased;
     color: var(--color-text-google);
-    background-color: var(
-      --color-champagne
-    ); /* Garante o fundo suave em todo o app */
+    background-color: var(--color-champagne);
   }
 
   label {
     @apply text-[12px] md:text-[14px] font-medium md:font-semibold text-slate-700 mb-2 flex items-center gap-2 ml-1;
   }
 
+  /* 🎯 Correção: Usando os nomes definidos no tailwind.config.ts em vez de var() direta */
   input[type='radio'] + label,
   input[type='checkbox'] + label {
-    @apply mb-0 ml-2 cursor-pointer inline-flex items-center text-slate-700 hover:text-[var(--color-gold)];
+    @apply mb-0 ml-2 cursor-pointer inline-flex items-center text-slate-700 hover:text-gold;
   }
 
   input[type='radio'] {
-    @apply w-4 h-4 border-gray-300 text-[var(--color-gold)] focus:ring-[var(--color-champagne-dark)]/50 cursor-pointer;
+    /* 🎯 Agora o modificador /50 funciona porque 'gold' está no config */
+    @apply w-4 h-4 border-gray-300 text-gold focus:ring-gold/50 cursor-pointer;
   }
 
-  /* Inputs com foco no estilo Dourado */
   input:not([type='file']),
   textarea,
   select {
-    @apply w-full bg-white border border-gray-100 p-3 rounded-xl outline-none focus:border-[var(--color-gold)] focus:ring-1 focus:ring-[var(--color-gold)] text-sm text-slate-700 font-normal transition-all placeholder:text-gray-300;
+    @apply w-full bg-white border border-gray-100 p-3 rounded-xl outline-none focus:border-gold focus:ring-1 focus:ring-gold text-sm text-slate-700 font-normal transition-all placeholder:text-gray-300;
   }
 
-  /* Botão Principal: Estilo Champagne Dourado */
   button[type='submit'],
   .btn-primary {
     @apply w-full py-4 rounded-2xl font-bold uppercase text-xs tracking-[0.2em] 
            transition-all active:scale-95 flex items-center justify-center gap-2
-           bg-[var(--color-champagne-dark)] text-slate-900 shadow-lg shadow-[var(--color-champagne-dark)]/20 
+           bg-champagne-dark text-slate-900 shadow-lg shadow-champagne-dark/20 
            hover:bg-[#e6d595] disabled:bg-slate-100 disabled:text-slate-400 
            disabled:cursor-not-allowed;
   }
@@ -72,7 +67,7 @@
   }
 }
 
-/* 2. Camada de Componentes: Classes reutilizáveis */
+/* 2. Camada de Componentes */
 @layer components {
   .font-artistic {
     font-family: var(--font-playfair), 'Playfair Display', serif;
@@ -84,7 +79,6 @@
            cursor-pointer transition-all hover:bg-[#f8f9fa] hover:shadow-md;
   }
 
-  /* Masonry Grid para Galerias */
   .my-masonry-grid {
     @apply flex w-auto -ml-4;
   }
@@ -102,7 +96,7 @@
   }
 }
 
-/* 3. Utilitários Específicos */
+/* 3. Utilitários */
 @layer utilities {
   .scrollbar-hide::-webkit-scrollbar {
     display: none;

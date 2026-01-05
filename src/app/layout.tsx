@@ -1,5 +1,5 @@
 // app/layout.tsx
-import './theme.css';
+import './global.css';
 import { Inter, Playfair_Display, Barlow } from 'next/font/google';
 import Navbar from '../components/layout/Navbar';
 import { Metadata } from 'next';

@@ -16,17 +16,14 @@ import {
   Copy,
 } from 'lucide-react';
 import { useState, useEffect } from 'react';
-import type { Galeria } from '@/types/galeria';
+import type { Galeria } from '@/core/types/galeria';
 import { GALLERY_CATEGORIES } from '@/constants/categories';
 import {
   getPublicGalleryUrl,
   copyToClipboard,
   getImageUrl,
-  getWhatsAppShareLink,
-  getLuxuryMessageData,
-} from '@/utils/url-helper';
+} from '@/core/utils/url-helper';
 import { GALLERY_MESSAGES } from '@/constants/messages';
-import { url } from 'inspector';
 
 interface GaleriaCardProps {
   galeria: Galeria;

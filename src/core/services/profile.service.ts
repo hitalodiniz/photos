@@ -26,4 +26,22 @@ export const profileService = {
   async signOut(): Promise<void> {
     await supabase.auth.signOut();
   },
+
+  /**
+   * Busca um perfil público por username, validando se ele pode ser exibido
+   */
+  async getPublicProfile(username: string) {
+    const { data, error } = await supabase
+      .from('tb_profiles')
+      .select('*')
+      .eq('username', username)
+      .single();
+
+    // Se houver erro ou não existir, o "Back" retorna null
+    if (error || !data) return null;
+
+    // Se for um acesso via subdomínio, você pode adicionar travas extras aqui
+    // Mas para o [username] padrão, apenas retornamos os dados
+    return data;
+  },
 };

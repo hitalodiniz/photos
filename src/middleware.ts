@@ -3,7 +3,7 @@ import type { NextRequest } from 'next/server';
 import { createServerClient } from '@supabase/ssr';
 
 // Define o domínio base (ex: localhost:3000 ou suagaleria.com.br)
-const MAIN_DOMAIN = process.env.NEXT_PUBLIC_MAIN_DOMAIN || 'localhost:3000';
+const MAIN_DOMAIN = process.env.MAIN_DOMAIN || 'localhost:3000';
 
 const subdomainCache = new Map<
   string,
@@ -13,11 +13,13 @@ const SUBDOMAIN_CACHE_TTL = 1000 * 60 * 10; // 10 minutos
 
 async function getProfileBySubdomain(subdomain: string, req: NextRequest) {
   const now = Date.now();
-  const isLocalhost = process.env.NEXT_PUBLIC_NODE_ENV === 'development'; // 🎯 Detecta ambiente
+  const isLocalhost = process.env.NODE_ENV === 'development'; // 🎯 Detecta ambiente
   const cached = subdomainCache.get(subdomain);
 
-  // Só usa o cache se NÃO for localhost e se estiver no TTL
-  if (!isLocalhost && cached && now - cached.createdAt < SUBDOMAIN_CACHE_TTL) {
+  const isDev = process.env.NODE_ENV === 'development';
+
+  // No getProfileBySubdomain:
+  if (!isDev && cached && now - cached.createdAt < SUBDOMAIN_CACHE_TTL) {
     return cached;
   }
 
@@ -90,24 +92,41 @@ export async function middleware(req: NextRequest) {
       'onboarding',
       'login',
       'subdomain',
-      'planos',
-      'public',
-      'static',
+      'api',
     ];
 
     if (!reservedPaths.includes(potentialUsername)) {
       const profile = await getProfileBySubdomain(potentialUsername, req);
-
       if (profile && profile.use_subdomain) {
         const newPath = '/' + pathParts.slice(1).join('/');
         const newUrl = new URL(newPath, req.url);
-
-        // Ajusta o hostname mantendo a porta se for localhost
         const port = host.split(':')[1];
         newUrl.hostname = `${potentialUsername}.${cleanMainDomain}`;
         if (port) newUrl.port = port;
-
         return NextResponse.redirect(newUrl);
+      }
+    }
+  }
+
+  // 3. REWRITE: hitalodiniz.localhost:3000 -> Pasta Interna
+  if (isSubdomainRequest) {
+    const subdomain = cleanHost.replace(`.${cleanMainDomain}`, '');
+
+    if (subdomain && subdomain !== 'www') {
+      const profile = await getProfileBySubdomain(subdomain, req);
+
+      // No seu middleware.ts
+      if (profile && profile.use_subdomain) {
+        // 🎯 IMPORTANTE: Não deixe o pathname vazio para a home
+        // Se for '/', usamos string vazia para não duplicar a barra
+        const cleanPathname = pathname === '/' ? '' : pathname;
+
+        const rewriteUrl = new URL(
+          `/subdomain/${profile.username}${cleanPathname}`,
+          req.url,
+        );
+
+        return NextResponse.rewrite(rewriteUrl);
       }
     }
   }

@@ -14,10 +14,10 @@ import {
   getImageUrl,
   getHighResImageUrl,
   getWhatsAppShareLink,
-} from '@/utils/url-helper';
+} from '@/core/utils/url-helper';
 import { GALLERY_MESSAGES } from '@/constants/messages';
 
-import type { Galeria } from '@/types/galeria';
+import type { Galeria } from '@/core/types/galeria';
 
 interface Photo {
   id: string | number;

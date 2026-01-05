@@ -10,20 +10,21 @@ const config: Config = {
   theme: {
     extend: {
       colors: {
-        //Vinculando as classes do Tailwind às variáveis do globals.css
+        // 🎯 Definindo como HEX para permitir modificadores de opacidade (ex: gold/50)
         champagne: {
-          DEFAULT: 'var(--color-champagne)',
-          dark: 'var(--color-champagne-dark)',
+          DEFAULT: '#FFF9F0',
+          dark: '#F3E5AB',
         },
         gold: {
-          DEFAULT: 'var(--color-gold)',
-          light: 'var(--color-gold-light)',
+          DEFAULT: '#D4AF37',
+          // Para cores com transparência fixa, o RGBA funciona bem aqui
+          light: 'rgba(212, 175, 55, 0.15)',
         },
-        'error-red': 'var(--color-error-red)',
-        'google-text': 'var(--color-text-google)',
+        // Cores secundárias podem manter a referência à variável se não usar /opacidade
+        'error-red': '#B3261E',
+        'google-text': '#3C4043',
       },
       fontFamily: {
-        // Adicionando suporte para a fonte artística Playfair
         artistic: ['var(--font-playfair)', 'serif'],
         sans: ['var(--font-inter)', 'sans-serif'],
       },

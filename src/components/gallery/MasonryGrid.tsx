@@ -6,13 +6,12 @@ import { Download, Heart, MessageCircle } from 'lucide-react';
 // Novas importações do PhotoSwipe
 import 'photoswipe/dist/photoswipe.css';
 import { Gallery, Item } from 'react-photoswipe-gallery';
-import { div } from 'framer-motion/client';
-import { Galeria } from '@/types/galeria';
+import { Galeria } from '@/core/types/galeria';
 import {
   getHighResImageUrl,
   getImageUrl,
   getWhatsAppShareLink,
-} from '@/utils/url-helper';
+} from '@/core/utils/url-helper';
 import { GALLERY_MESSAGES } from '@/constants/messages';
 
 interface Photo {

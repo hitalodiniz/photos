@@ -182,7 +182,7 @@ export async function getValidGoogleToken(userId: string) {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({
-        client_id: process.env.NEXT_PUBLIC_GOOGLE_CLIENT_ID,
+        client_id: process.env.GOOGLE_CLIENT_ID,
         client_secret: process.env.GOOGLE_CLIENT_SECRET, // Garanta que esta variável existe no .env
         refresh_token: profile.google_refresh_token,
         grant_type: 'refresh_token',

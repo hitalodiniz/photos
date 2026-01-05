@@ -6,20 +6,20 @@ const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL;
 const supabaseAnonKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY;
 
 if (!supabaseUrl || !supabaseAnonKey) {
-  throw new Error('NEXT_PUBLIC_SUPABASE_URL e NEXT_PUBLIC_SUPABASE_ANON_KEY devem ser definidos.');
+  throw new Error('SUPABASE_URL e SUPABASE_ANON_KEY devem ser definidos.');
 }
 
 export const supabase = createClient(supabaseUrl, supabaseAnonKey, {
-    auth: {
-        // Usamos sessionStorage, conforme sua arquitetura Cliente-Side
-        storage: globalThis.sessionStorage, 
-        autoRefreshToken: true,
-        persistSession: true,
-        
-        // Desabilitar o auto-refresh no lado do servidor/middleware para evitar problemas de CORS/segurança
-        detectSessionInUrl: typeof window !== 'undefined',
-    },
+  auth: {
+    // Usamos sessionStorage, conforme sua arquitetura Cliente-Side
+    storage: globalThis.sessionStorage,
+    autoRefreshToken: true,
+    persistSession: true,
+
+    // Desabilitar o auto-refresh no lado do servidor/middleware para evitar problemas de CORS/segurança
+    detectSessionInUrl: typeof window !== 'undefined',
+  },
 });
 
-// Nota: Para Server Actions e Route Handlers, você usará a função createClient() 
+// Nota: Para Server Actions e Route Handlers, você usará a função createClient()
 // diretamente com a Chave de Serviço, que é mais segura.
