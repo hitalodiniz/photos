@@ -9,6 +9,7 @@ import { GaleriaView, PasswordPrompt } from '@/components/gallery';
 import { getGalleryMetadata } from '@/lib/gallery/metadata-helper';
 import { getImageUrl } from '@/core/utils/url-helper';
 import PhotographerProfileContainer from '@/components/profile/PhotographerProfileContainer';
+import { Metadata } from 'next';
 
 type SubdomainGaleriaPageProps = {
   params: Promise<{
@@ -82,9 +83,14 @@ export default async function SubdomainGaleriaPage({
   return <GaleriaView galeria={galeriaData} photos={photos} />;
 }
 
-export async function generateMetadata({ params }: { params: any }) {
+export async function generateMetadata({ params }: any): Promise<Metadata> {
   const { username, slug } = await params;
-  if (!slug) return {};
-  const fullSlug = `${username}/${slug.join('/')}`;
-  return getGalleryMetadata(fullSlug);
+
+  // 🎯 O 'slug' do App Router Catch-all é um array.
+  // Precisamos juntar para formar o path do banco: "usuario/ano/mes/galeria"
+  const fullSlug = Array.isArray(slug)
+    ? `${username}/${slug.join('/')}`
+    : `${username}/${slug}`;
+
+  return await getGalleryMetadata(fullSlug);
 }
