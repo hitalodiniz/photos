@@ -149,16 +149,12 @@ export async function generateUniqueDatedSlug(
   }
 
   const username = profile.username;
-  const usesSubdomain = profile.use_subdomain === true;
 
   // 3. Montar partes do slug
   const safeTitle = slugify(title, { lower: true, strict: true, locale: 'pt' });
   const datePart = dateStr.substring(0, 10).replace(/-/g, '/');
 
-  // 4. Se NÃO usa subdomínio → incluir username
-  const prefix = usesSubdomain ? '' : `${username}/`;
-
-  const baseSlug = `${prefix}${datePart}/${safeTitle}`;
+  const baseSlug = `${username}/${datePart}/${safeTitle}`;
   let uniqueSlug = baseSlug;
   let suffix = 0;
 

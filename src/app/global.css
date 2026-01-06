@@ -42,7 +42,10 @@
   input:not([type='file']),
   textarea,
   select {
-    @apply w-full bg-white border border-gray-100 p-3 rounded-xl outline-none focus:border-gold focus:ring-1 focus:ring-gold text-sm text-slate-700 font-normal transition-all placeholder:text-gray-300;
+    /* De border-gray-100 para um tom que harmonize com o Champagne */
+    @apply w-full bg-white border border-[#F3E5AB] p-3 rounded-xl outline-none 
+           focus:border-gold focus:ring-1 focus:ring-gold/30 
+           text-sm text-slate-700 transition-all placeholder:text-gray-300;
   }
 
   button[type='submit'],

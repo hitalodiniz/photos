@@ -186,8 +186,12 @@ export default function GooglePickerButton({
                   coverFileId,
                 );
               } else {
+                //Monta a URL direta da pasta no Google Drive
+                const folderUrl = `https://drive.google.com/drive/folders/${driveFolderId}`;
+
+                // 🎯 Retorna a mensagem com o link (você pode tratar isso no componente que exibe o erro)
                 onError(
-                  'Esta pasta está privada. No seu Google Drive, mude o acesso para "Qualquer pessoa com o link" para continuar.',
+                  `Esta pasta está privada. No seu Google Drive, mude o acesso para "Qualquer pessoa com o link" para continuar. ${folderUrl}`,
                 );
               }
             }

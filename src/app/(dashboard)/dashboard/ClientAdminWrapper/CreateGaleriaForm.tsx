@@ -1,7 +1,7 @@
 'use client';
 
 import { useState, useRef } from 'react';
-import { SubmitButton } from '@/components/sections/DashboardUI';
+import SubmitButton from '@/components/ui/SubmitButton';
 import { GooglePickerButton } from '@/components/google-drive';
 import { CategorySelect } from '@/components/gallery';
 import { maskPhone } from '@/core/utils/masks';
@@ -14,7 +14,6 @@ import {
   User,
   Type,
   FolderSync,
-  Briefcase,
   MessageCircle,
   Sparkles,
   AlertCircle,
@@ -56,9 +55,6 @@ export default function CreateGaleriaForm({ onSuccess }) {
 
     // Se você estiver usando o 'onSuccess' que veio via props para mostrar erros:
     onSuccess(false, userGuide);
-
-    // Ou se estiver usando uma biblioteca de Toast externa:
-    // toast.error(userGuide);
 
     setDriveFolderId('');
     setCoverFileId('');
@@ -177,8 +173,9 @@ export default function CreateGaleriaForm({ onSuccess }) {
             <input
               name="clientName"
               required={hasContractingClient}
-              placeholder="Ex: Maria Silva"
-              className="w-full p-4 bg-slate-100 border-none rounded-2xl text-slate-900"
+              minLength={3}
+              maxLength={50}
+              className="w-full p-4 bg-white border border-[#F3E5AB] rounded-2xl text-slate-900 pr-16 focus:border-gold transition-all"
             />
           </div>
           <div>
@@ -192,7 +189,7 @@ export default function CreateGaleriaForm({ onSuccess }) {
               onChange={(e) => setClientWhatsapp(maskPhone(e))}
               maxLength={15}
               placeholder="(00) 00000-0000"
-              className="w-full p-4 bg-slate-100 border-none rounded-2xl text-slate-900"
+              className="w-full p-4 bg-white border border-[#F3E5AB] rounded-2xl text-slate-900 pr-16 focus:border-gold transition-all"
             />
           </div>
         </>
@@ -202,7 +199,7 @@ export default function CreateGaleriaForm({ onSuccess }) {
         <label>
           <Type size={14} className="text-[#D4AF37]" /> Título da galeria
         </label>
-        <input name="title" required placeholder="Ex: Ensaio Pré-Wedding" />
+        <input name="title" required minLength={3} maxLength={60} />
       </div>
 
       {/* Categoria */}
@@ -221,7 +218,12 @@ export default function CreateGaleriaForm({ onSuccess }) {
         <label>
           <MapPin size={14} className="text-[#D4AF37]" /> Local
         </label>
-        <input name="location" placeholder="Cidade/UF" />
+        <input
+          name="location"
+          minLength={3}
+          maxLength={40}
+          placeholder="Cidade/UF"
+        />
       </div>
 
       {/* SEÇÃO GOOGLE DRIVE */}

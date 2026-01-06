@@ -280,6 +280,8 @@ export default function EditGaleriaModal({
                   </label>
                   <input
                     name="clientName"
+                    minLength={3}
+                    maxLength={50}
                     defaultValue={galeria.client_name}
                     required={hasContractingClient}
                   />
@@ -307,7 +309,13 @@ export default function EditGaleriaModal({
                 <label>
                   <Type size={12} /> Título da galeria
                 </label>
-                <input name="title" defaultValue={galeria.title} required />
+                <input
+                  name="title"
+                  defaultValue={galeria.title}
+                  required
+                  minLength={3}
+                  maxLength={60}
+                />
               </div>
               {/* Categoria Padronizada */}
               <CategorySelect
@@ -332,7 +340,12 @@ export default function EditGaleriaModal({
                 <label>
                   <MapPin size={12} /> Localização
                 </label>
-                <input name="location" defaultValue={galeria.location || ''} />
+                <input
+                  name="location"
+                  defaultValue={galeria.location || ''}
+                  minLength={3}
+                  maxLength={40}
+                />
               </div>
             </div>
 
@@ -424,18 +437,18 @@ export default function EditGaleriaModal({
                   </div>
                   <Lock size={16} /> Privada
                 </label>
-              </div>
 
-              {!isPublic && (
-                <div className="animate-in fade-in slide-in-from-top-2">
-                  <label>Nova senha de acesso</label>
-                  <input
-                    name="password"
-                    type="password"
-                    placeholder="Deixe em branco para manter a atual"
-                  />
-                </div>
-              )}
+                {!isPublic && (
+                  <div className="animate-in fade-in slide-in-from-top-2">
+                    <label>Nova senha de acesso</label>
+                    <input
+                      name="password"
+                      type="password"
+                      placeholder="Deixe em branco para manter a atual"
+                    />
+                  </div>
+                )}
+              </div>
             </div>
           </form>
 

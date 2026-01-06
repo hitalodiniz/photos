@@ -213,18 +213,17 @@ export default function ClientAdminWrapper({
           </div>
         </header>
         {/* Container Flutuante de Resultados */}
-        {/* Contador Flutuante com Rolagem */}
         <div className="fixed bottom-8 right-8 z-50 flex flex-col items-end gap-2 animate-in fade-in slide-in-from-bottom-4 duration-500">
           {/* Pílula de Contagem Premium */}
-          <div className="flex items-center gap-3 bg-white border-2 border-gold/20 px-6 py-3 rounded-full shadow-[0_8px_30px_rgb(0,0,0,0.12)] hover:scale-105 transition-all">
+          <div className="flex items-center gap-3 bg-white border-2 border-gold/20 px-4 py-2 rounded-full shadow-[0_8px_30px_rgb(0,0,0,0.12)] hover:scale-105 transition-all">
             <LayoutGrid size={16} className="text-[#D4AF37]" />
-            <div className="flex items-center gap-2 text-base tracking-tight">
+            <div className="flex items-center gap-2 text-[12px] md:text-[14px] tracking-tight">
               Exibindo
-              <span className="text-[#D4AF37] font-black text-lg tabular-nums">
+              <span className="text-[#D4AF37] font-black text-[12px] md:text-[14px] tabular-nums">
                 {visibleGalerias.length}
               </span>
               <span className="text-slate-200 font-medium">/</span>
-              <span className="text-slate-800 tabular-nums text-lg font-black ">
+              <span className="text-slate-800 tabular-nums text-[12px] md:text-[14px] font-black ">
                 {galerias.length}
               </span>
             </div>
@@ -292,8 +291,10 @@ export default function ClientAdminWrapper({
         message={
           <p>
             Tem certeza que deseja excluir a galeria{' '}
-            <strong>{galeriaToDelete?.title}</strong>? Esta ação não poderá ser
-            desfeita.
+            <strong>{galeriaToDelete?.title}</strong>?
+            <span className="block mt-2 text-[#B3261E] font-bold">
+              Esta ação não poderá ser desfeita.
+            </span>
           </p>
         }
       />
