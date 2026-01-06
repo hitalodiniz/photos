@@ -1,6 +1,3 @@
-// src/actions/google.ts (Adicionar esta função)
-'use server';
-
 import { getDriveAccessTokenForUser } from '@/lib/google-auth';
 import { createSupabaseServerClient } from '@/lib/supabase.server';
 /**
@@ -9,7 +6,7 @@ import { createSupabaseServerClient } from '@/lib/supabase.server';
  * @param userId O ID do usuário logado (fotógrafo).
  * @returns O ID da pasta-mãe ou null se houver falha.
  */
-export async function getParentFolderIdServer(
+export async function getParentFolderIdServerService(
   fileId: string,
   userId: string,
 ): Promise<string | null> {
@@ -66,7 +63,7 @@ export async function getParentFolderIdServer(
  * @param userId O ID do usuário logado (fotógrafo).
  * @returns O nome da pasta ou null em caso de falha.
  */
-export async function getDriveFolderName(
+export async function getDriveFolderNameService(
   folderId: string,
   userId: string,
 ): Promise<string | null> {
@@ -115,7 +112,7 @@ export async function getDriveFolderName(
 /**
  * Verifica se a pasta possui permissão de leitura pública (anyone + reader)
  */
-export async function checkFolderPublicPermission(
+export async function checkFolderPublicPermissionService(
   folderId: string,
   userId: string,
 ): Promise<boolean> {
@@ -160,7 +157,7 @@ export async function checkFolderPublicPermission(
   }
 }
 
-export async function getValidGoogleToken(userId: string) {
+export async function getValidGoogleTokenService(userId: string) {
   // 🎯 Use a sua função exportada (Opção 1 do seu arquivo)
   const supabase = await createSupabaseServerClient();
 
@@ -177,8 +174,9 @@ export async function getValidGoogleToken(userId: string) {
   }
 
   // 2. Faz o Refresh manualmente com a API do Google
+  let response;
   try {
-    const response = await fetch('https://oauth2.googleapis.com/token', {
+    response = await fetch('https://oauth2.googleapis.com/token', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({
@@ -188,17 +186,17 @@ export async function getValidGoogleToken(userId: string) {
         grant_type: 'refresh_token',
       }),
     });
-
-    const data = await response.json();
-
-    if (!data.access_token) {
-      console.error('Resposta inválida do Google OAuth:', data);
-      throw new Error('Falha ao renovar o acesso com o Google.');
-    }
-
-    return data.access_token;
   } catch (fetchError) {
-    console.error('Erro na requisição ao Google OAuth:', fetchError);
+    console.error('Erro de conexão com o servidor do Google:', fetchError);
     throw new Error('Erro de conexão com o servidor do Google.');
   }
+
+  const data = await response.json();
+  // Validação lógica (fora do catch de rede)
+  if (!data.access_token) {
+    console.error('Resposta inválida do Google OAuth:', data);
+    throw new Error('Falha ao renovar o acesso com o Google.');
+  }
+
+  return data.access_token;
 }

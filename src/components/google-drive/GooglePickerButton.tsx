@@ -9,7 +9,7 @@ import {
   getDriveFolderName,
   checkFolderPublicPermission,
   getValidGoogleToken,
-} from '@/actions/google';
+} from '@/actions/google.actions';
 
 // Tipagem para as propriedades do componente
 interface GooglePickerProps {
