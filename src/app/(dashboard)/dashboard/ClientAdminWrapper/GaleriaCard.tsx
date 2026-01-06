@@ -22,6 +22,7 @@ import {
   getPublicGalleryUrl,
   copyToClipboard,
   getImageUrl,
+  getHighResImageUrl,
 } from '@/core/utils/url-helper';
 import { GALLERY_MESSAGES } from '@/constants/messages';
 
@@ -104,23 +105,46 @@ export default function GaleriaCard({
     if (links.url) window.open(links.url, '_blank');
   };
 
-  const handleWhatsAppShare = (e: React.MouseEvent) => {
+  const handleWhatsAppShare = async (e: React.MouseEvent) => {
     e.preventDefault();
     e.stopPropagation();
 
-    // Se não houver mensagem pronta, não faz nada
     if (!links.message) return;
 
-    // 1. Limpa o telefone (Sempre garanta que só tenha números)
+    const isMobile = /iPhone|iPad|iPod|Android/i.test(navigator.userAgent);
     const phone = galeria.client_whatsapp
       ? galeria.client_whatsapp.replace(/\D/g, '')
       : '';
 
-    // 2. Codifica a mensagem de forma pura (Igual à URL 1 que você mandou)
-    const encodedText = encodeURIComponent(links.message);
+    // 🎯 Tenta o compartilhamento nativo com ARQUIVO no Mobile
+    if (isMobile && navigator.share) {
+      try {
+        // Busca a imagem de capa (use w1000 para qualidade e tamanho aceitável)
+        const response = await fetch(
+          getHighResImageUrl(galeria.cover_image_url),
+        );
+        const blob = await response.blob();
+        const file = new File([blob], 'icone-camera.png', {
+          type: 'image/jpeg',
+        });
 
-    // 3. Monta a URL manualmente para garantir que não haja parâmetros extras quebrando tudo
-    const whatsappUrl = `https://api.whatsapp.com/send?phone=${phone}&text=${encodedText}`;
+        await navigator.share({
+          files: [file],
+          title: galeria.title,
+          text: links.message,
+        });
+        return; // Se funcionou, encerra aqui
+      } catch (error) {
+        console.error('Erro no Share nativo do Card:', error);
+        // Se der erro (ex: usuário cancelou ou erro de rede), segue para o fallback
+      }
+    }
+
+    // Fallback para Desktop ou falha no Share nativo
+    const encodedText = encodeURIComponent(links.message);
+    const whatsappUrl = phone
+      ? `https://api.whatsapp.com/send?phone=${phone}&text=${encodedText}`
+      : `https://api.whatsapp.com/send?text=${encodedText}`;
 
     window.open(whatsappUrl, '_blank');
   };

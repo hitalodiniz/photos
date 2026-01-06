@@ -18,7 +18,7 @@ export async function getGalleryMetadata(fullSlug: string): Promise<Metadata> {
 
   // 🎯 IMPORTANTE: WhatsApp exige HTTPS e prefere w1200 para o card grande
   const ogImage = galeriaRaw.cover_image_url
-    ? getImageUrl(galeriaRaw.cover_image_url, 'w1200')
+    ? `${getImageUrl(galeriaRaw.cover_image_url, 'w1200')}&ext=.jpg`
     : null;
 
   return {

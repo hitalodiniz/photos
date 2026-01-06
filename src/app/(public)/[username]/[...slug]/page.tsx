@@ -8,7 +8,6 @@ import {
   fetchDrivePhotos,
 } from '@/lib/gallery/gallery-logic';
 import { GaleriaView, PasswordPrompt } from '@/components/gallery';
-import { getGalleryMetadata } from '@/lib/gallery/metadata-helper';
 import { getImageUrl } from '@/core/utils/url-helper';
 
 export default async function UsernameGaleriaPage({
@@ -50,45 +49,4 @@ export default async function UsernameGaleriaPage({
   );
 
   return <GaleriaView galeria={galeriaData} photos={photos} />;
-}
-
-export async function generateMetadata({ params }: any): Promise<Metadata> {
-  const { username, slug } = await params;
-  const fullSlug = Array.isArray(slug)
-    ? `${username}/${slug.join('/')}`
-    : `${username}/${slug}`;
-
-  // 1. Busca os dados brutos
-  const data = await getGalleryMetadata(fullSlug);
-
-  // 2. Garante que a imagem seja tratada para o WhatsApp (HTTPS + Tamanho)
-  // O link do Google Drive precisa ser convertido em link direto
-  const ogImage = data.cover_image_url
-    ? getImageUrl(data.cover_image_url, 'w1200') // Força HTTPS e tamanho 1200px
-    : undefined;
-
-  return {
-    title: data.title,
-    description: data.description,
-    openGraph: {
-      ...data.openGraph,
-      images: ogImage
-        ? [
-            {
-              url: ogImage,
-              width: 1200,
-              height: 630,
-              type: 'image/jpeg',
-            },
-          ]
-        : [],
-    },
-    // Adiciona o Twitter Card para garantir compatibilidade total
-    twitter: {
-      card: 'summary_large_image',
-      title: data.title,
-      description: data.description,
-      images: ogImage ? [ogImage] : [],
-    },
-  };
 }
