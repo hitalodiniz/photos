@@ -50,3 +50,25 @@ export default async function UsernameGaleriaPage({
 
   return <GaleriaView galeria={galeriaData} photos={photos} />;
 }
+
+export async function generateMetadata({
+  params,
+}: {
+  params: Promise<{ username: string; slug: string[] }>;
+}) {
+  const { username, slug } = await params;
+  const fullSlug = `${username}/${slug.join('/')}`;
+
+  const galeriaRaw = await fetchGalleryBySlug(fullSlug);
+  if (!galeriaRaw) return { title: 'Galeria de Fotos' };
+
+  // 🎯 Garante que o título da galeria não ultrapasse 40 caracteres
+  const cleanTitle =
+    galeriaRaw.title.length > 40
+      ? `${galeriaRaw.title.substring(0, 37)}...`
+      : galeriaRaw.title;
+
+  return {
+    title: cleanTitle,
+  };
+}

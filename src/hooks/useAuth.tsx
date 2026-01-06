@@ -4,9 +4,12 @@ import { useState, useEffect, useCallback } from 'react';
 import { useRouter } from 'next/navigation';
 import { supabase } from '@/lib/supabase.client';
 
+// 🎯 Atualizado para suportar metadados do perfil
 type User = {
   id: string;
   email: string | undefined;
+  name?: string;
+  avatarUrl?: string;
 };
 
 type AuthState = {
@@ -19,16 +22,29 @@ export const useAuth = () => {
     user: null,
     isLoading: true,
   });
-  
+
   const router = useRouter();
 
+  // Função auxiliar para formatar o usuário do Supabase para o nosso tipo
+  const mapUser = (supabaseUser: any): User => ({
+    id: supabaseUser.id,
+    email: supabaseUser.email,
+    // Busca o nome e avatar nos metadados (Google ou cadastro manual)
+    name:
+      supabaseUser.user_metadata?.full_name || supabaseUser.user_metadata?.name,
+    avatarUrl:
+      supabaseUser.user_metadata?.avatar_url ||
+      supabaseUser.user_metadata?.picture,
+  });
+
   useEffect(() => {
-    // 1. Verificação imediata da sessão para evitar 'flicker'
     const initializeAuth = async () => {
-      const { data: { session } } = await supabase.auth.getSession();
+      const {
+        data: { session },
+      } = await supabase.auth.getSession();
       if (session?.user) {
         setAuthState({
-          user: { id: session.user.id, email: session.user.email },
+          user: mapUser(session.user),
           isLoading: false,
         });
       } else {
@@ -38,19 +54,18 @@ export const useAuth = () => {
 
     initializeAuth();
 
-    // 2. Listener de eventos em tempo real
-    const { data: { subscription } } = supabase.auth.onAuthStateChange(
-      (_event, session) => {
-        if (session?.user) {
-          setAuthState({
-            user: { id: session.user.id, email: session.user.email },
-            isLoading: false,
-          });
-        } else {
-          setAuthState({ user: null, isLoading: false });
-        }
+    const {
+      data: { subscription },
+    } = supabase.auth.onAuthStateChange((_event, session) => {
+      if (session?.user) {
+        setAuthState({
+          user: mapUser(session.user),
+          isLoading: false,
+        });
+      } else {
+        setAuthState({ user: null, isLoading: false });
       }
-    );
+    });
 
     return () => {
       subscription.unsubscribe();
@@ -58,22 +73,25 @@ export const useAuth = () => {
   }, []);
 
   const logout = async () => {
-    setAuthState(prev => ({ ...prev, isLoading: true }));
+    setAuthState((prev) => ({ ...prev, isLoading: true }));
     await supabase.auth.signOut();
-    router.replace('/'); // replace impede que o usuário volte ao dashboard deslogado
+    router.replace('/');
   };
-  
-  // 3. Função de proteção memorizada com useCallback
-  const protectRoute = useCallback((redirectTo: string = '/') => {
-      if (!authState.isLoading && !authState.user) {
-          // replace é mais seguro para rotas protegidas
-          router.replace(redirectTo);
-      }
-  }, [authState.isLoading, authState.user, router]);
 
-  return { 
-    ...authState, 
-    logout, 
-    protectRoute 
+  const protectRoute = useCallback(
+    (redirectTo: string = '/') => {
+      if (!authState.isLoading && !authState.user) {
+        router.replace(redirectTo);
+      }
+    },
+    [authState.isLoading, authState.user, router],
+  );
+
+  return {
+    ...authState,
+    // 🎯 Exportando explicitamente para facilitar o uso na Navbar
+    avatarUrl: authState.user?.avatarUrl,
+    logout,
+    protectRoute,
   };
 };

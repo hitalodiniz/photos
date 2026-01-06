@@ -1,5 +1,5 @@
 'use client';
-import React from 'react';
+import React, { useEffect } from 'react';
 import {
   Instagram,
   MessageCircle,
@@ -38,6 +38,18 @@ export default function PhotographerProfileContent({
   const locationDisplay =
     cities.length > 0 ? cities.join(' • ') : 'SUA LOCALIZAÇÃO';
 
+  // Dentro do seu PhotographerProfileContent ou PhotographerProfileContainer
+  useEffect(() => {
+    if (fullName) {
+      // 🎯 Altera o título da aba manualmente no navegador
+      document.title = `${fullName} Fotógrafo - Sua Galeria de Fotos`;
+    }
+
+    // Opcional: Limpar o título ao sair da página
+    return () => {
+      document.title = process.env.NEXT_PUBLIC_TITLE_DEFAULT;
+    };
+  }, [fullName]);
   return (
     <div className="min-h-screen w-full flex flex-col bg-black overflow-x-hidden relative font-sans">
       <div className="absolute inset-0 z-0">

@@ -24,6 +24,7 @@ export default function CreateGaleriaForm({ onSuccess }) {
   const formRef = useRef<HTMLFormElement>(null);
 
   const [isPublic, setIsPublic] = useState(true);
+  const [isSuccess, setIsSuccess] = useState(false);
   const [password, setPassword] = useState('');
   const [clientWhatsapp, setClientWhatsapp] = useState('');
   const [driveFolderId, setDriveFolderId] = useState('');
@@ -97,16 +98,20 @@ export default function CreateGaleriaForm({ onSuccess }) {
     try {
       const result = await createGaleria(formData);
       if (result.success) {
-        formRef.current?.reset();
-        setPassword('');
-        setClientWhatsapp('');
-        setDriveFolderId('');
-        setCoverFileId('');
-        setDriveFolderName('Nenhuma pasta selecionada');
-        setIsPublic(true);
-        setCategory('');
-        setHasContractingClient(true);
-        onSuccess(true, 'Galeria criada com sucesso!');
+        setIsSuccess(true);
+        setTimeout(() => {
+          formRef.current?.reset();
+          setIsSuccess(false);
+          setPassword('');
+          setClientWhatsapp('');
+          setDriveFolderId('');
+          setCoverFileId('');
+          setDriveFolderName('Nenhuma pasta selecionada');
+          setIsPublic(true);
+          setCategory('');
+          setHasContractingClient(true);
+          onSuccess(true, 'Galeria criada com sucesso!');
+        }, 2000);
       } else {
         onSuccess(false, result.error || 'Erro ao criar galeria.');
       }
@@ -399,7 +404,7 @@ export default function CreateGaleriaForm({ onSuccess }) {
 
       {/* Botão Salvar Champanhe */}
       <div className="pt-2">
-        <SubmitButton />
+        <SubmitButton success={isSuccess} label="Salvar Galeria" />
       </div>
     </form>
   );

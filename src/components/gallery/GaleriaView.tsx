@@ -23,9 +23,6 @@ export default function GaleriaView({ galeria, photos }: GaleriaViewProps) {
     return `https://lh3.googleusercontent.com/d/${fileId}=w1000`;
   };
 
-  // Efeito de transição para o Champanhe: atinge 100% aos 400px de scroll
-  const opacity = Math.min(scrollY / 400, 1);
-
   return (
     <div className="relative min-h-screen font-sans bg-[#F9F5F0]">
       {/* 1. BACKGROUND DINÂMICO FIXO */}

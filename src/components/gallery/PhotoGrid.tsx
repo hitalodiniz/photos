@@ -61,13 +61,6 @@ export default function PhotoGrid({ photos, galeria }: any) {
     window.addEventListener('scroll', handleScroll);
     return () => window.removeEventListener('scroll', handleScroll);
   }, []);
-  //revisado até aqui
-
-  /* useEffect(() => {
-    if (displayLimit > QTD_FOTO_EXIBIDAS) {
-      setMasonryKey((prev) => prev + 1);
-    }
-  }, [displayLimit]);*/
 
   // --- LÓGICA DE FILTRAGEM ---
   const displayedPhotos = showOnlyFavorites

@@ -152,27 +152,28 @@ export default function GaleriaCard({
   return (
     <div
       onClick={handleCardClick}
-      className="group relative flex cursor-pointer flex-col overflow-hidden rounded-[20px] border border-gray-100 bg-white shadow-sm hover:shadow-md transition-all duration-300 w-full"
+      className="group relative flex cursor-pointer flex-col overflow-hidden rounded-[12px] border border-[#F3E5AB] bg-[#FFF9F0]/30 backdrop-blur-sm shadow-sm hover:shadow-2xl hover:shadow-gold/10 transition-all duration-500 w-full"
       style={{ maxWidth: '400px' }}
     >
+      {/* Overlay de Atualização Premium */}
       {isUpdating && (
-        <div className="absolute inset-0 z-20 flex flex-col items-center justify-center bg-white/80 backdrop-blur-sm">
-          <Loader2 className="h-6 w-6 animate-spin text-[#D4AF37]" />
-          <span className="mt-2 text-[9px] font-black text-slate-900 uppercase tracking-[0.2em]">
-            Atualizando
+        <div className="absolute inset-0 z-20 flex flex-col items-center justify-center bg-white/90 backdrop-blur-md">
+          <Loader2 className="h-8 w-8 animate-spin text-[#D4AF37]" />
+          <span className="mt-3 text-[10px] font-bold text-slate-900 uppercase tracking-[0.3em] font-barlow">
+            Sincronizando
           </span>
         </div>
       )}
 
-      <div className="relative aspect-[16/9] w-full overflow-hidden bg-slate-50 border-b border-gray-50">
+      <div className="relative aspect-[16/10] w-full overflow-hidden bg-slate-100 border-b border-[#F3E5AB]">
         <img
           src={imageUrl}
           alt={`Capa da galeria ${galeria.title}`}
           referrerPolicy="no-referrer"
-          className="h-full w-full object-cover transition-transform duration-700 group-hover:scale-105"
+          className="h-full w-full object-cover transition-transform duration-1000 ease-out group-hover:scale-110"
         />
 
-        <div className="absolute top-2 left-2 flex flex-col gap-1.5">
+        <div className="absolute top-2 left-2 md:top-3 md:left-3 flex flex-col gap-1.5">
           <span
             className={`flex items-center gap-1.5 rounded-full px-2.5 py-1 text-[10px] md:text-[12px] font-medium tracking-[0.05em] shadow-sm ${isPrivate ? 'bg-slate-800 text-white ' : 'bg-white text-slate-700'}`}
           >
@@ -185,7 +186,7 @@ export default function GaleriaCard({
           </span>
         </div>
 
-        <div className="absolute top-2 right-2 flex flex-col gap-1.5">
+        <div className="absolute top-2 right-2 md:top-3 md:right-3 flex flex-col gap-1.5">
           <span
             className={`flex items-center gap-1.5 rounded-full px-2.5 py-1 text-[10px] md:text-[12px] font-medium tracking-[0.05em] shadow-sm ${galeria.has_contracting_client ? 'bg-blue-50 text-blue-700 border border-blue-100' : 'bg-amber-50 text-amber-700 border border-amber-100'}`}
           >
@@ -195,7 +196,7 @@ export default function GaleriaCard({
         </div>
 
         {categoryInfo && (
-          <div className="absolute bottom-2 right-2">
+          <div className="absolute bottom-2 right-2 md:right-3 ">
             <span className="flex items-center gap-1.5 rounded-lg px-2 py-1 bg-black/60 backdrop-blur-md text-white text-[10px] md:text-[12px] font-medium tracking-widest border border-white/10">
               {categoryInfo.icon} {categoryInfo.label}
             </span>
@@ -205,7 +206,7 @@ export default function GaleriaCard({
 
       <div className="flex flex-col p-4">
         <div className="flex items-start justify-between gap-1 min-h-[40px]">
-          <h3 className="truncate text-[14px] md:text-[18px] font-bold text-slate-900 group-hover:text-[#D4AF37] transition-colors tracking-tight leading-tight line-clamp-2 flex-1">
+          <h3 className="truncate text-[14px] md:text-[18px] italic font-bold text-slate-900 group-hover:text-[#D4AF37] transition-colors tracking-tight leading-tight line-clamp-2 flex-1">
             {galeria.title}
           </h3>
         </div>
@@ -244,7 +245,8 @@ export default function GaleriaCard({
             target="_blank"
             rel="noopener noreferrer"
             onClick={(e) => e.stopPropagation()}
-            className="flex items-center gap-3 text-slate-700 bg-[#FAF7ED] px-4 py-2.5 rounded-xl border border-gold/10 hover:bg-champagne-dark transition-all mt-3 group/drive shadow-sm"
+            className="flex items-center gap-3 text-slate-700  px-4 py-2.5 rounded-xl border
+             border-gold/10 hover:bg-champagne-dark transition-all mt-3 group/drive shadow-sm  hover:text-white "
           >
             <FolderOpen
               size={16}
@@ -256,7 +258,6 @@ export default function GaleriaCard({
           </a>
         </div>
       </div>
-
       <div className="mt-1 flex items-center justify-between border-t border-gold/20 pt-4 px-4 pb-4">
         <div className="flex gap-2">
           {mounted &&
@@ -265,8 +266,7 @@ export default function GaleriaCard({
               <button
                 type="button"
                 onClick={handleWhatsAppShare}
-                // Mantivemos EXATAMENTE as suas classes originais do link <a>
-                className="p-3 text-emerald-600 bg-emerald-50 border border-emerald-100 hover:bg-emerald-500 hover:text-white rounded-xl transition-all shadow-sm active:scale-90 flex items-center justify-center cursor-pointer"
+                className="p-3 text-emerald-700 bg-white border border-gold/20 hover:bg-emerald-600 hover:text-white rounded-2xl transition-all shadow-sm active:scale-95 flex items-center justify-center"
                 title="Enviar via WhatsApp"
               >
                 <MessageCircle size={20} />
@@ -275,10 +275,10 @@ export default function GaleriaCard({
 
           <button
             onClick={handleCopy}
-            className={`p-3 border rounded-xl transition-all shadow-sm active:scale-90 flex items-center justify-center ${
+            className={`p-3 border rounded-2xl transition-all shadow-sm active:scale-95 flex items-center justify-center ${
               copied
-                ? 'bg-green-50 text-green-600 border-green-200'
-                : 'bg-slate-50 text-slate-500 border-slate-100 hover:bg-slate-100'
+                ? 'bg-green-600 text-white border-green-600'
+                : 'bg-white text-slate-400 border-gold/20 hover:text-gold hover:border-gold/40'
             }`}
             title="Copiar mensagem personalizada"
           >
@@ -292,7 +292,8 @@ export default function GaleriaCard({
               e.stopPropagation();
               onEdit(galeria);
             }}
-            className="p-3 text-slate-500 bg-slate-50 border border-slate-100 hover:bg-champagne-dark hover:border-gold/30 hover:text-slate-900 rounded-xl transition-all shadow-sm active:scale-90 flex items-center justify-center"
+            // Ajustado: rounded-2xl e border-gold/20 para padronizar com os botões da esquerda
+            className="p-3 text-slate-500 bg-white border border-gold/20 hover:bg-slate-900 hover:text-white rounded-2xl transition-all shadow-sm active:scale-95 flex items-center justify-center"
           >
             <Pencil size={20} />
           </button>
@@ -303,7 +304,8 @@ export default function GaleriaCard({
               onDelete(galeria);
             }}
             disabled={isDeleting}
-            className="p-3 text-slate-500 bg-slate-50 border border-slate-100 hover:bg-red-50 hover:border-red-200 hover:text-red-600 rounded-xl transition-all shadow-sm active:scale-90 disabled:opacity-30 flex items-center justify-center"
+            // Ajustado: rounded-2xl e border-gold/20
+            className="p-3 text-slate-500 bg-white border border-gold/20 hover:bg-[#B3261E] hover:text-white rounded-2xl transition-all shadow-sm active:scale-95 disabled:opacity-30 flex items-center justify-center"
           >
             {isDeleting ? (
               <Loader2 size={20} className="animate-spin" />

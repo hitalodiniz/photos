@@ -18,6 +18,7 @@ import {
   Loader2,
   Briefcase,
   MessageCircle,
+  Save,
 } from 'lucide-react';
 import type { Galeria } from '@/core/types/galeria';
 
@@ -466,12 +467,23 @@ export default function EditGaleriaModal({
                 type="submit"
                 form="edit-gallery-form"
                 disabled={loading}
+                // 🎯 Mantendo bg-champagne-dark e as transições de luxo
                 className="flex-[2] bg-champagne-dark hover:bg-[#D4AF37] hover:text-white text-slate-900 font-black py-4 rounded-2xl shadow-xl shadow-[#D4AF37]/10 text-[11px] tracking-[0.3em] uppercase flex items-center justify-center gap-3 transition-all active:scale-[0.98] disabled:opacity-50"
               >
                 {loading ? (
-                  <Loader2 className="animate-spin" size={18} />
+                  <>
+                    <Loader2 className="animate-spin" size={18} />
+                    <span className="font-barlow">Processando...</span>
+                  </>
                 ) : (
-                  'Salvar Alterações'
+                  <>
+                    {/* Ícone Save incluído com opacidade sutil para não brigar com o texto */}
+                    <Save
+                      size={18}
+                      className="opacity-70 group-hover:scale-110 transition-transform"
+                    />
+                    <span className="font-barlow">Salvar Alterações</span>
+                  </>
                 )}
               </button>
             </div>

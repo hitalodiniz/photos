@@ -1,7 +1,7 @@
 'use client';
 
 import { useEffect, useMemo, useState } from 'react';
-import { LayoutGrid, Filter, Plus, Search } from 'lucide-react';
+import { LayoutGrid, Filter, Plus, Search, ChevronDown } from 'lucide-react';
 import { getGalerias, deleteGaleria } from '@/actions/galeria';
 
 import type { Galeria } from '@/core/types/galeria';
@@ -267,14 +267,19 @@ export default function ClientAdminWrapper({
         </div>
 
         {/* BOTÃO CARREGAR MAIS */}
+        {/* BOTÃO CARREGAR MAIS */}
         {filteredGalerias.length > cardsToShow && (
-          <div className="mt-12 flex justify-center pb-16">
+          <div className="mt-16 flex justify-center pb-20">
             <button
               onClick={() => setCardsToShow((prev) => prev + CARDS_PER_PAGE)}
-              className="group relative overflow-hidden rounded-full bg-[#1A1C1E] text-white px-12 py-4 text-[10px] font-black uppercase tracking-[0.4em] transition-all hover:scale-105 active:scale-95 shadow-lg shadow-black/10"
+              // 🎯 Estilo idêntico ao Submit: bg-slate-900, rounded-2xl, tracking editorial
+              className="group flex items-center justify-center gap-3 rounded-2xl bg-slate-900 text-white px-14 py-4 text-[11px] font-bold uppercase tracking-[0.3em] transition-all active:scale-95 shadow-xl shadow-slate-900/20 hover:bg-black"
             >
-              <span className="relative z-10">Expandir Acervo</span>
-              <div className="absolute inset-0 bg-[#D4AF37] translate-y-full group-hover:translate-y-0 transition-transform duration-500 ease-out" />
+              <ChevronDown
+                size={16}
+                className="text-[#D4AF37] transition-transform duration-300 group-hover:translate-y-1"
+              />
+              <span className="font-barlow">Expandir Acervo</span>
             </button>
           </div>
         )}

@@ -10,7 +10,6 @@ import { profile } from 'console';
 interface Props {
   username: string;
 }
-
 export default function PhotographerProfileContainer({ username }: Props) {
   const [profile, setProfile] = useState<any>(null);
   const [loading, setLoading] = useState(true);

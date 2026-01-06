@@ -1,5 +1,5 @@
 'use client';
-import React from 'react';
+import React, { useMemo } from 'react';
 import type { Galeria } from '@/core/types/galeria';
 import Image from 'next/image';
 
@@ -18,6 +18,15 @@ export default function PhotographerAvatar({
 
   // Atalho para facilitar o acesso aos dados do fotógrafo
   const photographer = galeria.photographer;
+
+  const { fullName, displayAvatar, initialLetter } = useMemo(() => {
+    const name = photographer?.full_name || 'Fotógrafo';
+    return {
+      fullName: name,
+      displayAvatar: photographer?.profile_picture_url || null,
+      initialLetter: name.charAt(0).toUpperCase(),
+    };
+  }, [photographer]);
 
   const positionClasses =
     position === 'top-page'
@@ -39,17 +48,27 @@ export default function PhotographerAvatar({
       `}
       >
         {/* Foto do Fotógrafo */}
-        <div className="relative group flex-shrink-0 cursor-pointer w-12 h-12 md:w-16 md:h-16 rounded-full overflow-hidden">
+        {/* Foto ou Inicial do Fotógrafo */}
+        <div className="relative group flex-shrink-0 cursor-pointer w-12 h-12 md:w-16 md:h-16 rounded-full overflow-hidden flex items-center justify-center">
           <div className="absolute -inset-1 bg-gradient-to-tr from-[#D4AF37] to-[#F3E5AB] rounded-full blur-sm opacity-30 group-hover:opacity-60 transition duration-700"></div>
 
-          <Image
-            src={photographer?.profile_picture_url || '/default-avatar.jpg'}
-            alt={photographer?.full_name || 'Fotógrafo'}
-            fill
-            sizes="(max-width: 768px) 48px, 64px"
-            className="object-cover transition-transform duration-500 group-hover:scale-105 z-10 rounded-full"
-            priority
-          />
+          {displayAvatar ? (
+            <Image
+              src={displayAvatar}
+              alt={fullName}
+              fill
+              sizes="(max-width: 768px) 48px, 64px"
+              className="object-cover transition-transform duration-500 group-hover:scale-105 z-10 rounded-full"
+              priority
+            />
+          ) : (
+            // 🎯 Fallback Premium quando não há foto
+            <div className="z-10 w-full h-full bg-slate-800 flex items-center justify-center border border-white/10 rounded-full transition-transform duration-500 group-hover:scale-105">
+              <span className="text-white font-bold text-xl md:text-2xl font-barlow tracking-tighter">
+                {initialLetter}
+              </span>
+            </div>
+          )}
         </div>
 
         {/* Texto e Botões */}

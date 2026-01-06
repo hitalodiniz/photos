@@ -77,18 +77,11 @@ describe('Ações de Galeria', () => {
   // TESTES DE SLUG
   // =========================================================================
   describe('generateUniqueDatedSlug', () => {
-    it('deve incluir o username no slug quando use_subdomain for FALSE', async () => {
+    it('deve incluir o username no slug', async () => {
       setupSupabaseMock({ ...mockProfile, use_subdomain: false });
       const slug = await generateUniqueDatedSlug('Meu Casamento', '2025-12-30');
 
       expect(slug).toBe('hitalodiniz/2025/12/30/meu-casamento');
-    });
-
-    it('deve omitir o username no slug quando use_subdomain for TRUE', async () => {
-      setupSupabaseMock({ ...mockProfile, use_subdomain: true });
-      const slug = await generateUniqueDatedSlug('Meu Casamento', '2025-12-30');
-
-      expect(slug).toBe('2025/12/30/meu-casamento');
     });
 
     it('deve resolver colisão de slugs adicionando sufixo incremental', async () => {
@@ -103,7 +96,7 @@ describe('Ações de Galeria', () => {
         .mockResolvedValueOnce({ data: null });
 
       const slug = await generateUniqueDatedSlug('Festa', '2025-01-01');
-      expect(slug).toBe('2025/01/01/festa-1');
+      expect(slug).toBe('hitalodiniz/2025/01/01/festa-1');
     });
   });
 

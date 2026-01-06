@@ -2,6 +2,10 @@ import React from 'react';
 
 import PhotographerProfileContainer from '@/components/profile/PhotographerProfileContainer';
 
+interface Props {
+  params: Promise<{ username: string }>;
+}
+
 export default function UserPage({
   params,
 }: {

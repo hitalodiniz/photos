@@ -31,7 +31,7 @@ const barlow = Barlow({
 
 export const metadata: Metadata = {
   title: {
-    default: 'Sua Galeria de Fotos - O portal das suas lembranças', // Título da Home
+    default: process.env.NEXT_PUBLIC_TITLE_DEFAULT, // Título da Home
     template: '%s | Sua Galeria de Fotos', // O %s recebe o título da página interna
   },
   description:
