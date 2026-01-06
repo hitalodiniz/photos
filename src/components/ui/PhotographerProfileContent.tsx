@@ -41,7 +41,7 @@ export default function PhotographerProfileContent({
   // Dentro do seu PhotographerProfileContent ou PhotographerProfileContainer
   useEffect(() => {
     if (fullName) {
-      // 🎯 Altera o título da aba manualmente no navegador
+      // Altera o título da aba manualmente no navegador
       document.title = `${fullName} Fotógrafo - Sua Galeria de Fotos`;
     }
 

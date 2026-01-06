@@ -6,8 +6,10 @@ import {
   Footer,
 } from '@/components/layout';
 import { FeatureItem } from '@/components/ui';
+import { usePageTitle } from '@/hooks/usePageTitle';
 
 export default function PrivacidadePage() {
+  usePageTitle('Privacidade e Transparência');
   return (
     <div className="relative min-h-screen w-full flex flex-col overflow-hidden bg-[#000]">
       {/* BACKGROUND FIXO PADRONIZADO */}

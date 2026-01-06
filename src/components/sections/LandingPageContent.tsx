@@ -14,8 +14,10 @@ import {
   Cloud,
 } from 'lucide-react';
 import { FeatureItem } from '@/components/ui';
+import { usePageTitle } from '@/hooks/usePageTitle';
 
 export default function LandingPageContent() {
+  usePageTitle('');
   return (
     <div className="relative min-h-screen w-full flex flex-col overflow-hidden bg-[#000]">
       {/* BACKGROUND FIXO - Gradiente padronizado */}

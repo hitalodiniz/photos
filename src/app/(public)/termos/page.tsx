@@ -6,17 +6,17 @@ import {
   ShieldAlert,
   ShieldCheck,
 } from 'lucide-react';
-import { useRouter } from 'next/navigation';
+
 import {
   EditorialHeader,
   DynamicHeroBackground,
   Footer,
 } from '@/components/layout';
 import { FeatureItem } from '@/components/ui';
-import { div } from 'framer-motion/client';
+import { usePageTitle } from '@/hooks/usePageTitle';
 
 export default function TermosDeUsoPage() {
-  const router = useRouter();
+  usePageTitle('Termos de Uso');
 
   return (
     <div className="relative min-h-screen w-full flex flex-col overflow-hidden bg-[#000]">
