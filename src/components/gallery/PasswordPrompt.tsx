@@ -1,6 +1,6 @@
 'use client';
 
-import { authenticateGaleriaAccess } from '@/actions/galeria';
+import { authenticateGaleriaAccess } from '@/core/services/galeria.service';
 import React, { useState } from 'react';
 import { Camera, Lock, Loader2, CheckCircle2, Send, X } from 'lucide-react';
 import { Galeria } from '@/core/types/galeria';

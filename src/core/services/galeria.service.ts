@@ -15,7 +15,7 @@ import {
   //makeFolderPublic as makeFolderPublicLib,
 } from '@/lib/google-drive';
 import { getDriveAccessTokenForUser } from '@/lib/google-auth';
-import { formatGalleryData } from '@/lib/gallery/gallery-logic';
+import { formatGalleryData } from '@/core/logic/galeria-logic';
 import { Galeria } from '@/core/types/galeria';
 
 // =========================================================================
@@ -56,13 +56,6 @@ interface GaleriaRecord {
     username: string;
   };
 }
-
-interface GaleriaWithCover extends GaleriaRecord {
-  coverImageUrl?: string | null;
-}
-
-// Se você tiver uma constante para o nome do cookie de acesso:
-const ACCESS_COOKIE_KEY = 'galeria_access_';
 
 // =========================================================================
 // 1. AUTENTICAÇÃO E CONTEXTO (userId + studioId)

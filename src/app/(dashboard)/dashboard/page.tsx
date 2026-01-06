@@ -1,7 +1,7 @@
 // app/dashboard/page.tsx
 import { redirect } from 'next/navigation';
 import { createSupabaseServerClientReadOnly } from '@/lib/supabase.server';
-import { getGalerias } from '@/actions/galeria';
+import { getGalerias } from '@/core/services/galeria.service';
 import ClientAdminWrapper from './ClientAdminWrapper';
 
 export const metadata = {

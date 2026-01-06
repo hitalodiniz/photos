@@ -1,6 +1,6 @@
 // src/lib/gallery/metadata-helper.ts
 import { Metadata } from 'next';
-import { fetchGalleryBySlug } from '@/lib/gallery/gallery-logic';
+import { fetchGalleryBySlug } from '@/core/logic/galeria-logic';
 import { getImageUrl } from '@/core/utils/url-helper';
 
 export async function getGalleryMetadata(fullSlug: string): Promise<Metadata> {

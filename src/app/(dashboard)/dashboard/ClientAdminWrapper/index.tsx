@@ -2,7 +2,7 @@
 
 import { useEffect, useMemo, useState } from 'react';
 import { LayoutGrid, Filter, Plus, Search, ChevronDown } from 'lucide-react';
-import { getGalerias, deleteGaleria } from '@/actions/galeria';
+import { getGalerias, deleteGaleria } from '@/core/services/galeria.service';
 
 import type { Galeria } from '@/core/types/galeria';
 import CreateGaleriaForm from './CreateGaleriaForm';

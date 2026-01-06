@@ -8,7 +8,7 @@ import {
   ReactNode,
 } from 'react';
 import { authService } from '@/core/services/auth.service';
-import { profileService } from '@/core/services/profile.service';
+import { getAvatarUrl } from '@/core/services/profile.service';
 
 interface AuthContextType {
   user: any;
@@ -26,7 +26,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   const [isLoading, setIsLoading] = useState(true); // 🎯 Nome sincronizado
 
   const loadProfile = async (userId: string) => {
-    const url = await profileService.getAvatarUrl(userId);
+    const url = await getAvatarUrl(userId);
     setAvatarUrl(url);
   };
 
@@ -62,7 +62,11 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       setIsLoading(false);
     });
 
-    return () => subscription.unsubscribe();
+    return () => {
+      if (subscription && typeof subscription.unsubscribe === 'function') {
+        subscription.unsubscribe();
+      }
+    };
   }, []);
 
   const logout = async () => {

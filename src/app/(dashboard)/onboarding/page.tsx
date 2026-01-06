@@ -1,4 +1,4 @@
-import { getProfileData } from '@/actions/profile';
+import { getProfileData } from '@/core/services/profile';
 import { AuthGuard } from '@/components/auth';
 import { redirect } from 'next/navigation';
 import OnboardingForm from './OnboardingForm';
@@ -13,13 +13,17 @@ export default async function OnboardingPage() {
 
   // 2. Proteção de Segurança: Redireciona se não houver usuário autenticado
   if (!data.success || !data.user_id) {
-    console.error("Erro no Onboarding:", data.error);
-    redirect('/'); 
+    console.error('Erro no Onboarding:', data.error);
+    redirect('/');
   }
 
   // 3. Define se o perfil já está completo para alternar entre "Novo Perfil" e "Editar"
   const profile = data.profile;
-  const isProfileComplete = !!(profile?.full_name && profile?.username && profile?.mini_bio);
+  const isProfileComplete = !!(
+    profile?.full_name &&
+    profile?.username &&
+    profile?.mini_bio
+  );
 
   return (
     <AuthGuard>
@@ -28,7 +32,7 @@ export default async function OnboardingPage() {
         <OnboardingForm
           initialData={profile}
           suggestedUsername={data.suggestedUsername}
-          email={data.email || ""}
+          email={data.email || ''}
           isEditMode={isProfileComplete}
         />
       </div>

@@ -4,7 +4,7 @@ import {
   fetchGalleryBySlug,
   formatGalleryData,
   fetchDrivePhotos,
-} from '@/lib/gallery/gallery-logic';
+} from '@/core/logic/galeria-logic';
 import { GaleriaView, PasswordPrompt } from '@/components/gallery';
 import { getImageUrl } from '@/core/utils/url-helper';
 import PhotographerProfileContainer from '@/components/profile/PhotographerProfileContainer';

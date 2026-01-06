@@ -1,14 +1,14 @@
 // src/app/[username]/[slug]/page.tsx
-import { Metadata } from 'next';
 import { notFound } from 'next/navigation';
 import { cookies } from 'next/headers';
 import {
   fetchGalleryBySlug,
   formatGalleryData,
   fetchDrivePhotos,
-} from '@/lib/gallery/gallery-logic';
+} from '@/core/logic/galeria-logic';
 import { GaleriaView, PasswordPrompt } from '@/components/gallery';
 import { getImageUrl } from '@/core/utils/url-helper';
+import {} from '@/core/services/galeria.service';
 
 export default async function UsernameGaleriaPage({
   params,
@@ -59,16 +59,17 @@ export async function generateMetadata({
   const { username, slug } = await params;
   const fullSlug = `${username}/${slug.join('/')}`;
 
-  const galeriaRaw = await fetchGalleryBySlug(fullSlug);
-  if (!galeriaRaw) return { title: 'Galeria de Fotos' };
+  // Execução limpa das lógicas
+  const galeria = await fetchGalleryBySlug(fullSlug);
 
-  // 🎯 Garante que o título da galeria não ultrapasse 40 caracteres
-  const cleanTitle =
-    galeriaRaw.title.length > 40
-      ? `${galeriaRaw.title.substring(0, 37)}...`
-      : galeriaRaw.title;
+  if (!galeria) return { title: 'Galeria não encontrada' };
 
   return {
-    title: cleanTitle,
+    title: `${galeria.title} - Sua Galeria de Fotos`,
+    description: `Fotógrafo: ${galeria.photographer?.full_name}`,
+    openGraph: {
+      title: galeria.title,
+      images: [galeria.cover_image_url || '/fallback-og.jpg'],
+    },
   };
 }

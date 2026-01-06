@@ -5,7 +5,7 @@ import SubmitButton from '@/components/ui/SubmitButton';
 import { GooglePickerButton } from '@/components/google-drive';
 import { CategorySelect } from '@/components/gallery';
 import { maskPhone } from '@/core/utils/masks';
-import { createGaleria } from '@/actions/galeria';
+import { createGaleria } from '@/core/services/galeria.service';
 import {
   Lock,
   Unlock,
