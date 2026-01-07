@@ -3,30 +3,27 @@
 
 import { createBrowserClient } from '@supabase/ssr';
 
-const SUPANEXT_PUBLIC_BASE_URL = process.env.NEXT_PUBLIC_SUPABASE_URL!;
+const SUPABASE_PUBLIC_BASE_URL = process.env.NEXT_PUBLIC_SUPABASE_URL!;
 const SUPABASE_ANON_KEY = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!;
-// Puxa do .env ou usa o host atual como fallback de segurança
+
+// Certifique-se que essa variável na Vercel seja ".suagaleria.com.br"
 const COOKIE_DOMAIN = process.env.NEXT_PUBLIC_COOKIE_DOMAIN;
 
-// Extrai o ID do projeto da URL automaticamente (ex: bdgqiyvasucvhihaueuk)
-const projectId = new URL(SUPANEXT_PUBLIC_BASE_URL).hostname.split('.')[0];
-
 export const supabase = createBrowserClient(
-  SUPANEXT_PUBLIC_BASE_URL,
+  SUPABASE_PUBLIC_BASE_URL,
   SUPABASE_ANON_KEY,
   {
     auth: {
       persistSession: true,
       autoRefreshToken: true,
       detectSessionInUrl: true,
-      storageKey: `sb-${projectId}-auth-token`,
+      flowType: 'pkce', // 🎯 ADICIONE ISSO: Força o fluxo PKCE no cliente
     },
     cookieOptions: {
-      domain: COOKIE_DOMAIN,
+      domain: COOKIE_DOMAIN, // Se estiver vazio em localhost, ele usa o host atual
       path: '/',
       sameSite: 'lax',
-      // Verifica se não está em localhost para ativar o Secure
-      secure: process.env.NEXT_PUBLIC_NODE_ENV === 'production',
+      secure: true, // Pode manter true, browsers modernos aceitam em localhost com lax
     },
   },
 );

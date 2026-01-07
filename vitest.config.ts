@@ -13,7 +13,7 @@ export default defineConfig({
       '@': path.resolve(__dirname, './src'),
     },
     env: {
-      SUPANEXT_PUBLIC_BASE_URL: 'https://uxbakxnl.supabase.co',
+      NEXT_PUBLIC_SUPABASE_URL: 'https://uxbakxnl.supabase.co',
       SUPABASE_ANON_KEY: 'fake-key',
     },
   },

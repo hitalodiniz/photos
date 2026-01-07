@@ -7,7 +7,7 @@ const supabaseAnonKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY;
 
 if (!supabaseUrl || !supabaseAnonKey) {
   throw new Error(
-    'SUPANEXT_PUBLIC_BASE_URL e SUPABASE_ANON_KEY devem ser definidos.',
+    'SUPABASE_PUBLIC_BASE_URL e SUPABASE_ANON_KEY devem ser definidos.',
   );
 }
 

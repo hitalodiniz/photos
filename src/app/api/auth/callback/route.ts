@@ -26,7 +26,9 @@ export async function GET(request: Request) {
             // .localhost (dev) ou .suagaleria.com.br (Vercel)
             cookieStore.set(name, value, {
               ...options,
-              domain: process.env.COOKIE_DOMAIN,
+              domain:
+                process.env.NEXT_PUBLIC_COOKIE_DOMAIN ||
+                process.env.COOKIE_DOMAIN,
               path: '/',
               sameSite: 'lax',
               // HTTPS OBRIGATÓRIO: Na Vercel deve ser true para o PKCE funcionar
@@ -48,7 +50,7 @@ export async function GET(request: Request) {
       error?.message || 'Sessão não encontrada.',
     );
     return NextResponse.redirect(
-      new URL('/auth/error?message=Login falhou', request.url),
+      new URL('/login?error=auth_failed', request.url),
     );
   }
 
