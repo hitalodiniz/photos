@@ -4,6 +4,9 @@ import { PhotoGrid, PhotographerAvatar } from '@/components/gallery';
 import type { Galeria } from '@/core/types/galeria';
 import { Camera } from 'lucide-react';
 import LoadingScreen from '../ui/LoadingScreen';
+import { fetchGalleryBySlug } from '@/core/logic/galeria-logic';
+import { SEO_CONFIG } from '@/core/config/seo.config';
+import { getImageUrl } from '@/core/utils/url-helper';
 
 interface GaleriaViewProps {
   galeria: Galeria;
@@ -120,4 +123,43 @@ export default function GaleriaView({ galeria, photos }: GaleriaViewProps) {
       </div>
     </div>
   );
+}
+
+export async function generateMetadata({
+  params,
+}: {
+  params: Promise<{ username: string; slug: string[] }>;
+}) {
+  const { username, slug } = await params;
+  const fullSlug = `${username}/${slug.join('/')}`;
+  const galeria = await fetchGalleryBySlug(fullSlug);
+
+  if (!galeria) return { title: 'Galeria não encontrada' };
+
+  // 1. Troca o parâmetro s0 por s1200 para reduzir o peso do arquivo
+  // O WhatsApp ignora imagens muito pesadas.
+  const ogImageUrl = getImageUrl(galeria.cover_image_url, 'w1200');
+
+  return {
+    title: `${galeria.title} - Galeria de Fotos`,
+    description: `Veja as fotos de ${galeria.photographer?.full_name}`,
+    openGraph: {
+      title: galeria.title,
+      description: `Clique para acessar a galeria completa`,
+      url: `${process.env.NEXT_PUBLIC_BASE_URL}/${fullSlug}`,
+      siteName: SEO_CONFIG.defaultTitle,
+      images: [
+        {
+          url: ogImageUrl,
+          width: 1200,
+          height: 630,
+        },
+      ],
+      type: 'website',
+    },
+    twitter: {
+      card: 'summary_large_image',
+      images: [ogImageUrl],
+    },
+  };
 }
