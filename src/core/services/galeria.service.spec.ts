@@ -173,6 +173,10 @@ describe('Galeria Service - Testes Integrados', () => {
       mockQueryBuilder.order.mockResolvedValue({ data: mockRaw, error: null });
 
       const result = await getGalerias();
+      if (!result.success) {
+        console.log('Mensagem de erro do retorno:', result.error);
+      }
+      expect(result.success).toBe(true);
       expect(result.success).toBe(true);
       expect(result.data?.[0].id).toBe('1');
     });

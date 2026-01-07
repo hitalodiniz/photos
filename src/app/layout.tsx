@@ -6,6 +6,8 @@ import { Metadata } from 'next';
 import Script from 'next/script';
 import { CookieBanner } from '@/components/ui';
 import { AuthProvider } from '@/contexts/AuthContext';
+import { RouteLoader } from '@/components/layout/RouteLoader';
+import { Suspense } from 'react';
 
 // 1. Configuração das fontes (Next.js as baixa e serve localmente)
 const inter = Inter({
@@ -70,6 +72,11 @@ export default function RootLayout({
         />
       </head>
       <body className={`${inter.className} bg-[#F1F3F4] antialiased`}>
+        {/* A tela de loading com fadeOut controlado pela prop que você criou */}
+        {/* Suspense é obrigatório ao usar useSearchParams em Client Components no Root Layout */}
+        <Suspense fallback={null}>
+          <RouteLoader />
+        </Suspense>{' '}
         <AuthProvider>
           <Navbar />
           <main className="w-full">{children}</main>

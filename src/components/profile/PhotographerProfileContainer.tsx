@@ -3,8 +3,8 @@
 import React, { useEffect, useState } from 'react';
 import { notFound } from 'next/navigation';
 import PhotographerProfileContent from '../ui/PhotographerProfileContent';
-import LoadingScreen from '../ui/LoadingScreen';
 import * as profileService from '@/core/services/profile.service';
+
 interface Props {
   username: string;
 }
@@ -26,10 +26,6 @@ export default function PhotographerProfileContainer({ username }: Props) {
     }
     loadData();
   }, [username]);
-
-  if (loading) {
-    return <LoadingScreen message="Carregando o perfil do fotógrafo" />;
-  }
 
   // 🎯 Se o serviço retornar null ou o usuário desativou o subdomínio, 404
   if (!profile) {

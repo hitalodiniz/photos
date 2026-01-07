@@ -10,6 +10,7 @@ import {
 } from '@/components/layout';
 import FeatureGrid from '@/components/ui/FeatureGrid';
 import { usePageTitle } from '@/hooks/usePageTitle';
+import { sendAppErrorLogAction } from '@/actions/email.actions'; // Importando a nova action
 
 export default function GlobalError({
   error,
@@ -22,51 +23,50 @@ export default function GlobalError({
   const router = useRouter();
 
   useEffect(() => {
-    if (error.message === 'AUTH_RECONNECT_REQUIRED') {
-      router.push('/auth/reconnect');
-    }
+    // Dispara o log de erro para seu e-mail automaticamente ao carregar a página
+    const reportError = async () => {
+      await sendAppErrorLogAction(error, 'GlobalError Boundary');
+    };
+
+    reportError();
     console.error('Erro capturado pelo Boundary:', error);
-  }, [error, router]);
+  }, [error]);
 
   const errorItems = [
     {
-      icon: <RefreshCcw />,
-      title: 'Tentar Novamente',
-      desc: (
-        <div className="flex flex-col gap-4">
-          <p>
-            Clique abaixo para recarregar os componentes e processar sua
-            solicitação novamente.
-          </p>
-          <button
-            onClick={(e) => {
-              e.stopPropagation();
-              reset();
-            }}
-            className="w-fit px-6 py-2.5 bg-[#D4AF37] hover:bg-[#B8860B] text-black font-black uppercase tracking-widest text-[10px] rounded-full transition-all"
-          >
-            Tentar novamente{' '}
-          </button>
-        </div>
-      ),
-    },
-    {
       icon: <AlertTriangle />,
-      title: 'Erro Técnico',
+      title: 'Instabilidade Técnica',
       desc: (
-        <div className="flex flex-col gap-4">
-          <p>
-            Ocorreu uma instabilidade interna. Nossa equipe já foi notificada.
-          </p>
-          <button
-            onClick={(e) => {
-              e.stopPropagation();
-              router.push('/');
-            }}
-            className="w-fit px-6 py-2.5 bg-[#D4AF37] hover:bg-[#B8860B] text-black font-black uppercase tracking-widest text-[10px] rounded-full transition-all"
-          >
-            Voltar ao Início
-          </button>
+        <div className="flex flex-col items-center gap-6 text-center">
+          <div className="flex flex-col gap-2">
+            <p className="text-white/70 text-[12px] md:text-[14px] leading-relaxed max-w-sm">
+              Ocorreu uma falha inesperada. Nossa equipe de monitoramento já
+              recebeu um relatório detalhado e está trabalhando na solução.
+            </p>
+          </div>
+
+          <div className="flex flex-col md:flex-row gap-4 w-full justify-center">
+            <button
+              onClick={() => reset()}
+              className="px-8 py-3 bg-[#D4AF37] hover:bg-[#B8860B] text-black font-black uppercase tracking-widest text-[10px] rounded-full transition-all flex items-center justify-center gap-2"
+            >
+              <RefreshCcw size={14} /> Tentar Novamente
+            </button>
+
+            <button
+              onClick={() => router.push('/')}
+              className="px-8 py-3 bg-white/5 hover:bg-white/10 text-white font-black uppercase tracking-widest text-[10px] rounded-full border border-white/10 transition-all flex items-center justify-center gap-2"
+            >
+              <Home size={14} /> Início
+            </button>
+          </div>
+
+          <div className="pt-6 border-t border-white/5 w-full">
+            <p className="text-[9px] text-white/20 uppercase tracking-[0.2em]">
+              ID do Erro: ${error.digest || 'N/A'} • Relatório enviado com
+              sucesso
+            </p>
+          </div>
         </div>
       ),
     },
@@ -75,22 +75,25 @@ export default function GlobalError({
   return (
     <div className="relative min-h-screen w-full flex flex-col overflow-hidden bg-[#000]">
       <DynamicHeroBackground />
-
       <div className="relative z-10 flex flex-col min-h-screen">
         <EditorialHeader
-          title="Erro interno"
+          title="Erro de Sistema"
           subtitle={
             <>
-              Identificamos uma falha no processamento ou{' '}
+              Falha crítica no{' '}
               <span className="font-bold border-b-2 border-[#F3E5AB]/50 text-white">
-                instabilidade técnica
+                processamento de dados
               </span>
             </>
           }
         />
 
-        <FeatureGrid items={errorItems} iconPosition="top" />
-
+        <main className="flex-grow flex flex-col items-center justify-center py-6 md:py-10">
+          <div className="w-full max-w-2xl mx-auto px-4">
+            {/* Ícone centralizado no topo com 32px no mobile conforme padronizado */}
+            <FeatureGrid items={errorItems} iconPosition="top" />
+          </div>
+        </main>
         <Footer />
       </div>
     </div>
