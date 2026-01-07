@@ -17,6 +17,8 @@ import {
 import { getDriveAccessTokenForUser } from '@/lib/google-auth';
 import { formatGalleryData } from '@/core/logic/galeria-logic';
 import { Galeria } from '@/core/types/galeria';
+import { getValidGoogleTokenService } from './google.service';
+import { error, error } from 'console';
 
 // =========================================================================
 // TIPOS AUXILIARES
@@ -353,6 +355,7 @@ export async function getGalerias(
   }
 
   try {
+    const token = await getValidGoogleTokenService(userId);
     const supabase = supabaseClient || (await createSupabaseServerClient());
 
     // 🎯 AJUSTE NO SELECT: Agora traz todos os campos necessários do perfil
@@ -385,8 +388,16 @@ export async function getGalerias(
     );
 
     return { success: true, data: galeriasFormatadas };
-  } catch (err) {
-    console.error('Erro ao buscar galerias:', err);
+  } catch (error) {
+    console.error('Erro ao buscar galerias:', error);
+
+    if (
+      error.message === 'AUTH_RECONNECT_REQUIRED' ||
+      error.message.includes('Google expirou')
+    ) {
+      return { success: false, error: 'AUTH_RECONNECT_REQUIRED' };
+    }
+
     return {
       success: false,
       error: 'Falha ao buscar galerias.',

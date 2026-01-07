@@ -46,6 +46,12 @@ export default async function DashboardPage() {
   // 4. Busca galerias via SSR
   const result = await getGalerias(); // A action já busca o ID internamente no servidor
 
+  // Se o erro for de autenticação do Google,
+  // deixe o erro subir para ser capturado pelo error.tsx
+  if (!result.success && result.error === 'AUTH_RECONNECT_REQUIRED') {
+    throw new Error('AUTH_RECONNECT_REQUIRED');
+  }
+
   // Extrai apenas os dados se a operação for um sucesso
   const initialGalerias = result.success ? result.data : [];
 

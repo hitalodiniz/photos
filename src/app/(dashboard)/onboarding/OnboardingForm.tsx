@@ -2,7 +2,6 @@
 
 import { useState, useEffect, useRef } from 'react';
 import { useRouter } from 'next/navigation';
-import { useFormStatus } from 'react-dom';
 import {
   Camera,
   User,
@@ -19,7 +18,6 @@ import {
   Save,
   AlertCircle,
   Pencil,
-  ArrowLeft,
   LayoutDashboard,
 } from 'lucide-react';
 
@@ -27,8 +25,8 @@ import { upsertProfile } from '@/core/services/profile.service';
 import { supabase } from '@/lib/supabase.client';
 import { maskPhone } from '@/core/utils/masks';
 import ProfilePreview from './ProfilePreview';
-import { div } from 'framer-motion/client';
 import { Toast } from '@/components/ui';
+import { useFormStatus } from 'react-dom';
 
 // --- AUXILIARES ---
 const fetchStates = async () => {
@@ -80,25 +78,29 @@ const fetchCitiesByState = async (uf: string, query: string) => {
   }
 };
 
-export function SubmitOnboarding() {
+export function SubmitOnboarding({ isSaving }: { isSaving: boolean }) {
+  // Mantemos o pending para caso o form seja disparado de outra forma,
+  // mas priorizamos o isSaving do nosso fluxo manual.
   const { pending } = useFormStatus();
+  const isLoading = pending || isSaving;
+
   return (
     <button
       type="submit"
-      disabled={pending}
+      disabled={isLoading}
       className={`w-full py-5 rounded-2xl font-bold uppercase text-xs tracking-[0.2em] shadow-lg transition-all active:scale-95 flex items-center justify-center gap-2 ${
-        pending
+        isLoading
           ? 'bg-slate-100 text-slate-400 cursor-not-allowed'
-          : 'bg-champagne-dark hover:bg-[#e6d595] text-slate-900 shadow-[#F3E5AB]/20'
+          : 'bg-slate-900 text-[#F3E5AB] hover:bg-slate-800 shadow-xl'
       }`}
     >
-      {pending ? (
+      {isLoading ? (
         <>
-          <Loader2 className="animate-spin" size={18} /> Salvando...
+          <Loader2 className="animate-spin" size={18} /> Consolidando...
         </>
       ) : (
         <>
-          <Save size={16} /> Salvar perfil
+          <Save size={16} /> Salvar perfil profissional
         </>
       )}
     </button>
@@ -113,6 +115,7 @@ export default function OnboardingForm({
   const router = useRouter();
   const fileInputRef = useRef<HTMLInputElement>(null);
 
+  // Estados do Form
   const [fullName, setFullName] = useState(initialData?.full_name || '');
   const [username, setUsername] = useState(
     initialData?.username || suggestedUsername,
@@ -123,6 +126,8 @@ export default function OnboardingForm({
   const [selectedCities, setSelectedCities] = useState<string[]>(
     initialData?.operating_cities || [],
   );
+
+  // Estados de Auxílio
   const [states, setStates] = useState<{ sigla: string; nome: string }[]>([]);
   const [selectedUF, setSelectedUF] = useState('');
   const [cityInput, setCityInput] = useState('');
@@ -131,15 +136,22 @@ export default function OnboardingForm({
   const [photoPreview, setPhotoPreview] = useState<string | null>(
     initialData?.profile_picture_url || null,
   );
+
+  // Estados de Status
   const [isChecking, setIsChecking] = useState(false);
   const [isAvailable, setIsAvailable] = useState<boolean | null>(null);
   const [showSuccessModal, setShowSuccessModal] = useState(false);
   const [isSaving, setIsSaving] = useState(false);
+  const [toastConfig, setToastConfig] = useState<{
+    message: string;
+    type: 'success' | 'error';
+  } | null>(null);
 
   useEffect(() => {
     fetchStates().then(setStates);
   }, []);
 
+  // Busca de Cidades
   useEffect(() => {
     const timer = setTimeout(async () => {
       if (cityInput.length >= 2 && selectedUF) {
@@ -163,6 +175,7 @@ export default function OnboardingForm({
 
   const isPhoneValid = phone.replace(/\D/g, '').length >= 11;
 
+  // Verificação de Username Disponível
   useEffect(() => {
     if (!username || username === initialData?.username) {
       setIsAvailable(null);
@@ -193,18 +206,20 @@ export default function OnboardingForm({
     const file = e.target.files?.[0];
     if (file) {
       setPhotoFile(file);
-      const reader = new FileReader();
-      reader.onloadend = () => setPhotoPreview(reader.result as string);
-      reader.readAsDataURL(file);
+      // Otimização: createObjectURL é mais leve que FileReader para previews
+      setPhotoPreview(URL.createObjectURL(file));
     }
   };
 
-  const [toastConfig, setToastConfig] = useState<{
-    message: string;
-    type: 'success' | 'error';
-  } | null>(null);
-
   const clientAction = async (formData: FormData) => {
+    if (isAvailable === false) {
+      setToastConfig({
+        message: 'Este username já está em uso.',
+        type: 'error',
+      });
+      return;
+    }
+
     setIsSaving(true);
 
     // 1. Adiciona as cidades como JSON
@@ -239,15 +254,14 @@ export default function OnboardingForm({
       } else {
         // 4. Substituição do Alert pelo Toast de Luxo (12px/14px)
         setToastConfig({
-          message: result?.error || 'Não foi possível salvar os dados.',
+          message: result?.error || 'Erro ao salvar perfil.',
           type: 'error',
         });
       }
     } catch (err) {
       // 5. Captura de erro de rede (Ex: Arquivo ainda muito grande ou queda de sinal)
       setToastConfig({
-        message:
-          'Erro de conexão. Verifique o tamanho da foto ou sua internet.',
+        message: 'Falha na conexão. Tente novamente.',
         type: 'error',
       });
     } finally {
@@ -262,7 +276,8 @@ export default function OnboardingForm({
     <>
       <div className={containerBaseClass}>
         {/* ASIDE REFINADO - ESTILO LUXO EDITORIAL */}
-        <aside className="w-[35%] bg-white border-r border-slate-100 p-6 pt-8 flex flex-col h-full relative z-20 overflow-y-auto no-scrollbar shadow-xl">
+        <aside className="w-[100%] md:w-[35%] bg-white border-r border-slate-100 p-6 pt-8 flex flex-col h-full relative z-20 overflow-y-auto no-scrollbar shadow-xl">
+          {' '}
           {/* 1. Botão Secundário de Voltar (Compacto) */}
           {isEditMode && (
             <button
@@ -284,7 +299,6 @@ export default function OnboardingForm({
               </h1>
             </div>
           </div>
-
           <form action={clientAction} className="space-y-5 flex-grow pb-10">
             <div className="flex flex-col items-center">
               <div className="relative group">
@@ -338,7 +352,9 @@ export default function OnboardingForm({
                 </label>
                 <input
                   name="full_name"
-                  className="w-full bg-slate-50 border border-slate-100 rounded-xl px-4 py-3 text-sm focus:outline-none focus:ring-2 focus:ring-[#F3E5AB]"
+                  min={5}
+                  max={50}
+                  className="w-full bg-slate-50 border border-slate-100 rounded-xl px-4 py-3 text-sm focus:outline-none focus:ring-2 focus:ring-[#F3E5AB] outline-none ring-2"
                   value={fullName}
                   onChange={(e) => setFullName(e.target.value)}
                   required
@@ -351,9 +367,17 @@ export default function OnboardingForm({
                 <div className="relative">
                   <input
                     name="username"
-                    className="w-full bg-slate-50 border border-slate-100 rounded-xl px-4 py-3 text-sm focus:outline-none focus:ring-2 focus:ring-[#F3E5AB]"
+                    min={5}
+                    max={20}
+                    className="w-full bg-slate-50 border border-slate-100 rounded-xl px-4 py-3 text-sm focus:outline-none focus:ring-2 focus:ring-[#F3E5AB] outline-none ring-2"
                     value={username}
-                    onChange={(e) => setUsername(e.target.value.toLowerCase())}
+                    onChange={(e) =>
+                      setUsername(
+                        e.target.value
+                          .toLowerCase()
+                          .replace(/[^a-z0-9._]/g, ''),
+                      )
+                    }
                     required
                   />
                   <div className="absolute right-3 top-1/2 -translate-y-1/2">
@@ -382,7 +406,7 @@ export default function OnboardingForm({
                 </label>
                 <input
                   name="phone_contact"
-                  className={`w-full bg-slate-50 border border-slate-100 rounded-xl px-4 py-3 text-sm focus:outline-none focus:ring-2 focus:ring-[#F3E5AB] ${!isPhoneValid && phone.length > 0 ? 'border-red-400 bg-red-50/30' : ''}`}
+                  className={`w-full bg-slate-50 border border-slate-100 rounded-xl px-4 py-3 text-sm focus:outline-none focus:ring-2 focus:ring-[#F3E5AB] outline-none ring-2 ${!isPhoneValid && phone.length > 0 ? 'border-red-400 bg-red-50/30' : ''}`}
                   value={phone}
                   onChange={(e) => setPhone(maskPhone(e))}
                   placeholder="(00) 00000-0000"
@@ -394,7 +418,7 @@ export default function OnboardingForm({
                 </label>
                 <input
                   name="instagram_link"
-                  className="w-full bg-slate-50 border border-slate-100 rounded-xl px-4 py-3 text-sm focus:outline-none focus:ring-2 focus:ring-[#F3E5AB]"
+                  className="w-full bg-slate-50 border border-slate-100 rounded-xl px-4 py-3 text-sm focus:outline-none focus:ring-2 focus:ring-[#F3E5AB] outline-none ring-2"
                   value={instagram}
                   onChange={(e) => setInstagram(e.target.value)}
                   placeholder="@seu.perfil"
@@ -451,7 +475,7 @@ export default function OnboardingForm({
                     disabled={!selectedUF}
                     value={cityInput}
                     onChange={(e) => setCityInput(e.target.value)}
-                    className="w-full bg-white border border-gray-200 rounded-xl px-4 py-2 text-xs outline-none"
+                    className="w-full bg-white border border-gray-200 rounded-xl px-4 py-2 text-xs outline-none ring-2"
                     placeholder={
                       selectedUF
                         ? 'Digite a cidade...'
@@ -490,7 +514,7 @@ export default function OnboardingForm({
               />
             </div>
 
-            <SubmitOnboarding />
+            <SubmitOnboarding isSaving={isSaving} />
           </form>
         </aside>
 

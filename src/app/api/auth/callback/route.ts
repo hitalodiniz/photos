@@ -22,14 +22,14 @@ export async function GET(request: Request) {
         getAll: () => cookieStore.getAll(),
         setAll: (cookiesToSet) => {
           cookiesToSet.forEach(({ name, value, options }) => {
-            // 🎯 AJUSTE MULTIDOMÍNIO: Injeta o domínio para abranger subdomínios
+            // AJUSTE MULTIDOMÍNIO: Injeta o domínio para abranger subdomínios
             // .localhost (dev) ou .suagaleria.com.br (Vercel)
             cookieStore.set(name, value, {
               ...options,
               domain: process.env.COOKIE_DOMAIN,
               path: '/',
               sameSite: 'lax',
-              // 🎯 HTTPS OBRIGATÓRIO: Na Vercel deve ser true para o PKCE funcionar
+              // HTTPS OBRIGATÓRIO: Na Vercel deve ser true para o PKCE funcionar
               secure: isProduction,
             });
           });
@@ -52,18 +52,38 @@ export async function GET(request: Request) {
     );
   }
 
-  const { user } = data.session;
-  const providerRefreshToken = data.session.provider_refresh_token;
+  const { user, provider_refresh_token, provider_token, expires_in } =
+    data.session;
 
   // 3. PERSISTÊNCIA DO REFRESH TOKEN
-  if (providerRefreshToken && user?.id) {
-    const { error: updateError } = await supabase
-      .from('tb_profiles')
-      .update({ google_refresh_token: providerRefreshToken })
-      .eq('id', user.id); // Validado conforme seu script SQL (chave PK = id)
+  if (user?.id) {
+    const updates: any = {};
 
-    if (updateError) {
-      console.error('Erro ao salvar refresh token:', updateError.message);
+    // Salva o Refresh Token se disponível (essencial para futuras renovações)
+    if (provider_refresh_token) {
+      updates.google_refresh_token = provider_refresh_token;
+    }
+
+    // NOVIDADE: Salva o Access Token inicial para o service já ler do banco
+    if (provider_token) {
+      updates.google_access_token = provider_token;
+
+      // Calcula a expiração (expires_in costuma ser 3600 segundos para o Google)
+      const expiresInSeconds = expires_in || 3600;
+      updates.google_token_expires_at = new Date(
+        Date.now() + expiresInSeconds * 1000,
+      ).toISOString();
+    }
+
+    if (Object.keys(updates).length > 0) {
+      const { error: updateError } = await supabase
+        .from('tb_profiles')
+        .update(updates)
+        .eq('id', user.id);
+
+      if (updateError) {
+        console.error('Erro ao salvar tokens iniciais:', updateError.message);
+      }
     }
   }
 

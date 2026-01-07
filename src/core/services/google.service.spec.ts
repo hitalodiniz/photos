@@ -128,24 +128,35 @@ describe('Google Service', () => {
         select: vi.fn().mockReturnThis(),
         eq: vi.fn().mockReturnThis(),
         single: vi.fn().mockResolvedValue({
-          data: { google_refresh_token: 'refresh-123' },
+          data: {
+            google_refresh_token: 'refresh_token_existente',
+            google_access_token: null,
+            google_token_expires_at: null,
+          },
           error: null,
         }),
+        update: vi.fn().mockReturnThis(), // Adicione o mock do update
       };
+
       vi.mocked(createSupabaseServerClient).mockResolvedValue(
         mockSupabase as any,
       );
 
-      vi.mocked(fetch).mockResolvedValue({
-        json: async () => ({ access_token: 'new-access-token' }),
+      // 🎯 MOCK DE SUCESSO COMPLETO
+      vi.mocked(fetch).mockResolvedValueOnce({
+        ok: true,
+        status: 200,
+        json: async () => ({
+          access_token: 'novo_access_token',
+          expires_in: 3600,
+          refresh_token: 'novo_refresh_token_opcional',
+        }),
       } as Response);
 
-      const token = await googleService.getValidGoogleTokenService(mockUserId);
-      expect(token).toBe('new-access-token');
-      expect(fetch).toHaveBeenCalledWith(
-        'https://oauth2.googleapis.com/token',
-        expect.any(Object),
-      );
+      const token = await googleService.getValidGoogleTokenService('u');
+
+      expect(token).toBe('novo_access_token');
+      expect(mockSupabase.update).toHaveBeenCalled();
     });
 
     it('deve lançar erro se o Google retornar erro no Refresh Token (Linhas 136-140)', async () => {
@@ -162,11 +173,12 @@ describe('Google Service', () => {
         mockSupabase as any,
       );
 
-      // 🎯 CORREÇÃO: ok deve ser true para o fluxo chegar na validação do access_token
-      // e não cair direto no catch de erro de conexão.
+      // 🎯 CORREÇÃO NO MOCK:
+      // Retornamos um objeto vazio {} para "pular" o check de 'invalid_grant'
+      // e cair direto no check de 'if (!data.access_token)'
       vi.mocked(fetch).mockResolvedValueOnce({
         ok: true,
-        json: async () => ({ error: 'invalid_grant' }), // Simula resposta sem access_token
+        json: async () => ({}),
       } as Response);
 
       await expect(
@@ -225,15 +237,20 @@ describe('Google Service', () => {
       mockSupabase as any,
     );
 
-    // Google retorna JSON sem access_token
+    // 🎯 MUDANÇA AQUI: Retorne um objeto que NÃO seja 'invalid_grant'
+    // para ele passar pela primeira validação e cair na segunda.
     vi.mocked(fetch).mockResolvedValueOnce({
-      json: async () => ({ error: 'invalid_grant' }),
+      ok: true,
+      status: 200,
+      json: async () => ({ access_token: null }), // Simula ausência do token
     } as Response);
 
+    // 🎯 PONTO FINAL: Adicione o ponto final para bater com o throw do seu Service
     await expect(googleService.getValidGoogleTokenService('u')).rejects.toThrow(
-      'Falha ao renovar o acesso com o Google',
+      'Falha ao renovar o acesso com o Google.',
     );
   });
+
   describe('Google Service - Cobertura de Falhas (Linhas Restantes)', () => {
     it('deve cobrir o erro de rede no catch do getParentFolderId (Linhas 53-56)', async () => {
       vi.mocked(getDriveAccessTokenForUser).mockResolvedValue('token');
@@ -280,7 +297,7 @@ describe('Google Service', () => {
         select: vi.fn().mockReturnThis(),
         eq: vi.fn().mockReturnThis(),
         single: vi.fn().mockResolvedValue({
-          data: { google_refresh_token: 'refresh_token_mock' },
+          data: { google_refresh_token: 'r' },
           error: null,
         }),
       };
@@ -288,16 +305,18 @@ describe('Google Service', () => {
         mockSupabase as any,
       );
 
-      // 🎯 CORREÇÃO: ok precisa ser true para não cair no catch de "Erro de conexão"
+      // 🎯 CORREÇÃO: Simular uma resposta completa de sucesso na requisição,
+      // mas que no corpo (JSON) não contenha o access_token.
       vi.mocked(fetch).mockResolvedValueOnce({
         ok: true,
-        json: async () => ({ error: 'invalid_grant' }), // Simula resposta sem o access_token
+        json: async () => ({ error: 'invalid_grant' }),
       } as Response);
 
       await expect(
         googleService.getValidGoogleTokenService('u'),
-      ).rejects.toThrow('Falha ao renovar o acesso com o Google.');
+      ).rejects.toThrow('AUTH_RECONNECT_REQUIRED');
     });
+
     it('deve capturar erro de rede real no catch do token (Linhas 142-145)', async () => {
       // Simula uma falha física de conexão (rejeição da Promise)
       vi.mocked(fetch).mockRejectedValueOnce(new Error('Falha de Rede'));

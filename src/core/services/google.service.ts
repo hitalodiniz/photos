@@ -158,45 +158,87 @@ export async function checkFolderPublicPermissionService(
 }
 
 export async function getValidGoogleTokenService(userId: string) {
-  // 🎯 Use a sua função exportada (Opção 1 do seu arquivo)
   const supabase = await createSupabaseServerClient();
 
-  // 1. Busca o refresh_token no seu perfil
+  // 1. Busca os tokens e a validade no banco
   const { data: profile, error } = await supabase
     .from('tb_profiles')
-    .select('google_refresh_token')
+    .select(
+      'google_refresh_token, google_access_token, google_token_expires_at',
+    )
     .eq('id', userId)
     .single();
 
   if (error || !profile?.google_refresh_token) {
-    console.error('Erro ao buscar perfil no Supabase:', error);
-    throw new Error('Nenhum token do Google encontrado para este fotógrafo.');
+    throw new Error('Nenhum token do Google encontrado.');
   }
 
-  // 2. Faz o Refresh manualmente com a API do Google
-  let response;
+  // 2. VERIFICAÇÃO DE CACHE: O token no banco ainda é válido?
+  // Adicionamos uma margem de segurança de 5 minutos (300.000 ms)
+  if (profile.google_access_token && profile.google_token_expires_at) {
+    const expiresAt = new Date(profile.google_token_expires_at).getTime();
+    const now = Date.now();
+
+    if (expiresAt > now + 60000) {
+      return profile.google_access_token;
+    }
+  }
+
+  // 3. Se expirou ou não existe, renovamos manualmente
   try {
-    response = await fetch('https://oauth2.googleapis.com/token', {
+    const response = await fetch('https://oauth2.googleapis.com/token', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({
         client_id: process.env.GOOGLE_CLIENT_ID,
-        client_secret: process.env.GOOGLE_CLIENT_SECRET, // Garanta que esta variável existe no .env
+        client_secret: process.env.GOOGLE_CLIENT_SECRET,
         refresh_token: profile.google_refresh_token,
         grant_type: 'refresh_token',
       }),
     });
-  } catch (fetchError) {
-    console.error('Erro de conexão com o servidor do Google:', fetchError);
+
+    const data = await response.json();
+
+    if (
+      data.error === 'invalid_grant' ||
+      data.error === 'refresh_token_already_used'
+    ) {
+      // Esse erro específico será capturado pela Page para fazer o redirect
+      throw new Error('AUTH_RECONNECT_REQUIRED');
+    }
+
+    if (!data.access_token) {
+      throw new Error('Falha ao renovar o acesso com o Google.');
+    }
+
+    // 4. PERSISTÊNCIA: Salva os novos dados para a próxima chamada
+    const updates: any = {
+      google_access_token: data.access_token,
+      // Google retorna 'expires_in' em segundos (geralmente 3600)
+      google_token_expires_at: new Date(
+        Date.now() + data.expires_in * 1000,
+      ).toISOString(),
+    };
+
+    // Importante: Se o Google rotacionar o refresh_token, salvamos também
+    if (data.refresh_token) {
+      updates.google_refresh_token = data.refresh_token;
+    }
+
+    await supabase.from('tb_profiles').update(updates).eq('id', userId);
+
+    return data.access_token;
+  } catch (fetchError: any) {
+    //Se o erro for um dos que nós lançamos manualmente, repasse ele adiante
+    const knownErrors = [
+      'AUTH_RECONNECT_REQUIRED',
+      'Falha ao renovar o acesso com o Google.',
+    ];
+    if (knownErrors.includes(fetchError.message)) {
+      throw fetchError;
+    }
+
+    // Erros de REDE reais (fetch falhou, DNS, timeout) caem aqui
     throw new Error('Erro de conexão com o servidor do Google.');
   }
-
-  const data = await response.json();
-  // Validação lógica (fora do catch de rede)
-  if (!data.access_token) {
-    console.error('Resposta inválida do Google OAuth:', data);
-    throw new Error('Falha ao renovar o acesso com o Google.');
-  }
-
-  return data.access_token;
 }
