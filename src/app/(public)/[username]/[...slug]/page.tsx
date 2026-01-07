@@ -9,6 +9,7 @@ import {
 import { GaleriaView, PasswordPrompt } from '@/components/gallery';
 import { getImageUrl } from '@/core/utils/url-helper';
 import {} from '@/core/services/galeria.service';
+import { SEO_CONFIG } from '@/core/config/seo.config';
 
 export default async function UsernameGaleriaPage({
   params,
@@ -58,18 +59,34 @@ export async function generateMetadata({
 }) {
   const { username, slug } = await params;
   const fullSlug = `${username}/${slug.join('/')}`;
-
-  // Execução limpa das lógicas
   const galeria = await fetchGalleryBySlug(fullSlug);
 
   if (!galeria) return { title: 'Galeria não encontrada' };
 
+  // 1. Troca o parâmetro s0 por s1200 para reduzir o peso do arquivo
+  // O WhatsApp ignora imagens muito pesadas.
+  const ogImageUrl = getImageUrl(galeria.cover_image_url, 'w1200');
+
   return {
-    title: `${galeria.title} - Sua Galeria de Fotos`,
-    description: `Fotógrafo: ${galeria.photographer?.full_name}`,
+    title: `${galeria.title} - Galeria de Fotos`,
+    description: `Veja as fotos de ${galeria.photographer?.full_name}`,
     openGraph: {
       title: galeria.title,
-      images: [galeria.cover_image_url || '/fallback-og.jpg'],
+      description: `Clique para acessar a galeria completa`,
+      url: `${process.env.NEXT_PUBLIC_BASE_URL}/${fullSlug}`,
+      siteName: SEO_CONFIG.defaultTitle,
+      images: [
+        {
+          url: ogImageUrl,
+          width: 1200,
+          height: 630,
+        },
+      ],
+      type: 'website',
+    },
+    twitter: {
+      card: 'summary_large_image',
+      images: [ogImageUrl],
     },
   };
 }
