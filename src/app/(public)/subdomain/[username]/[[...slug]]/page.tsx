@@ -81,3 +81,26 @@ export default async function SubdomainGaleriaPage({
 
   return <GaleriaView galeria={galeriaData} photos={photos} />;
 }
+
+export async function generateMetadata({
+  params,
+}: {
+  params: Promise<{ username: string; slug: string[] }>;
+}) {
+  const { username, slug } = await params;
+  const fullSlug = `${username}/${slug.join('/')}`;
+
+  // Execução limpa das lógicas
+  const galeria = await fetchGalleryBySlug(fullSlug);
+
+  if (!galeria) return { title: 'Galeria não encontrada' };
+
+  return {
+    title: `${galeria.title} - Sua Galeria de Fotos`,
+    description: `Fotógrafo: ${galeria.photographer?.full_name}`,
+    openGraph: {
+      title: galeria.title,
+      images: [galeria.cover_image_url || '/fallback-og.jpg'],
+    },
+  };
+}

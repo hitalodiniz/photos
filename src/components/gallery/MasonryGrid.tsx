@@ -197,17 +197,21 @@ const MasonryGrid = ({
                               e.stopPropagation();
                               toggleFavoriteFromGrid(photo.id);
                             }}
-                            className={`absolute top-2 left-2 z-[50] w-8 h-8 md:w-10 md:h-10 rounded-full border flex items-center justify-center transition-all duration-200 cursor-pointer pointer-events-auto ${
+                            className={`absolute top-2 left-2 z-[50] w-8 h-8 md:w-10 md:h-10 rounded-full border flex items-center justify-center transition-all duration-300 cursor-pointer pointer-events-auto group/fav ${
                               isSelected
-                                ? 'bg-[#E67E70] border-transparent shadow-lg scale-110'
-                                : 'bg-black/40 border-white/20 hover:bg-black/60 hover:scale-110'
+                                ? 'bg-[#E67E70] border-transparent shadow-lg scale-105'
+                                : 'bg-black/40 border-white/20 hover:bg-[#E67E70] hover:border-[#E67E70] shadow-sm'
                             }`}
                             title="Favoritar foto"
                           >
                             <Heart
                               size={16}
                               fill={isSelected ? 'white' : 'none'}
-                              className="text-white"
+                              className={`transition-all duration-300 ${
+                                isSelected
+                                  ? 'text-white'
+                                  : 'text-white group-hover/fav:text-white group-hover/fav:fill-white'
+                              }`}
                             />
                           </button>
                           {/* Botão de WhatsApp (Novo) */}
@@ -217,12 +221,12 @@ const MasonryGrid = ({
                               e.stopPropagation();
                               handleShareWhatsAppGrid(photo.id);
                             }}
-                            className="absolute top-2 right-12 md:right-14 z-[50] w-8 h-8 md:w-10 md:h-10 rounded-full border bg-black/40 border-white/20 flex items-center justify-center hover:bg-[#25D366]/20 hover:scale-110 transition-all pointer-events-auto cursor-pointer group/wa"
+                            className="absolute top-2 right-12 md:right-14 z-[50] w-8 h-8 md:w-10 md:h-10 rounded-full border bg-black/40 border-white/20 flex items-center justify-center transition-all duration-300 pointer-events-auto cursor-pointer group/wa hover:bg-[#25D366] hover:border-[#25D366]  shadow-sm"
                             title="Compartilhar no WhatsApp"
                           >
                             <MessageCircle
                               size={16}
-                              className="text-white group-hover/wa:text-[#25D366]"
+                              className="text-white transition-colors duration-300 group-hover/wa:text-white"
                             />
                           </button>
                           <button
@@ -268,9 +272,12 @@ const MasonryGrid = ({
                               }
                             }}
                             title="Download em alta resolução"
-                            className="absolute top-2 right-2 z-[50] w-8 h-8 md:w-10 md:h-10 rounded-full border bg-black/40 border-white/20 flex items-center justify-center hover:scale-110 transition-all pointer-events-auto cursor-pointer"
+                            className="absolute top-2 right-2 z-[50] w-8 h-8 md:w-10 md:h-10 rounded-full border bg-black/40 border-white/20 flex items-center justify-center transition-all duration-300 pointer-events-auto cursor-pointer group/dl hover:bg-white hover:border-white  shadow-sm"
                           >
-                            <Download size={16} className="text-white" />
+                            <Download
+                              size={16}
+                              className="text-white transition-colors duration-300 group-hover/dl:text-black"
+                            />
                           </button>
 
                           {isSelected && !showOnlyFavorites && (

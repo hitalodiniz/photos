@@ -270,11 +270,11 @@ export default function Lightbox({
             >
               <button
                 onClick={handleShareWhatsApp}
-                className="flex items-center gap-0 hover:gap-2 transition-all duration-500 group border-r border-white/10 pr-3"
+                className="flex items-center gap-0 transition-all duration-500 group border-r border-white/10 pr-3"
                 title="Compartilhar no WhatsApp"
               >
-                <div className="flex items-center justify-center w-8 h-8 md:w-11 md:h-11 rounded-full bg-white/5 group-hover:bg-[#25D366]/20 transition-colors shrink-0">
-                  <MessageCircle className="text-white group-hover:text-[#25D366] w-[20px] h-[20px] md:w-[24px] md:h-[24px]" />
+                <div className="flex items-center justify-center w-8 h-8 md:w-11 md:h-11 rounded-full bg-white/5 group-hover:bg-[#25D366] transition-all duration-300 shrink-0">
+                  <MessageCircle className="text-white w-[16px] h-[16px] md:w-[20px] md:h-[20px] transition-colors" />
                 </div>
                 <div
                   className={`gap-y-1 flex flex-col items-start leading-none transition-all duration-500 overflow-hidden ${showButtonText ? 'max-w-[100px] opacity-100 ml-2' : 'max-w-0 opacity-0 ml-0'}`}
@@ -291,16 +291,24 @@ export default function Lightbox({
               <div className="relative flex items-center border-r border-white/10 pr-3 ml-2">
                 <button
                   onClick={toggleFavorite}
-                  className={`flex items-center gap-0 transition-all duration-500 group ${isFavorited ? 'text-[#E67E70]' : 'hover:text-[#F3E5AB]'}`}
+                  className="flex items-center gap-0 transition-all duration-500 group"
                   title="Favoritar foto"
                 >
                   <div
-                    className={`flex items-center justify-center w-8 h-8 md:w-11 md:h-11 rounded-full transition-colors shrink-0 ${isFavorited ? 'bg-[#E67E70]/20' : 'bg-white/5'}`}
+                    className={`flex items-center justify-center w-8 h-8 md:w-11 md:h-11 rounded-full transition-all duration-300 shrink-0 ${
+                      isFavorited
+                        ? 'bg-[#E67E70] shadow-lg'
+                        : 'bg-white/5 group-hover:bg-[#E67E70]'
+                    }`}
                   >
                     <Heart
-                      fill={isFavorited ? 'currentColor' : 'none'}
-                      className={`w-[20px] h-[20px] md:w-[24px] md:h-[24px] ${isFavorited ? 'animate-pulse' : 'text-white'}`}
-                    />{' '}
+                      fill={isFavorited ? 'white' : 'none'}
+                      className={`w-[16px] h-[16px] md:w-[20px] md:h-[20px] transition-all duration-300 ${
+                        isFavorited
+                          ? 'text-white animate-pulse'
+                          : 'text-white group-hover:text-white group-hover:fill-white'
+                      }`}
+                    />
                   </div>
                   <div
                     className={`gap-y-1 flex flex-col items-start leading-none transition-all duration-500 overflow-hidden ${showButtonText ? 'max-w-[100px] opacity-100 ml-2' : 'max-w-0 opacity-0 ml-0'}`}
@@ -308,7 +316,7 @@ export default function Lightbox({
                     <span className="text-[9px] md:text-[11px] font-bold uppercase tracking-widest italic text-white whitespace-nowrap">
                       Favoritar
                     </span>
-                    <span className="text-[8px] md:text-[11px] opacity-60  font-semibold text-white/70 whitespace-nowrap">
+                    <span className="text-[8px] md:text-[11px] opacity-60 font-semibold text-white/70 whitespace-nowrap">
                       {totalFavorites > 0 ? `(${totalFavorites})` : 'Foto'}
                     </span>
                   </div>
@@ -320,11 +328,11 @@ export default function Lightbox({
                 className="flex items-center gap-0 transition-all duration-500 group border-r border-white/10 pr-3 ml-2"
                 title="Download em alta resolução"
               >
-                <div className="flex items-center justify-center w-8 h-8 md:w-11 md:h-11 rounded-full bg-white/5 group-hover:bg-white/10 transition-colors shrink-0">
+                <div className="flex items-center justify-center w-8 h-8 md:w-11 md:h-11 rounded-full bg-white/5 group-hover:bg-white transition-all duration-300 shrink-0">
                   {isDownloading ? (
-                    <Loader2 className="animate-spin text-[#F3E5AB] w-[20px] h-[20px] md:w-[24px] md:h-[24px]" />
+                    <Loader2 className="animate-spin text-[#E67E70] w-[16px] h-[16px] md:w-[20px] md:h-[20px]" />
                   ) : (
-                    <Download className="text-white w-[20px] h-[20px] md:w-[24px] md:h-[24px]" />
+                    <Download className="text-white group-hover:text-black transition-colors w-[16px] h-[16px] md:w-[20px] md:h-[20px]" />
                   )}
                 </div>
                 <div
@@ -333,7 +341,7 @@ export default function Lightbox({
                   <span className="text-[9px] md:text-[11px] font-bold uppercase tracking-widest italic text-white whitespace-nowrap">
                     Download
                   </span>
-                  <span className="text-[8px] md:text-[11px] opacity-60  font-bold text-white/70 whitespace-nowrap">
+                  <span className="text-[8px] md:text-[11px] opacity-60 font-bold text-white/70 whitespace-nowrap">
                     Alta Resolução
                   </span>
                 </div>
@@ -348,7 +356,7 @@ export default function Lightbox({
                 className="flex items-center justify-center pl-2 ml-1 relative z-[210] cursor-pointer hover:scale-110 active:scale-95 transition-transform"
               >
                 <div className="flex items-center justify-center w-8 h-8 md:w-11 md:h-11 rounded-full bg-white/5 hover:bg-red-500/20 transition-colors shrink-0">
-                  <X className="text-white hover:text-red-400 w-[20px] h-[20px] md:w-[24px] md:h-[24px]" />
+                  <X className="text-white hover:text-red-400  w-[16px] h-[16px] md:w-[20px] md:h-[20px]" />
                 </div>
               </button>
             </div>

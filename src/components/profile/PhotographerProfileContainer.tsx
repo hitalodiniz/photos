@@ -2,11 +2,9 @@
 
 import React, { useEffect, useState } from 'react';
 import { notFound } from 'next/navigation';
-import { profileService } from '@/core/services/profile.service';
 import PhotographerProfileContent from '../ui/PhotographerProfileContent';
 import LoadingScreen from '../ui/LoadingScreen';
-import { profile } from 'console';
-
+import * as profileService from '@/core/services/profile.service';
 interface Props {
   username: string;
 }

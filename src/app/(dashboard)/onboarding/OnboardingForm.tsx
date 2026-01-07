@@ -23,7 +23,7 @@ import {
   LayoutDashboard,
 } from 'lucide-react';
 
-import { upsertProfile } from '@/core/services/profile';
+import { upsertProfile } from '@/core/services/profile.service';
 import { supabase } from '@/lib/supabase.client';
 import { maskPhone } from '@/core/utils/masks';
 import ProfilePreview from './ProfilePreview';

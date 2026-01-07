@@ -1,4 +1,4 @@
-import { getProfileData } from '@/core/services/profile';
+import { getProfileData } from '@/core/services/profile.service';
 import { AuthGuard } from '@/components/auth';
 import { redirect } from 'next/navigation';
 import OnboardingForm from './OnboardingForm';
