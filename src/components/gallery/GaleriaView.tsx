@@ -3,6 +3,7 @@ import React, { useState, useEffect } from 'react';
 import { PhotoGrid, PhotographerAvatar } from '@/components/gallery';
 import type { Galeria } from '@/core/types/galeria';
 import { Camera } from 'lucide-react';
+import LoadingScreen from '../ui/LoadingScreen';
 
 interface GaleriaViewProps {
   galeria: Galeria;
@@ -11,6 +12,25 @@ interface GaleriaViewProps {
 
 export default function GaleriaView({ galeria, photos }: GaleriaViewProps) {
   const [scrollY, setScrollY] = useState(0);
+  const [isLoading, setIsLoading] = useState(true); // Estado de loading local
+
+  useEffect(() => {
+    const handleScroll = () => setScrollY(window.scrollY);
+    window.addEventListener('scroll', handleScroll, { passive: true });
+
+    // Simula ou aguarda o carregamento inicial das fotos
+    if (photos && photos.length > 0) {
+      // Pequeno delay para garantir que o layout Masonry se calcule sem "pulos"
+      const timer = setTimeout(() => setIsLoading(false), 800);
+      return () => {
+        window.removeEventListener('scroll', handleScroll);
+        clearTimeout(timer);
+      };
+    }
+
+    return () => window.removeEventListener('scroll', handleScroll);
+  }, [photos]);
+
   useEffect(() => {
     const handleScroll = () => setScrollY(window.scrollY);
     window.addEventListener('scroll', handleScroll, { passive: true });
@@ -25,6 +45,9 @@ export default function GaleriaView({ galeria, photos }: GaleriaViewProps) {
 
   return (
     <div className="relative min-h-screen font-sans bg-[#F9F5F0]">
+      {/* 0. LOADING SCREEN EXPLÍCITO */}
+      {/* O fadeOut=true apenas quando isLoading for false para suavizar a saída */}
+      <LoadingScreen fadeOut={!isLoading} message="Carregando fotos" />
       {/* 1. BACKGROUND DINÂMICO FIXO */}
       <div className="fixed inset-0 z-0">
         <div
@@ -38,7 +61,10 @@ export default function GaleriaView({ galeria, photos }: GaleriaViewProps) {
       </div>
 
       {/* 2. CONTEÚDO DA PÁGINA */}
-      <div className="relative z-10">
+
+      <div
+        className={`relative z-10 transition-opacity duration-1000 ${isLoading ? 'opacity-0' : 'opacity-100'}`}
+      >
         {/* HEADER AJUSTADO PARA MOBILE: h-auto e flex-col */}
         <header className="relative min-h-[10vh] md:h-[20vh] flex items-center pt-6 pb-4 md:pt-10">
           <div className="relative w-full max-w-[1600px] mx-auto px-6 md:px-12 flex flex-col md:flex-row items-center justify-between gap-8 md:gap-10">
@@ -85,7 +111,7 @@ export default function GaleriaView({ galeria, photos }: GaleriaViewProps) {
               <div className="flex flex-col items-center justify-center py-24 text-[#D4AF37]">
                 <div className="animate-spin rounded-full h-10 w-10 border-b-2 border-gold mb-6"></div>
                 <p className="font-serif italic text-xl tracking-wide">
-                  Preparando sua experiência...
+                  Nenhuma foto encontrada nesta galeria.
                 </p>
               </div>
             )}

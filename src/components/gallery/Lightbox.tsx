@@ -18,6 +18,7 @@ import {
 import { GALLERY_MESSAGES } from '@/constants/messages';
 
 import type { Galeria } from '@/core/types/galeria';
+import LoadingSpinner from '../ui/LoadingSpinner';
 
 interface Photo {
   id: string | number;
@@ -246,22 +247,48 @@ export default function Lightbox({
       onTouchMove={onTouchMove}
       onTouchEnd={onTouchEnd}
     >
-      <div className="relative md:fixed inset-0 z-[999] flex flex-col bg-black animate-in fade-in duration-300 min-h-full">
-        {/* BARRA SUPERIOR - Ajustada com flex-col no mobile para evitar sobreposição */}
+      {/* TITULO MOBILE */}
+      <div
+        className={`md:hidden  relative md:absolute top-0 left-0right-0 
+            flex flex-col md:flex-row items-center
+            p-4 md:px-14 md:py-8 text-white/90 z-[200] bg-gradient-to-b from-black/95 via-black/40 to-transparent w-full gap-4 md:gap-6 transition-all duration-700 ease-in-out ${showInterface ? 'opacity-100 translate-y-0' : 'md:opacity-0 md:translate-y-4 md:pointer-events-none'}`}
+      >
+        {/* Título ocupa largura total no mobile para garantir alinhamento */}
+        <div className="flex-grow min-w-0 w-full md:w-auto pr-4">
+          <GalleryHeader
+            title={galleryTitle}
+            location={location}
+            data={galeria.date}
+          />
+        </div>
+      </div>
+      <div
+        className="relative md:fixed inset-0 z-[999] flex 
+       flex-col bg-black animate-in fade-in duration-300 min-h-full"
+      >
+        {/* TITULO DESKTOP */}
         <div
-          className={`relative md:absolute top-0 left-0 right-0 flex flex-col md:flex-row items-center justify-between p-4 md:px-14 md:py-8 text-white/90 z-[200] bg-gradient-to-b from-black/95 via-black/40 to-transparent w-full gap-4 md:gap-6 transition-all duration-700 ease-in-out ${showInterface ? 'opacity-100 translate-y-0' : 'md:opacity-0 md:translate-y-4 md:pointer-events-none'}`}
+          className={`hidden md:block relative md:absolute top-0 left-0right-0 
+            flex flex-col md:flex-row items-center
+            p-4 md:px-14 md:py-8 text-white/90 z-[200] bg-gradient-to-b from-black/95 via-black/40 to-transparent w-full gap-4 md:gap-6 transition-all duration-700 ease-in-out ${showInterface ? 'opacity-100 translate-y-0' : 'md:opacity-0 md:translate-y-4 md:pointer-events-none'}`}
         >
           {/* Título ocupa largura total no mobile para garantir alinhamento */}
-          <div className="w-full md:w-auto flex justify-start">
+          <div className="flex-grow min-w-0 w-full md:w-auto pr-4">
             <GalleryHeader
               title={galleryTitle}
               location={location}
               data={galeria.date}
             />
           </div>
-
-          {/* Barra de Ferramentas centralizada no mobile e à direita no desktop */}
-          <div className="w-full md:w-auto flex justify-center md:justify-end pointer-events-auto z-[200]">
+        </div>
+        {/* Barra de Ferramentas centralizada no mobile e à direita no desktop */}
+        <div
+          className={`relative md:absolute 
+            flex flex-col md:flex-row items-center justify-between 
+            p-4 md:px-14 md:py-8 text-white/90 z-[200] bg-gradient-to-b from-black/95 via-black/40 to-transparent w-full gap-4 md:gap-6 transition-all duration-700 ease-in-out ${showInterface ? 'opacity-100 translate-y-0' : 'md:opacity-0 md:translate-y-4 md:pointer-events-none'}`}
+        >
+          <div className="w-full md:w-auto md:ml-auto flex justify-center md:justify-end pointer-events-auto z-[200]">
+            {' '}
             <div
               className="flex items-center bg-black/80 backdrop-blur-2xl p-2 px-3 md:p-2 md:px-3 rounded-2xl border border-white/20 shadow-2xl transition-all duration-500 ease-in-out relative"
               onMouseEnter={() => setShowButtonText(true)}
@@ -270,14 +297,23 @@ export default function Lightbox({
             >
               <button
                 onClick={handleShareWhatsApp}
-                className="flex items-center gap-0 transition-all duration-500 group border-r border-white/10 pr-3"
+                className="flex flex-col md:flex-row items-center gap-1 md:gap-0 transition-all duration-500 group border-r border-white/10 pr-3"
                 title="Compartilhar no WhatsApp"
               >
-                <div className="flex items-center justify-center w-8 h-8 md:w-11 md:h-11 rounded-full bg-white/5 group-hover:bg-[#25D366] transition-all duration-300 shrink-0">
+                <div
+                  className="flex items-center justify-center 
+                w-8 h-8 md:w-11 md:h-11 rounded-full bg-white/5 
+                group-hover:bg-[#25D366] transition-all duration-300 shrink-0"
+                >
                   <MessageCircle className="text-white w-[16px] h-[16px] md:w-[20px] md:h-[20px] transition-colors" />
                 </div>
                 <div
-                  className={`gap-y-1 flex flex-col items-start leading-none transition-all duration-500 overflow-hidden ${showButtonText ? 'max-w-[100px] opacity-100 ml-2' : 'max-w-0 opacity-0 ml-0'}`}
+                  className={`flex flex-col items-center md:items-start leading-none transition-all duration-500 overflow-hidden 
+    ${
+      showButtonText
+        ? 'opacity-100 max-h-[40px] md:max-w-[100px] mt-1 md:mt-0 md:ml-2'
+        : 'opacity-0 max-h-0 md:max-w-0 mt-0 md:ml-0'
+    }`}
                 >
                   <span className="text-[9px] md:text-[11px] font-bold uppercase tracking-widest italic text-white whitespace-nowrap">
                     WhatsApp
@@ -288,10 +324,10 @@ export default function Lightbox({
                 </div>
               </button>
 
-              <div className="relative flex items-center border-r border-white/10 pr-3 ml-2">
+              <div className="relative flex items-center border-r border-white/10 ml-2">
                 <button
                   onClick={toggleFavorite}
-                  className="flex items-center gap-0 transition-all duration-500 group"
+                  className="flex flex-col md:flex-row items-center gap-1 md:gap-0 transition-all duration-500 group border-r border-white/10 pr-3"
                   title="Favoritar foto"
                 >
                   <div
@@ -311,7 +347,12 @@ export default function Lightbox({
                     />
                   </div>
                   <div
-                    className={`gap-y-1 flex flex-col items-start leading-none transition-all duration-500 overflow-hidden ${showButtonText ? 'max-w-[100px] opacity-100 ml-2' : 'max-w-0 opacity-0 ml-0'}`}
+                    className={`flex flex-col items-center md:items-start leading-none transition-all duration-500 overflow-hidden 
+                    ${
+                      showButtonText
+                        ? 'opacity-100 max-h-[40px] md:max-w-[100px] mt-1 md:mt-0 md:ml-2'
+                        : 'opacity-0 max-h-0 md:max-w-0 mt-0 md:ml-0'
+                    }`}
                   >
                     <span className="text-[9px] md:text-[11px] font-bold uppercase tracking-widest italic text-white whitespace-nowrap">
                       Favoritar
@@ -322,43 +363,66 @@ export default function Lightbox({
                   </div>
                 </button>
               </div>
-
-              <button
-                onClick={handleDownload}
-                className="flex items-center gap-0 transition-all duration-500 group border-r border-white/10 pr-3 ml-2"
-                title="Download em alta resolução"
-              >
-                <div className="flex items-center justify-center w-8 h-8 md:w-11 md:h-11 rounded-full bg-white/5 group-hover:bg-white transition-all duration-300 shrink-0">
-                  {isDownloading ? (
-                    <Loader2 className="animate-spin text-[#E67E70] w-[16px] h-[16px] md:w-[20px] md:h-[20px]" />
-                  ) : (
-                    <Download className="text-white group-hover:text-black transition-colors w-[16px] h-[16px] md:w-[20px] md:h-[20px]" />
-                  )}
-                </div>
-                <div
-                  className={`gap-y-1 flex flex-col items-start leading-none transition-all duration-500 overflow-hidden ${showButtonText ? 'max-w-[100px] opacity-100 ml-2' : 'max-w-0 opacity-0 ml-0'}`}
+              <div className="relative flex items-center border-r border-white/10 ml-2">
+                <button
+                  onClick={handleDownload}
+                  className="flex flex-col md:flex-row items-center gap-1 md:gap-0 transition-all duration-500 group border-r border-white/10 pr-3"
+                  title="Download em alta resolução"
                 >
-                  <span className="text-[9px] md:text-[11px] font-bold uppercase tracking-widest italic text-white whitespace-nowrap">
-                    Download
-                  </span>
-                  <span className="text-[8px] md:text-[11px] opacity-60 font-bold text-white/70 whitespace-nowrap">
-                    Alta Resolução
-                  </span>
-                </div>
-              </button>
-              {/* BOTÃO FECHAR - Adicionado e.preventDefault e cursor reforçado */}
-              <button
-                onClick={(e) => {
-                  e.preventDefault();
-                  e.stopPropagation();
-                  onClose();
-                }}
-                className="flex items-center justify-center pl-2 ml-1 relative z-[210] cursor-pointer hover:scale-110 active:scale-95 transition-transform"
-              >
-                <div className="flex items-center justify-center w-8 h-8 md:w-11 md:h-11 rounded-full bg-white/5 hover:bg-red-500/20 transition-colors shrink-0">
-                  <X className="text-white hover:text-red-400  w-[16px] h-[16px] md:w-[20px] md:h-[20px]" />
-                </div>
-              </button>
+                  <div className="flex items-center justify-center w-8 h-8 md:w-11 md:h-11 rounded-full bg-white/5 group-hover:bg-white transition-all duration-300 shrink-0">
+                    {isDownloading ? (
+                      <Loader2 className="animate-spin text-[#E67E70] w-[16px] h-[16px] md:w-[20px] md:h-[20px]" />
+                    ) : (
+                      <Download className="text-white group-hover:text-black transition-colors w-[16px] h-[16px] md:w-[20px] md:h-[20px]" />
+                    )}
+                  </div>
+                  <div
+                    className={`flex flex-col items-center md:items-start leading-none transition-all duration-500 overflow-hidden 
+                    ${
+                      showButtonText
+                        ? 'opacity-100 max-h-[40px] md:max-w-[100px] mt-1 md:mt-0 md:ml-2'
+                        : 'opacity-0 max-h-0 md:max-w-0 mt-0 md:ml-0'
+                    }`}
+                  >
+                    <span className="text-[9px] md:text-[11px] font-bold uppercase tracking-widest italic text-white whitespace-nowrap">
+                      Download
+                    </span>
+                    <span className="text-[8px] md:text-[11px] opacity-60 font-bold text-white/70 whitespace-nowrap">
+                      Alta Resolução
+                    </span>
+                  </div>
+                </button>
+              </div>
+              <div className="relative flex items-center  border-white/10 ml-2">
+                {/* BOTÃO FECHAR - Adicionado e.preventDefault e cursor reforçado */}
+                <button
+                  onClick={(e) => {
+                    e.preventDefault();
+                    e.stopPropagation();
+                    onClose();
+                  }}
+                  className="flex flex-col md:flex-row items-center gap-1 md:gap-0 transition-all duration-500 group  border-white/10 "
+                >
+                  <div className="flex items-center justify-center w-8 h-8 md:w-11 md:h-11 rounded-full bg-white/5 hover:bg-red-500/20 transition-colors shrink-0">
+                    <X className="text-white hover:text-red-400  w-[16px] h-[16px] md:w-[20px] md:h-[20px]" />
+                  </div>
+                  <div
+                    className={`flex flex-col items-center md:items-start leading-none transition-all duration-500 overflow-hidden 
+    ${
+      showButtonText
+        ? 'opacity-100 max-h-[40px] md:max-w-[100px] mt-1 md:mt-0 md:ml-2'
+        : 'opacity-0 max-h-0 md:max-w-0 mt-0 md:ml-0'
+    }`}
+                  >
+                    <span className="text-[9px] md:text-[11px] font-bold uppercase tracking-widest italic text-white whitespace-nowrap">
+                      Fechar
+                    </span>
+                    <span className="text-[8px] md:text-[11px] opacity-60 font-semibold text-white/70 whitespace-nowrap">
+                      Acessar galeria
+                    </span>
+                  </div>
+                </button>
+              </div>
             </div>
           </div>
         </div>
@@ -375,11 +439,7 @@ export default function Lightbox({
 
           <div className="flex flex-col items-center justify-center w-full h-full max-h-screen">
             <div className="relative flex flex-col items-center">
-              {isImageLoading && (
-                <div className="absolute inset-0 flex items-center justify-center z-10">
-                  <Loader2 className="w-10 h-10 text-[#F3E5AB] animate-spin" />
-                </div>
-              )}
+              {isImageLoading && <LoadingSpinner size="md" />}
               <img
                 key={photos[activeIndex].id}
                 src={getImageUrl(photos[activeIndex].id)}

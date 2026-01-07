@@ -1,5 +1,6 @@
 'use client';
 
+// Como usar: if (loading) return <LoadingScreen message="Buscando fotos..." />;
 import { Camera } from 'lucide-react';
 import { useEffect, useState } from 'react';
 import { SEO_CONFIG } from '@/core/config/seo.config';
