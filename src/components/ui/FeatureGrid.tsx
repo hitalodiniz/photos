@@ -23,10 +23,10 @@ export default function FeatureGrid({
   const isTop = iconPosition === 'top';
 
   return (
-    <main className="flex-grow flex items-center justify-center px-4 py-4 md:px-6 md:py-6">
-      <section className="w-full max-w-7xl mx-auto">
+    <main className="flex-grow flex items-center justify-center px-4 py-4 md:px-4 md:py-4">
+      <section className="w-full max-w-5xl mx-auto">
         <div
-          className={`grid grid-cols-1 gap-6 md:gap-4 ${
+          className={`grid grid-cols-1 gap-4 md:gap-4 ${
             columns === 3 ? 'lg:grid-cols-3' : 'lg:grid-cols-2'
           }`}
         >
@@ -41,13 +41,13 @@ export default function FeatureGrid({
                 transition={{ delay: index * 0.05 }}
                 whileHover={{ backgroundColor: '#32363b', scale: 1.01 }}
                 /* Ajuste dinâmico de layout: flex-row (left) ou flex-col (top) */
-                className={`group flex gap-2 md:gap-4 p-2 md:p-6 bg-[#2A2D31] border border-white/5 shadow-2xl transition-all duration-300 ${
+                className={`group flex gap-2 md:gap-4 p-2 md:p-4 bg-[#2A2D31] border border-white/5 shadow-2xl transition-all duration-300 ${
                   isTop
                     ? 'flex-col items-center text-center'
                     : 'flex-row items-center text-left'
                 } ${
                   isFullWidth ? 'lg:col-span-full' : ''
-                } rounded-[2rem] md:rounded-[3rem]`}
+                } rounded-[2rem] md:rounded-[2rem]`}
               >
                 {/* Ícone Champanhe com Glow focado */}
                 <div

@@ -16,7 +16,16 @@ export default function LoadingScreen({
   const [isVisible, setIsVisible] = useState(true);
 
   useEffect(() => {
+    // Quando o componente monta, garantimos que o body ainda não tem a classe se não for fadeOut
+    if (!fadeOut) {
+      document.body.classList.remove('js-ready');
+    }
+
     if (fadeOut) {
+      // 1. Libera o conteúdo do fundo para começar o fade-in dele
+      document.body.classList.add('js-ready');
+
+      // 2. Inicia o timer para remover o LoadingScreen da DOM após a animação
       const timer = setTimeout(() => setIsVisible(false), 800);
       return () => clearTimeout(timer);
     }
@@ -26,11 +35,10 @@ export default function LoadingScreen({
 
   return (
     <div
-      className={`fixed inset-0 z-[9999] flex flex-col items-center justify-center bg-black transition-all duration-700 ease-in-out ${
+      className={`fixed inset-0 z-[9999] flex flex-col items-center justify-center bg-black transition-opacity duration-500 ease-in-out ${
         fadeOut ? 'opacity-0 scale-110 pointer-events-none' : 'opacity-100'
       }`}
     >
-      {/* 1. NOME DO SITE (TOPO) - Mesmo estilo da message */}
       <div
         className={`mb-12 md:mb-16 transition-transform duration-700 ${fadeOut ? '-translate-y-4' : 'translate-y-0'}`}
       >
@@ -39,14 +47,12 @@ export default function LoadingScreen({
         </h2>
       </div>
 
-      {/* 2. SPINNER E CÂMERA (CENTRO) */}
       <div className="relative w-24 h-24 md:w-32 md:h-32">
         <div className="absolute inset-0 rounded-full border border-champagne-dark/10" />
         <div
           className="absolute inset-0 rounded-full border-t-[2px] border-r-[2px] border-transparent border-t-champagne-dark border-r-champagne-dark/30 animate-spin"
           style={{ animationDuration: '2s' }}
         />
-
         <div className="absolute inset-0 flex items-center justify-center">
           <div className="relative flex items-center justify-center">
             <div className="absolute w-16 h-16 bg-champagne-dark/10 blur-[20px] rounded-full animate-pulse" />
@@ -58,16 +64,12 @@ export default function LoadingScreen({
         </div>
       </div>
 
-      {/* 3. MENSAGEM E PROGRESSO (BASE) */}
       <div
-        className={`mt-12 md:mt-16 flex flex-col items-center gap-5 transition-transform duration-700 ${
-          fadeOut ? 'translate-y-4' : 'translate-y-0'
-        }`}
+        className={`mt-12 md:mt-16 flex flex-col items-center gap-5 transition-transform duration-700 ${fadeOut ? 'translate-y-4' : 'translate-y-0'}`}
       >
         <p className="font-barlow text-[10px] md:text-[14px] tracking-[0.4em] text-champagne-dark uppercase font-medium text-center px-6">
           {message}
         </p>
-
         <div className="relative w-12 md:w-16 h-[1px] bg-gold-light/20 overflow-hidden">
           <div className="absolute inset-0 bg-champagne-dark animate-progress-line" />
         </div>

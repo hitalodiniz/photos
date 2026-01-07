@@ -7,7 +7,8 @@ import Script from 'next/script';
 import { CookieBanner } from '@/components/ui';
 import { AuthProvider } from '@/contexts/AuthContext';
 import { RouteLoader } from '@/components/layout/RouteLoader';
-import { Suspense } from 'react';
+import { Suspense, useEffect } from 'react';
+import { LIGHT_ROUTES } from '@/core/config/routes.config';
 
 // 1. Configuração das fontes (Next.js as baixa e serve localmente)
 const inter = Inter({
@@ -70,6 +71,20 @@ export default function RootLayout({
           rel="stylesheet"
           href="https://cdnjs.cloudflare.com/ajax/libs/lightgallery/2.7.2/css/lightgallery-bundle.min.css"
         />
+        {/* Script Anti-Flash: Executa antes de renderizar o body */}
+        <script
+          dangerouslySetInnerHTML={{
+            __html: `
+              (function() {
+                const lightRoutes = ${JSON.stringify(LIGHT_ROUTES)};
+                const path = window.location.pathname;
+                if (lightRoutes.includes(path)) {
+                  document.documentElement.classList.add('instant-view');
+                }
+              })();
+            `,
+          }}
+        />
       </head>
       <body className={`${inter.className} bg-[#F1F3F4] antialiased`}>
         {/* A tela de loading com fadeOut controlado pela prop que você criou */}
@@ -79,7 +94,9 @@ export default function RootLayout({
         </Suspense>{' '}
         <AuthProvider>
           <Navbar />
-          <main className="w-full">{children}</main>
+          <main id="main-content" className="w-full">
+            {children}
+          </main>
 
           {/* SCRIPTS GOOGLE */}
           <Script
