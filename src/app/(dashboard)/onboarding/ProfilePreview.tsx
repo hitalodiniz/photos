@@ -4,7 +4,6 @@ import React, { useEffect, useState } from 'react';
 import { createClient } from '@supabase/supabase-js';
 import { useParams } from 'next/navigation';
 import PhotographerProfileContent from '@/components/ui/PhotographerProfileContent';
-import LoadingScreen from '@/components/ui/LoadingScreen';
 
 const supabase = createClient(
   process.env.NEXT_PUBLIC_SUPABASE_URL!,
@@ -49,7 +48,6 @@ export default function PhotographerProfile({
     fetchProfile();
   }, [params.username, initialData]);
 
-  if (loading) return <LoadingScreen message="Carregando perfil" />;
   if (!profile)
     return (
       <div className="min-h-screen bg-black flex items-center justify-center text-[#F3E5AB]">

@@ -186,6 +186,16 @@ describe('Galeria Service - Testes Integrados', () => {
       } as Response);
 
       const result = await getGalerias();
+<<<<<<< HEAD
+=======
+      if (!result.success) {
+        console.log('Mensagem de erro do retorno:', result.error);
+      }
+      expect(result.success).toBe(true);
+      expect(result.success).toBe(true);
+      expect(result.data?.[0].id).toBe('1');
+    });
+>>>>>>> 5011b3ca9205397cd749c32364a0d6312024e067
 
       expect(result.success).toBe(true);
       expect(result.data?.[0].title).toBe('Galeria Casamento');

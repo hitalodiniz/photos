@@ -355,7 +355,6 @@ export async function getGalerias(
   }
 
   try {
-    const token = await getValidGoogleTokenService(userId);
     const supabase = supabaseClient || (await createSupabaseServerClient());
 
     // 🎯 AJUSTE NO SELECT: Agora traz todos os campos necessários do perfil

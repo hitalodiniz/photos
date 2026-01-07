@@ -1,46 +1,71 @@
-"use client";
+'use client';
 
-import { motion } from "framer-motion";
+import { motion } from 'framer-motion';
 import { GoogleSignInButton } from '@/components/auth';
+import { ShieldCheck } from 'lucide-react';
+import {
+  EditorialHeader,
+  DynamicHeroBackground,
+  Footer,
+} from '@/components/layout';
+import FeatureGrid from '@/components/ui/FeatureGrid';
+import { usePageTitle } from '@/hooks/usePageTitle';
 
 export default function LoginPage() {
-  return (
-    <div className="min-h-screen flex flex-col items-center justify-start p-4 bg-[#F8FAFD] font-sans relative overflow-hidden">
-      <div className="absolute top-0 left-0 w-full h-1/2 bg-[#E9EEF6] opacity-50 transform skew-y-3 origin-top-left"></div>
+  usePageTitle('Acesso restrito');
 
-      <motion.div
-        initial={{ opacity: 0, y: 20, scale: 0.97 }}
-        animate={{ opacity: 1, y: 0, scale: 1 }}
-        transition={{ duration: 0.25 }}
-        className="max-w-lg w-full text-center p-8 lg:p-10 bg-white rounded-2xl shadow-2xl border border-[#E0E3E7] relative z-10 mt-20"
-      >
-        <motion.div
-          initial={{ scale: 0.8 }}
-          animate={{ scale: 1 }}
-          transition={{ delay: 0.1 }}
-          className="flex flex-col items-center mb-6"
-        >
-          <svg className="w-12 h-12 text-[#0B57D0] mb-3" viewBox="0 0 24 24">
-            <rect x="3" y="3" width="18" height="18" rx="2" ry="2"></rect>
-            <path d="M7 10l5 5 5-5"></path>
-          </svg>
+  const loginItems = [
+    {
+      icon: <ShieldCheck />,
+      title: 'Identificação Profissional',
+      desc: (
+        /* Alterado para items-center para garantir que tudo no desc centralize */
+        <div className="flex flex-col items-center gap-6 text-center">
+          <div className="flex flex-col gap-2">
+            <p className="text-white/70 max-w-sm">
+              Utilize sua conta Google para gerenciar suas galerias e conteúdos
+              profissionais com segurança total.
+            </p>
+          </div>
 
-          <h1 className="text-2xl lg:text-3xl font-extrabold text-[#1F1F1F] mb-3">
-            Bem-vindo de volta
-          </h1>
-          <p className="text-[#444746] text-base lg:text-md">
-            Acesse sua conta para gerenciar suas galerias.
-          </p>
-        </motion.div>
+          <GoogleSignInButton />
 
-        <GoogleSignInButton />
-
-        <div className="mt-8 border-t border-[#E0E3E7] pt-4">
-          <p className="text-xs text-[#444746]">
-            Ao continuar, você concorda com nossos termos de uso e política de privacidade.
-          </p>
+          <div className="pt-6 border-t border-white/5 w-full">
+            <p className="text-[10px] md:text-[11px] text-white/70 uppercase tracking-[0.1em] leading-relaxed">
+              Ambiente seguro • Criptografia ponta a ponta
+            </p>
+          </div>
         </div>
-      </motion.div>
+      ),
+    },
+  ];
+
+  return (
+    <div className="relative min-h-screen w-full flex flex-col overflow-hidden bg-[#000]">
+      <DynamicHeroBackground />
+
+      <div className="relative z-10 flex flex-col min-h-screen">
+        <EditorialHeader
+          title="Acesso Restrito"
+          subtitle={
+            <>
+              Bem-vindo de volta ao seu{' '}
+              <span className="font-bold border-b-2 border-[#F3E5AB]/50 text-white">
+                espaço exclusivo
+              </span>
+            </>
+          }
+        />
+
+        <main className="flex-grow flex flex-col items-center justify-center py-6 md:py-10">
+          <div className="w-full max-w-2xl mx-auto">
+            {/* Componente agora centraliza todo o fluxo de login em uma pílula sólida única */}
+            <FeatureGrid items={loginItems} iconPosition="top" />
+          </div>
+        </main>
+
+        <Footer />
+      </div>
     </div>
   );
 }

@@ -1,5 +1,6 @@
 'use client';
-import { Home, LogIn, Globe } from 'lucide-react';
+
+import { Home, LogIn, Globe, ArrowRight, Timer } from 'lucide-react';
 import { useRouter } from 'next/navigation';
 import { useEffect, useState } from 'react';
 import {
@@ -7,11 +8,13 @@ import {
   DynamicHeroBackground,
   Footer,
 } from '@/components/layout';
-import { FeatureItem } from '@/components/ui';
+import FeatureGrid from '@/components/ui/FeatureGrid';
+import { usePageTitle } from '@/hooks/usePageTitle';
 
 export default function NotFound() {
   const router = useRouter();
   const [countdown, setCountdown] = useState(10);
+  usePageTitle('Página não encontrada');
 
   useEffect(() => {
     const timer = setInterval(() => {
@@ -28,9 +31,48 @@ export default function NotFound() {
     };
   }, [router]);
 
+  const notFoundItems = [
+    {
+      icon: <Home />,
+      title: 'Página Inicial',
+      desc: (
+        /* items-center e text-center para centralização total */
+        <div className="flex flex-col items-center gap-6 text-center">
+          <p className="text-white/70 max-w-xs">
+            Retorne à vitrine principal para explorar outras galerias
+            profissionais disponíveis.
+          </p>
+          <button
+            onClick={() => router.push('/')}
+            className="w-fit px-8 py-3 bg-[#D4AF37] hover:bg-[#B8860B] text-black font-black uppercase tracking-widest text-[10px] rounded-full transition-all flex items-center gap-2 shadow-lg shadow-[#D4AF37]/10"
+          >
+            Voltar Agora <ArrowRight size={12} />
+          </button>
+        </div>
+      ),
+    },
+    {
+      icon: <Globe />,
+      title: 'Link Incorreto',
+      desc: (
+        <div className="flex flex-col items-center gap-6 text-center">
+          <p className="text-white/70 max-w-xs">
+            Verifique a URL ou acesse o ambiente restrito se você for o
+            administrador.
+          </p>
+          <button
+            onClick={() => router.push('/dashboard')}
+            className="w-fit px-8 py-3 bg-white/5 hover:bg-white/10 text-white font-black uppercase tracking-widest text-[10px] rounded-full border border-white/10 transition-all flex items-center gap-2"
+          >
+            <LogIn size={12} /> Área do Fotógrafo
+          </button>
+        </div>
+      ),
+    },
+  ];
+
   return (
     <div className="relative min-h-screen w-full flex flex-col overflow-hidden bg-[#000]">
-      {/* BACKGROUND FIXO PADRONIZADO */}
       <DynamicHeroBackground />
 
       <div className="relative z-10 flex flex-col min-h-screen">
@@ -46,55 +88,21 @@ export default function NotFound() {
           }
         />
 
-        <main className="flex-grow flex items-center justify-center py-10 px-4">
-          <section
-            className="w-full max-w-5xl mx-auto bg-white/95 backdrop-blur-xl 
-          rounded-[3rem] md:rounded-[4rem] p-6 md:p-12 shadow-2xl border border-white/50 text-center md:text-left"
-          >
-            <div className="grid grid-cols-1 gap-y-2 px-2 md:px-6">
-              <div className="flex flex-col items-center md:items-start text-center md:text-left mb-4">
-                <p className="text-[11px] text-black/40 uppercase tracking-[0.2em] font-black">
-                  Redirecionando você em {countdown} segundos...
-                </p>
-              </div>
-
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                <div
-                  onClick={() => router.push('/')}
-                  className="cursor-pointer"
-                >
-                  <FeatureItem
-                    /* COR CHAMPANHE NOS ÍCONES */
-                    icon={<Home size={30} />}
-                    title="Página Inicial"
-                    desc="Clique aqui para retornar à vitrine principal e explorar outras galerias profissionais disponíveis."
-                  />
-                </div>
-
-                <FeatureItem
-                  icon={<Globe size={30} />}
-                  title="Link Incorreto"
-                  desc="Verifique se a URL digitada está correta ou entre em contato com o fotógrafo responsável pelo evento."
-                />
-              </div>
-
-              {/* BOTÕES PADRONIZADOS */}
-              <div className="pt-8 border-t border-black/5 flex flex-col md:flex-row gap-4 justify-center md:justify-start">
-                <button
-                  onClick={() => router.push('/')}
-                  className="btn-primary"
-                >
-                  <Home size={16} /> Voltar
-                </button>
-                <button
-                  onClick={() => router.push('/dashboard')}
-                  className="btn-primary"
-                >
-                  <LogIn size={16} /> Espaço fotógrafo
-                </button>
-              </div>
+        <main className="flex-grow flex flex-col items-center justify-center py-6 md:py-10">
+          {/* CONTADOR COM FUNDO ESTILIZADO */}
+          <div className="mb-8 animate-in fade-in slide-in-from-bottom-4 duration-700">
+            <div className="flex items-center gap-3 px-5 py-2.5 bg-white/5 border border-white/10 rounded-full backdrop-blur-md">
+              <Timer size={14} className="text-[#D4AF37] animate-pulse" />
+              <p className="text-[10px] md:text-[11px] text-white/70 uppercase tracking-[0.2em] font-black">
+                Redirecionando em{' '}
+                <span className="text-[#D4AF37]">{countdown}s</span>
+              </p>
             </div>
-          </section>
+          </div>
+
+          <div className="w-full">
+            <FeatureGrid items={notFoundItems} iconPosition="top" />
+          </div>
         </main>
 
         <Footer />

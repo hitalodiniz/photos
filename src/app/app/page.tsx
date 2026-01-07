@@ -1,10 +1,8 @@
 'use client';
 
-import LoadingScreen from '@/components/ui/LoadingScreen';
 import useAuthStatus from '@/hooks/useAuthStatus';
 import { supabase } from '@/lib/supabase.client';
 import { useRouter } from 'next/navigation';
-import router from 'next/router';
 import { useEffect, useRef, useState } from 'react';
 
 interface Profile {
@@ -106,11 +104,6 @@ export default function AppClientGuard() {
 
     fetchProfile();
   }, [session, authLoading, router]);
-
-  // 3. CORREÇÃO: Removido o 'return;' extra que impedia a renderização
-  if (authLoading || profileLoading) {
-    return <LoadingScreen message="Verificando seu acesso..." />;
-  }
 
   return null;
 }

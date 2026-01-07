@@ -11,5 +11,6 @@ export const metadata: Metadata = {
 
 export default async function HomePage() {
   return <LandingPageContent />;
-  // return <LoadingScreen message="Carregando o perfil do fotógrafo..." />;
+  // return <LoadingScreen message="Carregando..." />;
+  //return <GlobalError />;
 }

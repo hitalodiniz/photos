@@ -3,7 +3,6 @@ import React, { useEffect, useState } from 'react';
 import { Download, Camera, Loader2 } from 'lucide-react';
 import { GalleryHeader, PhotographerAvatar } from '@/components/gallery';
 import { createClient } from '@supabase/supabase-js';
-import LoadingScreen from '@/components/ui/LoadingScreen';
 
 const supabase = createClient(
   process.env.NEXT_PUBLIC_SUPABASE_URL!,
@@ -73,13 +72,6 @@ export default function PhotoViewClient({
       setIsDownloading(false);
     }
   };
-
-  if (loading)
-    return (
-      <>
-        <LoadingScreen message="Carregando foto exclusiva..." />
-      </>
-    );
 
   return (
     /* Ajustado para overflow-y-auto no mobile para permitir rolagem vertical da pilha */
