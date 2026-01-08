@@ -9,6 +9,20 @@ afterEach(() => {
   cleanup();
 });
 
+import { webcrypto } from 'node:crypto';
+
+// Força a injeção mesmo que o JSDOM tente proteger o objeto
+Object.defineProperty(globalThis, 'crypto', {
+  value: webcrypto,
+  configurable: true,
+  enumerable: true,
+  writable: true,
+});
+
+// Às vezes o jose busca especificamente no global (Node antigo)
+if (typeof global !== 'undefined' && !global.crypto) {
+  (global as any).crypto = webcrypto;
+}
 // 1. Criamos uma função que gera o objeto de mock sempre limpo e completo
 const createMockClient = () => {
   const mock = {

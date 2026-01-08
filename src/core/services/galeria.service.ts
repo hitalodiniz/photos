@@ -435,13 +435,6 @@ export async function deleteGaleria(
     return { success: false, error: 'Não foi possível excluir a galeria.' };
   }
 }
-// =========================================================================
-// 7. AUTENTICAÇÃO DE ACESSO À GALERIA POR SENHA (COOKIE)
-// =========================================================================
-
-const SECRET = new TextEncoder().encode(
-  process.env.JWT_GALLERY_SECRET || 'chave-secreta-minimo-32-caracteres',
-);
 
 export async function authenticateGaleriaAccess(
   galeriaId: string,
@@ -458,20 +451,23 @@ export async function authenticateGaleriaAccess(
     .eq('id', galeriaId)
     .single();
 
-  // 1. Validação de senha
   if (!galeria || galeria.password !== passwordInput) {
     return { success: false, error: 'Senha incorreta.' };
   }
 
-  // 2. Geração do JWT assinado
-  // Guardamos o ID da galeria dentro do token para que ele não sirva para outras
-  const token = await new SignJWT({ galeriaId: galeria.id })
+  // 1. Garantimos que a secret existe e tem tamanho adequado
+  const secretString =
+    process.env.JWT_GALLERY_SECRET ||
+    'chave-muito-longa-com-mais-de-32-caracteres';
+  const secretKey = new TextEncoder().encode(secretString);
+
+  // 2. Criamos o token (o spread {...} garante um objeto plano)
+  const token = await new SignJWT({ galeriaId: String(galeria.id) })
     .setProtectedHeader({ alg: 'HS256' })
     .setIssuedAt()
     .setExpirationTime('7d')
-    .sign(SECRET);
+    .sign(secretKey);
 
-  // 3. Define o Cookie com o JWT em vez da senha pura
   const cookieStore = await cookies();
   cookieStore.set(`galeria-${galeriaId}-auth`, token, {
     path: '/',
@@ -481,7 +477,6 @@ export async function authenticateGaleriaAccess(
     sameSite: 'lax',
   });
 
-  // 4. Redirecionamento inteligente
   const profile = galeria.tb_profiles as any;
   let targetPath = `/${fullSlug}`;
 

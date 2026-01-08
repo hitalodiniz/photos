@@ -4,7 +4,6 @@ import React, { useEffect, useState } from 'react';
 import { useParams } from 'next/navigation';
 import PhotographerProfileContent from '@/components/ui/PhotographerProfileContent';
 import { getPublicProfile } from '@/core/services/profile.service';
-import { error } from 'console';
 
 export default function PhotographerProfile({
   initialData,
@@ -28,10 +27,17 @@ export default function PhotographerProfile({
       try {
         const { data } = await getPublicProfile(params.username);
 
-        if (!data) throw error;
+        if (!data) {
+          throw new Error('Perfil não encontrado no sistema.');
+        }
         setProfile(data);
       } catch (error) {
-        console.error('Erro ao carregar perfil:', error);
+        // 1. Loga para debug técnico no navegador
+        window.console.error('Erro capturado no fetch:', error);
+
+        // 2. LANÇA o erro para o Next.js capturar no error.tsx
+        // Isso interrompe o fluxo deste componente e renderiza a página de erro
+        throw error;
       } finally {
         setLoading(false);
       }
