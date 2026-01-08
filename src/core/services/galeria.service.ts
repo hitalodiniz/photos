@@ -17,8 +17,6 @@ import {
 import { getDriveAccessTokenForUser } from '@/lib/google-auth';
 import { formatGalleryData } from '@/core/logic/galeria-logic';
 import { Galeria } from '@/core/types/galeria';
-import { getValidGoogleTokenService } from './google.service';
-import { error, error } from 'console';
 import { SignJWT } from 'jose';
 
 // =========================================================================
@@ -281,8 +279,6 @@ export async function updateGaleria(
   }
 
   try {
-    const supabase = await createSupabaseServerClient();
-
     // GARANTE PERMISSÃO NO DRIVE  - não utilizada, pois o escopo é somente de leitura do drive - 01-01-2026
     /*const accessToken = await getDriveAccessTokenForUser(userId);
     if (accessToken && driveFolderId) {
@@ -501,72 +497,89 @@ export async function authenticateGaleriaAccess(
 export async function getGaleriaPhotos(
   galeriaId: string,
 ): Promise<ActionResult<DrivePhoto[]>> {
-  // 1. AUTENTICAÇÃO E CONTEXTO
-  const { success, userId, error: authError } = await getAuthAndStudioIds();
+  try {
+    // 1. AUTENTICAÇÃO E CONTEXTO
+    const { success, userId, error: authError } = await getAuthAndStudioIds();
 
-  if (!success || !userId) {
+    if (!success || !userId) {
+      return {
+        success: false,
+        error: authError || 'Usuário não autenticado.',
+        data: [],
+      };
+    }
+
+    const supabase = await createSupabaseServerClientReadOnly();
+
+    // 2. BUSCAR O ID DA PASTA DA GALERIA
+    const { data: galeria, error: galeriaError } = await supabase
+      .from('tb_galerias')
+      .select('drive_folder_id')
+      .eq('id', galeriaId)
+      .eq('user_id', userId) // RLS: Garante que o usuário só acesse suas próprias galerias
+      .maybeSingle();
+
+    if (galeriaError || !galeria || !galeria.drive_folder_id) {
+      return {
+        success: false,
+        error: 'Galeria não encontrada.',
+        data: [],
+      };
+    }
+
+    const driveFolderId = galeria.drive_folder_id;
+
+    // 3. RENOVAR O ACCESS TOKEN
+    // Esta função (em lib/google-auth.ts) busca o refresh token no DB e o troca por um novo access token.
+    const accessToken = await getDriveAccessTokenForUser(userId);
+
+    if (!accessToken) {
+      return {
+        success: false,
+        error: 'Falha na integração Google Drive. Refaça o login/integração.',
+        data: [],
+      };
+    }
+
+    // 4. LISTAR FOTOS DO DRIVE
+    // Esta função (em lib/google-drive.ts) faz a requisição final ao Google Drive.
+    const photos = await listPhotosFromDriveFolder(driveFolderId, accessToken);
+
+    // Ordenação: Data (mais recente) > Nome (alfabético)
+    photos.sort((a, b) => {
+      // Cast para any para garantir acesso caso a interface importada de lib/google-drive esteja desatualizada
+      const pA = a as any;
+      const pB = b as any;
+
+      const dateAStr = pA.createdTime || pA.imageMediaMetadata?.time;
+      const dateBStr = pB.createdTime || pB.imageMediaMetadata?.time;
+
+      const dateA = dateAStr ? new Date(dateAStr).getTime() : 0;
+      const dateB = dateBStr ? new Date(dateBStr).getTime() : 0;
+
+      if (dateA !== dateB) return dateB - dateA; // Data: Decrescente
+      return a.name.localeCompare(b.name, undefined, { numeric: true }); // Nome: Crescente
+    });
+
+    if (photos.length === 0) {
+      return { success: true, data: [] }; // Retorna sucesso, mas com lista vazia.
+    }
+
+    return { success: true, data: photos };
+  } catch (error: any) {
+    console.error('Erro ao buscar fotos:', error.message);
+
+    // SOLUÇÃO 1: Se for erro de autenticação, redireciona o usuário
+    if (error.message.includes('Sua sessão expirou')) {
+      // Redireciona para a página de reconexão do Google
+      redirect('/');
+    }
+
+    // SOLUÇÃO 2: Se for outro erro, retorna um estado seguro para o Componente
+    // Isso evita que a página inteira quebre (White Screen of Death)
     return {
       success: false,
-      error: authError || 'Usuário não autenticado.',
-      data: [],
+      error: error.message || 'Não foi possível carregar as fotos.',
     };
   }
-
-  const supabase = await createSupabaseServerClientReadOnly();
-
-  // 2. BUSCAR O ID DA PASTA DA GALERIA
-  const { data: galeria, error: galeriaError } = await supabase
-    .from('tb_galerias')
-    .select('drive_folder_id')
-    .eq('id', galeriaId)
-    .eq('user_id', userId) // RLS: Garante que o usuário só acesse suas próprias galerias
-    .maybeSingle();
-
-  if (galeriaError || !galeria || !galeria.drive_folder_id) {
-    return {
-      success: false,
-      error: 'Galeria não encontrada ou pasta do Drive não definida.',
-      data: [],
-    };
-  }
-
-  const driveFolderId = galeria.drive_folder_id;
-
-  // 3. RENOVAR O ACCESS TOKEN
-  // Esta função (em lib/google-auth.ts) busca o refresh token no DB e o troca por um novo access token.
-  const accessToken = await getDriveAccessTokenForUser(userId);
-
-  if (!accessToken) {
-    return {
-      success: false,
-      error: 'Falha na integração Google Drive. Refaça o login/integração.',
-      data: [],
-    };
-  }
-
-  // 4. LISTAR FOTOS DO DRIVE
-  // Esta função (em lib/google-drive.ts) faz a requisição final ao Google Drive.
-  const photos = await listPhotosFromDriveFolder(driveFolderId, accessToken);
-
-  // Ordenação: Data (mais recente) > Nome (alfabético)
-  photos.sort((a, b) => {
-    // Cast para any para garantir acesso caso a interface importada de lib/google-drive esteja desatualizada
-    const pA = a as any;
-    const pB = b as any;
-
-    const dateAStr = pA.createdTime || pA.imageMediaMetadata?.time;
-    const dateBStr = pB.createdTime || pB.imageMediaMetadata?.time;
-
-    const dateA = dateAStr ? new Date(dateAStr).getTime() : 0;
-    const dateB = dateBStr ? new Date(dateBStr).getTime() : 0;
-
-    if (dateA !== dateB) return dateB - dateA; // Data: Decrescente
-    return a.name.localeCompare(b.name, undefined, { numeric: true }); // Nome: Crescente
-  });
-
-  if (photos.length === 0) {
-    return { success: true, data: [] }; // Retorna sucesso, mas com lista vazia.
-  }
-
-  return { success: true, data: photos };
 }

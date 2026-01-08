@@ -44,11 +44,7 @@ export default function Navbar() {
 
         {/* Menu do Usuário Integrado */}
         <div className="flex items-center gap-4">
-          <UserMenu
-            session={user}
-            handleLogout={logout}
-            avatarUrl={avatarUrl}
-          />
+          <UserMenu session={user} avatarUrl={avatarUrl} />
         </div>
       </nav>
 
