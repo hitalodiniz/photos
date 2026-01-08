@@ -2,70 +2,20 @@ import { NextResponse } from 'next/server';
 import type { NextRequest } from 'next/server';
 import { createServerClient } from '@supabase/ssr';
 
-// Define o domínio base (ex: localhost:3000 ou suagaleria.com.br)
 const NEXT_PUBLIC_MAIN_DOMAIN =
   process.env.NEXT_PUBLIC_MAIN_DOMAIN || 'localhost:3000';
-
 const subdomainCache = new Map<
   string,
   { username: string; use_subdomain: boolean; createdAt: number }
 >();
-const SUBDOMAIN_CACHE_TTL = 1000 * 60 * 10; // 10 minutos
-
-async function getProfileBySubdomain(subdomain: string, req: NextRequest) {
-  const now = Date.now();
-  const isLocalhost = process.env.NODE_ENV === 'development'; // 🎯 Detecta ambiente
-  const cached = subdomainCache.get(subdomain);
-
-  const isDev = process.env.NODE_ENV === 'development';
-
-  // No getProfileBySubdomain:
-  if (!isDev && cached && now - cached.createdAt < SUBDOMAIN_CACHE_TTL) {
-    return cached;
-  }
-
-  const supabase = createServerClient(
-    process.env.NEXT_PUBLIC_SUPABASE_URL!,
-    process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!,
-    {
-      cookies: {
-        get(name) {
-          return req.cookies.get(name)?.value;
-        },
-        set() {},
-        remove() {},
-      },
-    },
-  );
-
-  const { data: profile } = await supabase
-    .from('tb_profiles')
-    .select('username, use_subdomain')
-    .eq('username', subdomain)
-    .single();
-
-  // Retorna null apenas se o perfil realmente não existir no banco
-  if (!profile) return null;
-
-  const item = {
-    username: profile.username,
-    use_subdomain: !!profile.use_subdomain, // Garante booleano
-    createdAt: now,
-  };
-
-  // Só alimenta o cache se não for localhost para evitar stale data
-  if (!isLocalhost) {
-    subdomainCache.set(subdomain, item);
-  }
-  return item;
-}
+const SUBDOMAIN_CACHE_TTL = 1000 * 60 * 10;
 
 export async function middleware(req: NextRequest) {
   const url = req.nextUrl;
   const host = req.headers.get('host') || '';
   const pathname = url.pathname;
 
-  // 1. FILTRO DE SISTEMA E ARQUIVOS
+  // 1. FILTRO DE SISTEMA E ARQUIVOS (Mover para o topo para performance)
   if (
     pathname.startsWith('/_next') ||
     pathname.startsWith('/api') ||
@@ -74,87 +24,106 @@ export async function middleware(req: NextRequest) {
     return NextResponse.next();
   }
 
-  const pathParts = pathname.split('/').filter(Boolean);
+  // 2. INSTÂNCIA ÚNICA DO SUPABASE (Sincronizada)
+  let response = NextResponse.next();
 
-  // 2. DETECÇÃO DE SUBDOMÍNIO EXISTENTE
-  // Verifica se o host atual já é um subdomínio do NEXT_PUBLIC_MAIN_DOMAIN
+  const supabase = createServerClient(
+    process.env.NEXT_PUBLIC_SUPABASE_URL!,
+    process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!,
+    {
+      cookies: {
+        getAll: () => req.cookies.getAll(),
+        setAll: (cookiesToSet) => {
+          cookiesToSet.forEach(({ name, value }) =>
+            req.cookies.set(name, value),
+          );
+          // Importante: Atualizamos a resposta que será retornada
+          response = NextResponse.next({ request: { headers: req.headers } });
+          cookiesToSet.forEach(({ name, value, options }) =>
+            response.cookies.set(name, value, options),
+          );
+        },
+      },
+    },
+  );
+
+  // 3. LÓGICA DE SUBDOMÍNIO
   const cleanHost = host.split(':')[0];
   const cleanMainDomain = NEXT_PUBLIC_MAIN_DOMAIN.split(':')[0];
   const isSubdomainRequest = cleanHost.endsWith(`.${cleanMainDomain}`);
+  const subdomain = isSubdomainRequest
+    ? cleanHost.replace(`.${cleanMainDomain}`, '')
+    : '';
 
-  // ---------------------------------------------------------
-  // 4. LÓGICA DE REWRITE: Subdomínio -> Pasta Interna (Apenas Galerias)
-  // ---------------------------------------------------------
-  let subdomain = '';
-  if (isSubdomainRequest) {
-    subdomain = cleanHost.replace(`.${cleanMainDomain}`, '');
-  }
-
-  // Só entra na lógica se houver um subdomínio válido e não for 'www'
   if (subdomain && subdomain !== 'www') {
-    // 🎯 A CHAVE: Só faz o rewrite se o caminho NÃO for uma rota de sistema.
-    // Como o Next.js já ignora /api e /_next no matcher,
-    // basta verificarmos se o pathname está vazio (home do fotógrafo)
-    // ou se parece com uma estrutura de galeria (ex: /2025/10/...)
     const isGalleryPath =
       pathname === '/' ||
       /^\/\d{4}/.test(pathname) ||
-      pathname.startsWith('/photo'); //ignorando o compartilhamento individual de foto no whatsapp quando tem subdomínio
+      pathname.startsWith('/photo');
 
     if (isGalleryPath) {
-      const profile = await getProfileBySubdomain(subdomain, req);
+      // Usar o cache manualmente ou buscar no supabase já instanciado
+      const now = Date.now();
+      let profile = subdomainCache.get(subdomain);
 
-      if (profile && profile.use_subdomain) {
-        /* const rewriteUrl = new URL(
-          `/subdomain/${profile.username}${pathname}`,
-          req.url,
-        );*/
+      if (
+        !profile ||
+        (process.env.NODE_ENV !== 'development' &&
+          now - profile.createdAt > SUBDOMAIN_CACHE_TTL)
+      ) {
+        const { data } = await supabase
+          .from('tb_profiles')
+          .select('username, use_subdomain')
+          .eq('username', subdomain)
+          .single();
+
+        if (data) {
+          profile = {
+            username: data.username,
+            use_subdomain: !!data.use_subdomain,
+            createdAt: now,
+          };
+          if (process.env.NODE_ENV !== 'development')
+            subdomainCache.set(subdomain, profile);
+        }
+      }
+
+      if (profile?.use_subdomain) {
         const rewriteUrl = new URL(
-          `/subdomain/${profile.username}${pathname}${url.search}`, // Anexamos url.search diretamente aqui
+          `/subdomain/${profile.username}${pathname}${url.search}`,
           req.url,
         );
-
-        const response = NextResponse.rewrite(rewriteUrl);
-        const isLocalhost = process.env.NODE_ENV === 'development';
-
-        if (isLocalhost) {
-          response.headers.set('Cache-Control', 'no-store, max-age=0');
-        }
-
-        response.headers.set('x-subdomain-variant', 'true');
-        return response;
+        // Criamos o rewrite a partir da resposta que já pode ter novos cookies
+        const rewriteRes = NextResponse.rewrite(rewriteUrl);
+        // Copia os cookies da 'response' (onde o Supabase injetou o refresh) para o rewrite
+        response.cookies
+          .getAll()
+          .forEach((c) => rewriteRes.cookies.set(c.name, c.value));
+        return rewriteRes;
       }
     }
   }
 
-  // 5. PROTEÇÃO DE ROTAS DASHBOARD/ONBOARDING
+  // 4. PROTEÇÃO DE ROTAS DASHBOARD
   if (pathname.startsWith('/dashboard') || pathname.startsWith('/onboarding')) {
-    const res = NextResponse.next();
-    const supabase = createServerClient(
-      process.env.NEXT_PUBLIC_SUPABASE_URL!,
-      process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!,
-      {
-        cookies: {
-          getAll: () => req.cookies.getAll(),
-          setAll: (cookiesToSet) => {
-            cookiesToSet.forEach(({ name, value }) =>
-              req.cookies.set(name, value),
-            );
-            cookiesToSet.forEach(({ name, value, options }) =>
-              res.cookies.set(name, value, options),
-            );
-          },
-        },
-      },
-    );
     const {
       data: { user },
+      error,
     } = await supabase.auth.getUser();
+
+    // Se houver erro de refresh token, limpa a sessão e desloga
+    if (error?.code === 'refresh_token_already_used') {
+      const loginUrl = new URL('/', req.url);
+      const errorRes = NextResponse.redirect(loginUrl);
+      errorRes.cookies.delete('sb-access-token'); // Ajuste o nome conforme seu cookie
+      errorRes.cookies.delete('sb-refresh-token');
+      return errorRes;
+    }
+
     if (!user) return NextResponse.redirect(new URL('/', req.url));
-    return res;
   }
 
-  return NextResponse.next();
+  return response;
 }
 
 export const config = {
