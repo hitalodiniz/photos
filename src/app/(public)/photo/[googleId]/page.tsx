@@ -1,11 +1,13 @@
 import PhotoViewClient from './PhotoViewClient';
-import { getGalleryMetadata } from '@/lib/gallery/metadata-helper';
+import { getPhotoMetadata } from '@/lib/gallery/metadata-helper';
 
-export async function generateMetadata({ params }: { params: any }) {
-  const { username, slug } = await params;
-  const fullSlug = `${username}/${slug.join('/')}`;
+export async function generateMetadata({ params, searchParams }: any) {
+  const { googleId } = await params;
+  const sParams = await searchParams;
+  const rawSlug = sParams.s || '';
+  const fullSlug = rawSlug.startsWith('/') ? rawSlug.substring(1) : rawSlug;
 
-  return await getGalleryMetadata(fullSlug);
+  return await getPhotoMetadata(fullSlug, googleId);
 }
 
 export default async function Page({ params, searchParams }: any) {
