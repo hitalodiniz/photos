@@ -146,14 +146,21 @@ export async function middleware(req: NextRequest) {
     // Como o Next.js já ignora /api e /_next no matcher,
     // basta verificarmos se o pathname está vazio (home do fotógrafo)
     // ou se parece com uma estrutura de galeria (ex: /2025/10/...)
-    const isGalleryPath = pathname === '/' || /^\/\d{4}/.test(pathname);
+    const isGalleryPath =
+      pathname === '/' ||
+      /^\/\d{4}/.test(pathname) ||
+      pathname.startsWith('/photo'); //ignorando o compartilhamento individual de foto no whatsapp quando tem subdomínio
 
     if (isGalleryPath) {
       const profile = await getProfileBySubdomain(subdomain, req);
 
       if (profile && profile.use_subdomain) {
-        const rewriteUrl = new URL(
+        /* const rewriteUrl = new URL(
           `/subdomain/${profile.username}${pathname}`,
+          req.url,
+        );*/
+        const rewriteUrl = new URL(
+          `/subdomain/${profile.username}${pathname}${url.search}`, // Anexamos url.search diretamente aqui
           req.url,
         );
 

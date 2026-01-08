@@ -227,13 +227,17 @@ export default function Lightbox({
       onTouchEnd={onTouchEnd}
     >
       {/* TITULO MOBILE */}
+
       <div
-        className={`md:hidden  relative md:absolute top-0 left-0right-0 
-            flex flex-col md:flex-row items-center
-            p-4 md:px-14 md:py-8 text-white/90 z-[200] bg-gradient-to-b from-black/95 via-black/40 to-transparent w-full gap-4 md:gap-6 transition-all duration-700 ease-in-out ${showInterface ? 'opacity-100 translate-y-0' : 'md:opacity-0 md:translate-y-4 md:pointer-events-none'}`}
+        className={`md:hidden relative top-0 left-0 right-0 
+      flex flex-col items-center
+      p-4 text-white z-[200] w-full gap-4 transition-all duration-700 ease-in-out ${
+        showInterface
+          ? 'opacity-100 translate-y-0'
+          : 'opacity-0 -translate-y-4 pointer-events-none'
+      }`}
       >
-        {/* Título ocupa largura total no mobile para garantir alinhamento */}
-        <div className="flex-grow min-w-0 w-full md:w-auto pr-4">
+        <div className="flex-grow min-w-0 w-full pr-4">
           <GalleryHeader
             title={galleryTitle}
             location={location}
@@ -247,11 +251,15 @@ export default function Lightbox({
       >
         {/* TITULO DESKTOP */}
         <div
-          className={`hidden md:block relative md:absolute top-0 left-0right-0 
-            flex flex-col md:flex-row items-center
-            p-4 md:px-14 md:py-8 text-white/90 z-[200] bg-gradient-to-b from-black/95 via-black/40 to-transparent w-full gap-4 md:gap-6 transition-all duration-700 ease-in-out ${showInterface ? 'opacity-100 translate-y-0' : 'md:opacity-0 md:translate-y-4 md:pointer-events-none'}`}
+          className={`hidden md:block absolute top-0 left-0 right-0 
+    flex flex-col md:flex-row items-center
+    p-4 md:px-14 md:py-8 text-white z-[200] 
+    w-full gap-4 md:gap-6 transition-all duration-700 ease-in-out ${
+      showInterface
+        ? 'opacity-100 translate-y-0'
+        : 'md:opacity-0 md:-translate-y-4 md:pointer-events-none'
+    }`}
         >
-          {/* Título ocupa largura total no mobile para garantir alinhamento */}
           <div className="flex-grow min-w-0 w-full md:w-auto pr-4">
             <GalleryHeader
               title={galleryTitle}
@@ -264,7 +272,7 @@ export default function Lightbox({
         <div
           className={`relative md:absolute 
             flex flex-col md:flex-row items-center justify-between 
-            p-4 md:px-14 md:py-8 text-white/90 z-[200] bg-gradient-to-b from-black/95 via-black/40 to-transparent w-full gap-4 md:gap-6 transition-all duration-700 ease-in-out ${showInterface ? 'opacity-100 translate-y-0' : 'md:opacity-0 md:translate-y-4 md:pointer-events-none'}`}
+            p-4 md:px-14 md:py-8 text-white/90 z-[200]  from-black/95 via-black/40 to-transparent w-full gap-4 md:gap-6 transition-all duration-700 ease-in-out ${showInterface ? 'opacity-100 translate-y-0' : 'md:opacity-0 md:translate-y-4 md:pointer-events-none'}`}
         >
           <div className="w-full md:w-auto md:ml-auto flex justify-center md:justify-end pointer-events-auto z-[200]">
             {' '}
