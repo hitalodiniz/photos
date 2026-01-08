@@ -41,13 +41,13 @@ export default function FeatureGrid({
                 transition={{ delay: index * 0.05 }}
                 whileHover={{ backgroundColor: '#32363b', scale: 1.01 }}
                 /* Ajuste dinâmico de layout: flex-row (left) ou flex-col (top) */
-                className={`group flex gap-2 md:gap-4 p-2 md:p-4 bg-[#2A2D31] border border-white/5 shadow-2xl transition-all duration-300 ${
+                className={`group flex gap-2 md:gap-4 p-3 md:p-4 bg-[#2A2D31] border border-white/5 shadow-2xl transition-all duration-300 ${
                   isTop
                     ? 'flex-col items-center text-center'
                     : 'flex-row items-center text-left'
                 } ${
                   isFullWidth ? 'lg:col-span-full' : ''
-                } rounded-[2rem] md:rounded-[1rem]`}
+                } rounded-[0.5rem] md:rounded-[1rem]`}
               >
                 {/* Ícone Champanhe com Glow focado */}
                 <div
@@ -66,7 +66,7 @@ export default function FeatureGrid({
                 <div
                   className={`flex flex-col ${isTop ? 'items-center' : 'items-start'}`}
                 >
-                  <h3 className="text-white font-black uppercase tracking-[0.2em] text-[12px] md:text-[14px] mb-2 leading-tight">
+                  <h3 className="text-white font-black uppercase tracking-[0.2em] text-[11px] md:text-[14px] mb-1 md:mb-2 leading-tight">
                     {item.title}
                   </h3>
                   <div
