@@ -5,7 +5,7 @@ import {
   createSupabaseServerClient,
   createSupabaseServerClientReadOnly,
 } from '@/lib/supabase.server';
-import { suggestUsernameFromEmail } from '@/core/utils/userUtils';
+import { suggestUsernameFromEmail } from '@/core/utils/user-helpers';
 
 // =========================================================================
 // 1. LEITURA DE DADOS (READ)

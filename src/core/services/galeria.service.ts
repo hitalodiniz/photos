@@ -17,8 +17,7 @@ import {
 import { getDriveAccessTokenForUser } from '@/lib/google-auth';
 import { formatGalleryData } from '@/core/logic/galeria-logic';
 import { Galeria } from '@/core/types/galeria';
-import { getValidGoogleTokenService } from './google.service';
-import { error, error } from 'console';
+import { SignJWT } from 'jose';
 
 // =========================================================================
 // TIPOS AUXILIARES
@@ -280,8 +279,6 @@ export async function updateGaleria(
   }
 
   try {
-    const supabase = await createSupabaseServerClient();
-
     // GARANTE PERMISSÃO NO DRIVE  - não utilizada, pois o escopo é somente de leitura do drive - 01-01-2026
     /*const accessToken = await getDriveAccessTokenForUser(userId);
     if (accessToken && driveFolderId) {
@@ -434,48 +431,57 @@ export async function deleteGaleria(
     return { success: false, error: 'Não foi possível excluir a galeria.' };
   }
 }
-// =========================================================================
-// 7. AUTENTICAÇÃO DE ACESSO À GALERIA POR SENHA (COOKIE)
-// =========================================================================
 
 export async function authenticateGaleriaAccess(
   galeriaId: string,
   fullSlug: string,
-  password: string,
+  passwordInput: string,
 ) {
   const supabase = await createSupabaseServerClientReadOnly();
 
   const { data: galeria } = await supabase
     .from('tb_galerias')
-    .select('password, user_id, tb_profiles!user_id(username, use_subdomain)')
+    .select(
+      'id, password, user_id, tb_profiles!user_id(username, use_subdomain)',
+    )
     .eq('id', galeriaId)
     .single();
 
-  if (!galeria || galeria.password !== password) {
+  if (!galeria || galeria.password !== passwordInput) {
     return { success: false, error: 'Senha incorreta.' };
   }
 
+  // 1. Garantimos que a secret existe e tem tamanho adequado
+  const secretString =
+    process.env.JWT_GALLERY_SECRET ||
+    'chave-muito-longa-com-mais-de-32-caracteres';
+  const secretKey = new TextEncoder().encode(secretString);
+
+  // 2. Criamos o token (o spread {...} garante um objeto plano)
+  const token = await new SignJWT({ galeriaId: String(galeria.id) })
+    .setProtectedHeader({ alg: 'HS256' })
+    .setIssuedAt()
+    .setExpirationTime('7d')
+    .sign(secretKey);
+
   const cookieStore = await cookies();
-  cookieStore.set(`galeria-${galeriaId}-auth`, password, {
+  cookieStore.set(`galeria-${galeriaId}-auth`, token, {
     path: '/',
     httpOnly: true,
     secure: process.env.NODE_ENV === 'production',
-    maxAge: 60 * 60 * 24 * 7, // 7 dias de acesso
+    maxAge: 60 * 60 * 24 * 7,
     sameSite: 'lax',
   });
 
-  // 🎯 Redirecionamento inteligente:
-  // Se for subdomínio, redireciona para o caminho limpo.
   const profile = galeria.tb_profiles as any;
+  let targetPath = `/${fullSlug}`;
+
   if (profile?.use_subdomain) {
-    const cleanPath = fullSlug.replace(`${profile.username}/`, '');
-    // Nota: O redirect aqui assume que você está no domínio correto via Middleware
-    redirect(`/${cleanPath}`);
+    targetPath = `/${fullSlug.replace(`${profile.username}/`, '')}`;
   }
 
-  redirect(`/${fullSlug}`);
+  redirect(targetPath);
 }
-
 /**
  * =========================================================================
  * 8. BUSCAR FOTOS DA GALERIA NO GOOGLE DRIVE
@@ -491,72 +497,89 @@ export async function authenticateGaleriaAccess(
 export async function getGaleriaPhotos(
   galeriaId: string,
 ): Promise<ActionResult<DrivePhoto[]>> {
-  // 1. AUTENTICAÇÃO E CONTEXTO
-  const { success, userId, error: authError } = await getAuthAndStudioIds();
+  try {
+    // 1. AUTENTICAÇÃO E CONTEXTO
+    const { success, userId, error: authError } = await getAuthAndStudioIds();
 
-  if (!success || !userId) {
+    if (!success || !userId) {
+      return {
+        success: false,
+        error: authError || 'Usuário não autenticado.',
+        data: [],
+      };
+    }
+
+    const supabase = await createSupabaseServerClientReadOnly();
+
+    // 2. BUSCAR O ID DA PASTA DA GALERIA
+    const { data: galeria, error: galeriaError } = await supabase
+      .from('tb_galerias')
+      .select('drive_folder_id')
+      .eq('id', galeriaId)
+      .eq('user_id', userId) // RLS: Garante que o usuário só acesse suas próprias galerias
+      .maybeSingle();
+
+    if (galeriaError || !galeria || !galeria.drive_folder_id) {
+      return {
+        success: false,
+        error: 'Galeria não encontrada.',
+        data: [],
+      };
+    }
+
+    const driveFolderId = galeria.drive_folder_id;
+
+    // 3. RENOVAR O ACCESS TOKEN
+    // Esta função (em lib/google-auth.ts) busca o refresh token no DB e o troca por um novo access token.
+    const accessToken = await getDriveAccessTokenForUser(userId);
+
+    if (!accessToken) {
+      return {
+        success: false,
+        error: 'Falha na integração Google Drive. Refaça o login/integração.',
+        data: [],
+      };
+    }
+
+    // 4. LISTAR FOTOS DO DRIVE
+    // Esta função (em lib/google-drive.ts) faz a requisição final ao Google Drive.
+    const photos = await listPhotosFromDriveFolder(driveFolderId, accessToken);
+
+    // Ordenação: Data (mais recente) > Nome (alfabético)
+    photos.sort((a, b) => {
+      // Cast para any para garantir acesso caso a interface importada de lib/google-drive esteja desatualizada
+      const pA = a as any;
+      const pB = b as any;
+
+      const dateAStr = pA.createdTime || pA.imageMediaMetadata?.time;
+      const dateBStr = pB.createdTime || pB.imageMediaMetadata?.time;
+
+      const dateA = dateAStr ? new Date(dateAStr).getTime() : 0;
+      const dateB = dateBStr ? new Date(dateBStr).getTime() : 0;
+
+      if (dateA !== dateB) return dateB - dateA; // Data: Decrescente
+      return a.name.localeCompare(b.name, undefined, { numeric: true }); // Nome: Crescente
+    });
+
+    if (photos.length === 0) {
+      return { success: true, data: [] }; // Retorna sucesso, mas com lista vazia.
+    }
+
+    return { success: true, data: photos };
+  } catch (error: any) {
+    console.error('Erro ao buscar fotos:', error.message);
+
+    // SOLUÇÃO 1: Se for erro de autenticação, redireciona o usuário
+    if (error.message.includes('Sua sessão expirou')) {
+      // Redireciona para a página de reconexão do Google
+      redirect('/');
+    }
+
+    // SOLUÇÃO 2: Se for outro erro, retorna um estado seguro para o Componente
+    // Isso evita que a página inteira quebre (White Screen of Death)
     return {
       success: false,
-      error: authError || 'Usuário não autenticado.',
-      data: [],
+      error: error.message || 'Não foi possível carregar as fotos.',
     };
   }
-
-  const supabase = await createSupabaseServerClientReadOnly();
-
-  // 2. BUSCAR O ID DA PASTA DA GALERIA
-  const { data: galeria, error: galeriaError } = await supabase
-    .from('tb_galerias')
-    .select('drive_folder_id')
-    .eq('id', galeriaId)
-    .eq('user_id', userId) // RLS: Garante que o usuário só acesse suas próprias galerias
-    .maybeSingle();
-
-  if (galeriaError || !galeria || !galeria.drive_folder_id) {
-    return {
-      success: false,
-      error: 'Galeria não encontrada ou pasta do Drive não definida.',
-      data: [],
-    };
-  }
-
-  const driveFolderId = galeria.drive_folder_id;
-
-  // 3. RENOVAR O ACCESS TOKEN
-  // Esta função (em lib/google-auth.ts) busca o refresh token no DB e o troca por um novo access token.
-  const accessToken = await getDriveAccessTokenForUser(userId);
-
-  if (!accessToken) {
-    return {
-      success: false,
-      error: 'Falha na integração Google Drive. Refaça o login/integração.',
-      data: [],
-    };
-  }
-
-  // 4. LISTAR FOTOS DO DRIVE
-  // Esta função (em lib/google-drive.ts) faz a requisição final ao Google Drive.
-  const photos = await listPhotosFromDriveFolder(driveFolderId, accessToken);
-
-  // Ordenação: Data (mais recente) > Nome (alfabético)
-  photos.sort((a, b) => {
-    // Cast para any para garantir acesso caso a interface importada de lib/google-drive esteja desatualizada
-    const pA = a as any;
-    const pB = b as any;
-
-    const dateAStr = pA.createdTime || pA.imageMediaMetadata?.time;
-    const dateBStr = pB.createdTime || pB.imageMediaMetadata?.time;
-
-    const dateA = dateAStr ? new Date(dateAStr).getTime() : 0;
-    const dateB = dateBStr ? new Date(dateBStr).getTime() : 0;
-
-    if (dateA !== dateB) return dateB - dateA; // Data: Decrescente
-    return a.name.localeCompare(b.name, undefined, { numeric: true }); // Nome: Crescente
-  });
-
-  if (photos.length === 0) {
-    return { success: true, data: [] }; // Retorna sucesso, mas com lista vazia.
-  }
-
-  return { success: true, data: photos };
 }

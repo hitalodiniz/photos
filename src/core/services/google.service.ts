@@ -1,5 +1,6 @@
 import { getDriveAccessTokenForUser } from '@/lib/google-auth';
 import { createSupabaseServerClient } from '@/lib/supabase.server';
+import { redirect } from 'next/navigation';
 /**
  * Busca o ID da pasta-mãe (parent) de um arquivo no Google Drive
  * @param fileId O ID do arquivo selecionado no Google Picker.
@@ -203,8 +204,9 @@ export async function getValidGoogleTokenService(userId: string) {
       data.error === 'invalid_grant' ||
       data.error === 'refresh_token_already_used'
     ) {
-      // Esse erro específico será capturado pela Page para fazer o redirect
-      throw new Error('AUTH_RECONNECT_REQUIRED');
+      // Se o token já foi usado, a sessão é inválida.
+      // O ideal aqui é redirecionar para o login para resetar os cookies.
+      return redirect('/login?error=session_expired');
     }
 
     if (!data.access_token) {

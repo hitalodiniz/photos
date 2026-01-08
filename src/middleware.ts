@@ -109,29 +109,6 @@ export async function middleware(req: NextRequest) {
     }
   }
 
-  // 3. REWRITE: hitalodiniz.localhost:3000 -> Pasta Interna
-  if (isSubdomainRequest) {
-    const subdomain = cleanHost.replace(`.${cleanMainDomain}`, '');
-
-    if (subdomain && subdomain !== 'www') {
-      const profile = await getProfileBySubdomain(subdomain, req);
-
-      // No seu middleware.ts
-      if (profile && profile.use_subdomain) {
-        // 🎯 IMPORTANTE: Não deixe o pathname vazio para a home
-        // Se for '/', usamos string vazia para não duplicar a barra
-        const cleanPathname = pathname === '/' ? '' : pathname;
-
-        const rewriteUrl = new URL(
-          `/subdomain/${profile.username}${cleanPathname}`,
-          req.url,
-        );
-
-        return NextResponse.rewrite(rewriteUrl);
-      }
-    }
-  }
-
   // ---------------------------------------------------------
   // 4. LÓGICA DE REWRITE: Subdomínio -> Pasta Interna (Apenas Galerias)
   // ---------------------------------------------------------

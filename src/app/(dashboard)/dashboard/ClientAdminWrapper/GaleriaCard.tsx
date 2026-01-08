@@ -22,7 +22,6 @@ import {
   getPublicGalleryUrl,
   copyToClipboard,
   getImageUrl,
-  getHighResImageUrl,
 } from '@/core/utils/url-helper';
 import { GALLERY_MESSAGES } from '@/constants/messages';
 import { executeShare } from '@/core/utils/share-helper';

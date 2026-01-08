@@ -94,5 +94,57 @@ describe('gallery-logic - Cobertura 100%', () => {
       const res = await fetchGalleryBySlug('slug-inexistente');
       expect(res).toBeNull();
     });
+    it('deve retornar os dados brutos da galeria e do fotógrafo (Caminho de Sucesso)', async () => {
+      const mockSupabase = {
+        from: vi.fn().mockReturnThis(),
+        select: vi.fn().mockReturnThis(),
+        eq: vi.fn().mockReturnThis(),
+        single: vi.fn().mockResolvedValue({
+          data: {
+            id: '123',
+            title: 'Casamento',
+            slug: 'casamento-2026',
+            user_id: 'u1',
+            photographer: {
+              id: 'u1',
+              full_name: 'Hitalo',
+              username: 'hitalo',
+              use_subdomain: true,
+            },
+          },
+          error: null,
+        }),
+      };
+
+      vi.mocked(createSupabaseServerClientReadOnly).mockResolvedValue(
+        mockSupabase as any,
+      );
+
+      const res = await fetchGalleryBySlug('casamento-2026');
+
+      // Validações corretas para esta função específica
+      expect(res).not.toBeNull();
+      expect(res?.id).toBe('123');
+      expect(res?.title).toBe('Casamento');
+
+      // Aqui validamos se o join funcionou no mock
+      expect(res?.photographer).toBeDefined();
+      expect(res?.photographer?.username).toBe('hitalo');
+    });
+  });
+
+  describe('Subdomain', () => {
+    it('deve tratar hasSubdomain como falso e client_name como fallback nulo', () => {
+      const mockRaw = {
+        id: '123',
+        photographer: { use_subdomain: false }, // Testa o outro lado do IF
+        client_name: 'Maria Silva',
+      } as any;
+
+      const res = formatGalleryData(mockRaw, 'hitalo');
+
+      expect(res.use_subdomain).toBe(false);
+      expect(res.client_name).toBe('Maria Silva');
+    });
   });
 });

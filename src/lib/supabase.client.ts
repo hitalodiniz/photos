@@ -6,7 +6,7 @@ import { createBrowserClient } from '@supabase/ssr';
 const SUPABASE_PUBLIC_BASE_URL = process.env.NEXT_PUBLIC_SUPABASE_URL!;
 const SUPABASE_ANON_KEY = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!;
 
-// Certifique-se que essa variável na Vercel seja ".suagaleria.com.br"
+// Certifique-se que essa variável na Vercel
 const COOKIE_DOMAIN = process.env.NEXT_PUBLIC_COOKIE_DOMAIN;
 
 export const supabase = createBrowserClient(
@@ -23,7 +23,7 @@ export const supabase = createBrowserClient(
       domain: COOKIE_DOMAIN, // Se estiver vazio em localhost, ele usa o host atual
       path: '/',
       sameSite: 'lax',
-      secure: true, // Pode manter true, browsers modernos aceitam em localhost com lax
+      secure: process.env.NEXT_PUBLIC_NODE_ENV === 'production',
     },
   },
 );

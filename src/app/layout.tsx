@@ -30,6 +30,10 @@ const barlow = Barlow({
 // app/layout.tsx
 
 export const metadata: Metadata = {
+  metadataBase: new URL(process.env.NEXT_PUBLIC_BASE_URL),
+  alternates: {
+    canonical: '/',
+  },
   title: {
     default: process.env.NEXT_PUBLIC_TITLE_DEFAULT, // Título da Home
     template: '%s | Sua Galeria de Fotos', // O %s recebe o título da página interna
@@ -62,12 +66,6 @@ export default function RootLayout({
       <head>
         <meta charSet="UTF-8" />
         <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-
-        {/* LightGallery CSS via CDN - Resolve o SyntaxError do Webpack definitivamente */}
-        <link
-          rel="stylesheet"
-          href="https://cdnjs.cloudflare.com/ajax/libs/lightgallery/2.7.2/css/lightgallery-bundle.min.css"
-        />
       </head>
       <body className={`${inter.className} bg-[#F1F3F4] antialiased`}>
         <AuthProvider>

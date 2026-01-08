@@ -5,7 +5,7 @@ import React, { useState } from 'react';
 import { Camera, Lock, Loader2, CheckCircle2, Send, X } from 'lucide-react';
 import { Galeria } from '@/core/types/galeria';
 import { sendAccessRequestAction } from '@/actions/email.actions';
-import { maskPhone } from '@/core/utils/masks';
+import { maskPhone } from '@/core/utils/masks-helpers';
 
 export default function PasswordPrompt({
   galeria,

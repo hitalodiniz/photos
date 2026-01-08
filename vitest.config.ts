@@ -16,5 +16,11 @@ export default defineConfig({
       NEXT_PUBLIC_SUPABASE_URL: 'https://uxbakxnl.supabase.co',
       SUPABASE_ANON_KEY: 'fake-key',
     },
+    coverage: {
+      provider: 'v8',
+      reporter: ['text', 'json', 'html'], // 'text' mostra no terminal, 'html' cria um site
+      include: ['src/core/services/**/*.ts'], // Foca nos seus services
+      exclude: ['**/*.spec.ts', 'node_modules/**'],
+    },
   },
 });

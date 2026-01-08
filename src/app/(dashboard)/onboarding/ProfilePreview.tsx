@@ -1,14 +1,9 @@
 'use client';
 import React, { useEffect, useState } from 'react';
 
-import { createClient } from '@supabase/supabase-js';
 import { useParams } from 'next/navigation';
 import PhotographerProfileContent from '@/components/ui/PhotographerProfileContent';
-
-const supabase = createClient(
-  process.env.NEXT_PUBLIC_SUPABASE_URL!,
-  process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!,
-);
+import { getPublicProfile } from '@/core/services/profile.service';
 
 export default function PhotographerProfile({
   initialData,
@@ -30,16 +25,19 @@ export default function PhotographerProfile({
     async function fetchProfile() {
       if (!params.username) return;
       try {
-        const { data, error } = await supabase
-          .from('tb_profiles')
-          .select('*')
-          .eq('username', params.username)
-          .single();
+        const { data } = await getPublicProfile(params.username);
 
-        if (error) throw error;
+        if (!data) {
+          throw new Error('Perfil não encontrado no sistema.');
+        }
         setProfile(data);
       } catch (error) {
-        console.error('Erro ao carregar perfil:', error);
+        // 1. Loga para debug técnico no navegador
+        window.console.error('Erro capturado no fetch:', error);
+
+        // 2. LANÇA o erro para o Next.js capturar no error.tsx
+        // Isso interrompe o fluxo deste componente e renderiza a página de erro
+        throw error;
       } finally {
         setLoading(false);
       }
