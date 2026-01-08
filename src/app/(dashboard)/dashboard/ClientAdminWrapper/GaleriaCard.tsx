@@ -105,7 +105,7 @@ export default function GaleriaCard({
     if (links.url) window.open(links.url, '_blank');
   };
 
-  const handleWhatsAppShare = async (e: React.MouseEvent) => {
+  const handleWhatsAppShare = (e: React.MouseEvent) => {
     e.preventDefault();
     e.stopPropagation();
 
@@ -116,32 +116,29 @@ export default function GaleriaCard({
       ? galeria.client_whatsapp.replace(/\D/g, '')
       : '';
 
-    // 🎯 Tenta o compartilhamento nativo com ARQUIVO no Mobile
+    // 🎯 No Mobile, usamos a gaveta nativa para enviar TEXTO + LINK
+    // O WhatsApp gerará o card automaticamente através do Open Graph
     if (isMobile && navigator.share) {
-      try {
-        // Busca a imagem de capa (use w1000 para qualidade e tamanho aceitável)
-        const response = await fetch(
-          getHighResImageUrl(galeria.cover_image_url),
-        );
-        const blob = await response.blob();
-        const file = new File([blob], 'icone-camera.png', {
-          type: 'image/jpeg',
-        });
-
-        await navigator.share({
-          files: [file],
+      navigator
+        .share({
           title: galeria.title,
           text: links.message,
+        })
+        .catch((error) => {
+          console.error('Erro no Share nativo do Card:', error);
+          // Se o usuário cancelar ou o navegador falhar, usamos o fallback
+          openWhatsApp(phone, links.message);
         });
-        return; // Se funcionou, encerra aqui
-      } catch (error) {
-        console.error('Erro no Share nativo do Card:', error);
-        // Se der erro (ex: usuário cancelou ou erro de rede), segue para o fallback
-      }
+      return;
     }
 
-    // Fallback para Desktop ou falha no Share nativo
-    const encodedText = encodeURIComponent(links.message);
+    // 💻 Desktop ou Fallback
+    openWhatsApp(phone, links.message);
+  };
+
+  // Função auxiliar para evitar repetição de código
+  const openWhatsApp = (phone: string, message: string) => {
+    const encodedText = encodeURIComponent(message);
     const whatsappUrl = phone
       ? `https://api.whatsapp.com/send?phone=${phone}&text=${encodedText}`
       : `https://api.whatsapp.com/send?text=${encodedText}`;
