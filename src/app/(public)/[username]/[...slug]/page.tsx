@@ -9,7 +9,6 @@ import {
 import { GaleriaView, PasswordPrompt } from '@/components/gallery';
 import { getImageUrl } from '@/core/utils/url-helper';
 import {} from '@/core/services/galeria.service';
-import { SEO_CONFIG } from '@/core/config/seo.config';
 import { getGalleryMetadata } from '@/lib/gallery/metadata-helper';
 
 export default async function UsernameGaleriaPage({
