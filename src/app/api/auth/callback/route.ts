@@ -3,6 +3,8 @@ import { NextResponse } from 'next/server';
 import { createServerClient } from '@supabase/ssr';
 import { cookies } from 'next/headers';
 
+//Fluxo de login - Login -> Google -> Callback -> /login (triagem) -> /dashboard (ou subdomínio).
+
 export async function GET(request: Request) {
   const requestUrl = new URL(request.url);
   const code = requestUrl.searchParams.get('code');
@@ -91,5 +93,5 @@ export async function GET(request: Request) {
 
   // 4. REDIRECIONAMENTO FINAL
   // Redireciona para /dashboard ou /app conforme sua estrutura
-  return NextResponse.redirect(new URL('/dashboard', request.url));
+  return NextResponse.redirect(new URL('/login', request.url));
 }

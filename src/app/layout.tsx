@@ -30,6 +30,10 @@ const barlow = Barlow({
 // app/layout.tsx
 
 export const metadata: Metadata = {
+  metadataBase: new URL(process.env.NEXT_PUBLIC_BASE_URL),
+  alternates: {
+    canonical: '/',
+  },
   title: {
     default: process.env.NEXT_PUBLIC_TITLE_DEFAULT, // Título da Home
     template: '%s | Sua Galeria de Fotos', // O %s recebe o título da página interna

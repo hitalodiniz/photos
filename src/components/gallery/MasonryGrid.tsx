@@ -7,11 +7,7 @@ import { Download, Heart, MessageCircle } from 'lucide-react';
 import 'photoswipe/dist/photoswipe.css';
 import { Gallery, Item } from 'react-photoswipe-gallery';
 import { Galeria } from '@/core/types/galeria';
-import {
-  getHighResImageUrl,
-  getImageUrl,
-  getWhatsAppShareLink,
-} from '@/core/utils/url-helper';
+import { getHighResImageUrl, getImageUrl } from '@/core/utils/url-helper';
 import { GALLERY_MESSAGES } from '@/constants/messages';
 import { getCleanSlug, executeShare } from '@/core/utils/share-helper';
 

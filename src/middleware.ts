@@ -83,56 +83,6 @@ export async function middleware(req: NextRequest) {
   const isSubdomainRequest = cleanHost.endsWith(`.${cleanMainDomain}`);
 
   // ---------------------------------------------------------
-  // 3. LÓGICA DE REDIRECT: URL Padrão -> Subdomínio
-  // Ex: localhost:3000/hitalodiniz/2025... -> hitalodiniz.localhost:3000/2025...
-  // ---------------------------------------------------------
-  if (!isSubdomainRequest && pathParts.length > 0) {
-    const potentialUsername = pathParts[0];
-    const reservedPaths = [
-      'dashboard',
-      'onboarding',
-      'login',
-      'subdomain',
-      'api',
-    ];
-
-    if (!reservedPaths.includes(potentialUsername)) {
-      const profile = await getProfileBySubdomain(potentialUsername, req);
-      if (profile && profile.use_subdomain) {
-        const newPath = '/' + pathParts.slice(1).join('/');
-        const newUrl = new URL(newPath, req.url);
-        const port = host.split(':')[1];
-        newUrl.hostname = `${potentialUsername}.${cleanMainDomain}`;
-        if (port) newUrl.port = port;
-        return NextResponse.redirect(newUrl);
-      }
-    }
-  }
-
-  // 3. REWRITE: hitalodiniz.localhost:3000 -> Pasta Interna
-  if (isSubdomainRequest) {
-    const subdomain = cleanHost.replace(`.${cleanMainDomain}`, '');
-
-    if (subdomain && subdomain !== 'www') {
-      const profile = await getProfileBySubdomain(subdomain, req);
-
-      // No seu middleware.ts
-      if (profile && profile.use_subdomain) {
-        // 🎯 IMPORTANTE: Não deixe o pathname vazio para a home
-        // Se for '/', usamos string vazia para não duplicar a barra
-        const cleanPathname = pathname === '/' ? '' : pathname;
-
-        const rewriteUrl = new URL(
-          `/subdomain/${profile.username}${cleanPathname}`,
-          req.url,
-        );
-
-        return NextResponse.rewrite(rewriteUrl);
-      }
-    }
-  }
-
-  // ---------------------------------------------------------
   // 4. LÓGICA DE REWRITE: Subdomínio -> Pasta Interna (Apenas Galerias)
   // ---------------------------------------------------------
   let subdomain = '';

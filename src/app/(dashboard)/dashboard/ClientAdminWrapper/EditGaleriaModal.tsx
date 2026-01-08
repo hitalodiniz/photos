@@ -2,7 +2,7 @@
 
 import { useState, useEffect } from 'react';
 import { updateGaleria } from '@/core/services/galeria.service';
-import { maskPhone } from '@/core/utils/masks';
+import { maskPhone } from '@/core/utils/masks-helpers';
 import { GooglePickerButton } from '@/components/google-drive';
 import { CategorySelect } from '@/components/gallery'; // Importação do novo componente
 import {

@@ -47,7 +47,7 @@ export default function FeatureGrid({
                     : 'flex-row items-center text-left'
                 } ${
                   isFullWidth ? 'lg:col-span-full' : ''
-                } rounded-[2rem] md:rounded-[2rem]`}
+                } rounded-[2rem] md:rounded-[1rem]`}
               >
                 {/* Ícone Champanhe com Glow focado */}
                 <div
@@ -58,7 +58,7 @@ export default function FeatureGrid({
                   {React.isValidElement(item.icon)
                     ? React.cloneElement(item.icon as React.ReactElement, {
                         // Usando className do Tailwind para controlar o tamanho por breakpoint
-                        className: 'w-8 h-8 md:w-12 md:h-12',
+                        className: 'w-8 h-8 md:w-10 md:h-10',
                       })
                     : item.icon}
                 </div>
@@ -66,11 +66,11 @@ export default function FeatureGrid({
                 <div
                   className={`flex flex-col ${isTop ? 'items-center' : 'items-start'}`}
                 >
-                  <h3 className="text-white font-black uppercase tracking-[0.2em] text-[12px] md:text-[15px] mb-2 leading-tight">
+                  <h3 className="text-white font-black uppercase tracking-[0.2em] text-[12px] md:text-[14px] mb-2 leading-tight">
                     {item.title}
                   </h3>
                   <div
-                    className={`text-white/70 text-[12px] md:text-[14px] font-medium leading-relaxed transition-colors group-hover:text-white/90 ${
+                    className={`text-white/70 text-[11px] md:text-[13px] font-medium leading-relaxed transition-colors group-hover:text-white/90 ${
                       isTop ? 'max-w-md' : ''
                     }`}
                   >

@@ -6,11 +6,9 @@ import Image from 'next/image';
 
 export default function UserMenu({
   session,
-  handleLogout,
   avatarUrl,
 }: {
   session: { id: string; email?: string; name?: string } | any;
-  handleLogout: () => void;
   avatarUrl?: string | null;
 }) {
   const [isOpen, setIsOpen] = useState(false);
@@ -43,12 +41,9 @@ export default function UserMenu({
 
   const onLogoutClick = async () => {
     setIsLoggingOut(true);
-    try {
-      await handleLogout();
-    } catch (error) {
-      setIsLoggingOut(false);
-      console.error('Erro ao sair:', error);
-    }
+    // Em vez de chamar handleLogout(), redirecionamos para a nossa rota de API
+    // que já configuramos para limpar cookies de domínio pai e fazer o redirect.
+    window.location.href = '/auth/logout';
   };
 
   // --- Sub-componente de UI ---
@@ -80,7 +75,7 @@ export default function UserMenu({
     }
     return (
       <div
-        className={`${sizeClass} rounded-full bg-blue-600 text-white flex items-center justify-center ${textClass} font-semibold ${borderStyle} shadow-sm`}
+        className={`${sizeClass} rounded-full bg-stone-800 text-gold flex items-center justify-center ${textClass} font-semibold ${borderStyle} shadow-sm`}
       >
         {initialLetter}
       </div>

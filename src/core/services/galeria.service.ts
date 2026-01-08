@@ -19,6 +19,7 @@ import { formatGalleryData } from '@/core/logic/galeria-logic';
 import { Galeria } from '@/core/types/galeria';
 import { getValidGoogleTokenService } from './google.service';
 import { error, error } from 'console';
+import { SignJWT } from 'jose';
 
 // =========================================================================
 // TIPOS AUXILIARES
@@ -438,44 +439,58 @@ export async function deleteGaleria(
 // 7. AUTENTICAÇÃO DE ACESSO À GALERIA POR SENHA (COOKIE)
 // =========================================================================
 
+const SECRET = new TextEncoder().encode(
+  process.env.JWT_GALLERY_SECRET || 'chave-secreta-minimo-32-caracteres',
+);
+
 export async function authenticateGaleriaAccess(
   galeriaId: string,
   fullSlug: string,
-  password: string,
+  passwordInput: string,
 ) {
   const supabase = await createSupabaseServerClientReadOnly();
 
   const { data: galeria } = await supabase
     .from('tb_galerias')
-    .select('password, user_id, tb_profiles!user_id(username, use_subdomain)')
+    .select(
+      'id, password, user_id, tb_profiles!user_id(username, use_subdomain)',
+    )
     .eq('id', galeriaId)
     .single();
 
-  if (!galeria || galeria.password !== password) {
+  // 1. Validação de senha
+  if (!galeria || galeria.password !== passwordInput) {
     return { success: false, error: 'Senha incorreta.' };
   }
 
+  // 2. Geração do JWT assinado
+  // Guardamos o ID da galeria dentro do token para que ele não sirva para outras
+  const token = await new SignJWT({ galeriaId: galeria.id })
+    .setProtectedHeader({ alg: 'HS256' })
+    .setIssuedAt()
+    .setExpirationTime('7d')
+    .sign(SECRET);
+
+  // 3. Define o Cookie com o JWT em vez da senha pura
   const cookieStore = await cookies();
-  cookieStore.set(`galeria-${galeriaId}-auth`, password, {
+  cookieStore.set(`galeria-${galeriaId}-auth`, token, {
     path: '/',
     httpOnly: true,
     secure: process.env.NODE_ENV === 'production',
-    maxAge: 60 * 60 * 24 * 7, // 7 dias de acesso
+    maxAge: 60 * 60 * 24 * 7,
     sameSite: 'lax',
   });
 
-  // 🎯 Redirecionamento inteligente:
-  // Se for subdomínio, redireciona para o caminho limpo.
+  // 4. Redirecionamento inteligente
   const profile = galeria.tb_profiles as any;
+  let targetPath = `/${fullSlug}`;
+
   if (profile?.use_subdomain) {
-    const cleanPath = fullSlug.replace(`${profile.username}/`, '');
-    // Nota: O redirect aqui assume que você está no domínio correto via Middleware
-    redirect(`/${cleanPath}`);
+    targetPath = `/${fullSlug.replace(`${profile.username}/`, '')}`;
   }
 
-  redirect(`/${fullSlug}`);
+  redirect(targetPath);
 }
-
 /**
  * =========================================================================
  * 8. BUSCAR FOTOS DA GALERIA NO GOOGLE DRIVE

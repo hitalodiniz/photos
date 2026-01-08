@@ -4,9 +4,6 @@ import { PhotoGrid, PhotographerAvatar } from '@/components/gallery';
 import type { Galeria } from '@/core/types/galeria';
 import { Camera } from 'lucide-react';
 import LoadingScreen from '../ui/LoadingScreen';
-import { fetchGalleryBySlug } from '@/core/logic/galeria-logic';
-import { SEO_CONFIG } from '@/core/config/seo.config';
-import { getImageUrl } from '@/core/utils/url-helper';
 
 interface GaleriaViewProps {
   galeria: Galeria;

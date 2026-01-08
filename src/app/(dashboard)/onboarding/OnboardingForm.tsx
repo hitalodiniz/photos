@@ -21,62 +21,16 @@ import {
   LayoutDashboard,
 } from 'lucide-react';
 
-import { upsertProfile } from '@/core/services/profile.service';
-import { supabase } from '@/lib/supabase.client';
-import { maskPhone } from '@/core/utils/masks';
+import {
+  getPublicProfile,
+  upsertProfile,
+} from '@/core/services/profile.service';
+import { maskPhone } from '@/core/utils/masks-helpers';
 import ProfilePreview from './ProfilePreview';
 import { Toast } from '@/components/ui';
 import { useFormStatus } from 'react-dom';
-
-// --- AUXILIARES ---
-const fetchStates = async () => {
-  const response = await fetch(
-    'https://servicodados.ibge.gov.br/api/v1/localidades/estados?orderBy=nome',
-  );
-  return await response.json();
-};
-
-const compressImage = (file: File): Promise<Blob> => {
-  return new Promise((resolve) => {
-    const reader = new FileReader();
-    reader.readAsDataURL(file);
-    reader.onload = (event) => {
-      const img = new Image();
-      img.src = event.target?.result as string;
-      img.onload = () => {
-        const canvas = document.createElement('canvas');
-        const MAX_WIDTH = 800; // Tamanho ideal para avatar de luxo
-        const scaleSize = MAX_WIDTH / img.width;
-        canvas.width = MAX_WIDTH;
-        canvas.height = img.height * scaleSize;
-
-        const ctx = canvas.getContext('2d');
-        ctx?.drawImage(img, 0, 0, canvas.width, canvas.height);
-
-        // Exporta como WebP com 80% de qualidade (Equilíbrio entre luxo e leveza)
-        canvas.toBlob((blob) => resolve(blob!), 'image/webp', 0.8);
-      };
-    };
-  });
-};
-
-const fetchCitiesByState = async (uf: string, query: string) => {
-  if (query.length < 2) return [];
-  try {
-    const response = await fetch(
-      `https://servicodados.ibge.gov.br/api/v1/localidades/estados/${uf}/municipios`,
-    );
-    const data = await response.json();
-    return data
-      .filter((item: any) =>
-        item.nome.toLowerCase().includes(query.toLowerCase()),
-      )
-      .map((item: any) => `${item.nome}, ${uf}`);
-  } catch (error) {
-    console.error('Erro IBGE:', error);
-    return [];
-  }
-};
+import { fetchStates, fetchCitiesByState } from '@/core/utils/cidades-helpers';
+import { compressImage } from '@/core/utils/user-helpers';
 
 export function SubmitOnboarding({ isSaving }: { isSaving: boolean }) {
   // Mantemos o pending para caso o form seja disparado de outra forma,
@@ -183,11 +137,7 @@ export default function OnboardingForm({
     }
     const check = async () => {
       setIsChecking(true);
-      const { data } = await supabase
-        .from('tb_profiles')
-        .select('username')
-        .eq('username', username.toLowerCase())
-        .maybeSingle();
+      const { data } = await getPublicProfile(username);
       setIsAvailable(!data);
       setIsChecking(false);
     };

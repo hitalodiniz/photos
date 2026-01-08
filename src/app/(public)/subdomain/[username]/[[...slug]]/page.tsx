@@ -1,5 +1,4 @@
 import { notFound } from 'next/navigation';
-import { cookies } from 'next/headers';
 import {
   fetchGalleryBySlug,
   formatGalleryData,
@@ -8,9 +7,8 @@ import {
 import { GaleriaView, PasswordPrompt } from '@/components/gallery';
 import { getImageUrl } from '@/core/utils/url-helper';
 import PhotographerProfileContainer from '@/components/profile/PhotographerProfileContainer';
-import { Metadata } from 'next';
-import { SEO_CONFIG } from '@/core/config/seo.config';
 import { getGalleryMetadata } from '@/lib/gallery/metadata-helper';
+import { checkGalleryAccess } from '@/core/logic/auth-gallery';
 
 type SubdomainGaleriaPageProps = {
   params: Promise<{
@@ -60,11 +58,9 @@ export default async function SubdomainGaleriaPage({
 
   // 4. Verificação de senha
   if (!galeriaData.is_public) {
-    const cookieStore = await cookies();
-    const cookieKey = `galeria-${galeriaData.id}-auth`;
-    const savedToken = cookieStore.get(cookieKey)?.value;
+    const isAuthorized = await checkGalleryAccess(galeriaData.id);
 
-    if (savedToken !== galeriaData.password) {
+    if (!isAuthorized) {
       return (
         <PasswordPrompt
           galeria={galeriaData}

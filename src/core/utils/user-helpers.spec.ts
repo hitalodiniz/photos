@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest';
-import { suggestUsernameFromEmail } from './userUtils';
+import { suggestUsernameFromEmail } from './user-helpers';
 
 describe('userUtils - suggestUsernameFromEmail', () => {
   it('deve retornar uma string vazia se o email for undefined ou vazio', () => {

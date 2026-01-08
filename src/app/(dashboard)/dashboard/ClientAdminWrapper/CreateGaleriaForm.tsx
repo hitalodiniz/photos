@@ -4,7 +4,7 @@ import { useState, useRef } from 'react';
 import SubmitButton from '@/components/ui/SubmitButton';
 import { GooglePickerButton } from '@/components/google-drive';
 import { CategorySelect } from '@/components/gallery';
-import { maskPhone } from '@/core/utils/masks';
+import { maskPhone } from '@/core/utils/masks-helpers';
 import { createGaleria } from '@/core/services/galeria.service';
 import {
   Lock,

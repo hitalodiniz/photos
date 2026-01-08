@@ -1,14 +1,10 @@
 'use client';
 import React, { useEffect, useState } from 'react';
 
-import { createClient } from '@supabase/supabase-js';
 import { useParams } from 'next/navigation';
 import PhotographerProfileContent from '@/components/ui/PhotographerProfileContent';
-
-const supabase = createClient(
-  process.env.NEXT_PUBLIC_SUPABASE_URL!,
-  process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!,
-);
+import { getPublicProfile } from '@/core/services/profile.service';
+import { error } from 'console';
 
 export default function PhotographerProfile({
   initialData,
@@ -30,13 +26,9 @@ export default function PhotographerProfile({
     async function fetchProfile() {
       if (!params.username) return;
       try {
-        const { data, error } = await supabase
-          .from('tb_profiles')
-          .select('*')
-          .eq('username', params.username)
-          .single();
+        const { data } = await getPublicProfile(params.username);
 
-        if (error) throw error;
+        if (!data) throw error;
         setProfile(data);
       } catch (error) {
         console.error('Erro ao carregar perfil:', error);
