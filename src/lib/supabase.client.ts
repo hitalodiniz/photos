@@ -23,7 +23,6 @@ export const supabase = createBrowserClient(
       domain: COOKIE_DOMAIN, // Se estiver vazio em localhost, ele usa o host atual
       path: '/',
       sameSite: 'lax',
-      secure: true, // Pode manter true, browsers modernos aceitam em localhost com lax
-    },
+      secure: process.env.NEXT_PUBLIC_NODE_ENV === 'production',
   },
 );

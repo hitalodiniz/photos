@@ -68,7 +68,7 @@ export async function GET(request: Request) {
       updates.google_refresh_token = provider_refresh_token;
     }
 
-    // NOVIDADE: Salva o Access Token inicial para o service já ler do banco
+    // Salva o Access Token inicial para o service já ler do banco
     if (provider_token) {
       updates.google_access_token = provider_token;
 
@@ -93,5 +93,5 @@ export async function GET(request: Request) {
 
   // 4. REDIRECIONAMENTO FINAL
   // Redireciona para /dashboard ou /app conforme sua estrutura
-  return NextResponse.redirect(new URL('/login', request.url));
+  return NextResponse.redirect(new URL('/dashboard', request.url));
 }
