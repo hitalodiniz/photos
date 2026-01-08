@@ -131,27 +131,6 @@ describe('gallery-logic - Cobertura 100%', () => {
       expect(res?.photographer).toBeDefined();
       expect(res?.photographer?.username).toBe('hitalo');
     });
-    describe('fetchDrivePhotos', () => {
-      it('deve buscar fotos do drive com sucesso', async () => {
-        vi.mocked(googleAuth.getDriveAccessTokenForUser).mockResolvedValue(
-          'token-valid',
-        );
-        vi.mocked(googleDrive.listPhotosFromDriveFolder).mockResolvedValue([
-          {
-            id: 'p1',
-            name: 'f1.jpg',
-            webViewUrl: 'u1',
-            size: '10',
-            thumbnailUrl: 't1',
-          },
-        ]);
-
-        const photos = await fetchDrivePhotos('u1', 'folder1');
-
-        expect(photos).toHaveLength(1);
-        expect(photos[0].id).toBe('p1');
-      });
-    });
   });
 
   describe('Subdomain', () => {

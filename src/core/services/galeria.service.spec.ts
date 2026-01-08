@@ -257,6 +257,31 @@ describe('Galeria Service - Testes Unitários', () => {
       expect(result.success).toBe(false);
       expect(result.error).toBeDefined(); // Verifique a string exata no seu catch
     });
+
+    it('deve disparar erro se o banco falhar no final do update', async () => {
+      const { mockQueryBuilder } = setupSupabaseMock();
+
+      // Mocks para passar pelo Auth
+      mockQueryBuilder.select.mockReturnThis();
+      mockQueryBuilder.eq.mockImplementationOnce(() => mockQueryBuilder);
+      mockQueryBuilder.single.mockResolvedValueOnce({
+        data: { studio_id: '1' },
+      });
+
+      // Mock do Erro no Update
+      mockQueryBuilder.update.mockReturnThis();
+      mockQueryBuilder.eq.mockResolvedValueOnce({
+        error: { message: 'DB Error' },
+      });
+
+      const fd = new FormData();
+      fd.append('title', 'T');
+      fd.append('drive_folder_id', 'D');
+      fd.append('clientName', 'C');
+
+      const result = await updateGaleria('id', fd);
+      expect(result.success).toBe(false);
+    });
   });
 
   // =========================================================================
