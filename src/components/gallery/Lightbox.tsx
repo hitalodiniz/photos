@@ -19,6 +19,7 @@ import { GALLERY_MESSAGES } from '@/constants/messages';
 
 import type { Galeria } from '@/core/types/galeria';
 import LoadingSpinner from '../ui/LoadingSpinner';
+import { getCleanSlug, executeShare } from '@/core/utils/share-helper';
 
 interface Photo {
   id: string | number;
@@ -182,38 +183,13 @@ export default function Lightbox({
   }, [onClose, onNext, onPrev]);
 
   const handleShareWhatsApp = () => {
-    const rawSlug = galeria.slug || '';
-    const cleanedSlug = rawSlug.startsWith('/')
-      ? rawSlug.substring(1)
-      : rawSlug;
-
-    // 1. Monta a URL da foto (que agora tem os metadados configurados)
-    const shareUrl = `${window.location.origin}/photo/${photo.id}?s=${cleanedSlug}`;
-
-    // 2. Monta o texto (Ex: "Confira esta foto da galeria X: [link]")
+    const shareUrl = `${window.location.origin}/photo/${photo.id}?s=${getCleanSlug(galeria.slug)}`;
     const shareText = GALLERY_MESSAGES.PHOTO_SHARE(galleryTitle, shareUrl);
 
-    const isMobile = /iPhone|iPad|iPod|Android/i.test(navigator.userAgent);
-
-    // 3. No Mobile, usamos o Web Share API para texto (abre a gaveta nativa)
-    if (isMobile && navigator.share) {
-      navigator
-        .share({
-          title: galleryTitle,
-          text: shareText,
-          // Alguns browsers preferem a URL separada, outros dentro do text
-          // Na dúvida, o shareText já costuma conter a URL
-        })
-        .catch((e) => {
-          console.error('Erro no Share nativo:', e);
-          // Se der erro ou cancelar, abre o WhatsApp direto
-          openWhatsAppFallback(shareText);
-        });
-      return;
-    }
-
-    // 4. Desktop ou Fallback
-    openWhatsAppFallback(shareText);
+    executeShare({
+      title: galleryTitle,
+      text: shareText,
+    });
   };
 
   // Função auxiliar para manter o código limpo

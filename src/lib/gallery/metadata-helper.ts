@@ -14,11 +14,11 @@ export async function getGalleryMetadata(fullSlug: string): Promise<Metadata> {
   const isPrivate = !galeriaRaw.is_public;
   const description = isPrivate
     ? '🔒 Galeria Privada - Digite sua senha para acessar.'
-    : `Confira as fotos de ${galeriaRaw.title}. Fotografia por ${galeriaRaw.photographer?.full_name || 'Profissional'}.`;
+    : `Confira as fotos de ${galeriaRaw.title}. Fotografia por ${galeriaRaw.photographer?.full_name}.`;
 
   // 🎯 IMPORTANTE: WhatsApp exige HTTPS e prefere w1200 para o card grande
   const ogImage = galeriaRaw.cover_image_url
-    ? `${getImageUrl(galeriaRaw.cover_image_url, 'w1200')}&ext=.jpg`
+    ? getImageUrl(galeriaRaw.cover_image_url, 'w1200')
     : null;
 
   return {

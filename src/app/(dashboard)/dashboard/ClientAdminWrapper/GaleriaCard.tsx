@@ -25,6 +25,7 @@ import {
   getHighResImageUrl,
 } from '@/core/utils/url-helper';
 import { GALLERY_MESSAGES } from '@/constants/messages';
+import { executeShare } from '@/core/utils/share-helper';
 
 interface GaleriaCardProps {
   galeria: Galeria;
@@ -109,31 +110,11 @@ export default function GaleriaCard({
     e.preventDefault();
     e.stopPropagation();
 
-    if (!links.message) return;
-
-    const isMobile = /iPhone|iPad|iPod|Android/i.test(navigator.userAgent);
-    const phone = galeria.client_whatsapp
-      ? galeria.client_whatsapp.replace(/\D/g, '')
-      : '';
-
-    // 🎯 No Mobile, usamos a gaveta nativa para enviar TEXTO + LINK
-    // O WhatsApp gerará o card automaticamente através do Open Graph
-    if (isMobile && navigator.share) {
-      navigator
-        .share({
-          title: galeria.title,
-          text: links.message,
-        })
-        .catch((error) => {
-          console.error('Erro no Share nativo do Card:', error);
-          // Se o usuário cancelar ou o navegador falhar, usamos o fallback
-          openWhatsApp(phone, links.message);
-        });
-      return;
-    }
-
-    // 💻 Desktop ou Fallback
-    openWhatsApp(phone, links.message);
+    executeShare({
+      title: galeria.title,
+      text: links.message,
+      phone: galeria.client_whatsapp, // Opcional
+    });
   };
 
   // Função auxiliar para evitar repetição de código

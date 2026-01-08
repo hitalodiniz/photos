@@ -13,6 +13,7 @@ import {
   getWhatsAppShareLink,
 } from '@/core/utils/url-helper';
 import { GALLERY_MESSAGES } from '@/constants/messages';
+import { getCleanSlug, executeShare } from '@/core/utils/share-helper';
 
 interface Photo {
   id: string;
@@ -80,21 +81,15 @@ const MasonryGrid = ({
   const limitedPhotos = displayedPhotos.slice(0, displayLimit);
 
   const handleShareWhatsAppGrid = (photoId: string) => {
-    const rawSlug = galeria.slug || '';
-    const cleanedSlug = rawSlug.startsWith('/')
-      ? rawSlug.substring(1)
-      : rawSlug;
-
-    // URL Editorial da foto específica
-    const shareUrl = `${window.location.origin}/photo/${photoId}?s=${cleanedSlug}`;
-
-    // Gera a mensagem usando a constante centralizada
+    const shareUrl = `${window.location.origin}/photo/${photoId}?s=${getCleanSlug(galeria.slug)}`;
     const shareText = GALLERY_MESSAGES.PHOTO_SHARE(galleryTitle, shareUrl);
 
-    // Abre o WhatsApp (passando null no telefone para abrir a lista de contatos)
-    const whatsappUrl = getWhatsAppShareLink(null, shareText);
-    window.open(whatsappUrl, '_blank');
+    executeShare({
+      title: galleryTitle,
+      text: shareText,
+    });
   };
+
   return (
     <div className="w-full h-auto">
       {' '}
