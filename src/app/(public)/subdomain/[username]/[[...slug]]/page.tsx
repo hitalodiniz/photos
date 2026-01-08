@@ -10,6 +10,7 @@ import { getImageUrl } from '@/core/utils/url-helper';
 import PhotographerProfileContainer from '@/components/profile/PhotographerProfileContainer';
 import { Metadata } from 'next';
 import { SEO_CONFIG } from '@/core/config/seo.config';
+import { getGalleryMetadata } from '@/lib/gallery/metadata-helper';
 
 type SubdomainGaleriaPageProps = {
   params: Promise<{
@@ -83,67 +84,9 @@ export default async function SubdomainGaleriaPage({
   return <GaleriaView galeria={galeriaData} photos={photos} />;
 }
 
-export async function generateMetadata({
-  params,
-}: {
-  params: Promise<{ username: string; slug: string[] }>;
-}) {
+export async function generateMetadata({ params }: { params: any }) {
   const { username, slug } = await params;
   const fullSlug = `${username}/${slug.join('/')}`;
-  const galeria = await fetchGalleryBySlug(fullSlug);
 
-  if (!galeria) return { title: 'Galeria não encontrada' };
-
-  // 1. Montagem do Título: "Corrida de rua - Cliente"
-  const title = galeria.client_name
-    ? `${galeria.title} - ${galeria.client_name}`
-    : galeria.title;
-
-  // 2. Montagem da Descrição Dinâmica
-  // Exemplo: "Cliente: João | Local: Parque Ibirapuera | Data: 10/01/2024 | Fotógrafo: Hitalo Diniz"
-  const descriptionParts = [];
-  if (galeria.client_name)
-    descriptionParts.push(`Cliente: ${galeria.client_name}`);
-  if (galeria.location) descriptionParts.push(`Local: ${galeria.location}`);
-  if (galeria.date)
-    descriptionParts.push(
-      `Data: ${new Date(galeria.date).toLocaleDateString('pt-BR')}`,
-    );
-  if (galeria.photographer?.full_name)
-    descriptionParts.push(`Fotógrafo: ${galeria.photographer.full_name}`);
-
-  const description =
-    descriptionParts.length > 0
-      ? descriptionParts.join(' | ')
-      : 'Clique para acessar a galeria completa';
-
-  // 3. Tratamento da Imagem
-  const ogImageUrl = getImageUrl(galeria.cover_image_url, 'w1200');
-
-  return {
-    title: title,
-    description: description,
-    openGraph: {
-      title: title,
-      description: description,
-      url: `${process.env.NEXT_PUBLIC_BASE_URL}/${fullSlug}`,
-      siteName: SEO_CONFIG.defaultTitle,
-      locale: 'pt_BR',
-      images: [
-        {
-          url: ogImageUrl,
-          width: 1200,
-          height: 630,
-          alt: `Capa da galeria: ${title}`, // Melhora a acessibilidade e SEO
-        },
-      ],
-      type: 'website',
-    },
-    twitter: {
-      card: 'summary_large_image',
-      title: title,
-      description: description,
-      images: [ogImageUrl],
-    },
-  };
+  return await getGalleryMetadata(fullSlug);
 }

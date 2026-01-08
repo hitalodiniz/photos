@@ -181,41 +181,44 @@ export default function Lightbox({
     };
   }, [onClose, onNext, onPrev]);
 
-  const handleShareWhatsApp = async () => {
+  const handleShareWhatsApp = () => {
     const rawSlug = galeria.slug || '';
     const cleanedSlug = rawSlug.startsWith('/')
       ? rawSlug.substring(1)
       : rawSlug;
 
-    // Monta a URL da foto
+    // 1. Monta a URL da foto (que agora tem os metadados configurados)
     const shareUrl = `${window.location.origin}/photo/${photo.id}?s=${cleanedSlug}`;
 
-    // Usa a função de mensagem (certifique-se que ela retorna uma string)
+    // 2. Monta o texto (Ex: "Confira esta foto da galeria X: [link]")
     const shareText = GALLERY_MESSAGES.PHOTO_SHARE(galleryTitle, shareUrl);
 
     const isMobile = /iPhone|iPad|iPod|Android/i.test(navigator.userAgent);
 
+    // 3. No Mobile, usamos o Web Share API para texto (abre a gaveta nativa)
     if (isMobile && navigator.share) {
-      try {
-        // Tenta compartilhar o arquivo real (melhor experiência mobile)
-        const response = await fetch(getHighResImageUrl(photo.id));
-        const blob = await response.blob();
-        const file = new File([blob], 'foto.jpg', { type: 'image/jpeg' });
-
-        await navigator.share({
-          files: [file],
+      navigator
+        .share({
           title: galleryTitle,
           text: shareText,
+          // Alguns browsers preferem a URL separada, outros dentro do text
+          // Na dúvida, o shareText já costuma conter a URL
+        })
+        .catch((e) => {
+          console.error('Erro no Share nativo:', e);
+          // Se der erro ou cancelar, abre o WhatsApp direto
+          openWhatsAppFallback(shareText);
         });
-        return;
-      } catch (e) {
-        console.error('Erro no Share nativo:', e);
-      }
+      return;
     }
 
-    // Fallback: Abre o WhatsApp com a mensagem pronta
-    // Passamos 'null' como primeiro argumento para abrir a seleção de contatos
-    const whatsappUrl = getWhatsAppShareLink(null, shareText);
+    // 4. Desktop ou Fallback
+    openWhatsAppFallback(shareText);
+  };
+
+  // Função auxiliar para manter o código limpo
+  const openWhatsAppFallback = (text: string) => {
+    const whatsappUrl = getWhatsAppShareLink(null, text);
     window.open(whatsappUrl, '_blank');
   };
 
