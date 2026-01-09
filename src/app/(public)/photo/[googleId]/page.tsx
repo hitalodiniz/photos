@@ -33,9 +33,9 @@ export default async function Page({ params, searchParams }: any) {
 
   const cleanSlug = rawSlug.replace(/^\/+/, '');
 
-  console.log('--- DEBUG FINAL ---');
-  console.log('GOOGLE ID:', resParams.googleId);
-  console.log('SLUG FINAL:', cleanSlug);
+  // console.log('--- DEBUG FINAL ---');
+  // console.log('GOOGLE ID:', resParams.googleId);
+  //console.log('SLUG FINAL:', cleanSlug);
 
   const initialData = await fetchGalleryBySlug(cleanSlug);
 

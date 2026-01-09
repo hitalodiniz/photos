@@ -56,7 +56,10 @@ export async function getPublicProfile(username: string, supabaseClient?: any) {
     .eq('username', username)
     .single();
 
-  if (error || !data) return null;
+  if (error || !data) {
+    console.error(error);
+    return null;
+  }
   return data;
 }
 

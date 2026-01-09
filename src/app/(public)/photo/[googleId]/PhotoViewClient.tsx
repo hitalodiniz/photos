@@ -1,5 +1,5 @@
 'use client';
-import React, { useEffect, useState } from 'react';
+import React, { useEffect, useState, useRef } from 'react';
 import { Download, Camera, Loader2 } from 'lucide-react';
 import { GalleryHeader, PhotographerAvatar } from '@/components/gallery';
 import LoadingSpinner from '@/components/ui/LoadingSpinner';
@@ -21,6 +21,10 @@ export default function PhotoViewClient({
   const [isImageLoading, setIsImageLoading] = useState(true);
   const [showInterface, setShowInterface] = useState(true);
 
+  // Ref para controlar o tempo do hover
+  const buttonHoverTimeoutRef = useRef<NodeJS.Timeout | null>(null);
+
+  // 1. Controle de exibição da interface (Ocultar após inatividade)
   useEffect(() => {
     const isMobile = typeof window !== 'undefined' && window.innerWidth < 768;
     if (isMobile) {
@@ -44,10 +48,24 @@ export default function PhotoViewClient({
     };
   }, []);
 
+  // 2. Esconder textos dos botões após 3s do carregamento inicial
   useEffect(() => {
     const timer = setTimeout(() => setShowButtonText(false), 3000);
     return () => clearTimeout(timer);
   }, []);
+
+  // 3. Funções de Hover para reativar os textos
+  const handleButtonMouseEnter = () => {
+    if (buttonHoverTimeoutRef.current)
+      clearTimeout(buttonHoverTimeoutRef.current);
+    setShowButtonText(true);
+  };
+
+  const handleButtonMouseLeave = () => {
+    buttonHoverTimeoutRef.current = setTimeout(() => {
+      setShowButtonText(false);
+    }, 300); // Pequeno delay para suavizar
+  };
 
   useEffect(() => {
     const img = new Image();
@@ -85,7 +103,6 @@ export default function PhotoViewClient({
 
   return (
     <div className="fixed inset-0 z-[999] bg-black flex flex-col items-center overflow-x-hidden overflow-y-auto md:overflow-hidden select-none min-h-screen">
-      {/* HEADER AJUSTADO (PADRÃO LIGHTBOX) */}
       <header
         className={`relative md:absolute top-0 left-0 right-0 flex flex-col md:flex-row items-center justify-between p-6 md:px-14 md:py-8 text-white z-[70] w-full gap-6 transition-all duration-700 ${
           showInterface
@@ -101,8 +118,12 @@ export default function PhotoViewClient({
           />
         </div>
 
-        {/* BARRA DE FERRAMENTAS */}
-        <div className="flex items-center bg-black/80 backdrop-blur-2xl p-2 px-4 rounded-2xl border border-white/20 shadow-2xl">
+        {/* BARRA DE FERRAMENTAS COM EVENTOS DE HOVER ADICIONADOS */}
+        <div
+          onMouseEnter={handleButtonMouseEnter}
+          onMouseLeave={handleButtonMouseLeave}
+          className="flex items-center bg-black/80 backdrop-blur-2xl p-2 px-4 rounded-2xl border border-white/20 shadow-2xl transition-all duration-500 ease-in-out"
+        >
           <button
             onClick={handleDownload}
             className="flex items-center gap-0 pr-4 hover:text-[#F3E5AB] transition-all group border-r border-white/20"
@@ -115,7 +136,7 @@ export default function PhotoViewClient({
               )}
             </div>
             <div
-              className={`overflow-hidden transition-all duration-500 ${showButtonText ? 'max-w-[120px] ml-2' : 'max-w-0'}`}
+              className={`overflow-hidden transition-all duration-500 ease-in-out ${showButtonText ? 'max-w-[120px] ml-2' : 'max-w-0'}`}
             >
               <span className="text-[10px] block font-bold uppercase italic">
                 Download
@@ -140,7 +161,7 @@ export default function PhotoViewClient({
               <Camera size={20} />
             </div>
             <div
-              className={`overflow-hidden transition-all duration-500 ${showButtonText ? 'max-w-[120px] ml-2' : 'max-w-0'}`}
+              className={`overflow-hidden transition-all duration-500 ease-in-out ${showButtonText ? 'max-w-[120px] ml-2' : 'max-w-0'}`}
             >
               <span className="text-[10px] block font-bold uppercase italic">
                 Ver Galeria
@@ -175,7 +196,7 @@ export default function PhotoViewClient({
       {/* RODAPÉ / AVATAR */}
       {data?.photographer && (
         <div
-          className={`relative md:fixed bottom-0 left-0 right-0 flex justify-center pb-8 md:pb-10  transition-all duration-700 ${
+          className={`relative md:fixed bottom-0 left-0 right-0 flex justify-center pb-8 md:pb-10 transition-all duration-700 ${
             showInterface
               ? 'opacity-100 translate-y-0'
               : 'md:opacity-0 md:translate-y-4 md:pointer-events-none'

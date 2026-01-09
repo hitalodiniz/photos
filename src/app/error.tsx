@@ -24,11 +24,11 @@ export default function GlobalError({
 
   useEffect(() => {
     // Dispara o log de erro para seu e-mail automaticamente ao carregar a página
-    const reportError = async () => {
+    /* const reportError = async () => {
       await sendAppErrorLogAction(error, 'GlobalError Boundary');
-    };
+    };*/
 
-    reportError();
+    // reportError();
     console.error('Erro capturado pelo Boundary:', error);
   }, [error]);
 

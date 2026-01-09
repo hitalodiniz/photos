@@ -1,6 +1,7 @@
 import { NextResponse } from 'next/server';
 import type { NextRequest } from 'next/server';
 import { createServerClient } from '@supabase/ssr';
+import { getPublicProfile } from './core/services/profile.service';
 
 // Define o domínio base (ex: localhost:3000 ou suagaleria.com.br)
 const NEXT_PUBLIC_MAIN_DOMAIN =
@@ -12,7 +13,7 @@ const subdomainCache = new Map<
 >();
 const SUBDOMAIN_CACHE_TTL = 1000 * 60 * 10; // 10 minutos
 
-async function getProfileBySubdomain(subdomain: string, req: NextRequest) {
+async function getProfileBySubdomain(subdomain: string) {
   const now = Date.now();
   const isLocalhost = process.env.NODE_ENV === 'development'; // 🎯 Detecta ambiente
   const cached = subdomainCache.get(subdomain);
@@ -24,25 +25,7 @@ async function getProfileBySubdomain(subdomain: string, req: NextRequest) {
     return cached;
   }
 
-  const supabase = createServerClient(
-    process.env.NEXT_PUBLIC_SUPABASE_URL!,
-    process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!,
-    {
-      cookies: {
-        get(name) {
-          return req.cookies.get(name)?.value;
-        },
-        set() {},
-        remove() {},
-      },
-    },
-  );
-
-  const { data: profile } = await supabase
-    .from('tb_profiles')
-    .select('username, use_subdomain')
-    .eq('username', subdomain)
-    .single();
+  const profile = await getPublicProfile(subdomain);
 
   // Retorna null apenas se o perfil realmente não existir no banco
   if (!profile) return null;
@@ -65,6 +48,10 @@ export async function middleware(req: NextRequest) {
   const host = req.headers.get('host') || '';
   const pathname = url.pathname;
 
+  /*console.log('--- MIDDLEWARE START ---');
+  console.log('Host:', host);
+  console.log('Pathname:', pathname);*/
+
   // 1. FILTRO DE SISTEMA E ARQUIVOS
   if (
     pathname.startsWith('/_next') ||
@@ -77,14 +64,14 @@ export async function middleware(req: NextRequest) {
   const pathParts = pathname.split('/').filter(Boolean);
 
   // 2. DETECÇÃO DE SUBDOMÍNIO EXISTENTE
-  // Verifica se o host atual já é um subdomínio do NEXT_PUBLIC_MAIN_DOMAIN
   const cleanHost = host.split(':')[0];
   const cleanMainDomain = NEXT_PUBLIC_MAIN_DOMAIN.split(':')[0];
   const isSubdomainRequest = cleanHost.endsWith(`.${cleanMainDomain}`);
 
+  //console.log('Config:', { cleanHost, cleanMainDomain, isSubdomainRequest });
+
   // ---------------------------------------------------------
   // 3. LÓGICA DE REDIRECT: URL Padrão -> Subdomínio
-  // Ex: localhost:3000/hitalodiniz/2025... -> hitalodiniz.localhost:3000/2025...
   // ---------------------------------------------------------
   if (!isSubdomainRequest && pathParts.length > 0) {
     const potentialUsername = pathParts[0];
@@ -97,51 +84,67 @@ export async function middleware(req: NextRequest) {
     ];
 
     if (!reservedPaths.includes(potentialUsername)) {
-      const profile = await getProfileBySubdomain(potentialUsername, req);
+      const profile = await getProfileBySubdomain(potentialUsername);
+
       if (profile && profile.use_subdomain) {
         const newPath = '/' + pathParts.slice(1).join('/');
         const newUrl = new URL(newPath, req.url);
         const port = host.split(':')[1];
         newUrl.hostname = `${potentialUsername}.${cleanMainDomain}`;
         if (port) newUrl.port = port;
+
+        //console.log('REDIRECT detectado -> Enviando para:', newUrl.toString());
         return NextResponse.redirect(newUrl);
       }
     }
   }
 
   // ---------------------------------------------------------
-  // 4. LÓGICA DE REWRITE: Subdomínio -> Pasta Interna (Apenas Galerias)
+  // 4. LÓGICA DE REWRITE: Subdomínio -> Pasta Interna
   // ---------------------------------------------------------
   let subdomain = '';
   if (isSubdomainRequest) {
     subdomain = cleanHost.replace(`.${cleanMainDomain}`, '');
+    //console.log('Subdomínio detectado:', subdomain);
   }
 
-  // Só entra na lógica se houver um subdomínio válido e não for 'www'
   if (subdomain && subdomain !== 'www') {
-    // 🎯 A CHAVE: Só faz o rewrite se o caminho NÃO for uma rota de sistema.
-    // Como o Next.js já ignora /api e /_next no matcher,
-    // basta verificarmos se o pathname está vazio (home do fotógrafo)
-    // ou se parece com uma estrutura de galeria (ex: /2025/10/...)
+    // Verifica se é a raiz (home do fotógrafo no subdomínio)
+    const isHomePage = pathname === '/';
+
+    // Outras rotas que você queira que caiam no perfil ou galerias
     const isGalleryPath =
       pathname === '/' ||
       /^\/\d{4}/.test(pathname) ||
-      pathname.startsWith('/photo'); //ignorando o compartilhamento individual de foto no whatsapp quando tem subdomínio
+      pathname.startsWith('/photo');
 
-    if (isGalleryPath) {
-      const profile = await getProfileBySubdomain(subdomain, req);
+    if (isHomePage || isGalleryPath) {
+      const profile = await getProfileBySubdomain(subdomain);
+      /*console.log(
+        'Perfil encontrado para subdomínio?',
+        !!profile,
+        'Usa subdomínio?',
+        profile?.use_subdomain,
+      );*/
 
       if (profile && profile.use_subdomain) {
-        /* const rewriteUrl = new URL(
-          `/subdomain/${profile.username}${pathname}`,
-          req.url,
-        );*/
-        const rewriteUrl = new URL(
-          `/subdomain/${profile.username}${pathname}${url.search}`, // Anexamos url.search diretamente aqui
-          req.url,
-        );
+        let targetPath = '';
 
+        if (isHomePage) {
+          // Se não tem slug (é a home), vai para a raiz do username
+          targetPath = `/${profile.username}`;
+          //console.log(`REWRITE: Home do subdomínio -> ${targetPath}`);
+        } else {
+          // Se tiver slug (ex: /2025/casamento), mantém o pathname para cair na rota de galeria
+          targetPath = `/subdomain/${profile.username}${pathname}`;
+          //console.log(`REWRITE: Galeria no subdomínio -> ${targetPath}`);
+        }
+
+        //console.log('APLICANDO REWRITE INTERNO ->', rewriteUrl.pathname);
+
+        const rewriteUrl = new URL(`${targetPath}${url.search}`, req.url);
         const response = NextResponse.rewrite(rewriteUrl);
+
         const isLocalhost = process.env.NODE_ENV === 'development';
 
         if (isLocalhost) {
@@ -150,12 +153,20 @@ export async function middleware(req: NextRequest) {
 
         response.headers.set('x-subdomain-variant', 'true');
         return response;
+      } else {
+        //console.log(
+        //  `ACESSO NEGADO: Subdomínio "${subdomain}" desativado ou inexistente.`,
+        //);
+
+        // Fazemos um rewrite para uma rota que certamente disparará o 404 do Next.js
+        return NextResponse.rewrite(new URL('/404', req.url));
       }
     }
   }
 
   // 5. PROTEÇÃO DE ROTAS DASHBOARD/ONBOARDING
   if (pathname.startsWith('/dashboard') || pathname.startsWith('/onboarding')) {
+    //console.log('Proteção de rota ativa para:', pathname);
     const res = NextResponse.next();
     const supabase = createServerClient(
       process.env.NEXT_PUBLIC_SUPABASE_URL!,
@@ -177,10 +188,14 @@ export async function middleware(req: NextRequest) {
     const {
       data: { user },
     } = await supabase.auth.getUser();
-    if (!user) return NextResponse.redirect(new URL('/', req.url));
+    if (!user) {
+      //console.log('Usuário não autenticado, redirecionando para home');
+      return NextResponse.redirect(new URL('/', req.url));
+    }
     return res;
   }
 
+  //console.log('Middleware finalizado sem alterações (NextResponse.next)');
   return NextResponse.next();
 }
 

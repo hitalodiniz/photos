@@ -4,10 +4,12 @@ import React, { useEffect, useState } from 'react';
 import { notFound } from 'next/navigation';
 import PhotographerProfileContent from '../ui/PhotographerProfileContent';
 import * as profileService from '@/core/services/profile.service';
+import LoadingScreen from '../ui/LoadingScreen';
 
 interface Props {
   username: string;
 }
+
 export default function PhotographerProfileContainer({ username }: Props) {
   const [profile, setProfile] = useState<any>(null);
   const [loading, setLoading] = useState(true);
@@ -15,11 +17,11 @@ export default function PhotographerProfileContainer({ username }: Props) {
   useEffect(() => {
     async function loadData() {
       try {
-        // 🎯 O "Back" resolve o dado independente da URL
         const data = await profileService.getPublicProfile(username);
+
         setProfile(data);
       } catch (err) {
-        console.error('Erro ao carregar perfil:', err);
+        console.error('Erro na chamada:', err);
       } finally {
         setLoading(false);
       }
@@ -27,11 +29,18 @@ export default function PhotographerProfileContainer({ username }: Props) {
     loadData();
   }, [username]);
 
-  // 🎯 Se o serviço retornar null ou o usuário desativou o subdomínio, 404
+  // 1. Enquanto carrega, mostra um feedback (ou null para não mostrar nada)
+  if (loading) {
+    return <LoadingScreen message="Carregando perfil" />;
+  }
+
+  // 2. Se terminou de carregar e não tem perfil, dispara o 404
   if (!profile) {
+    console.log('3. Perfil não encontrado, disparando notFound()');
     return notFound();
   }
 
+  // 3. Agora é seguro renderizar, pois o 'profile' certamente existe
   return (
     <PhotographerProfileContent
       fullName={profile.full_name}

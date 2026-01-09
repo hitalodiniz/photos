@@ -54,16 +54,31 @@ export async function getDriveAccessTokenForUser(
       }),
     });
 
+    const tokenData = await tokenRes.json();
     if (!tokenRes.ok) {
-      console.error('Erro ao renovar access token:', await tokenRes.text());
+      // 🎯 TRATAMENTO DE ERRO CRÍTICO: Token Inválido/Revogado
+      if (tokenData.error === 'invalid_grant') {
+        console.error(`🚨 Token do usuário ${userId} expirou ou foi revogado.`);
+
+        // 1. Marcar no banco que a conexão caiu (Crie essa coluna na tb_profiles)
+        await supabase
+          .from('tb_profiles')
+          .update({
+            google_auth_status: 'expired',
+            google_auth_error_at: new Date().toISOString(),
+          })
+          .eq('id', userId);
+
+        // 2. Opcional: Aqui você dispararia seu serviço de e-mail (Resend, SendGrid, etc)
+        // await sendEmailNotification(profile.email, 'Google Connection Expired');
+      }
+
+      console.error('Erro na renovação do Google:', tokenData);
       return null;
     }
 
-    const tokenData = await tokenRes.json();
-
     return tokenData.access_token || null;
   } catch (err) {
-    // Captura erros de rede ou falhas inesperadas (ex: cookies() falhando)
     console.error('Erro crítico em getDriveAccessTokenForUser:', err);
     return null;
   }

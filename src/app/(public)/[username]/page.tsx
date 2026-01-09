@@ -12,5 +12,6 @@ export default function UserPage({
   params: Promise<{ username: string }>;
 }) {
   const resolvedParams = React.use(params);
+
   return <PhotographerProfileContainer username={resolvedParams.username} />;
 }
