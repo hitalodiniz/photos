@@ -51,7 +51,10 @@ export default function LoadingScreen({
 
       <div className="relative w-24 h-24 md:w-32 md:h-32">
         <div className="absolute inset-0 rounded-full border border-champagne-dark/10" />
-
+        <div
+          className="absolute inset-0 rounded-full border-t-[2px] border-r-[2px] border-transparent border-t-champagne-dark border-r-champagne-dark/30 animate-spin"
+          style={{ animationDuration: '2s' }}
+        />
         <div className="absolute inset-0 flex items-center justify-center">
           <div className="relative flex items-center justify-center">
             <div className="absolute w-16 h-16 bg-champagne-dark/10 blur-[20px] rounded-full animate-pulse" />

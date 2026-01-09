@@ -439,7 +439,8 @@ export async function authenticateGaleriaAccess(
 ) {
   const supabase = await createSupabaseServerClientReadOnly();
 
-  const { data: galeria } = await supabase
+  // 1. Busca a galeria
+  const { data: galeria, error: fetchError } = await supabase
     .from('tb_galerias')
     .select(
       'id, password, user_id, tb_profiles!user_id(username, use_subdomain)',
@@ -447,23 +448,34 @@ export async function authenticateGaleriaAccess(
     .eq('id', galeriaId)
     .single();
 
-  if (!galeria || galeria.password !== passwordInput) {
+  if (fetchError || !galeria || galeria.password !== passwordInput) {
     return { success: false, error: 'Senha incorreta.' };
   }
 
-  // 1. Garantimos que a secret existe e tem tamanho adequado
-  const secretString =
-    process.env.JWT_GALLERY_SECRET ||
-    'chave-muito-longa-com-mais-de-32-caracteres';
-  const secretKey = new TextEncoder().encode(secretString);
+  // 2. Configuração da Secret
+  const secretString = process.env.JWT_GALLERY_SECRET;
+  if (!secretString) {
+    console.error('ERRO: JWT_GALLERY_SECRET não configurada.');
+  }
 
-  // 2. Criamos o token (o spread {...} garante um objeto plano)
-  const token = await new SignJWT({ galeriaId: String(galeria.id) })
-    .setProtectedHeader({ alg: 'HS256' })
-    .setIssuedAt()
-    .setExpirationTime('7d')
-    .sign(secretKey);
+  const secretKey = new TextEncoder().encode(
+    secretString || 'chave-padrao-de-seguranca-minimo-32-caracteres',
+  );
 
+  // 3. Geração do Token
+  let token;
+  try {
+    token = await new SignJWT({ galeriaId: String(galeria.id) })
+      .setProtectedHeader({ alg: 'HS256' })
+      .setIssuedAt()
+      .setExpirationTime('7d')
+      .sign(secretKey);
+  } catch (jwtError) {
+    console.error('Erro ao assinar JWT:', jwtError);
+    return { success: false, error: 'Erro interno ao gerar acesso.' };
+  }
+
+  // 4. Salva o Cookie
   const cookieStore = await cookies();
   cookieStore.set(`galeria-${galeriaId}-auth`, token, {
     path: '/',
@@ -473,13 +485,19 @@ export async function authenticateGaleriaAccess(
     sameSite: 'lax',
   });
 
+  // 5. Lógica de Redirecionamento
   const profile = galeria.tb_profiles as any;
-  let targetPath = `/${fullSlug}`;
+  let targetPath = fullSlug.startsWith('/') ? fullSlug : `/${fullSlug}`;
 
   if (profile?.use_subdomain) {
-    targetPath = `/${fullSlug.replace(`${profile.username}/`, '')}`;
+    // Remove o username do path se for subdomínio
+    const usernamePrefix = `${profile.username}/`;
+    if (targetPath.includes(usernamePrefix)) {
+      targetPath = targetPath.replace(usernamePrefix, '');
+    }
   }
 
+  // IMPORTANTE: O redirect deve estar FORA de qualquer bloco try/catch
   redirect(targetPath);
 }
 /**
