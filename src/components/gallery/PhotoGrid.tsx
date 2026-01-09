@@ -205,7 +205,7 @@ export default function PhotoGrid({ photos, galeria }: any) {
   const sentinelRef = useRef<HTMLDivElement | null>(null);
 
   return (
-    <div className="relative  w-full">
+    <div className="relative w-full">
       {/* 1. BARRA DE INFORMAÇÕES EDITORIAL: DESKTOP */}
       <div
         onMouseEnter={() => setIsHovered(true)}

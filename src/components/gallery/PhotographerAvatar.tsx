@@ -59,7 +59,7 @@ export default function PhotographerAvatar({
               fill
               sizes="(max-width: 768px) 48px, 64px"
               className="object-cover transition-transform duration-500 group-hover:scale-105 z-10 rounded-full"
-              priority
+              loading="lazy"
             />
           ) : (
             // 🎯 Fallback Premium quando não há foto

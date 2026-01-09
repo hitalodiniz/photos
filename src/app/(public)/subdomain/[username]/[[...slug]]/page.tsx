@@ -37,17 +37,13 @@ export default async function SubdomainGaleriaPage({
     notFound();
   }
 
+  //`[Subdomain] Conflito de posse: Galeria pertence a ${galeriaRaw.photographer?.username}, mas acessada via ${username}`,
   if (galeriaRaw.photographer?.username !== username) {
-    console.error(
-      `[Subdomain] Conflito de posse: Galeria pertence a ${galeriaRaw.photographer?.username}, mas acessada via ${username}`,
-    );
     notFound();
   }
 
+  //[Subdomain] O fotógrafo ${username} não tem permissão de subdomínio ativa.`,
   if (!galeriaRaw.photographer?.use_subdomain) {
-    console.error(
-      `[Subdomain] O fotógrafo ${username} não tem permissão de subdomínio ativa.`,
-    );
     notFound();
   }
 

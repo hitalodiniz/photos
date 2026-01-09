@@ -49,8 +49,6 @@ export default async function UsernameGaleriaPage({
     galeriaData.drive_folder_id,
   );
 
-  console.log('Erro ', error);
-
   return <GaleriaView galeria={galeriaData} photos={photos} />;
 }
 

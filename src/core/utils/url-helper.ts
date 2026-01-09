@@ -86,3 +86,7 @@ export const getHighResImageUrl = (photoId: string | number) => {
   // "s0" indica o tamanho original sem compressão
   return `https://lh3.googleusercontent.com/d/${photoId}=s0`;
 };
+
+export const getProxyUrl = (id: string, width: string = '600') => {
+  return `/api/proxy-image?id=${id}&w=${width}`;
+};

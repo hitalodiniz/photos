@@ -445,7 +445,7 @@ export default function Lightbox({
               )}{' '}
               <img
                 key={photos[activeIndex].id}
-                src={getImageUrl(photos[activeIndex].id)}
+                src={getImageUrl(photos[activeIndex].id, 'w600')}
                 onLoad={() => setIsImageLoading(false)}
                 /* Transição de 1s, brilho e sombra projetada */
                 className={`max-w-full max-h-[75vh] md:max-h-screen object-contain transition-all duration-1000 ease-out shadow-[0_0_80px_rgba(0,0,0,0.9)] 
