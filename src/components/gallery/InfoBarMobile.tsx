@@ -1,21 +1,14 @@
 'use client';
-import React, { useState, useCallback, useEffect } from 'react';
+import React, { useState, useEffect } from 'react';
 import {
   Filter,
   Download,
-  ImageIcon,
-  Globe,
   Loader2,
-  Calendar,
-  MapPin,
   Info,
   Instagram,
   MessageCircle,
   User,
-  Heart,
 } from 'lucide-react';
-import Masonry from 'react-masonry-css';
-import { div } from 'framer-motion/client';
 
 export const InfoBarMobile = ({
   galeria,
@@ -26,7 +19,6 @@ export const InfoBarMobile = ({
   downloadAllAsZip,
   isDownloading,
   isScrolled,
-  handleDownloadFavorites,
   isDownloadingFavs,
   favDownloadProgress,
   downloadProgress,

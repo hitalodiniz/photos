@@ -4,6 +4,7 @@ import { PhotoGrid, PhotographerAvatar } from '@/components/gallery';
 import type { Galeria } from '@/core/types/galeria';
 import { Camera } from 'lucide-react';
 import LoadingScreen from '../ui/LoadingScreen';
+import GaleriaFooter from './GaleriaFooter';
 
 interface GaleriaViewProps {
   galeria: Galeria;
@@ -117,6 +118,7 @@ export default function GaleriaView({ galeria, photos }: GaleriaViewProps) {
             )}
           </div>
         </main>
+        <GaleriaFooter galeria={galeria} />
       </div>
     </div>
   );

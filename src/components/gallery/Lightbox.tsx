@@ -1,5 +1,5 @@
 'use client';
-import React, { useEffect, useState } from 'react';
+import React, { useEffect, useRef, useState } from 'react';
 import {
   X,
   ChevronLeft,
@@ -57,8 +57,22 @@ export default function Lightbox({
   const [isDownloading, setIsDownloading] = useState(false);
   const [touchStart, setTouchStart] = useState<number | null>(null);
   const [touchEnd, setTouchEnd] = useState<number | null>(null);
-  const [showButtonText, setShowButtonText] = useState(true);
+  const [showButtonText, setShowButtonText] = useState(false);
   const [showInterface, setShowInterface] = useState(true);
+  //Timer para suavizar a expansão dos botões (Debounce de hover)
+  const buttonHoverTimeoutRef = useRef<NodeJS.Timeout | null>(null);
+
+  const handleButtonMouseEnter = () => {
+    if (buttonHoverTimeoutRef.current)
+      clearTimeout(buttonHoverTimeoutRef.current);
+    setShowButtonText(true);
+  };
+
+  const handleButtonMouseLeave = () => {
+    buttonHoverTimeoutRef.current = setTimeout(() => {
+      setShowButtonText(false);
+    }, 250); // Delay para não fechar abruptamente
+  };
 
   //Efeito que oculta tudo da tela, exceto a foto, quando não mexe o mouse
   useEffect(() => {
@@ -136,25 +150,6 @@ export default function Lightbox({
     return () => clearTimeout(timer);
   }, []);
 
-  const handleDownloadFavorites = async () => {
-    // Filtra as fotos da galeria que estão nos favoritos
-    const toDownload = photos.filter((p) => favorites.includes(String(p.id)));
-
-    if (toDownload.length === 0) return;
-
-    // Dispara o download individual de cada uma (o navegador pode pedir permissão para múltiplos arquivos)
-    for (const photo of toDownload) {
-      const link = document.createElement('a');
-      link.href = getHighResImageUrl(photo.id);
-      link.download = `foto-${photo.id}.jpg`;
-      document.body.appendChild(link);
-      link.click();
-      document.body.removeChild(link);
-      // Pequeno atraso para não travar o browser
-      await new Promise((resolve) => setTimeout(resolve, 300));
-    }
-  };
-
   // Proteção de dados
   if (!photos || !photos[activeIndex]) return null;
   const photo = photos[activeIndex];
@@ -229,13 +224,13 @@ export default function Lightbox({
       {/* TITULO MOBILE */}
 
       <div
-        className={`md:hidden relative top-0 left-0 right-0 
-      flex flex-col items-center
-      p-4 text-white z-[200] w-full gap-4 transition-all duration-700 ease-in-out ${
-        showInterface
-          ? 'opacity-100 translate-y-0'
-          : 'opacity-0 -translate-y-4 pointer-events-none'
-      }`}
+        className="md:hidden relative top-0 left-0 
+        right-0 
+          flex flex-col items-center
+          p-4 text-white z-[200] w-full gap-4 
+          transition-all duration-700 ease-in-out
+          pb-0
+                  opacity-100 translate-y-0"
       >
         <div className="flex-grow min-w-0 w-full pr-4">
           <GalleryHeader
@@ -252,13 +247,13 @@ export default function Lightbox({
         {/* TITULO DESKTOP */}
         <div
           className={`hidden md:block absolute top-0 left-0 right-0 
-    flex flex-col md:flex-row items-center
-    p-4 md:px-14 md:py-8 text-white z-[200] 
-    w-full gap-4 md:gap-6 transition-all duration-700 ease-in-out ${
-      showInterface
-        ? 'opacity-100 translate-y-0'
-        : 'md:opacity-0 md:-translate-y-4 md:pointer-events-none'
-    }`}
+            flex flex-col md:flex-row items-center
+            p-4 md:px-14 md:py-8 text-white z-[200] 
+            w-full gap-4 md:gap-6 transition-all duration-700 ease-in-out ${
+              showInterface
+                ? 'opacity-100 translate-y-0'
+                : 'md:opacity-0 md:-translate-y-4 md:pointer-events-none'
+            }`}
         >
           <div className="flex-grow min-w-0 w-full md:w-auto pr-4">
             <GalleryHeader
@@ -272,14 +267,17 @@ export default function Lightbox({
         <div
           className={`relative md:absolute 
             flex flex-col md:flex-row items-center justify-between 
-            p-4 md:px-14 md:py-8 text-white/90 z-[200]  from-black/95 via-black/40 to-transparent w-full gap-4 md:gap-6 transition-all duration-700 ease-in-out ${showInterface ? 'opacity-100 translate-y-0' : 'md:opacity-0 md:translate-y-4 md:pointer-events-none'}`}
+            p-2 md:px-14 md:py-8 text-white/90 z-[200]  from-black/95 via-black/40 to-transparent w-full gap-4 md:gap-6 transition-all duration-700 ease-in-out ${showInterface ? 'opacity-100 translate-y-0' : 'md:opacity-0 md:translate-y-4 md:pointer-events-none'}`}
         >
-          <div className="w-full md:w-auto md:ml-auto flex justify-center md:justify-end pointer-events-auto z-[200]">
-            {' '}
+          <div className=" md:w-auto md:ml-auto flex justify-center md:justify-end pointer-events-auto z-[200]">
             <div
-              className="flex items-center bg-black/80 backdrop-blur-2xl p-2 px-3 md:p-2 md:px-3 rounded-2xl border border-white/20 shadow-2xl transition-all duration-500 ease-in-out relative"
-              onMouseEnter={() => setShowButtonText(true)}
-              onMouseLeave={() => setShowButtonText(false)}
+              className={`
+                flex items-center bg-black/80 backdrop-blur-2xl p-2 px-3 rounded-2xl border border-white/20 shadow-2xl 
+                /* MODIFICAÇÃO 2: Transição de container suavizada */
+                transition-all duration-500 ease-[cubic-bezier(0.23,1,0.32,1)]
+              `}
+              onMouseEnter={handleButtonMouseEnter} // Usando a nova função
+              onMouseLeave={handleButtonMouseLeave} // Usando a nova função
               role="toolbar"
             >
               <button
@@ -296,11 +294,11 @@ export default function Lightbox({
                 </div>
                 <div
                   className={`flex flex-col items-center md:items-start leading-none transition-all duration-500 overflow-hidden 
-    ${
-      showButtonText
-        ? 'opacity-100 max-h-[40px] md:max-w-[100px] mt-1 md:mt-0 md:ml-2'
-        : 'opacity-0 max-h-0 md:max-w-0 mt-0 md:ml-0'
-    }`}
+                  ${
+                    showButtonText
+                      ? 'opacity-100 max-h-[40px] md:max-w-[100px] mt-1 md:mt-0 md:ml-2'
+                      : 'opacity-0 max-h-0 md:max-w-0 mt-0 md:ml-0'
+                  }`}
                 >
                   <span className="text-[9px] md:text-[11px] font-bold uppercase tracking-widest italic text-white whitespace-nowrap">
                     WhatsApp
@@ -395,11 +393,11 @@ export default function Lightbox({
                   </div>
                   <div
                     className={`flex flex-col items-center md:items-start leading-none transition-all duration-500 overflow-hidden 
-    ${
-      showButtonText
-        ? 'opacity-100 max-h-[40px] md:max-w-[100px] mt-1 md:mt-0 md:ml-2'
-        : 'opacity-0 max-h-0 md:max-w-0 mt-0 md:ml-0'
-    }`}
+                          ${
+                            showButtonText
+                              ? 'opacity-100 max-h-[40px] md:max-w-[100px] mt-1 md:mt-0 md:ml-2'
+                              : 'opacity-0 max-h-0 md:max-w-0 mt-0 md:ml-0'
+                          }`}
                   >
                     <span className="text-[9px] md:text-[11px] font-bold uppercase tracking-widest italic text-white whitespace-nowrap">
                       Fechar
@@ -419,14 +417,32 @@ export default function Lightbox({
           {/* 1. SETA ESQUERDA - Área de clique centralizada verticalmente */}
           <button
             onClick={onPrev}
-            className={`absolute left-0 top-1/2 -translate-y-1/2 z-[80] h-fit py-20 px-4 text-white/10 hover:text-[#F3E5AB] hidden md:block transition-all duration-300 transition-all duration-700 ${showInterface ? 'opacity-100' : 'md:opacity-0 md:translate-y-4 md:pointer-events-none'}`}
+            className={`
+                absolute left-0 top-1/2 -translate-y-1/2 z-[80] 
+                h-fit py-10 px-2 md:px-4 
+                text-white/20 hover:text-champagne-light
+                transition-all duration-700 ease-[cubic-bezier(0.23,1,0.32,1)]
+                ${
+                  showInterface
+                    ? 'opacity-100 translate-x-0'
+                    : 'opacity-0 -translate-x-4 pointer-events-none'
+                }
+              `}
           >
-            <ChevronLeft size={64} strokeWidth={1} />
+            <ChevronLeft
+              className="w-10 h-10 md:w-16 md:h-16"
+              strokeWidth={1}
+            />
           </button>
 
           <div className="flex flex-col items-center justify-center w-full h-full max-h-screen">
             <div className="relative flex flex-col items-center">
-              {isImageLoading && <LoadingSpinner size="md" />}
+              {/* SPINNER CENTRALIZADO: Ocupa o centro absoluto do container */}
+              {isImageLoading && (
+                <div className="absolute inset-0 flex items-center justify-center z-[50]">
+                  <LoadingSpinner size="md" />
+                </div>
+              )}{' '}
               <img
                 key={photos[activeIndex].id}
                 src={getImageUrl(photos[activeIndex].id)}
@@ -440,9 +456,22 @@ export default function Lightbox({
           {/* 2. SETA DIREITA - Libera o topo para o botão X */}
           <button
             onClick={onNext}
-            className={`absolute right-0 top-1/2 -translate-y-1/2 z-[80] h-fit py-20 px-6 text-white/10 hover:text-[#F3E5AB] hidden md:block transition-all duration-300 transition-all duration-700 ${showInterface ? 'opacity-100' : 'md:opacity-0 md:translate-y-4 md:pointer-events-none'}`}
+            className={`
+                absolute right-0 top-1/2 -translate-y-1/2 z-[80] 
+                h-fit py-10 px-2 md:px-6 
+                text-white/20 hover:text-champagne-light
+                transition-all duration-700 ease-[cubic-bezier(0.23,1,0.32,1)]
+                ${
+                  showInterface
+                    ? 'opacity-100 translate-x-0'
+                    : 'opacity-0 translate-x-4 pointer-events-none'
+                }
+              `}
           >
-            <ChevronRight size={64} strokeWidth={1} />
+            <ChevronRight
+              className="w-10 h-10 md:w-16 md:h-16"
+              strokeWidth={1}
+            />
           </button>
         </div>
 
