@@ -1,5 +1,6 @@
 // src/app/[username]/[slug]/page.tsx
 import { notFound } from 'next/navigation';
+import { cookies } from 'next/headers';
 import {
   fetchGalleryBySlug,
   formatGalleryData,
@@ -9,7 +10,6 @@ import { GaleriaView, PasswordPrompt } from '@/components/gallery';
 import { getImageUrl } from '@/core/utils/url-helper';
 import {} from '@/core/services/galeria.service';
 import { getGalleryMetadata } from '@/lib/gallery/metadata-helper';
-import { checkGalleryAccess } from '@/core/logic/auth-gallery';
 
 export default async function UsernameGaleriaPage({
   params,
@@ -30,9 +30,10 @@ export default async function UsernameGaleriaPage({
   galeriaData.slug = fullSlug;
   // Verificação de segurança
   if (!galeriaData.is_public) {
-    const isAuthorized = await checkGalleryAccess(galeriaData.id);
+    const cookieStore = await cookies();
+    const savedToken = cookieStore.get(`galeria-${galeriaData.id}-auth`)?.value;
 
-    if (!isAuthorized) {
+    if (savedToken !== galeriaData.password) {
       return (
         <PasswordPrompt
           galeria={galeriaData}
@@ -43,7 +44,7 @@ export default async function UsernameGaleriaPage({
     }
   }
 
-  const photos = await fetchDrivePhotos(
+  const { photos, error } = await fetchDrivePhotos(
     galeriaRaw.photographer?.id,
     galeriaData.drive_folder_id,
   );

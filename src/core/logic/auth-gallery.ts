@@ -13,6 +13,7 @@ export async function checkGalleryAccess(galeriaId: string): Promise<boolean> {
 
     return payload.galeriaId === galeriaId;
   } catch (err) {
+    console.log(err);
     return false;
   }
 }

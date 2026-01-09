@@ -71,12 +71,24 @@ export default async function SubdomainGaleriaPage({
     }
   }
 
-  // 5. Fotos do Drive
-  const photos = await fetchDrivePhotos(
+  const { photos, error } = await fetchDrivePhotos(
     galeriaRaw.photographer?.id,
     galeriaData.drive_folder_id,
   );
 
+  // Se houver erro de permissão, exibe uma mensagem clara
+  if (error === 'PERMISSION_DENIED') {
+    return (
+      <div className="flex flex-col items-center justify-center min-h-[50vh] p-6 text-center">
+        <h2 className="text-2xl font-bold text-red-600">Acesso Negado</h2>
+        <p className="mt-2 text-gray-600">
+          Esta pasta do Google Drive não possui permissões de acesso público.
+          Por favor, altere as configurações da pasta para "Qualquer pessoa com
+          o link.
+        </p>
+      </div>
+    );
+  }
   return <GaleriaView galeria={galeriaData} photos={photos} />;
 }
 

@@ -87,23 +87,19 @@ export function formatGalleryData(
 /**
  * 3. Busca de fotos do Google Drive
  */
-export async function fetchDrivePhotos(
-  userId?: string,
-  folderId?: string,
-): Promise<DrivePhoto[]> {
-  if (!userId || !folderId) return [];
+export async function fetchDrivePhotos(userId?: string, folderId?: string) {
+  if (!userId || !folderId) return { photos: [], error: 'MISSING_PARAMS' };
 
   try {
     const token = await getDriveAccessTokenForUser(userId);
-    if (!token) {
-      console.warn(`[Drive] Token não encontrado para o usuário: ${userId}`);
-      return [];
-    }
+    if (!token) return { photos: [], error: 'TOKEN_NOT_FOUND' };
 
     const photos = await listPhotosFromDriveFolder(folderId, token);
-    return photos || [];
-  } catch (error) {
-    console.error('[Drive] Erro na integração:', error);
-    return [];
+    return { photos: photos || [], error: null };
+  } catch (error: any) {
+    if (error.message === 'PERMISSION_DENIED') {
+      return { photos: [], error: 'PERMISSION_DENIED' };
+    }
+    return { photos: [], error: 'UNKNOWN_ERROR' };
   }
 }

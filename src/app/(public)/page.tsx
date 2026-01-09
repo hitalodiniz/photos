@@ -1,6 +1,7 @@
 // app/page.tsx (Home Page Principal com Checagem de Autenticação Server-Side)
 
 import { LandingPageContent } from '@/components/sections';
+import LoadingSpinner from '@/components/ui/LoadingSpinner';
 import { SEO_CONFIG } from '@/core/config/seo.config';
 import { Metadata } from 'next';
 
@@ -13,4 +14,5 @@ export default async function HomePage() {
   return <LandingPageContent />;
   // return <LoadingScreen message="Carregando..." />;
   //return <GlobalError />;
+  //return <LoadingSpinner size='lg' message='carregando' ></LoadingSpinner>
 }

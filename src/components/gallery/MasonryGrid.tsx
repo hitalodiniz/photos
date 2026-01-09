@@ -10,6 +10,7 @@ import { Galeria } from '@/core/types/galeria';
 import { getHighResImageUrl, getImageUrl } from '@/core/utils/url-helper';
 import { GALLERY_MESSAGES } from '@/constants/messages';
 import { getCleanSlug, executeShare } from '@/core/utils/share-helper';
+import LoadingSpinner from '../ui/LoadingSpinner';
 
 interface Photo {
   id: string;
@@ -43,12 +44,11 @@ const MasonryGrid = ({
   favorites,
   toggleFavoriteFromGrid,
   setSelectedPhotoIndex,
-  photos,
   showOnlyFavorites,
   setShowOnlyFavorites,
 }: MasonryGridProps) => {
   const [displayLimit, setDisplayLimit] = useState(24);
-  const [isLoading, setIsLoading] = useState(false);
+
   const sentinelRef = useRef<HTMLDivElement | null>(null);
 
   // ESTADO PARA CONTROLAR O RODAPÉ
@@ -56,23 +56,17 @@ const MasonryGrid = ({
 
   useEffect(() => {
     const observer = new IntersectionObserver((entries) => {
-      if (
-        entries[0].isIntersecting &&
-        !isLoading &&
-        displayLimit < displayedPhotos.length
-      ) {
-        setIsLoading(true);
+      if (entries[0].isIntersecting && displayLimit < displayedPhotos.length) {
         setTimeout(() => {
           setDisplayLimit((prev) =>
             Math.min(prev + 24, displayedPhotos.length),
           );
-          setIsLoading(false);
-        }, 800);
+        }, 300);
       }
     });
     if (sentinelRef.current) observer.observe(sentinelRef.current);
     return () => observer.disconnect();
-  }, [displayLimit, displayedPhotos.length, isLoading]);
+  }, [displayLimit, displayedPhotos.length]);
 
   const limitedPhotos = displayedPhotos.slice(0, displayLimit);
 
@@ -290,15 +284,10 @@ const MasonryGrid = ({
               aria-hidden="true"
             />
           )}
-          {isLoading && !showOnlyFavorites && (
-            <div className="flex flex-col items-center justify-center py-12">
-              <div className="relative w-12 h-12">
-                <div className="absolute inset-0 rounded-full border-2 border-[#F3E5AB]/20" />
-                <div className="absolute inset-0 rounded-full border-t-2 border-r-2 border-[#F3E5AB] animate-spin" />
-              </div>
-              <p className="mt-4 text-[11px] uppercase tracking-[0.2em] text-[#F3E5AB]/60 font-medium">
-                Carregando memórias
-              </p>
+          {/* Carregamento infinito: Só exibe o spinner se NÃO for a aba de favoritos e se ainda houver fotos para carregar */}
+          {!allLoaded && !showOnlyFavorites && (
+            <div className="flex justify-center py-20">
+              <LoadingSpinner size="md" message="Carregando memórias..." />
             </div>
           )}
           {/* Sentinela movido para o final */}
