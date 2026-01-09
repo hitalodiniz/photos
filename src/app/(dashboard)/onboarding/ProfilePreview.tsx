@@ -25,18 +25,14 @@ export default function PhotographerProfile({
     async function fetchProfile() {
       if (!params.username) return;
       try {
-        const { data } = await getPublicProfile(params.username);
+        const { data } = await getPublicProfile(params.username as string);
 
         if (!data) {
           throw new Error('Perfil não encontrado no sistema.');
         }
         setProfile(data);
       } catch (error) {
-        // 1. Loga para debug técnico no navegador
         window.console.error('Erro capturado no fetch:', error);
-
-        // 2. LANÇA o erro para o Next.js capturar no error.tsx
-        // Isso interrompe o fluxo deste componente e renderiza a página de erro
         throw error;
       } finally {
         setLoading(false);
@@ -45,6 +41,15 @@ export default function PhotographerProfile({
 
     fetchProfile();
   }, [params.username, initialData]);
+
+  // Loading State - Mantendo o fundo preto padrão do editorial
+  if (loading) {
+    return (
+      <div className="min-h-screen bg-black flex items-center justify-center text-[#F3E5AB] font-serif italic">
+        Carregando Editorial...
+      </div>
+    );
+  }
 
   if (!profile)
     return (
@@ -65,17 +70,19 @@ export default function PhotographerProfile({
 
   // Lógica de Localização Inteligente
   const cities = profile.operating_cities || profile.cities || [];
-  // Exemplo de uso no Preview lateral
+
   return (
-    <PhotographerProfileContent
-      fullName={fullName}
-      username={username}
-      miniBio={bio}
-      phone={whatsapp}
-      instagram={instaLink}
-      photoPreview={avatar} // URL da imagem temporária do upload
-      cities={cities}
-      showBackButton={false}
-    />
+    <div className="w-full min-h-screen bg-black">
+      <PhotographerProfileContent
+        fullName={fullName}
+        username={username}
+        miniBio={bio}
+        phone={whatsapp}
+        instagram={instaLink}
+        photoPreview={avatar}
+        cities={cities}
+        showBackButton={false}
+      />
+    </div>
   );
 }

@@ -184,17 +184,9 @@ export default function ClientAdminWrapper({
       <main className="order-1 lg:order-2 space-y-4">
         {/* PÍLULA MESTRE: TÍTULO + FILTROS + STATUS */}
         <header className="w-full mb-2">
-          <div className="flex flex-col md:flex-row items-center bg-[#FAF7ED] border border-gold/30 shadow-sm rounded-[24px] md:rounded-full overflow-hidden transition-all duration-300">
-            {/* Identificador de Filtros */}
-            <div className="flex items-center gap-2.5 px-8 py-4 bg-white/40 border-b md:border-b-0 md:border-r border-gold/20">
-              <Filter size={14} className="text-[#D4AF37]" />
-              <span className="text-[11px] font-black uppercase tracking-[0.25em] text-slate-500">
-                Filtros
-              </span>
-            </div>
-
+          <div className="flex flex-col md:flex-row items-center border border-gold/30 shadow-sm rounded-[24px] md:rounded-full overflow-hidden transition-all duration-300">
             {/* Área de Filtros */}
-            <div className="flex-1 w-full px-4 py-1.5">
+            <div className="flex-1 w-full px-2 py-1">
               <Filters
                 filterName={filterName}
                 filterLocation={filterLocation}

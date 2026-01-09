@@ -58,7 +58,10 @@ describe('gallery-logic - Cobertura 100%', () => {
   describe('fetchDrivePhotos - Caminhos de Erro (Linhas 94-107)', () => {
     it('deve retornar array vazio se userId ou folderId forem omitidos', async () => {
       const res = await fetchDrivePhotos(undefined, undefined);
-      expect(res).toEqual([]);
+      expect(res).toEqual({
+        error: 'MISSING_PARAMS',
+        photos: [],
+      });
     });
 
     it('deve capturar erro e retornar vazio no bloco catch (Linha 104)', async () => {
@@ -72,8 +75,10 @@ describe('gallery-logic - Cobertura 100%', () => {
 
       const res = await fetchDrivePhotos('u1', 'f1');
 
-      expect(res).toEqual([]);
-      // Verifica se o erro foi logado no console (opcional)
+      expect(res).toEqual({
+        error: 'UNKNOWN_ERROR',
+        photos: [],
+      });
     });
   });
 

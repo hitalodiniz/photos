@@ -33,8 +33,6 @@ import { fetchStates, fetchCitiesByState } from '@/core/utils/cidades-helpers';
 import { compressImage } from '@/core/utils/user-helpers';
 
 export function SubmitOnboarding({ isSaving }: { isSaving: boolean }) {
-  // Mantemos o pending para caso o form seja disparado de outra forma,
-  // mas priorizamos o isSaving do nosso fluxo manual.
   const { pending } = useFormStatus();
   const isLoading = pending || isSaving;
 
@@ -69,7 +67,6 @@ export default function OnboardingForm({
   const router = useRouter();
   const fileInputRef = useRef<HTMLInputElement>(null);
 
-  // Estados do Form
   const [fullName, setFullName] = useState(initialData?.full_name || '');
   const [username, setUsername] = useState(
     initialData?.username || suggestedUsername,
@@ -81,7 +78,6 @@ export default function OnboardingForm({
     initialData?.operating_cities || [],
   );
 
-  // Estados de Auxílio
   const [states, setStates] = useState<{ sigla: string; nome: string }[]>([]);
   const [selectedUF, setSelectedUF] = useState('');
   const [cityInput, setCityInput] = useState('');
@@ -91,7 +87,6 @@ export default function OnboardingForm({
     initialData?.profile_picture_url || null,
   );
 
-  // Estados de Status
   const [isChecking, setIsChecking] = useState(false);
   const [isAvailable, setIsAvailable] = useState<boolean | null>(null);
   const [showSuccessModal, setShowSuccessModal] = useState(false);
@@ -105,7 +100,6 @@ export default function OnboardingForm({
     fetchStates().then(setStates);
   }, []);
 
-  // Busca de Cidades
   useEffect(() => {
     const timer = setTimeout(async () => {
       if (cityInput.length >= 2 && selectedUF) {
@@ -129,7 +123,6 @@ export default function OnboardingForm({
 
   const isPhoneValid = phone.replace(/\D/g, '').length >= 11;
 
-  // Verificação de Username Disponível
   useEffect(() => {
     if (!username || username === initialData?.username) {
       setIsAvailable(null);
@@ -156,7 +149,6 @@ export default function OnboardingForm({
     const file = e.target.files?.[0];
     if (file) {
       setPhotoFile(file);
-      // Otimização: createObjectURL é mais leve que FileReader para previews
       setPhotoPreview(URL.createObjectURL(file));
     }
   };
@@ -169,21 +161,14 @@ export default function OnboardingForm({
       });
       return;
     }
-
     setIsSaving(true);
-
-    // 1. Adiciona as cidades como JSON
     formData.set('operating_cities_json', JSON.stringify(selectedCities));
 
-    // 2. Processa e Comprime a Foto (Evita o "Failed to Fetch")
     if (photoFile) {
       try {
-        // Usamos a função compressImage que criamos anteriormente
         const compressedBlob = await compressImage(photoFile);
         formData.set('profile_picture_file', compressedBlob, 'avatar.webp');
       } catch (e) {
-        console.error('Erro na compressão:', e);
-        // Se a compressão falhar, tentamos enviar o original como fallback
         formData.set('profile_picture_file', photoFile);
       }
     } else if (photoPreview) {
@@ -191,25 +176,20 @@ export default function OnboardingForm({
     }
 
     try {
-      // 3. Chamada para a Server Action
       const result = await upsertProfile(formData);
-
       if (result?.success) {
         setShowSuccessModal(true);
-        // Opcional: Feedback sutil de sucesso além do modal
         setToastConfig({
           message: 'Perfil salvo com sucesso!',
           type: 'success',
         });
       } else {
-        // 4. Substituição do Alert pelo Toast de Luxo (12px/14px)
         setToastConfig({
           message: result?.error || 'Erro ao salvar perfil.',
           type: 'error',
         });
       }
     } catch (err) {
-      // 5. Captura de erro de rede (Ex: Arquivo ainda muito grande ou queda de sinal)
       setToastConfig({
         message: 'Falha na conexão. Tente novamente.',
         type: 'error',
@@ -219,16 +199,34 @@ export default function OnboardingForm({
     }
   };
 
+  // AJUSTE MOBILE: Deixamos o container com scroll livre no mobile e flex-col
   const containerBaseClass =
-    'fixed inset-0 top-0 bg-white flex w-full font-sans z-[9999] overflow-hidden ';
+    'relative min-h-screen bg-white flex flex-col md:flex-row w-full font-sans z-[99]';
+
+  // Função para limpar o link do Instagram e extrair apenas o username
+  const handleInstagramChange = (val: string) => {
+    let cleanValue = val.trim();
+
+    // Se for uma URL completa, tenta extrair o username
+    if (cleanValue.includes('instagram.com/')) {
+      // Remove protocolos, query strings e limpa a barra final
+      const parts = cleanValue.split('instagram.com/')[1]?.split(/[/?#]/)[0];
+      if (parts) cleanValue = `@${parts}`;
+    }
+
+    // Garante que comece com @ se houver conteúdo
+    if (cleanValue && !cleanValue.startsWith('@')) {
+      cleanValue = `@${cleanValue}`;
+    }
+
+    setInstagram(cleanValue.toLowerCase());
+  };
 
   return (
     <>
       <div className={containerBaseClass}>
-        {/* ASIDE REFINADO - ESTILO LUXO EDITORIAL */}
-        <aside className="w-[100%] md:w-[35%] bg-white border-r border-slate-100 p-6 pt-8 flex flex-col h-full relative z-20 overflow-y-auto no-scrollbar shadow-xl">
-          {' '}
-          {/* 1. Botão Secundário de Voltar (Compacto) */}
+        {/* ASIDE: w-full no mobile, 35% no desktop */}
+        <aside className="w-full md:w-[35%] bg-white border-r border-slate-100 p-6 pt-8 flex flex-col h-auto md:h-screen md:sticky md:top-0 z-20 md:overflow-y-auto no-scrollbar shadow-xl">
           {isEditMode && (
             <button
               type="button"
@@ -239,7 +237,8 @@ export default function OnboardingForm({
               Voltar ao espaço premium
             </button>
           )}
-          <div className="flex items-center gap-3 shrink-0">
+
+          <div className="flex items-center gap-3 shrink-0 mb-8">
             <div className="p-2 bg-champagne-dark/20 rounded-lg">
               <Camera className="text-[#D4AF37]" size={24} />
             </div>
@@ -249,7 +248,8 @@ export default function OnboardingForm({
               </h1>
             </div>
           </div>
-          <form action={clientAction} className="space-y-5 flex-grow pb-10">
+
+          <form action={clientAction} className="space-y-5 pb-10">
             <div className="flex flex-col items-center">
               <div className="relative group">
                 <input
@@ -261,7 +261,7 @@ export default function OnboardingForm({
                 />
                 <div
                   onClick={() => fileInputRef.current?.click()}
-                  className="relative w-16 h-16 md:w-24 md:h-24 rounded-full p-[3px] bg-gradient-to-tr from-[#34A853] via-[#FBBC05] via-[#EA4335] to-[#4285F4] shadow-xl cursor-pointer transition-all hover:scale-105 active:scale-95 overflow-hidden"
+                  className="relative w-20 h-20 md:w-24 md:h-24 rounded-full p-[3px] bg-gradient-to-tr from-[#34A853] via-[#FBBC05] via-[#EA4335] to-[#4285F4] shadow-xl cursor-pointer transition-all hover:scale-105 active:scale-95 overflow-hidden"
                 >
                   <div className="w-full h-full rounded-full overflow-hidden bg-white flex items-center justify-center p-[2px]">
                     <div className="w-full h-full rounded-full overflow-hidden bg-slate-50 flex items-center justify-center relative">
@@ -274,52 +274,43 @@ export default function OnboardingForm({
                       ) : (
                         <Upload size={30} className="text-slate-200" />
                       )}
-                      <div className="absolute inset-0 bg-black/20 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity">
-                        <Camera size={24} className="text-white" />
-                      </div>
                     </div>
                   </div>
                 </div>
                 <button
                   type="button"
                   onClick={() => fileInputRef.current?.click()}
-                  className="absolute bottom-1 right-1 bg-white border border-slate-200 p-2 rounded-full shadow-lg text-slate-600 hover:text-[#D4AF37] transition-colors z-10"
+                  className="absolute bottom-1 right-1 bg-white border border-slate-200 p-2 rounded-full shadow-lg text-slate-600 z-10"
                 >
                   <Pencil size={14} />
                 </button>
               </div>
-              <p className="text-[10px] text-slate-400 font-medium uppercase tracking-tighter">
-                {photoPreview
-                  ? 'Clique para alterar'
-                  : 'Carregar foto de perfil'}
+              <p className="text-[10px] text-slate-400 font-medium uppercase tracking-tighter mt-2">
+                {photoPreview ? 'Clique para alterar' : 'Carregar foto'}
               </p>
             </div>
 
-            <div className="grid grid-cols-2 gap-4">
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
               <div>
-                <label>
-                  <User size={14} className="text-[#D4AF37]" /> Nome Completo
+                <label className="flex items-center gap-2 mb-1 text-xs font-medium text-slate-700">
+                  <User size={14} className="text-[#D4AF37]" /> Nome
                 </label>
                 <input
                   name="full_name"
-                  min={5}
-                  max={50}
-                  className="w-full bg-slate-50 border border-slate-100 rounded-xl px-4 py-3 text-sm focus:outline-none focus:ring-2 focus:ring-[#F3E5AB] outline-none ring-2"
+                  className="w-full bg-slate-50 border border-slate-100 rounded-xl px-4 py-3 text-sm focus:ring-2 focus:ring-[#F3E5AB] outline-none"
                   value={fullName}
                   onChange={(e) => setFullName(e.target.value)}
                   required
                 />
               </div>
               <div>
-                <label>
+                <label className="flex items-center gap-2 mb-1 text-xs font-medium text-slate-700">
                   <AtSign size={14} className="text-[#D4AF37]" /> Username
                 </label>
                 <div className="relative">
                   <input
                     name="username"
-                    min={5}
-                    max={20}
-                    className="w-full bg-slate-50 border border-slate-100 rounded-xl px-4 py-3 text-sm focus:outline-none focus:ring-2 focus:ring-[#F3E5AB] outline-none ring-2"
+                    className="w-full bg-slate-50 border border-slate-100 rounded-xl px-4 py-3 text-sm focus:ring-2 focus:ring-[#F3E5AB] outline-none"
                     value={username}
                     onChange={(e) =>
                       setUsername(
@@ -343,55 +334,49 @@ export default function OnboardingForm({
               </div>
             </div>
 
-            <div className="grid grid-cols-2 gap-4">
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
               <div>
-                <label>
+                <label className="flex items-center gap-2 mb-1 text-xs font-medium text-slate-700">
                   <MessageCircle size={14} className="text-[#D4AF37]" />{' '}
                   WhatsApp
-                  {!isPhoneValid && phone.length > 0 && (
-                    <span className="text-[10px] text-red-500 font-medium ml-auto">
-                      Incompleto
-                    </span>
-                  )}
                 </label>
                 <input
                   name="phone_contact"
-                  className={`w-full bg-slate-50 border border-slate-100 rounded-xl px-4 py-3 text-sm focus:outline-none focus:ring-2 focus:ring-[#F3E5AB] outline-none ring-2 ${!isPhoneValid && phone.length > 0 ? 'border-red-400 bg-red-50/30' : ''}`}
+                  className={`w-full bg-slate-50 border border-slate-100 rounded-xl px-4 py-3 text-sm outline-none ${!isPhoneValid && phone.length > 0 ? 'border-red-400' : ''}`}
                   value={phone}
                   onChange={(e) => setPhone(maskPhone(e))}
                   placeholder="(00) 00000-0000"
+                  inputMode="numeric"
                 />
               </div>
               <div>
-                <label>
+                <label className="flex items-center gap-2 mb-1 text-xs font-medium text-slate-700">
                   <Instagram size={14} className="text-[#D4AF37]" /> Instagram
                 </label>
                 <input
                   name="instagram_link"
-                  className="w-full bg-slate-50 border border-slate-100 rounded-xl px-4 py-3 text-sm focus:outline-none focus:ring-2 focus:ring-[#F3E5AB] outline-none ring-2"
+                  className="w-full bg-slate-50 border border-slate-100 rounded-xl px-4 py-3 text-sm outline-none"
                   value={instagram}
-                  onChange={(e) => setInstagram(e.target.value)}
+                  onChange={(e) => handleInstagramChange(e.target.value)}
                   placeholder="@seu.perfil"
                 />
               </div>
             </div>
 
             <div className="rounded-2xl border border-gold/20 p-4 bg-[#FAF7ED]">
-              <div className="flex items-center gap-2 mb-3 text-[#D4AF37]">
-                <MapPin size={16} />
-                <label>Área de Atuação ({selectedCities.length})</label>
+              <div className="flex items-center gap-2 mb-3 text-[#D4AF37] text-xs font-bold uppercase">
+                <MapPin size={16} /> Área de Atuação ({selectedCities.length})
               </div>
-
               <div className="flex flex-wrap gap-1.5 mb-3">
                 {selectedCities.map((city) => (
                   <span
                     key={city}
                     className="bg-white border border-gold/20 text-slate-900 text-[10px] font-bold px-2 py-1 rounded-lg flex items-center gap-1 shadow-sm"
                   >
-                    {city}
+                    {city}{' '}
                     <X
                       size={10}
-                      className="cursor-pointer text-slate-300 hover:text-red-500"
+                      className="cursor-pointer"
                       onClick={() =>
                         setSelectedCities(
                           selectedCities.filter((c) => c !== city),
@@ -401,7 +386,6 @@ export default function OnboardingForm({
                   </span>
                 ))}
               </div>
-
               <div className="flex gap-2">
                 <select
                   value={selectedUF}
@@ -410,7 +394,7 @@ export default function OnboardingForm({
                     setCityInput('');
                     setSuggestions([]);
                   }}
-                  className="w-20 bg-white border border-gray-200 rounded-xl px-2 py-2 text-xs font-bold text-[#4F5B66] outline-none"
+                  className="w-20 bg-white border border-gray-200 rounded-xl px-2 py-2 text-xs font-bold outline-none"
                 >
                   <option value="">UF</option>
                   {states.map((uf) => (
@@ -419,18 +403,13 @@ export default function OnboardingForm({
                     </option>
                   ))}
                 </select>
-
                 <div className="relative flex-grow">
                   <input
                     disabled={!selectedUF}
                     value={cityInput}
                     onChange={(e) => setCityInput(e.target.value)}
-                    className="w-full bg-white border border-gray-200 rounded-xl px-4 py-2 text-xs outline-none ring-2"
-                    placeholder={
-                      selectedUF
-                        ? 'Digite a cidade...'
-                        : 'Selecione a UF primeiro'
-                    }
+                    className="w-full bg-white border border-gray-200 rounded-xl px-4 py-2 text-xs outline-none"
+                    placeholder="Cidade..."
                   />
                   {suggestions.length > 0 && (
                     <div className="absolute z-[100] w-full bg-white border border-slate-200 rounded-xl mt-1 shadow-2xl max-h-48 overflow-y-auto no-scrollbar">
@@ -439,7 +418,7 @@ export default function OnboardingForm({
                           key={city}
                           type="button"
                           onClick={() => handleSelectCity(city)}
-                          className="w-full text-left px-4 py-3 text-[11px] font-bold text-[#4F5B66] hover:bg-[#FAF7ED] border-b border-slate-50 last:border-0 transition-colors"
+                          className="w-full text-left px-4 py-3 text-[11px] font-bold hover:bg-[#FAF7ED] border-b last:border-0"
                         >
                           {city}
                         </button>
@@ -451,13 +430,12 @@ export default function OnboardingForm({
             </div>
 
             <div>
-              <label>
-                <FileText size={14} className="text-[#D4AF37]" /> Mini Bio
-                Editorial
+              <label className="flex items-center gap-2 mb-1 text-xs font-medium text-slate-700">
+                <FileText size={14} className="text-[#D4AF37]" /> Bio Editorial
               </label>
               <textarea
                 name="mini_bio"
-                className="w-full bg-slate-50 border border-slate-100 rounded-xl px-4 py-3 text-sm focus:outline-none focus:ring-2 focus:ring-[#F3E5AB]"
+                className="w-full bg-slate-50 border border-slate-100 rounded-xl px-4 py-3 text-sm focus:ring-2 focus:ring-[#F3E5AB] outline-none"
                 value={miniBio || ''}
                 onChange={(e) => setMiniBio(e.target.value)}
                 rows={3}
@@ -468,26 +446,23 @@ export default function OnboardingForm({
           </form>
         </aside>
 
-        <main
-          className="w-[60%] h-full bg-black overflow-y-auto 
-        custom-scrollbar relative flex-grow"
-        >
-          <div className="absolute top-10 left-10 z-[100] flex items-center gap-4 px-6 pointer-events-none">
+        {/* MAIN: Abaixo do form no mobile (w-full), ao lado no desktop (w-65%) */}
+        <main className="w-full md:w-[65%] min-h-[600px] md:h-screen bg-black relative flex-grow overflow-y-auto">
+          <div className="absolute top-4 md:top-10 left-0 md:left-10 z-[10] flex items-center gap-4 px-6 pointer-events-none">
             <div className="w-1.5 h-14 bg-champagne-dark rounded-full animate-pulse shadow-[0_0_20px_rgba(243,229,171,0.8)]"></div>
             <div className="flex flex-col justify-center">
-              <p className="text-[14px] text-[#F3E5AB] font-bold uppercase tracking-[0.5em] leading-none mb-1 drop-shadow-lg">
+              <p className="text-[10px] md:text-[12px] text-[#F3E5AB] font-bold uppercase tracking-[0.5em] leading-none mb-1 drop-shadow-lg">
                 Editorial
               </p>
-              <p className="text-[18px] text-white/90 font-serif italic tracking-wide leading-none py-2 drop-shadow-md">
+              <p className="text-[11px] md:text-[14px] text-white/90 font-serif italic tracking-wide leading-none py-2 drop-shadow-md">
                 Prévia do seu perfil
               </p>
             </div>
           </div>
-
           <ProfilePreview
             initialData={{
               full_name: fullName,
-              username: username,
+              username,
               mini_bio: miniBio,
               phone_contact: phone,
               instagram_link: instagram,
@@ -507,8 +482,7 @@ export default function OnboardingForm({
                 Perfil Consolidado!
               </h2>
               <p className="text-slate-500 mb-8 leading-relaxed text-sm">
-                Sua presença editorial foi atualizada com sucesso. Como deseja
-                prosseguir?
+                Sua presença editorial foi atualizada com sucesso.
               </p>
               <div className="flex flex-col gap-3">
                 <a
@@ -516,12 +490,11 @@ export default function OnboardingForm({
                   target="_blank"
                   className="w-full flex items-center justify-center gap-2 bg-slate-900 text-[#F3E5AB] py-4 rounded-xl font-bold text-sm hover:bg-slate-800 transition-colors"
                 >
-                  <Sparkles size={16} />
-                  Visualizar Perfil Público
+                  <Sparkles size={16} /> Visualizar Perfil Público
                 </a>
                 <button
                   onClick={() => router.push('/dashboard')}
-                  className="w-full bg-champagne-dark text-slate-900 py-4 rounded-xl font-bold text-sm hover:bg-[#e6d595] transition-colors"
+                  className="w-full bg-champagne-dark text-slate-900 py-4 rounded-xl font-bold text-sm transition-colors"
                 >
                   Ir para o Dashboard
                 </button>
@@ -536,7 +509,6 @@ export default function OnboardingForm({
           </div>
         )}
       </div>
-      {/* RENDERIZAÇÃO DO TOAST: Estilo Luxo 12px/14px */}
       {toastConfig && (
         <Toast
           message={toastConfig.message}

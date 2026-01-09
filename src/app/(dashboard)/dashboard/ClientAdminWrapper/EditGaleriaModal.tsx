@@ -253,21 +253,21 @@ export default function EditGaleriaModal({
                     hasContractingClient ? 'text-slate-900' : 'text-slate-400'
                   }`}
                 >
-                  Serviço Contratado
+                  Contratado
                 </button>
 
-                {/* Opção 2: Venda de Fotos */}
+                {/* Opção 2: CObertura */}
                 <button
                   type="button"
                   onClick={() => {
                     setHasContractingClient(false);
-                    setIsPublic(true); // Venda de fotos geralmente requer acesso público
+                    setIsPublic(true); // Cobertura geralmente requer acesso público
                   }}
                   className={`relative z-10 flex-1 py-2 text-[10px] md:text-[11px] font-black uppercase tracking-wider transition-colors duration-300 ${
                     !hasContractingClient ? 'text-slate-900' : 'text-slate-400'
                   }`}
                 >
-                  Venda de Fotos
+                  Cobertura
                 </button>
               </div>
             </div>
@@ -298,6 +298,7 @@ export default function EditGaleriaModal({
                     onChange={(e) => setClientWhatsapp(maskPhone(e))}
                     required={hasContractingClient}
                     maxLength={15}
+                    inputMode="numeric"
                     placeholder="(00) 00000-0000"
                   />
                 </div>

@@ -168,7 +168,7 @@ export default function GaleriaCard({
             className={`flex items-center gap-1.5 rounded-full px-2.5 py-1 text-[10px] md:text-[12px] font-medium tracking-[0.05em] shadow-sm ${galeria.has_contracting_client ? 'bg-blue-50 text-blue-700 border border-blue-100' : 'bg-amber-50 text-amber-700 border border-amber-100'}`}
           >
             <Briefcase size={10} strokeWidth={3} />
-            {galeria.has_contracting_client ? 'Contrato' : 'Venda Direta'}
+            {galeria.has_contracting_client ? 'Contrato' : 'Cobertura'}
           </span>
         </div>
 

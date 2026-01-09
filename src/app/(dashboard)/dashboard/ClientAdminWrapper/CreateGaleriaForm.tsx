@@ -84,7 +84,7 @@ export default function CreateGaleriaForm({ onSuccess }) {
     formData.set('category', category);
     formData.set('has_contracting_client', String(hasContractingClient));
 
-    // Lógica condicional para Venda de Fotos
+    // Lógica condicional para Cobertura
     if (!hasContractingClient) {
       formData.set('clientName', 'Venda Direta'); // Preenche o banco para evitar erro de null
       formData.set('client_whatsapp', '');
@@ -150,7 +150,7 @@ export default function CreateGaleriaForm({ onSuccess }) {
             hasContractingClient ? 'text-slate-900' : 'text-slate-400'
           }`}
         >
-          Serviço Contratado
+          Contrato
         </button>
 
         {/* Opção 2 */}
@@ -164,7 +164,7 @@ export default function CreateGaleriaForm({ onSuccess }) {
             !hasContractingClient ? 'text-slate-900' : 'text-slate-400'
           }`}
         >
-          Venda de Fotos
+          Cobertura{' '}
         </button>
       </div>
 
@@ -194,6 +194,7 @@ export default function CreateGaleriaForm({ onSuccess }) {
               onChange={(e) => setClientWhatsapp(maskPhone(e))}
               maxLength={15}
               placeholder="(00) 00000-0000"
+              inputMode="numeric"
               className="w-full p-4 bg-white border border-[#F3E5AB] rounded-2xl text-slate-900 pr-16 focus:border-gold transition-all"
             />
           </div>
