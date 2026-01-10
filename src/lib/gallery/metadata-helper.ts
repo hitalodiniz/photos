@@ -83,19 +83,46 @@ export async function getPhotoMetadata(
   const galeriaRaw = await fetchGalleryBySlug(fullSlug);
 
   if (!galeriaRaw) {
-    return { title: 'Fotografia não encontrada | Sua Galeria de Fotos' };
+    return { title: 'Foto não encontrada | Sua Galeria' };
   }
 
-  const title = `Foto de ${galeriaRaw.title}`;
-  const description = `${galeriaRaw.location || ''} | Fotógrafo: ${galeriaRaw.photographer?.full_name || 'Profissional'}. Toque para ver em alta resolução.`;
+  // 1. Título focado na foto, herdando o título da galeria
+  const title = `Foto - ${galeriaRaw.title}`;
 
-  // 🎯 A URL CORRETA PARA O WHATSAPP:
-  // O endpoint 'thumbnail?sz=w1200' é o mais confiável para scrapers externos
-  const photoUrl = `https://drive.google.com/thumbnail?id=${googleId}&sz=w1200`;
+  // 2. Montagem da Descrição Dinâmica (Igual à galeria)
+  const descriptionParts = [];
+  if (galeriaRaw.client_name)
+    descriptionParts.push(`Cliente: ${galeriaRaw.client_name}`);
+  if (galeriaRaw.location) descriptionParts.push(galeriaRaw.location);
+  if (galeriaRaw.date) {
+    descriptionParts.push(
+      new Date(galeriaRaw.date).toLocaleDateString('pt-BR'),
+    );
+  }
 
-  const baseUrl =
-    process.env.NEXT_PUBLIC_BASE_URL || 'https://hitalodiniz.suagaleria.com.br';
-  const pageUrl = `${baseUrl}/photo/${googleId}?s=${fullSlug}`;
+  const photographerInfo = galeriaRaw.photographer?.full_name
+    ? `Fotógrafo: ${galeriaRaw.photographer.full_name}`
+    : '';
+
+  let description = '';
+  if (!galeriaRaw.is_public) {
+    description = `🔒 Foto em Galeria Privada. ${photographerInfo}`.trim();
+  } else {
+    if (photographerInfo) descriptionParts.push(photographerInfo);
+    description =
+      descriptionParts.length > 0
+        ? descriptionParts.join(' | ')
+        : 'Toque para ver a foto em alta resolução.';
+  }
+
+  // 3. Tratamento da Imagem (A parte crucial)
+  // Usamos o padrão que o WhatsApp aceita para o Drive, garantindo HTTPS e tamanho
+  // 3. Tratamento da Imagem (WhatsApp exige HTTPS e w1200)
+  const ogImage = galeriaRaw.cover_image_url
+    ? getImageUrl(galeriaRaw.cover_image_url, 'w1200')
+    : null;
+
+  const baseUrl = process.env.NEXT_PUBLIC_BASE_URL;
 
   return {
     title,
@@ -103,14 +130,14 @@ export async function getPhotoMetadata(
     openGraph: {
       title,
       description,
-      type: 'article',
-      url: pageUrl,
+      type: 'article', // 'article' indica que é um conteúdo específico dentro de um site
+      url: `${baseUrl}/photo/${googleId}?s=${fullSlug}`,
       images: [
         {
-          url: photoUrl,
+          url: ogImage,
           width: 1200,
           height: 630,
-          type: 'image/jpeg', // Forçamos o tipo para o WhatsApp entender
+          type: 'image/jpeg',
         },
       ],
     },
@@ -118,7 +145,7 @@ export async function getPhotoMetadata(
       card: 'summary_large_image',
       title,
       description,
-      images: [photoUrl],
+      images: [ogImage],
     },
   };
 }
