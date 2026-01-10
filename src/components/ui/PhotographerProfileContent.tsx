@@ -13,6 +13,7 @@ import {
   Footer,
 } from '@/components/layout';
 import Image from 'next/image';
+import { GALLERY_MESSAGES } from '@/constants/messages';
 
 interface ProfileContentProps {
   fullName: string;
@@ -33,11 +34,7 @@ export default function PhotographerProfileContent({
   instagram,
   photoPreview,
   cities,
-  showBackButton = false,
 }: ProfileContentProps) {
-  const locationDisplay =
-    cities.length > 0 ? cities.join(' • ') : 'SUA LOCALIZAÇÃO';
-
   // Dentro do seu PhotographerProfileContent ou PhotographerProfileContainer
   useEffect(() => {
     if (fullName) {
@@ -50,6 +47,10 @@ export default function PhotographerProfileContent({
       document.title = process.env.NEXT_PUBLIC_TITLE_DEFAULT;
     };
   }, [fullName]);
+
+  const whatsappLink = `https://wa.me/${phone}?text=${encodeURIComponent(
+    GALLERY_MESSAGES.CONTACT_PHOTOGRAPHER_DIRETO(),
+  )}`;
   return (
     <div className="min-h-screen w-full flex flex-col bg-black overflow-x-hidden relative font-sans">
       <div className="absolute inset-0 z-0">
@@ -135,9 +136,7 @@ export default function PhotographerProfileContent({
 
                 <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 pt-2">
                   <a
-                    href={
-                      phone ? `https://wa.me/${phone.replace(/\D/g, '')}` : '#'
-                    }
+                    href={whatsappLink}
                     target="_blank"
                     className="flex items-center justify-between px-5 py-3.5 rounded-xl bg-[#25D366] text-white shadow-lg transition-all hover:scale-[1.02] active:scale-95"
                   >

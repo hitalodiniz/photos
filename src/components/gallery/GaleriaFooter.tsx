@@ -1,5 +1,6 @@
 'use client';
 
+import { GALLERY_MESSAGES } from '@/constants/messages';
 import { Galeria } from '@/core/types/galeria';
 import React from 'react';
 
@@ -8,6 +9,9 @@ interface GaleriaFooterProps {
 }
 
 export default function GaleriaFooter({ galeria }: GaleriaFooterProps) {
+  const whatsappLink = `https://wa.me/${galeria.photographer.phone_contact.replace(/\D/g, '')}?text=${encodeURIComponent(
+    GALLERY_MESSAGES.CONTACT_PHOTOGRAPHER(galeria.title),
+  )}`;
   return (
     <footer className="relative z-20 w-full mt-4 pt-6 border-t border-gold/20 bg-[#FFF9F0]">
       <div className="max-w-[1600px] mx-auto flex flex-col items-center gap-4">
@@ -58,9 +62,7 @@ export default function GaleriaFooter({ galeria }: GaleriaFooterProps) {
                 <div className="flex items-center gap-3">
                   {galeria.photographer?.phone_contact && (
                     <a
-                      href={`https://wa.me/${galeria.photographer.phone_contact.replace(/\D/g, '')}?text=${encodeURIComponent(
-                        `Olá! Vi seu trabalho na galeria "${galeria.title}" através do app Sua Galeria de Fotos. Gostaria de saber mais informações sobre o seu trabalho!`,
-                      )}`}
+                      href={whatsappLink}
                       target="_blank"
                       rel="noopener noreferrer"
                       className="text-slate-700 hover:text-[#25D366] transition-all"

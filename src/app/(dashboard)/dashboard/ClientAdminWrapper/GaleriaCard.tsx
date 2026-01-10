@@ -147,7 +147,7 @@ export default function GaleriaCard({
           src={imageUrl}
           alt={`Capa da galeria ${galeria.title}`}
           referrerPolicy="no-referrer"
-          className="h-full w-full object-cover transition-transform duration-1000 ease-out group-hover:scale-110"
+          className="h-full w-full object-cover transition-transform duration-1000 ease-out group-hover:scale-105"
         />
 
         <div className="absolute top-2 left-2 md:top-3 md:left-3 flex flex-col gap-1.5">
@@ -227,7 +227,7 @@ export default function GaleriaCard({
           >
             <FolderOpen
               size={16}
-              className="text-[#D4AF37] flex-shrink-0 transition-transform group-hover/drive:scale-110"
+              className="text-[#D4AF37] flex-shrink-0 transition-transform group-hover/drive:scale-105"
             />
             <span className="truncate text-[8px] md:text-[10px] font-black uppercase tracking-[0.2em] text-slate-600">
               {galeria.drive_folder_name || 'Abrir Pasta no Google Drive'}

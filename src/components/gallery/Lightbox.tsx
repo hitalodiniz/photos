@@ -10,12 +10,7 @@ import {
   Heart,
 } from 'lucide-react';
 import { GalleryHeader, PhotographerAvatar } from '@/components/gallery';
-import {
-  getImageUrl,
-  getHighResImageUrl,
-  getWhatsAppShareLink,
-  getProxyUrl,
-} from '@/core/utils/url-helper';
+import { getImageUrl, getProxyUrl } from '@/core/utils/url-helper';
 import { GALLERY_MESSAGES } from '@/constants/messages';
 
 import type { Galeria } from '@/core/types/galeria';
@@ -188,12 +183,6 @@ export default function Lightbox({
       title: galleryTitle,
       text: shareText,
     });
-  };
-
-  // Função auxiliar para manter o código limpo
-  const openWhatsAppFallback = (text: string) => {
-    const whatsappUrl = getWhatsAppShareLink(null, text);
-    window.open(whatsappUrl, '_blank');
   };
 
   return (

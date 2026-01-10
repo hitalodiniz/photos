@@ -9,6 +9,7 @@ import {
   MessageCircle,
   User,
 } from 'lucide-react';
+import { GALLERY_MESSAGES } from '@/constants/messages';
 
 export const InfoBarMobile = ({
   galeria,
@@ -84,7 +85,9 @@ export const InfoBarMobile = ({
                     <button
                       onClick={() =>
                         window.open(
-                          `https://wa.me/${galeria.photographer_whatsapp}`,
+                          `https://wa.me/${galeria.photographer.phone_contact.replace(/\D/g, '')}?text=${encodeURIComponent(
+                            GALLERY_MESSAGES.CONTACT_PHOTOGRAPHER_DIRETO(),
+                          )}`,
                         )
                       }
                       className="text-black active:scale-125 transition-transform"

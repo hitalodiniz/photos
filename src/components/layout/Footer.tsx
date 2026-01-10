@@ -2,8 +2,12 @@
 import React from 'react';
 import { Camera, Instagram, MessageCircle } from 'lucide-react';
 import Link from 'next/link';
+import { GALLERY_MESSAGES } from '@/constants/messages';
 
 export default function Footer() {
+  const whatsappLink = `https://wa.me/5531993522018?text=${encodeURIComponent(
+    GALLERY_MESSAGES.CONTACT_DEVELOPER(),
+  )}`;
   return (
     <footer className="flex-none w-full py-8 px-6 bg-gradient-to-t from-black/80 to-transparent backdrop-blur-sm border-t border-white/10">
       <div className="max-w-6xl mx-auto flex flex-col md:flex-row justify-between items-center gap-4 md:gap-10">
@@ -54,7 +58,7 @@ export default function Footer() {
           <SocialIcon
             icon={<MessageCircle size={20} />}
             title="WhatsApp"
-            href="https://wa.me/seunumero" // Ajuste o link real aqui
+            href={whatsappLink} // Ajuste o link real aqui
           />
         </div>
       </div>

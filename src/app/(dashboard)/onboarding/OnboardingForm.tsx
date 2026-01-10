@@ -431,7 +431,7 @@ export default function OnboardingForm({
 
             <div>
               <label className="flex items-center gap-2 mb-1 text-xs font-medium text-slate-700">
-                <FileText size={14} className="text-[#D4AF37]" /> Bio Editorial
+                <FileText size={14} className="text-[#D4AF37]" /> Mini-currículo
               </label>
               <textarea
                 name="mini_bio"

@@ -122,37 +122,40 @@ export async function generateUniqueDatedSlug(
 ): Promise<string> {
   const supabase = supabaseClient || (await createSupabaseServerClient());
 
-  // 1. Obter usuário autenticado
+  // 1 e 2. (Mantenha sua lógica de Usuário e Profile igual...)
   const {
     data: { user },
   } = await supabase.auth.getUser();
+  if (!user) throw new Error('Usuário não autenticado.');
 
-  if (!user) {
-    throw new Error('Usuário não autenticado ao gerar slug.');
-  }
-
-  // 2. Buscar username e se usa subdomínio
-  const { data: profile, error: profileError } = await supabase
+  const { data: profile } = await supabase
     .from('tb_profiles')
-    .select('username, use_subdomain')
+    .select('username')
     .eq('id', user.id)
     .single();
 
-  if (profileError || !profile) {
-    throw new Error('Não foi possível carregar o profile do usuário.');
+  const username = profile?.username || 'user';
+
+  // --- AJUSTE AQUI: Limitação do Título ---
+  const MAX_TITLE_LENGTH = 60; // Limite razoável para a parte do título
+
+  let safeTitle = slugify(title, { lower: true, strict: true, locale: 'pt' });
+
+  // Trunca o título se for maior que o limite
+  if (safeTitle.length > MAX_TITLE_LENGTH) {
+    safeTitle = safeTitle.substring(0, MAX_TITLE_LENGTH);
+    // Remove hífen residual no final após o corte, se existir
+    safeTitle = safeTitle.replace(/-+$/, '');
   }
 
-  const username = profile.username;
-
-  // 3. Montar partes do slug
-  const safeTitle = slugify(title, { lower: true, strict: true, locale: 'pt' });
   const datePart = dateStr.substring(0, 10).replace(/-/g, '/');
-
   const baseSlug = `${username}/${datePart}/${safeTitle}`;
+  // ---------------------------------------
+
   let uniqueSlug = baseSlug;
   let suffix = 0;
 
-  // 5. Garantir unicidade
+  // 5. Garantir unicidade (Sua lógica de loop permanece excelente)
   while (true) {
     const { data: existing, error } = await supabase
       .from('tb_galerias')
@@ -161,7 +164,7 @@ export async function generateUniqueDatedSlug(
       .maybeSingle();
 
     if (error) {
-      console.error('Erro ao verificar slug existente:', error);
+      console.error('Erro ao verificar slug:', error);
       break;
     }
 
@@ -170,6 +173,7 @@ export async function generateUniqueDatedSlug(
     }
 
     suffix++;
+    // O sufixo entra após o título truncado
     uniqueSlug = `${baseSlug}-${suffix}`;
   }
 

@@ -2,6 +2,7 @@
 import React, { useMemo } from 'react';
 import type { Galeria } from '@/core/types/galeria';
 import Image from 'next/image';
+import { GALLERY_MESSAGES } from '@/constants/messages';
 
 interface PhotographerAvatarProps {
   galeria: Galeria;
@@ -14,6 +15,10 @@ export default function PhotographerAvatar({
   position,
   isVisible = true,
 }: PhotographerAvatarProps) {
+  const whatsappLink = `https://wa.me/${galeria.photographer.phone_contact.replace(/\D/g, '')}?text=${encodeURIComponent(
+    GALLERY_MESSAGES.CONTACT_PHOTOGRAPHER_DIRETO(),
+  )}`;
+
   if (!isVisible && position === 'top-page') return null;
 
   // Atalho para facilitar o acesso aos dados do fotógrafo
@@ -86,7 +91,7 @@ export default function PhotographerAvatar({
             {/* 🎯 FIX: Verificação correta do WhatsApp */}
             {photographer?.phone_contact && (
               <a
-                href={`https://wa.me/${photographer.phone_contact.replace(/\D/g, '')}`}
+                href={whatsappLink}
                 target="_blank"
                 rel="noopener noreferrer"
                 className="p-1.5 bg-white/10 text-white rounded-full hover:bg-[#25D366] transition-all border border-white/10 hover:scale-110 active:scale-95"

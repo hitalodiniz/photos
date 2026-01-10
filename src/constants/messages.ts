@@ -61,4 +61,15 @@ export const GALLERY_MESSAGES = {
       '💎 _Sua Galeria de Fotos_',
     ].join('\n');
   },
+  CONTACT_PHOTOGRAPHER: (galleryTitle: string) => {
+    return `Olá! Vi seu trabalho na galeria "${galleryTitle}" através do aplicativo Sua Galeria de Fotos. Gostaria de saber mais informações sobre o seu trabalho!`;
+  },
+
+  CONTACT_PHOTOGRAPHER_DIRETO: () => {
+    return 'Olá! Vi seu perfil através do aplicativo Sua Galeria de Fotos. Gostaria de saber mais informações sobre o seu trabalho!';
+  },
+
+  CONTACT_DEVELOPER: () => {
+    return 'Olá! Gostaria de saber mais informações sobre o aplicativo Sua Galeria de Fotos!';
+  },
 };
