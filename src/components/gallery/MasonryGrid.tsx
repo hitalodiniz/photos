@@ -115,11 +115,11 @@ const MasonryGrid = ({
                   >
                     {({ ref }) => (
                       <div
-                        className={`relative group shadow-sm hover:shadow-xl transition-all duration-500 rounded-2xl overflow-hidden bg-slate-100 ${
+                        className={`relative group shadow-sm hover:shadow-xl transition-all duration-500 rounded-2xl overflow-hidden break-inside-avoid ${
                           showOnlyFavorites
-                            ? 'aspect-square'
+                            ? 'aspect-square bg-slate-100' // Background só aqui se necessário
                             : photo.height > photo.width
-                              ? 'md:row-span-2' // Fotos verticais ocupam 2 "espaços" para manter o Masonry
+                              ? 'md:row-span-2'
                               : 'row-span-1'
                         }`}
                       >
@@ -237,20 +237,21 @@ const SafeImage = memo(
 
     return (
       <div
-        className="relative w-full overflow-hidden bg-slate-100/50 flex items-center justify-center"
+        className="relative w-full h-full overflow-hidden flex items-center justify-center"
         style={{
+          // Garante que o container tenha a proporção calculada
           aspectRatio: showOnlyFavorites ? '1/1' : `${width}/${height}`,
           animation: isAlreadyLoaded ? 'none' : 'fadeInUp 1s ease-out forwards',
         }}
       >
         {status === 'loading' && (
-          <div className="absolute inset-0 z-10 flex items-center justify-center bg-slate-100/10 backdrop-blur-[2px]">
+          <div className="absolute inset-0 z-10 flex items-center justify-center bg-white/5 backdrop-blur-[2px]">
             <LoadingSpinner size="sm" />
           </div>
         )}
 
         {status === 'error' ? (
-          <div className="flex flex-col items-center justify-center w-full h-full text-slate-400 min-h-[200px]">
+          <div className="flex flex-col items-center justify-center w-full h-full text-slate-400 min-h-[200px] bg-slate-100">
             <Camera size={24} className="opacity-30" />
           </div>
         ) : (
@@ -260,7 +261,11 @@ const SafeImage = memo(
             fill
             priority={priority}
             sizes="(max-width: 768px) 100vw, (max-width: 1200px) 33vw, 25vw"
-            className={`${className} object-cover w-full h-full transition-opacity duration-700 ${
+            // O segredo está aqui:
+            // 1. scale-[1.01] dá o "zoom" necessário para cobrir gaps de sub-pixel
+            // 2. object-cover garante que a imagem preencha a área sem distorcer
+            // 3. min-w-full e min-h-full reforçam o preenchimento absoluto
+            className={`${className} object-cover w-full h-full min-w-full min-h-full scale-[1.01] block transition-opacity duration-700 ${
               status === 'loaded' ? 'opacity-100' : 'opacity-0'
             }`}
             onLoad={handleLoad}
