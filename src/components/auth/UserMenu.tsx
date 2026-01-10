@@ -165,8 +165,10 @@ export default function UserMenu({
       </div>
 
       {isLoggingOut && (
-        <div className="fixed bottom-8 left-1/2 -translate-x-1/2 z-[110] bg-[#1F1F1F] text-[#FDF8E7] px-8 py-3.5 rounded-full text-xs font-bold shadow-2xl animate-in slide-in-from-bottom-4 border border-gold/30 tracking-widest uppercase">
-          Encerrando sessão com segurança
+        <div className="fixed inset-0 z-[105] bg-black/60 backdrop-blur-sm animate-in fade-in duration-500">
+          <div className="fixed top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 z-[110] bg-[#1F1F1F] text-[#FDF8E7] px-8 py-3.5 rounded-full text-xs font-bold shadow-2xl animate-in zoom-in duration-300 border border-gold/30 tracking-widest uppercase">
+            Encerrando sessão com segurança
+          </div>
         </div>
       )}
     </div>
