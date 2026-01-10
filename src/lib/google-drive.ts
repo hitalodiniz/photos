@@ -41,7 +41,10 @@ export async function listPhotosFromDriveFolder(
 
       const res = await fetch(url, {
         headers: { Authorization: `Bearer ${accessToken}` },
-        cache: 'no-store',
+        next: {
+          revalidate: 300, // Mantém a lista de fotos em cache por 5 minutos
+          tags: [`drive-photos-${driveFolderId}`], // Tag opcional para limpar o cache manualmente depois
+        },
       });
 
       if (!res.ok) throw new Error(`Erro API Drive: ${res.status}`);

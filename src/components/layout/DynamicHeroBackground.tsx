@@ -18,27 +18,21 @@ const heroImages = [
 ];
 
 export default function DynamicHeroBackground() {
-  // Inicializamos com um valor fixo ou sorteado imediatamente para evitar o delay do useEffect
   const [bgImage, setBgImage] = useState<string | null>(null);
   const [isLoaded, setIsLoaded] = useState(false);
 
   useEffect(() => {
-    // 1. O sorteio acontece apenas no Cliente para evitar erro de hidratação
+    // Sorteio simples direto no mount
     const randomIndex = Math.floor(Math.random() * heroImages.length);
-
-    // 2. Usamos requestAnimationFrame para "quebrar" a sincronia.
-    // Isso avisa ao React: "Termine o primeiro render e, no próximo frame, troque a imagem".
-    requestAnimationFrame(() => {
-      setBgImage(heroImages[randomIndex]);
-    });
-  }, []); // Adicione heroImages como dependência se ele for externo
+    setBgImage(heroImages[randomIndex]);
+  }, []);
 
   return (
     <div className="fixed inset-0 z-0 bg-black">
-      {/* Overlay de gradiente fixo (aparece instantaneamente) */}
+      {/* Overlay de gradiente */}
       <div className="absolute inset-0 z-10 bg-gradient-to-b from-black/90 via-black/40 to-black/95" />
 
-      {/* Usamos uma div de fundo com placeholder de cor enquanto a imagem carrega */}
+      {/* Background de fallback sólido */}
       <div className="absolute inset-0 bg-[#1a1a1a]" />
 
       {bgImage && (
@@ -46,16 +40,16 @@ export default function DynamicHeroBackground() {
           src={bgImage}
           alt="Background Editorial"
           fill
-          priority // Prioridade máxima no motor de renderização
+          priority
           quality={85}
-          onLoad={() => setIsLoaded(true)}
-          // Removido o blur pesado que pode atrasar a renderização em GPUs mais lentas
+          sizes="100vw"
+          // O segredo: usamos onLoadingComplete para garantir a captura do estado
+          onLoadingComplete={() => setIsLoaded(true)}
           className={`
             object-cover object-[50%_30%] 
-            transition-all duration-700 ease-out
-            ${isLoaded ? 'opacity-100 scale-100' : 'opacity-0'}
+            transition-opacity duration-1000 ease-in-out
+            ${isLoaded ? 'opacity-100' : 'opacity-0'}
           `}
-          sizes="100vw"
         />
       )}
     </div>

@@ -68,11 +68,14 @@ export default function LandingPageContent() {
         />
 
         <main className="flex-grow flex items-center py-8">
-          <div className="max-w-7xl mx-auto w-full px-6 grid grid-cols-1 lg:grid-cols-12 gap-10 lg:gap-16 items-start">
+          <div className="max-w-7xl mx-auto w-full px-6 grid grid-cols-1 lg:grid-cols-12 gap-6 lg:gap-16 items-start">
             {/* LADO ESQUERDO (FEATURES) */}
             <div className="lg:col-span-7 flex flex-col order-2 lg:order-1 relative">
               {/* O Título agora flutua acima do grid no desktop para não empurrá-lo */}
-              <div className="lg:absolute lg:-top-4 left-6 w-full text-center lg:text-left mb-6 lg:mb-0">
+              <div
+                className="lg:absolute lg:-top-4 left-6 w-full 
+              text-center lg:text-left"
+              >
                 <span className="text-[#D4AF37] text-[10px] md:text-[14px] tracking-[0.2em] uppercase font-black">
                   Por que nos escolher?
                 </span>

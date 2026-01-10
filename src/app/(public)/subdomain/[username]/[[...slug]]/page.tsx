@@ -30,7 +30,11 @@ export default async function SubdomainGaleriaPage({
 
   const fullSlug = `${username}/${slug.join('/')}`;
   // 2. Busca os dados brutos
-  const galeriaRaw = await fetchGalleryBySlug(fullSlug);
+  // Dispara as duas promessas ao mesmo tempo
+  const galeriaPromise = fetchGalleryBySlug(fullSlug);
+
+  // Aguarda a primeira apenas para pegar o ID da pasta necessária para a segunda
+  const galeriaRaw = await galeriaPromise;
 
   // Verificação detalhada para Debug
   if (!galeriaRaw) {

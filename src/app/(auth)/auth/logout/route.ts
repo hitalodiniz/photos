@@ -35,7 +35,7 @@ export async function GET(request: Request) {
   // Isso força a expiração do cookie principal caso o setAll falhe em algum edge case
   const domain =
     process.env.NEXT_PUBLIC_COOKIE_DOMAIN || process.env.COOKIE_DOMAIN;
-  const response = NextResponse.redirect(new URL('/login', request.url));
+  const response = NextResponse.redirect(new URL('/', request.url));
 
   // Substituímos /auth/login por /login conforme sua nova estrutura
 

@@ -95,10 +95,10 @@ const MasonryGrid = ({
           <Gallery withCaption>
             <div
               key={showOnlyFavorites ? 'favorites-grid' : 'full-grid'}
-              className={`gap-4 w-full transition-all duration-700 ${
+              className={`w-full transition-all duration-700 ${
                 showOnlyFavorites
-                  ? 'grid grid-cols-1 md:grid-cols-3 lg:grid-cols-4'
-                  : 'flex flex-wrap' // <--- Mudança para Flexbox
+                  ? 'grid grid-cols-1 md:grid-cols-3 lg:grid-cols-4 gap-4'
+                  : 'grid grid-cols-1 md:grid-cols-3 lg:grid-cols-4 gap-4 grid-flow-row-dense'
               }`}
             >
               {limitedPhotos.map((photo, index) => {
@@ -113,12 +113,14 @@ const MasonryGrid = ({
                     height={photo.height}
                     caption={`${galleryTitle} - Foto ${index + 1}`}
                   >
-                    {({ ref, open }) => (
+                    {({ ref }) => (
                       <div
                         className={`relative group shadow-sm hover:shadow-xl transition-all duration-500 rounded-2xl overflow-hidden bg-slate-100 ${
                           showOnlyFavorites
-                            ? 'aspect-square mb-0'
-                            : 'mb-4 w-[calc(50%-1rem)] md:w-[calc(33.333%-1rem)] lg:w-[calc(25%-1rem)]' // Define a largura por linha
+                            ? 'aspect-square'
+                            : photo.height > photo.width
+                              ? 'md:row-span-2' // Fotos verticais ocupam 2 "espaços" para manter o Masonry
+                              : 'row-span-1'
                         }`}
                       >
                         <a
@@ -137,7 +139,7 @@ const MasonryGrid = ({
                             width={photo.width}
                             height={photo.height}
                             priority={index < 4}
-                            showOnlyFavorites={showOnlyFavorites} // CORREÇÃO: Passando a prop
+                            showOnlyFavorites={showOnlyFavorites}
                             className="relative z-10"
                           />
                         </a>
@@ -235,7 +237,7 @@ const SafeImage = memo(
 
     return (
       <div
-        className="relative w-full h-full overflow-hidden bg-slate-100/50 flex items-center justify-center"
+        className="relative w-full overflow-hidden bg-slate-100/50 flex items-center justify-center"
         style={{
           aspectRatio: showOnlyFavorites ? '1/1' : `${width}/${height}`,
           animation: isAlreadyLoaded ? 'none' : 'fadeInUp 1s ease-out forwards',
@@ -248,18 +250,16 @@ const SafeImage = memo(
         )}
 
         {status === 'error' ? (
-          <div className="flex flex-col items-center justify-center w-full h-full text-slate-400">
+          <div className="flex flex-col items-center justify-center w-full h-full text-slate-400 min-h-[200px]">
             <Camera size={24} className="opacity-30" />
           </div>
         ) : (
           <Image
             src={src}
             alt={alt}
-            fill={showOnlyFavorites} // Se for favorita, preenche o container
-            width={!showOnlyFavorites ? width : undefined} // Se não for favorita, usa largura original
-            height={!showOnlyFavorites ? height : undefined}
+            fill
             priority={priority}
-            sizes="(max-width: 768px) 50vw, (max-width: 1200px) 33vw, 25vw"
+            sizes="(max-width: 768px) 100vw, (max-width: 1200px) 33vw, 25vw"
             className={`${className} object-cover w-full h-full transition-opacity duration-700 ${
               status === 'loaded' ? 'opacity-100' : 'opacity-0'
             }`}

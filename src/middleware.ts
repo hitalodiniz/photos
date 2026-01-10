@@ -26,7 +26,6 @@ export async function middleware(req: NextRequest) {
 
   // ---------------------------------------------------------
   // 2. LÓGICA DE REWRITE (Subdomínio -> Pasta Interna)
-  // OTIMIZADO: Não consulta o banco aqui. Apenas roteia.
   // ---------------------------------------------------------
   if (isSubdomainRequest) {
     const subdomain = cleanHost.replace(`.${cleanMainDomain}`, '');
@@ -39,16 +38,12 @@ export async function middleware(req: NextRequest) {
         pathname.startsWith('/photo');
 
       if (isHomePage || isGalleryPath) {
-        // Redirecionamos para as rotas internas.
-        // O Next.js vai procurar o perfil e a galeria dentro das páginas [username].
         const targetPath = isHomePage
           ? `/${subdomain}`
           : `/subdomain/${subdomain}${pathname}`;
 
         const rewriteUrl = new URL(`${targetPath}${url.search}`, req.url);
         const response = NextResponse.rewrite(rewriteUrl);
-
-        // Adiciona headers para facilitar o debug se necessário
         response.headers.set('x-subdomain-variant', 'true');
         return response;
       }
@@ -56,10 +51,12 @@ export async function middleware(req: NextRequest) {
   }
 
   // ---------------------------------------------------------
-  // 3. PROTEÇÃO DE ROTAS DASHBOARD/ONBOARDING
+  // 3. PROTEÇÃO DE ROTAS DASHBOARD/ONBOARDING + LÓGICA DE SESSION COOKIE
   // ---------------------------------------------------------
   if (pathname.startsWith('/dashboard') || pathname.startsWith('/onboarding')) {
     const res = NextResponse.next();
+    const isLocal = process.env.NODE_ENV === 'development'; // Verificação de ambiente
+
     const supabase = createServerClient(
       process.env.NEXT_PUBLIC_SUPABASE_URL!,
       process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!,
@@ -67,12 +64,19 @@ export async function middleware(req: NextRequest) {
         cookies: {
           getAll: () => req.cookies.getAll(),
           setAll: (cookiesToSet) => {
-            cookiesToSet.forEach(({ name, value }) =>
-              req.cookies.set(name, value),
-            );
-            cookiesToSet.forEach(({ name, value, options }) =>
-              res.cookies.set(name, value, options),
-            );
+            cookiesToSet.forEach(({ name, value, options }) => {
+              // Ajuste para Produção: Remover expiração para ser Session Cookie
+              const finalOptions = { ...options };
+              if (!isLocal) {
+                delete finalOptions.maxAge;
+                delete (finalOptions as any).expires;
+              }
+
+              // Atualiza na requisição (para o Supabase ler agora)
+              req.cookies.set(name, value);
+              // Atualiza na resposta (para o navegador salvar)
+              res.cookies.set(name, value, finalOptions);
+            });
           },
         },
       },
@@ -81,6 +85,7 @@ export async function middleware(req: NextRequest) {
     const {
       data: { user },
     } = await supabase.auth.getUser();
+
     if (!user) {
       return NextResponse.redirect(new URL('/', req.url));
     }

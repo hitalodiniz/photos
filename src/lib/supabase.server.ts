@@ -12,6 +12,8 @@ import { cookies } from 'next/headers';
  */
 export async function createSupabaseServerClient() {
   const cookieStore = await cookies();
+  const isLocal = process.env.NODE_ENV === 'development';
+
   return createServerClient(
     process.env.NEXT_PUBLIC_SUPABASE_URL!,
     process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!,
@@ -21,8 +23,16 @@ export async function createSupabaseServerClient() {
           return cookieStore.get(name)?.value;
         },
         set(name: string, value: string, options: CookieOptions) {
-          // Só funciona em Server Actions / Route Handlers
-          cookieStore.set(name, value, options);
+          const finalOptions = { ...options };
+
+          // Se NÃO for localhost, removemos o tempo de expiração
+          // para que o cookie seja deletado ao fechar o navegador.
+          if (!isLocal) {
+            delete finalOptions.maxAge;
+            delete (finalOptions as any).expires;
+          }
+
+          cookieStore.set(name, value, finalOptions);
         },
         remove(name: string, options: CookieOptions) {
           cookieStore.set(name, '', { ...options, maxAge: 0 });

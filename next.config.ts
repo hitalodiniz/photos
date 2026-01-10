@@ -2,7 +2,14 @@ import type { NextConfig } from 'next';
 
 const nextConfig: NextConfig = {
   images: {
+    deviceSizes: [640, 1080, 1920], // Menos tamanhos = menos processamento
+    imageSizes: [16, 32, 48, 64, 96, 128, 256, 384],
+    qualities: [25, 50, 75, 85, 100],
     localPatterns: [
+      {
+        pathname: '/**', // Permite todas as imagens locais (incluindo /public)
+        search: '',
+      },
       {
         pathname: '/api/proxy-image',
         search: '',
@@ -14,7 +21,7 @@ const nextConfig: NextConfig = {
         hostname: 'drive.google.com',
       },
       {
-        protocol: 'http',
+        protocol: 'https',
         hostname: 'googleusercontent.com',
       },
       {
@@ -39,7 +46,7 @@ const nextConfig: NextConfig = {
         'hitalodiniz.lvh.me',
         'localhost:3000',
         'suagaleria.com.br',
-        'www.suagaleria.com.br',
+        '*.suagaleria.com.br',
       ],
     },
   },
