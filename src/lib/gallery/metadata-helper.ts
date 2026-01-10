@@ -1,7 +1,7 @@
 // src/lib/gallery/metadata-helper.ts
 import { Metadata } from 'next';
 import { fetchGalleryBySlug } from '@/core/logic/galeria-logic';
-import { getImageUrl } from '@/core/utils/url-helper';
+import { getImageUrl, getProxyUrl } from '@/core/utils/url-helper';
 
 export async function getGalleryMetadata(fullSlug: string): Promise<Metadata> {
   const galeriaRaw = await fetchGalleryBySlug(fullSlug);
@@ -104,7 +104,7 @@ export async function getPhotoMetadata(
 
   // 🎯 A Mágica: Substituímos a capa pela foto específica em alta definição (s1200)
   // O WhatsApp prefere HTTPS e imagens otimizadas
-  const photoUrl = `https://lh3.googleusercontent.com/d/${googleId}=s1200`;
+  const photoUrl = `${process.env.NEXT_PUBLIC_BASE_URL}/${getProxyUrl(googleId, '1600')}`;
 
   return {
     title,

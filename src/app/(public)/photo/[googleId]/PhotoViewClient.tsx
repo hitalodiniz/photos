@@ -9,7 +9,6 @@ import {
   getProxyUrl,
 } from '@/core/utils/url-helper';
 import { Galeria } from '@/core/types/galeria';
-import { handleDownloadPhoto } from '@/core/utils/foto-helpers';
 
 export default function PhotoViewClient({
   googleId,
