@@ -8,6 +8,7 @@ import { InfoBarDesktop } from './InfoBarDesktop';
 import { InfoBarMobile } from './InfoBarMobile';
 import MasonryGrid from './MasonryGrid';
 import { ConfirmationModal } from '../ui';
+import { getProxyUrl } from '@/core/utils/url-helper';
 
 export default function PhotoGrid({ photos, galeria }: any) {
   // --- ESTADOS DE CONTROLE ---
@@ -127,7 +128,7 @@ export default function PhotoGrid({ photos, galeria }: any) {
           currentBatch.map(async (photo, indexInBatch) => {
             try {
               // CORREÇÃO 1: URL com Proxy para evitar CORS
-              const res = await fetch(`/api/proxy-image?id=${photo.id}`);
+              const res = await fetch(getProxyUrl(photo.id, '0'));
               if (!res.ok) throw new Error(`Erro ${res.status}`);
 
               // CORREÇÃO 2: Baixar como BLOB de imagem (NÃO ZIP AQUI)
@@ -212,7 +213,7 @@ export default function PhotoGrid({ photos, galeria }: any) {
         onMouseLeave={() => setIsHovered(false)}
         className="sticky top-4 z-[100] w-full flex justify-center pointer-events-none"
       >
-        <div className="pointer-events-auto">
+        <div className="pointer-events-auto mb-2">
           <InfoBarDesktop
             galeria={galeria}
             photos={photos}

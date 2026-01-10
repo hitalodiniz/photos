@@ -72,21 +72,25 @@ export async function copyToClipboard(text: string) {
  * @param suffix Tamanho da imagem (ex: w800, w1000, s1600)
  * @param quality Nível de compressão (1-100)
  */
+export const getProxyUrl = (id: string | number, sizeParam: string = '600') => {
+  // Remova o 'w' fixo daqui se você for passar 'w400' ou 's0' no argumento
+  return `/api/proxy-image?id=${id}&w=${sizeParam}`;
+};
+
+// 2. Para miniaturas do grid (usando o 'w' que discutimos ser melhor)
 export const getImageUrl = (
   photoId: string | number,
-  suffix: string = 'w1000',
+  width: string = '400', // Padrão 400 para grid
 ) => {
-  if (!photoId) return '';
-  return `https://lh3.googleusercontent.com/d/${photoId}=${suffix}`;
+  // Garante que se o usuário passar apenas "400", vire "w400"
+
+  const cleanWidth = width.replace(/[ws]/gi, '');
+
+  return getProxyUrl(photoId, cleanWidth);
 };
 
-// Retorna a URL da imagem em resolução máxima (Original)
+// 3. Resolução Máxima (Usando w1600 em vez de s0 para ser mais rápido via proxy)
 export const getHighResImageUrl = (photoId: string | number) => {
-  if (!photoId) return '';
-  // "s0" indica o tamanho original sem compressão
-  return `https://lh3.googleusercontent.com/d/${photoId}=s0`;
-};
-
-export const getProxyUrl = (id: string, width: string = '600') => {
-  return `/api/proxy-image?id=${id}&w=${width}`;
+  // s=0 pega o original. Adicionamos &download=true para o backend saber o que fazer.
+  return `/api/proxy-image?id=${photoId}&s=0&download=true`;
 };

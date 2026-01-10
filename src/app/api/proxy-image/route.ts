@@ -1,50 +1,63 @@
 // src/app/api/proxy-image/route.ts
-import { getImageUrl } from '@/core/utils/url-helper';
 import { NextResponse } from 'next/server';
 
 export async function GET(request: Request) {
   const { searchParams } = new URL(request.url);
   const photoId = searchParams.get('id');
-  const width = searchParams.get('w') || '600';
+  const width = searchParams.get('w');
+  const size = searchParams.get('s');
+  const isDownload = searchParams.get('download') === 'true';
 
   if (!photoId) {
     return new NextResponse('ID da foto é obrigatório', { status: 400 });
   }
 
   try {
-    const googleUrl = getImageUrl(photoId, `w${width}`);
+    // ENDPOINT MAIS ESTÁVEL PARA ARQUIVOS DO DRIVE
+    // sz=s4000 tenta forçar a maior resolução disponível (até 4k)
+    const sz = size === '0' ? 's4000' : `w${width || '600'}`;
+    const googleUrl = `https://lh3.googleusercontent.com/u/0/d/${photoId}=${sz}`;
 
     const response = await fetch(googleUrl, {
-      // Identificando a requisição para evitar bloqueios de "bot"
       headers: {
         'User-Agent':
-          'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/91.0.4472.124 Safari/537.36',
+          'Mozilla/5.0 (Windows NT 10.0; Win64; x64) Chrome/120.0.0.0 Safari/537.36',
       },
       next: { revalidate: 3600 },
     });
 
+    // Se falhar no lh3, tenta o fallback oficial de thumbnail
     if (!response.ok) {
-      // Se o Google der 429 ou 403, logamos para monitorar
-      console.error(
-        `Google Drive API respondeu com: ${response.status} para o ID: ${photoId}`,
-      );
-      return new NextResponse('Erro na origem da imagem', {
-        status: response.status,
-      });
+      const fallbackUrl = `https://drive.google.com/thumbnail?id=${photoId}&sz=${size === '0' ? 's4000' : 'w1000'}`;
+      const fallbackResponse = await fetch(fallbackUrl);
+
+      if (!fallbackResponse.ok) {
+        console.error(`Falha total no Google para o ID: ${photoId}`);
+        return new NextResponse('Erro na origem da imagem', {
+          status: fallbackResponse.status,
+        });
+      }
+      return processResponse(fallbackResponse, isDownload, photoId);
     }
-    return new NextResponse(response.body, {
-      headers: {
-        'Content-Type': response.headers.get('content-type') || 'image/jpeg',
-        'Cache-Control': 'public, max-age=31536000, immutable',
-        'Access-Control-Allow-Origin': '*',
-        'CDN-Cache-Control': 'public, s-maxage=31536000',
-        'Vercel-CDN-Cache-Control': 'public, s-maxage=31536000',
-      },
-    });
+
+    return processResponse(response, isDownload, photoId);
   } catch (error) {
-    console.error('Erro no Proxy de Imagem:', error);
-    return new NextResponse('Erro interno ao processar imagem', {
-      status: 500,
-    });
+    return new NextResponse('Erro interno no Proxy', { status: 500 });
   }
+}
+
+// Função auxiliar para evitar repetição de código
+async function processResponse(res: Response, isDownload: boolean, id: string) {
+  const headers = new Headers({
+    'Content-Type': res.headers.get('content-type') || 'image/jpeg',
+    'Cache-Control': 'public, max-age=31536000, immutable',
+    'Access-Control-Allow-Origin': '*',
+  });
+
+  if (isDownload) {
+    headers.set('Content-Disposition', `attachment; filename="foto_${id}.jpg"`);
+    headers.set('Content-Type', 'image/jpeg'); // Mantendo jpeg para compatibilidade
+  }
+
+  return new NextResponse(res.body, { headers });
 }

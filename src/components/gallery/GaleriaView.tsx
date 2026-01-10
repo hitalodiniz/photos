@@ -5,6 +5,7 @@ import type { Galeria } from '@/core/types/galeria';
 import { Camera } from 'lucide-react';
 import LoadingScreen from '../ui/LoadingScreen';
 import GaleriaFooter from './GaleriaFooter';
+import { getImageUrl } from '@/core/utils/url-helper';
 
 interface GaleriaViewProps {
   galeria: Galeria;
@@ -41,7 +42,7 @@ export default function GaleriaView({ galeria, photos }: GaleriaViewProps) {
   const getCoverUrl = (fileId: string) => {
     if (!fileId) return '/hero-bg.jpg';
     // Correção da interpolação com backticks para o ID real
-    return `https://lh3.googleusercontent.com/d/${fileId}=w1000`;
+    return getImageUrl(fileId, 'w1600');
   };
 
   return (

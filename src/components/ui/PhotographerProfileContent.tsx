@@ -100,7 +100,7 @@ export default function PhotographerProfileContent({
             </div>
 
             {/* CARD CHAMPANHE */}
-            <section className="relative z-10 w-full bg-[#FFF9F0] rounded-[2.5rem] p-8 pt-20 shadow-2xl border border-white/20 text-center">
+            <section className="relative z-10 w-full bg-[#FFF9F0] rounded-[1rem] p-8 pt-20 shadow-2xl border border-white/20 text-center">
               <div className="space-y-5">
                 <p className="text-slate-900 text-lg md:text-xl italic font-serif leading-relaxed px-2">
                   {miniBio

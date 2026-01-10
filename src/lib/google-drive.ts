@@ -23,58 +23,57 @@ export async function listPhotosFromDriveFolder(
     `'${driveFolderId}' in parents and mimeType contains 'image/' and trashed = false`,
   );
 
-  // Adicionamos 'capabilities' e 'permissions' para diagnóstico se precisar
+  // 1. Incluímos o campo 'name' explicitamente e pedimos ordenação por nome na API
   const fields = encodeURIComponent(
-    'files(id, name, size, thumbnailLink, webViewLink, imageMediaMetadata(width,height), capabilities)',
+    'nextPageToken, files(id, name, size, thumbnailLink, webViewLink, imageMediaMetadata(width,height))',
   );
 
-  // 🎯 ADICIONE A API KEY AQUI (Busque do seu .env)
   const apiKey = process.env.NEXT_PUBLIC_GOOGLE_API_KEY;
-  const url = `https://www.googleapis.com/drive/v3/files?q=${query}&fields=${fields}${apiKey ? `&key=${apiKey}` : ''}`;
+  let allFiles: any[] = [];
+  let pageToken: string | null = null;
 
-  const res = await fetch(url, {
-    headers: {
-      Authorization: `Bearer ${accessToken}`,
-    },
-    cache: 'no-store',
-  });
+  try {
+    do {
+      // 2. Adicionamos &orderBy=name para que o Google já mande o grosso ordenado
+      const url = `https://www.googleapis.com/drive/v3/files?q=${query}&fields=${fields}&pageSize=1000&orderBy=name${
+        pageToken ? `&pageToken=${pageToken}` : ''
+      }${apiKey ? `&key=${apiKey}` : ''}`;
 
-  if (!res.ok) {
-    const errorBody = await res.json();
+      const res = await fetch(url, {
+        headers: { Authorization: `Bearer ${accessToken}` },
+        cache: 'no-store',
+      });
 
-    const message =
-      errorBody.error?.message || 'Erro desconhecido ao acessar o Drive.';
+      if (!res.ok) throw new Error(`Erro API Drive: ${res.status}`);
 
-    // Tratamento de erros comuns para o usuário
-    if (res.status === 401)
-      throw new Error('Sua sessão expirou. Por favor, faça login novamente.');
-    // Se o erro for 403, a pasta está inacessível
-    if (res.status === 403) {
-      throw new Error('PERMISSION_DENIED');
-    }
-    if (res.status === 404)
-      throw new Error(
-        'A pasta selecionada não foi encontrada no seu Google Drive.',
-      );
+      const data = await res.json();
+      allFiles = [...allFiles, ...(data.files || [])];
+      pageToken = data.nextPageToken || null;
+    } while (pageToken);
 
-    throw new Error(`Google Drive API: ${message}`);
+    // 3. ORDENAÇÃO MANUAL ROBUSTA (Natural Sort)
+    // Isso corrige casos onde o fotógrafo misturou nomes como "foto-1.jpg" e "foto-10.jpg"
+    // ou usou câmeras diferentes.
+    const sortedFiles = allFiles.sort((a, b) =>
+      a.name.localeCompare(b.name, undefined, {
+        numeric: true, // Garante que 2 venha antes de 10
+        sensitivity: 'base', // Ignora diferenças de acento/caixa alta
+      }),
+    );
+
+    return sortedFiles.map((file) => ({
+      id: file.id,
+      name: file.name,
+      size: file.size || '0',
+      thumbnailUrl: file.thumbnailLink || null,
+      webViewUrl: file.webViewLink,
+      width: file.imageMediaMetadata?.width || 1600,
+      height: file.imageMediaMetadata?.height || 1200,
+    }));
+  } catch (error: any) {
+    console.error('Erro ao listar fotos do Drive:', error);
+    throw error;
   }
-
-  const data = await res.json();
-
-  const files = (data.files || []) as any[];
-
-  return files.map((file) => ({
-    id: file.id,
-    name: file.name,
-    size: file.size || '0',
-    //Se o thumbnailLink vier nulo, a sua galeria trava.
-    // Vamos garantir que ele exista ou passar null para o front tratar.
-    thumbnailUrl: file.thumbnailLink || null,
-    webViewUrl: file.webViewLink,
-    width: file.imageMediaMetadata?.width,
-    height: file.imageMediaMetadata?.height,
-  }));
 }
 
 /**

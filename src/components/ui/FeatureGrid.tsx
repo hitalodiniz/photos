@@ -41,10 +41,11 @@ export default function FeatureGrid({
                 transition={{ delay: index * 0.05 }}
                 whileHover={{ backgroundColor: '#32363b', scale: 1.01 }}
                 /* Ajuste dinâmico de layout: flex-row (left) ou flex-col (top) */
-                className={`group flex gap-2 md:gap-4 p-3 md:p-4 bg-[#2A2D31] border border-white/5 shadow-2xl transition-all duration-300 ${
+
+                className={`group flex  bg-slate-800/80 gap-2 md:gap-4 p-3 backdrop-blur-md border border-white/10 text-white shadow-2xl transition-all duration-300 ${
                   isTop
-                    ? 'flex-col items-center text-center'
-                    : 'flex-row items-center text-left'
+                    ? 'flex-col items-center text-center md:p-4'
+                    : 'flex-row items-center text-left  md:p-6'
                 } ${
                   isFullWidth ? 'lg:col-span-full' : ''
                 } rounded-[0.5rem] md:rounded-[1rem]`}

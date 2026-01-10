@@ -14,12 +14,15 @@ import {
   getImageUrl,
   getHighResImageUrl,
   getWhatsAppShareLink,
+  getProxyUrl,
 } from '@/core/utils/url-helper';
 import { GALLERY_MESSAGES } from '@/constants/messages';
 
 import type { Galeria } from '@/core/types/galeria';
 import LoadingSpinner from '../ui/LoadingSpinner';
 import { getCleanSlug, executeShare } from '@/core/utils/share-helper';
+import { handleDownloadPhoto } from '@/core/utils/foto-helpers';
+import { div } from 'framer-motion/client';
 
 interface Photo {
   id: string | number;
@@ -156,10 +159,10 @@ export default function Lightbox({
 
   // Pre-load e Scroll lock
   useEffect(() => {
-    setIsImageLoading(true);
+    setIsImageLoading(true); // FUNDAMENTAL: Resetar o estado ao mudar a foto
     if (activeIndex + 1 < photos.length) {
       const nextImg = new Image();
-      nextImg.src = getImageUrl(photos[activeIndex + 1].id);
+      nextImg.src = getImageUrl(photos[activeIndex + 1].id, 'w1600'); // Use a mesma resolução do lightbox
     }
   }, [activeIndex, photos]);
 
@@ -193,30 +196,9 @@ export default function Lightbox({
     window.open(whatsappUrl, '_blank');
   };
 
-  const handleDownload = async () => {
-    try {
-      setIsDownloading(true);
-      const highResUrl = getHighResImageUrl(photo.id);
-      const response = await fetch(highResUrl);
-      const blob = await response.blob();
-      const url = window.URL.createObjectURL(blob);
-      const link = document.createElement('a');
-      link.href = url;
-      link.download = `${galleryTitle.replace(/\s+/g, '_')}_foto_${activeIndex + 1}.jpg`;
-      document.body.appendChild(link);
-      link.click();
-      document.body.removeChild(link);
-      window.URL.revokeObjectURL(url);
-    } catch (e) {
-      window.open(getHighResImageUrl(photo.id), '_blank');
-    } finally {
-      setIsDownloading(false);
-    }
-  };
-
   return (
     <div
-      className="fixed inset-0 z-[999] bg-black flex flex-col items-center overflow-x-hidden overflow-y-auto md:overflow-hidden select-none scrollbar-hide"
+      className="fixed inset-0 z-[999] bg-black flex flex-col items-center overflow-x-hidden overflow-hidden md:overflow-hidden select-none scrollbar-hide"
       onTouchStart={onTouchStart}
       onTouchMove={onTouchMove}
       onTouchEnd={onTouchEnd}
@@ -309,7 +291,10 @@ export default function Lightbox({
                 </div>
               </button>
 
-              <div className="relative flex items-center border-r border-white/10 ml-2">
+              <div
+                className="relative flex items-center border-r border-white/10 ml-2"
+                key={`fav-container-${currentPhotoId}`}
+              >
                 <button
                   onClick={toggleFavorite}
                   className="flex flex-col md:flex-row items-center gap-1 md:gap-0 transition-all duration-500 group border-r border-white/10 pr-3"
@@ -326,8 +311,8 @@ export default function Lightbox({
                       fill={isFavorited ? 'white' : 'none'}
                       className={`w-[16px] h-[16px] md:w-[20px] md:h-[20px] transition-all duration-300 ${
                         isFavorited
-                          ? 'text-white animate-pulse'
-                          : 'text-white group-hover:text-white group-hover:fill-white'
+                          ? 'text-white animate-pulse' // O animate-pulse agora será resetado pela key
+                          : 'text-white'
                       }`}
                     />
                   </div>
@@ -350,7 +335,13 @@ export default function Lightbox({
               </div>
               <div className="relative flex items-center border-r border-white/10 ml-2">
                 <button
-                  onClick={handleDownload}
+                  onClick={() =>
+                    handleDownloadPhoto(
+                      galeria,
+                      photos[activeIndex].id,
+                      activeIndex,
+                    )
+                  }
                   className="flex flex-col md:flex-row items-center gap-1 md:gap-0 transition-all duration-500 group border-r border-white/10 pr-3"
                   title="Download em alta resolução"
                 >
@@ -437,19 +428,25 @@ export default function Lightbox({
 
           <div className="flex flex-col items-center justify-center w-full h-full max-h-screen">
             <div className="relative flex flex-col items-center">
-              {/* SPINNER CENTRALIZADO: Ocupa o centro absoluto do container */}
+              {/* SPINNER CENTRALIZADO */}
               {isImageLoading && (
-                <div className="absolute inset-0 flex items-center justify-center z-[50]">
+                <div className="absolute inset-0 flex items-center justify-center z-[50] bg-black/10 backdrop-blur-[2px]">
                   <LoadingSpinner size="md" />
                 </div>
-              )}{' '}
+              )}
+
               <img
                 key={photos[activeIndex].id}
-                src={getImageUrl(photos[activeIndex].id, 'w600')}
+                // Aumentado para w1600 para nitidez no Lightbox
+                src={getProxyUrl(photos[activeIndex].id, '1600')}
                 onLoad={() => setIsImageLoading(false)}
-                /* Transição de 1s, brilho e sombra projetada */
-                className={`max-w-full max-h-[75vh] md:max-h-screen object-contain transition-all duration-1000 ease-out shadow-[0_0_80px_rgba(0,0,0,0.9)] 
-        ${isImageLoading ? 'opacity-0 scale-95 blur-sm' : 'opacity-100 scale-100 blur-0 brightness-110'}`}
+                // Removido o 'first-letter:' e corrigido a lógica de transição
+                className={`max-w-full max-h-[75vh] md:max-h-screen object-contain transition-all duration-1000 ease-out shadow-[0_0_80px_rgba(0,0,0,0.9)] ${
+                  isImageLoading
+                    ? 'opacity-0 scale-95 blur-sm'
+                    : 'opacity-100 scale-100 blur-0 brightness-110'
+                }`}
+                alt="Visualização da foto"
               />
             </div>
           </div>

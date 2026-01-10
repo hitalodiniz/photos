@@ -3,8 +3,13 @@ import React, { useEffect, useState, useRef } from 'react';
 import { Download, Camera, Loader2 } from 'lucide-react';
 import { GalleryHeader, PhotographerAvatar } from '@/components/gallery';
 import LoadingSpinner from '@/components/ui/LoadingSpinner';
-import { getImageUrl, getHighResImageUrl } from '@/core/utils/url-helper';
+import {
+  getImageUrl,
+  getHighResImageUrl,
+  getProxyUrl,
+} from '@/core/utils/url-helper';
 import { Galeria } from '@/core/types/galeria';
+import { handleDownloadPhoto } from '@/core/utils/foto-helpers';
 
 export default function PhotoViewClient({
   googleId,
@@ -73,21 +78,41 @@ export default function PhotoViewClient({
     if (img.complete) setIsImageLoading(false);
   }, [googleId]);
 
-  const handleDownload = async () => {
+  const handleSingleDownload = async () => {
+    if (isDownloading) return;
+
     try {
       setIsDownloading(true);
-      const highResUrl = getHighResImageUrl(googleId);
+
+      // 1. Gerar o nome correto (Padrão: foto_AAAAMMDD_HHMM_evento.jpg)
+      const eventName = data.slug.split('/').pop() || 'evento';
+      const agora = new Date();
+      const timestamp = `${agora.getFullYear()}${(agora.getMonth() + 1).toString().padStart(2, '0')}${agora.getDate().toString().padStart(2, '0')}_${agora.getHours().toString().padStart(2, '0')}${agora.getMinutes().toString().padStart(2, '0')}`;
+      const fileName = `foto_${timestamp}_${eventName}.jpg`;
+
+      // 2. IMPORTANTE: Usar a rota de PROXY para evitar erro de CORS
+      const highResUrl = getProxyUrl(googleId, '0');
+
       const response = await fetch(highResUrl);
+
+      if (!response.ok) throw new Error('Falha ao baixar via proxy');
+
       const blob = await response.blob();
-      const url = window.URL.createObjectURL(blob);
+
+      // 3. Usar o window.URL para criar um link temporário e forçar o nome
+      const blobUrl = window.URL.createObjectURL(blob);
       const link = document.createElement('a');
-      link.href = url;
-      link.download = `${data?.title || 'foto'}.jpg`;
+      link.href = blobUrl;
+      link.download = fileName; // O navegador SÓ aceita isso se o domínio for o mesmo (Proxy)
       document.body.appendChild(link);
       link.click();
+
+      // Limpeza
       document.body.removeChild(link);
-      window.URL.revokeObjectURL(url);
-    } catch (e) {
+      window.URL.revokeObjectURL(blobUrl);
+    } catch (error) {
+      console.error('Erro no download:', error);
+      // Fallback: Se tudo falhar, abre o link original (mas o nome será o ID)
       window.open(getHighResImageUrl(googleId), '_blank');
     } finally {
       setIsDownloading(false);
@@ -125,7 +150,7 @@ export default function PhotoViewClient({
           className="flex items-center bg-black/80 backdrop-blur-2xl p-2 px-4 rounded-2xl border border-white/20 shadow-2xl transition-all duration-500 ease-in-out"
         >
           <button
-            onClick={handleDownload}
+            onClick={handleSingleDownload}
             className="flex items-center gap-0 pr-4 hover:text-[#F3E5AB] transition-all group border-r border-white/20"
           >
             <div className="flex items-center justify-center w-9 h-9 md:w-11 md:h-11 rounded-full bg-white/10 group-hover:bg-white/20 shrink-0">
@@ -183,7 +208,7 @@ export default function PhotoViewClient({
             </div>
           )}
           <img
-            src={getImageUrl(googleId)}
+            src={getProxyUrl(googleId, '1600')}
             onLoad={() => setIsImageLoading(false)}
             onError={() => setIsImageLoading(false)}
             className={`max-w-full max-h-[75vh] md:max-h-screen object-contain transition-all duration-1000 
