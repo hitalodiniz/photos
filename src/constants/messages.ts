@@ -7,10 +7,8 @@ export const GALLERY_MESSAGES = {
     date: string,
     url: string,
   ) => {
-    const saudacao = clientName ? `Olá, *${clientName}*! ✨` : 'Olá! ✨';
-
     return [
-      saudacao,
+      'Olá! ✨',
       '',
       `As fotos do seu ensaio fotográfico *${title}* estão prontas! 📸`,
       '',
