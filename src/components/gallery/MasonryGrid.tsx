@@ -317,7 +317,7 @@ const MasonryGrid = ({
           </Gallery>
 
           {!showOnlyFavorites && (
-            <div className="w-full py-10">
+            <div className="w-full">
               {!allLoaded && (
                 <div className="flex justify-center">
                   <Loader2
@@ -326,7 +326,7 @@ const MasonryGrid = ({
                   />
                 </div>
               )}
-              <div ref={sentinelRef} className="h-10 w-full" />
+              <div ref={sentinelRef} className="h-2 w-full" />
             </div>
           )}
         </div>
@@ -369,7 +369,7 @@ const SafeImage = memo(
       >
         {status === 'loading' && (
           <div className="absolute inset-0 z-10 flex items-center justify-center bg-white/5 backdrop-blur-[2px]">
-            <LoadingSpinner size="sm" />
+            <LoadingSpinner size="xs" />
           </div>
         )}
 
