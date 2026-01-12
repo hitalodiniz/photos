@@ -14,8 +14,6 @@ export async function getGalleryMetadata(fullSlug: string): Promise<Metadata> {
 
   // 1. Montagem da Descrição Dinâmica
   const descriptionParts = [];
-  if (galeriaRaw.client_name)
-    descriptionParts.push(`Cliente: ${galeriaRaw.client_name}`);
   if (galeriaRaw.location) descriptionParts.push(galeriaRaw.location);
   if (galeriaRaw.date) {
     descriptionParts.push(
@@ -91,8 +89,6 @@ export async function getPhotoMetadata(
 
   // 2. Montagem da Descrição Dinâmica (Igual à galeria)
   const descriptionParts = [];
-  if (galeriaRaw.client_name)
-    descriptionParts.push(`Cliente: ${galeriaRaw.client_name}`);
   if (galeriaRaw.location) descriptionParts.push(galeriaRaw.location);
   if (galeriaRaw.date) {
     descriptionParts.push(
