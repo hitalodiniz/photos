@@ -91,6 +91,11 @@ const MasonryGrid = ({
     executeShare({ title: galleryTitle, text: shareText });
   };
 
+  const currentCols = isMobile ? columns.mobile : columns.desktop;
+  const btnScale =
+    currentCols <= 4 ? 1 : Math.max(0.6, 1 - (currentCols - 4) * 0.1);
+  const iconSize = Math.round(18 * btnScale);
+
   return (
     <div className="w-full h-auto">
       {/* Seletor de Densidade */}
@@ -223,7 +228,7 @@ const MasonryGrid = ({
                           />
                         </a>
 
-                        {/* Botões de Ação */}
+                        {/* Botões de Ação - Redimensionamento Dinâmico */}
                         <div className="absolute top-2 left-2 right-2 flex justify-between items-start z-30 pointer-events-none">
                           <button
                             onClick={(e) => {
@@ -231,14 +236,19 @@ const MasonryGrid = ({
                               e.stopPropagation();
                               toggleFavoriteFromGrid(photo.id);
                             }}
-                            className={`w-10 h-10 rounded-full flex items-center justify-center transition-all pointer-events-auto shadow-md ${isSelected ? 'bg-[#E67E70]' : 'bg-black/30 backdrop-blur-md border border-white/20'}`}
+                            style={{
+                              width: `${40 * btnScale}px`,
+                              height: `${40 * btnScale}px`,
+                            }} // Tamanho dinâmico
+                            className={`rounded-full flex items-center justify-center transition-all pointer-events-auto shadow-md ${isSelected ? 'bg-[#E67E70]' : 'bg-black/30 backdrop-blur-md border border-white/20'}`}
                           >
                             <Heart
-                              size={18}
+                              size={iconSize} // Ícone dinâmico
                               fill={isSelected ? 'white' : 'none'}
                               className="text-white"
                             />
                           </button>
+
                           <div className="flex gap-2">
                             <button
                               onClick={(e) => {
@@ -246,19 +256,31 @@ const MasonryGrid = ({
                                 e.stopPropagation();
                                 handleShareWhatsAppGrid(photo.id);
                               }}
-                              className="w-10 h-10 rounded-full bg-black/30 backdrop-blur-md border border-white/20 flex items-center justify-center pointer-events-auto hover:bg-[#25D366]"
+                              style={{
+                                width: `${40 * btnScale}px`,
+                                height: `${40 * btnScale}px`,
+                              }}
+                              className="rounded-full bg-black/30 backdrop-blur-md border border-white/20 flex items-center justify-center pointer-events-auto hover:bg-[#25D366]"
                             >
-                              <MessageCircle size={18} className="text-white" />
+                              <MessageCircle
+                                size={iconSize}
+                                className="text-white"
+                              />
                             </button>
+
                             <button
                               onClick={(e) => {
                                 e.stopPropagation();
                                 handleDownloadPhoto(galeria, photo.id, index);
                               }}
-                              className="w-10 h-10 rounded-full bg-black/30 backdrop-blur-md border border-white/20 flex items-center justify-center pointer-events-auto hover:bg-white group/dl"
+                              style={{
+                                width: `${40 * btnScale}px`,
+                                height: `${40 * btnScale}px`,
+                              }}
+                              className="rounded-full bg-black/30 backdrop-blur-md border border-white/20 flex items-center justify-center pointer-events-auto hover:bg-white group/dl"
                             >
                               <Download
-                                size={18}
+                                size={iconSize}
                                 className="text-white group-hover:text-black"
                               />
                             </button>
