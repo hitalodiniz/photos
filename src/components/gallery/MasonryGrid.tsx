@@ -92,9 +92,19 @@ const MasonryGrid = ({
   };
 
   const currentCols = isMobile ? columns.mobile : columns.desktop;
-  const btnScale =
-    currentCols <= 4 ? 1 : Math.max(0.6, 1 - (currentCols - 4) * 0.1);
+
+  // No mobile com 2 colunas, reduzimos para 0.85. No desktop segue a lógica de densidade.
+  const btnScale = isMobile
+    ? currentCols === 2
+      ? 0.8
+      : 1
+    : currentCols <= 4
+      ? 1
+      : Math.max(0.6, 1 - (currentCols - 4) * 0.1);
+
   const iconSize = Math.round(18 * btnScale);
+  // Padding interno dinâmico para o botão não parecer "vazio"
+  const btnPadding = isMobile && currentCols === 2 ? 'p-1' : 'p-2';
 
   return (
     <div className="w-full h-auto">
@@ -157,7 +167,7 @@ const MasonryGrid = ({
           <Gallery withCaption>
             <div
               key={showOnlyFavorites ? 'favorites-grid' : 'full-grid'}
-              className="w-full transition-all duration-700 grid gap-1 grid-flow-row-dense"
+              className="w-full transition-all duration-700 grid gap-4 md:gap-2 grid-flow-row-dense"
               style={{
                 // Mobile: Usa o estado (limitado a 2 pelo seletor)
                 gridTemplateColumns: `repeat(${columns.mobile}, minmax(0, 1fr))`,
@@ -229,7 +239,8 @@ const MasonryGrid = ({
                         </a>
 
                         {/* Botões de Ação - Redimensionamento Dinâmico */}
-                        <div className="absolute top-2 left-2 right-2 flex justify-between items-start z-30 pointer-events-none">
+                        <div className="absolute top-1.5 left-1.5 right-1.5 flex justify-between items-start z-30 pointer-events-none">
+                          {/* Botão de Favorito */}
                           <button
                             onClick={(e) => {
                               e.preventDefault();
@@ -237,19 +248,26 @@ const MasonryGrid = ({
                               toggleFavoriteFromGrid(photo.id);
                             }}
                             style={{
-                              width: `${40 * btnScale}px`,
-                              height: `${40 * btnScale}px`,
-                            }} // Tamanho dinâmico
-                            className={`rounded-full flex items-center justify-center transition-all pointer-events-auto shadow-md ${isSelected ? 'bg-[#E67E70]' : 'bg-black/30 backdrop-blur-md border border-white/20'}`}
+                              width: `${isMobile && currentCols === 2 ? 32 : 40 * btnScale}px`,
+                              height: `${isMobile && currentCols === 2 ? 32 : 40 * btnScale}px`,
+                            }}
+                            className={`rounded-full flex items-center justify-center transition-all pointer-events-auto shadow-md ${
+                              isSelected
+                                ? 'bg-[#E67E70]'
+                                : 'bg-black/30 backdrop-blur-md border border-white/10'
+                            }`}
                           >
                             <Heart
-                              size={iconSize} // Ícone dinâmico
+                              size={
+                                isMobile && currentCols === 2 ? 14 : iconSize
+                              }
                               fill={isSelected ? 'white' : 'none'}
                               className="text-white"
                             />
                           </button>
 
-                          <div className="flex gap-2">
+                          {/* Grupo de Ação (Whats e Download) */}
+                          <div className="flex gap-1.5 md:gap-2">
                             <button
                               onClick={(e) => {
                                 e.preventDefault();
@@ -257,13 +275,15 @@ const MasonryGrid = ({
                                 handleShareWhatsAppGrid(photo.id);
                               }}
                               style={{
-                                width: `${40 * btnScale}px`,
-                                height: `${40 * btnScale}px`,
+                                width: `${isMobile && currentCols === 2 ? 32 : 40 * btnScale}px`,
+                                height: `${isMobile && currentCols === 2 ? 32 : 40 * btnScale}px`,
                               }}
-                              className="rounded-full bg-black/30 backdrop-blur-md border border-white/20 flex items-center justify-center pointer-events-auto hover:bg-[#25D366]"
+                              className="rounded-full bg-black/30 backdrop-blur-md border border-white/20 flex items-center justify-center pointer-events-auto active:bg-[#25D366]"
                             >
                               <MessageCircle
-                                size={iconSize}
+                                size={
+                                  isMobile && currentCols === 2 ? 14 : iconSize
+                                }
                                 className="text-white"
                               />
                             </button>
@@ -274,14 +294,16 @@ const MasonryGrid = ({
                                 handleDownloadPhoto(galeria, photo.id, index);
                               }}
                               style={{
-                                width: `${40 * btnScale}px`,
-                                height: `${40 * btnScale}px`,
+                                width: `${isMobile && currentCols === 2 ? 32 : 40 * btnScale}px`,
+                                height: `${isMobile && currentCols === 2 ? 32 : 40 * btnScale}px`,
                               }}
-                              className="rounded-full bg-black/30 backdrop-blur-md border border-white/20 flex items-center justify-center pointer-events-auto hover:bg-white group/dl"
+                              className="rounded-full bg-black/30 backdrop-blur-md border border-white/20 flex items-center justify-center pointer-events-auto active:bg-white active:text-black"
                             >
                               <Download
-                                size={iconSize}
-                                className="text-white group-hover:text-black"
+                                size={
+                                  isMobile && currentCols === 2 ? 14 : iconSize
+                                }
+                                className="text-white active:text-black"
                               />
                             </button>
                           </div>

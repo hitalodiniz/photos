@@ -20,8 +20,6 @@ export async function getGalleryMetadata(fullSlug: string): Promise<Metadata> {
   // 2. Montagem da Descrição Dinâmica
   // Exemplo: "Cliente: João | Local: Parque Ibirapuera | Data: 10/01/2024 | Fotógrafo: Hitalo Diniz"
   const descriptionParts = [];
-  if (galeria.client_name)
-    descriptionParts.push(`Cliente: ${galeria.client_name}`);
   if (galeria.location) descriptionParts.push(`${galeria.location}`);
   if (galeria.date)
     descriptionParts.push(

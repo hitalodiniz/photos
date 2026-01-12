@@ -170,7 +170,6 @@ export default function GalleryFormContent({
                   value={clientWhatsapp}
                   name="client_whatsapp"
                   onChange={(e) => setClientWhatsapp(maskPhone(e))}
-                  required={hasContractingClient}
                   placeholder="(00) 00000-0000"
                   maxLength={15}
                   className="w-full px-4 py-2.5 bg-white border border-[#F3E5AB] rounded-xl text-sm outline-none focus:border-gold tracking-tight transition-all"
