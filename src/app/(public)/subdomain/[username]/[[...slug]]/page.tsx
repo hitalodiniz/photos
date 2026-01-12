@@ -54,7 +54,6 @@ export default async function SubdomainGaleriaPage({
   // 3. Formatação
   const galeriaData = formatGalleryData(galeriaRaw, username);
   galeriaData.slug = fullSlug;
-  const coverUrl = getImageUrl(galeriaData.cover_image_url, 'w600');
 
   // 4. Verificação de senha
   console.log('galeriaData.is_public', galeriaData.is_public);
@@ -62,6 +61,7 @@ export default async function SubdomainGaleriaPage({
     const isAuthorized = await checkGalleryAccess(galeriaData.id);
     console.log('isAuthorized', isAuthorized);
     if (!isAuthorized) {
+      const coverUrl = getImageUrl(galeriaData.cover_image_url, 'w600');
       return (
         <PasswordPrompt
           galeria={galeriaData}

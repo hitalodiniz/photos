@@ -216,7 +216,7 @@ export default function OnboardingForm({
 
     // Garante que comece com @ se houver conteúdo
     if (cleanValue && !cleanValue.startsWith('@')) {
-      cleanValue = `@${cleanValue}`;
+      cleanValue = `${cleanValue}`;
     }
 
     setInstagram(cleanValue.toLowerCase());

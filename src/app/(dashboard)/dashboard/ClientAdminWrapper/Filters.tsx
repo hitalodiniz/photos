@@ -94,7 +94,7 @@ export default function Filters({
             className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-300 z-10"
           />
           <input
-            placeholder="Buscar por título..."
+            placeholder="Buscar por título/cliente..."
             value={filterName}
             onChange={(e) => setFilterName(e.target.value)}
             className={sharedInputClass}
@@ -134,7 +134,7 @@ export default function Filters({
           >
             <option value="">Tipos</option>
             <option value="true">Contrato 🤝</option>
-            <option value="false">Registro 📸</option>
+            <option value="false">Cobertura 📸</option>
           </select>
         </div>
 

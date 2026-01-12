@@ -173,3 +173,24 @@ export async function signOutServer() {
   const supabase = await createSupabaseServerClient();
   await supabase.auth.signOut();
 }
+
+/**
+ * Atualiza a preferência de visualização da barra lateral
+ */
+export async function updateSidebarPreference(isCollapsed: boolean) {
+  const supabase = await createSupabaseServerClient();
+  const {
+    data: { user },
+  } = await supabase.auth.getUser();
+
+  if (!user) return { success: false, error: 'Sessão expirada.' };
+
+  const { error } = await supabase
+    .from('tb_profiles')
+    .update({ sidebar_collapsed: isCollapsed })
+    .eq('id', user.id);
+
+  if (error) return { success: false, error: error.message };
+
+  return { success: true };
+}

@@ -41,6 +41,16 @@ export interface GaleriaBase {
   has_contracting_client: boolean;
   client_whatsapp: string | null;
   drive_folder_name: string | null;
+  is_archived: boolean;
+  is_deleted: boolean;
+  created_at: string;
+  updated_at: string;
+  deleted_at: string | null;
+  show_cover_in_grid: boolean;
+  grid_bg_color: string;
+  columns_mobile: number;
+  columns_tablet: number;
+  columns_desktop: number;
 }
 
 // Interface utilizada na UI (GaleriaCard e GaleriaView)

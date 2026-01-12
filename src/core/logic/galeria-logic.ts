@@ -64,7 +64,17 @@ export function formatGalleryData(
     has_contracting_client: !!(raw as any).has_contracting_client,
     client_whatsapp: (raw as any).client_whatsapp || null,
 
-    // 🎯 O OBJETO QUE O CARD PRECISA:
+    is_archived: !!(raw as any).is_archived,
+    is_deleted: !!(raw as any).is_deleted,
+    deleted_at: (raw as any).deleted_at || null,
+
+    show_cover_in_grid: !!(raw as any).show_cover_in_grid, // Força booleano
+    grid_bg_color: (raw as any).grid_bg_color || '#FFF9F0',
+    columns_mobile: Number((raw as any).columns_mobile) || 2,
+    columns_tablet: Number((raw as any).columns_tablet) || 3,
+    columns_desktop: Number((raw as any).columns_desktop) || 4,
+
+    //O OBJETO QUE O CARD PRECISA:
     photographer: raw.photographer
       ? {
           id: raw.photographer.id,

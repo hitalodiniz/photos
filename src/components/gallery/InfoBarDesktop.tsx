@@ -57,28 +57,6 @@ export const InfoBarDesktop = ({
     >
       <div className="flex items-center gap-3 text-white text-[13px] font-medium italic">
         <div className="flex items-center gap-2">
-          {galeria.is_public ? (
-            <Globe
-              size={18}
-              className="text-[#F3E5AB] drop-shadow-[0_0_3px_rgba(243,229,171,0.5)] animate-pulse"
-            />
-          ) : (
-            <Lock
-              size={18}
-              className="text-[#F3E5AB] drop-shadow-[0_0_3px_rgba(243,229,171,0.5)]"
-            />
-          )}
-
-          {(!isScrolled || isHovered) && (
-            <span className="whitespace-nowrap animate-in fade-in slide-in-from-left-2 duration-300">
-              {galeria.is_public ? 'Galeria Pública' : 'Acesso Restrito'}
-            </span>
-          )}
-        </div>
-
-        <div className="w-[1px] h-4 bg-white/20"></div>
-
-        <div className="flex items-center gap-2">
           <ImageIcon
             size={18}
             className="text-[#F3E5AB] drop-shadow-[0_0_3px_rgba(243,229,171,0.5)]"

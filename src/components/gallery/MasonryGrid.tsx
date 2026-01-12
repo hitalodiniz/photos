@@ -10,6 +10,7 @@ import { handleDownloadPhoto } from '@/core/utils/foto-helpers';
 import { GALLERY_MESSAGES } from '@/constants/messages';
 import { getCleanSlug, executeShare } from '@/core/utils/share-helper';
 import LoadingSpinner from '../ui/LoadingSpinner';
+import { div } from 'framer-motion/client';
 
 interface Photo {
   id: string;
@@ -44,6 +45,7 @@ const MasonryGrid = ({
   const [displayLimit, setDisplayLimit] = useState(qtdeFotos);
   const sentinelRef = useRef<HTMLDivElement | null>(null);
 
+  const [isMobile, setIsMobile] = useState(false);
   const allLoaded = showOnlyFavorites || displayLimit >= displayedPhotos.length;
 
   useEffect(() => {
@@ -67,6 +69,20 @@ const MasonryGrid = ({
     return () => observer.disconnect();
   }, [displayLimit, displayedPhotos.length, showOnlyFavorites]);
 
+  // 2. Estado inicial respeitando seus limites
+  const [columns, setColumns] = useState({
+    mobile: Math.min(2, galeria.columns_mobile || 2),
+    tablet: Math.min(5, Math.max(2, galeria.columns_tablet || 3)),
+    desktop: Math.min(8, Math.max(3, galeria.columns_desktop || 5)),
+  });
+
+  useEffect(() => {
+    const checkScreen = () => setIsMobile(window.innerWidth < 768);
+    checkScreen();
+    window.addEventListener('resize', checkScreen);
+    return () => window.removeEventListener('resize', checkScreen);
+  }, []);
+
   const limitedPhotos = displayedPhotos.slice(0, displayLimit);
 
   const handleShareWhatsAppGrid = (photoId: string) => {
@@ -77,6 +93,47 @@ const MasonryGrid = ({
 
   return (
     <div className="w-full h-auto">
+      {/* Seletor de Densidade */}
+      <div className="flex justify-center items-center gap-3 px-4 overflow-x-auto pb-2 scrollbar-hide">
+        <span className="text-[9px] uppercase tracking-[0.2em] text-[#D4AF37] font-black self-center mr-1 whitespace-nowrap">
+          Colunas
+        </span>
+
+        <div className="flex gap-1.5 p-1 bg-black/5 backdrop-blur-sm rounded-xl border border-[#F3E5AB]/30">
+          {(isMobile ? [1, 2] : [3, 4, 5, 6, 7, 8]).map((num) => {
+            const isActive = isMobile
+              ? columns.mobile === num
+              : columns.desktop === num;
+
+            return (
+              <button
+                key={num}
+                onClick={() =>
+                  setColumns((prev) => ({
+                    ...prev,
+                    mobile: isMobile ? num : prev.mobile,
+                    desktop: !isMobile ? num : prev.desktop,
+                    tablet: !isMobile
+                      ? Math.min(5, Math.max(2, num - 1))
+                      : prev.tablet,
+                  }))
+                }
+                className={`
+            w-8 h-8 rounded-lg text-[10px] font-black transition-all duration-500
+            flex items-center justify-center
+            ${
+              isActive
+                ? 'bg-[#D4AF37] text-white shadow-[0_4px_12px_rgba(212,175,55,0.4)] scale-105'
+                : 'text-slate-500 hover:text-[#D4AF37] hover:bg-white/80'
+            }
+          `}
+              >
+                {num}
+              </button>
+            );
+          })}
+        </div>
+      </div>
       {showOnlyFavorites && displayedPhotos.length === 0 ? (
         <div className="text-center py-40 px-4 animate-in fade-in duration-700">
           <Heart size={48} className="text-champagne-dark mb-2 mx-auto" />
@@ -91,19 +148,39 @@ const MasonryGrid = ({
           </button>
         </div>
       ) : (
-        <div className="max-w-[1600px] mx-auto px-4 pt-2 pb-2">
+        <div className="max-w-[1600px] mx-auto px-2 pt-2 pb-2">
           <Gallery withCaption>
             <div
               key={showOnlyFavorites ? 'favorites-grid' : 'full-grid'}
-              className={`w-full transition-all duration-700 ${
-                showOnlyFavorites
-                  ? 'grid grid-cols-1 md:grid-cols-3 lg:grid-cols-4 gap-4'
-                  : 'grid grid-cols-1 md:grid-cols-3 lg:grid-cols-4 gap-4 grid-flow-row-dense'
-              }`}
+              className="w-full transition-all duration-700 grid gap-1 grid-flow-row-dense"
+              style={{
+                // Mobile: Usa o estado (limitado a 2 pelo seletor)
+                gridTemplateColumns: `repeat(${columns.mobile}, minmax(0, 1fr))`,
+              }}
             >
+              {/* Media queries para Tablet e Desktop via Style Tag ou Tailwind Arbitrary Values */}
+              <style jsx>{`
+                @media (min-width: 768px) {
+                  div {
+                    /* Tablet: Trava rígida em 5 */
+                    grid-template-columns: repeat(
+                      ${Math.min(5, columns.tablet)},
+                      minmax(0, 1fr)
+                    ) !important;
+                  }
+                }
+                @media (min-width: 1280px) {
+                  div {
+                    /* Desktop: Trava rígida em 8 */
+                    grid-template-columns: repeat(
+                      ${Math.min(8, columns.desktop)},
+                      minmax(0, 1fr)
+                    ) !important;
+                  }
+                }
+              `}</style>
               {limitedPhotos.map((photo, index) => {
                 const isSelected = favorites.includes(photo.id);
-
                 return (
                   <Item
                     key={photo.id}
@@ -115,13 +192,15 @@ const MasonryGrid = ({
                   >
                     {({ ref }) => (
                       <div
-                        className={`relative group shadow-sm hover:shadow-xl transition-all duration-500 rounded-2xl overflow-hidden break-inside-avoid ${
-                          showOnlyFavorites
-                            ? 'aspect-square bg-slate-100' // Background só aqui se necessário
-                            : photo.height > photo.width
-                              ? 'md:row-span-2'
-                              : 'row-span-1'
-                        }`}
+                        className={`relative group shadow-sm hover:shadow-xl transition-all duration-500 rounded-[0.5rem] overflow-hidden break-inside-avoid 
+                          border border-black/5 ring-1 ring-white/10
+                          ${
+                            showOnlyFavorites
+                              ? 'aspect-square bg-slate-100'
+                              : photo.height > photo.width
+                                ? 'md:row-span-2'
+                                : 'row-span-1'
+                          }`}
                       >
                         <a
                           href="#"

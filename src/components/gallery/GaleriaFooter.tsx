@@ -130,9 +130,16 @@ export default function GaleriaFooter({ galeria }: GaleriaFooterProps) {
         <div className="max-w-[1600px] mx-auto flex flex-col items-end gap-2 text-slate-600">
           <div className="text-[10px] md:text-[12px] tracking-[0.2em] font-bold text-slate-800 font-sans uppercase">
             Powered by{' '}
-            <span className="text-[#D4AF37] font-serif italic tracking-normal text-xs md:text-sm ml-1">
-              Sua Galeria de Fotos
-            </span>
+            <a
+              href={`https://${process.env.NEXT_PUBLIC_MAIN_DOMAIN}`}
+              target="_blank"
+              rel="noopener noreferrer"
+              className="hover:opacity-80 transition-opacity"
+            >
+              <span className="text-[#D4AF37] font-serif italic tracking-normal text-xs md:text-sm ml-1 cursor-pointer">
+                Sua Galeria de Fotos
+              </span>
+            </a>
           </div>
           <div className="text-[10px] md:text-[12px] tracking-widest font-sans font-medium">
             © {new Date().getFullYear()} — Todos os direitos reservados

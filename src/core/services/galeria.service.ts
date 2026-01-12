@@ -297,16 +297,25 @@ export async function updateGaleria(
     const updates = {
       title,
       client_name: clientName,
-      client_whatsapp:
-        (formData.get('client_whatsapp') as string)?.replace(/\D/g, '') || null,
+      client_whatsapp: (formData.get('client_whatsapp') as string)?.replace(
+        /\D/g,
+        '',
+      ),
       date: new Date(formData.get('date') as string).toISOString(),
       location: formData.get('location') as string,
       drive_folder_id: driveFolderId,
-      drive_folder_name: formData.get('drive_folder_name') as string, // era driveFolderName
-      cover_image_url: formData.get('cover_image_url') as string, // era coverFileId
-      is_public: formData.get('is_public') === 'true', // era isPublic
+      drive_folder_name: formData.get('drive_folder_name') as string,
+      cover_image_url: formData.get('cover_image_url') as string,
+      is_public: formData.get('is_public') === 'true',
       category: (formData.get('category') as string) || 'esporte',
-      has_contracting_client: formData.get('has_contracting_client') as string,
+      has_contracting_client: formData.get('has_contracting_client') === 'true', // Garanta o boolean
+
+      // NOVOS CAMPOS PARA GRAVAR NO BANCO
+      show_cover_in_grid: formData.get('show_cover_in_grid') === 'true',
+      grid_bg_color: formData.get('grid_bg_color') as string,
+      columns_mobile: Number(formData.get('columns_mobile')),
+      columns_tablet: Number(formData.get('columns_tablet')),
+      columns_desktop: Number(formData.get('columns_desktop')),
     };
 
     // Lógica da senha: só atualiza se for enviado algo no campo password
@@ -381,7 +390,7 @@ export async function getGalerias(
 
     if (error) throw error;
 
-    // 🎯 AJUSTE NO MAP: Usa a função formatGalleryData para garantir que o objeto photographer exista
+    // AJUSTE NO MAP: Usa a função formatGalleryData para garantir que o objeto photographer exista
     // Importe a formatGalleryData aqui
     const galeriasFormatadas = (data || []).map((raw) =>
       formatGalleryData(raw as any, raw.photographer?.username || ''),
@@ -408,32 +417,12 @@ export async function getGalerias(
 // =========================================================================
 // 6. DELETE GALERIA
 // =========================================================================
-export async function deleteGaleria(
-  id: string,
-  supabaseClient?: any,
-): Promise<ActionResult> {
-  try {
-    const supabase = supabaseClient || (await createSupabaseServerClient());
-    const { userId } = await getAuthAndStudioIds(supabase);
-    const { error } = await supabase
-      .from('tb_galerias')
-      .delete()
-      .eq('id', id)
-      .eq('user_id', userId);
+export async function deleteGalleryPermanently(id: string) {
+  const supabase = await createSupabaseServerClient(); // ou client-side dependendo de onde chama
+  const { error } = await supabase.from('tb_galerias').delete().eq('id', id);
 
-    if (error) throw error;
-
-    // Atualiza o cache do servidor para a rota do dashboard
-    revalidatePath('/dashboard');
-
-    return {
-      success: true,
-      message: 'Galeria movida para a lixeira com sucesso!',
-    };
-  } catch (err) {
-    console.error('Erro ao deletar galeria:', err);
-    return { success: false, error: 'Não foi possível excluir a galeria.' };
-  }
+  if (error) throw error;
+  return true;
 }
 
 export async function authenticateGaleriaAccess(
@@ -603,5 +592,93 @@ export async function getGaleriaPhotos(
       success: false,
       error: error.message || 'Não foi possível carregar as fotos.',
     };
+  }
+}
+
+// =========================================================================
+// FUNÇÕES DE STATUS E EXCLUSÃO (SUPABASE)
+// =========================================================================
+
+/**
+ * Função genérica para atualizar status via Supabase (Server Action)
+ */
+async function updateGaleriaStatus(id: string, updates: any) {
+  try {
+    const supabase = await createSupabaseServerClient();
+    const { success: authSuccess, userId } =
+      await getAuthAndStudioIds(supabase);
+
+    if (!authSuccess || !userId)
+      return { success: false, error: 'Não autenticado' };
+
+    const { data, error } = await supabase
+      .from('tb_galerias')
+      .update(updates)
+      .eq('id', id)
+      .eq('user_id', userId)
+      .select()
+      .single(); // Use single para garantir que pegamos o objeto atualizado
+
+    if (error) throw error;
+
+    // O revalidatePath limpa o cache do servidor.
+    // No Next.js 14/15, isso força o componente pai a enviar novas props.
+    revalidatePath('/dashboard');
+
+    return { success: true, data };
+  } catch (error: any) {
+    return { success: false, error: error.message };
+  }
+}
+
+/**
+ * ARQUIVAR: Alterna o estado de arquivamento
+ */
+export async function toggleArchiveGaleria(id: string, currentStatus: boolean) {
+  return updateGaleriaStatus(id, { is_archived: !currentStatus });
+}
+
+/**
+ * MOVER PARA LIXEIRA (Soft Delete)
+ */
+export async function moveToTrash(id: string) {
+  return updateGaleriaStatus(id, {
+    is_deleted: true,
+    deleted_at: new Date().toISOString(),
+  });
+}
+
+/**
+ * RESTAURAR: Tira da lixeira e do arquivo, voltando para "Ativas"
+ */
+export async function restoreGaleria(id: string) {
+  return updateGaleriaStatus(id, {
+    is_deleted: false,
+    is_archived: false,
+    deleted_at: null,
+  });
+}
+
+/**
+ * EXCLUIR PERMANENTEMENTE (Hard Delete)
+ */
+export async function permanentDelete(id: string) {
+  try {
+    const supabase = await createSupabaseServerClient();
+    const { userId } = await getAuthAndStudioIds(supabase);
+
+    const { error } = await supabase
+      .from('tb_galerias')
+      .delete()
+      .eq('id', id)
+      .eq('user_id', userId);
+
+    if (error) throw error;
+
+    revalidatePath('/dashboard');
+    return { success: true, message: 'Galeria excluída permanentemente.' };
+  } catch (error: any) {
+    console.error('Erro ao excluir permanentemente:', error);
+    return { success: false, error: 'Erro ao excluir permanentemente' };
   }
 }

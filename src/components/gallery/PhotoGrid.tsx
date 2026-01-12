@@ -288,7 +288,7 @@ export default function PhotoGrid({ photos, galeria }: any) {
           <button
             onClick={handleDownloadFavorites}
             disabled={isDownloadingFavs}
-            className="flex items-center justify-center gap-3 bg-[#E67E70] hover:bg-[#D66D5F] text-white px-0 py-2 rounded-full shadow-[0_10px_40px_rgba(230,126,112,0.4)] transition-all active:scale-95 group border border-white/20 w-[170px] h-[52px] flex-shrink-0"
+            className="flex items-center justify-center bg-[#E67E70] hover:bg-[#D66D5F] text-white px-0 py-2 rounded-[1rem] shadow-[0_10px_40px_rgba(230,126,112,0.4)] transition-all active:scale-95 group border border-white/20 w-[170px] h-[52px] flex-shrink-0"
           >
             {isDownloadingFavs ? (
               <div className="flex items-center gap-2 justify-center w-full">
@@ -305,7 +305,7 @@ export default function PhotoGrid({ photos, galeria }: any) {
                   <Download size={18} />
                 </div>
                 <div className="flex flex-col items-start leading-none overflow-hidden">
-                  <span className="text-white text-sm md:text-[15px] font-semibold truncate w-full">
+                  <span className="text-white text-sm md:text-[14px] font-medium truncate w-full">
                     Baixar {favorites.length === 1 ? 'favorita' : 'favoritas'}
                   </span>
                   <span className="text-[12px] md:text-[14px] opacity-80 italic">

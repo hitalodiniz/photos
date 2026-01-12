@@ -14,6 +14,9 @@ import {
   Briefcase,
   Check,
   Copy,
+  Inbox,
+  Archive,
+  XCircle,
 } from 'lucide-react';
 import { useState, useEffect } from 'react';
 import type { Galeria } from '@/core/types/galeria';
@@ -28,16 +31,23 @@ import { executeShare } from '@/core/utils/share-helper';
 
 interface GaleriaCardProps {
   galeria: Galeria;
+  currentView: 'active' | 'archived' | 'trash';
   onEdit: (galeria: Galeria) => void;
   onDelete: (galeria: Galeria) => void;
-  isDeleting: boolean;
+  onArchive: (galeria: Galeria) => void;
+  onRestore: (id: string) => void;
+  onPermanentDelete: (id: string) => void;
+  isDeleting?: boolean;
   isUpdating?: boolean;
 }
-
 export default function GaleriaCard({
   galeria,
+  currentView,
   onEdit,
   onDelete,
+  onArchive,
+  onRestore,
+  onPermanentDelete,
   isDeleting,
   isUpdating = false,
 }: GaleriaCardProps) {
@@ -237,59 +247,117 @@ export default function GaleriaCard({
       </div>
       <div className="mt-1 flex items-center justify-between border-t border-gold/20 pt-4 px-4 pb-4">
         <div className="flex gap-2">
-          {mounted &&
-            galeria.has_contracting_client &&
-            galeria.client_whatsapp && (
-              <button
-                type="button"
-                onClick={handleWhatsAppShare}
-                className="p-3 text-emerald-700 bg-white border border-gold/20 hover:bg-emerald-600 hover:text-white rounded-2xl transition-all shadow-sm active:scale-95 flex items-center justify-center"
-                title="Enviar via WhatsApp"
-              >
-                <MessageCircle size={20} />
-              </button>
+          {/* MODO LIXEIRA: Mostra apenas botão Restaurar */}
+          <div className="flex gap-2">
+            {/* WhatsApp e Copy: Exibir apenas na aba ATIVA */}
+            {currentView === 'active' && (
+              <>
+                {mounted &&
+                  galeria.has_contracting_client &&
+                  galeria.client_whatsapp && (
+                    <button
+                      type="button"
+                      onClick={handleWhatsAppShare}
+                      className="p-3 text-emerald-700 bg-white border border-gold/20 hover:bg-emerald-600 hover:text-white rounded-2xl transition-all shadow-sm active:scale-95 flex items-center justify-center"
+                      title="Enviar via WhatsApp"
+                    >
+                      <MessageCircle size={20} />
+                    </button>
+                  )}
+
+                <button
+                  onClick={handleCopy}
+                  className={`p-3 border rounded-2xl transition-all shadow-sm active:scale-95 flex items-center justify-center ${
+                    copied
+                      ? 'bg-green-600 text-white border-green-600'
+                      : 'bg-white text-slate-400 border-gold/20 hover:text-gold hover:border-gold/40'
+                  }`}
+                  title="Copiar mensagem personalizada"
+                >
+                  {copied ? <Check size={20} /> : <Copy size={20} />}
+                </button>
+              </>
             )}
 
-          <button
-            onClick={handleCopy}
-            className={`p-3 border rounded-2xl transition-all shadow-sm active:scale-95 flex items-center justify-center ${
-              copied
-                ? 'bg-green-600 text-white border-green-600'
-                : 'bg-white text-slate-400 border-gold/20 hover:text-gold hover:border-gold/40'
-            }`}
-            title="Copiar mensagem personalizada"
-          >
-            {copied ? <Check size={20} /> : <Copy size={20} />}
-          </button>
+            {/* Botão Restaurar: Aparece na Arquivada e na Lixeira */}
+            {currentView === 'trash' && (
+              <button
+                onClick={(e) => {
+                  e.stopPropagation();
+                  onRestore(galeria.id);
+                }}
+                className="p-3 text-blue-600 bg-white border border-blue-100 hover:bg-blue-600 hover:text-white rounded-2xl transition-all shadow-sm active:scale-95 flex items-center justify-center"
+                title="Restaurar para Ativas"
+              >
+                <Inbox size={20} />
+              </button>
+            )}
+          </div>
         </div>
 
         <div className="flex gap-3">
-          <button
-            onClick={(e) => {
-              e.stopPropagation();
-              onEdit(galeria);
-            }}
-            // Ajustado: rounded-2xl e border-gold/20 para padronizar com os botões da esquerda
-            className="p-3 text-slate-500 bg-white border border-gold/20 hover:bg-slate-900 hover:text-white rounded-2xl transition-all shadow-sm active:scale-95 flex items-center justify-center"
-          >
-            <Pencil size={20} />
-          </button>
+          {/* Botão Arquivar/Desarquivar: Apenas na aba Ativa ou Arquivada */}
+          {(currentView === 'active' || currentView === 'archived') && (
+            <button
+              onClick={(e) => {
+                e.stopPropagation();
+                onArchive(galeria);
+              }}
+              className={`p-3 border rounded-2xl transition-all shadow-sm active:scale-95 flex items-center justify-center ${
+                galeria.is_archived
+                  ? 'bg-amber-500 text-white border-amber-500'
+                  : 'bg-white text-slate-500 border-gold/20 hover:bg-amber-50'
+              }`}
+              title={galeria.is_archived ? 'Desarquivar' : 'Arquivar'}
+            >
+              <Archive size={20} />
+            </button>
+          )}
 
-          <button
-            onClick={(e) => {
-              e.stopPropagation();
-              onDelete(galeria);
-            }}
-            disabled={isDeleting}
-            // Ajustado: rounded-2xl e border-gold/20
-            className="p-3 text-slate-500 bg-white border border-gold/20 hover:bg-[#B3261E] hover:text-white rounded-2xl transition-all shadow-sm active:scale-95 disabled:opacity-30 flex items-center justify-center"
-          >
-            {isDeleting ? (
-              <Loader2 size={20} className="animate-spin" />
-            ) : (
-              <Trash2 size={20} />
-            )}
-          </button>
+          {/* Botão Editar: Apenas na aba Ativa */}
+          {currentView === 'active' && (
+            <button
+              onClick={(e) => {
+                e.stopPropagation();
+                onEdit(galeria);
+              }}
+              className="p-3 text-slate-500 bg-white border border-gold/20 hover:bg-slate-900 hover:text-white rounded-2xl transition-all shadow-sm active:scale-95 flex items-center justify-center"
+            >
+              <Pencil size={20} />
+            </button>
+          )}
+
+          {/* Botão Lixeira: Apenas na aba Ativa ou Arquivada */}
+          {(currentView === 'active' || currentView === 'archived') && (
+            <button
+              onClick={(e) => {
+                e.stopPropagation();
+                onDelete(galeria);
+              }}
+              disabled={isDeleting}
+              className="p-3 text-slate-500 bg-white border border-gold/20 hover:bg-[#B3261E] hover:text-white rounded-2xl transition-all shadow-sm active:scale-95 disabled:opacity-30 flex items-center justify-center"
+            >
+              {isDeleting ? (
+                <Loader2 size={20} className="animate-spin" />
+              ) : (
+                <Trash2 size={20} />
+              )}
+            </button>
+          )}
+
+          {/* 4. NOVO: Botão Exclusão Definitiva: Apenas na Aba Lixeira */}
+          {currentView === 'trash' && (
+            <button
+              onClick={(e) => {
+                e.stopPropagation();
+                onPermanentDelete(galeria.id); // Certifique-se de passar essa prop para o card
+              }}
+              className="p-3 text-white bg-red-600 border border-red-700 hover:bg-red-800 rounded-2xl transition-all shadow-sm active:scale-95 flex items-center justify-center"
+              title="Excluir Permanentemente"
+            >
+              <XCircle size={20} />
+            </button>
+          )}
         </div>
       </div>
     </div>

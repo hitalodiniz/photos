@@ -25,7 +25,6 @@ export default async function UsernameGaleriaPage({
   if (!galeriaRaw) notFound();
 
   const galeriaData = formatGalleryData(galeriaRaw, username);
-  const coverUrl = getImageUrl(galeriaData.cover_image_url, 'w600');
 
   galeriaData.slug = fullSlug;
   // Verificação de segurança
@@ -34,6 +33,7 @@ export default async function UsernameGaleriaPage({
     const savedToken = cookieStore.get(`galeria-${galeriaData.id}-auth`)?.value;
 
     if (savedToken !== galeriaData.password) {
+      const coverUrl = getImageUrl(galeriaData.cover_image_url, 'w600');
       return (
         <PasswordPrompt
           galeria={galeriaData}
