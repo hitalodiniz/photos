@@ -9,6 +9,8 @@ import { InfoBarMobile } from './InfoBarMobile';
 import MasonryGrid from './MasonryGrid';
 import { ConfirmationModal } from '../ui';
 import { getProxyUrl } from '@/core/utils/url-helper';
+import { GALLERY_MESSAGES } from '@/constants/messages';
+import { executeShare } from '@/core/utils/share-helper';
 
 export default function PhotoGrid({ photos, galeria }: any) {
   // --- ESTADOS DE CONTROLE ---
@@ -24,6 +26,11 @@ export default function PhotoGrid({ photos, galeria }: any) {
   const [downloadProgress, setDownloadProgress] = useState(0);
   const [isDownloadingFavs, setIsDownloadingFavs] = useState(false);
   const [favDownloadProgress, setFavDownloadProgress] = useState(0);
+  const [activeTag, setActiveTag] = useState('Todas');
+  const tagsDaGaleria = [
+    'Todas',
+    ...Array.from(new Set(photos.map((p: any) => p.tag).filter(Boolean))),
+  ];
 
   // --- ESTADOS DE FAVORITOS (PERSISTÊNCIA) ---
   const storageKey = `favoritos_galeria_${galeria.id}`;
@@ -64,9 +71,13 @@ export default function PhotoGrid({ photos, galeria }: any) {
   }, []);
 
   // --- LÓGICA DE FILTRAGEM ---
-  const displayedPhotos = showOnlyFavorites
-    ? photos.filter((photo: any) => favorites.includes(photo.id))
-    : photos;
+  const displayedPhotos = photos.filter((photo: any) => {
+    const matchesFavorite = showOnlyFavorites
+      ? favorites.includes(photo.id)
+      : true;
+    const matchesTag = activeTag === 'Todas' || photo.tag === activeTag;
+    return matchesFavorite && matchesTag;
+  });
 
   // --- CONFIGURAÇÕES DE DOWNLOAD E LIMITES ---
   const MAX_PHOTOS_LIMIT = 200; // Limite para alerta de quantidade
@@ -181,6 +192,22 @@ export default function PhotoGrid({ photos, galeria }: any) {
     }
   };
 
+  const handleShare = () => {
+    // 1. Geramos o texto formatado (sem a URL, pois a executeShare já lida com ela)
+    // Passamos uma string vazia no lugar da URL para a mensagem não ficar duplicada
+    const messageText = GALLERY_MESSAGES.GUEST_SHARE(
+      galeria.title,
+      window.location.href,
+    );
+
+    // 2. Executamos a função de compartilhamento
+    executeShare({
+      title: galeria.title,
+      text: messageText,
+      url: window.location.href, // Passamos a URL aqui para o card de prévia aparecer
+    });
+  };
+
   const downloadAllAsZip = () => handleDownloadZip(photos, 'completa', false);
 
   const handleDownloadFavorites = () =>
@@ -205,46 +232,61 @@ export default function PhotoGrid({ photos, galeria }: any) {
 
   const sentinelRef = useRef<HTMLDivElement | null>(null);
 
+  // 2. Estado inicial respeitando seus limites
+  const [columns, setColumns] = useState({
+    mobile: Math.min(2, galeria.columns_mobile || 2),
+    tablet: Math.min(5, Math.max(2, galeria.columns_tablet || 3)),
+    desktop: Math.min(8, Math.max(3, galeria.columns_desktop || 5)),
+  });
+
   return (
     <div className="relative w-full">
       {/* 1. BARRA DE INFORMAÇÕES EDITORIAL: DESKTOP */}
       <div
         onMouseEnter={() => setIsHovered(true)}
         onMouseLeave={() => setIsHovered(false)}
-        className="sticky top-4 z-[100] w-full flex justify-center pointer-events-none"
+        className="sticky top-0 z-[100] w-full pointer-events-none"
       >
-        <div className="pointer-events-auto mb-2">
-          <InfoBarDesktop
-            galeria={galeria}
-            photos={photos}
-            favorites={favorites}
-            showOnlyFavorites={showOnlyFavorites}
-            setShowOnlyFavorites={setShowOnlyFavorites}
-            isDownloading={isDownloading}
-            downloadProgress={downloadProgress}
-            downloadAllAsZip={downloadAllAsZip}
-            isScrolled={isScrolled}
-            isHovered={isHovered}
-            setIsHovered={setIsHovered}
-          />
-        </div>
+        <InfoBarDesktop
+          galeria={galeria}
+          photos={photos}
+          favorites={favorites}
+          columns={columns} // Passe o estado das colunas aqui
+          setColumns={setColumns} // Função para alterar as colunas
+          activeTag={activeTag}
+          setActiveTag={setActiveTag}
+          showOnlyFavorites={showOnlyFavorites}
+          setShowOnlyFavorites={setShowOnlyFavorites}
+          isDownloading={isDownloading}
+          downloadProgress={downloadProgress}
+          downloadAllAsZip={downloadAllAsZip}
+          isScrolled={isScrolled}
+          isHovered={isHovered}
+          setIsHovered={setIsHovered}
+          tags={tagsDaGaleria}
+          handleShare={handleShare}
+        />
 
         {/* 2. CONTAINER DA BARRA MOBILE (STICKY) */}
 
-        <div className="md:hidden pointer-events-auto w-full flex justify-center">
-          <InfoBarMobile
-            galeria={galeria}
-            photos={photos}
-            favorites={favorites}
-            showOnlyFavorites={showOnlyFavorites}
-            setShowOnlyFavorites={setShowOnlyFavorites}
-            downloadAllAsZip={downloadAllAsZip}
-            isDownloading={isDownloading}
-            downloadProgress={downloadProgress}
-            isScrolled={isScrolled}
-            setIsHovered={setIsHovered}
-          />
-        </div>
+        <InfoBarMobile
+          galeria={galeria}
+          photos={photos}
+          favorites={favorites}
+          showOnlyFavorites={showOnlyFavorites}
+          setShowOnlyFavorites={setShowOnlyFavorites}
+          downloadAllAsZip={downloadAllAsZip}
+          isDownloading={isDownloading}
+          downloadProgress={downloadProgress}
+          isScrolled={isScrolled}
+          setIsHovered={setIsHovered}
+          columns={columns} // Passe o estado das colunas aqui
+          setColumns={setColumns} // Função para alterar as colunas
+          activeTag={activeTag}
+          setActiveTag={setActiveTag}
+          tags={tagsDaGaleria}
+          handleShare={handleShare}
+        />
       </div>
       {/* 2. GRID MASONRY */}
       <MasonryGrid
@@ -257,6 +299,7 @@ export default function PhotoGrid({ photos, galeria }: any) {
         photos={photos}
         showOnlyFavorites={showOnlyFavorites}
         setShowOnlyFavorites={setShowOnlyFavorites}
+        columns={columns}
       />
       {/* 5. LIGHTBOX */}
       {selectedPhotoIndex !== null && photos.length > 0 && (
@@ -284,36 +327,44 @@ export default function PhotoGrid({ photos, galeria }: any) {
       )}
       {/* BOTÃO FLUTUANTE DE DOWNLOAD FAVORITOS */}
       {favorites.length > 0 && (
-        <div className="fixed bottom-6 left-1/2 -translate-x-1/2 z-[60] animate-in fade-in zoom-in slide-in-from-bottom-10 duration-500">
+        <div className="fixed bottom-6 left-1/2 -translate-x-1/2 z-[90] animate-in fade-in zoom-in slide-in-from-bottom-10 duration-500 w-fit">
           <button
             onClick={handleDownloadFavorites}
             disabled={isDownloadingFavs}
-            className="flex items-center justify-center bg-[#E67E70] hover:bg-[#D66D5F] text-white px-0 py-2 rounded-[1rem] shadow-[0_10px_40px_rgba(230,126,112,0.4)] transition-all active:scale-95 group border border-white/20 w-[170px] h-[52px] flex-shrink-0"
+            className="flex items-center justify-center rounded-[0.7rem] h-12 bg-[#F3E5AB] text-black border border-white/20 
+      shadow-[0_10px_40px_rgba(0,0,0,0.4)] hover:scale-105 hover:brightness-105 active:scale-95 transition-all duration-300 px-2 gap-3 shrink-0 whitespace-nowrap"
           >
             {isDownloadingFavs ? (
-              <div className="flex items-center gap-2 justify-center w-full">
-                <Loader2 className="animate-spin h-5 w-5 flex-shrink-0" />
-                <span className="font-bold tracking-tight text-sm tabular-nums whitespace-nowrap">
-                  {favDownloadProgress < 95
-                    ? `Baixando ${Math.round(favDownloadProgress)}%`
-                    : 'Finalizando...'}
-                </span>
+              <div className="flex items-center gap-2">
+                <Loader2 size={18} className="animate-spin" />
+                <div className="flex flex-col items-start leading-none">
+                  <span className="text-[10px] font-black uppercase tracking-wider">
+                    Baixando
+                  </span>
+                  <span className="text-[9px] font-bold opacity-70">
+                    {Math.round(favDownloadProgress)}%
+                  </span>
+                </div>
               </div>
             ) : (
-              <div className="flex items-center gap-3 w-full justify-center">
-                <div className="bg-white/20 p-1.5 rounded-full flex-shrink-0">
+              <>
+                {/* Ícone menor e mais discreto */}
+                <div className="bg-black/5 p-1 rounded-full shrink-0">
                   <Download size={18} />
                 </div>
-                <div className="flex flex-col items-start leading-none overflow-hidden">
-                  <span className="text-white text-sm md:text-[14px] font-medium truncate w-full">
-                    Baixar {favorites.length === 1 ? 'favorita' : 'favoritas'}
+
+                <div className="flex flex-col items-start leading-tight">
+                  <span className="text-[11px] md:text-[12px] font-semibold uppercase tracking-tight">
+                    Baixar Favoritas
                   </span>
-                  <span className="text-[12px] md:text-[14px] opacity-80 italic">
+                  <span className="text-[9px] md:text-[10px] font-medium opacity-70 italic">
                     {favorites.length}{' '}
-                    {favorites.length === 1 ? 'foto' : 'fotos'}
+                    {favorites.length === 1
+                      ? 'foto selecionada'
+                      : 'fotos selecionadas'}
                   </span>
                 </div>
-              </div>
+              </>
             )}
           </button>
         </div>

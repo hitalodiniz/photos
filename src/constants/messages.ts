@@ -61,6 +61,23 @@ export const GALLERY_MESSAGES = {
       '💎 _Sua Galeria de Fotos_',
     ].join('\n');
   },
+  GUEST_SHARE: (title: string, url: string) => {
+    return [
+      'Olá! ✨',
+      '',
+      'Dê uma olhada nestas fotos incríveis! 📸',
+      '',
+      `A galeria *${title}* está disponível para visualização.`,
+      '',
+      '📍 *Acesse o link abaixo para conferir:*',
+      url,
+      '',
+      'Espero que goste! ✨',
+      '---',
+      '💎 _Sua Galeria de Fotos_',
+    ].join('\n');
+  },
+
   CONTACT_PHOTOGRAPHER: (galleryTitle: string) => {
     return `Olá! Vi seu trabalho na galeria "${galleryTitle}" através do aplicativo Sua Galeria de Fotos. Gostaria de saber mais informações sobre o seu trabalho!`;
   },

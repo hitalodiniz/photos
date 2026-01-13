@@ -1,5 +1,5 @@
 'use client';
-import React, { useMemo } from 'react';
+import React, { useMemo, useState, useEffect } from 'react';
 import type { Galeria } from '@/core/types/galeria';
 import Image from 'next/image';
 import { GALLERY_MESSAGES } from '@/constants/messages';
@@ -15,14 +15,19 @@ export default function PhotographerAvatar({
   position,
   isVisible = true,
 }: PhotographerAvatarProps) {
-  const whatsappLink = `https://wa.me/${galeria.photographer.phone_contact.replace(/\D/g, '')}?text=${encodeURIComponent(
+  const [isExpanded, setIsExpanded] = useState(false);
+
+  useEffect(() => {
+    if (isExpanded) {
+      const timer = setTimeout(() => setIsExpanded(false), 4000);
+      return () => clearTimeout(timer);
+    }
+  }, [isExpanded]);
+
+  const photographer = galeria.photographer;
+  const whatsappLink = `https://wa.me/${photographer.phone_contact.replace(/\D/g, '')}?text=${encodeURIComponent(
     GALLERY_MESSAGES.CONTACT_PHOTOGRAPHER_DIRETO(),
   )}`;
-
-  if (!isVisible && position === 'top-page') return null;
-
-  // Atalho para facilitar o acesso aos dados do fotógrafo
-  const photographer = galeria.photographer;
 
   const { fullName, displayAvatar, initialLetter } = useMemo(() => {
     const name = photographer?.full_name || 'Fotógrafo';
@@ -33,6 +38,8 @@ export default function PhotographerAvatar({
     };
   }, [photographer]);
 
+  if (!isVisible && position === 'top-page') return null;
+
   const positionClasses =
     position === 'top-page'
       ? 'relative z-10 animate-in fade-in scale-90 md:scale-100 slide-in-from-right-10 duration-700'
@@ -40,11 +47,13 @@ export default function PhotographerAvatar({
 
   return (
     <div
-      className={`${positionClasses} flex items-center gap-3 animate-in fade-in duration-500`}
+      className={`${positionClasses} flex items-center cursor-pointer`}
+      onClick={() => setIsExpanded(!isExpanded)}
     >
       <div
         className={`
-        flex items-center gap-4 p-3 pr-5 rounded-[1.2rem] border shadow-2xl
+        flex items-center rounded-[0.5rem] md:p-2 border shadow-2xl transition-all duration-500 ease-[cubic-bezier(0.23,1,0.32,1)]
+        ${isExpanded ? 'gap-2 p-1.5 ' : 'gap-0 p-0 px-1'} 
         ${
           position === 'bottom-lightbox'
             ? 'bg-[#1A1A1A]/90 backdrop-blur-3xl border-white/20 shadow-black/50'
@@ -52,9 +61,8 @@ export default function PhotographerAvatar({
         }
       `}
       >
-        {/* Foto do Fotógrafo */}
-        {/* Foto ou Inicial do Fotógrafo */}
-        <div className="relative group flex-shrink-0 cursor-pointer w-12 h-12 md:w-16 md:h-16 rounded-full overflow-hidden flex items-center justify-center">
+        {/* Foto/Avatar */}
+        <div className="relative group flex-shrink-0 w-10 h-10 md:w-14 md:h-14 rounded-full overflow-hidden flex items-center justify-center">
           <div className="absolute -inset-1 bg-gradient-to-tr from-[#D4AF37] to-[#F3E5AB] rounded-full blur-sm opacity-30 group-hover:opacity-60 transition duration-700"></div>
 
           {displayAvatar ? (
@@ -62,44 +70,46 @@ export default function PhotographerAvatar({
               src={displayAvatar}
               alt={fullName}
               fill
-              sizes="(max-width: 768px) 48px, 64px"
+              sizes="(max-width: 768px) 40px, 56px"
               className="object-cover transition-transform duration-500 group-hover:scale-105 z-10 rounded-full"
-              loading="lazy"
             />
           ) : (
-            // 🎯 Fallback Premium quando não há foto
-            <div className="z-10 w-full h-full bg-slate-800 flex items-center justify-center border border-white/10 rounded-full transition-transform duration-500 group-hover:scale-105">
-              <span className="text-white font-bold text-xl md:text-2xl font-barlow tracking-tighter">
+            <div className="z-10 w-full h-full bg-slate-800 flex items-center justify-center border border-white/10 rounded-full">
+              <span className="text-white font-bold text-lg md:text-xl font-barlow tracking-tighter">
                 {initialLetter}
               </span>
             </div>
           )}
         </div>
 
-        {/* Texto e Botões */}
-        <div className="flex flex-col items-start gap-2">
-          <div className="flex flex-col items-start">
-            <p className="text-[8px] md:text-[10px] italic tracking-[0.1em] text-[#F3E5AB] font-medium opacity-80 leading-none mb-1">
+        {/* Conteúdo Expansível */}
+        <div
+          className={`
+          flex flex-col items-start gap-1.5 transition-all duration-500 ease-[cubic-bezier(0.23,1,0.32,1)] overflow-hidden
+          ${isExpanded ? 'max-w-[200px] opacity-100 ml-1' : 'max-w-0 md:max-w-[300px] opacity-0 md:opacity-100 md:ml-2'}
+        `}
+        >
+          <div className="flex flex-col items-start whitespace-nowrap">
+            <p className="text-[8px] md:text-[9px] italic tracking-[0.1em] text-[#F3E5AB] font-medium opacity-80 leading-none mb-0.5">
               Fotografado por
             </p>
-            <span className="text-sm md:text-base font-serif italic text-white leading-tight">
-              {photographer?.full_name || 'Fotógrafo'}
+            <span className="text-xs md:text-sm font-serif italic text-white leading-tight">
+              {fullName}
             </span>
           </div>
 
           <div className="flex items-center gap-2 relative z-10">
-            {/* 🎯 FIX: Verificação correta do WhatsApp */}
             {photographer?.phone_contact && (
               <a
                 href={whatsappLink}
                 target="_blank"
                 rel="noopener noreferrer"
-                className="p-1.5 bg-white/10 text-white rounded-full hover:bg-[#25D366] transition-all border border-white/10 hover:scale-110 active:scale-95"
+                className="p-1.5 bg-white/10 text-white rounded-full hover:bg-[#25D366] transition-all border border-white/10"
                 onClick={(e) => e.stopPropagation()}
               >
                 <svg
-                  width="14"
-                  height="14"
+                  width="12"
+                  height="12"
                   fill="currentColor"
                   viewBox="0 0 24 24"
                 >
@@ -108,18 +118,17 @@ export default function PhotographerAvatar({
               </a>
             )}
 
-            {/* 🎯 FIX: Verificação correta do Instagram */}
             {photographer?.instagram_link && (
               <a
                 href={`https://instagram.com/${photographer.instagram_link.replace('@', '')}`}
                 target="_blank"
                 rel="noopener noreferrer"
-                className="p-1.5 bg-white/10 text-white rounded-full hover:bg-gradient-to-tr hover:from-[#f09433] hover:via-[#dc2743] hover:to-[#bc1888] transition-all border border-white/10 hover:scale-110"
+                className="p-1.5 bg-white/10 text-white rounded-full hover:bg-gradient-to-tr hover:from-[#f09433] hover:via-[#dc2743] hover:to-[#bc1888] transition-all border border-white/10"
                 onClick={(e) => e.stopPropagation()}
               >
                 <svg
-                  width="14"
-                  height="14"
+                  width="12"
+                  height="12"
                   fill="currentColor"
                   viewBox="0 0 24 24"
                 >
@@ -130,13 +139,13 @@ export default function PhotographerAvatar({
 
             <a
               href={`/${photographer?.username}`}
-              className="p-1.5 bg-white/10 text-white rounded-full hover:bg-[#D4AF37] transition-all border border-white/10 hover:scale-110"
+              className="p-1.5 bg-white/10 text-white rounded-full hover:bg-[#D4AF37] transition-all border border-white/10"
               target="_blank"
               onClick={(e) => e.stopPropagation()}
             >
               <svg
-                width="14"
-                height="14"
+                width="12"
+                height="12"
                 fill="none"
                 stroke="currentColor"
                 strokeWidth="2.5"

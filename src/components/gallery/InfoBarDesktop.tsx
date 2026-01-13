@@ -1,163 +1,242 @@
 'use client';
-import React, { useRef } from 'react';
+import React, { useState, useMemo } from 'react';
 import {
-  Globe,
-  Lock,
-  ImageIcon,
-  Calendar,
-  MapPin,
   Filter,
   Download,
   Loader2,
+  ChevronDown,
+  Monitor,
+  Tag,
+  Link as LinkIcon,
+  Check,
+  MessageCircle,
+  Wand2,
 } from 'lucide-react';
 
 export const InfoBarDesktop = ({
-  galeria,
-  photos,
-  favorites,
   showOnlyFavorites,
   setShowOnlyFavorites,
   downloadAllAsZip,
   isScrolled,
   isHovered,
   isDownloading,
-  downloadProgress,
-  setIsHovered,
+  activeTag,
+  setActiveTag,
+  columns,
+  setColumns,
+  tags = [],
+  handleShare,
 }: any) => {
-  // Ajuste 1: Timer para evitar que a barra feche com movimentos acidentais
-  const hoverTimeoutRef = useRef<NodeJS.Timeout | null>(null);
+  const [showFilters, setShowFilters] = useState(false);
+  const [copied, setCopied] = useState(false);
 
-  const handleMouseEnter = () => {
-    if (hoverTimeoutRef.current) clearTimeout(hoverTimeoutRef.current);
-    setIsHovered(true);
-  };
+  const isCompact = isScrolled && !isHovered;
+  const hasTags = tags.length > 1;
 
-  const handleMouseLeave = () => {
-    // Delay de 200ms para fechar: torna a barra menos "nervosa"
-    hoverTimeoutRef.current = setTimeout(() => {
-      setIsHovered(false);
-    }, 200);
-  };
+  const { visibleTags, hiddenTags } = useMemo(() => {
+    const limit = isCompact ? 0 : 4;
+    let sortedTags = [...tags];
+
+    if (activeTag && activeTag !== '' && activeTag !== 'Todas') {
+      sortedTags = [activeTag, ...tags.filter((t) => t !== activeTag)];
+    }
+
+    return {
+      visibleTags: sortedTags.slice(0, limit),
+      hiddenTags: sortedTags.slice(limit),
+    };
+  }, [tags, activeTag, isCompact]);
 
   return (
-    <div
-      onMouseEnter={handleMouseEnter}
-      onMouseLeave={handleMouseLeave}
-      className={`
-    hidden md:flex items-center justify-center barra-fantasma z-[50] sticky top-6
-    backdrop-blur-xl rounded-full border shadow-2xl mx-auto transition-all 
-    /* Ajuste 2: Curva de transição mais elegante (cubic-bezier) */
-    duration-500 ease-[cubic-bezier(0.23,1,0.32,1)]
-    ${
-      isScrolled && !isHovered
-        ? 'p-1.5 px-4 gap-3 bg-black/40 border-white/20 opacity-90 scale-95'
-        : 'p-2 px-6 gap-5 bg-black/70 border-white/30 opacity-100 scale-100'
-    } 
-  `}
-    >
-      <div className="flex items-center gap-3 text-white text-[13px] font-medium italic">
-        <div className="flex items-center gap-2">
-          <ImageIcon
-            size={18}
-            className="text-[#F3E5AB] drop-shadow-[0_0_3px_rgba(243,229,171,0.5)]"
-          />
-          {(!isScrolled || isHovered) && (
-            <span className="whitespace-nowrap animate-in fade-in duration-300">
-              {photos.length} fotos
-            </span>
-          )}
-        </div>
-      </div>
-
-      <div className="w-[1px] h-4 bg-white/20"></div>
-
-      <div className="flex items-center gap-3 text-white text-[13px] font-medium italic">
-        <div className="flex items-center gap-2">
-          <Calendar
-            size={18}
-            className="text-[#F3E5AB] drop-shadow-[0_0_3px_rgba(243,229,171,0.5)]"
-          />
-          <span className="whitespace-nowrap animate-in fade-in duration-300">
-            {(!isScrolled || isHovered) &&
-              new Date(galeria.date).toLocaleDateString('pt-BR', {
-                day: '2-digit',
-                month: 'long',
-                year: 'numeric',
-              })}
-          </span>
-        </div>
-
-        {galeria.location && (
-          <div className="flex items-center gap-3 animate-in fade-in slide-in-from-left-3 duration-300">
-            <div className="w-[1px] h-4 bg-white/20"></div>
-            <div className="flex items-center gap-2 max-w-[250px] truncate">
-              <MapPin
-                size={18}
-                className="text-[#F3E5AB] drop-shadow-[0_0_3_px_rgba(243,229,171,0.5)]"
-              />
-              {(!isScrolled || isHovered) && (
-                <span className="tracking-tight">{galeria.location}</span>
-              )}
-            </div>
-          </div>
-        )}
-      </div>
-
-      <div className="flex items-center gap-2 pl-3 border-l border-white/20 ml-auto">
-        {favorites.length > 0 && (
-          <button
-            onClick={() => setShowOnlyFavorites(!showOnlyFavorites)}
-            className={`
-    flex items-center justify-center rounded-full transition-all duration-500 ease-out overflow-hidden h-10
-    ${showOnlyFavorites ? 'bg-[#E67E70] text-white shadow-lg' : 'bg-white/10 text-white hover:bg-white/20'}
-    ${
-      isScrolled && !isHovered
-        ? 'w-10 border border-white/20'
-        : 'w-[130px] border border-white/10 px-4 gap-2'
-    }
-  `}
-          >
-            <div className="flex-shrink-0">
-              <Filter size={16} />
-            </div>
-
-            {(!isScrolled || isHovered) && (
-              <span className="text-[13px] font-medium tracking-widest whitespace-nowrap animate-in fade-in duration-500">
-                Favoritos
+    <div className="hidden md:block z-[100] sticky top-0 w-full pointer-events-none">
+      <div
+        className={`
+          mx-auto transition-all duration-700 ease-[cubic-bezier(0.23,1,0.32,1)]
+          pointer-events-auto overflow-hidden
+          ${
+            isCompact
+              ? 'w-[40%] max-w-[1100px] mt-4 bg-black/45 backdrop-blur-xl border border-white/10 shadow-2xl rounded-[0.5rem]'
+              : 'w-full max-w-none mt-0 bg-black/80 border-b border-white/20 rounded-none'
+          }
+        `}
+      >
+        <div className="flex items-center w-full max-w-[1600px] px-6 gap-3 h-14 mx-auto min-w-0">
+          {/* ÍCONE INDICATIVO DE FERRAMENTAS */}
+          <div className="flex items-center gap-2 mr-4 border-r border-white/10 pr-4">
+            <Wand2 size={18} className="text-[#F3E5AB]" />
+            {!isCompact && (
+              <span className="text-[10px] text-white/70 uppercase font-bold tracking-widest hidden lg:block">
+                Ferramentas
               </span>
             )}
-          </button>
-        )}
-
-        <button
-          onClick={downloadAllAsZip}
-          disabled={isDownloading}
-          className={`
-    flex items-center justify-center rounded-full bg-champagne-dark text-slate-900 shadow-xl 
-    transition-all duration-500 ease-out overflow-hidden h-10
-    ${
-      isScrolled && !isHovered && !isDownloading
-        ? 'w-10'
-        : 'w-[150px] px-4 gap-2'
-    }
-  `}
-        >
-          <div className="flex-shrink-0">
-            {isDownloading ? (
-              <Loader2 size={16} className="animate-spin" />
-            ) : (
-              <Download size={16} />
-            )}
           </div>
+          {/* SEÇÃO ESQUERDA: TAGS OU SELETOR DE COLUNAS (Fallback) */}
+          {hasTags ? (
+            <div className="flex items-center gap-3 flex-1 min-w-0">
+              <div className="flex items-center shrink-0">
+                <Tag size={18} className="text-[#F3E5AB]" />
+                {!isCompact && (
+                  <span className="ml-2 text-[12px] text-white/70 uppercase font-bold tracking-tighter hidden lg:block">
+                    Categoria
+                  </span>
+                )}
+              </div>
 
-          {(isDownloading || !isScrolled || isHovered) && (
-            <span className="text-[13px] font-medium whitespace-nowrap animate-in fade-in duration-500">
-              {isDownloading
-                ? `${Math.round(downloadProgress)}%`
-                : 'Baixar tudo'}
-            </span>
+              <nav className="flex items-center gap-2 flex-1 min-w-0 overflow-x-auto no-scrollbar scroll-smooth">
+                {visibleTags.map((tag: string) => (
+                  <button
+                    key={tag}
+                    onClick={() => setActiveTag(tag === activeTag ? '' : tag)}
+                    className={`px-4 py-1.5 rounded-[0.5rem] text-[11px] font-medium uppercase transition-all shrink-0 border ${
+                      activeTag === tag
+                        ? 'bg-[#F3E5AB] text-black border-[#F3E5AB]'
+                        : 'bg-white/5 text-white/50 border-white/10 hover:text-white'
+                    }`}
+                  >
+                    {tag}
+                  </button>
+                ))}
+
+                {(hiddenTags.length > 0 || isCompact) && (
+                  <button
+                    onClick={() => setShowFilters(!showFilters)}
+                    className="flex items-center gap-1.5 px-3 py-1.5 rounded-[0.5rem] text-[11px] font-medium uppercase shrink-0 border border-[#F3E5AB]/30 text-[#F3E5AB] hover:bg-[#F3E5AB]/10"
+                  >
+                    <span>
+                      {isCompact
+                        ? `Tags (${tags.length})`
+                        : `+${hiddenTags.length}`}
+                    </span>
+                    <ChevronDown
+                      size={12}
+                      className={showFilters ? 'rotate-180' : ''}
+                    />
+                  </button>
+                )}
+              </nav>
+            </div>
+          ) : (
+            /* QUANDO NÃO TEM TAGS: O Seletor de colunas assume o lado esquerdo */
+            <div className="flex items-center flex-1">
+              <div className="flex items-center gap-2 bg-white/5 rounded-[0.5rem] px-2 h-10 border border-white/10">
+                <Monitor size={14} className="text-[#F3E5AB] mx-1" />
+                {[3, 4, 5, 6, 7, 8].map((num) => (
+                  <button
+                    key={num}
+                    onClick={() =>
+                      setColumns((p: any) => ({ ...p, desktop: num }))
+                    }
+                    className={`w-7 h-7 rounded-[0.2rem] text-[10px] font-bold ${columns.desktop === num ? 'bg-[#F3E5AB] text-black' : 'text-white/70 hover:text-white'}`}
+                  >
+                    {num}
+                  </button>
+                ))}
+              </div>
+            </div>
           )}
-        </button>
+
+          {/* SEÇÃO DIREITA: BOTÕES DE AÇÃO */}
+          <div className="flex items-center gap-2 shrink-0 ml-auto">
+            {/* O seletor de colunas original só aparece aqui se HOUVER tags (para não duplicar) */}
+            {hasTags && !isCompact && (
+              <div className="hidden xl:flex items-center gap-2 bg-white/5 rounded-[0.5rem] px-2 h-10 border border-white/10 mr-1">
+                <Monitor size={14} className="text-[#F3E5AB] mx-1" />
+                {[3, 4, 5, 6, 7, 8].map((num) => (
+                  <button
+                    key={num}
+                    onClick={() =>
+                      setColumns((p: any) => ({ ...p, desktop: num }))
+                    }
+                    className={`w-7 h-7 rounded-[0.2rem] text-[10px] font-bold ${columns.desktop === num ? 'bg-[#F3E5AB] text-black' : 'text-white/70 hover:text-white'}`}
+                  >
+                    {num}
+                  </button>
+                ))}
+              </div>
+            )}
+
+            <button
+              onClick={() => setShowOnlyFavorites(!showOnlyFavorites)}
+              className={`flex items-center justify-center rounded-[0.5rem] h-10 border transition-all ${
+                showOnlyFavorites
+                  ? 'bg-[#E67E70] border-[#E67E70] text-white'
+                  : 'bg-[#1A1A1A] border-white/10 text-white'
+              } ${isCompact ? 'w-10' : 'w-28 gap-2'}`}
+            >
+              <Filter size={16} />
+              {!isCompact && (
+                <span className="text-[11px] font-medium uppercase">
+                  Favoritos
+                </span>
+              )}
+            </button>
+
+            <button
+              onClick={handleShare}
+              className={`flex items-center justify-center rounded-[0.5rem] h-10 border border-white/10 bg-[#1A1A1A] text-white transition-all ${isCompact ? 'w-10' : 'w-28 gap-2'}`}
+            >
+              <MessageCircle size={16} />
+              {!isCompact && (
+                <span className="text-[11px] font-medium uppercase">
+                  Whatsapp
+                </span>
+              )}
+            </button>
+
+            <button
+              onClick={() => {
+                navigator.clipboard.writeText(window.location.href);
+                setCopied(true);
+                setTimeout(() => setCopied(false), 2000);
+              }}
+              className={`flex items-center justify-center rounded-[0.5rem] h-10 border border-white/10 bg-[#1A1A1A] text-white transition-all ${isCompact ? 'w-10' : 'w-24 gap-2'}`}
+            >
+              {copied ? (
+                <Check size={16} className="text-[#F3E5AB]" />
+              ) : (
+                <LinkIcon size={16} />
+              )}
+              {!isCompact && (
+                <span className="text-[11px] font-medium uppercase">Link</span>
+              )}
+            </button>
+
+            <button
+              onClick={downloadAllAsZip}
+              disabled={isDownloading}
+              className={`flex items-center justify-center rounded-[0.5rem] bg-[#F3E5AB] text-black h-10 font-bold shadow-xl transition-all ${isCompact ? 'w-10' : 'w-28 gap-2'}`}
+            >
+              {isDownloading ? (
+                <Loader2 size={16} className="animate-spin" />
+              ) : (
+                <Download size={16} />
+              )}
+              {!isCompact && (
+                <span className="text-[11px] uppercase">Baixar</span>
+              )}
+            </button>
+          </div>
+        </div>
+
+        {/* PAINEL DE FILTROS EXPANDIDOS */}
+        <div
+          className={`overflow-hidden transition-all duration-500 w-full border-t border-white/10 bg-black/95 backdrop-blur-2xl ${showFilters ? 'max-h-[50vh] opacity-100' : 'max-h-0 opacity-0'}`}
+        >
+          <div className="flex flex-wrap items-center justify-center gap-3 py-8 px-10">
+            {tags.map((tag: string) => (
+              <button
+                key={tag}
+                onClick={() => {
+                  setActiveTag(tag);
+                  setShowFilters(false);
+                }}
+                className={`px-5 py-2.5 rounded-[0.5rem] text-[11px] font-medium uppercase border ${activeTag === tag ? 'bg-[#F3E5AB] text-black border-[#F3E5AB]' : 'text-white/50 border-white/10 hover:text-white'}`}
+              >
+                {tag}
+              </button>
+            ))}
+          </div>
+        </div>
       </div>
     </div>
   );

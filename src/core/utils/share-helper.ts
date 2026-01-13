@@ -37,8 +37,8 @@ export const executeShare = async ({
 
   // 2. Fallback: WhatsApp (Desktop ou falha no Mobile)
   // No Fallback, garantimos que o link esteja na última linha para o WhatsApp ler os metadados
-  const fullMessage = url ? `${text}\n\n${url}` : text;
-  const encodedText = encodeURIComponent(fullMessage);
+  //const fullMessage = url ? `${text}\n\n${url}` : text;
+  const encodedText = encodeURIComponent(text);
 
   const whatsappUrl = cleanPhone
     ? `https://api.whatsapp.com/send?phone=${cleanPhone}&text=${encodedText}`
