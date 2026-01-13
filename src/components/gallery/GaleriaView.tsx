@@ -66,10 +66,7 @@ export default function GaleriaView({ galeria, photos }: GaleriaViewProps) {
         )}
       </div>
 
-      {/* 1. NOVA CAPA HERO EXPANSÍVEL */}
-      {showCover && (
-        <GaleriaHero galeria={galeria} coverUrl={coverUrl} photos={photos} />
-      )}
+      <GaleriaHero galeria={galeria} coverUrl={coverUrl} photos={photos} />
 
       {/* 2. CONTENT LAYER */}
       <div
