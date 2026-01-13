@@ -64,40 +64,36 @@ export const GaleriaHero = ({ galeria, photos, coverUrl }: any) => {
       </div>
 
       <div
-        className={`relative h-full flex flex-col px-4 md:px-6 transition-all duration-[1200ms] ${
+        className={`relative h-full flex flex-col px-2 md:px-12 transition-all duration-[1200ms] ${
           isExpanded
-            ? 'justify-start pt-10 md:pt-32 items-center text-center' // Centraliza tudo quando expandido
-            : 'justify-center items-start text-left' // Alinha à esquerda quando recolhido
+            ? 'justify-end pb-20 md:pb-24 items-start text-left' // Alinhado abaixo e à esquerda no expandido
+            : 'justify-center items-start text-left' // Mantém à esquerda no recolhido
         }`}
       >
         <div
           className={`flex transition-all duration-1000 items-center gap-4 md:gap-6 ${
             isExpanded
-              ? 'flex-col scale-100 md:scale-110' // Câmera em cima no expandido
-              : 'flex-row scale-90 md:scale-95' // Câmera ao lado no recolhido
+              ? 'flex-row scale-100 md:scale-110' // Câmera ao lado também no expandido para fluir à esquerda
+              : 'flex-row scale-90 md:scale-95'
           } `}
         >
           {/* ÍCONE DA CÂMERA */}
           <div
             className={`flex items-center justify-center border border-[#F3E5AB]/60 rounded-full bg-black/40 backdrop-blur-md transition-all duration-1000 shrink-0 shadow-2xl ${
-              isExpanded ? 'w-16 h-16' : 'w-12 h-12 md:w-16 md:h-16'
+              isExpanded
+                ? 'w-16 h-16 md:w-20 md:h-20'
+                : 'w-12 h-12 md:w-16 md:h-16'
             }`}
           >
             <Camera className="text-[#F3E5AB] w-1/2 h-1/2 " />
           </div>
 
           {/* TÍTULO E METADADOS */}
-          <div
-            className={`flex flex-col transition-all duration-1000 ${
-              isExpanded ? 'items-center text-center' : 'items-start text-left'
-            }`}
-          >
-            <div
-              className={`w-fit flex flex-col ${isExpanded ? 'items-center' : 'items-start'}`}
-            >
+          <div className="flex flex-col items-start text-left transition-all duration-1000">
+            <div className="w-fit flex flex-col items-start">
               <h1
                 className={`font-bold italic text-white transition-all duration-1000 drop-shadow-md leading-tight
-                ${isExpanded ? 'text-3xl md:text-7xl mb-2' : 'text-xl md:text-6xl mb-1'}`}
+                ${isExpanded ? 'text-3xl md:text-6xl mb-2' : 'text-xl md:text-6xl mb-1'}`}
                 style={{ fontFamily: "'Playfair Display', serif" }}
               >
                 {galeria.title}
@@ -109,13 +105,7 @@ export const GaleriaHero = ({ galeria, photos, coverUrl }: any) => {
             </div>
 
             {/* DADOS */}
-            <div
-              className={`flex flex-col md:flex-row md:items-center gap-x-3 gap-y-1.5 md:gap-x-4 md:gap-y-2 transition-all duration-1000 ${
-                isExpanded
-                  ? 'items-center justify-center'
-                  : 'items-start justify-start'
-              }`}
-            >
+            <div className="flex flex-col md:flex-row md:items-center gap-x-3 gap-y-1.5 md:gap-x-4 md:gap-y-2 transition-all duration-1000 items-start justify-start">
               {galeria.location && (
                 <div className="flex items-center text-white text-[11px] md:text-[15px] font-semibold italic shrink-0 gap-1 ">
                   <MapPin size={14} className="text-[#F3E5AB]" />
@@ -151,7 +141,7 @@ export const GaleriaHero = ({ galeria, photos, coverUrl }: any) => {
         {isExpanded && (
           <button
             onClick={() => setIsExpanded(false)}
-            className="absolute bottom-12 md:bottom-10 animate-bounce text-white/60 hover:text-[#F3E5AB] p-2"
+            className="absolute bottom-12 left-1/2 -translate-x-1/2 animate-bounce text-white/60 hover:text-[#F3E5AB] p-2"
           >
             <ChevronDown size={32} className="md:w-10 md:h-10" />
           </button>
@@ -162,7 +152,7 @@ export const GaleriaHero = ({ galeria, photos, coverUrl }: any) => {
             onClick={() => setIsExpanded(true)}
             className="w-9 h-9 md:w-12 md:h-12 absolute bottom-4 right-4 md:right-6 flex items-center gap-2 bg-black/60 backdrop-blur-md border border-white/20 text-white/90 px-3 py-1.5 md:px-4 md:py-2 rounded-[0.5rem]  uppercase tracking-widest transition-all shadow-xl active:scale-95"
           >
-            <Maximize2 className="w-4 h-4 md:w-5 md:h-5" />{' '}
+            <Maximize2 className="w-4 h-4 md:w-5 md:h-5" />
           </button>
         )}
       </div>
