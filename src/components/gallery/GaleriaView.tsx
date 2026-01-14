@@ -79,7 +79,7 @@ export default function GaleriaView({ galeria, photos }: GaleriaViewProps) {
             <div className="flex flex-col items-center justify-center py-24 text-center">
               <div className="animate-spin rounded-full h-10 w-10 border-b-2 border-[#D4AF37] mb-6" />
               <p
-                className={`font-serif italic text-xl ${showCover ? 'text-[#D4AF37]' : 'text-slate-500'}`}
+                className={`italic text-xl ${showCover ? 'text-[#D4AF37]' : 'text-slate-500'}`}
               >
                 Nenhuma foto encontrada nesta galeria.
               </p>

@@ -38,7 +38,7 @@ export default function GaleriaFooter({ galeria }: GaleriaFooterProps) {
         </button>
         {/* 2. Bloco Central Editorial (Compactado) */}
         <div className="text-center space-y-2">
-          <h3 className="font-serif italic text-2xl md:text-4xl text-slate-900 tracking-tight">
+          <h3 className="italic text-2xl md:text-4xl text-slate-900 tracking-tight">
             {galeria.title}
           </h3>
 
@@ -48,7 +48,7 @@ export default function GaleriaFooter({ galeria }: GaleriaFooterProps) {
             </p>
 
             {/* Container Horizontal: Alinha "por" + Nome + Botões */}
-            <div className="text-[12px] md:text-[16px] flex items-center gap-2 text-slate-500 font-serif italic  ">
+            <div className="text-[12px] md:text-[16px] flex items-center gap-2 text-slate-500 italic  ">
               <span>por</span>
 
               <div className="flex items-center gap-4  py-1.5 not-italic">
@@ -136,7 +136,7 @@ export default function GaleriaFooter({ galeria }: GaleriaFooterProps) {
               rel="noopener noreferrer"
               className="hover:opacity-80 transition-opacity"
             >
-              <span className="text-[#D4AF37] font-serif italic tracking-normal text-xs md:text-sm ml-1 cursor-pointer">
+              <span className="text-[#D4AF37] italic tracking-normal text-xs md:text-sm ml-1 cursor-pointer">
                 Sua Galeria de Fotos
               </span>
             </a>

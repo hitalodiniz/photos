@@ -27,7 +27,7 @@ export const GalleryHeader: React.FC<GalleryHeaderProps> = ({
 
       {/* TEXTOS EDITORIAIS */}
       <div className="flex flex-col text-left">
-        <h2 className="text-lg md:text-2xl font-semibold italic font-serif leading-tight text-white drop-shadow-lg tracking-tight">
+        <h2 className="text-[16px] md:text-2xl font-semibold  leading-tight text-white drop-shadow-lg tracking-tight">
           {title}
         </h2>
 
@@ -35,7 +35,7 @@ export const GalleryHeader: React.FC<GalleryHeaderProps> = ({
         <div className="flex flex-col items-start gap-y-1 mt-1.5">
           {/* DATA (PRIMEIRO) */}
           {data && (
-            <div className="flex items-center gap-2 text-[#F3E5AB]/90 text-[11px] md:text-[14px] tracking-wider font-medium italic">
+            <div className="flex items-center gap-2 text-[#F3E5AB]/90 text-[11px] md:text-[14px] tracking-wider font-medium ">
               <Calendar size={14} className="text-[#F3E5AB] opacity-80" />
               <span className="drop-shadow-sm">
                 {new Date(data).toLocaleDateString('pt-BR', {
@@ -49,7 +49,7 @@ export const GalleryHeader: React.FC<GalleryHeaderProps> = ({
 
           {/* LOCALIZAÇÃO (DEPOIS) */}
           {location && (
-            <div className="flex items-center gap-2 text-[#F3E5AB]/90 text-[11px] md:text-[14px] tracking-wider font-medium italic">
+            <div className="flex items-center gap-2 text-[#F3E5AB]/90 text-[11px] md:text-[14px] tracking-wider font-medium ">
               <MapPin size={14} className="text-[#F3E5AB] animate-pulse" />
               <span className="drop-shadow-sm">{location}</span>
             </div>

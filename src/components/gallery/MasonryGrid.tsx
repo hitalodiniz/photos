@@ -1,7 +1,7 @@
 'use client';
 import React, { memo, useEffect, useRef, useState } from 'react';
 import Image from 'next/image';
-import { Download, Heart, Loader2, MessageCircle } from 'lucide-react';
+import { Heart, Loader2 } from 'lucide-react';
 import 'photoswipe/dist/photoswipe.css';
 import { Gallery, Item } from 'react-photoswipe-gallery';
 import { Galeria } from '@/core/types/galeria';
@@ -10,12 +10,15 @@ import { handleDownloadPhoto } from '@/core/utils/foto-helpers';
 import { GALLERY_MESSAGES } from '@/constants/messages';
 import { getCleanSlug, executeShare } from '@/core/utils/share-helper';
 import LoadingSpinner from '../ui/LoadingSpinner';
+import { GridPhotoActions } from './GridPhotoActions';
 
+// --- MASONRY GRID PRINCIPAL ---
 interface Photo {
   id: string;
   url: string;
   width: number;
   height: number;
+  tag?: string;
 }
 
 interface MasonryGridProps {
@@ -25,7 +28,6 @@ interface MasonryGridProps {
   favorites: string[];
   toggleFavoriteFromGrid: (id: string) => void;
   setSelectedPhotoIndex: (index: number) => void;
-  photos: Photo[];
   showOnlyFavorites: boolean;
   setShowOnlyFavorites: (value: boolean) => void;
   columns: { mobile: number; tablet: number; desktop: number };
@@ -75,14 +77,15 @@ const MasonryGrid = ({
     return () => window.removeEventListener('resize', checkScreen);
   }, []);
 
-  const limitedPhotos = showOnlyFavorites
-    ? displayedPhotos
-    : displayedPhotos.slice(0, displayLimit);
-
   const handleShareWhatsAppGrid = (photoId: string) => {
     const shareUrl = `${window.location.origin}/photo/${photoId}?s=${getCleanSlug(galeria.slug)}`;
     const shareText = GALLERY_MESSAGES.PHOTO_SHARE(galleryTitle, shareUrl);
     executeShare({ title: galleryTitle, text: shareText });
+  };
+
+  const handleCopyLinkGrid = (photoId: string) => {
+    const shareUrl = `${window.location.origin}/photo/${photoId}?s=${getCleanSlug(galeria.slug)}`;
+    navigator.clipboard.writeText(shareUrl);
   };
 
   const currentCols = isMobile ? columns.mobile : columns.desktop;
@@ -95,17 +98,21 @@ const MasonryGrid = ({
       : Math.max(0.6, 1 - (currentCols - 4) * 0.1);
   const iconSize = Math.round(18 * btnScale);
 
+  const limitedPhotos = showOnlyFavorites
+    ? displayedPhotos
+    : displayedPhotos.slice(0, displayLimit);
+
   return (
     <div className="w-full h-auto">
       {showOnlyFavorites && displayedPhotos.length === 0 ? (
-        <div className="text-center py-10  md:py-20 px-4 animate-in fade-in duration-700">
-          <Heart size={48} className="text-champagne-dark mb-2 mx-auto" />
+        <div className="text-center py-10 md:py-20 px-4 animate-in fade-in duration-700">
+          <Heart size={48} className="text-[#D4AF37] mb-2 mx-auto" />
           <p className="italic text-[14px] md:text-[18px] text-white mb-8">
             Nenhuma foto favorita selecionada
           </p>
           <button
             onClick={() => setShowOnlyFavorites(false)}
-            className="mx-auto px-4 py-2 rounded-[0.5rem] bg-champagne-dark text-slate-900 uppercase text-[11px] md:text-[12px] font-semibold"
+            className="mx-auto px-4 py-2 rounded-[0.5rem] bg-[#D4AF37] text-black uppercase text-[11px] font-semibold"
           >
             Exibir todas as fotos
           </button>
@@ -114,8 +121,6 @@ const MasonryGrid = ({
         <div className="max-w-[1600px] mx-auto px-2 pt-2 pb-2">
           <Gallery withCaption>
             <div
-              key={showOnlyFavorites ? 'favorites-grid' : 'full-grid'}
-              //Gap aqui ajusta o espaçamento entre fotos
               className="w-full transition-all duration-700 grid gap-1.5 grid-flow-row-dense"
               style={{
                 gridTemplateColumns: `repeat(${columns.mobile}, minmax(0, 1fr))`,
@@ -153,8 +158,7 @@ const MasonryGrid = ({
                   >
                     {({ ref }) => (
                       <div
-                        id={`photo-${index}`}
-                        className={`relative group shadow-sm hover:shadow-xl transition-all duration-500 rounded-[0.5rem] overflow-hidden border border-black/5 ring-1 ring-white/10 ${showOnlyFavorites ? 'aspect-square bg-slate-100' : photo.height > photo.width ? 'md:row-span-2' : 'row-span-1'}`}
+                        className={`relative group shadow-sm hover:shadow-xl transition-all duration-500 rounded-[0.5rem] overflow-hidden border border-black/5 ring-1 ring-white/10 ${showOnlyFavorites ? 'aspect-square bg-white/5' : photo.height > photo.width ? 'md:row-span-2' : 'row-span-1'}`}
                       >
                         <a
                           href="#"
@@ -168,7 +172,7 @@ const MasonryGrid = ({
                           <SafeImage
                             photoId={photo.id}
                             src={getProxyUrl(photo.id, '400')}
-                            alt=""
+                            alt={`Foto ${index + 1}`}
                             width={photo.width}
                             height={photo.height}
                             priority={index < 4}
@@ -177,67 +181,24 @@ const MasonryGrid = ({
                           />
                         </a>
 
-                        <div className="absolute top-1.5 left-1.5 right-1.5 flex justify-between items-start z-30 pointer-events-none">
-                          <button
-                            onClick={(e) => {
-                              e.preventDefault();
-                              e.stopPropagation();
-                              toggleFavoriteFromGrid(photo.id);
-                            }}
-                            style={{
-                              width: `${isMobile && currentCols === 2 ? 32 : 40 * btnScale}px`,
-                              height: `${isMobile && currentCols === 2 ? 32 : 40 * btnScale}px`,
-                            }}
-                            className={`rounded-full flex items-center justify-center transition-all pointer-events-auto shadow-md ${isSelected ? 'bg-[#E67E70]' : 'bg-black/30 backdrop-blur-md border border-white/10'}`}
-                          >
-                            <Heart
-                              size={
-                                isMobile && currentCols === 2 ? 14 : iconSize
-                              }
-                              fill={isSelected ? 'white' : 'none'}
-                              className="text-white"
-                            />
-                          </button>
-                          <div className="flex gap-1.5 md:gap-2">
-                            <button
-                              onClick={(e) => {
-                                e.preventDefault();
-                                e.stopPropagation();
-                                handleShareWhatsAppGrid(photo.id);
-                              }}
-                              style={{
-                                width: `${isMobile && currentCols === 2 ? 32 : 40 * btnScale}px`,
-                                height: `${isMobile && currentCols === 2 ? 32 : 40 * btnScale}px`,
-                              }}
-                              className="rounded-full bg-black/30 backdrop-blur-md border border-white/20 flex items-center justify-center pointer-events-auto active:bg-[#25D366]"
-                            >
-                              <MessageCircle
-                                size={
-                                  isMobile && currentCols === 2 ? 14 : iconSize
-                                }
-                                className="text-white"
-                              />
-                            </button>
-                            <button
-                              onClick={(e) => {
-                                e.stopPropagation();
-                                handleDownloadPhoto(galeria, photo.id, index);
-                              }}
-                              style={{
-                                width: `${isMobile && currentCols === 2 ? 32 : 40 * btnScale}px`,
-                                height: `${isMobile && currentCols === 2 ? 32 : 40 * btnScale}px`,
-                              }}
-                              className="rounded-full bg-black/30 backdrop-blur-md border border-white/20 flex items-center justify-center pointer-events-auto active:bg-white active:text-black"
-                            >
-                              <Download
-                                size={
-                                  isMobile && currentCols === 2 ? 14 : iconSize
-                                }
-                                className="text-white active:text-black"
-                              />
-                            </button>
-                          </div>
-                        </div>
+                        <GridPhotoActions
+                          photoId={photo.id}
+                          isFavorited={isSelected}
+                          onToggleFavorite={() =>
+                            toggleFavoriteFromGrid(photo.id)
+                          }
+                          onShareWhatsApp={() =>
+                            handleShareWhatsAppGrid(photo.id)
+                          }
+                          onCopyLink={() => handleCopyLinkGrid(photo.id)}
+                          onDownload={() =>
+                            handleDownloadPhoto(galeria, photo.id, index)
+                          }
+                          btnScale={btnScale}
+                          iconSize={iconSize}
+                          isMobile={isMobile}
+                          currentCols={currentCols}
+                        />
                       </div>
                     )}
                   </Item>
@@ -265,6 +226,7 @@ const MasonryGrid = ({
   );
 };
 
+// --- COMPONENTE DE IMAGEM OTIMIZADO ---
 const loadedImagesCache = new Set<string>();
 const SafeImage = memo(
   ({
@@ -281,10 +243,12 @@ const SafeImage = memo(
     const [status, setStatus] = useState<'loading' | 'loaded' | 'error'>(
       isAlreadyLoaded ? 'loaded' : 'loading',
     );
+
     const handleLoad = () => {
       loadedImagesCache.add(photoId);
       setStatus('loaded');
     };
+
     return (
       <div
         className="relative w-full h-full overflow-hidden flex items-center justify-center"

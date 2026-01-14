@@ -54,7 +54,7 @@ export default function ConfirmationModal({
                 )}
               </div>
 
-              <h2 className="text-xl font-semibold tracking-tight text-slate-900 italic font-serif">
+              <h2 className="text-xl font-semibold tracking-tight text-slate-900 italic ">
                 {title}
               </h2>
             </div>

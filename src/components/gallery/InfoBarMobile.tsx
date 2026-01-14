@@ -4,13 +4,13 @@ import {
   Filter,
   Download,
   Loader2,
-  MessageCircle,
   User,
   Tag,
   Monitor,
   Link as LinkIcon,
   Check,
 } from 'lucide-react';
+import WhatsAppIcon from '../ui/WhatsAppIcon';
 
 // Componente do Balão de Dica com animação de pulo
 const Tooltip = ({
@@ -133,7 +133,7 @@ export const InfoBarMobile = ({
               onClick={handleShare}
               className="w-9 h-9 rounded-[0.5rem] flex items-center justify-center bg-white/5 text-[#25D366] active:bg-white/20"
             >
-              <MessageCircle size={18} />
+              <WhatsAppIcon className="text-white w-[18px] h-[18px]" />
             </button>
             {hintStep === 4 && (
               <Tooltip text="Compartilhar por WhatsApp" position="center" />

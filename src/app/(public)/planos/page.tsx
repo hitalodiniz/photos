@@ -88,7 +88,7 @@ export default function PlanosPage() {
             <table className="w-full text-left border-separate border-spacing-0 min-w-[850px]">
               <thead>
                 <tr className="sticky top-0 z-30 bg-white/95 backdrop-blur-md shadow-sm">
-                  <th className="py-8 px-4 border-b-2 border-slate-900 text-slate-950 font-serif italic text-2xl tracking-tight bg-white">
+                  <th className="py-8 px-4 border-b-2 border-slate-900 text-slate-950 italic text-2xl tracking-tight bg-white">
                     Categoria
                   </th>
                   {planosKeys.map((key) => {

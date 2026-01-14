@@ -1,6 +1,5 @@
 'use client';
-import React, { useState, useEffect, useMemo } from 'react';
-import { Lightbox } from '@/components/gallery';
+import React, { useState, useEffect, useMemo, useRef } from 'react';
 import {
   Download,
   X,
@@ -8,9 +7,11 @@ import {
   Package,
   Loader2,
   Heart,
+  Wifi,
 } from 'lucide-react';
 import { saveAs } from 'file-saver';
 import JSZip from 'jszip';
+import { Lightbox } from '@/components/gallery';
 import { InfoBarDesktop } from './InfoBarDesktop';
 import { InfoBarMobile } from './InfoBarMobile';
 import MasonryGrid from './MasonryGrid';
@@ -20,7 +21,7 @@ import { executeShare } from '@/core/utils/share-helper';
 import { groupPhotosByWeight } from '@/core/utils/foto-helpers';
 
 export default function PhotoGrid({ photos, galeria }: any) {
-  // --- ESTADOS DE CONTROLE ---
+  // --- 1. ESTADOS DE INTERFACE ---
   const [selectedPhotoIndex, setSelectedPhotoIndex] = useState<number | null>(
     null,
   );
@@ -29,31 +30,37 @@ export default function PhotoGrid({ photos, galeria }: any) {
   const [showOnlyFavorites, setShowOnlyFavorites] = useState(false);
   const [activeTag, setActiveTag] = useState('Todas');
   const [showVolumeDashboard, setShowVolumeDashboard] = useState(false);
+  const [canShowFavButton, setCanShowFavButton] = useState(false);
 
-  // --- ESTADOS DE DOWNLOAD ---
+  // --- 2. ESTADOS DE DOWNLOAD E DADOS ---
   const [isDownloading, setIsDownloading] = useState(false);
   const [downloadProgress, setDownloadProgress] = useState(0);
   const [isDownloadingFavs, setIsDownloadingFavs] = useState(false);
   const [favDownloadProgress, setFavDownloadProgress] = useState(0);
   const [downloadedVolumes, setDownloadedVolumes] = useState<number[]>([]);
   const [activeDownloadingIndex, setActiveDownloadingIndex] = useState<
-    number | null
+    number | string | null
   >(null);
-  const storageKey = `favoritos_galeria_${galeria.id}`;
   const [favorites, setFavorites] = useState<string[]>([]);
 
-  // --- LÓGICA DE VOLUMES
+  // --- 3. REFS E CONSTANTES ---
+  const gridRef = useRef<HTMLDivElement>(null);
+  const anchorRef = useRef<HTMLDivElement>(null);
+  const storageKey = `favoritos_galeria_${galeria.id}`;
+
+  // --- 4. MEMOS (CÁLCULOS) ---
   const VOLUMES = useMemo(() => {
-    const LIMIT = 500 * 1024 * 1024; // 500 MB cada zip
+    const isMobile = typeof window !== 'undefined' && window.innerWidth < 768;
+    const LIMIT = (isMobile ? 200 : 500) * 1024 * 1024;
     return groupPhotosByWeight(photos, LIMIT);
   }, [photos]);
 
   const FAVORITE_VOLUMES = useMemo(() => {
-    const LIMIT = 500 * 1024 * 1024; // 500 MB cada zip
+    const isMobile = typeof window !== 'undefined' && window.innerWidth < 768;
+    const LIMIT = (isMobile ? 200 : 500) * 1024 * 1024;
     const targetList = favorites
       .map((id) => photos.find((p: any) => p.id === id))
       .filter(Boolean);
-
     return groupPhotosByWeight(targetList, LIMIT);
   }, [favorites, photos]);
 
@@ -72,27 +79,6 @@ export default function PhotoGrid({ photos, galeria }: any) {
     [photos],
   );
 
-  useEffect(() => {
-    const saved = localStorage.getItem(storageKey);
-    if (saved) setFavorites(JSON.parse(saved));
-  }, [storageKey]);
-
-  useEffect(() => {
-    localStorage.setItem(storageKey, JSON.stringify(favorites));
-  }, [favorites, storageKey]);
-
-  const toggleFavoriteFromGrid = (id: string) => {
-    setFavorites((prev) =>
-      prev.includes(id) ? prev.filter((f) => f !== id) : [...prev, id],
-    );
-  };
-
-  useEffect(() => {
-    const handleScroll = () => setIsScrolled(window.scrollY > 100);
-    window.addEventListener('scroll', handleScroll);
-    return () => window.removeEventListener('scroll', handleScroll);
-  }, []);
-
   const displayedPhotos = useMemo(
     () =>
       photos.filter((photo: any) => {
@@ -105,28 +91,105 @@ export default function PhotoGrid({ photos, galeria }: any) {
     [photos, showOnlyFavorites, favorites, activeTag],
   );
 
+  const [columns, setColumns] = useState({
+    mobile: Math.min(2, galeria.columns_mobile || 2),
+    tablet: Math.min(5, Math.max(2, galeria.columns_tablet || 3)),
+    desktop: Math.min(8, Math.max(3, galeria.columns_desktop || 5)),
+  });
+
+  // --- 5. EFFECTS (LÓGICA E SINCRONIZAÇÃO) ---
+
+  // Persistência: Carregar (30 dias)
+  // 1. CARREGAR E RENOVAR (Roda ao abrir a página)
+  useEffect(() => {
+    const savedData = localStorage.getItem(storageKey);
+    if (savedData) {
+      try {
+        const { items, timestamp } = JSON.parse(savedData);
+
+        // Verifica se já expirou (30 dias sem visita)
+        const isExpired = Date.now() - timestamp > 30 * 24 * 60 * 60 * 1000;
+
+        if (isExpired) {
+          localStorage.removeItem(storageKey);
+          setFavorites([]);
+        } else {
+          setFavorites(items || []);
+
+          // ESTRATÉGIA DE RENOVAÇÃO:
+          // Se ele entrou e os dados são válidos, salvamos de novo com o timestamp de HOJE.
+          // Isso empurra a expiração para +30 dias a partir de agora.
+          localStorage.setItem(
+            storageKey,
+            JSON.stringify({
+              items: items,
+              timestamp: Date.now(),
+            }),
+          );
+        }
+      } catch (e) {
+        console.error('Erro ao processar favoritos:', e);
+      }
+    }
+  }, [storageKey]);
+
+  // 2. SALVAR MUDANÇAS (Roda ao favoritar/desfavoritar)
+  useEffect(() => {
+    if (favorites.length > 0) {
+      localStorage.setItem(
+        storageKey,
+        JSON.stringify({
+          items: favorites,
+          timestamp: Date.now(),
+        }),
+      );
+    } else {
+      // Se a lista ficar vazia, removemos a chave para limpar o storage
+      localStorage.removeItem(storageKey);
+    }
+  }, [favorites, storageKey]);
+
+  // Scroll e Observer
+  useEffect(() => {
+    const handleScroll = () => setIsScrolled(window.scrollY > 100);
+    window.addEventListener('scroll', handleScroll);
+
+    const observer = new IntersectionObserver(
+      ([entry]) => {
+        setCanShowFavButton(entry.isIntersecting);
+      },
+      { threshold: 0, rootMargin: '0px 0px -10% 0px' },
+    );
+
+    if (anchorRef.current) observer.observe(anchorRef.current);
+
+    return () => {
+      window.removeEventListener('scroll', handleScroll);
+      observer.disconnect();
+    };
+  }, []);
+
+  // --- 6. HANDLERS ---
+  const toggleFavoriteFromGrid = (id: string) => {
+    setFavorites((prev) =>
+      prev.includes(id) ? prev.filter((f) => f !== id) : [...prev, id],
+    );
+  };
+
   const handleDownloadZip = async (
     targetList: any[],
     zipSuffix: string,
     isFavAction: boolean,
     confirmed = false,
-    chunkIndex?: number,
+    chunkIndex?: number | string,
   ) => {
     if (isDownloading || isDownloadingFavs || targetList.length === 0) return;
-
-    // Define qual volume está sendo baixado agora
     if (chunkIndex !== undefined) setActiveDownloadingIndex(chunkIndex);
-    // CÁLCULO DO OFFSET:
-    // Se PHOTOS_PER_CHUNK for 88, e estivermos no Volume 1 (chunkIndex 1),
-    // o offset será 88, fazendo a primeira foto ser a 89.
-    // Como estamos usando pesos variáveis, o ideal é descobrir o índice global da primeira foto do pacote.
     const firstPhotoGlobalIndex = photos.indexOf(targetList[0]);
-
     const totalMB =
       targetList.reduce((acc, photo) => acc + (Number(photo.size) || 0), 0) /
       (1024 * 1024);
 
-    // ALTERAÇÃO: Agora sempre abre o dashboard para a galeria completa
     if (!confirmed && !isFavAction) {
       setShowVolumeDashboard(true);
       return;
@@ -142,31 +205,31 @@ export default function PhotoGrid({ photos, galeria }: any) {
       setProgress(0);
       const zip = new JSZip();
       let completedCount = 0;
+      const batchSize = window.innerWidth < 768 ? 30 : 100;
 
-      for (let i = 0; i < targetList.length; i += 100) {
-        const currentBatch = targetList.slice(i, i + 100);
+      for (let i = 0; i < targetList.length; i += batchSize) {
+        const currentBatch = targetList.slice(i, i + batchSize);
         await Promise.all(
           currentBatch.map(async (photo, indexInBatch) => {
             try {
               const res = await fetch(getProxyUrl(photo.id, '0'));
-              if (!res.ok) throw new Error(`Erro ${res.status}`);
+              if (!res.ok) throw new Error();
               const blob = await res.blob();
-              // CORREÇÃO AQUI:
-              // Índice global = (Posição da primeira foto do volume) + (Posição atual dentro do volume) + 1
               const globalPhotoNumber =
                 firstPhotoGlobalIndex + i + indexInBatch + 1;
-
               zip.file(`foto-${globalPhotoNumber}.jpg`, blob, { binary: true });
             } catch (e) {
-              console.error(`Erro na foto ${photo.id}:`, e);
+              console.error(e);
             } finally {
               completedCount++;
               setProgress((completedCount / targetList.length) * 95);
             }
           }),
         );
-        if (i + 100 < targetList.length)
-          await new Promise((r) => setTimeout(r, 100));
+        if (i + batchSize < targetList.length)
+          await new Promise((r) =>
+            setTimeout(r, window.innerWidth < 768 ? 300 : 100),
+          );
       }
 
       const content = await zip.generateAsync({
@@ -174,52 +237,35 @@ export default function PhotoGrid({ photos, galeria }: any) {
         compression: 'STORE',
         streamFiles: true,
       });
-      const fileName = `${galeria.title.replace(/\s+/g, '_')}_${zipSuffix}_${totalMB.toFixed(0)}MB.zip`;
-      saveAs(content, fileName);
+      saveAs(
+        content,
+        `${galeria.title.replace(/\s+/g, '_')}_${zipSuffix}_${totalMB.toFixed(0)}MB.zip`,
+      );
       setProgress(100);
-      if (chunkIndex !== undefined)
+      if (typeof chunkIndex === 'number')
         setDownloadedVolumes((prev) => [...new Set([...prev, chunkIndex])]);
     } catch (error) {
-      console.error('Erro no ZIP:', error);
       alert('Erro ao gerar arquivo.');
     } finally {
       setTimeout(() => {
         setStatus(false);
         setProgress(0);
-        setActiveDownloadingIndex(null); // Reseta ao terminar
+        setActiveDownloadingIndex(null);
       }, 1500);
     }
   };
 
-  const handleDownloadFavorites = () => {
-    setShowVolumeDashboard(true);
-  };
-
+  const handleDownloadFavorites = () => setShowVolumeDashboard(true);
   const downloadAllAsZip = () => handleDownloadZip(photos, 'completa', false);
-
-  const [columns, setColumns] = useState({
-    mobile: Math.min(2, galeria.columns_mobile || 2),
-    tablet: Math.min(5, Math.max(2, galeria.columns_tablet || 3)),
-    desktop: Math.min(8, Math.max(3, galeria.columns_desktop || 5)),
-  });
-
-  // ADICIONE ISSO APENAS PARA TESTE
-  /* useEffect(() => {
-    const simularFavoritas = () => {
-      // Pega os IDs das primeiras 100 fotos
-      const IDsSimulados = photos.slice(0, 100).map((p: any) => p.id);
-      setFavorites(IDsSimulados);
-      console.log('Simulação: 100 fotos favoritadas com sucesso!');
-    };
-
-    // Você pode chamar simularFavoritas() no console do navegador
-    // ou descomentar a linha abaixo para rodar uma vez ao carregar:
-    simularFavoritas();
-  }, [photos]);*/
 
   return (
     <div className="relative w-full">
-      {/* BARRAS DE INFO */}
+      <div
+        ref={anchorRef}
+        className="absolute top-0 h-10 w-full pointer-events-none"
+      />
+
+      {/* INFO BARS */}
       <div className="sticky top-0 z-[100] w-full pointer-events-none">
         <InfoBarDesktop
           {...{
@@ -281,20 +327,22 @@ export default function PhotoGrid({ photos, galeria }: any) {
         />
       </div>
 
-      <MasonryGrid
-        {...{
-          galeria,
-          displayedPhotos,
-          favorites,
-          toggleFavoriteFromGrid,
-          setSelectedPhotoIndex,
-          photos,
-          showOnlyFavorites,
-          setShowOnlyFavorites,
-          columns,
-        }}
-        galleryTitle={galeria.title}
-      />
+      <div ref={gridRef}>
+        <MasonryGrid
+          {...{
+            galeria,
+            displayedPhotos,
+            favorites,
+            toggleFavoriteFromGrid,
+            setSelectedPhotoIndex,
+            photos,
+            showOnlyFavorites,
+            setShowOnlyFavorites,
+            columns,
+          }}
+          galleryTitle={galeria.title}
+        />
+      </div>
 
       {/* MODAL CENTRAL DE DOWNLOADS (TEMA BRANCO) */}
       {showVolumeDashboard && (
@@ -331,7 +379,7 @@ export default function PhotoGrid({ photos, galeria }: any) {
 
               <div className="px-6 py-5 border-b border-gray-100 flex justify-between items-center">
                 <div className="min-w-0 text-left">
-                  <h2 className="text-xl font-serif italic text-gray-900 leading-none">
+                  <h2 className="text-xl font-serif text-gray-900 leading-none">
                     Download das fotos
                   </h2>
                   <p className="text-[#D4AF37] text-[10px] font-semibold tracking-tight mt-1.5">
@@ -551,7 +599,33 @@ export default function PhotoGrid({ photos, galeria }: any) {
           </button>
         </div>
       )}
-      {/* LIGHTBOX (Mantido como estava) */}
+
+      {/* BOTÃO FLUTUANTE FAVORITOS */}
+      {favorites.length > 0 && !showVolumeDashboard && canShowFavButton && (
+        <div className="fixed bottom-6 left-1/2 -translate-x-1/2 z-[150] animate-in fade-in zoom-in slide-in-from-bottom-5 duration-300 pointer-events-auto w-fit">
+          <button
+            onClick={handleDownloadFavorites}
+            disabled={isDownloadingFavs}
+            className="flex items-center justify-center rounded-[0.7rem] h-12 bg-[#F3E5AB] text-black border border-white/20 shadow-[0_20px_50px_rgba(0,0,0,0.5)] hover:scale-105 active:scale-95 transition-all px-6 gap-3"
+          >
+            {isDownloadingFavs ? (
+              <Loader2 size={18} className="animate-spin" />
+            ) : (
+              <Download size={18} />
+            )}
+            <div className="flex flex-col items-start leading-tight text-left">
+              <span className="text-[11px] font-bold uppercase tracking-tight">
+                Baixar Favoritas
+              </span>
+              <span className="text-[9px] font-medium opacity-70 italic">
+                {favorites.length} {favorites.length === 1 ? 'foto' : 'fotos'}
+              </span>
+            </div>
+          </button>
+        </div>
+      )}
+
+      {/* LIGHTBOX */}
       {selectedPhotoIndex !== null && photos.length > 0 && (
         <Lightbox
           photos={photos}

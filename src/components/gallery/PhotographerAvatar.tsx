@@ -3,7 +3,7 @@ import React, { useMemo, useState, useEffect } from 'react';
 import type { Galeria } from '@/core/types/galeria';
 import Image from 'next/image';
 import { GALLERY_MESSAGES } from '@/constants/messages';
-
+import InstagramIcon from '@/components/ui/InstagramIcon';
 interface PhotographerAvatarProps {
   galeria: Galeria;
   position: 'top-page' | 'bottom-lightbox';
@@ -42,8 +42,8 @@ export default function PhotographerAvatar({
 
   const positionClasses =
     position === 'top-page'
-      ? 'relative z-10 animate-in fade-in scale-90 md:scale-100 slide-in-from-right-10 duration-700'
-      : 'md:fixed md:bottom-10 md:right-8 scale-90 md:scale-100 z-[15]';
+      ? 'relative z-10 animate-in fade-in scale-90 md:scale-100 slide-in-from-right-10 duration-700 z-[20]'
+      : 'md:fixed md:bottom-10 md:right-8 scale-90 md:scale-100 z-[20]';
 
   return (
     <div
@@ -90,10 +90,10 @@ export default function PhotographerAvatar({
         `}
         >
           <div className="flex flex-col items-start whitespace-nowrap">
-            <p className="text-[8px] md:text-[9px] italic tracking-wider text-[#F3E5AB] font-medium opacity-80 leading-none mb-0.5">
-              Fotografado por
+            <p className="text-[8px] md:text-[9px]  tracking-wider text-[#F3E5AB] font-medium opacity-80 leading-none mb-0.5">
+              Registrado por
             </p>
-            <span className="text-xs md:text-sm font-serif italic text-white leading-tight">
+            <span className="text-[9px] md:text-[10px]  text-white leading-tight">
               {fullName}
             </span>
           </div>
@@ -126,14 +126,7 @@ export default function PhotographerAvatar({
                 className="p-1.5 bg-white/10 text-white rounded-full hover:bg-gradient-to-tr hover:from-[#f09433] hover:via-[#dc2743] hover:to-[#bc1888] transition-all border border-white/10"
                 onClick={(e) => e.stopPropagation()}
               >
-                <svg
-                  width="12"
-                  height="12"
-                  fill="currentColor"
-                  viewBox="0 0 24 24"
-                >
-                  <path d="M12 2.163c3.204 0 3.584.012 4.85.07 3.252.148 4.771 1.691 4.919 4.919.058 1.265.069 1.645.069 4.849 0 3.205-.012 3.584-.069 4.849-.149 3.225-1.664 4.771-4.919 4.919-1.266.058-1.644.07-4.85.07-3.204 0-3.584-.012-4.849-.07-3.26-.149-4.771-1.699-4.919-4.92-.058-1.265-.07-1.644-.07-4.849 0-3.204.013-3.583.07-4.849.149-3.227 1.664-4.771 4.919-4.919 1.266-.057 1.645-.069 4.849-.069zm0-2.163c-3.259 0-3.667.014-4.947.072-4.358.2-6.78 2.618-6.98 6.98-.059 1.281-.073 1.689-.073 4.948 0 3.259.014 3.668.072 4.948.2 4.358 2.618 6.78 6.98 6.98 1.281.058 1.689.072 4.948.072 3.259 0 3.668-.014 4.948-.072 4.354-.2 6.782-2.618 6.979-6.98.059-1.28.073-1.689.073-4.948 0-3.259-.014-3.667-.072-4.947-.196-4.354-2.617-6.78-6.979-6.98-1.281-.059-1.69-.073-4.949-.073zm0 5.838c-3.403 0-6.162 2.759-6.162 6.162s2.759 6.163 6.162 6.163 6.162-2.759 6.162-6.163c0-3.403-2.759-6.162-6.162-6.162zm0 10.162c-2.209 0-4-1.79-4-4 0-2.209 1.791-4 4-4s4 1.791 4 4c0 2.21-1.791 4-4 4zm6.406-11.845c-.796 0-1.441.645-1.441 1.44s.645 1.44 1.441 1.44c.795 0 1.439-.645 1.439-1.44s-.644-1.44-1.439-1.44z" />
-                </svg>
+                <InstagramIcon size={12} className="text-white" />
               </a>
             )}
 

@@ -6,7 +6,6 @@ import {
   Lock,
   Globe,
   User,
-  MessageCircle,
   Pencil,
   Trash2,
   FolderOpen,
@@ -28,6 +27,7 @@ import {
 } from '@/core/utils/url-helper';
 import { GALLERY_MESSAGES } from '@/constants/messages';
 import { executeShare } from '@/core/utils/share-helper';
+import WhatsAppIcon from '@/components/ui/WhatsAppIcon';
 
 interface GaleriaCardProps {
   galeria: Galeria;
@@ -245,58 +245,55 @@ export default function GaleriaCard({
           </a>
         </div>
       </div>
-      <div className="mt-1 flex items-center justify-between border-t border-gold/20 pt-4 px-4 pb-4">
+      <div className="mt-1 flex items-center justify-between border-t border-slate-200 pt-4 px-4 pb-4 bg-slate-50/50 rounded-b-3xl">
         <div className="flex gap-2">
-          {/* MODO LIXEIRA: Mostra apenas botão Restaurar */}
-          <div className="flex gap-2">
-            {/* WhatsApp e Copy: Exibir apenas na aba ATIVA */}
-            {currentView === 'active' && (
-              <>
-                {mounted &&
-                  galeria.has_contracting_client &&
-                  galeria.client_whatsapp && (
-                    <button
-                      type="button"
-                      onClick={handleWhatsAppShare}
-                      className="p-3 text-emerald-700 bg-white border border-gold/20 hover:bg-emerald-600 hover:text-white rounded-2xl transition-all shadow-sm active:scale-95 flex items-center justify-center"
-                      title="Enviar via WhatsApp"
-                    >
-                      <MessageCircle size={20} />
-                    </button>
-                  )}
+          {/* AÇÕES DE COMPARTILHAMENTO (Aba Ativa) */}
+          {currentView === 'active' && (
+            <>
+              {mounted &&
+                galeria.has_contracting_client &&
+                galeria.client_whatsapp && (
+                  <button
+                    type="button"
+                    onClick={handleWhatsAppShare}
+                    className="p-3 text-emerald-600 bg-white border border-slate-200 hover:bg-emerald-50 rounded-2xl transition-all shadow-sm active:scale-95 flex items-center justify-center group"
+                    title={WhatsAppIcon.labels.title}
+                  >
+                    <WhatsAppIcon className="w-[18px] h-[18px] md:w-[20px] md:h-[20px] text-emerald-600 group-hover:scale-110 transition-transform" />
+                  </button>
+                )}
 
-                <button
-                  onClick={handleCopy}
-                  className={`p-3 border rounded-2xl transition-all shadow-sm active:scale-95 flex items-center justify-center ${
-                    copied
-                      ? 'bg-green-600 text-white border-green-600'
-                      : 'bg-white text-slate-400 border-gold/20 hover:text-gold hover:border-gold/40'
-                  }`}
-                  title="Copiar mensagem personalizada"
-                >
-                  {copied ? <Check size={20} /> : <Copy size={20} />}
-                </button>
-              </>
-            )}
-
-            {/* Botão Restaurar: Aparece na Arquivada e na Lixeira */}
-            {currentView === 'trash' && (
               <button
-                onClick={(e) => {
-                  e.stopPropagation();
-                  onRestore(galeria.id);
-                }}
-                className="p-3 text-blue-600 bg-white border border-blue-100 hover:bg-blue-600 hover:text-white rounded-2xl transition-all shadow-sm active:scale-95 flex items-center justify-center"
-                title="Restaurar para Ativas"
+                onClick={handleCopy}
+                className={`p-3 border rounded-2xl transition-all shadow-sm active:scale-95 flex items-center justify-center ${
+                  copied
+                    ? 'bg-emerald-600 text-white border-emerald-600'
+                    : 'bg-white text-slate-600 border-slate-200 hover:text-gold hover:border-gold/40 hover:bg-gold/5'
+                }`}
+                title="Copiar link da galeria"
               >
-                <Inbox size={20} />
+                {copied ? <Check size={20} /> : <Copy size={20} />}
               </button>
-            )}
-          </div>
+            </>
+          )}
+
+          {/* BOTÃO RESTAURAR (Aba Lixeira) */}
+          {currentView === 'trash' && (
+            <button
+              onClick={(e) => {
+                e.stopPropagation();
+                onRestore(galeria.id);
+              }}
+              className="p-3 text-blue-600 bg-white border border-blue-200 hover:bg-blue-600 hover:text-white rounded-2xl transition-all shadow-sm active:scale-95 flex items-center justify-center"
+              title="Restaurar para Ativas"
+            >
+              <Inbox size={20} />
+            </button>
+          )}
         </div>
 
         <div className="flex gap-3">
-          {/* Botão Arquivar/Desarquivar: Apenas na aba Ativa ou Arquivada */}
+          {/* BOTÃO ARQUIVAR/DESARQUIVAR (Ativas ou Arquivadas) */}
           {(currentView === 'active' || currentView === 'archived') && (
             <button
               onClick={(e) => {
@@ -305,8 +302,8 @@ export default function GaleriaCard({
               }}
               className={`p-3 border rounded-2xl transition-all shadow-sm active:scale-95 flex items-center justify-center ${
                 galeria.is_archived
-                  ? 'bg-amber-500 text-white border-amber-500'
-                  : 'bg-white text-slate-500 border-gold/20 hover:bg-amber-50'
+                  ? 'bg-amber-500 text-white border-amber-600 shadow-amber-200'
+                  : 'bg-white text-slate-600 border-slate-200 hover:bg-amber-50 hover:text-amber-600 hover:border-amber-200'
               }`}
               title={galeria.is_archived ? 'Desarquivar' : 'Arquivar'}
             >
@@ -314,28 +311,28 @@ export default function GaleriaCard({
             </button>
           )}
 
-          {/* Botão Editar: Apenas na aba Ativa */}
+          {/* BOTÃO EDITAR (Apenas Ativas) */}
           {currentView === 'active' && (
             <button
               onClick={(e) => {
                 e.stopPropagation();
                 onEdit(galeria);
               }}
-              className="p-3 text-slate-500 bg-white border border-gold/20 hover:bg-slate-900 hover:text-white rounded-2xl transition-all shadow-sm active:scale-95 flex items-center justify-center"
+              className="p-3 text-slate-600 bg-white border border-slate-200 hover:bg-slate-900 hover:text-white rounded-2xl transition-all shadow-sm active:scale-95 flex items-center justify-center"
             >
               <Pencil size={20} />
             </button>
           )}
 
-          {/* Botão Lixeira: Apenas na aba Ativa ou Arquivada */}
-          {(currentView === 'active' || currentView === 'archived') && (
+          {/* BOTÃO LIXEIRA OU EXCLUSÃO DEFINITIVA */}
+          {currentView === 'active' || currentView === 'archived' ? (
             <button
               onClick={(e) => {
                 e.stopPropagation();
                 onDelete(galeria);
               }}
               disabled={isDeleting}
-              className="p-3 text-slate-500 bg-white border border-gold/20 hover:bg-[#B3261E] hover:text-white rounded-2xl transition-all shadow-sm active:scale-95 disabled:opacity-30 flex items-center justify-center"
+              className="p-3 text-slate-400 bg-white border border-slate-200 hover:bg-red-50 hover:text-red-600 hover:border-red-200 rounded-2xl transition-all shadow-sm active:scale-95 disabled:opacity-30 flex items-center justify-center"
             >
               {isDeleting ? (
                 <Loader2 size={20} className="animate-spin" />
@@ -343,20 +340,19 @@ export default function GaleriaCard({
                 <Trash2 size={20} />
               )}
             </button>
-          )}
-
-          {/* 4. NOVO: Botão Exclusão Definitiva: Apenas na Aba Lixeira */}
-          {currentView === 'trash' && (
-            <button
-              onClick={(e) => {
-                e.stopPropagation();
-                onPermanentDelete(galeria.id); // Certifique-se de passar essa prop para o card
-              }}
-              className="p-3 text-white bg-red-600 border border-red-700 hover:bg-red-800 rounded-2xl transition-all shadow-sm active:scale-95 flex items-center justify-center"
-              title="Excluir Permanentemente"
-            >
-              <XCircle size={20} />
-            </button>
+          ) : (
+            currentView === 'trash' && (
+              <button
+                onClick={(e) => {
+                  e.stopPropagation();
+                  onPermanentDelete(galeria.id);
+                }}
+                className="p-3 text-white bg-red-600 border border-red-700 hover:bg-red-800 rounded-2xl transition-all shadow-sm active:scale-95 flex items-center justify-center"
+                title="Excluir Permanentemente"
+              >
+                <XCircle size={20} />
+              </button>
+            )
           )}
         </div>
       </div>

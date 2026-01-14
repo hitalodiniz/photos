@@ -193,7 +193,7 @@ export function AccessRequestModal({
             <>
               <div className="flex justify-between items-start mb-6">
                 <div>
-                  <h3 className="text-xl font-serif italic text-white">
+                  <h3 className="text-xl italic text-white">
                     Solicitar Acesso
                   </h3>
                   <p className="text-[10px] text-[#D4AF37]/60 mt-1 uppercase tracking-wider font-semibold">
@@ -251,7 +251,7 @@ export function AccessRequestModal({
               <div className="w-16 h-16 bg-[#D4AF37]/10 rounded-full flex items-center justify-center mx-auto mb-6">
                 <CheckCircle2 size={32} className="text-[#D4AF37]" />
               </div>
-              <h3 className="text-xl text-white font-serif italic mb-2">
+              <h3 className="text-xl text-white italic mb-2">
                 Solicitação Enviada!
               </h3>
               <p className="text-white/50 text-sm leading-relaxed px-4">

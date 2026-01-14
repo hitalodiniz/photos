@@ -51,7 +51,7 @@ export const GaleriaHero = ({ galeria, photos, coverUrl }: any) => {
 
       {/* AVATAR DO FOTÓGRAFO */}
       <div
-        className={`absolute top-4 right-4 md:top-6 md:right-8 z-20 transition-all duration-1000 ${
+        className={`absolute top-4 right-4 md:top-6 md:right-8 z-20 transition-all duration-1000 hero-avatar-container ${
           isExpanded
             ? 'opacity-0 scale-75 pointer-events-none'
             : 'opacity-100 scale-100'

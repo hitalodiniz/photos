@@ -1,242 +1,27 @@
 'use client';
-import React, { useEffect, useState, useRef } from 'react';
-import { Download, Camera, Loader2 } from 'lucide-react';
-import { GalleryHeader, PhotographerAvatar } from '@/components/gallery';
-import LoadingSpinner from '@/components/ui/LoadingSpinner';
-import {
-  getImageUrl,
-  getHighResImageUrl,
-  getProxyUrl,
-} from '@/core/utils/url-helper';
-import { Galeria } from '@/core/types/galeria';
+import Lightbox from '@/components/gallery/Lightbox';
+import { useRouter } from 'next/navigation';
 
-export default function PhotoViewClient({
-  googleId,
-  slug,
-  initialData,
-}: {
-  googleId: string;
-  slug: string;
-  initialData: Galeria;
-}) {
-  const [data] = useState<Galeria>(initialData);
-  const [isDownloading, setIsDownloading] = useState(false);
-  const [showButtonText, setShowButtonText] = useState(true);
-  const [isImageLoading, setIsImageLoading] = useState(true);
-  const [showInterface, setShowInterface] = useState(true);
+export default function PhotoViewClient({ googleId, slug, initialData }: any) {
+  const router = useRouter();
 
-  // Ref para controlar o tempo do hover
-  const buttonHoverTimeoutRef = useRef<NodeJS.Timeout | null>(null);
-
-  // 1. Controle de exibição da interface (Ocultar após inatividade)
-  useEffect(() => {
-    const isMobile = typeof window !== 'undefined' && window.innerWidth < 768;
-    if (isMobile) {
-      setShowInterface(true);
-      return;
-    }
-
-    let timer: NodeJS.Timeout;
-    const handleActivity = () => {
-      setShowInterface(true);
-      clearTimeout(timer);
-      timer = setTimeout(() => setShowInterface(false), 2000);
-    };
-
-    window.addEventListener('mousemove', handleActivity);
-    window.addEventListener('touchstart', handleActivity);
-    return () => {
-      window.removeEventListener('mousemove', handleActivity);
-      window.removeEventListener('touchstart', handleActivity);
-      clearTimeout(timer);
-    };
-  }, []);
-
-  // 2. Esconder textos dos botões após 3s do carregamento inicial
-  useEffect(() => {
-    const timer = setTimeout(() => setShowButtonText(false), 3000);
-    return () => clearTimeout(timer);
-  }, []);
-
-  // 3. Funções de Hover para reativar os textos
-  const handleButtonMouseEnter = () => {
-    if (buttonHoverTimeoutRef.current)
-      clearTimeout(buttonHoverTimeoutRef.current);
-    setShowButtonText(true);
-  };
-
-  const handleButtonMouseLeave = () => {
-    buttonHoverTimeoutRef.current = setTimeout(() => {
-      setShowButtonText(false);
-    }, 300); // Pequeno delay para suavizar
-  };
-
-  useEffect(() => {
-    const img = new Image();
-    img.src = getImageUrl(googleId);
-    if (img.complete) setIsImageLoading(false);
-  }, [googleId]);
-
-  const handleSingleDownload = async () => {
-    if (isDownloading) return;
-
-    try {
-      setIsDownloading(true);
-
-      // 1. Gerar o nome correto (Padrão: foto_AAAAMMDD_HHMM_evento.jpg)
-      const eventName = data.slug.split('/').pop() || 'evento';
-      const agora = new Date();
-      const timestamp = `${agora.getFullYear()}${(agora.getMonth() + 1).toString().padStart(2, '0')}${agora.getDate().toString().padStart(2, '0')}_${agora.getHours().toString().padStart(2, '0')}${agora.getMinutes().toString().padStart(2, '0')}`;
-      const fileName = `foto_${timestamp}_${eventName}.jpg`;
-
-      // 2. IMPORTANTE: Usar a rota de PROXY para evitar erro de CORS
-      const highResUrl = getProxyUrl(googleId, '0');
-
-      const response = await fetch(highResUrl);
-
-      if (!response.ok) throw new Error('Falha ao baixar via proxy');
-
-      const blob = await response.blob();
-
-      // 3. Usar o window.URL para criar um link temporário e forçar o nome
-      const blobUrl = window.URL.createObjectURL(blob);
-      const link = document.createElement('a');
-      link.href = blobUrl;
-      link.download = fileName; // O navegador SÓ aceita isso se o domínio for o mesmo (Proxy)
-      document.body.appendChild(link);
-      link.click();
-
-      // Limpeza
-      document.body.removeChild(link);
-      window.URL.revokeObjectURL(blobUrl);
-    } catch (error) {
-      console.error('Erro no download:', error);
-      // Fallback: Se tudo falhar, abre o link original (mas o nome será o ID)
-      window.open(getHighResImageUrl(googleId), '_blank');
-    } finally {
-      setIsDownloading(false);
-    }
-  };
-
-  if (!data)
-    return (
-      <div className="fixed inset-0 bg-black flex items-center justify-center text-white">
-        Galeria não encontrada.
-      </div>
-    );
+  const singlePhotoArray = [{ id: googleId }];
+  const handleClose = () => router.push(`/${slug}`);
 
   return (
-    <div className="fixed inset-0 z-[999] bg-black flex flex-col items-center overflow-x-hidden overflow-y-auto md:overflow-hidden select-none min-h-screen">
-      <header
-        className={`relative md:absolute top-0 left-0 right-0 flex flex-col md:flex-row items-center justify-between p-6 md:px-14 md:py-8 text-white z-[70] w-full gap-6 transition-all duration-700 ${
-          showInterface
-            ? 'opacity-100 translate-y-0'
-            : 'md:opacity-0 md:-translate-y-4 md:pointer-events-none'
-        }`}
-      >
-        <div className="flex-grow min-w-0 w-full md:w-auto">
-          <GalleryHeader
-            title={data?.title}
-            location={data?.location}
-            data={data?.date}
-          />
-        </div>
-
-        {/* BARRA DE FERRAMENTAS COM EVENTOS DE HOVER ADICIONADOS */}
-        <div
-          onMouseEnter={handleButtonMouseEnter}
-          onMouseLeave={handleButtonMouseLeave}
-          className="flex items-center bg-black/80 backdrop-blur-2xl p-2 px-4 rounded-2xl border border-white/20 shadow-2xl transition-all duration-500 ease-in-out"
-        >
-          <button
-            onClick={handleSingleDownload}
-            className="flex items-center gap-0 pr-4 hover:text-[#F3E5AB] transition-all group border-r border-white/20"
-          >
-            <div className="flex items-center justify-center w-9 h-9 md:w-11 md:h-11 rounded-full bg-white/10 group-hover:bg-white/20 shrink-0">
-              {isDownloading ? (
-                <Loader2 size={16} className="animate-spin text-[#F3E5AB]" />
-              ) : (
-                <Download size={18} />
-              )}
-            </div>
-            <div
-              className={`overflow-hidden transition-all duration-500 ease-in-out ${showButtonText ? 'max-w-[120px] ml-2' : 'max-w-0'}`}
-            >
-              <span className="text-[10px] block font-semibold uppercase italic">
-                Download
-              </span>
-              <span className="text-[11px] block opacity-60 whitespace-nowrap">
-                Alta Resolução
-              </span>
-            </div>
-          </button>
-
-          <button
-            onClick={() => {
-              const params = new URLSearchParams(window.location.search);
-              const sParam = params.get('s');
-              window.location.href = sParam
-                ? `/${decodeURIComponent(sParam).replace(/^\/+/, '')}`
-                : '/';
-            }}
-            className="flex items-center gap-0 pl-4 hover:text-[#F3E5AB] transition-all group"
-          >
-            <div className="flex items-center justify-center w-9 h-9 md:w-11 md:h-11 rounded-full bg-white/10 group-hover:bg-white/20 shrink-0">
-              <Camera size={20} />
-            </div>
-            <div
-              className={`overflow-hidden transition-all duration-500 ease-in-out ${showButtonText ? 'max-w-[120px] ml-2' : 'max-w-0'}`}
-            >
-              <span className="text-[10px] block font-semibold uppercase italic">
-                Ver Galeria
-              </span>
-              <span className="text-[11px] block opacity-60 whitespace-nowrap">
-                De Fotos
-              </span>
-            </div>
-          </button>
-        </div>
-      </header>
-
-      {/* ÁREA DA IMAGEM */}
-      <main className="flex-1 relative w-full flex flex-col items-center justify-center px-2 md:px-0 pb-6 md:pb-0">
-        <div className="relative flex flex-col items-center">
-          {isImageLoading && (
-            <div className="absolute inset-0 z-50 flex items-center justify-center">
-              <LoadingSpinner size="md" />
-            </div>
-          )}
-          <img
-            src={getProxyUrl(googleId, '1600')}
-            onLoad={() => setIsImageLoading(false)}
-            onError={() => setIsImageLoading(false)}
-            className={`max-w-full max-h-[75vh] md:max-h-screen object-contain transition-all duration-1000 
-              ${isImageLoading ? 'opacity-0 scale-95' : 'opacity-100 scale-100'}`}
-            alt={data?.title || 'Visualização'}
-          />
-        </div>
-      </main>
-
-      {/* RODAPÉ / AVATAR */}
-      {data?.photographer && (
-        <div
-          className={`relative md:fixed bottom-0 left-0 right-0 flex justify-center pb-8 md:pb-10 transition-all duration-700 ${
-            showInterface
-              ? 'opacity-100 translate-y-0'
-              : 'md:opacity-0 md:translate-y-4 md:pointer-events-none'
-          }`}
-        >
-          <PhotographerAvatar
-            galeria={{
-              ...data,
-              photographer_name: data.photographer?.full_name,
-              photographer_avatar_url: data.photographer?.profile_picture_url,
-              photographer_id: data.photographer?.username,
-            }}
-            position="bottom-lightbox"
-          />
-        </div>
-      )}
-    </div>
+    <Lightbox
+      photos={singlePhotoArray}
+      activeIndex={0}
+      totalPhotos={1}
+      galleryTitle={initialData?.title}
+      location={initialData?.location}
+      galeria={initialData}
+      onClose={handleClose}
+      onNext={() => {}}
+      onPrev={() => {}}
+      favorites={[]}
+      onToggleFavorite={() => {}}
+      isSingleView={true}
+    />
   );
 }

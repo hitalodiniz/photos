@@ -45,7 +45,7 @@ export default function PhotographerProfile({
   // Loading State - Mantendo o fundo preto padrão do editorial
   if (loading) {
     return (
-      <div className="min-h-screen bg-black flex items-center justify-center text-[#F3E5AB] font-serif italic">
+      <div className="min-h-screen bg-black flex items-center justify-center text-[#F3E5AB] italic">
         Carregando Editorial...
       </div>
     );

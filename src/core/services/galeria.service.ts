@@ -275,7 +275,7 @@ export async function updateGaleria(
   // Capturando conforme os nomes definidos no Modal (data.set)
   const title = formData.get('title') as string;
   const driveFolderId = formData.get('drive_folder_id') as string; // era driveFolderId
-  const clientName = formData.get('clientName') as string;
+  const clientName = formData.get('client_name') as string;
 
   // Log para debug caso falte algo
   if (!title || !driveFolderId || !clientName) {

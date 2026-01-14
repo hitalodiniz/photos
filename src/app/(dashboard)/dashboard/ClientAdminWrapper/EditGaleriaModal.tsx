@@ -4,7 +4,7 @@ import { useState, useEffect } from 'react';
 import { updateGaleria } from '@/core/services/galeria.service';
 import GalleryFormContent, { prepareGalleryData } from './GalleryFormContent';
 import { SubmitButton } from '@/components/ui';
-import GalleryModalLayout from './GalleryModalLayout';
+import GalleryModalLayout from './GalleryModal';
 
 export default function EditGaleriaModal({
   galeria,
@@ -56,7 +56,7 @@ export default function EditGaleriaModal({
         const updatedData = {
           ...galeria,
           title: data.get('title') as string,
-          client_name: data.get('clientName') as string,
+          client_name: data.get('client_name') as string,
           location: data.get('location') as string,
           date: data.get('date') as string,
           client_whatsapp: data.get('client_whatsapp') as string,

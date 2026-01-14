@@ -19,8 +19,8 @@ import {
 } from '@/core/services/galeria.service';
 
 import type { Galeria } from '@/core/types/galeria';
-import CreateGaleriaForm from './CreateGaleriaForm';
-import EditGaleriaModal from './EditGaleriaModal';
+// IMPORT UNIFICADO
+import GalleryFormModal from './GalleryModal';
 import Filters from './Filters';
 import { ConfirmationModal, Toast } from '@/components/ui';
 import GaleriaCard from './GaleriaCard';
@@ -50,10 +50,11 @@ export default function ClientAdminWrapper({
   const [isSidebarCollapsed, setIsSidebarCollapsed] = useState(
     initialProfile?.sidebar_collapsed ?? false,
   );
-  const [isCreateOpen, setIsCreateOpen] = useState(false);
+
+  // Controle de Modal Unificado
+  const [isFormOpen, setIsFormOpen] = useState(false);
   const [galeriaToEdit, setGaleriaToEdit] = useState<Galeria | null>(null);
 
-  // Estados de filtros e UI
   const [cardsToShow, setCardsToShow] = useState(CARDS_PER_PAGE);
   const [filterName, setFilterName] = useState('');
   const [filterLocation, setFilterLocation] = useState('');
@@ -61,7 +62,6 @@ export default function ClientAdminWrapper({
   const [filterCategory, setFilterCategory] = useState('');
   const [filterType, setFilterType] = useState('');
 
-  // Unificação dos estados de Toast
   const [toast, setToast] = useState<{
     message: string;
     type: 'success' | 'error';
@@ -71,8 +71,9 @@ export default function ClientAdminWrapper({
   const [updatingId, setUpdatingId] = useState<string | null>(null);
 
   useEffect(() => {
-    document.body.style.overflow = isCreateOpen ? 'hidden' : 'unset';
-  }, [isCreateOpen]);
+    document.body.style.overflow =
+      isFormOpen || !!galeriaToEdit ? 'hidden' : 'unset';
+  }, [isFormOpen, galeriaToEdit]);
 
   const counts = useMemo(
     () => ({
@@ -83,37 +84,34 @@ export default function ClientAdminWrapper({
     [galerias],
   );
 
-  // Função centralizada para lidar com atualizações (Edição)
-  const handleUpdate = (success: boolean, dataOrError: any) => {
-    if (success && typeof dataOrError === 'object') {
-      setGalerias((prev) =>
-        prev.map((g) => (g.id === dataOrError.id ? dataOrError : g)),
-      );
-      setToast({ message: 'Galeria atualizada com sucesso!', type: 'success' });
-      setGaleriaToEdit(null);
+  // FUNÇÃO DE SUCESSO UNIFICADA (Lida com Create e Update)
+  const handleFormSuccess = async (success: boolean, data: any) => {
+    if (success) {
+      if (galeriaToEdit) {
+        // Modo Edição: Atualiza o item na lista local
+        setGalerias((prev) => prev.map((g) => (g.id === data.id ? data : g)));
+        setToast({
+          message: 'Galeria atualizada com sucesso!',
+          type: 'success',
+        });
+      } else {
+        // Modo Criação: Recarrega a lista para pegar a nova galeria (e o slug gerado no server)
+        const result = await getGalerias();
+        if (result.success) setGalerias(result.data);
+        setToast({ message: 'Galeria criada com sucesso!', type: 'success' });
+      }
     } else {
-      setToast({
-        message:
-          typeof dataOrError === 'string' ? dataOrError : 'Erro na operação',
-        type: 'error',
-      });
+      setToast({ message: data || 'Erro na operação', type: 'error' });
     }
   };
 
-  const handleCreateResult = async (ok: boolean, message: string) => {
-    setToast({ message, type: ok ? 'success' : 'error' });
-    if (ok) {
-      setIsCreateOpen(false);
-      const result = await getGalerias();
-      if (result.success) setGalerias(result.data);
-    }
-  };
+  // --- MÉTODOS DE AÇÃO (Move, Archive, Delete) MANTIDOS ---
+  // ... (handleArchiveToggle, handleRestore, handleMoveToTrash, executePermanentDelete permanecem iguais)
 
   const handleArchiveToggle = async (g: Galeria) => {
     const newStatus = !g.is_archived;
     setUpdatingId(g.id);
     const result = await toggleArchiveGaleria(g.id, g.is_archived);
-
     if (result.success) {
       setGalerias((prev) =>
         prev.map((item) =>
@@ -194,7 +192,6 @@ export default function ClientAdminWrapper({
     return galerias.filter((g) => {
       const isArchived = Boolean(g.is_archived);
       const isDeleted = Boolean(g.is_deleted);
-
       if (currentView === 'active' && (isArchived || isDeleted)) return false;
       if (currentView === 'archived' && (!isArchived || isDeleted))
         return false;
@@ -236,7 +233,7 @@ export default function ClientAdminWrapper({
         className={`hidden lg:block space-y-6 transition-all duration-500 ease-in-out ${isSidebarCollapsed ? 'w-[70px]' : 'w-[200px]'}`}
       >
         <button
-          onClick={() => setIsCreateOpen(true)}
+          onClick={() => setIsFormOpen(true)}
           className={`flex items-center bg-white hover:shadow-md transition-all rounded-2xl border border-gray-100 group shadow-sm overflow-hidden ${isSidebarCollapsed ? 'w-[56px] h-[56px] justify-center mx-auto' : 'px-6 py-4 gap-4 w-full'}`}
         >
           <Plus
@@ -261,7 +258,6 @@ export default function ClientAdminWrapper({
               <ChevronLeft size={14} />
             )}
           </button>
-
           {[
             {
               id: 'active',
@@ -359,58 +355,31 @@ export default function ClientAdminWrapper({
               />
             ))}
           </div>
-
           {visibleGalerias.length === 0 && (
-            <div className="flex flex-col items-center justify-center py-32 text-center animate-in fade-in zoom-in-95">
+            <div className="flex flex-col items-center justify-center py-32 text-center">
               <div className="w-20 h-20 bg-slate-50 rounded-full flex items-center justify-center mb-6 border border-[#F3E5AB]">
                 <Inbox className="text-[#D4AF37] opacity-40" size={32} />
               </div>
-              <h3 className="text-xl font-serif italic text-slate-800 mb-2">
+              <h3 className="text-xl italic text-slate-800 mb-2">
                 Nenhuma galeria por aqui
               </h3>
               <p className="text-sm text-slate-500 max-w-xs mb-8">
-                Não encontramos resultados para sua busca ou a pasta está vazia.
+                Não encontramos resultados para sua busca.
               </p>
-              {currentView === 'active' && (
-                <button
-                  onClick={() => setIsCreateOpen(true)}
-                  className="btn-primary !w-auto px-8"
-                >
-                  Nova Galeria
-                </button>
-              )}
-            </div>
-          )}
-
-          {filteredGalerias.length > cardsToShow && (
-            <div className="mt-12 flex justify-center">
-              <button
-                onClick={() => setCardsToShow((prev) => prev + CARDS_PER_PAGE)}
-                className="btn-primary !w-auto px-10 flex items-center gap-2 shadow-lg hover:shadow-gold/20 transition-all active:scale-95"
-              >
-                <ChevronDown size={18} strokeWidth={2.5} />
-                <span className="uppercase tracking-widest font-semibold text-[11px]">
-                  Carregar mais galerias
-                </span>
-              </button>
             </div>
           )}
         </div>
       </main>
 
-      {/* MODAIS */}
-      {isCreateOpen && (
-        <CreateGaleriaForm
-          onSuccess={handleCreateResult}
-          onClose={() => setIsCreateOpen(false)}
-        />
-      )}
-
-      <EditGaleriaModal
+      {/* MODAL MASTER UNIFICADO */}
+      <GalleryFormModal
+        isOpen={isFormOpen || !!galeriaToEdit}
         galeria={galeriaToEdit}
-        isOpen={!!galeriaToEdit}
-        onClose={() => setGaleriaToEdit(null)}
-        onSuccess={handleUpdate} // Vinculado à função que atualiza o estado e exibe o toast
+        onClose={() => {
+          setIsFormOpen(false);
+          setGaleriaToEdit(null);
+        }}
+        onSuccess={handleFormSuccess}
       />
 
       <ConfirmationModal
@@ -418,10 +387,9 @@ export default function ClientAdminWrapper({
         onClose={() => setGaleriaToPermanentlyDelete(null)}
         onConfirm={executePermanentDelete}
         title="Excluir permanentemente"
-        message={`Deseja remover "${galeriaToPermanentlyDelete?.title}" permanentemente? Esta ação é irreversível.`}
+        message={`Deseja remover "${galeriaToPermanentlyDelete?.title}" permanentemente?`}
       />
 
-      {/* COMPONENTE TOAST COM SUPORTE A LINKS DO DRIVE */}
       {toast && (
         <Toast
           message={toast.message}

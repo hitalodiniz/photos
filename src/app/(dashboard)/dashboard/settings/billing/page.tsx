@@ -4,7 +4,7 @@ import { CreditCard, History } from 'lucide-react';
 export default function BillingPage() {
   return (
     <div className="p-6 md:p-12 max-w-4xl mx-auto">
-      <h1 className="text-3xl font-serif italic text-white mb-8">
+      <h1 className="text-3xl italic text-white mb-8">
         Assinatura e Faturamento
       </h1>
 

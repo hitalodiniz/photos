@@ -4,7 +4,7 @@ import { useState } from 'react';
 import SubmitButton from '@/components/ui/SubmitButton';
 import { createGaleria } from '@/core/services/galeria.service';
 import GalleryFormContent, { prepareGalleryData } from './GalleryFormContent';
-import GalleryModalLayout from './GalleryModalLayout';
+import GalleryModalLayout from './GalleryModal';
 
 export default function CreateGaleriaForm({ onSuccess, onClose }) {
   const [isSuccess, setIsSuccess] = useState(false);

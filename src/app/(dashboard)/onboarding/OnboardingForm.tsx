@@ -454,7 +454,7 @@ export default function OnboardingForm({
               <p className="text-[10px] md:text-[12px] text-[#F3E5AB] font-semibold uppercase tracking-wider leading-none mb-1 drop-shadow-lg">
                 Editorial
               </p>
-              <p className="text-[11px] md:text-[14px] text-white/90 font-serif italic tracking-wide leading-none py-2 drop-shadow-md">
+              <p className="text-[11px] md:text-[14px] text-white/90 italic tracking-wide leading-none py-2 drop-shadow-md">
                 Prévia do seu perfil
               </p>
             </div>

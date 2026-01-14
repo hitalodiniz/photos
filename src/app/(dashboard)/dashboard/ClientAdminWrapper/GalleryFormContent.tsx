@@ -12,7 +12,6 @@ import {
   User,
   Type,
   FolderSync,
-  MessageCircle,
   Sparkles,
   X,
   Briefcase,
@@ -27,6 +26,7 @@ import {
   Smartphone,
   Tablet,
 } from 'lucide-react';
+import WhatsAppIcon from '@/components/ui/WhatsAppIcon';
 
 export const prepareGalleryData = (
   formData: FormData,
@@ -40,16 +40,27 @@ export const prepareGalleryData = (
   const hasContractingClient =
     formData.get('has_contracting_client') === 'true';
 
+  // Ajuste do Cliente
   if (!hasContractingClient) {
-    formData.set('clientName', 'Venda Direta');
+    formData.set('client_name', 'Cobertura');
     formData.set('client_whatsapp', '');
+  } else {
+    // Limpa máscara do WhatsApp para salvar apenas números
+    const whatsapp = formData.get('client_whatsapp') as string;
+    if (whatsapp) formData.set('client_whatsapp', whatsapp.replace(/\D/g, ''));
   }
 
+  // Ajuste de Senha
   const password = formData.get('password') as string;
   if (isPublic || !password || password.trim() === '') {
     formData.delete('password');
   }
 
+  // Sincronização de campos básicos que podem vir vazios
+  formData.set('location', formData.get('location') || '');
+  formData.set('category', formData.get('category') || '');
+
+  // Gravação da Customização (Garante que os valores atuais do estado sejam enviados)
   formData.set('show_cover_in_grid', String(customization.showCoverInGrid));
   formData.set('grid_bg_color', customization.gridBgColor);
   formData.set('columns_mobile', String(customization.columns.mobile));
@@ -66,13 +77,16 @@ export default function GalleryFormContent({
   setCustomization,
   onPickerError,
 }) {
-  // Inicialização estável
   const [hasContractingClient, setHasContractingClient] = useState(
-    () => initialData?.has_contracting_client ?? true,
+    () =>
+      initialData?.has_contracting_client === true ||
+      initialData?.has_contracting_client === 'true',
   );
+
   const [isPublic, setIsPublic] = useState(
-    () => initialData?.is_public ?? true,
+    () => initialData?.is_public === true || initialData?.is_public === 'true',
   );
+
   const [category, setCategory] = useState(() => initialData?.category ?? '');
   const [clientWhatsapp, setClientWhatsapp] = useState(() =>
     initialData?.client_whatsapp
@@ -100,6 +114,7 @@ export default function GalleryFormContent({
 
   return (
     <div className="space-y-6 animate-in fade-in duration-500">
+      {/* Inputs Ocultos de Dados e Estado */}
       <input type="hidden" name="drive_folder_id" value={driveData.id} />
       <input type="hidden" name="drive_folder_name" value={driveData.name} />
       <input
@@ -107,14 +122,39 @@ export default function GalleryFormContent({
         name="cover_image_url"
         value={driveData.coverId || driveData.id}
       />
-
-      {/* Os demais inputs ocultos devem seguir a mesma lógica */}
       <input type="hidden" name="is_public" value={String(isPublic)} />
       <input type="hidden" name="category" value={category} />
       <input
         type="hidden"
         name="has_contracting_client"
         value={String(hasContractingClient)}
+      />
+
+      {/* Inputs Ocultos de Customização (Para garantir a persistência) */}
+      <input
+        type="hidden"
+        name="show_cover_in_grid"
+        value={String(customization.showCoverInGrid)}
+      />
+      <input
+        type="hidden"
+        name="grid_bg_color"
+        value={customization.gridBgColor}
+      />
+      <input
+        type="hidden"
+        name="columns_mobile"
+        value={String(customization.columns.mobile)}
+      />
+      <input
+        type="hidden"
+        name="columns_tablet"
+        value={String(customization.columns.tablet)}
+      />
+      <input
+        type="hidden"
+        name="columns_desktop"
+        value={String(customization.columns.desktop)}
       />
 
       {/* BLOCO 1: IDENTIFICAÇÃO */}
@@ -155,16 +195,18 @@ export default function GalleryFormContent({
                   <User size={10} /> Nome do Cliente
                 </label>
                 <input
-                  name="clientName"
+                  name="client_name"
                   defaultValue={initialData?.client_name}
-                  required={hasContractingClient}
+                  // Convertendo explicitamente para booleano
+                  required={!!hasContractingClient} // Força booleano
                   placeholder="Ex: José Silva"
                   className="w-full px-4 py-2.5 bg-white border border-[#F3E5AB] rounded-xl text-sm outline-none focus:border-gold transition-all"
                 />
               </div>
               <div className="md:col-span-3 space-y-1.5 animate-in fade-in slide-in-from-left-2 duration-500">
                 <label className="flex items-center gap-2 text-[10px] uppercase font-semibold text-slate-400">
-                  <MessageCircle size={10} /> WhatsApp
+                  <WhatsAppIcon className="text-white w-[10px] h-[10px]" />{' '}
+                  WhatsApp
                 </label>
                 <input
                   value={clientWhatsapp}
@@ -236,36 +278,44 @@ export default function GalleryFormContent({
         </div>
       </section>
 
-      {/* BLOCO 3: APARÊNCIA (LINHA ÚNICA) */}
+      {/* BLOCO 3: APARÊNCIA */}
       <section className="space-y-3">
         <SectionHeader icon={Palette} title="Aparência da Galeria" />
-        <div className="flex items-center justify-start p-3 bg-white border border-[#F3E5AB] rounded-2xl shadow-sm overflow-x-auto gap-6">
-          {/* FOTO DE FUNDO */}
+
+        <div className="flex items-center justify-start p-3 bg-white border border-[#F3E5AB] rounded-2xl shadow-sm overflow-x-auto gap-6 no-scrollbar">
+          {/* 1. FOTO DE FUNDO (TOGGLE) */}
           <div className="flex items-center gap-3 pr-6 border-r border-slate-100 shrink-0">
-            <label className="text-[10px] font-semibold uppercase tracking-widest text-slate-700 whitespace-nowrap">
+            <label className="text-[10px] font-bold uppercase tracking-widest text-slate-700 whitespace-nowrap">
               Foto de fundo
             </label>
             <button
               type="button"
+              // Certifique-se de que este método altera o estado no GalleryModal
               onClick={() =>
                 setCustomization.setShowCoverInGrid(
                   !customization.showCoverInGrid,
                 )
               }
-              className={`relative inline-flex h-5 w-10 shrink-0 cursor-pointer rounded-full border-2 border-transparent transition-colors duration-200 ease-in-out ${customization.showCoverInGrid ? 'bg-[#D4AF37]' : 'bg-slate-200'}`}
+              className={`relative inline-flex h-5 w-10 shrink-0 cursor-pointer rounded-full border-2 border-transparent transition-colors duration-200 ease-in-out outline-none focus:ring-2 focus:ring-gold/20 ${
+                customization.showCoverInGrid ? 'bg-[#D4AF37]' : 'bg-slate-200'
+              }`}
             >
               <span
-                className={`pointer-events-none inline-block h-4 w-4 transform rounded-full bg-white shadow ring-0 transition duration-200 ease-in-out ${customization.showCoverInGrid ? 'translate-x-5' : 'translate-x-0'}`}
+                className={`pointer-events-none inline-block h-4 w-4 transform rounded-full bg-white shadow ring-0 transition duration-200 ease-in-out ${
+                  customization.showCoverInGrid
+                    ? 'translate-x-5'
+                    : 'translate-x-0'
+                }`}
               />
             </button>
           </div>
 
-          {/* COR DE FUNDO */}
+          {/* 2. SELETOR DE CORES (GRID BG) */}
           <div className="flex items-center gap-4 shrink-0 border-r border-slate-100 pr-6">
-            <label className="text-[10px] font-semibold uppercase tracking-widest text-slate-700 flex items-center gap-2">
-              <Layout size={14} className="text-[#D4AF37]" /> Cor
+            <label className="text-[10px] font-bold uppercase tracking-widest text-slate-700 flex items-center gap-2">
+              <Layout size={14} className="text-[#D4AF37]" /> Cor de Fundo
             </label>
-            <div className="flex gap-1.5">
+            <div className="flex gap-2">
               {[
                 { name: 'Champagne', color: '#FFF9F0' },
                 { name: 'Branco', color: '#FFFFFF' },
@@ -274,16 +324,21 @@ export default function GalleryFormContent({
                 <button
                   key={item.color}
                   type="button"
+                  title={item.name}
                   onClick={() => setCustomization.setGridBgColor(item.color)}
-                  className={`relative w-7 h-7 rounded-lg border-2 transition-all ${customization.gridBgColor === item.color ? 'border-gold scale-105 shadow-sm' : 'border-slate-100'}`}
+                  className={`relative w-8 h-8 rounded-lg border-2 transition-all duration-300 hover:scale-110 ${
+                    customization.gridBgColor === item.color
+                      ? 'border-[#D4AF37] shadow-md scale-105'
+                      : 'border-slate-100'
+                  }`}
                 >
                   <div
-                    className="absolute inset-0.5 rounded-md"
+                    className="absolute inset-1 rounded-[4px]"
                     style={{ backgroundColor: item.color }}
                   />
                   {customization.gridBgColor === item.color && (
-                    <div className="absolute -top-1 -right-1 bg-gold text-white rounded-full p-0.5">
-                      <Check size={5} strokeWidth={4} />
+                    <div className="absolute -top-1.5 -right-1.5 bg-[#D4AF37] text-white rounded-full p-0.5 shadow-sm">
+                      <Check size={8} strokeWidth={4} />
                     </div>
                   )}
                 </button>
@@ -291,12 +346,12 @@ export default function GalleryFormContent({
             </div>
           </div>
 
-          {/* COLUNAS */}
+          {/* 3. CONFIGURAÇÃO DE COLUNAS */}
           <div className="flex items-center gap-4 shrink-0">
-            <label className="text-[10px] font-semibold uppercase text-slate-700">
+            <label className="text-[10px] font-bold uppercase text-slate-700">
               Colunas
             </label>
-            <div className="flex gap-4">
+            <div className="flex gap-5">
               {[
                 {
                   label: 'Mob',
@@ -316,8 +371,8 @@ export default function GalleryFormContent({
               ].map((device) => (
                 <div key={device.key} className="flex flex-col gap-1 shrink-0">
                   <div className="flex items-center gap-1.5 text-slate-400">
-                    <device.icon size={10} />
-                    <span className="text-[8px] font-semibold">
+                    <device.icon size={11} />
+                    <span className="text-[9px] font-bold uppercase">
                       {device.label}
                     </span>
                   </div>
@@ -329,14 +384,14 @@ export default function GalleryFormContent({
                         [device.key]: Number(e.target.value),
                       })
                     }
-                    className="bg-slate-50 border border-slate-100 px-1 py-0.5 rounded-md text-[10px] font-semibold text-slate-700 outline-none w-12"
+                    className="bg-slate-50 border border-slate-200 px-2 py-1 rounded-lg text-[10px] font-bold text-slate-700 outline-none focus:border-[#D4AF37] transition-colors w-14 cursor-pointer"
                   >
                     {Array.from(
                       { length: device.max - device.min + 1 },
                       (_, i) => i + device.min,
                     ).map((val) => (
                       <option key={val} value={val}>
-                        {val}
+                        {val} col
                       </option>
                     ))}
                   </select>
@@ -346,7 +401,6 @@ export default function GalleryFormContent({
           </div>
         </div>
       </section>
-
       {/* BLOCO 4: SEGURANÇA */}
       <section>
         <SectionHeader icon={Settings2} title="Drive e Segurança" />
@@ -356,21 +410,15 @@ export default function GalleryFormContent({
               <label className="flex items-center gap-2 text-[10px] uppercase font-semibold text-slate-400">
                 <FolderSync size={14} className="text-[#D4AF37]" /> Google Drive
               </label>
-              {driveData.id && (
-                <Sparkles size={12} className="text-green-500 animate-pulse" />
-              )}
             </div>
-
             <div className="flex items-center gap-3 w-full">
               <GooglePickerButton
                 onError={onPickerError}
-                onFolderSelect={(id, name, coverId) => {
-                  // O log confirmou que chega aqui. Agora o estado atualiza a tela.
-                  setDriveData({ id, name, coverId });
-                }}
+                onFolderSelect={(id, name, coverId) =>
+                  setDriveData({ id, name, coverId })
+                }
                 currentDriveId={driveData.id}
               />
-
               <div className="flex-1 bg-white px-4 py-2.5 rounded-xl border border-[#F3E5AB] flex items-center justify-between gap-3 min-w-0 h-[42px] shadow-sm">
                 <div className="flex items-center gap-2 truncate">
                   <div
@@ -401,9 +449,6 @@ export default function GalleryFormContent({
               <label className="text-[10px] font-semibold uppercase tracking-widest text-slate-700 flex items-center gap-2">
                 <Settings2 size={14} className="text-[#D4AF37]" /> Acesso
               </label>
-              {!isPublic && (
-                <div className="h-1.5 w-1.5 rounded-full bg-amber-400 animate-pulse" />
-              )}
             </div>
             <div className="flex flex-col gap-3 w-full">
               <div className="flex items-center gap-8 px-4 h-[42px] bg-slate-50/50 rounded-xl border border-slate-100/50">

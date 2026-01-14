@@ -1,12 +1,6 @@
 'use client';
 import React, { useEffect } from 'react';
-import {
-  Instagram,
-  MessageCircle,
-  MapPin,
-  Share2,
-  User as UserIcon,
-} from 'lucide-react';
+import { Instagram, MapPin, Share2, User as UserIcon } from 'lucide-react';
 import {
   EditorialHeader,
   DynamicHeroBackground,
@@ -14,6 +8,7 @@ import {
 } from '@/components/layout';
 import Image from 'next/image';
 import { GALLERY_MESSAGES } from '@/constants/messages';
+import WhatsAppIcon from './WhatsAppIcon';
 
 interface ProfileContentProps {
   fullName: string;
@@ -103,7 +98,7 @@ export default function PhotographerProfileContent({
             {/* CARD CHAMPANHE */}
             <section className="relative z-10 w-full bg-[#FFF9F0] rounded-[1rem] p-8 pt-20 shadow-2xl border border-white/20 text-center">
               <div className="space-y-5">
-                <p className="text-slate-900 text-lg md:text-xl italic font-serif leading-relaxed px-2">
+                <p className="text-slate-900 text-lg md:text-xl italic leading-relaxed px-2">
                   {miniBio
                     ? `"${miniBio}"`
                     : '"Sua essência editorial aparecerá aqui..."'}
@@ -141,7 +136,7 @@ export default function PhotographerProfileContent({
                     className="flex items-center justify-between px-5 py-3.5 rounded-xl bg-[#25D366] text-white shadow-lg transition-all hover:scale-[1.02] active:scale-95"
                   >
                     <div className="flex items-center gap-3">
-                      <MessageCircle size={28} />
+                      <WhatsAppIcon className="text-white w-[28px] h-[28px]" />
                       <div className="flex flex-col items-start leading-none gap-1">
                         <span className="text-[10px] md:text-[14px] uppercase font-semibold">
                           WhatsApp
