@@ -42,14 +42,14 @@ export default function PhotoGrid({ photos, galeria }: any) {
   const storageKey = `favoritos_galeria_${galeria.id}`;
   const [favorites, setFavorites] = useState<string[]>([]);
 
-  // --- LÓGICA DE VOLUMES (SIMULAÇÃO: 100 MB) ---
+  // --- LÓGICA DE VOLUMES
   const VOLUMES = useMemo(() => {
-    const LIMIT = 100 * 1024 * 1024; // 100 MB para teste
+    const LIMIT = 500 * 1024 * 1024; // 500 MB cada zip
     return groupPhotosByWeight(photos, LIMIT);
   }, [photos]);
 
   const FAVORITE_VOLUMES = useMemo(() => {
-    const LIMIT = 100 * 1024 * 1024; // 100 MB para teste
+    const LIMIT = 500 * 1024 * 1024; // 500 MB cada zip
     const targetList = favorites
       .map((id) => photos.find((p: any) => p.id === id))
       .filter(Boolean);
@@ -298,7 +298,7 @@ export default function PhotoGrid({ photos, galeria }: any) {
 
       {/* MODAL CENTRAL DE DOWNLOADS (TEMA BRANCO) */}
       {showVolumeDashboard && (
-        <div className="fixed inset-0 z-[9999] bg-black/60 backdrop-blur-sm flex items-center justify-center px-6 md:p-6 animate-in fade-in duration-300">
+        <div className="fixed inset-0 z-[999] bg-black/60 backdrop-blur-sm flex items-center justify-center px-6 md:p-6 animate-in fade-in duration-300">
           {/* Overlay para fechar ao clicar fora */}
           <div
             className="absolute inset-0"

@@ -5,6 +5,7 @@
 import { Camera } from 'lucide-react';
 import { useEffect, useState } from 'react';
 import { SEO_CONFIG } from '@/core/config/seo.config';
+import LoadingSpinner from './LoadingSpinner';
 
 interface LoadingScreenProps {
   message?: string;
@@ -44,32 +45,17 @@ export default function LoadingScreen({
       <div
         className={`mb-12 md:mb-16 transition-transform duration-700 ${fadeOut ? '-translate-y-4' : 'translate-y-0'}`}
       >
-        <h2 className="font-barlow text-[10px] md:text-[14px] tracking-wider text-champagne-dark uppercase font-medium text-center">
+        <h2 className="font-barlow text-[10px] md:text-[12px] tracking-wider text-champagne-dark uppercase font-medium text-center">
           {SEO_CONFIG.brandName}
         </h2>
       </div>
 
-      <div className="relative w-24 h-24 md:w-32 md:h-32">
-        <div className="absolute inset-0 rounded-full border border-champagne-dark/10" />
-        <div
-          className="absolute inset-0 rounded-full border-t-[2px] border-r-[2px] border-transparent border-t-champagne-dark border-r-champagne-dark/30 animate-spin"
-          style={{ animationDuration: '2s' }}
-        />
-        <div className="absolute inset-0 flex items-center justify-center">
-          <div className="relative flex items-center justify-center">
-            <div className="absolute w-16 h-16 bg-champagne-dark/10 blur-[20px] rounded-full animate-pulse" />
-            <Camera
-              className="text-champagne-dark relative z-10 animate-pulse-gentle w-8 h-8 md:w-12 md:h-12"
-              strokeWidth={1}
-            />
-          </div>
-        </div>
-      </div>
+      <LoadingSpinner size="md" />
 
       <div
         className={`mt-12 md:mt-16 flex flex-col items-center gap-5 transition-transform duration-700 ${fadeOut ? 'translate-y-4' : 'translate-y-0'}`}
       >
-        <p className="font-barlow text-[10px] md:text-[14px] tracking-wider text-champagne-dark uppercase font-medium text-center px-6">
+        <p className="font-barlow text-[10px] md:text-[12px] tracking-wider text-champagne-dark uppercase font-medium text-center px-6">
           {message}
         </p>
         <div className="relative w-12 md:w-16 h-[1px] bg-gold-light/20 overflow-hidden">
