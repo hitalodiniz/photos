@@ -18,63 +18,68 @@
 /* 1. Camada de Base */
 @layer base {
   html {
-    font-family: var(--font-inter), 'Inter', sans-serif;
+    /* ✅ Forçando Inter como a única fonte do sistema */
+    font-family: var(--font-montserrat), 'Montserrat', sans-serif;
     -webkit-font-smoothing: antialiased;
     color: var(--color-text-google);
     background-color: var(--color-champagne);
   }
 
+  /* Padronização de Labels (Ajustado para Inter) */
   label {
     @apply text-[9px] md:text-[11px] font-semibold uppercase text-slate-700 flex items-center gap-2 tracking-widest;
   }
 
-  /* 🎯 Correção: Usando os nomes definidos no tailwind.config.ts em vez de var() direta */
   input[type='radio'] + label,
   input[type='checkbox'] + label {
     @apply mb-0 ml-2 cursor-pointer inline-flex items-center text-slate-700 hover:text-gold;
   }
 
   input[type='radio'] {
-    /* 🎯 Agora o modificador /50 funciona porque 'gold' está no config */
     @apply w-4 h-4 border-gray-300 text-gold focus:ring-gold/50 cursor-pointer;
   }
 
   input:not([type='file']),
   textarea,
   select {
-    /* De border-gray-100 para um tom que harmonize com o Champagne */
     @apply w-full bg-white border border-[#F3E5AB] p-3 rounded-xl outline-none 
            focus:border-gold focus:ring-1 focus:ring-gold/30 
            text-sm text-slate-700 transition-all placeholder:text-gray-300;
   }
 
+  /* ✅ BOTÕES PADRONIZADOS (Mantendo seu ajuste Mobile) */
   button[type='submit'],
   .btn-primary {
-    @apply w-full py-4 rounded-2xl font-black uppercase tracking-[0.25em] 
-           transition-all duration-300 active:scale-95 flex items-center justify-center gap-2
-           bg-champagne-dark text-slate-900 shadow-xl shadow-champagne-dark/20 
-           hover:bg-slate-800 hover:text-white hover:shadow-slate-900/20
-           disabled:bg-slate-100 disabled:text-slate-400 
-           disabled:cursor-not-allowed text-[10px] md:text-[11px];
+    @apply w-full py-3.5 rounded-xl 
+           /* 1. Troca de peso: de black para semibold */
+           font-semibold uppercase 
+           /* 2. Ajuste de espaçamento: menos agressivo que 0.25em */
+           tracking-wider text-[11px] md:text-[12px]
+           transition-all duration-300 active:scale-95 
+           flex items-center justify-center gap-2
+           bg-slate-900 text-white shadow-lg
+           hover:bg-slate-800 disabled:opacity-50;
   }
 
   .btn-secondary {
-    @apply w-full py-4 bg-white border border-slate-100 text-slate-400 
-           rounded-2xl font-bold uppercase text-[10px] md:text-[11px] tracking-[0.2em] 
-           transition-all hover:bg-slate-50 active:scale-95;
+    @apply w-full py-3.5 bg-white border border-slate-200 
+           text-slate-600 rounded-xl font-medium uppercase 
+           text-[11px] tracking-wide transition-all 
+           hover:bg-slate-50 active:scale-95;
   }
 
   .btn-dark {
-    @apply w-full py-4 bg-slate-900 text-white rounded-2xl font-bold 
-           uppercase text-[10px] tracking-[0.2em] transition-all 
+    @apply w-full py-4 bg-slate-900 text-white rounded-2xl font-semibold 
+           uppercase text-[10px] tracking-wider transition-all 
            flex items-center justify-center gap-2 shadow-xl hover:bg-black;
   }
 }
 
 /* 2. Camada de Componentes */
 @layer components {
+  /* 🔄 Redirecionando font-artistic para Inter para evitar erros no site */
   .font-artistic {
-    font-family: var(--font-playfair), 'Playfair Display', serif;
+    font-family: var(--font-montserrat), sans-serif;
   }
 
   .btn-gsi-custom {

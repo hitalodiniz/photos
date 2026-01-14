@@ -44,7 +44,7 @@ export default function LoadingScreen({
       <div
         className={`mb-12 md:mb-16 transition-transform duration-700 ${fadeOut ? '-translate-y-4' : 'translate-y-0'}`}
       >
-        <h2 className="font-barlow text-[10px] md:text-[14px] tracking-[0.4em] text-champagne-dark uppercase font-medium text-center">
+        <h2 className="font-barlow text-[10px] md:text-[14px] tracking-wider text-champagne-dark uppercase font-medium text-center">
           {SEO_CONFIG.brandName}
         </h2>
       </div>
@@ -69,7 +69,7 @@ export default function LoadingScreen({
       <div
         className={`mt-12 md:mt-16 flex flex-col items-center gap-5 transition-transform duration-700 ${fadeOut ? 'translate-y-4' : 'translate-y-0'}`}
       >
-        <p className="font-barlow text-[10px] md:text-[14px] tracking-[0.4em] text-champagne-dark uppercase font-medium text-center px-6">
+        <p className="font-barlow text-[10px] md:text-[14px] tracking-wider text-champagne-dark uppercase font-medium text-center px-6">
           {message}
         </p>
         <div className="relative w-12 md:w-16 h-[1px] bg-gold-light/20 overflow-hidden">

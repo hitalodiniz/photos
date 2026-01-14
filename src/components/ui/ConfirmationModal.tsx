@@ -54,7 +54,7 @@ export default function ConfirmationModal({
                 )}
               </div>
 
-              <h2 className="text-xl font-bold tracking-tight text-slate-900 italic font-serif">
+              <h2 className="text-xl font-semibold tracking-tight text-slate-900 italic font-serif">
                 {title}
               </h2>
             </div>
@@ -76,7 +76,7 @@ export default function ConfirmationModal({
               <button
                 onClick={onConfirm}
                 disabled={isLoading}
-                className={`w-full py-4 rounded-2xl font-black uppercase text-[10px] tracking-[0.25em] transition-all active:scale-95 flex items-center justify-center gap-2 shadow-lg shadow-black/5 ${
+                className={`w-full py-4 rounded-2xl font-semibold uppercase text-[10px] tracking-wider transition-all active:scale-95 flex items-center justify-center gap-2 shadow-lg shadow-black/5 ${
                   variant === 'danger'
                     ? 'bg-red-600 text-white hover:bg-red-700'
                     : 'bg-slate-900 text-white hover:bg-black'

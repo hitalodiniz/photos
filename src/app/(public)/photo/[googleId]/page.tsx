@@ -42,7 +42,7 @@ export default async function Page({ params, searchParams }: any) {
   if (!initialData) {
     return (
       <div className="bg-black text-white min-h-screen flex flex-col items-center justify-center p-10 text-center">
-        <h1 className="text-2xl font-bold mb-4">Galeria não encontrada</h1>
+        <h1 className="text-2xl font-semibold mb-4">Galeria não encontrada</h1>
         <p className="opacity-60 italic">Slug: {cleanSlug || 'Vazio'}</p>
         <p className="mt-4 text-xs opacity-40">ID: {resParams.googleId}</p>
       </div>

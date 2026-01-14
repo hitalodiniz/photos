@@ -33,7 +33,7 @@ export default function CookieBanner() {
             <Cookie className="text-[#D4AF37] w-6 h-6" />
           </div>
           <div className="space-y-1">
-            <h4 className="text-white font-bold text-lg">
+            <h4 className="text-white font-semibold text-lg">
               Privacidade e Experiência
             </h4>
             <p className="text-gray-400 text-sm leading-relaxed max-w-xl">
@@ -60,7 +60,7 @@ export default function CookieBanner() {
           </button>
           <button
             onClick={acceptCookies}
-            className="flex-1 md:flex-none bg-[#1A73E8] hover:bg-[#1557b0] text-white text-xs font-bold uppercase tracking-widest px-8 py-3 rounded-xl transition-all shadow-lg active:scale-95"
+            className="flex-1 md:flex-none bg-[#1A73E8] hover:bg-[#1557b0] text-white text-xs font-semibold uppercase tracking-widest px-8 py-3 rounded-xl transition-all shadow-lg active:scale-95"
           >
             Aceitar
           </button>

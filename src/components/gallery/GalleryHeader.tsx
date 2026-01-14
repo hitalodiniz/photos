@@ -27,7 +27,7 @@ export const GalleryHeader: React.FC<GalleryHeaderProps> = ({
 
       {/* TEXTOS EDITORIAIS */}
       <div className="flex flex-col text-left">
-        <h2 className="text-lg md:text-2xl font-bold italic font-serif leading-tight text-white drop-shadow-lg tracking-tight">
+        <h2 className="text-lg md:text-2xl font-semibold italic font-serif leading-tight text-white drop-shadow-lg tracking-tight">
           {title}
         </h2>
 

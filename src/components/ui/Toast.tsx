@@ -40,7 +40,7 @@ export default function Toast({ message, type, onClose }: ToastProps) {
             href={part}
             target="_blank"
             rel="noopener noreferrer"
-            className={`inline-flex items-center gap-1.5 font-bold underline mt-2 px-3 py-2 rounded-lg transition-all ${
+            className={`inline-flex items-center gap-1.5 font-semibold underline mt-2 px-3 py-2 rounded-lg transition-all ${
               type === 'success'
                 ? 'bg-gold/10 text-gold hover:bg-gold/20'
                 : 'bg-red-50 text-[#B3261E] hover:bg-red-100'
@@ -81,7 +81,7 @@ export default function Toast({ message, type, onClose }: ToastProps) {
 
             <div className="flex flex-col gap-1 flex-1 min-w-0">
               <span
-                className={`text-[10px] uppercase tracking-[0.3em] font-bold opacity-60 font-barlow`}
+                className={`text-[10px] uppercase tracking-wider font-semibold opacity-60 font-barlow`}
               >
                 {type === 'success' ? 'Sincronizado' : 'Ação Necessária'}
               </span>

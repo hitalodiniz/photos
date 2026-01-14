@@ -25,7 +25,7 @@ export default function SubmitButton({
       disabled={pending || success}
       className={`
         w-full group relative flex items-center justify-center gap-3 rounded-2xl py-4 
-        text-[10px] font-black uppercase tracking-[0.3em] transition-all duration-500
+        text-[10px] font-semibold uppercase tracking-wider transition-all duration-500
         active:scale-[0.97] shadow-2xl overflow-hidden
         ${
           success

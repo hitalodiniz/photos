@@ -32,7 +32,7 @@ export default function GaleriaFooter({ galeria }: GaleriaFooterProps) {
               <path d="m18 15-6-6-6 6" />
             </svg>
           </div>
-          <span className="text-[9px] md:text-[14px] tracking-[0.4em]  font-medium text-[#D4AF37]">
+          <span className="text-[9px] md:text-[14px] tracking-wider  font-medium text-[#D4AF37]">
             Topo
           </span>
         </button>
@@ -128,7 +128,7 @@ export default function GaleriaFooter({ galeria }: GaleriaFooterProps) {
       </div>
       <div className="w-full border-t border-slate-200/60 mt-2 pt-6 pb-4 px-8">
         <div className="max-w-[1600px] mx-auto flex flex-col items-end gap-2 text-slate-600">
-          <div className="text-[10px] md:text-[12px] tracking-[0.2em] font-bold text-slate-800 font-sans uppercase">
+          <div className="text-[10px] md:text-[12px] tracking-wider font-semibold text-slate-800 font-sans uppercase">
             Powered by{' '}
             <a
               href={`https://${process.env.NEXT_PUBLIC_MAIN_DOMAIN}`}

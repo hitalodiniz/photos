@@ -111,7 +111,7 @@ export default function LoginPage() {
           <GoogleSignInButton />
 
           <div className="pt-6 border-t border-white/5 w-full">
-            <p className="text-[10px] md:text-[11px] text-white/70 uppercase tracking-[0.1em] leading-relaxed">
+            <p className="text-[10px] md:text-[11px] text-white/70 uppercase tracking-wider leading-relaxed">
               Ambiente seguro • Criptografia ponta a ponta
             </p>
           </div>
@@ -139,7 +139,7 @@ export default function LoginPage() {
           subtitle={
             <>
               Bem-vindo de volta ao seu{' '}
-              <span className="font-bold border-b-2 border-[#F3E5AB]/50 text-white">
+              <span className="font-semibold border-b-2 border-[#F3E5AB]/50 text-white">
                 espaço exclusivo
               </span>
             </>

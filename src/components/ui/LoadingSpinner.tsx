@@ -77,7 +77,7 @@ export default function LoadingSpinner({
       {/* Mensagem Opcional - Só exibe acima de XS ou se for forçada */}
       {message && size !== 'xs' && (
         <p
-          className={`font-serif italic text-[#F3E5AB]/60 tracking-[0.1em] uppercase animate-pulse ${s.text}`}
+          className={`font-serif italic text-[#F3E5AB]/60 tracking-wider uppercase animate-pulse ${s.text}`}
         >
           {message}
         </p>

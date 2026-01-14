@@ -230,7 +230,7 @@ export default function GooglePickerButton({
       onClick={openPicker}
       disabled={isDisabled}
       className={`
-        flex items-center justify-center w-full p-3 rounded-xl transition-all duration-300 text-[11px] font-bold uppercase shadow-sm
+        flex items-center justify-center w-full p-3 rounded-xl transition-all duration-300 text-[11px] font-semibold uppercase shadow-sm
         ${
           isDisabled
             ? 'bg-slate-100 text-slate-400 cursor-not-allowed opacity-50'

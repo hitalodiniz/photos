@@ -105,7 +105,7 @@ const MasonryGrid = ({
           </p>
           <button
             onClick={() => setShowOnlyFavorites(false)}
-            className="mx-auto px-4 py-2 rounded-[0.5rem] bg-champagne-dark text-slate-900 uppercase text-[11px] md:text-[12px] font-bold"
+            className="mx-auto px-4 py-2 rounded-[0.5rem] bg-champagne-dark text-slate-900 uppercase text-[11px] md:text-[12px] font-semibold"
           >
             Exibir todas as fotos
           </button>

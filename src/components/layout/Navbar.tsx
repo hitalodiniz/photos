@@ -34,10 +34,7 @@ export default function Navbar() {
           <div className="bg-[#D4AF37] p-1.5 rounded-lg shadow-sm transition-transform group-hover:scale-105">
             <Camera className="text-white w-5 h-5 md:w-6 md:h-6" />
           </div>
-          <span
-            className="text-lg md:text-[20px] font-bold tracking-tight text-slate-800 italic"
-            style={{ fontFamily: "'Playfair Display', serif" }}
-          >
+          <span className="font-artistic text-lg md:text-[20px] font-semibold tracking-tight text-slate-800 italic">
             Espaço <span className="text-[#D4AF37]">Premium</span> do Fotógrafo
           </span>
         </Link>

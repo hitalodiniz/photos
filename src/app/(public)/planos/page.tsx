@@ -76,7 +76,7 @@ export default function PlanosPage() {
           subtitle={
             <>
               Escolha a vitrine ideal para a sua{' '}
-              <span className="font-bold border-b-2 border-[#F3E5AB] text-white">
+              <span className="font-semibold border-b-2 border-[#F3E5AB] text-white">
                 carreira fotográfica
               </span>
             </>
@@ -102,19 +102,19 @@ export default function PlanosPage() {
                         ${isPremium || isHovered ? 'bg-champagne-dark/20' : 'bg-white'}`}
                       >
                         {isPremium && (
-                          <div className="absolute top-0 left-1/2 -translate-x-1/2 -translate-y-4 bg-slate-950 text-[#F3E5AB] text-[9px] font-black uppercase tracking-[0.25em] px-4 py-1 rounded-full flex items-center gap-1 animate-pulse">
+                          <div className="absolute top-0 left-1/2 -translate-x-1/2 -translate-y-4 bg-slate-950 text-[#F3E5AB] text-[9px] font-semibold uppercase tracking-wider px-4 py-1 rounded-full flex items-center gap-1 animate-pulse">
                             <Sparkles size={10} /> Recomendado
                           </div>
                         )}
                         <div className="flex flex-col items-center gap-1.5">
                           <span
-                            className={`uppercase tracking-[0.15em] text-[11px] font-bold ${isPremium ? 'text-amber-600' : 'text-slate-500'}`}
+                            className={`uppercase tracking-wider text-[11px] font-semibold ${isPremium ? 'text-amber-600' : 'text-slate-500'}`}
                           >
                             {p.name}
                           </span>
-                          <span className="text-3xl font-black text-slate-950">
+                          <span className="text-3xl font-semibold text-slate-950">
                             R$ {p.price}
-                            <span className="text-[13px] text-slate-700 font-bold ml-0.5">
+                            <span className="text-[13px] text-slate-700 font-semibold ml-0.5">
                               /mês
                             </span>
                           </span>
@@ -131,7 +131,7 @@ export default function PlanosPage() {
                     key={idx}
                     className="hover:bg-slate-50/50 transition-colors"
                   >
-                    <td className="py-5 px-4 border-b border-black/10 font-bold text-slate-900 text-[10px] md:text-[13px] tracking-[0.1em] leading-relaxed">
+                    <td className="py-5 px-4 border-b border-black/10 font-semibold text-slate-900 text-[10px] md:text-[13px] tracking-wider leading-relaxed">
                       {row.label}
                     </td>
                     {planosKeys.map((key) => {
@@ -146,7 +146,7 @@ export default function PlanosPage() {
                         <td
                           key={key}
                           className={`py-5 px-4 border-b border-slate-200 text-center transition-colors duration-300
-                          ${isHighlighted ? 'bg-champagne-dark/10 text-slate-950 font-bold' : 'text-slate-800 font-semibold'}`}
+                          ${isHighlighted ? 'bg-champagne-dark/10 text-slate-950 font-semibold' : 'text-slate-800 font-semibold'}`}
                         >
                           {cellValue === true ? (
                             <Check
@@ -190,7 +190,7 @@ export default function PlanosPage() {
                           onClick={() => handleSubscribe(key)}
                           disabled={!!loadingPlan}
                           // Adicionado gap-2 e removido padding duplicado para melhor simetria
-                          className={`w-full py-4 px-4 rounded-2xl font-bold text-[10px] md:text-[12px] uppercase tracking-widest transition-all flex items-center justify-center gap-2
+                          className={`w-full py-4 px-4 rounded-2xl font-semibold text-[10px] md:text-[12px] uppercase tracking-widest transition-all flex items-center justify-center gap-2
                             ${
                               isPremium
                                 ? 'bg-slate-950 text-[#F3E5AB] hover:scale-105 shadow-xl'
@@ -221,7 +221,7 @@ export default function PlanosPage() {
               </tbody>
             </table>
             <div className="mt-2 flex flex-col items-center gap-2">
-              <p className="flex items-center justify-center gap-1.5 text-[9px] md:text-[11px] uppercase tracking-[0.1em] text-slate-500 font-bold whitespace-nowrap">
+              <p className="flex items-center justify-center gap-1.5 text-[9px] md:text-[11px] uppercase tracking-wider text-slate-500 font-semibold whitespace-nowrap">
                 <Lock size={14} className="text-[#D4AF37] shrink-0" />
                 <span className="leading-none text-slate-700">
                   Transação segura via criptografia SSL

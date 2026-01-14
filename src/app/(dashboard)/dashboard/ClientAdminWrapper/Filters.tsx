@@ -67,7 +67,7 @@ export default function Filters({
             filterType) && (
             <button
               onClick={resetFilters}
-              className="text-[10px] text-red-500 font-bold underline px-2"
+              className="text-[10px] text-red-500 font-semibold underline px-2"
             >
               Limpar
             </button>
@@ -83,7 +83,7 @@ export default function Filters({
       >
         <div className="flex items-center gap-2.5 px-2">
           <Filter className="text-[#D4AF37] w-3 h-3 md:w-5 md:h-5" />
-          <span className="text-[11px] font-black uppercase tracking-[0.25em] text-slate-500">
+          <span className="text-[11px] font-semibold uppercase tracking-wider text-slate-500">
             Filtros
           </span>
         </div>

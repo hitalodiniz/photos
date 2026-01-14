@@ -1,7 +1,7 @@
-"use client";
+'use client';
 
-import { motion } from "framer-motion";
-import Link from "next/link";
+import { motion } from 'framer-motion';
+import Link from 'next/link';
 
 export default function AuthErrorPage() {
   return (
@@ -37,14 +37,14 @@ export default function AuthErrorPage() {
         </motion.div>
 
         {/* Título */}
-        <h1 className="text-2xl font-bold text-[#1F1F1F] mb-2">
+        <h1 className="text-2xl font-semibold text-[#1F1F1F] mb-2">
           Ocorreu um erro ao autenticar
         </h1>
 
         {/* Mensagem */}
         <p className="text-sm text-[#444746] mb-6 leading-relaxed">
-          Não foi possível completar o processo de login.  
-          Isso pode acontecer por expiração do código, janela fechada ou erro temporário.
+          Não foi possível completar o processo de login. Isso pode acontecer
+          por expiração do código, janela fechada ou erro temporário.
         </p>
 
         {/* Botão voltar */}

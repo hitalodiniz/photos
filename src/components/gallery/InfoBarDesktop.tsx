@@ -1,5 +1,5 @@
 'use client';
-import React, { useState, useMemo } from 'react';
+import React, { useRef, useState, useMemo } from 'react';
 import {
   Filter,
   Download,
@@ -55,8 +55,8 @@ export const InfoBarDesktop = ({
           pointer-events-auto overflow-hidden
           ${
             isCompact
-              ? 'w-[40%] max-w-[1100px] mt-4 bg-black/45 backdrop-blur-xl border border-white/10 shadow-2xl rounded-[0.5rem]'
-              : 'w-full max-w-none mt-0 bg-black/80 border-b border-white/20 rounded-none'
+              ? 'w-[60%] max-w-[1100px] mt-4  bg-slate-800/80 backdrop-blur-xl border border-white/10 shadow-2xl rounded-[0.5rem]'
+              : 'w-full max-w-none mt-0  bg-slate-800 border-b border-white/20 rounded-none'
           }
         `}
       >
@@ -65,7 +65,7 @@ export const InfoBarDesktop = ({
           <div className="flex items-center gap-2 mr-4 border-r border-white/10 pr-4">
             <Wand2 size={18} className="text-[#F3E5AB]" />
             {!isCompact && (
-              <span className="text-[10px] text-white/70 uppercase font-bold tracking-widest hidden lg:block">
+              <span className="text-[10px] text-white/70 uppercase font-semibold tracking-widest hidden lg:block">
                 Ferramentas
               </span>
             )}
@@ -76,7 +76,7 @@ export const InfoBarDesktop = ({
               <div className="flex items-center shrink-0">
                 <Tag size={18} className="text-[#F3E5AB]" />
                 {!isCompact && (
-                  <span className="ml-2 text-[12px] text-white/70 uppercase font-bold tracking-tighter hidden lg:block">
+                  <span className="ml-2 text-[12px] text-white/70 uppercase font-semibold tracking-tighter hidden lg:block">
                     Categoria
                   </span>
                 )}
@@ -126,7 +126,7 @@ export const InfoBarDesktop = ({
                     onClick={() =>
                       setColumns((p: any) => ({ ...p, desktop: num }))
                     }
-                    className={`w-7 h-7 rounded-[0.2rem] text-[10px] font-bold ${columns.desktop === num ? 'bg-[#F3E5AB] text-black' : 'text-white/70 hover:text-white'}`}
+                    className={`w-7 h-7 rounded-[0.2rem] text-[10px] font-semibold ${columns.desktop === num ? 'bg-[#F3E5AB] text-black' : 'text-white/70 hover:text-white'}`}
                   >
                     {num}
                   </button>
@@ -147,7 +147,7 @@ export const InfoBarDesktop = ({
                     onClick={() =>
                       setColumns((p: any) => ({ ...p, desktop: num }))
                     }
-                    className={`w-7 h-7 rounded-[0.2rem] text-[10px] font-bold ${columns.desktop === num ? 'bg-[#F3E5AB] text-black' : 'text-white/70 hover:text-white'}`}
+                    className={`w-7 h-7 rounded-[0.2rem] text-[10px] font-semibold ${columns.desktop === num ? 'bg-[#F3E5AB] text-black' : 'text-white/70 hover:text-white'}`}
                   >
                     {num}
                   </button>
@@ -204,7 +204,7 @@ export const InfoBarDesktop = ({
             <button
               onClick={downloadAllAsZip}
               disabled={isDownloading}
-              className={`flex items-center justify-center rounded-[0.5rem] bg-[#F3E5AB] text-black h-10 font-bold shadow-xl transition-all ${isCompact ? 'w-10' : 'w-28 gap-2'}`}
+              className={`flex items-center justify-center rounded-[0.5rem] bg-[#F3E5AB] text-black h-10 font-semibold shadow-xl transition-all ${isCompact ? 'w-10' : 'w-28 gap-2'}`}
             >
               {isDownloading ? (
                 <Loader2 size={16} className="animate-spin" />

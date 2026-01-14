@@ -67,7 +67,7 @@ export default function FeatureGrid({
                 <div
                   className={`flex flex-col ${isTop ? 'items-center' : 'items-start'}`}
                 >
-                  <h3 className="text-white font-black uppercase tracking-[0.2em] text-[11px] md:text-[14px] mb-1 md:mb-2 leading-tight">
+                  <h3 className="text-white font-semibold uppercase tracking-wider text-[11px] md:text-[14px] mb-1 md:mb-2 leading-tight">
                     {item.title}
                   </h3>
                   <div

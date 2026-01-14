@@ -1,24 +1,16 @@
-// app/layout.tsx
 import './global.css';
-import { Inter, Playfair_Display, Barlow } from 'next/font/google';
+import { Inter, Barlow, Montserrat } from 'next/font/google';
 import Navbar from '../components/layout/Navbar';
 import { Metadata } from 'next';
 import Script from 'next/script';
 import { CookieBanner } from '@/components/ui';
 import { AuthProvider } from '@/contexts/AuthContext';
 
-// 1. Configuração das fontes (Next.js as baixa e serve localmente)
-const inter = Inter({
+// 2. Configuração com mais pesos para suportar títulos e botões
+const montserrat = Montserrat({
   subsets: ['latin'],
-  weight: ['300', '400', '600'],
-  variable: '--font-inter',
-});
-
-const playfair = Playfair_Display({
-  subsets: ['latin'],
-  weight: ['700', '900'],
-  style: ['normal', 'italic'],
-  variable: '--font-playfair',
+  weight: ['300', '400', '500', '600', '700', '800', '900'],
+  variable: '--font-montserrat',
 });
 
 const barlow = Barlow({
@@ -27,16 +19,14 @@ const barlow = Barlow({
   variable: '--font-barlow',
 });
 
-// app/layout.tsx
-
 export const metadata: Metadata = {
-  metadataBase: new URL(process.env.NEXT_PUBLIC_BASE_URL),
+  metadataBase: new URL(process.env.NEXT_PUBLIC_BASE_URL!),
   alternates: {
     canonical: '/',
   },
   title: {
-    default: process.env.NEXT_PUBLIC_TITLE_DEFAULT, // Título da Home
-    template: '%s | Sua Galeria de Fotos', // O %s recebe o título da página interna
+    default: process.env.NEXT_PUBLIC_TITLE_DEFAULT || 'Sua Galeria de Fotos',
+    template: '%s | Sua Galeria de Fotos',
   },
   description:
     'Seu momento especial, acessível a um clique. Bem-vindo à Sua Galeria de Fotos.',
@@ -59,22 +49,19 @@ export default function RootLayout({
   children: React.ReactNode;
 }) {
   return (
-    <html
-      lang="pt-BR"
-      className={`${inter.variable} ${playfair.variable} ${barlow.variable}`}
-    >
+    <html lang="pt-BR" className={`${montserrat.variable} ${barlow.variable}`}>
       <head>
         <meta charSet="UTF-8" />
         <meta name="viewport" content="width=device-width, initial-scale=1.0" />
       </head>
-      <body className={`${inter.className} bg-[#F1F3F4] antialiased`}>
+      {/* 4. A classe inter.className no body garante que todo o texto herde a Inter por padrão */}
+      <body className={`${montserrat.className} bg-[#F1F3F4] antialiased`}>
         <AuthProvider>
           <Navbar />
           <main id="main-content" className="w-full">
             {children}
           </main>
 
-          {/* SCRIPTS GOOGLE */}
           <Script
             src="https://apis.google.com/js/api.js"
             strategy="beforeInteractive"

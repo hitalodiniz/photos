@@ -44,7 +44,7 @@ export default function NotFound() {
           </p>
           <button
             onClick={() => router.push('/')}
-            className="w-fit px-8 py-3 bg-[#D4AF37] hover:bg-[#B8860B] text-black font-black uppercase tracking-widest text-[10px] rounded-full transition-all flex items-center gap-2 shadow-lg shadow-[#D4AF37]/10"
+            className="w-fit px-8 py-3 bg-[#D4AF37] hover:bg-[#B8860B] text-black font-semibold uppercase tracking-widest text-[10px] rounded-full transition-all flex items-center gap-2 shadow-lg shadow-[#D4AF37]/10"
           >
             Voltar Agora <ArrowRight size={12} />
           </button>
@@ -62,7 +62,7 @@ export default function NotFound() {
           </p>
           <button
             onClick={() => router.push('/dashboard')}
-            className="w-fit px-8 py-3 bg-white/5 hover:bg-white/10 text-white font-black uppercase tracking-widest text-[10px] rounded-full border border-white/10 transition-all flex items-center gap-2"
+            className="w-fit px-8 py-3 bg-white/5 hover:bg-white/10 text-white font-semibold uppercase tracking-widest text-[10px] rounded-full border border-white/10 transition-all flex items-center gap-2"
           >
             <LogIn size={12} /> Área do Fotógrafo
           </button>
@@ -81,7 +81,7 @@ export default function NotFound() {
           subtitle={
             <>
               Conteúdo não encontrado ou{' '}
-              <span className="font-bold border-b-2 border-[#F3E5AB]/50 text-white">
+              <span className="font-semibold border-b-2 border-[#F3E5AB]/50 text-white">
                 galeria indisponível
               </span>
             </>
@@ -93,7 +93,7 @@ export default function NotFound() {
           <div className="mb-8 animate-in fade-in slide-in-from-bottom-4 duration-700">
             <div className="flex items-center gap-3 px-5 py-2.5 bg-white/5 border border-white/10 rounded-full backdrop-blur-md">
               <Timer size={14} className="text-[#D4AF37] animate-pulse" />
-              <p className="text-[10px] md:text-[11px] text-white/70 uppercase tracking-[0.2em] font-black">
+              <p className="text-[10px] md:text-[11px] text-white/70 uppercase tracking-wider font-semibold">
                 Redirecionando em{' '}
                 <span className="text-[#D4AF37]">{countdown}s</span>
               </p>

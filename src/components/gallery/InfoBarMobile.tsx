@@ -23,7 +23,7 @@ const Tooltip = ({
   <div
     className={`absolute -bottom-10 ${position === 'left' ? 'left-0' : position === 'right' ? 'right-0' : 'left-1/2 -translate-x-1/2'} z-[130] animate-in fade-in zoom-in slide-in-from-top-2 duration-500`}
   >
-    <div className="bg-[#F3E5AB] text-black text-[9px] font-black px-2 py-1 rounded shadow-xl whitespace-nowrap relative ring-1 ring-black/10">
+    <div className="bg-[#F3E5AB] text-black text-[9px] font-semibold px-2 py-1 rounded shadow-xl whitespace-nowrap relative ring-1 ring-black/10">
       {text}
       <div
         className={`absolute -top-1 ${position === 'left' ? 'left-3' : position === 'right' ? 'right-3' : 'left-1/2 -translate-x-1/2'} border-l-[4px] border-l-transparent border-r-[4px] border-r-transparent border-b-[4px] border-b-[#F3E5AB]`}
@@ -83,7 +83,7 @@ export const InfoBarMobile = ({
     <div className="w-full z-[110] sticky top-0 md:hidden pointer-events-auto">
       <div
         className={`flex items-center justify-between h-14 px-4 border-b transition-all duration-500 relative z-[120]
-        ${isScrolled ? 'bg-black/95 border-white/10' : 'bg-[#1A1A1A] border-white/20'}`}
+        ${isScrolled ? ' bg-slate-800 border-white/10' : ' bg-slate-800 border-white/20'}`}
       >
         {/* ESQUERDA: FILTROS E LAYOUT */}
         <div className="flex items-center gap-2">
@@ -180,9 +180,6 @@ export const InfoBarMobile = ({
           className={`overflow-hidden transition-all duration-500 bg-[#1A1A1A] border-b border-white/10 ${showColumnsPanel ? 'max-h-20 opacity-100' : 'max-h-0 opacity-0 pointer-events-none'}`}
         >
           <div className="flex items-center justify-center gap-4 h-14">
-            <span className="text-[10px] font-black uppercase tracking-widest text-[#F3E5AB]/60">
-              Colunas
-            </span>
             {[1, 2].map((num) => (
               <button
                 key={num}
@@ -190,7 +187,7 @@ export const InfoBarMobile = ({
                   setColumns((prev: any) => ({ ...prev, mobile: num }));
                   setShowColumnsPanel(false);
                 }}
-                className={`px-6 py-2 rounded-[0.5rem] text-[11px] font-bold transition-all ${columns.mobile === num ? 'bg-[#F3E5AB] text-black' : 'bg-white/5 text-white/40 border border-white/10'}`}
+                className={`px-6 py-2 rounded-[0.5rem] text-[11px] font-semibold transition-all ${columns.mobile === num ? 'bg-[#F3E5AB] text-black' : 'bg-white/5 text-white/40 border border-white/10'}`}
               >
                 {num} {num === 1 ? 'Coluna' : 'Colunas'}
               </button>
@@ -203,7 +200,7 @@ export const InfoBarMobile = ({
           className={`overflow-hidden transition-all duration-500 bg-[#1A1A1A] border-b border-white/10 ${showTagsPanel ? 'max-h-[70vh] opacity-100' : 'max-h-0 opacity-0 pointer-events-none'}`}
         >
           <div className="p-6 flex flex-col gap-4">
-            <span className="text-[10px] font-bold uppercase tracking-widest text-white/40">
+            <span className="text-[10px] font-semibold uppercase tracking-widest text-white/40">
               Categorias
             </span>
             <div className="flex flex-wrap gap-2 pb-2">
@@ -214,7 +211,7 @@ export const InfoBarMobile = ({
                     setActiveTag(tag);
                     setShowTagsPanel(false);
                   }}
-                  className={`px-4 py-2 rounded-[0.5rem] text-[10px] font-bold uppercase transition-all border ${activeTag === tag ? 'bg-[#F3E5AB] text-black border-[#F3E5AB]' : 'bg-white/5 text-white/50 border border-white/10'}`}
+                  className={`px-4 py-2 rounded-[0.5rem] text-[10px] font-semibold uppercase transition-all border ${activeTag === tag ? 'bg-[#F3E5AB] text-black border-[#F3E5AB]' : 'bg-white/5 text-white/50 border border-white/10'}`}
                 >
                   {tag}
                 </button>

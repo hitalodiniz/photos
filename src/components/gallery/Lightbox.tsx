@@ -271,7 +271,7 @@ export default function Lightbox({
                       : 'opacity-0 max-h-0 md:max-w-0 mt-0 md:ml-0'
                   }`}
                 >
-                  <span className="text-[9px] md:text-[11px] font-bold uppercase tracking-widest italic text-white whitespace-nowrap">
+                  <span className="text-[9px] md:text-[11px] font-semibold uppercase tracking-widest italic text-white whitespace-nowrap">
                     WhatsApp
                   </span>
                   <span className="text-[8px] md:text-[11px] opacity-60 font-semibold text-white/70 whitespace-nowrap">
@@ -313,7 +313,7 @@ export default function Lightbox({
                         : 'opacity-0 max-h-0 md:max-w-0 mt-0 md:ml-0'
                     }`}
                   >
-                    <span className="text-[9px] md:text-[11px] font-bold uppercase tracking-widest italic text-white whitespace-nowrap">
+                    <span className="text-[9px] md:text-[11px] font-semibold uppercase tracking-widest italic text-white whitespace-nowrap">
                       Favoritar
                     </span>
                     <span className="text-[8px] md:text-[11px] opacity-60 font-semibold text-white/70 whitespace-nowrap">
@@ -349,10 +349,10 @@ export default function Lightbox({
                         : 'opacity-0 max-h-0 md:max-w-0 mt-0 md:ml-0'
                     }`}
                   >
-                    <span className="text-[9px] md:text-[11px] font-bold uppercase tracking-widest italic text-white whitespace-nowrap">
+                    <span className="text-[9px] md:text-[11px] font-semibold uppercase tracking-widest italic text-white whitespace-nowrap">
                       Download
                     </span>
-                    <span className="text-[8px] md:text-[11px] opacity-60 font-bold text-white/70 whitespace-nowrap">
+                    <span className="text-[8px] md:text-[11px] opacity-60 font-semibold text-white/70 whitespace-nowrap">
                       Alta Resolução
                     </span>
                   </div>
@@ -379,7 +379,7 @@ export default function Lightbox({
                               : 'opacity-0 max-h-0 md:max-w-0 mt-0 md:ml-0'
                           }`}
                   >
-                    <span className="text-[9px] md:text-[11px] font-bold uppercase tracking-widest italic text-white whitespace-nowrap">
+                    <span className="text-[9px] md:text-[11px] font-semibold uppercase tracking-widest italic text-white whitespace-nowrap">
                       Fechar
                     </span>
                     <span className="text-[8px] md:text-[11px] opacity-60 font-semibold text-white/70 whitespace-nowrap">
@@ -469,7 +469,7 @@ export default function Lightbox({
             <div className="flex items-center gap-3 bg-black/40 backdrop-blur-md p-2 px-6 rounded-full border border-white/10 shadow-lg">
               <p className="text-white/80 text-sm md:text-lg italic font-serif text-center md:text-left">
                 Foto{' '}
-                <span className="text-[#F3E5AB] font-bold">
+                <span className="text-[#F3E5AB] font-semibold">
                   {activeIndex + 1}
                 </span>{' '}
                 de {totalPhotos}

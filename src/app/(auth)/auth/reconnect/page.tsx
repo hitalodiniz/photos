@@ -45,7 +45,7 @@ export default function ReconnectPage() {
           subtitle={
             <>
               Sua chave de acesso{' '}
-              <span className="font-bold border-b-2 border-[#F3E5AB]/50 text-white">
+              <span className="font-semibold border-b-2 border-[#F3E5AB]/50 text-white">
                 precisa ser renovada
               </span>
             </>

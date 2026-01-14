@@ -64,7 +64,7 @@ export default function PhotographerProfileContent({
           subtitle={
             <>
               @{username || 'usuario'} •{' '}
-              <span className="font-bold border-b border-[#F3E5AB]/50 text-white">
+              <span className="font-semibold border-b border-[#F3E5AB]/50 text-white">
                 Fotografia Profissional
               </span>
             </>
@@ -113,7 +113,7 @@ export default function PhotographerProfileContent({
                 <div className="flex flex-col items-center gap-2 px-6 max-w-md mx-auto">
                   <div className="flex items-center gap-1.5 text-[#D4AF37]">
                     <MapPin size={14} className="flex-shrink-0" />
-                    <span className="text-[10px] tracking-[0.2em] uppercase font-bold">
+                    <span className="text-[10px] tracking-wider uppercase font-semibold">
                       Cidades de Atuação
                     </span>
                   </div>
@@ -143,7 +143,7 @@ export default function PhotographerProfileContent({
                     <div className="flex items-center gap-3">
                       <MessageCircle size={28} />
                       <div className="flex flex-col items-start leading-none gap-1">
-                        <span className="text-[10px] md:text-[14px] uppercase font-bold">
+                        <span className="text-[10px] md:text-[14px] uppercase font-semibold">
                           WhatsApp
                         </span>
                         <span className="text-[9px] md:text-[12px] opacity-80 italic">
@@ -166,7 +166,7 @@ export default function PhotographerProfileContent({
                     <div className="flex items-center gap-3">
                       <Instagram size={28} />
                       <div className="flex flex-col items-start leading-none gap-1">
-                        <span className="text-[10px] md:text-[14px] uppercase font-bold">
+                        <span className="text-[10px] md:text-[14px] uppercase font-semibold">
                           Instagram
                         </span>
                         <span className="text-[9px] md:text-[12px] opacity-80 italic">

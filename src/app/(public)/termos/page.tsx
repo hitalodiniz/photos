@@ -65,7 +65,7 @@ export default function TermosDeUsoPage() {
           subtitle={
             <>
               Regras e diretrizes para uma{' '}
-              <span className="font-bold border-b-2 border-[#F3E5AB]/50 text-white">
+              <span className="font-semibold border-b-2 border-[#F3E5AB]/50 text-white">
                 experiência profissional
               </span>
             </>

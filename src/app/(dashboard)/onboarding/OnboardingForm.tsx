@@ -40,7 +40,7 @@ export function SubmitOnboarding({ isSaving }: { isSaving: boolean }) {
     <button
       type="submit"
       disabled={isLoading}
-      className={`w-full py-5 rounded-2xl font-bold uppercase text-xs tracking-[0.2em] shadow-lg transition-all active:scale-95 flex items-center justify-center gap-2 ${
+      className={`w-full py-5 rounded-2xl font-semibold uppercase text-xs tracking-wider shadow-lg transition-all active:scale-95 flex items-center justify-center gap-2 ${
         isLoading
           ? 'bg-slate-100 text-slate-400 cursor-not-allowed'
           : 'bg-slate-900 text-[#F3E5AB] hover:bg-slate-800 shadow-xl'
@@ -231,7 +231,7 @@ export default function OnboardingForm({
             <button
               type="button"
               onClick={() => router.push('/dashboard')}
-              className="w-full py-3 mb-6 rounded-xl font-bold uppercase text-[10px] tracking-[0.2em] transition-all active:scale-95 flex items-center justify-center gap-2 border border-slate-200 text-slate-500 hover:bg-slate-50 hover:text-slate-900"
+              className="w-full py-3 mb-6 rounded-xl font-semibold uppercase text-[10px] tracking-wider transition-all active:scale-95 flex items-center justify-center gap-2 border border-slate-200 text-slate-500 hover:bg-slate-50 hover:text-slate-900"
             >
               <LayoutDashboard size={14} />
               Voltar ao espaço premium
@@ -243,7 +243,7 @@ export default function OnboardingForm({
               <Camera className="text-[#D4AF37]" size={24} />
             </div>
             <div>
-              <h1 className="font-bold text-slate-900 text-[14px] md:text-[18px] tracking-tight uppercase">
+              <h1 className="font-semibold text-slate-900 text-[14px] md:text-[18px] tracking-tight uppercase">
                 {isEditMode ? 'Editar Perfil' : 'Configuração Profissional'}
               </h1>
             </div>
@@ -364,14 +364,14 @@ export default function OnboardingForm({
             </div>
 
             <div className="rounded-2xl border border-gold/20 p-4 bg-[#FAF7ED]">
-              <div className="flex items-center gap-2 mb-3 text-[#D4AF37] text-xs font-bold uppercase">
+              <div className="flex items-center gap-2 mb-3 text-[#D4AF37] text-xs font-semibold uppercase">
                 <MapPin size={16} /> Área de Atuação ({selectedCities.length})
               </div>
               <div className="flex flex-wrap gap-1.5 mb-3">
                 {selectedCities.map((city) => (
                   <span
                     key={city}
-                    className="bg-white border border-gold/20 text-slate-900 text-[10px] font-bold px-2 py-1 rounded-lg flex items-center gap-1 shadow-sm"
+                    className="bg-white border border-gold/20 text-slate-900 text-[10px] font-semibold px-2 py-1 rounded-lg flex items-center gap-1 shadow-sm"
                   >
                     {city}{' '}
                     <X
@@ -394,7 +394,7 @@ export default function OnboardingForm({
                     setCityInput('');
                     setSuggestions([]);
                   }}
-                  className="w-20 bg-white border border-gray-200 rounded-xl px-2 py-2 text-xs font-bold outline-none"
+                  className="w-20 bg-white border border-gray-200 rounded-xl px-2 py-2 text-xs font-semibold outline-none"
                 >
                   <option value="">UF</option>
                   {states.map((uf) => (
@@ -418,7 +418,7 @@ export default function OnboardingForm({
                           key={city}
                           type="button"
                           onClick={() => handleSelectCity(city)}
-                          className="w-full text-left px-4 py-3 text-[11px] font-bold hover:bg-[#FAF7ED] border-b last:border-0"
+                          className="w-full text-left px-4 py-3 text-[11px] font-semibold hover:bg-[#FAF7ED] border-b last:border-0"
                         >
                           {city}
                         </button>
@@ -451,7 +451,7 @@ export default function OnboardingForm({
           <div className="absolute top-4 md:top-10 left-0 md:left-10 z-[10] flex items-center gap-4 px-6 pointer-events-none">
             <div className="w-1.5 h-14 bg-champagne-dark rounded-full animate-pulse shadow-[0_0_20px_rgba(243,229,171,0.8)]"></div>
             <div className="flex flex-col justify-center">
-              <p className="text-[10px] md:text-[12px] text-[#F3E5AB] font-bold uppercase tracking-[0.5em] leading-none mb-1 drop-shadow-lg">
+              <p className="text-[10px] md:text-[12px] text-[#F3E5AB] font-semibold uppercase tracking-wider leading-none mb-1 drop-shadow-lg">
                 Editorial
               </p>
               <p className="text-[11px] md:text-[14px] text-white/90 font-serif italic tracking-wide leading-none py-2 drop-shadow-md">
@@ -478,7 +478,7 @@ export default function OnboardingForm({
               <div className="w-20 h-20 bg-green-50 text-green-600 rounded-full flex items-center justify-center mx-auto mb-6 shadow-inner">
                 <CheckCircle2 size={40} />
               </div>
-              <h2 className="text-2xl font-bold text-slate-900 mb-2 tracking-tight">
+              <h2 className="text-2xl font-semibold text-slate-900 mb-2 tracking-tight">
                 Perfil Consolidado!
               </h2>
               <p className="text-slate-500 mb-8 leading-relaxed text-sm">
@@ -488,19 +488,19 @@ export default function OnboardingForm({
                 <a
                   href={`/${username}`}
                   target="_blank"
-                  className="w-full flex items-center justify-center gap-2 bg-slate-900 text-[#F3E5AB] py-4 rounded-xl font-bold text-sm hover:bg-slate-800 transition-colors"
+                  className="w-full flex items-center justify-center gap-2 bg-slate-900 text-[#F3E5AB] py-4 rounded-xl font-semibold text-sm hover:bg-slate-800 transition-colors"
                 >
                   <Sparkles size={16} /> Visualizar Perfil Público
                 </a>
                 <button
                   onClick={() => router.push('/dashboard')}
-                  className="w-full bg-champagne-dark text-slate-900 py-4 rounded-xl font-bold text-sm transition-colors"
+                  className="w-full bg-champagne-dark text-slate-900 py-4 rounded-xl font-semibold text-sm transition-colors"
                 >
                   Ir para o Dashboard
                 </button>
                 <button
                   onClick={() => setShowSuccessModal(false)}
-                  className="w-full text-slate-400 py-2 text-xs font-bold hover:text-slate-600 transition-colors"
+                  className="w-full text-slate-400 py-2 text-xs font-semibold hover:text-slate-600 transition-colors"
                 >
                   Continuar Refinando
                 </button>

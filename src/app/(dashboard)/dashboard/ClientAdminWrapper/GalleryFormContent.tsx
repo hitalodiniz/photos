@@ -91,7 +91,7 @@ export default function GalleryFormContent({
       <div className="flex items-center justify-center w-7 h-7 rounded-lg bg-champagne-dark/20 text-[#D4AF37] shrink-0">
         <Icon size={16} strokeWidth={2.5} />
       </div>
-      <h4 className="text-[10px] font-black uppercase tracking-[0.2em] text-slate-700 whitespace-nowrap">
+      <h4 className="text-[10px] font-semibold uppercase tracking-wider text-slate-700 whitespace-nowrap">
         {title}
       </h4>
       <div className="h-[2px] flex-1 bg-champagne-dark opacity-40" />
@@ -122,7 +122,7 @@ export default function GalleryFormContent({
         <SectionHeader icon={ShieldCheck} title="Identificação" />
         <div className="grid grid-cols-1 md:grid-cols-12 gap-4 items-end">
           <div className="md:col-span-3 space-y-1.5">
-            <label className="flex items-center gap-2 text-[10px] uppercase font-bold text-slate-400">
+            <label className="flex items-center gap-2 text-[10px] uppercase font-semibold text-slate-400">
               <Briefcase size={10} /> Tipo
             </label>
             <div className="relative flex w-full p-1 bg-slate-100/80 rounded-xl border border-slate-200/50 h-[45px] items-center">
@@ -132,7 +132,7 @@ export default function GalleryFormContent({
               <button
                 type="button"
                 onClick={() => setHasContractingClient(true)}
-                className="relative z-10 flex-1 py-1.5 text-[9px] font-black uppercase tracking-widest transition-colors text-slate-900"
+                className="relative z-10 flex-1 py-1.5 text-[9px] font-semibold uppercase tracking-widest transition-colors text-slate-900"
               >
                 Contrato
               </button>
@@ -142,7 +142,7 @@ export default function GalleryFormContent({
                   setHasContractingClient(false);
                   setIsPublic(true);
                 }}
-                className="relative z-10 flex-1 py-1.5 text-[9px] font-black uppercase tracking-widest transition-colors text-slate-700"
+                className="relative z-10 flex-1 py-1.5 text-[9px] font-semibold uppercase tracking-widest transition-colors text-slate-700"
               >
                 Cobertura
               </button>
@@ -151,7 +151,7 @@ export default function GalleryFormContent({
           {hasContractingClient ? (
             <>
               <div className="md:col-span-6 space-y-1.5 animate-in fade-in slide-in-from-left-4 duration-500">
-                <label className="flex items-center gap-2 text-[10px] uppercase font-bold text-slate-400">
+                <label className="flex items-center gap-2 text-[10px] uppercase font-semibold text-slate-400">
                   <User size={10} /> Nome do Cliente
                 </label>
                 <input
@@ -163,7 +163,7 @@ export default function GalleryFormContent({
                 />
               </div>
               <div className="md:col-span-3 space-y-1.5 animate-in fade-in slide-in-from-left-2 duration-500">
-                <label className="flex items-center gap-2 text-[10px] uppercase font-bold text-slate-400">
+                <label className="flex items-center gap-2 text-[10px] uppercase font-semibold text-slate-400">
                   <MessageCircle size={10} /> WhatsApp
                 </label>
                 <input
@@ -191,7 +191,7 @@ export default function GalleryFormContent({
         <SectionHeader icon={Camera} title="Galeria de Fotos" />
         <div className="grid grid-cols-1 md:grid-cols-12 gap-4 items-end">
           <div className="md:col-span-5 space-y-1.5">
-            <label className="flex items-center gap-2 text-[10px] uppercase font-bold text-slate-400">
+            <label className="flex items-center gap-2 text-[10px] uppercase font-semibold text-slate-400">
               <Type size={10} /> Título da Galeria
             </label>
             <input
@@ -203,14 +203,14 @@ export default function GalleryFormContent({
             />
           </div>
           <div className="md:col-span-3 space-y-1.5">
-            <label className="flex items-center gap-2 text-[10px] uppercase font-bold text-slate-400">
+            <label className="flex items-center gap-2 text-[10px] uppercase font-semibold text-slate-400">
               <Tag size={10} /> Categoria
             </label>
             <CategorySelect value={category} onChange={setCategory} />
           </div>
           <div className="md:col-span-4 grid grid-cols-2 gap-3">
             <div className="space-y-1.5">
-              <label className="flex items-center gap-2 text-[10px] uppercase font-bold text-slate-400">
+              <label className="flex items-center gap-2 text-[10px] uppercase font-semibold text-slate-400">
                 <Calendar size={10} /> Data
               </label>
               <input
@@ -222,7 +222,7 @@ export default function GalleryFormContent({
               />
             </div>
             <div className="space-y-1.5">
-              <label className="flex items-center gap-2 text-[10px] uppercase font-bold text-slate-400">
+              <label className="flex items-center gap-2 text-[10px] uppercase font-semibold text-slate-400">
                 <MapPin size={10} /> Local
               </label>
               <input
@@ -242,7 +242,7 @@ export default function GalleryFormContent({
         <div className="flex items-center justify-start p-3 bg-white border border-[#F3E5AB] rounded-2xl shadow-sm overflow-x-auto gap-6">
           {/* FOTO DE FUNDO */}
           <div className="flex items-center gap-3 pr-6 border-r border-slate-100 shrink-0">
-            <label className="text-[10px] font-black uppercase tracking-widest text-slate-700 whitespace-nowrap">
+            <label className="text-[10px] font-semibold uppercase tracking-widest text-slate-700 whitespace-nowrap">
               Foto de fundo
             </label>
             <button
@@ -262,7 +262,7 @@ export default function GalleryFormContent({
 
           {/* COR DE FUNDO */}
           <div className="flex items-center gap-4 shrink-0 border-r border-slate-100 pr-6">
-            <label className="text-[10px] font-black uppercase tracking-widest text-slate-700 flex items-center gap-2">
+            <label className="text-[10px] font-semibold uppercase tracking-widest text-slate-700 flex items-center gap-2">
               <Layout size={14} className="text-[#D4AF37]" /> Cor
             </label>
             <div className="flex gap-1.5">
@@ -293,7 +293,7 @@ export default function GalleryFormContent({
 
           {/* COLUNAS */}
           <div className="flex items-center gap-4 shrink-0">
-            <label className="text-[10px] font-black uppercase text-slate-700">
+            <label className="text-[10px] font-semibold uppercase text-slate-700">
               Colunas
             </label>
             <div className="flex gap-4">
@@ -317,7 +317,9 @@ export default function GalleryFormContent({
                 <div key={device.key} className="flex flex-col gap-1 shrink-0">
                   <div className="flex items-center gap-1.5 text-slate-400">
                     <device.icon size={10} />
-                    <span className="text-[8px] font-bold">{device.label}</span>
+                    <span className="text-[8px] font-semibold">
+                      {device.label}
+                    </span>
                   </div>
                   <select
                     value={customization.columns[device.key]}
@@ -327,7 +329,7 @@ export default function GalleryFormContent({
                         [device.key]: Number(e.target.value),
                       })
                     }
-                    className="bg-slate-50 border border-slate-100 px-1 py-0.5 rounded-md text-[10px] font-bold text-slate-700 outline-none w-12"
+                    className="bg-slate-50 border border-slate-100 px-1 py-0.5 rounded-md text-[10px] font-semibold text-slate-700 outline-none w-12"
                   >
                     {Array.from(
                       { length: device.max - device.min + 1 },
@@ -351,7 +353,7 @@ export default function GalleryFormContent({
         <div className="grid grid-cols-1 md:grid-cols-12 gap-6 items-stretch">
           <div className="md:col-span-7 flex flex-col justify-between p-5 bg-white border border-[#F3E5AB] rounded-2xl shadow-sm">
             <div className="flex items-center justify-between mb-4">
-              <label className="flex items-center gap-2 text-[10px] uppercase font-bold text-slate-400">
+              <label className="flex items-center gap-2 text-[10px] uppercase font-semibold text-slate-400">
                 <FolderSync size={14} className="text-[#D4AF37]" /> Google Drive
               </label>
               {driveData.id && (
@@ -396,7 +398,7 @@ export default function GalleryFormContent({
           </div>
           <div className="md:col-span-5 flex flex-col justify-between p-5 bg-white border border-[#F3E5AB] rounded-2xl shadow-sm">
             <div className="flex items-center justify-between mb-4">
-              <label className="text-[10px] font-black uppercase tracking-widest text-slate-700 flex items-center gap-2">
+              <label className="text-[10px] font-semibold uppercase tracking-widest text-slate-700 flex items-center gap-2">
                 <Settings2 size={14} className="text-[#D4AF37]" /> Acesso
               </label>
               {!isPublic && (
@@ -406,7 +408,7 @@ export default function GalleryFormContent({
             <div className="flex flex-col gap-3 w-full">
               <div className="flex items-center gap-8 px-4 h-[42px] bg-slate-50/50 rounded-xl border border-slate-100/50">
                 <label
-                  className={`flex items-center gap-2 cursor-pointer text-[10px] font-black uppercase tracking-[0.2em] transition-all ${isPublic ? 'text-[#D4AF37]' : 'text-slate-300'}`}
+                  className={`flex items-center gap-2 cursor-pointer text-[10px] font-semibold uppercase tracking-wider transition-all ${isPublic ? 'text-[#D4AF37]' : 'text-slate-300'}`}
                 >
                   <input
                     type="radio"
@@ -424,7 +426,7 @@ export default function GalleryFormContent({
                   <Unlock size={14} /> Pública
                 </label>
                 <label
-                  className={`flex items-center gap-2 cursor-pointer text-[10px] font-black uppercase tracking-[0.2em] transition-all ${!isPublic ? 'text-[#D4AF37]' : 'text-slate-300'}`}
+                  className={`flex items-center gap-2 cursor-pointer text-[10px] font-semibold uppercase tracking-wider transition-all ${!isPublic ? 'text-[#D4AF37]' : 'text-slate-300'}`}
                 >
                   <input
                     type="radio"

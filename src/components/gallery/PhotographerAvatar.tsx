@@ -43,7 +43,7 @@ export default function PhotographerAvatar({
   const positionClasses =
     position === 'top-page'
       ? 'relative z-10 animate-in fade-in scale-90 md:scale-100 slide-in-from-right-10 duration-700'
-      : 'md:fixed md:bottom-10 md:right-8 scale-90 md:scale-100 z-[999999]';
+      : 'md:fixed md:bottom-10 md:right-8 scale-90 md:scale-100 z-[15]';
 
   return (
     <div
@@ -75,7 +75,7 @@ export default function PhotographerAvatar({
             />
           ) : (
             <div className="z-10 w-full h-full bg-slate-800 flex items-center justify-center border border-white/10 rounded-full">
-              <span className="text-white font-bold text-lg md:text-xl font-barlow tracking-tighter">
+              <span className="text-white font-semibold text-lg md:text-xl font-barlow tracking-tighter">
                 {initialLetter}
               </span>
             </div>
@@ -90,7 +90,7 @@ export default function PhotographerAvatar({
         `}
         >
           <div className="flex flex-col items-start whitespace-nowrap">
-            <p className="text-[8px] md:text-[9px] italic tracking-[0.1em] text-[#F3E5AB] font-medium opacity-80 leading-none mb-0.5">
+            <p className="text-[8px] md:text-[9px] italic tracking-wider text-[#F3E5AB] font-medium opacity-80 leading-none mb-0.5">
               Fotografado por
             </p>
             <span className="text-xs md:text-sm font-serif italic text-white leading-tight">

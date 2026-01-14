@@ -72,10 +72,7 @@ export default function PasswordPrompt({
             <Camera className="text-[#F3E5AB] w-8 h-8 drop-shadow-[0_0_8px_rgba(243,229,171,0.6)]" />
           </div>
 
-          <h1
-            className="text-2xl md:text-3xl font-bold text-white mb-2 italic leading-tight drop-shadow-lg pb-6"
-            style={{ fontFamily: "'Playfair Display', serif" }}
-          >
+          <h1 className="font-artistic text-2xl md:text-3xl font-semibold text-white mb-2 italic leading-tight drop-shadow-lg pb-6">
             {galeria.title}
           </h1>
 
@@ -92,11 +89,11 @@ export default function PasswordPrompt({
               }
               maxLength={8}
               required
-              className="w-full rounded-2xl border border-white/10 bg-black/40 p-4 text-white text-center text-2xl tracking-[0.3em] focus:ring-2 focus:ring-[#F3E5AB]/50 focus:border-[#F3E5AB]/50 transition-all outline-none placeholder:text-white/80 placeholder:text-base placeholder:tracking-normal font-light"
+              className="w-full rounded-2xl border border-white/10 bg-black/40 p-4 text-white text-center text-2xl tracking-wider focus:ring-2 focus:ring-[#F3E5AB]/50 focus:border-[#F3E5AB]/50 transition-all outline-none placeholder:text-white/80 placeholder:text-base placeholder:tracking-normal font-light"
             />
 
             {error && (
-              <div className="text-red-400 text-[10px] font-bold tracking-[0.2em] uppercase italic bg-red-400/5 py-3 rounded-xl border border-red-400/20 animate-in fade-in zoom-in duration-300">
+              <div className="text-red-400 text-[10px] font-semibold tracking-wider uppercase italic bg-red-400/5 py-3 rounded-xl border border-red-400/20 animate-in fade-in zoom-in duration-300">
                 {error}
               </div>
             )}
@@ -104,7 +101,7 @@ export default function PasswordPrompt({
             <button
               type="submit"
               disabled={isChecking}
-              className="w-full flex items-center justify-center gap-3 px-6 py-5 rounded-2xl font-semibold transition-all shadow-lg active:scale-[0.98] text-sm tracking-[0.25em] uppercase bg-[#D4AF37] hover:bg-[#FAF0CA] text-slate-900 disabled:opacity-50"
+              className="w-full flex items-center justify-center gap-3 px-6 py-5 rounded-2xl font-semibold transition-all shadow-lg active:scale-[0.98] text-sm tracking-wider uppercase bg-[#D4AF37] hover:bg-[#FAF0CA] text-slate-900 disabled:opacity-50"
             >
               {isChecking ? (
                 <Loader2 className="animate-spin h-5 w-5" />
@@ -120,7 +117,7 @@ export default function PasswordPrompt({
           <div className="mt-8">
             <button
               onClick={() => setIsModalOpen(true)}
-              className="text-[#F3E5AB]/60 hover:text-[#F3E5AB] text-[10px] tracking-[0.2em] uppercase font-bold transition-all border-b border-[#F3E5AB]/20 pb-1"
+              className="text-[#F3E5AB]/60 hover:text-[#F3E5AB] text-[10px] tracking-wider uppercase font-semibold transition-all border-b border-[#F3E5AB]/20 pb-1"
             >
               Não tenho a senha
             </button>
@@ -199,7 +196,7 @@ export function AccessRequestModal({
                   <h3 className="text-xl font-serif italic text-white">
                     Solicitar Acesso
                   </h3>
-                  <p className="text-[10px] text-[#D4AF37]/60 mt-1 uppercase tracking-[0.2em] font-bold">
+                  <p className="text-[10px] text-[#D4AF37]/60 mt-1 uppercase tracking-wider font-semibold">
                     Identifique-se para o fotógrafo
                   </p>
                 </div>
@@ -237,7 +234,7 @@ export function AccessRequestModal({
 
                 <button
                   disabled={loading}
-                  className="w-full bg-[#D4AF37] text-black font-black uppercase tracking-widest text-[11px] py-5 rounded-2xl flex items-center justify-center gap-3 hover:bg-[#FAF0CA] transition-all disabled:opacity-50"
+                  className="w-full bg-[#D4AF37] text-black font-semibold uppercase tracking-widest text-[11px] py-5 rounded-2xl flex items-center justify-center gap-3 hover:bg-[#FAF0CA] transition-all disabled:opacity-50"
                 >
                   {loading ? (
                     <Loader2 className="animate-spin" />
@@ -263,7 +260,7 @@ export function AccessRequestModal({
               </p>
               <button
                 onClick={onClose}
-                className="mt-10 text-[#D4AF37] uppercase tracking-[0.3em] text-[10px] font-black border-b-2 border-[#D4AF37]/20 pb-1 hover:border-[#D4AF37] transition-all"
+                className="mt-10 text-[#D4AF37] uppercase tracking-wider text-[10px] font-semibold border-b-2 border-[#D4AF37]/20 pb-1 hover:border-[#D4AF37] transition-all"
               >
                 Fechar
               </button>

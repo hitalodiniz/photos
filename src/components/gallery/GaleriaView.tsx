@@ -1,12 +1,11 @@
 'use client';
 import React, { useState, useEffect } from 'react';
-import { PhotoGrid, PhotographerAvatar } from '@/components/gallery';
 import type { Galeria } from '@/core/types/galeria';
-import { Camera } from 'lucide-react';
 import LoadingScreen from '../ui/LoadingScreen';
 import GaleriaFooter from './GaleriaFooter';
 import { getImageUrl } from '@/core/utils/url-helper';
 import { GaleriaHero } from './GaleriaHero';
+import PhotoGrid from './PhotoGrid';
 
 interface GaleriaViewProps {
   galeria: Galeria;

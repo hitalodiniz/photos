@@ -59,7 +59,7 @@ export default function LandingPageContent() {
           subtitle={
             <>
               Transformando o Google Drive™ em uma{' '}
-              <span className="font-bold border-b-2 border-[#34A853] text-white">
+              <span className="font-semibold border-b-2 border-[#34A853] text-white">
                 Galeria Profissional
               </span>
             </>
@@ -76,7 +76,7 @@ export default function LandingPageContent() {
                 className="lg:absolute lg:-top-4 left-6 w-full 
               text-center lg:text-left"
               >
-                <span className="text-[#D4AF37] text-[10px] md:text-[14px] tracking-[0.2em] uppercase font-black">
+                <span className="text-[#D4AF37] text-[10px] md:text-[14px] tracking-wider uppercase font-semibold">
                   Por que nos escolher?
                 </span>
               </div>
@@ -91,7 +91,7 @@ export default function LandingPageContent() {
               <div className="w-full max-w-md bg-white/5 backdrop-blur-3xl border border-white/10 p-8 md:p-10 mt-3 rounded-[2.5rem] shadow-2xl relative overflow-hidden">
                 <div className="absolute -top-24 -right-24 w-48 h-48 bg-[#D4AF37]/10 blur-[80px] rounded-full" />
 
-                <h2 className="text-white text-2xl md:text-3xl font-bold mb-4 tracking-tight text-center lg:text-left">
+                <h2 className="text-white text-2xl md:text-3xl font-semibold mb-4 tracking-tight text-center lg:text-left">
                   Comece agora
                 </h2>
                 <p className="text-white/80 text-sm md:text-base mb-8 text-center lg:text-left">

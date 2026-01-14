@@ -67,7 +67,7 @@ export const GALLERY_MESSAGES = {
       '',
       'Dê uma olhada nestas fotos incríveis! 📸',
       '',
-      `A galeria *${title}* está disponível para visualização.`,
+      `A galeria de fotos *${title}* está disponível para visualização.`,
       '',
       '📍 *Acesse o link abaixo para conferir:*',
       url,

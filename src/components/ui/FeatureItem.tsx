@@ -17,7 +17,7 @@ export default function FeatureItem({ icon, title, desc }) {
 
       {/* Textos: Alinhados imediatamente à frente do ícone */}
       <div className="flex flex-col min-w-0">
-        <h3 className="text-slate-900 font-bold text-[12px] md:text-[16px] leading-tight mb-1">
+        <h3 className="text-slate-900 font-semibold text-[12px] md:text-[16px] leading-tight mb-1">
           {title}
         </h3>
         <p

@@ -29,7 +29,7 @@ export default function GalleryModalLayout({
               {isEdit ? <Camera size={18} /> : <Plus size={18} />}
             </div>
             <div className="flex items-baseline gap-2 min-w-0">
-              <h2 className="text-sm font-bold text-slate-900">{title}</h2>
+              <h2 className="text-sm font-semibold text-slate-900">{title}</h2>
               {subtitle && (
                 <p className="text-sm text-slate-500 font-medium truncate italic font-serif">
                   | {subtitle}

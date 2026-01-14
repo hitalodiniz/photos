@@ -98,7 +98,7 @@ export default function UserMenu({
         {isOpen && (
           <div className="absolute right-0 mt-3 w-72 bg-white rounded-[28px] shadow-[0_12px_40px_rgba(212,175,55,0.15)] border border-champagne-dark/40 py-5 z-[100] animate-in fade-in zoom-in-95 duration-200">
             <div className="flex flex-col items-center px-6 pb-4">
-              <span className="text-[10px] font-bold text-gold uppercase tracking-[0.2em] mb-4">
+              <span className="text-[10px] font-semibold text-gold uppercase tracking-wider mb-4">
                 Sua Conta
               </span>
 
@@ -123,7 +123,7 @@ export default function UserMenu({
               <button
                 onClick={onLogoutClick}
                 disabled={isLoggingOut}
-                className={`w-full flex items-center gap-3 px-5 py-3.5 text-sm font-bold rounded-2xl transition-all group ${
+                className={`w-full flex items-center gap-3 px-5 py-3.5 text-sm font-semibold rounded-2xl transition-all group ${
                   isLoggingOut
                     ? 'bg-gray-50 text-gray-400 cursor-not-allowed'
                     : 'text-[#B3261E] hover:bg-red-50'
@@ -152,7 +152,7 @@ export default function UserMenu({
               </button>
             </div>
 
-            <div className="px-6 pt-4 flex justify-center gap-5 text-[10px] font-bold text-gray-400 uppercase tracking-widest">
+            <div className="px-6 pt-4 flex justify-center gap-5 text-[10px] font-semibold text-gray-400 uppercase tracking-widest">
               <Link href="#" className="hover:text-[#D4AF37] transition-colors">
                 Privacidade
               </Link>
@@ -166,7 +166,7 @@ export default function UserMenu({
 
       {isLoggingOut && (
         <div className="fixed inset-0 z-[105] bg-black/60 backdrop-blur-sm animate-in fade-in duration-500">
-          <div className="fixed top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 z-[110] bg-[#1F1F1F] text-[#FDF8E7] px-8 py-3.5 rounded-full text-xs font-bold shadow-2xl animate-in zoom-in duration-300 border border-gold/30 tracking-widest uppercase">
+          <div className="fixed top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 z-[110] bg-[#1F1F1F] text-[#FDF8E7] px-8 py-3.5 rounded-full text-xs font-semibold shadow-2xl animate-in zoom-in duration-300 border border-gold/30 tracking-widest uppercase">
             Encerrando sessão com segurança
           </div>
         </div>

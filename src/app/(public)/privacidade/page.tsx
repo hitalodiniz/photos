@@ -46,7 +46,7 @@ export default function PrivacidadePage() {
           subtitle={
             <>
               Compromisso com a{' '}
-              <span className="font-bold border-b-2 border-[#F3E5AB]/50 text-white">
+              <span className="font-semibold border-b-2 border-[#F3E5AB]/50 text-white">
                 segurança dos seus dados
               </span>
             </>

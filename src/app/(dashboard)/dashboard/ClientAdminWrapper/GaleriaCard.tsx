@@ -146,7 +146,7 @@ export default function GaleriaCard({
       {isUpdating && (
         <div className="absolute inset-0 z-20 flex flex-col items-center justify-center bg-white/90 backdrop-blur-md">
           <Loader2 className="h-8 w-8 animate-spin text-[#D4AF37]" />
-          <span className="mt-3 text-[10px] font-bold text-slate-900 uppercase tracking-[0.3em] font-barlow">
+          <span className="mt-3 text-[10px] font-semibold text-slate-900 uppercase tracking-wider font-barlow">
             Sincronizando
           </span>
         </div>
@@ -162,7 +162,7 @@ export default function GaleriaCard({
 
         <div className="absolute top-2 left-2 md:top-3 md:left-3 flex flex-col gap-1.5">
           <span
-            className={`flex items-center gap-1.5 rounded-full px-2.5 py-1 text-[10px] md:text-[12px] font-medium tracking-[0.05em] shadow-sm ${isPrivate ? 'bg-slate-800 text-white ' : 'bg-white text-slate-700'}`}
+            className={`flex items-center gap-1.5 rounded-full px-2.5 py-1 text-[10px] md:text-[12px] font-medium tracking-wider shadow-sm ${isPrivate ? 'bg-slate-800 text-white ' : 'bg-white text-slate-700'}`}
           >
             {isPrivate ? (
               <Lock size={10} strokeWidth={3} />
@@ -175,7 +175,7 @@ export default function GaleriaCard({
 
         <div className="absolute top-2 right-2 md:top-3 md:right-3 flex flex-col gap-1.5">
           <span
-            className={`flex items-center gap-1.5 rounded-full px-2.5 py-1 text-[10px] md:text-[12px] font-medium tracking-[0.05em] shadow-sm ${galeria.has_contracting_client ? 'bg-blue-50 text-blue-700 border border-blue-100' : 'bg-amber-50 text-amber-700 border border-amber-100'}`}
+            className={`flex items-center gap-1.5 rounded-full px-2.5 py-1 text-[10px] md:text-[12px] font-medium tracking-wider shadow-sm ${galeria.has_contracting_client ? 'bg-blue-50 text-blue-700 border border-blue-100' : 'bg-amber-50 text-amber-700 border border-amber-100'}`}
           >
             <Briefcase size={10} strokeWidth={3} />
             {galeria.has_contracting_client ? 'Contrato' : 'Cobertura'}
@@ -193,7 +193,7 @@ export default function GaleriaCard({
 
       <div className="flex flex-col p-4">
         <div className="flex items-start justify-between gap-1 min-h-[40px]">
-          <h3 className="truncate text-[14px] md:text-[18px] italic font-bold text-slate-900 group-hover:text-[#D4AF37] transition-colors tracking-tight leading-tight line-clamp-2 flex-1">
+          <h3 className="truncate text-[14px] md:text-[18px] font-semibold text-slate-900 group-hover:text-[#D4AF37] transition-colors tracking-tight leading-tight line-clamp-2 flex-1">
             {galeria.title}
           </h3>
         </div>
@@ -203,7 +203,7 @@ export default function GaleriaCard({
             {galeria.has_contracting_client ? (
               <div className={rowStyle}>
                 <User size={14} className="text-[#D4AF37] flex-shrink-0" />
-                <span className="truncate text-[12px] md:text-[16px] font-bold text-slate-700">
+                <span className="truncate text-[12px] md:text-[16px] font-semibold text-slate-700">
                   {galeria.client_name}
                 </span>
               </div>
@@ -239,7 +239,7 @@ export default function GaleriaCard({
               size={16}
               className="text-[#D4AF37] flex-shrink-0 transition-transform group-hover/drive:scale-105"
             />
-            <span className="truncate text-[8px] md:text-[10px] font-black uppercase tracking-[0.2em] text-slate-600">
+            <span className="truncate text-[8px] md:text-[10px] font-semibold uppercase tracking-wider text-slate-600">
               {galeria.drive_folder_name || 'Abrir Pasta no Google Drive'}
             </span>
           </a>

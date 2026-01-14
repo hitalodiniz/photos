@@ -1,7 +1,7 @@
 import { createSupabaseServerClientReadOnly } from '@/lib/supabase.server';
 import { listPhotosFromDriveFolder } from '@/lib/google-drive';
 import { getDriveAccessTokenForUser } from '@/lib/google-auth';
-import { Galeria, DrivePhoto, GaleriaRawResponse } from '@/core/types/galeria';
+import { Galeria, GaleriaRawResponse } from '@/core/types/galeria';
 
 /**
  * 1. Busca os dados brutos da galeria no Supabase

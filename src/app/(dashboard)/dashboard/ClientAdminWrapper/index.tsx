@@ -244,7 +244,7 @@ export default function ClientAdminWrapper({
             className="text-[#D4AF37] group-hover:rotate-90 transition-transform shrink-0"
           />
           {!isSidebarCollapsed && (
-            <span className="text-xs font-black uppercase tracking-widest text-slate-700">
+            <span className="text-xs font-semibold uppercase tracking-widest text-slate-700">
               Nova galeria
             </span>
           )}
@@ -300,14 +300,14 @@ export default function ClientAdminWrapper({
                   }
                 />
                 {!isSidebarCollapsed && (
-                  <span className="uppercase text-[10px] font-bold tracking-widest">
+                  <span className="uppercase text-[10px] font-semibold tracking-widest">
                     {item.label}
                   </span>
                 )}
               </div>
               {!isSidebarCollapsed && item.count > 0 && (
                 <span
-                  className={`text-[10px] font-bold px-2 py-0.5 rounded-full ${currentView === item.id ? 'bg-[#D4AF37] text-white' : 'bg-slate-100 text-slate-400'}`}
+                  className={`text-[10px] font-semibold px-2 py-0.5 rounded-full ${currentView === item.id ? 'bg-[#D4AF37] text-white' : 'bg-slate-100 text-slate-400'}`}
                 >
                   {item.count}
                 </span>
@@ -389,7 +389,7 @@ export default function ClientAdminWrapper({
                 className="btn-primary !w-auto px-10 flex items-center gap-2 shadow-lg hover:shadow-gold/20 transition-all active:scale-95"
               >
                 <ChevronDown size={18} strokeWidth={2.5} />
-                <span className="uppercase tracking-widest font-black text-[11px]">
+                <span className="uppercase tracking-widest font-semibold text-[11px]">
                   Carregar mais galerias
                 </span>
               </button>

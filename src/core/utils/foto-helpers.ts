@@ -52,3 +52,39 @@ export const handleDownloadPhoto = async (
     window.open(getProxyUrl(photoId, '0'), '_blank');
   }
 };
+
+/**
+ * Agrupa as fotos em pacotes (chunks) baseados no tamanho acumulado em bytes.
+ * @param photos Lista de fotos da galeria
+ * @param maxSizeBytes Tamanho máximo de cada pacote (ex: 500MB)
+ */
+export const groupPhotosByWeight = (photos: any[], maxSizeBytes: number) => {
+  const chunks: any[][] = [];
+  let currentChunk: any[] = [];
+  let currentChunkSize = 0;
+
+  photos.forEach((photo) => {
+    const photoSize = Number(photo.size) || 0;
+
+    // Se adicionar esta foto estoura o limite e o pacote atual não está vazio,
+    // fecha o pacote atual e começa um novo.
+    if (
+      currentChunkSize + photoSize > maxSizeBytes &&
+      currentChunk.length > 0
+    ) {
+      chunks.push(currentChunk);
+      currentChunk = [];
+      currentChunkSize = 0;
+    }
+
+    currentChunk.push(photo);
+    currentChunkSize += photoSize;
+  });
+
+  // Adiciona o último pacote restante
+  if (currentChunk.length > 0) {
+    chunks.push(currentChunk);
+  }
+
+  return chunks;
+};

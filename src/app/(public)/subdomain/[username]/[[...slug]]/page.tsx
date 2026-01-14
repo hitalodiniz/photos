@@ -81,7 +81,7 @@ export default async function SubdomainGaleriaPage({
   if (error === 'PERMISSION_DENIED') {
     return (
       <div className="flex flex-col items-center justify-center min-h-[50vh] p-6 text-center">
-        <h2 className="text-2xl font-bold text-red-600">Acesso Negado</h2>
+        <h2 className="text-2xl font-semibold text-red-600">Acesso Negado</h2>
         <p className="mt-2 text-gray-600">
           Esta pasta do Google Drive não possui permissões de acesso público.
           Por favor, altere as configurações da pasta para "Qualquer pessoa com

@@ -162,7 +162,7 @@ export default function PhotoViewClient({
             <div
               className={`overflow-hidden transition-all duration-500 ease-in-out ${showButtonText ? 'max-w-[120px] ml-2' : 'max-w-0'}`}
             >
-              <span className="text-[10px] block font-bold uppercase italic">
+              <span className="text-[10px] block font-semibold uppercase italic">
                 Download
               </span>
               <span className="text-[11px] block opacity-60 whitespace-nowrap">
@@ -187,7 +187,7 @@ export default function PhotoViewClient({
             <div
               className={`overflow-hidden transition-all duration-500 ease-in-out ${showButtonText ? 'max-w-[120px] ml-2' : 'max-w-0'}`}
             >
-              <span className="text-[10px] block font-bold uppercase italic">
+              <span className="text-[10px] block font-semibold uppercase italic">
                 Ver Galeria
               </span>
               <span className="text-[11px] block opacity-60 whitespace-nowrap">
