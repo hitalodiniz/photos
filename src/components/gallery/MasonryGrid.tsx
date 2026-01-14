@@ -106,13 +106,22 @@ const MasonryGrid = ({
     <div className="w-full h-auto">
       {showOnlyFavorites && displayedPhotos.length === 0 ? (
         <div className="text-center py-10 md:py-20 px-4 animate-in fade-in duration-700">
-          <Heart size={48} className="text-[#D4AF37] mb-2 mx-auto" />
-          <p className="italic text-[14px] md:text-[18px] text-white mb-8">
+          <Heart size={48} className="text-[#D4AF37] mb-4 mx-auto opacity-80" />
+
+          <p
+            className={`italic text-[14px] md:text-[18px] mb-8 transition-colors duration-500 ${
+              galeria.grid_bg_color === '#FFFFFF' ||
+              galeria.grid_bg_color === '#FFF9F0'
+                ? 'text-slate-600' // Cor escura suave para fundos claros (Branco/Champagne)
+                : 'text-white/90' // Branco translúcido para fundos escuros
+            }`}
+          >
             Nenhuma foto favorita selecionada
           </p>
+
           <button
             onClick={() => setShowOnlyFavorites(false)}
-            className="mx-auto px-4 py-2 rounded-[0.5rem] bg-[#D4AF37] text-black uppercase text-[11px] font-semibold"
+            className="mx-auto px-6 py-2.5 rounded-[0.5rem] bg-[#D4AF37] text-black hover:bg-white border border-[#D4AF37] transition-all uppercase text-[11px] font-bold tracking-widest shadow-lg"
           >
             Exibir todas as fotos
           </button>

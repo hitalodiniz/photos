@@ -83,9 +83,12 @@ export default function GalleryFormContent({
       initialData?.has_contracting_client === 'true',
   );
 
-  const [isPublic, setIsPublic] = useState(
-    () => initialData?.is_public === true || initialData?.is_public === 'true',
-  );
+  const [isPublic, setIsPublic] = useState(() => {
+    if (initialData) {
+      return initialData.is_public === true || initialData.is_public === 'true';
+    }
+    return true; // Padrão para novas galerias
+  });
 
   const [category, setCategory] = useState(() => initialData?.category ?? '');
   const [clientWhatsapp, setClientWhatsapp] = useState(() =>

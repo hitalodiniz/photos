@@ -15,7 +15,7 @@ export default function GalleryModal({
   const isEdit = !!galeria;
   const [loading, setLoading] = useState(false);
   const [isSuccess, setIsSuccess] = useState(false);
-
+  const [isPublic, setIsPublic] = useState(true); // Altere de false para true
   // Estados de customização (Unificados aqui)
   const [showCoverInGrid, setShowCoverInGrid] = useState(true);
   const [gridBgColor, setGridBgColor] = useState('#FFF9F0');
@@ -24,6 +24,8 @@ export default function GalleryModal({
   useEffect(() => {
     if (isOpen) {
       if (galeria) {
+        setIsPublic(galeria.is_public === true || galeria.is_public === 'true');
+
         // Modo Edição: Carrega do banco
         setShowCoverInGrid(
           galeria.show_cover_in_grid === true ||
@@ -39,6 +41,7 @@ export default function GalleryModal({
         // ✅ IMPORTANTE: Se for NOVA galeria, só resetamos se os estados estiverem
         // diferentes do padrão inicial, mas evite resetar se o usuário já estiver mexendo.
         // Uma forma segura é resetar apenas quando isOpen muda de false para true.
+        setIsPublic(true);
       }
     }
   }, [galeria, isOpen]); // Remova dependências desnecessárias aqui

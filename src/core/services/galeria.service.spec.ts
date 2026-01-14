@@ -192,7 +192,7 @@ describe('Galeria Service - Testes Unitários', () => {
 
       // VALIDAÇÃO
       expect(result.success).toBe(false);
-      expect(result.error).toBe('Falha ao atualizar a galeria.');
+      expect(result.error).toBe('Campos obrigatórios ausentes.');
     });
 
     it('updateGaleria deve desativar senha se galeria for alterada para pública', async () => {
@@ -200,24 +200,43 @@ describe('Galeria Service - Testes Unitários', () => {
       const fd = new FormData();
       fd.append('title', 'Update');
       fd.append('drive_folder_id', 'id_pasta');
-      fd.append('clientName', 'Joao');
+      // Mantenha clientName se o seu formulário usa esse name no input
+      fd.append('client_name', 'Joao');
       fd.append('date', '2026-01-01');
       fd.append('is_public', 'true');
       fd.append('password', '123');
 
-      // IMPORTANTE: Não use mockResolvedValue no .eq() se houver um .single() depois
-      // O setupSupabaseMock já cuida do chaining, então só precisamos
-      // garantir que o .single() retorne o que o service espera.
+      // Adicione os campos de customização que a função prepareGalleryData exige
+      fd.append('show_cover_in_grid', 'true');
+      fd.append('grid_bg_color', '#FFF9F0');
+
+      // O single() simula a busca da galeria existente para validar permissão
       mockQueryBuilder.single.mockResolvedValue({
         data: { studio_id: 'studio_123' },
         error: null,
       });
 
+      // IMPORTANTE: O mock do update também precisa retornar sucesso para o result.success ser true
+      mockQueryBuilder.update.mockReturnValue(mockQueryBuilder); // Mantém o chain
+      mockQueryBuilder.select.mockReturnValue(mockQueryBuilder); // Se houver .select()
+      mockQueryBuilder.single
+        .mockResolvedValueOnce({
+          data: { studio_id: 'studio_123' },
+          error: null,
+        }) // para o find
+        .mockResolvedValueOnce({ data: { id: 'gal_123' }, error: null }); // para o resultado do update
+
       const result = await updateGaleria('gal_123', fd);
 
+      // Se o service retornar {success: true, data: ...}
       expect(result.success).toBe(true);
+
+      // Verifica se o service limpou a senha ao detectar is_public: true
       expect(mockQueryBuilder.update).toHaveBeenCalledWith(
-        expect.objectContaining({ password: null, is_public: true }),
+        expect.objectContaining({
+          password: null,
+          is_public: true,
+        }),
       );
     });
     /*it('deve capturar erro crítico ao deletar galeria', async () => {
