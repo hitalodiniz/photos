@@ -2,14 +2,10 @@
 import React, { useEffect, useState } from 'react';
 
 import { useParams } from 'next/navigation';
-import PhotographerProfileContent from '@/components/ui/PhotographerProfileContent';
+import PhotographerContent from '@/components/photographer/PhotographerContent';
 import { getPublicProfile } from '@/core/services/profile.service';
 
-export default function PhotographerProfile({
-  initialData,
-}: {
-  initialData?: any;
-}) {
+export default function Photographer({ initialData }: { initialData?: any }) {
   const params = useParams();
   const [profile, setProfile] = useState<any>(initialData || null);
   const [loading, setLoading] = useState(!initialData);
@@ -75,7 +71,7 @@ export default function PhotographerProfile({
 
   return (
     <div className="w-full min-h-screen bg-black">
-      <PhotographerProfileContent
+      <PhotographerContent
         fullName={fullName}
         username={username}
         miniBio={bio}

@@ -6,7 +6,7 @@ import {
 } from '@/core/logic/galeria-logic';
 import { GaleriaView, PasswordPrompt } from '@/components/gallery';
 import { getImageUrl } from '@/core/utils/url-helper';
-import PhotographerProfileContainer from '@/components/profile/PhotographerProfileContainer';
+import PhotographerContainer from '@/components/photographer/PhotographerContainer';
 import { getGalleryMetadata } from '@/lib/gallery/metadata-helper';
 import { checkGalleryAccess } from '@/core/logic/auth-gallery';
 
@@ -25,7 +25,7 @@ export default async function SubdomainGaleriaPage({
   // 1. Tratamento da Raiz do Subdomínio
   if (!slug || slug.length === 0) {
     // Opcional: Você pode buscar uma galeria "vitrine" aqui ou manter o notFound
-    return <PhotographerProfileContainer username={username} />;
+    return <PhotographerContainer username={username} />;
   }
 
   const fullSlug = `${username}/${slug.join('/')}`;

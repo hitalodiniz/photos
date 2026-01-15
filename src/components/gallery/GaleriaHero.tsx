@@ -40,13 +40,7 @@ export const GaleriaHero = ({ galeria, photos, coverUrl }: any) => {
         style={{
           backgroundImage: `url('${coverUrl}')`,
           backgroundPosition: 'center 40%',
-          transform: isExpanded ? 'scale(1.1)' : 'scale(1)',
         }}
-      />
-
-      <div className="absolute inset-0 bg-black/40" />
-      <div
-        className={`absolute inset-0 bg-gradient-to-b from-black/50 via-transparent to-black/90 transition-opacity duration-1000 ${isExpanded ? 'opacity-100' : 'opacity-80'}`}
       />
 
       {/* AVATAR DO FOTÓGRAFO */}

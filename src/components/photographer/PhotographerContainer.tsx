@@ -2,7 +2,7 @@
 
 import React, { useEffect, useState } from 'react';
 import { notFound } from 'next/navigation';
-import PhotographerProfileContent from '../ui/PhotographerProfileContent';
+import PhotographerContent from './PhotographerContent';
 import * as profileService from '@/core/services/profile.service';
 import LoadingScreen from '../ui/LoadingScreen';
 
@@ -10,7 +10,7 @@ interface Props {
   username: string;
 }
 
-export default function PhotographerProfileContainer({ username }: Props) {
+export default function PhotographerContainer({ username }: Props) {
   const [profile, setProfile] = useState<any>(null);
   const [loading, setLoading] = useState(true);
 
@@ -42,7 +42,7 @@ export default function PhotographerProfileContainer({ username }: Props) {
 
   // 3. Agora é seguro renderizar, pois o 'profile' certamente existe
   return (
-    <PhotographerProfileContent
+    <PhotographerContent
       fullName={profile.full_name}
       username={profile.username}
       miniBio={profile.mini_bio}
