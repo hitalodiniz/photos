@@ -17,7 +17,7 @@ describe('UserMenu Component', () => {
     // Verifica se a inicial 'H' aparece no documento
     const initial = screen.getByText('H');
     expect(initial).toBeDefined();
-    expect(initial.className).toContain('bg-stone-800'); // Cor de fallback
+    expect(initial.className).toContain('bg-[#1E293B]'); // Cor de fallback
   });
 
   it('deve renderizar a imagem quando avatarUrl for fornecido', () => {

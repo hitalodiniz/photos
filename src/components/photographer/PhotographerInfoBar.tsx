@@ -131,7 +131,7 @@ export const PhotographerInfoBar = ({
                 className="flex items-center justify-center rounded-lg h-9 w-9 md:h-10 md:w-auto md:px-4 border border-white/10 bg-[#1A1A1A] text-white hover:bg-gradient-to-tr hover:from-[#f09433] hover:via-[#dc2743] hover:to-[#bc1888] transition-all"
               >
                 <Instagram size={16} />
-                <span className="text-[11px] font-bold uppercase hidden md:block ml-2">
+                <span className="text-[11px] font-semibold uppercase hidden md:block ml-2">
                   Instagram
                 </span>
               </a>
@@ -145,7 +145,7 @@ export const PhotographerInfoBar = ({
                 className="flex items-center justify-center rounded-lg h-9 w-9 md:h-10 md:w-auto md:px-4 border border-white/10 bg-[#1A1A1A] text-white hover:bg-white hover:text-black transition-all"
               >
                 <Globe size={16} />
-                <span className="text-[11px] font-bold uppercase hidden md:block ml-2">
+                <span className="text-[11px] font-semibold uppercase hidden md:block ml-2">
                   Website
                 </span>
               </a>
@@ -159,7 +159,7 @@ export const PhotographerInfoBar = ({
               ) : (
                 <LinkIcon size={16} />
               )}
-              <span className="text-[11px] font-bold uppercase hidden md:block ml-2">
+              <span className="text-[11px] font-semibold uppercase hidden md:block ml-2">
                 Perfil
               </span>
             </button>
@@ -170,7 +170,7 @@ export const PhotographerInfoBar = ({
                 className="flex items-center justify-center rounded-lg h-9 w-9 md:h-10 md:w-auto md:px-5 bg-[#25D366] text-white shadow-lg active:scale-95 transition-all"
               >
                 <WhatsAppIcon className="w-5 h-5 md:w-[18px] md:h-[18px]" />
-                <span className="text-[11px] font-bold uppercase hidden md:block ml-2">
+                <span className="text-[11px] font-semibold uppercase hidden md:block ml-2">
                   WhatsApp
                 </span>
               </a>
