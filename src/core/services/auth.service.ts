@@ -33,14 +33,15 @@ export const authService = {
 
     const { error } = await supabase.auth.signInWithOAuth({
       provider: 'google',
+
       options: {
         scopes:
           'email profile openid https://www.googleapis.com/auth/drive.readonly',
         redirectTo,
         queryParams: {
           access_type: 'offline',
-          //prompt: 'consent',
-          prompt: 'select_account',
+          prompt: 'consent',
+          //prompt: 'select_account',
         },
       },
     });

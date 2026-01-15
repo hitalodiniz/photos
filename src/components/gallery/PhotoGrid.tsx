@@ -379,7 +379,7 @@ export default function PhotoGrid({ photos, galeria }: any) {
 
               <div className="px-6 py-5 border-b border-gray-100 flex justify-between items-center">
                 <div className="min-w-0 text-left">
-                  <h2 className="text-xl font-serif text-gray-900 leading-none">
+                  <h2 className="text-xl text-gray-900 leading-none">
                     Download das fotos
                   </h2>
                   <p className="text-[#D4AF37] text-[10px] font-semibold tracking-tight mt-1.5">
