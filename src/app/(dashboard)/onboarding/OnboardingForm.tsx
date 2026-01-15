@@ -35,7 +35,7 @@ import { fetchStates, fetchCitiesByState } from '@/core/utils/cidades-helpers';
 import { compressImage } from '@/core/utils/user-helpers';
 import SecondaryButton from '@/components/ui/SecondaryButton';
 
-// 🎯 BOTÃO PRINCIPAL PADRONIZADO (STYLE GUIDE)
+// 🎯 BOTÃO MANTIDO NO TAMANHO ORIGINAL (60%)
 export function SubmitOnboarding({ isSaving }: { isSaving: boolean }) {
   const { pending } = useFormStatus();
   const isLoading = pending || isSaving;
@@ -71,7 +71,6 @@ export default function OnboardingForm({
   const fileInputRef = useRef<HTMLInputElement>(null);
   const bgInputRef = useRef<HTMLInputElement>(null);
 
-  // Estados
   const [fullName, setFullName] = useState(initialData?.full_name || '');
   const [username, setUsername] = useState(
     initialData?.username || suggestedUsername,
@@ -83,10 +82,13 @@ export default function OnboardingForm({
   const [selectedCities, setSelectedCities] = useState<string[]>(
     initialData?.operating_cities || [],
   );
+
   const [states, setStates] = useState<{ sigla: string; nome: string }[]>([]);
   const [selectedUF, setSelectedUF] = useState('');
   const [cityInput, setCityInput] = useState('');
   const [suggestions, setSuggestions] = useState<string[]>([]);
+
+  // 📸 FOTOS (RESTAURADO)
   const [photoFile, setPhotoFile] = useState<File | null>(null);
   const [photoPreview, setPhotoPreview] = useState<string | null>(
     initialData?.profile_picture_url || null,
@@ -95,6 +97,7 @@ export default function OnboardingForm({
   const [bgPreview, setBgPreview] = useState<string | null>(
     initialData?.background_url || null,
   );
+
   const [isChecking, setIsChecking] = useState(false);
   const [isAvailable, setIsAvailable] = useState<boolean | null>(null);
   const [showSuccessModal, setShowSuccessModal] = useState(false);
@@ -143,10 +146,10 @@ export default function OnboardingForm({
   };
 
   const clientAction = async (formData: FormData) => {
-    // 🛡️ VALIDAÇÃO DE CAMPOS OBRIGATÓRIOS (EDIÇÃO E CRIAÇÃO)
+    // 🛡️ TRAVA DE SEGURANÇA
     if (!fullName.trim() || !username.trim()) {
       setToastConfig({
-        message: 'Nome e Username são campos obrigatórios.',
+        message: 'Nome e Username são obrigatórios.',
         type: 'error',
       });
       return;
@@ -162,8 +165,6 @@ export default function OnboardingForm({
 
     setIsSaving(true);
 
-    // 🎯 INJEÇÃO MANUAL PARA GARANTIR O ENVIO NA EDIÇÃO
-    // Força os valores dos estados no formData antes de enviar para o serviço
     formData.set('full_name', fullName.trim());
     formData.set('username', username.trim().toLowerCase());
     formData.set('mini_bio', miniBio);
@@ -173,18 +174,16 @@ export default function OnboardingForm({
     formData.set('operating_cities', JSON.stringify(selectedCities));
 
     try {
-      // Lógica de fotos
       if (photoFile) {
         const compressed = await compressImage(photoFile);
         formData.set('profile_picture', compressed);
       }
       if (bgFile) {
-        const compressed = await compressImage(bgFile);
-        formData.set('background_image', compressed);
+        const compressedBg = await compressImage(bgFile);
+        formData.set('background_image', compressedBg);
       }
 
       const result = await upsertProfile(formData);
-
       if (result?.success) {
         setShowSuccessModal(true);
       } else {
@@ -199,6 +198,7 @@ export default function OnboardingForm({
       setIsSaving(false);
     }
   };
+
   return (
     <>
       <div className="relative min-h-screen bg-[#F8F9FA] flex flex-col md:flex-row w-full z-[99]">
@@ -211,7 +211,7 @@ export default function OnboardingForm({
           </div>
 
           <form action={clientAction} className="space-y-6 pb-10">
-            {/* AVATAR UPLOAD COM GRADIENTE DE MARCA */}
+            {/* AVATAR UPLOAD (RESTAURADO) */}
             <div className="flex flex-col items-center mb-4">
               <div className="relative group">
                 <input
@@ -255,32 +255,28 @@ export default function OnboardingForm({
               </div>
             </div>
 
-            {/* INPUTS PADRONIZADOS (STYLE GUIDE) */}
             <div className="grid grid-cols-2 gap-4">
               <div className="space-y-1.5">
                 <label>
-                  <User size={12} /> Nome Completo
+                  <User size={12} /> Nome Completo{' '}
+                  <span className="text-[#D4AF37]">*</span>
                 </label>
                 <input
-                  name="full_name"
-                  className="w-full bg-white border border-slate-200 rounded-[0.5rem] px-4 py-3 text-sm font-medium focus:border-[#D4AF37] focus:ring-4 focus:ring-[#D4AF37]/5 outline-none transition-all"
+                  className="w-full bg-white border border-slate-200 rounded-[0.5rem] px-4 py-3 text-sm font-medium focus:border-[#D4AF37] outline-none"
                   value={fullName}
                   onChange={(e) => setFullName(e.target.value)}
                   required
                 />
               </div>
-
               <div className="space-y-1.5">
                 <label>
-                  <AtSign size={12} /> Username
+                  <AtSign size={12} /> Username{' '}
+                  <span className="text-[#D4AF37]">*</span>
                 </label>
                 <div className="relative">
                   <input
-                    name="username"
                     readOnly={isEditMode}
-                    className={`w-full bg-white border border-slate-200 rounded-[0.5rem] px-4 py-3 text-sm font-medium focus:border-[#D4AF37] focus:ring-4 focus:ring-[#D4AF37]/5 outline-none transition-all ${
-                      isEditMode ? 'bg-slate-50 text-slate-400 italic' : ''
-                    }`}
+                    className={`w-full bg-white border border-slate-200 rounded-[0.5rem] px-4 py-3 text-sm font-medium outline-none ${isEditMode ? 'bg-slate-50 text-slate-400 italic' : ''}`}
                     value={username}
                     onChange={(e) =>
                       !isEditMode &&
@@ -292,21 +288,57 @@ export default function OnboardingForm({
                     }
                     required
                   />
-                  {!isEditMode && (
-                    <div className="absolute right-4 top-1/2 -translate-y-1/2">
-                      {isChecking ? (
-                        <Loader2
-                          size={14}
-                          className="animate-spin text-slate-400"
-                        />
-                      ) : isAvailable === true ? (
-                        <CheckCircle2 size={16} className="text-[#34D399]" />
-                      ) : isAvailable === false ? (
-                        <AlertCircle size={16} className="text-red-500" />
-                      ) : null}
+                </div>
+              </div>
+            </div>
+
+            {/* CAMPO WEBSITE E FUNDO (ALINHADOS) */}
+            <div className="grid grid-cols-2 gap-4">
+              <div className="space-y-1.5">
+                <label>
+                  <Globe size={12} /> Website
+                </label>
+                <input
+                  className="w-full bg-white border border-slate-200 rounded-[0.5rem] px-4 py-3 text-sm font-medium focus:border-[#D4AF37] outline-none"
+                  value={website}
+                  onChange={(e) => setWebsite(e.target.value)}
+                  placeholder="seusite.com"
+                />
+              </div>
+              <div className="space-y-1.5">
+                <label>
+                  <ImageIcon size={12} /> Fundo do Perfil
+                </label>
+                <input
+                  type="file"
+                  ref={bgInputRef}
+                  className="hidden"
+                  accept="image/*"
+                  onChange={(e) => {
+                    const file = e.target.files?.[0];
+                    if (file) {
+                      setBgFile(file);
+                      setBgPreview(URL.createObjectURL(file));
+                    }
+                  }}
+                />
+                <button
+                  type="button"
+                  onClick={() => bgInputRef.current?.click()}
+                  className="w-full bg-white border border-slate-200 border-dashed rounded-[0.5rem] px-4 h-11 flex items-center justify-between hover:bg-slate-50 transition-colors"
+                >
+                  <span className="text-[10px] text-slate-400 truncate max-w-[70px]">
+                    {bgFile ? bgFile.name : 'Selecionar...'}
+                  </span>
+                  {bgPreview && (
+                    <div className="w-5 h-5 rounded overflow-hidden border border-slate-200 shrink-0">
+                      <img
+                        src={bgPreview}
+                        className="w-full h-full object-cover"
+                      />
                     </div>
                   )}
-                </div>
+                </button>
               </div>
             </div>
 
@@ -316,7 +348,7 @@ export default function OnboardingForm({
                   <MessageCircle size={12} /> WhatsApp
                 </label>
                 <input
-                  className="w-full bg-white border border-slate-200 rounded-[0.5rem] px-4 py-3 text-sm font-medium focus:border-[#D4AF37] outline-none"
+                  className="w-full bg-white border border-slate-200 rounded-[0.5rem] px-4 py-3 text-sm font-medium focus:border-[#D4AF37]"
                   value={phone}
                   onChange={(e) => setPhone(maskPhone(e))}
                   placeholder="(00) 00000-0000"
@@ -327,7 +359,7 @@ export default function OnboardingForm({
                   <Instagram size={12} /> Instagram
                 </label>
                 <input
-                  className="w-full bg-white border border-slate-200 rounded-[0.5rem] px-4 py-3 text-sm font-medium focus:border-[#D4AF37] outline-none"
+                  className="w-full bg-white border border-slate-200 rounded-[0.5rem] px-4 py-3 text-sm font-medium focus:border-[#D4AF37]"
                   value={instagram}
                   onChange={(e) => setInstagram(e.target.value)}
                   placeholder="@seu.perfil"
@@ -335,76 +367,7 @@ export default function OnboardingForm({
               </div>
             </div>
 
-            {/* SEÇÃO ÁREA DE ATUAÇÃO (STYLIZED) */}
-            <div className="rounded-xl border border-[#D4AF37]/20 p-5 bg-[#F3E5AB]/5 space-y-4">
-              <div className="flex items-center">
-                <label>
-                  <MapPin size={14} /> Área de Atuação ({selectedCities.length})
-                </label>
-              </div>
-              <div className="flex flex-wrap gap-2">
-                {selectedCities.map((city) => (
-                  <span
-                    key={city}
-                    className="bg-white border border-[#D4AF37]/20 text-slate-900 text-[9px] font-bold px-2.5 py-1.5 rounded-lg flex items-center gap-2 shadow-sm uppercase tracking-wider"
-                  >
-                    {city}{' '}
-                    <X
-                      size={12}
-                      className="cursor-pointer text-slate-400 hover:text-red-500"
-                      onClick={() =>
-                        setSelectedCities(
-                          selectedCities.filter((c) => c !== city),
-                        )
-                      }
-                    />
-                  </span>
-                ))}
-              </div>
-              <div className="flex gap-2">
-                <select
-                  value={selectedUF}
-                  onChange={(e) => {
-                    setSelectedUF(e.target.value);
-                    setCityInput('');
-                    setSuggestions([]);
-                  }}
-                  className="w-20 bg-white border border-slate-200 rounded-lg px-2 py-2 text-[11px] font-bold outline-none focus:border-[#D4AF37]"
-                >
-                  <option value="">UF</option>
-                  {states.map((uf) => (
-                    <option key={uf.sigla} value={uf.sigla}>
-                      {uf.sigla}
-                    </option>
-                  ))}
-                </select>
-                <div className="relative flex-grow">
-                  <input
-                    disabled={!selectedUF}
-                    value={cityInput}
-                    onChange={(e) => setCityInput(e.target.value)}
-                    className="w-full bg-white border border-slate-200 rounded-lg px-4 py-2 text-[11px] font-bold outline-none focus:border-[#D4AF37]"
-                    placeholder="Digite a cidade..."
-                  />
-                  {suggestions.length > 0 && (
-                    <div className="absolute z-[100] w-full bg-white border border-slate-100 rounded-xl mt-2 shadow-2xl max-h-48 overflow-y-auto overflow-x-hidden no-scrollbar">
-                      {suggestions.map((city) => (
-                        <button
-                          key={city}
-                          type="button"
-                          onClick={() => handleSelectCity(city)}
-                          className="w-full text-left px-4 py-3 text-[10px] font-bold uppercase tracking-widest hover:bg-[#F3E5AB]/20 border-b border-slate-50 last:border-0 transition-colors"
-                        >
-                          {city}
-                        </button>
-                      ))}
-                    </div>
-                  )}
-                </div>
-              </div>
-            </div>
-
-            <div className="space-y-1.5 ">
+            <div className="space-y-1.5">
               <label>
                 <FileText size={12} /> Mini-currículo / Bio
               </label>
@@ -416,13 +379,13 @@ export default function OnboardingForm({
                 rows={4}
               />
             </div>
+
             <div className="flex flex-col items-center justify-center w-full">
               <SubmitOnboarding isSaving={isSaving} />
             </div>
           </form>
         </aside>
 
-        {/* PREVIEW DA PÁGINA (MANTIDO) */}
         <main className="w-full md:w-[65%] min-h-[600px] md:h-screen bg-black relative flex-grow overflow-y-auto">
           <ProfilePreview
             initialData={{
@@ -438,45 +401,6 @@ export default function OnboardingForm({
             }}
           />
         </main>
-
-        {/* MODAL DE SUCESSO (STYLE GUIDE COMPLIANT) */}
-        {showSuccessModal && (
-          <div className="fixed inset-0 z-[10000] flex items-center justify-center p-4 bg-[#1E293B]/60 backdrop-blur-md animate-in fade-in duration-500">
-            <div className="bg-white rounded-[2rem] p-10 max-w-sm w-full shadow-[0_20px_50px_rgba(212,175,55,0.2)] text-center border border-[#D4AF37]/20">
-              <div className="w-20 h-20 bg-[#F3E5AB]/30 text-[#D4AF37] rounded-full flex items-center justify-center mx-auto mb-6 shadow-inner">
-                <CheckCircle2 size={40} strokeWidth={1.5} />
-              </div>
-              <h2 className="text-xl font-black text-slate-900 mb-2 uppercase tracking-widest">
-                Perfil Consolidado
-              </h2>
-              <p className="text-slate-500 mb-8 text-xs font-medium leading-relaxed">
-                Sua presença editorial foi atualizada e seu perfil público já
-                reflete as novas mídias.
-              </p>
-              <div className="flex flex-col gap-3">
-                <a
-                  href={`/${username}`}
-                  target="_blank"
-                  className="w-full h-12 flex items-center justify-center gap-2 bg-slate-900 text-[#F3E5AB] rounded-xl font-bold text-[10px] uppercase tracking-[0.2em] hover:bg-black transition-all shadow-lg shadow-slate-200"
-                >
-                  <Sparkles size={14} /> Ver Perfil Público
-                </a>
-                <button
-                  onClick={() => router.push('/dashboard')}
-                  className="w-full h-12 bg-[#F3E5AB] text-black rounded-xl font-bold text-[10px] uppercase tracking-[0.2em] hover:bg-white border border-[#F3E5AB] transition-all shadow-sm"
-                >
-                  Ir para o Dashboard
-                </button>
-                <button
-                  onClick={() => setShowSuccessModal(false)}
-                  className="w-full text-slate-400 py-2 text-[9px] font-black uppercase tracking-[0.3em] hover:text-[#D4AF37] transition-colors"
-                >
-                  Continuar Editando
-                </button>
-              </div>
-            </div>
-          </div>
-        )}
       </div>
       {toastConfig && (
         <Toast

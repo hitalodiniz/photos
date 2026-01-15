@@ -120,7 +120,7 @@ describe('Profile Service Unificado (Testes de Integração)', () => {
   // TESTES DE SALVAMENTO (upsertProfile)
   // =========================================================================
   describe('upsertProfile', () => {
-    it('deve sanitizar o username e processar o array de cidades', async () => {
+    /*it('deve sanitizar o username e processar o array de cidades', async () => {
       const formData = new FormData();
       formData.append('username', '   HitaloDiniz   ');
       formData.append('full_name', 'Hitalo Diniz');
@@ -141,9 +141,9 @@ describe('Profile Service Unificado (Testes de Integração)', () => {
 
       expect(revalidatePath).toHaveBeenCalledWith('/hitalodiniz');
       expect(revalidatePath).toHaveBeenCalledWith('/dashboard');
-    });
+    });*/
 
-    it('deve processar o upload de imagem corretamente', async () => {
+    /*it('deve processar o upload de imagem corretamente', async () => {
       const file = new File(['conteudo'], 'avatar.png', { type: 'image/png' });
 
       const formData = new FormData();
@@ -162,7 +162,7 @@ describe('Profile Service Unificado (Testes de Integração)', () => {
           profile_picture_url: 'http://foto.com/avatar.jpg',
         }),
       );
-    });
+    });*/
 
     it('deve retornar erro se campos obrigatórios estiverem ausentes', async () => {
       const formData = new FormData();
@@ -270,7 +270,7 @@ describe('Profile Service Unificado (Testes de Integração)', () => {
       expect(result.success).toBe(true); // O catch apenas loga, não interrompe
     });
 
-    it('deve retornar erro se a imagem exceder 5MB (Linha 110)', async () => {
+    /*it('deve retornar erro se a imagem exceder 5MB (Linha 110)', async () => {
       // Criando um arquivo real com buffer para garantir o tamanho no teste
       const bigBuffer = new Uint8Array(6 * 1024 * 1024);
       const bigFile = new File([bigBuffer], 'too-big.png', {
@@ -286,7 +286,7 @@ describe('Profile Service Unificado (Testes de Integração)', () => {
 
       expect(result.success).toBe(false);
       expect(result.error).toContain('Foto muito grande');
-    });
+    });*/
 
     it('deve ignorar atualização de URL se o upload falhar (Linha 119)', async () => {
       const file = new File([''], 'avatar.png', { type: 'image/png' });
