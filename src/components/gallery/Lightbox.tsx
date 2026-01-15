@@ -135,19 +135,34 @@ export default function Lightbox({
       {/* 🎯 NAVEGAÇÃO DESKTOP: Exclusiva para MD+ e sincronizada com interface */}
       {!isSingleView && (
         <div
-          className={`hidden md:block transition-all duration-700 ${showInterface ? 'opacity-100' : 'opacity-0 pointer-events-none'}`}
+          className={`transition-all duration-700 ${
+            showInterface ? 'opacity-100' : 'opacity-0 pointer-events-none'
+          }`}
         >
+          {/* Botão Anterior */}
           <button
             onClick={onPrev}
-            className="fixed left-0 top-1/2 -translate-y-1/2 z-[250] w-32 h-64 flex items-center justify-center text-white/10 hover:text-[#F3E5AB] transition-all"
+            className="fixed left-0 top-1/2 -translate-y-1/2 z-[250] 
+               w-16 md:w-32 h-32 md:h-64 flex items-center justify-center 
+               text-white/20 hover:text-[#F3E5AB] transition-all group"
           >
-            <ChevronLeft size={64} strokeWidth={1} />
+            <ChevronLeft
+              className="w-10 h-10 md:w-16 md:h-16 shrink-0 transition-transform group-hover:scale-110"
+              strokeWidth={1}
+            />
           </button>
+
+          {/* Botão Próximo */}
           <button
             onClick={onNext}
-            className="fixed right-0 top-1/2 -translate-y-1/2 z-[250] w-32 h-64 flex items-center justify-center text-white/10 hover:text-[#F3E5AB] transition-all"
+            className="fixed right-0 top-1/2 -translate-y-1/2 z-[250] 
+               w-16 md:w-32 h-32 md:h-64 flex items-center justify-center 
+               text-white/20 hover:text-[#F3E5AB] transition-all group"
           >
-            <ChevronRight size={64} strokeWidth={1} />
+            <ChevronRight
+              className="w-10 h-10 md:w-16 md:h-16 shrink-0 transition-transform group-hover:scale-110"
+              strokeWidth={1}
+            />
           </button>
         </div>
       )}

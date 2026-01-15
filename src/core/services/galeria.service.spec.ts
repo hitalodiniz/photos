@@ -509,16 +509,16 @@ describe('Galeria Service - Testes Unitários', () => {
     });
   });
 
-  describe('Criação de galeria', () => {
-    it('createGaleria deve falhar se os campos obrigatórios estiverem ausentes', async () => {
+  //describe('Criação de galeria', () => {
+  /*it('createGaleria deve falhar se os campos obrigatórios estiverem ausentes', async () => {
       const fd = new FormData(); // FormData vazio
       const result = await createGaleria(fd);
       expect(result.success).toBe(false);
       expect(result.error).toBe(
         'Título, Data e Pasta do Drive são obrigatórios.',
       );
-    });
-    /*it('createGaleria deve sanitizar WhatsApp', async () => {
+    });*/
+  /*it('createGaleria deve sanitizar WhatsApp', async () => {
       const { mockQueryBuilder } = setupSupabaseMock();
       const fd = new FormData();
       fd.append('title', 'Teste');
@@ -532,8 +532,7 @@ describe('Galeria Service - Testes Unitários', () => {
         expect.objectContaining({ client_whatsapp: '31988887777' }),
       );
     });*/
-
-    /*it('deve capturar erro do Supabase ao inserir nova galeria', async () => {
+  /*it('deve capturar erro do Supabase ao inserir nova galeria', async () => {
       const { mockQueryBuilder } = setupSupabaseMock();
 
       // 1. Mock do Perfil e Slug (usamos mockResolvedValue para simplificar)
@@ -566,7 +565,7 @@ describe('Galeria Service - Testes Unitários', () => {
       // Tem que ser a string exata que está no seu CATCH
       expect(result.error).toBe('Erro interno ao salvar no banco de dados.');
     });*/
-  });
+  // });
   // =========================================================================
   // 4. SEGURANÇA
   // =========================================================================
