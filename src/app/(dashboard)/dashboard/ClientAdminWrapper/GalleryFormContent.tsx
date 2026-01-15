@@ -40,27 +40,21 @@ export const prepareGalleryData = (
   const hasContractingClient =
     formData.get('has_contracting_client') === 'true';
 
-  // Ajuste do Cliente
   if (!hasContractingClient) {
     formData.set('client_name', 'Cobertura');
     formData.set('client_whatsapp', '');
   } else {
-    // Limpa máscara do WhatsApp para salvar apenas números
     const whatsapp = formData.get('client_whatsapp') as string;
     if (whatsapp) formData.set('client_whatsapp', whatsapp.replace(/\D/g, ''));
   }
 
-  // Ajuste de Senha
   const password = formData.get('password') as string;
   if (isPublic || !password || password.trim() === '') {
     formData.delete('password');
   }
 
-  // Sincronização de campos básicos que podem vir vazios
   formData.set('location', formData.get('location') || '');
   formData.set('category', formData.get('category') || '');
-
-  // Gravação da Customização (Garante que os valores atuais do estado sejam enviados)
   formData.set('show_cover_in_grid', String(customization.showCoverInGrid));
   formData.set('grid_bg_color', customization.gridBgColor);
   formData.set('columns_mobile', String(customization.columns.mobile));
@@ -84,10 +78,9 @@ export default function GalleryFormContent({
   );
 
   const [isPublic, setIsPublic] = useState(() => {
-    if (initialData) {
+    if (initialData)
       return initialData.is_public === true || initialData.is_public === 'true';
-    }
-    return true; // Padrão para novas galerias
+    return true;
   });
 
   const [category, setCategory] = useState(() => initialData?.category ?? '');
@@ -103,79 +96,47 @@ export default function GalleryFormContent({
     coverId: initialData?.cover_image_url ?? '',
   });
 
-  const SectionHeader = ({ icon: Icon, title }) => (
-    <div className="flex items-center gap-3 mb-4">
-      <div className="flex items-center justify-center w-7 h-7 rounded-lg bg-champagne-dark/20 text-[#D4AF37] shrink-0">
-        <Icon size={16} strokeWidth={2.5} />
+  // --- Sub-componente Header (Semibold Editorial) ---
+  const SectionHeader = ({
+    icon: Icon,
+    title,
+  }: {
+    icon: any;
+    title: string;
+  }) => (
+    <div className="flex items-center gap-3 mb-6">
+      <div className="flex items-center justify-center w-8 h-8 rounded-[0.5rem] bg-[#F3E5AB]/30 text-[#D4AF37] shrink-0 border border-[#D4AF37]/10">
+        <Icon size={16} strokeWidth={2} />
       </div>
-      <h4 className="text-[10px] font-semibold uppercase tracking-wider text-slate-700 whitespace-nowrap">
+      <h4 className="text-[10px] font-semibold uppercase tracking-[0.25em] text-slate-800 whitespace-nowrap">
         {title}
       </h4>
-      <div className="h-[2px] flex-1 bg-champagne-dark opacity-40" />
+      <div className="h-[1px] flex-1 bg-gradient-to-r from-[#F3E5AB] to-transparent opacity-50" />
     </div>
   );
 
   return (
-    <div className="space-y-6 animate-in fade-in duration-500">
-      {/* Inputs Ocultos de Dados e Estado */}
-      <input type="hidden" name="drive_folder_id" value={driveData.id} />
-      <input type="hidden" name="drive_folder_name" value={driveData.name} />
-      <input
-        type="hidden"
-        name="cover_image_url"
-        value={driveData.coverId || driveData.id}
-      />
-      <input type="hidden" name="is_public" value={String(isPublic)} />
-      <input type="hidden" name="category" value={category} />
-      <input
-        type="hidden"
-        name="has_contracting_client"
-        value={String(hasContractingClient)}
-      />
-
-      {/* Inputs Ocultos de Customização (Para garantir a persistência) */}
-      <input
-        type="hidden"
-        name="show_cover_in_grid"
-        value={String(customization.showCoverInGrid)}
-      />
-      <input
-        type="hidden"
-        name="grid_bg_color"
-        value={customization.gridBgColor}
-      />
-      <input
-        type="hidden"
-        name="columns_mobile"
-        value={String(customization.columns.mobile)}
-      />
-      <input
-        type="hidden"
-        name="columns_tablet"
-        value={String(customization.columns.tablet)}
-      />
-      <input
-        type="hidden"
-        name="columns_desktop"
-        value={String(customization.columns.desktop)}
-      />
-
+    <div className="space-y-8 animate-in fade-in duration-500 pb-6">
       {/* BLOCO 1: IDENTIFICAÇÃO */}
       <section className="space-y-4">
         <SectionHeader icon={ShieldCheck} title="Identificação" />
-        <div className="grid grid-cols-1 md:grid-cols-12 gap-4 items-end">
-          <div className="md:col-span-3 space-y-1.5">
-            <label className="flex items-center gap-2 text-[10px] uppercase font-semibold text-slate-400">
-              <Briefcase size={10} /> Tipo
+        <div className="grid grid-cols-1 md:grid-cols-12 gap-5 items-end">
+          <div className="md:col-span-4 space-y-1.5">
+            <label>
+              <Briefcase size={12} strokeWidth={2} /> Tipo
             </label>
-            <div className="relative flex w-full p-1 bg-slate-100/80 rounded-xl border border-slate-200/50 h-[45px] items-center">
+            <div className="relative flex w-full p-1.5 bg-slate-50 rounded-[0.5rem] border border-slate-200 h-[48px] items-center">
               <div
-                className={`absolute top-1 bottom-1 w-[calc(50%-4px)] rounded-lg transition-all duration-300 ease-out border ${hasContractingClient ? 'left-1 bg-champagne-dark border-gold/30' : 'left-[calc(50%+2px)] bg-champagne-dark border-gold/30'}`}
+                className={`absolute top-1.5 bottom-1.5 w-[calc(50%-6px)] rounded-[0.4rem] transition-all duration-300 ease-out shadow-sm border ${
+                  hasContractingClient
+                    ? 'left-1.5 bg-[#F3E5AB] border-[#D4AF37]/30'
+                    : 'left-[calc(50%+3px)] bg-[#F3E5AB] border-[#D4AF37]/30'
+                }`}
               />
               <button
                 type="button"
                 onClick={() => setHasContractingClient(true)}
-                className="relative z-10 flex-1 py-1.5 text-[9px] font-semibold uppercase tracking-widest transition-colors text-slate-900"
+                className={`relative z-10 flex-1 text-[10px] font-semibold uppercase tracking-widest transition-colors ${hasContractingClient ? 'text-slate-900' : 'text-slate-400'}`}
               >
                 Contrato
               </button>
@@ -185,46 +146,44 @@ export default function GalleryFormContent({
                   setHasContractingClient(false);
                   setIsPublic(true);
                 }}
-                className="relative z-10 flex-1 py-1.5 text-[9px] font-semibold uppercase tracking-widest transition-colors text-slate-700"
+                className={`relative z-10 flex-1 text-[10px] font-semibold uppercase tracking-widest transition-colors ${!hasContractingClient ? 'text-slate-900' : 'text-slate-400'}`}
               >
                 Cobertura
               </button>
             </div>
           </div>
+
           {hasContractingClient ? (
             <>
-              <div className="md:col-span-6 space-y-1.5 animate-in fade-in slide-in-from-left-4 duration-500">
-                <label className="flex items-center gap-2 text-[10px] uppercase font-semibold text-slate-400">
-                  <User size={10} /> Nome do Cliente
+              <div className="md:col-span-5 space-y-1.5 animate-in fade-in slide-in-from-left-4 duration-300">
+                <label>
+                  <User size={12} strokeWidth={2} /> Cliente
                 </label>
                 <input
                   name="client_name"
                   defaultValue={initialData?.client_name}
-                  // Convertendo explicitamente para booleano
-                  required={!!hasContractingClient} // Força booleano
-                  placeholder="Ex: José Silva"
-                  className="w-full px-4 py-2.5 bg-white border border-[#F3E5AB] rounded-xl text-sm outline-none focus:border-gold transition-all"
+                  required={!!hasContractingClient}
+                  placeholder="Ex: Ana Souza"
+                  className="w-full px-4 py-2.5 bg-white border border-slate-200 rounded-[0.5rem] text-sm font-medium outline-none focus:border-[#D4AF37] transition-all"
                 />
               </div>
-              <div className="md:col-span-3 space-y-1.5 animate-in fade-in slide-in-from-left-2 duration-500">
-                <label className="flex items-center gap-2 text-[10px] uppercase font-semibold text-slate-400">
-                  <WhatsAppIcon className="text-white w-[10px] h-[10px]" />{' '}
-                  WhatsApp
+              <div className="md:col-span-3 space-y-1.5 animate-in fade-in slide-in-from-left-2 duration-300">
+                <label>
+                  <WhatsAppIcon className="w-3 h-3 text-slate-400" /> WhatsApp
                 </label>
                 <input
                   value={clientWhatsapp}
                   name="client_whatsapp"
                   onChange={(e) => setClientWhatsapp(maskPhone(e))}
                   placeholder="(00) 00000-0000"
-                  maxLength={15}
-                  className="w-full px-4 py-2.5 bg-white border border-[#F3E5AB] rounded-xl text-sm outline-none focus:border-gold tracking-tight transition-all"
+                  className="w-full px-4 py-2.5 bg-white border border-slate-200 rounded-[0.5rem] text-sm font-medium outline-none focus:border-[#D4AF37] tracking-widest transition-all"
                 />
               </div>
             </>
           ) : (
-            <div className="md:col-span-9 h-[45px] flex items-center px-6 bg-slate-50/50 border border-dashed border-slate-200 rounded-xl animate-in zoom-in-95 duration-500">
-              <p className="text-[10px] font-semibold uppercase tracking-widest text-slate-500 italic">
-                No tipo Cobertura não é necessário identificar o cliente.
+            <div className="md:col-span-8 h-[48px] flex items-center px-6 bg-slate-50/50 border border-dashed border-slate-200 rounded-[0.5rem] italic">
+              <p className="text-[10px] font-semibold uppercase tracking-widest text-slate-400">
+                Job registrado como cobertura de evento livre.
               </p>
             </div>
           )}
@@ -232,49 +191,49 @@ export default function GalleryFormContent({
       </section>
 
       {/* BLOCO 2: ENTREGA */}
-      <section>
+      <section className="space-y-4">
         <SectionHeader icon={Camera} title="Galeria de Fotos" />
-        <div className="grid grid-cols-1 md:grid-cols-12 gap-4 items-end">
+        <div className="grid grid-cols-1 md:grid-cols-12 gap-5 items-end">
           <div className="md:col-span-5 space-y-1.5">
-            <label className="flex items-center gap-2 text-[10px] uppercase font-semibold text-slate-400">
-              <Type size={10} /> Título da Galeria
+            <label>
+              <Type size={12} strokeWidth={2} /> Título Editorial
             </label>
             <input
               name="title"
               defaultValue={initialData?.title}
               required
-              placeholder="Ex: Ensaio Gestante"
-              className="w-full px-4 py-2.5 bg-white border border-[#F3E5AB] rounded-xl text-sm outline-none focus:border-gold"
+              placeholder="Ex: Wedding Editorial"
+              className="w-full px-4 py-2.5 bg-white border border-slate-200 rounded-[0.5rem] text-sm font-medium outline-none focus:border-[#D4AF37] transition-all"
             />
           </div>
           <div className="md:col-span-3 space-y-1.5">
-            <label className="flex items-center gap-2 text-[10px] uppercase font-semibold text-slate-400">
-              <Tag size={10} /> Categoria
+            <label>
+              <Tag size={12} strokeWidth={2} /> Categoria
             </label>
             <CategorySelect value={category} onChange={setCategory} />
           </div>
-          <div className="md:col-span-4 grid grid-cols-2 gap-3">
+          <div className="md:col-span-4 grid grid-cols-2 gap-4">
             <div className="space-y-1.5">
-              <label className="flex items-center gap-2 text-[10px] uppercase font-semibold text-slate-400">
-                <Calendar size={10} /> Data
+              <label>
+                <Calendar size={12} strokeWidth={2} /> Data
               </label>
               <input
                 name="date"
                 type="date"
                 defaultValue={initialData?.date}
                 required
-                className="w-full px-3 py-2.5 bg-white border border-[#F3E5AB] rounded-xl text-sm outline-none focus:border-gold"
+                className="w-full px-3 py-2.5 bg-white border border-slate-200 rounded-[0.5rem] text-sm font-medium outline-none focus:border-[#D4AF37]"
               />
             </div>
             <div className="space-y-1.5">
-              <label className="flex items-center gap-2 text-[10px] uppercase font-semibold text-slate-400">
-                <MapPin size={10} /> Local
+              <label>
+                <MapPin size={12} strokeWidth={2} /> Local
               </label>
               <input
                 name="location"
                 defaultValue={initialData?.location}
                 placeholder="Cidade/UF"
-                className="w-full px-3 py-2.5 bg-white border border-[#F3E5AB] rounded-xl text-sm outline-none focus:border-gold placeholder:text-slate-300"
+                className="w-full px-3 py-2.5 bg-white border border-slate-200 rounded-[0.5rem] text-sm font-medium outline-none focus:border-[#D4AF37] placeholder:text-slate-300"
               />
             </div>
           </div>
@@ -282,103 +241,70 @@ export default function GalleryFormContent({
       </section>
 
       {/* BLOCO 3: APARÊNCIA */}
-      <section className="space-y-3">
-        <SectionHeader icon={Palette} title="Aparência da Galeria" />
-
-        <div className="flex items-center justify-start p-3 bg-white border border-[#F3E5AB] rounded-2xl shadow-sm overflow-x-auto gap-6 no-scrollbar">
-          {/* 1. FOTO DE FUNDO (TOGGLE) */}
-          <div className="flex items-center gap-3 pr-6 border-r border-slate-100 shrink-0">
-            <label className="text-[10px] font-bold uppercase tracking-widest text-slate-700 whitespace-nowrap">
-              Foto de fundo
-            </label>
+      <section className="space-y-4">
+        <SectionHeader icon={Palette} title="Aparência Customizada" />
+        <div className="flex flex-col md:flex-row md:items-center p-5 bg-white border border-slate-200 rounded-[0.5rem] shadow-sm gap-8">
+          <div className="flex items-center gap-4 pr-8 md:border-r border-slate-100 shrink-0">
+            <label className="!mb-0 whitespace-nowrap">Foto de fundo</label>
             <button
               type="button"
-              // Certifique-se de que este método altera o estado no GalleryModal
               onClick={() =>
                 setCustomization.setShowCoverInGrid(
                   !customization.showCoverInGrid,
                 )
               }
-              className={`relative inline-flex h-5 w-10 shrink-0 cursor-pointer rounded-full border-2 border-transparent transition-colors duration-200 ease-in-out outline-none focus:ring-2 focus:ring-gold/20 ${
+              className={`relative inline-flex h-6 w-11 shrink-0 cursor-pointer rounded-full border-2 border-transparent transition-colors duration-200 ${
                 customization.showCoverInGrid ? 'bg-[#D4AF37]' : 'bg-slate-200'
               }`}
             >
               <span
-                className={`pointer-events-none inline-block h-4 w-4 transform rounded-full bg-white shadow ring-0 transition duration-200 ease-in-out ${
-                  customization.showCoverInGrid
-                    ? 'translate-x-5'
-                    : 'translate-x-0'
-                }`}
+                className={`inline-block h-5 w-5 transform rounded-full bg-white shadow transition duration-200 ${customization.showCoverInGrid ? 'translate-x-5' : 'translate-x-0'}`}
               />
             </button>
           </div>
 
-          {/* 2. SELETOR DE CORES (GRID BG) */}
-          <div className="flex items-center gap-4 shrink-0 border-r border-slate-100 pr-6">
-            <label className="text-[10px] font-bold uppercase tracking-widest text-slate-700 flex items-center gap-2">
-              <Layout size={14} className="text-[#D4AF37]" /> Cor de Fundo
+          <div className="flex items-center gap-6 pr-8 md:border-r border-slate-100 shrink-0">
+            <label className="!mb-0 whitespace-nowrap">
+              <Layout size={14} strokeWidth={2} /> Fundo
             </label>
             <div className="flex gap-2">
               {[
-                { name: 'Champagne', color: '#FFF9F0' },
+                { name: 'Champagne', color: '#F3E5AB' },
                 { name: 'Branco', color: '#FFFFFF' },
                 { name: 'Escuro', color: '#0F172A' },
               ].map((item) => (
                 <button
                   key={item.color}
                   type="button"
-                  title={item.name}
                   onClick={() => setCustomization.setGridBgColor(item.color)}
-                  className={`relative w-8 h-8 rounded-lg border-2 transition-all duration-300 hover:scale-110 ${
+                  className={`w-8 h-8 rounded-[0.4rem] border-2 transition-all ${
                     customization.gridBgColor === item.color
-                      ? 'border-[#D4AF37] shadow-md scale-105'
+                      ? 'border-[#D4AF37] scale-110 shadow-md'
                       : 'border-slate-100'
                   }`}
-                >
-                  <div
-                    className="absolute inset-1 rounded-[4px]"
-                    style={{ backgroundColor: item.color }}
-                  />
-                  {customization.gridBgColor === item.color && (
-                    <div className="absolute -top-1.5 -right-1.5 bg-[#D4AF37] text-white rounded-full p-0.5 shadow-sm">
-                      <Check size={8} strokeWidth={4} />
-                    </div>
-                  )}
-                </button>
+                  style={{ backgroundColor: item.color }}
+                />
               ))}
             </div>
           </div>
 
-          {/* 3. CONFIGURAÇÃO DE COLUNAS */}
-          <div className="flex items-center gap-4 shrink-0">
-            <label className="text-[10px] font-bold uppercase text-slate-700">
-              Colunas
-            </label>
-            <div className="flex gap-5">
+          <div className="flex items-center gap-6">
+            <label className="!mb-0 whitespace-nowrap">Grid</label>
+            <div className="flex gap-4">
               {[
-                {
-                  label: 'Mob',
-                  key: 'mobile',
-                  icon: Smartphone,
-                  max: 2,
-                  min: 1,
-                },
-                { label: 'Tab', key: 'tablet', icon: Tablet, max: 5, min: 2 },
-                {
-                  label: 'Desk',
-                  key: 'desktop',
-                  icon: Monitor,
-                  max: 8,
-                  min: 3,
-                },
+                { key: 'mobile', icon: Smartphone },
+                { key: 'tablet', icon: Tablet },
+                { key: 'desktop', icon: Monitor },
               ].map((device) => (
-                <div key={device.key} className="flex flex-col gap-1 shrink-0">
-                  <div className="flex items-center gap-1.5 text-slate-400">
-                    <device.icon size={11} />
-                    <span className="text-[9px] font-bold uppercase">
-                      {device.label}
-                    </span>
-                  </div>
+                <div
+                  key={device.key}
+                  className="flex flex-col items-center gap-1"
+                >
+                  <device.icon
+                    size={12}
+                    className="text-slate-300"
+                    strokeWidth={2}
+                  />
                   <select
                     value={customization.columns[device.key]}
                     onChange={(e) =>
@@ -387,14 +313,11 @@ export default function GalleryFormContent({
                         [device.key]: Number(e.target.value),
                       })
                     }
-                    className="bg-slate-50 border border-slate-200 px-2 py-1 rounded-lg text-[10px] font-bold text-slate-700 outline-none focus:border-[#D4AF37] transition-colors w-14 cursor-pointer"
+                    className="bg-slate-50 border border-slate-200 px-2 py-1 rounded-[0.3rem] text-[10px] font-semibold text-slate-800 outline-none focus:border-[#D4AF37]"
                   >
-                    {Array.from(
-                      { length: device.max - device.min + 1 },
-                      (_, i) => i + device.min,
-                    ).map((val) => (
-                      <option key={val} value={val}>
-                        {val} col
+                    {[1, 2, 3, 4, 5, 6].map((v) => (
+                      <option key={v} value={v}>
+                        {v} col
                       </option>
                     ))}
                   </select>
@@ -404,17 +327,16 @@ export default function GalleryFormContent({
           </div>
         </div>
       </section>
-      {/* BLOCO 4: SEGURANÇA */}
-      <section>
+
+      {/* BLOCO 4: DRIVE E SEGURANÇA */}
+      <section className="space-y-4">
         <SectionHeader icon={Settings2} title="Drive e Segurança" />
         <div className="grid grid-cols-1 md:grid-cols-12 gap-6 items-stretch">
-          <div className="md:col-span-7 flex flex-col justify-between p-5 bg-white border border-[#F3E5AB] rounded-2xl shadow-sm">
-            <div className="flex items-center justify-between mb-4">
-              <label className="flex items-center gap-2 text-[10px] uppercase font-semibold text-slate-400">
-                <FolderSync size={14} className="text-[#D4AF37]" /> Google Drive
-              </label>
-            </div>
-            <div className="flex items-center gap-3 w-full">
+          <div className="md:col-span-7 p-6 bg-white border border-slate-200 rounded-[0.5rem] shadow-sm space-y-4">
+            <label className="!mb-0">
+              <FolderSync size={14} strokeWidth={2} /> Armazenamento
+            </label>
+            <div className="flex items-center gap-3">
               <GooglePickerButton
                 onError={onPickerError}
                 onFolderSelect={(id, name, coverId) =>
@@ -422,12 +344,12 @@ export default function GalleryFormContent({
                 }
                 currentDriveId={driveData.id}
               />
-              <div className="flex-1 bg-white px-4 py-2.5 rounded-xl border border-[#F3E5AB] flex items-center justify-between gap-3 min-w-0 h-[42px] shadow-sm">
+              <div className="flex-1 bg-slate-50 px-4 h-11 rounded-[0.5rem] border border-slate-200 flex items-center justify-between gap-3 min-w-0">
                 <div className="flex items-center gap-2 truncate">
                   <div
-                    className={`h-1.5 w-1.5 rounded-full shrink-0 ${driveData.id ? 'bg-green-500 animate-pulse' : 'bg-slate-300'}`}
+                    className={`h-2 w-2 rounded-full ${driveData.id ? 'bg-green-500 animate-pulse' : 'bg-slate-300'}`}
                   />
-                  <span className="text-[11px] font-medium truncate tracking-tight text-slate-700">
+                  <span className="text-[11px] font-semibold truncate text-slate-700 uppercase tracking-widest">
                     {driveData.name}
                   </span>
                 </div>
@@ -447,57 +369,37 @@ export default function GalleryFormContent({
               </div>
             </div>
           </div>
-          <div className="md:col-span-5 flex flex-col justify-between p-5 bg-white border border-[#F3E5AB] rounded-2xl shadow-sm">
-            <div className="flex items-center justify-between mb-4">
-              <label className="text-[10px] font-semibold uppercase tracking-widest text-slate-700 flex items-center gap-2">
-                <Settings2 size={14} className="text-[#D4AF37]" /> Acesso
-              </label>
-            </div>
-            <div className="flex flex-col gap-3 w-full">
-              <div className="flex items-center gap-8 px-4 h-[42px] bg-slate-50/50 rounded-xl border border-slate-100/50">
-                <label
-                  className={`flex items-center gap-2 cursor-pointer text-[10px] font-semibold uppercase tracking-wider transition-all ${isPublic ? 'text-[#D4AF37]' : 'text-slate-300'}`}
+
+          <div className="md:col-span-5 p-6 bg-white border border-slate-200 rounded-[0.5rem] shadow-sm space-y-4">
+            <label className="!mb-0">
+              <Lock size={14} strokeWidth={2} /> Privacidade
+            </label>
+            <div className="flex flex-col gap-3">
+              <div className="flex items-center justify-around h-11 bg-slate-50 rounded-[0.5rem] border border-slate-200">
+                <button
+                  type="button"
+                  onClick={() => setIsPublic(true)}
+                  className={`flex items-center gap-2 text-[10px] font-semibold uppercase tracking-widest transition-all ${isPublic ? 'text-[#D4AF37]' : 'text-slate-300'}`}
                 >
-                  <input
-                    type="radio"
-                    checked={isPublic}
-                    onChange={() => setIsPublic(true)}
-                    className="hidden"
-                  />
-                  <div
-                    className={`w-4 h-4 rounded-full border-2 flex items-center justify-center ${isPublic ? 'border-[#D4AF37]' : 'border-slate-200'}`}
-                  >
-                    {isPublic && (
-                      <div className="w-1.5 h-1.5 rounded-full bg-[#D4AF37]" />
-                    )}
-                  </div>
-                  <Unlock size={14} /> Pública
-                </label>
-                <label
-                  className={`flex items-center gap-2 cursor-pointer text-[10px] font-semibold uppercase tracking-wider transition-all ${!isPublic ? 'text-[#D4AF37]' : 'text-slate-300'}`}
+                  <Unlock size={14} strokeWidth={2} /> Pública
+                </button>
+                <div className="w-[1px] h-4 bg-slate-200" />
+                <button
+                  type="button"
+                  onClick={() => setIsPublic(false)}
+                  className={`flex items-center gap-2 text-[10px] font-semibold uppercase tracking-widest transition-all ${!isPublic ? 'text-[#D4AF37]' : 'text-slate-300'}`}
                 >
-                  <input
-                    type="radio"
-                    checked={!isPublic}
-                    onChange={() => setIsPublic(false)}
-                    className="hidden"
-                  />
-                  <div
-                    className={`w-4 h-4 rounded-full border-2 flex items-center justify-center ${!isPublic ? 'border-[#D4AF37]' : 'border-slate-200'}`}
-                  >
-                    {!isPublic && (
-                      <div className="w-1.5 h-1.5 rounded-full bg-[#D4AF37]" />
-                    )}
-                  </div>
-                  <Lock size={14} /> Privada
-                </label>
+                  <Lock size={14} strokeWidth={2} /> Privada
+                </button>
               </div>
               {!isPublic && (
                 <input
                   name="password"
                   type="password"
-                  placeholder={isEdit ? 'Manter senha atual' : 'Definir senha'}
-                  className="w-full px-4 py-2 bg-white border border-[#F3E5AB] rounded-xl text-xs outline-none focus:border-gold transition-all"
+                  placeholder={
+                    isEdit ? 'Manter senha atual' : 'Definir senha de acesso'
+                  }
+                  className="w-full px-4 py-2 bg-white border border-[#F3E5AB] rounded-[0.5rem] text-[11px] font-medium outline-none focus:border-[#D4AF37] transition-all h-10"
                   required={!isEdit && !isPublic}
                 />
               )}

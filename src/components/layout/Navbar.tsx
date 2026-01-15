@@ -2,7 +2,6 @@
 
 import { usePathname } from 'next/navigation';
 import { Camera } from 'lucide-react';
-
 import Link from 'next/link';
 
 import { useAuth } from '@/hooks/useAuth';
@@ -23,30 +22,35 @@ export default function Navbar() {
 
   return (
     <>
-      {/* Ajuste de Cor: 'bg-[#FFF9F0]/80' para o tom champanhe suave Ajuste de Borda: 'border-[#F3E5AB]' para harmonia cromática */}
-      <nav className="fixed top-0 left-0 w-full z-[110] flex items-center justify-between px-6 md:px-10 py-1 bg-[#FFF9F0]/90 backdrop-blur-md border-b border-[#F3E5AB] shadow-sm">
-        {/* Branding Editorial com cores ajustadas para o fundo champanhe */}
+      {/* 🎯 Navbar com Fundo Dark da InfoBar para destacar o novo ícone */}
+      <nav className="fixed top-0 left-0 w-full z-[110] flex items-center justify-between px-6 md:px-10 py-2 bg-[#1E293B] backdrop-blur-xl border-b border-white/10 shadow-2xl">
+        {/* Branding Editorial */}
         <Link
           href="/dashboard"
-          className="flex items-center gap-2 group transition-opacity hover:opacity-80"
+          className="flex items-center gap-3 group transition-all"
         >
-          {/* Ícone agora usa um fundo que contrasta com o champanhe */}
-          <div className="bg-[#D4AF37] p-1.5 rounded-lg shadow-sm transition-transform group-hover:scale-105">
-            <Camera className="text-white w-5 h-5 md:w-6 md:h-6" />
+          {/* 🎯 Novo Ícone Estilo Glow/Glassmorphism */}
+          <div className="p-2 md:p-2.5 bg-white/5 backdrop-blur-2xl rounded-full border border-white/10 shadow-2xl transition-transform group-hover:scale-110">
+            <Camera
+              className="text-[#F3E5AB] w-5 h-5 md:w-6 md:h-6 drop-shadow-[0_0_15px_rgba(243,229,171,0.3)]"
+              strokeWidth={1.5}
+            />
           </div>
-          <span className="font-artistic text-lg md:text-[20px] font-semibold tracking-tight text-slate-800 italic">
-            Espaço <span className="text-[#D4AF37]">Premium</span> do Fotógrafo
+
+          <span className="font-artistic text-lg md:text-[20px] font-semibold tracking-tight text-white italic">
+            Esapaço das Galerias de{' '}
+            <span className="text-[#F3E5AB]">Mídias</span>
           </span>
         </Link>
 
-        {/* Menu do Usuário Integrado */}
+        {/* Menu do Usuário */}
         <div className="flex items-center gap-4">
           <UserMenu session={user} avatarUrl={avatarUrl} />
         </div>
       </nav>
 
-      {/* Spacer para garantir que o conteúdo não fique sob a navbar */}
-      <div className="h-[65px] w-full" />
+      {/* Spacer */}
+      <div className="h-[72px] w-full" />
     </>
   );
 }

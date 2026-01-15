@@ -25,6 +25,7 @@ import Filters from './Filters';
 import { ConfirmationModal, Toast } from '@/components/ui';
 import GaleriaCard from './GaleriaCard';
 import { updateSidebarPreference } from '@/core/services/profile.service';
+import { button, div, main } from 'framer-motion/client';
 
 const CARDS_PER_PAGE = 6;
 
@@ -58,7 +59,8 @@ export default function ClientAdminWrapper({
   const [cardsToShow, setCardsToShow] = useState(CARDS_PER_PAGE);
   const [filterName, setFilterName] = useState('');
   const [filterLocation, setFilterLocation] = useState('');
-  const [filterDate, setFilterDate] = useState('');
+  const [filterDateStart, setFilterDateStart] = useState('');
+  const [filterDateEnd, setFilterDateEnd] = useState('');
   const [filterCategory, setFilterCategory] = useState('');
   const [filterType, setFilterType] = useState('');
 
@@ -186,10 +188,12 @@ export default function ClientAdminWrapper({
 
   const filteredGalerias = useMemo(() => {
     if (!Array.isArray(galerias)) return [];
+
     const nameLower = normalizeString(filterName);
     const locationLower = normalizeString(filterLocation);
 
     return galerias.filter((g) => {
+      // 1. Filtros de visualização (Visão do Sistema)
       const isArchived = Boolean(g.is_archived);
       const isDeleted = Boolean(g.is_deleted);
       if (currentView === 'active' && (isArchived || isDeleted)) return false;
@@ -197,6 +201,7 @@ export default function ClientAdminWrapper({
         return false;
       if (currentView === 'trash' && !isDeleted) return false;
 
+      // 2. Filtros Textuais
       const titleNorm = normalizeString(g.title || '');
       const clientNorm = normalizeString(g.client_name || '');
       const locationNorm = normalizeString(g.location || '');
@@ -205,13 +210,30 @@ export default function ClientAdminWrapper({
         !nameLower ||
         titleNorm.includes(nameLower) ||
         clientNorm.includes(nameLower);
+
       const matchesLocation =
         !locationLower || locationNorm.includes(locationLower);
+
+      // 3. Filtros de Categoria e Tipo
       const matchesCategory = !filterCategory || g.category === filterCategory;
       const matchesType =
         !filterType || String(g.has_contracting_client) === filterType;
 
-      return matchesSearch && matchesLocation && matchesCategory && matchesType;
+      // 4. 🎯 LÓGICA DE DATA POR PERÍODO (Comparação Lexicográfica Segura)
+      // Extraímos YYYY-MM-DD da data da galeria
+      const galleryDateString = g.date ? g.date.split('T')[0] : '';
+
+      const matchesDate =
+        (!filterDateStart || galleryDateString >= filterDateStart) &&
+        (!filterDateEnd || galleryDateString <= filterDateEnd);
+
+      return (
+        matchesSearch &&
+        matchesLocation &&
+        matchesCategory &&
+        matchesType &&
+        matchesDate
+      );
     });
   }, [
     galerias,
@@ -220,6 +242,8 @@ export default function ClientAdminWrapper({
     filterLocation,
     filterCategory,
     filterType,
+    filterDateStart,
+    filterDateEnd,
   ]);
 
   const visibleGalerias = useMemo(
@@ -228,29 +252,37 @@ export default function ClientAdminWrapper({
   );
 
   return (
-    <div className="mx-auto flex max-w-[1600px] gap-6 px-4 py-6 bg-[#F8F9FA] min-h-screen">
+    <div className="mx-auto flex flex-col lg:flex-row max-w-[1600px] gap-4 px-4 py-2 bg-[#F8F9FA] min-h-screen pb-24 lg:pb-6">
+      {/* SIDEBAR (Desktop) / BOTTOM NAV (Mobile) */}
       <aside
-        className={`hidden lg:block space-y-6 transition-all duration-500 ease-in-out ${isSidebarCollapsed ? 'w-[70px]' : 'w-[200px]'}`}
+        className={`
+          fixed bottom-0 left-0 right-0 z-50 bg-white border-t border-slate-200 px-6 py-3 lg:py-0 lg:px-0
+          lg:relative lg:block lg:bg-transparent lg:border-0 lg:z-0
+          transition-all duration-500 ease-in-out 
+          ${isSidebarCollapsed ? 'lg:w-[70px]' : 'lg:w-[220px]'}
+        `}
       >
+        {/* Botão Nova Mídia - Destaque Dourado Editorial */}
         <button
           onClick={() => setIsFormOpen(true)}
-          className={`flex items-center bg-white hover:shadow-md transition-all rounded-2xl border border-gray-100 group shadow-sm overflow-hidden ${isSidebarCollapsed ? 'w-[56px] h-[56px] justify-center mx-auto' : 'px-6 py-4 gap-4 w-full'}`}
+          className={`hidden lg:flex items-center bg-[#D4AF37] text-black hover:bg-white hover:text-[#D4AF37] transition-all duration-300 rounded-[0.8rem] border border-[#D4AF37] group shadow-md mb-6 overflow-hidden ${isSidebarCollapsed ? 'w-[56px] h-[56px] justify-center mx-auto' : 'px-6 py-4 gap-4 w-full'}`}
         >
           <Plus
             size={24}
-            className="text-[#D4AF37] group-hover:rotate-90 transition-transform shrink-0"
+            className="group-hover:rotate-90 transition-transform shrink-0"
+            strokeWidth={3}
           />
           {!isSidebarCollapsed && (
-            <span className="text-xs font-semibold uppercase tracking-widest text-slate-700">
-              Nova galeria
+            <span className="text-xs font-bold uppercase tracking-widest">
+              Nova Galeria
             </span>
           )}
         </button>
 
-        <nav className="space-y-2 relative">
+        <nav className="flex lg:flex-col justify-around lg:justify-start lg:space-y-1 relative">
           <button
             onClick={toggleSidebar}
-            className="absolute -right-3 top-[-10px] bg-white border border-gray-200 rounded-full p-1 shadow-md hover:bg-gray-50 z-10 text-slate-400"
+            className="hidden lg:flex absolute -right-3 top-[-10px] bg-white border border-slate-200 rounded-full p-1 shadow-sm hover:bg-slate-50 z-10 text-slate-400"
           >
             {isSidebarCollapsed ? (
               <ChevronRight size={14} />
@@ -258,6 +290,7 @@ export default function ClientAdminWrapper({
               <ChevronLeft size={14} />
             )}
           </button>
+
           {[
             {
               id: 'active',
@@ -283,27 +316,38 @@ export default function ClientAdminWrapper({
               onClick={() => {
                 setCurrentView(item.id as any);
                 setCardsToShow(CARDS_PER_PAGE);
+                window.scrollTo({ top: 0, behavior: 'smooth' });
               }}
-              className={`w-full flex items-center transition-all duration-300 group relative ${isSidebarCollapsed ? 'justify-center py-4' : 'justify-between px-4 py-3.5 rounded-r-2xl'} ${currentView === item.id ? 'bg-[#FFF9F0] text-slate-900 border-l-4 border-[#D4AF37]' : 'text-slate-500 hover:bg-gray-50 border-l-4 border-transparent'}`}
+              className={`
+                flex flex-col lg:flex-row items-center transition-all duration-300 group relative
+                ${isSidebarCollapsed ? 'lg:justify-center lg:py-4' : 'lg:justify-between lg:px-4 lg:py-3 lg:rounded-xl'} 
+                ${
+                  currentView === item.id
+                    ? 'text-black bg-[#F3E5AB] shadow-sm'
+                    : 'text-slate-400 hover:bg-white hover:text-slate-600'
+                }
+              `}
             >
-              <div className="flex items-center gap-3">
+              <div className="flex flex-col lg:flex-row items-center gap-1 lg:gap-3">
                 <item.icon
-                  size={20}
+                  size={22}
                   className={
                     currentView === item.id
-                      ? 'text-[#D4AF37]'
-                      : 'text-slate-400'
+                      ? 'text-black'
+                      : 'text-slate-400 group-hover:text-[#D4AF37]'
                   }
                 />
-                {!isSidebarCollapsed && (
-                  <span className="uppercase text-[10px] font-semibold tracking-widest">
-                    {item.label}
-                  </span>
-                )}
+                {/* 🎯 Texto condicional ajustado para mobile/desktop */}
+                <span
+                  className={`uppercase text-[9px] lg:text-[10px] font-bold tracking-widest block ${!isSidebarCollapsed ? 'lg:block' : 'lg:hidden'}`}
+                >
+                  {item.label}
+                </span>
               </div>
+
               {!isSidebarCollapsed && item.count > 0 && (
                 <span
-                  className={`text-[10px] font-semibold px-2 py-0.5 rounded-full ${currentView === item.id ? 'bg-[#D4AF37] text-white' : 'bg-slate-100 text-slate-400'}`}
+                  className={`hidden lg:block text-[10px] font-bold px-2 py-0.5 rounded-full ${currentView === item.id ? 'bg-white/40 text-black' : 'bg-slate-100 text-slate-500'}`}
                 >
                   {item.count}
                 </span>
@@ -314,37 +358,40 @@ export default function ClientAdminWrapper({
       </aside>
 
       <main className="flex-1 space-y-4 min-w-0">
-        <header className="bg-white rounded-[24px] border border-gray-200 p-2 shadow-sm">
+        {/* Header de Filtros - Branco e Limpo */}
+        <header className="bg-white rounded-[12px] border border-slate-200 p-1 shadow-sm">
           <Filters
-            {...{
-              filterName,
-              filterLocation,
-              filterDate,
-              filterCategory,
-              filterType,
-              setFilterName,
-              setFilterLocation,
-              setFilterDate,
-              setFilterCategory,
-              setFilterType,
-            }}
+            filterName={filterName}
+            filterLocation={filterLocation}
+            filterCategory={filterCategory}
+            filterType={filterType}
+            filterDateStart={filterDateStart}
+            filterDateEnd={filterDateEnd}
+            setFilterName={setFilterName}
+            setFilterLocation={setFilterLocation}
+            setFilterDateStart={setFilterDateStart}
+            setFilterDateEnd={setFilterDateEnd}
+            setFilterCategory={setFilterCategory}
+            setFilterType={setFilterType}
             resetFilters={() => {
               setFilterName('');
               setFilterLocation('');
               setFilterCategory('');
               setFilterType('');
-              setFilterDate('');
+              setFilterDateStart('');
+              setFilterDateEnd('');
             }}
             variant="minimal"
           />
         </header>
 
-        <div className="bg-white rounded-[24px] border border-gray-200 shadow-sm p-6 min-h-[600px]">
-          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
-            {visibleGalerias.map((g) => (
+        <div className="bg-white rounded-[12px] border border-slate-200 shadow-sm p-4 min-h-[500px]">
+          <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 xl:grid-cols-4 gap-4">
+            {visibleGalerias.map((g, index) => (
               <GaleriaCard
                 key={g.id}
                 galeria={g}
+                index={index} // Passamos o index para o efeito de cascata
                 currentView={currentView}
                 onEdit={setGaleriaToEdit}
                 onDelete={handleMoveToTrash}
@@ -357,7 +404,7 @@ export default function ClientAdminWrapper({
           </div>
           {visibleGalerias.length === 0 && (
             <div className="flex flex-col items-center justify-center py-32 text-center">
-              <div className="w-20 h-20 bg-slate-50 rounded-full flex items-center justify-center mb-6 border border-[#F3E5AB]">
+              <div className="w-20 h-20 bg-slate-50 rounded-[10px] flex items-center justify-center mb-6 border border-[#F3E5AB]">
                 <Inbox className="text-[#D4AF37] opacity-40" size={32} />
               </div>
               <h3 className="text-xl italic text-slate-800 mb-2">
@@ -367,6 +414,38 @@ export default function ClientAdminWrapper({
                 Não encontramos resultados para sua busca.
               </p>
             </div>
+          )}
+        </div>
+
+        {/* PAGINAÇÃO / EXPANDIR ACERVO */}
+
+        <div className="mt-12 flex flex-col items-center justify-center space-y-6 pb-12">
+          {/* Barra de Progresso Refinada */}
+          <div className="flex flex-col items-center gap-2">
+            <div className="text-[10px] font-semibold text-slate-700 uppercase tracking-[0.3em]">
+              {visibleGalerias.length} de {filteredGalerias.length} Galerias
+            </div>
+            <div className="w-40 h-[3px] bg-slate-200 rounded-full overflow-hidden">
+              <div
+                className="h-full bg-[#D4AF37] transition-all duration-700 ease-out"
+                style={{
+                  width: `${(visibleGalerias.length / filteredGalerias.length) * 100}%`,
+                }}
+              />
+            </div>
+          </div>
+          {filteredGalerias.length > cardsToShow && (
+            <button
+              onClick={() => setCardsToShow((prev) => prev + CARDS_PER_PAGE)}
+              className="group mx-auto px-12 py-3.5 rounded-full bg-white text-black border border-slate-200 hover:border-[#D4AF37] hover:shadow-xl hover:shadow-[#D4AF37]/10 transition-all duration-300 uppercase text-[10px] font-bold tracking-[0.25em] active:scale-95 flex items-center gap-3"
+            >
+              <Plus
+                size={14}
+                strokeWidth={3}
+                className="text-[#D4AF37] group-hover:rotate-90 transition-transform duration-300"
+              />
+              Expandir Acervo
+            </button>
           )}
         </div>
       </main>

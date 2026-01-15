@@ -208,7 +208,7 @@ describe('Galeria Service - Testes Unitários', () => {
 
       // Adicione os campos de customização que a função prepareGalleryData exige
       fd.append('show_cover_in_grid', 'true');
-      fd.append('grid_bg_color', '#FFF9F0');
+      fd.append('grid_bg_color', '#F3E5AB');
 
       // O single() simula a busca da galeria existente para validar permissão
       mockQueryBuilder.single.mockResolvedValue({

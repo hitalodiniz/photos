@@ -34,7 +34,7 @@ export default function ConfirmationModal({
           exit={{ opacity: 0 }}
         >
           <motion.div
-            className="w-full max-w-sm rounded-[32px] border border-[#F3E5AB] bg-[#FFF9F0] p-10 shadow-2xl"
+            className="w-full max-w-sm rounded-[32px] border border-[#F3E5AB] bg-[#F3E5AB] p-10 shadow-2xl"
             initial={{ scale: 0.95, opacity: 0, y: 20 }}
             animate={{ scale: 1, opacity: 1, y: 0 }}
             exit={{ scale: 0.95, opacity: 0, y: 20 }}

@@ -10,12 +10,16 @@ import {
   Trash2,
   FolderOpen,
   Loader2,
-  Briefcase,
   Check,
   Copy,
   Inbox,
   Archive,
   XCircle,
+  Unlock,
+  Eye,
+  LayoutGrid,
+  ShieldCheck,
+  Users,
 } from 'lucide-react';
 import { useState, useEffect } from 'react';
 import type { Galeria } from '@/core/types/galeria';
@@ -28,10 +32,12 @@ import {
 import { GALLERY_MESSAGES } from '@/constants/messages';
 import { executeShare } from '@/core/utils/share-helper';
 import WhatsAppIcon from '@/components/ui/WhatsAppIcon';
+import { div } from 'framer-motion/client';
 
 interface GaleriaCardProps {
   galeria: Galeria;
   currentView: 'active' | 'archived' | 'trash';
+  index: number;
   onEdit: (galeria: Galeria) => void;
   onDelete: (galeria: Galeria) => void;
   onArchive: (galeria: Galeria) => void;
@@ -40,8 +46,10 @@ interface GaleriaCardProps {
   isDeleting?: boolean;
   isUpdating?: boolean;
 }
+
 export default function GaleriaCard({
   galeria,
+  index,
   currentView,
   onEdit,
   onDelete,
@@ -53,11 +61,7 @@ export default function GaleriaCard({
 }: GaleriaCardProps) {
   const [mounted, setMounted] = useState(false);
   const [copied, setCopied] = useState(false);
-  const [links, setLinks] = useState({
-    url: '',
-    whatsapp: '',
-    message: '', // Adicionado aqui
-  });
+  const [links, setLinks] = useState({ url: '', whatsapp: '', message: '' });
 
   useEffect(() => {
     setMounted(true);
@@ -66,19 +70,13 @@ export default function GaleriaCard({
   useEffect(() => {
     if (galeria && mounted) {
       const publicUrl = getPublicGalleryUrl(galeria.photographer, galeria.slug);
-
       const message = GALLERY_MESSAGES.LUXURY_SHARE(
         galeria.client_name,
         galeria.title,
         galeria.date,
         publicUrl,
       );
-
-      setLinks({
-        url: publicUrl,
-        message: message, // Salva a mensagem para o handleCopy e WhatsApp
-        whatsapp: '',
-      });
+      setLinks({ url: publicUrl, message: message, whatsapp: '' });
     }
   }, [galeria, mounted]);
 
@@ -98,12 +96,10 @@ export default function GaleriaCard({
     : getImageUrl(galeria.cover_image_url);
 
   const isPrivate = !galeria.is_public;
-  const rowStyle = 'flex items-center gap-2 text-[#4F5B66] min-w-0';
 
   const handleCopy = async (e: React.MouseEvent) => {
     e.stopPropagation();
     if (!links.message) return;
-
     const success = await copyToClipboard(links.message);
     if (success) {
       setCopied(true);
@@ -111,249 +107,233 @@ export default function GaleriaCard({
     }
   };
 
-  const handleCardClick = () => {
-    if (links.url) window.open(links.url, '_blank');
-  };
-
   const handleWhatsAppShare = (e: React.MouseEvent) => {
     e.preventDefault();
     e.stopPropagation();
-
     executeShare({
       title: galeria.title,
       text: links.message,
-      phone: galeria.client_whatsapp, // Opcional
+      phone: galeria.client_whatsapp,
     });
-  };
-
-  // Função auxiliar para evitar repetição de código
-  const openWhatsApp = (phone: string, message: string) => {
-    const encodedText = encodeURIComponent(message);
-    const whatsappUrl = phone
-      ? `https://api.whatsapp.com/send?phone=${phone}&text=${encodedText}`
-      : `https://api.whatsapp.com/send?text=${encodedText}`;
-
-    window.open(whatsappUrl, '_blank');
   };
 
   return (
     <div
-      onClick={handleCardClick}
-      className="group relative flex cursor-pointer flex-col overflow-hidden rounded-[12px] border border-[#F3E5AB] bg-[#FFF9F0]/30 backdrop-blur-sm shadow-sm hover:shadow-2xl hover:shadow-gold/10 transition-all duration-500 w-full"
-      style={{ maxWidth: '400px' }}
+      onClick={() => window.open(links.url, '_blank')}
+      className="group relative flex cursor-pointer flex-col overflow-hidden rounded-[14px] border border-slate-200 bg-white transition-all duration-300 hover:shadow-2xl hover:shadow-[#D4AF37]/15 w-full animate-in fade-in slide-in-from-bottom-2 duration-500 fill-mode-both"
+      style={{ animationDelay: `${index * 50}ms` }}
     >
-      {/* Overlay de Atualização Premium */}
+      {/* Overlay Sincronização */}
       {isUpdating && (
-        <div className="absolute inset-0 z-20 flex flex-col items-center justify-center bg-white/90 backdrop-blur-md">
-          <Loader2 className="h-8 w-8 animate-spin text-[#D4AF37]" />
-          <span className="mt-3 text-[10px] font-semibold text-slate-900 uppercase tracking-wider font-barlow">
-            Sincronizando
-          </span>
+        <div className="absolute inset-0 z-20 flex flex-col items-center justify-center bg-white/80 backdrop-blur-sm">
+          <Loader2 className="h-6 w-6 animate-spin text-[#D4AF37]" />
         </div>
       )}
 
-      <div className="relative aspect-[16/10] w-full overflow-hidden bg-slate-100 border-b border-[#F3E5AB]">
+      {/* Capa */}
+      <div className="relative aspect-[16/9] w-full overflow-hidden bg-slate-100">
         <img
           src={imageUrl}
-          alt={`Capa da galeria ${galeria.title}`}
-          referrerPolicy="no-referrer"
-          className="h-full w-full object-cover transition-transform duration-1000 ease-out group-hover:scale-105"
+          alt={galeria.title}
+          className="h-full w-full object-cover transition-transform duration-1000 ease-out group-hover:scale-110"
         />
 
-        <div className="absolute top-2 left-2 md:top-3 md:left-3 flex flex-col gap-1.5">
+        {/* Badges Superiores Padronizados Estilo Navbar (Glassmorphism) */}
+        <div className="absolute top-3 left-3 flex gap-2">
+          {/* 1. Status de Privacidade (Transparente com Blur) */}
           <span
-            className={`flex items-center gap-1.5 rounded-full px-2.5 py-1 text-[10px] md:text-[12px] font-medium tracking-wider shadow-sm ${isPrivate ? 'bg-slate-800 text-white ' : 'bg-white text-slate-700'}`}
+            title={
+              !galeria.is_public
+                ? 'Acesso restrito via senha'
+                : 'Acesso público liberado'
+            }
+            className="flex items-center justify-center w-8 h-8 bg-black/40 backdrop-blur-md rounded-full border border-white/20 shadow-lg transition-all hover:bg-black/60"
           >
-            {isPrivate ? (
-              <Lock size={10} strokeWidth={3} />
+            {!galeria.is_public ? (
+              /* Escudo Dourado para Privado */
+              <ShieldCheck
+                size={16}
+                className="text-[#F3E5AB]"
+                strokeWidth={2}
+              />
             ) : (
-              <Globe size={10} strokeWidth={3} />
+              /* Olho Verde para Público */
+              <Eye size={16} className="text-[#34D399]" strokeWidth={2} />
             )}
-            {isPrivate ? 'Privada' : 'Pública'}
           </span>
-        </div>
 
-        <div className="absolute top-2 right-2 md:top-3 md:right-3 flex flex-col gap-1.5">
-          <span
-            className={`flex items-center gap-1.5 rounded-full px-2.5 py-1 text-[10px] md:text-[12px] font-medium tracking-wider shadow-sm ${galeria.has_contracting_client ? 'bg-blue-50 text-blue-700 border border-blue-100' : 'bg-amber-50 text-amber-700 border border-amber-100'}`}
-          >
-            <Briefcase size={10} strokeWidth={3} />
-            {galeria.has_contracting_client ? 'Contrato' : 'Cobertura'}
-          </span>
-        </div>
-
-        {categoryInfo && (
-          <div className="absolute bottom-2 right-2 md:right-3 ">
-            <span className="flex items-center gap-1.5 rounded-lg px-2 py-1 bg-black/60 backdrop-blur-md text-white text-[10px] md:text-[12px] font-medium tracking-widest border border-white/10">
-              {categoryInfo.icon} {categoryInfo.label}
+          {/* 2. Status de Perfil Público (Transparente com Blur)
+          {galeria.is_public && (
+            <span
+              title="Exibido no seu Perfil Público"
+              className="flex items-center justify-center w-8 h-8 bg-black/40 backdrop-blur-md rounded-full border border-white/20 shadow-lg transition-all hover:bg-black/60"
+            >
+              <LayoutGrid
+                size={16}
+                className="text-[#60A5FA]"
+                strokeWidth={2}
+              />
             </span>
-          </div>
-        )}
-      </div>
+          )} */}
+        </div>
 
-      <div className="flex flex-col p-4">
-        <div className="flex items-start justify-between gap-1 min-h-[40px]">
-          <h3 className="truncate text-[14px] md:text-[18px] font-semibold text-slate-900 group-hover:text-[#D4AF37] transition-colors tracking-tight leading-tight line-clamp-2 flex-1">
+        <div className="absolute top-3 right-3">
+          {categoryInfo && (
+            <span className="flex items-center gap-1.5 px-2 py-0.5 bg-black/40 backdrop-blur-md rounded text-[8px] font-semibold tracking-widest text-white border border-[#D4AF37]/40 uppercase shadow-sm">
+              <span className="text-[#F3E5AB] leading-none">
+                {categoryInfo.icon}
+              </span>
+              {categoryInfo.label}
+            </span>
+          )}
+        </div>
+
+        {/* Título e Categoria sobre a foto */}
+        <div className="absolute bottom-3 left-4 right-4 flex items-end justify-between gap-4">
+          <h3 className="text-white text-base font-semibold leading-tight tracking-tight drop-shadow-md">
             {galeria.title}
           </h3>
         </div>
-
-        <div className="space-y-3">
-          <div className="h-[20px] flex items-center">
-            {galeria.has_contracting_client ? (
-              <div className={rowStyle}>
-                <User size={14} className="text-[#D4AF37] flex-shrink-0" />
-                <span className="truncate text-[12px] md:text-[16px] font-semibold text-slate-700">
-                  {galeria.client_name}
-                </span>
-              </div>
-            ) : (
-              <div className="invisible h-full w-full" aria-hidden="true" />
-            )}
-          </div>
-
-          <div className="flex items-center justify-between gap-4 border-b border-slate-50 pb-1">
-            <div className={`${rowStyle} flex-1`}>
-              <MapPin size={14} className="text-[#D4AF37]/40 flex-shrink-0" />
-              <span className="truncate text-[8px] md:text-[14px] font-medium text-slate-500">
-                {galeria.location || 'Local não informado'}
-              </span>
-            </div>
-            <div className={`${rowStyle} shrink-0`}>
-              <Calendar size={14} className="text-[#D4AF37]/40 flex-shrink-0" />
-              <span className="text-[8px] md:text-[14px] font-medium text-slate-500 whitespace-nowrap">
-                {formatDateSafely(galeria.date)}
-              </span>
-            </div>
-          </div>
-
-          <a
-            href={`https://drive.google.com/drive/folders/${galeria.drive_folder_id}`}
-            target="_blank"
-            rel="noopener noreferrer"
-            onClick={(e) => e.stopPropagation()}
-            className="flex items-center gap-3 text-slate-700  px-4 py-2.5 rounded-xl border
-             border-gold/10 hover:bg-champagne-dark transition-all mt-3 group/drive shadow-sm  hover:text-white "
-          >
-            <FolderOpen
-              size={16}
-              className="text-[#D4AF37] flex-shrink-0 transition-transform group-hover/drive:scale-105"
-            />
-            <span className="truncate text-[8px] md:text-[10px] font-semibold uppercase tracking-wider text-slate-600">
-              {galeria.drive_folder_name || 'Abrir Pasta no Google Drive'}
-            </span>
-          </a>
-        </div>
       </div>
-      <div className="mt-1 flex items-center justify-between border-t border-slate-200 pt-4 px-4 pb-4 bg-slate-50/50 rounded-b-3xl">
-        <div className="flex gap-2">
-          {/* AÇÕES DE COMPARTILHAMENTO (Aba Ativa) */}
+
+      {/* Conteúdo Inferior */}
+      <div className="flex flex-col p-4 space-y-3">
+        {/* Cliente */}
+        <div className="flex items-center justify-between h-5">
+          {galeria.has_contracting_client ? (
+            <div className="flex items-center gap-2 min-w-0">
+              <User size={12} className="text-[#D4AF37] shrink-0 glow-gold" />
+              <span className="text-[11px] font-bold text-slate-900 truncate uppercase tracking-[0.1em]">
+                {galeria.client_name || 'Cliente'}
+              </span>
+            </div>
+          ) : (
+            <div className="flex items-center gap-2 min-w-0">
+              <Users size={12} className="text-[#D4AF37] shrink-0 glow-gold" />
+              <span className="text-[11px] font-bold text-slate-800 truncate uppercase tracking-[0.1em]">
+                Cobertura de evento
+              </span>
+            </div>
+          )}
+
+          {/* WhatsApp aparece independente do tipo, se existir no banco */}
+          {galeria.client_whatsapp && (
+            <span className="text-[10px] font-semibold text-slate-400">
+              {galeria.client_whatsapp}
+            </span>
+          )}
+        </div>
+
+        {/* Local e Data: Agora com visual de pílula suave */}
+        <div className="flex items-center justify-between py-2 border-y border-slate-50">
+          <div className="flex items-center gap-1.5 min-w-0">
+            <MapPin size={12} className="text-slate-300" />
+            <span className="text-[11px] font-medium text-slate-500 truncate">
+              {galeria.location || 'Local não informado'}
+            </span>
+          </div>
+          <div className="flex items-center gap-1.5 shrink-0 ml-4">
+            <Calendar size={12} className="text-slate-300" />
+            <span className="text-[11px] font-semibold text-slate-600">
+              {formatDateSafely(galeria.date)}
+            </span>
+          </div>
+        </div>
+
+        {/* Botão Drive: Agora com fundo cinza muito leve para não brigar com o branco do card */}
+        <a
+          href={`https://drive.google.com/drive/folders/${galeria.drive_folder_id}`}
+          target="_blank"
+          onClick={(e) => e.stopPropagation()}
+          className="flex items-center justify-between px-3 py-2 rounded-lg bg-slate-50 border border-slate-100 hover:border-[#D4AF37]/30 hover:bg-white transition-all group/drive"
+        >
+          <div className="flex items-center gap-2 min-w-0">
+            <FolderOpen size={14} className="text-[#D4AF37]" />
+            <span className="text-[11px] font-semibold text-slate-800 truncate">
+              Pasta do Drive:
+            </span>
+            <span className="text-[11px] font-medium text-slate-600 truncate">
+              {galeria.drive_folder_name || 'Acessar Pasta'}
+            </span>
+          </div>
+          <span className="text-[9px] font-semibold text-[#D4AF37] uppercase tracking-tighter opacity-0 group-hover/drive:opacity-100 transition-opacity">
+            Abrir
+          </span>
+        </a>
+      </div>
+
+      {/* Rodapé de Ações: Clean com borda sutil */}
+      <div className="flex items-center justify-between p-3 bg-slate-50/50 border-t border-slate-100 mt-auto">
+        <div className="flex gap-1.5">
           {currentView === 'active' && (
             <>
-              {mounted &&
-                galeria.has_contracting_client &&
-                galeria.client_whatsapp && (
-                  <button
-                    type="button"
-                    onClick={handleWhatsAppShare}
-                    className="p-3 text-emerald-600 bg-white border border-slate-200 hover:bg-emerald-50 rounded-2xl transition-all shadow-sm active:scale-95 flex items-center justify-center group"
-                    title={WhatsAppIcon.labels.title}
-                  >
-                    <WhatsAppIcon className="w-[18px] h-[18px] md:w-[20px] md:h-[20px] text-emerald-600 group-hover:scale-110 transition-transform" />
-                  </button>
-                )}
-
+              <button
+                onClick={handleWhatsAppShare}
+                className="p-2 text-emerald-600 bg-white border border-slate-200 rounded-lg shadow-sm hover:bg-emerald-50 transition-colors"
+              >
+                <WhatsAppIcon className="w-4 h-4" />
+              </button>
               <button
                 onClick={handleCopy}
-                className={`p-3 border rounded-2xl transition-all shadow-sm active:scale-95 flex items-center justify-center ${
-                  copied
-                    ? 'bg-emerald-600 text-white border-emerald-600'
-                    : 'bg-white text-slate-600 border-slate-200 hover:text-gold hover:border-gold/40 hover:bg-gold/5'
-                }`}
-                title="Copiar link da galeria"
+                className={`p-2 border rounded-lg shadow-sm transition-all ${copied ? 'bg-[#D4AF37] text-black border-[#D4AF37]' : 'bg-white text-slate-600 border-slate-200 hover:border-[#D4AF37]'}`}
               >
-                {copied ? <Check size={20} /> : <Copy size={20} />}
+                {copied ? <Check size={16} /> : <Copy size={16} />}
               </button>
             </>
           )}
-
-          {/* BOTÃO RESTAURAR (Aba Lixeira) */}
           {currentView === 'trash' && (
             <button
               onClick={(e) => {
                 e.stopPropagation();
                 onRestore(galeria.id);
               }}
-              className="p-3 text-blue-600 bg-white border border-blue-200 hover:bg-blue-600 hover:text-white rounded-2xl transition-all shadow-sm active:scale-95 flex items-center justify-center"
-              title="Restaurar para Ativas"
+              className="p-2 text-blue-600 bg-white border border-blue-100 rounded-lg hover:bg-blue-600 hover:text-white transition-all"
             >
-              <Inbox size={20} />
+              <Inbox size={16} />
             </button>
           )}
         </div>
 
-        <div className="flex gap-3">
-          {/* BOTÃO ARQUIVAR/DESARQUIVAR (Ativas ou Arquivadas) */}
-          {(currentView === 'active' || currentView === 'archived') && (
+        <div className="flex gap-1.5">
+          {currentView !== 'trash' && (
             <button
               onClick={(e) => {
                 e.stopPropagation();
                 onArchive(galeria);
               }}
-              className={`p-3 border rounded-2xl transition-all shadow-sm active:scale-95 flex items-center justify-center ${
-                galeria.is_archived
-                  ? 'bg-amber-500 text-white border-amber-600 shadow-amber-200'
-                  : 'bg-white text-slate-600 border-slate-200 hover:bg-amber-50 hover:text-amber-600 hover:border-amber-200'
-              }`}
-              title={galeria.is_archived ? 'Desarquivar' : 'Arquivar'}
+              className={`p-2 border rounded-lg shadow-sm transition-all ${galeria.is_archived ? 'bg-amber-500 text-white border-amber-600' : 'bg-white text-slate-600 border-slate-200 hover:bg-amber-50'}`}
             >
-              <Archive size={20} />
+              <Archive size={16} />
             </button>
           )}
-
-          {/* BOTÃO EDITAR (Apenas Ativas) */}
           {currentView === 'active' && (
             <button
               onClick={(e) => {
                 e.stopPropagation();
                 onEdit(galeria);
               }}
-              className="p-3 text-slate-600 bg-white border border-slate-200 hover:bg-slate-900 hover:text-white rounded-2xl transition-all shadow-sm active:scale-95 flex items-center justify-center"
+              className="p-2 text-slate-600 bg-white border border-slate-200 rounded-lg shadow-sm hover:bg-slate-900 hover:text-white transition-all"
             >
-              <Pencil size={20} />
+              <Pencil size={16} />
             </button>
           )}
-
-          {/* BOTÃO LIXEIRA OU EXCLUSÃO DEFINITIVA */}
-          {currentView === 'active' || currentView === 'archived' ? (
-            <button
-              onClick={(e) => {
-                e.stopPropagation();
-                onDelete(galeria);
-              }}
-              disabled={isDeleting}
-              className="p-3 text-slate-400 bg-white border border-slate-200 hover:bg-red-50 hover:text-red-600 hover:border-red-200 rounded-2xl transition-all shadow-sm active:scale-95 disabled:opacity-30 flex items-center justify-center"
-            >
-              {isDeleting ? (
-                <Loader2 size={20} className="animate-spin" />
-              ) : (
-                <Trash2 size={20} />
-              )}
-            </button>
-          ) : (
-            currentView === 'trash' && (
-              <button
-                onClick={(e) => {
-                  e.stopPropagation();
-                  onPermanentDelete(galeria.id);
-                }}
-                className="p-3 text-white bg-red-600 border border-red-700 hover:bg-red-800 rounded-2xl transition-all shadow-sm active:scale-95 flex items-center justify-center"
-                title="Excluir Permanentemente"
-              >
-                <XCircle size={20} />
-              </button>
-            )
-          )}
+          <button
+            onClick={(e) => {
+              e.stopPropagation();
+              currentView === 'trash'
+                ? onPermanentDelete(galeria.id)
+                : onDelete(galeria);
+            }}
+            className={`p-2 rounded-lg border shadow-sm transition-all ${currentView === 'trash' ? 'bg-red-600 text-white' : 'bg-white text-slate-600 border-slate-200 hover:text-red-600'}`}
+          >
+            {isDeleting ? (
+              <Loader2 size={16} className="animate-spin" />
+            ) : currentView === 'trash' ? (
+              <XCircle size={16} />
+            ) : (
+              <Trash2 size={16} />
+            )}
+          </button>
         </div>
       </div>
     </div>

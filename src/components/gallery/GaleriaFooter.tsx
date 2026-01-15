@@ -13,7 +13,7 @@ export default function GaleriaFooter({ galeria }: GaleriaFooterProps) {
     GALLERY_MESSAGES.CONTACT_PHOTOGRAPHER(galeria.title),
   )}`;
   return (
-    <footer className="relative z-20 w-full mt-4 pt-6 border-t border-gold/20 bg-[#FFF9F0]">
+    <footer className="relative z-20 w-full mt-4 pt-6 border-t border-gold/20 bg-[#F3E5AB]">
       <div className="max-w-[1600px] mx-auto flex flex-col items-center gap-4">
         {/* 1. Botão Voltar ao Topo Minimalista */}
         <button
@@ -137,7 +137,7 @@ export default function GaleriaFooter({ galeria }: GaleriaFooterProps) {
               className="hover:opacity-80 transition-opacity"
             >
               <span className="text-[#D4AF37] italic tracking-normal text-xs md:text-sm ml-1 cursor-pointer">
-                Sua Galeria de Fotos
+                Sua Galeria
               </span>
             </a>
           </div>

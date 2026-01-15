@@ -6,7 +6,7 @@ interface PageTitleProps {
 }
 
 export function PageTitle({ title }: PageTitleProps) {
-  const fullTitle = `${title} | Sua Galeria de Fotos`;
+  const fullTitle = `${title} | Sua Galeria`;
 
   return <title>{fullTitle}</title>;
 }

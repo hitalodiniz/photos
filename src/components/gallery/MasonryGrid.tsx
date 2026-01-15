@@ -111,7 +111,7 @@ const MasonryGrid = ({
           <p
             className={`italic text-[14px] md:text-[18px] mb-8 transition-colors duration-500 ${
               galeria.grid_bg_color === '#FFFFFF' ||
-              galeria.grid_bg_color === '#FFF9F0'
+              galeria.grid_bg_color === '#F3E5AB'
                 ? 'text-slate-600' // Cor escura suave para fundos claros (Branco/Champagne)
                 : 'text-white/90' // Branco translúcido para fundos escuros
             }`}

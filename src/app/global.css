@@ -2,126 +2,70 @@
 @tailwind components;
 @tailwind utilities;
 
-/* 0. Definição de Variáveis Core */
 @layer base {
   :root {
-    --color-champagne: #fff9f0;
-    --color-champagne-dark: #f3e5ab;
-    --color-gold: #d4af37;
-    --color-gold-light: rgba(212, 175, 55, 0.15);
-    --color-slate-800: #1e293b;
-    --color-text-google: #3c4043;
-    --color-error-red: #b3261e;
-  }
-}
-
-body[style*='overflow: hidden'] .hero-avatar-container {
-  opacity: 0 !important;
-  pointer-events: none !important;
-  visibility: hidden;
-}
-
-/* 1. Camada de Base */
-@layer base {
-  html {
-    /* ✅ Forçando Inter como a única fonte do sistema */
-    font-family: var(--font-montserrat), 'Montserrat', sans-serif;
-    -webkit-font-smoothing: antialiased;
-    color: var(--color-text-google);
-    background-color: var(--color-champagne);
+    /* Paleta Luxury Editorial */
+    --luxury-gold: 212 175 55; /* #D4AF37 */
+    --luxury-champagne: 243 229 171; /* #F3E5AB */
+    --luxury-bg: 248 249 250; /* #F8F9FA */
   }
 
-  /* Padronização de Labels (Ajustado para Inter) */
+  body {
+    @apply bg-[#F8F9FA] text-slate-900 antialiased;
+  }
+  /* Isso aplica o estilo diretamente na tag HTML <label> */
   label {
-    @apply text-[9px] md:text-[11px] font-semibold uppercase text-slate-700 flex items-center gap-2 tracking-widest mb-1;
+    @apply flex flex-row items-center gap-2 mb-1 !important;
+    @apply text-[10px] font-semibold uppercase tracking-[0.05em] text-[#1E293B] whitespace-nowrap;
   }
 
-  input[type='radio'] + label,
-  input[type='checkbox'] + label {
-    @apply mb-0 ml-2 cursor-pointer inline-flex items-center text-slate-700 hover:text-gold;
-  }
-
-  input[type='radio'] {
-    @apply w-4 h-4 border-gray-300 text-gold focus:ring-gold/50 cursor-pointer;
-  }
-
-  input:not([type='file']),
-  textarea,
-  select {
-    @apply w-full bg-white border border-[#F3E5AB] p-3 rounded-xl outline-none 
-           focus:border-gold focus:ring-1 focus:ring-gold/30 
-           text-sm text-slate-700 transition-all placeholder:text-gray-300;
-  }
-
-  /* ✅ BOTÕES PADRONIZADOS (Mantendo seu ajuste Mobile) */
-  button[type='submit'],
-  .btn-primary {
-    @apply w-full py-3.5 rounded-xl 
-           /* 1. Troca de peso: de black para semibold */
-           font-semibold uppercase 
-           /* 2. Ajuste de espaçamento: menos agressivo que 0.25em */
-           tracking-wider text-[11px] md:text-[12px]
-           transition-all duration-300 active:scale-95 
-           flex items-center justify-center gap-2
-           bg-slate-900 text-white shadow-lg
-           hover:bg-slate-800 disabled:opacity-50;
-  }
-
-  .btn-secondary {
-    @apply w-full py-3.5 bg-white border border-slate-200 
-           text-slate-600 rounded-xl font-medium uppercase 
-           text-[11px] tracking-wide transition-all 
-           hover:bg-slate-50 active:scale-95;
-  }
-
-  .btn-dark {
-    @apply w-full py-4 bg-slate-900 text-white rounded-2xl font-semibold 
-           uppercase text-[10px] tracking-wider transition-all 
-           flex items-center justify-center gap-2 shadow-xl hover:bg-black;
+  /* Se você quiser garantir que labels dentro de formulários específicos 
+     não herdem isso (opcional), você pode ser mais específico */
+  form label {
+    @apply block; /* Garante que o label sempre fique em cima do input */
   }
 }
 
-/* 2. Camada de Componentes */
 @layer components {
-  /* 🔄 Redirecionando font-artistic para Inter para evitar erros no site */
-  .font-artistic {
-    font-family: var(--font-montserrat), sans-serif;
+  /* INPUT PADRÃO EDITORIAL */
+  .input-luxury {
+    @apply w-full bg-white border border-slate-200 rounded-[0.5rem] px-4 py-3 text-sm font-medium 
+           focus:border-[#D4AF37] focus:ring-4 focus:ring-[#D4AF37]/5 outline-none transition-all
+           placeholder:text-slate-300;
   }
 
-  .btn-gsi-custom {
-    @apply bg-white text-[#1f1f1f] border border-[#dadce0] rounded-lg 
-           px-4 py-[10px] font-medium text-base text-center shadow-sm 
-           cursor-pointer transition-all hover:bg-[#f8f9fa] hover:shadow-md;
+  /* BOTÃO PRINCIPAL (CHAMPAGNE) */
+  .btn-luxury-primary {
+    @apply h-11 px-8 rounded-[0.5rem] bg-[#F3E5AB] text-black text-[11px] font-bold uppercase 
+           tracking-[0.2em] shadow-xl hover:bg-white border border-[#F3E5AB] transition-all 
+           active:scale-95 flex items-center justify-center gap-2;
   }
 
-  .my-masonry-grid {
-    @apply flex w-auto -ml-4;
+  /* BOTÃO SECUNDÁRIO (WHITE/SLATE) */
+  .btn-luxury-secondary {
+    @apply h-11 px-8 rounded-[0.5rem] border border-slate-200 bg-white text-slate-600 
+           text-[11px] font-bold uppercase tracking-[0.2em] hover:bg-slate-50 
+           transition-all active:scale-95 flex items-center justify-center gap-2;
   }
 
-  .my-masonry-grid_column {
-    @apply pl-4 bg-clip-padding;
-  }
-
-  .my-masonry-grid_column > div {
-    @apply mb-4;
-  }
-
-  .barra-fantasma {
-    transition: all 0.6s cubic-bezier(0.4, 0, 0.2, 1);
+  /* GLASS BADGE (PARA FOTOS) */
+  .glass-badge {
+    @apply bg-black/40 backdrop-blur-md text-white border border-white/20 
+           rounded-full flex items-center justify-center shadow-lg;
   }
 }
 
-/* 3. Utilitários */
 @layer utilities {
-  .scrollbar-hide::-webkit-scrollbar {
+  .no-scrollbar::-webkit-scrollbar {
     display: none;
   }
-  .scrollbar-hide {
+  .no-scrollbar {
     -ms-overflow-style: none;
     scrollbar-width: none;
   }
-}
 
-.picker-dialog {
-  z-index: 20000 !important;
+  /* Efeito de brilho sutil para ícones dourados */
+  .glow-gold {
+    filter: drop-shadow(0 0 4px rgba(212, 175, 55, 0.3));
+  }
 }

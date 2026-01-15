@@ -7,7 +7,7 @@ export async function getGalleryMetadata(fullSlug: string): Promise<Metadata> {
   const galeriaRaw = await fetchGalleryBySlug(fullSlug);
 
   if (!galeriaRaw) {
-    return { title: 'Galeria não encontrada | Sua Galeria de Fotos' };
+    return { title: 'Galeria não encontrada | Sua Galeria' };
   }
 
   const title = galeriaRaw.title;

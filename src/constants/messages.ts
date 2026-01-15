@@ -19,7 +19,7 @@ export const GALLERY_MESSAGES = {
       '',
       'Espero que goste! ✨',
       '---',
-      '💎 _Sua Galeria de Fotos_',
+      '💎 _Sua Galeria_',
     ].join('\n');
   },
   CARD_SHARE: (clientName: string, title: string, url: string) => {
@@ -43,7 +43,7 @@ export const GALLERY_MESSAGES = {
       'Espero que goste! \u{2728}',
       '---',
       // \u{1F48E} = 💎
-      '\u{1F48E} _Sua Galeria de Fotos_',
+      '\u{1F48E} _Sua Galeria_',
     ].join('\n');
   },
   PHOTO_SHARE: (title: string, url: string) => {
@@ -58,7 +58,7 @@ export const GALLERY_MESSAGES = {
       url,
       '',
       '---',
-      '💎 _Sua Galeria de Fotos_',
+      '💎 _Sua Galeria_',
     ].join('\n');
   },
   GUEST_SHARE: (title: string, url: string) => {
@@ -74,19 +74,19 @@ export const GALLERY_MESSAGES = {
       '',
       'Espero que goste! ✨',
       '---',
-      '💎 _Sua Galeria de Fotos_',
+      '💎 _Sua Galeria_',
     ].join('\n');
   },
 
   CONTACT_PHOTOGRAPHER: (galleryTitle: string) => {
-    return `Olá! Vi seu trabalho na galeria "${galleryTitle}" através do aplicativo Sua Galeria de Fotos. Gostaria de saber mais informações sobre o seu trabalho!`;
+    return `Olá! Vi seu trabalho na galeria "${galleryTitle}" através do aplicativo Sua Galeria. Gostaria de saber mais informações sobre o seu trabalho!`;
   },
 
   CONTACT_PHOTOGRAPHER_DIRETO: () => {
-    return 'Olá! Vi seu perfil através do aplicativo Sua Galeria de Fotos. Gostaria de saber mais informações sobre o seu trabalho!';
+    return 'Olá! Vi seu perfil através do aplicativo Sua Galeria. Gostaria de saber mais informações sobre o seu trabalho!';
   },
 
   CONTACT_DEVELOPER: () => {
-    return 'Olá! Gostaria de saber mais informações sobre o aplicativo Sua Galeria de Fotos!';
+    return 'Olá! Gostaria de saber mais informações sobre o aplicativo Sua Galeria!';
   },
 };

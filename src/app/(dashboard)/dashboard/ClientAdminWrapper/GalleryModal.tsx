@@ -18,7 +18,7 @@ export default function GalleryModal({
   const [isPublic, setIsPublic] = useState(true); // Altere de false para true
   // Estados de customização (Unificados aqui)
   const [showCoverInGrid, setShowCoverInGrid] = useState(true);
-  const [gridBgColor, setGridBgColor] = useState('#FFF9F0');
+  const [gridBgColor, setGridBgColor] = useState('#F3E5AB');
   const [columns, setColumns] = useState({ mobile: 2, tablet: 3, desktop: 4 });
 
   useEffect(() => {
@@ -31,7 +31,7 @@ export default function GalleryModal({
           galeria.show_cover_in_grid === true ||
             galeria.show_cover_in_grid === 'true',
         );
-        setGridBgColor(galeria.grid_bg_color || '#FFF9F0');
+        setGridBgColor(galeria.grid_bg_color || '#F3E5AB');
         setColumns({
           mobile: Number(galeria.columns_mobile) || 2,
           tablet: Number(galeria.columns_tablet) || 3,

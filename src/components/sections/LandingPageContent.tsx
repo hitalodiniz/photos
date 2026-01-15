@@ -55,7 +55,7 @@ export default function LandingPageContent() {
 
       <div className="relative z-10 flex flex-col min-h-screen">
         <EditorialHeader
-          title="Sua Galeria de Fotos"
+          title="Sua Galeria"
           subtitle={
             <>
               Transformando o Google Drive™ em uma{' '}

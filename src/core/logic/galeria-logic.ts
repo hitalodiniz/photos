@@ -69,7 +69,7 @@ export function formatGalleryData(
     deleted_at: (raw as any).deleted_at || null,
 
     show_cover_in_grid: !!(raw as any).show_cover_in_grid, // Força booleano
-    grid_bg_color: (raw as any).grid_bg_color || '#FFF9F0',
+    grid_bg_color: (raw as any).grid_bg_color || '#F3E5AB',
     columns_mobile: Number((raw as any).columns_mobile) || 2,
     columns_tablet: Number((raw as any).columns_tablet) || 3,
     columns_desktop: Number((raw as any).columns_desktop) || 4,
