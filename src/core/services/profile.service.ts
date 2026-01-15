@@ -98,43 +98,50 @@ export async function upsertProfile(formData: FormData, supabaseClient?: any) {
 
   if (!user) return { success: false, error: 'Sessão expirada.' };
 
+  // 🛡️ CAPTURA E LIMPEZA DOS DADOS
   const username = (formData.get('username') as string)?.toLowerCase().trim();
-  const full_name = formData.get('full_name') as string;
+  const full_name = (formData.get('full_name') as string)?.trim();
   const mini_bio = formData.get('mini_bio') as string;
   const phone_contact = formData.get('phone_contact') as string;
   const instagram_link = formData.get('instagram_link') as string;
-  const website = formData.get('website') as string; //Captura o campo website
-  const operating_cities_json = formData.get('operating_cities_json') as string;
-  const profilePictureFile = formData.get('profile_picture_file') as File;
+  const website = formData.get('website') as string;
 
-  let profile_picture_url = formData.get(
-    'profile_picture_url_existing',
-  ) as string;
+  // Note: No seu formulário anterior você definiu 'operating_cities'.
+  // Ajustado para capturar o nome correto enviado.
+  const operating_cities_json = formData.get('operating_cities') as string;
 
-  if (!username || !full_name)
+  // Validação estrita de servidor
+  if (!username || !full_name) {
     return { success: false, error: 'Nome e Username são obrigatórios.' };
+  }
 
-  // Processamento Cidades
+  // 🌆 PROCESSAMENTO DE CIDADES
   let operating_cities: string[] = [];
   try {
     operating_cities = operating_cities_json
       ? JSON.parse(operating_cities_json)
       : [];
   } catch (e) {
-    console.error(e);
+    console.error('Erro ao processar cidades:', e);
+    operating_cities = [];
   }
 
-  // Upload de Foto
-  if (profilePictureFile && profilePictureFile.size > 0) {
-    if (profilePictureFile.size > 5 * 1024 * 1024)
-      return { success: false, error: 'Foto muito grande (máx 5MB).' };
+  // 📸 PROCESSAMENTO DE FOTO DE PERFIL
+  let profile_picture_url = formData.get(
+    'profile_picture_url_existing',
+  ) as string;
+  const profileFile = formData.get('profile_picture') as File; // Nome ajustado para bater com o formulário
 
-    const fileExt = profilePictureFile.name.split('.').pop();
+  if (profileFile && profileFile.size > 0 && profileFile.name !== 'undefined') {
+    if (profileFile.size > 5 * 1024 * 1024)
+      return { success: false, error: 'Foto de perfil excede 5MB.' };
+
+    const fileExt = profileFile.name.split('.').pop();
     const filePath = `${user.id}/avatar-${Date.now()}.${fileExt}`;
 
     const { error: uploadError } = await supabase.storage
       .from('profile_pictures')
-      .upload(filePath, profilePictureFile, { upsert: true });
+      .upload(filePath, profileFile, { upsert: true });
 
     if (!uploadError) {
       const {
@@ -144,25 +151,24 @@ export async function upsertProfile(formData: FormData, supabaseClient?: any) {
     }
   }
 
-  // Captura dos novos campos do FormData
-  const backgroundFile = formData.get('background_file') as File;
+  // 🖼️ PROCESSAMENTO DE FOTO DE FUNDO (BACKGROUND)
   let background_url =
-    formData.get('background_url_existing')?.toString() || '';
+    (formData.get('background_url_existing') as string) || '';
+  const backgroundFile = formData.get('background_image') as File; // Nome ajustado para bater com o formulário
 
-  // --- LÓGICA REPLICADA PARA FOTO DE FUNDO ---
   if (
     backgroundFile &&
     backgroundFile.size > 0 &&
     backgroundFile.name !== 'undefined'
   ) {
     if (backgroundFile.size > 5 * 1024 * 1024)
-      return { success: false, error: 'Foto de fundo muito grande (máx 5MB).' };
+      return { success: false, error: 'Foto de fundo excede 5MB.' };
 
     const bgExt = backgroundFile.name.split('.').pop();
     const bgPath = `${user.id}/bg-${Date.now()}.${bgExt}`;
 
     const { error: bgUploadError } = await supabase.storage
-      .from('profile_pictures') // Reutilizando o mesmo bucket
+      .from('profile_pictures')
       .upload(bgPath, backgroundFile, { upsert: true });
 
     if (!bgUploadError) {
@@ -173,6 +179,7 @@ export async function upsertProfile(formData: FormData, supabaseClient?: any) {
     }
   }
 
+  // 💾 ATUALIZAÇÃO NO BANCO DE DADOS
   const { error } = await supabase
     .from('tb_profiles')
     .update({
@@ -184,20 +191,23 @@ export async function upsertProfile(formData: FormData, supabaseClient?: any) {
       website,
       operating_cities,
       profile_picture_url,
-      background_url, // 🎯 Adicionado aqui para persistir no banco
-
+      background_url,
       updated_at: new Date().toISOString(),
     })
     .eq('id', user.id);
 
-  if (error) return { success: false, error: error.message };
+  if (error) {
+    if (error.code === '23505')
+      return { success: false, error: 'Username já está em uso.' };
+    return { success: false, error: error.message };
+  }
 
+  // 🔄 REVALIDAÇÃO DE CACHE
   revalidatePath('/dashboard');
   revalidatePath(`/${username}`);
 
   return { success: true };
 }
-
 /**
  * Encerra a sessão
  */

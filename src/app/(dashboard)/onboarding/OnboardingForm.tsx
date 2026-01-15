@@ -143,6 +143,15 @@ export default function OnboardingForm({
   };
 
   const clientAction = async (formData: FormData) => {
+    // 🛡️ VALIDAÇÃO DE CAMPOS OBRIGATÓRIOS (EDIÇÃO E CRIAÇÃO)
+    if (!fullName.trim() || !username.trim()) {
+      setToastConfig({
+        message: 'Nome e Username são campos obrigatórios.',
+        type: 'error',
+      });
+      return;
+    }
+
     if (!isEditMode && isAvailable === false) {
       setToastConfig({
         message: 'Este username já está em uso.',
@@ -150,10 +159,32 @@ export default function OnboardingForm({
       });
       return;
     }
+
     setIsSaving(true);
-    // ... (restante da lógica de compressão e preparo do formData mantida igual)
+
+    // 🎯 INJEÇÃO MANUAL PARA GARANTIR O ENVIO NA EDIÇÃO
+    // Força os valores dos estados no formData antes de enviar para o serviço
+    formData.set('full_name', fullName.trim());
+    formData.set('username', username.trim().toLowerCase());
+    formData.set('mini_bio', miniBio);
+    formData.set('phone_contact', phone.replace(/\D/g, ''));
+    formData.set('instagram_link', instagram);
+    formData.set('website', website);
+    formData.set('operating_cities', JSON.stringify(selectedCities));
+
     try {
+      // Lógica de fotos
+      if (photoFile) {
+        const compressed = await compressImage(photoFile);
+        formData.set('profile_picture', compressed);
+      }
+      if (bgFile) {
+        const compressed = await compressImage(bgFile);
+        formData.set('background_image', compressed);
+      }
+
       const result = await upsertProfile(formData);
+
       if (result?.success) {
         setShowSuccessModal(true);
       } else {
@@ -168,7 +199,6 @@ export default function OnboardingForm({
       setIsSaving(false);
     }
   };
-
   return (
     <>
       <div className="relative min-h-screen bg-[#F8F9FA] flex flex-col md:flex-row w-full z-[99]">
@@ -232,6 +262,7 @@ export default function OnboardingForm({
                   <User size={12} /> Nome Completo
                 </label>
                 <input
+                  name="full_name"
                   className="w-full bg-white border border-slate-200 rounded-[0.5rem] px-4 py-3 text-sm font-medium focus:border-[#D4AF37] focus:ring-4 focus:ring-[#D4AF37]/5 outline-none transition-all"
                   value={fullName}
                   onChange={(e) => setFullName(e.target.value)}
@@ -245,6 +276,7 @@ export default function OnboardingForm({
                 </label>
                 <div className="relative">
                   <input
+                    name="username"
                     readOnly={isEditMode}
                     className={`w-full bg-white border border-slate-200 rounded-[0.5rem] px-4 py-3 text-sm font-medium focus:border-[#D4AF37] focus:ring-4 focus:ring-[#D4AF37]/5 outline-none transition-all ${
                       isEditMode ? 'bg-slate-50 text-slate-400 italic' : ''

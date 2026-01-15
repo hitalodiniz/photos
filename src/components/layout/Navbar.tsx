@@ -38,7 +38,7 @@ export default function Navbar() {
           </div>
 
           <span className="font-artistic text-lg md:text-[20px] font-semibold tracking-tight text-white italic">
-            Esapaço das Galerias de{' '}
+            Espaço das Galerias de{' '}
             <span className="text-[#F3E5AB]">Mídias</span>
           </span>
         </Link>

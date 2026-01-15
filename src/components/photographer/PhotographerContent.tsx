@@ -38,15 +38,15 @@ export default function PhotographerContent({
     const handleScroll = () => setScrollY(window.scrollY);
     window.addEventListener('scroll', handleScroll, { passive: true });
 
-    if (fullName) {
-      const timer = setTimeout(() => setIsLoading(false), 800);
-      return () => {
-        window.removeEventListener('scroll', handleScroll);
-        clearTimeout(timer);
-      };
-    }
-    return () => window.removeEventListener('scroll', handleScroll);
-  }, [fullName]);
+    const timer = setTimeout(() => {
+      setIsLoading(false);
+    }, 1200); // Aumentei um pouco para garantir que a animação de entrada seja vista
+
+    return () => {
+      window.removeEventListener('scroll', handleScroll);
+      clearTimeout(timer);
+    };
+  }, []);
 
   const isScrolled = scrollY > 100;
 
