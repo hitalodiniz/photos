@@ -30,7 +30,7 @@ export const GaleriaHero = ({ galeria, photos, coverUrl }: any) => {
 
   return (
     <section
-      className={`relative overflow-hidden transition-all duration-[1200ms] ease-[cubic-bezier(0.23,1,0.32,1)] z-5 ${
+      className={`relative overflow-hidden transition-all duration-[1200ms] ease-[cubic-bezier(0.23,1,0.32,1)] ${
         isExpanded ? 'h-screen' : 'h-[28vh] md:h-[40vh]'
       }`}
     >
@@ -45,11 +45,13 @@ export const GaleriaHero = ({ galeria, photos, coverUrl }: any) => {
 
       {/* AVATAR DO FOTÓGRAFO */}
       <div
-        className={`absolute top-4 right-4 md:top-6 md:right-8 z-20 transition-all duration-1000 hero-avatar-container ${
+        className={`absolute top-4 right-4 md:top-6 md:right-8 transition-all duration-1000 hero-avatar-container z-[10] ${
           isExpanded
-            ? 'opacity-0 scale-75 pointer-events-none'
-            : 'opacity-100 scale-100'
+            ? 'opacity-0 pointer-events-none'
+            : 'opacity-100 pointer-events-auto'
         }`}
+        /* Garante que se o componente pai do lightbox for detectado, o avatar suma fisicamente */
+        style={{ visibility: isExpanded ? 'hidden' : 'visible' }}
       >
         <PhotographerAvatar
           galeria={galeria}
@@ -67,7 +69,7 @@ export const GaleriaHero = ({ galeria, photos, coverUrl }: any) => {
         }`}
       >
         <div
-          className={`flex transition-all duration-1000 items-center gap-4 md:gap-8 w-full ${
+          className={`flex transition-all duration-1000 items-center gap-4 md:gap-8 w-full pointer-events-auto ${
             isExpanded ? 'scale-100 md:scale-105' : 'scale-95 md:scale-100'
           }`}
         >

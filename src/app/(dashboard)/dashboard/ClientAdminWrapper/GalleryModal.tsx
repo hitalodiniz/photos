@@ -3,7 +3,7 @@ import { useState, useEffect } from 'react';
 import { X, Camera, Plus } from 'lucide-react';
 import { createGaleria, updateGaleria } from '@/core/services/galeria.service';
 import { SubmitButton } from '@/components/ui';
-import GalleryFormContent, { prepareGalleryData } from './GalleryFormContent';
+import GalleryFormContent from './GalleryFormContent';
 import SecondaryButton from '@/components/ui/SecondaryButton';
 
 export default function GalleryModal({
@@ -15,18 +15,19 @@ export default function GalleryModal({
   const isEdit = !!galeria;
   const [loading, setLoading] = useState(false);
   const [isSuccess, setIsSuccess] = useState(false);
-  const [isPublic, setIsPublic] = useState(true); // Altere de false para true
-  // Estados de customização (Unificados aqui)
+
+  // 🎯 ESTADOS DE CUSTOMIZAÇÃO COM VALORES PADRÃO TIPO "EDITORIAL"
+  const [isPublic, setIsPublic] = useState(true);
   const [showCoverInGrid, setShowCoverInGrid] = useState(true);
   const [gridBgColor, setGridBgColor] = useState('#F3E5AB');
   const [columns, setColumns] = useState({ mobile: 2, tablet: 3, desktop: 4 });
 
+  // 🔄 EFEITO DE INICIALIZAÇÃO E RESET
   useEffect(() => {
     if (isOpen) {
       if (galeria) {
+        // MODO EDIÇÃO: Sincroniza estados com os dados do banco
         setIsPublic(galeria.is_public === true || galeria.is_public === 'true');
-
-        // Modo Edição: Carrega do banco
         setShowCoverInGrid(
           galeria.show_cover_in_grid === true ||
             galeria.show_cover_in_grid === 'true',
@@ -38,74 +39,130 @@ export default function GalleryModal({
           desktop: Number(galeria.columns_desktop) || 4,
         });
       } else {
-        // ✅ IMPORTANTE: Se for NOVA galeria, só resetamos se os estados estiverem
-        // diferentes do padrão inicial, mas evite resetar se o usuário já estiver mexendo.
-        // Uma forma segura é resetar apenas quando isOpen muda de false para true.
+        // MODO CRIAÇÃO: Reseta para os padrões Luxury
         setIsPublic(true);
+        setShowCoverInGrid(true);
+        setGridBgColor('#F3E5AB');
+        setColumns({ mobile: 2, tablet: 3, desktop: 4 });
       }
     }
-  }, [galeria, isOpen]); // Remova dependências desnecessárias aqui
+  }, [galeria, isOpen]);
 
   if (!isOpen) return null;
 
   const handleSubmit = async (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault();
+
+    // 1. Captura inicial do formulário
+    const formData = new FormData(e.currentTarget);
+
+    // 2. Extração de variáveis cruciais (vêm do FormData via inputs hiddens no filho)
+    const driveId = formData.get('drive_folder_id') as string;
+    const title = formData.get('title') as string;
+    const date = formData.get('date') as string;
+    const selectedCategory = formData.get('category') as string;
+    const hasClient = formData.get('has_contracting_client') === 'true';
+    const clientName = formData.get('client_name') as string;
+    const password = formData.get('password') as string;
+
+    // --- 3. VALIDAÇÃO EDITORIAL ---
+    if (!title?.trim()) {
+      onSuccess(false, 'O título é obrigatório.');
+      return;
+    }
+    if (!date) {
+      onSuccess(false, 'A data é obrigatória.');
+      return;
+    }
+    if (!selectedCategory || selectedCategory === 'undefined') {
+      onSuccess(false, 'Selecione uma categoria.');
+      return;
+    }
+    if (!driveId || driveId === '' || driveId === 'null') {
+      onSuccess(false, 'Selecione uma pasta do Drive.');
+      return;
+    }
+    if (hasClient && !clientName?.trim()) {
+      onSuccess(false, 'Nome do cliente é obrigatório.');
+      return;
+    }
+    if (!isPublic && !isEdit && !password) {
+      onSuccess(false, 'Defina uma senha para galeria privada.');
+      return;
+    }
+
+    // --- 4. CONSOLIDAÇÃO FINAL DOS DADOS ---
     setLoading(true);
 
-    // Aqui usamos diretamente os estados do GalleryModal
-    const data = prepareGalleryData(new FormData(e.currentTarget), {
-      showCoverInGrid, // Estado do Pai
-      gridBgColor, // Estado do Pai
-      columns, // Estado do Pai
-    });
+    // Garante que campos de estado do Pai que o Filho refletiu em hidden sejam lidos
+    // Aqui fazemos um "Double Check" injetando os estados atuais do pai no FormData
+    formData.set('is_public', String(isPublic));
+    formData.set('show_cover_in_grid', String(showCoverInGrid));
+    formData.set('grid_bg_color', gridBgColor);
+    formData.set('columns_mobile', String(columns.mobile));
+    formData.set('columns_tablet', String(columns.tablet));
+    formData.set('columns_desktop', String(columns.desktop));
 
-    // LOG DE DEBUG: Verifique no console se os dados estão corretos antes de enviar
-    console.log('Dados sendo enviados:', Object.fromEntries(data));
+    // Limpeza de WhatsApp
+    const whatsappRaw = formData.get('client_whatsapp') as string;
+    if (whatsappRaw)
+      formData.set('client_whatsapp', whatsappRaw.replace(/\D/g, ''));
+
+    // Padronização Cobertura
+    if (!hasClient) {
+      formData.set('client_name', 'Cobertura');
+      formData.set('client_whatsapp', '');
+    }
 
     try {
       const result = isEdit
-        ? await updateGaleria(galeria.id, data)
-        : await createGaleria(data);
+        ? await updateGaleria(galeria.id, formData)
+        : await createGaleria(formData);
+
       if (result.success) {
         setIsSuccess(true);
         setTimeout(() => {
-          onSuccess(true, { ...galeria, ...Object.fromEntries(data) }); // Retorno simplificado
+          onSuccess(true, { ...galeria, ...Object.fromEntries(formData) });
           onClose();
           setIsSuccess(false);
         }, 1200);
       } else {
-        onSuccess(false, result.error);
+        onSuccess(false, result.error || 'Falha ao salvar.');
       }
-    } catch {
-      onSuccess(false, 'Erro de conexão');
+    } catch (error) {
+      onSuccess(false, 'Erro de conexão.');
     } finally {
       setLoading(false);
     }
   };
 
   return (
-    <div className="fixed inset-0 z-[1000] flex items-center justify-center bg-slate-900/40 backdrop-blur-md p-4">
-      <div className="w-full max-w-4xl max-h-[95vh] bg-white rounded-[24px] shadow-2xl flex flex-col border border-white/20 overflow-hidden">
-        {/* HEADER */}
-        <div className="flex items-center justify-between py-3 px-8 border-b bg-[#FAF7ED]/50">
+    <div className="fixed inset-0 z-[1000] flex items-center justify-center bg-slate-900/40 backdrop-blur-md p-4 animate-in fade-in duration-300">
+      <div className="w-full max-w-4xl max-h-[95vh] bg-white rounded-[1.5rem] shadow-2xl flex flex-col border border-white/20 overflow-hidden scale-in-center">
+        {/* HEADER MODAL */}
+        <div className="flex items-center justify-between py-4 px-8 border-b bg-slate-50/50">
           <div className="flex items-center gap-3">
-            <div className="p-2 bg-[#D4AF37]/10 rounded-xl text-[#D4AF37]">
-              {isEdit ? <Camera size={18} /> : <Plus size={18} />}
+            <div className="p-2 bg-[#F3E5AB]/40 rounded-xl text-[#D4AF37] border border-[#D4AF37]/10">
+              {isEdit ? (
+                <Camera size={18} strokeWidth={2} />
+              ) : (
+                <Plus size={18} strokeWidth={2} />
+              )}
             </div>
-            <h2 className="text-sm font-semibold text-slate-900">
+            <h2 className="text-[12px] font-semibold text-slate-900 uppercase tracking-[0.2em]">
               {isEdit ? 'Editar Galeria' : 'Nova Galeria'}
             </h2>
           </div>
           <button
             onClick={onClose}
-            className="p-1.5 text-slate-400 hover:bg-slate-100 rounded-full"
+            className="p-2 text-slate-400 hover:bg-slate-100 rounded-full transition-colors"
           >
             <X size={20} />
           </button>
         </div>
 
         {/* FORM CONTENT */}
-        <div className="p-8 overflow-y-auto scrollbar-thin scrollbar-thumb-slate-200">
+        <div className="px-4 py-4 -mt-6 overflow-y-auto scrollbar-thin scrollbar-thumb-slate-200">
           <form id="master-gallery-form" onSubmit={handleSubmit}>
             <GalleryFormContent
               initialData={galeria}
@@ -121,9 +178,9 @@ export default function GalleryModal({
           </form>
         </div>
 
-        {/* FOOTER */}
-        <div className="p-4 bg-slate-50/50 border-t flex justify-between px-8">
-          <SecondaryButton label="Cancelar" onClick={onClose} />
+        {/* FOOTER MODAL */}
+        <div className="p-4 bg-slate-50/80 border-t flex justify-between items-center px-8">
+          <SecondaryButton label="Descartar" onClick={onClose} />
           <div className="w-[240px]">
             <SubmitButton
               form="master-gallery-form"

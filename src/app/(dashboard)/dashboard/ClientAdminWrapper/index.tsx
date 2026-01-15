@@ -259,21 +259,30 @@ export default function ClientAdminWrapper({
           fixed bottom-0 left-0 right-0 z-50 bg-white border-t border-slate-200 px-6 py-3 lg:py-0 lg:px-0
           lg:relative lg:block lg:bg-transparent lg:border-0 lg:z-0
           transition-all duration-500 ease-in-out 
-          ${isSidebarCollapsed ? 'lg:w-[70px]' : 'lg:w-[220px]'}
+          ${isSidebarCollapsed ? 'lg:w-[60px]' : 'lg:w-[190px]'}
         `}
       >
-        {/* Botão Nova Mídia - Destaque Dourado Editorial */}
+        {/* Botão Nova Galeria - Refinado e Compacto */}
         <button
           onClick={() => setIsFormOpen(true)}
-          className={`hidden lg:flex items-center bg-[#D4AF37] text-black hover:bg-white hover:text-[#D4AF37] transition-all duration-300 rounded-[0.8rem] border border-[#D4AF37] group shadow-md mb-6 overflow-hidden ${isSidebarCollapsed ? 'w-[56px] h-[56px] justify-center mx-auto' : 'px-6 py-4 gap-4 w-full'}`}
+          className={`
+    hidden lg:flex items-center bg-[#D4AF37] text-black 
+    hover:bg-white hover:text-[#D4AF37] transition-all duration-300 
+    rounded-[0.5rem] border border-[#D4AF37] group shadow-sm mb-6 overflow-hidden
+    ${
+      isSidebarCollapsed
+        ? 'w-14 h-10 justify-center mx-auto'
+        : 'h-10 px-4 gap-3 w-full'
+    }
+  `}
         >
           <Plus
-            size={24}
+            size={18} // Reduzido de 24 para 18
             className="group-hover:rotate-90 transition-transform shrink-0"
-            strokeWidth={3}
+            strokeWidth={2.5} // Reduzido de 3 para 2.5 para mais leveza
           />
           {!isSidebarCollapsed && (
-            <span className="text-xs font-bold uppercase tracking-widest">
+            <span className="text-[10px] font-semibold uppercase tracking-[0.2em] whitespace-nowrap">
               Nova Galeria
             </span>
           )}

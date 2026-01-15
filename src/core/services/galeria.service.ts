@@ -183,7 +183,7 @@ export async function generateUniqueDatedSlug(
 // =========================================================================
 // 3. CREATE GALERIA
 // =========================================================================
-
+/*
 export async function createGaleria(
   formData: FormData,
   supabaseClient?: any,
@@ -255,6 +255,67 @@ export async function createGaleria(
       error: 'Erro interno ao salvar no banco de dados.',
     };
   }
+}*/
+
+export async function createGaleria(
+  formData: FormData,
+  supabaseClient?: any,
+): Promise<ActionResult> {
+  const supabase = supabaseClient || (await createSupabaseServerClient());
+  const { success: authSuccess, userId } = await getAuthAndStudioIds(supabase);
+
+  if (!authSuccess || !userId)
+    return { success: false, error: 'Não autorizado' };
+
+  const slug = await generateUniqueDatedSlug(
+    formData.get('title') as string,
+    new Date(formData.get('date') as string).toISOString(),
+  );
+
+  try {
+    const data = {
+      user_id: userId, // ID do criador
+      slug: slug,
+      //studio_id: studioId,
+      title: formData.get('title') as string,
+      client_name: (formData.get('client_name') as string) || 'Cobertura',
+      client_whatsapp: (formData.get('client_whatsapp') as string)?.replace(
+        /\D/g,
+        '',
+      ),
+      date: new Date(formData.get('date') as string).toISOString(),
+      location: (formData.get('location') as string) || '',
+      drive_folder_id: formData.get('drive_folder_id') as string,
+      drive_folder_name: formData.get('drive_folder_name') as string,
+      cover_image_url: formData.get('cover_image_url') as string,
+      is_public: formData.get('is_public') === 'true',
+      category: (formData.get('category') as string) || 'evento',
+      has_contracting_client: formData.get('has_contracting_client') === 'true',
+
+      // 🎯 Customização Visual Inicial
+      show_cover_in_grid: formData.get('show_cover_in_grid') === 'true',
+      grid_bg_color: (formData.get('grid_bg_color') as string) || '#F3E5AB',
+      columns_mobile: Number(formData.get('columns_mobile')) || 2,
+      columns_tablet: Number(formData.get('columns_tablet')) || 3,
+      columns_desktop: Number(formData.get('columns_desktop')) || 4,
+
+      // Senha inicial (se houver)
+      password:
+        formData.get('is_public') === 'true'
+          ? null
+          : (formData.get('password') as string),
+    };
+
+    const { error } = await supabase.from('tb_galerias').insert([data]);
+
+    if (error) throw error;
+
+    revalidatePath('/dashboard');
+    return { success: true, message: 'Nova galeria criada com sucesso!' };
+  } catch (error) {
+    console.error('Erro no create:', error);
+    return { success: false, error: 'Falha ao criar a galeria.' };
+  }
 }
 
 // =========================================================================
@@ -272,61 +333,47 @@ export async function updateGaleria(
   if (!authSuccess || !userId)
     return { success: false, error: 'Não autorizado' };
 
-  // Capturando conforme os nomes definidos no Modal (data.set)
-  const title = formData.get('title') as string;
-  const driveFolderId = formData.get('drive_folder_id') as string; // era driveFolderId
-  const clientName = formData.get('client_name') as string;
-
-  // Log para debug caso falte algo
-  if (!title || !driveFolderId || !clientName) {
-    return { success: false, error: 'Campos obrigatórios ausentes.' };
-  }
-
   try {
-    // GARANTE PERMISSÃO NO DRIVE  - não utilizada, pois o escopo é somente de leitura do drive - 01-01-2026
-    /*const accessToken = await getDriveAccessTokenForUser(userId);
-    if (accessToken && driveFolderId) {
-      try {
-        await makeFolderPublicLib(driveFolderId, accessToken);
-      } catch (e) {
-        console.warn('Aviso: Falha ao atualizar permissões da pasta no Drive.');
-      }
-    }*/
-
-    // Montando o objeto de update com os nomes corretos do FormData
-    const updates = {
-      title,
-      client_name: clientName,
+    // 1. Extração segura de dados com fallbacks
+    const updates: any = {
+      title: formData.get('title') as string,
+      client_name: (formData.get('client_name') as string) || 'Cobertura',
       client_whatsapp: (formData.get('client_whatsapp') as string)?.replace(
         /\D/g,
         '',
       ),
       date: new Date(formData.get('date') as string).toISOString(),
-      location: formData.get('location') as string,
-      drive_folder_id: driveFolderId,
+      location: (formData.get('location') as string) || '',
+      drive_folder_id: formData.get('drive_folder_id') as string,
       drive_folder_name: formData.get('drive_folder_name') as string,
       cover_image_url: formData.get('cover_image_url') as string,
       is_public: formData.get('is_public') === 'true',
-      category: (formData.get('category') as string) || 'esporte',
-      has_contracting_client: formData.get('has_contracting_client') === 'true', // Garanta o boolean
+      category: (formData.get('category') as string) || 'evento',
+      has_contracting_client: formData.get('has_contracting_client') === 'true',
 
-      // NOVOS CAMPOS PARA GRAVAR NO BANCO
+      // 🎯 Customização Visual (Garantindo que nunca vá vazio)
       show_cover_in_grid: formData.get('show_cover_in_grid') === 'true',
-      grid_bg_color: formData.get('grid_bg_color') as string,
-      columns_mobile: Number(formData.get('columns_mobile')),
-      columns_tablet: Number(formData.get('columns_tablet')),
-      columns_desktop: Number(formData.get('columns_desktop')),
+      grid_bg_color: (formData.get('grid_bg_color') as string) || '#F3E5AB',
+      columns_mobile: Number(formData.get('columns_mobile')) || 2,
+      columns_tablet: Number(formData.get('columns_tablet')) || 3,
+      columns_desktop: Number(formData.get('columns_desktop')) || 4,
     };
 
-    // Lógica da senha: só atualiza se for enviado algo no campo password
-    const newPassword = formData.get('password') as string;
-    if (formData.get('is_public') === 'true') {
-      (updates as any).password = null;
-    } else if (newPassword && newPassword.trim() !== '') {
-      (updates as any).password = newPassword;
+    // 2. Validação básica de integridade
+    if (!updates.title || !updates.drive_folder_id) {
+      return {
+        success: false,
+        error: 'Dados essenciais ausentes (Título/Drive).',
+      };
     }
-    // Se is_public for false e password for nulo/vazio, o Supabase mantém a senha antiga
-    // porque não incluímos o campo 'password' no objeto 'updates'.
+
+    // 3. Lógica de senha refinada
+    const newPassword = formData.get('password') as string;
+    if (updates.is_public) {
+      updates.password = null; // Se tornou pública, remove a senha
+    } else if (newPassword && newPassword.trim() !== '') {
+      updates.password = newPassword; // Só atualiza se o usuário digitou uma nova
+    }
 
     const { error } = await supabase
       .from('tb_galerias')
@@ -336,7 +383,7 @@ export async function updateGaleria(
     if (error) throw error;
 
     revalidatePath('/dashboard');
-    return { success: true, message: 'Galeria atualizada com sucesso!' };
+    return { success: true, message: 'Galeria refinada com sucesso!' };
   } catch (error) {
     console.error('Erro no update:', error);
     return { success: false, error: 'Falha ao atualizar a galeria.' };

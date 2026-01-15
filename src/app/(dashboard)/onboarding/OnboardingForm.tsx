@@ -439,7 +439,7 @@ export default function OnboardingForm({
                   onClick={() => setShowSuccessModal(false)}
                   className="w-full text-slate-400 py-2 text-[9px] font-black uppercase tracking-[0.3em] hover:text-[#D4AF37] transition-colors"
                 >
-                  Continuar Refinando
+                  Continuar Editando
                 </button>
               </div>
             </div>

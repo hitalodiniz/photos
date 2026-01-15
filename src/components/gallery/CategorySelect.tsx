@@ -1,5 +1,6 @@
 'use client';
 import { GALLERY_CATEGORIES } from '@/constants/categories';
+import { ChevronDown } from 'lucide-react'; // Usando Lucide para manter a consistência de ícones
 
 export default function CategorySelect({ value, onChange }) {
   return (
@@ -8,12 +9,13 @@ export default function CategorySelect({ value, onChange }) {
         value={value}
         onChange={(e) => onChange(e.target.value)}
         required
-        className="w-full px-4 py-3 bg-white border border-[#F3E5AB] rounded-xl text-slate-900 text-sm 
-                   focus:border-gold focus:ring-4 focus:ring-gold/5 outline-none appearance-none cursor-pointer
-                   invalid:text-slate-400 transition-all"
+        className="w-full pl-4 pr-10 bg-white border border-slate-200 rounded-[0.5rem] 
+                   text-slate-900 text-[13px] font-medium h-10
+                   focus:border-[#D4AF37] outline-none appearance-none cursor-pointer
+                   invalid:text-slate-400 transition-all shadow-sm group-hover:border-slate-300"
       >
         <option value="" disabled hidden>
-          Selecione uma categoria
+          Selecione a categoria
         </option>
         {GALLERY_CATEGORIES.map((cat) => (
           <option
@@ -26,18 +28,9 @@ export default function CategorySelect({ value, onChange }) {
         ))}
       </select>
 
-      {/* Seta refinada - Alinhada com o estilo luxo */}
-      <div className="absolute right-4 top-1/2 -translate-y-1/2 pointer-events-none text-slate-300 group-hover:text-gold transition-colors">
-        <svg
-          width="10"
-          height="10"
-          fill="none"
-          stroke="currentColor"
-          strokeWidth="3"
-          viewBox="0 0 24 24"
-        >
-          <path d="M6 9l6 6 6-6" />
-        </svg>
+      {/* Seta Ajustada - Mais visível e elegante */}
+      <div className="absolute right-3.5 top-1/2 -translate-y-1/2 pointer-events-none text-slate-400 group-hover:text-[#D4AF37] transition-colors">
+        <ChevronDown size={16} strokeWidth={2} />
       </div>
     </div>
   );

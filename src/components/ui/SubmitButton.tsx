@@ -24,7 +24,7 @@ export default function SubmitButton({
       form={form} // Crucial para disparar o formulário que está no corpo do modal
       disabled={pending || success}
       className={`
-        w-full group relative flex items-center justify-center gap-3 rounded-2xl py-4 
+        w-full group relative flex items-center justify-center gap-3 rounded-[0.5rem] h-10 py-4 
         text-[10px] font-semibold uppercase tracking-wider transition-all duration-500
         active:scale-[0.97] shadow-2xl overflow-hidden
         ${

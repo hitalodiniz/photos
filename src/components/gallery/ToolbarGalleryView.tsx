@@ -254,14 +254,14 @@ export const ToolbarGalleryView = ({
             <div
               className={`w-9 h-9 md:w-11 md:h-11 rounded-full flex items-center justify-center transition-all  bg-white/5 text-white group-hover:bg-white group-hover:text-black`}
             >
-              <Camera size={18} />
+              <X size={18} />
             </div>
             <div className={textContainerClass}>
               <span className="text-[10px] md:text-[11px]  font-semibold uppercase tracking-wider mb-1 text-white">
-                Galeria
+                Fechar
               </span>
               <span className="text-[9px] md:text-[10px]  opacity-80 text-white/70 whitespace-nowrap">
-                Ver todas
+                Sair
               </span>
             </div>
           </button>

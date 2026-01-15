@@ -127,7 +127,7 @@ export default function Lightbox({
 
   return (
     <div
-      className="fixed inset-0 z-[999] bg-black flex flex-col md:block overflow-y-auto md:overflow-hidden select-none"
+      className="fixed inset-0 z-[9999] bg-black flex flex-col md:block overflow-y-auto md:overflow-hidden select-none"
       onTouchStart={isSingleView ? undefined : onTouchStart}
       onTouchMove={isSingleView ? undefined : onTouchMove}
       onTouchEnd={isSingleView ? undefined : onTouchEnd}
