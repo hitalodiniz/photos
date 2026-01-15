@@ -1,13 +1,29 @@
 'use client';
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useMemo } from 'react';
 import { ChevronDown, Maximize2 } from 'lucide-react';
 
 interface EditorialHeroProps {
   title: string;
-  coverUrl: string;
-  sideElement?: React.ReactNode; // Avatar
-  children: React.ReactNode; // Bio
+  coverUrl?: string; // Agora opcional
+  sideElement?: React.ReactNode;
+  children: React.ReactNode;
 }
+
+// Lista de imagens padrão (ajuste o caminho se necessário)
+const DEFAULT_HEROS = [
+  '/hero-bg-1.webp',
+  '/hero-bg-2.webp',
+  '/hero-bg-3.webp',
+  '/hero-bg-4.webp',
+  '/hero-bg-5.webp',
+  '/hero-bg-6.webp',
+  '/hero-bg-7.webp',
+  '/hero-bg-8.webp',
+  '/hero-bg-9.webp',
+  '/hero-bg-10.webp',
+  '/hero-bg-11.webp',
+  '/hero-bg-12.webp',
+];
 
 export const EditorialHero = ({
   title,
@@ -16,6 +32,14 @@ export const EditorialHero = ({
   children,
 }: EditorialHeroProps) => {
   const [isExpanded, setIsExpanded] = useState(true);
+  const [isLoaded, setIsLoaded] = useState(false);
+
+  // Lógica de Sorteio: useMemo garante que a foto não mude em cada re-render
+  const finalCoverUrl = useMemo(() => {
+    if (coverUrl && coverUrl.trim() !== '') return coverUrl;
+    const randomIndex = Math.floor(Math.random() * DEFAULT_HEROS.length);
+    return DEFAULT_HEROS[randomIndex];
+  }, [coverUrl]);
 
   useEffect(() => {
     const timer = setTimeout(() => setIsExpanded(false), 5000);
@@ -32,20 +56,30 @@ export const EditorialHero = ({
 
   return (
     <section
-      className={`relative overflow-hidden transition-all duration-[1200ms] z-5 ${
+      className={`relative overflow-hidden transition-all duration-[1200ms] z-5 bg-black ${
         isExpanded ? 'h-screen' : 'h-[32vh] md:h-[45vh]'
       }`}
     >
+      {/* IMAGEM DE FUNDO COM LÓGICA DE CARREGAMENTO */}
       <div
-        className="absolute inset-0 bg-cover bg-center transition-transform duration-[3000ms]"
+        className={`absolute inset-0 bg-cover bg-center transition-all duration-[2000ms] ease-out
+          ${isLoaded ? 'opacity-100 scale-100' : 'opacity-0 scale-110'}`}
         style={{
-          backgroundImage: `url('${coverUrl}')`,
+          backgroundImage: `url('${finalCoverUrl}')`,
           backgroundPosition: 'center 40%',
         }}
       />
 
-      {/* Camada de escurecimento para leitura */}
-      <div className="absolute inset-0 bg-black/30" />
+      {/* Trigger para marcar como carregado (invisível) */}
+      <img
+        src={finalCoverUrl}
+        className="hidden"
+        onLoad={() => setIsLoaded(true)}
+        alt=""
+      />
+
+      {/* Camada de escurecimento para leitura (Pura e sutil) */}
+      <div className="absolute inset-0 bg-black/40" />
 
       <div
         className={`relative h-full flex flex-col transition-all duration-[1200ms] max-w-[1600px] mx-auto w-full 
@@ -55,24 +89,19 @@ export const EditorialHero = ({
               : 'justify-end pb-6 md:pb-8 px-6 md:px-12 items-start'
           }`}
       >
-        <div
-          className={`w-full transition-all duration-1000 ${isExpanded ? 'scale-100' : 'scale-100'}`}
-        >
+        <div className="w-full">
           {/* LINHA SUPERIOR: AVATAR + NOME */}
           <div className="flex items-center gap-4 md:gap-6 mb-4">
-            {/* AVATAR */}
             <div className="shrink-0">
               {React.isValidElement(sideElement)
                 ? React.cloneElement(sideElement as any, { isExpanded })
                 : sideElement}
             </div>
 
-            {/* NOME E LINHA */}
             <div className="flex flex-col items-start min-w-0">
               <h1
-                className={`font-artistic font-semibold text-white transition-all duration-1000 drop-shadow-md leading-tight tracking-tight break-words ${
-                  isExpanded ? 'text-3xl md:text-6xl' : 'text-2xl md:text-4xl'
-                }`}
+                className={`font-artistic font-semibold text-white transition-all duration-1000 drop-shadow-lg leading-tight tracking-tight
+                ${isExpanded ? 'text-3xl md:text-6xl' : 'text-2xl md:text-4xl'}`}
               >
                 {title}
               </h1>
@@ -80,9 +109,9 @@ export const EditorialHero = ({
             </div>
           </div>
 
-          {/* LINHA INFERIOR: BIOGRAFIA (Abaixo de tudo) */}
+          {/* LINHA INFERIOR: BIOGRAFIA */}
           <div
-            className={`w-full transition-all duration-1000 delay-100 ${isExpanded ? 'opacity-100' : 'opacity-90'}`}
+            className={`w-full transition-all duration-1000 delay-100 ${isExpanded ? 'opacity-100 translate-y-0' : 'opacity-90'}`}
           >
             <div className="max-w-3xl">
               {React.Children.map(children, (child) =>
@@ -94,7 +123,7 @@ export const EditorialHero = ({
           </div>
         </div>
 
-        {/* BOTÕES DE NAVEGAÇÃO */}
+        {/* NAVEGAÇÃO */}
         {isExpanded ? (
           <button
             onClick={() => setIsExpanded(false)}
