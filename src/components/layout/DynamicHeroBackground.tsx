@@ -17,38 +17,48 @@ const heroImages = [
   '/hero-bg-12.webp',
 ];
 
-export default function DynamicHeroBackground() {
-  const [bgImage, setBgImage] = useState<string | null>(null);
+export default function DynamicHeroBackground({
+  bgImage,
+}: {
+  bgImage?: string;
+}) {
+  // Renomeamos o estado para evitar conflito com a prop
+  const [currentBg, setCurrentBg] = useState<string | null>(null);
   const [isLoaded, setIsLoaded] = useState(false);
 
   useEffect(() => {
-    // Sorteio simples direto no mount
-    const randomIndex = Math.floor(Math.random() * heroImages.length);
-    setBgImage(heroImages[randomIndex]);
-  }, []);
+    // Lógica: Se existe bgImage (vinda do banco), usamos ela.
+    // Se não, sorteamos uma das imagens padrão.
+    if (bgImage) {
+      setCurrentBg(bgImage);
+    } else {
+      const randomIndex = Math.floor(Math.random() * heroImages.length);
+      setCurrentBg(heroImages[randomIndex]);
+    }
+  }, [bgImage]); // Monitora se a imagem de fundo mudar (útil na prévia)
 
   return (
     <div className="fixed inset-0 z-0 bg-black">
-      {/* Overlay de gradiente */}
+      {/* Overlay de gradiente para garantir legibilidade dos textos */}
       <div className="absolute inset-0 z-10 bg-gradient-to-b from-black/90 via-black/40 to-black/95" />
 
-      {/* Background de fallback sólido */}
+      {/* Background de fallback sólido enquanto carrega */}
       <div className="absolute inset-0 bg-[#1a1a1a]" />
 
-      {bgImage && (
+      {currentBg && (
         <Image
-          src={bgImage}
+          src={currentBg}
           alt="Background Editorial"
           fill
           priority
           quality={85}
           sizes="100vw"
-          // O segredo: usamos onLoadingComplete para garantir a captura do estado
-          onLoadingComplete={() => setIsLoaded(true)}
+          // Usamos a prop moderna onSelect para o estado de carregamento
+          onLoad={() => setIsLoaded(true)}
           className={`
             object-cover object-[50%_30%] 
-            transition-opacity duration-1000 ease-in-out
-            ${isLoaded ? 'opacity-100' : 'opacity-0'}
+            transition-all duration-1000 ease-in-out
+            ${isLoaded ? 'opacity-100 scale-100' : 'opacity-0 scale-105'}
           `}
         />
       )}

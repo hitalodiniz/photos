@@ -70,7 +70,6 @@ export async function getAvatarUrl(
   userId: string,
   supabaseClient?: any,
 ): Promise<string | null> {
-  // Se o teste passar o mock, usa o mock. Se não, usa o cliente real.
   const supabase =
     supabaseClient || (await createSupabaseServerClientReadOnly());
 
@@ -83,6 +82,7 @@ export async function getAvatarUrl(
   if (error) return null;
   return data?.profile_picture_url || null;
 }
+
 // =========================================================================
 // 2. MUTAÇÕES (WRITE)
 // =========================================================================
@@ -103,8 +103,10 @@ export async function upsertProfile(formData: FormData, supabaseClient?: any) {
   const mini_bio = formData.get('mini_bio') as string;
   const phone_contact = formData.get('phone_contact') as string;
   const instagram_link = formData.get('instagram_link') as string;
+  const website = formData.get('website') as string; //Captura o campo website
   const operating_cities_json = formData.get('operating_cities_json') as string;
   const profilePictureFile = formData.get('profile_picture_file') as File;
+
   let profile_picture_url = formData.get(
     'profile_picture_url_existing',
   ) as string;
@@ -142,6 +144,35 @@ export async function upsertProfile(formData: FormData, supabaseClient?: any) {
     }
   }
 
+  // Captura dos novos campos do FormData
+  const backgroundFile = formData.get('background_file') as File;
+  let background_url =
+    formData.get('background_url_existing')?.toString() || '';
+
+  // --- LÓGICA REPLICADA PARA FOTO DE FUNDO ---
+  if (
+    backgroundFile &&
+    backgroundFile.size > 0 &&
+    backgroundFile.name !== 'undefined'
+  ) {
+    if (backgroundFile.size > 5 * 1024 * 1024)
+      return { success: false, error: 'Foto de fundo muito grande (máx 5MB).' };
+
+    const bgExt = backgroundFile.name.split('.').pop();
+    const bgPath = `${user.id}/bg-${Date.now()}.${bgExt}`;
+
+    const { error: bgUploadError } = await supabase.storage
+      .from('profile_pictures') // Reutilizando o mesmo bucket
+      .upload(bgPath, backgroundFile, { upsert: true });
+
+    if (!bgUploadError) {
+      const {
+        data: { publicUrl },
+      } = supabase.storage.from('profile_pictures').getPublicUrl(bgPath);
+      background_url = publicUrl;
+    }
+  }
+
   const { error } = await supabase
     .from('tb_profiles')
     .update({
@@ -150,8 +181,11 @@ export async function upsertProfile(formData: FormData, supabaseClient?: any) {
       mini_bio,
       phone_contact: phone_contact?.replace(/\D/g, ''),
       instagram_link,
+      website,
       operating_cities,
       profile_picture_url,
+      background_url, // 🎯 Adicionado aqui para persistir no banco
+
       updated_at: new Date().toISOString(),
     })
     .eq('id', user.id);
@@ -166,8 +200,6 @@ export async function upsertProfile(formData: FormData, supabaseClient?: any) {
 
 /**
  * Encerra a sessão
- * Nota: Como estamos em 'use server', o signOut deve ser chamado com cautela
- * ou mantido no client se for apenas para limpar o estado local.
  */
 export async function signOutServer() {
   const supabase = await createSupabaseServerClient();

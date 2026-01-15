@@ -19,6 +19,8 @@ import {
   AlertCircle,
   Pencil,
   LayoutDashboard,
+  Globe,
+  ImageIcon,
 } from 'lucide-react';
 
 import {
@@ -35,7 +37,6 @@ import { compressImage } from '@/core/utils/user-helpers';
 export function SubmitOnboarding({ isSaving }: { isSaving: boolean }) {
   const { pending } = useFormStatus();
   const isLoading = pending || isSaving;
-
   return (
     <button
       type="submit"
@@ -74,6 +75,7 @@ export default function OnboardingForm({
   const [miniBio, setMiniBio] = useState(initialData?.mini_bio || '');
   const [phone, setPhone] = useState(initialData?.phone_contact || '');
   const [instagram, setInstagram] = useState(initialData?.instagram_link || '');
+  const [website, setWebsite] = useState(initialData?.website || '');
   const [selectedCities, setSelectedCities] = useState<string[]>(
     initialData?.operating_cities || [],
   );
@@ -95,6 +97,14 @@ export default function OnboardingForm({
     message: string;
     type: 'success' | 'error';
   } | null>(null);
+
+  const { pending } = useFormStatus();
+  const isLoading = pending || isSaving;
+  const bgInputRef = useRef<HTMLInputElement>(null);
+  const [bgFile, setBgFile] = useState<File | null>(null);
+  const [bgPreview, setBgPreview] = useState<string | null>(
+    initialData?.background_url || null,
+  );
 
   useEffect(() => {
     fetchStates().then(setStates);
@@ -153,16 +163,46 @@ export default function OnboardingForm({
     }
   };
 
+  // Função para tratar o arquivo de fundo
+  const handleBgChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (file) {
+      setBgFile(file);
+      setBgPreview(URL.createObjectURL(file));
+    }
+  };
+
   const clientAction = async (formData: FormData) => {
-    if (isAvailable === false) {
+    if (!isEditMode && isAvailable === false) {
       setToastConfig({
         message: 'Este username já está em uso.',
         type: 'error',
       });
       return;
     }
+
+    if (miniBio.length < 10) {
+      setToastConfig({
+        message: 'A mini-bio deve ter no mínimo 10 caracteres.',
+        type: 'error',
+      });
+      return;
+    }
+
     setIsSaving(true);
+
+    let finalWebsite = website.trim();
+    if (finalWebsite && !/^https?:\/\//i.test(finalWebsite)) {
+      finalWebsite = `https://${finalWebsite}`;
+    }
+
     formData.set('operating_cities_json', JSON.stringify(selectedCities));
+    formData.set('website', finalWebsite);
+    formData.set('full_name', fullName);
+    formData.set('username', username);
+    formData.set('mini_bio', miniBio);
+    formData.set('phone_contact', phone);
+    formData.set('instagram_link', instagram);
 
     if (photoFile) {
       try {
@@ -173,6 +213,18 @@ export default function OnboardingForm({
       }
     } else if (photoPreview) {
       formData.set('profile_picture_url_existing', photoPreview);
+    }
+
+    if (bgFile) {
+      try {
+        const compressedBlob = await compressImage(bgFile);
+        formData.set('background_file', compressedBlob, 'bg_profile.webp');
+      } catch (e) {
+        formData.set('background_file', bgFile);
+      }
+    } else if (bgPreview) {
+      //Garante que se não houver arquivo novo, enviamos a URL que já existia
+      formData.set('background_url_existing', bgPreview);
     }
 
     try {
@@ -199,33 +251,18 @@ export default function OnboardingForm({
     }
   };
 
-  // AJUSTE MOBILE: Deixamos o container com scroll livre no mobile e flex-col
-  const containerBaseClass =
-    'relative min-h-screen bg-white flex flex-col md:flex-row w-full font-sans z-[99]';
-
-  // Função para limpar o link do Instagram e extrair apenas o username
   const handleInstagramChange = (val: string) => {
     let cleanValue = val.trim();
-
-    // Se for uma URL completa, tenta extrair o username
     if (cleanValue.includes('instagram.com/')) {
-      // Remove protocolos, query strings e limpa a barra final
       const parts = cleanValue.split('instagram.com/')[1]?.split(/[/?#]/)[0];
       if (parts) cleanValue = `@${parts}`;
     }
-
-    // Garante que comece com @ se houver conteúdo
-    if (cleanValue && !cleanValue.startsWith('@')) {
-      cleanValue = `${cleanValue}`;
-    }
-
     setInstagram(cleanValue.toLowerCase());
   };
 
   return (
     <>
-      <div className={containerBaseClass}>
-        {/* ASIDE: w-full no mobile, 35% no desktop */}
+      <div className="relative min-h-screen bg-white flex flex-col md:flex-row w-full font-sans z-[99]">
         <aside className="w-full md:w-[35%] bg-white border-r border-slate-100 p-6 pt-8 flex flex-col h-auto md:h-screen md:sticky md:top-0 z-20 md:overflow-y-auto no-scrollbar shadow-xl">
           {isEditMode && (
             <button
@@ -285,64 +322,69 @@ export default function OnboardingForm({
                   <Pencil size={14} />
                 </button>
               </div>
-              <p className="text-[10px] text-slate-400 font-medium uppercase tracking-tighter mt-2">
-                {photoPreview ? 'Clique para alterar' : 'Carregar foto'}
-              </p>
             </div>
 
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
               <div>
-                <label className="flex items-center gap-2 mb-1 text-xs font-medium text-slate-700">
-                  <User size={14} className="text-[#D4AF37]" /> Nome
+                <label>
+                  <User size={14} className="text-[#D4AF37] inline mr-2" /> Nome
                 </label>
                 <input
                   name="full_name"
-                  className="w-full bg-slate-50 border border-slate-100 rounded-xl px-4 py-3 text-sm focus:ring-2 focus:ring-[#F3E5AB] outline-none"
+                  className="w-full bg-slate-50 border border-slate-100 rounded-xl px-4 py-3 text-sm focus:ring-2 focus:ring-[#F3E5AB] outline-none mt-1"
                   value={fullName}
                   onChange={(e) => setFullName(e.target.value)}
                   required
                 />
               </div>
               <div>
-                <label className="flex items-center gap-2 mb-1 text-xs font-medium text-slate-700">
-                  <AtSign size={14} className="text-[#D4AF37]" /> Username
+                <label>
+                  <AtSign size={14} className="text-[#D4AF37] inline mr-2" />{' '}
+                  Username
                 </label>
-                <div className="relative">
+                <div className="relative mt-1">
                   <input
                     name="username"
-                    className="w-full bg-slate-50 border border-slate-100 rounded-xl px-4 py-3 text-sm focus:ring-2 focus:ring-[#F3E5AB] outline-none"
+                    readOnly={isEditMode}
+                    className={`w-full bg-slate-50 border border-slate-100 rounded-xl px-4 py-3 text-sm focus:ring-2 focus:ring-[#F3E5AB] outline-none ${isEditMode ? 'opacity-60 cursor-not-allowed italic font-mono' : ''}`}
                     value={username}
                     onChange={(e) =>
+                      !isEditMode &&
                       setUsername(
                         e.target.value
                           .toLowerCase()
                           .replace(/[^a-z0-9._]/g, ''),
                       )
                     }
-                    required
+                    required={!isEditMode}
                   />
-                  <div className="absolute right-3 top-1/2 -translate-y-1/2">
-                    {isChecking ? (
-                      <Loader2 size={12} className="animate-spin" />
-                    ) : isAvailable === true ? (
-                      <CheckCircle2 size={12} className="text-green-500" />
-                    ) : isAvailable === false ? (
-                      <AlertCircle size={12} className="text-red-500" />
-                    ) : null}
-                  </div>
+                  {!isEditMode && (
+                    <div className="absolute right-3 top-1/2 -translate-y-1/2">
+                      {isChecking ? (
+                        <Loader2 size={12} className="animate-spin" />
+                      ) : isAvailable === true ? (
+                        <CheckCircle2 size={12} className="text-green-500" />
+                      ) : isAvailable === false ? (
+                        <AlertCircle size={12} className="text-red-500" />
+                      ) : null}
+                    </div>
+                  )}
                 </div>
               </div>
             </div>
 
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
               <div>
-                <label className="flex items-center gap-2 mb-1 text-xs font-medium text-slate-700">
-                  <MessageCircle size={14} className="text-[#D4AF37]" />{' '}
+                <label>
+                  <MessageCircle
+                    size={14}
+                    className="text-[#D4AF37] inline mr-2"
+                  />{' '}
                   WhatsApp
                 </label>
                 <input
                   name="phone_contact"
-                  className={`w-full bg-slate-50 border border-slate-100 rounded-xl px-4 py-3 text-sm outline-none ${!isPhoneValid && phone.length > 0 ? 'border-red-400' : ''}`}
+                  className={`w-full bg-slate-50 border border-slate-100 rounded-xl px-4 py-3 text-sm outline-none mt-1 ${!isPhoneValid && phone.length > 0 ? 'border-red-400' : ''}`}
                   value={phone}
                   onChange={(e) => setPhone(maskPhone(e))}
                   placeholder="(00) 00000-0000"
@@ -350,16 +392,73 @@ export default function OnboardingForm({
                 />
               </div>
               <div>
-                <label className="flex items-center gap-2 mb-1 text-xs font-medium text-slate-700">
-                  <Instagram size={14} className="text-[#D4AF37]" /> Instagram
+                <label>
+                  <Instagram size={14} className="text-[#D4AF37] inline mr-2" />{' '}
+                  Instagram
                 </label>
                 <input
                   name="instagram_link"
-                  className="w-full bg-slate-50 border border-slate-100 rounded-xl px-4 py-3 text-sm outline-none"
+                  className="w-full bg-slate-50 border border-slate-100 rounded-xl px-4 py-3 text-sm outline-none mt-1"
                   value={instagram}
                   onChange={(e) => handleInstagramChange(e.target.value)}
                   placeholder="@seu.perfil"
                 />
+              </div>
+            </div>
+
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+              {/* CAMPO WEBSITE */}
+              <div>
+                <label>
+                  <Globe size={14} className="text-[#D4AF37] inline mr-2" />{' '}
+                  Website
+                </label>
+                <input
+                  name="website"
+                  className="w-full bg-slate-50 border border-slate-100 rounded-xl px-4 py-3 text-sm outline-none focus:ring-2 focus:ring-[#F3E5AB] mt-1"
+                  value={website}
+                  onChange={(e) => setWebsite(e.target.value)}
+                  placeholder="seusite.com.br"
+                />
+              </div>
+
+              {/* CAMPO IMAGEM DE FUNDO */}
+              <div>
+                <label>
+                  <Upload size={14} className="text-[#D4AF37] inline mr-2" />{' '}
+                  Fundo do Perfil
+                </label>
+                <div className="relative mt-1">
+                  <input
+                    type="file"
+                    ref={bgInputRef}
+                    className="hidden"
+                    accept="image/*"
+                    onChange={handleBgChange}
+                  />
+                  <button
+                    type="button"
+                    onClick={() => bgInputRef.current?.click()}
+                    className="w-full bg-slate-50 border border-slate-100 border-dashed rounded-xl px-4 py-3 text-sm flex items-center justify-between hover:bg-slate-100 transition-colors"
+                  >
+                    <span className="text-slate-400 overflow-hidden text-ellipsis whitespace-nowrap mr-2">
+                      {bgFile ? bgFile.name : 'Selecionar imagem...'}
+                    </span>
+                    {bgPreview ? (
+                      <div className="w-6 h-6 rounded-md overflow-hidden border border-slate-200 shrink-0">
+                        <img
+                          src={bgPreview}
+                          className="w-full h-full object-cover"
+                        />
+                      </div>
+                    ) : (
+                      <ImageIcon
+                        size={16}
+                        className="text-slate-300 shrink-0"
+                      /> // Use o ícone aqui
+                    )}
+                  </button>
+                </div>
               </div>
             </div>
 
@@ -430,14 +529,17 @@ export default function OnboardingForm({
             </div>
 
             <div>
-              <label className="flex items-center gap-2 mb-1 text-xs font-medium text-slate-700">
-                <FileText size={14} className="text-[#D4AF37]" /> Mini-currículo
+              <label>
+                <FileText size={14} className="text-[#D4AF37] inline mr-2" />{' '}
+                Mini-currículo
               </label>
               <textarea
                 name="mini_bio"
-                className="w-full bg-slate-50 border border-slate-100 rounded-xl px-4 py-3 text-sm focus:ring-2 focus:ring-[#F3E5AB] outline-none"
+                className="w-full bg-slate-50 border border-slate-100 rounded-xl px-4 py-3 text-sm focus:ring-2 focus:ring-[#F3E5AB] outline-none mt-1"
                 value={miniBio || ''}
                 onChange={(e) => setMiniBio(e.target.value)}
+                required
+                minLength={10}
                 rows={3}
               />
             </div>
@@ -446,19 +548,7 @@ export default function OnboardingForm({
           </form>
         </aside>
 
-        {/* MAIN: Abaixo do form no mobile (w-full), ao lado no desktop (w-65%) */}
         <main className="w-full md:w-[65%] min-h-[600px] md:h-screen bg-black relative flex-grow overflow-y-auto">
-          <div className="absolute top-4 md:top-10 left-0 md:left-10 z-[10] flex items-center gap-4 px-6 pointer-events-none">
-            <div className="w-1.5 h-14 bg-champagne-dark rounded-full animate-pulse shadow-[0_0_20px_rgba(243,229,171,0.8)]"></div>
-            <div className="flex flex-col justify-center">
-              <p className="text-[10px] md:text-[12px] text-[#F3E5AB] font-semibold uppercase tracking-wider leading-none mb-1 drop-shadow-lg">
-                Editorial
-              </p>
-              <p className="text-[11px] md:text-[14px] text-white/90 italic tracking-wide leading-none py-2 drop-shadow-md">
-                Prévia do seu perfil
-              </p>
-            </div>
-          </div>
           <ProfilePreview
             initialData={{
               full_name: fullName,
@@ -468,6 +558,8 @@ export default function OnboardingForm({
               instagram_link: instagram,
               avatar_url: photoPreview,
               cities: selectedCities,
+              website: website,
+              background_url: bgPreview,
             }}
           />
         </main>
@@ -498,6 +590,7 @@ export default function OnboardingForm({
                 >
                   Ir para o Dashboard
                 </button>
+                {/* 🎯 BOTÃO RESTAURADO AQUI */}
                 <button
                   onClick={() => setShowSuccessModal(false)}
                   className="w-full text-slate-400 py-2 text-xs font-semibold hover:text-slate-600 transition-colors"

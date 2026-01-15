@@ -70,6 +70,8 @@ export default function PhotographerProfile({
 
   // Lógica de Localização Inteligente
   const cities = profile.operating_cities || profile.cities || [];
+  const website = profile.website || profile.website;
+  const backgroundUrl = profile.background_url || profile.background_url;
 
   return (
     <div className="w-full min-h-screen bg-black">
@@ -82,6 +84,8 @@ export default function PhotographerProfile({
         photoPreview={avatar}
         cities={cities}
         showBackButton={false}
+        website={website}
+        backgroundUrl={backgroundUrl}
       />
     </div>
   );

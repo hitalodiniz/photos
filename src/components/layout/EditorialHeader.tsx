@@ -6,7 +6,7 @@ import Link from 'next/link';
 
 interface EditorialHeaderProps {
   title: string;
-  subtitle: React.ReactNode;
+  subtitle?: React.ReactNode;
   showBackButton?: boolean;
 }
 

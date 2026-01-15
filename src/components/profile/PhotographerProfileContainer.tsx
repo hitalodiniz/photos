@@ -50,6 +50,8 @@ export default function PhotographerProfileContainer({ username }: Props) {
       instagram={profile.instagram_link}
       photoPreview={profile.profile_picture_url}
       cities={profile.operating_cities || []}
+      website={profile.website}
+      backgroundUrl={profile.background_url}
     />
   );
 }
