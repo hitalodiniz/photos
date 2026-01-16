@@ -32,6 +32,7 @@ export default function PhotographerContent({
   const [isLoading, setIsLoading] = useState(true);
   const [scrollY, setScrollY] = useState(0);
   const [isHovered, setIsHovered] = useState(false);
+  const [isExpanded, setIsExpanded] = useState(false);
 
   // Lógica de Scroll para a InfoBar
   useEffect(() => {
@@ -56,14 +57,17 @@ export default function PhotographerContent({
       <LoadingScreen fadeOut={!isLoading} message="Consolidando perfil" />
 
       {/* HERO SECTION - O Editorial apenas provê o fundo e a lógica de altura */}
-
       <EditorialHero
         title={fullName}
         coverUrl={backgroundUrl}
-        sideElement={<PhotographerAvatar photoPreview={photoPreview} />} // O Avatar fica ao lado do Título
+        sideElement={
+          <PhotographerAvatar
+            photoPreview={photoPreview}
+            isExpanded={isExpanded}
+          />
+        }
       >
-        <PhotographerBio miniBio={miniBio} cities={cities} />{' '}
-        {/* A Bio fica abaixo do Título */}
+        <PhotographerBio miniBio={miniBio} isExpanded={isExpanded} />
       </EditorialHero>
       {/* INFOBAR ADAPTADA (Sticky e flutuante no scroll) */}
       <div

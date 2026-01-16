@@ -152,9 +152,11 @@ export async function upsertProfile(formData: FormData, supabaseClient?: any) {
   }
 
   // 🖼️ PROCESSAMENTO DE FOTO DE FUNDO (BACKGROUND)
-  let background_url =
-    (formData.get('background_url_existing') as string) || '';
-  const backgroundFile = formData.get('background_image') as File; // Nome ajustado para bater com o formulário
+  // 1. Primeiro, tentamos pegar a URL existente enviada pelo formulário
+  let background_url = formData.get('background_url_existing') as string;
+
+  // 2. Capturamos o arquivo (se houver)
+  const backgroundFile = formData.get('background_image') as File;
 
   if (
     backgroundFile &&
@@ -175,25 +177,32 @@ export async function upsertProfile(formData: FormData, supabaseClient?: any) {
       const {
         data: { publicUrl },
       } = supabase.storage.from('profile_pictures').getPublicUrl(bgPath);
-      background_url = publicUrl;
+      background_url = publicUrl; // Substitui pela nova URL após o upload
     }
   }
 
+  // Criamos o objeto de atualização dinamicamente para maior segurança
+  const updateData: any = {
+    full_name,
+    username,
+    mini_bio,
+    phone_contact: phone_contact?.replace(/\D/g, ''),
+    instagram_link,
+    website,
+    operating_cities,
+    profile_picture_url,
+    updated_at: new Date().toISOString(),
+  };
+
+  // 🎯 SÓ ATUALIZA O BACKGROUND SE ELE NÃO FOR UNDEFINED OU NULL
+  // Isso evita que o valor suma se o campo 'background_url_existing' falhar no formulário
+  if (background_url !== undefined && background_url !== null) {
+    updateData.background_url = background_url;
+  }
   // 💾 ATUALIZAÇÃO NO BANCO DE DADOS
   const { error } = await supabase
     .from('tb_profiles')
-    .update({
-      full_name,
-      username,
-      mini_bio,
-      phone_contact: phone_contact?.replace(/\D/g, ''),
-      instagram_link,
-      website,
-      operating_cities,
-      profile_picture_url,
-      background_url,
-      updated_at: new Date().toISOString(),
-    })
+    .update(updateData)
     .eq('id', user.id);
 
   if (error) {

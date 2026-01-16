@@ -2,6 +2,7 @@
 import React from 'react';
 import { MapPin, User, Sparkles } from 'lucide-react';
 import Image from 'next/image';
+import { div } from 'framer-motion/client';
 
 // SUB-COMPONENTE PARA O AVATAR (Passado no sideElement)
 export const PhotographerAvatar = ({ photoPreview, isExpanded }: any) => (
@@ -23,7 +24,7 @@ export const PhotographerAvatar = ({ photoPreview, isExpanded }: any) => (
 );
 
 // SUB-COMPONENTE PARA A BIO E CIDADES (Passado no children)
-export const PhotographerBio = ({ miniBio, cities, isExpanded }: any) => (
+export const PhotographerBio = ({ miniBio, isExpanded }: any) => (
   <div className="flex flex-col items-start w-full">
     {miniBio && (
       <div
@@ -36,8 +37,8 @@ export const PhotographerBio = ({ miniBio, cities, isExpanded }: any) => (
         <span
           className={
             isExpanded
-              ? 'max-w-none w-full mb-2'
-              : 'truncate max-w-[200px] md:max-w-3xl mb-1'
+              ? 'max-w-4xl w-full mb-6 opacity-100 line-clamp-[8]' // Espaço generoso quando aberto
+              : 'max-w-2xl line-clamp-2 md:line-clamp-5  opacity-80 mb-2' // Compacto mas legível quando fechado
           }
         >
           {miniBio}

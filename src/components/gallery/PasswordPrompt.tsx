@@ -24,12 +24,10 @@ export default function PasswordPrompt({
   const handleCheckPassword = async (e: React.FormEvent) => {
     e.preventDefault();
     setError('');
-
     if (password.length < 4) {
       setError('Mínimo de 4 dígitos.');
       return;
     }
-
     setIsChecking(true);
 
     try {
@@ -38,133 +36,122 @@ export default function PasswordPrompt({
         fullSlug,
         password,
       );
-
       if (result && !result.success) {
         setError(result.error || 'Senha incorreta.');
         setIsChecking(false);
       }
     } catch (e: any) {
-      if (e.message === 'NEXT_REDIRECT') {
-        throw e;
-      }
-      console.error('Erro de autenticação:', e);
-      setError('Erro de conexão ou servidor.');
+      if (e.message === 'NEXT_REDIRECT') throw e;
+      setError('Erro de conexão.');
       setIsChecking(false);
     }
   };
 
   return (
-    <div className="relative min-h-screen w-full flex items-center justify-center overflow-hidden bg-black font-sans px-4">
-      {/* 📸 BACKGROUND COM A FOTO DA GALERIA */}
+    <div className="relative min-h-screen w-full flex items-center justify-center overflow-hidden bg-black px-4">
+      {/* 📸 BACKGROUND COM OVERLAY GRADIENTE */}
       <div className="absolute inset-0 z-0">
         <div
           className="absolute inset-0 bg-cover bg-center bg-no-repeat scale-105"
-          style={{
-            backgroundImage: `url(${coverImageUrl})`,
-          }}
+          style={{ backgroundImage: `url(${coverImageUrl})` }}
         />
-        <div className="absolute inset-0 bg-gradient-to-b from-black/70 via-black/40 to-black/80" />
+        <div className="absolute inset-0 bg-gradient-to-b from-black/80 via-black/40 to-black/90" />
       </div>
 
-      <div className="relative z-10 w-full max-w-md">
-        <div className="bg-black/45 backdrop-blur-xl rounded-[2.5rem] p-8 md:p-12 border border-white/10 shadow-2xl text-center ring-1 ring-white/5">
-          <div className="mx-auto w-16 h-16 bg-white/5 rounded-full flex items-center justify-center mb-6 border border-white/10 shadow-[0_0_20px_rgba(243,229,171,0.15)]">
-            <Camera className="text-[#F3E5AB] w-8 h-8 drop-shadow-[0_0_8px_rgba(243,229,171,0.6)]" />
+      <div className="relative z-10 w-full max-w-sm">
+        {/* CARD PRINCIPAL MAIS COMPACTO */}
+        <div className="bg-black/30 backdrop-blur-2xl rounded-[1.5rem] p-8 md:p-10 border border-white/10 shadow-2xl text-center">
+          <div className="flex flex-col items-center gap-3 mb-8">
+            <Camera
+              className="text-[#F3E5AB] w-12 h-12 drop-shadow-md"
+              strokeWidth={1.5}
+            />
+            <h1 className="font-artistic text-xl md:text-2xl font-semibold text-white leading-tight">
+              {galeria.title}
+            </h1>
+            <div className="h-[1px] w-12 bg-[#F3E5AB]/40 rounded-full" />
           </div>
 
-          <h1 className="font-artistic text-2xl md:text-3xl font-semibold text-white mb-2 italic leading-tight drop-shadow-lg pb-6">
-            {galeria.title}
-          </h1>
-
-          <form onSubmit={handleCheckPassword} className="space-y-6">
-            <input
-              autoFocus
-              type="password"
-              inputMode="numeric"
-              pattern="[0-9]*"
-              placeholder="Inserir senha"
-              value={password}
-              onChange={(e) =>
-                setPassword(e.target.value.replace(/\D/g, '').slice(0, 8))
-              }
-              maxLength={8}
-              required
-              className="w-full rounded-2xl border border-white/10 bg-black/40 p-4 text-white text-center text-2xl tracking-wider focus:ring-2 focus:ring-[#F3E5AB]/50 focus:border-[#F3E5AB]/50 transition-all outline-none placeholder:text-white/80 placeholder:text-base placeholder:tracking-normal font-light"
-            />
+          <form onSubmit={handleCheckPassword} className="space-y-5">
+            <div className="relative">
+              <input
+                autoFocus
+                type="password"
+                inputMode="numeric"
+                pattern="[0-9]*"
+                placeholder="Senha numérica"
+                value={password}
+                onChange={(e) =>
+                  setPassword(e.target.value.replace(/\D/g, '').slice(0, 8))
+                }
+                maxLength={8}
+                required
+                className="w-full rounded-[0.5rem] border border-white/10 bg-white/5 p-2 text-white text-center text-xl tracking-[0.5em] focus:border-[#F3E5AB]/50 transition-all outline-none placeholder:text-white/60 placeholder:text-xs placeholder:tracking-widest font-light"
+              />
+            </div>
 
             {error && (
-              <div className="text-red-400 text-[10px] font-semibold tracking-wider uppercase italic bg-red-400/5 py-3 rounded-xl border border-red-400/20 animate-in fade-in zoom-in duration-300">
+              <p className="text-[#D4AF37] text-[9px] font-semibold tracking-widest uppercase animate-in fade-in slide-in-from-top-1">
                 {error}
-              </div>
+              </p>
             )}
 
             <button
               type="submit"
               disabled={isChecking}
-              className="w-full flex items-center justify-center gap-3 px-6 py-5 rounded-2xl font-semibold transition-all shadow-lg active:scale-[0.98] text-sm tracking-wider uppercase bg-[#D4AF37] hover:bg-[#FAF0CA] text-slate-900 disabled:opacity-50"
+              className="w-full flex items-center justify-center gap-2 h-12 rounded-xl font-semibold transition-all shadow-xl active:scale-[0.98] text-[10px] tracking-[0.2em] uppercase bg-[#F3E5AB] hover:bg-white text-black disabled:opacity-50"
             >
               {isChecking ? (
-                <Loader2 className="animate-spin h-5 w-5" />
+                <Loader2 className="animate-spin h-4 w-4" />
               ) : (
                 <>
-                  <Lock size={14} />
-                  <span>Desbloquear Galeria</span>
+                  <Lock size={12} strokeWidth={2.5} />
+                  <span>Acessar Galeria</span>
                 </>
               )}
             </button>
           </form>
 
-          <div className="mt-8">
+          <div className="mt-8 pt-6 border-t border-white/5">
             <button
               onClick={() => setIsModalOpen(true)}
-              className="text-[#F3E5AB]/60 hover:text-[#F3E5AB] text-[10px] tracking-wider uppercase font-semibold transition-all border-b border-[#F3E5AB]/20 pb-1"
+              className="text-white/70 hover:text-[#F3E5AB] text-[9px] tracking-[0.2em] uppercase font-semibold transition-all"
             >
               Não tenho a senha
             </button>
           </div>
-
-          <AccessRequestModal
-            isOpen={isModalOpen}
-            onClose={() => setIsModalOpen(false)}
-            galeriaTitle={galeria.title}
-            photographerEmail={galeria.photographer_email}
-          />
         </div>
       </div>
+
+      <AccessRequestModal
+        isOpen={isModalOpen}
+        onClose={() => setIsModalOpen(false)}
+        galeriaTitle={galeria.title}
+        photographerEmail={galeria.photographer_email}
+      />
     </div>
   );
 }
 
+// ... Modal de solicitação ajustado para o padrão pequeno
 export function AccessRequestModal({
   isOpen,
   onClose,
   galeriaTitle,
   photographerEmail,
-}: {
-  isOpen: boolean;
-  onClose: () => void;
-  galeriaTitle: string;
-  photographerEmail: string;
-}) {
+}: any) {
   const [loading, setLoading] = useState(false);
   const [sent, setSent] = useState(false);
   const [phone, setPhone] = useState('');
 
   if (!isOpen) return null;
 
-  const handlePhoneChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    const maskedValue = maskPhone(e);
-    setPhone(maskedValue);
-  };
-
   const handleSubmit = async (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault();
     setLoading(true);
-
     const formData = new FormData(e.currentTarget);
 
     try {
-      // Chamada da Action ajustada para o novo padrão SMTP/Nodemailer
       const result = await sendAccessRequestAction({
         name: String(formData.get('name')),
         email: String(formData.get('email')),
@@ -172,95 +159,79 @@ export function AccessRequestModal({
         galeriaTitle,
         photographerEmail,
       });
-
-      if (result.success) {
-        setSent(true);
-      } else {
-        alert('Erro ao enviar solicitação: ' + result.error);
-      }
+      if (result.success) setSent(true);
     } catch (error) {
-      console.error('Falha no envio da solicitação:', error);
+      console.error(error);
     } finally {
       setLoading(false);
     }
   };
 
   return (
-    <div className="fixed inset-0 z-[100] flex items-center justify-center p-4 bg-black/80 backdrop-blur-sm animate-in fade-in duration-300">
-      <div className="bg-[#1A1A1A] border border-white/10 w-full max-w-md rounded-[2.5rem] overflow-hidden shadow-2xl">
-        <div className="p-8 md:p-10">
+    <div className="fixed inset-0 z-[100] flex items-center justify-center p-4 bg-black/90 backdrop-blur-md animate-in fade-in duration-300">
+      <div className="bg-[#0A0A0A] border border-white/10 w-full max-w-sm rounded-[1.5rem] overflow-hidden shadow-2xl">
+        <div className="p-8">
           {!sent ? (
             <>
-              <div className="flex justify-between items-start mb-6">
-                <div>
-                  <h3 className="text-xl italic text-white">
-                    Solicitar Acesso
-                  </h3>
-                  <p className="text-[10px] text-[#D4AF37]/60 mt-1 uppercase tracking-wider font-semibold">
-                    Identifique-se para o fotógrafo
-                  </p>
-                </div>
+              <div className="flex justify-between items-center mb-6">
+                <h3 className="text-sm font-semibold uppercase tracking-[0.2em] text-white">
+                  Solicitar Acesso
+                </h3>
                 <button
                   onClick={onClose}
-                  className="text-white/40 hover:text-white transition-colors"
+                  className="text-white/20 hover:text-white transition-colors"
                 >
-                  <X size={24} />
+                  <X size={18} />
                 </button>
               </div>
 
-              <form onSubmit={handleSubmit} className="space-y-4">
+              <form onSubmit={handleSubmit} className="space-y-3">
                 <input
                   name="name"
-                  placeholder="Seu Nome Completo"
-                  min={3}
-                  max={50}
+                  placeholder="NOME COMPLETO"
                   required
-                  className="w-full bg-white/5 border border-white/10 rounded-2xl p-4 text-white outline-none focus:border-[#D4AF37]/50 transition-all text-sm"
+                  className="w-full bg-white/5 border border-white/10 rounded-xl p-3 text-white outline-none focus:border-[#D4AF37]/50 text-[10px] font-semibold uppercase tracking-widest"
                 />
                 <input
                   name="email"
                   type="email"
-                  placeholder="Seu melhor E-mail"
+                  placeholder="E-MAIL"
                   required
-                  className="w-full bg-white/5 border border-white/10 rounded-2xl p-4 text-white outline-none focus:border-[#D4AF37]/50 transition-all text-sm"
+                  className="w-full bg-white/5 border border-white/10 rounded-xl p-3 text-white outline-none focus:border-[#D4AF37]/50 text-[10px] font-semibold uppercase tracking-widest"
                 />
                 <input
                   name="whatsapp"
-                  onChange={handlePhoneChange}
-                  placeholder="WhatsApp (com DDD)"
+                  onChange={(e) => setPhone(maskPhone(e))}
+                  value={phone}
+                  placeholder="WHATSAPP"
                   required
-                  className="w-full bg-white/5 border border-white/10 rounded-2xl p-4 text-white outline-none focus:border-[#D4AF37]/50 transition-all text-sm"
+                  className="w-full bg-white/5 border border-white/10 rounded-xl p-3 text-white outline-none focus:border-[#D4AF37]/50 text-[10px] font-semibold uppercase tracking-widest"
                 />
 
                 <button
                   disabled={loading}
-                  className="w-full bg-[#D4AF37] text-black font-semibold uppercase tracking-widest text-[11px] py-5 rounded-2xl flex items-center justify-center gap-3 hover:bg-[#FAF0CA] transition-all disabled:opacity-50"
+                  className="w-full bg-[#D4AF37] text-black font-semibold uppercase tracking-[0.2em] text-[10px] h-12 rounded-xl flex items-center justify-center gap-2 hover:bg-white transition-all"
                 >
                   {loading ? (
-                    <Loader2 className="animate-spin" />
+                    <Loader2 className="animate-spin h-4 w-4" />
                   ) : (
-                    <>
-                      <Send size={16} /> Enviar Solicitação
-                    </>
+                    'Enviar Pedido'
                   )}
                 </button>
               </form>
             </>
           ) : (
-            <div className="text-center py-10 animate-in zoom-in duration-500">
-              <div className="w-16 h-16 bg-[#D4AF37]/10 rounded-full flex items-center justify-center mx-auto mb-6">
-                <CheckCircle2 size={32} className="text-[#D4AF37]" />
-              </div>
-              <h3 className="text-xl text-white italic mb-2">
-                Solicitação Enviada!
+            <div className="text-center py-6 animate-in zoom-in">
+              <CheckCircle2 size={32} className="text-[#D4AF37] mx-auto mb-4" />
+              <h3 className="text-white text-xs font-semibold uppercase tracking-widest mb-2">
+                Pedido Enviado
               </h3>
-              <p className="text-white/50 text-sm leading-relaxed px-4">
-                O fotógrafo analisará seu pedido em breve e você receberá o
-                retorno.
+              <p className="text-white/40 text-[10px] mb-6">
+                Aguarde o retorno do fotógrafo.
               </p>
               <button
                 onClick={onClose}
-                className="mt-10 text-[#D4AF37] uppercase tracking-wider text-[10px] font-semibold border-b-2 border-[#D4AF37]/20 pb-1 hover:border-[#D4AF37] transition-all"
+                className="text-[#D4AF37] text-[9px] font-semibold uppercase tracking-widest border-b border-[#D4AF37]/20"
               >
                 Fechar
               </button>

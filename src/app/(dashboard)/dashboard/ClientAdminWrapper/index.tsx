@@ -266,23 +266,31 @@ export default function ClientAdminWrapper({
         <button
           onClick={() => setIsFormOpen(true)}
           className={`
-    hidden lg:flex items-center bg-[#D4AF37] text-black 
+    /* Visibilidade: Sempre flex agora, mas com tamanhos diferentes */
+    flex items-center justify-center bg-[#D4AF37] text-black 
     hover:bg-white hover:text-[#D4AF37] transition-all duration-300 
-    rounded-[0.5rem] border border-[#D4AF37] group shadow-sm mb-6 overflow-hidden
+    rounded-[0.5rem] border border-[#D4AF37] group shadow-lg lg:shadow-sm mb-6 overflow-hidden
+    
+    /* Mobile: Botão flutuante ou destaque na base da sidebar mobile */
+    w-12 h-12 fixed bottom-6 right-6 z-[100] lg:relative lg:bottom-auto lg:right-auto lg:z-auto
+    
+    /* Desktop: Retorna ao padrão da sidebar */
     ${
       isSidebarCollapsed
-        ? 'w-14 h-10 justify-center mx-auto'
-        : 'h-10 px-4 gap-3 w-full'
+        ? 'lg:w-14 lg:h-10'
+        : 'lg:h-10 lg:px-4 lg:gap-3 lg:w-full'
     }
   `}
         >
           <Plus
-            size={18} // Reduzido de 24 para 18
-            className="group-hover:rotate-90 transition-transform shrink-0"
-            strokeWidth={2.5} // Reduzido de 3 para 2.5 para mais leveza
+            size={20} // Ligeiramente maior no mobile para facilitar o toque
+            className="group-hover:rotate-90 transition-transform shrink-0 lg:w-[18px] lg:h-[18px]"
+            strokeWidth={2.5}
           />
+
+          {/* Texto: Escondido no Mobile (estilo FAB), Visível no Desktop expandido */}
           {!isSidebarCollapsed && (
-            <span className="text-[10px] font-semibold uppercase tracking-[0.2em] whitespace-nowrap">
+            <span className="hidden lg:block text-[10px] font-semibold uppercase tracking-[0.2em] whitespace-nowrap">
               Nova Galeria
             </span>
           )}

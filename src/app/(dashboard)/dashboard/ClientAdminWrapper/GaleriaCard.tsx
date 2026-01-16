@@ -33,6 +33,7 @@ import { GALLERY_MESSAGES } from '@/constants/messages';
 import { executeShare } from '@/core/utils/share-helper';
 import WhatsAppIcon from '@/components/ui/WhatsAppIcon';
 import { div } from 'framer-motion/client';
+import { normalizePhoneNumber } from '@/core/utils/masks-helpers';
 
 interface GaleriaCardProps {
   galeria: Galeria;
@@ -219,7 +220,7 @@ export default function GaleriaCard({
           {/* WhatsApp aparece independente do tipo, se existir no banco */}
           {galeria.client_whatsapp && (
             <span className="text-[10px] font-semibold text-slate-400">
-              {galeria.client_whatsapp}
+              {normalizePhoneNumber(galeria.client_whatsapp)}{' '}
             </span>
           )}
         </div>

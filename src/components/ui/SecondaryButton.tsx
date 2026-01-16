@@ -2,13 +2,6 @@
 
 import React from 'react';
 
-interface SecondaryButtonProps {
-  label: string;
-  onClick: () => void;
-  className?: string;
-  icon?: React.ReactNode; // Adicionado para suportar ícones do Lucide
-}
-
 export default function SecondaryButton({
   label,
   onClick,
@@ -20,24 +13,24 @@ export default function SecondaryButton({
       type="button"
       onClick={onClick}
       className={`
-        /* Tipografia Editorial (Style Guide) */
-        text-[10px] font-bold uppercase tracking-[0.2em]
+        /* Tipografia: Exata como na imagem */
+        text-[10px] md:text-[11px] font-bold uppercase tracking-[0.2em]
         
-        /* Layout e Dimensões */
-        h-11 px-8 flex items-center justify-center gap-2 
-        whitespace-nowrap transition-all duration-300
+        /* Layout responsivo e compacto */
+        h-10 md:h-11 px-6 md:px-8 flex items-center justify-center gap-3 
+        transition-all duration-300 rounded-[0.5rem]
         
-        /* Cores e Bordas */
-        bg-white text-slate-500 border border-slate-200 rounded-[0.5rem]
+        /* Cores e Borda: Azul acinzentado suave da imagem */
+        bg-white text-[#475569] border border-[#CBD5E1] shadow-sm
         
         /* Estados Interativos */
-        hover:bg-slate-50 hover:text-slate-900 hover:border-slate-300
-        active:scale-95 disabled:opacity-50
+        hover:bg-slate-50 hover:text-slate-900 hover:border-[#94A3B8]
+        active:scale-[0.98] disabled:opacity-50
         
         ${className}
       `}
     >
-      {icon && <span className="shrink-0">{icon}</span>}
+      {icon && <span className="shrink-0 text-[#475569]">{icon}</span>}
       {label}
     </button>
   );

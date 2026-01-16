@@ -5,6 +5,7 @@ import { createGaleria, updateGaleria } from '@/core/services/galeria.service';
 import { SubmitButton } from '@/components/ui';
 import GalleryFormContent from './GalleryFormContent';
 import SecondaryButton from '@/components/ui/SecondaryButton';
+import { div } from 'framer-motion/client';
 
 export default function GalleryModal({
   galeria = null,
@@ -26,8 +27,13 @@ export default function GalleryModal({
   useEffect(() => {
     if (isOpen) {
       if (galeria) {
-        // MODO EDIÇÃO: Sincroniza estados com os dados do banco
+        // MODO EDIÇÃO
         setIsPublic(galeria.is_public === true || galeria.is_public === 'true');
+
+        // 🎯 IMPORTANTE: Se a galeria já for privada, você pode querer
+        // resetar a obrigatoriedade da senha ou limpar o campo para nova definição.
+        // Se não resetar, o HTML5 'required' pode travar o form.
+
         setShowCoverInGrid(
           galeria.show_cover_in_grid === true ||
             galeria.show_cover_in_grid === 'true',
@@ -39,11 +45,14 @@ export default function GalleryModal({
           desktop: Number(galeria.columns_desktop) || 4,
         });
       } else {
-        // MODO CRIAÇÃO: Reseta para os padrões Luxury
+        // MODO CRIAÇÃO
         setIsPublic(true);
         setShowCoverInGrid(true);
         setGridBgColor('#F3E5AB');
         setColumns({ mobile: 2, tablet: 3, desktop: 4 });
+
+        // 🎯 RESET DE SEGURANÇA: Garante que ao fechar e abrir para criar uma nova,
+        // estados residuais não interfiram.
       }
     }
   }, [galeria, isOpen]);
@@ -64,6 +73,7 @@ export default function GalleryModal({
     const hasClient = formData.get('has_contracting_client') === 'true';
     const clientName = formData.get('client_name') as string;
     const password = formData.get('password') as string;
+    const isPublicValue = formData.get('is_public') === 'true';
 
     // --- 3. VALIDAÇÃO EDITORIAL ---
     if (!title?.trim()) {
@@ -86,17 +96,28 @@ export default function GalleryModal({
       onSuccess(false, 'Nome do cliente é obrigatório.');
       return;
     }
-    if (!isPublic && !isEdit && !password) {
-      onSuccess(false, 'Defina uma senha para galeria privada.');
-      return;
-    }
+    // Validação inteligente:
+    // Se for PRIVADO e NÃO for EDIÇÃO -> Senha obrigatória.
+    // Se for PRIVADO e for EDIÇÃO -> Senha só obrigatória se o banco não tiver uma senha anterior.
+    if (!isPublicValue) {
+      const hasExistingPassword = isEdit && galeria?.password;
+      if (!hasExistingPassword && !password) {
+        onSuccess(false, 'Defina uma senha para a galeria privada.');
+        return;
+      }
 
+      // Se o campo estiver vazio ou tiver menos de 4 dígitos, barra o envio
+      if (!password || password.length < 4 || password.length > 8) {
+        onSuccess(false, 'A senha privada deve ter entre 4 e 8 números.');
+        return;
+      }
+    }
     // --- 4. CONSOLIDAÇÃO FINAL DOS DADOS ---
     setLoading(true);
 
     // Garante que campos de estado do Pai que o Filho refletiu em hidden sejam lidos
     // Aqui fazemos um "Double Check" injetando os estados atuais do pai no FormData
-    formData.set('is_public', String(isPublic));
+    formData.set('is_public', String(isPublicValue));
     formData.set('show_cover_in_grid', String(showCoverInGrid));
     formData.set('grid_bg_color', gridBgColor);
     formData.set('columns_mobile', String(columns.mobile));
@@ -138,7 +159,8 @@ export default function GalleryModal({
 
   return (
     <div className="fixed inset-0 z-[1000] flex items-center justify-center bg-slate-900/40 backdrop-blur-md p-4 animate-in fade-in duration-300">
-      <div className="w-full max-w-4xl max-h-[95vh] bg-white rounded-[1.5rem] shadow-2xl flex flex-col border border-white/20 overflow-hidden scale-in-center">
+      <div className="relative w-full max-w-4xl max-h-[95vh] bg-white rounded-[0.5rem] shadow-2xl flex flex-col border border-white/20 overflow-y-auto animate-in zoom-in-95 duration-300">
+        {' '}
         {/* HEADER MODAL */}
         <div className="flex items-center justify-between py-4 px-8 border-b bg-slate-50/50">
           <div className="flex items-center gap-3">
@@ -160,9 +182,9 @@ export default function GalleryModal({
             <X size={20} />
           </button>
         </div>
-
         {/* FORM CONTENT */}
-        <div className="px-4 py-4 -mt-6 overflow-y-auto scrollbar-thin scrollbar-thumb-slate-200">
+        <div className="flex-1 px-4 py-4 overflow-y-auto overflow-x-hidden scrollbar-thin scrollbar-thumb-slate-200">
+          {' '}
           <form id="master-gallery-form" onSubmit={handleSubmit}>
             <GalleryFormContent
               initialData={galeria}
@@ -177,20 +199,23 @@ export default function GalleryModal({
             />
           </form>
         </div>
-
         {/* FOOTER MODAL */}
-        <div className="p-4 bg-slate-50/80 border-t flex justify-between items-center px-8">
-          <SecondaryButton label="Descartar" onClick={onClose} />
-          <div className="w-[240px]">
+        <div className="p-4 bg-white/90 backdrop-blur-sm border-t flex flex-row justify-center items-center gap-2 md:gap-3 px-4 sticky bottom-0 z-50">
+          <div className="w-[40%] md:w-auto">
+            <SecondaryButton
+              label="Cancelar"
+              onClick={onClose}
+              className="w-full md:px-10"
+            />
+          </div>
+
+          <div className="w-[60%] md:w-[240px]">
             <SubmitButton
               form="master-gallery-form"
               success={isSuccess}
+              className="w-full h-11 md:h-10"
               label={
-                loading
-                  ? 'PROCESSANDO...'
-                  : isEdit
-                    ? 'SALVAR ALTERAÇÕES'
-                    : 'CRIAR GALERIA'
+                loading ? '...' : isEdit ? 'SALVAR ALTERAÇÕES' : 'CRIAR GALERIA'
               }
             />
           </div>

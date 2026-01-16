@@ -34,7 +34,7 @@ export default function GaleriaView({ galeria, photos }: GaleriaViewProps) {
   }, [photos]);
 
   const coverUrl = galeria.cover_image_url
-    ? getImageUrl(galeria.cover_image_url, 'w1600')
+    ? getImageUrl(galeria.cover_image_url, 's0')
     : '/hero-bg.jpg';
 
   return (
