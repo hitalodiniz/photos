@@ -1,4 +1,6 @@
 // src/app/api/proxy-image/route.ts
+//Desativado pq estava consumindo banda no Vercel
+/*
 import { NextResponse } from 'next/server';
 
 export async function GET(request: Request) {
@@ -61,3 +63,4 @@ async function processResponse(res: Response, isDownload: boolean, id: string) {
 
   return new NextResponse(res.body, { headers });
 }
+*/

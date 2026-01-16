@@ -1,6 +1,6 @@
 import { Metadata } from 'next';
 import { fetchGalleryBySlug } from '@/core/logic/galeria-logic';
-import { getImageUrl } from '@/core/utils/url-helper';
+import { getProxyUrl } from '@/core/utils/url-helper';
 import { SEO_CONFIG } from '../config/seo.config';
 
 /**
@@ -34,7 +34,7 @@ export async function getGalleryMetadata(fullSlug: string): Promise<Metadata> {
       : 'Clique para acessar a galeria completa';
 
   // 3. Tratamento da Imagem
-  const ogImageUrl = getImageUrl(galeria.cover_image_url, 'w1200');
+  const ogImageUrl = getProxyUrl(galeria.cover_image_url, 'w1200');
 
   return {
     title: title,

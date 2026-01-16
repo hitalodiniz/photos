@@ -1,6 +1,6 @@
 'use client';
 import React, { useEffect, useState } from 'react';
-import { ChevronLeft, ChevronRight } from 'lucide-react';
+import { ChevronLeft, ChevronRight, ImageIcon } from 'lucide-react';
 import { GalleryHeader, PhotographerAvatar } from '@/components/gallery';
 import { getProxyUrl } from '@/core/utils/url-helper';
 import type { Galeria } from '@/core/types/galeria';
@@ -89,13 +89,13 @@ export default function Lightbox({
     // 🎯 CORREÇÃO: Se for visão única, garantimos que o navegador priorize o carregamento
     if (isSingleView) {
       const img = new Image();
-      img.src = getProxyUrl(photos[activeIndex].id, '0');
+      img.src = getProxyUrl(photos[activeIndex].id);
       img.onload = () => setIsImageLoading(false);
     }
 
     if (activeIndex + 1 < photos.length) {
       const nextImg = new Image();
-      nextImg.src = getProxyUrl(photos[activeIndex + 1].id, '1600');
+      nextImg.src = getProxyUrl(photos[activeIndex + 1].id);
     }
   }, [activeIndex, photos, isSingleView]); // Adicione isSingleView aqui
 
@@ -217,7 +217,7 @@ export default function Lightbox({
           */}
           <img
             key={currentPhoto.id}
-            src={getProxyUrl(currentPhoto.id, '1600')}
+            src={getProxyUrl(currentPhoto.id)}
             onLoad={() => setIsImageLoading(false)}
             className={`w-full h-auto max-w-full md:h-screen md:w-auto md:object-contain transition-all duration-700 ease-out
               ${
@@ -239,10 +239,16 @@ export default function Lightbox({
         {/* 🎯 NAVEGAÇÃO DESKTOP: Exclusiva para MD+ e sincronizada com interface */}
         {!isSingleView && (
           <div className="md:order-1">
-            <div className="bg-black/40 backdrop-blur-md p-2.5 px-8 rounded-full border border-white/10 shadow-lg">
-              <p className="text-white/80 text-[11px] md:text-[12px] font-semibold ">
+            <div className="bg-black/40 backdrop-blur-md p-2.5 px-8 rounded-full border border-white/10 shadow-lg flex items-center gap-2">
+              {/* Ícone agora alinhado à esquerda pelo flexbox */}
+              <ImageIcon
+                size={14}
+                className="text-[#F3E5AB] opacity-90 shrink-0"
+              />
+
+              <p className="text-white/80 text-[11px] md:text-[12px] font-medium">
                 Foto{' '}
-                <span className="text-[#F3E5AB] font-semibold">
+                <span className="text-[#F3E5AB] font-medium">
                   {activeIndex + 1}
                 </span>{' '}
                 de {totalPhotos}

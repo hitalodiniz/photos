@@ -15,7 +15,7 @@ import { Lightbox } from '@/components/gallery';
 import { InfoBarDesktop } from './InfoBarDesktop';
 import { InfoBarMobile } from './InfoBarMobile';
 import MasonryGrid from './MasonryGrid';
-import { getProxyUrl } from '@/core/utils/url-helper';
+import { getDownloadUrl } from '@/core/utils/url-helper';
 import { GALLERY_MESSAGES } from '@/constants/messages';
 import { executeShare } from '@/core/utils/share-helper';
 import { groupPhotosByWeight } from '@/core/utils/foto-helpers';
@@ -183,8 +183,11 @@ export default function PhotoGrid({ photos, galeria }: any) {
     confirmed = false,
     chunkIndex?: number | string,
   ) => {
+    // 1. Guard Clauses (Proteção de execução)
     if (isDownloading || isDownloadingFavs || targetList.length === 0) return;
     if (chunkIndex !== undefined) setActiveDownloadingIndex(chunkIndex);
+
+    // 2. Cálculos iniciais
     const firstPhotoGlobalIndex = photos.indexOf(targetList[0]);
     const totalMB =
       targetList.reduce((acc, photo) => acc + (Number(photo.size) || 0), 0) /
@@ -195,6 +198,7 @@ export default function PhotoGrid({ photos, galeria }: any) {
       return;
     }
 
+    // 3. Definição dinâmica de estados
     const setProgress = isFavAction
       ? setFavDownloadProgress
       : setDownloadProgress;
@@ -205,38 +209,47 @@ export default function PhotoGrid({ photos, galeria }: any) {
       setProgress(0);
       const zip = new JSZip();
       let completedCount = 0;
+
+      // Otimização de concorrência baseada no dispositivo
       const batchSize = window.innerWidth < 768 ? 30 : 100;
 
+      // 4. Processamento em Lotes (Batches)
       for (let i = 0; i < targetList.length; i += batchSize) {
         const currentBatch = targetList.slice(i, i + batchSize);
         await Promise.all(
           currentBatch.map(async (photo, indexInBatch) => {
             try {
-              const res = await fetch(getProxyUrl(photo.id, '0'));
-              if (!res.ok) throw new Error();
+              // Chamada direta ao Google (Bypass Vercel)
+              const res = await fetch(getDownloadUrl(photoId));
+              if (!res.ok) throw new Error(`Erro na foto ${photo.id}`);
+
               const blob = await res.blob();
               const globalPhotoNumber =
                 firstPhotoGlobalIndex + i + indexInBatch + 1;
+              // Adiciona ao ZIP na memória do cliente
               zip.file(`foto-${globalPhotoNumber}.jpg`, blob, { binary: true });
             } catch (e) {
-              console.error(e);
+              console.error(`Falha ao processar foto individual no ZIP:`, e);
             } finally {
               completedCount++;
               setProgress((completedCount / targetList.length) * 95);
             }
           }),
         );
+        // Pequeno respiro para a Main Thread não travar em dispositivos fracos
         if (i + batchSize < targetList.length)
           await new Promise((r) =>
             setTimeout(r, window.innerWidth < 768 ? 300 : 100),
           );
       }
 
+      // 5. Geração do arquivo final (Blob)
       const content = await zip.generateAsync({
         type: 'blob',
         compression: 'STORE',
         streamFiles: true,
       });
+      // 6. Nomeação e Download
       saveAs(
         content,
         `${galeria.title.replace(/\s+/g, '_')}_${zipSuffix}_${totalMB.toFixed(0)}MB.zip`,
@@ -245,7 +258,7 @@ export default function PhotoGrid({ photos, galeria }: any) {
       if (typeof chunkIndex === 'number')
         setDownloadedVolumes((prev) => [...new Set([...prev, chunkIndex])]);
     } catch (error) {
-      alert('Erro ao gerar arquivo.');
+      console.error('Erro crítico na geração do ZIP:', error);
     } finally {
       setTimeout(() => {
         setStatus(false);

@@ -1,7 +1,7 @@
 // src/lib/gallery/metadata-helper.ts
 import { Metadata } from 'next';
 import { fetchGalleryBySlug } from '@/core/logic/galeria-logic';
-import { getImageUrl } from '@/core/utils/url-helper';
+import { getProxyUrl } from '@/core/utils/url-helper';
 
 export async function getGalleryMetadata(fullSlug: string): Promise<Metadata> {
   const galeriaRaw = await fetchGalleryBySlug(fullSlug);
@@ -41,7 +41,7 @@ export async function getGalleryMetadata(fullSlug: string): Promise<Metadata> {
 
   // 3. Tratamento da Imagem (WhatsApp exige HTTPS e w1200)
   const ogImage = galeriaRaw.cover_image_url
-    ? getImageUrl(galeriaRaw.cover_image_url, 'w1200')
+    ? getProxyUrl(galeriaRaw.cover_image_url, 'w1200')
     : null;
 
   return {
@@ -115,7 +115,7 @@ export async function getPhotoMetadata(
   // Usamos o padrão que o WhatsApp aceita para o Drive, garantindo HTTPS e tamanho
   // 3. Tratamento da Imagem (WhatsApp exige HTTPS e w1200)
   const ogImage = galeriaRaw.cover_image_url
-    ? getImageUrl(galeriaRaw.cover_image_url, 'w1200')
+    ? getProxyUrl(galeriaRaw.cover_image_url, 'w1200')
     : null;
 
   const baseUrl = process.env.NEXT_PUBLIC_BASE_URL;

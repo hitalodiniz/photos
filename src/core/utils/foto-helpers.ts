@@ -1,5 +1,6 @@
+import { saveAs } from 'file-saver';
 import { Galeria } from '../types/galeria';
-import { getProxyUrl } from './url-helper';
+import { getDownloadUrl, getHighResImageUrl } from './url-helper';
 
 const getFormattedDateFromSlug = (slug: string) => {
   try {
@@ -28,19 +29,18 @@ export const handleDownloadPhoto = async (
   index: number,
 ) => {
   try {
-    // 1. Extrai a data do slug
+    // 1. Lógica de nomeação (Mantida)
     const dateStr = getFormattedDateFromSlug(galeria.slug);
-
-    // 2. Extrai o nome do evento (última parte do slug)
     const eventName = galeria.slug.split('/').pop() || 'galeria';
-
-    // 3. Monta o nome do arquivo: foto_3_2025_12_27_nome-evento.jpg
     const fileName = `foto_${index + 1}_${dateStr}_${eventName}.jpg`;
 
-    const highResUrl = getProxyUrl(photoId, '0');
-    const response = await fetch(highResUrl);
+    // 2. CHAMADA AO HELPER (Bypass Vercel)
+    // Agora centralizamos a lógica da URL no helper
+    const highResUrl = getDownloadUrl(photoId);
 
-    if (!response.ok) throw new Error('Falha no download');
+    // 3. Download via Blob (Cliente <-> Google)
+    const response = await fetch(highResUrl);
+    if (!response.ok) throw new Error('Falha no download direto da foto');
 
     const blob = await response.blob();
 
@@ -48,8 +48,9 @@ export const handleDownloadPhoto = async (
     saveAs(blob, fileName);
   } catch (e) {
     console.error('Erro no download individual:', e);
-    // Fallback seguro
-    window.open(getProxyUrl(photoId, '0'), '_blank');
+
+    // Fallback usando o helper também
+    window.open(getHighResImageUrl(photoId), '_blank');
   }
 };
 

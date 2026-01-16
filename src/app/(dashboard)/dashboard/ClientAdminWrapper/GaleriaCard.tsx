@@ -20,6 +20,7 @@ import {
   LayoutGrid,
   ShieldCheck,
   Users,
+  RefreshCw,
 } from 'lucide-react';
 import { useState, useEffect } from 'react';
 import type { Galeria } from '@/core/types/galeria';
@@ -27,7 +28,7 @@ import { GALLERY_CATEGORIES } from '@/constants/categories';
 import {
   getPublicGalleryUrl,
   copyToClipboard,
-  getImageUrl,
+  getProxyUrl,
 } from '@/core/utils/url-helper';
 import { GALLERY_MESSAGES } from '@/constants/messages';
 import { executeShare } from '@/core/utils/share-helper';
@@ -44,6 +45,7 @@ interface GaleriaCardProps {
   onArchive: (galeria: Galeria) => void;
   onRestore: (id: string) => void;
   onPermanentDelete: (id: string) => void;
+  onSync: () => void;
   isDeleting?: boolean;
   isUpdating?: boolean;
 }
@@ -59,15 +61,17 @@ export default function GaleriaCard({
   onPermanentDelete,
   isDeleting,
   isUpdating = false,
+  onSync,
 }: GaleriaCardProps) {
   const [mounted, setMounted] = useState(false);
   const [copied, setCopied] = useState(false);
   const [links, setLinks] = useState({ url: '', whatsapp: '', message: '' });
-
+  // 1. Efeito para marcar que o componente montou no navegador
   useEffect(() => {
     setMounted(true);
   }, []);
 
+  // 2. Efeito para gerar os links assim que estiver montado ou a galeria mudar
   useEffect(() => {
     if (galeria && mounted) {
       const publicUrl = getPublicGalleryUrl(galeria.photographer, galeria.slug);
@@ -92,11 +96,7 @@ export default function GaleriaCard({
     return `${day}/${month}/${year}`;
   };
 
-  const imageUrl = galeria.cover_image_url?.includes('http')
-    ? galeria.cover_image_url
-    : getImageUrl(galeria.cover_image_url);
-
-  const isPrivate = !galeria.is_public;
+  const imageUrl = getProxyUrl(galeria.cover_image_url);
 
   const handleCopy = async (e: React.MouseEvent) => {
     e.stopPropagation();
@@ -120,7 +120,11 @@ export default function GaleriaCard({
 
   return (
     <div
-      onClick={() => window.open(links.url, '_blank')}
+      onClick={() => {
+        if (links.url) {
+          window.open(links.url, '_blank');
+        }
+      }}
       className="group relative flex cursor-pointer flex-col overflow-hidden rounded-[14px] border border-slate-200 bg-white transition-all duration-300 hover:shadow-2xl hover:shadow-[#D4AF37]/15 w-full animate-in fade-in slide-in-from-bottom-2 duration-500 fill-mode-both"
       style={{ animationDelay: `${index * 50}ms` }}
     >
@@ -242,25 +246,51 @@ export default function GaleriaCard({
         </div>
 
         {/* Botão Drive: Agora com fundo cinza muito leve para não brigar com o branco do card */}
-        <a
-          href={`https://drive.google.com/drive/folders/${galeria.drive_folder_id}`}
-          target="_blank"
-          onClick={(e) => e.stopPropagation()}
-          className="flex items-center justify-between px-3 py-2 rounded-lg bg-slate-50 border border-slate-100 hover:border-[#D4AF37]/30 hover:bg-white transition-all group/drive"
-        >
-          <div className="flex items-center gap-2 min-w-0">
-            <FolderOpen size={14} className="text-[#D4AF37]" />
-            <span className="text-[11px] font-semibold text-slate-800 truncate">
-              Pasta do Drive:
-            </span>
-            <span className="text-[11px] font-medium text-slate-600 truncate">
-              {galeria.drive_folder_name || 'Acessar Pasta'}
-            </span>
+        {/* Container da Pasta e Sincronização - Horizontal e Compacto */}
+        <div className="flex items-center gap-2">
+          <div className="flex-1 flex items-center h-9 rounded-lg bg-slate-50 border border-slate-100 overflow-hidden">
+            {/* Link da Pasta */}
+            <a
+              href={`https://drive.google.com/drive/folders/${galeria.drive_folder_id}`}
+              target="_blank"
+              onClick={(e) => e.stopPropagation()}
+              className="flex-1 flex items-center gap-2 px-3 h-full hover:bg-white transition-all group/drive min-w-0"
+            >
+              <FolderOpen size={14} className="text-[#D4AF37] shrink-0" />
+              <span className="text-[11px] font-medium text-slate-600 truncate">
+                {galeria.drive_folder_name || 'Pasta do Drive'}
+              </span>
+              <span className="text-[9px] font-bold text-[#D4AF37] uppercase tracking-tighter opacity-0 group-hover/drive:opacity-100 transition-opacity shrink-0">
+                Abrir
+              </span>
+            </a>
+
+            {/* Divisor Sutil */}
+            <div className="w-[1px] h-4 bg-slate-200" />
+
+            {/* Botão de Sincronização Integrado */}
+            <button
+              onClick={(e) => {
+                e.preventDefault();
+                e.stopPropagation();
+                onSync();
+              }}
+              disabled={isUpdating}
+              title="Sincronizar com o Drive"
+              className="flex items-center justify-center px-3 h-full hover:bg-white text-slate-400 hover:text-[#D4AF37] transition-all disabled:opacity-50 shrink-0"
+            >
+              {isUpdating ? (
+                <Loader2 size={13} className="animate-spin text-[#D4AF37]" />
+              ) : (
+                // RefreshCw passa muito mais a ideia de "sincronizar/atualizar"
+                <RefreshCw
+                  size={13}
+                  className={isUpdating ? 'animate-spin' : ''}
+                />
+              )}
+            </button>
           </div>
-          <span className="text-[9px] font-semibold text-[#D4AF37] uppercase tracking-tighter opacity-0 group-hover/drive:opacity-100 transition-opacity">
-            Abrir
-          </span>
-        </a>
+        </div>
       </div>
 
       {/* Rodapé de Ações: Clean com borda sutil */}

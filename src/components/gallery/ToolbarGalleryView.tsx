@@ -1,5 +1,5 @@
 'use client';
-import React, { useState, useEffect, useRef } from 'react';
+import React, { useState, useEffect } from 'react';
 import {
   Download,
   Loader2,
@@ -7,7 +7,6 @@ import {
   Check,
   Heart,
   X,
-  Camera,
 } from 'lucide-react';
 import WhatsAppIcon from '../ui/WhatsAppIcon';
 import { executeShare, getCleanSlug } from '@/core/utils/share-helper';

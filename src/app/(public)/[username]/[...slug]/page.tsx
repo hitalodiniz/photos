@@ -7,9 +7,13 @@ import {
   fetchDrivePhotos,
 } from '@/core/logic/galeria-logic';
 import { GaleriaView, PasswordPrompt } from '@/components/gallery';
-import { getImageUrl } from '@/core/utils/url-helper';
+import { getHighResImageUrl, getProxyUrl } from '@/core/utils/url-helper';
 import {} from '@/core/services/galeria.service';
 import { getGalleryMetadata } from '@/lib/gallery/metadata-helper';
+
+// 🎯 Define que TODA essa rota (incluindo os filhos) é estática
+export const dynamic = 'force-static';
+export const revalidate = 86400; // 24 horas
 
 export default async function UsernameGaleriaPage({
   params,
@@ -33,7 +37,7 @@ export default async function UsernameGaleriaPage({
     const savedToken = cookieStore.get(`galeria-${galeriaData.id}-auth`)?.value;
 
     if (savedToken !== galeriaData.password) {
-      const coverUrl = getImageUrl(galeriaData.cover_image_url, 'w600');
+      const coverUrl = getHighResImageUrl(galeriaData.cover_image_url);
       return (
         <PasswordPrompt
           galeria={galeriaData}

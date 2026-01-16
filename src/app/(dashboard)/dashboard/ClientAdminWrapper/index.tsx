@@ -3,7 +3,6 @@
 import { useEffect, useMemo, useState } from 'react';
 import {
   Plus,
-  ChevronDown,
   Inbox,
   Archive,
   Trash2,
@@ -25,9 +24,13 @@ import Filters from './Filters';
 import { ConfirmationModal, Toast } from '@/components/ui';
 import GaleriaCard from './GaleriaCard';
 import { updateSidebarPreference } from '@/core/services/profile.service';
-import { button, div, main } from 'framer-motion/client';
+import {
+  revalidateGalleryCover,
+  revalidateDrivePhotos,
+  revalidateGallery,
+} from '@/actions/revalidate.actions';
 
-const CARDS_PER_PAGE = 6;
+const CARDS_PER_PAGE = 8;
 
 function normalizeString(str: string): string {
   return str
@@ -37,7 +40,7 @@ function normalizeString(str: string): string {
     .trim();
 }
 
-export default function ClientAdminWrapper({
+export default function Dashboard({
   initialGalerias,
   initialProfile,
 }: {
@@ -160,6 +163,40 @@ export default function ClientAdminWrapper({
       setToast({ message: 'Erro ao excluir galeria', type: 'error' });
     }
     setUpdatingId(null);
+  };
+
+  // --- DENTRO DO COMPONENTE ClientAdminWrapper ---
+
+  const handleSyncDrive = async (galeria: Galeria) => {
+    setUpdatingId(galeria.id); // Ativa o loader no card específico
+    try {
+      // Chamada direta para as Server Actions (Mais rápido e seguro)
+      await revalidateDrivePhotos(galeria.drive_folder_id);
+
+      if (galeria.cover_image_url) {
+        await revalidateGalleryCover(galeria.cover_image_url);
+      }
+
+      console.log(
+        'galeria.photographer_username ',
+        galeria.photographer_username,
+      );
+      await revalidateGallery(
+        galeria.drive_folder_id,
+        galeria.slug,
+        galeria.photographer_username,
+        galeria.photographer_username, // Se você tiver essa info no banco
+      );
+
+      setToast({ message: 'Sincronização concluída!', type: 'success' });
+    } catch (error) {
+      setToast({
+        message: 'Erro ao sincronizar com o Google Drive.',
+        type: 'error',
+      });
+    } finally {
+      setUpdatingId(null); // Desativa o loader
+    }
   };
 
   const executePermanentDelete = async () => {
@@ -416,6 +453,7 @@ export default function ClientAdminWrapper({
                 onRestore={handleRestore}
                 onPermanentDelete={() => setGaleriaToPermanentlyDelete(g)}
                 isUpdating={updatingId === g.id}
+                onSync={() => handleSyncDrive(g)} // ADICIONE ESTA LINHA
               />
             ))}
           </div>

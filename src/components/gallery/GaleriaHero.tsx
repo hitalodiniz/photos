@@ -69,10 +69,10 @@ export const GaleriaHero = ({ galeria, photos, coverUrl }: any) => {
 
       {/* CONTAINER PRINCIPAL DE CONTEÚDO */}
       <div
-        className={`px-2 relative h-full flex flex-col transition-all duration-[1200ms] max-w-[1600px] mx-auto w-full z-20 justify-end ${
+        className={`px-2 relative h-full flex flex-col transition-all duration-[1200ms] max-w-[1600px] mx-auto w-full z-0 justify-end ${
           isExpanded
             ? 'pb-8 md:pb-24 md:px-16' // Espaço maior quando em tela cheia
-            : 'pb-2 md:px-10' // Alinhado ao bottom, mas com respiro menor quando recolhido
+            : 'pb-8 md:px-10' // Alinhado ao bottom, mas com respiro menor quando recolhido
         }`}
       >
         <div

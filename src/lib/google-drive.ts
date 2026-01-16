@@ -23,44 +23,66 @@ export async function listPhotosFromDriveFolder(
     `'${driveFolderId}' in parents and mimeType contains 'image/' and trashed = false`,
   );
 
-  // 1. Incluímos o campo 'name' explicitamente e pedimos ordenação por nome na API
   const fields = encodeURIComponent(
     'nextPageToken, files(id, name, size, thumbnailLink, webViewLink, imageMediaMetadata(width,height))',
   );
 
-  const apiKey = process.env.NEXT_PUBLIC_GOOGLE_API_KEY;
   let allFiles: any[] = [];
   let pageToken: string | null = null;
 
   try {
     do {
-      // 2. Adicionamos &orderBy=name para que o Google já mande o grosso ordenado
       const url = `https://www.googleapis.com/drive/v3/files?q=${query}&fields=${fields}&pageSize=1000&orderBy=name${
         pageToken ? `&pageToken=${pageToken}` : ''
-      }${apiKey ? `&key=${apiKey}` : ''}`;
+      }`;
 
-      const res = await fetch(url, {
+      console.log(
+        `\x1b[36m[LIST PHOTOS]\x1b[0m Verificando pasta: ${driveFolderId}`,
+      );
+
+      const response = await fetch(url, {
         headers: { Authorization: `Bearer ${accessToken}` },
+        cache: 'force-cache',
         next: {
-          revalidate: 300, // Mantém a lista de fotos em cache por 5 minutos
-          tags: [`drive-photos-${driveFolderId}`], // Tag opcional para limpar o cache manualmente depois
+          revalidate: 86400,
+          tags: [`drive-photos-${driveFolderId}`],
         },
       });
 
-      if (!res.ok) throw new Error(`Erro API Drive: ${res.status}`);
+      if (!response.ok) throw new Error(`Erro API Drive: ${response.status}`);
 
-      const data = await res.json();
+      // 🎯 SOLUÇÃO PARA "Body is unusable"
+      // Lemos o corpo UMA ÚNICA VEZ como buffer
+      const buffer = await response.arrayBuffer();
+
+      // Calculamos o tamanho para o seu log de economia
+      const sizeInKb = (buffer.byteLength / 1024).toFixed(1);
+      const cacheStatus = response.headers.get('x-nextjs-cache');
+      const isHit = cacheStatus === 'HIT';
+
+      if (isHit) {
+        console.log(
+          `\x1b[32m[CACHE HIT LIST]\x1b[0m ID: ${driveFolderId} | Economizou ${sizeInKb} KB`,
+        );
+      } else {
+        console.log(
+          `\x1b[35m[GOOGLE MISS LIST]\x1b[0m ID: ${driveFolderId} | Baixando ${sizeInKb} KB`,
+        );
+      }
+
+      // 🎯 CONVERSÃO SEGURA: Transformamos o buffer em JSON
+      const textData = new TextDecoder().decode(buffer);
+      const data = JSON.parse(textData);
+
       allFiles = [...allFiles, ...(data.files || [])];
       pageToken = data.nextPageToken || null;
     } while (pageToken);
 
-    // 3. ORDENAÇÃO MANUAL ROBUSTA (Natural Sort)
-    // Isso corrige casos onde o fotógrafo misturou nomes como "foto-1.jpg" e "foto-10.jpg"
-    // ou usou câmeras diferentes.
+    // Ordenação Natural (Ex: foto-2 vem antes de foto-10)
     const sortedFiles = allFiles.sort((a, b) =>
       a.name.localeCompare(b.name, undefined, {
-        numeric: true, // Garante que 2 venha antes de 10
-        sensitivity: 'base', // Ignora diferenças de acento/caixa alta
+        numeric: true,
+        sensitivity: 'base',
       }),
     );
 
@@ -68,13 +90,14 @@ export async function listPhotosFromDriveFolder(
       id: file.id,
       name: file.name,
       size: file.size || '0',
-      thumbnailUrl: file.thumbnailLink || null,
+      // Reduzimos o padrão da thumb no grid para 600px para ser ultra rápido
+      thumbnailUrl: `/api/galeria/cover/${file.id}?w=600`,
       webViewUrl: file.webViewLink,
       width: file.imageMediaMetadata?.width || 1600,
       height: file.imageMediaMetadata?.height || 1200,
     }));
   } catch (error: any) {
-    console.error('Erro ao listar fotos do Drive:', error);
+    console.error('Erro crítico na listagem:', error.message);
     throw error;
   }
 }

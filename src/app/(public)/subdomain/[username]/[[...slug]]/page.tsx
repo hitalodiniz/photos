@@ -5,10 +5,14 @@ import {
   fetchDrivePhotos,
 } from '@/core/logic/galeria-logic';
 import { GaleriaView, PasswordPrompt } from '@/components/gallery';
-import { getImageUrl } from '@/core/utils/url-helper';
+import { getProxyUrl } from '@/core/utils/url-helper';
 import PhotographerContainer from '@/components/photographer/PhotographerContainer';
 import { getGalleryMetadata } from '@/lib/gallery/metadata-helper';
 import { checkGalleryAccess } from '@/core/logic/auth-gallery';
+
+// 🎯 Define que TODA essa rota (incluindo os filhos) é estática
+export const dynamic = 'force-static';
+export const revalidate = 86400; // 24 horas
 
 type SubdomainGaleriaPageProps = {
   params: Promise<{
@@ -61,7 +65,7 @@ export default async function SubdomainGaleriaPage({
     const isAuthorized = await checkGalleryAccess(galeriaData.id);
     console.log('isAuthorized', isAuthorized);
     if (!isAuthorized) {
-      const coverUrl = getImageUrl(galeriaData.cover_image_url, 'w600');
+      const coverUrl = getProxyUrl(galeriaData.cover_image_url);
       return (
         <PasswordPrompt
           galeria={galeriaData}

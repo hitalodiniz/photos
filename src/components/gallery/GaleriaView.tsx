@@ -3,7 +3,7 @@ import React, { useState, useEffect } from 'react';
 import type { Galeria } from '@/core/types/galeria';
 import LoadingScreen from '../ui/LoadingScreen';
 import GaleriaFooter from './GaleriaFooter';
-import { getImageUrl } from '@/core/utils/url-helper';
+import { getHighResImageUrl } from '@/core/utils/url-helper';
 import { GaleriaHero } from './GaleriaHero';
 import PhotoGrid from './PhotoGrid';
 
@@ -34,7 +34,7 @@ export default function GaleriaView({ galeria, photos }: GaleriaViewProps) {
   }, [photos]);
 
   const coverUrl = galeria.cover_image_url
-    ? getImageUrl(galeria.cover_image_url, 's0')
+    ? getHighResImageUrl(galeria.cover_image_url)
     : '/hero-bg.jpg';
 
   return (

@@ -1,11 +1,10 @@
 'use client';
 import React, { memo, useEffect, useRef, useState } from 'react';
-import Image from 'next/image';
 import { Heart, Loader2 } from 'lucide-react';
 import 'photoswipe/dist/photoswipe.css';
 import { Gallery, Item } from 'react-photoswipe-gallery';
 import { Galeria } from '@/core/types/galeria';
-import { getProxyUrl } from '@/core/utils/url-helper';
+import { getHighResImageUrl, getProxyUrl } from '@/core/utils/url-helper';
 import { handleDownloadPhoto } from '@/core/utils/foto-helpers';
 import { GALLERY_MESSAGES } from '@/constants/messages';
 import { getCleanSlug, executeShare } from '@/core/utils/share-helper';
@@ -156,11 +155,13 @@ const MasonryGrid = ({
 
               {limitedPhotos.map((photo, index) => {
                 const isSelected = favorites.includes(photo.id);
+                const thumbUrl = getProxyUrl(photo.id, '800'); // Retorna /api/galeria/cover/${id}?w=800
+                const fullUrl = getHighResImageUrl(photo.id); // Retorna /api/galeria/cover/${id}?w=2048
                 return (
                   <Item
                     key={photo.id}
-                    original={getProxyUrl(photo.id, '1600')}
-                    thumbnail={getProxyUrl(photo.id, '600')}
+                    original={fullUrl} // Lightbox usará o proxy
+                    thumbnail={thumbUrl} // Miniatura usará o proxy
                     width={photo.width}
                     height={photo.height}
                     caption={`${galleryTitle} - Foto ${index + 1}`}
@@ -180,7 +181,7 @@ const MasonryGrid = ({
                         >
                           <SafeImage
                             photoId={photo.id}
-                            src={getProxyUrl(photo.id, '400')}
+                            src={thumbUrl}
                             alt={`Foto ${index + 1}`}
                             width={photo.width}
                             height={photo.height}
@@ -270,14 +271,15 @@ const SafeImage = memo(
             <LoadingSpinner size="xs" />
           </div>
         )}
-        <Image
+        <img
           src={src}
           alt={alt}
-          fill
-          priority={priority}
-          className={`${className} object-cover w-full h-full scale-[1.01] block transition-opacity duration-700 ${status === 'loaded' ? 'opacity-100' : 'opacity-0'}`}
+          loading={priority ? 'eager' : 'lazy'} // Imagens iniciais carregam antes, o resto depois
           onLoad={handleLoad}
-          unoptimized
+          className={`${className} object-cover w-full h-full scale-[1.01] block transition-opacity duration-700 ${
+            status === 'loaded' ? 'opacity-100' : 'opacity-0'
+          }`}
+          style={{ position: 'absolute', inset: 0 }} // Simula o comportamento do 'fill'
         />
       </div>
     );

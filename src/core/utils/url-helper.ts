@@ -21,6 +21,13 @@ export function getPublicGalleryUrl(photographer: any, slug: string) {
   }
 
   const finalPath = slug.startsWith('/') ? slug.slice(1) : slug;
+  // 3. Lógica de Subdomínio
+  if (photographer?.use_subdomain && photographer.username) {
+    // 🎯 Aqui garantimos que o protocolo detectado (http no localhost) seja aplicado
+    return `${protocol}//${photographer.username}.${NEXT_PUBLIC_MAIN_DOMAIN}/${finalPath}`;
+  }
+
+  // 4. Lógica de Domínio Principal
   return `${protocol}//${NEXT_PUBLIC_MAIN_DOMAIN}/${finalPath}`;
 }
 
@@ -65,32 +72,50 @@ export async function copyToClipboard(text: string) {
  * Utilitários para tratamento de URLs de imagens do Google Drive
  */
 
-// Retorna a URL da imagem com um sufixo de tamanho específico (padrão w1000)
 /**
- * Gera a URL da imagem com parâmetros de tamanho e qualidade.
- * @param photoId ID da foto no Google Drive
- * @param suffix Tamanho da imagem (ex: w800, w1000, s1600)
- * @param quality Nível de compressão (1-100)
+ * 🌐 URL EXTERNA (Client-side)
+ * Usada nos componentes (img, a) para chamar o seu Proxy.
+ * Garante o Cache da Vercel e evita o erro 429.
  */
-export const getProxyUrl = (id: string | number, sizeParam: string = '600') => {
-  // Remova o 'w' fixo daqui se você for passar 'w400' ou 's0' no argumento
-  return `/api/proxy-image?id=${id}&w=${sizeParam}`;
-};
-
-// 2. Para miniaturas do grid (usando o 'w' que discutimos ser melhor)
-export const getImageUrl = (
-  photoId: string | number,
-  width: string = '400', // Padrão 400 para grid
+export const getProxyUrl = (
+  id: string | number,
+  width: string | number = '1000',
 ) => {
-  // Garante que se o usuário passar apenas "400", vire "w400"
-
-  const cleanWidth = width.replace(/[ws]/gi, '');
-
-  return getProxyUrl(photoId, cleanWidth);
+  if (!id) return '';
+  const cleanWidth = width.toString().replace(/[ws]/gi, '');
+  return `/api/galeria/cover/${id}?w=${cleanWidth}`;
 };
 
-// 3. Resolução Máxima (Usando w1600 em vez de s0 para ser mais rápido via proxy)
+/**
+ * 🔒 URL INTERNA (Server-side)
+ * Usada APENAS dentro do seu route.ts para buscar a imagem no Google Drive.
+ * @param format 'webp' para visualização nítida ou 'original' para download.
+ */
+export const getInternalGoogleDriveUrl = (
+  photoId: string | number,
+  width: string | number = '1000',
+  format: 'webp' | 'original' = 'webp',
+) => {
+  const suffix = format === 'webp' ? '-rw' : '';
+  // sz=w1000-rw solicita WebP ao Google
+  return `https://drive.google.com/thumbnail?id=${photoId}&sz=w${width}${suffix}`;
+};
+
+/**
+ * 🖼️ URL DE ALTA RESOLUÇÃO
+ * Retorna a URL para o Lightbox com limite reduzido.
+ * 1600px é seguro para a cota da Vercel e rápido para o usuário.
+ */
 export const getHighResImageUrl = (photoId: string | number) => {
-  // s=0 pega o original. Adicionamos &download=true para o backend saber o que fazer.
-  return `/api/proxy-image?id=${photoId}&s=0&download=true`;
+  if (!photoId) return '';
+  // Alterado de 2048 para 1600 para maior economia de banda
+  return getProxyUrl(photoId, '1600');
+};
+
+/**
+ * 📥 URL DE DOWNLOAD
+ * Aponta para a rota de download que redimensiona para 3000px.
+ */
+export const getDownloadUrl = (photoId: string | number) => {
+  return `/api/galeria/download/${photoId}`;
 };
