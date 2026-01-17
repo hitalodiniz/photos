@@ -3,6 +3,7 @@ import { NextResponse } from 'next/server';
 import { createSupabaseServerClientReadOnly } from '@/lib/supabase.server';
 import { listPhotosFromDriveFolder } from '@/lib/google-drive';
 import { getDriveAccessTokenForUser } from '@/lib/google-auth';
+import { GLOBAL_CACHE_REVALIDATE } from '@/core/utils/url-helper';
 
 export async function GET(
   req: Request,
@@ -44,7 +45,15 @@ export async function GET(
       accessToken,
     );
 
-    return NextResponse.json({ photos });
+    return NextResponse.json(
+      { photos },
+      {
+        headers: {
+          // Cache de 1 hora para a lista (reduz consultas ao banco e Google API)
+          'Cache-Control': `public, s-maxage=${GLOBAL_CACHE_REVALIDATE}, stale-while-revalidate=1800`,
+        },
+      },
+    );
   } catch (error: any) {
     console.error('Erro na API de fotos:', error);
     return NextResponse.json(

@@ -5,7 +5,7 @@ import {
   fetchDrivePhotos,
 } from '@/core/logic/galeria-logic';
 import { GaleriaView, PasswordPrompt } from '@/components/gallery';
-import { getProxyUrl, GLOBAL_CACHE_REVALIDATE } from '@/core/utils/url-helper';
+import { getProxyUrl } from '@/core/utils/url-helper';
 import PhotographerContainer from '@/components/photographer/PhotographerContainer';
 import { getGalleryMetadata } from '@/lib/gallery/metadata-helper';
 import { checkGalleryAccess } from '@/core/logic/auth-gallery';
@@ -14,7 +14,6 @@ import { getProfileMetadataInfo } from '@/core/services/profile.service';
 //AJUSTE CRÍTICO: Remova 'force-static' se a galeria tiver senha.
 // Para galerias com proteção, o Next.js precisa validar o cookie a cada requisição.
 export const dynamic = 'force-dynamic';
-export const revalidate = GLOBAL_CACHE_REVALIDATE;
 
 type SubdomainGaleriaPageProps = {
   params: Promise<{

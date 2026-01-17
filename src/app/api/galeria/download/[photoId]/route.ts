@@ -23,7 +23,8 @@ export async function GET(
   try {
     const response = await fetch(googleUrl, {
       // Opcional: Adicionar cache aqui se quiser economizar banda do Drive em downloads repetidos
-      cache: 'no-store',
+      cache: 'force-cache', // 🚀 Muito importante: cacheia o arquivo de 1MB na borda
+      next: { revalidate: GLOBAL_CACHE_REVALIDATE }, // Cache de 7 dias para downloads
     });
 
     if (!response.ok) throw new Error('Erro ao buscar no Drive');
@@ -37,7 +38,6 @@ export async function GET(
       headers: {
         'Content-Type': contentType,
         'Content-Disposition': `attachment; filename="foto_alta_res_${photoId}.jpg"`,
-
         'Cache-Control': `public, max-age=${GLOBAL_CACHE_REVALIDATE}, immutable`,
       },
     });

@@ -27,6 +27,7 @@ export async function GET(
   try {
     const response = await fetch(googleUrl, {
       cache: 'force-cache',
+
       next: {
         revalidate: GLOBAL_CACHE_REVALIDATE,
         tags: [`cover-${photoId}`],
