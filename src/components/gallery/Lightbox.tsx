@@ -2,7 +2,7 @@
 import React, { useEffect, useState } from 'react';
 import { ChevronLeft, ChevronRight, ImageIcon } from 'lucide-react';
 import { GalleryHeader, PhotographerAvatar } from '@/components/gallery';
-import { getProxyUrl } from '@/core/utils/url-helper';
+import { getHighResImageUrl, getProxyUrl } from '@/core/utils/url-helper';
 import type { Galeria } from '@/core/types/galeria';
 import LoadingSpinner from '../ui/LoadingSpinner';
 import { ToolbarGalleryView } from './ToolbarGalleryView';
@@ -86,16 +86,23 @@ export default function Lightbox({
   useEffect(() => {
     setIsImageLoading(true);
 
-    // 🎯 CORREÇÃO: Se for visão única, garantimos que o navegador priorize o carregamento
+    // 🎯 REVISÃO DO PROXY (Visualização Atual):
+    // Usamos getHighResImageUrl para garantir os 1920px de nitidez
+    // respeitando o teto de 1MB via WebP.
+    const currentImageUrl = getHighResImageUrl(photos[activeIndex].id);
+
     if (isSingleView) {
       const img = new Image();
-      img.src = getProxyUrl(photos[activeIndex].id);
+      img.src = currentImageUrl;
       img.onload = () => setIsImageLoading(false);
     }
 
+    // 🎯 REVISÃO DO PRELOAD (Próxima Foto):
+    // Solicitamos a mesma resolução (1920px) para que quando o usuário
+    // clicar em "Próximo", a imagem já esteja no cache do navegador.
     if (activeIndex + 1 < photos.length) {
       const nextImg = new Image();
-      nextImg.src = getProxyUrl(photos[activeIndex + 1].id);
+      nextImg.src = getHighResImageUrl(photos[activeIndex + 1].id);
     }
   }, [activeIndex, photos, isSingleView]); // Adicione isSingleView aqui
 
@@ -169,14 +176,13 @@ export default function Lightbox({
 
       {/* 1. Título: Sempre à esquerda, ocupa a primeira coluna do grid */}
       {/* HEADER & TOOLBAR */}
-      {/* HEADER & TOOLBAR */}
       <header
         className={`relative md:fixed top-0 left-0 right-0 p-4  z-[300] bg-black md:bg-transparent ${interfaceVisibilityClass}`}
       >
         {/* No Mobile: flex-col (Toolbar abaixo do título). No Desktop: flex-row com itens alinhados ao topo */}
         <div className="relative w-full flex flex-col md:flex-row items-start justify-between gap-4 md:gap-0">
           {/* Título: Largura total no mobile, limitada no desktop */}
-          <div className="w-full md:max-w-[40%] min-w-0">
+          <div className="w-full md:max-w-[30%] min-w-0">
             <GalleryHeader
               title={galleryTitle}
               location={location}
@@ -228,7 +234,7 @@ export default function Lightbox({
           */}
           <img
             key={currentPhoto.id}
-            src={getProxyUrl(currentPhoto.id)}
+            src={getHighResImageUrl(currentPhoto.id)}
             onLoad={() => setIsImageLoading(false)}
             className={`w-full h-auto max-w-full md:h-screen md:w-auto md:object-contain transition-all duration-700 ease-out
               ${

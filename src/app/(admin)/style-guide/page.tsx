@@ -19,19 +19,25 @@ import {
   Copy,
   Check,
   Terminal,
+  Zap,
+  Package,
+  AlertTriangle,
+  Wifi,
+  Download,
+  CheckCircle2,
+  ArrowRight,
 } from 'lucide-react';
 
 export default function StyleGuidePage() {
   const [copied, setCopied] = useState(false);
 
-  // 🎯 PROMPT ATUALIZADO: Foco em Semibold e Medium (Estilo Leve)
-  const aiPrompt = `Contexto de Design: Sistema Luxury Admin (Light Editorial)
-Ao criar novos componentes, modais ou páginas, siga estas diretrizes:
-1. PESOS DE FONTE: Use font-semibold para títulos e font-medium para textos. EVITE font-black e font-bold.
-2. CORES: Fundo #F8F9FA, Ouro #D4AF37, Champanhe #F3E5AB, Texto Principal Slate-800.
-3. BOTÕES: bg-[#F3E5AB] text-black h-11 rounded-[0.5rem] font-semibold uppercase tracking-[0.2em] shadow-xl.
-4. LABELS: font-semibold text-[10px] uppercase tracking-[0.2em] text-slate-800 (Alinhado com ícone).
-5. ÍCONES: Use strokeWidth={2} para manter a leveza visual.`;
+  // 🎯 PROMPT UNIFICADO: Mantém o estilo leve e acrescenta as regras dos modais
+  const aiPrompt = `Contexto de Design: Sistema Luxury Hybrid (Admin Light + Interaction Dark)
+1. ADMIN LIGHT: Fundo #F8F9FA, Ouro #D4AF37, Champanhe #F3E5AB. Use font-semibold para títulos e font-medium para textos.
+2. MODAIS DARK: Fundo #1E293B, overlays bg-black/20, bordas white/10. Texto SEMPRE text-white puro para nitidez.
+3. BOTÕES ADMIN: bg-[#F3E5AB] text-black h-11 rounded-[0.5rem] font-semibold uppercase tracking-[0.2em].
+4. BOTÕES PREMIUM: bg-[#F3E5AB] text-black h-12 rounded-xl font-bold uppercase tracking-[0.2em] shadow-[0_0_15px_rgba(243,229,171,0.3)].
+5. ICONOGRAFIA: strokeWidth={2} no Light e strokeWidth={2.5} nos destaques Dark.`;
 
   const copyToClipboard = () => {
     navigator.clipboard.writeText(aiPrompt);
@@ -48,12 +54,12 @@ Ao criar novos componentes, modais ou páginas, siga estas diretrizes:
             Style Guide
           </h1>
           <p className="text-slate-500 mt-2 font-medium">
-            Diretrizes visuais: Luxury & Lightweight Editorial.
+            Guia Híbrido: Admin Light & Interações Dark Premium.
           </p>
         </div>
         <div className="text-right">
           <span className="text-[10px] font-semibold text-[#D4AF37] uppercase tracking-[0.3em]">
-            Versão 2.0 (Lightweight)
+            Versão 3.0 (Hybrid Edition)
           </span>
         </div>
       </header>
@@ -63,7 +69,7 @@ Ao criar novos componentes, modais ou páginas, siga estas diretrizes:
         <div className="flex items-center gap-2">
           <Terminal size={16} className="text-[#D4AF37]" strokeWidth={2} />
           <h2 className="text-xs font-semibold uppercase tracking-[0.3em] text-slate-900">
-            IA Prompt Helper (Fixed Weights)
+            IA Prompt Helper (Full Guidelines)
           </h2>
         </div>
         <div className="relative group">
@@ -79,81 +85,89 @@ Ao criar novos componentes, modais ou páginas, siga estas diretrizes:
           <textarea
             readOnly
             value={aiPrompt}
-            className="w-full h-40 p-6 pt-12 bg-white border border-slate-200 rounded-2xl text-[12px] font-mono text-slate-600 leading-relaxed resize-none focus:outline-none shadow-sm"
+            className="w-full h-44 p-6 pt-12 bg-white border border-slate-200 rounded-2xl text-[12px] font-mono text-slate-600 leading-relaxed resize-none focus:outline-none shadow-sm"
           />
         </div>
       </section>
 
-      {/* 1. BOTÕES (AGORA EM SEMIBOLD) */}
+      {/* 1. ADMIN LIGHT (ESTILO ANTIGO PRESERVADO) */}
       <section className="space-y-4">
         <h2 className="text-xs font-semibold uppercase tracking-[0.3em] text-[#D4AF37]">
-          1. Ações (Semibold)
+          1. Admin Lightweight (Light Theme)
         </h2>
-        <div className="bg-white p-8 rounded-2xl border border-slate-100 flex flex-wrap gap-6 items-center shadow-sm">
+        <div className="bg-white p-8 rounded-2xl border border-slate-100 flex flex-wrap gap-8 items-center shadow-sm">
           <div className="space-y-2">
             <p className="text-[10px] text-slate-400 font-semibold uppercase tracking-widest">
-              Botão Principal
+              Botão Padrão
             </p>
             <button className="px-8 h-11 rounded-[0.5rem] bg-[#F3E5AB] text-black text-[11px] font-semibold uppercase tracking-[0.2em] shadow-xl hover:bg-white border border-[#F3E5AB] transition-all">
-              Nova Mídia
+              Nova Galeria
             </button>
           </div>
-
-          <div className="space-y-2">
-            <p className="text-[10px] text-slate-400 font-semibold uppercase tracking-widest">
-              Botão Secundário
-            </p>
-            <button className="px-8 h-11 rounded-[0.5rem] border border-slate-200 bg-white text-slate-600 text-[11px] font-semibold uppercase tracking-[0.2em] hover:bg-slate-50 transition-all">
-              Configurações
-            </button>
-          </div>
-        </div>
-      </section>
-
-      {/* 2. LABELS E INPUTS */}
-      <section className="space-y-4">
-        <h2 className="text-xs font-semibold uppercase tracking-[0.3em] text-[#D4AF37]">
-          2. Formulários (Lightweight)
-        </h2>
-        <div className="bg-white p-8 rounded-2xl border border-slate-100 space-y-6 shadow-sm">
-          <div className="max-w-xs space-y-1.5">
+          <div className="max-w-xs space-y-1.5 flex-1">
             <label className="text-[10px] font-semibold uppercase tracking-[0.2em] text-slate-800 flex items-center gap-2">
-              <User size={12} strokeWidth={2} /> Nome do Profissional
+              <User size={12} strokeWidth={2} /> Campo de Texto
             </label>
             <input
               disabled
               placeholder="Ex: Gabriel Fontes"
-              className="w-full h-11 px-4 bg-slate-50 border border-slate-200 rounded-[0.5rem] text-sm font-medium outline-none"
+              className="w-full h-11 px-4 bg-slate-50 border border-slate-200 rounded-[0.5rem] text-sm font-medium"
             />
           </div>
         </div>
       </section>
-    </div>
-  );
-}
 
-function ColorCard({
-  hex,
-  name,
-  label,
-}: {
-  hex: string;
-  name: string;
-  label: string;
-}) {
-  return (
-    <div className="bg-white p-4 rounded-xl border border-slate-100 shadow-sm flex items-center gap-4">
-      <div
-        className="w-12 h-12 rounded-lg border border-slate-200"
-        style={{ backgroundColor: hex }}
-      />
-      <div>
-        <p className="text-xs font-semibold text-slate-900">{name}</p>
-        <p className="text-[10px] text-slate-400 font-medium uppercase tracking-tighter">
-          {hex}
-        </p>
-        <p className="text-[9px] text-slate-500 mt-1">{label}</p>
-      </div>
+      {/* 2. DARK PREMIUM (O NOVO TEMA DOS MODAIS) */}
+      <section className="space-y-4">
+        <h2 className="text-xs font-semibold uppercase tracking-[0.3em] text-[#D4AF37]">
+          2. Interações Premium (Dark Theme)
+        </h2>
+        <div className="bg-[#1E293B] p-10 rounded-[2rem] border border-white/10 shadow-2xl space-y-8">
+          <div className="bg-[#F3E5AB]/10 py-3 flex items-center justify-center gap-3 border border-[#F3E5AB]/20 rounded-lg shrink-0">
+            <Wifi size={14} className="text-[#F3E5AB]" strokeWidth={2.5} />
+            <span className="text-[10px] font-bold uppercase tracking-[0.3em] text-[#F3E5AB]">
+              Visualização de Alta Performance
+            </span>
+          </div>
+
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
+            <div className="space-y-3">
+              <p className="text-[10px] text-white/40 font-bold uppercase tracking-widest text-center md:text-left">
+                Card de Item (Ex: Pacote)
+              </p>
+              <div className="w-full flex items-center gap-5 p-5 rounded-xl border border-[#F3E5AB]/30 bg-white/10 shadow-[0_0_20px_rgba(243,229,171,0.1)]">
+                <div className="w-12 h-12 rounded-lg flex items-center justify-center bg-[#F3E5AB] text-black shadow-lg">
+                  <Package size={22} />
+                </div>
+                <div className="flex-1">
+                  <p className="text-[15px] font-bold text-white uppercase">
+                    Pacote 01
+                  </p>
+                  <p className="text-[11px] font-bold text-[#F3E5AB] uppercase italic">
+                    168 MB • Otimizadas
+                  </p>
+                </div>
+                <CheckCircle2 size={22} className="text-green-400" />
+              </div>
+            </div>
+
+            <div className="space-y-4">
+              <p className="text-[10px] text-white/40 font-bold uppercase tracking-widest text-center md:text-left">
+                Ação de Conversão/Upgrade
+              </p>
+              <button className="w-full h-12 bg-[#F3E5AB] hover:bg-white text-black font-bold uppercase text-[11px] tracking-[0.2em] rounded-xl shadow-[0_0_15px_rgba(243,229,171,0.4)] transition-all flex items-center justify-center gap-2">
+                Aumentar Limite <ArrowRight size={16} />
+              </button>
+              <div className="flex flex-col items-center gap-1 opacity-60">
+                <p className="text-[9px] text-white uppercase font-bold tracking-[0.2em]">
+                  Toque para saber mais
+                </p>
+                <div className="h-1 w-8 bg-[#F3E5AB] rounded-full" />
+              </div>
+            </div>
+          </div>
+        </div>
+      </section>
     </div>
   );
 }

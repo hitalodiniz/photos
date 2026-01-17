@@ -47,10 +47,12 @@ export async function getGalleryMetadata(
   }
 
   // 4. Tratamento da Imagem (OpenGraph)
+  // 🎯 REVISÃO DO PROXY (Capa da Galeria):
+  // Passamos '1200'. O Google Drive processará a capa para essa largura.
+  // O peso final em WebP será de aproximadamente 250KB - 400KB.
   const ogImage = galeriaRaw.cover_image_url
-    ? getProxyUrl(galeriaRaw.cover_image_url, 'w1200')
+    ? getProxyUrl(galeriaRaw.cover_image_url, '1200')
     : null;
-
   const url = `${process.env.NEXT_PUBLIC_BASE_URL}/${fullSlug}`;
 
   return {
@@ -106,7 +108,7 @@ export async function getPhotoMetadata(
   }
 
   const photographerInfo = galeriaRaw.photographer?.full_name
-    ? `Fotógrafo: ${galeriaRaw.photographer.full_name}`
+    ? `Profissional: ${galeriaRaw.photographer.full_name}`
     : '';
 
   let description = '';
@@ -120,7 +122,10 @@ export async function getPhotoMetadata(
         : 'Toque para ver a foto.';
   }
 
-  const ogImage = googleId ? getProxyUrl(googleId, 'w1200') : null;
+  // 🎯 REVISÃO DO PROXY (Foto Específica):
+  // Usamos o ID da foto enviado pelo Lightbox.
+  // Isso garante que o preview do link seja a foto correta.
+  const ogImage = googleId ? getProxyUrl(googleId, '1200') : null;
   const baseUrl = process.env.NEXT_PUBLIC_BASE_URL;
 
   return {

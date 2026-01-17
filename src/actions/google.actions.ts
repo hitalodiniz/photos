@@ -23,6 +23,37 @@ export async function getDriveFolderName(
 }
 
 /**
+ * Action para verificar a quantidade fotos na pasta do Google Drive
+ */
+
+export async function checkFolderLimits(
+  folderId: string,
+  userId: string,
+  planLimit: number,
+) {
+  const accessToken = await getValidGoogleToken(userId);
+
+  // Buscamos apenas o necessário para contar, com pageSize ligeiramente maior que o limite
+  // para identificar se "sobrou" foto (hasMore)
+  const fetchLimit = planLimit + 1;
+
+  const query = `'${folderId}' in parents and mimeType contains 'image/' and trashed = false`;
+  const url = `https://www.googleapis.com/drive/v3/files?q=${encodeURIComponent(query)}&pageSize=${fetchLimit}&fields=files(id),nextPageToken`;
+
+  const res = await fetch(url, {
+    headers: { Authorization: `Bearer ${accessToken}` },
+  });
+
+  const data = await res.json();
+  const count = data.files?.length || 0;
+
+  return {
+    count: Math.min(count, planLimit),
+    hasMore: !!data.nextPageToken || count > planLimit,
+    totalInDrive: count, // Apenas para debug ou aviso
+  };
+}
+/**
  * Action para verificar se a pasta é pública
  */
 export async function checkFolderPublicPermission(

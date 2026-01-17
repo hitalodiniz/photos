@@ -34,7 +34,9 @@ export async function getGalleryMetadata(fullSlug: string): Promise<Metadata> {
       : 'Clique para acessar a galeria completa';
 
   // 3. Tratamento da Imagem
-  const ogImageUrl = getProxyUrl(galeria.cover_image_url, 'w1200');
+  // Passamos '1200' para bater com o padrão de redes sociais.
+  // O seu proxy retornará um WebP otimizado de ~300KB via Google Drive.
+  const ogImageUrl = getProxyUrl(galeria.cover_image_url, '1200');
 
   return {
     title: title,

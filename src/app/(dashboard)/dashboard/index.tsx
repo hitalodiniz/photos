@@ -19,7 +19,7 @@ import {
 
 import type { Galeria } from '@/core/types/galeria';
 // IMPORT UNIFICADO
-import GalleryFormModal from './GalleryModal';
+import GalleryFormModal from './GaleriaModal';
 import Filters from './Filters';
 import { ConfirmationModal, Toast } from '@/components/ui';
 import GaleriaCard from './GaleriaCard';
@@ -319,7 +319,7 @@ export default function Dashboard({
     ${
       isSidebarCollapsed
         ? 'lg:w-14 lg:h-10'
-        : 'lg:h-10 lg:px-4 lg:gap-3 lg:w-full'
+        : 'lg:h-10 lg:px-4 lg:gap-3 lg:w-fit'
     }
   `}
         >

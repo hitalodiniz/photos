@@ -3,11 +3,11 @@ import { useState, useEffect } from 'react';
 import { X, Camera, Plus } from 'lucide-react';
 import { createGaleria, updateGaleria } from '@/core/services/galeria.service';
 import { SubmitButton } from '@/components/ui';
-import GalleryFormContent from './GalleryFormContent';
 import SecondaryButton from '@/components/ui/SecondaryButton';
 import { div } from 'framer-motion/client';
+import GaleriaFormContent from './GaleriaFormContent';
 
-export default function GalleryModal({
+export default function GaleriaModal({
   galeria = null,
   isOpen,
   onClose,
@@ -160,9 +160,8 @@ export default function GalleryModal({
   return (
     <div className="fixed inset-0 z-[1000] flex items-center justify-center bg-slate-900/40 backdrop-blur-md p-4 animate-in fade-in duration-300">
       <div className="relative w-full max-w-4xl max-h-[95vh] bg-white rounded-[0.5rem] shadow-2xl flex flex-col border border-white/20 overflow-y-auto animate-in zoom-in-95 duration-300">
-        {' '}
         {/* HEADER MODAL */}
-        <div className="flex items-center justify-between py-4 px-8 border-b bg-slate-50/50">
+        <div className="flex items-center justify-between py-2 px-8 border-b bg-slate-50/50">
           <div className="flex items-center gap-3">
             <div className="p-2 bg-[#F3E5AB]/40 rounded-xl text-[#D4AF37] border border-[#D4AF37]/10">
               {isEdit ? (
@@ -183,10 +182,9 @@ export default function GalleryModal({
           </button>
         </div>
         {/* FORM CONTENT */}
-        <div className="flex-1 px-4 py-4 overflow-y-auto overflow-x-hidden scrollbar-thin scrollbar-thumb-slate-200">
-          {' '}
+        <div className="flex-1 px-4 overflow-y-auto overflow-x-hidden scrollbar-thin scrollbar-thumb-slate-200">
           <form id="master-gallery-form" onSubmit={handleSubmit}>
-            <GalleryFormContent
+            <GaleriaFormContent
               initialData={galeria}
               isEdit={isEdit}
               customization={{ showCoverInGrid, gridBgColor, columns }}
@@ -200,7 +198,7 @@ export default function GalleryModal({
           </form>
         </div>
         {/* FOOTER MODAL */}
-        <div className="p-4 bg-white/90 backdrop-blur-sm border-t flex flex-row justify-center items-center gap-2 md:gap-3 px-4 sticky bottom-0 z-50">
+        <div className="p-2 bg-white/90 backdrop-blur-sm border-t flex flex-row justify-center items-center gap-2 md:gap-3 px-4 sticky bottom-0 z-50">
           <div className="w-[40%] md:w-auto">
             <SecondaryButton
               label="Cancelar"

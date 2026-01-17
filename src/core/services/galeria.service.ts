@@ -36,28 +36,6 @@ interface ActionResult<T = unknown> {
   message?: string;
 }
 
-interface GaleriaRecord {
-  id: string;
-  user_id: string;
-  studio_id: string;
-  title: string;
-  slug: string;
-  date: string; // ISO string vinda do Supabase
-  location: string | null;
-  drive_folder_id: string;
-  client_name: string;
-  client_whatsapp: string | null;
-  is_public: boolean;
-  password: string | null;
-  cover_image_url?: string | null;
-  category: string;
-  has_contracting_client: boolean;
-  // relacionamento opcional
-  tb_profiles?: {
-    username: string;
-  };
-}
-
 // =========================================================================
 // 1. AUTENTICAÇÃO E CONTEXTO (userId + studioId)
 // =========================================================================
@@ -183,80 +161,6 @@ export async function generateUniqueDatedSlug(
 // =========================================================================
 // 3. CREATE GALERIA
 // =========================================================================
-/*
-export async function createGaleria(
-  formData: FormData,
-  supabaseClient?: any,
-): Promise<ActionResult> {
-  const {
-    success,
-    userId,
-    studioId,
-    error: authError,
-  } = await getAuthAndStudioIds(supabaseClient);
-
-  if (!success || !userId || !studioId) {
-    return { success: false, error: authError || 'Não autenticado.' };
-  }
-
-  // Extração segura dos dados
-  const title = String(formData.get('title') || '');
-  const driveFolderId = String(formData.get('drive_folder_id') || '');
-  const dateStr = String(formData.get('date') || '');
-
-  if (!title || !driveFolderId || !dateStr) {
-    return {
-      success: false,
-      error: 'Título, Data e Pasta do Drive são obrigatórios.',
-    };
-  }
-
-  const slug = await generateUniqueDatedSlug(
-    title,
-    dateStr,
-    undefined,
-    supabaseClient,
-  );
-
-  try {
-    const supabase = supabaseClient || (await createSupabaseServerClient());
-    const isPublic = formData.get('is_public') === 'true';
-
-    const { error } = await supabase.from('tb_galerias').insert({
-      user_id: userId,
-      studio_id: studioId,
-      title,
-      slug,
-      date: new Date(dateStr).toISOString(),
-      location: String(formData.get('location') || ''),
-      drive_folder_id: driveFolderId,
-      drive_folder_name: String(formData.get('drive_folder_name') || ''),
-      client_name: String(formData.get('clientName') || ''),
-      client_whatsapp:
-        String(formData.get('client_whatsapp') || '').replace(/\D/g, '') ||
-        null,
-      is_public: isPublic,
-      password: isPublic
-        ? null
-        : String(formData.get('password') || '') || null,
-      cover_image_url: String(formData.get('cover_image_url') || ''),
-      category: String(formData.get('category') || 'esporte'),
-      has_contracting_client: formData.get('has_contracting_client') === 'true',
-    });
-
-    if (error) throw error;
-
-    revalidatePath('/dashboard');
-    return { success: true, message: 'Galeria criada com sucesso!' };
-  } catch (err) {
-    console.error('Erro ao salvar galeria:', err);
-    return {
-      success: false,
-      error: 'Erro interno ao salvar no banco de dados.',
-    };
-  }
-}*/
-
 export async function createGaleria(
   formData: FormData,
   supabaseClient?: any,
@@ -298,6 +202,9 @@ export async function createGaleria(
       columns_mobile: Number(formData.get('columns_mobile')) || 2,
       columns_tablet: Number(formData.get('columns_tablet')) || 3,
       columns_desktop: Number(formData.get('columns_desktop')) || 4,
+
+      zip_url_full: (formData.get('zip_url_full') as string) || null,
+      zip_url_social: (formData.get('zip_url_social') as string) || null,
 
       // Senha inicial (se houver)
       password:
@@ -357,6 +264,9 @@ export async function updateGaleria(
       columns_mobile: Number(formData.get('columns_mobile')) || 2,
       columns_tablet: Number(formData.get('columns_tablet')) || 3,
       columns_desktop: Number(formData.get('columns_desktop')) || 4,
+
+      zip_url_full: (formData.get('zip_url_full') as string) || null,
+      zip_url_social: (formData.get('zip_url_social') as string) || null,
     };
 
     // 2. Validação básica de integridade

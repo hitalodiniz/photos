@@ -1,24 +1,21 @@
 'use client';
 import React, { useState, useEffect, useMemo, useRef } from 'react';
-import {
-  Download,
-  X,
-  CheckCircle2,
-  Package,
-  Loader2,
-  Heart,
-  Wifi,
-} from 'lucide-react';
+import { Download, Loader2 } from 'lucide-react';
 import { saveAs } from 'file-saver';
 import JSZip from 'jszip';
 import { Lightbox } from '@/components/gallery';
-import { InfoBarDesktop } from './InfoBarDesktop';
-import { InfoBarMobile } from './InfoBarMobile';
+import { ToolBarDesktop } from './ToolBarDesktop';
 import MasonryGrid from './MasonryGrid';
-import { getDownloadUrl } from '@/core/utils/url-helper';
+import {
+  convertToDirectDownloadUrl,
+  getDownloadUrl,
+  TAMANHO_MAXIMO_FOTO_SEM_COMPACTAR,
+} from '@/core/utils/url-helper';
 import { GALLERY_MESSAGES } from '@/constants/messages';
 import { executeShare } from '@/core/utils/share-helper';
 import { groupPhotosByWeight } from '@/core/utils/foto-helpers';
+import { DownloadCenterModal } from './DownloadCenterModal';
+import { ToolBarMobile } from './ToolBarMobile';
 
 export default function PhotoGrid({ photos, galeria }: any) {
   // --- 1. ESTADOS DE INTERFACE ---
@@ -176,6 +173,41 @@ export default function PhotoGrid({ photos, galeria }: any) {
     );
   };
 
+  const handleExternalDownload = async (rawUrl: string, filename: string) => {
+    if (isDownloading) return;
+
+    try {
+      setIsDownloading(true);
+
+      // 🎯 CONVERSÃO AUTOMÁTICA: Garante o formato de download direto
+      const directUrl = convertToDirectDownloadUrl(rawUrl);
+
+      const response = await fetch(directUrl);
+
+      // Se o fetch falhar (CORS ou erro de rede), pula para o catch
+      if (!response.ok) throw new Error('CORS or Network error');
+
+      const blob = await response.blob();
+      const blobUrl = window.URL.createObjectURL(blob);
+      const link = document.createElement('a');
+      link.href = blobUrl;
+      link.download = filename;
+      document.body.appendChild(link);
+      link.click();
+
+      // Limpeza de memória
+      document.body.removeChild(link);
+      window.URL.revokeObjectURL(blobUrl);
+    } catch (error) {
+      // 🎯 FALLBACK: Força a abertura em uma nova aba
+      const directUrl = convertToDirectDownloadUrl(rawUrl);
+
+      // O parâmetro '_blank' garante a nova aba
+      window.open(directUrl, '_blank', 'noopener,noreferrer');
+    } finally {
+      setIsDownloading(false);
+    }
+  };
   const handleDownloadZip = async (
     targetList: any[],
     zipSuffix: string,
@@ -187,11 +219,9 @@ export default function PhotoGrid({ photos, galeria }: any) {
     if (isDownloading || isDownloadingFavs || targetList.length === 0) return;
     if (chunkIndex !== undefined) setActiveDownloadingIndex(chunkIndex);
 
-    // 2. Cálculos iniciais
+    // 2. Cálculos iniciais (Tamanho estimado baseado no novo teto de 1.5MB)
     const firstPhotoGlobalIndex = photos.indexOf(targetList[0]);
-    const totalMB =
-      targetList.reduce((acc, photo) => acc + (Number(photo.size) || 0), 0) /
-      (1024 * 1024);
+    const estimatedTotalMB = targetList.length * 1.2; // Média segura para exibição no nome do arquivo
 
     if (!confirmed && !isFavAction) {
       setShowVolumeDashboard(true);
@@ -211,7 +241,7 @@ export default function PhotoGrid({ photos, galeria }: any) {
       let completedCount = 0;
 
       // Otimização de concorrência baseada no dispositivo
-      const batchSize = window.innerWidth < 768 ? 30 : 100;
+      const batchSize = window.innerWidth < 768 ? 20 : 50; // Reduzido ligeiramente para estabilidade em fotos maiores
 
       // 4. Processamento em Lotes (Batches)
       for (let i = 0; i < targetList.length; i += batchSize) {
@@ -219,41 +249,55 @@ export default function PhotoGrid({ photos, galeria }: any) {
         await Promise.all(
           currentBatch.map(async (photo, indexInBatch) => {
             try {
-              // Chamada direta ao Google (Bypass Vercel)
-              const res = await fetch(getDownloadUrl(photoId));
-              if (!res.ok) throw new Error(`Erro na foto ${photo.id}`);
+              let blob;
+              const sizeInBytes = Number(photo.size) || 0;
+              const tetoMaximo = TAMANHO_MAXIMO_FOTO_SEM_COMPACTAR;
 
-              const blob = await res.blob();
+              // 🎯 LÓGICA INTELIGENTE:
+              // Se a foto já for menor que 1.5MB, baixa o original direto do Google.
+              // Se for maior, usa o proxy para reduzir para 2500px.
+              if (sizeInBytes > 0 && sizeInBytes <= tetoMaximo) {
+                // Busca original (usando a função que você já tem de download direto)
+                const res = await fetch(getDownloadUrl(photo.id));
+                if (!res.ok) throw new Error('Erro no original');
+                blob = await res.blob();
+              } else {
+                // Busca via Proxy para comprimir arquivos gigantes
+                const proxyUrl = `/api/galeria/cover/${photo.id}?w=2500`;
+                const res = await fetch(proxyUrl);
+                if (!res.ok) throw new Error('Erro no proxy');
+                blob = await res.blob();
+              }
+
               const globalPhotoNumber =
                 firstPhotoGlobalIndex + i + indexInBatch + 1;
-              // Adiciona ao ZIP na memória do cliente
               zip.file(`foto-${globalPhotoNumber}.jpg`, blob, { binary: true });
             } catch (e) {
-              console.error(`Falha ao processar foto individual no ZIP:`, e);
+              console.error(`Falha na foto ${photo.id}:`, e);
             } finally {
               completedCount++;
               setProgress((completedCount / targetList.length) * 95);
             }
           }),
         );
-        // Pequeno respiro para a Main Thread não travar em dispositivos fracos
+
+        // Respiro para a Main Thread
         if (i + batchSize < targetList.length)
           await new Promise((r) =>
-            setTimeout(r, window.innerWidth < 768 ? 300 : 100),
+            setTimeout(r, window.innerWidth < 768 ? 400 : 150),
           );
       }
 
       // 5. Geração do arquivo final (Blob)
       const content = await zip.generateAsync({
         type: 'blob',
-        compression: 'STORE',
+        compression: 'STORE', // Não comprimimos novamente para poupar CPU do cliente
         streamFiles: true,
       });
+
       // 6. Nomeação e Download
-      saveAs(
-        content,
-        `${galeria.title.replace(/\s+/g, '_')}_${zipSuffix}_${totalMB.toFixed(0)}MB.zip`,
-      );
+      saveAs(content, `${galeria.title.replace(/\s+/g, '_')}_${zipSuffix}.zip`);
+
       setProgress(100);
       if (typeof chunkIndex === 'number')
         setDownloadedVolumes((prev) => [...new Set([...prev, chunkIndex])]);
@@ -280,7 +324,7 @@ export default function PhotoGrid({ photos, galeria }: any) {
 
       {/* INFO BARS */}
       <div className="sticky top-0 z-[100] w-full pointer-events-none">
-        <InfoBarDesktop
+        <ToolBarDesktop
           {...{
             galeria,
             photos,
@@ -297,6 +341,7 @@ export default function PhotoGrid({ photos, galeria }: any) {
             isScrolled,
             isHovered,
             setIsHovered,
+            handleExternalDownload,
           }}
           tags={tagsDaGaleria}
           handleShare={() =>
@@ -310,7 +355,7 @@ export default function PhotoGrid({ photos, galeria }: any) {
             })
           }
         />
-        <InfoBarMobile
+        <ToolBarMobile
           {...{
             galeria,
             photos,
@@ -359,231 +404,20 @@ export default function PhotoGrid({ photos, galeria }: any) {
 
       {/* MODAL CENTRAL DE DOWNLOADS (TEMA BRANCO) */}
       {showVolumeDashboard && (
-        <div className="fixed inset-0 z-[999] bg-black/60 backdrop-blur-sm flex items-center justify-center px-6 md:p-6 animate-in fade-in duration-300">
-          {/* Overlay para fechar ao clicar fora */}
-          <div
-            className="absolute inset-0"
-            onClick={() => setShowVolumeDashboard(false)}
-          />
+        // PhotoGrid.tsx - Remova o bloco antigo e use:
 
-          <div className="w-full md:max-w-xl bg-white rounded-2xl shadow-2xl flex flex-col h-auto max-h-[85vh] overflow-hidden relative animate-in zoom-in-95 duration-300">
-            {/* 1. TOPO COMPACTO */}
-            <div className="flex flex-col shrink-0 bg-white">
-              {totalGallerySizeMB > 100 && (
-                <div className="bg-[#F3E5AB]/20 py-2 flex items-center justify-center gap-2 border-b border-[#F3E5AB]/30 shrink-0">
-                  <svg
-                    className="w-3 h-3 text-[#D4AF37]"
-                    fill="none"
-                    viewBox="0 0 24 24"
-                    stroke="currentColor"
-                  >
-                    <path
-                      strokeLinecap="round"
-                      strokeLinejoin="round"
-                      strokeWidth={3}
-                      d="M8.111 16.404a5.5 5.5 0 017.778 0M12 20h.01m-7.08-7.071c3.904-3.905 10.236-3.905 14.141 0M1.394 9.393c5.857-5.857 15.355-5.857 21.213 0"
-                    />
-                  </svg>
-                  <span className="text-[10px] p-2 font-semibold uppercase tracking-widest text-[#D4AF37]">
-                    Wi-Fi recomendado
-                  </span>
-                </div>
-              )}
-
-              <div className="px-6 py-5 border-b border-gray-100 flex justify-between items-center">
-                <div className="min-w-0 text-left">
-                  <h2 className="text-xl text-gray-900 leading-none">
-                    Download das fotos
-                  </h2>
-                  <p className="text-[#D4AF37] text-[10px] font-semibold tracking-tight mt-1.5">
-                    {downloadedVolumes.length} / {VOLUMES.length} pacotes
-                    baixados
-                  </p>
-                </div>
-                <button
-                  onClick={() => setShowVolumeDashboard(false)}
-                  className="p-2 text-gray-400 hover:text-gray-900 bg-gray-50 rounded-full transition-colors"
-                >
-                  <X size={20} />
-                </button>
-              </div>
-            </div>
-
-            {/* 2. LISTA OTIMIZADA */}
-            <div className="flex-1 overflow-y-auto px-5 py-5 space-y-2 bg-gray-50/50 min-h-0 no-scrollbar">
-              {/* SEÇÃO DE FAVORITOS DINÂMICA */}
-              {FAVORITE_VOLUMES.length > 0 && (
-                <>
-                  {FAVORITE_VOLUMES.map((favChunk, index) => {
-                    const isCurrent = activeDownloadingIndex === `fav-${index}`;
-                    const sizeMB =
-                      favChunk.reduce(
-                        (acc, p) => acc + (Number(p.size) || 0),
-                        0,
-                      ) /
-                      (1024 * 1024);
-
-                    return (
-                      <button
-                        key={`fav-${index}`}
-                        disabled={isDownloading}
-                        onClick={() =>
-                          handleDownloadZip(
-                            favChunk,
-                            `Favoritas_${index + 1}`,
-                            false, // Mude para false para ele usar o progresso que o modal exibe
-                            true,
-                            `fav-${index}` as any,
-                          )
-                        }
-                        className={`w-full flex items-center gap-3 p-3.5 rounded-xl border transition-all shadow-sm ${
-                          isCurrent
-                            ? 'border-[#D4AF37] bg-white ring-1 ring-[#D4AF37]/20'
-                            : 'bg-white border-gray-100 hover:border-[#F3E5AB]'
-                        }`}
-                      >
-                        <div
-                          className={`w-9 h-9 rounded-lg flex items-center justify-center shrink-0 ${
-                            isCurrent
-                              ? 'bg-[#F3E5AB] text-[#D4AF37]'
-                              : 'bg-[#F3E5AB]/20 text-[#D4AF37]'
-                          }`}
-                        >
-                          {/* Ícone de Coração para Favoritos */}
-                          <Heart
-                            size={18}
-                            fill={isCurrent ? '#D4AF37' : 'none'}
-                          />
-                        </div>
-
-                        <div className="flex-1 text-left min-w-0">
-                          <p className="text-sm font-semibold text-gray-900 leading-tight">
-                            {FAVORITE_VOLUMES.length > 1
-                              ? `Favoritas ${String(index + 1).padStart(2, '0')}`
-                              : 'Suas Favoritas'}
-                          </p>
-                          <p className="text-[9px] font-medium text-gray-400 tracking-wider">
-                            {favChunk.length} fotos • {sizeMB.toFixed(0)} MB
-                          </p>
-                        </div>
-
-                        {/* Ícone de status/download à direita */}
-                        <div className="shrink-0 text-[#D4AF37]">
-                          {isCurrent ? (
-                            <Loader2 size={16} className="animate-spin" />
-                          ) : (
-                            <Download size={16} className="opacity-40" />
-                          )}
-                        </div>
-                      </button>
-                    );
-                  })}
-                  <div className="h-px bg-gray-200 my-2 mx-2" />
-                </>
-              )}
-
-              {/* LISTAGEM DOS VOLUMES */}
-              {VOLUMES.map((chunk, i) => {
-                const isDownloaded = downloadedVolumes.includes(i);
-                const isCurrentlyDownloading = activeDownloadingIndex === i;
-                const firstPhotoIndex = photos.indexOf(chunk[0]) + 1;
-                const lastPhotoIndex = firstPhotoIndex + chunk.length - 1;
-                const sizeMB =
-                  chunk.reduce((acc, p) => acc + (Number(p.size) || 0), 0) /
-                  (1024 * 1024);
-
-                return (
-                  <button
-                    key={i}
-                    disabled={isDownloading}
-                    onClick={() =>
-                      handleDownloadZip(chunk, `Vol_${i + 1}`, false, true, i)
-                    }
-                    className={`w-full flex items-center gap-3 p-3.5 rounded-xl border transition-all active:scale-[0.98] ${
-                      isCurrentlyDownloading
-                        ? 'border-[#D4AF37] bg-white ring-1 ring-[#D4AF37]/20 shadow-md'
-                        : isDownloaded
-                          ? 'bg-white/60 border-green-100 opacity-60'
-                          : 'bg-white border-gray-100 shadow-sm'
-                    }`}
-                  >
-                    <div
-                      className={`w-9 h-9 rounded-lg flex items-center justify-center shrink-0 ${
-                        isCurrentlyDownloading
-                          ? 'bg-[#F3E5AB] text-[#D4AF37]'
-                          : isDownloaded
-                            ? 'bg-green-50 text-green-800'
-                            : 'bg-gray-50 text-gray-400'
-                      }`}
-                    >
-                      <Package size={18} />
-                    </div>
-
-                    <div className="flex-1 text-left min-w-0">
-                      <p className="text-sm font-semibold text-gray-900 leading-tight">
-                        Volume {String(i + 1).padStart(2, '0')}
-                      </p>
-                      <p
-                        className={`text-[9px] font-medium ${isCurrentlyDownloading ? 'text-[#D4AF37]' : 'text-gray-400'}`}
-                      >
-                        Fotos {firstPhotoIndex} a {lastPhotoIndex} •{' '}
-                        {sizeMB.toFixed(0)} MB
-                      </p>
-                    </div>
-
-                    {/* Ícone de status à direita */}
-                    <div className="shrink-0">
-                      {isCurrentlyDownloading ? (
-                        <Loader2
-                          size={16}
-                          className="text-[#D4AF37] animate-spin"
-                        />
-                      ) : isDownloaded ? (
-                        <CheckCircle2 size={16} className="text-green-500" />
-                      ) : (
-                        <Download
-                          size={16}
-                          className="text-[#D4AF37] opacity-40"
-                        />
-                      )}
-                    </div>
-                  </button>
-                );
-              })}
-            </div>
-
-            {/* 3. BASE DINÂMICA */}
-            <div className="px-6 py-5 bg-white border-t border-gray-100 shrink-0">
-              {isDownloading ? (
-                <div className="w-full text-left">
-                  <div className="flex justify-between items-center mb-2">
-                    <span className="text-[9px] font-semibold uppercase text-[#D4AF37] animate-pulse block mb-2">
-                      {activeDownloadingIndex !== null &&
-                      String(activeDownloadingIndex).includes('fav')
-                        ? `Baixando Favoritas ${String(Number(String(activeDownloadingIndex).split('-')[1]) + 1).padStart(2, '0')}...`
-                        : activeDownloadingIndex !== null
-                          ? `Baixando Volume ${String(Number(activeDownloadingIndex) + 1).padStart(2, '0')}...`
-                          : 'Processando...'}
-                    </span>
-                    <span className="text-xs font-semibold text-gray-900">
-                      {Math.round(downloadProgress)}%
-                    </span>
-                  </div>
-                  <div className="w-full h-1 bg-gray-100 rounded-full overflow-hidden">
-                    <div
-                      className="h-full bg-[#D4AF37] transition-all"
-                      style={{ width: `${downloadProgress}%` }}
-                    />
-                  </div>
-                </div>
-              ) : (
-                <p className="text-center text-[10px] text-gray-700 uppercase font-semibold tracking-widest">
-                  Selecione um volume para baixar
-                </p>
-              )}
-            </div>
-          </div>
-        </div>
+        <DownloadCenterModal
+          isOpen={showVolumeDashboard}
+          onClose={() => setShowVolumeDashboard(false)}
+          volumes={VOLUMES}
+          favoriteVolumes={FAVORITE_VOLUMES}
+          downloadedVolumes={downloadedVolumes}
+          activeDownloadingIndex={activeDownloadingIndex}
+          downloadProgress={downloadProgress}
+          isDownloading={isDownloading}
+          handleDownloadZip={handleDownloadZip}
+          totalGallerySizeMB={totalGallerySizeMB}
+        />
       )}
       {/* BOTÃO FLUTUANTE DE DOWNLOAD FAVORITOS */}
       {/* Condições para aparecer:

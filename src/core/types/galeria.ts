@@ -51,6 +51,8 @@ export interface GaleriaBase {
   columns_mobile: number;
   columns_tablet: number;
   columns_desktop: number;
+  zip_url_full?: string | null;
+  zip_url_social?: string | null;
 }
 
 // Interface utilizada na UI (GaleriaCard e GaleriaView)

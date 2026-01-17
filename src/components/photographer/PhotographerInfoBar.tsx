@@ -61,66 +61,70 @@ export const PhotographerInfoBar = ({
       >
         <div className="flex flex-row items-center w-full max-w-[1600px] px-3 md:px-6 h-14 mx-auto gap-2 md:gap-4">
           {/* SEÇÃO CIDADES */}
-          <div className="flex items-center gap-1.5 md:gap-3 flex-1 min-w-0">
-            <MapPin size={16} className="text-[#F3E5AB] shrink-0" />
+          {/* 🎯 A seção inteira só renderiza se houver cidades cadastradas */}
+          {cities && cities.length > 0 && (
+            <div className="flex items-center gap-1.5 md:gap-3 flex-1 min-w-0 animate-in fade-in duration-500">
+              <MapPin size={16} className="text-[#F3E5AB] shrink-0" />
 
-            <div
-              ref={containerRef}
-              className="flex items-center gap-2 flex-1 min-w-0"
-            >
-              {/* Se couber tudo, exibe na barra. Se NÃO couber, exibe apenas o botão indicativo */}
-              {!shouldHideToDrawer ? (
-                <div ref={contentRef} className="flex items-center gap-2">
-                  {cities.map((city: string) => (
-                    <a
-                      key={city}
-                      href={`https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(city)}`}
-                      target="_blank"
-                      rel="noopener noreferrer"
-                      className="px-4 py-1.5 rounded-[0.5rem] text-[12px] font-semibold text-white/90 bg-white/5 border border-white/10 h-9 flex items-center shrink-0 italic hover:bg-white/10 hover:border-[#F3E5AB]/50 transition-all"
-                    >
-                      {city}
-                    </a>
-                  ))}
-                </div>
-              ) : (
-                /* BOTÃO ESTRATÉGICO: Só aparece quando as cidades estão na gaveta */
-                <button
-                  onClick={() => setIsDrawerOpen(!isDrawerOpen)}
-                  className="
-                        flex items-center justify-between
-                        px-4 py-1.5 
-                        w-[155px] h-8
-                        rounded-[0.5rem] 
-                        bg-white/5 border border-white/10 
-                        text-white/80 hover:text-white hover:bg-white/10 
-                        transition-all shrink-0
-                      "
-                >
-                  <span className="text-[11px] font-medium tracking-tight">
-                    {isDrawerOpen ? 'Fechar cidades' : 'Cidades de atuação'}
-                  </span>
-
-                  <ChevronDown
-                    size={14}
-                    className={`text-[#F3E5AB] transition-transform duration-500 ${isDrawerOpen ? 'rotate-180' : ''}`}
-                  />
-                </button>
-              )}
-              {/* Elemento oculto apenas para medição de largura no useEffect */}
-              {shouldHideToDrawer && (
-                <div className="absolute opacity-0 pointer-events-none flex gap-2">
-                  <div ref={contentRef} className="flex gap-2">
+              <div
+                ref={containerRef}
+                className="flex items-center gap-2 flex-1 min-w-0"
+              >
+                {/* Se couber tudo, exibe na barra. Se NÃO couber, exibe apenas o botão indicativo */}
+                {!shouldHideToDrawer ? (
+                  <div ref={contentRef} className="flex items-center gap-2">
                     {cities.map((city: string) => (
-                      <span key={city} className="px-4 py-1.5 h-9">
+                      <a
+                        key={city}
+                        href={`https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(city)}`}
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        className="px-4 py-1.5 rounded-[0.5rem] text-[12px] font-semibold text-white/90 bg-white/5 border border-white/10 h-9 flex items-center shrink-0 italic hover:bg-white/10 hover:border-[#F3E5AB]/50 transition-all"
+                      >
                         {city}
-                      </span>
+                      </a>
                     ))}
                   </div>
-                </div>
-              )}
+                ) : (
+                  /* BOTÃO ESTRATÉGICO: Só aparece quando as cidades estão na gaveta */
+                  <button
+                    onClick={() => setIsDrawerOpen(!isDrawerOpen)}
+                    className="
+            flex items-center justify-between
+            px-4 py-1.5 
+            w-[155px] h-8
+            rounded-[0.5rem] 
+            bg-white/5 border border-white/10 
+            text-white/80 hover:text-white hover:bg-white/10 
+            transition-all shrink-0
+          "
+                  >
+                    <span className="text-[11px] font-medium tracking-tight">
+                      {isDrawerOpen ? 'Fechar cidades' : 'Cidades de atuação'}
+                    </span>
+
+                    <ChevronDown
+                      size={14}
+                      className={`text-[#F3E5AB] transition-transform duration-500 ${isDrawerOpen ? 'rotate-180' : ''}`}
+                    />
+                  </button>
+                )}
+
+                {/* Elemento oculto apenas para medição de largura */}
+                {shouldHideToDrawer && (
+                  <div className="absolute opacity-0 pointer-events-none flex gap-2">
+                    <div ref={contentRef} className="flex gap-2">
+                      {cities.map((city: string) => (
+                        <span key={city} className="px-4 py-1.5 h-9">
+                          {city}
+                        </span>
+                      ))}
+                    </div>
+                  </div>
+                )}
+              </div>
             </div>
-          </div>
+          )}
 
           {/* BOTÕES DE CONTATO (LADO DIREITO) */}
           <div className="flex items-center gap-1.5 md:gap-2 shrink-0">

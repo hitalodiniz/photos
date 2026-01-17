@@ -1,0 +1,6 @@
+export const PLAN_LIMITS = {
+  START: 100,
+  INTERMEDIATE: 200,
+  PRO: 350,
+  PREMIUM: 500,
+};

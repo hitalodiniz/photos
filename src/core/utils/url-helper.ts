@@ -8,6 +8,8 @@ const NEXT_PUBLIC_MAIN_DOMAIN =
 // 60s * 60m * 24h * 30d = 2.592.000
 export const GLOBAL_CACHE_REVALIDATE = 2592000;
 
+export const TAMANHO_MAXIMO_FOTO_SEM_COMPACTAR = 2 * 1024 * 1024; // 1.5MB em bytes;
+
 export function getPublicGalleryUrl(photographer: any, slug: string) {
   const isProd = process.env.NODE_ENV === 'production';
   // 1. Define o protocolo baseado no ambiente
@@ -68,14 +70,34 @@ export async function copyToClipboard(text: string) {
     return false;
   }
 }
+
+/**
+ * Converte links de visualização do Google Drive em links de download direto.
+ * Suporta formatos: /file/d/[ID]/view, /open?id=[ID], etc.
+ */
+export function convertToDirectDownloadUrl(url: string): string {
+  // 🎯 TRAVA DE SEGURANÇA: Se não for Google Drive, retorna o link original intacto
+  if (!url || !url.includes('drive.google.com')) return url;
+
+  const regExp = /\/d\/([a-zA-Z0-9_-]+)|id=([a-zA-Z0-9_-]+)/;
+  const matches = url.match(regExp);
+
+  if (matches) {
+    const fileId = matches[1] || matches[2];
+    return `https://drive.google.com/uc?export=download&id=${fileId}`;
+  }
+
+  return url;
+}
+
 /**
  * Utilitários para tratamento de URLs de imagens do Google Drive
  */
 
 /**
  * 🌐 URL EXTERNA (Client-side)
- * Usada nos componentes (img, a) para chamar o seu Proxy.
- * Garante o Cache da Vercel e evita o erro 429.
+ * Para o PhotoGrid, usamos larguras menores para economizar banda.
+ * O teto aqui é para exibição rápida.
  */
 export const getProxyUrl = (
   id: string | number,
@@ -88,34 +110,56 @@ export const getProxyUrl = (
 
 /**
  * 🔒 URL INTERNA (Server-side)
- * Usada APENAS dentro do seu route.ts para buscar a imagem no Google Drive.
- * @param format 'webp' para visualização nítida ou 'original' para download.
+ * 🎯 ESTRATÉGIA DE 1MB:
+ * Mesmo para 'original', solicitamos uma largura máxima (ex: 4000px).
+ * Isso força o Google a processar o arquivo de 25MB em um JPEG/WebP otimizado,
+ * garantindo que o arquivo final fique próximo ou abaixo de 1MB.
  */
 export const getInternalGoogleDriveUrl = (
   photoId: string | number,
-  width: string | number = '1000',
+  width: string | number = '2048', // Padrão otimizado para telas 2K
   format: 'webp' | 'original' = 'webp',
 ) => {
   const suffix = format === 'webp' ? '-rw' : '';
-  // sz=w1000-rw solicita WebP ao Google
-  return `https://drive.google.com/thumbnail?id=${photoId}&sz=w${width}${suffix}`;
+
+  // Se o formato for 'original' (para download), usamos w4000 para manter alta nitidez
+  // mas sem o peso do arquivo RAW/Bruto de 25MB.
+  const finalWidth = format === 'original' ? '4000' : width;
+
+  return `https://drive.google.com/thumbnail?id=${photoId}&sz=w${finalWidth}${suffix}`;
 };
 
 /**
- * 🖼️ URL DE ALTA RESOLUÇÃO
- * Retorna a URL para o Lightbox com limite reduzido.
- * 1600px é seguro para a cota da Vercel e rápido para o usuário.
+ * 🖼️ URL DE ALTA RESOLUÇÃO (Lightbox)
+ * 1920px é o "Sweet Spot" para telas Full HD/4K sem exceder 1MB.
  */
 export const getHighResImageUrl = (photoId: string | number) => {
   if (!photoId) return '';
-  // Alterado de 2048 para 1600 para maior economia de banda
-  return getProxyUrl(photoId, '1600');
+  return getProxyUrl(photoId, '1920');
 };
 
 /**
  * 📥 URL DE DOWNLOAD
- * Aponta para a rota de download que redimensiona para 3000px.
+ * Agora aponta para a rota que entrega o "Original Otimizado" (Teto de 1MB).
  */
 export const getDownloadUrl = (photoId: string | number) => {
   return `/api/galeria/download/${photoId}`;
 };
+/* Orientções para uso 
+Local de Uso,         Width       Objetivo
+1. PhotoGrid (Cards)     400 a 600   Carregamento inicial ultra-rápido
+2. Lightbox (Zoom)       1920        Nitidez máxima em tela cheia
+3. Capa/Banner           1920        Impacto visual imediato (LCP)
+4. Download Padrão       4000        Alta resolução imprimível (~1MB)
+*/
+
+/*
+* Resoluções que aplicamos em todo o ecossistema do projeto para respeitar o Teto de 1 MB:
+*
+1. Dashboard (GaleriaCard)	600px	Rapidez no carregamento da lista administrativa.
+2. PhotoGrid (Miniaturas)	500px	Redução drástica de banda para galerias com muitas fotos.
+3. Lightbox (Visualização)	1920px	Nitidez máxima (Full HD) mantendo o peso abaixo de 1 MB.
+4. Download Individual		4000px	Versão de alta qualidade para impressão otimizada pelo Google.
+5. Página de Senha			1000px	Carregamento imediato da tela de bloqueio (LCP).
+6. Metadata (OpenGraph)	1200px	Compatibilidade e nitidez para compartilhamento social.
+*/

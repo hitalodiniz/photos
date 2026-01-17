@@ -7,6 +7,7 @@ import {
   getDriveFolderName,
   checkFolderPublicPermission,
   getValidGoogleToken,
+  checkFolderLimits,
 } from '@/actions/google.actions';
 import { Loader2 } from 'lucide-react'; // Importado para manter o padrão de spinners
 
@@ -15,9 +16,11 @@ interface GooglePickerProps {
     folderId: string,
     folderName: string,
     coverFileId: string,
+    limitData: { count: number; hasMore: boolean }, // 🎯 Nova info
   ) => void;
   currentDriveId: string | null;
   onError: (message: string) => void;
+  planLimit: number;
 }
 
 declare global {
@@ -56,6 +59,7 @@ export default function GooglePickerButton({
   onFolderSelect,
   currentDriveId,
   onError,
+  planLimit,
 }: GooglePickerProps) {
   const [loading, setLoading] = useState(false);
   const [isReadyToOpen, setIsReadyToOpen] = useState(isPickerLoaded);
@@ -120,6 +124,7 @@ export default function GooglePickerButton({
         .setCallback(async (data: any) => {
           if (data.action === window.google.picker.Action.PICKED) {
             setLoading(true);
+
             const coverFileId = data.docs[0].id;
             const driveFolderId = await getParentFolderIdServer(
               coverFileId,
@@ -127,6 +132,12 @@ export default function GooglePickerButton({
             );
 
             if (driveFolderId) {
+              //VALIDAÇÃO DE LIMITE
+              const { count, hasMore } = await checkFolderLimits(
+                driveFolderId,
+                userId,
+                planLimit,
+              );
               const driveFolderName = await getDriveFolderName(
                 driveFolderId,
                 userId,
@@ -141,9 +152,10 @@ export default function GooglePickerButton({
                   driveFolderId,
                   driveFolderName,
                   coverFileId,
+                  { count, hasMore }, // 🎯 Repassa o status do limite para o Form
                 );
               } else {
-                const folderUrl = `https://drive.google.com/drive/folders/${driveFolderId}`;
+                // const folderUrl = `https://drive.google.com/drive/folders/${driveFolderId}`;
                 onError(
                   `Pasta privada. Mude o acesso para "Qualquer pessoa com o link".`,
                 );

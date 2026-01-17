@@ -155,20 +155,35 @@ const MasonryGrid = ({
 
               {limitedPhotos.map((photo, index) => {
                 const isSelected = favorites.includes(photo.id);
-                const thumbUrl = getProxyUrl(photo.id, '800'); // Retorna /api/galeria/cover/${id}?w=800
-                const fullUrl = getHighResImageUrl(photo.id); // Retorna /api/galeria/cover/${id}?w=2048
+
+                // 🎯 OTIMIZAÇÃO DO GRID:
+                // Reduzimos de 800px para 500px. É o ideal para miniaturas (Cards),
+                // resultando em arquivos WebP minúsculos (~40-60KB).
+                const thumbUrl = getProxyUrl(photo.id, '500');
+
+                // 🎯 OTIMIZAÇÃO DO LIGHTBOX (Full Res):
+                // getHighResImageUrl já está configurado no helper para 1920px.
+                // Isso garante nitidez máxima em telas grandes sem estourar o cache.
+                const fullUrl = getHighResImageUrl(photo.id);
+
                 return (
                   <Item
                     key={photo.id}
-                    original={fullUrl} // Lightbox usará o proxy
-                    thumbnail={thumbUrl} // Miniatura usará o proxy
+                    original={fullUrl} // Alta resolução para o Zoom
+                    thumbnail={thumbUrl} // Miniatura leve para o Grid
                     width={photo.width}
                     height={photo.height}
                     caption={`${galleryTitle} - Foto ${index + 1}`}
                   >
                     {({ ref }) => (
                       <div
-                        className={`relative group shadow-sm hover:shadow-xl transition-all duration-500 rounded-[0.5rem] overflow-hidden border border-black/5 ring-1 ring-white/10 ${showOnlyFavorites ? 'aspect-square bg-white/5' : photo.height > photo.width ? 'md:row-span-2' : 'row-span-1'}`}
+                        className={`relative group shadow-sm hover:shadow-xl transition-all duration-500 rounded-[0.5rem] overflow-hidden border border-black/5 ring-1 ring-white/10 ${
+                          showOnlyFavorites
+                            ? 'aspect-square bg-white/5'
+                            : photo.height > photo.width
+                              ? 'md:row-span-2'
+                              : 'row-span-1'
+                        }`}
                       >
                         <a
                           href="#"
@@ -181,10 +196,11 @@ const MasonryGrid = ({
                         >
                           <SafeImage
                             photoId={photo.id}
-                            src={thumbUrl}
+                            src={thumbUrl} // Carrega a versão leve de 500px
                             alt={`Foto ${index + 1}`}
                             width={photo.width}
                             height={photo.height}
+                            // Prioridade apenas para as 4 primeiras fotos (LCP)
                             priority={index < 4}
                             showOnlyFavorites={showOnlyFavorites}
                             className="relative z-10"
@@ -201,6 +217,7 @@ const MasonryGrid = ({
                             handleShareWhatsAppGrid(photo.id)
                           }
                           onCopyLink={() => handleCopyLinkGrid(photo.id)}
+                          // handleDownloadPhoto já usará a rota /download que gera os 4000px
                           onDownload={() =>
                             handleDownloadPhoto(galeria, photo.id, index)
                           }
@@ -275,6 +292,7 @@ const SafeImage = memo(
           src={src}
           alt={alt}
           loading={priority ? 'eager' : 'lazy'} // Imagens iniciais carregam antes, o resto depois
+          decoding="async"
           onLoad={handleLoad}
           className={`${className} object-cover w-full h-full scale-[1.01] block transition-opacity duration-700 ${
             status === 'loaded' ? 'opacity-100' : 'opacity-0'

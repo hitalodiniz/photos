@@ -96,7 +96,10 @@ export default function GaleriaCard({
     return `${day}/${month}/${year}`;
   };
 
-  const imageUrl = getProxyUrl(galeria.cover_image_url);
+  // 🎯 OTIMIZAÇÃO DE CAPA:
+  // Como o card é pequeno, 600px é o ideal para manter a nitidez sem pesar.
+  // Isso reduz o peso da imagem de ~150KB para ~50KB.
+  const imageUrl = getProxyUrl(galeria.cover_image_url, '600');
 
   const handleCopy = async (e: React.MouseEvent) => {
     e.stopPropagation();
@@ -140,6 +143,8 @@ export default function GaleriaCard({
         <img
           src={imageUrl}
           alt={galeria.title}
+          loading="lazy" // 🎯 Garante que cards fora da tela não consumam banda
+          decoding="async" // 🎯 Melhora a performance de renderização
           className="h-full w-full object-cover transition-transform duration-1000 ease-out group-hover:scale-110"
         />
 

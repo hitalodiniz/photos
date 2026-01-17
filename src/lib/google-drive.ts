@@ -1,3 +1,4 @@
+import { PLAN_LIMITS } from '@/constants/plans';
 import { GLOBAL_CACHE_REVALIDATE } from '@/core/utils/url-helper';
 
 export interface DrivePhoto {
@@ -34,9 +35,10 @@ export async function listPhotosFromDriveFolder(
 
   try {
     do {
-      const url = `https://www.googleapis.com/drive/v3/files?q=${query}&fields=${fields}&pageSize=1000&orderBy=name${
-        pageToken ? `&pageToken=${pageToken}` : ''
-      }`;
+      //const userPlan = session?.user?.plan || 'FREE'; // Pega o plano da sessão
+      const photoLimit = PLAN_LIMITS['PREMIUM'] || 500;
+
+      const url = `https://www.googleapis.com/drive/v3/files?q=${query}&fields=${fields}&pageSize=${photoLimit}&orderBy=name`;
 
       // console.log(
       //   `\x1b[36m[LIST PHOTOS]\x1b[0m Verificando pasta: ${driveFolderId}`,

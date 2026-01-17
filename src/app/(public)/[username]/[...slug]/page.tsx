@@ -37,7 +37,11 @@ export default async function UsernameGaleriaPage({
     const savedToken = cookieStore.get(`galeria-${galeriaData.id}-auth`)?.value;
 
     if (savedToken !== galeriaData.password) {
-      const coverUrl = getHighResImageUrl(galeriaData.cover_image_url);
+      // 🎯 REVISÃO DO PROXY:
+      // Alterado de getHighResImageUrl (1920px) para getProxyUrl (1000px).
+      // Isso garante que a tela de bloqueio carregue instantaneamente,
+      // poupando banda para a galeria real que vem a seguir.
+      const coverUrl = getProxyUrl(galeriaData.cover_image_url, '1000');
       return (
         <PasswordPrompt
           galeria={galeriaData}

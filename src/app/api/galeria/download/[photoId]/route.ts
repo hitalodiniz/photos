@@ -1,4 +1,7 @@
-import { getInternalGoogleDriveUrl } from '@/core/utils/url-helper';
+import {
+  getInternalGoogleDriveUrl,
+  GLOBAL_CACHE_REVALIDATE,
+} from '@/core/utils/url-helper';
 import { NextResponse } from 'next/server';
 
 export async function GET(
@@ -7,34 +10,39 @@ export async function GET(
 ) {
   const { photoId } = await params;
 
-  // 🎯 ESTRATÉGIA: Pedimos 3000px.
-  // É o suficiente para impressões de alta qualidade (300 DPI)
-  // e quase sempre resulta em um arquivo entre 2MB e 4MB.
-  const width = '3000';
+  // 🎯 ESTRATÉGIA DE 1MB (Original Otimizado):
+  // Solicitamos 4000px. Isso garante nitidez para impressões de até 30x40cm,
+  // mas força o Google a processar o arquivo. O resultado costuma ser um arquivo
+  // de alta fidelidade muito mais leve que o original bruto.
+  const width = '4000';
 
-  // Note: Não usamos o sufixo '-rw' aqui porque para DOWNLOAD
-  // o cliente geralmente espera o formato original (JPG/PNG).
-  const googleUrl = getInternalGoogleDriveUrl(photoId, width, 'webp');
+  // Usamos 'original' como formato para que o Google não force WebP,
+  // mantendo a compatibilidade universal do JPEG para o cliente final.
+  const googleUrl = getInternalGoogleDriveUrl(photoId, width, 'original');
 
   try {
-    const response = await fetch(googleUrl);
+    const response = await fetch(googleUrl, {
+      // Opcional: Adicionar cache aqui se quiser economizar banda do Drive em downloads repetidos
+      cache: 'no-store',
+    });
 
     if (!response.ok) throw new Error('Erro ao buscar no Drive');
 
     const buffer = await response.arrayBuffer();
 
-    // Identifica o tipo real retornado pelo Google ou assume jpeg
+    // Determinamos o tipo de conteúdo. Se o Google processar, geralmente será image/jpeg.
     const contentType = response.headers.get('content-type') || 'image/jpeg';
 
     return new NextResponse(buffer, {
       headers: {
         'Content-Type': contentType,
-        // O attachment força o navegador a baixar em vez de abrir
         'Content-Disposition': `attachment; filename="foto_alta_res_${photoId}.jpg"`,
-        'Cache-Control': 'no-store',
+
+        'Cache-Control': `public, max-age=${GLOBAL_CACHE_REVALIDATE}, immutable`,
       },
     });
   } catch (error) {
+    console.error(`[DOWNLOAD ERROR] ID: ${photoId}`, error);
     return NextResponse.json({ error: 'Erro no download' }, { status: 500 });
   }
 }

@@ -67,7 +67,11 @@ export function formatGalleryData(
     password: raw.password,
     user_id: (raw as any).user_id,
 
-    // 🎯 ADICIONE ESTES CAMPOS:
+    // 🎯 NOVOS CAMPOS DE ZIP INCLUÍDOS AQUI:
+    // Eles precisam ser mapeados do objeto raw para o objeto final
+    zip_url_full: (raw as any).zip_url_full || null,
+    zip_url_social: (raw as any).zip_url_social || null,
+
     created_at: (raw as any).created_at || new Date().toISOString(),
     updated_at: (raw as any).updated_at || new Date().toISOString(),
 
