@@ -53,7 +53,7 @@ export default async function SubdomainGaleriaPage({
     notFound();
   }
 
-  //[Subdomain] O fotógrafo ${username} não tem permissão de subdomínio ativa.`,
+  //[Subdomain] O autor ${username} não tem permissão de subdomínio ativa.`,
   if (!galeriaRaw.photographer?.use_subdomain) {
     notFound();
   }
@@ -107,7 +107,7 @@ export async function generateMetadata({
 }) {
   const { username, slug } = await params;
 
-  // Se for a Home do fotógrafo (sem slug)
+  // Se for a Home do autor (sem slug)
   if (!slug || slug.length === 0) {
     const profile = await getProfileMetadataInfo(username); // 🎯 Usa o cache persistente
 

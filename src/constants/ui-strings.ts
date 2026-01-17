@@ -6,7 +6,7 @@ export const UI_LABELS = {
   },
   INSTAGRAM: {
     title: 'Instagram',
-    subtitle: 'Seguir Fotógrafo',
+    subtitle: 'Seguir autor',
     color: '#E1306C',
   },
   FAVORITE: {

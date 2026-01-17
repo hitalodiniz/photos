@@ -370,6 +370,7 @@ export default function PhotoGrid({ photos, galeria }: any) {
             setColumns,
             activeTag,
             setActiveTag,
+            handleExternalDownload,
           }}
           tags={tagsDaGaleria}
           handleShare={() =>

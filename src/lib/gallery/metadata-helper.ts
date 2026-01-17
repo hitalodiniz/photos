@@ -38,8 +38,8 @@ export async function getGalleryMetadata(
   if (!galeriaRaw.is_public) {
     description = `🔒 Galeria Privada - Digite sua senha para acessar.`;
   } else {
-    // Adiciona o nome do fotógrafo à descrição se for pública
-    if (fullname) descriptionParts.push(`Fotógrafo: ${fullname}`);
+    // Adiciona o nome do autor à descrição se for pública
+    if (fullname) descriptionParts.push(`Autor: ${fullname}`);
     description =
       descriptionParts.length > 0
         ? descriptionParts.join(' | ')
@@ -108,7 +108,7 @@ export async function getPhotoMetadata(
   }
 
   const photographerInfo = galeriaRaw.photographer?.full_name
-    ? `Profissional: ${galeriaRaw.photographer.full_name}`
+    ? `Autor: ${galeriaRaw.photographer.full_name}`
     : '';
 
   let description = '';

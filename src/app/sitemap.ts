@@ -16,7 +16,7 @@ export default function sitemap(): MetadataRoute.Sitemap {
   );
 
   // Nota: Rotas dinâmicas como /[username] ou /subdomain não entram aqui
-  // de forma fixa. Para indexar fotógrafos, você precisaria buscar no
+  // de forma fixa. Para indexar autors, você precisaria buscar no
   // banco todos os usernames e mapeá-los aqui.
 
   return [...staticRoutes];

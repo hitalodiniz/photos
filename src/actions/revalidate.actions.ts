@@ -18,7 +18,7 @@ export async function revalidateGalleryCover(photoId: string) {
  * Ação para limpar todos os níveis de cache de uma galeria específica.
  * @param folderId ID da pasta no Google Drive (usado para as Tags)
  * @param slug O slug da galeria (ex: 'casamento-joao-e-maria')
- * @param username O username do fotógrafo (ex: 'fotografo1')
+ * @param username O username do autor (ex: 'fotografo1')
  * @param subdomain O subdomínio (se houver, ex: 'galeria.meusite.com')
  */
 export async function revalidateGallery(

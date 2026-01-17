@@ -47,6 +47,7 @@ export const ToolBarMobile = ({
   tags = [],
   handleShare,
   galeria,
+  handleExternalDownload,
 }: any) => {
   const [showTagsPanel, setShowTagsPanel] = useState(false);
   const [showColumnsPanel, setShowColumnsPanel] = useState(false);
@@ -221,7 +222,7 @@ export const ToolBarMobile = ({
                             Qualidade Máxima
                           </p>
                           <p className="text-white/50 text-[9px] leading-tight">
-                            Arquivo original do fotógrafo.
+                            Arquivo original do autor.
                           </p>
                         </div>
                       </button>
@@ -248,7 +249,7 @@ export const ToolBarMobile = ({
                             Versão Redes Sociais
                           </p>
                           <p className="text-white/50 text-[9px] leading-tight">
-                            Compactado pelo fotógrafo.
+                            Compactado pelo autor.
                           </p>
                         </div>
                       </button>

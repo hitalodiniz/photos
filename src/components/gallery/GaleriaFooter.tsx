@@ -66,8 +66,8 @@ export default function GaleriaFooter({ galeria }: GaleriaFooterProps) {
                       target="_blank"
                       rel="noopener noreferrer"
                       className="text-slate-700 hover:text-[#25D366] transition-all"
-                      aria-label="Entre em contato pelo WhatsApp com o fotógrafo"
-                      title="Entre em contato pelo WhatsApp com o fotógrafo"
+                      aria-label="Entre em contato pelo WhatsApp com o autor"
+                      title="Entre em contato pelo WhatsApp com o autor"
                     >
                       <svg
                         width="16"
@@ -85,8 +85,8 @@ export default function GaleriaFooter({ galeria }: GaleriaFooterProps) {
                       target="_blank"
                       rel="noopener noreferrer"
                       className="text-slate-700 hover:text-[#25D366] transition-all"
-                      aria-label="Visualizar Instagram do fotógrafo"
-                      title="Visualizar Instagram do fotógrafo"
+                      aria-label="Visualizar Instagram do autor"
+                      title="Visualizar Instagram do autor"
                     >
                       <svg
                         width="16"
@@ -103,8 +103,8 @@ export default function GaleriaFooter({ galeria }: GaleriaFooterProps) {
                     target="_blank"
                     rel="noopener noreferrer"
                     className="text-slate-700 hover:text-[#D4AF37] transition-all"
-                    aria-label="Visualizar perfil do fotógrafo"
-                    title="Visualizar perfil do fotógrafo"
+                    aria-label="Visualizar perfil do autor"
+                    title="Visualizar perfil do autor"
                   >
                     <svg
                       width="16"

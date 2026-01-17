@@ -30,7 +30,7 @@ export default function PhotographerAvatar({
   )}`;
 
   const { fullName, displayAvatar, initialLetter } = useMemo(() => {
-    const name = photographer?.full_name || 'Fotógrafo';
+    const name = photographer?.full_name || 'Autor';
     return {
       fullName: name,
       displayAvatar: photographer?.profile_picture_url || null,

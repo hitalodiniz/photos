@@ -23,7 +23,7 @@ export default function TermosDeUsoPage() {
     {
       icon: <UserCheck />,
       title: 'Aceitação dos Termos',
-      desc: 'Ao utilizar esta plataforma, você concorda com estas diretrizes. O serviço é um visualizador de mídia otimizado para fotógrafos que utilizam o Google Drive™ como servidor profissional.',
+      desc: 'Ao utilizar esta plataforma, você concorda com estas diretrizes. O serviço é um visualizador de mídia otimizado para usuários que utilizam o Google Drive™ como servidor autor.',
     },
     {
       icon: <Globe />,
@@ -44,13 +44,13 @@ export default function TermosDeUsoPage() {
     {
       icon: <UserCheck />, // Mantém o estilo dos ícones de 40px no tom Champanhe
       title: 'Responsabilidade do Usuário',
-      desc: 'O fotógrafo é o único responsável pelo conteúdo veiculado e pela gestão das chaves de acesso. A plataforma atua como ferramenta de exibição, cabendo ao usuário garantir que o uso do serviço e a divulgação das mídias respeitem os direitos de imagem e os acordos firmados com seus clientes finais.',
+      desc: 'O usuário é o único responsável pelo conteúdo veiculado e pela gestão das chaves de acesso. A plataforma atua como ferramenta de exibição, cabendo ao usuário garantir que o uso do serviço e a divulgação das mídias respeitem os direitos de imagem e os acordos firmados com seus clientes finais.',
     },
 
     {
       icon: <FileText />,
       title: 'Modificações no Serviço',
-      desc: 'Reservamos o direito de ajustar termos para refletir melhorias técnicas ou mudanças legais, sempre visando a estabilidade e segurança da sua galeria profissional.',
+      desc: 'Reservamos o direito de ajustar termos para refletir melhorias técnicas ou mudanças legais, sempre visando a estabilidade e segurança da sua galeria autor.',
     },
   ];
 
@@ -66,7 +66,7 @@ export default function TermosDeUsoPage() {
             <>
               Regras e diretrizes para uma{' '}
               <span className="font-semibold border-b-2 border-[#F3E5AB]/50 text-white">
-                experiência profissional
+                experiência autor
               </span>
             </>
           }

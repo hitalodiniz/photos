@@ -4,7 +4,7 @@ import { redirect } from 'next/navigation';
 /**
  * Busca o ID da pasta-mãe (parent) de um arquivo no Google Drive
  * @param fileId O ID do arquivo selecionado no Google Picker.
- * @param userId O ID do usuário logado (fotógrafo).
+ * @param userId O ID do usuário logado (autor).
  * @returns O ID da pasta-mãe ou null se houver falha.
  */
 export async function getParentFolderIdServerService(
@@ -61,7 +61,7 @@ export async function getParentFolderIdServerService(
 /**
  * Busca o nome de uma pasta no Google Drive
  * @param folderId O ID da pasta.
- * @param userId O ID do usuário logado (fotógrafo).
+ * @param userId O ID do usuário logado (autor).
  * @returns O nome da pasta ou null em caso de falha.
  */
 export async function getDriveFolderNameService(

@@ -64,7 +64,7 @@ export default function NotFound() {
             onClick={() => router.push('/dashboard')}
             className="w-fit px-8 py-3 bg-white/5 hover:bg-white/10 text-white font-semibold uppercase tracking-widest text-[10px] rounded-full border border-white/10 transition-all flex items-center gap-2"
           >
-            <LogIn size={12} /> Área do Fotógrafo
+            <LogIn size={12} /> Área do usuário
           </button>
         </div>
       ),

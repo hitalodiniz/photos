@@ -98,7 +98,7 @@ export default function LoginPage() {
   const loginItems = [
     {
       icon: <ShieldCheck />,
-      title: 'Identificação Profissional',
+      title: 'Identificação autor',
       desc: (
         <div className="flex flex-col items-center gap-6 text-center">
           <div className="flex flex-col gap-2">

@@ -244,7 +244,7 @@ export function AccessRequestModal({
                 Pedido Enviado
               </h3>
               <p className="text-white/40 text-[10px] mb-6">
-                Aguarde o retorno do fotógrafo.
+                Aguarde o retorno do responsável.
               </p>
               <button
                 onClick={onClose}

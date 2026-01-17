@@ -98,7 +98,7 @@ export function formatGalleryData(
         }
       : undefined,
 
-    photographer_name: raw.photographer?.full_name || 'Fotógrafo',
+    photographer_name: raw.photographer?.full_name || 'Autor',
     photographer_avatar_url: raw.photographer?.profile_picture_url || null,
     photographer_username: raw.photographer?.username || username,
     use_subdomain: hasSubdomain,
@@ -129,6 +129,6 @@ export const fetchDrivePhotos = (userId?: string, folderId?: string) =>
     [`drive-photos-${folderId}`],
     {
       revalidate: GLOBAL_CACHE_REVALIDATE,
-      tags: [`drive-${folderId}`], // Tag para atualizar quando o fotógrafo subir fotos
+      tags: [`drive-${folderId}`], // Tag para atualizar quando o autor subir fotos
     },
   )();

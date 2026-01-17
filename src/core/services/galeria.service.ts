@@ -41,7 +41,7 @@ interface ActionResult<T = unknown> {
 // =========================================================================
 
 /**
- * Obtém o ID do usuário logado (fotógrafo) e o studio_id associado.
+ * Obtém o ID do usuário logado (autor) e o studio_id associado.
  */
 async function getAuthAndStudioIds(supabaseClient?: any): Promise<AuthContext> {
   const supabase =
