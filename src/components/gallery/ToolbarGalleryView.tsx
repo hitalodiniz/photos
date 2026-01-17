@@ -177,8 +177,13 @@ export const ToolbarGalleryView = ({
         className={`relative flex items-center shrink-0 ${showClose ? 'border-r border-white/10 pr-3 mx-1' : ''}`}
       >
         {showQualityWarning && (
-          <div className="absolute top-full mt-4 left-1/2 -translate-x-1/2 z-[1001] w-64 md:w-80 animate-in fade-in slide-in-from-top-4 duration-700">
-            <div className="absolute bottom-full left-1/2 -translate-x-1/2 border-[8px] border-transparent border-b-[#F3E5AB]" />
+          /* 🎯 Ajustamos de left-1/2 para left-auto e right-0 (ou um valor negativo leve) */
+          /* O -translate-x-4 garante que o box não "fuja" da tela no mobile */
+          <div className="absolute top-full mt-4 right-[-10px] md:right-0 z-[1001] w-64 md:w-80 animate-in fade-in slide-in-from-top-4 duration-700">
+            {/* 🎯 A Seta: Posicionada fixamente sob o centro do botão de download */}
+            {/* No desktop, o botão tem 44px (w-11), então a seta deve estar a 22px da direita */}
+            <div className="absolute bottom-full right-[23px] md:right-[95px] border-[8px] border-transparent border-b-[#F3E5AB]" />
+
             <div className="bg-[#F3E5AB] shadow-2xl rounded-2xl p-4 border border-white/20 text-black">
               <div className="flex justify-between items-center mb-1">
                 <span className="font-bold text-[11px] uppercase tracking-tighter">

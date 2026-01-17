@@ -5,14 +5,16 @@ import {
   fetchDrivePhotos,
 } from '@/core/logic/galeria-logic';
 import { GaleriaView, PasswordPrompt } from '@/components/gallery';
-import { getProxyUrl } from '@/core/utils/url-helper';
+import { getProxyUrl, GLOBAL_CACHE_REVALIDATE } from '@/core/utils/url-helper';
 import PhotographerContainer from '@/components/photographer/PhotographerContainer';
 import { getGalleryMetadata } from '@/lib/gallery/metadata-helper';
 import { checkGalleryAccess } from '@/core/logic/auth-gallery';
+import { getProfileMetadataInfo } from '@/core/services/profile.service';
 
-// 🎯 Define que TODA essa rota (incluindo os filhos) é estática
-export const dynamic = 'force-static';
-export const revalidate = 86400; // 24 horas
+//AJUSTE CRÍTICO: Remova 'force-static' se a galeria tiver senha.
+// Para galerias com proteção, o Next.js precisa validar o cookie a cada requisição.
+export const dynamic = 'force-dynamic';
+export const revalidate = GLOBAL_CACHE_REVALIDATE;
 
 type SubdomainGaleriaPageProps = {
   params: Promise<{
@@ -24,15 +26,17 @@ type SubdomainGaleriaPageProps = {
 export default async function SubdomainGaleriaPage({
   params,
 }: SubdomainGaleriaPageProps) {
-  const { username, slug } = await params;
+  const resolvedParams = await params; // 🎯 Resolva primeiro sem desestruturar
+  const username = resolvedParams.username;
+  const slug = resolvedParams.slug;
 
-  // 1. Tratamento da Raiz do Subdomínio
+  // Check de segurança antes de qualquer lógica
   if (!slug || slug.length === 0) {
-    // Opcional: Você pode buscar uma galeria "vitrine" aqui ou manter o notFound
     return <PhotographerContainer username={username} />;
   }
 
   const fullSlug = `${username}/${slug.join('/')}`;
+
   // 2. Busca os dados brutos
   // Dispara as duas promessas ao mesmo tempo
   const galeriaPromise = fetchGalleryBySlug(fullSlug);
@@ -97,9 +101,43 @@ export default async function SubdomainGaleriaPage({
   return <GaleriaView galeria={galeriaData} photos={photos} />;
 }
 
-export async function generateMetadata({ params }: { params: any }) {
+export async function generateMetadata({
+  params,
+}: {
+  params: Promise<{ username: string; slug?: string[] }>;
+}) {
   const { username, slug } = await params;
-  const fullSlug = `${username}/${slug.join('/')}`;
 
-  return await getGalleryMetadata(fullSlug);
+  // Se for a Home do fotógrafo (sem slug)
+  if (!slug || slug.length === 0) {
+    const profile = await getProfileMetadataInfo(username); // 🎯 Usa o cache persistente
+
+    return {
+      title: `Portfólio de ${profile?.full_name || username}`,
+      description: `Conheça o trabalho de ${profile?.full_name || username}.`,
+      openGraph: {
+        images: profile?.profile_picture_url
+          ? [profile.profile_picture_url]
+          : [],
+      },
+    };
+  }
+
+  try {
+    // 2. Para a Galeria, usamos o getGalleryMetadata que você já ajustou para trazer o fullname
+    const fullSlug = `${username}/${slug.join('/')}`;
+    const metadata = await getGalleryMetadata(fullSlug);
+
+    // Se a galeria não existir (ex: slug inválido), o getGalleryMetadata já retorna "Não encontrada"
+    return {
+      ...metadata,
+      openGraph: {
+        ...metadata.openGraph,
+        authors: metadata.fullname ? [metadata.fullname] : [],
+      },
+    };
+  } catch (error) {
+    console.error('Erro ao gerar metadados da galeria:', error);
+    return { title: `Galeria | ${username}` };
+  }
 }

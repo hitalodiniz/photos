@@ -30,23 +30,21 @@ export async function middleware(req: NextRequest) {
   if (isSubdomainRequest) {
     const subdomain = cleanHost.replace(`.${cleanMainDomain}`, '');
 
+    // No seu middleware.ts, dentro do bloco isSubdomainRequest:
     if (subdomain && subdomain !== 'www') {
+      // Captura TUDO no subdomínio
       const isHomePage = pathname === '/';
-      const isGalleryPath =
-        pathname === '/' ||
-        /^\/\d{4}/.test(pathname) ||
-        pathname.startsWith('/photo');
 
-      if (isHomePage || isGalleryPath) {
-        const targetPath = isHomePage
-          ? `/${subdomain}`
-          : `/subdomain/${subdomain}${pathname}`;
+      // 🎯 Construção robusta da URL interna
+      const internalPath = isHomePage
+        ? `/subdomain/${subdomain}`
+        : `/subdomain/${subdomain}${pathname}`;
 
-        const rewriteUrl = new URL(`${targetPath}${url.search}`, req.url);
-        const response = NextResponse.rewrite(rewriteUrl);
-        response.headers.set('x-subdomain-variant', 'true');
-        return response;
-      }
+      // Use req.nextUrl.clone() para preservar outros parâmetros
+      const rewriteUrl = req.nextUrl.clone();
+      rewriteUrl.pathname = internalPath;
+
+      return NextResponse.rewrite(rewriteUrl);
     }
   }
 

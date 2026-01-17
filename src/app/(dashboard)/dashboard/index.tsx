@@ -93,6 +93,13 @@ export default function Dashboard({
   const handleFormSuccess = async (success: boolean, data: any) => {
     if (success) {
       if (galeriaToEdit) {
+        //REVALIDAÇÃO AUTOMÁTICA APÓS EDITAR para limpar o cache do vercel
+        await revalidateGallery(
+          data.drive_folder_id,
+          data.slug,
+          data.photographer_username || data.photographer?.username,
+          data.photographer_username || data.photographer?.username, // Passando username como subdomínio
+        );
         // Modo Edição: Atualiza o item na lista local
         setGalerias((prev) => prev.map((g) => (g.id === data.id ? data : g)));
         setToast({
@@ -165,37 +172,34 @@ export default function Dashboard({
     setUpdatingId(null);
   };
 
-  // --- DENTRO DO COMPONENTE ClientAdminWrapper ---
-
   const handleSyncDrive = async (galeria: Galeria) => {
     setUpdatingId(galeria.id); // Ativa o loader no card específico
     try {
-      // Chamada direta para as Server Actions (Mais rápido e seguro)
+      // 1. Invalida as tags de fotos e capa
       await revalidateDrivePhotos(galeria.drive_folder_id);
+
+      await revalidateGallery(
+        galeria.drive_folder_id,
+        galeria.slug,
+        galeria.photographer_username,
+        galeria.photographer_username,
+      );
 
       if (galeria.cover_image_url) {
         await revalidateGalleryCover(galeria.cover_image_url);
       }
 
-      console.log(
-        'galeria.photographer_username ',
-        galeria.photographer_username,
-      );
-      await revalidateGallery(
-        galeria.drive_folder_id,
-        galeria.slug,
-        galeria.photographer_username,
-        galeria.photographer_username, // Se você tiver essa info no banco
-      );
-
-      setToast({ message: 'Sincronização concluída!', type: 'success' });
+      setToast({
+        message: 'Sincronização concluída! As fotos foram atualizadas.',
+        type: 'success',
+      });
     } catch (error) {
       setToast({
         message: 'Erro ao sincronizar com o Google Drive.',
         type: 'error',
       });
     } finally {
-      setUpdatingId(null); // Desativa o loader
+      setUpdatingId(null);
     }
   };
 

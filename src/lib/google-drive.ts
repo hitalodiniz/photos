@@ -1,3 +1,5 @@
+import { GLOBAL_CACHE_REVALIDATE } from '@/core/utils/url-helper';
+
 export interface DrivePhoto {
   id: string;
   name: string;
@@ -36,15 +38,15 @@ export async function listPhotosFromDriveFolder(
         pageToken ? `&pageToken=${pageToken}` : ''
       }`;
 
-      console.log(
-        `\x1b[36m[LIST PHOTOS]\x1b[0m Verificando pasta: ${driveFolderId}`,
-      );
+      // console.log(
+      //   `\x1b[36m[LIST PHOTOS]\x1b[0m Verificando pasta: ${driveFolderId}`,
+      // );
 
       const response = await fetch(url, {
         headers: { Authorization: `Bearer ${accessToken}` },
         cache: 'force-cache',
         next: {
-          revalidate: 86400,
+          revalidate: GLOBAL_CACHE_REVALIDATE,
           tags: [`drive-photos-${driveFolderId}`],
         },
       });
@@ -56,19 +58,19 @@ export async function listPhotosFromDriveFolder(
       const buffer = await response.arrayBuffer();
 
       // Calculamos o tamanho para o seu log de economia
-      const sizeInKb = (buffer.byteLength / 1024).toFixed(1);
-      const cacheStatus = response.headers.get('x-nextjs-cache');
-      const isHit = cacheStatus === 'HIT';
+      // const sizeInKb = (buffer.byteLength / 1024).toFixed(1);
+      // const cacheStatus = response.headers.get('x-nextjs-cache');
+      // const isHit = cacheStatus === 'HIT';
 
-      if (isHit) {
-        console.log(
-          `\x1b[32m[CACHE HIT LIST]\x1b[0m ID: ${driveFolderId} | Economizou ${sizeInKb} KB`,
-        );
-      } else {
-        console.log(
-          `\x1b[35m[GOOGLE MISS LIST]\x1b[0m ID: ${driveFolderId} | Baixando ${sizeInKb} KB`,
-        );
-      }
+      // if (isHit) {
+      //   console.log(
+      //     `\x1b[32m[CACHE HIT LIST]\x1b[0m ID: ${driveFolderId} | Economizou ${sizeInKb} KB`,
+      //   );
+      // } else {
+      //   console.log(
+      //     `\x1b[35m[GOOGLE MISS LIST]\x1b[0m ID: ${driveFolderId} | Baixando ${sizeInKb} KB`,
+      //   );
+      // }
 
       // 🎯 CONVERSÃO SEGURA: Transformamos o buffer em JSON
       const textData = new TextDecoder().decode(buffer);

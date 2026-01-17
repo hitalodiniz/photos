@@ -69,10 +69,10 @@ export const GaleriaHero = ({ galeria, photos, coverUrl }: any) => {
 
       {/* CONTAINER PRINCIPAL DE CONTEÚDO */}
       <div
-        className={`px-2 relative h-full flex flex-col transition-all duration-[1200ms] max-w-[1600px] mx-auto w-full z-0 justify-end ${
+        className={` relative h-full flex flex-col transition-all duration-[1200ms] max-w-[1600px] mx-auto w-full z-0 justify-end ${
           isExpanded
-            ? 'pb-8 md:pb-24 md:px-16' // Espaço maior quando em tela cheia
-            : 'pb-8 md:px-10' // Alinhado ao bottom, mas com respiro menor quando recolhido
+            ? 'px-8 pb-20 md:pb-24 md:px-16' // Espaço maior quando em tela cheia
+            : 'px-4 pb-4 md:pb-6 md:px-6' // Alinhado ao bottom, mas com respiro menor quando recolhido
         }`}
       >
         <div
@@ -141,9 +141,19 @@ export const GaleriaHero = ({ galeria, photos, coverUrl }: any) => {
         {isExpanded && (
           <button
             onClick={() => setIsExpanded(false)}
-            className="absolute bottom-12 left-1/2 -translate-x-1/2 animate-bounce text-white/80 hover:text-[#F3E5AB] p-2 drop-shadow-lg"
+            // 🎯 fixed e bottom-2 para colar no limite inferior. animate-bounce para o efeito quicando.
+            className="fixed bottom-2 left-1/2 -translate-x-1/2 animate-bounce group z-[400] pointer-events-auto p-2"
           >
-            <ChevronDown size={32} className="md:w-10 md:h-10" />
+            <div className="relative flex items-center justify-center w-12 h-12 rounded-full bg-black/40 backdrop-blur-md border border-white/10 shadow-2xl transition-all duration-500 hover:bg-black/60">
+              {/* Brilho interno ao passar o mouse */}
+              <div className="absolute inset-0 rounded-full bg-[#F3E5AB]/5 opacity-0 group-hover:opacity-100 transition-opacity" />
+
+              <ChevronDown
+                size={28}
+                strokeWidth={1.5}
+                className="text-white transition-colors group-hover:text-[#F3E5AB]"
+              />
+            </div>
           </button>
         )}
 

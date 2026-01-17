@@ -2,7 +2,7 @@
 import { redirect } from 'next/navigation';
 import { createSupabaseServerClientReadOnly } from '@/lib/supabase.server';
 import { getGalerias } from '@/core/services/galeria.service';
-import ClientAdminWrapper from './ClientAdminWrapper';
+import ClientAdminWrapper from '.';
 
 export const metadata = {
   title: 'Dashboard',

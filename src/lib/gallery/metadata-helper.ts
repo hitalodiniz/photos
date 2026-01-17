@@ -3,16 +3,28 @@ import { Metadata } from 'next';
 import { fetchGalleryBySlug } from '@/core/logic/galeria-logic';
 import { getProxyUrl } from '@/core/utils/url-helper';
 
-export async function getGalleryMetadata(fullSlug: string): Promise<Metadata> {
+// 🎯 Definimos um tipo que estende o Metadata padrão para incluir o fullname
+type GalleryMetadata = Metadata & { fullname?: string };
+
+export async function getGalleryMetadata(
+  fullSlug: string,
+): Promise<GalleryMetadata> {
   const galeriaRaw = await fetchGalleryBySlug(fullSlug);
 
   if (!galeriaRaw) {
     return { title: 'Galeria não encontrada | Sua Galeria' };
   }
 
+  // 1. Extração de dados
+  const fullname = galeriaRaw.photographer?.full_name || '';
+  // 🎯 Título composto: "Nome da Galeria | Nome do Fotógrafo"
+  /*const title = fullname
+    ? `${galeriaRaw.title} | ${fullname}`
+    : galeriaRaw.title;*/
+  // 🎯 Título Nome da Galeria
   const title = galeriaRaw.title;
 
-  // 1. Montagem da Descrição Dinâmica
+  // 2. Montagem da Descrição Dinâmica
   const descriptionParts = [];
   if (galeriaRaw.location) descriptionParts.push(galeriaRaw.location);
   if (galeriaRaw.date) {
@@ -21,37 +33,35 @@ export async function getGalleryMetadata(fullSlug: string): Promise<Metadata> {
     );
   }
 
-  // Inclui o fotógrafo sempre
-  const photographerInfo = galeriaRaw.photographer?.full_name
-    ? `Fotógrafo: ${galeriaRaw.photographer.full_name}`
-    : '';
-
-  // 2. Lógica de Privacidade vs Descrição Pública
+  // 3. Lógica de Privacidade vs Descrição Pública
   let description = '';
   if (!galeriaRaw.is_public) {
-    description =
-      `🔒 Galeria Privada - Digite sua senha para acessar. ${photographerInfo}`.trim();
+    description = `🔒 Galeria Privada - Digite sua senha para acessar.`;
   } else {
-    if (photographerInfo) descriptionParts.push(photographerInfo);
+    // Adiciona o nome do fotógrafo à descrição se for pública
+    if (fullname) descriptionParts.push(`Fotógrafo: ${fullname}`);
     description =
       descriptionParts.length > 0
         ? descriptionParts.join(' | ')
         : 'Clique para acessar a galeria completa.';
   }
 
-  // 3. Tratamento da Imagem (WhatsApp exige HTTPS e w1200)
+  // 4. Tratamento da Imagem (OpenGraph)
   const ogImage = galeriaRaw.cover_image_url
     ? getProxyUrl(galeriaRaw.cover_image_url, 'w1200')
     : null;
 
+  const url = `${process.env.NEXT_PUBLIC_BASE_URL}/${fullSlug}`;
+
   return {
     title,
     description,
+    fullname, // ⬅️ Agora retornado corretamente para uso externo
     openGraph: {
       title,
       description,
       type: 'website',
-      url: `${process.env.NEXT_PUBLIC_BASE_URL}/${fullSlug}`,
+      url,
       images: ogImage
         ? [
             {
@@ -84,10 +94,9 @@ export async function getPhotoMetadata(
     return { title: 'Foto não encontrada | Sua Galeria' };
   }
 
-  // 1. Título focado na foto, herdando o título da galeria
-  const title = `Foto - ${galeriaRaw.title}`;
+  // 🎯 AJUSTE: Usar apenas o título da galeria para bater com sua imagem de referência
+  const title = galeriaRaw.title;
 
-  // 2. Montagem da Descrição Dinâmica (Igual à galeria)
   const descriptionParts = [];
   if (galeriaRaw.location) descriptionParts.push(galeriaRaw.location);
   if (galeriaRaw.date) {
@@ -108,16 +117,10 @@ export async function getPhotoMetadata(
     description =
       descriptionParts.length > 0
         ? descriptionParts.join(' | ')
-        : 'Toque para ver a foto em alta resolução.';
+        : 'Toque para ver a foto.';
   }
 
-  // 3. Tratamento da Imagem (A parte crucial)
-  // Usamos o padrão que o WhatsApp aceita para o Drive, garantindo HTTPS e tamanho
-  // 3. Tratamento da Imagem (WhatsApp exige HTTPS e w1200)
-  const ogImage = galeriaRaw.cover_image_url
-    ? getProxyUrl(galeriaRaw.cover_image_url, 'w1200')
-    : null;
-
+  const ogImage = googleId ? getProxyUrl(googleId, 'w1200') : null;
   const baseUrl = process.env.NEXT_PUBLIC_BASE_URL;
 
   return {
@@ -126,22 +129,15 @@ export async function getPhotoMetadata(
     openGraph: {
       title,
       description,
-      type: 'article', // 'article' indica que é um conteúdo específico dentro de um site
+      type: 'article',
       url: `${baseUrl}/photo/${googleId}?s=${fullSlug}`,
-      images: [
-        {
-          url: ogImage,
-          width: 1200,
-          height: 630,
-          type: 'image/jpeg',
-        },
-      ],
+      images: ogImage ? [{ url: ogImage, width: 1200, height: 630 }] : [],
     },
     twitter: {
       card: 'summary_large_image',
       title,
       description,
-      images: [ogImage],
+      images: ogImage ? [ogImage] : [],
     },
   };
 }

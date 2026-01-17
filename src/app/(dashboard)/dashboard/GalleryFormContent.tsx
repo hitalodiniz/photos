@@ -234,15 +234,17 @@ export default function GalleryFormContent({
 
       <fieldset className="relative px-4 py-3 bg-white border border-slate-200 rounded-[0.5rem] shadow-sm mt-4">
         <SectionHeader title="Customização Visual" />
-        <div className="flex flex-nowrap items-center justify-between gap-2">
+
+        {/* Ajuste: flex-col para mobile, md:flex-row para desktop */}
+        <div className="flex flex-col md:flex-row md:items-center justify-between gap-6 md:gap-2">
           {/* 1. SEÇÃO: FOTO DE FUNDO */}
-          <div className="flex items-center gap-3 pr-4 border-r border-slate-200 shrink-0">
+          {/* Ajuste: border-b no mobile, md:border-r no desktop */}
+          <div className="flex items-center justify-between md:justify-start gap-3 pb-4 md:pb-0 border-b md:border-b-0 md:border-r border-slate-200 md:pr-4 shrink-0">
             <div className="flex items-center gap-1.5">
               <label className="text-slate-500 font-bold uppercase tracking-widest text-[10px] whitespace-nowrap">
                 Foto de fundo
               </label>
 
-              {/* Tooltip Foto de Fundo - Restaurado */}
               <div className="group relative flex items-center">
                 <div className="flex items-center justify-center w-3.5 h-3.5 rounded-full border border-slate-300 text-slate-400 group-hover:border-[#D4AF37] group-hover:text-[#D4AF37] transition-colors cursor-help">
                   <span className="text-[10px] font-bold">?</span>
@@ -271,15 +273,16 @@ export default function GalleryFormContent({
               />
             </button>
           </div>
+
           {/* 2. SEÇÃO: COR DE FUNDO */}
-          <div className="flex items-center gap-3 pr-4 border-r border-slate-200 shrink-0">
+          {/* Ajuste: border-b no mobile, md:border-r no desktop */}
+          <div className="flex items-center justify-between md:justify-start gap-3 pb-4 md:pb-0 border-b md:border-b-0 md:border-r border-slate-200 md:pr-4 shrink-0">
             <div className="flex items-center gap-1.5">
               <Layout size={13} className="text-[#D4AF37]" />
               <label className="text-slate-500 font-bold uppercase tracking-widest text-[10px] whitespace-nowrap">
                 Cor de fundo
               </label>
 
-              {/* Tooltip Cor de Fundo - Restaurado */}
               <div className="group relative flex items-center">
                 <div className="flex items-center justify-center w-3.5 h-3.5 rounded-full border border-slate-300 text-slate-400 group-hover:border-[#D4AF37] group-hover:text-[#D4AF37] transition-colors cursor-help">
                   <span className="text-[10px] font-bold">?</span>
@@ -338,31 +341,31 @@ export default function GalleryFormContent({
               </div>
             </div>
           </div>
+
           {/* 3. SEÇÃO: GRID DE COLUNAS */}
-          <div className="flex items-center gap-3 shrink-0">
+          <div className="flex items-center justify-between md:justify-start gap-3 shrink-0">
             <div className="flex items-center gap-1.5">
               <label className="text-slate-500 font-bold uppercase tracking-widest text-[10px] whitespace-nowrap">
                 Grid
               </label>
 
-              {/* Tooltip Grid - Restaurado */}
               <div className="group relative flex items-center">
                 <div className="flex items-center justify-center w-3.5 h-3.5 rounded-full border border-slate-300 text-slate-400 group-hover:border-[#D4AF37] group-hover:text-[#D4AF37] transition-colors cursor-help">
                   <span className="text-[10px] font-bold">?</span>
                 </div>
-                <div className="absolute bottom-full right-0 mb-3 w-64 p-3 bg-slate-900 text-white text-[10px] font-medium leading-relaxed rounded-lg opacity-0 pointer-events-none group-hover:opacity-100 transition-all duration-300 shadow-2xl z-[100] text-left border border-white/10">
+                <div className="absolute bottom-full right-0 md:left-1/2 md:-translate-x-1/2 mb-3 w-64 p-3 bg-slate-900 text-white text-[10px] font-medium leading-relaxed rounded-lg opacity-0 pointer-events-none group-hover:opacity-100 transition-all duration-300 shadow-2xl z-[100] text-left border border-white/10">
                   <p>
                     Define o{' '}
                     <strong className="text-[#F3E5AB]">layout inicial</strong>{' '}
                     de colunas. O cliente ainda poderá alterar manualmente na
                     galeria.
                   </p>
-                  <div className="absolute top-full right-2 border-8 border-transparent border-t-slate-900" />
+                  <div className="absolute top-full right-2 md:left-1/2 md:-translate-x-1/2 border-8 border-transparent border-t-slate-900" />
                 </div>
               </div>
             </div>
 
-            <div className="flex gap-3">
+            <div className="flex gap-2 md:gap-3">
               {[
                 { k: 'mobile', i: Smartphone },
                 { k: 'tablet', i: Tablet },

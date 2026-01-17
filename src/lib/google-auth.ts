@@ -1,6 +1,7 @@
 // lib/google-auth.ts
 import { createServerClient } from '@supabase/ssr';
 import { cookies } from 'next/headers';
+import { createSupabaseClientForCache } from './supabase.server';
 
 /**
  * Gera um access token válido para o Google Drive
@@ -10,21 +11,7 @@ export async function getDriveAccessTokenForUser(
   userId: string,
 ): Promise<string | null> {
   try {
-    const cookieStore = await cookies();
-
-    const supabase = createServerClient(
-      process.env.NEXT_PUBLIC_SUPABASE_URL!,
-      process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!,
-      {
-        cookies: {
-          get(name) {
-            return cookieStore.get(name)?.value;
-          },
-          set() {},
-          remove() {},
-        },
-      },
-    );
+    const supabase = createSupabaseClientForCache();
 
     // 1. Buscar o refresh_token do usuário
     const { data: profile, error } = await supabase

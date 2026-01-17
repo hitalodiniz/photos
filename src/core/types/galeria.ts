@@ -43,8 +43,8 @@ export interface GaleriaBase {
   drive_folder_name: string | null;
   is_archived: boolean;
   is_deleted: boolean;
-  created_at: string;
-  updated_at: string;
+  created_at?: string; // ⬅️ O '?' torna opcional
+  updated_at?: string;
   deleted_at: string | null;
   show_cover_in_grid: boolean;
   grid_bg_color: string;

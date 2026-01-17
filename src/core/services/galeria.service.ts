@@ -472,6 +472,10 @@ export async function deleteGalleryPermanently(id: string) {
   return true;
 }
 
+/**
+ * Autentica o acesso a uma galeria protegida por senha.
+ * Gerencia a criação do cookie JWT e redireciona para a URL correta no subdomínio.
+ */
 export async function authenticateGaleriaAccess(
   galeriaId: string,
   fullSlug: string,
@@ -479,7 +483,7 @@ export async function authenticateGaleriaAccess(
 ) {
   const supabase = await createSupabaseServerClientReadOnly();
 
-  // 1. Busca a galeria
+  // 1. Busca os dados da galeria e do perfil para verificar a senha e o contexto de subdomínio
   const { data: galeria, error: fetchError } = await supabase
     .from('tb_galerias')
     .select(
@@ -492,53 +496,71 @@ export async function authenticateGaleriaAccess(
     return { success: false, error: 'Senha incorreta.' };
   }
 
-  // 2. Configuração da Secret
-  const secretString = process.env.JWT_GALLERY_SECRET;
-  if (!secretString) {
-    console.error('ERRO: JWT_GALLERY_SECRET não configurada.');
-  }
+  // 2. Configuração do JWT
+  const secretString =
+    process.env.JWT_GALLERY_SECRET || 'chave-padrao-de-seguranca-32-caracteres';
+  const secretKey = new TextEncoder().encode(secretString);
 
-  const secretKey = new TextEncoder().encode(
-    secretString || 'chave-padrao-de-seguranca-minimo-32-caracteres',
-  );
-
-  // 3. Geração do Token
   let token;
   try {
     token = await new SignJWT({ galeriaId: String(galeria.id) })
       .setProtectedHeader({ alg: 'HS256' })
       .setIssuedAt()
-      .setExpirationTime('7d')
+      .setExpirationTime('1d')
       .sign(secretKey);
   } catch (jwtError) {
     console.error('Erro ao assinar JWT:', jwtError);
     return { success: false, error: 'Erro interno ao gerar acesso.' };
   }
 
-  // 4. Salva o Cookie
+  // 3. Configuração de Cookies para Subdomínios
   const cookieStore = await cookies();
-  cookieStore.set(`galeria-${galeriaId}-auth`, token, {
+  const isLocal = process.env.NODE_ENV === 'development';
+  const mainDomain = process.env.NEXT_PUBLIC_MAIN_DOMAIN;
+
+  const cookieOptions: any = {
     path: '/',
     httpOnly: true,
-    secure: process.env.NODE_ENV === 'production',
-    maxAge: 60 * 60 * 24,
+    secure: !isLocal,
+    maxAge: 60 * 60 * 24, // 24 horas
     sameSite: 'lax',
-  });
+  };
 
-  // 5. Lógica de Redirecionamento
+  // 🎯 Define o domínio para que o subdomínio consiga ler o cookie
+  if (!isLocal && mainDomain) {
+    cookieOptions.domain = `.${mainDomain}`;
+  }
+
+  const cookieName = `galeria-${galeriaId}-auth`;
+
+  // ✅ PERSISTÊNCIA: Passando as opções configuradas corretamente
+  cookieStore.set(cookieName, token, cookieOptions);
+
+  // 4. Lógica de Redirecionamento (Evita caminhos duplicados em subdomínios)
   const profile = galeria.tb_profiles as any;
-  let targetPath = fullSlug.startsWith('/') ? fullSlug : `/${fullSlug}`;
+  let targetPath = fullSlug;
 
-  if (profile?.use_subdomain) {
-    // Remove o username do path se for subdomínio
-    const usernamePrefix = `${profile.username}/`;
-    if (targetPath.includes(usernamePrefix)) {
-      targetPath = targetPath.replace(usernamePrefix, '');
+  if (profile?.use_subdomain && profile.username) {
+    // Divide o slug e remove o username do início para o redirecionamento ser relativo à raiz do subdomínio
+    const pathParts = fullSlug.split('/');
+    if (pathParts[0] === profile.username) {
+      targetPath = pathParts.slice(1).join('/');
+    } else if (pathParts[0] === '' && pathParts[1] === profile.username) {
+      targetPath = pathParts.slice(2).join('/');
     }
   }
 
-  // IMPORTANTE: O redirect deve estar FORA de qualquer bloco try/catch
-  redirect(targetPath);
+  // Garante que o path comece com barra e não tenha duplicações
+  const finalRedirectPath = '/' + targetPath.replace(/^\/+/, '');
+
+  // 5. Invalidação de Cache
+  // Invalida a rota no servidor antes de redirecionar para forçar a leitura do novo cookie
+  revalidatePath(finalRedirectPath, 'page');
+
+  console.log(`[AUTH SUCCESS] Redirecionando para: ${finalRedirectPath}`);
+
+  // 🚀 REDIRECT: Deve ser a última instrução
+  redirect(finalRedirectPath);
 }
 /**
  * =========================================================================

@@ -6,7 +6,7 @@ import { Camera, Lock, Loader2, CheckCircle2, Send, X } from 'lucide-react';
 import { Galeria } from '@/core/types/galeria';
 import { sendAccessRequestAction } from '@/actions/email.actions';
 import { maskPhone } from '@/core/utils/masks-helpers';
-
+import { useRouter } from 'next/navigation';
 export default function PasswordPrompt({
   galeria,
   fullSlug,
@@ -16,6 +16,7 @@ export default function PasswordPrompt({
   fullSlug: string;
   coverImageUrl?: string;
 }) {
+  const router = useRouter();
   const [password, setPassword] = useState('');
   const [error, setError] = useState('');
   const [isChecking, setIsChecking] = useState(false);
@@ -24,10 +25,12 @@ export default function PasswordPrompt({
   const handleCheckPassword = async (e: React.FormEvent) => {
     e.preventDefault();
     setError('');
+
     if (password.length < 4) {
       setError('Mínimo de 4 dígitos.');
       return;
     }
+
     setIsChecking(true);
 
     try {
@@ -36,13 +39,27 @@ export default function PasswordPrompt({
         fullSlug,
         password,
       );
+
+      // Se o código chegar aqui, significa que NÃO houve redirecionamento automático
       if (result && !result.success) {
         setError(result.error || 'Senha incorreta.');
-        setIsChecking(false);
+        setIsChecking(false); // Só paramos o loading se houve falha na validação
       }
-    } catch (e: any) {
-      if (e.message === 'NEXT_REDIRECT') throw e;
-      setError('Erro de conexão.');
+    } catch (err: any) {
+      // 🎯 VERIFICAÇÃO CRÍTICA: Se for um redirect, não faça nada.
+      // O Next.js vai cuidar de tirar o usuário desta tela.
+      if (
+        err.message === 'NEXT_REDIRECT' ||
+        err.digest?.includes('NEXT_REDIRECT')
+      ) {
+        router.refresh();
+        //setIsChecking(false);
+        return;
+      }
+
+      // Se for um erro real de validação ou rede:
+      console.error('Erro na autenticação:', err);
+      setError('Senha incorreta ou erro de conexão.');
       setIsChecking(false);
     }
   };

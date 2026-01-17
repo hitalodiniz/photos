@@ -167,30 +167,41 @@ export default function Lightbox({
         </div>
       )}
 
+      {/* 1. Título: Sempre à esquerda, ocupa a primeira coluna do grid */}
+      {/* HEADER & TOOLBAR */}
       {/* HEADER & TOOLBAR */}
       <header
-        className={`relative md:absolute top-0 left-0 right-0 flex flex-col md:flex-row items-center justify-between p-4 md:px-14 md:py-8 bg-black md:bg-transparent z-[300] shrink-0 ${interfaceVisibilityClass}`}
+        className={`relative md:fixed top-0 left-0 right-0 p-4  z-[300] bg-black md:bg-transparent ${interfaceVisibilityClass}`}
       >
-        <div className="w-full md:w-auto px-2">
-          <GalleryHeader
-            title={galleryTitle}
-            location={location}
-            data={galeria.date}
-          />
-        </div>
-        <div className="flex justify-center md:justify-end mt-4 md:mt-0">
-          <ToolbarGalleryView
-            photoId={currentPhoto.id}
-            gallerySlug={galeria.slug}
-            galleryTitle={galleryTitle}
-            galeria={galeria}
-            activeIndex={activeIndex}
-            isFavorited={isFavorited}
-            onToggleFavorite={() => onToggleFavorite(String(currentPhoto.id))}
-            onClose={onClose}
-            showClose={!isSingleView}
-            closeLabel="Fechar"
-          />
+        {/* No Mobile: flex-col (Toolbar abaixo do título). No Desktop: flex-row com itens alinhados ao topo */}
+        <div className="relative w-full flex flex-col md:flex-row items-start justify-between gap-4 md:gap-0">
+          {/* Título: Largura total no mobile, limitada no desktop */}
+          <div className="w-full md:max-w-[40%] min-w-0">
+            <GalleryHeader
+              title={galleryTitle}
+              location={location}
+              data={galeria.date}
+              className="line-clamp-2"
+            />
+          </div>
+
+          {/* Toolbar: 
+        Mobile: Continua no fluxo (abaixo), posição fixa.
+        Desktop: Sobrepõe à direita, com controle de profundidade (z-index). */}
+          <div className="w-full md:w-auto flex justify-center md:justify-end shrink-0 z-[310]">
+            <ToolbarGalleryView
+              photoId={currentPhoto.id}
+              gallerySlug={galeria.slug}
+              galleryTitle={galleryTitle}
+              galeria={galeria}
+              activeIndex={activeIndex}
+              isFavorited={isFavorited}
+              onToggleFavorite={() => onToggleFavorite(String(currentPhoto.id))}
+              onClose={onClose}
+              showClose={!isSingleView}
+              closeLabel="Fechar"
+            />
+          </div>
         </div>
       </header>
 
@@ -234,7 +245,7 @@ export default function Lightbox({
 
       {/* RODAPÉ */}
       <footer
-        className={`relative md:fixed bottom-0 left-0 right-0 w-full p-8 md:px-14 md:pb-10 flex flex-col md:flex-row items-center justify-center md:justify-between gap-6 bg-black md:bg-transparent z-[100] transition-all duration-700 ${showInterface ? 'opacity-100' : 'md:opacity-0 md:translate-y-4'}`}
+        className={`relative md:fixed bottom-0 left-0 right-0 w-full p-8  md:pb-10 flex flex-col md:flex-row items-center justify-center md:justify-between gap-6 bg-black md:bg-transparent z-[100] transition-all duration-700 ${showInterface ? 'opacity-100' : 'md:opacity-0 md:translate-y-4'}`}
       >
         {/* 🎯 NAVEGAÇÃO DESKTOP: Exclusiva para MD+ e sincronizada com interface */}
         {!isSingleView && (

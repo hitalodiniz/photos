@@ -1,5 +1,6 @@
 // src/lib/supabase.server.ts
 import { createServerClient, type CookieOptions } from '@supabase/ssr';
+import { createClient } from '@supabase/supabase-js';
 import { cookies } from 'next/headers';
 
 /**
@@ -70,5 +71,21 @@ export async function createSupabaseServerClientReadOnly() {
         remove() {},
       },
     },
+  );
+}
+
+/**
+ * ============================================================
+ * 3) CLIENTE PARA CACHE (ANON) — NÃO TOCA EM COOKIES
+ * Use SOMENTE em:
+ * - Funções dentro de 'unstable_cache'
+ * - Quando você precisa apenas de dados públicos
+ * ============================================================
+ */
+export function createSupabaseClientForCache() {
+  // 🎯 Retorna um cliente simples que não depende de cookies do Next.js
+  return createClient(
+    process.env.NEXT_PUBLIC_SUPABASE_URL!,
+    process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!,
   );
 }

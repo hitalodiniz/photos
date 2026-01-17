@@ -4,31 +4,31 @@ import { GALLERY_MESSAGES } from '@/constants/messages';
 const NEXT_PUBLIC_MAIN_DOMAIN =
   process.env.NEXT_PUBLIC_MAIN_DOMAIN || 'localhost:3000';
 
+// Tempo de cache centralizado: 30 dias (em segundos)
+// 60s * 60m * 24h * 30d = 2.592.000
+export const GLOBAL_CACHE_REVALIDATE = 2592000;
+
 export function getPublicGalleryUrl(photographer: any, slug: string) {
   const isProd = process.env.NODE_ENV === 'production';
+  // 1. Define o protocolo baseado no ambiente
   const protocol = isProd ? 'https:' : 'http:';
 
-  if (photographer?.use_subdomain && photographer.username) {
-    // 🎯 REMOVE O USERNAME DO SLUG: Essencial para subdomínios
-    const cleanSlug = slug.startsWith(`${photographer.username}/`)
-      ? slug.replace(`${photographer.username}/`, '')
-      : slug;
-
-    const finalPath = cleanSlug.startsWith('/')
-      ? cleanSlug.slice(1)
-      : cleanSlug;
-    return `${protocol}//${photographer.username}.${NEXT_PUBLIC_MAIN_DOMAIN}/${finalPath}`;
+  // 2. Limpa o slug: remove o username se ele estiver no início (comum em subdomínios)
+  let cleanPath = slug;
+  if (photographer?.username && slug.startsWith(`${photographer.username}/`)) {
+    cleanPath = slug.replace(`${photographer.username}/`, '');
   }
 
-  const finalPath = slug.startsWith('/') ? slug.slice(1) : slug;
-  // 3. Lógica de Subdomínio
+  // 3. Remove barras extras no início ou fim para garantir a concatenação correta
+  const finalPath = cleanPath.replace(/^\/+|\/+$/g, '');
+
+  // 4. Lógica de Subdomínio
   if (photographer?.use_subdomain && photographer.username) {
-    // 🎯 Aqui garantimos que o protocolo detectado (http no localhost) seja aplicado
-    return `${protocol}//${photographer.username}.${NEXT_PUBLIC_MAIN_DOMAIN}/${finalPath}`;
+    return `${protocol}//${photographer.username}.${process.env.NEXT_PUBLIC_MAIN_DOMAIN}/${finalPath}`;
   }
 
-  // 4. Lógica de Domínio Principal
-  return `${protocol}//${NEXT_PUBLIC_MAIN_DOMAIN}/${finalPath}`;
+  // 5. Lógica de Domínio Principal
+  return `${protocol}//${process.env.NEXT_PUBLIC_MAIN_DOMAIN}/${finalPath}`;
 }
 
 export function getWhatsAppShareLink(phone: string | null, message: string) {
