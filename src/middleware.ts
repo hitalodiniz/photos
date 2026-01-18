@@ -58,7 +58,7 @@ export async function middleware(req: NextRequest) {
             // 🎯 O PULO DO GATO: Sincroniza os cookies da response com o request
             // Isso permite que o getProfileData() na Page leia a sessão atualizada.
             const headers = new Headers(req.headers);
-            response.cookies.forEach((cookie) => {
+            response.cookies.getAll().forEach((cookie) => {
               headers.append('set-cookie', `${cookie.name}=${cookie.value}`);
             });
           },
@@ -126,7 +126,7 @@ export async function middleware(req: NextRequest) {
 
       // Garante que os cookies do request original sejam passados para o destino do rewrite
       const response = NextResponse.rewrite(rewriteUrl);
-      req.cookies.forEach((cookie) => {
+      req.cookies.getAll().forEach((cookie) => {
         response.cookies.set(cookie.name, cookie.value);
       });
 
