@@ -1,9 +1,9 @@
 'use server';
 
-import { cookies } from 'next/headers';
+import { cookies, headers } from 'next/headers';
 import { redirect } from 'next/navigation';
 import slugify from 'slugify';
-import { revalidatePath } from 'next/cache';
+import { revalidatePath, revalidateTag } from 'next/cache';
 
 import {
   createSupabaseServerClient,
@@ -182,6 +182,7 @@ export async function createGaleria(
       slug: slug,
       //studio_id: studioId,
       title: formData.get('title') as string,
+      show_on_profile: formData.get('show_on_profile') === 'true',
       client_name: (formData.get('client_name') as string) || 'Cobertura',
       client_whatsapp: (formData.get('client_whatsapp') as string)?.replace(
         /\D/g,
@@ -244,6 +245,7 @@ export async function updateGaleria(
     // 1. Extração segura de dados com fallbacks
     const updates: any = {
       title: formData.get('title') as string,
+      show_on_profile: formData.get('show_on_profile') === 'true',
       client_name: (formData.get('client_name') as string) || 'Cobertura',
       client_whatsapp: (formData.get('client_whatsapp') as string)?.replace(
         /\D/g,
@@ -393,8 +395,8 @@ export async function authenticateGaleriaAccess(
 ) {
   const supabase = await createSupabaseServerClientReadOnly();
 
-  // 1. Busca os dados da galeria e do perfil para verificar a senha e o contexto de subdomínio
-  const { data: galeria, error: fetchError } = await supabase
+  // 1. Busca dados da galeria
+  const { data: galeria } = await supabase
     .from('tb_galerias')
     .select(
       'id, password, user_id, tb_profiles!user_id(username, use_subdomain)',
@@ -402,74 +404,67 @@ export async function authenticateGaleriaAccess(
     .eq('id', galeriaId)
     .single();
 
-  if (fetchError || !galeria || galeria.password !== passwordInput) {
+  if (!galeria || galeria.password !== passwordInput) {
     return { success: false, error: 'Senha incorreta.' };
   }
 
-  // 2. Configuração do JWT
-  const secretString =
-    process.env.JWT_GALLERY_SECRET || 'chave-padrao-de-seguranca-32-caracteres';
-  const secretKey = new TextEncoder().encode(secretString);
+  // 2. JWT (Mantido)
+  const secretKey = new TextEncoder().encode(
+    process.env.JWT_GALLERY_SECRET || 'chave-padrao',
+  );
+  const token = await new SignJWT({ galeriaId: String(galeria.id) })
+    .setProtectedHeader({ alg: 'HS256' })
+    .sign(secretKey);
 
-  let token;
-  try {
-    token = await new SignJWT({ galeriaId: String(galeria.id) })
-      .setProtectedHeader({ alg: 'HS256' })
-      .setIssuedAt()
-      .setExpirationTime('1d')
-      .sign(secretKey);
-  } catch (jwtError) {
-    console.error('Erro ao assinar JWT:', jwtError);
-    return { success: false, error: 'Erro interno ao gerar acesso.' };
-  }
-
-  // 3. Configuração de Cookies para Subdomínios
+  // 3. COOKIE - O PONTO CRÍTICO
   const cookieStore = await cookies();
-  const isLocal = process.env.NODE_ENV === 'development';
-  const mainDomain = process.env.NEXT_PUBLIC_MAIN_DOMAIN;
+  const host = (await headers()).get('host') || '';
+  const isLocal = host.includes('localhost') || host.includes('lvh.me');
 
   const cookieOptions: any = {
-    path: '/',
+    path: '/', // 🎯 OBRIGATÓRIO: Permite que /hitalodiniz80/slug leia o cookie
     httpOnly: true,
-    secure: !isLocal,
-    maxAge: 60 * 60 * 24, // 24 horas
+    secure: process.env.NODE_ENV === 'production',
+    maxAge: 60 * 60 * 24,
     sameSite: 'lax',
   };
 
-  // 🎯 Define o domínio para que o subdomínio consiga ler o cookie
-  if (!isLocal && mainDomain) {
-    cookieOptions.domain = `.${mainDomain}`;
+  // 💡 LOGICA CORRIGIDA:
+  if (isLocal) {
+    // No localhost, NÃO setamos a propriedade 'domain'.
+    // O navegador associa automaticamente ao host atual (ex: localhost ou hitalodiniz.localhost)
+    // Isso evita que o navegador rejeite o cookie por "Domain Mismatch"
+  } else if (process.env.NEXT_PUBLIC_MAIN_DOMAIN) {
+    // Em produção, usamos o ponto para abranger subdomínios
+    cookieOptions.domain = `.${process.env.NEXT_PUBLIC_MAIN_DOMAIN}`;
   }
 
-  const cookieName = `galeria-${galeriaId}-auth`;
+  cookieStore.set(`galeria-${galeriaId}-auth`, token, cookieOptions);
 
-  // ✅ PERSISTÊNCIA: Passando as opções configuradas corretamente
-  cookieStore.set(cookieName, token, cookieOptions);
-
-  // 4. Lógica de Redirecionamento (Evita caminhos duplicados em subdomínios)
+  // 3. Lógica de Redirecionamento (DEFINA AQUI PRIMEIRO)
   const profile = galeria.tb_profiles as any;
-  let targetPath = fullSlug;
+  const cleanSlug = fullSlug.replace(/^\/+/, '');
+  let targetPath = cleanSlug;
 
-  if (profile?.use_subdomain && profile.username) {
-    // Divide o slug e remove o username do início para o redirecionamento ser relativo à raiz do subdomínio
-    const pathParts = fullSlug.split('/');
-    if (pathParts[0] === profile.username) {
-      targetPath = pathParts.slice(1).join('/');
-    } else if (pathParts[0] === '' && pathParts[1] === profile.username) {
-      targetPath = pathParts.slice(2).join('/');
+  // Se for subdomínio, removemos o username da URL de destino
+  if (host.startsWith(`${profile?.username}.`)) {
+    const parts = cleanSlug.split('/');
+    if (parts[0] === profile?.username) {
+      targetPath = parts.slice(1).join('/');
     }
   }
 
-  // Garante que o path comece com barra e não tenha duplicações
   const finalRedirectPath = '/' + targetPath.replace(/^\/+/, '');
 
-  // 5. Invalidação de Cache
-  // Invalida a rota no servidor antes de redirecionar para forçar a leitura do novo cookie
-  revalidatePath(finalRedirectPath, 'page');
+  // 4. Invalidação de Cache (AGORA A VARIÁVEL EXISTE)
+  const username = cleanSlug.split('/')[0];
+  revalidatePath(`/${username}`, 'layout'); // Limpa o layout do usuário
+  revalidatePath(finalRedirectPath, 'page'); // Limpa a página da galeria
+  revalidatePath(`/${cleanSlug}`, 'page'); // Limpa a rota original (importante para username)
 
-  console.log(`[AUTH SUCCESS] Redirecionando para: ${finalRedirectPath}`);
+  console.log(`[AUTH SUCCESS] Redirecting: ${finalRedirectPath}`);
 
-  // 🚀 REDIRECT: Deve ser a última instrução
+  // 5. Redirecionamento final
   redirect(finalRedirectPath);
 }
 /**
@@ -574,6 +569,45 @@ export async function getGaleriaPhotos(
   }
 }
 
+// galeria.actions.ts
+export async function getPublicProfileGalerias(
+  username: string,
+  page: number = 1,
+  pageSize: number = 12,
+) {
+  const supabase = await createSupabaseServerClientReadOnly();
+  const from = (page - 1) * pageSize;
+  const to = from + pageSize - 1;
+
+  // Primeiro buscamos o ID do fotógrafo pelo username
+  const { data: profile } = await supabase
+    .from('tb_profiles')
+    .select('id')
+    .eq('username', username)
+    .single();
+
+  if (!profile) return { success: false, data: [], hasMore: false };
+
+  // Buscamos as galerias com os filtros show_on_profile e o ID do usuário
+  const { data, count, error } = await supabase
+    .from('tb_galerias')
+    .select('*', { count: 'exact' })
+    .eq('user_id', profile.id)
+    .eq('show_on_profile', true) // 🎯 O campo que criamos
+    .order('date', { ascending: false })
+    .range(from, to);
+
+  if (error) {
+    console.error('Erro ao buscar galerias do perfil:', error);
+    return { success: false, data: [], hasMore: false };
+  }
+
+  return {
+    success: true,
+    data: data || [],
+    hasMore: count ? to < count - 1 : false,
+  };
+}
 // =========================================================================
 // FUNÇÕES DE STATUS E EXCLUSÃO (SUPABASE)
 // =========================================================================

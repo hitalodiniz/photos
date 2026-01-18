@@ -7,8 +7,7 @@ import { GLOBAL_CACHE_REVALIDATE } from '../utils/url-helper';
 
 /**
  * 1. Busca os dados brutos da galeria no Supabase
- * Garante que a relação com tb_profiles traga o campo use_subdomain
- * O cache dura 1 hora (3600s) e pode ser derrubado via tag 'slug-...'
+ * 🎯 AJUSTE: Alterada a chave do cache para v2 para ignorar dados antigos sem token.
  */
 export const fetchGalleryBySlug = (fullSlug: string) =>
   unstable_cache(
@@ -26,7 +25,8 @@ export const fetchGalleryBySlug = (fullSlug: string) =>
             use_subdomain,
             profile_picture_url,
             phone_contact,
-            instagram_link
+            instagram_link,
+            google_refresh_token
           )
         `,
         )
@@ -34,17 +34,41 @@ export const fetchGalleryBySlug = (fullSlug: string) =>
         .single();
 
       if (error || !data) return null;
-      return data as GaleriaRawResponse;
+
+      const profile = data.photographer;
+      const domain = process.env.NEXT_PUBLIC_MAIN_DOMAIN || 'suagaleria.com.br';
+
+      // Log de depuração no servidor para confirmar a chegada do token do banco
+      if (data?.photographer) {
+        console.log('--- SUPABASE RAW CHECK ---');
+        console.log('ID do Fotógrafo:', data.photographer.id);
+        console.log(
+          'Token presente no retorno?',
+          !!data.photographer.google_refresh_token,
+        );
+      }
+
+      const profileUrl = profile.use_subdomain
+        ? `https://${profile.username}.${domain}`
+        : `https://${domain}/${profile.username}`;
+
+      return {
+        ...data,
+        photographer: {
+          ...profile,
+          profile_url: profileUrl,
+        },
+      } as GaleriaRawResponse;
     },
-    [`gallery-data-${fullSlug}`],
+    [`gallery-data-${fullSlug}-v2`], // 🎯 CHAVE ALTERADA para forçar novo fetch
     {
       revalidate: GLOBAL_CACHE_REVALIDATE,
-      tags: [`slug-${fullSlug}`], // Tag para limpeza manual
+      tags: [`gallery-${fullSlug}`, `user-profile`], // 🎯 TAGS PARA LIMPEZA
     },
   )();
+
 /**
  * 2. Transforma (Map) os dados brutos
- * ESSENCIAL: Garante que o objeto 'photographer' exista para a lógica de subdomínio funcionar
  */
 export function formatGalleryData(
   raw: GaleriaRawResponse,
@@ -66,15 +90,10 @@ export function formatGalleryData(
     is_public: raw.is_public,
     password: raw.password,
     user_id: (raw as any).user_id,
-
-    // 🎯 NOVOS CAMPOS DE ZIP INCLUÍDOS AQUI:
-    // Eles precisam ser mapeados do objeto raw para o objeto final
     zip_url_full: (raw as any).zip_url_full || null,
     zip_url_social: (raw as any).zip_url_social || null,
-
     created_at: (raw as any).created_at || new Date().toISOString(),
     updated_at: (raw as any).updated_at || new Date().toISOString(),
-
     has_contracting_client: !!(raw as any).has_contracting_client,
     client_whatsapp: (raw as any).client_whatsapp || null,
     is_archived: !!(raw as any).is_archived,
@@ -104,9 +123,10 @@ export function formatGalleryData(
     use_subdomain: hasSubdomain,
   };
 }
+
 /**
- * 3. Busca de fotos do Google Drive (COM CACHE)
- * Esta é a função que mais economiza banda ao ser cacheada.
+ * 3. Busca de fotos do Google Drive
+ * 🎯 AJUSTE: Adicionada chave v2 para limpar cache de tokens antigos/inexistentes.
  */
 export const fetchDrivePhotos = (userId?: string, folderId?: string) =>
   unstable_cache(
@@ -114,8 +134,15 @@ export const fetchDrivePhotos = (userId?: string, folderId?: string) =>
       if (!userId || !folderId) return { photos: [], error: 'MISSING_PARAMS' };
 
       try {
+        // Esta função busca o google_refresh_token no banco para gerar o access_token
         const token = await getDriveAccessTokenForUser(userId);
-        if (!token) return { photos: [], error: 'TOKEN_NOT_FOUND' };
+
+        if (!token) {
+          console.error(
+            `🚨 Falha crítica: Token não gerado para o usuário ${userId}`,
+          );
+          return { photos: [], error: 'TOKEN_NOT_FOUND' };
+        }
 
         const photos = await listPhotosFromDriveFolder(folderId, token);
         return { photos: photos || [], error: null };
@@ -126,9 +153,9 @@ export const fetchDrivePhotos = (userId?: string, folderId?: string) =>
         return { photos: [], error: 'UNKNOWN_ERROR' };
       }
     },
-    [`drive-photos-${folderId}`],
+    [`drive-photos-${folderId}-v2`], // 🎯 CHAVE ALTERADA para forçar novo fetch
     {
-      revalidate: GLOBAL_CACHE_REVALIDATE,
-      tags: [`drive-${folderId}`], // Tag para atualizar quando o autor subir fotos
+      revalidate: false, // 🎯 Temporário: bypass total do cache
+      tags: [`drive-${folderId}`],
     },
   )();

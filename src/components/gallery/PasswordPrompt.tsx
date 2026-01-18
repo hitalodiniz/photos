@@ -46,14 +46,14 @@ export default function PasswordPrompt({
         setIsChecking(false); // Só paramos o loading se houve falha na validação
       }
     } catch (err: any) {
-      // 🎯 VERIFICAÇÃO CRÍTICA: Se for um redirect, não faça nada.
-      // O Next.js vai cuidar de tirar o usuário desta tela.
+      // Se for um redirect, o Next.js lida com isso, mas precisamos garantir
+      // que o roteador limpe o cache local (Client-side Router Cache)
       if (
         err.message === 'NEXT_REDIRECT' ||
         err.digest?.includes('NEXT_REDIRECT')
       ) {
+        // 🎯 Use refresh() para limpar o Router Cache do cliente antes do redirecionamento completar
         router.refresh();
-        //setIsChecking(false);
         return;
       }
 

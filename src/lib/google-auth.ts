@@ -16,12 +16,23 @@ export async function getDriveAccessTokenForUser(
     // 1. Buscar o refresh_token do usuário
     const { data: profile, error } = await supabase
       .from('tb_profiles')
-      .select('google_refresh_token')
+      .select('full_name, google_refresh_token')
       .eq('id', userId)
       .single();
 
-    if (error || !profile || !profile.google_refresh_token) {
-      console.warn('Refresh token não encontrado para o usuário:', userId);
+    if (error) {
+      console.error(
+        `🚨 Erro de banco ao buscar token para ${userId}:`,
+        error.message,
+      );
+      return null;
+    }
+
+    if (!profile?.google_refresh_token) {
+      // 🎯 Este é o culpado pelo seu TOKEN_NOT_FOUND
+      console.error(
+        `🚨 Usuário [${profile?.full_name || userId}] não possui refresh_token no banco.`,
+      );
       return null;
     }
 

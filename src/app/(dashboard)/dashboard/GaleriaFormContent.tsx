@@ -39,6 +39,14 @@ export default function GaleriaFormContent({
   const [showPassword, setShowPassword] = useState(false);
   const [limitInfo, setLimitInfo] = useState({ count: 0, hasMore: false });
   const [showLimitModal, setShowLimitModal] = useState(false);
+  const [showOnProfile, setShowOnProfile] = useState(() => {
+    if (initialData)
+      return (
+        initialData.show_on_profile === true ||
+        initialData.show_on_profile === 'true'
+      );
+    return false; // Por padrão, não exibe no perfil
+  });
   const PLAN_LIMIT = 500; // Este valor deve vir da sua lógica de planos/sessão
 
   const [hasContractingClient, setHasContractingClient] = useState(() => {
@@ -109,6 +117,11 @@ export default function GaleriaFormContent({
       {/* INPUTS OCULTOS */}
       <input type="hidden" name="drive_folder_id" value={driveData.id} />
       <input type="hidden" name="drive_folder_name" value={driveData.name} />
+      <input
+        type="hidden"
+        name="show_on_profile"
+        value={String(showOnProfile)}
+      />
       <input
         type="hidden"
         name="cover_image_url"
@@ -432,195 +445,78 @@ export default function GaleriaFormContent({
       </fieldset>
 
       {/* BLOCO 4: DRIVE E SEGURANÇA */}
-      <fieldset className="p-2 bg-white border border-slate-200 rounded-[0.5rem] mt-4 shadow-sm">
-        <SectionHeader title="Drive e Segurança" />
-        <div className="flex flex-col divide-y divide-slate-100">
-          <div className="flex flex-wrap">
-            {/* ARMAZENAMENTO UNIFICADO */}
-            <div className="flex-1 min-w-[300px] p-3 space-y-3 border-r border-slate-200">
-              <div className="flex items-center gap-2">
-                <label>
-                  {' '}
-                  <FolderSync
-                    size={13}
-                    strokeWidth={2}
-                    className="text-[#D4AF37]"
-                  />{' '}
-                  Armazenamento
-                </label>
-                <div className="group relative flex items-center">
-                  <Info size={14} className="text-amber-500 cursor-help" />
-                  <div className="absolute top-full left-0 w-72 p-2 bg-slate-900 text-white text-[10px] font-medium leading-relaxed rounded-lg opacity-0 pointer-events-none group-hover:opacity-100 transition-all z-[100] border border-white/10 shadow-2xl">
-                    <div className="space-y-3">
-                      <p>
-                        <strong className="text-[#F3E5AB] uppercase block mb-1 text-[9px]">
-                          Capa da Galeria:
-                        </strong>
-                        A foto selecionada nesta pasta será usada como capa.
-                      </p>
-                      <p className="border-t border-white/10">
-                        <strong className="text-[#F3E5AB] uppercase block mb-1 text-[9px]">
-                          Processamento:
-                        </strong>
-                        O sistema gera versões de até{' '}
-                        <strong className="text-[#F3E5AB]">
-                          2MB, inclusive para download
-                        </strong>{' '}
-                        para rapidez. Arquivos originais maiores que 2MB devem
-                        ser disponibilizados via Link ZIP.
-                      </p>
-                    </div>
-                    <div className="absolute bottom-full left-2 border-8 border-transparent border-b-slate-900" />
-                  </div>
-                </div>
+      <fieldset className="p-3 bg-white border border-slate-200 rounded-[0.5rem] mt-4 shadow-sm">
+        <SectionHeader title="Privacidade" />
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mt-2">
+          {/* ACESSO */}
+          <div className="flex items-center justify-between gap-4">
+            <label className="flex items-center gap-2 text-[10px] font-bold uppercase tracking-widest text-slate-800 shrink-0">
+              <Lock size={12} className="text-[#D4AF37]" /> Acesso à Galeria
+            </label>
+            <div className="flex items-center gap-2 flex-1 justify-end">
+              <div className="flex bg-slate-50 rounded-[0.4rem] border border-slate-200 p-1 gap-1 w-40 shrink-0">
+                <button
+                  type="button"
+                  onClick={() => setIsPublic(true)}
+                  className={`flex-1 py-1 rounded-[0.3rem] text-[10px] font-semibold uppercase tracking-wider transition-all ${isPublic ? 'bg-white text-[#D4AF37] shadow-sm' : 'text-slate-400'}`}
+                >
+                  Público
+                </button>
+                <button
+                  type="button"
+                  onClick={() => setIsPublic(false)}
+                  className={`flex-1 py-1 rounded-[0.3rem] text-[10px] font-semibold uppercase tracking-wider transition-all ${!isPublic ? 'bg-white text-[#D4AF37] shadow-sm' : 'text-slate-400'}`}
+                >
+                  Privado
+                </button>
               </div>
-              <div className="flex items-center gap-2 min-w-0">
-                <GooglePickerButton
-                  onError={onPickerError}
-                  onFolderSelect={handleFolderSelect}
-                  currentDriveId={driveData.id}
-                  planLimit={PLAN_LIMIT}
-                />
-
-                <div className="flex-1 bg-slate-50 px-3 h-9 rounded-[0.4rem] border border-slate-200 flex items-center justify-between gap-2 min-w-0">
-                  <div className="flex items-center gap-2 min-w-0 flex-1">
-                    <div
-                      className={`h-1.5 w-1.5 rounded-full shrink-0 ${driveData.id ? 'bg-[#34D399] animate-pulse' : 'bg-slate-300'}`}
-                    />
-                    <span className="text-[10px] font-medium truncate text-slate-600 leading-none">
-                      {driveData.name}
-                    </span>
-                  </div>
-                  {driveData.id && (
-                    <button
-                      type="button"
-                      onClick={() =>
-                        setDriveData({
-                          id: '',
-                          name: 'Nenhuma pasta selecionada',
-                          coverId: '',
-                        })
-                      }
-                      className="text-slate-300 hover:text-red-500 transition-colors shrink-0"
-                    >
-                      <X size={14} />
-                    </button>
-                  )}
-                </div>
-              </div>
-            </div>
-
-            {/* PRIVACIDADE RESTAURADA */}
-            <div className="flex-1 min-w-[300px] p-3 space-y-3">
-              <div className="flex items-center gap-2">
-                <label>
-                  {' '}
-                  <Lock
-                    size={13}
-                    strokeWidth={2}
-                    className="text-[#D4AF37]"
-                  />{' '}
-                  Privacidade
-                </label>
-                <div className="group relative flex items-center">
-                  <div className="flex items-center justify-center w-3.5 h-3.5 rounded-full border border-slate-300 text-slate-400 group-hover:border-[#D4AF37] group-hover:text-[#D4AF37] transition-colors cursor-help">
-                    <span className="text-[10px] font-bold">?</span>
-                  </div>
-                  <div className="absolute bottom-full left-0 mb-2 w-56 p-2.5 bg-slate-900 text-white text-[10px] font-medium leading-relaxed rounded-lg opacity-0 pointer-events-none group-hover:opacity-100 transition-all duration-300 shadow-2xl z-50">
-                    <p>
-                      <strong className="text-[#F3E5AB]">Público:</strong>{' '}
-                      Acessível com o link.
-                      <br />
-                      <strong className="text-[#F3E5AB]">Privado:</strong> Exige
-                      senha para visualizar.
-                    </p>
-                    <div className="absolute top-full left-2 border-8 border-transparent border-t-slate-900" />
-                  </div>
-                </div>
-              </div>
-              <div className="flex items-center gap-3">
-                <div className="flex items-center bg-slate-50 rounded-[0.4rem] border border-slate-200 p-1 gap-1 w-full max-w-[200px]">
+              {!isPublic && (
+                <div className="flex-1 relative group max-w-[120px]">
+                  <input
+                    name="password"
+                    type={showPassword ? 'text' : 'password'}
+                    inputMode="numeric"
+                    pattern="[0-9]*"
+                    minLength={4}
+                    maxLength={8}
+                    defaultValue={initialData?.password || ''}
+                    className="w-full pl-3 pr-10 h-9 bg-white border border-[#F3E5AB] rounded-[0.4rem] text-[11px] font-medium tracking-[0.2em] outline-none"
+                    required
+                    placeholder="Senha"
+                    onChange={(e) => {
+                      e.target.value = e.target.value.replace(/\D/g, '');
+                    }}
+                  />
                   <button
                     type="button"
-                    onClick={() => setIsPublic(true)}
-                    className={`flex-1 flex items-center justify-center gap-1.5 px-3 py-1.5 rounded-[0.3rem] text-[10px] font-semibold uppercase tracking-wider transition-all ${isPublic ? 'bg-white text-[#D4AF37] shadow-sm' : 'text-slate-400'}`}
+                    onClick={() => setShowPassword(!showPassword)}
+                    className="absolute right-2 top-1/2 -translate-y-1/2 text-slate-400 hover:text-[#D4AF37] transition-colors p-1"
                   >
-                    <Unlock size={11} strokeWidth={2} /> Público
-                  </button>
-                  <button
-                    type="button"
-                    onClick={() => setIsPublic(false)}
-                    className={`flex-1 flex items-center justify-center gap-1.5 px-3 py-1.5 rounded-[0.3rem] text-[10px] font-semibold uppercase tracking-wider transition-all ${!isPublic ? 'bg-white text-[#D4AF37] shadow-sm' : 'text-slate-400'}`}
-                  >
-                    <Lock size={11} strokeWidth={2} /> Privado
+                    {showPassword ? <EyeOff size={14} /> : <Eye size={14} />}
                   </button>
                 </div>
-                {!isPublic && (
-                  <div className="flex-1 relative group">
-                    <input
-                      name="password"
-                      type={showPassword ? 'text' : 'password'}
-                      inputMode="numeric"
-                      pattern="[0-9]*"
-                      minLength={4}
-                      maxLength={8}
-                      defaultValue={initialData?.password || ''}
-                      className="w-full pl-3 pr-10 h-9 bg-white border border-[#F3E5AB] rounded-[0.4rem] text-[11px] font-medium tracking-[0.2em] outline-none"
-                      required
-                      placeholder="Senha"
-                      onChange={(e) => {
-                        e.target.value = e.target.value.replace(/\D/g, '');
-                      }}
-                    />
-                    <button
-                      type="button"
-                      onClick={() => setShowPassword(!showPassword)}
-                      className="absolute right-2 top-1/2 -translate-y-1/2 text-slate-400 hover:text-[#D4AF37] transition-colors p-1"
-                    >
-                      {showPassword ? <EyeOff size={14} /> : <Eye size={14} />}
-                    </button>
-                  </div>
-                )}
-              </div>
+              )}
             </div>
           </div>
 
-          {/* AREA LINKS ZIP */}
-          {/* 🎯 AREA LINKS ZIP COM CONVERSÃO EM TEMPO REAL */}
-          <div className="p-3 bg-slate-50/50">
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-              <div className="space-y-1.5">
-                <label className="text-[10px] font-bold text-slate-500 uppercase flex items-center gap-1.5">
-                  <ExternalLink size={11} /> Link ZIP Alta Resolução (Opcional)
-                </label>
-                <input
-                  name="zip_url_full"
-                  value={zipUrlFull}
-                  onChange={(e) => {
-                    const val = e.target.value;
-                    // 🎯 Só converte se for Drive, senão mantém o texto original
-                    setZipUrlFull(convertToDirectDownloadUrl(val));
-                  }}
-                  placeholder="Cole o link /view do Drive aqui"
-                  className="w-full px-3 h-8 bg-white border border-slate-200 rounded-[0.3rem] text-[11px] outline-none focus:border-[#D4AF37] transition-all"
+          {/* LISTAGEM NO PERFIL */}
+          <div className="flex items-center justify-between gap-4">
+            <label className="flex items-center gap-2 text-[10px] font-bold uppercase tracking-widest text-slate-800 shrink-0">
+              <Eye size={12} className="text-[#D4AF37]" /> Listar no Perfil
+            </label>
+            <div className="flex items-center justify-between bg-slate-50 p-2 h-11 rounded-[0.4rem] border border-slate-200 flex-1">
+              <span className="text-[10px] font-medium text-slate-600 pl-1">
+                Exibir esta galeria no meu perfil público?
+              </span>
+              <button
+                type="button"
+                onClick={() => setShowOnProfile(!showOnProfile)}
+                className={`relative h-5 w-9 rounded-full transition-colors duration-200 ${showOnProfile ? 'bg-green-500' : 'bg-slate-200'}`}
+              >
+                <span
+                  className={`absolute top-0.5 left-0.5 h-4 w-4 rounded-full bg-white shadow-sm transition-transform duration-200 ${showOnProfile ? 'translate-x-4' : ''}`}
                 />
-              </div>
-              <div className="space-y-1.5">
-                <label className="text-[10px] font-bold text-slate-500 uppercase flex items-center gap-1.5">
-                  <Archive size={11} /> ZIP Redes Sociais (Opcional)
-                </label>
-                <input
-                  name="zip_url_social"
-                  value={zipUrlSocial}
-                  onChange={(e) => {
-                    const val = e.target.value;
-                    // 🎯 Inteligência de detecção de origem
-                    setZipUrlSocial(convertToDirectDownloadUrl(val));
-                  }}
-                  placeholder="Cole o link /view do Drive aqui"
-                  className="w-full px-3 h-8 bg-white border border-slate-200 rounded-[0.3rem] text-[11px] outline-none focus:border-[#D4AF37] transition-all"
-                />
-              </div>
+              </button>
             </div>
           </div>
         </div>

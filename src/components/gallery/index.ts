@@ -4,4 +4,7 @@ export { default as GaleriaView } from './GaleriaView';
 export { default as PasswordPrompt } from './PasswordPrompt';
 export { default as PhotographerAvatar } from './PhotographerAvatar';
 export { default as CategorySelect } from './CategorySelect';
-export * from './GalleryHeader';
+export { default as GaleriaBasePage } from './GaleriaBasePage';
+export { default as generateMetadata } from './GaleriaBasePage';
+export { default as GaleriaFooter } from './GaleriaFooter';
+export * from './GaleriaHeader';

@@ -2,9 +2,58 @@
 import { Metadata } from 'next';
 import { fetchGalleryBySlug } from '@/core/logic/galeria-logic';
 import { getProxyUrl } from '@/core/utils/url-helper';
+import { getPublicProfile } from '@/core/services/profile.service';
 
 // 🎯 Definimos um tipo que estende o Metadata padrão para incluir o fullname
 type GalleryMetadata = Metadata & { fullname?: string };
+
+export async function getPhotographerMetadata(
+  username: string,
+): Promise<GalleryMetadata> {
+  const profile = await getPublicProfile(username);
+
+  if (!profile) {
+    return { title: 'Fotógrafo não encontrado | Sua Galeria' };
+  }
+
+  const title = `Portfólio de ${profile.full_name || username}`;
+  const description =
+    profile.mini_bio ||
+    `Confira o trabalho e as galerias de ${profile.full_name || username}.`;
+
+  // Imagem de compartilhamento: usa a foto do perfil ou um fallback
+  const ogImage = profile.photo_url
+    ? getProxyUrl(profile.photo_url, '1200')
+    : `${process.env.NEXT_PUBLIC_BASE_URL}/default-og-profile.jpg`;
+
+  const url = `${process.env.NEXT_PUBLIC_BASE_URL}/${username}`;
+
+  return {
+    title,
+    description,
+    fullname: profile.full_name || '',
+    openGraph: {
+      title,
+      description,
+      type: 'profile',
+      url,
+      images: [
+        {
+          url: ogImage,
+          width: 1200,
+          height: 630,
+          alt: `Foto de perfil de ${profile.full_name || username}`,
+        },
+      ],
+    },
+    twitter: {
+      card: 'summary_large_image',
+      title,
+      description,
+      images: [ogImage],
+    },
+  };
+}
 
 export async function getGalleryMetadata(
   fullSlug: string,

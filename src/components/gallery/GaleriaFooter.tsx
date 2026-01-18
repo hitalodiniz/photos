@@ -2,6 +2,7 @@
 
 import { GALLERY_MESSAGES } from '@/constants/messages';
 import { Galeria } from '@/core/types/galeria';
+import { getCreatorProfileUrl } from '@/core/utils/url-helper';
 import React from 'react';
 
 interface GaleriaFooterProps {
@@ -12,66 +13,64 @@ export default function GaleriaFooter({ galeria }: GaleriaFooterProps) {
   const whatsappLink = `https://wa.me/${galeria.photographer.phone_contact.replace(/\D/g, '')}?text=${encodeURIComponent(
     GALLERY_MESSAGES.CONTACT_PHOTOGRAPHER(galeria.title),
   )}`;
+  const profileLink = getCreatorProfileUrl(galeria.photographer);
+
   return (
-    <footer className="relative z-20 w-full mt-4 pt-6 border-t border-gold/20 bg-[#F3E5AB]">
-      <div className="max-w-[1600px] mx-auto flex flex-col items-center gap-4">
-        {/* 1. Botão Voltar ao Topo Minimalista */}
+    // 🎯 Ajustado para o Azul Profundo da Toolbar (#111827 ou #1E293B)
+    <footer className="relative z-20 w-full mt-4 pt-10 bg-[#111827] border-t border-white/5">
+      <div className="max-w-[1600px] mx-auto flex flex-col items-center gap-6">
+        {/* 1. Botão Voltar ao Topo (Cores Invertidas para Dark) */}
         <button
           onClick={() => window.scrollTo({ top: 0, behavior: 'smooth' })}
           className="group flex flex-col items-center gap-2 transition-all duration-500"
         >
-          <div className="p-3 rounded-full border border-gold/30 group-hover:border-gold transition-all">
+          <div className="p-3 rounded-full border border-white/10 group-hover:border-[#F3E5AB] group-hover:bg-white/5 transition-all">
             <svg
               width="20"
               height="20"
               viewBox="0 0 24 24"
               fill="none"
-              stroke="#D4AF37"
-              strokeWidth="1.5"
+              stroke="#F3E5AB"
+              strokeWidth="2"
             >
               <path d="m18 15-6-6-6 6" />
             </svg>
           </div>
-          <span className="text-[9px] md:text-[14px] tracking-wider  font-medium text-[#D4AF37]">
+          <span className="text-[10px] uppercase tracking-[0.25em] font-semibold  text-[#F3E5AB]/60 group-hover:text-[#F3E5AB]">
             Topo
           </span>
         </button>
-        {/* 2. Bloco Central Editorial (Compactado) */}
-        <div className="text-center space-y-2">
-          <h3 className="italic text-2xl md:text-4xl text-slate-900 tracking-tight">
+
+        {/* 2. Bloco Central Editorial (Adaptado para Contraste Dark) */}
+        <div className="text-center space-y-3">
+          <h3 className="italic text-2xl md:text-3xl text-white tracking-tight font-light">
             {galeria.title}
           </h3>
 
-          <div className="flex flex-row items-center justify-center mt-2">
-            <p className="text-[12px] md:text-[16px] text-[#D4AF37]/80 font-medium pr-2">
-              Fotos registradas
-            </p>
+          <div className="flex flex-col md:flex-row items-center justify-center gap-2 md:gap-3">
+            <div className="flex items-center gap-3 text-white/70 italic">
+              <span className="text-[13px] md:text-[16px]">Registrado por</span>
 
-            {/* Container Horizontal: Alinha "por" + Nome + Botões */}
-            <div className="text-[12px] md:text-[16px] flex items-center gap-2 text-slate-500 italic  ">
-              <span>por</span>
-
-              <div className="flex items-center gap-4  py-1.5 not-italic">
-                <span className="text-[12px] md:text-[16px] text-slate-900 font-semibold whitespace-nowrap">
+              <div className="flex items-center gap-4 py-1.5 not-italic">
+                <span className="text-[13px] md:text-[18px] text-white font-semibold whitespace-nowrap tracking-wide">
                   {galeria?.photographer_name}
                 </span>
 
-                {/* Divisória sutil entre nome e ícones */}
-                <div className="w-[1px] h-4 bg-slate-300" />
+                {/* Divisória Vertical Premium */}
+                <div className="w-[1px] h-4 bg-white/10" />
 
-                <div className="flex items-center gap-3">
+                {/* Ícones com cores da Toolbar */}
+                <div className="flex items-center gap-4">
                   {galeria.photographer?.phone_contact && (
                     <a
                       href={whatsappLink}
                       target="_blank"
                       rel="noopener noreferrer"
-                      className="text-slate-700 hover:text-[#25D366] transition-all"
-                      aria-label="Entre em contato pelo WhatsApp com o autor"
-                      title="Entre em contato pelo WhatsApp com o autor"
+                      className="text-white/60 hover:text-[#25D366] transition-all"
                     >
                       <svg
-                        width="16"
-                        height="16"
+                        width="18"
+                        height="18"
                         fill="currentColor"
                         viewBox="0 0 24 24"
                       >
@@ -84,13 +83,11 @@ export default function GaleriaFooter({ galeria }: GaleriaFooterProps) {
                       href={`https://instagram.com/${galeria.photographer.instagram_link.replace('@', '')}`}
                       target="_blank"
                       rel="noopener noreferrer"
-                      className="text-slate-700 hover:text-[#25D366] transition-all"
-                      aria-label="Visualizar Instagram do autor"
-                      title="Visualizar Instagram do autor"
+                      className="text-white/60 hover:text-white transition-all"
                     >
                       <svg
-                        width="16"
-                        height="16"
+                        width="18"
+                        height="18"
                         fill="currentColor"
                         viewBox="0 0 24 24"
                       >
@@ -99,16 +96,14 @@ export default function GaleriaFooter({ galeria }: GaleriaFooterProps) {
                     </a>
                   )}
                   <a
-                    href={`/${galeria.photographer?.username}`}
+                    href={profileLink}
                     target="_blank"
                     rel="noopener noreferrer"
-                    className="text-slate-700 hover:text-[#D4AF37] transition-all"
-                    aria-label="Visualizar perfil do autor"
-                    title="Visualizar perfil do autor"
+                    className="text-white/60 hover:text-[#F3E5AB] transition-all"
                   >
                     <svg
-                      width="16"
-                      height="16"
+                      width="18"
+                      height="18"
                       fill="none"
                       stroke="currentColor"
                       strokeWidth="2.5"
@@ -126,23 +121,26 @@ export default function GaleriaFooter({ galeria }: GaleriaFooterProps) {
           </div>
         </div>
       </div>
-      <div className="w-full border-t border-slate-200/60 mt-2 pt-6 pb-4 px-8">
-        <div className="max-w-[1600px] mx-auto flex flex-col items-end gap-2 text-slate-600">
-          <div className="text-[10px] md:text-[12px] tracking-wider font-semibold text-slate-800 font-sans uppercase">
-            Powered by{' '}
+
+      {/* 3. Rodapé Inferior (Powered By) */}
+      <div className="w-full border-t border-white/5 mt-10 pt-8 pb-8 px-8 bg-black/20">
+        <div className="max-w-[1600px] mx-auto flex flex-col md:flex-row justify-between items-center gap-4 text-white/30">
+          <div className="text-[10px] md:text-[11px] tracking-[0.2em] font-medium uppercase">
+            © {new Date().getFullYear()} — Todos os direitos reservados
+          </div>
+
+          <div className="text-[10px] md:text-[12px] tracking-[0.2em] font-semibold  uppercase flex items-center gap-2">
+            <span>Powered by</span>
             <a
               href={`https://${process.env.NEXT_PUBLIC_MAIN_DOMAIN}`}
               target="_blank"
               rel="noopener noreferrer"
-              className="hover:opacity-80 transition-opacity"
+              className="group"
             >
-              <span className="text-[#D4AF37] italic tracking-normal text-xs md:text-sm ml-1 cursor-pointer">
+              <span className="text-[#F3E5AB] italic tracking-tight text-sm md:text-base group-hover:text-white transition-colors ml-1">
                 Sua Galeria
               </span>
             </a>
-          </div>
-          <div className="text-[10px] md:text-[12px] tracking-widest font-sans font-medium">
-            © {new Date().getFullYear()} — Todos os direitos reservados
           </div>
         </div>
       </div>

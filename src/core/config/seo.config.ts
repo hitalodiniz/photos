@@ -1,7 +1,7 @@
 export const SEO_CONFIG = {
   brandName: 'Sua Galeria',
   defaultTitle: 'Sua Galeria - O portal das suas lembranças',
-  defaultDescription: 'Gerencie e exiba suas fotos de forma autor.',
+  defaultDescription: 'Gerencie e exiba suas mídias de forma profissional.',
 };
 
 /**

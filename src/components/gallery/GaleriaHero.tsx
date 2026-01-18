@@ -39,7 +39,7 @@ export const GaleriaHero = ({ galeria, photos, coverUrl }: any) => {
         className="absolute inset-0 bg-cover bg-center transition-transform duration-[3000ms] ease-out"
         style={{
           backgroundImage: `url('${coverUrl}')`,
-          backgroundPosition: 'center 40%',
+          backgroundPosition: 'center 35%',
         }}
       />
 

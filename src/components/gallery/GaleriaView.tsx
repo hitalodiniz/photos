@@ -3,7 +3,7 @@ import React, { useState, useEffect } from 'react';
 import type { Galeria } from '@/core/types/galeria';
 import LoadingScreen from '../ui/LoadingScreen';
 import GaleriaFooter from './GaleriaFooter';
-import { getHighResImageUrl, getProxyUrl } from '@/core/utils/url-helper';
+import { getHighResImageUrl } from '@/core/utils/url-helper';
 import { GaleriaHero } from './GaleriaHero';
 import PhotoGrid from './PhotoGrid';
 

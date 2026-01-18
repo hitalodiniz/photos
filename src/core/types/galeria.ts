@@ -22,6 +22,7 @@ export interface Photographer {
   phone_contact: string | null;
   instagram_link: string | null;
   use_subdomain: boolean; // Essencial para a lógica de URL
+  profile_url: string;
 }
 
 // Interface Base (Reflete exatamente a tabela tb_galerias no Banco)
@@ -53,6 +54,7 @@ export interface GaleriaBase {
   columns_desktop: number;
   zip_url_full?: string | null;
   zip_url_social?: string | null;
+  show_on_profile: boolean;
 }
 
 // Interface utilizada na UI (GaleriaCard e GaleriaView)
@@ -63,6 +65,7 @@ export interface Galeria extends GaleriaBase {
   photographer_phone?: string | null;
   photographer_instagram?: string | null;
   photographer_email?: string | null;
+  photographer_url?: string;
 
   // Atalhos úteis para facilitar o acesso no GaleriaCard
   photographer_username?: string;

@@ -1,6 +1,6 @@
 import { Camera, MapPin, Calendar } from 'lucide-react';
 
-export const GalleryHeader: React.FC<GalleryHeaderProps> = ({
+export const GaleriaHeader: React.FC<GaleriaHeaderProps> = ({
   title,
   location,
   data,

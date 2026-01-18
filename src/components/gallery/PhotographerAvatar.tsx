@@ -4,6 +4,8 @@ import type { Galeria } from '@/core/types/galeria';
 import Image from 'next/image';
 import { GALLERY_MESSAGES } from '@/constants/messages';
 import InstagramIcon from '@/components/ui/InstagramIcon';
+import { getCreatorProfileUrl } from '@/core/utils/url-helper';
+import { div } from 'framer-motion/client';
 interface PhotographerAvatarProps {
   galeria: Galeria;
   position: 'top-page' | 'bottom-lightbox';
@@ -16,6 +18,7 @@ export default function PhotographerAvatar({
   isVisible = true,
 }: PhotographerAvatarProps) {
   const [isExpanded, setIsExpanded] = useState(false);
+  const profileLink = getCreatorProfileUrl(galeria.photographer);
 
   useEffect(() => {
     if (isExpanded) {
@@ -131,7 +134,7 @@ export default function PhotographerAvatar({
             )}
 
             <a
-              href={`/${photographer?.username}`}
+              href={profileLink}
               className="p-1.5 bg-white/10 text-white rounded-full hover:bg-[#D4AF37] transition-all border border-white/10"
               target="_blank"
               onClick={(e) => e.stopPropagation()}

@@ -274,7 +274,7 @@ export const ToolBarDesktop = ({
                               Qualidade Máxima
                             </p>
                             <p className="text-white/50 text-[10px] leading-tight">
-                              Arquivo original enviado pelo autor.
+                              Arquivo original enviado pelo profissional.
                             </p>
                           </div>
                         </button>

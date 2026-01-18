@@ -12,25 +12,29 @@ export const TAMANHO_MAXIMO_FOTO_SEM_COMPACTAR = 2 * 1024 * 1024; // 1.5MB em by
 
 export function getPublicGalleryUrl(photographer: any, slug: string) {
   const isProd = process.env.NODE_ENV === 'production';
-  // 1. Define o protocolo baseado no ambiente
   const protocol = isProd ? 'https:' : 'http:';
 
-  // 2. Limpa o slug: remove o username se ele estiver no início (comum em subdomínios)
-  let cleanPath = slug;
-  if (photographer?.username && slug.startsWith(`${photographer.username}/`)) {
-    cleanPath = slug.replace(`${photographer.username}/`, '');
+  // 1. Fallback de segurança para evitar o "undefined"
+  const username = photographer?.username || 'autor';
+  const mainDomain = NEXT_PUBLIC_MAIN_DOMAIN;
+
+  // 2. Limpa o slug: remove o username se ele estiver no início
+  let cleanPath = slug || '';
+  if (username && cleanPath.startsWith(`${username}/`)) {
+    cleanPath = cleanPath.replace(`${username}/`, '');
   }
 
-  // 3. Remove barras extras no início ou fim para garantir a concatenação correta
+  // 3. Remove barras extras no início ou fim
   const finalPath = cleanPath.replace(/^\/+|\/+$/g, '');
 
-  // 4. Lógica de Subdomínio
-  if (photographer?.use_subdomain && photographer.username) {
-    return `${protocol}//${photographer.username}.${process.env.NEXT_PUBLIC_MAIN_DOMAIN}/${finalPath}`;
+  // 4. Lógica de Subdomínio (Ex: hitalo.suagaleria.com.br/minha-galeria)
+  if (photographer?.use_subdomain && username) {
+    return `${protocol}//${username}.${mainDomain}/${finalPath}`;
   }
 
-  // 5. Lógica de Domínio Principal
-  return `${protocol}//${process.env.NEXT_PUBLIC_MAIN_DOMAIN}/${finalPath}`;
+  // 5. Lógica de Domínio Principal (Ex: suagaleria.com.br/hitalo/minha-galeria)
+  // 🎯 Aqui incluímos o username no path para o roteamento padrão funcionar
+  return `${protocol}//${mainDomain}/${username}/${finalPath}`;
 }
 
 export function getWhatsAppShareLink(phone: string | null, message: string) {
@@ -71,6 +75,43 @@ export async function copyToClipboard(text: string) {
   }
 }
 
+interface RoutingContext {
+  username: string;
+  slug: string; // Ex: "hitalodiniz/2026/01/10/evento"
+  use_subdomain: boolean;
+  mainDomain: string; // process.env.NEXT_PUBLIC_BASE_URL
+  protocol: string; // "http" ou "https"
+}
+
+// src/core/utils/url-helper.ts
+
+export function resolveGalleryUrl(
+  username: string,
+  slug: string,
+  use_subdomain: boolean,
+  mainDomain: string,
+  protocol: string = 'https',
+): string {
+  const u = username.toLowerCase().trim();
+
+  // 1. Normaliza o slug: remove barras das extremidades
+  let cleanPath = slug.replace(/^\/+|\/+$/g, '').trim();
+
+  // 2. Remove o username se ele for o primeiro segmento do path
+  // O Regex /^username(\/|$)/i garante que remova "hitalo" mas não "hitalo-eventos"
+  const usernameRegex = new RegExp(`^${u}(\/|$)`, 'i');
+  if (usernameRegex.test(cleanPath)) {
+    cleanPath = cleanPath.replace(usernameRegex, '').replace(/^\/+/, '');
+  }
+
+  if (use_subdomain) {
+    // 🎯 URL LIMPA: http://hitalo.localhost:3000/galeria
+    return `${protocol}://${u}.${mainDomain}${cleanPath ? `/${cleanPath}` : ''}`;
+  }
+
+  // URL CLÁSSICA: http://localhost:3000/hitalo/galeria
+  return `${protocol}://${mainDomain}/${u}${cleanPath ? `/${cleanPath}` : ''}`;
+}
 /**
  * Converte links de visualização do Google Drive em links de download direto.
  * Suporta formatos: /file/d/[ID]/view, /open?id=[ID], etc.
@@ -88,6 +129,25 @@ export function convertToDirectDownloadUrl(url: string): string {
   }
 
   return url;
+}
+
+/**
+ * 🎯 NOVO: Função para obter a URL do Perfil do Criativo
+ * Resolve o problema do "undefined" nos links de avatar
+ */
+export function getCreatorProfileUrl(photographer: any) {
+  const isProd = process.env.NODE_ENV === 'production';
+  const protocol = isProd ? 'https:' : 'http:';
+  const username = photographer?.username;
+  const mainDomain = NEXT_PUBLIC_MAIN_DOMAIN;
+
+  if (!username) return '#'; // Evita gerar URL se não houver username carregado
+
+  if (photographer?.use_subdomain) {
+    return `${protocol}//${username}.${mainDomain}`;
+  }
+
+  return `${protocol}//${mainDomain}/${username}`;
 }
 
 /**

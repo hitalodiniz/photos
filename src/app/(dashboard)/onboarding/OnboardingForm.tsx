@@ -414,7 +414,7 @@ export default function OnboardingForm({
                 onChange={(e) => setMiniBio(e.target.value)}
                 required
                 rows={4}
-                placeholder="Conte um pouco sobre sua trajetória autor..."
+                placeholder="Conte um pouco sobre sua trajetória profissional..."
               />
             </div>
             {/* 📍 SEÇÃO ÁREA DE ATUAÇÃO (RESTAURADA) */}

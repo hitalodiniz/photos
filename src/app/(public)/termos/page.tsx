@@ -23,7 +23,7 @@ export default function TermosDeUsoPage() {
     {
       icon: <UserCheck />,
       title: 'Aceitação dos Termos',
-      desc: 'Ao utilizar esta plataforma, você concorda com estas diretrizes. O serviço é um visualizador de mídia otimizado para usuários que utilizam o Google Drive™ como servidor autor.',
+      desc: 'Ao utilizar esta plataforma, você concorda com estas diretrizes. O serviço é um visualizador de mídia otimizado para usuários que utilizam o Google Drive™ como servidor profissional.',
     },
     {
       icon: <Globe />,
@@ -50,7 +50,7 @@ export default function TermosDeUsoPage() {
     {
       icon: <FileText />,
       title: 'Modificações no Serviço',
-      desc: 'Reservamos o direito de ajustar termos para refletir melhorias técnicas ou mudanças legais, sempre visando a estabilidade e segurança da sua galeria autor.',
+      desc: 'Reservamos o direito de ajustar termos para refletir melhorias técnicas ou mudanças legais, sempre visando a estabilidade e segurança da sua galeria profissional.',
     },
   ];
 
@@ -66,7 +66,7 @@ export default function TermosDeUsoPage() {
             <>
               Regras e diretrizes para uma{' '}
               <span className="font-semibold border-b-2 border-[#F3E5AB]/50 text-white">
-                experiência autor
+                experiência profissional
               </span>
             </>
           }

@@ -1,60 +1,53 @@
 // app/dashboard/page.tsx
 import { redirect } from 'next/navigation';
-import { createSupabaseServerClientReadOnly } from '@/lib/supabase.server';
 import { getGalerias } from '@/core/services/galeria.service';
-import ClientAdminWrapper from '.';
+import { getProfileData } from '@/core/services/profile.service'; // 🎯 Importando seu serviço
+import Dashboard from '.';
 
 export const metadata = {
   title: 'Dashboard',
 };
 
 export default async function DashboardPage() {
-  // 1. Cria a instância Supabase READ-ONLY para o servidor
-  // É uma boa prática não usar 'await' na chamada da função se ela já for assíncrona
-  const supabase = await createSupabaseServerClientReadOnly();
+  // 1. Busca os dados completos do perfil via serviço (Servidor)
+  // O getProfileData já lida com a busca do usuário e do perfil
+  const resultProfile = await getProfileData();
 
-  // 2. Chama getUser() na instância correta
-  const {
-    data: { user },
-  } = await supabase.auth.getUser();
-
-  if (!user) {
-    // Se a sessão expirou ou não existe, redireciona para login
-    redirect('/');
+  if (!resultProfile.success || !resultProfile.profile) {
+    // Se não houver sessão ou perfil, redireciona para login ou onboarding
+    redirect(
+      resultProfile.error === 'Usuário não autenticado.' ? '/a' : '/onboarding',
+    );
   }
 
-  // 2. Busca o perfil via RLS
-  const { data: profile, error: profileError } = await supabase
-    .from('tb_profiles')
-    .select('full_name, username, mini_bio, studio_id')
-    .eq('id', user.id)
-    .single();
+  const profile = resultProfile.profile;
 
-  if (profileError) {
-    console.error('Erro ao carregar perfil no SSR:', profileError);
-    redirect('/onboarding');
-  }
-
-  // 3. Verifica se o perfil está completo
+  // 2. Verifica se o perfil está completo (Regra de Onboarding)
   const isProfileComplete =
-    profile?.full_name && profile?.username && profile?.mini_bio;
+    profile.full_name && profile.username && profile.mini_bio;
 
   if (!isProfileComplete) {
     redirect('/onboarding');
   }
 
-  // 4. Busca galerias via SSR
-  const result = await getGalerias(); // A action já busca o ID internamente no servidor
+  // 3. Busca galerias via SSR (Ação de Servidor)
+  const resultGalerias = await getGalerias();
 
-  // Se o erro for de autenticação do Google,
-  // deixe o erro subir para ser capturado pelo error.tsx
-  if (!result.success && result.error === 'AUTH_RECONNECT_REQUIRED') {
+  // 4. Tratamento de erro crítico de conexão do Google
+  if (
+    !resultGalerias.success &&
+    resultGalerias.error === 'AUTH_RECONNECT_REQUIRED'
+  ) {
     throw new Error('AUTH_RECONNECT_REQUIRED');
   }
 
-  // Extrai apenas os dados se a operação for um sucesso
-  const initialGalerias = result.success ? result.data : [];
+  const initialGalerias = resultGalerias.success ? resultGalerias.data : [];
 
-  // 5. Renderiza o Client Component com o array puro
-  return <ClientAdminWrapper initialGalerias={initialGalerias || []} />;
+  // 5. Renderiza o Client Component injetando o perfil carregado
+  return (
+    <Dashboard
+      initialGalerias={initialGalerias || []}
+      initialProfile={profile}
+    />
+  );
 }

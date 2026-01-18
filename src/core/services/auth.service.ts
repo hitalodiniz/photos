@@ -27,7 +27,7 @@ export const authService = {
     await supabase.auth.signOut();
   },
 
-  async signInWithGoogle() {
+  async signInWithGoogle(forceConsent: boolean = false) {
     const baseUrl = getBaseUrl();
     const redirectTo = `${baseUrl}/api/auth/callback`;
 
@@ -40,8 +40,8 @@ export const authService = {
         redirectTo,
         queryParams: {
           access_type: 'offline',
-          //prompt: 'consent',
-          prompt: 'select_account',
+          // 🎯 Lógica Condicional: Se forceConsent for true, usa 'consent' para garantir o refresh_token
+          prompt: forceConsent ? 'consent' : 'select_account',
         },
       },
     });

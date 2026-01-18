@@ -52,3 +52,61 @@ export async function revalidateGallery(
     return { success: false };
   }
 }
+
+/**
+ * 🎯 REVALIDAÇÃO DEFINITIVA
+ * Deve ser chamada sempre que o status do Google Drive mudar
+ * ou após um login/onboarding bem-sucedido.
+ */
+export async function revalidateProfile(username?: string) {
+  // 1. Limpa o cache de todas as funções marcadas com a tag 'user-profile'
+  revalidateTag('user-profile');
+
+  // 2. Se tiver o username, limpa o cache específico da galeria pública
+  if (username) {
+    revalidateTag(`profile-${username}`);
+    revalidatePath(`/${username}`, 'layout');
+  }
+
+  // 3. Limpa o dashboard para garantir que o Aside mostre o status correto
+  revalidatePath('/dashboard', 'layout');
+}
+
+/**
+ * 🧹 LIMPEZA TOTAL DE CACHE (ADMIN)
+ * Invalida todos os dados em cache no servidor e na Vercel.
+ */
+/**
+ * 🧹 PURGE ALL CACHE (ADMIN)
+ * Invalida todas as tags de dados e rotas estáticas do sistema.
+ */
+export async function purgeAllCache() {
+  try {
+    // 1. Invalida as tags de dados dinâmicos (vistas no seu VS Code)
+    revalidateTag('user-profile');
+    revalidateTag('drive-photos'); // Tag base para fotos do Drive
+    revalidateTag('cover-image'); // Tag base para capas
+
+    // 2. Invalida padrões de tags dinâmicas que você utiliza
+    // Como o Next.js não permite wildcards em tags, focamos nas tags raiz
+    // que as funções de fetch compartilham.
+    revalidateTag('public-profile');
+
+    // 3. Invalida a árvore de renderização completa (Páginas Estáticas/Edge)
+    // O parâmetro 'layout' na raiz garante que subdomínios e rotas [username]
+    // sejam marcadas para reconstrução no próximo acesso.
+    revalidatePath('/', 'layout');
+
+    return {
+      success: true,
+      message:
+        'Todos os caches (Dados, Fotos e Páginas) foram invalidados com sucesso.',
+    };
+  } catch (error) {
+    console.error('Erro ao limpar cache global:', error);
+    return {
+      success: false,
+      error: 'Falha crítica ao processar a limpeza global de cache.',
+    };
+  }
+}

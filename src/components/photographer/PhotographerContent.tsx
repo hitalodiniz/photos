@@ -5,7 +5,10 @@ import LoadingScreen from '../ui/LoadingScreen';
 import { PhotographerAvatar, PhotographerBio } from './PhotographerHero';
 import { PhotographerInfoBar } from './PhotographerInfoBar';
 import { EditorialHero } from '../ui/EditorialHero';
-import { usePageTitle } from '@/hooks/usePageTitle';
+import { getPublicProfileGalerias } from '@/core/services/galeria.service';
+import GaleriaCard from '@/app/(dashboard)/dashboard/GaleriaCard';
+import { Loader2 } from 'lucide-react';
+import { PublicGaleriaCard } from './PublicGaleriaCard';
 
 interface ProfileContentProps {
   fullName: string;
@@ -20,6 +23,7 @@ interface ProfileContentProps {
 }
 
 export default function PhotographerContent({
+  username,
   fullName,
   miniBio,
   phone,
@@ -33,6 +37,37 @@ export default function PhotographerContent({
   const [scrollY, setScrollY] = useState(0);
   const [isHovered, setIsHovered] = useState(false);
   const [isExpanded, setIsExpanded] = useState(false);
+  const [galerias, setGalerias] = useState<any[]>([]);
+  const [page, setPage] = useState(1);
+  const [hasMore, setHasMore] = useState(false);
+  const [loadingMore, setLoadingMore] = useState(false);
+
+  // Busca inicial
+  useEffect(() => {
+    async function loadInitialData() {
+      const res = await getPublicProfileGalerias(username, 1);
+      if (res.success) {
+        setGalerias(res.data);
+        setHasMore(res.hasMore);
+      }
+      setIsLoading(false);
+    }
+    loadInitialData();
+  }, [username]);
+
+  const loadMore = async () => {
+    if (loadingMore || !hasMore) return;
+    setLoadingMore(true);
+    const nextPage = page + 1;
+    const res = await getPublicProfileGalerias(username, nextPage);
+
+    if (res.success) {
+      setGalerias((prev) => [...prev, ...res.data]);
+      setHasMore(res.hasMore);
+      setPage(nextPage);
+    }
+    setLoadingMore(false);
+  };
 
   // Lógica de Scroll para a InfoBar
   useEffect(() => {
@@ -87,13 +122,40 @@ export default function PhotographerContent({
 
       {/* ESPAÇADOR PARA CONTEÚDO ADICIONAL NO FUTURO */}
       <main className="relative z-30 max-w-[1600px] mx-auto px-6 py-20 min-h-[40vh]">
-        {/* Aqui você poderá futuramente listar galerias em destaque ou portfólio fixo */}
-        <div className="flex flex-col items-center justify-center text-[#F3E5AB]">
-          <div className="w-px h-24 bg-gradient-to-b from-[#F3E5AB] to-transparent mb-8" />
-          <p className="text-[10px] uppercase tracking-[0.5em]">
-            Galeria de fotos públicas do usuário serão exibidas aqui.
-          </p>
-        </div>
+        {galerias.length > 0 ? (
+          <div className="space-y-12">
+            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
+              {galerias.map((galeria) => (
+                <PublicGaleriaCard key={galeria.id} galeria={galeria} />
+              ))}
+            </div>
+
+            {hasMore && (
+              <div className="flex justify-center pt-10">
+                <button
+                  onClick={loadMore}
+                  disabled={loadingMore}
+                  className="px-8 py-3 border border-[#F3E5AB]/30 text-[#F3E5AB] text-[10px] uppercase tracking-[0.2em] hover:bg-[#F3E5AB] hover:text-black transition-all disabled:opacity-50"
+                >
+                  {loadingMore ? (
+                    <Loader2 className="animate-spin" />
+                  ) : (
+                    'Carregar mais trabalhos'
+                  )}
+                </button>
+              </div>
+            )}
+          </div>
+        ) : (
+          !isLoading && (
+            <div className="flex flex-col items-center justify-center text-[#F3E5AB]/40">
+              <div className="w-px h-24 bg-gradient-to-b from-[#F3E5AB]/20 to-transparent mb-8" />
+              <p className="text-[10px] uppercase tracking-[0.5em]">
+                Nenhuma galeria pública disponível no momento.
+              </p>
+            </div>
+          )
+        )}
       </main>
 
       <Footer />

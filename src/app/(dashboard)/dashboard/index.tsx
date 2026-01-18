@@ -8,6 +8,8 @@ import {
   Trash2,
   ChevronLeft,
   ChevronRight,
+  RefreshCw,
+  ShieldAlert,
 } from 'lucide-react';
 import {
   getGalerias,
@@ -18,7 +20,6 @@ import {
 } from '@/core/services/galeria.service';
 
 import type { Galeria } from '@/core/types/galeria';
-// IMPORT UNIFICADO
 import GalleryFormModal from './GaleriaModal';
 import Filters from './Filters';
 import { ConfirmationModal, Toast } from '@/components/ui';
@@ -29,6 +30,8 @@ import {
   revalidateDrivePhotos,
   revalidateGallery,
 } from '@/actions/revalidate.actions';
+import { authService } from '@/core/services/auth.service';
+import AdminControlModal from '@/components/admin/AdminControlModal';
 
 const CARDS_PER_PAGE = 8;
 
@@ -45,9 +48,11 @@ export default function Dashboard({
   initialProfile,
 }: {
   initialGalerias: Galeria[];
-  initialProfile?: { sidebar_collapsed: boolean };
+  // 🎯 Atualizado: Tipagem agora reflete o objeto completo do perfil (photographer)
+  initialProfile: any;
 }) {
   const [galerias, setGalerias] = useState<Galeria[]>(initialGalerias);
+  const [isAdminModalOpen, setIsAdminModalOpen] = useState(false);
   const [currentView, setCurrentView] = useState<
     'active' | 'archived' | 'trash'
   >('active');
@@ -55,10 +60,21 @@ export default function Dashboard({
     initialProfile?.sidebar_collapsed ?? false,
   );
 
-  // Controle de Modal Unificado
+  // 🎯 Estado do fotógrafo para monitorar o token
+  const photographer = initialProfile;
+
+  // 🎯 Função de Login Condicional
+  const handleGoogleLogin = async (force: boolean) => {
+    try {
+      await authService.signInWithGoogle(force);
+    } catch (error) {
+      setToast({ message: 'Erro ao conectar com Google', type: 'error' });
+    }
+  };
+
+  // ... (Estados de Modal, Filtros e Toast mantidos iguais)
   const [isFormOpen, setIsFormOpen] = useState(false);
   const [galeriaToEdit, setGaleriaToEdit] = useState<Galeria | null>(null);
-
   const [cardsToShow, setCardsToShow] = useState(CARDS_PER_PAGE);
   const [filterName, setFilterName] = useState('');
   const [filterLocation, setFilterLocation] = useState('');
@@ -66,7 +82,6 @@ export default function Dashboard({
   const [filterDateEnd, setFilterDateEnd] = useState('');
   const [filterCategory, setFilterCategory] = useState('');
   const [filterType, setFilterType] = useState('');
-
   const [toast, setToast] = useState<{
     message: string;
     type: 'success' | 'error';
@@ -89,36 +104,27 @@ export default function Dashboard({
     [galerias],
   );
 
-  // FUNÇÃO DE SUCESSO UNIFICADA (Lida com Create e Update)
+  // --- MÉTODOS DE AÇÃO ---
   const handleFormSuccess = async (success: boolean, data: any) => {
     if (success) {
       if (galeriaToEdit) {
-        //REVALIDAÇÃO AUTOMÁTICA APÓS EDITAR para limpar o cache do vercel
         await revalidateGallery(
           data.drive_folder_id,
           data.slug,
           data.photographer_username || data.photographer?.username,
-          data.photographer_username || data.photographer?.username, // Passando username como subdomínio
+          data.photographer_username || data.photographer?.username,
         );
-        // Modo Edição: Atualiza o item na lista local
         setGalerias((prev) => prev.map((g) => (g.id === data.id ? data : g)));
-        setToast({
-          message: 'Galeria atualizada com sucesso!',
-          type: 'success',
-        });
+        setToast({ message: 'Galeria atualizada!', type: 'success' });
       } else {
-        // Modo Criação: Recarrega a lista para pegar a nova galeria (e o slug gerado no server)
         const result = await getGalerias();
         if (result.success) setGalerias(result.data);
-        setToast({ message: 'Galeria criada com sucesso!', type: 'success' });
+        setToast({ message: 'Galeria criada!', type: 'success' });
       }
     } else {
       setToast({ message: data || 'Erro na operação', type: 'error' });
     }
   };
-
-  // --- MÉTODOS DE AÇÃO (Move, Archive, Delete) MANTIDOS ---
-  // ... (handleArchiveToggle, handleRestore, handleMoveToTrash, executePermanentDelete permanecem iguais)
 
   const handleArchiveToggle = async (g: Galeria) => {
     const newStatus = !g.is_archived;
@@ -149,9 +155,9 @@ export default function Dashboard({
           g.id === id ? { ...g, is_deleted: false, is_archived: false } : g,
         ),
       );
-      setToast({ message: 'Galeria restaurada para Ativas', type: 'success' });
+      setToast({ message: 'Galeria restaurada!', type: 'success' });
     } else {
-      setToast({ message: 'Erro ao restaurar galeria', type: 'error' });
+      setToast({ message: 'Erro ao restaurar', type: 'error' });
     }
     setUpdatingId(null);
   };
@@ -165,39 +171,28 @@ export default function Dashboard({
           item.id === g.id ? { ...item, is_deleted: true } : item,
         ),
       );
-      setToast({ message: 'Galeria movida para a lixeira', type: 'success' });
+      setToast({ message: 'Movido para lixeira', type: 'success' });
     } else {
-      setToast({ message: 'Erro ao excluir galeria', type: 'error' });
+      setToast({ message: 'Erro ao excluir', type: 'error' });
     }
     setUpdatingId(null);
   };
 
   const handleSyncDrive = async (galeria: Galeria) => {
-    setUpdatingId(galeria.id); // Ativa o loader no card específico
+    setUpdatingId(galeria.id);
     try {
-      // 1. Invalida as tags de fotos e capa
       await revalidateDrivePhotos(galeria.drive_folder_id);
-
       await revalidateGallery(
         galeria.drive_folder_id,
         galeria.slug,
         galeria.photographer_username,
         galeria.photographer_username,
       );
-
-      if (galeria.cover_image_url) {
+      if (galeria.cover_image_url)
         await revalidateGalleryCover(galeria.cover_image_url);
-      }
-
-      setToast({
-        message: 'Sincronização concluída! As fotos foram atualizadas.',
-        type: 'success',
-      });
+      setToast({ message: 'Sincronização concluída!', type: 'success' });
     } catch (error) {
-      setToast({
-        message: 'Erro ao sincronizar com o Google Drive.',
-        type: 'error',
-      });
+      setToast({ message: 'Erro ao sincronizar.', type: 'error' });
     } finally {
       setUpdatingId(null);
     }
@@ -210,12 +205,9 @@ export default function Dashboard({
       setGalerias((prev) =>
         prev.filter((g) => g.id !== galeriaToPermanentlyDelete.id),
       );
-      setToast({
-        message: 'Galeria removida definitivamente!',
-        type: 'success',
-      });
+      setToast({ message: 'Removida definitivamente!', type: 'success' });
     } catch (error) {
-      setToast({ message: 'Erro na exclusão permanente.', type: 'error' });
+      setToast({ message: 'Erro na exclusão.', type: 'error' });
     } finally {
       setGaleriaToPermanentlyDelete(null);
     }
@@ -227,14 +219,13 @@ export default function Dashboard({
     await updateSidebarPreference(newValue);
   };
 
+  // --- FILTROS ---
   const filteredGalerias = useMemo(() => {
     if (!Array.isArray(galerias)) return [];
-
     const nameLower = normalizeString(filterName);
     const locationLower = normalizeString(filterLocation);
 
     return galerias.filter((g) => {
-      // 1. Filtros de visualização (Visão do Sistema)
       const isArchived = Boolean(g.is_archived);
       const isDeleted = Boolean(g.is_deleted);
       if (currentView === 'active' && (isArchived || isDeleted)) return false;
@@ -242,7 +233,6 @@ export default function Dashboard({
         return false;
       if (currentView === 'trash' && !isDeleted) return false;
 
-      // 2. Filtros Textuais
       const titleNorm = normalizeString(g.title || '');
       const clientNorm = normalizeString(g.client_name || '');
       const locationNorm = normalizeString(g.location || '');
@@ -251,19 +241,12 @@ export default function Dashboard({
         !nameLower ||
         titleNorm.includes(nameLower) ||
         clientNorm.includes(nameLower);
-
       const matchesLocation =
         !locationLower || locationNorm.includes(locationLower);
-
-      // 3. Filtros de Categoria e Tipo
       const matchesCategory = !filterCategory || g.category === filterCategory;
       const matchesType =
         !filterType || String(g.has_contracting_client) === filterType;
-
-      // 4. 🎯 LÓGICA DE DATA POR PERÍODO (Comparação Lexicográfica Segura)
-      // Extraímos YYYY-MM-DD da data da galeria
       const galleryDateString = g.date ? g.date.split('T')[0] : '';
-
       const matchesDate =
         (!filterDateStart || galleryDateString >= filterDateStart) &&
         (!filterDateEnd || galleryDateString <= filterDateEnd);
@@ -294,42 +277,20 @@ export default function Dashboard({
 
   return (
     <div className="mx-auto flex flex-col lg:flex-row max-w-[1600px] gap-4 px-4 py-2 bg-[#F8F9FA] min-h-screen pb-24 lg:pb-6">
-      {/* SIDEBAR (Desktop) / BOTTOM NAV (Mobile) */}
+      {/* SIDEBAR */}
       <aside
-        className={`
-          fixed bottom-0 left-0 right-0 z-50 bg-white border-t border-slate-200 px-6 py-3 lg:py-0 lg:px-0
-          lg:relative lg:block lg:bg-transparent lg:border-0 lg:z-0
-          transition-all duration-500 ease-in-out 
-          ${isSidebarCollapsed ? 'lg:w-[60px]' : 'lg:w-[190px]'}
-        `}
+        className={`fixed bottom-0 left-0 right-0 z-50 bg-white border-t border-slate-200 px-6 py-3 lg:py-0 lg:px-0 lg:relative lg:block lg:bg-transparent lg:border-0 lg:z-0 transition-all duration-500 ease-in-out ${isSidebarCollapsed ? 'lg:w-[60px]' : 'lg:w-[190px]'}`}
       >
-        {/* Botão Nova Galeria - Refinado e Compacto */}
+        {/* Botão Nova Galeria */}
         <button
           onClick={() => setIsFormOpen(true)}
-          className={`
-    /* Visibilidade: Sempre flex agora, mas com tamanhos diferentes */
-    flex items-center justify-center bg-[#D4AF37] text-black 
-    hover:bg-white hover:text-[#D4AF37] transition-all duration-300 
-    rounded-[0.5rem] border border-[#D4AF37] group shadow-lg lg:shadow-sm mb-6 overflow-hidden
-    
-    /* Mobile: Botão flutuante ou destaque na base da sidebar mobile */
-    w-12 h-12 fixed bottom-6 right-6 z-[100] lg:relative lg:bottom-auto lg:right-auto lg:z-auto
-    
-    /* Desktop: Retorna ao padrão da sidebar */
-    ${
-      isSidebarCollapsed
-        ? 'lg:w-14 lg:h-10'
-        : 'lg:h-10 lg:px-4 lg:gap-3 lg:w-fit'
-    }
-  `}
+          className={`flex items-center justify-center bg-[#D4AF37] text-black hover:bg-white hover:text-[#D4AF37] transition-all duration-300 rounded-[0.5rem] border border-[#D4AF37] group shadow-lg lg:shadow-sm mb-6 overflow-hidden w-12 h-12 fixed bottom-6 right-6 z-[100] lg:relative lg:bottom-auto lg:right-auto lg:z-auto ${isSidebarCollapsed ? 'lg:w-14 lg:h-10' : 'lg:h-10 lg:px-4 lg:gap-3 lg:w-fit'}`}
         >
           <Plus
-            size={20} // Ligeiramente maior no mobile para facilitar o toque
+            size={20}
             className="group-hover:rotate-90 transition-transform shrink-0 lg:w-[18px] lg:h-[18px]"
             strokeWidth={2.5}
           />
-
-          {/* Texto: Escondido no Mobile (estilo FAB), Visível no Desktop expandido */}
           {!isSidebarCollapsed && (
             <span className="hidden lg:block text-[10px] font-semibold uppercase tracking-[0.2em] whitespace-nowrap">
               Nova Galeria
@@ -376,15 +337,7 @@ export default function Dashboard({
                 setCardsToShow(CARDS_PER_PAGE);
                 window.scrollTo({ top: 0, behavior: 'smooth' });
               }}
-              className={`
-                flex flex-col lg:flex-row items-center transition-all duration-300 group relative
-                ${isSidebarCollapsed ? 'lg:justify-center lg:py-4' : 'lg:justify-between lg:px-4 lg:py-3 lg:rounded-xl'} 
-                ${
-                  currentView === item.id
-                    ? 'text-black bg-[#F3E5AB] shadow-sm'
-                    : 'text-slate-400 hover:bg-white hover:text-slate-600'
-                }
-              `}
+              className={`flex flex-col lg:flex-row items-center transition-all duration-300 group relative ${isSidebarCollapsed ? 'lg:justify-center lg:py-4' : 'lg:justify-between lg:px-4 lg:py-3 lg:rounded-xl'} ${currentView === item.id ? 'text-black bg-[#F3E5AB] shadow-sm' : 'text-slate-400 hover:bg-white hover:text-slate-600'}`}
             >
               <div className="flex flex-col lg:flex-row items-center gap-1 lg:gap-3">
                 <item.icon
@@ -395,14 +348,12 @@ export default function Dashboard({
                       : 'text-slate-400 group-hover:text-[#D4AF37]'
                   }
                 />
-                {/* 🎯 Texto condicional ajustado para mobile/desktop */}
                 <span
                   className={`uppercase text-[9px] lg:text-[10px] font-bold tracking-widest block ${!isSidebarCollapsed ? 'lg:block' : 'lg:hidden'}`}
                 >
                   {item.label}
                 </span>
               </div>
-
               {!isSidebarCollapsed && item.count > 0 && (
                 <span
                   className={`hidden lg:block text-[10px] font-bold px-2 py-0.5 rounded-full ${currentView === item.id ? 'bg-white/40 text-black' : 'bg-slate-100 text-slate-500'}`}
@@ -412,11 +363,101 @@ export default function Dashboard({
               )}
             </button>
           ))}
+
+          {/* 🎯 CONNECTION STATUS INTEGRADO */}
+          <div
+            className={`mt-auto pt-6 border-t border-slate-100 transition-all duration-500 ${isSidebarCollapsed ? 'px-0' : 'px-2'}`}
+          >
+            <div
+              className={`relative group flex items-center transition-all duration-300 ${isSidebarCollapsed ? 'justify-center py-4' : 'gap-3 p-3 rounded-xl bg-slate-50 border border-slate-100'}`}
+            >
+              <div className="relative flex items-center justify-center shrink-0">
+                <div
+                  className={`h-2.5 w-2.5 rounded-full ${photographer?.google_refresh_token ? 'bg-green-500' : 'bg-amber-500'} shadow-sm`}
+                />
+                {!photographer?.google_refresh_token && (
+                  <div className="absolute inset-0 h-2.5 w-2.5 rounded-full bg-amber-500 animate-ping opacity-75" />
+                )}
+              </div>
+
+              {!isSidebarCollapsed && (
+                <div className="flex flex-col min-w-0">
+                  <span className="text-[9px] font-bold uppercase tracking-widest text-slate-400 leading-none mb-1">
+                    Google Drive
+                  </span>
+                  <div className="flex items-center gap-1.5">
+                    <span
+                      className={`text-[10px] font-semibold truncate ${photographer?.google_refresh_token ? 'text-slate-600' : 'text-amber-600'}`}
+                    >
+                      {photographer?.google_refresh_token
+                        ? 'Conectado'
+                        : 'Ação Necessária'}
+                    </span>
+                    <button
+                      onClick={() =>
+                        handleGoogleLogin(!photographer?.google_refresh_token)
+                      }
+                      className="p-1 hover:bg-slate-200 rounded-md transition-colors text-slate-400 hover:text-[#D4AF37]"
+                      title={
+                        photographer?.google_refresh_token
+                          ? 'Reautenticar'
+                          : 'Vincular Drive'
+                      }
+                    >
+                      <RefreshCw size={12} strokeWidth={2.5} />
+                    </button>
+                  </div>
+                </div>
+              )}
+
+              {isSidebarCollapsed && (
+                <div className="absolute left-full ml-4 px-3 py-2 bg-slate-900 text-white text-[10px] font-bold uppercase tracking-widest rounded-lg opacity-0 pointer-events-none group-hover:opacity-100 transition-all whitespace-nowrap z-50 shadow-xl">
+                  {photographer?.google_refresh_token
+                    ? 'Conectado ao Drive'
+                    : 'Erro de Conexão'}
+                  <div className="absolute right-full top-1/2 -translate-y-1/2 border-8 border-transparent border-r-slate-900" />
+                </div>
+              )}
+            </div>
+          </div>
+          {/* Conteúdo existente do Aside... */}
+
+          {/* Gatilho para Admin - Apenas se for você */}
+          {photographer?.username === 'hitalodiniz' && (
+            <div className="mt-4 px-2 border-t pt-4">
+              <button
+                onClick={() => setIsAdminModalOpen(true)}
+                className={`group flex items-center gap-3 w-full p-3 rounded-xl transition-all duration-300
+            ${isSidebarCollapsed ? 'justify-center' : 'bg-red-50 hover:bg-red-100'}
+          `}
+              >
+                <div className="text-red-600">
+                  <ShieldAlert size={20} />
+                </div>
+                {!isSidebarCollapsed && (
+                  <div className="flex flex-col items-start leading-none">
+                    <span className="text-[9px] font-semibold uppercase tracking-widest text-red-400 mb-1">
+                      Admin Mode
+                    </span>
+                    <span className="text-[11px] font-medium text-red-700">
+                      Controles de Cache
+                    </span>
+                  </div>
+                )}
+              </button>
+            </div>
+          )}
+
+          {/* O Modal */}
+          <AdminControlModal
+            isOpen={isAdminModalOpen}
+            onClose={() => setIsAdminModalOpen(false)}
+          />
         </nav>
       </aside>
 
+      {/* CONTEÚDO PRINCIPAL */}
       <main className="flex-1 space-y-4 min-w-0">
-        {/* Header de Filtros - Branco e Limpo */}
         <header className="bg-white rounded-[12px] border border-slate-200 p-1 shadow-sm">
           <Filters
             filterName={filterName}
@@ -449,7 +490,7 @@ export default function Dashboard({
               <GaleriaCard
                 key={g.id}
                 galeria={g}
-                index={index} // Passamos o index para o efeito de cascata
+                index={index}
                 currentView={currentView}
                 onEdit={setGaleriaToEdit}
                 onDelete={handleMoveToTrash}
@@ -457,7 +498,7 @@ export default function Dashboard({
                 onRestore={handleRestore}
                 onPermanentDelete={() => setGaleriaToPermanentlyDelete(g)}
                 isUpdating={updatingId === g.id}
-                onSync={() => handleSyncDrive(g)} // ADICIONE ESTA LINHA
+                onSync={() => handleSyncDrive(g)}
               />
             ))}
           </div>
@@ -476,10 +517,8 @@ export default function Dashboard({
           )}
         </div>
 
-        {/* PAGINAÇÃO / EXPANDIR ACERVO */}
-
+        {/* PAGINAÇÃO */}
         <div className="mt-12 flex flex-col items-center justify-center space-y-6 pb-12">
-          {/* Barra de Progresso Refinada */}
           <div className="flex flex-col items-center gap-2">
             <div className="text-[10px] font-semibold text-slate-700 uppercase tracking-[0.3em]">
               {visibleGalerias.length} de {filteredGalerias.length} Galerias
@@ -509,7 +548,6 @@ export default function Dashboard({
         </div>
       </main>
 
-      {/* MODAL MASTER UNIFICADO */}
       <GalleryFormModal
         isOpen={isFormOpen || !!galeriaToEdit}
         galeria={galeriaToEdit}
@@ -519,7 +557,6 @@ export default function Dashboard({
         }}
         onSuccess={handleFormSuccess}
       />
-
       <ConfirmationModal
         isOpen={!!galeriaToPermanentlyDelete}
         onClose={() => setGaleriaToPermanentlyDelete(null)}
@@ -527,7 +564,6 @@ export default function Dashboard({
         title="Excluir permanentemente"
         message={`Deseja remover "${galeriaToPermanentlyDelete?.title}" permanentemente?`}
       />
-
       {toast && (
         <Toast
           message={toast.message}

@@ -48,38 +48,60 @@ export async function getProfileData(supabaseClient?: any) {
 }
 
 /**
- * Busca um perfil público por username com Cache Persistente.
- * 🎯 CANDIDATA AO CACHE: Usa createSupabaseClientForCache para evitar erro de cookies.
+ * Busca o perfil diretamente no banco.
+ * Esta função NÃO usa unstable_cache, por isso pode ser chamada no Middleware.
+ */
+export async function fetchProfileRaw(username: string) {
+  const supabase = createSupabaseClientForCache();
+  const { data, error } = await supabase
+    .from('tb_profiles')
+    .select('*')
+    .eq('username', username)
+    .single();
+
+  if (error || !data) {
+    if (error && error.code !== 'PGRST116') {
+      // Ignora erro de "não encontrado"
+      console.error('Erro ao buscar perfil:', error);
+    }
+    return null;
+  }
+  return data;
+}
+
+// =========================================================================
+// 2. FUNÇÕES COM CACHE (Apenas para Server Components / Pages)
+// =========================================================================
+
+/**
+ * Busca um perfil público com Cache Persistente.
+ * USO: Apenas em Pages e Server Components.
  */
 export const getPublicProfile = cache(async (username: string) => {
   return unstable_cache(
     async (uname: string) => {
-      // 🛡️ Cliente específico para cache (sem acesso a cookies/auth)
-      const supabase = createSupabaseClientForCache();
-      const { data, error } = await supabase
-        .from('tb_profiles')
-        .select('*')
-        .eq('username', uname)
-        .single();
-
-      if (error || !data) {
-        console.error('Erro ao buscar perfil público para cache:', error);
-        return null;
-      }
-      return data;
+      return fetchProfileRaw(uname); // Chama a busca direta
     },
     [`public-profile-${username}`],
     {
-      revalidate: GLOBAL_CACHE_REVALIDATE, // Background revalidation a cada 30 dias
-      tags: [`profile-${username}`], // Tag para invalidação sob demanda via revalidateTag
+      revalidate: GLOBAL_CACHE_REVALIDATE,
+      tags: [`profile-${username}`],
     },
   )(username);
 });
 
 /**
- * Versão otimizada para metadados.
- * 🎯 CANDIDATA AO CACHE: Reutiliza o cache do getPublicProfile através da deduplicação do React.
+ * Versão para Middleware: Verifica permissão sem quebrar o Edge Runtime.
+ * IMPORTANTE: No Middleware, use esta função.
  */
+export async function checkSubdomainPermission(
+  username: string,
+): Promise<boolean> {
+  // Chamamos a função RAW, pois o Middleware não aceita unstable_cache
+  const profile = await fetchProfileRaw(username);
+  return !!(profile && profile.use_subdomain === true);
+}
+
 export const getProfileMetadataInfo = cache(async (username: string) => {
   const profile = await getPublicProfile(username);
   if (!profile) return null;

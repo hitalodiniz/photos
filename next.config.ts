@@ -47,10 +47,10 @@ const nextConfig: NextConfig = {
     // Resolve o erro de Cross-Origin no terminal entre hitalodiniz.lvh.me e o servidor
     serverActions: {
       allowedOrigins: [
-        'hitalodiniz.lvh.me',
         'localhost:3000',
         'suagaleria.com.br',
-        '*.suagaleria.com.br',
+        '*.suagaleria.com.br', // 🎯 Essencial para revalidação via subdomínios de fotógrafos
+        '*.lvh.me:3000', // 🎯 Melhorado para testes locais de subdomínio
       ],
     },
   },
@@ -61,6 +61,13 @@ const nextConfig: NextConfig = {
   // Se você também tiver erros de TypeScript que quer ignorar:
   typescript: {
     ignoreBuildErrors: true,
+  },
+  // 🎯 Otimização de Cache: Garante que o cabeçalho de cache
+  // seja respeitado corretamente no ambiente Vercel
+  logging: {
+    fetches: {
+      fullUrl: true,
+    },
   },
 };
 

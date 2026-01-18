@@ -1,8 +1,8 @@
 'use client';
 import React, { useEffect, useState } from 'react';
 import { ChevronLeft, ChevronRight, ImageIcon } from 'lucide-react';
-import { GalleryHeader, PhotographerAvatar } from '@/components/gallery';
-import { getHighResImageUrl, getProxyUrl } from '@/core/utils/url-helper';
+import { GaleriaHeader, PhotographerAvatar } from '@/components/gallery';
+import { getHighResImageUrl } from '@/core/utils/url-helper';
 import type { Galeria } from '@/core/types/galeria';
 import LoadingSpinner from '../ui/LoadingSpinner';
 import { ToolbarGalleryView } from './ToolbarGalleryView';
@@ -183,7 +183,7 @@ export default function Lightbox({
         <div className="relative w-full flex flex-col md:flex-row items-start justify-between gap-4 md:gap-0">
           {/* Título: Largura total no mobile, limitada no desktop */}
           <div className="w-full md:max-w-[30%] min-w-0">
-            <GalleryHeader
+            <GaleriaHeader
               title={galleryTitle}
               location={location}
               data={galeria.date}
