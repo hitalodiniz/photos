@@ -1,6 +1,5 @@
 'use client';
 import React, { useState, useEffect } from 'react';
-import { Footer } from '@/components/layout';
 import LoadingScreen from '../ui/LoadingScreen';
 import { PhotographerAvatar, PhotographerBio } from './PhotographerHero';
 import { PhotographerInfoBar } from './PhotographerInfoBar';
@@ -9,6 +8,8 @@ import { getPublicProfileGalerias } from '@/core/services/galeria.service';
 import GaleriaCard from '@/app/(dashboard)/dashboard/GaleriaCard';
 import { Loader2 } from 'lucide-react';
 import { PublicGaleriaCard } from './PublicGaleriaCard';
+import { profile } from 'console';
+import { GaleriaFooter } from '../gallery';
 
 interface ProfileContentProps {
   fullName: string;
@@ -41,6 +42,18 @@ export default function PhotographerContent({
   const [page, setPage] = useState(1);
   const [hasMore, setHasMore] = useState(false);
   const [loadingMore, setLoadingMore] = useState(false);
+
+  // 2. Construa o objeto photographer compatível com a interface que definimos
+  const photographerData = {
+    full_name: fullName,
+    username: username,
+    phone_contact: phone,
+    instagram_link: instagram,
+    profile_picture_url: photoPreview,
+    use_subdomain: true, // No contexto de perfil público, geralmente é true
+    profile_url: website || '',
+    id: '', // O ID não é necessário para os links do footer
+  };
 
   // Busca inicial
   useEffect(() => {
@@ -121,7 +134,7 @@ export default function PhotographerContent({
       </div>
 
       {/* ESPAÇADOR PARA CONTEÚDO ADICIONAL NO FUTURO */}
-      <main className="relative z-30 max-w-[1600px] mx-auto px-6 py-20 min-h-[40vh]">
+      <main className="relative z-30 max-w-[1600px] mx-auto px-4 py-4 min-h-[40vh]">
         {galerias.length > 0 ? (
           <div className="space-y-12">
             <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
@@ -158,7 +171,10 @@ export default function PhotographerContent({
         )}
       </main>
 
-      <Footer />
+      <GaleriaFooter
+        photographer={photographerData}
+        title="Portfólio Profissional"
+      />
     </div>
   );
 }

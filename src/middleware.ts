@@ -123,7 +123,14 @@ export async function middleware(req: NextRequest) {
 
       const rewriteUrl = req.nextUrl.clone();
       rewriteUrl.pathname = internalPath;
-      return NextResponse.rewrite(rewriteUrl);
+
+      // Garante que os cookies do request original sejam passados para o destino do rewrite
+      const response = NextResponse.rewrite(rewriteUrl);
+      req.cookies.forEach((cookie) => {
+        response.cookies.set(cookie.name, cookie.value);
+      });
+
+      return response;
     }
   }
 

@@ -21,9 +21,8 @@ import {
   Tablet,
   Eye,
   EyeOff,
-  Info,
-  ExternalLink,
-  Archive,
+  CheckCircle2,
+  Download,
 } from 'lucide-react';
 import WhatsAppIcon from '@/components/ui/WhatsAppIcon';
 import { convertToDirectDownloadUrl } from '@/core/utils/url-helper';
@@ -161,7 +160,7 @@ export default function GaleriaFormContent({
       />
 
       {/* BLOCO 1: IDENTIFICAÇÃO */}
-      <fieldset className="p-3 bg-white border border-slate-200 rounded-[0.5rem] shadow-sm mt-4">
+      <fieldset className="p-2 bg-white border border-slate-200 rounded-[0.5rem] shadow-sm">
         <SectionHeader title="Identificação" />
         <div className="grid grid-cols-1 md:grid-cols-12 gap-2 items-end">
           <div className="md:col-span-3 space-y-1.5">
@@ -229,7 +228,7 @@ export default function GaleriaFormContent({
       </fieldset>
 
       {/* BLOCO 2: DETALHES DA GALERIA */}
-      <fieldset className="p-3 bg-white border border-slate-200 rounded-[0.5rem] shadow-sm mt-4">
+      <fieldset className="p-2 bg-white border border-slate-200 rounded-[0.5rem] shadow-sm">
         <SectionHeader title="Galeria" />
         <div className="grid grid-cols-1 md:grid-cols-12 gap-4 items-end">
           <div className="md:col-span-5 space-y-1.5">
@@ -279,15 +278,13 @@ export default function GaleriaFormContent({
       </fieldset>
 
       {/* BLOCO 3: CUSTOMIZAÇÃO VISUAL */}
-      <fieldset className="relative px-4 py-3 bg-white border border-slate-200 rounded-[0.5rem] shadow-sm mt-4">
+      <fieldset className="relative px-4 py-3 bg-white border border-slate-200 rounded-[0.5rem] shadow-sm">
         <SectionHeader title="Customização Visual" />
         <div className="flex flex-col md:flex-row md:items-center justify-between gap-6 md:gap-2">
           {/* FOTO DE FUNDO */}
           <div className="flex items-center justify-between md:justify-start gap-3 pb-4 md:pb-0 border-b md:border-b-0 md:border-r border-slate-200 md:pr-4 shrink-0">
             <div className="flex items-center gap-1.5">
-              <label className="text-slate-500 font-bold uppercase tracking-widest text-[10px] whitespace-nowrap">
-                Foto de fundo
-              </label>
+              <label>Foto de fundo</label>
               <div className="group relative flex items-center">
                 <div className="flex items-center justify-center w-3.5 h-3.5 rounded-full border border-slate-300 text-slate-400 group-hover:border-[#D4AF37] group-hover:text-[#D4AF37] transition-colors cursor-help">
                   <span className="text-[10px] font-bold">?</span>
@@ -320,9 +317,7 @@ export default function GaleriaFormContent({
           <div className="flex items-center justify-between md:justify-start gap-3 pb-4 md:pb-0 border-b md:border-b-0 md:border-r border-slate-200 md:pr-4 shrink-0">
             <div className="flex items-center gap-1.5">
               <Layout size={13} className="text-[#D4AF37]" />
-              <label className="text-slate-500 font-bold uppercase tracking-widest text-[10px] whitespace-nowrap">
-                Cor de fundo
-              </label>
+              <label> Cor de fundo</label>
               <div className="group relative flex items-center">
                 <div className="flex items-center justify-center w-3.5 h-3.5 rounded-full border border-slate-300 text-slate-400 group-hover:border-[#D4AF37] group-hover:text-[#D4AF37] transition-colors cursor-help">
                   <span className="text-[10px] font-bold">?</span>
@@ -383,9 +378,7 @@ export default function GaleriaFormContent({
           {/* GRID COLUNAS */}
           <div className="flex items-center justify-between md:justify-start gap-3 shrink-0">
             <div className="flex items-center gap-1.5">
-              <label className="text-slate-500 font-bold uppercase tracking-widest text-[10px] whitespace-nowrap">
-                Grid
-              </label>
+              <label> Grid</label>
               <div className="group relative flex items-center">
                 <div className="flex items-center justify-center w-3.5 h-3.5 rounded-full border border-slate-300 text-slate-400 group-hover:border-[#D4AF37] group-hover:text-[#D4AF37] transition-colors cursor-help">
                   <span className="text-[10px] font-bold">?</span>
@@ -445,12 +438,13 @@ export default function GaleriaFormContent({
       </fieldset>
 
       {/* BLOCO 4: DRIVE E SEGURANÇA */}
-      <fieldset className="p-3 bg-white border border-slate-200 rounded-[0.5rem] mt-4 shadow-sm">
+      <fieldset className="p-2 bg-white border border-slate-200 rounded-[0.5rem] mt-4 shadow-sm">
         <SectionHeader title="Privacidade" />
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mt-2">
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
           {/* ACESSO */}
           <div className="flex items-center justify-between gap-4">
-            <label className="flex items-center gap-2 text-[10px] font-bold uppercase tracking-widest text-slate-800 shrink-0">
+            <label>
+              {' '}
               <Lock size={12} className="text-[#D4AF37]" /> Acesso à Galeria
             </label>
             <div className="flex items-center gap-2 flex-1 justify-end">
@@ -501,11 +495,12 @@ export default function GaleriaFormContent({
 
           {/* LISTAGEM NO PERFIL */}
           <div className="flex items-center justify-between gap-4">
-            <label className="flex items-center gap-2 text-[10px] font-bold uppercase tracking-widest text-slate-800 shrink-0">
+            <label>
+              {' '}
               <Eye size={12} className="text-[#D4AF37]" /> Listar no Perfil
             </label>
             <div className="flex items-center justify-between bg-slate-50 p-2 h-11 rounded-[0.4rem] border border-slate-200 flex-1">
-              <span className="text-[10px] font-medium text-slate-600 pl-1">
+              <span className="text-[10px] md:text-[12px]font-medium text-slate-600 pl-1">
                 Exibir esta galeria no meu perfil público?
               </span>
               <button
@@ -517,6 +512,91 @@ export default function GaleriaFormContent({
                   className={`absolute top-0.5 left-0.5 h-4 w-4 rounded-full bg-white shadow-sm transition-transform duration-200 ${showOnProfile ? 'translate-x-4' : ''}`}
                 />
               </button>
+            </div>
+          </div>
+        </div>
+      </fieldset>
+
+      {/* 🎯 BLOCO 5: CONTEÚDO & ARQUIVOS (Layout Side-by-Side) */}
+      <fieldset className="p-2 bg-white border border-slate-200 rounded-[0.5rem] shadow-sm">
+        <SectionHeader title="Conteúdo & Arquivos" />
+
+        <div className="grid grid-cols-1 md:grid-cols-12 gap-4 mt-2">
+          {/* ESQUERDA: SELEÇÃO DA PASTA (6 colunas) */}
+          <div className="md:col-span-6 flex flex-col justify-between bg-slate-50 p-4 rounded-[0.5rem] border border-slate-100 min-h-[110px]">
+            <div className="space-y-2">
+              <div className="flex items-center gap-2">
+                <FolderSync size={16} className="text-[#D4AF37]" />
+                <span className="text-[11px] font-bold text-slate-700 uppercase tracking-widest">
+                  Google Drive
+                </span>
+              </div>
+              <p className="text-[13px] text-slate-500 font-semibold truncate bg-white/50 px-2 py-1 rounded border border-slate-200/50">
+                {driveData.name}
+              </p>
+            </div>
+
+            <div className="mt-4">
+              <GooglePickerButton
+                onFolderSelect={handleFolderSelect}
+                onError={onPickerError}
+                currentFolderId={driveData.id}
+              />
+            </div>
+          </div>
+
+          {/* DIREITA: LINKS VIP (6 colunas - um sobre o outro) */}
+          <div className="md:col-span-6 flex flex-col gap-3">
+            {/* Link Full */}
+            <div className="space-y-1.5">
+              <label>
+                {' '}
+                <Download size={10} className="text-[#D4AF37]" /> Alta Resolução
+                (Full)
+              </label>
+              <div className="relative group">
+                <input
+                  name="zip_url_full"
+                  value={zipUrlFull}
+                  onChange={(e) =>
+                    setZipUrlFull(convertToDirectDownloadUrl(e.target.value))
+                  }
+                  placeholder="Link do ZIP para Download"
+                  className="w-full px-3 h-10  border border-slate-200 rounded-[0.4rem] text-[11px] font-medium outline-none focus:border-[#D4AF37] focus:bg-white transition-all pr-8"
+                />
+                {zipUrlFull.includes('uc?export=download') && (
+                  <CheckCircle2
+                    size={14}
+                    className="absolute right-3 top-1/2 -translate-y-1/2 text-green-500 animate-in zoom-in"
+                  />
+                )}
+              </div>
+            </div>
+
+            {/* Link Social */}
+            <div className="space-y-1.5">
+              <label>
+                {' '}
+                <Download size={10} className="text-[#D4AF37]" /> Redes Sociais
+                (Social)
+              </label>
+              <div className="relative group">
+                <input
+                  name="zip_url_social"
+                  value={zipUrlSocial}
+                  onChange={(e) =>
+                    setZipUrlSocial(convertToDirectDownloadUrl(e.target.value))
+                  }
+                  placeholder="Link do ZIP para Download"
+                  className="w-full px-3 h-10 border border-slate-200 rounded-[0.4rem] text-[11px] font-medium outline-none focus:border-[#D4AF37] focus:bg-white transition-all pr-8"
+                />
+                {zipUrlSocial.includes('uc?export=download') && (
+                  <CheckCircle2
+                    size={14}
+                    className="absolute right-3 top-1/2 -translate-y-1/2 text-green-500 animate-in zoom-in"
+                  />
+                )}
+              </div>
             </div>
           </div>
         </div>

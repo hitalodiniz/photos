@@ -34,33 +34,36 @@ export default function PasswordPrompt({
     setIsChecking(true);
 
     try {
+      // Chamada para a Server Action
       const result = await authenticateGaleriaAccess(
         galeria.id,
         fullSlug,
         password,
       );
 
-      // Se o código chegar aqui, significa que NÃO houve redirecionamento automático
+      // Se a Action retornar e não houver sucesso, paramos o loading
       if (result && !result.success) {
         setError(result.error || 'Senha incorreta.');
-        setIsChecking(false); // Só paramos o loading se houve falha na validação
+        setIsChecking(false); // 🎯 Destrava o botão
       }
+
+      // Se houver sucesso, o Next.js disparará o redirect interno
+      // e o loading continuará até a troca de página (comportamento desejado).
     } catch (err: any) {
-      // Se for um redirect, o Next.js lida com isso, mas precisamos garantir
-      // que o roteador limpe o cache local (Client-side Router Cache)
-      if (
+      // Tratamento para redirecionamentos do Next.js que caem no catch
+      const isRedirect =
         err.message === 'NEXT_REDIRECT' ||
-        err.digest?.includes('NEXT_REDIRECT')
-      ) {
-        // 🎯 Use refresh() para limpar o Router Cache do cliente antes do redirecionamento completar
-        router.refresh();
+        err.digest?.includes('NEXT_REDIRECT');
+
+      if (isRedirect) {
+        // Deixamos o Next.js seguir com o redirecionamento
         return;
       }
 
-      // Se for um erro real de validação ou rede:
+      // Se caiu aqui por erro real de rede ou validação, destrava a tela
       console.error('Erro na autenticação:', err);
-      setError('Senha incorreta ou erro de conexão.');
-      setIsChecking(false);
+      setError('Senha incorreta ou falha na conexão.');
+      setIsChecking(false); // 🎯 Destrava o botão
     }
   };
 

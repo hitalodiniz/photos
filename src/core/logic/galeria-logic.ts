@@ -39,14 +39,14 @@ export const fetchGalleryBySlug = (fullSlug: string) =>
       const domain = process.env.NEXT_PUBLIC_MAIN_DOMAIN || 'suagaleria.com.br';
 
       // Log de depuração no servidor para confirmar a chegada do token do banco
-      if (data?.photographer) {
-        console.log('--- SUPABASE RAW CHECK ---');
-        console.log('ID do Fotógrafo:', data.photographer.id);
-        console.log(
-          'Token presente no retorno?',
-          !!data.photographer.google_refresh_token,
-        );
-      }
+      // if (data?.photographer) {
+      //   console.log('--- SUPABASE RAW CHECK ---');
+      //   console.log('ID do Fotógrafo:', data.photographer.id);
+      //   console.log(
+      //     'Token presente no retorno?',
+      //     !!data.photographer.google_refresh_token,
+      //   );
+      // }
 
       const profileUrl = profile.use_subdomain
         ? `https://${profile.username}.${domain}`
@@ -104,6 +104,7 @@ export function formatGalleryData(
     columns_mobile: Number((raw as any).columns_mobile) || 2,
     columns_tablet: Number((raw as any).columns_tablet) || 3,
     columns_desktop: Number((raw as any).columns_desktop) || 4,
+    show_on_profile: raw.show_on_profile ?? false,
 
     photographer: raw.photographer
       ? {

@@ -429,42 +429,41 @@ export async function authenticateGaleriaAccess(
     sameSite: 'lax',
   };
 
-  // 💡 LOGICA CORRIGIDA:
-  if (isLocal) {
-    // No localhost, NÃO setamos a propriedade 'domain'.
-    // O navegador associa automaticamente ao host atual (ex: localhost ou hitalodiniz.localhost)
-    // Isso evita que o navegador rejeite o cookie por "Domain Mismatch"
+  // Se estiver em localhost, forçamos o domínio para abranger subdomínios de teste
+  if (host.includes('localhost')) {
+    // Não defina 'domain' em localhost a menos que precise de cross-subdomain estrito.
+    // Se estiver usando hitalo.localhost:3000, o cookie deve ser setado sem domain
+    // para ser "Host-only" ou explicitamente para 'localhost'.
+    cookieOptions.domain = undefined;
   } else if (process.env.NEXT_PUBLIC_MAIN_DOMAIN) {
-    // Em produção, usamos o ponto para abranger subdomínios
-    cookieOptions.domain = `.${process.env.NEXT_PUBLIC_MAIN_DOMAIN}`;
+    // O ponto antes do domínio permite que subdomínios acessem o cookie
+    cookieOptions.domain = `.${process.env.NEXT_PUBLIC_MAIN_DOMAIN.replace('https://', '').replace('http://', '')}`;
   }
 
   cookieStore.set(`galeria-${galeriaId}-auth`, token, cookieOptions);
 
   // 3. Lógica de Redirecionamento (DEFINA AQUI PRIMEIRO)
   const profile = galeria.tb_profiles as any;
-  const cleanSlug = fullSlug.replace(/^\/+/, '');
-  let targetPath = cleanSlug;
+  // Remove o domínio e garante que não existam barras duplas
+  const cleanPath = fullSlug
+    .replace(/^(https?:\/\/[^\/]+)?/, '')
+    .replace(
+      new RegExp(`^/${profile?.username}/${profile?.username}`),
+      `/${profile?.username}`,
+    )
+    .replace(/\/+/g, '/');
 
-  // Se for subdomínio, removemos o username da URL de destino
-  if (host.startsWith(`${profile?.username}.`)) {
-    const parts = cleanSlug.split('/');
-    if (parts[0] === profile?.username) {
-      targetPath = parts.slice(1).join('/');
-    }
-  }
+  // Garante que o caminho comece com /
+  const finalRedirectPath = cleanPath.startsWith('/')
+    ? cleanPath
+    : `/${cleanPath}`;
 
-  const finalRedirectPath = '/' + targetPath.replace(/^\/+/, '');
+  console.log(`[AUTH SUCCESS] Cookie set: galeria-${galeriaId}-auth`);
+  console.log(`[AUTH SUCCESS] Redirecting to: ${cleanPath}`);
 
-  // 4. Invalidação de Cache (AGORA A VARIÁVEL EXISTE)
-  const username = cleanSlug.split('/')[0];
-  revalidatePath(`/${username}`, 'layout'); // Limpa o layout do usuário
-  revalidatePath(finalRedirectPath, 'page'); // Limpa a página da galeria
-  revalidatePath(`/${cleanSlug}`, 'page'); // Limpa a rota original (importante para username)
+  // Importante: Invalide o cache ANTES do redirect
+  revalidatePath('/', 'layout');
 
-  console.log(`[AUTH SUCCESS] Redirecting: ${finalRedirectPath}`);
-
-  // 5. Redirecionamento final
   redirect(finalRedirectPath);
 }
 /**
@@ -579,7 +578,7 @@ export async function getPublicProfileGalerias(
   const from = (page - 1) * pageSize;
   const to = from + pageSize - 1;
 
-  // Primeiro buscamos o ID do fotógrafo pelo username
+  // 1. Buscamos o ID do fotógrafo pelo username
   const { data: profile } = await supabase
     .from('tb_profiles')
     .select('id')
@@ -588,12 +587,28 @@ export async function getPublicProfileGalerias(
 
   if (!profile) return { success: false, data: [], hasMore: false };
 
-  // Buscamos as galerias com os filtros show_on_profile e o ID do usuário
+  // 2. Buscamos as galerias incluindo o objeto 'photographer'
   const { data, count, error } = await supabase
     .from('tb_galerias')
-    .select('*', { count: 'exact' })
+    .select(
+      `
+      *,
+      photographer:tb_profiles (
+        id,
+        full_name,
+        username,
+        profile_picture_url,
+        phone_contact,
+        instagram_link,
+        use_subdomain
+      )
+    `,
+      { count: 'exact' },
+    ) // 🎯 Note que substituímos o '*' pela query relacional
     .eq('user_id', profile.id)
-    .eq('show_on_profile', true) // 🎯 O campo que criamos
+    .eq('show_on_profile', true)
+    .eq('is_archived', false)
+    .eq('is_deleted', false)
     .order('date', { ascending: false })
     .range(from, to);
 
@@ -651,6 +666,13 @@ export async function toggleArchiveGaleria(id: string, currentStatus: boolean) {
   return updateGaleriaStatus(id, { is_archived: !currentStatus });
 }
 
+/**
+ * PERFIL: Alterna a visibilidade da galeria no portfólio público
+ */
+export async function toggleShowOnProfile(id: string, currentStatus: boolean) {
+  // Reutiliza a função base de update que você já possui
+  return updateGaleriaStatus(id, { show_on_profile: !currentStatus });
+}
 /**
  * MOVER PARA LIXEIRA (Soft Delete)
  */

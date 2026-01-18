@@ -47,8 +47,8 @@ export default function GaleriaModal({
       } else {
         // MODO CRIAÇÃO
         setIsPublic(true);
-        setShowCoverInGrid(true);
-        setGridBgColor('#F3E5AB');
+        setShowCoverInGrid(false);
+        setGridBgColor('#FFFFFF');
         setColumns({ mobile: 2, tablet: 3, desktop: 4 });
 
         // 🎯 RESET DE SEGURANÇA: Garante que ao fechar e abrir para criar uma nova,

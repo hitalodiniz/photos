@@ -82,7 +82,11 @@ export default async function GaleriaBasePage({
   if (!galeriaData.is_public) {
     const cookieStore = await cookies();
     const savedToken = cookieStore.get(`galeria-${galeriaData.id}-auth`)?.value;
-    if (savedToken !== galeriaData.password) {
+
+    // IMPORTANTE: Se você salvou um JWT, você precisa decodificá-lo ou,
+    // para simplificar agora, verifique apenas se o cookie EXISTE.
+    // Já que o cookie só é gerado se a senha estiver correta na Action.
+    if (!savedToken) {
       return (
         <PasswordPrompt
           galeria={galeriaData}

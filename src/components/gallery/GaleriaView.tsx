@@ -3,9 +3,10 @@ import React, { useState, useEffect } from 'react';
 import type { Galeria } from '@/core/types/galeria';
 import LoadingScreen from '../ui/LoadingScreen';
 import GaleriaFooter from './GaleriaFooter';
-import { getHighResImageUrl } from '@/core/utils/url-helper';
+import { getProxyUrl } from '@/core/utils/url-helper';
 import { GaleriaHero } from './GaleriaHero';
 import PhotoGrid from './PhotoGrid';
+import { useIsMobile } from '@/hooks/use-breakpoint';
 
 interface GaleriaViewProps {
   galeria: Galeria;
@@ -15,6 +16,7 @@ interface GaleriaViewProps {
 export default function GaleriaView({ galeria, photos }: GaleriaViewProps) {
   const [scrollY, setScrollY] = useState(0);
   const [isLoading, setIsLoading] = useState(true);
+  const isMobile = useIsMobile();
 
   const showCover = galeria.show_cover_in_grid ?? true;
   const bgColor = galeria.grid_bg_color ?? '#F9F5F0';
@@ -33,9 +35,10 @@ export default function GaleriaView({ galeria, photos }: GaleriaViewProps) {
     return () => window.removeEventListener('scroll', handleScroll);
   }, [photos]);
 
-  const coverUrl = galeria.cover_image_url
-    ? getHighResImageUrl(galeria.cover_image_url)
-    : '/hero-bg.jpg';
+  // Define o tamanho e qualidade baseado no hook
+  const coverUrl = isMobile
+    ? getProxyUrl(galeria.cover_image_url, '1280') // Mobile: Leve e nítido
+    : getProxyUrl(galeria.cover_image_url, '2560'); // Desktop: Qualidade Ultra (2K) para o fotógrafo
 
   return (
     <div
@@ -87,7 +90,10 @@ export default function GaleriaView({ galeria, photos }: GaleriaViewProps) {
           )}
         </main>
 
-        <GaleriaFooter galeria={galeria} />
+        <GaleriaFooter
+          photographer={galeria.photographer}
+          title={galeria.title}
+        />
       </div>
     </div>
   );

@@ -21,6 +21,7 @@ import {
   ShieldCheck,
   Users,
   RefreshCw,
+  UserRound, // Adicionado apenas o import do ícone
 } from 'lucide-react';
 import { useState, useEffect } from 'react';
 import type { Galeria } from '@/core/types/galeria';
@@ -33,7 +34,6 @@ import {
 import { GALLERY_MESSAGES } from '@/constants/messages';
 import { executeShare } from '@/core/utils/share-helper';
 import WhatsAppIcon from '@/components/ui/WhatsAppIcon';
-import { div } from 'framer-motion/client';
 import { normalizePhoneNumber } from '@/core/utils/masks-helpers';
 
 interface GaleriaCardProps {
@@ -43,6 +43,7 @@ interface GaleriaCardProps {
   onEdit: (galeria: Galeria) => void;
   onDelete: (galeria: Galeria) => void;
   onArchive: (galeria: Galeria) => void;
+  onToggleShowOnProfile: (galeria: Galeria) => void;
   onRestore: (id: string) => void;
   onPermanentDelete: (id: string) => void;
   onSync: () => void;
@@ -57,6 +58,7 @@ export default function GaleriaCard({
   onEdit,
   onDelete,
   onArchive,
+  onToggleShowOnProfile, // Certificando que a prop é usada
   onRestore,
   onPermanentDelete,
   isDeleting,
@@ -66,12 +68,11 @@ export default function GaleriaCard({
   const [mounted, setMounted] = useState(false);
   const [copied, setCopied] = useState(false);
   const [links, setLinks] = useState({ url: '', whatsapp: '', message: '' });
-  // 1. Efeito para marcar que o componente montou no navegador
+
   useEffect(() => {
     setMounted(true);
   }, []);
 
-  // 2. Efeito para gerar os links assim que estiver montado ou a galeria mudar
   useEffect(() => {
     if (galeria && mounted) {
       const publicUrl = getPublicGalleryUrl(galeria.photographer, galeria.slug);
@@ -96,9 +97,6 @@ export default function GaleriaCard({
     return `${day}/${month}/${year}`;
   };
 
-  // 🎯 OTIMIZAÇÃO DE CAPA:
-  // Como o card é pequeno, 600px é o ideal para manter a nitidez sem pesar.
-  // Isso reduz o peso da imagem de ~150KB para ~50KB.
   const imageUrl = getProxyUrl(galeria.cover_image_url, '600');
 
   const handleCopy = async (e: React.MouseEvent) => {
@@ -131,26 +129,22 @@ export default function GaleriaCard({
       className="group relative flex cursor-pointer flex-col overflow-hidden rounded-[14px] border border-slate-200 bg-white transition-all duration-300 hover:shadow-2xl hover:shadow-[#D4AF37]/15 w-full animate-in fade-in slide-in-from-bottom-2 duration-500 fill-mode-both"
       style={{ animationDelay: `${index * 50}ms` }}
     >
-      {/* Overlay Sincronização */}
       {isUpdating && (
         <div className="absolute inset-0 z-20 flex flex-col items-center justify-center bg-white/80 backdrop-blur-sm">
           <Loader2 className="h-6 w-6 animate-spin text-[#D4AF37]" />
         </div>
       )}
 
-      {/* Capa */}
       <div className="relative aspect-[16/9] w-full overflow-hidden bg-slate-100">
         <img
           src={imageUrl}
           alt={galeria.title}
-          loading="lazy" // 🎯 Garante que cards fora da tela não consumam banda
-          decoding="async" // 🎯 Melhora a performance de renderização
+          loading="lazy"
+          decoding="async"
           className="h-full w-full object-cover transition-transform duration-1000 ease-out group-hover:scale-110"
         />
 
-        {/* Badges Superiores Padronizados Estilo Navbar (Glassmorphism) */}
         <div className="absolute top-3 left-3 flex gap-2">
-          {/* 1. Status de Privacidade (Transparente com Blur) */}
           <span
             title={
               !galeria.is_public
@@ -160,31 +154,15 @@ export default function GaleriaCard({
             className="flex items-center justify-center w-8 h-8 bg-black/40 backdrop-blur-md rounded-full border border-white/20 shadow-lg transition-all hover:bg-black/60"
           >
             {!galeria.is_public ? (
-              /* Escudo Dourado para Privado */
               <ShieldCheck
                 size={16}
                 className="text-[#F3E5AB]"
                 strokeWidth={2}
               />
             ) : (
-              /* Olho Verde para Público */
               <Eye size={16} className="text-[#34D399]" strokeWidth={2} />
             )}
           </span>
-
-          {/* 2. Status de Perfil Público (Transparente com Blur)
-          {galeria.is_public && (
-            <span
-              title="Exibido no seu Perfil Público"
-              className="flex items-center justify-center w-8 h-8 bg-black/40 backdrop-blur-md rounded-full border border-white/20 shadow-lg transition-all hover:bg-black/60"
-            >
-              <LayoutGrid
-                size={16}
-                className="text-[#60A5FA]"
-                strokeWidth={2}
-              />
-            </span>
-          )} */}
         </div>
 
         <div className="absolute top-3 right-3">
@@ -198,7 +176,6 @@ export default function GaleriaCard({
           )}
         </div>
 
-        {/* Título e Categoria sobre a foto */}
         <div className="absolute bottom-3 left-4 right-4 flex items-end justify-between gap-4">
           <h3 className="text-white text-base font-semibold leading-tight tracking-tight drop-shadow-md">
             {galeria.title}
@@ -206,9 +183,7 @@ export default function GaleriaCard({
         </div>
       </div>
 
-      {/* Conteúdo Inferior */}
       <div className="flex flex-col p-4 space-y-3">
-        {/* Cliente */}
         <div className="flex items-center justify-between h-5">
           {galeria.has_contracting_client ? (
             <div className="flex items-center gap-2 min-w-0">
@@ -226,15 +201,13 @@ export default function GaleriaCard({
             </div>
           )}
 
-          {/* WhatsApp aparece independente do tipo, se existir no banco */}
           {galeria.client_whatsapp && (
             <span className="text-[10px] font-semibold text-slate-400">
-              {normalizePhoneNumber(galeria.client_whatsapp)}{' '}
+              {normalizePhoneNumber(galeria.client_whatsapp)}
             </span>
           )}
         </div>
 
-        {/* Local e Data: Agora com visual de pílula suave */}
         <div className="flex items-center justify-between py-2 border-y border-slate-50">
           <div className="flex items-center gap-1.5 min-w-0">
             <MapPin size={12} className="text-slate-300" />
@@ -250,11 +223,8 @@ export default function GaleriaCard({
           </div>
         </div>
 
-        {/* Botão Drive: Agora com fundo cinza muito leve para não brigar com o branco do card */}
-        {/* Container da Pasta e Sincronização - Horizontal e Compacto */}
         <div className="flex items-center gap-2">
           <div className="flex-1 flex items-center h-9 rounded-lg bg-slate-50 border border-slate-100 overflow-hidden">
-            {/* Link da Pasta */}
             <a
               href={`https://drive.google.com/drive/folders/${galeria.drive_folder_id}`}
               target="_blank"
@@ -270,10 +240,8 @@ export default function GaleriaCard({
               </span>
             </a>
 
-            {/* Divisor Sutil */}
             <div className="w-[1px] h-4 bg-slate-200" />
 
-            {/* Botão de Sincronização Integrado */}
             <button
               onClick={(e) => {
                 e.preventDefault();
@@ -287,18 +255,13 @@ export default function GaleriaCard({
               {isUpdating ? (
                 <Loader2 size={13} className="animate-spin text-[#D4AF37]" />
               ) : (
-                // RefreshCw passa muito mais a ideia de "sincronizar/atualizar"
-                <RefreshCw
-                  size={13}
-                  className={isUpdating ? 'animate-spin' : ''}
-                />
+                <RefreshCw size={13} />
               )}
             </button>
           </div>
         </div>
       </div>
 
-      {/* Rodapé de Ações: Clean com borda sutil */}
       <div className="flex items-center justify-between p-3 bg-slate-50/50 border-t border-slate-100 mt-auto">
         <div className="flex gap-1.5">
           {currentView === 'active' && (
@@ -314,6 +277,26 @@ export default function GaleriaCard({
                 className={`p-2 border rounded-lg shadow-sm transition-all ${copied ? 'bg-[#D4AF37] text-black border-[#D4AF37]' : 'bg-white text-slate-600 border-slate-200 hover:border-[#D4AF37]'}`}
               >
                 {copied ? <Check size={16} /> : <Copy size={16} />}
+              </button>
+
+              {/* Ajuste mínimo: Adicionado o ícone UserRound dentro do botão */}
+              <button
+                onClick={(e) => {
+                  e.stopPropagation();
+                  onToggleShowOnProfile(galeria);
+                }}
+                className={`p-2 border rounded-lg shadow-sm transition-all ${
+                  galeria.show_on_profile
+                    ? 'bg-[#D4AF37] text-black border-[#D4AF37]'
+                    : 'bg-white text-slate-400 border-slate-200 hover:text-[#D4AF37] hover:border-[#D4AF37]'
+                }`}
+                title={
+                  galeria.show_on_profile
+                    ? 'Remover do Portfólio'
+                    : 'Exibir no Portfólio'
+                }
+              >
+                <UserRound size={16} />
               </button>
             </>
           )}

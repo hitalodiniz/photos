@@ -192,10 +192,29 @@ export const getInternalGoogleDriveUrl = (
 /**
  * 🖼️ URL DE ALTA RESOLUÇÃO (Lightbox)
  * 1920px é o "Sweet Spot" para telas Full HD/4K sem exceder 1MB.
+ * 2560px (Qualidade profissional 2K)
  */
 export const getHighResImageUrl = (photoId: string | number) => {
   if (!photoId) return '';
-  return getProxyUrl(photoId, '1920');
+  return getProxyUrl(photoId, '2560');
+};
+
+/**
+ * 📱 Seleciona o tamanho ideal baseado no dispositivo
+ * Mobile: 1280px (Equilíbrio entre peso e nitidez)
+ * Desktop: 2560px (Qualidade profissional 2K)
+ */
+export const getResponsiveHighResUrl = (
+  photoId: string | number,
+  isMobile: boolean,
+) => {
+  if (!photoId) return '';
+
+  // Se for mobile, 1280px é mais que suficiente (mesmo para telas Pro Max)
+  // Se for desktop, subimos para 2560px para garantir a "entrega de luxo"
+  const size = isMobile ? '1280' : '2560';
+
+  return getProxyUrl(photoId, size);
 };
 
 /**

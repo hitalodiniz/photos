@@ -2,10 +2,11 @@
 import React, { useEffect, useState } from 'react';
 import { ChevronLeft, ChevronRight, ImageIcon } from 'lucide-react';
 import { GaleriaHeader, PhotographerAvatar } from '@/components/gallery';
-import { getHighResImageUrl } from '@/core/utils/url-helper';
+import { getHighResImageUrl, getProxyUrl } from '@/core/utils/url-helper';
 import type { Galeria } from '@/core/types/galeria';
 import LoadingSpinner from '../ui/LoadingSpinner';
 import { ToolbarGalleryView } from './ToolbarGalleryView';
+import { useIsMobile } from '@/hooks/use-breakpoint';
 
 interface Photo {
   id: string | number;
@@ -42,6 +43,7 @@ export default function Lightbox({
 }: LightboxProps) {
   const [isImageLoading, setIsImageLoading] = useState(true);
   const [showInterface, setShowInterface] = useState(true);
+  const isMobile = useIsMobile();
 
   // Estados para Navegação por Gesto (Swipe)
   const [touchStart, setTouchStart] = useState<number | null>(null);
@@ -86,10 +88,11 @@ export default function Lightbox({
   useEffect(() => {
     setIsImageLoading(true);
 
-    // 🎯 REVISÃO DO PROXY (Visualização Atual):
-    // Usamos getHighResImageUrl para garantir os 1920px de nitidez
-    // respeitando o teto de 1MB via WebP.
-    const currentImageUrl = getHighResImageUrl(photos[activeIndex].id);
+    // Define o tamanho e qualidade baseado no hook
+    const currentImageUrl = isMobile
+      ? getProxyUrl(photos[activeIndex].id, '1280') // Mobile: Leve e nítido
+      : getProxyUrl(photos[activeIndex].id, '2560'); // Desktop: Qualidade Ultra (2K) para o fotógrafo
+    //const currentImageUrl = getHighResImageUrl(photos[activeIndex].id);
 
     if (isSingleView) {
       const img = new Image();

@@ -66,7 +66,7 @@ const nextConfig: NextConfig = {
   // seja respeitado corretamente no ambiente Vercel
   logging: {
     fetches: {
-      fullUrl: true,
+      fullUrl: false,
     },
   },
 };

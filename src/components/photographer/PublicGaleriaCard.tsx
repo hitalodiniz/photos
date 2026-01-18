@@ -1,65 +1,63 @@
 'use client';
 
 import React, { useEffect, useMemo, useState } from 'react';
-import { Calendar, MapPin, Lock, ArrowRight, Tag } from 'lucide-react';
+import {
+  Calendar,
+  MapPin,
+  Lock,
+  ArrowRight,
+  Tag,
+  ImageIcon,
+} from 'lucide-react';
 import type { Galeria } from '@/core/types/galeria';
 import { getProxyUrl, resolveGalleryUrl } from '@/core/utils/url-helper';
+import { formatDateLong } from '@/core/utils/data-helpers';
 
 export function PublicGaleriaCard({ galeria }: { galeria: Galeria }) {
-  const [isClient, setIsClient] = useState(false);
+  const [mounted, setMounted] = useState(false);
   const imageUrl = getProxyUrl(galeria.cover_image_url, '600');
   const photographer = galeria.photographer;
-
-  // Garante que o componente só tente gerar a URL após montar no cliente
+  console.log('Photographer ', photographer);
   useEffect(() => {
-    setIsClient(true);
+    setMounted(true);
   }, []);
 
-  // 1. Geramos a URL correta de forma estável usando useMemo
-  const finalUrl = useMemo(() => {
-    if (!isClient || typeof window === 'undefined' || !photographer) return '#';
-
-    const host = window.location.host; // ex: "hitalodiniz.localhost:3000"
-    const username = photographer.username.toLowerCase();
-    const isSubdomainActive = photographer.use_subdomain === true;
-
-    // 🎯 Lógica robusta para extrair o Main Domain
-    let mainDomain = host;
-
-    if (isSubdomainActive && host.includes(`${username}.`)) {
-      // Remove o subdomínio e o ponto seguinte, preservando o resto (inclusive porta)
-      mainDomain = host.split(`${username}.`)[1] || host;
+  const href = useMemo(() => {
+    // 1. Só gera a URL se tivermos o fotógrafo (vido da query) e estivermos no cliente
+    if (!mounted || !photographer || typeof window === 'undefined') {
+      return '#';
     }
 
+    const host = window.location.host;
     const protocol = window.location.protocol.replace(':', '');
+    const username = photographer.username.toLowerCase();
 
+    // 2. Extraímos o domínio base (removendo subdomínio atual se necessário)
+    let mainDomain = host;
+    if (host.startsWith(`${username}.`)) {
+      mainDomain = host.replace(`${username}.`, '');
+    }
+
+    // 3. Delegamos a construção para a função centralizada
     return resolveGalleryUrl(
       username,
       galeria.slug,
-      isSubdomainActive,
+      photographer.use_subdomain,
       mainDomain,
       protocol,
     );
-  }, [isClient, galeria, photographer]);
-  const formatDate = (dateString: string) => {
-    if (!dateString) return '';
-    const date = new Date(dateString);
-    return date.toLocaleDateString('pt-BR', {
-      year: 'numeric',
-      month: 'short',
-    });
-  };
+  }, [mounted, galeria, photographer]);
 
   // 2. Usamos uma tag <a> para comportamento nativo de link
   return (
     <a
-      href={finalUrl}
+      href={href}
       target="_blank"
       rel="noopener noreferrer"
       className="group relative flex flex-col bg-[#1E293B]/95 backdrop-blur-md border border-white/10 rounded-2xl overflow-hidden transition-all duration-500 hover:border-[#F3E5AB]/40 hover:translate-y-[-4px] cursor-pointer shadow-2xl no-underline"
     >
       {/* Container da Imagem */}
-      <div className="relative aspect-[4/5] overflow-hidden border-b border-white/5">
+      <div className="relative aspect-[1] overflow-hidden border-b border-white/5">
         <img
           src={imageUrl}
           alt={galeria.title}
@@ -86,27 +84,39 @@ export function PublicGaleriaCard({ galeria }: { galeria: Galeria }) {
 
       {/* Conteúdo Informativo */}
       <div className="p-5 space-y-4">
-        <h3 className="text-white text-lg font-semibold tracking-tight group-hover:text-[#F3E5AB] transition-colors leading-tight line-clamp-2 min-h-[3rem]">
+        <h3 className="text-white text-lg font-semibold tracking-tight group-hover:text-[#F3E5AB] transition-colors leading-tight line-clamp-2 min-h-[1rem]">
           {galeria.title}
         </h3>
 
         <div className="flex items-center justify-between pt-3 border-t border-white/10">
           <div className="flex flex-col gap-2">
+            {/* Localização */}
             <div className="flex items-center gap-2 text-white/50">
               <MapPin size={12} className="text-[#F3E5AB]/70" />
               <span className="text-[10px] uppercase font-medium tracking-widest truncate max-w-[120px]">
                 {galeria.location || 'Brasil'}
               </span>
             </div>
+
+            {/* Data */}
             <div className="flex items-center gap-2 text-white/50">
               <Calendar size={12} className="text-[#F3E5AB]/70" />
               <span className="text-[10px] uppercase font-medium tracking-widest">
-                {formatDate(galeria.date)}
+                {formatDateLong(galeria.date)}
               </span>
             </div>
+
+            {/* 🎯 QUANTIDADE DE FOTOS 
+            <div className="flex items-center gap-2 text-white/50">
+              <ImageIcon size={12} className="text-[#F3E5AB]/70" />
+              <span className="text-[10px] uppercase font-medium tracking-widest">
+                {galeria. || 0} fotos
+              </span>
+            </div>*/}
           </div>
 
-          <div className="w-10 h-10 rounded-xl bg-white/5 border border-white/10 flex items-center justify-center group-hover:bg-[#F3E5AB] group-hover:border-[#F3E5AB] transition-all duration-300">
+          {/* Botão de Ação */}
+          <div className="w-10 h-10 rounded-xl bg-white/5 border border-white/10 flex items-center justify-center group-hover:bg-[#F3E5AB] group-hover:border-[#F3E5AB] transition-all duration-300 self-end">
             <ArrowRight
               size={16}
               className="text-white/70 group-hover:text-black transition-colors"
