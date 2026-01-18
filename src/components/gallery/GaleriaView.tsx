@@ -68,7 +68,11 @@ export default function GaleriaView({ galeria, photos }: GaleriaViewProps) {
         )}
       </div>
 
-      <GaleriaHero galeria={galeria} coverUrl={coverUrl} photos={photos} />
+      <GaleriaHero
+        galeria={galeria}
+        coverUrl={getProxyUrl(galeriaData.cover_image_url, '2500')}
+        photos={photos}
+      />
 
       {/* 2. CONTENT LAYER */}
       <div

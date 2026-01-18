@@ -333,18 +333,18 @@ export default function Dashboard({
       <aside
         className={`fixed bottom-0 left-0 right-0 z-[100] bg-white border-t border-slate-200 px-6 py-3 lg:py-0 lg:px-0 lg:relative lg:block lg:bg-transparent lg:border-0 transition-all duration-500 ease-in-out ${isSidebarCollapsed ? 'lg:w-[70px]' : 'lg:w-[210px]'}`}
       >
-        {/* 1. Botão Nova Galeria */}
+        {/* 1. Botão Nova Galeria (Mantido tamanho original) */}
         <button
           onClick={() => setIsFormOpen(true)}
-          className={`flex items-center justify-center bg-[#D4AF37] text-black hover:bg-slate-900 hover:text-white transition-all duration-300 rounded-xl border border-[#D4AF37] group shadow-lg lg:shadow-sm mb-6 overflow-hidden w-12 h-12 fixed bottom-6 right-6 z-[100] lg:relative lg:bottom-auto lg:right-auto lg:z-auto ${isSidebarCollapsed ? 'lg:w-12 lg:h-12 mx-auto' : 'lg:h-11 lg:px-4 lg:gap-3 lg:w-full'}`}
+          className={`flex items-center justify-center bg-[#D4AF37] text-black hover:bg-white hover:text-[#D4AF37] transition-all duration-300 rounded-[0.5rem] border border-[#D4AF37] group shadow-lg lg:shadow-sm mb-6 overflow-hidden w-12 h-12 fixed bottom-20 right-6 z-[100] lg:relative lg:bottom-auto lg:right-auto lg:z-auto ${isSidebarCollapsed ? 'lg:w-14 lg:h-10' : 'lg:h-10 lg:px-4 lg:gap-3 lg:w-fit'}`}
         >
           <Plus
             size={20}
-            className="group-hover:rotate-90 transition-transform shrink-0"
+            className="group-hover:rotate-90 transition-transform shrink-0 lg:w-[18px] lg:h-[18px]"
             strokeWidth={2.5}
           />
           {!isSidebarCollapsed && (
-            <span className="hidden lg:block text-[10px] font-bold uppercase tracking-[0.2em] whitespace-nowrap">
+            <span className="hidden lg:block text-[10px] font-semibold uppercase tracking-[0.2em] whitespace-nowrap">
               Nova Galeria
             </span>
           )}
@@ -362,201 +362,185 @@ export default function Dashboard({
             )}
           </button>
 
-          {/* Itens de Navegação (Ativas, Arquivadas, Lixeira) */}
-          {[
-            {
-              id: 'active',
-              label: 'Ativas',
-              icon: Inbox,
-              count: counts.active,
-            },
-            {
-              id: 'archived',
-              label: 'Arquivadas',
-              icon: Archive,
-              count: counts.archived,
-            },
-            {
-              id: 'trash',
-              label: 'Lixeira',
-              icon: Trash2,
-              count: counts.trash,
-            },
-          ].map((item) => (
-            <button
-              key={item.id}
-              onClick={() => {
-                setCurrentView(item.id as any);
-                setCardsToShow(8);
-                window.scrollTo({ top: 0, behavior: 'smooth' });
-              }}
-              className={`flex flex-col lg:flex-row items-center transition-all duration-300 group relative ${isSidebarCollapsed ? 'lg:justify-center lg:py-4' : 'lg:justify-between lg:px-4 lg:py-3 lg:rounded-xl'} ${currentView === item.id ? 'text-black bg-[#F3E5AB] shadow-sm font-bold' : 'text-slate-400 hover:bg-white hover:text-slate-600'}`}
-            >
-              <div className="flex flex-col lg:flex-row items-center gap-1 lg:gap-3">
-                <item.icon
-                  size={20}
-                  className={
-                    currentView === item.id
-                      ? 'text-black'
-                      : 'text-slate-400 group-hover:text-[#D4AF37]'
-                  }
-                />
-                <span
-                  className={`uppercase text-[9px] lg:text-[10px] tracking-widest block ${!isSidebarCollapsed ? 'lg:block' : 'lg:hidden'}`}
-                >
-                  {item.label}
-                </span>
-              </div>
-              {!isSidebarCollapsed && item.count > 0 && (
-                <span
-                  className={`hidden lg:block text-[10px] font-bold px-2 py-0.5 rounded-lg ${currentView === item.id ? 'bg-black/10 text-black' : 'bg-slate-100 text-slate-500'}`}
-                >
-                  {item.count}
-                </span>
-              )}
-            </button>
-          ))}
-
-          {/* 🎯 SEÇÃO 2: CONTADOR DE USO (Abaixo da Lixeira) */}
-          {/* 🎯 SEÇÃO 2: ARMAZENAMENTO */}
-          {/* 🎯 SEÇÃO 2: ARMAZENAMENTO / USO DO ACERVO */}
-          <div
-            className={`mt-8 pt-8 border-t border-slate-100 transition-all duration-500 ${isSidebarCollapsed ? 'px-0' : 'px-4'}`}
-          >
-            {!isSidebarCollapsed ? (
-              <div className="space-y-5">
-                <div className="flex justify-between items-end">
-                  <span className="text-[10px] font-semibold uppercase tracking-[0.2em] text-slate-500">
-                    Uso do Acervo
-                  </span>
-                  <span className="text-[13px] font-bold text-slate-900">
-                    {galerias.length}{' '}
-                    <span className="text-slate-400 font-medium">/ 50</span>
+          {/* Itens de Navegação - Corrigido para não encavalar no mobile */}
+          <div className="flex flex-row lg:flex-col flex-1 justify-around lg:justify-start gap-1 w-full">
+            {[
+              {
+                id: 'active',
+                label: 'Ativas',
+                icon: Inbox,
+                count: counts.active,
+              },
+              {
+                id: 'archived',
+                label: 'Arquivadas',
+                icon: Archive,
+                count: counts.archived,
+              },
+              {
+                id: 'trash',
+                label: 'Lixeira',
+                icon: Trash2,
+                count: counts.trash,
+              },
+            ].map((item) => (
+              <button
+                key={item.id}
+                onClick={() => {
+                  setCurrentView(item.id as any);
+                  setCardsToShow(8);
+                  window.scrollTo({ top: 0, behavior: 'smooth' });
+                }}
+                className={`flex flex-col lg:flex-row items-center transition-all duration-300 group relative ${isSidebarCollapsed ? 'lg:justify-center lg:py-4' : 'lg:justify-between lg:px-4 lg:py-3 lg:rounded-xl'} ${currentView === item.id ? 'text-black bg-[#F3E5AB] shadow-sm' : 'text-slate-400 hover:bg-white hover:text-slate-600'}`}
+              >
+                <div className="flex flex-col lg:flex-row items-center gap-1 lg:gap-3">
+                  <item.icon
+                    size={22}
+                    className={
+                      currentView === item.id
+                        ? 'text-black'
+                        : 'text-slate-400 group-hover:text-[#D4AF37]'
+                    }
+                  />
+                  <span
+                    className={`uppercase text-[9px] lg:text-[10px] font-bold tracking-widest block ${!isSidebarCollapsed ? 'lg:block' : 'lg:hidden'}`}
+                  >
+                    {item.label}
                   </span>
                 </div>
+                {!isSidebarCollapsed && item.count > 0 && (
+                  <span
+                    className={`hidden lg:block text-[10px] font-bold px-2 py-0.5 rounded-full ${currentView === item.id ? 'bg-white/40 text-black' : 'bg-slate-100 text-slate-500'}`}
+                  >
+                    {item.count}
+                  </span>
+                )}
+              </button>
+            ))}
+          </div>
 
-                {/* Barra de Progresso elegante */}
-                <div className="w-full h-1.5 bg-slate-100 rounded-full overflow-hidden">
+          {/* 🎯 SEÇÃO 2: ARMAZENAMENTO (Textos Originais Restaurados) */}
+          <div
+            className={`hidden lg:block mt-8 pt-8 border-t border-slate-100 transition-all duration-500 ${isSidebarCollapsed ? 'px-0' : 'px-2'}`}
+          >
+            {!isSidebarCollapsed ? (
+              <div className="space-y-2">
+                <div className="flex justify-between items-end mb-1">
+                  <span className="text-[9px] font-semiboldbold uppercase tracking-widest text-slate-700">
+                    Armazenamento
+                  </span>
+                  <span className="text-[10px] font-semibold text-slate-900">
+                    {galerias.length} / 50
+                  </span>
+                </div>
+                <div className="w-full h-[6px] bg-slate-200 rounded-full overflow-hidden shadow-inner">
                   <div
                     className={`h-full transition-all duration-1000 ease-out ${galerias.length > 45 ? 'bg-red-500' : 'bg-[#D4AF37]'}`}
                     style={{ width: `${(galerias.length / 50) * 100}%` }}
                   />
                 </div>
-
-                <p className="text-[11px] text-slate-500 leading-relaxed font-medium">
-                  Você atingiu{' '}
-                  <span className="text-slate-900 font-bold">
-                    {Math.round((galerias.length / 50) * 100)}%
-                  </span>{' '}
-                  da capacidade do seu plano atual.
+                <p className="text-[9px] text-slate-700 uppercase tracking-tighter mt-1 font-medium">
+                  Limite de 50 galerias no plano atual
                 </p>
               </div>
             ) : (
               <div className="flex justify-center group relative cursor-help py-2">
-                <div className="w-10 h-10 flex items-center justify-center rounded-xl bg-slate-50 border border-slate-100 transition-colors">
-                  <span className="text-[11px] font-bold text-slate-700">
-                    {galerias.length}
-                  </span>
+                <div className="w-8 h-8 rounded-full border-2 border-slate-100 flex items-center justify-center text-[9px] font-black text-slate-500">
+                  {galerias.length}
                 </div>
-                {/* Tooltip */}
-                <div className="absolute left-full ml-4 px-3 py-2 bg-slate-900 text-white text-[10px] font-bold uppercase tracking-widest rounded-lg opacity-0 pointer-events-none group-hover:opacity-100 transition-all whitespace-nowrap z-50">
-                  {galerias.length} de 50 galerias
+                {/* Z-INDEX CORRIGIDO PARA O TOOLTIP */}
+                <div className="absolute left-full ml-4 px-3 py-2 bg-slate-900 text-white text-[10px] font-bold uppercase rounded-lg opacity-0 pointer-events-none group-hover:opacity-100 transition-all z-[999] shadow-2xl">
+                  {galerias.length} de 50 galerias usadas
                 </div>
               </div>
             )}
           </div>
 
-          {/* 🎯 SEÇÃO 3: CLOUD STATUS (Google Drive) */}
+          {/* 🎯 SEÇÃO 3: STATUS GOOGLE DRIVE (Textos Originais Restaurados) */}
           <div
-            className={`mt-6 pt-6 border-t border-slate-100 transition-all duration-500 pb-10 ${isSidebarCollapsed ? 'px-0' : 'px-4'}`}
+            className={`hidden lg:block mt-2 pt-4 border-t border-slate-100 ${isSidebarCollapsed ? 'px-0' : 'px-2'}`}
           >
             <div
-              className={`flex items-center transition-all duration-300 ${isSidebarCollapsed ? 'justify-center py-4' : 'gap-3 py-1'}`}
+              className={`relative group flex items-center transition-all duration-300 ${isSidebarCollapsed ? 'justify-center py-4' : 'gap-3 p-3 rounded-xl bg-slate-50 border border-slate-100'}`}
             >
-              {/* Indicador de Status Dinâmico */}
               <div className="relative flex items-center justify-center shrink-0">
-                {photographer?.google_refresh_token ? (
-                  // ✅ Status: Conectado (Bolinha Verde Brilhante)
-                  <div
-                    className="h-2.5 w-2.5 rounded-full bg-emerald-500 shadow-[0_0_8px_rgba(16,185,129,0.6)]"
-                    title="Drive Conectado"
-                  />
-                ) : (
-                  // ❌ Status: Desconectado (Ícone de X Vermelho)
-                  <div
-                    className="flex items-center justify-center w-6 h-6 bg-red-50 rounded-full border border-red-100 text-red-500 shadow-sm"
-                    title="Drive Desconectado"
-                  >
-                    <X size={12} strokeWidth={3} />
-                  </div>
+                <div
+                  className={`h-2.5 w-2.5 rounded-full ${photographer?.google_refresh_token ? 'bg-green-500' : 'bg-amber-500'} shadow-sm`}
+                />
+                {!photographer?.google_refresh_token && (
+                  <div className="absolute inset-0 h-2.5 w-2.5 rounded-full bg-amber-500 animate-ping opacity-75" />
                 )}
               </div>
 
               {!isSidebarCollapsed && (
-                <div className="flex flex-1 items-center justify-between min-w-0">
-                  <div className="flex flex-col">
+                <div className="flex flex-col min-w-0">
+                  <span className="text-[9px] font-bold uppercase tracking-widest text-slate-400 leading-none mb-1">
+                    Google Drive
+                  </span>
+                  <div className="flex items-center gap-1.5">
                     <span
-                      className={`text-[11px] font-bold tracking-tight ${photographer?.google_refresh_token ? 'text-slate-700' : 'text-red-600'}`}
+                      className={`text-[10px] font-semibold truncate ${photographer?.google_refresh_token ? 'text-slate-600' : 'text-amber-600'}`}
                     >
                       {photographer?.google_refresh_token
-                        ? 'Google Drive'
-                        : 'Conexão Perdida'}
+                        ? 'Conectado'
+                        : 'Ação Necessária'}
                     </span>
-                    {photographer?.google_refresh_token && (
-                      <span className="text-[9px] text-emerald-600 font-bold uppercase tracking-widest mt-0.5">
-                        Sincronizado
-                      </span>
-                    )}
-                  </div>
-
-                  {/* Botão só aparece se NÃO houver token */}
-                  {!photographer?.google_refresh_token && (
                     <button
-                      onClick={() => handleGoogleLogin(true)}
-                      className="flex items-center gap-1.5 px-2.5 py-1.5 bg-red-600 text-white rounded-lg text-[9px] font-bold uppercase tracking-widest hover:bg-red-700 transition-all shadow-md animate-pulse ml-2"
+                      onClick={() =>
+                        handleGoogleLogin(!photographer?.google_refresh_token)
+                      }
+                      className="p-1 hover:bg-slate-200 rounded-md transition-colors text-slate-400 hover:text-[#D4AF37]"
                     >
-                      <RefreshCw size={10} strokeWidth={3} />
-                      Reconectar
+                      <RefreshCw
+                        size={12}
+                        strokeWidth={2.5}
+                        className={
+                          !photographer?.google_refresh_token
+                            ? 'animate-spin'
+                            : ''
+                        }
+                      />
                     </button>
-                  )}
-                </div>
-              )}
-
-              {isSidebarCollapsed && (
-                <div className="absolute left-full ml-4 px-3 py-2 bg-slate-900 text-white text-[10px] font-bold uppercase tracking-widest rounded-lg opacity-0 pointer-events-none group-hover:opacity-100 transition-all whitespace-nowrap z-50 shadow-xl">
-                  {photographer?.google_refresh_token
-                    ? 'Cloud Conectado'
-                    : 'Ação Necessária'}
-                  <div className="absolute right-full top-1/2 -translate-y-1/2 border-8 border-transparent border-r-slate-900" />
+                  </div>
                 </div>
               )}
             </div>
           </div>
 
-          {/* Admin Mode (Apenas para Hitalo) */}
+          {/* 🎯 SEÇÃO 4: ADMIN MODE (Restaurado e Corrigido para Mobile) */}
           {photographer?.username === 'hitalodiniz' && (
-            <div className="mt-4 px-2 border-t border-red-50 pt-4">
+            <div className="mt-4 px-2 lg:border-t lg:pt-4">
               <button
                 onClick={() => setIsAdminModalOpen(true)}
-                className={`group flex items-center gap-3 w-full p-3 rounded-xl transition-all duration-300 ${isSidebarCollapsed ? 'justify-center' : 'bg-red-50 hover:bg-red-100'}`}
+                className={`flex items-center transition-all duration-300 group relative ${isSidebarCollapsed ? 'justify-center py-4' : 'gap-3 p-3 rounded-xl bg-red-50 hover:bg-red-100'}`}
               >
                 <div className="text-red-600">
                   <ShieldAlert size={20} />
                 </div>
                 {!isSidebarCollapsed && (
-                  <div className="flex flex-col items-start leading-none">
-                    <span className="text-[8px] font-bold uppercase tracking-widest text-red-400 mb-1">
-                      System Admin
+                  <div className="hidden lg:flex flex-col items-start leading-none">
+                    <span className="text-[9px] font-semibold uppercase tracking-widest text-red-400 mb-1">
+                      Admin Mode
                     </span>
-                    <span className="text-[11px] font-bold text-red-700">
-                      Cache Control
+                    <span className="text-[11px] font-medium text-red-700">
+                      Limpar Cache
                     </span>
+                  </div>
+                )}
+                {isSidebarCollapsed && (
+                  <div className="absolute left-full ml-4 px-3 py-2 bg-slate-900 text-white text-[10px] font-bold uppercase rounded-lg opacity-0 pointer-events-none group-hover:opacity-100 transition-all z-[999] shadow-xl">
+                    Limpar Cache
                   </div>
                 )}
               </button>
             </div>
           )}
         </nav>
+
+        <AdminControlModal
+          isOpen={isAdminModalOpen}
+          onClose={() => setIsAdminModalOpen(false)}
+        />
       </aside>
 
       {/* CONTEÚDO PRINCIPAL */}
