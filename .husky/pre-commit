@@ -1,1 +1,2 @@
 npm test
+npx husky add .husky/pre-commit "npm run build"

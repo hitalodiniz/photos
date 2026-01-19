@@ -1,6 +1,6 @@
 'use client';
 
-import { useEffect, useRef, useState } from 'react';
+import { useEffect, useRef, useState, Suspense } from 'react';
 import { useRouter, useSearchParams } from 'next/navigation';
 import { ShieldCheck, AlertCircle } from 'lucide-react';
 import { supabase } from '@/lib/supabase.client';
@@ -23,8 +23,8 @@ interface Profile {
   use_subdomain: boolean;
 }
 
-export default function LoginPage() {
-  usePageTitle('Acesso restrito');
+// 🎯 Componente interno que usa useSearchParams (precisa de Suspense)
+function LoginContent() {
   const { session, loading: authLoading } = useAuthStatus();
   const router = useRouter();
   const searchParams = useSearchParams();
@@ -177,5 +177,22 @@ export default function LoginPage() {
         <Footer />
       </div>
     </div>
+  );
+}
+
+// 🎯 Componente principal que envolve com Suspense
+export default function LoginPage() {
+  usePageTitle('Acesso restrito');
+
+  return (
+    <Suspense
+      fallback={
+        <div className="min-h-screen bg-black flex items-center justify-center">
+          <div className="w-8 h-8 border-2 border-gold/20 border-t-gold rounded-full animate-spin" />
+        </div>
+      }
+    >
+      <LoginContent />
+    </Suspense>
   );
 }
