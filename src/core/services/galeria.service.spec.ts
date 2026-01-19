@@ -444,6 +444,7 @@ describe('Galeria Service - Testes Unitários', () => {
       expect(result).toEqual({
         success: false,
         error: errorMessage, // Agora o teste aceita a mensagem real
+        data: [], // getFolderPhotos sempre retorna data: [] em caso de erro
       });
     });
 

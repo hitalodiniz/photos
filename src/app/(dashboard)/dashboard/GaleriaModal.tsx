@@ -151,6 +151,7 @@ export default function GaleriaModal({
         onSuccess(false, result.error || 'Falha ao salvar.');
       }
     } catch (error) {
+      console.error('Erro no handleSubmit:', error);
       onSuccess(false, 'Erro de conexão.');
     } finally {
       setLoading(false);

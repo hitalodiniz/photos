@@ -22,11 +22,18 @@ export default function GaleriaView({ galeria, photos }: GaleriaViewProps) {
   const bgColor = galeria.grid_bg_color ?? '#F9F5F0';
 
   useEffect(() => {
-    if (photos?.length > 0) {
-      const timer = setTimeout(() => setIsLoading(false), 800);
-      return () => clearTimeout(timer);
-    }
-  }, [photos]);
+    // 🎯 FIX: Hide loading screen even if photos is empty or undefined
+    // This prevents infinite loading when the request fails or returns empty
+    const timer = setTimeout(() => {
+      console.log('[GaleriaView] Setting loading to false', {
+        photosLength: photos?.length,
+        hasPhotos: !!photos,
+        galeriaId: galeria.id,
+      });
+      setIsLoading(false);
+    }, 800);
+    return () => clearTimeout(timer);
+  }, [photos, galeria.id]);
 
   // 🎯 ESTRATÉGIA DE FALLBACK: Usa hook useGoogleDriveImage que já implementa fallback
   // Usa constantes RESOLUTIONS para manter consistência

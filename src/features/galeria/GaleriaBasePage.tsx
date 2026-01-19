@@ -98,17 +98,38 @@ export default async function GaleriaBasePage({
     }
   }
 
+  console.log('[GaleriaBasePage] Fetching photos', {
+    galeriaId: galeriaData.id,
+    photographerId: galeriaRaw.photographer?.id,
+    folderId: galeriaData.drive_folder_id,
+    slug: fullSlug,
+  });
+
   const { photos, error } = await fetchDrivePhotos(
     galeriaRaw.photographer?.id,
     galeriaData.drive_folder_id,
   );
-  if (error || !photos)
+
+  console.log('[GaleriaBasePage] Photos fetched', {
+    galeriaId: galeriaData.id,
+    photosCount: photos?.length || 0,
+    hasError: !!error,
+    error,
+  });
+
+  if (error || !photos) {
+    console.warn('[GaleriaBasePage] Error or no photos', {
+      galeriaId: galeriaData.id,
+      error,
+      photosCount: photos?.length || 0,
+    });
     return (
       <GoogleAuthError
         errorType={error}
         photographerName={galeriaData.photographer_name || 'o autor'}
       />
     );
+  }
 
   return <GaleriaView galeria={galeriaData} photos={photos} />;
 }

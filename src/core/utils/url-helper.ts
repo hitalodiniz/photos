@@ -1,7 +1,5 @@
 // src/lib/utils/url-helper.ts
 import { GALLERY_MESSAGES } from '@/constants/messages';
-import { Download } from 'lucide-react';
-import { Ultra } from 'next/font/google';
 
 const NEXT_PUBLIC_MAIN_DOMAIN =
   process.env.NEXT_PUBLIC_MAIN_DOMAIN || 'localhost:3000';
@@ -223,7 +221,7 @@ export const getInternalGoogleDriveUrl = (
  */
 export const getHighResImageUrl = (photoId: string | number) => {
   if (!photoId) return '';
-  return `/api/galeria/download/${photoId}?w='${RESOLUTIONS.DESKTOP_VIEW}'`;
+  return getProxyUrl(photoId, '2560');
 };
 
 /**
