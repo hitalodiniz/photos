@@ -101,7 +101,7 @@ export default function PhotographerContent({
   return (
     <div className="relative min-h-screen bg-black font-sans overflow-x-hidden">
       {/* 1. LOADING LAYER */}
-      <LoadingScreen fadeOut={!isLoading} message="Consolidando perfil" />
+      <LoadingScreen fadeOut={!isLoading} message="Carregando perfil" />
 
       {/* HERO SECTION - O Editorial apenas provê o fundo e a lógica de altura */}
       <EditorialHero

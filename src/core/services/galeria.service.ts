@@ -594,7 +594,8 @@ export async function getPublicProfileGalerias(
 ) {
   return unstable_cache(
     async () => {
-      const supabase = await createSupabaseServerClientReadOnly();
+      // 🎯 USA CLIENTE PARA CACHE: Não usa cookies (dados públicos)
+      const supabase = createSupabaseClientForCache();
       const from = (page - 1) * pageSize;
       const to = from + pageSize - 1;
 

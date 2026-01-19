@@ -287,6 +287,7 @@ img.src = imgSrc;
         Desktop: Sobrepõe à direita, com controle de profundidade (z-index). */}
           <div className="w-full md:w-auto flex justify-center md:justify-end shrink-0 z-[310]">
             <ToolbarGalleryView
+            key={currentPhoto.id}
               photoId={currentPhoto.id}
               gallerySlug={galeria.slug}
               galleryTitle={galleryTitle}

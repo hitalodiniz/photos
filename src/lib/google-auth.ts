@@ -55,23 +55,30 @@ export async function getDriveAccessTokenForUser(
     const tokenData = await tokenRes.json();
     if (!tokenRes.ok) {
       // 🎯 TRATAMENTO DE ERRO CRÍTICO: Token Inválido/Revogado
-      if (tokenData.error === 'invalid_grant') {
-        console.error(`🚨 Token do usuário ${userId} expirou ou foi revogado.`);
+      if (tokenData.error === 'invalid_grant' || tokenData.error === 'invalid_request') {
+        console.error(`🚨 Token do usuário ${userId} expirou ou foi revogado. Erro:`, tokenData.error);
 
-        // 1. Marcar no banco que a conexão caiu (Crie essa coluna na tb_profiles)
-        await supabase
-          .from('tb_profiles')
-          .update({
-            google_auth_status: 'expired',
-            google_auth_error_at: new Date().toISOString(),
-          })
-          .eq('id', userId);
-
-        // 2. Opcional: Aqui você dispararia seu serviço de e-mail (Resend, SendGrid, etc)
-        // await sendEmailNotification(profile.email, 'Google Connection Expired');
+        // 1. Limpa o refresh_token inválido do banco
+        try {
+          await supabase
+            .from('tb_profiles')
+            .update({
+              google_refresh_token: null,
+              google_access_token: null,
+              google_token_expires_at: null,
+            })
+            .eq('id', userId);
+          console.log(`[google-auth] Refresh token inválido removido do banco para userId: ${userId}`);
+        } catch (dbError) {
+          console.error('[google-auth] Erro ao limpar token do banco:', dbError);
+        }
       }
 
-      console.error('Erro na renovação do Google:', tokenData);
+      console.error('[google-auth] Erro na renovação do Google:', {
+        error: tokenData.error,
+        error_description: tokenData.error_description,
+        status: tokenRes.status,
+      });
       return null;
     }
 

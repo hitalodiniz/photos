@@ -72,14 +72,31 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         loadProfile(session.user.id);
         console.log('[AuthContext] Usuário definido:', userData);
       } else {
-        console.log('[AuthContext] Nenhuma sessão encontrada');
+        console.log('[AuthContext] Nenhuma sessão encontrada - usuário não autenticado');
+        // 🎯 LIMPA ESTADO: Garante que não há usuário quando não há sessão
+        setUser(null);
+        setAvatarUrl(null);
       }
+      isLoadingStillTrue = false;
       setIsLoading(false);
       clearTimeout(timeoutId);
     }).catch((error) => {
       console.error('[AuthContext] Erro ao buscar sessão:', error);
+      // 🎯 ERRO: Limpa estado e força logout em caso de erro crítico
+      setUser(null);
+      setAvatarUrl(null);
+      isLoadingStillTrue = false;
       setIsLoading(false);
       clearTimeout(timeoutId);
+      
+      // Se estiver em rota protegida, redireciona
+      if (typeof window !== 'undefined') {
+        const currentPath = window.location.pathname;
+        if (currentPath.startsWith('/dashboard') || currentPath.startsWith('/onboarding')) {
+          console.log('[AuthContext] Erro crítico - redirecionando para login');
+          window.location.href = '/auth/login?error=session_error';
+        }
+      }
     });
 
     const subscription = authService.onAuthStateChange((event, session) => {
@@ -88,6 +105,26 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         hasSession: !!session,
         hasUser: !!session?.user,
       });
+
+      // 🎯 TRATAMENTO: Eventos que indicam sessão inválida
+      if (event === 'SIGNED_OUT' || (event === 'TOKEN_REFRESHED' && !session)) {
+        console.log('[AuthContext] Sessão invalidada, limpando estado. Event:', event);
+        setUser(null);
+        setAvatarUrl(null);
+        isLoadingStillTrue = false;
+        setIsLoading(false);
+        clearTimeout(timeoutId);
+        
+        // Se estiver em rota protegida, redireciona para login
+        if (typeof window !== 'undefined') {
+          const currentPath = window.location.pathname;
+          if (currentPath.startsWith('/dashboard') || currentPath.startsWith('/onboarding')) {
+            console.log('[AuthContext] Redirecionando para login...');
+            window.location.href = '/auth/login?error=session_expired';
+          }
+        }
+        return;
+      }
 
       if (session?.user) {
         const userData = {

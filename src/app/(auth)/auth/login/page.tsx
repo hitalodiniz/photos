@@ -1,8 +1,8 @@
 'use client';
 
-import { useEffect, useRef } from 'react';
-import { useRouter } from 'next/navigation';
-import { ShieldCheck } from 'lucide-react';
+import { useEffect, useRef, useState } from 'react';
+import { useRouter, useSearchParams } from 'next/navigation';
+import { ShieldCheck, AlertCircle } from 'lucide-react';
 import { supabase } from '@/lib/supabase.client';
 import useAuthStatus from '@/hooks/useAuthStatus';
 import { usePageTitle } from '@/hooks/usePageTitle';
@@ -107,6 +107,14 @@ export default function LoginPage() {
               profissionais com segurança total.
             </p>
           </div>
+
+          {/* 🎯 Mensagem de erro */}
+          {errorMessage && (
+            <div className="w-full max-w-sm mx-auto mb-4 p-4 bg-red-500/20 border border-red-500/50 rounded-lg flex items-center gap-3">
+              <AlertCircle className="text-red-400 flex-shrink-0" size={20} />
+              <p className="text-red-200 text-sm">{errorMessage}</p>
+            </div>
+          )}
 
           <GoogleSignInButton />
 

@@ -32,6 +32,7 @@ import { GALLERY_MESSAGES } from '@/constants/messages';
 import { executeShare } from '@/core/utils/share-helper';
 import WhatsAppIcon from '@/components/ui/WhatsAppIcon';
 import { normalizePhoneNumber } from '@/core/utils/masks-helpers';
+import LoadingSpinner from '@/components/ui/LoadingSpinner';
 
 interface GaleriaCardProps {
   galeria: Galeria;
@@ -150,7 +151,7 @@ export default function GaleriaCard({
         {/* 🎯 Spinner de carregamento da imagem */}
         {isImageLoading && !isUpdating && (
           <div className="absolute inset-0 z-10 flex items-center justify-center bg-slate-100">
-            <Loader2 className="h-5 w-5 animate-spin text-slate-300" />
+            <LoadingSpinner size="xs" />
           </div>
         )}
 

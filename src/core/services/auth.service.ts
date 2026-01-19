@@ -6,8 +6,55 @@ import { Session } from '@supabase/supabase-js';
 export const authService = {
   // Busca a sessão atual
   async getSession() {
-    const { data } = await supabase.auth.getSession();
-    return data.session;
+    try {
+      const { data, error } = await supabase.auth.getSession();
+      
+      // 🎯 TRATAMENTO: Se houver erro ou sessão inválida, limpa a sessão
+      if (error) {
+        console.error('[authService] Erro ao buscar sessão:', error);
+        // Limpa sessão inválida
+        await supabase.auth.signOut();
+        return null;
+      }
+
+      // 🎯 VERIFICAÇÃO: Se a sessão existe mas está expirada, tenta refresh
+      if (data.session) {
+        // Verifica se o token está expirado (com margem de 5 minutos)
+        const expiresAt = data.session.expires_at;
+        if (expiresAt) {
+          const now = Math.floor(Date.now() / 1000);
+          const expiresIn = expiresAt - now;
+          
+          // Se expira em menos de 5 minutos, tenta refresh
+          if (expiresIn < 300) {
+            console.log('[authService] Sessão expirando, tentando refresh...');
+            const { data: refreshData, error: refreshError } = await supabase.auth.refreshSession();
+            
+            if (refreshError) {
+              console.error('[authService] Erro ao fazer refresh:', refreshError);
+              // Se o refresh falhar, limpa a sessão
+              if (refreshError.message?.includes('refresh_token') || refreshError.message?.includes('Invalid')) {
+                await supabase.auth.signOut();
+                return null;
+              }
+            } else if (refreshData.session) {
+              return refreshData.session;
+            }
+          }
+        }
+      }
+
+      return data.session;
+    } catch (error) {
+      console.error('[authService] Erro crítico ao buscar sessão:', error);
+      // Em caso de erro crítico, limpa a sessão
+      try {
+        await supabase.auth.signOut();
+      } catch (signOutError) {
+        console.error('[authService] Erro ao fazer signOut:', signOutError);
+      }
+      return null;
+    }
   },
 
   // Escuta mudanças de autenticação

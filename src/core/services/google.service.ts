@@ -202,11 +202,30 @@ export async function getValidGoogleTokenService(userId: string) {
 
     if (
       data.error === 'invalid_grant' ||
+      data.error === 'invalid_request' ||
       data.error === 'refresh_token_already_used'
     ) {
+      // 🎯 TRATAMENTO: Token inválido - limpa do banco e marca como expirado
+      console.error(`[google.service] Token inválido para userId: ${userId}`, data.error);
+      
+      try {
+        // Limpa o refresh_token inválido do banco
+        await supabase
+          .from('tb_profiles')
+          .update({
+            google_refresh_token: null,
+            google_access_token: null,
+            google_token_expires_at: null,
+          })
+          .eq('id', userId);
+        console.log(`[google.service] Refresh token inválido removido do banco`);
+      } catch (dbError) {
+        console.error('[google.service] Erro ao limpar token do banco:', dbError);
+      }
+
       // Se o token já foi usado, a sessão é inválida.
       // O ideal aqui é redirecionar para o login para resetar os cookies.
-      return redirect('/login?error=session_expired');
+      throw new Error('AUTH_RECONNECT_REQUIRED');
     }
 
     if (!data.access_token) {
