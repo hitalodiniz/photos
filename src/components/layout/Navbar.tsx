@@ -11,6 +11,16 @@ export default function Navbar() {
   const pathname = usePathname();
   const { user, avatarUrl, logout, isLoading } = useAuth();
 
+  // 🎯 DEBUG: Log para diagnóstico em produção
+  if (typeof window !== 'undefined' && process.env.NODE_ENV === 'production') {
+    console.log('[Navbar] Debug:', {
+      pathname,
+      hasUser: !!user,
+      isLoading,
+      shouldShow: user && !isLoading && (pathname === '/dashboard' || pathname === '/onboarding' || pathname.includes('/dashboard/')),
+    });
+  }
+
   const showNavbar =
     user &&
     !isLoading &&

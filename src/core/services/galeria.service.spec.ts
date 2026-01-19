@@ -23,7 +23,14 @@ import { fetchGalleryBySlug } from '@/core/logic/galeria-logic';
 vi.stubGlobal('fetch', vi.fn());
 vi.stubEnv('JWT_GALLERY_SECRET', '12345678901234567890123456789012');
 
-vi.mock('next/cache', () => ({ revalidatePath: vi.fn() }));
+vi.mock('next/cache', () => ({
+  revalidatePath: vi.fn(),
+  revalidateTag: vi.fn(),
+  unstable_cache: vi.fn((fn, key, options) => {
+    // Simula o comportamento do unstable_cache: retorna uma função que executa fn quando chamada
+    return (...args: any[]) => fn(...args);
+  }),
+}));
 
 // O redirect precisa ser mockado de forma simples para não quebrar o worker
 vi.mock('next/navigation', () => ({
@@ -37,6 +44,7 @@ vi.mock('next/navigation', () => ({
 vi.mock('@/lib/supabase.server', () => ({
   createSupabaseServerClient: vi.fn(),
   createSupabaseServerClientReadOnly: vi.fn(),
+  createSupabaseClientForCache: vi.fn(),
 }));
 
 vi.mock('@/lib/google-auth', () => ({
@@ -104,6 +112,10 @@ describe('Galeria Service - Testes Unitários', () => {
     vi.mocked(
       supabaseServer.createSupabaseServerClientReadOnly,
     ).mockResolvedValue(mockSupabase as any);
+    // 🎯 Mock para createSupabaseClientForCache usado dentro de unstable_cache
+    vi.mocked(supabaseServer.createSupabaseClientForCache).mockReturnValue(
+      mockSupabase as any,
+    );
 
     return { mockSupabase, mockQueryBuilder };
   };

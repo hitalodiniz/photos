@@ -51,6 +51,19 @@ export default function GoogleApiLoader() {
         return () => clearInterval(interval);
     }, []);
 
+    // 🎯 DEBUG: Log de diagnóstico em produção
+    useEffect(() => {
+        if (typeof window !== 'undefined' && process.env.NODE_ENV === 'production') {
+            console.log('[GoogleApiLoader] Status:', {
+                gapiLoaded,
+                gsiLoaded,
+                hasGapi: !!window.gapi,
+                hasGoogle: !!window.google,
+                hasPicker: !!(window.google && window.google.picker),
+            });
+        }
+    }, [gapiLoaded, gsiLoaded]);
+
     return (
         <>
             {/* 1. CARREGAMENTO DO GOOGLE GSI (Auth Client) */}

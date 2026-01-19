@@ -69,16 +69,3 @@ export async function checkFolderPublicPermission(
 export async function getValidGoogleToken(userId: string): Promise<string> {
   return googleService.getValidGoogleTokenService(userId);
 }
-
-/**
- * 🎯 Action para obter o Google Client ID de forma segura
- * Retorna o Client ID do servidor para uso no cliente
- */
-export async function getGoogleClientId(): Promise<string | null> {
-  // Tenta NEXT_PUBLIC primeiro, depois a variável do servidor
-  return (
-    process.env.NEXT_PUBLIC_GOOGLE_CLIENT_ID ||
-    process.env.GOOGLE_CLIENT_ID ||
-    null
-  );
-}

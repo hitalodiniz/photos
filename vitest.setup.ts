@@ -73,6 +73,11 @@ vi.mock('@/lib/supabase.server', () => ({
 // 4. Mocks Globais de Infraestrutura
 vi.mock('next/cache', () => ({
   revalidatePath: vi.fn(),
+  revalidateTag: vi.fn(),
+  unstable_cache: vi.fn((fn, key, options) => {
+    // Simula o comportamento do unstable_cache: retorna uma função que executa fn quando chamada
+    return (...args: any[]) => fn(...args);
+  }),
 }));
 
 vi.mock('next/headers', () => ({

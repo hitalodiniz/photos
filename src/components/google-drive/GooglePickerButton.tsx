@@ -175,7 +175,7 @@ export default function GooglePickerButton({
     }
 
     if (!googleClientId) {
-      onError('Configuração do Google não encontrada. Contate o suporte.');
+      onError('Configuração do Google não encontrada. Verifique as variáveis de ambiente na Vercel.');
       setLoading(false);
       return;
     }
