@@ -15,6 +15,24 @@ import { GLOBAL_CACHE_REVALIDATE } from '@/core/utils/url-helper';
 // =========================================================================
 
 /**
+ * Esta função toca o banco de dados diretamente.
+ * 🎯 USE ESTA NO MIDDLEWARE (Middleware não aceita unstable_cache)
+ */
+export async function fetchProfileDirectDB(username: string) {
+  const supabase = createSupabaseClientForCache();
+  const { data, error } = await supabase
+    .from('tb_profiles')
+    .select('*')
+    .eq('username', username)
+    .maybeSingle();
+
+  if (error && error.code !== 'PGRST116') {
+    console.error('Erro ao buscar perfil no DB:', error);
+  }
+  return data || null;
+}
+
+/**
  * Busca dados completos do perfil logado (Privado)
  * MANTIDA DINÂMICA: Dados privados de sessão não podem ser colocados em unstable_cache.
  */
@@ -52,37 +70,18 @@ export async function getProfileData(supabaseClient?: any) {
  * Esta função NÃO usa unstable_cache, por isso pode ser chamada no Middleware.
  */
 export async function fetchProfileRaw(username: string) {
-  // 🎯 Criamos uma função interna para a busca real
-  const getProfile = async (uname: string) => {
-    const supabase = createSupabaseClientForCache();
-    const { data, error } = await supabase
-      .from('tb_profiles')
-      .select('*')
-      .eq('username', uname)
-      .single();
-
-    if (error || !data) {
-      if (error && error.code !== 'PGRST116') {
-        console.error('Erro ao buscar perfil no DB:', error);
-      }
-      return null;
-    }
-    return data;
-  };
-
-  // 🎯 Envolvemos no cache do Next.js
-  // 'profiles-cache' é a chave global
-  // [username] garante que cada fotógrafo tenha seu próprio cache
-  // revalidate: 3600 -> O cache dura 1 hora (ajuste conforme necessário)
+  // O unstable_cache deve ser definido fora ou retornado imediatamente executado
   return unstable_cache(
-    async () => getProfile(username),
+    async (uname: string) => fetchProfileDirectDB(uname),
     [`profile-${username}`],
     {
-      revalidate: GLOBAL_CACHE_REVALIDATE, 
-      tags: [`profile-${username}`]
+      revalidate: GLOBAL_CACHE_REVALIDATE,
+      tags: [`profile-${username}`],
     }
-  )();
+  )(username);
 }
+
+
 
 // =========================================================================
 // 2. FUNÇÕES COM CACHE (Apenas para Server Components / Pages)
@@ -92,28 +91,21 @@ export async function fetchProfileRaw(username: string) {
  * Busca um perfil público com Cache Persistente.
  * USO: Apenas em Pages e Server Components.
  */
+// React Cache para evitar múltiplas chamadas na mesma renderização (Request Memoization)
 export const getPublicProfile = cache(async (username: string) => {
-  return unstable_cache(
-    async (uname: string) => {
-      return fetchProfileRaw(uname); // Chama a busca direta
-    },
-    [`public-profile-${username}`],
-    {
-      revalidate: GLOBAL_CACHE_REVALIDATE,
-      tags: [`profile-${username}`],
-    },
-  )(username);
+  return fetchProfileRaw(username);
 });
 
 /**
  * Versão para Middleware: Verifica permissão sem quebrar o Edge Runtime.
  * IMPORTANTE: No Middleware, use esta função.
+ * 🎯 MIDDLEWARE: Usa fetchProfileDirectDB (sem cache) pois Middleware não suporta unstable_cache
  */
 export async function checkSubdomainPermission(
   username: string,
 ): Promise<boolean> {
-  // Chamamos a função RAW, pois o Middleware não aceita unstable_cache
-  const profile = await fetchProfileRaw(username);
+  // Chamamos a função DIRECT DB, pois o Middleware não aceita unstable_cache
+  const profile = await fetchProfileDirectDB(username);
   return !!(profile && profile.use_subdomain === true);
 }
 
@@ -253,10 +245,35 @@ export async function upsertProfile(formData: FormData, supabaseClient?: any) {
     return { success: false, error: error.message };
   }
 
-  // 🔄 REVALIDAÇÃO ESTRATÉGICA
-  // Invalida a tag específica do perfil para forçar o cache a atualizar na próxima visita
+  // 🔄 REVALIDAÇÃO ESTRATÉGICA COMPLETA
+  // Invalida a tag específica do perfil
   revalidateTag(`profile-${username}`);
-
+  // Revalida as galerias públicas do perfil
+  revalidateTag(`profile-galerias-${username}`);
+  // Busca todas as galerias do usuário para revalidar individualmente
+  const { data: galerias } = await supabase
+    .from('tb_galerias')
+    .select('id, slug, drive_folder_id')
+    .eq('user_id', user.id);
+  
+  if (galerias && galerias.length > 0) {
+    // Revalida cada galeria individualmente
+    galerias.forEach((galeria) => {
+      if (galeria.slug) {
+        revalidateTag(`gallery-${galeria.slug}`);
+      }
+      if (galeria.drive_folder_id) {
+        revalidateTag(`drive-${galeria.drive_folder_id}`);
+      }
+      if (galeria.id) {
+        revalidateTag(`photos-${galeria.id}`);
+      }
+    });
+    // Revalida a lista de galerias do usuário
+    revalidateTag(`user-galerias-${user.id}`);
+  }
+  
+  // Revalida as rotas físicas
   revalidatePath('/dashboard');
   revalidatePath(`/${username}`);
 
@@ -282,12 +299,24 @@ export async function updateSidebarPreference(isCollapsed: boolean) {
 
   if (!user) return { success: false, error: 'Sessão expirada.' };
 
+  // Busca o username antes de atualizar para revalidar o cache
+  const { data: profile } = await supabase
+    .from('tb_profiles')
+    .select('username')
+    .eq('id', user.id)
+    .single();
+
   const { error } = await supabase
     .from('tb_profiles')
     .update({ sidebar_collapsed: isCollapsed })
     .eq('id', user.id);
 
   if (error) return { success: false, error: error.message };
+
+  // 🔄 REVALIDAÇÃO: Limpa o cache do perfil
+  if (profile?.username) {
+    revalidateTag(`profile-${profile.username}`);
+  }
 
   return { success: true };
 }

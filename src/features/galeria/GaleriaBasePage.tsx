@@ -7,6 +7,7 @@ import {
   fetchGalleryBySlug,
   formatGalleryData,
   fetchDrivePhotos,
+  fetchPhotosByGalleryId,
 } from '@/core/logic/galeria-logic';
 import GaleriaView from './GaleriaView';
 import PasswordPrompt from './PasswordPrompt';
@@ -105,10 +106,8 @@ export default async function GaleriaBasePage({
     slug: fullSlug,
   });
 
-  const { photos, error } = await fetchDrivePhotos(
-    galeriaRaw.photographer?.id,
-    galeriaData.drive_folder_id,
-  );
+  // 🎯 CACHE: Usa fetchPhotosByGalleryId para cache com tag photos-[galleryId]
+  const { photos, error } = await fetchPhotosByGalleryId(galeriaData.id);
 
   console.log('[GaleriaBasePage] Photos fetched', {
     galeriaId: galeriaData.id,

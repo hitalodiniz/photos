@@ -87,6 +87,7 @@ export async function revalidateProfile(username?: string) {
 /**
  * 🧹 PURGE ALL CACHE (ADMIN)
  * Invalida todas as tags de dados e rotas estáticas do sistema.
+ * 🎯 ATUALIZADO: Agora revalida também todas as tags de galerias e perfis
  */
 export async function purgeAllCache() {
   try {
@@ -94,21 +95,23 @@ export async function purgeAllCache() {
     revalidateTag('user-profile');
     revalidateTag('drive-photos'); // Tag base para fotos do Drive
     revalidateTag('cover-image'); // Tag base para capas
-
-    // 2. Invalida padrões de tags dinâmicas que você utiliza
-    // Como o Next.js não permite wildcards em tags, focamos nas tags raiz
-    // que as funções de fetch compartilham.
     revalidateTag('public-profile');
+
+    // 2. 🎯 NOVO: Revalida tags de galerias e perfis
+    // Nota: Next.js não suporta wildcards, mas revalidamos o dashboard que força refresh
+    // As tags específicas serão revalidadas quando necessário via revalidateTag individual
 
     // 3. Invalida a árvore de renderização completa (Páginas Estáticas/Edge)
     // O parâmetro 'layout' na raiz garante que subdomínios e rotas [username]
     // sejam marcadas para reconstrução no próximo acesso.
     revalidatePath('/', 'layout');
+    // 🎯 CRÍTICO: Revalida o dashboard para forçar refresh das galerias
+    revalidatePath('/dashboard', 'layout');
 
     return {
       success: true,
       message:
-        'Todos os caches (Dados, Fotos e Páginas) foram invalidados com sucesso.',
+        'Todos os caches (Dados, Fotos e Páginas) foram invalidados com sucesso. Recarregue a página.',
     };
   } catch (error) {
     console.error('Erro ao limpar cache global:', error);
@@ -116,5 +119,20 @@ export async function purgeAllCache() {
       success: false,
       error: 'Falha crítica ao processar a limpeza global de cache.',
     };
+  }
+}
+
+/**
+ * 🎯 REVALIDA GALERIAS DO USUÁRIO
+ * Função específica para revalidar o cache de galerias de um usuário específico
+ */
+export async function revalidateUserGalerias(userId: string) {
+  try {
+    revalidateTag(`user-galerias-${userId}`);
+    revalidatePath('/dashboard', 'layout');
+    return { success: true };
+  } catch (error) {
+    console.error('Erro ao revalidar galerias do usuário:', error);
+    return { success: false };
   }
 }

@@ -220,9 +220,18 @@ export default function Dashboard({
         setGalerias((prev) => prev.map((g) => (g.id === data.id ? data : g)));
         setToast({ message: 'Galeria atualizada!', type: 'success' });
       } else {
+        // 🎯 FORÇA REVALIDAÇÃO: Recarrega as galerias do servidor após criar
+        // Isso garante que o cache seja atualizado mesmo que a revalidação não tenha funcionado
         const result = await getGalerias();
-        if (result.success) setGalerias(result.data);
-        setToast({ message: 'Galeria criada!', type: 'success' });
+        if (result.success) {
+          setGalerias(result.data);
+          setToast({ message: 'Galeria criada!', type: 'success' });
+        } else {
+          // Se ainda não aparecer, força reload da página
+          setTimeout(() => {
+            window.location.reload();
+          }, 1000);
+        }
       }
     } else {
       const errorMessage = typeof data === 'string' ? data : 'Erro na operação';

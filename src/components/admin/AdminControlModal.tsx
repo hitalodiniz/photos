@@ -2,7 +2,8 @@
 
 import { useState, useEffect } from 'react';
 import { createPortal } from 'react-dom'; // 🎯 Importação necessária
-import { purgeAllCache } from '@/actions/revalidate.actions';
+import { purgeAllCache, revalidateUserGalerias } from '@/actions/revalidate.actions';
+import { getAuthAndStudioIds } from '@/core/services/auth-context.service';
 import { Trash2, X, ShieldAlert, Zap } from 'lucide-react';
 
 export default function AdminControlModal({
@@ -77,6 +78,8 @@ export default function AdminControlModal({
               if (result.success) {
                 alert(result.message);
                 onClose();
+                // 🎯 FORÇA RECARREGAMENTO: Recarrega a página para ver as mudanças
+                window.location.reload();
               }
             }}
             disabled={isSyncing}

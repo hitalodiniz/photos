@@ -8,6 +8,10 @@ const NEXT_PUBLIC_MAIN_DOMAIN =
 // 60s * 60m * 24h * 30d = 2.592.000
 export const GLOBAL_CACHE_REVALIDATE = 2592000;
 
+// Tempo de cache para galerias e fotos: 30 minutos (em segundos)
+// 60s * 30m = 1800
+export const GALLERY_CACHE_REVALIDATE = 1800;
+
 export const TAMANHO_MAXIMO_FOTO_SEM_COMPACTAR = 2 * 1024 * 1024; // 1.5MB em bytes;
 
 export const RESOLUTIONS = {

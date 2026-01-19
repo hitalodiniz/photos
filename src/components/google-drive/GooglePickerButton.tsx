@@ -7,6 +7,7 @@ import {
   getDriveFolderName,
   checkFolderPublicPermission,
   checkFolderLimits,
+  getGoogleClientId,
 } from '@/actions/google.actions';
 import { Loader2 } from 'lucide-react'; // Importado para manter o padrão de spinners
 
@@ -160,9 +161,18 @@ export default function GooglePickerButton({
       return;
     }
 
-    // 🎯 Usa NEXT_PUBLIC_ para variáveis de ambiente no cliente
-    const googleClientId =
+    // 🎯 Busca o Client ID do servidor (mais seguro e funciona mesmo sem NEXT_PUBLIC_)
+    let googleClientId =
       process.env.NEXT_PUBLIC_GOOGLE_CLIENT_ID || process.env.GOOGLE_CLIENT_ID;
+
+    // Se não estiver disponível no cliente, busca do servidor
+    if (!googleClientId) {
+      try {
+        googleClientId = await getGoogleClientId();
+      } catch (error) {
+        console.error('[GooglePickerButton] Erro ao buscar Client ID:', error);
+      }
+    }
 
     if (!googleClientId) {
       onError('Configuração do Google não encontrada. Contate o suporte.');

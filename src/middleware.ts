@@ -1,7 +1,7 @@
 import { NextResponse } from 'next/server';
 import type { NextRequest } from 'next/server';
 import { createServerClient } from '@supabase/ssr';
-import { fetchProfileRaw } from '@/core/services/profile.service';
+import { fetchProfileDirectDB } from '@/core/services/profile.service';
 import { resolveGalleryUrl } from '@/core/utils/url-helper';
 
 const SITE_URL = process.env.NEXT_PUBLIC_BASE_URL || 'http://localhost:3000';
@@ -92,7 +92,8 @@ return redirectRes;
     const subdomain = host.replace(`.${MAIN_DOMAIN}`, '').toLowerCase();
 
     if (subdomain !== 'www') {
-      const profile = await fetchProfileRaw(subdomain);
+      // 🎯 MIDDLEWARE: Usa fetchProfileDirectDB (sem cache) pois Middleware não suporta unstable_cache
+      const profile = await fetchProfileDirectDB(subdomain);
 
       if (!profile) return NextResponse.redirect(new URL(SITE_URL));
 
@@ -135,7 +136,8 @@ return redirectRes;
       potentialUsername &&
       !['dashboard', 'onboarding', 'auth', 'api'].includes(potentialUsername)
     ) {
-      const profile = await fetchProfileRaw(potentialUsername);
+      // 🎯 MIDDLEWARE: Usa fetchProfileDirectDB (sem cache) pois Middleware não suporta unstable_cache
+      const profile = await fetchProfileDirectDB(potentialUsername);
 
       // REDIRECT: site.com/hitalo -> hitalo.site.com/
       if (profile?.use_subdomain) {

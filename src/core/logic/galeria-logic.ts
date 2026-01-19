@@ -7,7 +7,8 @@ import { GLOBAL_CACHE_REVALIDATE } from '../utils/url-helper';
 
 /**
  * 1. Busca os dados brutos da galeria no Supabase
- * 🎯 AJUSTE: Alterada a chave do cache para v2 para ignorar dados antigos sem token.
+ * 🎯 CACHE: Usa unstable_cache com tag gallery-[slug] e revalidate de 30 dias
+ * O cache é limpo automaticamente via revalidateTag quando a galeria é atualizada
  */
 export const fetchGalleryBySlug = (fullSlug: string) =>
   unstable_cache(
@@ -50,10 +51,10 @@ export const fetchGalleryBySlug = (fullSlug: string) =>
         },
       } as GaleriaRawResponse;
     },
-    [`gallery-data-${fullSlug}-v2`], // 🎯 CHAVE ALTERADA para forçar novo fetch
+    [`gallery-data-${fullSlug}`],
     {
       revalidate: GLOBAL_CACHE_REVALIDATE,
-      tags: [`gallery-${fullSlug}`, `user-profile`], // 🎯 TAGS PARA LIMPEZA
+      tags: [`gallery-${fullSlug}`],
     },
   )();
 
@@ -65,6 +66,10 @@ export function formatGalleryData(
   username: string,
 ): Galeria {
   const hasSubdomain = !!raw.photographer?.use_subdomain;
+  const domain = process.env.NEXT_PUBLIC_MAIN_DOMAIN || 'suagaleria.com.br';
+  const profileUrl = hasSubdomain
+    ? `https://${raw.photographer?.username || username}.${domain}`
+    : `https://${domain}/${raw.photographer?.username || username}`;
 
   return {
     id: raw.id,
@@ -105,6 +110,7 @@ export function formatGalleryData(
           phone_contact: raw.photographer.phone_contact,
           instagram_link: raw.photographer.instagram_link,
           use_subdomain: hasSubdomain,
+          profile_url: profileUrl,
         }
       : undefined,
 
@@ -116,8 +122,9 @@ export function formatGalleryData(
 }
 
 /**
- * 3. Busca de fotos do Google Drive
- * 🎯 AJUSTE: Adicionada chave v2 para limpar cache de tokens antigos/inexistentes.
+ * 3. Busca de fotos do Google Drive por folderId
+ * 🎯 CACHE: Usa unstable_cache com tag drive-[folderId] e revalidate de 30 dias
+ * O cache é limpo automaticamente via revalidateTag quando a galeria é atualizada
  */
 export const fetchDrivePhotos = (userId?: string, folderId?: string) =>
   unstable_cache(
@@ -143,9 +150,59 @@ export const fetchDrivePhotos = (userId?: string, folderId?: string) =>
         return { photos: [], error: 'UNKNOWN_ERROR' };
       }
     },
-    [`drive-photos-${folderId}-v2`], // 🎯 CHAVE ALTERADA para forçar novo fetch
+    [`drive-photos-${folderId}`],
     {
-      revalidate: false, // 🎯 Temporário: bypass total do cache
+      revalidate: GLOBAL_CACHE_REVALIDATE,
       tags: [`drive-${folderId}`],
+    },
+  )();
+
+/**
+ * 4. Busca fotos da galeria por galleryId
+ * 🎯 CACHE: Usa unstable_cache com tag photos-[galleryId] e revalidate de 30 dias
+ * O cache é limpo automaticamente via revalidateTag quando a galeria é atualizada
+ */
+export const fetchPhotosByGalleryId = (galleryId: string) =>
+  unstable_cache(
+    async () => {
+      const supabase = createSupabaseClientForCache();
+      
+      // Busca os dados da galeria para obter folderId e userId
+      const { data: galeria, error: galeriaError } = await supabase
+        .from('tb_galerias')
+        .select('id, drive_folder_id, user_id')
+        .eq('id', galleryId)
+        .single();
+
+      if (galeriaError || !galeria || !galeria.drive_folder_id) {
+        return { photos: [], error: 'GALLERY_NOT_FOUND' };
+      }
+
+      try {
+        const token = await getDriveAccessTokenForUser(galeria.user_id);
+
+        if (!token) {
+          console.error(
+            `🚨 Falha crítica: Token não gerado para o usuário ${galeria.user_id}`,
+          );
+          return { photos: [], error: 'TOKEN_NOT_FOUND' };
+        }
+
+        const photos = await listPhotosFromDriveFolder(
+          galeria.drive_folder_id,
+          token,
+        );
+        return { photos: photos || [], error: null };
+      } catch (error: any) {
+        if (error.message === 'PERMISSION_DENIED') {
+          return { photos: [], error: 'PERMISSION_DENIED' };
+        }
+        return { photos: [], error: 'UNKNOWN_ERROR' };
+      }
+    },
+    [`photos-${galleryId}`],
+    {
+      revalidate: GLOBAL_CACHE_REVALIDATE,
+      tags: [`photos-${galleryId}`],
     },
   )();

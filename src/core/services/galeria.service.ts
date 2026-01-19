@@ -3,11 +3,13 @@
 import { cookies, headers } from 'next/headers';
 import { redirect } from 'next/navigation';
 import slugify from 'slugify';
-import { revalidatePath, revalidateTag } from 'next/cache';
+import { revalidatePath, revalidateTag, unstable_cache } from 'next/cache';
+import { GLOBAL_CACHE_REVALIDATE } from '@/core/utils/url-helper';
 
 import {
   createSupabaseServerClient,
   createSupabaseServerClientReadOnly,
+  createSupabaseClientForCache,
 } from '@/lib/supabase.server';
 import {
   DrivePhoto,
@@ -168,10 +170,40 @@ export async function createGaleria(
           : (formData.get('password') as string),
     };
 
-    const { error } = await supabase.from('tb_galerias').insert([data]);
+    const { error, data: insertedData } = await supabase
+      .from('tb_galerias')
+      .insert([data])
+      .select('id, slug, drive_folder_id')
+      .single();
 
     if (error) throw error;
 
+    // 🔄 REVALIDAÇÃO ESTRATÉGICA COMPLETA: Limpa o cache da galeria, fotos e perfil
+    if (insertedData?.slug) {
+      revalidateTag(`gallery-${insertedData.slug}`);
+    }
+    if (insertedData?.drive_folder_id) {
+      revalidateTag(`drive-${insertedData.drive_folder_id}`);
+    }
+    if (insertedData?.id) {
+      revalidateTag(`photos-${insertedData.id}`);
+    }
+    // 🎯 CRÍTICO: Revalida a lista de galerias do usuário para aparecer no dashboard
+    console.log(`[createGaleria] Revalidando cache para userId: ${userId}`);
+    revalidateTag(`user-galerias-${userId}`);
+    // Busca o username para revalidar o perfil público
+    const { data: profile } = await supabase
+      .from('tb_profiles')
+      .select('username')
+      .eq('id', userId)
+      .single();
+    if (profile?.username) {
+      revalidateTag(`profile-${profile.username}`);
+      revalidateTag(`profile-galerias-${profile.username}`);
+    }
+
+    // 🎯 FORÇA REVALIDAÇÃO COMPLETA: Revalida o dashboard e todas as rotas relacionadas
+    revalidatePath('/dashboard', 'layout');
     revalidatePath('/dashboard');
     return { success: true, message: 'Nova galeria criada com sucesso!' };
   } catch (error) {
@@ -241,12 +273,40 @@ export async function updateGaleria(
       updates.password = newPassword; // Só atualiza se o usuário digitou uma nova
     }
 
+    // Busca o slug antes de atualizar para revalidar o cache
+    const { data: galeriaAntes } = await supabase
+      .from('tb_galerias')
+      .select('slug, drive_folder_id')
+      .eq('id', id)
+      .single();
+
     const { error } = await supabase
       .from('tb_galerias')
       .update(updates)
       .eq('id', id);
 
     if (error) throw error;
+
+    // 🔄 REVALIDAÇÃO ESTRATÉGICA: Limpa o cache da galeria, fotos e perfil
+    if (galeriaAntes?.slug) {
+      revalidateTag(`gallery-${galeriaAntes.slug}`);
+    }
+    if (galeriaAntes?.drive_folder_id) {
+      revalidateTag(`drive-${galeriaAntes.drive_folder_id}`);
+    }
+    revalidateTag(`photos-${id}`);
+    // Revalida todas as galerias do usuário
+    revalidateTag(`user-galerias-${userId}`);
+    // Busca o username para revalidar o perfil público
+    const { data: profile } = await supabase
+      .from('tb_profiles')
+      .select('username')
+      .eq('id', userId)
+      .single();
+    if (profile?.username) {
+      revalidateTag(`profile-${profile.username}`);
+      revalidateTag(`profile-galerias-${profile.username}`);
+    }
 
     revalidatePath('/dashboard');
     return { success: true, message: 'Galeria refinada com sucesso!' };
@@ -259,10 +319,18 @@ export async function updateGaleria(
 // 5. GET GALERIAS (Apenas do usuário logado)
 // =========================================================================
 
+/**
+ * 🎯 CACHE: Busca galerias do usuário logado com cache de 30 dias
+ * O cache é limpo automaticamente via revalidateTag quando galerias são criadas/atualizadas
+ * 
+ * 🎯 CORREÇÃO: Cria cliente Supabase ANTES do cache e usa createSupabaseClientForCache
+ * dentro do cache para evitar erro de cookies dentro de unstable_cache
+ */
 export async function getGalerias(
   supabaseClient?: any,
 ): Promise<ActionResult<Galeria[]>> {
-  // Alterado para retornar Galeria[]
+  // 🎯 PASSO 1: Autenticação e obtenção do userId FORA do cache
+  // Isso é necessário porque getAuthAndStudioIds usa cookies
   const {
     success,
     userId,
@@ -277,55 +345,71 @@ export async function getGalerias(
     };
   }
 
-  try {
-    const supabase = supabaseClient || (await createSupabaseServerClient());
+  // 🎯 PASSO 2: Cache da busca de dados (sem cookies dentro)
+  return unstable_cache(
+    async (cachedUserId: string) => {
+      try {
+        // 🎯 USA createSupabaseClientForCache (sem cookies) dentro do cache
+        const supabase = createSupabaseClientForCache();
 
-    // 🎯 AJUSTE NO SELECT: Agora traz todos os campos necessários do perfil
-    const { data, error } = await supabase
-      .from('tb_galerias')
-      .select(
-        `
-        *,
-        photographer:tb_profiles!user_id (
-          id,
-          full_name,
-          username,
-          use_subdomain,
-          profile_picture_url,
-          phone_contact,
-          instagram_link,
-          email
-        )
-      `,
-      )
-      .eq('user_id', userId)
-      .order('date', { ascending: false });
+        // 🎯 AJUSTE NO SELECT: Agora traz todos os campos necessários do perfil
+        const { data, error } = await supabase
+          .from('tb_galerias')
+          .select(
+            `
+            *,
+            photographer:tb_profiles!user_id (
+              id,
+              full_name,
+              username,
+              use_subdomain,
+              profile_picture_url,
+              phone_contact,
+              instagram_link,
+              email
+            )
+          `,
+          )
+          .eq('user_id', cachedUserId)
+          .order('date', { ascending: false });
 
-    if (error) throw error;
+        if (error) {
+          console.error('[getGalerias] Erro na query:', error);
+          throw error;
+        }
 
-    // AJUSTE NO MAP: Usa a função formatGalleryData para garantir que o objeto photographer exista
-    // Importe a formatGalleryData aqui
-    const galeriasFormatadas = (data || []).map((raw) =>
-      formatGalleryData(raw as any, raw.photographer?.username || ''),
-    );
+        // 🎯 DEBUG: Log para verificar se está retornando dados
+        console.log(`[getGalerias] Cache miss - Buscando do DB. userId: ${cachedUserId}, galerias encontradas: ${data?.length || 0}`);
 
-    return { success: true, data: galeriasFormatadas };
-  } catch (error) {
-    console.error('Erro ao buscar galerias:', error);
+        // AJUSTE NO MAP: Usa a função formatGalleryData para garantir que o objeto photographer exista
+        const galeriasFormatadas = (data || []).map((raw) =>
+          formatGalleryData(raw as any, raw.photographer?.username || ''),
+        );
 
-    if (
-      error.message === 'AUTH_RECONNECT_REQUIRED' ||
-      error.message.includes('Google expirou')
-    ) {
-      return { success: false, error: 'AUTH_RECONNECT_REQUIRED' };
-    }
+        return { success: true, data: galeriasFormatadas };
+      } catch (error) {
+        console.error('[getGalerias] Erro ao buscar galerias:', error);
 
-    return {
-      success: false,
-      error: 'Falha ao buscar galerias.',
-      data: [],
-    };
-  }
+        if (
+          error.message === 'AUTH_RECONNECT_REQUIRED' ||
+          error.message.includes('Google expirou')
+        ) {
+          return { success: false, error: 'AUTH_RECONNECT_REQUIRED' };
+        }
+
+        return {
+          success: false,
+          error: 'Falha ao buscar galerias.',
+          data: [],
+        };
+      }
+    },
+    [`user-galerias-${userId}`],
+    {
+      revalidate: GLOBAL_CACHE_REVALIDATE,
+      tags: [`user-galerias-${userId}`],
+    },
+  )(userId);
 }
 // =========================================================================
 // 6. DELETE GALERIA
@@ -499,59 +583,72 @@ export async function getGaleriaPhotos(
 }
 
 // galeria.actions.ts
+/**
+ * 🎯 CACHE: Busca galerias públicas do perfil com cache de 30 dias
+ * O cache é limpo automaticamente via revalidateTag quando o perfil ou galerias são atualizados
+ */
 export async function getPublicProfileGalerias(
   username: string,
   page: number = 1,
   pageSize: number = 12,
 ) {
-  const supabase = await createSupabaseServerClientReadOnly();
-  const from = (page - 1) * pageSize;
-  const to = from + pageSize - 1;
+  return unstable_cache(
+    async () => {
+      const supabase = await createSupabaseServerClientReadOnly();
+      const from = (page - 1) * pageSize;
+      const to = from + pageSize - 1;
 
-  // 1. Buscamos o ID do fotógrafo pelo username
-  const { data: profile } = await supabase
-    .from('tb_profiles')
-    .select('id')
-    .eq('username', username)
-    .single();
+      // 1. Buscamos o ID do fotógrafo pelo username
+      const { data: profile } = await supabase
+        .from('tb_profiles')
+        .select('id')
+        .eq('username', username)
+        .single();
 
-  if (!profile) return { success: false, data: [], hasMore: false };
+      if (!profile) return { success: false, data: [], hasMore: false };
 
-  // 2. Buscamos as galerias incluindo o objeto 'photographer'
-  const { data, count, error } = await supabase
-    .from('tb_galerias')
-    .select(
-      `
-      *,
-      photographer:tb_profiles (
-        id,
-        full_name,
-        username,
-        profile_picture_url,
-        phone_contact,
-        instagram_link,
-        use_subdomain
-      )
-    `,
-      { count: 'exact' },
-    ) // 🎯 Note que substituímos o '*' pela query relacional
-    .eq('user_id', profile.id)
-    .eq('show_on_profile', true)
-    .eq('is_archived', false)
-    .eq('is_deleted', false)
-    .order('date', { ascending: false })
-    .range(from, to);
+      // 2. Buscamos as galerias incluindo o objeto 'photographer'
+      const { data, count, error } = await supabase
+        .from('tb_galerias')
+        .select(
+          `
+          *,
+          photographer:tb_profiles (
+            id,
+            full_name,
+            username,
+            profile_picture_url,
+            phone_contact,
+            instagram_link,
+            use_subdomain
+          )
+        `,
+          { count: 'exact' },
+        )
+        .eq('user_id', profile.id)
+        .eq('show_on_profile', true)
+        .eq('is_archived', false)
+        .eq('is_deleted', false)
+        .order('date', { ascending: false })
+        .range(from, to);
 
-  if (error) {
-    console.error('Erro ao buscar galerias do perfil:', error);
-    return { success: false, data: [], hasMore: false };
-  }
+      if (error) {
+        console.error('Erro ao buscar galerias do perfil:', error);
+        return { success: false, data: [], hasMore: false };
+      }
 
-  return {
-    success: true,
-    data: data || [],
-    hasMore: count ? to < count - 1 : false,
-  };
+      return {
+        success: true,
+        data: data || [],
+        hasMore: count ? to < count - 1 : false,
+      };
+    },
+    [`profile-galerias-${username}-page-${page}`],
+    {
+      revalidate: GLOBAL_CACHE_REVALIDATE,
+      tags: [`profile-${username}`, `profile-galerias-${username}`],
+    },
+  )();
 }
 // =========================================================================
 // FUNÇÕES DE STATUS E EXCLUSÃO (SUPABASE)
@@ -569,6 +666,14 @@ async function updateGaleriaStatus(id: string, updates: any) {
     if (!authSuccess || !userId)
       return { success: false, error: 'Não autenticado' };
 
+    // Busca o slug e drive_folder_id antes de atualizar para revalidar o cache
+    const { data: galeriaAntes } = await supabase
+      .from('tb_galerias')
+      .select('slug, drive_folder_id')
+      .eq('id', id)
+      .eq('user_id', userId)
+      .single();
+
     const { data, error } = await supabase
       .from('tb_galerias')
       .update(updates)
@@ -578,6 +683,27 @@ async function updateGaleriaStatus(id: string, updates: any) {
       .single(); // Use single para garantir que pegamos o objeto atualizado
 
     if (error) throw error;
+
+    // 🔄 REVALIDAÇÃO ESTRATÉGICA: Limpa o cache da galeria, fotos e perfil
+    if (galeriaAntes?.slug) {
+      revalidateTag(`gallery-${galeriaAntes.slug}`);
+    }
+    if (galeriaAntes?.drive_folder_id) {
+      revalidateTag(`drive-${galeriaAntes.drive_folder_id}`);
+    }
+    revalidateTag(`photos-${id}`);
+    // Revalida todas as galerias do usuário
+    revalidateTag(`user-galerias-${userId}`);
+    // Busca o username para revalidar o perfil público
+    const { data: profile } = await supabase
+      .from('tb_profiles')
+      .select('username')
+      .eq('id', userId)
+      .single();
+    if (profile?.username) {
+      revalidateTag(`profile-${profile.username}`);
+      revalidateTag(`profile-galerias-${profile.username}`);
+    }
 
     // O revalidatePath limpa o cache do servidor.
     // No Next.js 14/15, isso força o componente pai a enviar novas props.
@@ -632,6 +758,14 @@ export async function permanentDelete(id: string) {
     const supabase = await createSupabaseServerClient();
     const { userId } = await getAuthAndStudioIds(supabase);
 
+    // Busca o slug e drive_folder_id antes de deletar para revalidar o cache
+    const { data: galeriaAntes } = await supabase
+      .from('tb_galerias')
+      .select('slug, drive_folder_id')
+      .eq('id', id)
+      .eq('user_id', userId)
+      .single();
+
     const { error } = await supabase
       .from('tb_galerias')
       .delete()
@@ -639,6 +773,27 @@ export async function permanentDelete(id: string) {
       .eq('user_id', userId);
 
     if (error) throw error;
+
+    // 🔄 REVALIDAÇÃO ESTRATÉGICA: Limpa o cache da galeria, fotos e perfil
+    if (galeriaAntes?.slug) {
+      revalidateTag(`gallery-${galeriaAntes.slug}`);
+    }
+    if (galeriaAntes?.drive_folder_id) {
+      revalidateTag(`drive-${galeriaAntes.drive_folder_id}`);
+    }
+    revalidateTag(`photos-${id}`);
+    // Revalida todas as galerias do usuário
+    revalidateTag(`user-galerias-${userId}`);
+    // Busca o username para revalidar o perfil público
+    const { data: profile } = await supabase
+      .from('tb_profiles')
+      .select('username')
+      .eq('id', userId)
+      .single();
+    if (profile?.username) {
+      revalidateTag(`profile-${profile.username}`);
+      revalidateTag(`profile-galerias-${profile.username}`);
+    }
 
     revalidatePath('/dashboard');
     return { success: true, message: 'Galeria excluída permanentemente.' };
