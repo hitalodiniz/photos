@@ -3,13 +3,18 @@
 import { useState } from 'react';
 import { authService } from '@/core/services/auth.service';
 
-export default function GoogleSignInButton() {
+interface GoogleSignInButtonProps {
+  forceConsent?: boolean;
+}
+
+export default function GoogleSignInButton({ forceConsent = false }: GoogleSignInButtonProps) {
   const [loading, setLoading] = useState(false);
 
   const handleLogin = async () => {
     try {
       setLoading(true);
-      await authService.signInWithGoogle(); // 🎯 Chamada isolada ao "Back"
+      // 🎯 Usa forceConsent para garantir refresh_token na reconexão
+      await authService.signInWithGoogle(forceConsent);
     } catch (error: any) {
       console.error('Erro ao iniciar login:', error);
       alert('Erro ao iniciar login: ' + error.message);

@@ -27,7 +27,7 @@ export default function ReconnectPage() {
             </p>
           </div>
 
-          <GoogleSignInButton />
+          <GoogleSignInButton forceConsent={true} />
         </div>
       ),
     },

@@ -153,34 +153,35 @@ export default function GooglePickerButton({
     }
 
     setLoading(true);
-    const { accessToken, userId } = await getAuthDetails();
-
-    if (!accessToken || !userId) {
-      onError('Erro de autenticação Google. Por favor, refaça o login.');
-      setLoading(false);
-      return;
-    }
-
-    // 🎯 Busca o Client ID do servidor (mais seguro e funciona mesmo sem NEXT_PUBLIC_)
-    let googleClientId =
+    // 🎯 Declara googleClientId fora do try para estar acessível no catch
+    let googleClientId: string | null | undefined =
       process.env.NEXT_PUBLIC_GOOGLE_CLIENT_ID || process.env.GOOGLE_CLIENT_ID;
-
-    // Se não estiver disponível no cliente, busca do servidor
-    if (!googleClientId) {
-      try {
-        googleClientId = await getGoogleClientId();
-      } catch (error) {
-        console.error('[GooglePickerButton] Erro ao buscar Client ID:', error);
-      }
-    }
-
-    if (!googleClientId) {
-      onError('Configuração do Google não encontrada. Verifique as variáveis de ambiente na Vercel.');
-      setLoading(false);
-      return;
-    }
-
+    
     try {
+      const { accessToken, userId } = await getAuthDetails();
+
+      if (!accessToken || !userId) {
+        // 🎯 Se não há token, redireciona para reconexão
+        console.warn('[GooglePickerButton] Token do Google não disponível, redirecionando para reconexão...');
+        window.location.href = '/auth/reconnect';
+        setLoading(false);
+        return;
+      }
+
+      // 🎯 Se não estiver disponível no cliente, busca do servidor
+      if (!googleClientId) {
+        try {
+          googleClientId = await getGoogleClientId();
+        } catch (error) {
+          console.error('[GooglePickerButton] Erro ao buscar Client ID:', error);
+        }
+      }
+
+      if (!googleClientId) {
+        onError('Configuração do Google não encontrada. Verifique as variáveis de ambiente na Vercel.');
+        setLoading(false);
+        return;
+      }
       const view = new window.google.picker.DocsView(
         window.google.picker.ViewId.DOCS,
       )
@@ -250,6 +251,17 @@ export default function GooglePickerButton({
         hasPicker: !!(window.google && window.google.picker),
         clientId: googleClientId ? '***' : 'MISSING',
       });
+      
+      // 🎯 Se o erro for de autenticação, redireciona para reconexão
+      if (error?.message?.includes('AUTH_RECONNECT_REQUIRED') || 
+          error?.message?.includes('token') ||
+          error?.message?.includes('autenticação')) {
+        console.warn('[GooglePickerButton] Erro de autenticação detectado, redirecionando para reconexão...');
+        window.location.href = '/auth/reconnect';
+        setLoading(false);
+        return;
+      }
+      
       onError(
         error?.message || 'Falha ao iniciar seleção do Drive. Recarregue a página.',
       );
