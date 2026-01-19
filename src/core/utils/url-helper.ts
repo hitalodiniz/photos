@@ -1,6 +1,5 @@
 // src/lib/utils/url-helper.ts
 import { GALLERY_MESSAGES } from '@/constants/messages';
-
 const NEXT_PUBLIC_MAIN_DOMAIN =
   process.env.NEXT_PUBLIC_MAIN_DOMAIN || 'localhost:3000';
 
@@ -264,10 +263,24 @@ export const getDirectGoogleUrl = (
   width: string | number = '1000'
 ) => {
   if (!photoId) return '';
-  // Usamos o domínio lh3.googleusercontent.com que aceita CORS e redimensionamento
-  // O parâmetro -rw força o formato WebP
-  return `https://lh3.googleusercontent.com/d/${photoId}=w${width}-rw`;
-};
+
+   // 🎯 Removendo qualquer prefixo de ID caso exista
+   const cleanId = photoId.toString().trim();
+// 🎯 O domínio correto para renderizar arquivos do Drive é lh3.googleusercontent.com/d/
+  // Parâmetros:
+  // =w{width} -> define a largura
+  // -rw -> força o formato WebP (mais leve)
+  const url = `https://lh3.googleusercontent.com/d/${cleanId}=w${width}-rw`;
+
+
+  // Log para você copiar e colar no navegador para testar
+  // console.log(`[getDirectGoogleUrl] 🖼️ Gerada URL direta:`, {
+  //   id: cleanId,
+  //   resolution: width,
+  //   fullUrl: url
+  // });
+
+  return url;};
 
 /**
  * 🚀 VERSÃO DE ALTA PERFORMANCE (Bypass Vercel)

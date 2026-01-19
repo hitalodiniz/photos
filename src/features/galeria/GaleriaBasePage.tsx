@@ -99,32 +99,45 @@ export default async function GaleriaBasePage({
     }
   }
 
-  console.log('[GaleriaBasePage] Fetching photos', {
-    galeriaId: galeriaData.id,
-    photographerId: galeriaRaw.photographer?.id,
-    folderId: galeriaData.drive_folder_id,
-    slug: fullSlug,
-  });
-
   // 🎯 CACHE: Usa fetchPhotosByGalleryId para cache com tag photos-[galleryId]
+  // A função já gerencia API Key e OAuth internamente (Estratégia Dual)
   const { photos, error } = await fetchPhotosByGalleryId(galeriaData.id);
 
-  console.log('[GaleriaBasePage] Photos fetched', {
-    galeriaId: galeriaData.id,
-    photosCount: photos?.length || 0,
-    hasError: !!error,
-    error,
-  });
+  // TOKEN_NOT_FOUND não é mais um erro - a função já tentou API Key automaticamente
+  // Se retornar TOKEN_NOT_FOUND, significa que ambas as estratégias falharam
+  // Mas ainda assim tentamos exibir o que foi encontrado
+  if (error === 'TOKEN_NOT_FOUND') {
+    console.log('[GaleriaBasePage] Token não encontrado, mas a busca via API Key já foi tentada. Verificando se há fotos disponíveis...');
+    // Continua a execução normalmente - pode haver fotos mesmo sem token
+  }
 
-  if (error || !photos) {
-    console.warn('[GaleriaBasePage] Error or no photos', {
+  // Apenas exibe erro se for um erro real que impede o acesso (PERMISSION_DENIED, GALLERY_NOT_FOUND, etc)
+  if (error && error !== 'TOKEN_NOT_FOUND') {
+    console.log('[GaleriaBasePage] Erro ao buscar fotos:', {
       galeriaId: galeriaData.id,
       error,
       photosCount: photos?.length || 0,
     });
+
     return (
       <GoogleAuthError
         errorType={error}
+        photographerName={galeriaData.photographer_name || 'o autor'}
+      />
+    );
+  }
+
+  // Se não há fotos, pode ser pasta vazia ou inacessível
+  if (!photos || photos.length === 0) {
+    console.log('[GaleriaBasePage] Nenhuma foto encontrada na galeria:', {
+      galeriaId: galeriaData.id,
+      folderId: galeriaData.drive_folder_id,
+      error: error || 'nenhum',
+    });
+
+    return (
+      <GoogleAuthError
+        errorType={error === 'TOKEN_NOT_FOUND' ? null : error}
         photographerName={galeriaData.photographer_name || 'o autor'}
       />
     );

@@ -46,42 +46,61 @@ export async function GET(
       userId: galeria.user_id,
     });
 
-    // Busca o token de acesso (Refresh Token Flow)
-    console.log('[API /galeria/[id]/photos] Getting access token', {
-      userId: galeria.user_id,
-    });
-    const tokenStartTime = Date.now();
-    const accessToken = await getDriveAccessTokenForUser(galeria.user_id);
-    const tokenElapsed = Date.now() - tokenStartTime;
-
-    if (!accessToken) {
-      console.error('[API /galeria/[id]/photos] Token not found', {
-        galeriaId: id,
-        userId: galeria.user_id,
-        elapsedMs: tokenElapsed,
-      });
-      return NextResponse.json(
-        { error: 'Erro de autenticação com o Google' },
-        { status: 401 },
-      );
-    }
-
-    console.log('[API /galeria/[id]/photos] Token obtained', {
-      galeriaId: id,
-      tokenLength: accessToken.length,
-      elapsedMs: tokenElapsed,
-    });
-
-    // Lista as fotos do Drive
-    console.log('[API /galeria/[id]/photos] Fetching photos from Drive', {
+    // 🎯 TENTATIVA 1: Tenta listar sem autenticação (pasta pública)
+    console.log('[API /galeria/[id]/photos] Tentando listar pasta pública (sem auth)', {
       galeriaId: id,
       folderId: galeria.drive_folder_id,
     });
     const photosStartTime = Date.now();
-    const photos = await listPhotosFromDriveFolder(
-      galeria.drive_folder_id,
-      accessToken,
-    );
+    let photos: any[] = [];
+    
+    try {
+      photos = await listPhotosFromDriveFolder(galeria.drive_folder_id);
+      if (photos && photos.length > 0) {
+        console.log('[API /galeria/[id]/photos] ✅ Listou fotos de pasta pública (sem auth)');
+      }
+    } catch (publicError: any) {
+      console.log('[API /galeria/[id]/photos] Pasta não é pública, tentando com autenticação');
+    }
+
+    // 🎯 TENTATIVA 2: Se não funcionou, tenta com autenticação OAuth
+    if (!photos || photos.length === 0) {
+      console.log('[API /galeria/[id]/photos] Getting access token', {
+        userId: galeria.user_id,
+      });
+      const tokenStartTime = Date.now();
+      const accessToken = await getDriveAccessTokenForUser(galeria.user_id);
+      const tokenElapsed = Date.now() - tokenStartTime;
+
+      if (!accessToken) {
+        console.error('[API /galeria/[id]/photos] Token not found', {
+          galeriaId: id,
+          userId: galeria.user_id,
+          elapsedMs: tokenElapsed,
+        });
+        return NextResponse.json(
+          { error: 'Erro de autenticação com o Google' },
+          { status: 401 },
+        );
+      }
+
+      console.log('[API /galeria/[id]/photos] Token obtained', {
+        galeriaId: id,
+        tokenLength: accessToken.length,
+        elapsedMs: tokenElapsed,
+      });
+
+      // Lista as fotos do Drive com autenticação
+      console.log('[API /galeria/[id]/photos] Fetching photos from Drive (with auth)', {
+        galeriaId: id,
+        folderId: galeria.drive_folder_id,
+      });
+      photos = await listPhotosFromDriveFolder(
+        galeria.drive_folder_id,
+        accessToken,
+      );
+    }
+    
     const photosElapsed = Date.now() - photosStartTime;
 
     const totalElapsed = Date.now() - startTime;

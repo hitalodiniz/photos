@@ -29,9 +29,9 @@ export async function getDriveAccessTokenForUser(
     }
 
     if (!profile?.google_refresh_token) {
-      // 🎯 Este é o culpado pelo seu TOKEN_NOT_FOUND
-      console.error(
-        `🚨 Usuário [${profile?.full_name || userId}] não possui refresh_token no banco.`,
+      // Aviso: Token não encontrado, tentando acesso público via API Key
+      console.log(
+        `[getDriveAccessTokenForUser] Aviso: Usuário [${profile?.full_name || userId}] não possui refresh_token. A pasta será acessada via API Key (pública).`,
       );
       return null;
     }
@@ -84,7 +84,7 @@ export async function getDriveAccessTokenForUser(
 
     return tokenData.access_token || null;
   } catch (err) {
-    console.error('Erro crítico em getDriveAccessTokenForUser:', err);
+    console.log('[getDriveAccessTokenForUser] Aviso: Erro ao obter token, tentando acesso público via API Key:', err?.message || err);
     return null;
   }
 }
