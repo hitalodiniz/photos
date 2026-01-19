@@ -25,11 +25,11 @@ export default function GaleriaView({ galeria, photos }: GaleriaViewProps) {
     // 🎯 FIX: Hide loading screen even if photos is empty or undefined
     // This prevents infinite loading when the request fails or returns empty
     const timer = setTimeout(() => {
-      console.log('[GaleriaView] Setting loading to false', {
-        photosLength: photos?.length,
-        hasPhotos: !!photos,
-        galeriaId: galeria.id,
-      });
+      // console.log('[GaleriaView] Setting loading to false', {
+      //   photosLength: photos?.length,
+      //   hasPhotos: !!photos,
+      //   galeriaId: galeria.id,
+      // });
       setIsLoading(false);
     }, 800);
     return () => clearTimeout(timer);
@@ -41,12 +41,18 @@ export default function GaleriaView({ galeria, photos }: GaleriaViewProps) {
     ? RESOLUTIONS.MOBILE_VIEW // 1280px
     : RESOLUTIONS.DESKTOP_VIEW; // 1920px
 
-  const { imgSrc: coverUrl } = useGoogleDriveImage({
-    photoId: galeria.cover_image_url || '',
-    width: coverResolution,
-    priority: true, // Prioridade alta para LCP
-    fallbackToProxy: true,
-  });
+// 2. Chama o Hook para a capa
+const { 
+  imgSrc: coverUrl, 
+  handleLoad, 
+  handleError,
+  isLoading: isCoverLoading // Renomeado para não conflitar com o loading da página
+} = useGoogleDriveImage({
+  photoId: galeria.cover_image_url || '',
+  width: coverResolution,
+  priority: true, 
+  fallbackToProxy: true,
+});
 
   return (
     <div
@@ -76,7 +82,12 @@ export default function GaleriaView({ galeria, photos }: GaleriaViewProps) {
         )}
       </div>
 
-      <GaleriaHero galeria={galeria} coverUrl={coverUrl} photos={photos} />
+      <GaleriaHero 
+        galeria={galeria} 
+        coverUrl={coverUrl} 
+        photos={photos} 
+        isCoverLoading={isCoverLoading} 
+      />
 
       {/* 2. CONTENT LAYER */}
       <div
@@ -97,7 +108,16 @@ export default function GaleriaView({ galeria, photos }: GaleriaViewProps) {
             </div>
           )}
         </main>
-
+{/* 🎯 TAG OCULTA: Essencial para o hook monitorar o erro/sucesso do Google */}
+      {coverUrl && (
+        <img
+          src={coverUrl}
+          alt=""
+          className="hidden"
+          onLoad={handleLoad}
+          onError={handleError}
+        />
+      )}
         <GaleriaFooter
           photographer={galeria.photographer}
           title={galeria.title}
@@ -105,4 +125,6 @@ export default function GaleriaView({ galeria, photos }: GaleriaViewProps) {
       </div>
     </div>
   );
+
+  
 }

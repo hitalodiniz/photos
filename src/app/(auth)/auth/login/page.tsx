@@ -27,7 +27,23 @@ export default function LoginPage() {
   usePageTitle('Acesso restrito');
   const { session, loading: authLoading } = useAuthStatus();
   const router = useRouter();
+  const searchParams = useSearchParams();
   const isSyncingRef = useRef(false);
+  const [errorMessage, setErrorMessage] = useState<string | null>(null);
+
+  // 🎯 Verifica erros na URL
+  useEffect(() => {
+    const error = searchParams.get('error');
+    if (error === 'session_expired') {
+      setErrorMessage('Sua sessão expirou. Por favor, faça login novamente.');
+    } else if (error === 'session_error') {
+      setErrorMessage('Erro ao validar sua sessão. Por favor, faça login novamente.');
+    } else if (error === 'auth_failed') {
+      setErrorMessage('Falha na autenticação. Tente novamente.');
+    } else {
+      setErrorMessage(null);
+    }
+  }, [searchParams]);
 
   useEffect(() => {
     // Se a auth está carregando OU se já logou e o useEffect está rodando a triagem:

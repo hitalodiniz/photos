@@ -38,10 +38,17 @@ export function useGoogleDriveImage({
 
   // Reset quando photoId ou width mudarem
   useEffect(() => {
+    // 🎯 Segurança: Se não houver ID, não tenta carregar
+    if (!photoId) {
+      setStatus('error');
+      return;
+    }
+  
     if (useProxyDirectly) {
       setImgSrc(getProxyUrl(photoId, width));
       setUsingProxy(true);
     } else {
+      // 🎯 Fluxo padrão: Tenta Drive Direto primeiro
       setImgSrc(getDirectGoogleUrl(photoId, width));
       setUsingProxy(false);
     }

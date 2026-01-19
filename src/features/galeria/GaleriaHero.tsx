@@ -10,14 +10,23 @@ import {
 } from 'lucide-react';
 import PhotographerAvatar from './PhotographerAvatar';
 
-export const GaleriaHero = ({ galeria, photos, coverUrl }: any) => {
+interface GaleriaHeroProps {
+  galeria: any;
+  photos: any[];
+  coverUrl: string | null;
+  isCoverLoading: boolean; // 🎯 Recebido do GaleriaView
+}
+
+export const GaleriaHero = ({ galeria, photos, coverUrl, isCoverLoading }: GaleriaHeroProps) => {
   const [isExpanded, setIsExpanded] = useState(true);
 
+  // Auto-recolher após 5 segundos
   useEffect(() => {
     const timer = setTimeout(() => setIsExpanded(false), 5000);
     return () => clearTimeout(timer);
   }, []);
 
+  // Recolher ao scroll
   useEffect(() => {
     const handleScroll = () => {
       if (window.scrollY > 50 && isExpanded) {
@@ -34,29 +43,32 @@ export const GaleriaHero = ({ galeria, photos, coverUrl }: any) => {
         isExpanded ? 'h-screen' : 'h-[28vh] md:h-[40vh]'
       }`}
     >
-      {/* BACKGROUND COM FILTRO DE CONTRASTE */}
+      {/* 1. BACKGROUND IMAGE */}
+      {coverUrl && (
+        <div
+          className={`absolute inset-0 bg-cover bg-center transition-all duration-[1500ms] ease-in-out
+            ${isCoverLoading ? 'scale-110 blur-2xl opacity-50' : 'scale-100 blur-0 opacity-100'}`}
+          style={{
+            backgroundImage: `url('${coverUrl}')`,
+            backgroundPosition: 'center 35%',
+          }}
+        />
+      )}
+
+      {/* Fallback quando não há imagem */}
+      {!coverUrl && (
+        <div className="absolute inset-0 bg-gradient-to-br from-slate-900 via-slate-800 to-black" />
+      )}
+
+      {/* 3. OVERLAY DE PROTEÇÃO (Gradiente para leitura do texto) */}
       <div
-        className="absolute inset-0 bg-cover bg-center transition-transform duration-[3000ms] ease-out"
-        style={{
-          backgroundImage: coverUrl ? `url('${coverUrl}')` : 'none',
-          backgroundPosition: 'center 35%',
-        }}
+        className="absolute inset-0 transition-opacity duration-1000 bg-gradient-to-t from-black/90 via-black/30 to-transparent opacity-100 z-[2]"
       />
 
-      {/* OVERLAY DE PROTEÇÃO (GRADIENTE EDITORIAL) */}
-      {/* Este gradiente garante que fotos claras não 'atropelem' o texto branco. 
-          Ele é mais forte quando expandido e mais sutil quando recolhido.
-      */}
-      <div
-        className={`absolute inset-0 transition-opacity duration-1000 bg-gradient-to-t from-black/80 via-black/20 to-transparent opacity-100}`}
-      />
-
-      {/* AVATAR DO FOTÓGRAFO */}
+      {/* 4. AVATAR DO FOTÓGRAFO (Canto Superior Direito) */}
       <div
         className={`absolute top-4 right-4 md:top-6 md:right-8 transition-all duration-1000 hero-avatar-container z-[10] ${
-          isExpanded
-            ? 'opacity-0 pointer-events-none'
-            : 'opacity-100 pointer-events-auto'
+          isExpanded ? 'opacity-0 pointer-events-none' : 'opacity-100 pointer-events-auto'
         }`}
         style={{ visibility: isExpanded ? 'hidden' : 'visible' }}
       >
@@ -67,12 +79,12 @@ export const GaleriaHero = ({ galeria, photos, coverUrl }: any) => {
         />
       </div>
 
-      {/* CONTAINER PRINCIPAL DE CONTEÚDO */}
+      {/* 6. CONTAINER DE CONTEÚDO (Títulos e Dados) */}
       <div
-        className={` relative h-full flex flex-col transition-all duration-[1200ms] max-w-[1600px] mx-auto w-full z-0 justify-end ${
+        className={`relative h-full flex flex-col transition-all duration-[1200ms] max-w-[1600px] mx-auto w-full z-[5] justify-end ${
           isExpanded
-            ? 'px-8 pb-20 md:pb-24 md:px-16' // Espaço maior quando em tela cheia
-            : 'px-4 pb-4 md:pb-6 md:px-6' // Alinhado ao bottom, mas com respiro menor quando recolhido
+            ? 'px-8 pb-20 md:pb-24 md:px-16'
+            : 'px-4 pb-4 md:pb-6 md:px-6'
         }`}
       >
         <div
@@ -80,7 +92,6 @@ export const GaleriaHero = ({ galeria, photos, coverUrl }: any) => {
             isExpanded ? 'scale-100 md:scale-105' : 'scale-95 md:scale-100'
           }`}
         >
-          {/* TÍTULO E METADADOS */}
           <div className="flex flex-col items-start text-left transition-all duration-1000 min-w-0 flex-1">
             <div className="flex flex-col min-w-0 w-full">
               <h1
@@ -89,21 +100,19 @@ export const GaleriaHero = ({ galeria, photos, coverUrl }: any) => {
               >
                 <Camera
                   className={`text-[#F3E5AB] shrink-0 transition-all duration-1000 drop-shadow-md ${
-                    isExpanded
-                      ? 'w-8 h-8 md:w-12 md:h-12'
-                      : 'w-6 h-6 md:w-8 md:h-8'
+                    isExpanded ? 'w-8 h-8 md:w-12 md:h-12' : 'w-6 h-6 md:w-8 md:h-8'
                   }`}
                   strokeWidth={1.5}
                 />
-                <span className="drop-shadow-lg">{galeria.title}</span>
+                <span className="drop-shadow-lg uppercase tracking-tighter">{galeria.title}</span>
               </h1>
 
-              {/* LINHA CHAMPANHE FORTE */}
+              {/* LINHA DECORATIVA */}
               <div className="h-[2px] md:h-[3px] bg-[#F3E5AB] rounded-full mb-3 md:mb-4 w-full max-w-[150px] md:max-w-[300px] shadow-lg" />
             </div>
 
-            {/* DADOS DA GALERIA COM SOMBRA REFORÇADA */}
-            <div className="flex flex-col md:flex-row md:items-center gap-x-3 gap-y-1.5 md:gap-x-4 md:gap-y-2 transition-all duration-1000 items-start justify-start">
+            {/* METADADOS */}
+            <div className="flex flex-col md:flex-row md:items-center gap-x-3 gap-y-1.5 md:gap-x-4 md:gap-y-2 transition-all duration-1000 items-start justify-start opacity-90">
               {galeria.location && (
                 <div className="flex items-center text-white text-[10px] md:text-[14px] font-medium shrink-0 gap-1.5 drop-shadow-md">
                   <MapPin size={14} className="text-[#F3E5AB] drop-shadow-sm" />
@@ -127,27 +136,20 @@ export const GaleriaHero = ({ galeria, photos, coverUrl }: any) => {
               <div className="hidden md:block w-[1px] h-3 bg-white/40 shrink-0" />
 
               <div className="flex items-center text-white text-[10px] md:text-[14px] font-medium shrink-0 gap-1.5 drop-shadow-md">
-                <ImageIcon
-                  size={14}
-                  className="text-[#F3E5AB] drop-shadow-sm"
-                />
+                <ImageIcon size={14} className="text-[#F3E5AB] drop-shadow-sm" />
                 <span>{photos?.length || 0} fotos</span>
               </div>
             </div>
           </div>
         </div>
 
-        {/* BOTÕES DE NAVEGAÇÃO INTERNA */}
+        {/* 6. BOTÕES DE INTERAÇÃO (Scroll e Expand) */}
         {isExpanded && (
           <button
             onClick={() => setIsExpanded(false)}
-            // 🎯 fixed e bottom-2 para colar no limite inferior. animate-bounce para o efeito quicando.
-            className="fixed bottom-2 left-1/2 -translate-x-1/2 animate-bounce group z-[400] pointer-events-auto p-2"
+            className="fixed bottom-6 left-1/2 -translate-x-1/2 animate-bounce group z-[400] pointer-events-auto p-2"
           >
             <div className="relative flex items-center justify-center w-12 h-12 rounded-full bg-black/40 backdrop-blur-md border border-white/10 shadow-2xl transition-all duration-500 hover:bg-black/60">
-              {/* Brilho interno ao passar o mouse */}
-              <div className="absolute inset-0 rounded-full bg-[#F3E5AB]/5 opacity-0 group-hover:opacity-100 transition-opacity" />
-
               <ChevronDown
                 size={28}
                 strokeWidth={1.5}
