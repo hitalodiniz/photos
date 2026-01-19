@@ -1,10 +1,11 @@
 import './global.css';
-import { Inter, Barlow, Montserrat } from 'next/font/google';
+import { Barlow, Montserrat } from 'next/font/google';
 import Navbar from '@/components/layout/Navbar';
 import { Metadata } from 'next';
 import Script from 'next/script';
 import { CookieBanner } from '@/components/ui';
 import { AuthProvider } from '@/contexts/AuthContext';
+import { Analytics } from "@vercel/analytics/next"
 
 // 2. Configuração com mais pesos para suportar títulos e botões
 const montserrat = Montserrat({
@@ -73,6 +74,7 @@ export default function RootLayout({
 
           <CookieBanner />
         </AuthProvider>
+        <Analytics />
       </body>
     </html>
   );

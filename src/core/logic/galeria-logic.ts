@@ -122,74 +122,23 @@ export function formatGalleryData(
 export const fetchDrivePhotos = (userId?: string, folderId?: string) =>
   unstable_cache(
     async () => {
-      const startTime = Date.now();
-      console.log('[fetchDrivePhotos] Starting', {
-        userId,
-        folderId,
-        timestamp: new Date().toISOString(),
-      });
-
-      if (!userId || !folderId) {
-        console.warn('[fetchDrivePhotos] Missing params', { userId, folderId });
-        return { photos: [], error: 'MISSING_PARAMS' };
-      }
+      if (!userId || !folderId) return { photos: [], error: 'MISSING_PARAMS' };
 
       try {
-        // Esta função busca o google_refresh_token no banco para gerar o access_token
-        console.log('[fetchDrivePhotos] Getting access token', { userId });
-        const tokenStartTime = Date.now();
         const token = await getDriveAccessTokenForUser(userId);
-        const tokenElapsed = Date.now() - tokenStartTime;
-        
+
         if (!token) {
-          console.error('[fetchDrivePhotos] Token not found', {
-            userId,
-            elapsedMs: tokenElapsed,
-          });
+          console.error(
+            `🚨 Falha crítica: Token não gerado para o usuário ${userId}`,
+          );
           return { photos: [], error: 'TOKEN_NOT_FOUND' };
         }
 
-        console.log('[fetchDrivePhotos] Token obtained', {
-          userId,
-          tokenLength: token.length,
-          elapsedMs: tokenElapsed,
-        });
-
-        console.log('[fetchDrivePhotos] Fetching photos from Drive', {
-          folderId,
-          userId,
-        });
-        const photosStartTime = Date.now();
         const photos = await listPhotosFromDriveFolder(folderId, token);
-        const photosElapsed = Date.now() - photosStartTime;
-        
-        const totalElapsed = Date.now() - startTime;
-        console.log('[fetchDrivePhotos] Completed', {
-          userId,
-          folderId,
-          photosCount: photos?.length || 0,
-          photosElapsedMs: photosElapsed,
-          totalElapsedMs: totalElapsed,
-          totalElapsedSeconds: (totalElapsed / 1000).toFixed(2),
-        });
-
         return { photos: photos || [], error: null };
       } catch (error: any) {
-        const elapsed = Date.now() - startTime;
-        console.error('[fetchDrivePhotos] Error', {
-          error: error.message,
-          errorStack: error.stack,
-          userId,
-          folderId,
-          elapsedMs: elapsed,
-          elapsedSeconds: (elapsed / 1000).toFixed(2),
-        });
-
         if (error.message === 'PERMISSION_DENIED') {
           return { photos: [], error: 'PERMISSION_DENIED' };
-        }
-        if (error.message?.includes('Timeout')) {
-          return { photos: [], error: 'TIMEOUT' };
         }
         return { photos: [], error: 'UNKNOWN_ERROR' };
       }

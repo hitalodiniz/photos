@@ -27,23 +27,12 @@ export async function getFolderPhotos(
   driveFolderId: string,
   userId?: string,
 ): Promise<ActionResult<DrivePhoto[]>> {
-  const startTime = Date.now();
-  console.log('[getFolderPhotos] Starting', {
-    driveFolderId,
-    userId,
-    timestamp: new Date().toISOString(),
-  });
-
   try {
     // 1. AUTENTICAÇÃO
     let finalUserId = userId;
     if (!finalUserId) {
-      console.log('[getFolderPhotos] Getting auth context');
       const authResult = await getAuthAndStudioIds();
       if (!authResult.success || !authResult.userId) {
-        console.warn('[getFolderPhotos] Auth failed', {
-          error: authResult.error,
-        });
         return {
           success: false,
           error: authResult.error || 'Usuário não autenticado.',
@@ -51,12 +40,10 @@ export async function getFolderPhotos(
         };
       }
       finalUserId = authResult.userId;
-      console.log('[getFolderPhotos] Auth successful', { userId: finalUserId });
     }
 
     // 2. VALIDAÇÃO
     if (!driveFolderId) {
-      console.error('[getFolderPhotos] Missing driveFolderId');
       return {
         success: false,
         error: 'ID da pasta do Google Drive não foi configurado.',
@@ -65,16 +52,9 @@ export async function getFolderPhotos(
     }
 
     // 3. RENOVAR O ACCESS TOKEN
-    console.log('[getFolderPhotos] Getting access token', { userId: finalUserId });
-    const tokenStartTime = Date.now();
     const accessToken = await getDriveAccessTokenForUser(finalUserId);
-    const tokenElapsed = Date.now() - tokenStartTime;
 
     if (!accessToken) {
-      console.error('[getFolderPhotos] Token not found', {
-        userId: finalUserId,
-        elapsedMs: tokenElapsed,
-      });
       return {
         success: false,
         error: 'Falha na integração Google Drive. Refaça o login/integração.',
@@ -82,22 +62,10 @@ export async function getFolderPhotos(
       };
     }
 
-    console.log('[getFolderPhotos] Token obtained', {
-      userId: finalUserId,
-      tokenLength: token.length,
-      elapsedMs: tokenElapsed,
-    });
-
     // 4. LISTAR FOTOS DO DRIVE
-    console.log('[getFolderPhotos] Fetching photos', { driveFolderId });
-    const photosStartTime = Date.now();
     const photos = await listPhotosFromDriveFolder(driveFolderId, accessToken);
-    const photosElapsed = Date.now() - photosStartTime;
 
     // 5. ORDENAÇÃO: Data (mais recente) > Nome (alfabético)
-    console.log('[getFolderPhotos] Sorting photos', {
-      photosCount: photos.length,
-    });
     photos.sort((a, b) => {
       const pA = a as {
         createdTime?: string;
@@ -118,43 +86,17 @@ export async function getFolderPhotos(
       return a.name.localeCompare(b.name, undefined, { numeric: true }); // Nome: Crescente
     });
 
-    const totalElapsed = Date.now() - startTime;
-    console.log('[getFolderPhotos] Completed successfully', {
-      driveFolderId,
-      userId: finalUserId,
-      photosCount: photos.length,
-      photosElapsedMs: photosElapsed,
-      totalElapsedMs: totalElapsed,
-      totalElapsedSeconds: (totalElapsed / 1000).toFixed(2),
-    });
-
     return { success: true, data: photos };
   } catch (error: unknown) {
-    const elapsed = Date.now() - startTime;
     const errorMessage =
       error instanceof Error ? error.message : 'Erro desconhecido';
-    console.error('[getFolderPhotos] Error', {
-      error: errorMessage,
-      errorStack: error instanceof Error ? error.stack : undefined,
-      driveFolderId,
-      userId,
-      elapsedMs: elapsed,
-      elapsedSeconds: (elapsed / 1000).toFixed(2),
-    });
+    console.error('Erro ao buscar fotos do Google Drive:', errorMessage);
 
     // Tratamento de erros específicos
     if (errorMessage.includes('Sua sessão expirou')) {
       return {
         success: false,
         error: 'AUTH_RECONNECT_REQUIRED',
-        data: [],
-      };
-    }
-
-    if (errorMessage.includes('Timeout')) {
-      return {
-        success: false,
-        error: 'TIMEOUT',
         data: [],
       };
     }

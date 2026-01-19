@@ -17,6 +17,7 @@
     "@supabase/auth-js": "^2.87.1",
     "@supabase/ssr": "^0.8.0",
     "@supabase/supabase-js": "^2.86.2",
+    "@vercel/analytics": "^1.6.1",
     "file-saver": "^2.0.5",
     "framer-motion": "^12.23.26",
     "googleapis": "^129.0.0",

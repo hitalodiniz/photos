@@ -18,15 +18,7 @@ export async function listPhotosFromDriveFolder(
   driveFolderId: string,
   accessToken: string,
 ): Promise<DrivePhoto[]> {
-  const startTime = Date.now();
-  console.log('[listPhotosFromDriveFolder] Starting', {
-    driveFolderId,
-    hasToken: !!accessToken,
-    timestamp: new Date().toISOString(),
-  });
-
   if (!driveFolderId) {
-    console.error('[listPhotosFromDriveFolder] Missing driveFolderId');
     throw new Error('O ID da pasta do Google Drive não foi configurado.');
   }
 
@@ -40,94 +32,31 @@ export async function listPhotosFromDriveFolder(
 
   let allFiles: any[] = [];
   let pageToken: string | null = null;
-  let pageCount = 0;
-  const MAX_PAGES = 10; // Safety limit
-  const TIMEOUT_MS = 60000; // 60 seconds timeout
 
   try {
     do {
-      pageCount++;
-      console.log(`[listPhotosFromDriveFolder] Fetching page ${pageCount}`, {
-        driveFolderId,
-        hasPageToken: !!pageToken,
-        currentFilesCount: allFiles.length,
+      const photoLimit = PLAN_LIMITS['PREMIUM'] || 500;
+      const url = pageToken
+        ? `https://www.googleapis.com/drive/v3/files?q=${query}&fields=${fields}&pageSize=${photoLimit}&orderBy=name&pageToken=${pageToken}`
+        : `https://www.googleapis.com/drive/v3/files?q=${query}&fields=${fields}&pageSize=${photoLimit}&orderBy=name`;
+
+      const response = await fetch(url, {
+        headers: { Authorization: `Bearer ${accessToken}` },
+        cache: 'force-cache',
+        next: {
+          revalidate: GLOBAL_CACHE_REVALIDATE,
+          tags: [`drive-photos-${driveFolderId}`],
+        },
       });
 
-      if (pageCount > MAX_PAGES) {
-        console.warn('[listPhotosFromDriveFolder] Max pages reached', {
-          driveFolderId,
-          totalFiles: allFiles.length,
-        });
-        break;
-      }
+      if (!response.ok) throw new Error(`Erro API Drive: ${response.status}`);
 
-      const photoLimit = PLAN_LIMITS['PREMIUM'] || 500;
-      const url = `https://www.googleapis.com/drive/v3/files?q=${query}&fields=${fields}&pageSize=${photoLimit}&orderBy=name`;
+      const buffer = await response.arrayBuffer();
+      const textData = new TextDecoder().decode(buffer);
+      const data = JSON.parse(textData);
 
-      // 🎯 TIMEOUT HANDLING: Create abort controller for timeout
-      const controller = new AbortController();
-      const timeoutId = setTimeout(() => {
-        console.error('[listPhotosFromDriveFolder] Request timeout', {
-          driveFolderId,
-          pageCount,
-          elapsed: Date.now() - startTime,
-        });
-        controller.abort();
-      }, TIMEOUT_MS);
-
-      try {
-        const response = await fetch(url, {
-          headers: { Authorization: `Bearer ${accessToken}` },
-          cache: 'force-cache',
-          signal: controller.signal,
-          next: {
-            revalidate: GLOBAL_CACHE_REVALIDATE,
-            tags: [`drive-photos-${driveFolderId}`],
-          },
-        });
-
-        clearTimeout(timeoutId);
-
-        if (!response.ok) {
-          const errorText = await response.text().catch(() => 'Unknown error');
-          console.error('[listPhotosFromDriveFolder] API error', {
-            status: response.status,
-            statusText: response.statusText,
-            error: errorText,
-            driveFolderId,
-          });
-          throw new Error(`Erro API Drive: ${response.status} - ${errorText}`);
-        }
-
-        // 🎯 SOLUÇÃO PARA "Body is unusable"
-        // Lemos o corpo UMA ÚNICA VEZ como buffer
-        const buffer = await response.arrayBuffer();
-
-        // 🎯 CONVERSÃO SEGURA: Transformamos o buffer em JSON
-        const textData = new TextDecoder().decode(buffer);
-        const data = JSON.parse(textData);
-
-        const filesInPage = data.files || [];
-        console.log(`[listPhotosFromDriveFolder] Page ${pageCount} completed`, {
-          filesInPage: filesInPage.length,
-          totalFiles: allFiles.length + filesInPage.length,
-          hasNextPage: !!data.nextPageToken,
-        });
-
-        allFiles = [...allFiles, ...filesInPage];
-        pageToken = data.nextPageToken || null;
-      } catch (fetchError: any) {
-        clearTimeout(timeoutId);
-        if (fetchError.name === 'AbortError') {
-          console.error('[listPhotosFromDriveFolder] Request aborted (timeout)', {
-            driveFolderId,
-            pageCount,
-            elapsed: Date.now() - startTime,
-          });
-          throw new Error('Timeout ao buscar fotos do Google Drive');
-        }
-        throw fetchError;
-      }
+      allFiles = [...allFiles, ...(data.files || [])];
+      pageToken = data.nextPageToken || null;
     } while (pageToken);
 
     // Ordenação Natural (Ex: foto-2 vem antes de foto-10)
@@ -138,38 +67,17 @@ export async function listPhotosFromDriveFolder(
       }),
     );
 
-    const result = sortedFiles.map((file) => ({
+    return sortedFiles.map((file) => ({
       id: file.id,
       name: file.name,
       size: file.size || '0',
-      // Reduzimos o padrão da thumb no grid para 600px para ser ultra rápido
       thumbnailUrl: `/api/galeria/cover/${file.id}?w=600`,
       webViewUrl: file.webViewLink,
       width: file.imageMediaMetadata?.width || 1600,
       height: file.imageMediaMetadata?.height || 1200,
     }));
-
-    const elapsed = Date.now() - startTime;
-    console.log('[listPhotosFromDriveFolder] Completed successfully', {
-      driveFolderId,
-      totalPhotos: result.length,
-      pagesFetched: pageCount,
-      elapsedMs: elapsed,
-      elapsedSeconds: (elapsed / 1000).toFixed(2),
-    });
-
-    return result;
   } catch (error: any) {
-    const elapsed = Date.now() - startTime;
-    console.error('[listPhotosFromDriveFolder] Critical error', {
-      error: error.message,
-      errorStack: error.stack,
-      driveFolderId,
-      pagesFetched: pageCount,
-      filesFound: allFiles.length,
-      elapsedMs: elapsed,
-      elapsedSeconds: (elapsed / 1000).toFixed(2),
-    });
+    console.error('Erro crítico na listagem:', error.message);
     throw error;
   }
 }
