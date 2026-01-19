@@ -3,22 +3,47 @@
 import { usePathname } from 'next/navigation';
 import { Camera } from 'lucide-react';
 import Link from 'next/link';
+import { useEffect, useState } from 'react';
 
-import { useAuth } from '@/hooks/useAuth';
+import { useAuth } from '@/contexts/AuthContext';
 import { UserMenu } from '@/components/auth';
 
 export default function Navbar() {
   const pathname = usePathname();
   const { user, avatarUrl, logout, isLoading } = useAuth();
+  const [mounted, setMounted] = useState(false);
 
-  // 🎯 DEBUG: Log para diagnóstico em produção
-  if (typeof window !== 'undefined' && process.env.NODE_ENV === 'production') {
-    console.log('[Navbar] Debug:', {
-      pathname,
-      hasUser: !!user,
-      isLoading,
-      shouldShow: user && !isLoading && (pathname === '/dashboard' || pathname === '/onboarding' || pathname.includes('/dashboard/')),
-    });
+  // 🎯 Garante que só renderiza após montagem (evita problemas de hidratação)
+  useEffect(() => {
+    setMounted(true);
+  }, []);
+
+  // 🎯 DEBUG: Log para diagnóstico (sempre)
+  useEffect(() => {
+    if (mounted) {
+      const shouldShow = user && !isLoading && (pathname === '/dashboard' || pathname === '/onboarding' || pathname.includes('/dashboard/'));
+      console.log('[Navbar] Debug:', {
+        pathname,
+        hasUser: !!user,
+        user,
+        isLoading,
+        mounted,
+        shouldShow,
+        conditions: {
+          hasUser: !!user,
+          notLoading: !isLoading,
+          isDashboard: pathname === '/dashboard',
+          isOnboarding: pathname === '/onboarding',
+          includesDashboard: pathname.includes('/dashboard/'),
+        },
+      });
+    }
+  }, [pathname, user, isLoading, mounted]);
+
+  // Não renderiza até montar (evita flash de conteúdo)
+  if (!mounted) {
+    console.log('[Navbar] Aguardando montagem...');
+    return null;
   }
 
   const showNavbar =
@@ -28,7 +53,16 @@ export default function Navbar() {
       pathname === '/onboarding' ||
       pathname.includes('/dashboard/'));
 
-  if (!showNavbar) return null;
+  if (!showNavbar) {
+    // 🎯 DEBUG: Log quando não mostra
+    console.log('[Navbar] Não mostrando navbar:', {
+      reason: !user ? 'sem usuário' : isLoading ? 'carregando' : 'pathname não corresponde',
+      pathname,
+      hasUser: !!user,
+      isLoading,
+    });
+    return null;
+  }
 
   return (
     <>

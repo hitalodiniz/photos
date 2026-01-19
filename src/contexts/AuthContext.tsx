@@ -26,8 +26,12 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   const [isLoading, setIsLoading] = useState(true); // 🎯 Nome sincronizado
 
   const loadProfile = async (userId: string) => {
-    const url = await getAvatarUrl(userId);
-    setAvatarUrl(url);
+    try {
+      const url = await getAvatarUrl(userId);
+      setAvatarUrl(url);
+    } catch (error) {
+      console.error('[AuthContext] Erro ao carregar avatar:', error);
+    }
   };
 
   const protectRoute = (redirectTo: string = '/login') => {
@@ -37,32 +41,77 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   };
 
   useEffect(() => {
+    // 🎯 DEBUG: Log inicial
+    console.log('[AuthContext] Inicializando autenticação...');
+
+    // 🎯 TIMEOUT DE SEGURANÇA: Força isLoading = false após 5 segundos
+    let isLoadingStillTrue = true;
+    const timeoutId = setTimeout(() => {
+      if (isLoadingStillTrue) {
+        console.warn('[AuthContext] Timeout: Forçando isLoading = false após 5s');
+        setIsLoading(false);
+      }
+    }, 5000);
+
     authService.getSession().then((session) => {
+      console.log('[AuthContext] Sessão inicial:', {
+        hasSession: !!session,
+        hasUser: !!session?.user,
+        userId: session?.user?.id,
+      });
+
       if (session?.user) {
-        setUser({
+        const userData = {
           id: session.user.id,
           email: session.user.email,
           name:
             session.user.user_metadata?.full_name ||
             session.user.email?.split('@')[0],
-        });
+        };
+        setUser(userData);
         loadProfile(session.user.id);
+        console.log('[AuthContext] Usuário definido:', userData);
+      } else {
+        console.log('[AuthContext] Nenhuma sessão encontrada');
       }
       setIsLoading(false);
+      clearTimeout(timeoutId);
+    }).catch((error) => {
+      console.error('[AuthContext] Erro ao buscar sessão:', error);
+      setIsLoading(false);
+      clearTimeout(timeoutId);
     });
 
     const subscription = authService.onAuthStateChange((event, session) => {
+      console.log('[AuthContext] Mudança de autenticação:', {
+        event,
+        hasSession: !!session,
+        hasUser: !!session?.user,
+      });
+
       if (session?.user) {
-        setUser({ id: session.user.id, email: session.user.email });
+        const userData = {
+          id: session.user.id,
+          email: session.user.email,
+          name:
+            session.user.user_metadata?.full_name ||
+            session.user.email?.split('@')[0],
+        };
+        setUser(userData);
         loadProfile(session.user.id);
+        console.log('[AuthContext] Usuário atualizado:', userData);
       } else {
         setUser(null);
         setAvatarUrl(null);
+        console.log('[AuthContext] Usuário removido');
       }
+      isLoadingStillTrue = false;
       setIsLoading(false);
+      clearTimeout(timeoutId);
     });
 
     return () => {
+      clearTimeout(timeoutId);
       if (subscription && typeof subscription.unsubscribe === 'function') {
         subscription.unsubscribe();
       }

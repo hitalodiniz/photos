@@ -3,8 +3,6 @@
 import {
   Calendar,
   MapPin,
-  Lock,
-  Globe,
   User,
   Pencil,
   Trash2,
@@ -15,13 +13,11 @@ import {
   Inbox,
   Archive,
   XCircle,
-  Unlock,
-  Eye,
-  LayoutGrid,
   ShieldCheck,
+  Eye,
   Users,
   RefreshCw,
-  UserRound, // Adicionado apenas o import do ícone
+  UserRound,
 } from 'lucide-react';
 import { useState, useEffect } from 'react';
 import type { Galeria } from '@/core/types/galeria';
@@ -59,7 +55,7 @@ export default function GaleriaCard({
   onEdit,
   onDelete,
   onArchive,
-  onToggleShowOnProfile, // Certificando que a prop é usada
+  onToggleShowOnProfile,
   onRestore,
   onPermanentDelete,
   isDeleting,
@@ -69,6 +65,8 @@ export default function GaleriaCard({
   const [mounted, setMounted] = useState(false);
   const [copied, setCopied] = useState(false);
   const [links, setLinks] = useState({ url: '', whatsapp: '', message: '' });
+  // 🎯 Estado para controlar o carregamento da imagem de capa
+  const [isImageLoading, setIsImageLoading] = useState(true);
 
   useEffect(() => {
     setMounted(true);
@@ -98,16 +96,19 @@ export default function GaleriaCard({
     return `${day}/${month}/${year}`;
   };
 
-  // 🎯 ESTRATÉGIA ANTI-429: Usa proxy diretamente para todos os cards
-  // Resolução THUMB (600px) é suficiente para capas e evita 429 do Google
-  // Proxy é mais estável e confiável para grids com muitas imagens simultâneas
   const { imgSrc: imageUrl, handleError, handleLoad } = useGoogleDriveImage({
     photoId: galeria.cover_image_url || '',
-    width: RESOLUTIONS.THUMB, // 600px - resolução THUMB para capas
-    priority: index < 4, // Primeiros 4 cards têm prioridade de carregamento
-    fallbackToProxy: false, // Não precisa fallback, já está usando proxy
-    useProxyDirectly: true, // Todos os cards usam proxy diretamente (evita 429)
+    width: RESOLUTIONS.THUMB,
+    priority: index < 4,
+    fallbackToProxy: false,
+    useProxyDirectly: true,
   });
+
+  // Função para unificar o load da imagem
+  const onImageLoad = () => {
+    setIsImageLoading(false);
+    handleLoad();
+  };
 
   const handleCopy = async (e: React.MouseEvent) => {
     e.stopPropagation();
@@ -139,21 +140,30 @@ export default function GaleriaCard({
       className="group relative flex cursor-pointer flex-col overflow-hidden rounded-[14px] border border-slate-200 bg-white transition-all duration-300 hover:shadow-2xl hover:shadow-gold/15 w-full animate-in fade-in slide-in-from-bottom-2 duration-500 fill-mode-both"
       style={{ animationDelay: `${index * 50}ms` }}
     >
-      {isUpdating && (
+      {(isUpdating || isDeleting) && (
         <div className="absolute inset-0 z-20 flex flex-col items-center justify-center bg-white/80 backdrop-blur-sm">
           <Loader2 className="h-6 w-6 animate-spin text-gold" />
         </div>
       )}
 
       <div className="relative aspect-[16/9] w-full overflow-hidden bg-slate-100">
+        {/* 🎯 Spinner de carregamento da imagem */}
+        {isImageLoading && !isUpdating && (
+          <div className="absolute inset-0 z-10 flex items-center justify-center bg-slate-100">
+            <Loader2 className="h-5 w-5 animate-spin text-slate-300" />
+          </div>
+        )}
+
         <img
           src={imageUrl}
           alt={galeria.title}
           loading={index < 4 ? 'eager' : 'lazy'}
           decoding="async"
           onError={handleError}
-          onLoad={handleLoad}
-          className="h-full w-full object-cover transition-transform duration-1000 ease-out group-hover:scale-110"
+          onLoad={onImageLoad}
+          className={`h-full w-full object-cover transition-all duration-1000 ease-out group-hover:scale-110 ${
+            isImageLoading ? 'opacity-0' : 'opacity-100'
+          }`}
         />
 
         <div className="absolute top-3 left-3 flex gap-2">
@@ -291,7 +301,6 @@ export default function GaleriaCard({
                 {copied ? <Check size={16} /> : <Copy size={16} />}
               </button>
 
-              {/* Ajuste mínimo: Adicionado o ícone UserRound dentro do botão */}
               <button
                 onClick={(e) => {
                   e.stopPropagation();

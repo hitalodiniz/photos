@@ -1,6 +1,7 @@
 'use client';
-import React, { memo, useEffect, useRef, useState, useCallback } from 'react';
-import { Heart, Loader2 } from 'lucide-react';
+import React, { memo, useEffect, useRef, useState, useCallback, cache } from 'react';
+import { useSearchParams } from 'next/navigation';
+import { Heart, Loader2, ImageIcon } from 'lucide-react';
 import 'photoswipe/dist/photoswipe.css';
 import { Gallery, Item } from 'react-photoswipe-gallery';
 import { Galeria } from '@/core/types/galeria';
@@ -113,18 +114,12 @@ const MasonryGrid = ({
       {showOnlyFavorites && displayedPhotos.length === 0 ? (
         <div className="text-center py-10 md:py-20 px-4 animate-in fade-in duration-700">
           <Heart size={48} className="text-[#D4AF37] mb-4 mx-auto opacity-80" />
-
-          <p
-            className={`italic text-[14px] md:text-[18px] mb-8 transition-colors duration-500 ${
-              galeria.grid_bg_color === '#FFFFFF' ||
-              galeria.grid_bg_color === '#F3E5AB'
-                ? 'text-slate-600' // Cor escura suave para fundos claros (Branco/Champagne)
-                : 'text-white/90' // Branco translúcido para fundos escuros
-            }`}
-          >
+          <p className={`italic text-[14px] md:text-[18px] mb-8 transition-colors duration-500 ${
+              galeria.grid_bg_color === '#FFFFFF' || galeria.grid_bg_color === '#F3E5AB'
+                ? 'text-slate-600' : 'text-white/90'
+            }`}>
             Nenhuma foto favorita selecionada
           </p>
-
           <button
             onClick={() => setShowOnlyFavorites(false)}
             className="mx-auto px-6 py-2.5 rounded-[0.5rem] bg-[#D4AF37] text-black hover:bg-white border border-[#D4AF37] transition-all uppercase text-[11px] font-bold tracking-widest shadow-lg"
@@ -135,99 +130,53 @@ const MasonryGrid = ({
       ) : (
         <div className="max-w-[1600px] mx-auto px-2 pt-2 pb-2">
           <Gallery withCaption>
-            <div
-              className="w-full transition-all duration-700 grid gap-1 grid-flow-row-dense"
-              style={{
-                gridTemplateColumns: `repeat(${columns.mobile}, minmax(0, 1fr))`,
-              }}
-            >
+            <div className="w-full transition-all duration-700 grid gap-1 grid-flow-row-dense"
+                 style={{ gridTemplateColumns: `repeat(${columns.mobile}, minmax(0, 1fr))` }}>
               <style jsx>{`
                 @media (min-width: 768px) {
-                  div {
-                    grid-template-columns: repeat(
-                      ${Math.min(5, columns.tablet)},
-                      minmax(0, 1fr)
-                    ) !important;
-                  }
+                  div { grid-template-columns: repeat(${Math.min(5, columns.tablet)}, minmax(0, 1fr)) !important; }
                 }
                 @media (min-width: 1280px) {
-                  div {
-                    grid-template-columns: repeat(
-                      ${Math.min(8, columns.desktop)},
-                      minmax(0, 1fr)
-                    ) !important;
-                  }
+                  div { grid-template-columns: repeat(${Math.min(8, columns.desktop)}, minmax(0, 1fr)) !important; }
                 }
               `}</style>
 
               {limitedPhotos.map((photo, index) => {
                 const isSelected = favorites.includes(photo.id);
-
-                // 🎯 OTIMIZAÇÃO DO GRID:
-                // Usa URL direta do Google (preferencial). PhotoSwipe tentará carregar.
-                // Se falhar, o SafeImage já faz fallback via hook useGoogleDriveImage.
                 const thumbUrl = getDirectGoogleUrl(photo.id, RESOLUTIONS.THUMB);
-
-                // 🎯 OTIMIZAÇÃO DO LIGHTBOX (Full Res):
-                // getHighResImageUrl já está configurado no helper para 1920px.
-                // Isso garante nitidez máxima em telas grandes sem estourar o cache.
                 const fullUrl = getHighResImageUrl(photo.id);
 
                 return (
                   <Item
                     key={photo.id}
-                    original={fullUrl} // Alta resolução para o Zoom
-                    thumbnail={thumbUrl} // Miniatura leve para o Grid
+                    original={fullUrl}
+                    thumbnail={thumbUrl}
                     width={photo.width}
                     height={photo.height}
                     caption={`${galleryTitle} - Foto ${index + 1}`}
                   >
                     {({ ref }) => (
-                      <div
-                        className={`relative group shadow-sm hover:shadow-xl transition-all duration-500 rounded-[0.5rem] overflow-hidden border border-black/5 ring-1 ring-white/10 ${
-                          showOnlyFavorites
-                            ? 'aspect-square bg-white/5'
-                            : photo.height > photo.width
-                              ? 'md:row-span-2'
-                              : 'row-span-1'
-                        }`}
-                      >
-                        <a
-                          href="#"
-                          ref={ref as any}
-                          onClick={(e) => {
-                            e.preventDefault();
-                            setSelectedPhotoIndex(index);
-                          }}
-                          className="block cursor-zoom-in relative w-full h-full"
-                        >
+                      <div className={`relative group shadow-sm hover:shadow-xl transition-all duration-500 rounded-[0.5rem] overflow-hidden border border-black/5 ring-1 ring-white/10 ${
+                          showOnlyFavorites ? 'aspect-square bg-white/5' : photo.height > photo.width ? 'md:row-span-2' : 'row-span-1'
+                        }`}>
+                        <a href="#" ref={ref as any} onClick={(e) => { e.preventDefault(); setSelectedPhotoIndex(index); }}
+                           className="block cursor-zoom-in relative w-full h-full">
                           <SafeImage
                             photoId={photo.id}
-                            src={thumbUrl} // Carrega a versão leve de 500px
-                            alt={`Foto ${index + 1}`}
                             width={photo.width}
                             height={photo.height}
-                            // Prioridade apenas para as 4 primeiras fotos (LCP)
                             priority={index < 4}
                             showOnlyFavorites={showOnlyFavorites}
                             className="relative z-10"
                           />
                         </a>
-
                         <GridPhotoActions
                           photoId={photo.id}
                           isFavorited={isSelected}
-                          onToggleFavorite={() =>
-                            toggleFavoriteFromGrid(photo.id)
-                          }
-                          onShareWhatsApp={() =>
-                            handleShareWhatsAppGrid(photo.id)
-                          }
+                          onToggleFavorite={() => toggleFavoriteFromGrid(photo.id)}
+                          onShareWhatsApp={() => handleShareWhatsAppGrid(photo.id)}
                           onCopyLink={() => handleCopyLinkGrid(photo.id)}
-                          // handleDownloadPhoto já usará a rota /download que gera os 4000px
-                          onDownload={() =>
-                            handleDownloadPhoto(galeria, photo.id, index)
-                          }
+                          onDownload={() => handleDownloadPhoto(galeria, photo.id, index)}
                           btnScale={btnScale}
                           iconSize={iconSize}
                           isMobile={isMobile}
@@ -245,10 +194,7 @@ const MasonryGrid = ({
             <div className="w-full">
               {!allLoaded && (
                 <div className="flex justify-center py-10">
-                  <Loader2
-                    className="animate-spin text-[#F3E5AB] opacity-50"
-                    size={32}
-                  />
+                  <Loader2 className="animate-spin text-[#F3E5AB] opacity-50" size={32} />
                 </div>
               )}
               <div ref={sentinelRef} className="h-2 w-full" />
@@ -261,14 +207,15 @@ const MasonryGrid = ({
 };
 
 // --- COMPONENTE DE IMAGEM OTIMIZADO ---
-// --- COMPONENTE DE IMAGEM OTIMIZADO ---
 const SafeImage = memo(({ photoId, width, height, priority, className, showOnlyFavorites }: any) => {
   const [imageSize, setImageSize] = useState<string | null>(null);
   const [realResolution, setRealResolution] = useState<{w: number, h: number} | null>(null);
   const [userAuthenticated, setUserAuthenticated] = useState<boolean>(false);
   const localImgRef = useRef<HTMLImageElement | null>(null);
   
-  // Usando seu hook que já consome o @/lib/supabase.client.ts
+  const searchParams = useSearchParams();
+  const showDebugForce = searchParams.get('v') === 's';
+
   const { isAuthenticated, isLoading: authLoading } = useSupabaseSession();
   
   const {
@@ -286,50 +233,39 @@ const SafeImage = memo(({ photoId, width, height, priority, className, showOnlyF
     fallbackToProxy: true,
   });
 
-  // Callback ref que combina o hook ref com o ref local
   const combinedRef = useCallback((img: HTMLImageElement | null) => {
     localImgRef.current = img;
     imgRef(img);
   }, [imgRef]);
 
-  // Sincroniza com o hook de autenticação e escuta mudanças
   useEffect(() => {
-    // Atualiza quando o hook muda
     if (!authLoading) {
       setUserAuthenticated(isAuthenticated);
     }
   }, [isAuthenticated, authLoading]);
 
-  // Escuta mudanças de autenticação do Supabase diretamente (para subdomínios)
   useEffect(() => {
-    const {
-      data: { subscription },
-    } = supabase.auth.onAuthStateChange((_event, session) => {
+    const { data: { subscription } } = supabase.auth.onAuthStateChange((_event, session) => {
       setUserAuthenticated(!!session?.user);
     });
-
-    return () => {
-      subscription.unsubscribe();
-    };
+    return () => subscription.unsubscribe();
   }, []);
 
-  // Busca metadata quando autenticado e imagem carregada
   useEffect(() => {
     let cancelled = false;
 
     const handleMetadata = async () => {
-      if (!userAuthenticated || !imgSrc || !isLoaded) {
-        setTimeout(() => {
-          if (!cancelled) {
-            setImageSize(null);
-            setRealResolution(null);
-          }
-        }, 0);
+      const hasPermission = showDebugForce || userAuthenticated;
+
+      if (!hasPermission || !imgSrc || !isLoaded) {
+        if (!cancelled) {
+          setImageSize(null);
+          setRealResolution(null);
+        }
         return;
       }
 
       try {
-        // 🎯 Tenta buscar o tamanho real
         const response = await fetch(imgSrc, { 
           method: 'HEAD', 
           mode: 'cors',
@@ -341,10 +277,8 @@ const SafeImage = memo(({ photoId, width, height, priority, className, showOnlyF
         if (!cancelled) {
           if (size) {
             const kb = parseInt(size, 10) / 1024;
-            const formattedSize = kb > 1024 ? `${(kb/1024).toFixed(1)}MB` : `${Math.round(kb)}KB`;
-            setImageSize(formattedSize);
+            setImageSize(kb > 1024 ? `${(kb/1024).toFixed(1)}MB` : `${Math.round(kb)}KB`);
           } else {
-            // Se o Google omitir o content-length (CORS), usamos o plano B
             setImageSize("OK");
           }
         }
@@ -352,7 +286,6 @@ const SafeImage = memo(({ photoId, width, height, priority, className, showOnlyF
         if (!cancelled) setImageSize("---");
       }
 
-      // 🎯 Captura a resolução real assim que o elemento img estiver pronto
       if (!cancelled && localImgRef.current) {
         const checkRes = () => {
           if (localImgRef.current?.naturalWidth) {
@@ -362,8 +295,8 @@ const SafeImage = memo(({ photoId, width, height, priority, className, showOnlyF
                 h: localImgRef.current.naturalHeight
               });
             }
-          } else {
-            setTimeout(checkRes, 100); // Tenta novamente em 100ms
+          } else if (!cancelled) {
+            setTimeout(checkRes, 100);
           }
         };
         checkRes();
@@ -371,16 +304,14 @@ const SafeImage = memo(({ photoId, width, height, priority, className, showOnlyF
     };
 
     handleMetadata();
+    return () => { cancelled = true; };
+  }, [imgSrc, isLoaded, userAuthenticated, showDebugForce, photoId]);
 
-    return () => {
-      cancelled = true;
-    };
-  }, [imgSrc, isLoaded, userAuthenticated, photoId]);
   return (
     <div className="relative w-full h-full overflow-hidden bg-white/5" 
          style={{ aspectRatio: showOnlyFavorites ? '1/1' : `${width}/${height}` }}>
       
-      {isLoading && <div className="absolute inset-0 flex items-center justify-center"><LoadingSpinner size="xs" /></div>}
+      {isLoading && <div className="absolute inset-0 flex items-center justify-center z-10"><LoadingSpinner size="xs" /></div>}
 
       <img
         ref={combinedRef}
@@ -391,11 +322,10 @@ const SafeImage = memo(({ photoId, width, height, priority, className, showOnlyF
         style={{ position: 'absolute', inset: 0 }}
       />
 
-      {/* 🎯 O BADGE (Inferior Esquerdo) - Apenas para usuários logados */}
-      {isLoaded && imageSize && userAuthenticated && (
+      {isLoaded && imageSize && (userAuthenticated || showDebugForce) && (
         <div 
           className="absolute bottom-1.5 left-1.5 z-[30] bg-black/60 backdrop-blur-md px-1.5 py-0.5 rounded border border-white/10 flex items-center gap-1.5 shadow-lg"
-          title={`Resolução Real: ${realResolution?.w}x${realResolution?.h}px | Origem: ${usingProxy ? 'Servidor (A)' : 'Drive (D)'}`}
+          title={`Resolução: ${realResolution?.w}x${realResolution?.h}px | Origem: ${usingProxy ? 'Servidor' : 'Drive'}`}
         >
           <span className={`text-[9px] font-black ${usingProxy ? 'text-blue-400' : 'text-green-500'}`}>
             {usingProxy ? 'A' : 'D'}
