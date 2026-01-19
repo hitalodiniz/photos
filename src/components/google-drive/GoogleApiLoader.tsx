@@ -2,13 +2,11 @@
 "use client";
 
 import Script from 'next/script';
-import { useEffect, useState } from 'react';
+import { useEffect } from 'react';
 
 // Variáveis para garantir que as libs são carregadas apenas uma vez
 let gapiLoaded = false;
 let gsiLoaded = false;
-
-
 
 // Função que só avisa o componente do Picker quando AMBAS as libs estiverem prontas
 const checkAndNotify = () => {
@@ -18,16 +16,41 @@ const checkAndNotify = () => {
     }
 };
 
-// Declaração global (opcional aqui se já estiver no layout)
+// Declaração global
 declare global {
     interface Window {
         gapi: any;
         google: any;
-        onGoogleLibraryLoad: () => void;
+        onGoogleLibraryLoad: (() => void) | undefined;
     }
 }
 
 export default function GoogleApiLoader() {
+    useEffect(() => {
+        // Verifica se as bibliotecas já estão carregadas
+        const checkLibraries = () => {
+            if (window.gapi && window.google && window.google.picker) {
+                gapiLoaded = true;
+                gsiLoaded = true;
+                checkAndNotify();
+            }
+        };
+
+        // Verifica imediatamente
+        checkLibraries();
+
+        // Verifica periodicamente (fallback)
+        const interval = setInterval(() => {
+            if (!gapiLoaded || !gsiLoaded) {
+                checkLibraries();
+            } else {
+                clearInterval(interval);
+            }
+        }, 500);
+
+        return () => clearInterval(interval);
+    }, []);
+
     return (
         <>
             {/* 1. CARREGAMENTO DO GOOGLE GSI (Auth Client) */}
@@ -36,11 +59,15 @@ export default function GoogleApiLoader() {
                 strategy="afterInteractive"
                 onLoad={() => {
                     gsiLoaded = true;
+                    console.log('[GoogleApiLoader] Google GSI loaded');
                     checkAndNotify();
+                }}
+                onError={(e) => {
+                    console.error('[GoogleApiLoader] Failed to load Google GSI', e);
                 }}
             />
 
-            {/* 2. Script para Google APIs (GAPI) - AGORA CARREGA TAMBÉM O MÓDULO DRIVE */}
+            {/* 2. Script para Google APIs (GAPI) - CARREGA O MÓDULO PICKER */}
             <Script
                 src="https://apis.google.com/js/api.js"
                 strategy="afterInteractive"
@@ -48,15 +75,14 @@ export default function GoogleApiLoader() {
                     if (window.gapi) {
                         // Carrega o módulo Picker (necessário para o botão)
                         window.gapi.load('picker', () => {
-                            // Carrega o módulo Client e Drive API (necessário para a consulta files.get)
-                            window.gapi.load('client', () => {
-                                window.gapi.client.load('drive', 'v3', () => {
-                                    gapiLoaded = true;
-                                    checkAndNotify(); // Dispara o sinal SÓ depois que TUDO carregar
-                                });
-                            });
+                            console.log('[GoogleApiLoader] Google Picker API loaded');
+                            gapiLoaded = true;
+                            checkAndNotify();
                         });
                     }
+                }}
+                onError={(e) => {
+                    console.error('[GoogleApiLoader] Failed to load Google API', e);
                 }}
             />
         </>

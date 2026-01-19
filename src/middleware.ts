@@ -29,7 +29,7 @@ export async function middleware(req: NextRequest) {
     const response = NextResponse.next({
       request: { headers: new Headers(req.headers) },
     });
-    const redirectResponse = NextResponse.redirect(new URL('/', req.url));
+
     const isLocal = process.env.NODE_ENV === 'development';
 
     // 2. Inicializamos o Supabase injetando a manipulação de cookies na 'response'
@@ -53,7 +53,6 @@ export async function middleware(req: NextRequest) {
 
               // 2. Atualiza na resposta (para o navegador salvar o cookie)
               response.cookies.set(name, value, finalOptions);
-              redirectResponse.cookies.set(name, value, finalOptions);
             });
 
             // 🎯 O PULO DO GATO: Sincroniza os cookies da response com o request
@@ -74,7 +73,12 @@ export async function middleware(req: NextRequest) {
 
     // 4. Se não houver usuário, retornamos o redirecionamento com os cookies atualizados
     if (!user) {
-      return redirectResponse;
+// Se não houver usuário, redireciona preservando os cookies já setados (como a tentativa de login)
+const redirectUrl = new URL('/', req.url);
+const redirectRes = NextResponse.redirect(redirectUrl);
+// Copia cookies da resposta de auth para a resposta de redirecionamento
+response.cookies.getAll().forEach(c => redirectRes.cookies.set(c.name, c.value, c));
+return redirectRes;
     }
     // 5. Se houver usuário, retornamos a resposta de sucesso
     return response;
@@ -118,12 +122,7 @@ export async function middleware(req: NextRequest) {
       rewriteUrl.pathname = internalPath;
 
       // Garante que os cookies do request original sejam passados para o destino do rewrite
-      const response = NextResponse.rewrite(rewriteUrl);
-      req.cookies.getAll().forEach((cookie) => {
-        response.cookies.set(cookie.name, cookie.value);
-      });
-
-      return response;
+      return NextResponse.rewrite(rewriteUrl);
     }
   }
 
@@ -164,6 +163,5 @@ export const config = {
      * - _next/image (otimização de imagem do Next)
      * - favicon.ico, sitemap.xml, robots.txt
      */
-    '/((?!api|_next/static|_next/image|favicon.ico|sitemap.xml|robots.txt|.*\\..*).*)',
-  ],
+'/((?!api|_next/static|_next/image|favicon.ico|sitemap.xml|robots.txt|.*\\..*).*)',  ],
 };

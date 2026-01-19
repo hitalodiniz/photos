@@ -10,6 +10,7 @@ import {
   ChevronRight,
   RefreshCw,
   ShieldAlert,
+  Loader2,
 } from 'lucide-react';
 import {
   getGalerias,
@@ -24,6 +25,7 @@ import type { Galeria } from '@/core/types/galeria';
 import GalleryFormModal from './GaleriaModal';
 import Filters from './Filters';
 import { ConfirmationModal, Toast } from '@/components/ui';
+import LoadingScreen from '@/components/ui/LoadingScreen';
 import GaleriaCard from './GaleriaCard';
 import { updateSidebarPreference } from '@/core/services/profile.service';
 import {
@@ -33,6 +35,7 @@ import {
 } from '@/actions/revalidate.actions';
 import { authService } from '@/core/services/auth.service';
 import AdminControlModal from '@/components/admin/AdminControlModal';
+import { useAuth } from '@/contexts/AuthContext';
 
 const CARDS_PER_PAGE = 8;
 
@@ -62,6 +65,10 @@ export default function Dashboard({
   initialGalerias,
   initialProfile,
 }: DashboardProps) {
+  // 🎯 VERIFICAÇÃO DE SESSÃO: Protege o dashboard contra perda de sessão
+  const { user, isLoading: authLoading } = useAuth();
+
+  // 🎯 TODOS OS HOOKS DEVEM VIR ANTES DE QUALQUER RETURN CONDICIONAL
   const [galerias, setGalerias] = useState<Galeria[]>(initialGalerias);
   const [isAdminModalOpen, setIsAdminModalOpen] = useState(false);
   const [currentView, setCurrentView] = useState<
@@ -70,20 +77,6 @@ export default function Dashboard({
   const [isSidebarCollapsed, setIsSidebarCollapsed] = useState(
     initialProfile?.sidebar_collapsed ?? false,
   );
-
-  // 🎯 Estado do fotógrafo para monitorar o token
-  const photographer = initialProfile;
-
-  // 🎯 Função de Login Condicional
-  const handleGoogleLogin = async (force: boolean) => {
-    try {
-      await authService.signInWithGoogle(force);
-    } catch {
-      setToast({ message: 'Erro ao conectar com Google', type: 'error' });
-    }
-  };
-
-  // ... (Estados de Modal, Filtros e Toast mantidos iguais)
   const [isFormOpen, setIsFormOpen] = useState(false);
   const [galeriaToEdit, setGaleriaToEdit] = useState<Galeria | null>(null);
   const [cardsToShow, setCardsToShow] = useState(CARDS_PER_PAGE);
@@ -101,6 +94,14 @@ export default function Dashboard({
     useState<Galeria | null>(null);
   const [updatingId, setUpdatingId] = useState<string | null>(null);
 
+  // 🎯 REDIRECIONAMENTO: Se não houver sessão válida, redireciona para login
+  useEffect(() => {
+    if (!authLoading && !user) {
+      // Não mostra nada e redireciona imediatamente
+      window.location.href = '/auth/login';
+    }
+  }, [user, authLoading]);
+
   useEffect(() => {
     document.body.style.overflow =
       isFormOpen || !!galeriaToEdit ? 'hidden' : 'unset';
@@ -114,6 +115,92 @@ export default function Dashboard({
     }),
     [galerias],
   );
+
+  // 🎯 FILTROS: Calculados antes dos returns condicionais
+  const filteredGalerias = useMemo(() => {
+    if (!Array.isArray(galerias)) return [];
+    const nameLower = normalizeString(filterName);
+    const locationLower = normalizeString(filterLocation);
+
+    return galerias.filter((g) => {
+      const isArchived = Boolean(g.is_archived);
+      const isDeleted = Boolean(g.is_deleted);
+      if (currentView === 'active' && (isArchived || isDeleted)) return false;
+      if (currentView === 'archived' && (!isArchived || isDeleted))
+        return false;
+      if (currentView === 'trash' && !isDeleted) return false;
+
+      const titleNorm = normalizeString(g.title || '');
+      const clientNorm = normalizeString(g.client_name || '');
+      const locationNorm = normalizeString(g.location || '');
+
+      const matchesSearch =
+        !nameLower ||
+        titleNorm.includes(nameLower) ||
+        clientNorm.includes(nameLower);
+      const matchesLocation =
+        !locationLower || locationNorm.includes(locationLower);
+      const matchesCategory = !filterCategory || g.category === filterCategory;
+      const matchesType =
+        !filterType || String(g.has_contracting_client) === filterType;
+      const galleryDateString = g.date ? g.date.split('T')[0] : '';
+      const matchesDate =
+        (!filterDateStart || galleryDateString >= filterDateStart) &&
+        (!filterDateEnd || galleryDateString <= filterDateEnd);
+
+      return (
+        matchesSearch &&
+        matchesLocation &&
+        matchesCategory &&
+        matchesType &&
+        matchesDate
+      );
+    });
+  }, [
+    galerias,
+    currentView,
+    filterName,
+    filterLocation,
+    filterCategory,
+    filterType,
+    filterDateStart,
+    filterDateEnd,
+  ]);
+
+  const visibleGalerias = useMemo(
+    () => filteredGalerias.slice(0, cardsToShow),
+    [filteredGalerias, cardsToShow],
+  );
+
+  // 🎯 LOADING: Mostra loading enquanto verifica sessão
+  if (authLoading) {
+    return (
+      <div className="min-h-screen bg-[#F8F9FA] flex flex-col items-center justify-center gap-4">
+        <div className="relative">
+          <Loader2 className="w-10 h-10 text-[#D4AF37] animate-spin" />
+          <div className="absolute inset-0 blur-xl bg-champagne-dark opacity-20 animate-pulse"></div>
+        </div>
+        <LoadingScreen message="Validando seu acesso" />
+      </div>
+    );
+  }
+
+  // 🎯 PROTEÇÃO: Não renderiza conteúdo se não houver sessão válida
+  if (!user) {
+    return null; // Não mostra nada enquanto redireciona
+  }
+
+  // 🎯 Estado do fotógrafo para monitorar o token
+  const photographer = initialProfile;
+
+  // 🎯 Função de Login Condicional
+  const handleGoogleLogin = async (force: boolean) => {
+    try {
+      await authService.signInWithGoogle(force);
+    } catch {
+      setToast({ message: 'Erro ao conectar com Google', type: 'error' });
+    }
+  };
 
   // --- MÉTODOS DE AÇÃO ---
   const handleFormSuccess = async (
@@ -285,61 +372,6 @@ export default function Dashboard({
     await updateSidebarPreference(newValue);
   };
 
-  // --- FILTROS ---
-  const filteredGalerias = useMemo(() => {
-    if (!Array.isArray(galerias)) return [];
-    const nameLower = normalizeString(filterName);
-    const locationLower = normalizeString(filterLocation);
-
-    return galerias.filter((g) => {
-      const isArchived = Boolean(g.is_archived);
-      const isDeleted = Boolean(g.is_deleted);
-      if (currentView === 'active' && (isArchived || isDeleted)) return false;
-      if (currentView === 'archived' && (!isArchived || isDeleted))
-        return false;
-      if (currentView === 'trash' && !isDeleted) return false;
-
-      const titleNorm = normalizeString(g.title || '');
-      const clientNorm = normalizeString(g.client_name || '');
-      const locationNorm = normalizeString(g.location || '');
-
-      const matchesSearch =
-        !nameLower ||
-        titleNorm.includes(nameLower) ||
-        clientNorm.includes(nameLower);
-      const matchesLocation =
-        !locationLower || locationNorm.includes(locationLower);
-      const matchesCategory = !filterCategory || g.category === filterCategory;
-      const matchesType =
-        !filterType || String(g.has_contracting_client) === filterType;
-      const galleryDateString = g.date ? g.date.split('T')[0] : '';
-      const matchesDate =
-        (!filterDateStart || galleryDateString >= filterDateStart) &&
-        (!filterDateEnd || galleryDateString <= filterDateEnd);
-
-      return (
-        matchesSearch &&
-        matchesLocation &&
-        matchesCategory &&
-        matchesType &&
-        matchesDate
-      );
-    });
-  }, [
-    galerias,
-    currentView,
-    filterName,
-    filterLocation,
-    filterCategory,
-    filterType,
-    filterDateStart,
-    filterDateEnd,
-  ]);
-
-  const visibleGalerias = useMemo(
-    () => filteredGalerias.slice(0, cardsToShow),
-    [filteredGalerias, cardsToShow],
-  );
 
   return (
     <div className="mx-auto flex flex-col lg:flex-row max-w-[1600px] gap-4 px-4 py-2 bg-luxury-bg min-h-screen pb-24 lg:pb-6">

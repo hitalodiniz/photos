@@ -52,21 +52,36 @@ export async function getProfileData(supabaseClient?: any) {
  * Esta função NÃO usa unstable_cache, por isso pode ser chamada no Middleware.
  */
 export async function fetchProfileRaw(username: string) {
-  const supabase = createSupabaseClientForCache();
-  const { data, error } = await supabase
-    .from('tb_profiles')
-    .select('*')
-    .eq('username', username)
-    .single();
+  // 🎯 Criamos uma função interna para a busca real
+  const getProfile = async (uname: string) => {
+    const supabase = createSupabaseClientForCache();
+    const { data, error } = await supabase
+      .from('tb_profiles')
+      .select('*')
+      .eq('username', uname)
+      .single();
 
-  if (error || !data) {
-    if (error && error.code !== 'PGRST116') {
-      // Ignora erro de "não encontrado"
-      console.error('Erro ao buscar perfil:', error);
+    if (error || !data) {
+      if (error && error.code !== 'PGRST116') {
+        console.error('Erro ao buscar perfil no DB:', error);
+      }
+      return null;
     }
-    return null;
-  }
-  return data;
+    return data;
+  };
+
+  // 🎯 Envolvemos no cache do Next.js
+  // 'profiles-cache' é a chave global
+  // [username] garante que cada fotógrafo tenha seu próprio cache
+  // revalidate: 3600 -> O cache dura 1 hora (ajuste conforme necessário)
+  return unstable_cache(
+    async () => getProfile(username),
+    [`profile-${username}`],
+    {
+      revalidate: GLOBAL_CACHE_REVALIDATE, 
+      tags: [`profile-${username}`]
+    }
+  )();
 }
 
 // =========================================================================

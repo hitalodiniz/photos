@@ -6,6 +6,7 @@ import Script from 'next/script';
 import { CookieBanner } from '@/components/ui';
 import { AuthProvider } from '@/contexts/AuthContext';
 import { Analytics } from "@vercel/analytics/next"
+import GoogleApiLoader from '@/components/google-drive/GoogleApiLoader';
 
 // 2. Configuração com mais pesos para suportar títulos e botões
 const montserrat = Montserrat({
@@ -63,14 +64,7 @@ export default function RootLayout({
             {children}
           </main>
 
-          <Script
-            src="https://apis.google.com/js/api.js"
-            strategy="beforeInteractive"
-          />
-          <Script
-            src="https://accounts.google.com/gsi/client"
-            strategy="beforeInteractive"
-          />
+          <GoogleApiLoader />
 
           <CookieBanner />
         </AuthProvider>

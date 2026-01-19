@@ -31,26 +31,54 @@ declare global {
 }
 
 let isPickerLoaded = false;
+let isLoadingAttempted = false;
 
 const loadGoogleLibraries = (callback: () => void) => {
   if (isPickerLoaded) {
     callback();
     return;
   }
-  if (window.gapi) {
-    window.gapi.load('picker', () => {
+
+  // 🎯 Verifica se ambas as bibliotecas estão disponíveis
+  const checkAndLoad = () => {
+    if (window.gapi && window.google && window.google.picker) {
+      // Se já está carregado, apenas marca como pronto
       isPickerLoaded = true;
       callback();
-    });
+      return;
+    }
+
+    if (window.gapi) {
+      window.gapi.load('picker', () => {
+        // Aguarda um pouco para garantir que window.google.picker está disponível
+        setTimeout(() => {
+          if (window.google && window.google.picker) {
+            isPickerLoaded = true;
+            callback();
+          }
+        }, 100);
+      });
+    }
+  };
+
+  // Tenta carregar imediatamente se já estiver disponível
+  if (window.gapi && window.google && window.google.picker) {
+    isPickerLoaded = true;
+    callback();
+    return;
+  }
+
+  // Se gapi está disponível, tenta carregar o picker
+  if (window.gapi) {
+    checkAndLoad();
   } else {
-    window.onGoogleLibraryLoad = () => {
-      if (window.gapi) {
-        window.gapi.load('picker', () => {
-          isPickerLoaded = true;
-          callback();
-        });
-      }
-    };
+    // Configura callback para quando as bibliotecas carregarem
+    if (!isLoadingAttempted) {
+      isLoadingAttempted = true;
+      window.onGoogleLibraryLoad = () => {
+        checkAndLoad();
+      };
+    }
   }
 };
 
@@ -71,22 +99,73 @@ export default function GooglePickerButton({
 
   useEffect(() => {
     if (isReadyToOpen) return;
-    loadGoogleLibraries(() => setIsReadyToOpen(true));
+
+    // 🎯 Verifica periodicamente se as bibliotecas carregaram
+    const checkLibraries = () => {
+      if (window.gapi && window.google && window.google.picker) {
+        isPickerLoaded = true;
+        setIsReadyToOpen(true);
+        return;
+      }
+      loadGoogleLibraries(() => setIsReadyToOpen(true));
+    };
+
+    // Tenta imediatamente
+    checkLibraries();
+
+    // Se não carregou, tenta novamente após um delay
+    const timeoutId = setTimeout(() => {
+      if (!isReadyToOpen) {
+        checkLibraries();
+      }
+    }, 1000);
+
+    // Verifica periodicamente (máximo 5 tentativas)
+    let attempts = 0;
+    const intervalId = setInterval(() => {
+      if (isReadyToOpen || attempts >= 5) {
+        clearInterval(intervalId);
+        return;
+      }
+      attempts++;
+      checkLibraries();
+    }, 500);
+
     return () => {
-      window.onGoogleLibraryLoad = undefined;
+      clearTimeout(timeoutId);
+      clearInterval(intervalId);
+      // Não remove o callback global para não quebrar outros componentes
     };
   }, [isReadyToOpen]);
 
   const openPicker = async () => {
-    if (!isReadyToOpen) {
-      onError('As bibliotecas do Google Drive não foram carregadas.');
+    // 🎯 Verificação dupla antes de abrir
+    if (!isReadyToOpen || !window.google || !window.google.picker) {
+      console.error('[GooglePickerButton] Libraries not ready', {
+        isReadyToOpen,
+        hasGoogle: !!window.google,
+        hasPicker: !!(window.google && window.google.picker),
+        hasGapi: !!window.gapi,
+      });
+      onError('As bibliotecas do Google Drive não foram carregadas. Recarregue a página.');
       return;
     }
+
     setLoading(true);
     const { accessToken, userId } = await getAuthDetails();
 
     if (!accessToken || !userId) {
       onError('Erro de autenticação Google. Por favor, refaça o login.');
+      setLoading(false);
+      return;
+    }
+
+    // 🎯 Usa NEXT_PUBLIC_ para variáveis de ambiente no cliente
+    const googleClientId =
+      process.env.NEXT_PUBLIC_GOOGLE_CLIENT_ID || process.env.GOOGLE_CLIENT_ID;
+
+    if (!googleClientId) {
+      onError('Configuração do Google não encontrada. Contate o suporte.');
       setLoading(false);
       return;
     }
@@ -102,7 +181,7 @@ export default function GooglePickerButton({
         .setSelectFolderEnabled(false);
 
       const picker = new window.google.picker.PickerBuilder()
-        .setAppId(process.env.GOOGLE_CLIENT_ID!)
+        .setAppId(googleClientId)
         .setOAuthToken(accessToken)
         .addView(view)
         .enableFeature(window.google.picker.Feature.NAVIGATE_TO_DRIVE)
@@ -153,8 +232,17 @@ export default function GooglePickerButton({
         .build();
 
       picker.setVisible(true);
-    } catch (error) {
-      onError('Falha ao iniciar seleção do Drive.');
+    } catch (error: any) {
+      console.error('[GooglePickerButton] Error opening picker', {
+        error: error?.message,
+        stack: error?.stack,
+        hasGoogle: !!window.google,
+        hasPicker: !!(window.google && window.google.picker),
+        clientId: googleClientId ? '***' : 'MISSING',
+      });
+      onError(
+        error?.message || 'Falha ao iniciar seleção do Drive. Recarregue a página.',
+      );
       setLoading(false);
     }
   };
