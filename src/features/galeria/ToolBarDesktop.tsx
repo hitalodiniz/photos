@@ -14,7 +14,7 @@ import {
   FileCheck,
   ImageIcon,
 } from 'lucide-react';
-import WhatsAppIcon from '../ui/WhatsAppIcon';
+import WhatsAppIcon from '@/components/ui/WhatsAppIcon';
 
 export const ToolBarDesktop = ({
   showOnlyFavorites,

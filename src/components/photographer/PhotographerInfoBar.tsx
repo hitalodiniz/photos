@@ -8,7 +8,7 @@ import {
   Check,
   ChevronDown,
 } from 'lucide-react';
-import WhatsAppIcon from '../ui/WhatsAppIcon';
+import WhatsAppIcon from '@/components/ui/WhatsAppIcon';
 
 export const PhotographerInfoBar = ({
   phone,

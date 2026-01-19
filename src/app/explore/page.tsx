@@ -53,7 +53,7 @@ export default function ExplorePage() {
         <div className="flex flex-col md:flex-row md:items-end justify-between gap-6">
           <div>
             <h1 className="font-artistic text-5xl md:text-7xl mb-4 leading-tight">
-              Descubra <br /> <span className="text-[#F3E5AB]">Artistas</span>
+              Descubra <br /> <span className="text-champagne">Artistas</span>
             </h1>
             <p className="text-white/50 text-lg max-w-md italic">
               Conectando olhares únicos aos projetos mais ambiciosos.
@@ -69,7 +69,7 @@ export default function ExplorePage() {
             <input
               type="text"
               placeholder="Buscar por cidade ou nome..."
-              className="w-full bg-white/5 border border-white/10 rounded-2xl py-4 pl-12 pr-4 focus:outline-none focus:border-[#F3E5AB]/50 transition-all text-sm"
+              className="w-full bg-white/5 border border-white/10 rounded-2xl py-4 pl-12 pr-4 focus:outline-none focus:border-champagne/50 transition-all text-sm"
               onChange={(e) => setSearchTerm(e.target.value)}
             />
           </div>
@@ -88,7 +88,7 @@ export default function ExplorePage() {
           ].map((cat) => (
             <button
               key={cat}
-              className="px-6 py-2 rounded-xl border border-white/10 bg-white/5 hover:bg-[#F3E5AB] hover:text-black transition-all text-[10px] font-black uppercase tracking-[0.2em] whitespace-nowrap"
+              className="px-6 py-2 rounded-xl border border-white/10 bg-white/5 hover:bg-champagne hover:text-black transition-all text-[10px] font-black uppercase tracking-widest whitespace-nowrap"
             >
               {cat}
             </button>
@@ -115,7 +115,7 @@ export default function ExplorePage() {
 
             {/* Categoria */}
             <div className="absolute top-5 right-5 px-3 py-1 rounded-lg bg-black/40 backdrop-blur-md border border-white/10">
-              <span className="text-[9px] uppercase font-black tracking-widest text-[#F3E5AB]">
+              <span className="text-[9px] uppercase font-black tracking-widest text-champagne">
                 {pro.category}
               </span>
             </div>
@@ -123,7 +123,7 @@ export default function ExplorePage() {
             {/* Conteúdo Inferior */}
             <div className="absolute bottom-0 left-0 w-full p-6">
               <div className="flex items-center gap-4 mb-4">
-                <div className="w-12 h-12 rounded-full border-2 border-[#F3E5AB] overflow-hidden shadow-2xl shrink-0">
+                <div className="w-12 h-12 rounded-full border-2 border-champagne overflow-hidden shadow-2xl shrink-0">
                   <img
                     src={pro.avatarUrl}
                     alt={pro.name}
@@ -135,8 +135,8 @@ export default function ExplorePage() {
                     {pro.name}
                   </h3>
                   <div className="flex items-center gap-1 text-white/50 mt-1.5">
-                    <MapPin size={12} className="text-[#F3E5AB]" />
-                    <span className="text-[10px] font-bold uppercase tracking-tight truncate">
+                    <MapPin size={12} className="text-champagne" />
+                    <span className="text-[10px] font-bold uppercase tracking-widest truncate">
                       {pro.mainCity}
                     </span>
                   </div>
@@ -145,7 +145,7 @@ export default function ExplorePage() {
 
               {/* Botão que aparece no Hover */}
               <div className="grid grid-cols-1 transition-all duration-500 max-h-0 opacity-0 group-hover:max-h-20 group-hover:opacity-100">
-                <div className="w-full py-3 mt-2 rounded-xl bg-white text-black font-bold text-[10px] uppercase tracking-[0.2em] flex items-center justify-center gap-2">
+                <div className="w-full py-3 mt-2 rounded-xl bg-white text-black font-bold text-[10px] uppercase tracking-widest flex items-center justify-center gap-2">
                   Ver Portfólio <ArrowUpRight size={14} />
                 </div>
               </div>

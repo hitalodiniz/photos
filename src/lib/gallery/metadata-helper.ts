@@ -1,7 +1,7 @@
 // src/lib/gallery/metadata-helper.ts
 import { Metadata } from 'next';
 import { fetchGalleryBySlug } from '@/core/logic/galeria-logic';
-import { getProxyUrl } from '@/core/utils/url-helper';
+import { getDirectGoogleUrl } from '@/core/utils/url-helper';
 import { getPublicProfile } from '@/core/services/profile.service';
 
 // 🎯 Definimos um tipo que estende o Metadata padrão para incluir o fullname
@@ -21,9 +21,9 @@ export async function getPhotographerMetadata(
     profile.mini_bio ||
     `Confira o trabalho e as galerias de ${profile.full_name || username}.`;
 
-  // Imagem de compartilhamento: usa a foto do perfil ou um fallback
+  // 🎯 FALLBACK: Prefere URL direta (server-side), cliente fará fallback se necessário
   const ogImage = profile.photo_url
-    ? getProxyUrl(profile.photo_url, '1200')
+    ? getDirectGoogleUrl(profile.photo_url, '1200')
     : `${process.env.NEXT_PUBLIC_BASE_URL}/default-og-profile.jpg`;
 
   const url = `${process.env.NEXT_PUBLIC_BASE_URL}/${username}`;
@@ -96,11 +96,9 @@ export async function getGalleryMetadata(
   }
 
   // 4. Tratamento da Imagem (OpenGraph)
-  // 🎯 REVISÃO DO PROXY (Capa da Galeria):
-  // Passamos '1200'. O Google Drive processará a capa para essa largura.
-  // O peso final em WebP será de aproximadamente 250KB - 400KB.
+  // 🎯 FALLBACK: Prefere URL direta (server-side), cliente fará fallback se necessário
   const ogImage = galeriaRaw.cover_image_url
-    ? getProxyUrl(galeriaRaw.cover_image_url, '1200')
+    ? getDirectGoogleUrl(galeriaRaw.cover_image_url, '1200')
     : null;
   const url = `${process.env.NEXT_PUBLIC_BASE_URL}/${fullSlug}`;
 
@@ -171,10 +169,8 @@ export async function getPhotoMetadata(
         : 'Toque para ver a foto.';
   }
 
-  // 🎯 REVISÃO DO PROXY (Foto Específica):
-  // Usamos o ID da foto enviado pelo Lightbox.
-  // Isso garante que o preview do link seja a foto correta.
-  const ogImage = googleId ? getProxyUrl(googleId, '1200') : null;
+  // 🎯 FALLBACK: Prefere URL direta (server-side), cliente fará fallback se necessário
+  const ogImage = googleId ? getDirectGoogleUrl(googleId, '1200') : null;
   const baseUrl = process.env.NEXT_PUBLIC_BASE_URL;
 
   return {

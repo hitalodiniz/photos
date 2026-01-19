@@ -10,11 +10,11 @@ export async function GET(
 ) {
   const { photoId } = await params;
 
-  // 🎯 ESTRATÉGIA DE 1MB (Original Otimizado):
-  // Solicitamos 4000px. Isso garante nitidez para impressões de até 30x40cm,
-  // mas força o Google a processar o arquivo. O resultado costuma ser um arquivo
-  // de alta fidelidade muito mais leve que o original bruto.
-  const width = '4000';
+  // 🎯 ESTRATÉGIA DE 2MB MÁXIMO:
+  // Usamos 2560px que geralmente resulta em arquivo entre 1MB-1.8MB
+  // Isso garante alta qualidade sem exceder o limite de 2MB
+  // O Google processa automaticamente e otimiza o arquivo
+  const width = '2560';
 
   // Usamos 'original' como formato para que o Google não force WebP,
   // mantendo a compatibilidade universal do JPEG para o cliente final.

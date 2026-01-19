@@ -38,16 +38,6 @@ export const fetchGalleryBySlug = (fullSlug: string) =>
       const profile = data.photographer;
       const domain = process.env.NEXT_PUBLIC_MAIN_DOMAIN || 'suagaleria.com.br';
 
-      // Log de depuração no servidor para confirmar a chegada do token do banco
-      // if (data?.photographer) {
-      //   console.log('--- SUPABASE RAW CHECK ---');
-      //   console.log('ID do Fotógrafo:', data.photographer.id);
-      //   console.log(
-      //     'Token presente no retorno?',
-      //     !!data.photographer.google_refresh_token,
-      //   );
-      // }
-
       const profileUrl = profile.use_subdomain
         ? `https://${profile.username}.${domain}`
         : `https://${domain}/${profile.username}`;

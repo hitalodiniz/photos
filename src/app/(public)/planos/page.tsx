@@ -1,6 +1,5 @@
 'use client';
 import React, { useState } from 'react';
-import { useRouter } from 'next/navigation';
 import { Check, X, Sparkles, Lock, Loader2 } from 'lucide-react';
 import {
   EditorialHeader,
@@ -76,7 +75,7 @@ export default function PlanosPage() {
           subtitle={
             <>
               Escolha a vitrine ideal para a sua{' '}
-              <span className="font-semibold border-b-2 border-[#F3E5AB] text-white">
+              <span className="font-semibold border-b-2 border-champagne text-white">
                 carreira fotográfica
               </span>
             </>
@@ -99,16 +98,16 @@ export default function PlanosPage() {
                       <th
                         key={key}
                         className={`py-8 px-4 border-b-2 border-slate-900 text-center relative transition-colors duration-300
-                        ${isPremium || isHovered ? 'bg-champagne-dark/20' : 'bg-white'}`}
+                        ${isPremium || isHovered ? 'bg-champagne/20' : 'bg-white'}`}
                       >
                         {isPremium && (
-                          <div className="absolute top-0 left-1/2 -translate-x-1/2 -translate-y-4 bg-slate-950 text-[#F3E5AB] text-[9px] font-semibold uppercase tracking-wider px-4 py-1 rounded-full flex items-center gap-1 animate-pulse">
+                          <div className="absolute top-0 left-1/2 -translate-x-1/2 -translate-y-4 bg-slate-950 text-champagne text-[9px] font-semibold uppercase tracking-widest px-4 py-1 rounded-full flex items-center gap-1 animate-pulse">
                             <Sparkles size={10} /> Recomendado
                           </div>
                         )}
                         <div className="flex flex-col items-center gap-1.5">
                           <span
-                            className={`uppercase tracking-wider text-[11px] font-semibold ${isPremium ? 'text-amber-600' : 'text-slate-500'}`}
+                            className={`uppercase tracking-widest text-xs font-semibold ${isPremium ? 'text-gold' : 'text-slate-500'}`}
                           >
                             {p.name}
                           </span>
@@ -146,13 +145,13 @@ export default function PlanosPage() {
                         <td
                           key={key}
                           className={`py-5 px-4 border-b border-slate-200 text-center transition-colors duration-300
-                          ${isHighlighted ? 'bg-champagne-dark/10 text-slate-950 font-semibold' : 'text-slate-800 font-semibold'}`}
+                          ${isHighlighted ? 'bg-champagne/10 text-slate-950 font-semibold' : 'text-slate-800 font-semibold'}`}
                         >
                           {cellValue === true ? (
                             <Check
                               size={20}
                               strokeWidth={3}
-                              className="mx-auto text-amber-600"
+                              className="mx-auto text-gold"
                             />
                           ) : cellValue === false ? (
                             <X
@@ -182,7 +181,7 @@ export default function PlanosPage() {
                     return (
                       <td
                         key={key}
-                        className={`p-6 text-center transition-colors ${isPremium || hoveredPlan === key ? 'bg-champagne-dark/10' : ''}`}
+                        className={`p-6 text-center transition-colors ${isPremium || hoveredPlan === key ? 'bg-champagne/10' : ''}`}
                         onMouseEnter={() => setHoveredPlan(key)}
                         onMouseLeave={() => setHoveredPlan(null)}
                       >
@@ -193,7 +192,7 @@ export default function PlanosPage() {
                           className={`w-full py-4 px-4 rounded-2xl font-semibold text-[10px] md:text-[12px] uppercase tracking-widest transition-all flex items-center justify-center gap-2
                             ${
                               isPremium
-                                ? 'bg-slate-950 text-[#F3E5AB] hover:scale-105 shadow-xl'
+                                ? 'bg-slate-950 text-champagne hover:scale-105 shadow-xl'
                                 : 'bg-white text-slate-950 border-2 border-slate-950 hover:bg-slate-950 hover:text-white'
                             } disabled:opacity-50 group`} // Adicionado 'group' para controlar o hover do ícone
                         >
@@ -206,7 +205,7 @@ export default function PlanosPage() {
                             <>
                               <IconePlano
                                 size={18}
-                                className={`shrink-0 transition-colors ${isPremium ? 'text-[#F3E5AB]' : 'text-slate-950 group-hover:text-white'}`}
+                                className={`shrink-0 transition-colors ${isPremium ? 'text-champagne' : 'text-slate-950 group-hover:text-white'}`}
                               />
                               <span className="leading-none">
                                 {PLANS[key].cta}
@@ -221,8 +220,8 @@ export default function PlanosPage() {
               </tbody>
             </table>
             <div className="mt-2 flex flex-col items-center gap-2">
-              <p className="flex items-center justify-center gap-1.5 text-[9px] md:text-[11px] uppercase tracking-wider text-slate-500 font-semibold whitespace-nowrap">
-                <Lock size={14} className="text-[#D4AF37] shrink-0" />
+              <p className="flex items-center justify-center gap-1.5 text-[9px] md:text-xs uppercase tracking-widest text-slate-500 font-semibold whitespace-nowrap">
+                <Lock size={14} className="text-gold shrink-0" />
                 <span className="leading-none text-slate-700">
                   Transação segura via criptografia SSL
                 </span>

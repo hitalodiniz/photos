@@ -1,5 +1,5 @@
 'use client';
-import Lightbox from '@/components/gallery/Lightbox';
+import { Lightbox } from '@/components/galeria';
 import { useRouter } from 'next/navigation';
 
 export default function PhotoViewClient({ googleId, slug, initialData }: any) {

@@ -1,15 +1,14 @@
 'use client';
 import React, { useState, useEffect } from 'react';
-import LoadingScreen from '../ui/LoadingScreen';
+import LoadingScreen from '@/components/ui/LoadingScreen';
 import { PhotographerAvatar, PhotographerBio } from './PhotographerHero';
 import { PhotographerInfoBar } from './PhotographerInfoBar';
-import { EditorialHero } from '../ui/EditorialHero';
+import { EditorialHero } from '@/components/ui/EditorialHero';
 import { getPublicProfileGalerias } from '@/core/services/galeria.service';
-import GaleriaCard from '@/app/(dashboard)/dashboard/GaleriaCard';
+import type { Galeria } from '@/core/types/galeria';
 import { Loader2 } from 'lucide-react';
 import { PublicGaleriaCard } from './PublicGaleriaCard';
-import { profile } from 'console';
-import { GaleriaFooter } from '../gallery';
+import { GaleriaFooter } from '@/components/galeria';
 
 interface ProfileContentProps {
   fullName: string;
@@ -37,8 +36,8 @@ export default function PhotographerContent({
   const [isLoading, setIsLoading] = useState(true);
   const [scrollY, setScrollY] = useState(0);
   const [isHovered, setIsHovered] = useState(false);
-  const [isExpanded, setIsExpanded] = useState(false);
-  const [galerias, setGalerias] = useState<any[]>([]);
+  const [isExpanded] = useState(false);
+  const [galerias, setGalerias] = useState<Galeria[]>([]);
   const [page, setPage] = useState(1);
   const [hasMore, setHasMore] = useState(false);
   const [loadingMore, setLoadingMore] = useState(false);

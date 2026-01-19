@@ -1,12 +1,11 @@
 'use client';
 
 import { useEffect, useRef, useState } from 'react';
-import { supabase } from '@/lib/supabase.client';
+import { useSupabaseSession } from '@/hooks/useSupabaseSession';
 import {
   getParentFolderIdServer,
   getDriveFolderName,
   checkFolderPublicPermission,
-  getValidGoogleToken,
   checkFolderLimits,
 } from '@/actions/google.actions';
 import { Loader2 } from 'lucide-react'; // Importado para manter o padrão de spinners
@@ -64,6 +63,7 @@ export default function GooglePickerButton({
   const [loading, setLoading] = useState(false);
   const [isReadyToOpen, setIsReadyToOpen] = useState(isPickerLoaded);
   const onFolderSelectRef = useRef(onFolderSelect);
+  const { getAuthDetails } = useSupabaseSession();
 
   useEffect(() => {
     onFolderSelectRef.current = onFolderSelect;
@@ -76,20 +76,6 @@ export default function GooglePickerButton({
       window.onGoogleLibraryLoad = undefined;
     };
   }, [isReadyToOpen]);
-
-  const getAuthDetails = async () => {
-    const {
-      data: { session },
-    } = await supabase.auth.getSession();
-    if (!session?.user) return { accessToken: null, userId: null };
-    try {
-      const accessToken = await getValidGoogleToken(session.user.id);
-      return { accessToken, userId: session.user.id };
-    } catch (err) {
-      console.error('Falha ao obter token:', err);
-      return { accessToken: null, userId: null };
-    }
-  };
 
   const openPicker = async () => {
     if (!isReadyToOpen) {

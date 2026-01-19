@@ -55,7 +55,7 @@ export default function Filters({
     outline-none transition-all duration-300 
     rounded-[0.5rem] text-[12px] font-medium box-border
     bg-white border border-slate-200 
-    focus:border-[#D4AF37] focus:ring-4 focus:ring-[#D4AF37]/5 
+    focus:border-gold focus:ring-4 focus:ring-gold/5 
     text-slate-700 placeholder:text-slate-400
   `;
 
@@ -66,7 +66,7 @@ export default function Filters({
     outline-none transition-all duration-300 
     rounded-[0.5rem] text-[11px] md:text-[12px] font-medium box-border
     bg-white border border-slate-200 
-    focus:border-[#D4AF37] focus:ring-4 focus:ring-[#D4AF37]/5 
+    focus:border-gold focus:ring-4 focus:ring-gold/5
     text-slate-700 text-center
   `;
 
@@ -81,12 +81,12 @@ export default function Filters({
           className={`flex items-center justify-center rounded-[0.5rem] h-11 font-bold transition-all border ${
             isExpanded
               ? 'bg-slate-900 text-white border-slate-900 shadow-lg'
-              : 'bg-white text-black border-[#D4AF37] w-full gap-2 shadow-sm'
+              : 'bg-white text-black border-gold w-full gap-2 shadow-sm'
           }`}
         >
           <SlidersHorizontal
             size={16}
-            className={isExpanded ? 'text-white' : 'text-[#D4AF37]'}
+            className={isExpanded ? 'text-white' : 'text-gold'}
           />
           {isExpanded ? 'Fechar Filtros' : 'Filtrar Acervo'}
         </button>
@@ -98,8 +98,8 @@ export default function Filters({
       >
         {/* Label Visual */}
         <div className="hidden lg:flex items-center gap-2 px-1 shrink-0">
-          <Filter className="text-[#D4AF37] w-4 h-4" />
-          <span className="text-[10px] font-black uppercase tracking-[0.2em] text-slate-700">
+          <Filter className="text-gold w-4 h-4" />
+          <span className="text-[10px] font-black uppercase tracking-widest text-slate-700">
             Filtros
           </span>
         </div>

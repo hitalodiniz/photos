@@ -1,15 +1,22 @@
 'use client';
-import React, { memo, useEffect, useRef, useState } from 'react';
+import React, { memo, useEffect, useRef, useState, useCallback } from 'react';
 import { Heart, Loader2 } from 'lucide-react';
 import 'photoswipe/dist/photoswipe.css';
 import { Gallery, Item } from 'react-photoswipe-gallery';
 import { Galeria } from '@/core/types/galeria';
-import { getHighResImageUrl, getProxyUrl } from '@/core/utils/url-helper';
+import {
+  getHighResImageUrl,
+  getDirectGoogleUrl,
+  RESOLUTIONS,
+} from '@/core/utils/url-helper';
+import { useGoogleDriveImage } from '@/hooks/useGoogleDriveImage';
 import { handleDownloadPhoto } from '@/core/utils/foto-helpers';
 import { GALLERY_MESSAGES } from '@/constants/messages';
 import { getCleanSlug, executeShare } from '@/core/utils/share-helper';
-import LoadingSpinner from '../ui/LoadingSpinner';
+import LoadingSpinner from '@/components/ui/LoadingSpinner';
 import { GridPhotoActions } from './GridPhotoActions';
+import { useSupabaseSession } from '@/hooks/useSupabaseSession';
+import { supabase } from '@/lib/supabase.client';
 
 // --- MASONRY GRID PRINCIPAL ---
 interface Photo {
@@ -129,7 +136,7 @@ const MasonryGrid = ({
         <div className="max-w-[1600px] mx-auto px-2 pt-2 pb-2">
           <Gallery withCaption>
             <div
-              className="w-full transition-all duration-700 grid gap-1.5 grid-flow-row-dense"
+              className="w-full transition-all duration-700 grid gap-1 grid-flow-row-dense"
               style={{
                 gridTemplateColumns: `repeat(${columns.mobile}, minmax(0, 1fr))`,
               }}
@@ -157,9 +164,9 @@ const MasonryGrid = ({
                 const isSelected = favorites.includes(photo.id);
 
                 // 🎯 OTIMIZAÇÃO DO GRID:
-                // Reduzimos de 800px para 500px. É o ideal para miniaturas (Cards),
-                // resultando em arquivos WebP minúsculos (~40-60KB).
-                const thumbUrl = getProxyUrl(photo.id, '500');
+                // Usa URL direta do Google (preferencial). PhotoSwipe tentará carregar.
+                // Se falhar, o SafeImage já faz fallback via hook useGoogleDriveImage.
+                const thumbUrl = getDirectGoogleUrl(photo.id, RESOLUTIONS.THUMB);
 
                 // 🎯 OTIMIZAÇÃO DO LIGHTBOX (Full Res):
                 // getHighResImageUrl já está configurado no helper para 1920px.
@@ -254,55 +261,153 @@ const MasonryGrid = ({
 };
 
 // --- COMPONENTE DE IMAGEM OTIMIZADO ---
-const loadedImagesCache = new Set<string>();
-const SafeImage = memo(
-  ({
-    src,
-    alt,
-    width,
-    height,
-    priority,
-    className,
-    showOnlyFavorites,
+// --- COMPONENTE DE IMAGEM OTIMIZADO ---
+const SafeImage = memo(({ photoId, width, height, priority, className, showOnlyFavorites }: any) => {
+  const [imageSize, setImageSize] = useState<string | null>(null);
+  const [realResolution, setRealResolution] = useState<{w: number, h: number} | null>(null);
+  const [userAuthenticated, setUserAuthenticated] = useState<boolean>(false);
+  const localImgRef = useRef<HTMLImageElement | null>(null);
+  
+  // Usando seu hook que já consome o @/lib/supabase.client.ts
+  const { isAuthenticated, isLoading: authLoading } = useSupabaseSession();
+  
+  const {
+    imgSrc,
+    isLoaded,
+    isLoading,
+    handleError,
+    handleLoad,
+    imgRef,
+    usingProxy,
+  } = useGoogleDriveImage({
     photoId,
-  }: any) => {
-    const isAlreadyLoaded = loadedImagesCache.has(photoId);
-    const [status, setStatus] = useState<'loading' | 'loaded' | 'error'>(
-      isAlreadyLoaded ? 'loaded' : 'loading',
-    );
+    width: '500',
+    priority,
+    fallbackToProxy: true,
+  });
 
-    const handleLoad = () => {
-      loadedImagesCache.add(photoId);
-      setStatus('loaded');
+  // Callback ref que combina o hook ref com o ref local
+  const combinedRef = useCallback((img: HTMLImageElement | null) => {
+    localImgRef.current = img;
+    imgRef(img);
+  }, [imgRef]);
+
+  // Sincroniza com o hook de autenticação e escuta mudanças
+  useEffect(() => {
+    // Atualiza quando o hook muda
+    if (!authLoading) {
+      setUserAuthenticated(isAuthenticated);
+    }
+  }, [isAuthenticated, authLoading]);
+
+  // Escuta mudanças de autenticação do Supabase diretamente (para subdomínios)
+  useEffect(() => {
+    const {
+      data: { subscription },
+    } = supabase.auth.onAuthStateChange((_event, session) => {
+      setUserAuthenticated(!!session?.user);
+    });
+
+    return () => {
+      subscription.unsubscribe();
+    };
+  }, []);
+
+  // Busca metadata quando autenticado e imagem carregada
+  useEffect(() => {
+    let cancelled = false;
+
+    const handleMetadata = async () => {
+      if (!userAuthenticated || !imgSrc || !isLoaded) {
+        setTimeout(() => {
+          if (!cancelled) {
+            setImageSize(null);
+            setRealResolution(null);
+          }
+        }, 0);
+        return;
+      }
+
+      try {
+        // 🎯 Tenta buscar o tamanho real
+        const response = await fetch(imgSrc, { 
+          method: 'HEAD', 
+          mode: 'cors',
+          cache: 'no-cache' 
+        });
+        
+        const size = response.headers.get('content-length');
+        
+        if (!cancelled) {
+          if (size) {
+            const kb = parseInt(size, 10) / 1024;
+            const formattedSize = kb > 1024 ? `${(kb/1024).toFixed(1)}MB` : `${Math.round(kb)}KB`;
+            setImageSize(formattedSize);
+          } else {
+            // Se o Google omitir o content-length (CORS), usamos o plano B
+            setImageSize("OK");
+          }
+        }
+      } catch {
+        if (!cancelled) setImageSize("---");
+      }
+
+      // 🎯 Captura a resolução real assim que o elemento img estiver pronto
+      if (!cancelled && localImgRef.current) {
+        const checkRes = () => {
+          if (localImgRef.current?.naturalWidth) {
+            if (!cancelled) {
+              setRealResolution({
+                w: localImgRef.current.naturalWidth,
+                h: localImgRef.current.naturalHeight
+              });
+            }
+          } else {
+            setTimeout(checkRes, 100); // Tenta novamente em 100ms
+          }
+        };
+        checkRes();
+      }
     };
 
-    return (
-      <div
-        className="relative w-full h-full overflow-hidden flex items-center justify-center"
-        style={{
-          aspectRatio: showOnlyFavorites ? '1/1' : `${width}/${height}`,
-        }}
-      >
-        {status === 'loading' && (
-          <div className="absolute inset-0 z-10 flex items-center justify-center bg-white/5 backdrop-blur-[2px]">
-            <LoadingSpinner size="xs" />
-          </div>
-        )}
-        <img
-          src={src}
-          alt={alt}
-          loading={priority ? 'eager' : 'lazy'} // Imagens iniciais carregam antes, o resto depois
-          decoding="async"
-          onLoad={handleLoad}
-          className={`${className} object-cover w-full h-full scale-[1.01] block transition-opacity duration-700 ${
-            status === 'loaded' ? 'opacity-100' : 'opacity-0'
-          }`}
-          style={{ position: 'absolute', inset: 0 }} // Simula o comportamento do 'fill'
-        />
-      </div>
-    );
-  },
-);
+    handleMetadata();
+
+    return () => {
+      cancelled = true;
+    };
+  }, [imgSrc, isLoaded, userAuthenticated, photoId]);
+  return (
+    <div className="relative w-full h-full overflow-hidden bg-white/5" 
+         style={{ aspectRatio: showOnlyFavorites ? '1/1' : `${width}/${height}` }}>
+      
+      {isLoading && <div className="absolute inset-0 flex items-center justify-center"><LoadingSpinner size="xs" /></div>}
+
+      <img
+        ref={combinedRef}
+        src={imgSrc}
+        onLoad={handleLoad}
+        onError={handleError}
+        className={`${className} object-cover w-full h-full transition-opacity duration-700 ${isLoaded ? 'opacity-100' : 'opacity-0'}`}
+        style={{ position: 'absolute', inset: 0 }}
+      />
+
+      {/* 🎯 O BADGE (Inferior Esquerdo) - Apenas para usuários logados */}
+      {isLoaded && imageSize && userAuthenticated && (
+        <div 
+          className="absolute bottom-1.5 left-1.5 z-[30] bg-black/60 backdrop-blur-md px-1.5 py-0.5 rounded border border-white/10 flex items-center gap-1.5 shadow-lg"
+          title={`Resolução Real: ${realResolution?.w}x${realResolution?.h}px | Origem: ${usingProxy ? 'Servidor (A)' : 'Drive (D)'}`}
+        >
+          <span className={`text-[9px] font-black ${usingProxy ? 'text-blue-400' : 'text-green-500'}`}>
+            {usingProxy ? 'A' : 'D'}
+          </span>
+          <span className="text-[#F3E5AB] text-[9px] font-mono font-medium">
+            {imageSize}
+          </span>
+        </div>
+      )}
+    </div>
+  );
+});
 
 SafeImage.displayName = 'SafeImage';
 export default MasonryGrid;

@@ -48,7 +48,7 @@ export default function GlobalError({
           <div className="flex flex-col md:flex-row gap-4 w-full justify-center">
             <button
               onClick={() => reset()}
-              className="px-8 py-3 bg-[#D4AF37] hover:bg-[#B8860B] text-black font-semibold uppercase tracking-widest text-[10px] rounded-full transition-all flex items-center justify-center gap-2"
+              className="px-8 py-3 bg-gold hover:bg-gold/90 text-black font-semibold uppercase tracking-widest text-[10px] rounded-full transition-all flex items-center justify-center gap-2"
             >
               <RefreshCcw size={14} /> Tentar Novamente
             </button>
@@ -62,7 +62,7 @@ export default function GlobalError({
           </div>
 
           <div className="pt-6 border-t border-white/5 w-full">
-            <p className="text-[9px] text-white/20 uppercase tracking-wider">
+            <p className="text-[9px] text-white/20 uppercase tracking-widest">
               ID do Erro: ${error.digest || 'N/A'} • Relatório enviado com
               sucesso
             </p>
@@ -73,7 +73,7 @@ export default function GlobalError({
   ];
 
   return (
-    <div className="relative min-h-screen w-full flex flex-col overflow-hidden bg-[#000]">
+    <div className="relative min-h-screen w-full flex flex-col overflow-hidden bg-black">
       <DynamicHeroBackground />
       <div className="relative z-10 flex flex-col min-h-screen">
         <EditorialHeader
@@ -81,7 +81,7 @@ export default function GlobalError({
           subtitle={
             <>
               Falha crítica no{' '}
-              <span className="font-semibold border-b-2 border-[#F3E5AB]/50 text-white">
+              <span className="font-semibold border-b-2 border-champagne/50 text-white">
                 processamento de dados
               </span>
             </>

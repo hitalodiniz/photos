@@ -1,10 +1,12 @@
 'use client';
-import React, { useEffect, useState } from 'react';
+import React, { useEffect, useState, useMemo } from 'react';
 import { ChevronLeft, ChevronRight, ImageIcon } from 'lucide-react';
-import { GaleriaHeader, PhotographerAvatar } from '@/components/gallery';
-import { getHighResImageUrl, getProxyUrl } from '@/core/utils/url-helper';
+import { GaleriaHeader } from './GaleriaHeader';
+import PhotographerAvatar from './PhotographerAvatar';
+import { getDirectGoogleUrl, RESOLUTIONS } from '@/core/utils/url-helper';
+import { useGoogleDriveImage } from '@/hooks/useGoogleDriveImage';
 import type { Galeria } from '@/core/types/galeria';
-import LoadingSpinner from '../ui/LoadingSpinner';
+import LoadingSpinner from '@/components/ui/LoadingSpinner';
 import { ToolbarGalleryView } from './ToolbarGalleryView';
 import { useIsMobile } from '@/hooks/use-breakpoint';
 
@@ -41,8 +43,8 @@ export default function Lightbox({
   onToggleFavorite,
   isSingleView,
 }: LightboxProps) {
-  const [isImageLoading, setIsImageLoading] = useState(true);
   const [showInterface, setShowInterface] = useState(true);
+  const [imageSize, setImageSize] = useState<string | null>(null);
   const isMobile = useIsMobile();
 
   // Estados para Navegação por Gesto (Swipe)
@@ -66,8 +68,16 @@ export default function Lightbox({
     else if (distance < -minSwipeDistance) onPrev();
   };
 
-  const currentPhoto = photos[activeIndex];
-  const isFavorited = favorites.includes(String(currentPhoto?.id));
+  // Memoizar valores calculados para evitar re-renders desnecessários
+  const currentPhoto = useMemo(
+    () => photos[activeIndex],
+    [photos, activeIndex]
+  );
+
+  const isFavorited = useMemo(
+    () => favorites.includes(String(currentPhoto?.id)),
+    [favorites, currentPhoto?.id]
+  );
 
   useEffect(() => {
     const handleKeyDown = (e: KeyboardEvent) => {
@@ -83,43 +93,117 @@ export default function Lightbox({
     };
   }, [onClose, onNext, onPrev]);
 
-  // Dentro do Lightbox.tsx
+  // 🎯 GESTÃO DA URL COM FALLBACK usando hook centralizado
+  // Usa constantes específicas para VIEW (visualização), não download
+  // VIEW_MOBILE: 720px (~500-700KB) - Suficiente para telas mobile Retina
+  // VIEW_DESKTOP: 1080px (~800KB-1.2MB) - Suficiente para visualização Full HD
+  // DOWNLOAD usa 2560px quando necessário
+  const photoId = currentPhoto?.id;
+  const imageWidth = isMobile ? RESOLUTIONS.VIEW_MOBILE : RESOLUTIONS.VIEW_DESKTOP;
+  const [realResolution, setRealResolution] = useState<{w: number, h: number} | null>(null);
+  // Hook deve ser chamado sempre, mesmo se photoId não existir
+  const {
+    imgSrc,
+    isLoading: isImageLoading,
+    handleError,
+    handleLoad,
+    usingProxy,
+  } = useGoogleDriveImage({
+    photoId: String(photoId || ''),
+    width: imageWidth,
+    priority: true,
+    fallbackToProxy: true,
+  });
 
+  // 🎯 DETECTAR TAMANHO DA IMAGEM (sempre visível)
   useEffect(() => {
-    setIsImageLoading(true);
+    let cancelled = false;
 
-    // Define o tamanho e qualidade baseado no hook
-    const currentImageUrl = isMobile
-      ? getProxyUrl(photos[activeIndex].id, '1280') // Mobile: Leve e nítido
-      : getProxyUrl(photos[activeIndex].id, '2560'); // Desktop: Qualidade Ultra (2K) para o fotógrafo
-    //const currentImageUrl = getHighResImageUrl(photos[activeIndex].id);
+    const getImageSize = async () => {
+      // Precisamos da imagem carregada primeiro
+      if (!imgSrc || isImageLoading) {
+        if (!cancelled) setImageSize(null);
+        return;
+      }
 
-    if (isSingleView) {
-      const img = new Image();
-      img.src = currentImageUrl;
-      img.onload = () => setIsImageLoading(false);
-    }
+      try {
+        const response = await fetch(imgSrc, { method: 'HEAD' });
+        const size = response.headers.get('content-length');
 
-    // 🎯 REVISÃO DO PRELOAD (Próxima Foto):
-    // Solicitamos a mesma resolução (1920px) para que quando o usuário
-    // clicar em "Próximo", a imagem já esteja no cache do navegador.
+        if (cancelled) return;
+
+        if (size) {
+          const sizeInBytes = parseInt(size, 10);
+          const sizeInKB = sizeInBytes / 1024;
+          
+          if (sizeInKB > 1024) {
+            if (!cancelled) setImageSize(`${(sizeInKB / 1024).toFixed(2)} MB`);
+          } else {
+            if (!cancelled) setImageSize(`${sizeInKB.toFixed(0)} KB`);
+          }
+        } else {
+          // Fallback caso o Google mascare o content-length
+          if (!cancelled) setImageSize("Otimizada");
+        }
+      } catch {
+        if (!cancelled) setImageSize(null);
+      }
+    };
+
+    const img = new Image();
+img.onload = () => {
+  if (cancelled) return;
+  
+  // 🎯 Captura a resolução real que o Google entregou
+  setRealResolution({
+    w: img.naturalWidth,
+    h: img.naturalHeight
+  });
+};
+img.src = imgSrc;
+    // Aguarda um pouco para garantir que a imagem está pronta
+    const timeoutId = setTimeout(() => {
+      getImageSize();
+    }, 300);
+
+    return () => {
+      cancelled = true;
+      clearTimeout(timeoutId);
+    };
+  }, [imgSrc, isImageLoading]);
+
+  // 🎯 LÓGICA DE PRELOAD (Próxima + Anterior) - usa mesmas resoluções VIEW
+  useEffect(() => {
+    const imageWidth = isMobile ? RESOLUTIONS.VIEW_MOBILE : RESOLUTIONS.VIEW_DESKTOP;
+
+    // Preload próxima foto
     if (activeIndex + 1 < photos.length) {
+      const nextId = photos[activeIndex + 1].id;
       const nextImg = new Image();
-      nextImg.src = getHighResImageUrl(photos[activeIndex + 1].id);
+      nextImg.src = getDirectGoogleUrl(nextId, imageWidth);
     }
-  }, [activeIndex, photos, isSingleView]); // Adicione isSingleView aqui
+
+    // Preload foto anterior
+    if (activeIndex > 0) {
+      const prevId = photos[activeIndex - 1].id;
+      const prevImg = new Image();
+      prevImg.src = getDirectGoogleUrl(prevId, imageWidth);
+    }
+  }, [activeIndex, photos, isMobile]);
 
   useEffect(() => {
+    // Em mobile, sempre mostrar interface (já é o estado inicial)
     if (typeof window === 'undefined' || window.innerWidth < 768) {
-      setShowInterface(true);
       return;
     }
+
     let timer: NodeJS.Timeout;
     const handleActivity = () => {
       setShowInterface(true);
       clearTimeout(timer);
       timer = setTimeout(() => setShowInterface(false), 3000);
     };
+    
     window.addEventListener('mousemove', handleActivity);
     return () => {
       window.removeEventListener('mousemove', handleActivity);
@@ -127,13 +211,17 @@ export default function Lightbox({
     };
   }, []);
 
-  if (!currentPhoto) return null;
+  // Memoizar classe de visibilidade da interface
+  const interfaceVisibilityClass = useMemo(
+    () =>
+      'transition-all duration-700 ' +
+      (showInterface
+        ? 'opacity-100 translate-y-0 visible'
+        : 'md:opacity-0 md:-translate-y-4 md:pointer-events-none md:invisible'),
+    [showInterface]
+  );
 
-  const interfaceVisibilityClass =
-    'transition-all duration-700 ' +
-    (showInterface
-      ? 'opacity-100 translate-y-0 visible'
-      : 'md:opacity-0 md:-translate-y-4 md:pointer-events-none md:invisible');
+  if (!currentPhoto) return null;
 
   return (
     <div
@@ -232,13 +320,14 @@ export default function Lightbox({
           )}
 
           {/* 
-              A 'key' forçar o React a tratar como um novo elemento.
+              A 'key' força o React a tratar como um novo elemento.
               O CSS 'animate-in fade-in zoom-in' do Tailwind cria o efeito suave.
           */}
           <img
-            key={currentPhoto.id}
-            src={getHighResImageUrl(currentPhoto.id)}
-            onLoad={() => setIsImageLoading(false)}
+            key={`${photoId}-${usingProxy}`}
+            src={imgSrc}
+            onLoad={handleLoad}
+            onError={handleError}
             className={`w-full h-auto max-w-full md:h-screen md:w-auto md:object-contain transition-all duration-700 ease-out
               ${
                 isImageLoading
@@ -247,7 +336,7 @@ export default function Lightbox({
               }`}
             loading="eager"
             decoding="sync"
-            alt="Visualização"
+            alt={`${galleryTitle} - Foto ${activeIndex + 1}`}
           />
         </div>
       </main>
@@ -258,24 +347,39 @@ export default function Lightbox({
       >
         {/* 🎯 NAVEGAÇÃO DESKTOP: Exclusiva para MD+ e sincronizada com interface */}
         {!isSingleView && (
-          <div className="md:order-1">
-            <div className="bg-black/40 backdrop-blur-md p-2.5 px-8 rounded-full border border-white/10 shadow-lg flex items-center gap-2">
-              {/* Ícone agora alinhado à esquerda pelo flexbox */}
-              <ImageIcon
-                size={14}
-                className="text-[#F3E5AB] opacity-90 shrink-0"
-              />
+  <div className="md:order-1">
+    <div 
+      className="bg-black/60 backdrop-blur-md px-3 py-1.5 rounded-lg border border-white/10 flex items-center gap-3 transition-all"
+      title={`Resolução: ${realResolution ? `${realResolution.w}x${realResolution.h}px` : '...'} | Tamanho: ${imageSize || '...'} | Origem: ${usingProxy ? 'Servidor (A)' : 'Google Drive (D)'}`}
+    >
+      {/* 1. Contador de Fotos */}
+      <div className="flex items-center gap-2 shrink-0">
+        <ImageIcon size={13} className="text-[#F3E5AB]" />
+        <p className="text-white/90 text-[11px] font-medium tracking-tight">
+          Foto <span className="text-[#F3E5AB]">{activeIndex + 1}</span> de {totalPhotos}
+        </p>
+      </div>
 
-              <p className="text-white/80 text-[11px] md:text-[12px] font-medium">
-                Foto{' '}
-                <span className="text-[#F3E5AB] font-medium">
-                  {activeIndex + 1}
-                </span>{' '}
-                de {totalPhotos}
-              </p>
-            </div>
-          </div>
-        )}
+      {/* 2. Divisor Minimalista */}
+      <div className="h-3 w-[1px] bg-white/20" />
+
+      {/* 3. Bloco de Dados Técnicos (Tudo no mesmo tamanho/fonte) */}
+      <div className="flex items-center gap-2.5 cursor-help">
+        {/* Tamanho da Foto */}
+        <p className="text-[#F3E5AB] text-[11px] font-medium min-w-[6px] text-right">
+          {imageSize || "--- KB"}
+        </p>
+
+        
+
+        {/* Letra de Origem */}
+        <p className={`text-[11px] font-black ${usingProxy ? 'text-blue-400' : 'text-green-500'}`}>
+          {usingProxy ? 'A' : 'D'}
+        </p>
+      </div>
+    </div>
+  </div>
+)}
         <div className="md:order-2 flex justify-center md:justify-end">
           <PhotographerAvatar galeria={galeria} position="bottom-lightbox" />
         </div>

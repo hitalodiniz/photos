@@ -29,8 +29,9 @@ import { GALLERY_CATEGORIES } from '@/constants/categories';
 import {
   getPublicGalleryUrl,
   copyToClipboard,
-  getProxyUrl,
+  RESOLUTIONS,
 } from '@/core/utils/url-helper';
+import { useGoogleDriveImage } from '@/hooks/useGoogleDriveImage';
 import { GALLERY_MESSAGES } from '@/constants/messages';
 import { executeShare } from '@/core/utils/share-helper';
 import WhatsAppIcon from '@/components/ui/WhatsAppIcon';
@@ -97,7 +98,16 @@ export default function GaleriaCard({
     return `${day}/${month}/${year}`;
   };
 
-  const imageUrl = getProxyUrl(galeria.cover_image_url, '600');
+  // 🎯 ESTRATÉGIA ANTI-429: Usa proxy diretamente para todos os cards
+  // Resolução THUMB (600px) é suficiente para capas e evita 429 do Google
+  // Proxy é mais estável e confiável para grids com muitas imagens simultâneas
+  const { imgSrc: imageUrl, handleError, handleLoad } = useGoogleDriveImage({
+    photoId: galeria.cover_image_url || '',
+    width: RESOLUTIONS.THUMB, // 600px - resolução THUMB para capas
+    priority: index < 4, // Primeiros 4 cards têm prioridade de carregamento
+    fallbackToProxy: false, // Não precisa fallback, já está usando proxy
+    useProxyDirectly: true, // Todos os cards usam proxy diretamente (evita 429)
+  });
 
   const handleCopy = async (e: React.MouseEvent) => {
     e.stopPropagation();
@@ -126,12 +136,12 @@ export default function GaleriaCard({
           window.open(links.url, '_blank');
         }
       }}
-      className="group relative flex cursor-pointer flex-col overflow-hidden rounded-[14px] border border-slate-200 bg-white transition-all duration-300 hover:shadow-2xl hover:shadow-[#D4AF37]/15 w-full animate-in fade-in slide-in-from-bottom-2 duration-500 fill-mode-both"
+      className="group relative flex cursor-pointer flex-col overflow-hidden rounded-[14px] border border-slate-200 bg-white transition-all duration-300 hover:shadow-2xl hover:shadow-gold/15 w-full animate-in fade-in slide-in-from-bottom-2 duration-500 fill-mode-both"
       style={{ animationDelay: `${index * 50}ms` }}
     >
       {isUpdating && (
         <div className="absolute inset-0 z-20 flex flex-col items-center justify-center bg-white/80 backdrop-blur-sm">
-          <Loader2 className="h-6 w-6 animate-spin text-[#D4AF37]" />
+          <Loader2 className="h-6 w-6 animate-spin text-gold" />
         </div>
       )}
 
@@ -139,8 +149,10 @@ export default function GaleriaCard({
         <img
           src={imageUrl}
           alt={galeria.title}
-          loading="lazy"
+          loading={index < 4 ? 'eager' : 'lazy'}
           decoding="async"
+          onError={handleError}
+          onLoad={handleLoad}
           className="h-full w-full object-cover transition-transform duration-1000 ease-out group-hover:scale-110"
         />
 
@@ -156,7 +168,7 @@ export default function GaleriaCard({
             {!galeria.is_public ? (
               <ShieldCheck
                 size={16}
-                className="text-[#F3E5AB]"
+                className="text-champagne"
                 strokeWidth={2}
               />
             ) : (
@@ -167,8 +179,8 @@ export default function GaleriaCard({
 
         <div className="absolute top-3 right-3">
           {categoryInfo && (
-            <span className="flex items-center gap-1.5 px-2 py-0.5 bg-black/40 backdrop-blur-md rounded text-[8px] font-semibold tracking-widest text-white border border-[#D4AF37]/40 uppercase shadow-sm">
-              <span className="text-[#F3E5AB] leading-none">
+            <span className="flex items-center gap-1.5 px-2 py-0.5 bg-black/40 backdrop-blur-md rounded text-[8px] font-semibold tracking-widest text-white border border-gold/40 uppercase shadow-sm">
+              <span className="text-champagne leading-none">
                 {categoryInfo.icon}
               </span>
               {categoryInfo.label}
@@ -187,15 +199,15 @@ export default function GaleriaCard({
         <div className="flex items-center justify-between h-5">
           {galeria.has_contracting_client ? (
             <div className="flex items-center gap-2 min-w-0">
-              <User size={12} className="text-[#D4AF37] shrink-0 glow-gold" />
-              <span className="text-[11px] font-bold text-slate-900 truncate uppercase tracking-[0.1em]">
+              <User size={12} className="text-gold shrink-0 glow-gold" />
+              <span className="text-xs font-bold text-slate-900 truncate uppercase tracking-widest">
                 {galeria.client_name || 'Cliente'}
               </span>
             </div>
           ) : (
             <div className="flex items-center gap-2 min-w-0">
-              <Users size={12} className="text-[#D4AF37] shrink-0 glow-gold" />
-              <span className="text-[11px] font-bold text-slate-800 truncate uppercase tracking-[0.1em]">
+              <Users size={12} className="text-gold shrink-0 glow-gold" />
+              <span className="text-xs font-bold text-slate-800 truncate uppercase tracking-widest">
                 Cobertura de evento
               </span>
             </div>
@@ -231,11 +243,11 @@ export default function GaleriaCard({
               onClick={(e) => e.stopPropagation()}
               className="flex-1 flex items-center gap-2 px-3 h-full hover:bg-white transition-all group/drive min-w-0"
             >
-              <FolderOpen size={14} className="text-[#D4AF37] shrink-0" />
+              <FolderOpen size={14} className="text-gold shrink-0" />
               <span className="text-[11px] font-medium text-slate-600 truncate">
                 {galeria.drive_folder_name || 'Pasta do Drive'}
               </span>
-              <span className="text-[9px] font-bold text-[#D4AF37] uppercase tracking-tighter opacity-0 group-hover/drive:opacity-100 transition-opacity shrink-0">
+              <span className="text-[9px] font-bold text-gold uppercase tracking-widest opacity-0 group-hover/drive:opacity-100 transition-opacity shrink-0">
                 Abrir
               </span>
             </a>
@@ -250,10 +262,10 @@ export default function GaleriaCard({
               }}
               disabled={isUpdating}
               title="Sincronizar com o Drive"
-              className="flex items-center justify-center px-3 h-full hover:bg-white text-slate-400 hover:text-[#D4AF37] transition-all disabled:opacity-50 shrink-0"
+              className="flex items-center justify-center px-3 h-full hover:bg-white text-slate-400 hover:text-gold transition-all disabled:opacity-50 shrink-0"
             >
               {isUpdating ? (
-                <Loader2 size={13} className="animate-spin text-[#D4AF37]" />
+                <Loader2 size={13} className="animate-spin text-gold" />
               ) : (
                 <RefreshCw size={13} />
               )}
@@ -274,7 +286,7 @@ export default function GaleriaCard({
               </button>
               <button
                 onClick={handleCopy}
-                className={`p-2 border rounded-lg shadow-sm transition-all ${copied ? 'bg-[#D4AF37] text-black border-[#D4AF37]' : 'bg-white text-slate-600 border-slate-200 hover:border-[#D4AF37]'}`}
+                className={`p-2 border rounded-lg shadow-sm transition-all ${copied ? 'bg-gold text-black border-gold' : 'bg-white text-slate-600 border-slate-200 hover:border-gold'}`}
               >
                 {copied ? <Check size={16} /> : <Copy size={16} />}
               </button>
@@ -287,8 +299,8 @@ export default function GaleriaCard({
                 }}
                 className={`p-2 border rounded-lg shadow-sm transition-all ${
                   galeria.show_on_profile
-                    ? 'bg-[#D4AF37] text-black border-[#D4AF37]'
-                    : 'bg-white text-slate-400 border-slate-200 hover:text-[#D4AF37] hover:border-[#D4AF37]'
+                    ? 'bg-gold text-black border-gold'
+                    : 'bg-white text-slate-400 border-slate-200 hover:text-gold hover:border-gold'
                 }`}
                 title={
                   galeria.show_on_profile

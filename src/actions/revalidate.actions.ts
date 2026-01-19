@@ -20,23 +20,31 @@ export async function revalidateGalleryCover(photoId: string) {
  * @param slug O slug da galeria (ex: 'casamento-joao-e-maria')
  * @param username O username do autor (ex: 'fotografo1')
  * @param subdomain O subdomínio (se houver, ex: 'galeria.meusite.com')
+ * @param coverPhotoId ID da foto de capa (para revalidar cache da imagem quando a capa mudar)
  */
 export async function revalidateGallery(
   folderId: string,
   slug: string,
   username: string,
   subdomain?: string,
+  coverPhotoId?: string,
 ) {
   try {
     // 1. Limpa o cache de dados (Fetch Cache)
     revalidateTag(`drive-photos-${folderId}`);
     revalidateTag(`cover-${folderId}`);
 
-    // 2. Limpa a rota padrão (Username)
+    // 2. 🎯 Revalida o cache da imagem de capa se o photoId for fornecido
+    // Isso é essencial quando a capa da galeria é alterada
+    if (coverPhotoId) {
+      revalidateGalleryCover(coverPhotoId);
+    }
+
+    // 3. Limpa a rota padrão (Username)
     // Caminho: /fotografo/slug-da-galeria
     revalidatePath(`/${username}/${slug}`);
 
-    // 3. Limpa a rota de subdomínio (Rewrite Path)
+    // 4. Limpa a rota de subdomínio (Rewrite Path)
     if (subdomain && subdomain !== 'www') {
       // O Next.js armazena o cache estático no caminho real da pasta
       // De acordo com seu middleware: /subdomain/[subdomain]/[slug]

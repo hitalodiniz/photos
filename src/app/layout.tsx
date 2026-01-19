@@ -1,6 +1,6 @@
 import './global.css';
 import { Inter, Barlow, Montserrat } from 'next/font/google';
-import Navbar from '../components/layout/Navbar';
+import Navbar from '@/components/layout/Navbar';
 import { Metadata } from 'next';
 import Script from 'next/script';
 import { CookieBanner } from '@/components/ui';
@@ -55,7 +55,7 @@ export default function RootLayout({
         <meta name="viewport" content="width=device-width, initial-scale=1.0" />
       </head>
       {/* 4. A classe inter.className no body garante que todo o texto herde a Inter por padrão */}
-      <body className={`${montserrat.className} bg-[#F1F3F4] antialiased`}>
+      <body className={`${montserrat.className} bg-luxury-bg antialiased`}>
         <AuthProvider>
           <Navbar />
           <main id="main-content" className="w-full">

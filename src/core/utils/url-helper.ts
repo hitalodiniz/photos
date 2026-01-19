@@ -1,5 +1,7 @@
 // src/lib/utils/url-helper.ts
 import { GALLERY_MESSAGES } from '@/constants/messages';
+import { Download } from 'lucide-react';
+import { Ultra } from 'next/font/google';
 
 const NEXT_PUBLIC_MAIN_DOMAIN =
   process.env.NEXT_PUBLIC_MAIN_DOMAIN || 'localhost:3000';
@@ -9,6 +11,26 @@ const NEXT_PUBLIC_MAIN_DOMAIN =
 export const GLOBAL_CACHE_REVALIDATE = 2592000;
 
 export const TAMANHO_MAXIMO_FOTO_SEM_COMPACTAR = 2 * 1024 * 1024; // 1.5MB em bytes;
+
+export const RESOLUTIONS = {
+  // 🎯 MINIATURAS E GRIDS
+  THUMB: '600', // Miniaturas em grids (cards, masonry)
+  
+  // 🎯 VISUALIZAÇÃO (VIEW) - Otimizado para qualidade visual sem excesso de peso
+  // Usado em: Lightbox, visualização de fotos individuais
+  VIEW_MOBILE: '720',   // 720p - Suficiente para telas mobile Retina (~500-700KB)
+  VIEW_DESKTOP: '1080', // 1080p - Suficiente para visualização Full HD (~800KB-1.2MB)
+  
+  // 🎯 LEGADO (mantido para compatibilidade, mas preferir VIEW_*)
+  MOBILE_VIEW: '1280',  // @deprecated - Use VIEW_MOBILE ou VIEW_DESKTOP
+  DESKTOP_VIEW: '1920', // @deprecated - Use VIEW_DESKTOP ou DOWNLOAD
+  
+  // 🎯 DOWNLOAD - Alta resolução apenas para download
+  DOWNLOAD: '2560',      // Alta resolução para downloads (2K)
+  ULTRA_VIEW: '2560',   // @deprecated - Use DOWNLOAD
+
+  ULTRA_DOWNLOAD: '4000',
+};
 
 export function getPublicGalleryUrl(photographer: any, slug: string) {
   const isProd = process.env.NODE_ENV === 'production';
@@ -158,6 +180,10 @@ export function getCreatorProfileUrl(photographer: any) {
  * 🌐 URL EXTERNA (Client-side)
  * Para o PhotoGrid, usamos larguras menores para economizar banda.
  * O teto aqui é para exibição rápida.
+ * 
+ * ⚠️ DEPRECATED: Use `useGoogleDriveImage` hook em componentes React
+ * ou `getImageUrlWithFallback` para server-side.
+ * Este método sempre retorna proxy, sem tentar direto primeiro.
  */
 export const getProxyUrl = (
   id: string | number,
@@ -167,6 +193,7 @@ export const getProxyUrl = (
   const cleanWidth = width.toString().replace(/[ws]/gi, '');
   return `/api/galeria/cover/${id}?w=${cleanWidth}`;
 };
+
 
 /**
  * 🔒 URL INTERNA (Server-side)
@@ -196,7 +223,7 @@ export const getInternalGoogleDriveUrl = (
  */
 export const getHighResImageUrl = (photoId: string | number) => {
   if (!photoId) return '';
-  return getProxyUrl(photoId, '2560');
+  return `/api/galeria/download/${photoId}?w='${RESOLUTIONS.DESKTOP_VIEW}'`;
 };
 
 /**
@@ -212,7 +239,7 @@ export const getResponsiveHighResUrl = (
 
   // Se for mobile, 1280px é mais que suficiente (mesmo para telas Pro Max)
   // Se for desktop, subimos para 2560px para garantir a "entrega de luxo"
-  const size = isMobile ? '1280' : '2560';
+  const size = isMobile ? RESOLUTIONS.MOBILE_VIEW : RESOLUTIONS.DESKTOP_VIEW;
 
   return getProxyUrl(photoId, size);
 };
@@ -222,23 +249,50 @@ export const getResponsiveHighResUrl = (
  * Agora aponta para a rota que entrega o "Original Otimizado" (Teto de 1MB).
  */
 export const getDownloadUrl = (photoId: string | number) => {
-  return `/api/galeria/download/${photoId}`;
+  //return `/api/galeria/download/${photoId}`;
+  return getDirectGoogleUrl(photoId, RESOLUTIONS.DESKTOP_VIEW);
 };
-/* Orientções para uso 
-Local de Uso,         Width       Objetivo
-1. PhotoGrid (Cards)     400 a 600   Carregamento inicial ultra-rápido
-2. Lightbox (Zoom)       1920        Nitidez máxima em tela cheia
-3. Capa/Banner           1920        Impacto visual imediato (LCP)
-4. Download Padrão       4000        Alta resolução imprimível (~1MB)
-*/
 
-/*
-* Resoluções que aplicamos em todo o ecossistema do projeto para respeitar o Teto de 1 MB:
-*
-1. Dashboard (GaleriaCard)	600px	Rapidez no carregamento da lista administrativa.
-2. PhotoGrid (Miniaturas)	500px	Redução drástica de banda para galerias com muitas fotos.
-3. Lightbox (Visualização)	1920px	Nitidez máxima (Full HD) mantendo o peso abaixo de 1 MB.
-4. Download Individual		4000px	Versão de alta qualidade para impressão otimizada pelo Google.
-5. Página de Senha			1000px	Carregamento imediato da tela de bloqueio (LCP).
-6. Metadata (OpenGraph)	1200px	Compatibilidade e nitidez para compartilhamento social.
-*/
+/**
+ * 🚀 VERSÃO DE ALTA PERFORMANCE (Bypass Vercel)
+ * Usa o servidor do Google diretamente para não gastar os 10GB da Vercel.
+ */
+export const getDirectGoogleUrl = (
+  photoId: string | number,
+  width: string | number = '1000'
+) => {
+  if (!photoId) return '';
+  // Usamos o domínio lh3.googleusercontent.com que aceita CORS e redimensionamento
+  // O parâmetro -rw força o formato WebP
+  return `https://lh3.googleusercontent.com/d/${photoId}=w${width}-rw`;
+};
+
+/**
+ * 🚀 VERSÃO DE ALTA PERFORMANCE (Bypass Vercel)
+ * Usa o servidor do Google diretamente para não gastar os 10GB da Vercel.
+ */
+export const getDownloadDirectGoogleUrl = (
+  photoId: string | number,
+  width: string | number = '1000'
+) => {
+  if (!photoId) return '';
+  // Usamos o domínio lh3.googleusercontent.com que aceita CORS e redimensionamento
+  // O parâmetro -rw força o formato WebP
+  return `https://lh3.googleusercontent.com/d/${photoId}=w${width}`;
+};
+
+/**
+ * 📐 GUIA DE RESOLUÇÕES
+ * 
+ * Para documentação completa sobre resoluções recomendadas e estratégia de 2MB,
+ * consulte: PERFORMANCE_GUIDE.md na raiz do projeto.
+ * 
+ * Resumo rápido:
+ * - Grid: 500-600px
+ * - Lightbox Mobile: 1280px
+ * - Lightbox Desktop: 1920px
+ * - Lightbox 4K: 2560px
+ * - Download: 1920px (direto) / 2560px (proxy)
+ * 
+ * Todas as resoluções garantem arquivos < 2MB sem verificação no cliente.
+ */

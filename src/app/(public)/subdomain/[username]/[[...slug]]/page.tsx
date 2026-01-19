@@ -1,4 +1,4 @@
-import GaleriaBasePage from '@/components/gallery/GaleriaBasePage';
+import { GaleriaBasePage } from '@/components/galeria';
 import {
   getPhotographerMetadata,
   getGalleryMetadata,

@@ -32,7 +32,7 @@ export default async function OnboardingPage() {
 
   return (
     <AuthGuard>
-      <div className="min-h-screen bg-[#F8F9FA]">
+      <div className="min-h-screen bg-luxury-bg">
         <OnboardingForm
           initialData={profile}
           suggestedUsername={data.suggestedUsername}

@@ -10,14 +10,21 @@ import {
   ImageIcon,
 } from 'lucide-react';
 import type { Galeria } from '@/core/types/galeria';
-import { getProxyUrl, resolveGalleryUrl } from '@/core/utils/url-helper';
+import { resolveGalleryUrl, RESOLUTIONS } from '@/core/utils/url-helper';
+import { useGoogleDriveImage } from '@/hooks/useGoogleDriveImage';
 import { formatDateLong } from '@/core/utils/data-helpers';
 
 export function PublicGaleriaCard({ galeria }: { galeria: Galeria }) {
   const [mounted, setMounted] = useState(false);
-  const imageUrl = getProxyUrl(galeria.cover_image_url, '600');
+  
+  // 🎯 FALLBACK: Tenta Google direto, se falhar usa Proxy
+  const { imgSrc: imageUrl } = useGoogleDriveImage({
+    photoId: galeria.cover_image_url || '',
+    width: RESOLUTIONS.THUMB, // 600px
+    priority: false,
+    fallbackToProxy: true,
+  });
   const photographer = galeria.photographer;
-  console.log('Photographer ', photographer);
   useEffect(() => {
     setMounted(true);
   }, []);

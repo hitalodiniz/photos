@@ -1,6 +1,6 @@
 import { saveAs } from 'file-saver';
-import { Galeria } from '../types/galeria';
-import { getDownloadUrl, getHighResImageUrl } from './url-helper';
+import { Galeria } from '@/core/types/galeria';
+import { getDirectGoogleUrl, getDownloadDirectGoogleUrl, getHighResImageUrl, getProxyUrl, RESOLUTIONS } from './url-helper';
 
 const getFormattedDateFromSlug = (slug: string) => {
   try {
@@ -18,7 +18,7 @@ const getFormattedDateFromSlug = (slug: string) => {
 
     // Fallback caso o slug fuja do padrão
     return new Date().toISOString().split('T')[0].replace(/-/g, '_');
-  } catch (e) {
+  } catch {
     return '2025_00_00';
   }
 };
@@ -29,28 +29,62 @@ export const handleDownloadPhoto = async (
   index: number,
 ) => {
   try {
-    // 1. Lógica de nomeação (Mantida)
+    // 1. Lógica de nomeação
     const dateStr = getFormattedDateFromSlug(galeria.slug);
     const eventName = galeria.slug.split('/').pop() || 'galeria';
     const fileName = `foto_${index + 1}_${dateStr}_${eventName}.jpg`;
 
-    // 2. CHAMADA AO HELPER (Bypass Vercel)
-    // Agora centralizamos a lógica da URL no helper
-    const highResUrl = getDownloadUrl(photoId);
+    // 2. 🎯 ESTRATÉGIA DE DOWNLOAD COM LIMITE DE 2MB:
+    // Usa resolução que garante arquivo abaixo de 2MB (1920px geralmente fica ~800KB-1.5MB)
+    // Primeiro tenta direto no Google, se falhar usa Proxy API
+    const directUrl = getDownloadDirectGoogleUrl(photoId, RESOLUTIONS.ULTRA_DOWNLOAD);
+   //const directUrl = getHighResImageUrl(photoId); USADA PARA TESTE COM PROXY
+    let usingProxy = false;
 
-    // 3. Download via Blob (Cliente <-> Google)
-    const response = await fetch(highResUrl);
-    if (!response.ok) throw new Error('Falha no download direto da foto');
+    try {
+      // Tentativa 1: Download direto do Google (bypass Vercel)
+      // Usa 1920px que geralmente resulta em arquivo entre 800KB-1.5MB
+      const response = await fetch(directUrl);
+      
+      if (!response.ok) {
+        throw new Error(`HTTP ${response.status}`);
+      }
 
-    const blob = await response.blob();
+      const blob = await response.blob();
+      saveAs(blob, fileName);
+      return; // Sucesso, sai da função
+    } catch (directError: unknown) {
+      // Se falhar (CORS, 429, etc), loga e tenta proxy
+      const errorMessage =
+        directError instanceof Error
+          ? directError.message
+          : 'Erro desconhecido';
+      console.warn(
+        `[DOWNLOAD_FALLBACK] Google Direct falhou (${errorMessage}) para ID: ${photoId}. Usando Proxy API.`
+      );
+      usingProxy = true;
+    }
 
-    // 4. Dispara o download com FileSaver
-    saveAs(blob, fileName);
-  } catch (e) {
-    console.error('Erro no download individual:', e);
+    // Tentativa 2: Usar API Proxy (se direto falhou)
+    // O proxy já está configurado para retornar arquivo otimizado (~1MB)
+    if (usingProxy) {
+      const response = await fetch(getProxyUrl(photoId, RESOLUTIONS.DOWNLOAD));
+      
+      if (!response.ok) {
+        throw new Error(`Proxy API retornou ${response.status}`);
+      }
 
-    // Fallback usando o helper também
-    window.open(getHighResImageUrl(photoId), '_blank');
+      const blob = await response.blob();
+      saveAs(blob, fileName);
+    }
+  } catch (error: unknown) {
+    const errorMessage =
+      error instanceof Error ? error.message : 'Erro desconhecido';
+    console.error('[DOWNLOAD_ERROR] Falha total no download:', errorMessage);
+    
+    // Fallback final: Abre em nova aba com resolução segura (1920px)
+    const fallbackUrl = getDirectGoogleUrl(photoId, '1920');
+    window.open(fallbackUrl, '_blank');
   }
 };
 
@@ -59,9 +93,16 @@ export const handleDownloadPhoto = async (
  * @param photos Lista de fotos da galeria
  * @param maxSizeBytes Tamanho máximo de cada pacote (ex: 500MB)
  */
-export const groupPhotosByWeight = (photos: any[], maxSizeBytes: number) => {
-  const chunks: any[][] = [];
-  let currentChunk: any[] = [];
+interface PhotoWithSize {
+  size?: string | number;
+}
+
+export const groupPhotosByWeight = (
+  photos: PhotoWithSize[],
+  maxSizeBytes: number,
+) => {
+  const chunks: PhotoWithSize[][] = [];
+  let currentChunk: PhotoWithSize[] = [];
   let currentChunkSize = 0;
 
   photos.forEach((photo) => {

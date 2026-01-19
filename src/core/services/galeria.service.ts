@@ -11,10 +11,12 @@ import {
 } from '@/lib/supabase.server';
 import {
   DrivePhoto,
-  listPhotosFromDriveFolder,
   //makeFolderPublic as makeFolderPublicLib,
 } from '@/lib/google-drive';
-import { getDriveAccessTokenForUser } from '@/lib/google-auth';
+import {
+  getFolderPhotos,
+  checkDriveAccess,
+} from './google-drive.service';
 import { formatGalleryData } from '@/core/logic/galeria-logic';
 import { Galeria } from '@/core/types/galeria';
 import { SignJWT } from 'jose';
@@ -23,12 +25,6 @@ import { SignJWT } from 'jose';
 // TIPOS AUXILIARES
 // =========================================================================
 
-interface AuthContext {
-  success: boolean;
-  userId: string | null;
-  studioId: string | null;
-  error?: string;
-}
 interface ActionResult<T = unknown> {
   success: boolean;
   data?: T;
@@ -40,49 +36,7 @@ interface ActionResult<T = unknown> {
 // 1. AUTENTICAÇÃO E CONTEXTO (userId + studioId)
 // =========================================================================
 
-/**
- * Obtém o ID do usuário logado (autor) e o studio_id associado.
- */
-async function getAuthAndStudioIds(supabaseClient?: any): Promise<AuthContext> {
-  const supabase =
-    supabaseClient || (await createSupabaseServerClientReadOnly());
-
-  const {
-    data: { user },
-    error: userError,
-  } = await supabase.auth.getUser();
-
-  if (userError || !user) {
-    return {
-      success: false,
-      userId: null,
-      studioId: null,
-      error: 'Usuário não autenticado.',
-    };
-  }
-
-  const { data: profile, error: profileError } = await supabase
-    .from('tb_profiles')
-    .select('studio_id')
-    .eq('id', user.id)
-    .single();
-
-  if (profileError || !profile) {
-    console.error('Erro ao buscar profile do usuário logado:', profileError);
-    return {
-      success: false,
-      userId: null,
-      studioId: null,
-      error: 'Profile do usuário não encontrado ou incompleto.',
-    };
-  }
-
-  return {
-    success: true,
-    userId: user.id,
-    studioId: profile.studio_id,
-  };
-}
+import { getAuthAndStudioIds } from './auth-context.service';
 
 // =========================================================================
 // 2. SLUG ÚNICO POR DATA
@@ -458,9 +412,6 @@ export async function authenticateGaleriaAccess(
     ? cleanPath
     : `/${cleanPath}`;
 
-  console.log(`[AUTH SUCCESS] Cookie set: galeria-${galeriaId}-auth`);
-  console.log(`[AUTH SUCCESS] Redirecting to: ${cleanPath}`);
-
   // Importante: Invalide o cache ANTES do redirect
   revalidatePath('/', 'layout');
 
@@ -513,43 +464,22 @@ export async function getGaleriaPhotos(
 
     const driveFolderId = galeria.drive_folder_id;
 
-    // 3. RENOVAR O ACCESS TOKEN
-    // Esta função (em lib/google-auth.ts) busca o refresh token no DB e o troca por um novo access token.
-    const accessToken = await getDriveAccessTokenForUser(userId);
+    // 3. USAR O SERVICE UNIFICADO PARA BUSCAR FOTOS
+    const result = await getFolderPhotos(driveFolderId, userId);
 
-    if (!accessToken) {
-      return {
-        success: false,
-        error: 'Falha na integração Google Drive. Refaça o login/integração.',
-        data: [],
-      };
+    if (!result.success) {
+      // Se for erro de autenticação, redireciona o usuário
+      if (result.error === 'AUTH_RECONNECT_REQUIRED') {
+        redirect('/');
+      }
+      return result;
     }
 
-    // 4. LISTAR FOTOS DO DRIVE
-    // Esta função (em lib/google-drive.ts) faz a requisição final ao Google Drive.
-    const photos = await listPhotosFromDriveFolder(driveFolderId, accessToken);
-
-    // Ordenação: Data (mais recente) > Nome (alfabético)
-    photos.sort((a, b) => {
-      // Cast para any para garantir acesso caso a interface importada de lib/google-drive esteja desatualizada
-      const pA = a as any;
-      const pB = b as any;
-
-      const dateAStr = pA.createdTime || pA.imageMediaMetadata?.time;
-      const dateBStr = pB.createdTime || pB.imageMediaMetadata?.time;
-
-      const dateA = dateAStr ? new Date(dateAStr).getTime() : 0;
-      const dateB = dateBStr ? new Date(dateBStr).getTime() : 0;
-
-      if (dateA !== dateB) return dateB - dateA; // Data: Decrescente
-      return a.name.localeCompare(b.name, undefined, { numeric: true }); // Nome: Crescente
-    });
-
-    if (photos.length === 0) {
+    if (result.data && result.data.length === 0) {
       return { success: true, data: [] }; // Retorna sucesso, mas com lista vazia.
     }
 
-    return { success: true, data: photos };
+    return result;
   } catch (error: any) {
     console.error('Erro ao buscar fotos:', error.message);
 

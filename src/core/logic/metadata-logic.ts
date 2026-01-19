@@ -1,7 +1,7 @@
 import { Metadata } from 'next';
 import { fetchGalleryBySlug } from '@/core/logic/galeria-logic';
-import { getProxyUrl } from '@/core/utils/url-helper';
-import { SEO_CONFIG } from '../config/seo.config';
+import { getDirectGoogleUrl } from '@/core/utils/url-helper';
+import { SEO_CONFIG } from '@/core/config/seo.config';
 
 /**
  * Busca a galeria e gera os metadados completos para SEO e Redes Sociais
@@ -36,7 +36,8 @@ export async function getGalleryMetadata(fullSlug: string): Promise<Metadata> {
   // 3. Tratamento da Imagem
   // Passamos '1200' para bater com o padrão de redes sociais.
   // O seu proxy retornará um WebP otimizado de ~300KB via Google Drive.
-  const ogImageUrl = getProxyUrl(galeria.cover_image_url, '1200');
+  // 🎯 FALLBACK: Prefere URL direta (server-side), cliente fará fallback se necessário
+  const ogImageUrl = getDirectGoogleUrl(galeria.cover_image_url, '1200');
 
   return {
     title: title,

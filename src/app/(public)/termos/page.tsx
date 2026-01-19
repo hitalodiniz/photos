@@ -55,7 +55,7 @@ export default function TermosDeUsoPage() {
   ];
 
   return (
-    <div className="relative min-h-screen w-full flex flex-col overflow-hidden bg-[#000]">
+    <div className="relative min-h-screen w-full flex flex-col overflow-hidden bg-black">
       {/* BACKGROUND DINÂMICO PADRONIZADO */}
       <DynamicHeroBackground />
 
@@ -65,7 +65,7 @@ export default function TermosDeUsoPage() {
           subtitle={
             <>
               Regras e diretrizes para uma{' '}
-              <span className="font-semibold border-b-2 border-[#F3E5AB]/50 text-white">
+              <span className="font-semibold border-b-2 border-champagne/50 text-white">
                 experiência profissional
               </span>
             </>

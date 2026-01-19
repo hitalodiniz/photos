@@ -6,7 +6,6 @@ export async function checkGalleryAccess(galeriaId: string): Promise<boolean> {
   const token = cookieStore.get(`galeria-${galeriaId}-auth`)?.value;
 
   if (!token) {
-    console.log(`[AUTH] Cookie não encontrado para galeria: ${galeriaId}`);
     return false;
   }
 
@@ -19,10 +18,6 @@ export async function checkGalleryAccess(galeriaId: string): Promise<boolean> {
     const { payload } = await jwtVerify(token, SECRET);
 
     const isMatch = String(payload.galeriaId) === String(galeriaId);
-    if (!isMatch)
-      console.log(
-        `[AUTH] Payload ID ${payload.galeriaId} não bate com ${galeriaId}`,
-      );
 
     return isMatch;
   } catch (err) {

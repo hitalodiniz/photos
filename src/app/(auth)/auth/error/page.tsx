@@ -5,12 +5,12 @@ import Link from 'next/link';
 
 export default function AuthErrorPage() {
   return (
-    <div className="min-h-screen flex items-center justify-center bg-[#F8FAFD] px-4">
+    <div className="min-h-screen flex items-center justify-center bg-luxury-bg px-4">
       <motion.div
         initial={{ opacity: 0, y: 20, scale: 0.97 }}
         animate={{ opacity: 1, y: 0, scale: 1 }}
         transition={{ duration: 0.25 }}
-        className="bg-white rounded-2xl shadow-lg border border-[#E0E3E7] p-10 max-w-md w-full text-center"
+        className="bg-white rounded-2xl shadow-lg border border-slate-200 p-10 max-w-md w-full text-center"
       >
         {/* Ícone */}
         <motion.div
@@ -37,12 +37,12 @@ export default function AuthErrorPage() {
         </motion.div>
 
         {/* Título */}
-        <h1 className="text-2xl font-semibold text-[#1F1F1F] mb-2">
+        <h1 className="text-2xl font-semibold text-slate-900 mb-2">
           Ocorreu um erro ao autenticar
         </h1>
 
         {/* Mensagem */}
-        <p className="text-sm text-[#444746] mb-6 leading-relaxed">
+        <p className="text-sm text-slate-600 mb-6 leading-relaxed">
           Não foi possível completar o processo de login. Isso pode acontecer
           por expiração do código, janela fechada ou erro temporário.
         </p>
@@ -51,7 +51,7 @@ export default function AuthErrorPage() {
         <motion.div whileHover={{ scale: 1.03 }} whileTap={{ scale: 0.97 }}>
           <Link
             href="/"
-            className="inline-block w-full bg-[#0B57D0] text-white py-2.5 rounded-lg text-sm font-medium hover:bg-[#0842a4] transition-colors"
+            className="inline-block w-full bg-gold text-black py-3 rounded-lg text-[10px] font-semibold uppercase tracking-widest hover:bg-gold/90 transition-colors"
           >
             Tentar novamente
           </Link>
@@ -60,7 +60,7 @@ export default function AuthErrorPage() {
         {/* Link para home */}
         <Link
           href="/"
-          className="block mt-4 text-xs text-[#444746] hover:text-[#0B57D0] transition-colors"
+          className="block mt-4 text-[10px] text-slate-600 uppercase tracking-widest hover:text-gold transition-colors"
         >
           Voltar para a página inicial
         </Link>

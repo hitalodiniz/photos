@@ -11,7 +11,7 @@ export default function BillingPage() {
       <div className="grid grid-cols-1 gap-8">
         <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
           <button className="p-6 bg-white/5 border border-white/10 rounded-3xl text-left hover:bg-white/10 transition-all group">
-            <CreditCard className="text-[#F3E5AB] mb-4 group-hover:scale-110 transition-transform" />
+            <CreditCard className="text-champagne mb-4 group-hover:scale-110 transition-transform" />
             <h4 className="text-white font-semibold text-sm">
               Método de Pagamento
             </h4>
@@ -19,7 +19,7 @@ export default function BillingPage() {
           </button>
 
           <button className="p-6 bg-white/5 border border-white/10 rounded-3xl text-left hover:bg-white/10 transition-all group">
-            <History className="text-[#F3E5AB] mb-4 group-hover:scale-110 transition-transform" />
+            <History className="text-champagne mb-4 group-hover:scale-110 transition-transform" />
             <h4 className="text-white font-semibold text-sm">
               Histórico de Faturas
             </h4>

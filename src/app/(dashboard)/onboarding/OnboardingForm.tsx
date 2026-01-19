@@ -40,10 +40,10 @@ export function SubmitOnboarding({ isSaving }: { isSaving: boolean }) {
     <button
       type="submit"
       disabled={isLoading}
-      className={`w-[60%] h-12 rounded-[0.5rem] font-semibold uppercase text-[11px] tracking-[0.2em] shadow-xl transition-all active:scale-95 flex items-center justify-center gap-2 border ${
+      className={`w-[60%] h-12 rounded-[0.5rem] font-semibold uppercase text-xs tracking-widest shadow-xl transition-all active:scale-95 flex items-center justify-center gap-2 border ${
         isLoading
           ? 'bg-slate-100 text-slate-400 border-slate-200 cursor-not-allowed'
-          : 'bg-[#F3E5AB] text-black border-[#F3E5AB] hover:bg-white shadow-[#D4AF37]/10'
+          : 'bg-champagne text-black border-champagne hover:bg-white shadow-gold/10'
       }`}
     >
       {isLoading ? (
@@ -200,7 +200,7 @@ export default function OnboardingForm({
 
   return (
     <>
-      <div className="relative min-h-screen bg-[#F8F9FA] flex flex-col md:flex-row w-full z-[99]">
+      <div className="relative min-h-screen bg-luxury-bg flex flex-col md:flex-row w-full z-[99]">
         <aside className="w-full md:w-[35%] bg-white border-r border-slate-100 p-6 pt-4 flex flex-col h-auto md:h-screen md:sticky md:top-0 z-20 md:overflow-y-auto no-scrollbar shadow-xl">
           <div className="flex items-center gap-3 shrink-0">
             <User size={20} />
@@ -235,7 +235,7 @@ export default function OnboardingForm({
                 />
                 <div
                   onClick={() => fileInputRef.current?.click()}
-                  className="relative w-24 h-24 rounded-full p-[2px] bg-gradient-to-tr from-[#D4AF37] to-[#F3E5AB] shadow-xl cursor-pointer transition-all hover:scale-105 active:scale-95"
+                  className="relative w-24 h-24 rounded-full p-[2px] bg-gradient-to-tr from-gold to-champagne shadow-xl cursor-pointer transition-all hover:scale-105 active:scale-95"
                 >
                   <div className="w-full h-full rounded-full overflow-hidden bg-white p-1">
                     <div className="w-full h-full rounded-full overflow-hidden bg-slate-50 flex items-center justify-center relative">
@@ -254,7 +254,7 @@ export default function OnboardingForm({
                 <button
                   type="button"
                   onClick={() => fileInputRef.current?.click()}
-                  className="absolute bottom-0 right-0 bg-white border border-slate-200 p-2 rounded-full shadow-lg text-[#D4AF37] z-10 hover:bg-[#F3E5AB] transition-colors"
+                  className="absolute bottom-0 right-0 bg-white border border-slate-200 p-2 rounded-full shadow-lg text-gold z-10 hover:bg-champagne transition-colors"
                 >
                   <Pencil size={12} />
                 </button>
@@ -265,10 +265,10 @@ export default function OnboardingForm({
               <div className="space-y-1.5">
                 <label>
                   <User size={12} /> Nome Completo{' '}
-                  <span className="text-[#D4AF37]">*</span>
+                  <span className="text-gold">*</span>
                 </label>
                 <input
-                  className="w-full bg-white border border-slate-200 rounded-[0.5rem] px-4 py-3 text-sm font-medium focus:border-[#D4AF37] outline-none"
+                  className="w-full bg-white border border-slate-200 rounded-[0.5rem] px-4 py-3 text-sm font-medium focus:border-gold outline-none"
                   value={fullName}
                   onChange={(e) => setFullName(e.target.value)}
                   required
@@ -277,7 +277,7 @@ export default function OnboardingForm({
               <div className="space-y-1.5">
                 <label>
                   <AtSign size={12} /> Username{' '}
-                  <span className="text-[#D4AF37]">*</span>
+                  <span className="text-gold">*</span>
                 </label>
                 <div className="relative">
                   <input
@@ -305,7 +305,7 @@ export default function OnboardingForm({
                   <Globe size={12} /> Website
                 </label>
                 <input
-                  className="w-full bg-white border border-slate-200 rounded-[0.5rem] px-4 py-3 text-sm font-medium focus:border-[#D4AF37] outline-none"
+                  className="w-full bg-white border border-slate-200 rounded-[0.5rem] px-4 py-3 text-sm font-medium focus:border-gold outline-none"
                   value={website}
                   onChange={(e) => setWebsite(e.target.value)}
                   placeholder="seusite.com"
@@ -373,7 +373,7 @@ export default function OnboardingForm({
                   <MessageCircle size={12} /> WhatsApp
                 </label>
                 <input
-                  className="w-full bg-white border border-slate-200 rounded-[0.5rem] px-4 py-3 text-sm font-medium focus:border-[#D4AF37]"
+                  className="w-full bg-white border border-slate-200 rounded-[0.5rem] px-4 py-3 text-sm font-medium focus:border-gold"
                   value={phone}
                   onChange={(e) => setPhone(maskPhone(e))}
                   placeholder="(00) 00000-0000"
@@ -384,7 +384,7 @@ export default function OnboardingForm({
                   <Instagram size={12} /> Instagram
                 </label>
                 <input
-                  className="w-full bg-white border border-slate-200 rounded-[0.5rem] px-4 py-3 text-sm font-medium focus:border-[#D4AF37]"
+                  className="w-full bg-white border border-slate-200 rounded-[0.5rem] px-4 py-3 text-sm font-medium focus:border-gold"
                   value={instagram}
                   onChange={(e) => setInstagram(e.target.value)}
                   placeholder="@seu.perfil"
@@ -400,7 +400,7 @@ export default function OnboardingForm({
                 {/* Contador de caracteres refinado */}
                 <span
                   className={`text-[9px] font-bold uppercase tracking-widest ${
-                    miniBio.length >= 380 ? 'text-[#D4AF37]' : 'text-slate-400'
+                    miniBio.length >= 380 ? 'text-gold' : 'text-slate-400'
                   }`}
                 >
                   {miniBio.length} / 400
@@ -408,7 +408,7 @@ export default function OnboardingForm({
               </div>
 
               <textarea
-                className="w-full bg-white border border-slate-200 rounded-[0.5rem] px-4 py-3 text-sm font-medium focus:border-[#D4AF37] outline-none min-h-[100px] transition-all"
+                className="w-full bg-white border border-slate-200 rounded-[0.5rem] px-4 py-3 text-sm font-medium focus:border-gold outline-none min-h-[100px] transition-all"
                 value={miniBio}
                 maxLength={400}
                 onChange={(e) => setMiniBio(e.target.value)}
@@ -418,7 +418,7 @@ export default function OnboardingForm({
               />
             </div>
             {/* 📍 SEÇÃO ÁREA DE ATUAÇÃO (RESTAURADA) */}
-            <div className="rounded-xl border border-[#D4AF37]/20 p-5 bg-[#F3E5AB]/5 space-y-4">
+            <div className="rounded-xl border border-gold/20 p-5 bg-champagne/5 space-y-4">
               <div className="flex items-center">
                 <label className="flex items-center gap-2">
                   <MapPin size={14} /> Área de Atuação ({selectedCities.length})
@@ -428,7 +428,7 @@ export default function OnboardingForm({
                 {selectedCities.map((city) => (
                   <span
                     key={city}
-                    className="bg-white border border-[#D4AF37]/20 text-slate-900 text-[9px] font-bold px-2.5 py-1.5 rounded-lg flex items-center gap-2 shadow-sm uppercase tracking-wider"
+                    className="bg-white border border-gold/20 text-slate-900 text-[9px] font-bold px-2.5 py-1.5 rounded-lg flex items-center gap-2 shadow-sm uppercase tracking-widest"
                   >
                     {city}{' '}
                     <X
@@ -451,7 +451,7 @@ export default function OnboardingForm({
                     setCityInput('');
                     setSuggestions([]);
                   }}
-                  className="w-20 bg-white border border-slate-200 rounded-lg px-2 py-2 text-[11px] font-bold outline-none focus:border-[#D4AF37]"
+                  className="w-20 bg-white border border-slate-200 rounded-lg px-2 py-2 text-xs font-bold outline-none focus:border-gold"
                 >
                   <option value="">UF</option>
                   {states.map((uf) => (
@@ -465,7 +465,7 @@ export default function OnboardingForm({
                     disabled={!selectedUF}
                     value={cityInput}
                     onChange={(e) => setCityInput(e.target.value)}
-                    className="w-full bg-white border border-slate-200 rounded-lg px-4 py-2 text-[11px] font-bold outline-none focus:border-[#D4AF37]"
+                    className="w-full bg-white border border-slate-200 rounded-lg px-4 py-2 text-xs font-bold outline-none focus:border-gold"
                     placeholder="Digite a cidade..."
                   />
                   {suggestions.length > 0 && (
@@ -475,7 +475,7 @@ export default function OnboardingForm({
                           key={city}
                           type="button"
                           onClick={() => handleSelectCity(city)}
-                          className="w-full text-left px-4 py-3 text-[10px] font-bold uppercase tracking-widest hover:bg-[#F3E5AB]/20 border-b border-slate-50 last:border-0 transition-colors"
+                          className="w-full text-left px-4 py-3 text-[10px] font-bold uppercase tracking-widest hover:bg-champagne/20 border-b border-slate-50 last:border-0 transition-colors"
                         >
                           {city}
                         </button>
@@ -510,8 +510,8 @@ export default function OnboardingForm({
       {/* 🎯 MODAL DE SUCESSO RESTAURADO */}
       {showSuccessModal && (
         <div className="fixed inset-0 z-[10000] flex items-center justify-center p-4 bg-[#1E293B]/60 backdrop-blur-md animate-in fade-in duration-500">
-          <div className="bg-white rounded-[2rem] p-10 max-w-sm w-full shadow-[0_20px_50px_rgba(212,175,55,0.2)] text-center border border-[#D4AF37]/20 animate-in zoom-in-95 duration-300">
-            <div className="w-20 h-20 bg-[#F3E5AB]/30 text-[#D4AF37] rounded-full flex items-center justify-center mx-auto mb-6 shadow-inner">
+          <div className="bg-white rounded-[2rem] p-10 max-w-sm w-full shadow-[0_20px_50px_rgba(212,175,55,0.2)] text-center border border-gold/20 animate-in zoom-in-95 duration-300">
+            <div className="w-20 h-20 bg-champagne/30 text-gold rounded-full flex items-center justify-center mx-auto mb-6 shadow-inner">
               <CheckCircle2 size={40} strokeWidth={1.5} />
             </div>
             <h2 className="text-xl font-bold text-slate-900 mb-2 uppercase tracking-widest">
@@ -524,19 +524,19 @@ export default function OnboardingForm({
               <a
                 href={`/${username}`}
                 target="_blank"
-                className="w-full h-12 flex items-center justify-center gap-2 bg-slate-900 text-[#F3E5AB] rounded-xl font-semibold text-[10px] uppercase tracking-[0.2em] hover:bg-black transition-all shadow-lg"
+                className="w-full h-12 flex items-center justify-center gap-2 bg-slate-900 text-champagne rounded-xl font-semibold text-[10px] uppercase tracking-widest hover:bg-black transition-all shadow-lg"
               >
                 <Sparkles size={14} /> Ver Perfil Público
               </a>
               <button
                 onClick={() => router.push('/dashboard')}
-                className="w-full h-12 bg-[#F3E5AB] text-black rounded-xl font-semibold text-[10px] uppercase tracking-[0.2em] hover:bg-white border border-[#F3E5AB] transition-all shadow-sm"
+                className="w-full h-12 bg-champagne text-black rounded-xl font-semibold text-[10px] uppercase tracking-widest hover:bg-white border border-champagne transition-all shadow-sm"
               >
                 Ir para o Dashboard
               </button>
               <button
                 onClick={() => setShowSuccessModal(false)}
-                className="w-full text-slate-400 py-2 text-[9px] font-bold uppercase tracking-[0.3em] hover:text-[#D4AF37] transition-colors"
+                className="w-full text-slate-400 py-2 text-[9px] font-bold uppercase tracking-widest hover:text-gold transition-colors"
               >
                 Continuar Editando
               </button>

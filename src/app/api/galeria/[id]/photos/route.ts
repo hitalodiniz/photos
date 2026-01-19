@@ -24,7 +24,6 @@ export async function GET(
       .single();
 
     if (galeriaError || !galeria || !galeria.drive_folder_id) {
-      console.warn(`Galeria ${id} não encontrada ou sem pasta vinculada.`);
       return NextResponse.json({ photos: [] });
     }
 

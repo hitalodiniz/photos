@@ -8,7 +8,7 @@ import {
 } from '@/lib/supabase.server';
 import { suggestUsernameFromEmail } from '@/core/utils/user-helpers';
 import { cache } from 'react';
-import { GLOBAL_CACHE_REVALIDATE } from '../utils/url-helper';
+import { GLOBAL_CACHE_REVALIDATE } from '@/core/utils/url-helper';
 
 // =========================================================================
 // 1. LEITURA DE DADOS (READ)

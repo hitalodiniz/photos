@@ -14,7 +14,7 @@ import * as googleAuth from '@/lib/google-auth';
 import * as googleDrive from '@/lib/google-drive';
 import { revalidatePath } from 'next/cache';
 import { redirect } from 'next/navigation';
-import { fetchGalleryBySlug } from '../logic/galeria-logic';
+import { fetchGalleryBySlug } from '@/core/logic/galeria-logic';
 
 // =========================================================================
 // CONFIGURAÇÃO GLOBAL E MOCKS ESTABILIZADOS

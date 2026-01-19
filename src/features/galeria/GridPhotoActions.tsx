@@ -1,7 +1,7 @@
 'use client';
 import React, { useState } from 'react';
 import { Download, Heart, Link as LinkIcon, Check } from 'lucide-react';
-import WhatsAppIcon from '../ui/WhatsAppIcon';
+import WhatsAppIcon from '@/components/ui/WhatsAppIcon';
 
 export const GridPhotoActions = ({
   isFavorited,

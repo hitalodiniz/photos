@@ -3,7 +3,7 @@
 import { useEffect, ReactNode } from 'react';
 import { useAuth } from '@/hooks/useAuth';
 import { Loader2 } from 'lucide-react';
-import LoadingScreen from '../ui/LoadingScreen';
+import LoadingScreen from '@/components/ui/LoadingScreen';
 
 interface AuthGuardProps {
   children: ReactNode;

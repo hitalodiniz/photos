@@ -3,7 +3,7 @@
 import { useEffect, useState } from 'react';
 import { maskPhone } from '@/core/utils/masks-helpers';
 import { GooglePickerButton } from '@/components/google-drive';
-import { CategorySelect } from '@/components/gallery';
+import { CategorySelect } from '@/components/galeria';
 import {
   Lock,
   Unlock,
@@ -83,7 +83,7 @@ export default function GaleriaFormContent({
 
   const SectionHeader = ({ title }: { title: string }) => (
     <legend className="flex items-center gap-2 px-2 ml-2 bg-white">
-      <span className="text-[10px] font-bold uppercase tracking-[0.2em] text-slate-800">
+      <span className="text-[10px] font-bold uppercase tracking-widest text-slate-800">
         {title}
       </span>
     </legend>
@@ -169,7 +169,7 @@ export default function GaleriaFormContent({
             </label>
             <div className="flex p-1 bg-slate-50 rounded-[0.5rem] border border-slate-200 h-10 items-center relative">
               <div
-                className={`absolute top-1 bottom-1 w-[calc(50%-4px)] rounded-[0.35rem] transition-all duration-300 bg-[#F3E5AB] border border-[#D4AF37]/20 shadow-sm ${hasContractingClient ? 'left-1' : 'left-[calc(50%+1px)]'}`}
+                className={`absolute top-1 bottom-1 w-[calc(50%-4px)] rounded-[0.35rem] transition-all duration-300 bg-champagne border border-gold/20 shadow-sm ${hasContractingClient ? 'left-1' : 'left-[calc(50%+1px)]'}`}
               />
               <button
                 type="button"
@@ -201,7 +201,7 @@ export default function GaleriaFormContent({
                   defaultValue={initialData?.client_name}
                   required
                   placeholder="Nome do cliente"
-                  className="w-full px-3 h-10 bg-white border border-slate-200 rounded-[0.5rem] text-[13px] font-medium outline-none focus:border-[#D4AF37] transition-all"
+                  className="w-full px-3 h-10 bg-white border border-slate-200 rounded-[0.5rem] text-[13px] font-medium outline-none focus:border-gold transition-all"
                 />
               </div>
               <div className="md:col-span-3 space-y-1.5">
@@ -213,7 +213,7 @@ export default function GaleriaFormContent({
                   name="client_whatsapp"
                   onChange={(e) => setClientWhatsapp(maskPhone(e))}
                   placeholder="(00) 00000-0000"
-                  className="w-full px-3 h-10 bg-white border border-slate-200 rounded-[0.5rem] text-[13px] font-medium outline-none focus:border-[#D4AF37] tracking-wider transition-all"
+                  className="w-full px-3 h-10 bg-white border border-slate-200 rounded-[0.5rem] text-[13px] font-medium outline-none focus:border-gold tracking-wider transition-all"
                 />
               </div>
             </>
@@ -240,7 +240,7 @@ export default function GaleriaFormContent({
               defaultValue={initialData?.title}
               required
               placeholder="Ex: Wedding Day"
-              className="w-full px-3 h-10 bg-white border border-slate-200 rounded-[0.5rem] text-[13px] font-medium outline-none focus:border-[#D4AF37] transition-all"
+              className="w-full px-3 h-10 bg-white border border-slate-200 rounded-[0.5rem] text-[13px] font-medium outline-none focus:border-gold transition-all"
             />
           </div>
           <div className="md:col-span-3 space-y-1.5">
@@ -259,7 +259,7 @@ export default function GaleriaFormContent({
                 type="date"
                 defaultValue={initialData?.date}
                 required
-                className="w-full px-2 h-10 bg-white border border-slate-200 rounded-[0.5rem] text-[12px] font-medium outline-none focus:border-[#D4AF37]"
+                className="w-full px-2 h-10 bg-white border border-slate-200 rounded-[0.5rem] text-[12px] font-medium outline-none focus:border-gold"
               />
             </div>
             <div className="space-y-1.5">
@@ -270,7 +270,7 @@ export default function GaleriaFormContent({
                 name="location"
                 defaultValue={initialData?.location}
                 placeholder="Cidade/UF"
-                className="w-full px-3 h-10 bg-white border border-slate-200 rounded-[0.5rem] text-[12px] font-medium outline-none focus:border-[#D4AF37]"
+                className="w-full px-3 h-10 bg-white border border-slate-200 rounded-[0.5rem] text-[12px] font-medium outline-none focus:border-gold"
               />
             </div>
           </div>
@@ -286,7 +286,7 @@ export default function GaleriaFormContent({
             <div className="flex items-center gap-1.5">
               <label>Foto de fundo</label>
               <div className="group relative flex items-center">
-                <div className="flex items-center justify-center w-3.5 h-3.5 rounded-full border border-slate-300 text-slate-400 group-hover:border-[#D4AF37] group-hover:text-[#D4AF37] transition-colors cursor-help">
+                <div className="flex items-center justify-center w-3.5 h-3.5 rounded-full border border-slate-300 text-slate-400 group-hover:border-gold group-hover:text-gold transition-colors cursor-help">
                   <span className="text-[10px] font-bold">?</span>
                 </div>
                 <div className="absolute bottom-full left-1/2 -translate-x-1/2 mb-3 w-48 p-2.5 bg-slate-900 text-white text-[10px] font-medium leading-relaxed rounded-lg opacity-0 pointer-events-none group-hover:opacity-100 transition-all duration-300 shadow-2xl z-50 text-center border border-white/10">
@@ -305,7 +305,7 @@ export default function GaleriaFormContent({
                   !customization.showCoverInGrid,
                 )
               }
-              className={`relative h-5 w-9 rounded-full transition-colors duration-200 ${customization.showCoverInGrid ? 'bg-[#D4AF37]' : 'bg-slate-200'}`}
+              className={`relative h-5 w-9 rounded-full transition-colors duration-200 ${customization.showCoverInGrid ? 'bg-gold' : 'bg-slate-200'}`}
             >
               <span
                 className={`absolute top-0.5 left-0.5 h-4 w-4 rounded-full bg-white shadow-sm transition-transform duration-200 ${customization.showCoverInGrid ? 'translate-x-4' : ''}`}
@@ -316,16 +316,16 @@ export default function GaleriaFormContent({
           {/* COR DE FUNDO */}
           <div className="flex items-center justify-between md:justify-start gap-3 pb-4 md:pb-0 border-b md:border-b-0 md:border-r border-slate-200 md:pr-4 shrink-0">
             <div className="flex items-center gap-1.5">
-              <Layout size={13} className="text-[#D4AF37]" />
+              <Layout size={13} className="text-gold" />
               <label> Cor de fundo</label>
               <div className="group relative flex items-center">
-                <div className="flex items-center justify-center w-3.5 h-3.5 rounded-full border border-slate-300 text-slate-400 group-hover:border-[#D4AF37] group-hover:text-[#D4AF37] transition-colors cursor-help">
+                <div className="flex items-center justify-center w-3.5 h-3.5 rounded-full border border-slate-300 text-slate-400 group-hover:border-gold group-hover:text-gold transition-colors cursor-help">
                   <span className="text-[10px] font-bold">?</span>
                 </div>
                 <div className="absolute bottom-full left-1/2 -translate-x-1/2 mb-3 w-64 p-3 bg-slate-900 text-white text-[10px] font-medium leading-relaxed rounded-lg opacity-0 pointer-events-none group-hover:opacity-100 transition-all duration-300 shadow-2xl z-[100] text-center border border-white/10">
                   <p>
                     Define a cor sólida do grid. Visível caso a{' '}
-                    <strong className="text-[#F3E5AB]">"Foto de fundo"</strong>{' '}
+                    <strong className="text-champagne">"Foto de fundo"</strong>{' '}
                     esteja desativada.
                   </p>
                   <div className="absolute top-full left-1/2 -translate-x-1/2 border-8 border-transparent border-t-slate-900" />
@@ -339,7 +339,7 @@ export default function GaleriaFormContent({
                     key={c}
                     type="button"
                     onClick={() => setCustomization.setGridBgColor(c)}
-                    className={`w-5 h-5 rounded-[0.3rem] border transition-all ${customization.gridBgColor === c ? 'border-[#D4AF37] scale-110 shadow-sm' : 'border-slate-200'}`}
+                    className={`w-5 h-5 rounded-[0.3rem] border transition-all ${customization.gridBgColor === c ? 'border-gold scale-110 shadow-sm' : 'border-slate-200'}`}
                     style={{ backgroundColor: c }}
                   />
                 ))}
@@ -380,13 +380,13 @@ export default function GaleriaFormContent({
             <div className="flex items-center gap-1.5">
               <label> Grid</label>
               <div className="group relative flex items-center">
-                <div className="flex items-center justify-center w-3.5 h-3.5 rounded-full border border-slate-300 text-slate-400 group-hover:border-[#D4AF37] group-hover:text-[#D4AF37] transition-colors cursor-help">
+                <div className="flex items-center justify-center w-3.5 h-3.5 rounded-full border border-slate-300 text-slate-400 group-hover:border-gold group-hover:text-gold transition-colors cursor-help">
                   <span className="text-[10px] font-bold">?</span>
                 </div>
                 <div className="absolute bottom-full right-0 md:left-1/2 md:-translate-x-1/2 mb-3 w-64 p-3 bg-slate-900 text-white text-[10px] font-medium leading-relaxed rounded-lg opacity-0 pointer-events-none group-hover:opacity-100 transition-all duration-300 shadow-2xl z-[100] text-left border border-white/10">
                   <p>
                     Define o{' '}
-                    <strong className="text-[#F3E5AB]">layout inicial</strong>{' '}
+                    <strong className="text-champagne">layout inicial</strong>{' '}
                     de colunas.
                   </p>
                   <div className="absolute top-full right-2 md:left-1/2 md:-translate-x-1/2 border-8 border-transparent border-t-slate-900" />
@@ -400,7 +400,7 @@ export default function GaleriaFormContent({
                 { k: 'desktop', i: Monitor },
               ].map((d) => (
                 <div key={d.k} className="flex items-center gap-1">
-                  <d.i size={14} className="text-[#D4AF37]" strokeWidth={2} />
+                  <d.i size={14} className="text-gold" strokeWidth={2} />
                   <div className="relative">
                     <select
                       value={customization.columns[d.k]}
@@ -410,7 +410,7 @@ export default function GaleriaFormContent({
                           [d.k]: Number(e.target.value),
                         })
                       }
-                      className="appearance-none bg-slate-50 border border-slate-200 pl-2 pr-5 h-8 rounded-[0.3rem] text-[11px] font-bold text-slate-700 outline-none hover:border-[#D4AF37] cursor-pointer transition-all"
+                      className="appearance-none bg-slate-50 border border-slate-200 pl-2 pr-5 h-8 rounded-[0.3rem] text-xs font-bold text-slate-700 outline-none hover:border-gold cursor-pointer transition-all"
                     >
                       {[1, 2, 3, 4, 5, 6].map((v) => (
                         <option key={v} value={v}>
@@ -445,21 +445,21 @@ export default function GaleriaFormContent({
           <div className="flex items-center justify-between gap-4">
             <label>
               {' '}
-              <Lock size={12} className="text-[#D4AF37]" /> Acesso à Galeria
+              <Lock size={12} className="text-gold" /> Acesso à Galeria
             </label>
             <div className="flex items-center gap-2 flex-1 justify-end">
               <div className="flex bg-slate-50 rounded-[0.4rem] border border-slate-200 p-1 gap-1 w-40 shrink-0">
                 <button
                   type="button"
                   onClick={() => setIsPublic(true)}
-                  className={`flex-1 py-1 rounded-[0.3rem] text-[10px] font-semibold uppercase tracking-wider transition-all ${isPublic ? 'bg-white text-[#D4AF37] shadow-sm' : 'text-slate-400'}`}
+                  className={`flex-1 py-1 rounded-[0.3rem] text-[10px] font-semibold uppercase tracking-widest transition-all ${isPublic ? 'bg-white text-gold shadow-sm' : 'text-slate-400'}`}
                 >
                   Público
                 </button>
                 <button
                   type="button"
                   onClick={() => setIsPublic(false)}
-                  className={`flex-1 py-1 rounded-[0.3rem] text-[10px] font-semibold uppercase tracking-wider transition-all ${!isPublic ? 'bg-white text-[#D4AF37] shadow-sm' : 'text-slate-400'}`}
+                  className={`flex-1 py-1 rounded-[0.3rem] text-[10px] font-semibold uppercase tracking-widest transition-all ${!isPublic ? 'bg-white text-gold shadow-sm' : 'text-slate-400'}`}
                 >
                   Privado
                 </button>
@@ -474,7 +474,7 @@ export default function GaleriaFormContent({
                     minLength={4}
                     maxLength={8}
                     defaultValue={initialData?.password || ''}
-                    className="w-full pl-3 pr-10 h-9 bg-white border border-[#F3E5AB] rounded-[0.4rem] text-[11px] font-medium tracking-[0.2em] outline-none"
+                    className="w-full pl-3 pr-10 h-9 bg-white border border-champagne rounded-[0.4rem] text-xs font-medium tracking-[0.2em] outline-none"
                     required
                     placeholder="Senha"
                     onChange={(e) => {
@@ -484,7 +484,7 @@ export default function GaleriaFormContent({
                   <button
                     type="button"
                     onClick={() => setShowPassword(!showPassword)}
-                    className="absolute right-2 top-1/2 -translate-y-1/2 text-slate-400 hover:text-[#D4AF37] transition-colors p-1"
+                    className="absolute right-2 top-1/2 -translate-y-1/2 text-slate-400 hover:text-gold transition-colors p-1"
                   >
                     {showPassword ? <EyeOff size={14} /> : <Eye size={14} />}
                   </button>
@@ -497,7 +497,7 @@ export default function GaleriaFormContent({
           <div className="flex items-center justify-between gap-4">
             <label>
               {' '}
-              <Eye size={12} className="text-[#D4AF37]" /> Listar no Perfil
+              <Eye size={12} className="text-gold" /> Listar no Perfil
             </label>
             <div className="flex items-center justify-between bg-slate-50 p-2 h-11 rounded-[0.4rem] border border-slate-200 flex-1">
               <span className="text-[10px] md:text-[12px]font-medium text-slate-600 pl-1">
@@ -526,7 +526,7 @@ export default function GaleriaFormContent({
           <div className="md:col-span-6 flex flex-col justify-between bg-slate-50 p-4 rounded-[0.5rem] border border-slate-100 min-h-[110px]">
             <div className="space-y-2">
               <div className="flex items-center gap-2">
-                <FolderSync size={16} className="text-[#D4AF37]" />
+                <FolderSync size={16} className="text-gold" />
                 <span className="text-[11px] font-bold text-slate-700 uppercase tracking-widest">
                   Google Drive
                 </span>
@@ -551,7 +551,7 @@ export default function GaleriaFormContent({
             <div className="space-y-1.5">
               <label>
                 {' '}
-                <Download size={10} className="text-[#D4AF37]" /> Alta Resolução
+                <Download size={10} className="text-gold" /> Alta Resolução
                 (Full)
               </label>
               <div className="relative group">
@@ -562,7 +562,7 @@ export default function GaleriaFormContent({
                     setZipUrlFull(convertToDirectDownloadUrl(e.target.value))
                   }
                   placeholder="Link do ZIP para Download"
-                  className="w-full px-3 h-10  border border-slate-200 rounded-[0.4rem] text-[11px] font-medium outline-none focus:border-[#D4AF37] focus:bg-white transition-all pr-8"
+                  className="w-full px-3 h-10  border border-slate-200 rounded-[0.4rem] text-xs font-medium outline-none focus:border-gold focus:bg-white transition-all pr-8"
                 />
                 {zipUrlFull.includes('uc?export=download') && (
                   <CheckCircle2
@@ -577,7 +577,7 @@ export default function GaleriaFormContent({
             <div className="space-y-1.5">
               <label>
                 {' '}
-                <Download size={10} className="text-[#D4AF37]" /> Redes Sociais
+                <Download size={10} className="text-gold" /> Redes Sociais
                 (Social)
               </label>
               <div className="relative group">
@@ -588,7 +588,7 @@ export default function GaleriaFormContent({
                     setZipUrlSocial(convertToDirectDownloadUrl(e.target.value))
                   }
                   placeholder="Link do ZIP para Download"
-                  className="w-full px-3 h-10 border border-slate-200 rounded-[0.4rem] text-[11px] font-medium outline-none focus:border-[#D4AF37] focus:bg-white transition-all pr-8"
+                  className="w-full px-3 h-10 border border-slate-200 rounded-[0.4rem] text-xs font-medium outline-none focus:border-gold focus:bg-white transition-all pr-8"
                 />
                 {zipUrlSocial.includes('uc?export=download') && (
                   <CheckCircle2

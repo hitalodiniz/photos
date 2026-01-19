@@ -1,6 +1,7 @@
-import GaleriaBasePage, {
+import { GaleriaBasePage } from '@/components/galeria';
+import {
   generateMetadata as baseMetadata,
-} from '@/components/gallery/GaleriaBasePage';
+} from '@/features/galeria/GaleriaBasePage';
 
 export const generateMetadata = baseMetadata;
 

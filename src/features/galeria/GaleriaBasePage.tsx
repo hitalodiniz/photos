@@ -1,4 +1,4 @@
-// Exemplo de caminho: src/components/gallery/GaleriaBasePage.tsx
+// Exemplo de caminho: src/features/galeria/GaleriaBasePage.tsx
 'use server';
 import React from 'react';
 import { notFound, redirect } from 'next/navigation';
@@ -8,14 +8,15 @@ import {
   formatGalleryData,
   fetchDrivePhotos,
 } from '@/core/logic/galeria-logic';
-import { GaleriaView, PasswordPrompt } from '@/components/gallery';
-import { getProxyUrl, resolveGalleryUrl } from '@/core/utils/url-helper';
+import GaleriaView from './GaleriaView';
+import PasswordPrompt from './PasswordPrompt';
+import { getDirectGoogleUrl, resolveGalleryUrl } from '@/core/utils/url-helper';
 import {
   getGalleryMetadata,
   getPhotographerMetadata,
 } from '@/lib/gallery/metadata-helper';
 import GoogleAuthError from '@/components/auth/GoogleAuthError';
-import PhotographerProfileBase from '../photographer/PhotographerProfileBase';
+import PhotographerProfileBase from '@/components/photographer/PhotographerProfileBase';
 
 const MAIN_DOMAIN = (
   process.env.NEXT_PUBLIC_MAIN_DOMAIN || 'localhost:3000'
@@ -23,7 +24,7 @@ const MAIN_DOMAIN = (
 
 interface GaleriaBaseProps {
   params: { username: string; slug?: string[] };
-  isSubdomainContext?: boolean; // 🎯 Diferencial técnico
+  isSubdomainContext?: boolean; // Diferencial técnico
 }
 
 export default async function GaleriaBasePage({
@@ -32,7 +33,7 @@ export default async function GaleriaBasePage({
 }: GaleriaBaseProps) {
   const { username, slug } = params;
 
-  // 🎯 CASO 1: HOME (Perfil do Fotógrafo)
+  // CASO 1: HOME (Perfil do Fotógrafo)
   // Se o slug não existe ou está vazio, renderizamos o Perfil
   if (!slug || (Array.isArray(slug) && slug.length === 0)) {
     return (
@@ -43,13 +44,13 @@ export default async function GaleriaBasePage({
     );
   }
 
-  // 🎯 CASO 2: GALERIA
+  // CASO 2: GALERIA
   const fullSlug = `${username}/${slug.join('/')}`;
 
   const galeriaRaw = await fetchGalleryBySlug(fullSlug);
   if (!galeriaRaw) notFound();
 
-  // 🛡️ LÓGICA DE REDIRECIONAMENTO INTELIGENTE
+  // LÓGICA DE REDIRECIONAMENTO INTELIGENTE
   const hasSubdomain = !!galeriaRaw.photographer?.use_subdomain;
   const protocol = process.env.NODE_ENV === 'production' ? 'https' : 'http';
 
@@ -91,7 +92,7 @@ export default async function GaleriaBasePage({
         <PasswordPrompt
           galeria={galeriaData}
           fullSlug={fullSlug}
-          coverImageUrl={getProxyUrl(galeriaData.cover_image_url, '1000')}
+          coverImageUrl={getDirectGoogleUrl(galeriaData.cover_image_url, '1000')}
         />
       );
     }
@@ -128,3 +129,5 @@ export async function generateMetadata({ params }: { params: Promise<any> }) {
   const fullSlug = `${username}/${slug.join('/')}`;
   return await getGalleryMetadata(fullSlug);
 }
+
+

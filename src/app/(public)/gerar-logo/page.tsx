@@ -14,7 +14,7 @@ export default function GerarLogoPage() {
           <Camera
             size={240}
             strokeWidth={1.5}
-            className="text-[#F3E5AB] drop-shadow-[0_0_30px_rgba(243,229,171,0.4)]"
+            className="text-champagne drop-shadow-[0_0_30px_rgba(243,229,171,0.4)]"
           />
         </div>
       </div>

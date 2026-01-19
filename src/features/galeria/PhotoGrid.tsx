@@ -3,7 +3,7 @@ import React, { useState, useEffect, useMemo, useRef } from 'react';
 import { Download, Loader2 } from 'lucide-react';
 import { saveAs } from 'file-saver';
 import JSZip from 'jszip';
-import { Lightbox } from '@/components/gallery';
+import Lightbox from './Lightbox';
 import { ToolBarDesktop } from './ToolBarDesktop';
 import MasonryGrid from './MasonryGrid';
 import {

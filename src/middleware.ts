@@ -50,6 +50,7 @@ export async function middleware(req: NextRequest) {
                 delete (finalOptions as any).expires;
               }
 
+
               // 2. Atualiza na resposta (para o navegador salvar o cookie)
               response.cookies.set(name, value, finalOptions);
               redirectResponse.cookies.set(name, value, finalOptions);
@@ -73,12 +74,8 @@ export async function middleware(req: NextRequest) {
 
     // 4. Se não houver usuário, retornamos o redirecionamento com os cookies atualizados
     if (!user) {
-      console.warn(
-        '❌ Usuário não encontrado no middleware, redirecionando para home...',
-      );
       return redirectResponse;
     }
-    console.log('✅ User ok no Dashboard, permitindo acesso.');
     // 5. Se houver usuário, retornamos a resposta de sucesso
     return response;
   }
@@ -99,10 +96,6 @@ export async function middleware(req: NextRequest) {
       // 🎯 SE NÃO EXISTE OU NÃO TEM PERMISSÃO -> 404
       // Não corrigimos a URL, apenas dizemos que não existe.
       if (!profile || !profile.use_subdomain) {
-        console.warn(
-          `[Security] Tentativa de acesso a subdomínio sem permissão: ${subdomain}`,
-        );
-
         // Fazemos um rewrite para uma rota que não existe ou para o próprio 404 do Next
         const url = req.nextUrl.clone();
         url.pathname = '/404';
@@ -163,5 +156,14 @@ export async function middleware(req: NextRequest) {
 }
 
 export const config = {
-  matcher: ['/((?!api|_next/static|_next/image|favicon.ico|.*\\..*).*)'],
+  matcher: [
+    /*
+     * Ignora:
+     * - api (rotas de API)
+     * - _next/static (arquivos estáticos)
+     * - _next/image (otimização de imagem do Next)
+     * - favicon.ico, sitemap.xml, robots.txt
+     */
+    '/((?!api|_next/static|_next/image|favicon.ico|sitemap.xml|robots.txt|.*\\..*).*)',
+  ],
 };

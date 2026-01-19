@@ -12,7 +12,7 @@ import {
   ImageIcon,
   Zap,
 } from 'lucide-react';
-import WhatsAppIcon from '../ui/WhatsAppIcon';
+import WhatsAppIcon from '@/components/ui/WhatsAppIcon';
 
 // Componente do Balão de Dica (Mantido conforme original para suporte ao usuário)
 const Tooltip = ({

@@ -8,7 +8,7 @@ import {
   Heart,
   X,
 } from 'lucide-react';
-import WhatsAppIcon from '../ui/WhatsAppIcon';
+import WhatsAppIcon from '@/components/ui/WhatsAppIcon';
 import { executeShare, getCleanSlug } from '@/core/utils/share-helper';
 import { GALLERY_MESSAGES } from '@/constants/messages';
 import { handleDownloadPhoto } from '@/core/utils/foto-helpers';

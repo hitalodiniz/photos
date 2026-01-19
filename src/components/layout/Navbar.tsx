@@ -5,7 +5,7 @@ import { Camera } from 'lucide-react';
 import Link from 'next/link';
 
 import { useAuth } from '@/hooks/useAuth';
-import { UserMenu } from '../auth';
+import { UserMenu } from '@/components/auth';
 
 export default function Navbar() {
   const pathname = usePathname();

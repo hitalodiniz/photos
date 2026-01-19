@@ -1,8 +1,7 @@
 'use client';
 
-import { RefreshCw, ArrowLeft, ShieldAlert } from 'lucide-react';
+import { RefreshCw } from 'lucide-react';
 import { GoogleSignInButton } from '@/components/auth';
-import { useRouter } from 'next/navigation';
 import {
   EditorialHeader,
   DynamicHeroBackground,
@@ -10,7 +9,6 @@ import {
 } from '@/components/layout';
 import FeatureGrid from '@/components/ui/FeatureGrid';
 import { usePageTitle } from '@/hooks/usePageTitle';
-import { div } from 'framer-motion/client';
 
 export default function ReconnectPage() {
   usePageTitle('Restaurar Conexão');
@@ -36,7 +34,7 @@ export default function ReconnectPage() {
   ];
 
   return (
-    <div className="relative min-h-screen w-full flex flex-col overflow-hidden bg-[#000]">
+    <div className="relative min-h-screen w-full flex flex-col overflow-hidden bg-black">
       <DynamicHeroBackground />
 
       <div className="relative z-10 flex flex-col min-h-screen">
@@ -45,7 +43,7 @@ export default function ReconnectPage() {
           subtitle={
             <>
               Sua chave de acesso{' '}
-              <span className="font-semibold border-b-2 border-[#F3E5AB]/50 text-white">
+              <span className="font-semibold border-b-2 border-champagne/50 text-white">
                 precisa ser renovada
               </span>
             </>

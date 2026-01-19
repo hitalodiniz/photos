@@ -10,7 +10,6 @@ import {
   ChevronRight,
   RefreshCw,
   ShieldAlert,
-  X,
 } from 'lucide-react';
 import {
   getGalerias,
@@ -28,15 +27,12 @@ import { ConfirmationModal, Toast } from '@/components/ui';
 import GaleriaCard from './GaleriaCard';
 import { updateSidebarPreference } from '@/core/services/profile.service';
 import {
-  revalidateGalleryCover,
   revalidateDrivePhotos,
   revalidateGallery,
   revalidateProfile,
 } from '@/actions/revalidate.actions';
 import { authService } from '@/core/services/auth.service';
 import AdminControlModal from '@/components/admin/AdminControlModal';
-import { supabase } from '@/lib/supabase.client';
-import { g } from 'framer-motion/client';
 
 const CARDS_PER_PAGE = 8;
 
@@ -48,14 +44,24 @@ function normalizeString(str: string): string {
     .trim();
 }
 
+interface PhotographerProfile {
+  id: string;
+  username: string;
+  full_name: string;
+  google_refresh_token?: string | null;
+  sidebar_collapsed?: boolean;
+  mini_bio?: string | null;
+}
+
+interface DashboardProps {
+  initialGalerias: Galeria[];
+  initialProfile: PhotographerProfile | null;
+}
+
 export default function Dashboard({
   initialGalerias,
   initialProfile,
-}: {
-  initialGalerias: Galeria[];
-  // 🎯 Atualizado: Tipagem agora reflete o objeto completo do perfil (photographer)
-  initialProfile: any;
-}) {
+}: DashboardProps) {
   const [galerias, setGalerias] = useState<Galeria[]>(initialGalerias);
   const [isAdminModalOpen, setIsAdminModalOpen] = useState(false);
   const [currentView, setCurrentView] = useState<
@@ -72,7 +78,7 @@ export default function Dashboard({
   const handleGoogleLogin = async (force: boolean) => {
     try {
       await authService.signInWithGoogle(force);
-    } catch (error) {
+    } catch {
       setToast({ message: 'Erro ao conectar com Google', type: 'error' });
     }
   };
@@ -110,14 +116,19 @@ export default function Dashboard({
   );
 
   // --- MÉTODOS DE AÇÃO ---
-  const handleFormSuccess = async (success: boolean, data: any) => {
+  const handleFormSuccess = async (
+    success: boolean,
+    data: Galeria | string,
+  ) => {
     if (success) {
-      if (galeriaToEdit) {
+      if (galeriaToEdit && typeof data !== 'string') {
+        // 🎯 Revalida cache incluindo a nova capa se foi alterada
         await revalidateGallery(
           data.drive_folder_id,
           data.slug,
-          data.photographer_username || data.photographer?.username,
-          data.photographer_username || data.photographer?.username,
+          data.photographer_username || data.photographer?.username || '',
+          data.photographer_username || data.photographer?.username || '',
+          data.cover_image_url, // Passa o photoId da nova capa para revalidar o cache
         );
         setGalerias((prev) => prev.map((g) => (g.id === data.id ? data : g)));
         setToast({ message: 'Galeria atualizada!', type: 'success' });
@@ -127,7 +138,8 @@ export default function Dashboard({
         setToast({ message: 'Galeria criada!', type: 'success' });
       }
     } else {
-      setToast({ message: data || 'Erro na operação', type: 'error' });
+      const errorMessage = typeof data === 'string' ? data : 'Erro na operação';
+      setToast({ message: errorMessage, type: 'error' });
     }
   };
 
@@ -201,9 +213,11 @@ export default function Dashboard({
           : 'Galeria removida do perfil público.',
         type: 'success',
       });
-    } catch (err: any) {
+    } catch (err: unknown) {
+      const errorMessage =
+        err instanceof Error ? err.message : 'Não foi possível alterar a visibilidade.';
       setToast({
-        message: err.message || 'Não foi possível alterar a visibilidade.',
+        message: errorMessage,
         type: 'error',
       });
     } finally {
@@ -234,16 +248,16 @@ export default function Dashboard({
     setUpdatingId(galeria.id);
     try {
       await revalidateDrivePhotos(galeria.drive_folder_id);
+      // 🎯 Revalida cache incluindo a capa da galeria
       await revalidateGallery(
         galeria.drive_folder_id,
         galeria.slug,
         galeria.photographer_username,
         galeria.photographer_username,
+        galeria.cover_image_url, // Passa o photoId da capa para revalidar o cache
       );
-      if (galeria.cover_image_url)
-        await revalidateGalleryCover(galeria.cover_image_url);
       setToast({ message: 'Sincronização concluída!', type: 'success' });
-    } catch (error) {
+    } catch {
       setToast({ message: 'Erro ao sincronizar.', type: 'error' });
     } finally {
       setUpdatingId(null);
@@ -258,7 +272,7 @@ export default function Dashboard({
         prev.filter((g) => g.id !== galeriaToPermanentlyDelete.id),
       );
       setToast({ message: 'Removida definitivamente!', type: 'success' });
-    } catch (error) {
+    } catch {
       setToast({ message: 'Erro na exclusão.', type: 'error' });
     } finally {
       setGaleriaToPermanentlyDelete(null);
@@ -328,7 +342,7 @@ export default function Dashboard({
   );
 
   return (
-    <div className="mx-auto flex flex-col lg:flex-row max-w-[1600px] gap-4 px-4 py-2 bg-[#F8F9FA] min-h-screen pb-24 lg:pb-6">
+    <div className="mx-auto flex flex-col lg:flex-row max-w-[1600px] gap-4 px-4 py-2 bg-luxury-bg min-h-screen pb-24 lg:pb-6">
       {/* SIDEBAR */}
       <aside
         className={`fixed bottom-0 left-0 right-0 z-[100] bg-white border-t border-slate-200 px-6 py-3 lg:py-0 lg:px-0 lg:relative lg:block lg:bg-transparent lg:border-0 transition-all duration-500 ease-in-out ${isSidebarCollapsed ? 'lg:w-[70px]' : 'lg:w-[210px]'}`}
@@ -336,7 +350,7 @@ export default function Dashboard({
         {/* 1. Botão Nova Galeria (Mantido tamanho original) */}
         <button
           onClick={() => setIsFormOpen(true)}
-          className={`flex items-center justify-center bg-[#D4AF37] text-black hover:bg-white hover:text-[#D4AF37] transition-all duration-300 rounded-[0.5rem] border border-[#D4AF37] group shadow-lg lg:shadow-sm mb-6 overflow-hidden w-12 h-12 fixed bottom-20 right-6 z-[100] lg:relative lg:bottom-auto lg:right-auto lg:z-auto ${isSidebarCollapsed ? 'lg:w-14 lg:h-10' : 'lg:h-10 lg:px-4 lg:gap-3 lg:w-fit'}`}
+          className={`flex items-center justify-center bg-gold text-black hover:bg-white hover:text-gold transition-all duration-300 rounded-[0.5rem] border border-gold group shadow-lg lg:shadow-sm mb-6 overflow-hidden w-12 h-12 fixed bottom-20 right-6 z-[100] lg:relative lg:bottom-auto lg:right-auto lg:z-auto ${isSidebarCollapsed ? 'lg:w-14 lg:h-10' : 'lg:h-10 lg:px-4 lg:gap-3 lg:w-fit'}`}
         >
           <Plus
             size={20}
@@ -344,7 +358,7 @@ export default function Dashboard({
             strokeWidth={2.5}
           />
           {!isSidebarCollapsed && (
-            <span className="hidden lg:block text-[10px] font-semibold uppercase tracking-[0.2em] whitespace-nowrap">
+            <span className="hidden lg:block text-[10px] font-semibold uppercase tracking-widest whitespace-nowrap">
               Nova Galeria
             </span>
           )}
@@ -387,11 +401,11 @@ export default function Dashboard({
               <button
                 key={item.id}
                 onClick={() => {
-                  setCurrentView(item.id as any);
+                  setCurrentView(item.id as 'active' | 'archived' | 'trash');
                   setCardsToShow(8);
                   window.scrollTo({ top: 0, behavior: 'smooth' });
                 }}
-                className={`flex flex-col lg:flex-row items-center transition-all duration-300 group relative ${isSidebarCollapsed ? 'lg:justify-center lg:py-4' : 'lg:justify-between lg:px-4 lg:py-3 lg:rounded-xl'} ${currentView === item.id ? 'text-black bg-[#F3E5AB] shadow-sm' : 'text-slate-400 hover:bg-white hover:text-slate-600'}`}
+                className={`flex flex-col lg:flex-row items-center transition-all duration-300 group relative ${isSidebarCollapsed ? 'lg:justify-center lg:py-4' : 'lg:justify-between lg:px-4 lg:py-3 lg:rounded-xl'} ${currentView === item.id ? 'text-black bg-champagne shadow-sm' : 'text-slate-400 hover:bg-white hover:text-slate-600'}`}
               >
                 <div className="flex flex-col lg:flex-row items-center gap-1 lg:gap-3">
                   <item.icon
@@ -399,7 +413,7 @@ export default function Dashboard({
                     className={
                       currentView === item.id
                         ? 'text-black'
-                        : 'text-slate-400 group-hover:text-[#D4AF37]'
+                        : 'text-slate-400 group-hover:text-gold'
                     }
                   />
                   <span
@@ -435,11 +449,11 @@ export default function Dashboard({
                 </div>
                 <div className="w-full h-[6px] bg-slate-200 rounded-full overflow-hidden shadow-inner">
                   <div
-                    className={`h-full transition-all duration-1000 ease-out ${galerias.length > 45 ? 'bg-red-500' : 'bg-[#D4AF37]'}`}
+                    className={`h-full transition-all duration-1000 ease-out ${galerias.length > 45 ? 'bg-red-500' : 'bg-gold'}`}
                     style={{ width: `${(galerias.length / 50) * 100}%` }}
                   />
                 </div>
-                <p className="text-[9px] text-slate-700 uppercase tracking-tighter mt-1 font-medium">
+                <p className="text-[9px] text-slate-700 uppercase tracking-widest mt-1 font-medium">
                   Limite de 50 galerias no plano atual
                 </p>
               </div>
@@ -489,7 +503,7 @@ export default function Dashboard({
                       onClick={() =>
                         handleGoogleLogin(!photographer?.google_refresh_token)
                       }
-                      className="p-1 hover:bg-slate-200 rounded-md transition-colors text-slate-400 hover:text-[#D4AF37]"
+                      className="p-1 hover:bg-slate-200 rounded-md transition-colors text-slate-400 hover:text-gold"
                     >
                       <RefreshCw
                         size={12}
@@ -592,8 +606,8 @@ export default function Dashboard({
           </div>
           {visibleGalerias.length === 0 && (
             <div className="flex flex-col items-center justify-center py-32 text-center">
-              <div className="w-20 h-20 bg-slate-50 rounded-[10px] flex items-center justify-center mb-6 border border-[#F3E5AB]">
-                <Inbox className="text-[#D4AF37] opacity-40" size={32} />
+              <div className="w-20 h-20 bg-slate-50 rounded-[10px] flex items-center justify-center mb-6 border border-champagne">
+                <Inbox className="text-gold opacity-40" size={32} />
               </div>
               <h3 className="text-xl italic text-slate-800 mb-2">
                 Nenhuma galeria por aqui
@@ -608,12 +622,12 @@ export default function Dashboard({
         {/* PAGINAÇÃO */}
         <div className="mt-12 flex flex-col items-center justify-center space-y-6 pb-12">
           <div className="flex flex-col items-center gap-2">
-            <div className="text-[10px] font-semibold text-slate-700 uppercase tracking-[0.3em]">
+            <div className="text-[10px] font-semibold text-slate-700 uppercase tracking-widest">
               {visibleGalerias.length} de {filteredGalerias.length} Galerias
             </div>
             <div className="w-40 h-[3px] bg-slate-200 rounded-full overflow-hidden">
               <div
-                className="h-full bg-[#D4AF37] transition-all duration-700 ease-out"
+                className="h-full bg-gold transition-all duration-700 ease-out"
                 style={{
                   width: `${(visibleGalerias.length / filteredGalerias.length) * 100}%`,
                 }}
@@ -623,12 +637,12 @@ export default function Dashboard({
           {filteredGalerias.length > cardsToShow && (
             <button
               onClick={() => setCardsToShow((prev) => prev + CARDS_PER_PAGE)}
-              className="group mx-auto px-12 py-3.5 rounded-full bg-white text-black border border-slate-200 hover:border-[#D4AF37] hover:shadow-xl hover:shadow-[#D4AF37]/10 transition-all duration-300 uppercase text-[10px] font-bold tracking-[0.25em] active:scale-95 flex items-center gap-3"
+              className="group mx-auto px-12 py-3.5 rounded-full bg-white text-black border border-slate-200 hover:border-gold hover:shadow-xl hover:shadow-gold/10 transition-all duration-300 uppercase text-[10px] font-bold tracking-widest active:scale-95 flex items-center gap-3"
             >
               <Plus
                 size={14}
                 strokeWidth={3}
-                className="text-[#D4AF37] group-hover:rotate-90 transition-transform duration-300"
+                className="text-gold group-hover:rotate-90 transition-transform duration-300"
               />
               Expandir Acervo
             </button>

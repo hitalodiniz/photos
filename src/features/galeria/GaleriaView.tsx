@@ -1,20 +1,20 @@
 'use client';
 import React, { useState, useEffect } from 'react';
 import type { Galeria } from '@/core/types/galeria';
-import LoadingScreen from '../ui/LoadingScreen';
+import LoadingScreen from '@/components/ui/LoadingScreen';
 import GaleriaFooter from './GaleriaFooter';
-import { getProxyUrl } from '@/core/utils/url-helper';
+import { RESOLUTIONS } from '@/core/utils/url-helper';
+import { useGoogleDriveImage } from '@/hooks/useGoogleDriveImage';
 import { GaleriaHero } from './GaleriaHero';
 import PhotoGrid from './PhotoGrid';
 import { useIsMobile } from '@/hooks/use-breakpoint';
 
 interface GaleriaViewProps {
   galeria: Galeria;
-  photos: any[];
+  photos: unknown[];
 }
 
 export default function GaleriaView({ galeria, photos }: GaleriaViewProps) {
-  const [scrollY, setScrollY] = useState(0);
   const [isLoading, setIsLoading] = useState(true);
   const isMobile = useIsMobile();
 
@@ -22,23 +22,24 @@ export default function GaleriaView({ galeria, photos }: GaleriaViewProps) {
   const bgColor = galeria.grid_bg_color ?? '#F9F5F0';
 
   useEffect(() => {
-    const handleScroll = () => setScrollY(window.scrollY);
-    window.addEventListener('scroll', handleScroll, { passive: true });
-
     if (photos?.length > 0) {
       const timer = setTimeout(() => setIsLoading(false), 800);
-      return () => {
-        window.removeEventListener('scroll', handleScroll);
-        clearTimeout(timer);
-      };
+      return () => clearTimeout(timer);
     }
-    return () => window.removeEventListener('scroll', handleScroll);
   }, [photos]);
 
-  // Define o tamanho e qualidade baseado no hook
-  const coverUrl = isMobile
-    ? getProxyUrl(galeria.cover_image_url, '1280') // Mobile: Leve e nítido
-    : getProxyUrl(galeria.cover_image_url, '2560'); // Desktop: Qualidade Ultra (2K) para o fotógrafo
+  // 🎯 ESTRATÉGIA DE FALLBACK: Usa hook useGoogleDriveImage que já implementa fallback
+  // Usa constantes RESOLUTIONS para manter consistência
+  const coverResolution = isMobile
+    ? RESOLUTIONS.MOBILE_VIEW // 1280px
+    : RESOLUTIONS.DESKTOP_VIEW; // 1920px
+
+  const { imgSrc: coverUrl } = useGoogleDriveImage({
+    photoId: galeria.cover_image_url || '',
+    width: coverResolution,
+    priority: true, // Prioridade alta para LCP
+    fallbackToProxy: true,
+  });
 
   return (
     <div
@@ -54,7 +55,7 @@ export default function GaleriaView({ galeria, photos }: GaleriaViewProps) {
             <div
               className="absolute inset-0 bg-cover bg-center transition-opacity duration-1000 brightness-[0.6] scale-[1.05]"
               style={{
-                backgroundImage: `url('${coverUrl}')`,
+                backgroundImage: coverUrl ? `url('${coverUrl}')` : 'none',
                 backgroundPosition: 'center 40%',
               }}
             />

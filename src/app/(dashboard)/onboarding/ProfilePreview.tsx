@@ -41,7 +41,7 @@ export default function Photographer({ initialData }: { initialData?: any }) {
   // Loading State - Mantendo o fundo preto padrão do editorial
   if (loading) {
     return (
-      <div className="min-h-screen bg-black flex items-center justify-center text-[#F3E5AB] italic">
+      <div className="min-h-screen bg-black flex items-center justify-center text-champagne italic">
         Carregando Editorial...
       </div>
     );
@@ -49,7 +49,7 @@ export default function Photographer({ initialData }: { initialData?: any }) {
 
   if (!profile)
     return (
-      <div className="min-h-screen bg-black flex items-center justify-center text-[#F3E5AB]">
+      <div className="min-h-screen bg-black flex items-center justify-center text-champagne">
         Perfil não encontrado.
       </div>
     );

@@ -40,10 +40,6 @@ export async function listPhotosFromDriveFolder(
 
       const url = `https://www.googleapis.com/drive/v3/files?q=${query}&fields=${fields}&pageSize=${photoLimit}&orderBy=name`;
 
-      // console.log(
-      //   `\x1b[36m[LIST PHOTOS]\x1b[0m Verificando pasta: ${driveFolderId}`,
-      // );
-
       const response = await fetch(url, {
         headers: { Authorization: `Bearer ${accessToken}` },
         cache: 'force-cache',
@@ -58,21 +54,6 @@ export async function listPhotosFromDriveFolder(
       // 🎯 SOLUÇÃO PARA "Body is unusable"
       // Lemos o corpo UMA ÚNICA VEZ como buffer
       const buffer = await response.arrayBuffer();
-
-      // Calculamos o tamanho para o seu log de economia
-      // const sizeInKb = (buffer.byteLength / 1024).toFixed(1);
-      // const cacheStatus = response.headers.get('x-nextjs-cache');
-      // const isHit = cacheStatus === 'HIT';
-
-      // if (isHit) {
-      //   console.log(
-      //     `\x1b[32m[CACHE HIT LIST]\x1b[0m ID: ${driveFolderId} | Economizou ${sizeInKb} KB`,
-      //   );
-      // } else {
-      //   console.log(
-      //     `\x1b[35m[GOOGLE MISS LIST]\x1b[0m ID: ${driveFolderId} | Baixando ${sizeInKb} KB`,
-      //   );
-      // }
 
       // 🎯 CONVERSÃO SEGURA: Transformamos o buffer em JSON
       const textData = new TextDecoder().decode(buffer);

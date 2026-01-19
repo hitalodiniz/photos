@@ -163,14 +163,14 @@ export default function GaleriaModal({
         {/* HEADER MODAL */}
         <div className="flex items-center justify-between py-2 px-8 border-b bg-slate-50/50">
           <div className="flex items-center gap-3">
-            <div className="p-2 bg-[#F3E5AB]/40 rounded-xl text-[#D4AF37] border border-[#D4AF37]/10">
+            <div className="p-2 bg-champagne/40 rounded-xl text-gold border border-gold/10">
               {isEdit ? (
                 <Camera size={18} strokeWidth={2} />
               ) : (
                 <Plus size={18} strokeWidth={2} />
               )}
             </div>
-            <h2 className="text-[12px] font-semibold text-slate-900 uppercase tracking-[0.2em]">
+            <h2 className="text-xs font-semibold text-slate-900 uppercase tracking-widest">
               {isEdit ? 'Editar Galeria' : 'Nova Galeria'}
             </h2>
           </div>

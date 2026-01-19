@@ -4,7 +4,7 @@ import React, { useEffect, useState } from 'react';
 import { notFound } from 'next/navigation';
 import PhotographerContent from './PhotographerContent';
 import * as profileService from '@/core/services/profile.service';
-import LoadingScreen from '../ui/LoadingScreen';
+import LoadingScreen from '@/components/ui/LoadingScreen';
 
 interface Props {
   username: string;
@@ -21,7 +21,7 @@ export default function PhotographerContainer({ username }: Props) {
 
         setProfile(data);
       } catch (err) {
-        console.error('Erro na chamada:', err);
+        // Erro silencioso; o notFound abaixo cobre o fallback visual
       } finally {
         setLoading(false);
       }
@@ -35,10 +35,9 @@ export default function PhotographerContainer({ username }: Props) {
   }
 
   // 2. Se terminou de carregar e não tem perfil, dispara o 404
-  if (!profile) {
-    console.log('3. Perfil não encontrado, disparando notFound()');
-    return notFound();
-  }
+    if (!profile) {
+      return notFound();
+    }
 
   // 3. Agora é seguro renderizar, pois o 'profile' certamente existe
   return (
