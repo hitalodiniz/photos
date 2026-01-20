@@ -40,6 +40,7 @@ import { authService } from '@/core/services/auth.service';
 import AdminControlModal from '@/components/admin/AdminControlModal';
 import { useAuth } from '@/contexts/AuthContext';
 import GoogleConsentAlert from '@/components/auth/GoogleConsentAlert';
+import VersionInfo from '@/components/dashboard/VersionInfo';
 
 const CARDS_PER_PAGE = 8;
 
@@ -650,6 +651,15 @@ export default function Dashboard({
               </button>
             </div>
           )}
+
+          {/* 🎯 SEÇÃO 6: CONTROLE DE VERSÃO E DEPLOY */}
+          {/* Versão visível para todos, detalhes completos apenas para hitalodiniz */}
+          <div className="mt-4 px-2 lg:border-t lg:pt-4 lg:pb-2">
+            <VersionInfo 
+              isCollapsed={isSidebarCollapsed} 
+              showFullDetails={initialProfile?.username === 'hitalodiniz'}
+            />
+          </div>
         </nav>
 
         <AdminControlModal
