@@ -175,25 +175,87 @@ export const ToolbarGalleryView = ({
         )}
 
         {/* 5. DOWNLOAD */}
-        <button
-          onClick={async () => {
-            setIsDownloading(true);
-            setShowQualityWarning(false);
-            await handleDownloadPhoto(galeria, photoId, activeIndex);
-            setIsDownloading(false);
-          }}
-          className="flex-1 flex items-center justify-center py-3 active:scale-95 transition-all touch-manipulation"
-          aria-label="Baixar foto"
-          disabled={isDownloading}
-        >
-          <div className="w-12 h-12 rounded-full bg-white/10 flex items-center justify-center active:bg-white/20 transition-all">
-            {isDownloading ? (
-              <Loader2 className="animate-spin text-white" size={22} strokeWidth={2.5} />
-            ) : (
-              <Download size={22} className="text-white" strokeWidth={2.5} />
-            )}
-          </div>
-        </button>
+        <div className="relative flex-1 flex items-center justify-center">
+          {showQualityWarning && (
+            <div 
+              className="absolute bottom-full mb-2 left-1/2 -translate-x-1/2 z-[10000] w-56 animate-in fade-in slide-in-from-bottom-4 duration-700"
+              style={{ pointerEvents: 'auto' }}
+              onClick={(e) => {
+                e.preventDefault();
+                e.stopPropagation();
+              }}
+              onTouchStart={(e) => {
+                e.preventDefault();
+                e.stopPropagation();
+              }}
+            >
+              <div className="absolute top-full left-1/2 -translate-x-1/2 border-[6px] border-transparent border-t-[#F3E5AB]" />
+              <div 
+                className="bg-[#F3E5AB] shadow-2xl rounded-[0.5rem] p-3 border border-white/20 text-black relative"
+                style={{ pointerEvents: 'auto' }}
+                onClick={(e) => {
+                  e.preventDefault();
+                  e.stopPropagation();
+                }}
+              >
+                <div className="flex justify-between items-center mb-1">
+                  <span className="font-bold text-[10px] uppercase tracking-tighter">
+                    Alta Resolução Disponível
+                  </span>
+                  <button
+                    onClick={(e) => {
+                      e.preventDefault();
+                      e.stopPropagation();
+                      setShowQualityWarning(false);
+                    }}
+                    onTouchStart={(e) => {
+                      e.preventDefault();
+                      e.stopPropagation();
+                      setShowQualityWarning(false);
+                    }}
+                    className="opacity-40 hover:opacity-100 active:opacity-100 cursor-pointer transition-opacity relative z-[10001]"
+                    style={{ pointerEvents: 'auto' }}
+                    aria-label="Fechar tooltip"
+                    type="button"
+                  >
+                    <X size={12} />
+                  </button>
+                </div>
+                <p className="text-[10px] leading-tight font-medium">
+                  Esta é uma versão otimizada. Para obter o{' '}
+                  <strong>arquivo original em alta definição</strong>, clique no
+                  botão de download abaixo.
+                </p>
+              </div>
+            </div>
+          )}
+          <button
+            onClick={async () => {
+              setIsDownloading(true);
+              setShowQualityWarning(false);
+              await handleDownloadPhoto(galeria, photoId, activeIndex);
+              setIsDownloading(false);
+            }}
+            className="flex-1 flex items-center justify-center py-3 active:scale-95 transition-all touch-manipulation relative"
+            aria-label="Baixar foto"
+            disabled={isDownloading}
+          >
+            <div className="relative w-12 h-12">
+              {showQualityWarning && (
+                <div className="absolute -inset-1 rounded-full bg-[#F3E5AB] animate-ping opacity-80" />
+              )}
+              <div className={`w-12 h-12 rounded-full flex items-center justify-center transition-all ${
+                showQualityWarning ? 'bg-[#F3E5AB]' : 'bg-white/10 active:bg-white/20'
+              }`}>
+                {isDownloading ? (
+                  <Loader2 className="animate-spin text-white" size={22} strokeWidth={2.5} />
+                ) : (
+                  <Download size={22} className={showQualityWarning ? 'text-black' : 'text-white'} strokeWidth={2.5} />
+                )}
+              </div>
+            </div>
+          </button>
+        </div>
 
         {/* 6. FECHAR */}
         {showClose && (

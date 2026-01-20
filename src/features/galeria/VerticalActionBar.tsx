@@ -42,11 +42,20 @@ export function VerticalActionBar({
   // Mostrar tooltip de alta resolução na primeira vez
   useEffect(() => {
     if (!hasShownWarningThisSession) {
-      const timer = setTimeout(() => {
+      const startTimer = setTimeout(() => {
         setShowQualityWarning(true);
         hasShownWarningThisSession = true;
       }, 1000); // Aparece após 1 segundo
-      return () => clearTimeout(timer);
+      
+      // Fecha automaticamente após 7 segundos de exibição (1s delay + 7s = 8s total)
+      const endTimer = setTimeout(() => {
+        setShowQualityWarning(false);
+      }, 8000);
+      
+      return () => {
+        clearTimeout(startTimer);
+        clearTimeout(endTimer);
+      };
     }
   }, []);
 

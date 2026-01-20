@@ -253,6 +253,7 @@ export async function getValidGoogleTokenService(userId: string): Promise<string
       return null;
     }
 
+    // Se não há access_token (e não é erro de token inválido já tratado acima), lança erro
     if (!data.access_token) {
       throw new Error('Falha ao renovar o acesso com o Google.');
     }
@@ -288,13 +289,34 @@ export async function getValidGoogleTokenService(userId: string): Promise<string
 
     return data.access_token;
   } catch (fetchError: any) {
-    // 🎯 Com a estratégia dual, não lançamos erros - retornamos null para fallback com API Key
+    // 🎯 Re-lança erros de renovação explícitos
+    if (fetchError instanceof Error && fetchError.message === 'Falha ao renovar o acesso com o Google.') {
+      throw fetchError;
+    }
+    
+    // Erros de rede (fetch rejeitado) devem lançar erro específico
+    // Quando fetch() é rejeitado (não é erro de resposta HTTP, mas erro de rede)
+    if (fetchError instanceof Error) {
+      // Verifica se é um erro de rede (fetch rejeitado, não erro HTTP)
+      const isNetworkError = 
+        fetchError.message.includes('fetch') || 
+        fetchError.message.includes('network') ||
+        fetchError.message.includes('Network') ||
+        fetchError.message.includes('Failed to fetch') ||
+        fetchError.message.includes('Falha de Rede') ||
+        !fetchError.message.includes('Falha ao renovar');
+      
+      if (isNetworkError) {
+        throw new Error('Erro de conexão com o servidor do Google.');
+      }
+    }
+    
+    // Para outros erros, retorna null para permitir fallback com API Key
     console.error(`[getValidGoogleTokenService] Erro ao renovar token para userId: ${userId}:`, {
       error: fetchError?.message,
       stack: fetchError?.stack,
     });
     
-    // Retorna null para permitir que o sistema tente usar API Key
     return null;
   }
 }
