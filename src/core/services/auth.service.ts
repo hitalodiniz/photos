@@ -1,3 +1,36 @@
+/**
+ * ⚠️⚠️⚠️ ARQUIVO CRÍTICO DE SEGURANÇA ⚠️⚠️⚠️
+ * 
+ * Este arquivo gerencia:
+ * - Busca de sessão atual
+ * - Refresh automático de tokens
+ * - Limpeza de sessões inválidas
+ * - Login com Google OAuth
+ * - Logout
+ * 
+ * 🔴 IMPACTO DE MUDANÇAS:
+ * - Qualquer bug pode quebrar toda a autenticação
+ * - Pode permitir acesso não autorizado
+ * - Pode expor sessões inválidas
+ * 
+ * ✅ ANTES DE ALTERAR:
+ * 1. Leia CRITICAL_AUTH_FILES.md
+ * 2. Leia AUTH_CONTRACT.md
+ * 3. Crie/atualize testes unitários (já existe auth.service.spec.ts)
+ * 4. Teste extensivamente localmente
+ * 5. Solicite revisão de código
+ * 
+ * 📋 CHECKLIST OBRIGATÓRIO:
+ * [ ] Testes unitários criados/atualizados
+ * [ ] Testado getSession() com vários cenários
+ * [ ] Testado refresh automático
+ * [ ] Testado limpeza de sessão inválida
+ * [ ] Revisão de código aprovada
+ * [ ] Documentação atualizada
+ * 
+ * 🚨 NÃO ALTERE SEM ENTENDER COMPLETAMENTE O IMPACTO!
+ */
+
 // src/services/auth.service.ts
 import { getBaseUrl } from '@/lib/get-base-url';
 import { supabase } from '@/lib/supabase.client';

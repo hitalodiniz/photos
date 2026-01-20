@@ -1,2 +1,93 @@
+#!/usr/bin/env sh
+# Nota: As linhas abaixo são necessárias para Husky v9
+# O aviso de depreciação é apenas para versões futuras (v10+)
+. "$(dirname -- "$0")/_/husky.sh"
+
+# 🔒 PROTEÇÃO DE ARQUIVOS CRÍTICOS DE AUTENTICAÇÃO
+# Este hook valida mudanças em arquivos críticos de segurança
+# 
+# Se este hook não funcionar no Windows, use a versão PowerShell:
+# .husky/pre-commit.ps1 (já criada como alternativa)
+
+CRITICAL_FILES=(
+  "src/middleware.ts"
+  "src/app/api/auth/callback/route.ts"
+  "src/core/services/auth.service.ts"
+  "src/hooks/useSupabaseSession.ts"
+  "src/contexts/AuthContext.tsx"
+  "src/lib/supabase.client.ts"
+  "src/lib/supabase.server.ts"
+  "src/app/api/auth/google/route.ts"
+  "src/core/services/google.service.ts"
+  "src/core/logic/auth-gallery.ts"
+)
+
+# Verifica se algum arquivo crítico foi modificado
+CHANGED_CRITICAL_FILES=()
+for file in "${CRITICAL_FILES[@]}"; do
+  if git diff --cached --name-only | grep -q "^$file$"; then
+    CHANGED_CRITICAL_FILES+=("$file")
+  fi
+done
+
+# Se há arquivos críticos modificados, exige confirmação
+if [ ${#CHANGED_CRITICAL_FILES[@]} -gt 0 ]; then
+  echo ""
+  echo "⚠️  ⚠️  ⚠️  ATENÇÃO: ARQUIVOS CRÍTICOS DE AUTENTICAÇÃO MODIFICADOS ⚠️  ⚠️  ⚠️"
+  echo ""
+  echo "Os seguintes arquivos críticos foram modificados:"
+  for file in "${CHANGED_CRITICAL_FILES[@]}"; do
+    echo "  🔴 $file"
+  done
+  echo ""
+  echo "📋 Checklist obrigatório antes de commitar:"
+  echo "  [ ] Li CRITICAL_AUTH_FILES.md"
+  echo "  [ ] Entendi o impacto da mudança"
+  echo "  [ ] Criei/atualizei testes unitários"
+  echo "  [ ] Testei localmente"
+  echo "  [ ] Atualizei documentação se necessário"
+  echo "  [ ] Solicitei revisão de código"
+  echo ""
+  echo "⚠️  Estas mudanças podem afetar a segurança da aplicação!"
+  echo ""
+  read -p "Confirma que você seguiu o checklist? (digite 'SIM' para continuar): " confirmation
+  
+  if [ "$confirmation" != "SIM" ]; then
+    echo ""
+    echo "❌ Commit cancelado. Por favor, revise o checklist antes de continuar."
+    echo "📖 Consulte CRITICAL_AUTH_FILES.md para mais informações."
+    exit 1
+  fi
+  
+  echo ""
+  echo "✅ Confirmação recebida. Continuando com o commit..."
+  echo ""
+fi
+
+# Executa testes
+echo "🧪 Executando testes..."
 npm test
+TEST_EXIT_CODE=$?
+
+if [ $TEST_EXIT_CODE -ne 0 ]; then
+  echo ""
+  echo "❌ Testes falharam! Commit cancelado."
+  echo "⚠️  Por favor, corrija os testes antes de commitar."
+  exit 1
+fi
+
+# Executa build
+echo "🔨 Executando build..."
 npm run build
+BUILD_EXIT_CODE=$?
+
+if [ $BUILD_EXIT_CODE -ne 0 ]; then
+  echo ""
+  echo "❌ Build falhou! Commit cancelado."
+  echo "⚠️  Por favor, corrija os erros de build antes de commitar."
+  exit 1
+fi
+
+echo ""
+echo "✅ Todos os checks passaram. Commit permitido."
+exit 0

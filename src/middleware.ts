@@ -1,3 +1,33 @@
+/**
+ * ⚠️⚠️⚠️ ARQUIVO CRÍTICO DE SEGURANÇA ⚠️⚠️⚠️
+ * 
+ * Este arquivo gerencia:
+ * - Proteção de rotas autenticadas (/dashboard, /onboarding)
+ * - Redirecionamento de subdomínios
+ * - Verificação de autenticação em todas as requisições
+ * 
+ * 🔴 IMPACTO DE MUDANÇAS:
+ * - Qualquer bug pode permitir acesso não autorizado
+ * - Pode quebrar toda a autenticação da aplicação
+ * - Pode expor dados sensíveis
+ * 
+ * ✅ ANTES DE ALTERAR:
+ * 1. Leia CRITICAL_AUTH_FILES.md
+ * 2. Leia AUTH_CONTRACT.md
+ * 3. Crie/atualize testes unitários
+ * 4. Teste extensivamente localmente
+ * 5. Solicite revisão de código
+ * 
+ * 📋 CHECKLIST OBRIGATÓRIO:
+ * [ ] Testes unitários criados/atualizados
+ * [ ] Testado em localhost
+ * [ ] Testado em produção/staging
+ * [ ] Revisão de código aprovada
+ * [ ] Documentação atualizada
+ * 
+ * 🚨 NÃO ALTERE SEM ENTENDER COMPLETAMENTE O IMPACTO!
+ */
+
 import { NextResponse } from 'next/server';
 import type { NextRequest } from 'next/server';
 import { createServerClient } from '@supabase/ssr';

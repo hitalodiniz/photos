@@ -158,6 +158,26 @@ export async function checkFolderPublicPermissionService(
   }
 }
 
+/**
+ * ⚠️⚠️⚠️ FUNÇÃO CRÍTICA DE SEGURANÇA ⚠️⚠️⚠️
+ * 
+ * Obtém token válido do Google para acesso ao Google Drive.
+ * Gerencia refresh automático de tokens, validação de expiração e cache.
+ * 
+ * 🔴 IMPACTO DE MUDANÇAS:
+ * - Bug pode quebrar acesso ao Google Drive
+ * - Pode expor tokens inválidos
+ * - Pode causar falhas no Google Picker
+ * 
+ * ✅ ANTES DE ALTERAR:
+ * 1. Leia CRITICAL_AUTH_FILES.md
+ * 2. Leia AUTH_CONTRACT.md
+ * 3. Entenda refresh token flow do Google
+ * 4. Teste extensivamente
+ * 5. Solicite revisão de código
+ * 
+ * 🚨 NÃO ALTERE SEM ENTENDER COMPLETAMENTE O IMPACTO!
+ */
 export async function getValidGoogleTokenService(userId: string): Promise<string | null> {
   const supabase = await createSupabaseServerClient();
 

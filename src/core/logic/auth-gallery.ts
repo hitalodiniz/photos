@@ -1,3 +1,26 @@
+/**
+ * ⚠️⚠️⚠️ ARQUIVO CRÍTICO DE SEGURANÇA ⚠️⚠️⚠️
+ * 
+ * Este arquivo gerencia:
+ * - Verificação de acesso a galerias protegidas por senha
+ * - Validação de JWT de autenticação de galeria
+ * - Verificação de cookies de acesso
+ * 
+ * 🔴 IMPACTO DE MUDANÇAS:
+ * - Bug pode permitir acesso não autorizado a galerias privadas
+ * - Pode expor dados sensíveis de galerias
+ * - Pode quebrar validação de senha
+ * 
+ * ✅ ANTES DE ALTERAR:
+ * 1. Leia CRITICAL_AUTH_FILES.md
+ * 2. Leia AUTH_CONTRACT.md
+ * 3. Entenda validação JWT
+ * 4. Teste extensivamente
+ * 5. Solicite revisão de código
+ * 
+ * 🚨 NÃO ALTERE SEM ENTENDER COMPLETAMENTE O IMPACTO!
+ */
+
 import { jwtVerify } from 'jose';
 import { cookies } from 'next/headers';
 

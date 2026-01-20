@@ -11,6 +11,8 @@
     "test": "vitest",
     "test:clean": "vitest --clearCache && npx vitest src/contexts/AuthContext.spec.tsx",
     "test:coverage": "vitest run --coverage",
+    "test:critical": "vitest run src/core/services/auth.service.spec.ts src/hooks/useSupabaseSession.spec.ts",
+    "validate:critical": "bash scripts/validate-critical-files.sh",
     "prepare": "husky"
   },
   "dependencies": {

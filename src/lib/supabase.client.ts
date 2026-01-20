@@ -1,3 +1,27 @@
+/**
+ * ⚠️⚠️⚠️ ARQUIVO CRÍTICO DE SEGURANÇA ⚠️⚠️⚠️
+ * 
+ * Este arquivo gerencia:
+ * - Cliente Supabase do browser
+ * - Configuração de cookies de autenticação
+ * - Configuração de domínio para subdomínios
+ * - Fluxo PKCE para segurança
+ * 
+ * 🔴 IMPACTO DE MUDANÇAS:
+ * - Mudanças em cookieOptions podem quebrar autenticação cross-domain
+ * - Mudanças em flowType podem quebrar segurança OAuth
+ * - Pode expor tokens via cookies mal configurados
+ * 
+ * ✅ ANTES DE ALTERAR:
+ * 1. Leia CRITICAL_AUTH_FILES.md
+ * 2. Leia AUTH_CONTRACT.md
+ * 3. Entenda configuração de cookies cross-domain
+ * 4. Teste extensivamente em subdomínios
+ * 5. Solicite revisão de código
+ * 
+ * 🚨 NÃO ALTERE SEM ENTENDER COMPLETAMENTE O IMPACTO!
+ */
+
 // lib/supabase.client.ts
 'use client';
 

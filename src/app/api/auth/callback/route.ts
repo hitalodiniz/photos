@@ -1,9 +1,43 @@
+/**
+ * ⚠️⚠️⚠️ ARQUIVO CRÍTICO DE SEGURANÇA ⚠️⚠️⚠️
+ * 
+ * Este arquivo gerencia:
+ * - Callback OAuth do Google
+ * - Troca de código por sessão Supabase
+ * - Salvamento de tokens do Google (refresh_token, access_token)
+ * - Criação de sessão de autenticação
+ * 
+ * 🔴 IMPACTO DE MUDANÇAS:
+ * - Qualquer bug pode quebrar todo o fluxo de login
+ * - Pode expor tokens sensíveis
+ * - Pode permitir acesso não autorizado
+ * - Pode salvar tokens inválidos no banco
+ * 
+ * ✅ ANTES DE ALTERAR:
+ * 1. Leia CRITICAL_AUTH_FILES.md
+ * 2. Leia AUTH_CONTRACT.md
+ * 3. Entenda o fluxo OAuth completo
+ * 4. Crie/atualize testes unitários
+ * 5. Teste extensivamente localmente
+ * 6. Solicite revisão de código
+ * 
+ * 📋 CHECKLIST OBRIGATÓRIO:
+ * [ ] Testes unitários criados/atualizados
+ * [ ] Testado fluxo completo de login
+ * [ ] Validado salvamento de tokens
+ * [ ] Testado tratamento de erros
+ * [ ] Revisão de código aprovada
+ * [ ] Documentação atualizada
+ * 
+ * 🚨 NÃO ALTERE SEM ENTENDER COMPLETAMENTE O IMPACTO!
+ * 
+ * Fluxo: Login -> Google -> Callback -> /dashboard (ou subdomínio)
+ */
+
 // app/api/auth/callback/route.ts
 import { NextResponse } from 'next/server';
 import { createServerClient } from '@supabase/ssr';
 import { cookies } from 'next/headers';
-
-//Fluxo de login - Login -> Google -> Callback -> /login (triagem) -> /dashboard (ou subdomínio).
 
 export async function GET(request: Request) {
   const requestUrl = new URL(request.url);

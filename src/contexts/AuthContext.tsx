@@ -1,3 +1,36 @@
+/**
+ * ⚠️⚠️⚠️ ARQUIVO CRÍTICO DE SEGURANÇA ⚠️⚠️⚠️
+ * 
+ * Este arquivo gerencia:
+ * - Contexto global de autenticação
+ * - Estado do usuário em toda a aplicação
+ * - Inicialização de sessão
+ * - Listeners de mudança de autenticação
+ * 
+ * 🔴 IMPACTO DE MUDANÇAS:
+ * - Qualquer bug pode quebrar autenticação em toda a aplicação
+ * - Pode expor estado de usuário incorretamente
+ * - Pode causar loops infinitos de renderização
+ * 
+ * ✅ ANTES DE ALTERAR:
+ * 1. Leia CRITICAL_AUTH_FILES.md
+ * 2. Leia AUTH_CONTRACT.md
+ * 3. Entenda React Context e hooks
+ * 4. Crie/atualize testes unitários
+ * 5. Teste extensivamente localmente
+ * 6. Solicite revisão de código
+ * 
+ * 📋 CHECKLIST OBRIGATÓRIO:
+ * [ ] Testes unitários criados/atualizados
+ * [ ] Testado inicialização de sessão
+ * [ ] Testado listeners de auth state change
+ * [ ] Testado timeout de segurança
+ * [ ] Revisão de código aprovada
+ * [ ] Documentação atualizada
+ * 
+ * 🚨 NÃO ALTERE SEM ENTENDER COMPLETAMENTE O IMPACTO!
+ */
+
 'use client';
 
 import {

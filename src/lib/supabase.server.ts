@@ -1,3 +1,27 @@
+/**
+ * ⚠️⚠️⚠️ ARQUIVO CRÍTICO DE SEGURANÇA ⚠️⚠️⚠️
+ * 
+ * Este arquivo gerencia:
+ * - Cliente Supabase do servidor (SSR)
+ * - Gerenciamento de cookies no servidor
+ * - Clientes read-only para SSR
+ * - Cliente para cache (sem cookies)
+ * 
+ * 🔴 IMPACTO DE MUDANÇAS:
+ * - Mudanças podem quebrar autenticação SSR
+ * - Pode expor cookies incorretamente
+ * - Pode causar problemas de sincronização de sessão
+ * 
+ * ✅ ANTES DE ALTERAR:
+ * 1. Leia CRITICAL_AUTH_FILES.md
+ * 2. Leia AUTH_CONTRACT.md
+ * 3. Entenda diferença entre clientes (read/write/read-only)
+ * 4. Teste extensivamente em SSR
+ * 5. Solicite revisão de código
+ * 
+ * 🚨 NÃO ALTERE SEM ENTENDER COMPLETAMENTE O IMPACTO!
+ */
+
 // src/lib/supabase.server.ts
 import { createServerClient, type CookieOptions } from '@supabase/ssr';
 import { createClient } from '@supabase/supabase-js';

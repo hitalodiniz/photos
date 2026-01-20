@@ -423,8 +423,24 @@ export async function deleteGalleryPermanently(id: string) {
 }
 
 /**
+ * ⚠️⚠️⚠️ FUNÇÃO CRÍTICA DE SEGURANÇA ⚠️⚠️⚠️
+ * 
  * Autentica o acesso a uma galeria protegida por senha.
  * Gerencia a criação do cookie JWT e redireciona para a URL correta no subdomínio.
+ * 
+ * 🔴 IMPACTO DE MUDANÇAS:
+ * - Bug pode permitir acesso não autorizado a galerias privadas
+ * - Pode expor senhas ou tokens JWT
+ * - Pode quebrar validação de acesso
+ * 
+ * ✅ ANTES DE ALTERAR:
+ * 1. Leia CRITICAL_AUTH_FILES.md
+ * 2. Leia AUTH_CONTRACT.md
+ * 3. Entenda validação de senha e JWT
+ * 4. Teste extensivamente
+ * 5. Solicite revisão de código
+ * 
+ * 🚨 NÃO ALTERE SEM ENTENDER COMPLETAMENTE O IMPACTO!
  */
 export async function authenticateGaleriaAccess(
   galeriaId: string,
