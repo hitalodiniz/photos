@@ -195,10 +195,18 @@ export function useSupabaseSession() {
 
   // Obter detalhes de autenticação incluindo token do Google (compatível com código existente)
   const getAuthDetails = useCallback(async () => {
+    const startTime = Date.now();
+    const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL;
+    const origin = typeof window !== 'undefined' ? window.location.origin : 'server';
+    
     console.log('[useSupabaseSession] getAuthDetails chamado', {
       hasUser: !!sessionData.user,
       userId: sessionData.userId || sessionData.user?.id,
       isLoading: sessionData.isLoading,
+      origin,
+      supabaseUrl: supabaseUrl ? `${supabaseUrl.substring(0, 30)}...` : 'NÃO CONFIGURADO',
+      hostname: typeof window !== 'undefined' ? window.location.hostname : 'server',
+      cookieDomain: process.env.NEXT_PUBLIC_COOKIE_DOMAIN || 'não configurado',
     });
 
     // 🎯 ESTRATÉGIA MELHORADA: Tenta múltiplas fontes para obter userId
@@ -206,25 +214,52 @@ export function useSupabaseSession() {
 
     // Se não temos userId no estado, tenta buscar diretamente do Supabase (mais rápido)
     if (!userId) {
-      console.log('[useSupabaseSession] UserId não encontrado no estado, buscando sessão diretamente...');
+      console.log('[useSupabaseSession] ⚠️ UserId não encontrado no estado, iniciando busca direta...');
+      
+      // Verifica se o Supabase está configurado
+      if (!supabase) {
+        console.error('[useSupabaseSession] ❌ Cliente Supabase não está inicializado!');
+        return { accessToken: null, userId: null };
+      }
       
       try {
-        // 🎯 BUSCA DIRETA: Usa getSession diretamente com timeout curto
+        // 🎯 BUSCA DIRETA: Usa getSession diretamente com timeout curto (2s)
+        console.log('[useSupabaseSession] Tentando getSession() diretamente...');
+        const sessionStartTime = Date.now();
+        
         const sessionPromise = supabase.auth.getSession();
         const timeoutPromise = new Promise<{ data: { session: null }; error: null }>((resolve) => {
           setTimeout(() => {
-            console.warn('[useSupabaseSession] Timeout ao buscar sessão diretamente (3s)');
+            const elapsed = Date.now() - sessionStartTime;
+            console.warn(`[useSupabaseSession] ⏱️ Timeout ao buscar sessão diretamente (2s) - decorrido: ${elapsed}ms`);
             resolve({ data: { session: null }, error: null });
-          }, 3000);
+          }, 2000); // Reduzido para 2s para ser mais rápido
         });
 
         const { data, error } = await Promise.race([sessionPromise, timeoutPromise]);
+        const sessionDuration = Date.now() - sessionStartTime;
+        
+        console.log('[useSupabaseSession] Resultado getSession:', {
+          hasError: !!error,
+          hasSession: !!data?.session,
+          hasUser: !!data?.session?.user,
+          userId: data?.session?.user?.id,
+          duration: `${sessionDuration}ms`,
+        });
         
         if (error) {
-          console.error('[useSupabaseSession] Erro ao buscar sessão diretamente:', error);
+          console.error('[useSupabaseSession] ❌ Erro ao buscar sessão diretamente:', {
+            error: error.message,
+            status: error.status,
+            name: error.name,
+          });
         } else if (data?.session?.user) {
           userId = data.session.user.id;
-          console.log('[useSupabaseSession] ✅ Sessão encontrada diretamente, userId:', userId);
+          console.log('[useSupabaseSession] ✅ Sessão encontrada diretamente!', {
+            userId,
+            email: data.session.user.email,
+            duration: `${sessionDuration}ms`,
+          });
           
           // Atualiza o estado para próxima vez
           setSessionData({
@@ -234,61 +269,98 @@ export function useSupabaseSession() {
             isLoading: false,
           });
         } else {
-          console.log('[useSupabaseSession] Sessão não encontrada diretamente, tentando fetchSession...');
+          console.log('[useSupabaseSession] ⚠️ Sessão não encontrada diretamente, tentando fetchSession como fallback...');
           // Fallback para fetchSession (pode demorar mais, mas tenta)
+          const fetchStartTime = Date.now();
           const result = await Promise.race([
             fetchSession(true),
-            new Promise<null>((resolve) => setTimeout(() => resolve(null), 5000)),
+            new Promise<null>((resolve) => {
+              setTimeout(() => {
+                const elapsed = Date.now() - fetchStartTime;
+                console.warn(`[useSupabaseSession] ⏱️ Timeout no fetchSession (3s) - decorrido: ${elapsed}ms`);
+                resolve(null);
+              }, 3000);
+            }),
           ]);
           
           if (result) {
             userId = result.userId;
-            console.log('[useSupabaseSession] ✅ Sessão encontrada via fetchSession, userId:', userId);
+            const fetchDuration = Date.now() - fetchStartTime;
+            console.log('[useSupabaseSession] ✅ Sessão encontrada via fetchSession!', {
+              userId,
+              duration: `${fetchDuration}ms`,
+            });
+          } else {
+            console.warn('[useSupabaseSession] ⚠️ fetchSession também não retornou sessão');
           }
         }
       } catch (err) {
-        console.error('[useSupabaseSession] Erro ao buscar sessão:', err);
+        console.error('[useSupabaseSession] ❌ Erro ao buscar sessão:', {
+          error: err,
+          message: err instanceof Error ? err.message : 'Erro desconhecido',
+          stack: err instanceof Error ? err.stack : undefined,
+        });
       }
+    } else {
+      console.log('[useSupabaseSession] ✅ UserId já disponível no estado:', userId);
     }
 
     if (!userId) {
-      console.log('[useSupabaseSession] ❌ UserId não encontrado após todas as tentativas');
+      const totalDuration = Date.now() - startTime;
+      console.error('[useSupabaseSession] ❌ UserId não encontrado após todas as tentativas', {
+        totalDuration: `${totalDuration}ms`,
+        origin: typeof window !== 'undefined' ? window.location.origin : 'server',
+      });
       return { accessToken: null, userId: null };
     }
 
-    console.log('[useSupabaseSession] Buscando token do Google para userId:', userId);
+    console.log('[useSupabaseSession] 🔍 Buscando token do Google para userId:', userId);
     
     // Buscar token do Google via server action
     // Com a estratégia dual, não tratamos ausência de token como erro
     try {
-      const startTime = Date.now();
+      const tokenStartTime = Date.now();
       const accessToken = await getValidGoogleToken(userId);
-      const duration = Date.now() - startTime;
+      const tokenDuration = Date.now() - tokenStartTime;
+      const totalDuration = Date.now() - startTime;
       
       console.log('[useSupabaseSession] Token recebido:', {
         hasToken: !!accessToken,
         tokenLength: accessToken?.length || 0,
-        duration: `${duration}ms`,
+        tokenDuration: `${tokenDuration}ms`,
+        totalDuration: `${totalDuration}ms`,
       });
       
       // Se não houver token, ainda retorna userId (sistema tentará usar API Key)
       if (!accessToken) {
-        console.log('[useSupabaseSession] Token não disponível. Sistema tentará usar API Key.');
+        const totalDuration = Date.now() - startTime;
+        console.warn('[useSupabaseSession] ⚠️ Token não disponível. Sistema tentará usar API Key.', {
+          totalDuration: `${totalDuration}ms`,
+        });
         return {
           accessToken: null,
           userId,
         };
       }
       
+      const totalDuration = Date.now() - startTime;
+      console.log('[useSupabaseSession] ✅ getAuthDetails concluído com sucesso!', {
+        hasToken: true,
+        userId,
+        totalDuration: `${totalDuration}ms`,
+      });
+      
       return {
         accessToken,
         userId,
       };
     } catch (err) {
-      console.error('[useSupabaseSession] Falha ao obter token do Google:', {
+      const totalDuration = Date.now() - startTime;
+      console.error('[useSupabaseSession] ❌ Falha ao obter token do Google:', {
         error: err,
         message: err instanceof Error ? err.message : 'Erro desconhecido',
         stack: err instanceof Error ? err.stack : undefined,
+        totalDuration: `${totalDuration}ms`,
       });
       // Em caso de erro, retorna null para permitir fallback com API Key
       return {
