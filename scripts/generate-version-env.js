@@ -7,6 +7,42 @@ const path = require('path');
  * Executado durante o build para capturar informações do commit atual
  */
 
+/**
+ * Converte data para horário de Brasília (UTC-3)
+ */
+function toBrasiliaTime(date) {
+  const brasiliaOffset = -3 * 60; // UTC-3 em minutos
+  const utc = date.getTime() + (date.getTimezoneOffset() * 60000);
+  const brasiliaTime = new Date(utc + (brasiliaOffset * 60000));
+  return brasiliaTime;
+}
+
+/**
+ * Formata data no formato brasileiro
+ */
+function formatBrasiliaDateTime(date) {
+  const brasiliaDate = toBrasiliaTime(date);
+  const year = brasiliaDate.getFullYear();
+  const month = String(brasiliaDate.getMonth() + 1).padStart(2, '0');
+  const day = String(brasiliaDate.getDate()).padStart(2, '0');
+  const hours = String(brasiliaDate.getHours()).padStart(2, '0');
+  const minutes = String(brasiliaDate.getMinutes()).padStart(2, '0');
+  const seconds = String(brasiliaDate.getSeconds()).padStart(2, '0');
+  return `${year}-${month}-${day} ${hours}:${minutes}:${seconds} -0300`;
+}
+
+/**
+ * Incrementa a versão patch (ex: 0.1.0 -> 0.1.1)
+ */
+function incrementVersion(currentVersion) {
+  const parts = currentVersion.split('.');
+  if (parts.length === 3) {
+    const patch = parseInt(parts[2], 10) + 1;
+    return `${parts[0]}.${parts[1]}.${patch}`;
+  }
+  return currentVersion;
+}
+
 function getGitInfo() {
   try {
     // Hash do commit (7 caracteres)
@@ -29,29 +65,44 @@ function getGitInfo() {
     // Mensagem do último commit (primeira linha)
     const commitMessage = execSync('git log -1 --pretty=%B', { encoding: 'utf-8' }).trim().split('\n')[0];
     
-    // Versão do package.json
-    const packageJson = JSON.parse(fs.readFileSync(path.join(__dirname, '../package.json'), 'utf-8'));
-    const version = packageJson.version;
+    // Versão do package.json - incrementa automaticamente
+    const packageJsonPath = path.join(__dirname, '../package.json');
+    const packageJson = JSON.parse(fs.readFileSync(packageJsonPath, 'utf-8'));
+    const currentVersion = packageJson.version;
+    const newVersion = incrementVersion(currentVersion);
+    
+    // Atualiza a versão no package.json
+    if (newVersion !== currentVersion) {
+      packageJson.version = newVersion;
+      fs.writeFileSync(packageJsonPath, JSON.stringify(packageJson, null, 2) + '\n');
+      console.log(`📦 Versão incrementada: ${currentVersion} -> ${newVersion}`);
+    }
+    
+    // Build time em horário de Brasília
+    const buildDate = new Date();
+    const buildTime = formatBrasiliaDateTime(buildDate);
     
     return {
-      version,
+      version: newVersion,
       commitHash,
       commitDate,
       commitCount,
       branch,
       commitMessage: commitMessage.substring(0, 50), // Limita a 50 caracteres
-      buildTime: new Date().toISOString(),
+      buildTime,
     };
   } catch (error) {
     console.warn('⚠️  Git não disponível, usando valores padrão');
+    const buildDate = new Date();
+    const buildTime = formatBrasiliaDateTime(buildDate);
     return {
       version: '0.1.0',
       commitHash: 'unknown',
-      commitDate: new Date().toISOString(),
+      commitDate: buildTime,
       commitCount: '0',
       branch: 'unknown',
       commitMessage: 'N/A',
-      buildTime: new Date().toISOString(),
+      buildTime,
     };
   }
 }
@@ -93,7 +144,7 @@ cleanedEnvContent = cleanedEnvContent
 // Adiciona as novas variáveis de versão
 const versionEnvContent = `# Informações de versão geradas automaticamente pelo Git
 # Este arquivo é gerado automaticamente durante o build
-# Última atualização: ${new Date().toISOString()}
+# Última atualização: ${formatBrasiliaDateTime(new Date())}
 
 NEXT_PUBLIC_APP_VERSION=${gitInfo.version}
 NEXT_PUBLIC_COMMIT_HASH=${gitInfo.commitHash}
@@ -117,4 +168,4 @@ console.log(`   Versão: ${gitInfo.version}`);
 console.log(`   Commit: ${gitInfo.commitHash}`);
 console.log(`   Branch: ${gitInfo.branch}`);
 console.log(`   Data: ${gitInfo.commitDate}`);
-console.log(`   Build: ${gitInfo.buildTime}`);
+console.log(`   Build: ${gitInfo.buildTime} (Horário de Brasília)`);
