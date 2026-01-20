@@ -12,7 +12,9 @@ import {
   RefreshCw,
   ShieldAlert,
   Loader2,
+  HelpCircle,
 } from 'lucide-react';
+import Link from 'next/link';
 import {
   getGalerias,
   moveToTrash,
@@ -593,7 +595,34 @@ export default function Dashboard({
             </div>
           </div>
 
-          {/* 🎯 SEÇÃO 4: ADMIN MODE (Restaurado e Corrigido para Mobile) - ADMIN LIGHT */}
+          {/* 🎯 SEÇÃO 4: AJUDA */}
+          <div className="mt-4 px-2 lg:border-t lg:pt-4">
+            <Link
+              href="/dashboard/ajuda"
+              className={`flex items-center transition-all duration-300 group relative ${isSidebarCollapsed ? 'justify-center py-4' : 'gap-3 p-3 rounded-xl bg-slate-50 border border-slate-100 hover:bg-slate-100'}`}
+            >
+              <div className="text-slate-600">
+                <HelpCircle size={20} strokeWidth={2} />
+              </div>
+              {!isSidebarCollapsed && (
+                <div className="hidden lg:flex flex-col items-start leading-none">
+                  <span className="text-[9px] font-semibold uppercase tracking-widest text-slate-400 mb-1">
+                    Ajuda
+                  </span>
+                  <span className="text-[11px] font-medium text-slate-600">
+                    Perguntas Frequentes
+                  </span>
+                </div>
+              )}
+              {isSidebarCollapsed && (
+                <div className="absolute left-full ml-4 px-3 py-2 bg-slate-900 text-white text-[10px] font-bold uppercase rounded-lg opacity-0 pointer-events-none group-hover:opacity-100 transition-all z-[999] shadow-xl">
+                  Ajuda
+                </div>
+              )}
+            </Link>
+          </div>
+
+          {/* 🎯 SEÇÃO 5: ADMIN MODE (Restaurado e Corrigido para Mobile) - ADMIN LIGHT */}
           {photographer?.username === 'hitalodiniz' && (
             <div className="mt-4 px-2 lg:border-t lg:pt-4">
               <button

@@ -88,16 +88,34 @@ export default function GooglePickerButton({
   }, [onFolderSelect]);
 
   useEffect(() => {
-    if (isReadyToOpen) return;
+    if (isReadyToOpen) {
+      console.log('[GooglePickerButton] Bibliotecas já prontas');
+      return;
+    }
 
     // 🎯 Verifica periodicamente se as bibliotecas carregaram
     const checkLibraries = () => {
-      if (window.gapi && window.google && window.google.picker) {
+      const hasGapi = !!window.gapi;
+      const hasGoogle = !!window.google;
+      const hasPicker = !!(window.google && window.google.picker);
+      
+      console.log('[GooglePickerButton] Verificando bibliotecas:', {
+        hasGapi,
+        hasGoogle,
+        hasPicker,
+        origin: window.location.origin,
+      });
+
+      if (hasGapi && hasGoogle && hasPicker) {
+        console.log('[GooglePickerButton] ✅ Todas as bibliotecas carregadas!');
         isPickerLoaded = true;
         setIsReadyToOpen(true);
         return;
       }
-      loadGoogleLibraries(() => setIsReadyToOpen(true));
+      loadGoogleLibraries(() => {
+        console.log('[GooglePickerButton] ✅ Bibliotecas carregadas via callback');
+        setIsReadyToOpen(true);
+      });
     };
 
     // Tenta imediatamente
@@ -106,6 +124,7 @@ export default function GooglePickerButton({
     // Se não carregou, tenta novamente após um delay
     const timeoutId = setTimeout(() => {
       if (!isReadyToOpen) {
+        console.log('[GooglePickerButton] Tentando novamente após 1s...');
         checkLibraries();
       }
     }, 1000);
@@ -114,6 +133,9 @@ export default function GooglePickerButton({
     let attempts = 0;
     const intervalId = setInterval(() => {
       if (isReadyToOpen || attempts >= 5) {
+        if (attempts >= 5) {
+          console.warn('[GooglePickerButton] ⚠️ Máximo de tentativas atingido. Bibliotecas podem não estar carregadas.');
+        }
         clearInterval(intervalId);
         return;
       }
@@ -136,25 +158,59 @@ export default function GooglePickerButton({
         hasGoogle: !!window.google,
         hasPicker: !!(window.google && window.google.picker),
         hasGapi: !!window.gapi,
+        origin: window.location.origin,
       });
       onError('As bibliotecas do Google Drive não foram carregadas. Recarregue a página.');
       return;
     }
 
+    console.log('[GooglePickerButton] Iniciando abertura do picker...', {
+      isReadyToOpen,
+      hasGoogle: !!window.google,
+      hasPicker: !!(window.google && window.google.picker),
+      origin: window.location.origin,
+    });
+
     setLoading(true);
+    
+    // 🎯 Timeout de segurança: se demorar mais de 30s, cancela
+    const timeoutId = setTimeout(() => {
+      if (loading) {
+        console.error('[GooglePickerButton] ⚠️ Timeout ao abrir picker (30s)');
+        onError('Tempo de espera excedido. Tente novamente.');
+        setLoading(false);
+      }
+    }, 30000);
     
     try {
       // Busca o Client ID
+      console.log('[GooglePickerButton] Buscando Google Client ID...');
       const googleClientId = await getGoogleClientId();
+      console.log('[GooglePickerButton] Client ID recebido:', {
+        hasClientId: !!googleClientId,
+        clientIdLength: googleClientId?.length || 0,
+        clientIdPreview: googleClientId ? `${googleClientId.substring(0, 20)}...` : 'null',
+        origin: window.location.origin,
+      });
       
       if (!googleClientId) {
+        console.error('[GooglePickerButton] ❌ Client ID não encontrado');
+        clearTimeout(timeoutId);
         onError('Configuração do Google não encontrada. Verifique NEXT_PUBLIC_GOOGLE_CLIENT_ID.');
         setLoading(false);
         return;
       }
 
       // Busca o token de autenticação
-      const { accessToken } = await getAuthDetails();
+      console.log('[GooglePickerButton] Buscando access token...');
+      const authDetails = await getAuthDetails();
+      const { accessToken } = authDetails;
+      console.log('[GooglePickerButton] Access token recebido:', {
+        hasAccessToken: !!accessToken,
+        tokenLength: accessToken?.length || 0,
+        userId: authDetails.userId,
+        origin: window.location.origin,
+      });
 
       // Para o Picker funcionar, precisamos do token OAuth
       // A API Key não é necessária aqui pois estamos acessando dados privados do usuário
@@ -189,8 +245,20 @@ export default function GooglePickerButton({
 
       const picker = pickerBuilder
         .setCallback((data: any) => {
+          console.log('[GooglePickerButton] Picker callback recebido:', {
+            action: data.action,
+            hasDocs: !!data.docs,
+            docsLength: data.docs?.length || 0,
+          });
+
           if (data.action === window.google.picker.Action.PICKED) {
             const selectedItem = data.docs[0];
+            
+            console.log('[GooglePickerButton] Item selecionado:', {
+              id: selectedItem?.id,
+              name: selectedItem?.name,
+              mimeType: selectedItem?.mimeType,
+            });
             
             // 🎯 Componente "burro": apenas retorna o que foi selecionado
             // A validação será feita no componente pai
@@ -205,18 +273,28 @@ export default function GooglePickerButton({
               }
             }
           } else if (data.action === window.google.picker.Action.CANCEL) {
+            console.log('[GooglePickerButton] Usuário cancelou a seleção');
             // Usuário cancelou - apenas fecha o loading
+          } else {
+            console.log('[GooglePickerButton] Ação desconhecida:', data.action);
           }
           setLoading(false);
         })
         .build();
 
+      console.log('[GooglePickerButton] Picker construído, abrindo...');
       picker.setVisible(true);
+      console.log('[GooglePickerButton] ✅ Picker.setVisible(true) chamado com sucesso');
+      clearTimeout(timeoutId);
     } catch (error: any) {
-      console.error('[GooglePickerButton] Error opening picker', {
+      console.error('[GooglePickerButton] ❌ Erro ao abrir picker:', {
         error: error?.message,
         stack: error?.stack,
+        name: error?.name,
+        origin: window.location.origin,
       });
+      
+      clearTimeout(timeoutId);
       
       const errorMessage = error?.message || 'Falha ao iniciar seleção do Drive. Recarregue a página.';
       
@@ -224,6 +302,10 @@ export default function GooglePickerButton({
           error?.message?.includes('token') ||
           error?.message?.includes('autenticação')) {
         onError('Erro de autenticação Google. Por favor, refaça o login.');
+        // 🎯 Se há callback para token expirado, chama para abrir o modal de consent
+        if (onTokenExpired) {
+          onTokenExpired();
+        }
       } else {
         onError(errorMessage);
       }
