@@ -3,7 +3,7 @@
 import { useState, useEffect, useCallback, useRef } from 'react';
 import { supabase } from '@/lib/supabase.client';
 import { getValidGoogleToken } from '@/actions/google.actions';
-import type { User } from '@supabase/supabase-js';
+import type { User, Session } from '@supabase/supabase-js';
 
 interface SessionData {
   user: User | null;
@@ -48,9 +48,10 @@ export function useSupabaseSession() {
   const retryCountRef = useRef(0);
   const isSubdomainRef = useRef(isSubdomain());
   const hasRefreshedRef = useRef(false);
+  const fetchSessionRef = useRef<((forceRefresh?: boolean) => Promise<{ session: Session; userId: string } | null>) | null>(null);
 
   // Buscar sessão atual com retry logic para subdomínios
-  const fetchSession = useCallback(async (forceRefresh = false): Promise<{ session: any; userId: string } | null> => {
+  const fetchSession = useCallback(async (forceRefresh = false): Promise<{ session: Session; userId: string } | null> => {
     try {
       // Se estamos em subdomínio e ainda não fizemos refresh, tenta refresh primeiro
       if (isSubdomainRef.current && !hasRefreshedRef.current && !forceRefresh) {
@@ -81,7 +82,10 @@ export function useSupabaseSession() {
         retryCountRef.current += 1;
         // Aguarda um pouco antes de tentar novamente
         await new Promise(resolve => setTimeout(resolve, 100));
-        return fetchSession(true);
+        // Usa a referência para evitar problema de acesso antes da declaração
+        if (fetchSessionRef.current) {
+          return fetchSessionRef.current(true);
+        }
       }
 
       if (error) {
@@ -107,14 +111,17 @@ export function useSupabaseSession() {
 
       retryCountRef.current = 0; // Reset retry count on success
       return { session, userId: session.user.id };
-    } catch (error: any) {
+    } catch (error: unknown) {
       console.error('Erro ao buscar sessão:', error);
       
       // Retry logic para subdomínios
       if (isSubdomainRef.current && retryCountRef.current < 2 && !forceRefresh) {
         retryCountRef.current += 1;
         await new Promise(resolve => setTimeout(resolve, 200));
-        return fetchSession(true);
+        // Usa a referência para evitar problema de acesso antes da declaração
+        if (fetchSessionRef.current) {
+          return fetchSessionRef.current(true);
+        }
       }
 
       setSessionData({
@@ -127,6 +134,11 @@ export function useSupabaseSession() {
     }
   }, []);
 
+  // Atualiza a referência quando fetchSession muda
+  useEffect(() => {
+    fetchSessionRef.current = fetchSession;
+  }, [fetchSession]);
+
   // Inicializar e escutar mudanças de autenticação
   useEffect(() => {
     // Reset refs quando o componente monta
@@ -134,7 +146,9 @@ export function useSupabaseSession() {
     hasRefreshedRef.current = false;
     isSubdomainRef.current = isSubdomain();
 
-    fetchSession();
+    // Inicializa a sessão - necessário para carregar estado inicial
+    // Nota: Este é um caso válido onde precisamos inicializar estado no useEffect
+    void fetchSession();
 
     const {
       data: { subscription },
@@ -184,20 +198,61 @@ export function useSupabaseSession() {
     console.log('[useSupabaseSession] getAuthDetails chamado', {
       hasUser: !!sessionData.user,
       userId: sessionData.userId || sessionData.user?.id,
+      isLoading: sessionData.isLoading,
     });
 
-    if (!sessionData.user) {
-      console.log('[useSupabaseSession] Usuário não encontrado, buscando sessão...');
-      const result = await fetchSession(true);
-      if (!result) {
-        console.log('[useSupabaseSession] Sessão não encontrada após busca');
-        return { accessToken: null, userId: null };
+    // 🎯 ESTRATÉGIA MELHORADA: Tenta múltiplas fontes para obter userId
+    let userId: string | null = sessionData.userId || sessionData.user?.id || null;
+
+    // Se não temos userId no estado, tenta buscar diretamente do Supabase (mais rápido)
+    if (!userId) {
+      console.log('[useSupabaseSession] UserId não encontrado no estado, buscando sessão diretamente...');
+      
+      try {
+        // 🎯 BUSCA DIRETA: Usa getSession diretamente com timeout curto
+        const sessionPromise = supabase.auth.getSession();
+        const timeoutPromise = new Promise<{ data: { session: null }; error: null }>((resolve) => {
+          setTimeout(() => {
+            console.warn('[useSupabaseSession] Timeout ao buscar sessão diretamente (3s)');
+            resolve({ data: { session: null }, error: null });
+          }, 3000);
+        });
+
+        const { data, error } = await Promise.race([sessionPromise, timeoutPromise]);
+        
+        if (error) {
+          console.error('[useSupabaseSession] Erro ao buscar sessão diretamente:', error);
+        } else if (data?.session?.user) {
+          userId = data.session.user.id;
+          console.log('[useSupabaseSession] ✅ Sessão encontrada diretamente, userId:', userId);
+          
+          // Atualiza o estado para próxima vez
+          setSessionData({
+            user: data.session.user,
+            accessToken: null,
+            userId: data.session.user.id,
+            isLoading: false,
+          });
+        } else {
+          console.log('[useSupabaseSession] Sessão não encontrada diretamente, tentando fetchSession...');
+          // Fallback para fetchSession (pode demorar mais, mas tenta)
+          const result = await Promise.race([
+            fetchSession(true),
+            new Promise<null>((resolve) => setTimeout(() => resolve(null), 5000)),
+          ]);
+          
+          if (result) {
+            userId = result.userId;
+            console.log('[useSupabaseSession] ✅ Sessão encontrada via fetchSession, userId:', userId);
+          }
+        }
+      } catch (err) {
+        console.error('[useSupabaseSession] Erro ao buscar sessão:', err);
       }
     }
 
-    const userId = sessionData.userId || sessionData.user?.id;
     if (!userId) {
-      console.log('[useSupabaseSession] UserId não encontrado');
+      console.log('[useSupabaseSession] ❌ UserId não encontrado após todas as tentativas');
       return { accessToken: null, userId: null };
     }
 
