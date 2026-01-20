@@ -30,7 +30,7 @@ export async function GET(request: Request) {
 
   // Se o Google redirecionar para cá sem esses itens, o erro acontece
   if (!code || !state) {
-    console.error('DEBUG: Google retornou sem code ou state');
+    // console.error('DEBUG: Google retornou sem code ou state');
     return NextResponse.redirect(
       new URL('/?error=missing_parameters', request.url),
     );

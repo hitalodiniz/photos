@@ -31,16 +31,27 @@ Certifique-se de ter seguido:
 - [ ] Atualizei documentação se necessário
 - [ ] Solicitei revisão de código
 
-### 3. Digite 'SIM' para Continuar
-Quando solicitado:
-```
-Confirma que você seguiu o checklist? (digite 'SIM' para continuar): 
+### 3. Confirme com Variável de Ambiente
+O hook não usa input interativo (para funcionar melhor no Windows). 
+Em vez disso, você precisa confirmar explicitamente usando uma variável de ambiente:
+
+**No Git Bash / Linux / Mac:**
+```bash
+SKIP_CRITICAL_CHECK=1 git commit -m "sua mensagem"
 ```
 
-**Digite exatamente:** `SIM` (maiúsculas)
+**No PowerShell (Windows):**
+```powershell
+$env:SKIP_CRITICAL_CHECK='1'; git commit -m "sua mensagem"
+```
 
-### 4. Aguarde os Testes
-O hook vai executar:
+**No CMD (Windows):**
+```cmd
+set SKIP_CRITICAL_CHECK=1 && git commit -m "sua mensagem"
+```
+
+### 4. O Hook Executa Testes e Build
+Quando você usa `SKIP_CRITICAL_CHECK=1`, o hook vai executar:
 - ✅ Testes unitários (`npm test`)
 - ✅ Build (`npm run build`)
 
@@ -65,15 +76,15 @@ Se você **não** digitar `SIM` ou digitar algo diferente:
 # 1. Você faz mudanças em arquivo crítico
 git add src/middleware.ts
 
-# 2. Tenta commitar
+# 2. Tenta commitar (sem confirmação)
 git commit -m "feat: mudança no middleware"
 
-# 3. Hook detecta e pede confirmação
+# 3. Hook detecta e mostra aviso
 ⚠️  ATENÇÃO: ARQUIVOS CRÍTICOS MODIFICADOS
-Confirma que você seguiu o checklist? (digite 'SIM'): 
+❌ Commit cancelado por segurança.
 
-# 4. Você digita 'SIM'
-SIM
+# 4. Você confirma com variável de ambiente
+SKIP_CRITICAL_CHECK=1 git commit -m "feat: mudança no middleware"
 
 # 5. Hook executa testes
 🧪 Executando testes...

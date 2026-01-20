@@ -44,7 +44,7 @@ export const authService = {
       
       // 🎯 TRATAMENTO: Se houver erro ou sessão inválida, limpa a sessão
       if (error) {
-        console.error('[authService] Erro ao buscar sessão:', error);
+        // console.error('[authService] Erro ao buscar sessão:', error);
         // Limpa sessão inválida
         await supabase.auth.signOut();
         return null;
@@ -60,11 +60,11 @@ export const authService = {
           
           // Se expira em menos de 5 minutos, tenta refresh
           if (expiresIn < 300) {
-            console.log('[authService] Sessão expirando, tentando refresh...');
+            // console.log('[authService] Sessão expirando, tentando refresh...');
             const { data: refreshData, error: refreshError } = await supabase.auth.refreshSession();
             
             if (refreshError) {
-              console.error('[authService] Erro ao fazer refresh:', refreshError);
+              // console.error('[authService] Erro ao fazer refresh:', refreshError);
               // Se o refresh falhar, limpa a sessão
               if (refreshError.message?.includes('refresh_token') || refreshError.message?.includes('Invalid')) {
                 await supabase.auth.signOut();
@@ -79,12 +79,12 @@ export const authService = {
 
       return data.session;
     } catch (error) {
-      console.error('[authService] Erro crítico ao buscar sessão:', error);
+      // console.error('[authService] Erro crítico ao buscar sessão:', error);
       // Em caso de erro crítico, limpa a sessão
       try {
         await supabase.auth.signOut();
       } catch (signOutError) {
-        console.error('[authService] Erro ao fazer signOut:', signOutError);
+        // console.error('[authService] Erro ao fazer signOut:', signOutError);
       }
       return null;
     }
@@ -120,15 +120,15 @@ export const authService = {
     // Se forceConsent=true, usa 'consent' (para quando refresh token não foi obtido)
     const promptValue = forceConsent ? 'consent' : 'select_account';
 
-    console.log('[authService] Iniciando login Google:', {
-      forceConsent,
-      prompt: promptValue,
-      redirectTo,
-      access_type: 'offline',
-      motivo: forceConsent 
-        ? 'Consent forçado - necessário para obter refresh token' 
-        : 'Login padrão com select_account (rápido)',
-    });
+    // console.log('[authService] Iniciando login Google:', {
+    //   forceConsent,
+    //   prompt: promptValue,
+    //   redirectTo,
+    //   access_type: 'offline',
+    //   motivo: forceConsent 
+    //     ? 'Consent forçado - necessário para obter refresh token' 
+    //     : 'Login padrão com select_account (rápido)',
+    // });
 
     const { error, data } = await supabase.auth.signInWithOAuth({
       provider: 'google',
@@ -144,11 +144,11 @@ export const authService = {
     });
 
     if (error) {
-      console.error('[authService] Erro ao iniciar login Google:', error);
+      // console.error('[authService] Erro ao iniciar login Google:', error);
       throw error;
     }
 
-    console.log('[authService] Login Google iniciado com sucesso. URL:', data?.url);
+    // console.log('[authService] Login Google iniciado com sucesso. URL:', data?.url);
     
     return data;
   },
