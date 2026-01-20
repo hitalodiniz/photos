@@ -8,6 +8,7 @@ const SITE_URL = process.env.NEXT_PUBLIC_BASE_URL || 'http://localhost:3000';
 //Identifica o domínio base sem o prefixo "teste." caso esteja em homologação
 const ACTUAL_HOST = new URL(SITE_URL).host;
 const MAIN_DOMAIN = ACTUAL_HOST.replace('teste.', '');
+const URL_TESTE = 'teste.suagaleria.com.br';
 
 export async function middleware(req: NextRequest) {
   const { pathname } = req.nextUrl;
@@ -87,17 +88,19 @@ return redirectRes;
   }
 
   // Detecta se termina com .suagaleria.com.br ou .teste.suagaleria.com.br
-  const isHomolog = host.includes('.teste.');
+  const isHomolog = host.includes(URL_TESTE);
+  const internalMainDomain = isHomolog 
+  ? URL_TESTE 
+  : (process.env.NEXT_PUBLIC_MAIN_DOMAIN || SITE_URL);
+
   const baseDomain = isHomolog ? `teste.${MAIN_DOMAIN}` : MAIN_DOMAIN;
-
-  const isSubdomainRequest =
-    host.endsWith(`.${baseDomain}`) && host !== baseDomain;
-
+// Agora comparamos contra o internalMainDomain (que pode ser o de teste ou o real)
+const isSubdomainRequest = host.endsWith(`.${internalMainDomain}`) && host !== internalMainDomain;
+    
   // --- REGRA A: ACESSO VIA SUBDOMÍNIO ---
   if (isSubdomainRequest) {
 // Extrai o subdomínio limpando o sufixo de produção ou homologação
-const subdomain = host.replace(`.${baseDomain}`, '').toLowerCase();
-
+const subdomain = host.replace(`.${internalMainDomain}`, '').toLowerCase();
     if (subdomain !== 'www') {
       // 🎯 MIDDLEWARE: Usa fetchProfileDirectDB (sem cache) pois Middleware não suporta unstable_cache
       const profile = await fetchProfileDirectDB(subdomain);
@@ -135,8 +138,8 @@ const subdomain = host.replace(`.${baseDomain}`, '').toLowerCase();
   }
 
   // --- REGRA B: ACESSO VIA DOMÍNIO PRINCIPAL ---
-  if (!isSubdomainRequest && host === MAIN_DOMAIN) {
-    const segments = pathname.split('/').filter(Boolean);
+// Aqui evitamos que o domínio de teste redirecione para a produção
+if (!isSubdomainRequest && host === internalMainDomain) {    const segments = pathname.split('/').filter(Boolean);
     const potentialUsername = segments[0]?.toLowerCase();
 
     if (

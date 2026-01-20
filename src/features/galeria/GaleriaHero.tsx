@@ -19,6 +19,49 @@ interface GaleriaHeroProps {
 
 export const GaleriaHero = ({ galeria, photos, coverUrl, isCoverLoading }: GaleriaHeroProps) => {
   const [isExpanded, setIsExpanded] = useState(true);
+  const [isImageActuallyLoaded, setIsImageActuallyLoaded] = useState(false);
+
+  // 🎯 Verifica se a imagem já está em cache (resolve problema de refresh)
+  useEffect(() => {
+    if (!coverUrl) {
+      setIsImageActuallyLoaded(false);
+      return;
+    }
+
+    // Cria uma imagem temporária para verificar se já está em cache
+    const img = new Image();
+    
+    const checkCache = () => {
+      // Se a imagem já está completa (em cache), marca como carregada imediatamente
+      if (img.complete && img.naturalWidth > 0) {
+        setIsImageActuallyLoaded(true);
+      }
+    };
+
+    img.onload = () => {
+      setIsImageActuallyLoaded(true);
+    };
+
+    img.onerror = () => {
+      // Se der erro, mantém o estado baseado no prop
+      setIsImageActuallyLoaded(!isCoverLoading);
+    };
+
+    // Verifica cache imediatamente
+    img.src = coverUrl;
+    checkCache();
+
+    // Verifica novamente após pequenos delays (para garantir detecção de cache)
+    const timeout1 = setTimeout(checkCache, 50);
+    const timeout2 = setTimeout(checkCache, 150);
+    const timeout3 = setTimeout(checkCache, 300);
+
+    return () => {
+      clearTimeout(timeout1);
+      clearTimeout(timeout2);
+      clearTimeout(timeout3);
+    };
+  }, [coverUrl, isCoverLoading]);
 
   // Auto-recolher após 5 segundos
   useEffect(() => {
@@ -47,7 +90,7 @@ export const GaleriaHero = ({ galeria, photos, coverUrl, isCoverLoading }: Galer
       {coverUrl && (
         <div
           className={`absolute inset-0 bg-cover bg-center transition-all duration-[1500ms] ease-in-out
-            ${isCoverLoading ? 'scale-110 blur-2xl opacity-50' : 'scale-100 blur-0 opacity-100'}`}
+            ${isCoverLoading && !isImageActuallyLoaded ? 'scale-110 blur-2xl opacity-50' : 'scale-100 blur-0 opacity-100'}`}
           style={{
             backgroundImage: `url('${coverUrl}')`,
             backgroundPosition: 'center 35%',
