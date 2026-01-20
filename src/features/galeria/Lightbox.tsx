@@ -57,14 +57,15 @@ export default function Lightbox({
   const isMobile = useIsMobile();
 
   // 🎯 Mostrar tooltip de alta resolução apenas na primeira vez que o lightbox abre
-  useEffect(() => {
-    if (!hasShownQualityWarning) {
-      const timer = setTimeout(() => {
-        setHasShownQualityWarning(true);
-      }, 8000); // Marca como mostrado após 8 segundos (tempo de exibição do tooltip)
-      return () => clearTimeout(timer);
-    }
-  }, [hasShownQualityWarning]);
+  // Este useEffect foi movido para o ToolbarGalleryView para melhor controle
+  // useEffect(() => {
+  //   if (!hasShownQualityWarning) {
+  //     const timer = setTimeout(() => {
+  //       setHasShownQualityWarning(true);
+  //     }, 8000); // Marca como mostrado após 8 segundos (tempo de exibição do tooltip)
+  //     return () => clearTimeout(timer);
+  //   }
+  // }, [hasShownQualityWarning]);
   
   // Duração de cada foto no slideshow (em milissegundos) - 5 segundos
   const SLIDESHOW_DURATION = 5000;
@@ -288,7 +289,10 @@ img.src = imgSrc;
   const handleClickOutside = (e: React.MouseEvent) => {
     if (isMobile && showThumbnails) {
       const target = e.target as HTMLElement;
-      if (!target.closest('[data-thumbnail-strip]') && !target.closest('[data-mobile-toolbar]')) {
+      // Não fecha se clicar no tooltip de alta resolução
+      if (!target.closest('[data-thumbnail-strip]') && 
+          !target.closest('[data-mobile-toolbar]') &&
+          !target.closest('[data-quality-warning]')) {
         setShowThumbnails(false);
       }
     }
@@ -519,11 +523,13 @@ img.src = imgSrc;
       {isMobile && (
         <div 
           className="fixed bottom-0 left-0 right-0 z-[400] bg-white dark:bg-black border-t border-black/10 dark:border-white/10 transition-colors duration-300"
-          style={{ paddingBottom: 'env(safe-area-inset-bottom, 0px)' }}
+          style={{ 
+            paddingBottom: 'env(safe-area-inset-bottom, 0px)',
+            overflow: 'visible', // Permite que tooltips apareçam acima
+          }}
         >
-          <div className="flex items-center justify-around px-2 py-3">
+          <div className="flex items-center justify-around px-2 py-3" style={{ overflow: 'visible' }}>
             <ToolbarGalleryView
-              key={`mobile-${currentPhoto.id}`}
               photoId={currentPhoto.id}
               gallerySlug={galeria.slug}
               galleryTitle={galleryTitle}
@@ -540,7 +546,10 @@ img.src = imgSrc;
               showThumbnails={showThumbnails}
               onToggleThumbnails={onNavigateToIndex ? () => setShowThumbnails(!showThumbnails) : undefined}
               hasShownQualityWarning={hasShownQualityWarning}
-              onQualityWarningShown={() => setHasShownQualityWarning(true)}
+              onQualityWarningShown={() => {
+                console.log('[Lightbox] 📢 onQualityWarningShown chamado, setando hasShownQualityWarning=true');
+                setHasShownQualityWarning(true);
+              }}
             />
           </div>
         </div>

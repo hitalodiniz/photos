@@ -1,5 +1,5 @@
 'use client';
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import {
   Download,
   Loader2,
@@ -49,27 +49,138 @@ export const ToolbarGalleryView = ({
   const [isDownloading, setIsDownloading] = useState(false);
   const [activeTooltip, setActiveTooltip] = useState<string | null>(null);
   const [isExpanded, setIsExpanded] = useState(!hasShownQualityWarning);
+  const warningTimerRef = useRef<NodeJS.Timeout | null>(null); // 🎯 Ref para controlar timers
+  const startTimerRef = useRef<NodeJS.Timeout | null>(null); // 🎯 Ref para o timer de início
+  const hasTriggeredWarningRef = useRef(false); // 🎯 Ref para evitar múltiplas execuções
+  const isMountedRef = useRef(true); // 🎯 Ref para verificar se componente está montado
+  const hasShownQualityWarningRef = useRef(hasShownQualityWarning); // 🎯 Ref para valor atual
+  const onQualityWarningShownRef = useRef(onQualityWarningShown); // 🎯 Ref para callback
+
+  // Atualiza refs quando valores mudam
+  useEffect(() => {
+    hasShownQualityWarningRef.current = hasShownQualityWarning;
+    onQualityWarningShownRef.current = onQualityWarningShown;
+  }, [hasShownQualityWarning, onQualityWarningShown]);
 
   // 🎯 Mostrar tooltip de alta resolução apenas na primeira vez que o lightbox abre
+  // Este useEffect executa apenas uma vez na montagem inicial (quando isMobile é true)
   useEffect(() => {
-    if (!hasShownQualityWarning && onQualityWarningShown) {
-      const startTimer = setTimeout(() => {
+    // Debug logs
+    console.log('[ToolbarGalleryView] useEffect de inicialização executado:', {
+      isMobile,
+      hasShownQualityWarning: hasShownQualityWarningRef.current,
+      hasTriggeredWarningRef: hasTriggeredWarningRef.current,
+      showQualityWarning,
+      onQualityWarningShown: !!onQualityWarningShown,
+      isMounted: isMountedRef.current,
+    });
+
+    // 🎯 REGRA: Se não for mobile, não faz nada
+    if (!isMobile) {
+      console.log('[ToolbarGalleryView] ⚠️ Não é mobile, ignorando');
+      return;
+    }
+
+    // Se já foi mostrado no Lightbox, não faz nada
+    if (hasShownQualityWarningRef.current) {
+      console.log('[ToolbarGalleryView] ⚠️ Já foi mostrado no Lightbox, ignorando');
+      return;
+    }
+
+    // Se já foi acionado, não executa novamente
+    if (hasTriggeredWarningRef.current) {
+      console.log('[ToolbarGalleryView] ⚠️ Já foi acionado, ignorando');
+      return;
+    }
+
+    // Se chegou aqui, é mobile e ainda não mostrou
+    console.log('[ToolbarGalleryView] ✅ Iniciando timers para mostrar tooltip (MOBILE)');
+    hasTriggeredWarningRef.current = true; // Marca como acionado usando ref
+    isMountedRef.current = true;
+    
+    // Limpa timers anteriores se existirem (segurança)
+    if (startTimerRef.current) {
+      clearTimeout(startTimerRef.current);
+    }
+    if (warningTimerRef.current) {
+      clearTimeout(warningTimerRef.current);
+    }
+    
+    // Timer para mostrar o tooltip após 1 segundo
+    startTimerRef.current = setTimeout(() => {
+      console.log('[ToolbarGalleryView] ⏰ Timer de início executado, isMounted:', isMountedRef.current, 'hasShown:', hasShownQualityWarningRef.current);
+      if (isMountedRef.current && !hasShownQualityWarningRef.current) {
+        console.log('[ToolbarGalleryView] ⏰ Mostrando tooltip agora');
         setShowQualityWarning(true);
-        onQualityWarningShown(); // Notifica o Lightbox que o tooltip foi mostrado
-      }, 1000);
-      const endTimer = setTimeout(() => {
+      } else {
+        console.log('[ToolbarGalleryView] ⚠️ Não mostrando tooltip - componente desmontado ou já mostrado');
+      }
+    }, 1000);
+    
+    // Timer para esconder o tooltip após 8 segundos
+    warningTimerRef.current = setTimeout(() => {
+      console.log('[ToolbarGalleryView] ⏰ Timer de fim executado, isMounted:', isMountedRef.current);
+      if (isMountedRef.current) {
+        console.log('[ToolbarGalleryView] ⏰ Escondendo tooltip agora');
         setShowQualityWarning(false);
         setIsExpanded(false);
-      }, 8000);
-      return () => {
-        clearTimeout(startTimer);
-        clearTimeout(endTimer);
-      };
-    } else {
-      setIsExpanded(false);
+        // Só agora notifica o Lightbox que o tooltip foi mostrado
+        if (onQualityWarningShownRef.current) {
+          console.log('[ToolbarGalleryView] 📢 Notificando Lightbox que tooltip foi mostrado');
+          onQualityWarningShownRef.current();
+        }
+      }
+    }, 8000);
+
+    // Cleanup: NÃO limpa os timers aqui - deixa eles executarem
+    // Os timers só serão limpos quando o componente realmente desmontar
+    return () => {
+      console.log('[ToolbarGalleryView] 🧹 Cleanup do useEffect de inicialização (componente desmontando)');
+    };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []); // 🎯 Executa apenas UMA VEZ na montagem inicial (isMobile é estável)
+
+  // 🎯 useEffect separado para reagir a mudanças em hasShownQualityWarning
+  useEffect(() => {
+    // Atualiza o ref quando o valor muda
+    hasShownQualityWarningRef.current = hasShownQualityWarning;
+    
+    // Se foi marcado como mostrado, esconde o tooltip imediatamente
+    if (hasShownQualityWarning) {
+      console.log('[ToolbarGalleryView] ⚠️ hasShownQualityWarning mudou para true, escondendo tooltip');
+      // Limpa timers se ainda estiverem ativos
+      if (startTimerRef.current) {
+        clearTimeout(startTimerRef.current);
+        startTimerRef.current = null;
+      }
+      if (warningTimerRef.current) {
+        clearTimeout(warningTimerRef.current);
+        warningTimerRef.current = null;
+      }
+      // Atualiza estado - necessário quando hasShownQualityWarning muda externamente
+      // Este setState é intencional para sincronizar o estado local com a prop externa
       setShowQualityWarning(false);
+      setIsExpanded(false);
     }
-  }, [hasShownQualityWarning, onQualityWarningShown]);
+  }, [hasShownQualityWarning]);
+
+  // Cleanup quando componente realmente desmonta
+  useEffect(() => {
+    return () => {
+      console.log('[ToolbarGalleryView] 🧹 Componente desmontando REALMENTE - limpando timers');
+      isMountedRef.current = false;
+      if (startTimerRef.current) {
+        clearTimeout(startTimerRef.current);
+        startTimerRef.current = null;
+      }
+      if (warningTimerRef.current) {
+        clearTimeout(warningTimerRef.current);
+        warningTimerRef.current = null;
+      }
+      // Reset para permitir nova tentativa na próxima montagem
+      hasTriggeredWarningRef.current = false;
+    };
+  }, []); // Só executa no unmount
 
   const handleCopyLink = () => {
     const shareUrl = `${window.location.origin}/photo/${photoId}?s=${getCleanSlug(gallerySlug)}`;
@@ -108,6 +219,18 @@ export const ToolbarGalleryView = ({
   const textContainerClass = `hidden md:flex flex-col items-start leading-tight transition-all duration-500 overflow-hidden ${
     isExpanded ? 'opacity-100 max-w-[120px] ml-1.5' : 'opacity-0 max-w-0 ml-0'
   }`;
+
+  // Debug: Log para verificar renderização mobile e mudanças de estado
+  useEffect(() => {
+    if (isMobile) {
+      console.log('[ToolbarGalleryView] 🔍 Estado atual (MOBILE):', {
+        showQualityWarning,
+        hasShownQualityWarning,
+        hasTriggeredWarningRef: hasTriggeredWarningRef.current,
+        willRenderTooltip: showQualityWarning,
+      });
+    }
+  }, [isMobile, showQualityWarning, hasShownQualityWarning]);
 
   // 🎯 VERSÃO MOBILE: Barra fixa na parte inferior com botão de compartilhamento nativo
   if (isMobile) {
@@ -178,11 +301,32 @@ export const ToolbarGalleryView = ({
         )}
 
         {/* 5. DOWNLOAD */}
-        <div className="relative flex-1 flex items-center justify-center">
+        <div className="relative flex-1 flex items-center justify-center" style={{ overflow: 'visible' }}>
           {showQualityWarning && (
             <div 
-              className="absolute bottom-full mb-2 left-1/2 -translate-x-1/2 z-[10000] w-56 animate-in fade-in slide-in-from-bottom-4 duration-700"
-              style={{ pointerEvents: 'auto' }}
+              data-quality-warning="true"
+              className="absolute z-[10001] w-64 max-w-[calc(100vw-2rem)]"
+              style={{ 
+                pointerEvents: 'auto',
+                opacity: 1,
+                visibility: 'visible',
+                position: 'absolute',
+                bottom: 'calc(100% + 12px)', // Acima do botão de download
+                left: '50%',
+                transform: 'translateX(-50%) translateZ(0)', // Centraliza em relação ao botão
+                willChange: 'transform', // Otimiza performance
+                display: 'block', // Força display block
+              }}
+              ref={(el) => {
+                if (el) {
+                  console.log('[ToolbarGalleryView] 🎯 Tooltip renderizado no DOM:', {
+                    element: el,
+                    computedStyle: window.getComputedStyle(el),
+                    offsetHeight: el.offsetHeight,
+                    offsetWidth: el.offsetWidth,
+                  });
+                }
+              }}
               onClick={(e) => {
                 e.preventDefault();
                 e.stopPropagation();
@@ -191,12 +335,50 @@ export const ToolbarGalleryView = ({
                 e.preventDefault();
                 e.stopPropagation();
               }}
+              onTouchEnd={(e) => {
+                e.preventDefault();
+                e.stopPropagation();
+              }}
+              onTouchMove={(e) => {
+                e.preventDefault();
+                e.stopPropagation();
+              }}
+              onTouchCancel={(e) => {
+                e.preventDefault();
+                e.stopPropagation();
+              }}
             >
-              <div className="absolute top-full left-1/2 -translate-x-1/2 border-[6px] border-transparent border-t-[#F3E5AB]" />
+              {/* Seta apontando para baixo - centralizada */}
+              <div className="absolute top-full left-1/2 -translate-x-1/2 border-[6px] border-transparent border-t-[#F3E5AB] pointer-events-none" />
+              
+              {/* Tooltip - Sem animações que causam piscar */}
               <div 
+                data-quality-warning="true"
                 className="bg-[#F3E5AB] shadow-2xl rounded-[0.5rem] p-3 border border-white/20 text-black relative"
-                style={{ pointerEvents: 'auto' }}
+                style={{ 
+                  pointerEvents: 'auto',
+                  transform: 'translateZ(0)', // Força aceleração de hardware
+                  opacity: 1,
+                  visibility: 'visible',
+                  position: 'relative', // Garante posicionamento relativo
+                }}
                 onClick={(e) => {
+                  e.preventDefault();
+                  e.stopPropagation();
+                }}
+                onTouchStart={(e) => {
+                  e.preventDefault();
+                  e.stopPropagation();
+                }}
+                onTouchEnd={(e) => {
+                  e.preventDefault();
+                  e.stopPropagation();
+                }}
+                onTouchMove={(e) => {
+                  e.preventDefault();
+                  e.stopPropagation();
+                }}
+                onTouchCancel={(e) => {
                   e.preventDefault();
                   e.stopPropagation();
                 }}
@@ -216,7 +398,11 @@ export const ToolbarGalleryView = ({
                       e.stopPropagation();
                       setShowQualityWarning(false);
                     }}
-                    className="opacity-40 hover:opacity-100 active:opacity-100 cursor-pointer transition-opacity relative z-[10001]"
+                    onTouchEnd={(e) => {
+                      e.preventDefault();
+                      e.stopPropagation();
+                    }}
+                    className="opacity-40 hover:opacity-100 active:opacity-100 cursor-pointer transition-opacity relative z-[10001] touch-manipulation"
                     style={{ pointerEvents: 'auto' }}
                     aria-label="Fechar tooltip"
                     type="button"
@@ -280,8 +466,8 @@ export const ToolbarGalleryView = ({
   return (
     <div
       className="relative z-[300] flex items-center bg-black/95 backdrop-blur-2xl p-2 px-3 rounded-[0.5rem] border border-white/20 shadow-2xl transition-all duration-700 mx-4"
-      onMouseEnter={() => !showQualityWarning && setIsExpanded(true)}
-      onMouseLeave={() => !showQualityWarning && setIsExpanded(false)}
+      onMouseEnter={() => !isMobile && setIsExpanded(true)}
+      onMouseLeave={() => !isMobile && setIsExpanded(false)}
     >
       {/* 1. FAVORITAR */}
       {showClose && ( // para nao exibir na visualização unica de foto
@@ -457,11 +643,11 @@ export const ToolbarGalleryView = ({
           className="flex items-center group relative"
         >
           <div className="relative shrink-0">
-            {showQualityWarning && (
+            {showQualityWarning && isMobile && (
               <div className="absolute inset-0 rounded-full bg-[#F3E5AB] animate-ping opacity-80" />
             )}
             <div
-              className={`w-9 h-9 md:w-11 md:h-11 rounded-full flex items-center justify-center transition-all ${showQualityWarning ? 'bg-[#F3E5AB] text-black' : 'bg-white/5 text-white group-hover:bg-white group-hover:text-black'}`}
+              className={`w-9 h-9 md:w-11 md:h-11 rounded-full flex items-center justify-center transition-all ${showQualityWarning && isMobile ? 'bg-[#F3E5AB] text-black' : 'bg-white/5 text-white group-hover:bg-white group-hover:text-black'}`}
             >
               {isDownloading ? (
                 <Loader2 className="animate-spin" size={18} />
