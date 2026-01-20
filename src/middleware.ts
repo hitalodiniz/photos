@@ -5,7 +5,9 @@ import { fetchProfileDirectDB } from '@/core/services/profile.service';
 import { resolveGalleryUrl } from '@/core/utils/url-helper';
 
 const SITE_URL = process.env.NEXT_PUBLIC_BASE_URL || 'http://localhost:3000';
-const MAIN_DOMAIN = new URL(SITE_URL).host;
+//Identifica o domínio base sem o prefixo "teste." caso esteja em homologação
+const ACTUAL_HOST = new URL(SITE_URL).host;
+const MAIN_DOMAIN = ACTUAL_HOST.replace('teste.', '');
 
 export async function middleware(req: NextRequest) {
   const { pathname } = req.nextUrl;
@@ -84,12 +86,17 @@ return redirectRes;
     return response;
   }
 
+  // Detecta se termina com .suagaleria.com.br ou .teste.suagaleria.com.br
+  const isHomolog = host.includes('.teste.');
+  const baseDomain = isHomolog ? `teste.${MAIN_DOMAIN}` : MAIN_DOMAIN;
+
   const isSubdomainRequest =
-    host.endsWith(`.${MAIN_DOMAIN}`) && host !== MAIN_DOMAIN;
+    host.endsWith(`.${baseDomain}`) && host !== baseDomain;
 
   // --- REGRA A: ACESSO VIA SUBDOMÍNIO ---
   if (isSubdomainRequest) {
-    const subdomain = host.replace(`.${MAIN_DOMAIN}`, '').toLowerCase();
+// Extrai o subdomínio limpando o sufixo de produção ou homologação
+const subdomain = host.replace(`.${baseDomain}`, '').toLowerCase();
 
     if (subdomain !== 'www') {
       // 🎯 MIDDLEWARE: Usa fetchProfileDirectDB (sem cache) pois Middleware não suporta unstable_cache

@@ -117,6 +117,11 @@ export function resolveGalleryUrl(
 ): string {
   const u = username.toLowerCase().trim();
 
+  // Se receber "https://teste.site.com/", vira "teste.site.com"
+  const cleanMainDomain = mainDomain
+    .replace(/^https?:\/\//, '')
+    .replace(/\/+$/, '');
+
   // 1. Normaliza o slug: remove barras das extremidades
   let cleanPath = slug.replace(/^\/+|\/+$/g, '').trim();
 
@@ -129,11 +134,11 @@ export function resolveGalleryUrl(
 
   if (use_subdomain) {
     // 🎯 URL LIMPA: http://hitalo.localhost:3000/galeria
-    return `${protocol}://${u}.${mainDomain}${cleanPath ? `/${cleanPath}` : ''}`;
+    return `${protocol}://${u}.${cleanMainDomain}${cleanPath ? `/${cleanPath}` : ''}`;
   }
 
   // URL CLÁSSICA: http://localhost:3000/hitalo/galeria
-  return `${protocol}://${mainDomain}/${u}${cleanPath ? `/${cleanPath}` : ''}`;
+  return `${protocol}://${cleanMainDomain}/${u}${cleanPath ? `/${cleanPath}` : ''}`;
 }
 /**
  * Converte links de visualização do Google Drive em links de download direto.
