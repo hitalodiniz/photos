@@ -178,13 +178,13 @@ export async function getValidGoogleTokenService(userId: string): Promise<string
   }
 
   if (!profile?.google_refresh_token) {
-    console.log(`[getValidGoogleTokenService] Token não encontrado para userId: ${userId}. Sistema tentará usar API Key.`);
+    console.log(`[getValidGoogleTokenService] Refresh token não encontrado para userId: ${userId}. Usuário precisa fazer login novamente para usar Google Picker (que requer access token OAuth).`);
     return null;
   }
 
   // 🎯 Verifica se o status de autenticação indica problema
   if (profile.google_auth_status === 'revoked' || profile.google_auth_status === 'expired') {
-    console.log(`[getValidGoogleTokenService] Status de autenticação indica token revogado/expirado para userId: ${userId}`);
+    console.log(`[getValidGoogleTokenService] Status de autenticação indica token revogado/expirado para userId: ${userId}. Usuário precisa fazer login novamente para obter novo refresh token.`);
     return null;
   }
 
@@ -240,16 +240,17 @@ export async function getValidGoogleTokenService(userId: string): Promise<string
             google_refresh_token: null,
             google_access_token: null,
             google_token_expires_at: null,
-            google_auth_status: 'expired', // Marca como expirado
+            google_auth_status: 'expired', // Marca como expirado - indica que precisa reautenticar
           })
           .eq('id', userId);
-        console.log(`[google.service] Refresh token inválido removido do banco e status atualizado para userId: ${userId}`);
+        console.log(`[google.service] Refresh token inválido removido do banco e status atualizado para userId: ${userId}. Usuário precisa fazer login novamente para obter novo refresh token.`);
       } catch (dbError) {
         console.error('[google.service] Erro ao limpar token do banco:', dbError);
       }
 
-      // Retorna null em vez de lançar erro - permite fallback com API Key
-      console.log(`[getValidGoogleTokenService] Token inválido para userId: ${userId}. Sistema tentará usar API Key.`);
+      // Retorna null - sem refresh token, não podemos gerar novos access tokens
+      // O Google Picker precisa de access token OAuth válido, então o usuário precisa reautenticar
+      console.log(`[getValidGoogleTokenService] Token inválido para userId: ${userId}. Usuário precisa fazer login novamente para usar Google Picker.`);
       return null;
     }
 

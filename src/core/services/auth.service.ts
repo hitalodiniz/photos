@@ -74,25 +74,49 @@ export const authService = {
     await supabase.auth.signOut();
   },
 
+  /**
+   * Faz login com Google
+   * @param forceConsent - Se true, força prompt: 'consent' para garantir refresh_token
+   *                       Se false (padrão), usa 'select_account' para login rápido
+   */
   async signInWithGoogle(forceConsent: boolean = false) {
     const baseUrl = getBaseUrl();
     const redirectTo = `${baseUrl}/api/auth/callback`;
 
-    const { error } = await supabase.auth.signInWithOAuth({
-      provider: 'google',
+    // 🎯 NOVA LÓGICA: Sempre usa 'select_account' por padrão (login rápido)
+    // Se forceConsent=true, usa 'consent' (para quando refresh token não foi obtido)
+    const promptValue = forceConsent ? 'consent' : 'select_account';
 
+    console.log('[authService] Iniciando login Google:', {
+      forceConsent,
+      prompt: promptValue,
+      redirectTo,
+      access_type: 'offline',
+      motivo: forceConsent 
+        ? 'Consent forçado - necessário para obter refresh token' 
+        : 'Login padrão com select_account (rápido)',
+    });
+
+    const { error, data } = await supabase.auth.signInWithOAuth({
+      provider: 'google',
       options: {
         scopes:
           'email profile openid https://www.googleapis.com/auth/drive.readonly',
         redirectTo,
         queryParams: {
-          access_type: 'offline',
-          // 🎯 Lógica Condicional: Se forceConsent for true, usa 'consent' para garantir o refresh_token
-          prompt: forceConsent ? 'consent' : 'select_account',
+          access_type: 'offline', // 🎯 CRÍTICO: Necessário para receber refresh_token
+          prompt: promptValue,
         },
       },
     });
 
-    if (error) throw error;
+    if (error) {
+      console.error('[authService] Erro ao iniciar login Google:', error);
+      throw error;
+    }
+
+    console.log('[authService] Login Google iniciado com sucesso. URL:', data?.url);
+    
+    return data;
   },
 };

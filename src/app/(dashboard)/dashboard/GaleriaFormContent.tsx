@@ -50,6 +50,7 @@ export default function GaleriaFormContent({
   customization,
   setCustomization,
   onPickerError,
+  onTokenExpired,
 }) {
   const [showPassword, setShowPassword] = useState(false);
   const [limitInfo, setLimitInfo] = useState({ count: 0, hasMore: false });
@@ -640,6 +641,7 @@ export default function GaleriaFormContent({
                 onFolderSelect={handleFolderSelect}
                 onError={onPickerError}
                 currentDriveId={driveData.id}
+                onTokenExpired={onTokenExpired}
               />
             </div>
           </div>

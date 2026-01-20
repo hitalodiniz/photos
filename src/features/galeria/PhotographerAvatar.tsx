@@ -5,7 +5,7 @@ import Image from 'next/image';
 import { GALLERY_MESSAGES } from '@/constants/messages';
 import InstagramIcon from '@/components/ui/InstagramIcon';
 import { getCreatorProfileUrl } from '@/core/utils/url-helper';
-import { div } from 'framer-motion/client';
+
 interface PhotographerAvatarProps {
   galeria: Galeria;
   position: 'top-page' | 'bottom-lightbox';
@@ -59,7 +59,7 @@ export default function PhotographerAvatar({
         ${isExpanded ? 'gap-2 p-1.5 ' : 'gap-0 p-0 px-1'} 
         ${
           position === 'bottom-lightbox'
-            ? 'bg-[#1A1A1A]/90 backdrop-blur-3xl border-white/20 shadow-black/50'
+            ? 'bg-white/90 dark:bg-[#1A1A1A]/90 backdrop-blur-3xl border-black/20 dark:border-white/20 shadow-black/50 transition-colors duration-300'
             : 'bg-black/45 backdrop-blur-xl border-white/10'
         }
       `}
@@ -93,10 +93,18 @@ export default function PhotographerAvatar({
         `}
         >
           <div className="flex flex-col items-start whitespace-nowrap">
-            <p className="text-[8px] md:text-[9px]  tracking-wider text-[#F3E5AB] font-medium opacity-80 leading-none mb-0.5">
+            <p className={`text-[8px] md:text-[9px] tracking-wider font-medium leading-none mb-0.5 transition-colors duration-300 ${
+              position === 'bottom-lightbox' 
+                ? 'text-slate-600 dark:text-[#F3E5AB]/80' 
+                : 'text-[#F3E5AB]'
+            }`}>
               Registrado por
             </p>
-            <span className="text-[9px] md:text-[10px]  text-white leading-tight">
+            <span className={`text-[9px] md:text-[10px] leading-tight transition-colors duration-300 ${
+              position === 'bottom-lightbox' 
+                ? 'text-slate-900 dark:text-white' 
+                : 'text-white'
+            }`}>
               {fullName}
             </span>
           </div>
@@ -107,7 +115,11 @@ export default function PhotographerAvatar({
                 href={whatsappLink}
                 target="_blank"
                 rel="noopener noreferrer"
-                className="p-1.5 bg-white/10 text-white rounded-full hover:bg-[#25D366] transition-all border border-white/10"
+                className={`p-1.5 rounded-full hover:bg-[#25D366] transition-all border ${
+                  position === 'bottom-lightbox'
+                    ? 'bg-black/10 dark:bg-white/10 text-black dark:text-white border-black/20 dark:border-white/20'
+                    : 'bg-white/10 text-white border-white/10'
+                }`}
                 onClick={(e) => e.stopPropagation()}
               >
                 <svg
@@ -126,16 +138,24 @@ export default function PhotographerAvatar({
                 href={`https://instagram.com/${photographer.instagram_link.replace('@', '')}`}
                 target="_blank"
                 rel="noopener noreferrer"
-                className="p-1.5 bg-white/10 text-white rounded-full hover:bg-gradient-to-tr hover:from-[#f09433] hover:via-[#dc2743] hover:to-[#bc1888] transition-all border border-white/10"
+                className={`p-1.5 rounded-full hover:bg-gradient-to-tr hover:from-[#f09433] hover:via-[#dc2743] hover:to-[#bc1888] transition-all border ${
+                  position === 'bottom-lightbox'
+                    ? 'bg-black/10 dark:bg-white/10 text-black dark:text-white border-black/20 dark:border-white/20'
+                    : 'bg-white/10 text-white border-white/10'
+                }`}
                 onClick={(e) => e.stopPropagation()}
               >
-                <InstagramIcon size={12} className="text-white" />
+                <InstagramIcon size={12} className={position === 'bottom-lightbox' ? 'text-black dark:text-white' : 'text-white'} />
               </a>
             )}
 
             <a
               href={profileLink}
-              className="p-1.5 bg-white/10 text-white rounded-full hover:bg-[#D4AF37] transition-all border border-white/10"
+              className={`p-1.5 rounded-full hover:bg-[#D4AF37] transition-all border ${
+                position === 'bottom-lightbox'
+                  ? 'bg-black/10 dark:bg-white/10 text-black dark:text-white border-black/20 dark:border-white/20'
+                  : 'bg-white/10 text-white border-white/10'
+              }`}
               target="_blank"
               onClick={(e) => e.stopPropagation()}
             >

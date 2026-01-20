@@ -1,6 +1,7 @@
 'use client';
 
 import { useEffect, useMemo, useState } from 'react';
+import { useSearchParams, useRouter } from 'next/navigation';
 import {
   Plus,
   Inbox,
@@ -36,6 +37,7 @@ import {
 import { authService } from '@/core/services/auth.service';
 import AdminControlModal from '@/components/admin/AdminControlModal';
 import { useAuth } from '@/contexts/AuthContext';
+import GoogleConsentAlert from '@/components/auth/GoogleConsentAlert';
 
 const CARDS_PER_PAGE = 8;
 
@@ -67,6 +69,11 @@ export default function Dashboard({
 }: DashboardProps) {
   // 🎯 VERIFICAÇÃO DE SESSÃO: Protege o dashboard contra perda de sessão
   const { user, isLoading: authLoading } = useAuth();
+  const searchParams = useSearchParams();
+  const router = useRouter();
+  
+  // 🎯 ALERTA DE CONSENT: Verifica se precisa mostrar alerta após login
+  const [showConsentAlert, setShowConsentAlert] = useState(false);
 
   // 🎯 TODOS OS HOOKS DEVEM VIR ANTES DE QUALQUER RETURN CONDICIONAL
   const [galerias, setGalerias] = useState<Galeria[]>(initialGalerias);
@@ -101,6 +108,16 @@ export default function Dashboard({
       window.location.href = '/auth/login';
     }
   }, [user, authLoading]);
+
+  // 🎯 VERIFICAÇÃO DE CONSENT: Verifica se precisa mostrar alerta após login
+  useEffect(() => {
+    const needsConsent = searchParams.get('needsConsent') === 'true';
+    if (needsConsent && user) {
+      // Remove o parâmetro da URL e mostra o alerta
+      setShowConsentAlert(true);
+      router.replace('/dashboard', { scroll: false });
+    }
+  }, [searchParams, user, router]);
 
   useEffect(() => {
     document.body.style.overflow =
@@ -196,8 +213,22 @@ export default function Dashboard({
   // 🎯 Função de Login Condicional
   const handleGoogleLogin = async (force: boolean) => {
     try {
+      // Se force=true, usa consent forçado
+      // Se force=false, usa select_account (padrão)
       await authService.signInWithGoogle(force);
     } catch {
+      setToast({ message: 'Erro ao conectar com Google', type: 'error' });
+    }
+  };
+
+  // 🎯 Função para lidar com consent quando alerta é confirmado
+  const handleConsentConfirm = async () => {
+    try {
+      // Fecha o alerta e faz login com consent
+      setShowConsentAlert(false);
+      await authService.signInWithGoogle(true); // forceConsent=true
+    } catch (error) {
+      console.error('Erro ao iniciar login com consent:', error);
       setToast({ message: 'Erro ao conectar com Google', type: 'error' });
     }
   };
@@ -699,6 +730,7 @@ export default function Dashboard({
           setGaleriaToEdit(null);
         }}
         onSuccess={handleFormSuccess}
+        onTokenExpired={() => setShowConsentAlert(true)}
       />
       <ConfirmationModal
         isOpen={!!galeriaToPermanentlyDelete}
@@ -714,6 +746,11 @@ export default function Dashboard({
           onClose={() => setToast(null)}
         />
       )}
+      <GoogleConsentAlert
+        isOpen={showConsentAlert}
+        onClose={() => setShowConsentAlert(false)}
+        onConfirm={handleConsentConfirm}
+      />
     </div>
   );
 }

@@ -1,12 +1,10 @@
 'use client';
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import { Heart, Download, Loader2, X, Link as LinkIcon, Check, Play, Pause } from 'lucide-react';
 import WhatsAppIcon from '@/components/ui/WhatsAppIcon';
 import { executeShare, getCleanSlug } from '@/core/utils/share-helper';
 import { GALLERY_MESSAGES } from '@/constants/messages';
 import { handleDownloadPhoto } from '@/core/utils/foto-helpers';
-
-let hasShownWarningThisSession = false;
 
 interface VerticalActionBarProps {
   photoId: string | number;
@@ -20,6 +18,8 @@ interface VerticalActionBarProps {
   onToggleSlideshow: () => void;
   onClose?: () => void;
   showClose?: boolean;
+  hasShownQualityWarning?: boolean; // 🎯 Controlado pelo Lightbox
+  onQualityWarningShown?: () => void; // 🎯 Callback quando o tooltip é mostrado
 }
 
 export function VerticalActionBar({
@@ -34,30 +34,67 @@ export function VerticalActionBar({
   onToggleSlideshow,
   onClose,
   showClose = true,
+  hasShownQualityWarning = false,
+  onQualityWarningShown,
 }: VerticalActionBarProps) {
   const [copied, setCopied] = useState(false);
   const [isDownloading, setIsDownloading] = useState(false);
   const [showQualityWarning, setShowQualityWarning] = useState(false);
+  const endTimerRef = useRef<NodeJS.Timeout | null>(null);
+  const startTimerRef = useRef<NodeJS.Timeout | null>(null);
 
-  // Mostrar tooltip de alta resolução na primeira vez
+  // 🎯 Mostrar tooltip de alta resolução apenas na primeira vez que o lightbox abre
   useEffect(() => {
-    if (!hasShownWarningThisSession) {
-      const startTimer = setTimeout(() => {
+    if (!hasShownQualityWarning && onQualityWarningShown) {
+      startTimerRef.current = setTimeout(() => {
         setShowQualityWarning(true);
-        hasShownWarningThisSession = true;
+        onQualityWarningShown(); // Notifica o Lightbox que o tooltip foi mostrado
       }, 1000); // Aparece após 1 segundo
       
-      // Fecha automaticamente após 7 segundos de exibição (1s delay + 7s = 8s total)
-      const endTimer = setTimeout(() => {
-        setShowQualityWarning(false);
-      }, 8000);
-      
       return () => {
-        clearTimeout(startTimer);
-        clearTimeout(endTimer);
+        if (startTimerRef.current) {
+          clearTimeout(startTimerRef.current);
+          startTimerRef.current = null;
+        }
       };
     }
-  }, []);
+  }, [hasShownQualityWarning, onQualityWarningShown]);
+
+  // 🎯 Fechar tooltip automaticamente após 7 segundos quando ele aparecer
+  useEffect(() => {
+    if (showQualityWarning) {
+      // Limpar qualquer timer anterior
+      if (endTimerRef.current) {
+        clearTimeout(endTimerRef.current);
+      }
+      
+      // Iniciar timer de 7 segundos para fechar
+      endTimerRef.current = setTimeout(() => {
+        setShowQualityWarning(false);
+        endTimerRef.current = null;
+      }, 7000);
+      
+      return () => {
+        if (endTimerRef.current) {
+          clearTimeout(endTimerRef.current);
+          endTimerRef.current = null;
+        }
+      };
+    }
+  }, [showQualityWarning]);
+
+  // 🎯 Fechar tooltip quando a foto muda (se ainda estiver visível)
+  useEffect(() => {
+    if (showQualityWarning) {
+      // Limpar o timer de fechamento automático se existir
+      if (endTimerRef.current) {
+        clearTimeout(endTimerRef.current);
+        endTimerRef.current = null;
+      }
+      setShowQualityWarning(false);
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [photoId]);
 
   const handleCopyLink = async () => {
     const cleanSlug = getCleanSlug(gallerySlug);
@@ -100,7 +137,7 @@ export function VerticalActionBar({
 
   return (
     <div
-      className="fixed top-1/2 z-[240] flex flex-col gap-3 bg-black/95 backdrop-blur-2xl p-3 rounded-[0.5rem] border border-white/20 shadow-2xl transition-all duration-700"
+      className="fixed top-1/2 z-[250] flex flex-col gap-3 bg-white/95 dark:bg-black/95 backdrop-blur-2xl p-3 rounded-[0.5rem] border border-black/20 dark:border-white/20 shadow-2xl transition-all duration-700"
       style={{ 
         right: '112px', // Entre o botão de navegação (96px) e as miniaturas (0px)
         transform: 'translateY(-50%)',
@@ -117,13 +154,15 @@ export function VerticalActionBar({
         >
           <div
             className={`w-full h-full rounded-full flex items-center justify-center transition-all ${
-              isFavorited ? 'bg-[#E67E70]' : 'bg-white/5 group-hover:bg-[#E67E70]'
+              isFavorited ? 'bg-[#E67E70]' : 'bg-black/5 dark:bg-white/5 group-hover:bg-[#E67E70]'
             }`}
           >
             <Heart
               fill={isFavorited ? 'white' : 'none'}
               size={20}
-              className="text-white"
+              className={`transition-colors duration-300 ${
+                isFavorited ? 'text-white' : 'text-black dark:text-white'
+              }`}
               strokeWidth={2}
             />
           </div>
@@ -139,10 +178,10 @@ export function VerticalActionBar({
       {/* 2. WHATSAPP */}
       <button
         onClick={handleWhatsApp}
-        className="w-12 h-12 rounded-full bg-white/5 hover:bg-[#25D366] flex items-center justify-center transition-all group relative"
+        className="w-12 h-12 rounded-full bg-black/5 dark:bg-white/5 hover:bg-[#25D366] flex items-center justify-center transition-all group relative"
         aria-label="Compartilhar no WhatsApp"
       >
-        <WhatsAppIcon className="text-white w-5 h-5" />
+        <WhatsAppIcon className="text-black dark:text-white w-5 h-5 transition-colors duration-300" />
         {/* Tooltip */}
         <div className="absolute right-full mr-3 opacity-0 group-hover:opacity-100 transition-opacity pointer-events-none whitespace-nowrap">
           <div className="bg-[#F3E5AB] text-black text-[10px] font-semibold px-2 py-1 rounded shadow-xl">
@@ -154,13 +193,13 @@ export function VerticalActionBar({
       {/* 3. COPIAR LINK */}
       <button
         onClick={handleCopyLink}
-        className="w-12 h-12 rounded-full bg-white/5 hover:bg-white/10 flex items-center justify-center transition-all group relative"
+        className="w-12 h-12 rounded-full bg-black/5 dark:bg-white/5 hover:bg-black/10 dark:hover:bg-white/10 flex items-center justify-center transition-all group relative"
         aria-label="Copiar link"
       >
         {copied ? (
-          <Check size={20} className="text-[#F3E5AB]" strokeWidth={2} />
+          <Check size={20} className="text-[#1E293B] dark:text-[#F3E5AB] transition-colors duration-300" strokeWidth={2} />
         ) : (
-          <LinkIcon size={20} className="text-white" strokeWidth={2} />
+          <LinkIcon size={20} className="text-black dark:text-white transition-colors duration-300" strokeWidth={2} />
         )}
         {/* Tooltip */}
         <div className="absolute right-full mr-3 opacity-0 group-hover:opacity-100 transition-opacity pointer-events-none whitespace-nowrap">
@@ -175,14 +214,14 @@ export function VerticalActionBar({
         <button
           onClick={onToggleSlideshow}
           className={`w-12 h-12 rounded-full flex items-center justify-center transition-all group relative ${
-            isSlideshowActive ? 'bg-[#F3E5AB]' : 'bg-white/5 hover:bg-white/10'
+            isSlideshowActive ? 'bg-[#1E293B] dark:bg-[#F3E5AB]' : 'bg-black/5 dark:bg-white/5 hover:bg-black/10 dark:hover:bg-white/10'
           }`}
           aria-label={isSlideshowActive ? 'Pausar slideshow' : 'Iniciar slideshow'}
         >
           {isSlideshowActive ? (
-            <Pause size={20} className="text-black" strokeWidth={2} />
+            <Pause size={20} className="text-white dark:text-black transition-colors duration-300" strokeWidth={2} />
           ) : (
-            <Play size={20} className="text-white" strokeWidth={2} />
+            <Play size={20} className="text-black dark:text-white transition-colors duration-300" strokeWidth={2} />
           )}
           {/* Tooltip */}
           <div className="absolute right-full mr-3 opacity-0 group-hover:opacity-100 transition-opacity pointer-events-none whitespace-nowrap">
@@ -275,8 +314,8 @@ export function VerticalActionBar({
             <div
               className={`w-full h-full rounded-full flex items-center justify-center transition-all ${
                 showQualityWarning
-                  ? 'bg-[#F3E5AB] text-black'
-                  : 'bg-white/5 hover:bg-white/10 text-white'
+                  ? 'bg-[#1E293B] dark:bg-[#F3E5AB] text-white dark:text-black'
+                  : 'bg-black/5 dark:bg-white/5 hover:bg-black/10 dark:hover:bg-white/10 text-black dark:text-white'
               }`}
             >
               {isDownloading ? (

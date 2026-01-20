@@ -41,7 +41,7 @@ export function VerticalThumbnails({
 
   return (
     <div
-      className={`fixed top-0 z-[200] bg-gradient-to-l from-black/95 via-black/80 to-transparent transition-all duration-500 ${
+      className={`fixed top-0 z-[260] bg-gradient-to-l from-white/95 dark:from-black/95 via-white/80 dark:via-black/80 to-transparent transition-all duration-500 ${
         isVisible ? 'opacity-100 translate-x-0' : 'opacity-0 translate-x-full pointer-events-none'
       }`}
       onClick={(e) => e.stopPropagation()}
@@ -107,7 +107,7 @@ const ThumbnailItem = React.forwardRef<HTMLButtonElement, ThumbnailItemProps>(
         onClick={onClick}
         className={`relative flex-shrink-0 transition-all duration-300 cursor-pointer w-full ${
           isActive
-            ? 'ring-2 ring-[#F3E5AB] scale-105'
+            ? 'ring-2 ring-[#1E293B] dark:ring-[#F3E5AB] scale-105'
             : 'opacity-70 hover:opacity-100 hover:scale-105'
         }`}
         style={{
@@ -115,12 +115,12 @@ const ThumbnailItem = React.forwardRef<HTMLButtonElement, ThumbnailItemProps>(
         }}
         aria-label={`Ver foto ${index + 1}`}
       >
-        <div className={`relative w-full h-full rounded-lg overflow-hidden bg-white/10 transition-all ${
-          isActive ? 'border-2 border-[#F3E5AB]' : 'border-2 border-transparent'
+        <div className={`relative w-full h-full rounded-lg overflow-hidden bg-black/10 dark:bg-white/10 transition-all ${
+          isActive ? 'border-2 border-[#1E293B] dark:border-[#F3E5AB]' : 'border-2 border-transparent'
         }`}>
           {isLoading && !imgSrc ? (
-            <div className="absolute inset-0 flex items-center justify-center bg-black/20">
-              <div className="w-3 h-3 border-2 border-white/30 border-t-white rounded-full animate-spin" />
+            <div className="absolute inset-0 flex items-center justify-center bg-black/20 dark:bg-white/20">
+              <div className="w-3 h-3 border-2 border-black/30 dark:border-white/30 border-t-black dark:border-t-white rounded-full animate-spin" />
             </div>
           ) : imgSrc ? (
             <img
@@ -133,12 +133,12 @@ const ThumbnailItem = React.forwardRef<HTMLButtonElement, ThumbnailItemProps>(
               onLoad={handleLoad}
             />
           ) : (
-            <div className="absolute inset-0 flex items-center justify-center bg-black/20">
-              <div className="w-3 h-3 border-2 border-white/30 border-t-white rounded-full animate-spin" />
+            <div className="absolute inset-0 flex items-center justify-center bg-black/20 dark:bg-white/20">
+              <div className="w-3 h-3 border-2 border-black/30 dark:border-white/30 border-t-black dark:border-t-white rounded-full animate-spin" />
             </div>
           )}
           {isActive && (
-            <div className="absolute inset-0 bg-[#F3E5AB]/10 pointer-events-none" />
+            <div className="absolute inset-0 bg-[#1E293B]/10 dark:bg-[#F3E5AB]/10 pointer-events-none" />
           )}
         </div>
       </button>

@@ -53,7 +53,18 @@ export default function Lightbox({
   const [isSlideshowActive, setIsSlideshowActive] = useState(false);
   const [slideshowProgress, setSlideshowProgress] = useState(0);
   const [showThumbnails, setShowThumbnails] = useState(false); // Estado para controlar miniaturas no mobile
+  const [hasShownQualityWarning, setHasShownQualityWarning] = useState(false); // 🎯 Controla se o tooltip já foi mostrado
   const isMobile = useIsMobile();
+
+  // 🎯 Mostrar tooltip de alta resolução apenas na primeira vez que o lightbox abre
+  useEffect(() => {
+    if (!hasShownQualityWarning) {
+      const timer = setTimeout(() => {
+        setHasShownQualityWarning(true);
+      }, 8000); // Marca como mostrado após 8 segundos (tempo de exibição do tooltip)
+      return () => clearTimeout(timer);
+    }
+  }, [hasShownQualityWarning]);
   
   // Duração de cada foto no slideshow (em milissegundos) - 5 segundos
   const SLIDESHOW_DURATION = 5000;
@@ -287,12 +298,26 @@ img.src = imgSrc;
 
   return (
     <div
-      className="fixed inset-0 z-[9999] bg-black flex flex-col md:block overflow-y-auto md:overflow-hidden select-none"
+      className="fixed inset-0 z-[9999] bg-white dark:bg-black flex flex-col md:block overflow-y-auto md:overflow-hidden select-none transition-colors duration-300"
       onTouchStart={isSingleView ? undefined : onTouchStart}
       onTouchMove={isSingleView ? undefined : onTouchMove}
       onTouchEnd={isSingleView ? undefined : onTouchEnd}
       onClick={isMobile ? handleClickOutside : undefined}
     >
+      {/* 🎯 MINIATURAS VERTICAIS (Desktop - lado direito) - Por cima dos botões */}
+      {!isSingleView && onNavigateToIndex && !isMobile && (
+        <VerticalThumbnails
+          photos={photos}
+          activeIndex={activeIndex}
+          onNavigateToIndex={(index) => {
+            onNavigateToIndex(index);
+            setSlideshowProgress(0);
+            if (isSlideshowActive) setIsSlideshowActive(false);
+          }}
+          isVisible={showInterface}
+        />
+      )}
+
       {/* 🎯 BARRA DE AÇÕES VERTICAL (Desktop - lado direito, próxima das miniaturas) */}
       {!isSingleView && !isMobile && (
         <div
@@ -312,22 +337,10 @@ img.src = imgSrc;
             onToggleSlideshow={() => setIsSlideshowActive(!isSlideshowActive)}
             onClose={onClose}
             showClose={!isSingleView}
+            hasShownQualityWarning={hasShownQualityWarning}
+            onQualityWarningShown={() => setHasShownQualityWarning(true)}
           />
         </div>
-      )}
-
-      {/* 🎯 MINIATURAS VERTICAIS (Desktop - lado direito) */}
-      {!isSingleView && onNavigateToIndex && !isMobile && (
-        <VerticalThumbnails
-          photos={photos}
-          activeIndex={activeIndex}
-          onNavigateToIndex={(index) => {
-            onNavigateToIndex(index);
-            setSlideshowProgress(0);
-            if (isSlideshowActive) setIsSlideshowActive(false);
-          }}
-          isVisible={showInterface}
-        />
       )}
 
       {/* 🎯 MINIATURAS HORIZONTAIS (Mobile - parte inferior) */}
@@ -359,9 +372,9 @@ img.src = imgSrc;
               setSlideshowProgress(0);
               if (isSlideshowActive) setIsSlideshowActive(false);
             }}
-            className="fixed left-0 top-1/2 -translate-y-1/2 z-[250] 
+            className="fixed left-0 top-1/2 -translate-y-1/2 z-[190] 
                w-16 md:w-32 h-32 md:h-64 flex items-center justify-center 
-               text-white/20 hover:text-[#F3E5AB] transition-all group"
+               text-black/20 dark:text-white/20 hover:text-blue-500 dark:hover:text-[#F3E5AB] transition-all group"
           >
             <ChevronLeft
               className="w-10 h-10 md:w-16 md:h-16 shrink-0 transition-transform group-hover:scale-110"
@@ -376,9 +389,9 @@ img.src = imgSrc;
               setSlideshowProgress(0);
               if (isSlideshowActive) setIsSlideshowActive(false);
             }}
-            className="fixed top-1/2 -translate-y-1/2 z-[230] 
+            className="fixed top-1/2 -translate-y-1/2 z-[190] 
                w-16 md:w-32 h-32 md:h-64 flex items-center justify-center 
-               text-white/20 hover:text-[#F3E5AB] transition-all group"
+               text-slate-600 dark:text-white/20 hover:text-slate-900 dark:hover:text-[#F3E5AB] transition-all group"
             style={{ right: onNavigateToIndex && !isMobile ? '160px' : '0' }} // Mais à esquerda, fora da barra (112px barra + 48px espaço)
           >
             <ChevronRight
@@ -391,15 +404,15 @@ img.src = imgSrc;
 
       {/* 🎯 BARRA DE PROGRESSO SLIDESHOW (Estilo Instagram Stories) */}
       {isSlideshowActive && !isSingleView && (
-        <div className="fixed top-0 left-0 right-0 z-[500] px-2 pt-2 pb-1 bg-gradient-to-b from-black/60 to-transparent">
+        <div className="fixed top-0 left-0 right-0 z-[500] px-2 pt-2 pb-1 bg-gradient-to-b from-white/60 dark:from-black/60 to-transparent">
           <div className="flex gap-1">
             {Array.from({ length: totalPhotos }).map((_, index) => (
               <div
                 key={index}
-                className="flex-1 h-0.5 bg-white/30 rounded-full overflow-hidden"
+                className="flex-1 h-0.5 bg-slate-300 dark:bg-white/30 rounded-full overflow-hidden"
               >
                 <div
-                  className="h-full bg-white transition-all ease-linear"
+                  className="h-full bg-slate-700 dark:bg-white transition-all ease-linear"
                   style={{
                     width:
                       index < activeIndex
@@ -419,7 +432,7 @@ img.src = imgSrc;
       {/* 1. Título: Sempre à esquerda, ocupa a primeira coluna do grid */}
       {/* HEADER & TOOLBAR */}
       <header
-        className={`relative md:fixed top-0 left-0 right-0 p-4 z-[300] bg-black md:bg-transparent ${interfaceVisibilityClass} ${isSlideshowActive && !isSingleView ? 'pt-6 md:pt-4' : ''}`}
+        className={`relative md:fixed top-0 left-0 right-0 p-4 z-[300] bg-white dark:bg-black md:bg-transparent dark:md:bg-transparent ${interfaceVisibilityClass} ${isSlideshowActive && !isSingleView ? 'pt-6 md:pt-4' : ''} transition-colors duration-300`}
       >
         {/* No Mobile: flex-col (Toolbar abaixo do título). No Desktop: flex-row com itens alinhados ao topo */}
         <div className="relative w-full flex flex-col md:flex-row items-start justify-between gap-4 md:gap-0">
@@ -438,10 +451,10 @@ img.src = imgSrc;
             <div className="hidden md:flex w-auto justify-end shrink-0 z-[310]">
               <button
                 onClick={onClose}
-                className="w-12 h-12 bg-black/95 backdrop-blur-2xl border border-white/20 shadow-2xl flex items-center justify-center transition-all hover:bg-white/10 group relative rounded-[0.5rem]"
+                className="w-12 h-12 bg-white/95 dark:bg-black/95 backdrop-blur-2xl border border-black/20 dark:border-white/20 shadow-2xl flex items-center justify-center transition-all hover:bg-black/10 dark:hover:bg-white/10 group relative rounded-[0.5rem]"
                 aria-label="Fechar galeria"
               >
-                <X size={20} className="text-white" strokeWidth={2} />
+                <X size={20} className="text-black dark:text-white" strokeWidth={2} />
                 {/* Tooltip - Abaixo do botão */}
                 <div className="absolute top-full mt-2 left-1/2 -translate-x-1/2 opacity-0 group-hover:opacity-100 transition-opacity pointer-events-none whitespace-nowrap">
                   <div className="bg-[#F3E5AB] text-black text-[10px] font-semibold px-2 py-1 rounded shadow-xl">
@@ -461,7 +474,7 @@ img.src = imgSrc;
         <div className={`relative w-full h-full flex items-center justify-center ${isMobile ? 'min-h-[50vh]' : 'h-screen md:h-screen'}`}>
           {/* Spinner centralizado */}
           {isImageLoading && (
-            <div className="absolute inset-0 flex items-center justify-center z-[50] bg-black">
+            <div className="absolute inset-0 flex items-center justify-center z-[50] bg-white dark:bg-black transition-colors duration-300">
               {/* Mostra SM no mobile e oculta no desktop */}
               <div className="md:hidden">
                 <LoadingSpinner size="sm" />
@@ -505,7 +518,7 @@ img.src = imgSrc;
       {/* 🎯 BARRA DE BOTÕES MOBILE - Fixa na parte inferior (similar à imagem) */}
       {isMobile && (
         <div 
-          className="fixed bottom-0 left-0 right-0 z-[400] bg-black border-t border-white/10"
+          className="fixed bottom-0 left-0 right-0 z-[400] bg-white dark:bg-black border-t border-black/10 dark:border-white/10 transition-colors duration-300"
           style={{ paddingBottom: 'env(safe-area-inset-bottom, 0px)' }}
         >
           <div className="flex items-center justify-around px-2 py-3">
@@ -526,6 +539,8 @@ img.src = imgSrc;
               onToggleSlideshow={() => setIsSlideshowActive(!isSlideshowActive)}
               showThumbnails={showThumbnails}
               onToggleThumbnails={onNavigateToIndex ? () => setShowThumbnails(!showThumbnails) : undefined}
+              hasShownQualityWarning={hasShownQualityWarning}
+              onQualityWarningShown={() => setHasShownQualityWarning(true)}
             />
           </div>
         </div>
@@ -533,33 +548,32 @@ img.src = imgSrc;
 
       {/* 🎯 CONTADOR DE FOTOS - Sempre visível (não oculta com a interface) */}
       {!isSingleView && (
-        <div className="hidden md:flex fixed bottom-0 right-0 z-[250] p-4">
-          <div className="bg-black px-3 py-1.5 rounded-[0.5rem] border border-white/20 shadow-2xl flex items-center gap-3"
-            style={{ backgroundColor: '#000000' }} // Força fundo preto opaco
-            title={`Resolução: ${realResolution ? `${realResolution.w}x${realResolution.h}px` : '...'} | Tamanho: ${imageSize || '...'} | Origem: ${usingProxy ? 'Servidor (A)' : 'Google Drive (D)'}`}
-          >
-            {/* Contador de Fotos */}
-            <div className="flex items-center gap-2 shrink-0">
-              <ImageIcon size={13} className="text-[#F3E5AB]" />
-              <p className="text-white/90 text-[11px] font-medium tracking-tight">
-                Foto <span className="text-[#F3E5AB]">{activeIndex + 1}</span> de {totalPhotos}
-              </p>
-            </div>
-
-            {/* Divisor Minimalista */}
-            <div className="h-3 w-[1px] bg-white/20" />
-
-            {/* Bloco de Dados Técnicos */}
-            <div className="flex items-center gap-2.5 cursor-help">
-              {/* Tamanho da Foto */}
-              <p className="text-[#F3E5AB] text-[11px] font-medium min-w-[6px] text-right">
-                {imageSize || "--- KB"}
+        <div className="hidden md:flex fixed bottom-0 right-0 z-[500] p-4">
+          <div className="order-2 flex justify-end">
+            <div 
+              className="bg-white/90 dark:bg-black/90 border-slate-200 dark:border-white/20 text-slate-900 dark:text-white backdrop-blur-md px-3 py-1.5 rounded-[0.5rem] border shadow-2xl flex items-center gap-3 transition-all"
+              title={`Resolução: ${realResolution ? `${realResolution.w}x${realResolution.h}px` : '...'} | Tamanho: ${imageSize || '...'} | Origem: ${usingProxy ? 'Servidor (A)' : 'Google Drive (D)'}`}
+            >
+              {/* Ícone que muda de cor conforme o tema */}
+              <ImageIcon size={13} className="text-slate-600 dark:text-[#F3E5AB] transition-colors duration-300" />
+              
+              <p className="text-[11px] font-medium tracking-tight text-slate-900 dark:text-white">
+                Foto <span className="text-slate-700 dark:text-[#F3E5AB] font-semibold">{activeIndex + 1}</span> de {totalPhotos}
               </p>
 
-              {/* Letra de Origem */}
-              <p className={`text-[11px] font-black ${usingProxy ? 'text-blue-400' : 'text-green-500'}`}>
-                {usingProxy ? 'A' : 'D'}
-              </p>
+              {/* Divisor que adapta a opacidade */}
+              <div className="h-3 w-[1px] bg-slate-300 dark:bg-white/20" />
+
+              {/* Dados Técnicos */}
+              <div className="flex items-center gap-2.5">
+                <p className="text-slate-600 dark:text-[#F3E5AB] text-[11px] font-medium">
+                  {imageSize || "--- KB"}
+                </p>
+                {/* Indicador de origem */}
+                <span className="text-[10px] font-medium text-slate-500 dark:text-slate-400">
+                  {usingProxy ? 'A' : 'D'}
+                </span>
+              </div>
             </div>
           </div>
         </div>

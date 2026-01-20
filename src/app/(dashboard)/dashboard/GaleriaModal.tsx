@@ -11,6 +11,7 @@ export default function GaleriaModal({
   isOpen,
   onClose,
   onSuccess,
+  onTokenExpired,
 }) {
   const isEdit = !!galeria;
   const [loading, setLoading] = useState(false);
@@ -194,6 +195,7 @@ export default function GaleriaModal({
                 setColumns,
               }}
               onPickerError={(msg: string) => onSuccess(false, msg)}
+              onTokenExpired={onTokenExpired}
             />
           </form>
         </div>

@@ -7,6 +7,7 @@ const config: Config = {
     './components/**/*.{js,ts,jsx,tsx,mdx}',
     './src/**/*.{js,ts,jsx,tsx,mdx}',
   ],
+  darkMode: 'media', // 🎯 O 'media' faz o site seguir o sistema operacional automaticamente
   theme: {
     extend: {
       colors: {

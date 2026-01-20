@@ -9,6 +9,7 @@ interface GooglePickerProps {
   onFolderSelect: (folderId: string, folderName: string) => void;
   currentDriveId: string | null;
   onError: (message: string) => void;
+  onTokenExpired?: () => void; // Callback quando o token expirar/for revogado
 }
 
 declare global {
@@ -75,6 +76,7 @@ export default function GooglePickerButton({
   onFolderSelect,
   currentDriveId,
   onError,
+  onTokenExpired,
 }: GooglePickerProps) {
   const [loading, setLoading] = useState(false);
   const [isReadyToOpen, setIsReadyToOpen] = useState(isPickerLoaded);
@@ -156,8 +158,14 @@ export default function GooglePickerButton({
 
       // Para o Picker funcionar, precisamos do token OAuth
       // A API Key não é necessária aqui pois estamos acessando dados privados do usuário
+      // O Google Picker requer access token OAuth válido, que só pode ser gerado com um refresh token válido
       if (!accessToken) {
-        onError('Token do Google não encontrado. Por favor, conecte sua conta do Google Drive nas configurações.');
+        const errorMessage = 'Token do Google não encontrado. Seu refresh token expirou ou foi revogado. Por favor, faça login novamente com Google para renovar o acesso ao Google Drive.';
+        onError(errorMessage);
+        // 🎯 Se há callback para token expirado, chama para abrir o modal de consent
+        if (onTokenExpired) {
+          onTokenExpired();
+        }
         setLoading(false);
         return;
       }

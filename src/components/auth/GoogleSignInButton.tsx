@@ -7,13 +7,16 @@ interface GoogleSignInButtonProps {
   forceConsent?: boolean;
 }
 
-export default function GoogleSignInButton({ forceConsent = false }: GoogleSignInButtonProps) {
+export default function GoogleSignInButton({ 
+  forceConsent = false,
+}: GoogleSignInButtonProps) {
   const [loading, setLoading] = useState(false);
 
   const handleLogin = async () => {
     try {
       setLoading(true);
-      // 🎯 Usa forceConsent para garantir refresh_token na reconexão
+      // 🎯 Usa forceConsent para forçar consent quando necessário
+      // Por padrão, usa select_account (login rápido)
       await authService.signInWithGoogle(forceConsent);
     } catch (error: any) {
       console.error('Erro ao iniciar login:', error);
