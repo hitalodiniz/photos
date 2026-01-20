@@ -1,12 +1,13 @@
 'use client';
 import React, { useState } from 'react';
-import { Download, Heart, Link as LinkIcon, Check } from 'lucide-react';
+import { Download, Heart, Link as LinkIcon, Check, Share2 } from 'lucide-react';
 import WhatsAppIcon from '@/components/ui/WhatsAppIcon';
 
 export const GridPhotoActions = ({
   isFavorited,
   onToggleFavorite,
   onShareWhatsApp,
+  onNativeShare,
   onDownload,
   onCopyLink,
   btnScale,
@@ -54,20 +55,34 @@ export const GridPhotoActions = ({
         </button>
       </div>
 
-      {/* LADO DIREITO: GRUPO DE AÇÕES (WhatsApp, Link, Download) */}
+      {/* LADO DIREITO: GRUPO DE AÇÕES (Share/WhatsApp, Link, Download) */}
       <div className="flex flex-row gap-1.5 md:gap-2 items-center justify-end">
-        {/* WhatsApp */}
-        <button
-          onClick={(e) => {
-            e.stopPropagation();
-            onShareWhatsApp();
-          }}
-          style={{ width: btnSize, height: btnSize }}
-          className={`${baseBtnClass} bg-black/40 backdrop-blur-md border-white/10 text-white hover:bg-[#25D366]
-            opacity-0 group-hover:opacity-100 scale-0 group-hover:scale-100 delay-[50ms]`}
-        >
-          <WhatsAppIcon size={finalIconSize} />
-        </button>
+        {/* Share (Mobile) ou WhatsApp (Desktop) */}
+        {isMobile ? (
+          <button
+            onClick={(e) => {
+              e.stopPropagation();
+              onNativeShare();
+            }}
+            style={{ width: btnSize, height: btnSize }}
+            className={`${baseBtnClass} bg-black/40 backdrop-blur-md border-white/10 text-white hover:bg-white group/btn
+              opacity-0 group-hover:opacity-100 scale-0 group-hover:scale-100 delay-[50ms]`}
+          >
+            <Share2 size={finalIconSize} className="group-hover/btn:text-black transition-colors" />
+          </button>
+        ) : (
+          <button
+            onClick={(e) => {
+              e.stopPropagation();
+              onShareWhatsApp();
+            }}
+            style={{ width: btnSize, height: btnSize }}
+            className={`${baseBtnClass} bg-black/40 backdrop-blur-md border-white/10 text-white hover:bg-[#25D366]
+              opacity-0 group-hover:opacity-100 scale-0 group-hover:scale-100 delay-[50ms]`}
+          >
+            <WhatsAppIcon size={finalIconSize} className="" />
+          </button>
+        )}
 
         {/* Copiar Link */}
         <button

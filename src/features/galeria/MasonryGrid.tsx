@@ -90,6 +90,33 @@ const MasonryGrid = ({
     executeShare({ title: galleryTitle, text: shareText });
   };
 
+  // 🎯 Função para compartilhamento nativo no mobile (Web Share API)
+  const handleNativeShareGrid = async (photoId: string) => {
+    const shareUrl = `${window.location.origin}/photo/${photoId}?s=${getCleanSlug(galeria.slug)}`;
+    const shareText = GALLERY_MESSAGES.PHOTO_SHARE(galleryTitle, shareUrl);
+
+    // Verifica se a Web Share API está disponível
+    if (navigator.share) {
+      try {
+        await navigator.share({
+          title: galleryTitle,
+          text: shareText,
+          url: shareUrl,
+        });
+      } catch (error) {
+        // Usuário cancelou ou erro no compartilhamento
+        if ((error as Error).name !== 'AbortError') {
+          console.error('Erro ao compartilhar:', error);
+          // Fallback: copia o link para a área de transferência
+          handleCopyLinkGrid(photoId);
+        }
+      }
+    } else {
+      // Fallback: se não suportar Web Share API, copia o link
+      handleCopyLinkGrid(photoId);
+    }
+  };
+
   const handleCopyLinkGrid = (photoId: string) => {
     const shareUrl = `${window.location.origin}/photo/${photoId}?s=${getCleanSlug(galeria.slug)}`;
     navigator.clipboard.writeText(shareUrl);
@@ -128,9 +155,9 @@ const MasonryGrid = ({
           </button>
         </div>
       ) : (
-        <div className="max-w-[1600px] mx-auto px-2 pt-2 pb-2">
+        <div className="max-w-[1600px] mx-auto px-0 md:px-8 pt-2 pb-2">
           <Gallery withCaption>
-            <div className="w-full transition-all duration-700 grid gap-1 grid-flow-row-dense"
+            <div className="w-full transition-all duration-700 grid gap-0.5 md:gap-1.5 grid-flow-row-dense"
                  style={{ gridTemplateColumns: `repeat(${columns.mobile}, minmax(0, 1fr))` }}>
               <style jsx>{`
                 @media (min-width: 768px) {
@@ -156,7 +183,7 @@ const MasonryGrid = ({
                     caption={`${galleryTitle} - Foto ${index + 1}`}
                   >
                     {({ ref }) => (
-                      <div className={`relative group shadow-sm hover:shadow-xl transition-all duration-500 rounded-[0.5rem] overflow-hidden border border-black/5 ring-1 ring-white/10 ${
+                      <div className={`relative group shadow-sm hover:shadow-xl transition-all duration-500 rounded-none overflow-hidden border border-black/5 ring-1 ring-white/10 ${
                           showOnlyFavorites ? 'aspect-square bg-white/5' : photo.height > photo.width ? 'md:row-span-2' : 'row-span-1'
                         }`}>
                         <a href="#" ref={ref as any} onClick={(e) => { e.preventDefault(); setSelectedPhotoIndex(index); }}
@@ -172,9 +199,12 @@ const MasonryGrid = ({
                         </a>
                         <GridPhotoActions
                           photoId={photo.id}
+                          galleryTitle={galleryTitle}
+                          gallerySlug={galeria.slug}
                           isFavorited={isSelected}
                           onToggleFavorite={() => toggleFavoriteFromGrid(photo.id)}
                           onShareWhatsApp={() => handleShareWhatsAppGrid(photo.id)}
+                          onNativeShare={() => handleNativeShareGrid(photo.id)}
                           onCopyLink={() => handleCopyLinkGrid(photo.id)}
                           onDownload={() => handleDownloadPhoto(galeria, photo.id, index)}
                           btnScale={btnScale}
