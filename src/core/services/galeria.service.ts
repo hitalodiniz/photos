@@ -162,6 +162,7 @@ export async function createGaleria(
 
       zip_url_full: (formData.get('zip_url_full') as string) || null,
       zip_url_social: (formData.get('zip_url_social') as string) || null,
+      enable_lead_capture: formData.get('enable_lead_capture') === 'true',
 
       // Senha inicial (se houver)
       password:
@@ -255,6 +256,7 @@ export async function updateGaleria(
 
       zip_url_full: (formData.get('zip_url_full') as string) || null,
       zip_url_social: (formData.get('zip_url_social') as string) || null,
+      enable_lead_capture: formData.get('enable_lead_capture') === 'true',
     };
 
     // 2. Validação básica de integridade

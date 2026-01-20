@@ -8,6 +8,7 @@ import { useGoogleDriveImage } from '@/hooks/useGoogleDriveImage';
 import { GaleriaHero } from './GaleriaHero';
 import PhotoGrid from './PhotoGrid';
 import { useIsMobile } from '@/hooks/use-breakpoint';
+import LeadCaptureModal from '@/components/gallery/LeadCaptureModal';
 
 interface GaleriaViewProps {
   galeria: Galeria;
@@ -54,12 +55,63 @@ const {
   fallbackToProxy: true,
 });
 
+  const handleLeadSubmit = async (data: {
+    name: string;
+    email: string;
+    whatsapp?: string;
+  }) => {
+    try {
+      const response = await fetch('/api/gallery-leads', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          galeria_id: galeria.id,
+          name: data.name,
+          email: data.email,
+          whatsapp: data.whatsapp,
+        }),
+      });
+
+      const result = await response.json();
+
+      if (result.success) {
+        // Marca como submetido no localStorage
+        const storageKey = `lead-captured-${galeria.id}`;
+        localStorage.setItem(storageKey, 'true');
+        setLeadSubmitted(true);
+        setShowLeadModal(false);
+      } else {
+        console.error('Erro ao salvar lead:', result.error);
+        alert('Erro ao salvar os dados. Tente novamente.');
+      }
+    } catch (error) {
+      console.error('Erro ao enviar lead:', error);
+      alert('Erro ao salvar os dados. Tente novamente.');
+    }
+  };
+
   return (
     <div
       className="relative min-h-screen font-sans"
       style={{ backgroundColor: bgColor }}
     >
       <LoadingScreen fadeOut={!isLoading} message="Carregando fotos" />
+
+      {/* Modal de Captura de Leads */}
+      {galeria.enable_lead_capture && !leadSubmitted && (
+        <LeadCaptureModal
+          isOpen={showLeadModal}
+          onClose={() => {
+            // Se fechar sem preencher, marca como "não quero agora" mas permite acesso
+            // Você pode ajustar essa lógica se quiser bloquear o acesso
+            setShowLeadModal(false);
+          }}
+          onSuccess={handleLeadSubmit}
+          galleryTitle={galeria.title}
+        />
+      )}
 
       {/* 1. BACKGROUND LAYER */}
       <div className="fixed inset-0 z-0 overflow-hidden pointer-events-none">

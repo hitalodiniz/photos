@@ -30,6 +30,7 @@ import {
   EyeOff,
   CheckCircle2,
   Download,
+  UserPlus,
 } from 'lucide-react';
 import WhatsAppIcon from '@/components/ui/WhatsAppIcon';
 import { convertToDirectDownloadUrl } from '@/core/utils/url-helper';
@@ -62,6 +63,14 @@ export default function GaleriaFormContent({
         initialData.show_on_profile === 'true'
       );
     return false; // Por padrão, não exibe no perfil
+  });
+  const [enableLeadCapture, setEnableLeadCapture] = useState(() => {
+    if (initialData)
+      return (
+        initialData.enable_lead_capture === true ||
+        initialData.enable_lead_capture === 'true'
+      );
+    return false; // Por padrão, não captura leads
   });
   const PLAN_LIMIT = 500; // Este valor deve vir da sua lógica de planos/sessão
 
@@ -610,6 +619,28 @@ export default function GaleriaFormContent({
               >
                 <span
                   className={`absolute top-0.5 left-0.5 h-4 w-4 rounded-full bg-white shadow-sm transition-transform duration-200 ${showOnProfile ? 'translate-x-4' : ''}`}
+                />
+              </button>
+            </div>
+          </div>
+
+          {/* CAPTURA DE LEADS */}
+          <div className="flex items-center justify-between gap-4 md:col-span-2">
+            <label>
+              {' '}
+              <UserPlus size={12} className="text-gold" /> Captura de Leads
+            </label>
+            <div className="flex items-center justify-between bg-slate-50 p-2 h-11 rounded-[0.4rem] border border-slate-200 flex-1">
+              <span className="text-[10px] md:text-[12px] font-medium text-slate-600 pl-1">
+                Solicitar dados antes de acessar a galeria?
+              </span>
+              <button
+                type="button"
+                onClick={() => setEnableLeadCapture(!enableLeadCapture)}
+                className={`relative h-5 w-9 rounded-full transition-colors duration-200 ${enableLeadCapture ? 'bg-blue-600' : 'bg-slate-200'}`}
+              >
+                <span
+                  className={`absolute top-0.5 left-0.5 h-4 w-4 rounded-full bg-white shadow-sm transition-transform duration-200 ${enableLeadCapture ? 'translate-x-4' : ''}`}
                 />
               </button>
             </div>

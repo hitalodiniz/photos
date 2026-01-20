@@ -18,6 +18,7 @@ import {
   Users,
   RefreshCw,
   UserRound,
+  UserPlus,
 } from 'lucide-react';
 import { useState, useEffect } from 'react';
 import type { Galeria } from '@/core/types/galeria';
@@ -66,6 +67,11 @@ export default function GaleriaCard({
   const [mounted, setMounted] = useState(false);
   const [copied, setCopied] = useState(false);
   const [links, setLinks] = useState({ url: '', whatsapp: '', message: '' });
+  const [leadStats, setLeadStats] = useState<{
+    total: number;
+    withWhatsapp: number;
+  } | null>(null);
+  const [isLoadingLeads, setIsLoadingLeads] = useState(false);
   // 🎯 Estado para controlar o carregamento da imagem de capa
   const [isImageLoading, setIsImageLoading] = useState(true);
 
@@ -85,6 +91,29 @@ export default function GaleriaCard({
       setLinks({ url: publicUrl, message: message, whatsapp: '' });
     }
   }, [galeria, mounted]);
+
+  // Busca estatísticas de leads se a galeria tiver captura habilitada
+  useEffect(() => {
+    if (galeria.enable_lead_capture && mounted) {
+      setIsLoadingLeads(true);
+      fetch(`/api/gallery-leads/stats?galeria_id=${galeria.id}`)
+        .then((res) => res.json())
+        .then((data) => {
+          if (data.success && data.stats) {
+            setLeadStats({
+              total: data.stats.total_leads,
+              withWhatsapp: data.stats.leads_with_whatsapp,
+            });
+          }
+        })
+        .catch((error) => {
+          console.error('Erro ao buscar leads:', error);
+        })
+        .finally(() => {
+          setIsLoadingLeads(false);
+        });
+    }
+  }, [galeria.enable_lead_capture, galeria.id, mounted]);
 
   const categoryInfo = GALLERY_CATEGORIES.find(
     (c) => c.id === galeria.category,
@@ -224,11 +253,25 @@ export default function GaleriaCard({
             </div>
           )}
 
-          {galeria.client_whatsapp && (
-            <span className="text-[10px] font-semibold text-slate-400">
-              {normalizePhoneNumber(galeria.client_whatsapp)}
-            </span>
-          )}
+          <div className="flex items-center gap-2 shrink-0">
+            {galeria.enable_lead_capture && leadStats !== null && (
+              <div
+                className="flex items-center gap-1.5 px-2 py-0.5 bg-blue-50 border border-blue-200 rounded text-[9px] font-semibold text-blue-700"
+                title={`${leadStats.total} leads capturados (${leadStats.withWhatsapp} com WhatsApp)`}
+              >
+                <UserPlus size={10} />
+                <span>{leadStats.total}</span>
+                {isLoadingLeads && (
+                  <Loader2 size={8} className="animate-spin" />
+                )}
+              </div>
+            )}
+            {galeria.client_whatsapp && (
+              <span className="text-[10px] font-semibold text-slate-400">
+                {normalizePhoneNumber(galeria.client_whatsapp)}
+              </span>
+            )}
+          </div>
         </div>
 
         <div className="flex items-center justify-between py-2 border-y border-slate-50">

@@ -100,6 +100,7 @@ export function formatGalleryData(
     columns_tablet: Number((raw as any).columns_tablet) || 3,
     columns_desktop: Number((raw as any).columns_desktop) || 4,
     show_on_profile: raw.show_on_profile ?? false,
+    enable_lead_capture: !!(raw as any).enable_lead_capture,
 
     photographer: raw.photographer
       ? {
