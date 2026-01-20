@@ -158,30 +158,54 @@ export async function checkFolderPublicPermissionService(
   }
 }
 
-export async function getValidGoogleTokenService(userId: string) {
+export async function getValidGoogleTokenService(userId: string): Promise<string | null> {
   const supabase = await createSupabaseServerClient();
 
   // 1. Busca os tokens e a validade no banco
   const { data: profile, error } = await supabase
     .from('tb_profiles')
     .select(
-      'google_refresh_token, google_access_token, google_token_expires_at',
+      'google_refresh_token, google_access_token, google_token_expires_at, google_auth_status',
     )
     .eq('id', userId)
     .single();
 
-  if (error || !profile?.google_refresh_token) {
-    throw new Error('Nenhum token do Google encontrado.');
+  // 🎯 Com a estratégia dual (API Key + OAuth), não tratamos ausência de token como erro
+  // Retorna null para que o sistema possa tentar com API Key
+  if (error) {
+    console.log(`[getValidGoogleTokenService] Erro ao buscar perfil para userId: ${userId}:`, error.message);
+    return null;
+  }
+
+  if (!profile?.google_refresh_token) {
+    console.log(`[getValidGoogleTokenService] Token não encontrado para userId: ${userId}. Sistema tentará usar API Key.`);
+    return null;
+  }
+
+  // 🎯 Verifica se o status de autenticação indica problema
+  if (profile.google_auth_status === 'revoked' || profile.google_auth_status === 'expired') {
+    console.log(`[getValidGoogleTokenService] Status de autenticação indica token revogado/expirado para userId: ${userId}`);
+    return null;
   }
 
   // 2. VERIFICAÇÃO DE CACHE: O token no banco ainda é válido?
-  // Adicionamos uma margem de segurança de 5 minutos (300.000 ms)
+  // Adicionamos uma margem de segurança de 5 minutos (300.000 ms) para evitar renovação desnecessária
   if (profile.google_access_token && profile.google_token_expires_at) {
-    const expiresAt = new Date(profile.google_token_expires_at).getTime();
-    const now = Date.now();
+    try {
+      const expiresAt = new Date(profile.google_token_expires_at).getTime();
+      const now = Date.now();
+      const margin = 5 * 60 * 1000; // 5 minutos em milissegundos
 
-    if (expiresAt > now + 60000) {
-      return profile.google_access_token;
+      // Verifica se o token ainda é válido (com margem de 5 minutos)
+      if (expiresAt > now + margin) {
+        console.log(`[getValidGoogleTokenService] Token em cache ainda válido para userId: ${userId} (expira em ${Math.round((expiresAt - now) / 1000 / 60)} minutos)`);
+        return profile.google_access_token;
+      } else {
+        console.log(`[getValidGoogleTokenService] Token em cache expirado para userId: ${userId}. Renovando...`);
+      }
+    } catch (dateError) {
+      console.warn(`[getValidGoogleTokenService] Erro ao validar data de expiração para userId: ${userId}:`, dateError);
+      // Continua para renovar o token
     }
   }
 
@@ -209,23 +233,24 @@ export async function getValidGoogleTokenService(userId: string) {
       console.error(`[google.service] Token inválido para userId: ${userId}`, data.error);
       
       try {
-        // Limpa o refresh_token inválido do banco
+        // Limpa o refresh_token inválido do banco e marca status como expirado
         await supabase
           .from('tb_profiles')
           .update({
             google_refresh_token: null,
             google_access_token: null,
             google_token_expires_at: null,
+            google_auth_status: 'expired', // Marca como expirado
           })
           .eq('id', userId);
-        console.log(`[google.service] Refresh token inválido removido do banco`);
+        console.log(`[google.service] Refresh token inválido removido do banco e status atualizado para userId: ${userId}`);
       } catch (dbError) {
         console.error('[google.service] Erro ao limpar token do banco:', dbError);
       }
 
-      // Se o token já foi usado, a sessão é inválida.
-      // O ideal aqui é redirecionar para o login para resetar os cookies.
-      throw new Error('AUTH_RECONNECT_REQUIRED');
+      // Retorna null em vez de lançar erro - permite fallback com API Key
+      console.log(`[getValidGoogleTokenService] Token inválido para userId: ${userId}. Sistema tentará usar API Key.`);
+      return null;
     }
 
     if (!data.access_token) {
@@ -233,33 +258,43 @@ export async function getValidGoogleTokenService(userId: string) {
     }
 
     // 4. PERSISTÊNCIA: Salva os novos dados para a próxima chamada
+    const expiresInSeconds = data.expires_in || 3600; // Default 1 hora se não especificado
     const updates: any = {
       google_access_token: data.access_token,
       // Google retorna 'expires_in' em segundos (geralmente 3600)
       google_token_expires_at: new Date(
-        Date.now() + data.expires_in * 1000,
+        Date.now() + expiresInSeconds * 1000,
       ).toISOString(),
+      google_auth_status: 'active', // Marca como ativo após renovação bem-sucedida
     };
 
     // Importante: Se o Google rotacionar o refresh_token, salvamos também
     if (data.refresh_token) {
       updates.google_refresh_token = data.refresh_token;
+      console.log(`[getValidGoogleTokenService] Google rotacionou o refresh_token para userId: ${userId}`);
     }
 
-    await supabase.from('tb_profiles').update(updates).eq('id', userId);
+    const { error: updateError } = await supabase
+      .from('tb_profiles')
+      .update(updates)
+      .eq('id', userId);
+
+    if (updateError) {
+      console.error(`[getValidGoogleTokenService] Erro ao salvar token renovado para userId: ${userId}:`, updateError);
+      // Ainda retorna o token mesmo se falhar ao salvar (pode ser usado imediatamente)
+    } else {
+      console.log(`[getValidGoogleTokenService] Token renovado e salvo com sucesso para userId: ${userId}`);
+    }
 
     return data.access_token;
   } catch (fetchError: any) {
-    //Se o erro for um dos que nós lançamos manualmente, repasse ele adiante
-    const knownErrors = [
-      'AUTH_RECONNECT_REQUIRED',
-      'Falha ao renovar o acesso com o Google.',
-    ];
-    if (knownErrors.includes(fetchError.message)) {
-      throw fetchError;
-    }
-
-    // Erros de REDE reais (fetch falhou, DNS, timeout) caem aqui
-    throw new Error('Erro de conexão com o servidor do Google.');
+    // 🎯 Com a estratégia dual, não lançamos erros - retornamos null para fallback com API Key
+    console.error(`[getValidGoogleTokenService] Erro ao renovar token para userId: ${userId}:`, {
+      error: fetchError?.message,
+      stack: fetchError?.stack,
+    });
+    
+    // Retorna null para permitir que o sistema tente usar API Key
+    return null;
   }
 }

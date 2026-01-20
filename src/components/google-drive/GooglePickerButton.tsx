@@ -2,25 +2,13 @@
 
 import { useEffect, useRef, useState } from 'react';
 import { useSupabaseSession } from '@/hooks/useSupabaseSession';
-import {
-  getParentFolderIdServer,
-  getDriveFolderName,
-  checkFolderPublicPermission,
-  checkFolderLimits,
-  getGoogleClientId,
-} from '@/actions/google.actions';
-import { Loader2 } from 'lucide-react'; // Importado para manter o padrão de spinners
+import { getGoogleClientId } from '@/actions/google.actions';
+import { Loader2 } from 'lucide-react';
 
 interface GooglePickerProps {
-  onFolderSelect: (
-    folderId: string,
-    folderName: string,
-    coverFileId: string,
-    limitData: { count: number; hasMore: boolean }, // 🎯 Nova info
-  ) => void;
+  onFolderSelect: (folderId: string, folderName: string) => void;
   currentDriveId: string | null;
   onError: (message: string) => void;
-  planLimit: number;
 }
 
 declare global {
@@ -87,7 +75,6 @@ export default function GooglePickerButton({
   onFolderSelect,
   currentDriveId,
   onError,
-  planLimit,
 }: GooglePickerProps) {
   const [loading, setLoading] = useState(false);
   const [isReadyToOpen, setIsReadyToOpen] = useState(isPickerLoaded);
@@ -140,7 +127,7 @@ export default function GooglePickerButton({
   }, [isReadyToOpen]);
 
   const openPicker = async () => {
-    // 🎯 Verificação dupla antes de abrir
+    // Verificação antes de abrir
     if (!isReadyToOpen || !window.google || !window.google.picker) {
       console.error('[GooglePickerButton] Libraries not ready', {
         isReadyToOpen,
@@ -155,31 +142,26 @@ export default function GooglePickerButton({
     setLoading(true);
     
     try {
-      // 🎯 1. Busca o Client ID (sempre do servidor para garantir que funciona no Vercel)
-      let googleClientId: string | null = null;
-      try {
-        googleClientId = await getGoogleClientId();
-        console.log('[GooglePickerButton] Client ID obtido:', googleClientId ? 'OK' : 'NULL');
-      } catch (error) {
-        console.error('[GooglePickerButton] Erro ao buscar Client ID:', error);
-      }
+      // Busca o Client ID
+      const googleClientId = await getGoogleClientId();
       
       if (!googleClientId) {
-        console.error('[GooglePickerButton] Client ID não encontrado. Verifique NEXT_PUBLIC_GOOGLE_CLIENT_ID na Vercel.');
-        onError('Configuração do Google não encontrada. Verifique NEXT_PUBLIC_GOOGLE_CLIENT_ID na Vercel.');
+        onError('Configuração do Google não encontrada. Verifique NEXT_PUBLIC_GOOGLE_CLIENT_ID.');
         setLoading(false);
         return;
       }
 
-      // 🎯 2. Busca o token de autenticação
-      const { accessToken, userId } = await getAuthDetails();
+      // Busca o token de autenticação
+      const { accessToken } = await getAuthDetails();
 
-      if (!accessToken || !userId) {
-        console.error('[GooglePickerButton] Token não disponível', { hasToken: !!accessToken, hasUserId: !!userId });
-        onError('Erro de autenticação Google. Por favor, refaça o login.');
+      // Para o Picker funcionar, precisamos do token OAuth
+      // A API Key não é necessária aqui pois estamos acessando dados privados do usuário
+      if (!accessToken) {
+        onError('Token do Google não encontrado. Por favor, conecte sua conta do Google Drive nas configurações.');
         setLoading(false);
         return;
       }
+
       const view = new window.google.picker.DocsView(
         window.google.picker.ViewId.DOCS,
       )
@@ -189,52 +171,33 @@ export default function GooglePickerButton({
         .setMode(window.google.picker.DocsViewMode.GRID)
         .setSelectFolderEnabled(false);
 
-      const picker = new window.google.picker.PickerBuilder()
+      const pickerBuilder = new window.google.picker.PickerBuilder()
         .setAppId(googleClientId)
         .setOAuthToken(accessToken)
         .addView(view)
         .enableFeature(window.google.picker.Feature.NAVIGATE_TO_DRIVE)
         .setLocale('pt-BR')
-        .setCallback(async (data: any) => {
+        .setOrigin(window.location.origin); // 🎯 Compatibilidade com Vercel
+
+      const picker = pickerBuilder
+        .setCallback((data: any) => {
           if (data.action === window.google.picker.Action.PICKED) {
-            setLoading(true);
-
-            const coverFileId = data.docs[0].id;
-            const driveFolderId = await getParentFolderIdServer(
-              coverFileId,
-              userId,
-            );
-
-            if (driveFolderId) {
-              //VALIDAÇÃO DE LIMITE
-              const { count, hasMore } = await checkFolderLimits(
-                driveFolderId,
-                userId,
-                planLimit,
-              );
-              const driveFolderName = await getDriveFolderName(
-                driveFolderId,
-                userId,
-              );
-              const isPublic = await checkFolderPublicPermission(
-                driveFolderId,
-                userId,
-              );
-
-              if (isPublic) {
-                onFolderSelectRef.current(
-                  driveFolderId,
-                  driveFolderName,
-                  coverFileId,
-                  { count, hasMore }, // 🎯 Repassa o status do limite para o Form
-                );
+            const selectedItem = data.docs[0];
+            
+            // 🎯 Componente "burro": apenas retorna o que foi selecionado
+            // A validação será feita no componente pai
+            if (selectedItem) {
+              // Se selecionou uma pasta, retorna diretamente
+              if (selectedItem.mimeType === 'application/vnd.google-apps.folder') {
+                onFolderSelectRef.current(selectedItem.id, selectedItem.name);
               } else {
-                // const folderUrl = `https://drive.google.com/drive/folders/${driveFolderId}`;
-                onError(
-                  `Pasta privada. Mude o acesso para "Qualquer pessoa com o link".`,
-                );
+                // Se selecionou um arquivo, retorna o ID do arquivo (o pai vai buscar a pasta)
+                // Por enquanto, retornamos o ID do arquivo e o nome
+                onFolderSelectRef.current(selectedItem.id, selectedItem.name);
               }
             }
+          } else if (data.action === window.google.picker.Action.CANCEL) {
+            // Usuário cancelou - apenas fecha o loading
           }
           setLoading(false);
         })
@@ -245,14 +208,10 @@ export default function GooglePickerButton({
       console.error('[GooglePickerButton] Error opening picker', {
         error: error?.message,
         stack: error?.stack,
-        hasGoogle: !!window.google,
-        hasPicker: !!(window.google && window.google.picker),
       });
       
-      // 🎯 Tratamento de erro mais simples - apenas mostra mensagem
       const errorMessage = error?.message || 'Falha ao iniciar seleção do Drive. Recarregue a página.';
       
-      // Se for erro de autenticação, sugere reconexão
       if (error?.message?.includes('AUTH_RECONNECT_REQUIRED') || 
           error?.message?.includes('token') ||
           error?.message?.includes('autenticação')) {

@@ -194,14 +194,30 @@ export function useSupabaseSession() {
     }
 
     // Buscar token do Google via server action
+    // Com a estratégia dual, não tratamos ausência de token como erro
     try {
       const accessToken = await getValidGoogleToken(userId);
+      
+      // Se não houver token, ainda retorna userId (sistema tentará usar API Key)
+      if (!accessToken) {
+        console.log('[useSupabaseSession] Token não disponível. Sistema tentará usar API Key.');
+        return {
+          accessToken: null,
+          userId,
+        };
+      }
+      
       return {
         accessToken,
         userId,
       };
     } catch (err) {
       console.error('Falha ao obter token do Google:', err);
+      // Em caso de erro, retorna null para permitir fallback com API Key
+      return {
+        accessToken: null,
+        userId,
+      };
       return { accessToken: null, userId };
     }
   }, [sessionData, fetchSession]);

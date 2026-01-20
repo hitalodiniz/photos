@@ -18,6 +18,7 @@ import {
   X,
   CheckCircle2,
   Sparkles,
+  ArrowLeft,
 } from 'lucide-react';
 
 import {
@@ -30,7 +31,6 @@ import { Toast } from '@/components/ui';
 import { useFormStatus } from 'react-dom';
 import { fetchStates, fetchCitiesByState } from '@/core/utils/cidades-helpers';
 import { compressImage } from '@/core/utils/user-helpers';
-import router from 'next/router';
 
 // 🎯 BOTÃO MANTIDO NO TAMANHO ORIGINAL (60%)
 export function SubmitOnboarding({ isSaving }: { isSaving: boolean }) {
@@ -485,7 +485,24 @@ export default function OnboardingForm({
                 </div>
               </div>
             </div>
-            <div className="flex flex-col items-center justify-center w-full">
+            <div className="flex flex-col items-center justify-center w-full gap-3">
+              {/* Botão "Voltar para Galerias" - só aparece no modo de edição */}
+              {isEditMode && (
+                <button
+                  type="button"
+                  onClick={() => router.push('/dashboard')}
+                  className="
+                    w-[60%] h-11 px-6 rounded-[0.5rem] font-semibold uppercase tracking-widest text-xs
+                    bg-white text-slate-700 border border-slate-200
+                    hover:bg-slate-50 hover:border-slate-300
+                    active:scale-95 transition-all duration-300
+                    flex items-center justify-center gap-2 shadow-sm
+                  "
+                >
+                  <ArrowLeft size={14} strokeWidth={2} />
+                  <span>Voltar para Galerias</span>
+                </button>
+              )}
               <SubmitOnboarding isSaving={isSaving} />
             </div>
           </form>

@@ -4,6 +4,13 @@ import { useEffect, useState } from 'react';
 import { maskPhone } from '@/core/utils/masks-helpers';
 import { GooglePickerButton } from '@/components/google-drive';
 import { CategorySelect } from '@/components/galeria';
+import { useSupabaseSession } from '@/hooks/useSupabaseSession';
+import {
+  getParentFolderIdServer,
+  getDriveFolderName,
+  checkFolderPublicPermission,
+  checkFolderLimits,
+} from '@/actions/google.actions';
 import {
   Lock,
   Unlock,
@@ -27,6 +34,15 @@ import {
 import WhatsAppIcon from '@/components/ui/WhatsAppIcon';
 import { convertToDirectDownloadUrl } from '@/core/utils/url-helper';
 import { LimitUpgradeModal } from '@/components/ui/LimitUpgradeModal';
+
+// 🎯 Componente movido para fora do render para evitar recriação
+const SectionHeader = ({ title }: { title: string }) => (
+  <legend className="flex items-center gap-2 px-2 ml-2 bg-white">
+    <span className="text-[10px] font-bold uppercase tracking-widest text-slate-800">
+      {title}
+    </span>
+  </legend>
+);
 
 export default function GaleriaFormContent({
   initialData = null,
@@ -80,35 +96,118 @@ export default function GaleriaFormContent({
   );
 
   const [photoCount, setPhotoCount] = useState<number | null>(null);
+  const { getAuthDetails } = useSupabaseSession();
 
-  const SectionHeader = ({ title }: { title: string }) => (
-    <legend className="flex items-center gap-2 px-2 ml-2 bg-white">
-      <span className="text-[10px] font-bold uppercase tracking-widest text-slate-800">
-        {title}
-      </span>
-    </legend>
-  );
+  /**
+   * 🎯 Função "cérebro": Valida e processa a seleção do Drive
+   * Esta função contém toda a lógica de validação que foi removida do GooglePickerButton
+   */
+  const handleDriveSelection = async (selectedId: string, selectedName: string) => {
+    try {
+      const { userId } = await getAuthDetails();
+      
+      if (!userId) {
+        onPickerError('Erro de autenticação. Por favor, refaça o login.');
+        return;
+      }
 
-  const handleFolderSelect = (
-    id: string,
-    name: string,
-    coverId: string,
-    limitData: any,
-  ) => {
-    setDriveData({ id, name, coverId });
-    setLimitInfo(limitData);
+      // 🎯 PASSO 1: Determina se é pasta ou arquivo e obtém o folderId
+      let driveFolderId: string | null = null;
+      let coverFileId: string = '';
 
-    // 🎯 ATUALIZAÇÃO: Seta a contagem real de fotos para o modal usar
-    if (limitData && limitData.totalInDrive) {
-      setPhotoCount(limitData.totalInDrive);
-    } else {
-      setPhotoCount(limitData.count);
+      // Verifica se o item selecionado é uma pasta
+      // Se for arquivo, busca a pasta pai
+      try {
+        // Tenta buscar a pasta pai (caso seja arquivo)
+        const parentFolderId = await getParentFolderIdServer(selectedId, userId);
+        
+        if (parentFolderId) {
+          // É um arquivo, usa a pasta pai
+          driveFolderId = parentFolderId;
+          coverFileId = selectedId;
+        } else {
+          // Provavelmente é uma pasta, usa diretamente
+          driveFolderId = selectedId;
+          coverFileId = selectedId; // Para pasta, usamos o próprio ID como cover
+        }
+      } catch (error) {
+        // Se falhar ao buscar pasta pai, assume que é uma pasta
+        driveFolderId = selectedId;
+        coverFileId = selectedId;
+      }
+
+      if (!driveFolderId) {
+        onPickerError('Não foi possível identificar a pasta do Google Drive.');
+        return;
+      }
+
+      // 🎯 PASSO 2: Busca o nome da pasta
+      let driveFolderName = selectedName;
+      try {
+        const folderName = await getDriveFolderName(driveFolderId, userId);
+        if (folderName) {
+          driveFolderName = folderName;
+        }
+      } catch (error) {
+        console.warn('[handleDriveSelection] Erro ao buscar nome da pasta:', error);
+        // Continua com o nome selecionado
+      }
+
+      // 🎯 PASSO 3: Verifica limites do plano
+      let limitData = { count: 0, hasMore: false, totalInDrive: 0 };
+      try {
+        limitData = await checkFolderLimits(driveFolderId, userId, PLAN_LIMIT);
+      } catch (error) {
+        console.warn('[handleDriveSelection] Erro ao verificar limites:', error);
+        // Continua mesmo com erro na verificação de limites
+      }
+
+      // 🎯 PASSO 4: Verifica se a pasta é pública
+      let isPublic = false;
+      try {
+        isPublic = await checkFolderPublicPermission(driveFolderId, userId);
+      } catch (error) {
+        console.warn('[handleDriveSelection] Erro ao verificar permissões:', error);
+        // Por segurança, assume que não é pública se houver erro
+      }
+
+      if (!isPublic) {
+        onPickerError('Pasta privada. Mude o acesso para "Qualquer pessoa com o link".');
+        return;
+      }
+
+      // 🎯 PASSO 5: Todas as validações passaram - atualiza o estado
+      setDriveData({ 
+        id: driveFolderId, 
+        name: driveFolderName, 
+        coverId: coverFileId 
+      });
+      setLimitInfo(limitData);
+
+      // Atualiza a contagem de fotos
+      if (limitData.totalInDrive) {
+        setPhotoCount(limitData.totalInDrive);
+      } else {
+        setPhotoCount(limitData.count);
+      }
+
+      // Se detectou que tem mais fotos, abre o modal
+      if (limitData.hasMore) {
+        setShowLimitModal(true);
+      }
+    } catch (error: any) {
+      console.error('[handleDriveSelection] Erro ao processar seleção:', error);
+      onPickerError(
+        error?.message || 'Erro ao processar a seleção do Google Drive. Tente novamente.'
+      );
     }
+  };
 
-    // Se detectou que tem mais fotos, abre o modal
-    if (limitData.hasMore) {
-      setShowLimitModal(true);
-    }
+  /**
+   * 🎯 Handler simples que recebe do GooglePickerButton (componente "burro")
+   */
+  const handleFolderSelect = (folderId: string, folderName: string) => {
+    handleDriveSelection(folderId, folderName);
   };
 
   return (
@@ -540,7 +639,7 @@ export default function GaleriaFormContent({
               <GooglePickerButton
                 onFolderSelect={handleFolderSelect}
                 onError={onPickerError}
-                currentFolderId={driveData.id}
+                currentDriveId={driveData.id}
               />
             </div>
           </div>

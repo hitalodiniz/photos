@@ -562,29 +562,29 @@ export default function Dashboard({
             </div>
           </div>
 
-          {/* 🎯 SEÇÃO 4: ADMIN MODE (Restaurado e Corrigido para Mobile) */}
+          {/* 🎯 SEÇÃO 4: ADMIN MODE (Restaurado e Corrigido para Mobile) - ADMIN LIGHT */}
           {photographer?.username === 'hitalodiniz' && (
             <div className="mt-4 px-2 lg:border-t lg:pt-4">
               <button
                 onClick={() => setIsAdminModalOpen(true)}
-                className={`flex items-center transition-all duration-300 group relative ${isSidebarCollapsed ? 'justify-center py-4' : 'gap-3 p-3 rounded-xl bg-red-50 hover:bg-red-100'}`}
+                className={`flex items-center transition-all duration-300 group relative ${isSidebarCollapsed ? 'justify-center py-4' : 'gap-3 p-3 rounded-xl bg-[#F3E5AB]/20 hover:bg-[#F3E5AB]/40 border border-[#D4AF37]/40'}`}
               >
-                <div className="text-red-600">
-                  <ShieldAlert size={20} />
+                <div className="text-[#D4AF37]">
+                  <ShieldAlert size={20} strokeWidth={2} />
                 </div>
                 {!isSidebarCollapsed && (
                   <div className="hidden lg:flex flex-col items-start leading-none">
-                    <span className="text-[9px] font-semibold uppercase tracking-widest text-red-400 mb-1">
+                    <span className="text-[9px] font-semibold uppercase tracking-widest text-[#D4AF37] mb-1">
                       Admin Mode
                     </span>
-                    <span className="text-[11px] font-medium text-red-700">
-                      Limpar Cache
+                    <span className="text-[11px] font-medium text-[#D4AF37]">
+                      Cache & Tokens
                     </span>
                   </div>
                 )}
                 {isSidebarCollapsed && (
-                  <div className="absolute left-full ml-4 px-3 py-2 bg-slate-900 text-white text-[10px] font-bold uppercase rounded-lg opacity-0 pointer-events-none group-hover:opacity-100 transition-all z-[999] shadow-xl">
-                    Limpar Cache
+                  <div className="absolute left-full ml-4 px-3 py-2 bg-[#1E293B] text-white text-[10px] font-bold uppercase rounded-lg opacity-0 pointer-events-none group-hover:opacity-100 transition-all z-[999] shadow-xl border border-white/10">
+                    Admin Panel
                   </div>
                 )}
               </button>

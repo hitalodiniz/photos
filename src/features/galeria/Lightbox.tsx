@@ -1,6 +1,6 @@
 'use client';
 import React, { useEffect, useState, useMemo } from 'react';
-import { ChevronLeft, ChevronRight, ImageIcon } from 'lucide-react';
+import { ChevronLeft, ChevronRight, ImageIcon, X } from 'lucide-react';
 import { GaleriaHeader } from './GaleriaHeader';
 import PhotographerAvatar from './PhotographerAvatar';
 import { getDirectGoogleUrl, RESOLUTIONS } from '@/core/utils/url-helper';
@@ -9,6 +9,9 @@ import type { Galeria } from '@/core/types/galeria';
 import LoadingSpinner from '@/components/ui/LoadingSpinner';
 import { ToolbarGalleryView } from './ToolbarGalleryView';
 import { useIsMobile } from '@/hooks/use-breakpoint';
+import { VerticalThumbnails } from './VerticalThumbnails';
+import { ThumbnailStrip } from './ThumbnailStrip';
+import { VerticalActionBar } from './VerticalActionBar';
 
 interface Photo {
   id: string | number;
@@ -24,6 +27,7 @@ interface LightboxProps {
   onClose: () => void;
   onNext: () => void;
   onPrev: () => void;
+  onNavigateToIndex?: (index: number) => void;
   favorites: string[];
   onToggleFavorite: (id: string) => void;
   isSingleView?: boolean; // Se true, esconde setas e gestos
@@ -39,13 +43,20 @@ export default function Lightbox({
   onClose,
   onNext,
   onPrev,
+  onNavigateToIndex,
   favorites,
   onToggleFavorite,
   isSingleView,
 }: LightboxProps) {
   const [showInterface, setShowInterface] = useState(true);
   const [imageSize, setImageSize] = useState<string | null>(null);
+  const [isSlideshowActive, setIsSlideshowActive] = useState(false);
+  const [slideshowProgress, setSlideshowProgress] = useState(0);
+  const [showThumbnails, setShowThumbnails] = useState(false); // Estado para controlar miniaturas no mobile
   const isMobile = useIsMobile();
+  
+  // Duração de cada foto no slideshow (em milissegundos) - 5 segundos
+  const SLIDESHOW_DURATION = 5000;
 
   // Estados para Navegação por Gesto (Swipe)
   const [touchStart, setTouchStart] = useState<number | null>(null);
@@ -81,9 +92,18 @@ export default function Lightbox({
 
   useEffect(() => {
     const handleKeyDown = (e: KeyboardEvent) => {
-      if (e.key === 'Escape') onClose();
-      if (e.key === 'ArrowRight') onNext();
-      if (e.key === 'ArrowLeft') onPrev();
+      if (e.key === 'Escape') {
+        onClose();
+        setIsSlideshowActive(false);
+      }
+      if (e.key === 'ArrowRight') {
+        onNext();
+        setSlideshowProgress(0); // Reset progress ao navegar manualmente
+      }
+      if (e.key === 'ArrowLeft') {
+        onPrev();
+        setSlideshowProgress(0); // Reset progress ao navegar manualmente
+      }
     };
     window.addEventListener('keydown', handleKeyDown);
     document.body.style.overflow = 'hidden';
@@ -92,6 +112,38 @@ export default function Lightbox({
       document.body.style.overflow = 'unset';
     };
   }, [onClose, onNext, onPrev]);
+
+  // 🎯 SLIDESHOW AUTOMÁTICO
+  useEffect(() => {
+    if (!isSlideshowActive || isSingleView) {
+      setSlideshowProgress(0);
+      return;
+    }
+
+    // Reset progress quando muda de foto
+    setSlideshowProgress(0);
+
+    const startTime = Date.now();
+    const interval = setInterval(() => {
+      const elapsed = Date.now() - startTime;
+      const progress = (elapsed / SLIDESHOW_DURATION) * 100;
+      
+      if (progress >= 100) {
+        // Avança para próxima foto
+        if (activeIndex < totalPhotos - 1) {
+          onNext();
+        } else {
+          // Última foto - para o slideshow
+          setIsSlideshowActive(false);
+          setSlideshowProgress(0);
+        }
+      } else {
+        setSlideshowProgress(progress);
+      }
+    }, 50); // Atualiza a cada 50ms para animação suave
+
+    return () => clearInterval(interval);
+  }, [isSlideshowActive, activeIndex, totalPhotos, onNext, isSingleView]);
 
   // 🎯 GESTÃO DA URL COM FALLBACK usando hook centralizado
   // Usa constantes específicas para VIEW (visualização), não download
@@ -221,6 +273,16 @@ img.src = imgSrc;
     [showInterface]
   );
 
+  // Handler para fechar miniaturas ao clicar fora (mobile)
+  const handleClickOutside = (e: React.MouseEvent) => {
+    if (isMobile && showThumbnails) {
+      const target = e.target as HTMLElement;
+      if (!target.closest('[data-thumbnail-strip]') && !target.closest('[data-mobile-toolbar]')) {
+        setShowThumbnails(false);
+      }
+    }
+  };
+
   if (!currentPhoto) return null;
 
   return (
@@ -229,7 +291,60 @@ img.src = imgSrc;
       onTouchStart={isSingleView ? undefined : onTouchStart}
       onTouchMove={isSingleView ? undefined : onTouchMove}
       onTouchEnd={isSingleView ? undefined : onTouchEnd}
+      onClick={isMobile ? handleClickOutside : undefined}
     >
+      {/* 🎯 BARRA DE AÇÕES VERTICAL (Desktop - lado direito, próxima das miniaturas) */}
+      {!isSingleView && !isMobile && (
+        <div
+          className={`transition-all duration-700 ${
+            showInterface ? 'opacity-100' : 'opacity-0 pointer-events-none'
+          }`}
+        >
+          <VerticalActionBar
+            photoId={currentPhoto.id}
+            gallerySlug={galeria.slug}
+            galleryTitle={galleryTitle}
+            galeria={galeria}
+            activeIndex={activeIndex}
+            isFavorited={isFavorited}
+            onToggleFavorite={() => onToggleFavorite(String(currentPhoto.id))}
+            isSlideshowActive={isSlideshowActive}
+            onToggleSlideshow={() => setIsSlideshowActive(!isSlideshowActive)}
+            onClose={onClose}
+            showClose={!isSingleView}
+          />
+        </div>
+      )}
+
+      {/* 🎯 MINIATURAS VERTICAIS (Desktop - lado direito) */}
+      {!isSingleView && onNavigateToIndex && !isMobile && (
+        <VerticalThumbnails
+          photos={photos}
+          activeIndex={activeIndex}
+          onNavigateToIndex={(index) => {
+            onNavigateToIndex(index);
+            setSlideshowProgress(0);
+            if (isSlideshowActive) setIsSlideshowActive(false);
+          }}
+          isVisible={showInterface}
+        />
+      )}
+
+      {/* 🎯 MINIATURAS HORIZONTAIS (Mobile - parte inferior) */}
+      {!isSingleView && onNavigateToIndex && isMobile && (
+        <ThumbnailStrip
+          photos={photos}
+          activeIndex={activeIndex}
+          onNavigateToIndex={(index) => {
+            onNavigateToIndex(index);
+            setSlideshowProgress(0);
+            if (isSlideshowActive) setIsSlideshowActive(false);
+            setShowThumbnails(false);
+          }}
+          isVisible={showThumbnails}
+        />
+      )}
+
       {/* 🎯 NAVEGAÇÃO DESKTOP: Exclusiva para MD+ e sincronizada com interface */}
       {!isSingleView && (
         <div
@@ -239,7 +354,11 @@ img.src = imgSrc;
         >
           {/* Botão Anterior */}
           <button
-            onClick={onPrev}
+            onClick={() => {
+              onPrev();
+              setSlideshowProgress(0);
+              if (isSlideshowActive) setIsSlideshowActive(false);
+            }}
             className="fixed left-0 top-1/2 -translate-y-1/2 z-[250] 
                w-16 md:w-32 h-32 md:h-64 flex items-center justify-center 
                text-white/20 hover:text-[#F3E5AB] transition-all group"
@@ -250,12 +369,17 @@ img.src = imgSrc;
             />
           </button>
 
-          {/* Botão Próximo */}
+          {/* Botão Próximo - Mais à esquerda, fora da barra de ações */}
           <button
-            onClick={onNext}
-            className="fixed right-0 top-1/2 -translate-y-1/2 z-[250] 
+            onClick={() => {
+              onNext();
+              setSlideshowProgress(0);
+              if (isSlideshowActive) setIsSlideshowActive(false);
+            }}
+            className="fixed top-1/2 -translate-y-1/2 z-[230] 
                w-16 md:w-32 h-32 md:h-64 flex items-center justify-center 
                text-white/20 hover:text-[#F3E5AB] transition-all group"
+            style={{ right: onNavigateToIndex && !isMobile ? '160px' : '0' }} // Mais à esquerda, fora da barra (112px barra + 48px espaço)
           >
             <ChevronRight
               className="w-10 h-10 md:w-16 md:h-16 shrink-0 transition-transform group-hover:scale-110"
@@ -265,10 +389,37 @@ img.src = imgSrc;
         </div>
       )}
 
+      {/* 🎯 BARRA DE PROGRESSO SLIDESHOW (Estilo Instagram Stories) */}
+      {isSlideshowActive && !isSingleView && (
+        <div className="fixed top-0 left-0 right-0 z-[500] px-2 pt-2 pb-1 bg-gradient-to-b from-black/60 to-transparent">
+          <div className="flex gap-1">
+            {Array.from({ length: totalPhotos }).map((_, index) => (
+              <div
+                key={index}
+                className="flex-1 h-0.5 bg-white/30 rounded-full overflow-hidden"
+              >
+                <div
+                  className="h-full bg-white transition-all ease-linear"
+                  style={{
+                    width:
+                      index < activeIndex
+                        ? '100%'
+                        : index === activeIndex
+                        ? `${slideshowProgress}%`
+                        : '0%',
+                    transitionDuration: index === activeIndex ? '50ms' : '300ms',
+                  }}
+                />
+              </div>
+            ))}
+          </div>
+        </div>
+      )}
+
       {/* 1. Título: Sempre à esquerda, ocupa a primeira coluna do grid */}
       {/* HEADER & TOOLBAR */}
       <header
-        className={`relative md:fixed top-0 left-0 right-0 p-4  z-[300] bg-black md:bg-transparent ${interfaceVisibilityClass}`}
+        className={`relative md:fixed top-0 left-0 right-0 p-4 z-[300] bg-black md:bg-transparent ${interfaceVisibilityClass} ${isSlideshowActive && !isSingleView ? 'pt-6 md:pt-4' : ''}`}
       >
         {/* No Mobile: flex-col (Toolbar abaixo do título). No Desktop: flex-row com itens alinhados ao topo */}
         <div className="relative w-full flex flex-col md:flex-row items-start justify-between gap-4 md:gap-0">
@@ -282,30 +433,32 @@ img.src = imgSrc;
             />
           </div>
 
-          {/* Toolbar: 
-        Mobile: Continua no fluxo (abaixo), posição fixa.
-        Desktop: Sobrepõe à direita, com controle de profundidade (z-index). */}
-          <div className="w-full md:w-auto flex justify-center md:justify-end shrink-0 z-[310]">
-            <ToolbarGalleryView
-            key={currentPhoto.id}
-              photoId={currentPhoto.id}
-              gallerySlug={galeria.slug}
-              galleryTitle={galleryTitle}
-              galeria={galeria}
-              activeIndex={activeIndex}
-              isFavorited={isFavorited}
-              onToggleFavorite={() => onToggleFavorite(String(currentPhoto.id))}
-              onClose={onClose}
-              showClose={!isSingleView}
-              closeLabel="Fechar"
-            />
-          </div>
+          {/* Toolbar Desktop: Apenas botão Fechar */}
+          {!isSingleView && onClose && (
+            <div className="hidden md:flex w-auto justify-end shrink-0 z-[310]">
+              <button
+                onClick={onClose}
+                className="w-12 h-12 bg-black/95 backdrop-blur-2xl border border-white/20 shadow-2xl flex items-center justify-center transition-all hover:bg-white/10 group relative rounded-[0.5rem]"
+                aria-label="Fechar galeria"
+              >
+                <X size={20} className="text-white" strokeWidth={2} />
+                {/* Tooltip - Abaixo do botão */}
+                <div className="absolute top-full mt-2 left-1/2 -translate-x-1/2 opacity-0 group-hover:opacity-100 transition-opacity pointer-events-none whitespace-nowrap">
+                  <div className="bg-[#F3E5AB] text-black text-[10px] font-semibold px-2 py-1 rounded shadow-xl">
+                    Fechar
+                  </div>
+                  <div className="absolute bottom-full left-1/2 -translate-x-1/2 border-[4px] border-transparent border-b-[#F3E5AB]" />
+                </div>
+              </button>
+            </div>
+          )}
         </div>
       </header>
 
       {/* ÁREA DA FOTO */}
-      <main className="flex-none md:fixed md:inset-0 md:z-[10] flex flex-col items-center justify-center min-h-[60vh] md:min-h-0 px-4 md:px-0">
-        <div className="relative w-full flex flex-col items-center justify-center min-h-[50vh] md:min-h-0">
+      <main className={`flex-none md:fixed md:inset-0 md:z-[10] flex flex-col items-center justify-center px-4 md:px-0 ${isMobile ? 'min-h-[calc(100vh-140px)] pb-20' : 'min-h-[60vh] md:min-h-0'} ${onNavigateToIndex !== undefined && !isMobile && !isSingleView ? 'pr-24' : ''}`}>
+        {/* Container que ocupa toda altura disponível no desktop (estilo Instagram - máximo espaço) */}
+        <div className={`relative w-full h-full flex items-center justify-center ${isMobile ? 'min-h-[50vh]' : 'h-screen md:h-screen'}`}>
           {/* Spinner centralizado */}
           {isImageLoading && (
             <div className="absolute inset-0 flex items-center justify-center z-[50] bg-black">
@@ -321,15 +474,22 @@ img.src = imgSrc;
           )}
 
           {/* 
-              A 'key' força o React a tratar como um novo elemento.
-              O CSS 'animate-in fade-in zoom-in' do Tailwind cria o efeito suave.
+              🎯 ESTRATÉGIA FACEBOOK/INSTAGRAM:
+              - Fotos verticais: ocupam altura total (max-h-full), largura automática
+              - Fotos horizontais: ocupam largura total (max-w-full), altura automática
+              - object-contain mantém proporção sem distorção
+              - Centralizado com flex
           */}
           <img
             key={`${photoId}-${usingProxy}`}
             src={imgSrc}
             onLoad={handleLoad}
             onError={handleError}
-            className={`w-full h-auto max-w-full md:h-screen md:w-auto md:object-contain transition-all duration-700 ease-out
+            className={`transition-all duration-700 ease-out
+              ${isMobile 
+                ? 'w-full h-full object-contain' 
+                : 'w-full h-full object-contain'
+              }
               ${
                 isImageLoading
                   ? 'opacity-0 scale-95 blur-md'
@@ -342,49 +502,88 @@ img.src = imgSrc;
         </div>
       </main>
 
-      {/* RODAPÉ */}
-      <footer
-        className={`relative md:fixed bottom-0 left-0 right-0 w-full p-8  md:pb-10 flex flex-col md:flex-row items-center justify-center md:justify-between gap-6 bg-black md:bg-transparent z-[100] transition-all duration-700 ${showInterface ? 'opacity-100' : 'md:opacity-0 md:translate-y-4'}`}
-      >
-        {/* 🎯 NAVEGAÇÃO DESKTOP: Exclusiva para MD+ e sincronizada com interface */}
-        {!isSingleView && (
-  <div className="md:order-1">
-    <div 
-      className="bg-black/60 backdrop-blur-md px-3 py-1.5 rounded-lg border border-white/10 flex items-center gap-3 transition-all"
-      title={`Resolução: ${realResolution ? `${realResolution.w}x${realResolution.h}px` : '...'} | Tamanho: ${imageSize || '...'} | Origem: ${usingProxy ? 'Servidor (A)' : 'Google Drive (D)'}`}
-    >
-      {/* 1. Contador de Fotos */}
-      <div className="flex items-center gap-2 shrink-0">
-        <ImageIcon size={13} className="text-[#F3E5AB]" />
-        <p className="text-white/90 text-[11px] font-medium tracking-tight">
-          Foto <span className="text-[#F3E5AB]">{activeIndex + 1}</span> de {totalPhotos}
-        </p>
-      </div>
-
-      {/* 2. Divisor Minimalista */}
-      <div className="h-3 w-[1px] bg-white/20" />
-
-      {/* 3. Bloco de Dados Técnicos (Tudo no mesmo tamanho/fonte) */}
-      <div className="flex items-center gap-2.5 cursor-help">
-        {/* Tamanho da Foto */}
-        <p className="text-[#F3E5AB] text-[11px] font-medium min-w-[6px] text-right">
-          {imageSize || "--- KB"}
-        </p>
-
-        
-
-        {/* Letra de Origem */}
-        <p className={`text-[11px] font-black ${usingProxy ? 'text-blue-400' : 'text-green-500'}`}>
-          {usingProxy ? 'A' : 'D'}
-        </p>
-      </div>
-    </div>
-  </div>
-)}
-        <div className="md:order-2 flex justify-center md:justify-end">
-          <PhotographerAvatar galeria={galeria} position="bottom-lightbox" />
+      {/* 🎯 BARRA DE BOTÕES MOBILE - Fixa na parte inferior (similar à imagem) */}
+      {isMobile && (
+        <div 
+          className="fixed bottom-0 left-0 right-0 z-[400] bg-black border-t border-white/10"
+          style={{ paddingBottom: 'env(safe-area-inset-bottom, 0px)' }}
+        >
+          <div className="flex items-center justify-around px-2 py-3">
+            <ToolbarGalleryView
+              key={`mobile-${currentPhoto.id}`}
+              photoId={currentPhoto.id}
+              gallerySlug={galeria.slug}
+              galleryTitle={galleryTitle}
+              galeria={galeria}
+              activeIndex={activeIndex}
+              isFavorited={isFavorited}
+              onToggleFavorite={() => onToggleFavorite(String(currentPhoto.id))}
+              onClose={onClose}
+              showClose={!isSingleView}
+              closeLabel="Fechar"
+              isMobile={true}
+              isSlideshowActive={isSlideshowActive}
+              onToggleSlideshow={() => setIsSlideshowActive(!isSlideshowActive)}
+              showThumbnails={showThumbnails}
+              onToggleThumbnails={onNavigateToIndex ? () => setShowThumbnails(!showThumbnails) : undefined}
+            />
+          </div>
         </div>
-      </footer>
+      )}
+
+      {/* 🎯 CONTADOR DE FOTOS - Sempre visível (não oculta com a interface) */}
+      {!isSingleView && (
+        <div className="hidden md:flex fixed bottom-0 right-0 z-[250] p-4">
+          <div className="bg-black px-3 py-1.5 rounded-[0.5rem] border border-white/20 shadow-2xl flex items-center gap-3"
+            style={{ backgroundColor: '#000000' }} // Força fundo preto opaco
+            title={`Resolução: ${realResolution ? `${realResolution.w}x${realResolution.h}px` : '...'} | Tamanho: ${imageSize || '...'} | Origem: ${usingProxy ? 'Servidor (A)' : 'Google Drive (D)'}`}
+          >
+            {/* Contador de Fotos */}
+            <div className="flex items-center gap-2 shrink-0">
+              <ImageIcon size={13} className="text-[#F3E5AB]" />
+              <p className="text-white/90 text-[11px] font-medium tracking-tight">
+                Foto <span className="text-[#F3E5AB]">{activeIndex + 1}</span> de {totalPhotos}
+              </p>
+            </div>
+
+            {/* Divisor Minimalista */}
+            <div className="h-3 w-[1px] bg-white/20" />
+
+            {/* Bloco de Dados Técnicos */}
+            <div className="flex items-center gap-2.5 cursor-help">
+              {/* Tamanho da Foto */}
+              <p className="text-[#F3E5AB] text-[11px] font-medium min-w-[6px] text-right">
+                {imageSize || "--- KB"}
+              </p>
+
+              {/* Letra de Origem */}
+              <p className={`text-[11px] font-black ${usingProxy ? 'text-blue-400' : 'text-green-500'}`}>
+                {usingProxy ? 'A' : 'D'}
+              </p>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* RODAPÉ - Desktop apenas (avatar) */}
+      {!isSingleView && (
+        <footer
+          className={`hidden md:flex fixed bottom-0 left-0 w-full flex-row items-center justify-between gap-6 bg-transparent z-[250] transition-all duration-700 ${showInterface ? 'opacity-100' : 'opacity-0 translate-y-4'}`}
+          style={{ 
+            paddingBottom: '1rem', 
+            paddingRight: '1rem', // Mesma margem da toolbar (p-4 do header = 1rem)
+            paddingLeft: '1rem', // Mesma margem do título (p-4 do header = 1rem)
+            right: 0,
+          }}
+        >
+          {/* 🎯 NAVEGAÇÃO DESKTOP: Exclusiva para MD+ e sincronizada com interface */}
+          {!isSingleView && (
+            <div className="order-1 flex items-center">
+              <PhotographerAvatar galeria={galeria} position="bottom-lightbox" />
+            </div>
+          )}
+        </footer>
+      )}
     </div>
   );
 }

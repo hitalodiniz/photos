@@ -20,7 +20,7 @@ async function listPhotosFromPublicFolder(
   driveFolderId: string,
 ): Promise<DrivePhoto[] | null> {
   // Prioriza a chave do servidor, depois a pública
-  const apiKey = process.env.GOOGLE_API_KEY || process.env.NEXT_PUBLIC_GOOGLE_API_KEY;
+  const apiKey = process.env.GOOGLE_API_KEY;
   
   if (!apiKey) {
     console.warn('[listPhotosFromPublicFolder] ⚠️ GOOGLE_API_KEY não encontrada no ambiente.');

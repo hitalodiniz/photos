@@ -79,6 +79,11 @@ export async function GET(request: Request) {
       ).toISOString();
     }
 
+    // 🎯 Marca status de autenticação como ativo quando tokens são salvos
+    if (provider_refresh_token || provider_token) {
+      updates.google_auth_status = 'active';
+    }
+
     if (Object.keys(updates).length > 0) {
       const { error: updateError } = await supabase
         .from('tb_profiles')
@@ -87,6 +92,8 @@ export async function GET(request: Request) {
 
       if (updateError) {
         console.error('Erro ao salvar tokens iniciais:', updateError.message);
+      } else {
+        console.log(`[auth/callback] Tokens salvos com sucesso para userId: ${user.id}`);
       }
     }
   }

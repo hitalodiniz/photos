@@ -33,6 +33,16 @@ export async function checkFolderLimits(
 ) {
   const accessToken = await getValidGoogleToken(userId);
 
+  // Se não houver token, retorna valores padrão (sistema tentará usar API Key)
+  if (!accessToken) {
+    console.log('[checkFolderLimits] Token não disponível. Retornando valores padrão.');
+    return {
+      count: 0,
+      hasMore: false,
+      totalInDrive: 0,
+    };
+  }
+
   // Buscamos apenas o necessário para contar, com pageSize ligeiramente maior que o limite
   // para identificar se "sobrou" foto (hasMore)
   const fetchLimit = planLimit + 1;
@@ -65,8 +75,9 @@ export async function checkFolderPublicPermission(
 
 /**
  * Action para renovar o token do Google
+ * Retorna null se o token não estiver disponível (sistema tentará usar API Key)
  */
-export async function getValidGoogleToken(userId: string): Promise<string> {
+export async function getValidGoogleToken(userId: string): Promise<string | null> {
   return googleService.getValidGoogleTokenService(userId);
 }
 

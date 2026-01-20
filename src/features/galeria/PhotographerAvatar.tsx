@@ -46,7 +46,7 @@ export default function PhotographerAvatar({
   const positionClasses =
     position === 'top-page'
       ? 'relative z-10 animate-in fade-in scale-90 md:scale-100 slide-in-from-right-10 duration-700 z-[20]'
-      : 'md:fixed md:bottom-10 md:right-8 scale-90 md:scale-100 z-[20]';
+      : 'relative scale-90 md:scale-100 z-[20]'; // Removido fixed e right-8 para permitir alinhamento no footer
 
   return (
     <div

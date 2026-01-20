@@ -4,7 +4,6 @@ import { X, Camera, Plus } from 'lucide-react';
 import { createGaleria, updateGaleria } from '@/core/services/galeria.service';
 import { SubmitButton } from '@/components/ui';
 import SecondaryButton from '@/components/ui/SecondaryButton';
-import { div } from 'framer-motion/client';
 import GaleriaFormContent from './GaleriaFormContent';
 
 export default function GaleriaModal({
@@ -212,7 +211,7 @@ export default function GaleriaModal({
             <SubmitButton
               form="master-gallery-form"
               success={isSuccess}
-              className="w-full h-11 md:h-10"
+              className="w-full"
               label={
                 loading ? '...' : isEdit ? 'SALVAR ALTERAÇÕES' : 'CRIAR GALERIA'
               }

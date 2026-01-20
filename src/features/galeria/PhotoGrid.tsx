@@ -493,6 +493,7 @@ export default function PhotoGrid({ photos, galeria }: any) {
               (selectedPhotoIndex - 1 + photos.length) % photos.length,
             )
           }
+          onNavigateToIndex={(index) => setSelectedPhotoIndex(index)}
         />
       )}
     </div>

@@ -7,6 +7,10 @@ import {
   Check,
   Heart,
   X,
+  Share2,
+  Play,
+  Pause,
+  SquareStack,
 } from 'lucide-react';
 import WhatsAppIcon from '@/components/ui/WhatsAppIcon';
 import { executeShare, getCleanSlug } from '@/core/utils/share-helper';
@@ -34,6 +38,11 @@ export const ToolbarGalleryView = ({
   onToggleFavorite,
   onClose,
   showClose = true,
+  isMobile = false,
+  isSlideshowActive = false,
+  onToggleSlideshow,
+  showThumbnails = false,
+  onToggleThumbnails,
 }: any) => {
   const [showQualityWarning, setShowQualityWarning] = useState(false);
   const [copied, setCopied] = useState(false);
@@ -66,13 +75,146 @@ export const ToolbarGalleryView = ({
     setTimeout(() => setCopied(false), 2000);
   };
 
+  // 🎯 Função para compartilhamento nativo no mobile (Web Share API)
+  const handleNativeShare = async () => {
+    const shareUrl = `${window.location.origin}/photo/${photoId}?s=${getCleanSlug(gallerySlug)}`;
+    const shareText = GALLERY_MESSAGES.PHOTO_SHARE(galleryTitle, shareUrl);
+
+    // Verifica se a Web Share API está disponível
+    if (navigator.share) {
+      try {
+        await navigator.share({
+          title: galleryTitle,
+          text: shareText,
+          url: shareUrl,
+        });
+      } catch (error) {
+        // Usuário cancelou ou erro no compartilhamento
+        if ((error as Error).name !== 'AbortError') {
+          console.error('Erro ao compartilhar:', error);
+          // Fallback: copia o link para a área de transferência
+          handleCopyLink();
+        }
+      }
+    } else {
+      // Fallback: se não suportar Web Share API, copia o link
+      handleCopyLink();
+    }
+  };
+
   const textContainerClass = `hidden md:flex flex-col items-start leading-tight transition-all duration-500 overflow-hidden ${
     isExpanded ? 'opacity-100 max-w-[120px] ml-1.5' : 'opacity-0 max-w-0 ml-0'
   }`;
 
+  // 🎯 VERSÃO MOBILE: Barra fixa na parte inferior com botão de compartilhamento nativo
+  if (isMobile) {
+    return (
+      <div className="w-full flex items-center justify-around" data-mobile-toolbar>
+        {/* 1. FAVORITAR */}
+        {showClose && (
+          <button
+            onClick={onToggleFavorite}
+            className="flex-1 flex items-center justify-center py-3 active:scale-95 transition-all touch-manipulation"
+            aria-label={isFavorited ? 'Remover dos favoritos' : 'Adicionar aos favoritos'}
+          >
+            <div
+              className={`w-12 h-12 rounded-full flex items-center justify-center transition-all ${isFavorited ? 'bg-[#E67E70]' : 'bg-white/10'}`}
+            >
+              <Heart
+                fill={isFavorited ? 'white' : 'none'}
+                size={22}
+                className="text-white"
+                strokeWidth={2.5}
+              />
+            </div>
+          </button>
+        )}
+
+        {/* 2. MINIATURAS (Toggle - Estilo Instagram) */}
+        {showClose && onToggleThumbnails && (
+          <button
+            onClick={(e) => {
+              e.stopPropagation();
+              onToggleThumbnails();
+            }}
+            className="flex-1 flex items-center justify-center py-3 active:scale-95 transition-all touch-manipulation"
+            aria-label={showThumbnails ? 'Ocultar miniaturas' : 'Mostrar miniaturas'}
+          >
+            <div className={`w-12 h-12 rounded-full flex items-center justify-center transition-all ${showThumbnails ? 'bg-[#F3E5AB]' : 'bg-white/10 active:bg-white/20'}`}>
+              <SquareStack size={22} className={showThumbnails ? 'text-black' : 'text-white'} strokeWidth={2.5} />
+            </div>
+          </button>
+        )}
+
+        {/* 3. COMPARTILHAR (Share nativo - abre menu com WhatsApp, Instagram, Twitter, etc.) */}
+        <button
+          onClick={handleNativeShare}
+          className="flex-1 flex items-center justify-center py-3 active:scale-95 transition-all touch-manipulation"
+          aria-label="Compartilhar foto"
+        >
+          <div className="w-12 h-12 rounded-full bg-white/10 flex items-center justify-center active:bg-white/20 transition-all">
+            <Share2 size={22} className="text-white" strokeWidth={2.5} />
+          </div>
+        </button>
+
+        {/* 4. SLIDESHOW (Play/Pause) */}
+        {showClose && onToggleSlideshow && (
+          <button
+            onClick={onToggleSlideshow}
+            className="flex-1 flex items-center justify-center py-3 active:scale-95 transition-all touch-manipulation"
+            aria-label={isSlideshowActive ? 'Pausar slideshow' : 'Iniciar slideshow'}
+          >
+            <div className={`w-12 h-12 rounded-full flex items-center justify-center transition-all ${isSlideshowActive ? 'bg-[#F3E5AB]' : 'bg-white/10 active:bg-white/20'}`}>
+              {isSlideshowActive ? (
+                <Pause size={22} className="text-black" strokeWidth={2.5} />
+              ) : (
+                <Play size={22} className="text-white" strokeWidth={2.5} />
+              )}
+            </div>
+          </button>
+        )}
+
+        {/* 5. DOWNLOAD */}
+        <button
+          onClick={async () => {
+            setIsDownloading(true);
+            setShowQualityWarning(false);
+            await handleDownloadPhoto(galeria, photoId, activeIndex);
+            setIsDownloading(false);
+          }}
+          className="flex-1 flex items-center justify-center py-3 active:scale-95 transition-all touch-manipulation"
+          aria-label="Baixar foto"
+          disabled={isDownloading}
+        >
+          <div className="w-12 h-12 rounded-full bg-white/10 flex items-center justify-center active:bg-white/20 transition-all">
+            {isDownloading ? (
+              <Loader2 className="animate-spin text-white" size={22} strokeWidth={2.5} />
+            ) : (
+              <Download size={22} className="text-white" strokeWidth={2.5} />
+            )}
+          </div>
+        </button>
+
+        {/* 6. FECHAR */}
+        {showClose && (
+          <button
+            onClick={onClose}
+            className="flex-1 flex items-center justify-center py-3 active:scale-95 transition-all touch-manipulation"
+            aria-label="Fechar galeria"
+          >
+            <div className="w-12 h-12 rounded-full bg-white/10 flex items-center justify-center active:bg-white/20 transition-all">
+              <X size={22} className="text-white" strokeWidth={2.5} />
+            </div>
+          </button>
+        )}
+      </div>
+    );
+  }
+
+  // 🎯 VERSÃO DESKTOP: Toolbar original no topo (direita) - com hover e expansão
   return (
     <div
-      className="relative z-[300] flex items-center bg-black/80 backdrop-blur-2xl p-2 px-3 rounded-2xl border border-white/20 shadow-2xl transition-all duration-700 mx-4"
+      className="relative z-[300] flex items-center bg-black/95 backdrop-blur-2xl p-2 px-3 rounded-[0.5rem] border border-white/20 shadow-2xl transition-all duration-700 mx-4"
       onMouseEnter={() => !showQualityWarning && setIsExpanded(true)}
       onMouseLeave={() => !showQualityWarning && setIsExpanded(false)}
     >
@@ -172,10 +314,39 @@ export const ToolbarGalleryView = ({
         {activeTooltip === 'link' && <Tooltip text="Copiar link da imagem" />}
       </div>
 
-      {/* 4. DOWNLOAD */}
-      <div
-        className={`relative flex items-center shrink-0 ${showClose ? 'border-r border-white/10 pr-3 mx-1' : ''}`}
-      >
+      {/* 4. SLIDESHOW (Play/Pause) - Desktop */}
+      {showClose && onToggleSlideshow && (
+        <div className="relative">
+          <button
+            onClick={onToggleSlideshow}
+            onMouseEnter={() => setActiveTooltip('slideshow')}
+            onMouseLeave={() => setActiveTooltip(null)}
+            className="flex items-center border-r border-white/10 pr-3 mx-1 shrink-0 group"
+          >
+            <div className={`w-9 h-9 md:w-11 md:h-11 rounded-full flex items-center justify-center transition-all ${isSlideshowActive ? 'bg-[#F3E5AB] text-black' : 'bg-white/5 text-white group-hover:bg-white group-hover:text-black'}`}>
+              {isSlideshowActive ? (
+                <Pause size={18} />
+              ) : (
+                <Play size={18} />
+              )}
+            </div>
+            <div className={textContainerClass}>
+              <span className="text-[10px] md:text-[11px]  font-semibold uppercase tracking-wider mb-1 text-white">
+                {isSlideshowActive ? 'Pausar' : 'Slideshow'}
+              </span>
+              <span className="text-[9px] md:text-[10px]  opacity-80 text-white/70 whitespace-nowrap">
+                {isSlideshowActive ? 'Parar' : 'Automático'}
+              </span>
+            </div>
+          </button>
+          {activeTooltip === 'slideshow' && (
+            <Tooltip text={isSlideshowActive ? 'Pausar slideshow' : 'Iniciar slideshow automático'} />
+          )}
+        </div>
+      )}
+
+      {/* 5. DOWNLOAD */}
+      <div className="relative flex items-center shrink-0">
         {showQualityWarning && (
           /* 🎯 Ajustamos de left-1/2 para left-auto e right-0 (ou um valor negativo leve) */
           /* O -translate-x-4 garante que o box não "fuja" da tela no mobile */
