@@ -306,9 +306,8 @@ export function useSupabaseSession() {
     }
 
     if (!userId) {
-      const totalDuration = Date.now() - startTime;
       console.error('[useSupabaseSession] ❌ UserId não encontrado após todas as tentativas', {
-        totalDuration: `${totalDuration}ms`,
+        totalDuration: `${Date.now() - startTime}ms`,
         origin: typeof window !== 'undefined' ? window.location.origin : 'server',
       });
       return { accessToken: null, userId: null };
@@ -333,9 +332,8 @@ export function useSupabaseSession() {
       
       // Se não houver token, ainda retorna userId (sistema tentará usar API Key)
       if (!accessToken) {
-        const totalDuration = Date.now() - startTime;
         console.warn('[useSupabaseSession] ⚠️ Token não disponível. Sistema tentará usar API Key.', {
-          totalDuration: `${totalDuration}ms`,
+          totalDuration: `${Date.now() - startTime}ms`,
         });
         return {
           accessToken: null,
@@ -343,7 +341,6 @@ export function useSupabaseSession() {
         };
       }
       
-      const totalDuration = Date.now() - startTime;
       console.log('[useSupabaseSession] ✅ getAuthDetails concluído com sucesso!', {
         hasToken: true,
         userId,
@@ -355,12 +352,11 @@ export function useSupabaseSession() {
         userId,
       };
     } catch (err) {
-      const totalDuration = Date.now() - startTime;
       console.error('[useSupabaseSession] ❌ Falha ao obter token do Google:', {
         error: err,
         message: err instanceof Error ? err.message : 'Erro desconhecido',
         stack: err instanceof Error ? err.stack : undefined,
-        totalDuration: `${totalDuration}ms`,
+        totalDuration: `${Date.now() - startTime}ms`,
       });
       // Em caso de erro, retorna null para permitir fallback com API Key
       return {
