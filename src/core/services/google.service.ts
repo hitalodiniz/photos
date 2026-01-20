@@ -211,15 +211,43 @@ export async function getValidGoogleTokenService(userId: string): Promise<string
 
   // 3. Se expirou ou não existe, renovamos manualmente
   try {
-    const response = await fetch('https://oauth2.googleapis.com/token', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({
-        client_id: process.env.GOOGLE_CLIENT_ID,
-        client_secret: process.env.GOOGLE_CLIENT_SECRET,
-        refresh_token: profile.google_refresh_token,
-        grant_type: 'refresh_token',
-      }),
+    console.log(`[getValidGoogleTokenService] Renovando token para userId: ${userId}...`);
+    const startTime = Date.now();
+    
+    // 🎯 Timeout de 10 segundos para a chamada ao Google
+    const controller = new AbortController();
+    const timeoutId = setTimeout(() => {
+      controller.abort();
+      console.error(`[getValidGoogleTokenService] ⚠️ Timeout na chamada ao Google (10s) para userId: ${userId}`);
+    }, 10000);
+    
+    let response: Response;
+    try {
+      response = await fetch('https://oauth2.googleapis.com/token', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          client_id: process.env.GOOGLE_CLIENT_ID,
+          client_secret: process.env.GOOGLE_CLIENT_SECRET,
+          refresh_token: profile.google_refresh_token,
+          grant_type: 'refresh_token',
+        }),
+        signal: controller.signal,
+      });
+      clearTimeout(timeoutId);
+    } catch (fetchErr: any) {
+      clearTimeout(timeoutId);
+      if (fetchErr.name === 'AbortError') {
+        throw new Error('Erro de conexão com o servidor do Google (timeout).');
+      }
+      throw fetchErr;
+    }
+    
+    const fetchDuration = Date.now() - startTime;
+    console.log(`[getValidGoogleTokenService] Resposta do Google recebida em ${fetchDuration}ms:`, {
+      ok: response.ok,
+      status: response.status,
+      statusText: response.statusText,
     });
 
     const data = await response.json();

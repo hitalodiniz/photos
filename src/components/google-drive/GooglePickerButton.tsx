@@ -201,15 +201,27 @@ export default function GooglePickerButton({
         return;
       }
 
-      // Busca o token de autenticação
+      // Busca o token de autenticação com timeout
       console.log('[GooglePickerButton] Buscando access token...');
-      const authDetails = await getAuthDetails();
+      
+      // 🎯 Timeout específico para getAuthDetails (15 segundos)
+      const tokenPromise = getAuthDetails();
+      const timeoutPromise = new Promise<{ accessToken: null; userId: null }>((resolve) => {
+        setTimeout(() => {
+          console.error('[GooglePickerButton] ⚠️ Timeout ao buscar access token (15s)');
+          resolve({ accessToken: null, userId: null });
+        }, 15000);
+      });
+      
+      const authDetails = await Promise.race([tokenPromise, timeoutPromise]);
       const { accessToken } = authDetails;
+      
       console.log('[GooglePickerButton] Access token recebido:', {
         hasAccessToken: !!accessToken,
         tokenLength: accessToken?.length || 0,
         userId: authDetails.userId,
         origin: window.location.origin,
+        timedOut: !accessToken && !authDetails.userId,
       });
 
       // Para o Picker funcionar, precisamos do token OAuth

@@ -63,10 +63,19 @@ describe('AuthContext Integration', () => {
       </AuthProvider>,
     );
 
+    // Aguarda o usuário ser carregado
     await waitFor(() => {
       expect(screen.getByTestId('user-email').textContent).toBe(mockUser.email);
     });
 
-    expect(screen.getByTestId('avatar-url').textContent).toBe(mockAvatar);
+    // 🎯 Aguarda o avatarUrl ser carregado (loadProfile é assíncrono)
+    await waitFor(
+      () => {
+        expect(screen.getByTestId('avatar-url').textContent).toBe(mockAvatar);
+      },
+      {
+        timeout: 3000, // Timeout de 3 segundos
+      },
+    );
   });
 });

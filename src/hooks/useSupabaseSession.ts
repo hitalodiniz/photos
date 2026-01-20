@@ -181,22 +181,40 @@ export function useSupabaseSession() {
 
   // Obter detalhes de autenticação incluindo token do Google (compatível com código existente)
   const getAuthDetails = useCallback(async () => {
+    console.log('[useSupabaseSession] getAuthDetails chamado', {
+      hasUser: !!sessionData.user,
+      userId: sessionData.userId || sessionData.user?.id,
+    });
+
     if (!sessionData.user) {
+      console.log('[useSupabaseSession] Usuário não encontrado, buscando sessão...');
       const result = await fetchSession(true);
       if (!result) {
+        console.log('[useSupabaseSession] Sessão não encontrada após busca');
         return { accessToken: null, userId: null };
       }
     }
 
     const userId = sessionData.userId || sessionData.user?.id;
     if (!userId) {
+      console.log('[useSupabaseSession] UserId não encontrado');
       return { accessToken: null, userId: null };
     }
 
+    console.log('[useSupabaseSession] Buscando token do Google para userId:', userId);
+    
     // Buscar token do Google via server action
     // Com a estratégia dual, não tratamos ausência de token como erro
     try {
+      const startTime = Date.now();
       const accessToken = await getValidGoogleToken(userId);
+      const duration = Date.now() - startTime;
+      
+      console.log('[useSupabaseSession] Token recebido:', {
+        hasToken: !!accessToken,
+        tokenLength: accessToken?.length || 0,
+        duration: `${duration}ms`,
+      });
       
       // Se não houver token, ainda retorna userId (sistema tentará usar API Key)
       if (!accessToken) {
@@ -212,13 +230,16 @@ export function useSupabaseSession() {
         userId,
       };
     } catch (err) {
-      console.error('Falha ao obter token do Google:', err);
+      console.error('[useSupabaseSession] Falha ao obter token do Google:', {
+        error: err,
+        message: err instanceof Error ? err.message : 'Erro desconhecido',
+        stack: err instanceof Error ? err.stack : undefined,
+      });
       // Em caso de erro, retorna null para permitir fallback com API Key
       return {
         accessToken: null,
         userId,
       };
-      return { accessToken: null, userId };
     }
   }, [sessionData, fetchSession]);
 
