@@ -4,6 +4,8 @@ import { useState, useEffect, useCallback, useRef } from 'react';
 import { supabase } from '@/lib/supabase.client';
 import { getValidGoogleToken } from '@/actions/google.actions';
 import type { User, Session } from '@supabase/supabase-js';
+import { useContext } from 'react';
+import { AuthContext } from '@/contexts/AuthContext';
 
 interface SessionData {
   user: User | null;
@@ -44,6 +46,10 @@ export function useSupabaseSession() {
     userId: null,
     isLoading: true,
   });
+
+  // 🎯 FALLBACK: Usa AuthContext como fonte alternativa de userId
+  // Usa useContext diretamente para evitar erro se não estiver disponível
+  const authContextValue = useContext(AuthContext) as { user?: { id: string }; isLoading: boolean } | undefined;
 
   const retryCountRef = useRef(0);
   const isSubdomainRef = useRef(isSubdomain());
@@ -210,16 +216,50 @@ export function useSupabaseSession() {
     });
 
     // 🎯 ESTRATÉGIA MELHORADA: Tenta múltiplas fontes para obter userId
+    // 1. Estado do hook
+    // 2. AuthContext (fonte confiável quando Supabase falha)
+    // 3. Busca direta do Supabase (pode dar timeout em produção)
     let userId: string | null = sessionData.userId || sessionData.user?.id || null;
 
-    // Se não temos userId no estado, tenta buscar diretamente do Supabase (mais rápido)
-    if (!userId) {
-      console.log('[useSupabaseSession] ⚠️ UserId não encontrado no estado, iniciando busca direta...');
+    // 🎯 PRIORIDADE: Se não temos userId, tenta usar AuthContext PRIMEIRO (mais confiável)
+    // O AuthContext já está funcionando e tem o usuário autenticado
+    if (!userId && authContextValue?.user?.id && !authContextValue.isLoading) {
+      userId = authContextValue.user.id;
+      console.log('[useSupabaseSession] ✅ UserId obtido do AuthContext (fonte primária):', userId);
+      
+      // Se já temos userId do AuthContext, não precisa tentar Supabase (evita timeout)
+      // Vai direto buscar o token do Google
+    } else if (!userId) {
+      // Se ainda não temos userId, tenta buscar diretamente do Supabase (pode dar timeout)
+      console.log('[useSupabaseSession] ⚠️ UserId não encontrado em nenhuma fonte, tentando Supabase...');
+      
+      // Se o AuthContext também não tem userId, então realmente não há usuário autenticado
+      if (!authContextValue?.user?.id && !authContextValue?.isLoading) {
+        console.warn('[useSupabaseSession] ⚠️ AuthContext também não tem userId. Usuário pode não estar autenticado.');
+        return { accessToken: null, userId: null };
+      }
       
       // Verifica se o Supabase está configurado
       if (!supabase) {
         console.error('[useSupabaseSession] ❌ Cliente Supabase não está inicializado!');
-        return { accessToken: null, userId: null };
+        // Se AuthContext tem userId, usa ele mesmo assim
+        if (authContextValue?.user?.id) {
+          userId = authContextValue.user.id;
+          console.log('[useSupabaseSession] ✅ Usando userId do AuthContext após falha do Supabase:', userId);
+        } else {
+          return { accessToken: null, userId: null };
+        }
+      }
+
+      // 🎯 DEBUG: Verifica cookies do Supabase
+      if (typeof document !== 'undefined') {
+        const supabaseCookies = document.cookie.split(';').filter(c => 
+          c.includes('supabase') || c.includes('sb-')
+        );
+        console.log('[useSupabaseSession] Cookies do Supabase encontrados:', {
+          count: supabaseCookies.length,
+          cookies: supabaseCookies.map(c => c.trim().substring(0, 50)),
+        });
       }
       
       try {
@@ -292,6 +332,12 @@ export function useSupabaseSession() {
             });
           } else {
             console.warn('[useSupabaseSession] ⚠️ fetchSession também não retornou sessão');
+            
+            // 🎯 ÚLTIMO FALLBACK: Tenta usar AuthContext se disponível
+            if (!userId && authContextValue?.user?.id && !authContextValue.isLoading) {
+              userId = authContextValue.user.id;
+              console.log('[useSupabaseSession] ✅ UserId obtido do AuthContext (último fallback):', userId);
+            }
           }
         }
       } catch (err) {
@@ -301,8 +347,11 @@ export function useSupabaseSession() {
           stack: err instanceof Error ? err.stack : undefined,
         });
       }
-    } else {
-      console.log('[useSupabaseSession] ✅ UserId já disponível no estado:', userId);
+    } else if (userId) {
+      console.log('[useSupabaseSession] ✅ UserId já disponível:', {
+        source: sessionData.userId ? 'sessionData' : authContextValue?.user?.id ? 'AuthContext' : 'unknown',
+        userId,
+      });
     }
 
     if (!userId) {
@@ -364,7 +413,7 @@ export function useSupabaseSession() {
         userId,
       };
     }
-  }, [sessionData, fetchSession]);
+  }, [sessionData, fetchSession, authContextValue]);
 
   return {
     user: sessionData.user,
