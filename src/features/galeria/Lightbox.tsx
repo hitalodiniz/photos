@@ -286,30 +286,30 @@ img.src = imgSrc;
   );
 
   // Handler para fechar miniaturas ao clicar fora (mobile) - comportamento Instagram
-  // Fecha apenas quando clicar fora da barra de miniaturas, não quando seleciona uma foto
-  const handleClickOutside = (e: React.MouseEvent) => {
-    // Só processa se as miniaturas estiverem visíveis
+  useEffect(() => {
     if (!isMobile || !showThumbnails) return;
-    
-    const target = e.target as HTMLElement;
-    
-    // Não fecha se clicar em qualquer elemento interativo ou na foto
-    if (target.closest('[data-thumbnail-strip]') || 
-        target.closest('[data-mobile-toolbar]') ||
-        target.closest('[data-quality-warning]') ||
-        target.closest('main') || // Não fecha ao clicar na área da foto
-        target.closest('header') || // Não fecha ao clicar no header
-        target.closest('img') || // Não fecha ao clicar na imagem
-        target.closest('button')) { // Não fecha ao clicar em qualquer botão
-      return;
-    }
-    
-    // Só fecha se clicar no fundo (background do lightbox)
-    // Verifica se o target é o próprio container do lightbox
-    if (target === e.currentTarget || target.classList.contains('bg-white') || target.classList.contains('bg-black')) {
+
+    const handleClickOutside = (e: MouseEvent) => {
+      const target = e.target as HTMLElement;
+      
+      // Não fecha se clicar dentro da barra de miniaturas
+      if (target.closest('[data-thumbnail-strip]')) {
+        return;
+      }
+      
+      // Fecha se clicar em qualquer lugar fora das miniaturas
       setShowThumbnails(false);
-    }
-  };
+    };
+
+    // Adiciona listener no document para capturar cliques em qualquer lugar
+    document.addEventListener('mousedown', handleClickOutside);
+    document.addEventListener('touchstart', handleClickOutside);
+
+    return () => {
+      document.removeEventListener('mousedown', handleClickOutside);
+      document.removeEventListener('touchstart', handleClickOutside);
+    };
+  }, [isMobile, showThumbnails]);
 
   if (!currentPhoto) return null;
 
@@ -319,7 +319,6 @@ img.src = imgSrc;
       onTouchStart={isSingleView ? undefined : onTouchStart}
       onTouchMove={isSingleView ? undefined : onTouchMove}
       onTouchEnd={isSingleView ? undefined : onTouchEnd}
-      onClick={isMobile ? handleClickOutside : undefined}
     >
       {/* 🎯 MINIATURAS VERTICAIS (Desktop - lado direito) - Por cima dos botões */}
       {!isSingleView && onNavigateToIndex && !isMobile && (
