@@ -112,19 +112,34 @@ export async function getDriveFolderNameService(
 
 /**
  * Verifica se a pasta possui permissão de leitura pública (anyone + reader)
+ * e se a pasta pertence ao usuário
+ * 
+ * @returns Objeto com informações sobre a pasta:
+ * - isPublic: se a pasta é pública
+ * - isOwner: se o usuário é dono da pasta
+ * - folderLink: link da pasta no Google Drive
  */
 export async function checkFolderPublicPermissionService(
   folderId: string,
   userId: string,
-): Promise<boolean> {
+): Promise<{
+  isPublic: boolean;
+  isOwner: boolean;
+  folderLink: string;
+}> {
   const accessToken = await getDriveAccessTokenForUser(userId);
 
   if (!accessToken) {
     console.error('ERRO Server: Token não disponível para checar permissão.');
-    return false;
+    return {
+      isPublic: false,
+      isOwner: false,
+      folderLink: `https://drive.google.com/drive/folders/${folderId}`,
+    };
   }
 
-  const url = `https://www.googleapis.com/drive/v3/files/${folderId}?fields=permissions,explicitlyTrashed`;
+  // 🎯 Busca informações completas: permissions, owners, webViewLink
+  const url = `https://www.googleapis.com/drive/v3/files/${folderId}?fields=permissions,owners,explicitlyTrashed,webViewLink`;
 
   try {
     const response = await fetch(url, {
@@ -138,23 +153,55 @@ export async function checkFolderPublicPermissionService(
         'ERRO Drive API: Falha ao checar permissões:',
         response.status,
       );
-      return false;
+      return {
+        isPublic: false,
+        isOwner: false,
+        folderLink: `https://drive.google.com/drive/folders/${folderId}`,
+      };
     }
 
     const data = await response.json();
 
     // Se a pasta estiver na lixeira, tratamos como não pública/inválida
-    if (data.explicitlyTrashed) return false;
+    if (data.explicitlyTrashed) {
+      return {
+        isPublic: false,
+        isOwner: false,
+        folderLink: data.webViewLink || `https://drive.google.com/drive/folders/${folderId}`,
+      };
+    }
+
+    // 🎯 Verifica se o usuário é dono da pasta
+    // Busca o email do usuário no Supabase para comparar
+    const supabase = await createSupabaseServerClient();
+    const { data: profile } = await supabase
+      .from('tb_profiles')
+      .select('email')
+      .eq('id', userId)
+      .single();
+
+    const userEmail = profile?.email;
+    const isOwner = data.owners?.some(
+      (owner: any) => owner.emailAddress === userEmail,
+    ) || false;
 
     // Verifica se existe a permissão de "anyone" com papel de "reader"
     const isPublic = data.permissions?.some(
       (p: any) => p.type === 'anyone' && p.role === 'reader',
-    );
+    ) || false;
 
-    return !!isPublic;
+    return {
+      isPublic: !!isPublic,
+      isOwner: !!isOwner,
+      folderLink: data.webViewLink || `https://drive.google.com/drive/folders/${folderId}`,
+    };
   } catch (error) {
     console.error('Erro de rede ao checar permissões pública:', error);
-    return false;
+    return {
+      isPublic: false,
+      isOwner: false,
+      folderLink: `https://drive.google.com/drive/folders/${folderId}`,
+    };
   }
 }
 

@@ -1,6 +1,6 @@
 'use client';
 
-import { authenticateGaleriaAccess } from '@/core/services/galeria.service';
+import { authenticateGaleriaAccessAction } from '@/actions/auth.actions';
 import React, { useState } from 'react';
 import { Camera, Lock, Loader2, CheckCircle2, Send, X } from 'lucide-react';
 import { Galeria } from '@/core/types/galeria';
@@ -35,7 +35,7 @@ export default function PasswordPrompt({
 
     try {
       // Chamada para a Server Action
-      const result = await authenticateGaleriaAccess(
+      const result = await authenticateGaleriaAccessAction(
         galeria.id,
         fullSlug,
         password,

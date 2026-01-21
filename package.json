@@ -1,7 +1,10 @@
 {
   "name": "photos",
-  "version": "0.1.17",
+  "version": "0.1.31",
   "private": true,
+  "workspaces": [
+    "packages/*"
+  ],
   "scripts": {
     "dev": "node scripts/generate-version-env.js && next dev",
     "build": "node scripts/generate-version-env.js && next build",
@@ -13,12 +16,18 @@
     "test:coverage": "vitest run --coverage",
     "test:critical": "vitest run src/core/services/auth.service.spec.ts src/hooks/useSupabaseSession.spec.ts src/contexts/AuthContext.spec.tsx src/core/services/google.service.spec.ts src/core/logic/auth-gallery.spec.ts src/lib/supabase.client.spec.ts src/lib/supabase.server.spec.ts src/middleware.spec.ts src/app/api/auth/callback/route.spec.ts src/app/api/auth/google/route.spec.ts",
     "validate:critical": "bash scripts/validate-critical-files.sh",
+    "protect:check": "node scripts/protect-critical-files.js --check-only",
+    "protect:list": "node scripts/protect-critical-files.js --list",
+    "check:protection": "node scripts/protect-critical-files.js --check-only",
+    "list:critical": "node scripts/protect-critical-files.js --list",
+    "setup:protection": "chmod +x scripts/protect-critical-files.js && chmod +x scripts/validate-critical-files.sh",
     "prepare": "husky"
   },
   "dependencies": {
     "@supabase/auth-js": "^2.87.1",
     "@supabase/ssr": "^0.8.0",
     "@supabase/supabase-js": "^2.86.2",
+    "@tailwindcss/typography": "^0.5.19",
     "@vercel/analytics": "^1.6.1",
     "file-saver": "^2.0.5",
     "framer-motion": "^12.23.26",
@@ -32,6 +41,7 @@
     "postcss-import": "^16.1.1",
     "react": "^18.3.1",
     "react-dom": "^18.3.1",
+    "react-markdown": "^10.1.0",
     "react-masonry-css": "^1.0.16",
     "react-photoswipe-gallery": "^4.0.0",
     "slugify": "^1.6.6",

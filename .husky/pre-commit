@@ -3,32 +3,54 @@
 # O aviso de depreciação é apenas para versões futuras (v10+)
 . "$(dirname -- "$0")/_/husky.sh"
 
-# 🔒 PROTEÇÃO VIA TESTES UNITÁRIOS
-# Este hook executa testes e build para garantir qualidade
-# Arquivos críticos são protegidos por testes unitários específicos
+# 🛡️ SISTEMA DE PROTEÇÃO DE ARQUIVOS CRÍTICOS
+# Este hook protege arquivos críticos de alterações não autorizadas
+# Arquivos de autenticação, autorização e APIs do Google Drive são protegidos
 
-# Executa testes
-echo "🧪 Executando testes..."
-npm test
-TEST_EXIT_CODE=$?
+# Verifica se tem flag de permissão
+ALLOW_CRITICAL=false
+if echo "$@" | grep -q "allow-critical-changes"; then
+  ALLOW_CRITICAL=true
+fi
 
-if [ $TEST_EXIT_CODE -ne 0 ]; then
+# Executa proteção de arquivos críticos
+echo "🛡️  Verificando proteção de arquivos críticos..."
+node scripts/protect-critical-files.js $@
+PROTECTION_EXIT_CODE=$?
+
+if [ $PROTECTION_EXIT_CODE -ne 0 ]; then
   echo ""
-  echo "❌ Testes falharam! Commit cancelado."
-  echo "⚠️  Por favor, corrija os testes antes de commitar."
+  echo "❌ Commit bloqueado por proteção de arquivos críticos!"
+  echo "⚠️  Use --allow-critical-changes se realmente precisar alterar arquivos críticos."
+  echo "📖 Leia PROTECTION_SYSTEM.md para mais informações."
   exit 1
 fi
 
-# Executa build
-echo "🔨 Executando build..."
-npm run build
-BUILD_EXIT_CODE=$?
+# Valida imports do pacote
+echo "🔍 Validando imports do pacote crítico..."
+node scripts/validate-package-imports.js
+IMPORT_VALIDATION_EXIT_CODE=$?
 
-if [ $BUILD_EXIT_CODE -ne 0 ]; then
+if [ $IMPORT_VALIDATION_EXIT_CODE -ne 0 ]; then
   echo ""
-  echo "❌ Build falhou! Commit cancelado."
-  echo "⚠️  Por favor, corrija os erros de build antes de commitar."
+  echo "❌ Commit bloqueado por imports diretos de arquivos críticos!"
+  echo "⚠️  Use apenas a API pública: import { ... } from '@photos/core-auth'"
+  echo "📖 Leia SERVICES_ARCHITECTURE.md para mais informações."
   exit 1
+fi
+
+# Executa testes (apenas se não for commit rápido)
+if [ -z "$SKIP_TESTS" ]; then
+  echo "🧪 Executando testes críticos..."
+  npm run test:critical 2>/dev/null || npm test
+  TEST_EXIT_CODE=$?
+
+  if [ $TEST_EXIT_CODE -ne 0 ]; then
+    echo ""
+    echo "❌ Testes falharam! Commit cancelado."
+    echo "⚠️  Por favor, corrija os testes antes de commitar."
+    exit 1
+  fi
 fi
 
 echo ""

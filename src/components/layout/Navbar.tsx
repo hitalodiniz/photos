@@ -5,7 +5,7 @@ import { Camera } from 'lucide-react';
 import Link from 'next/link';
 import { useEffect, useState } from 'react';
 
-import { useAuth } from '@/contexts/AuthContext';
+import { useAuth } from '@photos/core-auth';
 import { UserMenu } from '@/components/auth';
 
 export default function Navbar() {

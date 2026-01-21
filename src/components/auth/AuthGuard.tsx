@@ -1,7 +1,7 @@
 'use client';
 
 import { useEffect, ReactNode } from 'react';
-import { useAuth } from '@/hooks/useAuth';
+import { useAuth } from '@photos/core-auth';
 import { Loader2 } from 'lucide-react';
 import LoadingScreen from '@/components/ui/LoadingScreen';
 

@@ -118,7 +118,6 @@ export const ToolBarMobile = ({
         await navigator.share({
           title: galeria?.title || 'Galeria de Fotos',
           text: shareText,
-          url: shareUrl,
         });
       } catch (error) {
         // Usuário cancelou ou erro no compartilhamento

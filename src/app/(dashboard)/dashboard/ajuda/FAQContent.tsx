@@ -2,7 +2,7 @@
 
 import { useState } from 'react';
 import { ChevronDown, ChevronUp, HelpCircle, LogIn, HardDrive, Shield, RefreshCw } from 'lucide-react';
-import { useAuth } from '@/contexts/AuthContext';
+import { useAuth } from '@photos/core-auth';
 import { useRouter } from 'next/navigation';
 
 interface FAQItem {

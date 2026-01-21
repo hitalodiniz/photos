@@ -1,6 +1,11 @@
 'use server';
 
-import * as googleService from '@/core/services/google.service';
+import { 
+  getValidGoogleTokenService,
+  getParentFolderIdServerService,
+  getDriveFolderNameService,
+  checkFolderPublicPermissionService
+} from '@/core/services/google.service';
 
 /**
  * Action para buscar o ID da pasta-mãe (parent)
@@ -9,7 +14,7 @@ export async function getParentFolderIdServer(
   fileId: string,
   userId: string,
 ): Promise<string | null> {
-  return googleService.getParentFolderIdServerService(fileId, userId);
+  return getParentFolderIdServerService(fileId, userId);
 }
 
 /**
@@ -19,7 +24,7 @@ export async function getDriveFolderName(
   folderId: string,
   userId: string,
 ): Promise<string | null> {
-  return googleService.getDriveFolderNameService(folderId, userId);
+  return getDriveFolderNameService(folderId, userId);
 }
 
 /**
@@ -64,13 +69,17 @@ export async function checkFolderLimits(
   };
 }
 /**
- * Action para verificar se a pasta é pública
+ * Action para verificar se a pasta é pública e se pertence ao usuário
  */
 export async function checkFolderPublicPermission(
   folderId: string,
   userId: string,
-): Promise<boolean> {
-  return googleService.checkFolderPublicPermissionService(folderId, userId);
+): Promise<{
+  isPublic: boolean;
+  isOwner: boolean;
+  folderLink: string;
+}> {
+  return checkFolderPublicPermissionService(folderId, userId);
 }
 
 /**
@@ -78,7 +87,7 @@ export async function checkFolderPublicPermission(
  * Retorna null se o token não estiver disponível (sistema tentará usar API Key)
  */
 export async function getValidGoogleToken(userId: string): Promise<string | null> {
-  return googleService.getValidGoogleTokenService(userId);
+  return getValidGoogleTokenService(userId);
 }
 
 /**

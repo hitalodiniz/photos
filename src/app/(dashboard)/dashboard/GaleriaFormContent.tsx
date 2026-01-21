@@ -4,7 +4,7 @@ import { useEffect, useState } from 'react';
 import { maskPhone } from '@/core/utils/masks-helpers';
 import { GooglePickerButton } from '@/components/google-drive';
 import { CategorySelect } from '@/components/galeria';
-import { useSupabaseSession } from '@/hooks/useSupabaseSession';
+import { useSupabaseSession } from '@photos/core-auth';
 import {
   getParentFolderIdServer,
   getDriveFolderName,
@@ -185,17 +185,31 @@ export default function GaleriaFormContent({
         // Continua mesmo com erro na verificação de limites
       }
 
-      // 🎯 PASSO 4: Verifica se a pasta é pública
-      let isPublic = false;
+      // 🎯 PASSO 4: Verifica se a pasta é pública e se pertence ao usuário
+      let folderPermissionInfo = { isPublic: false, isOwner: false, folderLink: '' };
       try {
-        isPublic = await checkFolderPublicPermission(driveFolderId, userId);
+        folderPermissionInfo = await checkFolderPublicPermission(driveFolderId, userId);
       } catch (error) {
         console.warn('[handleDriveSelection] Erro ao verificar permissões:', error);
         // Por segurança, assume que não é pública se houver erro
+        folderPermissionInfo.folderLink = `https://drive.google.com/drive/folders/${driveFolderId}`;
       }
 
-      if (!isPublic) {
-        onPickerError('Pasta privada. Mude o acesso para "Qualquer pessoa com o link".');
+      // 🎯 Verifica se a pasta pertence ao usuário
+      if (!folderPermissionInfo.isOwner) {
+        onPickerError(
+          `Esta pasta foi compartilhada por outro usuário. Só é possível vincular pastas de sua propriedade.\n\n` +
+          `Link da pasta: ${folderPermissionInfo.folderLink}`
+        );
+        return;
+      }
+
+      // 🎯 Verifica se a pasta é pública
+      if (!folderPermissionInfo.isPublic) {
+        onPickerError(
+          `Pasta privada. Mude o acesso para "Qualquer pessoa com o link".\n\n` +
+          `Link da pasta: ${folderPermissionInfo.folderLink}`
+        );
         return;
       }
 

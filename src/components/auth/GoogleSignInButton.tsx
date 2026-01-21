@@ -1,7 +1,7 @@
 'use client';
 
 import { useState } from 'react';
-import { authService } from '@/core/services/auth.service';
+import { authService } from '@photos/core-auth';
 
 interface GoogleSignInButtonProps {
   forceConsent?: boolean;

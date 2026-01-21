@@ -4,7 +4,7 @@ import Navbar from '@/components/layout/Navbar';
 import { Metadata } from 'next';
 import Script from 'next/script';
 import { CookieBanner } from '@/components/ui';
-import { AuthProvider } from '@/contexts/AuthContext';
+import { AuthProvider } from '@photos/core-auth';
 import { Analytics } from "@vercel/analytics/next"
 import GoogleApiLoader from '@/components/google-drive/GoogleApiLoader';
 

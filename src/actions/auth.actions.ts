@@ -1,6 +1,7 @@
 'use server';
 
 import { createSupabaseServerClient } from '@/lib/supabase.server';
+import { authenticateGaleriaAccess } from '@/core/services/galeria.service';
 
 /**
  * Verifica se o usuário tem um refresh token válido do Google
@@ -122,4 +123,16 @@ export async function checkGoogleRefreshTokenStatus(): Promise<{
       reason: 'Erro ao verificar token',
     };
   }
+}
+
+/**
+ * Server Action para autenticação de acesso a galerias protegidas
+ * Envolve authenticateGaleriaAccess para uso em componentes cliente
+ */
+export async function authenticateGaleriaAccessAction(
+  galeriaId: string,
+  fullSlug: string,
+  password: string,
+) {
+  return authenticateGaleriaAccess(galeriaId, fullSlug, password);
 }

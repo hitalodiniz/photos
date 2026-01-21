@@ -3,7 +3,6 @@ import { getPhotoMetadata } from '@/lib/gallery/metadata-helper';
 import { fetchGalleryBySlug } from '@/core/logic/galeria-logic';
 import { headers } from 'next/headers';
 import PhotoViewClient from './PhotoViewClient';
-import { icons } from 'lucide-react';
 
 export default async function Page({ params, searchParams }: any) {
   const resParams = await params;
@@ -60,12 +59,27 @@ export async function generateMetadata({
 
   // 🎯 Chama o helper ajustado
   const baseMetadata = await getPhotoMetadata(cleanSlug, googleId);
+  const baseUrl = process.env.NEXT_PUBLIC_BASE_URL || 'https://suagaleria.com.br';
 
+  // 🎯 Garante que metadataBase está definido e URL absoluta
   return {
     ...baseMetadata,
-    metadataBase: new URL(process.env.NEXT_PUBLIC_BASE_URL!),
+    metadataBase: new URL(baseUrl),
     icons: {
       icon: "data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='%23D4AF37' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'><path d='M14.5 4h-5L7 7H4a2 2 0 0 0-2 2v9a2 2 0 0 0 2 2h16a2 2 0 0 0 2-2V9a2 2 0 0 0-2-2h-3l-2.5-3z'/><circle cx='12' cy='13' r='3'/></svg>",
+    },
+    // 🎯 Garante que openGraph.images tenha todas as propriedades necessárias
+    openGraph: {
+      ...baseMetadata.openGraph,
+      images: baseMetadata.openGraph?.images?.map(img => ({
+        ...img,
+        // 🎯 Garante URL absoluta
+        url: img.url?.startsWith('http') ? img.url : `${baseUrl}${img.url}`,
+        // 🎯 Garante todas as propriedades necessárias para WhatsApp
+        width: img.width || 800,
+        height: img.height || 600,
+        type: img.type || 'image/jpeg',
+      })) || [],
     },
   };
 }

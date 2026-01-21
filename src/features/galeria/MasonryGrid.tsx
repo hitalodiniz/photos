@@ -16,8 +16,7 @@ import { GALLERY_MESSAGES } from '@/constants/messages';
 import { getCleanSlug, executeShare } from '@/core/utils/share-helper';
 import LoadingSpinner from '@/components/ui/LoadingSpinner';
 import { GridPhotoActions } from './GridPhotoActions';
-import { useSupabaseSession } from '@/hooks/useSupabaseSession';
-import { supabase } from '@/lib/supabase.client';
+import { useSupabaseSession, authService } from '@photos/core-auth';
 
 // --- MASONRY GRID PRINCIPAL ---
 interface Photo {
@@ -100,8 +99,7 @@ const MasonryGrid = ({
       try {
         await navigator.share({
           title: galleryTitle,
-          text: shareText,
-          url: shareUrl,
+          text: shareText
         });
       } catch (error) {
         // Usuário cancelou ou erro no compartilhamento
@@ -275,7 +273,7 @@ const SafeImage = memo(({ photoId, width, height, priority, className, showOnlyF
   }, [isAuthenticated, authLoading]);
 
   useEffect(() => {
-    const { data: { subscription } } = supabase.auth.onAuthStateChange((_event, session) => {
+    const subscription = authService.onAuthStateChange((_event, session) => {
       setUserAuthenticated(!!session?.user);
     });
     return () => subscription.unsubscribe();

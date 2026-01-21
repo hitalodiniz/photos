@@ -40,7 +40,7 @@ import {
   useState,
   ReactNode,
 } from 'react';
-import { authService } from '@/core/services/auth.service';
+import { authService } from '@photos/core-auth';
 import { getAvatarUrl } from '@/core/services/profile.service';
 
 interface AuthContextType {

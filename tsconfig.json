@@ -14,7 +14,10 @@
     "jsx": "preserve",
     "baseUrl": ".",
     "paths": {
-      "@/*": ["src/*"]
+      "@/*": ["src/*"],
+      // 🛡️ PROTEÇÃO: Permite import do pacote
+      "@photos/core-auth": ["./packages/@photos/core-auth/src/index.ts"]
+      // ⚠️ Imports internos são bloqueados via ESLint, não via TypeScript paths
     },
     "plugins": [
       {

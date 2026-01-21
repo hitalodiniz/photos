@@ -1,7 +1,7 @@
 'use client';
 
 import { useEffect, useRef, useState } from 'react';
-import { useSupabaseSession } from '@/hooks/useSupabaseSession';
+import { useSupabaseSession } from '@photos/core-auth';
 import { getGoogleClientId } from '@/actions/google.actions';
 import { Loader2 } from 'lucide-react';
 
@@ -205,33 +205,48 @@ export default function GooglePickerButton({
       console.log('[GooglePickerButton] Buscando access token...');
       
       // 🎯 Timeout específico para getAuthDetails (15 segundos)
-      const tokenPromise = getAuthDetails();
-      const timeoutPromise = new Promise<{ accessToken: null; userId: null }>((resolve) => {
-        setTimeout(() => {
-          console.error('[GooglePickerButton] ⚠️ Timeout ao buscar access token (15s)');
-          resolve({ accessToken: null, userId: null });
-        }, 15000);
-      });
+      let authDetails: any = null;
+      try {
+        const tokenPromise = getAuthDetails();
+        const timeoutPromise = new Promise<{ accessToken: null; userId: null; timedOut: true }>((resolve) => {
+          setTimeout(() => {
+            console.error('[GooglePickerButton] ⚠️ Timeout ao buscar access token (15s)');
+            resolve({ accessToken: null, userId: null, timedOut: true });
+          }, 15000);
+        });
+        
+        authDetails = await Promise.race([tokenPromise, timeoutPromise]);
+      } catch (error: any) {
+        console.error('[GooglePickerButton] ❌ Erro ao buscar auth details:', error);
+        onError('Erro ao verificar autenticação. Por favor, refaça o login.');
+        setLoading(false);
+        return;
+      }
       
-      const authDetails = await Promise.race([tokenPromise, timeoutPromise]);
-      const { accessToken } = authDetails;
+      const { accessToken, timedOut } = authDetails || {};
       
       console.log('[GooglePickerButton] Access token recebido:', {
         hasAccessToken: !!accessToken,
         tokenLength: accessToken?.length || 0,
-        userId: authDetails.userId,
+        userId: authDetails?.userId,
         origin: window.location.origin,
-        timedOut: !accessToken && !authDetails.userId,
+        timedOut: timedOut || (!accessToken && !authDetails?.userId),
       });
 
       // Para o Picker funcionar, precisamos do token OAuth
       // A API Key não é necessária aqui pois estamos acessando dados privados do usuário
       // O Google Picker requer access token OAuth válido, que só pode ser gerado com um refresh token válido
       if (!accessToken) {
-        const errorMessage = 'Token do Google não encontrado. Seu refresh token expirou ou foi revogado. Por favor, faça login novamente com Google para renovar o acesso ao Google Drive.';
+        let errorMessage = 'Token do Google não encontrado. Seu refresh token expirou ou foi revogado. Por favor, faça login novamente com Google para renovar o acesso ao Google Drive.';
+        
+        // 🎯 Mensagem específica para timeout
+        if (timedOut) {
+          errorMessage = 'Tempo de espera excedido ao buscar token do Google. Por favor, tente novamente ou refaça o login.';
+        }
+        
         onError(errorMessage);
         // 🎯 Se há callback para token expirado, chama para abrir o modal de consent
-        if (onTokenExpired) {
+        if (onTokenExpired && !timedOut) {
           onTokenExpired();
         }
         setLoading(false);
@@ -245,7 +260,8 @@ export default function GooglePickerButton({
           'application/vnd.google-apps.folder,image/jpeg,image/png,image/tiff',
         )
         .setMode(window.google.picker.DocsViewMode.GRID)
-        .setSelectFolderEnabled(false);
+        .setSelectFolderEnabled(false)
+        .setOwnedByMe(true); // 🎯 Mostra apenas arquivos e pastas próprios, excluindo pastas compartilhadas
 
       const pickerBuilder = new window.google.picker.PickerBuilder()
         .setAppId(googleClientId)

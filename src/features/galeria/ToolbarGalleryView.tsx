@@ -200,8 +200,7 @@ export const ToolbarGalleryView = ({
       try {
         await navigator.share({
           title: galleryTitle,
-          text: shareText,
-          url: shareUrl,
+          text: shareText
         });
       } catch (error) {
         // Usuário cancelou ou erro no compartilhamento

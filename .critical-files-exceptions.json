@@ -1,0 +1,40 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "title": "Exceções de Arquivos Críticos",
+  "description": "Lista de arquivos críticos que podem ser alterados sem flag especial (apenas para casos excepcionais)",
+  "type": "object",
+  "properties": {
+    "exceptions": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "properties": {
+          "file": {
+            "type": "string",
+            "description": "Caminho do arquivo relativo à raiz do projeto"
+          },
+          "reason": {
+            "type": "string",
+            "description": "Justificativa para a exceção"
+          },
+          "approvedBy": {
+            "type": "string",
+            "description": "Quem aprovou a exceção"
+          },
+          "date": {
+            "type": "string",
+            "format": "date",
+            "description": "Data da aprovação"
+          },
+          "expiresAt": {
+            "type": "string",
+            "format": "date",
+            "description": "Data de expiração da exceção (opcional)"
+          }
+        },
+        "required": ["file", "reason", "approvedBy", "date"]
+      }
+    }
+  },
+  "required": ["exceptions"]
+}

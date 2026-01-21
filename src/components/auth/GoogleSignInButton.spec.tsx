@@ -7,9 +7,9 @@ import {
 } from '@testing-library/react';
 import { describe, it, expect, vi } from 'vitest';
 import GoogleSignInButton from './GoogleSignInButton';
-import { authService } from '@/core/services/auth.service';
+import { authService } from '@photos/core-auth';
 
-vi.mock('@/core/services/auth.service', () => ({
+vi.mock('@photos/core-auth', () => ({
   authService: {
     signInWithGoogle: vi.fn(),
   },

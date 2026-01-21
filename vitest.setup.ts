@@ -64,13 +64,16 @@ const createMockClient = () => {
 // 2. Instância única para ser usada nos testes
 const singletonMock = createMockClient();
 
-// 3. Mock do Supabase Server
+// 3. Mock do Supabase Client (Browser) - apenas se não estiver testando o próprio arquivo
+// O mock será sobrescrito nos testes específicos que precisam testar o supabase.client.ts
+
+// 4. Mock do Supabase Server
 vi.mock('@/lib/supabase.server', () => ({
   createSupabaseServerClient: vi.fn(() => singletonMock),
   createSupabaseServerClientReadOnly: vi.fn(() => singletonMock),
 }));
 
-// 4. Mocks Globais de Infraestrutura
+// 5. Mocks Globais de Infraestrutura
 vi.mock('next/cache', () => ({
   revalidatePath: vi.fn(),
   revalidateTag: vi.fn(),

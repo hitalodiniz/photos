@@ -36,9 +36,8 @@ import {
   revalidateGallery,
   revalidateProfile,
 } from '@/actions/revalidate.actions';
-import { authService } from '@/core/services/auth.service';
+import { authService, useAuth } from '@photos/core-auth';
 import AdminControlModal from '@/components/admin/AdminControlModal';
-import { useAuth } from '@/contexts/AuthContext';
 import GoogleConsentAlert from '@/components/auth/GoogleConsentAlert';
 import VersionInfo from '@/components/dashboard/VersionInfo';
 

@@ -125,13 +125,12 @@ export function VerticalActionBar({
         await navigator.share({
           title: galleryTitle,
           text: shareText,
-          url: shareUrl,
         });
       } catch (err) {
         console.error('Erro ao compartilhar:', err);
       }
     } else {
-      executeShare({ title: galleryTitle, text: shareText, url: shareUrl });
+      executeShare({ title: galleryTitle, text: shareText });
     }
   };
 

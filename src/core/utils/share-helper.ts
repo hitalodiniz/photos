@@ -10,7 +10,6 @@ export const executeShare = async ({
 }: {
   title: string;
   text: string;
-  url?: string; // Opcional, mas recomendado para o card aparecer
   phone?: string;
 }) => {
   const isMobile =

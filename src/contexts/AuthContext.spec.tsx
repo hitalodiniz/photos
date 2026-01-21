@@ -4,6 +4,24 @@ import React from 'react'; // Certifique-se de que o React está aqui
 import { render, waitFor, screen } from '@testing-library/react';
 
 // Mocks devem vir antes da importação do componente que os utiliza
+vi.mock('@/lib/supabase.client', () => ({
+  supabase: {
+    auth: {
+      getUser: vi.fn().mockResolvedValue({
+        data: { user: null },
+        error: null,
+      }),
+      getSession: vi.fn().mockResolvedValue({
+        data: { session: null },
+        error: null,
+      }),
+      onAuthStateChange: vi.fn(() => ({
+        data: { subscription: { unsubscribe: vi.fn() } },
+      })),
+    },
+  },
+}));
+
 vi.mock('@/core/services/auth.service', () => ({
   authService: {
     getSession: vi.fn(),
@@ -17,8 +35,7 @@ vi.mock('@/core/services/profile.service', () => ({
 }));
 
 // Agora importe o Contexto
-import { AuthProvider, useAuth } from './AuthContext';
-import { authService } from '@/core/services/auth.service';
+import { AuthProvider, useAuth, authService } from '@photos/core-auth';
 import { getAvatarUrl } from '@/core/services/profile.service';
 
 const TestComponent = () => {
