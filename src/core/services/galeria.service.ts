@@ -411,6 +411,49 @@ export async function getGalerias(
     },
   )(userId);
 }
+
+// =========================================================================
+// 5.1. BUSCAR GALERIA POR ID (para edição)
+// =========================================================================
+export async function getGaleriaById(
+  id: string,
+  userId: string,
+): Promise<ActionResult<Galeria | null>> {
+  try {
+    const supabase = await createSupabaseServerClientReadOnly();
+    const { data, error } = await supabase
+      .from('tb_galerias')
+      .select(
+        `
+        *,
+        photographer:tb_profiles!user_id (
+          id,
+          full_name,
+          username,
+          use_subdomain,
+          profile_picture_url,
+          phone_contact,
+          instagram_link,
+          email
+        )
+      `,
+      )
+      .eq('id', id)
+      .eq('user_id', userId)
+      .single();
+
+    if (error || !data) {
+      return { success: false, error: 'Galeria não encontrada.', data: null };
+    }
+
+    const galeria = formatGalleryData(data as any, data.photographer?.username || '');
+    return { success: true, data: galeria };
+  } catch (error) {
+    console.error('[getGaleriaById] Erro:', error);
+    return { success: false, error: 'Erro ao buscar galeria.', data: null };
+  }
+}
+
 // =========================================================================
 // 6. DELETE GALERIA
 // =========================================================================

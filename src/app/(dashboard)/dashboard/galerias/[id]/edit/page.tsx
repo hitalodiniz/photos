@@ -1,8 +1,7 @@
 import { Metadata } from 'next';
 import { redirect, notFound } from 'next/navigation';
 import { getProfileData } from '@/core/services/profile.service';
-import { createSupabaseServerClientReadOnly } from '@/lib/supabase.server';
-import { formatGalleryData } from '@/core/logic/galeria-logic';
+import { getGaleriaById } from '@/core/services/galeria.service';
 import GaleriaFormPage from '../../GaleriaFormPage';
 
 export async function generateMetadata({
@@ -15,41 +14,6 @@ export async function generateMetadata({
     title: `Editar Galeria - ${resolvedParams.id}`,
     description: 'Editar galeria',
   };
-}
-
-async function getGaleriaById(id: string, userId: string) {
-  try {
-    const supabase = await createSupabaseServerClientReadOnly();
-    const { data, error } = await supabase
-      .from('tb_galerias')
-      .select(
-        `
-        *,
-        photographer:tb_profiles!user_id (
-          id,
-          full_name,
-          username,
-          use_subdomain,
-          profile_picture_url,
-          phone_contact,
-          instagram_link,
-          email
-        )
-      `,
-      )
-      .eq('id', id)
-      .eq('user_id', userId)
-      .single();
-
-    if (error || !data) {
-      return null;
-    }
-
-    return formatGalleryData(data as any, data.photographer?.username || '');
-  } catch (error) {
-    console.error('[getGaleriaById] Erro:', error);
-    return null;
-  }
 }
 
 export default async function EditGaleriaPage({
@@ -80,11 +44,13 @@ export default async function EditGaleriaPage({
   }
 
   // Busca a galeria
-  const galeria = await getGaleriaById(id, profile.id);
+  const result = await getGaleriaById(id, profile.id);
 
-  if (!galeria) {
+  if (!result.success || !result.data) {
     notFound();
   }
+
+  const galeria = result.data;
 
   return (
     <GaleriaFormPage
