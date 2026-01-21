@@ -196,7 +196,7 @@ export function VerticalActionBar({
         aria-label="Copiar link"
       >
         {copied ? (
-          <Check size={20} className="text-[#1E293B] dark:text-[#F3E5AB] transition-colors duration-300" strokeWidth={2} />
+          <Check size={20} className="text-petroleum dark:text-[#F3E5AB] transition-colors duration-300" strokeWidth={2} />
         ) : (
           <LinkIcon size={20} className="text-black dark:text-white transition-colors duration-300" strokeWidth={2} />
         )}
@@ -213,7 +213,7 @@ export function VerticalActionBar({
         <button
           onClick={onToggleSlideshow}
           className={`w-12 h-12 rounded-full flex items-center justify-center transition-all group relative ${
-            isSlideshowActive ? 'bg-[#1E293B] dark:bg-[#F3E5AB]' : 'bg-black/5 dark:bg-white/5 hover:bg-black/10 dark:hover:bg-white/10'
+            isSlideshowActive ? 'bg-petroleum dark:bg-[#F3E5AB]' : 'bg-black/5 dark:bg-white/5 hover:bg-black/10 dark:hover:bg-white/10'
           }`}
           aria-label={isSlideshowActive ? 'Pausar slideshow' : 'Iniciar slideshow'}
         >
@@ -313,7 +313,7 @@ export function VerticalActionBar({
             <div
               className={`w-full h-full rounded-full flex items-center justify-center transition-all ${
                 showQualityWarning
-                  ? 'bg-[#1E293B] dark:bg-[#F3E5AB] text-white dark:text-black'
+                  ? 'bg-petroleum dark:bg-[#F3E5AB] text-white dark:text-black'
                   : 'bg-black/5 dark:bg-white/5 hover:bg-black/10 dark:hover:bg-white/10 text-black dark:text-white'
               }`}
             >

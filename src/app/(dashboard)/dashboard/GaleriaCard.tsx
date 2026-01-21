@@ -108,6 +108,19 @@ export default function GaleriaCard({
     return `${day}/${month}/${year}`;
   };
 
+  const formatPhone = (phone: string | null | undefined) => {
+    if (!phone) return '';
+    const cleaned = phone.replace(/\D/g, '');
+    if (cleaned.length === 11) {
+      return cleaned.replace(/(\d{2})(\d{5})(\d{4})/, '($1) $2-$3');
+    } else if (cleaned.length === 10) {
+      return cleaned.replace(/(\d{2})(\d{4})(\d{4})/, '($1) $2-$3');
+    }
+    return phone;
+  };
+
+  const hasClientInfo = galeria.client_name && galeria.client_name !== 'Cobertura';
+
   const { imgSrc: imageUrl, handleError, handleLoad } = useGoogleDriveImage({
     photoId: galeria.cover_image_url || '',
     width: RESOLUTIONS.THUMB,
@@ -151,9 +164,9 @@ export default function GaleriaCard({
             window.open(links.url, '_blank');
           }
         }}
-        className={`group relative flex items-center gap-4 overflow-hidden rounded-lg border border-slate-200 bg-white p-3 transition-all duration-300 hover:shadow-lg hover:shadow-gold/10 w-full animate-in fade-in slide-in-from-bottom-2 duration-500 fill-mode-both hover:border-gold/50 ${
-          isBulkMode ? 'cursor-default' : 'cursor-pointer'
-        } ${isSelected && isBulkMode ? 'ring-2 ring-gold border-gold' : ''}`}
+      className={`group relative flex items-center gap-4 overflow-hidden rounded-lg border border-petroleum/40 bg-white p-3 transition-all duration-300 w-full animate-in fade-in slide-in-from-bottom-2 duration-500 fill-mode-both hover:border-petroleum/70 ${
+        isBulkMode ? 'cursor-default' : 'cursor-pointer'
+      } ${isSelected && isBulkMode ? 'ring-2 ring-gold border-gold' : ''}`}
         style={{ animationDelay: `${index * 30}ms` }}
       >
         {/* Checkbox de seleção em lote - Modo Lista */}
@@ -163,7 +176,7 @@ export default function GaleriaCard({
               e.stopPropagation();
               onToggleSelect?.(galeria.id);
             }}
-            className="p-1.5 bg-white border border-slate-200 rounded-md shadow-sm hover:bg-slate-50 transition-colors shrink-0"
+            className="p-1.5 bg-white border border-petroleum/30 rounded-md hover:bg-slate-50 transition-colors shrink-0"
           >
             {isSelected ? (
               <CheckSquare size={16} className="text-gold" fill="currentColor" />
@@ -206,17 +219,29 @@ export default function GaleriaCard({
               {galeria.title}
             </h3>
             {/* Metadados em uma linha */}
-            <div className="flex items-center gap-3 text-xs text-slate-500">
-              <span className="flex items-center gap-1">
-                <Calendar size={12} />
-                {formatDateSafely(galeria.date)}
-              </span>
-              {galeria.location && (
-                <span className="flex items-center gap-1">
-                  <MapPin size={12} />
-                  {galeria.location}
+            <div className="flex flex-col gap-1.5 w-full">
+              <div className={`flex items-center gap-1.5 text-[11px] ${hasClientInfo ? 'text-petroleum' : 'invisible h-[15px]'}`}>
+                <User size={11} className="text-petroleum shrink-0" />
+                <span className="font-medium text-petroleum">{galeria.client_name || 'Placeholder'}</span>
+                {galeria.client_whatsapp && (
+                  <>
+                    <span className="text-petroleum/40">•</span>
+                    <span className="text-petroleum">{formatPhone(galeria.client_whatsapp)}</span>
+                  </>
+                )}
+              </div>
+              <div className="flex items-center justify-between gap-2 text-[11px] text-petroleum w-full">
+                {galeria.location && (
+                  <span className="flex items-center gap-1">
+                    <MapPin size={11} className="text-petroleum" />
+                    {galeria.location}
+                  </span>
+                )}
+                <span className="flex items-center gap-1 ml-auto">
+                  <Calendar size={11} className="text-petroleum" />
+                  {formatDateSafely(galeria.date)}
                 </span>
-              )}
+              </div>
             </div>
           </div>
 
@@ -229,7 +254,7 @@ export default function GaleriaCard({
                     e.stopPropagation();
                     handleWhatsAppShare(e);
                   }}
-                  className="p-2 text-emerald-600 bg-white border border-slate-200 rounded-lg shadow-sm hover:bg-emerald-50 transition-colors"
+                  className="p-2 text-petroleum bg-white border border-petroleum/40 rounded-lg hover:text-[#D4AF37] transition-colors"
                   title="Compartilhar via WhatsApp"
                 >
                   <WhatsAppIcon className="w-4 h-4" />
@@ -239,7 +264,7 @@ export default function GaleriaCard({
                     e.stopPropagation();
                     onEdit(galeria);
                   }}
-                  className="p-2 text-slate-600 bg-white border border-slate-200 rounded-lg shadow-sm hover:bg-slate-900 hover:text-white transition-all"
+                  className="p-2 text-petroleum bg-white border border-petroleum/40 rounded-lg hover:text-[#D4AF37] transition-colors"
                   title="Editar"
                 >
                   <Pencil size={16} />
@@ -270,7 +295,7 @@ export default function GaleriaCard({
           window.open(links.url, '_blank');
         }
       }}
-      className={`group relative flex flex-col overflow-hidden rounded-[14px] border border-slate-200 bg-white transition-all duration-300 hover:shadow-2xl hover:shadow-gold/15 w-full animate-in fade-in slide-in-from-bottom-2 duration-500 fill-mode-both ${
+      className={`group relative flex flex-col overflow-hidden rounded-[0.5rem] border border-petroleum/40 bg-white transition-all duration-300 w-full animate-in fade-in slide-in-from-bottom-2 duration-500 fill-mode-both hover:border-petroleum/70 ${
         isBulkMode ? 'cursor-default' : 'cursor-pointer'
       } ${isSelected && isBulkMode ? 'ring-2 ring-gold border-gold' : ''}`}
       style={{ animationDelay: `${index * 50}ms` }}
@@ -289,7 +314,7 @@ export default function GaleriaCard({
               e.stopPropagation();
               onToggleSelect?.(galeria.id);
             }}
-            className="absolute top-2 left-2 z-30 p-1.5 bg-white/90 backdrop-blur-sm rounded-md border border-slate-200 shadow-lg hover:bg-white transition-colors"
+            className="absolute top-2 left-2 z-30 p-1.5 bg-white/90 backdrop-blur-sm rounded-md border border-petroleum/40 hover:bg-white transition-colors"
           >
             {isSelected ? (
               <CheckSquare size={18} className="text-gold" fill="currentColor" />
@@ -318,6 +343,9 @@ export default function GaleriaCard({
           }`}
         />
 
+        {/* Gradiente linear suave na base da imagem (transparente para preto 60%) */}
+        <div className="absolute inset-0 bg-gradient-to-t from-black/60 via-transparent to-transparent" />
+
         <div className="absolute top-3 left-3 flex gap-2">
           <span
             title={
@@ -325,7 +353,7 @@ export default function GaleriaCard({
                 ? 'Acesso restrito via senha'
                 : 'Acesso público liberado'
             }
-            className="flex items-center justify-center w-8 h-8 bg-black/40 backdrop-blur-md rounded-full border border-white/20 shadow-lg transition-all hover:bg-black/60"
+            className="flex items-center justify-center w-8 h-8 bg-black/40 backdrop-blur-md rounded-full border border-white/10 transition-all hover:bg-black/60"
           >
             {!galeria.is_public ? (
               <ShieldCheck
@@ -341,7 +369,7 @@ export default function GaleriaCard({
 
         <div className="absolute top-3 right-3">
           {categoryInfo && (
-            <span className="flex items-center gap-1 px-2 py-1 bg-black/50 backdrop-blur-md rounded-md text-[9px] font-semibold tracking-wider text-champagne border border-champagne/30 uppercase shadow-lg">
+            <span className="flex items-center gap-1 px-2 py-1 bg-black/60 backdrop-blur-md rounded-md text-[8px] font-medium tracking-wider text-white uppercase border border-white/20">
               {categoryInfo.label}
             </span>
           )}
@@ -354,34 +382,43 @@ export default function GaleriaCard({
         </div>
       </div>
 
-      <div className="flex flex-col p-4 space-y-3">
+      <div className="flex flex-col p-4 md:p-4 space-y-3">
         {/* Metadados simplificados em uma linha */}
-        <div className="flex items-center gap-3 text-xs text-slate-500 py-1">
-          <span className="flex items-center gap-1">
-            <Calendar size={12} />
-            {formatDateSafely(galeria.date)}
-          </span>
-          {galeria.location && (
-            <>
-              <span className="text-slate-300">•</span>
+        <div className="flex flex-col gap-1.5 py-1 w-full">
+          <div className={`flex items-center gap-1.5 text-[11px] ${hasClientInfo ? 'text-petroleum' : 'invisible h-[15px]'}`}>
+            <User size={11} className="text-petroleum shrink-0" />
+            <span className="font-medium text-petroleum">{galeria.client_name || 'Placeholder'}</span>
+            {galeria.client_whatsapp && (
+              <>
+                <span className="text-petroleum/40">•</span>
+                <span className="text-petroleum">{formatPhone(galeria.client_whatsapp)}</span>
+              </>
+            )}
+          </div>
+          <div className="flex items-center justify-between gap-3 text-[11px] text-petroleum w-full">
+            {galeria.location && (
               <span className="flex items-center gap-1">
-                <MapPin size={12} />
+                <MapPin size={11} className="text-petroleum" />
                 {galeria.location}
               </span>
-            </>
-          )}
+            )}
+            <span className="flex items-center gap-1 ml-auto">
+              <Calendar size={11} className="text-petroleum" />
+              {formatDateSafely(galeria.date)}
+            </span>
+          </div>
         </div>
 
         <div className="flex items-center gap-2">
-          <div className="flex-1 flex items-center h-9 rounded-lg bg-slate-50 border border-slate-100 overflow-hidden">
+          <div className="flex-1 flex items-center h-9 rounded-lg bg-slate-50 border border-petroleum/40 overflow-hidden">
             <a
               href={`https://drive.google.com/drive/folders/${galeria.drive_folder_id}`}
               target="_blank"
               onClick={(e) => e.stopPropagation()}
-              className="flex-1 flex items-center gap-2 px-3 h-full hover:bg-white transition-all group/drive min-w-0"
+              className="flex-1 flex items-center gap-1.5 px-3 h-full hover:bg-white transition-all group/drive min-w-0"
             >
-              <FolderOpen size={14} className="text-gold shrink-0" />
-              <span className="text-[11px] font-medium text-slate-600 truncate">
+              <FolderOpen size={14} className="text-petroleum shrink-0" />
+              <span className="text-[11px] font-medium text-petroleum truncate">
                 {galeria.drive_folder_name || 'Pasta do Drive'}
               </span>
               <span className="text-[9px] font-bold text-gold uppercase tracking-widest opacity-0 group-hover/drive:opacity-100 transition-opacity shrink-0">
@@ -389,7 +426,7 @@ export default function GaleriaCard({
               </span>
             </a>
 
-            <div className="w-[1px] h-4 bg-slate-200" />
+            <div className="w-[1px] h-4 bg-petroleum/50" />
 
             <button
               onClick={(e) => {
@@ -399,7 +436,7 @@ export default function GaleriaCard({
               }}
               disabled={isUpdating}
               title="Sincronizar com o Drive"
-              className="flex items-center justify-center px-3 h-full hover:bg-white text-slate-400 hover:text-gold transition-all disabled:opacity-50 shrink-0"
+              className="flex items-center justify-center px-3 h-full hover:bg-white text-petroleum hover:text-gold transition-all disabled:opacity-50 shrink-0"
             >
               {isUpdating ? (
                 <Loader2 size={13} className="animate-spin text-gold" />
@@ -411,9 +448,9 @@ export default function GaleriaCard({
         </div>
       </div>
 
-      <div className="flex items-center justify-between p-3 bg-slate-50/50 border-t border-slate-100 mt-auto">
+      <div className="flex items-center justify-between p-4 md:p-3 bg-slate-50/50 border-t border-petroleum/40 mt-auto">
         {/* Apenas Compartilhar e Editar visíveis */}
-        <div className="flex gap-1.5">
+        <div className="flex gap-2 md:gap-1.5">
           {currentView === 'active' && (
             <>
               <button
@@ -421,7 +458,7 @@ export default function GaleriaCard({
                   e.stopPropagation();
                   handleWhatsAppShare(e);
                 }}
-                className="p-2 text-emerald-600 bg-white border border-slate-200 rounded-lg shadow-sm hover:bg-emerald-50 transition-colors"
+                className="p-3 md:p-2 text-petroleum bg-white border border-petroleum/40 rounded-lg hover:text-[#D4AF37] transition-colors"
                 title="Compartilhar via WhatsApp"
               >
                 <WhatsAppIcon className="w-4 h-4" />
@@ -431,7 +468,7 @@ export default function GaleriaCard({
                   e.stopPropagation();
                   onEdit(galeria);
                 }}
-                className="p-2 text-slate-600 bg-white border border-slate-200 rounded-lg shadow-sm hover:bg-slate-900 hover:text-white transition-all"
+                className="p-3 md:p-2 text-petroleum bg-white border border-petroleum/40 rounded-lg hover:text-[#D4AF37] transition-colors"
                 title="Editar"
               >
                 <Pencil size={16} />

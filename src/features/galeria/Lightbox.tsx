@@ -392,7 +392,7 @@ img.src = imgSrc;
             }}
             className="fixed left-0 top-1/2 -translate-y-1/2 z-[190] 
                w-16 md:w-32 h-32 md:h-64 flex items-center justify-center 
-               text-black/20 dark:text-white/20 hover:text-blue-500 dark:hover:text-[#F3E5AB] transition-all group"
+               text-black/20 dark:text-white/20 hover:text-petroleum dark:hover:text-[#F3E5AB] transition-all group"
           >
             <ChevronLeft
               className="w-10 h-10 md:w-16 md:h-16 shrink-0 transition-transform group-hover:scale-110"
@@ -409,7 +409,7 @@ img.src = imgSrc;
             }}
             className="fixed top-1/2 -translate-y-1/2 z-[190] 
                w-16 md:w-32 h-32 md:h-64 flex items-center justify-center 
-               text-slate-600 dark:text-white/20 hover:text-slate-900 dark:hover:text-[#F3E5AB] transition-all group"
+               text-slate-600 dark:text-white/20 hover:text-petroleum dark:hover:text-[#F3E5AB] transition-all group"
             style={{ right: onNavigateToIndex && !isMobile ? '160px' : '0' }} // Mais à esquerda, fora da barra (112px barra + 48px espaço)
           >
             <ChevronRight
@@ -581,10 +581,10 @@ img.src = imgSrc;
               title={`Resolução: ${realResolution ? `${realResolution.w}x${realResolution.h}px` : '...'} | Tamanho: ${imageSize || '...'} | Origem: ${usingProxy ? 'Servidor (A)' : 'Google Drive (D)'}`}
             >
               {/* Ícone que muda de cor conforme o tema */}
-              <ImageIcon size={13} className="text-slate-600 dark:text-[#F3E5AB] transition-colors duration-300" />
+              <ImageIcon size={13} className="text-petroleum dark:text-[#F3E5AB] transition-colors duration-300" />
               
-              <p className="text-[11px] font-medium tracking-tight text-slate-900 dark:text-white">
-                Foto <span className="text-slate-700 dark:text-[#F3E5AB] font-semibold">{activeIndex + 1}</span> de {totalPhotos}
+              <p className="text-[11px] font-medium tracking-tight text-petroleum dark:text-white">
+                Foto <span className="text-petroleum dark:text-[#F3E5AB] font-semibold">{activeIndex + 1}</span> de {totalPhotos}
               </p>
 
               {/* Divisor que adapta a opacidade */}
@@ -592,7 +592,7 @@ img.src = imgSrc;
 
               {/* Dados Técnicos */}
               <div className="flex items-center gap-2.5">
-                <p className="text-slate-600 dark:text-[#F3E5AB] text-[11px] font-medium">
+                <p className="text-petroleum dark:text-[#F3E5AB] text-[11px] font-medium">
                   {imageSize || "--- KB"}
                 </p>
                 {/* Indicador de origem */}

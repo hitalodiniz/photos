@@ -47,7 +47,7 @@ export const DownloadCenterModal = ({
     <div className="fixed inset-0 z-[999] bg-black/70 backdrop-blur-md flex items-center justify-center px-6 md:p-6 animate-in fade-in duration-300">
       <div className="absolute inset-0" onClick={onClose} />
 
-      <div className="w-full md:max-w-xl bg-[#1E293B] border border-white/10 rounded-[0.5rem] shadow-2xl flex flex-col h-auto max-h-[85vh] relative animate-in zoom-in-95 duration-300 overflow-hidden">
+      <div className="w-full md:max-w-xl bg-petroleum border border-white/10 rounded-[0.5rem] shadow-2xl flex flex-col h-auto max-h-[85vh] relative animate-in zoom-in-95 duration-300 overflow-hidden">
         {/* 1. TOPO */}
         {/* 1. TOPO: WI-FI RECOMENDADO COM ÍCONE */}
         <div className="flex flex-col shrink-0">
@@ -229,7 +229,7 @@ export const DownloadCenterModal = ({
         </div>
 
         {/* 3. RODAPÉ */}
-        <div className="px-8 py-8 bg-[#1E293B] border-t border-white/5 shrink-0">
+        <div className="px-8 py-8 bg-petroleum border-t border-white/5 shrink-0">
           {isDownloading ? (
             <div className="w-full">
               <div className="flex justify-between items-end mb-4">

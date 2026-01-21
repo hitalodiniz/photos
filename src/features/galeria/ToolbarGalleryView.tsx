@@ -244,12 +244,12 @@ export const ToolbarGalleryView = ({
             aria-label={isFavorited ? 'Remover dos favoritos' : 'Adicionar aos favoritos'}
           >
             <div
-              className={`w-12 h-12 rounded-full flex items-center justify-center transition-all ${isFavorited ? 'bg-[#E67E70]' : 'bg-slate-200 dark:bg-white/10'}`}
+              className={`w-12 h-12 rounded-full flex items-center justify-center transition-all ${isFavorited ? 'bg-[#E67E70]' : 'bg-slate-200 dark:bg-white/10 active:bg-slate-800 dark:active:bg-white/20'}`}
             >
               <Heart
                 fill={isFavorited ? 'white' : 'none'}
                 size={22}
-                className={isFavorited ? 'text-white' : 'text-slate-700 dark:text-white'}
+                className={isFavorited ? 'text-white' : 'text-petroleum dark:text-white'}
                 strokeWidth={2.5}
               />
             </div>
@@ -266,8 +266,8 @@ export const ToolbarGalleryView = ({
             className="flex-1 flex items-center justify-center py-3 active:scale-95 transition-all touch-manipulation"
             aria-label={showThumbnails ? 'Ocultar miniaturas' : 'Mostrar miniaturas'}
           >
-            <div className={`w-12 h-12 rounded-full flex items-center justify-center transition-all ${showThumbnails ? 'bg-[#F3E5AB]' : 'bg-slate-200 dark:bg-white/10 active:bg-slate-300 dark:active:bg-white/20'}`}>
-              <SquareStack size={22} className={showThumbnails ? 'text-black' : 'text-slate-700 dark:text-white'} strokeWidth={2.5} />
+            <div className={`w-12 h-12 rounded-full flex items-center justify-center transition-all ${showThumbnails ? 'bg-[#F3E5AB]' : 'bg-slate-200 dark:bg-white/10 active:bg-slate-800 dark:active:bg-white/20'}`}>
+              <SquareStack size={22} className={showThumbnails ? 'text-black' : 'text-petroleum dark:text-white'} strokeWidth={2.5} />
             </div>
           </button>
         )}
@@ -290,11 +290,11 @@ export const ToolbarGalleryView = ({
             className="flex-1 flex items-center justify-center py-3 active:scale-95 transition-all touch-manipulation"
             aria-label={isSlideshowActive ? 'Pausar slideshow' : 'Iniciar slideshow'}
           >
-            <div className={`w-12 h-12 rounded-full flex items-center justify-center transition-all ${isSlideshowActive ? 'bg-[#F3E5AB]' : 'bg-slate-200 dark:bg-white/10 active:bg-slate-300 dark:active:bg-white/20'}`}>
+            <div className={`w-12 h-12 rounded-full flex items-center justify-center transition-all ${isSlideshowActive ? 'bg-[#F3E5AB]' : 'bg-slate-200 dark:bg-white/10 active:bg-slate-800 dark:active:bg-white/20'}`}>
               {isSlideshowActive ? (
                 <Pause size={22} className="text-black" strokeWidth={2.5} />
               ) : (
-                <Play size={22} className="text-slate-700 dark:text-white" strokeWidth={2.5} />
+                <Play size={22} className="text-petroleum dark:text-white" strokeWidth={2.5} />
               )}
             </div>
           </button>
@@ -444,12 +444,12 @@ export const ToolbarGalleryView = ({
                 <div className="absolute -inset-1 rounded-full bg-[#F3E5AB] animate-ping opacity-80" />
               )}
               <div className={`w-12 h-12 rounded-full flex items-center justify-center transition-all ${
-                showQualityWarning ? 'bg-[#F3E5AB]' : 'bg-slate-200 dark:bg-white/10 active:bg-slate-300 dark:active:bg-white/20'
+                showQualityWarning ? 'bg-[#F3E5AB]' : 'bg-slate-200 dark:bg-white/10 active:bg-slate-800 dark:active:bg-white/20'
               }`}>
                 {isDownloading ? (
-                  <Loader2 className={`animate-spin ${showQualityWarning ? 'text-black' : 'text-slate-700 dark:text-white'}`} size={22} strokeWidth={2.5} />
+                  <Loader2 className={`animate-spin ${showQualityWarning ? 'text-black' : 'text-petroleum dark:text-white'}`} size={22} strokeWidth={2.5} />
                 ) : (
-                  <Download size={22} className={showQualityWarning ? 'text-black' : 'text-slate-700 dark:text-white'} strokeWidth={2.5} />
+                  <Download size={22} className={showQualityWarning ? 'text-black' : 'text-petroleum dark:text-white'} strokeWidth={2.5} />
                 )}
               </div>
             </div>
@@ -469,7 +469,7 @@ export const ToolbarGalleryView = ({
             }}
           >
             <div 
-              className="rounded-full bg-slate-200 dark:bg-white/10 flex items-center justify-center active:bg-slate-300 dark:active:bg-white/20 transition-all"
+              className="rounded-full bg-slate-200 dark:bg-white/10 flex items-center justify-center active:bg-slate-800 dark:active:bg-white/20 transition-all"
               style={{
                 // Área de toque de 60x60px para melhor usabilidade (acima do mínimo de 48x48px)
                 width: '60px',
@@ -478,7 +478,7 @@ export const ToolbarGalleryView = ({
                 minHeight: '60px',
               }}
             >
-              <X size={26} className="text-slate-700 dark:text-white" strokeWidth={2.5} />
+              <X size={26} className="text-petroleum dark:text-white" strokeWidth={2.5} />
             </div>
           </button>
         )}

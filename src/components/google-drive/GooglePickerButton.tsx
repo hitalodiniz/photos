@@ -204,23 +204,51 @@ export default function GooglePickerButton({
       // Busca o token de autenticação com timeout
       console.log('[GooglePickerButton] Buscando access token...');
       
-      // 🎯 Timeout específico para getAuthDetails (15 segundos)
+      // 🎯 Timeout específico para getAuthDetails (20 segundos - aumentado para dar mais tempo)
       let authDetails: any = null;
-      try {
-        const tokenPromise = getAuthDetails();
-        const timeoutPromise = new Promise<{ accessToken: null; userId: null; timedOut: true }>((resolve) => {
-          setTimeout(() => {
-            console.error('[GooglePickerButton] ⚠️ Timeout ao buscar access token (15s)');
-            resolve({ accessToken: null, userId: null, timedOut: true });
-          }, 15000);
-        });
-        
-        authDetails = await Promise.race([tokenPromise, timeoutPromise]);
-      } catch (error: any) {
-        console.error('[GooglePickerButton] ❌ Erro ao buscar auth details:', error);
-        onError('Erro ao verificar autenticação. Por favor, refaça o login.');
-        setLoading(false);
-        return;
+      let retryCount = 0;
+      const maxRetries = 1;
+      
+      while (retryCount <= maxRetries && !authDetails?.accessToken) {
+        try {
+          const tokenPromise = getAuthDetails();
+          const timeoutPromise = new Promise<{ accessToken: null; userId: null; timedOut: true }>((resolve) => {
+            setTimeout(() => {
+              if (retryCount === 0) {
+                console.warn('[GooglePickerButton] ⚠️ Timeout ao buscar access token (20s). Tentando novamente...');
+              } else {
+                console.error('[GooglePickerButton] ⚠️ Timeout ao buscar access token após retry (20s)');
+              }
+              resolve({ accessToken: null, userId: null, timedOut: true });
+            }, 20000); // Aumentado para 20 segundos
+          });
+          
+          authDetails = await Promise.race([tokenPromise, timeoutPromise]);
+          
+          // Se obteve token ou não é timeout, para o loop
+          if (authDetails?.accessToken || !authDetails?.timedOut) {
+            break;
+          }
+          
+          // Se deu timeout e ainda temos tentativas, tenta novamente
+          if (authDetails?.timedOut && retryCount < maxRetries) {
+            retryCount++;
+            console.log(`[GooglePickerButton] Tentativa ${retryCount + 1} de ${maxRetries + 1}...`);
+            // Aguarda um pouco antes de tentar novamente
+            await new Promise(resolve => setTimeout(resolve, 1000));
+            continue;
+          }
+        } catch (error: any) {
+          console.error('[GooglePickerButton] ❌ Erro ao buscar auth details:', error);
+          // Se é o último retry, mostra erro
+          if (retryCount >= maxRetries) {
+            onError('Erro ao verificar autenticação. Por favor, refaça o login.');
+            setLoading(false);
+            return;
+          }
+          retryCount++;
+          await new Promise(resolve => setTimeout(resolve, 1000));
+        }
       }
       
       const { accessToken, timedOut } = authDetails || {};

@@ -7,7 +7,6 @@ import {
   Lock,
   ArrowRight,
   Tag,
-  ImageIcon,
 } from 'lucide-react';
 import type { Galeria } from '@/core/types/galeria';
 import { resolveGalleryUrl, RESOLUTIONS } from '@/core/utils/url-helper';
@@ -61,7 +60,7 @@ export function PublicGaleriaCard({ galeria }: { galeria: Galeria }) {
       href={href}
       target="_blank"
       rel="noopener noreferrer"
-      className="group relative flex flex-col bg-[#1E293B]/95 backdrop-blur-md border border-white/10 rounded-2xl overflow-hidden transition-all duration-500 hover:border-[#F3E5AB]/40 hover:translate-y-[-4px] cursor-pointer shadow-2xl no-underline"
+      className="group relative flex flex-col bg-petroleum/95 backdrop-blur-md border border-white/10 rounded-2xl overflow-hidden transition-all duration-500 hover:border-[#F3E5AB]/40 hover:translate-y-[-4px] cursor-pointer shadow-2xl no-underline"
     >
       {/* Container da Imagem */}
       <div className="relative aspect-[1] overflow-hidden border-b border-white/5">
@@ -71,7 +70,7 @@ export function PublicGaleriaCard({ galeria }: { galeria: Galeria }) {
           loading="lazy"
           className="h-full w-full object-cover transition-transform duration-1000 ease-out group-hover:scale-110 opacity-90 group-hover:opacity-100"
         />
-        <div className="absolute inset-0 bg-gradient-to-t from-[#1E293B] via-transparent to-transparent opacity-80" />
+        <div className="absolute inset-0 bg-gradient-to-t from-petroleum via-transparent to-transparent opacity-80" />
 
         <div className="absolute top-3 left-3 flex gap-2">
           {!galeria.is_public && (
@@ -98,17 +97,17 @@ export function PublicGaleriaCard({ galeria }: { galeria: Galeria }) {
         <div className="flex items-center justify-between pt-3 border-t border-white/10">
           <div className="flex flex-col gap-2">
             {/* Localização */}
-            <div className="flex items-center gap-2 text-white/50">
-              <MapPin size={12} className="text-[#F3E5AB]/70" />
-              <span className="text-[10px] uppercase font-medium tracking-widest truncate max-w-[120px]">
+            <div className="flex items-center gap-2 text-gray-400">
+              <MapPin size={11} className="text-gray-400" />
+              <span className="text-[9px] uppercase font-medium tracking-widest truncate max-w-[120px]">
                 {galeria.location || 'Brasil'}
               </span>
             </div>
 
             {/* Data */}
-            <div className="flex items-center gap-2 text-white/50">
-              <Calendar size={12} className="text-[#F3E5AB]/70" />
-              <span className="text-[10px] uppercase font-medium tracking-widest">
+            <div className="flex items-center gap-2 text-gray-400">
+              <Calendar size={11} className="text-gray-400" />
+              <span className="text-[9px] uppercase font-medium tracking-widest">
                 {formatDateLong(galeria.date)}
               </span>
             </div>

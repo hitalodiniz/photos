@@ -88,7 +88,7 @@ export default function UserMenu({
     }
     return (
       <div
-        className={`${sizeClass} rounded-full bg-[#1E293B] text-[#F3E5AB] flex items-center justify-center ${textClass} font-semibold ${borderStyle} shadow-sm`}
+        className={`${sizeClass} rounded-full bg-petroleum text-[#F3E5AB] flex items-center justify-center ${textClass} font-semibold ${borderStyle} shadow-sm`}
       >
         {initialLetter}
       </div>
@@ -160,7 +160,7 @@ export default function UserMenu({
 
       {isLoggingOut && (
         <div className="fixed inset-0 z-[120] bg-white/80 backdrop-blur-md animate-in fade-in duration-500 flex items-center justify-center">
-          <div className="bg-[#1E293B] text-[#F3E5AB] px-8 py-4 rounded-full text-[10px] font-semibold shadow-2xl animate-in zoom-in duration-300 border border-[#D4AF37]/30 tracking-[0.2em] uppercase flex items-center gap-3">
+          <div className="bg-petroleum text-[#F3E5AB] px-8 py-4 rounded-full text-[10px] font-semibold shadow-2xl animate-in zoom-in duration-300 border border-[#D4AF37]/30 tracking-[0.2em] uppercase flex items-center gap-3">
             <Loader2 size={16} className="animate-spin" />
             {isLoggingOut ? 'Encerrando sessão' : ''}
           </div>

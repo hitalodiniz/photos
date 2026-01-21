@@ -1,6 +1,6 @@
 'use client';
 import { useState, useEffect, useRef } from 'react';
-import { X, Camera, Plus } from 'lucide-react';
+import { X, Camera, Plus, ArrowLeft } from 'lucide-react';
 import { createGaleria, updateGaleria } from '@/core/services/galeria.service';
 import { SubmitButton } from '@/components/ui';
 import SecondaryButton from '@/components/ui/SecondaryButton';
@@ -16,6 +16,7 @@ export default function GaleriaModal({
   const isEdit = !!galeria;
   const [loading, setLoading] = useState(false);
   const [isSuccess, setIsSuccess] = useState(false);
+  const [hasUnsavedChanges, setHasUnsavedChanges] = useState(false);
   const modalRef = useRef<HTMLDivElement>(null);
   const firstInputRef = useRef<HTMLInputElement>(null);
 
@@ -197,6 +198,7 @@ export default function GaleriaModal({
 
       if (result.success) {
         setIsSuccess(true);
+        setHasUnsavedChanges(false);
         setTimeout(() => {
           onSuccess(true, { ...galeria, ...Object.fromEntries(formData) });
           onClose();
@@ -213,9 +215,12 @@ export default function GaleriaModal({
     }
   };
 
+  // Get title from form for header display
+  const [formTitle, setFormTitle] = useState(galeria?.title || '');
+
   return (
     <div 
-      className="fixed inset-0 z-[1000] flex items-center justify-center bg-slate-900/40 backdrop-blur-md p-4 animate-in fade-in duration-300"
+      className="fixed inset-0 z-[1000] bg-slate-900/40 backdrop-blur-md animate-in fade-in duration-300"
       onClick={(e) => {
         // 🎯 UX: Fechar ao clicar no backdrop (fora do modal)
         if (e.target === e.currentTarget && !loading) {
@@ -228,74 +233,95 @@ export default function GaleriaModal({
     >
       <div 
         ref={modalRef}
-        className="relative w-full max-w-4xl max-h-[95vh] bg-white rounded-[0.5rem] shadow-2xl flex flex-col border border-white/20 overflow-hidden animate-in zoom-in-95 duration-300"
+        className="relative w-full h-full bg-white flex flex-col overflow-hidden animate-in zoom-in-95 duration-300"
         onClick={(e) => e.stopPropagation()}
       >
-        {/* HEADER MODAL */}
-        <div className="flex items-center justify-between py-2 px-8 border-b bg-slate-50/50">
-          <div className="flex items-center gap-3">
-            <div className="p-2 bg-champagne/40 rounded-xl text-gold border border-gold/10">
-              {isEdit ? (
-                <Camera size={18} strokeWidth={2} />
-              ) : (
-                <Plus size={18} strokeWidth={2} />
-              )}
-            </div>
-            <h2 
-              id="modal-title"
-              className="text-xs font-semibold text-slate-900 uppercase tracking-widest"
-            >
-              {isEdit ? 'Editar Galeria' : 'Nova Galeria'}
-            </h2>
-          </div>
-          <button
-            onClick={onClose}
-            disabled={loading}
-            className="p-2 text-slate-400 hover:bg-slate-100 rounded-full transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
-            aria-label="Fechar modal"
-            title="Fechar (ESC)"
-          >
-            <X size={20} />
-          </button>
-        </div>
-        {/* FORM CONTENT */}
-        <div className="flex-1 px-4 overflow-y-auto overflow-x-hidden scrollbar-thin scrollbar-thumb-slate-200">
-          <form id="master-gallery-form" onSubmit={handleSubmit}>
-            <GaleriaFormContent
-              initialData={galeria}
-              isEdit={isEdit}
-              customization={{ showCoverInGrid, gridBgColor, columns }}
-              setCustomization={{
-                setShowCoverInGrid,
-                setGridBgColor,
-                setColumns,
-              }}
-              onPickerError={(msg: string) => onSuccess(false, msg)}
-              onTokenExpired={onTokenExpired}
-            />
-          </form>
-        </div>
-        {/* FOOTER MODAL */}
-        <div className="p-2 bg-white/90 backdrop-blur-sm border-t flex flex-row justify-center items-center gap-2 md:gap-3 px-4 sticky bottom-0 z-50">
-          <div className="w-[40%] md:w-auto">
-            <SecondaryButton
-              label="Cancelar"
+        {/* STICKY HEADER - Azul Petróleo Profundo */}
+        <div className="sticky top-0 z-50 bg-petroleum border-b border-white/10">
+          <div className="flex items-center justify-between px-6 py-4">
+            {/* Botão Voltar - Esquerda */}
+            <button
               onClick={onClose}
               disabled={loading}
-              className="w-full md:px-10"
-            />
-          </div>
+              className="p-2 text-white/80 hover:text-white hover:bg-white/10 rounded-lg transition-colors disabled:opacity-50 disabled:cursor-not-allowed shrink-0"
+              aria-label="Voltar"
+              title="Voltar (ESC)"
+            >
+              <ArrowLeft size={20} />
+            </button>
 
-          <div className="w-[60%] md:w-[240px]">
-            <SubmitButton
-              form="master-gallery-form"
-              success={isSuccess}
-              disabled={loading}
-              className="w-full"
-              label={
-                loading ? 'Salvando...' : isEdit ? 'SALVAR ALTERAÇÕES' : 'CRIAR GALERIA'
-              }
-            />
+            {/* Título Centralizado */}
+            <h2 
+              id="modal-title"
+              className="flex-1 text-center text-sm font-semibold text-white uppercase tracking-widest mx-4"
+            >
+              {formTitle || (isEdit ? 'Editar Galeria' : 'Nova Galeria')}
+            </h2>
+
+            {/* Botão SALVAR ALTERAÇÕES - Direita */}
+            <div className="w-[200px] flex justify-end shrink-0">
+              <SubmitButton
+                form="master-gallery-form"
+                success={isSuccess}
+                disabled={loading}
+                className="w-full"
+                label={
+                  loading ? 'Salvando...' : isEdit ? 'SALVAR ALTERAÇÕES' : 'CRIAR GALERIA'
+                }
+              />
+            </div>
+          </div>
+        </div>
+
+        {/* FORM CONTENT - Layout Duas Colunas (65/35) */}
+        <div className="flex-1 overflow-hidden">
+          <div className="w-full max-w-7xl mx-auto h-full">
+            <form id="master-gallery-form" onSubmit={handleSubmit} className="h-full" onChange={() => setHasUnsavedChanges(true)}>
+              <GaleriaFormContent
+                initialData={galeria}
+                isEdit={isEdit}
+                customization={{ showCoverInGrid, gridBgColor, columns }}
+                setCustomization={{
+                  setShowCoverInGrid,
+                  setGridBgColor,
+                  setColumns,
+                }}
+                onPickerError={(msg: string) => onSuccess(false, msg)}
+                onTokenExpired={onTokenExpired}
+                onTitleChange={setFormTitle}
+              />
+            </form>
+          </div>
+        </div>
+
+        {/* STICKY FOOTER - Azul Petróleo Profundo */}
+        <div className="sticky bottom-0 z-50 bg-petroleum border-t border-white/10">
+          <div className="flex items-center justify-between px-6 py-4">
+            {/* Status de Salvamento - Esquerda */}
+            <div className="text-[10px] text-white/70 uppercase tracking-widest">
+              {hasUnsavedChanges ? 'Alterações não salvas' : 'Tudo salvo'}
+            </div>
+
+            {/* Botões - Direita */}
+            <div className="flex items-center gap-3">
+              <button
+                type="button"
+                onClick={onClose}
+                disabled={loading}
+                className="text-[10px] font-bold uppercase tracking-widest text-white hover:text-white/80 transition-colors disabled:opacity-50 disabled:cursor-not-allowed px-4 py-2"
+              >
+                CANCELAR
+              </button>
+              <SubmitButton
+                form="master-gallery-form"
+                success={isSuccess}
+                disabled={loading}
+                className="px-6"
+                label={
+                  loading ? 'Salvando...' : isEdit ? 'SALVAR ALTERAÇÕES' : 'CRIAR GALERIA'
+                }
+              />
+            </div>
           </div>
         </div>
       </div>

@@ -48,11 +48,11 @@ export default function LoadingSpinner({
     <div className="flex flex-col items-center justify-center gap-3">
       <div className={`relative ${s.container}`}>
         {/* Círculo de fundo */}
-        <div className="absolute inset-0 rounded-full border border-champagne/5 dark:border-[#F3E5AB]/5 transition-colors duration-300" />
+        <div className="absolute inset-0 rounded-full border border-petroleum/5 dark:border-[#F3E5AB]/5 transition-colors duration-300" />
 
         {/* Círculo Giratório */}
         <div
-          className="absolute inset-0 rounded-full border-t-[1.5px] border-r-[1.5px] border-transparent border-t-champagne dark:border-t-[#F3E5AB] border-r-champagne/20 dark:border-r-[#F3E5AB]/20 animate-spin transition-colors duration-300"
+          className="absolute inset-0 rounded-full border-t-[1.5px] border-r-[1.5px] border-transparent border-t-petroleum dark:border-t-[#F3E5AB] border-r-petroleum/20 dark:border-r-[#F3E5AB]/20 animate-spin transition-colors duration-300"
           style={{ animationDuration: '1.5s' }}
         />
 
@@ -62,11 +62,11 @@ export default function LoadingSpinner({
             {/* Blur reduzido para o tamanho XS */}
             {size !== 'xs' && (
               <div
-                className={`absolute ${s.blur} bg-champagne/10 dark:bg-[#F3E5AB]/10 blur-[15px] rounded-full animate-pulse transition-colors duration-300`}
+                className={`absolute ${s.blur} bg-petroleum/10 dark:bg-[#F3E5AB]/10 blur-[15px] rounded-full animate-pulse transition-colors duration-300`}
               />
             )}
             <Camera
-              className={`text-champagne dark:text-[#F3E5AB] relative z-10 ${s.camera} transition-colors duration-300`}
+              className={`text-petroleum dark:text-[#F3E5AB] relative z-10 ${s.camera} transition-colors duration-300`}
               strokeWidth={s.stroke}
               style={{ animation: 'pulse 2.5s infinite ease-in-out' }}
             />
@@ -77,7 +77,7 @@ export default function LoadingSpinner({
       {/* Mensagem Opcional - Só exibe acima de XS ou se for forçada */}
       {message && size !== 'xs' && (
         <p
-          className={`italic text-champagne/60 dark:text-[#F3E5AB]/60 tracking-wider uppercase animate-pulse ${s.text} transition-colors duration-300`}
+          className={`italic text-petroleum/60 dark:text-[#F3E5AB]/60 tracking-wider uppercase animate-pulse ${s.text} transition-colors duration-300`}
         >
           {message}
         </p>

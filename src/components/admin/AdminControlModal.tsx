@@ -43,8 +43,8 @@ export default function AdminControlModal({
         onClick={onClose}
       />
 
-      {/* Modal Card - MODAL DARK: Fundo #1E293B, bordas white/10 */}
-      <div className="relative bg-[#1E293B] rounded-3xl w-full max-w-md shadow-2xl border border-white/10 overflow-hidden animate-in fade-in zoom-in duration-200">
+      {/* Modal Card - MODAL DARK: Fundo Azul Petróleo, bordas white/10 */}
+      <div className="relative bg-petroleum rounded-3xl w-full max-w-md shadow-2xl border border-white/10 overflow-hidden animate-in fade-in zoom-in duration-200">
         <div className="p-6 text-white flex justify-between items-center border-b border-white/10">
           <div className="flex items-center gap-3">
             <ShieldAlert size={20} strokeWidth={2.5} className="text-[#D4AF37]" />

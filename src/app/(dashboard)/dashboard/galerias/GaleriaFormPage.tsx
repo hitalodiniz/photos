@@ -2,12 +2,9 @@
 
 import { useState, useEffect, useRef } from 'react';
 import { useRouter } from 'next/navigation';
-import { ArrowLeft } from 'lucide-react';
 import { createGaleria, updateGaleria } from '@/core/services/galeria.service';
 import { SubmitButton } from '@/components/ui';
-import SecondaryButton from '@/components/ui/SecondaryButton';
 import GaleriaFormContent from '../GaleriaFormContent';
-import Breadcrumbs from '@/components/ui/Breadcrumbs';
 import type { Galeria } from '@/core/types/galeria';
 import { Toast } from '@/components/ui';
 import GoogleConsentAlert from '@/components/auth/GoogleConsentAlert';
@@ -33,26 +30,21 @@ export default function GaleriaFormPage({
   const router = useRouter();
   const [loading, setLoading] = useState(false);
   const [isSuccess, setIsSuccess] = useState(false);
+  const [hasUnsavedChanges, setHasUnsavedChanges] = useState(false);
+  const [formTitle, setFormTitle] = useState(galeria?.title || '');
   const [showConsentAlert, setShowConsentAlert] = useState(false);
   const [toast, setToast] = useState<{
     message: string;
     type: 'success' | 'error';
   } | null>(null);
   const formRef = useRef<HTMLFormElement>(null);
-  const firstInputRef = useRef<HTMLInputElement>(null);
 
   // 🎯 ESTADOS DE CUSTOMIZAÇÃO COM VALORES PADRÃO
-  const [isPublic, setIsPublic] = useState(() => {
-    if (galeria) {
-      return galeria.is_public === true || galeria.is_public === 'true';
-    }
-    return true;
-  });
   const [showCoverInGrid, setShowCoverInGrid] = useState(() => {
     if (galeria) {
       return (
         galeria.show_cover_in_grid === true ||
-        galeria.show_cover_in_grid === 'true'
+        String(galeria.show_cover_in_grid) === 'true'
       );
     }
     return false;
@@ -161,6 +153,7 @@ export default function GaleriaFormPage({
 
       if (result.success) {
         setIsSuccess(true);
+        setHasUnsavedChanges(false);
         setToast({
           message: isEdit ? 'Galeria atualizada com sucesso!' : 'Galeria criada com sucesso!',
           type: 'success',
@@ -183,97 +176,68 @@ export default function GaleriaFormPage({
     }
   };
 
-  const breadcrumbs = isEdit
-    ? [
-        { label: 'Galerias', href: '/dashboard' },
-        {
-          label: galeria?.title || 'Galeria',
-          href: `/dashboard/galerias/${galeria?.id}/edit`,
-        },
-        { label: 'Editar' },
-      ]
-    : [
-        { label: 'Galerias', href: '/dashboard' },
-        { label: 'Nova Galeria' },
-      ];
-
   return (
-    <div className="min-h-screen bg-luxury-bg">
-      <div className="max-w-6xl mx-auto px-4 py-4">
-        <div className="grid grid-cols-1 lg:grid-cols-[200px_1fr] gap-6">
-          {/* Sidebar com Breadcrumbs */}
-          <aside className="hidden lg:block">
-            <div className="sticky top-4">
-              <Breadcrumbs items={breadcrumbs} />
-              <button
-                onClick={() => router.back()}
-                className="mt-4 p-2 text-slate-400 hover:text-slate-600 hover:bg-slate-100 rounded-md transition-colors w-full flex items-center justify-center gap-2"
-                aria-label="Voltar"
-              >
-                <ArrowLeft size={16} />
-                <span className="text-xs font-medium">Voltar</span>
-              </button>
-            </div>
-          </aside>
+    <div className="min-h-screen bg-white flex flex-col">
 
-          {/* Conteúdo Principal */}
-          <div className="flex-1">
-            {/* Breadcrumbs Mobile */}
-            <div className="lg:hidden mb-4 flex items-center justify-between">
-              <Breadcrumbs items={breadcrumbs} />
-              <button
-                onClick={() => router.back()}
-                className="p-1.5 text-slate-400 hover:text-slate-600 hover:bg-slate-100 rounded-md transition-colors"
-                aria-label="Voltar"
-              >
-                <ArrowLeft size={18} />
-              </button>
-            </div>
+      {/* FORM CONTENT - Layout Duas Colunas (65/35) */}
+      <div className="flex-1 overflow-hidden">
+        <div className="w-full max-w-7xl mx-auto h-full">
+          <form
+            ref={formRef}
+            id="galeria-form"
+            onSubmit={handleSubmit}
+            className="h-full"
+            onChange={() => setHasUnsavedChanges(true)}
+          >
+            <GaleriaFormContent
+              initialData={galeria}
+              isEdit={isEdit}
+              customization={{ showCoverInGrid, gridBgColor, columns }}
+              setCustomization={{
+                setShowCoverInGrid,
+                setGridBgColor,
+                setColumns,
+              }}
+              onPickerError={(msg: string) =>
+                setToast({ message: msg, type: 'error' })
+              }
+              onTokenExpired={() => setShowConsentAlert(true)}
+              onTitleChange={setFormTitle}
+            />
+          </form>
+        </div>
+      </div>
 
-            {/* Form Content */}
-            <div className="bg-white rounded-lg shadow-sm border border-slate-200 p-4 md:p-6">
-              <form ref={formRef} id="galeria-form" onSubmit={handleSubmit}>
-                <GaleriaFormContent
-                  initialData={galeria}
-                  isEdit={isEdit}
-                  customization={{ showCoverInGrid, gridBgColor, columns }}
-                  setCustomization={{
-                    setShowCoverInGrid,
-                    setGridBgColor,
-                    setColumns,
-                  }}
-                  onPickerError={(msg: string) =>
-                    setToast({ message: msg, type: 'error' })
-                  }
-                  onTokenExpired={() => setShowConsentAlert(true)}
-                />
-              </form>
-            </div>
+      {/* STICKY FOOTER - Azul Petróleo Profundo */}
+      <div className="sticky bottom-0 z-50 bg-petroleum border-t border-white/10">
+        <div className="flex items-center justify-between px-6">
+          {/* Status de Salvamento - Esquerda */}
+          <div className="text-[10px] text-white/70 uppercase tracking-widest">
+            {hasUnsavedChanges ? 'Alterações não salvas' : 'Tudo salvo'}
+          </div>
 
-            {/* Footer com Botões */}
-            <div className="mt-4 pt-4 border-t border-slate-200">
-              <div className="flex items-center justify-end gap-3">
-                <SecondaryButton
-                  label="Cancelar"
-                  onClick={() => router.back()}
-                  disabled={loading}
-                  className="min-w-[120px]"
-                />
-                <SubmitButton
-                  form="galeria-form"
-                  success={isSuccess}
-                  disabled={loading}
-                  className="min-w-[120px]"
-                  label={
-                    loading
-                      ? 'Salvando...'
-                      : isEdit
-                        ? 'Salvar'
-                        : 'Criar'
-                  }
-                />
-              </div>
-            </div>
+          {/* Botões - Direita */}
+          <div className="flex items-center gap-3">
+            <button
+              type="button"
+              onClick={() => router.back()}
+              disabled={loading}
+              className="text-[10px] font-bold uppercase tracking-widest text-white hover:text-white/80 transition-colors disabled:opacity-50 disabled:cursor-not-allowed px-4 py-2"
+            >
+              CANCELAR
+            </button>
+            <SubmitButton
+              form="galeria-form"
+              success={isSuccess}
+              className="px-6"
+              label={
+                loading
+                  ? 'Salvando...'
+                  : isEdit
+                    ? 'SALVAR ALTERAÇÕES'
+                    : 'CRIAR GALERIA'
+              }
+            />
           </div>
         </div>
       </div>

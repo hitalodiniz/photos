@@ -24,10 +24,10 @@ export default function AuthGuard({
   // 2. Estado de Carregamento Editorial
   if (isLoading) {
     return (
-      <div className="min-h-screen bg-[#F8F9FA] flex flex-col items-center justify-center gap-4">
+      <div className="min-h-screen bg-white dark:bg-black flex flex-col items-center justify-center gap-4">
         <div className="relative">
-          <Loader2 className="w-10 h-10 text-[#D4AF37] animate-spin" />
-          <div className="absolute inset-0 blur-xl bg-champagne-dark opacity-20 animate-pulse"></div>
+          <Loader2 className="w-10 h-10 text-petroleum dark:text-[#D4AF37] animate-spin" />
+          <div className="absolute inset-0 blur-xl bg-petroleum/10 dark:bg-champagne-dark/20 opacity-20 animate-pulse"></div>
         </div>
         <LoadingScreen message="Validando seu acesso" />
       </div>

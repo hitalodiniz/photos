@@ -148,7 +148,7 @@ export const ToolBarMobile = ({
     <div className="w-full z-[110] sticky top-0 md:hidden pointer-events-auto overflow-visible">
       <div
         className={`flex items-center justify-between h-14 px-4 border-b transition-all duration-500 relative z-[120] overflow-visible
-        ${isScrolled ? ' bg-[#1E293B]/95 backdrop-blur-md border-white/10 shadow-lg' : ' bg-[#1E293B] border-white/20'}`}
+        ${isScrolled ? ' bg-petroleum/95 backdrop-blur-md border-white/10 shadow-lg' : ' bg-petroleum border-white/20'}`}
       >
         {/* ESQUERDA: TAGS E COLUNAS */}
         <div className="flex items-center gap-2 overflow-visible">
@@ -182,7 +182,7 @@ export const ToolBarMobile = ({
           <div className="relative overflow-visible">
             <button
               onClick={handleNativeShare}
-              className="w-9 h-9 rounded-[0.5rem] flex items-center justify-center bg-white/5 text-white border border-white/10 active:bg-white/20"
+              className="w-9 h-9 rounded-[0.5rem] flex items-center justify-center bg-slate-800 text-white border border-white/10 active:bg-slate-700"
             >
               <Share2 size={18} />
             </button>
@@ -192,10 +192,10 @@ export const ToolBarMobile = ({
           <div className="relative overflow-visible">
             <button
               onClick={handleCopyLink}
-              className="w-9 h-9 rounded-[0.5rem] flex items-center justify-center bg-white/5 text-white border border-white/10 active:bg-white/20"
+              className="w-9 h-9 rounded-[0.5rem] flex items-center justify-center bg-slate-800 text-white border border-white/10 active:bg-slate-700"
             >
               {copied ? (
-                <Check size={16} className="text-green-400" />
+                <Check size={16} className="text-slate-800 dark:text-green-400" />
               ) : (
                 <LinkIcon size={16} />
               )}
@@ -206,7 +206,7 @@ export const ToolBarMobile = ({
           <div className="relative overflow-visible">
             <button
               onClick={() => setShowOnlyFavorites(!showOnlyFavorites)}
-              className={`w-9 h-9 rounded-[0.5rem] flex items-center justify-center transition-all border ${showOnlyFavorites ? 'bg-[#E67E70] border-[#E67E70] text-white shadow-lg' : 'bg-white/5 border-white/10 text-white'}`}
+              className={`w-9 h-9 rounded-[0.5rem] flex items-center justify-center transition-all border ${showOnlyFavorites ? 'bg-[#E67E70] border-[#E67E70] text-white shadow-lg' : 'bg-slate-800 border-white/10 text-white'}`}
             >
               <Filter size={15} />
             </button>
@@ -241,7 +241,7 @@ export const ToolBarMobile = ({
                   onClick={() => setShowDownloadMenu(false)}
                 />
 
-                <div className="absolute top-full mt-3 right-0 w-[75vw] max-w-[280px] bg-[#1E293B] border border-white/20 rounded-xl shadow-2xl animate-in fade-in slide-in-from-top-2 duration-300 z-[200] overflow-hidden">
+                <div className="absolute top-full mt-3 right-0 w-[75vw] max-w-[280px] bg-petroleum border border-white/20 rounded-xl shadow-2xl animate-in fade-in slide-in-from-top-2 duration-300 z-[200] overflow-hidden">
                   <div className="p-1.5 flex flex-col gap-1">
                     {/* Opção 1: Fotos Otimizadas (Abre a Central de Volumes) */}
                     <button
@@ -326,7 +326,7 @@ export const ToolBarMobile = ({
       {/* PAINÉIS DE EXPANSÃO (TAGS E COLUNAS) */}
       <div className="absolute top-full left-0 w-full z-[115]">
         <div
-          className={`overflow-hidden transition-all duration-500 bg-[#1A1A1A]/95 backdrop-blur-xl border-b border-white/10 ${showColumnsPanel ? 'max-h-20 opacity-100' : 'max-h-0 opacity-0 pointer-events-none'}`}
+          className={`overflow-hidden transition-all duration-500 bg-petroleum/95 backdrop-blur-xl border-b border-white/10 ${showColumnsPanel ? 'max-h-20 opacity-100' : 'max-h-0 opacity-0 pointer-events-none'}`}
         >
           <div className="flex items-center justify-center gap-4 h-14">
             {[1, 2].map((num) => (
@@ -345,7 +345,7 @@ export const ToolBarMobile = ({
         </div>
 
         <div
-          className={`overflow-hidden transition-all duration-500 bg-[#1A1A1A]/95 backdrop-blur-xl border-b border-white/10 ${showTagsPanel ? 'max-h-[70vh] opacity-100' : 'max-h-0 opacity-0 pointer-events-none'}`}
+          className={`overflow-hidden transition-all duration-500 bg-petroleum/95 backdrop-blur-xl border-b border-white/10 ${showTagsPanel ? 'max-h-[70vh] opacity-100' : 'max-h-0 opacity-0 pointer-events-none'}`}
         >
           <div className="p-6 flex flex-col gap-4">
             <span className="text-[10px] font-bold uppercase tracking-[0.2em] text-white">

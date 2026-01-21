@@ -217,10 +217,10 @@ export default function Dashboard({
   // 🎯 LOADING: Mostra loading enquanto verifica sessão
   if (authLoading) {
     return (
-      <div className="min-h-screen bg-[#F8F9FA] flex flex-col items-center justify-center gap-4">
+      <div className="min-h-screen bg-white dark:bg-black flex flex-col items-center justify-center gap-4">
         <div className="relative">
-          <Loader2 className="w-10 h-10 text-[#D4AF37] animate-spin" />
-          <div className="absolute inset-0 blur-xl bg-champagne-dark opacity-20 animate-pulse"></div>
+          <Loader2 className="w-10 h-10 text-petroleum dark:text-[#D4AF37] animate-spin" />
+          <div className="absolute inset-0 blur-xl bg-petroleum/10 dark:bg-champagne-dark/20 opacity-20 animate-pulse"></div>
         </div>
         <LoadingScreen message="Validando seu acesso" />
       </div>
@@ -533,13 +533,14 @@ export default function Dashboard({
     <div className="mx-auto flex flex-col lg:flex-row max-w-[1600px] gap-4 px-4 py-2 bg-luxury-bg min-h-screen pb-24 lg:pb-6">
       {/* SIDEBAR */}
       <aside
-        className={`fixed bottom-0 left-0 right-0 z-[100] bg-white border-t border-slate-200 px-6 py-3 lg:py-0 lg:px-0 lg:relative lg:block lg:bg-transparent lg:border-0 transition-all duration-500 ease-in-out ${isSidebarCollapsed ? 'lg:w-[70px]' : 'lg:w-[210px]'}`}
+        className={`fixed bottom-0 left-0 right-0 z-[100] bg-white border-t border-slate-200 px-6 py-3 lg:py-0 lg:px-0 lg:relative lg:block lg:bg-petroleum lg:border-0 lg:rounded-lg transition-all duration-500 ease-in-out ${isSidebarCollapsed ? 'lg:w-[70px]' : 'lg:w-[210px]'}`}
       >
         {/* 1. Botão Nova Galeria (Mantido tamanho original) */}
-        <button
-          onClick={() => router.push('/dashboard/galerias/new')}
-          className={`flex items-center justify-center bg-gold text-black hover:bg-white hover:text-gold transition-all duration-300 rounded-[0.5rem] border border-gold group shadow-lg lg:shadow-sm mb-6 overflow-hidden w-12 h-12 fixed bottom-20 right-6 z-[100] lg:relative lg:bottom-auto lg:right-auto lg:z-auto ${isSidebarCollapsed ? 'lg:w-14 lg:h-10' : 'lg:h-10 lg:px-4 lg:gap-3 lg:w-fit'}`}
-        >
+        <div className="lg:px-4 lg:py-3">
+          <button
+            onClick={() => router.push('/dashboard/galerias/new')}
+            className={`flex items-center justify-center bg-[#F3E5AB] text-petroleum hover:bg-[#F3E5AB]/90 transition-all duration-300 rounded-[0.5rem] border border-[#F3E5AB] group shadow-lg mb-6 overflow-hidden w-12 h-12 fixed bottom-20 right-6 z-[100] lg:relative lg:bottom-auto lg:right-auto lg:z-auto lg:shadow-sm lg:mb-0 ${isSidebarCollapsed ? 'lg:w-14 lg:h-10' : 'lg:h-10 lg:px-4 lg:gap-3 lg:w-full'}`}
+          >
           <Plus
             size={20}
             className="group-hover:rotate-90 transition-transform shrink-0 lg:w-[18px] lg:h-[18px]"
@@ -550,12 +551,13 @@ export default function Dashboard({
               Nova Galeria
             </span>
           )}
-        </button>
+          </button>
+        </div>
 
-        <nav className="flex lg:flex-col justify-around lg:justify-start lg:space-y-1 relative">
+        <nav className="flex lg:flex-col justify-around lg:justify-start lg:space-y-1 relative lg:px-4 lg:py-3">
           <button
             onClick={toggleSidebar}
-            className="hidden lg:flex absolute -right-3 top-[-10px] bg-white border border-slate-200 rounded-full p-1 shadow-sm hover:bg-slate-50 z-10 text-slate-400"
+            className="hidden lg:flex absolute -right-3 top-[-10px] bg-slate-800 border border-slate-700 rounded-full p-1 shadow-sm hover:bg-slate-700 z-10 text-slate-400 hover:text-slate-300"
           >
             {isSidebarCollapsed ? (
               <ChevronRight size={14} />
@@ -564,8 +566,15 @@ export default function Dashboard({
             )}
           </button>
 
-          {/* Itens de Navegação - Corrigido para não encavalar no mobile */}
-          <div className="flex flex-row lg:flex-col flex-1 justify-around lg:justify-start gap-1 w-full">
+          {/* SESSÃO 1: STATUS DAS GALERIAS */}
+          {!isSidebarCollapsed && (
+            <div className="hidden lg:block mb-10">
+              <span className="text-[10px] font-bold uppercase tracking-widest text-white/80">
+                GALERIAS
+              </span>
+            </div>
+          )}
+          <div className="flex flex-row lg:flex-col flex-1 justify-around lg:justify-start gap-2 lg:gap-1 w-full">
             {[
               {
                 id: 'active',
@@ -593,26 +602,56 @@ export default function Dashboard({
                   setCardsToShow(8);
                   window.scrollTo({ top: 0, behavior: 'smooth' });
                 }}
-                className={`flex flex-col lg:flex-row items-center transition-all duration-300 group relative ${isSidebarCollapsed ? 'lg:justify-center lg:py-4' : 'lg:justify-between lg:px-4 lg:py-3 lg:rounded-xl'} ${currentView === item.id ? 'text-black bg-champagne shadow-sm' : 'text-slate-400 hover:bg-white hover:text-slate-600'}`}
+                className={`flex flex-col lg:flex-row items-center justify-between transition-all duration-300 group relative w-full ${isSidebarCollapsed ? 'lg:justify-center lg:py-4' : 'lg:px-4 lg:py-3 lg:rounded-xl'} ${currentView === item.id ? 'text-black bg-champagne shadow-sm lg:text-[#D4AF37] lg:bg-white/10' : 'text-slate-400 hover:text-slate-300 lg:text-slate-400 lg:hover:text-[#D4AF37]'}`}
               >
-                <div className="flex flex-col lg:flex-row items-center gap-1 lg:gap-3">
-                  <item.icon
-                    size={22}
-                    className={
-                      currentView === item.id
-                        ? 'text-black'
-                        : 'text-slate-400 group-hover:text-gold'
-                    }
-                  />
+                {/* Linha vertical de 2px à esquerda para item ativo (desktop) */}
+                {currentView === item.id && (
+                  <div className="hidden lg:block absolute left-0 top-1/2 -translate-y-1/2 w-0.5 h-6 bg-[#D4AF37] rounded-r" />
+                )}
+                <div className="flex flex-col lg:flex-row items-center gap-1 lg:gap-3 relative">
+                  {/* Indicador visual para mobile (barra superior) */}
+                  {currentView === item.id && (
+                    <div className="absolute -top-2 left-1/2 -translate-x-1/2 w-8 h-0.5 rounded-full bg-gold lg:hidden" />
+                  )}
+                  {/* Container do ícone com badge no mobile */}
+                  <div className="relative">
+                    <item.icon
+                      size={22}
+                      className={
+                        currentView === item.id
+                          ? 'text-gold lg:text-[#D4AF37]'
+                          : 'text-slate-400 group-hover:text-[#D4AF37]'
+                      }
+                    />
+                    {/* Badge circular no mobile - canto superior direito */}
+                    {item.count > 0 && (
+                      <span
+                        className={`absolute -top-1 -right-1 flex items-center justify-center rounded-full text-[10px] font-semibold border transition-colors lg:hidden ${
+                          item.id === 'active'
+                            ? currentView === item.id
+                              ? 'min-w-[18px] h-5 px-1.5 bg-gold text-black border-gold/50 shadow-sm'
+                              : 'min-w-[18px] h-5 px-1.5 bg-slate-700 text-white border-slate-600 shadow-sm'
+                            : currentView === item.id
+                              ? 'min-w-[16px] h-4 px-1 bg-slate-600 text-white border-slate-500'
+                              : 'min-w-[16px] h-4 px-1 bg-slate-500 text-white border-slate-400'
+                        }`}
+                      >
+                        {item.count}
+                      </span>
+                    )}
+                  </div>
                   <span
-                    className={`uppercase text-[9px] lg:text-[10px] font-bold tracking-widest block ${!isSidebarCollapsed ? 'lg:block' : 'lg:hidden'}`}
+                    className={`hidden lg:block uppercase text-[10px] font-bold tracking-widest ${!isSidebarCollapsed ? 'lg:block' : 'lg:hidden'}`}
                   >
                     {item.label}
                   </span>
                 </div>
-                {!isSidebarCollapsed && item.count > 0 && (
+                {/* Badge numérico discreto - sempre visível (desktop) */}
+                {!isSidebarCollapsed && (
                   <span
-                    className={`hidden lg:block text-[10px] font-bold px-2 py-0.5 rounded-full ${currentView === item.id ? 'bg-white/40 text-black' : 'bg-slate-100 text-slate-500'}`}
+                    className={`hidden lg:block text-[10px] font-semibold tracking-widest ${
+                      currentView === item.id ? 'text-[#D4AF37]' : 'text-slate-400'
+                    }`}
                   >
                     {item.count}
                   </span>
@@ -621,33 +660,34 @@ export default function Dashboard({
             ))}
           </div>
 
-          {/* 🎯 SEÇÃO 2: ARMAZENAMENTO (Textos Originais Restaurados) */}
+          {/* Armazenamento dentro da seção GALERIAS */}
           <div
-            className={`hidden lg:block mt-8 pt-8 border-t border-slate-100 transition-all duration-500 ${isSidebarCollapsed ? 'px-0' : 'px-2'}`}
+            className={`hidden lg:block pt-4 border-t border-slate-700 transition-all duration-500 ${isSidebarCollapsed ? 'px-0' : ''}`}
           >
             {!isSidebarCollapsed ? (
               <div className="space-y-2">
-                <div className="flex justify-between items-end mb-1">
-                  <span className="text-[9px] font-semiboldbold uppercase tracking-widest text-slate-700">
-                    Armazenamento
-                  </span>
-                  <span className="text-[10px] font-semibold text-slate-900">
+                <div className="flex justify-end items-end mb-1">
+                  <span className="text-[10px] font-semibold tracking-widest text-slate-300">
                     {galerias.length} / 50
                   </span>
                 </div>
-                <div className="w-full h-[6px] bg-slate-200 rounded-full overflow-hidden shadow-inner">
+                <div className="w-full h-2 bg-slate-200 rounded-full overflow-hidden shadow-inner">
                   <div
-                    className={`h-full transition-all duration-1000 ease-out ${galerias.length > 45 ? 'bg-red-500' : 'bg-gold'}`}
+                    className={`h-full transition-all duration-1000 ease-out rounded-full ${
+                      galerias.length > 45 
+                        ? 'bg-gradient-to-r from-red-500 to-red-600' 
+                        : 'bg-gradient-to-r from-gold to-[#D4AF37]'
+                    } shadow-sm`}
                     style={{ width: `${(galerias.length / 50) * 100}%` }}
                   />
                 </div>
-                <p className="text-[9px] text-slate-700 uppercase tracking-widest mt-1 font-medium">
+                <p className="text-[9px] text-slate-400 uppercase tracking-widest mt-1 font-medium">
                   Limite de 50 galerias no plano atual
                 </p>
               </div>
             ) : (
               <div className="flex justify-center group relative cursor-help py-2">
-                <div className="w-8 h-8 rounded-full border-2 border-slate-100 flex items-center justify-center text-[9px] font-black text-slate-500">
+                <div className="w-8 h-8 rounded-full border-2 border-slate-700 flex items-center justify-center text-[9px] font-black text-slate-300">
                   {galerias.length}
                 </div>
                 {/* Z-INDEX CORRIGIDO PARA O TOOLTIP */}
@@ -658,18 +698,31 @@ export default function Dashboard({
             )}
           </div>
 
-          {/* 🎯 SEÇÃO 3: STATUS GOOGLE DRIVE (Textos Originais Restaurados) */}
+          {/* Divisor claro entre GALERIAS e SISTEMA */}
+          <div className="hidden lg:block mt-10 mb-10 border-t border-slate-700"></div>
+
+          {/* SESSÃO 3: SISTEMA (Google Drive) */}
+          {!isSidebarCollapsed && (
+            <div className="hidden lg:block mb-10">
+              <span className="text-[10px] font-bold uppercase tracking-widest text-white/80">
+                SISTEMA
+              </span>
+            </div>
+          )}
+          {/* 🎯 SEÇÃO 3: STATUS GOOGLE DRIVE (Melhorado com Indicador Pulsante) */}
           <div
-            className={`hidden lg:block mt-2 pt-4 border-t border-slate-100 ${isSidebarCollapsed ? 'px-0' : 'px-2'}`}
+            className={`hidden lg:block pt-4 border-t border-slate-700 ${isSidebarCollapsed ? 'px-0' : ''}`}
           >
             <div
-              className={`relative group flex items-center transition-all duration-300 ${isSidebarCollapsed ? 'justify-center py-4' : 'gap-3 p-3 rounded-xl bg-slate-50 border border-slate-100'}`}
+              className={`relative group flex items-center transition-all duration-300 ${isSidebarCollapsed ? 'justify-center py-4' : 'gap-3 py-3 rounded-xl hover:bg-white/5'}`}
             >
               <div className="relative flex items-center justify-center shrink-0">
                 <div
                   className={`h-2.5 w-2.5 rounded-full ${photographer?.google_refresh_token ? 'bg-green-500' : 'bg-amber-500'} shadow-sm`}
                 />
-                {!photographer?.google_refresh_token && (
+                {photographer?.google_refresh_token ? (
+                  <div className="absolute inset-0 h-2.5 w-2.5 rounded-full bg-green-500 animate-ping opacity-75" />
+                ) : (
                   <div className="absolute inset-0 h-2.5 w-2.5 rounded-full bg-amber-500 animate-ping opacity-75" />
                 )}
               </div>
@@ -681,17 +734,17 @@ export default function Dashboard({
                   </span>
                   <div className="flex items-center gap-1.5">
                     <span
-                      className={`text-[10px] font-semibold truncate ${photographer?.google_refresh_token ? 'text-slate-600' : 'text-amber-600'}`}
+                      className={`text-[10px] font-semibold truncate ${photographer?.google_refresh_token ? 'text-green-600' : 'text-amber-600'}`}
                     >
                       {photographer?.google_refresh_token
-                        ? 'Conectado'
+                        ? 'Drive Sincronizado'
                         : 'Ação Necessária'}
                     </span>
                     <button
                       onClick={() =>
                         handleGoogleLogin(!photographer?.google_refresh_token)
                       }
-                      className="p-1 hover:bg-slate-200 rounded-md transition-colors text-slate-400 hover:text-gold"
+                      className="p-1 hover:bg-white/10 rounded-md transition-colors text-slate-400 hover:text-[#D4AF37]"
                     >
                       <RefreshCw
                         size={12}
@@ -709,13 +762,21 @@ export default function Dashboard({
             </div>
           </div>
 
+          {/* SESSÃO 4: AJUDA */}
+          {!isSidebarCollapsed && (
+            <div className="hidden lg:block mt-10 mb-10">
+              <span className="text-[10px] font-bold uppercase tracking-widest text-white/80">
+                AJUDA
+              </span>
+            </div>
+          )}
           {/* 🎯 SEÇÃO 4: AJUDA */}
-          <div className="mt-4 px-2 lg:border-t lg:pt-4">
+          <div className="mt-4 lg:border-t lg:border-slate-700 lg:pt-6">
             <Link
               href="/dashboard/ajuda"
-              className={`flex items-center transition-all duration-300 group relative ${isSidebarCollapsed ? 'justify-center py-4' : 'gap-3 p-3 rounded-xl bg-slate-50 border border-slate-100 hover:bg-slate-100'}`}
+              className={`flex items-center transition-all duration-300 group relative ${isSidebarCollapsed ? 'justify-center py-4' : 'gap-3 py-3 rounded-xl hover:bg-white/5'}`}
             >
-              <div className="text-slate-600">
+              <div className="text-slate-400 group-hover:text-[#D4AF37] transition-colors">
                 <HelpCircle size={20} strokeWidth={2} />
               </div>
               {!isSidebarCollapsed && (
@@ -723,7 +784,7 @@ export default function Dashboard({
                   <span className="text-[9px] font-semibold uppercase tracking-widest text-slate-400 mb-1">
                     Ajuda
                   </span>
-                  <span className="text-[11px] font-medium text-slate-600">
+                  <span className="text-[11px] font-medium text-slate-300">
                     Perguntas Frequentes
                   </span>
                 </div>
@@ -736,39 +797,48 @@ export default function Dashboard({
             </Link>
           </div>
 
-          {/* 🎯 SEÇÃO 5: ADMIN MODE (Restaurado e Corrigido para Mobile) - ADMIN LIGHT */}
+          {/* SESSÃO 5: CONTA (Admin Mode) */}
           {photographer?.username === 'hitalodiniz' && (
-            <div className="mt-4 px-2 lg:border-t lg:pt-4">
-              <button
-                onClick={() => setIsAdminModalOpen(true)}
-                className={`flex items-center transition-all duration-300 group relative ${isSidebarCollapsed ? 'justify-center py-4' : 'gap-3 p-3 rounded-xl bg-[#F3E5AB]/20 hover:bg-[#F3E5AB]/40 border border-[#D4AF37]/40'}`}
-              >
-                <div className="text-[#D4AF37]">
-                  <ShieldAlert size={20} strokeWidth={2} />
+            <div className="mt-10 lg:border-t lg:border-slate-700 lg:pt-6">
+              {!isSidebarCollapsed && (
+                <div className="hidden lg:block mb-10">
+                  <span className="text-[10px] font-bold uppercase tracking-widest text-white/80">
+                    CONTA
+                  </span>
                 </div>
-                {!isSidebarCollapsed && (
-                  <div className="hidden lg:flex flex-col items-start leading-none">
-                    <span className="text-[9px] font-semibold uppercase tracking-widest text-[#D4AF37] mb-1">
-                      Admin Mode
-                    </span>
-                    <span className="text-[11px] font-medium text-[#D4AF37]">
-                      Cache & Tokens
-                    </span>
+              )}
+              <div className="mt-4 lg:mt-0">
+                <button
+                  onClick={() => setIsAdminModalOpen(true)}
+                  className={`flex items-center transition-all duration-300 group relative w-full ${isSidebarCollapsed ? 'justify-center py-4' : 'gap-3 py-3 rounded-xl hover:bg-white/5'}`}
+                >
+                  <div className="text-slate-400 group-hover:text-[#D4AF37] transition-colors">
+                    <ShieldAlert size={20} strokeWidth={2} />
                   </div>
-                )}
-                {isSidebarCollapsed && (
-                  <div className="absolute left-full ml-4 px-3 py-2 bg-[#1E293B] text-white text-[10px] font-bold uppercase rounded-lg opacity-0 pointer-events-none group-hover:opacity-100 transition-all z-[999] shadow-xl border border-white/10">
-                    Admin Panel
-                  </div>
-                )}
-              </button>
+                  {!isSidebarCollapsed && (
+                    <div className="hidden lg:flex flex-col items-start leading-none">
+                      <span className="text-[9px] font-semibold uppercase tracking-widest text-slate-400 mb-1 group-hover:text-[#D4AF37] transition-colors">
+                        Admin Mode
+                      </span>
+                      <span className="text-[11px] font-medium text-slate-300 group-hover:text-slate-200 transition-colors">
+                        Cache & Tokens
+                      </span>
+                    </div>
+                  )}
+                  {isSidebarCollapsed && (
+                    <div className="absolute left-full ml-4 px-3 py-2 bg-petroleum text-white text-[10px] font-bold uppercase rounded-lg opacity-0 pointer-events-none group-hover:opacity-100 transition-all z-[999] shadow-xl border border-white/10">
+                      Admin Panel
+                    </div>
+                  )}
+                </button>
+              </div>
             </div>
           )}
 
           {/* 🎯 SEÇÃO 6: CONTROLE DE VERSÃO E DEPLOY */}
           {/* Versão visível para todos, detalhes completos apenas para hitalodiniz */}
           {/* Oculto no mobile */}
-          <div className="hidden lg:block mt-4 px-2 lg:border-t lg:pt-4 lg:pb-2">
+          <div className="hidden lg:block mt-4 px-2 lg:border-t lg:border-slate-700 lg:pt-4 lg:pb-2">
             <VersionInfo 
               isCollapsed={isSidebarCollapsed} 
               showFullDetails={initialProfile?.username === 'hitalodiniz'}
@@ -784,25 +854,25 @@ export default function Dashboard({
 
       {/* CONTEÚDO PRINCIPAL */}
       <main className="flex-1 space-y-2 min-w-0">
-        <header className="bg-white rounded-lg border border-slate-200 shadow-sm">
+        <header className="bg-petroleum rounded-lg border-b border-slate-700/50">
           {/* Barra de Ações em Lote */}
           {isBulkMode && selectedIds.size > 0 && (
-            <div className="flex items-center justify-between px-4 py-2 bg-champagne/20 border-b border-slate-200">
+            <div className="flex items-center justify-between px-4 py-2 border-b border-slate-700/50">
               <div className="flex items-center gap-3">
-                <span className="text-sm font-medium text-slate-700">
+                <span className="text-sm font-medium text-white/90">
                   {selectedIds.size} selecionada(s)
                 </span>
                 {selectedIds.size < visibleGalerias.length ? (
                   <button
                     onClick={handleSelectAll}
-                    className="text-xs text-slate-500 hover:text-slate-700 underline"
+                    className="text-xs text-white/70 hover:text-[#D4AF37] underline transition-colors"
                   >
                     Selecionar todas
                   </button>
                 ) : (
                   <button
                     onClick={handleDeselectAll}
-                    className="text-xs text-slate-500 hover:text-slate-700 underline"
+                    className="text-xs text-white/70 hover:text-[#D4AF37] underline transition-colors"
                   >
                     Desselecionar todas
                   </button>
@@ -813,7 +883,7 @@ export default function Dashboard({
                   <button
                     onClick={handleBulkRestore}
                     disabled={updatingId === 'bulk'}
-                    className="px-3 py-1.5 text-xs font-medium bg-blue-500 text-white rounded-md hover:bg-blue-600 transition-colors disabled:opacity-50 flex items-center gap-1.5"
+                    className="px-3 py-1.5 text-xs font-medium bg-white/10 text-white rounded-md hover:bg-white/20 transition-colors disabled:opacity-50 flex items-center gap-1.5 border border-white/10"
                   >
                     {updatingId === 'bulk' ? (
                       <Loader2 size={14} className="animate-spin" />
@@ -827,7 +897,7 @@ export default function Dashboard({
                     <button
                       onClick={handleBulkArchive}
                       disabled={updatingId === 'bulk'}
-                      className="px-3 py-1.5 text-xs font-medium bg-amber-500 text-white rounded-md hover:bg-amber-600 transition-colors disabled:opacity-50 flex items-center gap-1.5"
+                      className="px-3 py-1.5 text-xs font-medium bg-gold text-white rounded-md hover:bg-[#D4AF37] transition-colors disabled:opacity-50 flex items-center gap-1.5"
                     >
                       {updatingId === 'bulk' ? (
                         <Loader2 size={14} className="animate-spin" />
@@ -857,14 +927,14 @@ export default function Dashboard({
           )}
 
           {/* Header compacto: Filtros + View Toggle + Bulk Mode */}
-          <div className="flex items-center gap-2 px-3 py-2">
+          <div className="flex items-center gap-4 px-4 py-3">
             {isBulkMode && (
               <button
                 onClick={() => {
                   setIsBulkMode(false);
                   setSelectedIds(new Set());
                 }}
-                className="p-1.5 text-slate-400 hover:text-slate-600 hover:bg-slate-100 rounded transition-colors shrink-0"
+                className="p-1.5 text-white/60 hover:text-[#D4AF37] hover:bg-white/5 rounded transition-colors shrink-0"
                 title="Sair do modo seleção"
               >
                 <X size={16} />
@@ -873,7 +943,7 @@ export default function Dashboard({
             {!isBulkMode && (
               <button
                 onClick={() => setIsBulkMode(true)}
-                className="p-1.5 text-slate-400 hover:text-slate-600 hover:bg-slate-100 rounded transition-colors shrink-0"
+                className="p-1.5 text-white/60 hover:text-[#D4AF37] hover:bg-white/5 rounded transition-colors shrink-0"
                 title="Selecionar múltiplas galerias"
               >
                 <CheckSquare size={16} />
@@ -902,34 +972,34 @@ export default function Dashboard({
             }}
               variant="minimal"
             />
-            <div className="flex items-center gap-1 bg-slate-50 p-0.5 rounded-md border border-slate-200 shrink-0">
+            <div className="flex items-center gap-2 shrink-0 ml-auto">
               <button
                 onClick={() => setViewMode('grid')}
-                className={`p-1.5 rounded transition-all ${
+                className={`p-2 transition-all ${
                   viewMode === 'grid'
-                    ? 'bg-white text-gold shadow-sm'
-                    : 'text-slate-400 hover:text-slate-600'
+                    ? 'text-[#D4AF37]'
+                    : 'text-white/60 hover:text-white/80'
                 }`}
                 title="Grid"
               >
-                <Grid3x3 size={14} strokeWidth={2} />
+                <Grid3x3 size={16} strokeWidth={2} />
               </button>
               <button
                 onClick={() => setViewMode('list')}
-                className={`p-1.5 rounded transition-all ${
+                className={`p-2 transition-all ${
                   viewMode === 'list'
-                    ? 'bg-white text-gold shadow-sm'
-                    : 'text-slate-400 hover:text-slate-600'
+                    ? 'text-[#D4AF37]'
+                    : 'text-white/60 hover:text-white/80'
                 }`}
                 title="Lista"
               >
-                <List size={14} strokeWidth={2} />
+                <List size={16} strokeWidth={2} />
               </button>
             </div>
           </div>
         </header>
 
-        <div className="bg-white rounded-[12px] border border-slate-200 shadow-sm p-4 min-h-[500px]">
+        <div className="bg-white rounded-[0.5rem] border border-petroleum/40 shadow-sm p-4 min-h-[500px]">
           {viewMode === 'grid' ? (
             <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 xl:grid-cols-4 gap-4">
               {visibleGalerias.map((g, index) => (
@@ -982,10 +1052,10 @@ export default function Dashboard({
               <div className="w-20 h-20 bg-slate-50 rounded-[10px] flex items-center justify-center mb-6 border border-champagne">
                 <Inbox className="text-gold opacity-40" size={32} />
               </div>
-              <h3 className="text-xl italic text-slate-800 mb-2">
+              <h3 className="text-xl italic text-petroleum dark:text-slate-800 mb-2">
                 Nenhuma galeria por aqui
               </h3>
-              <p className="text-sm text-slate-500 max-w-xs mb-8">
+              <p className="text-sm text-petroleum/70 dark:text-slate-500 max-w-xs mb-8">
                 Não encontramos resultados para sua busca.
               </p>
             </div>
@@ -995,7 +1065,7 @@ export default function Dashboard({
         {/* PAGINAÇÃO */}
         <div className="mt-12 flex flex-col items-center justify-center space-y-6 pb-12">
           <div className="flex flex-col items-center gap-2">
-            <div className="text-[10px] font-semibold text-slate-700 uppercase tracking-widest">
+            <div className="text-[10px] font-semibold text-petroleum dark:text-slate-700 uppercase tracking-widest">
               {visibleGalerias.length} de {filteredGalerias.length} Galerias
             </div>
             <div className="w-40 h-[3px] bg-slate-200 rounded-full overflow-hidden">
@@ -1010,12 +1080,12 @@ export default function Dashboard({
           {filteredGalerias.length > cardsToShow && (
             <button
               onClick={() => setCardsToShow((prev) => prev + CARDS_PER_PAGE)}
-              className="group mx-auto px-12 py-3.5 rounded-full bg-white text-black border border-slate-200 hover:border-gold hover:shadow-xl hover:shadow-gold/10 transition-all duration-300 uppercase text-[10px] font-bold tracking-widest active:scale-95 flex items-center gap-3"
+              className="group mx-auto px-12 py-3.5 rounded-[0.5rem] bg-[#F3E5AB] text-petroleum border border-[#F3E5AB] hover:bg-[#F3E5AB]/90 transition-all duration-300 uppercase text-[10px] font-semibold tracking-widest shadow-lg active:scale-95 flex items-center gap-3"
             >
               <Plus
                 size={14}
-                strokeWidth={3}
-                className="text-gold group-hover:rotate-90 transition-transform duration-300"
+                strokeWidth={2.5}
+                className="text-petroleum group-hover:rotate-90 transition-transform duration-300 shrink-0"
               />
               Expandir Acervo
             </button>

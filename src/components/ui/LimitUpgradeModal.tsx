@@ -21,7 +21,7 @@ export const LimitUpgradeModal = ({
     <div className="fixed inset-0 z-[999] bg-black/70 backdrop-blur-md flex items-center justify-center px-6 md:p-6 animate-in fade-in duration-300">
       <div className="absolute inset-0" onClick={onClose} />
 
-      <div className="w-full md:max-w-xl bg-[#1E293B] border border-white/10 rounded-[0.5rem] shadow-2xl flex flex-col h-auto max-h-[85vh] relative animate-in zoom-in-95 duration-300 overflow-hidden">
+      <div className="w-full md:max-w-xl bg-petroleum border border-white/10 rounded-[0.5rem] shadow-2xl flex flex-col h-auto max-h-[85vh] relative animate-in zoom-in-95 duration-300 overflow-hidden">
         {/* 1. TOPO: AVISO DE ATENÇÃO (Seguindo o padrão Wi-Fi) */}
         <div className="flex flex-col shrink-0">
           <div className="bg-amber-500/10 py-4 flex items-center justify-center gap-2.5 border-b border-white/5 shrink-0">
@@ -93,7 +93,7 @@ export const LimitUpgradeModal = ({
         </div>
 
         {/* 3. RODAPÉ: BOTÕES DE AÇÃO (Estilo Premium) */}
-        <div className="px-8 py-8 bg-[#1E293B] border-t border-white/5 shrink-0 flex flex-col gap-3">
+        <div className="px-8 py-8 bg-petroleum border-t border-white/5 shrink-0 flex flex-col gap-3">
           <button
             onClick={() => window.open('/dashboard/planos', '_blank')}
             className="w-full h-12 bg-[#F3E5AB] hover:bg-white text-black font-bold uppercase text-[11px] tracking-[0.2em] rounded-xl flex items-center justify-center gap-2 transition-all shadow-[0_0_15px_rgba(243,229,171,0.3)] active:scale-[0.98]"

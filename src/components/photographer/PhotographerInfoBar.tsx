@@ -57,7 +57,7 @@ export const PhotographerInfoBar = ({
   return (
     <div className="z-[100] sticky top-0 w-full pointer-events-auto font-sans">
       <div
-        className={`mx-auto transition-all duration-700 bg-[#1E293B] overflow-hidden pointer-events-auto ${isCompact ? 'w-[95%] md:w-[90%] max-w-[1400px] mt-2 md:mt-4 backdrop-blur-xl border border-white/10 shadow-2xl rounded-[0.8rem]' : 'w-full max-w-none mt-0 border-b border-white/20 rounded-none'}`}
+        className={`mx-auto transition-all duration-700 bg-petroleum overflow-hidden pointer-events-auto ${isCompact ? 'w-[95%] md:w-[90%] max-w-[1400px] mt-2 md:mt-4 backdrop-blur-xl border border-white/10 shadow-2xl rounded-[0.8rem]' : 'w-full max-w-none mt-0 border-b border-white/20 rounded-none'}`}
       >
         <div className="flex flex-row items-center w-full max-w-[1600px] px-3 md:px-6 h-14 mx-auto gap-2 md:gap-4">
           {/* SEÇÃO CIDADES */}
@@ -132,7 +132,7 @@ export const PhotographerInfoBar = ({
               <a
                 href={`https://instagram.com/${instagram.replace('@', '')}`}
                 target="_blank"
-                className="flex items-center justify-center rounded-lg h-9 w-9 md:h-10 md:w-auto md:px-4 border border-white/10 bg-[#1A1A1A] text-white hover:bg-gradient-to-tr hover:from-[#f09433] hover:via-[#dc2743] hover:to-[#bc1888] transition-all"
+                className="flex items-center justify-center rounded-lg h-9 w-9 md:h-10 md:w-auto md:px-4 border border-white/10 bg-slate-800 text-white hover:bg-gradient-to-tr hover:from-[#f09433] hover:via-[#dc2743] hover:to-[#bc1888] transition-all"
               >
                 <Instagram size={16} />
                 <span className="text-[11px] font-semibold uppercase hidden md:block ml-2">
@@ -146,7 +146,7 @@ export const PhotographerInfoBar = ({
                   website.startsWith('http') ? website : `https://${website}`
                 }
                 target="_blank"
-                className="flex items-center justify-center rounded-lg h-9 w-9 md:h-10 md:w-auto md:px-4 border border-white/10 bg-[#1A1A1A] text-white hover:bg-white hover:text-black transition-all"
+                className="flex items-center justify-center rounded-lg h-9 w-9 md:h-10 md:w-auto md:px-4 border border-white/10 bg-slate-800 text-white hover:bg-white hover:text-black transition-all"
               >
                 <Globe size={16} />
                 <span className="text-[11px] font-semibold uppercase hidden md:block ml-2">
@@ -156,7 +156,7 @@ export const PhotographerInfoBar = ({
             )}
             <button
               onClick={handleCopyLink}
-              className="flex items-center justify-center rounded-lg h-9 w-9 md:h-10 md:w-auto md:px-4 border border-white/10 bg-[#1A1A1A] text-white hover:bg-slate-700 transition-all"
+              className="flex items-center justify-center rounded-lg h-9 w-9 md:h-10 md:w-auto md:px-4 border border-white/10 bg-slate-800 text-white hover:bg-slate-700 transition-all"
             >
               {copied ? (
                 <Check size={16} className="text-[#25D366]" />
@@ -184,7 +184,7 @@ export const PhotographerInfoBar = ({
 
         {/* GAVETA: SÓ ATIVA SE AS CIDADES ESTIVEREM ESCONDIDAS NA BARRA */}
         <div
-          className={`overflow-hidden transition-all duration-500 ease-[cubic-bezier(0.23,1,0.32,1)] w-full border-t border-white/10 bg-[#0F172A]/95 backdrop-blur-2xl ${isDrawerOpen && shouldHideToDrawer ? 'max-h-[500px] opacity-100' : 'max-h-0 opacity-0 pointer-events-none'}`}
+          className={`overflow-hidden transition-all duration-500 ease-[cubic-bezier(0.23,1,0.32,1)] w-full border-t border-white/10 bg-petroleum/95 backdrop-blur-2xl ${isDrawerOpen && shouldHideToDrawer ? 'max-h-[500px] opacity-100' : 'max-h-0 opacity-0 pointer-events-none'}`}
         >
           <div className="flex flex-wrap items-center justify-center gap-2 py-2 px-2">
             {cities.map((city: string) => (

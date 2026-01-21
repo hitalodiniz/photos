@@ -98,7 +98,7 @@ export default function GaleriaContextMenu({
             e.stopPropagation();
             setIsOpen(true);
           }}
-          className="p-2 text-slate-400 hover:text-slate-600 transition-colors"
+          className="p-2 text-petroleum hover:text-[#D4AF37] transition-colors"
           disabled={isUpdating}
         >
           <MoreVertical size={18} />
@@ -115,7 +115,7 @@ export default function GaleriaContextMenu({
           ref={menuRef}
           className="fixed bottom-0 left-0 right-0 bg-white rounded-t-2xl shadow-2xl z-[9999] lg:hidden animate-in slide-in-from-bottom duration-300"
         >
-          <div className="p-4 border-b border-slate-200 flex items-center justify-between">
+          <div className="p-4 border-b border-petroleum/50 flex items-center justify-between">
             <h3 className="text-lg font-semibold text-slate-900">
               Ações da Galeria
             </h3>
@@ -264,7 +264,7 @@ export default function GaleriaContextMenu({
   const dropdownMenu = isOpen && !isMobile ? (
     <div
       ref={menuRef}
-      className="fixed bg-white rounded-lg shadow-xl border border-slate-200 z-[9999] min-w-[200px] py-1"
+      className="fixed bg-white rounded-lg shadow-xl border border-petroleum/50 z-[9999] min-w-[200px] py-1"
       style={{
         top: `${menuPosition.top}px`,
         right: `${menuPosition.right}px`,
@@ -407,7 +407,7 @@ export default function GaleriaContextMenu({
           e.stopPropagation();
           setIsOpen(!isOpen);
         }}
-        className="p-2 text-slate-400 hover:text-slate-600 transition-colors rounded-lg hover:bg-slate-50"
+        className="p-2 text-petroleum hover:text-[#D4AF37] transition-colors rounded-lg border border-petroleum/50 hover:bg-slate-50"
         disabled={isUpdating}
       >
         <MoreVertical size={18} />

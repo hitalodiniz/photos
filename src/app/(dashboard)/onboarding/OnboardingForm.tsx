@@ -526,7 +526,7 @@ export default function OnboardingForm({
       </div>
       {/* 🎯 MODAL DE SUCESSO RESTAURADO */}
       {showSuccessModal && (
-        <div className="fixed inset-0 z-[10000] flex items-center justify-center p-4 bg-[#1E293B]/60 backdrop-blur-md animate-in fade-in duration-500">
+        <div className="fixed inset-0 z-[10000] flex items-center justify-center p-4 bg-petroleum/60 backdrop-blur-md animate-in fade-in duration-500">
           <div className="bg-white rounded-[2rem] p-10 max-w-sm w-full shadow-[0_20px_50px_rgba(212,175,55,0.2)] text-center border border-gold/20 animate-in zoom-in-95 duration-300">
             <div className="w-20 h-20 bg-champagne/30 text-gold rounded-full flex items-center justify-center mx-auto mb-6 shadow-inner">
               <CheckCircle2 size={40} strokeWidth={1.5} />

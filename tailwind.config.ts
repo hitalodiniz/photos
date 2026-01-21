@@ -18,6 +18,8 @@ const config: Config = {
         'gold-light': 'rgba(212, 175, 55, 0.15)',
         'error-red': '#B3261E',
         'google-text': '#3C4043',
+        // Azul Petróleo - Cor oficial do sistema
+        petroleum: '#00212E', // Azul Petróleo Profundo
       },
       fontFamily: {
         // Agora artistic e sans usam Montserrat

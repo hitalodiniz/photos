@@ -1,6 +1,6 @@
 'use client';
 
-import { useState } from 'react';
+import { useState, useRef, useEffect } from 'react';
 import {
   X,
   Search,
@@ -47,26 +47,56 @@ export default function Filters({
   variant = 'minimal',
 }: FiltersProps) {
   const [isExpanded, setIsExpanded] = useState(false);
+  const [isAdvancedOpen, setIsAdvancedOpen] = useState(false);
   const isMinimal = variant === 'minimal';
+  const advancedDropdownRef = useRef<HTMLDivElement>(null);
 
-  // Classe base: Ultra Compacta
+  // Fechar dropdown ao clicar fora
+  useEffect(() => {
+    const handleClickOutside = (event: MouseEvent) => {
+      if (
+        advancedDropdownRef.current &&
+        !advancedDropdownRef.current.contains(event.target as Node)
+      ) {
+        setIsAdvancedOpen(false);
+      }
+    };
+
+    if (isAdvancedOpen) {
+      document.addEventListener('mousedown', handleClickOutside);
+    }
+
+    return () => {
+      document.removeEventListener('mousedown', handleClickOutside);
+    };
+  }, [isAdvancedOpen]);
+
+  // Contar filtros avançados ativos
+  const hasAdvancedFilters =
+    filterCategory || filterType || filterLocation;
+  
+  // Verificar se há filtros ativos (busca ou data)
+  const hasActiveFilters = filterName || filterDateStart || filterDateEnd || hasAdvancedFilters;
+
+  // Classe base: Luxury Editorial com mais padding-y
   const sharedInputClass = `
-    w-full !pl-7 pr-2 h-8 
-    outline-none transition-all duration-300 
-    rounded text-[11px] font-medium box-border
+    w-full !pl-10 pr-4 py-2.5
+    outline-none transition-all duration-200 
+    rounded-[0.4rem] text-[11px] font-medium box-border
     bg-white border border-slate-200 
-    focus:border-gold focus:ring-1 focus:ring-gold/5 
+    hover:border-slate-300
+    focus:border-slate-400 focus:ring-1 focus:ring-slate-200/50 
     text-slate-700 placeholder:text-slate-400
   `;
 
   const selectClass = `${sharedInputClass} appearance-none cursor-pointer leading-tight`;
 
   const dateInputClass = `
-    w-full h-8 px-1.5
-    outline-none transition-all duration-300 
-    rounded text-[10px] font-medium box-border
+    w-full py-2.5 px-4
+    outline-none transition-all duration-200 
+    rounded-[0.4rem] text-[10px] font-medium box-border
     bg-white border border-slate-200 
-    focus:border-gold focus:ring-1 focus:ring-gold/5
+    focus:border-slate-400 focus:ring-1 focus:ring-slate-200/50
     text-slate-700 text-center
   `;
 
@@ -94,21 +124,15 @@ export default function Filters({
 
       {/* CONTAINER DOS FILTROS */}
       <div
-        className={`${isExpanded ? 'grid grid-cols-2 mt-2' : 'hidden md:flex'} gap-1.5 md:items-center px-2 py-2`}
+        className={`${isExpanded ? 'grid grid-cols-2 mt-2' : 'hidden md:flex'} gap-3 md:items-center px-2 py-2`}
       >
-        {/* Label Visual */}
-        <div className="hidden lg:flex items-center gap-1.5 px-1 shrink-0">
-          <Filter className="text-gold w-3.5 h-3.5" />
-          <span className="text-[10px] font-bold uppercase tracking-wider text-slate-700">
-            Filtros
-          </span>
-        </div>
-
         {/* Busca Principal */}
-        <div className="relative col-span-2 md:flex-1 md:min-w-[140px] group">
+        <div className="relative col-span-2 md:flex-1 md:min-w-[200px] group">
           <Search
-            size={13}
-            className="absolute left-2.5 top-1/2 -translate-y-1/2 text-slate-400 z-10"
+            size={14}
+            className={`absolute left-4 top-1/2 -translate-y-1/2 z-10 transition-colors ${
+              filterName ? 'text-[#D4AF37]' : 'text-slate-400'
+            }`}
           />
           <input
             placeholder="Título ou cliente..."
@@ -118,68 +142,9 @@ export default function Filters({
           />
         </div>
 
-        {/* Categoria */}
-        <div className="relative group md:w-32">
-          <Tag
-            size={12}
-            className="absolute left-2 top-1/2 -translate-y-1/2 text-slate-400 z-10"
-          />
-          <select
-            value={filterCategory}
-            onChange={(e) => setFilterCategory(e.target.value)}
-            className={selectClass}
-          >
-            <option value="">Categorias</option>
-            {GALLERY_CATEGORIES.map((cat) => (
-              <option key={cat.id} value={cat.id}>
-                {cat.label}
-              </option>
-            ))}
-          </select>
-          <ChevronDown
-            size={11}
-            className="absolute right-1.5 top-1/2 -translate-y-1/2 text-slate-400 pointer-events-none"
-          />
-        </div>
-
-        {/* Tipo */}
-        <div className="relative group md:w-28">
-          <Briefcase
-            size={13}
-            className="absolute left-2.5 top-1/2 -translate-y-1/2 text-slate-400 z-10"
-          />
-          <select
-            value={filterType}
-            onChange={(e) => setFilterType(e.target.value)}
-            className={selectClass}
-          >
-            <option value="">Tipos</option>
-            <option value="true">Contrato</option>
-            <option value="false">Cobertura</option>
-          </select>
-          <ChevronDown
-            size={11}
-            className="absolute right-1.5 top-1/2 -translate-y-1/2 text-slate-400 pointer-events-none"
-          />
-        </div>
-
-        {/* Localização */}
-        <div className="relative group md:w-24">
-          <MapPin
-            size={12}
-            className="absolute left-2 top-1/2 -translate-y-1/2 text-slate-400 z-10"
-          />
-          <input
-            placeholder="Local"
-            value={filterLocation}
-            onChange={(e) => setFilterLocation(e.target.value)}
-            className={sharedInputClass}
-          />
-        </div>
-
-        {/* PERÍODO: Background mais neutro (slate-50) para combinar com fundo claro */}
-        <div className="col-span-2 md:w-auto flex items-center bg-slate-50 p-0.5 rounded border border-slate-100 gap-0.5">
-          <div className="relative w-[90px] md:w-[95px]">
+        {/* PERÍODO: Data */}
+        <div className="col-span-2 md:w-auto flex items-center gap-1.5">
+          <div className="relative w-[110px]">
             <input
               type="date"
               max="9999-12-31"
@@ -188,8 +153,8 @@ export default function Filters({
               className={dateInputClass}
             />
           </div>
-          <span className="text-slate-300 font-bold text-[9px]">/</span>
-          <div className="relative w-[90px] md:w-[95px]">
+          <span className="text-white/40 font-bold text-[9px]">/</span>
+          <div className="relative w-[110px]">
             <input
               type="date"
               max="9999-12-31"
@@ -200,16 +165,112 @@ export default function Filters({
           </div>
         </div>
 
+        {/* Botão Filtros Avançados */}
+        <div className="relative col-span-2 md:col-span-1" ref={advancedDropdownRef}>
+          <button
+            onClick={() => setIsAdvancedOpen(!isAdvancedOpen)}
+            className={`w-full md:w-auto py-2.5 px-4 flex items-center justify-between gap-2 rounded-[0.4rem] transition-all border bg-white ${
+              hasAdvancedFilters
+                ? 'border-slate-200 hover:border-slate-300'
+                : 'border-slate-200 hover:border-slate-300'
+            }`}
+          >
+            <div className="flex items-center gap-2">
+              <Filter 
+                size={14} 
+                className={hasAdvancedFilters ? 'text-[#D4AF37]' : 'text-slate-400'} 
+              />
+              <span className="text-[10px] font-semibold uppercase tracking-widest text-slate-700">
+                FILTROS AVANÇADOS
+              </span>
+              {hasAdvancedFilters && (
+                <span className="w-1.5 h-1.5 rounded-full bg-[#D4AF37]"></span>
+              )}
+            </div>
+            <ChevronDown
+              size={12}
+              className={`text-slate-400 transition-transform ${isAdvancedOpen ? 'rotate-180' : ''}`}
+            />
+          </button>
+
+          {/* Dropdown de Filtros Avançados */}
+          {isAdvancedOpen && (
+            <div className="absolute top-full left-0 right-0 md:right-auto mt-2 bg-white border border-slate-200 rounded-[0.4rem] shadow-lg z-50 p-4 min-w-[300px]">
+              <div className="space-y-3">
+                {/* Categoria */}
+                <div className="relative group">
+                  <Tag
+                    size={14}
+                    className={`absolute left-4 top-1/2 -translate-y-1/2 z-10 transition-colors ${
+                      filterCategory ? 'text-[#D4AF37]' : 'text-slate-400'
+                    }`}
+                  />
+                  <select
+                    value={filterCategory}
+                    onChange={(e) => setFilterCategory(e.target.value)}
+                    className={selectClass}
+                  >
+                    <option value="">Categorias</option>
+                    {GALLERY_CATEGORIES.map((cat) => (
+                      <option key={cat.id} value={cat.id}>
+                        {cat.label}
+                      </option>
+                    ))}
+                  </select>
+                  <ChevronDown
+                    size={12}
+                    className="absolute right-3 top-1/2 -translate-y-1/2 text-slate-400 pointer-events-none"
+                  />
+                </div>
+
+                {/* Tipo */}
+                <div className="relative group">
+                  <Briefcase
+                    size={14}
+                    className={`absolute left-4 top-1/2 -translate-y-1/2 z-10 transition-colors ${
+                      filterType ? 'text-[#D4AF37]' : 'text-slate-400'
+                    }`}
+                  />
+                  <select
+                    value={filterType}
+                    onChange={(e) => setFilterType(e.target.value)}
+                    className={selectClass}
+                  >
+                    <option value="">Tipos</option>
+                    <option value="true">Contrato</option>
+                    <option value="false">Cobertura</option>
+                  </select>
+                  <ChevronDown
+                    size={12}
+                    className="absolute right-3 top-1/2 -translate-y-1/2 text-slate-400 pointer-events-none"
+                  />
+                </div>
+
+                {/* Localização */}
+                <div className="relative group">
+                  <MapPin
+                    size={14}
+                    className={`absolute left-4 top-1/2 -translate-y-1/2 z-10 transition-colors ${
+                      filterLocation ? 'text-[#D4AF37]' : 'text-slate-400'
+                    }`}
+                  />
+                  <input
+                    placeholder="Local"
+                    value={filterLocation}
+                    onChange={(e) => setFilterLocation(e.target.value)}
+                    className={sharedInputClass}
+                  />
+                </div>
+              </div>
+            </div>
+          )}
+        </div>
+
         {/* Botão Limpar */}
-        {(filterName ||
-          filterLocation ||
-          filterDateStart ||
-          filterDateEnd ||
-          filterCategory ||
-          filterType) && (
+        {hasActiveFilters && (
           <button
             onClick={resetFilters}
-            className="col-span-2 md:w-7 md:h-7 text-slate-400 bg-white hover:bg-red-50 hover:text-red-500 rounded transition-all flex items-center justify-center shrink-0 border border-slate-200 shadow-sm active:scale-95"
+            className="col-span-2 md:w-8 md:h-8 text-slate-400 bg-white hover:bg-red-50 hover:text-red-500 rounded-[0.4rem] transition-all flex items-center justify-center shrink-0 border border-slate-200 shadow-sm active:scale-95"
             title="Limpar Filtros"
           >
             <X size={14} strokeWidth={2.5} />

@@ -96,7 +96,7 @@ export const ToolBarDesktop = ({
         className={`
         mx-auto transition-all duration-500 ease-out
         pointer-events-auto relative
-        w-full bg-[#1E293B]/95 backdrop-blur-md border-b border-white/10 shadow-2xl
+        w-full bg-petroleum/95 backdrop-blur-md border-b border-white/10 shadow-2xl
         /* 🎯 FIX DOWNLOAD: Permite que o menu suspenso apareça para baixo */
         ${showDownloadMenu ? 'overflow-visible' : 'overflow-hidden'}
       `}
@@ -163,7 +163,7 @@ export const ToolBarDesktop = ({
               className={`flex items-center justify-center rounded-[0.5rem] h-10 border transition-all duration-300 w-28 gap-2 ${
                 showOnlyFavorites
                   ? 'bg-[#E67E70] border-[#E67E70] text-white shadow-lg'
-                  : 'bg-[#1A1A1A] border-white/10 text-white'
+                  : 'bg-slate-800 border-white/10 text-white'
               }`}
             >
               <Filter size={16} />
@@ -174,7 +174,7 @@ export const ToolBarDesktop = ({
 
             <button
               onClick={handleShare}
-              className="flex items-center justify-center rounded-[0.5rem] h-10 border border-white/10 bg-[#1A1A1A] text-white hover:bg-[#25D366] transition-all w-28 gap-2"
+              className="flex items-center justify-center rounded-[0.5rem] h-10 border border-white/10 bg-slate-800 text-white hover:bg-[#25D366] transition-all w-28 gap-2"
             >
               <WhatsAppIcon className="text-white w-[16px] h-[16px]" />
               <span className="text-[11px] font-semibold uppercase tracking-wide">
@@ -189,7 +189,7 @@ export const ToolBarDesktop = ({
                 setCopied(true);
                 setTimeout(() => setCopied(false), 2000);
               }}
-              className="flex items-center justify-center rounded-[0.5rem] h-10 border border-white/10 bg-[#1A1A1A] text-white hover:bg-white hover:text-black transition-all w-24 gap-2"
+              className="flex items-center justify-center rounded-[0.5rem] h-10 border border-white/10 bg-slate-800 text-white hover:bg-white hover:text-black transition-all w-24 gap-2"
             >
               {copied ? (
                 <Check size={16} className="text-[#25D366]" />
@@ -233,7 +233,7 @@ export const ToolBarDesktop = ({
                     className="fixed inset-0 z-[190]"
                     onClick={() => setShowDownloadMenu(false)}
                   />
-                  <div className="absolute top-full mt-2 right-0 w-72 bg-[#1E293B] border border-white/20 rounded-xl shadow-2xl animate-in fade-in slide-in-from-top-2 duration-300 z-[200] pointer-events-auto overflow-hidden">
+                  <div className="absolute top-full mt-2 right-0 w-72 bg-petroleum border border-white/20 rounded-xl shadow-2xl animate-in fade-in slide-in-from-top-2 duration-300 z-[200] pointer-events-auto overflow-hidden">
                     <div className="p-2 flex flex-col gap-1">
                       <button
                         onClick={() => {

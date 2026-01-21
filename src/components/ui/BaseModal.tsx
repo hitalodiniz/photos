@@ -42,7 +42,7 @@ export default function BaseModal({
       <div className="absolute inset-0" onClick={onClose} />
 
       <div
-        className={`w-full ${maxWidthClasses[maxWidth]} bg-[#1E293B] border border-white/10 rounded-[0.5rem] shadow-2xl flex flex-col h-auto max-h-[85vh] relative animate-in zoom-in-95 duration-300 overflow-hidden`}
+        className={`w-full ${maxWidthClasses[maxWidth]} bg-petroleum border border-white/10 rounded-[0.5rem] shadow-2xl flex flex-col h-auto max-h-[85vh] relative animate-in zoom-in-95 duration-300 overflow-hidden`}
       >
         {/* TOP BANNER (opcional) */}
         {topBanner && (
@@ -83,7 +83,7 @@ export default function BaseModal({
 
         {/* FOOTER (opcional) */}
         {footer && (
-          <div className="px-8 py-8 bg-[#1E293B] border-t border-white/5 shrink-0">
+          <div className="px-8 py-8 bg-petroleum border-t border-white/5 shrink-0">
             {footer}
           </div>
         )}
