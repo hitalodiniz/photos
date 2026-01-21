@@ -57,7 +57,7 @@ describe('supabase.client', () => {
     const callArgs = vi.mocked(createBrowserClient).mock.calls[0];
     if (callArgs && callArgs[2]) {
       expect(callArgs[2].cookieOptions).toEqual({
-        domain: '.test.com',
+        domain: undefined, // Sempre undefined quando não há subdomínios
         path: '/',
         sameSite: 'lax',
         secure: true,
@@ -84,8 +84,9 @@ describe('supabase.client', () => {
     }
   });
 
-  it('deve usar cookie domain quando fornecido', async () => {
+  it('deve usar domain undefined quando não há subdomínios', async () => {
     const { createBrowserClient } = await import('@supabase/ssr');
+    // Mesmo com COOKIE_DOMAIN configurado, deve ser undefined quando não há subdomínios
     process.env.NEXT_PUBLIC_COOKIE_DOMAIN = '.example.com';
     
     vi.resetModules();
@@ -93,7 +94,8 @@ describe('supabase.client', () => {
     
     const callArgs = vi.mocked(createBrowserClient).mock.calls[0];
     if (callArgs && callArgs[2]) {
-      expect(callArgs[2].cookieOptions.domain).toBe('.example.com');
+      // Sempre undefined quando não há subdomínios
+      expect(callArgs[2].cookieOptions.domain).toBe(undefined);
     } else {
       throw new Error('createBrowserClient não foi chamado');
     }

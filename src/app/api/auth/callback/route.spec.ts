@@ -147,7 +147,7 @@ describe('GET /api/auth/callback', () => {
       'value',
       expect.objectContaining({
         secure: true,
-        domain: '.test.com',
+        domain: undefined, // Sempre undefined quando não há subdomínios
       }),
     );
   });

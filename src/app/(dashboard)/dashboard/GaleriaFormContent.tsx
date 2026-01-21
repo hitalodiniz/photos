@@ -97,7 +97,10 @@ export default function GaleriaFormContent({
   );
 
   const [photoCount, setPhotoCount] = useState<number | null>(null);
-  const { getAuthDetails } = useSupabaseSession();
+  
+  // 🎯 PROTEÇÃO: Verifica se useSupabaseSession retorna getAuthDetails corretamente
+  const sessionHook = useSupabaseSession();
+  const getAuthDetails = sessionHook?.getAuthDetails;
 
   /**
    * 🎯 Função "cérebro": Valida e processa a seleção do Drive
@@ -105,12 +108,31 @@ export default function GaleriaFormContent({
    */
   const handleDriveSelection = async (selectedId: string, selectedName: string) => {
     try {
-      const { userId } = await getAuthDetails();
-      
-      if (!userId) {
+      // 🎯 PROTEÇÃO: Verifica se getAuthDetails está disponível
+      if (!getAuthDetails || typeof getAuthDetails !== 'function') {
+        console.error('[GaleriaFormContent] getAuthDetails não está disponível');
         onPickerError('Erro de autenticação. Por favor, refaça o login.');
         return;
       }
+      
+      // 🎯 PROTEÇÃO: Verifica se getAuthDetails está disponível e retorna dados válidos
+      let authDetails;
+      try {
+        authDetails = await getAuthDetails();
+      } catch (authError) {
+        console.error('[GaleriaFormContent] Erro ao obter detalhes de autenticação:', authError);
+        onPickerError('Erro de autenticação. Por favor, refaça o login.');
+        return;
+      }
+      
+      // 🎯 PROTEÇÃO: Verifica se authDetails não é null/undefined e tem userId
+      if (!authDetails || !authDetails.userId) {
+        console.error('[GaleriaFormContent] authDetails inválido:', authDetails);
+        onPickerError('Erro de autenticação. Por favor, refaça o login.');
+        return;
+      }
+      
+      const { userId } = authDetails;
 
       // 🎯 PASSO 1: Determina se é pasta ou arquivo e obtém o folderId
       let driveFolderId: string | null = null;
