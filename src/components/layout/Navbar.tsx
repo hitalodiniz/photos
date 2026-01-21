@@ -69,21 +69,14 @@ export default function Navbar() {
   const isGaleriaFormPage = pathname.includes('/dashboard/galerias/') && 
     (pathname.includes('/new') || pathname.includes('/edit'));
   
-  // Breadcrumbs para página de galeria
+  // Breadcrumbs para página de galeria - Apenas o status (sem duplicar o branding)
   const getBreadcrumbs = () => {
     if (!isGaleriaFormPage) return null;
     
     if (pathname.includes('/edit')) {
-      // Para edição, precisamos do título da galeria (vem do contexto ou pode ser simplificado)
-      return [
-        { label: 'Galerias', href: '/dashboard' },
-        { label: 'Editar' },
-      ];
+      return [{ label: 'Editar Galeria' }];
     } else {
-      return [
-        { label: 'Galerias', href: '/dashboard' },
-        { label: 'Nova Galeria' },
-      ];
+      return [{ label: 'Nova Galeria' }];
     }
   };
 
@@ -95,53 +88,55 @@ export default function Navbar() {
       <nav className="fixed top-0 left-0 w-full z-[110] flex items-center justify-between px-6 md:px-10 py-2 bg-petroleum backdrop-blur-xl border-b border-slate-700/50 shadow-2xl">
         {/* Branding Editorial com Breadcrumbs */}
         <div className="flex items-center gap-4">
+          {/* Botão Voltar - À esquerda do ícone da câmera quando em modo edição/criação */}
+          {isGaleriaFormPage && (
+            <button
+              onClick={() => router.back()}
+              className="p-2 text-white/60 hover:text-white hover:bg-white/10 rounded-lg transition-colors shrink-0"
+              aria-label="Voltar"
+              title="Voltar"
+            >
+              <ArrowLeft size={18} />
+            </button>
+          )}
+
           <Link
             href="/dashboard"
             className="flex items-center gap-3 group transition-all"
           >
-            {/* 🎯 Novo Ícone Estilo Glow/Glassmorphism */}
-            <div className="p-2 md:p-2.5 bg-white/5 backdrop-blur-2xl rounded-full border border-white/10 shadow-2xl transition-transform group-hover:scale-110">
-              <Camera
-                className="text-[#F3E5AB] w-5 h-5 md:w-6 md:h-6 drop-shadow-[0_0_15px_rgba(243,229,171,0.3)]"
-                strokeWidth={1.5}
-              />
-            </div>
+            {/* 🎯 Ícone da Câmera - Apenas o ícone, sem borda e sem fundo */}
+            <Camera
+              className="text-[#F3E5AB] w-5 h-5 md:w-6 md:h-6 transition-transform group-hover:scale-110"
+              strokeWidth={1.5}
+            />
 
             <span className="font-artistic text-lg md:text-[20px] font-semibold tracking-tight text-white italic">
-              Espaço das Galerias de{' '}
-              <span className="text-[#F3E5AB]">Mídias</span>
+              Espaço das {' '}
+              <span className="text-[#F3E5AB]">Galerias</span>
             </span>
           </Link>
 
-          {/* Breadcrumbs - Na frente do título quando na página de galeria */}
+          {/* Breadcrumbs - Apenas o status (Editar Galeria ou Nova Galeria) */}
           {breadcrumbs && (
-            <nav aria-label="Breadcrumb" className="flex items-center gap-1.5 ml-4">
-              <button
-                onClick={() => router.back()}
-                className="p-0.5 text-white/60 hover:text-white transition-colors"
-                aria-label="Voltar"
-                title="Voltar"
-              >
-                <ArrowLeft size={12} />
-              </button>
+            <nav aria-label="Breadcrumb" className="flex items-center gap-1.5">
               {breadcrumbs.map((item, index) => {
                 const isLast = index === breadcrumbs.length - 1;
                 return (
                   <div key={index} className="flex items-center gap-1">
-                    <span className="text-white/40 text-[10px]">/</span>
+                    <span className="text-white/80 text-sm">/</span>
                     {isLast ? (
-                      <span className="text-[10px] text-white/90 font-medium">
+                      <span className="text-sm md:text-base ml-1 text-white font-semibold">
                         {item.label}
                       </span>
                     ) : item.href ? (
                       <Link
                         href={item.href}
-                        className="text-[10px] text-white/70 hover:text-white transition-colors"
+                        className="text-sm md:text-base text-white/70 hover:text-white transition-colors font-medium"
                       >
                         {item.label}
                       </Link>
                     ) : (
-                      <span className="text-[10px] text-white/70">
+                      <span className="text-sm md:text-base text-white/70 font-medium">
                         {item.label}
                       </span>
                     )}

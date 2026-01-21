@@ -10,8 +10,23 @@ export async function generateMetadata({
   params: Promise<{ id: string }>;
 }): Promise<Metadata> {
   const resolvedParams = await params;
+  const { id } = resolvedParams;
+
+  // Busca a galeria para obter o título
+  const resultProfile = await getProfileData();
+  if (resultProfile.success && resultProfile.profile) {
+    const result = await getGaleriaById(id, resultProfile.profile.id);
+    if (result.success && result.data) {
+      return {
+        title: `Editar Galeria - ${result.data.title}`,
+        description: `Editar galeria: ${result.data.title}`,
+      };
+    }
+  }
+
+  // Fallback se não conseguir buscar a galeria
   return {
-    title: `Editar Galeria - ${resolvedParams.id}`,
+    title: 'Editar Galeria',
     description: 'Editar galeria',
   };
 }

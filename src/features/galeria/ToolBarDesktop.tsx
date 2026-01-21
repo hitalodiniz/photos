@@ -16,6 +16,22 @@ import {
 } from 'lucide-react';
 import WhatsAppIcon from '@/components/ui/WhatsAppIcon';
 
+// 🎯 Função helper para parsear links do JSON
+const parseLinks = (jsonString: string | null | undefined): string[] => {
+  if (!jsonString) return [];
+  try {
+    const parsed = JSON.parse(jsonString);
+    if (Array.isArray(parsed)) {
+      return parsed.filter((link) => link && typeof link === 'string');
+    }
+    // Se não é array, trata como string única (compatibilidade)
+    return jsonString ? [jsonString] : [];
+  } catch {
+    // Se não é JSON válido, trata como string única (compatibilidade)
+    return jsonString ? [jsonString] : [];
+  }
+};
+
 export const ToolBarDesktop = ({
   showOnlyFavorites,
   setShowOnlyFavorites,
@@ -33,10 +49,9 @@ export const ToolBarDesktop = ({
 }: any) => {
   const [copied, setCopied] = useState(false);
   const [showDownloadMenu, setShowDownloadMenu] = useState(false);
-  const [linksStatus, setLinksStatus] = useState({
-    full: false,
-    social: false,
-  });
+  const [linksStatus, setLinksStatus] = useState<Record<number, boolean>>({});
+
+  const externalLinks = parseLinks(galeria?.zip_url_full);
 
   const isCompact = false;
   const hasTags = tags.length > 1;
@@ -62,20 +77,19 @@ export const ToolBarDesktop = ({
         }
       };
 
-      const status = { full: false, social: false };
+      const status: Record<number, boolean> = {};
+      const links = parseLinks(galeria?.zip_url_full);
 
-      if (galeria?.zip_url_full) {
-        status.full = await check(galeria.zip_url_full);
-      }
-      if (galeria?.zip_url_social) {
-        status.social = await check(galeria.zip_url_social);
+      // Valida cada link do array
+      for (let i = 0; i < links.length; i++) {
+        status[i] = await check(links[i]);
       }
 
       setLinksStatus(status);
     };
 
     validateLinks();
-  }, [galeria?.zip_url_full, galeria?.zip_url_social]);
+  }, [galeria?.zip_url_full]);
   const { visibleTags, hiddenTags } = useMemo(() => {
     const limit = 4;
     let sortedTags = [...tags];
@@ -253,59 +267,40 @@ export const ToolBarDesktop = ({
                         </div>
                       </button>
 
-                      {/* Opção 2: Alta Definição - Só aparece se o link for válido/on-line */}
-                      {galeria?.zip_url_full && linksStatus.full && (
-                        <button
-                          onClick={() => {
-                            setShowDownloadMenu(false);
-                            handleExternalDownload(
-                              galeria.zip_url_full,
-                              `${galeria.title}_Alta_Definicao.zip`,
-                            );
-                          }}
-                          className="w-full flex items-start gap-3 p-3 rounded-lg hover:bg-white/5 transition-all text-left group border-t border-white/5"
-                        >
-                          <FileCheck
-                            size={18}
-                            className="text-[#D4AF37] mt-0.5"
-                          />
-                          <div>
-                            <p className="text-white text-[11px] font-bold uppercase tracking-tight">
-                              Qualidade Máxima
-                            </p>
-                            <p className="text-white/50 text-[10px] leading-tight">
-                              Arquivo original enviado pelo profissional.
-                            </p>
-                          </div>
-                        </button>
-                      )}
-
-                      {/* Opção 3: Social - Só aparece se o link for válido/on-line */}
-                      {galeria?.zip_url_social && linksStatus.social && (
-                        <button
-                          onClick={() => {
-                            setShowDownloadMenu(false);
-                            handleExternalDownload(
-                              galeria.zip_url_social,
-                              `${galeria.title}_Social.zip`,
-                            );
-                          }}
-                          className="w-full flex items-start gap-3 p-3 rounded-lg hover:bg-white/5 transition-all text-left group border-t border-white/5"
-                        >
-                          <ImageIcon
-                            size={18}
-                            className="text-blue-400 mt-0.5"
-                          />
-                          <div>
-                            <p className="text-white text-[11px] font-bold uppercase tracking-tight">
-                              Versão Redes Sociais
-                            </p>
-                            <p className="text-white/50 text-[10px] leading-tight">
-                              Compactado para Instagram/WhatsApp.
-                            </p>
-                          </div>
-                        </button>
-                      )}
+                      {/* Links Externos - Múltiplos links do JSON */}
+                      {externalLinks.map((link, index) => {
+                        // Só exibe se o link for válido/on-line
+                        if (!linksStatus[index]) return null;
+                        
+                        return (
+                          <button
+                            key={index}
+                            onClick={() => {
+                              setShowDownloadMenu(false);
+                              handleExternalDownload(
+                                link,
+                                `${galeria.title}_Link_${index + 1}.zip`,
+                              );
+                            }}
+                            className="w-full flex items-start gap-3 p-3 rounded-lg hover:bg-white/5 transition-all text-left group border-t border-white/5"
+                          >
+                            <FileCheck
+                              size={18}
+                              className="text-[#D4AF37] mt-0.5"
+                            />
+                            <div className="flex-1 min-w-0">
+                              <p className="text-white text-[11px] font-bold uppercase tracking-tight">
+                                {externalLinks.length === 1 
+                                  ? 'Qualidade Máxima'
+                                  : `Link ${index + 1} - Alta Resolução`}
+                              </p>
+                              <p className="text-white/50 text-[10px] leading-tight truncate">
+                                {link}
+                              </p>
+                            </div>
+                          </button>
+                        );
+                      })}
                     </div>
                   </div>
                 </>

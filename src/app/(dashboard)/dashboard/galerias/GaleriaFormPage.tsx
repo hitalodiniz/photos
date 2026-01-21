@@ -210,19 +210,19 @@ export default function GaleriaFormPage({
 
       {/* STICKY FOOTER - Azul Petróleo Profundo */}
       <div className="sticky bottom-0 z-50 bg-petroleum border-t border-white/10">
-        <div className="flex items-center justify-between px-6">
+        <div className="w-full max-w-7xl mx-auto flex items-center justify-between px-6 py-4">
           {/* Status de Salvamento - Esquerda */}
           <div className="text-[10px] text-white/70 uppercase tracking-widest">
             {hasUnsavedChanges ? 'Alterações não salvas' : 'Tudo salvo'}
           </div>
 
           {/* Botões - Direita */}
-          <div className="flex items-center gap-3">
+          <div className="flex items-center gap-4">
             <button
               type="button"
               onClick={() => router.back()}
               disabled={loading}
-              className="text-[10px] font-bold uppercase tracking-widest text-white hover:text-white/80 transition-colors disabled:opacity-50 disabled:cursor-not-allowed px-4 py-2"
+              className="flex items-center justify-center rounded-[0.5rem] h-10 border border-petroleum/50 bg-slate-800 text-white hover:bg-slate-700 hover:border-petroleum/70 transition-all px-4 py-2 disabled:opacity-50 disabled:cursor-not-allowed text-[10px] font-bold uppercase tracking-widest"
             >
               CANCELAR
             </button>

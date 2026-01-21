@@ -14,6 +14,22 @@ import {
   Share2,
 } from 'lucide-react';
 
+// 🎯 Função helper para parsear links do JSON
+const parseLinks = (jsonString: string | null | undefined): string[] => {
+  if (!jsonString) return [];
+  try {
+    const parsed = JSON.parse(jsonString);
+    if (Array.isArray(parsed)) {
+      return parsed.filter((link) => link && typeof link === 'string');
+    }
+    // Se não é array, trata como string única (compatibilidade)
+    return jsonString ? [jsonString] : [];
+  } catch {
+    // Se não é JSON válido, trata como string única (compatibilidade)
+    return jsonString ? [jsonString] : [];
+  }
+};
+
 // Componente do Balão de Dica (Padronizado para mobile)
 // Fontes padronizadas: text-[9px] font-semibold (mesmo padrão do ToolbarGalleryView)
 const Tooltip = ({
@@ -82,6 +98,38 @@ export const ToolBarMobile = ({
   const [copied, setCopied] = useState(false);
   const [hintStep, setHintStep] = useState(0);
   const [showDownloadMenu, setShowDownloadMenu] = useState(false);
+  const [linksStatus, setLinksStatus] = useState<Record<number, boolean>>({});
+
+  const externalLinks = parseLinks(galeria?.zip_url_full);
+
+  // Valida links externos
+  useEffect(() => {
+    const validateLinks = async () => {
+      const check = async (url: string) => {
+        try {
+          const res = await fetch(
+            `/api/validate-link?url=${encodeURIComponent(url)}`,
+          );
+          const data = await res.json();
+          return data.valid;
+        } catch {
+          return false;
+        }
+      };
+
+      const status: Record<number, boolean> = {};
+      const links = parseLinks(galeria?.zip_url_full);
+
+      // Valida cada link do array
+      for (let i = 0; i < links.length; i++) {
+        status[i] = await check(links[i]);
+      }
+
+      setLinksStatus(status);
+    };
+
+    validateLinks();
+  }, [galeria?.zip_url_full]);
 
   const hasMultipleTags = tags.length > 1;
 
@@ -262,59 +310,40 @@ export const ToolBarMobile = ({
                       </div>
                     </button>
 
-                    {/* Opção 2: Qualidade Máxima (Link Externo) */}
-                    {galeria?.zip_url_full && (
-                      <button
-                        onClick={() => {
-                          setShowDownloadMenu(false);
-                          handleExternalDownload(
-                            galeria.zip_url_full,
-                            `${galeria.title}_Alta_Definicao.zip`,
-                          );
-                        }}
-                        className="flex items-center gap-3 p-3 rounded-lg bg-white/5 active:bg-white/10 text-left border-t border-white/5"
-                      >
-                        <FileCheck
-                          size={18}
-                          className="text-[#D4AF37] shrink-0"
-                        />
-                        <div>
-                          <p className="text-white text-[11px] font-bold uppercase tracking-tight">
-                            Qualidade Máxima
-                          </p>
-                          <p className="text-white/50 text-[9px] leading-tight">
-                            Arquivo original do autor.
-                          </p>
-                        </div>
-                      </button>
-                    )}
-
-                    {/* Opção 3: Redes Sociais (Link Externo) */}
-                    {galeria?.zip_url_social && (
-                      <button
-                        onClick={() => {
-                          setShowDownloadMenu(false);
-                          handleExternalDownload(
-                            galeria.zip_url_social,
-                            `${galeria.title}_Social.zip`,
-                          );
-                        }}
-                        className="flex items-center gap-3 p-3 rounded-lg bg-white/5 active:bg-white/10 text-left border-t border-white/5"
-                      >
-                        <ImageIcon
-                          size={18}
-                          className="text-blue-400 shrink-0"
-                        />
-                        <div>
-                          <p className="text-white text-[11px] font-bold uppercase tracking-tight">
-                            Versão Redes Sociais
-                          </p>
-                          <p className="text-white/50 text-[9px] leading-tight">
-                            Compactado pelo autor.
-                          </p>
-                        </div>
-                      </button>
-                    )}
+                    {/* Links Externos - Múltiplos links do JSON */}
+                    {externalLinks.map((link, index) => {
+                      // Só exibe se o link for válido/on-line
+                      if (!linksStatus[index]) return null;
+                      
+                      return (
+                        <button
+                          key={index}
+                          onClick={() => {
+                            setShowDownloadMenu(false);
+                            handleExternalDownload(
+                              link,
+                              `${galeria.title}_Link_${index + 1}.zip`,
+                            );
+                          }}
+                          className="flex items-center gap-3 p-3 rounded-lg bg-white/5 active:bg-white/10 text-left border-t border-white/5"
+                        >
+                          <FileCheck
+                            size={18}
+                            className="text-[#D4AF37] shrink-0"
+                          />
+                          <div className="flex-1 min-w-0">
+                            <p className="text-white text-[11px] font-bold uppercase tracking-tight">
+                              {externalLinks.length === 1 
+                                ? 'Qualidade Máxima'
+                                : `Link ${index + 1} - Alta Resolução`}
+                            </p>
+                            <p className="text-white/50 text-[9px] leading-tight truncate">
+                              {link}
+                            </p>
+                          </div>
+                        </button>
+                      );
+                    })}
                   </div>
                 </div>
               </>

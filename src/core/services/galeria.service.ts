@@ -160,8 +160,9 @@ export async function createGaleria(
       columns_tablet: Number(formData.get('columns_tablet')) || 3,
       columns_desktop: Number(formData.get('columns_desktop')) || 4,
 
+      // 🎯 Links armazenados como JSON (array de strings) no campo zip_url_full
       zip_url_full: (formData.get('zip_url_full') as string) || null,
-      zip_url_social: (formData.get('zip_url_social') as string) || null,
+      zip_url_social: null, // Mantido para compatibilidade, mas não usado mais
 
       // Senha inicial (se houver)
       password:
@@ -253,8 +254,9 @@ export async function updateGaleria(
       columns_tablet: Number(formData.get('columns_tablet')) || 3,
       columns_desktop: Number(formData.get('columns_desktop')) || 4,
 
+      // 🎯 Links armazenados como JSON (array de strings) no campo zip_url_full
       zip_url_full: (formData.get('zip_url_full') as string) || null,
-      zip_url_social: (formData.get('zip_url_social') as string) || null,
+      zip_url_social: null, // Mantido para compatibilidade, mas não usado mais
     };
 
     // 2. Validação básica de integridade

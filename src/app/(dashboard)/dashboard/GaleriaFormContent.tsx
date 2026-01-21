@@ -31,6 +31,8 @@ import {
   CheckCircle2,
   Download,
   Image as ImageIcon,
+  Plus,
+  Trash2,
 } from 'lucide-react';
 import WhatsAppIcon from '@/components/ui/WhatsAppIcon';
 import { convertToDirectDownloadUrl, getDirectGoogleUrl } from '@/core/utils/url-helper';
@@ -106,11 +108,33 @@ export default function GaleriaFormContent({
     coverId: initialData?.cover_image_url ?? '',
   });
 
-  // 🎯 NOVOS ESTADOS PARA OS LINKS COM CONVERSÃO AUTOMÁTICA
-  const [zipUrlFull, setZipUrlFull] = useState(initialData?.zip_url_full || '');
-  const [zipUrlSocial, setZipUrlSocial] = useState(
-    initialData?.zip_url_social || '',
-  );
+  // 🎯 ESTADO PARA MÚLTIPLOS LINKS (JSON)
+  // Converte dados iniciais (zip_url_full e zip_url_social) para array
+  const parseInitialLinks = () => {
+    const links: string[] = [];
+    // Se há zip_url_full, adiciona
+    if (initialData?.zip_url_full) {
+      try {
+        // Tenta parsear como JSON primeiro
+        const parsed = JSON.parse(initialData.zip_url_full);
+        if (Array.isArray(parsed)) {
+          return parsed;
+        }
+        // Se não é array, trata como string única
+        links.push(initialData.zip_url_full);
+      } catch {
+        // Se não é JSON válido, trata como string única
+        links.push(initialData.zip_url_full);
+      }
+    }
+    // Se há zip_url_social, adiciona
+    if (initialData?.zip_url_social) {
+      links.push(initialData.zip_url_social);
+    }
+    return links;
+  };
+
+  const [links, setLinks] = useState<string[]>(parseInitialLinks());
 
   const [photoCount, setPhotoCount] = useState<number | null>(null);
   
@@ -702,31 +726,28 @@ export default function GaleriaFormContent({
 
       {/* COLUNA LATERAL (35%) */}
       <div className="w-[35%] border-l border-petroleum/40 overflow-y-auto pl-4 pr-0 space-y-2 bg-slate-50/30">
-        {/* Preview de Capa */}
-        <div className="bg-white rounded-[0.5rem] border border-petroleum/40 p-4 space-y-3 mt-2">
+        {/* GOOGLE DRIVE - Seção Principal */}
+        <div className="bg-white rounded-[0.5rem] border border-petroleum/40 p-4 space-y-4 mt-2">
           <div className="flex items-center gap-2 pb-2 border-b border-petroleum/40">
-            <ImageIcon size={14} className="text-gold" />
+            <FolderSync size={14} className="text-gold" />
             <h3 className="text-[10px] font-bold uppercase tracking-widest text-petroleum">
-              Preview de Capa
+              Google Drive
             </h3>
           </div>
-          
-          {/* Google Drive - Movido da coluna esquerda */}
-          <div className="mb-3">
-            <div className="flex flex-col bg-slate-50 p-3 rounded-[0.5rem] border border-petroleum/40">
-              <div className="space-y-2 mb-4">
-                <div className="flex items-center gap-2">
-                  <FolderSync size={16} className="text-gold" />
-                  <span className="text-[10px] font-bold text-petroleum dark:text-slate-700 uppercase tracking-widest">
-                    Google Drive
-                  </span>
-                </div>
-                <p className="text-[13px] text-petroleum/80 dark:text-slate-500 font-semibold truncate bg-white/50 px-2 py-1 rounded border border-petroleum/40">
-                  {driveData.name || 'Nenhuma pasta selecionada'}
-                </p>
-              </div>
+
+          {/* Subseção 1: Vincular Pasta do Google Drive */}
+          <div className="space-y-3">
+            <label className="text-[10px] font-bold uppercase tracking-widest text-petroleum flex items-center gap-1.5">
+              <FolderSync size={12} strokeWidth={2} className="inline" />
+              Vincular Pasta do Google Drive
+            </label>
+            
+            <div className="flex flex-col bg-slate-50 p-3 rounded-[0.5rem] border border-petroleum/40 space-y-3">
+              <p className="text-[13px] text-petroleum/90 dark:text-slate-500 font-semibold truncate bg-white/50 px-2 py-1.5 rounded border border-petroleum/40">
+                {driveData.name || 'Nenhuma pasta selecionada'}
+              </p>
               
-              {/* Botão VINCULAR DRIVE */}
+              {/* Botão VINCULAR/ALTERAR PASTA */}
               <div>
                 <GooglePickerButton
                   onFolderSelect={handleFolderSelect}
@@ -735,94 +756,108 @@ export default function GaleriaFormContent({
                   onTokenExpired={onTokenExpired}
                 />
               </div>
+
+              {driveData.id && (
+                <a
+                  href={`https://drive.google.com/drive/folders/${driveData.id}`}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="flex items-center justify-center gap-2 w-full px-3 py-2 bg-slate-50 hover:bg-slate-100 border border-petroleum/40 rounded-[0.5rem] text-[11px] font-semibold text-petroleum/80 hover:text-petroleum transition-colors"
+                >
+                  <FolderSync size={14} className="text-gold" />
+                  Abrir no Google Drive
+                </a>
+              )}
             </div>
           </div>
 
-          {driveData.id && (
-            <a
-              href={`https://drive.google.com/drive/folders/${driveData.id}`}
-              target="_blank"
-              rel="noopener noreferrer"
-              className="flex items-center justify-center gap-2 w-full px-3 py-2 bg-slate-50 hover:bg-slate-100 border border-petroleum/40 rounded-[0.5rem] text-[11px] font-semibold text-petroleum/80 hover:text-petroleum transition-colors mb-3"
-            >
-              <FolderSync size={14} className="text-gold" />
-              Abrir no Google Drive
-            </a>
-          )}
-          <div className="relative aspect-[16/9] w-full overflow-hidden rounded-[0.5rem] bg-slate-100 border border-petroleum/40">
-            {coverPreviewUrl ? (
-              <img
-                src={coverPreviewUrl}
-                alt="Preview da capa"
-                className="w-full h-full object-contain"
-              />
-            ) : (
-              <div className="absolute inset-0 flex items-center justify-center">
-                <ImageIcon size={32} className="text-slate-300" />
-              </div>
-            )}
+          {/* Subseção 2: Preview de Capa */}
+          <div className="space-y-3 pt-3 border-t border-petroleum/40">
+            <label className="text-[10px] font-bold uppercase tracking-widest text-petroleum flex items-center gap-1.5">
+              <ImageIcon size={12} strokeWidth={2} className="inline" />
+              Preview de Capa
+            </label>
+            
+            <div className="relative aspect-[16/9] w-full overflow-hidden rounded-[0.5rem] bg-slate-100 border border-petroleum/40">
+              {coverPreviewUrl ? (
+                <img
+                  src={coverPreviewUrl}
+                  alt="Preview da capa"
+                  className="w-full h-full object-contain"
+                />
+              ) : (
+                <div className="absolute inset-0 flex items-center justify-center">
+                  <ImageIcon size={32} className="text-slate-300" />
+                </div>
+              )}
+            </div>
           </div>
         </div>
 
         {/* LINKS E ARQUIVOS */}
         <div className="bg-white rounded-[0.5rem] border border-petroleum/40 p-4 space-y-3">
-          <div className="flex items-center gap-2 pb-3 border-b border-slate-100">
+          <div className="flex items-center gap-2 pb-2 border-b border-petroleum/40">
             <Download size={14} className="text-gold" />
             <h3 className="text-[10px] font-bold uppercase tracking-widest text-petroleum">
-              Links e Arquivos
+              Links e Arquivos - Alta Resolução (Full)
             </h3>
           </div>
           
-          <div className="space-y-4">
-            {/* Link Full */}
-            <div className="space-y-1.5">
-              <label className="text-[10px] font-bold uppercase tracking-widest text-petroleum">
-                Alta Resolução (Full)
-              </label>
-              <div className="relative">
-                <input
-                  name="zip_url_full"
-                  type="url"
-                  value={zipUrlFull}
-                  onChange={(e) =>
-                    setZipUrlFull(convertToDirectDownloadUrl(e.target.value))
-                  }
-                  placeholder="Link para qualquer arquivo ou recurso"
-                  className="w-full px-3 h-9 bg-white border border-petroleum/40 rounded-[0.5rem] text-petroleum/90 text-xs font-medium outline-none focus:border-gold transition-all pr-8"
-                />
-                {zipUrlFull && zipUrlFull.length > 0 && (
-                  <CheckCircle2
-                    size={14}
-                    className="absolute right-3 top-1/2 -translate-y-1/2 text-green-500"
-                  />
-                )}
-              </div>
+          <div className="space-y-3">
+            {/* Input oculto para salvar como JSON */}
+            <input
+              type="hidden"
+              name="zip_url_full"
+              value={links.length > 0 ? JSON.stringify(links) : ''}
+            />
+            
+            {/* Lista de Links */}
+            <div className="space-y-2">
+              {links.map((link, index) => (
+                <div key={index} className="flex items-center gap-2">
+                  <div className="relative flex-1">
+                    <input
+                      type="url"
+                      value={link}
+                      onChange={(e) => {
+                        const newLinks = [...links];
+                        newLinks[index] = convertToDirectDownloadUrl(e.target.value);
+                        setLinks(newLinks);
+                      }}
+                      placeholder="Link para qualquer arquivo ou recurso"
+                      className="w-full px-3 h-9 bg-white border border-petroleum/40 rounded-[0.5rem] text-petroleum/90 text-xs font-medium outline-none focus:border-gold transition-all pr-10"
+                    />
+                    {link && link.length > 0 && (
+                      <CheckCircle2
+                        size={14}
+                        className="absolute right-10 top-1/2 -translate-y-1/2 text-green-500"
+                      />
+                    )}
+                  </div>
+                  <button
+                    type="button"
+                    onClick={() => {
+                      const newLinks = links.filter((_, i) => i !== index);
+                      setLinks(newLinks);
+                    }}
+                    className="p-2 text-petroleum/60 hover:text-red-500 hover:bg-red-50 border border-petroleum/40 hover:border-red-300 rounded-[0.5rem] transition-colors"
+                    aria-label="Remover link"
+                  >
+                    <Trash2 size={14} />
+                  </button>
+                </div>
+              ))}
             </div>
 
-            {/* Link Social */}
-            <div className="space-y-1.5">
-              <label className="text-[10px] font-bold uppercase tracking-widest text-petroleum">
-                Redes Sociais (Social)
-              </label>
-              <div className="relative">
-                <input
-                  name="zip_url_social"
-                  type="url"
-                  value={zipUrlSocial}
-                  onChange={(e) =>
-                    setZipUrlSocial(convertToDirectDownloadUrl(e.target.value))
-                  }
-                  placeholder="Link para qualquer arquivo ou recurso"
-                  className="w-full px-3 h-9 bg-white border border-petroleum/40 rounded-[0.5rem] text-petroleum/90 text-xs font-medium outline-none focus:border-gold transition-all pr-8"
-                />
-                {zipUrlSocial && zipUrlSocial.length > 0 && (
-                  <CheckCircle2
-                    size={14}
-                    className="absolute right-3 top-1/2 -translate-y-1/2 text-green-500"
-                  />
-                )}
-              </div>
-            </div>
+            {/* Botão Adicionar Link */}
+            <button
+              type="button"
+              onClick={() => setLinks([...links, ''])}
+              className="w-full flex items-center justify-center gap-2 px-3 py-2 bg-slate-50 hover:bg-slate-100 border border-petroleum/40 hover:border-petroleum/60 rounded-[0.5rem] text-petroleum/80 hover:text-petroleum text-xs font-medium transition-colors"
+            >
+              <Plus size={14} />
+              Adicionar Link
+            </button>
           </div>
         </div>
       </div>
