@@ -10,8 +10,14 @@ vi.mock('@/lib/supabase.server', () => ({
   createSupabaseServerClient: vi.fn(),
 }));
 
+// Mock do helper de rate limiting para evitar delays nos testes
+vi.mock('@/core/utils/google-oauth-throttle', () => ({
+  fetchGoogleToken: vi.fn(),
+}));
+
 import { getDriveAccessTokenForUser } from '@/lib/google-auth';
 import { createSupabaseServerClient } from '@/lib/supabase.server';
+import { fetchGoogleToken } from '@/core/utils/google-oauth-throttle';
 
 describe('Google Service', () => {
   const mockUserId = 'user-123';
@@ -142,8 +148,8 @@ describe('Google Service', () => {
         mockSupabase as any,
       );
 
-      // 🎯 MOCK DE SUCESSO COMPLETO
-      vi.mocked(fetch).mockResolvedValueOnce({
+      // 🎯 MOCK DE SUCESSO COMPLETO - usando fetchGoogleToken
+      vi.mocked(fetchGoogleToken).mockResolvedValueOnce({
         ok: true,
         status: 200,
         json: async () => ({
@@ -176,7 +182,7 @@ describe('Google Service', () => {
       // 🎯 CORREÇÃO NO MOCK:
       // Retornamos um objeto vazio {} para "pular" o check de 'invalid_grant'
       // e cair direto no check de 'if (!data.access_token)'
-      vi.mocked(fetch).mockResolvedValueOnce({
+      vi.mocked(fetchGoogleToken).mockResolvedValueOnce({
         ok: true,
         json: async () => ({}),
       } as Response);
@@ -239,7 +245,7 @@ describe('Google Service', () => {
 
     // 🎯 MUDANÇA AQUI: Retorne um objeto que NÃO seja 'invalid_grant'
     // para ele passar pela primeira validação e cair na segunda.
-    vi.mocked(fetch).mockResolvedValueOnce({
+    vi.mocked(fetchGoogleToken).mockResolvedValueOnce({
       ok: true,
       status: 200,
       json: async () => ({ access_token: null }), // Simula ausência do token
@@ -318,12 +324,28 @@ describe('Google Service', () => {
     });*/
 
     it('deve capturar erro de rede real no catch do token (Linhas 142-145)', async () => {
-      // Simula uma falha física de conexão (rejeição da Promise)
-      vi.mocked(fetch).mockRejectedValueOnce(new Error('Falha de Rede'));
+      // Mock do helper de rate limiting para simular erro de rede
+      const networkError: any = new Error('Falha de Rede');
+      networkError.status = 408; // Timeout status
+      vi.mocked(fetchGoogleToken).mockRejectedValueOnce(networkError);
+
+      // Setup básico do Supabase mock
+      const mockSupabase = {
+        from: vi.fn().mockReturnThis(),
+        select: vi.fn().mockReturnThis(),
+        eq: vi.fn().mockReturnThis(),
+        single: vi.fn().mockResolvedValue({
+          data: { google_refresh_token: 'refresh-token', google_token_expires_at: new Date(Date.now() + 3600000).toISOString() },
+          error: null,
+        }),
+      };
+      vi.mocked(createSupabaseServerClient).mockResolvedValue(
+        mockSupabase as any,
+      );
 
       await expect(
         googleService.getValidGoogleTokenService('u'),
-      ).rejects.toThrow('Erro de conexão com o servidor do Google.');
-    });
+      ).rejects.toThrow('Erro de conexão com o servidor do Google (timeout).');
+    }, 10000); // Timeout de 10s para evitar falhas por tempo
   });
 });

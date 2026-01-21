@@ -245,12 +245,17 @@ export async function getValidGoogleTokenService(userId: string): Promise<string
         process.env.GOOGLE_CLIENT_SECRET!
       );
     } catch (fetchErr: any) {
-      if (fetchErr.message?.includes('timeout') || fetchErr.status === 408) {
+      // 🎯 Verifica status primeiro (mais específico)
+      if (fetchErr.status === 408) {
         throw new Error('Erro de conexão com o servidor do Google (timeout).');
       }
       // Se for rate limit mesmo após retry, lança erro específico
       if (fetchErr.status === 429) {
         throw new Error('Muitas requisições ao Google. Aguarde alguns segundos e tente novamente.');
+      }
+      // Verifica mensagem de timeout
+      if (fetchErr.message?.includes('timeout') || fetchErr.message?.includes('Request timeout')) {
+        throw new Error('Erro de conexão com o servidor do Google (timeout).');
       }
       throw fetchErr;
     }
@@ -330,9 +335,22 @@ export async function getValidGoogleTokenService(userId: string): Promise<string
 
     return data.access_token;
   } catch (fetchError: any) {
-    // 🎯 Re-lança erros de renovação explícitos
-    if (fetchError instanceof Error && fetchError.message === 'Falha ao renovar o acesso com o Google.') {
-      throw fetchError;
+    // 🎯 Re-lança erros específicos que já foram tratados no catch interno
+    // (timeout, rate limit, etc.) - esses erros já têm mensagens específicas
+    if (fetchError instanceof Error) {
+      const errorMessage = fetchError.message;
+      if (
+        errorMessage.includes('(timeout)') ||
+        errorMessage.includes('Muitas requisições ao Google') ||
+        errorMessage === 'Falha ao renovar o acesso com o Google.'
+      ) {
+        throw fetchError; // Re-lança erros já tratados
+      }
+    }
+    
+    // 🎯 Verifica status antes de tratar como erro de rede genérico
+    if (fetchError?.status === 408) {
+      throw new Error('Erro de conexão com o servidor do Google (timeout).');
     }
     
     // Erros de rede (fetch rejeitado) devem lançar erro específico
@@ -344,8 +362,7 @@ export async function getValidGoogleTokenService(userId: string): Promise<string
         fetchError.message.includes('network') ||
         fetchError.message.includes('Network') ||
         fetchError.message.includes('Failed to fetch') ||
-        fetchError.message.includes('Falha de Rede') ||
-        !fetchError.message.includes('Falha ao renovar');
+        (fetchError.message.includes('Falha de Rede') && !fetchError.status);
       
       if (isNetworkError) {
         throw new Error('Erro de conexão com o servidor do Google.');

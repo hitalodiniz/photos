@@ -32,6 +32,7 @@ const SUPABASE_ANON_KEY = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!;
 
 // Certifique-se que essa variável na Vercel
 const COOKIE_DOMAIN = process.env.NEXT_PUBLIC_COOKIE_DOMAIN;
+const isProduction = process.env.NEXT_PUBLIC_NODE_ENV === 'production';
 
 export const supabase = createBrowserClient(
   SUPABASE_PUBLIC_BASE_URL,
@@ -41,13 +42,18 @@ export const supabase = createBrowserClient(
       persistSession: true,
       autoRefreshToken: true,
       detectSessionInUrl: true,
-      flowType: 'pkce', // 🎯 ADICIONE ISSO: Força o fluxo PKCE no cliente
+      flowType: 'pkce', // 🎯 CRÍTICO: Força o fluxo PKCE no cliente
     },
+    // 🎯 CONFIGURAÇÃO DE COOKIES PARA PKCE
+    // O createBrowserClient usa cookieOptions (não a API cookies)
     cookieOptions: {
-      domain: COOKIE_DOMAIN, // Se estiver vazio em localhost, ele usa o host atual
+      domain: COOKIE_DOMAIN && COOKIE_DOMAIN.trim() !== '' && !COOKIE_DOMAIN.includes(':')
+        ? COOKIE_DOMAIN.trim()
+        : undefined, // undefined em localhost permite que o navegador use o host atual
       path: '/',
       sameSite: 'lax',
-      secure: process.env.NEXT_PUBLIC_NODE_ENV === 'production',
+      secure: isProduction, // HTTPS obrigatório em produção para PKCE
+      maxAge: 60 * 60 * 24 * 30, // 30 dias - tempo suficiente para o code verifier durante o fluxo OAuth
     },
   },
 );

@@ -50,32 +50,61 @@ export async function GET(request: Request) {
 
   const isProduction = process.env.NODE_ENV === 'production';
 
+  // 🎯 CRÍTICO: Lê todos os cookies ANTES de criar o cliente Supabase
+  // Isso força o Next.js a ler os cookies do request, incluindo o code verifier
+  const allCookies = cookieStore.getAll();
+
+  // 🎯 DEBUG: Verifica se o code verifier cookie está presente
+  const codeVerifierCookie = allCookies.find(cookie => 
+    cookie.name.includes('code-verifier') || cookie.name.includes('verifier')
+  );
+  
+  if (!codeVerifierCookie && isProduction) {
+    console.warn('[auth/callback] ⚠️ Code verifier cookie não encontrado. Cookies disponíveis:', 
+      allCookies.map(c => c.name).join(', ')
+    );
+  }
+  
+  // 🎯 CONFIGURAÇÃO DE COOKIE DOMAIN (deve ser igual ao cliente)
+  const cookieDomain = 
+    process.env.NEXT_PUBLIC_COOKIE_DOMAIN ||
+    process.env.COOKIE_DOMAIN;
+  
+  const finalCookieDomain = cookieDomain && cookieDomain.trim() !== '' && !cookieDomain.includes(':')
+    ? cookieDomain.trim()
+    : undefined;
+
   const supabase = createServerClient(
     process.env.NEXT_PUBLIC_SUPABASE_URL!,
     process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!,
     {
+      // 🎯 COOKIE OPTIONS: Deve ser igual ao cliente para garantir que o code verifier seja encontrado
+      cookieOptions: {
+        domain: finalCookieDomain,
+        path: '/',
+        sameSite: 'lax',
+        secure: isProduction,
+      },
       cookies: {
-        getAll: () => cookieStore.getAll(),
+        getAll: () => {
+          // 🎯 GARANTE QUE TODOS OS COOKIES SEJAM RETORNADOS
+          // Isso é crítico para o PKCE code verifier ser encontrado
+          return cookieStore.getAll();
+        },
         setAll: (cookiesToSet) => {
           cookiesToSet.forEach(({ name, value, options }) => {
-            // AJUSTE MULTIDOMÍNIO: Injeta o domínio para abranger subdomínios
-            // .localhost (dev) ou .suagaleria.com.br (Vercel)
-            const cookieDomain = 
-              process.env.NEXT_PUBLIC_COOKIE_DOMAIN ||
-              process.env.COOKIE_DOMAIN;
-            
-            // 🎯 VALIDAÇÃO: Só define domain se for válido (não vazio e não contém porta)
+            // 🎯 USA AS MESMAS OPÇÕES DO COOKIE OPTIONS ACIMA
+            // Isso garante consistência entre cliente e servidor
             const cookieOptions: any = {
               ...options,
               path: '/',
               sameSite: 'lax' as const,
-              // HTTPS OBRIGATÓRIO: Na Vercel deve ser true para o PKCE funcionar
               secure: isProduction,
             };
             
             // Só adiciona domain se estiver configurado e for válido
-            if (cookieDomain && cookieDomain.trim() !== '' && !cookieDomain.includes(':')) {
-              cookieOptions.domain = cookieDomain.trim();
+            if (finalCookieDomain) {
+              cookieOptions.domain = finalCookieDomain;
             }
             
             cookieStore.set(name, value, cookieOptions);
