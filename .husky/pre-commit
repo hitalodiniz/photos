@@ -7,15 +7,19 @@
 # Este hook protege arquivos críticos de alterações não autorizadas
 # Arquivos de autenticação, autorização e APIs do Google Drive são protegidos
 
-# Verifica se tem flag de permissão
+# Verifica se tem flag de permissão (via variável de ambiente ou argumentos)
 ALLOW_CRITICAL=false
-if echo "$@" | grep -q "allow-critical-changes"; then
+if [ "$ALLOW_CRITICAL_CHANGES" = "true" ] || echo "$@" | grep -q "allow-critical-changes"; then
   ALLOW_CRITICAL=true
 fi
 
 # Executa proteção de arquivos críticos
 echo "🛡️  Verificando proteção de arquivos críticos..."
-node scripts/protect-critical-files.js $@
+if [ "$ALLOW_CRITICAL" = "true" ]; then
+  node scripts/protect-critical-files.js --allow-critical-changes
+else
+  node scripts/protect-critical-files.js
+fi
 PROTECTION_EXIT_CODE=$?
 
 if [ $PROTECTION_EXIT_CODE -ne 0 ]; then

@@ -97,11 +97,26 @@ describe('Google Service', () => {
   describe('checkFolderPublicPermissionService', () => {
     it('deve retornar true se a pasta tiver permissão "anyone" e "reader"', async () => {
       vi.mocked(getDriveAccessTokenForUser).mockResolvedValue(mockToken);
+      
+      // Mock do Supabase para buscar o email do usuário
+      const mockSupabase = {
+        from: vi.fn().mockReturnThis(),
+        select: vi.fn().mockReturnThis(),
+        eq: vi.fn().mockReturnThis(),
+        single: vi.fn().mockResolvedValue({
+          data: { email: 'user@example.com' },
+          error: null,
+        }),
+      };
+      vi.mocked(createSupabaseServerClient).mockResolvedValue(mockSupabase as any);
+      
       vi.mocked(fetch).mockResolvedValue({
         ok: true,
         json: async () => ({
           explicitlyTrashed: false,
           permissions: [{ type: 'anyone', role: 'reader' }],
+          owners: [{ emailAddress: 'user@example.com' }],
+          webViewLink: 'https://drive.google.com/drive/folders/folder-123',
         }),
       } as Response);
 
@@ -109,21 +124,26 @@ describe('Google Service', () => {
         'folder-123',
         mockUserId,
       );
-      expect(result).toBe(true);
+      expect(result.isPublic).toBe(true);
+      expect(result.isOwner).toBe(true);
     });
 
     it('deve retornar false se a pasta estiver na lixeira', async () => {
       vi.mocked(getDriveAccessTokenForUser).mockResolvedValue(mockToken);
       vi.mocked(fetch).mockResolvedValue({
         ok: true,
-        json: async () => ({ explicitlyTrashed: true }),
+        json: async () => ({ 
+          explicitlyTrashed: true,
+          webViewLink: 'https://drive.google.com/drive/folders/folder-123',
+        }),
       } as Response);
 
       const result = await googleService.checkFolderPublicPermissionService(
         'folder-123',
         mockUserId,
       );
-      expect(result).toBe(false);
+      expect(result.isPublic).toBe(false);
+      expect(result.isOwner).toBe(false);
     });
   });
 
@@ -219,14 +239,18 @@ describe('Google Service', () => {
     // Simula pasta na lixeira
     vi.mocked(fetch).mockResolvedValueOnce({
       ok: true,
-      json: async () => ({ explicitlyTrashed: true }),
+      json: async () => ({ 
+        explicitlyTrashed: true,
+        webViewLink: 'https://drive.google.com/drive/folders/f',
+      }),
     } as Response);
 
-    const isPublic = await googleService.checkFolderPublicPermissionService(
+    const result = await googleService.checkFolderPublicPermissionService(
       'f',
       'u',
     );
-    expect(isPublic).toBe(false);
+    expect(result.isPublic).toBe(false);
+    expect(result.isOwner).toBe(false);
   });
 
   it('deve lançar erro se o Google retornar erro no Refresh Token (Linhas 136-140)', async () => {
@@ -287,14 +311,18 @@ describe('Google Service', () => {
       // Simula pasta na lixeira
       vi.mocked(fetch).mockResolvedValueOnce({
         ok: true,
-        json: async () => ({ explicitlyTrashed: true }),
+        json: async () => ({ 
+          explicitlyTrashed: true,
+          webViewLink: 'https://drive.google.com/drive/folders/f',
+        }),
       } as Response);
 
-      const isPublic = await googleService.checkFolderPublicPermissionService(
+      const result = await googleService.checkFolderPublicPermissionService(
         'f',
         'u',
       );
-      expect(isPublic).toBe(false);
+      expect(result.isPublic).toBe(false);
+      expect(result.isOwner).toBe(false);
     });
 
     /*it('deve lançar erro se o Google retornar erro no Refresh Token (Linhas 136-140)', async () => {

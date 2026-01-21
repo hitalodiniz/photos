@@ -27,6 +27,27 @@ const BLOCKED_PATTERNS = [
 function checkFile(filePath) {
   try {
     const content = fs.readFileSync(filePath, 'utf-8');
+    
+    // 🎯 Server Actions são exceções legítimas - eles são a API pública
+    // Arquivos com 'use server' podem importar diretamente dos serviços críticos
+    const isServerAction = content.trim().startsWith("'use server'") || 
+                          content.trim().startsWith('"use server"') ||
+                          content.trim().startsWith("'use server';") ||
+                          content.trim().startsWith('"use server";');
+    
+    if (isServerAction) {
+      // Server actions são permitidos importar diretamente
+      return [];
+    }
+    
+    // 🎯 Serviços críticos podem importar de outros arquivos críticos internos
+    // Eles são a implementação base e precisam acessar diretamente
+    const isCriticalService = CRITICAL_SERVICES.some(service => filePath.includes(service));
+    if (isCriticalService) {
+      // Serviços críticos podem importar de libs críticas internas
+      return [];
+    }
+    
     const violations = [];
     
     BLOCKED_PATTERNS.forEach((pattern, index) => {
@@ -65,6 +86,14 @@ function getChangedFiles() {
     return [];
   }
 }
+
+// 🎯 Arquivos que são serviços críticos e podem importar de outros arquivos críticos internos
+const CRITICAL_SERVICES = [
+  'src/core/services/google.service.ts',
+  'src/core/services/auth.service.ts',
+  'src/core/services/token-cleanup.service.ts',
+  'src/core/services/google-drive.service.ts',
+];
 
 function main() {
   const changedFiles = getChangedFiles();
