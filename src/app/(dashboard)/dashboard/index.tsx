@@ -538,6 +538,7 @@ export default function Dashboard({
         {/* 1. Botão Nova Galeria (Mantido tamanho original) */}
         <div className="lg:px-4 lg:py-3">
           <button
+            // Esta rota leva para a página de criação de uma nova galeria
             onClick={() => router.push('/dashboard/galerias/new')}
             className={`flex items-center justify-center bg-[#F3E5AB] text-petroleum hover:bg-[#F3E5AB]/90 transition-all duration-300 rounded-[0.5rem] border border-[#F3E5AB] group shadow-lg mb-6 overflow-hidden w-12 h-12 fixed bottom-20 right-6 z-[100] lg:relative lg:bottom-auto lg:right-auto lg:z-auto lg:shadow-sm lg:mb-0 ${isSidebarCollapsed ? 'lg:w-14 lg:h-10' : 'lg:h-10 lg:px-4 lg:gap-3 lg:w-full'}`}
           >
@@ -1062,34 +1063,29 @@ export default function Dashboard({
           )}
         </div>
 
-        {/* PAGINAÇÃO */}
-        <div className="mt-12 flex flex-col items-center justify-center space-y-6 pb-12">
-          <div className="flex flex-col items-center gap-2">
-            <div className="text-[10px] font-semibold text-petroleum dark:text-slate-700 uppercase tracking-widest">
-              {visibleGalerias.length} de {filteredGalerias.length} Galerias
+        {/* FECHAMENTO EDITORIAL */}
+        <div className="bg-petroleum rounded-xl py-6 px-4 mt-12">
+          <div className="flex items-center justify-center gap-4">
+            {/* Contador - Botão Secundário */}
+            <div className="px-4 py-3.5 rounded-[0.5rem] bg-white/10 border border-white/20 text-[10px] font-bold uppercase tracking-[0.2em] text-white">
+              EXIBINDO {visibleGalerias.length} DE {filteredGalerias.length} GALERIAS
             </div>
-            <div className="w-40 h-[3px] bg-slate-200 rounded-full overflow-hidden">
-              <div
-                className="h-full bg-gold transition-all duration-700 ease-out"
-                style={{
-                  width: `${(visibleGalerias.length / filteredGalerias.length) * 100}%`,
-                }}
-              />
-            </div>
+            
+            {/* Botão Principal - Expandir Acervo */}
+            {filteredGalerias.length > cardsToShow && (
+              <button
+                onClick={() => setCardsToShow((prev) => prev + CARDS_PER_PAGE)}
+                className="group px-6 py-3.5 rounded-[0.5rem] bg-[#F3E5AB] text-petroleum border border-[#F3E5AB] hover:bg-[#F3E5AB]/90 transition-all duration-300 uppercase text-[10px] font-bold tracking-[0.2em] shadow-lg active:scale-95 flex items-center gap-3 ml-4"
+              >
+                <Plus
+                  size={14}
+                  strokeWidth={2.5}
+                  className="text-petroleum group-hover:rotate-90 transition-transform duration-300 shrink-0"
+                />
+                EXPANDIR ACERVO
+              </button>
+            )}
           </div>
-          {filteredGalerias.length > cardsToShow && (
-            <button
-              onClick={() => setCardsToShow((prev) => prev + CARDS_PER_PAGE)}
-              className="group mx-auto px-12 py-3.5 rounded-[0.5rem] bg-[#F3E5AB] text-petroleum border border-[#F3E5AB] hover:bg-[#F3E5AB]/90 transition-all duration-300 uppercase text-[10px] font-semibold tracking-widest shadow-lg active:scale-95 flex items-center gap-3"
-            >
-              <Plus
-                size={14}
-                strokeWidth={2.5}
-                className="text-petroleum group-hover:rotate-90 transition-transform duration-300 shrink-0"
-              />
-              Expandir Acervo
-            </button>
-          )}
         </div>
       </main>
 
