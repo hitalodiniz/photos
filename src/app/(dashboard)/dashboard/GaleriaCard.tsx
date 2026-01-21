@@ -341,10 +341,7 @@ export default function GaleriaCard({
 
         <div className="absolute top-3 right-3">
           {categoryInfo && (
-            <span className="flex items-center gap-1.5 px-2 py-0.5 bg-black/40 backdrop-blur-md rounded text-[8px] font-semibold tracking-widest text-white border border-gold/40 uppercase shadow-sm">
-              <span className="text-champagne leading-none">
-                {categoryInfo.icon}
-              </span>
+            <span className="flex items-center gap-1 px-2 py-1 bg-black/50 backdrop-blur-md rounded-md text-[9px] font-semibold tracking-wider text-champagne border border-champagne/30 uppercase shadow-lg">
               {categoryInfo.label}
             </span>
           )}

@@ -15,7 +15,7 @@ export const executeShare = async ({
   const isMobile =
     typeof navigator !== 'undefined' &&
     /iPhone|iPad|iPod|Android/i.test(navigator.userAgent);
-  const cleanPhone = phone.replace(/\D/g, '');
+  const cleanPhone = phone ? phone.replace(/\D/g, '') : '';
 
   // 1. Tenta Share Nativo no Mobile
   if (isMobile && navigator.share) {
