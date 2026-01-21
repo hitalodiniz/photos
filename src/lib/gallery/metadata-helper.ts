@@ -143,35 +143,43 @@ export async function getPhotoMetadata(
     return { title: 'Foto não encontrada | Sua Galeria' };
   }
 
-  // 🎯 AJUSTE: Usar apenas o título da galeria para bater com sua imagem de referência
-  const title = galeriaRaw.title;
+  // 🎯 Título: Nome da galeria + indicação de foto
+  const title = `${galeriaRaw.title} - Foto`;
 
+  // 🎯 Descrição otimizada para WhatsApp/Facebook
   const descriptionParts = [];
-  if (galeriaRaw.location) descriptionParts.push(galeriaRaw.location);
+  
+  // Adiciona informações relevantes
+  if (galeriaRaw.location) {
+    descriptionParts.push(`📍 ${galeriaRaw.location}`);
+  }
   if (galeriaRaw.date) {
     descriptionParts.push(
-      new Date(galeriaRaw.date).toLocaleDateString('pt-BR'),
+      `📅 ${new Date(galeriaRaw.date).toLocaleDateString('pt-BR')}`,
     );
   }
 
   const photographerInfo = galeriaRaw.photographer?.full_name
-    ? `Autor: ${galeriaRaw.photographer.full_name}`
+    ? `📸 ${galeriaRaw.photographer.full_name}`
     : '';
 
   let description = '';
   if (!galeriaRaw.is_public) {
-    description = `🔒 Foto em Galeria Privada. ${photographerInfo}`.trim();
+    description = `🔒 Galeria Privada. ${photographerInfo}`.trim();
   } else {
     if (photographerInfo) descriptionParts.push(photographerInfo);
     description =
       descriptionParts.length > 0
-        ? descriptionParts.join(' | ')
-        : 'Toque para ver a foto.';
+        ? descriptionParts.join(' • ')
+        : 'Confira esta foto da galeria.';
   }
 
-  // 🎯 FALLBACK: Prefere URL direta (server-side), cliente fará fallback se necessário
-  const ogImage = googleId ? getDirectGoogleUrl(googleId, '1200') : null;
+  // 🎯 Usa API route própria para garantir compatibilidade com WhatsApp/Facebook
+  // A rota /api/og/photo serve a imagem em JPEG (não WebP) e com URL absoluta acessível
   const baseUrl = process.env.NEXT_PUBLIC_BASE_URL;
+  const ogImage = googleId 
+    ? `${baseUrl}/api/og/photo/${googleId}` 
+    : null;
 
   return {
     title,
@@ -181,13 +189,22 @@ export async function getPhotoMetadata(
       description,
       type: 'article',
       url: `${baseUrl}/photo/${googleId}?s=${fullSlug}`,
-      images: ogImage ? [{ url: ogImage, width: 1200, height: 630 }] : [],
+      images: ogImage 
+        ? [{ 
+            url: ogImage, 
+            width: 1200, 
+            height: 900, // Aspect ratio 4:3 funciona bem para fotos no WhatsApp
+            alt: `${title}`,
+            type: 'image/jpeg', // Garante que seja reconhecido como JPEG
+          }] 
+        : [],
     },
     twitter: {
       card: 'summary_large_image',
       title,
       description,
       images: ogImage ? [ogImage] : [],
+      creator: galeriaRaw.photographer?.full_name || undefined,
     },
   };
 }
