@@ -54,25 +54,42 @@ export async function GET(request: Request) {
   // Isso força o Next.js a ler os cookies do request, incluindo o code verifier
   const allCookies = cookieStore.getAll();
 
+  // 🎯 DEBUG: Log detalhado dos cookies recebidos
+  if (isProduction) {
+    console.log('[auth/callback] 📋 Cookies recebidos no callback:', {
+      totalCookies: allCookies.length,
+      cookieNames: allCookies.map(c => c.name),
+      requestUrl: requestUrl.toString(),
+      requestHost: requestUrl.host,
+    });
+  }
+
   // 🎯 DEBUG: Verifica se o code verifier cookie está presente
   const codeVerifierCookie = allCookies.find(cookie => 
-    cookie.name.includes('code-verifier') || cookie.name.includes('verifier')
+    cookie.name.includes('code-verifier') || 
+    cookie.name.includes('verifier') ||
+    cookie.name.includes('auth-token')
   );
   
-  if (!codeVerifierCookie && isProduction) {
-    console.warn('[auth/callback] ⚠️ Code verifier cookie não encontrado. Cookies disponíveis:', 
-      allCookies.map(c => c.name).join(', ')
-    );
+  if (!codeVerifierCookie) {
+    console.error('[auth/callback] ❌ Code verifier cookie não encontrado!', {
+      isProduction,
+      totalCookies: allCookies.length,
+      cookieNames: allCookies.map(c => c.name),
+      requestHost: requestUrl.host,
+      cookieDomain: process.env.NEXT_PUBLIC_COOKIE_DOMAIN || process.env.COOKIE_DOMAIN || 'não configurado',
+    });
+  } else if (isProduction) {
+    console.log('[auth/callback] ✅ Code verifier cookie encontrado:', {
+      cookieName: codeVerifierCookie.name,
+      hasValue: !!codeVerifierCookie.value,
+      valueLength: codeVerifierCookie.value?.length || 0,
+    });
   }
   
-  // 🎯 CONFIGURAÇÃO DE COOKIE DOMAIN (deve ser igual ao cliente)
-  const cookieDomain = 
-    process.env.NEXT_PUBLIC_COOKIE_DOMAIN ||
-    process.env.COOKIE_DOMAIN;
-  
-  const finalCookieDomain = cookieDomain && cookieDomain.trim() !== '' && !cookieDomain.includes(':')
-    ? cookieDomain.trim()
-    : undefined;
+  // 🎯 SEM SUBDOMÍNIOS: domain deve ser undefined para permitir que o navegador use o host atual
+  // Isso garante que o cookie seja armazenado e enviado corretamente no mesmo domínio
+  const finalCookieDomain = undefined; // Sempre undefined quando não há subdomínios
 
   const supabase = createServerClient(
     process.env.NEXT_PUBLIC_SUPABASE_URL!,
@@ -80,9 +97,9 @@ export async function GET(request: Request) {
     {
       // 🎯 COOKIE OPTIONS: Deve ser igual ao cliente para garantir que o code verifier seja encontrado
       cookieOptions: {
-        domain: finalCookieDomain,
+        domain: finalCookieDomain, // undefined quando não há subdomínios
         path: '/',
-        sameSite: 'lax',
+        sameSite: 'lax', // 'lax' é suficiente quando não há redirecionamentos cross-site
         secure: isProduction,
       },
       cookies: {
@@ -98,14 +115,11 @@ export async function GET(request: Request) {
             const cookieOptions: any = {
               ...options,
               path: '/',
-              sameSite: 'lax' as const,
+              sameSite: 'lax' as const, // 'lax' é suficiente quando não há redirecionamentos cross-site
               secure: isProduction,
+              // 🎯 SEM SUBDOMÍNIOS: domain deve ser undefined
+              domain: undefined,
             };
-            
-            // Só adiciona domain se estiver configurado e for válido
-            if (finalCookieDomain) {
-              cookieOptions.domain = finalCookieDomain;
-            }
             
             cookieStore.set(name, value, cookieOptions);
           });

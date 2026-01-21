@@ -654,7 +654,8 @@ export default function Dashboard({
 
           {/* 🎯 SEÇÃO 6: CONTROLE DE VERSÃO E DEPLOY */}
           {/* Versão visível para todos, detalhes completos apenas para hitalodiniz */}
-          <div className="mt-4 px-2 lg:border-t lg:pt-4 lg:pb-2">
+          {/* Oculto no mobile */}
+          <div className="hidden lg:block mt-4 px-2 lg:border-t lg:pt-4 lg:pb-2">
             <VersionInfo 
               isCollapsed={isSidebarCollapsed} 
               showFullDetails={initialProfile?.username === 'hitalodiniz'}

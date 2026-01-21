@@ -47,11 +47,11 @@ export const supabase = createBrowserClient(
     // 🎯 CONFIGURAÇÃO DE COOKIES PARA PKCE
     // O createBrowserClient usa cookieOptions (não a API cookies)
     cookieOptions: {
-      domain: COOKIE_DOMAIN && COOKIE_DOMAIN.trim() !== '' && !COOKIE_DOMAIN.includes(':')
-        ? COOKIE_DOMAIN.trim()
-        : undefined, // undefined em localhost permite que o navegador use o host atual
+      // 🎯 SEM SUBDOMÍNIOS: domain deve ser undefined para permitir que o navegador use o host atual
+      // Isso garante que o cookie seja armazenado e enviado corretamente no mesmo domínio
+      domain: undefined, // Sempre undefined quando não há subdomínios
       path: '/',
-      sameSite: 'lax',
+      sameSite: 'lax', // 'lax' é suficiente quando não há redirecionamentos cross-site
       secure: isProduction, // HTTPS obrigatório em produção para PKCE
       maxAge: 60 * 60 * 24 * 30, // 30 dias - tempo suficiente para o code verifier durante o fluxo OAuth
     },

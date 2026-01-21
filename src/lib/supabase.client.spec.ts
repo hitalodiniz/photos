@@ -61,6 +61,7 @@ describe('supabase.client', () => {
         path: '/',
         sameSite: 'lax',
         secure: true,
+        maxAge: 60 * 60 * 24 * 30, // 30 dias - tempo suficiente para o code verifier durante o fluxo OAuth
       });
     } else {
       throw new Error('createBrowserClient não foi chamado');
