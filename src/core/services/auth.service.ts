@@ -36,56 +36,58 @@ import { getBaseUrl } from '@/lib/get-base-url';
 import { supabase } from '@/lib/supabase.client';
 import { Session } from '@supabase/supabase-js';
 
-// Cache para evitar múltiplos refreshes paralelos
-let refreshPromise: Promise<any> | null = null;
-let lastRefreshTime = 0;
+// Use globalThis to ensure singleton even with multiple module evaluations
+const GLOBAL_CACHE_KEY = '___PHOTOS_AUTH_CACHE___';
 
-// Cache para evitar múltiplas buscas de perfil paralelas
-const profileCache = new Map<string, Promise<any>>();
+if (!(globalThis as any)[GLOBAL_CACHE_KEY]) {
+  (globalThis as any)[GLOBAL_CACHE_KEY] = {
+    refreshPromise: null,
+    sessionPromise: null,
+    profileCache: new Map<string, Promise<any>>(),
+    lastRefreshTime: 0
+  };
+}
+
+const authCache = (globalThis as any)[GLOBAL_CACHE_KEY];
 
 export const authService = {
-  // Busca a sessão atual
+  // Busca a sessão atual com cache de promessa para evitar múltiplas chamadas
   async getSession() {
-    try {
-      const { data, error } = await supabase.auth.getSession();
-      
-      // 🎯 TRATAMENTO: Se houver erro ou sessão inválida, limpa a sessão
-      if (error) {
-        // console.error('[authService] Erro ao buscar sessão:', error);
-        // Limpa sessão inválida
-        await supabase.auth.signOut();
-        return null;
-      }
+    if (authCache.sessionPromise) {
+      return authCache.sessionPromise;
+    }
 
-      // 🎯 VERIFICAÇÃO: Se a sessão existe mas está expirada, tenta refresh
-      if (data.session) {
-        // Verifica se o token está expirado (com margem de 5 minutos)
-        const expiresAt = data.session.expires_at;
-        if (expiresAt) {
-          const now = Math.floor(Date.now() / 1000);
-          const expiresIn = expiresAt - now;
-          
-          // Se expira em menos de 5 minutos, tenta refresh
-          if (expiresIn < 300) {
-            // console.log('[authService] Sessão expirando, tentando refresh...');
+    authCache.sessionPromise = (async () => {
+      try {
+        const { data, error } = await supabase.auth.getSession();
+        
+        if (error) {
+          // Em caso de erro, não limpamos a sessão agressivamente para evitar loops de 429
+          return null;
+        }
+
+        if (data.session) {
+          const expiresAt = data.session.expires_at;
+          if (expiresAt) {
+            const now = Math.floor(Date.now() / 1000);
+            const expiresIn = expiresAt - now;
             
-            const refreshData = await this.refreshSession();
-            return refreshData.data?.session || null;
+            if (expiresIn < 300) {
+              const refreshData = await this.refreshSession();
+              return refreshData.data?.session || null;
+            }
           }
         }
-      }
 
-      return data.session;
-    } catch {
-      // console.error('[authService] Erro crítico ao buscar sessão:', error);
-      // Em caso de erro crítico, limpa a sessão
-      try {
-        await supabase.auth.signOut();
+        return data.session;
       } catch {
-        // console.error('[authService] Erro ao fazer signOut:', signOutError);
+        return null;
+      } finally {
+        authCache.sessionPromise = null;
       }
-      return null;
-    }
+    })();
+
+    return authCache.sessionPromise;
   },
 
   // Escuta mudanças de autenticação
@@ -95,8 +97,8 @@ export const authService = {
     const {
       data: { subscription },
     } = supabase.auth.onAuthStateChange((event, session) => {
-      // 🚀 LOG: Monitora qual evento de auth está sendo disparado
-      // console.log(`[authService] Evento de auth: ${event}`, { userId: session?.user?.id });
+      // Limpa cache de sessão em qualquer mudança relevante
+      authCache.sessionPromise = null;
       callback(event, session);
     });
     return subscription;
@@ -104,59 +106,51 @@ export const authService = {
 
   // Logout
   async signOut() {
-    // Limpa caches ao deslogar
-    profileCache.clear();
+    authCache.profileCache.clear();
+    authCache.sessionPromise = null;
+    authCache.refreshPromise = null;
     await supabase.auth.signOut();
   },
 
   // Refresh manual de sessão com trava para evitar loop
   async refreshSession() {
-    // 🛡️ TRAVA 1: Se já existe um refresh em andamento, retorna a mesma promise
-    if (refreshPromise) {
-      // console.log('[authService] Refresh já em andamento, reutilizando promise...');
-      return refreshPromise;
+    if (authCache.refreshPromise) {
+      return authCache.refreshPromise;
     }
 
-    // 🛡️ TRAVA 2: Evita refreshes muito frequentes (ex: menos de 10s entre eles)
     const now = Date.now();
-    if (now - lastRefreshTime < 10000) {
-      // console.log('[authService] Refresh solicitado muito cedo, ignorando...');
+    if (now - authCache.lastRefreshTime < 10000) {
       return { data: { session: null }, error: null };
     }
 
-    lastRefreshTime = now;
-    // console.log('[authService] Iniciando refresh de sessão...');
-    refreshPromise = supabase.auth.refreshSession();
-    
-    try {
-      const result = await refreshPromise;
-      
-      if (result.error) {
-        // console.error('[authService] Erro no refresh:', result.error.message);
-        // Se o refresh falhar por token inválido, desloga
-        if (result.error.message?.includes('refresh_token') || result.error.message?.includes('Invalid')) {
-          await supabase.auth.signOut();
+    authCache.lastRefreshTime = now;
+    authCache.refreshPromise = (async () => {
+      try {
+        const result = await supabase.auth.refreshSession();
+        
+        if (result.error) {
+          if (result.error.message?.includes('refresh_token') || result.error.message?.includes('Invalid')) {
+            await supabase.auth.signOut();
+          }
         }
+        
+        return result;
+      } finally {
+        authCache.refreshPromise = null;
       }
-      
-      return result;
-    } finally {
-      // 🎯 LIMPEZA: Sempre limpa a variável ao finalizar
-      refreshPromise = null;
-    }
+    })();
+    
+    return authCache.refreshPromise;
   },
 
-  // Busca perfil do usuário logado com cache de promessa
+  // Busca perfil do usuário logado com cache de promessa global
   async getProfile(userId: string) {
     if (!userId) return null;
 
-    // Retorna do cache se já houver uma busca em andamento ou finalizada
-    if (profileCache.has(userId)) {
-      // console.log('[authService] Usando cache para perfil:', userId);
-      return profileCache.get(userId);
+    if (authCache.profileCache.has(userId)) {
+      return authCache.profileCache.get(userId);
     }
 
-    // console.log('[authService] Buscando perfil do banco:', userId);
     const fetchPromise = (async () => {
       try {
         const { data, error } = await supabase
@@ -168,13 +162,12 @@ export const authService = {
         if (error) throw error;
         return data;
       } catch (err) {
-        // Se falhar, remove do cache para permitir nova tentativa depois
-        profileCache.delete(userId);
+        authCache.profileCache.delete(userId);
         return null;
       }
     })();
 
-    profileCache.set(userId, fetchPromise);
+    authCache.profileCache.set(userId, fetchPromise);
     return fetchPromise;
   },
 

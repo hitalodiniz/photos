@@ -303,7 +303,7 @@ img.src = imgSrc;
   );
 
   // Handler para fechar miniaturas ao clicar fora (mobile) - comportamento Instagram
-  const handleClickOutside = (e: any) => {
+  const handleClickOutside = useCallback((e: any) => {
     if (!isMobile || !showThumbnails) return;
     
     const target = e.target as HTMLElement;
@@ -315,7 +315,7 @@ img.src = imgSrc;
     
     // Fecha se clicar em qualquer lugar fora das miniaturas
     setShowThumbnails(false);
-  };
+  }, [isMobile, showThumbnails]);
 
   useEffect(() => {
     if (!isMobile || !showThumbnails) return;
@@ -328,7 +328,7 @@ img.src = imgSrc;
       document.removeEventListener('mousedown', handleClickOutside);
       document.removeEventListener('touchstart', handleClickOutside);
     };
-  }, [isMobile, showThumbnails]);
+  }, [isMobile, showThumbnails, handleClickOutside]);
 
   if (!currentPhoto) return null;
 
