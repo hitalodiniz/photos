@@ -62,18 +62,14 @@ export async function getDriveAccessTokenForUser(
     const refreshToken = profile.google_refresh_token;
 
     // 2. Chamar Google OAuth para renovar o access_token
-    const tokenRes = await fetch('https://oauth2.googleapis.com/token', {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/x-www-form-urlencoded',
-      },
-      body: new URLSearchParams({
-        client_id: process.env.GOOGLE_CLIENT_ID!,
-        client_secret: process.env.GOOGLE_CLIENT_SECRET!,
-        refresh_token: refreshToken,
-        grant_type: 'refresh_token',
-      }),
-    });
+    // 🎯 USA HELPER DE RATE LIMITING: Previne 429 errors
+    const { fetchGoogleToken } = await import('@/core/utils/google-oauth-throttle');
+    
+    const tokenRes = await fetchGoogleToken(
+      refreshToken,
+      process.env.GOOGLE_CLIENT_ID!,
+      process.env.GOOGLE_CLIENT_SECRET!
+    );
 
     const tokenData = await tokenRes.json();
     if (!tokenRes.ok) {

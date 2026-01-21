@@ -60,16 +60,25 @@ export async function GET(request: Request) {
           cookiesToSet.forEach(({ name, value, options }) => {
             // AJUSTE MULTIDOMÍNIO: Injeta o domínio para abranger subdomínios
             // .localhost (dev) ou .suagaleria.com.br (Vercel)
-            cookieStore.set(name, value, {
+            const cookieDomain = 
+              process.env.NEXT_PUBLIC_COOKIE_DOMAIN ||
+              process.env.COOKIE_DOMAIN;
+            
+            // 🎯 VALIDAÇÃO: Só define domain se for válido (não vazio e não contém porta)
+            const cookieOptions: any = {
               ...options,
-              domain:
-                process.env.NEXT_PUBLIC_COOKIE_DOMAIN ||
-                process.env.COOKIE_DOMAIN,
               path: '/',
-              sameSite: 'lax',
+              sameSite: 'lax' as const,
               // HTTPS OBRIGATÓRIO: Na Vercel deve ser true para o PKCE funcionar
               secure: isProduction,
-            });
+            };
+            
+            // Só adiciona domain se estiver configurado e for válido
+            if (cookieDomain && cookieDomain.trim() !== '' && !cookieDomain.includes(':')) {
+              cookieOptions.domain = cookieDomain.trim();
+            }
+            
+            cookieStore.set(name, value, cookieOptions);
           });
         },
       },
@@ -81,10 +90,19 @@ export async function GET(request: Request) {
 
   // 2. CHECAGEM DE ERRO (PKCE / Credenciais)
   if (error || !data.session) {
-    // console.error(
-    //   'Auth callback error:',
-    //   error?.message || 'Sessão não encontrada.',
-    // );
+    // 🎯 LOG EM PRODUÇÃO: Ajuda a debugar problemas de autenticação
+    console.error('[auth/callback] ❌ Erro na troca de código por sessão:', {
+      error: error?.message || 'Sessão não encontrada',
+      errorCode: error?.status,
+      hasCode: !!code,
+      codeLength: code?.length,
+      isProduction,
+      cookieDomain: process.env.NEXT_PUBLIC_COOKIE_DOMAIN || process.env.COOKIE_DOMAIN || 'não configurado',
+      baseUrl: process.env.NEXT_PUBLIC_BASE_URL || 'não configurado',
+      supabaseUrl: process.env.NEXT_PUBLIC_SUPABASE_URL ? 'configurado' : 'não configurado',
+      hasAnonKey: !!process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY,
+    });
+    
     return NextResponse.redirect(
       new URL('/login?error=auth_failed', request.url),
     );

@@ -234,31 +234,23 @@ export async function getValidGoogleTokenService(userId: string): Promise<string
     console.log(`[getValidGoogleTokenService] Renovando token para userId: ${userId}...`);
     const startTime = Date.now();
     
-    // 🎯 Timeout de 10 segundos para a chamada ao Google
-    const controller = new AbortController();
-    const timeoutId = setTimeout(() => {
-      controller.abort();
-      console.error(`[getValidGoogleTokenService] ⚠️ Timeout na chamada ao Google (10s) para userId: ${userId}`);
-    }, 10000);
-    
     let response: Response;
     try {
-      response = await fetch('https://oauth2.googleapis.com/token', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          client_id: process.env.GOOGLE_CLIENT_ID,
-          client_secret: process.env.GOOGLE_CLIENT_SECRET,
-          refresh_token: profile.google_refresh_token,
-          grant_type: 'refresh_token',
-        }),
-        signal: controller.signal,
-      });
-      clearTimeout(timeoutId);
+      // 🎯 USA HELPER DE RATE LIMITING: Previne 429 errors com retry e backoff
+      const { fetchGoogleToken } = await import('@/core/utils/google-oauth-throttle');
+      
+      response = await fetchGoogleToken(
+        profile.google_refresh_token,
+        process.env.GOOGLE_CLIENT_ID!,
+        process.env.GOOGLE_CLIENT_SECRET!
+      );
     } catch (fetchErr: any) {
-      clearTimeout(timeoutId);
-      if (fetchErr.name === 'AbortError') {
+      if (fetchErr.message?.includes('timeout') || fetchErr.status === 408) {
         throw new Error('Erro de conexão com o servidor do Google (timeout).');
+      }
+      // Se for rate limit mesmo após retry, lança erro específico
+      if (fetchErr.status === 429) {
+        throw new Error('Muitas requisições ao Google. Aguarde alguns segundos e tente novamente.');
       }
       throw fetchErr;
     }
