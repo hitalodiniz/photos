@@ -11,9 +11,16 @@ export const fetchCitiesByState = async (uf: string, query: string) => {
     `https://servicodados.ibge.gov.br/api/v1/localidades/estados/${uf}/municipios`,
   );
   const data = await response.json();
+
+  const normalize = (str: string) =>
+    str
+      .normalize('NFD')
+      .replace(/[\u0300-\u036f]/g, '')
+      .toLowerCase();
+
+  const normalizedQuery = normalize(query);
+
   return data
-    .filter((item: any) =>
-      item.nome.toLowerCase().includes(query.toLowerCase()),
-    )
+    .filter((item: any) => normalize(item.nome).includes(normalizedQuery))
     .map((item: any) => `${item.nome}, ${uf}`);
 };

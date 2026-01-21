@@ -107,6 +107,11 @@ export const authService = {
     await supabase.auth.signOut();
   },
 
+  // Refresh manual de sessão
+  async refreshSession() {
+    return await supabase.auth.refreshSession();
+  },
+
   /**
    * Faz login com Google
    * @param forceConsent - Se true, força prompt: 'consent' para garantir refresh_token

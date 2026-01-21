@@ -60,7 +60,7 @@ export default async function DocsSlugPage({
 
   if (!resultProfile.success || !resultProfile.profile) {
     redirect(
-      resultProfile.error === 'Usuário não autenticado.' ? '/auth/login' : '/onboarding',
+      resultProfile.error === 'Usuário não autenticado.' ? '/' : '/onboarding',
     );
   }
 

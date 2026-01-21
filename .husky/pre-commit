@@ -7,9 +7,9 @@
 # Este hook protege arquivos críticos de alterações não autorizadas
 # Arquivos de autenticação, autorização e APIs do Google Drive são protegidos
 
-# Verifica se tem flag de permissão (via variável de ambiente ou argumentos)
+# Verifica se tem flag de permissão (via variável de ambiente)
 ALLOW_CRITICAL=false
-if [ "$ALLOW_CRITICAL_CHANGES" = "true" ] || echo "$@" | grep -q "allow-critical-changes"; then
+if [ "$ALLOW_CRITICAL_CHANGES" = "true" ]; then
   ALLOW_CRITICAL=true
 fi
 

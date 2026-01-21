@@ -65,14 +65,17 @@ export default function Navbar() {
     return null;
   }
 
-  // Detectar se está na página de criação/edição de galeria
-  const isGaleriaFormPage = pathname.includes('/dashboard/galerias/') && 
-    (pathname.includes('/new') || pathname.includes('/edit'));
+  // Detectar se está na página de criação/edição de galeria ou onboarding
+  const isFormPage = (pathname.includes('/dashboard/galerias/') && (pathname.includes('/new') || pathname.includes('/edit'))) || 
+    pathname === '/onboarding';
   
-  // Breadcrumbs para página de galeria - Apenas o status (sem duplicar o branding)
-  const getBreadcrumbs = () => {
-    if (!isGaleriaFormPage) return null;
+  // Breadcrumbs para página de formulário - Apenas o status (sem duplicar o branding)
+  const getBreadcrumbs = (): { label: string; href?: string }[] | null => {
+    if (!isFormPage) return null;
     
+    if (pathname === '/onboarding') {
+      return [{ label: 'Editar Perfil' }];
+    }
     if (pathname.includes('/edit')) {
       return [{ label: 'Editar Galeria' }];
     } else {
@@ -88,8 +91,8 @@ export default function Navbar() {
       <nav className="fixed top-0 left-0 w-full z-[110] flex items-center justify-between px-6 md:px-10 py-2 bg-petroleum backdrop-blur-xl border-b border-slate-700/50 shadow-2xl">
         {/* Branding Editorial com Breadcrumbs */}
         <div className="flex items-center gap-4">
-          {/* Botão Voltar - À esquerda do ícone da câmera quando em modo edição/criação */}
-          {isGaleriaFormPage && (
+          {/* Botão Voltar - À esquerda do ícone da câmera quando em modo formulário */}
+          {isFormPage && (
             <button
               onClick={() => router.back()}
               className="p-2 text-white/60 hover:text-white hover:bg-white/10 rounded-lg transition-colors shrink-0"

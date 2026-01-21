@@ -8,6 +8,7 @@ interface SubmitButtonProps {
   label?: string;
   form?: string; // Permite vincular ao formulário fora do escopo direto
   className?: string; // Permite customização adicional de classes
+  disabled?: boolean; // Permite desabilitar externamente
 }
 
 export default function SubmitButton({
@@ -15,16 +16,18 @@ export default function SubmitButton({
   label = 'Salvar',
   form,
   className = '',
+  disabled = false,
 }: SubmitButtonProps) {
   // O hook useFormStatus funciona se o botão estiver DENTRO de um <form>
   // Como estamos usando o botão no rodapé, dependemos também da prop 'pending' externa ou do ID do form
   const { pending } = useFormStatus();
+  const isPending = pending || disabled;
 
   return (
     <button
       type="submit"
       form={form} // Crucial para disparar o formulário que está no corpo do modal
-      disabled={pending || success}
+      disabled={isPending || success}
       className={`
         group relative flex items-center justify-center gap-2
         text-[10px] md:text-[11px] font-bold uppercase tracking-[0.2em] transition-all duration-300
@@ -32,7 +35,7 @@ export default function SubmitButton({
         ${
           success
             ? 'bg-green-500 text-white shadow-green-200 h-10 rounded-[0.5rem]'
-            : pending
+            : isPending
               ? 'bg-slate-200 text-slate-400 cursor-wait border border-slate-300 h-10 rounded-[0.5rem]'
               : 'bg-[#F3E5AB] text-black hover:bg-white hover:border-[#F3E5AB] border border-[#F3E5AB] h-10 rounded-[0.5rem] shadow-sm'
         }
@@ -40,19 +43,19 @@ export default function SubmitButton({
       `}
     >
       {/* Efeito de Brilho no Hover (apenas quando não está em loading/success) */}
-      {!pending && !success && (
+      {!isPending && !success && (
         <div className="absolute inset-0 w-1/2 h-full bg-white/20 skew-x-[-20deg] -translate-x-full group-hover:translate-x-full group-hover:transition-transform group-hover:duration-1000 pointer-events-none" />
       )}
 
       <div className="relative z-10 flex items-center gap-2">
-        {pending ? (
+        {isPending ? (
           <Loader2 className="h-3.5 w-3.5 animate-spin" strokeWidth={2.5} />
         ) : success ? (
           <Check className="h-3.5 w-3.5 animate-in zoom-in duration-500" strokeWidth={2.5} />
         ) : null}
 
         <span>
-          {pending ? 'Salvando...' : success ? 'Salvo!' : label}
+          {isPending ? 'Salvando...' : success ? 'Salvo!' : label}
         </span>
       </div>
     </button>

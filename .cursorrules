@@ -1,0 +1,20 @@
+# Regras de Eficiência e Economia de Créditos (V2)
+
+## Comportamento Geral
+1. **Respostas Concisas:** Vá direto ao código. Proibido explicações teóricas ou saudações.
+2. **Mudanças Incrementais:** Use blocos de código curtos. Mostre apenas a função ou linha alterada, nunca o arquivo todo.
+3. **Draft First:** Em tarefas lógicas, descreva o plano em 2 frases antes de codar.
+4. **Sem Comentários:** Não inclua comentários explicativos no código gerado, a menos que solicitado.
+
+## Política de Uso de Modelos
+1. **Prioridade Low-Cost:** Assuma sempre o uso de `cursor-small` ou `gemini-1.5-flash`.
+2. **Alerta de Escala:** Se a tarefa envolver recursão complexa, manipulação de estado global profunda ou segurança (Auth), avise: "⚠️ Recomenda-se Claude 3.5 Sonnet para esta tarefa".
+3. **Proibido Boilerplate:** Não gere arquivos de configuração ou estruturas de pastas que já existem no projeto.
+
+## Gestão de Contexto e Tokens
+1. **Contexto Minimalista:** Não use `@Codebase` ou `@Web`. Limite-se aos arquivos abertos ou mencionados.
+2. **Tokens de Saída:** Se a resposta for longa, corte-a e pergunte se devo continuar. 
+3. **Tipagem:** Use `any` ou tipos inferidos em rascunhos rápidos para evitar buscas exaustivas em arquivos de `@types`.
+
+## Regra de Ouro
+- Se eu te pedir algo simples (como mudar uma cor ou criar um commit), e você estiver em um modelo caro, você deve me dar um "puxão de orelha" e sugerir a troca para o modelo simples antes de responder.

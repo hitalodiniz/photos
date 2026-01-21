@@ -24,6 +24,14 @@ export default function LoadingScreen({
       document.body.classList.remove('js-ready');
     }
 
+    return () => {
+      // Cleanup: sempre garante que o body possa mostrar conteúdo ao desmontar
+      // Isso evita que a tela fique "presa" se o componente sumir durante uma navegação
+      document.body.classList.add('js-ready');
+    };
+  }, [fadeOut]);
+
+  useEffect(() => {
     if (fadeOut) {
       // 1. Libera o conteúdo do fundo para começar o fade-in dele
       document.body.classList.add('js-ready');

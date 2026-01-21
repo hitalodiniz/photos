@@ -1,7 +1,7 @@
 'use client';
 
 import { useEffect, useMemo, useState } from 'react';
-import { useSearchParams, useRouter } from 'next/navigation';
+import { useSearchParams, useRouter, usePathname } from 'next/navigation';
 import {
   Plus,
   Inbox,
@@ -77,6 +77,7 @@ export default function Dashboard({
   const { user, isLoading: authLoading } = useAuth();
   const searchParams = useSearchParams();
   const router = useRouter();
+  const pathname = usePathname();
   
   // 🎯 ALERTA DE CONSENT: Verifica se precisa mostrar alerta após login
   const [showConsentAlert, setShowConsentAlert] = useState(false);
@@ -106,7 +107,9 @@ export default function Dashboard({
   const [updatingId, setUpdatingId] = useState<string | null>(null);
   const [selectedIds, setSelectedIds] = useState<Set<string>>(new Set());
   const [isBulkMode, setIsBulkMode] = useState(false);
+  const [isRedirecting, setIsRedirecting] = useState(false);
   
+  const [isPending, setIsPending] = useState(false);
   // 🎯 Carrega preferência do localStorage
   const [viewMode, setViewMode] = useState<'grid' | 'list'>(() => {
     if (typeof window !== 'undefined') {
@@ -119,8 +122,8 @@ export default function Dashboard({
   // 🎯 REDIRECIONAMENTO: Se não houver sessão válida, redireciona para login
   useEffect(() => {
     if (!authLoading && !user) {
-      // Não mostra nada e redireciona imediatamente
-      window.location.href = '/auth/login';
+      // Não mostra nada e redireciona imediatamente para a home
+      window.location.href = '/';
     }
   }, [user, authLoading]);
 
@@ -147,6 +150,11 @@ export default function Dashboard({
       setSelectedIds(new Set());
     }
   }, [isBulkMode]);
+
+  // 🎯 Garante que o loading saia se você voltar na página
+  useEffect(() => {
+    setIsRedirecting(false);
+  }, [pathname]);
 
 
   const counts = useMemo(
@@ -522,6 +530,19 @@ export default function Dashboard({
     }
   };
 
+  const handleNovaGaleria = () => {
+    setIsRedirecting(true);
+    
+    // Adicionamos um pequeno delay para garantir que o Router inicie
+    // e uma "saída de emergência" após 10 segundos
+    setTimeout(() => {
+      router.push('/dashboard/galerias/new');
+    }, 100);
+  
+    // Segurança: se em 10 segundos não mudou de página, destrava o usuário
+    setTimeout(() => setIsRedirecting(false), 10000);
+  };
+
   const toggleSidebar = async () => {
     const newValue = !isSidebarCollapsed;
     setIsSidebarCollapsed(newValue);
@@ -530,30 +551,36 @@ export default function Dashboard({
 
 
   return (
-    <div className="mx-auto flex flex-col lg:flex-row max-w-[1600px] gap-4 px-4 py-2 bg-luxury-bg min-h-screen pb-24 lg:pb-6">
+    <div className="mx-auto flex flex-col lg:flex-row max-w-[1600px] gap-2 px-1 bg-luxury-bg min-h-screen pb-24 lg:pb-6">
       {/* SIDEBAR */}
       <aside
         className={`fixed bottom-0 left-0 right-0 z-[100] bg-white border-t border-slate-200 px-6 py-3 lg:py-0 lg:px-0 lg:relative lg:block lg:bg-petroleum lg:border-0 lg:rounded-lg transition-all duration-500 ease-in-out ${isSidebarCollapsed ? 'lg:w-[70px]' : 'lg:w-[210px]'}`}
       >
         {/* 1. Botão Nova Galeria (Mantido tamanho original) */}
-        <div className="lg:px-4 lg:py-3">
-          <button
-            // Esta rota leva para a página de criação de uma nova galeria
-            onClick={() => router.push('/dashboard/galerias/new')}
-            className={`flex items-center justify-center bg-[#F3E5AB] text-petroleum hover:bg-[#F3E5AB]/90 transition-all duration-300 rounded-[0.5rem] border border-[#F3E5AB] group shadow-lg mb-6 overflow-hidden w-12 h-12 fixed bottom-20 right-6 z-[100] lg:relative lg:bottom-auto lg:right-auto lg:z-auto lg:shadow-sm lg:mb-0 ${isSidebarCollapsed ? 'lg:w-14 lg:h-10' : 'lg:h-10 lg:px-4 lg:gap-3 lg:w-full'}`}
-          >
-          <Plus
-            size={20}
-            className="group-hover:rotate-90 transition-transform shrink-0 lg:w-[18px] lg:h-[18px]"
-            strokeWidth={2.5}
-          />
-          {!isSidebarCollapsed && (
-            <span className="hidden lg:block text-[10px] font-semibold uppercase tracking-widest whitespace-nowrap">
-              Nova Galeria
-            </span>
-          )}
-          </button>
-        </div>
+{/* 2. Se estiver redirecionando, mostra a tela cheia */}
+{isRedirecting && (
+      <LoadingScreen message="Preparando sua nova galeria..." />
+    )}
+
+    <div className="lg:px-4 lg:py-3">
+      <button
+        onClick={handleNovaGaleria}
+        disabled={isRedirecting}
+        className={`flex items-center justify-center bg-champagne text-black hover:bg-white
+          transition-all duration-300 rounded-[0.5rem] border border-champagne group shadow-2xl 
+          mb-6 overflow-hidden w-12 h-12 fixed bottom-6 right-6 z-[9999] 
+          lg:relative lg:bottom-auto lg:right-auto lg:z-auto lg:shadow-sm lg:mb-0 
+          ${isSidebarCollapsed ? 'lg:w-14 lg:h-10' : 'lg:h-10 lg:px-4 lg:gap-3 lg:w-full'}
+          ${isRedirecting ? 'opacity-70 cursor-not-allowed' : ''}`}
+      >
+        <Plus size={20} className={isRedirecting ? 'animate-spin' : 'group-hover:rotate-90 transition-transform duration-300'} />
+        {!isSidebarCollapsed && (
+          <span className="hidden lg:block text-[10px] font-bold uppercase tracking-[0.2em]">
+            {isRedirecting ? 'Iniciando...' : 'Nova Galeria'}
+          </span>
+        )}
+      </button>
+    </div>
 
         <nav className="flex lg:flex-col justify-around lg:justify-start lg:space-y-1 relative lg:px-4 lg:py-3">
           <button
@@ -667,7 +694,10 @@ export default function Dashboard({
           >
             {!isSidebarCollapsed ? (
               <div className="space-y-2">
-                <div className="flex justify-end items-end mb-1">
+                <div className="flex justify-between items-end mb-1">
+                  <span className="text-[10px] font-bold uppercase tracking-widest text-white/80">
+                    Armazenamento
+                  </span>
                   <span className="text-[10px] font-semibold tracking-widest text-slate-300">
                     {galerias.length} / 50
                   </span>
@@ -683,7 +713,7 @@ export default function Dashboard({
                   />
                 </div>
                 <p className="text-[9px] text-slate-400 uppercase tracking-widest mt-1 font-medium">
-                  Limite de 50 galerias no plano atual
+                  Limite galerias no plano atual
                 </p>
               </div>
             ) : (
@@ -699,20 +729,11 @@ export default function Dashboard({
             )}
           </div>
 
-          {/* Divisor claro entre GALERIAS e SISTEMA */}
-          <div className="hidden lg:block mt-10 mb-10 border-t border-slate-700"></div>
-
+   
           {/* SESSÃO 3: SISTEMA (Google Drive) */}
-          {!isSidebarCollapsed && (
-            <div className="hidden lg:block mb-10">
-              <span className="text-[10px] font-bold uppercase tracking-widest text-white/80">
-                SISTEMA
-              </span>
-            </div>
-          )}
-          {/* 🎯 SEÇÃO 3: STATUS GOOGLE DRIVE (Melhorado com Indicador Pulsante) */}
+           {/* 🎯 SEÇÃO 3: STATUS GOOGLE DRIVE (Melhorado com Indicador Pulsante) */}
           <div
-            className={`hidden lg:block pt-4 border-t border-slate-700 ${isSidebarCollapsed ? 'px-0' : ''}`}
+            className={`hidden lg:block border-t border-slate-700 ${isSidebarCollapsed ? 'px-0' : ''}`}
           >
             <div
               className={`relative group flex items-center transition-all duration-300 ${isSidebarCollapsed ? 'justify-center py-4' : 'gap-3 py-3 rounded-xl hover:bg-white/5'}`}
@@ -763,16 +784,9 @@ export default function Dashboard({
             </div>
           </div>
 
-          {/* SESSÃO 4: AJUDA */}
-          {!isSidebarCollapsed && (
-            <div className="hidden lg:block mt-10 mb-10">
-              <span className="text-[10px] font-bold uppercase tracking-widest text-white/80">
-                AJUDA
-              </span>
-            </div>
-          )}
+
           {/* 🎯 SEÇÃO 4: AJUDA */}
-          <div className="mt-4 lg:border-t lg:border-slate-700 lg:pt-6">
+          <div className="mt-4 lg:border-t lg:border-slate-700">
             <Link
               href="/dashboard/ajuda"
               className={`flex items-center transition-all duration-300 group relative ${isSidebarCollapsed ? 'justify-center py-4' : 'gap-3 py-3 rounded-xl hover:bg-white/5'}`}
@@ -928,7 +942,7 @@ export default function Dashboard({
           )}
 
           {/* Header compacto: Filtros + View Toggle + Bulk Mode */}
-          <div className="flex items-center gap-4 px-4 py-3">
+          <div className="flex items-center gap-2 px-2 py-1">
             {isBulkMode && (
               <button
                 onClick={() => {

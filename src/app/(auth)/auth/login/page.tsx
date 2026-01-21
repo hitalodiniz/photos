@@ -3,8 +3,8 @@
 import { useEffect, useRef, useState, Suspense } from 'react';
 import { useRouter, useSearchParams } from 'next/navigation';
 import { ShieldCheck, AlertCircle } from 'lucide-react';
-import { supabase } from '@/lib/supabase.client';
-import useAuthStatus from '@/hooks/useAuthStatus';
+import { authService, useAuth } from '@photos/core-auth';
+import { getProfileData } from '@/core/services/profile.service';
 import { usePageTitle } from '@/hooks/usePageTitle';
 
 import { GoogleSignInButton } from '@/components/auth';
@@ -25,7 +25,7 @@ interface Profile {
 
 // 🎯 Componente interno que usa useSearchParams (precisa de Suspense)
 function LoginContent() {
-  const { session, loading: authLoading } = useAuthStatus();
+  const { user, isLoading: authLoading } = useAuth();
   const router = useRouter();
   const searchParams = useSearchParams();
   const isSyncingRef = useRef(false);
@@ -46,33 +46,34 @@ function LoginContent() {
   }, [searchParams]);
 
   useEffect(() => {
-    // Se a auth está carregando OU se já logou e o useEffect está rodando a triagem:
-    if (authLoading || session) {
-      return <LoadingScreen />;
-    }
+    // Só executamos a triagem se NÃO estiver carregando e se HOUVER uma sessão
+    if (authLoading || !user) return;
+
     const handleRouting = async () => {
       // 1. Sincronização de Sessão (Refresh para garantir cookies)
       if (!isSyncingRef.current) {
         isSyncingRef.current = true;
         try {
-          await supabase.auth.refreshSession();
+          await authService.refreshSession();
         } catch (e) {
           console.error('Falha ao sincronizar sessão:', e);
         }
       }
 
-      // 2. Busca o perfil para triagem
-      const { data } = await supabase
-        .from('tb_profiles')
-        .select('full_name, username, mini_bio, use_subdomain')
-        .eq('id', session.user.id)
-        .single();
+      // 2. Busca o perfil para triagem via Server Action (permitida)
+      const result = await getProfileData();
+      
+      if (!result.success || !result.profile) {
+        // Se não conseguir buscar o perfil, manda para onboarding por segurança
+        router.replace('/onboarding');
+        return;
+      }
 
-      const profile = data as Profile;
+      const profile = result.profile;
 
       // 3. Validação de Onboarding
       const isComplete =
-        profile?.full_name && profile?.username && profile?.mini_bio;
+        profile.full_name && profile.username && profile.mini_bio;
       if (!isComplete) {
         router.replace('/onboarding');
         return;
@@ -109,7 +110,7 @@ function LoginContent() {
     };
 
     handleRouting();
-  }, [session, authLoading, router]);
+  }, [user, authLoading, router]);
 
   const loginItems = [
     {

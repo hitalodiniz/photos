@@ -4,15 +4,27 @@ import React, { useState, useRef, useEffect, useMemo } from 'react';
 import Link from 'next/link';
 import Image from 'next/image';
 import { usePathname } from 'next/navigation';
-import { LogOut, Settings, Loader2 } from 'lucide-react';
+import { LogOut, Settings, Loader2, User, User2 } from 'lucide-react';
+import { authService } from '@photos/core-auth';
+import LoadingScreen from '../ui/LoadingScreen';
+
+interface UserMenuProps {
+  session: {
+    id: string;
+    email?: string;
+    name?: string;
+    user_metadata?: {
+      full_name?: string;
+      avatar_url?: string;
+    };
+  } | null;
+  avatarUrl?: string | null;
+}
 
 export default function UserMenu({
   session,
   avatarUrl,
-}: {
-  session: { id: string; email?: string; name?: string } | any;
-  avatarUrl?: string | null;
-}) {
+}: UserMenuProps) {
   const pathname = usePathname();
   const [isOpen, setIsOpen] = useState(false);
   const [isLoggingOut, setIsLoggingOut] = useState(false);
@@ -22,19 +34,21 @@ export default function UserMenu({
   const userEmail = session?.email || 'Usuário';
 
   const { fullName, displayAvatar, initialLetter } = useMemo(() => {
-    const name = session?.name || userEmail.split('@')[0];
+    const name = session?.user_metadata?.full_name || session?.name || userEmail.split('@')[0];
     return {
       fullName: name,
-      displayAvatar: avatarUrl || null,
+      displayAvatar: avatarUrl || session?.user_metadata?.avatar_url || null,
       initialLetter: name.charAt(0).toUpperCase(),
     };
   }, [session, avatarUrl, userEmail]);
 
   // 🎯 CORREÇÃO: Reseta o loading apenas quando a rota REALMENTE mudar
-  // Removemos a dependência do isOpen que estava fazendo o menu piscar
   useEffect(() => {
-    setIsRedirecting(false);
-    setIsOpen(false);
+    const resetStates = () => {
+      setIsRedirecting(false);
+      setIsOpen(false);
+    };
+    resetStates();
   }, [pathname]);
 
   useEffect(() => {
@@ -47,19 +61,27 @@ export default function UserMenu({
     return () => document.removeEventListener('mousedown', handleClickOutside);
   }, []);
 
-  const onLogoutClick = async () => {
-    setIsLoggingOut(true);
-    window.location.href = '/auth/logout';
-  };
-
-  const handleManageProfile = (e: React.MouseEvent) => {
-    // 🎯 Se já estiver na página, apenas fecha o menu e previne o loading
+  const handleManageProfile = () => {
+    // 🎯 Se já estiver na página, apenas fecha o menu
     if (pathname === '/onboarding') {
       setIsOpen(false);
-      // Não ativamos o isRedirecting aqui
       return;
     }
     setIsRedirecting(true);
+  };
+
+  const handleLogout = async () => {
+    setIsLoggingOut(true);
+    setIsOpen(false);
+    
+    try {
+      await authService.signOut();
+      // O Supabase limpa os cookies localmente, mas forçamos um redirecionamento para a home
+      window.location.href = '/';
+    } catch (error) {
+      console.error('[UserMenu] Erro ao deslogar:', error);
+      setIsLoggingOut(false);
+    }
   };
 
   const renderAvatarContent = (
@@ -68,12 +90,13 @@ export default function UserMenu({
     isLarge = false,
   ) => {
     const borderStyle = isLarge
-      ? 'border-2 border-[#D4AF37]'
-      : 'border border-[#D4AF37]/40';
+      ? 'border-2 border-gold shadow-lg'
+      : 'border border-gold/40 shadow-sm';
+      
     if (displayAvatar) {
       return (
         <div
-          className={`${sizeClass} rounded-full overflow-hidden relative flex-shrink-0 ${borderStyle} shadow-sm`}
+          className={`${sizeClass} rounded-full overflow-hidden relative flex-shrink-0 ${borderStyle} transition-transform hover:scale-105`}
         >
           <Image
             src={displayAvatar}
@@ -88,7 +111,7 @@ export default function UserMenu({
     }
     return (
       <div
-        className={`${sizeClass} rounded-full bg-petroleum text-[#F3E5AB] flex items-center justify-center ${textClass} font-semibold ${borderStyle} shadow-sm`}
+        className={`${sizeClass} rounded-full bg-petroleum text-champagne flex items-center justify-center ${textClass} font-bold ${borderStyle} transition-transform hover:scale-105`}
       >
         {initialLetter}
       </div>
@@ -96,76 +119,78 @@ export default function UserMenu({
   };
 
   return (
-    <div className="ml-auto">
-      <div className="relative" ref={menuRef}>
-        <button
-          onClick={() => setIsOpen(!isOpen)}
-          className="relative p-0.5 rounded-full hover:bg-[#D4AF37]/10 transition-all focus:outline-none focus:ring-2 focus:ring-[#D4AF37]/30 active:scale-95 disabled:opacity-50"
-          disabled={isLoggingOut || isRedirecting}
-        >
-          {renderAvatarContent('w-10 h-10', 'text-sm')}
-        </button>
-
-        {isOpen && (
-          <div className="absolute right-0 mt-3 w-72 bg-white rounded-[24px] shadow-[0_12px_40px_rgba(212,175,55,0.12)] border border-[#D4AF37]/20 py-5 z-[100] animate-in fade-in zoom-in-95 duration-200">
-            <div className="flex flex-col items-center px-6 pb-4 text-center">
-              <div className="mb-3 p-1 rounded-full bg-white shadow-sm ring-1 ring-[#D4AF37]/30">
-                {renderAvatarContent('w-20 h-20', 'text-3xl', true)}
-              </div>
-              <p className="text-base font-semibold text-slate-900 truncate w-full">
-                {fullName}
-              </p>
-              <p className="text-xs text-slate-500 mb-6 truncate w-full font-medium">
-                {userEmail}
-              </p>
-
-              <Link
-                href="/onboarding"
-                onClick={handleManageProfile}
-                className={`w-full flex items-center justify-center gap-2 h-10 rounded-[0.5rem] bg-[#F3E5AB] text-black text-[11px] font-semibold uppercase tracking-widest shadow-xl hover:bg-white transition-all active:scale-95 border border-[#F3E5AB]/20 ${isRedirecting ? 'opacity-70 cursor-not-allowed' : ''}`}
-              >
-                {isRedirecting ? (
-                  <>
-                    <Loader2 size={14} className="animate-spin" />
-                    Aguarde...
-                  </>
-                ) : (
-                  <>
-                    <Settings size={14} />
-                    Configurar Perfil
-                  </>
-                )}
-              </Link>
-            </div>
-
-            <div className="mx-6 border-t border-slate-100 my-2"></div>
-
-            <div className="px-6">
-              <button
-                onClick={onLogoutClick}
-                disabled={isLoggingOut || isRedirecting}
-                className="w-full flex items-center justify-center gap-2 h-10 px-4 rounded-[0.5rem] border border-slate-200 bg-white text-slate-600 hover:bg-red-50 hover:text-red-600 hover:border-red-100 transition-all active:scale-95 disabled:opacity-50 font-semibold text-[11px] uppercase tracking-widest"
-              >
-                {isLoggingOut ? (
-                  <Loader2 size={14} className="animate-spin text-red-600" />
-                ) : (
-                  <LogOut size={14} />
-                )}
-                {isLoggingOut ? 'Saindo...' : 'Sair da conta'}
-              </button>
-            </div>
-          </div>
-        )}
-      </div>
-
+    <>
       {isLoggingOut && (
-        <div className="fixed inset-0 z-[120] bg-white/80 backdrop-blur-md animate-in fade-in duration-500 flex items-center justify-center">
-          <div className="bg-petroleum text-[#F3E5AB] px-8 py-4 rounded-full text-[10px] font-semibold shadow-2xl animate-in zoom-in duration-300 border border-[#D4AF37]/30 tracking-[0.2em] uppercase flex items-center gap-3">
-            <Loader2 size={16} className="animate-spin" />
-            {isLoggingOut ? 'Encerrando sessão' : ''}
-          </div>
-        </div>
+        <LoadingScreen message="Encerrando sua sessão com segurança..." fadeOut={false} />
       )}
-    </div>
+
+      <div className="ml-auto">
+        <div className="relative" ref={menuRef}>
+          <button
+            onClick={() => setIsOpen(!isOpen)}
+            className={`relative p-0.5 rounded-full transition-all focus:outline-none ring-offset-2 ring-offset-petroleum ${isOpen ? 'ring-2 ring-gold' : 'hover:ring-2 hover:ring-gold/30'} active:scale-95 disabled:opacity-50`}
+            disabled={isLoggingOut || isRedirecting}
+            aria-expanded={isOpen}
+            aria-haspopup="true"
+          >
+            {renderAvatarContent('w-10 h-10', 'text-sm')}
+          </button>
+
+          {isOpen && (
+            <div className="absolute right-0 mt-4 w-72 bg-white rounded-[1.5rem] shadow-[0_20px_50px_rgba(0,0,0,0.15)] border border-slate-100 py-6 z-[110] animate-in fade-in zoom-in-95 duration-200">
+              <div className="flex flex-col items-center px-6 pb-6 text-center border-b border-slate-50">
+                <div className="mb-4 relative">
+                  <div className="p-1 rounded-full bg-white shadow-xl ring-1 ring-gold/20">
+                    {renderAvatarContent('w-20 h-20', 'text-3xl', true)}
+                  </div>
+                  <div className="absolute bottom-0 right-0 w-6 h-6 bg-green-500 border-4 border-white rounded-full shadow-sm" />
+                </div>
+                <h3 className="text-base font-semibold text-slate-900 truncate w-full tracking-tight">
+                  {fullName}
+                </h3>
+                <p className="text-[11px] text-slate-800 truncate w-full font-medium tracking-widest mt-1">
+                  {userEmail}
+                </p>
+              </div>
+
+              <div className="px-4 pt-4 space-y-2">
+                <Link
+                  href="/onboarding"
+                  onClick={handleManageProfile}
+                  className={`w-full flex items-center justify-between px-4 h-12 rounded-xl bg-slate-50 text-slate-700 hover:bg-champagne/20 hover:text-petroleum transition-all group ${isRedirecting ? 'opacity-70 cursor-not-allowed' : ''}`}
+                >
+                  <div className="flex items-center gap-3">
+                    <div className="w-8 h-8 rounded-lg bg-white shadow-sm flex items-center justify-center text-gold group-hover:bg-gold group-hover:text-white transition-colors">
+                      <User2 size={16} />
+                    </div>
+                    <span className="text-[11px] font-bold uppercase tracking-widest">
+                      {isRedirecting ? 'Carregando...' : 'Editar Perfil'}
+                    </span>
+                  </div>
+                  {isRedirecting ? (
+                    <Loader2 size={14} className="animate-spin text-gold" />
+                  ) : (
+                    <div className="w-1.5 h-1.5 rounded-full bg-gold opacity-0 group-hover:opacity-100 transition-opacity" />
+                  )}
+                </Link>
+
+                <button
+                  onClick={handleLogout}
+                  disabled={isLoggingOut || isRedirecting}
+                  className="w-full flex items-center gap-3 px-4 h-12 rounded-xl bg-white text-slate-700 hover:text-red-500 hover:bg-red-50 transition-all group disabled:opacity-50"
+                >
+                  <div className="w-8 h-8 rounded-lg bg-slate-50 flex items-center justify-center group-hover:bg-red-500 group-hover:text-white transition-colors">
+                    <LogOut size={16} />
+                  </div>
+                  <span className="text-[11px] font-semibold uppercase tracking-widest">
+                    Sair da conta
+                  </span>
+                </button>
+              </div>
+            </div>
+          )}
+        </div>
+      </div>
+    </>
   );
 }

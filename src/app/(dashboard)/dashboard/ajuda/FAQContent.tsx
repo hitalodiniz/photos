@@ -159,7 +159,7 @@ export default function FAQContent() {
   // Redireciona se não houver usuário
   if (!user) {
     if (typeof window !== 'undefined') {
-      router.push('/auth/login');
+      router.push('/');
     }
     return null;
   }

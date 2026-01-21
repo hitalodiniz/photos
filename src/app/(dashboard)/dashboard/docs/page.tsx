@@ -33,7 +33,7 @@ export default async function DocsPage() {
 
   if (!resultProfile.success || !resultProfile.profile) {
     redirect(
-      resultProfile.error === 'Usuário não autenticado.' ? '/auth/login' : '/onboarding',
+      resultProfile.error === 'Usuário não autenticado.' ? '/' : '/onboarding',
     );
   }
 

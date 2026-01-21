@@ -126,8 +126,8 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       if (typeof window !== 'undefined') {
         const currentPath = window.location.pathname;
         if (currentPath.startsWith('/dashboard') || currentPath.startsWith('/onboarding')) {
-          console.log('[AuthContext] Erro crítico - redirecionando para login');
-          window.location.href = '/auth/login?error=session_error';
+          console.log('[AuthContext] Erro crítico - redirecionando para home');
+          window.location.href = '/';
         }
       }
     });
@@ -148,12 +148,12 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         setIsLoading(false);
         clearTimeout(timeoutId);
         
-        // Se estiver em rota protegida, redireciona para login
+        // Se estiver em rota protegida, redireciona para home
         if (typeof window !== 'undefined') {
           const currentPath = window.location.pathname;
           if (currentPath.startsWith('/dashboard') || currentPath.startsWith('/onboarding')) {
-            console.log('[AuthContext] Redirecionando para login...');
-            window.location.href = '/auth/login?error=session_expired';
+            console.log('[AuthContext] Redirecionando para home...');
+            window.location.href = '/';
           }
         }
         return;

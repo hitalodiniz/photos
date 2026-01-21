@@ -16,7 +16,7 @@ export default async function DashboardPage() {
   if (!resultProfile.success || !resultProfile.profile) {
     // Se não houver sessão ou perfil, redireciona para login ou onboarding
     redirect(
-      resultProfile.error === 'Usuário não autenticado.' ? '/a' : '/onboarding',
+      resultProfile.error === 'Usuário não autenticado.' ? '/' : '/onboarding',
     );
   }
 
