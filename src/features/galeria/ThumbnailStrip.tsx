@@ -102,7 +102,10 @@ const ThumbnailItem = React.forwardRef<HTMLButtonElement, ThumbnailItemProps>(
     return (
       <button
         ref={ref}
-        onClick={onClick}
+        onClick={(e) => {
+          e.stopPropagation(); // Previne que o evento feche o lightbox
+          onClick();
+        }}
         className={`relative flex-shrink-0 transition-all duration-300 cursor-pointer touch-manipulation ${
           isActive
             ? 'ring-2 ring-[#F3E5AB] ring-offset-2 ring-offset-black scale-110 z-10 shadow-lg shadow-[#F3E5AB]/30'

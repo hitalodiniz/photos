@@ -1,6 +1,6 @@
 {
   "name": "photos",
-  "version": "0.1.1",
+  "version": "0.1.6",
   "private": true,
   "scripts": {
     "dev": "node scripts/generate-version-env.js && next dev",

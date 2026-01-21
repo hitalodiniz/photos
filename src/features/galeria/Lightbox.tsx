@@ -285,16 +285,29 @@ img.src = imgSrc;
     [showInterface]
   );
 
-  // Handler para fechar miniaturas ao clicar fora (mobile)
+  // Handler para fechar miniaturas ao clicar fora (mobile) - comportamento Instagram
+  // Fecha apenas quando clicar fora da barra de miniaturas, não quando seleciona uma foto
   const handleClickOutside = (e: React.MouseEvent) => {
-    if (isMobile && showThumbnails) {
-      const target = e.target as HTMLElement;
-      // Não fecha se clicar no tooltip de alta resolução
-      if (!target.closest('[data-thumbnail-strip]') && 
-          !target.closest('[data-mobile-toolbar]') &&
-          !target.closest('[data-quality-warning]')) {
-        setShowThumbnails(false);
-      }
+    // Só processa se as miniaturas estiverem visíveis
+    if (!isMobile || !showThumbnails) return;
+    
+    const target = e.target as HTMLElement;
+    
+    // Não fecha se clicar em qualquer elemento interativo ou na foto
+    if (target.closest('[data-thumbnail-strip]') || 
+        target.closest('[data-mobile-toolbar]') ||
+        target.closest('[data-quality-warning]') ||
+        target.closest('main') || // Não fecha ao clicar na área da foto
+        target.closest('header') || // Não fecha ao clicar no header
+        target.closest('img') || // Não fecha ao clicar na imagem
+        target.closest('button')) { // Não fecha ao clicar em qualquer botão
+      return;
+    }
+    
+    // Só fecha se clicar no fundo (background do lightbox)
+    // Verifica se o target é o próprio container do lightbox
+    if (target === e.currentTarget || target.classList.contains('bg-white') || target.classList.contains('bg-black')) {
+      setShowThumbnails(false);
     }
   };
 
@@ -356,7 +369,8 @@ img.src = imgSrc;
             onNavigateToIndex(index);
             setSlideshowProgress(0);
             if (isSlideshowActive) setIsSlideshowActive(false);
-            setShowThumbnails(false);
+            // Não fecha as miniaturas ao selecionar - comportamento Instagram
+            // As miniaturas só fecham ao clicar fora da barra
           }}
           isVisible={showThumbnails}
         />
@@ -473,7 +487,10 @@ img.src = imgSrc;
       </header>
 
       {/* ÁREA DA FOTO */}
-      <main className={`flex-none md:fixed md:inset-0 md:z-[10] flex flex-col items-center justify-center px-4 md:px-0 ${isMobile ? 'min-h-[calc(100vh-140px)] pb-20' : 'min-h-[60vh] md:min-h-0'} ${onNavigateToIndex !== undefined && !isMobile && !isSingleView ? 'pr-24' : ''}`}>
+      <main 
+        className={`flex-none md:fixed md:inset-0 md:z-[10] flex flex-col items-center justify-center px-4 md:px-0 ${isMobile ? 'min-h-[calc(100vh-140px)] pb-20' : 'min-h-[60vh] md:min-h-0'} ${onNavigateToIndex !== undefined && !isMobile && !isSingleView ? 'pr-24' : ''}`}
+        onClick={(e) => e.stopPropagation()} // Previne que cliques na foto fechem o lightbox
+      >
         {/* Container que ocupa toda altura disponível no desktop (estilo Instagram - máximo espaço) */}
         <div className={`relative w-full h-full flex items-center justify-center ${isMobile ? 'min-h-[50vh]' : 'h-screen md:h-screen'}`}>
           {/* Spinner centralizado */}

@@ -6,7 +6,6 @@
 export const executeShare = async ({
   title,
   text,
-  url, // Adicionamos a URL explicitamente
   phone = '',
 }: {
   title: string;
@@ -25,8 +24,7 @@ export const executeShare = async ({
       // No Mobile, passar a URL separada do texto ajuda o SO a gerar a prévia
       await navigator.share({
         title,
-        text: text,
-        url: url, // O navegador anexa a URL ao final do texto automaticamente
+        text: text
       });
       return;
     } catch (error) {

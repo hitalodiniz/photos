@@ -11,28 +11,56 @@ import {
   FileCheck,
   ImageIcon,
   Zap,
+  Share2,
 } from 'lucide-react';
-import WhatsAppIcon from '@/components/ui/WhatsAppIcon';
 
-// Componente do Balão de Dica (Mantido conforme original para suporte ao usuário)
+// Componente do Balão de Dica (Padronizado para mobile)
+// Fontes padronizadas: text-[9px] font-semibold (mesmo padrão do ToolbarGalleryView)
 const Tooltip = ({
   text,
   position = 'center',
 }: {
   text: string;
   position?: 'left' | 'right' | 'center';
-}) => (
-  <div
-    className={`absolute -bottom-10 ${position === 'left' ? 'left-0' : position === 'right' ? 'right-0' : 'left-1/2 -translate-x-1/2'} z-[130] animate-in fade-in zoom-in slide-in-from-top-2 duration-500`}
-  >
-    <div className="bg-[#F3E5AB] text-black text-[9px] font-bold px-2 py-1 rounded shadow-xl whitespace-nowrap relative ring-1 ring-black/10 uppercase tracking-wider">
-      {text}
-      <div
-        className={`absolute -top-1 ${position === 'left' ? 'left-3' : position === 'right' ? 'right-3' : 'left-1/2 -translate-x-1/2'} border-l-[4px] border-l-transparent border-r-[4px] border-r-transparent border-b-[4px] border-b-[#F3E5AB]`}
-      />
+}) => {
+  // Posicionamento do container do tooltip
+  // Para tooltips à esquerda, usamos left-0 mas garantimos que o container pai tenha overflow-visible
+  const containerClasses = {
+    left: 'left-0',
+    right: 'right-0',
+    center: 'left-1/2 -translate-x-1/2',
+  };
+
+  // Posicionamento da seta dentro do tooltip
+  const arrowClasses = {
+    left: 'left-3',
+    right: 'right-3',
+    center: 'left-1/2 -translate-x-1/2',
+  };
+
+  return (
+    <div
+      className={`absolute -bottom-11 ${containerClasses[position]} z-[130] animate-in fade-in zoom-in slide-in-from-top-2 duration-500 pointer-events-none`}
+      style={{
+        // Garante que tooltips à esquerda não cortem na borda da tela
+        ...(position === 'left' && { 
+          left: '0',
+          // Adiciona um pequeno offset para não cortar na borda esquerda da viewport
+          transform: 'translateX(0)',
+        }),
+      }}
+    >
+      <div className="bg-[#F3E5AB] text-black text-[9px] font-semibold px-2.5 py-1.5 rounded shadow-xl whitespace-nowrap relative ring-1 ring-black/10 uppercase tracking-wider">
+        {text}
+        {/* Seta apontando para cima - sempre visível e bem posicionada */}
+        <div
+          className={`absolute -top-1 ${arrowClasses[position]} w-0 h-0 border-l-[5px] border-l-transparent border-r-[5px] border-r-transparent border-b-[5px] border-b-[#F3E5AB]`}
+          aria-hidden="true"
+        />
+      </div>
     </div>
-  </div>
-);
+  );
+};
 
 export const ToolBarMobile = ({
   showOnlyFavorites,
@@ -57,15 +85,15 @@ export const ToolBarMobile = ({
 
   const hasMultipleTags = tags.length > 1;
 
-  // Ciclo de dicas de ajuda (Hints)
+  // Ciclo de dicas de ajuda (Hints) - Ordem: Categorias, Layout, Compartilhar, Link, Favoritos, Baixar
   useEffect(() => {
     const timers = [
-      setTimeout(() => hasMultipleTags && setHintStep(1), 5800), // Categorias
-      setTimeout(() => setHintStep(2), 7300), // Layout
-      setTimeout(() => setHintStep(5), 8800), // Link
-      setTimeout(() => setHintStep(4), 10300), // WhatsApp
-      setTimeout(() => setHintStep(3), 11800), // Favoritos
-      setTimeout(() => setHintStep(6), 13300), // Baixar
+      setTimeout(() => hasMultipleTags && setHintStep(1), 5800), // 1. Categorias
+      setTimeout(() => setHintStep(2), 7300), // 2. Layout
+      setTimeout(() => setHintStep(3), 8800), // 3. Compartilhar
+      setTimeout(() => setHintStep(4), 10300), // 4. Link
+      setTimeout(() => setHintStep(5), 11800), // 5. Favoritos
+      setTimeout(() => setHintStep(6), 13300), // 6. Baixar
       setTimeout(() => setHintStep(0), 17000), // Limpa
     ];
     return () => timers.forEach((t) => clearTimeout(t));
@@ -77,6 +105,40 @@ export const ToolBarMobile = ({
     setTimeout(() => setCopied(false), 2000);
   };
 
+  // 🎯 Função para compartilhamento nativo no mobile (Web Share API)
+  const handleNativeShare = async () => {
+    const shareUrl = window.location.href;
+    const shareText = galeria?.title 
+      ? `Confira a galeria: ${galeria.title}`
+      : 'Confira esta galeria de fotos';
+
+    // Verifica se a Web Share API está disponível
+    if (navigator.share) {
+      try {
+        await navigator.share({
+          title: galeria?.title || 'Galeria de Fotos',
+          text: shareText,
+          url: shareUrl,
+        });
+      } catch (error) {
+        // Usuário cancelou ou erro no compartilhamento
+        if ((error as Error).name !== 'AbortError') {
+          console.error('Erro ao compartilhar:', error);
+          // Fallback: copia o link para a área de transferência
+          handleCopyLink();
+        }
+      }
+    } else {
+      // Fallback: se não suportar Web Share API, usa a função handleShare original
+      if (handleShare) {
+        handleShare();
+      } else {
+        // Se não houver handleShare, copia o link
+        handleCopyLink();
+      }
+    }
+  };
+
   const togglePanel = (panel: string) => {
     setShowTagsPanel(panel === 'tags' ? !showTagsPanel : false);
     setShowColumnsPanel(panel === 'columns' ? !showColumnsPanel : false);
@@ -84,15 +146,15 @@ export const ToolBarMobile = ({
   };
 
   return (
-    <div className="w-full z-[110] sticky top-0 md:hidden pointer-events-auto">
+    <div className="w-full z-[110] sticky top-0 md:hidden pointer-events-auto overflow-visible">
       <div
-        className={`flex items-center justify-between h-14 px-4 border-b transition-all duration-500 relative z-[120]
+        className={`flex items-center justify-between h-14 px-4 border-b transition-all duration-500 relative z-[120] overflow-visible
         ${isScrolled ? ' bg-[#1E293B]/95 backdrop-blur-md border-white/10 shadow-lg' : ' bg-[#1E293B] border-white/20'}`}
       >
         {/* ESQUERDA: TAGS E COLUNAS */}
-        <div className="flex items-center gap-2">
+        <div className="flex items-center gap-2 overflow-visible">
           {hasMultipleTags && (
-            <div className="relative">
+            <div className="relative overflow-visible">
               <button
                 className={`h-9 w-9 rounded-[0.5rem] flex items-center justify-center transition-all ${showTagsPanel ? 'bg-[#F3E5AB] text-black' : 'bg-white/5 text-[#F3E5AB] border border-white/10'}`}
                 onClick={() => togglePanel('tags')}
@@ -103,7 +165,7 @@ export const ToolBarMobile = ({
             </div>
           )}
 
-          <div className="relative">
+          <div className="relative overflow-visible">
             <button
               className={`h-9 w-9 rounded-[0.5rem] flex items-center justify-center transition-all ${showColumnsPanel ? 'bg-[#F3E5AB] text-black' : 'bg-white/5 text-[#F3E5AB] border border-white/10'}`}
               onClick={() => togglePanel('columns')}
@@ -111,24 +173,24 @@ export const ToolBarMobile = ({
               <Monitor size={17} />
             </button>
             {hintStep === 2 && (
-              <Tooltip text="Ver 1 ou 2 fotos" position="center" />
+              <Tooltip text="Ver fotos em 1 ou 2 colunas" position="left" />
             )}
           </div>
         </div>
 
-        {/* DIREITA: AÇÕES (WHATSAPP, LINK, FAVORITOS, DOWNLOAD) */}
-        <div className="flex items-center gap-1.5">
-          <div className="relative">
+        {/* DIREITA: AÇÕES (COMPARTILHAR, LINK, FAVORITOS, DOWNLOAD) */}
+        <div className="flex items-center gap-1.5 overflow-visible">
+          <div className="relative overflow-visible">
             <button
-              onClick={handleShare}
-              className="w-9 h-9 rounded-[0.5rem] flex items-center justify-center bg-white/5 text-[#25D366] border border-white/10 active:bg-white/20"
+              onClick={handleNativeShare}
+              className="w-9 h-9 rounded-[0.5rem] flex items-center justify-center bg-white/5 text-white border border-white/10 active:bg-white/20"
             >
-              <WhatsAppIcon className="text-white w-[18px] h-[18px]" />
+              <Share2 size={18} />
             </button>
-            {hintStep === 4 && <Tooltip text="WhatsApp" position="center" />}
+            {hintStep === 3 && <Tooltip text="Compartilhar" position="center" />}
           </div>
 
-          <div className="relative">
+          <div className="relative overflow-visible">
             <button
               onClick={handleCopyLink}
               className="w-9 h-9 rounded-[0.5rem] flex items-center justify-center bg-white/5 text-white border border-white/10 active:bg-white/20"
@@ -139,20 +201,20 @@ export const ToolBarMobile = ({
                 <LinkIcon size={16} />
               )}
             </button>
-            {hintStep === 5 && <Tooltip text="Copiar Link" position="center" />}
+            {hintStep === 4 && <Tooltip text="Copiar Link" position="center" />}
           </div>
 
-          <div className="relative">
+          <div className="relative overflow-visible">
             <button
               onClick={() => setShowOnlyFavorites(!showOnlyFavorites)}
               className={`w-9 h-9 rounded-[0.5rem] flex items-center justify-center transition-all border ${showOnlyFavorites ? 'bg-[#E67E70] border-[#E67E70] text-white shadow-lg' : 'bg-white/5 border-white/10 text-white'}`}
             >
               <Filter size={15} />
             </button>
-            {hintStep === 3 && <Tooltip text="Favoritos" position="center" />}
+            {hintStep === 5 && <Tooltip text="Favoritos" position="center" />}
           </div>
 
-          <div className="relative pl-1.5 border-l border-white/10 ml-0.5">
+          <div className="relative overflow-visible pl-1.5 border-l border-white/10 ml-0.5">
             <button
               onClick={(e) => {
                 e.stopPropagation();
@@ -168,7 +230,7 @@ export const ToolBarMobile = ({
               )}
             </button>
             {hintStep === 6 && (
-              <Tooltip text="Opções de Baixar" position="right" />
+              <Tooltip text="Baixar" position="right" />
             )}
 
             {/* 🎯 MENU DE DOWNLOAD MOBILE (ABRE PARA BAIXO) */}
@@ -277,7 +339,7 @@ export const ToolBarMobile = ({
                 }}
                 className={`px-6 py-2 rounded-[0.5rem] text-[11px] font-bold transition-all uppercase tracking-widest ${columns.mobile === num ? 'bg-[#F3E5AB] text-black' : 'bg-white/5 text-white border border-white/10'}`}
               >
-                {num} {num === 1 ? 'Foto' : 'Fotos'}
+                {num} {num === 1 ? 'Coluna' : 'Colunas'}
               </button>
             ))}
           </div>

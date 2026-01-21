@@ -16,6 +16,7 @@ import WhatsAppIcon from '@/components/ui/WhatsAppIcon';
 import { executeShare, getCleanSlug } from '@/core/utils/share-helper';
 import { GALLERY_MESSAGES } from '@/constants/messages';
 import { handleDownloadPhoto } from '@/core/utils/foto-helpers';
+import { div } from 'framer-motion/client';
 
 const Tooltip = ({ text }: { text: string }) => (
   <div className="hidden md:block absolute -bottom-12 left-1/2 -translate-x-1/2 z-[130] animate-in fade-in zoom-in slide-in-from-top-2 duration-500">
@@ -305,15 +306,15 @@ export const ToolbarGalleryView = ({
           {showQualityWarning && (
             <div 
               data-quality-warning="true"
-              className="absolute z-[10001] w-64 max-w-[calc(100vw-2rem)]"
+              className="absolute z-[10001] left-1/2 -translate-x-1/2"
               style={{ 
                 pointerEvents: 'auto',
                 opacity: 1,
                 visibility: 'visible',
                 position: 'absolute',
                 bottom: 'calc(100% + 12px)', // Acima do botão de download
-                left: '50%',
-                transform: 'translateX(-50%) translateZ(0)', // Centraliza em relação ao botão
+                width: 'min(240px, calc(100vw - 6rem))', // Largura com margem generosa (6rem total = 3rem de cada lado)
+                maxWidth: 'calc(100vw - 6rem)', // Garante margem de 3rem de cada lado para dar respiro
                 willChange: 'transform', // Otimiza performance
                 display: 'block', // Força display block
               }}
@@ -354,13 +355,19 @@ export const ToolbarGalleryView = ({
               {/* Tooltip - Sem animações que causam piscar */}
               <div 
                 data-quality-warning="true"
-                className="bg-[#F3E5AB] shadow-2xl rounded-[0.5rem] p-3 border border-white/20 text-black relative"
+                className="bg-[#F3E5AB] shadow-2xl rounded-[0.5rem] border border-white/20 text-black relative w-ful pr-6"
                 style={{ 
                   pointerEvents: 'auto',
                   transform: 'translateZ(0)', // Força aceleração de hardware
                   opacity: 1,
                   visibility: 'visible',
                   position: 'relative', // Garante posicionamento relativo
+                  boxSizing: 'border-box', // Garante que padding não aumente o tamanho
+                  padding: '0.5rem', // p-3 padrão
+                  marginRight: '2rem',
+                  wordWrap: 'break-word', // Quebra palavras longas
+                  overflowWrap: 'break-word', // Quebra palavras se necessário
+                  hyphens: 'auto', // Adiciona hífens quando necessário
                 }}
                 onClick={(e) => {
                   e.preventDefault();
@@ -383,8 +390,8 @@ export const ToolbarGalleryView = ({
                   e.stopPropagation();
                 }}
               >
-                <div className="flex justify-between items-center mb-1">
-                  <span className="font-bold text-[10px] uppercase tracking-tighter">
+                <div className="flex justify-between items-center gap-2 mb-1.5">
+                  <span className="font-bold text-[10px] uppercase tracking-tighter flex-1 leading-tight">
                     Alta Resolução Disponível
                   </span>
                   <button
@@ -402,15 +409,19 @@ export const ToolbarGalleryView = ({
                       e.preventDefault();
                       e.stopPropagation();
                     }}
-                    className="opacity-40 hover:opacity-100 active:opacity-100 cursor-pointer transition-opacity relative z-[10001] touch-manipulation"
-                    style={{ pointerEvents: 'auto' }}
+                    className="opacity-40 hover:opacity-100 active:opacity-100 cursor-pointer transition-opacity relative z-[10001] touch-manipulation shrink-0 flex items-center justify-center"
+                    style={{ 
+                      pointerEvents: 'auto',
+                      minWidth: '32px',
+                      minHeight: '32px',
+                    }}
                     aria-label="Fechar tooltip"
                     type="button"
                   >
-                    <X size={12} />
+                    <X size={14} strokeWidth={2.5} />
                   </button>
                 </div>
-                <p className="text-[10px] leading-tight font-medium">
+                <p className="text-[10px] leading-tight font-medium break-words hyphens-auto">
                   Esta é uma versão otimizada. Para obter o{' '}
                   <strong>arquivo original em alta definição</strong>, clique no
                   botão de download abaixo.
@@ -446,15 +457,29 @@ export const ToolbarGalleryView = ({
           </button>
         </div>
 
-        {/* 6. FECHAR */}
+        {/* 6. FECHAR - Botão maior conforme boas práticas de usabilidade */}
         {showClose && (
           <button
             onClick={onClose}
             className="flex-1 flex items-center justify-center py-3 active:scale-95 transition-all touch-manipulation"
             aria-label="Fechar galeria"
+            style={{
+              // Tamanho conforme boas práticas: 60x60px (acima do mínimo de 48x48px)
+              minWidth: '60px',
+              minHeight: '60px',
+            }}
           >
-            <div className="w-12 h-12 rounded-full bg-slate-200 dark:bg-white/10 flex items-center justify-center active:bg-slate-300 dark:active:bg-white/20 transition-all">
-              <X size={22} className="text-slate-700 dark:text-white" strokeWidth={2.5} />
+            <div 
+              className="rounded-full bg-slate-200 dark:bg-white/10 flex items-center justify-center active:bg-slate-300 dark:active:bg-white/20 transition-all"
+              style={{
+                // Área de toque de 60x60px para melhor usabilidade (acima do mínimo de 48x48px)
+                width: '60px',
+                height: '60px',
+                minWidth: '60px',
+                minHeight: '60px',
+              }}
+            >
+              <X size={26} className="text-slate-700 dark:text-white" strokeWidth={2.5} />
             </div>
           </button>
         )}
@@ -677,12 +702,23 @@ export const ToolbarGalleryView = ({
             onClick={onClose}
             onMouseEnter={() => setActiveTooltip('close')}
             onMouseLeave={() => setActiveTooltip(null)}
-            className="flex items-center pl-2 shrink-0 group"
+            className={`flex items-center ${isMobile ? 'flex-1 justify-center py-3' : 'pl-2 shrink-0'} group active:scale-95 transition-all touch-manipulation`}
+            aria-label="Fechar galeria"
+            style={{
+              // Garante tamanho mínimo de toque: 44x44px (WCAG) ou 48x48dp (Material Design)
+              minWidth: isMobile ? '48px' : 'auto',
+              minHeight: isMobile ? '48px' : 'auto',
+            }}
           >
             <div
-              className={`w-9 h-9 md:w-11 md:h-11 rounded-full flex items-center justify-center transition-all  bg-white/5 text-white group-hover:bg-white group-hover:text-black`}
+              className={`${isMobile ? 'w-12 h-12' : 'w-9 h-9 md:w-11 md:h-11'} rounded-full flex items-center justify-center transition-all bg-white/5 text-white group-hover:bg-white group-hover:text-black`}
+              style={{
+                // Garante área de toque mínima mesmo no mobile
+                minWidth: isMobile ? '48px' : undefined,
+                minHeight: isMobile ? '48px' : undefined,
+              }}
             >
-              <X size={18} />
+              <X size={isMobile ? 22 : 18} strokeWidth={isMobile ? 2.5 : 2} />
             </div>
             <div className={textContainerClass}>
               <span className="text-[10px] md:text-[11px]  font-semibold uppercase tracking-wider mb-1 text-white">
