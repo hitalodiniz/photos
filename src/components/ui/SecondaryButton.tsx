@@ -17,7 +17,7 @@ export default function SecondaryButton({
         text-[10px] md:text-[11px] font-bold uppercase tracking-[0.2em]
         
         /* Layout responsivo e compacto */
-        h-10 md:h-11 px-6 md:px-8 flex items-center justify-center gap-3 
+        h-10 px-6 flex items-center justify-center gap-2 
         transition-all duration-300 rounded-[0.5rem]
         
         /* Cores e Borda: Azul acinzentado suave da imagem */
@@ -25,7 +25,7 @@ export default function SecondaryButton({
         
         /* Estados Interativos */
         hover:bg-slate-50 hover:text-slate-900 hover:border-[#94A3B8]
-        active:scale-[0.98] disabled:opacity-50
+        active:scale-[0.98] disabled:opacity-50 disabled:cursor-not-allowed
         
         ${className}
       `}

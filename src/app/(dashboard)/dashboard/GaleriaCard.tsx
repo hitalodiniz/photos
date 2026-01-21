@@ -18,6 +18,8 @@ import {
   Users,
   RefreshCw,
   UserRound,
+  CheckSquare,
+  Square,
 } from 'lucide-react';
 import { useState, useEffect } from 'react';
 import type { Galeria } from '@/core/types/galeria';
@@ -33,10 +35,12 @@ import { executeShare } from '@/core/utils/share-helper';
 import WhatsAppIcon from '@/components/ui/WhatsAppIcon';
 import { normalizePhoneNumber } from '@/core/utils/masks-helpers';
 import LoadingSpinner from '@/components/ui/LoadingSpinner';
+import GaleriaContextMenu from '@/components/dashboard/GaleriaContextMenu';
 
 interface GaleriaCardProps {
   galeria: Galeria;
   currentView: 'active' | 'archived' | 'trash';
+  viewMode?: 'grid' | 'list';
   index: number;
   onEdit: (galeria: Galeria) => void;
   onDelete: (galeria: Galeria) => void;
@@ -47,12 +51,16 @@ interface GaleriaCardProps {
   onSync: () => void;
   isDeleting?: boolean;
   isUpdating?: boolean;
+  isBulkMode?: boolean;
+  isSelected?: boolean;
+  onToggleSelect?: (id: string) => void;
 }
 
 export default function GaleriaCard({
   galeria,
   index,
   currentView,
+  viewMode = 'grid',
   onEdit,
   onDelete,
   onArchive,
@@ -62,6 +70,9 @@ export default function GaleriaCard({
   isDeleting,
   isUpdating = false,
   onSync,
+  isBulkMode = false,
+  isSelected = false,
+  onToggleSelect,
 }: GaleriaCardProps) {
   const [mounted, setMounted] = useState(false);
   const [copied, setCopied] = useState(false);
@@ -131,14 +142,137 @@ export default function GaleriaCard({
     });
   };
 
+  // Modo Lista: Layout horizontal
+  if (viewMode === 'list') {
+    return (
+      <div
+        onClick={() => {
+          if (!isBulkMode && links.url) {
+            window.open(links.url, '_blank');
+          }
+        }}
+        className={`group relative flex items-center gap-4 overflow-hidden rounded-lg border border-slate-200 bg-white p-3 transition-all duration-300 hover:shadow-lg hover:shadow-gold/10 w-full animate-in fade-in slide-in-from-bottom-2 duration-500 fill-mode-both hover:border-gold/50 ${
+          isBulkMode ? 'cursor-default' : 'cursor-pointer'
+        } ${isSelected && isBulkMode ? 'ring-2 ring-gold border-gold' : ''}`}
+        style={{ animationDelay: `${index * 30}ms` }}
+      >
+        {/* Checkbox de seleção em lote - Modo Lista */}
+        {isBulkMode && (
+          <button
+            onClick={(e) => {
+              e.stopPropagation();
+              onToggleSelect?.(galeria.id);
+            }}
+            className="p-1.5 bg-white border border-slate-200 rounded-md shadow-sm hover:bg-slate-50 transition-colors shrink-0"
+          >
+            {isSelected ? (
+              <CheckSquare size={16} className="text-gold" fill="currentColor" />
+            ) : (
+              <Square size={16} className="text-slate-400" />
+            )}
+          </button>
+        )}
+
+        {(isUpdating || isDeleting) && (
+          <div className="absolute inset-0 z-20 flex items-center justify-center bg-white/80 backdrop-blur-sm">
+            <Loader2 className="h-5 w-5 animate-spin text-gold" />
+          </div>
+        )}
+
+        {/* Imagem - Compacta */}
+        <div className="relative w-24 h-16 flex-shrink-0 overflow-hidden rounded-md bg-slate-100">
+          {isImageLoading && !isUpdating && (
+            <div className="absolute inset-0 z-10 flex items-center justify-center bg-slate-100">
+              <LoadingSpinner size="xs" />
+            </div>
+          )}
+          <img
+            src={imageUrl}
+            alt={galeria.title}
+            loading={index < 4 ? 'eager' : 'lazy'}
+            decoding="async"
+            onError={handleError}
+            onLoad={onImageLoad}
+            className={`h-full w-full object-cover transition-all duration-500 ${
+              isImageLoading ? 'opacity-0' : 'opacity-100'
+            }`}
+          />
+        </div>
+
+        {/* Conteúdo Principal */}
+        <div className="flex-1 min-w-0 flex items-center justify-between gap-4">
+          <div className="flex-1 min-w-0">
+            <h3 className="text-sm font-semibold text-slate-900 mb-1 truncate">
+              {galeria.title}
+            </h3>
+            {/* Metadados em uma linha */}
+            <div className="flex items-center gap-3 text-xs text-slate-500">
+              <span className="flex items-center gap-1">
+                <Calendar size={12} />
+                {formatDateSafely(galeria.date)}
+              </span>
+              {galeria.location && (
+                <span className="flex items-center gap-1">
+                  <MapPin size={12} />
+                  {galeria.location}
+                </span>
+              )}
+            </div>
+          </div>
+
+          {/* Ações - Apenas Compartilhar e Editar visíveis */}
+          <div className="flex items-center gap-2 flex-shrink-0">
+            {currentView === 'active' && (
+              <>
+                <button
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    handleWhatsAppShare(e);
+                  }}
+                  className="p-2 text-emerald-600 bg-white border border-slate-200 rounded-lg shadow-sm hover:bg-emerald-50 transition-colors"
+                  title="Compartilhar via WhatsApp"
+                >
+                  <WhatsAppIcon className="w-4 h-4" />
+                </button>
+                <button
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    onEdit(galeria);
+                  }}
+                  className="p-2 text-slate-600 bg-white border border-slate-200 rounded-lg shadow-sm hover:bg-slate-900 hover:text-white transition-all"
+                  title="Editar"
+                >
+                  <Pencil size={16} />
+                </button>
+              </>
+            )}
+            <GaleriaContextMenu
+              galeria={galeria}
+              currentView={currentView}
+              onArchive={onArchive}
+              onDelete={onDelete}
+              onToggleShowOnProfile={onToggleShowOnProfile}
+              onRestore={onRestore}
+              onPermanentDelete={onPermanentDelete}
+              isUpdating={isUpdating}
+            />
+          </div>
+        </div>
+      </div>
+    );
+  }
+
+  // Modo Grid: Layout original (simplificado)
   return (
     <div
       onClick={() => {
-        if (links.url) {
+        if (!isBulkMode && links.url) {
           window.open(links.url, '_blank');
         }
       }}
-      className="group relative flex cursor-pointer flex-col overflow-hidden rounded-[14px] border border-slate-200 bg-white transition-all duration-300 hover:shadow-2xl hover:shadow-gold/15 w-full animate-in fade-in slide-in-from-bottom-2 duration-500 fill-mode-both"
+      className={`group relative flex flex-col overflow-hidden rounded-[14px] border border-slate-200 bg-white transition-all duration-300 hover:shadow-2xl hover:shadow-gold/15 w-full animate-in fade-in slide-in-from-bottom-2 duration-500 fill-mode-both ${
+        isBulkMode ? 'cursor-default' : 'cursor-pointer'
+      } ${isSelected && isBulkMode ? 'ring-2 ring-gold border-gold' : ''}`}
       style={{ animationDelay: `${index * 50}ms` }}
     >
       {(isUpdating || isDeleting) && (
@@ -148,6 +282,23 @@ export default function GaleriaCard({
       )}
 
       <div className="relative aspect-[16/9] w-full overflow-hidden bg-slate-100">
+        {/* Checkbox de seleção em lote - Modo Grid */}
+        {isBulkMode && (
+          <button
+            onClick={(e) => {
+              e.stopPropagation();
+              onToggleSelect?.(galeria.id);
+            }}
+            className="absolute top-2 left-2 z-30 p-1.5 bg-white/90 backdrop-blur-sm rounded-md border border-slate-200 shadow-lg hover:bg-white transition-colors"
+          >
+            {isSelected ? (
+              <CheckSquare size={18} className="text-gold" fill="currentColor" />
+            ) : (
+              <Square size={18} className="text-slate-400" />
+            )}
+          </button>
+        )}
+
         {/* 🎯 Spinner de carregamento da imagem */}
         {isImageLoading && !isUpdating && (
           <div className="absolute inset-0 z-10 flex items-center justify-center bg-slate-100">
@@ -207,43 +358,21 @@ export default function GaleriaCard({
       </div>
 
       <div className="flex flex-col p-4 space-y-3">
-        <div className="flex items-center justify-between h-5">
-          {galeria.has_contracting_client ? (
-            <div className="flex items-center gap-2 min-w-0">
-              <User size={12} className="text-gold shrink-0 glow-gold" />
-              <span className="text-xs font-bold text-slate-900 truncate uppercase tracking-widest">
-                {galeria.client_name || 'Cliente'}
+        {/* Metadados simplificados em uma linha */}
+        <div className="flex items-center gap-3 text-xs text-slate-500 py-1">
+          <span className="flex items-center gap-1">
+            <Calendar size={12} />
+            {formatDateSafely(galeria.date)}
+          </span>
+          {galeria.location && (
+            <>
+              <span className="text-slate-300">•</span>
+              <span className="flex items-center gap-1">
+                <MapPin size={12} />
+                {galeria.location}
               </span>
-            </div>
-          ) : (
-            <div className="flex items-center gap-2 min-w-0">
-              <Users size={12} className="text-gold shrink-0 glow-gold" />
-              <span className="text-xs font-bold text-slate-800 truncate uppercase tracking-widest">
-                Cobertura de evento
-              </span>
-            </div>
+            </>
           )}
-
-          {galeria.client_whatsapp && (
-            <span className="text-[10px] font-semibold text-slate-400">
-              {normalizePhoneNumber(galeria.client_whatsapp)}
-            </span>
-          )}
-        </div>
-
-        <div className="flex items-center justify-between py-2 border-y border-slate-50">
-          <div className="flex items-center gap-1.5 min-w-0">
-            <MapPin size={12} className="text-slate-300" />
-            <span className="text-[11px] font-medium text-slate-500 truncate">
-              {galeria.location || 'Local não informado'}
-            </span>
-          </div>
-          <div className="flex items-center gap-1.5 shrink-0 ml-4">
-            <Calendar size={12} className="text-slate-300" />
-            <span className="text-[11px] font-semibold text-slate-600">
-              {formatDateSafely(galeria.date)}
-            </span>
-          </div>
         </div>
 
         <div className="flex items-center gap-2">
@@ -286,96 +415,45 @@ export default function GaleriaCard({
       </div>
 
       <div className="flex items-center justify-between p-3 bg-slate-50/50 border-t border-slate-100 mt-auto">
+        {/* Apenas Compartilhar e Editar visíveis */}
         <div className="flex gap-1.5">
           {currentView === 'active' && (
             <>
               <button
-                onClick={handleWhatsAppShare}
+                onClick={(e) => {
+                  e.stopPropagation();
+                  handleWhatsAppShare(e);
+                }}
                 className="p-2 text-emerald-600 bg-white border border-slate-200 rounded-lg shadow-sm hover:bg-emerald-50 transition-colors"
+                title="Compartilhar via WhatsApp"
               >
                 <WhatsAppIcon className="w-4 h-4" />
               </button>
               <button
-                onClick={handleCopy}
-                className={`p-2 border rounded-lg shadow-sm transition-all ${copied ? 'bg-gold text-black border-gold' : 'bg-white text-slate-600 border-slate-200 hover:border-gold'}`}
-              >
-                {copied ? <Check size={16} /> : <Copy size={16} />}
-              </button>
-
-              <button
                 onClick={(e) => {
                   e.stopPropagation();
-                  onToggleShowOnProfile(galeria);
+                  onEdit(galeria);
                 }}
-                className={`p-2 border rounded-lg shadow-sm transition-all ${
-                  galeria.show_on_profile
-                    ? 'bg-gold text-black border-gold'
-                    : 'bg-white text-slate-400 border-slate-200 hover:text-gold hover:border-gold'
-                }`}
-                title={
-                  galeria.show_on_profile
-                    ? 'Remover do Portfólio'
-                    : 'Exibir no Portfólio'
-                }
+                className="p-2 text-slate-600 bg-white border border-slate-200 rounded-lg shadow-sm hover:bg-slate-900 hover:text-white transition-all"
+                title="Editar"
               >
-                <UserRound size={16} />
+                <Pencil size={16} />
               </button>
             </>
           )}
-          {currentView === 'trash' && (
-            <button
-              onClick={(e) => {
-                e.stopPropagation();
-                onRestore(galeria.id);
-              }}
-              className="p-2 text-blue-600 bg-white border border-blue-100 rounded-lg hover:bg-blue-600 hover:text-white transition-all"
-            >
-              <Inbox size={16} />
-            </button>
-          )}
         </div>
 
-        <div className="flex gap-1.5">
-          {currentView !== 'trash' && (
-            <button
-              onClick={(e) => {
-                e.stopPropagation();
-                onArchive(galeria);
-              }}
-              className={`p-2 border rounded-lg shadow-sm transition-all ${galeria.is_archived ? 'bg-amber-500 text-white border-amber-600' : 'bg-white text-slate-600 border-slate-200 hover:bg-amber-50'}`}
-            >
-              <Archive size={16} />
-            </button>
-          )}
-          {currentView === 'active' && (
-            <button
-              onClick={(e) => {
-                e.stopPropagation();
-                onEdit(galeria);
-              }}
-              className="p-2 text-slate-600 bg-white border border-slate-200 rounded-lg shadow-sm hover:bg-slate-900 hover:text-white transition-all"
-            >
-              <Pencil size={16} />
-            </button>
-          )}
-          <button
-            onClick={(e) => {
-              e.stopPropagation();
-              currentView === 'trash'
-                ? onPermanentDelete(galeria.id)
-                : onDelete(galeria);
-            }}
-            className={`p-2 rounded-lg border shadow-sm transition-all ${currentView === 'trash' ? 'bg-red-600 text-white' : 'bg-white text-slate-600 border-slate-200 hover:text-red-600'}`}
-          >
-            {isDeleting ? (
-              <Loader2 size={16} className="animate-spin" />
-            ) : currentView === 'trash' ? (
-              <XCircle size={16} />
-            ) : (
-              <Trash2 size={16} />
-            )}
-          </button>
-        </div>
+        {/* Menu de Contexto */}
+        <GaleriaContextMenu
+          galeria={galeria}
+          currentView={currentView}
+          onArchive={onArchive}
+          onDelete={onDelete}
+          onToggleShowOnProfile={onToggleShowOnProfile}
+          onRestore={onRestore}
+          onPermanentDelete={onPermanentDelete}
+          isUpdating={isUpdating}
+        />
       </div>
     </div>
   );

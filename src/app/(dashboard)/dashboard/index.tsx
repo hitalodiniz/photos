@@ -13,6 +13,11 @@ import {
   ShieldAlert,
   Loader2,
   HelpCircle,
+  Grid3x3,
+  List,
+  CheckSquare,
+  Square,
+  X,
 } from 'lucide-react';
 import Link from 'next/link';
 import {
@@ -25,7 +30,6 @@ import {
 } from '@/core/services/galeria.service';
 
 import type { Galeria } from '@/core/types/galeria';
-import GalleryFormModal from './GaleriaModal';
 import Filters from './Filters';
 import { ConfirmationModal, Toast } from '@/components/ui';
 import LoadingScreen from '@/components/ui/LoadingScreen';
@@ -86,8 +90,6 @@ export default function Dashboard({
   const [isSidebarCollapsed, setIsSidebarCollapsed] = useState(
     initialProfile?.sidebar_collapsed ?? false,
   );
-  const [isFormOpen, setIsFormOpen] = useState(false);
-  const [galeriaToEdit, setGaleriaToEdit] = useState<Galeria | null>(null);
   const [cardsToShow, setCardsToShow] = useState(CARDS_PER_PAGE);
   const [filterName, setFilterName] = useState('');
   const [filterLocation, setFilterLocation] = useState('');
@@ -102,6 +104,17 @@ export default function Dashboard({
   const [galeriaToPermanentlyDelete, setGaleriaToPermanentlyDelete] =
     useState<Galeria | null>(null);
   const [updatingId, setUpdatingId] = useState<string | null>(null);
+  const [selectedIds, setSelectedIds] = useState<Set<string>>(new Set());
+  const [isBulkMode, setIsBulkMode] = useState(false);
+  
+  // 🎯 Carrega preferência do localStorage
+  const [viewMode, setViewMode] = useState<'grid' | 'list'>(() => {
+    if (typeof window !== 'undefined') {
+      const saved = localStorage.getItem('galeria-view-mode');
+      return (saved === 'grid' || saved === 'list') ? saved : 'grid';
+    }
+    return 'grid';
+  });
 
   // 🎯 REDIRECIONAMENTO: Se não houver sessão válida, redireciona para login
   useEffect(() => {
@@ -121,10 +134,20 @@ export default function Dashboard({
     }
   }, [searchParams, user, router]);
 
+  // 🎯 Salva preferência de visualização no localStorage
   useEffect(() => {
-    document.body.style.overflow =
-      isFormOpen || !!galeriaToEdit ? 'hidden' : 'unset';
-  }, [isFormOpen, galeriaToEdit]);
+    if (typeof window !== 'undefined') {
+      localStorage.setItem('galeria-view-mode', viewMode);
+    }
+  }, [viewMode]);
+
+  // 🎯 Limpa seleção quando sai do modo bulk
+  useEffect(() => {
+    if (!isBulkMode) {
+      setSelectedIds(new Set());
+    }
+  }, [isBulkMode]);
+
 
   const counts = useMemo(
     () => ({
@@ -236,40 +259,131 @@ export default function Dashboard({
   };
 
   // --- MÉTODOS DE AÇÃO ---
-  const handleFormSuccess = async (
-    success: boolean,
-    data: Galeria | string,
-  ) => {
-    if (success) {
-      if (galeriaToEdit && typeof data !== 'string') {
-        // 🎯 Revalida cache incluindo a nova capa se foi alterada
-        await revalidateGallery(
-          data.drive_folder_id,
-          data.slug,
-          data.photographer_username || data.photographer?.username || '',
-          data.photographer_username || data.photographer?.username || '',
-          data.cover_image_url, // Passa o photoId da nova capa para revalidar o cache
+
+  // 🎯 AÇÕES EM LOTE
+  const handleBulkArchive = async () => {
+    const ids = Array.from(selectedIds);
+    if (ids.length === 0) return;
+
+    setUpdatingId('bulk');
+    try {
+      const promises = ids.map((id) => {
+        const galeria = galerias.find((g) => g.id === id);
+        if (!galeria) return Promise.resolve({ success: false });
+        return toggleArchiveGaleria(id, galeria.is_archived);
+      });
+
+      const results = await Promise.all(promises);
+      const successCount = results.filter((r) => r.success).length;
+
+      if (successCount > 0) {
+        setGalerias((prev) =>
+          prev.map((item) =>
+            selectedIds.has(item.id)
+              ? { ...item, is_archived: !item.is_archived }
+              : item,
+          ),
         );
-        setGalerias((prev) => prev.map((g) => (g.id === data.id ? data : g)));
-        setToast({ message: 'Galeria atualizada!', type: 'success' });
+        await revalidateProfile(photographer?.username);
+        setToast({
+          message: `${successCount} galeria(s) ${currentView === 'archived' ? 'desarquivada(s)' : 'arquivada(s)'}`,
+          type: 'success',
+        });
+        setSelectedIds(new Set());
       } else {
-        // 🎯 FORÇA REVALIDAÇÃO: Recarrega as galerias do servidor após criar
-        // Isso garante que o cache seja atualizado mesmo que a revalidação não tenha funcionado
-        const result = await getGalerias();
-        if (result.success) {
-          setGalerias(result.data);
-          setToast({ message: 'Galeria criada!', type: 'success' });
-        } else {
-          // Se ainda não aparecer, força reload da página
-          setTimeout(() => {
-            window.location.reload();
-          }, 1000);
-        }
+        setToast({ message: 'Erro ao processar arquivamento em lote', type: 'error' });
       }
-    } else {
-      const errorMessage = typeof data === 'string' ? data : 'Erro na operação';
-      setToast({ message: errorMessage, type: 'error' });
+    } catch (error) {
+      setToast({ message: 'Erro ao processar arquivamento em lote', type: 'error' });
+    } finally {
+      setUpdatingId(null);
     }
+  };
+
+  const handleBulkDelete = async () => {
+    const ids = Array.from(selectedIds);
+    if (ids.length === 0) return;
+
+    setUpdatingId('bulk');
+    try {
+      const promises = ids.map((id) => moveToTrash(id));
+      const results = await Promise.all(promises);
+      const successCount = results.filter((r) => r.success).length;
+
+      if (successCount > 0) {
+        setGalerias((prev) =>
+          prev.map((item) =>
+            selectedIds.has(item.id) ? { ...item, is_deleted: true } : item,
+          ),
+        );
+        await revalidateProfile(photographer?.username);
+        setToast({
+          message: `${successCount} galeria(s) movida(s) para lixeira`,
+          type: 'success',
+        });
+        setSelectedIds(new Set());
+      } else {
+        setToast({ message: 'Erro ao mover para lixeira', type: 'error' });
+      }
+    } catch (error) {
+      setToast({ message: 'Erro ao mover para lixeira', type: 'error' });
+    } finally {
+      setUpdatingId(null);
+    }
+  };
+
+  const handleBulkRestore = async () => {
+    const ids = Array.from(selectedIds);
+    if (ids.length === 0) return;
+
+    setUpdatingId('bulk');
+    try {
+      const promises = ids.map((id) => restoreGaleria(id));
+      const results = await Promise.all(promises);
+      const successCount = results.filter((r) => r.success).length;
+
+      if (successCount > 0) {
+        setGalerias((prev) =>
+          prev.map((item) =>
+            selectedIds.has(item.id)
+              ? { ...item, is_deleted: false, is_archived: false }
+              : item,
+          ),
+        );
+        await revalidateProfile(photographer?.username);
+        setToast({
+          message: `${successCount} galeria(s) restaurada(s)`,
+          type: 'success',
+        });
+        setSelectedIds(new Set());
+      } else {
+        setToast({ message: 'Erro ao restaurar', type: 'error' });
+      }
+    } catch (error) {
+      setToast({ message: 'Erro ao restaurar', type: 'error' });
+    } finally {
+      setUpdatingId(null);
+    }
+  };
+
+  const handleToggleSelect = (id: string) => {
+    setSelectedIds((prev) => {
+      const newSet = new Set(prev);
+      if (newSet.has(id)) {
+        newSet.delete(id);
+      } else {
+        newSet.add(id);
+      }
+      return newSet;
+    });
+  };
+
+  const handleSelectAll = () => {
+    setSelectedIds(new Set(visibleGalerias.map((g) => g.id)));
+  };
+
+  const handleDeselectAll = () => {
+    setSelectedIds(new Set());
   };
 
   const handleArchiveToggle = async (g: Galeria) => {
@@ -423,7 +537,7 @@ export default function Dashboard({
       >
         {/* 1. Botão Nova Galeria (Mantido tamanho original) */}
         <button
-          onClick={() => setIsFormOpen(true)}
+          onClick={() => router.push('/dashboard/galerias/new')}
           className={`flex items-center justify-center bg-gold text-black hover:bg-white hover:text-gold transition-all duration-300 rounded-[0.5rem] border border-gold group shadow-lg lg:shadow-sm mb-6 overflow-hidden w-12 h-12 fixed bottom-20 right-6 z-[100] lg:relative lg:bottom-auto lg:right-auto lg:z-auto ${isSidebarCollapsed ? 'lg:w-14 lg:h-10' : 'lg:h-10 lg:px-4 lg:gap-3 lg:w-fit'}`}
         >
           <Plus
@@ -669,9 +783,103 @@ export default function Dashboard({
       </aside>
 
       {/* CONTEÚDO PRINCIPAL */}
-      <main className="flex-1 space-y-4 min-w-0">
-        <header className="bg-white rounded-[12px] border border-slate-200 p-1 shadow-sm">
-          <Filters
+      <main className="flex-1 space-y-2 min-w-0">
+        <header className="bg-white rounded-lg border border-slate-200 shadow-sm">
+          {/* Barra de Ações em Lote */}
+          {isBulkMode && selectedIds.size > 0 && (
+            <div className="flex items-center justify-between px-4 py-2 bg-champagne/20 border-b border-slate-200">
+              <div className="flex items-center gap-3">
+                <span className="text-sm font-medium text-slate-700">
+                  {selectedIds.size} selecionada(s)
+                </span>
+                {selectedIds.size < visibleGalerias.length ? (
+                  <button
+                    onClick={handleSelectAll}
+                    className="text-xs text-slate-500 hover:text-slate-700 underline"
+                  >
+                    Selecionar todas
+                  </button>
+                ) : (
+                  <button
+                    onClick={handleDeselectAll}
+                    className="text-xs text-slate-500 hover:text-slate-700 underline"
+                  >
+                    Desselecionar todas
+                  </button>
+                )}
+              </div>
+              <div className="flex items-center gap-2">
+                {currentView === 'trash' ? (
+                  <button
+                    onClick={handleBulkRestore}
+                    disabled={updatingId === 'bulk'}
+                    className="px-3 py-1.5 text-xs font-medium bg-blue-500 text-white rounded-md hover:bg-blue-600 transition-colors disabled:opacity-50 flex items-center gap-1.5"
+                  >
+                    {updatingId === 'bulk' ? (
+                      <Loader2 size={14} className="animate-spin" />
+                    ) : (
+                      <Inbox size={14} />
+                    )}
+                    Restaurar
+                  </button>
+                ) : (
+                  <>
+                    <button
+                      onClick={handleBulkArchive}
+                      disabled={updatingId === 'bulk'}
+                      className="px-3 py-1.5 text-xs font-medium bg-amber-500 text-white rounded-md hover:bg-amber-600 transition-colors disabled:opacity-50 flex items-center gap-1.5"
+                    >
+                      {updatingId === 'bulk' ? (
+                        <Loader2 size={14} className="animate-spin" />
+                      ) : (
+                        <Archive size={14} />
+                      )}
+                      {currentView === 'archived' ? 'Desarquivar' : 'Arquivar'}
+                    </button>
+                    {currentView !== 'archived' && (
+                      <button
+                        onClick={handleBulkDelete}
+                        disabled={updatingId === 'bulk'}
+                        className="px-3 py-1.5 text-xs font-medium bg-red-500 text-white rounded-md hover:bg-red-600 transition-colors disabled:opacity-50 flex items-center gap-1.5"
+                      >
+                        {updatingId === 'bulk' ? (
+                          <Loader2 size={14} className="animate-spin" />
+                        ) : (
+                          <Trash2 size={14} />
+                        )}
+                        Mover para Lixeira
+                      </button>
+                    )}
+                  </>
+                )}
+              </div>
+            </div>
+          )}
+
+          {/* Header compacto: Filtros + View Toggle + Bulk Mode */}
+          <div className="flex items-center gap-2 px-3 py-2">
+            {isBulkMode && (
+              <button
+                onClick={() => {
+                  setIsBulkMode(false);
+                  setSelectedIds(new Set());
+                }}
+                className="p-1.5 text-slate-400 hover:text-slate-600 hover:bg-slate-100 rounded transition-colors shrink-0"
+                title="Sair do modo seleção"
+              >
+                <X size={16} />
+              </button>
+            )}
+            {!isBulkMode && (
+              <button
+                onClick={() => setIsBulkMode(true)}
+                className="p-1.5 text-slate-400 hover:text-slate-600 hover:bg-slate-100 rounded transition-colors shrink-0"
+                title="Selecionar múltiplas galerias"
+              >
+                <CheckSquare size={16} />
+              </button>
+            )}
+            <Filters
             filterName={filterName}
             filterLocation={filterLocation}
             filterCategory={filterCategory}
@@ -692,29 +900,83 @@ export default function Dashboard({
               setFilterDateStart('');
               setFilterDateEnd('');
             }}
-            variant="minimal"
-          />
+              variant="minimal"
+            />
+            <div className="flex items-center gap-1 bg-slate-50 p-0.5 rounded-md border border-slate-200 shrink-0">
+              <button
+                onClick={() => setViewMode('grid')}
+                className={`p-1.5 rounded transition-all ${
+                  viewMode === 'grid'
+                    ? 'bg-white text-gold shadow-sm'
+                    : 'text-slate-400 hover:text-slate-600'
+                }`}
+                title="Grid"
+              >
+                <Grid3x3 size={14} strokeWidth={2} />
+              </button>
+              <button
+                onClick={() => setViewMode('list')}
+                className={`p-1.5 rounded transition-all ${
+                  viewMode === 'list'
+                    ? 'bg-white text-gold shadow-sm'
+                    : 'text-slate-400 hover:text-slate-600'
+                }`}
+                title="Lista"
+              >
+                <List size={14} strokeWidth={2} />
+              </button>
+            </div>
+          </div>
         </header>
 
         <div className="bg-white rounded-[12px] border border-slate-200 shadow-sm p-4 min-h-[500px]">
-          <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 xl:grid-cols-4 gap-4">
-            {visibleGalerias.map((g, index) => (
-              <GaleriaCard
-                key={g.id}
-                galeria={g}
-                index={index}
-                currentView={currentView}
-                onEdit={setGaleriaToEdit}
-                onDelete={handleMoveToTrash}
-                onArchive={handleArchiveToggle}
-                onToggleShowOnProfile={() => handleToggleProfile(g)}
-                onRestore={handleRestore}
-                onPermanentDelete={() => setGaleriaToPermanentlyDelete(g)}
-                isUpdating={updatingId === g.id}
-                onSync={() => handleSyncDrive(g)}
-              />
-            ))}
-          </div>
+          {viewMode === 'grid' ? (
+            <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 xl:grid-cols-4 gap-4">
+              {visibleGalerias.map((g, index) => (
+                <GaleriaCard
+                  key={g.id}
+                  galeria={g}
+                  index={index}
+                  currentView={currentView}
+                  viewMode={viewMode}
+                  onEdit={(g) => router.push(`/dashboard/galerias/${g.id}/edit`)}
+                  onDelete={handleMoveToTrash}
+                  onArchive={handleArchiveToggle}
+                  onToggleShowOnProfile={() => handleToggleProfile(g)}
+                  onRestore={handleRestore}
+                  onPermanentDelete={() => setGaleriaToPermanentlyDelete(g)}
+                  isUpdating={updatingId === g.id}
+                  onSync={() => handleSyncDrive(g)}
+                  isBulkMode={isBulkMode}
+                  isSelected={selectedIds.has(g.id)}
+                  onToggleSelect={handleToggleSelect}
+                />
+              ))}
+            </div>
+          ) : (
+            <div className="space-y-2">
+              {visibleGalerias.map((g, index) => (
+                <GaleriaCard
+                  key={g.id}
+                  galeria={g}
+                  index={index}
+                  currentView={currentView}
+                  viewMode={viewMode}
+                  onEdit={(g) => router.push(`/dashboard/galerias/${g.id}/edit`)}
+                  onDelete={handleMoveToTrash}
+                  onArchive={handleArchiveToggle}
+                  onToggleShowOnProfile={() => handleToggleProfile(g)}
+                  onRestore={handleRestore}
+                  onPermanentDelete={() => setGaleriaToPermanentlyDelete(g)}
+                  isUpdating={updatingId === g.id}
+                  onSync={() => handleSyncDrive(g)}
+                  isBulkMode={isBulkMode}
+                  isSelected={selectedIds.has(g.id)}
+                  onToggleSelect={handleToggleSelect}
+                />
+              ))}
+            </div>
+          )}
           {visibleGalerias.length === 0 && (
             <div className="flex flex-col items-center justify-center py-32 text-center">
               <div className="w-20 h-20 bg-slate-50 rounded-[10px] flex items-center justify-center mb-6 border border-champagne">
@@ -761,16 +1023,6 @@ export default function Dashboard({
         </div>
       </main>
 
-      <GalleryFormModal
-        isOpen={isFormOpen || !!galeriaToEdit}
-        galeria={galeriaToEdit}
-        onClose={() => {
-          setIsFormOpen(false);
-          setGaleriaToEdit(null);
-        }}
-        onSuccess={handleFormSuccess}
-        onTokenExpired={() => setShowConsentAlert(true)}
-      />
       <ConfirmationModal
         isOpen={!!galeriaToPermanentlyDelete}
         onClose={() => setGaleriaToPermanentlyDelete(null)}

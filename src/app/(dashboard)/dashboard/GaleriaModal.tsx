@@ -1,5 +1,5 @@
 'use client';
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import { X, Camera, Plus } from 'lucide-react';
 import { createGaleria, updateGaleria } from '@/core/services/galeria.service';
 import { SubmitButton } from '@/components/ui';
@@ -16,6 +16,8 @@ export default function GaleriaModal({
   const isEdit = !!galeria;
   const [loading, setLoading] = useState(false);
   const [isSuccess, setIsSuccess] = useState(false);
+  const modalRef = useRef<HTMLDivElement>(null);
+  const firstInputRef = useRef<HTMLInputElement>(null);
 
   // 🎯 ESTADOS DE CUSTOMIZAÇÃO COM VALORES PADRÃO TIPO "EDITORIAL"
   const [isPublic, setIsPublic] = useState(true);
@@ -26,14 +28,12 @@ export default function GaleriaModal({
   // 🔄 EFEITO DE INICIALIZAÇÃO E RESET
   useEffect(() => {
     if (isOpen) {
+      // 🎯 UX: Trava scroll do body quando modal está aberto
+      document.body.style.overflow = 'hidden';
+      
       if (galeria) {
         // MODO EDIÇÃO
         setIsPublic(galeria.is_public === true || galeria.is_public === 'true');
-
-        // 🎯 IMPORTANTE: Se a galeria já for privada, você pode querer
-        // resetar a obrigatoriedade da senha ou limpar o campo para nova definição.
-        // Se não resetar, o HTML5 'required' pode travar o form.
-
         setShowCoverInGrid(
           galeria.show_cover_in_grid === true ||
             galeria.show_cover_in_grid === 'true',
@@ -50,12 +50,67 @@ export default function GaleriaModal({
         setShowCoverInGrid(false);
         setGridBgColor('#FFFFFF');
         setColumns({ mobile: 2, tablet: 3, desktop: 4 });
-
-        // 🎯 RESET DE SEGURANÇA: Garante que ao fechar e abrir para criar uma nova,
-        // estados residuais não interfiram.
       }
+
+      // 🎯 UX: Auto-focus no primeiro campo após renderização
+      setTimeout(() => {
+        const firstInput = modalRef.current?.querySelector('input[type="text"], input[type="date"], select') as HTMLInputElement;
+        firstInput?.focus();
+      }, 100);
+    } else {
+      // 🎯 UX: Restaura scroll quando modal fecha
+      document.body.style.overflow = 'unset';
     }
+
+    return () => {
+      document.body.style.overflow = 'unset';
+    };
   }, [galeria, isOpen]);
+
+  // 🎯 UX: Fechar com tecla ESC
+  useEffect(() => {
+    if (!isOpen) return;
+
+    const handleEscape = (e: KeyboardEvent) => {
+      if (e.key === 'Escape' && !loading) {
+        onClose();
+      }
+    };
+
+    window.addEventListener('keydown', handleEscape);
+    return () => window.removeEventListener('keydown', handleEscape);
+  }, [isOpen, loading, onClose]);
+
+  // 🎯 UX: Focus trap - mantém foco dentro do modal
+  useEffect(() => {
+    if (!isOpen || !modalRef.current) return;
+
+    const modal = modalRef.current;
+    const focusableElements = modal.querySelectorAll(
+      'button, [href], input, select, textarea, [tabindex]:not([tabindex="-1"])'
+    );
+    const firstElement = focusableElements[0] as HTMLElement;
+    const lastElement = focusableElements[focusableElements.length - 1] as HTMLElement;
+
+    const handleTab = (e: KeyboardEvent) => {
+      if (e.key !== 'Tab') return;
+
+      if (e.shiftKey) {
+        if (document.activeElement === firstElement) {
+          e.preventDefault();
+          lastElement?.focus();
+        }
+      } else {
+        if (document.activeElement === lastElement) {
+          e.preventDefault();
+          firstElement?.focus();
+        }
+      }
+    };
+
+    modal.addEventListener('keydown', handleTab);
+    return () => modal.removeEventListener('keydown', handleTab);
+  }, [isOpen]);
 
   if (!isOpen) return null;
 
@@ -159,8 +214,23 @@ export default function GaleriaModal({
   };
 
   return (
-    <div className="fixed inset-0 z-[1000] flex items-center justify-center bg-slate-900/40 backdrop-blur-md p-4 animate-in fade-in duration-300">
-      <div className="relative w-full max-w-4xl max-h-[95vh] bg-white rounded-[0.5rem] shadow-2xl flex flex-col border border-white/20 overflow-y-auto animate-in zoom-in-95 duration-300">
+    <div 
+      className="fixed inset-0 z-[1000] flex items-center justify-center bg-slate-900/40 backdrop-blur-md p-4 animate-in fade-in duration-300"
+      onClick={(e) => {
+        // 🎯 UX: Fechar ao clicar no backdrop (fora do modal)
+        if (e.target === e.currentTarget && !loading) {
+          onClose();
+        }
+      }}
+      role="dialog"
+      aria-modal="true"
+      aria-labelledby="modal-title"
+    >
+      <div 
+        ref={modalRef}
+        className="relative w-full max-w-4xl max-h-[95vh] bg-white rounded-[0.5rem] shadow-2xl flex flex-col border border-white/20 overflow-hidden animate-in zoom-in-95 duration-300"
+        onClick={(e) => e.stopPropagation()}
+      >
         {/* HEADER MODAL */}
         <div className="flex items-center justify-between py-2 px-8 border-b bg-slate-50/50">
           <div className="flex items-center gap-3">
@@ -171,13 +241,19 @@ export default function GaleriaModal({
                 <Plus size={18} strokeWidth={2} />
               )}
             </div>
-            <h2 className="text-xs font-semibold text-slate-900 uppercase tracking-widest">
+            <h2 
+              id="modal-title"
+              className="text-xs font-semibold text-slate-900 uppercase tracking-widest"
+            >
               {isEdit ? 'Editar Galeria' : 'Nova Galeria'}
             </h2>
           </div>
           <button
             onClick={onClose}
-            className="p-2 text-slate-400 hover:bg-slate-100 rounded-full transition-colors"
+            disabled={loading}
+            className="p-2 text-slate-400 hover:bg-slate-100 rounded-full transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+            aria-label="Fechar modal"
+            title="Fechar (ESC)"
           >
             <X size={20} />
           </button>
@@ -205,6 +281,7 @@ export default function GaleriaModal({
             <SecondaryButton
               label="Cancelar"
               onClick={onClose}
+              disabled={loading}
               className="w-full md:px-10"
             />
           </div>
@@ -213,9 +290,10 @@ export default function GaleriaModal({
             <SubmitButton
               form="master-gallery-form"
               success={isSuccess}
+              disabled={loading}
               className="w-full"
               label={
-                loading ? '...' : isEdit ? 'SALVAR ALTERAÇÕES' : 'CRIAR GALERIA'
+                loading ? 'Salvando...' : isEdit ? 'SALVAR ALTERAÇÕES' : 'CRIAR GALERIA'
               }
             />
           </div>

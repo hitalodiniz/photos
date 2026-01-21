@@ -34,14 +34,27 @@ import {
 import WhatsAppIcon from '@/components/ui/WhatsAppIcon';
 import { convertToDirectDownloadUrl } from '@/core/utils/url-helper';
 import { LimitUpgradeModal } from '@/components/ui/LimitUpgradeModal';
-
-// 🎯 Componente movido para fora do render para evitar recriação
-const SectionHeader = ({ title }: { title: string }) => (
-  <legend className="flex items-center gap-2 px-2 ml-2 bg-white">
-    <span className="text-[10px] font-bold uppercase tracking-widest text-slate-800">
-      {title}
-    </span>
-  </legend>
+// 🎯 Componente de seção simples (sem accordion)
+const FormSection = ({ 
+  title, 
+  icon, 
+  children 
+}: { 
+  title: string; 
+  icon?: React.ReactNode; 
+  children: React.ReactNode;
+}) => (
+  <div className="space-y-4">
+    <div className="flex items-center gap-2 pb-2 border-b border-slate-200">
+      {icon && <div className="text-gold">{icon}</div>}
+      <h3 className="text-[11px] font-bold uppercase tracking-widest text-slate-700">
+        {title}
+      </h3>
+    </div>
+    <div className="pl-0">
+      {children}
+    </div>
+  </div>
 );
 
 export default function GaleriaFormContent({
@@ -295,10 +308,10 @@ export default function GaleriaFormContent({
         value={String(customization.columns.desktop)}
       />
 
-      {/* BLOCO 1: IDENTIFICAÇÃO */}
-      <fieldset className="p-2 bg-white border border-slate-200 rounded-[0.5rem] shadow-sm">
-        <SectionHeader title="Identificação" />
-        <div className="grid grid-cols-1 md:grid-cols-12 gap-2 items-end">
+      {/* SEÇÃO 1: IDENTIFICAÇÃO */}
+      <FormSection title="Identificação" icon={<User size={14} />}>
+        <fieldset>
+          <div className="grid grid-cols-1 md:grid-cols-12 gap-2 items-end">
           <div className="md:col-span-3 space-y-1.5">
             <label>
               <Briefcase size={12} strokeWidth={2} /> Tipo
@@ -360,33 +373,38 @@ export default function GaleriaFormContent({
               </p>
             </div>
           )}
-        </div>
-      </fieldset>
+          </div>
+        </fieldset>
+      </FormSection>
 
-      {/* BLOCO 2: DETALHES DA GALERIA */}
-      <fieldset className="p-2 bg-white border border-slate-200 rounded-[0.5rem] shadow-sm">
-        <SectionHeader title="Galeria" />
-        <div className="grid grid-cols-1 md:grid-cols-12 gap-4 items-end">
-          <div className="md:col-span-5 space-y-1.5">
-            <label>
-              <Type size={12} strokeWidth={2} /> Título
-            </label>
-            <input
-              name="title"
-              defaultValue={initialData?.title}
-              required
-              placeholder="Ex: Wedding Day"
-              className="w-full px-3 h-10 bg-white border border-slate-200 rounded-[0.5rem] text-[13px] font-medium outline-none focus:border-gold transition-all"
-            />
+      {/* SEÇÃO 2: GALERIA & SINCRONIZAÇÃO */}
+      <FormSection title="Galeria & Sincronização" icon={<FolderSync size={14} />}>
+        <fieldset>
+          {/* Detalhes da Galeria - Primeira Linha */}
+          <div className="grid grid-cols-1 md:grid-cols-12 gap-4 items-end mb-4">
+            <div className="md:col-span-6 space-y-1.5">
+              <label>
+                <Type size={12} strokeWidth={2} /> Título
+              </label>
+              <input
+                name="title"
+                defaultValue={initialData?.title}
+                required
+                placeholder="Ex: Wedding Day"
+                className="w-full px-3 h-10 bg-white border border-slate-200 rounded-[0.5rem] text-[13px] font-medium outline-none focus:border-gold transition-all"
+              />
+            </div>
+            <div className="md:col-span-6 space-y-1.5">
+              <label>
+                <Tag size={12} strokeWidth={2} /> Categoria
+              </label>
+              <CategorySelect value={category} onChange={setCategory} />
+            </div>
           </div>
-          <div className="md:col-span-3 space-y-1.5">
-            <label>
-              <Tag size={12} strokeWidth={2} /> Categoria
-            </label>
-            <CategorySelect value={category} onChange={setCategory} />
-          </div>
-          <div className="md:col-span-4 grid grid-cols-2 gap-3">
-            <div className="space-y-1.5">
+
+          {/* Segunda Linha */}
+          <div className="grid grid-cols-1 md:grid-cols-12 gap-4 items-end mb-4">
+            <div className="md:col-span-6 space-y-1.5">
               <label>
                 <Calendar size={12} strokeWidth={2} /> Data
               </label>
@@ -398,7 +416,7 @@ export default function GaleriaFormContent({
                 className="w-full px-2 h-10 bg-white border border-slate-200 rounded-[0.5rem] text-[12px] font-medium outline-none focus:border-gold"
               />
             </div>
-            <div className="space-y-1.5">
+            <div className="md:col-span-6 space-y-1.5">
               <label>
                 <MapPin size={12} strokeWidth={2} /> Local
               </label>
@@ -410,12 +428,103 @@ export default function GaleriaFormContent({
               />
             </div>
           </div>
-        </div>
-      </fieldset>
 
-      {/* BLOCO 3: CUSTOMIZAÇÃO VISUAL */}
-      <fieldset className="relative px-4 py-3 bg-white border border-slate-200 rounded-[0.5rem] shadow-sm">
-        <SectionHeader title="Customização Visual" />
+          {/* Google Drive e Arquivos - Lado a lado */}
+          <div className="pt-4 border-t border-slate-200">
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+              {/* Google Drive */}
+              <div className="flex flex-col justify-between bg-slate-50 p-4 rounded-[0.5rem] border border-slate-100">
+                <div className="space-y-2 mb-4">
+                  <div className="flex items-center gap-2">
+                    <FolderSync size={16} className="text-gold" />
+                    <span className="text-[11px] font-bold text-slate-700 uppercase tracking-widest">
+                      Google Drive
+                    </span>
+                  </div>
+                  <p className="text-[13px] text-slate-500 font-semibold truncate bg-white/50 px-2 py-1 rounded border border-slate-200/50">
+                    {driveData.name}
+                  </p>
+                </div>
+
+                <div>
+                  <GooglePickerButton
+                    onFolderSelect={handleFolderSelect}
+                    onError={onPickerError}
+                    currentDriveId={driveData.id}
+                    onTokenExpired={onTokenExpired}
+                  />
+                </div>
+              </div>
+
+              {/* Arquivos/Links */}
+              <div className="bg-slate-50 p-4 rounded-[0.5rem] border border-slate-100">
+                <div className="space-y-3">
+                  <div className="flex items-center gap-2">
+                    <Download size={14} className="text-gold" />
+                    <span className="text-[11px] font-bold text-slate-700 uppercase tracking-widest">
+                      Links e Arquivos
+                    </span>
+                  </div>
+                  
+                  {/* Link Full */}
+                  <div className="space-y-1.5">
+                    <label className="text-xs font-medium text-slate-600">
+                      Alta Resolução (Full)
+                    </label>
+                    <div className="relative">
+                      <input
+                        name="zip_url_full"
+                        type="url"
+                        value={zipUrlFull}
+                        onChange={(e) =>
+                          setZipUrlFull(convertToDirectDownloadUrl(e.target.value))
+                        }
+                        placeholder="Link para qualquer arquivo ou recurso"
+                        className="w-full px-3 h-9 bg-white border border-slate-200 rounded-md text-xs font-medium outline-none focus:border-gold transition-all pr-8"
+                      />
+                      {zipUrlFull && zipUrlFull.length > 0 && (
+                        <CheckCircle2
+                          size={14}
+                          className="absolute right-3 top-1/2 -translate-y-1/2 text-green-500"
+                        />
+                      )}
+                    </div>
+                  </div>
+
+                  {/* Link Social */}
+                  <div className="space-y-1.5">
+                    <label className="text-xs font-medium text-slate-600">
+                      Redes Sociais (Social)
+                    </label>
+                    <div className="relative">
+                      <input
+                        name="zip_url_social"
+                        type="url"
+                        value={zipUrlSocial}
+                        onChange={(e) =>
+                          setZipUrlSocial(convertToDirectDownloadUrl(e.target.value))
+                        }
+                        placeholder="Link para qualquer arquivo ou recurso"
+                        className="w-full px-3 h-9 bg-white border border-slate-200 rounded-md text-xs font-medium outline-none focus:border-gold transition-all pr-8"
+                      />
+                      {zipUrlSocial && zipUrlSocial.length > 0 && (
+                        <CheckCircle2
+                          size={14}
+                          className="absolute right-3 top-1/2 -translate-y-1/2 text-green-500"
+                        />
+                      )}
+                    </div>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+        </fieldset>
+      </FormSection>
+
+      {/* SEÇÃO 3: CUSTOMIZAÇÃO VISUAL */}
+      <FormSection title="Customização Visual" icon={<Layout size={14} />}>
+        <fieldset>
         <div className="flex flex-col md:flex-row md:items-center justify-between gap-6 md:gap-2">
           {/* FOTO DE FUNDO */}
           <div className="flex items-center justify-between md:justify-start gap-3 pb-4 md:pb-0 border-b md:border-b-0 md:border-r border-slate-200 md:pr-4 shrink-0">
@@ -571,11 +680,12 @@ export default function GaleriaFormContent({
             </div>
           </div>
         </div>
-      </fieldset>
+        </fieldset>
+      </FormSection>
 
-      {/* BLOCO 4: DRIVE E SEGURANÇA */}
-      <fieldset className="p-2 bg-white border border-slate-200 rounded-[0.5rem] mt-4 shadow-sm">
-        <SectionHeader title="Privacidade" />
+      {/* SEÇÃO 4: PRIVACIDADE */}
+      <FormSection title="Privacidade" icon={<Lock size={14} />}>
+        <fieldset>
         <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
           {/* ACESSO */}
           <div className="flex items-center justify-between gap-4">
@@ -651,93 +761,9 @@ export default function GaleriaFormContent({
             </div>
           </div>
         </div>
-      </fieldset>
+        </fieldset>
+      </FormSection>
 
-      {/* 🎯 BLOCO 5: CONTEÚDO & ARQUIVOS (Layout Side-by-Side) */}
-      <fieldset className="p-2 bg-white border border-slate-200 rounded-[0.5rem] shadow-sm">
-        <SectionHeader title="Conteúdo & Arquivos" />
-
-        <div className="grid grid-cols-1 md:grid-cols-12 gap-4 mt-2">
-          {/* ESQUERDA: SELEÇÃO DA PASTA (6 colunas) */}
-          <div className="md:col-span-6 flex flex-col justify-between bg-slate-50 p-4 rounded-[0.5rem] border border-slate-100 min-h-[110px]">
-            <div className="space-y-2">
-              <div className="flex items-center gap-2">
-                <FolderSync size={16} className="text-gold" />
-                <span className="text-[11px] font-bold text-slate-700 uppercase tracking-widest">
-                  Google Drive
-                </span>
-              </div>
-              <p className="text-[13px] text-slate-500 font-semibold truncate bg-white/50 px-2 py-1 rounded border border-slate-200/50">
-                {driveData.name}
-              </p>
-            </div>
-
-            <div className="mt-4">
-              <GooglePickerButton
-                onFolderSelect={handleFolderSelect}
-                onError={onPickerError}
-                currentDriveId={driveData.id}
-                onTokenExpired={onTokenExpired}
-              />
-            </div>
-          </div>
-
-          {/* DIREITA: LINKS VIP (6 colunas - um sobre o outro) */}
-          <div className="md:col-span-6 flex flex-col gap-3">
-            {/* Link Full */}
-            <div className="space-y-1.5">
-              <label>
-                {' '}
-                <Download size={10} className="text-gold" /> Alta Resolução
-                (Full)
-              </label>
-              <div className="relative group">
-                <input
-                  name="zip_url_full"
-                  value={zipUrlFull}
-                  onChange={(e) =>
-                    setZipUrlFull(convertToDirectDownloadUrl(e.target.value))
-                  }
-                  placeholder="Link do ZIP para Download"
-                  className="w-full px-3 h-10  border border-slate-200 rounded-[0.4rem] text-xs font-medium outline-none focus:border-gold focus:bg-white transition-all pr-8"
-                />
-                {zipUrlFull.includes('uc?export=download') && (
-                  <CheckCircle2
-                    size={14}
-                    className="absolute right-3 top-1/2 -translate-y-1/2 text-green-500 animate-in zoom-in"
-                  />
-                )}
-              </div>
-            </div>
-
-            {/* Link Social */}
-            <div className="space-y-1.5">
-              <label>
-                {' '}
-                <Download size={10} className="text-gold" /> Redes Sociais
-                (Social)
-              </label>
-              <div className="relative group">
-                <input
-                  name="zip_url_social"
-                  value={zipUrlSocial}
-                  onChange={(e) =>
-                    setZipUrlSocial(convertToDirectDownloadUrl(e.target.value))
-                  }
-                  placeholder="Link do ZIP para Download"
-                  className="w-full px-3 h-10 border border-slate-200 rounded-[0.4rem] text-xs font-medium outline-none focus:border-gold focus:bg-white transition-all pr-8"
-                />
-                {zipUrlSocial.includes('uc?export=download') && (
-                  <CheckCircle2
-                    size={14}
-                    className="absolute right-3 top-1/2 -translate-y-1/2 text-green-500 animate-in zoom-in"
-                  />
-                )}
-              </div>
-            </div>
-          </div>
-        </div>
-      </fieldset>
       <LimitUpgradeModal
         isOpen={showLimitModal}
         photoCount={photoCount}

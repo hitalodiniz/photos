@@ -49,24 +49,24 @@ export default function Filters({
   const [isExpanded, setIsExpanded] = useState(false);
   const isMinimal = variant === 'minimal';
 
-  // Classe base: Fundo branco, borda ardósia clara e foco em dourado
+  // Classe base: Ultra Compacta
   const sharedInputClass = `
-    w-full !pl-9 pr-3 h-[38px] md:h-[40px] 
+    w-full !pl-7 pr-2 h-8 
     outline-none transition-all duration-300 
-    rounded-[0.5rem] text-[12px] font-medium box-border
+    rounded text-[11px] font-medium box-border
     bg-white border border-slate-200 
-    focus:border-gold focus:ring-4 focus:ring-gold/5 
+    focus:border-gold focus:ring-1 focus:ring-gold/5 
     text-slate-700 placeholder:text-slate-400
   `;
 
   const selectClass = `${sharedInputClass} appearance-none cursor-pointer leading-tight`;
 
   const dateInputClass = `
-    w-full h-[38px] md:h-[40px] px-2
+    w-full h-8 px-1.5
     outline-none transition-all duration-300 
-    rounded-[0.5rem] text-[11px] md:text-[12px] font-medium box-border
+    rounded text-[10px] font-medium box-border
     bg-white border border-slate-200 
-    focus:border-gold focus:ring-4 focus:ring-gold/5
+    focus:border-gold focus:ring-1 focus:ring-gold/5
     text-slate-700 text-center
   `;
 
@@ -94,21 +94,21 @@ export default function Filters({
 
       {/* CONTAINER DOS FILTROS */}
       <div
-        className={`${isExpanded ? 'grid grid-cols-2 mt-4' : 'hidden md:flex'} gap-2 md:items-center`}
+        className={`${isExpanded ? 'grid grid-cols-2 mt-2' : 'hidden md:flex'} gap-1.5 md:items-center px-2 py-2`}
       >
         {/* Label Visual */}
-        <div className="hidden lg:flex items-center gap-2 px-1 shrink-0">
-          <Filter className="text-gold w-4 h-4" />
-          <span className="text-[10px] font-black uppercase tracking-widest text-slate-700">
+        <div className="hidden lg:flex items-center gap-1.5 px-1 shrink-0">
+          <Filter className="text-gold w-3.5 h-3.5" />
+          <span className="text-[10px] font-bold uppercase tracking-wider text-slate-700">
             Filtros
           </span>
         </div>
 
         {/* Busca Principal */}
-        <div className="relative col-span-2 md:flex-1 md:min-w-[150px] group">
+        <div className="relative col-span-2 md:flex-1 md:min-w-[140px] group">
           <Search
-            size={14}
-            className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400 z-10"
+            size={13}
+            className="absolute left-2.5 top-1/2 -translate-y-1/2 text-slate-400 z-10"
           />
           <input
             placeholder="Título ou cliente..."
@@ -119,10 +119,10 @@ export default function Filters({
         </div>
 
         {/* Categoria */}
-        <div className="relative group md:w-36">
+        <div className="relative group md:w-32">
           <Tag
-            size={14}
-            className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400 z-10"
+            size={12}
+            className="absolute left-2 top-1/2 -translate-y-1/2 text-slate-400 z-10"
           />
           <select
             value={filterCategory}
@@ -137,16 +137,16 @@ export default function Filters({
             ))}
           </select>
           <ChevronDown
-            size={12}
-            className="absolute right-2 top-1/2 -translate-y-1/2 text-slate-400 pointer-events-none"
+            size={11}
+            className="absolute right-1.5 top-1/2 -translate-y-1/2 text-slate-400 pointer-events-none"
           />
         </div>
 
         {/* Tipo */}
-        <div className="relative group md:w-32">
+        <div className="relative group md:w-28">
           <Briefcase
-            size={14}
-            className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400 z-10"
+            size={13}
+            className="absolute left-2.5 top-1/2 -translate-y-1/2 text-slate-400 z-10"
           />
           <select
             value={filterType}
@@ -158,16 +158,16 @@ export default function Filters({
             <option value="false">Cobertura</option>
           </select>
           <ChevronDown
-            size={12}
-            className="absolute right-2 top-1/2 -translate-y-1/2 text-slate-400 pointer-events-none"
+            size={11}
+            className="absolute right-1.5 top-1/2 -translate-y-1/2 text-slate-400 pointer-events-none"
           />
         </div>
 
         {/* Localização */}
-        <div className="relative group md:w-32">
+        <div className="relative group md:w-24">
           <MapPin
-            size={14}
-            className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400 z-10"
+            size={12}
+            className="absolute left-2 top-1/2 -translate-y-1/2 text-slate-400 z-10"
           />
           <input
             placeholder="Local"
@@ -178,8 +178,8 @@ export default function Filters({
         </div>
 
         {/* PERÍODO: Background mais neutro (slate-50) para combinar com fundo claro */}
-        <div className="col-span-2 md:w-auto flex items-center bg-slate-50 p-1 rounded-xl border border-slate-100 gap-1">
-          <div className="relative w-[110px] md:w-[125px]">
+        <div className="col-span-2 md:w-auto flex items-center bg-slate-50 p-0.5 rounded border border-slate-100 gap-0.5">
+          <div className="relative w-[90px] md:w-[95px]">
             <input
               type="date"
               max="9999-12-31"
@@ -188,8 +188,8 @@ export default function Filters({
               className={dateInputClass}
             />
           </div>
-          <span className="text-slate-300 font-bold text-[10px]">/</span>
-          <div className="relative w-[110px] md:w-[125px]">
+          <span className="text-slate-300 font-bold text-[9px]">/</span>
+          <div className="relative w-[90px] md:w-[95px]">
             <input
               type="date"
               max="9999-12-31"
@@ -209,10 +209,10 @@ export default function Filters({
           filterType) && (
           <button
             onClick={resetFilters}
-            className="col-span-2 md:w-9 md:h-9 text-slate-400 bg-white hover:bg-red-50 hover:text-red-500 rounded-[0.5rem] transition-all flex items-center justify-center shrink-0 border border-slate-200 shadow-sm active:scale-95"
+            className="col-span-2 md:w-7 md:h-7 text-slate-400 bg-white hover:bg-red-50 hover:text-red-500 rounded transition-all flex items-center justify-center shrink-0 border border-slate-200 shadow-sm active:scale-95"
             title="Limpar Filtros"
           >
-            <X size={18} strokeWidth={2.5} />
+            <X size={14} strokeWidth={2.5} />
             <span className="md:hidden ml-2 font-bold uppercase text-[10px] tracking-widest">
               Limpar Filtros
             </span>
