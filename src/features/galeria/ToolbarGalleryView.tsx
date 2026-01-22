@@ -354,7 +354,7 @@ export const ToolbarGalleryView = ({
               {/* Tooltip - Sem animações que causam piscar */}
               <div 
                 data-quality-warning="true"
-                className="bg-[#F3E5AB] shadow-2xl rounded-[0.5rem] border border-white/20 text-black relative w-ful pr-6"
+                className="bg-[#F3E5AB] shadow-2xl rounded-luxury border border-white/20 text-black relative w-ful pr-6"
                 style={{ 
                   pointerEvents: 'auto',
                   transform: 'translateZ(0)', // Força aceleração de hardware
@@ -489,7 +489,7 @@ export const ToolbarGalleryView = ({
   // 🎯 VERSÃO DESKTOP: Toolbar original no topo (direita) - com hover e expansão
   return (
     <div
-      className="relative z-[300] flex items-center bg-black/95 backdrop-blur-2xl p-2 px-3 rounded-[0.5rem] border border-white/20 shadow-2xl transition-all duration-700 mx-4"
+      className="relative z-[300] flex items-center bg-black/95 backdrop-blur-2xl p-2 px-3 rounded-luxury border border-white/20 shadow-2xl transition-all duration-700 mx-4"
       onMouseEnter={() => !isMobile && setIsExpanded(true)}
       onMouseLeave={() => !isMobile && setIsExpanded(false)}
     >

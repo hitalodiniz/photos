@@ -4,10 +4,16 @@ import { useState, useEffect, useRef } from 'react';
 import { useRouter } from 'next/navigation';
 import { createGaleria, updateGaleria } from '@/core/services/galeria.service';
 import { SubmitButton } from '@/components/ui';
+import { Save, CheckCircle2, Sparkles, Link2, Check, ArrowLeft } from 'lucide-react';
 import GaleriaFormContent from '../GaleriaFormContent';
 import type { Galeria } from '@/core/types/galeria';
 import { Toast } from '@/components/ui';
 import GoogleConsentAlert from '@/components/auth/GoogleConsentAlert';
+import BaseModal from '@/components/ui/BaseModal';
+import { getPublicGalleryUrl, copyToClipboard, getLuxuryMessageData } from '@/core/utils/url-helper';
+import { executeShare } from '@/core/utils/share-helper';
+import { useNavigation } from '@/components/providers/NavigationProvider';
+import WhatsAppIcon from '@/components/ui/WhatsAppIcon';
 
 interface PhotographerProfile {
   id: string;
@@ -28,8 +34,12 @@ export default function GaleriaFormPage({
   initialProfile,
 }: GaleriaFormPageProps) {
   const router = useRouter();
+  const { navigate } = useNavigation();
   const [loading, setLoading] = useState(false);
   const [isSuccess, setIsSuccess] = useState(false);
+  const [showSuccessModal, setShowSuccessModal] = useState(false);
+  const [savedGaleria, setSavedGaleria] = useState<any>(null);
+  const [copied, setCopied] = useState(false);
   const [hasUnsavedChanges, setHasUnsavedChanges] = useState(false);
   const [formTitle, setFormTitle] = useState(galeria?.title || '');
   const [showConsentAlert, setShowConsentAlert] = useState(false);
@@ -154,14 +164,11 @@ export default function GaleriaFormPage({
       if (result.success) {
         setIsSuccess(true);
         setHasUnsavedChanges(false);
-        setToast({
-          message: isEdit ? 'Galeria atualizada com sucesso!' : 'Galeria criada com sucesso!',
-          type: 'success',
-        });
+        setSavedGaleria(result.data);
         setTimeout(() => {
-          router.push('/dashboard');
-          router.refresh();
-        }, 1500);
+          setShowSuccessModal(true);
+          setIsSuccess(false);
+        }, 800);
       } else {
         setToast({
           message: result.error || 'Falha ao salvar.',
@@ -174,6 +181,25 @@ export default function GaleriaFormPage({
     } finally {
       setLoading(false);
     }
+  };
+
+  const handleCopyLink = async () => {
+    const url = getPublicGalleryUrl(initialProfile, savedGaleria?.slug || galeria?.slug || '');
+    const success = await copyToClipboard(url);
+    if (success) {
+      setCopied(true);
+      setTimeout(() => setCopied(false), 2000);
+    }
+  };
+
+  const handleShareWhatsApp = () => {
+    const url = getPublicGalleryUrl(initialProfile, savedGaleria?.slug || galeria?.slug || '');
+    const message = getLuxuryMessageData(savedGaleria || galeria, url);
+    executeShare({
+      title: (savedGaleria || galeria).title,
+      text: message,
+      phone: (savedGaleria || galeria).client_whatsapp,
+    });
   };
 
   return (
@@ -222,7 +248,7 @@ export default function GaleriaFormPage({
               type="button"
               onClick={() => router.back()}
               disabled={loading}
-              className="flex items-center justify-center rounded-[0.5rem] h-10 border border-petroleum/50 bg-slate-800 text-white hover:bg-slate-700 hover:border-petroleum/70 transition-all px-4 py-2 disabled:opacity-50 disabled:cursor-not-allowed text-[10px] font-bold uppercase tracking-widest"
+              className="btn-secondary-petroleum px-4"
             >
               CANCELAR
             </button>
@@ -230,6 +256,7 @@ export default function GaleriaFormPage({
               form="galeria-form"
               success={isSuccess}
               className="px-6"
+              icon={<Save size={14} />}
               label={
                 loading
                   ? 'Salvando...'
@@ -257,6 +284,84 @@ export default function GaleriaFormPage({
           window.location.reload();
         }}
       />
+
+      {/* 🎯 MODAL DE SUCESSO PADRONIZADO (EDITORIAL) */}
+      <BaseModal
+        isOpen={showSuccessModal}
+        onClose={() => setShowSuccessModal(false)}
+        title={isEdit ? 'Galeria Atualizada' : 'Galeria Criada'}
+        subtitle={isEdit ? 'Suas alterações foram salvas' : 'Sua nova galeria está pronta'}
+        maxWidth="lg"
+        headerIcon={
+          <div className="w-12 h-12 bg-green-500/10 text-green-500 rounded-lg flex items-center justify-center shadow-lg shadow-green-500/5">
+            <CheckCircle2 size={24} strokeWidth={2.5} />
+          </div>
+        }
+        footer={
+          <div className="flex flex-col gap-3">
+            {/* Linha Única: Ações Principais com Larguras Iguais */}
+            <div className="grid grid-cols-2 gap-3 w-full items-center">
+              <button
+                onClick={() => {
+                  navigate('/dashboard', 'Voltando ao painel...');
+                }}
+                className="btn-secondary-white w-full"
+              >
+                <ArrowLeft size={14} /> Espaço de Galerias
+              </button>
+
+              <a
+                href={getPublicGalleryUrl(initialProfile, savedGaleria?.slug || galeria?.slug || '')}
+                target="_blank"
+                className="w-full h-10 flex items-center justify-center gap-2 bg-champagne text-petroleum rounded-luxury font-semibold text-[10px] uppercase tracking-luxury hover:bg-white transition-all shadow-xl active:scale-[0.98]"
+              >
+                <Sparkles size={14} /> Visualizar Galeria
+              </a>
+            </div>
+          </div>
+        }
+      >
+        <div className="space-y-4">
+          <p className="text-[13px] md:text-[14px] leading-relaxed text-petroleum/80 font-medium text-center px-4">
+            A galeria <strong>{formTitle}</strong> foi {isEdit ? 'atualizada' : 'criada'} com sucesso e já pode ser compartilhada com seus clientes.
+          </p>
+          
+          <div className="p-4 bg-slate-50 border border-petroleum/10 rounded-luxury flex flex-col items-center gap-4">
+            <p className="text-[10px] font-semibold text-petroleum/80 text-center uppercase tracking-luxury">
+              Compartilhe o link direto com seu cliente:
+            </p>
+
+            <div className="flex items-center justify-center gap-3">
+              <button
+                onClick={handleShareWhatsApp}
+                className="h-11 px-6 flex items-center justify-center gap-2 text-white bg-[#25D366] hover:bg-[#20ba56] rounded-luxury shadow-md transition-all text-[10px] font-bold uppercase tracking-widest active:scale-95"
+                title="Compartilhar via WhatsApp"
+              >
+                <WhatsAppIcon className="w-4 h-4 fill-current" />
+                WhatsApp
+              </button>
+
+              <button
+                onClick={handleCopyLink}
+                className="h-11 px-6 flex items-center justify-center gap-2 text-petroleum bg-white border border-petroleum/20 rounded-luxury shadow-sm hover:border-petroleum/40 transition-all text-[10px] font-bold uppercase tracking-widest active:scale-95"
+                title="Copiar Link da Galeria"
+              >
+                {copied ? (
+                  <>
+                    <Check size={16} className="text-green-600 animate-in zoom-in duration-300" />
+                    Copiado!
+                  </>
+                ) : (
+                  <>
+                    <Link2 size={16} className="text-petroleum/40" />
+                    Copiar Link
+                  </>
+                )}
+              </button>
+            </div>
+          </div>
+        </div>
+      </BaseModal>
     </div>
   );
 }

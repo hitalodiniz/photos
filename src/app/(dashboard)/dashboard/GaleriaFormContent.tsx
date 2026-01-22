@@ -39,22 +39,33 @@ import WhatsAppIcon from '@/components/ui/WhatsAppIcon';
 import { convertToDirectDownloadUrl, getDirectGoogleUrl } from '@/core/utils/url-helper';
 import { LimitUpgradeModal } from '@/components/ui/LimitUpgradeModal';
 import { useGoogleDriveImage } from '@/hooks/useGoogleDriveImage';
+
 // 🎯 Componente de seção simples (sem accordion) - Estilo Editorial
 const FormSection = ({ 
   title, 
+  subtitle, // Nova prop para o subtítulo
   icon, 
   children 
 }: { 
   title: string; 
+  subtitle?: string; 
   icon?: React.ReactNode; 
   children: React.ReactNode;
 }) => (
-  <div className="bg-white rounded-[0.5rem] border border-petroleum/40 p-4 space-y-3">
-    <div className="flex items-center gap-2 pb-2 border-b border-petroleum/40">
-      {icon && <div className="text-gold">{icon}</div>}
-      <h3 className="text-[10px] font-bold uppercase tracking-widest text-petroleum dark:text-slate-700">
-        {title}
-      </h3>
+  <div className="bg-white rounded-luxury border border-petroleum/40 p-4 space-y-3">
+    <div className="flex flex-col gap-1 pb-2 border-b border-petroleum/40">
+      <div className="flex items-center gap-2">
+        {icon && <div className="text-gold">{icon}</div>} {/* Ícones agora em Gold */}
+        <h3 className="text-[10px] font-bold uppercase tracking-widest text-petroleum dark:text-slate-700">
+          {title}
+        </h3>
+        {subtitle && (
+        <p className="text-[10px] text-petroleum italic font-semibold">
+          {subtitle}
+        </p>
+      )}
+      </div>
+
     </div>
     <div className="pl-0">
       {children}
@@ -118,6 +129,29 @@ export default function GaleriaFormContent({
       );
     return true; // Padrão: WhatsApp obrigatório se habilitado
   });
+
+  // 🎯 Lógica para garantir pelo menos um campo obrigatório na captura de leads
+  const toggleLeadField = (field: 'name' | 'email' | 'whatsapp') => {
+    const activeFields = [
+      field === 'name' ? !leadsRequireName : leadsRequireName,
+      field === 'email' ? !leadsRequireEmail : leadsRequireEmail,
+      field === 'whatsapp' ? !leadsRequireWhatsapp : leadsRequireWhatsapp,
+    ].filter(Boolean).length;
+
+    if (activeFields === 0) return; // Não permite desativar se for o último
+
+    if (field === 'name') setLeadsRequireName(!leadsRequireName);
+    if (field === 'email') setLeadsRequireEmail(!leadsRequireEmail);
+    if (field === 'whatsapp') setLeadsRequireWhatsapp(!leadsRequireWhatsapp);
+  };
+
+  // 🎯 Garantia de consistência: se leads habilitados, pelo menos um deve ser true
+  useEffect(() => {
+    if (leadsEnabled && !leadsRequireName && !leadsRequireEmail && !leadsRequireWhatsapp) {
+      setLeadsRequireName(true);
+      setLeadsRequireWhatsapp(true);
+    }
+  }, [leadsEnabled, leadsRequireName, leadsRequireEmail, leadsRequireWhatsapp]);
 
   const PLAN_LIMIT = 500; // Este valor deve vir da sua lógica de planos/sessão
 
@@ -340,7 +374,8 @@ export default function GaleriaFormContent({
   return (
     <div className="flex flex-col lg:flex-row h-full overflow-y-auto lg:overflow-hidden">
       {/* COLUNA PRINCIPAL (65%) */}
-      <div className="w-full lg:w-[65%] relative z-10 lg:overflow-y-auto pr-0 lg:pr-4 pl-0 space-y-2 pb-4 lg:pb-0">
+      <div className="w-full lg:w-[65%] relative z-10 lg:overflow-y-auto pr-0 lg:pr-4 pl-0 space-y-2 pb-4
+      ">
 
       {/* INPUTS OCULTOS */}
       <div className="hidden">
@@ -396,16 +431,19 @@ export default function GaleriaFormContent({
       <input
         type="hidden"
         name="leads_require_name"
+        data-testid="leads_require_name"
         value={String(leadsRequireName)}
       />
       <input
         type="hidden"
         name="leads_require_email"
+        data-testid="leads_require_email"
         value={String(leadsRequireEmail)}
       />
       <input
         type="hidden"
         name="leads_require_whatsapp"
+        data-testid="leads_require_whatsapp"
         value={String(leadsRequireWhatsapp)}
       />
       </div>
@@ -415,10 +453,10 @@ export default function GaleriaFormContent({
         <fieldset>
           <div className="grid grid-cols-1 md:grid-cols-12 gap-2 items-end">
           <div className="md:col-span-3 ">
-            <label className="text-[10px] font-bold uppercase tracking-widest text-petroleum">
+            <label className="text-[10px] font-semibold uppercase tracking-widest text-petroleum">
               <Briefcase size={12} strokeWidth={2} className="inline mr-1.5" /> Tipo
             </label>
-            <div className="flex p-1 bg-slate-50 rounded-[0.5rem] border border-petroleum/40 h-10 items-center relative">
+            <div className="flex p-1 bg-slate-50 rounded-luxury border border-petroleum/40 h-10 items-center relative">
               <div
                 className={`absolute top-1 bottom-1 w-[calc(50%-4px)] rounded-[0.35rem] transition-all duration-300 bg-champagne border border-gold/20 shadow-sm ${hasContractingClient ? 'left-1' : 'left-[calc(50%+1px)]'}`}
               />
@@ -444,7 +482,7 @@ export default function GaleriaFormContent({
           {hasContractingClient ? (
             <>
               <div className="md:col-span-6 space-y-1.5 animate-in slide-in-from-left-2">
-                <label className="text-[10px] font-bold uppercase tracking-widest text-petroleum">
+                <label className="text-[10px] font-semibold uppercase tracking-widest text-petroleum">
                   <User size={12} strokeWidth={2} className="inline mr-1.5" /> Cliente
                 </label>
                 <input
@@ -452,11 +490,11 @@ export default function GaleriaFormContent({
                   defaultValue={initialData?.client_name}
                   required
                   placeholder="Nome do cliente"
-                  className="w-full px-3 h-10 bg-white border border-petroleum/40 rounded-[0.5rem] text-petroleum/90 text-[13px] font-medium outline-none focus:border-gold transition-all"
+                  className="w-full px-3 h-10 bg-white border border-petroleum/40 rounded-luxury text-petroleum/90 text-[13px] font-medium outline-none focus:border-gold transition-all"
                 />
               </div>
               <div className="md:col-span-3 space-y-1.5">
-                <label className="text-[10px] font-bold uppercase tracking-widest text-petroleum">
+                <label className="text-[10px] font-semibold uppercase tracking-widest text-petroleum">
                   <WhatsAppIcon className="w-3 h-3 inline mr-1.5" /> WhatsApp
                 </label>
                 <input
@@ -464,12 +502,12 @@ export default function GaleriaFormContent({
                   name="client_whatsapp"
                   onChange={(e) => setClientWhatsapp(maskPhone(e))}
                   placeholder="(00) 00000-0000"
-                  className="w-full px-3 h-10 bg-white border border-petroleum/40 rounded-[0.5rem] text-petroleum/90 text-[13px] font-medium outline-none focus:border-gold tracking-wider transition-all"
+                  className="w-full px-3 h-10 bg-white border border-petroleum/40 rounded-luxury text-petroleum/90 text-[13px] font-medium outline-none focus:border-gold tracking-wider transition-all"
                 />
               </div>
             </>
           ) : (
-            <div className="md:col-span-9 h-10 flex items-center px-4 bg-slate-50 border border-dashed border-slate-200 rounded-[0.5rem]">
+            <div className="md:col-span-9 h-10 flex items-center px-4 bg-slate-50 border border-dashed border-slate-200 rounded-luxury">
               <p className="text-[10px] font-semibold uppercase tracking-widest text-petroleum/60 dark:text-slate-400 italic">
                 Identificação de cliente opcional em coberturas.
               </p>
@@ -485,7 +523,7 @@ export default function GaleriaFormContent({
           {/* Detalhes da Galeria - Primeira Linha */}
           <div className="grid grid-cols-1 md:grid-cols-12 gap-3 items-end mb-3">
             <div className="md:col-span-6 space-y-1.5">
-              <label className="text-[10px] font-bold uppercase tracking-widest text-petroleum">
+              <label className="text-[10px] font-semibold uppercase tracking-widest text-petroleum">
                 <Type size={12} strokeWidth={2} className="inline mr-1.5" /> Título
               </label>
               <input
@@ -497,11 +535,11 @@ export default function GaleriaFormContent({
                   setTitleValue(e.target.value);
                   onTitleChange?.(e.target.value);
                 }}
-                className="w-full px-3 h-10 bg-white border border-petroleum/40 rounded-[0.5rem] text-petroleum/90 text-[13px] font-medium outline-none focus:border-gold transition-all"
+                className="w-full px-3 h-10 bg-white border border-petroleum/40 rounded-luxury text-petroleum/90 text-[13px] font-medium outline-none focus:border-gold transition-all"
               />
             </div>
             <div className="md:col-span-6 space-y-1.5">
-              <label className="text-[10px] font-bold uppercase tracking-widest text-petroleum">
+              <label className="text-[10px] font-semibold uppercase tracking-widest text-petroleum">
                 <Tag size={12} strokeWidth={2} className="inline mr-1.5" /> Categoria
               </label>
               <CategorySelect value={category} onChange={setCategory} />
@@ -511,7 +549,7 @@ export default function GaleriaFormContent({
           {/* Segunda Linha */}
           <div className="grid grid-cols-1 md:grid-cols-12 gap-3 items-end mb-3">
             <div className="md:col-span-6 space-y-1.5">
-              <label className="text-[10px] font-bold uppercase tracking-widest text-petroleum">
+              <label className="text-[10px] font-semibold uppercase tracking-widest text-petroleum">
                 <Calendar size={12} strokeWidth={2} className="inline mr-1.5" /> Data
               </label>
               <input
@@ -519,18 +557,18 @@ export default function GaleriaFormContent({
                 type="date"
                 defaultValue={initialData?.date}
                 required
-                className="w-full px-2 h-10 bg-white border border-petroleum/40 rounded-[0.5rem] text-petroleum/80 text-[12px] font-medium outline-none focus:border-gold"
+                className="w-full px-2 h-10 bg-white border border-petroleum/40 rounded-luxury text-petroleum/80 text-[12px] font-medium outline-none focus:border-gold"
               />
             </div>
             <div className="md:col-span-6 space-y-1.5">
-              <label className="text-[10px] font-bold uppercase tracking-widest text-petroleum">
+              <label className="text-[10px] font-semibold uppercase tracking-widest text-petroleum">
                 <MapPin size={12} strokeWidth={2} className="inline mr-1.5" /> Local
               </label>
               <input
                 name="location"
                 defaultValue={initialData?.location}
                 placeholder="Cidade/UF"
-                className="w-full px-3 h-10 bg-white border border-petroleum/40 rounded-[0.5rem] text-petroleum/80 text-[12px] font-medium outline-none focus:border-gold"
+                className="w-full px-3 h-10 bg-white border border-petroleum/40 rounded-luxury text-petroleum/80 text-[12px] font-medium outline-none focus:border-gold"
               />
             </div>
           </div>
@@ -545,14 +583,14 @@ export default function GaleriaFormContent({
           {/* ACESSO */}
           <div className="flex flex-col sm:flex-row items-start sm:items-center gap-3">
             <div className="flex items-center gap-1.5 shrink-0">
-              <label className="text-[10px] font-bold uppercase tracking-widest text-petroleum">
-                <Lock size={12} className="text-gold inline mr-1.5" /> Acesso à Galeria
+              <label className="text-[10px] font-semibold uppercase tracking-widest text-petroleum">
+                <Lock size={12} className="inline mr-1.5" /> Acesso à Galeria
               </label>
               <div className="group relative flex items-center">
-                <div className="flex items-center justify-center w-3.5 h-3.5 rounded-full border border-petroleum/40 text-petroleum/60 dark:text-slate-400 group-hover:border-gold group-hover:text-gold transition-colors cursor-help">
+                <div className="flex items-center justify-center w-3.5 h-3.5 rounded-full border border-petroleum/40 text-petroleum/60 dark:text-slate-400 group-hover:border-gold group-hover: transition-colors cursor-help">
                   <span className="text-[10px] font-bold">?</span>
                 </div>
-                <div className="absolute bottom-full left-0 mb-3 w-64 p-3 bg-slate-900 text-white text-[10px] font-medium leading-relaxed rounded-[0.5rem] opacity-0 pointer-events-none group-hover:opacity-100 transition-all duration-300 shadow-2xl z-[100] text-left border border-white/10">
+                <div className="absolute bottom-full left-0 mb-3 w-64 p-3 bg-slate-900 text-white text-[10px] font-medium leading-relaxed rounded-luxury opacity-0 pointer-events-none group-hover:opacity-100 transition-all duration-300 shadow-2xl z-[100] text-left border border-white/10">
                   <p>
                     Para acessar uma galeria <strong className="text-champagne">Privada</strong>, o usuário deve informar a senha cadastrada nesta tela. Sem senha, qualquer pessoa com o link pode acessar. Com senha, apenas quem informar a senha correta terá acesso.
                   </p>
@@ -566,14 +604,14 @@ export default function GaleriaFormContent({
                 <button
                   type="button"
                   onClick={() => setIsPublic(true)}
-                  className={`flex-1 py-1 rounded-[0.3rem] text-[10px] font-semibold uppercase tracking-widest transition-all ${isPublic ? 'bg-white text-gold shadow-sm' : 'text-slate-400'}`}
+                  className={`flex-1 py-1 rounded-[0.3rem] text-[10px] font-semibold uppercase tracking-widest transition-all ${isPublic ? 'bg-white  shadow-sm' : 'text-slate-400'}`}
                 >
                   Público
                 </button>
                 <button
                   type="button"
                   onClick={() => setIsPublic(false)}
-                  className={`flex-1 py-1 rounded-[0.3rem] text-[10px] font-semibold uppercase tracking-widest transition-all ${!isPublic ? 'bg-white text-gold shadow-sm' : 'text-petroleum/60 dark:text-slate-400'}`}
+                  className={`flex-1 py-1 rounded-[0.3rem] text-[10px] font-semibold uppercase tracking-widest transition-all ${!isPublic ? 'bg-white  shadow-sm' : 'text-petroleum/60 dark:text-slate-400'}`}
                 >
                   Privado
                 </button>
@@ -598,7 +636,7 @@ export default function GaleriaFormContent({
                   <button
                     type="button"
                     onClick={() => setShowPassword(!showPassword)}
-                    className="absolute right-2 top-1/2 -translate-y-1/2 text-slate-400 hover:text-gold transition-colors p-1"
+                    className="absolute right-2 top-1/2 -translate-y-1/2 text-slate-400 hover: transition-colors p-1"
                   >
                     {showPassword ? <EyeOff size={14} /> : <Eye size={14} />}
                   </button>
@@ -610,14 +648,14 @@ export default function GaleriaFormContent({
           {/* LISTAGEM NO PERFIL */}
           <div className="flex flex-col sm:flex-row items-start sm:items-center gap-3">
             <div className="flex items-center gap-1.5 shrink-0">
-              <label className="text-[10px] font-bold uppercase tracking-widest text-petroleum">
-                <Eye size={12} className="text-gold inline mr-1.5" /> Listar no Perfil
+              <label className="text-[10px] font-semibold uppercase tracking-widest text-petroleum">
+                <Eye size={12} className=" inline mr-1.5" /> Listar no Perfil
               </label>
               <div className="group relative flex items-center">
-                <div className="flex items-center justify-center w-3.5 h-3.5 rounded-full border border-petroleum/40 text-petroleum/60 dark:text-slate-400 group-hover:border-gold group-hover:text-gold transition-colors cursor-help">
+                <div className="flex items-center justify-center w-3.5 h-3.5 rounded-full border border-petroleum/40 text-petroleum/60 dark:text-slate-400 group-hover:border-gold group-hover: transition-colors cursor-help">
                   <span className="text-[10px] font-bold">?</span>
                 </div>
-                <div className="absolute bottom-full left-0 lg:left-auto lg:right-0 mb-3 w-64 p-3 bg-slate-900 text-white text-[10px] font-medium leading-relaxed rounded-[0.5rem] opacity-0 pointer-events-none group-hover:opacity-100 transition-all duration-300 shadow-2xl z-[100] text-left border border-white/10">
+                <div className="absolute bottom-full left-0 lg:left-auto lg:right-0 mb-3 w-64 p-3 bg-slate-900 text-white text-[10px] font-medium leading-relaxed rounded-luxury opacity-0 pointer-events-none group-hover:opacity-100 transition-all duration-300 shadow-2xl z-[100] text-left border border-white/10">
                   <p>
                     Se ativado, esta galeria será visível na sua <strong className="text-champagne">página de perfil pública</strong> para todos os visitantes.
                   </p>
@@ -646,7 +684,7 @@ export default function GaleriaFormContent({
           <div className="flex flex-col gap-4">
             <div className="flex flex-col sm:flex-row items-start sm:items-center gap-4">
               <div className="flex items-center gap-3">
-                <label className="text-[10px] font-bold uppercase tracking-widest text-petroleum">
+                <label className="text-[10px] font-semibold uppercase tracking-widest text-petroleum">
                   Habilitar Captura de Leads
                 </label>
                 <button
@@ -667,36 +705,42 @@ export default function GaleriaFormContent({
             </div>
 
             {leadsEnabled && (
-              <div className="grid grid-cols-1 sm:grid-cols-3 gap-4 p-4 bg-slate-50 rounded-[0.5rem] border border-petroleum/20 animate-in fade-in slide-in-from-top-2 duration-300">
-                <label className="flex items-center gap-2 cursor-pointer group">
+              <div className="grid grid-cols-1 sm:grid-cols-3 gap-4 p-4 bg-slate-50 rounded-luxury border border-petroleum/20 animate-in fade-in slide-in-from-top-2 duration-300">
+                <div 
+                  onClick={() => toggleLeadField('name')}
+                  className="flex items-center gap-2 cursor-pointer group"
+                >
                   <div 
-                    onClick={() => setLeadsRequireName(!leadsRequireName)}
                     className={`w-4 h-4 rounded border transition-colors flex items-center justify-center ${leadsRequireName ? 'bg-gold border-gold' : 'bg-white border-petroleum/40'}`}
                   >
                     {leadsRequireName && <CheckCircle2 size={10} className="text-white" />}
                   </div>
                   <span className="text-[11px] font-semibold uppercase tracking-wider text-petroleum/80 group-hover:text-petroleum">Exigir Nome</span>
-                </label>
+                </div>
 
-                <label className="flex items-center gap-2 cursor-pointer group">
+                <div 
+                  onClick={() => toggleLeadField('email')}
+                  className="flex items-center gap-2 cursor-pointer group"
+                >
                   <div 
-                    onClick={() => setLeadsRequireEmail(!leadsRequireEmail)}
                     className={`w-4 h-4 rounded border transition-colors flex items-center justify-center ${leadsRequireEmail ? 'bg-gold border-gold' : 'bg-white border-petroleum/40'}`}
                   >
                     {leadsRequireEmail && <CheckCircle2 size={10} className="text-white" />}
                   </div>
                   <span className="text-[11px] font-semibold uppercase tracking-wider text-petroleum/80 group-hover:text-petroleum">Exigir E-mail</span>
-                </label>
+                </div>
 
-                <label className="flex items-center gap-2 cursor-pointer group">
+                <div 
+                  onClick={() => toggleLeadField('whatsapp')}
+                  className="flex items-center gap-2 cursor-pointer group"
+                >
                   <div 
-                    onClick={() => setLeadsRequireWhatsapp(!leadsRequireWhatsapp)}
                     className={`w-4 h-4 rounded border transition-colors flex items-center justify-center ${leadsRequireWhatsapp ? 'bg-gold border-gold' : 'bg-white border-petroleum/40'}`}
                   >
                     {leadsRequireWhatsapp && <CheckCircle2 size={10} className="text-white" />}
                   </div>
                   <span className="text-[11px] font-semibold uppercase tracking-wider text-petroleum/80 group-hover:text-petroleum">Exigir WhatsApp</span>
-                </label>
+                </div>
               </div>
             )}
           </div>
@@ -704,18 +748,22 @@ export default function GaleriaFormContent({
       </FormSection>
 
       {/* SEÇÃO 4: CUSTOMIZAÇÃO VISUAL */}
-      <FormSection title="Customização Visual da Galeria visível para o usuário final" icon={<Layout size={14} />}>
+      <FormSection 
+          title="Design da Galeria" 
+          subtitle="Personalize a experiência visual do usuário final"
+          icon={<Layout size={14} />}
+        >
         <fieldset>
         <div className="grid grid-cols-1 xl:grid-cols-[auto_1fr_auto] gap-4 items-center">
           {/* FOTO DE FUNDO */}
-          <div className="flex items-center gap-0 pb-4 xl:pb-0 xl:border-r border-slate-200 xl:pr-2 w-max">
-            <div className="flex items-center gap-1.5">
-              <label className="text-[10px] font-bold uppercase tracking-widest text-petroleum">Foto de fundo</label>
+          <div className="flex items-center gap-4 pb-4 xl:pb-0 xl:border-r border-slate-200 xl:pr-2 w-max">
+            <div className="flex items-center gap-2">
+              <label className="text-[10px] font-semibold uppercase tracking-widest text-petroleum">Foto de fundo</label>
               <div className="group relative flex items-center">
-                <div className="flex items-center justify-center w-3.5 h-3.5 rounded-full border border-petroleum/40 text-petroleum/60 dark:text-slate-400 group-hover:border-gold group-hover:text-gold transition-colors cursor-help">
+                <div className="flex items-center justify-center w-3.5 h-3.5 rounded-full border border-petroleum/40 text-petroleum/60 dark:text-slate-400 group-hover:border-gold group-hover: transition-colors cursor-help">
                   <span className="text-[10px] font-bold">?</span>
                 </div>
-                <div className="absolute bottom-full left-1/2 -translate-x-1/2 mb-3 w-48 p-2.5 bg-slate-900 text-white text-[10px] font-medium leading-relaxed rounded-[0.5rem] opacity-0 pointer-events-none group-hover:opacity-100 transition-all duration-300 shadow-2xl z-50 text-center border border-white/10">
+                <div className="absolute bottom-full left-1/2 -translate-x-1/2 mb-3 w-48 p-2.5 bg-slate-900 text-white text-[10px] font-medium leading-relaxed rounded-luxury opacity-0 pointer-events-none group-hover:opacity-100 transition-all duration-300 shadow-2xl z-50 text-center border border-white/10">
                   <p>
                     Usa a foto selecionada no Google Drive como fundo da grade
                     de fotos galeria.
@@ -742,13 +790,13 @@ export default function GaleriaFormContent({
           {/* COR DE FUNDO */}
           <div className="flex items-center justify-between gap-3 xl:pb-0 pb-4 xl:border-r border-slate-200 xl:pr-4">
             <div className="flex items-center gap-1.5">
-              <Layout size={13} className="text-gold" />
-              <label className="text-[10px] font-bold uppercase tracking-widest text-petroleum"> Cor de fundo</label>
+              <Layout size={13} className="" />
+              <label className="text-[10px] font-semibold uppercase tracking-widest text-petroleum"> Cor de fundo</label>
               <div className="group relative flex items-center">
-                <div className="flex items-center justify-center w-3.5 h-3.5 rounded-full border border-petroleum/40 text-petroleum/60 dark:text-slate-400 group-hover:border-gold group-hover:text-gold transition-colors cursor-help">
+                <div className="flex items-center justify-center w-3.5 h-3.5 rounded-full border border-petroleum/40 text-petroleum/60 dark:text-slate-400 group-hover:border-gold group-hover: transition-colors cursor-help">
                   <span className="text-[10px] font-bold">?</span>
                 </div>
-                <div className="absolute bottom-full left-1/2 -translate-x-1/2 mb-3 w-64 p-3 bg-slate-900 text-white text-[10px] font-medium leading-relaxed rounded-[0.5rem] opacity-0 pointer-events-none group-hover:opacity-100 transition-all duration-300 shadow-2xl z-[100] text-center border border-white/10">
+                <div className="absolute bottom-full left-1/2 -translate-x-1/2 mb-3 w-64 p-3 bg-slate-900 text-white text-[10px] font-medium leading-relaxed rounded-luxury opacity-0 pointer-events-none group-hover:opacity-100 transition-all duration-300 shadow-2xl z-[100] text-center border border-white/10">
                   <p>
                     Define a cor sólida do grid. Visível caso a{' '}
                     <strong className="text-champagne">&quot;Foto de fundo&quot;</strong>{' '}
@@ -804,12 +852,12 @@ export default function GaleriaFormContent({
           {/* GRID COLUNAS */}
           <div className="flex items-center justify-between gap-3 w-max">
             <div className="flex items-center gap-1.5">
-              <label className="text-[10px] font-bold uppercase tracking-widest text-petroleum"> Grid</label>
+              <label className="text-[10px] font-semibold uppercase tracking-widest text-petroleum"> Grid</label>
               <div className="group relative flex items-center">
-                <div className="flex items-center justify-center w-3.5 h-3.5 rounded-full border border-petroleum/40 text-petroleum/60 dark:text-slate-400 group-hover:border-gold group-hover:text-gold transition-colors cursor-help">
+                <div className="flex items-center justify-center w-3.5 h-3.5 rounded-full border border-petroleum/40 text-petroleum/60 dark:text-slate-400 group-hover:border-gold group-hover: transition-colors cursor-help">
                   <span className="text-[10px] font-bold">?</span>
                 </div>
-                <div className="absolute bottom-full right-0 xl:left-1/2 xl:-translate-x-1/2 mb-3 w-64 p-3 bg-slate-900 text-white text-[10px] font-medium leading-relaxed rounded-[0.5rem] opacity-0 pointer-events-none group-hover:opacity-100 transition-all duration-300 shadow-2xl z-[100] text-left border border-white/10">
+                <div className="absolute bottom-full right-0 xl:left-1/2 xl:-translate-x-1/2 mb-3 w-64 p-3 bg-slate-900 text-white text-[10px] font-medium leading-relaxed rounded-luxury opacity-0 pointer-events-none group-hover:opacity-100 transition-all duration-300 shadow-2xl z-[100] text-left border border-white/10">
                   <p>
                     Define o{' '}
                     <strong className="text-champagne">layout inicial</strong>{' '}
@@ -826,7 +874,7 @@ export default function GaleriaFormContent({
                 { k: 'desktop', i: Monitor },
               ].map((d) => (
                 <div key={d.k} className="flex items-center gap-1">
-                  <d.i size={14} className="text-gold" strokeWidth={2} />
+                  <d.i size={14} className="" strokeWidth={2} />
                   <div className="relative">
                     <select
                       value={customization.columns[d.k]}
@@ -836,7 +884,7 @@ export default function GaleriaFormContent({
                           [d.k]: Number(e.target.value),
                         })
                       }
-                      className="appearance-none bg-slate-50 border border-petroleum/40 pl-2 pr-5 h-8 rounded-[0.5rem] text-xs font-bold text-petroleum/80 outline-none hover:border-gold cursor-pointer transition-all"
+                      className="appearance-none bg-slate-50 border rounded-[0.3rem] border-petroleum/40 pl-2 pr-5 h-8 text-xs font-semibold text-petroleum/80 outline-none hover:border-gold cursor-pointer transition-all"
                     >
                       {[1, 2, 3, 4, 5, 6].map((v) => (
                         <option key={v} value={v}>
@@ -869,9 +917,9 @@ export default function GaleriaFormContent({
       {/* COLUNA LATERAL (35%) */}
       <div className="w-full lg:w-[35%] border-t lg:border-t-0 lg:border-l border-petroleum/40 lg:overflow-y-auto pl-0 lg:pl-4 pr-0 py-6 lg:py-0 space-y-2 bg-slate-50/30">
         {/* GOOGLE DRIVE - Seção Principal */}
-        <div className="bg-white rounded-[0.5rem] border border-petroleum/40 p-4 space-y-4 mt-2">
+        <div className="bg-white rounded-luxury border border-petroleum/40 p-4 space-y-4 mt-2">
           <div className="flex items-center gap-2 pb-2 border-b border-petroleum/40">
-            <FolderSync size={14} className="text-gold" />
+            <FolderSync size={14} className="" />
             <h3 className="text-[10px] font-bold uppercase tracking-widest text-petroleum">
               Google Drive
             </h3>
@@ -879,12 +927,12 @@ export default function GaleriaFormContent({
 
           {/* Subseção 1: Vincular Pasta do Google Drive */}
           <div className="space-y-3">
-            <label className="text-[10px] font-bold uppercase tracking-widest text-petroleum flex items-center gap-1.5">
+            <label className="text-[10px] font-semibold uppercase tracking-widest text-petroleum flex items-center gap-1.5">
               <FolderSync size={12} strokeWidth={2} className="inline" />
               Vincular Pasta do Google Drive
             </label>
             
-            <div className="flex flex-col bg-slate-50 p-3 rounded-[0.5rem] border border-petroleum/40 space-y-3">
+            <div className="flex flex-col bg-slate-50 p-3 rounded-luxury border border-petroleum/40 space-y-3">
               <p className="text-[13px] text-petroleum/90 dark:text-slate-500 font-semibold truncate bg-white/50 px-2 py-1.5 rounded border border-petroleum/40">
                 {driveData.name || 'Nenhuma pasta selecionada'}
               </p>
@@ -904,9 +952,9 @@ export default function GaleriaFormContent({
                   href={`https://drive.google.com/drive/folders/${driveData.id}`}
                   target="_blank"
                   rel="noopener noreferrer"
-                  className="flex items-center justify-center gap-2 w-full px-3 py-2 bg-slate-50 hover:bg-slate-100 border border-petroleum/40 rounded-[0.5rem] text-[11px] font-semibold text-petroleum/80 hover:text-petroleum transition-colors"
+                  className="btn-secondary-white w-full"
                 >
-                  <FolderSync size={14} className="text-gold" />
+                  <FolderSync size={14} className="" />
                   Abrir no Google Drive
                 </a>
               )}
@@ -915,12 +963,12 @@ export default function GaleriaFormContent({
 
           {/* Subseção 2: Preview de Capa */}
           <div className="space-y-3 pt-3 border-t border-petroleum/40">
-            <label className="text-[10px] font-bold uppercase tracking-widest text-petroleum flex items-center gap-1.5">
+            <label className="text-[10px] font-semibold uppercase tracking-widest text-petroleum flex items-center gap-1.5">
               <ImageIcon size={12} strokeWidth={2} className="inline" />
               Preview de Capa
             </label>
             
-            <div className="relative aspect-[16/9] w-full overflow-hidden rounded-[0.5rem] bg-slate-100 border border-petroleum/40">
+            <div className="relative aspect-[16/9] w-full overflow-hidden rounded-luxury bg-slate-100 border border-petroleum/40">
               {coverPreviewUrl ? (
                 <img
                   src={coverPreviewUrl}
@@ -937,9 +985,9 @@ export default function GaleriaFormContent({
         </div>
 
         {/* LINKS E ARQUIVOS */}
-        <div className="bg-white rounded-[0.5rem] border border-petroleum/40 p-4 space-y-3">
+        <div className="bg-white rounded-luxury border border-petroleum/40 p-4 space-y-3">
           <div className="flex items-center gap-2 pb-2 border-b border-petroleum/40">
-            <Download size={14} className="text-gold" />
+            <Download size={14} className="" />
             <h3 className="text-[10px] font-bold uppercase tracking-widest text-petroleum">
               Links e Arquivos - Alta Resolução (Full)
             </h3>
@@ -967,7 +1015,7 @@ export default function GaleriaFormContent({
                         setLinks(newLinks);
                       }}
                       placeholder="Link para qualquer arquivo ou recurso"
-                      className="w-full px-3 h-9 bg-white border border-petroleum/40 rounded-[0.5rem] text-petroleum/90 text-xs font-medium outline-none focus:border-gold transition-all pr-10"
+                      className="w-full px-3 h-9 bg-white border border-petroleum/40 rounded-luxury text-petroleum/90 text-xs font-medium outline-none focus:border-gold transition-all pr-10"
                     />
                     {link && link.length > 0 && (
                       <CheckCircle2
@@ -982,7 +1030,7 @@ export default function GaleriaFormContent({
                       const newLinks = links.filter((_, i) => i !== index);
                       setLinks(newLinks);
                     }}
-                    className="p-2 text-petroleum/60 hover:text-red-500 hover:bg-red-50 border border-petroleum/40 hover:border-red-300 rounded-[0.5rem] transition-colors"
+                    className="p-2 text-petroleum/60 hover:text-red-500 hover:bg-red-50 border border-petroleum/40 hover:border-red-300 rounded-luxury transition-colors"
                     aria-label="Remover link"
                   >
                     <Trash2 size={14} />
@@ -995,7 +1043,7 @@ export default function GaleriaFormContent({
             <button
               type="button"
               onClick={() => setLinks([...links, ''])}
-              className="w-full flex items-center justify-center gap-2 px-3 py-2 bg-slate-50 hover:bg-slate-100 border border-petroleum/40 hover:border-petroleum/60 rounded-[0.5rem] text-petroleum/80 hover:text-petroleum text-xs font-medium transition-colors"
+              className="btn-secondary-white w-full"
             >
               <Plus size={14} />
               Adicionar Link

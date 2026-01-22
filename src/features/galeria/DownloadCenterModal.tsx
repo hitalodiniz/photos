@@ -55,16 +55,16 @@ export const DownloadCenterModal = ({
         <div className="w-full px-2">
           <div className="flex justify-between items-end mb-3">
             <div className="flex flex-col gap-0.5">
-              <span className="text-[10px] font-bold uppercase tracking-luxury text-gold animate-pulse">
+              <span className="text-[10px] font-semibolduppercase tracking-luxury text-gold animate-pulse">
                 Gerando Arquivo
               </span>
-              <span className="text-[8px] text-white/40 uppercase font-bold tracking-luxury">
+              <span className="text-[8px] text-white/40 uppercase font-semibold tracking-luxury">
                 {activeDownloadingIndex !== null
                   ? 'Não feche esta tela'
                   : 'Iniciando...'}
               </span>
             </div>
-            <span className="text-xl font-bold text-white leading-none">
+            <span className="text-xl font-semibold text-white leading-none">
               {Math.round(downloadProgress)}
               <span className="text-sm ml-0.5 text-gold">%</span>
             </span>
@@ -78,7 +78,7 @@ export const DownloadCenterModal = ({
         </div>
       ) : (
         <div className="flex flex-col items-center gap-1">
-          <p className="text-[10px] font-bold uppercase tracking-luxury text-white/40">
+          <p className="text-[10px] font-semibold uppercase tracking-luxury text-white/90">
             Toque no pacote para baixar
           </p>
           <div className="h-1 w-8 bg-gold rounded-full opacity-40" />
@@ -119,15 +119,15 @@ export const DownloadCenterModal = ({
                 }
                 className={`w-full flex items-center gap-4 p-4 rounded-luxury border transition-all duration-300 group ${
                   isCurrent
-                    ? 'border-gold bg-slate-50 shadow-sm'
-                    : 'bg-white border-petroleum/10 hover:border-gold/40 hover:bg-slate-50'
+                    ? 'border-petroleum bg-slate-50 shadow-sm'
+                    : 'bg-white border-petroleum/30 hover:border-petroleum/50 hover:bg-slate-50'
                 }`}
               >
                 <div
                   className={`w-10 h-10 rounded-luxury flex items-center justify-center shrink-0 transition-transform group-hover:scale-105 ${
                     isCurrent
-                      ? 'bg-gold text-white shadow-[0_0_15px_rgba(212,175,55,0.3)]'
-                      : 'bg-gold/10 text-gold'
+                      ? 'bg-petroleum text-white shadow-[0_0_15px_rgba(23,42,56,0.3)]'
+                      : 'bg-petroleum/10 text-petroleum'
                   }`}
                 >
                   <Heart
@@ -137,16 +137,16 @@ export const DownloadCenterModal = ({
                 </div>
 
                 <div className="flex-1 text-left min-w-0">
-                  <p className="text-[13px] md:text-[14px] font-bold text-petroleum tracking-wide uppercase">
+                  <p className="text-[13px] md:text-[14px] font-semibold text-petroleum tracking-wide uppercase">
                     Suas Favoritas{' '}
                     {favoriteVolumes.length > 1 ? index + 1 : ''}
                   </p>
                   <div className="flex items-center gap-2 mt-0.5">
-                    <span className="text-[9px] font-bold text-gold uppercase tracking-luxury">
+                    <span className="text-[9px] font-semibold text-petroleum uppercase tracking-luxury">
                       {sizeMB.toFixed(0)} MB
                     </span>
                     <span className="text-petroleum/10 text-xs">•</span>
-                    <span className="text-[9px] font-bold text-petroleum/30 tracking-luxury uppercase">
+                    <span className="text-[9px] font-semibold text-petroleum/80 tracking-luxury uppercase">
                       Otimizadas
                     </span>
                   </div>
@@ -154,9 +154,9 @@ export const DownloadCenterModal = ({
 
                 <div className="shrink-0">
                   {isCurrent ? (
-                    <div className="loading-luxury w-4 h-4 border-gold/30 border-t-gold" />
+                    <div className="loading-luxury w-4 h-4 border-petroleum/30 border-t-petroleum" />
                   ) : (
-                    <div className="w-8 h-8 rounded-full border border-petroleum/10 flex items-center justify-center text-petroleum/40 group-hover:border-gold/50 group-hover:text-gold transition-colors">
+                    <div className="w-8 h-8 rounded-full border border-petroleum/30 flex items-center justify-center text-petroleum/40 group-hover:border-petroleum/60 group-hover:text-petroleum transition-colors">
                       <Download size={16} />
                     </div>
                   )}
@@ -167,11 +167,11 @@ export const DownloadCenterModal = ({
 
         {favoriteVolumes.length > 0 && (
           <div className="flex items-center gap-3 py-2 px-2">
-            <div className="h-px bg-petroleum/10 flex-1" />
-            <span className="text-[9px] font-bold uppercase tracking-luxury text-petroleum/20">
+            <div className="h-px bg-petroleum/30 flex-1" />
+            <span className="text-[9px] font-semibold uppercase tracking-luxury text-petroleum/50">
               Galeria Completa
             </span>
-            <div className="h-px bg-petroleum/10 flex-1" />
+            <div className="h-px bg-petroleum/30 flex-1" />
           </div>
         )}
 
@@ -190,46 +190,46 @@ export const DownloadCenterModal = ({
               }
               className={`w-full flex items-center gap-4 p-4 rounded-luxury border transition-all duration-300 group ${
                 isCurrent
-                  ? 'border-gold bg-slate-50 shadow-sm'
+                  ? 'border-petroleum bg-slate-50 shadow-sm'
                   : isDownloaded
                     ? 'bg-slate-50 border-green-500/20 opacity-70'
-                    : 'bg-white border-petroleum/10 hover:border-gold/40 hover:bg-slate-50'
+                    : 'bg-white border-petroleum/30 hover:border-petroleum/50 hover:bg-slate-50'
               }`}
             >
               <div
                 className={`w-10 h-10 rounded-luxury flex items-center justify-center shrink-0 transition-transform group-hover:scale-105 ${
                   isCurrent
-                    ? 'bg-gold text-white shadow-[0_0_15px_rgba(212,175,55,0.3)]'
+                    ? 'bg-petroleum text-white shadow-[0_0_15px_rgba(23,42,56,0.3)]'
                     : isDownloaded
                       ? 'bg-green-500/20 text-green-600'
-                      : 'bg-petroleum/5 text-petroleum/40'
+                      : 'bg-petroleum/10 text-petroleum'
                 }`}
               >
                 <Package size={18} />
               </div>
 
               <div className="flex-1 text-left min-w-0">
-                <p className="text-[13px] md:text-[14px] font-bold text-petroleum tracking-wide uppercase">
+                <p className="text-[13px] md:text-[14px] font-semibold text-petroleum tracking-wide uppercase">
                   Pacote {String(i + 1).padStart(2, '0')}
                 </p>
                 <div className="flex items-center gap-2 mt-0.5">
-                  <span className="text-[9px] font-bold text-gold tracking-luxury uppercase">
-                    ~{sizeMB.toFixed(0)} MB
+                  <span className="text-[9px] font-semibold text-petroleum uppercase tracking-luxury">
+                    {sizeMB.toFixed(0)} MB
                   </span>
                   <span className="text-petroleum/10 text-xs">•</span>
-                  <span className="text-[9px] font-bold text-petroleum/30 tracking-luxury uppercase">
-                    Fotos otimizadas
+                  <span className="text-[9px] font-semibold text-petroleum/80 tracking-luxury uppercase">
+                    Otimizadas
                   </span>
                 </div>
               </div>
 
               <div className="shrink-0">
                 {isCurrent ? (
-                  <div className="loading-luxury w-4 h-4 border-gold/30 border-t-gold" />
+                  <div className="loading-luxury w-4 h-4 border-petroleum/30 border-t-petroleum" />
                 ) : isDownloaded ? (
                   <CheckCircle2 size={20} className="text-green-500" />
                 ) : (
-                  <div className="w-8 h-8 rounded-full border border-petroleum/10 flex items-center justify-center text-petroleum/40 group-hover:border-gold/50 group-hover:text-gold transition-colors">
+                  <div className="w-8 h-8 rounded-full border border-petroleum/30 flex items-center justify-center text-petroleum/40 group-hover:border-petroleum/60 group-hover:text-petroleum transition-colors">
                     <Download size={16} />
                   </div>
                 )}

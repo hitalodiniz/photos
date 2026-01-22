@@ -34,7 +34,7 @@ export default function SidebarAdmin({
           </div>
           {!isSidebarCollapsed && (
             <div className="flex flex-col items-start leading-none">
-              <span className="text-[9px] font-semibold uppercase tracking-luxury text-white/40 mb-1 transition-colors">
+              <span className="text-[10px] font-semibold uppercase tracking-luxury text-white/40 mb-1 transition-colors">
                 Admin Mode
               </span>
               <span className="text-[11px] font-semibold text-white/90 group-hover:text-white transition-colors">

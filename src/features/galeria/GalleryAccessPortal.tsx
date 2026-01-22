@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useMemo } from 'react';
+import { useState, useMemo, useEffect } from 'react';
 import { maskPhone } from '@/core/utils/masks-helpers';
 import BaseModal from '@/components/ui/BaseModal';
 import LoadingScreen from '@/components/ui/LoadingScreen';
@@ -9,6 +9,7 @@ import { Galeria } from '@/core/types/galeria';
 import { User, Mail, Smartphone, CheckCircle, Camera } from 'lucide-react';
 import PasswordInput from '@/components/ui/PasswordInput';
 import * as z from 'zod';
+import { getDirectGoogleUrl } from '@/core/utils/url-helper';
 
 interface GalleryAccessPortalProps {
   galeria: Galeria;
@@ -38,9 +39,34 @@ export default function GalleryAccessPortal({
   const [errors, setErrors] = useState<Record<string, string>>({});
   const [loading, setLoading] = useState(false);
   const [globalError, setGlobalError] = useState('');
+  const [isImageActuallyLoaded, setIsImageActuallyLoaded] = useState(false);
 
   const hasPassword = !galeria.is_public;
   const leadsEnabled = galeria.leads_enabled;
+
+  const coverUrl = useMemo(() => {
+    return getDirectGoogleUrl(galeria.cover_image_url, '1280');
+  }, [galeria.cover_image_url]);
+
+  // 🎯 Verifica se a imagem já está em cache (Estilo GaleriaHero)
+  useEffect(() => {
+    if (!coverUrl) return;
+
+    const img = new Image();
+    
+    const checkCache = () => {
+      if (img.complete && img.naturalWidth > 0) {
+        setIsImageActuallyLoaded(true);
+      }
+    };
+
+    img.onload = () => setIsImageActuallyLoaded(true);
+    img.src = coverUrl;
+    checkCache();
+
+    const timeouts = [50, 150, 300].map(t => setTimeout(checkCache, t));
+    return () => timeouts.forEach(clearTimeout);
+  }, [coverUrl]);
 
   // 🎯 SCHEMA DE VALIDAÇÃO TOTALMENTE DINÂMICA
   const acessoGaleriaSchema = useMemo(() => {
@@ -197,16 +223,30 @@ export default function GalleryAccessPortal({
   );
 
   return (
-    <>
+    <div className="relative min-h-screen w-full flex items-center justify-center overflow-hidden px-4">
       {loading && <LoadingScreen message="Validando seu acesso..." />}
+
+      {/* BACKGROUND - TOTALMENTE VISÍVEL (Com efeito Hero) */}
+      <div className="absolute inset-0 z-0">
+        <div
+          className={`absolute inset-0 bg-cover bg-center bg-no-repeat transition-all duration-[1500ms] ease-in-out
+            ${!isImageActuallyLoaded ? 'scale-110 blur-2xl opacity-50' : 'scale-100 blur-0 opacity-100'}`}
+          style={{
+            backgroundImage: `url(${coverUrl})`,
+          }}
+        />
+        <div className="absolute inset-0 bg-gradient-to-b from-black/20 via-transparent to-black/40" />
+      </div>
 
       <BaseModal
         isOpen={isOpen && !loading}
-        onClose={() => {}} 
+        onClose={() => {}}
         showCloseButton={false}
         title="Acesso à Galeria"
         subtitle={galeria.title}
         maxWidth="lg"
+        overlayOpacity="10"    // Apenas 10% de escurecimento (quase invisível)
+        blurLevel="none"       // Foto de fundo fica 100% nítida
         footer={footer}
       >
         <div className="space-y-4">
@@ -231,47 +271,56 @@ export default function GalleryAccessPortal({
           <form id="access-portal-form" onSubmit={handleSubmit} className="space-y-3">
             {leadsEnabled && (
               <>
-                <div className="space-y-1.5">
-                  <label className="text-[10px] font-bold uppercase tracking-widest text-petroleum flex items-center gap-2">
-                    <User size={12} className="text-petroleum/40" /> Nome Completo {galeria.leads_require_name && '*'}
-                  </label>
-                  <input
-                    type="text"
-                    value={formData.name}
-                    onChange={(e) => setFormData({ ...formData, name: e.target.value })}
-                    placeholder="Como devemos te chamar?"
-                    className={`w-full bg-white border ${errors.name ? 'border-red-500/50' : 'border-petroleum/20'} rounded-luxury px-4 h-11 text-petroleum text-sm outline-none focus:border-gold transition-all placeholder:text-petroleum/30`}
-                  />
-                  {errors.name && <p className="text-red-500/80 text-[9px] uppercase font-semibold">{errors.name}</p>}
-                </div>
+                {galeria.leads_require_name && (
+                  <div className="space-y-1.5">
+                    <label className="text-[10px] font-bold uppercase tracking-widest text-petroleum flex items-center gap-2">
+                      <User size={12} className="text-petroleum/40" /> Nome Completo
+                    </label>
+                    <input
+                      type="text"
+                      value={formData.name}
+                      onChange={(e) => setFormData({ ...formData, name: e.target.value })}
+                      placeholder="Como devemos te chamar?"
+                      className={`w-full bg-white border ${errors.name ? 'border-red-500/50' : 'border-petroleum/20'} rounded-luxury px-4 h-11 text-petroleum text-sm outline-none focus:border-gold transition-all placeholder:text-petroleum/30`}
+                    />
+                    {errors.name && <p className="text-red-500/80 text-[9px] uppercase font-semibold">{errors.name}</p>}
+                  </div>
+                )}
 
-                <div className="space-y-1.5">
-                  <label className="text-[10px] font-bold uppercase tracking-widest text-petroleum flex items-center gap-2">
-                    <Smartphone size={12} className="text-petroleum/40" /> WhatsApp {galeria.leads_require_whatsapp && '*'}
-                  </label>
-                  <input
-                    type="text"
-                    value={formData.whatsapp}
-                    onChange={(e) => setFormData({ ...formData, whatsapp: maskPhone(e as any) })}
-                    placeholder="(00) 00000-0000"
-                    className={`w-full bg-white border ${errors.whatsapp ? 'border-red-500/50' : 'border-petroleum/20'} rounded-luxury px-4 h-11 text-petroleum text-sm outline-none focus:border-gold transition-all placeholder:text-petroleum/30`}
-                  />
-                  {errors.whatsapp && <p className="text-red-500/80 text-[9px] uppercase font-semibold">{errors.whatsapp}</p>}
-                </div>
-
-                <div className="space-y-1.5">
-                  <label className="text-[10px] font-bold uppercase tracking-widest text-petroleum flex items-center gap-2">
-                    <Mail size={12} className="text-petroleum/40" /> E-mail {galeria.leads_require_email && '*'}
-                  </label>
-                  <input
-                    type="email"
-                    value={formData.email}
-                    onChange={(e) => setFormData({ ...formData, email: e.target.value })}
-                    placeholder="seu@email.com"
-                    className={`w-full bg-white border ${errors.email ? 'border-red-500/50' : 'border-petroleum/20'} rounded-luxury px-4 h-11 text-petroleum text-sm outline-none focus:border-gold transition-all placeholder:text-petroleum/30`}
-                  />
-                  {errors.email && <p className="text-red-500/80 text-[9px] uppercase font-semibold">{errors.email}</p>}
-                </div>
+                {(galeria.leads_require_whatsapp || galeria.leads_require_email) && (
+                  <div className="flex flex-col md:flex-row gap-3">
+                    {galeria.leads_require_whatsapp && (
+                      <div className="flex-1 space-y-1.5">
+                        <label className="text-[10px] font-bold uppercase tracking-widest text-petroleum flex items-center gap-2">
+                          <Smartphone size={12} className="text-petroleum/40" /> WhatsApp
+                        </label>
+                        <input
+                          type="text"
+                          value={formData.whatsapp}
+                          onChange={(e) => setFormData({ ...formData, whatsapp: maskPhone(e as any) })}
+                          placeholder="(00) 00000-0000"
+                          className={`w-full bg-white border ${errors.whatsapp ? 'border-red-500/50' : 'border-petroleum/20'} rounded-luxury px-4 h-11 text-petroleum text-sm outline-none focus:border-gold transition-all placeholder:text-petroleum/30`}
+                        />
+                        {errors.whatsapp && <p className="text-red-500/80 text-[9px] uppercase font-semibold">{errors.whatsapp}</p>}
+                      </div>
+                    )}
+                    {galeria.leads_require_email && (
+                      <div className="flex-1 space-y-1.5">
+                        <label className="text-[10px] font-bold uppercase tracking-widest text-petroleum flex items-center gap-2">
+                          <Mail size={12} className="text-petroleum/40" /> E-mail 
+                        </label>
+                        <input
+                          type="email"
+                          value={formData.email}
+                          onChange={(e) => setFormData({ ...formData, email: e.target.value })}
+                          placeholder="seu@email.com"
+                          className={`w-full bg-white border ${errors.email ? 'border-red-500/50' : 'border-petroleum/20'} rounded-luxury px-4 h-11 text-petroleum text-sm outline-none focus:border-gold transition-all placeholder:text-petroleum/30`}
+                        />
+                        {errors.email && <p className="text-red-500/80 text-[9px] uppercase font-semibold">{errors.email}</p>}
+                      </div>
+                    )}
+                  </div>
+                )}
               </>
             )}
 
@@ -305,7 +354,7 @@ export default function GalleryAccessPortal({
           -webkit-box-shadow: 0 0 0px 1000px white inset;
           transition: background-color 5000s ease-in-out 0s;
         }
-      `}</style>
-    </>
+      `}      </style>
+    </div>
   );
 }

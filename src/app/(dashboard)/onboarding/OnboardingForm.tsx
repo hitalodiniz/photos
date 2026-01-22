@@ -16,6 +16,7 @@ import {
   X,
   CheckCircle2,
   Sparkles,
+  Save,
 } from 'lucide-react';
 
 import {
@@ -28,6 +29,7 @@ import { Toast, SubmitButton, LoadingScreen } from '@/components/ui';
 import BaseModal from '@/components/ui/BaseModal';
 import { fetchStates, fetchCitiesByState } from '@/core/utils/cidades-helpers';
 import { compressImage } from '@/core/utils/user-helpers';
+import { useNavigation } from '@/components/providers/NavigationProvider';
 
 // 🎯 Componente de seção simples - Estilo Editorial
 const FormSection = ({ 
@@ -41,8 +43,8 @@ const FormSection = ({
 }) => (
   <div className="bg-white rounded-luxury border border-petroleum/40 p-4 space-y-3">
     <div className="flex items-center gap-2 pb-2 border-b border-petroleum/40">
-      {icon && <div className="text-gold">{icon}</div>}
-      <h3 className="text-[10px] font-bold uppercase tracking-luxury text-petroleum dark:text-slate-700">
+      {icon && <div>{icon}</div>}
+      <h3 className="text-[10px] font-semibold uppercase tracking-luxury text-petroleum dark:text-slate-700">
         {title}
       </h3>
     </div>
@@ -62,6 +64,7 @@ export default function OnboardingForm({
   isEditMode?: boolean;
 }) {
   const router = useRouter();
+  const { navigate, isNavigating } = useNavigation();
   const fileInputRef = useRef<HTMLInputElement>(null);
   const bgInputRef = useRef<HTMLInputElement>(null);
 
@@ -99,7 +102,6 @@ export default function OnboardingForm({
   const [isAvailable, setIsAvailable] = useState<boolean | null>(null);
   const [showSuccessModal, setShowSuccessModal] = useState(false);
   const [isSaving, setIsSaving] = useState(false);
-  const [isRedirecting, setIsRedirecting] = useState(false);
   const [toastConfig, setToastConfig] = useState<{
     message: string;
     type: 'success' | 'error';
@@ -212,9 +214,6 @@ export default function OnboardingForm({
 
   return (
     <>
-      {isRedirecting && (
-        <LoadingScreen message="Redirecionando para o Dashboard..." fadeOut={false} />
-      )}
       <div className="relative min-h-screen bg-luxury-bg flex flex-col md:flex-row w-full z-[99]">
         <aside className="w-full md:w-[35%] bg-white border-r border-slate-100 flex flex-col h-screen md:sticky md:top-0 z-20 shadow-xl overflow-hidden">
           <div className="flex-1 overflow-y-auto px-4 no-scrollbar -mt-4">
@@ -277,7 +276,7 @@ export default function OnboardingForm({
                       <button
                         type="button"
                         onClick={() => fileInputRef.current?.click()}
-                        className="absolute bottom-0 right-0 bg-white border border-slate-200 p-1.5 rounded-full shadow-lg text-gold z-10 hover:bg-champagne transition-colors"
+                        className="absolute bottom-0 right-0 bg-white border border-slate-200 p-1.5 rounded-full shadow-lg text-petroleum z-10 hover:bg-champagne transition-colors"
                       >
                         <Pencil size={10} />
                       </button>
@@ -440,7 +439,7 @@ export default function OnboardingForm({
                       placeholder="Conte um pouco sobre sua trajetória profissional..."
                     />
                     <div className="flex justify-between items-center mb-1">
-                      <span className={`text-[9px] font-bold uppercase tracking-luxury ${miniBio.length >= 380 ? 'text-gold' : 'text-editorial-gray'}`}>
+                      <span className={`text-[9px] font-semibold uppercase tracking-luxury ${miniBio.length >= 380 ? 'text-gold' : 'text-editorial-gray'}`}>
                         {miniBio.length} / 400
                       </span>
                     </div>
@@ -455,7 +454,7 @@ export default function OnboardingForm({
                     {selectedCities.map((city) => (
                       <span
                         key={city}
-                        className="bg-slate-50 border border-petroleum/40 text-petroleum text-[9px] font-bold px-2.5 py-1.5 rounded-luxury flex items-center gap-2 shadow-sm uppercase tracking-luxury"
+                        className="bg-slate-50 border border-petroleum/40 text-petroleum text-[9px] font-medium px-2.5 py-1.5 rounded-luxury flex items-center gap-2 shadow-sm uppercase tracking-luxury"
                       >
                         {city}
                         <X
@@ -478,7 +477,7 @@ export default function OnboardingForm({
                         setCityInput('');
                         setSuggestions([]);
                       }}
-                      className="w-20 bg-slate-50 border border-petroleum/40 rounded-luxury px-2 h-10 text-xs font-bold outline-none focus:border-gold transition-all"
+                      className="w-20 bg-slate-50 border border-petroleum/40 rounded-luxury px-2 h-10 text-xs font-semibold outline-none focus:border-gold transition-all"
                     >
                       <option value="">UF</option>
                       {states.map((uf) => (
@@ -515,12 +514,18 @@ export default function OnboardingForm({
               </FormSection>
 
               {/* BOTÕES DE AÇÃO - Integrados ao formulário */}
-              <div className="flex items-center justify-between gap-4 pt-4 pb-8">
+              <div className="flex items-center justify-end gap-4 pb-8">
                 <button
                   type="button"
-                  onClick={() => (isEditMode ? router.push('/dashboard') : router.back())}
+                  onClick={() => {
+                    if (isEditMode) {
+                      navigate('/dashboard', 'Voltando ao espaço...');
+                    } else {
+                      router.back();
+                    }
+                  }}
                   disabled={isSaving}
-                  className="flex items-center justify-center rounded-luxury h-10 border border-white/10 bg-white/5 text-white/40 hover:bg-white/10 hover:text-white transition-all px-6 text-editorial-label disabled:opacity-50"
+                  className="btn-secondary-white"
                 >
                   CANCELAR
                 </button>
@@ -528,7 +533,8 @@ export default function OnboardingForm({
                   form="onboarding-form"
                   success={showSuccessModal}
                   disabled={isSaving}
-                  className="px-8 flex-1 rounded-luxury"
+                  icon={<Save size={14} />}
+                  className="px-6"
                   label={isSaving ? 'SALVANDO...' : 'SALVAR PERFIL'}
                 />
               </div>
@@ -566,28 +572,25 @@ export default function OnboardingForm({
         }
         footer={
           <div className="flex flex-col gap-3">
-            <a
-              href={`/${username}`}
-              target="_blank"
-              className="w-full h-12 flex items-center justify-center gap-2 bg-champagne text-petroleum rounded-luxury font-bold text-[10px] uppercase tracking-luxury hover:bg-white transition-all shadow-xl active:scale-[0.98]"
-            >
-              <Sparkles size={14} /> Ver Perfil Público
-            </a>
-            <button
-              onClick={() => {
-                setIsRedirecting(true);
-                router.push('/dashboard');
-              }}
-              className="w-full h-11 text-white font-bold uppercase text-[10px] tracking-luxury hover:text-gold transition-all"
-            >
-              Ir para o Espaço de Galerias
-            </button>
-            <button
-              onClick={() => setShowSuccessModal(false)}
-              className="w-full text-white/40 py-2 text-[9px] font-bold uppercase tracking-widest hover:text-gold transition-colors"
-            >
-              Continuar Editando
-            </button>
+                        <div className="flex flex-row gap-3 w-full">
+              <button
+                onClick={() => {
+                  navigate('/dashboard', 'Abrindo seu espaço...');
+                }}
+                className="btn-secondary-white flex-1"
+              >
+                Ir para o Espaço de Galerias
+              </button>
+
+              <a
+                href={`/${username}`}
+                target="_blank"
+                className="flex-1 h-10 flex items-center justify-center gap-2 bg-champagne text-petroleum rounded-luxury font-semibold text-[10px] uppercase tracking-luxury hover:bg-white transition-all shadow-xl active:scale-[0.98]"
+              >
+                <Sparkles size={14} /> Ver Perfil Público
+              </a>
+            </div>
+
           </div>
         }
       >
@@ -596,7 +599,7 @@ export default function OnboardingForm({
             O seu perfil atualizado agora está configurado e pronto para ser acessado pelo seu público.
           </p>
           <div className="p-4 bg-slate-50 border border-petroleum/10 rounded-luxury">
-            <p className="text-[10px] font-bold text-gold/80 text-center uppercase tracking-luxury">
+            <p className="text-[10px] font-semibold text-petroleum/80 text-center uppercase tracking-luxury">
               Dica: Você pode alterar sua foto de capa e mini bio a qualquer momento.
             </p>
           </div>

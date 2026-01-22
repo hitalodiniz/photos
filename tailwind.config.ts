@@ -32,13 +32,13 @@ const config: Config = {
         },
         'luxury-bg': '#F8F9FA', // Fundo claro para o dashboard
         'editorial-ink': 'rgba(0, 33, 46, 0.9)', // Azul Petróleo para textos
-        'editorial-gray': 'rgba(0, 33, 46, 0.65)', // Azul Petróleo Profundo (Opacidade Suave)
+        'editorial-gray': 'rgba(0, 33, 46, 0.9)', // Azul Petróleo Profundo (Opacidade Suave)
       },
       letterSpacing: {
-        'luxury': '0.2em', // tracking-widest editorial
+        'luxury': '0.1em', // tracking-widest editorial
       },
       borderRadius: {
-        'luxury': '0.4rem', // Arredondamento padrão
+        'luxury': '0.75rem', // Arredondamento padrão
       }
     },
   },

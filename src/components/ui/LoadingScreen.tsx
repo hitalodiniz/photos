@@ -10,11 +10,13 @@ import LoadingSpinner from './LoadingSpinner';
 interface LoadingScreenProps {
   message?: string;
   fadeOut?: boolean;
+  type?: 'full' | 'content';
 }
 
 export default function LoadingScreen({
   message = 'Verificando seu acesso',
   fadeOut = false,
+  type = 'full',
 }: LoadingScreenProps) {
   const [isVisible, setIsVisible] = useState(true);
 
@@ -36,9 +38,13 @@ export default function LoadingScreen({
 
   if (!isVisible) return null;
 
+  const containerClasses = type === 'full' 
+    ? 'fixed inset-0 z-[9999]' 
+    : 'fixed top-[65px] inset-x-0 bottom-0 z-[95]';
+
   return (
     <div
-      className={`fixed inset-0 z-[9999] flex flex-col items-center justify-center bg-petroleum dark:bg-black transition-opacity duration-500 ease-in-out ${
+      className={`${containerClasses} flex flex-col items-center justify-center bg-petroleum dark:bg-black transition-opacity duration-500 ease-in-out ${
         fadeOut ? 'opacity-0 scale-110 pointer-events-none' : 'opacity-100'
       }`}
     >

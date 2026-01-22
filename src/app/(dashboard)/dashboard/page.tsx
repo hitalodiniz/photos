@@ -5,7 +5,7 @@ import { getProfileData } from '@/core/services/profile.service'; // 🎯 Import
 import Dashboard from '.';
 
 export const metadata = {
-  title: 'Dashboard',
+  title: 'Espaço de Galerias',
 };
 
 export default async function DashboardPage() {

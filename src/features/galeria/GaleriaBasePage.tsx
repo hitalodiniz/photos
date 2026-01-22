@@ -10,7 +10,7 @@ import {
 } from '@/core/logic/galeria-logic';
 import GaleriaView from './GaleriaView';
 import GalleryAccessPortal from './GalleryAccessPortal';
-import { getDirectGoogleUrl, resolveGalleryUrl } from '@/core/utils/url-helper';
+import { resolveGalleryUrl } from '@/core/utils/url-helper';
 import {
   getGalleryMetadata,
   getPhotographerMetadata,
@@ -94,23 +94,11 @@ export default async function GaleriaBasePage({
     // OU se precisa de lead e não tem o cookie de lead...
     if ((needsPassword && !hasAuthCookie) || (needsLead && !hasLeadCookie)) {
       return (
-        <div className="relative min-h-screen w-full flex items-center justify-center overflow-hidden px-4">
-          {/* 📸 BACKGROUND COM OVERLAY GRADIENTE (Estilo Editorial) */}
-          <div className="absolute inset-0 z-0 bg-slate-900">
-            <div
-              className="absolute inset-0 bg-cover bg-center bg-no-repeat"
-              style={{ backgroundImage: `url(${getDirectGoogleUrl(galeriaData.cover_image_url, '1000')})` }}
-            />
-            {/* Overlay ultra suave para visibilidade total da foto */}
-            <div className="absolute inset-0 bg-gradient-to-b from-black/20 via-transparent to-black/40" />
-          </div>
-          
-          <GalleryAccessPortal
-            galeria={galeriaData}
-            fullSlug={fullSlug}
-            isOpen={true}
-          />
-        </div>
+        <GalleryAccessPortal
+          galeria={galeriaData}
+          fullSlug={fullSlug}
+          isOpen={true}
+        />
       );
     }
   }

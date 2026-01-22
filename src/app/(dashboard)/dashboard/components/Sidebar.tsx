@@ -45,16 +45,16 @@ export default function Sidebar({
 }: SidebarProps) {
   return (
     <aside
-      className={`fixed lg:relative left-0 top-0 bottom-0 z-[100] rounded-luxury flex flex-col bg-petroleum border-r border-white/5 transition-all duration-500 ease-in-out ${isSidebarCollapsed ? 'w-[70px]' : 'w-[240px]'} ${isSidebarCollapsed ? '-translate-x-full lg:translate-x-0' : 'translate-x-0'}`}
+      className={`fixed lg:relative left-0 top-0 bottom-0 z-[90] rounded-luxury flex flex-col bg-petroleum border-r border-white/5 transition-all duration-500 ease-in-out ${isSidebarCollapsed ? 'w-[70px]' : 'w-[240px]'} ${isSidebarCollapsed ? '-translate-x-full lg:translate-x-0' : 'translate-x-0'}`}
     >
       {/* Botão Nova Galeria */}
-      <div className="p-4 pt-6">
+      <div className="px-3 pt-3">
         <button
           onClick={handleNovaGaleria}
           disabled={isRedirecting}
           className={`flex items-center justify-center bg-gold text-black hover:bg-white
             transition-all duration-300 rounded-luxury border border-gold group shadow-lg 
-            h-12 w-full gap-3
+            h-12 px-3 gap-2
             ${isRedirecting ? 'opacity-70 cursor-not-allowed' : ''}`}
         >
           <Plus
@@ -66,7 +66,7 @@ export default function Sidebar({
             }
           />
           {!isSidebarCollapsed && (
-            <span className="text-editorial-label font-bold">
+            <span className="text-editorial-label font-semibold">
               {isRedirecting ? 'Iniciando...' : 'Nova Galeria'}
             </span>
           )}
@@ -74,7 +74,7 @@ export default function Sidebar({
       </div>
 
       {/* Navegação Principal */}
-      <nav className="flex-1 flex flex-col gap-6 overflow-y-auto no-scrollbar p-2">
+      <nav className="flex-1 flex flex-col gap-2 overflow-y-auto no-scrollbar p-2">
         <SidebarGalerias
           isSidebarCollapsed={isSidebarCollapsed}
           counts={counts}

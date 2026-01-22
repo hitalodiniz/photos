@@ -136,7 +136,7 @@ export function VerticalActionBar({
 
   return (
     <div
-      className="fixed top-1/2 z-[250] flex flex-col gap-3 bg-white/95 dark:bg-black/95 backdrop-blur-2xl p-3 rounded-[0.5rem] border border-black/20 dark:border-white/20 shadow-2xl transition-all duration-700"
+      className="fixed top-1/2 z-[250] flex flex-col gap-3 bg-white/95 dark:bg-black/95 backdrop-blur-2xl p-3 rounded-luxury border border-black/20 dark:border-white/20 shadow-2xl transition-all duration-700"
       style={{ 
         right: '112px', // Entre o botão de navegação (96px) e as miniaturas (0px)
         transform: 'translateY(-50%)',
@@ -252,7 +252,7 @@ export function VerticalActionBar({
           >
             <div className="absolute left-full top-1/2 -translate-y-1/2 border-[8px] border-transparent border-l-[#F3E5AB] pointer-events-none" />
             <div 
-              className="bg-[#F3E5AB] shadow-2xl rounded-[0.5rem] p-4 border border-white/20 text-black relative"
+              className="bg-[#F3E5AB] shadow-2xl rounded-luxury p-4 border border-white/20 text-black relative"
               style={{ pointerEvents: 'auto' }}
               onClick={(e) => {
                 e.preventDefault();

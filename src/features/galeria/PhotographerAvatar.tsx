@@ -55,7 +55,7 @@ export default function PhotographerAvatar({
     >
       <div
         className={`
-        flex items-center rounded-[0.5rem] md:p-2 border shadow-2xl transition-all duration-500 ease-[cubic-bezier(0.23,1,0.32,1)]
+        flex items-center rounded-luxury md:p-2 border shadow-2xl transition-all duration-500 ease-[cubic-bezier(0.23,1,0.32,1)]
         ${isExpanded ? 'gap-2 p-1.5 ' : 'gap-0 p-0 px-1'} 
         ${
           position === 'bottom-lightbox'

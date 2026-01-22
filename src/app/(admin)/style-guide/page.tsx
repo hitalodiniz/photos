@@ -275,7 +275,7 @@ export default function StyleGuidePage() {
             <p className="text-[10px] text-slate-400 dark:text-white/40 font-semibold uppercase tracking-widest">
               Contador de Fotos
             </p>
-            <div className="bg-white/90 dark:bg-black/90 backdrop-blur-md px-3 py-1.5 rounded-[0.5rem] border border-black/10 dark:border-white/20 shadow-2xl flex items-center gap-3 transition-colors duration-300">
+            <div className="bg-white/90 dark:bg-black/90 backdrop-blur-md px-3 py-1.5 rounded-luxury border border-black/10 dark:border-white/20 shadow-2xl flex items-center gap-3 transition-colors duration-300">
               <ImageIcon size={13} className="text-petroleum dark:text-[#F3E5AB] transition-colors duration-300" />
               <p className="text-[11px] font-medium text-black dark:text-white transition-colors duration-300">
                 Foto <span className="text-petroleum dark:text-[#F3E5AB]">10</span> de 153

@@ -9,6 +9,7 @@ interface SubmitButtonProps {
   form?: string; // Permite vincular ao formulário fora do escopo direto
   className?: string; // Permite customização adicional de classes
   disabled?: boolean; // Permite desabilitar externamente
+  icon?: React.ReactNode;
 }
 
 export default function SubmitButton({
@@ -17,6 +18,7 @@ export default function SubmitButton({
   form,
   className = '',
   disabled = false,
+  icon,
 }: SubmitButtonProps) {
   // O hook useFormStatus funciona se o botão estiver DENTRO de um <form>
   // Como estamos usando o botão no rodapé, dependemos também da prop 'pending' externa ou do ID do form
@@ -30,7 +32,7 @@ export default function SubmitButton({
       disabled={isPending || success}
       className={`
         group relative flex items-center justify-center gap-2
-        text-[10px] md:text-[11px] font-bold uppercase tracking-luxury transition-all duration-300
+        text-[10px] md:text-[11px] font-semibold uppercase tracking-luxury transition-all duration-300
         active:scale-[0.98] overflow-hidden
         ${
           success
@@ -52,6 +54,8 @@ export default function SubmitButton({
           <Loader2 className="h-3.5 w-3.5 animate-spin" strokeWidth={2.5} />
         ) : success ? (
           <Check className="h-3.5 w-3.5 animate-in zoom-in duration-500" strokeWidth={2.5} />
+        ) : icon ? (
+          <span className="shrink-0">{icon}</span>
         ) : null}
 
         <span>

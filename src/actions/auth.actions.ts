@@ -18,7 +18,7 @@ export async function captureLeadAction(
     const { error: leadError } = await supabase.from('tb_galeria_leads').insert([
       {
         galeria_id: galeriaId,
-        nome: data.nome,
+        name: data.nome, // 🎯 Coluna corrigida de 'nome' para 'name'
         email: data.email || null,
         whatsapp: data.whatsapp || null,
       },
@@ -26,10 +26,13 @@ export async function captureLeadAction(
 
     if (leadError) {
       console.error('[captureLeadAction] Erro ao salvar lead:', leadError);
-      // Mesmo com erro no DB, podemos permitir o acesso se for apenas lead
+      return { 
+        success: false, 
+        error: `Erro ao salvar dados: ${leadError.message} (${leadError.code})` 
+      };
     }
 
-    // 2. Define o cookie de acesso (válido por 24h)
+    // 3. Define o cookie de acesso (válido por 24h)
     const cookieStore = await cookies();
     cookieStore.set(`galeria-${galeriaId}-lead`, 'captured', {
       path: '/',

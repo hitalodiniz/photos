@@ -7,17 +7,11 @@ import { revalidatePath, revalidateTag, unstable_cache } from 'next/cache';
 import { GLOBAL_CACHE_REVALIDATE } from '@/core/utils/url-helper';
 
 import {
-  createSupabaseServerClient,
-  createSupabaseServerClientReadOnly,
-  createSupabaseClientForCache,
-} from '@/lib/supabase.server';
-import {
   DrivePhoto,
   //makeFolderPublic as makeFolderPublicLib,
 } from '@/lib/google-drive';
 import {
   getFolderPhotos,
-  checkDriveAccess,
 } from './google-drive.service';
 import { formatGalleryData } from '@/core/logic/galeria-logic';
 import { Galeria } from '@/core/types/galeria';
@@ -39,6 +33,7 @@ interface ActionResult<T = unknown> {
 // =========================================================================
 
 import { getAuthAndStudioIds } from './auth-context.service';
+import { createSupabaseServerClient, createSupabaseClientForCache, createSupabaseServerClientReadOnly } from '@/lib/supabase.server';
 
 // =========================================================================
 // 2. SLUG ÚNICO POR DATA
@@ -180,7 +175,7 @@ export async function createGaleria(
     const { error, data: insertedData } = await supabase
       .from('tb_galerias')
       .insert([data])
-      .select('id, slug, drive_folder_id')
+      .select('id, slug, drive_folder_id, photographer:tb_profiles!user_id(username)')
       .single();
 
     if (error) throw error;
@@ -212,7 +207,11 @@ export async function createGaleria(
     // 🎯 FORÇA REVALIDAÇÃO COMPLETA: Revalida o dashboard e todas as rotas relacionadas
     revalidatePath('/dashboard', 'layout');
     revalidatePath('/dashboard');
-    return { success: true, message: 'Nova galeria criada com sucesso!' };
+    return { 
+      success: true, 
+      message: 'Nova galeria criada com sucesso!',
+      data: insertedData 
+    };
   } catch (error) {
     console.error('Erro no create:', error);
     return { success: false, error: 'Falha ao criar a galeria.' };
@@ -323,7 +322,11 @@ export async function updateGaleria(
     }
 
     revalidatePath('/dashboard');
-    return { success: true, message: 'Galeria refinada com sucesso!' };
+    return { 
+      success: true, 
+      message: 'Galeria refinada com sucesso!',
+      data: { id, ...updates }
+    };
   } catch (error) {
     console.error('Erro no update:', error);
     return { success: false, error: 'Falha ao atualizar a galeria.' };

@@ -7,7 +7,6 @@ export function useDashboardState(initialSidebarCollapsed: boolean) {
   const [isAdminModalOpen, setIsAdminModalOpen] = useState(false);
   const [isSidebarCollapsed, setIsSidebarCollapsed] = useState(initialSidebarCollapsed);
   const [toast, setToast] = useState<{ message: string; type: 'success' | 'error' } | null>(null);
-  const [isRedirecting, setIsRedirecting] = useState(false);
   const [showConsentAlert, setShowConsentAlert] = useState(false);
   const [viewMode, setViewMode] = useState<'grid' | 'list'>(() => {
     if (typeof window !== 'undefined') {
@@ -23,20 +22,10 @@ export function useDashboardState(initialSidebarCollapsed: boolean) {
     }
   }, [viewMode]);
 
-  useEffect(() => {
-    setIsRedirecting(false);
-  }, [pathname]);
-
   const toggleSidebar = async () => {
     const newValue = !isSidebarCollapsed;
     setIsSidebarCollapsed(newValue);
     await updateSidebarPreference(newValue);
-  };
-
-  const startRedirecting = () => {
-    setIsRedirecting(true);
-    // Timeout de segurança
-    setTimeout(() => setIsRedirecting(false), 10000);
   };
 
   return {
@@ -46,13 +35,10 @@ export function useDashboardState(initialSidebarCollapsed: boolean) {
     setIsSidebarCollapsed,
     toast,
     setToast,
-    isRedirecting,
-    setIsRedirecting,
     showConsentAlert,
     setShowConsentAlert,
     viewMode,
     setViewMode,
     toggleSidebar,
-    startRedirecting,
   };
 }

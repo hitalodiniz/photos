@@ -17,6 +17,7 @@ import GoogleConsentAlert from '@/components/auth/GoogleConsentAlert';
 import { useDashboardFilters } from './hooks/useDashboardFilters';
 import { useDashboardActions } from './hooks/useDashboardActions';
 import { useDashboardState } from './hooks/useDashboardState';
+import { useNavigation } from '@/components/providers/NavigationProvider';
 
 // Components
 import Sidebar from './components/Sidebar';
@@ -32,6 +33,7 @@ export default function Dashboard({
   const { user, isLoading: authLoading } = useAuth();
   const searchParams = useSearchParams();
   const router = useRouter();
+  const { navigate, isNavigating } = useNavigation();
 
   // --- STATE & CUSTOM HOOKS ---
   const [galerias, setGalerias] = useState<Galeria[]>(initialGalerias);
@@ -42,13 +44,11 @@ export default function Dashboard({
     isSidebarCollapsed,
     toast,
     setToast,
-    isRedirecting,
     showConsentAlert,
     setShowConsentAlert,
     viewMode,
     setViewMode,
     toggleSidebar,
-    startRedirecting,
   } = useDashboardState(initialProfile?.sidebar_collapsed ?? false);
 
   const filters = useDashboardFilters(galerias);
@@ -87,10 +87,11 @@ export default function Dashboard({
   };
 
   const handleNovaGaleria = () => {
-    startRedirecting();
-    setTimeout(() => {
-      router.push('/dashboard/galerias/new');
-    }, 100);
+    navigate('/dashboard/galerias/new', 'Preparando sua nova galeria...');
+  };
+
+  const handleEdit = (g: Galeria) => {
+    navigate(`/dashboard/galerias/${g.id}/edit`, 'Abrindo galeria...');
   };
 
   // --- RENDERING ---
@@ -121,11 +122,9 @@ export default function Dashboard({
         photographer={initialProfile}
         handleGoogleLogin={actions.handleGoogleLogin}
         handleNovaGaleria={handleNovaGaleria}
-        isRedirecting={isRedirecting}
+        isRedirecting={isNavigating}
         onOpenAdminModal={() => setIsAdminModalOpen(true)}
       />
-
-      {isRedirecting && <LoadingScreen message="Preparando sua nova galeria..." />}
 
       <main className="flex-1 space-y-2 min-w-0">
         <BulkActionsBar
@@ -166,7 +165,7 @@ export default function Dashboard({
           galerias={filters.visibleGalerias}
           viewMode={viewMode}
           currentView={filters.currentView}
-          onEdit={(g) => router.push(`/dashboard/galerias/${g.id}/edit`)}
+          onEdit={handleEdit}
           onDelete={actions.handleMoveToTrash}
           onArchive={actions.handleArchiveToggle}
           onToggleShowOnProfile={actions.handleToggleProfile}

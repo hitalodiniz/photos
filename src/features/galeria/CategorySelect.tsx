@@ -9,7 +9,7 @@ export default function CategorySelect({ value, onChange }) {
         value={value}
         onChange={(e) => onChange(e.target.value)}
         required
-        className="w-full pl-4 pr-10 bg-white border border-petroleum/40 rounded-[0.5rem] 
+        className="w-full pl-4 pr-10 bg-white border border-petroleum/40 rounded-luxury 
                    text-petroleum/90 text-[13px] font-medium h-10
                    focus:border-gold outline-none appearance-none cursor-pointer
                    invalid:text-petroleum/40 transition-all group-hover:border-petroleum/60"

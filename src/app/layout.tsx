@@ -7,6 +7,7 @@ import { CookieBanner } from '@/components/ui';
 import { AuthProvider } from '@photos/core-auth';
 import { Analytics } from "@vercel/analytics/next"
 import GoogleApiLoader from '@/components/google-drive/GoogleApiLoader';
+import { NavigationProvider } from '@/components/providers/NavigationProvider';
 
 // 2. Configuração com mais pesos para suportar títulos e botões
 const montserrat = Montserrat({
@@ -59,14 +60,16 @@ export default function RootLayout({
       {/* 4. A classe inter.className no body garante que todo o texto herde a Inter por padrão */}
       <body className={`${montserrat.className} bg-luxury-bg antialiased`}>
         <AuthProvider>
-          <Navbar />
-          <main id="main-content" className="w-full">
-            {children}
-          </main>
+          <NavigationProvider>
+            <Navbar />
+            <main id="main-content" className="w-full">
+              {children}
+            </main>
 
-          <GoogleApiLoader />
+            <GoogleApiLoader />
 
-          <CookieBanner />
+            <CookieBanner />
+          </NavigationProvider>
         </AuthProvider>
         <Analytics />
       </body>

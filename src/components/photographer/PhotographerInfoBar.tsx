@@ -79,7 +79,7 @@ export const PhotographerInfoBar = ({
                         href={`https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(city)}`}
                         target="_blank"
                         rel="noopener noreferrer"
-                        className="px-4 py-1.5 rounded-[0.5rem] text-[12px] font-semibold text-white/90 bg-white/5 border border-white/10 h-9 flex items-center shrink-0 italic hover:bg-white/10 hover:border-[#F3E5AB]/50 transition-all"
+                        className="px-4 py-1.5 rounded-luxury text-[12px] font-semibold text-white/90 bg-white/5 border border-white/10 h-9 flex items-center shrink-0 italic hover:bg-white/10 hover:border-[#F3E5AB]/50 transition-all"
                       >
                         {city}
                       </a>
@@ -93,7 +93,7 @@ export const PhotographerInfoBar = ({
             flex items-center justify-between
             px-4 py-1.5 
             w-[155px] h-8
-            rounded-[0.5rem] 
+            rounded-luxury 
             bg-white/5 border border-white/10 
             text-white/80 hover:text-white hover:bg-white/10 
             transition-all shrink-0
@@ -193,7 +193,7 @@ export const PhotographerInfoBar = ({
                 href={`https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(city)}`}
                 target="_blank"
                 rel="noopener noreferrer"
-                className="px-4 py-1.5 rounded-[0.5rem] text-[12px] font-semibold text-white/90 bg-white/5 border border-white/10 h-9 flex items-center shrink-0 italic hover:bg-white/10 hover:border-[#F3E5AB]/50 transition-all"
+                className="px-4 py-1.5 rounded-luxury text-[12px] font-semibold text-white/90 bg-white/5 border border-white/10 h-9 flex items-center shrink-0 italic hover:bg-white/10 hover:border-[#F3E5AB]/50 transition-all"
               >
                 {city}
               </a>

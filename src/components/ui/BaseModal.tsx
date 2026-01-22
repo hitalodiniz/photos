@@ -1,7 +1,7 @@
 'use client';
 
 import { X } from 'lucide-react';
-import { ReactNode } from 'react';
+import { ReactNode, useEffect } from 'react';
 
 interface BaseModalProps {
   isOpen: boolean;
@@ -14,6 +14,10 @@ interface BaseModalProps {
   headerIcon?: ReactNode;
   footer?: ReactNode;
   topBanner?: ReactNode;
+  // 🎯 Novos parâmetros para controle total do fundo (Overlay)
+  overlayColor?: string; // Ex: 'bg-black' ou 'bg-petroleum'
+  overlayOpacity?: string; // Ex: '20', '10', '05'
+  blurLevel?: 'none' | 'sm' | 'md' | 'lg' | 'xl';
 }
 
 export default function BaseModal({
@@ -27,7 +31,22 @@ export default function BaseModal({
   headerIcon,
   footer,
   topBanner,
+  overlayColor = 'bg-petroleum',
+  overlayOpacity = '60', // Padrão John (30%)
+  blurLevel = 'md',      // Padrão John (Blur médio)
 }: BaseModalProps) {
+  // 🎯 Fecha modal com a tecla ESC (Apenas se o botão fechar estiver habilitado)
+  useEffect(() => {
+    const handleEsc = (e: KeyboardEvent) => {
+      if (e.key === 'Escape' && isOpen && showCloseButton) {
+        onClose();
+      }
+    };
+
+    window.addEventListener('keydown', handleEsc);
+    return () => window.removeEventListener('keydown', handleEsc);
+  }, [isOpen, showCloseButton, onClose]);
+
   if (!isOpen) return null;
 
   const maxWidthClasses = {
@@ -37,10 +56,24 @@ export default function BaseModal({
     xl: 'max-w-xl',
   };
 
-  return (
-    <div className="fixed inset-0 z-[1001] bg-petroleum/30 backdrop-blur-md flex items-center justify-center px-6 md:p-6 animate-in fade-in duration-500">
-      <div className="absolute inset-0" onClick={onClose} />
+  // Mapeamento de blur para classes Tailwind
+  const blurClasses = {
+    none: 'backdrop-blur-none',
+    sm: 'backdrop-blur-sm',
+    md: 'backdrop-blur-md',
+    lg: 'backdrop-blur-lg',
+    xl: 'backdrop-blur-xl',
+  };
 
+  return (
+    // 🎯 A mágica acontece aqui: combinando a cor, a opacidade variável e o nível de blur
+    <div className={`fixed inset-0 z-[1001] ${overlayColor}/${overlayOpacity} ${blurClasses[blurLevel]} flex items-center justify-center px-6 md:p-6 animate-in fade-in duration-500`}>
+      <div 
+        className="absolute inset-0" 
+        onClick={() => showCloseButton && onClose()} 
+      />
+
+      {/* O Modal em si (Corpo Branco) */}
       <div className={`w-full ${maxWidthClasses[maxWidth]} flex flex-col h-auto max-h-[90vh] relative shadow-2xl rounded-luxury overflow-hidden border border-white/10`}>
         
         {/* HEADER - Azul Petróleo Profundo */}
@@ -65,11 +98,12 @@ export default function BaseModal({
           )}
         </div>
 
-        {/* CORPO - Branco com Bordas Internas (Estilo FormSection) */}
+        {/* CORPO - Branco (Aqui é onde a informação aparece limpa) */}
         <div className="bg-white flex-1 overflow-y-auto no-scrollbar">
           {topBanner && <div className="border-b border-petroleum/10">{topBanner}</div>}
           
           <div className="p-5">
+            {/* Borda interna Petroleum sutil seguindo a estética do formulário */}
             <div className="border border-petroleum/20 rounded-luxury p-4 bg-white shadow-sm">
               {children}
             </div>

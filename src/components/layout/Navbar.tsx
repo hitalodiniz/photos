@@ -11,7 +11,7 @@ import { UserMenu } from '@/components/auth';
 export default function Navbar() {
   const pathname = usePathname();
   const router = useRouter();
-  const { user, avatarUrl, logout, isLoading } = useAuth();
+  const { user, avatarUrl, isLoading } = useAuth();
   const [mounted, setMounted] = useState(false);
 
   // 🎯 Garante que só renderiza após montagem (evita problemas de hidratação)
@@ -150,8 +150,9 @@ export default function Navbar() {
           )}
         </div>
 
-        {/* Menu do Usuário */}
-        <div className="flex items-center gap-4">
+        {/* Identidade do Usuário e Menu */}
+        <div className="flex items-center gap-5">
+
           <UserMenu session={user} avatarUrl={avatarUrl} />
         </div>
       </nav>

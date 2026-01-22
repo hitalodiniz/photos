@@ -5,21 +5,15 @@ import {
   MapPin,
   User,
   Pencil,
-  Trash2,
   FolderOpen,
   Loader2,
   Check,
-  Copy,
-  Inbox,
-  Archive,
-  XCircle,
   ShieldCheck,
   Eye,
-  Users,
   RefreshCw,
-  UserRound,
   CheckSquare,
   Square,
+  Link2,
 } from 'lucide-react';
 import { useState, useEffect } from 'react';
 import type { Galeria } from '@/core/types/galeria';
@@ -33,9 +27,8 @@ import { useGoogleDriveImage } from '@/hooks/useGoogleDriveImage';
 import { GALLERY_MESSAGES } from '@/constants/messages';
 import { executeShare } from '@/core/utils/share-helper';
 import WhatsAppIcon from '@/components/ui/WhatsAppIcon';
-import { normalizePhoneNumber } from '@/core/utils/masks-helpers';
-import LoadingSpinner from '@/components/ui/LoadingSpinner';
 import GaleriaContextMenu from '@/components/dashboard/GaleriaContextMenu';
+import { useNavigation } from '@/components/providers/NavigationProvider';
 
 interface GaleriaCardProps {
   galeria: Galeria;
@@ -74,6 +67,7 @@ export default function GaleriaCard({
   isSelected = false,
   onToggleSelect,
 }: GaleriaCardProps) {
+  const { navigate, isNavigating } = useNavigation();
   const [mounted, setMounted] = useState(false);
   const [copied, setCopied] = useState(false);
   const [links, setLinks] = useState({ url: '', whatsapp: '', message: '' });
@@ -137,12 +131,19 @@ export default function GaleriaCard({
 
   const handleCopy = async (e: React.MouseEvent) => {
     e.stopPropagation();
-    if (!links.message) return;
-    const success = await copyToClipboard(links.message);
+    if (!links.url) return;
+    const success = await copyToClipboard(links.url);
     if (success) {
       setCopied(true);
       setTimeout(() => setCopied(false), 2000);
     }
+  };
+
+  const handleEditClick = async (e: React.MouseEvent) => {
+    e.stopPropagation();
+    // 🎯 O loading agora é gerenciado pelo Dashboard (index.tsx)
+    // via a função onEdit que dispara o redirect global.
+    await onEdit(galeria);
   };
 
   const handleWhatsAppShare = (e: React.MouseEvent) => {
@@ -193,10 +194,10 @@ export default function GaleriaCard({
         )}
 
         {/* Imagem - Compacta */}
-        <div className="relative w-24 h-16 flex-shrink-0 overflow-hidden rounded-luxury bg-slate-900/50">
+        <div className="relative w-24 h-16 flex-shrink-0 overflow-hidden rounded-luxury bg-slate-50">
           {isImageLoading && !isUpdating && (
-            <div className="absolute inset-0 z-10 flex items-center justify-center bg-petroleum">
-              <div className="loading-luxury w-4 h-4" />
+            <div className="absolute inset-0 z-10 flex items-center justify-center bg-white">
+              <div className="loading-luxury-dark w-4 h-4" />
             </div>
           )}
           <img
@@ -254,7 +255,7 @@ export default function GaleriaCard({
                     e.stopPropagation();
                     handleWhatsAppShare(e);
                   }}
-                  className="p-2 text-petroleum bg-white border border-petroleum/40 rounded-luxury interactive-luxury"
+                  className="p-2 text-petroleum bg-white border border-petroleum/40 rounded-luxury interactive-luxury-petroleum "
                   title="Compartilhar via WhatsApp"
                 >
                   <WhatsAppIcon className="w-4 h-4" />
@@ -262,14 +263,31 @@ export default function GaleriaCard({
                 <button
                   onClick={(e) => {
                     e.stopPropagation();
-                    onEdit(galeria);
+                    if (!isUpdating && !isNavigating) {
+                      handleEditClick(e);
+                    }
                   }}
-                  className="p-2 text-petroleum bg-white border border-petroleum/40 rounded-luxury interactive-luxury"
+                  disabled={isUpdating || isNavigating}
+                  className="p-3 md:p-2 text-editorial-gray bg-white border border-petroleum/40 rounded-luxury interactive-luxury-petroleum  shadow-sm disabled:opacity-50"
                   title="Editar"
                 >
                   <Pencil size={16} />
                 </button>
+                {mounted && (
+                  <button
+                    onClick={handleCopy}
+                    className="p-3 md:p-2 text-editorial-gray bg-white border border-petroleum/40 rounded-luxury interactive-luxury-petroleum  shadow-sm transition-all flex items-center justify-center min-w-[40px]"
+                    title="Copiar link da galeria"
+                  >
+                    {copied ? (
+                      <Check size={16} className="text-green-500 animate-in zoom-in duration-300" />
+                    ) : (
+                      <Link2 size={16} className="text-editorial-gray" />
+                    )}
+                  </button>
+                )}
               </>
+
             )}
             <GaleriaContextMenu
               galeria={galeria}
@@ -283,7 +301,7 @@ export default function GaleriaCard({
             />
           </div>
         </div>
-      </div>
+        </div>
     );
   }
 
@@ -326,8 +344,8 @@ export default function GaleriaCard({
 
         {/* 🎯 Spinner de carregamento da imagem */}
         {isImageLoading && !isUpdating && (
-          <div className="absolute inset-0 z-10 flex items-center justify-center bg-petroleum">
-            <div className="loading-luxury w-6 h-6" />
+          <div className="absolute inset-0 z-10 flex items-center justify-center bg-white">
+            <div className="loading-luxury-dark w-6 h-6" />
           </div>
         )}
 
@@ -369,40 +387,43 @@ export default function GaleriaCard({
 
         <div className="absolute top-3 right-3">
           {categoryInfo && (
-            <span className="flex items-center gap-1 px-2 py-1 bg-black/60 backdrop-blur-md rounded-luxury text-editorial-label text-white border border-white/20 text-[10px] font-[8px]">
+            <span className="flex items-center gap-1 px-2 py-1 bg-black/60 backdrop-blur-md rounded-luxury text-editorial-label text-white border border-white/20 text-[8px]">
               {categoryInfo.label}
             </span>
           )}
         </div>
 
         <div className="absolute bottom-3 left-4 right-4 flex items-end justify-between gap-4">
-          <h3 className="text-white text-base font-semibold leading-tight tracking-tight drop-shadow-md italic">
+          <h3 className="text-white text-[15px] truncate font-semibold leading-tight tracking-tight drop-shadow-md italic">
             {galeria.title}
           </h3>
         </div>
       </div>
 
-      <div className="flex flex-col p-4 md:p-4 space-y-3 bg-white">
+      <div className="flex flex-col p-3 md:p-3 space-y-2 bg-white">
         {/* Metadados simplificados em uma linha */}
-        <div className="flex flex-col gap-1.5 py-1 w-full">
-          <div className={`flex items-center gap-1.5 text-[11px] ${hasClientInfo ? 'text-editorial-gray' : 'invisible h-[15px]'}`}>
-            <User size={11} className="text-editorial-gray shrink-0" />
-            <span className="font-semibold text-editorial-gray uppercase tracking-luxury">{galeria.client_name || 'Placeholder'}</span>
+        <div className="flex flex-col gap-1 py-0.5 w-full">
+          <div className={`flex items-center justify-between gap-1.5 text-[11px] text-editorial-gray`}>
+            <div className="flex items-center gap-1.5 min-w-0">
+              <User size={11} className="text-editorial-gray shrink-0" />
+              <span className="font-semibold text-editorial-gray uppercase tracking-luxury truncate">
+                {galeria.client_name || 'Cobertura'}
+              </span>
+            </div>
             {galeria.client_whatsapp && (
-              <>
-                <span className="text-editorial-gray/40">•</span>
-                <span className="text-editorial-gray font-medium">{formatPhone(galeria.client_whatsapp)}</span>
-              </>
+              <span className="text-editorial-gray font-medium shrink-0">
+                {formatPhone(galeria.client_whatsapp)}
+              </span>
             )}
           </div>
           <div className="flex items-center justify-between gap-3 text-[11px] text-editorial-gray w-full">
             {galeria.location && (
-              <span className="flex items-center gap-1 font-medium">
+              <span className="flex items-center gap-1 font-medium truncate">
                 <MapPin size={11} className="text-editorial-gray" />
                 {galeria.location}
               </span>
             )}
-            <span className="flex items-center gap-1 ml-auto tracking-luxury  font-medium">
+            <span className="flex items-center gap-1 ml-auto text-[11px] font-medium shrink-0">
               <Calendar size={11} className="text-editorial-gray" />
               {formatDateSafely(galeria.date)}
             </span>
@@ -410,15 +431,15 @@ export default function GaleriaCard({
         </div>
 
         <div className="flex items-center gap-2">
-          <div className="flex-1 flex items-center h-9 rounded-luxury bg-slate-50 border border-petroleum/20 overflow-hidden">
+          <div className="flex-1 flex items-center h-8 rounded-luxury bg-slate-50 border border-petroleum/20 overflow-hidden">
             <a
               href={`https://drive.google.com/drive/folders/${galeria.drive_folder_id}`}
               target="_blank"
               onClick={(e) => e.stopPropagation()}
-              className="flex-1 flex items-center gap-1.5 px-3 h-full hover:bg-white transition-all group/drive min-w-0"
+              className="flex-1 flex items-center gap-1.5 px-2.5 h-full hover:bg-white transition-all group/drive min-w-0"
             >
-              <FolderOpen size={14} className="text-editorial-gray shrink-0" />
-              <span className="text-[11px] font-medium text-editorial-gray truncate  ">
+              <FolderOpen size={13} className="text-editorial-gray shrink-0" />
+              <span className="text-[10px] font-medium text-editorial-gray truncate  ">
                 Drive: {galeria.drive_folder_name || 'Sem pasta vinculada'}
               </span>
               <span className="text-editorial-label text-petroleum-light opacity-0 group-hover/drive:opacity-100 transition-opacity shrink-0">
@@ -426,7 +447,7 @@ export default function GaleriaCard({
               </span>
             </a>
 
-            <div className="w-[1px] h-4 bg-petroleum/10" />
+            <div className="w-[1px] h-3 bg-petroleum/10" />
 
             <button
               onClick={(e) => {
@@ -436,19 +457,19 @@ export default function GaleriaCard({
               }}
               disabled={isUpdating}
               title="Sincronizar com o Drive"
-              className="flex items-center justify-center px-3 h-full hover:bg-white text-editorial-gray hover:text-gold transition-all disabled:opacity-50 shrink-0"
+              className="flex items-center justify-center px-2.5 h-full hover:bg-white text-editorial-gray hover:text-gold transition-all disabled:opacity-50 shrink-0"
             >
               {isUpdating ? (
                 <div className="loading-luxury w-3 h-3" />
               ) : (
-                <RefreshCw size={13} />
+                <RefreshCw size={12} />
               )}
             </button>
           </div>
         </div>
       </div>
 
-      <div className="flex items-center justify-between p-4 md:p-3 bg-slate-50/50 border-t border-white/5 mt-auto">
+      <div className="flex items-center justify-between p-3 md:p-2.5 bg-slate-50/50 border-t border-petroleum/10 mt-auto">
         {/* Apenas Compartilhar e Editar visíveis */}
         <div className="flex gap-2 md:gap-1.5">
         {currentView === 'active' && (
@@ -459,7 +480,7 @@ export default function GaleriaCard({
           handleWhatsAppShare(e);
         }}
         // Alterado: border-white/10 -> border-petroleum/40
-        className="p-2 text-petroleum bg-white border border-petroleum/40 rounded-luxury interactive-luxury"
+        className="p-2 text-petroleum bg-white border border-petroleum/40 rounded-luxury interactive-luxury-petroleum "
         title="Compartilhar via WhatsApp"
       >
         <WhatsAppIcon className="w-4 h-4" />
@@ -467,14 +488,33 @@ export default function GaleriaCard({
       <button
         onClick={(e) => {
           e.stopPropagation();
-          onEdit(galeria);
+          if (!isNavigating) {
+            handleEditClick(e);
+          }
         }}
+        disabled={isNavigating}
         // Alterado: border-white/10 -> border-petroleum/40
-        className="p-2 text-petroleum bg-white border border-petroleum/40 rounded-luxury interactive-luxury"
+        className="p-2 text-petroleum bg-white border border-petroleum/40 rounded-luxury interactive-luxury-petroleum  disabled:opacity-50"
         title="Editar"
       >
         <Pencil size={16} />
       </button>
+      {mounted && (
+        <button
+          onClick={handleCopy}
+          className="p-2 text-editorial-gray bg-white border border-petroleum/40 rounded-luxury interactive-luxury-petroleum "
+          title="Copiar link da galeria"
+        >
+          {copied ? (
+            <Check
+              size={16}
+              className="text-green-500 animate-in zoom-in duration-300"
+            />
+          ) : (
+            <Link2 size={16} className="text-editorial-gray" />
+          )}
+        </button>
+      )}
     </>
   )}
         </div>

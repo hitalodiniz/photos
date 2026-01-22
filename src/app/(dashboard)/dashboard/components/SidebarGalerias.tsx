@@ -25,8 +25,8 @@ export default function SidebarGalerias({
   return (
     <div className="space-y-1">
       {!isSidebarCollapsed && (
-        <div className="mb-4 px-2">
-          <span className="text-editorial-label text-white/40">
+        <div className="mb-2 px-2">
+          <span className="text-editorial-label text-white/90">
             GALERIAS
           </span>
         </div>
@@ -40,7 +40,7 @@ export default function SidebarGalerias({
               setCardsToShow(8);
               window.scrollTo({ top: 0, behavior: 'smooth' });
             }}
-            className={`flex items-center justify-between group relative w-full px-3 py-2.5 rounded-luxury transition-all duration-300 ${currentView === item.id ? 'bg-white/10 text-gold translate-x-1' : 'text-white/60 hover:bg-white/5 hover:text-gold'}`}
+            className={`flex items-center justify-between group relative w-full px-3 py-2 rounded-luxury transition-all duration-300 ${currentView === item.id ? 'bg-white/10 text-gold translate-x-1' : 'text-white/90 hover:bg-white/5 hover:text-gold'}`}
           >
             {currentView === item.id && (
               <div className="absolute left-0 top-1/2 -translate-y-1/2 w-1 h-5 bg-gold rounded-r-full" />
@@ -65,7 +65,7 @@ export default function SidebarGalerias({
             {!isSidebarCollapsed && item.count > 0 && (
               <span
                 className={`text-[10px] font-semibold tracking-luxury px-2 py-0.5 rounded-full ${
-                  currentView === item.id ? 'bg-gold text-black' : 'bg-white/10 text-white/40'
+                  currentView === item.id ? 'bg-gold text-black' : 'bg-white/10 text-white/90'
                 }`}
               >
                 {item.count}
