@@ -54,7 +54,18 @@ export default function Lightbox({
   const [slideshowProgress, setSlideshowProgress] = useState(0);
   const [showThumbnails, setShowThumbnails] = useState(false); // Estado para controlar miniaturas no mobile
   const [hasShownQualityWarning, setHasShownQualityWarning] = useState(false); // 🎯 Controla se o tooltip já foi mostrado
+  const [isSystemDark, setIsSystemDark] = useState(false);
   const isMobile = useIsMobile();
+
+  // 🎯 DETECTAR TEMA DO SISTEMA (Para Lightbox adaptar automaticamente)
+  useEffect(() => {
+    const mq = window.matchMedia('(prefers-color-scheme: dark)');
+    setIsSystemDark(mq.matches);
+
+    const handler = (e: MediaQueryListEvent) => setIsSystemDark(e.matches);
+    mq.addEventListener('change', handler);
+    return () => mq.removeEventListener('change', handler);
+  }, []);
 
   // 🎯 Mostrar tooltip de alta resolução apenas na primeira vez que o lightbox abre
   // Este useEffect foi movido para o ToolbarGalleryView para melhor controle
@@ -314,13 +325,14 @@ img.src = imgSrc;
   if (!currentPhoto) return null;
 
   return (
-    <div
-      className="fixed inset-0 z-[9999] bg-white dark:bg-black flex flex-col md:block overflow-y-auto md:overflow-hidden select-none transition-colors duration-300"
-      onTouchStart={isSingleView ? undefined : onTouchStart}
-      onTouchMove={isSingleView ? undefined : onTouchMove}
-      onTouchEnd={isSingleView ? undefined : onTouchEnd}
-      onClick={isMobile ? handleClickOutside : undefined}
-    >
+    <div className={isSystemDark ? 'dark' : ''}>
+      <div
+        className="fixed inset-0 z-[9999] bg-white dark:bg-black flex flex-col md:block overflow-y-auto md:overflow-hidden select-none transition-colors duration-300"
+        onTouchStart={isSingleView ? undefined : onTouchStart}
+        onTouchMove={isSingleView ? undefined : onTouchMove}
+        onTouchEnd={isSingleView ? undefined : onTouchEnd}
+        onClick={isMobile ? handleClickOutside : undefined}
+      >
       {/* 🎯 MINIATURAS VERTICAIS (Desktop - lado direito) - Por cima dos botões */}
       {!isSingleView && onNavigateToIndex && !isMobile && (
         <VerticalThumbnails
@@ -583,7 +595,7 @@ img.src = imgSrc;
               {/* Ícone que muda de cor conforme o tema */}
               <ImageIcon size={13} className="text-gold transition-colors duration-300" />
               
-              <p className="text-[11px] font-bold tracking-luxury text-white/90">
+              <p className="text-[11px] font-semibold tracking-luxury text-white/90">
                 FOTO <span className="text-gold italic">{activeIndex + 1}</span> DE {totalPhotos}
               </p>
 
@@ -592,11 +604,11 @@ img.src = imgSrc;
 
               {/* Dados Técnicos */}
               <div className="flex items-center gap-2.5">
-                <p className="text-gold text-[11px] font-bold tracking-luxury italic">
+                <p className="text-gold text-[11px] font-semibold tracking-luxury italic">
                   {imageSize || "--- KB"}
                 </p>
                 {/* Indicador de origem */}
-                <span className="text-[10px] font-bold text-white/20">
+                <span className="text-[10px] font-semibold text-white/20">
                   {usingProxy ? 'A' : 'D'}
                 </span>
               </div>
@@ -625,5 +637,6 @@ img.src = imgSrc;
         </footer>
       )}
     </div>
+  </div>
   );
 }
