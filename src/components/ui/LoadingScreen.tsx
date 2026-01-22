@@ -24,14 +24,6 @@ export default function LoadingScreen({
       document.body.classList.remove('js-ready');
     }
 
-    return () => {
-      // Cleanup: sempre garante que o body possa mostrar conteúdo ao desmontar
-      // Isso evita que a tela fique "presa" se o componente sumir durante uma navegação
-      document.body.classList.add('js-ready');
-    };
-  }, [fadeOut]);
-
-  useEffect(() => {
     if (fadeOut) {
       // 1. Libera o conteúdo do fundo para começar o fade-in dele
       document.body.classList.add('js-ready');
@@ -46,14 +38,14 @@ export default function LoadingScreen({
 
   return (
     <div
-      className={`fixed inset-0 z-[9999] flex flex-col items-center justify-center bg-white dark:bg-black transition-opacity duration-500 ease-in-out ${
+      className={`fixed inset-0 z-[9999] flex flex-col items-center justify-center bg-petroleum dark:bg-black transition-opacity duration-500 ease-in-out ${
         fadeOut ? 'opacity-0 scale-110 pointer-events-none' : 'opacity-100'
       }`}
     >
       <div
         className={`mb-12 md:mb-16 transition-transform duration-700 ${fadeOut ? '-translate-y-4' : 'translate-y-0'}`}
       >
-        <h2 className="font-barlow text-[10px] md:text-[12px] tracking-wider text-petroleum dark:text-champagne uppercase font-medium text-center transition-colors duration-300">
+        <h2 className="text-editorial-label text-gold text-center transition-colors duration-300">
           {SEO_CONFIG.brandName}
         </h2>
       </div>
@@ -63,11 +55,11 @@ export default function LoadingScreen({
       <div
         className={`mt-12 md:mt-16 flex flex-col items-center gap-5 transition-transform duration-700 ${fadeOut ? 'translate-y-4' : 'translate-y-0'}`}
       >
-        <p className="font-barlow text-[10px] md:text-[12px] tracking-wider text-petroleum dark:text-champagne uppercase font-medium text-center px-6 transition-colors duration-300">
+        <p className="text-editorial-label text-gold text-center px-6 transition-colors duration-300">
           {message}
         </p>
-        <div className="relative w-12 md:w-16 h-[1px] bg-petroleum/20 dark:bg-gold-light/20 overflow-hidden transition-colors duration-300">
-          <div className="absolute inset-0 bg-petroleum dark:bg-champagne animate-progress-line transition-colors duration-300" />
+        <div className="relative w-12 md:w-16 h-[1px] bg-white/10 overflow-hidden transition-colors duration-300">
+          <div className="absolute inset-0 bg-gold animate-progress-line transition-colors duration-300" />
         </div>
       </div>
 

@@ -1,6 +1,6 @@
 {
   "name": "photos",
-  "version": "0.1.38",
+  "version": "0.1.42",
   "private": true,
   "workspaces": [
     "packages/*"
@@ -24,6 +24,7 @@
     "prepare": "husky"
   },
   "dependencies": {
+    "@hookform/resolvers": "^5.2.2",
     "@supabase/auth-js": "^2.87.1",
     "@supabase/ssr": "^0.8.0",
     "@supabase/supabase-js": "^2.86.2",
@@ -41,11 +42,13 @@
     "postcss-import": "^16.1.1",
     "react": "^18.3.1",
     "react-dom": "^18.3.1",
+    "react-hook-form": "^7.71.1",
     "react-markdown": "^10.1.0",
     "react-masonry-css": "^1.0.16",
     "react-photoswipe-gallery": "^4.0.0",
     "slugify": "^1.6.6",
-    "stripe": "^20.1.0"
+    "stripe": "^20.1.0",
+    "zod": "^4.3.5"
   },
   "devDependencies": {
     "@tailwindcss/postcss": "^4.1.17",

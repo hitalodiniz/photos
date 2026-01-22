@@ -127,16 +127,16 @@ function LoginContent() {
 
           {/* 🎯 Mensagem de erro */}
           {errorMessage && (
-            <div className="w-full max-w-sm mx-auto mb-4 p-4 bg-red-500/20 border border-red-500/50 rounded-lg flex items-center gap-3">
-              <AlertCircle className="text-red-400 flex-shrink-0" size={20} />
-              <p className="text-red-200 text-sm">{errorMessage}</p>
+            <div className="w-full max-w-sm mx-auto mb-4 p-4 bg-red-500/10 border border-red-500/30 rounded-luxury flex items-center gap-3 animate-in fade-in slide-in-from-top-2">
+              <AlertCircle className="text-red-500 flex-shrink-0" size={20} />
+              <p className="text-red-200/80 text-sm font-medium">{errorMessage}</p>
             </div>
           )}
 
           <GoogleSignInButton />
 
           <div className="pt-6 border-t border-white/5 w-full">
-            <p className="text-[10px] md:text-xs text-white/70 uppercase tracking-widest leading-relaxed">
+            <p className="text-editorial-label text-white/40">
               Ambiente seguro • Criptografia ponta a ponta
             </p>
           </div>
@@ -147,10 +147,10 @@ function LoginContent() {
 
   // Se estiver carregando a autenticação ou se já houver sessão (redirecionando),
   // podemos mostrar um estado de loading sutil ou nada.
-  if (authLoading || session) {
+  if (authLoading || user) {
     return (
       <div className="min-h-screen bg-black flex items-center justify-center">
-        <div className="w-8 h-8 border-2 border-gold/20 border-t-gold rounded-full animate-spin" />
+        <div className="loading-luxury w-10 h-10" />
       </div>
     );
   }
@@ -164,7 +164,7 @@ function LoginContent() {
           subtitle={
             <>
               Bem-vindo de volta ao seu{' '}
-              <span className="font-semibold border-b-2 border-champagne/50 text-white">
+              <span className="font-bold border-b-2 border-gold/30 text-white italic">
                 espaço exclusivo
               </span>
             </>
@@ -189,7 +189,7 @@ export default function LoginPage() {
     <Suspense
       fallback={
         <div className="min-h-screen bg-black flex items-center justify-center">
-          <div className="w-8 h-8 border-2 border-gold/20 border-t-gold rounded-full animate-spin" />
+          <div className="loading-luxury w-10 h-10" />
         </div>
       }
     >

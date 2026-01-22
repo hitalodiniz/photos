@@ -66,11 +66,11 @@ const Tooltip = ({
         }),
       }}
     >
-      <div className="bg-[#F3E5AB] text-black text-[9px] font-semibold px-2.5 py-1.5 rounded shadow-xl whitespace-nowrap relative ring-1 ring-black/10 uppercase tracking-wider">
+      <div className="bg-gold text-black text-[9px] font-bold px-2.5 py-1.5 rounded-luxury shadow-2xl whitespace-nowrap relative ring-1 ring-black/10 uppercase tracking-luxury">
         {text}
         {/* Seta apontando para cima - sempre visível e bem posicionada */}
         <div
-          className={`absolute -top-1 ${arrowClasses[position]} w-0 h-0 border-l-[5px] border-l-transparent border-r-[5px] border-r-transparent border-b-[5px] border-b-[#F3E5AB]`}
+          className={`absolute -top-1 ${arrowClasses[position]} w-0 h-0 border-l-[5px] border-l-transparent border-r-[5px] border-r-transparent border-b-[5px] border-b-gold`}
           aria-hidden="true"
         />
       </div>
@@ -203,7 +203,7 @@ export const ToolBarMobile = ({
           {hasMultipleTags && (
             <div className="relative overflow-visible">
               <button
-                className={`h-9 w-9 rounded-[0.5rem] flex items-center justify-center transition-all ${showTagsPanel ? 'bg-[#F3E5AB] text-black' : 'bg-white/5 text-[#F3E5AB] border border-white/10'}`}
+                className={`h-9 w-9 rounded-luxury flex items-center justify-center transition-all ${showTagsPanel ? 'bg-gold text-black' : 'bg-white/5 text-gold border border-white/10'}`}
                 onClick={() => togglePanel('tags')}
               >
                 <Tag size={16} />
@@ -214,13 +214,13 @@ export const ToolBarMobile = ({
 
           <div className="relative overflow-visible">
             <button
-              className={`h-9 w-9 rounded-[0.5rem] flex items-center justify-center transition-all ${showColumnsPanel ? 'bg-[#F3E5AB] text-black' : 'bg-white/5 text-[#F3E5AB] border border-white/10'}`}
+              className={`h-9 w-9 rounded-luxury flex items-center justify-center transition-all ${showColumnsPanel ? 'bg-gold text-black' : 'bg-white/5 text-gold border border-white/10'}`}
               onClick={() => togglePanel('columns')}
             >
               <Monitor size={17} />
             </button>
             {hintStep === 2 && (
-              <Tooltip text="Ver fotos em 1 ou 2 colunas" position="left" />
+              <Tooltip text="Layout" position="left" />
             )}
           </div>
         </div>
@@ -230,7 +230,7 @@ export const ToolBarMobile = ({
           <div className="relative overflow-visible">
             <button
               onClick={handleNativeShare}
-              className="w-9 h-9 rounded-[0.5rem] flex items-center justify-center bg-slate-800 text-white border border-white/10 active:bg-slate-700"
+              className="w-9 h-9 rounded-luxury flex items-center justify-center bg-white/5 text-white border border-white/10 active:bg-white/10"
             >
               <Share2 size={18} />
             </button>
@@ -240,10 +240,10 @@ export const ToolBarMobile = ({
           <div className="relative overflow-visible">
             <button
               onClick={handleCopyLink}
-              className="w-9 h-9 rounded-[0.5rem] flex items-center justify-center bg-slate-800 text-white border border-white/10 active:bg-slate-700"
+              className="w-9 h-9 rounded-luxury flex items-center justify-center bg-white/5 text-white border border-white/10 active:bg-white/10"
             >
               {copied ? (
-                <Check size={16} className="text-slate-800 dark:text-green-400" />
+                <Check size={16} className="text-green-400" />
               ) : (
                 <LinkIcon size={16} />
               )}
@@ -254,7 +254,7 @@ export const ToolBarMobile = ({
           <div className="relative overflow-visible">
             <button
               onClick={() => setShowOnlyFavorites(!showOnlyFavorites)}
-              className={`w-9 h-9 rounded-[0.5rem] flex items-center justify-center transition-all border ${showOnlyFavorites ? 'bg-[#E67E70] border-[#E67E70] text-white shadow-lg' : 'bg-slate-800 border-white/10 text-white'}`}
+              className={`w-9 h-9 rounded-luxury flex items-center justify-center transition-all border ${showOnlyFavorites ? 'bg-red-600 border-red-600 text-white shadow-lg shadow-red-900/40' : 'bg-white/5 border-white/10 text-white'}`}
             >
               <Filter size={15} />
             </button>
@@ -268,10 +268,10 @@ export const ToolBarMobile = ({
                 setShowDownloadMenu(!showDownloadMenu);
               }}
               disabled={isDownloading}
-              className="w-9 h-9 rounded-[0.5rem] flex items-center justify-center bg-[#F3E5AB] text-black active:scale-90 shadow-lg transition-all"
+              className="w-9 h-9 rounded-luxury flex items-center justify-center bg-gold text-black active:scale-90 shadow-xl transition-all"
             >
               {isDownloading ? (
-                <Loader2 size={16} className="animate-spin" />
+                <div className="loading-luxury w-4 h-4 border-black/30 border-t-black" />
               ) : (
                 <Download size={16} />
               )}
@@ -289,7 +289,7 @@ export const ToolBarMobile = ({
                   onClick={() => setShowDownloadMenu(false)}
                 />
 
-                <div className="absolute top-full mt-3 right-0 w-[75vw] max-w-[280px] bg-petroleum border border-white/20 rounded-xl shadow-2xl animate-in fade-in slide-in-from-top-2 duration-300 z-[200] overflow-hidden">
+                <div className="absolute top-full mt-3 right-0 w-[75vw] max-w-[280px] bg-slate-950/95 backdrop-blur-xl border border-white/10 rounded-luxury shadow-2xl animate-in fade-in slide-in-from-top-2 duration-300 z-[200] overflow-hidden">
                   <div className="p-1.5 flex flex-col gap-1">
                     {/* Opção 1: Fotos Otimizadas (Abre a Central de Volumes) */}
                     <button
@@ -297,14 +297,14 @@ export const ToolBarMobile = ({
                         downloadAllAsZip(); // Abre a central que já configuramos
                         setShowDownloadMenu(false);
                       }}
-                      className="flex items-center gap-3 p-3 rounded-lg bg-white/5 active:bg-white/10 text-left"
+                      className="flex items-center gap-3 p-3 rounded-luxury bg-white/5 active:bg-white/10 text-left"
                     >
-                      <Zap size={18} className="text-[#F3E5AB] shrink-0" />
+                      <Zap size={18} className="text-gold shrink-0" />
                       <div>
-                        <p className="text-white text-[11px] font-bold uppercase tracking-tight">
+                        <p className="text-white text-editorial-label">
                           Fotos Otimizadas
                         </p>
-                        <p className="text-white/50 text-[9px] leading-tight">
+                        <p className="text-white/40 text-[9px] leading-tight font-medium italic">
                           Ideal para celular e postagens.
                         </p>
                       </div>
@@ -325,19 +325,19 @@ export const ToolBarMobile = ({
                               `${galeria.title}_Link_${index + 1}.zip`,
                             );
                           }}
-                          className="flex items-center gap-3 p-3 rounded-lg bg-white/5 active:bg-white/10 text-left border-t border-white/5"
+                          className="flex items-center gap-3 p-3 rounded-luxury bg-white/5 active:bg-white/10 text-left border-t border-white/5"
                         >
                           <FileCheck
                             size={18}
-                            className="text-[#D4AF37] shrink-0"
+                            className="text-gold shrink-0"
                           />
                           <div className="flex-1 min-w-0">
-                            <p className="text-white text-[11px] font-bold uppercase tracking-tight">
+                            <p className="text-white text-editorial-label">
                               {externalLinks.length === 1 
                                 ? 'Qualidade Máxima'
                                 : `Link ${index + 1} - Alta Resolução`}
                             </p>
-                            <p className="text-white/50 text-[9px] leading-tight truncate">
+                            <p className="text-white/40 text-[9px] leading-tight truncate italic font-medium">
                               {link}
                             </p>
                           </div>
@@ -365,7 +365,7 @@ export const ToolBarMobile = ({
                   setColumns((prev: any) => ({ ...prev, mobile: num }));
                   setShowColumnsPanel(false);
                 }}
-                className={`px-6 py-2 rounded-[0.5rem] text-[11px] font-bold transition-all uppercase tracking-widest ${columns.mobile === num ? 'bg-[#F3E5AB] text-black' : 'bg-white/5 text-white border border-white/10'}`}
+                className={`px-6 py-2 rounded-luxury text-editorial-label transition-all border ${columns.mobile === num ? 'bg-gold text-black border-gold shadow-lg' : 'bg-white/5 text-white border border-white/10'}`}
               >
                 {num} {num === 1 ? 'Coluna' : 'Colunas'}
               </button>
@@ -377,7 +377,7 @@ export const ToolBarMobile = ({
           className={`overflow-hidden transition-all duration-500 bg-petroleum/95 backdrop-blur-xl border-b border-white/10 ${showTagsPanel ? 'max-h-[70vh] opacity-100' : 'max-h-0 opacity-0 pointer-events-none'}`}
         >
           <div className="p-6 flex flex-col gap-4">
-            <span className="text-[10px] font-bold uppercase tracking-[0.2em] text-white">
+            <span className="text-editorial-label text-white/40">
               Categorias
             </span>
             <div className="flex flex-wrap gap-2 pb-2">
@@ -388,7 +388,7 @@ export const ToolBarMobile = ({
                     setActiveTag(tag);
                     setShowTagsPanel(false);
                   }}
-                  className={`px-4 py-2 rounded-[0.5rem] text-[10px] font-bold uppercase transition-all border tracking-widest ${activeTag === tag ? 'bg-[#F3E5AB] text-black border-[#F3E5AB]' : 'bg-white/5 text-white border border-white/10'}`}
+                  className={`px-4 py-2 rounded-luxury text-editorial-label transition-all border ${activeTag === tag ? 'bg-gold text-black border-gold shadow-lg' : 'bg-white/5 text-white border border-white/10'}`}
                 >
                   {tag}
                 </button>

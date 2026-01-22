@@ -1,3 +1,4 @@
+// tailwind.config.ts
 import type { Config } from 'tailwindcss';
 
 const config: Config = {
@@ -7,25 +8,38 @@ const config: Config = {
     './components/**/*.{js,ts,jsx,tsx,mdx}',
     './src/**/*.{js,ts,jsx,tsx,mdx}',
   ],
-  darkMode: 'media', // 🎯 O 'media' faz o site seguir o sistema operacional automaticamente
+  darkMode: 'class', // Alterado para 'class' para maior controle em modais premium
   theme: {
     extend: {
       colors: {
-        // Luxury Editorial theme
-        champagne: '#F3E5AB', // Champagne
-        gold: '#D4AF37', // Gold
-        'luxury-bg': '#F8F9FA',
-        'gold-light': 'rgba(212, 175, 55, 0.15)',
-        'error-red': '#B3261E',
-        'google-text': '#3C4043',
-        // Azul Petróleo - Cor oficial do sistema
-        petroleum: '#00212E', // Azul Petróleo Profundo
+        // Luxury Editorial Photography Official Palette
+        champagne: {
+          DEFAULT: '#F3E5AB',
+          hover: '#E5D69A',
+        },
+        gold: {
+          // DEFAULT: '#D4AF37',
+          DEFAULT: '#F3E5AB',
+          light: 'rgba(243,229,171,0.15)',
+          glow: 'rgba(243,229,171,0.3)',
+          // light: 'rgba(212, 175, 55, 0.15)',
+            // glow: 'rgba(212, 175, 55, 0.3)',
+        },
+        petroleum: {
+          DEFAULT: '#00212E',
+          light: '#002D3F', // Para hovers sutis em fundos escuros
+          dark: '#001822',
+        },
+        'luxury-bg': '#F8F9FA', // Fundo claro para o dashboard
+        'editorial-ink': 'rgba(0, 33, 46, 0.9)', // Azul Petróleo para textos
+        'editorial-gray': 'rgba(0, 33, 46, 0.65)', // Azul Petróleo Profundo (Opacidade Suave)
       },
-      fontFamily: {
-        // Agora artistic e sans usam Montserrat
-        artistic: ['var(--font-montserrat)', 'sans-serif'],
-        sans: ['var(--font-montserrat)', 'sans-serif'],
+      letterSpacing: {
+        'luxury': '0.2em', // tracking-widest editorial
       },
+      borderRadius: {
+        'luxury': '0.4rem', // Arredondamento padrão
+      }
     },
   },
   plugins: [require('@tailwindcss/typography')],

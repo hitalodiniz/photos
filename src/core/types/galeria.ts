@@ -55,6 +55,10 @@ export interface GaleriaBase {
   zip_url_full?: string | null;
   zip_url_social?: string | null;
   show_on_profile: boolean;
+  leads_enabled: boolean;
+  leads_require_name: boolean;
+  leads_require_email: boolean;
+  leads_require_whatsapp: boolean;
 }
 
 // Interface utilizada na UI (GaleriaCard e GaleriaView)

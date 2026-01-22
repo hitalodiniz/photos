@@ -82,33 +82,33 @@ export default function Filters({
   const sharedInputClass = `
     w-full !pl-10 pr-4 py-2.5
     outline-none transition-all duration-200 
-    rounded-[0.4rem] text-[11px] font-medium box-border
+    rounded-luxury text-[11px] font-semibold box-border
     bg-white border border-slate-200 
-    hover:border-slate-300
-    focus:border-slate-400 focus:ring-1 focus:ring-slate-200/50 
-    text-slate-700 placeholder:text-slate-400
+    hover:border-gold/30
+    focus:border-gold focus:ring-4 focus:ring-gold/5 
+    text-editorial-ink placeholder:text-slate-400
   `;
 
-  const selectClass = `${sharedInputClass} appearance-none cursor-pointer leading-tight`;
+  const selectClass = `${sharedInputClass} appearance-none cursor-pointer leading-tight bg-white`;
 
   const dateInputClass = `
     w-full py-2.5 px-4
     outline-none transition-all duration-200 
-    rounded-[0.4rem] text-[10px] font-medium box-border
+    rounded-luxury text-[10px] font-semibold box-border
     bg-white border border-slate-200 
-    focus:border-slate-400 focus:ring-1 focus:ring-slate-200/50
-    text-slate-700 text-center
+    focus:border-gold focus:ring-4 focus:ring-gold/5
+    text-editorial-ink text-center
   `;
 
   return (
     <div
-      className={`w-full transition-all duration-500 ${isMinimal ? 'bg-transparent' : 'bg-white p-3 mb-6 rounded-2xl shadow-sm border border-slate-100'}`}
+      className={`w-full transition-all duration-500 ${isMinimal ? 'bg-transparent' : 'bg-white p-3 mb-6 rounded-luxury shadow-sm border border-slate-100'}`}
     >
       {/* MOBILE HEADER: Trocado fundo champanhe sólido por borda dourada e fundo branco */}
       <div className="md:hidden flex items-center justify-between w-full mb-1">
         <button
           onClick={() => setIsExpanded(!isExpanded)}
-          className={`flex items-center justify-center rounded-[0.5rem] h-11 font-bold transition-all border ${
+          className={`flex items-center justify-center rounded-luxury h-11 font-semibold transition-all border ${
             isExpanded
               ? 'bg-slate-900 text-white border-slate-900 shadow-lg'
               : 'bg-white text-black border-gold w-full gap-2 shadow-sm'
@@ -118,7 +118,9 @@ export default function Filters({
             size={16}
             className={isExpanded ? 'text-white' : 'text-gold'}
           />
-          {isExpanded ? 'Fechar Filtros' : 'Filtrar Acervo'}
+          <span className="text-editorial-label">
+            {isExpanded ? 'Fechar Filtros' : 'Filtrar Acervo'}
+          </span>
         </button>
       </div>
 
@@ -131,7 +133,7 @@ export default function Filters({
           <Search
             size={14}
             className={`absolute left-4 top-1/2 -translate-y-1/2 z-10 transition-colors ${
-              filterName ? 'text-[#D4AF37]' : 'text-slate-400'
+              filterName ? 'text-gold' : 'text-slate-400'
             }`}
           />
           <input
@@ -153,7 +155,7 @@ export default function Filters({
               className={dateInputClass}
             />
           </div>
-          <span className="text-white/40 font-bold text-[9px]">/</span>
+          <span className="text-slate-300 font-semibold text-[9px]">/</span>
           <div className="relative w-[110px]">
             <input
               type="date"
@@ -169,22 +171,18 @@ export default function Filters({
         <div className="relative col-span-2 md:col-span-1" ref={advancedDropdownRef}>
           <button
             onClick={() => setIsAdvancedOpen(!isAdvancedOpen)}
-            className={`w-full md:w-auto py-2.5 px-4 flex items-center justify-between gap-2 rounded-[0.4rem] transition-all border bg-white ${
-              hasAdvancedFilters
-                ? 'border-slate-200 hover:border-slate-300'
-                : 'border-slate-200 hover:border-slate-300'
-            }`}
+            className={`w-full md:w-auto py-2.5 px-4 flex items-center justify-between gap-2 rounded-luxury transition-all border bg-white border-slate-200 hover:border-slate-300`}
           >
             <div className="flex items-center gap-2">
               <Filter 
                 size={14} 
-                className={hasAdvancedFilters ? 'text-[#D4AF37]' : 'text-slate-400'} 
+                className={hasAdvancedFilters ? 'text-gold' : 'text-slate-400'} 
               />
-              <span className="text-[10px] font-semibold uppercase tracking-widest text-slate-700">
+              <span className="text-editorial-label text-slate-700">
                 FILTROS AVANÇADOS
               </span>
               {hasAdvancedFilters && (
-                <span className="w-1.5 h-1.5 rounded-full bg-[#D4AF37]"></span>
+                <span className="w-1.5 h-1.5 rounded-full bg-gold shadow-[0_0_5px_rgba(212,175,55,0.5)]"></span>
               )}
             </div>
             <ChevronDown
@@ -195,14 +193,14 @@ export default function Filters({
 
           {/* Dropdown de Filtros Avançados */}
           {isAdvancedOpen && (
-            <div className="absolute top-full left-0 right-0 md:right-auto mt-2 bg-white border border-slate-200 rounded-[0.4rem] shadow-lg z-50 p-4 min-w-[300px]">
+            <div className="absolute top-full left-0 right-0 md:right-auto mt-2 bg-white border border-slate-200 rounded-luxury shadow-lg z-50 p-4 min-w-[300px] animate-in fade-in slide-in-from-top-2 duration-200">
               <div className="space-y-3">
                 {/* Categoria */}
                 <div className="relative group">
                   <Tag
                     size={14}
                     className={`absolute left-4 top-1/2 -translate-y-1/2 z-10 transition-colors ${
-                      filterCategory ? 'text-[#D4AF37]' : 'text-slate-400'
+                      filterCategory ? 'text-gold' : 'text-slate-400'
                     }`}
                   />
                   <select
@@ -228,7 +226,7 @@ export default function Filters({
                   <Briefcase
                     size={14}
                     className={`absolute left-4 top-1/2 -translate-y-1/2 z-10 transition-colors ${
-                      filterType ? 'text-[#D4AF37]' : 'text-slate-400'
+                      filterType ? 'text-gold' : 'text-slate-400'
                     }`}
                   />
                   <select
@@ -251,7 +249,7 @@ export default function Filters({
                   <MapPin
                     size={14}
                     className={`absolute left-4 top-1/2 -translate-y-1/2 z-10 transition-colors ${
-                      filterLocation ? 'text-[#D4AF37]' : 'text-slate-400'
+                      filterLocation ? 'text-gold' : 'text-slate-400'
                     }`}
                   />
                   <input
@@ -270,11 +268,11 @@ export default function Filters({
         {hasActiveFilters && (
           <button
             onClick={resetFilters}
-            className="col-span-2 md:w-8 md:h-8 text-slate-400 bg-white hover:bg-red-50 hover:text-red-500 rounded-[0.4rem] transition-all flex items-center justify-center shrink-0 border border-slate-200 shadow-sm active:scale-95"
+            className="col-span-2 md:w-8 md:h-8 text-slate-400 bg-white hover:bg-red-50 hover:text-red-500 rounded-luxury transition-all flex items-center justify-center shrink-0 border border-slate-200 shadow-sm active:scale-95"
             title="Limpar Filtros"
           >
             <X size={14} strokeWidth={2.5} />
-            <span className="md:hidden ml-2 font-bold uppercase text-[10px] tracking-widest">
+            <span className="md:hidden ml-2 text-editorial-label">
               Limpar Filtros
             </span>
           </button>

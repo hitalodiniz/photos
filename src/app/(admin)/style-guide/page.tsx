@@ -89,7 +89,7 @@ export default function StyleGuidePage() {
 
 ⚠️ IMPORTANTE:
 - NUNCA use apenas uma cor fixa, sempre forneça versão dark:
-- Use petroleum (#00212E) no tema claro e #F3E5AB no tema escuro para elementos de destaque
+- Use petroleum (text-petroleum ou bg-petroleum) no tema claro e #F3E5AB no tema escuro para elementos de destaque
 - Sempre inclua transition-colors duration-300 para transições suaves`;
 
   const copyToClipboard = () => {
@@ -151,14 +151,14 @@ export default function StyleGuidePage() {
         
         {/* Exemplo: Card Adaptativo */}
         <div className="space-y-3">
-          <p className="text-[10px] text-slate-400 font-semibold uppercase tracking-widest">
+          <p className="text-editorial-label text-white/40">
             Card Adaptativo
           </p>
-          <div className="bg-white dark:bg-petroleum p-6 rounded-2xl border border-slate-200 dark:border-white/10 shadow-sm transition-colors duration-300">
-            <h3 className="text-petroleum dark:text-[#F3E5AB] text-lg font-semibold mb-2 transition-colors duration-300">
+          <div className="bg-white dark:bg-slate-950/50 p-6 rounded-luxury border border-slate-200 dark:border-white/10 shadow-sm transition-colors duration-300">
+            <h3 className="text-editorial-ink dark:text-gold text-lg font-bold mb-2 transition-colors duration-300 italic">
               Título Adaptativo
             </h3>
-            <p className="text-black/70 dark:text-white/80 text-sm transition-colors duration-300">
+            <p className="text-editorial-gray dark:text-white/60 text-sm transition-colors duration-300 font-medium">
               Este card se adapta automaticamente ao tema do sistema operacional.
             </p>
           </div>
@@ -167,36 +167,36 @@ export default function StyleGuidePage() {
         {/* Exemplo: Botões Adaptativos */}
         <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
           <div className="space-y-3">
-            <p className="text-[10px] text-slate-400 font-semibold uppercase tracking-widest">
+            <p className="text-editorial-label text-white/40">
               Botão Primário Adaptativo
             </p>
-            <button className="w-full px-8 h-11 rounded-[0.5rem] bg-white/95 dark:bg-black/95 backdrop-blur-2xl border border-black/20 dark:border-white/20 text-black dark:text-white text-xs font-semibold uppercase tracking-widest shadow-xl hover:bg-black/10 dark:hover:bg-white/10 transition-all duration-300">
+            <button className="w-full px-8 h-11 rounded-luxury bg-white dark:bg-white/5 backdrop-blur-xl border border-black/10 dark:border-white/10 text-black dark:text-white text-editorial-label shadow-xl hover:bg-black/5 dark:hover:bg-white/10 transition-all duration-300">
               Ação Principal
             </button>
           </div>
           <div className="space-y-3">
-            <p className="text-[10px] text-slate-400 font-semibold uppercase tracking-widest">
+            <p className="text-editorial-label text-white/40">
               Botão com Destaque Adaptativo
             </p>
-            <button className="w-full px-8 h-11 rounded-[0.5rem] bg-petroleum dark:bg-[#F3E5AB] text-white dark:text-black text-xs font-semibold uppercase tracking-widest shadow-xl hover:opacity-90 transition-all duration-300">
-              Destaque
+            <button className="w-full px-8 h-11 rounded-luxury bg-gold text-black text-editorial-label shadow-xl hover:bg-white transition-all duration-300">
+              Destaque Gold
             </button>
           </div>
         </div>
 
         {/* Exemplo: Input Adaptativo */}
         <div className="space-y-3">
-          <p className="text-[10px] text-slate-400 font-semibold uppercase tracking-widest">
+          <p className="text-editorial-label text-white/40">
             Input Adaptativo
           </p>
           <div className="max-w-xs space-y-1.5">
-            <label className="text-[10px] font-semibold uppercase tracking-widest text-petroleum dark:text-[#F3E5AB] flex items-center gap-2 transition-colors duration-300">
+            <label className="text-editorial-label text-petroleum dark:text-gold flex items-center gap-2 transition-colors duration-300">
               <User size={12} strokeWidth={2} /> Campo de Texto
             </label>
             <input
               disabled
               placeholder="Ex: Gabriel Fontes"
-              className="w-full h-11 px-4 bg-white dark:bg-black/50 border border-black/20 dark:border-white/20 rounded-[0.5rem] text-sm font-medium text-black dark:text-white placeholder:text-black/40 dark:placeholder:text-white/40 transition-colors duration-300"
+              className="w-full h-11 px-4 bg-white dark:bg-white/5 border border-black/10 dark:border-white/10 rounded-luxury text-sm font-bold text-editorial-ink dark:text-white placeholder:text-black/20 dark:placeholder:text-white/20 transition-colors duration-300"
             />
           </div>
         </div>

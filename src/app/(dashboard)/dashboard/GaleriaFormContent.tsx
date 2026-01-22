@@ -33,6 +33,7 @@ import {
   Image as ImageIcon,
   Plus,
   Trash2,
+  Users,
 } from 'lucide-react';
 import WhatsAppIcon from '@/components/ui/WhatsAppIcon';
 import { convertToDirectDownloadUrl, getDirectGoogleUrl } from '@/core/utils/url-helper';
@@ -81,6 +82,43 @@ export default function GaleriaFormContent({
       );
     return false; // Por padrão, não exibe no perfil
   });
+
+  const [leadsEnabled, setLeadsEnabled] = useState(() => {
+    if (initialData)
+      return (
+        initialData.leads_enabled === true ||
+        initialData.leads_enabled === 'true'
+      );
+    return false;
+  });
+
+  const [leadsRequireName, setLeadsRequireName] = useState(() => {
+    if (initialData)
+      return (
+        initialData.leads_require_name === true ||
+        initialData.leads_require_name === 'true'
+      );
+    return true; // Padrão: Nome obrigatório se habilitado
+  });
+
+  const [leadsRequireEmail, setLeadsRequireEmail] = useState(() => {
+    if (initialData)
+      return (
+        initialData.leads_require_email === true ||
+        initialData.leads_require_email === 'true'
+      );
+    return false;
+  });
+
+  const [leadsRequireWhatsapp, setLeadsRequireWhatsapp] = useState(() => {
+    if (initialData)
+      return (
+        initialData.leads_require_whatsapp === true ||
+        initialData.leads_require_whatsapp === 'true'
+      );
+    return true; // Padrão: WhatsApp obrigatório se habilitado
+  });
+
   const PLAN_LIMIT = 500; // Este valor deve vir da sua lógica de planos/sessão
 
   const [hasContractingClient, setHasContractingClient] = useState(() => {
@@ -300,9 +338,9 @@ export default function GaleriaFormContent({
   const [titleValue, setTitleValue] = useState(initialData?.title || '');
 
   return (
-    <div className="flex h-full overflow-hidden">
+    <div className="flex flex-col lg:flex-row h-full overflow-y-auto lg:overflow-hidden">
       {/* COLUNA PRINCIPAL (65%) */}
-      <div className="w-[65%] overflow-y-auto pr-4 pl-0 space-y-2">
+      <div className="w-full lg:w-[65%] relative z-10 lg:overflow-y-auto pr-0 lg:pr-4 pl-0 space-y-2 pb-4 lg:pb-0">
 
       {/* INPUTS OCULTOS */}
       <div className="hidden">
@@ -349,6 +387,26 @@ export default function GaleriaFormContent({
         type="hidden"
         name="columns_desktop"
         value={String(customization.columns.desktop)}
+      />
+      <input
+        type="hidden"
+        name="leads_enabled"
+        value={String(leadsEnabled)}
+      />
+      <input
+        type="hidden"
+        name="leads_require_name"
+        value={String(leadsRequireName)}
+      />
+      <input
+        type="hidden"
+        name="leads_require_email"
+        value={String(leadsRequireEmail)}
+      />
+      <input
+        type="hidden"
+        name="leads_require_whatsapp"
+        value={String(leadsRequireWhatsapp)}
       />
       </div>
 
@@ -480,12 +538,177 @@ export default function GaleriaFormContent({
         </fieldset>
       </FormSection>
 
-      {/* SEÇÃO 3: CUSTOMIZAÇÃO VISUAL */}
-      <FormSection title="Customização Visual" icon={<Layout size={14} />}>
+      {/* SEÇÃO 3: PRIVACIDADE */}
+      <FormSection title="Privacidade" icon={<Lock size={14} />}>
         <fieldset>
-        <div className="flex flex-col md:flex-row md:items-center justify-between gap-6 md:gap-2">
+          <div className="flex flex-col lg:flex-row lg:items-center gap-6 lg:gap-x-12">
+          {/* ACESSO */}
+          <div className="flex flex-col sm:flex-row items-start sm:items-center gap-3">
+            <div className="flex items-center gap-1.5 shrink-0">
+              <label className="text-[10px] font-bold uppercase tracking-widest text-petroleum">
+                <Lock size={12} className="text-gold inline mr-1.5" /> Acesso à Galeria
+              </label>
+              <div className="group relative flex items-center">
+                <div className="flex items-center justify-center w-3.5 h-3.5 rounded-full border border-petroleum/40 text-petroleum/60 dark:text-slate-400 group-hover:border-gold group-hover:text-gold transition-colors cursor-help">
+                  <span className="text-[10px] font-bold">?</span>
+                </div>
+                <div className="absolute bottom-full left-0 mb-3 w-64 p-3 bg-slate-900 text-white text-[10px] font-medium leading-relaxed rounded-[0.5rem] opacity-0 pointer-events-none group-hover:opacity-100 transition-all duration-300 shadow-2xl z-[100] text-left border border-white/10">
+                  <p>
+                    Para acessar uma galeria <strong className="text-champagne">Privada</strong>, o usuário deve informar a senha cadastrada nesta tela. Sem senha, qualquer pessoa com o link pode acessar. Com senha, apenas quem informar a senha correta terá acesso.
+                  </p>
+                  <div className="absolute top-full left-2 border-8 border-transparent border-t-slate-900" />
+                </div>
+              </div>
+            </div>
+            
+            <div className="flex items-center gap-3 w-full sm:w-auto">
+              <div className="flex bg-slate-50 rounded-[0.4rem] border border-petroleum/40 p-1 gap-1 w-40 shrink-0">
+                <button
+                  type="button"
+                  onClick={() => setIsPublic(true)}
+                  className={`flex-1 py-1 rounded-[0.3rem] text-[10px] font-semibold uppercase tracking-widest transition-all ${isPublic ? 'bg-white text-gold shadow-sm' : 'text-slate-400'}`}
+                >
+                  Público
+                </button>
+                <button
+                  type="button"
+                  onClick={() => setIsPublic(false)}
+                  className={`flex-1 py-1 rounded-[0.3rem] text-[10px] font-semibold uppercase tracking-widest transition-all ${!isPublic ? 'bg-white text-gold shadow-sm' : 'text-petroleum/60 dark:text-slate-400'}`}
+                >
+                  Privado
+                </button>
+              </div>
+              {!isPublic && (
+                <div className="relative group w-32">
+                  <input
+                    name="password"
+                    type={showPassword ? 'text' : 'password'}
+                    inputMode="numeric"
+                    pattern="[0-9]*"
+                    minLength={4}
+                    maxLength={8}
+                    defaultValue={initialData?.password || ''}
+                    className="w-full pl-3 pr-10 h-9 bg-white border border-champagne rounded-[0.4rem] text-xs font-medium tracking-[0.2em] outline-none focus:border-gold shadow-sm"
+                    required
+                    placeholder="Senha"
+                    onChange={(e) => {
+                      e.target.value = e.target.value.replace(/\D/g, '');
+                    }}
+                  />
+                  <button
+                    type="button"
+                    onClick={() => setShowPassword(!showPassword)}
+                    className="absolute right-2 top-1/2 -translate-y-1/2 text-slate-400 hover:text-gold transition-colors p-1"
+                  >
+                    {showPassword ? <EyeOff size={14} /> : <Eye size={14} />}
+                  </button>
+                </div>
+              )}
+            </div>
+          </div>
+
+          {/* LISTAGEM NO PERFIL */}
+          <div className="flex flex-col sm:flex-row items-start sm:items-center gap-3">
+            <div className="flex items-center gap-1.5 shrink-0">
+              <label className="text-[10px] font-bold uppercase tracking-widest text-petroleum">
+                <Eye size={12} className="text-gold inline mr-1.5" /> Listar no Perfil
+              </label>
+              <div className="group relative flex items-center">
+                <div className="flex items-center justify-center w-3.5 h-3.5 rounded-full border border-petroleum/40 text-petroleum/60 dark:text-slate-400 group-hover:border-gold group-hover:text-gold transition-colors cursor-help">
+                  <span className="text-[10px] font-bold">?</span>
+                </div>
+                <div className="absolute bottom-full left-0 lg:left-auto lg:right-0 mb-3 w-64 p-3 bg-slate-900 text-white text-[10px] font-medium leading-relaxed rounded-[0.5rem] opacity-0 pointer-events-none group-hover:opacity-100 transition-all duration-300 shadow-2xl z-[100] text-left border border-white/10">
+                  <p>
+                    Se ativado, esta galeria será visível na sua <strong className="text-champagne">página de perfil pública</strong> para todos os visitantes.
+                  </p>
+                  <div className="absolute top-full left-2 lg:left-auto lg:right-2 border-8 border-transparent border-t-slate-900" />
+                </div>
+              </div>
+            </div>
+
+            <button
+              type="button"
+              onClick={() => setShowOnProfile(!showOnProfile)}
+              className={`relative h-5 w-9 rounded-full transition-colors duration-200 ${showOnProfile ? 'bg-green-500' : 'bg-slate-200'}`}
+            >
+              <span
+                className={`absolute top-0.5 left-0.5 h-4 w-4 rounded-full bg-white shadow-sm transition-transform duration-200 ${showOnProfile ? 'translate-x-4' : ''}`}
+              />
+            </button>
+          </div>
+        </div>
+        </fieldset>
+      </FormSection>
+
+      {/* SEÇÃO NOVA: CAPTURA DE LEADS */}
+      <FormSection title="Captura de Leads" icon={<Users size={14} />}>
+        <fieldset>
+          <div className="flex flex-col gap-4">
+            <div className="flex flex-col sm:flex-row items-start sm:items-center gap-4">
+              <div className="flex items-center gap-3">
+                <label className="text-[10px] font-bold uppercase tracking-widest text-petroleum">
+                  Habilitar Captura de Leads
+                </label>
+                <button
+                  type="button"
+                  onClick={() => setLeadsEnabled(!leadsEnabled)}
+                  className={`relative h-5 w-9 rounded-full transition-colors duration-200 ${leadsEnabled ? 'bg-gold' : 'bg-slate-200'}`}
+                >
+                  <span
+                    className={`absolute top-0.5 left-0.5 h-4 w-4 rounded-full bg-white shadow-sm transition-transform duration-200 ${leadsEnabled ? 'translate-x-4' : ''}`}
+                  />
+                </button>
+              </div>
+              {!isEdit && (
+                <p className="text-[10px] text-petroleum/60 dark:text-slate-400 italic">
+                  Aumente sua base de contatos exigindo dados básicos antes dos clientes visualizarem as fotos.
+                </p>
+              )}
+            </div>
+
+            {leadsEnabled && (
+              <div className="grid grid-cols-1 sm:grid-cols-3 gap-4 p-4 bg-slate-50 rounded-[0.5rem] border border-petroleum/20 animate-in fade-in slide-in-from-top-2 duration-300">
+                <label className="flex items-center gap-2 cursor-pointer group">
+                  <div 
+                    onClick={() => setLeadsRequireName(!leadsRequireName)}
+                    className={`w-4 h-4 rounded border transition-colors flex items-center justify-center ${leadsRequireName ? 'bg-gold border-gold' : 'bg-white border-petroleum/40'}`}
+                  >
+                    {leadsRequireName && <CheckCircle2 size={10} className="text-white" />}
+                  </div>
+                  <span className="text-[11px] font-semibold uppercase tracking-wider text-petroleum/80 group-hover:text-petroleum">Exigir Nome</span>
+                </label>
+
+                <label className="flex items-center gap-2 cursor-pointer group">
+                  <div 
+                    onClick={() => setLeadsRequireEmail(!leadsRequireEmail)}
+                    className={`w-4 h-4 rounded border transition-colors flex items-center justify-center ${leadsRequireEmail ? 'bg-gold border-gold' : 'bg-white border-petroleum/40'}`}
+                  >
+                    {leadsRequireEmail && <CheckCircle2 size={10} className="text-white" />}
+                  </div>
+                  <span className="text-[11px] font-semibold uppercase tracking-wider text-petroleum/80 group-hover:text-petroleum">Exigir E-mail</span>
+                </label>
+
+                <label className="flex items-center gap-2 cursor-pointer group">
+                  <div 
+                    onClick={() => setLeadsRequireWhatsapp(!leadsRequireWhatsapp)}
+                    className={`w-4 h-4 rounded border transition-colors flex items-center justify-center ${leadsRequireWhatsapp ? 'bg-gold border-gold' : 'bg-white border-petroleum/40'}`}
+                  >
+                    {leadsRequireWhatsapp && <CheckCircle2 size={10} className="text-white" />}
+                  </div>
+                  <span className="text-[11px] font-semibold uppercase tracking-wider text-petroleum/80 group-hover:text-petroleum">Exigir WhatsApp</span>
+                </label>
+              </div>
+            )}
+          </div>
+        </fieldset>
+      </FormSection>
+
+      {/* SEÇÃO 4: CUSTOMIZAÇÃO VISUAL */}
+      <FormSection title="Customização Visual da Galeria visível para o usuário final" icon={<Layout size={14} />}>
+        <fieldset>
+        <div className="grid grid-cols-1 xl:grid-cols-[auto_1fr_auto] gap-4 items-center">
           {/* FOTO DE FUNDO */}
-          <div className="flex items-center justify-between md:justify-start gap-3 pb-4 md:pb-0 border-b md:border-b-0 md:border-r border-slate-200 md:pr-4 shrink-0">
+          <div className="flex items-center gap-0 pb-4 xl:pb-0 xl:border-r border-slate-200 xl:pr-2 w-max">
             <div className="flex items-center gap-1.5">
               <label className="text-[10px] font-bold uppercase tracking-widest text-petroleum">Foto de fundo</label>
               <div className="group relative flex items-center">
@@ -517,10 +740,10 @@ export default function GaleriaFormContent({
           </div>
 
           {/* COR DE FUNDO */}
-          <div className="flex items-center justify-between md:justify-start gap-3 pb-4 md:pb-0 border-b md:border-b-0 md:border-r border-slate-200 md:pr-4 shrink-0">
+          <div className="flex items-center justify-between gap-3 xl:pb-0 pb-4 xl:border-r border-slate-200 xl:pr-4">
             <div className="flex items-center gap-1.5">
               <Layout size={13} className="text-gold" />
-              <label> Cor de fundo</label>
+              <label className="text-[10px] font-bold uppercase tracking-widest text-petroleum"> Cor de fundo</label>
               <div className="group relative flex items-center">
                 <div className="flex items-center justify-center w-3.5 h-3.5 rounded-full border border-petroleum/40 text-petroleum/60 dark:text-slate-400 group-hover:border-gold group-hover:text-gold transition-colors cursor-help">
                   <span className="text-[10px] font-bold">?</span>
@@ -528,7 +751,7 @@ export default function GaleriaFormContent({
                 <div className="absolute bottom-full left-1/2 -translate-x-1/2 mb-3 w-64 p-3 bg-slate-900 text-white text-[10px] font-medium leading-relaxed rounded-[0.5rem] opacity-0 pointer-events-none group-hover:opacity-100 transition-all duration-300 shadow-2xl z-[100] text-center border border-white/10">
                   <p>
                     Define a cor sólida do grid. Visível caso a{' '}
-                    <strong className="text-champagne">"Foto de fundo"</strong>{' '}
+                    <strong className="text-champagne">&quot;Foto de fundo&quot;</strong>{' '}
                     esteja desativada.
                   </p>
                   <div className="absolute top-full left-1/2 -translate-x-1/2 border-8 border-transparent border-t-slate-900" />
@@ -579,24 +802,24 @@ export default function GaleriaFormContent({
           </div>
 
           {/* GRID COLUNAS */}
-          <div className="flex items-center justify-between md:justify-start gap-3 shrink-0">
+          <div className="flex items-center justify-between gap-3 w-max">
             <div className="flex items-center gap-1.5">
               <label className="text-[10px] font-bold uppercase tracking-widest text-petroleum"> Grid</label>
               <div className="group relative flex items-center">
                 <div className="flex items-center justify-center w-3.5 h-3.5 rounded-full border border-petroleum/40 text-petroleum/60 dark:text-slate-400 group-hover:border-gold group-hover:text-gold transition-colors cursor-help">
                   <span className="text-[10px] font-bold">?</span>
                 </div>
-                <div className="absolute bottom-full right-0 md:left-1/2 md:-translate-x-1/2 mb-3 w-64 p-3 bg-slate-900 text-white text-[10px] font-medium leading-relaxed rounded-[0.5rem] opacity-0 pointer-events-none group-hover:opacity-100 transition-all duration-300 shadow-2xl z-[100] text-left border border-white/10">
+                <div className="absolute bottom-full right-0 xl:left-1/2 xl:-translate-x-1/2 mb-3 w-64 p-3 bg-slate-900 text-white text-[10px] font-medium leading-relaxed rounded-[0.5rem] opacity-0 pointer-events-none group-hover:opacity-100 transition-all duration-300 shadow-2xl z-[100] text-left border border-white/10">
                   <p>
                     Define o{' '}
                     <strong className="text-champagne">layout inicial</strong>{' '}
                     de colunas.
                   </p>
-                  <div className="absolute top-full right-2 md:left-1/2 md:-translate-x-1/2 border-8 border-transparent border-t-slate-900" />
+                  <div className="absolute top-full right-2 xl:left-1/2 xl:-translate-x-1/2 border-8 border-transparent border-t-slate-900" />
                 </div>
               </div>
             </div>
-            <div className="flex gap-2 md:gap-3">
+            <div className="flex gap-2">
               {[
                 { k: 'mobile', i: Smartphone },
                 { k: 'tablet', i: Tablet },
@@ -641,91 +864,10 @@ export default function GaleriaFormContent({
         </fieldset>
       </FormSection>
 
-      {/* SEÇÃO 4: PRIVACIDADE */}
-      <FormSection title="Privacidade" icon={<Lock size={14} />}>
-        <fieldset>
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
-          {/* ACESSO */}
-          <div className="flex items-center justify-between gap-4">
-            <label className="text-[10px] font-bold uppercase tracking-widest text-petroleum">
-              {' '}
-              <Lock size={12} className="text-gold inline mr-1.5" /> Acesso à Galeria
-            </label>
-            <div className="flex items-center gap-2 flex-1 justify-end">
-              <div className="flex bg-slate-50 rounded-[0.4rem] border border-petroleum/40 p-1 gap-1 w-40 shrink-0">
-                <button
-                  type="button"
-                  onClick={() => setIsPublic(true)}
-                  className={`flex-1 py-1 rounded-[0.3rem] text-[10px] font-semibold uppercase tracking-widest transition-all ${isPublic ? 'bg-white text-gold shadow-sm' : 'text-slate-400'}`}
-                >
-                  Público
-                </button>
-                <button
-                  type="button"
-                  onClick={() => setIsPublic(false)}
-                  className={`flex-1 py-1 rounded-[0.3rem] text-[10px] font-semibold uppercase tracking-widest transition-all ${!isPublic ? 'bg-white text-gold shadow-sm' : 'text-petroleum/60 dark:text-slate-400'}`}
-                >
-                  Privado
-                </button>
-              </div>
-              {!isPublic && (
-                <div className="flex-1 relative group max-w-[120px]">
-                  <input
-                    name="password"
-                    type={showPassword ? 'text' : 'password'}
-                    inputMode="numeric"
-                    pattern="[0-9]*"
-                    minLength={4}
-                    maxLength={8}
-                    defaultValue={initialData?.password || ''}
-                    className="w-full pl-3 pr-10 h-9 bg-white border border-champagne rounded-[0.4rem] text-xs font-medium tracking-[0.2em] outline-none"
-                    required
-                    placeholder="Senha"
-                    onChange={(e) => {
-                      e.target.value = e.target.value.replace(/\D/g, '');
-                    }}
-                  />
-                  <button
-                    type="button"
-                    onClick={() => setShowPassword(!showPassword)}
-                    className="absolute right-2 top-1/2 -translate-y-1/2 text-slate-400 hover:text-gold transition-colors p-1"
-                  >
-                    {showPassword ? <EyeOff size={14} /> : <Eye size={14} />}
-                  </button>
-                </div>
-              )}
-            </div>
-          </div>
-
-          {/* LISTAGEM NO PERFIL */}
-          <div className="flex items-center justify-between gap-4">
-            <label className="text-[10px] font-bold uppercase tracking-widest text-petroleum">
-              {' '}
-              <Eye size={12} className="text-gold inline mr-1.5" /> Listar no Perfil
-            </label>
-            <div className="flex items-center justify-between bg-slate-50 p-2 h-11 rounded-[0.4rem] border border-petroleum/40 flex-1">
-              <span className="text-[10px] md:text-[12px]font-medium text-petroleum dark:text-slate-600 pl-1">
-                Exibir esta galeria no meu perfil público?
-              </span>
-              <button
-                type="button"
-                onClick={() => setShowOnProfile(!showOnProfile)}
-                className={`relative h-5 w-9 rounded-full transition-colors duration-200 ${showOnProfile ? 'bg-green-500' : 'bg-slate-200'}`}
-              >
-                <span
-                  className={`absolute top-0.5 left-0.5 h-4 w-4 rounded-full bg-white shadow-sm transition-transform duration-200 ${showOnProfile ? 'translate-x-4' : ''}`}
-                />
-              </button>
-            </div>
-          </div>
-        </div>
-        </fieldset>
-      </FormSection>
-
       </div>
 
       {/* COLUNA LATERAL (35%) */}
-      <div className="w-[35%] border-l border-petroleum/40 overflow-y-auto pl-4 pr-0 space-y-2 bg-slate-50/30">
+      <div className="w-full lg:w-[35%] border-t lg:border-t-0 lg:border-l border-petroleum/40 lg:overflow-y-auto pl-0 lg:pl-4 pr-0 py-6 lg:py-0 space-y-2 bg-slate-50/30">
         {/* GOOGLE DRIVE - Seção Principal */}
         <div className="bg-white rounded-[0.5rem] border border-petroleum/40 p-4 space-y-4 mt-2">
           <div className="flex items-center gap-2 pb-2 border-b border-petroleum/40">

@@ -164,6 +164,12 @@ export async function createGaleria(
       zip_url_full: (formData.get('zip_url_full') as string) || null,
       zip_url_social: null, // Mantido para compatibilidade, mas não usado mais
 
+      // 🎯 Captura de Leads
+      leads_enabled: formData.get('leads_enabled') === 'true',
+      leads_require_name: formData.get('leads_require_name') === 'true',
+      leads_require_email: formData.get('leads_require_email') === 'true',
+      leads_require_whatsapp: formData.get('leads_require_whatsapp') === 'true',
+
       // Senha inicial (se houver)
       password:
         formData.get('is_public') === 'true'
@@ -257,6 +263,12 @@ export async function updateGaleria(
       // 🎯 Links armazenados como JSON (array de strings) no campo zip_url_full
       zip_url_full: (formData.get('zip_url_full') as string) || null,
       zip_url_social: null, // Mantido para compatibilidade, mas não usado mais
+
+      // 🎯 Captura de Leads
+      leads_enabled: formData.get('leads_enabled') === 'true',
+      leads_require_name: formData.get('leads_require_name') === 'true',
+      leads_require_email: formData.get('leads_require_email') === 'true',
+      leads_require_whatsapp: formData.get('leads_require_whatsapp') === 'true',
     };
 
     // 2. Validação básica de integridade

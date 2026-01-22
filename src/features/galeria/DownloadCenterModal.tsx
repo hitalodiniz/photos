@@ -10,6 +10,8 @@ import {
   Wifi,
 } from 'lucide-react';
 
+import BaseModal from '@/components/ui/BaseModal';
+
 interface DownloadCenterProps {
   isOpen: boolean;
   onClose: () => void;
@@ -43,228 +45,199 @@ export const DownloadCenterModal = ({
 }: DownloadCenterProps) => {
   if (!isOpen) return null;
 
-  return (
-    <div className="fixed inset-0 z-[999] bg-black/70 backdrop-blur-md flex items-center justify-center px-6 md:p-6 animate-in fade-in duration-300">
-      <div className="absolute inset-0" onClick={onClose} />
+  const headerIcon = (
+    totalGallerySizeMB > 100 ? <Wifi size={20} strokeWidth={2.5} /> : <Download size={20} strokeWidth={2.5} />
+  );
 
-      <div className="w-full md:max-w-xl bg-petroleum border border-white/10 rounded-[0.5rem] shadow-2xl flex flex-col h-auto max-h-[85vh] relative animate-in zoom-in-95 duration-300 overflow-hidden">
-        {/* 1. TOPO */}
-        {/* 1. TOPO: WI-FI RECOMENDADO COM ÍCONE */}
-        <div className="flex flex-col shrink-0">
-          {totalGallerySizeMB > 100 && (
-            <div className="bg-[#F3E5AB]/10 py-4 flex items-center justify-center gap-2.5 border-b border-white/5 shrink-0">
-              {/* Ícone de Wi-Fi em dourado para destaque visual */}
-              <Wifi size={14} className="text-[#F3E5AB]" strokeWidth={2.5} />
-              <span className="text-[10px] font-bold uppercase tracking-[0.25em] text-[#F3E5AB]">
-                Wi-Fi Recomendado
+  const footer = (
+    <div className="w-full">
+      {isDownloading ? (
+        <div className="w-full px-2">
+          <div className="flex justify-between items-end mb-3">
+            <div className="flex flex-col gap-0.5">
+              <span className="text-[10px] font-bold uppercase tracking-luxury text-gold animate-pulse">
+                Gerando Arquivo
+              </span>
+              <span className="text-[8px] text-white/40 uppercase font-bold tracking-luxury">
+                {activeDownloadingIndex !== null
+                  ? 'Não feche esta tela'
+                  : 'Iniciando...'}
               </span>
             </div>
-          )}
-
-          <div className="px-8 py-7 border-b border-white/5 flex justify-between items-center bg-white/[0.02]">
-            <div className="min-w-0 text-left">
-              <h2 className="text-2xl text-white font-semibold tracking-tight">
-                Central de Download
-              </h2>
-              <p className="text-[#F3E5AB] text-[11px] font-medium uppercase tracking-[0.15em] mt-2">
-                {downloadedVolumes.length} / {volumes.length} pacotes concluídos
-              </p>
-            </div>
-            <button
-              onClick={onClose}
-              className="p-2.5 text-white bg-white/5 hover:bg-white/10 rounded-full transition-all border border-white/5"
-            >
-              <X size={22} />
-            </button>
+            <span className="text-xl font-bold text-white leading-none">
+              {Math.round(downloadProgress)}
+              <span className="text-sm ml-0.5 text-gold">%</span>
+            </span>
+          </div>
+          <div className="w-full h-1.5 bg-white/5 rounded-full overflow-hidden border border-white/5">
+            <div
+              className="h-full bg-gold transition-all duration-300 shadow-[0_0_15px_rgba(212,175,55,0.6)]"
+              style={{ width: `${downloadProgress}%` }}
+            />
           </div>
         </div>
+      ) : (
+        <div className="flex flex-col items-center gap-1">
+          <p className="text-[10px] font-bold uppercase tracking-luxury text-white/40">
+            Toque no pacote para baixar
+          </p>
+          <div className="h-1 w-8 bg-gold rounded-full opacity-40" />
+        </div>
+      )}
+    </div>
+  );
 
-        {/* 2. LISTAGEM */}
-        <div className="flex-1 overflow-y-auto px-8 py-6 space-y-3 bg-black/20 min-h-0 no-scrollbar">
-          {/* FAVORITOS */}
-          {favoriteVolumes.length > 0 &&
-            favoriteVolumes.map((favChunk, index) => {
-              const isCurrent = activeDownloadingIndex === `fav-${index}`;
-              const sizeMB = favChunk.length * 1.2;
-
-              return (
-                <button
-                  key={`fav-${index}`}
-                  disabled={isDownloading && !isCurrent}
-                  onClick={() =>
-                    handleDownloadZip(
-                      favChunk,
-                      `Favoritas_${index + 1}`,
-                      false,
-                      true,
-                      `fav-${index}`,
-                    )
-                  }
-                  className={`w-full flex items-center gap-5 p-5 rounded-xl border transition-all duration-300 group ${
-                    isCurrent
-                      ? 'border-[#F3E5AB] bg-white/10 shadow-[0_0_25px_rgba(243,229,171,0.1)]'
-                      : 'bg-white/5 border-white/5 hover:border-white/20 hover:bg-white/[0.08]'
-                  }`}
-                >
-                  <div
-                    className={`w-12 h-12 rounded-lg flex items-center justify-center shrink-0 transition-transform group-hover:scale-105 ${
-                      isCurrent
-                        ? 'bg-[#F3E5AB] text-black shadow-[0_0_15px_rgba(243,229,171,0.3)]'
-                        : 'bg-[#F3E5AB]/10 text-[#F3E5AB]'
-                    }`}
-                  >
-                    <Heart
-                      size={22}
-                      fill={isCurrent ? 'currentColor' : 'none'}
-                    />
-                  </div>
-
-                  <div className="flex-1 text-left min-w-0">
-                    <p className="text-[15px] font-semibold text-white tracking-wide uppercase">
-                      Suas Favoritas{' '}
-                      {favoriteVolumes.length > 1 ? index + 1 : ''}
-                    </p>
-                    <div className="flex items-center gap-2 mt-1">
-                      <span className="text-[11px] font-semibold text-[#F3E5AB] uppercase tracking-wider">
-                        {sizeMB.toFixed(0)} MB
-                      </span>
-                      <span className="text-white text-xs">•</span>
-                      <span className="text-[11px] font-semibold text-white tracking-wide uppercase italic">
-                        Otimizadas
-                      </span>
-                    </div>
-                  </div>
-
-                  <div className="shrink-0">
-                    {isCurrent ? (
-                      <Loader2
-                        size={20}
-                        className="animate-spin text-[#F3E5AB]"
-                      />
-                    ) : (
-                      <div className="w-9 h-9 rounded-full border border-white/20 flex items-center justify-center text-white group-hover:border-[#F3E5AB]/50 group-hover:text-[#F3E5AB] transition-colors">
-                        <Download size={18} />
-                      </div>
-                    )}
-                  </div>
-                </button>
-              );
-            })}
-
-          {favoriteVolumes.length > 0 && (
-            <div className="flex items-center gap-4 py-4 px-2">
-              <div className="h-px bg-white/10 flex-1" />
-              <span className="text-[10px] uppercase tracking-[0.25em] text-white font-bold">
-                Galeria Completa
-              </span>
-              <div className="h-px bg-white/10 flex-1" />
-            </div>
-          )}
-
-          {/* VOLUMES DA GALERIA */}
-          {volumes.map((chunk, i) => {
-            const isDownloaded = downloadedVolumes.includes(i);
-            const isCurrent = activeDownloadingIndex === i;
-            const sizeMB = chunk.length * 1.2;
+  return (
+    <BaseModal
+      isOpen={isOpen}
+      onClose={onClose}
+      title="Central de Download"
+      subtitle={`${downloadedVolumes.length} / ${volumes.length} pacotes concluídos`}
+      headerIcon={headerIcon}
+      footer={footer}
+      maxWidth="md"
+    >
+      <div className="space-y-2">
+        {/* FAVORITOS */}
+        {favoriteVolumes.length > 0 &&
+          favoriteVolumes.map((favChunk, index) => {
+            const isCurrent = activeDownloadingIndex === `fav-${index}`;
+            const sizeMB = favChunk.length * 1.2;
 
             return (
               <button
-                key={i}
+                key={`fav-${index}`}
                 disabled={isDownloading && !isCurrent}
                 onClick={() =>
-                  handleDownloadZip(chunk, `Vol_${i + 1}`, false, true, i)
+                  handleDownloadZip(
+                    favChunk,
+                    `Favoritas_${index + 1}`,
+                    false,
+                    true,
+                    `fav-${index}`,
+                  )
                 }
-                className={`w-full flex items-center gap-5 p-5 rounded-xl border transition-all duration-300 group ${
+                className={`w-full flex items-center gap-4 p-4 rounded-luxury border transition-all duration-300 group ${
                   isCurrent
-                    ? 'border-[#F3E5AB] bg-white/10 shadow-[0_0_25px_rgba(243,229,171,0.1)]'
-                    : isDownloaded
-                      ? 'bg-white/[0.02] border-green-500/20 opacity-70'
-                      : 'bg-white/5 border-white/5 hover:border-white/20 hover:bg-white/[0.08]'
+                    ? 'border-gold bg-slate-50 shadow-sm'
+                    : 'bg-white border-petroleum/10 hover:border-gold/40 hover:bg-slate-50'
                 }`}
               >
                 <div
-                  className={`w-12 h-12 rounded-lg flex items-center justify-center shrink-0 transition-transform group-hover:scale-105 ${
+                  className={`w-10 h-10 rounded-luxury flex items-center justify-center shrink-0 transition-transform group-hover:scale-105 ${
                     isCurrent
-                      ? 'bg-[#F3E5AB] text-black shadow-[0_0_15px_rgba(243,229,171,0.3)]'
-                      : isDownloaded
-                        ? 'bg-green-500/20 text-green-400'
-                        : 'bg-white/5 text-white'
+                      ? 'bg-gold text-white shadow-[0_0_15px_rgba(212,175,55,0.3)]'
+                      : 'bg-gold/10 text-gold'
                   }`}
                 >
-                  <Package size={22} />
+                  <Heart
+                    size={18}
+                    fill={isCurrent ? 'currentColor' : 'none'}
+                  />
                 </div>
 
                 <div className="flex-1 text-left min-w-0">
-                  <p className="text-[15px] font-semibold text-white tracking-wide uppercase">
-                    Pacote {String(i + 1).padStart(2, '0')}
+                  <p className="text-[13px] md:text-[14px] font-bold text-petroleum tracking-wide uppercase">
+                    Suas Favoritas{' '}
+                    {favoriteVolumes.length > 1 ? index + 1 : ''}
                   </p>
-                  <div className="flex items-center gap-2 mt-1">
-                    <span className="text-[11px] font-semibold text-[#F3E5AB] tracking-wider uppercase">
-                      ~{sizeMB.toFixed(0)} MB
+                  <div className="flex items-center gap-2 mt-0.5">
+                    <span className="text-[9px] font-bold text-gold uppercase tracking-luxury">
+                      {sizeMB.toFixed(0)} MB
                     </span>
-                    <span className="text-white text-xs">•</span>
-                    <span className="text-[11px] font-medium text-white/90 tracking-wide italic">
-                      Fotos otimizadas
+                    <span className="text-petroleum/10 text-xs">•</span>
+                    <span className="text-[9px] font-bold text-petroleum/30 tracking-luxury uppercase">
+                      Otimizadas
                     </span>
                   </div>
                 </div>
 
                 <div className="shrink-0">
                   {isCurrent ? (
-                    <Loader2
-                      size={20}
-                      className="text-[#F3E5AB] animate-spin"
-                    />
-                  ) : isDownloaded ? (
-                    <CheckCircle2 size={22} className="text-green-400" />
+                    <div className="loading-luxury w-4 h-4 border-gold/30 border-t-gold" />
                   ) : (
-                    <div className="w-9 h-9 rounded-full border border-white/20 flex items-center justify-center text-white group-hover:border-[#F3E5AB]/50 group-hover:text-[#F3E5AB] transition-colors">
-                      <Download size={18} />
+                    <div className="w-8 h-8 rounded-full border border-petroleum/10 flex items-center justify-center text-petroleum/40 group-hover:border-gold/50 group-hover:text-gold transition-colors">
+                      <Download size={16} />
                     </div>
                   )}
                 </div>
               </button>
             );
           })}
-        </div>
 
-        {/* 3. RODAPÉ */}
-        <div className="px-8 py-8 bg-petroleum border-t border-white/5 shrink-0">
-          {isDownloading ? (
-            <div className="w-full">
-              <div className="flex justify-between items-end mb-4">
-                <div className="flex flex-col gap-1">
-                  <span className="text-[10px] font-semibold uppercase tracking-[0.2em] text-[#F3E5AB] animate-pulse">
-                    Gerando Arquivo
+        {favoriteVolumes.length > 0 && (
+          <div className="flex items-center gap-3 py-2 px-2">
+            <div className="h-px bg-petroleum/10 flex-1" />
+            <span className="text-[9px] font-bold uppercase tracking-luxury text-petroleum/20">
+              Galeria Completa
+            </span>
+            <div className="h-px bg-petroleum/10 flex-1" />
+          </div>
+        )}
+
+        {/* VOLUMES DA GALERIA */}
+        {volumes.map((chunk, i) => {
+          const isDownloaded = downloadedVolumes.includes(i);
+          const isCurrent = activeDownloadingIndex === i;
+          const sizeMB = chunk.length * 1.2;
+
+          return (
+            <button
+              key={i}
+              disabled={isDownloading && !isCurrent}
+              onClick={() =>
+                handleDownloadZip(chunk, `Vol_${i + 1}`, false, true, i)
+              }
+              className={`w-full flex items-center gap-4 p-4 rounded-luxury border transition-all duration-300 group ${
+                isCurrent
+                  ? 'border-gold bg-slate-50 shadow-sm'
+                  : isDownloaded
+                    ? 'bg-slate-50 border-green-500/20 opacity-70'
+                    : 'bg-white border-petroleum/10 hover:border-gold/40 hover:bg-slate-50'
+              }`}
+            >
+              <div
+                className={`w-10 h-10 rounded-luxury flex items-center justify-center shrink-0 transition-transform group-hover:scale-105 ${
+                  isCurrent
+                    ? 'bg-gold text-white shadow-[0_0_15px_rgba(212,175,55,0.3)]'
+                    : isDownloaded
+                      ? 'bg-green-500/20 text-green-600'
+                      : 'bg-petroleum/5 text-petroleum/40'
+                }`}
+              >
+                <Package size={18} />
+              </div>
+
+              <div className="flex-1 text-left min-w-0">
+                <p className="text-[13px] md:text-[14px] font-bold text-petroleum tracking-wide uppercase">
+                  Pacote {String(i + 1).padStart(2, '0')}
+                </p>
+                <div className="flex items-center gap-2 mt-0.5">
+                  <span className="text-[9px] font-bold text-gold tracking-luxury uppercase">
+                    ~{sizeMB.toFixed(0)} MB
                   </span>
-                  <span className="text-[9px] text-white uppercase font-semibold tracking-widest">
-                    {activeDownloadingIndex !== null
-                      ? 'Não feche esta tela'
-                      : 'Iniciando...'}
+                  <span className="text-petroleum/10 text-xs">•</span>
+                  <span className="text-[9px] font-bold text-petroleum/30 tracking-luxury uppercase">
+                    Fotos otimizadas
                   </span>
                 </div>
-                <span className="text-2xl font-semibold text-white leading-none">
-                  {Math.round(downloadProgress)}
-                  <span className="text-sm ml-0.5">%</span>
-                </span>
               </div>
-              <div className="w-full h-2 bg-white/5 rounded-full overflow-hidden">
-                <div
-                  className="h-full bg-[#F3E5AB] transition-all duration-300 shadow-[0_0_15px_rgba(243,229,171,0.6)]"
-                  style={{ width: `${downloadProgress}%` }}
-                />
+
+              <div className="shrink-0">
+                {isCurrent ? (
+                  <div className="loading-luxury w-4 h-4 border-gold/30 border-t-gold" />
+                ) : isDownloaded ? (
+                  <CheckCircle2 size={20} className="text-green-500" />
+                ) : (
+                  <div className="w-8 h-8 rounded-full border border-petroleum/10 flex items-center justify-center text-petroleum/40 group-hover:border-gold/50 group-hover:text-gold transition-colors">
+                    <Download size={16} />
+                  </div>
+                )}
               </div>
-            </div>
-          ) : (
-            <div className="flex flex-col items-center gap-1">
-              <p className="text-[10px] text-white/70 uppercase font-semibold tracking-[0.25em]">
-                Toque no pacote para baixar
-              </p>
-              <div className="h-1 w-8 bg-[#F3E5AB] rounded-full" />
-            </div>
-          )}
-        </div>
+            </button>
+          );
+        })}
       </div>
-    </div>
+    </BaseModal>
   );
 };

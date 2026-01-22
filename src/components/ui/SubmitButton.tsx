@@ -30,14 +30,14 @@ export default function SubmitButton({
       disabled={isPending || success}
       className={`
         group relative flex items-center justify-center gap-2
-        text-[10px] md:text-[11px] font-bold uppercase tracking-[0.2em] transition-all duration-300
+        text-[10px] md:text-[11px] font-bold uppercase tracking-luxury transition-all duration-300
         active:scale-[0.98] overflow-hidden
         ${
           success
-            ? 'bg-green-500 text-white shadow-green-200 h-10 rounded-[0.5rem]'
+            ? 'bg-green-500 text-white shadow-green-200 h-10 rounded-luxury'
             : isPending
-              ? 'bg-slate-200 text-slate-400 cursor-wait border border-slate-300 h-10 rounded-[0.5rem]'
-              : 'bg-[#F3E5AB] text-black hover:bg-white hover:border-[#F3E5AB] border border-[#F3E5AB] h-10 rounded-[0.5rem] shadow-sm'
+              ? 'bg-slate-200 text-slate-400 cursor-wait border border-slate-300 h-10 rounded-luxury'
+              : 'bg-champagne text-black hover:bg-white hover:border-champagne border border-champagne h-10 rounded-luxury shadow-sm'
         }
         ${className}
       `}

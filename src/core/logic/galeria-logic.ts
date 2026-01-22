@@ -100,6 +100,10 @@ export function formatGalleryData(
     columns_tablet: Number((raw as any).columns_tablet) || 3,
     columns_desktop: Number((raw as any).columns_desktop) || 4,
     show_on_profile: raw.show_on_profile ?? false,
+    leads_enabled: !!(raw as any).leads_enabled,
+    leads_require_name: !!(raw as any).leads_require_name,
+    leads_require_email: !!(raw as any).leads_require_email,
+    leads_require_whatsapp: !!(raw as any).leads_require_whatsapp,
 
     photographer: raw.photographer
       ? {

@@ -29,14 +29,14 @@ export default function GoogleConsentAlert({
     <div className="flex flex-col gap-3">
       <button
         onClick={handleConfirm}
-        className="w-full py-4 rounded-xl font-semibold uppercase text-[10px] tracking-wider transition-all active:scale-95 flex items-center justify-center gap-2 bg-[#F3E5AB] text-black hover:bg-[#F3E5AB]/90 shadow-lg shadow-[#F3E5AB]/20"
+        className="w-full py-4 rounded-luxury font-bold uppercase text-[10px] tracking-luxury transition-all active:scale-95 flex items-center justify-center gap-2 bg-champagne text-petroleum hover:bg-white shadow-lg shadow-champagne/10"
       >
         Entendi, continuar
       </button>
 
       <button
         onClick={onClose}
-        className="w-full py-3 rounded-xl font-medium text-[12px] text-white/70 hover:text-white hover:bg-white/5 transition-all border border-white/10"
+        className="w-full py-3 text-white/40 text-[9px] font-bold uppercase tracking-luxury hover:text-gold transition-colors"
       >
         Cancelar
       </button>
@@ -53,13 +53,15 @@ export default function GoogleConsentAlert({
       footer={footer}
       maxWidth="md"
     >
-      <div className="space-y-4">
-        <p className="text-[14px] leading-relaxed text-white/90 font-medium">
+      <div className="space-y-3">
+        <p className="text-[13px] md:text-[14px] leading-relaxed text-petroleum font-medium text-center">
           Para usar o Google Picker e importar fotos do Google Drive, é necessário conceder permissão de acesso ao Google Drive.
         </p>
-        <p className="text-[14px] leading-relaxed text-white/70">
-          Você será redirecionado para a tela de consentimento do Google para autorizar o acesso.
-        </p>
+        <div className="p-4 bg-slate-50 border border-petroleum/10 rounded-luxury italic">
+          <p className="text-[11px] md:text-[12px] leading-relaxed text-petroleum/70 text-center">
+            Você será redirecionado para a tela de consentimento do Google para autorizar o acesso.
+          </p>
+        </div>
       </div>
     </BaseModal>
   );

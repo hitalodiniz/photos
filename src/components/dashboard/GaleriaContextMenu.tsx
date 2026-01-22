@@ -116,14 +116,14 @@ export default function GaleriaContextMenu({
           className="fixed bottom-0 left-0 right-0 bg-white rounded-t-2xl shadow-2xl z-[9999] lg:hidden animate-in slide-in-from-bottom duration-300"
         >
           <div className="p-4 border-b border-petroleum/50 flex items-center justify-between">
-            <h3 className="text-lg font-semibold text-slate-900">
+            <h3 className="text-lg font-bold uppercase tracking-luxury text-editorial-ink">
               Ações da Galeria
             </h3>
             <button
               onClick={() => setIsOpen(false)}
-              className="p-2 hover:bg-slate-100 rounded-lg transition-colors"
+              className="p-2 hover:bg-slate-100 rounded-luxury transition-colors"
             >
-              <X size={20} className="text-slate-400" />
+              <X size={20} className="text-editorial-gray" />
             </button>
           </div>
 
@@ -131,14 +131,14 @@ export default function GaleriaContextMenu({
             {currentView === 'active' && (
               <>
                 {/* Toggle Exibir no Perfil */}
-                <div className="flex items-center justify-between gap-3 p-3 rounded-lg hover:bg-slate-50 transition-colors">
+                <div className="flex items-center justify-between gap-3 p-3 rounded-luxury hover:bg-slate-50 transition-colors">
                   <div className="flex items-center gap-2 min-w-0 flex-1">
                     {galeria.show_on_profile ? (
-                      <Eye size={18} className="text-slate-400 shrink-0" />
+                      <Eye size={18} className="text-editorial-gray shrink-0" />
                     ) : (
-                      <EyeOff size={18} className="text-slate-400 shrink-0" />
+                      <EyeOff size={18} className="text-editorial-gray shrink-0" />
                     )}
-                    <span className="text-sm font-medium text-slate-700 whitespace-nowrap">
+                    <span className="text-sm font-medium text-editorial-ink whitespace-nowrap">
                       Exibir no Perfil
                     </span>
                   </div>
@@ -160,7 +160,7 @@ export default function GaleriaContextMenu({
                 </div>
 
                 {/* Toggle Arquivar */}
-                <div className="flex items-center justify-between gap-3 p-3 rounded-lg hover:bg-amber-50 transition-colors">
+                <div className="flex items-center justify-between gap-3 p-3 rounded-luxury hover:bg-amber-50 transition-colors">
                   <div className="flex items-center gap-2 min-w-0 flex-1">
                     <Archive size={18} className="text-amber-600 shrink-0" />
                     <span className="text-sm font-medium text-amber-600 whitespace-nowrap">
@@ -187,7 +187,7 @@ export default function GaleriaContextMenu({
                 {/* Mover para Lixeira */}
                 <button
                   onClick={handleDelete}
-                  className="w-full flex items-center gap-3 p-3 rounded-lg hover:bg-red-50 transition-colors text-left"
+                  className="w-full flex items-center gap-3 p-3 rounded-luxury hover:bg-red-50 transition-colors text-left"
                 >
                   <Trash2 size={20} className="text-red-600" />
                   <span className="text-sm font-medium text-red-600">
@@ -264,7 +264,7 @@ export default function GaleriaContextMenu({
   const dropdownMenu = isOpen && !isMobile ? (
     <div
       ref={menuRef}
-      className="fixed bg-white rounded-lg shadow-xl border border-petroleum/50 z-[9999] min-w-[200px] py-1"
+      className="fixed bg-white rounded-luxury shadow-xl border border-petroleum/50 z-[9999] min-w-[200px] py-1"
       style={{
         top: `${menuPosition.top}px`,
         right: `${menuPosition.right}px`,
@@ -273,14 +273,14 @@ export default function GaleriaContextMenu({
       {currentView === 'active' && (
             <>
               {/* Toggle Exibir no Perfil */}
-              <div className="flex items-center justify-between gap-3 px-4 py-2 hover:bg-slate-50 transition-colors rounded-t-lg">
+              <div className="flex items-center justify-between gap-3 px-4 py-2 hover:bg-slate-50 transition-colors rounded-t-luxury">
                 <div className="flex items-center gap-2 min-w-0 flex-1">
                   {galeria.show_on_profile ? (
-                    <Eye size={16} className="text-slate-400 shrink-0" />
+                    <Eye size={16} className="text-editorial-gray shrink-0" />
                   ) : (
-                    <EyeOff size={16} className="text-slate-400 shrink-0" />
+                    <EyeOff size={16} className="text-editorial-gray shrink-0" />
                   )}
-                  <span className="text-sm font-medium text-slate-700 whitespace-nowrap">
+                  <span className="text-sm font-medium text-editorial-ink whitespace-nowrap">
                     Exibir no Perfil
                   </span>
                 </div>
@@ -329,7 +329,7 @@ export default function GaleriaContextMenu({
               {/* Mover para Lixeira */}
               <button
                 onClick={handleDelete}
-                className="w-full flex items-center gap-3 px-4 py-2 hover:bg-red-50 transition-colors text-left rounded-b-lg"
+                className="w-full flex items-center gap-3 px-4 py-2 hover:bg-red-50 transition-colors text-left rounded-b-luxury"
               >
                 <Trash2 size={16} className="text-red-600" />
                 <span className="text-sm font-medium text-red-600">

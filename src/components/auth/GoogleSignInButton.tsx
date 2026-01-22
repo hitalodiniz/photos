@@ -35,21 +35,21 @@ export default function GoogleSignInButton({
     w-full 
     max-w-[250px]
     md:max-w-sm
-    bg-white text-[#3C4043] font-semibold rounded-xl 
-    shadow-md border border-[#DADCE0]
-    py-2  
+    bg-white text-petroleum rounded-luxury 
+    shadow-xl border border-white/10
+    py-3  
     transition-all duration-300
     ${
       loading
         ? 'opacity-70 cursor-not-allowed'
-        : 'hover:bg-[#FDFDFD] hover:border-[#D1D3D6] hover:shadow-md active:scale-[1.05]'
+        : 'hover:bg-slate-50 active:scale-[0.98]'
     }
   `}
     >
       {!loading ? (
         <>
-          {/* Ícone do Google - Removida a rotação no hover */}
-          <svg className="w-4 h-4 md:w-6 md:h-6 mr-3" viewBox="0 0 48 48">
+          {/* Ícone do Google */}
+          <svg className="w-4 h-4 md:w-5 md:h-5 mr-3" viewBox="0 0 48 48">
             <path
               fill="#4285F4"
               d="M24 9.5c3.54 0 6.71 1.22 9.21 3.6l6.85-6.85C35.9 2.38 30.47 0 24 0 14.62 0 6.51 5.38 2.56 13.22l7.98 6.19C12.43 13.72 17.74 9.5 24 9.5z"
@@ -67,15 +67,15 @@ export default function GoogleSignInButton({
               d="M24 48c6.48 0 11.93-2.13 15.89-5.81l-7.73-6c-2.15 1.45-4.92 2.3-8.16 2.3-6.26 0-11.57-4.22-13.47-9.91l-7.98 6.19C6.51 42.62 14.62 48 24 48z"
             />
           </svg>
-          <span className="tracking-tight text-[12px] md:text-base">
-            Entrar com sua conta do Google
+          <span className="text-editorial-label text-petroleum">
+            Entrar com Google
           </span>
         </>
       ) : (
         <div className="flex items-center gap-3">
-          <div className="h-5 w-5 border-2 border-[#4285F4] border-t-transparent rounded-full animate-spin" />
-          <span className="text-[#4285F4] font-medium">
-            Conectando ao Google...
+          <div className="loading-luxury w-5 h-5 border-petroleum/20 border-t-petroleum" />
+          <span className="text-editorial-label text-petroleum">
+            Conectando...
           </span>
         </div>
       )}

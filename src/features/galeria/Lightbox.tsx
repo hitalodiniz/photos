@@ -392,7 +392,7 @@ img.src = imgSrc;
             }}
             className="fixed left-0 top-1/2 -translate-y-1/2 z-[190] 
                w-16 md:w-32 h-32 md:h-64 flex items-center justify-center 
-               text-black/20 dark:text-white/20 hover:text-petroleum dark:hover:text-[#F3E5AB] transition-all group"
+               text-black/20 dark:text-white/20 hover:text-gold transition-all group"
           >
             <ChevronLeft
               className="w-10 h-10 md:w-16 md:h-16 shrink-0 transition-transform group-hover:scale-110"
@@ -409,7 +409,7 @@ img.src = imgSrc;
             }}
             className="fixed top-1/2 -translate-y-1/2 z-[190] 
                w-16 md:w-32 h-32 md:h-64 flex items-center justify-center 
-               text-slate-600 dark:text-white/20 hover:text-petroleum dark:hover:text-[#F3E5AB] transition-all group"
+               text-black/20 dark:text-white/20 hover:text-gold transition-all group"
             style={{ right: onNavigateToIndex && !isMobile ? '160px' : '0' }} // Mais à esquerda, fora da barra (112px barra + 48px espaço)
           >
             <ChevronRight
@@ -469,16 +469,16 @@ img.src = imgSrc;
             <div className="hidden md:flex w-auto justify-end shrink-0 z-[310]">
               <button
                 onClick={onClose}
-                className="w-12 h-12 bg-white/95 dark:bg-black/95 backdrop-blur-2xl border border-black/20 dark:border-white/20 shadow-2xl flex items-center justify-center transition-all hover:bg-black/10 dark:hover:bg-white/10 group relative rounded-[0.5rem]"
+                className="w-12 h-12 bg-white/95 dark:bg-black/95 backdrop-blur-xl border border-white/10 shadow-2xl flex items-center justify-center transition-all hover:bg-gold/10 hover:text-gold group relative rounded-luxury"
                 aria-label="Fechar galeria"
               >
-                <X size={20} className="text-black dark:text-white" strokeWidth={2} />
+                <X size={20} className="group-hover:scale-110" strokeWidth={2} />
                 {/* Tooltip - Abaixo do botão */}
                 <div className="absolute top-full mt-2 left-1/2 -translate-x-1/2 opacity-0 group-hover:opacity-100 transition-opacity pointer-events-none whitespace-nowrap">
-                  <div className="bg-[#F3E5AB] text-black text-[10px] font-semibold px-2 py-1 rounded shadow-xl">
+                  <div className="bg-gold text-black text-editorial-label px-2 py-1 rounded shadow-xl">
                     Fechar
                   </div>
-                  <div className="absolute bottom-full left-1/2 -translate-x-1/2 border-[4px] border-transparent border-b-[#F3E5AB]" />
+                  <div className="absolute bottom-full left-1/2 -translate-x-1/2 border-[4px] border-transparent border-b-gold" />
                 </div>
               </button>
             </div>
@@ -577,26 +577,26 @@ img.src = imgSrc;
         <div className="hidden md:flex fixed bottom-0 right-0 z-[500] p-4">
           <div className="order-2 flex justify-end">
             <div 
-              className="bg-white/90 dark:bg-black/90 border-slate-200 dark:border-white/20 text-slate-900 dark:text-white backdrop-blur-md px-3 py-1.5 rounded-[0.5rem] border shadow-2xl flex items-center gap-3 transition-all"
+              className="bg-slate-950/90 border border-white/10 text-white backdrop-blur-md px-3 py-1.5 rounded-luxury shadow-2xl flex items-center gap-3 transition-all"
               title={`Resolução: ${realResolution ? `${realResolution.w}x${realResolution.h}px` : '...'} | Tamanho: ${imageSize || '...'} | Origem: ${usingProxy ? 'Servidor (A)' : 'Google Drive (D)'}`}
             >
               {/* Ícone que muda de cor conforme o tema */}
-              <ImageIcon size={13} className="text-petroleum dark:text-[#F3E5AB] transition-colors duration-300" />
+              <ImageIcon size={13} className="text-gold transition-colors duration-300" />
               
-              <p className="text-[11px] font-medium tracking-tight text-petroleum dark:text-white">
-                Foto <span className="text-petroleum dark:text-[#F3E5AB] font-semibold">{activeIndex + 1}</span> de {totalPhotos}
+              <p className="text-[11px] font-bold tracking-luxury text-white/90">
+                FOTO <span className="text-gold italic">{activeIndex + 1}</span> DE {totalPhotos}
               </p>
 
               {/* Divisor que adapta a opacidade */}
-              <div className="h-3 w-[1px] bg-slate-300 dark:bg-white/20" />
+              <div className="h-3 w-[1px] bg-white/10" />
 
               {/* Dados Técnicos */}
               <div className="flex items-center gap-2.5">
-                <p className="text-petroleum dark:text-[#F3E5AB] text-[11px] font-medium">
+                <p className="text-gold text-[11px] font-bold tracking-luxury italic">
                   {imageSize || "--- KB"}
                 </p>
                 {/* Indicador de origem */}
-                <span className="text-[10px] font-medium text-slate-500 dark:text-slate-400">
+                <span className="text-[10px] font-bold text-white/20">
                   {usingProxy ? 'A' : 'D'}
                 </span>
               </div>

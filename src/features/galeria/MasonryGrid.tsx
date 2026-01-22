@@ -355,7 +355,7 @@ const SafeImage = memo(({ photoId, width, height, priority, className, showOnlyF
           className="absolute bottom-1.5 left-1.5 z-[30] bg-black/60 backdrop-blur-md px-1.5 py-0.5 rounded border border-white/10 flex items-center gap-1.5 shadow-lg"
           title={`Resolução: ${realResolution?.w}x${realResolution?.h}px | Origem: ${usingProxy ? 'Servidor' : 'Drive'}`}
         >
-          <span className={`text-[9px] font-black ${usingProxy ? 'text-blue-400' : 'text-green-500'}`}>
+          <span className={`text-[9px] font-bold ${usingProxy ? 'text-blue-400' : 'text-green-500'}`}>
             {usingProxy ? 'A' : 'D'}
           </span>
           <span className="text-[#F3E5AB] text-[9px] font-mono font-medium">

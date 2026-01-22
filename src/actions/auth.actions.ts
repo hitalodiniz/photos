@@ -2,6 +2,49 @@
 
 import { createSupabaseServerClient } from '@/lib/supabase.server';
 import { authenticateGaleriaAccess } from '@/core/services/galeria.service';
+import { cookies } from 'next/headers';
+
+/**
+ * Server Action para capturar leads e autorizar acesso via cookie
+ */
+export async function captureLeadAction(
+  galeriaId: string,
+  data: { nome: string; email?: string | null; whatsapp?: string | null }
+) {
+  try {
+    const supabase = await createSupabaseServerClient();
+
+    // 1. Salva o lead no banco
+    const { error: leadError } = await supabase.from('tb_galeria_leads').insert([
+      {
+        galeria_id: galeriaId,
+        nome: data.nome,
+        email: data.email || null,
+        whatsapp: data.whatsapp || null,
+      },
+    ]);
+
+    if (leadError) {
+      console.error('[captureLeadAction] Erro ao salvar lead:', leadError);
+      // Mesmo com erro no DB, podemos permitir o acesso se for apenas lead
+    }
+
+    // 2. Define o cookie de acesso (válido por 24h)
+    const cookieStore = await cookies();
+    cookieStore.set(`galeria-${galeriaId}-lead`, 'captured', {
+      path: '/',
+      httpOnly: true,
+      secure: process.env.NODE_ENV === 'production',
+      maxAge: 60 * 60 * 24,
+      sameSite: 'lax',
+    });
+
+    return { success: true };
+  } catch (error) {
+    console.error('[captureLeadAction] Erro crítico:', error);
+    return { success: false, error: 'Falha ao processar dados.' };
+  }
+}
 
 /**
  * Verifica se o usuário tem um refresh token válido do Google

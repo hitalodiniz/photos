@@ -39,10 +39,10 @@ const FormSection = ({
   icon?: React.ReactNode; 
   children: React.ReactNode;
 }) => (
-  <div className="bg-white rounded-[0.5rem] border border-petroleum/40 p-4 space-y-3">
+  <div className="bg-white rounded-luxury border border-petroleum/40 p-4 space-y-3">
     <div className="flex items-center gap-2 pb-2 border-b border-petroleum/40">
       {icon && <div className="text-gold">{icon}</div>}
-      <h3 className="text-[10px] font-bold uppercase tracking-widest text-petroleum dark:text-slate-700">
+      <h3 className="text-[10px] font-bold uppercase tracking-luxury text-petroleum dark:text-slate-700">
         {title}
       </h3>
     </div>
@@ -285,13 +285,13 @@ export default function OnboardingForm({
 
                     {/* USERNAME */}
                     <div className="flex-grow space-y-1.5">
-                      <label className="text-[10px] font-bold uppercase tracking-widest text-petroleum">
+                      <label className="text-editorial-label text-petroleum">
                         <AtSign size={12} strokeWidth={2} className="inline mr-1.5" /> Username <span className="text-gold">*</span>
                       </label>
                       <div className="relative">
                         <input
                           readOnly={isEditMode}
-                          className={`w-full px-3 h-10 bg-white border border-petroleum/40 rounded-[0.5rem] text-petroleum/90 text-[13px] font-medium outline-none transition-all ${isEditMode ? 'bg-slate-50 text-slate-400 italic' : 'focus:border-gold'}`}
+                          className={`w-full px-3 h-10 bg-white border border-petroleum/40 rounded-luxury text-editorial-ink text-[13px] font-medium outline-none transition-all ${isEditMode ? 'bg-slate-50 text-editorial-gray italic' : 'focus:border-gold'}`}
                           value={username}
                           onChange={(e) =>
                             !isEditMode &&
@@ -310,22 +310,22 @@ export default function OnboardingForm({
                   {/* NOME + WHATSAPP EM LINHA */}
                   <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
                     <div className="space-y-1.5">
-                      <label className="text-[10px] font-bold uppercase tracking-widest text-petroleum">
+                      <label className="text-editorial-label text-petroleum">
                         <User size={12} strokeWidth={2} className="inline mr-1.5" /> Nome Completo <span className="text-gold">*</span>
                       </label>
                       <input
-                        className="w-full px-3 h-10 bg-white border border-petroleum/40 rounded-[0.5rem] text-petroleum/90 text-[13px] font-medium outline-none focus:border-gold transition-all"
+                        className="w-full px-3 h-10 bg-white border border-petroleum/40 rounded-luxury text-editorial-ink text-[13px] font-medium outline-none focus:border-gold transition-all"
                         value={fullName}
                         onChange={(e) => setFullName(e.target.value)}
                         required
                       />
                     </div>
                     <div className="space-y-1.5">
-                      <label className="text-[10px] font-bold uppercase tracking-widest text-petroleum">
+                      <label className="text-editorial-label text-petroleum">
                         <MessageCircle size={12} strokeWidth={2} className="inline mr-1.5" /> WhatsApp
                       </label>
                       <input
-                        className="w-full px-3 h-10 bg-white border border-petroleum/40 rounded-[0.5rem] text-petroleum/90 text-[13px] font-medium outline-none focus:border-gold transition-all"
+                        className="w-full px-3 h-10 bg-white border border-petroleum/40 rounded-luxury text-editorial-ink text-[13px] font-medium outline-none focus:border-gold transition-all"
                         value={phone}
                         onChange={(e) => setPhone(maskPhone(e))}
                         placeholder="(00) 00000-0000"
@@ -340,22 +340,22 @@ export default function OnboardingForm({
                 <div className="space-y-4">
                   <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
                     <div className="space-y-1.5">
-                      <label className="text-[10px] font-bold uppercase tracking-widest text-petroleum">
+                      <label className="text-editorial-label text-petroleum">
                         <Globe size={12} strokeWidth={2} className="inline mr-1.5" /> Website
                       </label>
                       <input
-                        className="w-full px-3 h-10 bg-white border border-petroleum/40 rounded-[0.5rem] text-petroleum/90 text-[13px] font-medium outline-none focus:border-gold transition-all"
+                        className="w-full px-3 h-10 bg-white border border-petroleum/40 rounded-luxury text-editorial-ink text-[13px] font-medium outline-none focus:border-gold transition-all"
                         value={website}
                         onChange={(e) => setWebsite(e.target.value)}
                         placeholder="seusite.com"
                       />
                     </div>
                     <div className="space-y-1.5">
-                      <label className="text-[10px] font-bold uppercase tracking-widest text-petroleum">
+                      <label className="text-editorial-label text-petroleum">
                         <Instagram size={12} strokeWidth={2} className="inline mr-1.5" /> Instagram
                       </label>
                       <input
-                        className="w-full px-3 h-10 bg-white border border-petroleum/40 rounded-[0.5rem] text-petroleum/90 text-[13px] font-medium outline-none focus:border-gold transition-all"
+                        className="w-full px-3 h-10 bg-white border border-petroleum/40 rounded-luxury text-editorial-ink text-[13px] font-medium outline-none focus:border-gold transition-all"
                         value={instagram}
                         onChange={(e) => setInstagram(e.target.value)}
                         placeholder="@seu.perfil"
@@ -364,7 +364,7 @@ export default function OnboardingForm({
                   </div>
 
                   <div className="space-y-1.5">
-                    <label className="text-[10px] font-bold uppercase tracking-widest text-petroleum">
+                    <label className="text-editorial-label text-petroleum">
                       <ImageIcon size={12} strokeWidth={2} className="inline mr-1.5" /> Foto de capa do Perfil
                     </label>
                     <input
@@ -399,14 +399,14 @@ export default function OnboardingForm({
                     <button
                       type="button"
                       onClick={() => bgInputRef.current?.click()}
-                      className="w-full bg-slate-50 border border-petroleum/40 border-dashed rounded-[0.5rem] px-4 h-11 flex items-center justify-between hover:bg-white transition-colors group"
+                      className="w-full bg-slate-50 border border-petroleum/40 border-dashed rounded-luxury px-4 h-11 flex items-center justify-between hover:bg-white transition-colors group"
                     >
                       <div className="flex flex-col items-start min-w-0">
-                        <span className="text-[10px] font-bold text-petroleum uppercase tracking-widest truncate w-full">
+                        <span className="text-editorial-label text-petroleum truncate w-full">
                           {bgFile ? bgFile.name : 'Alterar Imagem de Fundo'}
                         </span>
                         {!bgFile && (
-                          <span className="text-[9px] text-petroleum/60 uppercase tracking-tight">
+                          <span className="text-[9px] text-editorial-gray uppercase tracking-luxury">
                             Recomendado: 1920x1080px (Máx 2MB)
                           </span>
                         )}
@@ -431,7 +431,7 @@ export default function OnboardingForm({
                   <div className="space-y-1.5">
                     
                     <textarea
-                      className="w-full px-3 py-2 bg-white border border-petroleum/40 rounded-[0.5rem] text-petroleum/90 text-[13px] font-medium outline-none focus:border-gold transition-all resize-none"
+                      className="w-full px-3 py-2 bg-white border border-petroleum/40 rounded-luxury text-editorial-ink text-[13px] font-medium outline-none focus:border-gold transition-all resize-none"
                       value={miniBio}
                       maxLength={400}
                       onChange={(e) => setMiniBio(e.target.value)}
@@ -440,7 +440,7 @@ export default function OnboardingForm({
                       placeholder="Conte um pouco sobre sua trajetória profissional..."
                     />
                     <div className="flex justify-between items-center mb-1">
-                      <span className={`text-[9px] font-bold uppercase tracking-widest ${miniBio.length >= 380 ? 'text-gold' : 'text-slate-400'}`}>
+                      <span className={`text-[9px] font-bold uppercase tracking-luxury ${miniBio.length >= 380 ? 'text-gold' : 'text-editorial-gray'}`}>
                         {miniBio.length} / 400
                       </span>
                     </div>
@@ -455,12 +455,12 @@ export default function OnboardingForm({
                     {selectedCities.map((city) => (
                       <span
                         key={city}
-                        className="bg-slate-50 border border-petroleum/40 text-petroleum text-[9px] font-bold px-2.5 py-1.5 rounded-[0.5rem] flex items-center gap-2 shadow-sm uppercase tracking-widest"
+                        className="bg-slate-50 border border-petroleum/40 text-petroleum text-[9px] font-bold px-2.5 py-1.5 rounded-luxury flex items-center gap-2 shadow-sm uppercase tracking-luxury"
                       >
                         {city}
                         <X
                           size={12}
-                          className="cursor-pointer text-petroleum/40 hover:text-red-500 transition-colors"
+                          className="cursor-pointer text-editorial-gray hover:text-red-500 transition-colors"
                           onClick={() =>
                             setSelectedCities(
                               selectedCities.filter((c) => c !== city),
@@ -478,7 +478,7 @@ export default function OnboardingForm({
                         setCityInput('');
                         setSuggestions([]);
                       }}
-                      className="w-20 bg-slate-50 border border-petroleum/40 rounded-[0.5rem] px-2 h-10 text-xs font-bold outline-none focus:border-gold transition-all"
+                      className="w-20 bg-slate-50 border border-petroleum/40 rounded-luxury px-2 h-10 text-xs font-bold outline-none focus:border-gold transition-all"
                     >
                       <option value="">UF</option>
                       {states.map((uf) => (
@@ -492,17 +492,17 @@ export default function OnboardingForm({
                         disabled={!selectedUF}
                         value={cityInput}
                         onChange={(e) => setCityInput(e.target.value)}
-                        className="w-full px-3 h-10 bg-white border border-petroleum/40 rounded-[0.5rem] text-petroleum/90 text-[13px] font-medium outline-none focus:border-gold transition-all"
+                        className="w-full px-3 h-10 bg-white border border-petroleum/40 rounded-luxury text-editorial-ink text-[13px] font-medium outline-none focus:border-gold transition-all"
                         placeholder="Digite a cidade..."
                       />
                       {suggestions.length > 0 && (
-                        <div className="absolute z-[100] w-full bg-white border border-petroleum/40 rounded-[0.5rem] bottom-full mb-2 shadow-2xl max-h-48 overflow-y-auto no-scrollbar animate-in fade-in slide-in-from-bottom-2 duration-200">
+                        <div className="absolute z-[100] w-full bg-white border border-petroleum/40 rounded-luxury bottom-full mb-2 shadow-2xl max-h-48 overflow-y-auto no-scrollbar animate-in fade-in slide-in-from-bottom-2 duration-200">
                           {suggestions.map((city) => (
                             <button
                               key={city}
                               type="button"
                               onClick={() => handleSelectCity(city)}
-                              className="w-full text-left px-4 py-3 text-[10px] font-bold uppercase tracking-widest hover:bg-slate-50 border-b border-slate-100 last:border-0 transition-colors text-petroleum"
+                              className="w-full text-left px-4 py-3 text-editorial-label hover:bg-slate-50 border-b border-slate-100 last:border-0 transition-colors text-petroleum"
                             >
                               {city}
                             </button>
@@ -520,7 +520,7 @@ export default function OnboardingForm({
                   type="button"
                   onClick={() => (isEditMode ? router.push('/dashboard') : router.back())}
                   disabled={isSaving}
-                  className="flex items-center justify-center rounded-[0.5rem] h-10 border border-slate-200 bg-white text-slate-500 hover:bg-slate-50 hover:border-slate-300 transition-all px-6 text-[10px] font-bold uppercase tracking-widest disabled:opacity-50"
+                  className="flex items-center justify-center rounded-luxury h-10 border border-white/10 bg-white/5 text-white/40 hover:bg-white/10 hover:text-white transition-all px-6 text-editorial-label disabled:opacity-50"
                 >
                   CANCELAR
                 </button>
@@ -528,7 +528,7 @@ export default function OnboardingForm({
                   form="onboarding-form"
                   success={showSuccessModal}
                   disabled={isSaving}
-                  className="px-8 flex-1"
+                  className="px-8 flex-1 rounded-luxury"
                   label={isSaving ? 'SALVANDO...' : 'SALVAR PERFIL'}
                 />
               </div>
@@ -569,7 +569,7 @@ export default function OnboardingForm({
             <a
               href={`/${username}`}
               target="_blank"
-              className="w-full h-12 flex items-center justify-center gap-2 bg-[#F3E5AB] text-black rounded-xl font-bold text-[10px] uppercase tracking-[0.2em] hover:bg-white transition-all shadow-xl active:scale-[0.98]"
+              className="w-full h-12 flex items-center justify-center gap-2 bg-champagne text-petroleum rounded-luxury font-bold text-[10px] uppercase tracking-luxury hover:bg-white transition-all shadow-xl active:scale-[0.98]"
             >
               <Sparkles size={14} /> Ver Perfil Público
             </a>
@@ -578,7 +578,7 @@ export default function OnboardingForm({
                 setIsRedirecting(true);
                 router.push('/dashboard');
               }}
-              className="w-full h-11 text-white font-bold uppercase text-[10px] tracking-[0.2em] hover:bg-white/5 border border-white/10 rounded-lg transition-all"
+              className="w-full h-11 text-white font-bold uppercase text-[10px] tracking-luxury hover:text-gold transition-all"
             >
               Ir para o Espaço de Galerias
             </button>
@@ -591,13 +591,13 @@ export default function OnboardingForm({
           </div>
         }
       >
-        <div className="space-y-4">
-          <p className="text-[14px] leading-relaxed text-white/90 font-medium">
+        <div className="space-y-3">
+          <p className="text-[13px] md:text-[14px] leading-relaxed text-petroleum/80 font-medium text-center">
             O seu perfil atualizado agora está configurado e pronto para ser acessado pelo seu público.
           </p>
-          <div className="p-4 bg-white/5 border border-white/5 rounded-lg italic">
-            <p className="text-[11px] text-[#F3E5AB] font-medium leading-relaxed">
-              Dica: Você pode alterar sua foto de capa e mini bio a qualquer momento para manter seu perfil atrativo.
+          <div className="p-4 bg-slate-50 border border-petroleum/10 rounded-luxury">
+            <p className="text-[10px] font-bold text-gold/80 text-center uppercase tracking-luxury">
+              Dica: Você pode alterar sua foto de capa e mini bio a qualquer momento.
             </p>
           </div>
         </div>

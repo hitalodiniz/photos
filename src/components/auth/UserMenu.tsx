@@ -111,7 +111,7 @@ export default function UserMenu({
     }
     return (
       <div
-        className={`${sizeClass} rounded-full bg-petroleum text-champagne flex items-center justify-center ${textClass} font-bold ${borderStyle} transition-transform hover:scale-105`}
+        className={`${sizeClass} rounded-full bg-petroleum text-gold flex items-center justify-center ${textClass} font-bold ${borderStyle} transition-transform hover:scale-105 shadow-[0_0_15px_rgba(212,175,55,0.2)]`}
       >
         {initialLetter}
       </div>
@@ -137,18 +137,18 @@ export default function UserMenu({
           </button>
 
           {isOpen && (
-            <div className="absolute right-0 mt-4 w-72 bg-white rounded-[1.5rem] shadow-[0_20px_50px_rgba(0,0,0,0.15)] border border-slate-100 py-6 z-[110] animate-in fade-in zoom-in-95 duration-200">
-              <div className="flex flex-col items-center px-6 pb-6 text-center border-b border-slate-50">
+            <div className="absolute right-0 mt-4 w-72 bg-slate-950/95 backdrop-blur-xl rounded-luxury shadow-2xl border border-white/10 py-6 z-[110] animate-in fade-in zoom-in-95 duration-200">
+              <div className="flex flex-col items-center px-6 pb-6 text-center border-b border-white/5">
                 <div className="mb-4 relative">
-                  <div className="p-1 rounded-full bg-white shadow-xl ring-1 ring-gold/20">
+                  <div className="p-1 rounded-full bg-white/5 shadow-xl ring-1 ring-gold/20">
                     {renderAvatarContent('w-20 h-20', 'text-3xl', true)}
                   </div>
-                  <div className="absolute bottom-0 right-0 w-6 h-6 bg-green-500 border-4 border-white rounded-full shadow-sm" />
+                  <div className="absolute bottom-0 right-0 w-6 h-6 bg-green-500 border-4 border-slate-950 rounded-full shadow-sm" />
                 </div>
-                <h3 className="text-base font-semibold text-slate-900 truncate w-full tracking-tight">
+                <h3 className="text-base font-bold text-white truncate w-full tracking-tight">
                   {fullName}
                 </h3>
-                <p className="text-[11px] text-slate-800 truncate w-full font-medium tracking-widest mt-1">
+                <p className="text-[11px] text-white/60 truncate w-full font-bold tracking-luxury mt-1 uppercase">
                   {userEmail}
                 </p>
               </div>
@@ -157,18 +157,18 @@ export default function UserMenu({
                 <Link
                   href="/onboarding"
                   onClick={handleManageProfile}
-                  className={`w-full flex items-center justify-between px-4 h-12 rounded-xl bg-slate-50 text-slate-700 hover:bg-champagne/20 hover:text-petroleum transition-all group ${isRedirecting ? 'opacity-70 cursor-not-allowed' : ''}`}
+                  className={`w-full flex items-center justify-between px-4 h-12 rounded-luxury bg-white/5 text-white/80 hover:bg-gold/10 hover:text-gold transition-all group ${isRedirecting ? 'opacity-70 cursor-not-allowed' : ''}`}
                 >
                   <div className="flex items-center gap-3">
-                    <div className="w-8 h-8 rounded-lg bg-white shadow-sm flex items-center justify-center text-gold group-hover:bg-gold group-hover:text-white transition-colors">
+                    <div className="w-8 h-8 rounded-luxury bg-white/5 shadow-sm flex items-center justify-center text-white/40 group-hover:text-gold transition-colors">
                       <User2 size={16} />
                     </div>
-                    <span className="text-[11px] font-bold uppercase tracking-widest">
+                    <span className="text-editorial-label">
                       {isRedirecting ? 'Carregando...' : 'Editar Perfil'}
                     </span>
                   </div>
                   {isRedirecting ? (
-                    <Loader2 size={14} className="animate-spin text-gold" />
+                    <div className="loading-luxury w-3 h-3" />
                   ) : (
                     <div className="w-1.5 h-1.5 rounded-full bg-gold opacity-0 group-hover:opacity-100 transition-opacity" />
                   )}
@@ -177,12 +177,12 @@ export default function UserMenu({
                 <button
                   onClick={handleLogout}
                   disabled={isLoggingOut || isRedirecting}
-                  className="w-full flex items-center gap-3 px-4 h-12 rounded-xl bg-white text-slate-700 hover:text-red-500 hover:bg-red-50 transition-all group disabled:opacity-50"
+                  className="w-full flex items-center gap-3 px-4 h-12 rounded-luxury bg-transparent text-white/60 hover:text-red-400 hover:bg-red-500/10 transition-all group disabled:opacity-50"
                 >
-                  <div className="w-8 h-8 rounded-lg bg-slate-50 flex items-center justify-center group-hover:bg-red-500 group-hover:text-white transition-colors">
+                  <div className="w-8 h-8 rounded-luxury bg-white/5 flex items-center justify-center group-hover:text-red-400 transition-colors">
                     <LogOut size={16} />
                   </div>
-                  <span className="text-[11px] font-semibold uppercase tracking-widest">
+                  <span className="text-editorial-label">
                     Sair da conta
                   </span>
                 </button>

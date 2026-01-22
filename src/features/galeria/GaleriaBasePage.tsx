@@ -1,5 +1,4 @@
 // Exemplo de caminho: src/features/galeria/GaleriaBasePage.tsx
-'use server';
 import React from 'react';
 import { notFound, redirect } from 'next/navigation';
 import { cookies } from 'next/headers';
@@ -10,7 +9,7 @@ import {
   fetchPhotosByGalleryId,
 } from '@/core/logic/galeria-logic';
 import GaleriaView from './GaleriaView';
-import PasswordPrompt from './PasswordPrompt';
+import GalleryAccessPortal from './GalleryAccessPortal';
 import { getDirectGoogleUrl, resolveGalleryUrl } from '@/core/utils/url-helper';
 import {
   getGalleryMetadata,
@@ -81,20 +80,37 @@ export default async function GaleriaBasePage({
 
   // ... (Restante da sua lógica de formatação, senha e Drive igual ao seu código)
   const galeriaData = formatGalleryData(galeriaRaw, username);
-  if (!galeriaData.is_public) {
-    const cookieStore = await cookies();
-    const savedToken = cookieStore.get(`galeria-${galeriaData.id}-auth`)?.value;
+  
+  // 🎯 LÓGICA DE ACESSO PROTEGIDO (Servidor)
+  const cookieStore = await cookies();
+  const needsPassword = !galeriaData.is_public;
+  const needsLead = galeriaData.leads_enabled;
 
-    // IMPORTANTE: Se você salvou um JWT, você precisa decodificá-lo ou,
-    // para simplificar agora, verifique apenas se o cookie EXISTE.
-    // Já que o cookie só é gerado se a senha estiver correta na Action.
-    if (!savedToken) {
+  if (needsPassword || needsLead) {
+    const hasAuthCookie = cookieStore.get(`galeria-${galeriaData.id}-auth`)?.value;
+    const hasLeadCookie = cookieStore.get(`galeria-${galeriaData.id}-lead`)?.value;
+
+    // Se precisa de senha e não tem o cookie de senha...
+    // OU se precisa de lead e não tem o cookie de lead...
+    if ((needsPassword && !hasAuthCookie) || (needsLead && !hasLeadCookie)) {
       return (
-        <PasswordPrompt
-          galeria={galeriaData}
-          fullSlug={fullSlug}
-          coverImageUrl={getDirectGoogleUrl(galeriaData.cover_image_url, '1000')}
-        />
+        <div className="relative min-h-screen w-full flex items-center justify-center overflow-hidden px-4">
+          {/* 📸 BACKGROUND COM OVERLAY GRADIENTE (Estilo Editorial) */}
+          <div className="absolute inset-0 z-0 bg-slate-900">
+            <div
+              className="absolute inset-0 bg-cover bg-center bg-no-repeat"
+              style={{ backgroundImage: `url(${getDirectGoogleUrl(galeriaData.cover_image_url, '1000')})` }}
+            />
+            {/* Overlay ultra suave para visibilidade total da foto */}
+            <div className="absolute inset-0 bg-gradient-to-b from-black/20 via-transparent to-black/40" />
+          </div>
+          
+          <GalleryAccessPortal
+            galeria={galeriaData}
+            fullSlug={fullSlug}
+            isOpen={true}
+          />
+        </div>
       );
     }
   }

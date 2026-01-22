@@ -17,7 +17,7 @@
   /* Isso aplica o estilo diretamente na tag HTML <label> */
   label {
     @apply flex flex-row items-center gap-2 mb-1 !important;
-    @apply text-[10px] font-semibold uppercase tracking-widest text-slate-800 whitespace-nowrap;
+    @apply text-[10px] font-semibold uppercase tracking-luxury text-slate-800 whitespace-nowrap;
   }
 
   /* Se você quiser garantir que labels dentro de formulários específicos 
@@ -28,24 +28,61 @@
 }
 
 @layer components {
+  /* Loading Luxury Editorial */
+  .loading-luxury {
+    @apply relative flex items-center justify-center;
+  }
+  .loading-luxury::after {
+    content: "";
+    @apply w-6 h-6 border-2 border-white/10 border-t-gold rounded-full animate-spin;
+    filter: drop-shadow(0 0 4px rgba(212, 175, 55, 0.4));
+  }
+
+  /* Overlay de tela cheia para loading */
+  .loading-screen-luxury {
+    @apply fixed inset-0 z-[9999] flex flex-col items-center justify-center bg-petroleum/95 backdrop-blur-md;
+  }
+
+  /* Modal Dark Premium */
+  .modal-luxury {
+    @apply bg-slate-950/90 backdrop-blur-xl border border-white/10 shadow-2xl;
+    @apply rounded-luxury overflow-hidden;
+    animation: modal-appear 0.3s ease-out;
+  }
+
+  @keyframes modal-appear {
+    from { opacity: 0; transform: scale(0.98); }
+    to { opacity: 1; transform: scale(1); }
+  }
+
+  /* Microcopy Editorial Standard */
+  .text-editorial-label {
+    @apply text-[10px] font-semibold uppercase tracking-luxury;
+  }
+
+  /* Transição suave para elementos interativos */
+  .interactive-luxury {
+    @apply transition-all duration-300 ease-in-out hover:text-gold cursor-pointer;
+  }
+
   /* INPUT PADRÃO EDITORIAL */
   .input-luxury {
-    @apply w-full bg-white border border-slate-200 rounded-[0.5rem] px-4 py-3 text-sm font-medium 
+    @apply w-full bg-white border border-slate-200 rounded-luxury px-4 py-3 text-sm font-medium 
            focus:border-gold focus:ring-4 focus:ring-gold/5 outline-none transition-all
            placeholder:text-slate-300;
   }
 
   /* BOTÃO PRINCIPAL (CHAMPAGNE) */
   .btn-luxury-primary {
-    @apply h-11 px-8 rounded-[0.5rem] bg-champagne text-black text-xs font-bold uppercase 
-           tracking-widest shadow-xl hover:bg-white border border-champagne transition-all 
+    @apply h-11 px-8 rounded-luxury bg-champagne text-petroleum text-editorial-label 
+           shadow-xl hover:bg-white border border-champagne transition-all 
            active:scale-95 flex items-center justify-center gap-2;
   }
 
   /* BOTÃO SECUNDÁRIO (WHITE/SLATE) */
   .btn-luxury-secondary {
-    @apply h-11 px-8 rounded-[0.5rem] border border-slate-200 bg-white text-slate-600 
-           text-xs font-bold uppercase tracking-widest hover:bg-slate-50 
+    @apply h-11 px-8 rounded-luxury border border-slate-200 bg-white text-slate-600 
+           text-editorial-label hover:bg-slate-50 
            transition-all active:scale-95 flex items-center justify-center gap-2;
   }
 

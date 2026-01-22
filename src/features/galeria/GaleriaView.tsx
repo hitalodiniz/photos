@@ -22,18 +22,10 @@ export default function GaleriaView({ galeria, photos }: GaleriaViewProps) {
   const bgColor = galeria.grid_bg_color ?? '#F9F5F0';
 
   useEffect(() => {
-    // 🎯 FIX: Hide loading screen even if photos is empty or undefined
-    // This prevents infinite loading when the request fails or returns empty
-    const timer = setTimeout(() => {
-      // console.log('[GaleriaView] Setting loading to false', {
-      //   photosLength: photos?.length,
-      //   hasPhotos: !!photos,
-      //   galeriaId: galeria.id,
-      // });
-      setIsLoading(false);
-    }, 800);
-    return () => clearTimeout(timer);
-  }, [photos, galeria.id]);
+    // 🎯 O Portal de Acesso agora é gerenciado pelo servidor (GaleriaBasePage)
+    // para garantir segurança total.
+    setIsLoading(false);
+  }, [galeria.id]);
 
   // 🎯 ESTRATÉGIA DE FALLBACK: Usa hook useGoogleDriveImage que já implementa fallback
   // Usa constantes RESOLUTIONS para manter consistência
@@ -72,7 +64,7 @@ const {
                 backgroundPosition: 'center 40%',
               }}
             />
-            <div className="absolute inset-0 bg-gradient-to-tr from-black via-black/85 to-[#F3E5AB]/10 backdrop-blur-[3px]" />
+            <div className="absolute inset-0 bg-gradient-to-tr from-black via-black/60 to-transparent backdrop-blur-[2px]" />
           </>
         ) : (
           <div
@@ -125,6 +117,4 @@ const {
       </div>
     </div>
   );
-
-  
 }

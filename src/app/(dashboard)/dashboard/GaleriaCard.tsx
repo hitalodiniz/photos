@@ -164,7 +164,7 @@ export default function GaleriaCard({
             window.open(links.url, '_blank');
           }
         }}
-      className={`group relative flex items-center gap-4 overflow-hidden rounded-lg border border-petroleum/40 bg-white p-3 transition-all duration-300 w-full animate-in fade-in slide-in-from-bottom-2 duration-500 fill-mode-both hover:border-petroleum/70 ${
+      className={`group relative flex items-center gap-4 overflow-hidden rounded-luxury border border-petroleum/40 bg-white p-3 transition-all duration-300 w-full animate-in fade-in slide-in-from-bottom-2 duration-500 fill-mode-both hover:border-petroleum/70 ${
         isBulkMode ? 'cursor-default' : 'cursor-pointer'
       } ${isSelected && isBulkMode ? 'ring-2 ring-gold border-gold' : ''}`}
         style={{ animationDelay: `${index * 30}ms` }}
@@ -176,7 +176,7 @@ export default function GaleriaCard({
               e.stopPropagation();
               onToggleSelect?.(galeria.id);
             }}
-            className="p-1.5 bg-white border border-petroleum/30 rounded-md hover:bg-slate-50 transition-colors shrink-0"
+            className="p-1.5 bg-white border border-petroleum/30 rounded-luxury hover:bg-slate-50 transition-colors shrink-0"
           >
             {isSelected ? (
               <CheckSquare size={16} className="text-gold" fill="currentColor" />
@@ -193,10 +193,10 @@ export default function GaleriaCard({
         )}
 
         {/* Imagem - Compacta */}
-        <div className="relative w-24 h-16 flex-shrink-0 overflow-hidden rounded-md bg-slate-100">
+        <div className="relative w-24 h-16 flex-shrink-0 overflow-hidden rounded-luxury bg-slate-900/50">
           {isImageLoading && !isUpdating && (
-            <div className="absolute inset-0 z-10 flex items-center justify-center bg-slate-100">
-              <LoadingSpinner size="xs" />
+            <div className="absolute inset-0 z-10 flex items-center justify-center bg-petroleum">
+              <div className="loading-luxury w-4 h-4" />
             </div>
           )}
           <img
@@ -215,30 +215,30 @@ export default function GaleriaCard({
         {/* Conteúdo Principal */}
         <div className="flex-1 min-w-0 flex items-center justify-between gap-4">
           <div className="flex-1 min-w-0">
-            <h3 className="text-sm font-semibold text-slate-900 mb-1 truncate">
+            <h3 className="text-sm font-semibold text-editorial-ink mb-1 truncate">
               {galeria.title}
             </h3>
             {/* Metadados em uma linha */}
             <div className="flex flex-col gap-1.5 w-full">
-              <div className={`flex items-center gap-1.5 text-[11px] ${hasClientInfo ? 'text-petroleum' : 'invisible h-[15px]'}`}>
-                <User size={11} className="text-petroleum shrink-0" />
-                <span className="font-medium text-petroleum">{galeria.client_name || 'Placeholder'}</span>
+              <div className={`flex items-center gap-1.5 text-[11px] justify-end ${hasClientInfo ? 'text-editorial-gray' : 'invisible h-[15px]'}`}>
+                <User size={11} className="text-editorial-gray shrink-0" />
+                <span className="font-medium text-editorial-gray">{galeria.client_name || 'Placeholder'}</span>
                 {galeria.client_whatsapp && (
                   <>
-                    <span className="text-petroleum/40">•</span>
-                    <span className="text-petroleum">{formatPhone(galeria.client_whatsapp)}</span>
+                    <span className="text-editorial-gray/40">•</span>
+                    <span className="text-editorial-gray">{formatPhone(galeria.client_whatsapp)}</span>
                   </>
                 )}
               </div>
-              <div className="flex items-center justify-between gap-2 text-[11px] text-petroleum w-full">
+              <div className="flex w-full items-center gap-2 text-[11px] text-editorial-gray">
                 {galeria.location && (
                   <span className="flex items-center gap-1">
-                    <MapPin size={11} className="text-petroleum" />
+                    <MapPin size={11} className="text-editorial-gray" />
                     {galeria.location}
                   </span>
                 )}
                 <span className="flex items-center gap-1 ml-auto">
-                  <Calendar size={11} className="text-petroleum" />
+                  <Calendar size={11} className="text-editorial-gray" />
                   {formatDateSafely(galeria.date)}
                 </span>
               </div>
@@ -254,7 +254,7 @@ export default function GaleriaCard({
                     e.stopPropagation();
                     handleWhatsAppShare(e);
                   }}
-                  className="p-2 text-petroleum bg-white border border-petroleum/40 rounded-lg hover:text-[#D4AF37] transition-colors"
+                  className="p-2 text-petroleum bg-white border border-petroleum/40 rounded-luxury interactive-luxury"
                   title="Compartilhar via WhatsApp"
                 >
                   <WhatsAppIcon className="w-4 h-4" />
@@ -264,7 +264,7 @@ export default function GaleriaCard({
                     e.stopPropagation();
                     onEdit(galeria);
                   }}
-                  className="p-2 text-petroleum bg-white border border-petroleum/40 rounded-lg hover:text-[#D4AF37] transition-colors"
+                  className="p-2 text-petroleum bg-white border border-petroleum/40 rounded-luxury interactive-luxury"
                   title="Editar"
                 >
                   <Pencil size={16} />
@@ -295,7 +295,7 @@ export default function GaleriaCard({
           window.open(links.url, '_blank');
         }
       }}
-      className={`group relative flex flex-col overflow-hidden rounded-[0.5rem] border border-petroleum/40 bg-white transition-all duration-300 w-full animate-in fade-in slide-in-from-bottom-2 duration-500 fill-mode-both hover:border-petroleum/70 ${
+      className={`group relative flex flex-col overflow-hidden rounded-luxury border border-petroleum/40 bg-white transition-all duration-300 w-full animate-in fade-in slide-in-from-bottom-2 duration-500 fill-mode-both hover:border-petroleum/70 ${
         isBulkMode ? 'cursor-default' : 'cursor-pointer'
       } ${isSelected && isBulkMode ? 'ring-2 ring-gold border-gold' : ''}`}
       style={{ animationDelay: `${index * 50}ms` }}
@@ -306,7 +306,7 @@ export default function GaleriaCard({
         </div>
       )}
 
-      <div className="relative aspect-[16/9] w-full overflow-hidden bg-slate-100">
+      <div className="relative aspect-[16/9] w-full overflow-hidden bg-slate-900/50">
         {/* Checkbox de seleção em lote - Modo Grid */}
         {isBulkMode && (
           <button
@@ -314,20 +314,20 @@ export default function GaleriaCard({
               e.stopPropagation();
               onToggleSelect?.(galeria.id);
             }}
-            className="absolute top-2 left-2 z-30 p-1.5 bg-white/90 backdrop-blur-sm rounded-md border border-petroleum/40 hover:bg-white transition-colors"
+            className="absolute top-2 left-2 z-30 p-1.5 bg-petroleum/80 backdrop-blur-md rounded-luxury border border-white/10 hover:bg-petroleum transition-colors"
           >
             {isSelected ? (
               <CheckSquare size={18} className="text-gold" fill="currentColor" />
             ) : (
-              <Square size={18} className="text-slate-400" />
+              <Square size={18} className="text-white/40" />
             )}
           </button>
         )}
 
         {/* 🎯 Spinner de carregamento da imagem */}
         {isImageLoading && !isUpdating && (
-          <div className="absolute inset-0 z-10 flex items-center justify-center bg-slate-100">
-            <LoadingSpinner size="xs" />
+          <div className="absolute inset-0 z-10 flex items-center justify-center bg-petroleum">
+            <div className="loading-luxury w-6 h-6" />
           </div>
         )}
 
@@ -353,7 +353,7 @@ export default function GaleriaCard({
                 ? 'Acesso restrito via senha'
                 : 'Acesso público liberado'
             }
-            className="flex items-center justify-center w-8 h-8 bg-black/40 backdrop-blur-md rounded-full border border-white/10 transition-all hover:bg-black/60"
+            className="flex items-center justify-center w-8 h-8 bg-black/40 backdrop-blur-md rounded-full border border-white/10 transition-all hover:bg-black/60 font-[8px]"
           >
             {!galeria.is_public ? (
               <ShieldCheck
@@ -369,64 +369,64 @@ export default function GaleriaCard({
 
         <div className="absolute top-3 right-3">
           {categoryInfo && (
-            <span className="flex items-center gap-1 px-2 py-1 bg-black/60 backdrop-blur-md rounded-md text-[8px] font-medium tracking-wider text-white uppercase border border-white/20">
+            <span className="flex items-center gap-1 px-2 py-1 bg-black/60 backdrop-blur-md rounded-luxury text-editorial-label text-white border border-white/20 text-[10px] font-[8px]">
               {categoryInfo.label}
             </span>
           )}
         </div>
 
         <div className="absolute bottom-3 left-4 right-4 flex items-end justify-between gap-4">
-          <h3 className="text-white text-base font-semibold leading-tight tracking-tight drop-shadow-md">
+          <h3 className="text-white text-base font-semibold leading-tight tracking-tight drop-shadow-md italic">
             {galeria.title}
           </h3>
         </div>
       </div>
 
-      <div className="flex flex-col p-4 md:p-4 space-y-3">
+      <div className="flex flex-col p-4 md:p-4 space-y-3 bg-white">
         {/* Metadados simplificados em uma linha */}
         <div className="flex flex-col gap-1.5 py-1 w-full">
-          <div className={`flex items-center gap-1.5 text-[11px] ${hasClientInfo ? 'text-petroleum' : 'invisible h-[15px]'}`}>
-            <User size={11} className="text-petroleum shrink-0" />
-            <span className="font-medium text-petroleum">{galeria.client_name || 'Placeholder'}</span>
+          <div className={`flex items-center gap-1.5 text-[11px] ${hasClientInfo ? 'text-editorial-gray' : 'invisible h-[15px]'}`}>
+            <User size={11} className="text-editorial-gray shrink-0" />
+            <span className="font-semibold text-editorial-gray uppercase tracking-luxury">{galeria.client_name || 'Placeholder'}</span>
             {galeria.client_whatsapp && (
               <>
-                <span className="text-petroleum/40">•</span>
-                <span className="text-petroleum">{formatPhone(galeria.client_whatsapp)}</span>
+                <span className="text-editorial-gray/40">•</span>
+                <span className="text-editorial-gray font-medium">{formatPhone(galeria.client_whatsapp)}</span>
               </>
             )}
           </div>
-          <div className="flex items-center justify-between gap-3 text-[11px] text-petroleum w-full">
+          <div className="flex items-center justify-between gap-3 text-[11px] text-editorial-gray w-full">
             {galeria.location && (
-              <span className="flex items-center gap-1">
-                <MapPin size={11} className="text-petroleum" />
+              <span className="flex items-center gap-1 font-medium">
+                <MapPin size={11} className="text-editorial-gray" />
                 {galeria.location}
               </span>
             )}
-            <span className="flex items-center gap-1 ml-auto">
-              <Calendar size={11} className="text-petroleum" />
+            <span className="flex items-center gap-1 ml-auto tracking-luxury  font-medium">
+              <Calendar size={11} className="text-editorial-gray" />
               {formatDateSafely(galeria.date)}
             </span>
           </div>
         </div>
 
         <div className="flex items-center gap-2">
-          <div className="flex-1 flex items-center h-9 rounded-lg bg-slate-50 border border-petroleum/40 overflow-hidden">
+          <div className="flex-1 flex items-center h-9 rounded-luxury bg-slate-50 border border-petroleum/20 overflow-hidden">
             <a
               href={`https://drive.google.com/drive/folders/${galeria.drive_folder_id}`}
               target="_blank"
               onClick={(e) => e.stopPropagation()}
               className="flex-1 flex items-center gap-1.5 px-3 h-full hover:bg-white transition-all group/drive min-w-0"
             >
-              <FolderOpen size={14} className="text-petroleum shrink-0" />
-              <span className="text-[11px] font-medium text-petroleum truncate">
-                {galeria.drive_folder_name || 'Pasta do Drive'}
+              <FolderOpen size={14} className="text-editorial-gray shrink-0" />
+              <span className="text-[11px] font-medium text-editorial-gray truncate  ">
+                Drive: {galeria.drive_folder_name || 'Sem pasta vinculada'}
               </span>
-              <span className="text-[9px] font-bold text-gold uppercase tracking-widest opacity-0 group-hover/drive:opacity-100 transition-opacity shrink-0">
+              <span className="text-editorial-label text-petroleum-light opacity-0 group-hover/drive:opacity-100 transition-opacity shrink-0">
                 Abrir
               </span>
             </a>
 
-            <div className="w-[1px] h-4 bg-petroleum/50" />
+            <div className="w-[1px] h-4 bg-petroleum/10" />
 
             <button
               onClick={(e) => {
@@ -436,10 +436,10 @@ export default function GaleriaCard({
               }}
               disabled={isUpdating}
               title="Sincronizar com o Drive"
-              className="flex items-center justify-center px-3 h-full hover:bg-white text-petroleum hover:text-gold transition-all disabled:opacity-50 shrink-0"
+              className="flex items-center justify-center px-3 h-full hover:bg-white text-editorial-gray hover:text-gold transition-all disabled:opacity-50 shrink-0"
             >
               {isUpdating ? (
-                <Loader2 size={13} className="animate-spin text-gold" />
+                <div className="loading-luxury w-3 h-3" />
               ) : (
                 <RefreshCw size={13} />
               )}
@@ -448,33 +448,35 @@ export default function GaleriaCard({
         </div>
       </div>
 
-      <div className="flex items-center justify-between p-4 md:p-3 bg-slate-50/50 border-t border-petroleum/40 mt-auto">
+      <div className="flex items-center justify-between p-4 md:p-3 bg-slate-50/50 border-t border-white/5 mt-auto">
         {/* Apenas Compartilhar e Editar visíveis */}
         <div className="flex gap-2 md:gap-1.5">
-          {currentView === 'active' && (
-            <>
-              <button
-                onClick={(e) => {
-                  e.stopPropagation();
-                  handleWhatsAppShare(e);
-                }}
-                className="p-3 md:p-2 text-petroleum bg-white border border-petroleum/40 rounded-lg hover:text-[#D4AF37] transition-colors"
-                title="Compartilhar via WhatsApp"
-              >
-                <WhatsAppIcon className="w-4 h-4" />
-              </button>
-              <button
-                onClick={(e) => {
-                  e.stopPropagation();
-                  onEdit(galeria);
-                }}
-                className="p-3 md:p-2 text-petroleum bg-white border border-petroleum/40 rounded-lg hover:text-[#D4AF37] transition-colors"
-                title="Editar"
-              >
-                <Pencil size={16} />
-              </button>
-            </>
-          )}
+        {currentView === 'active' && (
+    <>
+      <button
+        onClick={(e) => {
+          e.stopPropagation();
+          handleWhatsAppShare(e);
+        }}
+        // Alterado: border-white/10 -> border-petroleum/40
+        className="p-2 text-petroleum bg-white border border-petroleum/40 rounded-luxury interactive-luxury"
+        title="Compartilhar via WhatsApp"
+      >
+        <WhatsAppIcon className="w-4 h-4" />
+      </button>
+      <button
+        onClick={(e) => {
+          e.stopPropagation();
+          onEdit(galeria);
+        }}
+        // Alterado: border-white/10 -> border-petroleum/40
+        className="p-2 text-petroleum bg-white border border-petroleum/40 rounded-luxury interactive-luxury"
+        title="Editar"
+      >
+        <Pencil size={16} />
+      </button>
+    </>
+  )}
         </div>
 
         {/* Menu de Contexto */}

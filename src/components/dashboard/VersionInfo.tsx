@@ -43,26 +43,26 @@ export default function VersionInfo({
   if (isCollapsed) {
     return (
       <div className="group relative">
-        <div className="w-6 h-6 rounded-full border border-slate-200 flex items-center justify-center text-[7px] font-black text-slate-400">
+        <div className="w-6 h-6 rounded-full border border-white/10 flex items-center justify-center text-[7px] font-bold text-white/40">
           v
         </div>
         {showFullDetails && (
-          <div className="absolute left-full ml-4 px-3 py-2 bg-slate-900 text-white text-[9px] font-mono rounded-lg opacity-0 pointer-events-none group-hover:opacity-100 transition-all z-[999] shadow-xl whitespace-nowrap border border-slate-700">
-            <div className="font-bold mb-1.5 text-[10px]">v{version}</div>
-            <div className="text-[8px] text-slate-300 space-y-1">
+          <div className="absolute left-full ml-4 px-3 py-2 bg-slate-950 text-white text-[9px] font-mono rounded-luxury opacity-0 pointer-events-none group-hover:opacity-100 transition-all z-[999] shadow-2xl whitespace-nowrap border border-white/10">
+            <div className="font-bold mb-1.5 text-[10px] text-gold">v{version}</div>
+            <div className="text-[8px] text-white/60 space-y-1">
               <div className="flex items-center gap-1.5">
-                <Hash size={10} className="text-slate-400" />
+                <Hash size={10} className="text-white/40" />
                 <span>{commitHash}</span>
               </div>
               <div className="flex items-center gap-1.5">
-                <GitBranch size={10} className="text-slate-400" />
+                <GitBranch size={10} className="text-white/40" />
                 <span>{branch}</span>
               </div>
               <div className="flex items-center gap-1.5">
-                <Calendar size={10} className="text-slate-400" />
+                <Calendar size={10} className="text-white/40" />
                 <span>{formattedCommitDate}</span>
               </div>
-              <div className="border-t border-slate-700 pt-1 mt-1 text-slate-400 text-[7px]">
+              <div className="border-t border-white/5 pt-1 mt-1 text-white/40 text-[7px]">
                 Build: {formattedBuildTime}
               </div>
             </div>
@@ -77,12 +77,12 @@ export default function VersionInfo({
       {/* Versão - Sempre visível para todos */}
       <div className="w-full text-center">
         <div className="flex items-center justify-center gap-1.5 mb-1">
-          <Package size={10} className="text-slate-400" />
-          <span className="text-[8px] font-bold uppercase tracking-widest text-slate-400">
+          <Package size={10} className="text-white/40" />
+          <span className="text-editorial-label text-white/40">
             Versão
           </span>
         </div>
-        <span className="text-[10px] font-semibold text-slate-600 font-mono">
+        <span className="text-[10px] font-bold text-gold font-mono">
           v{version}
         </span>
       </div>
@@ -93,12 +93,12 @@ export default function VersionInfo({
           {/* Hash do Commit */}
           <div className="w-full text-center">
             <div className="flex items-center justify-center gap-1.5 mb-1">
-              <Hash size={10} className="text-slate-400" />
-              <span className="text-[8px] font-bold uppercase tracking-widest text-slate-400">
+              <Hash size={10} className="text-white/40" />
+              <span className="text-editorial-label text-white/40">
                 Commit
               </span>
             </div>
-            <span className="text-[9px] font-medium text-slate-500 font-mono">
+            <span className="text-[9px] font-medium text-white/60 font-mono">
               {commitHash}
             </span>
           </div>
@@ -107,12 +107,12 @@ export default function VersionInfo({
           {branch !== 'unknown' && (
             <div className="w-full text-center">
               <div className="flex items-center justify-center gap-1.5 mb-1">
-                <GitBranch size={10} className="text-slate-400" />
-                <span className="text-[8px] font-bold uppercase tracking-widest text-slate-400">
+                <GitBranch size={10} className="text-white/40" />
+                <span className="text-editorial-label text-white/40">
                   Branch
                 </span>
               </div>
-              <span className="text-[9px] font-medium text-slate-500 font-mono">
+              <span className="text-[9px] font-medium text-white/60 font-mono">
                 {branch}
               </span>
             </div>
@@ -121,19 +121,19 @@ export default function VersionInfo({
           {/* Data do Commit */}
           <div className="w-full text-center">
             <div className="flex items-center justify-center gap-1.5 mb-1">
-              <Calendar size={10} className="text-slate-400" />
-              <span className="text-[8px] font-bold uppercase tracking-widest text-slate-400">
+              <Calendar size={10} className="text-white/40" />
+              <span className="text-editorial-label text-white/40">
                 Deploy
               </span>
             </div>
-            <span className="text-[9px] font-medium text-slate-500 font-mono">
+            <span className="text-[9px] font-medium text-white/60 font-mono">
               {formattedCommitDate}
             </span>
           </div>
 
           {/* Build Time (pequeno, discreto) */}
-          <div className="w-full text-center pt-1 border-t border-slate-100">
-            <span className="text-[7px] text-slate-400 font-mono">
+          <div className="w-full text-center pt-1 border-t border-white/5">
+            <span className="text-[7px] text-white/20 font-mono uppercase">
               Build: {formattedBuildTime.split(' ')[1]?.substring(0, 5)}
             </span>
           </div>
