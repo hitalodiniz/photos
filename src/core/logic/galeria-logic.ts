@@ -19,6 +19,7 @@ export const fetchGalleryBySlug = (fullSlug: string) =>
         .select(
           `
           *,
+          leads:tb_galeria_leads(count),
           photographer:tb_profiles!user_id (
             id,
             full_name,
@@ -122,6 +123,7 @@ export function formatGalleryData(
     photographer_avatar_url: raw.photographer?.profile_picture_url || null,
     photographer_username: raw.photographer?.username || username,
     use_subdomain: hasSubdomain,
+    leads_count: raw.leads?.[0] ? (raw.leads[0] as any).count ?? 0 : 0,
   };
 }
 

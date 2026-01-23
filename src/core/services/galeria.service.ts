@@ -375,6 +375,7 @@ export async function getGalerias(
           .select(
             `
             *,
+            leads:tb_galeria_leads(count),
             photographer:tb_profiles!user_id (
               id,
               full_name,
@@ -395,8 +396,12 @@ export async function getGalerias(
           throw error;
         }
 
-        // 🎯 DEBUG: Log para verificar se está retornando dados
-        console.log(`[getGalerias] Cache miss - Buscando do DB. userId: ${cachedUserId}, galerias encontradas: ${data?.length || 0}`);
+        // 🎯 DEBUG: Verificação detalhada de leads
+        console.log(`[getGalerias] userId: ${cachedUserId}, Found: ${data?.length || 0}`);
+        data?.forEach(g => {
+          const count = g.leads?.[0]?.count ?? 0;
+          if (count > 0) console.log(`[getGalerias] 💎 Gallery: ${g.title}, Leads: ${count}`);
+        });
 
         // AJUSTE NO MAP: Usa a função formatGalleryData para garantir que o objeto photographer exista
         const galeriasFormatadas = (data || []).map((raw) =>
@@ -443,6 +448,7 @@ export async function getGaleriaById(
       .select(
         `
         *,
+        leads:tb_galeria_leads(count),
         photographer:tb_profiles!user_id (
           id,
           full_name,
@@ -680,6 +686,7 @@ export async function getPublicProfileGalerias(
         .from('tb_profiles')
         .select('id')
         .eq('username', username)
+
         .single();
 
       if (!profile) return { success: false, data: [], hasMore: false };
@@ -877,5 +884,34 @@ export async function permanentDelete(id: string) {
   } catch (error: any) {
     console.error('Erro ao excluir permanentemente:', error);
     return { success: false, error: 'Erro ao excluir permanentemente' };
+  }
+}
+
+/**
+ * 🎯 BUSCAR LEADS DA GALERIA
+ */
+export async function getGaleriaLeads(
+  galeriaId: string,
+): Promise<ActionResult<any[]>> {
+  try {
+    const supabase = await createSupabaseServerClientReadOnly();
+    const { success, userId } = await getAuthAndStudioIds(supabase);
+
+    if (!success || !userId) {
+      return { success: false, error: 'Não autorizado' };
+    }
+
+    const { data, error } = await supabase
+      .from('tb_galeria_leads')
+      .select('*')
+      .eq('galeria_id', galeriaId)
+      .order('created_at', { ascending: false });
+
+    if (error) throw error;
+
+    return { success: true, data: data || [] };
+  } catch (error: any) {
+    console.error('[getGaleriaLeads] Erro:', error);
+    return { success: false, error: 'Erro ao buscar leads.' };
   }
 }

@@ -1,14 +1,12 @@
 'use client';
 import { useState, useEffect, useRef } from 'react';
-import { X, Camera, Plus, ArrowLeft, Save, CheckCircle2, Sparkles, Link2, Check, MessageCircle } from 'lucide-react';
+import { CheckCircle2, Sparkles, Link2, Check } from 'lucide-react';
 import { createGaleria, updateGaleria } from '@/core/services/galeria.service';
-import { SubmitButton } from '@/components/ui';
-import SecondaryButton from '@/components/ui/SecondaryButton';
+import { FormPageBase } from '@/components/ui';
 import GaleriaFormContent from './GaleriaFormContent';
 import BaseModal from '@/components/ui/BaseModal';
 import { getPublicGalleryUrl, copyToClipboard, getLuxuryMessageData } from '@/core/utils/url-helper';
 import { executeShare } from '@/core/utils/share-helper';
-import { useNavigation } from '@/components/providers/NavigationProvider';
 import WhatsAppIcon from '@/components/ui/WhatsAppIcon';
 
 export default function GaleriaModal({
@@ -19,15 +17,12 @@ export default function GaleriaModal({
   onTokenExpired,
 }) {
   const isEdit = !!galeria;
-  const { navigate } = useNavigation();
   const [loading, setLoading] = useState(false);
   const [isSuccess, setIsSuccess] = useState(false);
   const [showSuccessModal, setShowSuccessModal] = useState(false);
   const [savedGaleria, setSavedGaleria] = useState<any>(null);
   const [copied, setCopied] = useState(false);
   const [hasUnsavedChanges, setHasUnsavedChanges] = useState(false);
-  const modalRef = useRef<HTMLDivElement>(null);
-  const firstInputRef = useRef<HTMLInputElement>(null);
 
   // 🎯 ESTADOS DE CUSTOMIZAÇÃO COM VALORES PADRÃO TIPO "EDITORIAL"
   const [isPublic, setIsPublic] = useState(true);
@@ -38,9 +33,6 @@ export default function GaleriaModal({
   // 🔄 EFEITO DE INICIALIZAÇÃO E RESET
   useEffect(() => {
     if (isOpen) {
-      // 🎯 UX: Trava scroll do body quando modal está aberto
-      document.body.style.overflow = 'hidden';
-      
       if (galeria) {
         // MODO EDIÇÃO
         setIsPublic(galeria.is_public === true || galeria.is_public === 'true');
@@ -61,66 +53,8 @@ export default function GaleriaModal({
         setGridBgColor('#FFFFFF');
         setColumns({ mobile: 2, tablet: 3, desktop: 4 });
       }
-
-      // 🎯 UX: Auto-focus no primeiro campo após renderização
-      setTimeout(() => {
-        const firstInput = modalRef.current?.querySelector('input[type="text"], input[type="date"], select') as HTMLInputElement;
-        firstInput?.focus();
-      }, 100);
-    } else {
-      // 🎯 UX: Restaura scroll quando modal fecha
-      document.body.style.overflow = 'unset';
     }
-
-    return () => {
-      document.body.style.overflow = 'unset';
-    };
   }, [galeria, isOpen]);
-
-  // 🎯 UX: Fechar com tecla ESC
-  useEffect(() => {
-    if (!isOpen) return;
-
-    const handleEscape = (e: KeyboardEvent) => {
-      if (e.key === 'Escape' && !loading) {
-        onClose();
-      }
-    };
-
-    window.addEventListener('keydown', handleEscape);
-    return () => window.removeEventListener('keydown', handleEscape);
-  }, [isOpen, loading, onClose]);
-
-  // 🎯 UX: Focus trap - mantém foco dentro do modal
-  useEffect(() => {
-    if (!isOpen || !modalRef.current) return;
-
-    const modal = modalRef.current;
-    const focusableElements = modal.querySelectorAll(
-      'button, [href], input, select, textarea, [tabindex]:not([tabindex="-1"])'
-    );
-    const firstElement = focusableElements[0] as HTMLElement;
-    const lastElement = focusableElements[focusableElements.length - 1] as HTMLElement;
-
-    const handleTab = (e: KeyboardEvent) => {
-      if (e.key !== 'Tab') return;
-
-      if (e.shiftKey) {
-        if (document.activeElement === firstElement) {
-          e.preventDefault();
-          lastElement?.focus();
-        }
-      } else {
-        if (document.activeElement === lastElement) {
-          e.preventDefault();
-          firstElement?.focus();
-        }
-      }
-    };
-
-    modal.addEventListener('keydown', handleTab);
-    return () => modal.removeEventListener('keydown', handleTab);
-  }, [isOpen]);
 
   if (!isOpen) return null;
 
@@ -130,7 +64,7 @@ export default function GaleriaModal({
     // 1. Captura inicial do formulário
     const formData = new FormData(e.currentTarget);
 
-    // 2. Extração de variáveis cruciais (vêm do FormData via inputs hiddens no filho)
+    // 2. Extração de variáveis cruciais
     const driveId = formData.get('drive_folder_id') as string;
     const title = formData.get('title') as string;
     const date = formData.get('date') as string;
@@ -168,15 +102,11 @@ export default function GaleriaModal({
       return;
     }
 
-    // Validação de Leads: Se habilitado, pelo menos um campo deve ser obrigatório
     if (leadsEnabled && !leadsRequireName && !leadsRequireEmail && !leadsRequireWhatsapp) {
       onSuccess(false, 'Se a captura de leads estiver habilitada, pelo menos um campo deve ser obrigatório.');
       return;
     }
 
-    // Validação inteligente:
-    // Se for PRIVADO e NÃO for EDIÇÃO -> Senha obrigatória.
-    // Se for PRIVADO e for EDIÇÃO -> Senha só obrigatória se o banco não tiver uma senha anterior.
     if (!isPublicValue) {
       const hasExistingPassword = isEdit && galeria?.password;
       if (!hasExistingPassword && !password) {
@@ -184,17 +114,15 @@ export default function GaleriaModal({
         return;
       }
 
-      // Se o campo estiver vazio ou tiver menos de 4 dígitos, barra o envio
       if (!password || password.length < 4 || password.length > 8) {
         onSuccess(false, 'A senha privada deve ter entre 4 e 8 números.');
         return;
       }
     }
+
     // --- 4. CONSOLIDAÇÃO FINAL DOS DADOS ---
     setLoading(true);
 
-    // Garante que campos de estado do Pai que o Filho refletiu em hidden sejam lidos
-    // Aqui fazemos um "Double Check" injetando os estados atuais do pai no FormData
     formData.set('is_public', String(isPublicValue));
     formData.set('show_cover_in_grid', String(showCoverInGrid));
     formData.set('grid_bg_color', gridBgColor);
@@ -202,12 +130,10 @@ export default function GaleriaModal({
     formData.set('columns_tablet', String(columns.tablet));
     formData.set('columns_desktop', String(columns.desktop));
 
-    // Limpeza de WhatsApp
     const whatsappRaw = formData.get('client_whatsapp') as string;
     if (whatsappRaw)
       formData.set('client_whatsapp', whatsappRaw.replace(/\D/g, ''));
 
-    // Padronização Cobertura
     if (!hasClient) {
       formData.set('client_name', 'Cobertura');
       formData.set('client_whatsapp', '');
@@ -258,118 +184,36 @@ export default function GaleriaModal({
     });
   };
 
-  // Get title from form for header display
   const [formTitle, setFormTitle] = useState(galeria?.title || '');
 
   return (
-    <div 
-      className="fixed inset-0 z-[1000] bg-slate-900/40 backdrop-blur-md animate-in fade-in duration-300"
-      onClick={(e) => {
-        // 🎯 UX: Fechar ao clicar no backdrop (fora do modal)
-        if (e.target === e.currentTarget && !loading) {
-          onClose();
-        }
-      }}
-      role="dialog"
-      aria-modal="true"
-      aria-labelledby="modal-title"
-    >
-      <div 
-        ref={modalRef}
-        className="relative w-full h-full bg-white flex flex-col overflow-hidden animate-in zoom-in-95 duration-300"
-        onClick={(e) => e.stopPropagation()}
+    <>
+      <FormPageBase
+        title={formTitle || (isEdit ? 'Editar Galeria' : 'Nova Galeria')}
+        isEdit={isEdit}
+        loading={loading}
+        isSuccess={isSuccess}
+        hasUnsavedChanges={hasUnsavedChanges}
+        onClose={onClose}
+        onSubmit={handleSubmit}
+        onFormChange={() => setHasUnsavedChanges(true)}
+        id="master-gallery-form"
+        submitLabel={loading ? 'Salvando...' : isEdit ? 'SALVAR ALTERAÇÕES' : 'CRIAR GALERIA'}
       >
-        {/* STICKY HEADER - Azul Petróleo Profundo */}
-        <div className="sticky top-0 z-50 bg-petroleum border-b border-white/10">
-          <div className="flex items-center justify-between px-6 py-4">
-            {/* Botão Voltar - Esquerda */}
-            <button
-              onClick={onClose}
-              disabled={loading}
-              className="p-2 text-white/80 hover:text-white hover:bg-white/10 rounded-lg transition-colors disabled:opacity-50 disabled:cursor-not-allowed shrink-0"
-              aria-label="Voltar"
-              title="Voltar (ESC)"
-            >
-              <ArrowLeft size={20} />
-            </button>
-
-            {/* Título Centralizado */}
-            <h2 
-              id="modal-title"
-              className="flex-1 text-center text-sm font-semibold text-white uppercase tracking-widest mx-4"
-            >
-              {formTitle || (isEdit ? 'Editar Galeria' : 'Nova Galeria')}
-            </h2>
-
-            {/* Botão SALVAR ALTERAÇÕES - Direita */}
-            <div className="w-[200px] flex justify-end shrink-0">
-              <SubmitButton
-                form="master-gallery-form"
-                success={isSuccess}
-                disabled={loading}
-                icon={<Save size={14} />}
-                className="w-full"
-                label={
-                  loading ? 'Salvando...' : isEdit ? 'SALVAR ALTERAÇÕES' : 'CRIAR GALERIA'
-                }
-              />
-            </div>
-          </div>
-        </div>
-
-        {/* FORM CONTENT - Layout Duas Colunas (65/35) */}
-        <div className="flex-1 overflow-hidden">
-          <div className="w-full max-w-7xl mx-auto h-full">
-            <form id="master-gallery-form" onSubmit={handleSubmit} className="h-full" onChange={() => setHasUnsavedChanges(true)}>
-              <GaleriaFormContent
-                initialData={galeria}
-                isEdit={isEdit}
-                customization={{ showCoverInGrid, gridBgColor, columns }}
-                setCustomization={{
-                  setShowCoverInGrid,
-                  setGridBgColor,
-                  setColumns,
-                }}
-                onPickerError={(msg: string) => onSuccess(false, msg)}
-                onTokenExpired={onTokenExpired}
-                onTitleChange={setFormTitle}
-              />
-            </form>
-          </div>
-        </div>
-
-        {/* STICKY FOOTER - Azul Petróleo Profundo */}
-        <div className="sticky bottom-0 z-50 bg-petroleum border-t border-white/10">
-          <div className="flex items-center justify-between px-6 py-4">
-            {/* Status de Salvamento - Esquerda */}
-            <div className="text-[10px] text-white/70 uppercase tracking-widest">
-              {hasUnsavedChanges ? 'Alterações não salvas' : 'Tudo salvo'}
-            </div>
-
-            {/* Botões - Direita */}
-            <div className="flex items-center gap-3">
-              <button
-                type="button"
-                onClick={onClose}
-                disabled={loading}
-                className="btn-secondary-petroleum"
-              >
-                CANCELAR
-              </button>
-              <SubmitButton
-                form="master-gallery-form"
-                success={isSuccess}
-                disabled={loading}
-                icon={<Save size={14} />}
-                className="px-6"
-                label={
-                  loading ? 'Salvando...' : isEdit ? 'SALVAR ALTERAÇÕES' : 'CRIAR GALERIA'
-                }
-              />
-            </div>
-          </div>
-        </div>
-      </div>
+        <GaleriaFormContent
+          initialData={galeria}
+          isEdit={isEdit}
+          customization={{ showCoverInGrid, gridBgColor, columns }}
+          setCustomization={{
+            setShowCoverInGrid,
+            setGridBgColor,
+            setColumns,
+          }}
+          onPickerError={(msg: string) => onSuccess(false, msg)}
+          onTokenExpired={onTokenExpired}
+          onTitleChange={setFormTitle}
+        />
+      </FormPageBase>
 
       {/* 🎯 MODAL DE SUCESSO PADRONIZADO (EDITORIAL) */}
       <BaseModal
@@ -389,7 +233,6 @@ export default function GaleriaModal({
         }
         footer={
           <div className="flex flex-col gap-3">
-            {/* Linha Única: Ações Principais com Larguras Iguais */}
             <div className="grid grid-cols-2 gap-3 w-full items-center">
               <button
                 onClick={() => {
@@ -454,6 +297,6 @@ export default function GaleriaModal({
           </div>
         </div>
       </BaseModal>
-    </div>
+    </>
   );
 }

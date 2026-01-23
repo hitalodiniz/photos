@@ -11,6 +11,7 @@ import {
   revalidateDrivePhotos,
   revalidateGallery,
   revalidateProfile,
+  revalidateUserGalerias,
 } from '@/actions/revalidate.actions';
 import { authService } from '@photos/core-auth';
 
@@ -125,7 +126,9 @@ export function useDashboardActions(
   const handleSyncDrive = async (galeria: Galeria) => {
     setUpdatingId(galeria.id);
     try {
+      // Força a revalidação de todas as tags relacionadas
       await revalidateDrivePhotos(galeria.drive_folder_id);
+      
       await revalidateGallery(
         galeria.drive_folder_id,
         galeria.slug,
@@ -133,6 +136,10 @@ export function useDashboardActions(
         galeria.photographer_username,
         galeria.cover_image_url,
       );
+      // Força a revalidação da lista de galerias para atualizar contadores (como leads)
+      if (photographer?.id) {
+        await revalidateUserGalerias(photographer.id);
+      }
       setToast({ message: 'Sincronização concluída!', type: 'success' });
     } catch {
       setToast({ message: 'Erro ao sincronizar.', type: 'error' });

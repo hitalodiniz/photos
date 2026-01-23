@@ -29,6 +29,7 @@ import { executeShare } from '@/core/utils/share-helper';
 import WhatsAppIcon from '@/components/ui/WhatsAppIcon';
 import GaleriaContextMenu from '@/components/dashboard/GaleriaContextMenu';
 import { useNavigation } from '@/components/providers/NavigationProvider';
+import { Users } from 'lucide-react';
 
 interface GaleriaCardProps {
   galeria: Galeria;
@@ -165,9 +166,9 @@ export default function GaleriaCard({
             window.open(links.url, '_blank');
           }
         }}
-      className={`group relative flex items-center gap-4 overflow-hidden rounded-luxury border border-petroleum/40 bg-white p-3 transition-all duration-300 w-full animate-in fade-in slide-in-from-bottom-2 duration-500 fill-mode-both hover:border-petroleum/70 ${
-        isBulkMode ? 'cursor-default' : 'cursor-pointer'
-      } ${isSelected && isBulkMode ? 'ring-2 ring-gold border-gold' : ''}`}
+        className={`group relative flex items-center gap-4 overflow-hidden rounded-luxury border border-petroleum/40 bg-white p-3 transition-all duration-300 w-full animate-in fade-in slide-in-from-bottom-2 duration-500 fill-mode-both hover:border-petroleum/70 ${
+          isBulkMode ? 'cursor-default' : 'cursor-pointer'
+        } ${isSelected && isBulkMode ? 'ring-2 ring-gold border-gold' : ''}`}
         style={{ animationDelay: `${index * 30}ms` }}
       >
         {/* Checkbox de seleção em lote - Modo Lista */}
@@ -286,8 +287,21 @@ export default function GaleriaCard({
                     )}
                   </button>
                 )}
+                {/* 🎯 Lead Report - Link para a nova página com Loading */}
+                {(galeria.leads_enabled || (galeria.leads_count ?? 0) > 0) && (
+                  <button
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      navigate(`/dashboard/galerias/${galeria.id}/leads`, 'Gerando relatório...');
+                    }}
+                    className="p-3 md:p-2 text-editorial-gray bg-white border border-petroleum/40 rounded-luxury interactive-luxury-petroleum shadow-sm flex items-center justify-center min-w-[40px] disabled:opacity-50"
+                    title="Ver Leads"
+                    disabled={isNavigating}
+                  >
+                    <Users size={16} />
+                  </button>
+                )}
               </>
-
             )}
             <GaleriaContextMenu
               galeria={galeria}
@@ -301,7 +315,7 @@ export default function GaleriaCard({
             />
           </div>
         </div>
-        </div>
+      </div>
     );
   }
 
@@ -470,53 +484,65 @@ export default function GaleriaCard({
       </div>
 
       <div className="flex items-center justify-between p-3 md:p-2.5 bg-slate-50/50 border-t border-petroleum/10 mt-auto">
-        {/* Apenas Compartilhar e Editar visíveis */}
+        {/* Ações - Apenas Compartilhar e Editar visíveis */}
         <div className="flex gap-2 md:gap-1.5">
-        {currentView === 'active' && (
-    <>
-      <button
-        onClick={(e) => {
-          e.stopPropagation();
-          handleWhatsAppShare(e);
-        }}
-        // Alterado: border-white/10 -> border-petroleum/40
-        className="p-2 text-petroleum bg-white border border-petroleum/40 rounded-luxury interactive-luxury-petroleum "
-        title="Compartilhar via WhatsApp"
-      >
-        <WhatsAppIcon className="w-4 h-4" />
-      </button>
-      <button
-        onClick={(e) => {
-          e.stopPropagation();
-          if (!isNavigating) {
-            handleEditClick(e);
-          }
-        }}
-        disabled={isNavigating}
-        // Alterado: border-white/10 -> border-petroleum/40
-        className="p-2 text-petroleum bg-white border border-petroleum/40 rounded-luxury interactive-luxury-petroleum  disabled:opacity-50"
-        title="Editar"
-      >
-        <Pencil size={16} />
-      </button>
-      {mounted && (
-        <button
-          onClick={handleCopy}
-          className="p-2 text-editorial-gray bg-white border border-petroleum/40 rounded-luxury interactive-luxury-petroleum "
-          title="Copiar link da galeria"
-        >
-          {copied ? (
-            <Check
-              size={16}
-              className="text-green-500 animate-in zoom-in duration-300"
-            />
-          ) : (
-            <Link2 size={16} className="text-editorial-gray" />
+          {currentView === 'active' && (
+            <>
+              <button
+                onClick={(e) => {
+                  e.stopPropagation();
+                  handleWhatsAppShare(e);
+                }}
+                className="p-2 text-petroleum bg-white border border-petroleum/40 rounded-luxury interactive-luxury-petroleum "
+                title="Compartilhar via WhatsApp"
+              >
+                <WhatsAppIcon className="w-4 h-4" />
+              </button>
+              <button
+                onClick={(e) => {
+                  e.stopPropagation();
+                  if (!isNavigating) {
+                    handleEditClick(e);
+                  }
+                }}
+                disabled={isNavigating}
+                className="p-2 text-petroleum bg-white border border-petroleum/40 rounded-luxury interactive-luxury-petroleum  disabled:opacity-50"
+                title="Editar"
+              >
+                <Pencil size={16} />
+              </button>
+              {mounted && (
+                <button
+                  onClick={handleCopy}
+                  className="p-2 text-editorial-gray bg-white border border-petroleum/40 rounded-luxury interactive-luxury-petroleum "
+                  title="Copiar link da galeria"
+                >
+                  {copied ? (
+                    <Check
+                      size={16}
+                      className="text-green-500 animate-in zoom-in duration-300"
+                    />
+                  ) : (
+                    <Link2 size={16} className="text-editorial-gray" />
+                  )}
+                </button>
+              )}
+              {/* 🎯 Lead Report - Link para a nova página com Loading */}
+              {(galeria.leads_enabled || (galeria.leads_count ?? 0) > 0) && (
+                <button
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    navigate(`/dashboard/galerias/${galeria.id}/leads`, 'Gerando relatório...');
+                  }}
+                  className="p-2 text-petroleum bg-white border border-petroleum/40 rounded-luxury interactive-luxury-petroleum flex items-center justify-center disabled:opacity-50"
+                  title="Ver Leads"
+                  disabled={isNavigating}
+                >
+                  <Users size={16} />
+                </button>
+              )}
+            </>
           )}
-        </button>
-      )}
-    </>
-  )}
         </div>
 
         {/* Menu de Contexto */}

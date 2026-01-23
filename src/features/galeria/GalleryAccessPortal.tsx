@@ -44,6 +44,20 @@ export default function GalleryAccessPortal({
   const hasPassword = !galeria.is_public;
   const leadsEnabled = galeria.leads_enabled;
 
+  // 🎯 DEDUPLICAÇÃO INTELIGENTE: Verifica se o lead já foi capturado localmente
+  useEffect(() => {
+    if (!isOpen || !onSuccess) return;
+
+    const leadCaptured = localStorage.getItem(`lead_captured_${galeria.id}`);
+    
+    // Se o lead já foi capturado E a galeria não tem senha, libera direto
+    // Se tiver senha, ainda precisa mostrar o portal para a senha
+    if (leadCaptured === 'true' && !hasPassword) {
+      console.log('[GalleryAccessPortal] Lead já capturado localmente. Liberando acesso...');
+      onSuccess();
+    }
+  }, [isOpen, galeria.id, hasPassword, onSuccess]);
+
   const coverUrl = useMemo(() => {
     return getDirectGoogleUrl(galeria.cover_image_url, '1280');
   }, [galeria.cover_image_url]);
@@ -172,6 +186,9 @@ export default function GalleryAccessPortal({
           setLoading(false);
           return;
         }
+
+        // Salva persistência local após sucesso na captura do lead
+        localStorage.setItem(`lead_captured_${galeria.id}`, 'true');
       }
 
       // PASSO 2: Verificação de Senha (Servidor + Cookies)
@@ -197,7 +214,7 @@ export default function GalleryAccessPortal({
           if (typeof window !== 'undefined') window.location.reload();
         }
       }, 800);
-    } catch (error: any) {
+    } catch (error) {
       console.error('Erro no portal de acesso:', error);
       setGlobalError('Ocorreu um erro ao processar seu acesso.');
       setLoading(false);
@@ -297,7 +314,7 @@ export default function GalleryAccessPortal({
                         <input
                           type="text"
                           value={formData.whatsapp}
-                          onChange={(e) => setFormData({ ...formData, whatsapp: maskPhone(e as any) })}
+                          onChange={(e) => setFormData({ ...formData, whatsapp: maskPhone(e) })}
                           placeholder="(00) 00000-0000"
                           className={`w-full bg-white border ${errors.whatsapp ? 'border-red-500/50' : 'border-petroleum/20'} rounded-luxury px-4 h-11 text-petroleum text-sm outline-none focus:border-gold transition-all placeholder:text-petroleum/30`}
                         />

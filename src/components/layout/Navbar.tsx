@@ -66,7 +66,8 @@ export default function Navbar() {
   }
 
   // Detectar se está na página de criação/edição de galeria ou onboarding
-  const isFormPage = (pathname.includes('/dashboard/galerias/') && (pathname.includes('/new') || pathname.includes('/edit'))) || 
+  const isFormPage = (pathname.includes('/dashboard/galerias/') && 
+    (pathname.includes('/new') || pathname.includes('/edit') || pathname.includes('/leads'))) || 
     pathname === '/onboarding';
   
   // Breadcrumbs para página de formulário - Apenas o status (sem duplicar o branding)
@@ -78,6 +79,8 @@ export default function Navbar() {
     }
     if (pathname.includes('/edit')) {
       return [{ label: 'Editar Galeria' }];
+    } else if (pathname.includes('/leads')) {
+      return [{ label: 'Relatório de Leads' }];
     } else {
       return [{ label: 'Nova Galeria' }];
     }

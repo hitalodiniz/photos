@@ -63,7 +63,60 @@ describe('auth.actions.ts - Testes Unitários', () => {
       );
     });
 
-    it('deve retornar erro se falhar ao inserir o lead', async () => {
+    it('deve limpar o whatsapp antes de salvar', async () => {
+      const leadDataWithMask = {
+        nome: 'João Silva',
+        email: 'joao@example.com',
+        whatsapp: '(31) 98888-7777',
+      };
+
+      const mockQueryBuilder = {
+        from: vi.fn().mockReturnThis(),
+        insert: vi.fn().mockResolvedValue({ error: null }),
+      };
+
+      vi.mocked(supabaseServer.createSupabaseServerClient).mockResolvedValue(mockQueryBuilder as any);
+
+      await captureLeadAction(mockGaleriaId, leadDataWithMask);
+
+      expect(mockQueryBuilder.insert).toHaveBeenCalledWith([
+        {
+          galeria_id: mockGaleriaId,
+          name: leadDataWithMask.nome,
+          email: leadDataWithMask.email,
+          whatsapp: '31988887777',
+        },
+      ]);
+    });
+
+    it('deve tratar erro 23505 (unique_violation) como sucesso (reconhecido)', async () => {
+      const mockSet = vi.fn();
+      vi.mocked(cookies).mockResolvedValue({
+        set: mockSet,
+      } as any);
+
+      const mockQueryBuilder = {
+        from: vi.fn().mockReturnThis(),
+        insert: vi.fn().mockResolvedValue({ 
+          error: { message: 'duplicate key', code: '23505' } 
+        }),
+      };
+
+      vi.mocked(supabaseServer.createSupabaseServerClient).mockResolvedValue(mockQueryBuilder as any);
+
+      const result = await captureLeadAction(mockGaleriaId, leadData);
+
+      expect(result.success).toBe(true);
+      expect(result.message).toBe('Reconhecido');
+      // Ainda deve definir o cookie
+      expect(mockSet).toHaveBeenCalledWith(
+        `galeria-${mockGaleriaId}-lead`,
+        'captured',
+        expect.any(Object)
+      );
+    });
+
+    it('deve retornar erro se falhar ao inserir o lead com outro erro', async () => {
       const mockQueryBuilder = {
         from: vi.fn().mockReturnThis(),
         insert: vi.fn().mockResolvedValue({ error: { message: 'DB Error', code: '500' } }),

@@ -70,6 +70,7 @@ export interface Galeria extends GaleriaBase {
   photographer_instagram?: string | null;
   photographer_email?: string | null;
   photographer_url?: string;
+  leads_count?: number;
 
   // Atalhos úteis para facilitar o acesso no GaleriaCard
   photographer_username?: string;
@@ -93,4 +94,5 @@ export interface GaleriaRawResponse extends Omit<
     instagram_link: string | null;
     use_subdomain: boolean; // Garante a tipagem correta vinda do DB
   };
+  leads?: { count: number }[];
 }
