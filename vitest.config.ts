@@ -17,7 +17,7 @@ export default defineConfig({
     setupFiles: ['./vitest.setup.ts'], // <--- O segredo está aqui
     env: {
       NEXT_PUBLIC_SUPABASE_URL: 'https://uxbakxnl.supabase.co',
-      SUPABASE_ANON_KEY: 'fake-key',
+      NEXT_PUBLIC_SUPABASE_ANON_KEY: 'fake-key',
     },
     coverage: {
       provider: 'v8',

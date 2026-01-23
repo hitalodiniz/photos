@@ -45,8 +45,8 @@ fi
 
 # Executa testes (apenas se não for commit rápido)
 if [ -z "$SKIP_TESTS" ]; then
-  echo "🧪 Executando testes críticos..."
-  npm run test:critical 2>/dev/null || npm test
+  echo "🧪 Executando todos os testes do projeto..."
+  npm test -- run
   TEST_EXIT_CODE=$?
 
   if [ $TEST_EXIT_CODE -ne 0 ]; then

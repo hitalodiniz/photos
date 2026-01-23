@@ -14,7 +14,7 @@
     "test": "vitest",
     "test:clean": "vitest --clearCache && npx vitest src/contexts/AuthContext.spec.tsx",
     "test:coverage": "vitest run --coverage",
-    "test:critical": "vitest run src/core/services/auth.service.spec.ts src/hooks/useSupabaseSession.spec.ts src/contexts/AuthContext.spec.tsx src/core/services/google.service.spec.ts src/core/logic/auth-gallery.spec.ts src/lib/supabase.client.spec.ts src/lib/supabase.server.spec.ts src/middleware.spec.ts src/app/api/auth/callback/route.spec.ts src/app/api/auth/google/route.spec.ts",
+    "test:critical": "vitest run src/core/services/auth.service.spec.ts src/hooks/useSupabaseSession.spec.ts src/contexts/AuthContext.spec.tsx src/core/services/google.service.spec.ts src/core/logic/auth-gallery.spec.ts src/lib/supabase.client.spec.ts src/lib/supabase.server.spec.ts src/middleware.spec.ts src/app/api/auth/callback/route.spec.ts src/app/api/auth/google/route.spec.ts src/actions/auth.actions.spec.ts \"src/app/(dashboard)/dashboard/GaleriaFormContent.spec.tsx\"",
     "validate:critical": "bash scripts/validate-critical-files.sh",
     "protect:check": "node scripts/protect-critical-files.js --check-only",
     "protect:list": "node scripts/protect-critical-files.js --list",

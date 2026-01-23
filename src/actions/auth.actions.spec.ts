@@ -3,6 +3,7 @@ import { captureLeadAction, authenticateGaleriaAccessAction } from './auth.actio
 import * as supabaseServer from '@/lib/supabase.server';
 import { cookies } from 'next/headers';
 import * as galeriaService from '@/core/services/galeria.service';
+import { revalidateTag } from 'next/cache';
 
 vi.mock('@/lib/supabase.server', () => ({
   createSupabaseServerClient: vi.fn(),
@@ -12,13 +13,16 @@ vi.mock('next/headers', () => ({
   cookies: vi.fn(),
 }));
 
+vi.mock('next/cache', () => ({
+  revalidateTag: vi.fn(),
+}));
+
 vi.mock('@/core/services/galeria.service', () => ({
   authenticateGaleriaAccess: vi.fn(),
 }));
 
 describe('auth.actions.ts - Testes Unitários', () => {
   const mockGaleriaId = 'gal-123';
-  const mockUserId = 'user-456';
 
   beforeEach(() => {
     vi.clearAllMocks();
@@ -39,7 +43,12 @@ describe('auth.actions.ts - Testes Unitários', () => {
 
       const mockQueryBuilder = {
         from: vi.fn().mockReturnThis(),
-        insert: vi.fn().mockResolvedValue({ error: null }),
+        insert: vi.fn().mockReturnThis(),
+        select: vi.fn().mockReturnThis(),
+        single: vi.fn().mockResolvedValue({ 
+          data: { tb_galerias: { user_id: 'user-456' } }, 
+          error: null 
+        }),
       };
 
       vi.mocked(supabaseServer.createSupabaseServerClient).mockResolvedValue(mockQueryBuilder as any);
@@ -56,6 +65,7 @@ describe('auth.actions.ts - Testes Unitários', () => {
           whatsapp: leadData.whatsapp,
         },
       ]);
+      expect(revalidateTag).toHaveBeenCalledWith('user-galerias-user-456');
       expect(mockSet).toHaveBeenCalledWith(
         `galeria-${mockGaleriaId}-lead`,
         'captured',
@@ -72,7 +82,12 @@ describe('auth.actions.ts - Testes Unitários', () => {
 
       const mockQueryBuilder = {
         from: vi.fn().mockReturnThis(),
-        insert: vi.fn().mockResolvedValue({ error: null }),
+        insert: vi.fn().mockReturnThis(),
+        select: vi.fn().mockReturnThis(),
+        single: vi.fn().mockResolvedValue({ 
+          data: { tb_galerias: { user_id: 'user-456' } }, 
+          error: null 
+        }),
       };
 
       vi.mocked(supabaseServer.createSupabaseServerClient).mockResolvedValue(mockQueryBuilder as any);
@@ -89,7 +104,7 @@ describe('auth.actions.ts - Testes Unitários', () => {
       ]);
     });
 
-    it('deve tratar erro 23505 (unique_violation) como sucesso (reconhecido)', async () => {
+    it('deve tratar erro 23505 (unique_violation) como sucesso (reconhecido) e revalidar', async () => {
       const mockSet = vi.fn();
       vi.mocked(cookies).mockResolvedValue({
         set: mockSet,
@@ -97,10 +112,23 @@ describe('auth.actions.ts - Testes Unitários', () => {
 
       const mockQueryBuilder = {
         from: vi.fn().mockReturnThis(),
-        insert: vi.fn().mockResolvedValue({ 
-          error: { message: 'duplicate key', code: '23505' } 
-        }),
+        insert: vi.fn().mockReturnThis(),
+        select: vi.fn().mockReturnThis(),
+        single: vi.fn(),
+        eq: vi.fn().mockReturnThis(),
       };
+
+      // Simula falha na inserção com 23505
+      mockQueryBuilder.single
+        .mockResolvedValueOnce({ 
+          data: null, 
+          error: { message: 'duplicate key', code: '23505' } 
+        })
+        // Simula busca do dono da galeria
+        .mockResolvedValueOnce({
+          data: { user_id: 'user-456' },
+          error: null
+        });
 
       vi.mocked(supabaseServer.createSupabaseServerClient).mockResolvedValue(mockQueryBuilder as any);
 
@@ -108,6 +136,8 @@ describe('auth.actions.ts - Testes Unitários', () => {
 
       expect(result.success).toBe(true);
       expect(result.message).toBe('Reconhecido');
+      expect(revalidateTag).toHaveBeenCalledWith('user-galerias-user-456');
+      
       // Ainda deve definir o cookie
       expect(mockSet).toHaveBeenCalledWith(
         `galeria-${mockGaleriaId}-lead`,
@@ -119,7 +149,12 @@ describe('auth.actions.ts - Testes Unitários', () => {
     it('deve retornar erro se falhar ao inserir o lead com outro erro', async () => {
       const mockQueryBuilder = {
         from: vi.fn().mockReturnThis(),
-        insert: vi.fn().mockResolvedValue({ error: { message: 'DB Error', code: '500' } }),
+        insert: vi.fn().mockReturnThis(),
+        select: vi.fn().mockReturnThis(),
+        single: vi.fn().mockResolvedValue({ 
+          data: null, 
+          error: { message: 'DB Error', code: '500' } 
+        }),
       };
 
       vi.mocked(supabaseServer.createSupabaseServerClient).mockResolvedValue(mockQueryBuilder as any);

@@ -90,5 +90,14 @@ vi.mock('next/headers', () => ({
   })),
 }));
 
+// Mock do React.cache que pode não estar presente no ambiente de teste
+vi.mock('react', async (importOriginal) => {
+  const actual = await importOriginal<any>();
+  return {
+    ...actual,
+    cache: actual.cache || ((fn: any) => fn),
+  };
+});
+
 // Exportamos a instância única para que você possa usar nos arquivos .test.ts
 export { singletonMock as mockSupabaseClient };
