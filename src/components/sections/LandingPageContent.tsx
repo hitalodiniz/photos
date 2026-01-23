@@ -88,7 +88,7 @@ export default function LandingPageContent() {
 
             {/* LADO DIREITO (LOGIN) */}
             <div className="lg:col-span-5 flex flex-col items-center lg:items-start order-1 lg:order-2">
-              <div className="w-full max-w-md bg-white/5 backdrop-blur-3xl border border-white/10 p-8 md:p-10 mt-3 rounded-[2.5rem] shadow-2xl relative overflow-hidden">
+              <div className="w-full max-w-md bg-white/5 backdrop-blur-3xl border border-white/10 p-8 md:p-10 mt-3 rounded-luxury shadow-2xl relative overflow-hidden">
                 <div className="absolute -top-24 -right-24 w-48 h-48 bg-[#D4AF37]/10 blur-[80px] rounded-full" />
 
                 <h2 className="text-white text-2xl md:text-3xl font-semibold mb-4 tracking-tight text-center lg:text-left">

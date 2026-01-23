@@ -1,6 +1,7 @@
 // app/page.tsx (Home Page Principal com Checagem de Autenticação Server-Side)
 
 import { LandingPageContent } from '@/components/sections';
+import { LoadingScreen } from '@/components/ui';
 import { SEO_CONFIG } from '@/core/config/seo.config';
 import { Metadata } from 'next';
 
