@@ -173,8 +173,8 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
     const subscription = authService.onAuthStateChange((event, session) => {
       // 🛡️ TRAVA: Se já estivermos carregando o perfil ou validando a sessão inicial, ignora eventos redundantes
-      // Exceto SIGNED_OUT, que deve ser processado imediatamente
-      if ((isFetchingProfile.current || isLoadingStillTrue) && event !== 'SIGNED_OUT') {
+      // Exceto SIGNED_OUT e SIGNED_IN, que devem ser processados para garantir o estado correto
+      if ((isFetchingProfile.current || isLoadingStillTrue) && event !== 'SIGNED_OUT' && event !== 'SIGNED_IN') {
         // console.log('[AuthContext] Ignorando evento redundante durante busca de perfil ou validação:', event);
         return;
       }

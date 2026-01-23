@@ -36,8 +36,12 @@ import { getBaseUrl } from '@/lib/get-base-url';
 import { supabase } from '@/lib/supabase.client';
 import { Session } from '@supabase/supabase-js';
 
-// Variável global para evitar múltiplos refreshes paralelos
+// Cache para evitar múltiplos refreshes paralelos
 let refreshPromise: Promise<any> | null = null;
+let lastRefreshTime = 0;
+
+// Cache para evitar múltiplas buscas de perfil paralelas
+const profileCache = new Map<string, Promise<any>>();
 
 export const authService = {
   // Busca a sessão atual
@@ -100,17 +104,27 @@ export const authService = {
 
   // Logout
   async signOut() {
+    // Limpa caches ao deslogar
+    profileCache.clear();
     await supabase.auth.signOut();
   },
 
   // Refresh manual de sessão com trava para evitar loop
   async refreshSession() {
-    // 🛡️ TRAVA: Se já existe um refresh em andamento, retorna a mesma promise
+    // 🛡️ TRAVA 1: Se já existe um refresh em andamento, retorna a mesma promise
     if (refreshPromise) {
       // console.log('[authService] Refresh já em andamento, reutilizando promise...');
       return refreshPromise;
     }
 
+    // 🛡️ TRAVA 2: Evita refreshes muito frequentes (ex: menos de 10s entre eles)
+    const now = Date.now();
+    if (now - lastRefreshTime < 10000) {
+      // console.log('[authService] Refresh solicitado muito cedo, ignorando...');
+      return { data: { session: null }, error: null };
+    }
+
+    lastRefreshTime = now;
     // console.log('[authService] Iniciando refresh de sessão...');
     refreshPromise = supabase.auth.refreshSession();
     
@@ -132,20 +146,36 @@ export const authService = {
     }
   },
 
-  // Busca perfil do usuário logado
+  // Busca perfil do usuário logado com cache de promessa
   async getProfile(userId: string) {
-    try {
-      const { data, error } = await supabase
-        .from('tb_profiles')
-        .select('profile_picture_url, roles')
-        .eq('id', userId)
-        .single();
-      
-      if (error) throw error;
-      return data;
-    } catch {
-      return null;
+    if (!userId) return null;
+
+    // Retorna do cache se já houver uma busca em andamento ou finalizada
+    if (profileCache.has(userId)) {
+      // console.log('[authService] Usando cache para perfil:', userId);
+      return profileCache.get(userId);
     }
+
+    // console.log('[authService] Buscando perfil do banco:', userId);
+    const fetchPromise = (async () => {
+      try {
+        const { data, error } = await supabase
+          .from('tb_profiles')
+          .select('profile_picture_url, roles')
+          .eq('id', userId)
+          .single();
+        
+        if (error) throw error;
+        return data;
+      } catch (err) {
+        // Se falhar, remove do cache para permitir nova tentativa depois
+        profileCache.delete(userId);
+        return null;
+      }
+    })();
+
+    profileCache.set(userId, fetchPromise);
+    return fetchPromise;
   },
 
   /**

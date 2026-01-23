@@ -34,13 +34,13 @@ import { createServerClient } from '@supabase/ssr';
 import { fetchProfileDirectDB } from '@/core/services/profile.service';
 import { resolveGalleryUrl } from '@/core/utils/url-helper';
 
-const SITE_URL = process.env.NEXT_PUBLIC_BASE_URL || 'http://localhost:3000';
-//Identifica o domínio base sem o prefixo "teste." caso esteja em homologação
-const ACTUAL_HOST = new URL(SITE_URL).host;
-const MAIN_DOMAIN = ACTUAL_HOST.replace('teste.', '');
-const URL_TESTE = 'teste.suagaleria.com.br';
-
 export async function middleware(req: NextRequest) {
+  const SITE_URL = process.env.NEXT_PUBLIC_BASE_URL || 'http://localhost:3000';
+  //Identifica o domínio base sem o prefixo "teste." caso esteja em homologação
+  const ACTUAL_HOST = new URL(SITE_URL).host;
+  const MAIN_DOMAIN = ACTUAL_HOST.replace('teste.', '');
+  const URL_TESTE = 'teste.suagaleria.com.br';
+
   const { pathname } = req.nextUrl;
   const host = req.headers.get('host') || '';
   const protocol = req.nextUrl.protocol.replace(':', '');
@@ -136,7 +136,9 @@ export async function middleware(req: NextRequest) {
   const isHomolog = host.includes(URL_TESTE);
   const internalMainDomain = isHomolog 
   ? URL_TESTE 
-  : (process.env.NEXT_PUBLIC_MAIN_DOMAIN || SITE_URL);
+  : (process.env.NEXT_PUBLIC_MAIN_DOMAIN && process.env.NEXT_PUBLIC_MAIN_DOMAIN !== 'undefined' 
+      ? process.env.NEXT_PUBLIC_MAIN_DOMAIN 
+      : ACTUAL_HOST);
 
 // Agora comparamos contra o internalMainDomain (que pode ser o de teste ou o real)
 const isSubdomainRequest = host.endsWith(`.${internalMainDomain}`) && host !== internalMainDomain;
@@ -182,9 +184,12 @@ const subdomain = host.replace(`.${internalMainDomain}`, '').toLowerCase();
   }
 
   // --- REGRA B: ACESSO VIA DOMÍNIO PRINCIPAL ---
-// Aqui evitamos que o domínio de teste redirecione para a produção
-if (!isSubdomainRequest && host === internalMainDomain) {    const segments = pathname.split('/').filter(Boolean);
+  // Aqui evitamos que o domínio de teste redirecione para a produção
+  if (!isSubdomainRequest && host === internalMainDomain) {
+    const segments = pathname.split('/').filter(Boolean);
     const potentialUsername = segments[0]?.toLowerCase();
+
+    // console.log('[Middleware Regra B Debug]', { potentialUsername, segments });
 
     if (
       potentialUsername &&

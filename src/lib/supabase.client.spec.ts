@@ -95,7 +95,7 @@ describe('supabase.client', () => {
     const callArgs = vi.mocked(createBrowserClient).mock.calls[0];
     if (callArgs && callArgs[2]) {
       // Sempre undefined quando não há subdomínios
-      expect(callArgs[2].cookieOptions.domain).toBe(".example.com");
+      expect(callArgs[2].cookieOptions.domain).toBe(undefined);
     } else {
       throw new Error('createBrowserClient não foi chamado');
     }

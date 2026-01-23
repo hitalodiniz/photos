@@ -91,24 +91,17 @@ export function useSupabaseSession() {
   const hasRefreshedRef = useRef(false);
   const fetchSessionRef = useRef<((forceRefresh?: boolean) => Promise<{ session: Session; userId: string } | null>) | null>(null);
 
-  // Ref para evitar buscas redundantes no hook
-  const lastFetchedProfileId = useRef<string | null>(null);
-
-  // Buscar perfil para obter roles
+  // Buscar perfil para obter roles (usando cache do serviço)
   const fetchProfile = useCallback(async (userId: string) => {
-    if (!userId || lastFetchedProfileId.current === userId) {
-      return sessionData.roles || [];
-    }
-
+    if (!userId) return [];
+    
     try {
-      // console.log('[useSupabaseSession] Buscando perfil para roles:', userId);
       const profile = await authService.getProfile(userId);
-      lastFetchedProfileId.current = userId;
       return profile?.roles || [];
     } catch {
       return [];
     }
-  }, [sessionData.roles]);
+  }, []);
 
   // Buscar sessão atual com retry logic para subdomínios
   const fetchSession = useCallback(async (forceRefresh = false): Promise<{ session: Session; userId: string } | null> => {
@@ -206,32 +199,28 @@ export function useSupabaseSession() {
     isSubdomainRef.current = isSubdomain();
 
     // Inicializa a sessão - necessário para carregar estado inicial
-    // Nota: Este é um caso válido onde precisamos inicializar estado no useEffect
     void fetchSession();
 
     const subscription = authService.onAuthStateChange(async (event, session) => {
       // 🚀 LOG: Monitora qual evento de auth está sendo disparado no hook de sessão
       // console.log(`[useSupabaseSession] Evento de auth: ${event}`, { userId: session?.user?.id });
 
-      // Em subdomínios, faz refresh quando há mudanças de auth state
-      if (isSubdomainRef.current && (event === 'SIGNED_IN' || event === 'TOKEN_REFRESHED')) {
+      // Em subdomínios, faz refresh apenas no SIGNED_IN para garantir sincronização de cookies
+      // 🛡️ Prevenimos loop removendo o gatilho de TOKEN_REFRESHED
+      if (isSubdomainRef.current && event === 'SIGNED_IN' && !hasRefreshedRef.current) {
         try {
-          // 🛡️ Previne refresh se já tivermos uma sessão válida recentemente
-          if (session?.user && !isSubdomainRef.current) {
-             // Se não for subdomínio, não precisa forçar refresh aqui
-          } else {
-            const { data: refreshData } = await authService.refreshSession();
-            if (refreshData.session) {
-              const roles = await fetchProfile(refreshData.session.user.id);
-              setSessionData({
-                user: refreshData.session.user,
-                roles,
-                accessToken: null,
-                userId: refreshData.session.user.id,
-                isLoading: false,
-              });
-              return;
-            }
+          hasRefreshedRef.current = true;
+          const { data: refreshData } = await authService.refreshSession();
+          if (refreshData.session) {
+            const roles = await fetchProfile(refreshData.session.user.id);
+            setSessionData({
+              user: refreshData.session.user,
+              roles,
+              accessToken: null,
+              userId: refreshData.session.user.id,
+              isLoading: false,
+            });
+            return;
           }
         } catch (_err) {
           console.warn('Erro ao fazer refresh no auth state change:', _err);
@@ -240,12 +229,18 @@ export function useSupabaseSession() {
 
       if (session?.user) {
         const roles = await fetchProfile(session.user.id);
-        setSessionData({
-          user: session.user,
-          roles,
-          accessToken: null, // Token do Google será obtido via getAuthDetails quando necessário
-          userId: session.user.id,
-          isLoading: false,
+        setSessionData(prev => {
+          // Só atualiza se o userId mudar ou os dados forem nulos
+          if (prev.userId === session.user.id && prev.roles.length === roles.length) {
+            return prev;
+          }
+          return {
+            user: session.user,
+            roles,
+            accessToken: null,
+            userId: session.user.id,
+            isLoading: false,
+          };
         });
       } else {
         setSessionData({
@@ -255,6 +250,7 @@ export function useSupabaseSession() {
           userId: null,
           isLoading: false,
         });
+        hasRefreshedRef.current = false;
       }
     });
 
