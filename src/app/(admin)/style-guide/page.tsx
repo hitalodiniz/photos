@@ -2,28 +2,13 @@
 
 import React, { useState } from 'react';
 import {
-  ShieldCheck,
-  Eye,
-  LayoutGrid,
-  Lock,
-  Unlock,
-  Settings,
-  LogOut,
-  Search,
-  MapPin,
-  Calendar,
   User,
   Camera,
-  Briefcase,
-  Plus,
   Copy,
   Check,
   Terminal,
-  Zap,
   Package,
-  AlertTriangle,
   Wifi,
-  Download,
   CheckCircle2,
   ArrowRight,
   ImageIcon,
@@ -40,13 +25,13 @@ export default function StyleGuidePage() {
 🎨 TEMA ADAPTATIVO AUTOMÁTICO:
 - O site detecta automaticamente o tema do sistema operacional (darkMode: 'media' no Tailwind)
 - Use classes dark: para adaptar cores ao tema escuro
-- Sempre forneça versões para ambos os temas usando: text-[#1E293B] dark:text-[#F3E5AB]
+- Sempre forneça versões para ambos os temas usando: text-petroleum dark:text-[#F3E5AB]
 
 📋 CORES POR TEMA:
 1. TEMA CLARO (Light):
    - Fundo principal: bg-white ou bg-luxury-bg (#F8F9FA)
-   - Cor de destaque: text-[#1E293B] (cor da barra ToolBarDesktop)
-   - Ícones: text-[#1E293B]
+   - Cor de destaque: text-petroleum (cor da barra ToolBarDesktop)
+   - Ícones: text-petroleum
    - Bordas: border-black/10 ou border-black/20
    - Fundos de componentes: bg-white/90 ou bg-white/95
 
@@ -66,7 +51,7 @@ export default function StyleGuidePage() {
 
 2. TEXTOS ADAPTATIVOS:
    - Títulos: text-black dark:text-white
-   - Destaques: text-[#1E293B] dark:text-[#F3E5AB]
+   - Destaques: text-petroleum dark:text-[#F3E5AB]
    - Secundários: text-black/70 dark:text-white/80
 
 3. FUNDOS ADAPTATIVOS:
@@ -83,13 +68,13 @@ export default function StyleGuidePage() {
 
 💡 EXEMPLO DE COMPONENTE ADAPTATIVO:
 <div className="bg-white/90 dark:bg-black/90 backdrop-blur-md border border-black/10 dark:border-white/20 text-black dark:text-white transition-colors duration-300">
-  <h2 className="text-[#1E293B] dark:text-[#F3E5AB]">Título</h2>
+  <h2 className="text-petroleum dark:text-[#F3E5AB]">Título</h2>
   <p className="text-black/70 dark:text-white/80">Texto secundário</p>
 </div>
 
 ⚠️ IMPORTANTE:
 - NUNCA use apenas uma cor fixa, sempre forneça versão dark:
-- Use #1E293B no tema claro e #F3E5AB no tema escuro para elementos de destaque
+- Use petroleum (text-petroleum ou bg-petroleum) no tema claro e #F3E5AB no tema escuro para elementos de destaque
 - Sempre inclua transition-colors duration-300 para transições suaves`;
 
   const copyToClipboard = () => {
@@ -151,14 +136,14 @@ export default function StyleGuidePage() {
         
         {/* Exemplo: Card Adaptativo */}
         <div className="space-y-3">
-          <p className="text-[10px] text-slate-400 font-semibold uppercase tracking-widest">
+          <p className="text-editorial-label text-white/40">
             Card Adaptativo
           </p>
-          <div className="bg-white dark:bg-[#1E293B] p-6 rounded-2xl border border-slate-200 dark:border-white/10 shadow-sm transition-colors duration-300">
-            <h3 className="text-[#1E293B] dark:text-[#F3E5AB] text-lg font-semibold mb-2 transition-colors duration-300">
+          <div className="bg-white dark:bg-slate-950/50 p-6 rounded-luxury border border-slate-200 dark:border-white/10 shadow-sm transition-colors duration-300">
+            <h3 className="text-editorial-ink dark:text-gold text-lg font-bold mb-2 transition-colors duration-300 italic">
               Título Adaptativo
             </h3>
-            <p className="text-black/70 dark:text-white/80 text-sm transition-colors duration-300">
+            <p className="text-editorial-gray dark:text-white/60 text-sm transition-colors duration-300 font-medium">
               Este card se adapta automaticamente ao tema do sistema operacional.
             </p>
           </div>
@@ -167,36 +152,36 @@ export default function StyleGuidePage() {
         {/* Exemplo: Botões Adaptativos */}
         <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
           <div className="space-y-3">
-            <p className="text-[10px] text-slate-400 font-semibold uppercase tracking-widest">
+            <p className="text-editorial-label text-white/40">
               Botão Primário Adaptativo
             </p>
-            <button className="w-full px-8 h-11 rounded-[0.5rem] bg-white/95 dark:bg-black/95 backdrop-blur-2xl border border-black/20 dark:border-white/20 text-black dark:text-white text-xs font-semibold uppercase tracking-widest shadow-xl hover:bg-black/10 dark:hover:bg-white/10 transition-all duration-300">
+            <button className="w-full px-8 h-11 rounded-luxury bg-white dark:bg-white/5 backdrop-blur-xl border border-black/10 dark:border-white/10 text-black dark:text-white text-editorial-label shadow-xl hover:bg-black/5 dark:hover:bg-white/10 transition-all duration-300">
               Ação Principal
             </button>
           </div>
           <div className="space-y-3">
-            <p className="text-[10px] text-slate-400 font-semibold uppercase tracking-widest">
+            <p className="text-editorial-label text-white/40">
               Botão com Destaque Adaptativo
             </p>
-            <button className="w-full px-8 h-11 rounded-[0.5rem] bg-[#1E293B] dark:bg-[#F3E5AB] text-white dark:text-black text-xs font-semibold uppercase tracking-widest shadow-xl hover:opacity-90 transition-all duration-300">
-              Destaque
+            <button className="w-full px-8 h-11 rounded-luxury bg-gold text-black text-editorial-label shadow-xl hover:bg-white transition-all duration-300">
+              Destaque Gold
             </button>
           </div>
         </div>
 
         {/* Exemplo: Input Adaptativo */}
         <div className="space-y-3">
-          <p className="text-[10px] text-slate-400 font-semibold uppercase tracking-widest">
+          <p className="text-editorial-label text-white/40">
             Input Adaptativo
           </p>
           <div className="max-w-xs space-y-1.5">
-            <label className="text-[10px] font-semibold uppercase tracking-widest text-[#1E293B] dark:text-[#F3E5AB] flex items-center gap-2 transition-colors duration-300">
+            <label className="text-editorial-label text-petroleum dark:text-gold flex items-center gap-2 transition-colors duration-300">
               <User size={12} strokeWidth={2} /> Campo de Texto
             </label>
             <input
               disabled
               placeholder="Ex: Gabriel Fontes"
-              className="w-full h-11 px-4 bg-white dark:bg-black/50 border border-black/20 dark:border-white/20 rounded-[0.5rem] text-sm font-medium text-black dark:text-white placeholder:text-black/40 dark:placeholder:text-white/40 transition-colors duration-300"
+              className="w-full h-11 px-4 bg-white dark:bg-white/5 border border-black/10 dark:border-white/10 rounded-luxury text-sm font-bold text-editorial-ink dark:text-white placeholder:text-black/20 dark:placeholder:text-white/20 transition-colors duration-300"
             />
           </div>
         </div>
@@ -211,24 +196,24 @@ export default function StyleGuidePage() {
           {/* TEMA CLARO */}
           <div className="bg-white p-6 rounded-2xl border border-slate-200 shadow-sm">
             <div className="flex items-center gap-2 mb-4">
-              <div className="w-3 h-3 rounded-full bg-[#1E293B]" />
-              <h3 className="text-xs font-semibold uppercase tracking-widest text-[#1E293B]">
+              <div className="w-3 h-3 rounded-full bg-petroleum" />
+              <h3 className="text-xs font-semibold uppercase tracking-widest text-petroleum">
                 Tema Claro (Light)
               </h3>
             </div>
             <div className="space-y-3">
               <div className="p-4 bg-white/90 border border-black/10 rounded-lg">
-                <p className="text-[#1E293B] text-sm font-semibold">Título</p>
+                <p className="text-petroleum text-sm font-semibold">Título</p>
                 <p className="text-black/70 text-xs mt-1">Texto secundário</p>
               </div>
-              <button className="w-full h-10 bg-[#1E293B] text-white rounded-lg text-xs font-semibold uppercase tracking-widest">
+              <button className="w-full h-10 bg-petroleum text-white rounded-lg text-xs font-semibold uppercase tracking-widest">
                 Botão
               </button>
             </div>
           </div>
 
           {/* TEMA ESCURO */}
-          <div className="bg-[#1E293B] p-6 rounded-2xl border border-white/10 shadow-2xl">
+          <div className="bg-petroleum p-6 rounded-2xl border border-white/10 shadow-2xl">
             <div className="flex items-center gap-2 mb-4">
               <div className="w-3 h-3 rounded-full bg-[#F3E5AB]" />
               <h3 className="text-xs font-semibold uppercase tracking-widest text-[#F3E5AB]">
@@ -253,19 +238,19 @@ export default function StyleGuidePage() {
         <h2 className="text-xs font-semibold uppercase tracking-widest text-gold">
           3. Componentes Lightbox Adaptativos
         </h2>
-        <div className="bg-white dark:bg-[#1E293B] p-8 rounded-2xl border border-slate-200 dark:border-white/10 shadow-sm transition-colors duration-300 space-y-6">
+        <div className="bg-white dark:bg-petroleum p-8 rounded-2xl border border-slate-200 dark:border-white/10 shadow-sm transition-colors duration-300 space-y-6">
           {/* Título Adaptativo */}
           <div className="space-y-2">
             <p className="text-[10px] text-slate-400 dark:text-white/40 font-semibold uppercase tracking-widest">
               Título (GaleriaHeader)
             </p>
             <div className="flex items-start gap-3">
-              <Camera className="text-[#1E293B] dark:text-[#F3E5AB] w-6 h-6 transition-colors duration-300" strokeWidth={1.5} />
+              <Camera className="text-petroleum dark:text-[#F3E5AB] w-6 h-6 transition-colors duration-300" strokeWidth={1.5} />
               <div>
                 <h1 className="text-black dark:text-white text-xl font-semibold transition-colors duration-300">
                   Tour de France
                 </h1>
-                <div className="h-[2px] bg-[#1E293B] dark:bg-[#F3E5AB] rounded-full w-24 mt-1 transition-colors duration-300" />
+                <div className="h-[2px] bg-petroleum dark:bg-[#F3E5AB] rounded-full w-24 mt-1 transition-colors duration-300" />
               </div>
             </div>
           </div>
@@ -275,10 +260,10 @@ export default function StyleGuidePage() {
             <p className="text-[10px] text-slate-400 dark:text-white/40 font-semibold uppercase tracking-widest">
               Contador de Fotos
             </p>
-            <div className="bg-white/90 dark:bg-black/90 backdrop-blur-md px-3 py-1.5 rounded-[0.5rem] border border-black/10 dark:border-white/20 shadow-2xl flex items-center gap-3 transition-colors duration-300">
-              <ImageIcon size={13} className="text-[#1E293B] dark:text-[#F3E5AB] transition-colors duration-300" />
+            <div className="bg-white/90 dark:bg-black/90 backdrop-blur-md px-3 py-1.5 rounded-luxury border border-black/10 dark:border-white/20 shadow-2xl flex items-center gap-3 transition-colors duration-300">
+              <ImageIcon size={13} className="text-petroleum dark:text-[#F3E5AB] transition-colors duration-300" />
               <p className="text-[11px] font-medium text-black dark:text-white transition-colors duration-300">
-                Foto <span className="text-[#1E293B] dark:text-[#F3E5AB]">10</span> de 153
+                Foto <span className="text-petroleum dark:text-[#F3E5AB]">10</span> de 153
               </p>
               <div className="h-3 w-[1px] bg-black/10 dark:bg-white/20" />
               <p className="text-black/60 dark:text-[#F3E5AB] text-[11px] font-medium transition-colors duration-300">
@@ -293,10 +278,10 @@ export default function StyleGuidePage() {
               Botões de Navegação
             </p>
             <div className="flex gap-4">
-              <button className="w-12 h-12 rounded-full flex items-center justify-center text-black/20 dark:text-white/20 hover:text-[#1E293B] dark:hover:text-[#F3E5AB] transition-all">
+              <button className="w-12 h-12 rounded-full flex items-center justify-center text-black/20 dark:text-white/20 hover:text-petroleum dark:hover:text-[#F3E5AB] transition-all">
                 <ChevronLeft size={20} strokeWidth={1} />
               </button>
-              <button className="w-12 h-12 rounded-full flex items-center justify-center text-black/20 dark:text-white/20 hover:text-[#1E293B] dark:hover:text-[#F3E5AB] transition-all">
+              <button className="w-12 h-12 rounded-full flex items-center justify-center text-black/20 dark:text-white/20 hover:text-petroleum dark:hover:text-[#F3E5AB] transition-all">
                 <ChevronRight size={20} strokeWidth={1} />
               </button>
             </div>
@@ -309,7 +294,7 @@ export default function StyleGuidePage() {
         <h2 className="text-xs font-semibold uppercase tracking-widest text-gold">
           4. Interações Premium (Dark Theme - Modais)
         </h2>
-        <div className="bg-[#1E293B] p-10 rounded-[2rem] border border-white/10 shadow-2xl space-y-8">
+        <div className="bg-petroleum p-10 rounded-[2rem] border border-white/10 shadow-2xl space-y-8">
           <div className="bg-champagne/10 py-3 flex items-center justify-center gap-3 border border-champagne/20 rounded-lg shrink-0">
             <Wifi size={14} className="text-champagne" strokeWidth={2.5} />
             <span className="text-[10px] font-bold uppercase tracking-widest text-champagne">

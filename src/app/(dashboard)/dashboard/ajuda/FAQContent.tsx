@@ -74,7 +74,7 @@ const faqData: FAQItem[] = [
           <li>Há um problema temporário com a conexão</li>
         </ul>
         <p>
-          <strong>Solução:</strong> Quando isso acontecer, um modal aparecerá automaticamente pedindo para você renovar o acesso. Basta clicar em "Entendi, continuar" e autorizar novamente.
+          <strong>Solução:</strong> Quando isso acontecer, um modal aparecerá automaticamente pedindo para você renovar o acesso. Basta clicar em &quot;Entendi, continuar&quot; e autorizar novamente.
         </p>
       </div>
     ),
@@ -90,7 +90,7 @@ const faqData: FAQItem[] = [
           Para que o sistema possa acessar suas fotos, a pasta do Google Drive precisa estar configurada como:
         </p>
         <ul className="list-disc list-inside space-y-1 ml-4 text-sm">
-          <li><strong>"Qualquer pessoa com o link"</strong> - Esta é a configuração recomendada</li>
+          <li><strong>&quot;Qualquer pessoa com o link&quot;</strong> - Esta é a configuração recomendada</li>
           <li>Ou você precisa ter dado permissão de acesso ao sistema</li>
         </ul>
         <p>
@@ -98,8 +98,8 @@ const faqData: FAQItem[] = [
         </p>
         <ol className="list-decimal list-inside space-y-1 ml-4 text-sm">
           <li>Abra a pasta no Google Drive</li>
-          <li>Clique com o botão direito e selecione "Compartilhar"</li>
-          <li>Altere o acesso para "Qualquer pessoa com o link"</li>
+          <li>Clique com o botão direito e selecione &quot;Compartilhar&quot;</li>
+          <li>Altere o acesso para &quot;Qualquer pessoa com o link&quot;</li>
           <li>Tente selecionar a pasta novamente no sistema</li>
         </ol>
       </div>
@@ -159,7 +159,7 @@ export default function FAQContent() {
   // Redireciona se não houver usuário
   if (!user) {
     if (typeof window !== 'undefined') {
-      router.push('/auth/login');
+      router.push('/');
     }
     return null;
   }

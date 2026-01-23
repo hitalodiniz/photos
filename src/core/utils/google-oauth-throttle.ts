@@ -55,7 +55,7 @@ async function waitForRateLimit(): Promise<void> {
     const oldestRequest = requestHistory[0];
     const waitTime = WINDOW_MS - (Date.now() - oldestRequest) + 100; // +100ms de margem
     if (waitTime > 0) {
-      console.log(`[google-oauth-throttle] ⏳ Rate limit atingido. Aguardando ${Math.round(waitTime)}ms...`);
+      // console.log(`[google-oauth-throttle] ⏳ Rate limit atingido. Aguardando ${Math.round(waitTime)}ms...`);
       await new Promise(resolve => setTimeout(resolve, waitTime));
       cleanupHistory();
     }
@@ -115,7 +115,7 @@ export async function fetchGoogleToken(
     const age = Date.now() - existingRequest.timestamp;
     // Se a requisição é recente (< 5s), reutiliza
     if (age < 5000) {
-      console.log(`[google-oauth-throttle] ♻️ Reutilizando requisição em andamento para refresh_token (${Math.round(age)}ms atrás)`);
+      // console.log(`[google-oauth-throttle] ♻️ Reutilizando requisição em andamento para refresh_token (${Math.round(age)}ms atrás)`);
       return existingRequest.promise;
     } else {
       // Requisição muito antiga, remove do cache

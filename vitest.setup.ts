@@ -77,7 +77,7 @@ vi.mock('@/lib/supabase.server', () => ({
 vi.mock('next/cache', () => ({
   revalidatePath: vi.fn(),
   revalidateTag: vi.fn(),
-  unstable_cache: vi.fn((fn, key, options) => {
+  unstable_cache: vi.fn((fn, _key, _options) => {
     // Simula o comportamento do unstable_cache: retorna uma função que executa fn quando chamada
     return (...args: any[]) => fn(...args);
   }),
@@ -89,6 +89,15 @@ vi.mock('next/headers', () => ({
     set: vi.fn(),
   })),
 }));
+
+// Mock do React.cache que pode não estar presente no ambiente de teste
+vi.mock('react', async (importOriginal) => {
+  const actual = await importOriginal<any>();
+  return {
+    ...actual,
+    cache: actual.cache || ((fn: any) => fn),
+  };
+});
 
 // Exportamos a instância única para que você possa usar nos arquivos .test.ts
 export { singletonMock as mockSupabaseClient };

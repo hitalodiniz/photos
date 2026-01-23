@@ -58,7 +58,7 @@ describe('GET /api/auth/callback', () => {
   it('deve redirecionar para / se não houver code', async () => {
     const request = new Request('https://test.com/api/auth/callback');
     
-    const response = await GET(request);
+    const _response = await GET(request);
     
     expect(NextResponse.redirect).toHaveBeenCalledWith(
       expect.objectContaining({ pathname: '/' }),

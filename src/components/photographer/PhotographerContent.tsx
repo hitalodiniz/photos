@@ -1,6 +1,5 @@
 'use client';
 import React, { useState, useEffect } from 'react';
-import LoadingScreen from '@/components/ui/LoadingScreen';
 import { PhotographerAvatar, PhotographerBio } from './PhotographerHero';
 import { PhotographerInfoBar } from './PhotographerInfoBar';
 import { EditorialHero } from '@/components/ui/EditorialHero';
@@ -20,6 +19,7 @@ interface ProfileContentProps {
   photoPreview: string | null;
   cities: string[];
   backgroundUrl?: string;
+  useSubdomain?: boolean;
 }
 
 export default function PhotographerContent({
@@ -32,6 +32,7 @@ export default function PhotographerContent({
   photoPreview,
   cities,
   backgroundUrl,
+  useSubdomain = true,
 }: ProfileContentProps) {
   const [isLoading, setIsLoading] = useState(true);
   const [scrollY, setScrollY] = useState(0);
@@ -49,7 +50,7 @@ export default function PhotographerContent({
     phone_contact: phone,
     instagram_link: instagram,
     profile_picture_url: photoPreview,
-    use_subdomain: true, // No contexto de perfil público, geralmente é true
+    use_subdomain: useSubdomain, // 🎯 Agora usa o valor real ou prop
     profile_url: website || '',
     id: '', // O ID não é necessário para os links do footer
   };
@@ -86,13 +87,8 @@ export default function PhotographerContent({
     const handleScroll = () => setScrollY(window.scrollY);
     window.addEventListener('scroll', handleScroll, { passive: true });
 
-    const timer = setTimeout(() => {
-      setIsLoading(false);
-    }, 1200); // Aumentei um pouco para garantir que a animação de entrada seja vista
-
     return () => {
       window.removeEventListener('scroll', handleScroll);
-      clearTimeout(timer);
     };
   }, []);
 
@@ -100,9 +96,6 @@ export default function PhotographerContent({
 
   return (
     <div className="relative min-h-screen bg-black font-sans overflow-x-hidden">
-      {/* 1. LOADING LAYER */}
-      <LoadingScreen fadeOut={!isLoading} message="Carregando perfil" />
-
       {/* HERO SECTION - O Editorial apenas provê o fundo e a lógica de altura */}
       <EditorialHero
         title={fullName}
@@ -127,6 +120,8 @@ export default function PhotographerContent({
           instagram={instagram}
           website={website}
           cities={cities}
+          username={username}
+          useSubdomain={photographerData.use_subdomain}
           isScrolled={isScrolled}
           isHovered={isHovered}
         />
@@ -136,7 +131,7 @@ export default function PhotographerContent({
       <main className="relative z-30 max-w-[1600px] mx-auto px-4 py-4 min-h-[40vh]">
         {galerias.length > 0 ? (
           <div className="space-y-12">
-            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
+            <div className="grid grid-cols-2 lg:grid-cols-4 xl:grid-cols-4 gap-6">
               {galerias.map((galeria) => (
                 <PublicGaleriaCard key={galeria.id} galeria={galeria} />
               ))}

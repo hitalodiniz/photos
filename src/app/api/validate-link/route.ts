@@ -13,7 +13,7 @@ export async function GET(request: Request) {
 
     // Se for Google Drive e o arquivo for privado/inexistente, ele retorna 403 ou 404
     return NextResponse.json({ valid: res.ok });
-  } catch (error) {
+  } catch {
     return NextResponse.json({ valid: false });
   }
 }

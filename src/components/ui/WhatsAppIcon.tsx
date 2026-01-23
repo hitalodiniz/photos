@@ -1,5 +1,5 @@
 import React from 'react';
-import { UI_LABELS } from '@/constants/ui-strings';
+import { UI_LABELS } from '@/core/config/ui-strings';
 
 interface WhatsAppIconProps {
   className?: string;

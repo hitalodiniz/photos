@@ -78,12 +78,12 @@ export const authService = {
       }
 
       return data.session;
-    } catch (error) {
+    } catch {
       // console.error('[authService] Erro crítico ao buscar sessão:', error);
       // Em caso de erro crítico, limpa a sessão
       try {
         await supabase.auth.signOut();
-      } catch (signOutError) {
+      } catch {
         // console.error('[authService] Erro ao fazer signOut:', signOutError);
       }
       return null;
@@ -105,6 +105,27 @@ export const authService = {
   // Logout
   async signOut() {
     await supabase.auth.signOut();
+  },
+
+  // Refresh manual de sessão
+  async refreshSession() {
+    return await supabase.auth.refreshSession();
+  },
+
+  // Busca perfil do usuário logado
+  async getProfile(userId: string) {
+    try {
+      const { data, error } = await supabase
+        .from('tb_profiles')
+        .select('profile_picture_url, roles')
+        .eq('id', userId)
+        .single();
+      
+      if (error) throw error;
+      return data;
+    } catch {
+      return null;
+    }
   },
 
   /**

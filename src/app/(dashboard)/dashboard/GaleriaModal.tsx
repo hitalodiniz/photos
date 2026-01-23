@@ -1,10 +1,13 @@
 'use client';
 import { useState, useEffect } from 'react';
-import { X, Camera, Plus } from 'lucide-react';
+import { CheckCircle2, Sparkles, Link2, Check, ArrowLeft } from 'lucide-react';
 import { createGaleria, updateGaleria } from '@/core/services/galeria.service';
-import { SubmitButton } from '@/components/ui';
-import SecondaryButton from '@/components/ui/SecondaryButton';
-import GaleriaFormContent from './GaleriaFormContent';
+import { FormPageBase } from '@/components/ui';
+import GaleriaFormContent from '@/features/galeria/components/admin/GaleriaFormContent';
+import BaseModal from '@/components/ui/BaseModal';
+import { getPublicGalleryUrl, copyToClipboard, getLuxuryMessageData } from '@/core/utils/url-helper';
+import { executeShare } from '@/core/utils/share-helper';
+import WhatsAppIcon from '@/components/ui/WhatsAppIcon';
 
 export default function GaleriaModal({
   galeria = null,
@@ -16,9 +19,13 @@ export default function GaleriaModal({
   const isEdit = !!galeria;
   const [loading, setLoading] = useState(false);
   const [isSuccess, setIsSuccess] = useState(false);
+  const [showSuccessModal, setShowSuccessModal] = useState(false);
+  const [savedGaleria, setSavedGaleria] = useState<any>(null);
+  const [copied, setCopied] = useState(false);
+  const [hasUnsavedChanges, setHasUnsavedChanges] = useState(false);
 
   // 🎯 ESTADOS DE CUSTOMIZAÇÃO COM VALORES PADRÃO TIPO "EDITORIAL"
-  const [isPublic, setIsPublic] = useState(true);
+  const [, setIsPublic] = useState(true);
   const [showCoverInGrid, setShowCoverInGrid] = useState(true);
   const [gridBgColor, setGridBgColor] = useState('#F3E5AB');
   const [columns, setColumns] = useState({ mobile: 2, tablet: 3, desktop: 4 });
@@ -29,11 +36,6 @@ export default function GaleriaModal({
       if (galeria) {
         // MODO EDIÇÃO
         setIsPublic(galeria.is_public === true || galeria.is_public === 'true');
-
-        // 🎯 IMPORTANTE: Se a galeria já for privada, você pode querer
-        // resetar a obrigatoriedade da senha ou limpar o campo para nova definição.
-        // Se não resetar, o HTML5 'required' pode travar o form.
-
         setShowCoverInGrid(
           galeria.show_cover_in_grid === true ||
             galeria.show_cover_in_grid === 'true',
@@ -50,9 +52,6 @@ export default function GaleriaModal({
         setShowCoverInGrid(false);
         setGridBgColor('#FFFFFF');
         setColumns({ mobile: 2, tablet: 3, desktop: 4 });
-
-        // 🎯 RESET DE SEGURANÇA: Garante que ao fechar e abrir para criar uma nova,
-        // estados residuais não interfiram.
       }
     }
   }, [galeria, isOpen]);
@@ -65,7 +64,7 @@ export default function GaleriaModal({
     // 1. Captura inicial do formulário
     const formData = new FormData(e.currentTarget);
 
-    // 2. Extração de variáveis cruciais (vêm do FormData via inputs hiddens no filho)
+    // 2. Extração de variáveis cruciais
     const driveId = formData.get('drive_folder_id') as string;
     const title = formData.get('title') as string;
     const date = formData.get('date') as string;
@@ -74,6 +73,12 @@ export default function GaleriaModal({
     const clientName = formData.get('client_name') as string;
     const password = formData.get('password') as string;
     const isPublicValue = formData.get('is_public') === 'true';
+
+    // Captura de Leads
+    const leadsEnabled = formData.get('leads_enabled') === 'true';
+    const leadsRequireName = formData.get('leads_require_name') === 'true';
+    const leadsRequireEmail = formData.get('leads_require_email') === 'true';
+    const leadsRequireWhatsapp = formData.get('leads_require_whatsapp') === 'true';
 
     // --- 3. VALIDAÇÃO EDITORIAL ---
     if (!title?.trim()) {
@@ -96,9 +101,12 @@ export default function GaleriaModal({
       onSuccess(false, 'Nome do cliente é obrigatório.');
       return;
     }
-    // Validação inteligente:
-    // Se for PRIVADO e NÃO for EDIÇÃO -> Senha obrigatória.
-    // Se for PRIVADO e for EDIÇÃO -> Senha só obrigatória se o banco não tiver uma senha anterior.
+
+    if (leadsEnabled && !leadsRequireName && !leadsRequireEmail && !leadsRequireWhatsapp) {
+      onSuccess(false, 'Se a captura de leads estiver habilitada, pelo menos um campo deve ser obrigatório.');
+      return;
+    }
+
     if (!isPublicValue) {
       const hasExistingPassword = isEdit && galeria?.password;
       if (!hasExistingPassword && !password) {
@@ -106,17 +114,15 @@ export default function GaleriaModal({
         return;
       }
 
-      // Se o campo estiver vazio ou tiver menos de 4 dígitos, barra o envio
       if (!password || password.length < 4 || password.length > 8) {
         onSuccess(false, 'A senha privada deve ter entre 4 e 8 números.');
         return;
       }
     }
+
     // --- 4. CONSOLIDAÇÃO FINAL DOS DADOS ---
     setLoading(true);
 
-    // Garante que campos de estado do Pai que o Filho refletiu em hidden sejam lidos
-    // Aqui fazemos um "Double Check" injetando os estados atuais do pai no FormData
     formData.set('is_public', String(isPublicValue));
     formData.set('show_cover_in_grid', String(showCoverInGrid));
     formData.set('grid_bg_color', gridBgColor);
@@ -124,12 +130,10 @@ export default function GaleriaModal({
     formData.set('columns_tablet', String(columns.tablet));
     formData.set('columns_desktop', String(columns.desktop));
 
-    // Limpeza de WhatsApp
     const whatsappRaw = formData.get('client_whatsapp') as string;
     if (whatsappRaw)
       formData.set('client_whatsapp', whatsappRaw.replace(/\D/g, ''));
 
-    // Padronização Cobertura
     if (!hasClient) {
       formData.set('client_name', 'Cobertura');
       formData.set('client_whatsapp', '');
@@ -142,11 +146,12 @@ export default function GaleriaModal({
 
       if (result.success) {
         setIsSuccess(true);
+        setHasUnsavedChanges(false);
+        setSavedGaleria(result.data);
         setTimeout(() => {
-          onSuccess(true, { ...galeria, ...Object.fromEntries(formData) });
-          onClose();
+          setShowSuccessModal(true);
           setIsSuccess(false);
-        }, 1200);
+        }, 800);
       } else {
         onSuccess(false, result.error || 'Falha ao salvar.');
       }
@@ -158,69 +163,140 @@ export default function GaleriaModal({
     }
   };
 
-  return (
-    <div className="fixed inset-0 z-[1000] flex items-center justify-center bg-slate-900/40 backdrop-blur-md p-4 animate-in fade-in duration-300">
-      <div className="relative w-full max-w-4xl max-h-[95vh] bg-white rounded-[0.5rem] shadow-2xl flex flex-col border border-white/20 overflow-y-auto animate-in zoom-in-95 duration-300">
-        {/* HEADER MODAL */}
-        <div className="flex items-center justify-between py-2 px-8 border-b bg-slate-50/50">
-          <div className="flex items-center gap-3">
-            <div className="p-2 bg-champagne/40 rounded-xl text-gold border border-gold/10">
-              {isEdit ? (
-                <Camera size={18} strokeWidth={2} />
-              ) : (
-                <Plus size={18} strokeWidth={2} />
-              )}
-            </div>
-            <h2 className="text-xs font-semibold text-slate-900 uppercase tracking-widest">
-              {isEdit ? 'Editar Galeria' : 'Nova Galeria'}
-            </h2>
-          </div>
-          <button
-            onClick={onClose}
-            className="p-2 text-slate-400 hover:bg-slate-100 rounded-full transition-colors"
-          >
-            <X size={20} />
-          </button>
-        </div>
-        {/* FORM CONTENT */}
-        <div className="flex-1 px-4 overflow-y-auto overflow-x-hidden scrollbar-thin scrollbar-thumb-slate-200">
-          <form id="master-gallery-form" onSubmit={handleSubmit}>
-            <GaleriaFormContent
-              initialData={galeria}
-              isEdit={isEdit}
-              customization={{ showCoverInGrid, gridBgColor, columns }}
-              setCustomization={{
-                setShowCoverInGrid,
-                setGridBgColor,
-                setColumns,
-              }}
-              onPickerError={(msg: string) => onSuccess(false, msg)}
-              onTokenExpired={onTokenExpired}
-            />
-          </form>
-        </div>
-        {/* FOOTER MODAL */}
-        <div className="p-2 bg-white/90 backdrop-blur-sm border-t flex flex-row justify-center items-center gap-2 md:gap-3 px-4 sticky bottom-0 z-50">
-          <div className="w-[40%] md:w-auto">
-            <SecondaryButton
-              label="Cancelar"
-              onClick={onClose}
-              className="w-full md:px-10"
-            />
-          </div>
+  const handleCopyLink = async () => {
+    const photographer = galeria?.photographer || savedGaleria?.photographer;
+    const url = getPublicGalleryUrl(photographer, savedGaleria?.slug || galeria?.slug || '');
+    const success = await copyToClipboard(url);
+    if (success) {
+      setCopied(true);
+      setTimeout(() => setCopied(false), 2000);
+    }
+  };
 
-          <div className="w-[60%] md:w-[240px]">
-            <SubmitButton
-              form="master-gallery-form"
-              success={isSuccess}
-              className="w-full"
-              label={
-                loading ? '...' : isEdit ? 'SALVAR ALTERAÇÕES' : 'CRIAR GALERIA'
-              }
-            />
+  const handleShareWhatsApp = () => {
+    const photographer = galeria?.photographer || savedGaleria?.photographer;
+    const url = getPublicGalleryUrl(photographer, savedGaleria?.slug || galeria?.slug || '');
+    const message = getLuxuryMessageData(savedGaleria || galeria, url);
+    executeShare({
+      title: (savedGaleria || galeria).title,
+      text: message,
+      phone: (savedGaleria || galeria).client_whatsapp,
+    });
+  };
+
+  const [formTitle, setFormTitle] = useState(galeria?.title || '');
+
+  return (
+    <>
+      <FormPageBase
+        title={formTitle || (isEdit ? 'Editar Galeria' : 'Nova Galeria')}
+        isEdit={isEdit}
+        loading={loading}
+        isSuccess={isSuccess}
+        hasUnsavedChanges={hasUnsavedChanges}
+        onClose={onClose}
+        onSubmit={handleSubmit}
+        onFormChange={() => setHasUnsavedChanges(true)}
+        id="master-gallery-form"
+        submitLabel={loading ? 'Salvando...' : isEdit ? 'SALVAR ALTERAÇÕES' : 'CRIAR GALERIA'}
+      >
+        <GaleriaFormContent
+          initialData={galeria}
+          isEdit={isEdit}
+          customization={{ showCoverInGrid, gridBgColor, columns }}
+          setCustomization={{
+            setShowCoverInGrid,
+            setGridBgColor,
+            setColumns,
+          }}
+          onPickerError={(msg: string) => onSuccess(false, msg)}
+          onTokenExpired={onTokenExpired}
+          onTitleChange={setFormTitle}
+        />
+      </FormPageBase>
+
+      {/* 🎯 MODAL DE SUCESSO PADRONIZADO (EDITORIAL) */}
+      <BaseModal
+        isOpen={showSuccessModal}
+        onClose={() => {
+          setShowSuccessModal(false);
+          onSuccess(true, savedGaleria);
+          onClose();
+        }}
+        title={isEdit ? 'Galeria Atualizada' : 'Galeria Criada'}
+        subtitle={isEdit ? 'Suas alterações foram salvas' : 'Sua nova galeria está pronta'}
+        maxWidth="lg"
+        headerIcon={
+          <div className="w-12 h-12 bg-green-500/10 text-green-500 rounded-lg flex items-center justify-center shadow-lg shadow-green-500/5">
+            <CheckCircle2 size={24} strokeWidth={2.5} />
+          </div>
+        }
+        footer={
+          <div className="flex flex-col gap-3">
+            <div className="grid grid-cols-2 gap-3 w-full items-center">
+              <button
+                onClick={() => {
+                  setShowSuccessModal(false);
+                  onSuccess(true, savedGaleria);
+                  onClose();
+                }}
+                className="btn-secondary-white w-full"
+              >
+                <ArrowLeft size={14} /> Espaço de Galerias
+              </button>
+
+              <a
+                href={getPublicGalleryUrl(galeria?.photographer || savedGaleria?.photographer, savedGaleria?.slug || galeria?.slug || '')}
+                target="_blank"
+                className="w-full h-10 flex items-center justify-center gap-2 bg-champagne text-petroleum rounded-luxury font-semibold text-[10px] uppercase tracking-luxury hover:bg-white transition-all shadow-xl active:scale-[0.98]"
+              >
+                <Sparkles size={14} /> Visualizar Galeria
+              </a>
+            </div>
+          </div>
+        }
+      >
+        <div className="space-y-4">
+          <p className="text-[13px] md:text-[14px] leading-relaxed text-petroleum/80 font-medium text-center px-4">
+            A galeria <strong>{formTitle}</strong> foi {isEdit ? 'atualizada' : 'criada'} com sucesso e já pode ser compartilhada com seus clientes.
+          </p>
+          
+          <div className="p-4 bg-slate-50 border border-petroleum/10 rounded-luxury flex flex-col items-center gap-4">
+            <p className="text-[10px] font-semibold text-petroleum/80 text-center uppercase tracking-luxury">
+              Compartilhe o link direto com seu cliente:
+            </p>
+
+            <div className="flex items-center justify-center gap-3">
+              <button
+                onClick={handleShareWhatsApp}
+                className="h-11 px-6 flex items-center justify-center gap-2 text-white bg-[#25D366] hover:bg-[#20ba56] rounded-luxury shadow-md transition-all text-[10px] font-bold uppercase tracking-widest active:scale-95"
+                title="Compartilhar via WhatsApp"
+              >
+                <WhatsAppIcon className="w-4 h-4 fill-current" />
+                WhatsApp
+              </button>
+
+              <button
+                onClick={handleCopyLink}
+                className="h-11 px-6 flex items-center justify-center gap-2 text-petroleum bg-white border border-petroleum/20 rounded-luxury shadow-sm hover:border-petroleum/40 transition-all text-[10px] font-bold uppercase tracking-widest active:scale-95"
+                title="Copiar Link da Galeria"
+              >
+                {copied ? (
+                  <>
+                    <Check size={16} className="text-green-600 animate-in zoom-in duration-300" />
+                    Copiado!
+                  </>
+                ) : (
+                  <>
+                    <Link2 size={16} />
+                    Copiar Link
+                  </>
+                )}
+              </button>
+            </div>
           </div>
         </div>
-      </div>
-    </div>
+      </BaseModal>
+    </>
   );
 }

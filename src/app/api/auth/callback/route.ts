@@ -56,12 +56,12 @@ export async function GET(request: Request) {
 
   // 🎯 DEBUG: Log detalhado dos cookies recebidos
   if (isProduction) {
-    console.log('[auth/callback] 📋 Cookies recebidos no callback:', {
+    /* console.log('[auth/callback] 📋 Cookies recebidos no callback:', {
       totalCookies: allCookies.length,
       cookieNames: allCookies.map(c => c.name),
       requestUrl: requestUrl.toString(),
       requestHost: requestUrl.host,
-    });
+    }); */
   }
 
   // 🎯 DEBUG: Verifica se o code verifier cookie está presente
@@ -80,11 +80,11 @@ export async function GET(request: Request) {
       cookieDomain: process.env.NEXT_PUBLIC_COOKIE_DOMAIN || process.env.COOKIE_DOMAIN || 'não configurado',
     });
   } else if (isProduction) {
-    console.log('[auth/callback] ✅ Code verifier cookie encontrado:', {
+    /* console.log('[auth/callback] ✅ Code verifier cookie encontrado:', {
       cookieName: codeVerifierCookie.name,
       hasValue: !!codeVerifierCookie.value,
       valueLength: codeVerifierCookie.value?.length || 0,
-    });
+    }); */
   }
   
   // 🎯 SEM SUBDOMÍNIOS: domain deve ser undefined para permitir que o navegador use o host atual
@@ -195,7 +195,7 @@ export async function GET(request: Request) {
   // });
 
   // 🎯 Verifica se o refresh token está vindo em outro lugar
-  const sessionData = data.session as any;
+  // const sessionData = data.session as any;
   // console.log('[auth/callback] Estrutura completa da sessão:', {
   //   hasProviderRefreshToken: 'provider_refresh_token' in sessionData,
   //   hasProviderToken: 'provider_token' in sessionData,
@@ -270,54 +270,14 @@ export async function GET(request: Request) {
       updates.google_auth_status = 'active';
     }
 
-    if (Object.keys(updates).length > 0) {
-      // console.log(`[auth/callback] Tentando salvar updates no banco:`, {
-      //   hasRefreshToken: !!updates.google_refresh_token,
-      //   refreshTokenValue: updates.google_refresh_token ? `${updates.google_refresh_token.substring(0, 15)}...` : 'null',
-      //   refreshTokenLength: updates.google_refresh_token?.length || 0,
-      //   hasAccessToken: !!updates.google_access_token,
-      //   hasExpiresAt: !!updates.google_token_expires_at,
-      //   hasStatus: !!updates.google_auth_status,
-      //   allUpdateKeys: Object.keys(updates),
-      // });
-
-      const { error: updateError, data: updateData } = await supabase
+    try {
+      await supabase
         .from('tb_profiles')
         .update(updates)
         .eq('id', user.id)
         .select('google_refresh_token, google_auth_status, google_access_token');
-
-      if (updateError) {
-        // console.error('[auth/callback] ❌ Erro ao salvar tokens iniciais:', updateError.message);
-        // console.error('[auth/callback] Detalhes do erro:', updateError);
-        // console.error('[auth/callback] Updates que tentaram ser salvos:', {
-        //   ...updates,
-        //   google_refresh_token: updates.google_refresh_token ? `${updates.google_refresh_token.substring(0, 15)}...` : 'null',
-        // });
-      } else {
-        // console.log(`[auth/callback] ✅ Update executado com sucesso para userId: ${user.id}`);
-        // console.log(`[auth/callback] Dados retornados do banco:`, {
-        //   hasData: !!updateData,
-        //   dataLength: updateData?.length || 0,
-        //   refreshTokenSalvo: !!updateData?.[0]?.google_refresh_token,
-        //   refreshTokenValue: updateData?.[0]?.google_refresh_token ? `${updateData[0].google_refresh_token.substring(0, 15)}...` : 'null',
-        //   refreshTokenLength: updateData?.[0]?.google_refresh_token?.length || 0,
-        //   statusSalvo: updateData?.[0]?.google_auth_status,
-        //   accessTokenSalvo: !!updateData?.[0]?.google_access_token,
-        // });
-        
-        // 🎯 Verificação adicional: Se o refresh token não foi salvo mas estava no updates, há um problema
-        if (updates.google_refresh_token && !updateData?.[0]?.google_refresh_token) {
-          // console.error('[auth/callback] ❌ PROBLEMA CRÍTICO: Refresh token estava no updates mas não foi salvo no banco!');
-          // console.error('[auth/callback] Isso pode indicar:');
-          // console.error('  1. Problema de permissões no banco (RLS policy)');
-          // console.error('  2. Campo google_refresh_token não existe ou tem tipo diferente');
-          // console.error('  3. Erro silencioso na atualização');
-        }
-      }
-    } else {
-      // console.warn(`[auth/callback] ⚠️ Nenhum token para salvar para userId: ${user.id}`);
-      // console.warn(`[auth/callback] Isso significa que nenhum token passou na validação ou foi encontrado`);
+    } catch {
+      // console.error('[auth/callback] ❌ Erro ao salvar tokens iniciais:');
     }
   } else {
     // console.error('[auth/callback] ❌ User ID não encontrado na sessão');

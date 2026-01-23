@@ -11,10 +11,13 @@ Use este arquivo como **referência oficial** para qualquer nova tela, component
   - Uso típico: destaques elegantes, botões premium, badges e elementos de foco.
 - **Gold**: `#D4AF37`  
   - Uso típico: ícones de status, bordas de destaque, indicadores de progresso.
+- **Azul Petróleo**: `#00212E`  
+  - **Cor oficial do sistema** - Uso típico: fundos de navbar, sidebar, elementos de navegação principais, textos em fundos escuros.
+  - Token Tailwind: `petroleum` (ex.: `bg-petroleum`, `text-petroleum`)
 - **Fundo Escuro Editorial**: preto / `slate-950`  
   - Uso típico: fundos de seções hero, modais dark, superfícies de interação premium.
 
-No Tailwind, sempre que possível, use os **tokens configurados** (ex.: `bg-champagne`, `text-gold`, `bg-luxury-bg`) em vez de hex direto.
+No Tailwind, sempre que possível, use os **tokens configurados** (ex.: `bg-champagne`, `text-gold`, `bg-petroleum`, `bg-luxury-bg`) em vez de hex direto.
 
 ---
 

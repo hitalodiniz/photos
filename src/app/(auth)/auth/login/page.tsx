@@ -3,8 +3,8 @@
 import { useEffect, useRef, useState, Suspense } from 'react';
 import { useRouter, useSearchParams } from 'next/navigation';
 import { ShieldCheck, AlertCircle } from 'lucide-react';
-import { supabase } from '@/lib/supabase.client';
-import useAuthStatus from '@/hooks/useAuthStatus';
+import { authService, useAuth } from '@photos/core-auth';
+import { getProfileData } from '@/core/services/profile.service';
 import { usePageTitle } from '@/hooks/usePageTitle';
 
 import { GoogleSignInButton } from '@/components/auth';
@@ -14,18 +14,9 @@ import {
   Footer,
 } from '@/components/layout';
 import FeatureGrid from '@/components/ui/FeatureGrid';
-import LoadingScreen from '@/components/ui/LoadingScreen';
 
-interface Profile {
-  full_name: string | null;
-  mini_bio: string | null;
-  username: string | null;
-  use_subdomain: boolean;
-}
-
-// 🎯 Componente interno que usa useSearchParams (precisa de Suspense)
 function LoginContent() {
-  const { session, loading: authLoading } = useAuthStatus();
+  const { user, isLoading: authLoading } = useAuth();
   const router = useRouter();
   const searchParams = useSearchParams();
   const isSyncingRef = useRef(false);
@@ -46,33 +37,34 @@ function LoginContent() {
   }, [searchParams]);
 
   useEffect(() => {
-    // Se a auth está carregando OU se já logou e o useEffect está rodando a triagem:
-    if (authLoading || session) {
-      return <LoadingScreen />;
-    }
+    // Só executamos a triagem se NÃO estiver carregando e se HOUVER uma sessão
+    if (authLoading || !user) return;
+
     const handleRouting = async () => {
       // 1. Sincronização de Sessão (Refresh para garantir cookies)
       if (!isSyncingRef.current) {
         isSyncingRef.current = true;
         try {
-          await supabase.auth.refreshSession();
+          await authService.refreshSession();
         } catch (e) {
           console.error('Falha ao sincronizar sessão:', e);
         }
       }
 
-      // 2. Busca o perfil para triagem
-      const { data } = await supabase
-        .from('tb_profiles')
-        .select('full_name, username, mini_bio, use_subdomain')
-        .eq('id', session.user.id)
-        .single();
+      // 2. Busca o perfil para triagem via Server Action (permitida)
+      const result = await getProfileData();
+      
+      if (!result.success || !result.profile) {
+        // Se não conseguir buscar o perfil, manda para onboarding por segurança
+        router.replace('/onboarding');
+        return;
+      }
 
-      const profile = data as Profile;
+      const profile = result.profile;
 
       // 3. Validação de Onboarding
       const isComplete =
-        profile?.full_name && profile?.username && profile?.mini_bio;
+        profile.full_name && profile.username && profile.mini_bio;
       if (!isComplete) {
         router.replace('/onboarding');
         return;
@@ -109,7 +101,7 @@ function LoginContent() {
     };
 
     handleRouting();
-  }, [session, authLoading, router]);
+  }, [user, authLoading, router]);
 
   const loginItems = [
     {
@@ -126,16 +118,16 @@ function LoginContent() {
 
           {/* 🎯 Mensagem de erro */}
           {errorMessage && (
-            <div className="w-full max-w-sm mx-auto mb-4 p-4 bg-red-500/20 border border-red-500/50 rounded-lg flex items-center gap-3">
-              <AlertCircle className="text-red-400 flex-shrink-0" size={20} />
-              <p className="text-red-200 text-sm">{errorMessage}</p>
+            <div className="w-full max-w-sm mx-auto mb-4 p-4 bg-red-500/10 border border-red-500/30 rounded-luxury flex items-center gap-3 animate-in fade-in slide-in-from-top-2">
+              <AlertCircle className="text-red-500 flex-shrink-0" size={20} />
+              <p className="text-red-200/80 text-sm font-medium">{errorMessage}</p>
             </div>
           )}
 
           <GoogleSignInButton />
 
           <div className="pt-6 border-t border-white/5 w-full">
-            <p className="text-[10px] md:text-xs text-white/70 uppercase tracking-widest leading-relaxed">
+            <p className="text-editorial-label text-white/40">
               Ambiente seguro • Criptografia ponta a ponta
             </p>
           </div>
@@ -146,10 +138,10 @@ function LoginContent() {
 
   // Se estiver carregando a autenticação ou se já houver sessão (redirecionando),
   // podemos mostrar um estado de loading sutil ou nada.
-  if (authLoading || session) {
+  if (authLoading || user) {
     return (
       <div className="min-h-screen bg-black flex items-center justify-center">
-        <div className="w-8 h-8 border-2 border-gold/20 border-t-gold rounded-full animate-spin" />
+        <div className="loading-luxury w-10 h-10" />
       </div>
     );
   }
@@ -163,7 +155,7 @@ function LoginContent() {
           subtitle={
             <>
               Bem-vindo de volta ao seu{' '}
-              <span className="font-semibold border-b-2 border-champagne/50 text-white">
+              <span className="font-bold border-b-2 border-gold/30 text-white italic">
                 espaço exclusivo
               </span>
             </>
@@ -188,7 +180,7 @@ export default function LoginPage() {
     <Suspense
       fallback={
         <div className="min-h-screen bg-black flex items-center justify-center">
-          <div className="w-8 h-8 border-2 border-gold/20 border-t-gold rounded-full animate-spin" />
+          <div className="loading-luxury w-10 h-10" />
         </div>
       }
     >

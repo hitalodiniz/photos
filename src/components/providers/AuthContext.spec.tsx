@@ -27,6 +27,7 @@ vi.mock('@/core/services/auth.service', () => ({
     getSession: vi.fn(),
     onAuthStateChange: vi.fn(),
     signOut: vi.fn(),
+    getProfile: vi.fn(),
   },
 }));
 
@@ -71,7 +72,10 @@ describe('AuthContext Integration', () => {
       },
     );
 
-    vi.mocked(getAvatarUrl).mockResolvedValue(mockAvatar);
+    vi.mocked(authService.getProfile).mockResolvedValue({
+      profile_picture_url: mockAvatar,
+      roles: ['admin'],
+    });
 
     // 🎯 Verifique se AuthProvider não está chegando como undefined
     render(

@@ -3,11 +3,12 @@ import React, { useState, useEffect, useRef } from 'react';
 import { Heart, Download, Loader2, X, Link as LinkIcon, Check, Play, Pause } from 'lucide-react';
 import WhatsAppIcon from '@/components/ui/WhatsAppIcon';
 import { executeShare, getCleanSlug } from '@/core/utils/share-helper';
-import { GALLERY_MESSAGES } from '@/constants/messages';
+import { GALLERY_MESSAGES } from '@/core/config/messages';
 import { handleDownloadPhoto } from '@/core/utils/foto-helpers';
 
 interface VerticalActionBarProps {
   photoId: string | number;
+  photoName?: string; // 🎯 Nova prop
   gallerySlug: string;
   galleryTitle: string;
   galeria: any;
@@ -24,6 +25,7 @@ interface VerticalActionBarProps {
 
 export function VerticalActionBar({
   photoId,
+  photoName, // 🎯 Nova prop
   gallerySlug,
   galleryTitle,
   galeria,
@@ -32,7 +34,6 @@ export function VerticalActionBar({
   onToggleFavorite,
   isSlideshowActive,
   onToggleSlideshow,
-  onClose,
   showClose = true,
   hasShownQualityWarning = false,
   onQualityWarningShown,
@@ -115,28 +116,9 @@ export function VerticalActionBar({
     executeShare({ title: galleryTitle, text: shareText, url: shareUrl });
   };
 
-  const handleNativeShare = async () => {
-    const cleanSlug = getCleanSlug(gallerySlug);
-    const shareUrl = `${window.location.origin}/photo/${photoId}?s=${cleanSlug}`;
-    const shareText = GALLERY_MESSAGES.PHOTO_SHARE(galleryTitle, shareUrl);
-
-    if (navigator.share) {
-      try {
-        await navigator.share({
-          title: galleryTitle,
-          text: shareText,
-        });
-      } catch (err) {
-        console.error('Erro ao compartilhar:', err);
-      }
-    } else {
-      executeShare({ title: galleryTitle, text: shareText });
-    }
-  };
-
   return (
     <div
-      className="fixed top-1/2 z-[250] flex flex-col gap-3 bg-white/95 dark:bg-black/95 backdrop-blur-2xl p-3 rounded-[0.5rem] border border-black/20 dark:border-white/20 shadow-2xl transition-all duration-700"
+      className="fixed top-1/2 z-[250] flex flex-col gap-3 bg-white/95 dark:bg-black/95 backdrop-blur-2xl p-3 rounded-luxury border border-black/20 dark:border-white/20 shadow-2xl transition-all duration-700"
       style={{ 
         right: '112px', // Entre o botão de navegação (96px) e as miniaturas (0px)
         transform: 'translateY(-50%)',
@@ -196,7 +178,7 @@ export function VerticalActionBar({
         aria-label="Copiar link"
       >
         {copied ? (
-          <Check size={20} className="text-[#1E293B] dark:text-[#F3E5AB] transition-colors duration-300" strokeWidth={2} />
+          <Check size={20} className="text-black dark:text-[#F3E5AB] transition-colors duration-300" strokeWidth={2} />
         ) : (
           <LinkIcon size={20} className="text-black dark:text-white transition-colors duration-300" strokeWidth={2} />
         )}
@@ -213,7 +195,7 @@ export function VerticalActionBar({
         <button
           onClick={onToggleSlideshow}
           className={`w-12 h-12 rounded-full flex items-center justify-center transition-all group relative ${
-            isSlideshowActive ? 'bg-[#1E293B] dark:bg-[#F3E5AB]' : 'bg-black/5 dark:bg-white/5 hover:bg-black/10 dark:hover:bg-white/10'
+            isSlideshowActive ? 'bg-black dark:bg-[#F3E5AB]' : 'bg-black/5 dark:bg-white/5 hover:bg-black/10 dark:hover:bg-white/10'
           }`}
           aria-label={isSlideshowActive ? 'Pausar slideshow' : 'Iniciar slideshow'}
         >
@@ -252,7 +234,7 @@ export function VerticalActionBar({
           >
             <div className="absolute left-full top-1/2 -translate-y-1/2 border-[8px] border-transparent border-l-[#F3E5AB] pointer-events-none" />
             <div 
-              className="bg-[#F3E5AB] shadow-2xl rounded-[0.5rem] p-4 border border-white/20 text-black relative"
+              className="bg-[#F3E5AB] shadow-2xl rounded-luxury p-4 border border-white/20 text-black relative"
               style={{ pointerEvents: 'auto' }}
               onClick={(e) => {
                 e.preventDefault();
@@ -298,7 +280,7 @@ export function VerticalActionBar({
             e.stopPropagation();
             setIsDownloading(true);
             setShowQualityWarning(false);
-            await handleDownloadPhoto(galeria, photoId, activeIndex);
+            await handleDownloadPhoto(galeria, photoId, activeIndex, photoName);
             setIsDownloading(false);
           }}
           className="w-12 h-12 rounded-full flex items-center justify-center transition-all group relative"
@@ -313,7 +295,7 @@ export function VerticalActionBar({
             <div
               className={`w-full h-full rounded-full flex items-center justify-center transition-all ${
                 showQualityWarning
-                  ? 'bg-[#1E293B] dark:bg-[#F3E5AB] text-white dark:text-black'
+                  ? 'bg-black dark:bg-[#F3E5AB] text-white dark:text-black'
                   : 'bg-black/5 dark:bg-white/5 hover:bg-black/10 dark:hover:bg-white/10 text-black dark:text-white'
               }`}
             >

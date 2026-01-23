@@ -23,7 +23,6 @@ export default function EditorialHeader({
 
     const referrer = document.referrer;
     const host = window.location.host;
-    const currentUrl = window.location.href;
 
     // 1. Verifica se existe referrer e se é do mesmo domínio
     const isInternal = referrer && referrer.includes(host);
@@ -40,7 +39,7 @@ export default function EditorialHeader({
         // Se for a mesma página (ex: F5) ou externo, oculta o botão
         setOriginUrl(null);
       }
-    } catch (e) {
+    } catch {
       setOriginUrl(null);
     }
   }, []);

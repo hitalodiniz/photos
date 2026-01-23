@@ -1,4 +1,3 @@
-import { PLAN_LIMITS } from '@/constants/plans';
 import { GLOBAL_CACHE_REVALIDATE } from '@/core/utils/url-helper';
 
 export interface DrivePhoto {
@@ -16,7 +15,7 @@ export interface DrivePhoto {
  * Esta função não exige que o fotógrafo tenha um refresh token válido,
  * desde que a pasta no Drive esteja como "Qualquer pessoa com o link".
  */
-async function listPhotosFromPublicFolder(
+export async function listPhotosFromPublicFolder(
   driveFolderId: string,
 ): Promise<DrivePhoto[] | null> {
   // Prioriza a chave do servidor, depois a pública
@@ -40,7 +39,7 @@ async function listPhotosFromPublicFolder(
       params.append('q', query);
       params.append('fields', fields);
       params.append('key', apiKey);
-      params.append('pageSize', '500');
+      params.append('pageSize', '1000');
       params.append('supportsAllDrives', 'true');
       params.append('includeItemsFromAllDrives', 'true');
       
@@ -52,7 +51,7 @@ async function listPhotosFromPublicFolder(
         headers: { 'Accept': 'application/json' },
         next: { 
           revalidate: GLOBAL_CACHE_REVALIDATE,
-          tags: [`drive-photos-${driveFolderId}`] 
+          tags: [`drive-${driveFolderId}`] 
         }
       });
       if (!response.ok) {
@@ -73,7 +72,7 @@ async function listPhotosFromPublicFolder(
       .sort((a, b) => a.name.localeCompare(b.name, undefined, { numeric: true, sensitivity: 'base' }));
 
     if (imageFiles.length === 0) {
-        console.log('[listPhotosFromPublicFolder] ℹ️ Pasta encontrada, mas sem imagens.');
+        // console.log('[listPhotosFromPublicFolder] ℹ️ Pasta encontrada, mas sem imagens.');
         return null;
     }
 
@@ -97,7 +96,7 @@ async function listPhotosFromPublicFolder(
  * 🎯 Tenta listar fotos usando OAuth (necessita de accessToken válido).
  * Usado quando a pasta é privada ou a API Key falhou.
  */
-async function listPhotosWithOAuth(
+export async function listPhotosWithOAuth(
   driveFolderId: string, 
   accessToken: string
 ): Promise<DrivePhoto[]> {
@@ -112,8 +111,7 @@ async function listPhotosWithOAuth(
       const params = new URLSearchParams();
       params.append('q', query);
       params.append('fields', fields);
-      params.append('pageSize', '500');
-      params.append('orderBy', 'name');
+      params.append('pageSize', '1000');
       params.append('supportsAllDrives', 'true');
       params.append('includeItemsFromAllDrives', 'true');
       
@@ -125,7 +123,7 @@ async function listPhotosWithOAuth(
         headers: { Authorization: `Bearer ${accessToken}` },
         next: {
           revalidate: GLOBAL_CACHE_REVALIDATE,
-          tags: [`drive-photos-${driveFolderId}`],
+          tags: [`drive-${driveFolderId}`],
         },
       });
 
@@ -136,15 +134,18 @@ async function listPhotosWithOAuth(
       pageToken = data.nextPageToken || null;
     } while (pageToken);
 
-    return allFiles.map((file) => ({
-      id: file.id,
-      name: file.name,
-      size: file.size || '0',
-      thumbnailUrl: `/api/galeria/cover/${file.id}?w=600`,
-      webViewUrl: file.webViewLink,
-      width: file.imageMediaMetadata?.width || 1600,
-      height: file.imageMediaMetadata?.height || 1200,
-    }));
+    // 🎯 Ordenação natural (mais rápida que orderBy do Drive API)
+    return allFiles
+      .sort((a, b) => a.name.localeCompare(b.name, undefined, { numeric: true, sensitivity: 'base' }))
+      .map((file) => ({
+        id: file.id,
+        name: file.name,
+        size: file.size || '0',
+        thumbnailUrl: `/api/galeria/cover/${file.id}?w=600`,
+        webViewUrl: file.webViewLink,
+        width: file.imageMediaMetadata?.width || 1600,
+        height: file.imageMediaMetadata?.height || 1200,
+      }));
   } catch (error: any) {
     console.error('[listPhotosWithOAuth] ❌ Erro OAuth:', error.message);
     throw error;
@@ -167,14 +168,14 @@ export async function listPhotosFromDriveFolder(
   // Resolve o problema de galerias que "pararam de carregar" por falta de token
   const publicPhotos = await listPhotosFromPublicFolder(driveFolderId);
   if (publicPhotos && publicPhotos.length > 0) {
-    console.log(`[listPhotosFromDriveFolder] ✅ Sucesso via API Key: ${publicPhotos.length} fotos.`);
+    // console.log(`[listPhotosFromDriveFolder] ✅ Sucesso via API Key: ${publicPhotos.length} fotos.`);
     return publicPhotos;
   }
 
   // 2. TENTATIVA 2: OAuth (Privado)
   // Fallback para quando o fotógrafo usa pastas restritas no Drive
   if (accessToken) {
-    console.log('[listPhotosFromDriveFolder] ℹ️ Tentando fallback via OAuth...');
+    // console.log('[listPhotosFromDriveFolder] ℹ️ Tentando fallback via OAuth...');
     return await listPhotosWithOAuth(driveFolderId, accessToken);
   }
 

@@ -26,7 +26,7 @@ export default function CookieBanner() {
   if (!isVisible) return null;
 
   return (
-    <div className="fixed bottom-6 left-6 right-6 z-[100] flex justify-center animate-in slide-in-from-bottom-10 duration-700">
+    <div className="fixed bottom-6 left-6 right-6 z-[2000] flex justify-center animate-in slide-in-from-bottom-10 duration-700">
       <div className="bg-[#2D2E30]/95 backdrop-blur-md border border-white/10 p-4 md:p-6 rounded-2xl shadow-2xl max-w-4xl w-full flex flex-col md:flex-row items-center justify-between gap-4">
         <div className="flex items-center gap-4 text-left">
           <div className="bg-[#D4AF37]/20 p-3 rounded-full hidden sm:block">
@@ -60,7 +60,7 @@ export default function CookieBanner() {
           </button>
           <button
             onClick={acceptCookies}
-            className="flex-1 md:flex-none bg-[#1A73E8] hover:bg-[#1557b0] text-white text-xs font-semibold uppercase tracking-widest px-8 py-3 rounded-xl transition-all shadow-lg active:scale-95"
+            className="flex-1 md:flex-none bg-champagne text-petroleum text-xs font-semibold uppercase tracking-widest px-8 py-3 rounded-xl transition-all shadow-lg active:scale-95"
           >
             Aceitar
           </button>

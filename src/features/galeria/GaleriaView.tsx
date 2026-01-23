@@ -1,13 +1,13 @@
 'use client';
 import React, { useState, useEffect } from 'react';
 import type { Galeria } from '@/core/types/galeria';
-import LoadingScreen from '@/components/ui/LoadingScreen';
 import GaleriaFooter from './GaleriaFooter';
 import { RESOLUTIONS } from '@/core/utils/url-helper';
 import { useGoogleDriveImage } from '@/hooks/useGoogleDriveImage';
 import { GaleriaHero } from './GaleriaHero';
 import PhotoGrid from './PhotoGrid';
 import { useIsMobile } from '@/hooks/use-breakpoint';
+import LoadingScreen from '@/components/ui/LoadingScreen';
 
 interface GaleriaViewProps {
   galeria: Galeria;
@@ -15,25 +15,17 @@ interface GaleriaViewProps {
 }
 
 export default function GaleriaView({ galeria, photos }: GaleriaViewProps) {
-  const [isLoading, setIsLoading] = useState(true);
   const isMobile = useIsMobile();
+  const [isPageLoading, setIsPageLoading] = useState(true);
+
+  useEffect(() => {
+    // Pequeno delay para suavizar a transição inicial
+    const timer = setTimeout(() => setIsPageLoading(false), 1500);
+    return () => clearTimeout(timer);
+  }, []);
 
   const showCover = galeria.show_cover_in_grid ?? true;
   const bgColor = galeria.grid_bg_color ?? '#F9F5F0';
-
-  useEffect(() => {
-    // 🎯 FIX: Hide loading screen even if photos is empty or undefined
-    // This prevents infinite loading when the request fails or returns empty
-    const timer = setTimeout(() => {
-      // console.log('[GaleriaView] Setting loading to false', {
-      //   photosLength: photos?.length,
-      //   hasPhotos: !!photos,
-      //   galeriaId: galeria.id,
-      // });
-      setIsLoading(false);
-    }, 800);
-    return () => clearTimeout(timer);
-  }, [photos, galeria.id]);
 
   // 🎯 ESTRATÉGIA DE FALLBACK: Usa hook useGoogleDriveImage que já implementa fallback
   // Usa constantes RESOLUTIONS para manter consistência
@@ -46,7 +38,8 @@ const {
   imgSrc: coverUrl, 
   handleLoad, 
   handleError,
-  isLoading: isCoverLoading // Renomeado para não conflitar com o loading da página
+  isLoading: isCoverLoading, // Renomeado para não conflitar com o loading da página
+  imgRef,
 } = useGoogleDriveImage({
   photoId: galeria.cover_image_url || '',
   width: coverResolution,
@@ -59,7 +52,7 @@ const {
       className="relative min-h-screen font-sans"
       style={{ backgroundColor: bgColor }}
     >
-      <LoadingScreen fadeOut={!isLoading} message="Carregando fotos" />
+      <LoadingScreen message="Preparando sua galeria..." fadeOut={!isPageLoading} />
 
       {/* 1. BACKGROUND LAYER */}
       <div className="fixed inset-0 z-0 overflow-hidden pointer-events-none">
@@ -72,7 +65,7 @@ const {
                 backgroundPosition: 'center 40%',
               }}
             />
-            <div className="absolute inset-0 bg-gradient-to-tr from-black via-black/85 to-[#F3E5AB]/10 backdrop-blur-[3px]" />
+            <div className="absolute inset-0 bg-gradient-to-tr from-black via-black/60 to-transparent backdrop-blur-[2px]" />
           </>
         ) : (
           <div
@@ -91,17 +84,16 @@ const {
 
       {/* 2. CONTENT LAYER */}
       <div
-        className={`relative z-10 transition-opacity duration-1000 ${isLoading ? 'opacity-0' : 'opacity-100'}`}
+        className="relative z-10 transition-opacity duration-1000 opacity-100"
       >
         {/* MAIN GRID */}
-        <main className="relative z-30 max-w-[1600px] mx-auto">
+        <main className="relative z-30 mx-auto">
           {photos?.length > 0 ? (
             <PhotoGrid photos={photos} galeria={galeria} />
           ) : (
             <div className="flex flex-col items-center justify-center py-24 text-center">
-              <div className="animate-spin rounded-full h-10 w-10 border-b-2 border-[#D4AF37] mb-6" />
               <p
-                className={`italic text-xl ${showCover ? 'text-[#D4AF37]' : 'text-slate-500'}`}
+                className={`italic text-xl ${showCover ? 'text-gold' : 'text-slate-500'}`}
               >
                 Nenhuma foto encontrada nesta galeria.
               </p>
@@ -111,6 +103,7 @@ const {
 {/* 🎯 TAG OCULTA: Essencial para o hook monitorar o erro/sucesso do Google */}
       {coverUrl && (
         <img
+          ref={imgRef}
           src={coverUrl}
           alt=""
           className="hidden"
@@ -125,6 +118,4 @@ const {
       </div>
     </div>
   );
-
-  
 }

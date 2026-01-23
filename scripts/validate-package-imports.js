@@ -81,7 +81,8 @@ function getChangedFiles() {
     return [...new Set([...staged, ...modified])]
       .filter(file => /\.(ts|tsx|js|jsx)$/.test(file))
       .filter(file => !file.includes('node_modules'))
-      .filter(file => !file.includes('packages/@photos/core-auth')); // Ignora o próprio pacote
+      .filter(file => !file.includes('packages/@photos/core-auth')) // Ignora o próprio pacote
+      .filter(file => !file.match(/\.(spec|test)\.(ts|tsx|js|jsx)$/)); // 🎯 Ignora arquivos de teste
   } catch (error) {
     return [];
   }
@@ -93,6 +94,9 @@ const CRITICAL_SERVICES = [
   'src/core/services/auth.service.ts',
   'src/core/services/token-cleanup.service.ts',
   'src/core/services/google-drive.service.ts',
+  'src/core/logic/galeria-logic.ts',
+  'src/hooks/useSupabaseSession.ts',
+  'src/components/providers/AuthContext.tsx',
 ];
 
 function main() {

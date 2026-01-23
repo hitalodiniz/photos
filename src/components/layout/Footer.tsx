@@ -2,7 +2,7 @@
 import React from 'react';
 import { Camera, Instagram, MessageCircle } from 'lucide-react';
 import Link from 'next/link';
-import { GALLERY_MESSAGES } from '@/constants/messages';
+import { GALLERY_MESSAGES } from '@/core/config/messages';
 
 export default function Footer() {
   const whatsappLink = `https://wa.me/5531993522018?text=${encodeURIComponent(

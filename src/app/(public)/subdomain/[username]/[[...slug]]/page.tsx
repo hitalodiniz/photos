@@ -1,8 +1,8 @@
-import { GaleriaBasePage } from '@/components/galeria';
+import GaleriaBasePage from '@/features/galeria/GaleriaBasePage';
 import {
   getPhotographerMetadata,
   getGalleryMetadata,
-} from '@/lib/gallery/metadata-helper';
+} from '@/core/utils/metadata-helper';
 
 type Props = {
   params: Promise<{ username: string; slug?: string[] }>;

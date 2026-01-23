@@ -4,36 +4,46 @@ import React, { useState, useRef, useEffect, useMemo } from 'react';
 import Link from 'next/link';
 import Image from 'next/image';
 import { usePathname } from 'next/navigation';
-import { LogOut, Settings, Loader2 } from 'lucide-react';
+import { LogOut, User2 } from 'lucide-react';
+import { authService, useAuth } from '@photos/core-auth';
+import { useNavigation } from '../providers/NavigationProvider';
+
+interface UserMenuProps {
+  session: {
+    id: string;
+    email?: string;
+    name?: string;
+    user_metadata?: {
+      full_name?: string;
+      avatar_url?: string;
+    };
+  } | null;
+  avatarUrl?: string | null;
+}
 
 export default function UserMenu({
   session,
   avatarUrl,
-}: {
-  session: { id: string; email?: string; name?: string } | any;
-  avatarUrl?: string | null;
-}) {
+}: UserMenuProps) {
   const pathname = usePathname();
   const [isOpen, setIsOpen] = useState(false);
-  const [isLoggingOut, setIsLoggingOut] = useState(false);
-  const [isRedirecting, setIsRedirecting] = useState(false);
+  const { logout, isLoggingOut } = useAuth();
+  const { navigate, isNavigating } = useNavigation();
   const menuRef = useRef<HTMLDivElement>(null);
 
   const userEmail = session?.email || 'Usuário';
 
   const { fullName, displayAvatar, initialLetter } = useMemo(() => {
-    const name = session?.name || userEmail.split('@')[0];
+    const name = session?.user_metadata?.full_name || session?.name || userEmail.split('@')[0];
     return {
       fullName: name,
-      displayAvatar: avatarUrl || null,
+      displayAvatar: avatarUrl || session?.user_metadata?.avatar_url || null,
       initialLetter: name.charAt(0).toUpperCase(),
     };
   }, [session, avatarUrl, userEmail]);
 
-  // 🎯 CORREÇÃO: Reseta o loading apenas quando a rota REALMENTE mudar
-  // Removemos a dependência do isOpen que estava fazendo o menu piscar
+  // 🎯 CORREÇÃO: Reseta o menu apenas quando a rota mudar
   useEffect(() => {
-    setIsRedirecting(false);
     setIsOpen(false);
   }, [pathname]);
 
@@ -47,19 +57,18 @@ export default function UserMenu({
     return () => document.removeEventListener('mousedown', handleClickOutside);
   }, []);
 
-  const onLogoutClick = async () => {
-    setIsLoggingOut(true);
-    window.location.href = '/auth/logout';
-  };
-
-  const handleManageProfile = (e: React.MouseEvent) => {
-    // 🎯 Se já estiver na página, apenas fecha o menu e previne o loading
+  const handleManageProfile = () => {
+    // 🎯 Se já estiver na página, apenas fecha o menu
     if (pathname === '/onboarding') {
       setIsOpen(false);
-      // Não ativamos o isRedirecting aqui
       return;
     }
-    setIsRedirecting(true);
+    navigate('/onboarding', 'Abrindo seu perfil...');
+  };
+
+  const handleLogout = async () => {
+    setIsOpen(false);
+    await logout();
   };
 
   const renderAvatarContent = (
@@ -68,12 +77,13 @@ export default function UserMenu({
     isLarge = false,
   ) => {
     const borderStyle = isLarge
-      ? 'border-2 border-[#D4AF37]'
-      : 'border border-[#D4AF37]/40';
+      ? 'border-2 border-gold shadow-lg'
+      : 'border border-gold/40 shadow-sm';
+      
     if (displayAvatar) {
       return (
         <div
-          className={`${sizeClass} rounded-full overflow-hidden relative flex-shrink-0 ${borderStyle} shadow-sm`}
+          className={`${sizeClass} rounded-full overflow-hidden relative flex-shrink-0 ${borderStyle} transition-transform hover:scale-105`}
         >
           <Image
             src={displayAvatar}
@@ -88,7 +98,7 @@ export default function UserMenu({
     }
     return (
       <div
-        className={`${sizeClass} rounded-full bg-[#1E293B] text-[#F3E5AB] flex items-center justify-center ${textClass} font-semibold ${borderStyle} shadow-sm`}
+        className={`${sizeClass} rounded-full bg-white text-petroleum flex items-center justify-center ${textClass} font-bold ${borderStyle} transition-transform hover:scale-105 shadow-[0_0_15px_rgba(212,175,55,0.2)]`}
       >
         {initialLetter}
       </div>
@@ -98,74 +108,63 @@ export default function UserMenu({
   return (
     <div className="ml-auto">
       <div className="relative" ref={menuRef}>
-        <button
-          onClick={() => setIsOpen(!isOpen)}
-          className="relative p-0.5 rounded-full hover:bg-[#D4AF37]/10 transition-all focus:outline-none focus:ring-2 focus:ring-[#D4AF37]/30 active:scale-95 disabled:opacity-50"
-          disabled={isLoggingOut || isRedirecting}
-        >
-          {renderAvatarContent('w-10 h-10', 'text-sm')}
-        </button>
+          <button
+            onClick={() => setIsOpen(!isOpen)}
+            className={`relative p-0.5 rounded-full transition-all focus:outline-none ring-offset-2 ring-offset-white ${isOpen ? 'ring-2 ring-gold' : 'hover:ring-2 hover:ring-gold/30'} active:scale-95 disabled:opacity-50`}
+            disabled={isLoggingOut || isNavigating}
+            aria-expanded={isOpen}
+            aria-haspopup="true"
+          >
+            {renderAvatarContent('w-10 h-10', 'text-sm')}
+          </button>
 
-        {isOpen && (
-          <div className="absolute right-0 mt-3 w-72 bg-white rounded-[24px] shadow-[0_12px_40px_rgba(212,175,55,0.12)] border border-[#D4AF37]/20 py-5 z-[100] animate-in fade-in zoom-in-95 duration-200">
-            <div className="flex flex-col items-center px-6 pb-4 text-center">
-              <div className="mb-3 p-1 rounded-full bg-white shadow-sm ring-1 ring-[#D4AF37]/30">
-                {renderAvatarContent('w-20 h-20', 'text-3xl', true)}
+          {isOpen && (
+            <div className="absolute right-0 mt-4 w-72 bg-white rounded-luxury shadow-2xl border border-petroleum/10 py-6 z-[110] animate-in fade-in zoom-in-95 duration-200">
+              <div className="flex flex-col items-center px-6 pb-6 text-center border-b border-petroleum/5">
+                <div className="mb-4 relative">
+                  <div className="p-1 rounded-full bg-slate-50 shadow-xl ring-1 ring-gold/20">
+                    {renderAvatarContent('w-20 h-20', 'text-3xl', true)}
+                  </div>
+                  <div className="absolute bottom-0 right-0 w-6 h-6 bg-green-500 border-4 border-white rounded-full shadow-sm" />
+                </div>
+                <h3 className="text-base font-bold text-petroleum truncate w-full tracking-tight">
+                  {fullName}
+                </h3>
+                <p className="text-[11px] text-editorial-gray truncate w-full font-bold tracking-luxury mt-1 uppercase">
+                  {userEmail}
+                </p>
               </div>
-              <p className="text-base font-semibold text-slate-900 truncate w-full">
-                {fullName}
-              </p>
-              <p className="text-xs text-slate-500 mb-6 truncate w-full font-medium">
-                {userEmail}
-              </p>
 
-              <Link
-                href="/onboarding"
-                onClick={handleManageProfile}
-                className={`w-full flex items-center justify-center gap-2 h-10 rounded-[0.5rem] bg-[#F3E5AB] text-black text-[11px] font-semibold uppercase tracking-widest shadow-xl hover:bg-white transition-all active:scale-95 border border-[#F3E5AB]/20 ${isRedirecting ? 'opacity-70 cursor-not-allowed' : ''}`}
-              >
-                {isRedirecting ? (
-                  <>
-                    <Loader2 size={14} className="animate-spin" />
-                    Aguarde...
-                  </>
-                ) : (
-                  <>
-                    <Settings size={14} />
-                    Configurar Perfil
-                  </>
-                )}
-              </Link>
+              <div className="px-4 pt-4 space-y-2">
+                <Link
+                  href="/onboarding"
+                  onClick={(e) => {
+                    e.preventDefault();
+                    handleManageProfile();
+                  }}
+                  className={`btn-luxury-primary w-full !h-10 !justify-start gap-4 px-4 ${isNavigating ? 'opacity-70 cursor-not-allowed' : ''}`}
+                >
+                  <User2 size={18} />
+                  <span className="flex-1 text-left">
+                    {isNavigating ? 'Carregando...' : 'Editar Perfil'}
+                  </span>
+                  {isNavigating && <div className="loading-luxury-dark w-4 h-4" />}
+                </Link>
+
+                <button
+                  onClick={handleLogout}
+                  disabled={isLoggingOut || isNavigating}
+                  className="btn-secondary-white w-full !h-10 !justify-start gap-4 px-4 hover:!text-red-600 hover:!border-red-200 hover:!bg-red-50 transition-all disabled:opacity-50"
+                >
+                  <LogOut size={18} />
+                  <span className="flex-1 text-left">
+                    Sair da conta
+                  </span>
+                </button>
+              </div>
             </div>
-
-            <div className="mx-6 border-t border-slate-100 my-2"></div>
-
-            <div className="px-6">
-              <button
-                onClick={onLogoutClick}
-                disabled={isLoggingOut || isRedirecting}
-                className="w-full flex items-center justify-center gap-2 h-10 px-4 rounded-[0.5rem] border border-slate-200 bg-white text-slate-600 hover:bg-red-50 hover:text-red-600 hover:border-red-100 transition-all active:scale-95 disabled:opacity-50 font-semibold text-[11px] uppercase tracking-widest"
-              >
-                {isLoggingOut ? (
-                  <Loader2 size={14} className="animate-spin text-red-600" />
-                ) : (
-                  <LogOut size={14} />
-                )}
-                {isLoggingOut ? 'Saindo...' : 'Sair da conta'}
-              </button>
-            </div>
-          </div>
-        )}
-      </div>
-
-      {isLoggingOut && (
-        <div className="fixed inset-0 z-[120] bg-white/80 backdrop-blur-md animate-in fade-in duration-500 flex items-center justify-center">
-          <div className="bg-[#1E293B] text-[#F3E5AB] px-8 py-4 rounded-full text-[10px] font-semibold shadow-2xl animate-in zoom-in duration-300 border border-[#D4AF37]/30 tracking-[0.2em] uppercase flex items-center gap-3">
-            <Loader2 size={16} className="animate-spin" />
-            {isLoggingOut ? 'Encerrando sessão' : ''}
-          </div>
+          )}
         </div>
-      )}
-    </div>
-  );
+      </div>
+    );
 }

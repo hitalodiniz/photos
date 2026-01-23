@@ -3,7 +3,6 @@ import React, { useState, useMemo, useEffect } from 'react';
 import {
   Filter,
   Download,
-  Loader2,
   ChevronDown,
   Monitor,
   Tag,
@@ -12,9 +11,24 @@ import {
   Wand2,
   Zap,
   FileCheck,
-  ImageIcon,
 } from 'lucide-react';
 import WhatsAppIcon from '@/components/ui/WhatsAppIcon';
+
+// 🎯 Função helper para parsear links do JSON
+const parseLinks = (jsonString: string | null | undefined): string[] => {
+  if (!jsonString) return [];
+  try {
+    const parsed = JSON.parse(jsonString);
+    if (Array.isArray(parsed)) {
+      return parsed.filter((link) => link && typeof link === 'string');
+    }
+    // Se não é array, trata como string única (compatibilidade)
+    return jsonString ? [jsonString] : [];
+  } catch {
+    // Se não é JSON válido, trata como string única (compatibilidade)
+    return jsonString ? [jsonString] : [];
+  }
+};
 
 export const ToolBarDesktop = ({
   showOnlyFavorites,
@@ -33,10 +47,9 @@ export const ToolBarDesktop = ({
 }: any) => {
   const [copied, setCopied] = useState(false);
   const [showDownloadMenu, setShowDownloadMenu] = useState(false);
-  const [linksStatus, setLinksStatus] = useState({
-    full: false,
-    social: false,
-  });
+  const [linksStatus, setLinksStatus] = useState<Record<number, boolean>>({});
+
+  const externalLinks = parseLinks(galeria?.zip_url_full);
 
   const isCompact = false;
   const hasTags = tags.length > 1;
@@ -62,21 +75,20 @@ export const ToolBarDesktop = ({
         }
       };
 
-      const status = { full: false, social: false };
+      const status: Record<number, boolean> = {};
+      const links = parseLinks(galeria?.zip_url_full);
 
-      if (galeria?.zip_url_full) {
-        status.full = await check(galeria.zip_url_full);
-      }
-      if (galeria?.zip_url_social) {
-        status.social = await check(galeria.zip_url_social);
+      // Valida cada link do array
+      for (let i = 0; i < links.length; i++) {
+        status[i] = await check(links[i]);
       }
 
       setLinksStatus(status);
     };
 
     validateLinks();
-  }, [galeria?.zip_url_full, galeria?.zip_url_social]);
-  const { visibleTags, hiddenTags } = useMemo(() => {
+  }, [galeria?.zip_url_full]);
+  const { visibleTags } = useMemo(() => {
     const limit = 4;
     let sortedTags = [...tags];
 
@@ -86,7 +98,6 @@ export const ToolBarDesktop = ({
 
     return {
       visibleTags: sortedTags.slice(0, limit),
-      hiddenTags: sortedTags.slice(limit),
     };
   }, [tags, activeTag]);
 
@@ -96,7 +107,7 @@ export const ToolBarDesktop = ({
         className={`
         mx-auto transition-all duration-500 ease-out
         pointer-events-auto relative
-        w-full bg-[#1E293B]/95 backdrop-blur-md border-b border-white/10 shadow-2xl
+        w-full bg-petroleum/95 backdrop-blur-md border-b border-white/10 shadow-2xl
         /* 🎯 FIX DOWNLOAD: Permite que o menu suspenso apareça para baixo */
         ${showDownloadMenu ? 'overflow-visible' : 'overflow-hidden'}
       `}
@@ -105,22 +116,22 @@ export const ToolBarDesktop = ({
           {/* 1. FERRAMENTAS + COLUNAS */}
           <div className="flex items-center gap-4 border-r border-white/10 pr-4 shrink-0">
             <div className="flex items-center gap-2">
-              <Wand2 size={18} className="text-[#F3E5AB]" />
-              <span className="text-[10px] text-white/70 uppercase font-semibold tracking-widest hidden lg:block">
+              <Wand2 size={18} className="text-gold" />
+              <span className="text-editorial-label text-white/70 hidden lg:block">
                 Ferramentas
               </span>
             </div>
-            <div className="flex items-center gap-1 bg-white/5 rounded-[0.5rem] px-1.5 h-10 border border-white/10">
-              <Monitor size={14} className="text-[#F3E5AB] mx-1" />
+            <div className="flex items-center gap-1 bg-white/5 rounded-luxury px-1.5 h-10 border border-white/10 shadow-inner">
+              <Monitor size={14} className="text-gold mx-1" />
               {[3, 4, 5, 6, 7, 8].map((num) => (
                 <button
                   key={num}
                   onClick={() =>
                     setColumns((p: any) => ({ ...p, desktop: num }))
                   }
-                  className={`w-7 h-7 rounded-[0.2rem] text-[10px] font-semibold transition-all ${
+                  className={`w-7 h-7 rounded-luxury text-[10px] font-bold transition-all ${
                     columns.desktop === num
-                      ? 'bg-[#F3E5AB] text-black'
+                      ? 'bg-gold text-black shadow-lg'
                       : 'text-white/40 hover:text-white hover:bg-white/5'
                   }`}
                 >
@@ -134,16 +145,16 @@ export const ToolBarDesktop = ({
           {hasTags ? (
             <div className="flex items-center gap-3 flex-1 min-w-0">
               <div className="flex items-center shrink-0 ml-2">
-                <Tag size={16} className="text-[#F3E5AB]" />
+                <Tag size={16} className="text-gold" />
               </div>
               <nav className="flex items-center gap-2 flex-1 min-w-0 overflow-x-auto no-scrollbar scroll-smooth">
                 {visibleTags.map((tag: string) => (
                   <button
                     key={tag}
                     onClick={() => setActiveTag(tag === activeTag ? '' : tag)}
-                    className={`px-4 py-1.5 rounded-[0.5rem] text-[11px] font-semibold uppercase transition-all shrink-0 border h-9 ${
+                    className={`px-4 py-1.5 rounded-luxury text-editorial-label transition-all shrink-0 border h-9 ${
                       activeTag === tag
-                        ? 'bg-[#F3E5AB] text-black border-[#F3E5AB]'
+                        ? 'bg-gold text-black border-gold shadow-lg'
                         : 'bg-white/5 text-white/50 border-white/10 hover:text-white'
                     }`}
                   >
@@ -160,24 +171,24 @@ export const ToolBarDesktop = ({
           <div className="flex items-center gap-2 shrink-0 ml-auto">
             <button
               onClick={() => setShowOnlyFavorites(!showOnlyFavorites)}
-              className={`flex items-center justify-center rounded-[0.5rem] h-10 border transition-all duration-300 w-28 gap-2 ${
+              className={`flex items-center justify-center rounded-luxury h-10 border transition-all duration-300 w-28 gap-2 ${
                 showOnlyFavorites
-                  ? 'bg-[#E67E70] border-[#E67E70] text-white shadow-lg'
-                  : 'bg-[#1A1A1A] border-white/10 text-white'
+                  ? 'bg-red-600 border-red-600 text-white shadow-lg'
+                  : 'bg-white/5 border-white/10 text-white/60 hover:text-white'
               }`}
             >
               <Filter size={16} />
-              <span className="text-[11px] font-semibold uppercase tracking-wide">
+              <span className="text-editorial-label">
                 Favoritos
               </span>
             </button>
 
             <button
               onClick={handleShare}
-              className="flex items-center justify-center rounded-[0.5rem] h-10 border border-white/10 bg-[#1A1A1A] text-white hover:bg-[#25D366] transition-all w-28 gap-2"
+              className="flex items-center justify-center rounded-luxury h-10 border border-white/10 bg-white/5 text-white/60 hover:bg-green-600 hover:text-white transition-all w-28 gap-2"
             >
-              <WhatsAppIcon className="text-white w-[16px] h-[16px]" />
-              <span className="text-[11px] font-semibold uppercase tracking-wide">
+              <WhatsAppIcon className="text-current w-[16px] h-[16px]" />
+              <span className="text-editorial-label">
                 Whatsapp
               </span>
             </button>
@@ -189,14 +200,14 @@ export const ToolBarDesktop = ({
                 setCopied(true);
                 setTimeout(() => setCopied(false), 2000);
               }}
-              className="flex items-center justify-center rounded-[0.5rem] h-10 border border-white/10 bg-[#1A1A1A] text-white hover:bg-white hover:text-black transition-all w-24 gap-2"
+              className="flex items-center justify-center rounded-luxury h-10 border border-white/10 bg-white/5 text-white/60 hover:bg-white hover:text-black transition-all w-24 gap-2"
             >
               {copied ? (
-                <Check size={16} className="text-[#25D366]" />
+                <Check size={16} className="text-green-500" />
               ) : (
                 <LinkIcon size={16} />
               )}
-              <span className="text-[11px] font-semibold uppercase tracking-wide">
+              <span className="text-editorial-label">
                 Link
               </span>
             </button>
@@ -210,14 +221,14 @@ export const ToolBarDesktop = ({
                     setShowDownloadMenu(!showDownloadMenu);
                   }}
                   disabled={isDownloading}
-                  className="flex items-center justify-center rounded-[0.5rem] bg-[#F3E5AB]  text-black h-10 font-bold shadow-xl hover:bg-white transition-all disabled:opacity-50 w-32 gap-2 px-4"
+                  className="flex items-center justify-center rounded-luxury bg-gold text-black h-10 font-bold shadow-xl hover:bg-white transition-all disabled:opacity-50 w-32 gap-2 px-4"
                 >
                   {isDownloading ? (
-                    <Loader2 size={16} className="animate-spin" />
+                    <div className="loading-luxury w-4 h-4 border-black/30 border-t-black" />
                   ) : (
                     <Download size={16} />
                   )}
-                  <span className="text-[11px] uppercase tracking-wide">
+                  <span className="text-editorial-label">
                     Baixar
                   </span>
                   <ChevronDown
@@ -233,79 +244,60 @@ export const ToolBarDesktop = ({
                     className="fixed inset-0 z-[190]"
                     onClick={() => setShowDownloadMenu(false)}
                   />
-                  <div className="absolute top-full mt-2 right-0 w-72 bg-[#1E293B] border border-white/20 rounded-xl shadow-2xl animate-in fade-in slide-in-from-top-2 duration-300 z-[200] pointer-events-auto overflow-hidden">
+                  <div className="absolute top-full mt-2 right-0 w-72 bg-slate-950/95 backdrop-blur-xl border border-white/10 rounded-luxury shadow-2xl animate-in fade-in slide-in-from-top-2 duration-300 z-[200] pointer-events-auto overflow-hidden">
                     <div className="p-2 flex flex-col gap-1">
                       <button
                         onClick={() => {
                           downloadAllAsZip();
                           setShowDownloadMenu(false);
                         }}
-                        className="flex items-start gap-3 p-3 rounded-lg hover:bg-white/5 transition-all text-left group"
+                        className="flex items-start gap-3 p-3 rounded-luxury hover:bg-white/10 transition-all text-left group"
                       >
-                        <Zap size={18} className="text-[#F3E5AB] mt-0.5" />
+                        <Zap size={18} className="text-gold mt-0.5" />
                         <div>
-                          <p className="text-white text-[11px] font-bold uppercase tracking-tight">
+                          <p className="text-white text-editorial-label">
                             Fotos Otimizadas
                           </p>
-                          <p className="text-white/50 text-[10px] leading-tight">
+                          <p className="text-white/40 text-[10px] leading-tight font-medium italic">
                             Até 2MB por foto. Ideal para celular.
                           </p>
                         </div>
                       </button>
 
-                      {/* Opção 2: Alta Definição - Só aparece se o link for válido/on-line */}
-                      {galeria?.zip_url_full && linksStatus.full && (
-                        <button
-                          onClick={() => {
-                            setShowDownloadMenu(false);
-                            handleExternalDownload(
-                              galeria.zip_url_full,
-                              `${galeria.title}_Alta_Definicao.zip`,
-                            );
-                          }}
-                          className="w-full flex items-start gap-3 p-3 rounded-lg hover:bg-white/5 transition-all text-left group border-t border-white/5"
-                        >
-                          <FileCheck
-                            size={18}
-                            className="text-[#D4AF37] mt-0.5"
-                          />
-                          <div>
-                            <p className="text-white text-[11px] font-bold uppercase tracking-tight">
-                              Qualidade Máxima
-                            </p>
-                            <p className="text-white/50 text-[10px] leading-tight">
-                              Arquivo original enviado pelo profissional.
-                            </p>
-                          </div>
-                        </button>
-                      )}
-
-                      {/* Opção 3: Social - Só aparece se o link for válido/on-line */}
-                      {galeria?.zip_url_social && linksStatus.social && (
-                        <button
-                          onClick={() => {
-                            setShowDownloadMenu(false);
-                            handleExternalDownload(
-                              galeria.zip_url_social,
-                              `${galeria.title}_Social.zip`,
-                            );
-                          }}
-                          className="w-full flex items-start gap-3 p-3 rounded-lg hover:bg-white/5 transition-all text-left group border-t border-white/5"
-                        >
-                          <ImageIcon
-                            size={18}
-                            className="text-blue-400 mt-0.5"
-                          />
-                          <div>
-                            <p className="text-white text-[11px] font-bold uppercase tracking-tight">
-                              Versão Redes Sociais
-                            </p>
-                            <p className="text-white/50 text-[10px] leading-tight">
-                              Compactado para Instagram/WhatsApp.
-                            </p>
-                          </div>
-                        </button>
-                      )}
+                      {/* Links Externos - Múltiplos links do JSON */}
+                      {externalLinks.map((link, index) => {
+                        // Só exibe se o link for válido/on-line
+                        if (!linksStatus[index]) return null;
+                        
+                        return (
+                          <button
+                            key={index}
+                            onClick={() => {
+                              setShowDownloadMenu(false);
+                              handleExternalDownload(
+                                link,
+                                `${galeria.title}_Link_${index + 1}.zip`,
+                              );
+                            }}
+                            className="w-full flex items-start gap-3 p-3 rounded-luxury hover:bg-white/10 transition-all text-left group border-t border-white/5"
+                          >
+                            <FileCheck
+                              size={18}
+                              className="text-gold mt-0.5"
+                            />
+                            <div className="flex-1 min-w-0">
+                              <p className="text-white text-editorial-label">
+                                {externalLinks.length === 1 
+                                  ? 'Qualidade Máxima'
+                                  : `Link ${index + 1} - Alta Resolução`}
+                              </p>
+                              <p className="text-white/40 text-[10px] leading-tight truncate italic font-medium">
+                                {link}
+                              </p>
+                            </div>
+                          </button>
+                        );
+                      })}
                     </div>
                   </div>
                 </>

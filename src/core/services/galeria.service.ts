@@ -7,17 +7,11 @@ import { revalidatePath, revalidateTag, unstable_cache } from 'next/cache';
 import { GLOBAL_CACHE_REVALIDATE } from '@/core/utils/url-helper';
 
 import {
-  createSupabaseServerClient,
-  createSupabaseServerClientReadOnly,
-  createSupabaseClientForCache,
-} from '@/lib/supabase.server';
-import {
   DrivePhoto,
   //makeFolderPublic as makeFolderPublicLib,
 } from '@/lib/google-drive';
 import {
   getFolderPhotos,
-  checkDriveAccess,
 } from './google-drive.service';
 import { formatGalleryData } from '@/core/logic/galeria-logic';
 import { Galeria } from '@/core/types/galeria';
@@ -39,6 +33,7 @@ interface ActionResult<T = unknown> {
 // =========================================================================
 
 import { getAuthAndStudioIds } from './auth-context.service';
+import { createSupabaseServerClient, createSupabaseClientForCache, createSupabaseServerClientReadOnly } from '@/lib/supabase.server';
 
 // =========================================================================
 // 2. SLUG ÚNICO POR DATA
@@ -140,10 +135,13 @@ export async function createGaleria(
       title: formData.get('title') as string,
       show_on_profile: formData.get('show_on_profile') === 'true',
       client_name: (formData.get('client_name') as string) || 'Cobertura',
-      client_whatsapp: (formData.get('client_whatsapp') as string)?.replace(
-        /\D/g,
-        '',
-      ),
+      client_whatsapp: (() => {
+        let val = (formData.get('client_whatsapp') as string)?.replace(/\D/g, '') || '';
+        if (val && (val.length === 10 || val.length === 11) && !val.startsWith('55')) {
+          val = `55${val}`;
+        }
+        return val || null;
+      })(),
       date: new Date(formData.get('date') as string).toISOString(),
       location: (formData.get('location') as string) || '',
       drive_folder_id: formData.get('drive_folder_id') as string,
@@ -160,8 +158,16 @@ export async function createGaleria(
       columns_tablet: Number(formData.get('columns_tablet')) || 3,
       columns_desktop: Number(formData.get('columns_desktop')) || 4,
 
+      // 🎯 Links armazenados como JSON (array de strings) no campo zip_url_full
       zip_url_full: (formData.get('zip_url_full') as string) || null,
-      zip_url_social: (formData.get('zip_url_social') as string) || null,
+      zip_url_social: null, // Mantido para compatibilidade, mas não usado mais
+
+      // 🎯 Captura de Leads
+      leads_enabled: formData.get('leads_enabled') === 'true',
+      leads_require_name: formData.get('leads_require_name') === 'true',
+      leads_require_email: formData.get('leads_require_email') === 'true',
+      leads_require_whatsapp: formData.get('leads_require_whatsapp') === 'true',
+      rename_files_sequential: formData.get('rename_files_sequential') === 'true',
 
       // Senha inicial (se houver)
       password:
@@ -173,7 +179,7 @@ export async function createGaleria(
     const { error, data: insertedData } = await supabase
       .from('tb_galerias')
       .insert([data])
-      .select('id, slug, drive_folder_id')
+      .select('id, slug, drive_folder_id, photographer:tb_profiles!user_id(username)')
       .single();
 
     if (error) throw error;
@@ -189,7 +195,7 @@ export async function createGaleria(
       revalidateTag(`photos-${insertedData.id}`);
     }
     // 🎯 CRÍTICO: Revalida a lista de galerias do usuário para aparecer no dashboard
-    console.log(`[createGaleria] Revalidando cache para userId: ${userId}`);
+    // console.log(`[createGaleria] Revalidando cache para userId: ${userId}`);
     revalidateTag(`user-galerias-${userId}`);
     // Busca o username para revalidar o perfil público
     const { data: profile } = await supabase
@@ -205,7 +211,11 @@ export async function createGaleria(
     // 🎯 FORÇA REVALIDAÇÃO COMPLETA: Revalida o dashboard e todas as rotas relacionadas
     revalidatePath('/dashboard', 'layout');
     revalidatePath('/dashboard');
-    return { success: true, message: 'Nova galeria criada com sucesso!' };
+    return { 
+      success: true, 
+      message: 'Nova galeria criada com sucesso!',
+      data: insertedData 
+    };
   } catch (error) {
     console.error('Erro no create:', error);
     return { success: false, error: 'Falha ao criar a galeria.' };
@@ -233,10 +243,13 @@ export async function updateGaleria(
       title: formData.get('title') as string,
       show_on_profile: formData.get('show_on_profile') === 'true',
       client_name: (formData.get('client_name') as string) || 'Cobertura',
-      client_whatsapp: (formData.get('client_whatsapp') as string)?.replace(
-        /\D/g,
-        '',
-      ),
+      client_whatsapp: (() => {
+        let val = (formData.get('client_whatsapp') as string)?.replace(/\D/g, '') || '';
+        if (val && (val.length === 10 || val.length === 11) && !val.startsWith('55')) {
+          val = `55${val}`;
+        }
+        return val || null;
+      })(),
       date: new Date(formData.get('date') as string).toISOString(),
       location: (formData.get('location') as string) || '',
       drive_folder_id: formData.get('drive_folder_id') as string,
@@ -253,8 +266,16 @@ export async function updateGaleria(
       columns_tablet: Number(formData.get('columns_tablet')) || 3,
       columns_desktop: Number(formData.get('columns_desktop')) || 4,
 
+      // 🎯 Links armazenados como JSON (array de strings) no campo zip_url_full
       zip_url_full: (formData.get('zip_url_full') as string) || null,
-      zip_url_social: (formData.get('zip_url_social') as string) || null,
+      zip_url_social: null, // Mantido para compatibilidade, mas não usado mais
+
+      // 🎯 Captura de Leads
+      leads_enabled: formData.get('leads_enabled') === 'true',
+      leads_require_name: formData.get('leads_require_name') === 'true',
+      leads_require_email: formData.get('leads_require_email') === 'true',
+      leads_require_whatsapp: formData.get('leads_require_whatsapp') === 'true',
+      rename_files_sequential: formData.get('rename_files_sequential') === 'true',
     };
 
     // 2. Validação básica de integridade
@@ -309,7 +330,11 @@ export async function updateGaleria(
     }
 
     revalidatePath('/dashboard');
-    return { success: true, message: 'Galeria refinada com sucesso!' };
+    return { 
+      success: true, 
+      message: 'Galeria refinada com sucesso!',
+      data: { id, ...updates }
+    };
   } catch (error) {
     console.error('Erro no update:', error);
     return { success: false, error: 'Falha ao atualizar a galeria.' };
@@ -358,6 +383,7 @@ export async function getGalerias(
           .select(
             `
             *,
+            leads:tb_galeria_leads(count),
             photographer:tb_profiles!user_id (
               id,
               full_name,
@@ -378,8 +404,8 @@ export async function getGalerias(
           throw error;
         }
 
-        // 🎯 DEBUG: Log para verificar se está retornando dados
-        console.log(`[getGalerias] Cache miss - Buscando do DB. userId: ${cachedUserId}, galerias encontradas: ${data?.length || 0}`);
+        // 🎯 DEBUG: Verificação detalhada de leads
+        // console.log(`[getGalerias] userId: ${cachedUserId}, Found: ${data?.length || 0}`);
 
         // AJUSTE NO MAP: Usa a função formatGalleryData para garantir que o objeto photographer exista
         const galeriasFormatadas = (data || []).map((raw) =>
@@ -411,6 +437,50 @@ export async function getGalerias(
     },
   )(userId);
 }
+
+// =========================================================================
+// 5.1. BUSCAR GALERIA POR ID (para edição)
+// =========================================================================
+export async function getGaleriaById(
+  id: string,
+  userId: string,
+): Promise<ActionResult<Galeria | null>> {
+  try {
+    const supabase = await createSupabaseServerClientReadOnly();
+    const { data, error } = await supabase
+      .from('tb_galerias')
+      .select(
+        `
+        *,
+        leads:tb_galeria_leads(count),
+        photographer:tb_profiles!user_id (
+          id,
+          full_name,
+          username,
+          use_subdomain,
+          profile_picture_url,
+          phone_contact,
+          instagram_link,
+          email
+        )
+      `,
+      )
+      .eq('id', id)
+      .eq('user_id', userId)
+      .single();
+
+    if (error || !data) {
+      return { success: false, error: 'Galeria não encontrada.', data: null };
+    }
+
+    const galeria = formatGalleryData(data as any, data.photographer?.username || '');
+    return { success: true, data: galeria };
+  } catch (error) {
+    console.error('[getGaleriaById] Erro:', error);
+    return { success: false, error: 'Erro ao buscar galeria.', data: null };
+  }
+}
+
 // =========================================================================
 // 6. DELETE GALERIA
 // =========================================================================
@@ -473,7 +543,6 @@ export async function authenticateGaleriaAccess(
   // 3. COOKIE - O PONTO CRÍTICO
   const cookieStore = await cookies();
   const host = (await headers()).get('host') || '';
-  const isLocal = host.includes('localhost') || host.includes('lvh.me');
 
   const cookieOptions: any = {
     path: '/', // 🎯 OBRIGATÓRIO: Permite que /hitalodiniz80/slug leia o cookie
@@ -620,6 +689,7 @@ export async function getPublicProfileGalerias(
         .from('tb_profiles')
         .select('id')
         .eq('username', username)
+
         .single();
 
       if (!profile) return { success: false, data: [], hasMore: false };
@@ -817,5 +887,34 @@ export async function permanentDelete(id: string) {
   } catch (error: any) {
     console.error('Erro ao excluir permanentemente:', error);
     return { success: false, error: 'Erro ao excluir permanentemente' };
+  }
+}
+
+/**
+ * 🎯 BUSCAR LEADS DA GALERIA
+ */
+export async function getGaleriaLeads(
+  galeriaId: string,
+): Promise<ActionResult<any[]>> {
+  try {
+    const supabase = await createSupabaseServerClientReadOnly();
+    const { success, userId } = await getAuthAndStudioIds(supabase);
+
+    if (!success || !userId) {
+      return { success: false, error: 'Não autorizado' };
+    }
+
+    const { data, error } = await supabase
+      .from('tb_galeria_leads')
+      .select('*')
+      .eq('galeria_id', galeriaId)
+      .order('created_at', { ascending: false });
+
+    if (error) throw error;
+
+    return { success: true, data: data || [] };
+  } catch (error: any) {
+    console.error('[getGaleriaLeads] Erro:', error);
+    return { success: false, error: 'Erro ao buscar leads.' };
   }
 }

@@ -173,7 +173,7 @@ export async function upsertProfile(formData: FormData, supabaseClient?: any) {
     operating_cities = operating_cities_json
       ? JSON.parse(operating_cities_json)
       : [];
-  } catch (e) {
+  } catch {
     operating_cities = [];
   }
 
@@ -182,9 +182,14 @@ export async function upsertProfile(formData: FormData, supabaseClient?: any) {
     'profile_picture_url_existing',
   ) as string;
   const profileFile = formData.get('profile_picture') as File;
-  if (profileFile && profileFile.size > 0 && profileFile.name !== 'undefined') {
-    const fileExt = profileFile.name.split('.').pop();
+  if (profileFile && profileFile.size > 0) {
+    // 🎯 Segurança: Fallback para extensões se o nome for inválido ou ausente
+    const fileName = profileFile.name || 'avatar.webp';
+    const fileExt = fileName.includes('.') ? fileName.split('.').pop() : 'webp';
     const filePath = `${user.id}/avatar-${Date.now()}.${fileExt}`;
+    
+    // console.log('[upsertProfile] Uploading avatar:', filePath);
+    
     const { error: uploadError } = await supabase.storage
       .from('profile_pictures')
       .upload(filePath, profileFile, { upsert: true });
@@ -194,6 +199,8 @@ export async function upsertProfile(formData: FormData, supabaseClient?: any) {
         data: { publicUrl },
       } = supabase.storage.from('profile_pictures').getPublicUrl(filePath);
       profile_picture_url = publicUrl;
+    } else {
+      console.error('[upsertProfile] Error uploading avatar:', uploadError);
     }
   }
 
@@ -201,11 +208,14 @@ export async function upsertProfile(formData: FormData, supabaseClient?: any) {
   const backgroundFile = formData.get('background_image') as File;
   if (
     backgroundFile &&
-    backgroundFile.size > 0 &&
-    backgroundFile.name !== 'undefined'
+    backgroundFile.size > 0
   ) {
-    const bgExt = backgroundFile.name.split('.').pop();
+    const bgName = backgroundFile.name || 'bg.webp';
+    const bgExt = bgName.includes('.') ? bgName.split('.').pop() : 'webp';
     const bgPath = `${user.id}/bg-${Date.now()}.${bgExt}`;
+    
+    // console.log('[upsertProfile] Uploading background:', bgPath);
+    
     const { error: bgUploadError } = await supabase.storage
       .from('profile_pictures')
       .upload(bgPath, backgroundFile, { upsert: true });
@@ -215,14 +225,22 @@ export async function upsertProfile(formData: FormData, supabaseClient?: any) {
         data: { publicUrl },
       } = supabase.storage.from('profile_pictures').getPublicUrl(bgPath);
       background_url = publicUrl;
+    } else {
+      console.error('[upsertProfile] Error uploading background:', bgUploadError);
     }
+  }
+
+  // 1. Limpeza e padronização do telefone (Garante prefixo 55 para WhatsApp)
+  let cleanPhone = phone_contact ? phone_contact.replace(/\D/g, '') : '';
+  if (cleanPhone && (cleanPhone.length === 10 || cleanPhone.length === 11) && !cleanPhone.startsWith('55')) {
+    cleanPhone = `55${cleanPhone}`;
   }
 
   const updateData: any = {
     full_name,
     username,
     mini_bio,
-    phone_contact: phone_contact?.replace(/\D/g, ''),
+    phone_contact: cleanPhone,
     instagram_link,
     website,
     operating_cities,

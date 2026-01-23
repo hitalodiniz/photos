@@ -46,6 +46,7 @@ const nextConfig: NextConfig = {
   experimental: {
     // Resolve o erro de Cross-Origin no terminal entre hitalodiniz.lvh.me e o servidor
     serverActions: {
+      bodySizeLimit: '2mb', // 🎯 Aumentado para suportar uploads de fotos de perfil/fundo
       allowedOrigins: [
         'localhost:3000',
         'suagaleria.com.br',

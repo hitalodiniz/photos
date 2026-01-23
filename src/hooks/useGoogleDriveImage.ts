@@ -9,8 +9,8 @@ import {
 interface UseGoogleDriveImageOptions {
   photoId: string | number;
   width?: string | number;
-  priority?: boolean;
   fallbackToProxy?: boolean;
+  priority?: boolean;
   /**
    * Se true, usa proxy diretamente sem tentar Google primeiro
    * Útil para evitar 429 quando há muitas imagens carregando simultaneamente (ex: grid de cards)
@@ -21,7 +21,6 @@ interface UseGoogleDriveImageOptions {
 export function useGoogleDriveImage({
   photoId,
   width = '500',
-  priority = false,
   fallbackToProxy = true,
   useProxyDirectly = false,
 }: UseGoogleDriveImageOptions) {

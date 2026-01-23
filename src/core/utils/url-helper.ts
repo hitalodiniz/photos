@@ -1,5 +1,5 @@
 // src/lib/utils/url-helper.ts
-import { GALLERY_MESSAGES } from '@/constants/messages';
+import { GALLERY_MESSAGES } from '@/core/config/messages';
 const NEXT_PUBLIC_MAIN_DOMAIN =
   process.env.NEXT_PUBLIC_MAIN_DOMAIN || 'localhost:3000';
 
@@ -15,7 +15,7 @@ export const TAMANHO_MAXIMO_FOTO_SEM_COMPACTAR = 2 * 1024 * 1024; // 1.5MB em by
 
 export const RESOLUTIONS = {
   // 🎯 MINIATURAS E GRIDS
-  THUMB: '600', // Miniaturas em grids (cards, masonry)
+  THUMB: '400', // Miniaturas em grids (cards, masonry)
   
   // 🎯 VISUALIZAÇÃO (VIEW) - Otimizado para qualidade visual sem excesso de peso
   // Usado em: Lightbox, visualização de fotos individuais
@@ -93,17 +93,9 @@ export async function copyToClipboard(text: string) {
   try {
     await navigator.clipboard.writeText(text);
     return true;
-  } catch (err) {
+  } catch {
     return false;
   }
-}
-
-interface RoutingContext {
-  username: string;
-  slug: string; // Ex: "hitalodiniz/2026/01/10/evento"
-  use_subdomain: boolean;
-  mainDomain: string; // process.env.NEXT_PUBLIC_BASE_URL
-  protocol: string; // "http" ou "https"
 }
 
 // src/core/utils/url-helper.ts
@@ -252,11 +244,10 @@ export const getResponsiveHighResUrl = (
 
 /**
  * 📥 URL DE DOWNLOAD
- * Agora aponta para a rota que entrega o "Original Otimizado" (Teto de 1MB).
+ * Agora aponta para a rota que entrega o "Original Otimizado" (Teto de 2MB).
  */
 export const getDownloadUrl = (photoId: string | number) => {
-  //return `/api/galeria/download/${photoId}`;
-  return getDirectGoogleUrl(photoId, RESOLUTIONS.DESKTOP_VIEW);
+  return getDownloadDirectGoogleUrl(photoId, RESOLUTIONS.DOWNLOAD);
 };
 
 /**
@@ -297,7 +288,6 @@ export const getDownloadDirectGoogleUrl = (
 ) => {
   if (!photoId) return '';
   // Usamos o domínio lh3.googleusercontent.com que aceita CORS e redimensionamento
-  // O parâmetro -rw força o formato WebP
   return `https://lh3.googleusercontent.com/d/${photoId}=w${width}`;
 };
 

@@ -33,7 +33,7 @@ export default async function DocsPage() {
 
   if (!resultProfile.success || !resultProfile.profile) {
     redirect(
-      resultProfile.error === 'Usuário não autenticado.' ? '/auth/login' : '/onboarding',
+      resultProfile.error === 'Usuário não autenticado.' ? '/' : '/onboarding',
     );
   }
 
@@ -47,8 +47,8 @@ export default async function DocsPage() {
     redirect('/onboarding');
   }
 
-  // 🔒 SEGURANÇA: Apenas usuário 'hitalodiniz' pode acessar
-  if (profile.username !== 'hitalodiniz') {
+  // 🔒 SEGURANÇA: Apenas usuários com a role 'admin' podem acessar
+  if (!profile.roles?.includes('admin')) {
     redirect('/dashboard');
   }
 

@@ -23,15 +23,12 @@ vi.mock('@/lib/supabase.server', () => ({
 import {
   getProfileData,
   upsertProfile,
-  getPublicProfile,
-  getAvatarUrl,
   signOutServer,
 } from './profile.service';
 import {
   createSupabaseServerClient,
   createSupabaseClientForCache,
 } from '@/lib/supabase.server';
-import { revalidatePath, revalidateTag } from 'next/cache';
 
 describe('Profile Service (Cobertura 100%)', () => {
   // Helper para criar a cadeia do Supabase

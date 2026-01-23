@@ -12,11 +12,11 @@ interface ToastProps {
 
 export default function Toast({ message, type, onClose }: ToastProps) {
   // 🎯 Estilos Baseados no global.css
-  // Sucesso: Champagne/Gold | Erro: Rosé Suave/Error-Red
+  // Sucesso: Petroleum/Gold | Erro: Petroleum/Red
   const styles =
     type === 'success'
-      ? 'bg-[#FAF7ED]/95 border-gold/30 text-slate-900 shadow-[0_20px_50px_rgba(212,175,55,0.15)]'
-      : 'bg-[#FFF5F5]/95 border-red-200 text-[#991B1B] shadow-[0_20px_50px_rgba(179,38,30,0.1)]';
+      ? 'bg-slate-950/90 border-white/10 text-white shadow-2xl backdrop-blur-xl'
+      : 'bg-red-950/90 border-red-500/20 text-white shadow-2xl backdrop-blur-xl';
 
   useEffect(() => {
     if (message) {
@@ -40,13 +40,13 @@ export default function Toast({ message, type, onClose }: ToastProps) {
             href={part}
             target="_blank"
             rel="noopener noreferrer"
-            className={`inline-flex items-center gap-1.5 font-semibold underline mt-2 px-3 py-2 rounded-lg transition-all ${
+            className={`inline-flex items-center gap-1.5 font-bold underline mt-2 px-3 py-2 rounded-luxury transition-all ${
               type === 'success'
-                ? 'bg-gold/10 text-gold hover:bg-gold/20'
-                : 'bg-red-50 text-[#B3261E] hover:bg-red-100'
+                ? 'bg-gold/10 text-gold hover:bg-white hover:text-black'
+                : 'bg-red-500/10 text-red-400 hover:bg-white hover:text-black'
             }`}
           >
-            Abrir pasta no Drive
+            <span className="text-editorial-label">Abrir pasta no Drive</span>
             <ExternalLink size={14} />
           </a>
         );
@@ -66,34 +66,34 @@ export default function Toast({ message, type, onClose }: ToastProps) {
           transition={{ duration: 0.5, ease: [0.23, 1, 0.32, 1] }}
         >
           <div
-            className={`flex items-start gap-4 rounded-[24px] border px-6 py-5 min-w-[320px] max-w-[440px] backdrop-blur-md ${styles}`}
+            className={`flex items-start gap-4 rounded-luxury border px-6 py-5 min-w-[320px] max-w-[440px] ${styles}`}
           >
             {/* Ícone com Container de Destaque */}
             <div
-              className={`shrink-0 p-2 rounded-full ${type === 'success' ? 'bg-gold/10' : 'bg-red-50'}`}
+              className={`shrink-0 p-2 rounded-luxury ${type === 'success' ? 'bg-gold/10' : 'bg-red-500/10'}`}
             >
               {type === 'success' ? (
-                <CheckCircle2 size={20} className="text-[#D4AF37]" />
+                <CheckCircle2 size={20} className="text-gold" />
               ) : (
-                <AlertCircle size={20} className="text-[#B3261E]" />
+                <AlertCircle size={20} className="text-red-500" />
               )}
             </div>
 
             <div className="flex flex-col gap-1 flex-1 min-w-0">
               <span
-                className={`text-[10px] uppercase tracking-wider font-semibold opacity-60 font-barlow`}
+                className={`text-editorial-label ${type === 'success' ? 'text-gold' : 'text-red-400'}`}
               >
-                {type === 'success' ? 'Sincronizado' : 'Ação Necessária'}
+                {type === 'success' ? 'Sucesso' : 'Atenção'}
               </span>
 
-              <div className="text-[13px] md:text-[14px] leading-relaxed font-medium tracking-tight font-inter">
+              <div className="text-[13px] md:text-[14px] leading-relaxed font-bold tracking-tight text-white/90 italic">
                 {renderMessage(message)}
               </div>
             </div>
 
             <button
               onClick={onClose}
-              className="shrink-0 p-1 hover:bg-black/5 rounded-full transition-colors text-slate-400"
+              className="shrink-0 p-1 hover:bg-white/10 rounded-full transition-colors text-white/40"
             >
               <X size={18} />
             </button>

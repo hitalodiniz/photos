@@ -44,7 +44,7 @@ const MOCK_PHOTOGRAPHERS = [
 ];
 
 export default function ExplorePage() {
-  const [searchTerm, setSearchTerm] = useState('');
+  const [, setSearchTerm] = useState('');
 
   return (
     <main className="min-h-screen bg-[#0F172A] text-white p-6 pb-20 font-sans">
@@ -88,7 +88,7 @@ export default function ExplorePage() {
           ].map((cat) => (
             <button
               key={cat}
-              className="px-6 py-2 rounded-xl border border-white/10 bg-white/5 hover:bg-champagne hover:text-black transition-all text-[10px] font-black uppercase tracking-widest whitespace-nowrap"
+              className="px-6 py-2 rounded-xl border border-white/10 bg-white/5 hover:bg-champagne hover:text-black transition-all text-[10px] font-bold uppercase tracking-widest whitespace-nowrap"
             >
               {cat}
             </button>
@@ -115,7 +115,7 @@ export default function ExplorePage() {
 
             {/* Categoria */}
             <div className="absolute top-5 right-5 px-3 py-1 rounded-lg bg-black/40 backdrop-blur-md border border-white/10">
-              <span className="text-[9px] uppercase font-black tracking-widest text-champagne">
+              <span className="text-[9px] uppercase font-bold tracking-widest text-champagne">
                 {pro.category}
               </span>
             </div>

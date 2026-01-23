@@ -8,30 +8,33 @@ import LoadingScreen from '@/components/ui/LoadingScreen';
 
 interface Props {
   username: string;
+  initialProfile?: any;
 }
 
-export default function PhotographerContainer({ username }: Props) {
-  const [profile, setProfile] = useState<any>(null);
-  const [loading, setLoading] = useState(true);
+export default function PhotographerContainer({ username, initialProfile }: Props) {
+  const [profile, setProfile] = useState<any>(initialProfile || null);
+  const [loading, setLoading] = useState(!initialProfile);
 
   useEffect(() => {
+    if (initialProfile) return;
+
     async function loadData() {
       try {
         const data = await profileService.getPublicProfile(username);
-
         setProfile(data);
-      } catch (err) {
+      } catch {
         // Erro silencioso; o notFound abaixo cobre o fallback visual
       } finally {
         setLoading(false);
       }
     }
     loadData();
-  }, [username]);
+  }, [username, initialProfile]);
 
-  // 1. Enquanto carrega, mostra um feedback (ou null para não mostrar nada)
+  // 1. Enquanto carrega o perfil básico, não mostramos nada (ou um loader simples)
+  // pois o PhotographerContent já possui seu próprio LoadingScreen interno
   if (loading) {
-    return <LoadingScreen message="Carregando perfil" />;
+    return null;
   }
 
   // 2. Se terminou de carregar e não tem perfil, dispara o 404
@@ -51,6 +54,7 @@ export default function PhotographerContainer({ username }: Props) {
       cities={profile.operating_cities || []}
       website={profile.website}
       backgroundUrl={profile.background_url}
+      useSubdomain={profile.use_subdomain}
     />
   );
 }

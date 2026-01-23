@@ -2,40 +2,42 @@
 import { Camera } from 'lucide-react';
 
 interface LoadingSpinnerProps {
-  size?: 'xs' | 'sm' | 'md' | 'lg'; // Adicionado 'xs'
+  size?: 'xs' | 'sm' | 'md' | 'lg';
   message?: string;
+  variant?: 'default' | 'light';
 }
 
 export default function LoadingSpinner({
   size = 'md',
   message,
+  variant = 'default',
 }: LoadingSpinnerProps) {
   const sizes = {
-    // 🎯 NOVO: Tamanho extra pequeno focado em Mobile/Grid
+    // Tamanho extra pequeno focado em Mobile/Grid
     xs: {
       container: 'w-10 h-10',
-      camera: 'w-4 h-4',
+      camera: 14,
       blur: 'w-6 h-6',
       text: 'text-[8px]',
       stroke: 1,
     },
     sm: {
       container: 'w-16 h-16',
-      camera: 'w-6 h-6',
+      camera: 20,
       blur: 'w-10 h-10',
       text: 'text-xs',
       stroke: 1.2,
     },
     md: {
       container: 'w-24 h-24',
-      camera: 'w-8 h-8',
+      camera: 28,
       blur: 'w-16 h-16',
       text: 'text-sm',
       stroke: 1.5,
     },
     lg: {
       container: 'w-32 h-32',
-      camera: 'w-12 h-12',
+      camera: 40,
       blur: 'w-20 h-20',
       text: 'text-base',
       stroke: 1.5,
@@ -44,44 +46,57 @@ export default function LoadingSpinner({
 
   const s = sizes[size];
 
+  // Cores baseadas no padrão editorial
+  const colorClass = variant === 'light' ? 'text-petroleum' : 'text-gold';
+  const borderColorClass = variant === 'light' ? 'border-petroleum' : 'border-gold';
+  const bgBlurClass = variant === 'light' ? 'bg-petroleum/5' : 'bg-gold/10';
+
   return (
     <div className="flex flex-col items-center justify-center gap-3">
       <div className={`relative ${s.container}`}>
-        {/* Círculo de fundo */}
-        <div className="absolute inset-0 rounded-full border border-champagne/5 dark:border-[#F3E5AB]/5 transition-colors duration-300" />
+        {/* Círculo de fundo (Estrutura do usuário) */}
+        <div className={`absolute inset-0 rounded-full border border-white/5 transition-colors duration-300`} />
 
-        {/* Círculo Giratório */}
+        {/* Círculo Giratório - Usando as cores padronizadas */}
         <div
-          className="absolute inset-0 rounded-full border-t-[1.5px] border-r-[1.5px] border-transparent border-t-champagne dark:border-t-[#F3E5AB] border-r-champagne/20 dark:border-r-[#F3E5AB]/20 animate-spin transition-colors duration-300"
+          className={`absolute inset-0 rounded-full border-t-2 border-r-2 border-transparent ${borderColorClass} border-r-gold/20 animate-spin transition-colors duration-300`}
           style={{ animationDuration: '1.5s' }}
         />
 
         {/* Centro com Câmera */}
         <div className="absolute inset-0 flex items-center justify-center">
           <div className="relative flex items-center justify-center">
-            {/* Blur reduzido para o tamanho XS */}
+            {/* Glow Editorial */}
             {size !== 'xs' && (
               <div
-                className={`absolute ${s.blur} bg-champagne/10 dark:bg-[#F3E5AB]/10 blur-[15px] rounded-full animate-pulse transition-colors duration-300`}
+                className={`absolute ${s.blur} ${bgBlurClass} blur-[15px] rounded-full animate-pulse transition-colors duration-300`}
               />
             )}
             <Camera
-              className={`text-champagne dark:text-[#F3E5AB] relative z-10 ${s.camera} transition-colors duration-300`}
+              size={s.camera}
               strokeWidth={s.stroke}
-              style={{ animation: 'pulse 2.5s infinite ease-in-out' }}
+              className={`${colorClass} relative z-10 animate-pulse-gentle transition-colors duration-300`}
             />
           </div>
         </div>
       </div>
 
-      {/* Mensagem Opcional - Só exibe acima de XS ou se for forçada */}
+      {/* Mensagem Opcional - Microcopy Editorial Standard */}
       {message && size !== 'xs' && (
-        <p
-          className={`italic text-champagne/60 dark:text-[#F3E5AB]/60 tracking-wider uppercase animate-pulse ${s.text} transition-colors duration-300`}
-        >
+        <p className={`text-editorial-label ${colorClass} opacity-60 animate-pulse text-center px-4`}>
           {message}
         </p>
       )}
+
+      <style jsx global>{`
+        @keyframes pulse-gentle {
+          0%, 100% { opacity: 0.4; transform: scale(1); }
+          50% { opacity: 0.8; transform: scale(1.05); }
+        }
+        .animate-pulse-gentle {
+          animation: pulse-gentle 2.5s infinite ease-in-out;
+        }
+      `}</style>
     </div>
   );
 }

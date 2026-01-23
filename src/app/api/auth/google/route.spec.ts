@@ -24,7 +24,7 @@ describe('GET /api/auth/google', () => {
   it('deve redirecionar para erro se code estiver faltando', async () => {
     const request = new Request('https://test.com/api/auth/google');
     
-    const response = await GET(request);
+    await GET(request);
     
     // Verifica que NextResponse.redirect foi chamado
     expect(NextResponse.redirect).toHaveBeenCalled();

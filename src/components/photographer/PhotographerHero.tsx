@@ -1,8 +1,7 @@
 'use client';
 import React from 'react';
-import { MapPin, User, Sparkles } from 'lucide-react';
+import { User, Sparkles } from 'lucide-react';
 import Image from 'next/image';
-import { div } from 'framer-motion/client';
 
 // SUB-COMPONENTE PARA O AVATAR (Passado no sideElement)
 export const PhotographerAvatar = ({ photoPreview, isExpanded }: any) => (

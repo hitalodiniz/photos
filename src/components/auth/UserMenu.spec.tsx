@@ -3,8 +3,26 @@ import { describe, it, expect, vi } from 'vitest';
 import UserMenu from './UserMenu';
 import React from 'react';
 
+// Mock do hook useAuth
+vi.mock('@photos/core-auth', () => ({
+  authService: {
+    signOut: vi.fn(),
+  },
+  useAuth: vi.fn(() => ({
+    logout: vi.fn(),
+    isLoggingOut: false,
+  })),
+}));
+
+// Mock do hook useNavigation
+vi.mock('@/components/providers/NavigationProvider', () => ({
+  useNavigation: vi.fn(() => ({
+    navigate: vi.fn(),
+    isNavigating: false,
+  })),
+}));
+
 describe('UserMenu Component', () => {
-  const mockHandleLogout = vi.fn();
   const mockSession = {
     id: '123',
     email: 'hitalo@exemplo.com',
@@ -17,7 +35,8 @@ describe('UserMenu Component', () => {
     // Verifica se a inicial 'H' aparece no documento
     const initial = screen.getByText('H');
     expect(initial).toBeDefined();
-    expect(initial.className).toContain('bg-[#1E293B]'); // Cor de fallback
+    expect(initial.className).toContain('text-petroleum'); // Cor de texto
+    expect(initial.className).toContain('bg-white'); // Cor de fundo
   });
 
   it('deve renderizar a imagem quando avatarUrl for fornecido', () => {

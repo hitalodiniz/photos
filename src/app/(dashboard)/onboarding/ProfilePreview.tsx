@@ -68,6 +68,7 @@ export default function Photographer({ initialData }: { initialData?: any }) {
   const cities = profile.operating_cities || profile.cities || [];
   const website = profile.website || profile.website;
   const backgroundUrl = profile.background_url || profile.background_url;
+  const useSubdomain = profile.use_subdomain !== undefined ? profile.use_subdomain : true;
 
   return (
     <div className="w-full min-h-screen bg-black">
@@ -82,6 +83,7 @@ export default function Photographer({ initialData }: { initialData?: any }) {
         showBackButton={false}
         website={website}
         backgroundUrl={backgroundUrl}
+        useSubdomain={useSubdomain}
       />
     </div>
   );

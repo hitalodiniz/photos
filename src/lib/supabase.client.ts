@@ -30,8 +30,6 @@ import { createBrowserClient } from '@supabase/ssr';
 const SUPABASE_PUBLIC_BASE_URL = process.env.NEXT_PUBLIC_SUPABASE_URL!;
 const SUPABASE_ANON_KEY = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!;
 
-// Certifique-se que essa variável na Vercel
-const COOKIE_DOMAIN = process.env.NEXT_PUBLIC_COOKIE_DOMAIN;
 const isProduction = process.env.NEXT_PUBLIC_NODE_ENV === 'production';
 
 export const supabase = createBrowserClient(

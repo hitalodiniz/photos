@@ -1,6 +1,6 @@
 'use client';
 
-import { GALLERY_MESSAGES } from '@/constants/messages';
+import { GALLERY_MESSAGES } from '@/core/config/messages';
 import { Photographer } from '@/core/types/galeria';
 import { getCreatorProfileUrl } from '@/core/utils/url-helper';
 import React from 'react';

@@ -1,6 +1,6 @@
 'use client';
 
-import { Loader2, Check, Save } from 'lucide-react';
+import { Loader2, Check } from 'lucide-react';
 import { useFormStatus } from 'react-dom';
 
 interface SubmitButtonProps {
@@ -8,6 +8,8 @@ interface SubmitButtonProps {
   label?: string;
   form?: string; // Permite vincular ao formulário fora do escopo direto
   className?: string; // Permite customização adicional de classes
+  disabled?: boolean; // Permite desabilitar externamente
+  icon?: React.ReactNode;
 }
 
 export default function SubmitButton({
@@ -15,44 +17,49 @@ export default function SubmitButton({
   label = 'Salvar',
   form,
   className = '',
+  disabled = false,
+  icon,
 }: SubmitButtonProps) {
   // O hook useFormStatus funciona se o botão estiver DENTRO de um <form>
   // Como estamos usando o botão no rodapé, dependemos também da prop 'pending' externa ou do ID do form
   const { pending } = useFormStatus();
+  const isPending = pending || disabled;
 
   return (
     <button
       type="submit"
       form={form} // Crucial para disparar o formulário que está no corpo do modal
-      disabled={pending || success}
+      disabled={isPending || success}
       className={`
-        w-full group relative flex items-center justify-center gap-3
-        text-xs font-bold uppercase tracking-widest transition-all duration-300
-        active:scale-95 overflow-hidden
+        group relative flex items-center justify-center gap-2
+        text-[10px] md:text-[11px] font-semibold uppercase tracking-luxury transition-all duration-300
+        active:scale-[0.98] overflow-hidden
         ${
           success
-            ? 'bg-green-500 text-white shadow-green-200 h-11 rounded-[0.5rem]'
-            : pending
-              ? 'bg-white/10 text-white/40 cursor-wait border border-white/10 h-11 rounded-[0.5rem]'
-              : 'bg-[#F3E5AB] text-black hover:bg-[#F3E5AB]/90 h-12 rounded-xl shadow-[0_0_15px_rgba(243,229,171,0.3)]'
+            ? 'bg-green-500 text-white shadow-green-200 h-10 rounded-luxury'
+            : isPending
+              ? 'bg-slate-200 text-slate-400 cursor-wait border border-slate-300 h-10 rounded-luxury'
+              : 'bg-champagne text-black hover:bg-white hover:border-champagne border border-champagne h-10 rounded-luxury shadow-sm'
         }
         ${className}
       `}
     >
-      {/* Efeito de Brilho no Hover (Luxo) */}
-      <div className="absolute inset-0 w-1/2 h-full bg-white/20 skew-x-[-20deg] -translate-x-full group-hover:animate-[shimmer_1.5s_infinite] pointer-events-none" />
+      {/* Efeito de Brilho no Hover (apenas quando não está em loading/success) */}
+      {!isPending && !success && (
+        <div className="absolute inset-0 w-1/2 h-full bg-white/20 skew-x-[-20deg] -translate-x-full group-hover:translate-x-full group-hover:transition-transform group-hover:duration-1000 pointer-events-none" />
+      )}
 
-      <div className="relative z-10 flex items-center gap-3">
-        {pending ? (
-          <Loader2 className="h-4 w-4 animate-spin text-black" strokeWidth={2.5} />
+      <div className="relative z-10 flex items-center gap-2">
+        {isPending ? (
+          <Loader2 className="h-3.5 w-3.5 animate-spin" strokeWidth={2.5} />
         ) : success ? (
-          <Check className="h-4 w-4 animate-in zoom-in duration-500" strokeWidth={2.5} />
-        ) : (
-          <Save className="h-4 w-4 opacity-60 group-hover:scale-110 group-hover:opacity-100 transition-all duration-300" strokeWidth={2.5} />
-        )}
+          <Check className="h-3.5 w-3.5 animate-in zoom-in duration-500" strokeWidth={2.5} />
+        ) : icon ? (
+          <span className="shrink-0">{icon}</span>
+        ) : null}
 
         <span>
-          {pending ? 'Processando...' : success ? 'Salvo com Sucesso' : label}
+          {isPending ? 'Salvando...' : success ? 'Salvo!' : label}
         </span>
       </div>
     </button>

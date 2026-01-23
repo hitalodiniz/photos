@@ -1,5 +1,5 @@
 import { Metadata } from 'next';
-import { getPhotoMetadata } from '@/lib/gallery/metadata-helper';
+import { getPhotoMetadata } from '@/core/utils/metadata-helper';
 import { fetchGalleryBySlug } from '@/core/logic/galeria-logic';
 import { headers } from 'next/headers';
 import PhotoViewClient from './PhotoViewClient';

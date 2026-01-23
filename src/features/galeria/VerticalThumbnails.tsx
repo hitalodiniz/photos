@@ -93,7 +93,7 @@ const ThumbnailItem = React.forwardRef<HTMLButtonElement, ThumbnailItemProps>(
   ({ photoId, index, isActive, onClick }, ref) => {
     const validPhotoId = photoId ? String(photoId) : '';
     
-    const { imgSrc, isLoading, handleError, handleLoad } = useGoogleDriveImage({
+    const { imgSrc, isLoading, handleError, handleLoad, imgRef } = useGoogleDriveImage({
       photoId: validPhotoId,
       width: '200', // Resolução mínima para miniaturas verticais
       priority: index < 20, // Prioriza as primeiras 20
@@ -107,7 +107,7 @@ const ThumbnailItem = React.forwardRef<HTMLButtonElement, ThumbnailItemProps>(
         onClick={onClick}
         className={`relative flex-shrink-0 transition-all duration-300 cursor-pointer w-full ${
           isActive
-            ? 'ring-2 ring-[#1E293B] dark:ring-[#F3E5AB] scale-105'
+            ? 'ring-2 ring-petroleum dark:ring-[#F3E5AB] scale-105'
             : 'opacity-70 hover:opacity-100 hover:scale-105'
         }`}
         style={{
@@ -116,7 +116,7 @@ const ThumbnailItem = React.forwardRef<HTMLButtonElement, ThumbnailItemProps>(
         aria-label={`Ver foto ${index + 1}`}
       >
         <div className={`relative w-full h-full rounded-lg overflow-hidden bg-black/10 dark:bg-white/10 transition-all ${
-          isActive ? 'border-2 border-[#1E293B] dark:border-[#F3E5AB]' : 'border-2 border-transparent'
+          isActive ? 'border-2 border-petroleum dark:border-[#F3E5AB]' : 'border-2 border-transparent'
         }`}>
           {isLoading && !imgSrc ? (
             <div className="absolute inset-0 flex items-center justify-center bg-black/20 dark:bg-white/20">
@@ -124,6 +124,7 @@ const ThumbnailItem = React.forwardRef<HTMLButtonElement, ThumbnailItemProps>(
             </div>
           ) : imgSrc ? (
             <img
+              ref={imgRef}
               src={imgSrc}
               alt={`Miniatura ${index + 1}`}
               className="w-full h-full object-cover"
@@ -138,7 +139,7 @@ const ThumbnailItem = React.forwardRef<HTMLButtonElement, ThumbnailItemProps>(
             </div>
           )}
           {isActive && (
-            <div className="absolute inset-0 bg-[#1E293B]/10 dark:bg-[#F3E5AB]/10 pointer-events-none" />
+            <div className="absolute inset-0 bg-petroleum/10 dark:bg-[#F3E5AB]/10 pointer-events-none" />
           )}
         </div>
       </button>

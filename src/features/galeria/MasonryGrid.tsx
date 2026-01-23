@@ -1,7 +1,7 @@
 'use client';
-import React, { memo, useEffect, useRef, useState, useCallback, cache } from 'react';
+import React, { memo, useEffect, useRef, useState, useCallback } from 'react';
 import { useSearchParams } from 'next/navigation';
-import { Heart, Loader2, ImageIcon } from 'lucide-react';
+import { Heart, Loader2 } from 'lucide-react';
 import 'photoswipe/dist/photoswipe.css';
 import { Gallery, Item } from 'react-photoswipe-gallery';
 import { Galeria } from '@/core/types/galeria';
@@ -12,7 +12,7 @@ import {
 } from '@/core/utils/url-helper';
 import { useGoogleDriveImage } from '@/hooks/useGoogleDriveImage';
 import { handleDownloadPhoto } from '@/core/utils/foto-helpers';
-import { GALLERY_MESSAGES } from '@/constants/messages';
+import { GALLERY_MESSAGES } from '@/core/config/messages';
 import { getCleanSlug, executeShare } from '@/core/utils/share-helper';
 import LoadingSpinner from '@/components/ui/LoadingSpinner';
 import { GridPhotoActions } from './GridPhotoActions';
@@ -21,6 +21,7 @@ import { useSupabaseSession, authService } from '@photos/core-auth';
 // --- MASONRY GRID PRINCIPAL ---
 interface Photo {
   id: string;
+  name: string;
   url: string;
   width: number;
   height: number;
@@ -147,7 +148,7 @@ const MasonryGrid = ({
           </p>
           <button
             onClick={() => setShowOnlyFavorites(false)}
-            className="mx-auto px-6 py-2.5 rounded-[0.5rem] bg-[#D4AF37] text-black hover:bg-white border border-[#D4AF37] transition-all uppercase text-[11px] font-bold tracking-widest shadow-lg"
+            className="mx-auto px-6 py-2.5 rounded-luxury bg-[#D4AF37] text-black hover:bg-white border border-[#D4AF37] transition-all uppercase text-[11px] font-bold tracking-widest shadow-lg"
           >
             Exibir todas as fotos
           </button>
@@ -204,7 +205,7 @@ const MasonryGrid = ({
                           onShareWhatsApp={() => handleShareWhatsAppGrid(photo.id)}
                           onNativeShare={() => handleNativeShareGrid(photo.id)}
                           onCopyLink={() => handleCopyLinkGrid(photo.id)}
-                          onDownload={() => handleDownloadPhoto(galeria, photo.id, index)}
+                          onDownload={() => handleDownloadPhoto(galeria, photo.id, index, photo.name)}
                           btnScale={btnScale}
                           iconSize={iconSize}
                           isMobile={isMobile}
@@ -355,7 +356,7 @@ const SafeImage = memo(({ photoId, width, height, priority, className, showOnlyF
           className="absolute bottom-1.5 left-1.5 z-[30] bg-black/60 backdrop-blur-md px-1.5 py-0.5 rounded border border-white/10 flex items-center gap-1.5 shadow-lg"
           title={`Resolução: ${realResolution?.w}x${realResolution?.h}px | Origem: ${usingProxy ? 'Servidor' : 'Drive'}`}
         >
-          <span className={`text-[9px] font-black ${usingProxy ? 'text-blue-400' : 'text-green-500'}`}>
+          <span className={`text-[9px] font-bold ${usingProxy ? 'text-blue-400' : 'text-green-500'}`}>
             {usingProxy ? 'A' : 'D'}
           </span>
           <span className="text-[#F3E5AB] text-[9px] font-mono font-medium">

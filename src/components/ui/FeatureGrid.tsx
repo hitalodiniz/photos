@@ -48,7 +48,7 @@ export default function FeatureGrid({
                     : 'flex-row items-center text-left  md:p-6'
                 } ${
                   isFullWidth ? 'lg:col-span-full' : ''
-                } rounded-[0.5rem] md:rounded-[1rem]`}
+                } rounded-luxury md:rounded-[1rem]`}
               >
                 {/* Ícone Champanhe com Glow focado */}
                 <div

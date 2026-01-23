@@ -147,13 +147,29 @@ function getChangedFiles() {
 function checkCriticalFiles(changedFiles) {
   const criticalChanges = [];
   
+  // Carrega exceções se existirem
+  let exceptions = [];
+  try {
+    const exceptionsPath = path.join(process.cwd(), '.critical-files-exceptions.json');
+    if (fs.existsSync(exceptionsPath)) {
+      const data = JSON.parse(fs.readFileSync(exceptionsPath, 'utf-8'));
+      exceptions = data.exceptions || [];
+    }
+  } catch (e) {
+    console.error('Erro ao ler arquivo de exceções:', e.message);
+  }
+  
   for (const file of changedFiles) {
     const normalizedPath = file.replace(/\\/g, '/');
     if (CRITICAL_FILES[normalizedPath]) {
-      criticalChanges.push({
-        file: normalizedPath,
-        ...CRITICAL_FILES[normalizedPath],
-      });
+      // Verifica se está na lista de exceções
+      const isException = exceptions.some(ex => ex.file === normalizedPath);
+      if (!isException) {
+        criticalChanges.push({
+          file: normalizedPath,
+          ...CRITICAL_FILES[normalizedPath],
+        });
+      }
     }
   }
   
@@ -225,10 +241,12 @@ function main() {
   // Bloqueia commit
   log('\n❌ COMMIT BLOQUEADO!\n', 'red');
   log('Para fazer alterações em arquivos críticos:', 'yellow');
-  log('  1. Use a flag --allow-critical-changes', 'cyan');
+  log('  1. Use a variável de ambiente ALLOW_CRITICAL_CHANGES=true', 'cyan');
   log('  2. Ou adicione ao arquivo de exceções\n', 'cyan');
-  log('Exemplo:', 'yellow');
-  log('  git commit -m "fix: correção crítica" --allow-critical-changes\n', 'cyan');
+  log('Exemplo (Unix/Git Bash):', 'yellow');
+  log('  ALLOW_CRITICAL_CHANGES=true git commit -m "sua mensagem"\n', 'cyan');
+  log('Exemplo (Windows PowerShell):', 'yellow');
+  log('  $env:ALLOW_CRITICAL_CHANGES="true"; git commit -m "sua mensagem"; $env:ALLOW_CRITICAL_CHANGES=$null\n', 'cyan');
   log('Leia PROTECTION_SYSTEM.md para mais informações.\n', 'blue');
   
   return 1;

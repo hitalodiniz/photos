@@ -1,21 +1,19 @@
 // Exemplo de caminho: src/features/galeria/GaleriaBasePage.tsx
-'use server';
 import React from 'react';
 import { notFound, redirect } from 'next/navigation';
 import { cookies } from 'next/headers';
 import {
   fetchGalleryBySlug,
   formatGalleryData,
-  fetchDrivePhotos,
   fetchPhotosByGalleryId,
 } from '@/core/logic/galeria-logic';
 import GaleriaView from './GaleriaView';
-import PasswordPrompt from './PasswordPrompt';
-import { getDirectGoogleUrl, resolveGalleryUrl } from '@/core/utils/url-helper';
+import GalleryAccessPortal from './GalleryAccessPortal';
+import { resolveGalleryUrl } from '@/core/utils/url-helper';
 import {
   getGalleryMetadata,
   getPhotographerMetadata,
-} from '@/lib/gallery/metadata-helper';
+} from '@/core/utils/metadata-helper';
 import GoogleAuthError from '@/components/auth/GoogleAuthError';
 import PhotographerProfileBase from '@/components/photographer/PhotographerProfileBase';
 
@@ -81,19 +79,24 @@ export default async function GaleriaBasePage({
 
   // ... (Restante da sua lógica de formatação, senha e Drive igual ao seu código)
   const galeriaData = formatGalleryData(galeriaRaw, username);
-  if (!galeriaData.is_public) {
-    const cookieStore = await cookies();
-    const savedToken = cookieStore.get(`galeria-${galeriaData.id}-auth`)?.value;
+  
+  // 🎯 LÓGICA DE ACESSO PROTEGIDO (Servidor)
+  const cookieStore = await cookies();
+  const needsPassword = !galeriaData.is_public;
+  const needsLead = galeriaData.leads_enabled;
 
-    // IMPORTANTE: Se você salvou um JWT, você precisa decodificá-lo ou,
-    // para simplificar agora, verifique apenas se o cookie EXISTE.
-    // Já que o cookie só é gerado se a senha estiver correta na Action.
-    if (!savedToken) {
+  if (needsPassword || needsLead) {
+    const hasAuthCookie = cookieStore.get(`galeria-${galeriaData.id}-auth`)?.value;
+    const hasLeadCookie = cookieStore.get(`galeria-${galeriaData.id}-lead`)?.value;
+
+    // Se precisa de senha e não tem o cookie de senha...
+    // OU se precisa de lead e não tem o cookie de lead...
+    if ((needsPassword && !hasAuthCookie) || (needsLead && !hasLeadCookie)) {
       return (
-        <PasswordPrompt
+        <GalleryAccessPortal
           galeria={galeriaData}
           fullSlug={fullSlug}
-          coverImageUrl={getDirectGoogleUrl(galeriaData.cover_image_url, '1000')}
+          isOpen={true}
         />
       );
     }
@@ -107,17 +110,17 @@ export default async function GaleriaBasePage({
   // Se retornar TOKEN_NOT_FOUND, significa que ambas as estratégias falharam
   // Mas ainda assim tentamos exibir o que foi encontrado
   if (error === 'TOKEN_NOT_FOUND') {
-    console.log('[GaleriaBasePage] Token não encontrado, mas a busca via API Key já foi tentada. Verificando se há fotos disponíveis...');
+    // console.log('[GaleriaBasePage] Token não encontrado, mas a busca via API Key já foi tentada. Verificando se há fotos disponíveis...');
     // Continua a execução normalmente - pode haver fotos mesmo sem token
   }
 
   // Apenas exibe erro se for um erro real que impede o acesso (PERMISSION_DENIED, GALLERY_NOT_FOUND, etc)
   if (error && error !== 'TOKEN_NOT_FOUND') {
-    console.log('[GaleriaBasePage] Erro ao buscar fotos:', {
+    /* console.log('[GaleriaBasePage] Erro ao buscar fotos:', {
       galeriaId: galeriaData.id,
       error,
       photosCount: photos?.length || 0,
-    });
+    }); */
 
     return (
       <GoogleAuthError
@@ -129,11 +132,11 @@ export default async function GaleriaBasePage({
 
   // Se não há fotos, pode ser pasta vazia ou inacessível
   if (!photos || photos.length === 0) {
-    console.log('[GaleriaBasePage] Nenhuma foto encontrada na galeria:', {
+    /* console.log('[GaleriaBasePage] Nenhuma foto encontrada na galeria:', {
       galeriaId: galeriaData.id,
       folderId: galeriaData.drive_folder_id,
       error: error || 'nenhum',
-    });
+    }); */
 
     return (
       <GoogleAuthError
