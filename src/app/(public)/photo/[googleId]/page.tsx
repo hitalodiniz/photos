@@ -4,21 +4,38 @@ import { fetchGalleryBySlug } from '@/core/logic/galeria-logic';
 import { headers } from 'next/headers';
 import PhotoViewClient from './PhotoViewClient';
 
+// Helper interno para extrair o slug com segurança
+async function getSlugFromContext(searchParams: any): Promise<string> {
+  let rawSlug = searchParams?.s || '';
+  
+  if (!rawSlug) {
+    const headersList = await headers();
+    const referer = headersList.get('referer') || '';
+    if (referer.includes('?s=')) {
+      rawSlug = decodeURIComponent(referer.split('?s=')[1].split('&')[0]);
+    }
+  }
+  
+  return rawSlug.replace(/^\/+/, '');
+}
+
+export async function generateMetadata({ params, searchParams }: any): Promise<Metadata> {
+  const { googleId } = await params;
+  const sParams = await searchParams;
+  const cleanSlug = await getSlugFromContext(sParams);
+
+  // 🎯 Usa direto a função centralizada que já tem:
+  // - MetadataBase configurada
+  // - Tags explícitas (og:image:width, etc)
+  // - URL direta do Google 1200x630
+  return await getPhotoMetadata(cleanSlug, googleId);
+}
+
 export default async function Page({ params, searchParams }: any) {
   const resParams = await params;
   const resSearch = await searchParams;
+  const cleanSlug = await getSlugFromContext(resSearch);
 
-  let rawSlug = resSearch?.s || '';
-  if (!rawSlug) {
-    const headersList = await headers();
-    const fullUrl = headersList.get('referer') || '';
-    if (fullUrl.includes('?s=')) {
-      rawSlug = fullUrl.split('?s=')[1].split('&')[0];
-      rawSlug = decodeURIComponent(rawSlug);
-    }
-  }
-
-  const cleanSlug = rawSlug.replace(/^\/+/, '');
   const initialData = await fetchGalleryBySlug(cleanSlug);
 
   if (!initialData) {
@@ -37,49 +54,4 @@ export default async function Page({ params, searchParams }: any) {
       initialData={initialData}
     />
   );
-}
-
-export async function generateMetadata({
-  params,
-  searchParams,
-}: any): Promise<Metadata> {
-  const { googleId } = await params;
-  const sParams = await searchParams;
-
-  // Lógica de resgate do Slug (sua técnica de referer)
-  let rawSlug = sParams?.s || '';
-  if (!rawSlug) {
-    const headersList = await headers();
-    const fullUrl = headersList.get('referer') || '';
-    if (fullUrl.includes('?s=')) {
-      rawSlug = decodeURIComponent(fullUrl.split('?s=')[1].split('&')[0]);
-    }
-  }
-  const cleanSlug = rawSlug.replace(/^\/+/, '');
-
-  // 🎯 Chama o helper ajustado
-  const baseMetadata = await getPhotoMetadata(cleanSlug, googleId);
-  const baseUrl = process.env.NEXT_PUBLIC_BASE_URL || 'https://suagaleria.com.br';
-
-  // 🎯 Garante que metadataBase está definido e URL absoluta
-  return {
-    ...baseMetadata,
-    metadataBase: new URL(baseUrl),
-    icons: {
-      icon: "data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='%23D4AF37' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'><path d='M14.5 4h-5L7 7H4a2 2 0 0 0-2 2v9a2 2 0 0 0 2 2h16a2 2 0 0 0 2-2V9a2 2 0 0 0-2-2h-3l-2.5-3z'/><circle cx='12' cy='13' r='3'/></svg>",
-    },
-    // 🎯 Garante que openGraph.images tenha todas as propriedades necessárias
-    openGraph: {
-      ...baseMetadata.openGraph,
-      images: baseMetadata.openGraph?.images?.map(img => ({
-        ...img,
-        // 🎯 Garante URL absoluta
-        url: img.url?.startsWith('http') ? img.url : `${baseUrl}${img.url}`,
-        // 🎯 Garante todas as propriedades necessárias para WhatsApp
-        width: img.width || 800,
-        height: img.height || 600,
-        type: img.type || 'image/jpeg',
-      })) || [],
-    },
-  };
 }

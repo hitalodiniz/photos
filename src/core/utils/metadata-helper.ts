@@ -16,43 +16,34 @@ export async function getPhotographerMetadata(
 
   if (!profile) return { title: 'Fotógrafo não encontrado' };
 
-  // 🎯 TRATAMENTO SUPABASE STORAGE:
-  // Se a imagem for do Supabase, usamos parâmetros de transformação para reduzir de 2MB para ~50KB
-  let ogImage = `${baseUrl}/default-og-profile.jpg`;
-
-  if (profile.photo_url) {
-    // Se for URL do Supabase, adicionamos parâmetros de otimização
-    if (profile.photo_url.includes('supabase.co')) {
-      ogImage = `${profile.photo_url}?width=800&height=600&resize=contain&quality=70`;
-    } else {
-      ogImage = profile.photo_url;
-    }
-  }
+  // 🎯 OTIMIZAÇÃO SUPABASE: Reduzimos para 1200x630 e qualidade 70
+  // Adicionamos &.jpg no final para ajudar o crawler a identificar como imagem
+  const rawImage = profile.photo_url || `${baseUrl}/default-og-profile.jpg`;
+  const ogImage = rawImage.includes('supabase.co') 
+    ? `${rawImage}?width=1200&height=630&resize=contain&quality=70&.jpg`
+    : rawImage;
 
   const title = `Portfólio de ${profile.full_name || username}`;
+  const description = profile.mini_bio || `Confira o trabalho de ${profile.full_name || username}.`;
 
   return {
     metadataBase: new URL(baseUrl),
     title,
-    description: profile.mini_bio || `Confira o trabalho de ${profile.full_name || username}.`,
+    description,
     openGraph: {
       title,
+      description,
       type: 'profile',
       url: `${baseUrl}/${username}`,
-      siteName: 'Sua Galeria',
-      images: [
-        {
-          url: ogImage, // ⬅️ Agora com tamanho reduzido
-          width: 800,
-          height: 600,
-          type: 'image/jpeg',
-        },
-      ],
+      images: [{ url: ogImage, width: 1200, height: 630, type: 'image/jpeg' }],
     },
-    // ... restante do código
+    // 🎯 RESOLVE O ERRO DE "PROPRIEDADE INFERIDA"
     other: {
-      'google': 'notranslate',
-      'og:image': ogImage, // ⬅️ Força a tag explicitamente como o erro sugeriu
+      'og:image': ogImage,
+      'og:image:secure_url': ogImage,
+      'og:image:type': 'image/jpeg',
+      'og:image:width': '1200',
+      'og:image:height': '630',
     }
   };
 }
@@ -142,18 +133,15 @@ export async function getPhotoMetadata(
   const galeriaRaw = await fetchGalleryBySlug(fullSlug);
   const baseUrl = process.env.NEXT_PUBLIC_BASE_URL || 'https://suagaleria.com.br';
 
-  if (!galeriaRaw) {
-    return { title: 'Foto não encontrada | Sua Galeria' };
-  }
+  if (!galeriaRaw) return { title: 'Foto não encontrada' };
 
-  // 🎯 URL DIRETA do Google (já otimizada pelo url-helper)
+  // 🎯 Mesma lógica que funcionou na Galeria
   const ogImage = googleId 
     ? getDirectGoogleUrl(googleId, '1200') 
-    : `${baseUrl}/default-og-photo.jpg`;
+    : `${baseUrl}/default-og.jpg`;
 
   const title = `${galeriaRaw.title} - Foto`;
-  const description = `Veja esta foto incrível na galeria de ${galeriaRaw.photographer?.full_name || 'Sua Galeria'}.`;
-  const shareUrl = `${baseUrl}/photo/${googleId}?s=${encodeURIComponent(fullSlug)}`;
+  const description = `Veja esta foto na galeria ${galeriaRaw.title}.`;
 
   return {
     metadataBase: new URL(baseUrl),
@@ -163,28 +151,15 @@ export async function getPhotoMetadata(
       title,
       description,
       type: 'website',
-      url: shareUrl,
-      siteName: 'Sua Galeria',
-      images: [
-        { 
-          url: ogImage,
-          width: 1200, 
-          height: 630,
-          type: 'image/jpeg',
-          alt: title,
-        }
-      ],
+      url: `${baseUrl}/photo/${googleId}?s=${fullSlug}`,
+      images: [{ url: ogImage, width: 1200, height: 630, type: 'image/jpeg' }],
     },
-    twitter: {
-      card: 'summary_large_image',
-      title,
-      description,
-      images: [ogImage],
-    },
-    // 🎯 RESOLVE "Propriedade Inferida": Força a tag explicitamente para o robô do WhatsApp
+    // 🎯 REPETE AS TAGS EXPLÍCITAS
     other: {
       'og:image': ogImage,
-      'image': ogImage,
+      'og:image:type': 'image/jpeg',
+      'og:image:width': '1200',
+      'og:image:height': '630',
     }
   };
 }
