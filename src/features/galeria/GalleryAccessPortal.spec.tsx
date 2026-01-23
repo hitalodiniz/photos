@@ -64,10 +64,10 @@ describe('GalleryAccessPortal', () => {
     const submitButton = screen.getByText('Acessar Galeria');
     fireEvent.click(submitButton);
 
-    expect(await screen.findByText('Nome é obrigatório')).toBeDefined();
-    expect(await screen.findByText('E-mail é obrigatório')).toBeDefined();
-    expect(await screen.findByText('WhatsApp é obrigatório')).toBeDefined();
-    expect(await screen.findByText('A senha é obrigatória')).toBeDefined();
+    expect(await screen.findByText('Nome obrigatório')).toBeDefined();
+    expect(await screen.findByText('E-mail inválido')).toBeDefined();
+    expect(await screen.findByText('Número incompleto')).toBeDefined();
+    expect(await screen.findByText('Senha obrigatória')).toBeDefined();
   });
 
   it('deve processar o acesso com sucesso (Leads + Senha)', async () => {

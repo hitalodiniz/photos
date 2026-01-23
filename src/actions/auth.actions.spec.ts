@@ -32,7 +32,7 @@ describe('auth.actions.ts - Testes Unitários', () => {
     const leadData = {
       nome: 'João Silva',
       email: 'joao@example.com',
-      whatsapp: '31988887777',
+      whatsapp: '5531988887777',
     };
 
     it('deve salvar o lead com sucesso e definir o cookie', async () => {
@@ -102,7 +102,7 @@ describe('auth.actions.ts - Testes Unitários', () => {
           galeria_id: mockGaleriaId,
           name: leadDataWithMask.nome,
           email: leadDataWithMask.email,
-          whatsapp: '31988887777',
+          whatsapp: '5531988887777',
         },
       ]);
     });

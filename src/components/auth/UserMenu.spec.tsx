@@ -3,6 +3,17 @@ import { describe, it, expect, vi } from 'vitest';
 import UserMenu from './UserMenu';
 import React from 'react';
 
+// Mock do hook useAuth
+vi.mock('@photos/core-auth', () => ({
+  authService: {
+    signOut: vi.fn(),
+  },
+  useAuth: vi.fn(() => ({
+    logout: vi.fn(),
+    isLoggingOut: false,
+  })),
+}));
+
 // Mock do hook useNavigation
 vi.mock('@/components/providers/NavigationProvider', () => ({
   useNavigation: vi.fn(() => ({
