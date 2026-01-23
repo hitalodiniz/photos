@@ -89,7 +89,7 @@ export async function GET(request: Request) {
   
   // 🎯 SEM SUBDOMÍNIOS: domain deve ser undefined para permitir que o navegador use o host atual
   // Isso garante que o cookie seja armazenado e enviado corretamente no mesmo domínio
-  const finalCookieDomain = undefined; // Sempre undefined quando não há subdomínios
+  const finalCookieDomain = process.env.NEXT_PUBLIC_COOKIE_DOMAIN || undefined;; // Sempre undefined quando não há subdomínios
 
   const supabase = createServerClient(
     process.env.NEXT_PUBLIC_SUPABASE_URL!,
