@@ -6,7 +6,7 @@
  */
 
 import { describe, it, expect, vi, beforeEach } from 'vitest';
-import { renderHook, waitFor } from '@testing-library/react';
+import { renderHook } from '@testing-library/react';
 import { useSupabaseSession } from './useSupabaseSession';
 
 // Mock do Supabase
@@ -27,7 +27,7 @@ vi.mock('@/lib/supabase.client', () => {
 });
 
 // Mock do AuthContext
-vi.mock('@/contexts/AuthContext', () => ({
+vi.mock('@/components/providers/AuthContext', () => ({
   AuthContext: {
     Provider: ({ children }: any) => children,
   },

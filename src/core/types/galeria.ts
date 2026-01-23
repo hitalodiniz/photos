@@ -23,6 +23,7 @@ export interface Photographer {
   instagram_link: string | null;
   use_subdomain: boolean; // Essencial para a lógica de URL
   profile_url: string;
+  roles?: string[];
 }
 
 // Interface Base (Reflete exatamente a tabela tb_galerias no Banco)

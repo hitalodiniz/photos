@@ -9,7 +9,7 @@ export async function POST(request: Request) {
     if (photoId) revalidateTag(`cover-${photoId}`);
 
     return NextResponse.json({ revalidated: true });
-  } catch (err) {
+  } catch {
     return NextResponse.json({ message: 'Erro ao revalidar' }, { status: 500 });
   }
 }

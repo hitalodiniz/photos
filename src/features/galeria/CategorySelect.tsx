@@ -1,5 +1,5 @@
 'use client';
-import { GALLERY_CATEGORIES } from '@/constants/categories';
+import { GALLERY_CATEGORIES } from '@/core/config/categories';
 import { ChevronDown } from 'lucide-react'; // Usando Lucide para manter a consistência de ícones
 
 export default function CategorySelect({ value, onChange }) {

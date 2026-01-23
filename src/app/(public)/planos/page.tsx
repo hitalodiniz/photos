@@ -6,7 +6,7 @@ import {
   DynamicHeroBackground,
   Footer,
 } from '@/components/layout';
-import { PLANS, PlanKey } from '@/config/plans';
+import { PLANS, PlanKey } from '@/core/config/plans';
 
 export default function PlanosPage() {
   const [loadingPlan, setLoadingPlan] = useState<string | null>(null);

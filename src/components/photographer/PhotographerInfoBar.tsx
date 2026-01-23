@@ -1,5 +1,5 @@
 'use client';
-import React, { useState, useRef, useEffect } from 'react';
+import React, { useState, useRef, useEffect, useMemo } from 'react';
 import {
   Instagram,
   Globe,
@@ -10,18 +10,43 @@ import {
 } from 'lucide-react';
 import WhatsAppIcon from '@/components/ui/WhatsAppIcon';
 
+interface PhotographerInfoBarProps {
+  phone?: string;
+  instagram?: string;
+  website?: string;
+  cities?: string[];
+  username?: string;
+  useSubdomain?: boolean;
+}
+
 export const PhotographerInfoBar = ({
   phone,
   instagram,
   website,
   cities = [],
-}: any) => {
+  username,
+  useSubdomain = true,
+}: PhotographerInfoBarProps) => {
   const [isDrawerOpen, setIsDrawerOpen] = useState(false);
   const [copied, setCopied] = useState(false);
   const [shouldHideToDrawer, setShouldHideToDrawer] = useState(false);
 
   const containerRef = useRef<HTMLDivElement>(null);
   const contentRef = useRef<HTMLDivElement>(null);
+
+  const profileUrl = useMemo(() => {
+    if (!username) return typeof window !== 'undefined' ? window.location.href : '';
+    
+    // Se estivermos em localhost, construct accordingly
+    const isProd = process.env.NODE_ENV === 'production';
+    const protocol = isProd ? 'https:' : 'http:';
+    const mainDomain = process.env.NEXT_PUBLIC_MAIN_DOMAIN || 'localhost:3000';
+    
+    if (useSubdomain) {
+      return `${protocol}//${username}.${mainDomain}`;
+    }
+    return `${protocol}//${mainDomain}/${username}`;
+  }, [username, useSubdomain]);
 
   useEffect(() => {
     const checkOverflow = () => {
@@ -40,7 +65,7 @@ export const PhotographerInfoBar = ({
   }, [cities]);
 
   const handleCopyLink = () => {
-    navigator.clipboard.writeText(window.location.href);
+    navigator.clipboard.writeText(profileUrl);
     setCopied(true);
     setTimeout(() => setCopied(false), 2000);
   };

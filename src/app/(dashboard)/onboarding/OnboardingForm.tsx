@@ -25,7 +25,7 @@ import {
 } from '@/core/services/profile.service';
 import { maskPhone, normalizePhoneNumber } from '@/core/utils/masks-helpers';
 import ProfilePreview from './ProfilePreview';
-import { Toast, SubmitButton, LoadingScreen } from '@/components/ui';
+import { Toast, SubmitButton } from '@/components/ui';
 import BaseModal from '@/components/ui/BaseModal';
 import { fetchStates, fetchCitiesByState } from '@/core/utils/cidades-helpers';
 import { compressImage } from '@/core/utils/user-helpers';
@@ -64,7 +64,7 @@ export default function OnboardingForm({
   isEditMode?: boolean;
 }) {
   const router = useRouter();
-  const { navigate, isNavigating } = useNavigation();
+  const { navigate, isNavigating: isGlobalNavigating } = useNavigation();
   const fileInputRef = useRef<HTMLInputElement>(null);
   const bgInputRef = useRef<HTMLInputElement>(null);
 
@@ -98,7 +98,7 @@ export default function OnboardingForm({
     initialData?.background_url || null,
   );
 
-  const [isChecking, setIsChecking] = useState(false);
+  const [, setIsChecking] = useState(false);
   const [isAvailable, setIsAvailable] = useState<boolean | null>(null);
   const [showSuccessModal, setShowSuccessModal] = useState(false);
   const [isSaving, setIsSaving] = useState(false);
@@ -517,17 +517,11 @@ export default function OnboardingForm({
               <div className="flex items-center justify-end gap-4 pb-8">
                 <button
                   type="button"
-                  onClick={() => {
-                    if (isEditMode) {
-                      navigate('/dashboard', 'Voltando ao espaço...');
-                    } else {
-                      router.back();
-                    }
-                  }}
-                  disabled={isSaving}
+                  onClick={() => navigate('/dashboard', 'Cancelando alterações...')}
+                  disabled={isSaving || isGlobalNavigating}
                   className="btn-secondary-white"
                 >
-                  CANCELAR
+                  {isGlobalNavigating ? 'SAINDO...' : 'CANCELAR'}
                 </button>
                 <SubmitButton
                   form="onboarding-form"

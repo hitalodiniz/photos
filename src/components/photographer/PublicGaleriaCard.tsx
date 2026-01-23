@@ -78,13 +78,13 @@ export function PublicGaleriaCard({ galeria }: { galeria: Galeria }) {
         <div className="absolute top-3 left-3 flex gap-2">
           {!galeria.is_public && (
             <div className="bg-black/40 backdrop-blur-md p-2 rounded-full border border-white/20 shadow-lg">
-              <Lock size={14} className="text-[#F3E5AB]" />
+              <Lock size={14} className="text-petroleum" />
             </div>
           )}
         </div>
 
         <div className="absolute top-3 right-3">
-          <span className="flex items-center gap-1.5 px-3 py-1 bg-white/5 backdrop-blur-md rounded-lg text-[9px] font-bold tracking-[0.2em] text-[#F3E5AB] border border-white/10 uppercase shadow-sm">
+          <span className="flex items-center gap-1.5 px-3 py-1 bg-white/30 backdrop-blur-md rounded-lg text-[11px] font-semibold tracking-[0.2em] text-petroleum border border-white/10 uppercase shadow-sm">
             <Tag size={10} strokeWidth={2.5} />
             {galeria.category || 'Ensaio'}
           </span>
@@ -92,25 +92,25 @@ export function PublicGaleriaCard({ galeria }: { galeria: Galeria }) {
       </div>
 
       {/* Conteúdo Informativo */}
-      <div className="p-5 space-y-4">
-        <h3 className="text-white text-lg font-semibold tracking-tight group-hover:text-[#F3E5AB] transition-colors leading-tight line-clamp-2 min-h-[1rem]">
-          {galeria.title}
-        </h3>
+      <div className="p-3 space-y-2">
+      <h3 className="text-white text-lg font-semibold tracking-tight group-hover:text-[#F3E5AB] transition-colors leading-tight line-clamp-2 min-h-[2.5rem]">
+  {galeria.title}
+</h3>
 
         <div className="flex items-center justify-between pt-3 border-t border-white/10">
           <div className="flex flex-col gap-2">
             {/* Localização */}
-            <div className="flex items-center gap-2 text-gray-400">
-              <MapPin size={11} className="text-gray-400" />
-              <span className="text-[9px] uppercase font-medium tracking-widest truncate max-w-[120px]">
+            <div className="flex items-center gap-2 text-white/90">
+              <MapPin size={11} className="text-gold" />
+              <span className="text-[11px] uppercase font-medium tracking-widest truncate max-w-[200px]">
                 {galeria.location || 'Brasil'}
               </span>
             </div>
 
             {/* Data */}
-            <div className="flex items-center gap-2 text-gray-400">
-              <Calendar size={11} className="text-gray-400" />
-              <span className="text-[9px] uppercase font-medium tracking-widest">
+            <div className="flex items-center gap-2 text-white/90">
+              <Calendar size={11} className="text-gold" />
+              <span className="text-[11px] uppercase font-medium tracking-widest">
                 {formatDateLong(galeria.date)}
               </span>
             </div>

@@ -34,14 +34,15 @@
 'use client';
 
 import { useState, useEffect, useCallback, useRef } from 'react';
-import { supabase } from '@/lib/supabase.client';
+import { authService } from '@photos/core-auth';
 import { getValidGoogleToken } from '@/actions/google.actions';
 import type { User, Session } from '@supabase/supabase-js';
 import { useContext } from 'react';
-import { AuthContext } from '@/contexts/AuthContext';
+import { AuthContext } from '@/components/providers/AuthContext';
 
 interface SessionData {
   user: User | null;
+  roles: string[];
   accessToken: string | null;
   userId: string | null;
   isLoading: boolean;
@@ -75,6 +76,7 @@ function isSubdomain(): boolean {
 export function useSupabaseSession() {
   const [sessionData, setSessionData] = useState<SessionData>({
     user: null,
+    roles: [],
     accessToken: null,
     userId: null,
     isLoading: true,
@@ -82,12 +84,22 @@ export function useSupabaseSession() {
 
   // 🎯 FALLBACK: Usa AuthContext como fonte alternativa de userId
   // Usa useContext diretamente para evitar erro se não estiver disponível
-  const authContextValue = useContext(AuthContext) as { user?: { id: string }; isLoading: boolean } | undefined;
+  const authContextValue = useContext(AuthContext) as { user?: { id: string }; roles: string[]; isLoading: boolean } | undefined;
 
   const retryCountRef = useRef(0);
   const isSubdomainRef = useRef(isSubdomain());
   const hasRefreshedRef = useRef(false);
   const fetchSessionRef = useRef<((forceRefresh?: boolean) => Promise<{ session: Session; userId: string } | null>) | null>(null);
+
+  // Buscar perfil para obter roles
+  const fetchProfile = useCallback(async (userId: string) => {
+    try {
+      const profile = await authService.getProfile(userId);
+      return profile?.roles || [];
+    } catch {
+      return [];
+    }
+  }, []);
 
   // Buscar sessão atual com retry logic para subdomínios
   const fetchSession = useCallback(async (forceRefresh = false): Promise<{ session: Session; userId: string } | null> => {
@@ -95,26 +107,25 @@ export function useSupabaseSession() {
       // Se estamos em subdomínio e ainda não fizemos refresh, tenta refresh primeiro
       if (isSubdomainRef.current && !hasRefreshedRef.current && !forceRefresh) {
         try {
-          const { data: refreshData, error: refreshError } = await supabase.auth.refreshSession();
+          const { data: refreshData, error: refreshError } = await authService.refreshSession();
           if (!refreshError && refreshData.session) {
             hasRefreshedRef.current = true;
+            const roles = await fetchProfile(refreshData.session.user.id);
             setSessionData({
               user: refreshData.session.user,
+              roles,
               accessToken: null,
               userId: refreshData.session.user.id,
               isLoading: false,
             });
             return { session: refreshData.session, userId: refreshData.session.user.id };
           }
-        } catch (refreshErr) {
+        } catch {
           // console.warn('Tentativa de refresh falhou, tentando getSession:', refreshErr);
         }
       }
 
-      const {
-        data: { session },
-        error,
-      } = await supabase.auth.getSession();
+      const session = await authService.getSession();
 
       // Se não há sessão e estamos em subdomínio, tenta mais uma vez com refresh
       if (!session?.user && isSubdomainRef.current && retryCountRef.current < 2 && !forceRefresh) {
@@ -127,13 +138,10 @@ export function useSupabaseSession() {
         }
       }
 
-      if (error) {
-        console.error('Erro ao buscar sessão:', error);
-      }
-
       if (!session?.user) {
         setSessionData({
           user: null,
+          roles: [],
           accessToken: null,
           userId: null,
           isLoading: false,
@@ -141,8 +149,10 @@ export function useSupabaseSession() {
         return null;
       }
 
+      const roles = await fetchProfile(session.user.id);
       setSessionData({
         user: session.user,
+        roles,
         accessToken: null, // Token do Google será obtido via getAuthDetails quando necessário
         userId: session.user.id,
         isLoading: false,
@@ -150,7 +160,7 @@ export function useSupabaseSession() {
 
       retryCountRef.current = 0; // Reset retry count on success
       return { session, userId: session.user.id };
-    } catch (error: unknown) {
+    } catch {
       // console.error('Erro ao buscar sessão:', error);
       
       // Retry logic para subdomínios
@@ -165,13 +175,14 @@ export function useSupabaseSession() {
 
       setSessionData({
         user: null,
+        roles: [],
         accessToken: null,
         userId: null,
         isLoading: false,
       });
       return null;
     }
-  }, []);
+  }, [fetchProfile]);
 
   // Atualiza a referência quando fetchSession muda
   useEffect(() => {
@@ -189,30 +200,32 @@ export function useSupabaseSession() {
     // Nota: Este é um caso válido onde precisamos inicializar estado no useEffect
     void fetchSession();
 
-    const {
-      data: { subscription },
-    } = supabase.auth.onAuthStateChange(async (event, session) => {
+    const subscription = authService.onAuthStateChange(async (event, session) => {
       // Em subdomínios, faz refresh quando há mudanças de auth state
       if (isSubdomainRef.current && (event === 'SIGNED_IN' || event === 'TOKEN_REFRESHED')) {
         try {
-          const { data: refreshData } = await supabase.auth.refreshSession();
+          const { data: refreshData } = await authService.refreshSession();
           if (refreshData.session) {
+            const roles = await fetchProfile(refreshData.session.user.id);
             setSessionData({
               user: refreshData.session.user,
+              roles,
               accessToken: null,
               userId: refreshData.session.user.id,
               isLoading: false,
             });
             return;
           }
-        } catch (err) {
-          console.warn('Erro ao fazer refresh no auth state change:', err);
+        } catch (_err) {
+          console.warn('Erro ao fazer refresh no auth state change:', _err);
         }
       }
 
       if (session?.user) {
+        const roles = await fetchProfile(session.user.id);
         setSessionData({
           user: session.user,
+          roles,
           accessToken: null, // Token do Google será obtido via getAuthDetails quando necessário
           userId: session.user.id,
           isLoading: false,
@@ -220,6 +233,7 @@ export function useSupabaseSession() {
       } else {
         setSessionData({
           user: null,
+          roles: [],
           accessToken: null,
           userId: null,
           isLoading: false,
@@ -230,24 +244,10 @@ export function useSupabaseSession() {
     return () => {
       subscription.unsubscribe();
     };
-  }, [fetchSession]);
+  }, [fetchSession, fetchProfile]);
 
-  // Obter detalhes de autenticação incluindo token do Google (compatível com código existente)
+    // Obter detalhes de autenticação incluindo token do Google (compatível com código existente)
   const getAuthDetails = useCallback(async () => {
-    const startTime = Date.now();
-    const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL;
-    const origin = typeof window !== 'undefined' ? window.location.origin : 'server';
-    
-    // console.log('[useSupabaseSession] getAuthDetails chamado', {
-    //   hasUser: !!sessionData.user,
-    //   userId: sessionData.userId || sessionData.user?.id,
-    //   isLoading: sessionData.isLoading,
-    //   origin,
-    //   supabaseUrl: supabaseUrl ? `${supabaseUrl.substring(0, 30)}...` : 'NÃO CONFIGURADO',
-    //   hostname: typeof window !== 'undefined' ? window.location.hostname : 'server',
-    //   cookieDomain: process.env.NEXT_PUBLIC_COOKIE_DOMAIN || 'não configurado',
-    // });
-
     // 🎯 ESTRATÉGIA MELHORADA: Tenta múltiplas fontes para obter userId
     // 1. Estado do hook
     // 2. AuthContext (fonte confiável quando Supabase falha)
@@ -258,7 +258,7 @@ export function useSupabaseSession() {
     // O AuthContext já está funcionando e tem o usuário autenticado
     if (!userId && authContextValue?.user?.id && !authContextValue.isLoading) {
       userId = authContextValue.user.id;
-      console.log('[useSupabaseSession] ✅ UserId obtido do AuthContext (fonte primária):', userId);
+      // console.log('[useSupabaseSession] ✅ UserId obtido do AuthContext (fonte primária):', userId);
       
       // Se já temos userId do AuthContext, não precisa tentar Supabase (evita timeout)
       // Vai direto buscar o token do Google
@@ -272,84 +272,39 @@ export function useSupabaseSession() {
         return { accessToken: null, userId: null };
       }
       
-      // Verifica se o Supabase está configurado
-      if (!supabase) {
-        // console.error('[useSupabaseSession] ❌ Cliente Supabase não está inicializado!');
-        // Se AuthContext tem userId, usa ele mesmo assim
-        if (authContextValue?.user?.id) {
-          userId = authContextValue.user.id;
-          // console.log('[useSupabaseSession] ✅ Usando userId do AuthContext após falha do Supabase:', userId);
-        } else {
-          return { accessToken: null, userId: null };
-        }
-      }
-
-      // 🎯 DEBUG: Verifica cookies do Supabase
-      if (typeof document !== 'undefined') {
-        const supabaseCookies = document.cookie.split(';').filter(c => 
-          c.includes('supabase') || c.includes('sb-')
-        );
-        console.log('[useSupabaseSession] Cookies do Supabase encontrados:', {
-          count: supabaseCookies.length,
-          cookies: supabaseCookies.map(c => c.trim().substring(0, 50)),
-        });
-      }
-      
       try {
         // 🎯 BUSCA DIRETA: Usa getSession diretamente com timeout curto (2s)
         // console.log('[useSupabaseSession] Tentando getSession() diretamente...');
-        const sessionStartTime = Date.now();
         
-        const sessionPromise = supabase.auth.getSession();
-        const timeoutPromise = new Promise<{ data: { session: null }; error: null }>((resolve) => {
+        const sessionPromise = authService.getSession();
+        const timeoutPromise = new Promise<null>((resolve) => {
           setTimeout(() => {
-            const elapsed = Date.now() - sessionStartTime;
             // console.warn(`[useSupabaseSession] ⏱️ Timeout ao buscar sessão diretamente (2s) - decorrido: ${elapsed}ms`);
-            resolve({ data: { session: null }, error: null });
+            resolve(null);
           }, 2000); // Reduzido para 2s para ser mais rápido
         });
 
-        const { data, error } = await Promise.race([sessionPromise, timeoutPromise]);
-        const sessionDuration = Date.now() - sessionStartTime;
+        const session = await Promise.race([sessionPromise, timeoutPromise]);
         
-        // console.log('[useSupabaseSession] Resultado getSession:', {
-        //   hasError: !!error,
-        //   hasSession: !!data?.session,
-        //   hasUser: !!data?.session?.user,
-        //   userId: data?.session?.user?.id,
-        //   duration: `${sessionDuration}ms`,
-        // });
-        
-        if (error) {
-          // console.error('[useSupabaseSession] ❌ Erro ao buscar sessão diretamente:', {
-          //   error: error.message,
-          //   status: error.status,
-          //   name: error.name,
-          // });
-        } else if (data?.session?.user) {
-          userId = data.session.user.id;
-          // console.log('[useSupabaseSession] ✅ Sessão encontrada diretamente!', {
-          //   userId,
-          //   email: data.session.user.email,
-          //   duration: `${sessionDuration}ms`,
-          // });
+        if (session?.user) {
+          userId = session.user.id;
           
           // Atualiza o estado para próxima vez
+          const roles = await fetchProfile(session.user.id);
           setSessionData({
-            user: data.session.user,
+            user: session.user,
+            roles,
             accessToken: null,
-            userId: data.session.user.id,
+            userId: session.user.id,
             isLoading: false,
           });
         } else {
           // console.log('[useSupabaseSession] ⚠️ Sessão não encontrada diretamente, tentando fetchSession como fallback...');
           // Fallback para fetchSession (pode demorar mais, mas tenta)
-          const fetchStartTime = Date.now();
           const result = await Promise.race([
             fetchSession(true),
             new Promise<null>((resolve) => {
               setTimeout(() => {
-                const elapsed = Date.now() - fetchStartTime;
                 // console.warn(`[useSupabaseSession] ⏱️ Timeout no fetchSession (3s) - decorrido: ${elapsed}ms`);
                 resolve(null);
               }, 3000);
@@ -358,99 +313,55 @@ export function useSupabaseSession() {
           
           if (result) {
             userId = result.userId;
-            const fetchDuration = Date.now() - fetchStartTime;
-            // console.log('[useSupabaseSession] ✅ Sessão encontrada via fetchSession!', {
-            //   userId,
-            //   duration: `${fetchDuration}ms`,
-            // });
           } else {
-            // console.warn('[useSupabaseSession] ⚠️ fetchSession também não retornou sessão');
-            
             // 🎯 ÚLTIMO FALLBACK: Tenta usar AuthContext se disponível
             if (!userId && authContextValue?.user?.id && !authContextValue.isLoading) {
               userId = authContextValue.user.id;
-              // console.log('[useSupabaseSession] ✅ UserId obtido do AuthContext (último fallback):', userId);
             }
           }
         }
-      } catch (err) {
-        // console.error('[useSupabaseSession] ❌ Erro ao buscar sessão:', {
-        //   error: err,
-        //   message: err instanceof Error ? err.message : 'Erro desconhecido',
-        //   stack: err instanceof Error ? err.stack : undefined,
-        // });
+      } catch {
+        // Fallback para AuthContext
+        if (authContextValue?.user?.id) {
+          userId = authContextValue.user.id;
+        }
       }
-    } else if (userId) {
-      // console.log('[useSupabaseSession] ✅ UserId já disponível:', {
-      //   source: sessionData.userId ? 'sessionData' : authContextValue?.user?.id ? 'AuthContext' : 'unknown',
-      //   userId,
-      // });
     }
 
     if (!userId) {
-      // console.error('[useSupabaseSession] ❌ UserId não encontrado após todas as tentativas', {
-      //   totalDuration: `${Date.now() - startTime}ms`,
-      //   origin: typeof window !== 'undefined' ? window.location.origin : 'server',
-      // });
       return { accessToken: null, userId: null };
     }
 
-    // console.log('[useSupabaseSession] 🔍 Buscando token do Google para userId:', userId);
-    
     // Buscar token do Google via server action
     // Com a estratégia dual, não tratamos ausência de token como erro
     try {
-      const tokenStartTime = Date.now();
       const accessToken = await getValidGoogleToken(userId);
-      const tokenDuration = Date.now() - tokenStartTime;
-      const totalDuration = Date.now() - startTime;
-      
-      // console.log('[useSupabaseSession] Token recebido:', {
-      //   hasToken: !!accessToken,
-      //   tokenLength: accessToken?.length || 0,
-      //   tokenDuration: `${tokenDuration}ms`,
-      //   totalDuration: `${totalDuration}ms`,
-      // });
       
       // Se não houver token, ainda retorna userId (sistema tentará usar API Key)
       if (!accessToken) {
-        // console.warn('[useSupabaseSession] ⚠️ Token não disponível. Sistema tentará usar API Key.', {
-        //   totalDuration: `${Date.now() - startTime}ms`,
-        // });
         return {
           accessToken: null,
           userId,
         };
       }
       
-      // console.log('[useSupabaseSession] ✅ getAuthDetails concluído com sucesso!', {
-      //   hasToken: true,
-      //   userId,
-      //   totalDuration: `${totalDuration}ms`,
-      // });
-      
       return {
         accessToken,
         userId,
       };
-    } catch (err) {
-      // console.error('[useSupabaseSession] ❌ Falha ao obter token do Google:', {
-      //   error: err,
-      //   message: err instanceof Error ? err.message : 'Erro desconhecido',
-      //   stack: err instanceof Error ? err.stack : undefined,
-      //   totalDuration: `${Date.now() - startTime}ms`,
-      // });
+    } catch {
       // Em caso de erro, retorna null para permitir fallback com API Key
       return {
         accessToken: null,
         userId,
       };
     }
-  }, [sessionData, fetchSession, authContextValue]);
+  }, [sessionData, fetchSession, authContextValue, fetchProfile]);
 
   return {
     user: sessionData.user,
     userId: sessionData.userId,
+    roles: sessionData.roles || authContextValue?.roles || [],
     isLoading: sessionData.isLoading,
     isAuthenticated: !!sessionData.user,
     getAuthDetails,

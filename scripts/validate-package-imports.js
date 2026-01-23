@@ -95,6 +95,8 @@ const CRITICAL_SERVICES = [
   'src/core/services/token-cleanup.service.ts',
   'src/core/services/google-drive.service.ts',
   'src/core/logic/galeria-logic.ts',
+  'src/hooks/useSupabaseSession.ts',
+  'src/components/providers/AuthContext.tsx',
 ];
 
 function main() {

@@ -1,11 +1,9 @@
 'use client';
 
 import { useState, useEffect } from 'react';
-import { createPortal } from 'react-dom'; // 🎯 Importação necessária
-import { purgeAllCache, revalidateUserGalerias } from '@/actions/revalidate.actions';
+import { purgeAllCache } from '@/actions/revalidate.actions';
 import { quickCleanupTokens, fullCleanupTokens } from '@/actions/token-cleanup.actions';
-import { getAuthAndStudioIds } from '@/core/services/auth-context.service';
-import { Trash2, X, ShieldAlert, Zap, RefreshCw, Database } from 'lucide-react';
+import { Trash2, ShieldAlert, Zap, RefreshCw, Database } from 'lucide-react';
 
 import BaseModal from '@/components/ui/BaseModal';
 

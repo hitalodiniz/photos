@@ -22,8 +22,8 @@ export default function Navbar() {
   // 🎯 DEBUG: Log para diagnóstico (sempre)
   useEffect(() => {
     if (mounted) {
-      const shouldShow = user && !isLoading && (pathname === '/dashboard' || pathname === '/onboarding' || pathname.includes('/dashboard/'));
-      console.log('[Navbar] Debug:', {
+      // const shouldShow = user && !isLoading && (pathname === '/dashboard' || pathname === '/onboarding' || pathname.includes('/dashboard/'));
+      /* console.log('[Navbar] Debug:', {
         pathname,
         hasUser: !!user,
         user,
@@ -37,13 +37,13 @@ export default function Navbar() {
           isOnboarding: pathname === '/onboarding',
           includesDashboard: pathname.includes('/dashboard/'),
         },
-      });
+      }); */
     }
   }, [pathname, user, isLoading, mounted]);
 
   // Não renderiza até montar (evita flash de conteúdo)
   if (!mounted) {
-    console.log('[Navbar] Aguardando montagem...');
+    // console.log('[Navbar] Aguardando montagem...');
     return null;
   }
 
@@ -56,12 +56,12 @@ export default function Navbar() {
 
   if (!showNavbar) {
     // 🎯 DEBUG: Log quando não mostra
-    console.log('[Navbar] Não mostrando navbar:', {
+    /* console.log('[Navbar] Não mostrando navbar:', {
       reason: !user ? 'sem usuário' : isLoading ? 'carregando' : 'pathname não corresponde',
       pathname,
       hasUser: !!user,
       isLoading,
-    });
+    }); */
     return null;
   }
 

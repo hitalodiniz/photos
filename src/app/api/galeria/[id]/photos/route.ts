@@ -7,8 +7,6 @@ export async function GET(
   req: Request,
   { params }: { params: Promise<{ id: string }> },
 ) {
-  const startTime = Date.now();
-  
   try {
     const resolvedParams = await params;
     const { id } = resolvedParams;
@@ -24,8 +22,8 @@ export async function GET(
       return NextResponse.json({ photos: [], error: 'Galeria não encontrada' }, { status: 404 });
     }
 
-    const totalElapsed = Date.now() - startTime;
-    console.log(`[API /galeria/${id}/photos] Completed in ${totalElapsed}ms. Photos found: ${result.photos?.length || 0}`);
+    // const totalElapsed = Date.now() - startTime;
+    // console.log(`[API /galeria/${id}/photos] Completed in ${totalElapsed}ms. Photos found: ${result.photos?.length || 0}`);
 
     return NextResponse.json(
       { photos: result.photos || [], error: result.error },

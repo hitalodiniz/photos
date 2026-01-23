@@ -7,6 +7,7 @@ import { useGoogleDriveImage } from '@/hooks/useGoogleDriveImage';
 import { GaleriaHero } from './GaleriaHero';
 import PhotoGrid from './PhotoGrid';
 import { useIsMobile } from '@/hooks/use-breakpoint';
+import LoadingScreen from '@/components/ui/LoadingScreen';
 
 interface GaleriaViewProps {
   galeria: Galeria;
@@ -15,6 +16,13 @@ interface GaleriaViewProps {
 
 export default function GaleriaView({ galeria, photos }: GaleriaViewProps) {
   const isMobile = useIsMobile();
+  const [isPageLoading, setIsPageLoading] = useState(true);
+
+  useEffect(() => {
+    // Pequeno delay para suavizar a transição inicial
+    const timer = setTimeout(() => setIsPageLoading(false), 1500);
+    return () => clearTimeout(timer);
+  }, []);
 
   const showCover = galeria.show_cover_in_grid ?? true;
   const bgColor = galeria.grid_bg_color ?? '#F9F5F0';
@@ -44,6 +52,8 @@ const {
       className="relative min-h-screen font-sans"
       style={{ backgroundColor: bgColor }}
     >
+      <LoadingScreen message="Preparando sua galeria..." fadeOut={!isPageLoading} />
+
       {/* 1. BACKGROUND LAYER */}
       <div className="fixed inset-0 z-0 overflow-hidden pointer-events-none">
         {showCover ? (
@@ -77,14 +87,13 @@ const {
         className="relative z-10 transition-opacity duration-1000 opacity-100"
       >
         {/* MAIN GRID */}
-        <main className="relative z-30 max-w-[1600px] mx-auto">
+        <main className="relative z-30 mx-auto">
           {photos?.length > 0 ? (
             <PhotoGrid photos={photos} galeria={galeria} />
           ) : (
             <div className="flex flex-col items-center justify-center py-24 text-center">
-              <div className="animate-spin rounded-full h-10 w-10 border-b-2 border-[#D4AF37] mb-6" />
               <p
-                className={`italic text-xl ${showCover ? 'text-[#D4AF37]' : 'text-slate-500'}`}
+                className={`italic text-xl ${showCover ? 'text-gold' : 'text-slate-500'}`}
               >
                 Nenhuma foto encontrada nesta galeria.
               </p>

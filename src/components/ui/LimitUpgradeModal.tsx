@@ -1,6 +1,6 @@
 'use client';
 import React from 'react';
-import { X, AlertTriangle, ArrowRight, Zap, Info } from 'lucide-react';
+import { AlertTriangle, ArrowRight, Zap, Info } from 'lucide-react';
 
 import BaseModal from '@/components/ui/BaseModal';
 

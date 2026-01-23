@@ -141,25 +141,25 @@ export const fetchDrivePhotos = (userId?: string, folderId?: string) =>
         // 🎯 TENTATIVA 1: Tenta listar sem autenticação (pasta pública)
         const publicPhotos = await listPhotosFromDriveFolder(folderId);
         if (publicPhotos && publicPhotos.length > 0) {
-          console.log(`[fetchDrivePhotos] ✅ Listou ${publicPhotos.length} fotos de pasta pública (sem auth)`);
+          // console.log(`[fetchDrivePhotos] ✅ Listou ${publicPhotos.length} fotos de pasta pública (sem auth)`);
           return { photos: publicPhotos, error: null };
         }
 
         // 🎯 TENTATIVA 2: Se não funcionou, tenta com autenticação OAuth
         // Sempre chama listPhotosFromDriveFolder, mesmo sem token (undefined)
-        console.log(`[fetchDrivePhotos] API Key não retornou fotos. Tentando obter token OAuth...`);
+        // console.log(`[fetchDrivePhotos] API Key não retornou fotos. Tentando obter token OAuth...`);
         const token = await getDriveAccessTokenForUser(userId);
 
         // Chama listPhotosFromDriveFolder mesmo se token for null/undefined
-        console.log(`[fetchDrivePhotos] Tentando listar com OAuth (token ${token ? 'disponível' : 'não disponível, usando API Key'})...`);
+        // console.log(`[fetchDrivePhotos] Tentando listar com OAuth (token ${token ? 'disponível' : 'não disponível, usando API Key'})...`);
         const photos = await listPhotosFromDriveFolder(folderId, token || undefined);
         
         if (photos && photos.length > 0) {
-          console.log(`[fetchDrivePhotos] ✅ ${photos.length} fotos encontradas via ${token ? 'OAuth' : 'API Key'}`);
+          // console.log(`[fetchDrivePhotos] ✅ ${photos.length} fotos encontradas via ${token ? 'OAuth' : 'API Key'}`);
           return { photos: photos, error: null };
         }
         
-        console.log(`[fetchDrivePhotos] Nenhuma foto encontrada após tentar ambas as estratégias (API Key e OAuth)`);
+        // console.log(`[fetchDrivePhotos] Nenhuma foto encontrada após tentar ambas as estratégias (API Key e OAuth)`);
         
         // Retorna array vazio sem erro - a pasta pode estar vazia ou não ser acessível
         return { photos: [], error: null };
@@ -202,34 +202,34 @@ export const fetchPhotosByGalleryId = (galleryId: string) =>
         // 🎯 TENTATIVA 1: Tenta listar usando API Key (pasta pública do Google Drive)
         // Esta é a estratégia prioritária - funciona SEM precisar do refresh token do criador
         // Funciona para pastas públicas compartilhadas como "Qualquer pessoa com o link"
-        console.log(`[fetchPhotosByGalleryId] Tentando acesso via API Key (pasta pública)...`);
+        // console.log(`[fetchPhotosByGalleryId] Tentando acesso via API Key (pasta pública)...`);
         const publicPhotos = await listPhotosFromDriveFolder(galeria.drive_folder_id);
         
         if (publicPhotos && publicPhotos.length > 0) {
-          console.log(`[fetchPhotosByGalleryId] ✅ ${publicPhotos.length} fotos encontradas via API Key`);
+          // console.log(`[fetchPhotosByGalleryId] ✅ ${publicPhotos.length} fotos encontradas via API Key`);
           return { photos: publicPhotos, error: null };
         }
 
         // 🎯 TENTATIVA 2: Se API Key não funcionou, tenta com OAuth
         // Sempre chama listPhotosFromDriveFolder, mesmo sem token (undefined)
         // A função listPhotosFromDriveFolder gerencia internamente a estratégia dual
-        console.log(`[fetchPhotosByGalleryId] API Key não retornou fotos. Tentando obter token OAuth...`);
+        // console.log(`[fetchPhotosByGalleryId] API Key não retornou fotos. Tentando obter token OAuth...`);
         const token = await getDriveAccessTokenForUser(galeria.user_id);
 
         // Chama listPhotosFromDriveFolder mesmo se token for null/undefined
         // A função internamente tentará API Key novamente se token não estiver disponível
-        console.log(`[fetchPhotosByGalleryId] Tentando listar com OAuth (token ${token ? 'disponível' : 'não disponível, usando API Key'})...`);
+        // console.log(`[fetchPhotosByGalleryId] Tentando listar com OAuth (token ${token ? 'disponível' : 'não disponível, usando API Key'})...`);
         const photos = await listPhotosFromDriveFolder(
           galeria.drive_folder_id,
           token || undefined, // Garante que seja undefined se null
         );
         
         if (photos && photos.length > 0) {
-          console.log(`[fetchPhotosByGalleryId] ✅ ${photos.length} fotos encontradas via ${token ? 'OAuth' : 'API Key'}`);
+          // console.log(`[fetchPhotosByGalleryId] ✅ ${photos.length} fotos encontradas via ${token ? 'OAuth' : 'API Key'}`);
           return { photos: photos, error: null };
         }
         
-        console.log(`[fetchPhotosByGalleryId] Nenhuma foto encontrada após tentar ambas as estratégias (API Key e OAuth)`);
+        // console.log(`[fetchPhotosByGalleryId] Nenhuma foto encontrada após tentar ambas as estratégias (API Key e OAuth)`);
         
         // Retorna array vazio sem erro - a pasta pode estar vazia ou não ser acessível
         return { photos: [], error: null };
@@ -247,10 +247,10 @@ export const fetchPhotosByGalleryId = (galleryId: string) =>
         
         // TOKEN_NOT_FOUND não é mais tratado como erro - a API Key deve funcionar para pastas públicas
         // Se houver exceção, loga mas não retorna erro - pode ser pasta vazia ou temporariamente inacessível
-        console.log('[fetchPhotosByGalleryId] Exceção capturada (não fatal):', {
+        /* console.log('[fetchPhotosByGalleryId] Exceção capturada (não fatal):', {
           error: error.message,
           galleryId,
-        });
+        }); */
         
         return { photos: [], error: null };
       }

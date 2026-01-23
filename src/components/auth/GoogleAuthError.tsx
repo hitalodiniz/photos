@@ -4,7 +4,6 @@ import { useRouter } from 'next/navigation';
 import {
   AlertTriangle,
   RefreshCw,
-  Lock,
   Globe,
   MessageCircle,
   LogIn,

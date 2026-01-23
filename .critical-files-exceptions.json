@@ -2,7 +2,7 @@
   "$schema": "http://json-schema.org/draft-07/schema#",
   "exceptions": [
     {
-      "file": "src/contexts/AuthContext.tsx",
+      "file": "src/components/providers/AuthContext.tsx",
       "reason": "Ajuste de redirecionamento de logout para a home conforme solicitado pelo usuário.",
       "approvedBy": "Cursor AI",
       "date": "2026-01-21"

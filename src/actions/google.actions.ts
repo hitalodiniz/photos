@@ -40,7 +40,7 @@ export async function checkFolderLimits(
 
   // Se não houver token, retorna valores padrão (sistema tentará usar API Key)
   if (!accessToken) {
-    console.log('[checkFolderLimits] Token não disponível. Retornando valores padrão.');
+    // console.log('[checkFolderLimits] Token não disponível. Retornando valores padrão.');
     return {
       count: 0,
       hasMore: false,

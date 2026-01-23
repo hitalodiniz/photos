@@ -1,6 +1,6 @@
 'use client';
-import { useState, useEffect, useRef, ReactNode } from 'react';
-import { ArrowLeft, Save, X } from 'lucide-react';
+import { useEffect, useRef, ReactNode } from 'react';
+import { ArrowLeft, Save } from 'lucide-react';
 import { SubmitButton } from '@/components/ui';
 
 interface FormPageBaseProps {

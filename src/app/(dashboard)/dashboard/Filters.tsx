@@ -11,7 +11,7 @@ import {
   Filter,
   ChevronDown,
 } from 'lucide-react';
-import { GALLERY_CATEGORIES } from '@/constants/categories';
+import { GALLERY_CATEGORIES } from '@/core/config/categories';
 
 interface FiltersProps {
   filterName: string;

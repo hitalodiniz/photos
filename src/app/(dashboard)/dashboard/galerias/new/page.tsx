@@ -1,7 +1,7 @@
 import { Metadata } from 'next';
 import { redirect } from 'next/navigation';
 import { getProfileData } from '@/core/services/profile.service';
-import GaleriaFormPage from '../GaleriaFormPage';
+import GaleriaFormPage from '@/features/galeria/components/admin/GaleriaFormPage';
 
 export const metadata: Metadata = {
   title: 'Nova Galeria',

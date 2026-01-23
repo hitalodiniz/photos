@@ -22,6 +22,7 @@ interface SidebarProps {
   photographer: {
     username: string;
     google_refresh_token?: string | null;
+    roles?: string[];
   } | null;
   handleGoogleLogin: (force: boolean) => void;
   handleNovaGaleria: () => void;
@@ -107,7 +108,7 @@ export default function Sidebar({
       <div className="p-4 border-t border-white/5 space-y-4">
         <VersionInfo
           isCollapsed={isSidebarCollapsed}
-          showFullDetails={photographer?.username === 'hitalodiniz'}
+          showFullDetails={photographer?.roles?.includes('admin')}
         />
         
         <button

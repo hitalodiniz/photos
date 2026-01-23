@@ -12,6 +12,7 @@ import { useIsMobile } from '@/hooks/use-breakpoint';
 import { VerticalThumbnails } from './VerticalThumbnails';
 import { ThumbnailStrip } from './ThumbnailStrip';
 import { VerticalActionBar } from './VerticalActionBar';
+import { div } from 'framer-motion/client';
 
 interface Photo {
   id: string | number;
@@ -55,7 +56,11 @@ export default function Lightbox({
   const [slideshowProgress, setSlideshowProgress] = useState(0);
   const [showThumbnails, setShowThumbnails] = useState(false); // Estado para controlar miniaturas no mobile
   const [hasShownQualityWarning, setHasShownQualityWarning] = useState(false); // 🎯 Controla se o tooltip já foi mostrado
-  const [isSystemDark, setIsSystemDark] = useState(false);
+  const [isSystemDark, setIsSystemDark] = useState(() => {
+    if (typeof window === 'undefined') return false;
+    return document.documentElement.classList.contains('dark') || 
+           window.matchMedia('(prefers-color-scheme: dark)').matches;
+  });
   const isMobile = useIsMobile();
 
   // 🎯 DETECTAR TEMA DO SISTEMA (Para Lightbox adaptar automaticamente)
@@ -327,9 +332,9 @@ img.src = imgSrc;
   if (!currentPhoto) return null;
 
   return (
-    <div className={isSystemDark ? 'dark' : ''}>
+    <div className={isSystemDark ? 'dark' : ''} suppressHydrationWarning>
       <div
-        className="fixed inset-0 z-[9999] bg-white dark:bg-black flex flex-col md:block overflow-y-auto md:overflow-hidden select-none transition-colors duration-300"
+        className="fixed inset-0 z-[10005] bg-white dark:bg-black flex flex-col md:block overflow-y-auto md:overflow-hidden select-none transition-colors duration-300"
         onTouchStart={isSingleView ? undefined : onTouchStart}
         onTouchMove={isSingleView ? undefined : onTouchMove}
         onTouchEnd={isSingleView ? undefined : onTouchEnd}
@@ -407,7 +412,7 @@ img.src = imgSrc;
             }}
             className="fixed left-0 top-1/2 -translate-y-1/2 z-[190] 
                w-16 md:w-32 h-32 md:h-64 flex items-center justify-center 
-               text-black/20 dark:text-white/20 hover:text-gold transition-all group"
+               text-black/20 dark:text-white/20 hover:text-petroleum hover:dark:text-gold transition-all group"
           >
             <ChevronLeft
               className="w-10 h-10 md:w-16 md:h-16 shrink-0 transition-transform group-hover:scale-110"
@@ -424,7 +429,7 @@ img.src = imgSrc;
             }}
             className="fixed top-1/2 -translate-y-1/2 z-[190] 
                w-16 md:w-32 h-32 md:h-64 flex items-center justify-center 
-               text-black/20 dark:text-white/20 hover:text-gold transition-all group"
+               dark:text-white/20 hover:text-petroleum hover:dark:text-gold transition-all group"
             style={{ right: onNavigateToIndex && !isMobile ? '160px' : '0' }} // Mais à esquerda, fora da barra (112px barra + 48px espaço)
           >
             <ChevronRight
@@ -483,8 +488,7 @@ img.src = imgSrc;
           {onClose && (
             <div className="hidden md:flex w-auto justify-end shrink-0 z-[310]">
               <button
-                onClick={onClose}
-                className="w-12 h-12 bg-white/95 dark:bg-black/95 backdrop-blur-xl border border-white/10 shadow-2xl flex items-center justify-center transition-all hover:bg-gold/10 hover:text-gold group relative rounded-luxury"
+                onClick={onClose}                  className="w-12 h-12 bg-white/95 dark:bg-black/95 backdrop-blur-xl border border-white/10 shadow-2xl flex items-center justify-center transition-all text-black dark:text-white hover:bg-gold/10 hover:text-gold group relative rounded-luxury"
                 aria-label="Fechar galeria"
               >
                 <X size={20} className="group-hover:scale-110" strokeWidth={2} />
@@ -582,7 +586,7 @@ img.src = imgSrc;
               onToggleThumbnails={onNavigateToIndex ? () => setShowThumbnails(!showThumbnails) : undefined}
               hasShownQualityWarning={hasShownQualityWarning}
               onQualityWarningShown={() => {
-                console.log('[Lightbox] 📢 onQualityWarningShown chamado, setando hasShownQualityWarning=true');
+                // console.log('[Lightbox] 📢 onQualityWarningShown chamado, setando hasShownQualityWarning=true');
                 setHasShownQualityWarning(true);
               }}
             />

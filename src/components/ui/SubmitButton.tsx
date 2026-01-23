@@ -1,6 +1,6 @@
 'use client';
 
-import { Loader2, Check, Save } from 'lucide-react';
+import { Loader2, Check } from 'lucide-react';
 import { useFormStatus } from 'react-dom';
 
 interface SubmitButtonProps {

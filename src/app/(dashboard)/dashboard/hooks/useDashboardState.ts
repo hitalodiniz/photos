@@ -1,9 +1,7 @@
 import { useState, useEffect } from 'react';
-import { usePathname } from 'next/navigation';
 import { updateSidebarPreference } from '@/core/services/profile.service';
 
 export function useDashboardState(initialSidebarCollapsed: boolean) {
-  const pathname = usePathname();
   const [isAdminModalOpen, setIsAdminModalOpen] = useState(false);
   const [isSidebarCollapsed, setIsSidebarCollapsed] = useState(initialSidebarCollapsed);
   const [toast, setToast] = useState<{ message: string; type: 'success' | 'error' } | null>(null);

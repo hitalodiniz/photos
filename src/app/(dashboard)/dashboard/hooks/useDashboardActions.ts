@@ -192,7 +192,7 @@ export function useDashboardActions(
       } else {
         setToast({ message: 'Erro ao processar arquivamento em lote', type: 'error' });
       }
-    } catch (error) {
+    } catch {
       setToast({ message: 'Erro ao processar arquivamento em lote', type: 'error' });
     } finally {
       setUpdatingId(null);
@@ -222,7 +222,7 @@ export function useDashboardActions(
       } else {
         setToast({ message: 'Erro ao mover para lixeira', type: 'error' });
       }
-    } catch (error) {
+    } catch {
       setToast({ message: 'Erro ao mover para lixeira', type: 'error' });
     } finally {
       setUpdatingId(null);
@@ -251,7 +251,7 @@ export function useDashboardActions(
       } else {
         setToast({ message: 'Erro ao restaurar', type: 'error' });
       }
-    } catch (error) {
+    } catch {
       setToast({ message: 'Erro ao restaurar', type: 'error' });
     } finally {
       setUpdatingId(null);

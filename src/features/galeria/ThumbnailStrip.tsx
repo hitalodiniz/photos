@@ -1,7 +1,6 @@
 'use client';
 import React, { useRef, useEffect } from 'react';
 import { useGoogleDriveImage } from '@/hooks/useGoogleDriveImage';
-import { RESOLUTIONS } from '@/core/utils/url-helper';
 
 interface ThumbnailStripProps {
   photos: Array<{ id: string | number }>;

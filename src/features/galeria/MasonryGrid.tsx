@@ -1,7 +1,7 @@
 'use client';
-import React, { memo, useEffect, useRef, useState, useCallback, cache } from 'react';
+import React, { memo, useEffect, useRef, useState, useCallback } from 'react';
 import { useSearchParams } from 'next/navigation';
-import { Heart, Loader2, ImageIcon } from 'lucide-react';
+import { Heart, Loader2 } from 'lucide-react';
 import 'photoswipe/dist/photoswipe.css';
 import { Gallery, Item } from 'react-photoswipe-gallery';
 import { Galeria } from '@/core/types/galeria';
@@ -12,7 +12,7 @@ import {
 } from '@/core/utils/url-helper';
 import { useGoogleDriveImage } from '@/hooks/useGoogleDriveImage';
 import { handleDownloadPhoto } from '@/core/utils/foto-helpers';
-import { GALLERY_MESSAGES } from '@/constants/messages';
+import { GALLERY_MESSAGES } from '@/core/config/messages';
 import { getCleanSlug, executeShare } from '@/core/utils/share-helper';
 import LoadingSpinner from '@/components/ui/LoadingSpinner';
 import { GridPhotoActions } from './GridPhotoActions';

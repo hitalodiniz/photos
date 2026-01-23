@@ -7,6 +7,7 @@ export interface PhotographerProfile {
   google_refresh_token?: string | null;
   sidebar_collapsed?: boolean;
   mini_bio?: string | null;
+  roles?: string[];
 }
 
 export interface DashboardProps {

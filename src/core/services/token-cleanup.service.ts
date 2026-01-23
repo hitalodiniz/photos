@@ -111,7 +111,6 @@ export async function cleanupGoogleTokens(options: {
       try {
         let shouldClean = false;
         let shouldUpdate = false;
-        const newStatus: 'active' | 'expired' | 'revoked' | null = null;
         const updates: any = {};
 
         // 2.1. Verifica se o access token está expirado há muito tempo
@@ -124,7 +123,7 @@ export async function cleanupGoogleTokens(options: {
               updates.google_token_expires_at = null;
               shouldClean = true;
             }
-          } catch (dateError) {
+          } catch {
             // Data inválida - remove
             updates.google_access_token = null;
             updates.google_token_expires_at = null;
@@ -153,7 +152,7 @@ export async function cleanupGoogleTokens(options: {
               updates.google_auth_status = 'expired';
               shouldClean = true;
             }
-          } catch (dateError) {
+          } catch {
             // Ignora erro de data
           }
         }

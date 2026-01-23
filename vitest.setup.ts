@@ -77,7 +77,7 @@ vi.mock('@/lib/supabase.server', () => ({
 vi.mock('next/cache', () => ({
   revalidatePath: vi.fn(),
   revalidateTag: vi.fn(),
-  unstable_cache: vi.fn((fn, key, options) => {
+  unstable_cache: vi.fn((fn, _key, _options) => {
     // Simula o comportamento do unstable_cache: retorna uma função que executa fn quando chamada
     return (...args: any[]) => fn(...args);
   }),

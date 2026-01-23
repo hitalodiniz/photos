@@ -54,13 +54,13 @@ export default function GoogleApiLoader() {
     // 🎯 DEBUG: Log de diagnóstico em produção
     useEffect(() => {
         if (typeof window !== 'undefined' && process.env.NODE_ENV === 'production') {
-            console.log('[GoogleApiLoader] Status:', {
-                gapiLoaded,
-                gsiLoaded,
-                hasGapi: !!window.gapi,
-                hasGoogle: !!window.google,
-                hasPicker: !!(window.google && window.google.picker),
-            });
+            // console.log('[GoogleApiLoader] Status:', {
+            //     gapiLoaded,
+            //     gsiLoaded,
+            //     hasGapi: !!window.gapi,
+            //     hasGoogle: !!window.google,
+            //     hasPicker: !!(window.google && window.google.picker),
+            // });
         }
     }, [gapiLoaded, gsiLoaded]);
 
@@ -72,7 +72,7 @@ export default function GoogleApiLoader() {
                 strategy="afterInteractive"
                 onLoad={() => {
                     gsiLoaded = true;
-                    console.log('[GoogleApiLoader] Google GSI loaded');
+                    // console.log('[GoogleApiLoader] Google GSI loaded');
                     checkAndNotify();
                 }}
                 onError={(e) => {
@@ -88,7 +88,7 @@ export default function GoogleApiLoader() {
                     if (window.gapi) {
                         // Carrega o módulo Picker (necessário para o botão)
                         window.gapi.load('picker', () => {
-                            console.log('[GoogleApiLoader] Google Picker API loaded');
+                            // console.log('[GoogleApiLoader] Google Picker API loaded');
                             gapiLoaded = true;
                             checkAndNotify();
                         });

@@ -44,7 +44,7 @@ const MOCK_PHOTOGRAPHERS = [
 ];
 
 export default function ExplorePage() {
-  const [searchTerm, setSearchTerm] = useState('');
+  const [, setSearchTerm] = useState('');
 
   return (
     <main className="min-h-screen bg-[#0F172A] text-white p-6 pb-20 font-sans">

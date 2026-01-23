@@ -48,4 +48,11 @@ export const PLANS = {
   }
 } as const;
 
+export const PLAN_LIMITS = {
+  START: 100,
+  INTERMEDIATE: 200,
+  PRO: 350,
+  PREMIUM: 500,
+};
+
 export type PlanKey = keyof typeof PLANS;

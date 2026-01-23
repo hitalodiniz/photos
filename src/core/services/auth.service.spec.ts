@@ -38,7 +38,7 @@ vi.mock('@/lib/supabase.client', () => {
 
 // 3. Importações após os mocks
 import { authService } from './auth.service';
-import { supabase, createSupabaseBrowserClient } from '@/lib/supabase.client';
+import { supabase } from '@/lib/supabase.client';
 
 describe('AuthService (Browser)', () => {
   beforeEach(() => {

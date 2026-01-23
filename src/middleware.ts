@@ -123,7 +123,6 @@ return redirectRes;
   ? URL_TESTE 
   : (process.env.NEXT_PUBLIC_MAIN_DOMAIN || SITE_URL);
 
-  const baseDomain = isHomolog ? `teste.${MAIN_DOMAIN}` : MAIN_DOMAIN;
 // Agora comparamos contra o internalMainDomain (que pode ser o de teste ou o real)
 const isSubdomainRequest = host.endsWith(`.${internalMainDomain}`) && host !== internalMainDomain;
     

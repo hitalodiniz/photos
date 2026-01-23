@@ -1,4 +1,4 @@
-import { Loader2, Inbox, Archive, Trash2 } from 'lucide-react';
+import { Inbox, Archive, Trash2 } from 'lucide-react';
 import type { ViewType } from '../hooks/useDashboardFilters';
 
 interface BulkActionsBarProps {

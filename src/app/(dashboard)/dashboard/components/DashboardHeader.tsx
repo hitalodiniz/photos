@@ -26,7 +26,6 @@ interface DashboardHeaderProps {
 export default function DashboardHeader({
   isBulkMode,
   setIsBulkMode,
-  selectedCount,
   onDeselectAll,
   filterName,
   setFilterName,

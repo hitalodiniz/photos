@@ -10,7 +10,6 @@ import {
 } from '@/components/layout';
 import FeatureGrid from '@/components/ui/FeatureGrid';
 import { usePageTitle } from '@/hooks/usePageTitle';
-import { sendAppErrorLogAction } from '@/actions/email.actions'; // Importando a nova action
 
 export default function GlobalError({
   error,

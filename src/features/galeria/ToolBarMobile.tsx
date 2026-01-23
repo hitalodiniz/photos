@@ -3,13 +3,11 @@ import React, { useState, useEffect } from 'react';
 import {
   Filter,
   Download,
-  Loader2,
   Tag,
   Monitor,
   Link as LinkIcon,
   Check,
   FileCheck,
-  ImageIcon,
   Zap,
   Share2,
 } from 'lucide-react';
@@ -155,7 +153,6 @@ export const ToolBarMobile = ({
 
   // 🎯 Função para compartilhamento nativo no mobile (Web Share API)
   const handleNativeShare = async () => {
-    const shareUrl = window.location.href;
     const shareText = galeria?.title 
       ? `Confira a galeria: ${galeria.title}`
       : 'Confira esta galeria de fotos';

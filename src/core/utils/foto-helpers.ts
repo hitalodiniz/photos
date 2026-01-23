@@ -3,32 +3,9 @@ import { Galeria } from '@/core/types/galeria';
 import { 
   getDirectGoogleUrl, 
   getDownloadDirectGoogleUrl, 
-  getHighResImageUrl, 
   getProxyUrl, 
   RESOLUTIONS,
-  TAMANHO_MAXIMO_FOTO_SEM_COMPACTAR
 } from './url-helper';
-
-const getFormattedDateFromSlug = (slug: string) => {
-  try {
-    // Exemplo de slug: "hitalodiniz80/2025/12/27/corrida-fim-de-ano"
-    const parts = slug.split('/');
-
-    // As partes seriam: [0] usuario, [1] ano, [2] mes, [3] dia, [4] nome
-    const ano = parts[1];
-    const mes = parts[2];
-    const dia = parts[3];
-
-    if (ano && mes && dia) {
-      return `${ano}_${mes}_${dia}`;
-    }
-
-    // Fallback caso o slug fuja do padrão
-    return new Date().toISOString().split('T')[0].replace(/-/g, '_');
-  } catch {
-    return '2025_00_00';
-  }
-};
 
 export const handleDownloadPhoto = async (
   galeria: Galeria,

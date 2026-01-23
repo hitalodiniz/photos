@@ -44,10 +44,13 @@ export function NavigationProvider({ children }: { children: React.ReactNode }) 
     setIsNavigating(true);
     setIsFadingOut(false);
     
-    // Pequeno delay para permitir que o estado isNavigating seja processado e o LoadingScreen monte
-    setTimeout(() => {
+    // Prefetch para acelerar a navegação real
+    router.prefetch(href);
+    
+    // Delay mínimo apenas para garantir o render do LoadingScreen
+    requestAnimationFrame(() => {
       router.push(href);
-    }, 100);
+    });
   };
 
   return (
@@ -55,7 +58,7 @@ export function NavigationProvider({ children }: { children: React.ReactNode }) 
       {isNavigating && (
         <LoadingScreen 
           message={loadingMessage} 
-          type="content" 
+          type="full" 
           fadeOut={isFadingOut} 
         />
       )}

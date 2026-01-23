@@ -224,7 +224,19 @@ export default function LeadReportView({
                     </td>
                     <td className="px-6 py-4">
                       <div className="text-xs text-petroleum/70 font-medium">
-                        {lead.whatsapp ? normalizePhoneNumber(lead.whatsapp) : <span className="text-petroleum/30 italic">---</span>}
+                        {lead.whatsapp ? (
+                          <a 
+                            href={`https://wa.me/${lead.whatsapp}`}
+                            target="_blank"
+                            rel="noopener noreferrer"
+                            className="text-petroleum hover:text-gold transition-all hover:translate-x-1 inline-flex items-center gap-1.5 group"
+                          >
+                            {normalizePhoneNumber(lead.whatsapp)}
+                            <Smartphone size={10} className="opacity-0 group-hover:opacity-100 transition-all text-gold" />
+                          </a>
+                        ) : (
+                          <span className="text-petroleum/30 italic">---</span>
+                        )}
                       </div>
                     </td>
                     <td className="px-6 py-4 text-right">

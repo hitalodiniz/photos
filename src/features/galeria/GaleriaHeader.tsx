@@ -26,13 +26,13 @@ export const GaleriaHeader: React.FC<GaleriaHeaderProps> = ({
       <div className="flex flex-col items-start gap-y-1 w-full min-w-0">
         {location && (
           <div className="flex items-center text-editorial-gray dark:text-white/60 text-[10px] md:text-[11px] font-bold uppercase tracking-luxury gap-1.5 w-full transition-colors duration-300">
-            <MapPin size={12} className="text-gold shrink-0" />
+            <MapPin size={12} className="dark:text-gold shrink-0" />
             <span className="truncate">{location}</span>
           </div>
         )}
         {data && (
           <div className="flex items-center text-editorial-gray dark:text-white/60 text-[10px] md:text-[11px] font-bold uppercase tracking-luxury gap-1.5 w-full transition-colors duration-300">
-            <Calendar size={12} className="text-gold shrink-0" />
+            <Calendar size={12} className="dark:text-gold shrink-0" />
             <span className="italic">
               {new Date(data).toLocaleDateString('pt-BR', {
                 day: '2-digit',

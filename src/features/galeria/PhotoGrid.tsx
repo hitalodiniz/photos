@@ -11,7 +11,7 @@ import {
   getDownloadUrl,
   TAMANHO_MAXIMO_FOTO_SEM_COMPACTAR,
 } from '@/core/utils/url-helper';
-import { GALLERY_MESSAGES } from '@/constants/messages';
+import { GALLERY_MESSAGES } from '@/core/config/messages';
 import { executeShare } from '@/core/utils/share-helper';
 import { groupPhotosByWeight, estimatePhotoDownloadSize } from '@/core/utils/foto-helpers';
 import { DownloadCenterModal } from './DownloadCenterModal';
@@ -33,7 +33,6 @@ export default function PhotoGrid({ photos, galeria }: any) {
   const [isDownloading, setIsDownloading] = useState(false);
   const [downloadProgress, setDownloadProgress] = useState(0);
   const [isDownloadingFavs, setIsDownloadingFavs] = useState(false);
-  const [favDownloadProgress, setFavDownloadProgress] = useState(0);
   const [downloadedVolumes, setDownloadedVolumes] = useState<number[]>([]);
   const [activeDownloadingIndex, setActiveDownloadingIndex] = useState<
     number | string | null
@@ -200,7 +199,7 @@ export default function PhotoGrid({ photos, galeria }: any) {
       // Limpeza de memória
       document.body.removeChild(link);
       window.URL.revokeObjectURL(blobUrl);
-    } catch (error) {
+    } catch {
       // 🎯 FALLBACK: Força a abertura em uma nova aba
       const directUrl = convertToDirectDownloadUrl(rawUrl);
 
@@ -223,9 +222,6 @@ export default function PhotoGrid({ photos, galeria }: any) {
 
     // 2. Cálculos iniciais (Tamanho estimado baseado no alvo de 1.0MB)
     const firstPhotoGlobalIndex = photos.indexOf(targetList[0]);
-    const estimatedTotalMB =
-      targetList.reduce((acc, p) => acc + estimatePhotoDownloadSize(p), 0) /
-      (1024 * 1024);
 
     if (!confirmed && !isFavAction) {
       setShowVolumeDashboard(true);

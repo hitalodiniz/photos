@@ -2,8 +2,6 @@ import { saveAs } from 'file-saver';
 import * as XLSX from 'xlsx';
 import jsPDF from 'jspdf';
 import autoTable from 'jspdf-autotable';
-import { httpUrl } from 'zod';
-import { no } from 'zod/locales';
 
 /**
  * Exporta dados para CSV

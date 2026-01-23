@@ -1,7 +1,5 @@
 'use client';
-import { motion, AnimatePresence } from 'framer-motion';
-import { AlertTriangle, Info, Loader2 } from 'lucide-react';
-import SecondaryButton from '@/components/ui/SecondaryButton';
+import { AlertTriangle, Info } from 'lucide-react';
 
 import BaseModal from '@/components/ui/BaseModal';
 

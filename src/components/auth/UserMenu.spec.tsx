@@ -12,7 +12,6 @@ vi.mock('@/components/providers/NavigationProvider', () => ({
 }));
 
 describe('UserMenu Component', () => {
-  const mockHandleLogout = vi.fn();
   const mockSession = {
     id: '123',
     email: 'hitalo@exemplo.com',

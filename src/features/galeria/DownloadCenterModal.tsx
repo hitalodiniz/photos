@@ -1,11 +1,9 @@
 'use client';
 import React from 'react';
 import {
-  X,
   Package,
   Heart,
   Download,
-  Loader2,
   CheckCircle2,
   Wifi,
 } from 'lucide-react';

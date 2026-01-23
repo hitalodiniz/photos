@@ -3,7 +3,6 @@ import React, { useState, useMemo, useEffect } from 'react';
 import {
   Filter,
   Download,
-  Loader2,
   ChevronDown,
   Monitor,
   Tag,
@@ -12,7 +11,6 @@ import {
   Wand2,
   Zap,
   FileCheck,
-  ImageIcon,
 } from 'lucide-react';
 import WhatsAppIcon from '@/components/ui/WhatsAppIcon';
 
@@ -90,7 +88,7 @@ export const ToolBarDesktop = ({
 
     validateLinks();
   }, [galeria?.zip_url_full]);
-  const { visibleTags, hiddenTags } = useMemo(() => {
+  const { visibleTags } = useMemo(() => {
     const limit = 4;
     let sortedTags = [...tags];
 
@@ -100,7 +98,6 @@ export const ToolBarDesktop = ({
 
     return {
       visibleTags: sortedTags.slice(0, limit),
-      hiddenTags: sortedTags.slice(limit),
     };
   }, [tags, activeTag]);
 

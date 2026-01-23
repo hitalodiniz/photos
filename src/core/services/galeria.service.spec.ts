@@ -1,20 +1,14 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest';
 import {
   generateUniqueDatedSlug,
-  createGaleria,
   updateGaleria,
   getGalerias,
-  deleteGaleria,
   getGaleriaPhotos,
   authenticateGaleriaAccess,
-  deleteGalleryPermanently,
 } from './galeria.service';
 import * as supabaseServer from '@/lib/supabase.server';
 import * as googleAuth from '@/lib/google-auth';
 import * as googleDrive from '@/lib/google-drive';
-import { revalidatePath } from 'next/cache';
-import { redirect } from 'next/navigation';
-import { fetchGalleryBySlug } from '@/core/logic/galeria-logic';
 
 // =========================================================================
 // CONFIGURAÇÃO GLOBAL E MOCKS ESTABILIZADOS
@@ -26,7 +20,7 @@ vi.stubEnv('JWT_GALLERY_SECRET', '12345678901234567890123456789012');
 vi.mock('next/cache', () => ({
   revalidatePath: vi.fn(),
   revalidateTag: vi.fn(),
-  unstable_cache: vi.fn((fn, key, options) => {
+  unstable_cache: vi.fn((fn, _key, _options) => {
     // Simula o comportamento do unstable_cache: retorna uma função que executa fn quando chamada
     return (...args: any[]) => fn(...args);
   }),

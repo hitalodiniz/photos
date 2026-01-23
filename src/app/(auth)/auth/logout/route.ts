@@ -4,7 +4,6 @@ import { cookies } from 'next/headers';
 
 export async function GET(request: Request) {
   const cookieStore = await cookies();
-  const { origin } = new URL(request.url);
 
   const supabase = createServerClient(
     process.env.NEXT_PUBLIC_SUPABASE_URL!,

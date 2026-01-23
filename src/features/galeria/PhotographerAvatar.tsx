@@ -2,7 +2,7 @@
 import React, { useMemo, useState, useEffect } from 'react';
 import type { Galeria } from '@/core/types/galeria';
 import Image from 'next/image';
-import { GALLERY_MESSAGES } from '@/constants/messages';
+import { GALLERY_MESSAGES } from '@/core/config/messages';
 import InstagramIcon from '@/components/ui/InstagramIcon';
 import { getCreatorProfileUrl } from '@/core/utils/url-helper';
 

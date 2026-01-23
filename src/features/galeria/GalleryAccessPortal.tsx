@@ -53,7 +53,7 @@ export default function GalleryAccessPortal({
     // Se o lead já foi capturado E a galeria não tem senha, libera direto
     // Se tiver senha, ainda precisa mostrar o portal para a senha
     if (leadCaptured === 'true' && !hasPassword) {
-      console.log('[GalleryAccessPortal] Lead já capturado localmente. Liberando acesso...');
+      // console.log('[GalleryAccessPortal] Lead já capturado localmente. Liberando acesso...');
       onSuccess();
     }
   }, [isOpen, galeria.id, hasPassword, onSuccess]);
@@ -108,17 +108,17 @@ export default function GalleryAccessPortal({
               message: "WhatsApp é obrigatório",
               path: ["whatsapp"],
             });
-          } else if (whatsappDigits.length < 10) {
+          } else if (whatsappDigits.length < 11) {
             ctx.addIssue({
               code: z.ZodIssueCode.custom,
-              message: "Número incompleto",
+              message: "Número incompleto (DDD + 9 dígitos)",
               path: ["whatsapp"],
             });
           }
-        } else if (whatsappDigits.length > 0 && whatsappDigits.length < 10) {
+        } else if (whatsappDigits.length > 0 && whatsappDigits.length < 11) {
           ctx.addIssue({
             code: z.ZodIssueCode.custom,
-            message: "Número incompleto",
+            message: "Número incompleto (DDD + 9 dígitos)",
             path: ["whatsapp"],
           });
         }
@@ -229,10 +229,8 @@ export default function GalleryAccessPortal({
           if (typeof window !== 'undefined') window.location.reload();
         }
       }, 800);
-    } catch (error) {
-      console.error('Erro no portal de acesso:', error);
-      setGlobalError('Ocorreu um erro ao processar seu acesso.');
-      setLoading(false);
+    } catch {
+      console.error('[auth/callback] ❌ Erro no portal de acesso:');
     }
   };
 

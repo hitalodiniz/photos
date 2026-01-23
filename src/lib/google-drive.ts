@@ -1,4 +1,3 @@
-import { PLAN_LIMITS } from '@/constants/plans';
 import { GLOBAL_CACHE_REVALIDATE } from '@/core/utils/url-helper';
 
 export interface DrivePhoto {
@@ -73,7 +72,7 @@ export async function listPhotosFromPublicFolder(
       .sort((a, b) => a.name.localeCompare(b.name, undefined, { numeric: true, sensitivity: 'base' }));
 
     if (imageFiles.length === 0) {
-        console.log('[listPhotosFromPublicFolder] ℹ️ Pasta encontrada, mas sem imagens.');
+        // console.log('[listPhotosFromPublicFolder] ℹ️ Pasta encontrada, mas sem imagens.');
         return null;
     }
 
@@ -169,14 +168,14 @@ export async function listPhotosFromDriveFolder(
   // Resolve o problema de galerias que "pararam de carregar" por falta de token
   const publicPhotos = await listPhotosFromPublicFolder(driveFolderId);
   if (publicPhotos && publicPhotos.length > 0) {
-    console.log(`[listPhotosFromDriveFolder] ✅ Sucesso via API Key: ${publicPhotos.length} fotos.`);
+    // console.log(`[listPhotosFromDriveFolder] ✅ Sucesso via API Key: ${publicPhotos.length} fotos.`);
     return publicPhotos;
   }
 
   // 2. TENTATIVA 2: OAuth (Privado)
   // Fallback para quando o fotógrafo usa pastas restritas no Drive
   if (accessToken) {
-    console.log('[listPhotosFromDriveFolder] ℹ️ Tentando fallback via OAuth...');
+    // console.log('[listPhotosFromDriveFolder] ℹ️ Tentando fallback via OAuth...');
     return await listPhotosWithOAuth(driveFolderId, accessToken);
   }
 

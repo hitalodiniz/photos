@@ -4,6 +4,7 @@ interface SidebarAdminProps {
   isSidebarCollapsed: boolean;
   photographer: {
     username: string;
+    roles?: string[];
   } | null;
   onOpenAdminModal: () => void;
 }
@@ -13,7 +14,7 @@ export default function SidebarAdmin({
   photographer,
   onOpenAdminModal,
 }: SidebarAdminProps) {
-  if (photographer?.username !== 'hitalodiniz') return null;
+  if (!photographer?.roles?.includes('admin')) return null;
 
   return (
     <div className={`mt-auto border-t border-white/5 ${isSidebarCollapsed ? 'px-0' : 'px-2'}`}>

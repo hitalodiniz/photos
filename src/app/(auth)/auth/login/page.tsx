@@ -14,16 +14,7 @@ import {
   Footer,
 } from '@/components/layout';
 import FeatureGrid from '@/components/ui/FeatureGrid';
-import LoadingScreen from '@/components/ui/LoadingScreen';
 
-interface Profile {
-  full_name: string | null;
-  mini_bio: string | null;
-  username: string | null;
-  use_subdomain: boolean;
-}
-
-// 🎯 Componente interno que usa useSearchParams (precisa de Suspense)
 function LoginContent() {
   const { user, isLoading: authLoading } = useAuth();
   const router = useRouter();

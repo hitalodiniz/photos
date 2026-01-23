@@ -89,7 +89,7 @@ export default function GooglePickerButton({
 
   useEffect(() => {
     if (isReadyToOpen) {
-      console.log('[GooglePickerButton] Bibliotecas já prontas');
+      // console.log('[GooglePickerButton] Bibliotecas já prontas');
       return;
     }
 
@@ -99,21 +99,21 @@ export default function GooglePickerButton({
       const hasGoogle = !!window.google;
       const hasPicker = !!(window.google && window.google.picker);
       
-      console.log('[GooglePickerButton] Verificando bibliotecas:', {
+      /* console.log('[GooglePickerButton] Verificando bibliotecas:', {
         hasGapi,
         hasGoogle,
         hasPicker,
         origin: window.location.origin,
-      });
+      }); */
 
       if (hasGapi && hasGoogle && hasPicker) {
-        console.log('[GooglePickerButton] ✅ Todas as bibliotecas carregadas!');
+        // console.log('[GooglePickerButton] ✅ Todas as bibliotecas carregadas!');
         isPickerLoaded = true;
         setIsReadyToOpen(true);
         return;
       }
       loadGoogleLibraries(() => {
-        console.log('[GooglePickerButton] ✅ Bibliotecas carregadas via callback');
+        // console.log('[GooglePickerButton] ✅ Bibliotecas carregadas via callback');
         setIsReadyToOpen(true);
       });
     };
@@ -124,7 +124,7 @@ export default function GooglePickerButton({
     // Se não carregou, tenta novamente após um delay
     const timeoutId = setTimeout(() => {
       if (!isReadyToOpen) {
-        console.log('[GooglePickerButton] Tentando novamente após 1s...');
+        // console.log('[GooglePickerButton] Tentando novamente após 1s...');
         checkLibraries();
       }
     }, 1000);
@@ -164,12 +164,12 @@ export default function GooglePickerButton({
       return;
     }
 
-    console.log('[GooglePickerButton] Iniciando abertura do picker...', {
+    /* console.log('[GooglePickerButton] Iniciando abertura do picker...', {
       isReadyToOpen,
       hasGoogle: !!window.google,
       hasPicker: !!(window.google && window.google.picker),
       origin: window.location.origin,
-    });
+    }); */
 
     setLoading(true);
     
@@ -184,14 +184,14 @@ export default function GooglePickerButton({
     
     try {
       // Busca o Client ID
-      console.log('[GooglePickerButton] Buscando Google Client ID...');
+      // console.log('[GooglePickerButton] Buscando Google Client ID...');
       const googleClientId = await getGoogleClientId();
-      console.log('[GooglePickerButton] Client ID recebido:', {
+      /* console.log('[GooglePickerButton] Client ID recebido:', {
         hasClientId: !!googleClientId,
         clientIdLength: googleClientId?.length || 0,
         clientIdPreview: googleClientId ? `${googleClientId.substring(0, 20)}...` : 'null',
         origin: window.location.origin,
-      });
+      }); */
       
       if (!googleClientId) {
         console.error('[GooglePickerButton] ❌ Client ID não encontrado');
@@ -202,7 +202,7 @@ export default function GooglePickerButton({
       }
 
       // Busca o token de autenticação com timeout
-      console.log('[GooglePickerButton] Buscando access token...');
+      // console.log('[GooglePickerButton] Buscando access token...');
       
       // 🎯 Timeout específico para getAuthDetails (20 segundos - aumentado para dar mais tempo)
       let authDetails: any = null;
@@ -233,7 +233,7 @@ export default function GooglePickerButton({
           // Se deu timeout e ainda temos tentativas, tenta novamente
           if (authDetails?.timedOut && retryCount < maxRetries) {
             retryCount++;
-            console.log(`[GooglePickerButton] Tentativa ${retryCount + 1} de ${maxRetries + 1}...`);
+            // console.log(`[GooglePickerButton] Tentativa ${retryCount + 1} de ${maxRetries + 1}...`);
             // Aguarda um pouco antes de tentar novamente
             await new Promise(resolve => setTimeout(resolve, 1000));
             continue;
@@ -253,13 +253,13 @@ export default function GooglePickerButton({
       
       const { accessToken, timedOut } = authDetails || {};
       
-      console.log('[GooglePickerButton] Access token recebido:', {
+      /* console.log('[GooglePickerButton] Access token recebido:', {
         hasAccessToken: !!accessToken,
         tokenLength: accessToken?.length || 0,
         userId: authDetails?.userId,
         origin: window.location.origin,
         timedOut: timedOut || (!accessToken && !authDetails?.userId),
-      });
+      }); */
 
       // Para o Picker funcionar, precisamos do token OAuth
       // A API Key não é necessária aqui pois estamos acessando dados privados do usuário
@@ -301,20 +301,20 @@ export default function GooglePickerButton({
 
       const picker = pickerBuilder
         .setCallback((data: any) => {
-          console.log('[GooglePickerButton] Picker callback recebido:', {
+          /* console.log('[GooglePickerButton] Picker callback recebido:', {
             action: data.action,
             hasDocs: !!data.docs,
             docsLength: data.docs?.length || 0,
-          });
+          }); */
 
           if (data.action === window.google.picker.Action.PICKED) {
             const selectedItem = data.docs[0];
             
-            console.log('[GooglePickerButton] Item selecionado:', {
+            /* console.log('[GooglePickerButton] Item selecionado:', {
               id: selectedItem?.id,
               name: selectedItem?.name,
               mimeType: selectedItem?.mimeType,
-            });
+            }); */
             
             // 🎯 Componente "burro": apenas retorna o que foi selecionado
             // A validação será feita no componente pai
@@ -329,18 +329,18 @@ export default function GooglePickerButton({
               }
             }
           } else if (data.action === window.google.picker.Action.CANCEL) {
-            console.log('[GooglePickerButton] Usuário cancelou a seleção');
+            // console.log('[GooglePickerButton] Usuário cancelou a seleção');
             // Usuário cancelou - apenas fecha o loading
           } else {
-            console.log('[GooglePickerButton] Ação desconhecida:', data.action);
+            // console.log('[GooglePickerButton] Ação desconhecida:', data.action);
           }
           setLoading(false);
         })
         .build();
 
-      console.log('[GooglePickerButton] Picker construído, abrindo...');
+      // console.log('[GooglePickerButton] Picker construído, abrindo...');
       picker.setVisible(true);
-      console.log('[GooglePickerButton] ✅ Picker.setVisible(true) chamado com sucesso');
+      // console.log('[GooglePickerButton] ✅ Picker.setVisible(true) chamado com sucesso');
       clearTimeout(timeoutId);
     } catch (error: any) {
       console.error('[GooglePickerButton] ❌ Erro ao abrir picker:', {

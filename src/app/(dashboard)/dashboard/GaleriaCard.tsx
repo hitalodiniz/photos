@@ -17,14 +17,14 @@ import {
 } from 'lucide-react';
 import { useState, useEffect } from 'react';
 import type { Galeria } from '@/core/types/galeria';
-import { GALLERY_CATEGORIES } from '@/constants/categories';
+import { GALLERY_CATEGORIES } from '@/core/config/categories';
 import {
   getPublicGalleryUrl,
   copyToClipboard,
   RESOLUTIONS,
 } from '@/core/utils/url-helper';
 import { useGoogleDriveImage } from '@/hooks/useGoogleDriveImage';
-import { GALLERY_MESSAGES } from '@/constants/messages';
+import { GALLERY_MESSAGES } from '@/core/config/messages';
 import { executeShare } from '@/core/utils/share-helper';
 import WhatsAppIcon from '@/components/ui/WhatsAppIcon';
 import GaleriaContextMenu from '@/components/dashboard/GaleriaContextMenu';

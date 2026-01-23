@@ -1,6 +1,4 @@
 // lib/google-auth.ts
-import { createServerClient } from '@supabase/ssr';
-import { cookies } from 'next/headers';
 import { createSupabaseClientForCache } from './supabase.server';
 
 /**
@@ -30,15 +28,15 @@ export async function getDriveAccessTokenForUser(
 
     if (!profile?.google_refresh_token) {
       // Aviso: Token não encontrado, tentando acesso público via API Key
-      console.log(
+      /* console.log(
         `[getDriveAccessTokenForUser] Aviso: Usuário [${profile?.full_name || userId}] não possui refresh_token. A pasta será acessada via API Key (pública).`,
-      );
+      ); */
       return null;
     }
 
     // 🎯 Verifica se o status de autenticação indica problema
     if (profile.google_auth_status === 'revoked' || profile.google_auth_status === 'expired') {
-      console.log(`[getDriveAccessTokenForUser] Status de autenticação indica token revogado/expirado para userId: ${userId}`);
+      // console.log(`[getDriveAccessTokenForUser] Status de autenticação indica token revogado/expirado para userId: ${userId}`);
       return null;
     }
 
@@ -51,7 +49,7 @@ export async function getDriveAccessTokenForUser(
         const margin = 5 * 60 * 1000; // 5 minutos de margem
 
         if (expiresAt > now + margin) {
-          console.log(`[getDriveAccessTokenForUser] Token em cache ainda válido para userId: ${userId}`);
+          // console.log(`[getDriveAccessTokenForUser] Token em cache ainda válido para userId: ${userId}`);
           return profile.google_access_token;
         }
       } catch (dateError) {
@@ -88,7 +86,7 @@ export async function getDriveAccessTokenForUser(
               google_auth_status: 'expired', // Marca como expirado
             })
             .eq('id', userId);
-          console.log(`[getDriveAccessTokenForUser] Refresh token inválido removido do banco para userId: ${userId}`);
+          // console.log(`[getDriveAccessTokenForUser] Refresh token inválido removido do banco para userId: ${userId}`);
         } catch (dbError) {
           console.error('[getDriveAccessTokenForUser] Erro ao limpar token do banco:', dbError);
         }
@@ -116,7 +114,7 @@ export async function getDriveAccessTokenForUser(
       // Se o Google rotacionar o refresh_token, salvamos também
       if (tokenData.refresh_token) {
         updates.google_refresh_token = tokenData.refresh_token;
-        console.log(`[getDriveAccessTokenForUser] Google rotacionou o refresh_token para userId: ${userId}`);
+        // console.log(`[getDriveAccessTokenForUser] Google rotacionou o refresh_token para userId: ${userId}`);
       }
 
       try {
@@ -124,7 +122,7 @@ export async function getDriveAccessTokenForUser(
           .from('tb_profiles')
           .update(updates)
           .eq('id', userId);
-        console.log(`[getDriveAccessTokenForUser] Token renovado e salvo com sucesso para userId: ${userId}`);
+        // console.log(`[getDriveAccessTokenForUser] Token renovado e salvo com sucesso para userId: ${userId}`);
       } catch (updateError) {
         console.error(`[getDriveAccessTokenForUser] Erro ao salvar token renovado:`, updateError);
         // Ainda retorna o token mesmo se falhar ao salvar
@@ -132,8 +130,8 @@ export async function getDriveAccessTokenForUser(
     }
 
     return tokenData.access_token || null;
-  } catch (err) {
-    console.log('[getDriveAccessTokenForUser] Aviso: Erro ao obter token, tentando acesso público via API Key:', err?.message || err);
+  } catch {
+    // console.log('[getDriveAccessTokenForUser] Aviso: Erro ao obter token, tentando acesso público via API Key:', err?.message || err);
     return null;
   }
 }

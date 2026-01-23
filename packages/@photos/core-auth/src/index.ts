@@ -126,7 +126,7 @@ export { useSupabaseSession } from '@/hooks/useSupabaseSession';
  * const { user, isLoading } = useAuth();
  * ```
  */
-export { AuthContext, AuthProvider, useAuth } from '@/contexts/AuthContext';
+export { AuthContext, AuthProvider, useAuth } from '@/components/providers/AuthContext';
 
 // ============================================================================
 // LÓGICA DE AUTORIZAÇÃO

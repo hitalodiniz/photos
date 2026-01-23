@@ -1,15 +1,17 @@
 'use client';
-import React, { useState, useEffect, useMemo } from 'react';
+import React, { useState, useEffect, useMemo, useCallback } from 'react';
 import { ChevronDown, Maximize2 } from 'lucide-react';
+import { useGoogleDriveImage } from '@/hooks/useGoogleDriveImage';
+import { RESOLUTIONS } from '@/core/utils/url-helper';
 
 interface EditorialHeroProps {
   title: string;
-  coverUrl?: string; // Agora opcional
+  coverUrl?: string; // Agora opcional (pode ser ID do Drive ou URL)
   sideElement?: React.ReactNode;
   children: React.ReactNode;
 }
 
-// Lista de imagens padrão (ajuste o caminho se necessário)
+// Lista de imagens padrão
 const DEFAULT_HEROS = [
   '/hero-bg-1.webp',
   '/hero-bg-2.webp',
@@ -32,14 +34,55 @@ export const EditorialHero = ({
   children,
 }: EditorialHeroProps) => {
   const [isExpanded, setIsExpanded] = useState(true);
-  const [isLoaded, setIsLoaded] = useState(false);
 
-  // Lógica de Sorteio: useMemo garante que a foto não mude em cada re-render
+  // 🎯 Lógica Inteligente de Imagem:
+  // Se for um ID do Google Drive, resolve via hook.
+  // Se já for uma URL (começa com http, / ou blob:), usa direto.
+  const isDriveId = useMemo(() => 
+    !!coverUrl && !coverUrl.startsWith('http') && !coverUrl.startsWith('/') && !coverUrl.startsWith('blob:'), 
+  [coverUrl]);
+
+  const { 
+    imgSrc: resolvedUrl, 
+    isLoaded: isImageLoaded,
+    handleLoad,
+    handleError,
+    imgRef
+  } = useGoogleDriveImage({
+    photoId: isDriveId ? coverUrl! : '',
+    width: RESOLUTIONS.DESKTOP_VIEW,
+    priority: true,
+    fallbackToProxy: true,
+  });
+
+  const [directLoaded, setDirectLoaded] = useState(false);
+  const [prevUrl, setPrevUrl] = useState<string | null>(null);
+
+  // Callback ref para detectar se a imagem já está no cache (evita linter error de setState em useEffect)
+  const setDirectImgRef = useCallback((img: HTMLImageElement | null) => {
+    if (img && img.complete && !isDriveId) {
+      setDirectLoaded(true);
+    }
+  }, [isDriveId]);
+
   const finalCoverUrl = useMemo(() => {
-    if (coverUrl && coverUrl.trim() !== '') return coverUrl;
-    const randomIndex = Math.floor(Math.random() * DEFAULT_HEROS.length);
-    return DEFAULT_HEROS[randomIndex];
-  }, [coverUrl]);
+    // 1. Se resolveu via Drive e temos a URL, usa ela
+    if (isDriveId && resolvedUrl) return resolvedUrl;
+    // 2. Se for URL direta (http, / ou blob:), usa ela
+    if (coverUrl && (coverUrl.startsWith('http') || coverUrl.startsWith('/') || coverUrl.startsWith('blob:'))) return coverUrl;
+    // 3. Fallback: Sorteia uma padrão baseada no título para ser consistente
+    const index = title ? (title.length % DEFAULT_HEROS.length) : 0;
+    return DEFAULT_HEROS[index];
+  }, [coverUrl, isDriveId, resolvedUrl, title]);
+
+  // Reset do loading quando a URL final muda
+  if (prevUrl !== finalCoverUrl) {
+    setPrevUrl(finalCoverUrl);
+    setDirectLoaded(false);
+  }
+
+  // Se for Drive, confiamos no hook. Se for direto ou fallback, usamos o estado local.
+  const isActuallyLoaded = isDriveId ? isImageLoaded : directLoaded;
 
   useEffect(() => {
     const timer = setTimeout(() => setIsExpanded(false), 5000);
@@ -63,20 +106,27 @@ export const EditorialHero = ({
       {/* IMAGEM DE FUNDO COM LÓGICA DE CARREGAMENTO */}
       <div
         className={`absolute inset-0 bg-cover bg-center transition-all duration-[2000ms] ease-out
-          ${isLoaded ? 'opacity-100 scale-100' : 'opacity-0 scale-110'}`}
+          ${isActuallyLoaded ? 'opacity-100 scale-100' : 'opacity-0 scale-110'}`}
         style={{
           backgroundImage: `url('${finalCoverUrl}')`,
           backgroundPosition: 'center 40%',
         }}
       />
 
-      {/* Trigger para marcar como carregado (invisível) */}
-      <img
-        src={finalCoverUrl}
-        className="hidden"
-        onLoad={() => setIsLoaded(true)}
-        alt=""
-      />
+      {/* 🎯 TAG OCULTA: Essencial para monitorar o carregamento */}
+      {finalCoverUrl && (
+        <img
+          ref={isDriveId ? imgRef : setDirectImgRef}
+          src={finalCoverUrl}
+          alt=""
+          className="absolute opacity-0 pointer-events-none w-px h-px -left-[9999px]"
+          onLoad={(e) => {
+            if (isDriveId) handleLoad(e);
+            else setDirectLoaded(true);
+          }}
+          onError={isDriveId ? handleError : undefined}
+        />
+      )}
 
       {/* Camada de escurecimento para leitura (Pura e sutil) */}
       <div className="absolute inset-0 bg-black/40" />
@@ -94,7 +144,7 @@ export const EditorialHero = ({
           <div className="flex items-center gap-4 md:gap-6 mb-4">
             <div className="shrink-0">
               {React.isValidElement(sideElement)
-                ? React.cloneElement(sideElement as any, { isExpanded })
+                ? React.cloneElement(sideElement as React.ReactElement<{ isExpanded: boolean }>, { isExpanded })
                 : sideElement}
             </div>
 
@@ -116,7 +166,7 @@ export const EditorialHero = ({
             <div className="max-w-3xl">
               {React.Children.map(children, (child) =>
                 React.isValidElement(child)
-                  ? React.cloneElement(child as any, { isExpanded })
+                  ? React.cloneElement(child as React.ReactElement<{ isExpanded: boolean }>, { isExpanded })
                   : child,
               )}
             </div>

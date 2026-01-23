@@ -13,13 +13,11 @@ import {
 } from '@/actions/google.actions';
 import {
   Lock,
-  Unlock,
   Calendar,
   MapPin,
   User,
   Type,
   FolderSync,
-  X,
   Briefcase,
   Tag,
   Layout,
@@ -36,7 +34,7 @@ import {
   Users,
 } from 'lucide-react';
 import WhatsAppIcon from '@/components/ui/WhatsAppIcon';
-import { convertToDirectDownloadUrl, getDirectGoogleUrl } from '@/core/utils/url-helper';
+import { convertToDirectDownloadUrl } from '@/core/utils/url-helper';
 import { LimitUpgradeModal } from '@/components/ui/LimitUpgradeModal';
 import { useGoogleDriveImage } from '@/hooks/useGoogleDriveImage';
 
@@ -83,7 +81,7 @@ export default function GaleriaFormContent({
   onTitleChange,
 }) {
   const [showPassword, setShowPassword] = useState(false);
-  const [limitInfo, setLimitInfo] = useState({ count: 0, hasMore: false });
+  const [, setLimitInfo] = useState({ count: 0, hasMore: false });
   const [showLimitModal, setShowLimitModal] = useState(false);
   const [showOnProfile, setShowOnProfile] = useState(() => {
     if (initialData)
@@ -136,7 +134,7 @@ export default function GaleriaFormContent({
         initialData.rename_files_sequential === true ||
         initialData.rename_files_sequential === 'true'
       );
-    return true; // Padrão: Habilitado
+    return false; // Padrão: Habilitado
   });
 
   // 🎯 Lógica para garantir pelo menos um campo obrigatório na captura de leads
@@ -274,7 +272,7 @@ export default function GaleriaFormContent({
           driveFolderId = selectedId;
           coverFileId = selectedId; // Para pasta, usamos o próprio ID como cover
         }
-      } catch (error) {
+      } catch {
         // Se falhar ao buscar pasta pai, assume que é uma pasta
         driveFolderId = selectedId;
         coverFileId = selectedId;
@@ -292,7 +290,7 @@ export default function GaleriaFormContent({
         if (folderName) {
           driveFolderName = folderName;
         }
-      } catch (error) {
+      } catch {
         console.warn('[handleDriveSelection] Erro ao buscar nome da pasta:', error);
         // Continua com o nome selecionado
       }
@@ -301,7 +299,7 @@ export default function GaleriaFormContent({
       let limitData = { count: 0, hasMore: false, totalInDrive: 0 };
       try {
         limitData = await checkFolderLimits(driveFolderId, userId, PLAN_LIMIT);
-      } catch (error) {
+      } catch {
         console.warn('[handleDriveSelection] Erro ao verificar limites:', error);
         // Continua mesmo com erro na verificação de limites
       }
@@ -310,7 +308,7 @@ export default function GaleriaFormContent({
       let folderPermissionInfo = { isPublic: false, isOwner: false, folderLink: '' };
       try {
         folderPermissionInfo = await checkFolderPublicPermission(driveFolderId, userId);
-      } catch (error) {
+      } catch {
         console.warn('[handleDriveSelection] Erro ao verificar permissões:', error);
         // Por segurança, assume que não é pública se houver erro
         folderPermissionInfo.folderLink = `https://drive.google.com/drive/folders/${driveFolderId}`;
@@ -378,7 +376,7 @@ export default function GaleriaFormContent({
   });
 
   // Track title changes for header
-  const [titleValue, setTitleValue] = useState(initialData?.title || '');
+  const [, setTitleValue] = useState(initialData?.title || '');
 
   return (
     <div className="flex flex-col lg:flex-row h-full overflow-y-auto lg:overflow-hidden">
@@ -1018,7 +1016,7 @@ export default function GaleriaFormContent({
               </button>
             </div>
             <p className="text-[10px] text-petroleum/60 dark:text-slate-400 italic leading-tight">
-              Padroniza o nome das fotos para "foto-1.jpg", "foto-2.jpg", etc, facilitando a organização do cliente.
+              Padroniza o nome das fotos para &quot;foto-1.jpg&quot;, &quot;foto-2.jpg&quot;, etc, facilitando a organização do cliente.
             </p>
           </div>
         </div>

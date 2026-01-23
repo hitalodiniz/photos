@@ -23,7 +23,7 @@ async function getDocsContent(slug: string) {
     const filePath = join(docsPath, `${slug}.md`);
     const content = await readFile(filePath, 'utf-8');
     return content;
-  } catch (error) {
+  } catch {
     return null;
   }
 }
@@ -35,7 +35,7 @@ async function getAllDocsSlugs() {
     return files
       .filter((file) => file.endsWith('.md'))
       .map((file) => file.replace('.md', ''));
-  } catch (error) {
+  } catch {
     return [];
   }
 }
@@ -74,8 +74,8 @@ export default async function DocsSlugPage({
     redirect('/onboarding');
   }
 
-  // 🔒 SEGURANÇA: Apenas usuário 'hitalodiniz' pode acessar
-  if (profile.username !== 'hitalodiniz') {
+  // 🔒 SEGURANÇA: Apenas usuários com a role 'admin' podem acessar
+  if (!profile.roles?.includes('admin')) {
     redirect('/dashboard');
   }
 

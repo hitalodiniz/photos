@@ -4,9 +4,8 @@ import React, { useState, useRef, useEffect, useMemo } from 'react';
 import Link from 'next/link';
 import Image from 'next/image';
 import { usePathname } from 'next/navigation';
-import { LogOut, Settings, Loader2, User, User2 } from 'lucide-react';
-import { authService } from '@photos/core-auth';
-import LoadingScreen from '../ui/LoadingScreen';
+import { LogOut, User2 } from 'lucide-react';
+import { authService, useAuth } from '@photos/core-auth';
 import { useNavigation } from '../providers/NavigationProvider';
 
 interface UserMenuProps {
@@ -28,7 +27,7 @@ export default function UserMenu({
 }: UserMenuProps) {
   const pathname = usePathname();
   const [isOpen, setIsOpen] = useState(false);
-  const [isLoggingOut, setIsLoggingOut] = useState(false);
+  const { logout, isLoggingOut } = useAuth();
   const { navigate, isNavigating } = useNavigation();
   const menuRef = useRef<HTMLDivElement>(null);
 
@@ -68,17 +67,8 @@ export default function UserMenu({
   };
 
   const handleLogout = async () => {
-    setIsLoggingOut(true);
     setIsOpen(false);
-    
-    try {
-      await authService.signOut();
-      // O Supabase limpa os cookies localmente, mas forçamos um redirecionamento para a home
-      window.location.href = '/';
-    } catch (error) {
-      console.error('[UserMenu] Erro ao deslogar:', error);
-      setIsLoggingOut(false);
-    }
+    await logout();
   };
 
   const renderAvatarContent = (
@@ -116,13 +106,8 @@ export default function UserMenu({
   };
 
   return (
-    <>
-      {isLoggingOut && (
-        <LoadingScreen message="Encerrando sua sessão com segurança..." fadeOut={false} />
-      )}
-
-      <div className="ml-auto">
-        <div className="relative" ref={menuRef}>
+    <div className="ml-auto">
+      <div className="relative" ref={menuRef}>
           <button
             onClick={() => setIsOpen(!isOpen)}
             className={`relative p-0.5 rounded-full transition-all focus:outline-none ring-offset-2 ring-offset-white ${isOpen ? 'ring-2 ring-gold' : 'hover:ring-2 hover:ring-gold/30'} active:scale-95 disabled:opacity-50`}
@@ -157,32 +142,22 @@ export default function UserMenu({
                     e.preventDefault();
                     handleManageProfile();
                   }}
-                  className={`w-full flex items-center justify-between px-4 h-12 rounded-luxury bg-slate-50 text-petroleum hover:bg-gold/10 hover:text-gold transition-all group ${isNavigating ? 'opacity-70 cursor-not-allowed' : ''}`}
+                  className={`btn-luxury-primary w-full !h-10 !justify-start gap-4 px-4 ${isNavigating ? 'opacity-70 cursor-not-allowed' : ''}`}
                 >
-                  <div className="flex items-center gap-3">
-                    <div className="w-8 h-8 rounded-luxury bg-white shadow-sm border border-petroleum/10 flex items-center justify-center text-editorial-gray group-hover:text-gold transition-colors">
-                      <User2 size={16} />
-                    </div>
-                    <span className="text-editorial-label font-semibold">
-                      {isNavigating ? 'Carregando...' : 'Editar Perfil'}
-                    </span>
-                  </div>
-                  {isNavigating ? (
-                    <div className="loading-luxury-dark w-3 h-3" />
-                  ) : (
-                    <div className="w-1.5 h-1.5 rounded-full bg-gold opacity-0 group-hover:opacity-100 transition-opacity" />
-                  )}
+                  <User2 size={18} />
+                  <span className="flex-1 text-left">
+                    {isNavigating ? 'Carregando...' : 'Editar Perfil'}
+                  </span>
+                  {isNavigating && <div className="loading-luxury-dark w-4 h-4" />}
                 </Link>
 
                 <button
                   onClick={handleLogout}
                   disabled={isLoggingOut || isNavigating}
-                  className="w-full flex items-center gap-3 px-4 h-12 rounded-luxury bg-transparent text-editorial-gray hover:text-red-600 hover:bg-red-50 transition-all group disabled:opacity-50"
+                  className="btn-secondary-white w-full !h-10 !justify-start gap-4 px-4 hover:!text-red-600 hover:!border-red-200 hover:!bg-red-50 transition-all disabled:opacity-50"
                 >
-                  <div className="w-8 h-8 rounded-luxury bg-slate-50 flex items-center justify-center group-hover:text-red-600 transition-colors">
-                    <LogOut size={16} />
-                  </div>
-                  <span className="text-editorial-label font-semibold">
+                  <LogOut size={18} />
+                  <span className="flex-1 text-left">
                     Sair da conta
                   </span>
                 </button>
@@ -191,6 +166,5 @@ export default function UserMenu({
           )}
         </div>
       </div>
-    </>
-  );
+    );
 }

@@ -1,9 +1,9 @@
 'use client';
-import { useState, useEffect, useRef } from 'react';
-import { CheckCircle2, Sparkles, Link2, Check } from 'lucide-react';
+import { useState, useEffect } from 'react';
+import { CheckCircle2, Sparkles, Link2, Check, ArrowLeft } from 'lucide-react';
 import { createGaleria, updateGaleria } from '@/core/services/galeria.service';
 import { FormPageBase } from '@/components/ui';
-import GaleriaFormContent from './GaleriaFormContent';
+import GaleriaFormContent from '@/features/galeria/components/admin/GaleriaFormContent';
 import BaseModal from '@/components/ui/BaseModal';
 import { getPublicGalleryUrl, copyToClipboard, getLuxuryMessageData } from '@/core/utils/url-helper';
 import { executeShare } from '@/core/utils/share-helper';
@@ -25,7 +25,7 @@ export default function GaleriaModal({
   const [hasUnsavedChanges, setHasUnsavedChanges] = useState(false);
 
   // 🎯 ESTADOS DE CUSTOMIZAÇÃO COM VALORES PADRÃO TIPO "EDITORIAL"
-  const [isPublic, setIsPublic] = useState(true);
+  const [, setIsPublic] = useState(true);
   const [showCoverInGrid, setShowCoverInGrid] = useState(true);
   const [gridBgColor, setGridBgColor] = useState('#F3E5AB');
   const [columns, setColumns] = useState({ mobile: 2, tablet: 3, desktop: 4 });

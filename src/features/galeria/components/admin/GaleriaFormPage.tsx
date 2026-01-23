@@ -5,7 +5,7 @@ import { useRouter } from 'next/navigation';
 import { createGaleria, updateGaleria } from '@/core/services/galeria.service';
 import { SubmitButton } from '@/components/ui';
 import { Save, CheckCircle2, Sparkles, Link2, Check, ArrowLeft } from 'lucide-react';
-import GaleriaFormContent from '../GaleriaFormContent';
+import GaleriaFormContent from './GaleriaFormContent';
 import type { Galeria } from '@/core/types/galeria';
 import { Toast } from '@/components/ui';
 import GoogleConsentAlert from '@/components/auth/GoogleConsentAlert';

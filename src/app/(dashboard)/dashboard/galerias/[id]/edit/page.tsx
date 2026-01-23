@@ -2,7 +2,7 @@ import { Metadata } from 'next';
 import { redirect, notFound } from 'next/navigation';
 import { getProfileData } from '@/core/services/profile.service';
 import { getGaleriaById } from '@/core/services/galeria.service';
-import GaleriaFormPage from '../../GaleriaFormPage';
+import GaleriaFormPage from '@/features/galeria/components/admin/GaleriaFormPage';
 
 export async function generateMetadata({
   params,

@@ -1,6 +1,5 @@
 import { getDriveAccessTokenForUser } from '@/lib/google-auth';
 import { createSupabaseServerClient } from '@/lib/supabase.server';
-import { redirect } from 'next/navigation';
 /**
  * Busca o ID da pasta-mãe (parent) de um arquivo no Google Drive
  * @param fileId O ID do arquivo selecionado no Google Picker.
@@ -240,18 +239,18 @@ export async function getValidGoogleTokenService(userId: string): Promise<string
   // 🎯 Com a estratégia dual (API Key + OAuth), não tratamos ausência de token como erro
   // Retorna null para que o sistema possa tentar com API Key
   if (error) {
-    console.log(`[getValidGoogleTokenService] Erro ao buscar perfil para userId: ${userId}:`, error.message);
+    // console.log(`[getValidGoogleTokenService] Erro ao buscar perfil para userId: ${userId}:`, error.message);
     return null;
   }
 
   if (!profile?.google_refresh_token) {
-    console.log(`[getValidGoogleTokenService] Refresh token não encontrado para userId: ${userId}. Usuário precisa fazer login novamente para usar Google Picker (que requer access token OAuth).`);
+    // console.log(`[getValidGoogleTokenService] Refresh token não encontrado para userId: ${userId}. Usuário precisa fazer login novamente para usar Google Picker (que requer access token OAuth).`);
     return null;
   }
 
   // 🎯 Verifica se o status de autenticação indica problema
   if (profile.google_auth_status === 'revoked' || profile.google_auth_status === 'expired') {
-    console.log(`[getValidGoogleTokenService] Status de autenticação indica token revogado/expirado para userId: ${userId}. Usuário precisa fazer login novamente para obter novo refresh token.`);
+    // console.log(`[getValidGoogleTokenService] Status de autenticação indica token revogado/expirado para userId: ${userId}. Usuário precisa fazer login novamente para obter novo refresh token.`);
     return null;
   }
 
@@ -265,10 +264,10 @@ export async function getValidGoogleTokenService(userId: string): Promise<string
 
       // Verifica se o token ainda é válido (com margem de 5 minutos)
       if (expiresAt > now + margin) {
-        console.log(`[getValidGoogleTokenService] Token em cache ainda válido para userId: ${userId} (expira em ${Math.round((expiresAt - now) / 1000 / 60)} minutos)`);
+        // console.log(`[getValidGoogleTokenService] Token em cache ainda válido para userId: ${userId} (expira em ${Math.round((expiresAt - now) / 1000 / 60)} minutos)`);
         return profile.google_access_token;
       } else {
-        console.log(`[getValidGoogleTokenService] Token em cache expirado para userId: ${userId}. Renovando...`);
+        // console.log(`[getValidGoogleTokenService] Token em cache expirado para userId: ${userId}. Renovando...`);
       }
     } catch (dateError) {
       console.warn(`[getValidGoogleTokenService] Erro ao validar data de expiração para userId: ${userId}:`, dateError);
@@ -278,8 +277,7 @@ export async function getValidGoogleTokenService(userId: string): Promise<string
 
   // 3. Se expirou ou não existe, renovamos manualmente
   try {
-    console.log(`[getValidGoogleTokenService] Renovando token para userId: ${userId}...`);
-    const startTime = Date.now();
+    // console.log(`[getValidGoogleTokenService] Renovando token para userId: ${userId}...`);
     
     let response: Response;
     try {
@@ -307,12 +305,12 @@ export async function getValidGoogleTokenService(userId: string): Promise<string
       throw fetchErr;
     }
     
-    const fetchDuration = Date.now() - startTime;
-    console.log(`[getValidGoogleTokenService] Resposta do Google recebida em ${fetchDuration}ms:`, {
+    // const fetchDuration = Date.now() - startTime;
+    /* console.log(`[getValidGoogleTokenService] Resposta do Google recebida em ${fetchDuration}ms:`, {
       ok: response.ok,
       status: response.status,
       statusText: response.statusText,
-    });
+    }); */
 
     const data = await response.json();
 
@@ -335,14 +333,14 @@ export async function getValidGoogleTokenService(userId: string): Promise<string
             google_auth_status: 'expired', // Marca como expirado - indica que precisa reautenticar
           })
           .eq('id', userId);
-        console.log(`[google.service] Refresh token inválido removido do banco e status atualizado para userId: ${userId}. Usuário precisa fazer login novamente para obter novo refresh token.`);
+        // console.log(`[google.service] Refresh token inválido removido do banco e status atualizado para userId: ${userId}. Usuário precisa fazer login novamente para obter novo refresh token.`);
       } catch (dbError) {
         console.error('[google.service] Erro ao limpar token do banco:', dbError);
       }
 
       // Retorna null - sem refresh token, não podemos gerar novos access tokens
       // O Google Picker precisa de access token OAuth válido, então o usuário precisa reautenticar
-      console.log(`[getValidGoogleTokenService] Token inválido para userId: ${userId}. Usuário precisa fazer login novamente para usar Google Picker.`);
+      // console.log(`[getValidGoogleTokenService] Token inválido para userId: ${userId}. Usuário precisa fazer login novamente para usar Google Picker.`);
       return null;
     }
 
@@ -365,7 +363,7 @@ export async function getValidGoogleTokenService(userId: string): Promise<string
     // Importante: Se o Google rotacionar o refresh_token, salvamos também
     if (data.refresh_token) {
       updates.google_refresh_token = data.refresh_token;
-      console.log(`[getValidGoogleTokenService] Google rotacionou o refresh_token para userId: ${userId}`);
+      // console.log(`[getValidGoogleTokenService] Google rotacionou o refresh_token para userId: ${userId}`);
     }
 
     const { error: updateError } = await supabase
@@ -377,7 +375,7 @@ export async function getValidGoogleTokenService(userId: string): Promise<string
       console.error(`[getValidGoogleTokenService] Erro ao salvar token renovado para userId: ${userId}:`, updateError);
       // Ainda retorna o token mesmo se falhar ao salvar (pode ser usado imediatamente)
     } else {
-      console.log(`[getValidGoogleTokenService] Token renovado e salvo com sucesso para userId: ${userId}`);
+      // console.log(`[getValidGoogleTokenService] Token renovado e salvo com sucesso para userId: ${userId}`);
     }
 
     return data.access_token;

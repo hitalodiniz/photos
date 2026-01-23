@@ -17,7 +17,6 @@ export default function VersionInfo({
   const commitDate = process.env.NEXT_PUBLIC_COMMIT_DATE || new Date().toISOString();
   const branch = process.env.NEXT_PUBLIC_BRANCH || 'unknown';
   const buildTime = process.env.NEXT_PUBLIC_BUILD_TIME || new Date().toISOString();
-  const commitMessage = process.env.NEXT_PUBLIC_COMMIT_MESSAGE || 'N/A';
 
   // Formata a data do commit
   const formatDate = (dateString: string) => {

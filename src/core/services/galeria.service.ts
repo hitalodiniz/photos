@@ -135,10 +135,13 @@ export async function createGaleria(
       title: formData.get('title') as string,
       show_on_profile: formData.get('show_on_profile') === 'true',
       client_name: (formData.get('client_name') as string) || 'Cobertura',
-      client_whatsapp: (formData.get('client_whatsapp') as string)?.replace(
-        /\D/g,
-        '',
-      ),
+      client_whatsapp: (() => {
+        let val = (formData.get('client_whatsapp') as string)?.replace(/\D/g, '') || '';
+        if (val && (val.length === 10 || val.length === 11) && !val.startsWith('55')) {
+          val = `55${val}`;
+        }
+        return val || null;
+      })(),
       date: new Date(formData.get('date') as string).toISOString(),
       location: (formData.get('location') as string) || '',
       drive_folder_id: formData.get('drive_folder_id') as string,
@@ -192,7 +195,7 @@ export async function createGaleria(
       revalidateTag(`photos-${insertedData.id}`);
     }
     // 🎯 CRÍTICO: Revalida a lista de galerias do usuário para aparecer no dashboard
-    console.log(`[createGaleria] Revalidando cache para userId: ${userId}`);
+    // console.log(`[createGaleria] Revalidando cache para userId: ${userId}`);
     revalidateTag(`user-galerias-${userId}`);
     // Busca o username para revalidar o perfil público
     const { data: profile } = await supabase
@@ -240,10 +243,13 @@ export async function updateGaleria(
       title: formData.get('title') as string,
       show_on_profile: formData.get('show_on_profile') === 'true',
       client_name: (formData.get('client_name') as string) || 'Cobertura',
-      client_whatsapp: (formData.get('client_whatsapp') as string)?.replace(
-        /\D/g,
-        '',
-      ),
+      client_whatsapp: (() => {
+        let val = (formData.get('client_whatsapp') as string)?.replace(/\D/g, '') || '';
+        if (val && (val.length === 10 || val.length === 11) && !val.startsWith('55')) {
+          val = `55${val}`;
+        }
+        return val || null;
+      })(),
       date: new Date(formData.get('date') as string).toISOString(),
       location: (formData.get('location') as string) || '',
       drive_folder_id: formData.get('drive_folder_id') as string,
@@ -399,11 +405,7 @@ export async function getGalerias(
         }
 
         // 🎯 DEBUG: Verificação detalhada de leads
-        console.log(`[getGalerias] userId: ${cachedUserId}, Found: ${data?.length || 0}`);
-        data?.forEach(g => {
-          const count = g.leads?.[0]?.count ?? 0;
-          if (count > 0) console.log(`[getGalerias] 💎 Gallery: ${g.title}, Leads: ${count}`);
-        });
+        // console.log(`[getGalerias] userId: ${cachedUserId}, Found: ${data?.length || 0}`);
 
         // AJUSTE NO MAP: Usa a função formatGalleryData para garantir que o objeto photographer exista
         const galeriasFormatadas = (data || []).map((raw) =>
@@ -541,7 +543,6 @@ export async function authenticateGaleriaAccess(
   // 3. COOKIE - O PONTO CRÍTICO
   const cookieStore = await cookies();
   const host = (await headers()).get('host') || '';
-  const isLocal = host.includes('localhost') || host.includes('lvh.me');
 
   const cookieOptions: any = {
     path: '/', // 🎯 OBRIGATÓRIO: Permite que /hitalodiniz80/slug leia o cookie
