@@ -6,28 +6,27 @@ import { getPublicProfile } from '@/core/services/profile.service';
 
 // 🎯 Definimos um tipo que estende o Metadata padrão para incluir o fullname
 type GalleryMetadata = Metadata & { fullname?: string };
+const BASE_URL = process.env.NEXT_PUBLIC_BASE_URL || 'https://suagaleria.com.br';
 
 export async function getPhotographerMetadata(
   username: string,
 ): Promise<GalleryMetadata> {
   const profile = await getPublicProfile(username);
-  const baseUrl = process.env.NEXT_PUBLIC_BASE_URL || 'https://suagaleria.com.br';
 
   if (!profile) {
     return { title: 'Fotógrafo não encontrado | Sua Galeria' };
   }
 
   const title = `Portfólio de ${profile.full_name || username}`;
-  const description = profile.mini_bio || `Confira o trabalho e as galerias de ${profile.full_name || username}.`;
-
+  const description = profile.mini_bio || `Confira o trabalho de ${profile.full_name || username}.`;
+  
+  // 🎯 WhatsApp exige URLs absolutas e prefere JPEGs
   const ogImage = profile.photo_url
     ? getDirectGoogleUrl(profile.photo_url, '1200')
-    : `${baseUrl}/default-og-profile.jpg`;
-
-  const url = `${baseUrl}/${username}`;
+    : `${BASE_URL}/default-og-profile.jpg`;
 
   return {
-    metadataBase: new URL(baseUrl),
+    metadataBase: new URL(BASE_URL),
     title,
     description,
     fullname: profile.full_name || '',
@@ -35,22 +34,19 @@ export async function getPhotographerMetadata(
       title,
       description,
       type: 'profile',
-      url,
+      url: `${BASE_URL}/${username}`,
       siteName: 'Sua Galeria',
       images: [
         {
           url: ogImage,
           width: 1200,
           height: 630,
-          type: 'image/jpeg', // 🎯 Essencial para WhatsApp
-          alt: `Foto de perfil de ${profile.full_name || username}`,
+          type: 'image/jpeg',
         },
       ],
     },
     twitter: {
       card: 'summary_large_image',
-      title,
-      description,
       images: [ogImage],
     },
   };
@@ -141,51 +137,35 @@ export async function getPhotoMetadata(
   const galeriaRaw = await fetchGalleryBySlug(fullSlug);
   const baseUrl = process.env.NEXT_PUBLIC_BASE_URL || 'https://suagaleria.com.br';
 
-  if (!galeriaRaw) {
-    return { title: 'Foto não encontrada | Sua Galeria' };
-  }
+  if (!galeriaRaw) return { title: 'Foto não encontrada' };
+
+  // 🎯 Use a URL DIRETA do Google, igual você fez na galeria
+  const ogImage = googleId 
+    ? getDirectGoogleUrl(googleId, '1200') 
+    : null;
 
   const title = `${galeriaRaw.title} - Foto`;
-  const descriptionParts = [];
-  
-  if (galeriaRaw.location) descriptionParts.push(`📍 ${galeriaRaw.location}`);
-  if (galeriaRaw.date) descriptionParts.push(`📅 ${new Date(galeriaRaw.date).toLocaleDateString('pt-BR')}`);
-
-  const photographerInfo = galeriaRaw.photographer?.full_name ? `📸 ${galeriaRaw.photographer.full_name}` : '';
-  const description = galeriaRaw.is_public 
-    ? (descriptionParts.length > 0 ? [...descriptionParts, photographerInfo].join(' • ') : 'Confira esta foto da galeria.')
-    : `🔒 Galeria Privada. ${photographerInfo}`.trim();
-
-  const ogImage = googleId ? `${baseUrl}/api/og/photo/${googleId}` : null;
 
   return {
     metadataBase: new URL(baseUrl),
     title,
-    description,
     openGraph: {
       title,
-      description,
       type: 'website',
-      url: `${baseUrl}/photo/${googleId}?s=${encodeURIComponent(fullSlug)}`, // 🎯 Corrigido erro de sintaxe
+      url: `${baseUrl}/photo/${googleId}?s=${fullSlug}`,
       siteName: 'Sua Galeria',
       images: ogImage ? [
         { 
           url: ogImage,
-          width: 800, 
-          height: 600,
+          width: 1200, // 🎯 Aumente para 1200
+          height: 630, // 🎯 Ajuste para 630
           type: 'image/jpeg',
-          alt: `${title} - ${galeriaRaw.title}`,
         }
       ] : [],
     },
     twitter: {
       card: 'summary_large_image',
-      title,
-      description,
       images: ogImage ? [ogImage] : [],
-    },
-    other: {
-      'image': ogImage || '',
     }
   };
 }
