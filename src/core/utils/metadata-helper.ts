@@ -8,23 +8,23 @@ import { getPublicProfile } from '@/core/services/profile.service';
 type GalleryMetadata = Metadata & { fullname?: string };
 const BASE_URL = process.env.NEXT_PUBLIC_BASE_URL || 'https://suagaleria.com.br';
 
-export async function getPhotographerMetadata(
-  username: string,
-): Promise<GalleryMetadata> {
-  const profile = await getPublicProfile(username);
+// No seu metadata-helper.ts
+
+export async function getPhotoMetadata(
+  fullSlug: string,
+  googleId: string,
+): Promise<Metadata> {
+  const galeriaRaw = await fetchGalleryBySlug(fullSlug);
   const baseUrl = process.env.NEXT_PUBLIC_BASE_URL || 'https://suagaleria.com.br';
 
-  if (!profile) return { title: 'Fotógrafo não encontrado' };
+  if (!galeriaRaw) return { title: 'Foto não encontrada' };
 
-  // 🎯 OTIMIZAÇÃO SUPABASE: Reduzimos para 1200x630 e qualidade 70
-  // Adicionamos &.jpg no final para ajudar o crawler a identificar como imagem
-  const rawImage = profile.photo_url || `${baseUrl}/default-og-profile.jpg`;
-  const ogImage = rawImage.includes('supabase.co') 
-    ? `${rawImage}?width=1200&height=630&resize=contain&quality=70&.jpg`
-    : rawImage;
+  const ogImage = googleId 
+    ? getDirectGoogleUrl(googleId, '1200') 
+    : `${baseUrl}/default-og.jpg`;
 
-  const title = `Portfólio de ${profile.full_name || username}`;
-  const description = profile.mini_bio || `Confira o trabalho de ${profile.full_name || username}.`;
+  const title = `${galeriaRaw.title} - Foto`;
+  const description = `Veja esta foto na galeria ${galeriaRaw.title}.`;
 
   return {
     metadataBase: new URL(baseUrl),
@@ -33,17 +33,52 @@ export async function getPhotographerMetadata(
     openGraph: {
       title,
       description,
-      type: 'profile',
-      url: `${baseUrl}/${username}`,
-      images: [{ url: ogImage, width: 1200, height: 630, type: 'image/jpeg' }],
+      type: 'website',
+      url: `${baseUrl}/photo/${googleId}?s=${fullSlug}`,
+      images: [
+        { 
+          url: ogImage, 
+          width: 1200, // 🎯 CRÍTICO: Define antes de processar
+          height: 630, 
+          type: 'image/jpeg' 
+        }
+      ],
     },
-    // 🎯 RESOLVE O ERRO DE "PROPRIEDADE INFERIDA"
+    // 🎯 ESTE BLOCO RESOLVE O ERRO ASÍNCRONO:
+    // Forçamos o crawler a ler as dimensões sem precisar baixar a imagem
     other: {
       'og:image': ogImage,
-      'og:image:secure_url': ogImage,
-      'og:image:type': 'image/jpeg',
       'og:image:width': '1200',
       'og:image:height': '630',
+      'og:image:type': 'image/jpeg',
+    }
+  };
+}
+
+// 🎯 REPLIQUE A MESMA LÓGICA NO getPhotographerMetadata (Perfil do Supabase)
+export async function getPhotographerMetadata(username: string): Promise<Metadata> {
+  const profile = await getPublicProfile(username);
+  const baseUrl = process.env.NEXT_PUBLIC_BASE_URL || 'https://suagaleria.com.br';
+
+  if (!profile) return { title: 'Fotógrafo não encontrado' };
+
+  const rawImage = profile.photo_url || `${baseUrl}/default-og-profile.jpg`;
+  // Redimensionamento do Supabase para garantir leveza (< 300KB)
+  const ogImage = rawImage.includes('supabase.co') 
+    ? `${rawImage}?width=1200&height=630&resize=contain&quality=70&.jpg`
+    : rawImage;
+
+  return {
+    metadataBase: new URL(baseUrl),
+    title: `Portfólio de ${profile.full_name || username}`,
+    openGraph: {
+      images: [{ url: ogImage, width: 1200, height: 630, type: 'image/jpeg' }],
+    },
+    other: {
+      'og:image': ogImage,
+      'og:image:width': '1200',
+      'og:image:height': '630',
+      'og:image:type': 'image/jpeg',
     }
   };
 }
@@ -121,45 +156,5 @@ export async function getGalleryMetadata(
       description,
       images: ogImage ? [ogImage] : [],
     },
-  };
-}
-/**
- * Gera metadados para uma foto específica do Lightbox/PhotoView
- */
-export async function getPhotoMetadata(
-  fullSlug: string,
-  googleId: string,
-): Promise<Metadata> {
-  const galeriaRaw = await fetchGalleryBySlug(fullSlug);
-  const baseUrl = process.env.NEXT_PUBLIC_BASE_URL || 'https://suagaleria.com.br';
-
-  if (!galeriaRaw) return { title: 'Foto não encontrada' };
-
-  // 🎯 Mesma lógica que funcionou na Galeria
-  const ogImage = googleId 
-    ? getDirectGoogleUrl(googleId, '1200') 
-    : `${baseUrl}/default-og.jpg`;
-
-  const title = `${galeriaRaw.title} - Foto`;
-  const description = `Veja esta foto na galeria ${galeriaRaw.title}.`;
-
-  return {
-    metadataBase: new URL(baseUrl),
-    title,
-    description,
-    openGraph: {
-      title,
-      description,
-      type: 'website',
-      url: `${baseUrl}/photo/${googleId}?s=${fullSlug}`,
-      images: [{ url: ogImage, width: 1200, height: 630, type: 'image/jpeg' }],
-    },
-    // 🎯 REPETE AS TAGS EXPLÍCITAS
-    other: {
-      'og:image': ogImage,
-      'og:image:type': 'image/jpeg',
-      'og:image:width': '1200',
-      'og:image:height': '630',
-    }
   };
 }
