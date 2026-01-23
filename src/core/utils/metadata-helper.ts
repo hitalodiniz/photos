@@ -19,12 +19,16 @@ export async function getPhotoMetadata(
 
   if (!galeriaRaw) return { title: 'Foto não encontrada' };
 
+  // URL Direta da foto
   const ogImage = googleId 
     ? getDirectGoogleUrl(googleId, '1200') 
     : `${baseUrl}/default-og.jpg`;
 
   const title = `${galeriaRaw.title} - Foto`;
   const description = `Veja esta foto na galeria ${galeriaRaw.title}.`;
+  
+  // URL absoluta da foto para o og:url
+  const photoUrl = `${baseUrl}/photo/${googleId}?s=${encodeURIComponent(fullSlug)}`;
 
   return {
     metadataBase: new URL(baseUrl),
@@ -33,53 +37,87 @@ export async function getPhotoMetadata(
     openGraph: {
       title,
       description,
-      type: 'website',
-      url: `${baseUrl}/photo/${googleId}?s=${fullSlug}`,
+      type: 'website', // 🎯 Resolve og:type
+      url: photoUrl,   // 🎯 Resolve og:url
+      siteName: 'Sua Galeria',
       images: [
         { 
           url: ogImage, 
-          width: 1200, // 🎯 CRÍTICO: Define antes de processar
+          width: 1200, 
           height: 630, 
           type: 'image/jpeg' 
         }
       ],
     },
-    // 🎯 ESTE BLOCO RESOLVE O ERRO ASÍNCRONO:
-    // Forçamos o crawler a ler as dimensões sem precisar baixar a imagem
+    // 🎯 RESOLVE OS ERROS DO DEBUGGER (Tags Explícitas)
     other: {
+      'og:url': photoUrl,
+      'og:type': 'website',
       'og:image': ogImage,
       'og:image:width': '1200',
       'og:image:height': '630',
       'og:image:type': 'image/jpeg',
+      'fb:app_id': process.env.NEXT_PUBLIC_FB_APP_ID || '', // 🎯 Resolve fb:app_id
     }
   };
 }
 
 // 🎯 REPLIQUE A MESMA LÓGICA NO getPhotographerMetadata (Perfil do Supabase)
-export async function getPhotographerMetadata(username: string): Promise<Metadata> {
+export async function getPhotographerMetadata(
+  username: string,
+): Promise<GalleryMetadata> {
   const profile = await getPublicProfile(username);
   const baseUrl = process.env.NEXT_PUBLIC_BASE_URL || 'https://suagaleria.com.br';
 
-  if (!profile) return { title: 'Fotógrafo não encontrado' };
+  if (!profile) {
+    return { title: 'Fotógrafo não encontrado | Sua Galeria' };
+  }
 
+  const title = `Portfólio de ${profile.full_name || username}`;
+  const description = profile.mini_bio || `Confira o trabalho e as galerias de ${profile.full_name || username}.`;
+  const profileUrl = `${baseUrl}/${username}`;
+
+  // Tratamento da imagem do Supabase (Redimensionamento para evitar > 300KB)
   const rawImage = profile.photo_url || `${baseUrl}/default-og-profile.jpg`;
-  // Redimensionamento do Supabase para garantir leveza (< 300KB)
   const ogImage = rawImage.includes('supabase.co') 
     ? `${rawImage}?width=1200&height=630&resize=contain&quality=70&.jpg`
     : rawImage;
 
   return {
     metadataBase: new URL(baseUrl),
-    title: `Portfólio de ${profile.full_name || username}`,
+    title,
+    description,
+    fullname: profile.full_name || '',
     openGraph: {
-      images: [{ url: ogImage, width: 1200, height: 630, type: 'image/jpeg' }],
+      title,
+      description,
+      type: 'profile', // 🎯 Resolve og:type
+      url: profileUrl,  // 🎯 Resolve og:url
+      siteName: 'Sua Galeria',
+      images: [
+        {
+          url: ogImage,
+          width: 1200,
+          height: 630,
+          type: 'image/jpeg',
+        },
+      ],
     },
+    twitter: {
+      card: 'summary_large_image',
+      title,
+      description,
+      images: [ogImage],
+    },
+    // 🎯 RESOLVE OS ERROS DO DEBUGGER (Tags Explícitas)
     other: {
+      'og:url': profileUrl,
+      'og:type': 'profile',
       'og:image': ogImage,
       'og:image:width': '1200',
       'og:image:height': '630',
-      'og:image:type': 'image/jpeg',
-    }
+      'fb:app_id': process.env.NEXT_PUBLIC_FB_APP_ID || '', // 🎯 Resolve fb:app_id (se tiver)
+    },
   };
 }
 
