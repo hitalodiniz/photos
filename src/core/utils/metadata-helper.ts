@@ -40,25 +40,27 @@ export async function getPhotoMetadata(
       type: 'website', // 🎯 Resolve og:type
       url: photoUrl,   // 🎯 Resolve og:url
       siteName: 'Sua Galeria',
-      images: [
-        { 
-          url: ogImage, 
-          width: 1200, 
-          height: 630, 
-          type: 'image/jpeg' 
-        }
-      ],
+      images: ogImage
+        ? [
+            {
+              url: ogImage,
+              width: 1200,
+              height: 630,
+              type: 'image/jpeg',
+            },
+          ]
+        : [],
     },
     // 🎯 RESOLVE OS ERROS DO DEBUGGER (Tags Explícitas)
-    other: {
-      'og:url': photoUrl,
-      'og:type': 'website',
-      'og:image': ogImage,
-      'og:image:width': '1200',
-      'og:image:height': '630',
-      'og:image:type': 'image/jpeg',
-      'fb:app_id': process.env.NEXT_PUBLIC_FB_APP_ID || '', // 🎯 Resolve fb:app_id
-    }
+    // other: {
+    //   'og:url': photoUrl,
+    //   'og:type': 'website',
+    //   'og:image': ogImage,
+    //   'og:image:width': '1200',
+    //   'og:image:height': '630',
+    //   'og:image:type': 'image/jpeg',
+    //   'fb:app_id': process.env.NEXT_PUBLIC_FB_APP_ID || '', // 🎯 Resolve fb:app_id
+    // }
   };
 }
 
@@ -94,14 +96,16 @@ export async function getPhotographerMetadata(
       type: 'profile', // 🎯 Resolve og:type
       url: profileUrl,  // 🎯 Resolve og:url
       siteName: 'Sua Galeria',
-      images: [
-        {
-          url: ogImage,
-          width: 1200,
-          height: 630,
-          type: 'image/jpeg',
-        },
-      ],
+      images: ogImage
+        ? [
+            {
+              url: ogImage,
+              width: 1200,
+              height: 630,
+              type: 'image/jpeg',
+            },
+          ]
+        : [],
     },
     twitter: {
       card: 'summary_large_image',
@@ -109,15 +113,15 @@ export async function getPhotographerMetadata(
       description,
       images: [ogImage],
     },
-    // 🎯 RESOLVE OS ERROS DO DEBUGGER (Tags Explícitas)
-    other: {
-      'og:url': profileUrl,
-      'og:type': 'profile',
-      'og:image': ogImage,
-      'og:image:width': '1200',
-      'og:image:height': '630',
-      'fb:app_id': process.env.NEXT_PUBLIC_FB_APP_ID || '', // 🎯 Resolve fb:app_id (se tiver)
-    },
+    // // 🎯 RESOLVE OS ERROS DO DEBUGGER (Tags Explícitas)
+    // other: {
+    //   'og:url': profileUrl,
+    //   'og:type': 'profile',
+    //   'og:image': ogImage,
+    //   'og:image:width': '1200',
+    //   'og:image:height': '630',
+    //   'fb:app_id': process.env.NEXT_PUBLIC_FB_APP_ID || '', // 🎯 Resolve fb:app_id (se tiver)
+    // },
   };
 }
 
