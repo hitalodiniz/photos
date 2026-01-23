@@ -39,6 +39,8 @@ import {
   useEffect,
   useState,
   ReactNode,
+  useCallback,
+  useRef,
 } from 'react';
 import { authService } from '@photos/core-auth';
 import LoadingScreen from '../ui/LoadingScreen';
@@ -61,22 +63,36 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   const [avatarUrl, setAvatarUrl] = useState<string | null>(null);
   const [isLoading, setIsLoading] = useState(true);
   const [isLoggingOut, setIsLoggingOut] = useState(false);
+  
+  // Refs para controle de busca do perfil e evitar loops
+  const lastLoadedUserId = useRef<string | null>(null);
+  const isFetchingProfile = useRef<boolean>(false);
 
-  const loadProfile = async (userId: string) => {
+  const loadProfile = useCallback(async (userId: string) => {
+    // 🛡️ MEMOIZAÇÃO: Só busca se o userId mudar ou se não tivermos os dados e não estiver buscando
+    if (isFetchingProfile.current) return;
+    if (lastLoadedUserId.current === userId && (avatarUrl || roles.length > 0)) return;
+
     try {
+      isFetchingProfile.current = true;
+      // console.log('[AuthContext] Buscando perfil para:', userId);
       const profile = await authService.getProfile(userId);
 
       if (!profile) {
         // console.warn('[AuthContext] Perfil não encontrado para userId:', userId);
+        lastLoadedUserId.current = userId; // Marca como tentado para evitar loop
         return;
       }
 
       setAvatarUrl(profile.profile_picture_url || null);
       setRoles(profile.roles || []);
+      lastLoadedUserId.current = userId;
     } catch (error) {
       console.error('[AuthContext] Erro inesperado ao carregar perfil:', error);
+    } finally {
+      isFetchingProfile.current = false;
     }
-  };
+  }, [avatarUrl, roles.length]);
 
   const protectRoute = (redirectTo: string = '/login') => {
     if (!isLoading && !user) {
@@ -121,6 +137,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         setUser(null);
         setAvatarUrl(null);
         setRoles([]);
+        lastLoadedUserId.current = null;
       }
       isLoadingStillTrue = false;
       setIsLoading(false);
@@ -131,6 +148,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       setUser(null);
       setAvatarUrl(null);
       setRoles([]);
+      lastLoadedUserId.current = null;
       isLoadingStillTrue = false;
       setIsLoading(false);
       clearTimeout(timeoutId);
@@ -146,11 +164,8 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     });
 
     const subscription = authService.onAuthStateChange((event, session) => {
-      /* console.log('[AuthContext] Mudança de autenticação:', {
-        event,
-        hasSession: !!session,
-        hasUser: !!session?.user,
-      }); */
+      // 🚀 LOG: Monitora qual evento de auth está sendo disparado
+      // console.log(`[AuthContext] Mudança de autenticação (onAuthStateChange): ${event}`, { userId: session?.user?.id });
 
       // 🎯 TRATAMENTO: Eventos que indicam sessão inválida
       if (event === 'SIGNED_OUT' || (event === 'TOKEN_REFRESHED' && !session)) {
@@ -158,6 +173,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         setUser(null);
         setAvatarUrl(null);
         setRoles([]);
+        lastLoadedUserId.current = null;
         isLoadingStillTrue = false;
         setIsLoading(false);
         clearTimeout(timeoutId);
@@ -181,13 +197,22 @@ export function AuthProvider({ children }: { children: ReactNode }) {
             session.user.user_metadata?.full_name ||
             session.user.email?.split('@')[0],
         };
-        setUser(userData);
+        
+        // Só atualiza o estado se o usuário mudar ou os dados básicos mudarem
+        setUser((prevUser: any) => {
+          if (prevUser?.id === userData.id && prevUser?.email === userData.email) {
+            return prevUser;
+          }
+          return userData;
+        });
+
         loadProfile(session.user.id);
         // console.log('[AuthContext] Usuário atualizado:', userData);
       } else {
         setUser(null);
         setAvatarUrl(null);
         setRoles([]);
+        lastLoadedUserId.current = null;
         // console.log('[AuthContext] Usuário removido');
       }
       isLoadingStillTrue = false;

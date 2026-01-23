@@ -36,6 +36,10 @@ import { getBaseUrl } from '@/lib/get-base-url';
 import { supabase } from '@/lib/supabase.client';
 import { Session } from '@supabase/supabase-js';
 
+// Trava para evitar múltiplos refreshes paralelos
+let isRefreshing = false;
+let refreshPromise: Promise<any> | null = null;
+
 export const authService = {
   // Busca a sessão atual
   async getSession() {
@@ -61,17 +65,33 @@ export const authService = {
           // Se expira em menos de 5 minutos, tenta refresh
           if (expiresIn < 300) {
             // console.log('[authService] Sessão expirando, tentando refresh...');
-            const { data: refreshData, error: refreshError } = await supabase.auth.refreshSession();
             
-            if (refreshError) {
-              // console.error('[authService] Erro ao fazer refresh:', refreshError);
-              // Se o refresh falhar, limpa a sessão
-              if (refreshError.message?.includes('refresh_token') || refreshError.message?.includes('Invalid')) {
-                await supabase.auth.signOut();
-                return null;
+            // 🛡️ TRAVA: Evita múltiplos refreshes em paralelo
+            if (isRefreshing && refreshPromise) {
+              // console.log('[authService] Refresh já em andamento, aguardando...');
+              const result = await refreshPromise;
+              return result.data?.session || null;
+            }
+
+            isRefreshing = true;
+            refreshPromise = supabase.auth.refreshSession();
+            
+            try {
+              const { data: refreshData, error: refreshError } = await refreshPromise;
+              
+              if (refreshError) {
+                // console.error('[authService] Erro ao fazer refresh:', refreshError);
+                // Se o refresh falhar, limpa a sessão
+                if (refreshError.message?.includes('refresh_token') || refreshError.message?.includes('Invalid')) {
+                  await supabase.auth.signOut();
+                  return null;
+                }
+              } else if (refreshData.session) {
+                return refreshData.session;
               }
-            } else if (refreshData.session) {
-              return refreshData.session;
+            } finally {
+              isRefreshing = false;
+              refreshPromise = null;
             }
           }
         }
@@ -97,6 +117,8 @@ export const authService = {
     const {
       data: { subscription },
     } = supabase.auth.onAuthStateChange((event, session) => {
+      // 🚀 LOG: Monitora qual evento de auth está sendo disparado
+      // console.log(`[authService] Evento de auth: ${event}`, { userId: session?.user?.id });
       callback(event, session);
     });
     return subscription;

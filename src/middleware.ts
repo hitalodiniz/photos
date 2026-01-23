@@ -102,16 +102,31 @@ export async function middleware(req: NextRequest) {
     // 3. Verificamos o usuário
     const {
       data: { user },
+      error: authError,
     } = await supabase.auth.getUser();
+
+    if (authError) {
+      // console.error('[Middleware] Erro ao verificar usuário:', authError.message);
+    }
 
     // 4. Se não houver usuário, retornamos o redirecionamento com os cookies atualizados
     if (!user) {
-// Se não houver usuário, redireciona preservando os cookies já setados (como a tentativa de login)
-const redirectUrl = new URL('/', req.url);
-const redirectRes = NextResponse.redirect(redirectUrl);
-// Copia cookies da resposta de auth para a resposta de redirecionamento
-response.cookies.getAll().forEach(c => redirectRes.cookies.set(c.name, c.value, c));
-return redirectRes;
+      // 🚀 LOG: Monitora redirecionamento por falta de usuário
+      // console.log(`[Middleware] Usuário não autenticado em ${pathname}, redirecionando para /`);
+      
+      // Se não houver usuário, redireciona preservando os cookies já setados (como a tentativa de login)
+      const redirectUrl = new URL('/', req.url);
+      const redirectRes = NextResponse.redirect(redirectUrl);
+      // Copia cookies da resposta de auth para a resposta de redirecionamento
+      response.cookies.getAll().forEach(c => redirectRes.cookies.set(c.name, c.value, {
+        path: c.path,
+        domain: c.domain,
+        expires: c.expires,
+        sameSite: c.sameSite,
+        secure: c.secure,
+        httpOnly: c.httpOnly,
+      }));
+      return redirectRes;
     }
     // 5. Se houver usuário, retornamos a resposta de sucesso
     return response;
