@@ -36,8 +36,7 @@ import { getBaseUrl } from '@/lib/get-base-url';
 import { supabase } from '@/lib/supabase.client';
 import { Session } from '@supabase/supabase-js';
 
-// Trava para evitar múltiplos refreshes paralelos
-let isRefreshing = false;
+// Variável global para evitar múltiplos refreshes paralelos
 let refreshPromise: Promise<any> | null = null;
 
 export const authService = {
@@ -66,33 +65,8 @@ export const authService = {
           if (expiresIn < 300) {
             // console.log('[authService] Sessão expirando, tentando refresh...');
             
-            // 🛡️ TRAVA: Evita múltiplos refreshes em paralelo
-            if (isRefreshing && refreshPromise) {
-              // console.log('[authService] Refresh já em andamento, aguardando...');
-              const result = await refreshPromise;
-              return result.data?.session || null;
-            }
-
-            isRefreshing = true;
-            refreshPromise = supabase.auth.refreshSession();
-            
-            try {
-              const { data: refreshData, error: refreshError } = await refreshPromise;
-              
-              if (refreshError) {
-                // console.error('[authService] Erro ao fazer refresh:', refreshError);
-                // Se o refresh falhar, limpa a sessão
-                if (refreshError.message?.includes('refresh_token') || refreshError.message?.includes('Invalid')) {
-                  await supabase.auth.signOut();
-                  return null;
-                }
-              } else if (refreshData.session) {
-                return refreshData.session;
-              }
-            } finally {
-              isRefreshing = false;
-              refreshPromise = null;
-            }
+            const refreshData = await this.refreshSession();
+            return refreshData.data?.session || null;
           }
         }
       }
@@ -129,9 +103,33 @@ export const authService = {
     await supabase.auth.signOut();
   },
 
-  // Refresh manual de sessão
+  // Refresh manual de sessão com trava para evitar loop
   async refreshSession() {
-    return await supabase.auth.refreshSession();
+    // 🛡️ TRAVA: Se já existe um refresh em andamento, retorna a mesma promise
+    if (refreshPromise) {
+      // console.log('[authService] Refresh já em andamento, reutilizando promise...');
+      return refreshPromise;
+    }
+
+    // console.log('[authService] Iniciando refresh de sessão...');
+    refreshPromise = supabase.auth.refreshSession();
+    
+    try {
+      const result = await refreshPromise;
+      
+      if (result.error) {
+        // console.error('[authService] Erro no refresh:', result.error.message);
+        // Se o refresh falhar por token inválido, desloga
+        if (result.error.message?.includes('refresh_token') || result.error.message?.includes('Invalid')) {
+          await supabase.auth.signOut();
+        }
+      }
+      
+      return result;
+    } finally {
+      // 🎯 LIMPEZA: Sempre limpa a variável ao finalizar
+      refreshPromise = null;
+    }
   },
 
   // Busca perfil do usuário logado

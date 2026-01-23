@@ -67,6 +67,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   // Refs para controle de busca do perfil e evitar loops
   const lastLoadedUserId = useRef<string | null>(null);
   const isFetchingProfile = useRef<boolean>(false);
+  const isInitializingAuth = useRef<boolean>(false);
 
   const loadProfile = useCallback(async (userId: string) => {
     // 🛡️ MEMOIZAÇÃO: Só busca se o userId mudar ou se não tivermos os dados e não estiver buscando
@@ -101,6 +102,10 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   };
 
   useEffect(() => {
+    // 🛡️ TRAVA: Evita inicializações duplicadas
+    if (isInitializingAuth.current) return;
+    isInitializingAuth.current = true;
+
     // 🎯 DEBUG: Log inicial
     // console.log('[AuthContext] Inicializando autenticação...');
 
@@ -110,6 +115,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       if (isLoadingStillTrue) {
         console.warn('[AuthContext] Timeout: Forçando isLoading = false após 5s');
         setIsLoading(false);
+        isInitializingAuth.current = false;
       }
     }, 5000);
 
@@ -141,6 +147,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       }
       isLoadingStillTrue = false;
       setIsLoading(false);
+      isInitializingAuth.current = false;
       clearTimeout(timeoutId);
     }).catch((error) => {
       console.error('[AuthContext] Erro ao buscar sessão:', error);
@@ -151,6 +158,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       lastLoadedUserId.current = null;
       isLoadingStillTrue = false;
       setIsLoading(false);
+      isInitializingAuth.current = false;
       clearTimeout(timeoutId);
       
       // Se estiver em rota protegida, redireciona
@@ -164,6 +172,13 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     });
 
     const subscription = authService.onAuthStateChange((event, session) => {
+      // 🛡️ TRAVA: Se já estivermos carregando o perfil ou validando a sessão inicial, ignora eventos redundantes
+      // Exceto SIGNED_OUT, que deve ser processado imediatamente
+      if ((isFetchingProfile.current || isLoadingStillTrue) && event !== 'SIGNED_OUT') {
+        // console.log('[AuthContext] Ignorando evento redundante durante busca de perfil ou validação:', event);
+        return;
+      }
+
       // 🚀 LOG: Monitora qual evento de auth está sendo disparado
       // console.log(`[AuthContext] Mudança de autenticação (onAuthStateChange): ${event}`, { userId: session?.user?.id });
 
@@ -222,11 +237,12 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
     return () => {
       clearTimeout(timeoutId);
+      isInitializingAuth.current = false;
       if (subscription && typeof subscription.unsubscribe === 'function') {
         subscription.unsubscribe();
       }
     };
-  }, []);
+  }, []); // 🎯 Estável: Não re-inscreve se o perfil mudar
 
   const logout = async () => {
     setIsLoggingOut(true);

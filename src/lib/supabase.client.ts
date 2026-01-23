@@ -47,7 +47,7 @@ export const supabase = createBrowserClient(
     cookieOptions: {
       // 🎯 SEM SUBDOMÍNIOS: domain deve ser undefined para permitir que o navegador use o host atual
       // Isso garante que o cookie seja armazenado e enviado corretamente no mesmo domínio
-      domain: process.env.NEXT_PUBLIC_COOKIE_DOMAIN || undefined, // Sempre undefined quando não há subdomínios
+      domain: undefined, // Sempre undefined quando não há subdomínios
       path: '/',
       sameSite: 'lax', // 'lax' é suficiente quando não há redirecionamentos cross-site
       secure: isProduction, // HTTPS obrigatório em produção para PKCE

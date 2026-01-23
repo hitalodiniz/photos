@@ -36,7 +36,7 @@ describe('middleware', () => {
     process.env.NEXT_PUBLIC_SUPABASE_URL = 'https://test.supabase.co';
     process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY = 'test-key';
     process.env.NEXT_PUBLIC_BASE_URL = 'https://test.com';
-    process.env.NEXT_PUBLIC_MAIN_DOMAIN = 'test.com';
+    process.env.NEXT_PUBLIC_MAIN_DOMAIN = undefined;
     process.env.NODE_ENV = 'development';
     
     vi.mocked(createServerClient).mockReturnValue(mockSupabase as any);
