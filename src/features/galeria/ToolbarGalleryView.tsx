@@ -29,6 +29,7 @@ const Tooltip = ({ text }: { text: string }) => (
 
 export const ToolbarGalleryView = ({
   photoId,
+  photoName, // 🎯 Nova prop
   gallerySlug,
   galleryTitle,
   galeria,
@@ -42,6 +43,7 @@ export const ToolbarGalleryView = ({
   onToggleSlideshow,
   showThumbnails = false,
   onToggleThumbnails,
+  isSingleView = false, // 🎯 Nova prop
   hasShownQualityWarning = false, // 🎯 Controlado pelo Lightbox
   onQualityWarningShown, // 🎯 Callback quando o tooltip é mostrado
 }: any) => {
@@ -237,7 +239,7 @@ export const ToolbarGalleryView = ({
     return (
       <div className="w-full flex items-center justify-around" data-mobile-toolbar>
         {/* 1. FAVORITAR */}
-        {showClose && (
+        {showClose && !isSingleView && (
           <button
             onClick={onToggleFavorite}
             className="flex-1 flex items-center justify-center py-3 active:scale-95 transition-all touch-manipulation"
@@ -257,7 +259,7 @@ export const ToolbarGalleryView = ({
         )}
 
         {/* 2. MINIATURAS (Toggle - Estilo Instagram) */}
-        {showClose && onToggleThumbnails && (
+        {showClose && !isSingleView && onToggleThumbnails && (
           <button
             onClick={(e) => {
               e.stopPropagation();
@@ -284,7 +286,7 @@ export const ToolbarGalleryView = ({
         </button>
 
         {/* 4. SLIDESHOW (Play/Pause) */}
-        {showClose && onToggleSlideshow && (
+        {showClose && !isSingleView && onToggleSlideshow && (
           <button
             onClick={onToggleSlideshow}
             className="flex-1 flex items-center justify-center py-3 active:scale-95 transition-all touch-manipulation"
@@ -432,7 +434,7 @@ export const ToolbarGalleryView = ({
             onClick={async () => {
               setIsDownloading(true);
               setShowQualityWarning(false);
-              await handleDownloadPhoto(galeria, photoId, activeIndex);
+              await handleDownloadPhoto(galeria, photoId, activeIndex, photoName);
               setIsDownloading(false);
             }}
             className="flex-1 flex items-center justify-center py-3 active:scale-95 transition-all touch-manipulation relative"
@@ -457,11 +459,11 @@ export const ToolbarGalleryView = ({
         </div>
 
         {/* 6. FECHAR - Botão maior conforme boas práticas de usabilidade */}
-        {showClose && (
+        {showClose && !isSingleView&& (
           <button
             onClick={onClose}
             className="flex-1 flex items-center justify-center py-3 active:scale-95 transition-all touch-manipulation"
-            aria-label="Fechar galeria"
+            aria-label="Fechar"
             style={{
               // Tamanho conforme boas práticas: 60x60px (acima do mínimo de 48x48px)
               minWidth: '60px',
@@ -494,7 +496,7 @@ export const ToolbarGalleryView = ({
       onMouseLeave={() => !isMobile && setIsExpanded(false)}
     >
       {/* 1. FAVORITAR */}
-      {showClose && ( // para nao exibir na visualização unica de foto
+      {showClose && !isSingleView && ( // para nao exibir na visualização unica de foto
         <div className="relative">
           <button
             onClick={onToggleFavorite}
@@ -590,7 +592,7 @@ export const ToolbarGalleryView = ({
       </div>
 
       {/* 4. SLIDESHOW (Play/Pause) - Desktop */}
-      {showClose && onToggleSlideshow && (
+      {showClose && !isSingleView && onToggleSlideshow && (
         <div className="relative">
           <button
             onClick={onToggleSlideshow}
@@ -695,14 +697,14 @@ export const ToolbarGalleryView = ({
       </div>
 
       {/* 5. FECHAR (GALERIA) */}
-      {showClose && (
+      {showClose && !isSingleView && (
         <div className="relative">
           <button
             onClick={onClose}
             onMouseEnter={() => setActiveTooltip('close')}
             onMouseLeave={() => setActiveTooltip(null)}
             className={`flex items-center ${isMobile ? 'flex-1 justify-center py-3' : 'pl-2 shrink-0'} group active:scale-95 transition-all touch-manipulation`}
-            aria-label="Fechar galeria"
+            aria-label="Fechar"
             style={{
               // Garante tamanho mínimo de toque: 44x44px (WCAG) ou 48x48dp (Material Design)
               minWidth: isMobile ? '48px' : 'auto',

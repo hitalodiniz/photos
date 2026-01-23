@@ -91,7 +91,7 @@ const ThumbnailItem = React.forwardRef<HTMLButtonElement, ThumbnailItemProps>(
     // Garantir que photoId não seja vazio
     const validPhotoId = photoId ? String(photoId) : '';
     
-    const { imgSrc, isLoading, handleError, handleLoad } = useGoogleDriveImage({
+    const { imgSrc, isLoading, handleError, handleLoad, imgRef } = useGoogleDriveImage({
       photoId: validPhotoId,
       width: '300', // Resolução mínima para miniaturas (otimiza cache e performance)
       priority: index < 10, // Prioriza as primeiras 10
@@ -126,6 +126,7 @@ const ThumbnailItem = React.forwardRef<HTMLButtonElement, ThumbnailItemProps>(
             </div>
           ) : imgSrc ? (
             <img
+              ref={imgRef}
               src={imgSrc}
               alt={`Miniatura ${index + 1}`}
               className="w-full h-full object-cover"

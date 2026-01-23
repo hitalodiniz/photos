@@ -8,6 +8,7 @@ import { handleDownloadPhoto } from '@/core/utils/foto-helpers';
 
 interface VerticalActionBarProps {
   photoId: string | number;
+  photoName?: string; // 🎯 Nova prop
   gallerySlug: string;
   galleryTitle: string;
   galeria: any;
@@ -24,6 +25,7 @@ interface VerticalActionBarProps {
 
 export function VerticalActionBar({
   photoId,
+  photoName, // 🎯 Nova prop
   gallerySlug,
   galleryTitle,
   galeria,
@@ -298,7 +300,7 @@ export function VerticalActionBar({
             e.stopPropagation();
             setIsDownloading(true);
             setShowQualityWarning(false);
-            await handleDownloadPhoto(galeria, photoId, activeIndex);
+            await handleDownloadPhoto(galeria, photoId, activeIndex, photoName);
             setIsDownloading(false);
           }}
           className="w-12 h-12 rounded-full flex items-center justify-center transition-all group relative"

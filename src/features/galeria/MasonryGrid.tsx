@@ -21,6 +21,7 @@ import { useSupabaseSession, authService } from '@photos/core-auth';
 // --- MASONRY GRID PRINCIPAL ---
 interface Photo {
   id: string;
+  name: string;
   url: string;
   width: number;
   height: number;
@@ -204,7 +205,7 @@ const MasonryGrid = ({
                           onShareWhatsApp={() => handleShareWhatsAppGrid(photo.id)}
                           onNativeShare={() => handleNativeShareGrid(photo.id)}
                           onCopyLink={() => handleCopyLinkGrid(photo.id)}
-                          onDownload={() => handleDownloadPhoto(galeria, photo.id, index)}
+                          onDownload={() => handleDownloadPhoto(galeria, photo.id, index, photo.name)}
                           btnScale={btnScale}
                           iconSize={iconSize}
                           isMobile={isMobile}

@@ -1,6 +1,13 @@
 import { saveAs } from 'file-saver';
 import { Galeria } from '@/core/types/galeria';
-import { getDirectGoogleUrl, getDownloadDirectGoogleUrl, getHighResImageUrl, getProxyUrl, RESOLUTIONS } from './url-helper';
+import { 
+  getDirectGoogleUrl, 
+  getDownloadDirectGoogleUrl, 
+  getHighResImageUrl, 
+  getProxyUrl, 
+  RESOLUTIONS,
+  TAMANHO_MAXIMO_FOTO_SEM_COMPACTAR
+} from './url-helper';
 
 const getFormattedDateFromSlug = (slug: string) => {
   try {
@@ -27,17 +34,28 @@ export const handleDownloadPhoto = async (
   galeria: Galeria,
   photoId: string | number,
   index: number,
+  originalName?: string,
 ) => {
   try {
     // 1. Lógica de nomeação
-    const dateStr = getFormattedDateFromSlug(galeria.slug);
-    const eventName = galeria.slug.split('/').pop() || 'galeria';
-    const fileName = `foto_${index + 1}_${dateStr}_${eventName}.jpg`;
+    let fileName: string;
+    const shouldRename = galeria.rename_files_sequential === true || galeria.rename_files_sequential === 'true';
+    
+    if (shouldRename) {
+      fileName = `foto-${index + 1}.jpg`;
+    } else {
+      // Prioriza o nome original do arquivo, removendo a extensão para garantir o .jpg final
+      const cleanOriginalName = originalName 
+        ? originalName.replace(/\.[^/.]+$/, "") 
+        : `foto_${index + 1}`;
+        
+      fileName = `${cleanOriginalName}.jpg`;
+    }
 
     // 2. 🎯 ESTRATÉGIA DE DOWNLOAD COM LIMITE DE 2MB:
     // Usa resolução que garante arquivo abaixo de 2MB (1920px geralmente fica ~800KB-1.5MB)
     // Primeiro tenta direto no Google, se falhar usa Proxy API
-    const directUrl = getDownloadDirectGoogleUrl(photoId, RESOLUTIONS.ULTRA_DOWNLOAD);
+    const directUrl = getDownloadDirectGoogleUrl(photoId, RESOLUTIONS.DOWNLOAD);
    //const directUrl = getHighResImageUrl(photoId); USADA PARA TESTE COM PROXY
     let usingProxy = false;
 
@@ -129,4 +147,19 @@ export const groupPhotosByWeight = (
   }
 
   return chunks;
+};
+
+/**
+ * Estima o tamanho de download de uma foto em bytes.
+ * Padronizado para refletir o tamanho de um JPEG de 2560px (~1.0MB).
+ */
+export const estimatePhotoDownloadSize = (photo: any): number => {
+  const sizeInBytes = Number(photo.size) || 0;
+  const TARGET_ESTIMATE = 1.0 * 1024 * 1024; // 1.0MB é uma média segura para JPEG 2560px
+  
+  if (sizeInBytes > 0 && sizeInBytes <= TARGET_ESTIMATE) {
+    return sizeInBytes;
+  }
+  
+  return TARGET_ESTIMATE;
 };

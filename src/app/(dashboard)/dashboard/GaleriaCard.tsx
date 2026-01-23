@@ -116,7 +116,7 @@ export default function GaleriaCard({
 
   const hasClientInfo = galeria.client_name && galeria.client_name !== 'Cobertura';
 
-  const { imgSrc: imageUrl, handleError, handleLoad } = useGoogleDriveImage({
+  const { imgSrc: imageUrl, handleError, handleLoad, imgRef } = useGoogleDriveImage({
     photoId: galeria.cover_image_url || '',
     width: RESOLUTIONS.THUMB,
     priority: index < 4,
@@ -125,9 +125,9 @@ export default function GaleriaCard({
   });
 
   // Função para unificar o load da imagem
-  const onImageLoad = () => {
+  const onImageLoad = (e: any) => {
     setIsImageLoading(false);
-    handleLoad();
+    handleLoad(e);
   };
 
   const handleCopy = async (e: React.MouseEvent) => {
@@ -202,6 +202,7 @@ export default function GaleriaCard({
             </div>
           )}
           <img
+            ref={imgRef}
             src={imageUrl}
             alt={galeria.title}
             loading={index < 4 ? 'eager' : 'lazy'}
@@ -364,6 +365,7 @@ export default function GaleriaCard({
         )}
 
         <img
+          ref={imgRef}
           src={imageUrl}
           alt={galeria.title}
           loading={index < 4 ? 'eager' : 'lazy'}

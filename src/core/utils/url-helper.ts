@@ -252,11 +252,10 @@ export const getResponsiveHighResUrl = (
 
 /**
  * 📥 URL DE DOWNLOAD
- * Agora aponta para a rota que entrega o "Original Otimizado" (Teto de 1MB).
+ * Agora aponta para a rota que entrega o "Original Otimizado" (Teto de 2MB).
  */
 export const getDownloadUrl = (photoId: string | number) => {
-  //return `/api/galeria/download/${photoId}`;
-  return getDirectGoogleUrl(photoId, RESOLUTIONS.DESKTOP_VIEW);
+  return getDownloadDirectGoogleUrl(photoId, RESOLUTIONS.DOWNLOAD);
 };
 
 /**
@@ -297,7 +296,6 @@ export const getDownloadDirectGoogleUrl = (
 ) => {
   if (!photoId) return '';
   // Usamos o domínio lh3.googleusercontent.com que aceita CORS e redimensionamento
-  // O parâmetro -rw força o formato WebP
   return `https://lh3.googleusercontent.com/d/${photoId}=w${width}`;
 };
 

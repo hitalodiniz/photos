@@ -130,6 +130,15 @@ export default function GaleriaFormContent({
     return true; // Padrão: WhatsApp obrigatório se habilitado
   });
 
+  const [renameFilesSequential, setRenameFilesSequential] = useState(() => {
+    if (initialData)
+      return (
+        initialData.rename_files_sequential === true ||
+        initialData.rename_files_sequential === 'true'
+      );
+    return true; // Padrão: Habilitado
+  });
+
   // 🎯 Lógica para garantir pelo menos um campo obrigatório na captura de leads
   const toggleLeadField = (field: 'name' | 'email' | 'whatsapp') => {
     const activeFields = [
@@ -360,7 +369,7 @@ export default function GaleriaFormContent({
   };
 
   // Preview de capa
-  const { imgSrc: coverPreviewUrl } = useGoogleDriveImage({
+  const { imgSrc: coverPreviewUrl, imgRef, handleLoad, handleError } = useGoogleDriveImage({
     photoId: driveData.coverId || driveData.id || '',
     width: '400',
     priority: false,
@@ -445,6 +454,11 @@ export default function GaleriaFormContent({
         name="leads_require_whatsapp"
         data-testid="leads_require_whatsapp"
         value={String(leadsRequireWhatsapp)}
+      />
+      <input
+        type="hidden"
+        name="rename_files_sequential"
+        value={String(renameFilesSequential)}
       />
       </div>
 
@@ -971,7 +985,10 @@ export default function GaleriaFormContent({
             <div className="relative aspect-[16/9] w-full overflow-hidden rounded-luxury bg-slate-100 border border-petroleum/40">
               {coverPreviewUrl ? (
                 <img
+                  ref={imgRef}
                   src={coverPreviewUrl}
+                  onLoad={handleLoad}
+                  onError={handleError}
                   alt="Preview da capa"
                   className="w-full h-full object-contain"
                 />
@@ -981,6 +998,28 @@ export default function GaleriaFormContent({
                 </div>
               )}
             </div>
+          </div>
+
+          {/* Subseção 3: Renomear Arquivos */}
+          <div className="space-y-3 pt-4 border-t border-petroleum/40">
+            <div className="flex items-center justify-between">
+              <label className="text-[10px] font-semibold uppercase tracking-widest text-petroleum flex items-center gap-1.5">
+                <ImageIcon size={12} strokeWidth={2} className="inline" />
+                Renomear fotos (foto-001...)
+              </label>
+              <button
+                type="button"
+                onClick={() => setRenameFilesSequential(!renameFilesSequential)}
+                className={`relative h-5 w-9 rounded-full transition-colors duration-200 ${renameFilesSequential ? 'bg-gold' : 'bg-slate-200'}`}
+              >
+                <span
+                  className={`absolute top-0.5 left-0.5 h-4 w-4 rounded-full bg-white shadow-sm transition-transform duration-200 ${renameFilesSequential ? 'translate-x-4' : ''}`}
+                />
+              </button>
+            </div>
+            <p className="text-[10px] text-petroleum/60 dark:text-slate-400 italic leading-tight">
+              Padroniza o nome das fotos para "foto-1.jpg", "foto-2.jpg", etc, facilitando a organização do cliente.
+            </p>
           </div>
         </div>
 

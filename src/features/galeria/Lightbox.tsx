@@ -15,6 +15,7 @@ import { VerticalActionBar } from './VerticalActionBar';
 
 interface Photo {
   id: string | number;
+  name?: string;
 }
 
 interface LightboxProps {
@@ -183,6 +184,7 @@ export default function Lightbox({
     handleError,
     handleLoad,
     usingProxy,
+    imgRef,
   } = useGoogleDriveImage({
     photoId: String(photoId || ''),
     width: imageWidth,
@@ -348,7 +350,7 @@ img.src = imgSrc;
       )}
 
       {/* 🎯 BARRA DE AÇÕES VERTICAL (Desktop - lado direito, próxima das miniaturas) */}
-      {!isSingleView && !isMobile && (
+      {!isMobile && (
         <div
           className={`transition-all duration-700 ${
             showInterface ? 'opacity-100' : 'opacity-0 pointer-events-none'
@@ -356,6 +358,7 @@ img.src = imgSrc;
         >
           <VerticalActionBar
             photoId={currentPhoto.id}
+            photoName={currentPhoto.name} // 🎯 Passando o nome original
             gallerySlug={galeria.slug}
             galleryTitle={galleryTitle}
             galeria={galeria}
@@ -477,7 +480,7 @@ img.src = imgSrc;
           </div>
 
           {/* Toolbar Desktop: Apenas botão Fechar */}
-          {!isSingleView && onClose && (
+          {onClose && (
             <div className="hidden md:flex w-auto justify-end shrink-0 z-[310]">
               <button
                 onClick={onClose}
@@ -528,6 +531,7 @@ img.src = imgSrc;
           */}
           <img
             key={`${photoId}-${usingProxy}`}
+            ref={imgRef}
             src={imgSrc}
             onLoad={handleLoad}
             onError={handleError}
@@ -560,6 +564,7 @@ img.src = imgSrc;
           <div className="flex items-center justify-around px-2 py-3" style={{ overflow: 'visible' }}>
             <ToolbarGalleryView
               photoId={currentPhoto.id}
+              photoName={currentPhoto.name} // 🎯 Passando o nome original
               gallerySlug={galeria.slug}
               galleryTitle={galleryTitle}
               galeria={galeria}
@@ -567,7 +572,8 @@ img.src = imgSrc;
               isFavorited={isFavorited}
               onToggleFavorite={() => onToggleFavorite(String(currentPhoto.id))}
               onClose={onClose}
-              showClose={!isSingleView}
+              showClose={true}
+              isSingleView={isSingleView}
               closeLabel="Fechar"
               isMobile={true}
               isSlideshowActive={isSlideshowActive}

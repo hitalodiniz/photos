@@ -17,7 +17,7 @@ export function PublicGaleriaCard({ galeria }: { galeria: Galeria }) {
   const [mounted, setMounted] = useState(false);
   
   // 🎯 FALLBACK: Tenta Google direto, se falhar usa Proxy
-  const { imgSrc: imageUrl } = useGoogleDriveImage({
+  const { imgSrc: imageUrl, imgRef, handleLoad, handleError } = useGoogleDriveImage({
     photoId: galeria.cover_image_url || '',
     width: RESOLUTIONS.THUMB, // 600px
     priority: false,
@@ -65,8 +65,11 @@ export function PublicGaleriaCard({ galeria }: { galeria: Galeria }) {
       {/* Container da Imagem */}
       <div className="relative aspect-[1] overflow-hidden border-b border-white/5">
         <img
+          ref={imgRef}
           src={imageUrl}
           alt={galeria.title}
+          onLoad={handleLoad}
+          onError={handleError}
           loading="lazy"
           className="h-full w-full object-cover transition-transform duration-1000 ease-out group-hover:scale-110 opacity-90 group-hover:opacity-100"
         />

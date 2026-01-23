@@ -43,10 +43,11 @@ describe('auth.actions.ts - Testes Unitários', () => {
 
       const mockQueryBuilder = {
         from: vi.fn().mockReturnThis(),
-        insert: vi.fn().mockReturnThis(),
+        insert: vi.fn().mockResolvedValue({ error: null }),
         select: vi.fn().mockReturnThis(),
+        eq: vi.fn().mockReturnThis(),
         single: vi.fn().mockResolvedValue({ 
-          data: { tb_galerias: { user_id: 'user-456' } }, 
+          data: { user_id: 'user-456' }, 
           error: null 
         }),
       };
@@ -56,6 +57,7 @@ describe('auth.actions.ts - Testes Unitários', () => {
       const result = await captureLeadAction(mockGaleriaId, leadData);
 
       expect(result.success).toBe(true);
+      expect(mockQueryBuilder.from).toHaveBeenCalledWith('tb_galerias');
       expect(mockQueryBuilder.from).toHaveBeenCalledWith('tb_galeria_leads');
       expect(mockQueryBuilder.insert).toHaveBeenCalledWith([
         {
@@ -82,10 +84,11 @@ describe('auth.actions.ts - Testes Unitários', () => {
 
       const mockQueryBuilder = {
         from: vi.fn().mockReturnThis(),
-        insert: vi.fn().mockReturnThis(),
+        insert: vi.fn().mockResolvedValue({ error: null }),
         select: vi.fn().mockReturnThis(),
+        eq: vi.fn().mockReturnThis(),
         single: vi.fn().mockResolvedValue({ 
-          data: { tb_galerias: { user_id: 'user-456' } }, 
+          data: { user_id: 'user-456' }, 
           error: null 
         }),
       };
@@ -112,23 +115,14 @@ describe('auth.actions.ts - Testes Unitários', () => {
 
       const mockQueryBuilder = {
         from: vi.fn().mockReturnThis(),
-        insert: vi.fn().mockReturnThis(),
+        insert: vi.fn().mockResolvedValue({ error: { message: 'duplicate key', code: '23505' } }),
         select: vi.fn().mockReturnThis(),
-        single: vi.fn(),
         eq: vi.fn().mockReturnThis(),
+        single: vi.fn().mockResolvedValue({ 
+          data: { user_id: 'user-456' }, 
+          error: null 
+        }),
       };
-
-      // Simula falha na inserção com 23505
-      mockQueryBuilder.single
-        .mockResolvedValueOnce({ 
-          data: null, 
-          error: { message: 'duplicate key', code: '23505' } 
-        })
-        // Simula busca do dono da galeria
-        .mockResolvedValueOnce({
-          data: { user_id: 'user-456' },
-          error: null
-        });
 
       vi.mocked(supabaseServer.createSupabaseServerClient).mockResolvedValue(mockQueryBuilder as any);
 
@@ -149,11 +143,12 @@ describe('auth.actions.ts - Testes Unitários', () => {
     it('deve retornar erro se falhar ao inserir o lead com outro erro', async () => {
       const mockQueryBuilder = {
         from: vi.fn().mockReturnThis(),
-        insert: vi.fn().mockReturnThis(),
+        insert: vi.fn().mockResolvedValue({ error: { message: 'DB Error', code: '500' } }),
         select: vi.fn().mockReturnThis(),
+        eq: vi.fn().mockReturnThis(),
         single: vi.fn().mockResolvedValue({ 
-          data: null, 
-          error: { message: 'DB Error', code: '500' } 
+          data: { user_id: 'user-456' }, 
+          error: null 
         }),
       };
 

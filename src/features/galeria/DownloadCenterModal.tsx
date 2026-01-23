@@ -11,6 +11,7 @@ import {
 } from 'lucide-react';
 
 import BaseModal from '@/components/ui/BaseModal';
+import { estimatePhotoDownloadSize } from '@/core/utils/foto-helpers';
 
 interface DownloadCenterProps {
   isOpen: boolean;
@@ -102,7 +103,12 @@ export const DownloadCenterModal = ({
         {favoriteVolumes.length > 0 &&
           favoriteVolumes.map((favChunk, index) => {
             const isCurrent = activeDownloadingIndex === `fav-${index}`;
-            const sizeMB = favChunk.length * 1.2;
+            const sizeMB =
+              favChunk.reduce(
+                (acc, photo) => acc + estimatePhotoDownloadSize(photo),
+                0,
+              ) /
+              (1024 * 1024);
 
             return (
               <button
@@ -179,7 +185,12 @@ export const DownloadCenterModal = ({
         {volumes.map((chunk, i) => {
           const isDownloaded = downloadedVolumes.includes(i);
           const isCurrent = activeDownloadingIndex === i;
-          const sizeMB = chunk.length * 1.2;
+          const sizeMB =
+            chunk.reduce(
+              (acc, photo) => acc + estimatePhotoDownloadSize(photo),
+              0,
+            ) /
+            (1024 * 1024);
 
           return (
             <button

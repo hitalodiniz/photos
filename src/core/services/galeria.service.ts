@@ -164,6 +164,7 @@ export async function createGaleria(
       leads_require_name: formData.get('leads_require_name') === 'true',
       leads_require_email: formData.get('leads_require_email') === 'true',
       leads_require_whatsapp: formData.get('leads_require_whatsapp') === 'true',
+      rename_files_sequential: formData.get('rename_files_sequential') === 'true',
 
       // Senha inicial (se houver)
       password:
@@ -268,6 +269,7 @@ export async function updateGaleria(
       leads_require_name: formData.get('leads_require_name') === 'true',
       leads_require_email: formData.get('leads_require_email') === 'true',
       leads_require_whatsapp: formData.get('leads_require_whatsapp') === 'true',
+      rename_files_sequential: formData.get('rename_files_sequential') === 'true',
     };
 
     // 2. Validação básica de integridade

@@ -18,8 +18,17 @@ export async function captureLeadAction(
 
     const supabase = await createSupabaseServerClient();
 
-    // 2. Salva o lead no banco
-    const { data: insertedLead, error: leadError } = await supabase
+    // 2. Busca o dono da galeria ANTES para evitar RLS no retorno do insert e para revalidação
+    const { data: galeriaOwner } = await supabase
+      .from('tb_galerias')
+      .select('user_id')
+      .eq('id', galeriaId)
+      .single();
+    
+    const ownerId = galeriaOwner?.user_id;
+
+    // 3. Salva o lead no banco
+    const { error: leadError } = await supabase
       .from('tb_galeria_leads')
       .insert([
         {
@@ -28,24 +37,15 @@ export async function captureLeadAction(
           email: data.email || null,
           whatsapp: cleanWhatsapp,
         },
-      ])
-      .select('galeria_id, tb_galerias!galeria_id(user_id)')
-      .single();
+      ]);
 
-    // 3. Tratamento de deduplicação inteligente (erro 23505 = unique_violation)
+    // 4. Tratamento de deduplicação inteligente (erro 23505 = unique_violation, 42501 = RLS violation que esconde unique)
     if (leadError) {
-      if (leadError.code === '23505') {
-        console.log(`[captureLeadAction] Lead já existente (deduplicado): ${data.email || cleanWhatsapp}`);
+      if (leadError.code === '23505' || leadError.code === '42501') {
+        console.log(`[captureLeadAction] Lead já existente ou bloqueado por RLS (deduplicado): ${data.email || cleanWhatsapp}`);
         
-        // Para revalidar o cache mesmo em duplicidade, precisamos do userId do dono da galeria
-        const { data: galeriaOwner } = await supabase
-          .from('tb_galerias')
-          .select('user_id')
-          .eq('id', galeriaId)
-          .single();
-        
-        if (galeriaOwner?.user_id) {
-          revalidateTag(`user-galerias-${galeriaOwner.user_id}`);
+        if (ownerId) {
+          revalidateTag(`user-galerias-${ownerId}`);
         }
       } else {
         console.error('[captureLeadAction] Erro ao salvar lead:', leadError);
@@ -54,14 +54,13 @@ export async function captureLeadAction(
           error: `Erro ao salvar dados: ${leadError.message} (${leadError.code})` 
         };
       }
-    } else if (insertedLead?.tb_galerias?.user_id) {
+    } else if (ownerId) {
       // SUCESSO: Revalida o cache do dashboard do fotógrafo para atualizar o leads_count
-      const userId = insertedLead.tb_galerias.user_id;
-      console.log(`[captureLeadAction] Revalidando cache para userId: ${userId}`);
-      revalidateTag(`user-galerias-${userId}`);
+      console.log(`[captureLeadAction] Revalidando cache para userId: ${ownerId}`);
+      revalidateTag(`user-galerias-${ownerId}`);
     }
 
-    // 4. Define o cookie de acesso (válido por 24h)
+    // 5. Define o cookie de acesso (válido por 24h)
     const cookieStore = await cookies();
     cookieStore.set(`galeria-${galeriaId}-lead`, 'captured', {
       path: '/',
@@ -73,7 +72,7 @@ export async function captureLeadAction(
 
     return { 
       success: true, 
-      message: leadError?.code === '23505' ? 'Reconhecido' : undefined 
+      message: (leadError?.code === '23505' || leadError?.code === '42501') ? 'Reconhecido' : undefined 
     };
   } catch (error) {
     console.error('[captureLeadAction] Erro crítico:', error);

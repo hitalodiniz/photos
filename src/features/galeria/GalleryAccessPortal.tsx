@@ -100,10 +100,25 @@ export default function GalleryAccessPortal({
           });
         }
         
-        if (galeria.leads_require_whatsapp === true && (!data.whatsapp || data.whatsapp.trim().length === 0)) {
+        const whatsappDigits = data.whatsapp.replace(/\D/g, '');
+        if (galeria.leads_require_whatsapp === true) {
+          if (!whatsappDigits || whatsappDigits.length === 0) {
+            ctx.addIssue({
+              code: z.ZodIssueCode.custom,
+              message: "WhatsApp é obrigatório",
+              path: ["whatsapp"],
+            });
+          } else if (whatsappDigits.length < 10) {
+            ctx.addIssue({
+              code: z.ZodIssueCode.custom,
+              message: "Número incompleto",
+              path: ["whatsapp"],
+            });
+          }
+        } else if (whatsappDigits.length > 0 && whatsappDigits.length < 10) {
           ctx.addIssue({
             code: z.ZodIssueCode.custom,
-            message: "WhatsApp é obrigatório",
+            message: "Número incompleto",
             path: ["whatsapp"],
           });
         }
@@ -316,6 +331,7 @@ export default function GalleryAccessPortal({
                           value={formData.whatsapp}
                           onChange={(e) => setFormData({ ...formData, whatsapp: maskPhone(e) })}
                           placeholder="(00) 00000-0000"
+                          maxLength={15}
                           className={`w-full bg-white border ${errors.whatsapp ? 'border-red-500/50' : 'border-petroleum/20'} rounded-luxury px-4 h-11 text-petroleum text-sm outline-none focus:border-gold transition-all placeholder:text-petroleum/30`}
                         />
                         {errors.whatsapp && <p className="text-red-500/80 text-[9px] uppercase font-semibold">{errors.whatsapp}</p>}

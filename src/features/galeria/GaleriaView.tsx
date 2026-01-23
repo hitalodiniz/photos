@@ -1,7 +1,6 @@
 'use client';
 import React, { useState, useEffect } from 'react';
 import type { Galeria } from '@/core/types/galeria';
-import LoadingScreen from '@/components/ui/LoadingScreen';
 import GaleriaFooter from './GaleriaFooter';
 import { RESOLUTIONS } from '@/core/utils/url-helper';
 import { useGoogleDriveImage } from '@/hooks/useGoogleDriveImage';
@@ -15,17 +14,10 @@ interface GaleriaViewProps {
 }
 
 export default function GaleriaView({ galeria, photos }: GaleriaViewProps) {
-  const [isLoading, setIsLoading] = useState(true);
   const isMobile = useIsMobile();
 
   const showCover = galeria.show_cover_in_grid ?? true;
   const bgColor = galeria.grid_bg_color ?? '#F9F5F0';
-
-  useEffect(() => {
-    // 🎯 O Portal de Acesso agora é gerenciado pelo servidor (GaleriaBasePage)
-    // para garantir segurança total.
-    setIsLoading(false);
-  }, [galeria.id]);
 
   // 🎯 ESTRATÉGIA DE FALLBACK: Usa hook useGoogleDriveImage que já implementa fallback
   // Usa constantes RESOLUTIONS para manter consistência
@@ -38,7 +30,8 @@ const {
   imgSrc: coverUrl, 
   handleLoad, 
   handleError,
-  isLoading: isCoverLoading // Renomeado para não conflitar com o loading da página
+  isLoading: isCoverLoading, // Renomeado para não conflitar com o loading da página
+  imgRef,
 } = useGoogleDriveImage({
   photoId: galeria.cover_image_url || '',
   width: coverResolution,
@@ -51,8 +44,6 @@ const {
       className="relative min-h-screen font-sans"
       style={{ backgroundColor: bgColor }}
     >
-      <LoadingScreen fadeOut={!isLoading} message="Carregando fotos" />
-
       {/* 1. BACKGROUND LAYER */}
       <div className="fixed inset-0 z-0 overflow-hidden pointer-events-none">
         {showCover ? (
@@ -83,7 +74,7 @@ const {
 
       {/* 2. CONTENT LAYER */}
       <div
-        className={`relative z-10 transition-opacity duration-1000 ${isLoading ? 'opacity-0' : 'opacity-100'}`}
+        className="relative z-10 transition-opacity duration-1000 opacity-100"
       >
         {/* MAIN GRID */}
         <main className="relative z-30 max-w-[1600px] mx-auto">
@@ -103,6 +94,7 @@ const {
 {/* 🎯 TAG OCULTA: Essencial para o hook monitorar o erro/sucesso do Google */}
       {coverUrl && (
         <img
+          ref={imgRef}
           src={coverUrl}
           alt=""
           className="hidden"
