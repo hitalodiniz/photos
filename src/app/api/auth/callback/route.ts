@@ -50,6 +50,11 @@ export async function GET(request: Request) {
 
   const isProduction = process.env.NODE_ENV === 'production';
 
+  // 🎯 CONSISTÊNCIA: Usa o mesmo domínio do cliente e do servidor
+  // Se NEXT_PUBLIC_COOKIE_DOMAIN estiver configurado (ex: para subdomínios), usamos ele.
+  // Caso contrário, usamos undefined (padrão seguro para domínio único).
+  const finalCookieDomain = process.env.NEXT_PUBLIC_COOKIE_DOMAIN || undefined;
+
   // 🎯 CRÍTICO: Lê todos os cookies ANTES de criar o cliente Supabase
   // Isso força o Next.js a ler os cookies do request, incluindo o code verifier
   const allCookies = cookieStore.getAll();
@@ -86,11 +91,6 @@ export async function GET(request: Request) {
     });
   }
   
-  // 🎯 CONSISTÊNCIA: Usa o mesmo domínio do cliente e do servidor
-  // Se NEXT_PUBLIC_COOKIE_DOMAIN estiver configurado (ex: para subdomínios), usamos ele.
-  // Caso contrário, usamos undefined (padrão seguro para domínio único).
-  const finalCookieDomain = process.env.NEXT_PUBLIC_COOKIE_DOMAIN || undefined;
-
   const supabase = createServerClient(
     process.env.NEXT_PUBLIC_SUPABASE_URL!,
     process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!,

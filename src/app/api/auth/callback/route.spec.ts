@@ -147,7 +147,7 @@ describe('GET /api/auth/callback', () => {
       'value',
       expect.objectContaining({
         secure: true,
-        domain: undefined, // Sempre undefined quando não há subdomínios
+        domain: '.test.com', // Agora segue o configurado no beforeEach
       }),
     );
   });

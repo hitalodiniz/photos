@@ -4,6 +4,7 @@ import {
   ChevronRight,
   X,
   Camera,
+  ArrowLeft,
 } from 'lucide-react';
 import type { ViewType } from '../hooks/useDashboardFilters';
 import VersionInfo from '@/components/dashboard/VersionInfo';
@@ -75,9 +76,9 @@ export default function Sidebar({
         {!isSidebarCollapsed && (
           <button
             onClick={toggleSidebar}
-            className="lg:hidden absolute top-4 -right-12 p-2 bg-gold text-black rounded-luxury shadow-xl z-[130]"
+            className="lg:hidden absolute top-4 -right-4 p-2 bg-gold text-black rounded-full shadow-xl z-[130]"
           >
-            <X size={20} />
+            <ArrowLeft size={20} />
           </button>
         )}
 

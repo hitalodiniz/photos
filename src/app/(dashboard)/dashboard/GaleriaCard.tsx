@@ -105,7 +105,13 @@ export default function GaleriaCard({
 
   const formatPhone = (phone: string | null | undefined) => {
     if (!phone) return '';
-    const cleaned = phone.replace(/\D/g, '');
+    let cleaned = phone.replace(/\D/g, '');
+    
+    // 🎯 Se começar com 55 e tiver 12 ou 13 dígitos, remove o DDI
+    if (cleaned.startsWith('55') && (cleaned.length === 12 || cleaned.length === 13)) {
+      cleaned = cleaned.substring(2);
+    }
+
     if (cleaned.length === 11) {
       return cleaned.replace(/(\d{2})(\d{5})(\d{4})/, '($1) $2-$3');
     } else if (cleaned.length === 10) {
@@ -166,7 +172,7 @@ export default function GaleriaCard({
             window.open(links.url, '_blank');
           }
         }}
-        className={`group relative flex items-center gap-4 overflow-hidden rounded-luxury border border-petroleum/40 bg-white p-3 transition-all duration-300 w-full animate-in fade-in slide-in-from-bottom-2 duration-500 fill-mode-both hover:border-petroleum/70 ${
+        className={`group relative flex items-center gap-4 overflow-hidden rounded-luxury border border-petroleum/40 bg-white p-3 transition-all w-full animate-in fade-in slide-in-from-bottom-2 duration-500 fill-mode-both hover:border-petroleum/70 ${
           isBulkMode ? 'cursor-default' : 'cursor-pointer'
         } ${isSelected && isBulkMode ? 'ring-2 ring-gold border-gold' : ''}`}
         style={{ animationDelay: `${index * 30}ms` }}
@@ -223,7 +229,7 @@ export default function GaleriaCard({
             </h3>
             {/* Metadados em uma linha */}
             <div className="flex flex-col gap-1.5 w-full">
-              <div className={`flex items-center gap-1.5 text-[11px] justify-end ${hasClientInfo ? 'text-editorial-gray' : 'invisible h-[15px]'}`}>
+              <div className={`flex items-center gap-1.5 text-[11px] justify-start ${hasClientInfo ? 'text-editorial-gray' : 'invisible h-[15px]'}`}>
                 <User size={11} className="text-editorial-gray shrink-0" />
                 <span className="font-medium text-editorial-gray">{galeria.client_name || 'Placeholder'}</span>
                 {galeria.client_whatsapp && (
@@ -240,7 +246,8 @@ export default function GaleriaCard({
                     {galeria.location}
                   </span>
                 )}
-                <span className="flex items-center gap-1 ml-auto">
+                {galeria.location && <span className="text-editorial-gray/40">•</span>}
+                <span className="flex items-center gap-1">
                   <Calendar size={11} className="text-editorial-gray" />
                   {formatDateSafely(galeria.date)}
                 </span>
@@ -270,7 +277,7 @@ export default function GaleriaCard({
                     }
                   }}
                   disabled={isUpdating || isNavigating}
-                  className="p-3 md:p-2 text-editorial-gray bg-white border border-petroleum/40 rounded-luxury interactive-luxury-petroleum  shadow-sm disabled:opacity-50"
+                  className="p-2 text-petroleum bg-white border border-petroleum/40 rounded-luxury interactive-luxury-petroleum disabled:opacity-50"
                   title="Editar"
                 >
                   <Pencil size={16} />
@@ -278,30 +285,28 @@ export default function GaleriaCard({
                 {mounted && (
                   <button
                     onClick={handleCopy}
-                    className="p-3 md:p-2 text-editorial-gray bg-white border border-petroleum/40 rounded-luxury interactive-luxury-petroleum  shadow-sm transition-all flex items-center justify-center min-w-[40px]"
+                    className="p-2 text-petroleum bg-white border border-petroleum/40 rounded-luxury interactive-luxury-petroleum transition-all flex items-center justify-center"
                     title="Copiar link da galeria"
                   >
                     {copied ? (
                       <Check size={16} className="text-green-500 animate-in zoom-in duration-300" />
                     ) : (
-                      <Link2 size={16} className="text-editorial-gray" />
+                      <Link2 size={16} />
                     )}
                   </button>
                 )}
-                {/* 🎯 Lead Report - Link para a nova página com Loading */}
-                {(galeria.leads_enabled || (galeria.leads_count ?? 0) > 0) && (
-                  <button
-                    onClick={(e) => {
-                      e.stopPropagation();
-                      navigate(`/dashboard/galerias/${galeria.id}/leads`, 'Gerando relatório...');
-                    }}
-                    className="p-3 md:p-2 text-editorial-gray bg-white border border-petroleum/40 rounded-luxury interactive-luxury-petroleum shadow-sm flex items-center justify-center min-w-[40px] disabled:opacity-50"
-                    title="Ver Leads"
-                    disabled={isNavigating}
-                  >
-                    <Users size={16} />
-                  </button>
-                )}
+                {/* 🎯 Lead Report - Sempre visível, desabilitado se não houver leads/ativado */}
+                <button
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    navigate(`/dashboard/galerias/${galeria.id}/leads`, 'Gerando relatório...');
+                  }}
+                  className="p-2 text-petroleum bg-white border border-petroleum/40 rounded-luxury interactive-luxury-petroleum flex items-center justify-center disabled:opacity-30 disabled:grayscale disabled:cursor-not-allowed"
+                  title={galeria.leads_enabled || (galeria.leads_count ?? 0) > 0 ? "Ver Leads" : "Captura de Leads desativada"}
+                  disabled={isNavigating || !(galeria.leads_enabled || (galeria.leads_count ?? 0) > 0)}
+                >
+                  <Users size={16} />
+                </button>
               </>
             )}
             <GaleriaContextMenu
@@ -328,7 +333,7 @@ export default function GaleriaCard({
           window.open(links.url, '_blank');
         }
       }}
-      className={`group relative flex flex-col overflow-hidden rounded-luxury border border-petroleum/40 bg-white transition-all duration-300 w-full animate-in fade-in slide-in-from-bottom-2 duration-500 fill-mode-both hover:border-petroleum/70 ${
+      className={`group relative flex flex-col overflow-hidden rounded-luxury border border-petroleum/40 bg-white transition-all w-full animate-in fade-in slide-in-from-bottom-2 duration-500 fill-mode-both hover:border-petroleum/70 ${
         isBulkMode ? 'cursor-default' : 'cursor-pointer'
       } ${isSelected && isBulkMode ? 'ring-2 ring-gold border-gold' : ''}`}
       style={{ animationDelay: `${index * 50}ms` }}
@@ -419,7 +424,7 @@ export default function GaleriaCard({
       <div className="flex flex-col p-3 md:p-3 space-y-2 bg-white">
         {/* Metadados simplificados em uma linha */}
         <div className="flex flex-col gap-1 py-0.5 w-full">
-          <div className={`flex items-center justify-between gap-1.5 text-[11px] text-editorial-gray`}>
+          <div className={`flex items-center justify-start gap-1.5 text-[11px] text-editorial-gray`}>
             <div className="flex items-center gap-1.5 min-w-0">
               <User size={11} className="text-editorial-gray shrink-0" />
               <span className="font-semibold text-editorial-gray uppercase tracking-luxury truncate">
@@ -427,19 +432,23 @@ export default function GaleriaCard({
               </span>
             </div>
             {galeria.client_whatsapp && (
-              <span className="text-editorial-gray font-medium shrink-0">
-                {formatPhone(galeria.client_whatsapp)}
-              </span>
+              <>
+                <span className="text-editorial-gray/40">•</span>
+                <span className="text-editorial-gray font-medium shrink-0">
+                  {formatPhone(galeria.client_whatsapp)}
+                </span>
+              </>
             )}
           </div>
-          <div className="flex items-center justify-between gap-3 text-[11px] text-editorial-gray w-full">
+          <div className="flex items-center justify-start gap-2 text-[11px] text-editorial-gray w-full">
             {galeria.location && (
               <span className="flex items-center gap-1 font-medium truncate">
                 <MapPin size={11} className="text-editorial-gray" />
                 {galeria.location}
               </span>
             )}
-            <span className="flex items-center gap-1 ml-auto text-[11px] font-medium shrink-0">
+            {galeria.location && <span className="text-editorial-gray/40">•</span>}
+            <span className="flex items-center gap-1 text-[11px] font-medium shrink-0">
               <Calendar size={11} className="text-editorial-gray" />
               {formatDateSafely(galeria.date)}
             </span>
@@ -516,7 +525,7 @@ export default function GaleriaCard({
               {mounted && (
                 <button
                   onClick={handleCopy}
-                  className="p-2 text-editorial-gray bg-white border border-petroleum/40 rounded-luxury interactive-luxury-petroleum "
+                  className="p-2 text-petroleum bg-white border border-petroleum/40 rounded-luxury interactive-luxury-petroleum "
                   title="Copiar link da galeria"
                 >
                   {copied ? (
@@ -525,24 +534,22 @@ export default function GaleriaCard({
                       className="text-green-500 animate-in zoom-in duration-300"
                     />
                   ) : (
-                    <Link2 size={16} className="text-editorial-gray" />
+                    <Link2 size={16} />
                   )}
                 </button>
               )}
-              {/* 🎯 Lead Report - Link para a nova página com Loading */}
-              {(galeria.leads_enabled || (galeria.leads_count ?? 0) > 0) && (
-                <button
-                  onClick={(e) => {
-                    e.stopPropagation();
-                    navigate(`/dashboard/galerias/${galeria.id}/leads`, 'Gerando relatório...');
-                  }}
-                  className="p-2 text-petroleum bg-white border border-petroleum/40 rounded-luxury interactive-luxury-petroleum flex items-center justify-center disabled:opacity-50"
-                  title="Ver Leads"
-                  disabled={isNavigating}
-                >
-                  <Users size={16} />
-                </button>
-              )}
+              {/* 🎯 Lead Report - Sempre visível, desabilitado se não houver leads/ativado */}
+              <button
+                onClick={(e) => {
+                  e.stopPropagation();
+                  navigate(`/dashboard/galerias/${galeria.id}/leads`, 'Gerando relatório...');
+                }}
+                className="p-2 text-petroleum bg-white border border-petroleum/40 rounded-luxury interactive-luxury-petroleum flex items-center justify-center disabled:opacity-30 disabled:grayscale disabled:cursor-not-allowed"
+                title={galeria.leads_enabled || (galeria.leads_count ?? 0) > 0 ? "Ver Leads" : "Leads não disponíveis"}
+                disabled={isNavigating || !(galeria.leads_enabled || (galeria.leads_count ?? 0) > 0)}
+              >
+                <Users size={16} />
+              </button>
             </>
           )}
         </div>

@@ -127,7 +127,7 @@ export default function GalleryAccessPortal({
         onSuccess();
       }
     } catch {
-      setGlobalError('Ocorreu um erro ao processar seu acesso.');
+      //setGlobalError('Ocorreu um erro ao processar seu acesso.');
       setLoading(false);
     }
   };
