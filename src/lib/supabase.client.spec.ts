@@ -16,7 +16,7 @@ describe('supabase.client', () => {
     vi.resetModules(); // Reset modules para garantir imports limpos
     process.env.NEXT_PUBLIC_SUPABASE_URL = 'https://test.supabase.co';
     process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY = 'test-anon-key';
-    process.env.NEXT_PUBLIC_COOKIE_DOMAIN = '.test.com';
+    process.env.NEXT_PUBLIC_COOKIE_DOMAIN = '';
     process.env.NEXT_PUBLIC_NODE_ENV = 'production';
   });
 
@@ -84,17 +84,32 @@ describe('supabase.client', () => {
     }
   });
 
-  it('deve usar domain undefined quando não há subdomínios', async () => {
+  it('deve usar o domínio configurado quando presente', async () => {
     const { createBrowserClient } = await import('@supabase/ssr');
-    // Mesmo com COOKIE_DOMAIN configurado, deve ser undefined quando não há subdomínios
-    process.env.NEXT_PUBLIC_COOKIE_DOMAIN = '.example.com';
+    // Se configurar COOKIE_DOMAIN, o código deve usar
+    const testDomain = '.example.com';
+    process.env.NEXT_PUBLIC_COOKIE_DOMAIN = testDomain;
     
     vi.resetModules();
     await import('./supabase.client');
     
     const callArgs = vi.mocked(createBrowserClient).mock.calls[0];
     if (callArgs && callArgs[2]) {
-      // Sempre undefined quando não há subdomínios
+      expect(callArgs[2].cookieOptions.domain).toBe(testDomain);
+    } else {
+      throw new Error('createBrowserClient não foi chamado');
+    }
+  });
+
+  it('deve usar domain undefined quando não há domínio configurado', async () => {
+    const { createBrowserClient } = await import('@supabase/ssr');
+    process.env.NEXT_PUBLIC_COOKIE_DOMAIN = '';
+    
+    vi.resetModules();
+    await import('./supabase.client');
+    
+    const callArgs = vi.mocked(createBrowserClient).mock.calls[0];
+    if (callArgs && callArgs[2]) {
       expect(callArgs[2].cookieOptions.domain).toBe(undefined);
     } else {
       throw new Error('createBrowserClient não foi chamado');

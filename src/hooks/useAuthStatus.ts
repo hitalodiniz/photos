@@ -2,7 +2,7 @@
 
 import { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
-import { supabase } from '@/lib/supabase.client';
+import { authService } from '@photos/core-auth';
 import { Session } from '@supabase/supabase-js';
 
 interface AuthStatus {
@@ -19,7 +19,7 @@ export default function useAuthStatus(): AuthStatus {
   const router = useRouter();
 
   const handleLogout = async () => {
-    await supabase.auth.signOut();
+    await authService.signOut();
     router.replace('/');
   };
 
@@ -27,9 +27,7 @@ export default function useAuthStatus(): AuthStatus {
     let initialLoad = true;
 
     // Listener de mudanças de autenticação
-    const {
-      data: { subscription },
-    } = supabase.auth.onAuthStateChange((event, newSession) => {
+    const subscription = authService.onAuthStateChange((event, newSession) => {
       setSession(newSession);
 
       const currentPath = window.location.pathname;
@@ -47,7 +45,7 @@ export default function useAuthStatus(): AuthStatus {
     });
 
     // Carrega sessão inicial
-    supabase.auth.getSession().then(({ data: { session } }) => {
+    authService.getSession().then((session) => {
       setSession(session);
       setLoading(false);
       initialLoad = false;

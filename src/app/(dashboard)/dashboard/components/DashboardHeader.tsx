@@ -21,6 +21,7 @@ interface DashboardHeaderProps {
   resetFilters: () => void;
   viewMode: 'grid' | 'list';
   setViewMode: (mode: 'grid' | 'list') => void;
+  toggleSidebar?: () => void;
 }
 
 export default function DashboardHeader({

@@ -44,7 +44,8 @@ if (!(globalThis as any)[GLOBAL_CACHE_KEY]) {
     refreshPromise: null,
     sessionPromise: null,
     profileCache: new Map<string, Promise<any>>(),
-    lastRefreshTime: 0
+    lastRefreshTime: 0,
+    hasRefreshedSubdomain: false
   };
 }
 
@@ -74,7 +75,9 @@ export const authService = {
             
             if (expiresIn < 300) {
               const refreshData = await this.refreshSession();
-              return refreshData.data?.session || null;
+              // 🎯 MELHORIA: Se o refresh falhar ou for ignorado por trava, 
+              // ainda assim retornamos a sessão atual para evitar deslogar o usuário
+              return refreshData.data?.session || data.session;
             }
           }
         }
@@ -161,7 +164,19 @@ export const authService = {
         
         if (error) throw error;
         return data;
-      } catch (err) {
+      } catch (err: any) {
+        // Se for erro de rate limit (429), mantém o erro no cache por 5 segundos
+        // para evitar novas requisições imediatas
+        if (err?.status === 429) {
+          // console.warn('[authService] Rate limit atingido ao buscar perfil, aguardando 5s...');
+          setTimeout(() => {
+            if (authCache.profileCache.get(userId) === fetchPromise) {
+              authCache.profileCache.delete(userId);
+            }
+          }, 5000);
+          return null;
+        }
+
         authCache.profileCache.delete(userId);
         return null;
       }

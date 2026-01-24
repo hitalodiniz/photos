@@ -37,30 +37,42 @@ import { cookies } from 'next/headers';
  */
 export async function createSupabaseServerClient() {
   const cookieStore = await cookies();
-  const isLocal = process.env.NODE_ENV === 'development';
+  const isProduction = process.env.NODE_ENV === 'production';
+  const cookieDomain = process.env.NEXT_PUBLIC_COOKIE_DOMAIN || undefined;
 
   return createServerClient(
     process.env.NEXT_PUBLIC_SUPABASE_URL!,
     process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!,
     {
+      cookieOptions: {
+        domain: cookieDomain,
+        path: '/',
+        sameSite: 'lax',
+        secure: isProduction,
+      },
       cookies: {
-        get(name: string) {
-          return cookieStore.get(name)?.value;
+        getAll: () => {
+          return cookieStore.getAll();
         },
-        set(name: string, value: string, options: CookieOptions) {
-          const finalOptions = { ...options };
+        setAll: (cookiesToSet) => {
+          cookiesToSet.forEach(({ name, value, options }) => {
+            const finalOptions = { 
+              ...options,
+              domain: cookieDomain,
+              path: '/',
+              sameSite: 'lax' as const,
+              secure: isProduction,
+            };
 
-          // Se NÃO for localhost, removemos o tempo de expiração
-          // para que o cookie seja deletado ao fechar o navegador.
-          if (!isLocal) {
-            delete finalOptions.maxAge;
-            delete (finalOptions as any).expires;
-          }
+            // Se NÃO for localhost, removemos o tempo de expiração
+            // para que o cookie seja deletado ao fechar o navegador.
+            if (isProduction) {
+              delete finalOptions.maxAge;
+              delete (finalOptions as any).expires;
+            }
 
-          cookieStore.set(name, value, finalOptions);
-        },
-        remove(name: string, options: CookieOptions) {
-          cookieStore.set(name, '', { ...options, maxAge: 0 });
+            cookieStore.set(name, value, finalOptions);
+          });
         },
       },
     },
@@ -81,18 +93,25 @@ export async function createSupabaseServerClient() {
  */
 export async function createSupabaseServerClientReadOnly() {
   const cookieStore = await cookies();
+  const isProduction = process.env.NODE_ENV === 'production';
+  const cookieDomain = process.env.NEXT_PUBLIC_COOKIE_DOMAIN || undefined;
 
   return createServerClient(
     process.env.NEXT_PUBLIC_SUPABASE_URL!,
     process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!,
     {
+      cookieOptions: {
+        domain: cookieDomain,
+        path: '/',
+        sameSite: 'lax',
+        secure: isProduction,
+      },
       cookies: {
-        get(name: string) {
-          return cookieStore.get(name)?.value;
+        getAll: () => {
+          return cookieStore.getAll();
         },
         // ❌ Não pode escrever cookies fora de Server Actions
-        set() {},
-        remove() {},
+        setAll() {},
       },
     },
   );

@@ -33,6 +33,7 @@
 
 'use client';
 
+/* eslint-disable @typescript-eslint/no-explicit-any */
 import {
   createContext,
   useContext,
@@ -42,7 +43,9 @@ import {
   useCallback,
   useRef,
 } from 'react';
-import { authService } from '@photos/core-auth';
+// 🛡️ IMPORT DIRETO: Necessário para evitar dependência circular com o pacote @photos/core-auth
+// eslint-disable-next-line @next/next/no-restricted-import-path
+import { authService } from '../../core/services/auth.service';
 import LoadingScreen from '../ui/LoadingScreen';
 
 interface AuthContextType {
@@ -70,30 +73,31 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   const isInitializingAuth = useRef<boolean>(false);
 
   const loadProfile = useCallback(async (userId: string) => {
-    // 🛡️ MEMOIZAÇÃO: Só busca se o userId mudar ou se não tivermos os dados e não estiver buscando
+    // 🛡️ MEMOIZAÇÃO: Só busca se o userId mudar e não estiver buscando
     if (isFetchingProfile.current) return;
-    if (lastLoadedUserId.current === userId && (avatarUrl || roles.length > 0)) return;
+    if (lastLoadedUserId.current === userId) return;
 
     try {
       isFetchingProfile.current = true;
-      // console.log('[AuthContext] Buscando perfil para:', userId);
+      lastLoadedUserId.current = userId; // Marca imediatamente como "em processamento"
+
       const profile = await authService.getProfile(userId);
 
       if (!profile) {
-        // console.warn('[AuthContext] Perfil não encontrado para userId:', userId);
-        lastLoadedUserId.current = userId; // Marca como tentado para evitar loop
+        // Se for nulo, mantemos o userId no ref para não repetir a tentativa
         return;
       }
 
       setAvatarUrl(profile.profile_picture_url || null);
       setRoles(profile.roles || []);
-      lastLoadedUserId.current = userId;
     } catch (error) {
       console.error('[AuthContext] Erro inesperado ao carregar perfil:', error);
+      // Em caso de erro, podemos limpar o ref para permitir uma nova tentativa posterior
+      lastLoadedUserId.current = null;
     } finally {
       isFetchingProfile.current = false;
     }
-  }, [avatarUrl, roles.length]);
+  }, []); // Estável: Não re-instcreve se o perfil mudar
 
   const protectRoute = (redirectTo: string = '/login') => {
     if (!isLoading && !user) {

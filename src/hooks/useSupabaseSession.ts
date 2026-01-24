@@ -9,10 +9,12 @@
 
 'use client';
 
-import { useState, useEffect, useCallback, useRef, useContext } from 'react';
-import { authService, AuthContext } from '@photos/core-auth';
+import { useState, useEffect, useCallback, useContext } from 'react';
+// 🛡️ IMPORT DIRETO: Necessário para evitar dependência circular com o pacote @photos/core-auth
+import { authService } from '../core/services/auth.service';
+import { AuthContext } from '../components/providers/AuthContext';
 import { getValidGoogleToken } from '@/actions/google.actions';
-import type { User, Session } from '@supabase/supabase-js';
+import type { User } from '@supabase/supabase-js';
 
 interface SessionData {
   user: User | null;
@@ -39,18 +41,25 @@ export function useSupabaseSession() {
     isLoading: true,
   });
 
-  // Ref para evitar loops em subdomínios
-  const hasRefreshedRef = useRef(false);
-
   // Sincroniza o estado local com o AuthContext se ele existir
   useEffect(() => {
     if (authContext) {
-      setSessionData({
-        user: authContext.user,
-        roles: authContext.roles || [],
-        accessToken: null,
-        userId: authContext.user?.id || null,
-        isLoading: authContext.isLoading,
+      setSessionData(prev => {
+        // Só atualiza se algo mudou para evitar renders em cascata
+        if (
+          prev.user === authContext.user &&
+          prev.roles === authContext.roles &&
+          prev.isLoading === authContext.isLoading
+        ) {
+          return prev;
+        }
+        return {
+          user: authContext.user,
+          roles: authContext.roles || [],
+          accessToken: null,
+          userId: authContext.user?.id || null,
+          isLoading: authContext.isLoading,
+        };
       });
     }
   }, [authContext?.user, authContext?.roles, authContext?.isLoading]);
@@ -125,19 +134,28 @@ export function useSupabaseSession() {
    * Centralizado aqui para ser compatível com o código que usa Google Picker.
    */
   const getAuthDetails = useCallback(async () => {
-    const userId = sessionData.userId || authContext?.user?.id;
+    // 🎯 Tenta obter userId de múltiplas fontes
+    let userId = sessionData.userId || authContext?.user?.id;
 
     if (!userId) {
-      // Se ainda não temos userId, tenta um último fetchSession rápido (com cache do service)
+      // console.log('[useSupabaseSession] UserId não encontrado no estado/contexto, tentando fetch rápido...');
       const session = await authService.getSession();
-      if (!session?.user?.id) return { accessToken: null, userId: null };
-      return { accessToken: await getValidGoogleToken(session.user.id), userId: session.user.id };
+      if (session?.user?.id) {
+        userId = session.user.id;
+      }
+    }
+
+    if (!userId) {
+      // console.error('[useSupabaseSession] UserId não encontrado após todas as tentativas');
+      return { accessToken: null, userId: null };
     }
 
     try {
+      // console.log('[useSupabaseSession] Buscando token do Google para userId:', userId);
       const accessToken = await getValidGoogleToken(userId);
       return { accessToken, userId };
-    } catch {
+    } catch (err) {
+      // console.error('[useSupabaseSession] Erro ao obter token do Google:', err);
       return { accessToken: null, userId };
     }
   }, [sessionData.userId, authContext?.user?.id]);

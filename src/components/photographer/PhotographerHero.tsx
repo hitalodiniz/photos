@@ -15,6 +15,7 @@ export const PhotographerAvatar = ({ photoPreview, isExpanded }: any) => (
         fill
         className="object-cover"
         priority
+        sizes="(max-width: 768px) 112px, 112px"
       />
     ) : (
       <User className="text-[#F3E5AB] w-1/2 h-1/2" />

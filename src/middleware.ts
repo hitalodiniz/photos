@@ -64,12 +64,20 @@ export async function middleware(req: NextRequest) {
     });
 
     const isLocal = process.env.NODE_ENV === 'development';
+    const isProduction = process.env.NODE_ENV === 'production';
+    const cookieDomain = process.env.NEXT_PUBLIC_COOKIE_DOMAIN || undefined;
 
     // 2. Inicializamos o Supabase injetando a manipulação de cookies na 'response'
     const supabase = createServerClient(
       process.env.NEXT_PUBLIC_SUPABASE_URL!,
       process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!,
       {
+        cookieOptions: {
+          domain: cookieDomain,
+          path: '/',
+          sameSite: 'lax',
+          secure: isProduction,
+        },
         cookies: {
           getAll: () => req.cookies.getAll(),
           setAll: (cookiesToSet) => {
@@ -77,8 +85,15 @@ export async function middleware(req: NextRequest) {
               // 1. Atualiza na requisição (para o getUser() deste middleware ler agora)
               req.cookies.set(name, value);
 
-              const finalOptions = { ...options };
-              if (!isLocal) {
+              const finalOptions = { 
+                ...options,
+                domain: cookieDomain,
+                path: '/',
+                sameSite: 'lax' as const,
+                secure: isProduction,
+              };
+              
+              if (isProduction) {
                 delete finalOptions.maxAge;
                 delete (finalOptions as any).expires;
               }

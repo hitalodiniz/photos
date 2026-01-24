@@ -30,7 +30,10 @@ import { createBrowserClient } from '@supabase/ssr';
 const SUPABASE_PUBLIC_BASE_URL = process.env.NEXT_PUBLIC_SUPABASE_URL!;
 const SUPABASE_ANON_KEY = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!;
 
-const isProduction = process.env.NEXT_PUBLIC_NODE_ENV === 'production';
+// 🎯 Verificação robusta de produção
+const isProduction = process.env.NODE_ENV === 'production' || process.env.NEXT_PUBLIC_NODE_ENV === 'production';
+// 🎯 IMPORTANTE: Para subdomínios funcionarem, este valor DEVE ser '.suagaleria.com.br' (com o ponto inicial)
+const cookieDomain = process.env.NEXT_PUBLIC_COOKIE_DOMAIN || undefined;
 
 export const supabase = createBrowserClient(
   SUPABASE_PUBLIC_BASE_URL,
@@ -45,9 +48,8 @@ export const supabase = createBrowserClient(
     // 🎯 CONFIGURAÇÃO DE COOKIES PARA PKCE
     // O createBrowserClient usa cookieOptions (não a API cookies)
     cookieOptions: {
-      // 🎯 SEM SUBDOMÍNIOS: domain deve ser undefined para permitir que o navegador use o host atual
-      // Isso garante que o cookie seja armazenado e enviado corretamente no mesmo domínio
-      domain: undefined, // Sempre undefined quando não há subdomínios
+      // 🎯 Se houver domínio de cookie configurado, usamos ele (importante para subdomínios)
+      domain: cookieDomain, 
       path: '/',
       sameSite: 'lax', // 'lax' é suficiente quando não há redirecionamentos cross-site
       secure: isProduction, // HTTPS obrigatório em produção para PKCE

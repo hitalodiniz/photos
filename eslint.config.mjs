@@ -16,8 +16,13 @@ const eslintConfig = defineConfig([
   // 🛡️ PROTEÇÃO: Bloqueia imports diretos de arquivos críticos
   {
     files: ["**/*.ts", "**/*.tsx"],
-    ignores: [
       "packages/@photos/core-auth/src/index.ts", // ✅ Exceção: index.ts do pacote pode importar para reexportar
+      "src/core/services/**", // Implementação interna
+      "src/lib/**", // Implementação interna
+      "src/hooks/useSupabaseSession.ts", // Implementação interna
+      "src/components/providers/AuthContext.tsx", // Implementação interna
+      "src/middleware.ts", // Implementação interna
+      "src/app/api/auth/**", // Rotas críticas
       "scripts/**", // Scripts podem usar require()
     ],
     rules: {

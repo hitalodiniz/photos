@@ -1,17 +1,19 @@
 'use client';
 
 import { usePathname, useRouter } from 'next/navigation';
-import { Camera, ArrowLeft } from 'lucide-react';
+import { Camera, ArrowLeft, Menu } from 'lucide-react';
 import Link from 'next/link';
 import { useEffect, useState } from 'react';
 
 import { useAuth } from '@photos/core-auth';
 import { UserMenu } from '@/components/auth';
+import { useSidebar } from '@/components/providers/SidebarProvider';
 
 export default function Navbar() {
   const pathname = usePathname();
   const router = useRouter();
   const { user, avatarUrl, isLoading } = useAuth();
+  const { toggleSidebar } = useSidebar();
   const [mounted, setMounted] = useState(false);
 
   // 🎯 Garante que só renderiza após montagem (evita problemas de hidratação)
@@ -94,6 +96,17 @@ export default function Navbar() {
       <nav className="fixed top-0 left-0 w-full z-[110] flex items-center justify-between px-6 md:px-10 py-2 bg-petroleum backdrop-blur-xl border-b border-white/10 shadow-2xl">
         {/* Branding Editorial com Breadcrumbs */}
         <div className="flex items-center gap-4">
+          {/* Botão Menu Mobile - Apenas no Dashboard */}
+          {pathname === '/dashboard' && (
+            <button
+              onClick={toggleSidebar}
+              className="lg:hidden p-2 text-white/60 hover:text-gold hover:bg-white/5 rounded-luxury transition-colors shrink-0"
+              aria-label="Abrir Menu"
+            >
+              <Menu size={22} />
+            </button>
+          )}
+
           {/* Botão Voltar - À esquerda do ícone da câmera quando em modo formulário */}
           {isFormPage && (
             <button

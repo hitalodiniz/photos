@@ -13,14 +13,17 @@ export default function SidebarGoogleDrive({
   photographer,
   handleGoogleLogin,
 }: SidebarGoogleDriveProps) {
+  const isMobile = typeof window !== 'undefined' && window.innerWidth < 1024;
+  const showFull = !isSidebarCollapsed || isMobile;
+
   return (
     <div
-      className={`border-t border-white/5 ${isSidebarCollapsed ? 'px-0' : 'px-2'}`}
+      className={`border-t border-white/5 ${isSidebarCollapsed && !isMobile ? 'px-0' : 'px-2'}`}
     >
       <div
-        className={`relative group flex items-center transition-all duration-300 ${isSidebarCollapsed ? 'justify-center py-4' : 'gap-3 py-4 rounded-luxury hover:bg-white/5'}`}
+        className={`relative group flex items-center transition-all duration-300 ${isSidebarCollapsed && !isMobile ? 'justify-center py-4' : 'gap-3 py-4 rounded-luxury hover:bg-white/5'}`}
       >
-        {isSidebarCollapsed ? (
+        {isSidebarCollapsed && !isMobile ? (
           <div className="relative flex items-center justify-center shrink-0">
             <div
               className={`h-2 w-2 rounded-full ${photographer?.google_refresh_token ? 'bg-green-500 shadow-[0_0_8px_rgba(34,197,94,0.4)]' : 'bg-amber-500 shadow-[0_0_8px_rgba(245,158,11,0.4)]'}`}
@@ -37,7 +40,7 @@ export default function SidebarGoogleDrive({
           </div>
         )}
 
-        {!isSidebarCollapsed && (
+        {showFull && (
           <div className="flex flex-col min-w-0">
             <span className="text-[10px] font-semibold uppercase tracking-luxury text-white/90 leading-none mb-1">
               Google Drive

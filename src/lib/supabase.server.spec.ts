@@ -54,9 +54,8 @@ describe('supabase.server', () => {
         'test-anon-key',
         expect.objectContaining({
           cookies: {
-            get: expect.any(Function),
-            set: expect.any(Function),
-            remove: expect.any(Function),
+            getAll: expect.any(Function),
+            setAll: expect.any(Function),
           },
         }),
       );
@@ -71,16 +70,16 @@ describe('supabase.server', () => {
       
       const callArgs = vi.mocked(createServerClient).mock.calls[0];
       if (callArgs && callArgs[2] && callArgs[2].cookies) {
-        const cookieSet = callArgs[2].cookies.set;
+        const setAll = callArgs[2].cookies.setAll;
         
         const options = { maxAge: 3600, expires: new Date() };
-        cookieSet('test', 'value', options);
+        setAll([{ name: 'test', value: 'value', options }]);
         
-        // Em dev, deve manter as opções
+        // Em dev, deve manter as opções (ou pelo menos passar para o store)
         expect(mockCookieStore.set).toHaveBeenCalledWith(
           'test',
           'value',
-          options,
+          expect.objectContaining(options),
         );
       }
     });
@@ -94,10 +93,10 @@ describe('supabase.server', () => {
       
       const callArgs = vi.mocked(createServerClient).mock.calls[0];
       if (callArgs && callArgs[2] && callArgs[2].cookies) {
-        const cookieSet = callArgs[2].cookies.set;
+        const setAll = callArgs[2].cookies.setAll;
         
         const options = { maxAge: 3600, expires: new Date() };
-        cookieSet('test', 'value', options);
+        setAll([{ name: 'test', value: 'value', options }]);
         
         // Em produção, deve remover maxAge e expires
         const setCall = mockCookieStore.set.mock.calls[0];
@@ -117,23 +116,20 @@ describe('supabase.server', () => {
         'test-anon-key',
         expect.objectContaining({
           cookies: {
-            get: expect.any(Function),
-            set: expect.any(Function),
-            remove: expect.any(Function),
+            getAll: expect.any(Function),
+            setAll: expect.any(Function),
           },
         }),
       );
       
       const callArgs = vi.mocked(createServerClient).mock.calls[0];
       if (callArgs && callArgs[2] && callArgs[2].cookies) {
-        const cookieSet = callArgs[2].cookies.set;
-        const cookieRemove = callArgs[2].cookies.remove;
+        const setAll = callArgs[2].cookies.setAll;
         
-        // set e remove devem ser no-ops
-        cookieSet('test', 'value', {});
-        cookieRemove('test', {});
+        // setAll deve ser no-op
+        setAll([{ name: 'test', value: 'value', options: {} }]);
         
-        // Não deve chamar cookieStore.set ou remove
+        // Não deve chamar cookieStore.set
         expect(mockCookieStore.set).not.toHaveBeenCalled();
       }
     });

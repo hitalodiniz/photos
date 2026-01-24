@@ -1,5 +1,6 @@
 import { Inbox, Archive, Trash2 } from 'lucide-react';
 import type { ViewType } from '../hooks/useDashboardFilters';
+import { useSidebar } from '@/components/providers/SidebarProvider';
 
 interface SidebarGaleriasProps {
   isSidebarCollapsed: boolean;
@@ -16,6 +17,8 @@ export default function SidebarGalerias({
   setCurrentView,
   setCardsToShow,
 }: SidebarGaleriasProps) {
+  const { toggleSidebar } = useSidebar();
+  const isMobile = typeof window !== 'undefined' && window.innerWidth < 1024;
   const items = [
     { id: 'active', label: 'Ativas', icon: Inbox, count: counts.active },
     { id: 'archived', label: 'Arquivadas', icon: Archive, count: counts.archived },
@@ -24,7 +27,7 @@ export default function SidebarGalerias({
 
   return (
     <div className="space-y-1">
-      {!isSidebarCollapsed && (
+      {(!isSidebarCollapsed || isMobile) && (
         <div className="mb-2 px-2">
           <span className="text-editorial-label text-white/90">
             GALERIAS
@@ -39,6 +42,9 @@ export default function SidebarGalerias({
               setCurrentView(item.id as ViewType);
               setCardsToShow(8);
               window.scrollTo({ top: 0, behavior: 'smooth' });
+              if (isMobile && toggleSidebar) {
+                toggleSidebar();
+              }
             }}
             className={`flex items-center justify-between group relative w-full px-3 py-2 rounded-luxury transition-all duration-300 ${currentView === item.id ? 'bg-white/10 text-gold translate-x-1' : 'text-white/90 hover:bg-white/5 hover:text-gold'}`}
           >
@@ -54,7 +60,7 @@ export default function SidebarGalerias({
                     : 'text-current transition-colors'
                 }
               />
-              {!isSidebarCollapsed && (
+              {(!isSidebarCollapsed || isMobile) && (
                 <span
                   className={`text-editorial-label text-left ${currentView === item.id ? 'font-semibold' : ''}`}
                 >
@@ -62,7 +68,7 @@ export default function SidebarGalerias({
                 </span>
               )}
             </div>
-            {!isSidebarCollapsed && item.count > 0 && (
+            {(!isSidebarCollapsed || isMobile) && item.count > 0 && (
               <span
                 className={`text-[10px] font-semibold tracking-luxury px-2 py-0.5 rounded-full ${
                   currentView === item.id ? 'bg-gold text-black' : 'bg-white/10 text-white/90'

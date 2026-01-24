@@ -18,6 +18,7 @@ import { useDashboardFilters } from './hooks/useDashboardFilters';
 import { useDashboardActions } from './hooks/useDashboardActions';
 import { useDashboardState } from './hooks/useDashboardState';
 import { useNavigation } from '@/components/providers/NavigationProvider';
+import { useSidebar } from '@/components/providers/SidebarProvider';
 
 // Components
 import Sidebar from './components/Sidebar';
@@ -41,15 +42,22 @@ export default function Dashboard({
   const {
     isAdminModalOpen,
     setIsAdminModalOpen,
-    isSidebarCollapsed,
     toast,
     setToast,
     showConsentAlert,
     setShowConsentAlert,
     viewMode,
     setViewMode,
-    toggleSidebar,
   } = useDashboardState(initialProfile?.sidebar_collapsed ?? false);
+
+  const { isSidebarCollapsed, toggleSidebar, setIsSidebarCollapsed } = useSidebar();
+
+  // Sincroniza a preferência inicial do usuário com o context
+  useEffect(() => {
+    if (initialProfile?.sidebar_collapsed !== undefined) {
+      setIsSidebarCollapsed(initialProfile.sidebar_collapsed);
+    }
+  }, [initialProfile?.sidebar_collapsed, setIsSidebarCollapsed]);
 
   const filters = useDashboardFilters(galerias);
   const actions = useDashboardActions(
@@ -112,8 +120,6 @@ export default function Dashboard({
   return (
     <div className="mx-auto flex flex-col lg:flex-row max-w-[1600px] gap-4 px-2 bg-luxury-bg min-h-screen pb-24 lg:pb-6">
       <Sidebar
-        isSidebarCollapsed={isSidebarCollapsed}
-        toggleSidebar={toggleSidebar}
         counts={filters.counts}
         currentView={filters.currentView}
         setCurrentView={filters.setCurrentView}
@@ -159,6 +165,7 @@ export default function Dashboard({
           resetFilters={filters.resetFilters}
           viewMode={viewMode}
           setViewMode={setViewMode}
+          toggleSidebar={toggleSidebar}
         />
 
         <GalleryList

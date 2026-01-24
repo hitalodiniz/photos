@@ -1,5 +1,5 @@
 'use client';
-import React, { useEffect, useState, useMemo } from 'react';
+import React, { useEffect, useState, useMemo, useCallback, useRef } from 'react';
 import { ChevronLeft, ChevronRight, ImageIcon, X } from 'lucide-react';
 import { GaleriaHeader } from './GaleriaHeader';
 import PhotographerAvatar from './PhotographerAvatar';
@@ -12,6 +12,8 @@ import { useIsMobile } from '@/hooks/use-breakpoint';
 import { VerticalThumbnails } from './VerticalThumbnails';
 import { ThumbnailStrip } from './ThumbnailStrip';
 import { VerticalActionBar } from './VerticalActionBar';
+import QuickPinchZoom, { make3dTransformValue } from 'react-quick-pinch-zoom';
+
 
 interface Photo {
   id: string | number;
@@ -331,7 +333,33 @@ img.src = imgSrc;
   }, [isMobile, showThumbnails, handleClickOutside]);
 
   if (!currentPhoto) return null;
+  const pinchZoomRef = useRef<any>(null);
 
+  const onUpdate = useCallback(({ x, y, scale }: { x: number; y: number; scale: number }) => {
+    const value = make3dTransformValue({ x, y, scale });
+    if (imgRef.current) {
+      imgRef.current.style.setProperty('transform', value);
+    }
+  }, [imgRef]);
+  
+  // Função para resetar o zoom ao trocar de foto
+  useEffect(() => {
+    if (pinchZoomRef.current) {
+      pinchZoomRef.current.reset();
+    }
+  }, [activeIndex]);
+
+  const handleZoomClick = () => {
+    if (pinchZoomRef.current) {
+      // Alterna entre zoom 1x e 3x
+      const scale = pinchZoomRef.current.getScale();
+      pinchZoomRef.current.scaleTo({
+        x: window.innerWidth / 2,
+        y: window.innerHeight / 2,
+        scale: scale > 1 ? 1 : 3,
+      });
+    }
+  };
   return (
     <div className={isSystemDark ? 'dark' : ''} suppressHydrationWarning>
       <div
@@ -527,6 +555,14 @@ img.src = imgSrc;
             </div>
           )}
 
+<QuickPinchZoom
+      ref={pinchZoomRef}
+      onUpdate={onUpdate}
+      wheelScaleFactor={500}
+      tapZoomFactor={2}
+      draggableUnZoomed={false} // Evita conflito com swipe do lightbox
+      enforceBounds={true}
+    >
           {/* 
               🎯 ESTRATÉGIA FACEBOOK/INSTAGRAM:
               - Fotos verticais: ocupam altura total (max-h-full), largura automática
@@ -554,6 +590,7 @@ img.src = imgSrc;
             decoding="sync"
             alt={`${galleryTitle} - Foto ${activeIndex + 1}`}
           />
+          </QuickPinchZoom>
         </div>
       </main>
 

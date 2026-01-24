@@ -2,7 +2,7 @@
 
 import { useState, useEffect, useCallback } from 'react';
 import { useRouter } from 'next/navigation';
-import { supabase } from '@/lib/supabase.client';
+import { authService } from '@photos/core-auth';
 
 // 🎯 Atualizado para suportar metadados do perfil
 type User = {
@@ -39,9 +39,7 @@ export const useAuth = () => {
 
   useEffect(() => {
     const initializeAuth = async () => {
-      const {
-        data: { session },
-      } = await supabase.auth.getSession();
+      const session = await authService.getSession();
       if (session?.user) {
         setAuthState({
           user: mapUser(session.user),
@@ -54,9 +52,7 @@ export const useAuth = () => {
 
     initializeAuth();
 
-    const {
-      data: { subscription },
-    } = supabase.auth.onAuthStateChange((_event, session) => {
+    const subscription = authService.onAuthStateChange((_event, session) => {
       if (session?.user) {
         setAuthState({
           user: mapUser(session.user),
@@ -74,7 +70,7 @@ export const useAuth = () => {
 
   const logout = async () => {
     setAuthState((prev) => ({ ...prev, isLoading: true }));
-    await supabase.auth.signOut();
+    await authService.signOut();
     router.replace('/');
   };
 

@@ -9,11 +9,14 @@ export default function SidebarStorage({
   isSidebarCollapsed,
   galeriasCount,
 }: SidebarStorageProps) {
+  const isMobile = typeof window !== 'undefined' && window.innerWidth < 1024;
+  const showFull = !isSidebarCollapsed || isMobile;
+
   return (
     <div
-      className={`pt-4 border-t border-white/5 transition-all duration-500 ${isSidebarCollapsed ? 'px-0' : 'px-2'}`}
+      className={`pt-4 border-t border-white/5 transition-all duration-500 ${isSidebarCollapsed && !isMobile ? 'px-0' : 'px-2'}`}
     >
-      {!isSidebarCollapsed ? (
+      {showFull ? (
         <div className="space-y-3">
           <div className="flex justify-between items-end px-1">
             <span className="text-editorial-label text-white/90 flex items-center gap-2">
