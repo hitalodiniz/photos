@@ -137,17 +137,19 @@ export const GaleriaHero = ({ galeria, photos, coverUrl, isCoverLoading }: Galer
         >
           <div className="flex flex-col items-start text-left transition-all duration-1000 min-w-0 flex-1">
             <div className="flex flex-col min-w-0 w-full">
-              <h1
-                className={`font-artistic font-semibold text-white transition-all duration-1000 leading-tight tracking-tight break-words flex items-center gap-3 drop-shadow-[0_2px_8px_rgba(0,0,0,0.8)]
+            <h1
+                className={`font-artistic font-semibold text-white transition-all duration-1000 leading-tight tracking-normal break-words flex items-center gap-3 drop-shadow-[0_2px_8px_rgba(0,0,0,0.8)]
                 ${isExpanded ? 'text-2xl md:text-5xl mb-2' : 'text-xl md:text-4xl mb-1'}`}
               >
                 <Camera
                   className={`text-[#F3E5AB] shrink-0 transition-all duration-1000 drop-shadow-md ${
-                    isExpanded ? 'w-8 h-8 md:w-12 md:h-12' : 'w-6 h-6 md:w-8 md:h-8'
+                    isExpanded
+                      ? 'w-8 h-8 md:w-12 md:h-12'
+                      : 'w-6 h-6 md:w-8 md:h-8'
                   }`}
                   strokeWidth={1.5}
                 />
-                <span className="drop-shadow-lg uppercase tracking-tighter">{galeria.title}</span>
+                <span className="drop-shadow-lg">{galeria.title}</span>
               </h1>
 
               {/* LINHA DECORATIVA */}
