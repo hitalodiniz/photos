@@ -32,6 +32,7 @@ import {
   Plus,
   Trash2,
   Users,
+  Loader2,
 } from 'lucide-react';
 import WhatsAppIcon from '@/components/ui/WhatsAppIcon';
 import { convertToDirectDownloadUrl } from '@/core/utils/url-helper';
@@ -216,6 +217,7 @@ export default function GaleriaFormContent({
   const [links, setLinks] = useState<string[]>(parseInitialLinks());
 
   const [photoCount, setPhotoCount] = useState<number | null>(null);
+  const [isValidatingDrive, setIsValidatingDrive] = useState(false);
   
   // 🎯 PROTEÇÃO: Verifica se useSupabaseSession retorna getAuthDetails corretamente
   const sessionHook = useSupabaseSession();
@@ -226,6 +228,7 @@ export default function GaleriaFormContent({
    * Esta função contém toda a lógica de validação que foi removida do GooglePickerButton
    */
   const handleDriveSelection = async (selectedId: string, selectedName: string) => {
+    setIsValidatingDrive(true);
     try {
       // 🎯 PROTEÇÃO: Verifica se getAuthDetails está disponível
       if (!getAuthDetails || typeof getAuthDetails !== 'function') {
@@ -290,7 +293,7 @@ export default function GaleriaFormContent({
         if (folderName) {
           driveFolderName = folderName;
         }
-      } catch {
+      } catch (error) {
         console.warn('[handleDriveSelection] Erro ao buscar nome da pasta:', error);
         // Continua com o nome selecionado
       }
@@ -299,7 +302,7 @@ export default function GaleriaFormContent({
       let limitData = { count: 0, hasMore: false, totalInDrive: 0 };
       try {
         limitData = await checkFolderLimits(driveFolderId, userId, PLAN_LIMIT);
-      } catch {
+      } catch (error) {
         console.warn('[handleDriveSelection] Erro ao verificar limites:', error);
         // Continua mesmo com erro na verificação de limites
       }
@@ -308,7 +311,7 @@ export default function GaleriaFormContent({
       let folderPermissionInfo = { isPublic: false, isOwner: false, folderLink: '' };
       try {
         folderPermissionInfo = await checkFolderPublicPermission(driveFolderId, userId);
-      } catch {
+      } catch (error) {
         console.warn('[handleDriveSelection] Erro ao verificar permissões:', error);
         // Por segurança, assume que não é pública se houver erro
         folderPermissionInfo.folderLink = `https://drive.google.com/drive/folders/${driveFolderId}`;
@@ -356,14 +359,16 @@ export default function GaleriaFormContent({
       onPickerError(
         error?.message || 'Erro ao processar a seleção do Google Drive. Tente novamente.'
       );
+    } finally {
+      setIsValidatingDrive(false);
     }
   };
 
   /**
    * 🎯 Handler simples que recebe do GooglePickerButton (componente "burro")
    */
-  const handleFolderSelect = (folderId: string, folderName: string) => {
-    handleDriveSelection(folderId, folderName);
+  const handleFolderSelect = async (folderId: string, folderName: string) => {
+    return await handleDriveSelection(folderId, folderName);
   };
 
   // Preview de capa
@@ -929,7 +934,16 @@ export default function GaleriaFormContent({
       {/* COLUNA LATERAL (35%) */}
       <div className="w-full lg:w-[35%] border-t lg:border-t-0 lg:border-l border-petroleum/40 lg:overflow-y-auto pl-0 lg:pl-4 pr-0 py-6 lg:py-0 space-y-2 bg-slate-50/30">
         {/* GOOGLE DRIVE - Seção Principal */}
-        <div className="bg-white rounded-luxury border border-petroleum/40 p-4 space-y-4 mt-2">
+        <div className="relative bg-white rounded-luxury border border-petroleum/40 p-4 space-y-4 mt-2 overflow-hidden">
+          {/* Overlay de Validação */}
+          {isValidatingDrive && (
+            <div className="absolute inset-0 z-50 flex flex-col items-center justify-center bg-white/80 backdrop-blur-sm animate-in fade-in duration-300">
+              <Loader2 className="w-8 h-8 text-gold animate-spin mb-2" />
+              <p className="text-[10px] font-bold uppercase tracking-widest text-petroleum">
+                Validando Pasta...
+              </p>
+            </div>
+          )}
           <div className="flex items-center gap-2 pb-2 border-b border-petroleum/40">
             <FolderSync size={14} className="" />
             <h3 className="text-[10px] font-bold uppercase tracking-widest text-petroleum">

@@ -244,14 +244,16 @@ export default function GaleriaFormPage({
 
           {/* Botões - Direita */}
           <div className="flex items-center gap-4">
-            <button
-              type="button"
-              onClick={() => router.back()}
-              disabled={loading}
-              className="btn-secondary-petroleum px-4"
-            >
-              CANCELAR
-            </button>
+            {isEdit && (
+              <button
+                type="button"
+                onClick={() => router.back()}
+                disabled={loading}
+                className="btn-secondary-petroleum px-4"
+              >
+                CANCELAR
+              </button>
+            )}
             <SubmitButton
               form="galeria-form"
               success={isSuccess}
@@ -288,6 +290,7 @@ export default function GaleriaFormPage({
       {/* 🎯 MODAL DE SUCESSO PADRONIZADO (EDITORIAL) */}
       <BaseModal
         isOpen={showSuccessModal}
+        showCloseButton={isEdit}
         onClose={() => setShowSuccessModal(false)}
         title={isEdit ? 'Galeria Atualizada' : 'Galeria Criada'}
         subtitle={isEdit ? 'Suas alterações foram salvas' : 'Sua nova galeria está pronta'}

@@ -218,6 +218,7 @@ export default function GaleriaModal({
       {/* 🎯 MODAL DE SUCESSO PADRONIZADO (EDITORIAL) */}
       <BaseModal
         isOpen={showSuccessModal}
+        showCloseButton={isEdit}
         onClose={() => {
           setShowSuccessModal(false);
           onSuccess(true, savedGaleria);

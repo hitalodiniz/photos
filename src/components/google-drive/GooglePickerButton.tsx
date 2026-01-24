@@ -6,7 +6,7 @@ import { getGoogleClientId } from '@/actions/google.actions';
 import { Loader2 } from 'lucide-react';
 
 interface GooglePickerProps {
-  onFolderSelect: (folderId: string, folderName: string) => void;
+  onFolderSelect: (folderId: string, folderName: string) => void | Promise<void>;
   currentDriveId: string | null;
   onError: (message: string) => void;
   onTokenExpired?: () => void; // Callback quando o token expirar/for revogado
@@ -79,9 +79,15 @@ export default function GooglePickerButton({
   onTokenExpired,
 }: GooglePickerProps) {
   const [loading, setLoading] = useState(false);
+  const loadingRef = useRef(false);
   const [isReadyToOpen, setIsReadyToOpen] = useState(isPickerLoaded);
   const onFolderSelectRef = useRef(onFolderSelect);
   const { getAuthDetails } = useSupabaseSession();
+
+  // 🎯 Sincroniza o ref de loading para uso em timeouts (evita stale closure)
+  useEffect(() => {
+    loadingRef.current = loading;
+  }, [loading]);
 
   useEffect(() => {
     onFolderSelectRef.current = onFolderSelect;
@@ -175,7 +181,7 @@ export default function GooglePickerButton({
     
     // 🎯 Timeout de segurança: se demorar mais de 30s, cancela
     const timeoutId = setTimeout(() => {
-      if (loading) {
+      if (loadingRef.current) {
         console.error('[GooglePickerButton] ⚠️ Timeout ao abrir picker (30s)');
         onError('Tempo de espera excedido. Tente novamente.');
         setLoading(false);
@@ -300,7 +306,7 @@ export default function GooglePickerButton({
         .setOrigin(window.location.origin); // 🎯 Compatibilidade com Vercel
 
       const picker = pickerBuilder
-        .setCallback((data: any) => {
+        .setCallback(async (data: any) => {
           /* console.log('[GooglePickerButton] Picker callback recebido:', {
             action: data.action,
             hasDocs: !!data.docs,
@@ -308,6 +314,7 @@ export default function GooglePickerButton({
           }); */
 
           if (data.action === window.google.picker.Action.PICKED) {
+            setLoading(true);
             const selectedItem = data.docs[0];
             
             /* console.log('[GooglePickerButton] Item selecionado:', {
@@ -319,13 +326,17 @@ export default function GooglePickerButton({
             // 🎯 Componente "burro": apenas retorna o que foi selecionado
             // A validação será feita no componente pai
             if (selectedItem) {
-              // Se selecionou uma pasta, retorna diretamente
-              if (selectedItem.mimeType === 'application/vnd.google-apps.folder') {
-                onFolderSelectRef.current(selectedItem.id, selectedItem.name);
-              } else {
-                // Se selecionou um arquivo, retorna o ID do arquivo (o pai vai buscar a pasta)
-                // Por enquanto, retornamos o ID do arquivo e o nome
-                onFolderSelectRef.current(selectedItem.id, selectedItem.name);
+              try {
+                // Se selecionou uma pasta, retorna diretamente
+                if (selectedItem.mimeType === 'application/vnd.google-apps.folder') {
+                  await onFolderSelectRef.current(selectedItem.id, selectedItem.name);
+                } else {
+                  // Se selecionou um arquivo, retorna o ID do arquivo (o pai vai buscar a pasta)
+                  // Por enquanto, retornamos o ID do arquivo e o nome
+                  await onFolderSelectRef.current(selectedItem.id, selectedItem.name);
+                }
+              } catch (error) {
+                console.error('[GooglePickerButton] Erro ao processar seleção no componente pai:', error);
               }
             }
           } else if (data.action === window.google.picker.Action.CANCEL) {
@@ -395,8 +406,8 @@ export default function GooglePickerButton({
     >
       {loading ? (
         <div className="flex items-center gap-2">
-          <Loader2 size={12} className="animate-spin" />
-          <span>Aguarde</span>
+          <Loader2 size={14} className="animate-spin" />
+          <span>Aguarde...</span>
         </div>
       ) : (
         <div className="flex items-center gap-2">
