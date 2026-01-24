@@ -65,10 +65,9 @@ export async function GET(request: Request) {
   }
 
   // 🎯 DEBUG: Verifica se o code verifier cookie está presente
+  // O Supabase SSR usa o padrão: sb-<project-id>-auth-token-code-verifier
   const codeVerifierCookie = allCookies.find(cookie => 
-    cookie.name.includes('code-verifier') || 
-    cookie.name.includes('verifier') ||
-    cookie.name.includes('auth-token')
+    cookie.name.endsWith('-code-verifier')
   );
   
   if (!codeVerifierCookie) {
@@ -77,7 +76,7 @@ export async function GET(request: Request) {
       totalCookies: allCookies.length,
       cookieNames: allCookies.map(c => c.name),
       requestHost: requestUrl.host,
-      cookieDomain: process.env.NEXT_PUBLIC_COOKIE_DOMAIN || process.env.COOKIE_DOMAIN || 'não configurado',
+      cookieDomain: finalCookieDomain || 'não configurado',
     });
   } else if (isProduction) {
     console.log('[auth/callback] ✅ Code verifier cookie encontrado:', {
@@ -87,9 +86,10 @@ export async function GET(request: Request) {
     });
   }
   
-  // 🎯 SEM SUBDOMÍNIOS: domain deve ser undefined para permitir que o navegador use o host atual
-  // Isso garante que o cookie seja armazenado e enviado corretamente no mesmo domínio
-  const finalCookieDomain = undefined; // Sempre undefined quando não há subdomínios
+  // 🎯 CONSISTÊNCIA: Usa o mesmo domínio do cliente e do servidor
+  // Se NEXT_PUBLIC_COOKIE_DOMAIN estiver configurado (ex: para subdomínios), usamos ele.
+  // Caso contrário, usamos undefined (padrão seguro para domínio único).
+  const finalCookieDomain = process.env.NEXT_PUBLIC_COOKIE_DOMAIN || undefined;
 
   const supabase = createServerClient(
     process.env.NEXT_PUBLIC_SUPABASE_URL!,
@@ -97,7 +97,7 @@ export async function GET(request: Request) {
     {
       // 🎯 COOKIE OPTIONS: Deve ser igual ao cliente para garantir que o code verifier seja encontrado
       cookieOptions: {
-        domain: finalCookieDomain, // undefined quando não há subdomínios
+        domain: finalCookieDomain,
         path: '/',
         sameSite: 'lax', // 'lax' é suficiente quando não há redirecionamentos cross-site
         secure: isProduction,
@@ -117,8 +117,7 @@ export async function GET(request: Request) {
               path: '/',
               sameSite: 'lax' as const, // 'lax' é suficiente quando não há redirecionamentos cross-site
               secure: isProduction,
-              // 🎯 SEM SUBDOMÍNIOS: domain deve ser undefined
-              domain: undefined,
+              domain: finalCookieDomain,
             };
             
             cookieStore.set(name, value, cookieOptions);
