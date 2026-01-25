@@ -211,8 +211,8 @@ export const getInternalGoogleDriveUrl = (
   // mas sem o peso do arquivo RAW/Bruto de 25MB.
   const finalWidth = format === 'original' ? '4000' : width;
 
-// Opção recomendada: logo após o ID para garantir que o Google entenda o contexto do arquivo
-return `https://drive.google.com/thumbnail?id=${photoId}-p&sz=w${finalWidth}${suffix}`;
+  // 🎯 Usamos o domínio lh3 que é mais performático e aceita redimensionamento
+  return `https://lh3.googleusercontent.com/d/${photoId}=w${finalWidth}${suffix}`;
 };
 
 /**

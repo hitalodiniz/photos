@@ -64,14 +64,14 @@ describe('GaleriaFormContent', () => {
     expect(screen.getByText(/Identificação/i)).toBeInTheDocument();
     expect(screen.getByText(/Galeria & Sincronização/i)).toBeInTheDocument();
     expect(screen.getByText(/Privacidade/i)).toBeInTheDocument();
-    expect(screen.getAllByText(/Captura de Leads/i).length).toBeGreaterThan(0);
+    expect(screen.getAllByText(/Cadastro de usuário/i).length).toBeGreaterThan(0);
   });
 
   it('handles various lead capture field combinations and enforces at least one mandatory field', async () => {
     render(<GaleriaFormContent {...defaultProps} />);
     
     // Enable leads
-    const leadsToggle = screen.getByText(/Habilitar Captura de Leads/i).nextElementSibling as HTMLElement;
+    const leadsToggle = screen.getByText(/Habilitar cadastro de usuário para visualizar a galeria/i).nextElementSibling as HTMLElement;
     fireEvent.click(leadsToggle);
 
     const getHiddenInputValue = (testId: string) => {
