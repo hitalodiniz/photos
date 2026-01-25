@@ -211,7 +211,8 @@ export const getInternalGoogleDriveUrl = (
   // mas sem o peso do arquivo RAW/Bruto de 25MB.
   const finalWidth = format === 'original' ? '4000' : width;
 
-  return `https://drive.google.com/thumbnail?id=${photoId}&sz=w${finalWidth}${suffix}`;
+// Opção recomendada: logo após o ID para garantir que o Google entenda o contexto do arquivo
+return `https://drive.google.com/thumbnail?id=${photoId}-p&sz=w${finalWidth}${suffix}`;
 };
 
 /**

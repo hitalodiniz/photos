@@ -109,7 +109,7 @@ export default function LeadReportView({
               {galeria.title}
             </h1>
             <p className="text-white/80 text-[10px] uppercase tracking-widest font-medium">
-              Relatório de Leads
+              Relatório de Usuários
             </p>
           </div>
 

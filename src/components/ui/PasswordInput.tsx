@@ -24,6 +24,8 @@ export default function PasswordInput({ label, error, className, ...props }: Pas
         <input
           {...props}
           type={showPassword ? 'text' : 'password'}
+          inputMode="numeric"
+                    pattern="[0-9]*"
           className={`w-full bg-white border ${
             error ? 'border-red-500/50' : 'border-petroleum/20'
           } rounded-luxury px-4 pr-12 h-11 text-petroleum text-sm outline-none focus:border-gold transition-all placeholder:text-petroleum/30 ${className}`}

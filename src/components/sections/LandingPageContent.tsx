@@ -76,7 +76,7 @@ export default function LandingPageContent() {
                 className="lg:absolute lg:-top-4 left-6 w-full 
               text-center lg:text-left"
               >
-                <span className="text-[#D4AF37] text-[10px] md:text-[14px] tracking-wider uppercase font-semibold">
+                <span className="text-champagnetext-[10px] md:text-[14px] tracking-wider uppercase font-semibold">
                   Por que nos escolher?
                 </span>
               </div>

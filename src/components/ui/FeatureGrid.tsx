@@ -52,7 +52,7 @@ export default function FeatureGrid({
               >
                 {/* Ícone Champanhe com Glow focado */}
                 <div
-                  className={`flex-shrink-0 text-[#D4AF37] group-hover:drop-shadow-[0_0_12px_rgba(212,175,55,0.6)] transition-all duration-300 ${
+                  className={`flex-shrink-0 text-champagnegroup-hover:drop-shadow-[0_0_12px_rgba(212,175,55,0.6)] transition-all duration-300 ${
                     isTop ? 'mb-2' : ''
                   }`}
                 >

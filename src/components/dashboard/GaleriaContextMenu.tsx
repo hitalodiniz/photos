@@ -238,7 +238,7 @@ export default function GaleriaContextMenu({
           e.stopPropagation();
           setIsOpen(!isOpen);
         }}
-        className="p-2 text-petroleum hover:text-[#D4AF37] transition-colors rounded-lg border border-petroleum/50 hover:bg-slate-50"
+        className="p-2 text-petroleum hover:text-champagnetransition-colors rounded-lg border border-petroleum/50 hover:bg-slate-50"
         disabled={isUpdating}
       >
         <MoreVertical size={18} />

@@ -32,10 +32,15 @@ export const maskPhone = (e: React.ChangeEvent<HTMLInputElement>) => {
   // 1. Remove tudo que não é número
   value = value.replace(/\D/g, "");
 
-  // 2. Limita a 11 dígitos
+  // 2. Trata prefixo internacional (ex: 55)
+  if (value.length >= 12 && value.startsWith('55')) {
+    value = value.slice(2);
+  }
+
+  // 3. Limita a 11 dígitos
   value = value.slice(0, 11);
 
-  // 3. Aplica a máscara (XX) XXXXX-XXXX
+  // 4. Aplica a máscara (XX) XXXXX-XXXX
   value = value.replace(/^(\d{2})(\d)/g, "($1) $2");
   value = value.replace(/(\d)(\d{4})$/, "$1-$2");
 

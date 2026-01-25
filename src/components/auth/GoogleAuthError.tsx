@@ -140,7 +140,7 @@ export default function GoogleAuthError({
           {isTokenMissing && isOwner && (
             <button
               onClick={() => router.push('/auth/reconnect')}
-              className="flex items-center justify-center gap-3 px-6 py-3 bg-[#F3E5AB] text-black hover:bg-[#D4AF37] transition-colors rounded-lg text-[11px] font-bold uppercase tracking-wider shadow-lg"
+              className="flex items-center justify-center gap-3 px-6 py-3 bg-[#F3E5AB] text-black hover:bg-champagnetransition-colors rounded-lg text-[11px] font-bold uppercase tracking-wider shadow-lg"
             >
               <LogIn size={14} /> Reconectar Google Drive
             </button>

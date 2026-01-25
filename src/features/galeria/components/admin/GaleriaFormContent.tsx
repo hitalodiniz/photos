@@ -621,14 +621,14 @@ export default function GaleriaFormContent({
                 <button
                   type="button"
                   onClick={() => setIsPublic(true)}
-                  className={`flex-1 py-1 rounded-[0.3rem] text-[10px] font-semibold uppercase tracking-widest transition-all ${isPublic ? 'bg-white  shadow-sm' : 'text-slate-400'}`}
+                  className={`flex-1 py-1 rounded-[0.3rem] text-[10px] font-semibold uppercase tracking-widest transition-all ${isPublic ? 'bg-champagne  shadow-sm' : 'text-slate-400'}`}
                 >
                   Público
                 </button>
                 <button
                   type="button"
                   onClick={() => setIsPublic(false)}
-                  className={`flex-1 py-1 rounded-[0.3rem] text-[10px] font-semibold uppercase tracking-widest transition-all ${!isPublic ? 'bg-white  shadow-sm' : 'text-petroleum/60 dark:text-slate-400'}`}
+                  className={`flex-1 py-1 rounded-[0.3rem] text-[10px] font-semibold uppercase tracking-widest transition-all ${!isPublic ? 'bg-champagne  shadow-sm' : 'text-petroleum/60 dark:text-slate-400'}`}
                 >
                   Privado
                 </button>
@@ -696,13 +696,13 @@ export default function GaleriaFormContent({
       </FormSection>
 
       {/* SEÇÃO NOVA: CAPTURA DE LEADS */}
-      <FormSection title="Captura de Leads" icon={<Users size={14} />}>
+      <FormSection title="Cadastro de usuário" icon={<Users size={14} />}>
         <fieldset>
           <div className="flex flex-col gap-4">
             <div className="flex flex-col sm:flex-row items-start sm:items-center gap-4">
               <div className="flex items-center gap-3">
                 <label className="text-[10px] font-semibold uppercase tracking-widest text-petroleum">
-                  Habilitar Captura de Leads
+                  Habilitar cadastro de usuário para visualizar a galeria
                 </label>
                 <button
                   type="button"
@@ -991,7 +991,7 @@ export default function GaleriaFormContent({
           <div className="space-y-3 pt-3 border-t border-petroleum/40">
             <label className="text-[10px] font-semibold uppercase tracking-widest text-petroleum flex items-center gap-1.5">
               <ImageIcon size={12} strokeWidth={2} className="inline" />
-              Preview de Capa
+              Foto de capa selecionada
             </label>
             
             <div className="relative aspect-[16/9] w-full overflow-hidden rounded-luxury bg-slate-100 border border-petroleum/40">

@@ -66,7 +66,7 @@ export default function EditorialHeader({
         <div className="fixed left-4 md:left-10 top-8 md:top-12 z-50 animate-in fade-in slide-in-from-left-4 duration-500">
           <button
             onClick={handleBack}
-            className="inline-flex items-center gap-2.5 px-6 py-2.5 text-[10px] md:text-[12px] font-semibold tracking-wider text-[#D4AF37] bg-black/40 border border-gold/20 rounded-full hover:bg-black/60 hover:border-gold/40 transition-all duration-300 backdrop-blur-xl group uppercase shadow-2xl"
+            className="inline-flex items-center gap-2.5 px-6 py-2.5 text-[10px] md:text-[12px] font-semibold tracking-wider text-champagnebg-black/40 border border-gold/20 rounded-full hover:bg-black/60 hover:border-gold/40 transition-all duration-300 backdrop-blur-xl group uppercase shadow-2xl"
           >
             <ArrowLeft
               size={16}

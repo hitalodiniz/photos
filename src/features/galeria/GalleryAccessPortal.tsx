@@ -232,6 +232,7 @@ export default function GalleryAccessPortal({
                         </label>
                         <input
                           type="text"
+                          inputMode="numeric"
                           value={formData.whatsapp}
                           onChange={(e) => setFormData({ ...formData, whatsapp: maskPhone(e) })}
                           placeholder="(00) 00000-0000"

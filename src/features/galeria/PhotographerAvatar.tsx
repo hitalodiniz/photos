@@ -66,7 +66,7 @@ export default function PhotographerAvatar({
       >
         {/* Foto/Avatar */}
         <div className="relative group flex-shrink-0 w-10 h-10 md:w-14 md:h-14 rounded-full overflow-hidden flex items-center justify-center">
-          <div className="absolute -inset-1 bg-gradient-to-tr from-[#D4AF37] to-[#F3E5AB] rounded-full blur-sm opacity-30 group-hover:opacity-60 transition duration-700"></div>
+          <div className="absolute -inset-1 bg-gradient-to-tr from-champagneto-[#F3E5AB] rounded-full blur-sm opacity-30 group-hover:opacity-60 transition duration-700"></div>
 
           {displayAvatar ? (
             <Image
@@ -151,7 +151,7 @@ export default function PhotographerAvatar({
 
             <a
               href={profileLink}
-              className={`p-1.5 rounded-full hover:bg-[#D4AF37] transition-all border ${
+              className={`p-1.5 rounded-full hover:bg-champagnetransition-all border ${
                 position === 'bottom-lightbox'
                   ? 'bg-black/10 dark:bg-white/10 text-black dark:text-white border-black/20 dark:border-white/20'
                   : 'bg-white/10 text-white border-white/10'

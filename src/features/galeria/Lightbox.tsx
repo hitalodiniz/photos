@@ -71,20 +71,9 @@ export default function Lightbox({
     mq.addEventListener('change', handler);
     return () => mq.removeEventListener('change', handler);
   }, []);
-
-  // 🎯 Mostrar tooltip de alta resolução apenas na primeira vez que o lightbox abre
-  // Este useEffect foi movido para o ToolbarGalleryView para melhor controle
-  // useEffect(() => {
-  //   if (!hasShownQualityWarning) {
-  //     const timer = setTimeout(() => {
-  //       setHasShownQualityWarning(true);
-  //     }, 8000); // Marca como mostrado após 8 segundos (tempo de exibição do tooltip)
-  //     return () => clearTimeout(timer);
-  //   }
-  // }, [hasShownQualityWarning]);
   
-  // Duração de cada foto no slideshow (em milissegundos) - 5 segundos
-  const SLIDESHOW_DURATION = 5000;
+  // Duração de cada foto no slideshow (em milissegundos) - 3 segundos
+  const SLIDESHOW_DURATION = 3000;
 
   // Estados para Navegação por Gesto (Swipe)
   const [touchStart, setTouchStart] = useState<number | null>(null);
@@ -191,7 +180,7 @@ export default function Lightbox({
     imgRef,
   } = useGoogleDriveImage({
     photoId: String(photoId || ''),
-    width: imageWidth,
+    //width: imageWidth,
     priority: true,
     fallbackToProxy: true,
   });
@@ -540,6 +529,7 @@ img.src = imgSrc;
             src={imgSrc}
             onLoad={handleLoad}
             onError={handleError}
+            style={{ imageOrientation: 'from-image' }}
             className={`transition-all duration-700 ease-out
               ${isMobile 
                 ? 'w-full h-full object-contain' 

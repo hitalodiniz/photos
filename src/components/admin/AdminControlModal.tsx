@@ -33,7 +33,7 @@ export default function AdminControlModal({
         onClick={() => setActiveTab('cache')}
         className={`flex-1 py-3 text-[10px] font-bold uppercase tracking-widest transition-colors ${
           activeTab === 'cache'
-            ? 'text-[#D4AF37] border-b-2 border-[#D4AF37]'
+            ? 'text-champagneborder-b-2 border-[#D4AF37]'
             : 'text-white/60 hover:text-white'
         }`}
       >
@@ -43,7 +43,7 @@ export default function AdminControlModal({
         onClick={() => setActiveTab('tokens')}
         className={`flex-1 py-3 text-[10px] font-bold uppercase tracking-widest transition-colors ${
           activeTab === 'tokens'
-            ? 'text-[#D4AF37] border-b-2 border-[#D4AF37]'
+            ? 'text-champagneborder-b-2 border-[#D4AF37]'
             : 'text-white/60 hover:text-white'
         }`}
       >
@@ -66,7 +66,7 @@ export default function AdminControlModal({
         {/* Cache Tab */}
         {activeTab === 'cache' && (
           <div className="text-center space-y-4">
-            <div className="inline-flex p-3 bg-petroleum/5 rounded-full text-[#D4AF37] border border-petroleum/10">
+            <div className="inline-flex p-3 bg-petroleum/5 rounded-full text-champagneborder border-petroleum/10">
               <Zap size={24} strokeWidth={2.5} fill="currentColor" />
             </div>
             <div>
@@ -107,7 +107,7 @@ export default function AdminControlModal({
         {activeTab === 'tokens' && (
           <div className="space-y-4">
             <div className="flex justify-center">
-              <div className="inline-flex p-3 bg-petroleum/5 rounded-full text-[#D4AF37] border border-petroleum/10">
+              <div className="inline-flex p-3 bg-petroleum/5 rounded-full text-champagneborder border-petroleum/10">
                 <Database size={24} strokeWidth={2.5} fill="currentColor" />
               </div>
             </div>

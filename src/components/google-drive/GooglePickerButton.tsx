@@ -399,7 +399,7 @@ export default function GooglePickerButton({
           isDisabled
             ? 'bg-slate-50 text-slate-300 border-slate-100 cursor-not-allowed'
             : hasSelected
-              ? 'bg-[#F3E5AB]/20 border-[#D4AF37]/40 text-[#D4AF37] hover:bg-[#F3E5AB]/40'
+              ? 'bg-[#F3E5AB]/20 border-[#D4AF37]/40 text-champagnehover:bg-[#F3E5AB]/40'
               : 'bg-[#F3E5AB] text-black border-[#F3E5AB] hover:bg-white shadow-[#D4AF37]/10'
         }
       `}
