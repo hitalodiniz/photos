@@ -4,7 +4,7 @@ import Navbar from '@/components/layout/Navbar';
 import { Metadata } from 'next';
 import { CookieBanner } from '@/components/ui';
 import { AuthProvider } from '@photos/core-auth';
-import { Analytics } from "@vercel/analytics/next"
+import { Analytics } from '@vercel/analytics/next';
 import GoogleApiLoader from '@/components/google-drive/GoogleApiLoader';
 import { NavigationProvider } from '@/components/providers/NavigationProvider';
 import { SidebarProvider } from '@/components/providers/SidebarProvider';
@@ -40,7 +40,8 @@ export const metadata: Metadata = {
         type: 'image/svg+xml',
       },
     ],
-    shortcut: "data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='%23F3E5AB' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'><path d='M14.5 4h-5L7 7H4a2 2 0 0 0-2 2v9a2 2 0 0 0 2 2h16a2 2 0 0 0 2-2V9a2 2 0 0 0-2-2h-3l-2.5-3z'/><circle cx='12' cy='13' r='3'/></svg>",
+    shortcut:
+      "data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='%23F3E5AB' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'><path d='M14.5 4h-5L7 7H4a2 2 0 0 0-2 2v9a2 2 0 0 0 2 2h16a2 2 0 0 0 2-2V9a2 2 0 0 0-2-2h-3l-2.5-3z'/><circle cx='12' cy='13' r='3'/></svg>",
   },
 };
 
@@ -59,8 +60,7 @@ export default function RootLayout({
 }) {
   return (
     <html lang="pt-BR" className={`${montserrat.variable} ${barlow.variable}`}>
-      {/* 4. A classe inter.className no body garante que todo o texto herde a Inter por padrão */}
-      <body className={`${montserrat.className} bg-luxury-bg antialiased`}>
+      <body className="font-montserrat bg-luxury-bg antialiased">
         <AuthProvider>
           <NavigationProvider>
             <SidebarProvider>

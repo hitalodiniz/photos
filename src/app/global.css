@@ -33,13 +33,13 @@
     @apply relative flex items-center justify-center;
   }
   .loading-luxury::after {
-    content: "";
+    content: '';
     @apply w-6 h-6 border-2 border-white/10 border-t-gold rounded-full animate-spin;
     filter: drop-shadow(0 0 4px rgba(212, 175, 55, 0.4));
   }
 
   .loading-luxury-dark::after {
-    content: "";
+    content: '';
     @apply w-6 h-6 border-2 border-petroleum/10 border-t-gold rounded-full animate-spin;
     filter: drop-shadow(0 0 4px rgba(212, 175, 55, 0.2));
   }
@@ -57,13 +57,23 @@
   }
 
   @keyframes modal-appear {
-    from { opacity: 0; transform: scale(0.98); }
-    to { opacity: 1; transform: scale(1); }
+    from {
+      opacity: 0;
+      transform: scale(0.98);
+    }
+    to {
+      opacity: 1;
+      transform: scale(1);
+    }
   }
 
   /* Microcopy Editorial Standard */
   .text-editorial-label {
     @apply text-[10px] font-semibold uppercase tracking-luxury;
+  }
+
+  .text-editorial-label-11 {
+    @apply text-[11px] font-semibold uppercase tracking-luxury;
   }
 
   /* Transição suave para elementos interativos */
