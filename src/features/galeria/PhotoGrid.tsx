@@ -271,7 +271,7 @@ export default function PhotoGrid({ photos, galeria }: any) {
 
               const globalPhotoNumber =
                 firstPhotoGlobalIndex + i + indexInBatch + 1;
-              
+
               const finalFileName = (galeria.rename_files_sequential === true || galeria.rename_files_sequential === 'true')
                 ? `foto-${globalPhotoNumber}.jpg`
                 : (photo.name || `foto-${globalPhotoNumber}.jpg`);
@@ -355,8 +355,7 @@ export default function PhotoGrid({ photos, galeria }: any) {
               text: GALLERY_MESSAGES.GUEST_SHARE(
                 galeria.title,
                 window.location.href,
-              ),
-              url: window.location.href,
+              )
             })
           }
         />
@@ -384,8 +383,7 @@ export default function PhotoGrid({ photos, galeria }: any) {
               text: GALLERY_MESSAGES.GUEST_SHARE(
                 galeria.title,
                 window.location.href,
-              ),
-              url: window.location.href,
+              )
             })
           }
         />

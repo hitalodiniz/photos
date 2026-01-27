@@ -60,6 +60,7 @@ export interface GaleriaBase {
   leads_require_name: boolean;
   leads_require_email: boolean;
   leads_require_whatsapp: boolean;
+  lead_purpose?: string;
   rename_files_sequential: boolean;
 }
 

@@ -11,6 +11,7 @@ import {
   Zap,
   Share2,
 } from 'lucide-react';
+import { GALLERY_MESSAGES } from '@/core/config/messages';
 
 // 🎯 Função helper para parsear links do JSON
 const parseLinks = (jsonString: string | null | undefined): string[] => {
@@ -153,15 +154,15 @@ export const ToolBarMobile = ({
 
   // 🎯 Função para compartilhamento nativo no mobile (Web Share API)
   const handleNativeShare = async () => {
-    const shareText = galeria?.title 
-      ? `Confira a galeria: ${galeria.title}`
-      : 'Confira esta galeria de fotos';
+    const title = galeria?.title || 'Galeria de Fotos';
+    const url = window.location.href;
+    const shareText = GALLERY_MESSAGES.GUEST_SHARE(title, url);
 
     // Verifica se a Web Share API está disponível
     if (navigator.share) {
       try {
         await navigator.share({
-          title: galeria?.title || 'Galeria de Fotos',
+          title: title,
           text: shareText,
         });
       } catch (error) {

@@ -229,6 +229,7 @@ export default function GaleriaFormPage({
               }
               onTokenExpired={() => setShowConsentAlert(true)}
               onTitleChange={setFormTitle}
+              profile={initialProfile}
             />
           </form>
         </div>

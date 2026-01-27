@@ -6,6 +6,7 @@ import BaseModal from '@/components/ui/BaseModal';
 import { authenticateGaleriaAccessAction, captureLeadAction } from '@/actions/auth.actions';
 import { Galeria } from '@/core/types/galeria';
 import { User, Mail, Smartphone, CheckCircle, Camera } from 'lucide-react';
+import Link from 'next/link';
 import PasswordInput from '@/components/ui/PasswordInput';
 import * as z from 'zod';
 import { getDirectGoogleUrl } from '@/core/utils/url-helper';
@@ -104,7 +105,7 @@ export default function GalleryAccessPortal({
           email: formData.email,
           whatsapp: formData.whatsapp.replace(/\D/g, ''),
         });
-        
+
         if (!leadResult.success) {
           setGlobalError(leadResult.error || 'Erro ao processar dados.');
           setLoading(false);
@@ -174,7 +175,7 @@ export default function GalleryAccessPortal({
 
       <BaseModal
         isOpen={isOpen && !loading}
-        onClose={() => {}}
+        onClose={() => { }}
         showCloseButton={false}
         title="Acesso à Galeria"
         subtitle={galeria.title}
@@ -189,8 +190,7 @@ export default function GalleryAccessPortal({
             <p className="text-petroleum/70 text-[13px] italic leading-relaxed text-left font-semibold">
               {hasPassword ? (
                 <span>
-                  Esta é uma galeria protegida.<br />
-                  Por favor, identifique-se para continuar.
+                  Galeria protegida. Por favor, identifique-se para continuar.
                 </span>
               ) : (
                 <span>
@@ -245,7 +245,7 @@ export default function GalleryAccessPortal({
                     {galeria.leads_require_email && (
                       <div className="flex-1 space-y-1.5">
                         <label className="text-[10px] font-bold uppercase tracking-widest text-petroleum flex items-center gap-2">
-                          <Mail size={12} className="text-petroleum/40" /> E-mail 
+                          <Mail size={12} className="text-petroleum/40" /> E-mail
                         </label>
                         <input
                           type="email"
@@ -274,7 +274,35 @@ export default function GalleryAccessPortal({
                 error={errors.password}
               />
             )}
+            {/* BLOCO LGPD EDITORIAL */}
+            {(galeria.leads_require_name && galeria.leads_require_whatsapp || galeria.leads_require_email) && (
 
+              <div className="pt-4 pb-2">
+                <div className="flex items-start gap-3 group">
+                  {/* container do checkbox */}
+                  <div className="relative flex items-center mt-1 shrink-0 cursor-pointer">
+                    <input
+                      id="lgpd-consent"
+                      type="checkbox"
+                      required
+                      className="peer h-4 w-4 appearance-none rounded-sm border border-petroleum/40 bg-white checked:bg-petroleum checked:border-petroleum transition-all cursor-pointer"
+                    />
+                    <CheckCircle size={11} className="absolute ml-0.5 text-gold opacity-0 peer-checked:opacity-100 transition-opacity pointer-events-none" />
+                  </div>
+
+                  {/* texto fora do label para evitar o uppercase global */}
+                  <div className="text-[12px] text-petroleum font-semibold leading-relaxed !whitespace-normal break-words">
+                    Esta coleta de dados é uma opção do organizador desta galeria.
+                    os dados são processados pelo app <span className="font-bold">Sua Galeria</span> para a seguinte finalidade:
+                    <span className="text-gold font-bold"> {galeria.lead_purpose || 'identificação para acesso à galeria'}</span>.
+                    não sendo utilizados para nenhuma outra finalidade, conforme a
+                    <button type="button" className="inline underline-offset-4 font-bold ml-1">
+                      política de privacidade
+                    </button>.
+                  </div>
+                </div>
+              </div>
+            )}
             {globalError && (
               <p className="text-red-500 text-[11px] text-center font-medium bg-red-500/5 py-2 rounded-lg border border-red-500/10">
                 {globalError}

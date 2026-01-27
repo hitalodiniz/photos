@@ -15,6 +15,7 @@ export default function GaleriaModal({
   onClose,
   onSuccess,
   onTokenExpired,
+  initialProfile,
 }) {
   const isEdit = !!galeria;
   const [loading, setLoading] = useState(false);
@@ -38,7 +39,7 @@ export default function GaleriaModal({
         setIsPublic(galeria.is_public === true || galeria.is_public === 'true');
         setShowCoverInGrid(
           galeria.show_cover_in_grid === true ||
-            galeria.show_cover_in_grid === 'true',
+          galeria.show_cover_in_grid === 'true',
         );
         setGridBgColor(galeria.grid_bg_color || '#F3E5AB');
         setColumns({
@@ -212,6 +213,7 @@ export default function GaleriaModal({
           onPickerError={(msg: string) => onSuccess(false, msg)}
           onTokenExpired={onTokenExpired}
           onTitleChange={setFormTitle}
+          profile={initialProfile}
         />
       </FormPageBase>
 
@@ -261,7 +263,7 @@ export default function GaleriaModal({
           <p className="text-[13px] md:text-[14px] leading-relaxed text-petroleum/80 font-medium text-center px-4">
             A galeria <strong>{formTitle}</strong> foi {isEdit ? 'atualizada' : 'criada'} com sucesso e já pode ser compartilhada com seus clientes.
           </p>
-          
+
           <div className="p-4 bg-slate-50 border border-petroleum/10 rounded-luxury flex flex-col items-center gap-4">
             <p className="text-[10px] font-semibold text-petroleum/80 text-center uppercase tracking-luxury">
               Compartilhe o link direto com seu cliente:

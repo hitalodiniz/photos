@@ -18,8 +18,8 @@ export const GALLERY_MESSAGES = {
       url,
       '',
       'Espero que goste! ✨',
-      '---',
-      '💎 _Sua Galeria_',
+      ' ',
+      '💎 Sua Galeria',
     ].join('\n');
   },
   CARD_SHARE: (clientName: string, title: string, url: string) => {
@@ -41,7 +41,7 @@ export const GALLERY_MESSAGES = {
       url,
       '',
       'Espero que goste! \u{2728}',
-      '---',
+      ' ',
       // \u{1F48E} = 💎
       '\u{1F48E} _Sua Galeria_',
     ].join('\n');
@@ -57,8 +57,8 @@ export const GALLERY_MESSAGES = {
       '📍 *Visualize em alta qualidade aqui:*',
       url,
       '',
-      '---',
-      '💎 _Sua Galeria_',
+      ' ',
+      '💎 Sua Galeria',
     ].join('\n');
   },
   GUEST_SHARE: (title: string, url: string) => {
@@ -73,8 +73,8 @@ export const GALLERY_MESSAGES = {
       url,
       '',
       'Espero que goste! ✨',
-      '---',
-      '💎 _Sua Galeria_',
+      ' ',
+      '💎 Sua Galeria',
     ].join('\n');
   },
 

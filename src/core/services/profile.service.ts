@@ -187,9 +187,9 @@ export async function upsertProfile(formData: FormData, supabaseClient?: any) {
     const fileName = profileFile.name || 'avatar.webp';
     const fileExt = fileName.includes('.') ? fileName.split('.').pop() : 'webp';
     const filePath = `${user.id}/avatar-${Date.now()}.${fileExt}`;
-    
+
     // console.log('[upsertProfile] Uploading avatar:', filePath);
-    
+
     const { error: uploadError } = await supabase.storage
       .from('profile_pictures')
       .upload(filePath, profileFile, { upsert: true });
@@ -213,9 +213,9 @@ export async function upsertProfile(formData: FormData, supabaseClient?: any) {
     const bgName = backgroundFile.name || 'bg.webp';
     const bgExt = bgName.includes('.') ? bgName.split('.').pop() : 'webp';
     const bgPath = `${user.id}/bg-${Date.now()}.${bgExt}`;
-    
+
     // console.log('[upsertProfile] Uploading background:', bgPath);
-    
+
     const { error: bgUploadError } = await supabase.storage
       .from('profile_pictures')
       .upload(bgPath, backgroundFile, { upsert: true });
@@ -273,7 +273,7 @@ export async function upsertProfile(formData: FormData, supabaseClient?: any) {
     .from('tb_galerias')
     .select('id, slug, drive_folder_id')
     .eq('user_id', user.id);
-  
+
   if (galerias && galerias.length > 0) {
     // Revalida cada galeria individualmente
     galerias.forEach((galeria) => {
@@ -290,7 +290,7 @@ export async function upsertProfile(formData: FormData, supabaseClient?: any) {
     // Revalida a lista de galerias do usuário
     revalidateTag(`user-galerias-${user.id}`);
   }
-  
+
   // Revalida as rotas físicas
   revalidatePath('/dashboard');
   revalidatePath(`/${username}`);
@@ -332,6 +332,46 @@ export async function updateSidebarPreference(isCollapsed: boolean) {
   if (error) return { success: false, error: error.message };
 
   // 🔄 REVALIDAÇÃO: Limpa o cache do perfil
+  if (profile?.username) {
+    revalidateTag(`profile-${profile.username}`);
+  }
+
+  return { success: true };
+}
+
+
+/**
+ * Atualiza ou Adiciona categorias personalizadas no perfil do usuário
+ * Armazena no campo JSONB 'custom_categories'
+ */
+export async function updateCustomCategories(categories: string[]) {
+  const supabase = await createSupabaseServerClient();
+  const { data: { user } } = await supabase.auth.getUser();
+
+  if (!user) return { success: false, error: 'Sessão expirada.' };
+
+  // 1. Busca o username atual para revalidação de cache posterior
+  const { data: profile } = await supabase
+    .from('tb_profiles')
+    .select('username')
+    .eq('id', user.id)
+    .single();
+
+  // 2. Realiza o update no campo JSONB
+  const { error } = await supabase
+    .from('tb_profiles')
+    .update({
+      custom_categories: categories,
+      updated_at: new Date().toISOString()
+    })
+    .eq('id', user.id);
+
+  if (error) {
+    console.error('[updateCustomCategories] Erro:', error);
+    return { success: false, error: error.message };
+  }
+
+  // 🔄 REVALIDAÇÃO: Garante que o perfil em cache reflita as novas categorias
   if (profile?.username) {
     revalidateTag(`profile-${profile.username}`);
   }

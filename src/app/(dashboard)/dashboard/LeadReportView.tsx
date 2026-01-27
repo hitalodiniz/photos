@@ -1,10 +1,10 @@
 'use client';
 
 import { useState, useEffect } from 'react';
-import { 
-  Users, 
-  FileText, 
-  Table as TableIcon, 
+import {
+  Users,
+  FileText,
+  Table as TableIcon,
   FileDown,
   Search,
   ArrowUpDown,
@@ -59,8 +59,8 @@ export default function LeadReportView({
       Data: new Date(lead.created_at).toLocaleString('pt-BR'),
     }));
 
-    const filename = `leads-${galeria.slug.replace(/\//g, '-')}`;
-    const title = `Relatório de Leads - ${galeria.title}`;
+    const filename = `cadastros-visitantes-${galeria.slug.replace(/\//g, '-')}`;
+    const title = `Relatório de Cadastro de Visitantes - ${galeria.title}`;
 
     if (type === 'csv') exportToCSV(dataToExport, filename);
     if (type === 'excel') exportToExcel(dataToExport, filename);
@@ -76,7 +76,7 @@ export default function LeadReportView({
   };
 
   const filteredLeads = leads
-    .filter(lead => 
+    .filter(lead =>
       lead.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
       (lead.email && lead.email.toLowerCase().includes(searchTerm.toLowerCase())) ||
       (lead.whatsapp && lead.whatsapp.includes(searchTerm))
@@ -175,7 +175,7 @@ export default function LeadReportView({
             <table className="w-full text-left border-collapse min-w-[800px]">
               <thead>
                 <tr className="bg-petroleum/5 border-b border-petroleum/10">
-                  <th 
+                  <th
                     className="px-4 py-3 text-[11px] font-semibold uppercase tracking-widest text-petroleum/90 cursor-pointer hover:text-petroleum transition-colors"
                     onClick={() => handleSort('name')}
                   >
@@ -183,7 +183,7 @@ export default function LeadReportView({
                       <User size={12} /> Nome <ArrowUpDown size={10} />
                     </div>
                   </th>
-                  <th 
+                  <th
                     className="px-4 py-3 text-[11px] font-semibold uppercase tracking-widest text-petroleum/90 cursor-pointer hover:text-petroleum transition-colors"
                     onClick={() => handleSort('email')}
                   >
@@ -191,7 +191,7 @@ export default function LeadReportView({
                       <Mail size={12} /> E-mail <ArrowUpDown size={10} />
                     </div>
                   </th>
-                  <th 
+                  <th
                     className="px-4 py-3 text-[11px] font-semibold uppercase tracking-widest text-petroleum/90 cursor-pointer hover:text-petroleum transition-colors"
                     onClick={() => handleSort('whatsapp')}
                   >
@@ -199,7 +199,7 @@ export default function LeadReportView({
                       <Smartphone size={12} /> WhatsApp <ArrowUpDown size={10} />
                     </div>
                   </th>
-                  <th 
+                  <th
                     className="px-4 py-3 text-[11px] font-semibold uppercase tracking-widest text-petroleum/90 cursor-pointer hover:text-petroleum transition-colors"
                     onClick={() => handleSort('created_at')}
                   >
@@ -225,7 +225,7 @@ export default function LeadReportView({
                     <td className="px-6 py-4">
                       <div className="text-xs text-petroleum/70 font-medium">
                         {lead.whatsapp ? (
-                          <a 
+                          <a
                             href={`https://wa.me/${lead.whatsapp}`}
                             target="_blank"
                             rel="noopener noreferrer"
@@ -240,8 +240,8 @@ export default function LeadReportView({
                       </div>
                     </td>
                     <td className="px-6 py-4 text-right">
-                    <div className="text-xs text-petroleum/70 font-medium">
-                    {formatDate(lead.created_at)}
+                      <div className="text-xs text-petroleum/70 font-medium">
+                        {formatDate(lead.created_at)}
                       </div>
                     </td>
                   </tr>
