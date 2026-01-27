@@ -7,7 +7,7 @@ interface GoogleSignInButtonProps {
   forceConsent?: boolean;
 }
 
-export default function GoogleSignInButton({ 
+export default function GoogleSignInButton({
   forceConsent = false,
 }: GoogleSignInButtonProps) {
   const [loading, setLoading] = useState(false);
@@ -36,9 +36,10 @@ export default function GoogleSignInButton({
     max-w-[250px]
     md:max-w-sm
     bg-white text-petroleum rounded-luxury 
-    shadow-xl border border-white/10
+    shadow-xl border border-petroluem/20
     py-3  
     transition-all duration-300
+    
     ${
       loading
         ? 'opacity-70 cursor-not-allowed'

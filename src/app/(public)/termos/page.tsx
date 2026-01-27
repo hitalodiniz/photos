@@ -13,8 +13,8 @@ import {
   DynamicHeroBackground,
   Footer,
 } from '@/components/layout';
-import FeatureGrid from '@/components/ui/FeatureGrid';
 import { usePageTitle } from '@/hooks/usePageTitle';
+import EditorialCard from '@/components/ui/EditorialCard';
 
 export default function TermosDeUsoPage() {
   usePageTitle('Termos de Uso');
@@ -22,58 +22,103 @@ export default function TermosDeUsoPage() {
   const termosItems = [
     {
       icon: <UserCheck />,
-      title: 'Aceitação dos Termos',
-      desc: 'Ao utilizar esta plataforma, você concorda com estas diretrizes. O serviço é um visualizador de mídia otimizado para usuários que utilizam o Google Drive™ como servidor profissional.',
+      title: 'Aceitação',
+      summary:
+        'Ao utilizar o app, você concorda com nossas diretrizes profissionais.',
+      desc: 'Este serviço é um visualizador de mídia otimizado. Ao prosseguir, você declara estar ciente de que a plataforma atua como uma interface para seus arquivos hospedados no Google Drive™.',
     },
     {
       icon: <Globe />,
-      title: 'Licença e Propriedade',
-      desc: 'Você mantém 100% da propriedade intelectual de suas mídias. A disponibilidade das fotos depende exclusivamente da manutenção dos arquivos e permissões em sua conta Google pessoal.',
+      title: 'Propriedade',
+      summary: 'Você mantém 100% dos direitos intelectuais sobre suas imagens.',
+      desc: 'Nossa tecnologia atua como um espelhamento dinâmico. A disponibilidade das fotos depende exclusivamente da manutenção das permissões em sua conta pessoal do Google.',
     },
     {
       icon: <ShieldCheck />,
-      title: 'Segurança e Dados (LGPD)',
-      desc: "Atuamos em conformidade com a LGPD. Não armazenamos fotos em nossos servidores. O usuário deve configurar a pasta no Drive como 'Qualquer pessoa com o link' para viabilizar a exibição.",
+      title: 'Segurança LGPD',
+      badge: 'Importante',
+      isHighlight: true,
+      summary: 'Segurança e conformidade com a proteção de dados.',
+      desc: 'Não armazenamos suas fotos em servidores próprios. O tráfego é criptografado e as credenciais de acesso seguem os protocolos rigorosos da Lei Geral de Proteção de Dados.',
     },
     {
       icon: <ShieldAlert />,
-      title: 'Limites de Uso e Planos',
-      desc: 'O acesso a recursos avançados como Analytics e Vídeos é determinado pelo plano contratado. O uso indevido para fins ilegais resultará em suspensão imediata da conta.',
+      title: 'Uso de Planos',
+      summary:
+        'Recursos avançados são vinculados ao nível de assinatura contratado.',
+      desc: 'O acesso a funcionalidades extras como Customizações e Downloads em Alta Resolução é determinado pelo plano ativo. O uso indevido resultará em suspensão imediata.',
     },
-
     {
-      icon: <UserCheck />, // Mantém o estilo dos ícones de 40px no tom Champanhe
-      title: 'Responsabilidade do Usuário',
-      desc: 'O usuário é o único responsável pelo conteúdo veiculado e pela gestão das chaves de acesso. A plataforma atua como ferramenta de exibição, cabendo ao usuário garantir que o uso do serviço e a divulgação das mídias respeitem os direitos de imagem e os acordos firmados com seus clientes finais.',
+      icon: <UserCheck />,
+      title: 'Responsabilidade',
+      summary: 'O profissional é o único gestor de seus conteúdos e acessos.',
+      desc: 'Cabe ao usuário garantir que a divulgação das mídias respeite os direitos de imagem e os acordos firmados com seus clientes finais.',
     },
-
     {
       icon: <FileText />,
-      title: 'Modificações no Serviço',
-      desc: 'Reservamos o direito de ajustar termos para refletir melhorias técnicas ou mudanças legais, sempre visando a estabilidade e segurança da sua galeria profissional.',
+      title: 'Modificações',
+      summary:
+        'Termos atualizados periodicamente para refletir melhorias técnicas.',
+      desc: 'Reservamos o direito de ajustar estes termos para garantir estabilidade. Recomendamos a consulta regular desta página para manter-se informado.',
     },
   ];
 
   return (
-    <div className="relative min-h-screen w-full flex flex-col overflow-hidden bg-black">
-      {/* BACKGROUND DINÂMICO PADRONIZADO */}
+    <div className="relative min-h-screen w-full flex flex-col overflow-hidden bg-black font-montserrat">
       <DynamicHeroBackground />
+
+      {/* Overlay de Proteção para Contraste Editorial */}
+      <div className="fixed inset-0 z-0 from-petroleum/40 via-petroleum/95 to-petroleum z-[1]" />
 
       <div className="relative z-10 flex flex-col min-h-screen">
         <EditorialHeader
           title="Termos de Uso"
           subtitle={
             <>
-              Regras e diretrizes para uma{' '}
-              <span className="font-semibold border-b-2 border-champagne/50 text-white">
-                experiência profissional
+              Diretrizes para uma{' '}
+              <span className="font-semibold border-b border-gold/50 text-white italic">
+                experiência editorial segura
               </span>
             </>
           }
         />
 
-        {/* Aplicação do FeatureGrid com as configurações de mobile/desktop ajustadas */}
-        <FeatureGrid items={termosItems} iconPosition="top" />
+        <main className="flex-grow py-12 px-6 max-w-[1600px] mx-auto w-full">
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8 mb-10">
+            {termosItems.map((item, index) => (
+              <EditorialCard
+                key={index}
+                title={item.title}
+                icon={item.icon}
+                badge={item.badge}
+                isHighlighted={item.isHighlight}
+              >
+                {/* Estrutura interna específica para Termos */}
+                <p className="text-[13px] leading-relaxed text-petroleum/80 font-medium italic mb-4">
+                  {item.summary}
+                </p>
+
+                <p className="text-[13px] leading-relaxed text-petroleum/70 font-medium">
+                  {item.desc}
+                </p>
+
+                <div className="mt-auto pt-4 flex justify-center">
+                  <div className="w-8 h-0.5 bg-gold/20" />
+                </div>
+              </EditorialCard>
+            ))}
+          </div>
+
+          {/* Rodapé informativo do protocolo */}
+          <div className="mt-4 flex justify-center">
+            <div className="flex items-center gap-4 bg-white/10 border border-white/10 px-8 py-4 rounded-luxury backdrop-blur-xl">
+              <ShieldCheck size={18} className="text-gold" />
+              <span className="text-[11px] font-medium uppercase tracking-[0.2em] text-white/80">
+                Termos atualizados em janeiro de 2026
+              </span>
+            </div>
+          </div>
+        </main>
 
         <Footer />
       </div>
