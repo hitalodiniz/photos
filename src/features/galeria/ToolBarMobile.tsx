@@ -13,22 +13,6 @@ import {
 } from 'lucide-react';
 import { GALLERY_MESSAGES } from '@/core/config/messages';
 
-// 🎯 Função helper para parsear links do JSON
-const parseLinks = (jsonString: string | null | undefined): string[] => {
-  if (!jsonString) return [];
-  try {
-    const parsed = JSON.parse(jsonString);
-    if (Array.isArray(parsed)) {
-      return parsed.filter((link) => link && typeof link === 'string');
-    }
-    // Se não é array, trata como string única (compatibilidade)
-    return jsonString ? [jsonString] : [];
-  } catch {
-    // Se não é JSON válido, trata como string única (compatibilidade)
-    return jsonString ? [jsonString] : [];
-  }
-};
-
 // Componente do Balão de Dica (Padronizado para mobile)
 // Fontes padronizadas: text-[9px] font-semibold (mesmo padrão do ToolbarGalleryView)
 const Tooltip = ({
@@ -58,7 +42,7 @@ const Tooltip = ({
       className={`absolute -bottom-11 ${containerClasses[position]} z-[130] animate-in fade-in zoom-in slide-in-from-top-2 duration-500 pointer-events-none`}
       style={{
         // Garante que tooltips à esquerda não cortem na borda da tela
-        ...(position === 'left' && { 
+        ...(position === 'left' && {
           left: '0',
           // Adiciona um pequeno offset para não cortar na borda esquerda da viewport
           transform: 'translateX(0)',
@@ -91,6 +75,7 @@ export const ToolBarMobile = ({
   handleShare,
   galeria,
   handleExternalDownload,
+  externalLinks = [],
 }: any) => {
   const [showTagsPanel, setShowTagsPanel] = useState(false);
   const [showColumnsPanel, setShowColumnsPanel] = useState(false);
@@ -99,16 +84,13 @@ export const ToolBarMobile = ({
   const [showDownloadMenu, setShowDownloadMenu] = useState(false);
   const [linksStatus, setLinksStatus] = useState<Record<number, boolean>>({});
 
-  const externalLinks = parseLinks(galeria?.zip_url_full);
-
   // Valida links externos
   useEffect(() => {
     const validateLinks = async () => {
       const check = async (url: string) => {
+        if (!url) return false;
         try {
-          const res = await fetch(
-            `/api/validate-link?url=${encodeURIComponent(url)}`,
-          );
+          const res = await fetch(`/api/validate-link?url=${encodeURIComponent(url)}`);
           const data = await res.json();
           return data.valid;
         } catch {
@@ -117,18 +99,20 @@ export const ToolBarMobile = ({
       };
 
       const status: Record<number, boolean> = {};
-      const links = parseLinks(galeria?.zip_url_full);
 
-      // Valida cada link do array
-      for (let i = 0; i < links.length; i++) {
-        status[i] = await check(links[i]);
+      // 🎯 Percorremos o externalLinks acessando a propriedade .url
+      for (let i = 0; i < externalLinks.length; i++) {
+        const linkParaValidar = externalLinks[i].url;
+        status[i] = await check(linkParaValidar);
       }
 
       setLinksStatus(status);
     };
 
-    validateLinks();
-  }, [galeria?.zip_url_full]);
+    if (externalLinks.length > 0) {
+      validateLinks();
+    }
+  }, [externalLinks]); // 🎯 Monitore o array de objetos processado
 
   const hasMultipleTags = tags.length > 1;
 
@@ -309,34 +293,34 @@ export const ToolBarMobile = ({
                     </button>
 
                     {/* Links Externos - Múltiplos links do JSON */}
-                    {externalLinks.map((link, index) => {
+                    {/* Links Externos - Múltiplos links do JSON */}
+                    {externalLinks.map((linkObj, index) => {
                       // Só exibe se o link for válido/on-line
                       if (!linksStatus[index]) return null;
-                      
+
                       return (
                         <button
                           key={index}
                           onClick={() => {
                             setShowDownloadMenu(false);
                             handleExternalDownload(
-                              link,
-                              `${galeria.title}_Link_${index + 1}.zip`,
+                              linkObj.url, // 🎯 Usa a URL do objeto
+                              `${galeria.title}_${linkObj.label.replace(/\s+/g, '_')}.zip`, // Nome do arquivo limpo
                             );
                           }}
-                          className="flex items-center gap-3 p-3 rounded-luxury bg-white/5 active:bg-white/10 text-left border-t border-white/5"
+                          className="w-full flex items-start gap-3 p-3 rounded-luxury hover:bg-white/10 transition-all text-left group border-t border-white/5"
                         >
                           <FileCheck
                             size={18}
-                            className="text-gold shrink-0"
+                            className="text-gold mt-0.5 group-hover:scale-110 transition-transform"
                           />
                           <div className="flex-1 min-w-0">
-                            <p className="text-white text-editorial-label">
-                              {externalLinks.length === 1 
-                                ? 'Qualidade Máxima'
-                                : `Link ${index + 1} - Alta Resolução`}
+                            <p className="text-white text-editorial-label uppercase tracking-wider">
+                              {/* 🎯 Exibe o rótulo personalizado cadastrado pelo fotógrafo */}
+                              {linkObj.label}
                             </p>
-                            <p className="text-white/40 text-[9px] leading-tight truncate italic font-medium">
-                              {link}
+                            <p className="text-white/40 text-[9px] leading-tight truncate italic font-medium mt-0.5">
+                              {linkObj.url}
                             </p>
                           </div>
                         </button>

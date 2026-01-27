@@ -14,27 +14,11 @@ import {
 } from 'lucide-react';
 import WhatsAppIcon from '@/components/ui/WhatsAppIcon';
 
-// 🎯 Função helper para parsear links do JSON
-const parseLinks = (jsonString: string | null | undefined): string[] => {
-  if (!jsonString) return [];
-  try {
-    const parsed = JSON.parse(jsonString);
-    if (Array.isArray(parsed)) {
-      return parsed.filter((link) => link && typeof link === 'string');
-    }
-    // Se não é array, trata como string única (compatibilidade)
-    return jsonString ? [jsonString] : [];
-  } catch {
-    // Se não é JSON válido, trata como string única (compatibilidade)
-    return jsonString ? [jsonString] : [];
-  }
-};
 
 export const ToolBarDesktop = ({
   showOnlyFavorites,
   setShowOnlyFavorites,
   downloadAllAsZip,
-
   isDownloading,
   activeTag,
   setActiveTag,
@@ -44,12 +28,11 @@ export const ToolBarDesktop = ({
   handleShare,
   handleExternalDownload,
   galeria,
+  externalLinks = [],
 }: any) => {
   const [copied, setCopied] = useState(false);
   const [showDownloadMenu, setShowDownloadMenu] = useState(false);
   const [linksStatus, setLinksStatus] = useState<Record<number, boolean>>({});
-
-  const externalLinks = parseLinks(galeria?.zip_url_full);
 
   const isCompact = false;
   const hasTags = tags.length > 1;
@@ -61,13 +44,13 @@ export const ToolBarDesktop = ({
   /*
    * Pergunta ao servidor se os links de download externos são válidos
    */
+
   useEffect(() => {
     const validateLinks = async () => {
       const check = async (url: string) => {
+        if (!url) return false;
         try {
-          const res = await fetch(
-            `/api/validate-link?url=${encodeURIComponent(url)}`,
-          );
+          const res = await fetch(`/api/validate-link?url=${encodeURIComponent(url)}`);
           const data = await res.json();
           return data.valid;
         } catch {
@@ -76,18 +59,21 @@ export const ToolBarDesktop = ({
       };
 
       const status: Record<number, boolean> = {};
-      const links = parseLinks(galeria?.zip_url_full);
 
-      // Valida cada link do array
-      for (let i = 0; i < links.length; i++) {
-        status[i] = await check(links[i]);
+      // 🎯 Percorremos o externalLinks acessando a propriedade .url
+      for (let i = 0; i < externalLinks.length; i++) {
+        const linkParaValidar = externalLinks[i].url;
+        status[i] = await check(linkParaValidar);
       }
 
       setLinksStatus(status);
     };
 
-    validateLinks();
-  }, [galeria?.zip_url_full]);
+    if (externalLinks.length > 0) {
+      validateLinks();
+    }
+  }, [externalLinks]); // 🎯 Monitore o array de objetos processado
+
   const { visibleTags } = useMemo(() => {
     const limit = 4;
     let sortedTags = [...tags];
@@ -129,11 +115,10 @@ export const ToolBarDesktop = ({
                   onClick={() =>
                     setColumns((p: any) => ({ ...p, desktop: num }))
                   }
-                  className={`w-7 h-7 rounded-luxury text-[10px] font-bold transition-all ${
-                    columns.desktop === num
-                      ? 'bg-gold text-black shadow-lg'
-                      : 'text-white/40 hover:text-white hover:bg-white/5'
-                  }`}
+                  className={`w-7 h-7 rounded-luxury text-[10px] font-bold transition-all ${columns.desktop === num
+                    ? 'bg-gold text-black shadow-lg'
+                    : 'text-white/40 hover:text-white hover:bg-white/5'
+                    }`}
                 >
                   {num}
                 </button>
@@ -152,11 +137,10 @@ export const ToolBarDesktop = ({
                   <button
                     key={tag}
                     onClick={() => setActiveTag(tag === activeTag ? '' : tag)}
-                    className={`px-4 py-1.5 rounded-luxury text-editorial-label transition-all shrink-0 border h-9 ${
-                      activeTag === tag
-                        ? 'bg-gold text-black border-gold shadow-lg'
-                        : 'bg-white/5 text-white/50 border-white/10 hover:text-white'
-                    }`}
+                    className={`px-4 py-1.5 rounded-luxury text-editorial-label transition-all shrink-0 border h-9 ${activeTag === tag
+                      ? 'bg-gold text-black border-gold shadow-lg'
+                      : 'bg-white/5 text-white/50 border-white/10 hover:text-white'
+                      }`}
                   >
                     {tag}
                   </button>
@@ -171,11 +155,10 @@ export const ToolBarDesktop = ({
           <div className="flex items-center gap-2 shrink-0 ml-auto">
             <button
               onClick={() => setShowOnlyFavorites(!showOnlyFavorites)}
-              className={`flex items-center justify-center rounded-luxury h-10 border transition-all duration-300 w-28 gap-2 ${
-                showOnlyFavorites
-                  ? 'bg-red-600 border-red-600 text-white shadow-lg'
-                  : 'bg-white/5 border-white/10 text-white/60 hover:text-white'
-              }`}
+              className={`flex items-center justify-center rounded-luxury h-10 border transition-all duration-300 w-28 gap-2 ${showOnlyFavorites
+                ? 'bg-red-600 border-red-600 text-white shadow-lg'
+                : 'bg-white/5 border-white/10 text-white/60 hover:text-white'
+                }`}
             >
               <Filter size={16} />
               <span className="text-editorial-label">
@@ -265,34 +248,34 @@ export const ToolBarDesktop = ({
                       </button>
 
                       {/* Links Externos - Múltiplos links do JSON */}
-                      {externalLinks.map((link, index) => {
+                      {/* Links Externos - Múltiplos links do JSON */}
+                      {externalLinks.map((linkObj, index) => {
                         // Só exibe se o link for válido/on-line
-                        if (!linksStatus[index]) return null;
-                        
+                        if (linksStatus[index] === false) return null;
+
                         return (
                           <button
                             key={index}
                             onClick={() => {
                               setShowDownloadMenu(false);
                               handleExternalDownload(
-                                link,
-                                `${galeria.title}_Link_${index + 1}.zip`,
+                                linkObj.url, // 🎯 Usa a URL do objeto
+                                `${galeria.title}_${linkObj.label.replace(/\s+/g, '_')}.zip`, // Nome do arquivo limpo
                               );
                             }}
                             className="w-full flex items-start gap-3 p-3 rounded-luxury hover:bg-white/10 transition-all text-left group border-t border-white/5"
                           >
                             <FileCheck
                               size={18}
-                              className="text-gold mt-0.5"
+                              className="text-gold mt-0.5 group-hover:scale-110 transition-transform"
                             />
                             <div className="flex-1 min-w-0">
-                              <p className="text-white text-editorial-label">
-                                {externalLinks.length === 1 
-                                  ? 'Qualidade Máxima'
-                                  : `Link ${index + 1} - Alta Resolução`}
+                              <p className="text-white text-editorial-label uppercase tracking-wider">
+                                {/* 🎯 Exibe o rótulo personalizado cadastrado pelo fotógrafo */}
+                                {linkObj.label}
                               </p>
-                              <p className="text-white/40 text-[10px] leading-tight truncate italic font-medium">
-                                {link}
+                              <p className="text-white/40 text-[9px] leading-tight truncate italic font-medium mt-0.5">
+                                {linkObj.url}
                               </p>
                             </div>
                           </button>

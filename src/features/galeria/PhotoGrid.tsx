@@ -16,6 +16,7 @@ import { executeShare } from '@/core/utils/share-helper';
 import { groupPhotosByWeight, estimatePhotoDownloadSize } from '@/core/utils/foto-helpers';
 import { DownloadCenterModal } from './DownloadCenterModal';
 import { ToolBarMobile } from './ToolBarMobile';
+import { V } from 'node_modules/vitest/dist/chunks/reporters.d.Rsi0PyxX';
 
 export default function PhotoGrid({ photos, galeria }: any) {
   // --- 1. ESTADOS DE INTERFACE ---
@@ -167,6 +168,33 @@ export default function PhotoGrid({ photos, galeria }: any) {
     };
   }, []);
 
+  const parseLinks = (jsonString: string | null | undefined): { url: string; label: string }[] => {
+    if (!jsonString) return [];
+    try {
+      const parsed = JSON.parse(jsonString);
+      if (Array.isArray(parsed)) {
+        // 🎯 REMOVEMOS o filtro "typeof link === 'string'" para aceitar os objetos {url, label}
+        return parsed.map((item, index) => {
+          if (typeof item === 'object' && item !== null) {
+            return {
+              url: item.url || '',
+              label: item.label || `Link ${index + 1}`
+            };
+          }
+          return {
+            url: String(item),
+            label: `Link ${index + 1}`
+          };
+        });
+      }
+      return [{ url: jsonString, label: 'Qualidade Máxima' }];
+    } catch {
+      return [{ url: jsonString, label: 'Qualidade Máxima' }];
+    }
+  };
+
+  const externalLinks = useMemo(() => parseLinks(galeria?.zip_url_full), [galeria?.zip_url_full]);
+
   // --- 6. HANDLERS ---
   const toggleFavoriteFromGrid = (id: string) => {
     setFavorites((prev) =>
@@ -229,9 +257,7 @@ export default function PhotoGrid({ photos, galeria }: any) {
     }
 
     // 3. Definição dinâmica de estados
-    const setProgress = isFavAction
-      ? setFavDownloadProgress
-      : setDownloadProgress;
+    const setProgress = setDownloadProgress;
     const setStatus = isFavAction ? setIsDownloadingFavs : setIsDownloading;
 
     try {
@@ -347,6 +373,7 @@ export default function PhotoGrid({ photos, galeria }: any) {
             isHovered,
             setIsHovered,
             handleExternalDownload,
+            externalLinks,
           }}
           tags={tagsDaGaleria}
           handleShare={() =>
@@ -375,6 +402,7 @@ export default function PhotoGrid({ photos, galeria }: any) {
             activeTag,
             setActiveTag,
             handleExternalDownload,
+            externalLinks,
           }}
           tags={tagsDaGaleria}
           handleShare={() =>
@@ -408,8 +436,6 @@ export default function PhotoGrid({ photos, galeria }: any) {
 
       {/* MODAL CENTRAL DE DOWNLOADS (TEMA BRANCO) */}
       {showVolumeDashboard && (
-        // PhotoGrid.tsx - Remova o bloco antigo e use:
-
         <DownloadCenterModal
           isOpen={showVolumeDashboard}
           onClose={() => setShowVolumeDashboard(false)}
@@ -423,35 +449,8 @@ export default function PhotoGrid({ photos, galeria }: any) {
           totalGallerySizeMB={totalGallerySizeMB}
         />
       )}
-      {/* BOTÃO FLUTUANTE DE DOWNLOAD FAVORITOS */}
-      {/* Condições para aparecer:
-    1. Ter favoritos (favorites.length > 0)
-    2. O modal de volumes estar fechado (!showVolumeDashboard)
-    3. O usuário ter scrollado para baixo (!isHeroExpanded -> isScrolled)
-*/}
-      {favorites.length > 0 && !showVolumeDashboard && isScrolled && (
-        <div className="fixed bottom-6 left-1/2 -translate-x-1/2 z-[90] animate-in fade-in zoom-in duration-500 w-fit">
-          <button
-            onClick={handleDownloadFavorites}
-            disabled={isDownloadingFavs}
-            className="flex items-center justify-center rounded-[0.7rem] h-12 bg-[#F3E5AB] text-black border border-white/20 
-      shadow-[0_10px_40px_rgba(0,0,0,0.4)] hover:scale-105 active:scale-95 transition-all duration-300 px-4 gap-3 shrink-0"
-          >
-            {/* ... conteúdo interno do botão (Loader ou Ícones) ... */}
-            <Download size={18} />
-            <div className="flex flex-col items-start leading-tight">
-              <span className="text-[11px] font-semibold uppercase tracking-tight">
-                Baixar Favoritas
-              </span>
-              <span className="text-[9px] font-medium opacity-70 italic">
-                {favorites.length} {favorites.length === 1 ? 'foto' : 'fotos'}
-              </span>
-            </div>
-          </button>
-        </div>
-      )}
 
-      {/* BOTÃO FLUTUANTE FAVORITOS */}
+      {/* BOTÃO FLUTUANTE DE DOWNLOAD FAVORITOS */}
       {favorites.length > 0 && !showVolumeDashboard && canShowFavButton && (
         <div className="fixed bottom-6 left-1/2 -translate-x-1/2 z-[150] animate-in fade-in zoom-in slide-in-from-bottom-5 duration-300 pointer-events-auto w-fit">
           <button

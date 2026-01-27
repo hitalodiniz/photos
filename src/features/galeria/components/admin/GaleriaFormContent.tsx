@@ -207,31 +207,26 @@ export default function GaleriaFormContent({
 
   // 🎯 ESTADO PARA MÚLTIPLOS LINKS (JSON)
   // Converte dados iniciais (zip_url_full e zip_url_social) para array
+  // 🎯 parseInitialLinks atualizado para objetos
   const parseInitialLinks = () => {
-    const links: string[] = [];
-    // Se há zip_url_full, adiciona
     if (initialData?.zip_url_full) {
       try {
-        // Tenta parsear como JSON primeiro
         const parsed = JSON.parse(initialData.zip_url_full);
         if (Array.isArray(parsed)) {
-          return parsed;
+          // Garante que cada item tenha label e url
+          return parsed.map((item, index) => ({
+            url: typeof item === 'string' ? item : item.url || '',
+            label: typeof item === 'string' ? `LINK ${index + 1}` : item.label || `LINK ${index + 1}`
+          }));
         }
-        // Se não é array, trata como string única
-        links.push(initialData.zip_url_full);
       } catch {
-        // Se não é JSON válido, trata como string única
-        links.push(initialData.zip_url_full);
+        return [{ url: initialData.zip_url_full, label: 'LINK 1' }];
       }
     }
-    // Se há zip_url_social, adiciona
-    if (initialData?.zip_url_social) {
-      links.push(initialData.zip_url_social);
-    }
-    return links;
+    return [];
   };
 
-  const [links, setLinks] = useState<string[]>(parseInitialLinks());
+  const [links, setLinks] = useState<{ url: string, label: string }[]>(parseInitialLinks());
 
   const [photoCount, setPhotoCount] = useState<number | null>(null);
   const [isValidatingDrive, setIsValidatingDrive] = useState(false);
@@ -790,9 +785,26 @@ export default function GaleriaFormContent({
               {leadsEnabled && (
                 <div className="space-y-4 mt-4 p-4 bg-slate-50/50 rounded-luxury border border-petroleum/20 animate-in fade-in duration-500">
                   <div className="space-y-1.5">
-                    <label className="text-[10px] font-bold uppercase tracking-widest text-petroleum flex items-center gap-2">
-                      <Database size={12} className="text-gold" /> finalidade do tratamento
-                    </label>
+                    <div className="flex items-center gap-2">
+                      <label className="text-[10px] font-bold uppercase tracking-widest text-petroleum flex items-center gap-2">
+                        <Database size={12} className="text-gold" /> finalidade do tratamento
+                      </label>
+
+                      {/* Tooltip de Explicação */}
+                      <div className="group relative flex items-center">
+                        <div className="flex items-center justify-center w-3.5 h-3.5 rounded-full border border-petroleum/40 text-petroleum/60 hover:border-gold transition-colors cursor-help">
+                          <span className="text-[10px] font-bold">?</span>
+                        </div>
+
+                        <div className="absolute bottom-full left-1/2 -translate-x-1/2 mb-3 w-72 p-3 bg-slate-900 text-white text-[10px] font-medium leading-relaxed rounded-luxury opacity-0 pointer-events-none group-hover:opacity-100 transition-all duration-300 shadow-2xl z-[100] text-center border border-white/10">
+                          <p>
+                            Com base no <strong className="text-gold">Art. 6º, I (Princípio da Finalidade)</strong> e <strong className="text-gold">Art. 9º</strong> da Lei Geral de Proteção de Dados Pessoais (Lei nº 13.709/2018), você deve informar a finalidade específica do tratamento dos dados ao visitante.
+                          </p>
+
+                          <div className="absolute top-full left-1/2 -translate-x-1/2 border-8 border-transparent border-t-slate-900" />
+                        </div>
+                      </div>
+                    </div>
 
                     <select
                       className="w-full bg-white border border-petroleum/20 rounded-luxury px-3 h-11 text-[13px] text-petroleum outline-none focus:border-gold transition-all appearance-none cursor-pointer"
@@ -819,8 +831,8 @@ export default function GaleriaFormContent({
 
                   {isCustomPurpose && (
                     <div className="space-y-1.5 animate-in fade-in slide-in-from-top-1 duration-300">
-                      <p className="text-[10px] text-petroleum/50 italic mb-1">
-                        personalize a finalidade caso as opções acima não atendam:
+                      <p className="text-[11px] text-petroleum italic mb-1 font-semibold">
+                        Personalize a finalidade caso as opções acima não atendam:
                       </p>
                       <textarea
                         placeholder="ex: coleta para fins de sorteio durante o evento..."
@@ -1111,66 +1123,85 @@ export default function GaleriaFormContent({
         {/* LINKS E ARQUIVOS */}
         <div className="bg-white rounded-luxury border border-petroleum/40 p-4 space-y-3">
           <div className="flex items-center gap-2 pb-2 border-b border-petroleum/40">
-            <Download size={14} className="" />
+            <Download size={14} className="text-gold" />
             <h3 className="text-[10px] font-bold uppercase tracking-widest text-petroleum">
-              Links e Arquivos - Alta Resolução (Full)
+              links e arquivos de entrega
             </h3>
           </div>
 
-          <div className="space-y-3">
-            {/* Input oculto para salvar como JSON */}
+          <div className="space-y-4">
+            {/* input oculto para persistência em JSON */}
             <input
               type="hidden"
               name="zip_url_full"
               value={links.length > 0 ? JSON.stringify(links) : ''}
             />
 
-            {/* Lista de Links */}
-            <div className="space-y-2">
+            <div className="space-y-3">
               {links.map((link, index) => (
-                <div key={index} className="flex items-center gap-2">
-                  <div className="relative flex-1">
-                    <input
-                      type="url"
-                      value={link}
-                      onChange={(e) => {
-                        const newLinks = [...links];
-                        newLinks[index] = convertToDirectDownloadUrl(e.target.value);
-                        setLinks(newLinks);
-                      }}
-                      placeholder="Link para qualquer arquivo ou recurso"
-                      className="w-full px-3 h-9 bg-white border border-petroleum/40 rounded-luxury text-petroleum/90 text-xs font-medium outline-none focus:border-gold transition-all pr-10"
-                    />
-                    {link && link.length > 0 && (
-                      <CheckCircle2
-                        size={14}
-                        className="absolute right-10 top-1/2 -translate-y-1/2 text-green-500"
-                      />
-                    )}
+                <div key={index} className="p-3 bg-slate-50/50 rounded-luxury border border-petroleum/10 space-y-2 animate-in fade-in slide-in-from-right-2 duration-300">
+                  <div className="flex items-center justify-between">
+                    <span className="text-[10px] font-semibold text-petroleum uppercase tracking-widest">
+                      recurso #{index + 1}
+                    </span>
+                    <button
+                      type="button"
+                      onClick={() => setLinks(links.filter((_, i) => i !== index))}
+                      className="text-petroleum/70 hover:text-red-500 transition-colors"
+                    >
+                      <Trash2 size={12} />
+                    </button>
                   </div>
-                  <button
-                    type="button"
-                    onClick={() => {
-                      const newLinks = links.filter((_, i) => i !== index);
-                      setLinks(newLinks);
-                    }}
-                    className="p-2 text-petroleum/60 hover:text-red-500 hover:bg-red-50 border border-petroleum/40 hover:border-red-300 rounded-luxury transition-colors"
-                    aria-label="Remover link"
-                  >
-                    <Trash2 size={14} />
-                  </button>
+
+                  <div className="flex flex-row items-center gap-2">
+                    {/* Input de Descrição/Label - 30% de largura */}
+                    <div className="relative w-[30%]">
+                      <input
+                        type="text"
+                        required // 🎯 Torna obrigatório
+                        value={link.label}
+                        minLength={3} // 🎯 Mínimo de caracteres (ajustado de 5 para 3 para ser mais flexível)
+                        maxLength={20} // 🎯 Máximo de caracteres
+                        placeholder={`LINK ${index + 1}`}
+                        onChange={(e) => {
+                          const newLinks = [...links];
+                          newLinks[index].label = e.target.value;
+                          setLinks(newLinks);
+                        }}
+                        className="w-full px-2 h-8 bg-white border border-petroleum rounded-luxury text-petroleum text-[11px] font-semibold outline-none focus:border-gold transition-all invalid:border-red-500/50"
+                      />
+                    </div>
+
+                    {/* Input de URL - 70% de largura */}
+                    <div className="relative w-[70%]">
+                      <input
+                        type="url"
+                        required // 🎯 Torna obrigatório
+                        value={link.url}
+                        onChange={(e) => {
+                          const newLinks = [...links];
+                          newLinks[index].url = convertToDirectDownloadUrl(e.target.value);
+                          setLinks(newLinks);
+                        }}
+                        placeholder="https://link..."
+                        className="w-full px-2 pr-7 h-8 bg-white border border-petroleum/20 rounded-luxury text-petroleum/70 text-[11px] outline-none focus:border-gold transition-all invalid:border-red-500/50"
+                      />
+                      {link.url && (
+                        <CheckCircle2 size={12} className="absolute right-2 top-1/2 -translate-y-1/2 text-green-500" />
+                      )}
+                    </div>
+                  </div>
                 </div>
               ))}
             </div>
 
-            {/* Botão Adicionar Link */}
             <button
               type="button"
-              onClick={() => setLinks([...links, ''])}
-              className="btn-secondary-white w-full"
+              onClick={() => setLinks([...links, { url: '', label: `LINK ${links.length + 1}` }])}
+              className="btn-secondary-white w-full h-9 group border-dashed"
             >
-              <Plus size={14} />
-              Adicionar Link
+              <Plus size={14} className="group-hover:rotate-90 transition-transform" />
+              adicionar novo link
             </button>
           </div>
         </div>
