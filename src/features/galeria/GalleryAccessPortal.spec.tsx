@@ -61,6 +61,9 @@ describe('GalleryAccessPortal', () => {
   it('deve validar campos obrigatórios', async () => {
     render(<GalleryAccessPortal {...defaultProps} />);
 
+    // Marca o consentimento LGPD para permitir o submit
+    fireEvent.click(screen.getByRole('checkbox'));
+
     const submitButton = screen.getByText('Acessar Galeria');
     fireEvent.click(submitButton);
 
@@ -80,6 +83,9 @@ describe('GalleryAccessPortal', () => {
     fireEvent.change(screen.getByPlaceholderText('seu@email.com'), { target: { value: 'joao@example.com' } });
     fireEvent.change(screen.getByPlaceholderText('(00) 00000-0000'), { target: { value: '31988887777' } });
     fireEvent.change(screen.getByPlaceholderText('Senha numérica'), { target: { value: '1234' } });
+
+    // Marca o consentimento LGPD
+    fireEvent.click(screen.getByRole('checkbox'));
 
     fireEvent.click(screen.getByText('Acessar Galeria'));
 
@@ -102,10 +108,13 @@ describe('GalleryAccessPortal', () => {
 
     render(<GalleryAccessPortal {...defaultProps} />);
 
-    fireEvent.change(screen.getByPlaceholderText('Como devemos te chamar?'), { target: { value: 'João' } });
+    fireEvent.change(screen.getByPlaceholderText('Como devemos te chamar?'), { target: { value: 'João Silva' } });
     fireEvent.change(screen.getByPlaceholderText('seu@email.com'), { target: { value: 'joao@example.com' } });
     fireEvent.change(screen.getByPlaceholderText('(00) 00000-0000'), { target: { value: '31988887777' } });
     fireEvent.change(screen.getByPlaceholderText('Senha numérica'), { target: { value: '1234' } });
+
+    // Marca o consentimento LGPD
+    fireEvent.click(screen.getByRole('checkbox'));
 
     fireEvent.click(screen.getByText('Acessar Galeria'));
 
@@ -118,10 +127,13 @@ describe('GalleryAccessPortal', () => {
 
     render(<GalleryAccessPortal {...defaultProps} />);
 
-    fireEvent.change(screen.getByPlaceholderText('Como devemos te chamar?'), { target: { value: 'João' } });
+    fireEvent.change(screen.getByPlaceholderText('Como devemos te chamar?'), { target: { value: 'João Silva' } });
     fireEvent.change(screen.getByPlaceholderText('seu@email.com'), { target: { value: 'joao@example.com' } });
     fireEvent.change(screen.getByPlaceholderText('(00) 00000-0000'), { target: { value: '31988887777' } });
     fireEvent.change(screen.getByPlaceholderText('Senha numérica'), { target: { value: '1234' } });
+
+    // Marca o consentimento LGPD
+    fireEvent.click(screen.getByRole('checkbox'));
 
     fireEvent.click(screen.getByText('Acessar Galeria'));
 

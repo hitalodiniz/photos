@@ -105,18 +105,20 @@ export function formatGalleryData(
     leads_require_name: !!(raw as any).leads_require_name,
     leads_require_email: !!(raw as any).leads_require_email,
     leads_require_whatsapp: !!(raw as any).leads_require_whatsapp,
+    lead_purpose: (raw as any).lead_purpose || null,
+    rename_files_sequential: !!(raw as any).rename_files_sequential,
 
     photographer: raw.photographer
       ? {
-          id: raw.photographer.id,
-          full_name: raw.photographer.full_name,
-          username: raw.photographer.username,
-          profile_picture_url: raw.photographer.profile_picture_url,
-          phone_contact: raw.photographer.phone_contact,
-          instagram_link: raw.photographer.instagram_link,
-          use_subdomain: hasSubdomain,
-          profile_url: profileUrl,
-        }
+        id: raw.photographer.id,
+        full_name: raw.photographer.full_name,
+        username: raw.photographer.username,
+        profile_picture_url: raw.photographer.profile_picture_url,
+        phone_contact: raw.photographer.phone_contact,
+        instagram_link: raw.photographer.instagram_link,
+        use_subdomain: hasSubdomain,
+        profile_url: profileUrl,
+      }
       : undefined,
 
     photographer_name: raw.photographer?.full_name || 'Autor',
@@ -153,14 +155,14 @@ export const fetchDrivePhotos = (userId?: string, folderId?: string) =>
         // Chama listPhotosFromDriveFolder mesmo se token for null/undefined
         // console.log(`[fetchDrivePhotos] Tentando listar com OAuth (token ${token ? 'disponível' : 'não disponível, usando API Key'})...`);
         const photos = await listPhotosFromDriveFolder(folderId, token || undefined);
-        
+
         if (photos && photos.length > 0) {
           // console.log(`[fetchDrivePhotos] ✅ ${photos.length} fotos encontradas via ${token ? 'OAuth' : 'API Key'}`);
           return { photos: photos, error: null };
         }
-        
+
         // console.log(`[fetchDrivePhotos] Nenhuma foto encontrada após tentar ambas as estratégias (API Key e OAuth)`);
-        
+
         // Retorna array vazio sem erro - a pasta pode estar vazia ou não ser acessível
         return { photos: [], error: null };
       } catch (error: any) {
@@ -186,7 +188,7 @@ export const fetchPhotosByGalleryId = (galleryId: string) =>
   unstable_cache(
     async () => {
       const supabase = createSupabaseClientForCache();
-      
+
       // Busca os dados da galeria para obter folderId e userId
       const { data: galeria, error: galeriaError } = await supabase
         .from('tb_galerias')
@@ -204,7 +206,7 @@ export const fetchPhotosByGalleryId = (galleryId: string) =>
         // Funciona para pastas públicas compartilhadas como "Qualquer pessoa com o link"
         // console.log(`[fetchPhotosByGalleryId] Tentando acesso via API Key (pasta pública)...`);
         const publicPhotos = await listPhotosFromDriveFolder(galeria.drive_folder_id);
-        
+
         if (publicPhotos && publicPhotos.length > 0) {
           // console.log(`[fetchPhotosByGalleryId] ✅ ${publicPhotos.length} fotos encontradas via API Key`);
           return { photos: publicPhotos, error: null };
@@ -223,14 +225,14 @@ export const fetchPhotosByGalleryId = (galleryId: string) =>
           galeria.drive_folder_id,
           token || undefined, // Garante que seja undefined se null
         );
-        
+
         if (photos && photos.length > 0) {
           // console.log(`[fetchPhotosByGalleryId] ✅ ${photos.length} fotos encontradas via ${token ? 'OAuth' : 'API Key'}`);
           return { photos: photos, error: null };
         }
-        
+
         // console.log(`[fetchPhotosByGalleryId] Nenhuma foto encontrada após tentar ambas as estratégias (API Key e OAuth)`);
-        
+
         // Retorna array vazio sem erro - a pasta pode estar vazia ou não ser acessível
         return { photos: [], error: null };
       } catch (error: any) {
@@ -239,19 +241,19 @@ export const fetchPhotosByGalleryId = (galleryId: string) =>
           stack: error.stack,
           galleryId,
         });
-        
+
         // Trata apenas erros específicos que realmente impedem o acesso
         if (error.message?.includes('PERMISSION_DENIED') || error.message === 'PERMISSION_DENIED') {
           return { photos: [], error: 'PERMISSION_DENIED' };
         }
-        
+
         // TOKEN_NOT_FOUND não é mais tratado como erro - a API Key deve funcionar para pastas públicas
         // Se houver exceção, loga mas não retorna erro - pode ser pasta vazia ou temporariamente inacessível
         /* console.log('[fetchPhotosByGalleryId] Exceção capturada (não fatal):', {
           error: error.message,
           galleryId,
         }); */
-        
+
         return { photos: [], error: null };
       }
     },

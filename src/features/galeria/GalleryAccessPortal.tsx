@@ -275,7 +275,7 @@ export default function GalleryAccessPortal({
               />
             )}
             {/* BLOCO LGPD EDITORIAL */}
-            {(galeria.leads_require_name && galeria.leads_require_whatsapp || galeria.leads_require_email) && (
+            {leadsEnabled && (
 
               <div className="pt-4 pb-2">
                 <div className="flex items-start gap-3 group">
@@ -294,7 +294,7 @@ export default function GalleryAccessPortal({
                   <div className="text-[12px] text-petroleum font-semibold leading-relaxed !whitespace-normal break-words">
                     Esta coleta de dados é uma opção do organizador desta galeria.
                     os dados são processados pelo app <span className="font-bold">Sua Galeria</span> para a seguinte finalidade:
-                    <span className="text-gold font-bold"> {galeria.lead_purpose || 'identificação para acesso à galeria'}</span>.
+                    <span className="font-bold"> {galeria.lead_purpose || 'identificação para acesso à galeria aaa'}</span>.
                     não sendo utilizados para nenhuma outra finalidade, conforme a
                     <button type="button" className="inline underline-offset-4 font-bold ml-1">
                       política de privacidade

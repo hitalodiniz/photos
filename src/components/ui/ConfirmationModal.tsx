@@ -37,11 +37,10 @@ export default function ConfirmationModal({
       <button
         onClick={onConfirm}
         disabled={isLoading}
-        className={`w-full py-4 rounded-luxury font-bold uppercase text-[10px] tracking-luxury transition-all active:scale-95 flex items-center justify-center gap-2 shadow-lg ${
-          variant === 'danger'
+        className={`w-full py-4 rounded-luxury font-bold uppercase text-[10px] tracking-luxury transition-all active:scale-95 flex items-center justify-center gap-2 shadow-lg ${variant === 'danger'
             ? 'bg-red-600 text-white hover:bg-red-700 shadow-red-600/10'
             : 'bg-champagne text-petroleum hover:bg-white shadow-champagne/10'
-        }`}
+          }`}
       >
         {isLoading ? (
           <div className="loading-luxury w-4 h-4 border-white/30 border-t-white" />
@@ -52,7 +51,7 @@ export default function ConfirmationModal({
 
       <button
         onClick={onClose}
-        className="w-full py-3 text-petroleum/40 text-[9px] font-bold uppercase tracking-luxury hover:text-gold transition-colors"
+        className="btn-luxury-secondary"
       >
         Cancelar
       </button>
@@ -71,11 +70,11 @@ export default function ConfirmationModal({
       <div className="text-[13px] md:text-[14px] leading-relaxed text-petroleum/80 font-medium text-center py-1">
         {typeof message === 'string'
           ? message.split('Esta ação').map((part, index) => (
-              <span key={index} className="block">
-                {index === 0 ? part : `Esta ação ${part}`}
-                {index === 0 && <span className="block h-1" />}
-              </span>
-            ))
+            <span key={index} className="block">
+              {index === 0 ? part : `Esta ação ${part}`}
+              {index === 0 && <span className="block h-1" />}
+            </span>
+          ))
           : message}
       </div>
     </BaseModal>
