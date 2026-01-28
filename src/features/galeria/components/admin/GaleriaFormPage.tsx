@@ -1,6 +1,7 @@
 'use client';
 
 import { useState, useEffect, useRef } from 'react';
+import { useForm } from 'react-hook-form';
 import { useRouter } from 'next/navigation';
 import { createGaleria, updateGaleria } from '@/core/services/galeria.service';
 import { SubmitButton } from '@/components/ui';
@@ -50,6 +51,14 @@ export default function GaleriaFormPage({
   } | null>(null);
   const formRef = useRef<HTMLFormElement>(null);
 
+  // 🎯 Form Initialization
+  const { register, setValue, watch, handleSubmit: handleFormSubmit } = useForm({
+    defaultValues: {
+      lead_purpose: galeria?.lead_purpose || initialProfile.settings?.defaults?.data_treatment_purpose || '',
+      leads_enabled: galeria ? (galeria.leads_enabled === true || String(galeria.leads_enabled) === 'true') : (initialProfile?.settings?.defaults?.enable_guest_registration ?? false),
+    }
+  });
+
   // 🎯 ESTADOS DE CUSTOMIZAÇÃO COM VALORES PADRÃO
   const [showCoverInGrid, setShowCoverInGrid] = useState(() => {
     if (galeria) {
@@ -92,6 +101,11 @@ export default function GaleriaFormPage({
     e.preventDefault();
 
     const formData = new FormData(e.currentTarget);
+    
+    // 🎯 Captura dados do useForm (como lead_purpose e leads_enabled que agora são gerenciados por componente compartilhado)
+    const formValues = watch();
+    formData.set('lead_purpose', formValues.lead_purpose || '');
+    formData.set('leads_enabled', String(!!formValues.leads_enabled));
 
     const driveId = formData.get('drive_folder_id') as string;
     const title = formData.get('title') as string;
@@ -232,6 +246,9 @@ export default function GaleriaFormPage({
               onTokenExpired={() => setShowConsentAlert(true)}
               onTitleChange={setFormTitle}
               profile={initialProfile}
+              register={register}
+              setValue={setValue}
+              watch={watch}
             />
           </form>
         </div>

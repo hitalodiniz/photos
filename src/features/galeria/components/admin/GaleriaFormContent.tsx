@@ -40,6 +40,7 @@ import { convertToDirectDownloadUrl } from '@/core/utils/url-helper';
 import { LimitUpgradeModal } from '@/components/ui/LimitUpgradeModal';
 import { useGoogleDriveImage } from '@/hooks/useGoogleDriveImage';
 import { GalleryDesignFields } from './GalleryDesignFields';
+import { LGPDPurposeField } from '@/components/ui/LGPDPurposeField';
 
 // 🎯 Componente de seção simples (sem accordion) - Estilo Editorial
 const FormSection = ({
@@ -83,6 +84,9 @@ export default function GaleriaFormContent({
   onTokenExpired,
   onTitleChange,
   profile,
+  register,
+  setValue,
+  watch,
 }) {
   const [showPassword, setShowPassword] = useState(false);
   const [, setLimitInfo] = useState({ count: 0, hasMore: false });
@@ -96,14 +100,8 @@ export default function GaleriaFormContent({
     return profile?.settings?.defaults?.list_on_profile ?? false; // Por padrão, não exibe no perfil
   });
 
-  const [leadsEnabled, setLeadsEnabled] = useState(() => {
-    if (initialData)
-      return (
-        initialData.leads_enabled === true ||
-        initialData.leads_enabled === 'true'
-      );
-    return profile?.settings?.defaults?.enable_guest_registration ?? false;
-  });
+  const leadsEnabled = watch('leads_enabled');
+  const setLeadsEnabled = (val: boolean) => setValue('leads_enabled', val, { shouldDirty: true });
 
   const [leadsRequireName, setLeadsRequireName] = useState(() => {
     if (initialData)
@@ -148,20 +146,6 @@ export default function GaleriaFormContent({
         initialData.rename_files_sequential === 'true'
       );
     return false; // Padrão: Habilitado
-  });
-
-  const finalidades_padrao = [
-    "identificação para acesso à galeria",
-    "envio de link das fotos via whatsapp/e-mail",
-    "comunicações sobre a seleção e prova de fotos",
-    "ofertas de novos ensaios e promoções do organizador",
-    "segurança e controle de acesso ao conteúdo",
-  ];
-
-  const [leadPurpose, setLeadPurpose] = useState(() => initialData?.lead_purpose || profile?.settings?.defaults?.data_treatment_purpose || '');
-  const [isCustomPurpose, setIsCustomPurpose] = useState(() => {
-    if (!initialData?.lead_purpose) return false;
-    return !finalidades_padrao.includes(initialData.lead_purpose);
   });
 
   // 🎯 Lógica para garantir pelo menos um campo obrigatório na captura de leads
@@ -484,11 +468,6 @@ export default function GaleriaFormContent({
           />
           <input
             type="hidden"
-            name="lead_purpose"
-            value={leadPurpose}
-          />
-          <input
-            type="hidden"
             name="rename_files_sequential"
             value={String(renameFilesSequential)}
           />
@@ -720,7 +699,7 @@ export default function GaleriaFormContent({
                 <button
                   type="button"
                   onClick={() => setShowOnProfile(!showOnProfile)}
-                  className={`relative h-5 w-9 rounded-full transition-colors duration-200 ${showOnProfile ? 'bg-green-500' : 'bg-slate-200'}`}
+                  className={`relative h-5 w-9 rounded-full transition-colors duration-200 ${showOnProfile ? 'bg-gold' : 'bg-slate-200'}`}
                 >
                   <span
                     className={`absolute top-0.5 left-0.5 h-4 w-4 rounded-full bg-white shadow-sm transition-transform duration-200 ${showOnProfile ? 'translate-x-4' : ''}`}
@@ -805,61 +784,15 @@ export default function GaleriaFormContent({
                     </div>
                   </div>
 
-                  <div className="space-y-1.5 animate-in fade-in duration-500 mt-6">
-                    <div className="flex items-center gap-2">
-                      <label className="text-[10px] font-bold uppercase tracking-widest text-petroleum flex items-center gap-2">
-                        <Database size={12} className="text-gold" /> finalidade do tratamento
-                      </label>
-
-                      <div className="group relative flex items-center">
-                        <div className="flex items-center justify-center w-3.5 h-3.5 rounded-full border border-petroleum/40 text-petroleum/60 hover:border-gold transition-colors cursor-help">
-                          <span className="text-[10px] font-semibold">?</span>
-                        </div>
-                        <div className="absolute bottom-full right-0 mb-3 w-72 p-3 bg-slate-900 text-white text-[10px] font-medium leading-relaxed rounded-luxury opacity-0 pointer-events-none group-hover:opacity-100 transition-all duration-300 shadow-2xl z-[100] text-center border border-white/10">
-                          <p>
-                            Com base no <strong className="text-gold">Art. 6º, I (Princípio da Finalidade)</strong> e <strong className="text-gold">Art. 9º</strong> da Lei Geral de Proteção de Dados Pessoais (Lei nº 13.709/2018), você deve informar a finalidade específica do tratamento dos dados ao visitante.
-                          </p>
-                          <div className="absolute top-full right-2 border-8 border-transparent border-t-slate-900" />
-                        </div>
-                      </div>
-                    </div>
-
-                    <select
-                      className="w-full bg-white border border-petroleum/20 rounded-luxury px-3 h-11 text-[13px] text-petroleum outline-none focus:border-gold transition-all appearance-none cursor-pointer"
-                      value={isCustomPurpose ? 'custom' : leadPurpose}
-                      required={leadsEnabled}
-                      onChange={(e) => {
-                        const val = e.target.value;
-                        if (val === 'custom') {
-                          setIsCustomPurpose(true);
-                          setLeadPurpose('');
-                        } else {
-                          setIsCustomPurpose(false);
-                          setLeadPurpose(val);
-                        }
-                      }}
-                    >
-                      <option value="" disabled className="font-bold">selecione uma opção...</option>
-                      {finalidades_padrao.map((item, idx) => (
-                        <option key={idx} value={item}>{item}</option>
-                      ))}
-                      <option value="custom" className="font-bold">outra finalidade (digitar texto)...</option>
-                    </select>
-
-                    {isCustomPurpose && (
-                      <div className="mt-2 space-y-1.5 animate-in fade-in slide-in-from-top-1 duration-300">
-                        <p className="text-[11px] text-petroleum italic mb-1 font-semibold">
-                          Descreva a finalidade personalizada:
-                        </p>
-                        <textarea
-                          placeholder="ex: coleta para fins de sorteio durante o evento..."
-                          className="w-full bg-white border border-petroleum/20 rounded-luxury p-3 text-[13px] text-petroleum outline-none focus:border-gold transition-all min-h-[80px] resize-none"
-                          value={leadPurpose}
-                          onChange={(e) => setLeadPurpose(e.target.value)}
-                          required={isCustomPurpose}
-                        />
-                      </div>
-                    )}
+                  <div className="mt-6">
+                    <LGPDPurposeField 
+                      register={register}
+                      setValue={setValue}
+                      watch={watch}
+                      fieldName="lead_purpose"
+                      initialValue={initialData?.lead_purpose}
+                      required={watch('leads_enabled')}
+                    />
                   </div>
                 </>
               )}

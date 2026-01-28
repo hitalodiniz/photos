@@ -116,14 +116,29 @@ export default function FormPageBase({
         className="relative w-full h-full bg-white flex flex-col overflow-hidden animate-in zoom-in-95 duration-300"
         onClick={(e) => e.stopPropagation()}
       >
-       
+        {/* HEADER */}
+        <div className="px-6 py-4 border-b border-petroleum/10 flex items-center justify-between bg-white/50 backdrop-blur-sm">
+          <div className="flex items-center gap-4">
+            <button
+              onClick={onClose}
+              className="p-2 hover:bg-slate-100 rounded-full transition-colors"
+              type="button"
+            >
+              <ArrowLeft size={20} className="text-petroleum" />
+            </button>
+            <h1 className="text-sm font-bold uppercase tracking-widest text-petroleum" id="form-page-title">
+              {title}
+            </h1>
+          </div>
+        </div>
+
         {/* FORM CONTENT */}
-        <div className="flex-1 overflow-hidden">
-          <div className="w-full max-w-7xl mx-auto h-full">
+        <div className="flex-1 overflow-y-auto">
+          <div className="w-full max-w-7xl mx-auto">
             <form 
               id={id} 
               onSubmit={onSubmit} 
-              className="h-full" 
+              className="flex flex-col" 
               onChange={onFormChange}
             >
               {children}

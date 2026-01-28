@@ -5,6 +5,7 @@ import { zodResolver } from '@hookform/resolvers/zod';
 import { z } from 'zod';
 import { UserSettingsSchema, MessageTemplatesSchema } from '@/core/types/profile';
 import { updateProfileSettings } from '@/core/services/profile.service';
+import { GalleryDesignFields } from '@/features/galeria/components/admin/GalleryDesignFields';
 import { useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { 
@@ -21,11 +22,13 @@ import {
   User,
   Info,
   ChevronRight,
-  Home
+  Home,
+  Plus
 } from 'lucide-react';
 import { Toast } from '@/components/ui';
 import FormPageBase from '@/components/ui/FormPageBase';
-import { GalleryDesignFields } from '@/features/galeria/components/admin/GalleryDesignFields';
+import { LGPDPurposeField } from '@/components/ui/LGPDPurposeField';
+
 
 const CombinedSchema = z.object({
   settings: UserSettingsSchema,
@@ -56,12 +59,18 @@ const FormSection = ({
   </div>
 );
 
+const VARIAVEIS_MENSAGEM = {
+  usuario: ['usuario_nome', 'usuario_fone', 'usuario_instagram', 'usuario_link_perfil', 'usuario_email'],
+  galeria: ['galeria_titulo', 'galeria_nome_cliente', 'galeria_data', 'galeria_local', 'galeria_categoria', 'galeria_senha']
+};
+
 export default function SettingsForm({ profile }: { profile: any }) {
   const router = useRouter();
   const [isSaving, setIsSaving] = useState(false);
   const [isSuccess, setIsSuccess] = useState(false);
   const [toast, setToast] = useState<{ message: string; type: 'success' | 'error' } | null>(null);
 
+  
   const defaultValues: CombinedData = {
     settings: {
       display: {
@@ -117,6 +126,12 @@ export default function SettingsForm({ profile }: { profile: any }) {
     }
   };
 
+  // Função para inserir variável no texto
+  const insertVariable = (fieldName: string, variable: string) => {
+    const currentValue = watch(fieldName) || '';
+    setValue(fieldName, `${currentValue}{${variable}}`, { shouldDirty: true });
+  };
+
   const showContractType = watch('settings.display.show_contract_type');
   const listOnProfile = watch('settings.defaults.list_on_profile');
   const enableGuestRegistration = watch('settings.defaults.enable_guest_registration');
@@ -148,29 +163,25 @@ export default function SettingsForm({ profile }: { profile: any }) {
       submitLabel="SALVAR PREFERÊNCIAS"
       id="settings-form"
     >
-      {/* CONTEÚDO COM SCROLL INTERNO */}
-      <div className="flex-1 bg-slate-50/30 pt-6">
-        <div className="max-w-5xl mx-auto p-4 md:p-10 space-y-3">
+      {/* CONTEÚDO SEM SCROLL INTERNO (GERENCIADO PELO BASE) */}
+      <div className="flex-1 bg-slate-50/30">
+        <div className="max-w-5xl mx-auto p-4 md:p-10 space-y-6">
 
           {/* SEÇÃO EXIBIÇÃO */}
           <FormSection title="Exibição" icon={<Settings2 size={16} />}>
-            <div className="flex items-center justify-between">
+            <div className="flex items-center gap-4">               
               <div className="space-y-0.5">
-                <label className="text-[11px] font-semibold uppercase tracking-widest text-petroleum">
-                  Habilitar tipo de galeria "Contrato"
+                <label className="text-[11px] font-bold uppercase tracking-widest text-petroleum mb-0 cursor-pointer" onClick={() => setValue('settings.display.show_contract_type', !showContractType, { shouldDirty: true })}>
+                  Habilitar tipo "Contrato"
                 </label>
-                <p className="text-[11px] text-petroleum/80 italic">
-                  Se desativado, não será exibido o tipo "Contrato" na criação de galerias que será salva com o tipo "Cobertura", onde não se tem nome e Whatsapp do cliente .
-                </p>
+                <p className="text-[10px] text-petroleum/60 italic">Oculta ou exibe o tipo de galeria na criação.</p>
               </div>
               <button
                 type="button"
                 onClick={() => setValue('settings.display.show_contract_type', !showContractType, { shouldDirty: true })}
-                className={`relative h-5 w-9 rounded-full transition-colors duration-200 ${showContractType ? 'bg-gold' : 'bg-slate-200'}`}
+                className={`relative h-5 w-9 shrink-0 rounded-full transition-colors ${showContractType ? 'bg-gold' : 'bg-slate-200'}`}
               >
-                <span
-                  className={`absolute top-0.5 left-0.5 h-4 w-4 rounded-full bg-white shadow-sm transition-transform duration-200 ${showContractType ? 'translate-x-4' : ''}`}
-                />
+                <span className={`absolute top-0.5 left-0.5 h-4 w-4 rounded-full bg-white transition-transform ${showContractType ? 'translate-x-4' : ''}`} />
               </button>
             </div>
           </FormSection>
@@ -178,14 +189,14 @@ export default function SettingsForm({ profile }: { profile: any }) {
           <FormSection title="Padrões de Galeria" icon={<Layout size={16} />}>
             <div className="flex flex-col gap-8">
               <div className="space-y-6">
-                <div className="flex items-center justify-between">
+              <div className="flex items-center gap-4"> 
                   <label className="text-[11px] font-semibold uppercase tracking-widest text-petroleum ">
                     Exibir galeria no meu perfil público
                   </label>
                   <button
                     type="button"
                     onClick={() => setValue('settings.defaults.list_on_profile', !listOnProfile, { shouldDirty: true })}
-                    className={`relative h-5 w-9 rounded-full transition-colors duration-200 ${listOnProfile ? 'bg-green-500' : 'bg-slate-200'}`}
+                    className={`relative h-5 w-9 rounded-full transition-colors duration-200 ${listOnProfile ? 'bg-gold' : 'bg-slate-200'}`}
                   >
                     <span
                       className={`absolute top-0.5 left-0.5 h-4 w-4 rounded-full bg-white shadow-sm transition-transform duration-200 ${listOnProfile ? 'translate-x-4' : ''}`}
@@ -193,7 +204,7 @@ export default function SettingsForm({ profile }: { profile: any }) {
                   </button>
                 </div>
 
-                <div className="flex items-center justify-between">
+                <div className="flex items-center gap-4"> 
                   <label className="text-[11px] font-semibold uppercase tracking-widest text-petroleum ">
                     Habilitar cadastro de visitante por padrão
                   </label>
@@ -235,14 +246,13 @@ export default function SettingsForm({ profile }: { profile: any }) {
                     </div>
                   )}
 
-                  <div className={`space-y-1.5 ${!enableGuestRegistration ? 'sm:col-span-2' : ''}`}>
-                    <label className="text-[11px] font-semibold uppercase tracking-widest text-petroleum flex items-center gap-2">
-                      Finalidade do tratamento (LGPD)
-                    </label>
-                    <input
-                      {...register('settings.defaults.data_treatment_purpose')}
-                      placeholder="Ex: identificação para acesso à galeria"
-                      className="w-full px-3 h-11 bg-white border border-petroleum/20 rounded-luxury text-petroleum text-[13px] outline-none focus:border-gold transition-all"
+                  <div className={`w-full ${!enableGuestRegistration ? 'sm:col-span-2' : ''}`}>
+                    <LGPDPurposeField 
+                      register={register}
+                      setValue={setValue}
+                      watch={watch}
+                      fieldName="settings.defaults.data_treatment_purpose"
+                      initialValue={profile.settings?.defaults?.data_treatment_purpose}
                     />
                   </div>
                 </div>
@@ -273,55 +283,34 @@ export default function SettingsForm({ profile }: { profile: any }) {
             </div>
           </FormSection>
 
-          {/* SEÇÃO MODELOS DE MENSAGENS */}
-          <FormSection title="Modelos de Mensagens WhatsApp" icon={<MessageSquare size={16} />}>
-            <div className="bg-champagne/20 p-4 rounded-luxury border border-gold/20 flex gap-3 items-start mb-2">
-              <Info size={16} className="text-gold shrink-0 mt-0.5" />
-              <div className="text-[11px] text-petroleum/80 leading-relaxed">
-                Personalize as mensagens enviadas aos seus clientes. Use as variáveis abaixo entre chaves para preenchimento automático:<br/>
-                <span className="font-bold text-petroleum">{"{title}"}</span> - Título da Galeria | <span className="font-bold text-petroleum">{"{url}"}</span> - Link da Galeria | <span className="font-bold text-petroleum">{"{clientName}"}</span> - Nome do Cliente | <span className="font-bold text-petroleum">{"{date}"}</span> - Data do Evento
-              </div>
-            </div>
+          {/* SEÇÃO MODELOS DE MENSAGENS */}          
+          <FormSection title="Modelos de Mensagens" icon={<MessageSquare size={16} />}>
+            {['luxury_share', 'card_share', 'photo_share', 'guest_share'].map((msgKey) => (
+              <div key={msgKey} className="space-y-3 pb-6 border-b border-slate-100 last:border-0">
+                <label className="text-[11px] font-bold uppercase tracking-widest text-petroleum">
+                  {msgKey.replace('_', ' ')}
+                </label>
+                
+                {/* Botões de Variáveis */}
+                <div className="flex flex-wrap gap-1.5 mb-2">
+                  {[...VARIAVEIS_MENSAGEM.usuario, ...VARIAVEIS_MENSAGEM.galeria].map(v => (
+                    <button
+                      key={v}
+                      type="button"
+                      onClick={() => insertVariable(`message_templates.${msgKey}`, v)}
+                      className="px-2 py-1 bg-slate-100 hover:bg-gold/10 text-[9px] font-bold text-petroleum/70 rounded-md border border-slate-200 transition-colors flex items-center gap-1"
+                    >
+                      <Plus size={8} /> {v}
+                    </button>
+                  ))}
+                </div>
 
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-              <div className="space-y-2">
-                <label className="text-[11px] font-semibold uppercase tracking-widest text-petroleum ">
-                  Compartilhamento Luxury
-                </label>
                 <textarea
-                  {...register('message_templates.luxury_share')}
-                  placeholder="Olá {clientName}, aqui está o link da sua galeria: {url}"
-                  className="w-full bg-white border border-petroleum/20 rounded-luxury p-4 text-[13px] text-petroleum outline-none focus:border-gold transition-all min-h-[120px] resize-none"
+                  {...register(`message_templates.${msgKey}`)}
+                  className="w-full bg-white border border-petroleum/20 rounded-luxury p-4 text-[13px] min-h-[140px] font-mono"
                 />
               </div>
-              <div className="space-y-2">
-                <label className="text-[11px] font-semibold uppercase tracking-widest text-petroleum ">
-                  Compartilhamento de Card
-                </label>
-                <textarea
-                  {...register('message_templates.card_share')}
-                  className="w-full bg-white border border-petroleum/20 rounded-luxury p-4 text-[13px] text-petroleum outline-none focus:border-gold transition-all min-h-[120px] resize-none"
-                />
-              </div>
-              <div className="space-y-2">
-                <label className="text-[11px] font-semibold uppercase tracking-widest text-petroleum ">
-                  Compartilhamento de Foto Única
-                </label>
-                <textarea
-                  {...register('message_templates.photo_share')}
-                  className="w-full bg-white border border-petroleum/20 rounded-luxury p-4 text-[13px] text-petroleum outline-none focus:border-gold transition-all min-h-[120px] resize-none"
-                />
-              </div>
-              <div className="space-y-2">
-                <label className="text-[11px] font-semibold uppercase tracking-widest text-petroleum ">
-                  Convite para Visitante
-                </label>
-                <textarea
-                  {...register('message_templates.guest_share')}
-                  className="w-full bg-white border border-petroleum/20 rounded-luxury p-4 text-[13px] text-petroleum outline-none focus:border-gold transition-all min-h-[120px] resize-none"
-                />
-              </div>
-            </div>
+            ))}
           </FormSection>
         </div>
       </div>
