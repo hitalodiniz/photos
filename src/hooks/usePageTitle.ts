@@ -1,21 +1,20 @@
 'use client';
-import { useEffect } from 'react';
+import { useEffect, useRef } from 'react';
 import { formatTitle, SEO_CONFIG } from '@/core/config/seo.config';
 
 export function usePageTitle(title?: string) {
+  const lastTitleRef = useRef<string>('');
+
   useEffect(() => {
-    // Se não houver título, usa o padrão imediatamente
-    if (!title) {
-      document.title = SEO_CONFIG.defaultTitle;
-      return;
+    const newTitle = title ? formatTitle(title) : SEO_CONFIG.defaultTitle;
+
+    // Só altera se o título formatado for diferente do último aplicado
+    if (document.title !== newTitle) {
+      document.title = newTitle;
     }
 
-    // Define o título formatado
-    document.title = formatTitle(title);
-
-    // O Cleanup só deve acontecer quando o componente DESMONTAR (sair da página)
-    return () => {
-      document.title = SEO_CONFIG.defaultTitle;
-    };
-  }, [title]); // Só reexecuta se o title mudar
+    // REMOVA o cleanup que volta para o defaultTitle.
+    // Em SPAs (Next.js), o próximo componente que montar já chamará o usePageTitle,
+    // evitar o "voltar ao padrão" no desmonte previne flashes de título e loops de estado.
+  }, [title]);
 }

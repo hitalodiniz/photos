@@ -1,61 +1,56 @@
 'use client';
 import React from 'react';
-import { Camera, Instagram, MessageCircle } from 'lucide-react';
+import { Camera, Instagram } from 'lucide-react';
 import Link from 'next/link';
+import WhatsAppIcon from '@/components/ui/WhatsAppIcon';
 import { GALLERY_MESSAGES } from '@/core/config/messages';
 
 export default function Footer() {
   const whatsappLink = `https://wa.me/5531993522018?text=${encodeURIComponent(
     GALLERY_MESSAGES.CONTACT_DEVELOPER(),
   )}`;
+
   return (
-    <footer className="flex-none w-full py-8 px-6 bg-gradient-to-t from-black/80 to-transparent backdrop-blur-sm border-t border-white/10">
-      <div className="max-w-6xl mx-auto flex flex-col md:flex-row justify-between items-center gap-4 md:gap-10">
-        {/* Lado Esquerdo: Logo e Info */}
-        <div className="flex flex-col items-center md:items-start gap-2">
-          <div className="flex items-center gap-3">
-            <Camera className="w-6 h-6 text-[#F3E5AB]" />
-            <span className="font-artistic text-md md:text-[16px] font-semibold text-white italic">
+    <footer className="flex-none w-full py-4 px-6 bg-petroleum border-t border-white/10 font-montserrat">
+      <div className="max-w-[1600px] mx-auto flex flex-col md:flex-row justify-between items-center gap-4">
+        {/* Lado Esquerdo: Marca e Links */}
+        <div className="flex flex-col items-center md:items-start gap-1">
+          <div className="flex items-center gap-2">
+            <Camera className="w-5 h-5 text-[#F3E5AB]" />
+            <span className="font-artistic text-[16px] font-semibold text-white italic">
               Sua Galeria
             </span>
           </div>
 
-          <div
-            className="text-white/60 text-xs md:text-sm flex flex-wrap justify-center md:justify-start gap-1 md:gap-2
-           italic"
-          >
-            <span>
-              © {new Date().getFullYear()} • Integrado com Google Drive™
-            </span>
-            <div className="flex items-center gap-2">
-              <Link
-                href="/privacidade"
-                className="hover:text-[#F3E5AB] transition-colors underline underline-offset-8 decoration-white/10"
-              >
-                Privacidade
-              </Link>
-              <span className="text-white/20">•</span>
-              <Link
-                href="/termos"
-                className="hover:text-[#F3E5AB] transition-colors underline underline-offset-8 decoration-white/10"
-              >
-                Termos de Uso
-              </Link>
-            </div>
+          <div className="text-white/70 text-[11px] md:text-[13px] flex items-center gap-3 italic tracking-wide">
+            <span>© {new Date().getFullYear()}</span>
+            <div className="w-[1px] h-3 bg-white/10" />
+            <Link
+              href="/privacidade"
+              className="hover:text-[#F3E5AB] transition-colors underline underline-offset-4 decoration-white/10"
+            >
+              Privacidade
+            </Link>
+            <Link
+              href="/termos"
+              className="hover:text-[#F3E5AB] transition-colors underline underline-offset-4 decoration-white/10"
+            >
+              Termos
+            </Link>
           </div>
         </div>
 
-        {/* Lado Direito: Redes Sociais */}
-        <div className="flex items-center gap-5">
+        {/* Lado Direito: Redes Sociais Compactas */}
+        <div className="flex items-center gap-3">
           <SocialIcon
-            icon={<Instagram size={20} />}
+            icon={<Instagram size={18} />}
             title="Instagram"
-            href="https://instagram.com" // Ajuste o link real aqui
+            href="https://instagram.com"
           />
           <SocialIcon
-            icon={<MessageCircle size={20} />}
+            icon={<WhatsAppIcon className="w-4 h-4" />}
             title="WhatsApp"
-            href={whatsappLink} // Ajuste o link real aqui
+            href={whatsappLink}
           />
         </div>
       </div>
@@ -63,9 +58,6 @@ export default function Footer() {
   );
 }
 
-{
-  /* Componente Interno SocialIcon Padronizado */
-}
 function SocialIcon({
   icon,
   title,
@@ -80,8 +72,8 @@ function SocialIcon({
       href={href}
       target="_blank"
       rel="noopener noreferrer"
-      className="p-4 bg-white/5 rounded-full text-[#F3E5AB] border border-white/5 transition-all 
-      duration-500 hover:text-black hover:bg-champagne-dark shadow-2xl"
+      className="p-2.5 bg-white/5 rounded-full text-[#F3E5AB] border border-white/10 transition-all 
+      duration-300 hover:bg-[#F3E5AB] hover:text-petroleum shadow-xl"
       title={title}
     >
       {icon}

@@ -72,7 +72,7 @@ export interface PlanInfo {
 
 export const PERMISSIONS_BY_PLAN: Record<PlanKey, PlanPermissions> = {
   FREE: {
-    maxGalleries: 1,
+    maxGalleries: 2,
     maxPhotosPerGallery: 80,
     teamMembers: 0,
     profileLevel: 'basic', // Avatar + Nome
@@ -121,7 +121,6 @@ export const PERMISSIONS_BY_PLAN: Record<PlanKey, PlanPermissions> = {
     privacyLevel: 'private', // Link Privado
     keepOriginalFilenames: false,
     customizationLevel: 'default',
-    canCustomWhatsApp: false,
     canCustomCategories: false,
   },
   PLUS: {
@@ -148,7 +147,6 @@ export const PERMISSIONS_BY_PLAN: Record<PlanKey, PlanPermissions> = {
     privacyLevel: 'private',
     keepOriginalFilenames: true, // Nomes Originais
     customizationLevel: 'colors', // + Cores do Grid
-    canCustomWhatsApp: false,
     canCustomCategories: true, // + Categorias Próprias
   },
   PRO: {
@@ -216,7 +214,7 @@ export const PLANS_BY_SEGMENT: Record<
     FREE: {
       name: 'Free',
       price: 0,
-      maxGalleries: 1,
+      maxGalleries: 2,
       icon: Zap,
       cta: 'Começar Grátis',
       permissions: PERMISSIONS_BY_PLAN.FREE,
