@@ -52,6 +52,17 @@ describe('GaleriaFormContent', () => {
     onPickerError: vi.fn(),
     onTokenExpired: vi.fn(),
     onTitleChange: vi.fn(),
+    profile: {
+      settings: {
+        display: { show_contract_type: true },
+        defaults: {
+          list_on_profile: false,
+          enable_guest_registration: false,
+          required_guest_fields: ['name', 'whatsapp'],
+          data_treatment_purpose: '',
+        }
+      }
+    }
   };
 
   beforeEach(() => {
@@ -65,6 +76,23 @@ describe('GaleriaFormContent', () => {
     expect(screen.getByText(/Galeria & Sincronização/i)).toBeInTheDocument();
     expect(screen.getByText(/Privacidade/i)).toBeInTheDocument();
     expect(screen.getAllByText(/Cadastro de visitante/i).length).toBeGreaterThan(0);
+  });
+
+  it('hides Identificação section when show_contract_type is false', () => {
+    const propsWithHiddenContract = {
+      ...defaultProps,
+      profile: {
+        ...defaultProps.profile,
+        settings: {
+          ...defaultProps.profile.settings,
+          display: { show_contract_type: false }
+        }
+      }
+    };
+
+    render(<GaleriaFormContent {...propsWithHiddenContract} />);
+
+    expect(screen.queryByText(/Identificação/i)).not.toBeInTheDocument();
   });
 
   it('handles various lead capture field combinations and enforces at least one mandatory field', async () => {

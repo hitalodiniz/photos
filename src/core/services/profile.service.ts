@@ -9,6 +9,7 @@ import {
 import { suggestUsernameFromEmail } from '@/core/utils/user-helpers';
 import { cache } from 'react';
 import { GLOBAL_CACHE_REVALIDATE } from '@/core/utils/url-helper';
+import { MessageTemplates, UserSettings } from '../types/profile';
 
 // =========================================================================
 // 1. LEITURA DE DADOS (READ)
@@ -299,9 +300,46 @@ export async function upsertProfile(formData: FormData, supabaseClient?: any) {
 }
 
 /**
- * Encerra a sessão
+ * Atualiza as configurações e templates de mensagem do perfil
  */
-export async function signOutServer() {
+export async function updateProfileSettings(data: {
+  settings: UserSettings;
+  message_templates: MessageTemplates;
+}) {
+  const supabase = await createSupabaseServerClient();
+  const { data: { user } } = await supabase.auth.getUser();
+
+  if (!user) return { success: false, error: 'Sessão expirada.' };
+
+  const { data: profile } = await supabase
+    .from('tb_profiles')
+    .select('username')
+    .eq('id', user.id)
+    .single();
+
+  const { error } = await supabase
+    .from('tb_profiles')
+    .update({
+      settings: data.settings,
+      message_templates: data.message_templates,
+      updated_at: new Date().toISOString()
+    })
+    .eq('id', user.id);
+
+  if (error) {
+    console.error('[updateProfileSettings] Erro:', error);
+    return { success: false, error: error.message };
+  }
+
+  if (profile?.username) {
+    revalidateTag(`profile-${profile.username}`);
+  }
+  revalidatePath('/dashboard/settings');
+
+  return { success: true };
+}
+
+export async function signOut() {
   const supabase = await createSupabaseServerClient();
   await supabase.auth.signOut();
 }

@@ -23,7 +23,7 @@ vi.mock('@/lib/supabase.server', () => ({
 import {
   getProfileData,
   upsertProfile,
-  signOutServer,
+  signOut,
 } from './profile.service';
 import {
   createSupabaseServerClient,
@@ -117,8 +117,8 @@ describe('Profile Service (Cobertura 100%)', () => {
     expect(result.error).toBe('Username já está em uso.');
   });
 
-  it('deve cobrir signOutServer nas linhas 170-171', async () => {
-    await signOutServer();
+  it('deve cobrir signOut nas linhas 170-171', async () => {
+    await signOut();
     expect(mockSignOut).toHaveBeenCalled();
   });
 });

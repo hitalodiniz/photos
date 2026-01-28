@@ -1,7 +1,6 @@
 'use client';
 import { useState } from 'react';
 import FormPageBase from '@/components/ui/FormPageBase';
-import { FormSection } from '@/components/galeria'; // Reutilizando seu componente de seção
 import {
     Settings,
     Layout,
@@ -16,6 +15,37 @@ import {
 } from 'lucide-react';
 import { GALLERY_CATEGORIES } from '@/core/config/categories';
 import { upsertProfile } from '@/core/services/profile.service';
+
+const FormSection = ({
+    title,
+    subtitle,
+    icon,
+    children
+}: {
+    title: string;
+    subtitle?: string;
+    icon?: React.ReactNode;
+    children: React.ReactNode;
+}) => (
+    <div className="bg-white rounded-luxury border border-petroleum/40 p-4 space-y-3">
+        <div className="flex flex-col gap-1 pb-2 border-b border-petroleum/40">
+            <div className="flex items-center gap-2">
+                {icon && <div className="text-gold">{icon}</div>}
+                <h3 className="text-[10px] font-bold uppercase tracking-widest text-petroleum">
+                    {title}
+                </h3>
+                {subtitle && (
+                    <p className="text-[10px] text-petroleum italic font-semibold">
+                        {subtitle}
+                    </p>
+                )}
+            </div>
+        </div>
+        <div>
+            {children}
+        </div>
+    </div>
+);
 
 export default function PreferenciasPage({ profile, onClose }) {
     const [loading, setLoading] = useState(false);

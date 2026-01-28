@@ -39,6 +39,7 @@ import WhatsAppIcon from '@/components/ui/WhatsAppIcon';
 import { convertToDirectDownloadUrl } from '@/core/utils/url-helper';
 import { LimitUpgradeModal } from '@/components/ui/LimitUpgradeModal';
 import { useGoogleDriveImage } from '@/hooks/useGoogleDriveImage';
+import { GalleryDesignFields } from './GalleryDesignFields';
 
 // 🎯 Componente de seção simples (sem accordion) - Estilo Editorial
 const FormSection = ({
@@ -92,7 +93,7 @@ export default function GaleriaFormContent({
         initialData.show_on_profile === true ||
         initialData.show_on_profile === 'true'
       );
-    return false; // Por padrão, não exibe no perfil
+    return profile?.settings?.defaults?.list_on_profile ?? false; // Por padrão, não exibe no perfil
   });
 
   const [leadsEnabled, setLeadsEnabled] = useState(() => {
@@ -101,7 +102,7 @@ export default function GaleriaFormContent({
         initialData.leads_enabled === true ||
         initialData.leads_enabled === 'true'
       );
-    return false;
+    return profile?.settings?.defaults?.enable_guest_registration ?? false;
   });
 
   const [leadsRequireName, setLeadsRequireName] = useState(() => {
@@ -110,6 +111,9 @@ export default function GaleriaFormContent({
         initialData.leads_require_name === true ||
         initialData.leads_require_name === 'true'
       );
+    if (profile?.settings?.defaults?.required_guest_fields) {
+      return profile.settings.defaults.required_guest_fields.includes('name');
+    }
     return true; // Padrão: Nome obrigatório se habilitado
   });
 
@@ -119,6 +123,9 @@ export default function GaleriaFormContent({
         initialData.leads_require_email === true ||
         initialData.leads_require_email === 'true'
       );
+    if (profile?.settings?.defaults?.required_guest_fields) {
+      return profile.settings.defaults.required_guest_fields.includes('email');
+    }
     return false;
   });
 
@@ -128,6 +135,9 @@ export default function GaleriaFormContent({
         initialData.leads_require_whatsapp === true ||
         initialData.leads_require_whatsapp === 'true'
       );
+    if (profile?.settings?.defaults?.required_guest_fields) {
+      return profile.settings.defaults.required_guest_fields.includes('whatsapp');
+    }
     return true; // Padrão: WhatsApp obrigatório se habilitado
   });
 
@@ -148,7 +158,7 @@ export default function GaleriaFormContent({
     "segurança e controle de acesso ao conteúdo",
   ];
 
-  const [leadPurpose, setLeadPurpose] = useState(() => initialData?.lead_purpose || '');
+  const [leadPurpose, setLeadPurpose] = useState(() => initialData?.lead_purpose || profile?.settings?.defaults?.data_treatment_purpose || '');
   const [isCustomPurpose, setIsCustomPurpose] = useState(() => {
     if (!initialData?.lead_purpose) return false;
     return !finalidades_padrao.includes(initialData.lead_purpose);
@@ -185,6 +195,8 @@ export default function GaleriaFormContent({
         initialData.has_contracting_client === true ||
         initialData.has_contracting_client === 'true'
       );
+    // Se não estiver em edição, verifica a preferência do usuário
+    if (profile?.settings?.display?.show_contract_type === false) return false;
     return true;
   });
   const [isPublic, setIsPublic] = useState(() => {
@@ -483,73 +495,76 @@ export default function GaleriaFormContent({
         </div>
 
         {/* SEÇÃO 1: IDENTIFICAÇÃO */}
-        <FormSection title="Identificação" icon={<User size={14} />}>
-          <fieldset>
-            <div className="grid grid-cols-1 md:grid-cols-12 gap-2 items-end">
-              <div className="md:col-span-3 ">
-                <label className="text-[10px] font-semibold uppercase tracking-widest text-petroleum">
-                  <Briefcase size={12} strokeWidth={2} className="inline mr-1.5" /> Tipo
-                </label>
-                <div className="flex p-1 bg-slate-50 rounded-luxury border border-petroleum/40 h-10 items-center relative">
-                  <div
-                    className={`absolute top-1 bottom-1 w-[calc(50%-4px)] rounded-[0.35rem] transition-all duration-300 bg-champagne border border-gold/20 shadow-sm ${hasContractingClient ? 'left-1' : 'left-[calc(50%+1px)]'}`}
-                  />
-                  <button
-                    type="button"
-                    onClick={() => setHasContractingClient(true)}
-                    className={`relative z-10 flex-1 text-[10px] font-semibold uppercase tracking-widest transition-colors ${hasContractingClient ? 'text-black' : 'text-petroleum/60 dark:text-slate-400'}`}
-                  >
-                    Contrato
-                  </button>
-                  <button
-                    type="button"
-                    onClick={() => {
-                      setHasContractingClient(false);
-                      setIsPublic(true);
-                    }}
-                    className={`relative z-10 flex-1 text-[10px] font-semibold uppercase tracking-widest transition-colors ${!hasContractingClient ? 'text-black' : 'text-petroleum/60 dark:text-slate-400'}`}
-                  >
-                    Cobertura
-                  </button>
+        {(profile?.settings?.display?.show_contract_type !== false || hasContractingClient) && (
+          <FormSection title="Identificação" icon={<User size={14} />}>
+            <fieldset>
+              <div className="grid grid-cols-1 md:grid-cols-12 gap-2 items-end">
+                <div className="md:col-span-3 ">
+                  <label className="text-[10px] font-semibold uppercase tracking-widest text-petroleum">
+                    <Briefcase size={12} strokeWidth={2} className="inline mr-1.5" /> Tipo
+                  </label>
+                  <div className="flex p-1 bg-slate-50 rounded-luxury border border-petroleum/40 h-10 items-center relative">
+                    <div
+                      className={`absolute top-1 bottom-1 w-[calc(50%-4px)] rounded-[0.35rem] transition-all duration-300 bg-champagne border border-gold/20 shadow-sm ${hasContractingClient ? 'left-1' : 'left-[calc(50%+1px)]'}`}
+                    />
+                    <button
+                      type="button"
+                      disabled={profile?.settings?.display?.show_contract_type === false}
+                      onClick={() => setHasContractingClient(true)}
+                      className={`relative z-10 flex-1 text-[10px] font-semibold uppercase tracking-widest transition-colors ${hasContractingClient ? 'text-black' : 'text-petroleum/60 dark:text-slate-400'}`}
+                    >
+                      Contrato
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => {
+                        setHasContractingClient(false);
+                        setIsPublic(true);
+                      }}
+                      className={`relative z-10 flex-1 text-[10px] font-semibold uppercase tracking-widest transition-colors ${!hasContractingClient ? 'text-black' : 'text-petroleum/60 dark:text-slate-400'}`}
+                    >
+                      Cobertura
+                    </button>
+                  </div>
                 </div>
+                {hasContractingClient ? (
+                  <>
+                    <div className="md:col-span-6 space-y-1.5 animate-in slide-in-from-left-2">
+                      <label className="text-[10px] font-semibold uppercase tracking-widest text-petroleum">
+                        <User size={12} strokeWidth={2} className="inline mr-1.5" /> Cliente
+                      </label>
+                      <input
+                        name="client_name"
+                        defaultValue={initialData?.client_name}
+                        required
+                        placeholder="Nome do cliente"
+                        className="w-full px-3 h-10 bg-white border border-petroleum/40 rounded-luxury text-petroleum/90 text-[13px] font-medium outline-none focus:border-gold transition-all"
+                      />
+                    </div>
+                    <div className="md:col-span-3 space-y-1.5">
+                      <label className="text-[10px] font-semibold uppercase tracking-widest text-petroleum">
+                        <WhatsAppIcon className="w-3 h-3 inline mr-1.5" /> WhatsApp
+                      </label>
+                      <input
+                        value={clientWhatsapp}
+                        name="client_whatsapp"
+                        onChange={(e) => setClientWhatsapp(maskPhone(e))}
+                        placeholder="(00) 00000-0000"
+                        className="w-full px-3 h-10 bg-white border border-petroleum/40 rounded-luxury text-petroleum/90 text-[13px] font-medium outline-none focus:border-gold tracking-wider transition-all"
+                      />
+                    </div>
+                  </>
+                ) : (
+                  <div className="md:col-span-9 h-10 flex items-center px-4 bg-slate-50 border border-dashed border-slate-200 rounded-luxury">
+                    <p className="text-[10px] font-semibold uppercase tracking-widest text-petroleum/60 dark:text-slate-400 italic">
+                      Identificação de cliente opcional em coberturas.
+                    </p>
+                  </div>
+                )}
               </div>
-              {hasContractingClient ? (
-                <>
-                  <div className="md:col-span-6 space-y-1.5 animate-in slide-in-from-left-2">
-                    <label className="text-[10px] font-semibold uppercase tracking-widest text-petroleum">
-                      <User size={12} strokeWidth={2} className="inline mr-1.5" /> Cliente
-                    </label>
-                    <input
-                      name="client_name"
-                      defaultValue={initialData?.client_name}
-                      required
-                      placeholder="Nome do cliente"
-                      className="w-full px-3 h-10 bg-white border border-petroleum/40 rounded-luxury text-petroleum/90 text-[13px] font-medium outline-none focus:border-gold transition-all"
-                    />
-                  </div>
-                  <div className="md:col-span-3 space-y-1.5">
-                    <label className="text-[10px] font-semibold uppercase tracking-widest text-petroleum">
-                      <WhatsAppIcon className="w-3 h-3 inline mr-1.5" /> WhatsApp
-                    </label>
-                    <input
-                      value={clientWhatsapp}
-                      name="client_whatsapp"
-                      onChange={(e) => setClientWhatsapp(maskPhone(e))}
-                      placeholder="(00) 00000-0000"
-                      className="w-full px-3 h-10 bg-white border border-petroleum/40 rounded-luxury text-petroleum/90 text-[13px] font-medium outline-none focus:border-gold tracking-wider transition-all"
-                    />
-                  </div>
-                </>
-              ) : (
-                <div className="md:col-span-9 h-10 flex items-center px-4 bg-slate-50 border border-dashed border-slate-200 rounded-luxury">
-                  <p className="text-[10px] font-semibold uppercase tracking-widest text-petroleum/60 dark:text-slate-400 italic">
-                    Identificação de cliente opcional em coberturas.
-                  </p>
-                </div>
-              )}
-            </div>
-          </fieldset>
-        </FormSection>
+            </fieldset>
+          </FormSection>
+        )}
 
         {/* SEÇÃO 2: GALERIA & SINCRONIZAÇÃO */}
         <FormSection title="Galeria & Sincronização" icon={<FolderSync size={14} />}>
@@ -579,7 +594,6 @@ export default function GaleriaFormContent({
                 <CategorySelect
                   value={category}
                   onChange={setCategory}
-                  userId={profile?.id} // Necessário para salvar novas categorias
                   initialCustomCategories={customCategoriesFromProfile} // Dados vindos do JSON do banco
                 />
               </div>
@@ -627,7 +641,7 @@ export default function GaleriaFormContent({
                   </label>
                   <div className="group relative flex items-center">
                     <div className="flex items-center justify-center w-3.5 h-3.5 rounded-full border border-petroleum/40 text-petroleum/60 dark:text-slate-400 group-hover:border-gold group-hover: transition-colors cursor-help">
-                      <span className="text-[10px] font-bold">?</span>
+                      <span className="text-[10px] font-semibold">?</span>
                     </div>
                     <div className="absolute bottom-full left-0 mb-3 w-64 p-3 bg-slate-900 text-white text-[10px] font-medium leading-relaxed rounded-luxury opacity-0 pointer-events-none group-hover:opacity-100 transition-all duration-300 shadow-2xl z-[100] text-left border border-white/10">
                       <p>
@@ -692,7 +706,7 @@ export default function GaleriaFormContent({
                   </label>
                   <div className="group relative flex items-center">
                     <div className="flex items-center justify-center w-3.5 h-3.5 rounded-full border border-petroleum/40 text-petroleum/60 dark:text-slate-400 group-hover:border-gold group-hover: transition-colors cursor-help">
-                      <span className="text-[10px] font-bold">?</span>
+                      <span className="text-[10px] font-semibold">?</span>
                     </div>
                     <div className="absolute bottom-full left-0 lg:left-auto lg:right-0 mb-3 w-64 p-3 bg-slate-900 text-white text-[10px] font-medium leading-relaxed rounded-luxury opacity-0 pointer-events-none group-hover:opacity-100 transition-all duration-300 shadow-2xl z-[100] text-left border border-white/10">
                       <p>
@@ -721,7 +735,7 @@ export default function GaleriaFormContent({
         <FormSection title="Cadastro de visitante" icon={<Users size={14} />}>
           <fieldset>
             <div className="flex flex-col gap-2">
-              <div className="flex flex-col sm:flex-row items-start sm:items-center gap-4">
+              <div className="flex flex-col items-start gap-1">
                 <div className="flex items-center gap-1">
                   <label className="text-[10px] font-semibold uppercase tracking-widest text-petroleum">
                     Habilitar cadastro de visitante para visualizar a galeria
@@ -737,6 +751,7 @@ export default function GaleriaFormContent({
                   </button>
                 </div>
                 {!isEdit && (
+                  
                   <p className="text-[10px] text-petroleum/60 dark:text-slate-400 italic">
                     Aumente sua base de contatos exigindo dados básicos antes dos clientes visualizarem as fotos.
                   </p>
@@ -744,64 +759,67 @@ export default function GaleriaFormContent({
               </div>
 
               {leadsEnabled && (
-                <div className="grid grid-cols-1 sm:grid-cols-3 gap-4 p-4 bg-slate-50 rounded-luxury border border-petroleum/20 animate-in fade-in slide-in-from-top-2 duration-300">
-                  <div
-                    onClick={() => toggleLeadField('name')}
-                    className="flex items-center gap-2 cursor-pointer group"
+                <>
+                  <div className="w-full mt-2">
+                    <div className="space-y-1.5 animate-in fade-in slide-in-from-top-2 duration-300">
+                      <label className="text-[10px] font-semibold uppercase tracking-widest text-petroleum">
+                        Campos para captura
+                      </label>
+                      <div className="grid grid-cols-1 sm:grid-cols-3 gap-4 p-4 bg-slate-50 rounded-luxury border border-petroleum/20 animate-in fade-in slide-in-from-top-2 duration-300">
+                <div 
+                  onClick={() => toggleLeadField('name')}
+                  className="flex items-center gap-2 cursor-pointer group"
+                >
+                  <div 
+                    className={`w-4 h-4 rounded border transition-colors flex items-center justify-center ${leadsRequireName ? 'bg-gold border-gold' : 'bg-white border-petroleum/40'}`}
                   >
-                    <div
-                      className={`w-4 h-4 rounded border transition-colors flex items-center justify-center ${leadsRequireName ? 'bg-gold border-gold' : 'bg-white border-petroleum/40'}`}
-                    >
-                      {leadsRequireName && <CheckCircle2 size={10} className="text-white" />}
-                    </div>
-                    <span className="text-[11px] font-semibold uppercase tracking-wider text-petroleum/80 group-hover:text-petroleum">Exigir Nome</span>
+                    {leadsRequireName && <CheckCircle2 size={10} className="text-white" />}
                   </div>
-
-                  <div
-                    onClick={() => toggleLeadField('email')}
-                    className="flex items-center gap-2 cursor-pointer group"
-                  >
-                    <div
-                      className={`w-4 h-4 rounded border transition-colors flex items-center justify-center ${leadsRequireEmail ? 'bg-gold border-gold' : 'bg-white border-petroleum/40'}`}
-                    >
-                      {leadsRequireEmail && <CheckCircle2 size={10} className="text-white" />}
-                    </div>
-                    <span className="text-[11px] font-semibold uppercase tracking-wider text-petroleum/80 group-hover:text-petroleum">Exigir E-mail</span>
-                  </div>
-
-                  <div
-                    onClick={() => toggleLeadField('whatsapp')}
-                    className="flex items-center gap-2 cursor-pointer group"
-                  >
-                    <div
-                      className={`w-4 h-4 rounded border transition-colors flex items-center justify-center ${leadsRequireWhatsapp ? 'bg-gold border-gold' : 'bg-white border-petroleum/40'}`}
-                    >
-                      {leadsRequireWhatsapp && <CheckCircle2 size={10} className="text-white" />}
-                    </div>
-                    <span className="text-[11px] font-semibold uppercase tracking-wider text-petroleum/80 group-hover:text-petroleum">Exigir WhatsApp</span>
-                  </div>
+                  <span className="text-[11px] font-semibold uppercase tracking-wider text-petroleum/80 group-hover:text-petroleum">Exigir Nome</span>
                 </div>
-              )}
-              {leadsEnabled && (
-                <div className="space-y-4 mt-4 p-4 bg-slate-50/50 rounded-luxury border border-petroleum/20 animate-in fade-in duration-500">
-                  <div className="space-y-1.5">
+
+                <div 
+                  onClick={() => toggleLeadField('email')}
+                  className="flex items-center gap-2 cursor-pointer group"
+                >
+                  <div 
+                    className={`w-4 h-4 rounded border transition-colors flex items-center justify-center ${leadsRequireEmail ? 'bg-gold border-gold' : 'bg-white border-petroleum/40'}`}
+                  >
+                    {leadsRequireEmail && <CheckCircle2 size={10} className="text-white" />}
+                  </div>
+                  <span className="text-[11px] font-semibold uppercase tracking-wider text-petroleum/80 group-hover:text-petroleum">Exigir E-mail</span>
+                </div>
+
+                <div 
+                  onClick={() => toggleLeadField('whatsapp')}
+                  className="flex items-center gap-2 cursor-pointer group"
+                >
+                  <div 
+                    className={`w-4 h-4 rounded border transition-colors flex items-center justify-center ${leadsRequireWhatsapp ? 'bg-gold border-gold' : 'bg-white border-petroleum/40'}`}
+                  >
+                    {leadsRequireWhatsapp && <CheckCircle2 size={10} className="text-white" />}
+                  </div>
+                  <span className="text-[11px] font-semibold uppercase tracking-wider text-petroleum/80 group-hover:text-petroleum">Exigir WhatsApp</span>
+                </div>
+              </div>
+                    </div>
+                  </div>
+
+                  <div className="space-y-1.5 animate-in fade-in duration-500 mt-6">
                     <div className="flex items-center gap-2">
                       <label className="text-[10px] font-bold uppercase tracking-widest text-petroleum flex items-center gap-2">
                         <Database size={12} className="text-gold" /> finalidade do tratamento
                       </label>
 
-                      {/* Tooltip de Explicação */}
                       <div className="group relative flex items-center">
                         <div className="flex items-center justify-center w-3.5 h-3.5 rounded-full border border-petroleum/40 text-petroleum/60 hover:border-gold transition-colors cursor-help">
-                          <span className="text-[10px] font-bold">?</span>
+                          <span className="text-[10px] font-semibold">?</span>
                         </div>
-
-                        <div className="absolute bottom-full left-1/2 -translate-x-1/2 mb-3 w-72 p-3 bg-slate-900 text-white text-[10px] font-medium leading-relaxed rounded-luxury opacity-0 pointer-events-none group-hover:opacity-100 transition-all duration-300 shadow-2xl z-[100] text-center border border-white/10">
+                        <div className="absolute bottom-full right-0 mb-3 w-72 p-3 bg-slate-900 text-white text-[10px] font-medium leading-relaxed rounded-luxury opacity-0 pointer-events-none group-hover:opacity-100 transition-all duration-300 shadow-2xl z-[100] text-center border border-white/10">
                           <p>
                             Com base no <strong className="text-gold">Art. 6º, I (Princípio da Finalidade)</strong> e <strong className="text-gold">Art. 9º</strong> da Lei Geral de Proteção de Dados Pessoais (Lei nº 13.709/2018), você deve informar a finalidade específica do tratamento dos dados ao visitante.
                           </p>
-
-                          <div className="absolute top-full left-1/2 -translate-x-1/2 border-8 border-transparent border-t-slate-900" />
+                          <div className="absolute top-full right-2 border-8 border-transparent border-t-slate-900" />
                         </div>
                       </div>
                     </div>
@@ -827,23 +845,23 @@ export default function GaleriaFormContent({
                       ))}
                       <option value="custom" className="font-bold">outra finalidade (digitar texto)...</option>
                     </select>
-                  </div>
 
-                  {isCustomPurpose && (
-                    <div className="space-y-1.5 animate-in fade-in slide-in-from-top-1 duration-300">
-                      <p className="text-[11px] text-petroleum italic mb-1 font-semibold">
-                        Personalize a finalidade caso as opções acima não atendam:
-                      </p>
-                      <textarea
-                        placeholder="ex: coleta para fins de sorteio durante o evento..."
-                        className="w-full bg-white border border-petroleum/20 rounded-luxury p-3 text-[13px] text-petroleum outline-none focus:border-gold transition-all min-h-[80px] resize-none"
-                        value={leadPurpose}
-                        onChange={(e) => setLeadPurpose(e.target.value)}
-                        required={isCustomPurpose}
-                      />
-                    </div>
-                  )}
-                </div>
+                    {isCustomPurpose && (
+                      <div className="mt-2 space-y-1.5 animate-in fade-in slide-in-from-top-1 duration-300">
+                        <p className="text-[11px] text-petroleum italic mb-1 font-semibold">
+                          Descreva a finalidade personalizada:
+                        </p>
+                        <textarea
+                          placeholder="ex: coleta para fins de sorteio durante o evento..."
+                          className="w-full bg-white border border-petroleum/20 rounded-luxury p-3 text-[13px] text-petroleum outline-none focus:border-gold transition-all min-h-[80px] resize-none"
+                          value={leadPurpose}
+                          onChange={(e) => setLeadPurpose(e.target.value)}
+                          required={isCustomPurpose}
+                        />
+                      </div>
+                    )}
+                  </div>
+                </>
               )}
             </div>
           </fieldset>
@@ -856,161 +874,14 @@ export default function GaleriaFormContent({
           icon={<Layout size={14} />}
         >
           <fieldset>
-            <div className="grid grid-cols-1 xl:grid-cols-[auto_1fr_auto] gap-4 items-center">
-              {/* FOTO DE FUNDO */}
-              <div className="flex items-center gap-4 pb-4 xl:pb-0 xl:border-r border-slate-200 xl:pr-2 w-max">
-                <div className="flex items-center gap-2">
-                  <label className="text-[10px] font-semibold uppercase tracking-widest text-petroleum">Foto de fundo</label>
-                  <div className="group relative flex items-center">
-                    <div className="flex items-center justify-center w-3.5 h-3.5 rounded-full border border-petroleum/40 text-petroleum/60 dark:text-slate-400 group-hover:border-gold group-hover: transition-colors cursor-help">
-                      <span className="text-[10px] font-bold">?</span>
-                    </div>
-                    <div className="absolute bottom-full left-1/2 -translate-x-1/2 mb-3 w-48 p-2.5 bg-slate-900 text-white text-[10px] font-medium leading-relaxed rounded-luxury opacity-0 pointer-events-none group-hover:opacity-100 transition-all duration-300 shadow-2xl z-50 text-center border border-white/10">
-                      <p>
-                        Usa a foto selecionada no Google Drive como fundo da grade
-                        de fotos galeria.
-                      </p>
-                      <div className="absolute top-full left-1/2 -translate-x-1/2 border-8 border-transparent border-t-slate-900" />
-                    </div>
-                  </div>
-                </div>
-                <button
-                  type="button"
-                  onClick={() =>
-                    setCustomization.setShowCoverInGrid(
-                      !customization.showCoverInGrid,
-                    )
-                  }
-                  className={`relative h-5 w-9 rounded-full transition-colors duration-200 ${customization.showCoverInGrid ? 'bg-gold' : 'bg-slate-200'}`}
-                >
-                  <span
-                    className={`absolute top-0.5 left-0.5 h-4 w-4 rounded-full bg-white shadow-sm transition-transform duration-200 ${customization.showCoverInGrid ? 'translate-x-4' : ''}`}
-                  />
-                </button>
-              </div>
-
-              {/* COR DE FUNDO */}
-              <div className="flex items-center justify-between gap-3 xl:pb-0 pb-4 xl:border-r border-slate-200 xl:pr-4">
-                <div className="flex items-center gap-1.5">
-                  <Layout size={13} className="" />
-                  <label className="text-[10px] font-semibold uppercase tracking-widest text-petroleum"> Cor de fundo</label>
-                  <div className="group relative flex items-center">
-                    <div className="flex items-center justify-center w-3.5 h-3.5 rounded-full border border-petroleum/40 text-petroleum/60 dark:text-slate-400 group-hover:border-gold group-hover: transition-colors cursor-help">
-                      <span className="text-[10px] font-bold">?</span>
-                    </div>
-                    <div className="absolute bottom-full left-1/2 -translate-x-1/2 mb-3 w-64 p-3 bg-slate-900 text-white text-[10px] font-medium leading-relaxed rounded-luxury opacity-0 pointer-events-none group-hover:opacity-100 transition-all duration-300 shadow-2xl z-[100] text-center border border-white/10">
-                      <p>
-                        Define a cor sólida do grid. Visível caso a{' '}
-                        <strong className="text-champagne">&quot;Foto de fundo&quot;</strong>{' '}
-                        esteja desativada.
-                      </p>
-                      <div className="absolute top-full left-1/2 -translate-x-1/2 border-8 border-transparent border-t-slate-900" />
-                    </div>
-                  </div>
-                </div>
-                <div className="flex items-center gap-2">
-                  <div className="flex gap-1">
-                    {['#F3E5AB', '#FFFFFF', '#000000'].map((c) => (
-                      <button
-                        key={c}
-                        type="button"
-                        onClick={() => setCustomization.setGridBgColor(c)}
-                        className={`w-5 h-5 rounded-[0.3rem] border transition-all ${customization.gridBgColor === c ? 'border-gold scale-110 shadow-sm' : 'border-slate-200'}`}
-                        style={{ backgroundColor: c }}
-                      />
-                    ))}
-                  </div>
-                  <div className="flex items-center gap-1.5 bg-slate-50 border border-petroleum/40 rounded-[0.4rem] px-1.5 h-8">
-                    <div
-                      className="w-4 h-4 rounded-[0.2rem] border border-petroleum/40 relative overflow-hidden shadow-sm"
-                      style={{ backgroundColor: customization.gridBgColor }}
-                    >
-                      <input
-                        type="color"
-                        value={customization.gridBgColor}
-                        onChange={(e) =>
-                          setCustomization.setGridBgColor(
-                            e.target.value.toUpperCase(),
-                          )
-                        }
-                        className="absolute inset-0 opacity-0 cursor-pointer scale-150"
-                      />
-                    </div>
-                    <input
-                      type="text"
-                      maxLength={7}
-                      value={customization.gridBgColor}
-                      onChange={(e) =>
-                        setCustomization.setGridBgColor(
-                          e.target.value.toUpperCase(),
-                        )
-                      }
-                      className="w-14 bg-transparent text-[12px] font-mono font-medium text-petroleum dark:text-slate-600 outline-none uppercase"
-                    />
-                  </div>
-                </div>
-              </div>
-
-              {/* GRID COLUNAS */}
-              <div className="flex items-center justify-between gap-3 w-max">
-                <div className="flex items-center gap-1.5">
-                  <label className="text-[10px] font-semibold uppercase tracking-widest text-petroleum"> Grid</label>
-                  <div className="group relative flex items-center">
-                    <div className="flex items-center justify-center w-3.5 h-3.5 rounded-full border border-petroleum/40 text-petroleum/60 dark:text-slate-400 group-hover:border-gold group-hover: transition-colors cursor-help">
-                      <span className="text-[10px] font-bold">?</span>
-                    </div>
-                    <div className="absolute bottom-full right-0 xl:left-1/2 xl:-translate-x-1/2 mb-3 w-64 p-3 bg-slate-900 text-white text-[10px] font-medium leading-relaxed rounded-luxury opacity-0 pointer-events-none group-hover:opacity-100 transition-all duration-300 shadow-2xl z-[100] text-left border border-white/10">
-                      <p>
-                        Define o{' '}
-                        <strong className="text-champagne">layout inicial</strong>{' '}
-                        de colunas.
-                      </p>
-                      <div className="absolute top-full right-2 xl:left-1/2 xl:-translate-x-1/2 border-8 border-transparent border-t-slate-900" />
-                    </div>
-                  </div>
-                </div>
-                <div className="flex gap-2">
-                  {[
-                    { k: 'mobile', i: Smartphone },
-                    { k: 'tablet', i: Tablet },
-                    { k: 'desktop', i: Monitor },
-                  ].map((d) => (
-                    <div key={d.k} className="flex items-center gap-1">
-                      <d.i size={14} className="" strokeWidth={2} />
-                      <div className="relative">
-                        <select
-                          value={customization.columns[d.k]}
-                          onChange={(e) =>
-                            setCustomization.setColumns({
-                              ...customization.columns,
-                              [d.k]: Number(e.target.value),
-                            })
-                          }
-                          className="appearance-none bg-slate-50 border rounded-[0.3rem] border-petroleum/40 pl-2 pr-5 h-8 text-xs font-semibold text-petroleum/80 outline-none hover:border-gold cursor-pointer transition-all"
-                        >
-                          {[1, 2, 3, 4, 5, 6].map((v) => (
-                            <option key={v} value={v}>
-                              {v}
-                            </option>
-                          ))}
-                        </select>
-                        <div className="absolute right-1 top-1/2 -translate-y-1/2 pointer-events-none text-petroleum/60 dark:text-slate-400">
-                          <svg width="6" height="6" viewBox="0 0 10 10" fill="none">
-                            <path
-                              d="M1 3L5 7L9 3"
-                              stroke="currentColor"
-                              strokeWidth="2"
-                              strokeLinecap="round"
-                              strokeLinejoin="round"
-                            />
-                          </svg>
-                        </div>
-                      </div>
-                    </div>
-                  ))}
-                </div>
-              </div>
-            </div>
+            <GalleryDesignFields
+              showBackgroundPhoto={customization.showCoverInGrid}
+              setShowBackgroundPhoto={setCustomization.setShowCoverInGrid}
+              backgroundColor={customization.gridBgColor}
+              setBackgroundColor={setCustomization.setGridBgColor}
+              columns={customization.columns}
+              setColumns={setCustomization.setColumns}
+            />
           </fieldset>
         </FormSection>
 

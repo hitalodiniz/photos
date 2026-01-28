@@ -101,7 +101,7 @@ export default function FormPageBase({
 
   return (
     <div 
-      className="fixed inset-0 z-[1000] bg-slate-900/40 backdrop-blur-md animate-in fade-in duration-300"
+      className="fixed inset-0 z-[10] bg-slate-900/40 backdrop-blur-md animate-in fade-in duration-300"
       onClick={(e) => {
         if (e.target === e.currentTarget && !loading) {
           onClose();
@@ -116,41 +116,7 @@ export default function FormPageBase({
         className="relative w-full h-full bg-white flex flex-col overflow-hidden animate-in zoom-in-95 duration-300"
         onClick={(e) => e.stopPropagation()}
       >
-        {/* STICKY HEADER */}
-        <div className="sticky top-0 z-50 bg-petroleum border-b border-white/10">
-          <div className="flex items-center justify-between px-6 py-4">
-            {isEdit && (
-              <button
-                onClick={onClose}
-                disabled={loading}
-                className="p-2 text-white/80 hover:text-white hover:bg-white/10 rounded-lg transition-colors disabled:opacity-50 disabled:cursor-not-allowed shrink-0"
-                aria-label="Voltar"
-                title="Voltar (ESC)"
-              >
-                <ArrowLeft size={20} />
-              </button>
-            )}
-
-            <h2 
-              id="form-page-title"
-              className={`flex-1 text-center text-sm font-semibold text-white uppercase tracking-widest mx-4 truncate ${!isEdit ? 'ml-0' : ''}`}
-            >
-              {title}
-            </h2>
-
-            <div className="w-[200px] flex justify-end shrink-0">
-              <SubmitButton
-                form={id}
-                success={isSuccess}
-                disabled={loading}
-                icon={<Save size={14} />}
-                className="w-full"
-                label={submitLabel || defaultSubmitLabel}
-              />
-            </div>
-          </div>
-        </div>
-
+       
         {/* FORM CONTENT */}
         <div className="flex-1 overflow-hidden">
           <div className="w-full max-w-7xl mx-auto h-full">

@@ -11,6 +11,12 @@ const config: Config = {
   darkMode: 'class', // Alterado para 'class' para maior controle em modais premium
   theme: {
     extend: {
+      fontFamily: {
+        // Isso mapeia a classe 'font-sans' (padrão do Tailwind) para sua variável do Next Font
+        sans: ['var(--font-montserrat)', 'sans-serif'],
+        montserrat: ['var(--font-montserrat)', 'sans-serif'],
+        barlow: ['var(--font-barlow)', 'sans-serif'],
+      },
       colors: {
         // Luxury Editorial Photography Official Palette
         champagne: {
@@ -35,7 +41,7 @@ const config: Config = {
         'editorial-gray': 'rgba(0, 33, 46, 0.9)', // Azul Petróleo Profundo (Opacidade Suave)
       },
       letterSpacing: {
-        'luxury': '0.1em', // tracking-widest editorial
+        'luxury': '0em', // tracking-widest editorial
       },
       borderRadius: {
         'luxury': '0.75rem', // Arredondamento padrão

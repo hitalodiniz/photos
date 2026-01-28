@@ -67,25 +67,31 @@ export default function Navbar() {
     return null;
   }
 
-  // Detectar se está na página de criação/edição de galeria ou onboarding
+  // Detectar se está na página de criação/edição de galeria, onboarding ou preferências
   const isFormPage = (pathname.includes('/dashboard/galerias/') && 
     (pathname.includes('/new') || pathname.includes('/edit') || pathname.includes('/leads'))) || 
-    pathname === '/onboarding';
+    pathname === '/onboarding' ||
+    pathname.includes('/dashboard/settings');
   
   // Breadcrumbs para página de formulário - Apenas o status (sem duplicar o branding)
   const getBreadcrumbs = (): { label: string; href?: string }[] | null => {
     if (!isFormPage) return null;
     
+    const items: { label: string; href?: string }[] = [];
+    
     if (pathname === '/onboarding') {
-      return [{ label: 'Editar Perfil' }];
-    }
-    if (pathname.includes('/edit')) {
-      return [{ label: 'Editar Galeria' }];
+      items.push({ label: 'Editar Perfil' });
+    } else if (pathname.includes('/dashboard/settings')) {
+      items.push({ label: 'Preferências do Usuário' });
+    } else if (pathname.includes('/edit')) {
+      items.push({ label: 'Editar Galeria' });
     } else if (pathname.includes('/leads')) {
-      return [{ label: 'Relatório de Leads' }];
-    } else {
-      return [{ label: 'Nova Galeria' }];
+      items.push({ label: 'Relatório de Cadastro de Visitantes' });
+    } else if (pathname.includes('/new')) {
+      items.push({ label: 'Nova Galeria' });
     }
+
+    return items.length > 0 ? items : null;
   };
 
   const breadcrumbs = getBreadcrumbs();

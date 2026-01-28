@@ -13,6 +13,7 @@ import SidebarStorage from './SidebarStorage';
 import SidebarGoogleDrive from './SidebarGoogleDrive';
 import SidebarAjuda from './SidebarAjuda';
 import SidebarAdmin from './SidebarAdmin';
+import SidebarSettings from './SidebarSettings';
 import { useSidebar } from '@/components/providers/SidebarProvider';
 
 interface SidebarProps {
@@ -134,6 +135,10 @@ export default function Sidebar({
 
           <SidebarAjuda 
             isSidebarCollapsed={isSidebarCollapsed} 
+          />
+
+          <SidebarSettings
+            isSidebarCollapsed={isSidebarCollapsed}
           />
 
           <SidebarAdmin

@@ -12,9 +12,16 @@
   }
 
   body {
-    @apply bg-luxury-bg text-slate-900 antialiased;
+    /* Troque font-montserrat por font-sans para usar o mapeamento acima */
+    @apply bg-luxury-bg text-slate-900 antialiased font-sans;
   }
-  /* Isso aplica o estilo diretamente na tag HTML <label> */
+
+  /* Garante que inputs e botões herdem a fonte correta */
+  input, textarea, button, select, label {
+    font-family: var(--font-montserrat), sans-serif !important;
+  }
+  
+  /* Ajuste específico para o seu estilo Luxury de labels */
   label {
     @apply flex flex-row items-center gap-2 mb-1 !important;
     @apply text-[10px] font-semibold uppercase tracking-luxury text-slate-800 whitespace-nowrap;

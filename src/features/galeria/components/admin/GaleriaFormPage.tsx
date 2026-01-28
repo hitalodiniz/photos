@@ -20,6 +20,7 @@ interface PhotographerProfile {
   username: string;
   full_name: string;
   google_refresh_token?: string | null;
+  settings?: any;
 }
 
 interface GaleriaFormPageProps {
@@ -57,15 +58,16 @@ export default function GaleriaFormPage({
         String(galeria.show_cover_in_grid) === 'true'
       );
     }
-    return false;
+    // Se for uma nova galeria, verifica se há uma foto de fundo padrão
+    return !!initialProfile.settings?.defaults?.background_photo;
   });
   const [gridBgColor, setGridBgColor] = useState(
-    galeria?.grid_bg_color || '#FFFFFF',
+    galeria?.grid_bg_color || initialProfile.settings?.defaults?.background_color || '#FFFFFF',
   );
   const [columns, setColumns] = useState({
-    mobile: galeria?.columns_mobile || 2,
-    tablet: galeria?.columns_tablet || 3,
-    desktop: galeria?.columns_desktop || 4,
+    mobile: galeria?.columns_mobile || initialProfile.settings?.defaults?.grid_mobile || 2,
+    tablet: galeria?.columns_tablet || initialProfile.settings?.defaults?.grid_tablet || 3,
+    desktop: galeria?.columns_desktop || initialProfile.settings?.defaults?.grid_desktop || 4,
   });
 
   // 🎯 UX: Auto-focus no primeiro campo
