@@ -174,23 +174,19 @@ export const ToolBarDesktop = ({
               className={`flex items-center justify-center rounded-luxury h-10 border transition-all duration-300 w-28 gap-2 ${
                 showOnlyFavorites
                   ? 'bg-red-600 border-red-600 text-white shadow-lg'
-                  : 'bg-white/5 border-white/10 text-white/60 hover:text-white'
+                  : 'bg-white/5 border-white/10 text-white hover:text-white'
               }`}
             >
               <Filter size={16} />
-              <span className="text-editorial-label">
-                Favoritos
-              </span>
+              <span className="text-editorial-label">Favoritos</span>
             </button>
 
             <button
               onClick={handleShare}
-              className="flex items-center justify-center rounded-luxury h-10 border border-white/10 bg-white/5 text-white/60 hover:bg-green-600 hover:text-white transition-all w-28 gap-2"
+              className="flex items-center justify-center rounded-luxury h-10 border border-white/10 bg-white/5 text-white hover:bg-green-600 hover:text-white transition-all w-28 gap-2"
             >
               <WhatsAppIcon className="text-current w-[16px] h-[16px]" />
-              <span className="text-editorial-label">
-                Whatsapp
-              </span>
+              <span className="text-editorial-label">Whatsapp</span>
             </button>
 
             {/* BOTÃO LINK / COPIAR RESTAURADO */}
@@ -200,16 +196,14 @@ export const ToolBarDesktop = ({
                 setCopied(true);
                 setTimeout(() => setCopied(false), 2000);
               }}
-              className="flex items-center justify-center rounded-luxury h-10 border border-white/10 bg-white/5 text-white/60 hover:bg-white hover:text-black transition-all w-24 gap-2"
+              className="flex items-center justify-center rounded-luxury h-10 border border-white/10 bg-white/5 text-white hover:bg-white hover:text-black transition-all w-24 gap-2"
             >
               {copied ? (
                 <Check size={16} className="text-green-500" />
               ) : (
                 <LinkIcon size={16} />
               )}
-              <span className="text-editorial-label">
-                Link
-              </span>
+              <span className="text-editorial-label">Link</span>
             </button>
 
             {/* ÁREA DO DOWNLOAD SUSPENSO (ABRE PARA BAIXO) */}
@@ -228,9 +222,7 @@ export const ToolBarDesktop = ({
                   ) : (
                     <Download size={16} />
                   )}
-                  <span className="text-editorial-label">
-                    Baixar
-                  </span>
+                  <span className="text-editorial-label">Baixar</span>
                   <ChevronDown
                     size={14}
                     className={`transition-transform duration-300 ${showDownloadMenu ? 'rotate-180' : ''}`}
@@ -268,7 +260,7 @@ export const ToolBarDesktop = ({
                       {externalLinks.map((link, index) => {
                         // Só exibe se o link for válido/on-line
                         if (!linksStatus[index]) return null;
-                        
+
                         return (
                           <button
                             key={index}
@@ -281,13 +273,10 @@ export const ToolBarDesktop = ({
                             }}
                             className="w-full flex items-start gap-3 p-3 rounded-luxury hover:bg-white/10 transition-all text-left group border-t border-white/5"
                           >
-                            <FileCheck
-                              size={18}
-                              className="text-gold mt-0.5"
-                            />
+                            <FileCheck size={18} className="text-gold mt-0.5" />
                             <div className="flex-1 min-w-0">
                               <p className="text-white text-editorial-label">
-                                {externalLinks.length === 1 
+                                {externalLinks.length === 1
                                   ? 'Qualidade Máxima'
                                   : `Link ${index + 1} - Alta Resolução`}
                               </p>

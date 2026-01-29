@@ -1,6 +1,6 @@
 // src/components/photographer/PhotographerProfileBase.tsx
 import { notFound, redirect } from 'next/navigation';
-import PhotographerContainer from './PhotographerContainer';
+import PhotographerContainer from './ProfileContainer';
 import { getPublicProfile } from '@/core/services/profile.service';
 import { resolveGalleryUrl } from '@/core/utils/url-helper';
 
@@ -32,7 +32,9 @@ export default async function PhotographerProfileBase({
       notFound();
     }
     // Se está tudo certo, renderiza o container que você já tem
-    return <PhotographerContainer username={username} initialProfile={profile} />;
+    return (
+      <PhotographerContainer username={username} initialProfile={profile} />
+    );
   }
 
   // 3. REGRA DE ROTA CLÁSSICA (Acesso via site.com/hitalo)
@@ -49,7 +51,9 @@ export default async function PhotographerProfileBase({
       redirect(correctUrl);
     }
     // Se ele NÃO tem subdomínio, ele pode usar a rota clássica normalmente
-    return <PhotographerContainer username={username} initialProfile={profile} />;
+    return (
+      <PhotographerContainer username={username} initialProfile={profile} />
+    );
   }
 
   return <PhotographerContainer username={username} initialProfile={profile} />;

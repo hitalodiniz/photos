@@ -35,11 +35,14 @@ export default function EditorialHeader({
   const router = useRouter();
   const [isLoaded, setIsLoaded] = useState(false);
   const [originUrl, setOriginUrl] = useState<string | null>(null);
-
-  const currentBg = useMemo(() => {
-    if (bgImage) return bgImage;
-    const randomIndex = Math.floor(Math.random() * heroImages.length);
-    return heroImages[randomIndex];
+  // 1. Começamos com um estado vazio ou uma imagem padrão fixa
+  const [currentBg, setCurrentBg] = useState<string | null>(null);
+  useEffect(() => {
+    // 2. Só sorteamos ou definimos a imagem após o componente montar no cliente
+    const images = ['/hero-bg-1.webp', '/hero-bg-2.webp'];
+    const selected =
+      bgImage || images[Math.floor(Math.random() * images.length)];
+    setCurrentBg(selected);
   }, [bgImage]);
 
   useEffect(() => {
@@ -63,19 +66,21 @@ export default function EditorialHeader({
         <div className="absolute inset-0 z-10 bg-gradient-to-b from-black/60 via-transparent to-black/90" />
         <div className="absolute inset-0 z-[5] backdrop-blur-[1px]" />
 
-        <Image
-          src={currentBg}
-          alt="Background Editorial"
-          fill
-          priority
-          quality={85}
-          onLoad={() => setIsLoaded(true)}
-          className={`
-            object-cover object-[50%_35%] 
+        {currentBg && (
+          <Image
+            src={currentBg}
+            alt="Background Editorial"
+            fill
+            priority
+            quality={85}
+            onLoad={() => setIsLoaded(true)}
+            className={`
+            object-cover object-[50%_10%] 
             transition-all duration-[1200ms] ease-in-out
             ${isLoaded ? 'opacity-100 scale-100' : 'opacity-0 scale-105 blur-xl'}
           `}
-        />
+          />
+        )}
       </div>
 
       {/* 🎯 CAMADA 2: INTERFACE (Voltar) */}

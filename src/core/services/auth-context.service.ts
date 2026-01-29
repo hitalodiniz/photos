@@ -1,8 +1,6 @@
 'use server';
 
-import {
-  createSupabaseServerClientReadOnly,
-} from '@/lib/supabase.server';
+import { createSupabaseServerClientReadOnly } from '@/lib/supabase.server';
 
 /**
  * Service para obter contexto de autenticação (userId + studioId)

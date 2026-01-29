@@ -21,7 +21,7 @@ export type PlanKey = 'FREE' | 'START' | 'PLUS' | 'PRO' | 'PREMIUM';
 export interface PlanPermissions {
   // Gestão
   maxGalleries: number;
-  maxPhotosPerGallery: number;
+  maxPhotosPerGallery: number; // implementado no google-drive.ts -> resolvePhotoLimitByPlan
   teamMembers: number;
 
   // Divulgação do Perfil
@@ -42,7 +42,7 @@ export interface PlanPermissions {
   maxGridColumns: number;
   maxTags: number;
   tagSelectionMode: 'manual' | 'bulk' | 'drive';
-  zipSizeLimit: string; // Ex: '500KB', '3MB'
+  zipSizeLimit: string; // Ex: '500KB', '3MB' -- implementado no url-helpers.ts -> resolveResolutionByPlan
   maxExternalLinks: number;
   canCustomLinkLabel: boolean;
 
@@ -52,15 +52,16 @@ export interface PlanPermissions {
   customizationLevel: 'default' | 'colors' | 'full';
 
   // WhatsApp & Mensagens
-  canCustomWhatsApp: boolean; // 🎯 Novo: Permite editar os templates de GALLERY_MESSAGES
+  canCustomWhatsApp: boolean; //Permite editar os templates de GALLERY_MESSAGES
 
   // Categorias
-  canCustomCategories: boolean; // 🎯 Novo: Permite criar categorias fora da GALLERY_CATEGORIES
+  canCustomCategories: boolean; //Permite criar categorias fora da GALLERY_CATEGORIES
 }
 
 export interface PlanInfo {
   name: string;
-  price: number;
+  price: number; // Mensal
+  yearlyPrice: number; // Valor da parcela no anual (com desconto)
   maxGalleries: number;
   icon: any;
   cta: string;
@@ -124,7 +125,7 @@ export const PERMISSIONS_BY_PLAN: Record<PlanKey, PlanPermissions> = {
     canCustomCategories: false,
   },
   PLUS: {
-    maxGalleries: 25,
+    maxGalleries: 20,
     maxPhotosPerGallery: 400,
     teamMembers: 2, // + 2 Colaboradores
     profileLevel: 'standard', // + Áreas de Atuação
@@ -214,6 +215,7 @@ export const PLANS_BY_SEGMENT: Record<
     FREE: {
       name: 'Free',
       price: 0,
+      yearlyPrice: 0,
       maxGalleries: 2,
       icon: Zap,
       cta: 'Começar Grátis',
@@ -221,7 +223,8 @@ export const PLANS_BY_SEGMENT: Record<
     },
     START: {
       name: 'Start',
-      price: 29.0,
+      price: 29,
+      yearlyPrice: 24,
       maxGalleries: 10,
       icon: Rocket,
       cta: 'Evoluir',
@@ -229,15 +232,17 @@ export const PLANS_BY_SEGMENT: Record<
     },
     PLUS: {
       name: 'Plus',
-      price: 49.0,
-      maxGalleries: 25,
+      price: 49,
+      yearlyPrice: 39,
+      maxGalleries: 20,
       icon: Star,
       cta: 'Crescer',
       permissions: PERMISSIONS_BY_PLAN.PLUS,
     },
     PRO: {
       name: 'Pro',
-      price: 89.0,
+      price: 89,
+      yearlyPrice: 74,
       maxGalleries: 50,
       icon: Crown,
       cta: 'Dominar',
@@ -245,7 +250,8 @@ export const PLANS_BY_SEGMENT: Record<
     },
     PREMIUM: {
       name: 'Premium',
-      price: 119.0,
+      price: 119,
+      yearlyPrice: 99,
       maxGalleries: 9999,
       icon: Sparkles,
       cta: 'Elite',
@@ -256,6 +262,7 @@ export const PLANS_BY_SEGMENT: Record<
     FREE: {
       name: 'Free Trial',
       price: 0,
+      yearlyPrice: 0,
       maxGalleries: 1,
       icon: Zap,
       cta: 'Testar',
@@ -263,7 +270,8 @@ export const PLANS_BY_SEGMENT: Record<
     },
     START: {
       name: 'Event',
-      price: 99.0,
+      price: 99,
+      yearlyPrice: 79,
       maxGalleries: 10,
       icon: Rocket,
       cta: 'Iniciar',
@@ -271,7 +279,8 @@ export const PLANS_BY_SEGMENT: Record<
     },
     PLUS: {
       name: 'Plus',
-      price: 159.0,
+      price: 159,
+      yearlyPrice: 129,
       maxGalleries: 25,
       icon: Star,
       cta: 'Expandir',
@@ -279,7 +288,8 @@ export const PLANS_BY_SEGMENT: Record<
     },
     PRO: {
       name: 'Club',
-      price: 249.0,
+      price: 249,
+      yearlyPrice: 199,
       maxGalleries: 50,
       icon: Crown,
       cta: 'Assinar Club',
@@ -287,7 +297,8 @@ export const PLANS_BY_SEGMENT: Record<
     },
     PREMIUM: {
       name: 'Enterprise',
-      price: 499.0,
+      price: 499,
+      yearlyPrice: 399,
       maxGalleries: 9999,
       icon: Gem,
       cta: 'Experience',
@@ -298,6 +309,7 @@ export const PLANS_BY_SEGMENT: Record<
     FREE: {
       name: 'Militante',
       price: 0,
+      yearlyPrice: 0,
       maxGalleries: 1,
       icon: Shield,
       cta: 'Começar',
@@ -305,7 +317,8 @@ export const PLANS_BY_SEGMENT: Record<
     },
     START: {
       name: 'Bronze',
-      price: 199.0,
+      price: 199,
+      yearlyPrice: 159,
       maxGalleries: 10,
       icon: Medal,
       cta: 'Plano Bronze',
@@ -313,7 +326,8 @@ export const PLANS_BY_SEGMENT: Record<
     },
     PLUS: {
       name: 'Prata',
-      price: 399.0,
+      price: 399,
+      yearlyPrice: 329,
       maxGalleries: 25,
       icon: Award,
       cta: 'Plano Prata',
@@ -321,7 +335,8 @@ export const PLANS_BY_SEGMENT: Record<
     },
     PRO: {
       name: 'Ouro',
-      price: 799.0,
+      price: 799,
+      yearlyPrice: 659,
       maxGalleries: 50,
       icon: Crown,
       cta: 'Plano Ouro',
@@ -329,7 +344,8 @@ export const PLANS_BY_SEGMENT: Record<
     },
     PREMIUM: {
       name: 'Majoritário',
-      price: 1499.0,
+      price: 1499,
+      yearlyPrice: 1249,
       maxGalleries: 9999,
       icon: Sparkles,
       cta: 'Plano VIP',
@@ -340,6 +356,7 @@ export const PLANS_BY_SEGMENT: Record<
     FREE: {
       name: 'Básico',
       price: 0,
+      yearlyPrice: 0,
       maxGalleries: 1,
       icon: Layout,
       cta: 'Começar',
@@ -347,7 +364,8 @@ export const PLANS_BY_SEGMENT: Record<
     },
     START: {
       name: 'Essential',
-      price: 149.0,
+      price: 149,
+      yearlyPrice: 119,
       maxGalleries: 10,
       icon: Rocket,
       cta: 'Assinar',
@@ -355,7 +373,8 @@ export const PLANS_BY_SEGMENT: Record<
     },
     PLUS: {
       name: 'Advanced',
-      price: 299.0,
+      price: 299,
+      yearlyPrice: 249,
       maxGalleries: 25,
       icon: Star,
       cta: 'Assinar',
@@ -363,7 +382,8 @@ export const PLANS_BY_SEGMENT: Record<
     },
     PRO: {
       name: 'Mandato',
-      price: 599.0,
+      price: 599,
+      yearlyPrice: 499,
       maxGalleries: 50,
       icon: Crown,
       cta: 'Assinar',
@@ -371,7 +391,8 @@ export const PLANS_BY_SEGMENT: Record<
     },
     PREMIUM: {
       name: 'Vanguard',
-      price: 999.0,
+      price: 999,
+      yearlyPrice: 829,
       maxGalleries: 9999,
       icon: Sparkles,
       cta: 'Assinar VIP',

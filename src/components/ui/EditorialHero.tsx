@@ -38,19 +38,24 @@ export const EditorialHero = ({
   // 🎯 Lógica Inteligente de Imagem:
   // Se for um ID do Google Drive, resolve via hook.
   // Se já for uma URL (começa com http, / ou blob:), usa direto.
-  const isDriveId = useMemo(() => 
-    !!coverUrl && !coverUrl.startsWith('http') && !coverUrl.startsWith('/') && !coverUrl.startsWith('blob:'), 
-  [coverUrl]);
+  const isDriveId = useMemo(
+    () =>
+      !!coverUrl &&
+      !coverUrl.startsWith('http') &&
+      !coverUrl.startsWith('/') &&
+      !coverUrl.startsWith('blob:'),
+    [coverUrl],
+  );
 
-  const { 
-    imgSrc: resolvedUrl, 
+  const {
+    imgSrc: resolvedUrl,
     isLoaded: isImageLoaded,
     handleLoad,
     handleError,
-    imgRef
+    imgRef,
   } = useGoogleDriveImage({
     photoId: isDriveId ? coverUrl! : '',
-    width: RESOLUTIONS.DESKTOP_VIEW,
+    width: RESOLUTIONS.VIEW_DESKTOP,
     priority: true,
     fallbackToProxy: true,
   });
@@ -59,19 +64,28 @@ export const EditorialHero = ({
   const [prevUrl, setPrevUrl] = useState<string | null>(null);
 
   // Callback ref para detectar se a imagem já está no cache (evita linter error de setState em useEffect)
-  const setDirectImgRef = useCallback((img: HTMLImageElement | null) => {
-    if (img && img.complete && !isDriveId) {
-      setDirectLoaded(true);
-    }
-  }, [isDriveId]);
+  const setDirectImgRef = useCallback(
+    (img: HTMLImageElement | null) => {
+      if (img && img.complete && !isDriveId) {
+        setDirectLoaded(true);
+      }
+    },
+    [isDriveId],
+  );
 
   const finalCoverUrl = useMemo(() => {
     // 1. Se resolveu via Drive e temos a URL, usa ela
     if (isDriveId && resolvedUrl) return resolvedUrl;
     // 2. Se for URL direta (http, / ou blob:), usa ela
-    if (coverUrl && (coverUrl.startsWith('http') || coverUrl.startsWith('/') || coverUrl.startsWith('blob:'))) return coverUrl;
+    if (
+      coverUrl &&
+      (coverUrl.startsWith('http') ||
+        coverUrl.startsWith('/') ||
+        coverUrl.startsWith('blob:'))
+    )
+      return coverUrl;
     // 3. Fallback: Sorteia uma padrão baseada no título para ser consistente
-    const index = title ? (title.length % DEFAULT_HEROS.length) : 0;
+    const index = title ? title.length % DEFAULT_HEROS.length : 0;
     return DEFAULT_HEROS[index];
   }, [coverUrl, isDriveId, resolvedUrl, title]);
 
@@ -144,7 +158,10 @@ export const EditorialHero = ({
           <div className="flex items-center gap-4 md:gap-6 mb-4">
             <div className="shrink-0">
               {React.isValidElement(sideElement)
-                ? React.cloneElement(sideElement as React.ReactElement<{ isExpanded: boolean }>, { isExpanded })
+                ? React.cloneElement(
+                    sideElement as React.ReactElement<{ isExpanded: boolean }>,
+                    { isExpanded },
+                  )
                 : sideElement}
             </div>
 
@@ -166,7 +183,10 @@ export const EditorialHero = ({
             <div className="max-w-3xl">
               {React.Children.map(children, (child) =>
                 React.isValidElement(child)
-                  ? React.cloneElement(child as React.ReactElement<{ isExpanded: boolean }>, { isExpanded })
+                  ? React.cloneElement(
+                      child as React.ReactElement<{ isExpanded: boolean }>,
+                      { isExpanded },
+                    )
                   : child,
               )}
             </div>

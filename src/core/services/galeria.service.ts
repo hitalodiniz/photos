@@ -10,9 +10,7 @@ import {
   DrivePhoto,
   //makeFolderPublic as makeFolderPublicLib,
 } from '@/lib/google-drive';
-import {
-  getFolderPhotos,
-} from './google-drive.service';
+import { getFolderPhotos } from './google-drive.service';
 import { formatGalleryData } from '@/core/logic/galeria-logic';
 import { Galeria } from '@/core/types/galeria';
 import { SignJWT } from 'jose';
@@ -33,7 +31,12 @@ interface ActionResult<T = unknown> {
 // =========================================================================
 
 import { getAuthAndStudioIds } from './auth-context.service';
-import { createSupabaseServerClient, createSupabaseClientForCache, createSupabaseServerClientReadOnly } from '@/lib/supabase.server';
+import {
+  createSupabaseServerClient,
+  createSupabaseClientForCache,
+  createSupabaseServerClientReadOnly,
+} from '@/lib/supabase.server';
+import { PlanKey, PERMISSIONS_BY_PLAN } from '../config/plans';
 
 // =========================================================================
 // 2. SLUG ÚNICO POR DATA
@@ -136,8 +139,13 @@ export async function createGaleria(
       show_on_profile: formData.get('show_on_profile') === 'true',
       client_name: (formData.get('client_name') as string) || 'Cobertura',
       client_whatsapp: (() => {
-        let val = (formData.get('client_whatsapp') as string)?.replace(/\D/g, '') || '';
-        if (val && (val.length === 10 || val.length === 11) && !val.startsWith('55')) {
+        let val =
+          (formData.get('client_whatsapp') as string)?.replace(/\D/g, '') || '';
+        if (
+          val &&
+          (val.length === 10 || val.length === 11) &&
+          !val.startsWith('55')
+        ) {
           val = `55${val}`;
         }
         return val || null;
@@ -167,7 +175,8 @@ export async function createGaleria(
       leads_require_name: formData.get('leads_require_name') === 'true',
       leads_require_email: formData.get('leads_require_email') === 'true',
       leads_require_whatsapp: formData.get('leads_require_whatsapp') === 'true',
-      rename_files_sequential: formData.get('rename_files_sequential') === 'true',
+      rename_files_sequential:
+        formData.get('rename_files_sequential') === 'true',
 
       // Senha inicial (se houver)
       password:
@@ -179,7 +188,9 @@ export async function createGaleria(
     const { error, data: insertedData } = await supabase
       .from('tb_galerias')
       .insert([data])
-      .select('id, slug, drive_folder_id, photographer:tb_profiles!user_id(username)')
+      .select(
+        'id, slug, drive_folder_id, photographer:tb_profiles!user_id(username)',
+      )
       .single();
 
     if (error) throw error;
@@ -211,10 +222,10 @@ export async function createGaleria(
     // 🎯 FORÇA REVALIDAÇÃO COMPLETA: Revalida o dashboard e todas as rotas relacionadas
     revalidatePath('/dashboard', 'layout');
     revalidatePath('/dashboard');
-    return { 
-      success: true, 
+    return {
+      success: true,
       message: 'Nova galeria criada com sucesso!',
-      data: insertedData 
+      data: insertedData,
     };
   } catch (error) {
     console.error('Erro no create:', error);
@@ -244,8 +255,13 @@ export async function updateGaleria(
       show_on_profile: formData.get('show_on_profile') === 'true',
       client_name: (formData.get('client_name') as string) || 'Cobertura',
       client_whatsapp: (() => {
-        let val = (formData.get('client_whatsapp') as string)?.replace(/\D/g, '') || '';
-        if (val && (val.length === 10 || val.length === 11) && !val.startsWith('55')) {
+        let val =
+          (formData.get('client_whatsapp') as string)?.replace(/\D/g, '') || '';
+        if (
+          val &&
+          (val.length === 10 || val.length === 11) &&
+          !val.startsWith('55')
+        ) {
           val = `55${val}`;
         }
         return val || null;
@@ -275,7 +291,8 @@ export async function updateGaleria(
       leads_require_name: formData.get('leads_require_name') === 'true',
       leads_require_email: formData.get('leads_require_email') === 'true',
       leads_require_whatsapp: formData.get('leads_require_whatsapp') === 'true',
-      rename_files_sequential: formData.get('rename_files_sequential') === 'true',
+      rename_files_sequential:
+        formData.get('rename_files_sequential') === 'true',
     };
 
     // 2. Validação básica de integridade
@@ -330,10 +347,10 @@ export async function updateGaleria(
     }
 
     revalidatePath('/dashboard');
-    return { 
-      success: true, 
+    return {
+      success: true,
       message: 'Galeria refinada com sucesso!',
-      data: { id, ...updates }
+      data: { id, ...updates },
     };
   } catch (error) {
     console.error('Erro no update:', error);
@@ -347,7 +364,7 @@ export async function updateGaleria(
 /**
  * 🎯 CACHE: Busca galerias do usuário logado com cache de 30 dias
  * O cache é limpo automaticamente via revalidateTag quando galerias são criadas/atualizadas
- * 
+ *
  * 🎯 CORREÇÃO: Cria cliente Supabase ANTES do cache e usa createSupabaseClientForCache
  * dentro do cache para evitar erro de cookies dentro de unstable_cache
  */
@@ -473,7 +490,10 @@ export async function getGaleriaById(
       return { success: false, error: 'Galeria não encontrada.', data: null };
     }
 
-    const galeria = formatGalleryData(data as any, data.photographer?.username || '');
+    const galeria = formatGalleryData(
+      data as any,
+      data.photographer?.username || '',
+    );
     return { success: true, data: galeria };
   } catch (error) {
     console.error('[getGaleriaById] Erro:', error);
@@ -494,22 +514,22 @@ export async function deleteGalleryPermanently(id: string) {
 
 /**
  * ⚠️⚠️⚠️ FUNÇÃO CRÍTICA DE SEGURANÇA ⚠️⚠️⚠️
- * 
+ *
  * Autentica o acesso a uma galeria protegida por senha.
  * Gerencia a criação do cookie JWT e redireciona para a URL correta no subdomínio.
- * 
+ *
  * 🔴 IMPACTO DE MUDANÇAS:
  * - Bug pode permitir acesso não autorizado a galerias privadas
  * - Pode expor senhas ou tokens JWT
  * - Pode quebrar validação de acesso
- * 
+ *
  * ✅ ANTES DE ALTERAR:
  * 1. Leia CRITICAL_AUTH_FILES.md
  * 2. Leia AUTH_CONTRACT.md
  * 3. Entenda validação de senha e JWT
  * 4. Teste extensivamente
  * 5. Solicite revisão de código
- * 
+ *
  * 🚨 NÃO ALTERE SEM ENTENDER COMPLETAMENTE O IMPACTO!
  */
 export async function authenticateGaleriaAccess(
@@ -918,3 +938,9 @@ export async function getGaleriaLeads(
     return { success: false, error: 'Erro ao buscar leads.' };
   }
 }
+
+/** 🧠 RESOLVE LIMITE DE GALERIAS */
+// export async function resolveGalleryLimitByPlan = (planKey?: PlanKey): number => {
+//   const p = planKey ? PERMISSIONS_BY_PLAN[planKey] : PERMISSIONS_BY_PLAN.FREE;
+//   return p?.maxGalleries || 1;
+// };

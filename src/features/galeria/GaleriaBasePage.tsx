@@ -8,14 +8,14 @@ import {
   fetchPhotosByGalleryId,
 } from '@/core/logic/galeria-logic';
 import GaleriaView from './GaleriaView';
-import GalleryAccessPortal from './GalleryAccessPortal';
+import GalleryAccessPortal from './GaleriaAcessoPortal';
 import { resolveGalleryUrl } from '@/core/utils/url-helper';
 import {
   getGalleryMetadata,
   getPhotographerMetadata,
 } from '@/core/utils/metadata-helper';
 import GoogleAuthError from '@/components/auth/GoogleAuthError';
-import PhotographerProfileBase from '@/components/photographer/PhotographerProfileBase';
+import PhotographerProfileBase from '@/components/profile/ProfileBase';
 
 const MAIN_DOMAIN = (
   process.env.NEXT_PUBLIC_MAIN_DOMAIN || 'localhost:3000'
@@ -79,15 +79,19 @@ export default async function GaleriaBasePage({
 
   // ... (Restante da sua lógica de formatação, senha e Drive igual ao seu código)
   const galeriaData = formatGalleryData(galeriaRaw, username);
-  
+
   // 🎯 LÓGICA DE ACESSO PROTEGIDO (Servidor)
   const cookieStore = await cookies();
   const needsPassword = !galeriaData.is_public;
   const needsLead = galeriaData.leads_enabled;
 
   if (needsPassword || needsLead) {
-    const hasAuthCookie = cookieStore.get(`galeria-${galeriaData.id}-auth`)?.value;
-    const hasLeadCookie = cookieStore.get(`galeria-${galeriaData.id}-lead`)?.value;
+    const hasAuthCookie = cookieStore.get(
+      `galeria-${galeriaData.id}-auth`,
+    )?.value;
+    const hasLeadCookie = cookieStore.get(
+      `galeria-${galeriaData.id}-lead`,
+    )?.value;
 
     // Se precisa de senha e não tem o cookie de senha...
     // OU se precisa de lead e não tem o cookie de lead...
@@ -165,5 +169,3 @@ export async function generateMetadata({ params }: { params: Promise<any> }) {
   const fullSlug = `${username}/${slug.join('/')}`;
   return await getGalleryMetadata(fullSlug);
 }
-
-

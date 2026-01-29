@@ -26,6 +26,7 @@ import { title } from 'process';
 export default function PlanosPage() {
   const [loadingPlan, setLoadingPlan] = useState<string | null>(null);
   const [mounted, setMounted] = useState(false);
+  const [isAnnual, setIsAnnual] = useState(false);
   const [expandedGroups, setExpandedGroups] = useState<string[]>(['GESTÃO']);
 
   const config = useMemo(() => {
@@ -63,27 +64,53 @@ export default function PlanosPage() {
 
   return (
     <div
-      className={`relative min-h-screen w-full flex flex-col theme-${config.theme} font-montserrat`}
+      className={`relative min-h-screen w-full flex flex-col theme-${config.theme} font-montserrat bg-luxury-bg`}
     >
-      <div className="fixed inset-0" />
-
       <div className="relative z-10 flex flex-col min-h-screen">
         <EditorialHeader
-          title={`Investimento ${config.name}`}
+          title={`Planos ${config.name}`}
           subtitle="A estrutura definitiva para sua entrega profissional."
         />
-
         <div className="sticky top-0 z-[10] w-full pointer-events-auto">
           <div className="w-full bg-petroleum/95 backdrop-blur-md border-b border-white/10 shadow-2xl transition-all duration-500 h-12"></div>
         </div>
 
-        {/* 🎯 Ajuste Mobile: mt-4 no mobile e -mt-16 apenas no desktop (md) */}
-        <main className="flex-grow px-4 md:px-6 max-w-[1650px] mx-auto w-full mt-4 md:-mt-16 relative z-20">
+        {/* 🎯 SELETOR MENSAL/ANUAL */}
+        <div className="flex flex-col items-center gap-4 mb-8 -mt-24 relative z-30">
+          <div className="flex items-center gap-3 bg-white backdrop-blur px-4 py-2 rounded-luxury border border-petroleum/10 shadow-sm">
+            <span
+              className={`text-[11px] font-bold uppercase tracking-widest transition-colors ${!isAnnual ? 'text-petroleum' : 'text-petroleum/40'}`}
+            >
+              Mensal
+            </span>
+            <button
+              onClick={() => setIsAnnual(!isAnnual)}
+              className="relative w-12 h-6 rounded-full bg-petroleum p-1 transition-all"
+            >
+              <div
+                className={`w-4 h-4 rounded-full bg-gold transition-all shadow-sm ${isAnnual ? 'translate-x-6' : 'translate-x-0'}`}
+              />
+            </button>
+            <div className="flex items-center gap-2">
+              <span
+                className={`text-[11px] font-bold uppercase tracking-widest transition-colors ${isAnnual ? 'text-petroleum' : 'text-petroleum/40'}`}
+              >
+                Anual
+              </span>
+              <span className="bg-emerald-500 text-white text-[12px] font-semibold px-2 py-0.5 rounded-full uppercase tracking-widest shadow-sm">
+                Economize 20%
+              </span>
+            </div>
+          </div>
+        </div>
+
+        <main className="flex-grow px-4 md:px-6 max-w-[1650px] mx-auto w-full relative z-20">
           {/* CARDS SECTION */}
-          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-5 gap-5 mb-8 items-stretch">
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-5 gap-5 mb-16 items-stretch">
             {planosKeys.map((key, idx) => {
               const plan = { ...currentPlans[key], key };
               const isPro = key === 'PRO';
+              const displayPrice = isAnnual ? plan.yearlyPrice : plan.price;
 
               const indicators = [
                 {
@@ -93,19 +120,24 @@ export default function PlanosPage() {
                 },
                 {
                   icon: <Users />,
-                  label: 'Cadastro de visitantes',
+                  label: 'Visitantes',
                   value:
                     getFeatureValue(
                       'Formulário de Acesso à galeria',
                       key,
                       idx,
                     ) === false
-                      ? false
-                      : 'Liberado',
+                      ? 'Acesso Livre'
+                      : 'Captura de Leads',
                 },
                 {
                   icon: <FileArchive />,
-                  label: 'Qualidade download por foto',
+                  label: 'Capacidade por galeria',
+                  value: getFeatureValue('Capacidade por Galeria', key, idx),
+                },
+                {
+                  icon: <FileArchive />,
+                  label: 'Resolução ZIP',
                   value: getFeatureValue(
                     'Download ZIP - Tamanho/foto',
                     key,
@@ -128,67 +160,56 @@ export default function PlanosPage() {
                   key={key}
                   title={plan.name}
                   icon={<plan.icon />}
-                  badge={isPro ? 'Recomendado' : undefined}
+                  badge={isPro ? 'Mais escolhido' : undefined}
                   isHighlighted={isPro}
                 >
                   <div className="text-center mb-6">
                     <div className="flex items-start justify-center gap-1 text-petroleum font-artistic">
                       <span className="text-[16px] font-semibold mt-2">R$</span>
                       <span className="text-6xl font-semibold tracking-tighter italic">
-                        {plan.price.toFixed(0)}
+                        {displayPrice.toFixed(0)}
                       </span>
                     </div>
-                    <p className="text-[11px] font-semibold text-petroleum/90 tracking-widest uppercase mt-1">
-                      Mensal
+                    <p className="text-[10px] font-black text-petroleum/60 tracking-[0.2em] uppercase mt-1">
+                      {isAnnual ? 'Equivalente / Mês' : 'Cobrança Mensal'}
                     </p>
                   </div>
 
                   <div className="space-y-4 mb-8 flex-grow">
-                    {indicators.map((ind, i) => {
-                      const isLocked =
-                        ind.value === false ||
-                        String(ind.value)
-                          .toLowerCase()
-                          .includes('indisponível');
-                      return (
-                        <div
-                          key={i}
-                          className={`flex items-start gap-4 transition-all ${isLocked ? 'grayscale opacity-40' : ''}`}
-                        >
-                          <div className="w-9 h-9 rounded-lg bg-slate-50 flex items-center justify-center shrink-0 text-petroleum/60">
-                            {React.cloneElement(
-                              ind.icon as React.ReactElement,
-                              { size: 18, strokeWidth: 1.5 },
-                            )}
-                          </div>
-                          <div className="flex flex-col">
-                            <span
-                              className={`text-[13px] font-semibold leading-tight ${isLocked ? 'italic text-petroleum/80' : 'text-petroleum'}`}
-                            >
-                              {isLocked ? 'Não disponível' : ind.value}
-                            </span>
-                            <span className="text-[12px] text-petroleum/90 font-medium leading-tight">
-                              {ind.label}
-                            </span>
-                          </div>
+                    {indicators.map((ind, i) => (
+                      <div key={i} className="flex items-start gap-4">
+                        <div className="w-9 h-9 rounded-lg bg-slate-50 flex items-center justify-center shrink-0 text-petroleum/70">
+                          {React.cloneElement(ind.icon as React.ReactElement, {
+                            size: 18,
+                            strokeWidth: 2,
+                          })}
                         </div>
-                      );
-                    })}
+                        <div className="flex flex-col">
+                          <span className="text-[13px] font-bold leading-tight text-petroleum">
+                            {ind.value}
+                          </span>
+                          <span className="text-[11px] text-petroleum/70 font-medium tracking-tight leading-tight">
+                            {ind.label}
+                          </span>
+                        </div>
+                      </div>
+                    ))}
                   </div>
 
                   <button
                     onClick={() => setLoadingPlan(key)}
-                    className={`w-full h-12 flex items-center justify-center gap-3 rounded-luxury transition-all font-semibold text-[12px] uppercase tracking-widest ${
+                    className={`w-full h-12 flex items-center justify-center gap-3 rounded-luxury transition-all font-bold text-[11px] uppercase tracking-widest ${
                       isPro
-                        ? 'bg-gold text-petroleum hover:bg-petroleum hover:text-white'
-                        : 'bg-petroleum text-white hover:bg-slate-800'
+                        ? 'bg-petroleum text-white shadow-xl hover:bg-slate-800'
+                        : 'bg-white border-2 border-petroleum/20 text-petroleum hover:border-petroleum'
                     }`}
                   >
                     {loadingPlan === key ? (
                       <Loader2 className="animate-spin" size={18} />
                     ) : (
                       <>
-                        <plan.icon size={16} />
+                        <plan.icon size={16} strokeWidth={2.5} />{' '}
+                        {/* Ícone adicionado aqui */}
                         <span>{plan.cta}</span>
                       </>
                     )}
@@ -258,7 +279,7 @@ export default function PlanosPage() {
                               ) : (
                                 <ChevronDown size={14} />
                               )}
-                              <span className="text-[10px] font-black uppercase tracking-widest whitespace-nowrap sticky left-10">
+                              <span className="text-[11px] font-bold uppercase tracking-widest whitespace-nowrap sticky left-10">
                                 {groupName}
                               </span>
                             </div>

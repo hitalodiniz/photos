@@ -30,29 +30,32 @@ export default function GaleriaView({ galeria, photos }: GaleriaViewProps) {
   // 🎯 ESTRATÉGIA DE FALLBACK: Usa hook useGoogleDriveImage que já implementa fallback
   // Usa constantes RESOLUTIONS para manter consistência
   const coverResolution = isMobile
-    ? RESOLUTIONS.MOBILE_VIEW // 1280px
-    : RESOLUTIONS.DESKTOP_VIEW; // 1920px
+    ? RESOLUTIONS.VIEW_MOBILE // 1280px
+    : RESOLUTIONS.VIEW_DESKTOP; // 1920px
 
-// 2. Chama o Hook para a capa
-const { 
-  imgSrc: coverUrl, 
-  handleLoad, 
-  handleError,
-  isLoading: isCoverLoading, // Renomeado para não conflitar com o loading da página
-  imgRef,
-} = useGoogleDriveImage({
-  photoId: galeria.cover_image_url || '',
-  width: coverResolution,
-  priority: true, 
-  fallbackToProxy: true,
-});
+  // 2. Chama o Hook para a capa
+  const {
+    imgSrc: coverUrl,
+    handleLoad,
+    handleError,
+    isLoading: isCoverLoading, // Renomeado para não conflitar com o loading da página
+    imgRef,
+  } = useGoogleDriveImage({
+    photoId: galeria.cover_image_url || '',
+    width: coverResolution,
+    priority: true,
+    fallbackToProxy: true,
+  });
 
   return (
     <div
       className="relative min-h-screen font-sans"
       style={{ backgroundColor: bgColor }}
     >
-      <LoadingScreen message="Preparando sua galeria..." fadeOut={!isPageLoading} />
+      <LoadingScreen
+        message="Preparando sua galeria..."
+        fadeOut={!isPageLoading}
+      />
 
       {/* 1. BACKGROUND LAYER */}
       <div className="fixed inset-0 z-0 overflow-hidden pointer-events-none">
@@ -75,17 +78,15 @@ const {
         )}
       </div>
 
-      <GaleriaHero 
-        galeria={galeria} 
-        coverUrl={coverUrl} 
-        photos={photos} 
-        isCoverLoading={isCoverLoading} 
+      <GaleriaHero
+        galeria={galeria}
+        coverUrl={coverUrl}
+        photos={photos}
+        isCoverLoading={isCoverLoading}
       />
 
       {/* 2. CONTENT LAYER */}
-      <div
-        className="relative z-10 transition-opacity duration-1000 opacity-100"
-      >
+      <div className="relative z-10 transition-opacity duration-1000 opacity-100">
         {/* MAIN GRID */}
         <main className="relative z-30 mx-auto">
           {photos?.length > 0 ? (
@@ -100,17 +101,17 @@ const {
             </div>
           )}
         </main>
-{/* 🎯 TAG OCULTA: Essencial para o hook monitorar o erro/sucesso do Google */}
-      {coverUrl && (
-        <img
-          ref={imgRef}
-          src={coverUrl}
-          alt=""
-          className="hidden"
-          onLoad={handleLoad}
-          onError={handleError}
-        />
-      )}
+        {/* 🎯 TAG OCULTA: Essencial para o hook monitorar o erro/sucesso do Google */}
+        {coverUrl && (
+          <img
+            ref={imgRef}
+            src={coverUrl}
+            alt=""
+            className="hidden"
+            onLoad={handleLoad}
+            onError={handleError}
+          />
+        )}
         <GaleriaFooter
           photographer={galeria.photographer}
           title={galeria.title}

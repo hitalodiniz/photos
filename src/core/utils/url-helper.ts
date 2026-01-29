@@ -1,5 +1,6 @@
 // src/lib/utils/url-helper.ts
 import { GALLERY_MESSAGES } from '@/core/config/messages';
+import { PERMISSIONS_BY_PLAN, PlanKey, PlanPermissions } from '../config/plans';
 const NEXT_PUBLIC_MAIN_DOMAIN =
   process.env.NEXT_PUBLIC_MAIN_DOMAIN || 'localhost:3000';
 
@@ -14,23 +15,41 @@ export const GALLERY_CACHE_REVALIDATE = 1800;
 export const TAMANHO_MAXIMO_FOTO_SEM_COMPACTAR = 2 * 1024 * 1024; // 1.5MB em bytes;
 
 export const RESOLUTIONS = {
-  // 🎯 MINIATURAS E GRIDS
-  THUMB: '400', // Miniaturas em grids (cards, masonry)
-  
-  // 🎯 VISUALIZAÇÃO (VIEW) - Otimizado para qualidade visual sem excesso de peso
-  // Usado em: Lightbox, visualização de fotos individuais
-  VIEW_MOBILE: '720',   // 720p - Suficiente para telas mobile Retina (~500-700KB)
-  VIEW_DESKTOP: '1080', // 1080p - Suficiente para visualização Full HD (~800KB-1.2MB)
-  
-  // 🎯 LEGADO (mantido para compatibilidade, mas preferir VIEW_*)
-  MOBILE_VIEW: '1280',  // @deprecated - Use VIEW_MOBILE ou VIEW_DESKTOP
-  DESKTOP_VIEW: '1920', // @deprecated - Use VIEW_DESKTOP ou DOWNLOAD
-  
-  // 🎯 DOWNLOAD - Alta resolução apenas para download
-  DOWNLOAD: '2560',      // Alta resolução para downloads (2K)
-  ULTRA_VIEW: '2560',   // @deprecated - Use DOWNLOAD
-
+  THUMB: '400',
+  VIEW_MOBILE: '720',
+  VIEW_DESKTOP: '1080',
+  // Limites de download por plano (zipSizeLimit do plans.ts)
+  '500KB': '1080', // Plano FREE (Full HD leve)
+  '1MB': '1600', // Plano START (HD Otimizado)
+  '1.5MB': '2048', // Plano PLUS (QHD Otimizado)
+  '2MB': '2560', // Plano PRO (2K Pro)
+  '3MB': '4000', // Plano PREMIUM (4K Ultra)
+  DEFAULT_DOWNLOAD: '2560',
   ULTRA_DOWNLOAD: '4000',
+};
+
+/**
+ * 🛠️ FUNÇÃO INTERNA: Resolve a largura final baseada no input (Pixels ou Permissões)
+ * Centraliza a inteligência de conversão entre os limites de peso (SaaS) e
+ * as resoluções técnicas do Google (lh3).
+ */
+export const resolveResolutionByPlan = (
+  planKeyOrWidth?: PlanKey | string | number,
+): string => {
+  if (!planKeyOrWidth) return RESOLUTIONS.DEFAULT_DOWNLOAD;
+
+  // Se for uma PlanKey (ex: 'PRO', 'PREMIUM')
+  if (
+    typeof planKeyOrWidth === 'string' &&
+    planKeyOrWidth in PERMISSIONS_BY_PLAN
+  ) {
+    const permissions = PERMISSIONS_BY_PLAN[planKeyOrWidth as PlanKey];
+    const limitKey = permissions.zipSizeLimit as keyof typeof RESOLUTIONS;
+    return RESOLUTIONS[limitKey] || RESOLUTIONS.DEFAULT_DOWNLOAD;
+  }
+
+  // Se for largura manual (ex: 1080)
+  return planKeyOrWidth.toString().replace(/\D/g, '');
 };
 
 export function getPublicGalleryUrl(photographer: any, slug: string) {
@@ -178,7 +197,7 @@ export function getCreatorProfileUrl(photographer: any) {
  * 🌐 URL EXTERNA (Client-side)
  * Para o PhotoGrid, usamos larguras menores para economizar banda.
  * O teto aqui é para exibição rápida.
- * 
+ *
  * ⚠️ DEPRECATED: Use `useGoogleDriveImage` hook em componentes React
  * ou `getImageUrlWithFallback` para server-side.
  * Este método sempre retorna proxy, sem tentar direto primeiro.
@@ -192,63 +211,136 @@ export const getProxyUrl = (
   return `/api/galeria/cover/${id}?w=${cleanWidth}`;
 };
 
-
 /**
  * 🔒 URL INTERNA (Server-side)
  * 🎯 ESTRATÉGIA DE 1MB:
  * Mesmo para 'original', solicitamos uma largura máxima (ex: 4000px).
  * Isso força o Google a processar o arquivo de 25MB em um JPEG/WebP otimizado,
  * garantindo que o arquivo final fique próximo ou abaixo de 1MB.
+ * Se passar permissões, respeita a trava do plano (Estratégia de 1MB/2MB).
  */
+// export const getInternalGoogleDriveUrl = (
+//   photoId: string | number,
+//   width: string | number = '2048', // Padrão otimizado para telas 2K
+//   format: 'webp' | 'original' = 'webp',
+// ) => {
+//   const suffix = format === 'webp' ? '-rw' : '';
+
+//   // Se o formato for 'original' (para download), usamos w4000 para manter alta nitidez
+//   // mas sem o peso do arquivo RAW/Bruto de 25MB.
+//   const finalWidth = format === 'original' ? '4000' : width;
+
+//   // 🎯 Usamos o domínio lh3 que é mais performático e aceita redimensionamento
+//   return `https://lh3.googleusercontent.com/d/${photoId}=w${finalWidth}${suffix}`;
+// };
+
+// /**
+//  * 🖼️ URL DE ALTA RESOLUÇÃO (Lightbox)
+//  * 1920px é o "Sweet Spot" para telas Full HD/4K sem exceder 1MB.
+//  * 2560px (Qualidade profissional 2K)
+//  */
+// export const getHighResImageUrl = (photoId: string | number) => {
+//   if (!photoId) return '';
+//   return getProxyUrl(photoId, '2560');
+// };
+
 export const getInternalGoogleDriveUrl = (
   photoId: string | number,
-  width: string | number = '2048', // Padrão otimizado para telas 2K
+  planOrWidth: PlanKey | string | number = '2048',
   format: 'webp' | 'original' = 'webp',
 ) => {
+  if (!photoId) return '';
+  const cleanId = photoId.toString().trim();
   const suffix = format === 'webp' ? '-rw' : '';
 
-  // Se o formato for 'original' (para download), usamos w4000 para manter alta nitidez
-  // mas sem o peso do arquivo RAW/Bruto de 25MB.
-  const finalWidth = format === 'original' ? '4000' : width;
+  // 🎯 Resolve a resolução:
+  // Se for 'original', usamos w4000 apenas como teto técnico.
+  // Caso contrário, resolvemos via plano ou valor numérico fornecido.
+  const resolvedWidth =
+    format === 'original' ? '4000' : resolveResolutionByPlan(planOrWidth);
 
-  // 🎯 Usamos o domínio lh3 que é mais performático e aceita redimensionamento
-  return `https://lh3.googleusercontent.com/d/${photoId}=w${finalWidth}${suffix}`;
+  // 🎯 Endpoint lh3 performático com redimensionamento
+  return `https://lh3.googleusercontent.com/d/${cleanId}=w${resolvedWidth}${suffix}`;
 };
 
 /**
  * 🖼️ URL DE ALTA RESOLUÇÃO (Lightbox)
- * 1920px é o "Sweet Spot" para telas Full HD/4K sem exceder 1MB.
- * 2560px (Qualidade profissional 2K)
+ * Aplica a resolução baseada no plano ou o padrão de 2560px.
+ * Sweet spot para telas Full HD/4K sem exceder o peso ideal de processamento.
+ * ESTRATÉGIA: Usa o menor valor entre o teto do plano e o teto de 2560px.
+ * Isso garante que usuários em planos menores não carreguem arquivos 2K/4K desnecessariamente.
  */
-export const getHighResImageUrl = (photoId: string | number) => {
+export const getHighResImageUrl = (
+  photoId: string | number,
+  planOrWidth?: PlanKey | string | number,
+) => {
   if (!photoId) return '';
-  return getProxyUrl(photoId, '2560');
-};
 
+  // 1. Resolve a resolução baseada na chave do plano ou valor manual.
+  // Fallback para RESOLUTIONS.DEFAULT_DOWNLOAD (2560) se nada for passado.
+  const planResolution = resolveResolutionByPlan(
+    planOrWidth || RESOLUTIONS.DEFAULT_DOWNLOAD,
+  );
+
+  // 2. Teto de Visualização: Mesmo que o plano suporte 4000px (Premium),
+  // para visualização em Lightbox, limitamos a 2560px para garantir
+  // que o arquivo carregue instantaneamente sem estourar 1MB.
+  const finalResolution = Math.min(
+    Number(planResolution),
+    Number(RESOLUTIONS.DEFAULT_DOWNLOAD),
+  ).toString();
+
+  return getProxyUrl(photoId, finalResolution);
+};
 /**
  * 📱 Seleciona o tamanho ideal baseado no dispositivo
  * Mobile: 1280px (Equilíbrio entre peso e nitidez)
  * Desktop: 2560px (Qualidade profissional 2K)
  */
+// export const getResponsiveHighResUrl = (
+//   photoId: string | number,
+//   isMobile: boolean,
+// ) => {
+//   if (!photoId) return '';
+
+//   // Se for mobile, 1280px é mais que suficiente (mesmo para telas Pro Max)
+//   // Se for desktop, subimos para 2560px para garantir a "entrega de luxo"
+//   const size = isMobile ? RESOLUTIONS.VIEW_MOBILE : RESOLUTIONS.VIEW_DESKTOP;
+
+//   return getProxyUrl(photoId, size);
+// };
+
+/**
+ * 📱 Seleciona o tamanho ideal baseado no dispositivo, respeitando o teto do plano.
+ * Mobile ideal: 1280px | Desktop ideal: 2560px
+ */
 export const getResponsiveHighResUrl = (
   photoId: string | number,
   isMobile: boolean,
+  planOrWidth?: PlanKey | string | number,
 ) => {
   if (!photoId) return '';
 
-  // Se for mobile, 1280px é mais que suficiente (mesmo para telas Pro Max)
-  // Se for desktop, subimos para 2560px para garantir a "entrega de luxo"
-  const size = isMobile ? RESOLUTIONS.MOBILE_VIEW : RESOLUTIONS.DESKTOP_VIEW;
+  // 1. Define a resolução ideal baseada no hardware do usuário
+  const deviceIdealSize = isMobile
+    ? RESOLUTIONS.VIEW_MOBILE
+    : RESOLUTIONS.VIEW_DESKTOP;
 
-  return getProxyUrl(photoId, size);
-};
+  // 2. Se houver permissões, resolve o teto máximo permitido pelo plano
+  // Se não houver, assume o deviceIdealSize como fallback
+  const planLimit = planOrWidth
+    ? resolveResolutionByPlan(planOrWidth)
+    : deviceIdealSize;
 
-/**
- * 📥 URL DE DOWNLOAD
- * Agora aponta para a rota que entrega o "Original Otimizado" (Teto de 2MB).
- */
-export const getDownloadUrl = (photoId: string | number) => {
-  return getDownloadDirectGoogleUrl(photoId, RESOLUTIONS.DOWNLOAD);
+  // 3. Lógica de "Cap": Usamos o menor valor entre o ideal do dispositivo e o limite do plano.
+  // Isso evita que um plano FREE carregue 2560px no Desktop,
+  // e que um plano PREMIUM carregue 4000px desnecessariamente para visualização responsiva.
+  const finalSize = Math.min(
+    Number(deviceIdealSize),
+    Number(planLimit),
+  ).toString();
+
+  return getProxyUrl(photoId, finalSize);
 };
 
 /**
@@ -257,18 +349,17 @@ export const getDownloadUrl = (photoId: string | number) => {
  */
 export const getDirectGoogleUrl = (
   photoId: string | number,
-  width: string | number = '1000'
+  width: string | number = '1000',
 ) => {
   if (!photoId) return '';
 
-   // 🎯 Removendo qualquer prefixo de ID caso exista
-   const cleanId = photoId.toString().trim();
-// 🎯 O domínio correto para renderizar arquivos do Drive é lh3.googleusercontent.com/d/
+  // 🎯 Removendo qualquer prefixo de ID caso exista
+  const cleanId = photoId.toString().trim();
+  // 🎯 O domínio correto para renderizar arquivos do Drive é lh3.googleusercontent.com/d/
   // Parâmetros:
   // =w{width} -> define a largura
   // -rw -> força o formato WebP (mais leve)
   const url = `https://lh3.googleusercontent.com/d/${cleanId}=w${width}-rw`;
-
 
   // Log para você copiar e colar no navegador para testar
   // console.log(`[getDirectGoogleUrl] 🖼️ Gerada URL direta:`, {
@@ -277,33 +368,76 @@ export const getDirectGoogleUrl = (
   //   fullUrl: url
   // });
 
-  return url;};
+  return url;
+};
+
+/** Funções de Download de acordo com o plano **/
+/**
+ * 📥 URL DE DOWNLOAD
+ * Agora aponta para a rota que entrega o "Original Otimizado" (Teto de 2MB).
+ */
+// export const getDownloadUrl = (photoId: string | number) => {
+//   return getDownloadDirectGoogleUrl(photoId, RESOLUTIONS.DOWNLOAD);
+// };
 
 /**
- * 🚀 VERSÃO DE ALTA PERFORMANCE (Bypass Vercel)
- * Usa o servidor do Google diretamente para não gastar os 10GB da Vercel.
+ * 📥 URL DE DOWNLOAD
+ * Agora inteligente: aceita ID e opcionalmente permissões ou largura fixa.
+ * Mantém compatibilidade com chamadas que não enviam o segundo parâmetro.
  */
-export const getDownloadDirectGoogleUrl = (
+export const getDownloadUrl = (
   photoId: string | number,
-  width: string | number = '1000'
+  planOrWidth?: PlanKey | string | number,
 ) => {
-  if (!photoId) return '';
-  // Usamos o domínio lh3.googleusercontent.com que aceita CORS e redimensionamento
-  return `https://lh3.googleusercontent.com/d/${photoId}=w${width}`;
+  const resolution = resolveResolutionByPlan(planOrWidth);
+  return getDownloadDirectGoogleUrl(photoId, resolution);
 };
 
 /**
+ *
+ * VERSÃO DE ALTA PERFORMANCE (Bypass Vercel)
+ */
+// export const getDownloadDirectGoogleUrl = (
+//   photoId: string | number,
+//   width: string | number = '1000',
+// ) => {
+//   if (!photoId) return '';
+//   // Usamos o domínio lh3.googleusercontent.com que aceita CORS e redimensionamento
+//   return `https://lh3.googleusercontent.com/d/${photoId}=w${width}`;
+// };
+
+/* 📥 URL DE DOWNLOAD (INTEGRADA AO PLANO)
+ * Adaptada para respeitar o zipSizeLimit do plano se as permissões forem fornecidas.
+ * Se não forem passadas, mantém o comportamento padrão (2560px).
+ *   Usa o servidor do Google diretamente para não gastar os 10GB da Vercel.
+ */
+export const getDownloadDirectGoogleUrl = (
+  photoId: string | number,
+  planOrWidth?: PlanKey | string | number,
+) => {
+  if (!photoId) return '';
+  const cleanId = photoId.toString().trim();
+
+  // Delega a decisão de resolução para o cérebro centralizador
+  // Se receber o objeto PlanPermissions, resolve via zipSizeLimit.
+  // Se receber PlanKey ('PRO'), resolve via mapa mestre.
+  const finalWidth = resolveResolutionByPlan(planOrWidth);
+
+  // Retorna a URL no padrão lh3 sem o sufixo -rw (mantendo fidelidade máxima para download)
+  return `https://lh3.googleusercontent.com/d/${cleanId}=w${finalWidth}`;
+};
+/**
  * 📐 GUIA DE RESOLUÇÕES
- * 
+ *
  * Para documentação completa sobre resoluções recomendadas e estratégia de 2MB,
  * consulte: PERFORMANCE_GUIDE.md na raiz do projeto.
- * 
+ *
  * Resumo rápido:
  * - Grid: 500-600px
  * - Lightbox Mobile: 1280px
  * - Lightbox Desktop: 1920px
  * - Lightbox 4K: 2560px
  * - Download: 1920px (direto) / 2560px (proxy)
- * 
+ *
  * Todas as resoluções garantem arquivos < 2MB sem verificação no cliente.
  */

@@ -1,4 +1,4 @@
-import PhotographerProfileBase from '@/components/photographer/PhotographerProfileBase';
+import PhotographerProfileBase from '@/components/profile/ProfileBase';
 
 export default async function ClassicPage({
   params,
