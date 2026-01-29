@@ -357,12 +357,7 @@ export const getProfileByUsername = cache(async (username: string) => {
 
       const { data, error } = await supabase
         .from('tb_profiles')
-        .select(
-          `
-          *,
-          studio:tb_studios(*) 
-        `,
-        )
+        .select('*')
         .eq('username', uname)
         .maybeSingle();
 

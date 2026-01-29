@@ -1,6 +1,7 @@
 'use server';
 
 import { createSupabaseServerClientReadOnly } from '@/lib/supabase.server';
+import { cache } from 'react';
 
 /**
  * Service para obter contexto de autenticação (userId + studioId)
@@ -16,46 +17,86 @@ export interface AuthContext {
 /**
  * Obtém o ID do usuário logado (autor) e o studio_id associado.
  * Esta função é usada em múltiplos services para evitar duplicação.
+ * O 'cache' do React garante Request Memoization.
  */
-export async function getAuthAndStudioIds(
-  supabaseClient?: any,
-): Promise<AuthContext> {
-  const supabase =
-    supabaseClient || (await createSupabaseServerClientReadOnly());
+export const getAuthAndStudioIds = cache(
+  async (supabaseClient?: any): Promise<AuthContext> => {
+    const supabase =
+      supabaseClient || (await createSupabaseServerClientReadOnly());
 
+    const {
+      data: { user },
+      error: userError,
+    } = await supabase.auth.getUser();
+
+    if (userError || !user) {
+      return {
+        success: false,
+        userId: null,
+        studioId: null,
+        error: 'Usuário não autenticado.',
+      };
+    }
+
+    // 🎯 SELECT '*' para trazer plan_key, username e demais dados do profile
+    const { data: profile, error: profileError } = await supabase
+      .from('tb_profiles')
+      .select('*')
+      .eq('id', user.id)
+      .single();
+
+    if (profileError || !profile) {
+      console.error('Erro ao buscar profile do usuário logado:', profileError);
+      return {
+        success: false,
+        userId: user.id, // Retornamos o ID do auth mesmo se o profile falhar
+        studioId: null,
+        error: 'Profile do usuário não encontrado ou incompleto.',
+      };
+    }
+
+    return {
+      success: true,
+      userId: user.id,
+      studioId: profile.studio_id,
+      profile: profile, // 🎯 Agora o profile completo está disponível aqui
+    };
+  },
+);
+
+/**
+ * 🎯 Única Fonte de Verdade para Usuário Logado
+ * Usa 'cache' do React para memorizar o resultado durante a requisição (Request Memoization).
+ * Não toca o banco mais de uma vez por carregamento de página.
+ */
+export const getAuthenticatedUser = cache(async () => {
+  const supabase = await createSupabaseServerClientReadOnly();
+
+  // 1. Obtém o usuário do Auth (Sessão rápida)
   const {
     data: { user },
-    error: userError,
+    error: authError,
   } = await supabase.auth.getUser();
 
-  if (userError || !user) {
-    return {
-      success: false,
-      userId: null,
-      studioId: null,
-      error: 'Usuário não autenticado.',
-    };
+  if (authError || !user) {
+    return { success: false, profile: null, userId: null };
   }
 
+  // 2. Busca o perfil completo apenas se o usuário estiver autenticado
   const { data: profile, error: profileError } = await supabase
     .from('tb_profiles')
-    .select('studio_id')
+    .select('*')
     .eq('id', user.id)
     .single();
 
   if (profileError || !profile) {
-    console.error('Erro ao buscar profile do usuário logado:', profileError);
-    return {
-      success: false,
-      userId: null,
-      studioId: null,
-      error: 'Profile do usuário não encontrado ou incompleto.',
-    };
+    return { success: false, profile: null, userId: user.id };
   }
 
   return {
     success: true,
     userId: user.id,
-    studioId: profile.studio_id,
+    profile, // Aqui você tem o plan_key, studio_id, etc.
+    email: user.email,
   };
-}
+});

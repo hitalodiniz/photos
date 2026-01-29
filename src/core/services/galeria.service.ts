@@ -939,8 +939,44 @@ export async function getGaleriaLeads(
   }
 }
 
-/** 🧠 RESOLVE LIMITE DE GALERIAS */
-// export async function resolveGalleryLimitByPlan = (planKey?: PlanKey): number => {
-//   const p = planKey ? PERMISSIONS_BY_PLAN[planKey] : PERMISSIONS_BY_PLAN.FREE;
-//   return p?.maxGalleries || 1;
-// };
+/**
+ * 🛠️ SERVICE: Gerencia o arquivamento por limite de galerias.
+ */
+export async function archiveExceedingGalleries(
+  userId: string,
+  limit: number,
+  supabaseClient?: any,
+) {
+  const supabase = supabaseClient || (await createSupabaseServerClient());
+
+  // 🎯 ORDENAÇÃO DESCENDENTE (DESC):
+  // Coloca a galeria de 'hoje' no topo (index 0).
+  // Coloca a galeria de '2023' no final da lista.
+  const { data: active, error: fetchError } = await supabase
+    .from('tb_galerias')
+    .select('id, title')
+    .eq('user_id', userId)
+    .eq('is_deleted', false)
+    .eq('is_archived', false)
+    .order('date', { ascending: false }); // 👈 CRÍTICO: false para manter as novas
+
+  if (fetchError) throw fetchError;
+
+  if (active && active.length > limit) {
+    // 🔪 O slice(limit) pula as 'limit' primeiras (as mais novas)
+    // e pega tudo o que sobrou (as mais antigas).
+    const toArchive = active.slice(limit);
+    const idsToArchive = toArchive.map((g) => g.id);
+
+    const { error: updateError } = await supabase
+      .from('tb_galerias')
+      .update({ is_archived: true })
+      .in('id', idsToArchive);
+
+    if (updateError) throw updateError;
+
+    return idsToArchive.length;
+  }
+
+  return 0;
+}
