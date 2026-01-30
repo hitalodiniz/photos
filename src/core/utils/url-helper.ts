@@ -16,19 +16,19 @@ export const TAMANHO_MAXIMO_FOTO_SEM_COMPACTAR = 2 * 1024 * 1024; // 1.5MB em by
 export const RESOLUTIONS = {
   // 🎯 MINIATURAS E GRIDS
   THUMB: '400', // Miniaturas em grids (cards, masonry)
-  
+
   // 🎯 VISUALIZAÇÃO (VIEW) - Otimizado para qualidade visual sem excesso de peso
   // Usado em: Lightbox, visualização de fotos individuais
-  VIEW_MOBILE: '720',   // 720p - Suficiente para telas mobile Retina (~500-700KB)
+  VIEW_MOBILE: '720', // 720p - Suficiente para telas mobile Retina (~500-700KB)
   VIEW_DESKTOP: '1080', // 1080p - Suficiente para visualização Full HD (~800KB-1.2MB)
-  
+
   // 🎯 LEGADO (mantido para compatibilidade, mas preferir VIEW_*)
-  MOBILE_VIEW: '1280',  // @deprecated - Use VIEW_MOBILE ou VIEW_DESKTOP
+  MOBILE_VIEW: '1280', // @deprecated - Use VIEW_MOBILE ou VIEW_DESKTOP
   DESKTOP_VIEW: '1920', // @deprecated - Use VIEW_DESKTOP ou DOWNLOAD
-  
+
   // 🎯 DOWNLOAD - Alta resolução apenas para download
-  DOWNLOAD: '2560',      // Alta resolução para downloads (2K)
-  ULTRA_VIEW: '2560',   // @deprecated - Use DOWNLOAD
+  DOWNLOAD: '2560', // Alta resolução para downloads (2K)
+  ULTRA_VIEW: '2560', // @deprecated - Use DOWNLOAD
 
   ULTRA_DOWNLOAD: '4000',
 };
@@ -178,7 +178,7 @@ export function getCreatorProfileUrl(photographer: any) {
  * 🌐 URL EXTERNA (Client-side)
  * Para o PhotoGrid, usamos larguras menores para economizar banda.
  * O teto aqui é para exibição rápida.
- * 
+ *
  * ⚠️ DEPRECATED: Use `useGoogleDriveImage` hook em componentes React
  * ou `getImageUrlWithFallback` para server-side.
  * Este método sempre retorna proxy, sem tentar direto primeiro.
@@ -191,7 +191,6 @@ export const getProxyUrl = (
   const cleanWidth = width.toString().replace(/[ws]/gi, '');
   return `/api/galeria/cover/${id}?w=${cleanWidth}`;
 };
-
 
 /**
  * 🔒 URL INTERNA (Server-side)
@@ -257,18 +256,17 @@ export const getDownloadUrl = (photoId: string | number) => {
  */
 export const getDirectGoogleUrl = (
   photoId: string | number,
-  width: string | number = '1000'
+  width: string | number = '1000',
 ) => {
   if (!photoId) return '';
 
-   // 🎯 Removendo qualquer prefixo de ID caso exista
-   const cleanId = photoId.toString().trim();
-// 🎯 O domínio correto para renderizar arquivos do Drive é lh3.googleusercontent.com/d/
+  // 🎯 Removendo qualquer prefixo de ID caso exista
+  const cleanId = photoId.toString().trim();
+  // 🎯 O domínio correto para renderizar arquivos do Drive é lh3.googleusercontent.com/d/
   // Parâmetros:
   // =w{width} -> define a largura
   // -rw -> força o formato WebP (mais leve)
   const url = `https://lh3.googleusercontent.com/d/${cleanId}=w${width}-rw`;
-
 
   // Log para você copiar e colar no navegador para testar
   // console.log(`[getDirectGoogleUrl] 🖼️ Gerada URL direta:`, {
@@ -277,7 +275,8 @@ export const getDirectGoogleUrl = (
   //   fullUrl: url
   // });
 
-  return url;};
+  return url;
+};
 
 /**
  * 🚀 VERSÃO DE ALTA PERFORMANCE (Bypass Vercel)
@@ -285,7 +284,7 @@ export const getDirectGoogleUrl = (
  */
 export const getDownloadDirectGoogleUrl = (
   photoId: string | number,
-  width: string | number = '1000'
+  width: string | number = '1000',
 ) => {
   if (!photoId) return '';
   // Usamos o domínio lh3.googleusercontent.com que aceita CORS e redimensionamento
@@ -294,16 +293,16 @@ export const getDownloadDirectGoogleUrl = (
 
 /**
  * 📐 GUIA DE RESOLUÇÕES
- * 
+ *
  * Para documentação completa sobre resoluções recomendadas e estratégia de 2MB,
  * consulte: PERFORMANCE_GUIDE.md na raiz do projeto.
- * 
+ *
  * Resumo rápido:
  * - Grid: 500-600px
  * - Lightbox Mobile: 1280px
  * - Lightbox Desktop: 1920px
  * - Lightbox 4K: 2560px
  * - Download: 1920px (direto) / 2560px (proxy)
- * 
+ *
  * Todas as resoluções garantem arquivos < 2MB sem verificação no cliente.
  */
