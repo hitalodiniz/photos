@@ -10,6 +10,7 @@ import { suggestUsernameFromEmail } from '@/core/utils/user-helpers';
 import { cache } from 'react';
 import { GLOBAL_CACHE_REVALIDATE } from '@/core/utils/url-helper';
 import { MessageTemplates, UserSettings } from '../types/profile';
+import { PlanKey } from '../config/plans';
 
 // =========================================================================
 // 1. LEITURA DE DADOS (READ)
@@ -155,6 +156,15 @@ export async function upsertProfile(formData: FormData, supabaseClient?: any) {
 
   if (!user) return { success: false, error: 'Sessão expirada.' };
 
+  // 1. Verificar se é Onboarding (Novo Usuário) para liberar Trial
+  const { data: existingProfile } = await supabase
+    .from('tb_profiles')
+    .select('plan_key, plan_trial_expires')
+    .eq('id', user.id)
+    .single();
+
+  const isFirstSetup = !existingProfile?.plan_key;
+
   const username = (formData.get('username') as string)?.toLowerCase().trim();
   const full_name = (formData.get('full_name') as string)?.trim();
   const mini_bio = formData.get('mini_bio') as string;
@@ -203,29 +213,73 @@ export async function upsertProfile(formData: FormData, supabaseClient?: any) {
     }
   }
 
-  let background_url = formData.get('background_url_existing') as string;
-  const backgroundFile = formData.get('background_image') as File;
-  if (backgroundFile && backgroundFile.size > 0) {
-    const bgName = backgroundFile.name || 'bg.webp';
-    const bgExt = bgName.includes('.') ? bgName.split('.').pop() : 'webp';
-    const bgPath = `${user.id}/bg-${Date.now()}.${bgExt}`;
+  // let background_url = formData.get('background_url_existing') as string;
+  // const backgroundFile = formData.get('background_image') as File;
+  // if (backgroundFile && backgroundFile.size > 0) {
+  //   const bgName = backgroundFile.name || 'bg.webp';
+  //   const bgExt = bgName.includes('.') ? bgName.split('.').pop() : 'webp';
+  //   const bgPath = `${user.id}/bg-${Date.now()}.${bgExt}`;
 
-    // console.log('[upsertProfile] Uploading background:', bgPath);
+  //   // console.log('[upsertProfile] Uploading background:', bgPath);
 
-    const { error: bgUploadError } = await supabase.storage
-      .from('profile_pictures')
-      .upload(bgPath, backgroundFile, { upsert: true });
+  //   const { error: bgUploadError } = await supabase.storage
+  //     .from('profile_pictures')
+  //     .upload(bgPath, backgroundFile, { upsert: true });
 
-    if (!bgUploadError) {
-      const {
-        data: { publicUrl },
-      } = supabase.storage.from('profile_pictures').getPublicUrl(bgPath);
-      background_url = publicUrl;
-    } else {
-      console.error(
-        '[upsertProfile] Error uploading background:',
-        bgUploadError,
-      );
+  //   if (!bgUploadError) {
+  //     const {
+  //       data: { publicUrl },
+  //     } = supabase.storage.from('profile_pictures').getPublicUrl(bgPath);
+  //     background_url = publicUrl;
+  //   } else {
+  //     console.error(
+  //       '[upsertProfile] Error uploading background:',
+  //       bgUploadError,
+  //     );
+  //   }
+  // }
+
+  // 1. Recuperar URLs existentes para não sobrescrever se não houver novo upload
+  const existingBgsJson = formData.get('background_urls_existing') as string;
+  let finalBackgroundUrls: string[] = existingBgsJson
+    ? JSON.parse(existingBgsJson)
+    : [];
+
+  // 2. Recuperar todos os novos arquivos (input multiple)
+  const backgroundFiles = formData.getAll('background_images') as File[];
+
+  // 3. Se houver novos arquivos com conteúdo, processamos o upload
+  if (backgroundFiles.length > 0 && backgroundFiles[0].size > 0) {
+    const uploadedUrls: string[] = [];
+
+    for (const file of backgroundFiles) {
+      if (file.size === 0) continue;
+
+      const bgName = file.name || 'bg.webp';
+      const bgExt = bgName.includes('.') ? bgName.split('.').pop() : 'webp';
+      // Adicionamos um random para evitar colisão em uploads múltiplos simultâneos
+      const bgPath = `${user.id}/bg-${Date.now()}-${Math.random().toString(36).substring(2, 7)}.${bgExt}`;
+
+      const { error: bgUploadError } = await supabase.storage
+        .from('profile_pictures')
+        .upload(bgPath, file, { upsert: true });
+
+      if (!bgUploadError) {
+        const {
+          data: { publicUrl },
+        } = supabase.storage.from('profile_pictures').getPublicUrl(bgPath);
+        uploadedUrls.push(publicUrl);
+      } else {
+        console.error(
+          '[upsertProfile] Error uploading background:',
+          bgUploadError,
+        );
+      }
+    }
+
+    // Se o upload teve sucesso, as novas URLs substituem as antigas
+    if (uploadedUrls.length > 0) {
+      finalBackgroundUrls = uploadedUrls;
     }
   }
 
@@ -249,7 +303,19 @@ export async function upsertProfile(formData: FormData, supabaseClient?: any) {
     operating_cities,
     profile_picture_url,
     updated_at: new Date().toISOString(),
+    background_urls: finalBackgroundUrls,
   };
+
+  // 🛡️ Lógica de Ativação do Trial PRO (14 Dias)
+  if (isFirstSetup) {
+    const trialDays = 14;
+    const expirationDate = new Date();
+    expirationDate.setDate(expirationDate.getDate() + trialDays);
+
+    updateData.plan_key = 'PRO' as PlanKey;
+    updateData.plan_trial_expires = expirationDate.toISOString();
+    updateData.is_trial = true;
+  }
 
   if (background_url !== undefined && background_url !== null) {
     updateData.background_url = background_url;

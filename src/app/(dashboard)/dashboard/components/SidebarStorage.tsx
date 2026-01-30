@@ -1,4 +1,5 @@
-import { HardDrive } from 'lucide-react';
+import { usePlan } from '@/hooks/usePlan';
+import { ArrowUpCircle, HardDrive } from 'lucide-react';
 
 interface SidebarStorageProps {
   isSidebarCollapsed: boolean;
@@ -9,8 +10,15 @@ export default function SidebarStorage({
   isSidebarCollapsed,
   galeriasCount,
 }: SidebarStorageProps) {
+  const { permissions } = usePlan();
+  const maxGalleries = permissions.maxGalleries; // 🛡️ Limite dinâmico do plano
   const isMobile = typeof window !== 'undefined' && window.innerWidth < 1024;
   const showFull = !isSidebarCollapsed || isMobile;
+
+  // Lógica de cálculo de porcentagem
+  const percentage = Math.min((galeriasCount / maxGalleries) * 100, 100);
+  const isLimitReached = galeriasCount >= maxGalleries;
+  const isNearLimit = percentage >= 90;
 
   return (
     <div
@@ -23,7 +31,7 @@ export default function SidebarStorage({
               <HardDrive size={12} strokeWidth={2} /> Armazenamento
             </span>
             <span className="text-[10px] font-semibold tracking-luxury text-white/90">
-              {galeriasCount} / 50
+              {galeriasCount} / {maxGalleries}
             </span>
           </div>
           <div className="w-full h-1.5 bg-white/5 rounded-full overflow-hidden border border-white/5 shadow-inner">
@@ -33,20 +41,49 @@ export default function SidebarStorage({
                   ? 'bg-red-500 shadow-[0_0_10px_rgba(239,68,68,0.5)]'
                   : 'bg-gold shadow-[0_0_10px_rgba(212,175,55,0.5)]'
               }`}
-              style={{ width: `${(galeriasCount / 50) * 100}%` }}
+              style={{ width: `${percentage}%` }}
             />
           </div>
-          <p className="text-[10px] text-white/80 uppercase tracking-luxury font-semibold px-1">
-            Limite de galerias no plano
-          </p>
+          {/* Call to Action: Upgrade */}
+          {isLimitReached ? (
+            <button
+              onClick={() => (window.location.href = '/dashboard/planos')}
+              className="w-full mt-2 py-2 px-3 bg-red-500/10 hover:bg-red-500/20 border border-red-500/50 rounded-luxury flex items-center justify-between group transition-all animate-pulse-slow"
+            >
+              <span className="text-[9px] font-black text-red-400 uppercase tracking-widest">
+                Limite Atingido
+              </span>
+              <ArrowUpCircle
+                size={14}
+                className="text-red-400 group-hover:translate-y-[-2px] transition-transform"
+              />
+            </button>
+          ) : (
+            <p className="text-[10px] text-white/40 uppercase tracking-luxury font-bold px-1">
+              Galerias Ativas
+            </p>
+          )}
         </div>
       ) : (
+        /* Versão Colapsada */
         <div className="flex justify-center group relative cursor-help py-2">
-          <div className="w-8 h-8 rounded-full border border-white/10 flex items-center justify-center text-[9px] font-semibold text-white/90 hover:text-gold hover:border-gold transition-colors">
-            {galeriasCount}
-          </div>
+          <button
+            onClick={() =>
+              isLimitReached && (window.location.href = '/dashboard/planos')
+            }
+            className={`w-8 h-8 rounded-full border flex items-center justify-center text-[9px] font-semibold transition-all ${
+              isLimitReached
+                ? 'bg-red-500/20 border-red-500 text-red-500 animate-pulse'
+                : 'border-white/10 text-white/90 hover:text-gold hover:border-gold'
+            }`}
+          >
+            {isLimitReached ? <ArrowUpCircle size={14} /> : galeriasCount}
+          </button>
+
           <div className="absolute left-full ml-4 px-3 py-2 bg-slate-950 text-white text-[10px] font-semibold uppercase rounded-luxury opacity-0 pointer-events-none group-hover:opacity-100 transition-all z-[999] shadow-2xl border border-white/10 whitespace-nowrap">
-            {galeriasCount} de 50 galerias
+            {isLimitReached
+              ? 'Aumentar Limite agora'
+              : `${galeriasCount} de ${maxGalleries} galerias`}
           </div>
         </div>
       )}

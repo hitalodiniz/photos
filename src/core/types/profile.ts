@@ -1,4 +1,29 @@
 import { z } from 'zod';
+import { PlanKey } from '../config/plans';
+
+export interface Profile {
+  id: string;
+  full_name: string;
+  username: string;
+  mini_bio?: string;
+  phone_contact?: string;
+  instagram_link?: string;
+  website?: string;
+  operating_cities: string[];
+  profile_picture_url?: string;
+  background_url?: string;
+
+  // 🛡️ Campos de Plano e Trial
+  plan_key: PlanKey;
+  plan_trial_expires?: string; // ISO Date
+  is_trial: boolean;
+
+  created_at: string;
+  updated_at: string;
+
+  settings: UserSettings;
+  message_templates: MessageTemplates;
+}
 
 export const UserSettingsSchema = z.object({
   display: z.object({

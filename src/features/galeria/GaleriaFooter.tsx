@@ -3,6 +3,8 @@
 import { GALLERY_MESSAGES } from '@/core/config/messages';
 import { Photographer } from '@/core/types/galeria';
 import { getCreatorProfileUrl } from '@/core/utils/url-helper';
+import { usePlan } from '@/hooks/usePlan';
+import { Globe } from 'lucide-react';
 import React from 'react';
 
 interface GaleriaFooterProps {
@@ -16,12 +18,19 @@ export default function GaleriaFooter({
   title,
   showTopButton = true,
 }: GaleriaFooterProps) {
+  const { planKey, permissions } = usePlan(); // 🛡️ Verificação de Branding
+  // 🛡️ Lógica de Níveis Progressivos (Igual ao Avatar)
+  const hasWhatsApp = ['START', 'PLUS', 'PRO', 'PREMIUM'].includes(planKey);
+  const hasInstagram = ['PLUS', 'PRO', 'PREMIUM'].includes(planKey);
+  const hasProfile = ['PRO', 'PREMIUM'].includes(planKey);
+  const hasWebsite = planKey === 'PREMIUM';
+
   // 1. Lógica de Links Segura
   const whatsappNumber = photographer?.phone_contact?.replace(/\D/g, '') || '';
   const whatsappLink = `https://wa.me/${whatsappNumber}?text=${encodeURIComponent(
     title
       ? GALLERY_MESSAGES.CONTACT_PHOTOGRAPHER(title)
-      : 'Olá! Vi seu trabalho e gostaria de conversar.',
+      : 'Olá! Vi seu trabalho e gostaria de mais informações.',
   )}`;
 
   const profileLink = getCreatorProfileUrl(photographer);
@@ -73,7 +82,8 @@ export default function GaleriaFooter({
                 <div className="w-[1px] h-4 bg-white/10" />
 
                 <div className="flex items-center gap-4">
-                  {photographer?.phone_contact && (
+                  {/* WHATSAPP (Nível: START) */}
+                  {hasWhatsApp && photographer?.phone_contact && (
                     <a
                       href={whatsappLink}
                       target="_blank"
@@ -90,7 +100,8 @@ export default function GaleriaFooter({
                       </svg>
                     </a>
                   )}
-                  {photographer?.instagram_link && (
+                  {/* INSTAGRAM (Nível: PLUS) */}
+                  {hasInstagram && photographer?.instagram_link && (
                     <a
                       href={`https://instagram.com/${photographer.instagram_link.replace('@', '')}`}
                       target="_blank"
@@ -107,6 +118,7 @@ export default function GaleriaFooter({
                       </svg>
                     </a>
                   )}
+                  {/* PERFIL INTERNO (Nível: FREE) */}
                   <a
                     href={profileLink}
                     target="_blank"
@@ -127,6 +139,19 @@ export default function GaleriaFooter({
                       <circle cx="12" cy="7" r="4" />
                     </svg>
                   </a>
+
+                  {/* WEBSITE EXTERNO (Nível: PREMIUM) */}
+                  {hasWebsite && photographer?.website && (
+                    <a
+                      href={photographer.website}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      className="text-white/60 hover:text-blue-400 transition-all"
+                      title="Visitar Website"
+                    >
+                      <Globe size={18} strokeWidth={2.5} />
+                    </a>
+                  )}
                 </div>
               </div>
             </div>
@@ -141,19 +166,27 @@ export default function GaleriaFooter({
             © {new Date().getFullYear()} — Todos os direitos reservados
           </div>
 
-          <div className="text-[10px] md:text-[12px] tracking-[0.2em] font-semibold uppercase flex items-center gap-2">
-            <span>Powered by</span>
-            <a
-              href={`https://${process.env.NEXT_PUBLIC_MAIN_DOMAIN}`}
-              target="_blank"
-              rel="noopener noreferrer"
-              className="group"
-            >
-              <span className="text-[#F3E5AB] italic tracking-tight text-sm md:text-base group-hover:text-white transition-colors ml-1">
-                Sua Galeria
-              </span>
-            </a>
-          </div>
+          {/* 🛡️ TRAVA DE BRANDING: Só exibe se NÃO puder remover */}
+          {!permissions.removeBranding ? (
+            <div className="text-[10px] md:text-[12px] tracking-[0.2em] font-semibold uppercase flex items-center gap-2 animate-in fade-in duration-700">
+              <span>Powered by</span>
+              <a
+                href={`https://${process.env.NEXT_PUBLIC_MAIN_DOMAIN}`}
+                target="_blank"
+                rel="noopener noreferrer"
+                className="group"
+              >
+                <span className="text-[#F3E5AB] italic tracking-tight text-sm md:text-base group-hover:text-white transition-colors ml-1">
+                  Sua Galeria
+                </span>
+              </a>
+            </div>
+          ) : (
+            /* Fallback Minimalista quando o Branding é removido */
+            <div className="text-[10px] uppercase tracking-[0.3em] font-bold text-white/10">
+              Galeria Profissional
+            </div>
+          )}
         </div>
       </div>
     </footer>

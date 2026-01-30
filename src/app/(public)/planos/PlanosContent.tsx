@@ -79,7 +79,7 @@ export default function PlanosPage() {
         <div className="flex flex-col items-center gap-4 mb-8 -mt-24 relative z-30">
           <div className="flex items-center gap-3 bg-white backdrop-blur px-4 py-2 rounded-luxury border border-petroleum/10 shadow-sm">
             <span
-              className={`text-[11px] font-bold uppercase tracking-widest transition-colors ${!isAnnual ? 'text-petroleum' : 'text-petroleum/40'}`}
+              className={`text-[11px] font-semibold uppercase tracking-widest transition-colors ${!isAnnual ? 'text-petroleum' : 'text-petroleum/40'}`}
             >
               Mensal
             </span>
@@ -166,11 +166,11 @@ export default function PlanosPage() {
                   <div className="text-center mb-6">
                     <div className="flex items-start justify-center gap-1 text-petroleum font-artistic">
                       <span className="text-[16px] font-semibold mt-2">R$</span>
-                      <span className="text-6xl font-semibold tracking-tighter italic">
+                      <span className="text-6xl font-semibold tracking-tighter ">
                         {displayPrice.toFixed(0)}
                       </span>
                     </div>
-                    <p className="text-[10px] font-black text-petroleum/60 tracking-[0.2em] uppercase mt-1">
+                    <p className="text-[10px] font-semibold text-petroleum/80 tracking-[0.2em] uppercase mt-1">
                       {isAnnual ? 'Equivalente / Mês' : 'Cobrança Mensal'}
                     </p>
                   </div>

@@ -1,6 +1,5 @@
 'use client';
 import { useMemo } from 'react';
-//import { useProfile } from ''; // Supondo que você tenha esse hook
 import {
   getPlansByDomain,
   PERMISSIONS_BY_PLAN,
@@ -9,24 +8,23 @@ import {
   SegmentType,
 } from '@/core/config/plans';
 
-export function usePlan() {
-  const { profile, loading: profileLoading } = useProfile();
-
+/**
+ * Hook lógico para gestão de planos e permissões.
+ * @param planKey vindo do profile (Server Side ou Context)
+ */
+export function usePlan(userPlanKey?: string) {
   const planData = useMemo(() => {
-    // 1. Identifica o segmento pelo domínio (ou usa PHOTOGRAPHER como padrão)
+    // 1. Identifica o segmento pelo domínio
     const hostname =
       typeof window !== 'undefined' ? window.location.hostname : '';
     const domainConfig = getPlansByDomain(hostname);
 
-    // 2. Pega o plano atual do usuário do banco de dados (ex: 'FREE', 'PRO')
-    // Garantimos que seja um PlanKey válido
-    const currentPlanKey =
-      (profile?.plan_type?.toUpperCase() as PlanKey) || 'FREE';
+    // 2. Normaliza a key (Garante consistência com o Master Map)
+    const currentPlanKey = (userPlanKey?.toUpperCase() as PlanKey) || 'FREE';
 
-    // 3. Extrai as permissões lógicas para este plano
-    const permissions: PlanPermissions = PERMISSIONS_BY_PLAN[currentPlanKey];
-
-    // 4. Busca as informações visuais (nome, ícone, preço) para o segmento atual
+    // 3. Extrai permissões e infos visuais
+    const permissions: PlanPermissions =
+      PERMISSIONS_BY_PLAN[currentPlanKey] || PERMISSIONS_BY_PLAN.FREE;
     const planInfo = domainConfig.plans[currentPlanKey];
 
     return {
@@ -36,26 +34,19 @@ export function usePlan() {
       planKey: currentPlanKey,
       planInfo,
       permissions,
-      profileLoading,
     };
-  }, [profile, profileLoading]);
+  }, [userPlanKey]);
 
-  /**
-   * Helper rápido para verificar limites numéricos
-   * @example canAddMore('maxGalleries', currentGalleriesCount)
-   */
   const canAddMore = (feature: keyof PlanPermissions, currentCount: number) => {
     const limit = planData.permissions[feature];
-    if (typeof limit === 'number') {
-      return currentCount < limit;
-    }
-    return true; // Se não for número, assume que não é um limite impeditivo
+    if (typeof limit === 'number') return currentCount < limit;
+    if (limit === 'unlimited') return true;
+    return true;
   };
 
   return {
     ...planData,
     canAddMore,
-    // Abreviações úteis para o código ficar limpo
     isPremium: planData.planKey === 'PREMIUM',
     isPro: ['PRO', 'PREMIUM'].includes(planData.planKey),
   };

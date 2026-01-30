@@ -26,6 +26,7 @@ import BulkActionsBar from './components/BulkActionsBar';
 import DashboardHeader from './components/DashboardHeader';
 import GalleryList from './components/GalleryList';
 import DashboardFooter from './components/DashboardFooter';
+import TrialBanner from '@/components/ui/TrialBanner';
 
 export default function Dashboard({
   initialGalerias,
@@ -38,7 +39,7 @@ export default function Dashboard({
 
   // --- STATE & CUSTOM HOOKS ---
   const [galerias, setGalerias] = useState<Galeria[]>(initialGalerias);
-  
+
   const {
     isAdminModalOpen,
     setIsAdminModalOpen,
@@ -50,7 +51,8 @@ export default function Dashboard({
     setViewMode,
   } = useDashboardState(initialProfile?.sidebar_collapsed ?? false);
 
-  const { isSidebarCollapsed, toggleSidebar, setIsSidebarCollapsed } = useSidebar();
+  const { isSidebarCollapsed, toggleSidebar, setIsSidebarCollapsed } =
+    useSidebar();
 
   // Sincroniza a preferência inicial do usuário com o context
   useEffect(() => {
@@ -65,7 +67,7 @@ export default function Dashboard({
     setGalerias,
     initialProfile,
     setToast,
-    filters.currentView
+    filters.currentView,
   );
 
   // --- EFFECTS ---
@@ -131,13 +133,18 @@ export default function Dashboard({
         isRedirecting={isNavigating}
         onOpenAdminModal={() => setIsAdminModalOpen(true)}
       />
-
+      <TrialBanner />
       <main className="flex-1 space-y-2 min-w-0">
         <BulkActionsBar
           selectedCount={actions.selectedIds.size}
-          onSelectAll={() => actions.handleSelectAll(filters.visibleGalerias.map((g) => g.id))}
+          onSelectAll={() =>
+            actions.handleSelectAll(filters.visibleGalerias.map((g) => g.id))
+          }
           onDeselectAll={actions.handleDeselectAll}
-          isAllSelected={actions.selectedIds.size === filters.visibleGalerias.length && filters.visibleGalerias.length > 0}
+          isAllSelected={
+            actions.selectedIds.size === filters.visibleGalerias.length &&
+            filters.visibleGalerias.length > 0
+          }
           currentView={filters.currentView}
           onBulkArchive={actions.handleBulkArchive}
           onBulkDelete={actions.handleBulkDelete}

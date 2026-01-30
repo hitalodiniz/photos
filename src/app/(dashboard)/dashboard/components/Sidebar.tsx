@@ -2,7 +2,7 @@ import {
   Plus,
   ChevronLeft,
   ChevronRight,
-  X,
+  Lock,
   Camera,
   ArrowLeft,
 } from 'lucide-react';
@@ -14,6 +14,9 @@ import SidebarGoogleDrive from './SidebarGoogleDrive';
 import SidebarAjuda from './SidebarAjuda';
 import SidebarAdmin from './SidebarAdmin';
 import { useSidebar } from '@/components/providers/SidebarProvider';
+import { usePlan } from '@/hooks/usePlan';
+import { useState } from 'react';
+import UpgradeModal from '@/components/ui/UpgradeModal';
 
 interface SidebarProps {
   counts: { active: number; archived: number; trash: number };
@@ -47,6 +50,10 @@ export default function Sidebar({
   const { isSidebarCollapsed, toggleSidebar } = useSidebar();
   const isMobile = typeof window !== 'undefined' && window.innerWidth < 1024;
 
+  const { permissions, canAddMore, planKey } = usePlan(); // 🛡️ Permissões
+  const [upsellFeature, setUpsellFeature] = useState<string | null>(null);
+  // 🛡️ Validação de Limite de Galerias
+  const canCreateMore = canAddMore('maxGalleries', galeriasCount);
   return (
     <>
       {/* Overlay para Mobile */}
@@ -86,26 +93,48 @@ export default function Sidebar({
         <div className="px-3 pt-3">
           <button
             onClick={() => {
-              handleNovaGaleria();
-              if (isMobile) toggleSidebar();
+              if (canCreateMore) {
+                handleNovaGaleria();
+                if (isMobile) toggleSidebar();
+              } else {
+                setUpsellFeature('Limite de Galerias');
+              }
             }}
             disabled={isRedirecting}
             className={`flex items-center justify-center bg-gold text-black hover:bg-white
               transition-all duration-300 rounded-luxury border border-gold group shadow-lg 
               h-12 w-full gap-2
-              ${isRedirecting ? 'opacity-70 cursor-not-allowed' : ''}`}
-          >
-            <Plus
-              size={20}
-              className={
-                isRedirecting
-                  ? 'animate-spin'
-                  : 'group-hover:rotate-90 transition-transform duration-300'
+              ${
+                !canCreateMore
+                  ? 'bg-slate-800 border-white/10 text-white/40 cursor-pointer hover:border-gold'
+                  : 'bg-gold text-black border-gold hover:bg-white'
               }
-            />
+              ${isRedirecting ? 'opacity-70 cursor-not-allowed' : ''}`}
+            title={
+              !canCreateMore
+                ? `Limite de ${permissions.maxGalleries} galerias atingido`
+                : 'Criar nova galeria'
+            }
+          >
+            {canCreateMore ? (
+              <Plus
+                size={20}
+                className={
+                  isRedirecting
+                    ? 'animate-spin'
+                    : 'group-hover:rotate-90 transition-transform'
+                }
+              />
+            ) : (
+              <Lock size={16} className="text-gold" />
+            )}
             {(!isSidebarCollapsed || isMobile) && (
               <span className="text-editorial-label font-semibold">
-                {isRedirecting ? 'Iniciando...' : 'Nova Galeria'}
+                {isRedirecting
+                  ? 'Iniciando...'
+                  : canCreateMore
+                    ? 'Nova Galeria'
+                    : 'Upgrade Necessário'}{' '}
               </span>
             )}
           </button>
@@ -113,6 +142,19 @@ export default function Sidebar({
 
         {/* Navegação Principal */}
         <nav className="flex-1 flex flex-col gap-2 overflow-y-auto no-scrollbar p-2">
+          {/* Badge do Plano Atual */}
+          {(!isSidebarCollapsed || isMobile) && (
+            <div className="px-2 py-1 mb-2">
+              <div className="flex items-center justify-between px-3 py-2 rounded-luxury bg-white/5 border border-white/5">
+                <span className="text-[9px] font-bold uppercase tracking-widest text-white/40">
+                  Plano
+                </span>
+                <span className="text-[9px] font-black uppercase tracking-widest text-gold">
+                  {planKey}
+                </span>
+              </div>
+            </div>
+          )}
           <SidebarGalerias
             isSidebarCollapsed={isSidebarCollapsed}
             counts={counts}
@@ -120,7 +162,7 @@ export default function Sidebar({
             setCurrentView={setCurrentView}
             setCardsToShow={setCardsToShow}
           />
-
+          {/* O SidebarStorage já recebe galeriasCount e pode internamente comparar com permissions.maxGalleries */}
           <SidebarStorage
             isSidebarCollapsed={isSidebarCollapsed}
             galeriasCount={galeriasCount}
@@ -161,6 +203,13 @@ export default function Sidebar({
           </button>
         </div>
       </aside>
+
+      {/* Modal de Upgrade disparado pelo Sidebar */}
+      <UpgradeModal
+        isOpen={!!upsellFeature}
+        onClose={() => setUpsellFeature(null)}
+        featureName={upsellFeature || ''}
+      />
     </>
   );
 }

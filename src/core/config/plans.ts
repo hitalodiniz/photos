@@ -1,3 +1,5 @@
+import { PlanGuard } from '@/components/auth/PlanGuard';
+import { a } from 'framer-motion/client';
 import {
   Zap,
   Rocket,
@@ -10,9 +12,21 @@ import {
   Medal,
   Award,
 } from 'lucide-react';
+import { boolean } from 'zod';
+import { de, no, da } from 'zod/locales';
 
 export type SegmentType = 'PHOTOGRAPHER' | 'EVENT' | 'CAMPAIGN' | 'OFFICE';
 export type PlanKey = 'FREE' | 'START' | 'PLUS' | 'PRO' | 'PREMIUM';
+
+// Pendencias
+// teamMembers	Tela de Configurações de Time / Convite de Colaboradores.
+// profileLevel	Tela de Edição de Perfil (campos de Bio, Localização e SEO).
+// profileCarouselLimit	Upload de fotos de capa no Perfil Profissional.
+// removeBranding	Componente de Footer das galerias públicas.
+// canExportLeads	Botão de "Exportar CSV" na listagem de contatos.
+// canFavorite	Toggle de habilitar favoritos na galeria e exibição no front público.
+//
+// canCustomWhatsApp	Tela de edição de templates de mensagens de WhatsApp.
 
 /**
  * Interface técnica para o motor de permissões.
@@ -20,42 +34,42 @@ export type PlanKey = 'FREE' | 'START' | 'PLUS' | 'PRO' | 'PREMIUM';
  */
 export interface PlanPermissions {
   // Gestão
-  maxGalleries: number;
-  maxPhotosPerGallery: number; // implementado no google-drive.ts -> resolvePhotoLimitByPlan
+  maxGalleries: number; // implementado no galeria.actions.ts -> syncUserGalleriesAction
+  maxPhotosPerGallery: number; // implementado no google-drive.ts -> resolvePhotoLimitByPlan - LimitUpgradeModal e GaleriaDriveSection
   teamMembers: number;
 
   // Divulgação do Perfil
   profileLevel: 'basic' | 'standard' | 'advanced' | 'seo';
   profileCarouselLimit: number;
-  profileListLimit: number | 'unlimited';
-  removeBranding: boolean; // Atrelado ao Rodapé (Footer)
+  profileListLimit: number | 'unlimited'; // BT listar galeria no pefil travado
+  removeBranding: boolean; // Atrelado ao Rodapé (Footer) -- Implementado
 
   // Cadastro de visitantes (Leads)
-  canCaptureLeads: boolean;
-  canExportLeads: boolean;
+  canCaptureLeads: boolean; //Implementado no GaleriaFormContent através do PlanGuard envolvendo toda a seção de "Cadastro de Visitante"
+  canExportLeads: boolean; //Não utilizado, pois o canCaptureLeads já bloqueia tudo, não tem a opção de ver
 
   // Galeria & Experiência
   socialDisplayLevel: 'minimal' | 'social' | 'full';
   canFavorite: boolean;
   canDownloadFavoriteSelection: boolean;
   canShowSlideshow: boolean;
-  maxGridColumns: number;
+  maxGridColumns: number; //implementado no GalleryDesingFields.tsx
   maxTags: number;
   tagSelectionMode: 'manual' | 'bulk' | 'drive';
   zipSizeLimit: string; // Ex: '500KB', '3MB' -- implementado no url-helpers.ts -> resolveResolutionByPlan
-  maxExternalLinks: number;
-  canCustomLinkLabel: boolean;
+  maxExternalLinks: number; //Implementado na sidebar de links; o botão "adicionar novo" bloqueia e abre o UpgradeModal ao atingir o limite
+  canCustomLinkLabel: boolean; //Implementado com o overlay de cadeado (Lock) e desabilitação do input de label nos links de entrega.
 
   // Segurança & Automação
-  privacyLevel: 'public' | 'private' | 'password' | 'expiration';
-  keepOriginalFilenames: boolean;
-  customizationLevel: 'default' | 'colors' | 'full';
+  privacyLevel: 'public' | 'private' | 'password' | 'expiration'; //Implementado	Trava para as opções de "Senha" e "Expiração" no seletor de privacidade.
+  keepOriginalFilenames: boolean; //Implementado através do PlanGuard envolvendo a seção de "Renomear arquivos" no formulário da galeria
+  customizationLevel: 'default' | 'colors' | 'full'; //Implementado através do PlanGuard protegendo os seletores de "Cor de Fundo" e "Foto de Fundo" no design da galeria.
 
   // WhatsApp & Mensagens
   canCustomWhatsApp: boolean; //Permite editar os templates de GALLERY_MESSAGES
 
   // Categorias
-  canCustomCategories: boolean; //Permite criar categorias fora da GALLERY_CATEGORIES
+  canCustomCategories: boolean; //Permite criar categorias fora da GALLERY_CATEGORIES implementado no CategorySelect.tsx -> handleOpenModal - Implementado no GalleryDesignFields
 }
 
 export interface PlanInfo {
@@ -425,7 +439,7 @@ export const COMMON_FEATURES = [
 
   // --- IDENTIDADE & DIVULGAÇÃO ---
   {
-    group: 'Presença Digital',
+    group: 'Perfil Público',
     label: 'Perfil Profissional',
     values: [
       'Avatar + Nome',
@@ -436,7 +450,7 @@ export const COMMON_FEATURES = [
     ],
   },
   {
-    group: 'Presença Digital',
+    group: 'Perfil Público',
     label: 'Capa do Perfil',
     values: [
       'Imagem Padrão',
@@ -447,7 +461,18 @@ export const COMMON_FEATURES = [
     ],
   },
   {
-    group: 'Presença Digital',
+    group: 'Perfil Público',
+    label: 'Tamanho da Biográfia',
+    values: [
+      false,
+      '150 caracteres',
+      '250 caracteres',
+      '400 caracteres',
+      '400 caracteres',
+    ],
+  },
+  {
+    group: 'Perfil Público',
     label: 'Catálogo de Galerias',
     values: [
       'Exibir 1 galeria',
@@ -458,14 +483,14 @@ export const COMMON_FEATURES = [
     ],
   },
   {
-    group: 'Presença Digital',
+    group: 'Perfil Público',
     label: 'Branding (Rodapé)',
     values: [
       'Marca do App',
       'Marca do App',
       'Identidade do Autor',
       'Identidade do Autor',
-      'White Label (Sem Marca)',
+      'Identidade do Autor',
     ],
   },
 
@@ -493,12 +518,12 @@ export const COMMON_FEATURES = [
     ],
   },
   {
-    group: 'Captura de Clientes',
+    group: 'Cadastro de visitantes',
     label: 'Mensagens de WhatsApp',
     values: [
       'Templates Padrão',
       'Templates Padrão',
-      'Templates Padrão',
+      '+ Edição Customizada',
       '+ Edição Customizada',
       '+ Edição Customizada',
     ],
@@ -509,10 +534,10 @@ export const COMMON_FEATURES = [
     group: 'Experiência Visual',
     label: 'Contato no Visualizador',
     values: [
-      'Avatar',
+      'Avatar + Link Perfil',
       '+ Atalho WhatsApp',
       '+ Link Instagram',
-      '+ Link Perfil Full',
+      '+ Website Direto',
       '+ Website Direto',
     ],
   },
@@ -568,7 +593,7 @@ export const COMMON_FEATURES = [
       'Tema Editorial',
       '+ Cores do Grid',
       '+ Cores do Grid',
-      '+ Fundo Personalizado',
+      '+ Cores do Grid',
     ],
   },
 
@@ -599,8 +624,8 @@ export const COMMON_FEATURES = [
     group: 'Entrega de Arquivos',
     label: 'Preservação de Dados',
     values: [
-      'Nomes Aleatórios',
-      'Nomes Aleatórios',
+      'Sequênciais númericos',
+      'Sequênciais númericos',
       'Nomes Originais',
       'Nomes Originais',
       'Nomes Originais',
@@ -611,9 +636,9 @@ export const COMMON_FEATURES = [
     label: 'Controle de Acesso',
     values: [
       'Link Público',
-      'Link Privado',
-      'Link Privado',
       '+ Proteção por Senha',
+      '+ Proteção por Senha',
+      '+ Link com Expiração',
       '+ Link com Expiração',
     ],
   },

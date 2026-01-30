@@ -12,6 +12,7 @@ import {
 import { updateCustomCategories } from '@/core/services/profile.service';
 import BaseModal from '@/components/ui/BaseModal';
 import { usePlan } from '@/hooks/usePlan';
+import UpgradeModal from '@/components/ui/UpgradeModal';
 
 export default function CategorySelect({
   value,
@@ -19,6 +20,7 @@ export default function CategorySelect({
   initialCustomCategories = [],
 }) {
   const { permissions } = usePlan();
+  const [isUpgradeModalOpen, setIsUpgradeModalOpen] = useState(false);
   const [customCategories, setCustomCategories] = useState<string[]>(
     initialCustomCategories,
   );
@@ -35,13 +37,20 @@ export default function CategorySelect({
   ];
 
   const handleOpenModal = () => {
-    if (!permissions.canCustomCategories) return;
+    if (!permissions.canCustomCategories) {
+      setIsUpgradeModalOpen(true);
+      return;
+    }
+    setIsModalOpen(true);
     setNewCategoryName('');
     setErrorMessage('');
     setIsModalOpen(true);
   };
 
   const handleSaveCategory = async () => {
+    //Proteção dupla no salvamento
+    if (!permissions.canCustomCategories) return;
+
     const trimmedCat = newCategoryName.trim();
 
     if (!trimmedCat) {
@@ -157,7 +166,11 @@ export default function CategorySelect({
             )}
           </optgroup>
         </select>
-
+        <UpgradeModal
+          isOpen={isUpgradeModalOpen}
+          onClose={() => setIsUpgradeModalOpen(false)}
+          featureName="Categorias Personalizadas"
+        />
         <div className="absolute right-3.5 top-1/2 -translate-y-1/2 pointer-events-none text-petroleum/60 group-hover:text-gold transition-colors">
           {loading ? (
             <Loader2 size={16} className="animate-spin" />

@@ -1017,12 +1017,34 @@ export async function getGaleriaLeads(
 ): Promise<ActionResult<any[]>> {
   try {
     const supabase = await createSupabaseServerClientReadOnly();
-    const { success, userId } = await getAuthAndStudioIds(supabase);
 
-    if (!success || !userId) {
+    // 1. Obtém Auth e Perfil (que contém o plan_key)
+    const {
+      success: authSuccess,
+      userId,
+      profile,
+    } = await getAuthenticatedUser();
+
+    if (!authSuccess || !userId) {
       return { success: false, error: 'Não autorizado' };
     }
 
+    // 2. 🛡️ VALIDAÇÃO DE PLANO NO SERVER-SIDE
+    const planKey = (profile?.plan_key?.toUpperCase() as PlanKey) || 'FREE';
+    const permissions = PERMISSIONS_BY_PLAN[planKey];
+
+    if (!permissions?.canCaptureLeads) {
+      console.warn(
+        `[getGaleriaLeads] Tentativa de acesso bloqueada. Plano: ${planKey}`,
+      );
+      return {
+        success: false,
+        error: 'UPGRADE_REQUIRED',
+        message: 'Acesso negado. Seu plano atual não permite visualizar leads.',
+      };
+    }
+
+    // 3. Busca os dados apenas se autorizado
     const { data, error } = await supabase
       .from('tb_galeria_leads')
       .select('*')

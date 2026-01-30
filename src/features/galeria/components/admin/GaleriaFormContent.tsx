@@ -39,9 +39,13 @@ import WhatsAppIcon from '@/components/ui/WhatsAppIcon';
 import { convertToDirectDownloadUrl } from '@/core/utils/url-helper';
 import { LimitUpgradeModal } from '@/components/ui/LimitUpgradeModal';
 import { useGoogleDriveImage } from '@/hooks/useGoogleDriveImage';
-import { GalleryDesignFields } from './GalleryDesignFields';
+import { GalleryDesignFields } from './GaleriaDesignFields';
 import { LGPDPurposeField } from '@/components/ui/LGPDPurposeField';
 import { div } from 'framer-motion/client';
+import { PlanGuard } from '@/components/auth/PlanGuard';
+import { GaleriaDriveSection } from './GaleriaDriveSection';
+import { usePlan } from '@/hooks/usePlan';
+import UpgradeModal from '@/components/ui/UpgradeModal';
 
 // 🎯 Componente de seção simples (sem accordion) - Estilo Editorial
 const FormSection = ({
@@ -87,6 +91,14 @@ export default function GaleriaFormContent({
   setValue,
   watch,
 }) {
+  // Lógica de permissão de acesso
+  const { permissions, canAddMore } = usePlan();
+  const [upsellFeature, setUpsellFeature] = useState<string | null>(null);
+  const canUsePrivate = permissions.privacyLevel !== 'public';
+  const canUsePassword = ['password', 'expiration'].includes(
+    permissions.privacyLevel,
+  );
+
   const [showPassword, setShowPassword] = useState(false);
   const [, setLimitInfo] = useState({ count: 0, hasMore: false });
   const [showLimitModal, setShowLimitModal] = useState(false);
@@ -178,7 +190,7 @@ export default function GaleriaFormContent({
     }
   }, [leadsEnabled, leadsRequireName, leadsRequireEmail, leadsRequireWhatsapp]);
 
-  const PLAN_LIMIT = 500; // Este valor deve vir da sua lógica de planos/sessão
+  const PLAN_LIMIT = permissions.maxPhotosPerGallery; // 🎯 Dinâmico pelo plano
 
   const [hasContractingClient, setHasContractingClient] = useState(() => {
     if (isEdit)
@@ -206,6 +218,7 @@ export default function GaleriaFormContent({
     id: initialData?.drive_folder_id ?? '',
     name: initialData?.drive_folder_name ?? 'Nenhuma pasta selecionada',
     coverId: initialData?.cover_image_url ?? '',
+    photoCount: 0,
   });
 
   // 🎯 ESTADO PARA MÚLTIPLOS LINKS (JSON)
@@ -337,7 +350,11 @@ export default function GaleriaFormContent({
       // 🎯 PASSO 3: Verifica limites do plano
       let limitData = { count: 0, hasMore: false, totalInDrive: 0 };
       try {
-        limitData = await checkFolderLimits(driveFolderId, userId, PLAN_LIMIT);
+        limitData = await checkFolderLimits(
+          driveFolderId,
+          userId,
+          permissions.maxPhotosPerGallery,
+        );
       } catch (error) {
         console.warn(
           '[handleDriveSelection] Erro ao verificar limites:',
@@ -389,9 +406,11 @@ export default function GaleriaFormContent({
         id: driveFolderId,
         name: driveFolderName,
         coverId: coverFileId,
+        photoCount: limitData.totalInDrive || limitData.count,
       });
       setLimitInfo(limitData);
 
+      setPhotoCount(limitData.totalInDrive || limitData.count);
       // Atualiza a contagem de fotos
       if (limitData.totalInDrive) {
         setPhotoCount(limitData.totalInDrive);
@@ -728,8 +747,18 @@ export default function GaleriaFormContent({
                   </div>
                   {!isPublic && (
                     <div className="relative group w-32">
+                      {/* 🛡️ PlanGuard para o campo de Senha */}
+                      {!canUsePassword && (
+                        <div
+                          onClick={() => setUpsellFeature('Proteção por Senha')}
+                          className="absolute inset-0 z-20 cursor-pointer bg-white/50 backdrop-blur-[1px] flex items-center justify-center rounded-[0.4rem]"
+                        >
+                          <Lock size={12} className="text-gold" />
+                        </div>
+                      )}
                       <input
                         name="password"
+                        disabled={!canUsePassword}
                         type={showPassword ? 'text' : 'password'}
                         inputMode="numeric"
                         pattern="[0-9]*"
@@ -745,6 +774,7 @@ export default function GaleriaFormContent({
                       />
                       <button
                         type="button"
+                        disabled={!canUsePassword}
                         onClick={() => setShowPassword(!showPassword)}
                         className="absolute right-2 top-1/2 -translate-y-1/2 text-slate-400 hover: transition-colors p-1"
                       >
@@ -759,143 +789,173 @@ export default function GaleriaFormContent({
                 </div>
               </div>
 
-              {/* LISTAGEM NO PERFIL */}
-              <div className="flex flex-col sm:flex-row items-start sm:items-center gap-3">
-                <div className="flex items-center gap-1.5 shrink-0">
-                  <label className="text-[10px] font-semibold uppercase tracking-widest text-petroleum">
-                    <Eye size={12} className=" inline mr-1.5" /> Listar no
-                    Perfil
-                  </label>
-                  <div className="group relative flex items-center">
-                    <div className="flex items-center justify-center w-3.5 h-3.5 rounded-full border border-petroleum/40 text-petroleum/60 dark:text-slate-400 group-hover:border-gold group-hover: transition-colors cursor-help">
-                      <span className="text-[10px] font-semibold">?</span>
-                    </div>
-                    <div className="absolute bottom-full left-0 lg:left-auto lg:right-0 mb-3 w-64 p-3 bg-slate-900 text-white text-[10px] font-medium leading-relaxed rounded-luxury opacity-0 pointer-events-none group-hover:opacity-100 transition-all duration-300 shadow-2xl z-[100] text-left border border-white/10">
-                      <p>
-                        Se ativado, esta galeria será visível na sua{' '}
-                        <strong className="text-champagne">
-                          página de perfil pública
-                        </strong>{' '}
-                        para todos os visitantes.
-                      </p>
-                      <div className="absolute top-full left-2 lg:left-auto lg:right-2 border-8 border-transparent border-t-slate-900" />
-                    </div>
-                  </div>
-                </div>
-
-                <button
-                  type="button"
-                  onClick={() => setShowOnProfile(!showOnProfile)}
-                  className={`relative h-5 w-9 rounded-full transition-colors duration-200 ${showOnProfile ? 'bg-gold' : 'bg-slate-200'}`}
-                >
-                  <span
-                    className={`absolute top-0.5 left-0.5 h-4 w-4 rounded-full bg-white shadow-sm transition-transform duration-200 ${showOnProfile ? 'translate-x-4' : ''}`}
-                  />
-                </button>
-              </div>
-            </div>
-          </fieldset>
-        </FormSection>
-
-        {/* SEÇÃO NOVA: CAPTURA DE LEADS */}
-        <FormSection title="Cadastro de visitante" icon={<Users size={14} />}>
-          <fieldset>
-            <div className="flex flex-col gap-2">
-              <div className="flex flex-col items-start gap-1">
-                <div className="flex items-center gap-1">
-                  <label className="text-[10px] font-semibold uppercase tracking-widest text-petroleum">
-                    Habilitar cadastro de visitante para visualizar a galeria
-                  </label>
-                  <button
-                    type="button"
-                    onClick={() => setLeadsEnabled(!leadsEnabled)}
-                    className={`relative h-5 w-9 rounded-full transition-colors duration-200 ${leadsEnabled ? 'bg-gold' : 'bg-slate-200'}`}
-                  >
-                    <span
-                      className={`absolute top-0.5 left-0.5 h-4 w-4 rounded-full bg-white shadow-sm transition-transform duration-200 ${leadsEnabled ? 'translate-x-4' : ''}`}
-                    />
-                  </button>
-                </div>
-                {!isEdit && (
-                  <p className="text-[10px] text-petroleum/60 dark:text-slate-400 italic">
-                    Aumente sua base de contatos exigindo dados básicos antes
-                    dos clientes visualizarem as fotos.
-                  </p>
-                )}
-              </div>
-
-              {leadsEnabled && (
-                <>
-                  <div className="w-full mt-2">
-                    <div className="space-y-1.5 animate-in fade-in slide-in-from-top-2 duration-300">
-                      <label className="text-[10px] font-semibold uppercase tracking-widest text-petroleum">
-                        Campos para captura
-                      </label>
-                      <div className="grid grid-cols-1 sm:grid-cols-3 gap-4 p-4 bg-slate-50 rounded-luxury border border-petroleum/20 animate-in fade-in slide-in-from-top-2 duration-300">
-                        <div
-                          onClick={() => toggleLeadField('name')}
-                          className="flex items-center gap-2 cursor-pointer group"
-                        >
-                          <div
-                            className={`w-4 h-4 rounded border transition-colors flex items-center justify-center ${leadsRequireName ? 'bg-gold border-gold' : 'bg-white border-petroleum/40'}`}
-                          >
-                            {leadsRequireName && (
-                              <CheckCircle2 size={10} className="text-white" />
-                            )}
-                          </div>
-                          <span className="text-[11px] font-semibold uppercase tracking-wider text-petroleum/80 group-hover:text-petroleum">
-                            Exigir Nome
-                          </span>
-                        </div>
-
-                        <div
-                          onClick={() => toggleLeadField('email')}
-                          className="flex items-center gap-2 cursor-pointer group"
-                        >
-                          <div
-                            className={`w-4 h-4 rounded border transition-colors flex items-center justify-center ${leadsRequireEmail ? 'bg-gold border-gold' : 'bg-white border-petroleum/40'}`}
-                          >
-                            {leadsRequireEmail && (
-                              <CheckCircle2 size={10} className="text-white" />
-                            )}
-                          </div>
-                          <span className="text-[11px] font-semibold uppercase tracking-wider text-petroleum/80 group-hover:text-petroleum">
-                            Exigir E-mail
-                          </span>
-                        </div>
-
-                        <div
-                          onClick={() => toggleLeadField('whatsapp')}
-                          className="flex items-center gap-2 cursor-pointer group"
-                        >
-                          <div
-                            className={`w-4 h-4 rounded border transition-colors flex items-center justify-center ${leadsRequireWhatsapp ? 'bg-gold border-gold' : 'bg-white border-petroleum/40'}`}
-                          >
-                            {leadsRequireWhatsapp && (
-                              <CheckCircle2 size={10} className="text-white" />
-                            )}
-                          </div>
-                          <span className="text-[11px] font-semibold uppercase tracking-wider text-petroleum/80 group-hover:text-petroleum">
-                            Exigir WhatsApp
-                          </span>
-                        </div>
+              {/* LISTAGEM NO PERFIL - Também pode ser protegida pelo profileListLimit */}
+              <PlanGuard
+                feature="profileLevel" // Planos básicos podem ter limitações aqui
+                label="Listar no Perfil"
+                icon={Eye}
+                onClickLocked={setUpsellFeature}
+              >
+                <div className="flex flex-col sm:flex-row items-start sm:items-center gap-3">
+                  <div className="flex items-center gap-1.5 shrink-0">
+                    <label className="text-[10px] font-semibold uppercase tracking-widest text-petroleum">
+                      <Eye size={12} className=" inline mr-1.5" /> Listar no
+                      Perfil
+                    </label>
+                    <div className="group relative flex items-center">
+                      <div className="flex items-center justify-center w-3.5 h-3.5 rounded-full border border-petroleum/40 text-petroleum/60 dark:text-slate-400 group-hover:border-gold group-hover: transition-colors cursor-help">
+                        <span className="text-[10px] font-semibold">?</span>
+                      </div>
+                      <div className="absolute bottom-full left-0 lg:left-auto lg:right-0 mb-3 w-64 p-3 bg-slate-900 text-white text-[10px] font-medium leading-relaxed rounded-luxury opacity-0 pointer-events-none group-hover:opacity-100 transition-all duration-300 shadow-2xl z-[100] text-left border border-white/10">
+                        <p>
+                          Se ativado, esta galeria será visível na sua{' '}
+                          <strong className="text-champagne">
+                            página de perfil pública
+                          </strong>{' '}
+                          para todos os visitantes.
+                        </p>
+                        <div className="absolute top-full left-2 lg:left-auto lg:right-2 border-8 border-transparent border-t-slate-900" />
                       </div>
                     </div>
                   </div>
 
-                  <div className="mt-6">
-                    <LGPDPurposeField
-                      register={register}
-                      setValue={setValue}
-                      watch={watch}
-                      fieldName="lead_purpose"
-                      initialValue={initialData?.lead_purpose}
-                      required={watch('leads_enabled')}
+                  <button
+                    type="button"
+                    onClick={() => setShowOnProfile(!showOnProfile)}
+                    className={`relative h-5 w-9 rounded-full transition-colors duration-200 ${showOnProfile ? 'bg-gold' : 'bg-slate-200'}`}
+                  >
+                    <span
+                      className={`absolute top-0.5 left-0.5 h-4 w-4 rounded-full bg-white shadow-sm transition-transform duration-200 ${showOnProfile ? 'translate-x-4' : ''}`}
                     />
-                  </div>
-                </>
-              )}
+                  </button>
+                </div>
+              </PlanGuard>
             </div>
+            {/* Renderizar o UpgradeModal no final do componente pai */}
+            <UpgradeModal
+              isOpen={!!upsellFeature}
+              onClose={() => setUpsellFeature(null)}
+              featureName={upsellFeature || ''}
+            />
+          </fieldset>
+        </FormSection>
+
+        {/* SEÇÃO NOVA: CAPTURA DE LEADS */}
+
+        <FormSection title="Cadastro de visitante" icon={<Users size={14} />}>
+          <fieldset>
+            <PlanGuard
+              feature="canCaptureLeads"
+              label="Cadastro de visitante"
+              icon={Users}
+              onClickLocked={setUpsellFeature}
+            >
+              <div className="flex flex-col gap-2">
+                <div className="flex flex-col items-start gap-1">
+                  <div className="flex items-center gap-1">
+                    <label className="text-[10px] font-semibold uppercase tracking-widest text-petroleum">
+                      Habilitar cadastro de visitante para visualizar a galeria
+                    </label>
+                    <button
+                      type="button"
+                      onClick={() => setLeadsEnabled(!leadsEnabled)}
+                      className={`relative h-5 w-9 rounded-full transition-colors duration-200 ${leadsEnabled ? 'bg-gold' : 'bg-slate-200'}`}
+                    >
+                      <span
+                        className={`absolute top-0.5 left-0.5 h-4 w-4 rounded-full bg-white shadow-sm transition-transform duration-200 ${leadsEnabled ? 'translate-x-4' : ''}`}
+                      />
+                    </button>
+                  </div>
+                  {!isEdit && (
+                    <p className="text-[10px] text-petroleum/60 dark:text-slate-400 italic">
+                      Aumente sua base de contatos exigindo dados básicos antes
+                      dos clientes visualizarem as fotos.
+                    </p>
+                  )}
+                </div>
+
+                {leadsEnabled && (
+                  <>
+                    <div className="w-full mt-2">
+                      <div className="space-y-1.5 animate-in fade-in slide-in-from-top-2 duration-300">
+                        <label className="text-[10px] font-semibold uppercase tracking-widest text-petroleum">
+                          Campos para captura
+                        </label>
+                        <div className="grid grid-cols-1 sm:grid-cols-3 gap-4 p-4 bg-slate-50 rounded-luxury border border-petroleum/20 animate-in fade-in slide-in-from-top-2 duration-300">
+                          <div
+                            onClick={() => toggleLeadField('name')}
+                            className="flex items-center gap-2 cursor-pointer group"
+                          >
+                            <div
+                              className={`w-4 h-4 rounded border transition-colors flex items-center justify-center ${leadsRequireName ? 'bg-gold border-gold' : 'bg-white border-petroleum/40'}`}
+                            >
+                              {leadsRequireName && (
+                                <CheckCircle2
+                                  size={10}
+                                  className="text-white"
+                                />
+                              )}
+                            </div>
+                            <span className="text-[11px] font-semibold uppercase tracking-wider text-petroleum/80 group-hover:text-petroleum">
+                              Exigir Nome
+                            </span>
+                          </div>
+
+                          <div
+                            onClick={() => toggleLeadField('email')}
+                            className="flex items-center gap-2 cursor-pointer group"
+                          >
+                            <div
+                              className={`w-4 h-4 rounded border transition-colors flex items-center justify-center ${leadsRequireEmail ? 'bg-gold border-gold' : 'bg-white border-petroleum/40'}`}
+                            >
+                              {leadsRequireEmail && (
+                                <CheckCircle2
+                                  size={10}
+                                  className="text-white"
+                                />
+                              )}
+                            </div>
+                            <span className="text-[11px] font-semibold uppercase tracking-wider text-petroleum/80 group-hover:text-petroleum">
+                              Exigir E-mail
+                            </span>
+                          </div>
+
+                          <div
+                            onClick={() => toggleLeadField('whatsapp')}
+                            className="flex items-center gap-2 cursor-pointer group"
+                          >
+                            <div
+                              className={`w-4 h-4 rounded border transition-colors flex items-center justify-center ${leadsRequireWhatsapp ? 'bg-gold border-gold' : 'bg-white border-petroleum/40'}`}
+                            >
+                              {leadsRequireWhatsapp && (
+                                <CheckCircle2
+                                  size={10}
+                                  className="text-white"
+                                />
+                              )}
+                            </div>
+                            <span className="text-[11px] font-semibold uppercase tracking-wider text-petroleum/80 group-hover:text-petroleum">
+                              Exigir WhatsApp
+                            </span>
+                          </div>
+                        </div>
+                      </div>
+                    </div>
+
+                    <div className="mt-6">
+                      <LGPDPurposeField
+                        register={register}
+                        setValue={setValue}
+                        watch={watch}
+                        fieldName="lead_purpose"
+                        initialValue={initialData?.lead_purpose}
+                        required={watch('leads_enabled')}
+                      />
+                    </div>
+                  </>
+                )}
+              </div>
+            </PlanGuard>
           </fieldset>
         </FormSection>
 
@@ -921,107 +981,20 @@ export default function GaleriaFormContent({
       {/* COLUNA LATERAL (35%) */}
       <div className="w-full lg:w-[35%] border-t lg:border-t-0 lg:border-l border-petroleum/40 pl-0 lg:pl-2 space-y-4 bg-slate-50/30  px-2 pb-6">
         {/* GOOGLE DRIVE - Seção Principal */}
-        <div className="relative bg-white rounded-luxury border border-petroleum/40 p-4 space-y-4 mt-2 overflow-hidden">
-          {/* Overlay de Validação */}
-          {isValidatingDrive && (
-            <div className="absolute inset-0 z-50 flex flex-col items-center justify-center bg-white/80 backdrop-blur-sm animate-in fade-in duration-300">
-              <Loader2 className="w-8 h-8 text-gold animate-spin mb-2" />
-              <p className="text-[10px] font-bold uppercase tracking-widest text-petroleum">
-                Validando Pasta...
-              </p>
-            </div>
-          )}
-          <div className="flex items-center gap-2 pb-2 border-b border-petroleum/40">
-            <FolderSync size={14} className="" />
-            <h3 className="text-[10px] font-bold uppercase tracking-widest text-petroleum">
-              Google Drive
-            </h3>
-          </div>
-
-          {/* Subseção 1: Vincular Pasta do Google Drive */}
-          <div className="space-y-3">
-            <label className="text-[10px] font-semibold uppercase tracking-widest text-petroleum flex items-center gap-1.5">
-              <FolderSync size={12} strokeWidth={2} className="inline" />
-              Vincular Pasta do Google Drive
-            </label>
-
-            <div className="flex flex-col bg-slate-50 p-3 rounded-luxury border border-petroleum/40 space-y-3">
-              <p className="text-[13px] text-petroleum/90 dark:text-slate-500 font-semibold truncate bg-white/50 px-2 py-1.5 rounded border border-petroleum/40">
-                {driveData.name || 'Nenhuma pasta selecionada'}
-              </p>
-
-              {/* Botão VINCULAR/ALTERAR PASTA */}
-              <div>
-                <GooglePickerButton
-                  onFolderSelect={handleFolderSelect}
-                  onError={onPickerError}
-                  currentDriveId={driveData.id}
-                  onTokenExpired={onTokenExpired}
-                />
-              </div>
-
-              {driveData.id && (
-                <a
-                  href={`https://drive.google.com/drive/folders/${driveData.id}`}
-                  target="_blank"
-                  rel="noopener noreferrer"
-                  className="btn-secondary-white w-full"
-                >
-                  <FolderSync size={14} className="" />
-                  Abrir no Google Drive
-                </a>
-              )}
-            </div>
-          </div>
-
-          {/* Subseção 2: Preview de Capa */}
-          <div className="space-y-3 pt-3 border-t border-petroleum/40">
-            <label className="text-[10px] font-semibold uppercase tracking-widest text-petroleum flex items-center gap-1.5">
-              <ImageIcon size={12} strokeWidth={2} className="inline" />
-              Foto de capa selecionada
-            </label>
-
-            <div className="relative aspect-[16/9] w-full overflow-hidden rounded-luxury bg-slate-100 border border-petroleum/40">
-              {coverPreviewUrl ? (
-                <img
-                  ref={imgRef}
-                  src={coverPreviewUrl}
-                  onLoad={handleLoad}
-                  onError={handleError}
-                  alt="Preview da capa"
-                  className="w-full h-full object-contain"
-                />
-              ) : (
-                <div className="absolute inset-0 flex items-center justify-center">
-                  <ImageIcon size={32} className="text-slate-300" />
-                </div>
-              )}
-            </div>
-          </div>
-
-          {/* Subseção 3: Renomear Arquivos */}
-          <div className="space-y-3 pt-4 border-t border-petroleum/40">
-            <div className="flex items-center justify-between">
-              <label className="text-[10px] font-semibold uppercase tracking-widest text-petroleum flex items-center gap-1.5">
-                <ImageIcon size={12} strokeWidth={2} className="inline" />
-                Renomear fotos (foto-001...)
-              </label>
-              <button
-                type="button"
-                onClick={() => setRenameFilesSequential(!renameFilesSequential)}
-                className={`relative h-5 w-9 rounded-full transition-colors duration-200 ${renameFilesSequential ? 'bg-gold' : 'bg-slate-200'}`}
-              >
-                <span
-                  className={`absolute top-0.5 left-0.5 h-4 w-4 rounded-full bg-white shadow-sm transition-transform duration-200 ${renameFilesSequential ? 'translate-x-4' : ''}`}
-                />
-              </button>
-            </div>
-            <p className="text-[10px] text-petroleum/60 dark:text-slate-400 italic leading-tight">
-              Padroniza o nome das fotos para &quot;foto-1.jpg&quot;,
-              &quot;foto-2.jpg&quot;, etc, facilitando a organização do cliente.
-            </p>
-          </div>
-        </div>
+        <GaleriaDriveSection
+          driveData={driveData}
+          handleFolderSelect={handleFolderSelect}
+          onPickerError={onPickerError}
+          onTokenExpired={onTokenExpired}
+          isValidatingDrive={isValidatingDrive}
+          coverPreviewUrl={coverPreviewUrl}
+          imgRef={imgRef}
+          handleLoad={handleLoad}
+          handleError={handleError}
+          renameFilesSequential={renameFilesSequential}
+          setRenameFilesSequential={setRenameFilesSequential}
+          setUpsellFeature={setUpsellFeature}
+        />
 
         {/* LINKS E ARQUIVOS */}
         <div className="bg-white rounded-luxury border border-petroleum/40 p-4 space-y-3">
@@ -1064,8 +1037,20 @@ export default function GaleriaFormContent({
                   <div className="flex flex-row items-center gap-2">
                     {/* Input de Descrição/Label - 30% de largura */}
                     <div className="relative w-[30%]">
+                      {!permissions.canCustomLinkLabel && (
+                        <div
+                          onClick={() =>
+                            setUpsellFeature('Nome do Link Customizado')
+                          }
+                          className="absolute inset-0 z-10 cursor-pointer bg-slate-50/50 flex items-center justify-center"
+                        >
+                          <Lock size={10} className="text-petroleum/30" />
+                        </div>
+                      )}
+
                       <input
                         type="text"
+                        disabled={!permissions.canCustomLinkLabel}
                         required // 🎯 Torna obrigatório
                         value={link.label}
                         minLength={3} // 🎯 Mínimo de caracteres (ajustado de 5 para 3 para ser mais flexível)
@@ -1110,23 +1095,39 @@ export default function GaleriaFormContent({
 
             <button
               type="button"
-              onClick={() =>
-                setLinks([
-                  ...links,
-                  { url: '', label: `LINK ${links.length + 1}` },
-                ])
-              }
+              onClick={() => {
+                if (canAddMore('maxExternalLinks', links.length)) {
+                  setLinks([
+                    ...links,
+                    { url: '', label: `LINK ${links.length + 1}` },
+                  ]);
+                } else {
+                  setUpsellFeature('Mais Links de Entrega');
+                }
+              }}
               className="btn-secondary-white w-full h-9 group border-dashed"
             >
-              <Plus
-                size={14}
-                className="group-hover:rotate-90 transition-transform"
-              />
+              {canAddMore('maxExternalLinks', links.length) ? (
+                <>
+                  <Plus size={14} /> adicionar novo link
+                </>
+              ) : (
+                <>
+                  <Lock size={14} className="text-gold" /> Limite atingido
+                  (Upgrade)
+                </>
+              )}
               adicionar novo link
             </button>
           </div>
         </div>
       </div>
+      {/* MODAL DE UPGRADE ÚNICO */}
+      <UpgradeModal
+        isOpen={!!upsellFeature}
+        onClose={() => setUpsellFeature(null)}
+        featureName={upsellFeature || ''}
+      />
 
       <LimitUpgradeModal
         isOpen={showLimitModal}

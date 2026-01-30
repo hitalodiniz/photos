@@ -1,7 +1,13 @@
 'use client';
-import React from 'react';
+import React, { useMemo } from 'react';
 import { User, Sparkles } from 'lucide-react';
 import Image from 'next/image';
+import { usePlan } from '@/hooks/usePlan';
+
+interface ProfileBioProps {
+  miniBio?: string;
+  isExpanded: boolean;
+}
 
 // SUB-COMPONENTE PARA O AVATAR (Passado no sideElement)
 export const PhotographerAvatar = ({ photoPreview, isExpanded }: any) => (
@@ -24,30 +30,44 @@ export const PhotographerAvatar = ({ photoPreview, isExpanded }: any) => (
 );
 
 // SUB-COMPONENTE PARA A BIO E CIDADES (Passado no children)
-export const PhotographerBio = ({ miniBio, isExpanded }: any) => (
-  <div className="flex flex-col items-start w-full">
-    {miniBio && (
-      <div
-        className={`flex items-start text-white font-medium gap-1.5 italic transition-all duration-1000 ${isExpanded ? 'text-[14px] md:text-[22px] mb-2' : 'text-[12px] md:text-[18px] mb-1'}`}
-      >
-        <Sparkles
-          size={isExpanded ? 18 : 14}
-          className="text-[#F3E5AB] shrink-0 mt-1"
-        />
-        <span
-          className={
-            isExpanded
-              ? 'max-w-4xl w-full mb-6 opacity-100 line-clamp-[8]' // Espaço generoso quando aberto
-              : 'max-w-2xl line-clamp-2 md:line-clamp-5  opacity-80 mb-2' // Compacto mas legível quando fechado
-          }
+export const ProfileBio = ({ miniBio, isExpanded }: ProfileBioProps) => {
+  const { planKey } = usePlan();
+
+  // 🛡️ REGRA: Plano FREE não exibe Bio (mesmo que exista no banco)
+  if (planKey === 'FREE' || !miniBio) return null;
+
+  // 🛡️ Limitação de exibição em tempo real
+  const truncatedBio = useMemo(() => {
+    const limit = planKey === 'START' ? 150 : planKey === 'PLUS' ? 250 : 400;
+    if (miniBio.length <= limit) return miniBio;
+    return miniBio.substring(0, limit) + '...';
+  }, [miniBio, planKey]);
+
+  return (
+    <div className="flex flex-col items-start w-full">
+      {miniBio && (
+        <div
+          className={`flex items-start text-white font-medium gap-1.5 italic transition-all duration-1000 ${isExpanded ? 'text-[14px] md:text-[22px] mb-2' : 'text-[12px] md:text-[18px] mb-1'}`}
         >
-          {miniBio}
-        </span>
-      </div>
-    )}
-    {/*<div className="flex items-center text-white text-[10px] md:text-[14px] font-medium gap-1.5 opacity-90">
+          <Sparkles
+            size={isExpanded ? 18 : 14}
+            className="text-[#F3E5AB] shrink-0 mt-1"
+          />
+          <span
+            className={
+              isExpanded
+                ? 'max-w-4xl w-full mb-6 opacity-100 line-clamp-[8]' // Espaço generoso quando aberto
+                : 'max-w-2xl line-clamp-2 md:line-clamp-5  opacity-80 mb-2' // Compacto mas legível quando fechado
+            }
+          >
+            {truncatedBio}
+          </span>
+        </div>
+      )}
+      {/*<div className="flex items-center text-white text-[10px] md:text-[14px] font-medium gap-1.5 opacity-90">
       <MapPin size={14} className="text-[#F3E5AB]" />
       <span className="tracking-wider">{cities.join(' • ')}</span>
     </div>*/}
-  </div>
-);
+    </div>
+  );
+};

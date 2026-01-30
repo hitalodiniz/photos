@@ -24,6 +24,7 @@ export interface Photographer {
   use_subdomain: boolean; // Essencial para a lógica de URL
   profile_url: string;
   roles?: string[];
+  website: string | null;
 }
 
 // Interface Base (Reflete exatamente a tabela tb_galerias no Banco)

@@ -8,7 +8,7 @@ import {
   MessageTemplatesSchema,
 } from '@/core/types/profile';
 import { updateProfileSettings } from '@/core/services/profile.service';
-import { GalleryDesignFields } from '@/features/galeria/components/admin/GalleryDesignFields';
+import { GalleryDesignFields } from '@/features/galeria/components/admin/GaleriaDesignFields';
 import { useRef, useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { Layout, CheckCircle2, Image } from 'lucide-react';

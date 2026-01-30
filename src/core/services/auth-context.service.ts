@@ -2,6 +2,21 @@
 
 import { createSupabaseServerClientReadOnly } from '@/lib/supabase.server';
 import { cache } from 'react';
+import { PlanKey } from '../config/plans';
+
+export interface UserProfile {
+  id: string;
+  plan_key: PlanKey;
+  username: string;
+  studio_id: string;
+  full_name: string;
+  profile_picture_url: string | null;
+  phone_contact: string | null;
+  instagram_link: string | null;
+  use_subdomain: boolean;
+  profile_url: string;
+  roles?: string[];
+}
 
 /**
  * Service para obter contexto de autenticação (userId + studioId)

@@ -7,7 +7,10 @@ export default defineConfig({
   resolve: {
     alias: {
       '@': path.resolve(__dirname, './src'),
-      '@photos/core-auth': path.resolve(__dirname, './packages/@photos/core-auth/src/index.ts'),
+      '@photos/core-auth': path.resolve(
+        __dirname,
+        './packages/@photos/core-auth/src/index.ts',
+      ),
     },
   },
   test: {
@@ -18,6 +21,7 @@ export default defineConfig({
     env: {
       NEXT_PUBLIC_SUPABASE_URL: 'https://uxbakxnl.supabase.co',
       NEXT_PUBLIC_SUPABASE_ANON_KEY: 'fake-key',
+      NEXT_PUBLIC_EMAIL: 'app.suagaleria@gmail.com',
     },
     coverage: {
       provider: 'v8',

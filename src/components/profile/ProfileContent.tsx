@@ -1,5 +1,5 @@
 'use client';
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useMemo } from 'react';
 import { PhotographerAvatar, PhotographerBio } from './ProfileHero';
 import { PhotographerInfoBar } from './ProfileToolBar';
 import { EditorialHero } from '@/components/ui/EditorialHero';
@@ -8,6 +8,8 @@ import type { Galeria } from '@/core/types/galeria';
 import { Loader2 } from 'lucide-react';
 import { PublicGaleriaCard } from './PublicGaleriaCard';
 import { GaleriaFooter } from '@/components/galeria';
+import { usePlan } from '@/hooks/usePlan';
+import { BrandWatermark } from '../ui/BrandWatermark';
 
 interface ProfileContentProps {
   fullName: string;
@@ -34,6 +36,7 @@ export default function PhotographerContent({
   backgroundUrl,
   useSubdomain = true,
 }: ProfileContentProps) {
+  const { permissions, planKey } = usePlan();
   const [isLoading, setIsLoading] = useState(true);
   const [scrollY, setScrollY] = useState(0);
   const [isHovered, setIsHovered] = useState(false);
@@ -42,6 +45,26 @@ export default function PhotographerContent({
   const [page, setPage] = useState(1);
   const [hasMore, setHasMore] = useState(false);
   const [loadingMore, setLoadingMore] = useState(false);
+
+  // 🛡️ 1. Lógica de Background Dinâmico
+  const activeBackground = useMemo(() => {
+    if (planKey === 'FREE') {
+      // Imagem aleatória do app para plano Free
+      return 'https://images.unsplash.com/photo-1493863641943-9b68992a8d07?q=80&w=2058';
+    }
+    return backgroundUrl; // Foto do profile para demais planos
+  }, [planKey, backgroundUrl]);
+
+  // 🛡️ 2. Lógica de Conteúdo do Header
+  const showBio = planKey !== 'FREE';
+  const showCities = !['FREE', 'START'].includes(planKey); // Só Plus, Pro e Premium
+
+  // 🛡️ Lógica de Nível de Perfil baseada no Plano
+  // SEO e Website Direto costumam ser 'advanced' ou 'premium'
+  const canShowWebsite =
+    permissions.profileLevel === 'advanced' ||
+    permissions.profileLevel === 'seo';
+  const showDetailedBio = permissions.profileLevel !== 'basic';
 
   // 2. Construa o objeto photographer compatível com a interface que definimos
   const photographerData = {
@@ -52,21 +75,27 @@ export default function PhotographerContent({
     profile_picture_url: photoPreview,
     use_subdomain: useSubdomain, // 🎯 Agora usa o valor real ou prop
     profile_url: website || '',
+    website_url: canShowWebsite ? website : '', // 🛡️ Trava o dado se não tiver nível
     id: '', // O ID não é necessário para os links do footer
   };
 
   // Busca inicial
   useEffect(() => {
-    async function loadInitialData() {
+    async function loadData() {
       const res = await getPublicProfileGalerias(username, 1);
       if (res.success) {
-        setGalerias(res.data);
-        setHasMore(res.hasMore);
+        // 🛡️ 3. Lógica de Limite de Galerias
+        let limit = 1;
+        if (planKey === 'START') limit = 10;
+        if (planKey === 'PLUS') limit = 20;
+        if (['PRO', 'PREMIUM'].includes(planKey)) limit = 9999;
+
+        setGalerias(res.data.slice(0, limit));
       }
       setIsLoading(false);
     }
-    loadInitialData();
-  }, [username]);
+    loadData();
+  }, [username, planKey]);
 
   const loadMore = async () => {
     if (loadingMore || !hasMore) return;
@@ -99,7 +128,7 @@ export default function PhotographerContent({
       {/* HERO SECTION - O Editorial apenas provê o fundo e a lógica de altura */}
       <EditorialHero
         title={fullName}
-        coverUrl={backgroundUrl}
+        coverUrl={activeBackground}
         sideElement={
           <PhotographerAvatar
             photoPreview={photoPreview}
@@ -107,7 +136,10 @@ export default function PhotographerContent({
           />
         }
       >
-        <PhotographerBio miniBio={miniBio} isExpanded={isExpanded} />
+        {/* 🛡️ Exibe a Bio apenas se o nível de perfil permitir detalhes */}
+        {showDetailedBio && (
+          <PhotographerBio miniBio={miniBio} isExpanded={isExpanded} />
+        )}
       </EditorialHero>
       {/* INFOBAR ADAPTADA (Sticky e flutuante no scroll) */}
       <div
@@ -118,8 +150,8 @@ export default function PhotographerContent({
         <PhotographerInfoBar
           phone={phone}
           instagram={instagram}
-          website={website}
-          cities={cities}
+          website={photographerData.website_url} // 🛡️ Já filtrado acima
+          cities={showCities ? cities : []}
           username={username}
           useSubdomain={photographerData.use_subdomain}
           isScrolled={isScrolled}
@@ -128,36 +160,57 @@ export default function PhotographerContent({
       </div>
 
       {/* ESPAÇADOR PARA CONTEÚDO ADICIONAL NO FUTURO */}
-      <main className="relative z-30 max-w-[1600px] mx-auto px-4 py-4 min-h-[40vh]">
+      <main className="relative z-30 max-w-[1600px] mx-auto px-4 py-12 min-h-[40vh]">
         {galerias.length > 0 ? (
           <div className="space-y-12">
-            <div className="grid grid-cols-2 lg:grid-cols-4 xl:grid-cols-4 gap-6">
+            {/* Grid de Galerias */}
+            <div className="grid grid-cols-2 lg:grid-cols-4 gap-6">
               {galerias.map((galeria) => (
                 <PublicGaleriaCard key={galeria.id} galeria={galeria} />
               ))}
             </div>
 
-            {hasMore && (
+            {/* 🛡️ Botão Carregar Mais: Apenas se o plano permitir portfólio ilimitado */}
+            {hasMore && (planKey === 'PRO' || planKey === 'PREMIUM') && (
               <div className="flex justify-center pt-10">
                 <button
                   onClick={loadMore}
                   disabled={loadingMore}
-                  className="px-8 py-3 border border-[#F3E5AB]/30 text-[#F3E5AB] text-[10px] uppercase tracking-[0.2em] hover:bg-[#F3E5AB] hover:text-black transition-all disabled:opacity-50"
+                  className="px-8 py-3 border border-[#F3E5AB]/30 text-[#F3E5AB] text-[10px] uppercase tracking-[0.2em] hover:bg-[#F3E5AB] hover:text-black transition-all disabled:opacity-50 min-w-[200px] flex items-center justify-center"
                 >
                   {loadingMore ? (
-                    <Loader2 className="animate-spin" />
+                    <Loader2 className="animate-spin w-4 h-4" />
                   ) : (
                     'Carregar mais trabalhos'
                   )}
                 </button>
               </div>
             )}
+
+            {/* 🛡️ Upgrade Call / Upsell Dinâmico conforme o limite do plano */}
+            {((planKey === 'FREE' && galerias.length >= 1) ||
+              (planKey === 'START' && galerias.length >= 10) ||
+              (planKey === 'PLUS' && galerias.length >= 20)) && (
+              <div className="mt-20 text-center space-y-4">
+                <div className="w-px h-12 bg-gradient-to-b from-[#F3E5AB]/30 to-transparent mx-auto mb-6" />
+                <p className="text-[10px] uppercase tracking-[0.3em] text-gold font-bold">
+                  {planKey === 'FREE'
+                    ? `Conheça o portfólio completo de ${fullName.split(' ')[0]}`
+                    : 'Ver mais projetos exclusivos'}
+                </p>
+                <p className="text-white/30 text-[9px] uppercase tracking-widest max-w-xs mx-auto leading-relaxed">
+                  Este profissional utiliza a tecnologia{' '}
+                  <span className="text-white/50">Sua Galeria</span> para
+                  entregas de alta performance.
+                </p>
+              </div>
+            )}
           </div>
         ) : (
           !isLoading && (
-            <div className="flex flex-col items-center justify-center text-[#F3E5AB]/40">
+            <div className="flex flex-col items-center justify-center py-20 text-[#F3E5AB]/40 text-center">
               <div className="w-px h-24 bg-gradient-to-b from-[#F3E5AB]/20 to-transparent mb-8" />
-              <p className="text-[10px] uppercase tracking-[0.5em]">
+              <p className="text-[10px] uppercase tracking-[0.5em] max-w-sm leading-loose">
                 Nenhuma galeria pública disponível no momento.
               </p>
             </div>
@@ -165,10 +218,20 @@ export default function PhotographerContent({
         )}
       </main>
 
+      {/* 🛡️ Footer - A prop removeBranding já cuida da marca do app internamente */}
       <GaleriaFooter
-        photographer={photographerData}
-        title="Portfólio Profissional"
+        photographer={
+          {
+            full_name: fullName,
+            username,
+            phone_contact: phone,
+            instagram_link: instagram,
+            avatar_url: photoPreview,
+          } as any
+        }
       />
+      {/* 🛡️ Marca d'água flutuante para planos básicos */}
+      <BrandWatermark />
     </div>
   );
 }

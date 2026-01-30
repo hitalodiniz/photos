@@ -9,6 +9,7 @@ import {
   ChevronDown,
 } from 'lucide-react';
 import WhatsAppIcon from '@/components/ui/WhatsAppIcon';
+import { usePlan } from '@/hooks/usePlan';
 
 interface PhotographerInfoBarProps {
   phone?: string;
@@ -27,6 +28,7 @@ export const PhotographerInfoBar = ({
   username,
   useSubdomain = true,
 }: PhotographerInfoBarProps) => {
+  const { planKey } = usePlan(); // 🛡️ Identifica o plano atual
   const [isDrawerOpen, setIsDrawerOpen] = useState(false);
   const [copied, setCopied] = useState(false);
   const [shouldHideToDrawer, setShouldHideToDrawer] = useState(false);
@@ -48,6 +50,16 @@ export const PhotographerInfoBar = ({
     }
     return `${protocol}//${mainDomain}/${username}`;
   }, [username, useSubdomain]);
+
+  // 🛡️ REGRAS DE VISIBILIDADE POR PLANO
+  // Free e Start NÃO mostram cidades (Áreas de Atuação)
+  const canShowCities = !['FREE', 'START'].includes(planKey);
+  const displayCities = canShowCities ? cities : [];
+
+  // WhatsApp: START em diante | Instagram: PLUS em diante | Website: PREMIUM
+  const hasWhatsApp = ['START', 'PLUS', 'PRO', 'PREMIUM'].includes(planKey);
+  const hasInstagram = ['PLUS', 'PRO', 'PREMIUM'].includes(planKey);
+  const hasWebsite = planKey === 'PREMIUM';
 
   useEffect(() => {
     const checkOverflow = () => {
@@ -76,8 +88,8 @@ export const PhotographerInfoBar = ({
       {/* 🎯 Barra Fixa: Removida a variação de largura por scroll/hover para manter consistência editorial */}
       <div className="mx-auto transition-all duration-700 bg-petroleum overflow-hidden pointer-events-auto w-full max-w-none mt-0 border-b border-white/10 rounded-none shadow-2xl">
         <div className="flex flex-row items-center w-full max-w-[1600px] px-3 md:px-6 h-14 mx-auto gap-2 md:gap-4">
-          {/* SEÇÃO CIDADES */}
-          {cities && cities.length > 0 && (
+          {/* SEÇÃO CIDADES (Filtrada por Plano) */}
+          {displayCities.length > 0 && (
             <div className="flex items-center gap-1.5 md:gap-3 flex-1 min-w-0 animate-in fade-in duration-500">
               <MapPin size={16} className="text-[#F3E5AB] shrink-0" />
               <div
@@ -115,10 +127,12 @@ export const PhotographerInfoBar = ({
               </div>
             </div>
           )}
+          {/* Fallback caso não tenha cidades (mantém alinhamento) */}
+          {displayCities.length === 0 && <div className="flex-1" />}
 
-          {/* BOTÕES DE CONTATO */}
+          {/* BOTÕES DE CONTATO (Filtrados por Plano) */}
           <div className="flex items-center gap-1.5 md:gap-2 shrink-0">
-            {instagram && (
+            {hasInstagram && instagram && (
               <a
                 href={`https://instagram.com/${instagram.replace('@', '')}`}
                 target="_blank"
@@ -130,7 +144,9 @@ export const PhotographerInfoBar = ({
                 </span>
               </a>
             )}
-            {website && (
+
+            {/* WEBSITE (PREMIUM) */}
+            {hasWebsite && website && (
               <a
                 href={
                   website.startsWith('http') ? website : `https://${website}`
@@ -157,7 +173,8 @@ export const PhotographerInfoBar = ({
                 Perfil
               </span>
             </button>
-            {phone && (
+            {/* WHATSAPP (START+) */}
+            {hasWhatsApp && phone && (
               <a
                 href={`https://wa.me/${phone.replace(/\D/g, '')}`}
                 target="_blank"

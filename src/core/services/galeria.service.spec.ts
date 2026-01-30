@@ -67,6 +67,16 @@ vi.mock('next/headers', () => ({
   }),
 }));
 
+// Mock do admin para evitar o erro de VAPID Keys
+vi.mock('@/lib/web-push-admin', () => ({
+  sendPushNotification: vi.fn(() => Promise.resolve({ success: true })),
+}));
+
+// Mock do service de notificação para não disparar efeitos colaterais
+vi.mock('@/services/notification.service', () => ({
+  createInternalNotification: vi.fn(),
+}));
+
 describe('Galeria Service - Testes Unitários', () => {
   const mockUserId = 'user_hitalo';
   const mockStudioId = 'studio_123';

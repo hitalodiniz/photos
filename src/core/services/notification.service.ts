@@ -1,4 +1,4 @@
-import { createSupabaseServerClient } from '@/lib/supabase/server';
+import { createSupabaseServerClient } from '@/lib/supabase.server';
 import { sendPushNotification } from '@/lib/web-push-admin';
 
 export async function createInternalNotification({

@@ -30,6 +30,8 @@ import WhatsAppIcon from '@/components/ui/WhatsAppIcon';
 import GaleriaContextMenu from '@/components/dashboard/GaleriaContextMenu';
 import { useNavigation } from '@/components/providers/NavigationProvider';
 import { Users } from 'lucide-react';
+import { usePlan } from '@/hooks/usePlan';
+import UpgradeModal from '@/components/ui/UpgradeModal';
 
 interface GaleriaCardProps {
   galeria: Galeria;
@@ -68,6 +70,11 @@ export default function GaleriaCard({
   isSelected = false,
   onToggleSelect,
 }: GaleriaCardProps) {
+  const { permissions } = usePlan();
+  const [upsellFeature, setUpsellFeature] = useState<string | null>(null);
+
+  // 🛡️ Permissão de Leads
+  const canViewLeads = permissions.canCaptureLeads;
   const { navigate, isNavigating } = useNavigation();
   const [mounted, setMounted] = useState(false);
   const [copied, setCopied] = useState(false);
@@ -323,23 +330,47 @@ export default function GaleriaCard({
                 <button
                   onClick={(e) => {
                     e.stopPropagation();
+                    if (!canViewLeads) {
+                      setUpsellFeature('Relatório de Visitantes');
+                      return;
+                    }
                     navigate(
                       `/dashboard/galerias/${galeria.id}/leads`,
                       'Gerando relatório...',
                     );
                   }}
-                  className="p-2 text-petroleum bg-white border border-petroleum/40 rounded-luxury interactive-luxury-petroleum flex items-center justify-center disabled:opacity-30 disabled:grayscale disabled:cursor-not-allowed"
+                  className={`p-2 bg-white border border-petroleum/40 rounded-luxury flex items-center justify-center transition-all
+                ${
+                  !canViewLeads
+                    ? 'text-petroleum/30 grayscale cursor-pointer hover:border-gold'
+                    : 'text-petroleum interactive-luxury-petroleum disabled:opacity-30 disabled:grayscale disabled:cursor-not-allowed'
+                }`}
                   title={
-                    galeria.leads_enabled || (galeria.leads_count ?? 0) > 0
-                      ? 'Ver Leads'
-                      : 'Captura de Leads desativada'
+                    !canViewLeads
+                      ? 'Recurso disponível em planos superiores'
+                      : galeria.leads_enabled || (galeria.leads_count ?? 0) > 0
+                        ? 'Ver Leads'
+                        : 'Captura de Leads desativada'
                   }
                   disabled={
-                    isNavigating ||
-                    !(galeria.leads_enabled || (galeria.leads_count ?? 0) > 0)
+                    canViewLeads &&
+                    (isNavigating ||
+                      !(
+                        galeria.leads_enabled || (galeria.leads_count ?? 0) > 0
+                      ))
                   }
                 >
-                  <Users size={16} />
+                  {canViewLeads ? (
+                    <Users size={16} />
+                  ) : (
+                    <div className="relative">
+                      <Users size={16} className="opacity-40" />
+                      <Lock
+                        size={8}
+                        className="absolute -top-1 -right-1 text-gold"
+                      />
+                    </div>
+                  )}
                 </button>
               </>
             )}
@@ -354,6 +385,12 @@ export default function GaleriaCard({
               isUpdating={isUpdating}
             />
           </div>
+          {/* Modal de Upgrade disparado pelo card */}
+          <UpgradeModal
+            isOpen={!!upsellFeature}
+            onClose={() => setUpsellFeature(null)}
+            featureName={upsellFeature || ''}
+          />
         </div>
       </div>
     );

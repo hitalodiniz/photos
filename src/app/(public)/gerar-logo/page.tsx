@@ -2,7 +2,6 @@
 import { sendTestNotificationAction } from '@/actions/notification.actions';
 import { updatePushSubscriptionAction } from '@/core/services/profile.service';
 import { subscribeUserToPush } from '@/lib/push-notifications';
-import { createSupabaseServerClient } from '@/lib/supabase.server';
 import { BellRing, Camera } from 'lucide-react';
 import { useTransition, useState } from 'react';
 
@@ -12,7 +11,6 @@ export default function GerarLogoPage() {
 
   const handleTestPush = async () => {
     setStatus('Solicitando permissão...');
-    const supabase = await createSupabaseServerClient();
 
     startTransition(async () => {
       try {
@@ -26,7 +24,7 @@ export default function GerarLogoPage() {
         // 3. Dispara o push de teste (pega o user atual)
         const {
           data: { user },
-        } = await supabase.auth.getUser();
+        } = await getAuthenticatedUser();
         if (user) {
           await sendTestNotificationAction(user.id);
           setStatus('Notificação enviada! Verifique seu navegador/celular.');

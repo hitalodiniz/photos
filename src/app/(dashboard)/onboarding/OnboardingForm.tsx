@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useEffect, useRef } from 'react';
+import { useState, useEffect, useRef, useMemo } from 'react';
 import { useRouter } from 'next/navigation';
 import {
   User,
@@ -30,15 +30,16 @@ import BaseModal from '@/components/ui/BaseModal';
 import { fetchStates, fetchCitiesByState } from '@/core/utils/cidades-helpers';
 import { compressImage } from '@/core/utils/user-helpers';
 import { useNavigation } from '@/components/providers/NavigationProvider';
+import { usePlan } from '@/hooks/usePlan';
 
 // 🎯 Componente de seção simples - Estilo Editorial
-const FormSection = ({ 
-  title, 
-  icon, 
-  children 
-}: { 
-  title: string; 
-  icon?: React.ReactNode; 
+const FormSection = ({
+  title,
+  icon,
+  children,
+}: {
+  title: string;
+  icon?: React.ReactNode;
   children: React.ReactNode;
 }) => (
   <div className="bg-white rounded-luxury border border-petroleum/40 p-4 space-y-3">
@@ -48,9 +49,7 @@ const FormSection = ({
         {title}
       </h3>
     </div>
-    <div className="pl-0">
-      {children}
-    </div>
+    <div className="pl-0">{children}</div>
   </div>
 );
 
@@ -63,7 +62,8 @@ export default function OnboardingForm({
   suggestedUsername?: string;
   isEditMode?: boolean;
 }) {
-  const router = useRouter();
+  const { permissions, planKey } = usePlan(); // 🛡️ Hook de Planos
+  const [upsellFeature, setUpsellFeature] = useState<string | null>(null);
   const { navigate, isNavigating: isGlobalNavigating } = useNavigation();
   const fileInputRef = useRef<HTMLInputElement>(null);
   const bgInputRef = useRef<HTMLInputElement>(null);
@@ -93,8 +93,8 @@ export default function OnboardingForm({
   const [photoPreview, setPhotoPreview] = useState<string | null>(
     initialData?.profile_picture_url || null,
   );
-  const [bgFile, setBgFile] = useState<File | null>(null);
-  const [bgPreview, setBgPreview] = useState<string | null>(
+  const [bgFiles, setBgFiles] = useState<File[] | null>(null);
+  const [bgPreviews, setBgPreviews] = useState<string[] | null>(
     initialData?.background_url || null,
   );
 
@@ -106,6 +106,18 @@ export default function OnboardingForm({
     message: string;
     type: 'success' | 'error';
   } | null>(null);
+
+  const bioLimit = useMemo(() => {
+    if (planKey === 'START') return 150;
+    if (planKey === 'PLUS') return 250;
+    return 400; // PRO e PREMIUM
+  }, [planKey]);
+
+  const maxBgImages = useMemo(() => {
+    if (planKey === 'PREMIUM') return 5;
+    if (planKey === 'PRO') return 3;
+    return 1; // START e PLUS (FREE usa aleatório)
+  }, [planKey]);
 
   useEffect(() => {
     fetchStates().then(setStates);
@@ -195,17 +207,18 @@ export default function OnboardingForm({
     } catch (err: any) {
       console.error('[OnboardingForm] Erro ao salvar:', err);
       let errorMsg = 'Falha na conexão.';
-      
+
       // 🎯 Tratamento amigável para erro de tamanho de arquivo do Next.js
       if (err.message?.includes('Body exceeded')) {
-        errorMsg = 'A foto é muito grande para o servidor. Tente uma imagem com menos de 2MB.';
+        errorMsg =
+          'A foto é muito grande para o servidor. Tente uma imagem com menos de 2MB.';
       } else if (err.message) {
         errorMsg = `Falha na conexão: ${err.message}`;
       }
-      
-      setToastConfig({ 
-        message: errorMsg, 
-        type: 'error' 
+
+      setToastConfig({
+        message: errorMsg,
+        type: 'error',
       });
     } finally {
       setIsSaving(false);
@@ -217,7 +230,31 @@ export default function OnboardingForm({
       <div className="relative min-h-screen bg-luxury-bg flex flex-col md:flex-row w-full z-[99]">
         <aside className="w-full md:w-[35%] bg-white border-r border-slate-100 flex flex-col h-screen md:sticky md:top-0 z-20 shadow-xl overflow-hidden">
           <div className="flex-1 overflow-y-auto px-4 no-scrollbar -mt-4">
-            <form id="onboarding-form" action={clientAction} className="space-y-4">
+            {isEditMode && planKey === 'PRO' && permissions.isTrial && (
+              <div className="mb-6 p-3 bg-gold/10 border border-gold/30 rounded-luxury flex items-center justify-between animate-in slide-in-from-top-4">
+                <div className="flex items-center gap-3">
+                  <div className="p-2 bg-gold rounded-full text-petroleum">
+                    <Sparkles size={14} />
+                  </div>
+                  <div>
+                    <p className="text-[10px] font-bold uppercase tracking-widest text-petroleum">
+                      Período de Degustação Ativo
+                    </p>
+                    <p className="text-[9px] text-petroleum/60 uppercase">
+                      Você tem acesso total ao Plano PRO por mais 14 dias
+                    </p>
+                  </div>
+                </div>
+                <button className="text-[9px] font-bold text-gold underline tracking-widest uppercase">
+                  Assinar Agora
+                </button>
+              </div>
+            )}
+            <form
+              id="onboarding-form"
+              action={clientAction}
+              className="space-y-4"
+            >
               {/* PARA MANTER A FOTO ATUAL */}
               <input
                 type="hidden"
@@ -244,7 +281,8 @@ export default function OnboardingForm({
                             // 🎯 Validação de tamanho: Máximo 5MB antes da compressão
                             if (file.size > 2 * 1024 * 1024) {
                               setToastConfig({
-                                message: 'A foto de perfil é muito grande. Máximo 2MB.',
+                                message:
+                                  'A foto de perfil é muito grande. Máximo 2MB.',
                                 type: 'error',
                               });
                               e.target.value = '';
@@ -285,7 +323,12 @@ export default function OnboardingForm({
                     {/* USERNAME */}
                     <div className="flex-grow space-y-1.5">
                       <label className="text-editorial-label text-petroleum">
-                        <AtSign size={12} strokeWidth={2} className="inline mr-1.5" /> Username <span className="text-gold">*</span>
+                        <AtSign
+                          size={12}
+                          strokeWidth={2}
+                          className="inline mr-1.5"
+                        />{' '}
+                        Username <span className="text-gold">*</span>
                       </label>
                       <div className="relative">
                         <input
@@ -310,7 +353,12 @@ export default function OnboardingForm({
                   <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
                     <div className="space-y-1.5">
                       <label className="text-editorial-label text-petroleum">
-                        <User size={12} strokeWidth={2} className="inline mr-1.5" /> Nome Completo <span className="text-gold">*</span>
+                        <User
+                          size={12}
+                          strokeWidth={2}
+                          className="inline mr-1.5"
+                        />{' '}
+                        Nome Completo <span className="text-gold">*</span>
                       </label>
                       <input
                         className="w-full px-3 h-10 bg-white border border-petroleum/40 rounded-luxury text-editorial-ink text-[13px] font-medium outline-none focus:border-gold transition-all"
@@ -321,7 +369,12 @@ export default function OnboardingForm({
                     </div>
                     <div className="space-y-1.5">
                       <label className="text-editorial-label text-petroleum">
-                        <MessageCircle size={12} strokeWidth={2} className="inline mr-1.5" /> WhatsApp
+                        <MessageCircle
+                          size={12}
+                          strokeWidth={2}
+                          className="inline mr-1.5"
+                        />{' '}
+                        WhatsApp
                       </label>
                       <input
                         className="w-full px-3 h-10 bg-white border border-petroleum/40 rounded-luxury text-editorial-ink text-[13px] font-medium outline-none focus:border-gold transition-all"
@@ -340,7 +393,12 @@ export default function OnboardingForm({
                   <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
                     <div className="space-y-1.5">
                       <label className="text-editorial-label text-petroleum">
-                        <Globe size={12} strokeWidth={2} className="inline mr-1.5" /> Website
+                        <Globe
+                          size={12}
+                          strokeWidth={2}
+                          className="inline mr-1.5"
+                        />{' '}
+                        Website
                       </label>
                       <input
                         className="w-full px-3 h-10 bg-white border border-petroleum/40 rounded-luxury text-editorial-ink text-[13px] font-medium outline-none focus:border-gold transition-all"
@@ -351,7 +409,12 @@ export default function OnboardingForm({
                     </div>
                     <div className="space-y-1.5">
                       <label className="text-editorial-label text-petroleum">
-                        <Instagram size={12} strokeWidth={2} className="inline mr-1.5" /> Instagram
+                        <Instagram
+                          size={12}
+                          strokeWidth={2}
+                          className="inline mr-1.5"
+                        />{' '}
+                        Instagram
                       </label>
                       <input
                         className="w-full px-3 h-10 bg-white border border-petroleum/40 rounded-luxury text-editorial-ink text-[13px] font-medium outline-none focus:border-gold transition-all"
@@ -364,7 +427,12 @@ export default function OnboardingForm({
 
                   <div className="space-y-1.5">
                     <label className="text-editorial-label text-petroleum">
-                      <ImageIcon size={12} strokeWidth={2} className="inline mr-1.5" /> Foto de capa do Perfil
+                      <ImageIcon
+                        size={12}
+                        strokeWidth={2}
+                        className="inline mr-1.5"
+                      />{' '}
+                      Foto de capa do Perfil
                     </label>
                     <input
                       type="hidden"
@@ -373,26 +441,26 @@ export default function OnboardingForm({
                     />
                     <input
                       type="file"
-                      name="background_image"
+                      name="background_images"
                       ref={bgInputRef}
                       className="hidden"
                       accept="image/*"
+                      multiple={maxBgImages > 1} // 🛡️ Ativa seleção múltipla se o plano permitir
                       onChange={(e) => {
-                        const file = e.target.files?.[0];
-                        if (file) {
-                          // 🎯 Validação de tamanho: Máximo 5MB antes da compressão
-                          // O sistema irá comprimir, mas evitamos arquivos gigantescos que travam o browser
-                          if (file.size > 2 * 1024 * 1024) {
-                            setToastConfig({
-                              message: 'A foto de fundo é muito grande. Máximo 2MB.',
-                              type: 'error',
-                            });
-                            e.target.value = '';
-                            return;
-                          }
-                          setBgFile(file);
-                          setBgPreview(URL.createObjectURL(file));
+                        const files = Array.from(e.target.files || []);
+                        if (files.length > maxBgImages) {
+                          setToastConfig({
+                            message: `Seu plano permite no máximo ${maxBgImages} imagens de fundo.`,
+                            type: 'error',
+                          });
+                          return;
                         }
+                        // Lógica para setar múltiplos previews...
+                        setBgFiles(files);
+                        const previews = files.map((file) =>
+                          URL.createObjectURL(file),
+                        );
+                        setBgPreviews(previews);
                       }}
                     />
                     <button
@@ -428,20 +496,26 @@ export default function OnboardingForm({
               <FormSection title="Mini Biografia" icon={<FileText size={14} />}>
                 <div className="space-y-3">
                   <div className="space-y-1.5">
-                    
                     <textarea
                       className="w-full px-3 py-2 bg-white border border-petroleum/40 rounded-luxury text-editorial-ink text-[13px] font-medium outline-none focus:border-gold transition-all resize-none"
                       value={miniBio}
-                      maxLength={400}
+                      maxLength={bioLimit} // 🛡️ Trava dinâmica
                       onChange={(e) => setMiniBio(e.target.value)}
                       required
                       rows={4}
                       placeholder="Conte um pouco sobre sua trajetória profissional..."
                     />
                     <div className="flex justify-between items-center mb-1">
-                      <span className={`text-[9px] font-semibold uppercase tracking-luxury ${miniBio.length >= 380 ? 'text-gold' : 'text-editorial-gray'}`}>
-                        {miniBio.length} / 400
+                      <span
+                        className={`text-[9px] font-semibold uppercase tracking-luxury ${miniBio.length >= bioLimit ? 'text-gold' : 'text-editorial-gray'}`}
+                      >
+                        {miniBio.length} / {bioLimit}
                       </span>
+                      {miniBio.length >= bioLimit && planKey !== 'PREMIUM' && (
+                        <span className="text-[8px] text-gold font-bold uppercase animate-pulse">
+                          Faça upgrade para aumentar sua Bio
+                        </span>
+                      )}
                     </div>
                   </div>
                 </div>
@@ -517,7 +591,9 @@ export default function OnboardingForm({
               <div className="flex items-center justify-end gap-4 pb-8">
                 <button
                   type="button"
-                  onClick={() => navigate('/dashboard', 'Cancelando alterações...')}
+                  onClick={() =>
+                    navigate('/dashboard', 'Cancelando alterações...')
+                  }
                   disabled={isSaving || isGlobalNavigating}
                   className="btn-secondary-white"
                 >
@@ -566,7 +642,7 @@ export default function OnboardingForm({
         }
         footer={
           <div className="flex flex-col gap-3">
-                        <div className="flex flex-row gap-3 w-full">
+            <div className="flex flex-row gap-3 w-full">
               <button
                 onClick={() => {
                   navigate('/dashboard', 'Abrindo seu espaço...');
@@ -584,17 +660,18 @@ export default function OnboardingForm({
                 <Sparkles size={14} /> Ver Perfil Público
               </a>
             </div>
-
           </div>
         }
       >
         <div className="space-y-3">
           <p className="text-[13px] md:text-[14px] leading-relaxed text-petroleum/80 font-medium text-center">
-            O seu perfil atualizado agora está configurado e pronto para ser acessado pelo seu público.
+            O seu perfil atualizado agora está configurado e pronto para ser
+            acessado pelo seu público.
           </p>
           <div className="p-4 bg-slate-50 border border-petroleum/10 rounded-luxury">
             <p className="text-[10px] font-semibold text-petroleum/80 text-center uppercase tracking-luxury">
-              Dica: Você pode alterar sua foto de capa e mini bio a qualquer momento.
+              Dica: Você pode alterar sua foto de capa e mini bio a qualquer
+              momento.
             </p>
           </div>
         </div>
