@@ -1,13 +1,7 @@
 'use client';
 
 import React, { useEffect, useMemo, useState } from 'react';
-import {
-  Calendar,
-  MapPin,
-  Lock,
-  ArrowRight,
-  Tag,
-} from 'lucide-react';
+import { Calendar, MapPin, Lock, ArrowRight, Tag } from 'lucide-react';
 import type { Galeria } from '@/core/types/galeria';
 import { resolveGalleryUrl, RESOLUTIONS } from '@/core/utils/url-helper';
 import { useGoogleDriveImage } from '@/hooks/useGoogleDriveImage';
@@ -15,9 +9,14 @@ import { formatDateLong } from '@/core/utils/data-helpers';
 
 export function PublicGaleriaCard({ galeria }: { galeria: Galeria }) {
   const [mounted, setMounted] = useState(false);
-  
+
   // 🎯 FALLBACK: Tenta Google direto, se falhar usa Proxy
-  const { imgSrc: imageUrl, imgRef, handleLoad, handleError } = useGoogleDriveImage({
+  const {
+    imgSrc: imageUrl,
+    imgRef,
+    handleLoad,
+    handleError,
+  } = useGoogleDriveImage({
     photoId: galeria.cover_image_url || '',
     width: RESOLUTIONS.THUMB, // 600px
     priority: false,
@@ -60,7 +59,7 @@ export function PublicGaleriaCard({ galeria }: { galeria: Galeria }) {
       href={href}
       target="_blank"
       rel="noopener noreferrer"
-      className="group relative flex flex-col bg-petroleum/95 backdrop-blur-md border border-white/10 rounded-2xl overflow-hidden transition-all duration-500 hover:border-[#F3E5AB]/40 hover:translate-y-[-4px] cursor-pointer shadow-2xl no-underline"
+      className="group relative flex flex-col bg-petroleum backdrop-blur-md border border-white/10 rounded-2xl overflow-hidden transition-all duration-500 hover:border-[#F3E5AB]/40 hover:translate-y-[-4px] cursor-pointer shadow-2xl no-underline"
     >
       {/* Container da Imagem */}
       <div className="relative aspect-[1] overflow-hidden border-b border-white/5">
@@ -93,9 +92,9 @@ export function PublicGaleriaCard({ galeria }: { galeria: Galeria }) {
 
       {/* Conteúdo Informativo */}
       <div className="p-3 space-y-2">
-      <h3 className="text-white text-lg font-semibold tracking-tight group-hover:text-[#F3E5AB] transition-colors leading-tight line-clamp-2 min-h-[2.5rem]">
-  {galeria.title}
-</h3>
+        <h3 className="text-white text-lg font-semibold tracking-tight group-hover:text-[#F3E5AB] transition-colors leading-tight line-clamp-2 min-h-[2.5rem]">
+          {galeria.title}
+        </h3>
 
         <div className="flex items-center justify-between pt-3 border-t border-white/10">
           <div className="flex flex-col gap-2">

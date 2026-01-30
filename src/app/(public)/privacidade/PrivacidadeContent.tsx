@@ -47,7 +47,7 @@ export default function PrivacidadePage() {
     >
       <div className="max-w-[1200px] mx-auto">
         {/* GRID DE PRIVACIDADE: Mesma cor de cabeçalho da Toolbar */}
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-5 mb-12">
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-5 pt-6">
           {privacidadeItems.map((item, index) => (
             <div
               key={index}
@@ -58,7 +58,7 @@ export default function PrivacidadePage() {
               }`}
             >
               {/* HEADER DO CARD: Sincronizado com a Toolbar (Petroleum/95) */}
-              <div className="bg-petroleum/95 backdrop-blur-md px-5 h-11 flex items-center gap-4 shrink-0 border-b border-white/10">
+              <div className="bg-petroleum backdrop-blur-md px-5 h-11 flex items-center gap-4 shrink-0 border-b border-white/10">
                 <div className="text-gold shrink-0 drop-shadow-[0_0_8px_rgba(243,229,171,0.4)]">
                   {item.icon}
                 </div>

@@ -17,10 +17,14 @@
   }
 
   /* Garante que inputs e botões herdem a fonte correta */
-  input, textarea, button, select, label {
+  input,
+  textarea,
+  button,
+  select,
+  label {
     font-family: var(--font-montserrat), sans-serif !important;
   }
-  
+
   /* Ajuste específico para o seu estilo Luxury de labels */
   label {
     @apply flex flex-row items-center gap-2 mb-1 !important;
@@ -53,7 +57,7 @@
 
   /* Overlay de tela cheia para loading */
   .loading-screen-luxury {
-    @apply fixed inset-0 z-[9999] flex flex-col items-center justify-center bg-petroleum/95 backdrop-blur-md;
+    @apply fixed inset-0 z-[9999] flex flex-col items-center justify-center bg-petroleum backdrop-blur-md;
   }
 
   /* Modal Dark Premium */
@@ -173,4 +177,3 @@
     filter: drop-shadow(0 0 4px rgba(212, 175, 55, 0.3));
   }
 }
-

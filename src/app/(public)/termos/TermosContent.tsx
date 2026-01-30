@@ -65,7 +65,7 @@ export default function TermosDeUsoPage() {
     >
       <div className="max-w-[1400px] mx-auto">
         {/* GRID DE TERMOS: 3 Colunas no Desktop para Densidade de Dados */}
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-5 mb-12">
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-5 pt-6">
           {termosItems.map((item, index) => (
             <div
               key={index}
@@ -76,7 +76,7 @@ export default function TermosDeUsoPage() {
               }`}
             >
               {/* HEADER DO CARD: Estilo Glass Petroleum */}
-              <div className="bg-petroleum/95 backdrop-blur-md px-4 h-11 flex items-center gap-3 shrink-0 border-b border-white/10">
+              <div className="bg-petroleum backdrop-blur-md px-4 h-11 flex items-center gap-3 shrink-0 border-b border-white/10">
                 <div className="text-gold shrink-0 drop-shadow-[0_0_8px_rgba(243,229,171,0.3)]">
                   {item.icon}
                 </div>

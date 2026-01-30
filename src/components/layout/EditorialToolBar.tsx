@@ -33,7 +33,7 @@ export default function EditorialToolbar({
     <div className="sticky top-0 z-[100] w-full pointer-events-auto">
       <div
         className={`
-          w-full bg-petroleum/95 backdrop-blur-md border-b border-white/10 shadow-2xl transition-all duration-500
+          w-full bg-petroleum backdrop-blur-md border-b border-white/10 shadow-2xl transition-all duration-500
           ${isScrolled ? 'h-12' : 'h-14'}
         `}
       >

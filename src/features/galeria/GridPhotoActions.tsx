@@ -36,7 +36,7 @@ export const GridPhotoActions = ({
        2. Adicionado 'justify-between' para separar os dois lados.
        3. Adicionado 'w-full' para garantir que o container ocupe toda a largura da foto.
     */
-    <div className="absolute top-2 left-0 right-0 px-2 z-30 pointer-events-none flex flex-row justify-between items-start">
+    <div className="absolute bottom-2 left-0 right-0 px-2 z-30 pointer-events-none flex flex-row justify-between items-start">
       {/* LADO ESQUERDO: APENAS O FAVORITO */}
       <div className="flex justify-start">
         <button
@@ -68,7 +68,10 @@ export const GridPhotoActions = ({
             className={`${baseBtnClass} bg-black/40 backdrop-blur-md border-white/10 text-white hover:bg-white group/btn
               opacity-0 group-hover:opacity-100 scale-0 group-hover:scale-100 delay-[50ms]`}
           >
-            <Share2 size={finalIconSize} className="group-hover/btn:text-black transition-colors" />
+            <Share2
+              size={finalIconSize}
+              className="group-hover/btn:text-black transition-colors"
+            />
           </button>
         ) : (
           <button

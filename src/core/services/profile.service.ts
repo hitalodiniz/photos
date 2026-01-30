@@ -309,7 +309,9 @@ export async function updateProfileSettings(data: {
   message_templates: MessageTemplates;
 }) {
   const supabase = await createSupabaseServerClient();
-  const { data: { user } } = await supabase.auth.getUser();
+  const {
+    data: { user },
+  } = await supabase.auth.getUser();
 
   if (!user) return { success: false, error: 'Sessão expirada.' };
 
@@ -324,7 +326,7 @@ export async function updateProfileSettings(data: {
     .update({
       settings: data.settings,
       message_templates: data.message_templates,
-      updated_at: new Date().toISOString()
+      updated_at: new Date().toISOString(),
     })
     .eq('id', user.id);
 

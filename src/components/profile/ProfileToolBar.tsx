@@ -35,13 +35,14 @@ export const PhotographerInfoBar = ({
   const contentRef = useRef<HTMLDivElement>(null);
 
   const profileUrl = useMemo(() => {
-    if (!username) return typeof window !== 'undefined' ? window.location.href : '';
-    
+    if (!username)
+      return typeof window !== 'undefined' ? window.location.href : '';
+
     // Se estivermos em localhost, construct accordingly
     const isProd = process.env.NODE_ENV === 'production';
     const protocol = isProd ? 'https:' : 'http:';
     const mainDomain = process.env.NEXT_PUBLIC_MAIN_DOMAIN || 'localhost:3000';
-    
+
     if (useSubdomain) {
       return `${protocol}//${username}.${mainDomain}`;
     }
@@ -73,15 +74,16 @@ export const PhotographerInfoBar = ({
   return (
     <div className="z-[100] sticky top-0 w-full pointer-events-auto font-sans">
       {/* 🎯 Barra Fixa: Removida a variação de largura por scroll/hover para manter consistência editorial */}
-      <div
-        className="mx-auto transition-all duration-700 bg-petroleum overflow-hidden pointer-events-auto w-full max-w-none mt-0 border-b border-white/10 rounded-none shadow-2xl"
-      >
+      <div className="mx-auto transition-all duration-700 bg-petroleum overflow-hidden pointer-events-auto w-full max-w-none mt-0 border-b border-white/10 rounded-none shadow-2xl">
         <div className="flex flex-row items-center w-full max-w-[1600px] px-3 md:px-6 h-14 mx-auto gap-2 md:gap-4">
           {/* SEÇÃO CIDADES */}
           {cities && cities.length > 0 && (
             <div className="flex items-center gap-1.5 md:gap-3 flex-1 min-w-0 animate-in fade-in duration-500">
               <MapPin size={16} className="text-[#F3E5AB] shrink-0" />
-              <div ref={containerRef} className="flex items-center gap-2 flex-1 min-w-0">
+              <div
+                ref={containerRef}
+                className="flex items-center gap-2 flex-1 min-w-0"
+              >
                 {!shouldHideToDrawer ? (
                   <div ref={contentRef} className="flex items-center gap-2">
                     {cities.map((city: string) => (
@@ -104,7 +106,10 @@ export const PhotographerInfoBar = ({
                     <span className="text-[11px] font-medium tracking-tight">
                       {isDrawerOpen ? 'Fechar cidades' : 'Cidades de atuação'}
                     </span>
-                    <ChevronDown size={14} className={`text-[#F3E5AB] transition-transform duration-500 ${isDrawerOpen ? 'rotate-180' : ''}`} />
+                    <ChevronDown
+                      size={14}
+                      className={`text-[#F3E5AB] transition-transform duration-500 ${isDrawerOpen ? 'rotate-180' : ''}`}
+                    />
                   </button>
                 )}
               </div>
@@ -120,25 +125,37 @@ export const PhotographerInfoBar = ({
                 className="flex items-center justify-center rounded-lg h-9 w-9 md:h-10 md:w-auto md:px-4 border border-white/10 bg-slate-800 text-white hover:bg-gradient-to-tr hover:from-[#f09433] hover:via-[#dc2743] hover:to-[#bc1888] transition-all"
               >
                 <Instagram size={16} />
-                <span className="text-[11px] font-semibold uppercase hidden md:block ml-2">Instagram</span>
+                <span className="text-[11px] font-semibold uppercase hidden md:block ml-2">
+                  Instagram
+                </span>
               </a>
             )}
             {website && (
               <a
-                href={website.startsWith('http') ? website : `https://${website}`}
+                href={
+                  website.startsWith('http') ? website : `https://${website}`
+                }
                 target="_blank"
                 className="flex items-center justify-center rounded-lg h-9 w-9 md:h-10 md:w-auto md:px-4 border border-white/10 bg-slate-800 text-white hover:bg-white hover:text-black transition-all"
               >
                 <Globe size={16} />
-                <span className="text-[11px] font-semibold uppercase hidden md:block ml-2">Website</span>
+                <span className="text-[11px] font-semibold uppercase hidden md:block ml-2">
+                  Website
+                </span>
               </a>
             )}
             <button
               onClick={handleCopyLink}
               className="flex items-center justify-center rounded-lg h-9 w-9 md:h-10 md:w-auto md:px-4 border border-white/10 bg-slate-800 text-white hover:bg-slate-700 transition-all"
             >
-              {copied ? <Check size={16} className="text-[#25D366]" /> : <LinkIcon size={16} />}
-              <span className="text-[11px] font-semibold uppercase hidden md:block ml-2">Perfil</span>
+              {copied ? (
+                <Check size={16} className="text-[#25D366]" />
+              ) : (
+                <LinkIcon size={16} />
+              )}
+              <span className="text-[11px] font-semibold uppercase hidden md:block ml-2">
+                Perfil
+              </span>
             </button>
             {phone && (
               <a
@@ -148,14 +165,18 @@ export const PhotographerInfoBar = ({
                 className="flex items-center justify-center rounded-lg h-9 w-9 md:h-10 md:w-auto md:px-5 border border-white/10 bg-slate-800 text-white hover:bg-[#25D366] hover:shadow-lg active:scale-95 transition-all group"
               >
                 <WhatsAppIcon className="w-5 h-5 md:w-[18px] md:h-[18px]" />
-                <span className="text-[11px] font-semibold uppercase hidden md:block ml-2">WhatsApp</span>
+                <span className="text-[11px] font-semibold uppercase hidden md:block ml-2">
+                  WhatsApp
+                </span>
               </a>
             )}
           </div>
         </div>
 
         {/* GAVETA */}
-        <div className={`overflow-hidden transition-all duration-500 ease-[cubic-bezier(0.23,1,0.32,1)] w-full border-t border-white/10 bg-petroleum/95 backdrop-blur-2xl ${isDrawerOpen && shouldHideToDrawer ? 'max-h-[500px] opacity-100' : 'max-h-0 opacity-0 pointer-events-none'}`}>
+        <div
+          className={`overflow-hidden transition-all duration-500 ease-[cubic-bezier(0.23,1,0.32,1)] w-full border-t border-white/10 bg-petroleum backdrop-blur-2xl ${isDrawerOpen && shouldHideToDrawer ? 'max-h-[500px] opacity-100' : 'max-h-0 opacity-0 pointer-events-none'}`}
+        >
           <div className="flex flex-wrap items-center justify-center gap-2 py-2 px-2">
             {cities.map((city: string) => (
               <a

@@ -14,7 +14,6 @@ import {
 } from 'lucide-react';
 import WhatsAppIcon from '@/components/ui/WhatsAppIcon';
 
-
 export const ToolBarDesktop = ({
   showOnlyFavorites,
   setShowOnlyFavorites,
@@ -50,7 +49,9 @@ export const ToolBarDesktop = ({
       const check = async (url: string) => {
         if (!url) return false;
         try {
-          const res = await fetch(`/api/validate-link?url=${encodeURIComponent(url)}`);
+          const res = await fetch(
+            `/api/validate-link?url=${encodeURIComponent(url)}`,
+          );
           const data = await res.json();
           return data.valid;
         } catch {
@@ -93,7 +94,7 @@ export const ToolBarDesktop = ({
         className={`
         mx-auto transition-all duration-500 ease-out
         pointer-events-auto relative
-        w-full bg-petroleum/95 backdrop-blur-md border-b border-white/10 shadow-2xl
+        w-full bg-petroleum backdrop-blur-md border-b border-white/10 shadow-2xl
         /* 🎯 FIX DOWNLOAD: Permite que o menu suspenso apareça para baixo */
         ${showDownloadMenu ? 'overflow-visible' : 'overflow-hidden'}
       `}
@@ -103,7 +104,7 @@ export const ToolBarDesktop = ({
           <div className="flex items-center gap-4 border-r border-white/10 pr-4 shrink-0">
             <div className="flex items-center gap-2">
               <Wand2 size={18} className="text-gold" />
-              <span className="text-editorial-label text-white/70 hidden lg:block">
+              <span className="text-editorial-label text-white hidden lg:block">
                 Ferramentas
               </span>
             </div>
@@ -115,10 +116,11 @@ export const ToolBarDesktop = ({
                   onClick={() =>
                     setColumns((p: any) => ({ ...p, desktop: num }))
                   }
-                  className={`w-7 h-7 rounded-luxury text-[10px] font-bold transition-all ${columns.desktop === num
-                    ? 'bg-gold text-black shadow-lg'
-                    : 'text-white/40 hover:text-white hover:bg-white/5'
-                    }`}
+                  className={`w-7 h-7 rounded-luxury text-[10px] font-bold transition-all ${
+                    columns.desktop === num
+                      ? 'bg-gold text-black shadow-lg'
+                      : 'text-white hover:text-white/40 hover:bg-white/5'
+                  }`}
                 >
                   {num}
                 </button>
@@ -137,10 +139,11 @@ export const ToolBarDesktop = ({
                   <button
                     key={tag}
                     onClick={() => setActiveTag(tag === activeTag ? '' : tag)}
-                    className={`px-4 py-1.5 rounded-luxury text-editorial-label transition-all shrink-0 border h-9 ${activeTag === tag
-                      ? 'bg-gold text-black border-gold shadow-lg'
-                      : 'bg-white/5 text-white/50 border-white/10 hover:text-white'
-                      }`}
+                    className={`px-4 py-1.5 rounded-luxury text-editorial-label transition-all shrink-0 border h-9 ${
+                      activeTag === tag
+                        ? 'bg-gold text-black border-gold shadow-lg'
+                        : 'bg-white/5 text-white/50 border-white/10 hover:text-white'
+                    }`}
                   >
                     {tag}
                   </button>
@@ -155,10 +158,11 @@ export const ToolBarDesktop = ({
           <div className="flex items-center gap-2 shrink-0 ml-auto">
             <button
               onClick={() => setShowOnlyFavorites(!showOnlyFavorites)}
-              className={`flex items-center justify-center rounded-luxury h-10 border transition-all duration-300 w-28 gap-2 ${showOnlyFavorites
-                ? 'bg-red-600 border-red-600 text-white shadow-lg'
-                : 'bg-white/5 border-white/10 text-white/60 hover:text-white'
-                }`}
+              className={`flex items-center justify-center rounded-luxury h-10 border transition-all duration-300 w-28 gap-2 ${
+                showOnlyFavorites
+                  ? 'bg-red-600 border-red-600 text-white shadow-lg'
+                  : 'bg-white/5 border-white/10 text-white hover:text-white'
+              }`}
             >
               <Filter size={16} />
               <span className="text-editorial-label">Favoritos</span>

@@ -85,7 +85,7 @@ export default function EditorialHeader({
 
       {/* 🎯 CAMADA 2: INTERFACE (Voltar) */}
       {showBackButton && originUrl && (
-        <div className="absolute left-6 top-6 md:top-10 z-[50]">
+        <div className="absolute left-6 top-6 xl:top-10 z-[50]">
           <button
             onClick={() => router.push('/')}
             className="inline-flex items-center gap-2.5 px-6 py-2.5 bg-petroleum text-white backdrop-blur-xl border border-white/10 rounded-full transition-all duration-300 group hover:bg-gold hover:text-black shadow-2xl"

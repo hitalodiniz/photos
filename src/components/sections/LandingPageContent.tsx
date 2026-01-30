@@ -71,7 +71,7 @@ export default function LandingPageContent() {
                 {/* HEADER DO CARD: Sincronizado com a Toolbar (Petroleum + Blur) */}
                 <div className="relative h-11 flex items-center shrink-0 overflow-hidden">
                   {/* Camada de fundo Petroleum com Blur */}
-                  <div className="absolute inset-0 bg-petroleum/95 backdrop-blur-md z-0" />
+                  <div className="absolute inset-0 bg-petroleum backdrop-blur-md z-0" />
 
                   {/* Borda inferior sutil para separação de "vidro" */}
                   <div className="absolute bottom-0 left-0 w-full h-[1px] bg-white/10 z-10" />

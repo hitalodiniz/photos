@@ -90,7 +90,9 @@ export const ToolBarMobile = ({
       const check = async (url: string) => {
         if (!url) return false;
         try {
-          const res = await fetch(`/api/validate-link?url=${encodeURIComponent(url)}`);
+          const res = await fetch(
+            `/api/validate-link?url=${encodeURIComponent(url)}`,
+          );
           const data = await res.json();
           return data.valid;
         } catch {
@@ -178,7 +180,7 @@ export const ToolBarMobile = ({
     <div className="w-full z-[110] sticky top-0 md:hidden pointer-events-auto overflow-visible">
       <div
         className={`flex items-center justify-between h-14 px-4 border-b transition-all duration-500 relative z-[120] overflow-visible
-        ${isScrolled ? ' bg-petroleum/95 backdrop-blur-md border-white/10 shadow-lg' : ' bg-petroleum border-white/20'}`}
+        ${isScrolled ? ' bg-petroleum backdrop-blur-md border-white/10 shadow-lg' : ' bg-petroleum border-white/20'}`}
       >
         {/* ESQUERDA: TAGS E COLUNAS */}
         <div className="flex items-center gap-2 overflow-visible">
@@ -201,9 +203,7 @@ export const ToolBarMobile = ({
             >
               <Monitor size={17} />
             </button>
-            {hintStep === 2 && (
-              <Tooltip text="Layout" position="left" />
-            )}
+            {hintStep === 2 && <Tooltip text="Layout" position="left" />}
           </div>
         </div>
 
@@ -216,7 +216,9 @@ export const ToolBarMobile = ({
             >
               <Share2 size={18} />
             </button>
-            {hintStep === 3 && <Tooltip text="Compartilhar" position="center" />}
+            {hintStep === 3 && (
+              <Tooltip text="Compartilhar" position="center" />
+            )}
           </div>
 
           <div className="relative overflow-visible">
@@ -258,9 +260,7 @@ export const ToolBarMobile = ({
                 <Download size={16} />
               )}
             </button>
-            {hintStep === 6 && (
-              <Tooltip text="Baixar" position="right" />
-            )}
+            {hintStep === 6 && <Tooltip text="Baixar" position="right" />}
 
             {/* 🎯 MENU DE DOWNLOAD MOBILE (ABRE PARA BAIXO) */}
             {showDownloadMenu && (
@@ -337,7 +337,7 @@ export const ToolBarMobile = ({
       {/* PAINÉIS DE EXPANSÃO (TAGS E COLUNAS) */}
       <div className="absolute top-full left-0 w-full z-[115]">
         <div
-          className={`overflow-hidden transition-all duration-500 bg-petroleum/95 backdrop-blur-xl border-b border-white/10 ${showColumnsPanel ? 'max-h-20 opacity-100' : 'max-h-0 opacity-0 pointer-events-none'}`}
+          className={`overflow-hidden transition-all duration-500 bg-petroleum backdrop-blur-xl border-b border-white/10 ${showColumnsPanel ? 'max-h-20 opacity-100' : 'max-h-0 opacity-0 pointer-events-none'}`}
         >
           <div className="flex items-center justify-center gap-4 h-14">
             {[1, 2].map((num) => (
@@ -356,7 +356,7 @@ export const ToolBarMobile = ({
         </div>
 
         <div
-          className={`overflow-hidden transition-all duration-500 bg-petroleum/95 backdrop-blur-xl border-b border-white/10 ${showTagsPanel ? 'max-h-[70vh] opacity-100' : 'max-h-0 opacity-0 pointer-events-none'}`}
+          className={`overflow-hidden transition-all duration-500 bg-petroleum backdrop-blur-xl border-b border-white/10 ${showTagsPanel ? 'max-h-[70vh] opacity-100' : 'max-h-0 opacity-0 pointer-events-none'}`}
         >
           <div className="p-6 flex flex-col gap-4">
             <span className="text-editorial-label text-white/40">

@@ -72,7 +72,7 @@ export default function PlanosPage() {
           subtitle="A estrutura definitiva para sua entrega profissional."
         />
         <div className="sticky top-0 z-[10] w-full pointer-events-auto">
-          <div className="w-full bg-petroleum/95 backdrop-blur-md border-b border-white/10 shadow-2xl transition-all duration-500 h-12"></div>
+          <div className="w-full bg-petroleum backdrop-blur-md border-b border-white/10 shadow-2xl transition-all duration-500 h-12"></div>
         </div>
 
         {/* 🎯 SELETOR MENSAL/ANUAL */}
@@ -232,7 +232,7 @@ export default function PlanosPage() {
               {/* 🎯 Ajuste Mobile: min-w otimizado para não achatar no mobile */}
               <table className="w-full text-left border-collapse min-w-[900px]">
                 <thead>
-                  <tr className="bg-petroleum/95">
+                  <tr className="bg-petroleum">
                     <th className="p-4 sticky left-0 z-50 bg-petroleum border-b border-white/10">
                       <span className="text-[11px] font-bold uppercase tracking-widest text-gold">
                         Recurso

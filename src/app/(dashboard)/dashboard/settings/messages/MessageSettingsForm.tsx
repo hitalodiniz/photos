@@ -29,22 +29,28 @@ const FormSection = ({
   icon?: React.ReactNode;
   children: React.ReactNode;
 }) => (
-  <div className="bg-white rounded-luxury border border-petroleum/40 p-4 md:p-6 space-y-4">
-    <div className="flex items-center gap-2 pb-3 border-b border-petroleum/40">
-      {icon && <div className="text-petroleum">{icon}</div>}
-      <h3 className="text-xs font-bold uppercase tracking-widest text-petroleum ">
+  <div className="bg-white rounded-luxury border border-petroleum/10 p-6 md:p-8 space-y-6 shadow-sm">
+    <div className="flex items-center gap-3 border-b border-petroleum/10 pb-4">
+      {icon && <div className="text-gold">{icon}</div>}
+      <h3 className="text-[11px] font-bold uppercase tracking-[0.2em] text-petroleum">
         {title}
       </h3>
     </div>
-    <div className="space-y-4">{children}</div>
+    <div className="pt-2">{children}</div>
   </div>
 );
 
+const MESSAGE_TITLES: Record<string, string> = {
+  card_share: 'Espaço de Galerias',
+  photo_share: 'Foto Individual',
+  guest_share: 'Galeria de Fotos',
+};
+
 const MESSAGE_LABELS: Record<string, string> = {
-  card_share:
-    'Compartilhamento de galeria pelo proprietário no Espaço de Galerias',
-  photo_share: 'Compartilhamento de foto única pelo visitante da galeria',
-  guest_share: 'Compartilhamento da galeria pelo visitante',
+  card_share: 'Mensagem de compartilhamento de galeria no Espaço de Galerias',
+  photo_share:
+    'Mensagem de compartilhamento de foto única pelo visitante da galeria',
+  guest_share: 'Mensagem de compartilhamento da galeria pelo visitante',
 };
 
 const DEFAULT_MESSAGES: Record<string, string> = {
@@ -155,56 +161,61 @@ export default function MessageSettingsForm({ profile }: { profile: any }) {
     >
       <div className="flex flex-col lg:flex-row">
         <div className="w-full relative z-10 pb-24">
-          <div className="max-w-5xl mx-auto space-y-6">
+          <div className="max-w-full mx-auto space-y-8">
             <FormSection
-              title="Modelos de Mensagens"
+              title="Personalização das Mensagens Automáticas"
               icon={<MessageSquare size={16} />}
             >
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-6 font-sans">
+              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6 font-sans">
                 {Object.entries(MESSAGE_LABELS).map(([key, label]) => {
                   const preview = getMessagePreview(key);
                   return (
                     <div
                       key={key}
                       onClick={() => setEditingMessageKey(key)}
-                      className="group relative flex flex-col overflow-hidden rounded-none border border-petroleum/40 bg-white transition-all w-full animate-in fade-in slide-in-from-bottom-2 duration-500 fill-mode-both hover:border-petroleum/70 cursor-pointer min-h-[180px]"
+                      className="flex flex-col bg-white rounded-luxury overflow-hidden shadow-2xl transition-all border border-petroleum/10 hover:border-gold/30 hover:ring-1 hover:ring-gold/20 cursor-pointer group animate-in fade-in slide-in-from-bottom-2 duration-500 fill-mode-both min-h-[320px]"
                     >
-                      {/* HEADER DO CARD - Estilo GaleriaCard */}
-                      <div className="bg-slate-50 border-b border-petroleum/10 p-3 flex justify-between items-center">
-                        <div className="flex items-center gap-2">
-                          <MessageSquare size={14} className="text-gold" />
-                          <label className="text-[10px] font-bold uppercase tracking-widest text-petroleum">
-                            {label}
-                          </label>
+                      {/* HEADER DO CARD: Estilo Privacidade */}
+                      <div className="bg-petroleum backdrop-blur-md px-5 h-11 flex items-center gap-4 shrink-0 border-b border-white/10">
+                        <div className="text-gold shrink-0 drop-shadow-[0_0_8px_rgba(243,229,171,0.4)]">
+                          <MessageSquare size={18} />
                         </div>
-                        {preview.isDefault && (
-                          <span className="text-[8px] font-bold text-gold uppercase tracking-tighter bg-gold/5 px-1.5 py-0.5 border border-gold/10">
-                            Padrão
+                        <h3 className="text-[12px] font-bold uppercase tracking-[0.15em] text-white leading-none flex-1 truncate">
+                          {MESSAGE_TITLES[key as keyof typeof MESSAGE_TITLES]}
+                        </h3>
+                        {preview.isDefault ? (
+                          <span className="text-[8px] bg-gold text-black px-2 py-0.5 rounded-full font-semibold uppercase tracking-widest">
+                            PADRÃO
+                          </span>
+                        ) : (
+                          <span className="text-[8px] bg-white/20 text-white px-2 py-0.5 rounded-full font-semibold uppercase tracking-widest border border-white/10">
+                            CUSTOM
                           </span>
                         )}
                       </div>
 
-                      {/* CONTEÚDO - Preview da Mensagem */}
-                      <div className="flex-1 p-4">
-                        <p className="text-[11px] italic text-petroleum/60 line-clamp-4 leading-relaxed font-sans">
-                          {preview.text}
-                        </p>
-                      </div>
+                      {/* CORPO DO CARD */}
+                      <div className="p-7 bg-white flex-grow flex flex-col justify-between h-full">
+                        <div>
+                          <p className="text-[14px] leading-relaxed text-petroleum/80 font-bold italic mb-3">
+                            {label}
+                          </p>
+                          <p className="text-[13px] leading-relaxed text-petroleum/60 font-medium line-clamp-6 italic whitespace-pre-line">
+                            "{preview.text}"
+                          </p>
+                        </div>
 
-                      {/* FOOTER DO CARD - Estilo GaleriaCard */}
-                      <div className="flex items-center justify-end p-3 bg-slate-50/50 border-t border-petroleum/10">
-                        <button
-                          type="button"
-                          className="flex items-center gap-2 px-3 py-1.5 bg-white border border-petroleum/20 text-petroleum hover:text-gold hover:border-gold transition-all rounded-none shadow-sm group-hover:border-gold/50"
-                        >
-                          <span className="text-[9px] font-bold uppercase tracking-widest">
-                            Configurar
-                          </span>
-                          <ChevronRight
-                            size={12}
-                            className="group-hover:translate-x-0.5 transition-transform"
-                          />
-                        </button>
+                        <div className="mt-6 pt-4 border-t border-slate-50 flex items-center justify-end">
+                          <div className="flex items-center gap-2 text-petroleum/30 group-hover:text-gold transition-colors">
+                            <span className="text-[10px] font-bold uppercase tracking-[0.1em]">
+                              Configurar
+                            </span>
+                            <ChevronRight
+                              size={14}
+                              className="group-hover:translate-x-0.5 transition-transform"
+                            />
+                          </div>
+                        </div>
                       </div>
                     </div>
                   );

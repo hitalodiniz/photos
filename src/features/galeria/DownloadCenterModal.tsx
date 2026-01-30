@@ -1,12 +1,6 @@
 'use client';
 import React from 'react';
-import {
-  Package,
-  Heart,
-  Download,
-  CheckCircle2,
-  Wifi,
-} from 'lucide-react';
+import { Package, Heart, Download, CheckCircle2, Wifi } from 'lucide-react';
 
 import BaseModal from '@/components/ui/BaseModal';
 import { estimatePhotoDownloadSize } from '@/core/utils/foto-helpers';
@@ -44,9 +38,12 @@ export const DownloadCenterModal = ({
 }: DownloadCenterProps) => {
   if (!isOpen) return null;
 
-  const headerIcon = (
-    totalGallerySizeMB > 100 ? <Wifi size={20} strokeWidth={2.5} /> : <Download size={20} strokeWidth={2.5} />
-  );
+  const headerIcon =
+    totalGallerySizeMB > 100 ? (
+      <Wifi size={20} strokeWidth={2.5} />
+    ) : (
+      <Download size={20} strokeWidth={2.5} />
+    );
 
   const footer = (
     <div className="w-full">
@@ -134,16 +131,12 @@ export const DownloadCenterModal = ({
                       : 'bg-petroleum/10 text-petroleum'
                   }`}
                 >
-                  <Heart
-                    size={18}
-                    fill={isCurrent ? 'currentColor' : 'none'}
-                  />
+                  <Heart size={18} fill={isCurrent ? 'currentColor' : 'none'} />
                 </div>
 
                 <div className="flex-1 text-left min-w-0">
                   <p className="text-[13px] md:text-[14px] font-semibold text-petroleum tracking-wide uppercase">
-                    Suas Favoritas{' '}
-                    {favoriteVolumes.length > 1 ? index + 1 : ''}
+                    Suas Favoritas {favoriteVolumes.length > 1 ? index + 1 : ''}
                   </p>
                   <div className="flex items-center gap-2 mt-0.5">
                     <span className="text-[9px] font-semibold text-petroleum uppercase tracking-luxury">

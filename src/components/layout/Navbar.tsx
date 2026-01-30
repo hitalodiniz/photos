@@ -84,6 +84,8 @@ export default function Navbar() {
 
     if (pathname === '/onboarding') {
       items.push({ label: 'Editar Perfil' });
+    } else if (pathname.includes('/dashboard/settings/messages')) {
+      items.push({ label: 'Configurar Mensagens' });
     } else if (pathname.includes('/dashboard/settings')) {
       items.push({ label: 'Preferências do Usuário' });
     } else if (pathname.includes('/edit')) {
