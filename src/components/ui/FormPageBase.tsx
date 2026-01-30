@@ -2,6 +2,7 @@
 import { useEffect, useRef, ReactNode } from 'react';
 import { ArrowLeft, Save } from 'lucide-react';
 import { SubmitButton } from '@/components/ui';
+import { div } from 'framer-motion/client';
 
 interface FormPageBaseProps {
   title: string;
@@ -34,111 +35,40 @@ export default function FormPageBase({
 }: FormPageBaseProps) {
   const modalRef = useRef<HTMLDivElement>(null);
 
-  // 🎯 UX: Trava scroll do body quando modal está aberto
+  // 🎯 UX: Auto-focus no primeiro campo após renderização
   useEffect(() => {
-    document.body.style.overflow = 'hidden';
-    
-    // 🎯 UX: Auto-focus no primeiro campo após renderização
     const timer = setTimeout(() => {
       const firstInput = modalRef.current?.querySelector(
-        'input[type="text"], input[type="date"], select, textarea'
+        'input[type="text"], input[type="date"], select, textarea',
       ) as HTMLInputElement;
       firstInput?.focus();
     }, 100);
 
     return () => {
-      document.body.style.overflow = 'unset';
       clearTimeout(timer);
     };
   }, []);
 
-  // 🎯 UX: Fechar com tecla ESC
-  useEffect(() => {
-    const handleEscape = (e: KeyboardEvent) => {
-      if (e.key === 'Escape' && !loading) {
-        onClose();
-      }
-    };
-
-    window.addEventListener('keydown', handleEscape);
-    return () => window.removeEventListener('keydown', handleEscape);
-  }, [loading, onClose]);
-
-  // 🎯 UX: Focus trap - mantém foco dentro do modal
-  useEffect(() => {
-    if (!modalRef.current) return;
-
-    const modal = modalRef.current;
-    const focusableElements = modal.querySelectorAll(
-      'button, [href], input, select, textarea, [tabindex]:not([tabindex="-1"])'
-    );
-    const firstElement = focusableElements[0] as HTMLElement;
-    const lastElement = focusableElements[focusableElements.length - 1] as HTMLElement;
-
-    const handleTab = (e: KeyboardEvent) => {
-      if (e.key !== 'Tab') return;
-
-      if (e.shiftKey) {
-        if (document.activeElement === firstElement) {
-          e.preventDefault();
-          lastElement?.focus();
-        }
-      } else {
-        if (document.activeElement === lastElement) {
-          e.preventDefault();
-          firstElement?.focus();
-        }
-      }
-    };
-
-    modal.addEventListener('keydown', handleTab);
-    return () => modal.removeEventListener('keydown', handleTab);
-  }, []);
-
-  const defaultSubmitLabel = loading 
-    ? 'Salvando...' 
-    : isEdit ? 'SALVAR ALTERAÇÕES' : 'CRIAR';
+  const defaultSubmitLabel = loading
+    ? 'Salvando...'
+    : isEdit
+      ? 'SALVAR ALTERAÇÕES'
+      : 'CRIAR';
 
   return (
-    <div 
-      className="fixed inset-0 z-[10] bg-slate-900/40 backdrop-blur-md animate-in fade-in duration-300"
-      onClick={(e) => {
-        if (e.target === e.currentTarget && !loading) {
-          onClose();
-        }
-      }}
-      role="dialog"
-      aria-modal="true"
+    <div
+      className="w-full min-h-[calc(100vh-72px)] flex flex-col animate-in fade-in duration-300"
+      role="main"
       aria-labelledby="form-page-title"
     >
-      <div 
-        ref={modalRef}
-        className="relative w-full h-full bg-white flex flex-col overflow-hidden animate-in zoom-in-95 duration-300"
-        onClick={(e) => e.stopPropagation()}
-      >
-        {/* HEADER */}
-        <div className="px-6 py-4 border-b border-petroleum/10 flex items-center justify-between bg-white/50 backdrop-blur-sm">
-          <div className="flex items-center gap-4">
-            <button
-              onClick={onClose}
-              className="p-2 hover:bg-slate-100 rounded-full transition-colors"
-              type="button"
-            >
-              <ArrowLeft size={20} className="text-petroleum" />
-            </button>
-            <h1 className="text-sm font-bold uppercase tracking-widest text-petroleum" id="form-page-title">
-              {title}
-            </h1>
-          </div>
-        </div>
-
+      <div ref={modalRef} className="relative w-full flex-1 flex flex-col">
         {/* FORM CONTENT */}
-        <div className="flex-1 overflow-y-auto">
-          <div className="w-full max-w-7xl mx-auto">
-            <form 
-              id={id} 
-              onSubmit={onSubmit} 
-              className="flex flex-col" 
+        <div className="flex-1">
+          <div className="w-full max-w-7xl mx-auto px-4 md:px-10">
+            <form
+              id={id}
+              onSubmit={onSubmit}
+              className="flex flex-col"
               onChange={onFormChange}
             >
               {children}
@@ -147,10 +77,11 @@ export default function FormPageBase({
         </div>
 
         {/* STICKY FOOTER */}
-        <div className="sticky bottom-0 z-50 bg-petroleum border-t border-white/10">
+        <div className="sticky bottom-0 z-[60] shrink-0 bg-petroleum border-t border-white/10 shadow-[0_-10px_30px_rgba(0,0,0,0.3)]">
           <div className="flex items-center justify-between px-6 py-4">
             <div className="text-[10px] text-white/70 uppercase tracking-widest">
-              {footerStatusText || (hasUnsavedChanges ? 'Alterações não salvas' : 'Tudo salvo')}
+              {footerStatusText ||
+                (hasUnsavedChanges ? 'Alterações não salvas' : 'Tudo salvo')}
             </div>
 
             <div className="flex items-center gap-3">

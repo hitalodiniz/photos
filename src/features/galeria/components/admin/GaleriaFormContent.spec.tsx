@@ -1,6 +1,26 @@
 import { render, screen, fireEvent, waitFor } from '@testing-library/react';
 import { vi, describe, it, expect, beforeEach } from 'vitest';
+import { useForm } from 'react-hook-form';
 import GaleriaFormContent from './GaleriaFormContent';
+
+// Wrapper component to provide useForm context
+const GaleriaFormContentWrapper = (props: any) => {
+  const { register, setValue, watch } = useForm({
+    defaultValues: {
+      leads_enabled: props.profile?.settings?.defaults?.enable_guest_registration ?? false,
+      lead_purpose: props.initialData?.lead_purpose || props.profile?.settings?.defaults?.data_treatment_purpose || '',
+    }
+  });
+
+  return (
+    <GaleriaFormContent
+      {...props}
+      register={register}
+      setValue={setValue}
+      watch={watch}
+    />
+  );
+};
 
 // Mock dependencies
 vi.mock('@photos/core-auth', () => ({
@@ -70,7 +90,7 @@ describe('GaleriaFormContent', () => {
   });
 
   it('renders correctly with default props', () => {
-    render(<GaleriaFormContent {...defaultProps} />);
+    render(<GaleriaFormContentWrapper {...defaultProps} />);
 
     expect(screen.getByText(/Identificação/i)).toBeInTheDocument();
     expect(screen.getByText(/Galeria & Sincronização/i)).toBeInTheDocument();
@@ -90,13 +110,13 @@ describe('GaleriaFormContent', () => {
       }
     };
 
-    render(<GaleriaFormContent {...propsWithHiddenContract} />);
+    render(<GaleriaFormContentWrapper {...propsWithHiddenContract} />);
 
     expect(screen.queryByText(/Identificação/i)).not.toBeInTheDocument();
   });
 
   it('handles various lead capture field combinations and enforces at least one mandatory field', async () => {
-    render(<GaleriaFormContent {...defaultProps} />);
+    render(<GaleriaFormContentWrapper {...defaultProps} />);
 
     // Enable leads
     const leadsToggle = screen.getByText(/Habilitar cadastro de visitante para visualizar a galeria/i).nextElementSibling as HTMLElement;
@@ -106,6 +126,11 @@ describe('GaleriaFormContent', () => {
       const input = screen.getByTestId(testId) as HTMLInputElement;
       return input?.value;
     };
+
+    // Wait for the lead capture fields to appear
+    await waitFor(() => {
+      expect(screen.getByText('Exigir Nome')).toBeInTheDocument();
+    });
 
     // Default state: Name and WhatsApp required, Email not required
     expect(getHiddenInputValue('leads_require_name')).toBe('true');
@@ -165,7 +190,7 @@ describe('GaleriaFormContent', () => {
     vi.mocked(checkFolderPublicPermission).mockResolvedValue({ isPublic: true, isOwner: true, folderLink: 'link' });
     vi.mocked(checkFolderLimits).mockResolvedValue({ count: 10, hasMore: false, totalInDrive: 10 });
 
-    render(<GaleriaFormContent {...defaultProps} />);
+    render(<GaleriaFormContentWrapper {...defaultProps} />);
 
     const selectButton = screen.getByText('Select Folder');
     fireEvent.click(selectButton);

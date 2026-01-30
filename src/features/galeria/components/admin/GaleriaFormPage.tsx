@@ -4,7 +4,7 @@ import { useState, useEffect, useRef } from 'react';
 import { useForm } from 'react-hook-form';
 import { useRouter } from 'next/navigation';
 import { createGaleria, updateGaleria } from '@/core/services/galeria.service';
-import { SubmitButton } from '@/components/ui';
+import FormPageBase from '@/components/ui/FormPageBase';
 import { Save, CheckCircle2, Sparkles, Link2, Check, ArrowLeft } from 'lucide-react';
 import GaleriaFormContent from './GaleriaFormContent';
 import type { Galeria } from '@/core/types/galeria';
@@ -219,77 +219,36 @@ export default function GaleriaFormPage({
   };
 
   return (
-    <div className="min-h-screen bg-white flex flex-col">
-
-      {/* FORM CONTENT - Layout Duas Colunas (65/35) */}
-      <div className="flex-1 overflow-hidden">
-        <div className="w-full max-w-7xl mx-auto h-full">
-          <form
-            ref={formRef}
-            id="galeria-form"
-            onSubmit={handleSubmit}
-            className="h-full"
-            onChange={() => setHasUnsavedChanges(true)}
-          >
-            <GaleriaFormContent
-              initialData={galeria}
-              isEdit={isEdit}
-              customization={{ showCoverInGrid, gridBgColor, columns }}
-              setCustomization={{
-                setShowCoverInGrid,
-                setGridBgColor,
-                setColumns,
-              }}
-              onPickerError={(msg: string) =>
-                setToast({ message: msg, type: 'error' })
-              }
-              onTokenExpired={() => setShowConsentAlert(true)}
-              onTitleChange={setFormTitle}
-              profile={initialProfile}
-              register={register}
-              setValue={setValue}
-              watch={watch}
-            />
-          </form>
-        </div>
-      </div>
-
-      {/* STICKY FOOTER - Azul Petróleo Profundo */}
-      <div className="sticky bottom-0 z-50 bg-petroleum border-t border-white/10">
-        <div className="w-full max-w-7xl mx-auto flex items-center justify-between px-6 py-4">
-          {/* Status de Salvamento - Esquerda */}
-          <div className="text-[10px] text-white/70 uppercase tracking-widest">
-            {hasUnsavedChanges ? 'Alterações não salvas' : 'Tudo salvo'}
-          </div>
-
-          {/* Botões - Direita */}
-          <div className="flex items-center gap-4">
-            {isEdit && (
-              <button
-                type="button"
-                onClick={() => router.back()}
-                disabled={loading}
-                className="btn-secondary-petroleum px-4"
-              >
-                CANCELAR
-              </button>
-            )}
-            <SubmitButton
-              form="galeria-form"
-              success={isSuccess}
-              className="px-6"
-              icon={<Save size={14} />}
-              label={
-                loading
-                  ? 'Salvando...'
-                  : isEdit
-                    ? 'SALVAR ALTERAÇÕES'
-                    : 'CRIAR GALERIA'
-              }
-            />
-          </div>
-        </div>
-      </div>
+    <FormPageBase
+      title={isEdit ? `Editando: ${formTitle}` : 'Nova Galeria'}
+      isEdit={isEdit}
+      loading={loading}
+      isSuccess={isSuccess}
+      hasUnsavedChanges={hasUnsavedChanges}
+      onClose={() => router.back()}
+      onSubmit={handleSubmit}
+      onFormChange={() => setHasUnsavedChanges(true)}
+      id="galeria-form"
+    >
+      <GaleriaFormContent
+        initialData={galeria}
+        isEdit={isEdit}
+        customization={{ showCoverInGrid, gridBgColor, columns }}
+        setCustomization={{
+          setShowCoverInGrid,
+          setGridBgColor,
+          setColumns,
+        }}
+        onPickerError={(msg: string) =>
+          setToast({ message: msg, type: 'error' })
+        }
+        onTokenExpired={() => setShowConsentAlert(true)}
+        onTitleChange={setFormTitle}
+        profile={initialProfile}
+        register={register}
+        setValue={setValue}
+        watch={watch}
+      />
 
       {toast && (
         <Toast
@@ -385,6 +344,6 @@ export default function GaleriaFormPage({
           </div>
         </div>
       </BaseModal>
-    </div>
+    </FormPageBase>
   );
 }

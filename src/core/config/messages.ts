@@ -1,7 +1,8 @@
 // src/constants/messages.ts
 
+//Mensagens de compartilhamento de galeria do botão do card da galeria no Espaço de Galerias
 export const GALLERY_MESSAGES = {
-  LUXURY_SHARE: (
+  CARD_SHARE: (
     clientName: string,
     title: string,
     date: string,
@@ -22,30 +23,7 @@ export const GALLERY_MESSAGES = {
       '💎 Sua Galeria',
     ].join('\n');
   },
-  CARD_SHARE: (clientName: string, title: string, url: string) => {
-    // \u{2728} = ✨
-    const saudacao = clientName
-      ? `Olá, *${clientName}*! \u{2728}`
-      : 'Olá! \u{2728}';
-
-    return [
-      saudacao,
-      '',
-      // \u{1F4F8} = 📸
-      `As fotos do seu ensaio fotográfico *${title}* estão prontas! \u{1F4F8}`,
-      '',
-      'Preparamos uma galeria exclusiva para você visualizar e baixar suas fotos em alta qualidade.',
-      '',
-      // \u{1F4CD} = 📍
-      '\u{1F4CD} *Acesse aqui:*',
-      url,
-      '',
-      'Espero que goste! \u{2728}',
-      ' ',
-      // \u{1F48E} = 💎
-      '\u{1F48E} _Sua Galeria_',
-    ].join('\n');
-  },
+  //Mensagens de compartilhamento de foto única do botão de compartilhamento no visualizador de fotos da galeria acessada pelo visitante
   PHOTO_SHARE: (title: string, url: string) => {
     return [
       'Olá! ✨',
@@ -61,6 +39,7 @@ export const GALLERY_MESSAGES = {
       '💎 Sua Galeria',
     ].join('\n');
   },
+  //Mensagens de compartilhamento no botão de compartilhamento na grade de fotos da galeria acessada pelo visitante
   GUEST_SHARE: (title: string, url: string) => {
     return [
       'Olá! ✨',

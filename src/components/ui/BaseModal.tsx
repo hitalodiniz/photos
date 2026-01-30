@@ -1,7 +1,8 @@
 'use client';
 
 import { X } from 'lucide-react';
-import { ReactNode, useEffect } from 'react';
+import { ReactNode, useEffect, useState } from 'react';
+import { createPortal } from 'react-dom';
 
 interface BaseModalProps {
   isOpen: boolean;
@@ -9,7 +10,7 @@ interface BaseModalProps {
   title: string;
   subtitle?: string;
   children: ReactNode;
-  maxWidth?: 'sm' | 'md' | 'lg' | 'xl';
+  maxWidth?: 'sm' | 'md' | 'lg' | 'xl' | '2xl' | '3xl';
   showCloseButton?: boolean;
   headerIcon?: ReactNode;
   footer?: ReactNode;
@@ -33,8 +34,15 @@ export default function BaseModal({
   topBanner,
   overlayColor = 'bg-petroleum',
   overlayOpacity = '60', // Padrão John (30%)
-  blurLevel = 'md',      // Padrão John (Blur médio)
+  blurLevel = 'md', // Padrão John (Blur médio)
 }: BaseModalProps) {
+  const [mounted, setMounted] = useState(false);
+
+  // 🎯 Garante que o modal só renderize no cliente (para o Portal)
+  useEffect(() => {
+    setMounted(true);
+  }, []);
+
   // 🎯 Fecha modal com a tecla ESC (Apenas se o botão fechar estiver habilitado)
   useEffect(() => {
     const handleEsc = (e: KeyboardEvent) => {
@@ -43,17 +51,26 @@ export default function BaseModal({
       }
     };
 
-    window.addEventListener('keydown', handleEsc);
-    return () => window.removeEventListener('keydown', handleEsc);
+    if (isOpen) {
+      document.body.style.overflow = 'hidden';
+      window.addEventListener('keydown', handleEsc);
+    }
+
+    return () => {
+      document.body.style.overflow = 'unset';
+      window.removeEventListener('keydown', handleEsc);
+    };
   }, [isOpen, showCloseButton, onClose]);
 
-  if (!isOpen) return null;
+  if (!isOpen || !mounted) return null;
 
   const maxWidthClasses = {
     sm: 'max-w-sm',
     md: 'max-w-md',
     lg: 'max-w-lg',
     xl: 'max-w-xl',
+    '2xl': 'max-w-2xl',
+    '3xl': 'max-w-3xl',
   };
 
   // Mapeamento de blur para classes Tailwind
@@ -65,21 +82,25 @@ export default function BaseModal({
     xl: 'backdrop-blur-xl',
   };
 
-  return (
-    // 🎯 A mágica acontece aqui: combinando a cor, a opacidade variável e o nível de blur
-    <div className={`fixed inset-0 z-[1001] ${overlayColor}/${overlayOpacity} ${blurClasses[blurLevel]} flex items-center justify-center px-6 md:p-6 animate-in fade-in duration-500`}>
-      <div 
-        className="absolute inset-0" 
-        onClick={() => showCloseButton && onClose()} 
+  const modalContent = (
+    <div
+      className={`fixed inset-0 z-[10000] ${overlayColor}/${overlayOpacity} ${blurClasses[blurLevel]} flex items-center justify-center px-6 md:p-6 animate-in fade-in duration-500`}
+    >
+      <div
+        className="absolute inset-0"
+        onClick={() => showCloseButton && onClose()}
       />
 
       {/* O Modal em si (Corpo Branco) */}
-      <div className={`w-full ${maxWidthClasses[maxWidth]} flex flex-col h-auto max-h-[90vh] relative shadow-2xl rounded-luxury overflow-hidden border border-white/10`}>
-        
+      <div
+        className={`w-full ${maxWidthClasses[maxWidth]} flex flex-col h-auto max-h-[90vh] relative shadow-2xl rounded-luxury overflow-hidden border border-white/10`}
+      >
         {/* HEADER - Azul Petróleo Profundo */}
         <div className="bg-petroleum px-6 py-4 flex justify-between items-center shrink-0">
           <div className="flex items-center gap-3">
-            {headerIcon && <div className="text-gold scale-90">{headerIcon}</div>}
+            {headerIcon && (
+              <div className="text-gold scale-90">{headerIcon}</div>
+            )}
             <div>
               <h2 className="text-sm text-white font-bold uppercase tracking-widest leading-none">
                 {title}
@@ -92,7 +113,10 @@ export default function BaseModal({
             </div>
           </div>
           {showCloseButton && (
-            <button onClick={onClose} className="text-white/40 hover:text-white transition-colors">
+            <button
+              onClick={onClose}
+              className="text-white/40 hover:text-white transition-colors"
+            >
               <X size={18} />
             </button>
           )}
@@ -100,8 +124,10 @@ export default function BaseModal({
 
         {/* CORPO - Branco (Aqui é onde a informação aparece limpa) */}
         <div className="bg-white flex-1 overflow-y-auto no-scrollbar">
-          {topBanner && <div className="border-b border-petroleum/10">{topBanner}</div>}
-          
+          {topBanner && (
+            <div className="border-b border-petroleum/10">{topBanner}</div>
+          )}
+
           <div className="p-5">
             {/* Borda interna Petroleum sutil seguindo a estética do formulário */}
             <div className="border border-petroleum/20 rounded-luxury p-4 bg-white shadow-sm">
@@ -119,4 +145,6 @@ export default function BaseModal({
       </div>
     </div>
   );
+
+  return createPortal(modalContent, document.body);
 }

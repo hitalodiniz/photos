@@ -68,17 +68,20 @@ export default function Navbar() {
   }
 
   // Detectar se está na página de criação/edição de galeria, onboarding ou preferências
-  const isFormPage = (pathname.includes('/dashboard/galerias/') && 
-    (pathname.includes('/new') || pathname.includes('/edit') || pathname.includes('/leads'))) || 
+  const isFormPage =
+    (pathname.includes('/dashboard/galerias/') &&
+      (pathname.includes('/new') ||
+        pathname.includes('/edit') ||
+        pathname.includes('/leads'))) ||
     pathname === '/onboarding' ||
     pathname.includes('/dashboard/settings');
-  
+
   // Breadcrumbs para página de formulário - Apenas o status (sem duplicar o branding)
   const getBreadcrumbs = (): { label: string; href?: string }[] | null => {
     if (!isFormPage) return null;
-    
+
     const items: { label: string; href?: string }[] = [];
-    
+
     if (pathname === '/onboarding') {
       items.push({ label: 'Editar Perfil' });
     } else if (pathname.includes('/dashboard/settings')) {
@@ -99,7 +102,7 @@ export default function Navbar() {
   return (
     <>
       {/* 🎯 Navbar com Fundo Azul Petróleo */}
-      <nav className="fixed top-0 left-0 w-full z-[110] flex items-center justify-between px-6 md:px-10 py-2 bg-petroleum backdrop-blur-xl border-b border-white/10 shadow-2xl">
+      <nav className="fixed top-0 left-0 w-full z-[110] flex items-center justify-between px-6 md:px-10 pt-1 bg-petroleum backdrop-blur-xl border-b border-white/10 shadow-2xl">
         {/* Branding Editorial com Breadcrumbs */}
         <div className="flex items-center gap-4">
           {/* Botão Menu Mobile - Apenas no Dashboard */}
@@ -117,7 +120,7 @@ export default function Navbar() {
           {isFormPage && (
             <button
               onClick={() => router.back()}
-              className="p-2 text-white/40 hover:text-gold hover:bg-white/5 rounded-luxury transition-colors shrink-0"
+              className="text-white/80 hover:text-gold hover:bg-white/5 rounded-luxury transition-colors shrink-0"
               aria-label="Voltar"
               title="Voltar"
             >
@@ -127,7 +130,7 @@ export default function Navbar() {
 
           <Link
             href="/dashboard"
-            className="flex items-center gap-3 group transition-all"
+            className="flex items-center gap-2 group transition-all"
           >
             {/* 🎯 Ícone da Câmera - Apenas o ícone, sem borda e sem fundo */}
             <Camera
@@ -135,9 +138,8 @@ export default function Navbar() {
               strokeWidth={1.5}
             />
 
-            <span className="font-artistic text-lg md:text-[20px] font-bold tracking-tight text-white italic">
-              Espaço das {' '}
-              <span className="text-champagne">Galerias</span>
+            <span className="font-artistic text-lg md:text-[18px] font-semibold tracking-tight text-white italic">
+              Espaço das <span className="text-champagne">Galerias</span>
             </span>
           </Link>
 
@@ -150,7 +152,7 @@ export default function Navbar() {
                   <div key={index} className="flex items-center gap-1">
                     <span className="text-white/20 text-sm">/</span>
                     {isLast ? (
-                      <span className="text-sm md:text-base ml-1 text-white font-bold tracking-tight italic">
+                      <span className="text-sm md:text-[18px] ml-1 text-white font-semibold tracking-tight italic">
                         {item.label}
                       </span>
                     ) : item.href ? (
@@ -174,7 +176,6 @@ export default function Navbar() {
 
         {/* Identidade do Usuário e Menu */}
         <div className="flex items-center gap-5">
-
           <UserMenu session={user} avatarUrl={avatarUrl} />
         </div>
       </nav>

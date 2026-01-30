@@ -9,6 +9,8 @@ interface LGPDPurposeFieldProps {
   setValue: UseFormSetValue<any>;
   watch: UseFormWatch<any>;
   fieldName: string; // Ex: 'settings.defaults.data_treatment_purpose'
+  initialValue?: string;
+  required?: boolean;
 }
 
 const FINALIDADES_PADRAO = [
@@ -19,7 +21,7 @@ const FINALIDADES_PADRAO = [
     "segurança e controle de acesso ao conteúdo",
   ];
 
-  export function LGPDPurposeField({ register, setValue, watch, fieldName, initialValue }: LGPDPurposeFieldProps) {
+  export function LGPDPurposeField({ register, setValue, watch, fieldName, initialValue, required = false }: LGPDPurposeFieldProps) {
     // Inicialização inteligente do estado baseada no valor existente
     const [isCustomPurpose, setIsCustomPurpose] = useState(() => {
       if (!initialValue) return false;
@@ -52,6 +54,7 @@ const FINALIDADES_PADRAO = [
         <select
           className="w-full bg-white border border-petroleum/20 rounded-luxury px-3 h-11 text-[13px] text-petroleum outline-none focus:border-gold transition-all appearance-none cursor-pointer font-sans"
           value={isCustomPurpose ? 'custom' : leadPurpose}
+          required={required}
           onChange={(e) => {
             const val = e.target.value;
             if (val === 'custom') {
@@ -79,7 +82,7 @@ const FINALIDADES_PADRAO = [
               {...register(fieldName)}
               placeholder="ex: coleta para fins de sorteio durante o evento..."
               className="w-full bg-white border border-petroleum/20 rounded-luxury p-3 text-[13px] text-petroleum outline-none focus:border-gold transition-all min-h-[80px] resize-none font-sans"
-              required={isCustomPurpose}
+              required={required && isCustomPurpose}
             />
           </div>
         )}

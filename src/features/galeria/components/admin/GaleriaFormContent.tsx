@@ -41,13 +41,14 @@ import { LimitUpgradeModal } from '@/components/ui/LimitUpgradeModal';
 import { useGoogleDriveImage } from '@/hooks/useGoogleDriveImage';
 import { GalleryDesignFields } from './GalleryDesignFields';
 import { LGPDPurposeField } from '@/components/ui/LGPDPurposeField';
+import { div } from 'framer-motion/client';
 
 // 🎯 Componente de seção simples (sem accordion) - Estilo Editorial
 const FormSection = ({
   title,
   subtitle, // Nova prop para o subtítulo
   icon,
-  children
+  children,
 }: {
   title: string;
   subtitle?: string;
@@ -57,7 +58,8 @@ const FormSection = ({
   <div className="bg-white rounded-luxury border border-petroleum/40 p-4 space-y-3">
     <div className="flex flex-col gap-1 pb-2 border-b border-petroleum/40">
       <div className="flex items-center gap-2">
-        {icon && <div className="text-gold">{icon}</div>} {/* Ícones agora em Gold */}
+        {icon && <div className="text-petroleum">{icon}</div>}{' '}
+        {/* Ícones agora em Gold */}
         <h3 className="text-[10px] font-bold uppercase tracking-widest text-petroleum dark:text-slate-700">
           {title}
         </h3>
@@ -67,11 +69,8 @@ const FormSection = ({
           </p>
         )}
       </div>
-
     </div>
-    <div className="pl-0">
-      {children}
-    </div>
+    <div className="pl-0">{children}</div>
   </div>
 );
 
@@ -101,7 +100,8 @@ export default function GaleriaFormContent({
   });
 
   const leadsEnabled = watch('leads_enabled');
-  const setLeadsEnabled = (val: boolean) => setValue('leads_enabled', val, { shouldDirty: true });
+  const setLeadsEnabled = (val: boolean) =>
+    setValue('leads_enabled', val, { shouldDirty: true });
 
   const [leadsRequireName, setLeadsRequireName] = useState(() => {
     if (initialData)
@@ -134,7 +134,9 @@ export default function GaleriaFormContent({
         initialData.leads_require_whatsapp === 'true'
       );
     if (profile?.settings?.defaults?.required_guest_fields) {
-      return profile.settings.defaults.required_guest_fields.includes('whatsapp');
+      return profile.settings.defaults.required_guest_fields.includes(
+        'whatsapp',
+      );
     }
     return true; // Padrão: WhatsApp obrigatório se habilitado
   });
@@ -165,7 +167,12 @@ export default function GaleriaFormContent({
 
   // 🎯 Garantia de consistência: se leads habilitados, pelo menos um deve ser true
   useEffect(() => {
-    if (leadsEnabled && !leadsRequireName && !leadsRequireEmail && !leadsRequireWhatsapp) {
+    if (
+      leadsEnabled &&
+      !leadsRequireName &&
+      !leadsRequireEmail &&
+      !leadsRequireWhatsapp
+    ) {
       setLeadsRequireName(true);
       setLeadsRequireWhatsapp(true);
     }
@@ -212,7 +219,10 @@ export default function GaleriaFormContent({
           // Garante que cada item tenha label e url
           return parsed.map((item, index) => ({
             url: typeof item === 'string' ? item : item.url || '',
-            label: typeof item === 'string' ? `LINK ${index + 1}` : item.label || `LINK ${index + 1}`
+            label:
+              typeof item === 'string'
+                ? `LINK ${index + 1}`
+                : item.label || `LINK ${index + 1}`,
           }));
         }
       } catch {
@@ -222,7 +232,8 @@ export default function GaleriaFormContent({
     return [];
   };
 
-  const [links, setLinks] = useState<{ url: string, label: string }[]>(parseInitialLinks());
+  const [links, setLinks] =
+    useState<{ url: string; label: string }[]>(parseInitialLinks());
 
   const [photoCount, setPhotoCount] = useState<number | null>(null);
   const [isValidatingDrive, setIsValidatingDrive] = useState(false);
@@ -235,12 +246,17 @@ export default function GaleriaFormContent({
    * 🎯 Função "cérebro": Valida e processa a seleção do Drive
    * Esta função contém toda a lógica de validação que foi removida do GooglePickerButton
    */
-  const handleDriveSelection = async (selectedId: string, selectedName: string) => {
+  const handleDriveSelection = async (
+    selectedId: string,
+    selectedName: string,
+  ) => {
     setIsValidatingDrive(true);
     try {
       // 🎯 PROTEÇÃO: Verifica se getAuthDetails está disponível
       if (!getAuthDetails || typeof getAuthDetails !== 'function') {
-        console.error('[GaleriaFormContent] getAuthDetails não está disponível');
+        console.error(
+          '[GaleriaFormContent] getAuthDetails não está disponível',
+        );
         onPickerError('Erro de autenticação. Por favor, refaça o login.');
         return;
       }
@@ -250,14 +266,20 @@ export default function GaleriaFormContent({
       try {
         authDetails = await getAuthDetails();
       } catch (authError) {
-        console.error('[GaleriaFormContent] Erro ao obter detalhes de autenticação:', authError);
+        console.error(
+          '[GaleriaFormContent] Erro ao obter detalhes de autenticação:',
+          authError,
+        );
         onPickerError('Erro de autenticação. Por favor, refaça o login.');
         return;
       }
 
       // 🎯 PROTEÇÃO: Verifica se authDetails não é null/undefined e tem userId
       if (!authDetails || !authDetails.userId) {
-        console.error('[GaleriaFormContent] authDetails inválido:', authDetails);
+        console.error(
+          '[GaleriaFormContent] authDetails inválido:',
+          authDetails,
+        );
         onPickerError('Erro de autenticação. Por favor, refaça o login.');
         return;
       }
@@ -272,7 +294,10 @@ export default function GaleriaFormContent({
       // Se for arquivo, busca a pasta pai
       try {
         // Tenta buscar a pasta pai (caso seja arquivo)
-        const parentFolderId = await getParentFolderIdServer(selectedId, userId);
+        const parentFolderId = await getParentFolderIdServer(
+          selectedId,
+          userId,
+        );
 
         if (parentFolderId) {
           // É um arquivo, usa a pasta pai
@@ -302,7 +327,10 @@ export default function GaleriaFormContent({
           driveFolderName = folderName;
         }
       } catch (error) {
-        console.warn('[handleDriveSelection] Erro ao buscar nome da pasta:', error);
+        console.warn(
+          '[handleDriveSelection] Erro ao buscar nome da pasta:',
+          error,
+        );
         // Continua com o nome selecionado
       }
 
@@ -311,16 +339,29 @@ export default function GaleriaFormContent({
       try {
         limitData = await checkFolderLimits(driveFolderId, userId, PLAN_LIMIT);
       } catch (error) {
-        console.warn('[handleDriveSelection] Erro ao verificar limites:', error);
+        console.warn(
+          '[handleDriveSelection] Erro ao verificar limites:',
+          error,
+        );
         // Continua mesmo com erro na verificação de limites
       }
 
       // 🎯 PASSO 4: Verifica se a pasta é pública e se pertence ao usuário
-      let folderPermissionInfo = { isPublic: false, isOwner: false, folderLink: '' };
+      let folderPermissionInfo = {
+        isPublic: false,
+        isOwner: false,
+        folderLink: '',
+      };
       try {
-        folderPermissionInfo = await checkFolderPublicPermission(driveFolderId, userId);
+        folderPermissionInfo = await checkFolderPublicPermission(
+          driveFolderId,
+          userId,
+        );
       } catch (error) {
-        console.warn('[handleDriveSelection] Erro ao verificar permissões:', error);
+        console.warn(
+          '[handleDriveSelection] Erro ao verificar permissões:',
+          error,
+        );
         // Por segurança, assume que não é pública se houver erro
         folderPermissionInfo.folderLink = `https://drive.google.com/drive/folders/${driveFolderId}`;
       }
@@ -329,7 +370,7 @@ export default function GaleriaFormContent({
       if (!folderPermissionInfo.isOwner) {
         onPickerError(
           `Esta pasta foi compartilhada por outro usuário. Só é possível vincular pastas de sua propriedade.\n\n` +
-          `Link da pasta: ${folderPermissionInfo.folderLink}`
+            `Link da pasta: ${folderPermissionInfo.folderLink}`,
         );
         return;
       }
@@ -338,7 +379,7 @@ export default function GaleriaFormContent({
       if (!folderPermissionInfo.isPublic) {
         onPickerError(
           `Pasta privada. Mude o acesso para "Qualquer pessoa com o link".\n\n` +
-          `Link da pasta: ${folderPermissionInfo.folderLink}`
+            `Link da pasta: ${folderPermissionInfo.folderLink}`,
         );
         return;
       }
@@ -347,7 +388,7 @@ export default function GaleriaFormContent({
       setDriveData({
         id: driveFolderId,
         name: driveFolderName,
-        coverId: coverFileId
+        coverId: coverFileId,
       });
       setLimitInfo(limitData);
 
@@ -365,7 +406,8 @@ export default function GaleriaFormContent({
     } catch (error: any) {
       console.error('[handleDriveSelection] Erro ao processar seleção:', error);
       onPickerError(
-        error?.message || 'Erro ao processar a seleção do Google Drive. Tente novamente.'
+        error?.message ||
+          'Erro ao processar a seleção do Google Drive. Tente novamente.',
       );
     } finally {
       setIsValidatingDrive(false);
@@ -380,7 +422,12 @@ export default function GaleriaFormContent({
   };
 
   // Preview de capa
-  const { imgSrc: coverPreviewUrl, imgRef, handleLoad, handleError } = useGoogleDriveImage({
+  const {
+    imgSrc: coverPreviewUrl,
+    imgRef,
+    handleLoad,
+    handleError,
+  } = useGoogleDriveImage({
     photoId: driveData.coverId || driveData.id || '',
     width: '400',
     priority: false,
@@ -392,15 +439,17 @@ export default function GaleriaFormContent({
   const [, setTitleValue] = useState(initialData?.title || '');
 
   return (
-    <div className="flex flex-col lg:flex-row h-full overflow-y-auto lg:overflow-hidden">
+    <div className="flex flex-col lg:flex-row gap-2">
       {/* COLUNA PRINCIPAL (65%) */}
-      <div className="w-full lg:w-[65%] relative z-10 lg:overflow-y-auto pr-0 lg:pr-4 pl-0 space-y-2 pb-4
-      ">
-
+      <div className="w-full lg:w-[65%] relative z-10 space-y-3 pb-2">
         {/* INPUTS OCULTOS */}
         <div className="hidden">
           <input type="hidden" name="drive_folder_id" value={driveData.id} />
-          <input type="hidden" name="drive_folder_name" value={driveData.name} />
+          <input
+            type="hidden"
+            name="drive_folder_name"
+            value={driveData.name}
+          />
           <input
             type="hidden"
             name="show_on_profile"
@@ -474,13 +523,19 @@ export default function GaleriaFormContent({
         </div>
 
         {/* SEÇÃO 1: IDENTIFICAÇÃO */}
-        {(profile?.settings?.display?.show_contract_type !== false || hasContractingClient) && (
+        {(profile?.settings?.display?.show_contract_type !== false ||
+          hasContractingClient) && (
           <FormSection title="Identificação" icon={<User size={14} />}>
             <fieldset>
               <div className="grid grid-cols-1 md:grid-cols-12 gap-2 items-end">
                 <div className="md:col-span-3 ">
                   <label className="text-[10px] font-semibold uppercase tracking-widest text-petroleum">
-                    <Briefcase size={12} strokeWidth={2} className="inline mr-1.5" /> Tipo
+                    <Briefcase
+                      size={12}
+                      strokeWidth={2}
+                      className="inline mr-1.5"
+                    />{' '}
+                    Tipo
                   </label>
                   <div className="flex p-1 bg-slate-50 rounded-luxury border border-petroleum/40 h-10 items-center relative">
                     <div
@@ -488,7 +543,9 @@ export default function GaleriaFormContent({
                     />
                     <button
                       type="button"
-                      disabled={profile?.settings?.display?.show_contract_type === false}
+                      disabled={
+                        profile?.settings?.display?.show_contract_type === false
+                      }
                       onClick={() => setHasContractingClient(true)}
                       className={`relative z-10 flex-1 text-[10px] font-semibold uppercase tracking-widest transition-colors ${hasContractingClient ? 'text-black' : 'text-petroleum/60 dark:text-slate-400'}`}
                     >
@@ -510,7 +567,12 @@ export default function GaleriaFormContent({
                   <>
                     <div className="md:col-span-6 space-y-1.5 animate-in slide-in-from-left-2">
                       <label className="text-[10px] font-semibold uppercase tracking-widest text-petroleum">
-                        <User size={12} strokeWidth={2} className="inline mr-1.5" /> Cliente
+                        <User
+                          size={12}
+                          strokeWidth={2}
+                          className="inline mr-1.5"
+                        />{' '}
+                        Cliente
                       </label>
                       <input
                         name="client_name"
@@ -522,7 +584,8 @@ export default function GaleriaFormContent({
                     </div>
                     <div className="md:col-span-3 space-y-1.5">
                       <label className="text-[10px] font-semibold uppercase tracking-widest text-petroleum">
-                        <WhatsAppIcon className="w-3 h-3 inline mr-1.5" /> WhatsApp
+                        <WhatsAppIcon className="w-3 h-3 inline mr-1.5" />{' '}
+                        WhatsApp
                       </label>
                       <input
                         value={clientWhatsapp}
@@ -546,13 +609,17 @@ export default function GaleriaFormContent({
         )}
 
         {/* SEÇÃO 2: GALERIA & SINCRONIZAÇÃO */}
-        <FormSection title="Galeria & Sincronização" icon={<FolderSync size={14} />}>
+        <FormSection
+          title="Galeria & Sincronização"
+          icon={<FolderSync size={14} />}
+        >
           <fieldset>
             {/* Detalhes da Galeria - Primeira Linha */}
             <div className="grid grid-cols-1 md:grid-cols-12 gap-3 items-end mb-3">
               <div className="md:col-span-6 space-y-1.5">
                 <label className="text-[10px] font-semibold uppercase tracking-widest text-petroleum">
-                  <Type size={12} strokeWidth={2} className="inline mr-1.5" /> Título
+                  <Type size={12} strokeWidth={2} className="inline mr-1.5" />{' '}
+                  Título
                 </label>
                 <input
                   name="title"
@@ -568,7 +635,8 @@ export default function GaleriaFormContent({
               </div>
               <div className="md:col-span-6 space-y-1.5">
                 <label className="text-[10px] font-semibold uppercase tracking-widest text-petroleum">
-                  <Tag size={12} strokeWidth={2} className="inline mr-1.5" /> Categoria
+                  <Tag size={12} strokeWidth={2} className="inline mr-1.5" />{' '}
+                  Categoria
                 </label>
                 <CategorySelect
                   value={category}
@@ -582,7 +650,12 @@ export default function GaleriaFormContent({
             <div className="grid grid-cols-1 md:grid-cols-12 gap-3 items-end mb-3">
               <div className="md:col-span-6 space-y-1.5">
                 <label className="text-[10px] font-semibold uppercase tracking-widest text-petroleum">
-                  <Calendar size={12} strokeWidth={2} className="inline mr-1.5" /> Data
+                  <Calendar
+                    size={12}
+                    strokeWidth={2}
+                    className="inline mr-1.5"
+                  />{' '}
+                  Data
                 </label>
                 <input
                   name="date"
@@ -594,7 +667,8 @@ export default function GaleriaFormContent({
               </div>
               <div className="md:col-span-6 space-y-1.5">
                 <label className="text-[10px] font-semibold uppercase tracking-widest text-petroleum">
-                  <MapPin size={12} strokeWidth={2} className="inline mr-1.5" /> Local
+                  <MapPin size={12} strokeWidth={2} className="inline mr-1.5" />{' '}
+                  Local
                 </label>
                 <input
                   name="location"
@@ -604,7 +678,6 @@ export default function GaleriaFormContent({
                 />
               </div>
             </div>
-
           </fieldset>
         </FormSection>
 
@@ -616,7 +689,8 @@ export default function GaleriaFormContent({
               <div className="flex flex-col sm:flex-row items-start sm:items-center gap-3">
                 <div className="flex items-center gap-1.5 shrink-0">
                   <label className="text-[10px] font-semibold uppercase tracking-widest text-petroleum">
-                    <Lock size={12} className="inline mr-1.5" /> Acesso à Galeria
+                    <Lock size={12} className="inline mr-1.5" /> Acesso à
+                    Galeria
                   </label>
                   <div className="group relative flex items-center">
                     <div className="flex items-center justify-center w-3.5 h-3.5 rounded-full border border-petroleum/40 text-petroleum/60 dark:text-slate-400 group-hover:border-gold group-hover: transition-colors cursor-help">
@@ -624,7 +698,11 @@ export default function GaleriaFormContent({
                     </div>
                     <div className="absolute bottom-full left-0 mb-3 w-64 p-3 bg-slate-900 text-white text-[10px] font-medium leading-relaxed rounded-luxury opacity-0 pointer-events-none group-hover:opacity-100 transition-all duration-300 shadow-2xl z-[100] text-left border border-white/10">
                       <p>
-                        Para acessar uma galeria <strong className="text-champagne">Privada</strong>, o visitante deve informar a senha cadastrada nesta tela. Sem senha, qualquer pessoa com o link pode acessar. Com senha, apenas quem informar a senha correta terá acesso.
+                        Para acessar uma galeria{' '}
+                        <strong className="text-champagne">Privada</strong>, o
+                        visitante deve informar a senha cadastrada nesta tela.
+                        Sem senha, qualquer pessoa com o link pode acessar. Com
+                        senha, apenas quem informar a senha correta terá acesso.
                       </p>
                       <div className="absolute top-full left-2 border-8 border-transparent border-t-slate-900" />
                     </div>
@@ -670,7 +748,11 @@ export default function GaleriaFormContent({
                         onClick={() => setShowPassword(!showPassword)}
                         className="absolute right-2 top-1/2 -translate-y-1/2 text-slate-400 hover: transition-colors p-1"
                       >
-                        {showPassword ? <EyeOff size={14} /> : <Eye size={14} />}
+                        {showPassword ? (
+                          <EyeOff size={14} />
+                        ) : (
+                          <Eye size={14} />
+                        )}
                       </button>
                     </div>
                   )}
@@ -681,7 +763,8 @@ export default function GaleriaFormContent({
               <div className="flex flex-col sm:flex-row items-start sm:items-center gap-3">
                 <div className="flex items-center gap-1.5 shrink-0">
                   <label className="text-[10px] font-semibold uppercase tracking-widest text-petroleum">
-                    <Eye size={12} className=" inline mr-1.5" /> Listar no Perfil
+                    <Eye size={12} className=" inline mr-1.5" /> Listar no
+                    Perfil
                   </label>
                   <div className="group relative flex items-center">
                     <div className="flex items-center justify-center w-3.5 h-3.5 rounded-full border border-petroleum/40 text-petroleum/60 dark:text-slate-400 group-hover:border-gold group-hover: transition-colors cursor-help">
@@ -689,7 +772,11 @@ export default function GaleriaFormContent({
                     </div>
                     <div className="absolute bottom-full left-0 lg:left-auto lg:right-0 mb-3 w-64 p-3 bg-slate-900 text-white text-[10px] font-medium leading-relaxed rounded-luxury opacity-0 pointer-events-none group-hover:opacity-100 transition-all duration-300 shadow-2xl z-[100] text-left border border-white/10">
                       <p>
-                        Se ativado, esta galeria será visível na sua <strong className="text-champagne">página de perfil pública</strong> para todos os visitantes.
+                        Se ativado, esta galeria será visível na sua{' '}
+                        <strong className="text-champagne">
+                          página de perfil pública
+                        </strong>{' '}
+                        para todos os visitantes.
                       </p>
                       <div className="absolute top-full left-2 lg:left-auto lg:right-2 border-8 border-transparent border-t-slate-900" />
                     </div>
@@ -730,9 +817,9 @@ export default function GaleriaFormContent({
                   </button>
                 </div>
                 {!isEdit && (
-                  
                   <p className="text-[10px] text-petroleum/60 dark:text-slate-400 italic">
-                    Aumente sua base de contatos exigindo dados básicos antes dos clientes visualizarem as fotos.
+                    Aumente sua base de contatos exigindo dados básicos antes
+                    dos clientes visualizarem as fotos.
                   </p>
                 )}
               </div>
@@ -745,47 +832,59 @@ export default function GaleriaFormContent({
                         Campos para captura
                       </label>
                       <div className="grid grid-cols-1 sm:grid-cols-3 gap-4 p-4 bg-slate-50 rounded-luxury border border-petroleum/20 animate-in fade-in slide-in-from-top-2 duration-300">
-                <div 
-                  onClick={() => toggleLeadField('name')}
-                  className="flex items-center gap-2 cursor-pointer group"
-                >
-                  <div 
-                    className={`w-4 h-4 rounded border transition-colors flex items-center justify-center ${leadsRequireName ? 'bg-gold border-gold' : 'bg-white border-petroleum/40'}`}
-                  >
-                    {leadsRequireName && <CheckCircle2 size={10} className="text-white" />}
-                  </div>
-                  <span className="text-[11px] font-semibold uppercase tracking-wider text-petroleum/80 group-hover:text-petroleum">Exigir Nome</span>
-                </div>
+                        <div
+                          onClick={() => toggleLeadField('name')}
+                          className="flex items-center gap-2 cursor-pointer group"
+                        >
+                          <div
+                            className={`w-4 h-4 rounded border transition-colors flex items-center justify-center ${leadsRequireName ? 'bg-gold border-gold' : 'bg-white border-petroleum/40'}`}
+                          >
+                            {leadsRequireName && (
+                              <CheckCircle2 size={10} className="text-white" />
+                            )}
+                          </div>
+                          <span className="text-[11px] font-semibold uppercase tracking-wider text-petroleum/80 group-hover:text-petroleum">
+                            Exigir Nome
+                          </span>
+                        </div>
 
-                <div 
-                  onClick={() => toggleLeadField('email')}
-                  className="flex items-center gap-2 cursor-pointer group"
-                >
-                  <div 
-                    className={`w-4 h-4 rounded border transition-colors flex items-center justify-center ${leadsRequireEmail ? 'bg-gold border-gold' : 'bg-white border-petroleum/40'}`}
-                  >
-                    {leadsRequireEmail && <CheckCircle2 size={10} className="text-white" />}
-                  </div>
-                  <span className="text-[11px] font-semibold uppercase tracking-wider text-petroleum/80 group-hover:text-petroleum">Exigir E-mail</span>
-                </div>
+                        <div
+                          onClick={() => toggleLeadField('email')}
+                          className="flex items-center gap-2 cursor-pointer group"
+                        >
+                          <div
+                            className={`w-4 h-4 rounded border transition-colors flex items-center justify-center ${leadsRequireEmail ? 'bg-gold border-gold' : 'bg-white border-petroleum/40'}`}
+                          >
+                            {leadsRequireEmail && (
+                              <CheckCircle2 size={10} className="text-white" />
+                            )}
+                          </div>
+                          <span className="text-[11px] font-semibold uppercase tracking-wider text-petroleum/80 group-hover:text-petroleum">
+                            Exigir E-mail
+                          </span>
+                        </div>
 
-                <div 
-                  onClick={() => toggleLeadField('whatsapp')}
-                  className="flex items-center gap-2 cursor-pointer group"
-                >
-                  <div 
-                    className={`w-4 h-4 rounded border transition-colors flex items-center justify-center ${leadsRequireWhatsapp ? 'bg-gold border-gold' : 'bg-white border-petroleum/40'}`}
-                  >
-                    {leadsRequireWhatsapp && <CheckCircle2 size={10} className="text-white" />}
-                  </div>
-                  <span className="text-[11px] font-semibold uppercase tracking-wider text-petroleum/80 group-hover:text-petroleum">Exigir WhatsApp</span>
-                </div>
-              </div>
+                        <div
+                          onClick={() => toggleLeadField('whatsapp')}
+                          className="flex items-center gap-2 cursor-pointer group"
+                        >
+                          <div
+                            className={`w-4 h-4 rounded border transition-colors flex items-center justify-center ${leadsRequireWhatsapp ? 'bg-gold border-gold' : 'bg-white border-petroleum/40'}`}
+                          >
+                            {leadsRequireWhatsapp && (
+                              <CheckCircle2 size={10} className="text-white" />
+                            )}
+                          </div>
+                          <span className="text-[11px] font-semibold uppercase tracking-wider text-petroleum/80 group-hover:text-petroleum">
+                            Exigir WhatsApp
+                          </span>
+                        </div>
+                      </div>
                     </div>
                   </div>
 
                   <div className="mt-6">
-                    <LGPDPurposeField 
+                    <LGPDPurposeField
                       register={register}
                       setValue={setValue}
                       watch={watch}
@@ -817,11 +916,10 @@ export default function GaleriaFormContent({
             />
           </fieldset>
         </FormSection>
-
       </div>
 
       {/* COLUNA LATERAL (35%) */}
-      <div className="w-full lg:w-[35%] border-t lg:border-t-0 lg:border-l border-petroleum/40 lg:overflow-y-auto pl-0 lg:pl-4 pr-0 py-6 lg:py-0 space-y-2 bg-slate-50/30">
+      <div className="w-full lg:w-[35%] border-t lg:border-t-0 lg:border-l border-petroleum/40 pl-0 lg:pl-2 space-y-4 bg-slate-50/30  px-2 pb-6">
         {/* GOOGLE DRIVE - Seção Principal */}
         <div className="relative bg-white rounded-luxury border border-petroleum/40 p-4 space-y-4 mt-2 overflow-hidden">
           {/* Overlay de Validação */}
@@ -919,7 +1017,8 @@ export default function GaleriaFormContent({
               </button>
             </div>
             <p className="text-[10px] text-petroleum/60 dark:text-slate-400 italic leading-tight">
-              Padroniza o nome das fotos para &quot;foto-1.jpg&quot;, &quot;foto-2.jpg&quot;, etc, facilitando a organização do cliente.
+              Padroniza o nome das fotos para &quot;foto-1.jpg&quot;,
+              &quot;foto-2.jpg&quot;, etc, facilitando a organização do cliente.
             </p>
           </div>
         </div>
@@ -943,14 +1042,19 @@ export default function GaleriaFormContent({
 
             <div className="space-y-3">
               {links.map((link, index) => (
-                <div key={index} className="p-3 bg-slate-50/50 rounded-luxury border border-petroleum/10 space-y-2 animate-in fade-in slide-in-from-right-2 duration-300">
+                <div
+                  key={index}
+                  className="p-3 bg-slate-50/50 rounded-luxury border border-petroleum/10 space-y-2 animate-in fade-in slide-in-from-right-2 duration-300"
+                >
                   <div className="flex items-center justify-between">
                     <span className="text-[10px] font-semibold text-petroleum uppercase tracking-widest">
                       recurso #{index + 1}
                     </span>
                     <button
                       type="button"
-                      onClick={() => setLinks(links.filter((_, i) => i !== index))}
+                      onClick={() =>
+                        setLinks(links.filter((_, i) => i !== index))
+                      }
                       className="text-petroleum/70 hover:text-red-500 transition-colors"
                     >
                       <Trash2 size={12} />
@@ -984,14 +1088,19 @@ export default function GaleriaFormContent({
                         value={link.url}
                         onChange={(e) => {
                           const newLinks = [...links];
-                          newLinks[index].url = convertToDirectDownloadUrl(e.target.value);
+                          newLinks[index].url = convertToDirectDownloadUrl(
+                            e.target.value,
+                          );
                           setLinks(newLinks);
                         }}
                         placeholder="https://link..."
                         className="w-full px-2 pr-7 h-8 bg-white border border-petroleum/20 rounded-luxury text-petroleum/70 text-[11px] outline-none focus:border-gold transition-all invalid:border-red-500/50"
                       />
                       {link.url && (
-                        <CheckCircle2 size={12} className="absolute right-2 top-1/2 -translate-y-1/2 text-green-500" />
+                        <CheckCircle2
+                          size={12}
+                          className="absolute right-2 top-1/2 -translate-y-1/2 text-green-500"
+                        />
                       )}
                     </div>
                   </div>
@@ -1001,10 +1110,18 @@ export default function GaleriaFormContent({
 
             <button
               type="button"
-              onClick={() => setLinks([...links, { url: '', label: `LINK ${links.length + 1}` }])}
+              onClick={() =>
+                setLinks([
+                  ...links,
+                  { url: '', label: `LINK ${links.length + 1}` },
+                ])
+              }
               className="btn-secondary-white w-full h-9 group border-dashed"
             >
-              <Plus size={14} className="group-hover:rotate-90 transition-transform" />
+              <Plus
+                size={14}
+                className="group-hover:rotate-90 transition-transform"
+              />
               adicionar novo link
             </button>
           </div>

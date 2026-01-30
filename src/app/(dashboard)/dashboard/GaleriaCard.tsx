@@ -82,7 +82,7 @@ export default function GaleriaCard({
   useEffect(() => {
     if (galeria && mounted) {
       const publicUrl = getPublicGalleryUrl(galeria.photographer, galeria.slug);
-      const message = GALLERY_MESSAGES.LUXURY_SHARE(
+      const message = GALLERY_MESSAGES.CARD_SHARE(
         galeria.client_name,
         galeria.title,
         galeria.date,
@@ -106,9 +106,12 @@ export default function GaleriaCard({
   const formatPhone = (phone: string | null | undefined) => {
     if (!phone) return '';
     let cleaned = phone.replace(/\D/g, '');
-    
+
     // 🎯 Se começar com 55 e tiver 12 ou 13 dígitos, remove o DDI
-    if (cleaned.startsWith('55') && (cleaned.length === 12 || cleaned.length === 13)) {
+    if (
+      cleaned.startsWith('55') &&
+      (cleaned.length === 12 || cleaned.length === 13)
+    ) {
       cleaned = cleaned.substring(2);
     }
 
@@ -120,9 +123,15 @@ export default function GaleriaCard({
     return phone;
   };
 
-  const hasClientInfo = galeria.client_name && galeria.client_name !== 'Cobertura';
+  const hasClientInfo =
+    galeria.client_name && galeria.client_name !== 'Cobertura';
 
-  const { imgSrc: imageUrl, handleError, handleLoad, imgRef } = useGoogleDriveImage({
+  const {
+    imgSrc: imageUrl,
+    handleError,
+    handleLoad,
+    imgRef,
+  } = useGoogleDriveImage({
     photoId: galeria.cover_image_url || '',
     width: RESOLUTIONS.THUMB,
     priority: index < 4,
@@ -187,7 +196,11 @@ export default function GaleriaCard({
             className="p-1.5 bg-white border border-petroleum/30 rounded-luxury hover:bg-slate-50 transition-colors shrink-0"
           >
             {isSelected ? (
-              <CheckSquare size={16} className="text-gold" fill="currentColor" />
+              <CheckSquare
+                size={16}
+                className="text-gold"
+                fill="currentColor"
+              />
             ) : (
               <Square size={16} className="text-slate-400" />
             )}
@@ -229,13 +242,19 @@ export default function GaleriaCard({
             </h3>
             {/* Metadados em uma linha */}
             <div className="flex flex-col gap-1.5 w-full">
-              <div className={`flex items-center gap-1.5 text-[11px] justify-start ${hasClientInfo ? 'text-editorial-gray' : 'invisible h-[15px]'}`}>
+              <div
+                className={`flex items-center gap-1.5 text-[11px] justify-start ${hasClientInfo ? 'text-editorial-gray' : 'invisible h-[15px]'}`}
+              >
                 <User size={11} className="text-editorial-gray shrink-0" />
-                <span className="font-medium text-editorial-gray">{galeria.client_name || 'Placeholder'}</span>
+                <span className="font-medium text-editorial-gray">
+                  {galeria.client_name || 'Placeholder'}
+                </span>
                 {galeria.client_whatsapp && (
                   <>
                     <span className="text-editorial-gray/40">•</span>
-                    <span className="text-editorial-gray">{formatPhone(galeria.client_whatsapp)}</span>
+                    <span className="text-editorial-gray">
+                      {formatPhone(galeria.client_whatsapp)}
+                    </span>
                   </>
                 )}
               </div>
@@ -246,7 +265,9 @@ export default function GaleriaCard({
                     {galeria.location}
                   </span>
                 )}
-                {galeria.location && <span className="text-editorial-gray/40">•</span>}
+                {galeria.location && (
+                  <span className="text-editorial-gray/40">•</span>
+                )}
                 <span className="flex items-center gap-1">
                   <Calendar size={11} className="text-editorial-gray" />
                   {formatDateSafely(galeria.date)}
@@ -289,7 +310,10 @@ export default function GaleriaCard({
                     title="Copiar link da galeria"
                   >
                     {copied ? (
-                      <Check size={16} className="text-green-500 animate-in zoom-in duration-300" />
+                      <Check
+                        size={16}
+                        className="text-green-500 animate-in zoom-in duration-300"
+                      />
                     ) : (
                       <Link2 size={16} />
                     )}
@@ -299,11 +323,21 @@ export default function GaleriaCard({
                 <button
                   onClick={(e) => {
                     e.stopPropagation();
-                    navigate(`/dashboard/galerias/${galeria.id}/leads`, 'Gerando relatório...');
+                    navigate(
+                      `/dashboard/galerias/${galeria.id}/leads`,
+                      'Gerando relatório...',
+                    );
                   }}
                   className="p-2 text-petroleum bg-white border border-petroleum/40 rounded-luxury interactive-luxury-petroleum flex items-center justify-center disabled:opacity-30 disabled:grayscale disabled:cursor-not-allowed"
-                  title={galeria.leads_enabled || (galeria.leads_count ?? 0) > 0 ? "Ver Leads" : "Captura de Leads desativada"}
-                  disabled={isNavigating || !(galeria.leads_enabled || (galeria.leads_count ?? 0) > 0)}
+                  title={
+                    galeria.leads_enabled || (galeria.leads_count ?? 0) > 0
+                      ? 'Ver Leads'
+                      : 'Captura de Leads desativada'
+                  }
+                  disabled={
+                    isNavigating ||
+                    !(galeria.leads_enabled || (galeria.leads_count ?? 0) > 0)
+                  }
                 >
                   <Users size={16} />
                 </button>
@@ -355,7 +389,11 @@ export default function GaleriaCard({
             className="absolute top-2 left-2 z-30 p-1.5 bg-petroleum/80 backdrop-blur-md rounded-luxury border border-white/10 hover:bg-petroleum transition-colors"
           >
             {isSelected ? (
-              <CheckSquare size={18} className="text-gold" fill="currentColor" />
+              <CheckSquare
+                size={18}
+                className="text-gold"
+                fill="currentColor"
+              />
             ) : (
               <Square size={18} className="text-white/40" />
             )}
@@ -424,7 +462,9 @@ export default function GaleriaCard({
       <div className="flex flex-col p-3 md:p-3 space-y-2 bg-white">
         {/* Metadados simplificados em uma linha */}
         <div className="flex flex-col gap-1 py-0.5 w-full">
-          <div className={`flex items-center justify-start gap-1.5 text-[11px] text-editorial-gray`}>
+          <div
+            className={`flex items-center justify-start gap-1.5 text-[11px] text-editorial-gray`}
+          >
             <div className="flex items-center gap-1.5 min-w-0">
               <User size={11} className="text-editorial-gray shrink-0" />
               <span className="font-semibold text-editorial-gray uppercase tracking-luxury truncate">
@@ -447,7 +487,9 @@ export default function GaleriaCard({
                 {galeria.location}
               </span>
             )}
-            {galeria.location && <span className="text-editorial-gray/40">•</span>}
+            {galeria.location && (
+              <span className="text-editorial-gray/40">•</span>
+            )}
             <span className="flex items-center gap-1 text-[11px] font-medium shrink-0">
               <Calendar size={11} className="text-editorial-gray" />
               {formatDateSafely(galeria.date)}
@@ -542,11 +584,21 @@ export default function GaleriaCard({
               <button
                 onClick={(e) => {
                   e.stopPropagation();
-                  navigate(`/dashboard/galerias/${galeria.id}/leads`, 'Gerando relatório...');
+                  navigate(
+                    `/dashboard/galerias/${galeria.id}/leads`,
+                    'Gerando relatório...',
+                  );
                 }}
                 className="p-2 text-petroleum bg-white border border-petroleum/40 rounded-luxury interactive-luxury-petroleum flex items-center justify-center disabled:opacity-30 disabled:grayscale disabled:cursor-not-allowed"
-                title={galeria.leads_enabled || (galeria.leads_count ?? 0) > 0 ? "Ver Leads" : "Leads não disponíveis"}
-                disabled={isNavigating || !(galeria.leads_enabled || (galeria.leads_count ?? 0) > 0)}
+                title={
+                  galeria.leads_enabled || (galeria.leads_count ?? 0) > 0
+                    ? 'Ver Leads'
+                    : 'Leads não disponíveis'
+                }
+                disabled={
+                  isNavigating ||
+                  !(galeria.leads_enabled || (galeria.leads_count ?? 0) > 0)
+                }
               >
                 <Users size={16} />
               </button>

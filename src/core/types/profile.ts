@@ -18,7 +18,7 @@ export const UserSettingsSchema = z.object({
 });
 
 export const MessageTemplatesSchema = z.object({
-  luxury_share: z.string().default(''),
+  CARD_SHARE: z.string().default(''),
   card_share: z.string().default(''),
   photo_share: z.string().default(''),
   guest_share: z.string().default(''),

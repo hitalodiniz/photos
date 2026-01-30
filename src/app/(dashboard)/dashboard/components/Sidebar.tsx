@@ -13,7 +13,6 @@ import SidebarStorage from './SidebarStorage';
 import SidebarGoogleDrive from './SidebarGoogleDrive';
 import SidebarAjuda from './SidebarAjuda';
 import SidebarAdmin from './SidebarAdmin';
-import SidebarSettings from './SidebarSettings';
 import { useSidebar } from '@/components/providers/SidebarProvider';
 
 interface SidebarProps {
@@ -133,13 +132,7 @@ export default function Sidebar({
             handleGoogleLogin={handleGoogleLogin}
           />
 
-          <SidebarAjuda 
-            isSidebarCollapsed={isSidebarCollapsed} 
-          />
-
-          <SidebarSettings
-            isSidebarCollapsed={isSidebarCollapsed}
-          />
+          <SidebarAjuda isSidebarCollapsed={isSidebarCollapsed} />
 
           <SidebarAdmin
             isSidebarCollapsed={isSidebarCollapsed}
@@ -154,13 +147,17 @@ export default function Sidebar({
             isCollapsed={isSidebarCollapsed}
             showFullDetails={photographer?.roles?.includes('admin')}
           />
-          
+
           <button
             onClick={toggleSidebar}
             className="hidden lg:flex absolute -right-3 top-6 bg-slate-800 border border-white/10 rounded-full p-1 shadow-xl hover:bg-slate-700 z-10 text-white/40 hover:text-gold transition-colors"
             title={isSidebarCollapsed ? 'Expandir Menu' : 'Recolher Menu'}
           >
-            {isSidebarCollapsed ? <ChevronRight size={14} /> : <ChevronLeft size={14} />}
+            {isSidebarCollapsed ? (
+              <ChevronRight size={14} />
+            ) : (
+              <ChevronLeft size={14} />
+            )}
           </button>
         </div>
       </aside>

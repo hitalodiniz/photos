@@ -1,21 +1,17 @@
 import { getProfileData } from '@/core/services/profile.service';
-import SettingsForm from './SettingsForm';
+import MessageSettingsForm from './MessageSettingsForm';
 import { redirect } from 'next/navigation';
 
 export const metadata = {
-  title: 'Preferências | Photos',
+  title: 'Configurar Mensagens | Photos',
 };
 
-export default async function SettingsPage() {
+export default async function MessageSettingsPage() {
   const result = await getProfileData();
 
   if (!result.success || !result.profile) {
     redirect('/auth/login');
   }
 
-  return (
-      
-      <SettingsForm profile={result.profile} />
-
-  );
+  return <MessageSettingsForm profile={result.profile} />;
 }
