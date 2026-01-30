@@ -11,22 +11,7 @@ import { updateProfileSettings } from '@/core/services/profile.service';
 import { GalleryDesignFields } from '@/features/galeria/components/admin/GalleryDesignFields';
 import { useRef, useState } from 'react';
 import { useRouter } from 'next/navigation';
-import {
-  Layout,
-  Settings2,
-  MessageSquare,
-  Save,
-  CheckCircle2,
-  Monitor,
-  Smartphone,
-  Tablet,
-  Palette,
-  Image as ImageIcon,
-  User,
-  Info,
-  Home,
-  Plus,
-} from 'lucide-react';
+import { Layout, CheckCircle2, Image } from 'lucide-react';
 import { Toast } from '@/components/ui';
 import FormPageBase from '@/components/ui/FormPageBase';
 import { LGPDPurposeField } from '@/components/ui/LGPDPurposeField';

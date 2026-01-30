@@ -5,13 +5,17 @@ import {
   getAuthAndStudioIds,
   getAuthenticatedUser,
 } from '@/core/services/auth-context.service';
-import { archiveExceedingGalleries } from '@/core/services/galeria.service';
-import { revalidateTag, revalidatePath } from 'next/cache';
+import {
+  archiveExceedingGalleries,
+  purgeOldDeletedGalleries,
+} from '@/core/services/galeria.service';
+import { revalidatePath, revalidateTag } from 'next/cache';
 import { ActionResult } from 'next/dist/server/app-render/types';
 import {
   revalidateUserGalerias,
   revalidateProfile,
 } from './revalidate.actions';
+import { createInternalNotification } from '@/core/services/notification.service';
 
 /** 🧠 RESOLVE LIMITE DE GALERIAS */
 export const resolveGalleryLimitByPlan = (planKey?: PlanKey): number => {
@@ -28,40 +32,80 @@ export const resolveGalleryLimitByPlan = (planKey?: PlanKey): number => {
  * Verifica se a quantidade de galerias ativas respeita o plano atual.
  * Se houver excesso (downgrade), as mais antigas são movidas para o arquivo.
  */
-export async function syncUserGalleriesAction(): Promise<ActionResult> {
+export async function syncUserGalleriesAction(
+  oldPlanKey?: string,
+): Promise<ActionResult> {
   const { success, userId, profile } = await getAuthenticatedUser();
   if (!success || !userId || !profile)
     return { success: false, error: 'Não autorizado' };
 
   try {
     const limit = resolveGalleryLimitByPlan(profile.plan_key);
-    const archivedCount = await archiveExceedingGalleries(userId, limit);
+
+    // Chama o service enviando os dados para o log
+    const archivedCount = await archiveExceedingGalleries(userId, limit, {
+      oldPlan: oldPlanKey,
+      newPlan: profile.plan_key,
+    });
 
     if (archivedCount > 0) {
-      // 1. Revalida a lista do Dashboard (Usa sua função userId)
       await revalidateUserGalerias(userId);
+      if (profile.username) await revalidateProfile(profile.username);
 
-      // 2. Revalida o Perfil Público (Usa sua função username)
-      // Isso limpa a tag `profile-${username}` e a rota `/${username}`
-      if (profile.username) {
-        await revalidateProfile(profile.username);
+      return {
+        success: true,
+        message: `Sincronização concluída: ${archivedCount} galerias movidas para o arquivo.`,
+      };
+    }
 
-        // 3. Adicional: Se o usuário usa subdomínio, precisamos limpar a Home dele
-        if (profile.use_subdomain && profile.username) {
-          // Como sua função revalidateGallery lida com caminhos complexos,
-          // aqui podemos disparar um revalidatePath direto para a home do subdomínio
-          revalidatePath('/', 'layout');
-        }
+    return { success: true, message: 'Seu plano está em conformidade.' };
+  } catch (error: any) {
+    console.error('[syncUserGalleriesAction] Erro crítico:', error);
+    return { success: false, error: 'Falha ao sincronizar limites do plano.' };
+  }
+}
+
+/**
+ * 🤖 ACTION: Executa a limpeza automática da lixeira.
+ * Pode ser agendada para rodar uma vez por dia.
+ */
+export async function autoPurgeTrashAction(): Promise<ActionResult> {
+  try {
+    const deletedGalleries = await purgeOldDeletedGalleries();
+
+    if (deletedGalleries.length > 0) {
+      // Revalida caches de forma eficiente
+      // Como podem ser múltiplos usuários, limpamos o cache global de tags se necessário
+      // ou iteramos pelos usuários únicos afetados
+      const uniqueUserIds = [
+        ...new Set(deletedGalleries.map((g) => g.user_id)),
+      ];
+
+      for (const userId of uniqueUserIds) {
+        await createInternalNotification({
+          userId: userId as string,
+          title: '🧹 Limpeza de Lixeira',
+          message:
+            'Galerias antigas foram removidas permanentemente conforme a política de 30 dias.',
+          type: 'info',
+          link: '/dashboard/lixeira',
+        });
+        revalidateTag(`user-galerias-${userId}`);
       }
 
       return {
         success: true,
-        message: `${archivedCount} galerias arquivadas devido ao limite do plano ${profile.plan_key}.`,
+        message: `${deletedGalleries.length} galerias antigas foram removidas permanentemente.`,
       };
     }
 
-    return { success: true };
+    return { success: true, message: 'Lixeira já está limpa.' };
   } catch (error) {
-    return { success: false, error: 'Erro na sincronização' };
+    console.error('[autoPurgeTrashAction] Erro:', error);
+    return { success: false, error: 'Falha na limpeza automática.' };
   }
 }
+// -- Índice para acelerar a busca por galerias deletadas antigas
+// CREATE INDEX IF NOT EXISTS idx_galerias_purge_lookup
+// ON public.tb_galerias (is_deleted, deleted_at)
+// WHERE is_deleted = true;

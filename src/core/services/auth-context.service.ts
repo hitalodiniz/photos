@@ -59,7 +59,6 @@ export const getAuthAndStudioIds = cache(
       success: true,
       userId: user.id,
       studioId: profile.studio_id,
-      profile: profile, // 🎯 Agora o profile completo está disponível aqui
     };
   },
 );

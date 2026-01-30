@@ -30,13 +30,20 @@ interface ActionResult<T = unknown> {
 // 1. AUTENTICAÇÃO E CONTEXTO (userId + studioId)
 // =========================================================================
 
-import { getAuthAndStudioIds } from './auth-context.service';
+import {
+  getAuthAndStudioIds,
+  getAuthenticatedUser,
+} from './auth-context.service';
 import {
   createSupabaseServerClient,
   createSupabaseClientForCache,
   createSupabaseServerClientReadOnly,
 } from '@/lib/supabase.server';
 import { PlanKey, PERMISSIONS_BY_PLAN } from '../config/plans';
+import {
+  resolveGalleryLimitByPlan,
+  syncUserGalleriesAction,
+} from '@/actions/galeria.actions';
 
 // =========================================================================
 // 2. SLUG ÚNICO POR DATA
@@ -120,11 +127,44 @@ export async function createGaleria(
   supabaseClient?: any,
 ): Promise<ActionResult> {
   const supabase = supabaseClient || (await createSupabaseServerClient());
-  const { success: authSuccess, userId } = await getAuthAndStudioIds(supabase);
 
-  if (!authSuccess || !userId)
-    return { success: false, error: 'Não autorizado' };
+  //OBTÉM CONTEXTO (Auth + Profile completo via getAuthenticatedUser)
+  // Como essa função usa o cache do React, não há custo extra se já foi chamada no layout.
+  const {
+    success: authSuccess,
+    userId,
+    profile,
+  } = await getAuthenticatedUser();
 
+  if (!authSuccess || !userId || !profile)
+    return { success: false, error: 'Não autorizado ou perfil não carregado.' };
+
+  // 🎯 1. CONTROLE DE LIMITE (MAX GALLERIES)
+  try {
+    const limit = resolveGalleryLimitByPlan(profile.plan_key);
+
+    // Contagem rápida de galerias ativas (sem trazer os dados das linhas)
+    const { count, error: countError } = await supabase
+      .from('tb_galerias')
+      .select('*', { count: 'exact', head: true })
+      .eq('user_id', userId)
+      .eq('is_deleted', false)
+      .eq('is_archived', false);
+
+    if (countError) throw countError;
+
+    if (count !== null && count >= limit) {
+      return {
+        success: false,
+        error: `Limite de ${limit} galerias atingido para seu plano (${profile.plan_key}). Arquive uma galeria ou faça upgrade.`,
+      };
+    }
+  } catch (err) {
+    console.error('[createGaleria] Erro ao validar limites:', err);
+    return { success: false, error: 'Falha ao validar limites do plano.' };
+  }
+
+  // 🎯 2. GERAÇÃO DE SLUG
   const slug = await generateUniqueDatedSlug(
     formData.get('title') as string,
     new Date(formData.get('date') as string).toISOString(),
@@ -209,13 +249,9 @@ export async function createGaleria(
     // 🎯 CRÍTICO: Revalida a lista de galerias do usuário para aparecer no dashboard
     // console.log(`[createGaleria] Revalidando cache para userId: ${userId}`);
     revalidateTag(`user-galerias-${userId}`);
-    // Busca o username para revalidar o perfil público
-    const { data: profile } = await supabase
-      .from('tb_profiles')
-      .select('username')
-      .eq('id', userId)
-      .single();
-    if (profile?.username) {
+
+    // Aproveita o username que já temos no profile
+    if (profile.username) {
       revalidateTag(`profile-${profile.username}`);
       revalidateTag(`profile-galerias-${profile.username}`);
     }
@@ -244,12 +280,36 @@ export async function updateGaleria(
   supabaseClient?: any,
 ): Promise<ActionResult> {
   const supabase = supabaseClient || (await createSupabaseServerClient());
-  const { success: authSuccess, userId } = await getAuthAndStudioIds(supabase);
+  // 🎯 OBTÉM CONTEXTO (Auth + Profile completo via cache do React)
+  const {
+    success: authSuccess,
+    userId,
+    profile,
+  } = await getAuthenticatedUser();
 
-  if (!authSuccess || !userId)
+  if (!authSuccess || !userId || !profile)
     return { success: false, error: 'Não autorizado' };
 
   try {
+    // 1. Busca o status atual da galeria e valida a posse
+    const { data: galeriaStatus, error: statusError } = await supabase
+      .from('tb_galerias')
+      .select('slug, drive_folder_id, is_archived')
+      .eq('id', id)
+      .eq('user_id', userId)
+      .single();
+
+    if (statusError || !galeriaStatus) {
+      return { success: false, error: 'Galeria não encontrada.' };
+    }
+
+    // 🎯 TRAVA DE ARQUIVAMENTO
+    if (galeriaStatus.is_archived) {
+      return {
+        success: false,
+        error: 'Esta galeria está arquivada e não pode ser editada.',
+      };
+    }
     // 1. Extração segura de dados com fallbacks
     const updates: any = {
       title: formData.get('title') as string,
@@ -337,13 +397,8 @@ export async function updateGaleria(
     revalidateTag(`photos-${id}`);
     // Revalida todas as galerias do usuário
     revalidateTag(`user-galerias-${userId}`);
-    // Busca o username para revalidar o perfil público
-    const { data: profile } = await supabase
-      .from('tb_profiles')
-      .select('username')
-      .eq('id', userId)
-      .single();
-    if (profile?.username) {
+
+    if (profile.username) {
       revalidateTag(`profile-${profile.username}`);
       revalidateTag(`profile-galerias-${profile.username}`);
     }
@@ -769,13 +824,39 @@ export async function getPublicProfileGalerias(
 async function updateGaleriaStatus(id: string, updates: any) {
   try {
     const supabase = await createSupabaseServerClient();
-    const { success: authSuccess, userId } =
-      await getAuthAndStudioIds(supabase);
+    // 🎯 OBTÉM CONTEXTO (Auth + Profile completo via cache)
+    const {
+      success: authSuccess,
+      userId,
+      profile,
+    } = await getAuthenticatedUser();
 
-    if (!authSuccess || !userId)
+    if (!authSuccess || !userId || !profile)
       return { success: false, error: 'Não autenticado' };
 
-    // Busca o slug e drive_folder_id antes de atualizar para revalidar o cache
+    // 🎯 1. VALIDAÇÃO DE LIMITE PARA REATIVAÇÃO
+    // Se a ação for tornar a galeria ATIVA (is_archived: false ou is_deleted: false)
+    const isActivating =
+      updates.is_archived === false || updates.is_deleted === false;
+
+    if (isActivating) {
+      const limit = resolveGalleryLimitByPlan(profile.plan_key);
+      const { count } = await supabase
+        .from('tb_galerias')
+        .select('*', { count: 'exact', head: true })
+        .eq('user_id', userId)
+        .eq('is_deleted', false)
+        .eq('is_archived', false);
+
+      if (count !== null && count >= limit) {
+        return {
+          success: false,
+          error: `Limite de ${limit} galerias ativas do plano atingido. Arquive outra galeria antes de restaurar esta.`,
+        };
+      }
+    }
+
+    // 2. Busca o slug e drive_folder_id antes de atualizar para revalidar o cache
     const { data: galeriaAntes } = await supabase
       .from('tb_galerias')
       .select('slug, drive_folder_id')
@@ -783,6 +864,7 @@ async function updateGaleriaStatus(id: string, updates: any) {
       .eq('user_id', userId)
       .single();
 
+    // 3. Executa o Update
     const { data, error } = await supabase
       .from('tb_galerias')
       .update(updates)
@@ -793,7 +875,7 @@ async function updateGaleriaStatus(id: string, updates: any) {
 
     if (error) throw error;
 
-    // 🔄 REVALIDAÇÃO ESTRATÉGICA: Limpa o cache da galeria, fotos e perfil
+    // REVALIDAÇÃO ESTRATÉGICA: Limpa o cache da galeria, fotos e perfil
     if (galeriaAntes?.slug) {
       revalidateTag(`gallery-${galeriaAntes.slug}`);
     }
@@ -803,13 +885,8 @@ async function updateGaleriaStatus(id: string, updates: any) {
     revalidateTag(`photos-${id}`);
     // Revalida todas as galerias do usuário
     revalidateTag(`user-galerias-${userId}`);
-    // Busca o username para revalidar o perfil público
-    const { data: profile } = await supabase
-      .from('tb_profiles')
-      .select('username')
-      .eq('id', userId)
-      .single();
-    if (profile?.username) {
+
+    if (profile.username) {
       revalidateTag(`profile-${profile.username}`);
       revalidateTag(`profile-galerias-${profile.username}`);
     }
@@ -826,11 +903,20 @@ async function updateGaleriaStatus(id: string, updates: any) {
 
 /**
  * ARQUIVAR: Alterna o estado de arquivamento
+ * Se currentStatus for true (arquivada), tentará desarquivar (passa pela validação de limite).
  */
 export async function toggleArchiveGaleria(id: string, currentStatus: boolean) {
-  return updateGaleriaStatus(id, { is_archived: !currentStatus });
-}
+  const isUnarchiving = currentStatus === true; // Estava arquivada e vai para ativa
 
+  const result = await updateGaleriaStatus(id, { is_archived: !currentStatus });
+
+  if (result.success && isUnarchiving) {
+    // Sincroniza para garantir que ele não ativou algo fora do limite
+    await syncUserGalleriesAction();
+  }
+
+  return result;
+}
 /**
  * PERFIL: Alterna a visibilidade da galeria no portfólio público
  */
@@ -849,14 +935,28 @@ export async function moveToTrash(id: string) {
 }
 
 /**
- * RESTAURAR: Tira da lixeira e do arquivo, voltando para "Ativas"
+ * RESTAURAR: Tira da lixeira e garante conformidade com o plano
  */
-export async function restoreGaleria(id: string) {
-  return updateGaleriaStatus(id, {
+export async function restoreGaleria(id: string): Promise<ActionResult> {
+  // 1. Executa a restauração básica via update genérico
+  // O updateGaleriaStatus já possui a trava de limite que implementamos
+  const result = await updateGaleriaStatus(id, {
     is_deleted: false,
     is_archived: false,
     deleted_at: null,
   });
+
+  if (!result.success) return result;
+
+  // 2. ⚡ Sincronização Automática
+  // Chamamos a Action de sincronização para garantir que o
+  // status de todas as galerias esteja correto e gerar o log de auditoria
+  await syncUserGalleriesAction();
+
+  return {
+    success: true,
+    message: 'Galeria restaurada e limites do plano sincronizados.',
+  };
 }
 
 /**
@@ -865,7 +965,9 @@ export async function restoreGaleria(id: string) {
 export async function permanentDelete(id: string) {
   try {
     const supabase = await createSupabaseServerClient();
-    const { userId } = await getAuthAndStudioIds(supabase);
+    const { userId, profile } = await getAuthenticatedUser();
+
+    if (!userId) return { success: false, error: 'Não autorizado' };
 
     // Busca o slug e drive_folder_id antes de deletar para revalidar o cache
     const { data: galeriaAntes } = await supabase
@@ -883,7 +985,7 @@ export async function permanentDelete(id: string) {
 
     if (error) throw error;
 
-    // 🔄 REVALIDAÇÃO ESTRATÉGICA: Limpa o cache da galeria, fotos e perfil
+    // REVALIDAÇÃO ESTRATÉGICA: Limpa o cache da galeria, fotos e perfil
     if (galeriaAntes?.slug) {
       revalidateTag(`gallery-${galeriaAntes.slug}`);
     }
@@ -893,12 +995,7 @@ export async function permanentDelete(id: string) {
     revalidateTag(`photos-${id}`);
     // Revalida todas as galerias do usuário
     revalidateTag(`user-galerias-${userId}`);
-    // Busca o username para revalidar o perfil público
-    const { data: profile } = await supabase
-      .from('tb_profiles')
-      .select('username')
-      .eq('id', userId)
-      .single();
+
     if (profile?.username) {
       revalidateTag(`profile-${profile.username}`);
       revalidateTag(`profile-galerias-${profile.username}`);
@@ -942,33 +1039,32 @@ export async function getGaleriaLeads(
 }
 
 /**
- * 🛠️ SERVICE: Gerencia o arquivamento por limite de galerias.
+ * 🛠️ SERVICE: Gerencia arquivamento por limite e registra auditoria.
  */
 export async function archiveExceedingGalleries(
   userId: string,
   limit: number,
+  planInfo: { oldPlan?: string; newPlan: string },
   supabaseClient?: any,
 ) {
   const supabase = supabaseClient || (await createSupabaseServerClient());
 
-  // 🎯 ORDENAÇÃO DESCENDENTE (DESC):
-  // Coloca a galeria de 'hoje' no topo (index 0).
-  // Coloca a galeria de '2023' no final da lista.
+  // 1. Busca galerias ativas (mais recentes no topo)
   const { data: active, error: fetchError } = await supabase
     .from('tb_galerias')
-    .select('id, title')
+    .select('id')
     .eq('user_id', userId)
     .eq('is_deleted', false)
     .eq('is_archived', false)
-    .order('date', { ascending: false }); // 👈 CRÍTICO: false para manter as novas
+    .order('date', { ascending: false });
 
   if (fetchError) throw fetchError;
 
+  let archivedCount = 0;
+
   if (active && active.length > limit) {
-    // 🔪 O slice(limit) pula as 'limit' primeiras (as mais novas)
-    // e pega tudo o que sobrou (as mais antigas).
-    const toArchive = active.slice(limit);
-    const idsToArchive = toArchive.map((g) => g.id);
+    const idsToArchive = active.slice(limit).map((g: any) => g.id);
+    archivedCount = idsToArchive.length;
 
     const { error: updateError } = await supabase
       .from('tb_galerias')
@@ -976,9 +1072,73 @@ export async function archiveExceedingGalleries(
       .in('id', idsToArchive);
 
     if (updateError) throw updateError;
-
-    return idsToArchive.length;
   }
 
-  return 0;
+  // 🎯 LOG DE AUDITORIA: Registra o evento mesmo que 0 galerias tenham sido arquivadas
+  await supabase.from('tb_plan_sync_logs').insert({
+    user_id: userId,
+    old_plan: planInfo.oldPlan || 'N/A',
+    new_plan: planInfo.newPlan,
+    archived_count: archivedCount,
+  });
+
+  return archivedCount;
+}
+
+// -- 📝 Tabela de Auditoria para Sincronização de Planos
+// CREATE TABLE IF NOT EXISTS public.tb_plan_sync_logs (
+//     id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+//     user_id UUID NOT NULL REFERENCES public.tb_profiles(id) ON DELETE CASCADE,
+//     old_plan TEXT,
+//     new_plan TEXT NOT NULL,
+//     archived_count INT NOT NULL DEFAULT 0,
+//     created_at TIMESTAMPTZ NOT NULL DEFAULT now()
+// );
+
+// -- 🚀 Índices para performance
+// CREATE INDEX IF NOT EXISTS idx_plan_sync_logs_user_id ON public.tb_plan_sync_logs(user_id);
+// CREATE INDEX IF NOT EXISTS idx_plan_sync_logs_created_at ON public.tb_plan_sync_logs(created_at DESC);
+
+// -- 🔒 Comentários para documentação no banco
+// COMMENT ON TABLE public.tb_plan_sync_logs IS 'Registra o histórico de arquivamento automático de galerias devido a mudanças de plano.';
+// COMMENT ON COLUMN public.tb_plan_sync_logs.archived_count IS 'Número de galerias movidas para o status is_archived nesta execução.';
+
+/**
+ * 🧹 SERVICE: Limpeza de Lixeira
+ * Remove permanentemente galerias com is_deleted = true e deleted_at > 30 dias.
+ */
+export async function purgeOldDeletedGalleries(supabaseClient?: any) {
+  const supabase = supabaseClient || (await createSupabaseServerClient());
+
+  // Calcula a data de corte (30 dias atrás)
+  const cutoffDate = new Date();
+  cutoffDate.setDate(cutoffDate.getDate() - 30);
+
+  // 1. Busca galerias para exclusão (apenas para log e revalidação se necessário)
+  const { data: toDelete, error: fetchError } = await supabase
+    .from('tb_galerias')
+    .select('id, user_id, slug')
+    .eq('is_deleted', true)
+    .lt('deleted_at', cutoffDate.toISOString());
+
+  if (fetchError) throw fetchError;
+
+  if (toDelete && toDelete.length > 0) {
+    const ids = toDelete.map((g: any) => g.id);
+
+    // Log preventivo no servidor antes de apagar
+    console.log(`[Cron] Removendo ${ids.length} galerias da lixeira.`);
+
+    // 2. Hard Delete no banco
+    const { error: deleteError } = await supabase
+      .from('tb_galerias')
+      .delete()
+      .in('id', ids);
+
+    if (deleteError) throw deleteError;
+
+    return toDelete; // Retorna os metadados para a Action revalidar caches
+  }
+
+  return [];
 }

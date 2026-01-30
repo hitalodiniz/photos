@@ -456,3 +456,30 @@ export const getProfileByUsername = cache(async (username: string) => {
     },
   )(cleanUsername);
 });
+
+// Atualiza push notificações do usuário
+export async function updatePushSubscriptionAction(subscription: any) {
+  const supabase = await createSupabaseServerClient();
+  const {
+    data: { user },
+  } = await supabase.auth.getUser();
+
+  if (!user) return { success: false, error: 'Não autorizado' };
+
+  const { error } = await supabase
+    .from('tb_profiles')
+    .update({
+      push_subscription: subscription,
+      notifications_enabled: true, // Campo extra para controle visual no front
+    })
+    .eq('id', user.id);
+
+  if (error) return { success: false, error: error.message };
+
+  revalidatePath('/dashboard/perfil');
+  return { success: true };
+}
+
+// ALTER TABLE public.tb_profiles
+// ADD COLUMN IF NOT EXISTS push_subscription JSONB,
+// ADD COLUMN IF NOT EXISTS notifications_enabled BOOLEAN DEFAULT false;
