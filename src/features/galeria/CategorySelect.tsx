@@ -1,12 +1,27 @@
 'use client';
 import { useState } from 'react';
 import { GALLERY_CATEGORIES } from '@/core/config/categories';
-import { ChevronDown, Loader2, Tag, Plus, AlertCircle } from 'lucide-react';
+import {
+  ChevronDown,
+  Loader2,
+  Tag,
+  Plus,
+  AlertCircle,
+  Lock,
+} from 'lucide-react';
 import { updateCustomCategories } from '@/core/services/profile.service';
 import BaseModal from '@/components/ui/BaseModal';
+import { usePlan } from '@/hooks/usePlan';
 
-export default function CategorySelect({ value, onChange, initialCustomCategories = [] }) {
-  const [customCategories, setCustomCategories] = useState<string[]>(initialCustomCategories);
+export default function CategorySelect({
+  value,
+  onChange,
+  initialCustomCategories = [],
+}) {
+  const { permissions } = usePlan();
+  const [customCategories, setCustomCategories] = useState<string[]>(
+    initialCustomCategories,
+  );
   const [loading, setLoading] = useState(false);
 
   // Estados para o Modal de Criação
@@ -16,10 +31,11 @@ export default function CategorySelect({ value, onChange, initialCustomCategorie
 
   const allCategories = [
     ...GALLERY_CATEGORIES,
-    ...customCategories.map(cat => ({ id: cat, label: cat }))
+    ...customCategories.map((cat) => ({ id: cat, label: cat })),
   ];
 
   const handleOpenModal = () => {
+    if (!permissions.canCustomCategories) return;
     setNewCategoryName('');
     setErrorMessage('');
     setIsModalOpen(true);
@@ -33,7 +49,11 @@ export default function CategorySelect({ value, onChange, initialCustomCategorie
       return;
     }
 
-    if (allCategories.some(c => c.label.toLowerCase() === trimmedCat.toLowerCase())) {
+    if (
+      allCategories.some(
+        (c) => c.label.toLowerCase() === trimmedCat.toLowerCase(),
+      )
+    ) {
       setErrorMessage('esta categoria já existe em sua lista.');
       return;
     }
@@ -48,7 +68,7 @@ export default function CategorySelect({ value, onChange, initialCustomCategorie
       onChange(trimmedCat);
       setIsModalOpen(false);
     } else {
-      setErrorMessage("erro ao salvar: " + result.error);
+      setErrorMessage('erro ao salvar: ' + result.error);
     }
     setLoading(false);
   };
@@ -66,7 +86,11 @@ export default function CategorySelect({ value, onChange, initialCustomCategorie
         disabled={loading}
         className="flex-1 bg-gold hover:bg-white text-petroleum px-4 py-2.5 rounded-luxury text-[10px] font-bold uppercase tracking-widest transition-all shadow-lg flex items-center justify-center gap-2 disabled:opacity-50"
       >
-        {loading ? <Loader2 size={14} className="animate-spin" /> : 'salvar categoria'}
+        {loading ? (
+          <Loader2 size={14} className="animate-spin" />
+        ) : (
+          'salvar categoria'
+        )}
       </button>
     </div>
   );
@@ -78,7 +102,7 @@ export default function CategorySelect({ value, onChange, initialCustomCategorie
           value={value}
           disabled={loading}
           onChange={(e) => {
-            if (e.target.value === "ADD_NEW_TRIGGER") {
+            if (e.target.value === 'ADD_NEW_TRIGGER') {
               handleOpenModal();
             } else {
               onChange(e.target.value);
@@ -90,29 +114,56 @@ export default function CategorySelect({ value, onChange, initialCustomCategorie
                      focus:border-gold outline-none appearance-none cursor-pointer
                      disabled:opacity-50 transition-all group-hover:border-petroleum/60"
         >
-          <option value="" disabled hidden>selecione a categoria</option>
+          <option value="" disabled hidden>
+            selecione a categoria
+          </option>
 
-          <optgroup label="categorias padrão" className="text-petroleum font-semibold uppercase text-[10px]">
+          <optgroup
+            label="categorias padrão"
+            className="text-petroleum font-semibold uppercase text-[10px]"
+          >
             {GALLERY_CATEGORIES.map((cat) => (
-              <option key={cat.id} value={cat.id}>{cat.label}</option>
+              <option key={cat.id} value={cat.id}>
+                {cat.label}
+              </option>
             ))}
           </optgroup>
 
           {customCategories.length > 0 && (
-            <optgroup label="minhas categorias" className="text-petroleum font-semibold uppercase text-[10px]">
+            <optgroup
+              label="minhas categorias"
+              className="text-petroleum font-semibold uppercase text-[10px]"
+            >
               {customCategories.map((cat, idx) => (
-                <option key={idx} value={cat}>{cat}</option>
+                <option key={idx} value={cat}>
+                  {cat}
+                </option>
               ))}
             </optgroup>
           )}
 
-          <option value="ADD_NEW_TRIGGER" className="text-petroleum font-semibold bg-champagne/10">
-            + adicionar nova categoria...
-          </option>
+          <optgroup label="Personalização">
+            {permissions.canCustomCategories ? (
+              <option
+                value="ADD_NEW_TRIGGER"
+                className="text-petroleum font-semibold bg-champagne/10"
+              >
+                + adicionar nova categoria...
+              </option>
+            ) : (
+              <option disabled className="text-petroleum/30">
+                🔒 Nova categoria (Plano Plus)
+              </option>
+            )}
+          </optgroup>
         </select>
 
         <div className="absolute right-3.5 top-1/2 -translate-y-1/2 pointer-events-none text-petroleum/60 group-hover:text-gold transition-colors">
-          {loading ? <Loader2 size={16} className="animate-spin" /> : <ChevronDown size={16} />}
+          {loading ? (
+            <Loader2 size={16} className="animate-spin" />
+          ) : (
+            <ChevronDown size={16} />
+          )}
         </div>
       </div>
 

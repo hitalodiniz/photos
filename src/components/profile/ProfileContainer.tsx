@@ -2,7 +2,7 @@
 
 import React, { useEffect, useState } from 'react';
 import { notFound } from 'next/navigation';
-import PhotographerContent from './PhotographerContent';
+import PhotographerContent from './ProfileContent';
 import * as profileService from '@/core/services/profile.service';
 import LoadingScreen from '@/components/ui/LoadingScreen';
 
@@ -11,7 +11,10 @@ interface Props {
   initialProfile?: any;
 }
 
-export default function PhotographerContainer({ username, initialProfile }: Props) {
+export default function PhotographerContainer({
+  username,
+  initialProfile,
+}: Props) {
   const [profile, setProfile] = useState<any>(initialProfile || null);
   const [loading, setLoading] = useState(!initialProfile);
 
@@ -38,9 +41,9 @@ export default function PhotographerContainer({ username, initialProfile }: Prop
   }
 
   // 2. Se terminou de carregar e não tem perfil, dispara o 404
-    if (!profile) {
-      return notFound();
-    }
+  if (!profile) {
+    return notFound();
+  }
 
   // 3. Agora é seguro renderizar, pois o 'profile' certamente existe
   return (

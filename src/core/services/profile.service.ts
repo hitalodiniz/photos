@@ -78,11 +78,9 @@ export async function fetchProfileRaw(username: string) {
     {
       revalidate: GLOBAL_CACHE_REVALIDATE,
       tags: [`profile-${username}`],
-    }
+    },
   )(username);
 }
-
-
 
 // =========================================================================
 // 2. FUNÇÕES COM CACHE (Apenas para Server Components / Pages)
@@ -207,10 +205,7 @@ export async function upsertProfile(formData: FormData, supabaseClient?: any) {
 
   let background_url = formData.get('background_url_existing') as string;
   const backgroundFile = formData.get('background_image') as File;
-  if (
-    backgroundFile &&
-    backgroundFile.size > 0
-  ) {
+  if (backgroundFile && backgroundFile.size > 0) {
     const bgName = backgroundFile.name || 'bg.webp';
     const bgExt = bgName.includes('.') ? bgName.split('.').pop() : 'webp';
     const bgPath = `${user.id}/bg-${Date.now()}.${bgExt}`;
@@ -227,13 +222,20 @@ export async function upsertProfile(formData: FormData, supabaseClient?: any) {
       } = supabase.storage.from('profile_pictures').getPublicUrl(bgPath);
       background_url = publicUrl;
     } else {
-      console.error('[upsertProfile] Error uploading background:', bgUploadError);
+      console.error(
+        '[upsertProfile] Error uploading background:',
+        bgUploadError,
+      );
     }
   }
 
   // 1. Limpeza e padronização do telefone (Garante prefixo 55 para WhatsApp)
   let cleanPhone = phone_contact ? phone_contact.replace(/\D/g, '') : '';
-  if (cleanPhone && (cleanPhone.length === 10 || cleanPhone.length === 11) && !cleanPhone.startsWith('55')) {
+  if (
+    cleanPhone &&
+    (cleanPhone.length === 10 || cleanPhone.length === 11) &&
+    !cleanPhone.startsWith('55')
+  ) {
     cleanPhone = `55${cleanPhone}`;
   }
 
@@ -377,14 +379,15 @@ export async function updateSidebarPreference(isCollapsed: boolean) {
   return { success: true };
 }
 
-
 /**
  * Atualiza ou Adiciona categorias personalizadas no perfil do usuário
  * Armazena no campo JSONB 'custom_categories'
  */
 export async function updateCustomCategories(categories: string[]) {
   const supabase = await createSupabaseServerClient();
-  const { data: { user } } = await supabase.auth.getUser();
+  const {
+    data: { user },
+  } = await supabase.auth.getUser();
 
   if (!user) return { success: false, error: 'Sessão expirada.' };
 
@@ -400,7 +403,7 @@ export async function updateCustomCategories(categories: string[]) {
     .from('tb_profiles')
     .update({
       custom_categories: categories,
-      updated_at: new Date().toISOString()
+      updated_at: new Date().toISOString(),
     })
     .eq('id', user.id);
 
@@ -416,3 +419,38 @@ export async function updateCustomCategories(categories: string[]) {
 
   return { success: true };
 }
+
+// src/actions/profile.service.ts
+
+/**
+ * 🎯 BUSCA PERFIL POR USERNAME (Com Cache de 30 dias)
+ * Esta função é a "Fonte da Verdade" para as páginas públicas e subdomínios.
+ * Utiliza tags para que o cache possa ser invalidado instantaneamente no update.
+ */
+export const getProfileByUsername = cache(async (username: string) => {
+  const cleanUsername = username.toLowerCase().trim();
+
+  return unstable_cache(
+    async (uname: string) => {
+      const supabase = createSupabaseClientForCache();
+
+      const { data, error } = await supabase
+        .from('tb_profiles')
+        .select('*')
+        .eq('username', uname)
+        .maybeSingle();
+
+      if (error) {
+        console.error(`[getProfileByUsername] Erro ao buscar ${uname}:`, error);
+        return null;
+      }
+
+      return data;
+    },
+    [`profile-data-${cleanUsername}`], // Chave única do cache
+    {
+      revalidate: GLOBAL_CACHE_REVALIDATE, // 30 dias (definido no seu url-helper)
+      tags: [`profile-${cleanUsername}`], // Tag para revalidateTag
+    },
+  )(cleanUsername);
+});

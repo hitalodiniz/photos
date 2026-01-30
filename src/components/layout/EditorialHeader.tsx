@@ -1,98 +1,136 @@
 'use client';
-import React, { useEffect, useState } from 'react';
-import { Camera, ArrowLeft } from 'lucide-react';
+import React, { useState, useEffect, useMemo } from 'react';
+import Image from 'next/image';
+import { Camera, ArrowLeft, Home } from 'lucide-react';
 import { useRouter } from 'next/navigation';
-import Link from 'next/link';
+
+const heroImages = [
+  '/hero-bg-1.webp',
+  '/hero-bg-2.webp',
+  '/hero-bg-3.webp',
+  '/hero-bg-4.webp',
+  '/hero-bg-5.webp',
+  '/hero-bg-6.webp',
+  '/hero-bg-7.webp',
+  '/hero-bg-8.webp',
+  '/hero-bg-9.webp',
+  '/hero-bg-10.webp',
+  '/hero-bg-11.webp',
+  '/hero-bg-12.webp',
+];
 
 interface EditorialHeaderProps {
   title: string;
   subtitle?: React.ReactNode;
   showBackButton?: boolean;
+  bgImage?: string;
 }
 
 export default function EditorialHeader({
   title,
   subtitle,
   showBackButton = true,
+  bgImage,
 }: EditorialHeaderProps) {
   const router = useRouter();
+  const [isLoaded, setIsLoaded] = useState(false);
   const [originUrl, setOriginUrl] = useState<string | null>(null);
+  // 1. Começamos com um estado vazio ou uma imagem padrão fixa
+  const [currentBg, setCurrentBg] = useState<string | null>(null);
+  useEffect(() => {
+    // 2. Só sorteamos ou definimos a imagem após o componente montar no cliente
+    const images = ['/hero-bg-1.webp', '/hero-bg-2.webp'];
+    const selected =
+      bgImage || images[Math.floor(Math.random() * images.length)];
+    setCurrentBg(selected);
+  }, [bgImage]);
 
   useEffect(() => {
-    if (typeof window === 'undefined') return;
-
-    const referrer = document.referrer;
-    const host = window.location.host;
-
-    // 1. Verifica se existe referrer e se é do mesmo domínio
-    const isInternal = referrer && referrer.includes(host);
-
-    // 2. Compara a URL completa para evitar que a página aponte para si mesma
-    // Usamos URL() para normalizar (remover barras extras ou queries que causem falso positivo)
-    try {
-      const referrerPath = new URL(referrer).pathname;
-      const currentPath = window.location.pathname;
-
-      if (isInternal && referrerPath !== currentPath) {
+    if (typeof window !== 'undefined') {
+      const referrer = document.referrer;
+      if (referrer && referrer.includes(window.location.host)) {
         setOriginUrl(referrer);
-      } else {
-        // Se for a mesma página (ex: F5) ou externo, oculta o botão
-        setOriginUrl(null);
       }
-    } catch {
-      setOriginUrl(null);
     }
   }, []);
 
   const handleBack = (e: React.MouseEvent) => {
     e.preventDefault();
-
-    if (originUrl) {
-      // Força a ida para a URL de origem exata capturada no mount
-      router.push(originUrl);
-    } else {
-      // Fallback de segurança caso algo falhe
-      router.push('/');
-    }
+    originUrl ? router.push(originUrl) : router.push('/');
   };
 
   return (
-    <header className="relative flex-none pt-8 md:pt-12 pb-0 w-full max-w-6xl mx-auto">
-      {/* Botão Voltar: Só exibe se as duas condições forem verdadeiras */}
-      {/* Usamos originUrl como condição de exibição. 
-          Se for null, o botão nem renderiza (evita botão morto) 
-      */}
+    <header className="relative w-full h-[21vh] md:h-[30vh] overflow-hidden bg-black font-montserrat flex-none">
+      {/* 🎯 CAMADA 1: BACKGROUND (Padrão GaleriaHero) */}
+      <div className="absolute inset-0 z-0">
+        <div className="absolute inset-0 z-10 bg-gradient-to-b from-black/60 via-transparent to-black/90" />
+        <div className="absolute inset-0 z-[5] backdrop-blur-[1px]" />
+
+        {currentBg && (
+          <Image
+            src={currentBg}
+            alt="Background Editorial"
+            fill
+            priority
+            quality={85}
+            onLoad={() => setIsLoaded(true)}
+            className={`
+            object-cover object-[50%_10%] 
+            transition-all duration-[1200ms] ease-in-out
+            ${isLoaded ? 'opacity-100 scale-100' : 'opacity-0 scale-105 blur-xl'}
+          `}
+          />
+        )}
+      </div>
+
+      {/* 🎯 CAMADA 2: INTERFACE (Voltar) */}
       {showBackButton && originUrl && (
-        <div className="fixed left-4 md:left-10 top-8 md:top-12 z-50 animate-in fade-in slide-in-from-left-4 duration-500">
+        <div className="absolute left-6 top-6 md:top-10 z-[50]">
           <button
-            onClick={handleBack}
-            className="inline-flex items-center gap-2.5 px-6 py-2.5 text-[10px] md:text-[12px] font-semibold tracking-wider text-champagnebg-black/40 border border-gold/20 rounded-full hover:bg-black/60 hover:border-gold/40 transition-all duration-300 backdrop-blur-xl group uppercase shadow-2xl"
+            onClick={() => router.push('/')}
+            className="inline-flex items-center gap-2.5 px-6 py-2.5 bg-petroleum text-white backdrop-blur-xl border border-white/10 rounded-full transition-all duration-300 group hover:bg-gold hover:text-black shadow-2xl"
           >
-            <ArrowLeft
-              size={16}
-              className="group-hover:-translate-x-1.5 transition-transform duration-300"
+            <Home
+              size={14}
+              className="group-hover:scale-110 transition-transform"
             />
-            <span>Voltar</span>
+
+            <span className="text-[10px] font-semibold tracking-[0.2em] uppercase">
+              Início
+            </span>
           </button>
         </div>
       )}
 
-      <div className="flex flex-col items-center justify-center text-center gap-2 md:gap-6">
-        <Link
-          href="/"
-          className="transition-transform duration-300 hover:scale-110 active:scale-95 z-30"
+      {/* 🎯 CAMADA 3: CONTEÚDO (Alinhado à Esquerda igual GaleriaHero) */}
+      <div className="relative z-20 h-full max-w-[1600px] mx-auto w-full px-8 pb-12 flex flex-col justify-end">
+        <div
+          className={`flex flex-col items-start text-left transition-all duration-[1200ms] delay-300 ${
+            isLoaded ? 'opacity-100 translate-x-0' : 'opacity-0 -translate-x-8'
+          }`}
         >
-          <div className="p-4 bg-white/5 backdrop-blur-2xl rounded-full border border-white/10 shadow-2xl">
-            <Camera className="text-[#F3E5AB] w-6 h-6 md:w-10 md:h-10 drop-shadow-[0_0_15px_rgba(243,229,171,0.3)]" />
+          {/* Título e Ícone em Linha */}
+          <div className="flex flex-col mb-4 w-full">
+            <h1 className="font-artistic font-semibold text-white leading-tight tracking-normal flex items-center gap-4 drop-shadow-[0_2px_15px_rgba(0,0,0,0.8)] text-2xl md:text-5xl italic">
+              <a href="/">
+                <Camera
+                  className="text-[#F3E5AB] shrink-0 w-8 h-8 md:w-14 md:h-14 drop-shadow-md"
+                  strokeWidth={1.2}
+                />
+              </a>
+              <span className="drop-shadow-lg">{title}</span>
+            </h1>
+
+            {/* LINHA DECORATIVA (Marca registrada Altar - Alinhada à esquerda) */}
+            <div className="h-[2px] md:h-[3px] bg-[#F3E5AB] rounded-full mt-3 md:mt-4 w-full max-w-[150px] md:max-w-[300px] shadow-lg shadow-black/50" />
           </div>
-        </Link>
-        <div className="space-y-4">
-          <h1 className="font-artistic text-3xl md:text-5xl font-semibold text-white tracking-tight drop-shadow-2xl italic">
-            {title}
-          </h1>
-          <div className="text-[14px] md:text-[18px] text-white/90 tracking-wide italic md:p-2">
-            {subtitle}
-          </div>
+
+          {/* Subtítulo */}
+          {subtitle && (
+            <div className="text-[12px] md:text-[18px] text-white/90 tracking-[0.05em] font-medium max-w-2xl leading-relaxed italic animate-in fade-in duration-1000 delay-500">
+              {subtitle}
+            </div>
+          )}
         </div>
       </div>
     </header>

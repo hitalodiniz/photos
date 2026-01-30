@@ -72,10 +72,9 @@ export async function revalidateProfile(username?: string) {
 
   // 2. Se tiver o username, limpa o cache específico da galeria pública
   if (username) {
-    revalidateTag(`profile-${username}`);
+    revalidateTag(`profile-${username.toLowerCase()}`);
     revalidatePath(`/${username}`, 'layout');
   }
-
   // 3. Limpa o dashboard para garantir que o Aside mostre o status correto
   revalidatePath('/dashboard', 'layout');
 }

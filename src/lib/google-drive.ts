@@ -1,4 +1,26 @@
+import {
+  PERMISSIONS_BY_PLAN,
+  PlanKey,
+  PlanPermissions,
+} from '@/core/config/plans';
 import { GLOBAL_CACHE_REVALIDATE } from '@/core/utils/url-helper';
+
+/**
+ * 🛠️ RESOLVE LIMITE DE FOTOS
+ * Recebe apenas a chave do plano (ex: 'FREE') e retorna o número de fotos permitido.
+ */
+export const resolvePhotoLimitByPlan = (planKey?: PlanKey | number): number => {
+  // 1. Caso receba um número direto (fallback para uso manual)
+  if (typeof planKey === 'number') return planKey;
+
+  // 2. Busca no mapa mestre usando a chave (ex: 'PRO')
+  // Se a chave não existir ou não for passada, assume o limite do plano FREE (80)
+  const permissions = planKey
+    ? PERMISSIONS_BY_PLAN[planKey]
+    : PERMISSIONS_BY_PLAN.FREE;
+
+  return permissions?.maxPhotosPerGallery || 80;
+};
 
 export interface DrivePhoto {
   id: string;
@@ -17,18 +39,22 @@ export interface DrivePhoto {
  */
 export async function listPhotosFromPublicFolder(
   driveFolderId: string,
+  limit?: number, // 🎯 Adicionado limite para planos
 ): Promise<DrivePhoto[] | null> {
   // Prioriza a chave do servidor, depois a pública
   const apiKey = process.env.GOOGLE_API_KEY;
-  
+
   if (!apiKey) {
-    console.warn('[listPhotosFromPublicFolder] ⚠️ GOOGLE_API_KEY não encontrada no ambiente.');
+    console.warn(
+      '[listPhotosFromPublicFolder] ⚠️ GOOGLE_API_KEY não encontrada no ambiente.',
+    );
     return null;
   }
 
   // Query simplificada para evitar erros 400 em chamadas anônimas
   const query = `'${driveFolderId}' in parents and trashed = false`;
-  const fields = 'nextPageToken, files(id, name, size, mimeType, webViewLink, imageMediaMetadata(width,height))';
+  const fields =
+    'nextPageToken, files(id, name, size, mimeType, webViewLink, imageMediaMetadata(width,height))';
 
   let allFiles: any[] = [];
   let pageToken: string | null = null;
@@ -39,41 +65,61 @@ export async function listPhotosFromPublicFolder(
       params.append('q', query);
       params.append('fields', fields);
       params.append('key', apiKey);
-      params.append('pageSize', '1000');
+      params.append(
+        'pageSize',
+        limit ? Math.min(limit * 2, 1000).toString() : '1000',
+      );
       params.append('supportsAllDrives', 'true');
       params.append('includeItemsFromAllDrives', 'true');
-      
+
       if (pageToken) params.append('pageToken', pageToken);
-      
+
       const url = `https://www.googleapis.com/drive/v3/files?${params.toString()}`;
 
       const response = await fetch(url, {
-        headers: { 'Accept': 'application/json' },
-        next: { 
+        headers: { Accept: 'application/json' },
+        next: {
           revalidate: GLOBAL_CACHE_REVALIDATE,
-          tags: [`drive-${driveFolderId}`] 
-        }
+          tags: [`drive-${driveFolderId}`],
+        },
       });
       if (!response.ok) {
         const errorData = await response.json();
-        console.error('[listPhotosFromPublicFolder] ❌ Erro Google:', errorData.error?.message);
+        console.error(
+          '[listPhotosFromPublicFolder] ❌ Erro Google:',
+          errorData.error?.message,
+        );
         return null;
       }
 
       const data = await response.json();
       allFiles = [...allFiles, ...(data.files || [])];
       pageToken = data.nextPageToken || null;
-
+      // PERFORMANCE: Se já coletamos arquivos suficientes para o limite do plano, paramos o do-while
+      if (
+        limit &&
+        allFiles.filter((f) => f.mimeType?.startsWith('image/')).length >= limit
+      ) {
+        break;
+      }
     } while (pageToken);
 
     // Filtro manual de imagens e ordenação natural
     const imageFiles = allFiles
-      .filter(f => f.mimeType?.startsWith('image/'))
-      .sort((a, b) => a.name.localeCompare(b.name, undefined, { numeric: true, sensitivity: 'base' }));
+      .filter((f) => f.mimeType?.startsWith('image/'))
+      .sort((a, b) =>
+        a.name.localeCompare(b.name, undefined, {
+          numeric: true,
+          sensitivity: 'base',
+        }),
+      );
+
+    // APLICA O LIMITE DO PLANO:
+    const limitedFiles = limit ? imageFiles.slice(0, limit) : imageFiles;
 
     if (imageFiles.length === 0) {
-        // console.log('[listPhotosFromPublicFolder] ℹ️ Pasta encontrada, mas sem imagens.');
-        return null;
+      // console.log('[listPhotosFromPublicFolder] ℹ️ Pasta encontrada, mas sem imagens.');
+      return null;
     }
 
     return imageFiles.map((file) => ({
@@ -85,7 +131,6 @@ export async function listPhotosFromPublicFolder(
       width: file.imageMediaMetadata?.width || 1600,
       height: file.imageMediaMetadata?.height || 1200,
     }));
-
   } catch (error: any) {
     console.error('[listPhotosFromPublicFolder] 💥 Exceção:', error.message);
     return null;
@@ -97,11 +142,13 @@ export async function listPhotosFromPublicFolder(
  * Usado quando a pasta é privada ou a API Key falhou.
  */
 export async function listPhotosWithOAuth(
-  driveFolderId: string, 
-  accessToken: string
+  driveFolderId: string,
+  accessToken: string,
+  limit?: number, //Adicionado limite do plano
 ): Promise<DrivePhoto[]> {
   const query = `'${driveFolderId}' in parents and mimeType contains 'image/' and trashed = false`;
-  const fields = 'nextPageToken, files(id, name, size, webViewLink, imageMediaMetadata(width,height))';
+  const fields =
+    'nextPageToken, files(id, name, size, webViewLink, imageMediaMetadata(width,height))';
 
   let allFiles: any[] = [];
   let pageToken: string | null = null;
@@ -111,12 +158,15 @@ export async function listPhotosWithOAuth(
       const params = new URLSearchParams();
       params.append('q', query);
       params.append('fields', fields);
-      params.append('pageSize', '1000');
+      params.append(
+        'pageSize',
+        limit ? Math.min(limit, 1000).toString() : '1000',
+      );
       params.append('supportsAllDrives', 'true');
       params.append('includeItemsFromAllDrives', 'true');
-      
+
       if (pageToken) params.append('pageToken', pageToken);
-      
+
       const url = `https://www.googleapis.com/drive/v3/files?${params.toString()}`;
 
       const response = await fetch(url, {
@@ -132,11 +182,21 @@ export async function listPhotosWithOAuth(
       const data = await response.json();
       allFiles = [...allFiles, ...(data.files || [])];
       pageToken = data.nextPageToken || null;
+
+      //Parar se atingir o limite do plano
+      if (limit && allFiles.length >= limit) break;
     } while (pageToken);
 
     // 🎯 Ordenação natural (mais rápida que orderBy do Drive API)
     return allFiles
-      .sort((a, b) => a.name.localeCompare(b.name, undefined, { numeric: true, sensitivity: 'base' }))
+      .sort((a, b) =>
+        a.name
+          .localeCompare(b.name, undefined, {
+            numeric: true,
+            sensitivity: 'base',
+          })
+          .slice(0, limit || allFiles.length),
+      )
       .map((file) => ({
         id: file.id,
         name: file.name,
@@ -159,14 +219,17 @@ export async function listPhotosWithOAuth(
 export async function listPhotosFromDriveFolder(
   driveFolderId: string,
   accessToken?: string,
+  planOrLimit?: PlanKey | number, // 🎯 Aceita a chave 'PRO' ou o número direto
 ): Promise<DrivePhoto[]> {
   if (!driveFolderId) {
     throw new Error('ID da pasta do Google Drive não fornecido.');
   }
 
+  // 🧠 O Helper resolve se é 'FREE' -> 80, 'PRO' -> 600 ou se já é um número
+  const limit = resolvePhotoLimitByPlan(planOrLimit);
   // 1. TENTATIVA 1: API Key (Público)
   // Resolve o problema de galerias que "pararam de carregar" por falta de token
-  const publicPhotos = await listPhotosFromPublicFolder(driveFolderId);
+  const publicPhotos = await listPhotosFromPublicFolder(driveFolderId, limit);
   if (publicPhotos && publicPhotos.length > 0) {
     // console.log(`[listPhotosFromDriveFolder] ✅ Sucesso via API Key: ${publicPhotos.length} fotos.`);
     return publicPhotos;
@@ -176,37 +239,42 @@ export async function listPhotosFromDriveFolder(
   // Fallback para quando o fotógrafo usa pastas restritas no Drive
   if (accessToken) {
     // console.log('[listPhotosFromDriveFolder] ℹ️ Tentando fallback via OAuth...');
-    return await listPhotosWithOAuth(driveFolderId, accessToken);
+    return await listPhotosWithOAuth(driveFolderId, accessToken, limit);
   }
 
-  console.warn('[listPhotosFromDriveFolder] ⚠️ Nenhum método de acesso funcionou.');
+  console.warn(
+    '[listPhotosFromDriveFolder] ⚠️ Nenhum método de acesso funcionou.',
+  );
   return [];
 }
 
 /**
  * Torna a pasta pública (Leitor para Qualquer Pessoa).
  */
-export async function makeFolderPublic(folderId: string, accessToken: string) {
-  const res = await fetch(
-    `https://www.googleapis.com/drive/v3/files/${folderId}/permissions`,
-    {
-      method: 'POST',
-      headers: {
-        Authorization: `Bearer ${accessToken}`,
-        'Content-Type': 'application/json',
-      },
-      body: JSON.stringify({
-        role: 'reader',
-        type: 'anyone',
-      }),
-    },
-  );
+// export async function makeFolderPublic(folderId: string, accessToken: string) {
+//   const res = await fetch(
+//     `https://www.googleapis.com/drive/v3/files/${folderId}/permissions`,
+//     {
+//       method: 'POST',
+//       headers: {
+//         Authorization: `Bearer ${accessToken}`,
+//         'Content-Type': 'application/json',
+//       },
+//       body: JSON.stringify({
+//         role: 'reader',
+//         type: 'anyone',
+//       }),
+//     },
+//   );
 
-  if (!res.ok) {
-    const errorBody = await res.json();
-    console.error('ERRO AO TORNAR PASTA PÚBLICA:', JSON.stringify(errorBody, null, 2));
-    return false;
-  }
+//   if (!res.ok) {
+//     const errorBody = await res.json();
+//     console.error(
+//       'ERRO AO TORNAR PASTA PÚBLICA:',
+//       JSON.stringify(errorBody, null, 2),
+//     );
+//     return false;
+//   }
 
-  return true;
-}
+//   return true;
+// }

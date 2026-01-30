@@ -161,19 +161,15 @@ export const ToolBarDesktop = ({
                 }`}
             >
               <Filter size={16} />
-              <span className="text-editorial-label">
-                Favoritos
-              </span>
+              <span className="text-editorial-label">Favoritos</span>
             </button>
 
             <button
               onClick={handleShare}
-              className="flex items-center justify-center rounded-luxury h-10 border border-white/10 bg-white/5 text-white/60 hover:bg-green-600 hover:text-white transition-all w-28 gap-2"
+              className="flex items-center justify-center rounded-luxury h-10 border border-white/10 bg-white/5 text-white hover:bg-green-600 hover:text-white transition-all w-28 gap-2"
             >
               <WhatsAppIcon className="text-current w-[16px] h-[16px]" />
-              <span className="text-editorial-label">
-                Whatsapp
-              </span>
+              <span className="text-editorial-label">Whatsapp</span>
             </button>
 
             {/* BOTÃO LINK / COPIAR RESTAURADO */}
@@ -183,16 +179,14 @@ export const ToolBarDesktop = ({
                 setCopied(true);
                 setTimeout(() => setCopied(false), 2000);
               }}
-              className="flex items-center justify-center rounded-luxury h-10 border border-white/10 bg-white/5 text-white/60 hover:bg-white hover:text-black transition-all w-24 gap-2"
+              className="flex items-center justify-center rounded-luxury h-10 border border-white/10 bg-white/5 text-white hover:bg-white hover:text-black transition-all w-24 gap-2"
             >
               {copied ? (
                 <Check size={16} className="text-green-500" />
               ) : (
                 <LinkIcon size={16} />
               )}
-              <span className="text-editorial-label">
-                Link
-              </span>
+              <span className="text-editorial-label">Link</span>
             </button>
 
             {/* ÁREA DO DOWNLOAD SUSPENSO (ABRE PARA BAIXO) */}
@@ -211,9 +205,7 @@ export const ToolBarDesktop = ({
                   ) : (
                     <Download size={16} />
                   )}
-                  <span className="text-editorial-label">
-                    Baixar
-                  </span>
+                  <span className="text-editorial-label">Baixar</span>
                   <ChevronDown
                     size={14}
                     className={`transition-transform duration-300 ${showDownloadMenu ? 'rotate-180' : ''}`}
@@ -250,8 +242,7 @@ export const ToolBarDesktop = ({
                       {/* Links Externos - Múltiplos links do JSON */}
                       {/* Links Externos - Múltiplos links do JSON */}
                       {externalLinks.map((linkObj, index) => {
-                        // Só exibe se o link for válido/on-line
-                        if (linksStatus[index] === false) return null;
+                        if (!linksStatus[index]) return null;
 
                         return (
                           <button

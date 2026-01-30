@@ -8,7 +8,7 @@ import {
   Calendar,
   ImageIcon,
 } from 'lucide-react';
-import PhotographerAvatar from './PhotographerAvatar';
+import PhotographerAvatar from './ProfileAvatar';
 
 interface GaleriaHeroProps {
   galeria: any;
@@ -17,7 +17,12 @@ interface GaleriaHeroProps {
   isCoverLoading: boolean; // 🎯 Recebido do GaleriaView
 }
 
-export const GaleriaHero = ({ galeria, photos, coverUrl, isCoverLoading }: GaleriaHeroProps) => {
+export const GaleriaHero = ({
+  galeria,
+  photos,
+  coverUrl,
+  isCoverLoading,
+}: GaleriaHeroProps) => {
   const [isExpanded, setIsExpanded] = useState(true);
   const [isImageActuallyLoaded, setIsImageActuallyLoaded] = useState(false);
 
@@ -30,7 +35,7 @@ export const GaleriaHero = ({ galeria, photos, coverUrl, isCoverLoading }: Galer
 
     // Cria uma imagem temporária para verificar se já está em cache
     const img = new Image();
-    
+
     const checkCache = () => {
       // Se a imagem já está completa (em cache), marca como carregada imediatamente
       if (img.complete && img.naturalWidth > 0) {
@@ -104,14 +109,14 @@ export const GaleriaHero = ({ galeria, photos, coverUrl, isCoverLoading }: Galer
       )}
 
       {/* 3. OVERLAY DE PROTEÇÃO (Gradiente para leitura do texto) */}
-      <div
-        className="absolute inset-0 transition-opacity duration-1000 bg-gradient-to-t from-black/90 via-black/30 to-transparent opacity-100 z-[2]"
-      />
+      <div className="absolute inset-0 transition-opacity duration-1000 bg-gradient-to-t from-black/90 via-black/30 to-transparent opacity-100 z-[2]" />
 
       {/* 4. AVATAR DO FOTÓGRAFO (Canto Superior Direito) */}
       <div
         className={`absolute top-4 right-4 md:top-6 md:right-8 transition-all duration-1000 hero-avatar-container z-[10] ${
-          isExpanded ? 'opacity-0 pointer-events-none' : 'opacity-100 pointer-events-auto'
+          isExpanded
+            ? 'opacity-0 pointer-events-none'
+            : 'opacity-100 pointer-events-auto'
         }`}
         style={{ visibility: isExpanded ? 'hidden' : 'visible' }}
       >
@@ -137,7 +142,7 @@ export const GaleriaHero = ({ galeria, photos, coverUrl, isCoverLoading }: Galer
         >
           <div className="flex flex-col items-start text-left transition-all duration-1000 min-w-0 flex-1">
             <div className="flex flex-col min-w-0 w-full">
-            <h1
+              <h1
                 className={`font-artistic font-semibold text-white transition-all duration-1000 leading-tight tracking-normal break-words flex items-center gap-3 drop-shadow-[0_2px_8px_rgba(0,0,0,0.8)]
                 ${isExpanded ? 'text-2xl md:text-5xl mb-2' : 'text-xl md:text-4xl mb-1'}`}
               >
@@ -181,7 +186,10 @@ export const GaleriaHero = ({ galeria, photos, coverUrl, isCoverLoading }: Galer
               <div className="hidden md:block w-[1px] h-3 bg-white/40 shrink-0" />
 
               <div className="flex items-center text-white text-[10px] md:text-[14px] font-medium shrink-0 gap-1.5 drop-shadow-md">
-                <ImageIcon size={14} className="text-[#F3E5AB] drop-shadow-sm" />
+                <ImageIcon
+                  size={14}
+                  className="text-[#F3E5AB] drop-shadow-sm"
+                />
                 <span>{photos?.length || 0} fotos</span>
               </div>
             </div>

@@ -1,7 +1,7 @@
 'use client';
 import React, { useState, useEffect } from 'react';
-import { PhotographerAvatar, PhotographerBio } from './PhotographerHero';
-import { PhotographerInfoBar } from './PhotographerInfoBar';
+import { PhotographerAvatar, PhotographerBio } from './ProfileHero';
+import { PhotographerInfoBar } from './ProfileToolBar';
 import { EditorialHero } from '@/components/ui/EditorialHero';
 import { getPublicProfileGalerias } from '@/core/services/galeria.service';
 import type { Galeria } from '@/core/types/galeria';

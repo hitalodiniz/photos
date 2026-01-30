@@ -38,27 +38,29 @@ export default function DynamicHeroBackground({
   }, [bgImage]); // Monitora se a imagem de fundo mudar (útil na prévia)
 
   return (
-    <div className="fixed inset-0 z-0 bg-black">
-      {/* Overlay de gradiente para garantir legibilidade dos textos */}
-      <div className="absolute inset-0 z-10 bg-gradient-to-b from-black/90 via-black/40 to-black/95" />
+    <div className="fixed inset-0 z-0 bg-black overflow-hidden">
+      {/* 1. OVERLAY DE GRADIENTE (Identico à Galeria) */}
+      {/* Ajustamos o gradiente para ser mais denso no topo e na base, como no Hero */}
+      <div className="absolute inset-0 z-10 bg-gradient-to-b from-black/80 via-black/20 to-black/90" />
 
-      {/* Background de fallback sólido enquanto carrega */}
-      <div className="absolute inset-0 bg-[#1a1a1a]" />
+      {/* 2. EFEITO DE BLUR (Backdrop-blur para suavizar o fundo dinâmico) */}
+      <div className="absolute inset-0 z-[5] backdrop-blur-[2px]" />
 
+      {/* 3. IMAGE LAYER */}
       {currentBg && (
         <Image
           src={currentBg}
           alt="Background Editorial"
           fill
           priority
-          quality={85}
+          quality={90}
           sizes="100vw"
-          // Usamos a prop moderna onSelect para o estado de carregamento
           onLoad={() => setIsLoaded(true)}
           className={`
-            object-cover object-[50%_30%] 
-            transition-all duration-1000 ease-in-out
-            ${isLoaded ? 'opacity-100 scale-100' : 'opacity-0 scale-105'}
+            /* 🎯 O SEGREDO DO POSICIONAMENTO: 35% no eixo Y */
+            object-cover object-[50%_35%] 
+            transition-all duration-[1500ms] ease-in-out
+            ${isLoaded ? 'opacity-100 scale-100' : 'opacity-0 scale-110 blur-2xl'}
           `}
         />
       )}

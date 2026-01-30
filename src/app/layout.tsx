@@ -29,7 +29,7 @@ export const metadata: Metadata = {
   },
   title: {
     default: process.env.NEXT_PUBLIC_TITLE_DEFAULT || 'Sua Galeria',
-    template: '%s | Sua Galeria',
+    template: '%s - Sua Galeria',
   },
   description:
     'Seu momento especial, acessível a um clique. Bem-vindo à Sua Galeria.',

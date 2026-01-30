@@ -1,7 +1,10 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest';
 import { render, screen, fireEvent, waitFor } from '@testing-library/react';
-import GalleryAccessPortal from './GalleryAccessPortal';
-import { authenticateGaleriaAccessAction, captureLeadAction } from '@/actions/auth.actions';
+import GalleryAccessPortal from './GaleriaAcessoPortal';
+import {
+  authenticateGaleriaAccessAction,
+  captureLeadAction,
+} from '@/actions/auth.actions';
 import { Galeria } from '@/core/types/galeria';
 
 // Mocks
@@ -52,7 +55,9 @@ describe('GalleryAccessPortal', () => {
     render(<GalleryAccessPortal {...defaultProps} />);
 
     expect(screen.getByText('Minha Galeria')).toBeDefined();
-    expect(screen.getByPlaceholderText('Como devemos te chamar?')).toBeDefined();
+    expect(
+      screen.getByPlaceholderText('Como devemos te chamar?'),
+    ).toBeDefined();
     expect(screen.getByPlaceholderText('seu@email.com')).toBeDefined();
     expect(screen.getByPlaceholderText('(00) 00000-0000')).toBeDefined();
     expect(screen.getByPlaceholderText('Senha numérica')).toBeDefined();
@@ -75,14 +80,24 @@ describe('GalleryAccessPortal', () => {
 
   it('deve processar o acesso com sucesso (Leads + Senha)', async () => {
     vi.mocked(captureLeadAction).mockResolvedValue({ success: true });
-    vi.mocked(authenticateGaleriaAccessAction).mockResolvedValue({ success: true });
+    vi.mocked(authenticateGaleriaAccessAction).mockResolvedValue({
+      success: true,
+    });
 
     render(<GalleryAccessPortal {...defaultProps} />);
 
-    fireEvent.change(screen.getByPlaceholderText('Como devemos te chamar?'), { target: { value: 'João Silva' } });
-    fireEvent.change(screen.getByPlaceholderText('seu@email.com'), { target: { value: 'joao@example.com' } });
-    fireEvent.change(screen.getByPlaceholderText('(00) 00000-0000'), { target: { value: '31988887777' } });
-    fireEvent.change(screen.getByPlaceholderText('Senha numérica'), { target: { value: '1234' } });
+    fireEvent.change(screen.getByPlaceholderText('Como devemos te chamar?'), {
+      target: { value: 'João Silva' },
+    });
+    fireEvent.change(screen.getByPlaceholderText('seu@email.com'), {
+      target: { value: 'joao@example.com' },
+    });
+    fireEvent.change(screen.getByPlaceholderText('(00) 00000-0000'), {
+      target: { value: '31988887777' },
+    });
+    fireEvent.change(screen.getByPlaceholderText('Senha numérica'), {
+      target: { value: '1234' },
+    });
 
     // Marca o consentimento LGPD
     fireEvent.click(screen.getByRole('checkbox'));
@@ -95,23 +110,41 @@ describe('GalleryAccessPortal', () => {
         email: 'joao@example.com',
         whatsapp: '31988887777',
       });
-      expect(authenticateGaleriaAccessAction).toHaveBeenCalledWith('gal-123', 'user/slug', '1234');
+      expect(authenticateGaleriaAccessAction).toHaveBeenCalledWith(
+        'gal-123',
+        'user/slug',
+        '1234',
+      );
     });
 
-    await waitFor(() => {
-      expect(defaultProps.onSuccess).toHaveBeenCalled();
-    }, { timeout: 2000 });
+    await waitFor(
+      () => {
+        expect(defaultProps.onSuccess).toHaveBeenCalled();
+      },
+      { timeout: 2000 },
+    );
   });
 
   it('deve exibir erro se captureLeadAction falhar', async () => {
-    vi.mocked(captureLeadAction).mockResolvedValue({ success: false, error: 'Erro no Lead' });
+    vi.mocked(captureLeadAction).mockResolvedValue({
+      success: false,
+      error: 'Erro no Lead',
+    });
 
     render(<GalleryAccessPortal {...defaultProps} />);
 
-    fireEvent.change(screen.getByPlaceholderText('Como devemos te chamar?'), { target: { value: 'João Silva' } });
-    fireEvent.change(screen.getByPlaceholderText('seu@email.com'), { target: { value: 'joao@example.com' } });
-    fireEvent.change(screen.getByPlaceholderText('(00) 00000-0000'), { target: { value: '31988887777' } });
-    fireEvent.change(screen.getByPlaceholderText('Senha numérica'), { target: { value: '1234' } });
+    fireEvent.change(screen.getByPlaceholderText('Como devemos te chamar?'), {
+      target: { value: 'João Silva' },
+    });
+    fireEvent.change(screen.getByPlaceholderText('seu@email.com'), {
+      target: { value: 'joao@example.com' },
+    });
+    fireEvent.change(screen.getByPlaceholderText('(00) 00000-0000'), {
+      target: { value: '31988887777' },
+    });
+    fireEvent.change(screen.getByPlaceholderText('Senha numérica'), {
+      target: { value: '1234' },
+    });
 
     // Marca o consentimento LGPD
     fireEvent.click(screen.getByRole('checkbox'));
@@ -123,14 +156,25 @@ describe('GalleryAccessPortal', () => {
 
   it('deve exibir erro se authenticateGaleriaAccessAction falhar', async () => {
     vi.mocked(captureLeadAction).mockResolvedValue({ success: true });
-    vi.mocked(authenticateGaleriaAccessAction).mockResolvedValue({ success: false, error: 'Senha incorreta' });
+    vi.mocked(authenticateGaleriaAccessAction).mockResolvedValue({
+      success: false,
+      error: 'Senha incorreta',
+    });
 
     render(<GalleryAccessPortal {...defaultProps} />);
 
-    fireEvent.change(screen.getByPlaceholderText('Como devemos te chamar?'), { target: { value: 'João Silva' } });
-    fireEvent.change(screen.getByPlaceholderText('seu@email.com'), { target: { value: 'joao@example.com' } });
-    fireEvent.change(screen.getByPlaceholderText('(00) 00000-0000'), { target: { value: '31988887777' } });
-    fireEvent.change(screen.getByPlaceholderText('Senha numérica'), { target: { value: '1234' } });
+    fireEvent.change(screen.getByPlaceholderText('Como devemos te chamar?'), {
+      target: { value: 'João Silva' },
+    });
+    fireEvent.change(screen.getByPlaceholderText('seu@email.com'), {
+      target: { value: 'joao@example.com' },
+    });
+    fireEvent.change(screen.getByPlaceholderText('(00) 00000-0000'), {
+      target: { value: '31988887777' },
+    });
+    fireEvent.change(screen.getByPlaceholderText('Senha numérica'), {
+      target: { value: '1234' },
+    });
 
     // Marca o consentimento LGPD
     fireEvent.click(screen.getByRole('checkbox'));
