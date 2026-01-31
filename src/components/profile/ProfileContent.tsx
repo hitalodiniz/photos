@@ -184,7 +184,7 @@ export default function PhotographerContent({
         w-full transition-all duration-500
         ${
           galerias.length === 1
-            ? 'aspect-[21/9] md:aspect-[16/7]' // 1 Galeria: Ultra-wide (Cinema)
+            ? 'aspect-[21/9] md:aspect-[3/2]' // 1 Galeria: Ultra-wide (Cinema)
             : galerias.length === 2
               ? 'aspect-[16/10] md:aspect-[3/2]' // 2 Galerias: Lado a lado imponente
               : 'aspect-[3/2]' // 3+ Galerias: Grid padrão portfólio
