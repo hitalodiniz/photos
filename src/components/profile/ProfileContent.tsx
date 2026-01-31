@@ -128,7 +128,7 @@ export default function PhotographerContent({
       {/* HERO SECTION - O Editorial apenas provê o fundo e a lógica de altura */}
       <EditorialHero
         title={fullName}
-        coverUrl={activeBackground}
+        coverUrls={activeBackground ? [activeBackground] : []}
         sideElement={
           <PhotographerAvatar
             photoPreview={photoPreview}
@@ -160,13 +160,42 @@ export default function PhotographerContent({
       </div>
 
       {/* ESPAÇADOR PARA CONTEÚDO ADICIONAL NO FUTURO */}
-      <main className="relative z-30 max-w-[1600px] mx-auto px-4 py-12 min-h-[40vh]">
+      <main className="relative z-30 max-w-[1600px] mx-auto px-4 py-6 min-h-[50vh] bg-white">
         {galerias.length > 0 ? (
-          <div className="space-y-12">
-            {/* Grid de Galerias */}
-            <div className="grid grid-cols-2 lg:grid-cols-4 gap-6">
+          <div className="space-y-16">
+            {/* Lógica de Grid Dinâmica */}
+            {/* Grid de Galerias Dinâmico */}
+            <div
+              className={`
+  grid gap-6 w-full mx-auto
+  ${
+    galerias.length === 1
+      ? 'grid-cols-1 max-w-5xl'
+      : galerias.length === 2
+        ? 'grid-cols-1 md:grid-cols-2 max-w-6xl'
+        : 'grid-cols-1 md:grid-cols-2 lg:grid-cols-3'
+  }
+`}
+            >
               {galerias.map((galeria) => (
-                <PublicGaleriaCard key={galeria.id} galeria={galeria} />
+                <div
+                  key={galeria.id}
+                  className={`
+        w-full transition-all duration-500
+        ${
+          galerias.length === 1
+            ? 'aspect-[21/9] md:aspect-[16/7]' // 1 Galeria: Ultra-wide (Cinema)
+            : galerias.length === 2
+              ? 'aspect-[16/10] md:aspect-[3/2]' // 2 Galerias: Lado a lado imponente
+              : 'aspect-[3/2]' // 3+ Galerias: Grid padrão portfólio
+        }
+      `}
+                >
+                  <PublicGaleriaCard
+                    galeria={galeria}
+                    isFeatured={galerias.length <= 2} // Indica se deve usar fontes maiores
+                  />
+                </div>
               ))}
             </div>
 
@@ -176,35 +205,34 @@ export default function PhotographerContent({
                 <button
                   onClick={loadMore}
                   disabled={loadingMore}
-                  className="px-8 py-3 border border-[#F3E5AB]/30 text-[#F3E5AB] text-[10px] uppercase tracking-[0.2em] hover:bg-[#F3E5AB] hover:text-black transition-all disabled:opacity-50 min-w-[200px] flex items-center justify-center"
+                  className="px-10 py-4 border border-gold/20 text-gold text-[11px] uppercase tracking-[0.3em] font-bold hover:bg-gold hover:text-black transition-all duration-500 disabled:opacity-50 min-w-[250px] flex items-center justify-center rounded-sm"
                 >
                   {loadingMore ? (
-                    <Loader2 className="animate-spin w-4 h-4" />
+                    <Loader2 className="animate-spin w-5 h-5" />
                   ) : (
-                    'Carregar mais trabalhos'
+                    'Explorar mais projetos'
                   )}
                 </button>
               </div>
             )}
 
             {/* 🛡️ Upgrade Call / Upsell Dinâmico conforme o limite do plano */}
-            {((planKey === 'FREE' && galerias.length >= 1) ||
-              (planKey === 'START' && galerias.length >= 10) ||
-              (planKey === 'PLUS' && galerias.length >= 20)) && (
-              <div className="mt-20 text-center space-y-4">
-                <div className="w-px h-12 bg-gradient-to-b from-[#F3E5AB]/30 to-transparent mx-auto mb-6" />
-                <p className="text-[10px] uppercase tracking-[0.3em] text-gold font-bold">
-                  {planKey === 'FREE'
-                    ? `Conheça o portfólio completo de ${fullName.split(' ')[0]}`
-                    : 'Ver mais projetos exclusivos'}
-                </p>
-                <p className="text-white/30 text-[9px] uppercase tracking-widest max-w-xs mx-auto leading-relaxed">
-                  Este profissional utiliza a tecnologia{' '}
-                  <span className="text-white/50">Sua Galeria</span> para
-                  entregas de alta performance.
-                </p>
-              </div>
-            )}
+            {/* 🛡️ Upgrade Call / Upsell Dinâmico conforme o limite do plano */}
+            {permissions.profileListLimit !== 'unlimited' &&
+              galerias.length >= (permissions.profileListLimit as number) && (
+                <div className="mt-20 text-center space-y-4">
+                  {/* Divisor Decorativo */}
+                  <div className="w-full h-2 bg-gradient-to-b from-[#F3E5AB]/30 to-transparent mx-auto mb-6" />
+                  {/* Branding / Créditos: Aparece APENAS para FREE e START (onde removeBranding é false e são planos de entrada) */}
+                  {(planKey === 'FREE' || planKey === 'START') && (
+                    <p className="text-petroleum text-[11px] uppercase tracking-widest max-w-lg mx-auto leading-relaxed">
+                      Este profissional utiliza o app{' '}
+                      <span className="font-bold">Sua Galeria</span> para suas
+                      entregas.
+                    </p>
+                  )}
+                </div>
+              )}
           </div>
         ) : (
           !isLoading && (

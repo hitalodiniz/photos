@@ -10,6 +10,7 @@ import {
   Monitor,
 } from 'lucide-react';
 import { usePlan } from '@/hooks/usePlan';
+import { PERMISSIONS_BY_PLAN } from '@/core/config/plans';
 import { PlanGuard } from '@/components/auth/PlanGuard';
 import UpgradeModal from '@/components/ui/UpgradeModal';
 import { PlanSelect } from '@/components/ui/PlanSelect';
@@ -43,7 +44,20 @@ export const GalleryDesignFields: React.FC<GalleryDesignFieldsProps> = ({
   onBackgroundPhotoUrlChange,
   register,
 }) => {
-  const [upsellFeature, setUpsellFeature] = useState<string | null>(null);
+  const [upsellFeature, setUpsellFeature] = useState<{ label: string; feature: string } | null>(null);
+  const { planKey } = usePlan();
+
+  // 🛡️ Oculta totalmente o componente nos planos FREE e START
+  if (['FREE', 'START'].includes(planKey)) {
+    return null;
+  }
+
+  const getFilteredOptions = (originalOptions: number[]) => {
+    if (planKey === 'FREE') {
+      return [originalOptions[0]];
+    }
+    return originalOptions;
+  };
   return (
     <div className="flex flex-wrap items-center gap-x-2.5 gap-y-1.5">
       {/* FOTO DE FUNDO / TOGGLE */}
@@ -173,9 +187,9 @@ export const GalleryDesignFields: React.FC<GalleryDesignFieldsProps> = ({
 
         <div className="flex items-center gap-1 h-full">
           {[
-            { k: 'mobile' as const, i: Smartphone, options: [1, 2, 3, 4] },
+            { k: 'mobile' as const, i: Smartphone, options: getFilteredOptions([1, 2, 3, 4]) },
             { k: 'tablet' as const, i: Tablet, options: [2, 3, 4, 5, 6] },
-            { k: 'desktop' as const, i: Monitor, options: [3, 4, 5, 6, 8, 10] },
+            { k: 'desktop' as const, i: Monitor, options: [3, 4, 5, 6, 8] },
           ].map((d) => (
             <div
               key={d.k}
@@ -198,7 +212,8 @@ export const GalleryDesignFields: React.FC<GalleryDesignFieldsProps> = ({
       <UpgradeModal
         isOpen={!!upsellFeature}
         onClose={() => setUpsellFeature(null)}
-        featureName={upsellFeature || ''}
+        featureName={upsellFeature?.label || ''}
+        featureKey={upsellFeature?.feature as any}
       />
     </div>
   );

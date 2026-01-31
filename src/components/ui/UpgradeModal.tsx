@@ -1,28 +1,33 @@
 'use client';
 
-import React from 'react';
+import React, { useMemo } from 'react';
 import { Crown, ArrowRight, Zap, CheckCircle2, Lock } from 'lucide-react';
 import BaseModal from '@/components/ui/BaseModal';
-import { usePlan } from '@/context/PlanContext';
-import { PlanKey } from '@/core/config/plans';
+
+import { PlanKey, PlanPermissions } from '@/core/config/plans';
+import { usePlan } from '@/hooks/usePlan';
+import { findNextPlanWithFeature } from '@/core/config/plans';
 
 interface UpgradeModalProps {
   isOpen: boolean;
   onClose: () => void;
   featureName: string;
+  featureKey?: keyof PlanPermissions;
 }
 
 export default function UpgradeModal({
   isOpen,
   onClose,
   featureName,
+  featureKey,
 }: UpgradeModalProps) {
-  const { planKey } = usePlan();
+  const { planKey, segment } = usePlan();
 
-  // 🎯 Lógica de Progressão: Identifica o próximo nível
-  const planOrder: PlanKey[] = ['FREE', 'START', 'PLUS', 'PRO', 'PREMIUM'];
-  const currentIndex = planOrder.indexOf(planKey as PlanKey);
-  const nextPlanKey = planOrder[currentIndex + 1] || 'PREMIUM';
+  // 🎯 Lógica de Progressão: Identifica o próximo nível com a feature
+  const nextPlanKey = useMemo(() => {
+    if (!featureKey) return 'PREMIUM'; // Garante uso da chave técnica
+    return findNextPlanWithFeature(planKey as PlanKey, featureKey, segment);
+  }, [planKey, featureKey, segment]);
 
   if (!isOpen) return null;
 
@@ -31,20 +36,16 @@ export default function UpgradeModal({
   );
 
   const footer = (
-    <div className="flex flex-col gap-3 w-full">
+    <div className="grid grid-cols-2 gap-3 w-full">
+      <button onClick={onClose} className="btn-luxury-secondary">
+        Talvez mais tarde
+      </button>
       <button
         onClick={() => window.open('/dashboard/planos', '_blank')}
-        className="w-full h-12 bg-petroleum hover:bg-black text-champagne font-bold uppercase text-[10px] tracking-luxury rounded-luxury flex items-center justify-center gap-2 transition-all shadow-xl active:scale-[0.98]"
+        className="btn-luxury-primary"
       >
         Migrar para o Plano {nextPlanKey}
         <ArrowRight size={16} />
-      </button>
-
-      <button
-        onClick={onClose}
-        className="w-full h-10 text-petroleum/40 font-bold uppercase text-[10px] tracking-luxury hover:text-petroleum rounded-luxury transition-all"
-      >
-        Talvez mais tarde
       </button>
     </div>
   );
@@ -57,7 +58,7 @@ export default function UpgradeModal({
       subtitle="Upgrade Necessário"
       headerIcon={headerIcon}
       footer={footer}
-      maxWidth="md"
+      maxWidth="2xl"
     >
       <div className="space-y-4">
         {/* Card de Feature Bloqueada */}
@@ -71,7 +72,7 @@ export default function UpgradeModal({
               {featureName}
             </p>
             <div className="flex items-center gap-2 mt-0.5">
-              <span className="text-[10px] font-bold text-gold uppercase tracking-luxury">
+              <span className="text-[10px] font-semibold text-petroleum uppercase tracking-luxury">
                 Bloqueado no Plano {planKey}
               </span>
             </div>
@@ -82,7 +83,7 @@ export default function UpgradeModal({
           O recurso{' '}
           <span className="text-petroleum font-bold">{featureName}</span> é
           exclusivo para assinantes do plano{' '}
-          <span className="text-gold font-bold">{nextPlanKey}</span> ou
+          <span className="text-petroleum font-bold">{nextPlanKey}</span> ou
           superior.
         </p>
 
@@ -98,7 +99,7 @@ export default function UpgradeModal({
             'Suporte prioritário via WhatsApp',
           ].map((benefit, i) => (
             <div key={i} className="flex items-center gap-2">
-              <CheckCircle2 size={12} className="text-gold shrink-0" />
+              <CheckCircle2 size={12} className="text-petroleum shrink-0" />
               <span className="text-[10px] font-bold uppercase tracking-widest text-petroleum/80">
                 {benefit}
               </span>

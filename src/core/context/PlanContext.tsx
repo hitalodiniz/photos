@@ -8,7 +8,8 @@ import {
   getPlansByDomain,
   PlanInfo,
 } from '@/core/config/plans';
-import { profile } from 'console';
+
+import { Profile } from '@/core/types/profile';
 
 interface PlanContextProps {
   planKey: PlanKey;
@@ -24,23 +25,31 @@ const PlanContext = createContext<PlanContextProps | undefined>(undefined);
 export function PlanProvider({
   children,
   planKey = 'FREE',
+  profile,
 }: {
   children: React.ReactNode;
   planKey: PlanKey;
+  profile?: Profile;
 }) {
   const planToUse = useMemo(() => {
-    if (profile.is_trial && new Date(profile.plan_trial_expires) < new Date()) {
+    if (!profile) return planKey;
+
+    if (
+      profile.is_trial &&
+      profile.plan_trial_expires &&
+      new Date(profile.plan_trial_expires) < new Date()
+    ) {
       return 'FREE'; // Trial expirou, volta pro Free
     }
     return profile.plan_key || 'FREE';
-  }, [profile]);
+  }, [profile, planKey]);
 
   const value = useMemo(() => {
     const hostname =
       typeof window !== 'undefined' ? window.location.hostname : '';
     const domainConfig = getPlansByDomain(hostname);
 
-    const currentKey = planKey.toUpperCase() as PlanKey;
+    const currentKey = (planToUse || planKey).toUpperCase() as PlanKey;
     const permissions =
       PERMISSIONS_BY_PLAN[currentKey] || PERMISSIONS_BY_PLAN.FREE;
     const planInfo = domainConfig.plans[currentKey];
@@ -56,7 +65,7 @@ export function PlanProvider({
         return typeof limit === 'number' ? currentCount < limit : true;
       },
     };
-  }, [planKey]);
+  }, [planToUse, planKey]);
 
   return <PlanContext.Provider value={value}>{children}</PlanContext.Provider>;
 }

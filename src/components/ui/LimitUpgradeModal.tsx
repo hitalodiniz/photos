@@ -19,7 +19,9 @@ export const LimitUpgradeModal = ({
 }: LimitUpgradeModalProps) => {
   if (!isOpen) return null;
 
-  const headerIcon = <AlertTriangle size={20} strokeWidth={2.5} className="text-amber-500" />;
+  const headerIcon = (
+    <AlertTriangle size={20} strokeWidth={2.5} className="text-amber-500" />
+  );
 
   const footer = (
     <div className="flex flex-col gap-3 w-full">
@@ -73,8 +75,11 @@ export const LimitUpgradeModal = ({
         </div>
 
         <p className="text-[13px] text-petroleum/70 font-medium leading-relaxed px-1">
-          Sua pasta possui <span className="text-petroleum font-bold">{photoCount} fotos</span>. Apenas as primeiras{' '}
-          <span className="text-gold font-bold">{planLimit} fotos</span> serão importadas para economizar seu armazenamento.
+          Sua pasta possui{' '}
+          <span className="text-petroleum font-bold">{photoCount} fotos</span>.
+          Apenas as primeiras{' '}
+          <span className="text-gold font-bold">{planLimit} fotos</span> serão
+          importadas para economizar seu armazenamento.
         </p>
 
         <div className="flex items-center gap-3 p-4 bg-slate-50 border border-petroleum/10 rounded-luxury italic">

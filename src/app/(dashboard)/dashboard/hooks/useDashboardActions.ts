@@ -60,7 +60,7 @@ export function useDashboardActions(
         type: 'success',
       });
     } else {
-      setToast({ message: 'Erro ao processar arquivamento', type: 'error' });
+      setToast({ message: result.error || 'Erro ao processar arquivamento', type: 'error' });
     }
     setUpdatingId(null);
   };

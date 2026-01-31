@@ -12,5 +12,6 @@ export const formatDateLong = (dateString: string) => {
   return date.toLocaleDateString('pt-BR', {
     year: 'numeric',
     month: 'long',
+    day: 'numeric',
   });
 };

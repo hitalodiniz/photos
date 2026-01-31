@@ -1,6 +1,7 @@
 import { Metadata } from 'next';
 import { redirect } from 'next/navigation';
 import { getProfileData } from '@/core/services/profile.service';
+import { getProfileListCount } from '@/core/services/galeria.service';
 import GaleriaFormPage from '@/features/galeria/components/admin/GaleriaFormPage';
 
 export const metadata: Metadata = {
@@ -28,11 +29,15 @@ export default async function NewGaleriaPage() {
     redirect('/onboarding');
   }
 
+  // Busca contagem de galerias no perfil
+  const profileListCount = await getProfileListCount(profile.id);
+
   return (
     <GaleriaFormPage
       galeria={null}
       isEdit={false}
       initialProfile={profile}
+      profileListCount={profileListCount}
     />
   );
 }

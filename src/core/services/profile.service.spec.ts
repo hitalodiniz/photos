@@ -33,13 +33,23 @@ import {
 describe('Profile Service (Cobertura 100%)', () => {
   // Helper para criar a cadeia do Supabase
   const createMockSupabase = () => {
-    const chain = {
-      from: vi.fn().mockReturnThis(),
+    const builder = {
+      then(onFulfilled: any) {
+        return Promise.resolve({ data: {}, error: null }).then(onFulfilled);
+      },
+      single: vi
+        .fn()
+        .mockImplementation(() => Promise.resolve({ data: {}, error: null })),
+      maybeSingle: vi
+        .fn()
+        .mockImplementation(() => Promise.resolve({ data: {}, error: null })),
+      eq: vi.fn().mockReturnThis(),
       select: vi.fn().mockReturnThis(),
       update: vi.fn().mockReturnThis(),
-      eq: vi.fn().mockReturnThis(),
-      single: vi.fn(),
-      maybeSingle: vi.fn(),
+    };
+
+    const client: any = {
+      from: vi.fn().mockReturnValue(builder),
       auth: {
         getUser: vi.fn().mockResolvedValue({
           data: { user: { id: 'u123', email: 't@t.com' } },
@@ -55,21 +65,20 @@ describe('Profile Service (Cobertura 100%)', () => {
           .mockReturnValue({ data: { publicUrl: 'http://url.com' } }),
       },
     };
-    // Garante que a cadeia de promessas funcione no await
-    (chain.eq as any).then = vi
-      .fn()
-      .mockImplementation((res) => res({ data: {}, error: null }));
-    return chain;
+
+    return { client, builder };
   };
 
   let mockSupabase: any;
+  let mockBuilder: any;
 
   beforeEach(() => {
     vi.clearAllMocks();
-    mockSupabase = createMockSupabase();
-    vi.mocked(createSupabaseServerClient).mockResolvedValue(
-      mockSupabase as any,
-    );
+    const { client, builder } = createMockSupabase();
+    mockSupabase = client;
+    mockBuilder = builder;
+
+    vi.mocked(createSupabaseServerClient).mockResolvedValue(mockSupabase as any);
     vi.mocked(createSupabaseClientForCache).mockReturnValue(
       mockSupabase as any,
     );
@@ -111,7 +120,17 @@ describe('Profile Service (Cobertura 100%)', () => {
     const fd = new FormData();
     fd.append('username', 'dup');
     fd.append('full_name', 'Hitalo');
-    mockSupabase.eq.mockResolvedValueOnce({ error: { code: '23505' } });
+    // 1. Mock do check de trial (primeiro await)
+    mockBuilder.single.mockResolvedValueOnce({
+      data: { plan_key: 'PRO' },
+      error: null,
+    });
+    // 2. Mock do erro de duplicidade no update (segundo await)
+    // Em vez de mockResolvedValueOnce em then, mockamos o builder para que o seu then retorne o erro
+    vi.spyOn(mockBuilder, 'then').mockImplementationOnce((onFulfilled: any) => {
+      return Promise.resolve({ error: { code: '23505' } }).then(onFulfilled);
+    });
+
     const result = await upsertProfile(fd, mockSupabase);
     expect(result.success).toBe(false);
     expect(result.error).toBe('Username já está em uso.');

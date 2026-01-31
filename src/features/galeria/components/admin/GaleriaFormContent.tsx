@@ -92,8 +92,11 @@ export default function GaleriaFormContent({
   watch,
 }) {
   // Lógica de permissão de acesso
-  const { permissions, canAddMore } = usePlan();
-  const [upsellFeature, setUpsellFeature] = useState<string | null>(null);
+  const { permissions, canAddMore } = usePlan(profile?.plan_key);
+  const [upsellFeature, setUpsellFeature] = useState<{
+    label: string;
+    feature: string;
+  } | null>(null);
   const canUsePrivate = permissions.privacyLevel !== 'public';
   const canUsePassword = ['password', 'expiration'].includes(
     permissions.privacyLevel,
@@ -750,7 +753,12 @@ export default function GaleriaFormContent({
                       {/* 🛡️ PlanGuard para o campo de Senha */}
                       {!canUsePassword && (
                         <div
-                          onClick={() => setUpsellFeature('Proteção por Senha')}
+                          onClick={() =>
+                            setUpsellFeature({
+                              label: 'Proteção por Senha',
+                              feature: 'privacyLevel',
+                            })
+                          }
                           className="absolute inset-0 z-20 cursor-pointer bg-white/50 backdrop-blur-[1px] flex items-center justify-center rounded-[0.4rem]"
                         >
                           <Lock size={12} className="text-gold" />
@@ -835,7 +843,8 @@ export default function GaleriaFormContent({
             <UpgradeModal
               isOpen={!!upsellFeature}
               onClose={() => setUpsellFeature(null)}
-              featureName={upsellFeature || ''}
+              featureName={upsellFeature?.label || ''}
+              featureKey={upsellFeature?.feature as any} // Passa a chave técnica
             />
           </fieldset>
         </FormSection>
@@ -960,22 +969,24 @@ export default function GaleriaFormContent({
         </FormSection>
 
         {/* SEÇÃO 4: CUSTOMIZAÇÃO VISUAL */}
-        <FormSection
-          title="Design da Galeria"
-          subtitle="Personalize a experiência visual do visitante"
-          icon={<Layout size={14} />}
-        >
-          <fieldset>
-            <GalleryDesignFields
-              showBackgroundPhoto={customization.showCoverInGrid}
-              setShowBackgroundPhoto={setCustomization.setShowCoverInGrid}
-              backgroundColor={customization.gridBgColor}
-              setBackgroundColor={setCustomization.setGridBgColor}
-              columns={customization.columns}
-              setColumns={setCustomization.setColumns}
-            />
-          </fieldset>
-        </FormSection>
+        {!['FREE', 'START'].includes(profile.plan_key) && (
+          <FormSection
+            title="Design da Galeria"
+            subtitle="Personalize a experiência visual do visitante"
+            icon={<Layout size={14} />}
+          >
+            <fieldset>
+              <GalleryDesignFields
+                showBackgroundPhoto={customization.showCoverInGrid}
+                setShowBackgroundPhoto={setCustomization.setShowCoverInGrid}
+                backgroundColor={customization.gridBgColor}
+                setBackgroundColor={setCustomization.setGridBgColor}
+                columns={customization.columns}
+                setColumns={setCustomization.setColumns}
+              />
+            </fieldset>
+          </FormSection>
+        )}
       </div>
 
       {/* COLUNA LATERAL (35%) */}
@@ -1040,7 +1051,10 @@ export default function GaleriaFormContent({
                       {!permissions.canCustomLinkLabel && (
                         <div
                           onClick={() =>
-                            setUpsellFeature('Nome do Link Customizado')
+                            setUpsellFeature({
+                              label: 'Nome do Link Customizado',
+                              feature: 'canCustomLinkLabel',
+                            })
                           }
                           className="absolute inset-0 z-10 cursor-pointer bg-slate-50/50 flex items-center justify-center"
                         >
@@ -1102,7 +1116,10 @@ export default function GaleriaFormContent({
                     { url: '', label: `LINK ${links.length + 1}` },
                   ]);
                 } else {
-                  setUpsellFeature('Mais Links de Entrega');
+                  setUpsellFeature({
+                    label: 'Mais Links de Entrega',
+                    feature: 'maxExternalLinks',
+                  });
                 }
               }}
               className="btn-secondary-white w-full h-9 group border-dashed"
@@ -1126,7 +1143,8 @@ export default function GaleriaFormContent({
       <UpgradeModal
         isOpen={!!upsellFeature}
         onClose={() => setUpsellFeature(null)}
-        featureName={upsellFeature || ''}
+        featureName={upsellFeature?.label || ''}
+        featureKey={upsellFeature?.feature as any} // Passa a chave técnica
       />
 
       <LimitUpgradeModal

@@ -122,7 +122,7 @@ export function useGaleria(options: UseGaleriaOptions = {}) {
           );
           return result;
         } else {
-          showToast('Erro ao processar arquivamento', 'error');
+          showToast(result.error || 'Erro ao processar arquivamento', 'error');
           return result;
         }
       } catch (error: any) {

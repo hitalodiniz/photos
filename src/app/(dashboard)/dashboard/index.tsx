@@ -126,7 +126,7 @@ export default function Dashboard({
         currentView={filters.currentView}
         setCurrentView={filters.setCurrentView}
         setCardsToShow={filters.setCardsToShow}
-        galeriasCount={galerias.length}
+        galeriasCount={filters.counts.active}
         photographer={initialProfile}
         handleGoogleLogin={actions.handleGoogleLogin}
         handleNovaGaleria={handleNovaGaleria}

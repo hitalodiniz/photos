@@ -149,7 +149,7 @@ export default function LeadReportView({ galeria }: LeadReportViewProps) {
       <GridBasePage onBack={() => router.back()}>
         <div className="flex flex-col items-center justify-center py-20 px-6 max-w-2xl mx-auto text-center animate-in fade-in zoom-in-95 duration-500">
           <div className="w-20 h-20 bg-gold/10 rounded-luxury flex items-center justify-center mb-6 shadow-xl shadow-gold/5">
-            <Lock size={40} className="text-gold" />
+            <Lock size={40} className="text-petroleum" />
           </div>
 
           <h2 className="text-xl font-bold text-petroleum uppercase tracking-widest mb-4">
@@ -158,7 +158,7 @@ export default function LeadReportView({ galeria }: LeadReportViewProps) {
 
           <p className="text-[13px] text-petroleum/70 leading-relaxed mb-8 font-medium">
             Identificamos{' '}
-            <span className="text-gold font-bold">
+            <span className="text-petroleum font-bold">
               {galeria.leads_count || 0} visitantes
             </span>{' '}
             nesta galeria. Devido ao seu plano atual, o acesso aos dados de
@@ -171,7 +171,7 @@ export default function LeadReportView({ galeria }: LeadReportViewProps) {
               onClick={() => window.open('/dashboard/planos', '_blank')}
               className="flex-1 h-12 bg-petroleum text-champagne font-bold uppercase text-[10px] tracking-luxury rounded-luxury flex items-center justify-center gap-2 hover:bg-black transition-all shadow-lg active:scale-95"
             >
-              Liberar Relatórios <ArrowRight size={14} />
+              Liberar Relatório <ArrowRight size={14} />
             </button>
             <button
               onClick={() => router.back()}
@@ -182,7 +182,7 @@ export default function LeadReportView({ galeria }: LeadReportViewProps) {
           </div>
 
           <div className="mt-12 p-4 bg-slate-50 border border-petroleum/5 rounded-luxury">
-            <p className="text-[9px] font-bold text-petroleum/40 uppercase tracking-luxury italic">
+            <p className="text-[9px] font-bold text-petroleum/70 uppercase tracking-luxury italic">
               Seus dados estão seguros e serão liberados instantaneamente após o
               upgrade de plano.
             </p>

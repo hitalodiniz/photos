@@ -35,8 +35,7 @@ export async function fetchProfileDirectDB(username: string) {
 }
 
 /**
- * Busca dados completos do perfil logado (Privado)
- * MANTIDA DINÂMICA: Dados privados de sessão não podem ser colocados em unstable_cache.
+ * Busca dados completos do perfil logado (Privado) com cache.
  */
 export async function getProfileData(supabaseClient?: any) {
   const supabase =
@@ -50,13 +49,24 @@ export async function getProfileData(supabaseClient?: any) {
     return { success: false, error: 'Usuário não autenticado.' };
   }
 
-  const { data: profile, error: profileError } = await supabase
-    .from('tb_profiles')
-    .select('*')
-    .eq('id', user.id)
-    .maybeSingle();
+  // 🎯 Implementa unstable_cache para os dados privados do perfil
+  const profile = await unstable_cache(
+    async (userId: string) => {
+      const { data, error } = await supabase
+        .from('tb_profiles')
+        .select('*')
+        .eq('id', userId)
+        .maybeSingle();
 
-  if (profileError) return { success: false, error: profileError.message };
+      if (error) throw error;
+      return data;
+    },
+    [`profile-private-${user.id}`],
+    {
+      revalidate: GLOBAL_CACHE_REVALIDATE, // 30 dias
+      tags: [`profile-private-${user.id}`],
+    },
+  )(user.id);
 
   return {
     success: true,
@@ -172,6 +182,7 @@ export async function upsertProfile(formData: FormData, supabaseClient?: any) {
   const instagram_link = formData.get('instagram_link') as string;
   const website = formData.get('website') as string;
   const operating_cities_json = formData.get('operating_cities') as string;
+  const background_url = formData.get('background_url_existing') as string;
 
   if (!username || !full_name) {
     return { success: false, error: 'Nome e Username são obrigatórios.' };
@@ -333,8 +344,9 @@ export async function upsertProfile(formData: FormData, supabaseClient?: any) {
   }
 
   // 🔄 REVALIDAÇÃO ESTRATÉGICA COMPLETA
-  // Invalida a tag específica do perfil
+  // Invalida a tag específica do perfil (público e privado)
   revalidateTag(`profile-${username}`);
+  revalidateTag(`profile-private-${user.id}`);
   // Revalida as galerias públicas do perfil
   revalidateTag(`profile-galerias-${username}`);
   // Busca todas as galerias do usuário para revalidar individualmente
@@ -404,6 +416,7 @@ export async function updateProfileSettings(data: {
   if (profile?.username) {
     revalidateTag(`profile-${profile.username}`);
   }
+  revalidateTag(`profile-private-${user.id}`);
   revalidatePath('/dashboard/settings');
 
   return { success: true };
@@ -439,10 +452,11 @@ export async function updateSidebarPreference(isCollapsed: boolean) {
 
   if (error) return { success: false, error: error.message };
 
-  // 🔄 REVALIDAÇÃO: Limpa o cache do perfil
+  // 🔄 REVALIDAÇÃO: Limpa o cache do perfil (público e privado)
   if (profile?.username) {
     revalidateTag(`profile-${profile.username}`);
   }
+  revalidateTag(`profile-private-${user.id}`);
 
   return { success: true };
 }
@@ -484,6 +498,7 @@ export async function updateCustomCategories(categories: string[]) {
   if (profile?.username) {
     revalidateTag(`profile-${profile.username}`);
   }
+  revalidateTag(`profile-private-${user.id}`);
 
   return { success: true };
 }
@@ -546,6 +561,4 @@ export async function updatePushSubscriptionAction(subscription: any) {
   return { success: true };
 }
 
-// ALTER TABLE public.tb_profiles
-// ADD COLUMN IF NOT EXISTS push_subscription JSONB,
-// ADD COLUMN IF NOT EXISTS notifications_enabled BOOLEAN DEFAULT false;
+

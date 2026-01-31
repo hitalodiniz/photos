@@ -91,7 +91,10 @@ export function GaleriaDriveSection({
                   <button
                     type="button"
                     onClick={() =>
-                      setUpsellFeature('Aumento de Limite de Fotos')
+                      setUpsellFeature({
+                        label: 'Aumento de Limite de Fotos',
+                        feature: 'maxPhotosPerGallery',
+                      })
                     }
                     className="text-[9px] font-bold text-red-600 underline uppercase"
                   >

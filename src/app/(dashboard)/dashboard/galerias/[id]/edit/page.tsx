@@ -1,7 +1,7 @@
 import { Metadata } from 'next';
 import { redirect, notFound } from 'next/navigation';
 import { getProfileData } from '@/core/services/profile.service';
-import { getGaleriaById } from '@/core/services/galeria.service';
+import { getGaleriaById, getProfileListCount } from '@/core/services/galeria.service';
 import GaleriaFormPage from '@/features/galeria/components/admin/GaleriaFormPage';
 
 export async function generateMetadata({
@@ -67,11 +67,15 @@ export default async function EditGaleriaPage({
 
   const galeria = result.data;
 
+  // Busca contagem de galerias no perfil
+  const profileListCount = await getProfileListCount(profile.id);
+
   return (
     <GaleriaFormPage
       galeria={galeria}
       isEdit={true}
       initialProfile={profile}
+      profileListCount={profileListCount}
     />
   );
 }

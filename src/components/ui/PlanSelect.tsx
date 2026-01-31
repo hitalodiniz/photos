@@ -1,6 +1,7 @@
 'use client';
-import { usePlan } from '@/context/PlanContext';
+
 import { PlanPermissions } from '@/core/config/plans';
+import { usePlan } from '@/hooks/usePlan';
 
 interface PlanSelectProps extends React.SelectHTMLAttributes<HTMLSelectElement> {
   feature: keyof PlanPermissions;

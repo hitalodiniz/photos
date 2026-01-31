@@ -28,12 +28,14 @@ interface GaleriaFormPageProps {
   galeria: Galeria | null;
   isEdit: boolean;
   initialProfile: PhotographerProfile;
+  profileListCount?: number;
 }
 
 export default function GaleriaFormPage({
   galeria,
   isEdit,
   initialProfile,
+  profileListCount = 0,
 }: GaleriaFormPageProps) {
   const router = useRouter();
   const { navigate } = useNavigation();
@@ -248,6 +250,7 @@ export default function GaleriaFormPage({
         register={register}
         setValue={setValue}
         watch={watch}
+        profileListCount={profileListCount}
       />
 
       {toast && (

@@ -8,6 +8,7 @@ import {
   Infinity,
   Cloud,
   ShieldCheck,
+  MousePointerClick,
 } from 'lucide-react';
 import EditorialView from '../layout/EditorialView';
 
@@ -15,34 +16,34 @@ export default function LandingPageContent() {
   const features = useMemo(
     () => [
       {
-        icon: <Camera size={22} />,
-        title: 'Fotos Ultra HD',
-        desc: 'Preservação de cada pixel e cor original.',
+        icon: <Camera size={20} />,
+        title: 'Curadoria Ultra HD',
+        desc: 'Sua arte preservada na resolução nativa, sem compressão agressiva.',
       },
       {
-        icon: <Zap size={22} />,
-        title: 'Fluxo Instantâneo',
-        desc: 'Subiu no Drive, está na galeria em tempo real.',
+        icon: <Zap size={20} />,
+        title: 'Sincronia Imediata',
+        desc: 'Organizou no Google Drive™, a galeria se atualiza instantaneamente.',
       },
       {
-        icon: <Smartphone size={22} />,
-        title: 'Mobile First',
-        desc: 'Experiência fluida e elegante no celular.',
+        icon: <Smartphone size={20} />,
+        title: 'Design Mobile-First',
+        desc: 'Interface pensada para a palma da mão do seu cliente final.',
       },
       {
-        icon: <Infinity size={22} />,
-        title: 'Fotos Ilimitadas',
-        desc: 'Sem barreiras ou limites de upload.',
+        icon: <Infinity size={20} />,
+        title: 'Arquivos Ilimitados',
+        desc: 'Aproveite todo o potencial do seu armazenamento na nuvem.',
       },
       {
-        icon: <Cloud size={22} />,
-        title: 'Cloud Power',
-        desc: 'Hospedagem direta no seu Google Drive™.',
+        icon: <Cloud size={20} />,
+        title: 'Integração Nativa',
+        desc: 'Sem novos uploads. Usamos o poder direto do Google Cloud™.',
       },
       {
-        icon: <ShieldCheck size={22} />,
-        title: 'Segurança',
-        desc: 'Acesso protegido por senha profissional.',
+        icon: <ShieldCheck size={20} />,
+        title: 'Privacidade Elite',
+        desc: 'Segurança robusta para entregas profissionais e exclusivas.',
       },
     ],
     [],
@@ -52,43 +53,37 @@ export default function LandingPageContent() {
     <EditorialView
       title="Sua Galeria"
       subtitle={
-        <>
-          Onde o seu{' '}
-          <span className="italic font-semibold text-white">Google Drive™</span>{' '}
-          vira uma obra de arte
-        </>
+        <span className="font-light tracking-tight text-white/80">
+          A moldura digital de luxo para o seu{' '}
+          <span className="italic font-serif text-gold">Google Drive™</span>
+        </span>
       }
     >
-      <div className="grid grid-cols-1 lg:grid-cols-12 gap-10 items-center w-full max-w-[1500px] mx-auto">
-        {/* LADO ESQUERDO: RECURSOS (Aumentados) */}
-        <div className="lg:col-span-7 flex flex-col gap-6">
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-5">
+      <div className="grid grid-cols-1 lg:grid-cols-12 gap-12 items-start w-full max-w-[1400px] mx-auto py-10">
+        {/* LADO ESQUERDO: GRID DE RECURSOS */}
+        <div className="lg:col-span-7">
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
             {features.map((item, index) => (
               <div
                 key={index}
-                className="flex flex-col bg-white rounded-luxury overflow-hidden shadow-2xl transition-all hover:scale-[1.03] border border-slate-100 group"
+                className="group flex flex-col bg-white/95 rounded-luxury overflow-hidden shadow-xl transition-all duration-500 hover:-translate-y-1 hover:shadow-gold/10 border border-white/20"
               >
-                {/* HEADER DO CARD: Sincronizado com a Toolbar (Petroleum + Blur) */}
-                <div className="relative h-11 flex items-center shrink-0 overflow-hidden">
-                  {/* Camada de fundo Petroleum com Blur */}
-                  <div className="absolute inset-0 bg-petroleum backdrop-blur-md z-0" />
-
-                  {/* Borda inferior sutil para separação de "vidro" */}
-                  <div className="absolute bottom-0 left-0 w-full h-[1px] bg-white/10 z-10" />
-
-                  <div className="relative z-20 px-5 flex items-center gap-4 w-full">
-                    <div className="text-gold shrink-0 drop-shadow-[0_0_8px_rgba(243,229,171,0.4)]">
+                {/* HEADER DO CARD (Efeito Vidro Profissional) */}
+                <div className="relative h-12 flex items-center bg-petroleum overflow-hidden">
+                  <div className="absolute inset-0 bg-gradient-to-r from-petroleum to-petroleum/80 backdrop-blur-sm" />
+                  <div className="relative z-10 px-6 flex items-center gap-3 w-full">
+                    <div className="text-gold opacity-80 group-hover:opacity-100 transition-opacity">
                       {item.icon}
                     </div>
-                    <h3 className="text-[12px] font-bold uppercase tracking-[0.15em] text-white/90 leading-none">
+                    <h3 className="text-[11px] font-bold uppercase tracking-[0.2em] text-white/90">
                       {item.title}
                     </h3>
                   </div>
                 </div>
 
                 {/* CORPO DO CARD */}
-                <div className="p-7 bg-white flex-grow flex items-center">
-                  <p className="text-[15px] text-petroleum/80 font-medium leading-relaxed">
+                <div className="p-8 flex-grow">
+                  <p className="text-[14px] text-petroleum/70 font-medium leading-relaxed">
                     {item.desc}
                   </p>
                 </div>
@@ -97,50 +92,49 @@ export default function LandingPageContent() {
           </div>
         </div>
 
-        {/* 🎯 LADO DIREITO: CARD DE LOGIN (Compacto e Centralizado) */}
-        <div className="lg:col-span-4 flex flex-col justify-center">
-          <div className="bg-white rounded-luxury shadow-[0_20px_50px_rgba(0,0,0,0.15)] p-10 md:p-12 border-t-4 border-gold relative text-center">
-            {/* Badge de Acesso (Vidro Petroleum) */}
-            <div className="absolute -top-3.5 left-1/2 -translate-x-1/2 bg-petroleum text-gold text-[10px] font-bold px-5 py-2 rounded-full uppercase tracking-widest shadow-xl whitespace-nowrap">
-              Acesso Profissional
+        {/* LADO DIREITO: CARD DE CONVERSÃO (O "Hero" da Landing) */}
+        <div className="lg:col-span-5 sticky top-24">
+          <div className="bg-white rounded-luxury shadow-2xl p-10 md:p-14 border-b-8 border-gold text-center overflow-hidden relative">
+            {/* Elemento Decorativo de Fundo */}
+            <div className="absolute -right-20 -top-20 w-64 h-64 bg-gold/5 rounded-full blur-3xl" />
+
+            {/* Badge de Status */}
+            <div className="inline-flex items-center gap-2 bg-petroleum/5 text-petroleum text-[10px] font-black px-4 py-1.5 rounded-full uppercase tracking-tighter mb-8">
+              <span className="w-1.5 h-1.5 bg-gold rounded-full animate-pulse" />
+              Sincronização Ativa
             </div>
 
-            {/* Título Artístico */}
-            <h2 className="text-petroleum text-[18px] md:text-[24px] font-bold mb-4 tracking-tight leading-tight italic font-artistic">
-              Bem-vindo à sua galeria
+            <h2 className="text-petroleum text-3xl md:text-4xl font-serif mb-6 leading-tight">
+              Transforme seu <br />
+              <span className="italic">fluxo de entrega</span>
             </h2>
 
-            {/* TEXTO ATUALIZADO: "Galeria" */}
-            <p className="text-petroleum/70 text-[15px] md:text-[17px] font-medium mb-10 leading-relaxed italic mx-auto max-w-[340px]">
-              Conecte seu{' '}
-              <span className="text-petroleum font-bold">Google Drive™</span> e
-              apresente suas fotos em uma{' '}
-              <span className="text-petroleum font-bold">
-                galeria de alto padrão
+            <p className="text-petroleum/60 text-[16px] md:text-[18px] font-light mb-12 leading-relaxed">
+              Elimine links genéricos. Ofereça uma
+              <span className="text-petroleum font-semibold">
+                {' '}
+                experiência de marca{' '}
               </span>
-              , sem uploads e sem perda de qualidade.
+              que valoriza cada clique do seu cliente.
             </p>
 
-            {/* Área de Ação */}
-            <div className="flex flex-col gap-8 items-center">
-              {/* Botão Google (Largura controlada para luxo) */}
-              <div className="w-full max-w-[280px] transform transition-all hover:scale-[1.02] active:scale-[0.98]">
+            <div className="flex flex-col gap-6 items-center">
+              <div className="w-full max-w-[320px] transition-transform hover:scale-[1.03]">
                 <GoogleSignInButton />
               </div>
 
-              {/* Footer do Card */}
-              <div className="space-y-4 pt-6 border-t border-slate-100 w-full">
-                <p className="text-[11px] text-petroleum italic leading-relaxed mx-auto max-w-[240px]">
-                  Utilizamos a API oficial do Google para garantir que suas
-                  fotos nunca saiam do seu controle.
-                </p>
-
-                <div className="flex justify-center items-center gap-2.5 text-petroleum text-[10px] font-bold uppercase tracking-widest">
-                  <ShieldCheck size={16} />
-                  <span>Ambiente 100% Seguro</span>
+              <div className="pt-8 border-t border-slate-100 w-full">
+                <div className="flex justify-center items-center gap-3 text-petroleum/40 text-[10px] font-bold uppercase tracking-[0.2em]">
+                  <ShieldCheck size={14} className="text-gold" />
+                  <span>Criptografia de ponta a ponta</span>
                 </div>
               </div>
             </div>
+          </div>
+
+          {/* Chamada Secundária (Social Proof ou Trust) */}
+          <div className="mt-8 text-center text-white/40 text-[11px] uppercase tracking-widest font-medium">
+            Utilizado por fotógrafos de elite em todo o Brasil
           </div>
         </div>
       </div>

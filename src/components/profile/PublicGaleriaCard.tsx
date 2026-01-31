@@ -1,16 +1,30 @@
 'use client';
 
 import React, { useEffect, useMemo, useState } from 'react';
-import { Calendar, MapPin, Lock, ArrowRight, Tag } from 'lucide-react';
+import {
+  Calendar,
+  Images,
+  Globe,
+  Lock,
+  MoreVertical,
+  MapPin,
+  Camera,
+} from 'lucide-react';
 import type { Galeria } from '@/core/types/galeria';
 import { resolveGalleryUrl, RESOLUTIONS } from '@/core/utils/url-helper';
 import { useGoogleDriveImage } from '@/hooks/useGoogleDriveImage';
 import { formatDateLong } from '@/core/utils/data-helpers';
+import { w } from 'node_modules/vitest/dist/chunks/reporters.d.Rsi0PyxX';
 
-export function PublicGaleriaCard({ galeria }: { galeria: Galeria }) {
+export function PublicGaleriaCard({
+  galeria,
+  isFeatured = false,
+}: {
+  galeria: Galeria;
+  isFeatured?: boolean;
+}) {
   const [mounted, setMounted] = useState(false);
 
-  // 🎯 FALLBACK: Tenta Google direto, se falhar usa Proxy
   const {
     imgSrc: imageUrl,
     imgRef,
@@ -18,17 +32,19 @@ export function PublicGaleriaCard({ galeria }: { galeria: Galeria }) {
     handleError,
   } = useGoogleDriveImage({
     photoId: galeria.cover_image_url || '',
-    width: RESOLUTIONS.THUMB, // 600px
+    width: RESOLUTIONS.THUMB,
     priority: false,
     fallbackToProxy: true,
   });
+
   const photographer = galeria.photographer;
+
   useEffect(() => {
     setMounted(true);
   }, []);
 
+  // 🔗 MANTENDO O LINK ORIGINAL (Lógica de subdomínios/domínios base)
   const href = useMemo(() => {
-    // 1. Só gera a URL se tivermos o fotógrafo (vido da query) e estivermos no cliente
     if (!mounted || !photographer || typeof window === 'undefined') {
       return '#';
     }
@@ -37,13 +53,11 @@ export function PublicGaleriaCard({ galeria }: { galeria: Galeria }) {
     const protocol = window.location.protocol.replace(':', '');
     const username = photographer.username.toLowerCase();
 
-    // 2. Extraímos o domínio base (removendo subdomínio atual se necessário)
     let mainDomain = host;
     if (host.startsWith(`${username}.`)) {
       mainDomain = host.replace(`${username}.`, '');
     }
 
-    // 3. Delegamos a construção para a função centralizada
     return resolveGalleryUrl(
       username,
       galeria.slug,
@@ -53,85 +67,102 @@ export function PublicGaleriaCard({ galeria }: { galeria: Galeria }) {
     );
   }, [mounted, galeria, photographer]);
 
-  // 2. Usamos uma tag <a> para comportamento nativo de link
   return (
-    <a
-      href={href}
-      target="_blank"
-      rel="noopener noreferrer"
-      className="group relative flex flex-col bg-petroleum backdrop-blur-md border border-white/10 rounded-2xl overflow-hidden transition-all duration-500 hover:border-[#F3E5AB]/40 hover:translate-y-[-4px] cursor-pointer shadow-2xl no-underline"
-    >
-      {/* Container da Imagem */}
-      <div className="relative aspect-[1] overflow-hidden border-b border-white/5">
+    <div className="relative group overflow-hidden rounded-lg shadow-2xl bg-zinc-900 aspect-[3/2]">
+      <a
+        href={href}
+        target="_blank"
+        rel="noopener noreferrer"
+        className="block h-full w-full no-underline"
+      >
+        {/* Imagem com Zoom suave no hover */}
         <img
           ref={imgRef}
           src={imageUrl}
           alt={galeria.title}
           onLoad={handleLoad}
           onError={handleError}
-          loading="lazy"
-          className="h-full w-full object-cover transition-transform duration-1000 ease-out group-hover:scale-110 opacity-90 group-hover:opacity-100"
+          className="h-full w-full object-cover transition-transform duration-1000 group-hover:scale-110 opacity-80 group-hover:opacity-100"
         />
-        <div className="absolute inset-0 bg-gradient-to-t from-petroleum via-transparent to-transparent opacity-80" />
 
-        <div className="absolute top-3 left-3 flex gap-2">
-          {!galeria.is_public && (
-            <div className="bg-black/40 backdrop-blur-md p-2 rounded-full border border-white/20 shadow-lg">
-              <Lock size={14} className="text-petroleum" />
-            </div>
-          )}
-        </div>
+        {/* Gradiente de proteção mais denso para fontes maiores */}
+        <div className="absolute inset-0 bg-gradient-to-t from-black/100 via-black/40 to-transparent z-[1]" />
 
-        <div className="absolute top-3 right-3">
-          <span className="flex items-center gap-1.5 px-3 py-1 bg-white/30 backdrop-blur-md rounded-lg text-[11px] font-semibold tracking-[0.2em] text-petroleum border border-white/10 uppercase shadow-sm">
-            <Tag size={10} strokeWidth={2.5} />
-            {galeria.category || 'Ensaio'}
-          </span>
-        </div>
-      </div>
+        <div className="absolute inset-0 p-5 flex flex-col justify-between z-[2]">
+          {/* Topo: Badges Maiores */}
+          <div className="flex justify-between items-start">
+            <span
+              className={`flex items-center gap-2 px-4 py-1.5 rounded-md text-[10px] font-semibold uppercase tracking-[0.1em] backdrop-blur-md border border-white/10 shadow-xl ${
+                galeria.is_public
+                  ? 'bg-emerald-600/90 text-white'
+                  : 'bg-amber-600/90 text-white'
+              }`}
+            >
+              {galeria.is_public ? <Globe size={14} /> : <Lock size={14} />}
+              {galeria.is_public ? 'Público' : 'Privado'}
+            </span>
 
-      {/* Conteúdo Informativo */}
-      <div className="p-3 space-y-2">
-        <h3 className="text-white text-lg font-semibold tracking-tight group-hover:text-[#F3E5AB] transition-colors leading-tight line-clamp-2 min-h-[2.5rem]">
-          {galeria.title}
-        </h3>
-
-        <div className="flex items-center justify-between pt-3 border-t border-white/10">
-          <div className="flex flex-col gap-2">
-            {/* Localização */}
-            <div className="flex items-center gap-2 text-white/90">
-              <MapPin size={11} className="text-gold" />
-              <span className="text-[11px] uppercase font-medium tracking-widest truncate max-w-[200px]">
-                {galeria.location || 'Brasil'}
-              </span>
-            </div>
-
-            {/* Data */}
-            <div className="flex items-center gap-2 text-white/90">
-              <Calendar size={11} className="text-gold" />
-              <span className="text-[11px] uppercase font-medium tracking-widest">
-                {formatDateLong(galeria.date)}
-              </span>
-            </div>
-
-            {/* 🎯 QUANTIDADE DE FOTOS 
-            <div className="flex items-center gap-2 text-white/50">
-              <ImageIcon size={12} className="text-[#F3E5AB]/70" />
-              <span className="text-[10px] uppercase font-medium tracking-widest">
-                {galeria. || 0} fotos
-              </span>
-            </div>*/}
+            <button className="text-white/70 hover:text-gold transition-colors p-1">
+              <MoreVertical size={24} />
+            </button>
           </div>
 
-          {/* Botão de Ação */}
-          <div className="w-10 h-10 rounded-xl bg-white/5 border border-white/10 flex items-center justify-center group-hover:bg-[#F3E5AB] group-hover:border-[#F3E5AB] transition-all duration-300 self-end">
-            <ArrowRight
-              size={16}
-              className="text-white/70 group-hover:text-black transition-colors"
-            />
+          {/* Base: Tipografia Aumentada */}
+          <div className="space-y-3">
+            <h3 className="text-white text-2xl md:text-3xl font-bold leading-tight group-hover:text-gold transition-colors drop-shadow-2xl font-artistic italic flex items-center gap-3">
+              <Camera
+                className={`text-[#F3E5AB] shrink-0 transition-all duration-1000 drop-shadow-md 
+                w-6 h-6 md:w-8 md:h-8
+              }`}
+                strokeWidth={1.5}
+              />
+              {galeria.title}
+            </h3>
+
+            {/* Linha Decorativa Hero */}
+            <div className="h-[2px] bg-gold/80 w-20 group-hover:w-full transition-all duration-700 rounded-full shadow-[0_0_10px_rgba(243,229,171,0.5)]" />
+
+            <div className="flex flex-col gap-2 pt-1">
+              <div className="flex items-center justify-between">
+                <div className="flex flex-wrap items-center gap-4 text-white text-[13px] font-semibold tracking-wide  drop-shadow-md">
+                  {/* LOCALIZAÇÃO: Só exibe se houver valor */}
+                  {galeria.location && (
+                    <span className="flex items-center gap-2">
+                      <MapPin
+                        size={15}
+                        className="text-gold"
+                        strokeWidth={2.5}
+                      />
+                      {galeria.location}
+                    </span>
+                  )}
+
+                  {/* Divisor condicional se houver localização */}
+                  {galeria.location && (
+                    <span className="text-white/30 text-lg">|</span>
+                  )}
+
+                  {/* Data formatada maior */}
+                  <span className="flex items-center gap-2">
+                    <Calendar
+                      size={15}
+                      className="text-gold"
+                      strokeWidth={2.5}
+                    />
+                    {formatDateLong(galeria.date)}
+                  </span>
+                </div>
+
+                {/* Badge de Fotos Profissional */}
+                <div className="hidden sm:flex items-center gap-2 text-gold text-[11px] font-semibold tracking-widest opacity-90 group-hover:opacity-100 transition-opacity">
+                  <Images size={16} strokeWidth={3} />
+                  <span>VER GALERIA</span>
+                </div>
+              </div>
+            </div>
           </div>
         </div>
-      </div>
-    </a>
+      </a>
+    </div>
   );
 }

@@ -143,13 +143,13 @@ export async function createGaleria(
   try {
     const limit = resolveGalleryLimitByPlan(profile.plan_key);
 
-    // Contagem rápida de galerias ativas (sem trazer os dados das linhas)
+    // Contagem robusta de galerias ativas
     const { count, error: countError } = await supabase
       .from('tb_galerias')
       .select('*', { count: 'exact', head: true })
       .eq('user_id', userId)
-      .eq('is_deleted', false)
-      .eq('is_archived', false);
+      .or('is_deleted.eq.false,is_deleted.is.null')
+      .or('is_archived.eq.false,is_archived.is.null');
 
     if (countError) throw countError;
 
@@ -451,7 +451,7 @@ export async function getGalerias(
         // 🎯 USA createSupabaseClientForCache (sem cookies) dentro do cache
         const supabase = createSupabaseClientForCache();
 
-        // 🎯 AJUSTE NO SELECT: Agora traz todos os campos necessários do perfil
+        // 🎯 USA SELECT '*' PARA EVITAR ERROS DE JOIN
         const { data, error } = await supabase
           .from('tb_galerias')
           .select(
@@ -840,19 +840,31 @@ async function updateGaleriaStatus(id: string, updates: any) {
       updates.is_archived === false || updates.is_deleted === false;
 
     if (isActivating) {
-      const limit = resolveGalleryLimitByPlan(profile.plan_key);
-      const { count } = await supabase
+      // Busca o status atual para saber se já era ativa
+      const { data: current } = await supabase
         .from('tb_galerias')
-        .select('*', { count: 'exact', head: true })
-        .eq('user_id', userId)
-        .eq('is_deleted', false)
-        .eq('is_archived', false);
+        .select('is_archived, is_deleted')
+        .eq('id', id)
+        .single();
 
-      if (count !== null && count >= limit) {
-        return {
-          success: false,
-          error: `Limite de ${limit} galerias ativas do plano atingido. Arquive outra galeria antes de restaurar esta.`,
-        };
+      const wasActive = current && !current.is_archived && !current.is_deleted;
+
+      // Só valida limite se estiver tentando ativar algo que NÃO estava ativo
+      if (!wasActive) {
+        const limit = resolveGalleryLimitByPlan(profile.plan_key);
+        const { count } = await supabase
+          .from('tb_galerias')
+          .select('*', { count: 'exact', head: true })
+          .eq('user_id', userId)
+          .or('is_deleted.eq.false,is_deleted.is.null')
+          .or('is_archived.eq.false,is_archived.is.null');
+
+        if (count !== null && count >= limit) {
+          return {
+            success: false,
+            error: `Limite de ${limit} galerias atingido (Você já possui ${count} ativas). Arquive outra galeria antes de restaurar esta.`,
+          };
+        }
       }
     }
 
@@ -950,7 +962,7 @@ export async function restoreGaleria(id: string): Promise<ActionResult> {
 
   // 2. ⚡ Sincronização Automática
   // Chamamos a Action de sincronização para garantir que o
-  // status de todas as galerias esteja correto e gerar o log de auditoria
+   // status de todas as galerias esteja correto e gerar o log de auditoria
   await syncUserGalleriesAction();
 
   return {
@@ -1046,7 +1058,7 @@ export async function getGaleriaLeads(
 
     // 3. Busca os dados apenas se autorizado
     const { data, error } = await supabase
-      .from('tb_galeria_leads')
+      .from('tb_galerias')
       .select('*')
       .eq('galeria_id', galeriaId)
       .order('created_at', { ascending: false });
@@ -1058,6 +1070,27 @@ export async function getGaleriaLeads(
     console.error('[getGaleriaLeads] Erro:', error);
     return { success: false, error: 'Erro ao buscar leads.' };
   }
+}
+
+/**
+ * 🎯 BUSCAR CONTAGEM DE GALERIAS NO PERFIL
+ */
+export async function getProfileListCount(userId: string): Promise<number> {
+  const supabase = await createSupabaseServerClientReadOnly();
+  const { count, error } = await supabase
+    .from('tb_galerias')
+    .select('*', { count: 'exact', head: true })
+    .eq('user_id', userId)
+    .eq('show_on_profile', true)
+    .eq('is_deleted', false)
+    .eq('is_archived', false);
+
+  if (error) {
+    console.error('[getProfileListCount] Erro:', error);
+    return 0;
+  }
+
+  return count || 0;
 }
 
 /**
@@ -1106,24 +1139,6 @@ export async function archiveExceedingGalleries(
 
   return archivedCount;
 }
-
-// -- 📝 Tabela de Auditoria para Sincronização de Planos
-// CREATE TABLE IF NOT EXISTS public.tb_plan_sync_logs (
-//     id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
-//     user_id UUID NOT NULL REFERENCES public.tb_profiles(id) ON DELETE CASCADE,
-//     old_plan TEXT,
-//     new_plan TEXT NOT NULL,
-//     archived_count INT NOT NULL DEFAULT 0,
-//     created_at TIMESTAMPTZ NOT NULL DEFAULT now()
-// );
-
-// -- 🚀 Índices para performance
-// CREATE INDEX IF NOT EXISTS idx_plan_sync_logs_user_id ON public.tb_plan_sync_logs(user_id);
-// CREATE INDEX IF NOT EXISTS idx_plan_sync_logs_created_at ON public.tb_plan_sync_logs(created_at DESC);
-
-// -- 🔒 Comentários para documentação no banco
-// COMMENT ON TABLE public.tb_plan_sync_logs IS 'Registra o histórico de arquivamento automático de galerias devido a mudanças de plano.';
-// COMMENT ON COLUMN public.tb_plan_sync_logs.archived_count IS 'Número de galerias movidas para o status is_archived nesta execução.';
 
 /**
  * 🧹 SERVICE: Limpeza de Lixeira

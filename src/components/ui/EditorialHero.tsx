@@ -1,10 +1,9 @@
 'use client';
 import React, { useState, useEffect, useMemo, useCallback } from 'react';
 import { ChevronDown, Maximize2 } from 'lucide-react';
-import { useGoogleDriveImage } from '@/hooks/useGoogleDriveImage';
-import { RESOLUTIONS } from '@/core/utils/url-helper';
+
 import { usePlan } from '@/hooks/usePlan';
-import { handleError } from '@supabase/auth-js/dist/module/lib/fetch';
+
 import { Swiper, SwiperSlide } from 'swiper/react';
 import { Autoplay, EffectFade } from 'swiper/modules';
 // Import Swiper styles
@@ -45,8 +44,7 @@ export const EditorialHero = ({
 
   // 🛡️ 1. Lógica de Seleção de Imagens baseada no Plano
   const finalImages = useMemo(() => {
-    // REGRA FREE: Sempre aleatório do app
-    if (planKey === 'FREE' || coverUrls.length === 0) {
+    if (planKey === 'FREE') {
       const index = title ? title.length % DEFAULT_HEROS.length : 0;
       return [DEFAULT_HEROS[index]];
     }
@@ -55,8 +53,8 @@ export const EditorialHero = ({
     if (planKey === 'PREMIUM') return coverUrls.slice(0, 5);
     if (planKey === 'PRO') return coverUrls.slice(0, 3);
 
-    // REGRA START/PLUS: Imagem única
-    return [coverUrls[0]];
+    // REGRA START/PLUS: Imagem única (primeira do array do usuário)
+    return coverUrls.slice(0, 1);
   }, [coverUrls, planKey, title]);
 
   const isCarousel =
@@ -75,24 +73,40 @@ export const EditorialHero = ({
     return () => window.removeEventListener('scroll', handleScroll);
   }, [isExpanded]);
 
-return (
+  useEffect(() => {
+    if (planKey === 'FREE') {
+      const timer = setTimeout(() => {
+        if (!isImageLoaded) setIsImageLoaded(true);
+      }, 3000);
+      return () => clearTimeout(timer);
+    }
+  }, [planKey, isImageLoaded]);
+
+  return (
     <section
       className={`relative overflow-hidden transition-all duration-[1200ms] z-5 bg-black ${
         isExpanded ? 'h-screen' : 'h-[32vh] md:h-[45vh]'
       }`}
     >
       {/* 🖼️ BACKGROUND: IMAGEM ÚNICA OU CARROSSEL */}
-      <div className={`absolute inset-0 transition-all duration-[2000ms] ease-out ${isImageLoaded ? 'opacity-100 scale-100' : 'opacity-0 scale-110'}`}>
+      <div
+        className={`absolute inset-0 transition-all duration-[2000ms] ease-out ${isImageLoaded ? 'opacity-100 scale-100' : 'opacity-0 scale-110'}`}
+      >
         {!isCarousel ? (
-          <div 
-            className="w-full h-full bg-cover bg-center"
-            style={{ backgroundImage: `url('${finalImages[0]}')`, backgroundPosition: 'center 40%' }}
+          <div
+            className="w-full h-full bg-cover bg-center transition-opacity duration-1000"
+            style={{
+              backgroundImage: `url('${finalImages[0]}')`,
+              backgroundPosition: 'center 40%',
+              // Garante visibilidade imediata se já estiver carregada
+              opacity: isImageLoaded ? 1 : 0,
+            }}
           >
-            {/* Monitor de carregamento para imagem única */}
-            <img 
-              src={finalImages[0]} 
-              className="hidden" 
-              onLoad={() => setIsImageLoaded(true)} 
+            <img
+              src={finalImages[0]}
+              className="hidden"
+              onLoad={() => setIsImageLoaded(true)}
+              onError={() => setIsImageLoaded(true)} // Força exibição mesmo em erro para não ficar tela preta
               alt=""
             />
           </div>
@@ -107,9 +121,12 @@ return (
           >
             {finalImages.map((url, i) => (
               <SwiperSlide key={i}>
-                <div 
+                <div
                   className="w-full h-full bg-cover bg-center"
-                  style={{ backgroundImage: `url('${url}')`, backgroundPosition: 'center 40%' }}
+                  style={{
+                    backgroundImage: `url('${url}')`,
+                    backgroundPosition: 'center 40%',
+                  }}
                 />
               </SwiperSlide>
             ))}
@@ -120,27 +137,39 @@ return (
       <div className="absolute inset-0 bg-black/40" />
 
       {/* CONTEÚDO (Avatar, Nome, Bio) */}
-      <div className={`relative h-full flex flex-col transition-all duration-[1200ms] max-w-[1600px] mx-auto w-full px-6 md:px-12 justify-end ${isExpanded ? 'pb-20 md:pb-24' : 'pb-6 md:pb-8'}`}>
+      <div
+        className={`relative h-full flex flex-col transition-all duration-[1200ms] max-w-[1600px] mx-auto w-full px-6 md:px-12 justify-end ${isExpanded ? 'pb-20 md:pb-24' : 'pb-6 md:pb-8'}`}
+      >
         <div className="w-full">
           <div className="flex items-center gap-4 md:gap-6 mb-4">
             <div className="shrink-0">
               {React.isValidElement(sideElement)
-                ? React.cloneElement(sideElement as React.ReactElement<any>, { isExpanded })
+                ? React.cloneElement(sideElement as React.ReactElement<any>, {
+                    isExpanded,
+                  })
                 : sideElement}
             </div>
 
             <div className="flex flex-col items-start min-w-0">
-              <h1 className={`font-artistic font-semibold text-white transition-all duration-1000 leading-tight tracking-tight ${isExpanded ? 'text-3xl md:text-6xl' : 'text-2xl md:text-4xl'}`}>
+              <h1
+                className={`font-artistic font-semibold text-white transition-all duration-1000 leading-tight tracking-tight ${isExpanded ? 'text-3xl md:text-6xl' : 'text-2xl md:text-4xl'}`}
+              >
                 {title}
               </h1>
               <div className="h-[2px] md:h-[3px] bg-[#F3E5AB] rounded-full w-full mt-1" />
             </div>
           </div>
 
-          <div className={`w-full transition-all duration-1000 delay-100 ${isExpanded ? 'opacity-100 translate-y-0' : 'opacity-90'}`}>
+          <div
+            className={`w-full transition-all duration-1000 delay-100 ${isExpanded ? 'opacity-100 translate-y-0' : 'opacity-90'}`}
+          >
             <div className="max-w-3xl">
               {React.Children.map(children, (child) =>
-                React.isValidElement(child) ? React.cloneElement(child as React.ReactElement<any>, { isExpanded }) : child
+                React.isValidElement(child)
+                  ? React.cloneElement(child as React.ReactElement<any>, {
+                      isExpanded,
+                    })
+                  : child,
               )}
             </div>
           </div>
@@ -148,16 +177,21 @@ return (
 
         {/* CONTROLES DE EXPANSÃO */}
         {isExpanded ? (
-          <button onClick={() => setIsExpanded(false)} className="absolute bottom-12 left-1/2 -translate-x-1/2 animate-bounce text-white/60 hover:text-[#F3E5AB] p-2">
+          <button
+            onClick={() => setIsExpanded(false)}
+            className="absolute bottom-12 left-1/2 -translate-x-1/2 animate-bounce text-white/60 hover:text-[#F3E5AB] p-2"
+          >
             <ChevronDown size={32} />
           </button>
         ) : (
-          <button onClick={() => setIsExpanded(true)} className="w-9 h-9 md:w-12 md:h-12 absolute bottom-6 right-8 flex items-center justify-center bg-black/40 backdrop-blur-md text-white/90 rounded-lg border border-white/10 hover:bg-black/60 transition-all">
+          <button
+            onClick={() => setIsExpanded(true)}
+            className="w-9 h-9 md:w-12 md:h-12 absolute bottom-6 right-8 flex items-center justify-center bg-black/40 backdrop-blur-md text-white/90 rounded-lg border border-white/10 hover:bg-black/60 transition-all"
+          >
             <Maximize2 className="w-4 h-4 md:w-5 md:h-5" />
           </button>
         )}
       </div>
     </section>
   );
-};
 };

@@ -11,10 +11,11 @@ import { updateProfileSettings } from '@/core/services/profile.service';
 import { GalleryDesignFields } from '@/features/galeria/components/admin/GaleriaDesignFields';
 import { useRef, useState } from 'react';
 import { useRouter } from 'next/navigation';
-import { Layout, CheckCircle2, Image } from 'lucide-react';
+import { usePlan } from '@/hooks/usePlan';
 import { Toast } from '@/components/ui';
 import FormPageBase from '@/components/ui/FormPageBase';
 import { LGPDPurposeField } from '@/components/ui/LGPDPurposeField';
+import { usePlan } from '@/hooks/usePlan';
 
 const CombinedSchema = z.object({
   settings: UserSettingsSchema,
@@ -50,6 +51,8 @@ export default function SettingsForm({ profile }: { profile: any }) {
     message: string;
     type: 'success' | 'error';
   } | null>(null);
+
+  const { planKey } = usePlan(); // Obter planKey aqui
 
   const defaultValues: CombinedData = {
     settings: {

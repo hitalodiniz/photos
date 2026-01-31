@@ -2,6 +2,7 @@ import { render, screen, fireEvent, waitFor } from '@testing-library/react';
 import { vi, describe, it, expect, beforeEach } from 'vitest';
 import { useForm } from 'react-hook-form';
 import GaleriaFormContent from './GaleriaFormContent';
+import { PERMISSIONS_BY_PLAN as mockPermissionsByPlan } from '@/core/config/plans';
 
 // Wrapper component to provide useForm context
 const GaleriaFormContentWrapper = (props: any) => {
@@ -57,6 +58,18 @@ vi.mock('@/hooks/useGoogleDriveImage', () => ({
   useGoogleDriveImage: () => ({ imgSrc: 'mock-url' }),
 }));
 
+vi.mock('@/hooks/usePlan', () => ({
+  usePlan: (planKey?: string) => {
+    const key = (planKey?.toUpperCase() || 'PRO') as any;
+    return {
+      permissions: mockPermissionsByPlan[key] || mockPermissionsByPlan.FREE,
+      canAddMore: vi.fn().mockReturnValue(true),
+      isPremium: key === 'PREMIUM',
+      isPro: ['PRO', 'PREMIUM'].includes(key),
+    };
+  },
+}));
+
 describe('GaleriaFormContent', () => {
   const defaultProps = {
     customization: {
@@ -73,6 +86,7 @@ describe('GaleriaFormContent', () => {
     onTokenExpired: vi.fn(),
     onTitleChange: vi.fn(),
     profile: {
+      plan_key: 'PRO',
       settings: {
         display: { show_contract_type: true },
         defaults: {

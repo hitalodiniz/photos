@@ -18,12 +18,10 @@ import {
 import { createInternalNotification } from '@/core/services/notification.service';
 
 /** 🧠 RESOLVE LIMITE DE GALERIAS */
-export const resolveGalleryLimitByPlan = (planKey?: PlanKey): number => {
-  // Busca no mapa de permissões usando a chave do plano
-  // Fallback para o plano 'FREE' caso a chave seja inválida ou ausente
-  const permissions = planKey
-    ? PERMISSIONS_BY_PLAN[planKey]
-    : PERMISSIONS_BY_PLAN.FREE;
+export const resolveGalleryLimitByPlan = (planKey?: string): number => {
+  // Busca no mapa de permissões usando a chave do plano (Normalizada para Uppercase)
+  const normalizedKey = (planKey?.toUpperCase() as PlanKey) || 'FREE';
+  const permissions = PERMISSIONS_BY_PLAN[normalizedKey] || PERMISSIONS_BY_PLAN.FREE;
 
   return permissions?.maxGalleries || 1;
 };

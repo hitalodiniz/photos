@@ -18,6 +18,47 @@ import { de, no, da } from 'zod/locales';
 export type SegmentType = 'PHOTOGRAPHER' | 'EVENT' | 'CAMPAIGN' | 'OFFICE';
 export type PlanKey = 'FREE' | 'START' | 'PLUS' | 'PRO' | 'PREMIUM';
 
+export const planOrder: PlanKey[] = ['FREE', 'START', 'PLUS', 'PRO', 'PREMIUM'];
+
+export function findNextPlanWithFeature(
+  currentPlanKey: PlanKey,
+  featureName: keyof PlanPermissions,
+  segment: SegmentType,
+): PlanKey {
+  const currentPlanIndex = planOrder.indexOf(currentPlanKey);
+  if (currentPlanIndex === -1) return 'PREMIUM'; // Fallback se a chave atual não for encontrada
+
+  // Percorre os planos a partir do plano atual
+  for (let i = currentPlanIndex + 1; i < planOrder.length; i++) {
+    const planKey = planOrder[i];
+    const planPermissions = PERMISSIONS_BY_PLAN[planKey];
+    const featureValue = planPermissions[featureName];
+
+    let isFeatureAvailable = false;
+
+    // Lógica para determinar se a feature está "disponível" neste plano
+    if (typeof featureValue === 'boolean') {
+      isFeatureAvailable = featureValue === true;
+    } else if (typeof featureValue === 'number') {
+      isFeatureAvailable = featureValue > 0;
+    } else if (featureValue === 'unlimited') {
+      isFeatureAvailable = true;
+    } else if (typeof featureValue === 'string') {
+      // Para as strings (e.g., profileLevel, socialDisplayLevel), consideramos "disponível"
+      // se o valor do recurso for diferente do plano FREE,
+      // indicando uma melhoria ou ativação do recurso.
+      const freePlanFeatureValue = PERMISSIONS_BY_PLAN.FREE[featureName];
+      isFeatureAvailable = featureValue !== freePlanFeatureValue;
+    }
+
+    if (isFeatureAvailable) {
+      return planKey;
+    }
+  }
+
+  return 'PREMIUM'; // Se não encontrar em nenhum plano superior, sugere o PREMIUM
+}
+
 // Pendencias
 // teamMembers	Tela de Configurações de Time / Convite de Colaboradores.
 // profileLevel	Tela de Edição de Perfil (campos de Bio, Localização e SEO).
