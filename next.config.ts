@@ -4,8 +4,7 @@ const nextConfig: NextConfig = {
   images: {
     deviceSizes: [640, 1080, 1920], // Menos tamanhos = menos processamento
     imageSizes: [16, 32, 48, 64, 96, 128, 256, 384],
-    qualities: [25, 50, 75, 85, 100],
-
+    qualities: [25, 50, 75, 85, 90, 100],
     localPatterns: [
       {
         pathname: '/**', // Permite todas as imagens locais (incluindo /public)

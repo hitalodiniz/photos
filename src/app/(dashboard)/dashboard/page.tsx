@@ -41,7 +41,13 @@ export default async function DashboardPage() {
     throw new Error('AUTH_RECONNECT_REQUIRED');
   }
 
-  const initialGalerias = resultGalerias.success ? resultGalerias.data : [];
+  const initialGaleriasRaw = resultGalerias.success ? resultGalerias.data : [];
+
+  // Injeta os dados do fotógrafo em cada galeria
+  const initialGalerias = initialGaleriasRaw.map((galeria) => ({
+    ...galeria,
+    photographer: profile,
+  }));
 
   // 5. Renderiza o Client Component injetando o perfil carregado
   return (

@@ -12,6 +12,7 @@ import {
   Share2,
 } from 'lucide-react';
 import { GALLERY_MESSAGES } from '@/core/config/messages';
+import { formatMessage } from '@/core/utils/message-helper';
 
 // Componente do Balão de Dica (Padronizado para mobile)
 // Fontes padronizadas: text-[9px] font-semibold (mesmo padrão do ToolbarGalleryView)
@@ -138,34 +139,21 @@ export const ToolBarMobile = ({
     setTimeout(() => setCopied(false), 2000);
   };
 
-  // 🎯 Função para compartilhamento nativo no mobile (Web Share API)
+  // No ToolBarMobile.tsx, a função `handleNativeShare` agora usa diretamente a prop
   const handleNativeShare = async () => {
-    const title = galeria?.title || 'Galeria de Fotos';
-    const url = window.location.href;
-    const shareText = GALLERY_MESSAGES.GUEST_SHARE(title, url);
-
-    // Verifica se a Web Share API está disponível
-    if (navigator.share) {
-      try {
-        await navigator.share({
-          title: title,
-          text: shareText,
-        });
-      } catch (error) {
-        // Usuário cancelou ou erro no compartilhamento
-        if ((error as Error).name !== 'AbortError') {
-          console.error('Erro ao compartilhar:', error);
-          // Fallback: copia o link para a área de transferência
-          handleCopyLink();
-        }
-      }
+    if (handleShare) {
+      handleShare();
     } else {
-      // Fallback: se não suportar Web Share API, usa a função handleShare original
-      if (handleShare) {
-        handleShare();
+      // Fallback caso a prop não seja passada
+      const title = galeria?.title || 'Galeria de Fotos';
+      const url = window.location.href;
+      const shareText = GALLERY_MESSAGES.GUEST_SHARE(title, url);
+      if (navigator.share) {
+        await navigator.share({ title, text: shareText, url });
       } else {
-        // Se não houver handleShare, copia o link
-        handleCopyLink();
+        navigator.clipboard.writeText(url);
+        setCopied(true);
+        setTimeout(() => setCopied(false), 2000);
       }
     }
   };

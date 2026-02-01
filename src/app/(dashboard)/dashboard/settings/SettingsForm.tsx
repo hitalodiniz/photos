@@ -15,7 +15,8 @@ import { usePlan } from '@/hooks/usePlan';
 import { Toast } from '@/components/ui';
 import FormPageBase from '@/components/ui/FormPageBase';
 import { LGPDPurposeField } from '@/components/ui/LGPDPurposeField';
-import { usePlan } from '@/hooks/usePlan';
+import { LeadCaptureSection } from '@/components/ui/LeadCaptureSection';
+import { Layout, CheckCircle2 } from 'lucide-react';
 
 const CombinedSchema = z.object({
   settings: UserSettingsSchema,
@@ -124,23 +125,6 @@ export default function SettingsForm({ profile }: { profile: any }) {
   const gridTablet = watch('settings.defaults.grid_tablet');
   const gridDesktop = watch('settings.defaults.grid_desktop');
 
-  const toggleRequiredField = (field: string) => {
-    const current = [...requiredGuestFields];
-    if (current.includes(field)) {
-      if (current.length > 1) {
-        setValue(
-          'settings.defaults.required_guest_fields',
-          current.filter((f) => f !== field),
-          { shouldDirty: true },
-        );
-      }
-    } else {
-      setValue('settings.defaults.required_guest_fields', [...current, field], {
-        shouldDirty: true,
-      });
-    }
-  };
-
   return (
     <FormPageBase
       title="Preferências do Usuário"
@@ -215,77 +199,28 @@ export default function SettingsForm({ profile }: { profile: any }) {
                     </button>
                   </div>
 
-                  <div className="flex items-center gap-4">
-                    <label className="text-[11px] font-semibold uppercase tracking-widest text-petroleum ">
-                      Habilitar cadastro de visitante por padrão
-                    </label>
-                    <button
-                      type="button"
-                      onClick={() =>
-                        setValue(
-                          'settings.defaults.enable_guest_registration',
-                          !enableGuestRegistration,
-                          { shouldDirty: true },
-                        )
-                      }
-                      className={`relative h-5 w-9 rounded-full transition-colors duration-200 ${enableGuestRegistration ? 'bg-gold' : 'bg-slate-200'}`}
-                    >
-                      <span
-                        className={`absolute top-0.5 left-0.5 h-4 w-4 rounded-full bg-white shadow-sm transition-transform duration-200 ${enableGuestRegistration ? 'translate-x-4' : ''}`}
-                      />
-                    </button>
-                  </div>
-
-                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-6 items-end">
-                    {enableGuestRegistration && (
-                      <div className="space-y-1.5 animate-in fade-in slide-in-from-top-2">
-                        <label className="text-[11px] font-semibold uppercase tracking-widest text-petroleum">
-                          Campos obrigatórios
-                        </label>
-                        <div className="flex flex-wrap gap-3 p-2.5 bg-slate-50 rounded-luxury border border-petroleum/20 h-11 items-center">
-                          {['name', 'email', 'whatsapp'].map((field) => (
-                            <div
-                              key={field}
-                              onClick={() => toggleRequiredField(field)}
-                              className="flex items-center gap-1.5 cursor-pointer group"
-                            >
-                              <div
-                                className={`w-3.5 h-3.5 rounded border transition-colors flex items-center justify-center ${requiredGuestFields.includes(field) ? 'bg-gold border-gold' : 'bg-white border-petroleum/40'}`}
-                              >
-                                {requiredGuestFields.includes(field) && (
-                                  <CheckCircle2
-                                    size={10}
-                                    className="text-white"
-                                  />
-                                )}
-                              </div>
-                              <span className="text-[9px] font-bold uppercase tracking-wider text-petroleum/80 group-hover:text-petroleum">
-                                {field === 'name'
-                                  ? 'Nome'
-                                  : field === 'email'
-                                    ? 'E-mail'
-                                    : 'Whatsapp'}
-                              </span>
-                            </div>
-                          ))}
-                        </div>
-                      </div>
-                    )}
-
-                    <div
-                      className={`w-full ${!enableGuestRegistration ? 'sm:col-span-2' : ''}`}
-                    >
-                      <LGPDPurposeField
-                        register={register}
-                        setValue={setValue}
-                        watch={watch}
-                        fieldName="settings.defaults.data_treatment_purpose"
-                        initialValue={
-                          profile.settings?.defaults?.data_treatment_purpose
-                        }
-                      />
-                    </div>
-                  </div>
+                  <LeadCaptureSection
+                    enabled={enableGuestRegistration}
+                    setEnabled={(val) =>
+                      setValue('settings.defaults.enable_guest_registration', val, {
+                        shouldDirty: true,
+                      })
+                    }
+                    requiredFields={requiredGuestFields}
+                    setRequiredFields={(newFields) =>
+                      setValue('settings.defaults.required_guest_fields', newFields, {
+                        shouldDirty: true,
+                      })
+                    }
+                    register={register}
+                    setValue={setValue}
+                    watch={watch}
+                    purposeFieldName="settings.defaults.data_treatment_purpose"
+                    initialPurposeValue={profile.settings?.defaults?.data_treatment_purpose}
+                    toggleLabel="Habilitar cadastro de visitante por padrão"
+                    showLayout="grid"
+                    isEdit={true}
+                  />
                 </div>
 
                 <div className="space-y-6 border-t border-petroleum/20 pt-6">

@@ -1,4 +1,6 @@
 'use client';
+import { GALLERY_MESSAGES } from '@/core/config/messages';
+import { formatMessage } from '@/core/utils/message-helper';
 import React, { useEffect, useState, useMemo, useCallback } from 'react';
 import { ChevronLeft, ChevronRight, ImageIcon, X } from 'lucide-react';
 import { GaleriaHeader } from './GaleriaHeader';
@@ -12,6 +14,7 @@ import { useIsMobile } from '@/hooks/use-breakpoint';
 import { VerticalThumbnails } from './VerticalThumbnails';
 import { ThumbnailStrip } from './ThumbnailStrip';
 import { VerticalActionBar } from './VerticalActionBar';
+import { getCleanSlug, executeShare } from '@/core/utils/share-helper';
 
 interface Photo {
   id: string | number;
@@ -331,6 +334,20 @@ export default function Lightbox({
     };
   }, [isMobile, showThumbnails, handleClickOutside]);
 
+  const handleShare = () => {
+    const shareUrl = `${window.location.origin}/photo/${currentPhoto?.id}?s=${getCleanSlug(galeria.slug)}`;
+    const customTemplate = galeria.photographer?.message_templates?.photo_share;
+    let shareText: string;
+
+    if (customTemplate && customTemplate.trim() !== '') {
+      shareText = formatMessage(customTemplate, galeria, shareUrl);
+    } else {
+      shareText = GALLERY_MESSAGES.PHOTO_SHARE(galleryTitle, shareUrl);
+    }
+
+    executeShare({ title: galleryTitle, text: shareText });
+  };
+
   if (!currentPhoto) return null;
 
   return (
@@ -364,6 +381,7 @@ export default function Lightbox({
             }`}
           >
             <VerticalActionBar
+              handleShare={handleShare}
               photoId={currentPhoto.id}
               photoName={currentPhoto.name} // 🎯 Passando o nome original
               gallerySlug={galeria.slug}
@@ -612,6 +630,7 @@ export default function Lightbox({
                   // console.log('[Lightbox] 📢 onQualityWarningShown chamado, setando hasShownQualityWarning=true');
                   setHasShownQualityWarning(true);
                 }}
+                handleShare={handleShare} // Passa a função centralizada
               />
             </div>
           </div>

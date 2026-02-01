@@ -382,6 +382,8 @@ export async function upsertProfile(formData: FormData, supabaseClient?: any) {
 /**
  * Atualiza as configurações e templates de mensagem do perfil
  */
+import { revalidateUserGalleries } from '@/actions/revalidate.actions';
+
 export async function updateProfileSettings(data: {
   settings: UserSettings;
   message_templates: MessageTemplates;
@@ -417,6 +419,10 @@ export async function updateProfileSettings(data: {
     revalidateTag(`profile-${profile.username}`);
   }
   revalidateTag(`profile-private-${user.id}`);
+
+  // Revalida o cache de todas as galerias do usuário
+  await revalidateUserGalleries(user.id);
+
   revalidatePath('/dashboard/settings');
 
   return { success: true };
@@ -560,5 +566,3 @@ export async function updatePushSubscriptionAction(subscription: any) {
   revalidatePath('/dashboard/perfil');
   return { success: true };
 }
-
-

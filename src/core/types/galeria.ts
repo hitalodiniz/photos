@@ -1,3 +1,5 @@
+import { MessageTemplates } from './profile';
+
 // Tipagem da Foto vinda do Google Drive
 export interface DrivePhoto {
   id: string;
@@ -22,9 +24,10 @@ export interface Photographer {
   phone_contact: string | null;
   instagram_link: string | null;
   use_subdomain: boolean; // Essencial para a lógica de URL
-  profile_url: string;
+  profile_url?: string;
   roles?: string[];
-  website: string | null;
+  website?: string | null;
+  message_templates?: MessageTemplates;
 }
 
 // Interface Base (Reflete exatamente a tabela tb_galerias no Banco)
@@ -80,6 +83,7 @@ export interface Galeria extends GaleriaBase {
   photographer_username?: string;
   photographer_id?: string;
   use_subdomain?: boolean;
+  message_templates: MessageTemplates;
 }
 
 // Interface para a Resposta Bruta do Supabase (Joins)
@@ -97,6 +101,7 @@ export interface GaleriaRawResponse extends Omit<
     phone_contact: string | null;
     instagram_link: string | null;
     use_subdomain: boolean; // Garante a tipagem correta vinda do DB
+    message_templates: MessageTemplates;
   };
   leads?: { count: number }[];
 }

@@ -1,5 +1,12 @@
 'use client';
-import React, { memo, useEffect, useRef, useState, useCallback, useMemo } from 'react';
+import React, {
+  memo,
+  useEffect,
+  useRef,
+  useState,
+  useCallback,
+  useMemo,
+} from 'react';
 import { useSearchParams } from 'next/navigation';
 import { Heart, HeartOff, Loader2 } from 'lucide-react';
 import 'photoswipe/dist/photoswipe.css';
@@ -71,273 +78,305 @@ interface MasonryGridProps {
 
 // --- COMPONENTE DE IMAGEM OTIMIZADO ---
 
-const SafeImage = memo(({ 
-  photoId, 
-  width, 
-  height, 
-  priority, 
-  className, 
-  onImageDimensionsDetected 
-}: SafeImageProps) => {
-  const [imageSize, setImageSize] = useState<string | null>(null);
-  const [realResolution, setRealResolution] = useState<{w: number, h: number} | null>(null);
-  const [userAuthenticated, setUserAuthenticated] = useState<boolean>(false);
-  const localImgRef = useRef<HTMLImageElement | null>(null);
-  
-  const searchParams = useSearchParams();
-  const showDebugForce = searchParams.get('v') === 's';
-
-  const { isAuthenticated, isLoading: authLoading } = useSupabaseSession();
-  
-  const {
-    imgSrc,
-    isLoaded,
-    isLoading,
-    handleError,
-    handleLoad,
-    imgRef,
-    usingProxy,
-  } = useGoogleDriveImage({
+const SafeImage = memo(
+  ({
     photoId,
-    width: '500',
+    width,
+    height,
     priority,
-    fallbackToProxy: true,
-  });
+    className,
+    onImageDimensionsDetected,
+  }: SafeImageProps) => {
+    const [imageSize, setImageSize] = useState<string | null>(null);
+    const [realResolution, setRealResolution] = useState<{
+      w: number;
+      h: number;
+    } | null>(null);
+    const [userAuthenticated, setUserAuthenticated] = useState<boolean>(false);
+    const localImgRef = useRef<HTMLImageElement | null>(null);
 
-  const combinedRef = useCallback((img: HTMLImageElement | null) => {
-    localImgRef.current = img;
-    imgRef(img);
-  }, [imgRef]);
+    const searchParams = useSearchParams();
+    const showDebugForce = searchParams.get('v') === 's';
 
-  useEffect(() => {
-    if (!authLoading) {
-      setUserAuthenticated(isAuthenticated);
-    }
-  }, [isAuthenticated, authLoading]);
+    const { isAuthenticated, isLoading: authLoading } = useSupabaseSession();
 
-  useEffect(() => {
-    const subscription = authService.onAuthStateChange((_event, session) => {
-      setUserAuthenticated(!!session?.user);
+    const {
+      imgSrc,
+      isLoaded,
+      isLoading,
+      handleError,
+      handleLoad,
+      imgRef,
+      usingProxy,
+    } = useGoogleDriveImage({
+      photoId,
+      width: '500',
+      priority,
+      fallbackToProxy: true,
     });
-    return () => subscription.unsubscribe();
-  }, []);
 
-  useEffect(() => {
-    let cancelled = false;
+    const combinedRef = useCallback(
+      (img: HTMLImageElement | null) => {
+        localImgRef.current = img;
+        imgRef(img);
+      },
+      [imgRef],
+    );
 
-    const handleMetadata = async () => {
-      const hasPermission = showDebugForce || userAuthenticated;
-
-      if (!hasPermission || !imgSrc || !isLoaded) {
-        if (!cancelled) {
-          setImageSize(null);
-          setRealResolution(null);
-        }
-        return;
+    useEffect(() => {
+      if (!authLoading) {
+        setUserAuthenticated(isAuthenticated);
       }
+    }, [isAuthenticated, authLoading]);
 
-      try {
-        const response = await fetch(imgSrc, { 
-          method: 'HEAD', 
-          mode: 'cors',
-          cache: 'no-cache' 
-        });
-        
-        const size = response.headers.get('content-length');
-        
-        if (!cancelled) {
-          if (size) {
-            const kb = parseInt(size, 10) / 1024;
-            setImageSize(kb > 1024 ? `${(kb/1024).toFixed(1)}MB` : `${Math.round(kb)}KB`);
-          } else {
-            setImageSize("OK");
+    useEffect(() => {
+      const subscription = authService.onAuthStateChange((_event, session) => {
+        setUserAuthenticated(!!session?.user);
+      });
+      return () => subscription.unsubscribe();
+    }, []);
+
+    useEffect(() => {
+      let cancelled = false;
+
+      const handleMetadata = async () => {
+        const hasPermission = showDebugForce || userAuthenticated;
+
+        if (!hasPermission || !imgSrc || !isLoaded) {
+          if (!cancelled) {
+            setImageSize(null);
+            setRealResolution(null);
           }
+          return;
         }
-      } catch {
-        if (!cancelled) setImageSize("---");
-      }
 
-      if (!cancelled && localImgRef.current) {
-        const checkRes = () => {
-          if (localImgRef.current?.naturalWidth) {
-            if (!cancelled) {
-              setRealResolution({
-                w: localImgRef.current.naturalWidth,
-                h: localImgRef.current.naturalHeight
-              });
+        try {
+          const response = await fetch(imgSrc, {
+            method: 'HEAD',
+            mode: 'cors',
+            cache: 'no-cache',
+          });
+
+          const size = response.headers.get('content-length');
+
+          if (!cancelled) {
+            if (size) {
+              const kb = parseInt(size, 10) / 1024;
+              setImageSize(
+                kb > 1024
+                  ? `${(kb / 1024).toFixed(1)}MB`
+                  : `${Math.round(kb)}KB`,
+              );
+            } else {
+              setImageSize('OK');
             }
-          } else if (!cancelled) {
-            setTimeout(checkRes, 100);
           }
-        };
-        checkRes();
+        } catch {
+          if (!cancelled) setImageSize('---');
+        }
+
+        if (!cancelled && localImgRef.current) {
+          const checkRes = () => {
+            if (localImgRef.current?.naturalWidth) {
+              if (!cancelled) {
+                setRealResolution({
+                  w: localImgRef.current.naturalWidth,
+                  h: localImgRef.current.naturalHeight,
+                });
+              }
+            } else if (!cancelled) {
+              setTimeout(checkRes, 100);
+            }
+          };
+          checkRes();
+        }
+      };
+
+      handleMetadata();
+      return () => {
+        cancelled = true;
+      };
+    }, [imgSrc, isLoaded, userAuthenticated, showDebugForce, photoId]);
+
+    const onInternalLoad = (e: React.SyntheticEvent<HTMLImageElement>) => {
+      const { naturalWidth, naturalHeight } = e.currentTarget;
+      if (onImageDimensionsDetected) {
+        onImageDimensionsDetected(naturalWidth, naturalHeight);
       }
+      handleLoad();
     };
 
-    handleMetadata();
-    return () => { cancelled = true; };
-  }, [imgSrc, isLoaded, userAuthenticated, showDebugForce, photoId]);
+    return (
+      <div className="relative w-full h-full overflow-hidden bg-white/5">
+        {isLoading && (
+          <div className="absolute inset-0 flex items-center justify-center z-10">
+            <LoadingSpinner size="xs" />
+          </div>
+        )}
 
-  const onInternalLoad = (e: React.SyntheticEvent<HTMLImageElement>) => {
-    const { naturalWidth, naturalHeight } = e.currentTarget;
-    if (onImageDimensionsDetected) {
-      onImageDimensionsDetected(naturalWidth, naturalHeight);
-    }
-    handleLoad(); 
-  };
+        <img
+          ref={combinedRef}
+          src={imgSrc}
+          onLoad={onInternalLoad}
+          onError={handleError}
+          alt=""
+          className={`${className} object-cover w-full h-full transition-opacity duration-700 ${isLoaded ? 'opacity-100' : 'opacity-0'}`}
+          style={{ position: 'absolute', inset: 0 }}
+        />
 
-  return (
-    <div className="relative w-full h-full overflow-hidden bg-white/5">
-      
-      {isLoading && <div className="absolute inset-0 flex items-center justify-center z-10"><LoadingSpinner size="xs" /></div>}
-
-      <img
-        ref={combinedRef}
-        src={imgSrc}
-        onLoad={onInternalLoad}
-        onError={handleError}
-        alt=""
-        className={`${className} object-cover w-full h-full transition-opacity duration-700 ${isLoaded ? 'opacity-100' : 'opacity-0'}`}
-        style={{ position: 'absolute', inset: 0 }}
-      />
-
-      {isLoaded && imageSize && (userAuthenticated || showDebugForce) && (
-        <div 
-          className="absolute bottom-1.5 left-1.5 z-[30] bg-black/60 backdrop-blur-md px-1.5 py-0.5 rounded border border-white/10 flex items-center gap-1.5 shadow-lg"
-          title={`Resolução: ${realResolution?.w}x${realResolution?.h}px | Origem: ${usingProxy ? 'Servidor' : 'Drive'}`}
-        >
-          <span className={`text-[9px] font-bold ${usingProxy ? 'text-blue-400' : 'text-green-500'}`}>
-            {usingProxy ? 'A' : 'D'}
-          </span>
-          <span className="text-[#F3E5AB] text-[9px] font-mono font-medium">
-            {imageSize}
-          </span>
-        </div>
-      )}
-    </div>
-  );
-});
+        {isLoaded && imageSize && (userAuthenticated || showDebugForce) && (
+          <div
+            className="absolute bottom-1.5 left-1.5 z-[30] bg-black/60 backdrop-blur-md px-1.5 py-0.5 rounded border border-white/10 flex items-center gap-1.5 shadow-lg"
+            title={`Resolução: ${realResolution?.w}x${realResolution?.h}px | Origem: ${usingProxy ? 'Servidor' : 'Drive'}`}
+          >
+            <span
+              className={`text-[9px] font-bold ${usingProxy ? 'text-blue-400' : 'text-green-500'}`}
+            >
+              {usingProxy ? 'A' : 'D'}
+            </span>
+            <span className="text-[#F3E5AB] text-[9px] font-mono font-medium">
+              {imageSize}
+            </span>
+          </div>
+        )}
+      </div>
+    );
+  },
+);
 
 SafeImage.displayName = 'SafeImage';
 
 // --- COMPONENTE MASONRY ITEM ---
 
-const MasonryItem = memo(({ 
-  photo, 
-  index, 
-  galleryTitle, 
-  galeria, 
-  favorites, 
-  toggleFavoriteFromGrid, 
-  setSelectedPhotoIndex, 
-  handleShareWhatsAppGrid,
-  handleNativeShareGrid,
-  handleCopyLinkGrid,
-  btnScale, 
-  iconSize, 
-  isMobile, 
-  currentCols, 
-  isSelected,
-  columnWidth
-}: MasonryItemProps) => {
-  
-  // 🎯 Estado local para orientação e dimensões reais
-  const [orientation, setOrientation] = useState({
-    isPortrait: photo.height > photo.width,
-    realW: photo.width,
-    realH: photo.height,
-    hasDetected: false
-  });
-
-  const thumbUrl = getDirectGoogleUrl(photo.id, RESOLUTIONS.THUMB);
-  const fullUrl = getHighResImageUrl(photo.id);
-
-  // 🎯 Callback para corrigir dimensões invertidas vindas da API
-  const onDimensionsDetected = useCallback((realW: number, realH: number) => {
-    const isPortrait = realH > realW;
-    
-    // Só atualiza se houver discordância com os metadados da API ou se for a primeira detecção
-    setOrientation(prev => {
-      if (prev.hasDetected && prev.isPortrait === isPortrait && prev.realW === realW) return prev;
-      
-      if (prev.isPortrait !== isPortrait) {
-        console.log(`📸 Correção na Foto ${index}: API dizia ${prev.isPortrait ? 'Retrato' : 'Paisagem'}, Imagem é ${isPortrait ? 'Retrato' : 'Paisagem'}.`);
-      }
-
-      return {
-        isPortrait,
-        realW,
-        realH,
-        hasDetected: true
-      };
+const MasonryItem = memo(
+  ({
+    photo,
+    index,
+    galleryTitle,
+    galeria,
+    favorites,
+    toggleFavoriteFromGrid,
+    setSelectedPhotoIndex,
+    handleShareWhatsAppGrid,
+    handleNativeShareGrid,
+    handleCopyLinkGrid,
+    btnScale,
+    iconSize,
+    isMobile,
+    currentCols,
+    isSelected,
+    columnWidth,
+  }: MasonryItemProps) => {
+    // 🎯 Estado local para orientação e dimensões reais
+    const [orientation, setOrientation] = useState({
+      isPortrait: photo.height > photo.width,
+      realW: photo.width,
+      realH: photo.height,
+      hasDetected: false,
     });
-  }, [index]);
 
-  // 🎯 Cálculo de span ultra-preciso (1 row = 1px)
-  const rowSpan = useMemo(() => {
-    if (!columnWidth) return 'span 200';
-    
-    const ratio = orientation.realH / orientation.realW;
-    const span = Math.floor(columnWidth * ratio);
-    
-    return `span ${span}`;
-  }, [orientation.realH, orientation.realW, columnWidth]);
+    const thumbUrl = getDirectGoogleUrl(photo.id, RESOLUTIONS.THUMB);
+    const fullUrl = getHighResImageUrl(photo.id);
 
-  return (
-    <Item
-      original={fullUrl}
-      thumbnail={thumbUrl}
-      width={orientation.realW}
-      height={orientation.realH}
-      caption={`${galleryTitle} - Foto ${index + 1}`}
-    >
-      {({ ref }) => (
-        <div
-          id={`grid-item-${photo.id}`}
-          className="relative group transition-all duration-500 overflow-hidden"
-          style={{ 
-            gridRow: rowSpan,
-            padding: '1px'
-          }}
-        >
-          <div className="w-full h-full relative overflow-hidden border border-black/5 ring-1 ring-white/10 shadow-sm hover:shadow-xl transition-all duration-500 rounded-none bg-white/5">
-            <a
-              href="#"
-              ref={ref as any}
-              onClick={(e) => {
-                e.preventDefault();
-                setSelectedPhotoIndex(index);
-              }}
-              className="block cursor-zoom-in relative w-full h-full"
-            >
-              <SafeImage
-                photoId={photo.id}
-                width={photo.width}
-                height={photo.height}
-                priority={index < 10}
-                className="relative z-10"
-                onImageDimensionsDetected={onDimensionsDetected}
+    // 🎯 Callback para corrigir dimensões invertidas vindas da API
+    const onDimensionsDetected = useCallback(
+      (realW: number, realH: number) => {
+        const isPortrait = realH > realW;
+
+        // Só atualiza se houver discordância com os metadados da API ou se for a primeira detecção
+        setOrientation((prev) => {
+          if (
+            prev.hasDetected &&
+            prev.isPortrait === isPortrait &&
+            prev.realW === realW
+          )
+            return prev;
+
+          if (prev.isPortrait !== isPortrait) {
+            console.log(
+              `📸 Correção na Foto ${index}: API dizia ${prev.isPortrait ? 'Retrato' : 'Paisagem'}, Imagem é ${isPortrait ? 'Retrato' : 'Paisagem'}.`,
+            );
+          }
+
+          return {
+            isPortrait,
+            realW,
+            realH,
+            hasDetected: true,
+          };
+        });
+      },
+      [index],
+    );
+
+    // 🎯 Cálculo de span ultra-preciso (1 row = 1px)
+    const rowSpan = useMemo(() => {
+      if (!columnWidth) return 'span 200';
+
+      const ratio = orientation.realH / orientation.realW;
+      const span = Math.floor(columnWidth * ratio);
+
+      return `span ${span}`;
+    }, [orientation.realH, orientation.realW, columnWidth]);
+
+    return (
+      <Item
+        original={fullUrl}
+        thumbnail={thumbUrl}
+        width={orientation.realW}
+        height={orientation.realH}
+        caption={`${galleryTitle} - Foto ${index + 1}`}
+      >
+        {({ ref }) => (
+          <div
+            id={`grid-item-${photo.id}`}
+            className="relative group transition-all duration-500 overflow-hidden"
+            style={{
+              gridRow: rowSpan,
+              padding: '1px',
+            }}
+          >
+            <div className="w-full h-full relative overflow-hidden border border-black/5 ring-1 ring-white/10 shadow-sm hover:shadow-xl transition-all duration-500 rounded-none bg-white/5">
+              <a
+                href="#"
+                ref={ref as any}
+                onClick={(e) => {
+                  e.preventDefault();
+                  setSelectedPhotoIndex(index);
+                }}
+                className="block cursor-zoom-in relative w-full h-full"
+              >
+                <SafeImage
+                  photoId={photo.id}
+                  width={photo.width}
+                  height={photo.height}
+                  priority={index < 10}
+                  className="relative z-10"
+                  onImageDimensionsDetected={onDimensionsDetected}
+                />
+              </a>
+
+              <GridPhotoActions
+                isFavorited={isSelected}
+                onToggleFavorite={() => toggleFavoriteFromGrid(photo.id)}
+                onShareWhatsApp={() => handleShareWhatsAppGrid(photo.id)}
+                onNativeShare={() => handleNativeShareGrid(photo.id)}
+                onCopyLink={() => handleCopyLinkGrid(photo.id)}
+                onDownload={() =>
+                  handleDownloadPhoto(galeria, photo.id, index, photo.name)
+                }
+                btnScale={btnScale}
+                iconSize={iconSize}
+                isMobile={isMobile}
+                currentCols={currentCols}
               />
-            </a>
-            
-            <GridPhotoActions
-              isFavorited={isSelected}
-              onToggleFavorite={() => toggleFavoriteFromGrid(photo.id)}
-              onShareWhatsApp={() => handleShareWhatsAppGrid(photo.id)}
-              onNativeShare={() => handleNativeShareGrid(photo.id)}
-              onCopyLink={() => handleCopyLinkGrid(photo.id)}
-              onDownload={() => handleDownloadPhoto(galeria, photo.id, index, photo.name)}
-              btnScale={btnScale}
-              iconSize={iconSize}
-              isMobile={isMobile}
-              currentCols={currentCols}
-            />
+            </div>
           </div>
-        </div>
-      )}
-    </Item>
-  );
-});
+        )}
+      </Item>
+    );
+  },
+);
 
 MasonryItem.displayName = 'MasonryItem';
 
@@ -359,7 +398,7 @@ const MasonryGrid = ({
   const sentinelRef = useRef<HTMLDivElement | null>(null);
   const gridContainerRef = useRef<HTMLDivElement>(null);
   const [gridWidth, setGridWidth] = useState(0);
-  
+
   // 🎯 Sincronização precisa de colunas para o MasonryItem
   const [currentCols, setCurrentCols] = useState(columns.mobile);
   const [isMobile, setIsMobile] = useState(false);
@@ -381,7 +420,7 @@ const MasonryGrid = ({
   useEffect(() => {
     const el = gridContainerRef.current;
     if (!el) return;
-    
+
     const observer = new ResizeObserver((entries) => {
       setGridWidth(entries[0].contentRect.width);
     });
@@ -416,37 +455,46 @@ const MasonryGrid = ({
     return () => observer.disconnect();
   }, [displayLimit, displayedPhotos.length, showOnlyFavorites]);
 
-  const handleShareWhatsAppGrid = useCallback((photoId: string) => {
-    const shareUrl = `${window.location.origin}/photo/${photoId}?s=${getCleanSlug(galeria.slug)}`;
-    const shareText = GALLERY_MESSAGES.PHOTO_SHARE(galleryTitle, shareUrl);
-    executeShare({ title: galleryTitle, text: shareText });
-  }, [galeria.slug, galleryTitle]);
+  const handleShareWhatsAppGrid = useCallback(
+    (photoId: string) => {
+      const shareUrl = `${window.location.origin}/photo/${photoId}?s=${getCleanSlug(galeria.slug)}`;
+      const shareText = GALLERY_MESSAGES.PHOTO_SHARE(galleryTitle, shareUrl);
+      executeShare({ title: galleryTitle, text: shareText });
+    },
+    [galeria.slug, galleryTitle],
+  );
 
-  const handleNativeShareGrid = useCallback(async (photoId: string) => {
-    const shareUrl = `${window.location.origin}/photo/${photoId}?s=${getCleanSlug(galeria.slug)}`;
-    const shareText = GALLERY_MESSAGES.PHOTO_SHARE(galleryTitle, shareUrl);
+  const handleNativeShareGrid = useCallback(
+    async (photoId: string) => {
+      const shareUrl = `${window.location.origin}/photo/${photoId}?s=${getCleanSlug(galeria.slug)}`;
+      const shareText = GALLERY_MESSAGES.PHOTO_SHARE(galleryTitle, shareUrl);
 
-    if (navigator.share) {
-      try {
-        await navigator.share({
-          title: galleryTitle,
-          text: shareText
-        });
-      } catch (error) {
-        if ((error as Error).name !== 'AbortError') {
-          console.error('Erro ao compartilhar:', error);
-          handleCopyLinkGrid(photoId);
+      if (navigator.share) {
+        try {
+          await navigator.share({
+            title: galleryTitle,
+            text: shareText,
+          });
+        } catch (error) {
+          if ((error as Error).name !== 'AbortError') {
+            console.error('Erro ao compartilhar:', error);
+            handleCopyLinkGrid(photoId);
+          }
         }
+      } else {
+        handleCopyLinkGrid(photoId);
       }
-    } else {
-      handleCopyLinkGrid(photoId);
-    }
-  }, [galeria.slug, galleryTitle]);
+    },
+    [galeria.slug, galleryTitle],
+  );
 
-  const handleCopyLinkGrid = useCallback((photoId: string) => {
-    const shareUrl = `${window.location.origin}/photo/${photoId}?s=${getCleanSlug(galeria.slug)}`;
-    navigator.clipboard.writeText(shareUrl);
-  }, [galeria.slug]);
+  const handleCopyLinkGrid = useCallback(
+    (photoId: string) => {
+      const shareUrl = `${window.location.origin}/photo/${photoId}?s=${getCleanSlug(galeria.slug)}`;
+      navigator.clipboard.writeText(shareUrl);
+    },
+    [galeria.slug],
+  );
 
   const btnScale = isMobile
     ? currentCols === 2
@@ -466,10 +514,14 @@ const MasonryGrid = ({
       {showOnlyFavorites && displayedPhotos.length === 0 ? (
         <div className="text-center py-10 md:py-20 px-4 animate-in fade-in duration-700">
           <Heart size={48} className="text-champagne mb-4 mx-auto opacity-80" />
-          <p className={`italic text-[14px] md:text-[18px] mb-8 transition-colors duration-500 ${
-              galeria.grid_bg_color === '#FFFFFF' || galeria.grid_bg_color === '#F3E5AB'
-                ? 'text-slate-600' : 'text-white/90'
-            }`}>
+          <p
+            className={`italic text-[14px] md:text-[18px] mb-8 transition-colors duration-500 ${
+              galeria.grid_bg_color === '#FFFFFF' ||
+              galeria.grid_bg_color === '#F3E5AB'
+                ? 'text-slate-600'
+                : 'text-white/90'
+            }`}
+          >
             Nenhuma foto favorita selecionada
           </p>
           <button
@@ -482,12 +534,12 @@ const MasonryGrid = ({
       ) : (
         <div className="max-w-[1600px] mx-auto px-1" ref={gridContainerRef}>
           <Gallery withCaption>
-            <div 
+            <div
               className="w-full transition-all duration-700 grid grid-flow-row-dense"
-              style={{ 
-                gridTemplateColumns: `repeat(${currentCols}, 1fr)`, 
+              style={{
+                gridTemplateColumns: `repeat(${currentCols}, 1fr)`,
                 gridAutoRows: '1px',
-                gap: 0 
+                gap: 0,
               }}
             >
               {limitedPhotos.map((photo, index) => (
@@ -518,7 +570,10 @@ const MasonryGrid = ({
             <div className="w-full">
               {!allLoaded && (
                 <div className="flex justify-center py-10">
-                  <Loader2 className="animate-spin text-[#F3E5AB] opacity-50" size={32} />
+                  <Loader2
+                    className="animate-spin text-[#F3E5AB] opacity-50"
+                    size={32}
+                  />
                 </div>
               )}
               <div ref={sentinelRef} className="h-2 w-full" />

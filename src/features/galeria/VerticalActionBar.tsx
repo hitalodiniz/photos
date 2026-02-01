@@ -1,12 +1,22 @@
 'use client';
 import React, { useState, useEffect, useRef } from 'react';
-import { Heart, Download, Loader2, X, Link as LinkIcon, Check, Play, Pause } from 'lucide-react';
+import {
+  Heart,
+  Download,
+  Loader2,
+  X,
+  Link as LinkIcon,
+  Check,
+  Play,
+  Pause,
+} from 'lucide-react';
 import WhatsAppIcon from '@/components/ui/WhatsAppIcon';
 import { executeShare, getCleanSlug } from '@/core/utils/share-helper';
 import { GALLERY_MESSAGES } from '@/core/config/messages';
 import { handleDownloadPhoto } from '@/core/utils/foto-helpers';
 
 interface VerticalActionBarProps {
+  handleShare: () => void;
   photoId: string | number;
   photoName?: string; // 🎯 Nova prop
   gallerySlug: string;
@@ -24,6 +34,7 @@ interface VerticalActionBarProps {
 }
 
 export function VerticalActionBar({
+  handleShare,
   photoId,
   photoName, // 🎯 Nova prop
   gallerySlug,
@@ -51,7 +62,7 @@ export function VerticalActionBar({
         setShowQualityWarning(true);
         onQualityWarningShown(); // Notifica o Lightbox que o tooltip foi mostrado
       }, 1000); // Aparece após 1 segundo
-      
+
       return () => {
         if (startTimerRef.current) {
           clearTimeout(startTimerRef.current);
@@ -68,13 +79,13 @@ export function VerticalActionBar({
       if (endTimerRef.current) {
         clearTimeout(endTimerRef.current);
       }
-      
+
       // Iniciar timer de 7 segundos para fechar
       endTimerRef.current = setTimeout(() => {
         setShowQualityWarning(false);
         endTimerRef.current = null;
       }, 7000);
-      
+
       return () => {
         if (endTimerRef.current) {
           clearTimeout(endTimerRef.current);
@@ -109,17 +120,10 @@ export function VerticalActionBar({
     }
   };
 
-  const handleWhatsApp = () => {
-    const cleanSlug = getCleanSlug(gallerySlug);
-    const shareUrl = `${window.location.origin}/photo/${photoId}?s=${cleanSlug}`;
-    const shareText = GALLERY_MESSAGES.PHOTO_SHARE(galleryTitle, shareUrl);
-    executeShare({ title: galleryTitle, text: shareText, url: shareUrl });
-  };
-
   return (
     <div
       className="fixed top-1/2 z-[250] flex flex-col gap-3 bg-white/95 dark:bg-black/95 backdrop-blur-2xl p-3 rounded-luxury border border-black/20 dark:border-white/20 shadow-2xl transition-all duration-700"
-      style={{ 
+      style={{
         right: '112px', // Entre o botão de navegação (96px) e as miniaturas (0px)
         transform: 'translateY(-50%)',
         pointerEvents: 'auto',
@@ -131,11 +135,15 @@ export function VerticalActionBar({
         <button
           onClick={onToggleFavorite}
           className="w-12 h-12 rounded-full flex items-center justify-center transition-all group relative"
-          aria-label={isFavorited ? 'Remover dos favoritos' : 'Adicionar aos favoritos'}
+          aria-label={
+            isFavorited ? 'Remover dos favoritos' : 'Adicionar aos favoritos'
+          }
         >
           <div
             className={`w-full h-full rounded-full flex items-center justify-center transition-all ${
-              isFavorited ? 'bg-[#E67E70]' : 'bg-black/5 dark:bg-white/5 group-hover:bg-[#E67E70]'
+              isFavorited
+                ? 'bg-[#E67E70]'
+                : 'bg-black/5 dark:bg-white/5 group-hover:bg-[#E67E70]'
             }`}
           >
             <Heart
@@ -150,7 +158,9 @@ export function VerticalActionBar({
           {/* Tooltip */}
           <div className="absolute right-full mr-3 opacity-0 group-hover:opacity-100 transition-opacity pointer-events-none whitespace-nowrap">
             <div className="bg-[#F3E5AB] text-black text-[10px] font-semibold px-2 py-1 rounded shadow-xl">
-              {isFavorited ? 'Remover dos favoritos' : 'Adicionar aos favoritos'}
+              {isFavorited
+                ? 'Remover dos favoritos'
+                : 'Adicionar aos favoritos'}
             </div>
           </div>
         </button>
@@ -158,7 +168,7 @@ export function VerticalActionBar({
 
       {/* 2. WHATSAPP */}
       <button
-        onClick={handleWhatsApp}
+        onClick={handleShare}
         className="w-12 h-12 rounded-full bg-black/5 dark:bg-white/5 hover:bg-[#25D366] flex items-center justify-center transition-all group relative"
         aria-label="Compartilhar no WhatsApp"
       >
@@ -178,9 +188,17 @@ export function VerticalActionBar({
         aria-label="Copiar link"
       >
         {copied ? (
-          <Check size={20} className="text-black dark:text-[#F3E5AB] transition-colors duration-300" strokeWidth={2} />
+          <Check
+            size={20}
+            className="text-black dark:text-[#F3E5AB] transition-colors duration-300"
+            strokeWidth={2}
+          />
         ) : (
-          <LinkIcon size={20} className="text-black dark:text-white transition-colors duration-300" strokeWidth={2} />
+          <LinkIcon
+            size={20}
+            className="text-black dark:text-white transition-colors duration-300"
+            strokeWidth={2}
+          />
         )}
         {/* Tooltip */}
         <div className="absolute right-full mr-3 opacity-0 group-hover:opacity-100 transition-opacity pointer-events-none whitespace-nowrap">
@@ -195,14 +213,26 @@ export function VerticalActionBar({
         <button
           onClick={onToggleSlideshow}
           className={`w-12 h-12 rounded-full flex items-center justify-center transition-all group relative ${
-            isSlideshowActive ? 'bg-black dark:bg-[#F3E5AB]' : 'bg-black/5 dark:bg-white/5 hover:bg-black/10 dark:hover:bg-white/10'
+            isSlideshowActive
+              ? 'bg-black dark:bg-[#F3E5AB]'
+              : 'bg-black/5 dark:bg-white/5 hover:bg-black/10 dark:hover:bg-white/10'
           }`}
-          aria-label={isSlideshowActive ? 'Pausar slideshow' : 'Iniciar slideshow'}
+          aria-label={
+            isSlideshowActive ? 'Pausar slideshow' : 'Iniciar slideshow'
+          }
         >
           {isSlideshowActive ? (
-            <Pause size={20} className="text-white dark:text-black transition-colors duration-300" strokeWidth={2} />
+            <Pause
+              size={20}
+              className="text-white dark:text-black transition-colors duration-300"
+              strokeWidth={2}
+            />
           ) : (
-            <Play size={20} className="text-black dark:text-white transition-colors duration-300" strokeWidth={2} />
+            <Play
+              size={20}
+              className="text-black dark:text-white transition-colors duration-300"
+              strokeWidth={2}
+            />
           )}
           {/* Tooltip */}
           <div className="absolute right-full mr-3 opacity-0 group-hover:opacity-100 transition-opacity pointer-events-none whitespace-nowrap">
@@ -216,7 +246,7 @@ export function VerticalActionBar({
       {/* 5. DOWNLOAD */}
       <div className="relative">
         {showQualityWarning && (
-          <div 
+          <div
             className="absolute right-full mr-2 top-1/2 -translate-y-1/2 z-[10000] w-64 animate-in fade-in slide-in-from-left-4 duration-700"
             style={{ pointerEvents: 'auto' }}
             onClick={(e) => {
@@ -233,7 +263,7 @@ export function VerticalActionBar({
             }}
           >
             <div className="absolute left-full top-1/2 -translate-y-1/2 border-[8px] border-transparent border-l-[#F3E5AB] pointer-events-none" />
-            <div 
+            <div
               className="bg-[#F3E5AB] shadow-2xl rounded-luxury p-4 border border-white/20 text-black relative"
               style={{ pointerEvents: 'auto' }}
               onClick={(e) => {
@@ -316,7 +346,6 @@ export function VerticalActionBar({
           )}
         </button>
       </div>
-
     </div>
   );
 }

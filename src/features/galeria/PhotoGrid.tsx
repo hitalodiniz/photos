@@ -11,6 +11,7 @@ import {
   getDownloadUrl,
   TAMANHO_MAXIMO_FOTO_SEM_COMPACTAR,
 } from '@/core/utils/url-helper';
+import { formatMessage } from '@/core/utils/message-helper';
 import { GALLERY_MESSAGES } from '@/core/config/messages';
 import { executeShare } from '@/core/utils/share-helper';
 import { groupPhotosByWeight, estimatePhotoDownloadSize } from '@/core/utils/foto-helpers';
@@ -346,6 +347,25 @@ export default function PhotoGrid({ photos, galeria }: any) {
   const handleDownloadFavorites = () => setShowVolumeDashboard(true);
   const downloadAllAsZip = () => handleDownloadZip(photos, 'completa', false);
 
+  const handleShare = () => {
+    const url = window.location.href;
+    const title = galeria.title;
+
+    const customTemplate = galeria.photographer?.message_templates?.guest_share;
+    let shareText: string;
+
+    if (customTemplate && customTemplate.trim() !== '') {
+      shareText = formatMessage(customTemplate, galeria, url);
+    } else {
+      shareText = GALLERY_MESSAGES.GUEST_SHARE(title, url);
+    }
+
+    executeShare({
+      title: title,
+      text: shareText,
+    });
+  };
+
   return (
     <div className="relative w-full">
       <div
@@ -376,15 +396,7 @@ export default function PhotoGrid({ photos, galeria }: any) {
             externalLinks,
           }}
           tags={tagsDaGaleria}
-          handleShare={() =>
-            executeShare({
-              title: galeria.title,
-              text: GALLERY_MESSAGES.GUEST_SHARE(
-                galeria.title,
-                window.location.href,
-              )
-            })
-          }
+          handleShare={handleShare}
         />
         <ToolBarMobile
           {...{
@@ -405,15 +417,7 @@ export default function PhotoGrid({ photos, galeria }: any) {
             externalLinks,
           }}
           tags={tagsDaGaleria}
-          handleShare={() =>
-            executeShare({
-              title: galeria.title,
-              text: GALLERY_MESSAGES.GUEST_SHARE(
-                galeria.title,
-                window.location.href,
-              )
-            })
-          }
+          handleShare={handleShare}
         />
       </div>
 

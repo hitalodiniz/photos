@@ -14,6 +14,7 @@ import {
 } from 'lucide-react';
 import WhatsAppIcon from '@/components/ui/WhatsAppIcon';
 import { executeShare, getCleanSlug } from '@/core/utils/share-helper';
+import { formatMessage } from '@/core/utils/message-helper';
 import { GALLERY_MESSAGES } from '@/core/config/messages';
 import { handleDownloadPhoto } from '@/core/utils/foto-helpers';
 
@@ -45,7 +46,7 @@ export const ToolbarGalleryView = ({
   isSingleView = false, // 🎯 Nova prop
   hasShownQualityWarning = false, // 🎯 Controlado pelo Lightbox
   onQualityWarningShown, // 🎯 Callback quando o tooltip é mostrado
-}: any) => {
+  handleShare,}: any) => {
   const [showQualityWarning, setShowQualityWarning] = useState(false);
   const [copied, setCopied] = useState(false);
   const [isDownloading, setIsDownloading] = useState(false);
@@ -191,29 +192,9 @@ export const ToolbarGalleryView = ({
     setTimeout(() => setCopied(false), 2000);
   };
 
-  // 🎯 Função para compartilhamento nativo no mobile (Web Share API)
   const handleNativeShare = async () => {
-    const shareUrl = `${window.location.origin}/photo/${photoId}?s=${getCleanSlug(gallerySlug)}`;
-    const shareText = GALLERY_MESSAGES.PHOTO_SHARE(galleryTitle, shareUrl);
-
-    // Verifica se a Web Share API está disponível
-    if (navigator.share) {
-      try {
-        await navigator.share({
-          title: galleryTitle,
-          text: shareText
-        });
-      } catch (error) {
-        // Usuário cancelou ou erro no compartilhamento
-        if ((error as Error).name !== 'AbortError') {
-          console.error('Erro ao compartilhar:', error);
-          // Fallback: copia o link para a área de transferência
-          handleCopyLink();
-        }
-      }
-    } else {
-      // Fallback: se não suportar Web Share API, copia o link
-      handleCopyLink();
+    if (handleShare) {
+      handleShare();
     }
   };
 
@@ -535,14 +516,7 @@ export const ToolbarGalleryView = ({
       {/* 2. WHATSAPP */}
       <div className="relative">
         <button
-          onClick={() => {
-            const shareUrl = `${window.location.origin}/photo/${photoId}?s=${getCleanSlug(gallerySlug)}`;
-            const shareText = GALLERY_MESSAGES.PHOTO_SHARE(
-              galleryTitle,
-              shareUrl,
-            );
-            executeShare({ title: galleryTitle, text: shareText });
-          }}
+          onClick={handleShare}
           onMouseEnter={() => setActiveTooltip('whats')}
           onMouseLeave={() => setActiveTooltip(null)}
           className="flex items-center border-r border-white/10 pr-3 mx-1 shrink-0 group"

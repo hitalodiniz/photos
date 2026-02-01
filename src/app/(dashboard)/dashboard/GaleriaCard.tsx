@@ -3,6 +3,7 @@
 import {
   Calendar,
   MapPin,
+  Lock,
   User,
   Pencil,
   FolderOpen,
@@ -25,13 +26,14 @@ import {
 } from '@/core/utils/url-helper';
 import { useGoogleDriveImage } from '@/hooks/useGoogleDriveImage';
 import { GALLERY_MESSAGES } from '@/core/config/messages';
-import { executeShare } from '@/core/utils/share-helper';
+import { formatMessage } from '@/core/utils/message-helper';
 import WhatsAppIcon from '@/components/ui/WhatsAppIcon';
 import GaleriaContextMenu from '@/components/dashboard/GaleriaContextMenu';
 import { useNavigation } from '@/components/providers/NavigationProvider';
 import { Users } from 'lucide-react';
 import { usePlan } from '@/hooks/usePlan';
 import UpgradeModal from '@/components/ui/UpgradeModal';
+import { executeShare } from '@/core/utils/share-helper';
 
 interface GaleriaCardProps {
   galeria: Galeria;
@@ -89,12 +91,20 @@ export default function GaleriaCard({
   useEffect(() => {
     if (galeria && mounted) {
       const publicUrl = getPublicGalleryUrl(galeria.photographer, galeria.slug);
-      const message = GALLERY_MESSAGES.CARD_SHARE(
-        galeria.client_name,
-        galeria.title,
-        galeria.date,
-        publicUrl,
-      );
+
+      // Usa o template customizado ou o padrão
+      const customTemplate =
+        galeria.photographer?.message_templates?.card_share;
+      let message: string;
+
+      if (customTemplate && customTemplate.trim() !== '') {
+        // Se houver template customizado, formata ele
+        message = formatMessage(customTemplate, galeria, publicUrl);
+      } else {
+        // Senão, usa a mensagem padrão com os dados reais
+        message = GALLERY_MESSAGES.CARD_SHARE(galeria.title, publicUrl);
+      }
+
       setLinks({ url: publicUrl, message: message, whatsapp: '' });
     }
   }, [galeria, mounted]);

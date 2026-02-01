@@ -41,6 +41,7 @@ import { LimitUpgradeModal } from '@/components/ui/LimitUpgradeModal';
 import { useGoogleDriveImage } from '@/hooks/useGoogleDriveImage';
 import { GalleryDesignFields } from './GaleriaDesignFields';
 import { LGPDPurposeField } from '@/components/ui/LGPDPurposeField';
+import { LeadCaptureSection } from '@/components/ui/LeadCaptureSection';
 import { div } from 'framer-motion/client';
 import { PlanGuard } from '@/components/auth/PlanGuard';
 import { GaleriaDriveSection } from './GaleriaDriveSection';
@@ -118,43 +119,35 @@ export default function GaleriaFormContent({
   const setLeadsEnabled = (val: boolean) =>
     setValue('leads_enabled', val, { shouldDirty: true });
 
-  const [leadsRequireName, setLeadsRequireName] = useState(() => {
-    if (initialData)
+  const [requiredGuestFields, setRequiredGuestFields] = useState<string[]>(
+    () => {
+      if (initialData) {
+        const fields = [];
+        if (
+          initialData.leads_require_name === true ||
+          initialData.leads_require_name === 'true'
+        )
+          fields.push('name');
+        if (
+          initialData.leads_require_email === true ||
+          initialData.leads_require_email === 'true'
+        )
+          fields.push('email');
+        if (
+          initialData.leads_require_whatsapp === true ||
+          initialData.leads_require_whatsapp === 'true'
+        )
+          fields.push('whatsapp');
+        return fields.length > 0 ? fields : ['name', 'whatsapp'];
+      }
       return (
-        initialData.leads_require_name === true ||
-        initialData.leads_require_name === 'true'
+        profile?.settings?.defaults?.required_guest_fields ?? [
+          'name',
+          'whatsapp',
+        ]
       );
-    if (profile?.settings?.defaults?.required_guest_fields) {
-      return profile.settings.defaults.required_guest_fields.includes('name');
-    }
-    return true; // Padrão: Nome obrigatório se habilitado
-  });
-
-  const [leadsRequireEmail, setLeadsRequireEmail] = useState(() => {
-    if (initialData)
-      return (
-        initialData.leads_require_email === true ||
-        initialData.leads_require_email === 'true'
-      );
-    if (profile?.settings?.defaults?.required_guest_fields) {
-      return profile.settings.defaults.required_guest_fields.includes('email');
-    }
-    return false;
-  });
-
-  const [leadsRequireWhatsapp, setLeadsRequireWhatsapp] = useState(() => {
-    if (initialData)
-      return (
-        initialData.leads_require_whatsapp === true ||
-        initialData.leads_require_whatsapp === 'true'
-      );
-    if (profile?.settings?.defaults?.required_guest_fields) {
-      return profile.settings.defaults.required_guest_fields.includes(
-        'whatsapp',
-      );
-    }
-    return true; // Padrão: WhatsApp obrigatório se habilitado
-  });
+    },
+  );
 
   const [renameFilesSequential, setRenameFilesSequential] = useState(() => {
     if (initialData)
@@ -165,33 +158,12 @@ export default function GaleriaFormContent({
     return false; // Padrão: Habilitado
   });
 
-  // 🎯 Lógica para garantir pelo menos um campo obrigatório na captura de leads
-  const toggleLeadField = (field: 'name' | 'email' | 'whatsapp') => {
-    const activeFields = [
-      field === 'name' ? !leadsRequireName : leadsRequireName,
-      field === 'email' ? !leadsRequireEmail : leadsRequireEmail,
-      field === 'whatsapp' ? !leadsRequireWhatsapp : leadsRequireWhatsapp,
-    ].filter(Boolean).length;
-
-    if (activeFields === 0) return; // Não permite desativar se for o último
-
-    if (field === 'name') setLeadsRequireName(!leadsRequireName);
-    if (field === 'email') setLeadsRequireEmail(!leadsRequireEmail);
-    if (field === 'whatsapp') setLeadsRequireWhatsapp(!leadsRequireWhatsapp);
-  };
-
   // 🎯 Garantia de consistência: se leads habilitados, pelo menos um deve ser true
   useEffect(() => {
-    if (
-      leadsEnabled &&
-      !leadsRequireName &&
-      !leadsRequireEmail &&
-      !leadsRequireWhatsapp
-    ) {
-      setLeadsRequireName(true);
-      setLeadsRequireWhatsapp(true);
+    if (leadsEnabled && requiredGuestFields.length === 0) {
+      setRequiredGuestFields(['name', 'whatsapp']);
     }
-  }, [leadsEnabled, leadsRequireName, leadsRequireEmail, leadsRequireWhatsapp]);
+  }, [leadsEnabled, requiredGuestFields]);
 
   const PLAN_LIMIT = permissions.maxPhotosPerGallery; // 🎯 Dinâmico pelo plano
 
@@ -523,19 +495,19 @@ export default function GaleriaFormContent({
             type="hidden"
             name="leads_require_name"
             data-testid="leads_require_name"
-            value={String(leadsRequireName)}
+            value={String(requiredGuestFields.includes('name'))}
           />
           <input
             type="hidden"
             name="leads_require_email"
             data-testid="leads_require_email"
-            value={String(leadsRequireEmail)}
+            value={String(requiredGuestFields.includes('email'))}
           />
           <input
             type="hidden"
             name="leads_require_whatsapp"
             data-testid="leads_require_whatsapp"
-            value={String(leadsRequireWhatsapp)}
+            value={String(requiredGuestFields.includes('whatsapp'))}
           />
           <input
             type="hidden"
@@ -859,134 +831,43 @@ export default function GaleriaFormContent({
               icon={Users}
               onClickLocked={setUpsellFeature}
             >
-              <div className="flex flex-col gap-2">
-                <div className="flex flex-col items-start gap-1">
-                  <div className="flex items-center gap-1">
-                    <label className="text-[10px] font-semibold uppercase tracking-widest text-petroleum">
-                      Habilitar cadastro de visitante para visualizar a galeria
-                    </label>
-                    <button
-                      type="button"
-                      onClick={() => setLeadsEnabled(!leadsEnabled)}
-                      className={`relative h-5 w-9 rounded-full transition-colors duration-200 ${leadsEnabled ? 'bg-gold' : 'bg-slate-200'}`}
-                    >
-                      <span
-                        className={`absolute top-0.5 left-0.5 h-4 w-4 rounded-full bg-white shadow-sm transition-transform duration-200 ${leadsEnabled ? 'translate-x-4' : ''}`}
-                      />
-                    </button>
-                  </div>
-                  {!isEdit && (
-                    <p className="text-[10px] text-petroleum/60 dark:text-slate-400 italic">
-                      Aumente sua base de contatos exigindo dados básicos antes
-                      dos clientes visualizarem as fotos.
-                    </p>
-                  )}
-                </div>
-
-                {leadsEnabled && (
-                  <>
-                    <div className="w-full mt-2">
-                      <div className="space-y-1.5 animate-in fade-in slide-in-from-top-2 duration-300">
-                        <label className="text-[10px] font-semibold uppercase tracking-widest text-petroleum">
-                          Campos para captura
-                        </label>
-                        <div className="grid grid-cols-1 sm:grid-cols-3 gap-4 p-4 bg-slate-50 rounded-luxury border border-petroleum/20 animate-in fade-in slide-in-from-top-2 duration-300">
-                          <div
-                            onClick={() => toggleLeadField('name')}
-                            className="flex items-center gap-2 cursor-pointer group"
-                          >
-                            <div
-                              className={`w-4 h-4 rounded border transition-colors flex items-center justify-center ${leadsRequireName ? 'bg-gold border-gold' : 'bg-white border-petroleum/40'}`}
-                            >
-                              {leadsRequireName && (
-                                <CheckCircle2
-                                  size={10}
-                                  className="text-white"
-                                />
-                              )}
-                            </div>
-                            <span className="text-[11px] font-semibold uppercase tracking-wider text-petroleum/80 group-hover:text-petroleum">
-                              Exigir Nome
-                            </span>
-                          </div>
-
-                          <div
-                            onClick={() => toggleLeadField('email')}
-                            className="flex items-center gap-2 cursor-pointer group"
-                          >
-                            <div
-                              className={`w-4 h-4 rounded border transition-colors flex items-center justify-center ${leadsRequireEmail ? 'bg-gold border-gold' : 'bg-white border-petroleum/40'}`}
-                            >
-                              {leadsRequireEmail && (
-                                <CheckCircle2
-                                  size={10}
-                                  className="text-white"
-                                />
-                              )}
-                            </div>
-                            <span className="text-[11px] font-semibold uppercase tracking-wider text-petroleum/80 group-hover:text-petroleum">
-                              Exigir E-mail
-                            </span>
-                          </div>
-
-                          <div
-                            onClick={() => toggleLeadField('whatsapp')}
-                            className="flex items-center gap-2 cursor-pointer group"
-                          >
-                            <div
-                              className={`w-4 h-4 rounded border transition-colors flex items-center justify-center ${leadsRequireWhatsapp ? 'bg-gold border-gold' : 'bg-white border-petroleum/40'}`}
-                            >
-                              {leadsRequireWhatsapp && (
-                                <CheckCircle2
-                                  size={10}
-                                  className="text-white"
-                                />
-                              )}
-                            </div>
-                            <span className="text-[11px] font-semibold uppercase tracking-wider text-petroleum/80 group-hover:text-petroleum">
-                              Exigir WhatsApp
-                            </span>
-                          </div>
-                        </div>
-                      </div>
-                    </div>
-
-                    <div className="mt-6">
-                      <LGPDPurposeField
-                        register={register}
-                        setValue={setValue}
-                        watch={watch}
-                        fieldName="lead_purpose"
-                        initialValue={initialData?.lead_purpose}
-                        required={watch('leads_enabled')}
-                      />
-                    </div>
-                  </>
-                )}
-              </div>
+              <LeadCaptureSection
+                enabled={leadsEnabled}
+                setEnabled={setLeadsEnabled}
+                requiredFields={requiredGuestFields}
+                setRequiredFields={setRequiredGuestFields}
+                register={register}
+                setValue={setValue}
+                watch={watch}
+                purposeFieldName="lead_purpose"
+                initialPurposeValue={initialData?.lead_purpose}
+                toggleLabel="Habilitar cadastro de visitante para visualizar a galeria"
+                description="Aumente sua base de contatos exigindo dados básicos antes dos clientes visualizarem as fotos."
+                isEdit={isEdit}
+                showLayout="stacked"
+              />
             </PlanGuard>
           </fieldset>
         </FormSection>
 
         {/* SEÇÃO 4: CUSTOMIZAÇÃO VISUAL */}
-        {!['FREE', 'START'].includes(profile.plan_key) && (
-          <FormSection
-            title="Design da Galeria"
-            subtitle="Personalize a experiência visual do visitante"
-            icon={<Layout size={14} />}
-          >
-            <fieldset>
-              <GalleryDesignFields
-                showBackgroundPhoto={customization.showCoverInGrid}
-                setShowBackgroundPhoto={setCustomization.setShowCoverInGrid}
-                backgroundColor={customization.gridBgColor}
-                setBackgroundColor={setCustomization.setGridBgColor}
-                columns={customization.columns}
-                setColumns={setCustomization.setColumns}
-              />
-            </fieldset>
-          </FormSection>
-        )}
+
+        <FormSection
+          title="Design da Galeria"
+          subtitle="Personalize a experiência visual do visitante"
+          icon={<Layout size={14} />}
+        >
+          <fieldset>
+            <GalleryDesignFields
+              showBackgroundPhoto={customization.showCoverInGrid}
+              setShowBackgroundPhoto={setCustomization.setShowCoverInGrid}
+              backgroundColor={customization.gridBgColor}
+              setBackgroundColor={setCustomization.setGridBgColor}
+              columns={customization.columns}
+              setColumns={setCustomization.setColumns}
+            />
+          </fieldset>
+        </FormSection>
       </div>
 
       {/* COLUNA LATERAL (35%) */}

@@ -124,7 +124,7 @@ export default function PhotographerContent({
   const isScrolled = scrollY > 100;
 
   return (
-    <div className="relative min-h-screen bg-black font-sans overflow-x-hidden">
+    <div className="relative min-h-screen bg-white font-sans overflow-x-hidden">
       {/* HERO SECTION - O Editorial apenas provê o fundo e a lógica de altura */}
       <EditorialHero
         title={fullName}

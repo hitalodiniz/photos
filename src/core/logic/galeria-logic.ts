@@ -28,7 +28,8 @@ export const fetchGalleryBySlug = (fullSlug: string) =>
             profile_picture_url,
             phone_contact,
             instagram_link,
-            google_refresh_token
+            google_refresh_token,
+            message_templates
           )
         `,
         )
@@ -118,6 +119,7 @@ export function formatGalleryData(
         instagram_link: raw.photographer.instagram_link,
         use_subdomain: hasSubdomain,
         profile_url: profileUrl,
+        message_templates: raw.photographer.message_templates,
       }
       : undefined,
 

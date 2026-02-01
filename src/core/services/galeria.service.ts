@@ -507,7 +507,7 @@ export async function getGalerias(
     [`user-galerias-${userId}`],
     {
       revalidate: GLOBAL_CACHE_REVALIDATE,
-      tags: [`user-galerias-${userId}`],
+      tags: [`user-galleries-${userId}`, `user-galerias-${userId}`],
     },
   )(userId);
 }

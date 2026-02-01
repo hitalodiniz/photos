@@ -80,6 +80,11 @@ export default async function GaleriaBasePage({
   // ... (Restante da sua lógica de formatação, senha e Drive igual ao seu código)
   const galeriaData = formatGalleryData(galeriaRaw, username);
 
+  // Garante que os dados do fotógrafo (incluindo templates) sejam injetados
+  if (galeriaRaw.photographer) {
+    galeriaData.photographer = galeriaRaw.photographer;
+  }
+
   // 🎯 LÓGICA DE ACESSO PROTEGIDO (Servidor)
   const cookieStore = await cookies();
   const needsPassword = !galeriaData.is_public;

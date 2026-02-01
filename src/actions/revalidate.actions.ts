@@ -62,6 +62,20 @@ export async function revalidateGallery(
 }
 
 /**
+ * 🎯 REVALIDA GALERIAS DO USUÁRIO
+ * Função específica para revalidar o cache de galerias de um usuário específico
+ */
+export async function revalidateUserGalleries(userId: string) {
+  try {
+    revalidateTag(`user-galleries-${userId}`);
+    return { success: true };
+  } catch (error) {
+    console.error('Erro ao revalidar galerias do usuário:', error);
+    return { success: false };
+  }
+}
+
+/**
  * 🎯 REVALIDAÇÃO DEFINITIVA
  * Deve ser chamada sempre que o status do Google Drive mudar
  * ou após um login/onboarding bem-sucedido.

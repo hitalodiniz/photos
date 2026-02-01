@@ -165,7 +165,7 @@ export const GaleriaHero = ({
             <div className="flex flex-col md:flex-row md:items-center gap-x-3 gap-y-1.5 md:gap-x-4 md:gap-y-2 transition-all duration-1000 items-start justify-start opacity-90">
               {galeria.location && (
                 <div className="flex items-center text-white text-[10px] md:text-[14px] font-medium shrink-0 gap-1.5 drop-shadow-md">
-                  <MapPin size={14} className="text-[#F3E5AB] drop-shadow-sm" />
+                  <MapPin size={14} className="text-white drop-shadow-sm" />
                   <span>{galeria.location}</span>
                 </div>
               )}
@@ -173,7 +173,7 @@ export const GaleriaHero = ({
               <div className="hidden md:block w-[1px] h-3 bg-white/40 shrink-0" />
 
               <div className="flex items-center text-white text-[10px] md:text-[14px] font-medium shrink-0 gap-1.5 drop-shadow-md">
-                <Calendar size={14} className="text-[#F3E5AB] drop-shadow-sm" />
+                <Calendar size={14} className="text-white drop-shadow-sm" />
                 <span>
                   {new Date(galeria.date).toLocaleDateString('pt-BR', {
                     day: '2-digit',

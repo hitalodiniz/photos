@@ -121,7 +121,7 @@ export default function Navbar() {
           {/* Botão Voltar - À esquerda do ícone da câmera quando em modo formulário */}
           {isFormPage && (
             <button
-              onClick={() => router.back()}
+              onClick={() => router.push('/dashboard')}
               className="text-white/80 hover:text-gold hover:bg-white/5 rounded-luxury transition-colors shrink-0"
               aria-label="Voltar"
               title="Voltar"
