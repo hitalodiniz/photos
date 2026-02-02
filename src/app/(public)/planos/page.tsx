@@ -1,6 +1,6 @@
 // app/planos/page.tsx
 import { Metadata } from 'next';
-import PlanosContent from './PlanoProvider'; // O componente com 'use client'
+import PlanosContent from './PlanosContent'; // O componente com 'use client'
 import { getPlansByDomain } from '@/core/config/plans';
 
 // O Next resolve isso no servidor, sem loops!

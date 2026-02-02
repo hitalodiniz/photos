@@ -20,7 +20,7 @@ import {
   PERMISSIONS_BY_PLAN,
   PlanPermissions,
 } from '@/core/config/plans';
-import { Profile } from '@/core/types/Profile';
+import { usePlan } from '@/core/context/PlanContext';
 
 export default function PlanosPage() {
   const [loadingPlan, setLoadingPlan] = useState<string | null>(null);
@@ -61,9 +61,6 @@ export default function PlanosPage() {
     return feature.values?.[planIdx];
   };
 
-  // O restante do contexto usa o 'effectivePlan' para buscar as permissões
-  const permissions = PERMISSIONS_BY_PLAN[effectivePlan as PlanKey];
-
   return (
     <div
       className={`relative min-h-screen w-full flex flex-col theme-${config.theme} font-montserrat bg-luxury-bg`}
@@ -81,7 +78,7 @@ export default function PlanosPage() {
         <div className="flex flex-col items-center gap-4 mb-8 -mt-24 relative z-30">
           <div className="flex items-center gap-3 bg-white backdrop-blur px-4 py-2 rounded-luxury border border-petroleum/10 shadow-sm">
             <span
-              className={`text-[11px] font-semibold uppercase tracking-widest transition-colors ${!isAnnual ? 'text-petroleum' : 'text-petroleum/40'}`}
+              className={`text-[11px] font-semibold uppercase tracking-luxury-widest transition-colors ${!isAnnual ? 'text-petroleum' : 'text-petroleum/40'}`}
             >
               Mensal
             </span>
@@ -95,11 +92,11 @@ export default function PlanosPage() {
             </button>
             <div className="flex items-center gap-2">
               <span
-                className={`text-[11px] font-bold uppercase tracking-widest transition-colors ${isAnnual ? 'text-petroleum' : 'text-petroleum/40'}`}
+                className={`text-[11px] font-bold uppercase tracking-luxury-widest transition-colors ${isAnnual ? 'text-petroleum' : 'text-petroleum/40'}`}
               >
                 Anual
               </span>
-              <span className="bg-emerald-500 text-white text-[12px] font-semibold px-2 py-0.5 rounded-full uppercase tracking-widest shadow-sm">
+              <span className="bg-emerald-500 text-white text-[12px] font-semibold px-2 py-0.5 rounded-full uppercase tracking-luxury-widest shadow-sm">
                 Economize 20%
               </span>
             </div>
@@ -166,13 +163,13 @@ export default function PlanosPage() {
                   isHighlighted={isPro}
                 >
                   <div className="text-center mb-6">
-                    <div className="flex items-start justify-center gap-1 text-petroleum font-artistic">
+                    <div className="flex items-start justify-center gap-1 text-petroleum ">
                       <span className="text-[16px] font-semibold mt-2">R$</span>
-                      <span className="text-6xl font-semibold tracking-tighter ">
+                      <span className="text-6xl font-semibold tracking-luxury-tight ">
                         {displayPrice.toFixed(0)}
                       </span>
                     </div>
-                    <p className="text-[10px] font-semibold text-petroleum/80 tracking-[0.2em] uppercase mt-1">
+                    <p className="text-[10px] font-semibold text-petroleum/80 tracking-luxury-widest uppercase mt-1">
                       {isAnnual ? 'Equivalente / Mês' : 'Cobrança Mensal'}
                     </p>
                   </div>
@@ -190,7 +187,7 @@ export default function PlanosPage() {
                           <span className="text-[13px] font-bold leading-tight text-petroleum">
                             {ind.value}
                           </span>
-                          <span className="text-[11px] text-petroleum/70 font-medium tracking-tight leading-tight">
+                          <span className="text-[11px] text-petroleum/70 font-medium tracking-luxury-tight leading-tight">
                             {ind.label}
                           </span>
                         </div>
@@ -200,7 +197,7 @@ export default function PlanosPage() {
 
                   <button
                     onClick={() => setLoadingPlan(key)}
-                    className={`w-full h-12 flex items-center justify-center gap-3 rounded-luxury transition-all font-bold text-[11px] uppercase tracking-widest ${
+                    className={`w-full h-12 flex items-center justify-center gap-3 rounded-luxury transition-all font-bold text-[11px] uppercase tracking-luxury-widest ${
                       isPro
                         ? 'bg-petroleum text-white shadow-xl hover:bg-slate-800'
                         : 'bg-white border-2 border-petroleum/20 text-petroleum hover:border-petroleum'
@@ -223,7 +220,7 @@ export default function PlanosPage() {
 
           {/* TABLE SECTION */}
           <div className="text-center mb-6">
-            <h2 className="text-petroleum font-semibold text-[20px] md:text-[24px] uppercase tracking-widest">
+            <h2 className="text-petroleum font-semibold text-[20px] md:text-[24px] uppercase tracking-luxury-widest">
               Especificações Técnicas
             </h2>
             <div className="w-20 h-px bg-gold mx-auto opacity-60 mt-2" />
@@ -236,7 +233,7 @@ export default function PlanosPage() {
                 <thead>
                   <tr className="bg-petroleum">
                     <th className="p-4 sticky left-0 z-50 bg-petroleum border-b border-white/10">
-                      <span className="text-[11px] font-bold uppercase tracking-widest text-gold">
+                      <span className="text-[11px] font-bold uppercase tracking-luxury-widest text-gold">
                         Recurso
                       </span>
                     </th>
@@ -281,7 +278,7 @@ export default function PlanosPage() {
                               ) : (
                                 <ChevronDown size={14} />
                               )}
-                              <span className="text-[11px] font-bold uppercase tracking-widest whitespace-nowrap sticky left-10">
+                              <span className="text-[11px] font-bold uppercase tracking-luxury-widest whitespace-nowrap sticky left-10">
                                 {groupName}
                               </span>
                             </div>

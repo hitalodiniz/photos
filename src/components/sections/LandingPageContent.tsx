@@ -101,7 +101,7 @@ export default function LandingPageContent() {
         <div className="lg:col-span-4 flex flex-col justify-center">
           <div className="bg-white rounded-luxury shadow-[0_20px_50px_rgba(0,0,0,0.15)] px-4 py-6 md:px-8 md:py-6 border-t-4 border-gold relative text-center">
             {/* Título Artístico */}
-            <h2 className="text-petroleum text-[18px] md:text-[18px] font-bold mb-4 tracking-tight leading-tight italic font-artistic">
+            <h2 className="text-petroleum text-[18px] md:text-[24px] font-bold mb-4 tracking-luxury-tight leading-tight italic ">
               Bem-vindo à sua galeria
             </h2>
 
@@ -130,7 +130,7 @@ export default function LandingPageContent() {
                   suas fotos nunca saiam do seu controle.
                 </p>
 
-                <div className="flex justify-center items-center gap-2.5 text-petroleum text-[10px] font-bold uppercase tracking-widest">
+                <div className="flex justify-center items-center gap-2.5 text-petroleum text-[10px] font-bold uppercase tracking-luxury-widest">
                   <ShieldCheck size={16} />
                   <span>Ambiente 100% Seguro</span>
                 </div>

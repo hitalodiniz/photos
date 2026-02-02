@@ -102,7 +102,7 @@ export default function PhotographerAvatar({
             />
           ) : (
             <div className="z-10 w-full h-full bg-slate-800 flex items-center justify-center border border-white/10 rounded-full">
-              <span className="text-white font-semibold text-lg md:text-xl font-barlow tracking-tighter">
+              <span className="text-white font-semibold text-lg md:text-xl font-barlow tracking-luxury-tight">
                 {initialLetter}
               </span>
             </div>
@@ -118,7 +118,7 @@ export default function PhotographerAvatar({
         >
           <div className="flex flex-col items-start whitespace-nowrap">
             <p
-              className={`text-[8px] md:text-[9px] tracking-widest uppercase font-bold leading-none mb-1 transition-colors ${
+              className={`text-[8px] md:text-[9px] tracking-luxury-widest uppercase font-bold leading-none mb-1 transition-colors ${
                 position === 'bottom-lightbox'
                   ? 'text-slate-500 dark:text-[#F3E5AB]/80'
                   : 'text-[#F3E5AB]'
@@ -127,7 +127,7 @@ export default function PhotographerAvatar({
               Registrado por
             </p>
             <span
-              className={`text-[10px] md:text-[11px] font-bold tracking-tight leading-tight ${
+              className={`text-[10px] md:text-[11px] font-bold tracking-luxury-tight leading-tight ${
                 position === 'bottom-lightbox'
                   ? 'text-slate-900 dark:text-white'
                   : 'text-white'

@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useState, useRef, useCallback, useMemo } from 'react';
+import { useState, useRef, useCallback, useMemo } from 'react';
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { z } from 'zod';
@@ -315,7 +315,7 @@ export default function MessageSettingsForm({ profile }: { profile: any }) {
                   <div className="bg-petroleum px-5 h-11 flex items-center justify-between shrink-0">
                     <div className="flex items-center gap-3">
                       <MessageSquare size={16} className="text-gold" />
-                      <h3 className="text-[11px] font-semibold uppercase tracking-widest text-white">
+                      <h3 className="text-[11px] font-semibold uppercase tracking-luxury-widest text-white">
                         {MESSAGE_TITLES[key]}
                       </h3>
                     </div>
@@ -377,7 +377,7 @@ export default function MessageSettingsForm({ profile }: { profile: any }) {
               <div className="space-y-6">
                 <div className="flex flex-col gap-3">
                   <div className="flex justify-between items-end">
-                    <label className="text-[10px] font-semibold uppercase tracking-[0.2em] text-petroleum/40">
+                    <label>
                       Editor de Texto
                     </label>
                     {hasError && (
@@ -401,10 +401,10 @@ export default function MessageSettingsForm({ profile }: { profile: any }) {
                         { shouldDirty: true },
                       )
                     }
-                    className={`w-full h-64 p-5 rounded-luxury text-[13px] transition-all resize-none shadow-inner outline-none ${
+                    className={`input-luxury h-64 p-5 resize-none ${
                       hasError
                         ? 'bg-red-50 border-red-200 text-red-900 focus:ring-red-100'
-                        : 'bg-slate-50 border-petroleum/10 text-petroleum focus:ring-gold/20 focus:border-gold'
+                        : 'bg-slate-50 border-petroleum/10 text-petroleum'
                     }`}
                     placeholder="Escreva sua mensagem aqui..."
                   />
@@ -425,19 +425,18 @@ export default function MessageSettingsForm({ profile }: { profile: any }) {
                 <div className="bg-petroleum/5 p-5 rounded-luxury border border-petroleum/5">
                   <div className="flex items-center gap-2 mb-4">
                     <Tag size={12} className="text-gold" />
-                    <span className="text-[10px] font-semibold uppercase tracking-widest text-petroleum">
+                    <span className="text-[10px] font-semibold uppercase tracking-luxury-widest text-petroleum">
                       Variáveis de Inserção
                     </span>
                   </div>
                   <div className="flex flex-wrap gap-2">
                     {VARIAVEIS_MENSAGEM.galeria.map((v) => (
                       <button
-                        key={v}
-                        type="button"
-                        onClick={() => insertVariable(v)}
-                        title={VARIABLE_DESCRIPTIONS[v]}
-                        className="px-3 py-1.5 bg-white border border-petroleum/10 rounded-full text-[9px] font-semibold text-petroleum hover:bg-gold hover:text-black transition-all shadow-sm"
-                      >
+                    type="button"
+                    onClick={() => insertVariable(v)}
+                    title={VARIABLE_DESCRIPTIONS[v]}
+                    className="btn-luxury-base bg-white"
+                  >
                         • {v.replace('galeria_', '').replace('_', ' ')}
                       </button>
                     ))}
@@ -447,7 +446,7 @@ export default function MessageSettingsForm({ profile }: { profile: any }) {
                         type="button"
                         onClick={() => insertVariable(v)}
                         title={VARIABLE_DESCRIPTIONS[v]}
-                        className="px-3 py-1.5 bg-petroleum/10 border border-petroleum/10 rounded-full text-[9px] font-semibold text-petroleum hover:bg-gold hover:text-black transition-all shadow-sm"
+                        className="btn-luxury-base bg-petroleum/10"
                       >
                         👤 {v.replace('profissional_', '').replace('_', ' ')}
                       </button>
@@ -471,7 +470,7 @@ export default function MessageSettingsForm({ profile }: { profile: any }) {
                       }
                       setEditingMessageKey(null);
                     }}
-                    className="w-60 bg-petroleum text-white h-12 text-[10px] font-semibold uppercase tracking-widest hover:bg-slate-800 transition-all rounded-luxury shadow-lg active:scale-95"
+                    className="btn-luxury-primary w-60"
                   >
                     Confirmar Edição
                   </button>
@@ -479,9 +478,9 @@ export default function MessageSettingsForm({ profile }: { profile: any }) {
               </div>
 
               <div className="lg:sticky lg:top-0 space-y-4">
-                <span className="text-[10px] font-semibold uppercase tracking-[0.2em] text-petroleum/40">
+                <label>
                   Visualização
-                </span>
+                </label>
                 <WhatsAppPreview
                   text={
                     watch(`message_templates.${editingMessageKey as any}`) ||

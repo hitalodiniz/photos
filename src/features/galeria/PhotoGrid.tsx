@@ -14,7 +14,10 @@ import {
 import { formatMessage } from '@/core/utils/message-helper';
 import { GALLERY_MESSAGES } from '@/core/config/messages';
 import { executeShare } from '@/core/utils/share-helper';
-import { groupPhotosByWeight, estimatePhotoDownloadSize } from '@/core/utils/foto-helpers';
+import {
+  groupPhotosByWeight,
+  estimatePhotoDownloadSize,
+} from '@/core/utils/foto-helpers';
 import { DownloadCenterModal } from './DownloadCenterModal';
 import { ToolBarMobile } from './ToolBarMobile';
 import { V } from 'node_modules/vitest/dist/chunks/reporters.d.Rsi0PyxX';
@@ -67,7 +70,8 @@ export default function PhotoGrid({ photos, galeria }: any) {
       photos.reduce(
         (acc: number, p: any) => acc + estimatePhotoDownloadSize(p),
         0,
-      ) / (1024 * 1024)
+      ) /
+      (1024 * 1024)
     );
   }, [photos]);
 
@@ -169,7 +173,9 @@ export default function PhotoGrid({ photos, galeria }: any) {
     };
   }, []);
 
-  const parseLinks = (jsonString: string | null | undefined): { url: string; label: string }[] => {
+  const parseLinks = (
+    jsonString: string | null | undefined,
+  ): { url: string; label: string }[] => {
     if (!jsonString) return [];
     try {
       const parsed = JSON.parse(jsonString);
@@ -179,12 +185,12 @@ export default function PhotoGrid({ photos, galeria }: any) {
           if (typeof item === 'object' && item !== null) {
             return {
               url: item.url || '',
-              label: item.label || `Link ${index + 1}`
+              label: item.label || `Link ${index + 1}`,
             };
           }
           return {
             url: String(item),
-            label: `Link ${index + 1}`
+            label: `Link ${index + 1}`,
           };
         });
       }
@@ -194,7 +200,10 @@ export default function PhotoGrid({ photos, galeria }: any) {
     }
   };
 
-  const externalLinks = useMemo(() => parseLinks(galeria?.zip_url_full), [galeria?.zip_url_full]);
+  const externalLinks = useMemo(
+    () => parseLinks(galeria?.zip_url_full),
+    [galeria?.zip_url_full],
+  );
 
   // --- 6. HANDLERS ---
   const toggleFavoriteFromGrid = (id: string) => {
@@ -299,9 +308,11 @@ export default function PhotoGrid({ photos, galeria }: any) {
               const globalPhotoNumber =
                 firstPhotoGlobalIndex + i + indexInBatch + 1;
 
-              const finalFileName = (galeria.rename_files_sequential === true || galeria.rename_files_sequential === 'true')
-                ? `foto-${globalPhotoNumber}.jpg`
-                : (photo.name || `foto-${globalPhotoNumber}.jpg`);
+              const finalFileName =
+                galeria.rename_files_sequential === true ||
+                galeria.rename_files_sequential === 'true'
+                  ? `foto-${globalPhotoNumber}.jpg`
+                  : photo.name || `foto-${globalPhotoNumber}.jpg`;
 
               zip.file(finalFileName, blob, { binary: true });
             } catch (e) {
@@ -468,7 +479,7 @@ export default function PhotoGrid({ photos, galeria }: any) {
               <Download size={18} />
             )}
             <div className="flex flex-col items-start leading-tight text-left">
-              <span className="text-[11px] font-bold uppercase tracking-tight">
+              <span className="text-[11px] font-bold uppercase tracking-luxury-tight">
                 Baixar Favoritas
               </span>
               <span className="text-[9px] font-medium opacity-70 italic">

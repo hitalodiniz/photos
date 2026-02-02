@@ -15,7 +15,7 @@ export const LeadCaptureFields = ({
   onChange,
   title = 'Campos para captura',
   className = 'grid grid-cols-1 sm:grid-cols-3 gap-4 p-4',
-  labelClassName = 'text-[10px] font-semibold uppercase tracking-widest text-petroleum',
+  labelClassName = 'text-[10px] font-semibold uppercase tracking-luxury-widest text-petroleum',
 }: LeadCaptureFieldsProps) => {
   const fields = [
     { id: 'name', label: 'Nome' },
@@ -60,13 +60,22 @@ export const LeadCaptureFields = ({
                 }`}
               >
                 {isRequired && (
-                  <CheckCircle2 size={10} className="text-white animate-in zoom-in-50 duration-300" />
+                  <CheckCircle2
+                    size={10}
+                    className="text-white animate-in zoom-in-50 duration-300"
+                  />
                 )}
               </div>
-              <span className={`text-[11px] font-semibold uppercase tracking-wider transition-colors duration-300 ${
-                isRequired ? 'text-petroleum' : 'text-petroleum/60 group-hover:text-petroleum/80'
-              }`}>
-                {field.id === 'whatsapp' ? 'Exigir WhatsApp' : `Exigir ${field.label}`}
+              <span
+                className={`text-[11px] font-semibold uppercase tracking-wider transition-colors duration-300 ${
+                  isRequired
+                    ? 'text-petroleum'
+                    : 'text-petroleum/60 group-hover:text-petroleum/80'
+                }`}
+              >
+                {field.id === 'whatsapp'
+                  ? 'Exigir WhatsApp'
+                  : `Exigir ${field.label}`}
               </span>
             </div>
           );

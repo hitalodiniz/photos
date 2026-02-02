@@ -62,7 +62,7 @@ export default function PrivacidadePage() {
                 <div className="text-gold shrink-0 drop-shadow-[0_0_8px_rgba(243,229,171,0.4)]">
                   {item.icon}
                 </div>
-                <h3 className="text-[12px] font-bold uppercase tracking-[0.15em] text-white leading-none">
+                <h3 className="text-[12px] font-bold uppercase tracking-luxury-widest text-white leading-none">
                   {item.title}
                 </h3>
                 {item.isHighlight && (
@@ -89,7 +89,7 @@ export default function PrivacidadePage() {
         <div className="flex justify-center">
           <div className="flex items-center gap-3 bg-white/5 border border-white/10 px-6 py-3 rounded-full backdrop-blur-xl">
             <ShieldCheck size={16} className="text-gold" />
-            <span className="text-[10px] font-bold uppercase tracking-[0.2em] text-white/60">
+            <span className="text-[10px] font-bold uppercase tracking-luxury-widest text-white/60">
               Protocolo atualizado em janeiro de 2026
             </span>
           </div>

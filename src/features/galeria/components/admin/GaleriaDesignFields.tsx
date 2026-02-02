@@ -72,7 +72,7 @@ export const GalleryDesignFields: React.FC<GalleryDesignFieldsProps> = ({
       >
         <div className="flex items-center gap-2 border-r border-petroleum/10 pr-2.5 shrink-0 h-8">
           <div className="flex items-center gap-1 shrink-0">
-            <label className="text-[10px] font-bold uppercase tracking-widest text-petroleum flex items-center gap-1">
+            <label className="text-[10px] font-bold uppercase tracking-luxury-widest text-petroleum flex items-center gap-1">
               <ImageIcon size={11} className="text-gold" /> Foto de fundo
             </label>
             <div className="group relative flex items-center">
@@ -114,7 +114,7 @@ export const GalleryDesignFields: React.FC<GalleryDesignFieldsProps> = ({
         <div className="flex items-center gap-2 border-r border-petroleum/10 shrink-0 h-8 pr-2.5">
           <div className="flex items-center gap-1 shrink-0">
             <Palette size={12} className="text-gold" />
-            <label className="text-[10px] font-bold uppercase tracking-widest text-petroleum">
+            <label className="text-[10px] font-bold uppercase tracking-luxury-widest text-petroleum">
               Cor de fundo
             </label>
             <div className="group relative flex items-center">
@@ -174,7 +174,7 @@ export const GalleryDesignFields: React.FC<GalleryDesignFieldsProps> = ({
       <div className="flex items-center gap-2 shrink-0 h-8">
         <div className="flex items-center gap-1 shrink-0">
           <Layout size={12} className="text-gold" />
-          <label className="text-[10px] font-bold uppercase tracking-widest text-petroleum">
+          <label className="text-[10px] font-bold uppercase tracking-luxury-widest text-petroleum">
             Grid
           </label>
           <div className="group relative flex items-center">

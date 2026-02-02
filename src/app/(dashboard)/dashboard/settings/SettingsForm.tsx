@@ -36,7 +36,7 @@ const FormSection = ({
   <div className="bg-white rounded-luxury border border-petroleum/40 p-4 md:p-6 space-y-4">
     <div className="flex items-center gap-2 pb-3 border-b border-petroleum/40">
       {icon && <div className="text-petroleum">{icon}</div>}
-      <h3 className="text-xs font-bold uppercase tracking-widest text-petroleum ">
+      <h3 className="text-xs font-bold uppercase tracking-luxury-widest text-petroleum ">
         {title}
       </h3>
     </div>
@@ -147,7 +147,7 @@ export default function SettingsForm({ profile }: { profile: any }) {
                   <div className="flex items-center gap-4">
                     <div className="space-y-0.5">
                       <label
-                        className="text-[11px] font-bold uppercase tracking-widest text-petroleum mb-0 cursor-pointer"
+                        className="text-[11px] font-bold uppercase tracking-luxury-widest text-petroleum mb-0 cursor-pointer"
                         onClick={() =>
                           setValue(
                             'settings.display.show_contract_type',
@@ -179,7 +179,7 @@ export default function SettingsForm({ profile }: { profile: any }) {
                     </button>
                   </div>
                   <div className="flex items-center gap-4">
-                    <label className="text-[11px] font-semibold uppercase tracking-widest text-petroleum ">
+                    <label className="text-[11px] font-semibold uppercase tracking-luxury-widest text-petroleum ">
                       Exibir galeria no meu perfil público
                     </label>
                     <button

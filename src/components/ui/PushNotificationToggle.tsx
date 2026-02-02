@@ -50,7 +50,7 @@ export function PushNotificationSettings() {
       <button
         onClick={handleEnablePush}
         disabled={isPending}
-        className="flex items-center gap-2 px-4 py-2 bg-blue-600 text-white rounded-md disabled:opacity-50"
+        className="btn-luxury-primary"
       >
         {isPending ? 'Processando...' : '🔔 Ativar Notificações no Celular'}
       </button>

@@ -236,7 +236,7 @@ export default function OnboardingForm({
                     <Sparkles size={14} />
                   </div>
                   <div>
-                    <p className="text-[10px] font-bold uppercase tracking-widest text-petroleum">
+                    <p className="text-[10px] font-bold uppercase tracking-luxury-widest text-petroleum">
                       Período de Degustação Ativo
                     </p>
                     <p className="text-[9px] text-petroleum/60 uppercase">
@@ -244,7 +244,7 @@ export default function OnboardingForm({
                     </p>
                   </div>
                 </div>
-                <button className="text-[9px] font-bold text-gold underline tracking-widest uppercase">
+                <button className="text-[9px] font-bold text-gold underline tracking-luxury-widest uppercase">
                   Assinar Agora
                 </button>
               </div>
@@ -313,7 +313,7 @@ export default function OnboardingForm({
                       <button
                         type="button"
                         onClick={() => fileInputRef.current?.click()}
-                        className="absolute bottom-0 right-0 bg-white border border-slate-200 p-1.5 rounded-full shadow-lg text-petroleum z-10 hover:bg-champagne transition-colors"
+                        className="btn-luxury-base absolute bottom-0 right-0 p-1.5"
                       >
                         <Pencil size={10} />
                       </button>
@@ -463,10 +463,10 @@ export default function OnboardingForm({
                       }}
                     />
                     <button
-                      type="button"
-                      onClick={() => bgInputRef.current?.click()}
-                      className="w-full bg-slate-50 border border-petroleum/40 border-dashed rounded-luxury px-4 h-11 flex items-center justify-between hover:bg-white transition-colors group"
-                    >
+                    type="button"
+                    onClick={() => bgInputRef.current?.click()}
+                    className="btn-luxury-base w-full bg-slate-50 border-dashed justify-between"
+                  >
                       <div className="flex flex-col items-start min-w-0">
                         <span className="text-editorial-label text-petroleum truncate w-full">
                           {bgFile ? bgFile.name : 'Alterar Imagem de Fundo'}
@@ -654,7 +654,7 @@ export default function OnboardingForm({
               <a
                 href={`/${username}`}
                 target="_blank"
-                className="flex-1 h-10 flex items-center justify-center gap-2 bg-champagne text-petroleum rounded-luxury font-semibold text-[10px] uppercase tracking-luxury hover:bg-white transition-all shadow-xl active:scale-[0.98]"
+                className="btn-luxury-primary flex-1"
               >
                 <Sparkles size={14} /> Ver Perfil Público
               </a>

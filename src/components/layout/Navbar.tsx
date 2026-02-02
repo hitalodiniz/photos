@@ -140,7 +140,7 @@ export default function Navbar() {
               strokeWidth={1.5}
             />
 
-            <span className="font-artistic text-lg md:text-[18px] font-semibold tracking-tight text-white italic">
+            <span className=" text-lg md:text-[18px] font-semibold tracking-luxury-tight text-white italic">
               Espaço das <span className="text-champagne">Galerias</span>
             </span>
           </Link>
@@ -154,7 +154,7 @@ export default function Navbar() {
                   <div key={index} className="flex items-center gap-1">
                     <span className="text-white/20 text-sm">/</span>
                     {isLast ? (
-                      <span className="text-sm md:text-[18px] ml-1 text-white font-semibold tracking-tight italic">
+                      <span className="text-sm md:text-[18px] ml-1 text-white font-semibold tracking-luxury-tight italic">
                         {item.label}
                       </span>
                     ) : item.href ? (

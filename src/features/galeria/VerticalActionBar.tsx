@@ -134,7 +134,7 @@ export function VerticalActionBar({
       {showClose && (
         <button
           onClick={onToggleFavorite}
-          className="w-12 h-12 rounded-full flex items-center justify-center transition-all group relative"
+          className="btn-luxury-base w-12 h-12 rounded-full"
           aria-label={
             isFavorited ? 'Remover dos favoritos' : 'Adicionar aos favoritos'
           }
@@ -169,7 +169,7 @@ export function VerticalActionBar({
       {/* 2. WHATSAPP */}
       <button
         onClick={handleShare}
-        className="w-12 h-12 rounded-full bg-black/5 dark:bg-white/5 hover:bg-[#25D366] flex items-center justify-center transition-all group relative"
+        className="btn-luxury-base w-12 h-12 rounded-full bg-black/5 dark:bg-white/5 hover:bg-[#25D366]"
         aria-label="Compartilhar no WhatsApp"
       >
         <WhatsAppIcon className="text-black dark:text-white w-5 h-5 transition-colors duration-300" />
@@ -184,7 +184,7 @@ export function VerticalActionBar({
       {/* 3. COPIAR LINK */}
       <button
         onClick={handleCopyLink}
-        className="w-12 h-12 rounded-full bg-black/5 dark:bg-white/5 hover:bg-black/10 dark:hover:bg-white/10 flex items-center justify-center transition-all group relative"
+        className="btn-luxury-base w-12 h-12 rounded-full bg-black/5 dark:bg-white/5 hover:bg-black/10 dark:hover:bg-white/10"
         aria-label="Copiar link"
       >
         {copied ? (
@@ -212,7 +212,7 @@ export function VerticalActionBar({
       {showClose && (
         <button
           onClick={onToggleSlideshow}
-          className={`w-12 h-12 rounded-full flex items-center justify-center transition-all group relative ${
+          className={`btn-luxury-base w-12 h-12 rounded-full ${
             isSlideshowActive
               ? 'bg-black dark:bg-[#F3E5AB]'
               : 'bg-black/5 dark:bg-white/5 hover:bg-black/10 dark:hover:bg-white/10'
@@ -272,7 +272,7 @@ export function VerticalActionBar({
               }}
             >
               <div className="flex justify-between items-center mb-1">
-                <span className="font-bold text-[11px] uppercase tracking-tighter">
+                <span className="font-bold text-[11px] uppercase tracking-luxury-tight">
                   Alta Resolução Disponível
                 </span>
                 <button

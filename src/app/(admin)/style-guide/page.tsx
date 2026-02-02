@@ -88,15 +88,16 @@ export default function StyleGuidePage() {
       {/* HEADER */}
       <header className="flex justify-between items-end border-b border-slate-200 pb-6">
         <div>
-          <h1 className="text-3xl font-semibold text-slate-900 tracking-tight">
+          <h1 className="text-3xl font-semibold text-slate-900 tracking-luxury-tight">
             Style Guide
           </h1>
           <p className="text-slate-500 mt-2 font-medium">
-            Guia Adaptativo: Componentes que se ajustam automaticamente ao tema do sistema (Light/Dark).
+            Guia Adaptativo: Componentes que se ajustam automaticamente ao tema
+            do sistema (Light/Dark).
           </p>
         </div>
         <div className="text-right">
-          <span className="text-[10px] font-semibold text-gold uppercase tracking-widest">
+          <span className="text-[10px] font-semibold text-gold uppercase tracking-luxury-widest">
             Versão 4.0 (Adaptive Edition)
           </span>
         </div>
@@ -106,7 +107,7 @@ export default function StyleGuidePage() {
       <section className="space-y-4">
         <div className="flex items-center gap-2">
           <Terminal size={16} className="text-gold" strokeWidth={2} />
-          <h2 className="text-xs font-semibold uppercase tracking-widest text-slate-900">
+          <h2 className="text-xs font-semibold uppercase tracking-luxury-widest text-slate-900">
             IA Prompt Helper (Full Guidelines)
           </h2>
         </div>
@@ -114,7 +115,7 @@ export default function StyleGuidePage() {
           <div className="absolute top-4 right-4 z-10">
             <button
               onClick={copyToClipboard}
-              className="flex items-center gap-2 px-3 py-1.5 bg-slate-900 text-champagne rounded-lg text-[10px] font-semibold uppercase tracking-widest hover:bg-black transition-all"
+              className="flex items-center gap-2 px-3 py-1.5 bg-slate-900 text-champagne rounded-lg text-[10px] font-semibold uppercase tracking-luxury-widest hover:bg-black transition-all"
             >
               {copied ? <Check size={12} /> : <Copy size={12} />}
               {copied ? 'Copiado!' : 'Copiar Diretrizes'}
@@ -130,21 +131,20 @@ export default function StyleGuidePage() {
 
       {/* 1. TEMA ADAPTATIVO - COMPONENTES BASE */}
       <section className="space-y-4">
-        <h2 className="text-xs font-semibold uppercase tracking-widest text-gold">
+        <h2 className="text-xs font-semibold uppercase tracking-luxury-widest text-gold">
           1. Componentes Adaptativos (Light/Dark Auto)
         </h2>
-        
+
         {/* Exemplo: Card Adaptativo */}
         <div className="space-y-3">
-          <p className="text-editorial-label text-white/40">
-            Card Adaptativo
-          </p>
+          <p className="text-editorial-label text-white/40">Card Adaptativo</p>
           <div className="bg-white dark:bg-slate-950/50 p-6 rounded-luxury border border-slate-200 dark:border-white/10 shadow-sm transition-colors duration-300">
             <h3 className="text-editorial-ink dark:text-gold text-lg font-bold mb-2 transition-colors duration-300 italic">
               Título Adaptativo
             </h3>
             <p className="text-editorial-gray dark:text-white/60 text-sm transition-colors duration-300 font-medium">
-              Este card se adapta automaticamente ao tema do sistema operacional.
+              Este card se adapta automaticamente ao tema do sistema
+              operacional.
             </p>
           </div>
         </div>
@@ -171,9 +171,7 @@ export default function StyleGuidePage() {
 
         {/* Exemplo: Input Adaptativo */}
         <div className="space-y-3">
-          <p className="text-editorial-label text-white/40">
-            Input Adaptativo
-          </p>
+          <p className="text-editorial-label text-white/40">Input Adaptativo</p>
           <div className="max-w-xs space-y-1.5">
             <label className="text-editorial-label text-petroleum dark:text-gold flex items-center gap-2 transition-colors duration-300">
               <User size={12} strokeWidth={2} /> Campo de Texto
@@ -189,7 +187,7 @@ export default function StyleGuidePage() {
 
       {/* 2. COMPARAÇÃO LADO A LADO */}
       <section className="space-y-4">
-        <h2 className="text-xs font-semibold uppercase tracking-widest text-gold">
+        <h2 className="text-xs font-semibold uppercase tracking-luxury-widest text-gold">
           2. Comparação: Light vs Dark
         </h2>
         <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
@@ -197,7 +195,7 @@ export default function StyleGuidePage() {
           <div className="bg-white p-6 rounded-2xl border border-slate-200 shadow-sm">
             <div className="flex items-center gap-2 mb-4">
               <div className="w-3 h-3 rounded-full bg-petroleum" />
-              <h3 className="text-xs font-semibold uppercase tracking-widest text-petroleum">
+              <h3 className="text-xs font-semibold uppercase tracking-luxury-widest text-petroleum">
                 Tema Claro (Light)
               </h3>
             </div>
@@ -206,7 +204,7 @@ export default function StyleGuidePage() {
                 <p className="text-petroleum text-sm font-semibold">Título</p>
                 <p className="text-black/70 text-xs mt-1">Texto secundário</p>
               </div>
-              <button className="w-full h-10 bg-petroleum text-white rounded-lg text-xs font-semibold uppercase tracking-widest">
+              <button className="w-full h-10 bg-petroleum text-white rounded-lg text-xs font-semibold uppercase tracking-luxury-widest">
                 Botão
               </button>
             </div>
@@ -216,7 +214,7 @@ export default function StyleGuidePage() {
           <div className="bg-petroleum p-6 rounded-2xl border border-white/10 shadow-2xl">
             <div className="flex items-center gap-2 mb-4">
               <div className="w-3 h-3 rounded-full bg-[#F3E5AB]" />
-              <h3 className="text-xs font-semibold uppercase tracking-widest text-[#F3E5AB]">
+              <h3 className="text-xs font-semibold uppercase tracking-luxury-widest text-[#F3E5AB]">
                 Tema Escuro (Dark)
               </h3>
             </div>
@@ -225,7 +223,7 @@ export default function StyleGuidePage() {
                 <p className="text-[#F3E5AB] text-sm font-semibold">Título</p>
                 <p className="text-white/80 text-xs mt-1">Texto secundário</p>
               </div>
-              <button className="w-full h-10 bg-[#F3E5AB] text-black rounded-lg text-xs font-semibold uppercase tracking-widest">
+              <button className="w-full h-10 bg-[#F3E5AB] text-black rounded-lg text-xs font-semibold uppercase tracking-luxury-widest">
                 Botão
               </button>
             </div>
@@ -235,17 +233,20 @@ export default function StyleGuidePage() {
 
       {/* 3. COMPONENTES ESPECÍFICOS DO LIGHTBOX */}
       <section className="space-y-4">
-        <h2 className="text-xs font-semibold uppercase tracking-widest text-gold">
+        <h2 className="text-xs font-semibold uppercase tracking-luxury-widest text-gold">
           3. Componentes Lightbox Adaptativos
         </h2>
         <div className="bg-white dark:bg-petroleum p-8 rounded-2xl border border-slate-200 dark:border-white/10 shadow-sm transition-colors duration-300 space-y-6">
           {/* Título Adaptativo */}
           <div className="space-y-2">
-            <p className="text-[10px] text-slate-400 dark:text-white/40 font-semibold uppercase tracking-widest">
+            <p className="text-[10px] text-slate-400 dark:text-white/40 font-semibold uppercase tracking-luxury-widest">
               Título (GaleriaHeader)
             </p>
             <div className="flex items-start gap-3">
-              <Camera className="text-petroleum dark:text-[#F3E5AB] w-6 h-6 transition-colors duration-300" strokeWidth={1.5} />
+              <Camera
+                className="text-petroleum dark:text-[#F3E5AB] w-6 h-6 transition-colors duration-300"
+                strokeWidth={1.5}
+              />
               <div>
                 <h1 className="text-black dark:text-white text-xl font-semibold transition-colors duration-300">
                   Tour de France
@@ -257,13 +258,18 @@ export default function StyleGuidePage() {
 
           {/* Contador Adaptativo */}
           <div className="space-y-2">
-            <p className="text-[10px] text-slate-400 dark:text-white/40 font-semibold uppercase tracking-widest">
+            <p className="text-[10px] text-slate-400 dark:text-white/40 font-semibold uppercase tracking-luxury-widest">
               Contador de Fotos
             </p>
             <div className="bg-white/90 dark:bg-black/90 backdrop-blur-md px-3 py-1.5 rounded-luxury border border-black/10 dark:border-white/20 shadow-2xl flex items-center gap-3 transition-colors duration-300">
-              <ImageIcon size={13} className="text-petroleum dark:text-[#F3E5AB] transition-colors duration-300" />
+              <ImageIcon
+                size={13}
+                className="text-petroleum dark:text-[#F3E5AB] transition-colors duration-300"
+              />
               <p className="text-[11px] font-medium text-black dark:text-white transition-colors duration-300">
-                Foto <span className="text-petroleum dark:text-[#F3E5AB]">10</span> de 153
+                Foto{' '}
+                <span className="text-petroleum dark:text-[#F3E5AB]">10</span>{' '}
+                de 153
               </p>
               <div className="h-3 w-[1px] bg-black/10 dark:bg-white/20" />
               <p className="text-black/60 dark:text-[#F3E5AB] text-[11px] font-medium transition-colors duration-300">
@@ -274,7 +280,7 @@ export default function StyleGuidePage() {
 
           {/* Botões de Navegação Adaptativos */}
           <div className="space-y-2">
-            <p className="text-[10px] text-slate-400 dark:text-white/40 font-semibold uppercase tracking-widest">
+            <p className="text-[10px] text-slate-400 dark:text-white/40 font-semibold uppercase tracking-luxury-widest">
               Botões de Navegação
             </p>
             <div className="flex gap-4">
@@ -291,20 +297,20 @@ export default function StyleGuidePage() {
 
       {/* 4. INTERAÇÕES PREMIUM (Dark Theme - Modais) */}
       <section className="space-y-4">
-        <h2 className="text-xs font-semibold uppercase tracking-widest text-gold">
+        <h2 className="text-xs font-semibold uppercase tracking-luxury-widest text-gold">
           4. Interações Premium (Dark Theme - Modais)
         </h2>
         <div className="bg-petroleum p-10 rounded-[2rem] border border-white/10 shadow-2xl space-y-8">
           <div className="bg-champagne/10 py-3 flex items-center justify-center gap-3 border border-champagne/20 rounded-lg shrink-0">
             <Wifi size={14} className="text-champagne" strokeWidth={2.5} />
-            <span className="text-[10px] font-bold uppercase tracking-widest text-champagne">
+            <span className="text-[10px] font-bold uppercase tracking-luxury-widest text-champagne">
               Visualização de Alta Performance
             </span>
           </div>
 
           <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
             <div className="space-y-3">
-              <p className="text-[10px] text-white/40 font-bold uppercase tracking-widest text-center md:text-left">
+              <p className="text-[10px] text-white/40 font-bold uppercase tracking-luxury-widest text-center md:text-left">
                 Card de Item (Ex: Pacote)
               </p>
               <div className="w-full flex items-center gap-5 p-5 rounded-xl border border-champagne/30 bg-white/10 shadow-[0_0_20px_rgba(243,229,171,0.1)]">
@@ -315,7 +321,7 @@ export default function StyleGuidePage() {
                   <p className="text-[15px] font-bold text-white uppercase">
                     Pacote 01
                   </p>
-                  <p className="text-xs font-bold text-champagne uppercase italic tracking-widest">
+                  <p className="text-xs font-bold text-champagne uppercase italic tracking-luxury-widest">
                     168 MB • Otimizadas
                   </p>
                 </div>
@@ -324,14 +330,14 @@ export default function StyleGuidePage() {
             </div>
 
             <div className="space-y-4">
-              <p className="text-[10px] text-white/40 font-bold uppercase tracking-widest text-center md:text-left">
+              <p className="text-[10px] text-white/40 font-bold uppercase tracking-luxury-widest text-center md:text-left">
                 Ação de Conversão/Upgrade
               </p>
-              <button className="w-full h-12 bg-champagne hover:bg-white text-black font-bold uppercase text-xs tracking-widest rounded-xl shadow-[0_0_15px_rgba(243,229,171,0.4)] transition-all flex items-center justify-center gap-2">
+              <button className="w-full h-12 bg-champagne hover:bg-white text-black font-bold uppercase text-xs tracking-luxury-widest rounded-xl shadow-[0_0_15px_rgba(243,229,171,0.4)] transition-all flex items-center justify-center gap-2">
                 Aumentar Limite <ArrowRight size={16} />
               </button>
               <div className="flex flex-col items-center gap-1 opacity-60">
-                <p className="text-[9px] text-white uppercase font-bold tracking-widest">
+                <p className="text-[9px] text-white uppercase font-bold tracking-luxury-widest">
                   Toque para saber mais
                 </p>
                 <div className="h-1 w-8 bg-champagne rounded-full" />

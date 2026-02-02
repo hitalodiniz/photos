@@ -48,7 +48,7 @@ export default function EditorialCard({
               })
             : icon}
         </div>
-        <h3 className="text-[14px] font-semibold uppercase tracking-[0.2em] text-white">
+        <h3 className="text-[14px] font-semibold uppercase tracking-luxury-widest text-white">
           {title}
         </h3>
       </div>

@@ -119,7 +119,7 @@ export default function UserMenu({ session, avatarUrl }: UserMenuProps) {
       <div className="relative" ref={menuRef}>
         <button
           onClick={() => setIsOpen(!isOpen)}
-          className={`relative p-0.5 rounded-full transition-all focus:outline-none ring-offset-2 ring-offset-white ${isOpen ? 'ring-2 ring-gold' : 'hover:ring-2 hover:ring-gold/30'} active:scale-95 disabled:opacity-50`}
+          className={`btn-luxury-base relative p-0.5 rounded-full ${isOpen ? 'ring-2 ring-gold' : 'hover:ring-2 hover:ring-gold/30'}`}
           disabled={isLoggingOut || isNavigating}
           aria-expanded={isOpen}
           aria-haspopup="true"
@@ -136,7 +136,7 @@ export default function UserMenu({ session, avatarUrl }: UserMenuProps) {
                 </div>
                 <div className="absolute bottom-0 right-0 w-6 h-6 bg-green-500 border-4 border-white rounded-full shadow-sm" />
               </div>
-              <h3 className="text-base font-bold text-petroleum truncate w-full tracking-tight">
+              <h3 className="text-base font-bold text-petroleum truncate w-full tracking-luxury-tight">
                 {fullName}
               </h3>
               <p className="text-[11px] text-editorial-gray truncate w-full font-bold tracking-luxury mt-1 uppercase">

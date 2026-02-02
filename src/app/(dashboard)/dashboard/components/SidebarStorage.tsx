@@ -50,7 +50,7 @@ export default function SidebarStorage({
               onClick={() => (window.location.href = '/dashboard/planos')}
               className="w-full mt-2 py-2 px-3 bg-red-500/10 hover:bg-red-500/20 border border-red-500/50 rounded-luxury flex items-center justify-between group transition-all animate-pulse-slow"
             >
-              <span className="text-[9px] font-black text-red-400 uppercase tracking-widest">
+              <span className="text-[9px] font-black text-red-400 uppercase tracking-luxury-widest">
                 Limite Atingido
               </span>
               <ArrowUpCircle

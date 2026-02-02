@@ -5,7 +5,11 @@ import { createGaleria, updateGaleria } from '@/core/services/galeria.service';
 import { FormPageBase } from '@/components/ui';
 import GaleriaFormContent from '@/features/galeria/components/admin/GaleriaFormContent';
 import BaseModal from '@/components/ui/BaseModal';
-import { getPublicGalleryUrl, copyToClipboard, getLuxuryMessageData } from '@/core/utils/url-helper';
+import {
+  getPublicGalleryUrl,
+  copyToClipboard,
+  getLuxuryMessageData,
+} from '@/core/utils/url-helper';
 import { executeShare } from '@/core/utils/share-helper';
 import WhatsAppIcon from '@/components/ui/WhatsAppIcon';
 
@@ -39,7 +43,7 @@ export default function GaleriaModal({
         setIsPublic(galeria.is_public === true || galeria.is_public === 'true');
         setShowCoverInGrid(
           galeria.show_cover_in_grid === true ||
-          galeria.show_cover_in_grid === 'true',
+            galeria.show_cover_in_grid === 'true',
         );
         setGridBgColor(galeria.grid_bg_color || '#F3E5AB');
         setColumns({
@@ -79,7 +83,8 @@ export default function GaleriaModal({
     const leadsEnabled = formData.get('leads_enabled') === 'true';
     const leadsRequireName = formData.get('leads_require_name') === 'true';
     const leadsRequireEmail = formData.get('leads_require_email') === 'true';
-    const leadsRequireWhatsapp = formData.get('leads_require_whatsapp') === 'true';
+    const leadsRequireWhatsapp =
+      formData.get('leads_require_whatsapp') === 'true';
 
     // --- 3. VALIDAÇÃO EDITORIAL ---
     if (!title?.trim()) {
@@ -103,8 +108,16 @@ export default function GaleriaModal({
       return;
     }
 
-    if (leadsEnabled && !leadsRequireName && !leadsRequireEmail && !leadsRequireWhatsapp) {
-      onSuccess(false, 'Se a captura de leads estiver habilitada, pelo menos um campo deve ser obrigatório.');
+    if (
+      leadsEnabled &&
+      !leadsRequireName &&
+      !leadsRequireEmail &&
+      !leadsRequireWhatsapp
+    ) {
+      onSuccess(
+        false,
+        'Se a captura de leads estiver habilitada, pelo menos um campo deve ser obrigatório.',
+      );
       return;
     }
 
@@ -166,7 +179,10 @@ export default function GaleriaModal({
 
   const handleCopyLink = async () => {
     const photographer = galeria?.photographer || savedGaleria?.photographer;
-    const url = getPublicGalleryUrl(photographer, savedGaleria?.slug || galeria?.slug || '');
+    const url = getPublicGalleryUrl(
+      photographer,
+      savedGaleria?.slug || galeria?.slug || '',
+    );
     const success = await copyToClipboard(url);
     if (success) {
       setCopied(true);
@@ -176,7 +192,10 @@ export default function GaleriaModal({
 
   const handleShareWhatsApp = () => {
     const photographer = galeria?.photographer || savedGaleria?.photographer;
-    const url = getPublicGalleryUrl(photographer, savedGaleria?.slug || galeria?.slug || '');
+    const url = getPublicGalleryUrl(
+      photographer,
+      savedGaleria?.slug || galeria?.slug || '',
+    );
     const message = getLuxuryMessageData(savedGaleria || galeria, url);
     executeShare({
       title: (savedGaleria || galeria).title,
@@ -199,7 +218,13 @@ export default function GaleriaModal({
         onSubmit={handleSubmit}
         onFormChange={() => setHasUnsavedChanges(true)}
         id="master-gallery-form"
-        submitLabel={loading ? 'Salvando...' : isEdit ? 'SALVAR ALTERAÇÕES' : 'CRIAR GALERIA'}
+        submitLabel={
+          loading
+            ? 'Salvando...'
+            : isEdit
+              ? 'SALVAR ALTERAÇÕES'
+              : 'CRIAR GALERIA'
+        }
       >
         <GaleriaFormContent
           initialData={galeria}
@@ -227,7 +252,11 @@ export default function GaleriaModal({
           onClose();
         }}
         title={isEdit ? 'Galeria Atualizada' : 'Galeria Criada'}
-        subtitle={isEdit ? 'Suas alterações foram salvas' : 'Sua nova galeria está pronta'}
+        subtitle={
+          isEdit
+            ? 'Suas alterações foram salvas'
+            : 'Sua nova galeria está pronta'
+        }
         maxWidth="lg"
         headerIcon={
           <div className="w-12 h-12 bg-green-500/10 text-green-500 rounded-lg flex items-center justify-center shadow-lg shadow-green-500/5">
@@ -249,7 +278,10 @@ export default function GaleriaModal({
               </button>
 
               <a
-                href={getPublicGalleryUrl(galeria?.photographer || savedGaleria?.photographer, savedGaleria?.slug || galeria?.slug || '')}
+                href={getPublicGalleryUrl(
+                  galeria?.photographer || savedGaleria?.photographer,
+                  savedGaleria?.slug || galeria?.slug || '',
+                )}
                 target="_blank"
                 className="w-full h-10 flex items-center justify-center gap-2 bg-champagne text-petroleum rounded-luxury font-semibold text-[10px] uppercase tracking-luxury hover:bg-white transition-all shadow-xl active:scale-[0.98]"
               >
@@ -261,7 +293,9 @@ export default function GaleriaModal({
       >
         <div className="space-y-4">
           <p className="text-[13px] md:text-[14px] leading-relaxed text-petroleum/80 font-medium text-center px-4">
-            A galeria <strong>{formTitle}</strong> foi {isEdit ? 'atualizada' : 'criada'} com sucesso e já pode ser compartilhada com seus clientes.
+            A galeria <strong>{formTitle}</strong> foi{' '}
+            {isEdit ? 'atualizada' : 'criada'} com sucesso e já pode ser
+            compartilhada com seus clientes.
           </p>
 
           <div className="p-4 bg-slate-50 border border-petroleum/10 rounded-luxury flex flex-col items-center gap-4">
@@ -272,7 +306,7 @@ export default function GaleriaModal({
             <div className="flex items-center justify-center gap-3">
               <button
                 onClick={handleShareWhatsApp}
-                className="h-11 px-6 flex items-center justify-center gap-2 text-white bg-[#25D366] hover:bg-[#20ba56] rounded-luxury shadow-md transition-all text-[10px] font-bold uppercase tracking-widest active:scale-95"
+                className="h-11 px-6 flex items-center justify-center gap-2 text-white bg-[#25D366] hover:bg-[#20ba56] rounded-luxury shadow-md transition-all text-[10px] font-bold uppercase tracking-luxury-widest active:scale-95"
                 title="Compartilhar via WhatsApp"
               >
                 <WhatsAppIcon className="w-4 h-4 fill-current" />
@@ -281,12 +315,15 @@ export default function GaleriaModal({
 
               <button
                 onClick={handleCopyLink}
-                className="h-11 px-6 flex items-center justify-center gap-2 text-petroleum bg-white border border-petroleum/20 rounded-luxury shadow-sm hover:border-petroleum/40 transition-all text-[10px] font-bold uppercase tracking-widest active:scale-95"
+                className="h-11 px-6 flex items-center justify-center gap-2 text-petroleum bg-white border border-petroleum/20 rounded-luxury shadow-sm hover:border-petroleum/40 transition-all text-[10px] font-bold uppercase tracking-luxury-widest active:scale-95"
                 title="Copiar Link da Galeria"
               >
                 {copied ? (
                   <>
-                    <Check size={16} className="text-green-600 animate-in zoom-in duration-300" />
+                    <Check
+                      size={16}
+                      className="text-green-600 animate-in zoom-in duration-300"
+                    />
                     Copiado!
                   </>
                 ) : (

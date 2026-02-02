@@ -35,13 +35,14 @@ export default function ConfirmationModal({
   const footer = (
     <div className="flex flex-col gap-3 w-full">
       <button
-        onClick={onConfirm}
-        disabled={isLoading}
-        className={`w-full py-4 rounded-luxury font-bold uppercase text-[10px] tracking-luxury transition-all active:scale-95 flex items-center justify-center gap-2 shadow-lg ${variant === 'danger'
-            ? 'bg-red-600 text-white hover:bg-red-700 shadow-red-600/10'
-            : 'bg-champagne text-petroleum hover:bg-white shadow-champagne/10'
-          }`}
-      >
+              onClick={onConfirm}
+              disabled={isLoading}
+              className={`btn-luxury-base w-full ${
+                variant === 'danger'
+                  ? 'bg-red-600 text-white hover:bg-red-700 shadow-red-600/10'
+                  : 'btn-luxury-primary'
+              }`}
+            >
         {isLoading ? (
           <div className="loading-luxury w-4 h-4 border-white/30 border-t-white" />
         ) : (

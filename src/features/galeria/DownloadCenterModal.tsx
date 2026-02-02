@@ -118,7 +118,7 @@ export const DownloadCenterModal = ({
                     `fav-${index}`,
                   )
                 }
-                className={`w-full flex items-center gap-4 p-4 rounded-luxury border transition-all duration-300 group ${
+                className={`btn-luxury-base w-full ${
                   isCurrent
                     ? 'border-petroleum bg-slate-50 shadow-sm'
                     : 'bg-white border-petroleum/30 hover:border-petroleum/50 hover:bg-slate-50'
@@ -190,7 +190,7 @@ export const DownloadCenterModal = ({
               onClick={() =>
                 handleDownloadZip(chunk, `Vol_${i + 1}`, false, true, i)
               }
-              className={`w-full flex items-center gap-4 p-4 rounded-luxury border transition-all duration-300 group ${
+              className={`btn-luxury-base w-full ${
                 isCurrent
                   ? 'border-petroleum bg-slate-50 shadow-sm'
                   : isDownloaded

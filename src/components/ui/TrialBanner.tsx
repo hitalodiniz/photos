@@ -29,7 +29,7 @@ export default function TrialBanner() {
             <Clock className="text-gold" size={24} />
           </div>
           <div className="text-center md:text-left">
-            <h3 className="text-white text-[12px] font-bold uppercase tracking-widest leading-tight">
+            <h3 className="text-white text-[12px] font-bold uppercase tracking-luxury-widest leading-tight">
               Seu Período PRO Expira em{' '}
               <span className="text-gold">
                 {daysLeft} {daysLeft === 1 ? 'dia' : 'dias'}

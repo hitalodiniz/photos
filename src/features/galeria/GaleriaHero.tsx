@@ -143,7 +143,7 @@ export const GaleriaHero = ({
           <div className="flex flex-col items-start text-left transition-all duration-1000 min-w-0 flex-1">
             <div className="flex flex-col min-w-0 w-full">
               <h1
-                className={`font-artistic font-semibold text-white transition-all duration-1000 leading-tight tracking-normal break-words flex items-center gap-3 drop-shadow-[0_2px_8px_rgba(0,0,0,0.8)]
+                className={` font-semibold text-white transition-all duration-1000 leading-tight tracking-luxury-normal break-words flex items-center gap-3 drop-shadow-[0_2px_8px_rgba(0,0,0,0.8)]
                 ${isExpanded ? 'text-2xl md:text-5xl mb-2' : 'text-xl md:text-4xl mb-1'}`}
               >
                 <Camera

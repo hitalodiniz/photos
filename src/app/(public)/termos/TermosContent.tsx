@@ -80,7 +80,7 @@ export default function TermosDeUsoPage() {
                 <div className="text-gold shrink-0 drop-shadow-[0_0_8px_rgba(243,229,171,0.3)]">
                   {item.icon}
                 </div>
-                <h3 className="text-[11px] font-bold uppercase tracking-[0.15em] text-white leading-none">
+                <h3 className="text-[11px] font-bold uppercase tracking-luxury-widest text-white leading-none">
                   {item.title}
                 </h3>
               </div>
@@ -102,7 +102,7 @@ export default function TermosDeUsoPage() {
         <div className="flex justify-center mt-6">
           <div className="flex items-center gap-3 bg-white/5 border border-white/10 px-6 py-3 rounded-full backdrop-blur-md">
             <div className="w-1.5 h-1.5 rounded-full bg-gold animate-pulse" />
-            <span className="text-[10px] font-bold uppercase tracking-[0.25em] text-white/50">
+            <span className="text-[10px] font-bold uppercase tracking-luxury-widest text-white/50">
               Vigência: Ciclo Janeiro 2026
             </span>
           </div>

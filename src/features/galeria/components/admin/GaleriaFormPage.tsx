@@ -5,13 +5,24 @@ import { useForm } from 'react-hook-form';
 import { useRouter } from 'next/navigation';
 import { createGaleria, updateGaleria } from '@/core/services/galeria.service';
 import FormPageBase from '@/components/ui/FormPageBase';
-import { Save, CheckCircle2, Sparkles, Link2, Check, ArrowLeft } from 'lucide-react';
+import {
+  Save,
+  CheckCircle2,
+  Sparkles,
+  Link2,
+  Check,
+  ArrowLeft,
+} from 'lucide-react';
 import GaleriaFormContent from './GaleriaFormContent';
 import type { Galeria } from '@/core/types/galeria';
 import { Toast } from '@/components/ui';
 import GoogleConsentAlert from '@/components/auth/GoogleConsentAlert';
 import BaseModal from '@/components/ui/BaseModal';
-import { getPublicGalleryUrl, copyToClipboard, getLuxuryMessageData } from '@/core/utils/url-helper';
+import {
+  getPublicGalleryUrl,
+  copyToClipboard,
+  getLuxuryMessageData,
+} from '@/core/utils/url-helper';
 import { executeShare } from '@/core/utils/share-helper';
 import { useNavigation } from '@/components/providers/NavigationProvider';
 import WhatsAppIcon from '@/components/ui/WhatsAppIcon';
@@ -54,11 +65,23 @@ export default function GaleriaFormPage({
   const formRef = useRef<HTMLFormElement>(null);
 
   // 🎯 Form Initialization
-  const { register, setValue, watch, handleSubmit: handleFormSubmit } = useForm({
+  const {
+    register,
+    setValue,
+    watch,
+    handleSubmit: handleFormSubmit,
+  } = useForm({
     defaultValues: {
-      lead_purpose: galeria?.lead_purpose || initialProfile.settings?.defaults?.data_treatment_purpose || '',
-      leads_enabled: galeria ? (galeria.leads_enabled === true || String(galeria.leads_enabled) === 'true') : (initialProfile?.settings?.defaults?.enable_guest_registration ?? false),
-    }
+      lead_purpose:
+        galeria?.lead_purpose ||
+        initialProfile.settings?.defaults?.data_treatment_purpose ||
+        '',
+      leads_enabled: galeria
+        ? galeria.leads_enabled === true ||
+          String(galeria.leads_enabled) === 'true'
+        : (initialProfile?.settings?.defaults?.enable_guest_registration ??
+          false),
+    },
   });
 
   // 🎯 ESTADOS DE CUSTOMIZAÇÃO COM VALORES PADRÃO
@@ -73,12 +96,23 @@ export default function GaleriaFormPage({
     return !!initialProfile.settings?.defaults?.background_photo;
   });
   const [gridBgColor, setGridBgColor] = useState(
-    galeria?.grid_bg_color || initialProfile.settings?.defaults?.background_color || '#FFFFFF',
+    galeria?.grid_bg_color ||
+      initialProfile.settings?.defaults?.background_color ||
+      '#FFFFFF',
   );
   const [columns, setColumns] = useState({
-    mobile: galeria?.columns_mobile || initialProfile.settings?.defaults?.grid_mobile || 2,
-    tablet: galeria?.columns_tablet || initialProfile.settings?.defaults?.grid_tablet || 3,
-    desktop: galeria?.columns_desktop || initialProfile.settings?.defaults?.grid_desktop || 4,
+    mobile:
+      galeria?.columns_mobile ||
+      initialProfile.settings?.defaults?.grid_mobile ||
+      2,
+    tablet:
+      galeria?.columns_tablet ||
+      initialProfile.settings?.defaults?.grid_tablet ||
+      3,
+    desktop:
+      galeria?.columns_desktop ||
+      initialProfile.settings?.defaults?.grid_desktop ||
+      4,
   });
 
   // 🎯 UX: Auto-focus no primeiro campo
@@ -103,7 +137,7 @@ export default function GaleriaFormPage({
     e.preventDefault();
 
     const formData = new FormData(e.currentTarget);
-    
+
     // 🎯 Captura dados do useForm (como lead_purpose e leads_enabled que agora são gerenciados por componente compartilhado)
     const formValues = watch();
     formData.set('lead_purpose', formValues.lead_purpose || '');
@@ -167,7 +201,8 @@ export default function GaleriaFormPage({
     formData.set('columns_desktop', String(columns.desktop));
 
     const whatsappRaw = formData.get('client_whatsapp') as string;
-    if (whatsappRaw) formData.set('client_whatsapp', whatsappRaw.replace(/\D/g, ''));
+    if (whatsappRaw)
+      formData.set('client_whatsapp', whatsappRaw.replace(/\D/g, ''));
 
     if (!hasClient) {
       formData.set('client_name', 'Cobertura');
@@ -202,7 +237,10 @@ export default function GaleriaFormPage({
   };
 
   const handleCopyLink = async () => {
-    const url = getPublicGalleryUrl(initialProfile, savedGaleria?.slug || galeria?.slug || '');
+    const url = getPublicGalleryUrl(
+      initialProfile,
+      savedGaleria?.slug || galeria?.slug || '',
+    );
     const success = await copyToClipboard(url);
     if (success) {
       setCopied(true);
@@ -211,7 +249,10 @@ export default function GaleriaFormPage({
   };
 
   const handleShareWhatsApp = () => {
-    const url = getPublicGalleryUrl(initialProfile, savedGaleria?.slug || galeria?.slug || '');
+    const url = getPublicGalleryUrl(
+      initialProfile,
+      savedGaleria?.slug || galeria?.slug || '',
+    );
     const message = getLuxuryMessageData(savedGaleria || galeria, url);
     executeShare({
       title: (savedGaleria || galeria).title,
@@ -275,7 +316,11 @@ export default function GaleriaFormPage({
         showCloseButton={isEdit}
         onClose={() => setShowSuccessModal(false)}
         title={isEdit ? 'Galeria Atualizada' : 'Galeria Criada'}
-        subtitle={isEdit ? 'Suas alterações foram salvas' : 'Sua nova galeria está pronta'}
+        subtitle={
+          isEdit
+            ? 'Suas alterações foram salvas'
+            : 'Sua nova galeria está pronta'
+        }
         maxWidth="lg"
         headerIcon={
           <div className="w-12 h-12 bg-green-500/10 text-green-500 rounded-lg flex items-center justify-center shadow-lg shadow-green-500/5">
@@ -296,9 +341,12 @@ export default function GaleriaFormPage({
               </button>
 
               <a
-                href={getPublicGalleryUrl(initialProfile, savedGaleria?.slug || galeria?.slug || '')}
+                href={getPublicGalleryUrl(
+                  initialProfile,
+                  savedGaleria?.slug || galeria?.slug || '',
+                )}
                 target="_blank"
-                className="w-full h-10 flex items-center justify-center gap-2 bg-champagne text-petroleum rounded-luxury font-semibold text-[10px] uppercase tracking-luxury hover:bg-white transition-all shadow-xl active:scale-[0.98]"
+                className="btn-luxury-primary w-full"
               >
                 <Sparkles size={14} /> Visualizar Galeria
               </a>
@@ -308,9 +356,11 @@ export default function GaleriaFormPage({
       >
         <div className="space-y-4">
           <p className="text-[13px] md:text-[14px] leading-relaxed text-petroleum/80 font-medium text-center px-4">
-            A galeria <strong>{formTitle}</strong> foi {isEdit ? 'atualizada' : 'criada'} com sucesso e já pode ser compartilhada com seus clientes.
+            A galeria <strong>{formTitle}</strong> foi{' '}
+            {isEdit ? 'atualizada' : 'criada'} com sucesso e já pode ser
+            compartilhada com seus clientes.
           </p>
-          
+
           <div className="p-4 bg-slate-50 border border-petroleum/10 rounded-luxury flex flex-col items-center gap-4">
             <p className="text-[10px] font-semibold text-petroleum/80 text-center uppercase tracking-luxury">
               Compartilhe o link direto com seu cliente:
@@ -319,7 +369,7 @@ export default function GaleriaFormPage({
             <div className="flex items-center justify-center gap-3">
               <button
                 onClick={handleShareWhatsApp}
-                className="h-11 px-6 flex items-center justify-center gap-2 text-white bg-[#25D366] hover:bg-[#20ba56] rounded-luxury shadow-md transition-all text-[10px] font-bold uppercase tracking-widest active:scale-95"
+                className="btn-luxury-base text-white bg-[#25D366] hover:bg-[#20ba56]"
                 title="Compartilhar via WhatsApp"
               >
                 <WhatsAppIcon className="w-4 h-4 fill-current" />
@@ -328,12 +378,15 @@ export default function GaleriaFormPage({
 
               <button
                 onClick={handleCopyLink}
-                className="h-11 px-6 flex items-center justify-center gap-2 text-petroleum bg-white border border-petroleum/20 rounded-luxury shadow-sm hover:border-petroleum/40 transition-all text-[10px] font-bold uppercase tracking-widest active:scale-95"
+                className="btn-luxury-base text-petroleum bg-white border border-petroleum/20 hover:border-petroleum/40"
                 title="Copiar Link da Galeria"
               >
                 {copied ? (
                   <>
-                    <Check size={16} className="text-green-600 animate-in zoom-in duration-300" />
+                    <Check
+                      size={16}
+                      className="text-green-600 animate-in zoom-in duration-300"
+                    />
                     Copiado!
                   </>
                 ) : (

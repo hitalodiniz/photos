@@ -18,12 +18,13 @@ export default function Footer() {
         <div className="flex flex-col items-center md:items-start gap-1">
           <div className="flex items-center gap-2">
             <Camera className="w-5 h-5 text-[#F3E5AB]" />
-            <span className="font-artistic text-[16px] font-semibold text-white italic">
+            <span className=" text-[16px] font-semibold text-white italic">
               Sua Galeria
             </span>
           </div>
 
           <div className="text-white/70 text-[11px] md:text-[13px] flex items-center gap-3 italic tracking-wide">
+            Entregas profissionais e personalizadas
             <span>© {new Date().getFullYear()}</span>
             <div className="w-[1px] h-3 bg-white/10" />
             <Link
@@ -39,20 +40,6 @@ export default function Footer() {
               Termos
             </Link>
           </div>
-        </div>
-
-        {/* Lado Direito: Redes Sociais Compactas */}
-        <div className="flex items-center gap-3">
-          <SocialIcon
-            icon={<Instagram size={18} />}
-            title="Instagram"
-            href="https://instagram.com"
-          />
-          <SocialIcon
-            icon={<WhatsAppIcon className="w-4 h-4" />}
-            title="WhatsApp"
-            href={whatsappLink}
-          />
         </div>
       </div>
     </footer>
