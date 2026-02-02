@@ -225,7 +225,7 @@ export default function PhotographerContent({
                   <div className="w-full h-2 bg-gradient-to-b from-[#F3E5AB]/30 to-transparent mx-auto mb-6" />
                   {/* Branding / Créditos: Aparece APENAS para FREE e START (onde removeBranding é false e são planos de entrada) */}
                   {(planKey === 'FREE' || planKey === 'START') && (
-                    <p className="text-petroleum text-[11px] uppercase tracking-widest max-w-lg mx-auto leading-relaxed">
+                    <p className="text-petroleum text-[13px]  font-medium tracking-widest max-w-lg mx-auto leading-relaxed">
                       Este profissional utiliza o app{' '}
                       <span className="font-bold">Sua Galeria</span> para suas
                       entregas.

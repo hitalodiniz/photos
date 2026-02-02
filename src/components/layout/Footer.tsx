@@ -4,6 +4,7 @@ import { Camera, Instagram } from 'lucide-react';
 import Link from 'next/link';
 import WhatsAppIcon from '@/components/ui/WhatsAppIcon';
 import { GALLERY_MESSAGES } from '@/core/config/messages';
+import { title } from 'process';
 
 export default function Footer() {
   const whatsappLink = `https://wa.me/5531993522018?text=${encodeURIComponent(
@@ -11,8 +12,8 @@ export default function Footer() {
   )}`;
 
   return (
-    <footer className="flex-none w-full py-4 px-6 bg-petroleum border-t border-white/10 font-montserrat">
-      <div className="max-w-[1600px] mx-auto flex flex-col md:flex-row justify-between items-center gap-4">
+    <footer className="w-full py-4 bg-petroleum ">
+      <div className="max-w-[1600px] mx-auto px-6 md:px-12 flex flex-col md:flex-row justify-between items-center md:items-end gap-4">
         {/* Lado Esquerdo: Marca e Links */}
         <div className="flex flex-col items-center md:items-start gap-1">
           <div className="flex items-center gap-2">

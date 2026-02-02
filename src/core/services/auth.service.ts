@@ -1,25 +1,25 @@
 /**
  * ⚠️⚠️⚠️ ARQUIVO CRÍTICO DE SEGURANÇA ⚠️⚠️⚠️
- * 
+ *
  * Este arquivo gerencia:
  * - Busca de sessão atual
  * - Refresh automático de tokens
  * - Limpeza de sessões inválidas
  * - Login com Google OAuth
  * - Logout
- * 
+ *
  * 🔴 IMPACTO DE MUDANÇAS:
  * - Qualquer bug pode quebrar toda a autenticação
  * - Pode permitir acesso não autorizado
  * - Pode expor sessões inválidas
- * 
+ *
  * ✅ ANTES DE ALTERAR:
  * 1. Leia CRITICAL_AUTH_FILES.md
  * 2. Leia AUTH_CONTRACT.md
  * 3. Crie/atualize testes unitários (já existe auth.service.spec.ts)
  * 4. Teste extensivamente localmente
  * 5. Solicite revisão de código
- * 
+ *
  * 📋 CHECKLIST OBRIGATÓRIO:
  * [ ] Testes unitários criados/atualizados
  * [ ] Testado getSession() com vários cenários
@@ -27,7 +27,7 @@
  * [ ] Testado limpeza de sessão inválida
  * [ ] Revisão de código aprovada
  * [ ] Documentação atualizada
- * 
+ *
  * 🚨 NÃO ALTERE SEM ENTENDER COMPLETAMENTE O IMPACTO!
  */
 
@@ -45,7 +45,7 @@ if (!(globalThis as any)[GLOBAL_CACHE_KEY]) {
     sessionPromise: null,
     profileCache: new Map<string, Promise<any>>(),
     lastRefreshTime: 0,
-    hasRefreshedSubdomain: false
+    hasRefreshedSubdomain: false,
   };
 }
 
@@ -61,7 +61,7 @@ export const authService = {
     authCache.sessionPromise = (async () => {
       try {
         const { data, error } = await supabase.auth.getSession();
-        
+
         if (error) {
           // Em caso de erro, não limpamos a sessão agressivamente para evitar loops de 429
           return null;
@@ -72,10 +72,10 @@ export const authService = {
           if (expiresAt) {
             const now = Math.floor(Date.now() / 1000);
             const expiresIn = expiresAt - now;
-            
+
             if (expiresIn < 300) {
               const refreshData = await this.refreshSession();
-              // 🎯 MELHORIA: Se o refresh falhar ou for ignorado por trava, 
+              // 🎯 MELHORIA: Se o refresh falhar ou for ignorado por trava,
               // ainda assim retornamos a sessão atual para evitar deslogar o usuário
               return refreshData.data?.session || data.session;
             }
@@ -130,19 +130,22 @@ export const authService = {
     authCache.refreshPromise = (async () => {
       try {
         const result = await supabase.auth.refreshSession();
-        
+
         if (result.error) {
-          if (result.error.message?.includes('refresh_token') || result.error.message?.includes('Invalid')) {
+          if (
+            result.error.message?.includes('refresh_token') ||
+            result.error.message?.includes('Invalid')
+          ) {
             await supabase.auth.signOut();
           }
         }
-        
+
         return result;
       } finally {
         authCache.refreshPromise = null;
       }
     })();
-    
+
     return authCache.refreshPromise;
   },
 
@@ -161,7 +164,7 @@ export const authService = {
           .select('profile_picture_url, roles')
           .eq('id', userId)
           .single();
-        
+
         if (error) throw error;
         return data;
       } catch (err: any) {
@@ -204,8 +207,8 @@ export const authService = {
     //   prompt: promptValue,
     //   redirectTo,
     //   access_type: 'offline',
-    //   motivo: forceConsent 
-    //     ? 'Consent forçado - necessário para obter refresh token' 
+    //   motivo: forceConsent
+    //     ? 'Consent forçado - necessário para obter refresh token'
     //     : 'Login padrão com select_account (rápido)',
     // });
 
@@ -228,7 +231,7 @@ export const authService = {
     }
 
     // console.log('[authService] Login Google iniciado com sucesso. URL:', data?.url);
-    
+
     return data;
   },
 };

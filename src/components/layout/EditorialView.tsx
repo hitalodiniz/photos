@@ -1,87 +1,63 @@
 'use client';
 import React, { useState, useEffect } from 'react';
-import EditorialHeader from '@/components/layout/EditorialHeader';
 import LoadingScreen from '@/components/ui/LoadingScreen';
-import { Footer } from '@/components/layout';
-import {
-  ShieldCheck,
-  Instagram,
-  Share2,
-  Check,
-  Zap,
-  HelpCircle,
-} from 'lucide-react';
-import WhatsAppIcon from '@/components/ui/WhatsAppIcon';
+import Footer from '@/components/layout/Footer'; // Garanta a importação correta
 import EditorialToolbar from './EditorialToolBar';
-
-interface EditorialPageProps {
-  title: string;
-  subtitle: React.ReactNode;
-  children: React.ReactNode;
-  loadingMessage?: string;
-  showToolbar?: boolean;
-  bgImage?: string;
-}
 
 export default function EditorialView({
   title,
   subtitle,
   children,
-  loadingMessage = 'Preparando experiência...',
-  showToolbar = true,
   bgImage,
-}: EditorialPageProps) {
+}: any) {
   const [isMounted, setIsMounted] = useState(false);
-  const [isScrolled, setIsScrolled] = useState(false);
-  const [copied, setCopied] = useState(false);
-
-  useEffect(() => {
-    setIsMounted(true);
-
-    const handleScroll = () => {
-      setIsScrolled(window.scrollY > 20);
-    };
-
-    window.addEventListener('scroll', handleScroll);
-    return () => window.removeEventListener('scroll', handleScroll);
-  }, []);
-
-  const handleCopyLink = () => {
-    navigator.clipboard.writeText(window.location.href);
-    setCopied(true);
-    setTimeout(() => setCopied(false), 2000);
-  };
+  useEffect(() => setIsMounted(true), []);
 
   return (
-    /* 🎯 AJUSTE: bg-white como fundo principal */
-    <div className="relative min-h-screen w-full flex flex-col bg-white font-montserrat overflow-x-hidden transition-colors duration-500">
-      <LoadingScreen message={loadingMessage} fadeOut={isMounted} />
+    <div className="relative min-h-screen w-full flex flex-col bg-petroleum overflow-x-hidden transition-all">
+      <LoadingScreen message="Preparando..." fadeOut={isMounted} />
+      <EditorialToolbar />
 
       <div
-        className={`relative z-10 flex flex-col min-h-screen transition-opacity duration-700 ${
-          isMounted ? 'opacity-100' : 'opacity-0'
-        }`}
+        className={`relative flex flex-col flex-grow transition-opacity duration-1000 ${isMounted ? 'opacity-100' : 'opacity-0'}`}
       >
-        {/* 1. HEADER HERO (Mantém o fundo escuro interno da foto para contraste do título) */}
-        <div className="flex-none">
-          <EditorialHeader
-            title={title}
-            subtitle={subtitle}
-            showBackButton={false}
-            bgImage={bgImage}
-          />
-        </div>
+        {/* HERO SECTION */}
+        <section className="relative h-[80vh] flex flex-col overflow-hidden">
+          <div className="absolute inset-0 z-0">
+            <img
+              src={bgImage || '/hero-bg-1.webp'}
+              className="w-full h-full object-cover object-top[40%] opacity-85"
+              alt="Hero"
+            />
+            <div className="absolute inset-0 bg-gradient-to-b from-transparent from-70% via-petroleum/60 via-75% to-petroleum" />
+          </div>
 
-        {/* 2. TOOLBAR EDITORIAL (Sincronizada com ToolBarDesktop) */}
-        {showToolbar && <EditorialToolbar isScrolled={isScrolled} />}
+          {/* 🎯 TÍTULO ALINHADO: Removido max-w-4xl e px-16, usando o padrão do sistema */}
+          <div className="absolute bottom-10 left-0 w-full z-10">
+            <div className="max-w-[1600px] mx-auto px-6 md:px-12 flex flex-col items-start">
+              <div className="inline-block">
+                <h1 className="text-2xl md:text-5xl font-semibold text-white drop-shadow-[0_2px_10px_rgba(0,0,0,0.5)] font-artistic italic">
+                  {title}
+                </h1>
+                <div className="h-[2px] md:h-[3px] bg-gold rounded-full mt-2 shadow-lg w-full" />
+              </div>
 
-        {/* 3. MAIN CONTENT */}
-        {/* 🎯 AJUSTE: Removido gradiente escuro pesado para favorecer o fundo branco */}
-        <main className="flex-grow flex items-center py-2 pb-0 bg-slate-50/50">
-          <div className="max-w-[1600px] mx-auto w-full px-4">{children}</div>
+              <p className="text-white text-sm md:text-[14px] font-medium tracking-[0.15em] uppercase opacity-80 mt-6 drop-shadow-md">
+                {subtitle}
+              </p>
+            </div>
+          </div>
+          {/* Gradiente sutil apenas na base do Hero para transição suave */}
+          <div className="absolute bottom-0 left-0 w-full h-32 bg-gradient-to-t from-petroleum to-transparent" />
+        </section>
+
+        {/* MAIN CONTENT: Padrão [1600px] e px-6/12 */}
+        <main className="relative z-10 bg-petroleum flex-grow">
+          <div className="max-w-[1600px] mx-auto px-6 md:px-12">{children}</div>
         </main>
 
-        <div className="flex-none">
+        {/* FOOTER: Agora alinhado pelo componente interno */}
+        <div className="bg-petroleum">
           <Footer />
         </div>
       </div>

@@ -2,13 +2,16 @@
 
 import { useState } from 'react';
 import { authService } from '@photos/core-auth';
+import { LogIn } from 'lucide-react';
 
 interface GoogleSignInButtonProps {
   forceConsent?: boolean;
+  variant?: 'full' | 'minimal'; // Adicionada variante
 }
 
 export default function GoogleSignInButton({
   forceConsent = false,
+  variant = 'minimal',
 }: GoogleSignInButtonProps) {
   const [loading, setLoading] = useState(false);
 
@@ -26,6 +29,33 @@ export default function GoogleSignInButton({
     }
   };
 
+  // Estilo para quando estiver na BARRA SUPERIOR
+  if (variant === 'minimal') {
+    return (
+      <button
+        onClick={handleLogin}
+        disabled={loading}
+        className={`flex items-center gap-2 px-4 py-2 rounded-luxury border border-gold/40 bg-transparent transition-all group ${
+          loading
+            ? 'cursor-not-allowed opacity-70'
+            : 'hover:bg-gold/10'
+        }`}
+      >
+        {loading ? (
+          <span className="text-[10px] text-white animate-pulse">
+            CONECTANDO...
+          </span>
+        ) : (
+          <>
+            <LogIn size={14} className="text-gold" />
+            <span className="text-[11px] font-semibold uppercase tracking-[0.2em] text-white">
+              Google Login
+            </span>
+          </>
+        )}
+      </button>
+    );
+  }
   return (
     <button
       onClick={handleLogin}
