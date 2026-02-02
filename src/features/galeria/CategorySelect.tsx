@@ -11,7 +11,7 @@ import {
 } from 'lucide-react';
 import { updateCustomCategories } from '@/core/services/profile.service';
 import BaseModal from '@/components/ui/BaseModal';
-import { usePlan } from '@/hooks/usePlan';
+import { usePlan } from '@/core/context/PlanContext';
 import UpgradeModal from '@/components/ui/UpgradeModal';
 
 export default function CategorySelect({

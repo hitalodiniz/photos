@@ -2,8 +2,7 @@
 import React, { useState, useEffect, useMemo, useCallback } from 'react';
 import { ChevronDown, Maximize2 } from 'lucide-react';
 
-import { usePlan } from '@/hooks/usePlan';
-
+import { usePlan } from '@/core/context/PlanContext';
 import { Swiper, SwiperSlide } from 'swiper/react';
 import { Autoplay, EffectFade } from 'swiper/modules';
 // Import Swiper styles

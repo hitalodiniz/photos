@@ -1,7 +1,7 @@
 'use client';
 import { PlanGuard } from '@/components/auth/PlanGuard';
 import { GooglePickerButton } from '@/components/google-drive';
-import { usePlan } from '@/hooks/usePlan';
+import { usePlan } from '@/core/context/PlanContext';
 import {
   FolderSync,
   ImageIcon,

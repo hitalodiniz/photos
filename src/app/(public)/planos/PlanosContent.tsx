@@ -20,8 +20,7 @@ import {
   PERMISSIONS_BY_PLAN,
   PlanPermissions,
 } from '@/core/config/plans';
-import { usePageTitle } from '@/hooks';
-import { title } from 'process';
+import { Profile } from '@/core/types/Profile';
 
 export default function PlanosPage() {
   const [loadingPlan, setLoadingPlan] = useState<string | null>(null);
@@ -61,6 +60,9 @@ export default function PlanosPage() {
     }
     return feature.values?.[planIdx];
   };
+
+  // O restante do contexto usa o 'effectivePlan' para buscar as permissões
+  const permissions = PERMISSIONS_BY_PLAN[effectivePlan as PlanKey];
 
   return (
     <div

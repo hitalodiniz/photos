@@ -45,7 +45,7 @@ import { LeadCaptureSection } from '@/components/ui/LeadCaptureSection';
 import { div } from 'framer-motion/client';
 import { PlanGuard } from '@/components/auth/PlanGuard';
 import { GaleriaDriveSection } from './GaleriaDriveSection';
-import { usePlan } from '@/hooks/usePlan';
+import { usePlan } from '@/core/context/PlanContext';
 import UpgradeModal from '@/components/ui/UpgradeModal';
 
 // 🎯 Componente de seção simples (sem accordion) - Estilo Editorial

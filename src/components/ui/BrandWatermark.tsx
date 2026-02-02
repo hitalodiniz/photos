@@ -1,6 +1,5 @@
 'use client';
-import { usePlan } from '@/hooks/usePlan';
-
+import { usePlan } from '@/core/context/PlanContext';
 export const BrandWatermark = () => {
   const { planKey } = usePlan();
 

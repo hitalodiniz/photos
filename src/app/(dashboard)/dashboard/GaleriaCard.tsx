@@ -31,7 +31,7 @@ import WhatsAppIcon from '@/components/ui/WhatsAppIcon';
 import GaleriaContextMenu from '@/components/dashboard/GaleriaContextMenu';
 import { useNavigation } from '@/components/providers/NavigationProvider';
 import { Users } from 'lucide-react';
-import { usePlan } from '@/hooks/usePlan';
+import { usePlan } from '@/core/context/PlanContext';
 import UpgradeModal from '@/components/ui/UpgradeModal';
 import { executeShare } from '@/core/utils/share-helper';
 

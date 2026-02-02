@@ -8,7 +8,7 @@ import type { Galeria } from '@/core/types/galeria';
 import { Loader2 } from 'lucide-react';
 import { PublicGaleriaCard } from './PublicGaleriaCard';
 import { GaleriaFooter } from '@/components/galeria';
-import { usePlan } from '@/hooks/usePlan';
+import { usePlan } from '@/core/context/PlanContext';
 import { BrandWatermark } from '../ui/BrandWatermark';
 
 interface ProfileContentProps {

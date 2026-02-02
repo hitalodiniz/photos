@@ -11,7 +11,7 @@ import { updateProfileSettings } from '@/core/services/profile.service';
 import { GalleryDesignFields } from '@/features/galeria/components/admin/GaleriaDesignFields';
 import { useRef, useState } from 'react';
 import { useRouter } from 'next/navigation';
-import { usePlan } from '@/hooks/usePlan';
+import { usePlan } from '@/core/context/PlanContext';
 import { Toast } from '@/components/ui';
 import FormPageBase from '@/components/ui/FormPageBase';
 import { LGPDPurposeField } from '@/components/ui/LGPDPurposeField';
@@ -202,21 +202,31 @@ export default function SettingsForm({ profile }: { profile: any }) {
                   <LeadCaptureSection
                     enabled={enableGuestRegistration}
                     setEnabled={(val) =>
-                      setValue('settings.defaults.enable_guest_registration', val, {
-                        shouldDirty: true,
-                      })
+                      setValue(
+                        'settings.defaults.enable_guest_registration',
+                        val,
+                        {
+                          shouldDirty: true,
+                        },
+                      )
                     }
                     requiredFields={requiredGuestFields}
                     setRequiredFields={(newFields) =>
-                      setValue('settings.defaults.required_guest_fields', newFields, {
-                        shouldDirty: true,
-                      })
+                      setValue(
+                        'settings.defaults.required_guest_fields',
+                        newFields,
+                        {
+                          shouldDirty: true,
+                        },
+                      )
                     }
                     register={register}
                     setValue={setValue}
                     watch={watch}
                     purposeFieldName="settings.defaults.data_treatment_purpose"
-                    initialPurposeValue={profile.settings?.defaults?.data_treatment_purpose}
+                    initialPurposeValue={
+                      profile.settings?.defaults?.data_treatment_purpose
+                    }
                     toggleLabel="Habilitar cadastro de visitante por padrão"
                     showLayout="grid"
                     isEdit={true}

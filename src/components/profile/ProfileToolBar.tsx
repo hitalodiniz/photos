@@ -9,8 +9,7 @@ import {
   ChevronDown,
 } from 'lucide-react';
 import WhatsAppIcon from '@/components/ui/WhatsAppIcon';
-import { usePlan } from '@/hooks/usePlan';
-
+import { usePlan } from '@/core/context/PlanContext';
 interface PhotographerInfoBarProps {
   phone?: string;
   instagram?: string;

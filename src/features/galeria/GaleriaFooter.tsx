@@ -3,7 +3,7 @@
 import { GALLERY_MESSAGES } from '@/core/config/messages';
 import { Photographer } from '@/core/types/galeria';
 import { getCreatorProfileUrl } from '@/core/utils/url-helper';
-import { usePlan } from '@/hooks/usePlan';
+import { usePlan } from '@/core/context/PlanContext';
 import { Globe } from 'lucide-react';
 import React from 'react';
 

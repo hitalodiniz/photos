@@ -566,3 +566,92 @@ export async function updatePushSubscriptionAction(subscription: any) {
   revalidatePath('/dashboard/perfil');
   return { success: true };
 }
+
+/**
+ * 🎯 CENTRALIZADOR DE MUDANÇA DE PLANOS
+ * Válido para: Ativação pós-trial, Upgrade e Downgrade.
+ */
+export async function processSubscriptionAction(
+  profileId: string,
+  newPlan: PlanKey,
+) {
+  const supabase = await createSupabaseServerClient();
+
+  // 1. Busca username para invalidar tags de cache público
+  const { data: profile } = await supabase
+    .from('tb_profiles')
+    .select('username')
+    .eq('id', profileId)
+    .single();
+
+  // 2. Executa a mutação centralizada
+  const { data, error } = await supabase
+    .from('tb_profiles')
+    .update({
+      plan_key: newPlan,
+      is_trial: false, // 🛡️ SEMPRE desativa trial ao mudar de plano manualmente ou via pagamento
+      updated_at: new Date().toISOString(),
+    })
+    .eq('id', profileId)
+    .select()
+    .single();
+
+  if (error) {
+    console.error(
+      '[processSubscriptionAction] Erro na transição:',
+      error.message,
+    );
+    return { success: false, error: error.message };
+  }
+
+  // 3. 🔄 Invalidação em cascata (Garante que o app reflita a mudança na hora)
+  revalidateTag(`profile-private-${profileId}`);
+  if (profile?.username) {
+    revalidateTag(`profile-${profile.username}`);
+  }
+
+  // Força o Next.js a re-renderizar componentes de layout (Sidebar, Header)
+  revalidatePath('/dashboard', 'layout');
+
+  return { success: true, data };
+}
+
+/**
+ * 📝 REGISTRA LOG DE MUDANÇA DE PLANO
+ * Função auxiliar interna para auditoria.
+ */
+// async function logPlanChange(
+//   supabase: any,
+//   profileId: string,
+//   oldPlan: string,
+//   newPlan: string,
+//   reason: string,
+// ) {
+//   await supabase.from('tb_plan_history').insert({
+//     profile_id: profileId,
+//     old_plan: oldPlan,
+//     new_plan: newPlan,
+//     reason: reason,
+//     created_at: new Date().toISOString(),
+//   });
+// }
+
+// -- Criação da tabela de histórico de planos
+// CREATE TABLE IF NOT EXISTS public.tb_plan_history (
+//     id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+//     profile_id UUID NOT NULL REFERENCES public.tb_profiles(id) ON DELETE CASCADE,
+//     old_plan TEXT NOT NULL,
+//     new_plan TEXT NOT NULL,
+//     reason TEXT NOT NULL,
+//     created_at TIMESTAMPTZ NOT NULL DEFAULT now()
+// );
+
+// -- Índices para performance em consultas de auditoria por usuário
+// CREATE INDEX IF NOT EXISTS idx_plan_history_profile_id ON public.tb_plan_history(profile_id);
+
+// -- Habilitar RLS (Row Level Security) - Apenas leitura pelo dono do perfil
+// ALTER TABLE public.tb_plan_history ENABLE ROW LEVEL SECURITY;
+
+// CREATE POLICY "Usuários podem ver seu próprio histórico de planos"
+// ON public.tb_plan_history FOR SELECT
+// USING (auth.uid() = profile_id);

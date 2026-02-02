@@ -7,8 +7,7 @@ import { GALLERY_MESSAGES } from '@/core/config/messages';
 import InstagramIcon from '@/components/ui/InstagramIcon';
 import { getCreatorProfileUrl } from '@/core/utils/url-helper';
 import { Globe, User, MessageCircle } from 'lucide-react';
-import { usePlan } from '@/hooks/usePlan';
-
+import { usePlan } from '@/core/context/PlanContext';
 interface PhotographerAvatarProps {
   galeria: Galeria;
   position: 'top-page' | 'bottom-lightbox';

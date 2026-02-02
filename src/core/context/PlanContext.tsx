@@ -8,7 +8,6 @@ import {
   getPlansByDomain,
   PlanInfo,
 } from '@/core/config/plans';
-
 import { Profile } from '@/core/types/profile';
 
 interface PlanContextProps {
@@ -24,34 +23,55 @@ const PlanContext = createContext<PlanContextProps | undefined>(undefined);
 
 export function PlanProvider({
   children,
-  planKey = 'FREE',
+  planKey: fallbackKey = 'FREE',
   profile,
 }: {
   children: React.ReactNode;
-  planKey: PlanKey;
+  planKey?: PlanKey;
   profile?: Profile;
 }) {
+  /**
+   * 🎯 Determinação do Plano Efetivo
+   * Unifica a segurança de Trial e Assinatura em um único cálculo.
+   */
   const planToUse = useMemo(() => {
-    if (!profile) return planKey;
+    if (!profile) return fallbackKey as PlanKey;
 
-    if (
-      profile.is_trial &&
-      profile.plan_trial_expires &&
-      new Date(profile.plan_trial_expires) < new Date()
-    ) {
-      return 'FREE'; // Trial expirou, volta pro Free
+    // 1. Se NÃO é trial, o plano do banco é absoluto (Assinante ou Free manual)
+    if (!profile.is_trial) {
+      return (profile.plan_key || 'FREE') as PlanKey;
     }
-    return profile.plan_key || 'FREE';
-  }, [profile, planKey]);
 
+    // 2. Se É TRIAL, validação rigorosa de data
+    if (!profile.plan_trial_expires) {
+      return 'FREE'; // Bloqueia se a data estiver ausente
+    }
+
+    const expiresAt = new Date(profile.plan_trial_expires);
+    const now = new Date();
+
+    // Bloqueia se a data for inválida ou se já expirou (incluindo o exato momento agora)
+    if (isNaN(expiresAt.getTime()) || now >= expiresAt) {
+      return 'FREE';
+    }
+
+    // 3. Trial válido
+    return (profile.plan_key || 'FREE') as PlanKey;
+  }, [profile, fallbackKey]);
+
+  /**
+   * 💎 Geração dos valores do Contexto baseados no plano definido acima
+   */
   const value = useMemo(() => {
     const hostname =
       typeof window !== 'undefined' ? window.location.hostname : '';
     const domainConfig = getPlansByDomain(hostname);
 
-    const currentKey = (planToUse || planKey).toUpperCase() as PlanKey;
-    const permissions =
-      PERMISSIONS_BY_PLAN[currentKey] || PERMISSIONS_BY_PLAN.FREE;
+    // Proteção contra chaves inexistentes
+    const currentKey = (
+      PERMISSIONS_BY_PLAN[planToUse] ? planToUse : 'FREE'
+    ) as PlanKey;
+    const permissions = PERMISSIONS_BY_PLAN[currentKey];
     const planInfo = domainConfig.plans[currentKey];
 
     return {
@@ -62,10 +82,12 @@ export function PlanProvider({
       isPremium: currentKey === 'PREMIUM',
       canAddMore: (feature: keyof PlanPermissions, currentCount: number) => {
         const limit = permissions[feature];
-        return typeof limit === 'number' ? currentCount < limit : true;
+        if (typeof limit === 'number') return currentCount < limit;
+        if (limit === 'unlimited') return true;
+        return !!limit;
       },
     };
-  }, [planToUse, planKey]);
+  }, [planToUse]);
 
   return <PlanContext.Provider value={value}>{children}</PlanContext.Provider>;
 }

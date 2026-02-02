@@ -30,8 +30,7 @@ import BaseModal from '@/components/ui/BaseModal';
 import { fetchStates, fetchCitiesByState } from '@/core/utils/cidades-helpers';
 import { compressImage } from '@/core/utils/user-helpers';
 import { useNavigation } from '@/components/providers/NavigationProvider';
-import { usePlan } from '@/hooks/usePlan';
-
+import { usePlan } from '@/core/context/PlanContext';
 // 🎯 Componente de seção simples - Estilo Editorial
 const FormSection = ({
   title,

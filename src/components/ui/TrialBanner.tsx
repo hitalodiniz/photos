@@ -2,8 +2,7 @@
 import { Sparkles, Clock, ArrowRight } from 'lucide-react';
 
 import { differenceInDays, parseISO } from 'date-fns';
-import { usePlan } from '@/hooks/usePlan';
-
+import { usePlan } from '@/core/context/PlanContext';
 export default function TrialBanner() {
   const { planKey, profile } = usePlan();
 

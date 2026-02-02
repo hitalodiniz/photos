@@ -9,7 +9,7 @@ import {
   Tablet,
   Monitor,
 } from 'lucide-react';
-import { usePlan } from '@/hooks/usePlan';
+import { usePlan } from '@/core/context/PlanContext';
 import { PERMISSIONS_BY_PLAN } from '@/core/config/plans';
 import { PlanGuard } from '@/components/auth/PlanGuard';
 import UpgradeModal from '@/components/ui/UpgradeModal';
@@ -44,7 +44,10 @@ export const GalleryDesignFields: React.FC<GalleryDesignFieldsProps> = ({
   onBackgroundPhotoUrlChange,
   register,
 }) => {
-  const [upsellFeature, setUpsellFeature] = useState<{ label: string; feature: string } | null>(null);
+  const [upsellFeature, setUpsellFeature] = useState<{
+    label: string;
+    feature: string;
+  } | null>(null);
   const { planKey } = usePlan();
 
   // 🛡️ Oculta totalmente o componente nos planos FREE e START
@@ -187,7 +190,11 @@ export const GalleryDesignFields: React.FC<GalleryDesignFieldsProps> = ({
 
         <div className="flex items-center gap-1 h-full">
           {[
-            { k: 'mobile' as const, i: Smartphone, options: getFilteredOptions([1, 2, 3, 4]) },
+            {
+              k: 'mobile' as const,
+              i: Smartphone,
+              options: getFilteredOptions([1, 2, 3, 4]),
+            },
             { k: 'tablet' as const, i: Tablet, options: [2, 3, 4, 5, 6] },
             { k: 'desktop' as const, i: Monitor, options: [3, 4, 5, 6, 8] },
           ].map((d) => (

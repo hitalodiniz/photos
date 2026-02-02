@@ -1,7 +1,7 @@
 'use client';
 
 import { PlanPermissions } from '@/core/config/plans';
-import { usePlan } from '@/hooks/usePlan';
+import { usePlan } from '@/core/context/PlanContext';
 import { Lock } from 'lucide-react';
 
 interface PlanGuardProps {
@@ -27,27 +27,27 @@ export function PlanGuard({
   const hasAccess = (() => {
     const featureValue = permissions[feature];
 
-    // Lógica específica para 'customizationLevel'
+    // 1. Caso Numérico: Tem que ser maior que 0
+    if (typeof featureValue === 'number') return featureValue > 0;
+
+    // 2. Caso Booleano: Tem que ser true
+    if (typeof featureValue === 'boolean') return featureValue === true;
+
+    // 3. Casos Específicos de String (Enums de Nível)
     if (feature === 'customizationLevel') {
-      const userCustomizationLevel = featureValue as
-        | 'default'
-        | 'colors'
-        | 'full';
-      return (
-        userCustomizationLevel === 'colors' || userCustomizationLevel === 'full'
-      );
+      return ['colors', 'full'].includes(featureValue as string);
     }
 
-    // Lógica geral para outros tipos de features
-    if (typeof featureValue === 'number') {
-      return (featureValue as number) > 0;
+    if (feature === 'profileLevel') {
+      return ['standard', 'advanced', 'seo'].includes(featureValue as string);
     }
-    if (typeof featureValue === 'boolean') {
-      return featureValue === true;
-    }
-    // Para strings ou 'unlimited', assume true se não for 'default' (ou similar para strings)
-    // ou se for 'unlimited'
-    return true;
+
+    // 4. Fallback Seguro: Se for 'unlimited' permite, se for 'default' ou 'basic' bloqueia
+    if (featureValue === 'unlimited') return true;
+    if (['default', 'basic', 'minimal'].includes(featureValue as string))
+      return false;
+
+    return !!featureValue;
   })();
 
   if (!hasAccess && label && Icon) {

@@ -14,7 +14,7 @@ import SidebarGoogleDrive from './SidebarGoogleDrive';
 import SidebarAjuda from './SidebarAjuda';
 import SidebarAdmin from './SidebarAdmin';
 import { useSidebar } from '@/components/providers/SidebarProvider';
-import { usePlan } from '@/hooks/usePlan';
+import { usePlan } from '@/core/context/PlanContext';
 import { useState } from 'react';
 import UpgradeModal from '@/components/ui/UpgradeModal';
 

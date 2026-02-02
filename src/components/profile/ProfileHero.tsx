@@ -2,8 +2,7 @@
 import React, { useMemo } from 'react';
 import { User, Sparkles } from 'lucide-react';
 import Image from 'next/image';
-import { usePlan } from '@/hooks/usePlan';
-
+import { usePlan } from '@/core/context/PlanContext';
 interface ProfileBioProps {
   miniBio?: string;
   isExpanded: boolean;

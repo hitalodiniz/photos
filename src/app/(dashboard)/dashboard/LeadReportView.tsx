@@ -26,8 +26,7 @@ import { Galeria } from '@/core/types/galeria';
 import { useRouter } from 'next/navigation';
 import { GridBasePage } from '@/components/ui';
 import { normalizePhoneNumber } from '@/core/utils/masks-helpers';
-import { usePlan } from '@/hooks/usePlan';
-
+import { usePlan } from '@/core/context/PlanContext';
 interface LeadReportViewProps {
   galeria: Galeria;
 }

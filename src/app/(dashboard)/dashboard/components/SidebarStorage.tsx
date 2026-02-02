@@ -1,4 +1,4 @@
-import { usePlan } from '@/hooks/usePlan';
+import { usePlan } from '@/core/context/PlanContext';
 import { ArrowUpCircle, HardDrive } from 'lucide-react';
 
 interface SidebarStorageProps {
