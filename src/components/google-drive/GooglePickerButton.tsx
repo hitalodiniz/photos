@@ -6,7 +6,10 @@ import { getGoogleClientId } from '@/actions/google.actions';
 import { Loader2 } from 'lucide-react';
 
 interface GooglePickerProps {
-  onFolderSelect: (folderId: string, folderName: string) => void | Promise<void>;
+  onFolderSelect: (
+    folderId: string,
+    folderName: string,
+  ) => void | Promise<void>;
   currentDriveId: string | null;
   onError: (message: string) => void;
   onTokenExpired?: () => void; // Callback quando o token expirar/for revogado
@@ -104,7 +107,7 @@ export default function GooglePickerButton({
       const hasGapi = !!window.gapi;
       const hasGoogle = !!window.google;
       const hasPicker = !!(window.google && window.google.picker);
-      
+
       /* console.log('[GooglePickerButton] Verificando bibliotecas:', {
         hasGapi,
         hasGoogle,
@@ -140,7 +143,9 @@ export default function GooglePickerButton({
     const intervalId = setInterval(() => {
       if (isReadyToOpen || attempts >= 5) {
         if (attempts >= 5) {
-          console.warn('[GooglePickerButton] ⚠️ Máximo de tentativas atingido. Bibliotecas podem não estar carregadas.');
+          console.warn(
+            '[GooglePickerButton] ⚠️ Máximo de tentativas atingido. Bibliotecas podem não estar carregadas.',
+          );
         }
         clearInterval(intervalId);
         return;
@@ -166,7 +171,9 @@ export default function GooglePickerButton({
         hasGapi: !!window.gapi,
         origin: window.location.origin,
       });
-      onError('As bibliotecas do Google Drive não foram carregadas. Recarregue a página.');
+      onError(
+        'As bibliotecas do Google Drive não foram carregadas. Recarregue a página.',
+      );
       return;
     }
 
@@ -178,7 +185,7 @@ export default function GooglePickerButton({
     }); */
 
     setLoading(true);
-    
+
     // 🎯 Timeout de segurança: se demorar mais de 30s, cancela
     const timeoutId = setTimeout(() => {
       if (loadingRef.current) {
@@ -187,7 +194,7 @@ export default function GooglePickerButton({
         setLoading(false);
       }
     }, 30000);
-    
+
     try {
       // Busca o Client ID
       // console.log('[GooglePickerButton] Buscando Google Client ID...');
@@ -198,67 +205,82 @@ export default function GooglePickerButton({
         clientIdPreview: googleClientId ? `${googleClientId.substring(0, 20)}...` : 'null',
         origin: window.location.origin,
       }); */
-      
+
       if (!googleClientId) {
         console.error('[GooglePickerButton] ❌ Client ID não encontrado');
         clearTimeout(timeoutId);
-        onError('Configuração do Google não encontrada. Verifique NEXT_PUBLIC_GOOGLE_CLIENT_ID.');
+        onError(
+          'Configuração do Google não encontrada. Verifique NEXT_PUBLIC_GOOGLE_CLIENT_ID.',
+        );
         setLoading(false);
         return;
       }
 
       // Busca o token de autenticação com timeout
       // console.log('[GooglePickerButton] Buscando access token...');
-      
+
       // 🎯 Timeout específico para getAuthDetails (20 segundos - aumentado para dar mais tempo)
       let authDetails: any = null;
       let retryCount = 0;
       const maxRetries = 1;
-      
+
       while (retryCount <= maxRetries && !authDetails?.accessToken) {
         try {
           const tokenPromise = getAuthDetails();
-          const timeoutPromise = new Promise<{ accessToken: null; userId: null; timedOut: true }>((resolve) => {
+          const timeoutPromise = new Promise<{
+            accessToken: null;
+            userId: null;
+            timedOut: true;
+          }>((resolve) => {
             setTimeout(() => {
               if (retryCount === 0) {
-                console.warn('[GooglePickerButton] ⚠️ Timeout ao buscar access token (20s). Tentando novamente...');
+                console.warn(
+                  '[GooglePickerButton] ⚠️ Timeout ao buscar access token (20s). Tentando novamente...',
+                );
               } else {
-                console.error('[GooglePickerButton] ⚠️ Timeout ao buscar access token após retry (20s)');
+                console.error(
+                  '[GooglePickerButton] ⚠️ Timeout ao buscar access token após retry (20s)',
+                );
               }
               resolve({ accessToken: null, userId: null, timedOut: true });
             }, 20000); // Aumentado para 20 segundos
           });
-          
+
           authDetails = await Promise.race([tokenPromise, timeoutPromise]);
-          
+
           // Se obteve token ou não é timeout, para o loop
           if (authDetails?.accessToken || !authDetails?.timedOut) {
             break;
           }
-          
+
           // Se deu timeout e ainda temos tentativas, tenta novamente
           if (authDetails?.timedOut && retryCount < maxRetries) {
             retryCount++;
             // console.log(`[GooglePickerButton] Tentativa ${retryCount + 1} de ${maxRetries + 1}...`);
             // Aguarda um pouco antes de tentar novamente
-            await new Promise(resolve => setTimeout(resolve, 1000));
+            await new Promise((resolve) => setTimeout(resolve, 1000));
             continue;
           }
         } catch (error: any) {
-          console.error('[GooglePickerButton] ❌ Erro ao buscar auth details:', error);
+          console.error(
+            '[GooglePickerButton] ❌ Erro ao buscar auth details:',
+            error,
+          );
           // Se é o último retry, mostra erro
           if (retryCount >= maxRetries) {
-            onError('Erro ao verificar autenticação. Por favor, refaça o login.');
+            onError(
+              'Erro ao verificar autenticação. Por favor, refaça o login.',
+            );
             setLoading(false);
             return;
           }
           retryCount++;
-          await new Promise(resolve => setTimeout(resolve, 1000));
+          await new Promise((resolve) => setTimeout(resolve, 1000));
         }
       }
-      
+
       const { accessToken, timedOut } = authDetails || {};
-      
+
       /* console.log('[GooglePickerButton] Access token recebido:', {
         hasAccessToken: !!accessToken,
         tokenLength: accessToken?.length || 0,
@@ -271,13 +293,15 @@ export default function GooglePickerButton({
       // A API Key não é necessária aqui pois estamos acessando dados privados do usuário
       // O Google Picker requer access token OAuth válido, que só pode ser gerado com um refresh token válido
       if (!accessToken) {
-        let errorMessage = 'Token do Google não encontrado. Seu refresh token expirou ou foi revogado. Por favor, faça login novamente com Google para renovar o acesso ao Google Drive.';
-        
+        let errorMessage =
+          'Token do Google não encontrado. Seu refresh token expirou ou foi revogado. Por favor, faça login novamente com Google para renovar o acesso ao Google Drive.';
+
         // 🎯 Mensagem específica para timeout
         if (timedOut) {
-          errorMessage = 'Tempo de espera excedido ao buscar token do Google. Por favor, tente novamente ou refaça o login.';
+          errorMessage =
+            'Tempo de espera excedido ao buscar token do Google. Por favor, tente novamente ou refaça o login.';
         }
-        
+
         onError(errorMessage);
         // 🎯 Se há callback para token expirado, chama para abrir o modal de consent
         if (onTokenExpired && !timedOut) {
@@ -316,27 +340,38 @@ export default function GooglePickerButton({
           if (data.action === window.google.picker.Action.PICKED) {
             setLoading(true);
             const selectedItem = data.docs[0];
-            
+
             /* console.log('[GooglePickerButton] Item selecionado:', {
               id: selectedItem?.id,
               name: selectedItem?.name,
               mimeType: selectedItem?.mimeType,
             }); */
-            
+
             // 🎯 Componente "burro": apenas retorna o que foi selecionado
             // A validação será feita no componente pai
             if (selectedItem) {
               try {
                 // Se selecionou uma pasta, retorna diretamente
-                if (selectedItem.mimeType === 'application/vnd.google-apps.folder') {
-                  await onFolderSelectRef.current(selectedItem.id, selectedItem.name);
+                if (
+                  selectedItem.mimeType === 'application/vnd.google-apps.folder'
+                ) {
+                  await onFolderSelectRef.current(
+                    selectedItem.id,
+                    selectedItem.name,
+                  );
                 } else {
                   // Se selecionou um arquivo, retorna o ID do arquivo (o pai vai buscar a pasta)
                   // Por enquanto, retornamos o ID do arquivo e o nome
-                  await onFolderSelectRef.current(selectedItem.id, selectedItem.name);
+                  await onFolderSelectRef.current(
+                    selectedItem.id,
+                    selectedItem.name,
+                  );
                 }
               } catch (error) {
-                console.error('[GooglePickerButton] Erro ao processar seleção no componente pai:', error);
+                console.error(
+                  '[GooglePickerButton] Erro ao processar seleção no componente pai:',
+                  error,
+                );
               }
             }
           } else if (data.action === window.google.picker.Action.CANCEL) {
@@ -360,14 +395,18 @@ export default function GooglePickerButton({
         name: error?.name,
         origin: window.location.origin,
       });
-      
+
       clearTimeout(timeoutId);
-      
-      const errorMessage = error?.message || 'Falha ao iniciar seleção do Drive. Recarregue a página.';
-      
-      if (error?.message?.includes('AUTH_RECONNECT_REQUIRED') || 
-          error?.message?.includes('token') ||
-          error?.message?.includes('autenticação')) {
+
+      const errorMessage =
+        error?.message ||
+        'Falha ao iniciar seleção do Drive. Recarregue a página.';
+
+      if (
+        error?.message?.includes('AUTH_RECONNECT_REQUIRED') ||
+        error?.message?.includes('token') ||
+        error?.message?.includes('autenticação')
+      ) {
         onError('Erro de autenticação Google. Por favor, refaça o login.');
         // 🎯 Se há callback para token expirado, chama para abrir o modal de consent
         if (onTokenExpired) {
@@ -376,7 +415,7 @@ export default function GooglePickerButton({
       } else {
         onError(errorMessage);
       }
-      
+
       setLoading(false);
     }
   };
@@ -392,7 +431,7 @@ export default function GooglePickerButton({
       className={`
         /* Layout Compacto e Alinhamento */
         flex items-center justify-center h-9 px-4 rounded-[0.4rem] shrink-0
-        transition-all duration-300 text-[10px] font-semibold uppercase tracking-widest
+        transition-all duration-300 text-[10px] font-semibold uppercase tracking-luxury-widest
         border shadow-sm active:scale-[0.98]
         
         ${
@@ -424,7 +463,11 @@ export default function GooglePickerButton({
               d="M9 13h6m-3-3v6m-9 1V7a2 2 0 012-2h6l2 2h6a2 2 0 012 2v8a2 2 0 01-2 2H5a2 2 0 01-2-2z"
             />
           </svg>
-          <span>{hasSelected ? 'Alterar Pasta/Foto de capa' : 'Vincular pasta do Drive e foto de capa'}</span>
+          <span>
+            {hasSelected
+              ? 'Alterar Pasta/Foto de capa'
+              : 'Vincular pasta do Drive e foto de capa'}
+          </span>
         </div>
       )}
     </button>

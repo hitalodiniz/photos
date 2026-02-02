@@ -86,7 +86,7 @@ export default function Toast({ message, type, onClose }: ToastProps) {
                 {type === 'success' ? 'Sucesso' : 'Atenção'}
               </span>
 
-              <div className="text-[13px] md:text-[14px] leading-relaxed font-bold tracking-tight text-white/90 italic">
+              <div className="text-[13px] md:text-[14px] leading-relaxed font-bold tracking-luxury-tight text-white/90 italic">
                 {renderMessage(message)}
               </div>
             </div>

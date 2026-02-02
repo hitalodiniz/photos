@@ -52,7 +52,7 @@ export default function ExplorePage() {
       <header className="max-w-[1400px] mx-auto mb-12 mt-12">
         <div className="flex flex-col md:flex-row md:items-end justify-between gap-6">
           <div>
-            <h1 className="font-artistic text-5xl md:text-7xl mb-4 leading-tight">
+            <h1 className=" text-5xl md:text-7xl mb-4 leading-tight">
               Descubra <br /> <span className="text-champagne">Artistas</span>
             </h1>
             <p className="text-white/50 text-lg max-w-md italic">
@@ -88,7 +88,7 @@ export default function ExplorePage() {
           ].map((cat) => (
             <button
               key={cat}
-              className="px-6 py-2 rounded-xl border border-white/10 bg-white/5 hover:bg-champagne hover:text-black transition-all text-[10px] font-bold uppercase tracking-widest whitespace-nowrap"
+              className="px-6 py-2 rounded-xl border border-white/10 bg-white/5 hover:bg-champagne hover:text-black transition-all text-[10px] font-bold uppercase tracking-luxury-widest whitespace-nowrap"
             >
               {cat}
             </button>
@@ -115,7 +115,7 @@ export default function ExplorePage() {
 
             {/* Categoria */}
             <div className="absolute top-5 right-5 px-3 py-1 rounded-lg bg-black/40 backdrop-blur-md border border-white/10">
-              <span className="text-[9px] uppercase font-bold tracking-widest text-champagne">
+              <span className="text-[9px] uppercase font-bold tracking-luxury-widest text-champagne">
                 {pro.category}
               </span>
             </div>
@@ -131,12 +131,12 @@ export default function ExplorePage() {
                   />
                 </div>
                 <div className="flex flex-col min-w-0">
-                  <h3 className="font-artistic text-2xl text-white font-semibold leading-none truncate">
+                  <h3 className=" text-2xl text-white font-semibold leading-none truncate">
                     {pro.name}
                   </h3>
                   <div className="flex items-center gap-1 text-white/50 mt-1.5">
                     <MapPin size={12} className="text-champagne" />
-                    <span className="text-[10px] font-bold uppercase tracking-widest truncate">
+                    <span className="text-[10px] font-bold uppercase tracking-luxury-widest truncate">
                       {pro.mainCity}
                     </span>
                   </div>
@@ -145,7 +145,7 @@ export default function ExplorePage() {
 
               {/* Botão que aparece no Hover */}
               <div className="grid grid-cols-1 transition-all duration-500 max-h-0 opacity-0 group-hover:max-h-20 group-hover:opacity-100">
-                <div className="w-full py-3 mt-2 rounded-xl bg-white text-black font-bold text-[10px] uppercase tracking-widest flex items-center justify-center gap-2">
+                <div className="w-full py-3 mt-2 rounded-xl bg-white text-black font-bold text-[10px] uppercase tracking-luxury-widest flex items-center justify-center gap-2">
                   Ver Portfólio <ArrowUpRight size={14} />
                 </div>
               </div>

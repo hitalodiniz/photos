@@ -22,7 +22,7 @@ export default function TrustSeal({
         </div>
 
         {/* Mantive a tipografia exata: 11px, Medium, Tracking 0.2em */}
-        <span className="text-[11px] font-medium uppercase tracking-[0.2em] text-white/80 leading-none">
+        <span className="text-[11px] font-medium uppercase tracking-luxury-widest text-white/80 leading-none">
           {text}
         </span>
       </div>

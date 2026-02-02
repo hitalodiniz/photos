@@ -46,7 +46,8 @@ export const ToolbarGalleryView = ({
   isSingleView = false, // 🎯 Nova prop
   hasShownQualityWarning = false, // 🎯 Controlado pelo Lightbox
   onQualityWarningShown, // 🎯 Callback quando o tooltip é mostrado
-  handleShare,}: any) => {
+  handleShare,
+}: any) => {
   const [showQualityWarning, setShowQualityWarning] = useState(false);
   const [copied, setCopied] = useState(false);
   const [isDownloading, setIsDownloading] = useState(false);
@@ -100,7 +101,7 @@ export const ToolbarGalleryView = ({
     // console.log('[ToolbarGalleryView] ✅ Iniciando timers para mostrar tooltip (MOBILE)');
     hasTriggeredWarningRef.current = true; // Marca como acionado usando ref
     isMountedRef.current = true;
-    
+
     // Limpa timers anteriores se existirem (segurança)
     if (startTimerRef.current) {
       clearTimeout(startTimerRef.current);
@@ -108,7 +109,7 @@ export const ToolbarGalleryView = ({
     if (warningTimerRef.current) {
       clearTimeout(warningTimerRef.current);
     }
-    
+
     // Timer para mostrar o tooltip após 1 segundo
     startTimerRef.current = setTimeout(() => {
       // console.log('[ToolbarGalleryView] ⏰ Timer de início executado, isMounted:', isMountedRef.current, 'hasShown:', hasShownQualityWarningRef.current);
@@ -119,7 +120,7 @@ export const ToolbarGalleryView = ({
         // console.log('[ToolbarGalleryView] ⚠️ Não mostrando tooltip - componente desmontado ou já mostrado');
       }
     }, 1000);
-    
+
     // Timer para esconder o tooltip após 8 segundos
     warningTimerRef.current = setTimeout(() => {
       // console.log('[ToolbarGalleryView] ⏰ Timer de fim executado, isMounted:', isMountedRef.current);
@@ -147,7 +148,7 @@ export const ToolbarGalleryView = ({
   useEffect(() => {
     // Atualiza o ref quando o valor muda
     hasShownQualityWarningRef.current = hasShownQualityWarning;
-    
+
     // Se foi marcado como mostrado, esconde o tooltip imediatamente
     if (hasShownQualityWarning) {
       // console.log('[ToolbarGalleryView] ⚠️ hasShownQualityWarning mudou para true, escondendo tooltip');
@@ -217,13 +218,18 @@ export const ToolbarGalleryView = ({
   // 🎯 VERSÃO MOBILE: Barra fixa na parte inferior com botão de compartilhamento nativo
   if (isMobile) {
     return (
-      <div className="w-full flex items-center justify-around" data-mobile-toolbar>
+      <div
+        className="w-full flex items-center justify-around"
+        data-mobile-toolbar
+      >
         {/* 1. FAVORITAR */}
         {showClose && !isSingleView && (
           <button
             onClick={onToggleFavorite}
             className="flex-1 flex items-center justify-center py-3 active:scale-95 transition-all touch-manipulation"
-            aria-label={isFavorited ? 'Remover dos favoritos' : 'Adicionar aos favoritos'}
+            aria-label={
+              isFavorited ? 'Remover dos favoritos' : 'Adicionar aos favoritos'
+            }
           >
             <div
               className={`w-12 h-12 rounded-full flex items-center justify-center transition-all ${isFavorited ? 'bg-[#E67E70]' : 'bg-slate-200 dark:bg-white/10 active:bg-slate-800 dark:active:bg-white/20'}`}
@@ -231,7 +237,9 @@ export const ToolbarGalleryView = ({
               <Heart
                 fill={isFavorited ? 'white' : 'none'}
                 size={22}
-                className={isFavorited ? 'text-white' : 'text-black dark:text-white'}
+                className={
+                  isFavorited ? 'text-white' : 'text-black dark:text-white'
+                }
                 strokeWidth={2.5}
               />
             </div>
@@ -246,10 +254,20 @@ export const ToolbarGalleryView = ({
               onToggleThumbnails();
             }}
             className="flex-1 flex items-center justify-center py-3 active:scale-95 transition-all touch-manipulation"
-            aria-label={showThumbnails ? 'Ocultar miniaturas' : 'Mostrar miniaturas'}
+            aria-label={
+              showThumbnails ? 'Ocultar miniaturas' : 'Mostrar miniaturas'
+            }
           >
-            <div className={`w-12 h-12 rounded-full flex items-center justify-center transition-all ${showThumbnails ? 'bg-[#F3E5AB]' : 'bg-slate-200 dark:bg-white/10 active:bg-slate-800 dark:active:bg-white/20'}`}>
-              <SquareStack size={22} className={showThumbnails ? 'text-black' : 'text-black dark:text-white'} strokeWidth={2.5} />
+            <div
+              className={`w-12 h-12 rounded-full flex items-center justify-center transition-all ${showThumbnails ? 'bg-[#F3E5AB]' : 'bg-slate-200 dark:bg-white/10 active:bg-slate-800 dark:active:bg-white/20'}`}
+            >
+              <SquareStack
+                size={22}
+                className={
+                  showThumbnails ? 'text-black' : 'text-black dark:text-white'
+                }
+                strokeWidth={2.5}
+              />
             </div>
           </button>
         )}
@@ -261,7 +279,11 @@ export const ToolbarGalleryView = ({
           aria-label="Compartilhar foto"
         >
           <div className="w-12 h-12 rounded-full bg-slate-200 dark:bg-white/10 flex items-center justify-center active:bg-slate-300 dark:active:bg-white/20 transition-all">
-            <Share2 size={22} className="text-slate-700 dark:text-white" strokeWidth={2.5} />
+            <Share2
+              size={22}
+              className="text-slate-700 dark:text-white"
+              strokeWidth={2.5}
+            />
           </div>
         </button>
 
@@ -270,25 +292,36 @@ export const ToolbarGalleryView = ({
           <button
             onClick={onToggleSlideshow}
             className="flex-1 flex items-center justify-center py-3 active:scale-95 transition-all touch-manipulation"
-            aria-label={isSlideshowActive ? 'Pausar slideshow' : 'Iniciar slideshow'}
+            aria-label={
+              isSlideshowActive ? 'Pausar slideshow' : 'Iniciar slideshow'
+            }
           >
-            <div className={`w-12 h-12 rounded-full flex items-center justify-center transition-all ${isSlideshowActive ? 'bg-[#F3E5AB]' : 'bg-slate-200 dark:bg-white/10 active:bg-slate-800 dark:active:bg-white/20'}`}>
+            <div
+              className={`w-12 h-12 rounded-full flex items-center justify-center transition-all ${isSlideshowActive ? 'bg-[#F3E5AB]' : 'bg-slate-200 dark:bg-white/10 active:bg-slate-800 dark:active:bg-white/20'}`}
+            >
               {isSlideshowActive ? (
                 <Pause size={22} className="text-black" strokeWidth={2.5} />
               ) : (
-                <Play size={22} className="text-black dark:text-white" strokeWidth={2.5} />
+                <Play
+                  size={22}
+                  className="text-black dark:text-white"
+                  strokeWidth={2.5}
+                />
               )}
             </div>
           </button>
         )}
 
         {/* 5. DOWNLOAD */}
-        <div className="relative flex-1 flex items-center justify-center" style={{ overflow: 'visible' }}>
+        <div
+          className="relative flex-1 flex items-center justify-center"
+          style={{ overflow: 'visible' }}
+        >
           {showQualityWarning && (
-            <div 
+            <div
               data-quality-warning="true"
               className="absolute z-[10001] left-1/2 -translate-x-1/2"
-              style={{ 
+              style={{
                 pointerEvents: 'auto',
                 opacity: 1,
                 visibility: 'visible',
@@ -332,12 +365,12 @@ export const ToolbarGalleryView = ({
             >
               {/* Seta apontando para baixo - centralizada */}
               <div className="absolute top-full left-1/2 -translate-x-1/2 border-[6px] border-transparent border-t-[#F3E5AB] pointer-events-none" />
-              
+
               {/* Tooltip - Sem animações que causam piscar */}
-              <div 
+              <div
                 data-quality-warning="true"
                 className="bg-[#F3E5AB] shadow-2xl rounded-luxury border border-white/20 text-black relative w-ful pr-6"
-                style={{ 
+                style={{
                   pointerEvents: 'auto',
                   transform: 'translateZ(0)', // Força aceleração de hardware
                   opacity: 1,
@@ -372,7 +405,7 @@ export const ToolbarGalleryView = ({
                 }}
               >
                 <div className="flex justify-between items-center gap-2 mb-1.5">
-                  <span className="font-bold text-[10px] uppercase tracking-tighter flex-1 leading-tight">
+                  <span className="font-bold text-[10px] uppercase tracking-luxury-tight flex-1 leading-tight">
                     Alta Resolução Disponível
                   </span>
                   <button
@@ -391,7 +424,7 @@ export const ToolbarGalleryView = ({
                       e.stopPropagation();
                     }}
                     className="opacity-40 hover:opacity-100 active:opacity-100 cursor-pointer transition-opacity relative z-[10001] touch-manipulation shrink-0 flex items-center justify-center"
-                    style={{ 
+                    style={{
                       pointerEvents: 'auto',
                       minWidth: '32px',
                       minHeight: '32px',
@@ -414,7 +447,12 @@ export const ToolbarGalleryView = ({
             onClick={async () => {
               setIsDownloading(true);
               setShowQualityWarning(false);
-              await handleDownloadPhoto(galeria, photoId, activeIndex, photoName);
+              await handleDownloadPhoto(
+                galeria,
+                photoId,
+                activeIndex,
+                photoName,
+              );
               setIsDownloading(false);
             }}
             className="flex-1 flex items-center justify-center py-3 active:scale-95 transition-all touch-manipulation relative"
@@ -425,13 +463,29 @@ export const ToolbarGalleryView = ({
               {showQualityWarning && (
                 <div className="absolute -inset-1 rounded-full bg-[#F3E5AB] animate-ping opacity-80" />
               )}
-              <div className={`w-12 h-12 rounded-full flex items-center justify-center transition-all ${
-                showQualityWarning ? 'bg-[#F3E5AB]' : 'bg-slate-200 dark:bg-white/10 active:bg-slate-800 dark:active:bg-white/20'
-              }`}>
+              <div
+                className={`w-12 h-12 rounded-full flex items-center justify-center transition-all ${
+                  showQualityWarning
+                    ? 'bg-[#F3E5AB]'
+                    : 'bg-slate-200 dark:bg-white/10 active:bg-slate-800 dark:active:bg-white/20'
+                }`}
+              >
                 {isDownloading ? (
-                  <Loader2 className={`animate-spin ${showQualityWarning ? 'text-black' : 'text-black dark:text-white'}`} size={22} strokeWidth={2.5} />
+                  <Loader2
+                    className={`animate-spin ${showQualityWarning ? 'text-black' : 'text-black dark:text-white'}`}
+                    size={22}
+                    strokeWidth={2.5}
+                  />
                 ) : (
-                  <Download size={22} className={showQualityWarning ? 'text-black' : 'text-black dark:text-white'} strokeWidth={2.5} />
+                  <Download
+                    size={22}
+                    className={
+                      showQualityWarning
+                        ? 'text-black'
+                        : 'text-black dark:text-white'
+                    }
+                    strokeWidth={2.5}
+                  />
                 )}
               </div>
             </div>
@@ -450,8 +504,9 @@ export const ToolbarGalleryView = ({
               minHeight: '60px',
             }}
           >
-               <div 
-                 className="rounded-full bg-slate-200 dark:bg-white/10 flex items-center justify-center active:bg-slate-800 dark:active:bg-white/20 transition-all"       style={{
+            <div
+              className="rounded-full bg-slate-200 dark:bg-white/10 flex items-center justify-center active:bg-slate-800 dark:active:bg-white/20 transition-all"
+              style={{
                 // Área de toque de 60x60px para melhor usabilidade (acima do mínimo de 48x48px)
                 width: '60px',
                 height: '60px',
@@ -459,7 +514,11 @@ export const ToolbarGalleryView = ({
                 minHeight: '60px',
               }}
             >
-              <X size={26} className="text-black dark:text-white" strokeWidth={2.5} />
+              <X
+                size={26}
+                className="text-black dark:text-white"
+                strokeWidth={2.5}
+              />
             </div>
           </button>
         )}
@@ -475,43 +534,44 @@ export const ToolbarGalleryView = ({
       onMouseLeave={() => !isMobile && setIsExpanded(false)}
     >
       {/* 1. FAVORITAR */}
-      {showClose && !isSingleView && ( // para nao exibir na visualização unica de foto
-        <div className="relative">
-          <button
-            onClick={onToggleFavorite}
-            onMouseEnter={() => setActiveTooltip('fav')}
-            onMouseLeave={() => setActiveTooltip(null)}
-            className="flex items-center border-r border-white/10 pr-3 mx-1 shrink-0 group"
-          >
-            <div
-              className={`w-9 h-9 md:w-11 md:h-11 rounded-full flex items-center justify-center transition-all ${isFavorited ? 'bg-[#E67E70]' : 'bg-white/5 group-hover:bg-[#E67E70]'}`}
+      {showClose &&
+        !isSingleView && ( // para nao exibir na visualização unica de foto
+          <div className="relative">
+            <button
+              onClick={onToggleFavorite}
+              onMouseEnter={() => setActiveTooltip('fav')}
+              onMouseLeave={() => setActiveTooltip(null)}
+              className="flex items-center border-r border-white/10 pr-3 mx-1 shrink-0 group"
             >
-              <Heart
-                fill={isFavorited ? 'white' : 'none'}
-                size={18}
-                className="text-white"
+              <div
+                className={`w-9 h-9 md:w-11 md:h-11 rounded-full flex items-center justify-center transition-all ${isFavorited ? 'bg-[#E67E70]' : 'bg-white/5 group-hover:bg-[#E67E70]'}`}
+              >
+                <Heart
+                  fill={isFavorited ? 'white' : 'none'}
+                  size={18}
+                  className="text-white"
+                />
+              </div>
+              <div className={textContainerClass}>
+                <span className="text-[10px] md:text-[11px]  font-semibold uppercase tracking-wider mb-1 text-white">
+                  Favoritar
+                </span>
+                <span className="text-[9px] md:text-[10px]  opacity-80 text-white/70 whitespace-nowrap">
+                  {isFavorited ? 'Salvo' : 'Salvar foto'}
+                </span>
+              </div>
+            </button>
+            {activeTooltip === 'fav' && (
+              <Tooltip
+                text={
+                  isFavorited
+                    ? 'Remover dos favoritos'
+                    : 'Adicionar aos favoritos'
+                }
               />
-            </div>
-            <div className={textContainerClass}>
-              <span className="text-[10px] md:text-[11px]  font-semibold uppercase tracking-wider mb-1 text-white">
-                Favoritar
-              </span>
-              <span className="text-[9px] md:text-[10px]  opacity-80 text-white/70 whitespace-nowrap">
-                {isFavorited ? 'Salvo' : 'Salvar foto'}
-              </span>
-            </div>
-          </button>
-          {activeTooltip === 'fav' && (
-            <Tooltip
-              text={
-                isFavorited
-                  ? 'Remover dos favoritos'
-                  : 'Adicionar aos favoritos'
-              }
-            />
-          )}
-        </div>
-      )}
+            )}
+          </div>
+        )}
 
       {/* 2. WHATSAPP */}
       <div className="relative">
@@ -572,12 +632,10 @@ export const ToolbarGalleryView = ({
             onMouseLeave={() => setActiveTooltip(null)}
             className="flex items-center border-r border-white/10 pr-3 mx-1 shrink-0 group"
           >
-            <div className={`w-9 h-9 md:w-11 md:h-11 rounded-full flex items-center justify-center transition-all ${isSlideshowActive ? 'bg-[#F3E5AB] text-black' : 'bg-white/5 text-white group-hover:bg-white group-hover:text-black'}`}>
-              {isSlideshowActive ? (
-                <Pause size={18} />
-              ) : (
-                <Play size={18} />
-              )}
+            <div
+              className={`w-9 h-9 md:w-11 md:h-11 rounded-full flex items-center justify-center transition-all ${isSlideshowActive ? 'bg-[#F3E5AB] text-black' : 'bg-white/5 text-white group-hover:bg-white group-hover:text-black'}`}
+            >
+              {isSlideshowActive ? <Pause size={18} /> : <Play size={18} />}
             </div>
             <div className={textContainerClass}>
               <span className="text-[10px] md:text-[11px]  font-semibold uppercase tracking-wider mb-1 text-white">
@@ -589,7 +647,13 @@ export const ToolbarGalleryView = ({
             </div>
           </button>
           {activeTooltip === 'slideshow' && (
-            <Tooltip text={isSlideshowActive ? 'Pausar slideshow' : 'Iniciar slideshow automático'} />
+            <Tooltip
+              text={
+                isSlideshowActive
+                  ? 'Pausar slideshow'
+                  : 'Iniciar slideshow automático'
+              }
+            />
           )}
         </div>
       )}
@@ -606,7 +670,7 @@ export const ToolbarGalleryView = ({
 
             <div className="bg-[#F3E5AB] shadow-2xl rounded-2xl p-4 border border-white/20 text-black">
               <div className="flex justify-between items-center mb-1">
-                <span className="font-bold text-[11px] uppercase tracking-tighter">
+                <span className="font-bold text-[11px] uppercase tracking-luxury-tight">
                   Alta Resolução Disponível
                 </span>
                 <X
@@ -691,7 +755,11 @@ export const ToolbarGalleryView = ({
                 minHeight: isMobile ? '48px' : undefined,
               }}
             >
-              <X size={isMobile ? 22 : 18} strokeWidth={isMobile ? 2.5 : 2} className="text-white" />
+              <X
+                size={isMobile ? 22 : 18}
+                strokeWidth={isMobile ? 2.5 : 2}
+                className="text-white"
+              />
             </div>
             <div className={textContainerClass}>
               <span className="text-[10px] md:text-[11px]  font-semibold uppercase tracking-wider mb-1 text-white">

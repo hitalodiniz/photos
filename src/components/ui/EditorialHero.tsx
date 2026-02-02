@@ -151,7 +151,7 @@ export const EditorialHero = ({
 
             <div className="flex flex-col items-start min-w-0">
               <h1
-                className={`font-artistic font-semibold text-white transition-all duration-1000 leading-tight tracking-tight ${isExpanded ? 'text-3xl md:text-6xl' : 'text-2xl md:text-4xl'}`}
+                className={` font-semibold text-white transition-all duration-1000 leading-tight tracking-luxury-tight ${isExpanded ? 'text-3xl md:text-6xl' : 'text-2xl md:text-4xl'}`}
               >
                 {title}
               </h1>

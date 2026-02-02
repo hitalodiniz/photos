@@ -50,7 +50,7 @@ export default function LoadingScreen({
         <div
           className={`mb-12 transition-transform duration-1000 ${fadeOut ? '-translate-y-4' : 'translate-y-0'}`}
         >
-          <h2 className="text-[10px] font-medium uppercase tracking-widest text-champagne text-center">
+          <h2 className="text-[10px] font-medium uppercase tracking-luxury-widest text-champagne text-center">
             {SEO_CONFIG.brandName}
           </h2>
         </div>
@@ -64,7 +64,7 @@ export default function LoadingScreen({
         <div
           className={`mt-12 flex flex-col items-center gap-8 transition-transform duration-1000 ${fadeOut ? 'translate-y-4' : 'translate-y-0'}`}
         >
-          <p className="text-[10px] font-light uppercase tracking-widest text-champagne text-center px-8 italic">
+          <p className="text-[10px] font-light uppercase tracking-luxury-widest text-champagne text-center px-8 italic">
             {message}
           </p>
         </div>

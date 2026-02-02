@@ -2,7 +2,10 @@
 
 import { useState, useEffect } from 'react';
 import { purgeAllCache } from '@/actions/revalidate.actions';
-import { quickCleanupTokens, fullCleanupTokens } from '@/actions/token-cleanup.actions';
+import {
+  quickCleanupTokens,
+  fullCleanupTokens,
+} from '@/actions/token-cleanup.actions';
 import { Trash2, ShieldAlert, Zap, RefreshCw, Database } from 'lucide-react';
 
 import BaseModal from '@/components/ui/BaseModal';
@@ -31,7 +34,7 @@ export default function AdminControlModal({
     <div className="flex bg-petroleum border-b border-white/10">
       <button
         onClick={() => setActiveTab('cache')}
-        className={`flex-1 py-3 text-[10px] font-bold uppercase tracking-widest transition-colors ${
+        className={`flex-1 py-3 text-[10px] font-bold uppercase tracking-luxury-widest transition-colors ${
           activeTab === 'cache'
             ? 'text-champagneborder-b-2 border-[#D4AF37]'
             : 'text-white/60 hover:text-white'
@@ -41,7 +44,7 @@ export default function AdminControlModal({
       </button>
       <button
         onClick={() => setActiveTab('tokens')}
-        className={`flex-1 py-3 text-[10px] font-bold uppercase tracking-widest transition-colors ${
+        className={`flex-1 py-3 text-[10px] font-bold uppercase tracking-luxury-widest transition-colors ${
           activeTab === 'tokens'
             ? 'text-champagneborder-b-2 border-[#D4AF37]'
             : 'text-white/60 hover:text-white'
@@ -70,7 +73,9 @@ export default function AdminControlModal({
               <Zap size={24} strokeWidth={2.5} fill="currentColor" />
             </div>
             <div>
-              <h3 className="text-base font-semibold text-petroleum">Limpeza de Cache</h3>
+              <h3 className="text-base font-semibold text-petroleum">
+                Limpeza de Cache
+              </h3>
               <p className="text-[10px] text-petroleum/40 mt-1 leading-relaxed font-bold uppercase tracking-luxury">
                 Esta ação removerá o cache de todas as galerias.
               </p>
@@ -90,10 +95,11 @@ export default function AdminControlModal({
                 }
               }}
               disabled={isSyncing}
-              className={`w-full h-11 rounded-luxury font-bold uppercase tracking-widest text-[10px] flex items-center justify-center gap-3 transition-all
-                ${isSyncing 
-                  ? 'bg-slate-100 text-petroleum/40 cursor-not-allowed' 
-                  : 'bg-champagne text-petroleum hover:bg-petroleum hover:text-white active:scale-95 shadow-lg shadow-champagne/10'
+              className={`w-full h-11 rounded-luxury font-bold uppercase tracking-luxury-widest text-[10px] flex items-center justify-center gap-3 transition-all
+                ${
+                  isSyncing
+                    ? 'bg-slate-100 text-petroleum/40 cursor-not-allowed'
+                    : 'bg-champagne text-petroleum hover:bg-petroleum hover:text-white active:scale-95 shadow-lg shadow-champagne/10'
                 }
               `}
             >
@@ -112,7 +118,9 @@ export default function AdminControlModal({
               </div>
             </div>
             <div className="text-center">
-              <h3 className="text-base font-semibold text-petroleum">Tokens Google</h3>
+              <h3 className="text-base font-semibold text-petroleum">
+                Tokens Google
+              </h3>
               <p className="text-[10px] text-petroleum/40 mt-1 leading-relaxed font-bold uppercase tracking-luxury">
                 Gerenciamento de tokens do banco de dados.
               </p>
@@ -127,24 +135,29 @@ export default function AdminControlModal({
                   if (result.success) {
                     alert(
                       `✅ Limpeza concluída!\n\n` +
-                      `• ${result.cleaned} token(s) removido(s)\n` +
-                      `• ${result.validated} token(s) validado(s)\n` +
-                      `• ${result.failed} erro(s)\n\n` +
-                      result.message
+                        `• ${result.cleaned} token(s) removido(s)\n` +
+                        `• ${result.validated} token(s) validado(s)\n` +
+                        `• ${result.failed} erro(s)\n\n` +
+                        result.message,
                     );
                   } else {
                     alert(`❌ Erro: ${result.message}`);
                   }
                 }}
                 disabled={isCleaningTokens}
-                className={`w-full h-10 rounded-luxury font-bold uppercase tracking-widest text-[10px] flex items-center justify-center gap-3 transition-all
-                  ${isCleaningTokens 
-                    ? 'bg-slate-100 text-petroleum/40 cursor-not-allowed' 
-                    : 'bg-champagne text-petroleum hover:bg-petroleum hover:text-white active:scale-95'
+                className={`w-full h-10 rounded-luxury font-bold uppercase tracking-luxury-widest text-[10px] flex items-center justify-center gap-3 transition-all
+                  ${
+                    isCleaningTokens
+                      ? 'bg-slate-100 text-petroleum/40 cursor-not-allowed'
+                      : 'bg-champagne text-petroleum hover:bg-petroleum hover:text-white active:scale-95'
                   }
                 `}
               >
-                <RefreshCw size={14} strokeWidth={2.5} className={isCleaningTokens ? 'animate-spin' : ''} />
+                <RefreshCw
+                  size={14}
+                  strokeWidth={2.5}
+                  className={isCleaningTokens ? 'animate-spin' : ''}
+                />
                 {isCleaningTokens ? 'Processando...' : 'Limpeza Rápida'}
               </button>
 
@@ -158,31 +171,37 @@ export default function AdminControlModal({
                   if (result.success) {
                     alert(
                       `✅ Limpeza completa concluída!\n\n` +
-                      `• ${result.cleaned} token(s) removido(s)\n` +
-                      `• ${result.validated} token(s) validado(s)\n` +
-                      `• ${result.failed} erro(s)\n\n` +
-                      result.message
+                        `• ${result.cleaned} token(s) removido(s)\n` +
+                        `• ${result.validated} token(s) validado(s)\n` +
+                        `• ${result.failed} erro(s)\n\n` +
+                        result.message,
                     );
                   } else {
                     alert(`❌ Erro: ${result.message}`);
                   }
                 }}
                 disabled={isCleaningTokens}
-                className={`w-full h-11 rounded-luxury font-bold uppercase tracking-widest text-[10px] flex items-center justify-center gap-3 transition-all
-                  ${isCleaningTokens 
-                    ? 'bg-slate-100 text-petroleum/40 cursor-not-allowed' 
-                    : 'bg-champagne text-petroleum hover:bg-petroleum hover:text-white active:scale-95 shadow-lg shadow-champagne/10'
+                className={`w-full h-11 rounded-luxury font-bold uppercase tracking-luxury-widest text-[10px] flex items-center justify-center gap-3 transition-all
+                  ${
+                    isCleaningTokens
+                      ? 'bg-slate-100 text-petroleum/40 cursor-not-allowed'
+                      : 'bg-champagne text-petroleum hover:bg-petroleum hover:text-white active:scale-95 shadow-lg shadow-champagne/10'
                   }
                 `}
               >
-                <RefreshCw size={14} strokeWidth={2.5} className={isCleaningTokens ? 'animate-spin' : ''} />
+                <RefreshCw
+                  size={14}
+                  strokeWidth={2.5}
+                  className={isCleaningTokens ? 'animate-spin' : ''}
+                />
                 {isCleaningTokens ? 'Validando...' : 'Limpeza Completa'}
               </button>
             </div>
 
             <div className="pt-3 border-t border-petroleum/10">
               <p className="text-[8px] text-petroleum/30 text-center leading-relaxed font-bold uppercase tracking-luxury">
-                <strong className="text-petroleum/40">Rápida:</strong> Veloz • <strong className="text-petroleum/40">Completa:</strong> Lento
+                <strong className="text-petroleum/40">Rápida:</strong> Veloz •{' '}
+                <strong className="text-petroleum/40">Completa:</strong> Lento
               </p>
             </div>
           </div>

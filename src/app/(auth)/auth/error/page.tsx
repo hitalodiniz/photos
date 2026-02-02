@@ -51,7 +51,7 @@ export default function AuthErrorPage() {
         <motion.div whileHover={{ scale: 1.03 }} whileTap={{ scale: 0.97 }}>
           <Link
             href="/"
-            className="inline-block w-full bg-gold text-black py-3 rounded-lg text-[10px] font-semibold uppercase tracking-widest hover:bg-gold/90 transition-colors"
+            className="inline-block w-full bg-gold text-black py-3 rounded-lg text-[10px] font-semibold uppercase tracking-luxury-widest hover:bg-gold/90 transition-colors"
           >
             Tentar novamente
           </Link>
@@ -60,7 +60,7 @@ export default function AuthErrorPage() {
         {/* Link para home */}
         <Link
           href="/"
-          className="block mt-4 text-[10px] text-slate-600 uppercase tracking-widest hover:text-gold transition-colors"
+          className="block mt-4 text-[10px] text-slate-600 uppercase tracking-luxury-widest hover:text-gold transition-colors"
         >
           Voltar para a página inicial
         </Link>

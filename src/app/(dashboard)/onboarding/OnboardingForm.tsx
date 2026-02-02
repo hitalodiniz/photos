@@ -236,7 +236,7 @@ export default function OnboardingForm({
                     <Sparkles size={14} />
                   </div>
                   <div>
-                    <p className="text-[10px] font-bold uppercase tracking-widest text-petroleum">
+                    <p className="text-[10px] font-bold uppercase tracking-luxury-widest text-petroleum">
                       Período de Degustação Ativo
                     </p>
                     <p className="text-[9px] text-petroleum/60 uppercase">
@@ -244,7 +244,7 @@ export default function OnboardingForm({
                     </p>
                   </div>
                 </div>
-                <button className="text-[9px] font-bold text-gold underline tracking-widest uppercase">
+                <button className="text-[9px] font-bold text-gold underline tracking-luxury-widest uppercase">
                   Assinar Agora
                 </button>
               </div>

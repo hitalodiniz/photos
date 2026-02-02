@@ -65,7 +65,7 @@ const FormSection = ({
       <div className="flex items-center gap-2">
         {icon && <div className="text-petroleum">{icon}</div>}{' '}
         {/* Ícones agora em Gold */}
-        <h3 className="text-[10px] font-bold uppercase tracking-widest text-petroleum dark:text-slate-700">
+        <h3 className="text-[10px] font-bold uppercase tracking-luxury-widest text-petroleum dark:text-slate-700">
           {title}
         </h3>
         {subtitle && (
@@ -523,7 +523,7 @@ export default function GaleriaFormContent({
             <fieldset>
               <div className="grid grid-cols-1 md:grid-cols-12 gap-2 items-end">
                 <div className="md:col-span-3 ">
-                  <label className="text-[10px] font-semibold uppercase tracking-widest text-petroleum">
+                  <label className="text-[10px] font-semibold uppercase tracking-luxury-widest text-petroleum">
                     <Briefcase
                       size={12}
                       strokeWidth={2}
@@ -541,7 +541,7 @@ export default function GaleriaFormContent({
                         profile?.settings?.display?.show_contract_type === false
                       }
                       onClick={() => setHasContractingClient(true)}
-                      className={`relative z-10 flex-1 text-[10px] font-semibold uppercase tracking-widest transition-colors ${hasContractingClient ? 'text-black' : 'text-petroleum/60 dark:text-slate-400'}`}
+                      className={`relative z-10 flex-1 text-[10px] font-semibold uppercase tracking-luxury-widest transition-colors ${hasContractingClient ? 'text-black' : 'text-petroleum/60 dark:text-slate-400'}`}
                     >
                       Contrato
                     </button>
@@ -551,7 +551,7 @@ export default function GaleriaFormContent({
                         setHasContractingClient(false);
                         setIsPublic(true);
                       }}
-                      className={`relative z-10 flex-1 text-[10px] font-semibold uppercase tracking-widest transition-colors ${!hasContractingClient ? 'text-black' : 'text-petroleum/60 dark:text-slate-400'}`}
+                      className={`relative z-10 flex-1 text-[10px] font-semibold uppercase tracking-luxury-widest transition-colors ${!hasContractingClient ? 'text-black' : 'text-petroleum/60 dark:text-slate-400'}`}
                     >
                       Cobertura
                     </button>
@@ -560,7 +560,7 @@ export default function GaleriaFormContent({
                 {hasContractingClient ? (
                   <>
                     <div className="md:col-span-6 space-y-1.5 animate-in slide-in-from-left-2">
-                      <label className="text-[10px] font-semibold uppercase tracking-widest text-petroleum">
+                      <label className="text-[10px] font-semibold uppercase tracking-luxury-widest text-petroleum">
                         <User
                           size={12}
                           strokeWidth={2}
@@ -577,7 +577,7 @@ export default function GaleriaFormContent({
                       />
                     </div>
                     <div className="md:col-span-3 space-y-1.5">
-                      <label className="text-[10px] font-semibold uppercase tracking-widest text-petroleum">
+                      <label className="text-[10px] font-semibold uppercase tracking-luxury-widest text-petroleum">
                         <WhatsAppIcon className="w-3 h-3 inline mr-1.5" />{' '}
                         WhatsApp
                       </label>
@@ -592,7 +592,7 @@ export default function GaleriaFormContent({
                   </>
                 ) : (
                   <div className="md:col-span-9 h-10 flex items-center px-4 bg-slate-50 border border-dashed border-slate-200 rounded-luxury">
-                    <p className="text-[10px] font-semibold uppercase tracking-widest text-petroleum/60 dark:text-slate-400 italic">
+                    <p className="text-[10px] font-semibold uppercase tracking-luxury-widest text-petroleum/60 dark:text-slate-400 italic">
                       Identificação de cliente opcional em coberturas.
                     </p>
                   </div>
@@ -611,7 +611,7 @@ export default function GaleriaFormContent({
             {/* Detalhes da Galeria - Primeira Linha */}
             <div className="grid grid-cols-1 md:grid-cols-12 gap-3 items-end mb-3">
               <div className="md:col-span-6 space-y-1.5">
-                <label className="text-[10px] font-semibold uppercase tracking-widest text-petroleum">
+                <label className="text-[10px] font-semibold uppercase tracking-luxury-widest text-petroleum">
                   <Type size={12} strokeWidth={2} className="inline mr-1.5" />{' '}
                   Título
                 </label>
@@ -628,7 +628,7 @@ export default function GaleriaFormContent({
                 />
               </div>
               <div className="md:col-span-6 space-y-1.5">
-                <label className="text-[10px] font-semibold uppercase tracking-widest text-petroleum">
+                <label className="text-[10px] font-semibold uppercase tracking-luxury-widest text-petroleum">
                   <Tag size={12} strokeWidth={2} className="inline mr-1.5" />{' '}
                   Categoria
                 </label>
@@ -643,7 +643,7 @@ export default function GaleriaFormContent({
             {/* Segunda Linha */}
             <div className="grid grid-cols-1 md:grid-cols-12 gap-3 items-end mb-3">
               <div className="md:col-span-6 space-y-1.5">
-                <label className="text-[10px] font-semibold uppercase tracking-widest text-petroleum">
+                <label className="text-[10px] font-semibold uppercase tracking-luxury-widest text-petroleum">
                   <Calendar
                     size={12}
                     strokeWidth={2}
@@ -660,7 +660,7 @@ export default function GaleriaFormContent({
                 />
               </div>
               <div className="md:col-span-6 space-y-1.5">
-                <label className="text-[10px] font-semibold uppercase tracking-widest text-petroleum">
+                <label className="text-[10px] font-semibold uppercase tracking-luxury-widest text-petroleum">
                   <MapPin size={12} strokeWidth={2} className="inline mr-1.5" />{' '}
                   Local
                 </label>
@@ -682,7 +682,7 @@ export default function GaleriaFormContent({
               {/* ACESSO */}
               <div className="flex flex-col sm:flex-row items-start sm:items-center gap-3">
                 <div className="flex items-center gap-1.5 shrink-0">
-                  <label className="text-[10px] font-semibold uppercase tracking-widest text-petroleum">
+                  <label className="text-[10px] font-semibold uppercase tracking-luxury-widest text-petroleum">
                     <Lock size={12} className="inline mr-1.5" /> Acesso à
                     Galeria
                   </label>
@@ -708,14 +708,14 @@ export default function GaleriaFormContent({
                     <button
                       type="button"
                       onClick={() => setIsPublic(true)}
-                      className={`flex-1 py-1 rounded-[0.3rem] text-[10px] font-semibold uppercase tracking-widest transition-all ${isPublic ? 'bg-champagne  shadow-sm' : 'text-slate-400'}`}
+                      className={`flex-1 py-1 rounded-[0.3rem] text-[10px] font-semibold uppercase tracking-luxury-widest transition-all ${isPublic ? 'bg-champagne  shadow-sm' : 'text-slate-400'}`}
                     >
                       Público
                     </button>
                     <button
                       type="button"
                       onClick={() => setIsPublic(false)}
-                      className={`flex-1 py-1 rounded-[0.3rem] text-[10px] font-semibold uppercase tracking-widest transition-all ${!isPublic ? 'bg-champagne  shadow-sm' : 'text-petroleum/60 dark:text-slate-400'}`}
+                      className={`flex-1 py-1 rounded-[0.3rem] text-[10px] font-semibold uppercase tracking-luxury-widest transition-all ${!isPublic ? 'bg-champagne  shadow-sm' : 'text-petroleum/60 dark:text-slate-400'}`}
                     >
                       Privado
                     </button>
@@ -745,7 +745,7 @@ export default function GaleriaFormContent({
                         minLength={4}
                         maxLength={8}
                         defaultValue={initialData?.password || ''}
-                        className="w-full pl-3 pr-10 h-9 bg-white border border-champagne rounded-[0.4rem] text-xs font-medium tracking-[0.2em] outline-none focus:border-gold shadow-sm"
+                        className="w-full pl-3 pr-10 h-9 bg-white border border-champagne rounded-[0.4rem] text-xs font-medium tracking-luxury-widest outline-none focus:border-gold shadow-sm"
                         required
                         placeholder="Senha"
                         onChange={(e) => {
@@ -778,7 +778,7 @@ export default function GaleriaFormContent({
               >
                 <div className="flex flex-col sm:flex-row items-start sm:items-center gap-3">
                   <div className="flex items-center gap-1.5 shrink-0">
-                    <label className="text-[10px] font-semibold uppercase tracking-widest text-petroleum">
+                    <label className="text-[10px] font-semibold uppercase tracking-luxury-widest text-petroleum">
                       <Eye size={12} className=" inline mr-1.5" /> Listar no
                       Perfil
                     </label>
@@ -892,7 +892,7 @@ export default function GaleriaFormContent({
         <div className="bg-white rounded-luxury border border-petroleum/40 p-4 space-y-3">
           <div className="flex items-center gap-2 pb-2 border-b border-petroleum/40">
             <Download size={14} className="text-gold" />
-            <h3 className="text-[10px] font-bold uppercase tracking-widest text-petroleum">
+            <h3 className="text-[10px] font-bold uppercase tracking-luxury-widest text-petroleum">
               links e arquivos de entrega
             </h3>
           </div>
@@ -912,7 +912,7 @@ export default function GaleriaFormContent({
                   className="p-3 bg-slate-50/50 rounded-luxury border border-petroleum/10 space-y-2 animate-in fade-in slide-in-from-right-2 duration-300"
                 >
                   <div className="flex items-center justify-between">
-                    <span className="text-[10px] font-semibold text-petroleum uppercase tracking-widest">
+                    <span className="text-[10px] font-semibold text-petroleum uppercase tracking-luxury-widest">
                       recurso #{index + 1}
                     </span>
                     <button

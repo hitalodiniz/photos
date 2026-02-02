@@ -17,7 +17,7 @@ export default function Footer() {
         <div className="flex flex-col items-center md:items-start gap-1">
           <div className="flex items-center gap-2">
             <Camera className="w-5 h-5 text-[#F3E5AB]" />
-            <span className="font-artistic text-[16px] font-semibold text-white italic">
+            <span className=" text-[16px] font-semibold text-white italic">
               Sua Galeria
             </span>
           </div>

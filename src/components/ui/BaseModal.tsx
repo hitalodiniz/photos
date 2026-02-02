@@ -102,7 +102,7 @@ export default function BaseModal({
               <div className="text-gold scale-90">{headerIcon}</div>
             )}
             <div>
-              <h2 className="text-sm text-white font-bold uppercase tracking-widest leading-none">
+              <h2 className="text-sm text-white font-bold uppercase tracking-luxury-widest leading-none">
                 {title}
               </h2>
               {subtitle && (

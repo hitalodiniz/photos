@@ -95,7 +95,7 @@ export default function EditorialHeader({
               className="group-hover:scale-110 transition-transform"
             />
 
-            <span className="text-[10px] font-semibold tracking-[0.2em] uppercase">
+            <span className="text-[10px] font-semibold tracking-luxury-widest uppercase">
               Início
             </span>
           </button>
@@ -111,7 +111,7 @@ export default function EditorialHeader({
         >
           {/* Título e Ícone em Linha */}
           <div className="flex flex-col mb-4 w-full">
-            <h1 className="font-artistic font-semibold text-white leading-tight tracking-normal flex items-center gap-4 drop-shadow-[0_2px_15px_rgba(0,0,0,0.8)] text-2xl md:text-5xl italic">
+            <h1 className=" font-semibold text-white leading-tight tracking-luxury-normal flex items-center gap-4 drop-shadow-[0_2px_15px_rgba(0,0,0,0.8)] text-2xl md:text-5xl italic">
               <a href="/">
                 <Camera
                   className="text-[#F3E5AB] shrink-0 w-8 h-8 md:w-14 md:h-14 drop-shadow-md"
@@ -127,7 +127,7 @@ export default function EditorialHeader({
 
           {/* Subtítulo */}
           {subtitle && (
-            <div className="text-[12px] md:text-[18px] text-white/90 tracking-[0.05em] font-medium max-w-2xl leading-relaxed italic animate-in fade-in duration-1000 delay-500">
+            <div className="text-[12px] md:text-[18px] text-white/90 tracking-luxury-widest font-medium max-w-2xl leading-relaxed italic animate-in fade-in duration-1000 delay-500">
               {subtitle}
             </div>
           )}

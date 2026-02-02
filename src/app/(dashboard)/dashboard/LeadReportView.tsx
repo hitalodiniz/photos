@@ -134,7 +134,7 @@ export default function LeadReportView({ galeria }: LeadReportViewProps) {
       <GridBasePage onBack={() => router.back()}>
         <div className="flex flex-col items-center justify-center py-20 gap-4">
           <Loader2 className="w-10 h-10 text-gold animate-spin" />
-          <p className="text-[10px] font-bold uppercase tracking-widest text-petroleum/60">
+          <p className="text-[10px] font-bold uppercase tracking-luxury-widest text-petroleum/60">
             Verificando permssões...
           </p>
         </div>
@@ -151,7 +151,7 @@ export default function LeadReportView({ galeria }: LeadReportViewProps) {
             <Lock size={40} className="text-petroleum" />
           </div>
 
-          <h2 className="text-xl font-bold text-petroleum uppercase tracking-widest mb-4">
+          <h2 className="text-xl font-bold text-petroleum uppercase tracking-luxury-widest mb-4">
             Dados Protegidos
           </h2>
 
@@ -196,10 +196,10 @@ export default function LeadReportView({ galeria }: LeadReportViewProps) {
         <div className="flex flex-col lg:flex-row lg:items-center justify-between gap-3">
           {/* Título da Galeria */}
           <div className="flex flex-col gap-1 min-w-0">
-            <h1 className="text-white text-sm font-semibold uppercase tracking-widest truncate">
+            <h1 className="text-white text-sm font-semibold uppercase tracking-luxury-widest truncate">
               {galeria.title}
             </h1>
-            <p className="text-white/80 text-[10px] uppercase tracking-widest font-medium">
+            <p className="text-white/80 text-[10px] uppercase tracking-luxury-widest font-medium">
               Relatório de Visitantes da Galeria
             </p>
           </div>
@@ -251,7 +251,7 @@ export default function LeadReportView({ galeria }: LeadReportViewProps) {
       {loading ? (
         <div className="flex flex-col items-center justify-center py-20 gap-4">
           <div className="loading-luxury-dark w-10 h-10" />
-          <p className="text-sm text-petroleum/60 uppercase tracking-widest font-semibold">
+          <p className="text-sm text-petroleum/60 uppercase tracking-luxury-widest font-semibold">
             Carregando leads...
           </p>
         </div>
@@ -262,7 +262,7 @@ export default function LeadReportView({ galeria }: LeadReportViewProps) {
               <thead>
                 <tr className="bg-petroleum/5 border-b border-petroleum/10">
                   <th
-                    className="px-4 py-3 text-[11px] font-semibold uppercase tracking-widest text-petroleum/90 cursor-pointer hover:text-petroleum transition-colors"
+                    className="px-4 py-3 text-[11px] font-semibold uppercase tracking-luxury-widest text-petroleum/90 cursor-pointer hover:text-petroleum transition-colors"
                     onClick={() => handleSort('name')}
                   >
                     <div className="flex items-center gap-2">
@@ -270,7 +270,7 @@ export default function LeadReportView({ galeria }: LeadReportViewProps) {
                     </div>
                   </th>
                   <th
-                    className="px-4 py-3 text-[11px] font-semibold uppercase tracking-widest text-petroleum/90 cursor-pointer hover:text-petroleum transition-colors"
+                    className="px-4 py-3 text-[11px] font-semibold uppercase tracking-luxury-widest text-petroleum/90 cursor-pointer hover:text-petroleum transition-colors"
                     onClick={() => handleSort('email')}
                   >
                     <div className="flex items-center gap-2">
@@ -278,7 +278,7 @@ export default function LeadReportView({ galeria }: LeadReportViewProps) {
                     </div>
                   </th>
                   <th
-                    className="px-4 py-3 text-[11px] font-semibold uppercase tracking-widest text-petroleum/90 cursor-pointer hover:text-petroleum transition-colors"
+                    className="px-4 py-3 text-[11px] font-semibold uppercase tracking-luxury-widest text-petroleum/90 cursor-pointer hover:text-petroleum transition-colors"
                     onClick={() => handleSort('whatsapp')}
                   >
                     <div className="flex items-center gap-2">
@@ -287,7 +287,7 @@ export default function LeadReportView({ galeria }: LeadReportViewProps) {
                     </div>
                   </th>
                   <th
-                    className="px-4 py-3 text-[11px] font-semibold uppercase tracking-widest text-petroleum/90 cursor-pointer hover:text-petroleum transition-colors"
+                    className="px-4 py-3 text-[11px] font-semibold uppercase tracking-luxury-widest text-petroleum/90 cursor-pointer hover:text-petroleum transition-colors"
                     onClick={() => handleSort('created_at')}
                   >
                     <div className="flex items-center gap-2 justify-end">
@@ -349,7 +349,7 @@ export default function LeadReportView({ galeria }: LeadReportViewProps) {
       ) : (
         <div className="flex flex-col items-center justify-center py-20 bg-white border border-petroleum/10 border-dashed rounded-luxury">
           <Users size={48} className="text-petroleum/10 mb-4" />
-          <h3 className="text-sm font-semibold text-petroleum uppercase tracking-widest">
+          <h3 className="text-sm font-semibold text-petroleum uppercase tracking-luxury-widest">
             Nenhum lead encontrado
           </h3>
           <p className="text-xs text-petroleum/40 mt-1 font-medium">

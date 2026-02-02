@@ -205,7 +205,7 @@ export default function PhotographerContent({
                 <button
                   onClick={loadMore}
                   disabled={loadingMore}
-                  className="px-10 py-4 border border-gold/20 text-gold text-[11px] uppercase tracking-[0.3em] font-bold hover:bg-gold hover:text-black transition-all duration-500 disabled:opacity-50 min-w-[250px] flex items-center justify-center rounded-sm"
+                  className="px-10 py-4 border border-gold/20 text-gold text-[11px] uppercase tracking-luxury-widest font-bold hover:bg-gold hover:text-black transition-all duration-500 disabled:opacity-50 min-w-[250px] flex items-center justify-center rounded-sm"
                 >
                   {loadingMore ? (
                     <Loader2 className="animate-spin w-5 h-5" />
@@ -225,7 +225,7 @@ export default function PhotographerContent({
                   <div className="w-full h-2 bg-gradient-to-b from-[#F3E5AB]/30 to-transparent mx-auto mb-6" />
                   {/* Branding / Créditos: Aparece APENAS para FREE e START (onde removeBranding é false e são planos de entrada) */}
                   {(planKey === 'FREE' || planKey === 'START') && (
-                    <p className="text-petroleum text-[11px] uppercase tracking-widest max-w-lg mx-auto leading-relaxed">
+                    <p className="text-petroleum text-[11px] uppercase tracking-luxury-widest max-w-lg mx-auto leading-relaxed">
                       Este profissional utiliza o app{' '}
                       <span className="font-bold">Sua Galeria</span> para suas
                       entregas.
@@ -238,7 +238,7 @@ export default function PhotographerContent({
           !isLoading && (
             <div className="flex flex-col items-center justify-center py-20 text-[#F3E5AB]/40 text-center">
               <div className="w-px h-24 bg-gradient-to-b from-[#F3E5AB]/20 to-transparent mb-8" />
-              <p className="text-[10px] uppercase tracking-[0.5em] max-w-sm leading-loose">
+              <p className="text-[10px] uppercase tracking-luxury-widest max-w-sm leading-loose">
                 Nenhuma galeria pública disponível no momento.
               </p>
             </div>

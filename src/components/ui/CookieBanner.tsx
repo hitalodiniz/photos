@@ -60,7 +60,7 @@ export default function CookieBanner() {
           </button>
           <button
             onClick={acceptCookies}
-            className="flex-1 md:flex-none bg-champagne text-petroleum text-xs font-semibold uppercase tracking-widest px-8 py-3 rounded-xl transition-all shadow-lg active:scale-95"
+            className="flex-1 md:flex-none bg-champagne text-petroleum text-xs font-semibold uppercase tracking-luxury-widest px-8 py-3 rounded-xl transition-all shadow-lg active:scale-95"
           >
             Aceitar
           </button>

@@ -86,14 +86,14 @@ export default function CategorySelect({
     <div className="flex gap-3 w-full">
       <button
         onClick={() => setIsModalOpen(false)}
-        className="flex-1 px-4 py-2.5 rounded-luxury text-[10px] font-bold uppercase tracking-widest text-white/60 hover:text-white transition-colors border border-white/10"
+        className="flex-1 px-4 py-2.5 rounded-luxury text-[10px] font-bold uppercase tracking-luxury-widest text-white/60 hover:text-white transition-colors border border-white/10"
       >
         cancelar
       </button>
       <button
         onClick={handleSaveCategory}
         disabled={loading}
-        className="flex-1 bg-gold hover:bg-white text-petroleum px-4 py-2.5 rounded-luxury text-[10px] font-bold uppercase tracking-widest transition-all shadow-lg flex items-center justify-center gap-2 disabled:opacity-50"
+        className="flex-1 bg-gold hover:bg-white text-petroleum px-4 py-2.5 rounded-luxury text-[10px] font-bold uppercase tracking-luxury-widest transition-all shadow-lg flex items-center justify-center gap-2 disabled:opacity-50"
       >
         {loading ? (
           <Loader2 size={14} className="animate-spin" />
@@ -192,7 +192,7 @@ export default function CategorySelect({
       >
         <div className="space-y-4">
           <div className="space-y-1.5">
-            <label className="text-[10px] font-bold uppercase tracking-widest text-petroleum/60">
+            <label className="text-[10px] font-bold uppercase tracking-luxury-widest text-petroleum/60">
               nome da categoria
             </label>
             <input

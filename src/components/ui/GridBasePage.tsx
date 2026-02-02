@@ -20,7 +20,8 @@ export default function GridBasePage({
   children,
   maxWidth = '7xl',
 }: GridBasePageProps) {
-  const containerClass = maxWidth === 'full' ? 'w-full px-6' : 'max-w-7xl mx-auto px-6';
+  const containerClass =
+    maxWidth === 'full' ? 'w-full px-6' : 'max-w-7xl mx-auto px-6';
 
   return (
     <div className="min-h-[calc(100vh-72px)] bg-white flex flex-col animate-in fade-in duration-500">
@@ -37,30 +38,31 @@ export default function GridBasePage({
 
       {/* Conteúdo Principal */}
       <main className="flex-1 bg-slate-50/30 py-4">
-        <div className={containerClass}>
-          {children}
-        </div>
+        <div className={containerClass}>{children}</div>
       </main>
 
       {/* Rodapé Fixo - Petroleum Standard */}
       <div className="sticky bottom-0 z-40 bg-petroleum border-t border-white/10 shadow-[0_-4px_20px_rgba(0,0,0,0.2)]">
-        <div className={`${containerClass} flex items-center justify-between py-4`}>
+        <div
+          className={`${containerClass} flex items-center justify-between py-4`}
+        >
           {/* Status - Esquerda */}
-          <div className="text-[10px] text-white/70 uppercase tracking-widest font-semibold truncate mr-4">
+          <div className="text-[10px] text-white/70 uppercase tracking-luxury-widest font-semibold truncate mr-4">
             {footerStatus}
           </div>
 
           {/* Ações - Direita */}
           <div className="flex items-center gap-4 shrink-0">
-            {footerActions || (onBack && (
-              <button
-                type="button"
-                onClick={onBack}
-                className="btn-secondary-petroleum px-6 flex items-center gap-2 text-[10px] font-semibold tracking-widest"
-              >
-                <ArrowLeft size={14} /> VOLTAR
-              </button>
-            ))}
+            {footerActions ||
+              (onBack && (
+                <button
+                  type="button"
+                  onClick={onBack}
+                  className="btn-secondary-petroleum px-6 flex items-center gap-2 text-[10px] font-semibold tracking-luxury-widest"
+                >
+                  <ArrowLeft size={14} /> VOLTAR
+                </button>
+              ))}
           </div>
         </div>
       </div>

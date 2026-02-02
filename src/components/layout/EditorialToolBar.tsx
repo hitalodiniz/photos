@@ -43,13 +43,13 @@ export default function EditorialToolbar({
             {/* <div className="flex items-center gap-4 border-r border-white/10 pr-4 shrink-0 h-full"> */}
             {/* <div className="flex items-center gap-2">
               <ShieldCheck size={18} className="text-gold" />
-              <span className="text-[10px] md:text-[11px] uppercase font-bold tracking-[0.2em] text-white/70 hidden lg:block">
+              <span className="text-[10px] md:text-[11px] uppercase font-bold tracking-luxury-widest text-white/70 hidden lg:block">
                 Acesso Protegido
               </span>
             </div>
             <div className="flex items-center gap-1 bg-white/5 rounded-luxury px-3 h-8 border border-white/10">
               <Zap size={12} className="text-gold" />
-              <span className="text-[9px] font-bold text-white/40 uppercase tracking-widest">
+              <span className="text-[9px] font-bold text-white/40 uppercase tracking-luxury-widest">
                 Editorial 2026
               </span>
             </div> */}
@@ -63,7 +63,7 @@ export default function EditorialToolbar({
                 className="group-hover:scale-110 transition-transform"
               />
 
-              <span className="text-[10px] font-bold uppercase tracking-widest hidden lg:block">
+              <span className="text-[10px] font-bold uppercase tracking-luxury-widest hidden lg:block">
                 Planos
               </span>
 
@@ -87,7 +87,7 @@ export default function EditorialToolbar({
                 size={16}
                 className="group-hover:scale-110 transition-transform"
               />
-              <span className="text-[10px] uppercase font-bold tracking-widest hidden lg:block">
+              <span className="text-[10px] uppercase font-bold tracking-luxury-widest hidden lg:block">
                 Instagram
               </span>
             </a>
@@ -98,7 +98,7 @@ export default function EditorialToolbar({
               className="flex items-center justify-center rounded-luxury h-10 border border-white/10 bg-white/5 text-white hover:bg-green-600 hover:text-white transition-all w-10 md:w-28 gap-2 group"
             >
               <WhatsAppIcon className="text-current w-4 h-4 group-hover:scale-110 transition-transform" />
-              <span className="text-[10px] uppercase font-bold tracking-widest hidden lg:block">
+              <span className="text-[10px] uppercase font-bold tracking-luxury-widest hidden lg:block">
                 WhatsApp
               </span>
             </button>
@@ -113,7 +113,7 @@ export default function EditorialToolbar({
               ) : (
                 <Share2 size={16} />
               )}
-              <span className="text-[10px] uppercase font-bold tracking-widest hidden lg:block">
+              <span className="text-[10px] uppercase font-bold tracking-luxury-widest hidden lg:block">
                 {copied ? 'Copiado' : 'Link'}
               </span>
             </button>
@@ -130,7 +130,7 @@ export default function EditorialToolbar({
                   className="group-hover:translate-x-0.5 transition-transform"
                   strokeWidth={2.5}
                 />
-                <span className="text-[10px] uppercase font-bold tracking-widest whitespace-nowrap">
+                <span className="text-[10px] uppercase font-bold tracking-luxury-widest whitespace-nowrap">
                   Acesso API Key
                 </span>
               </button>

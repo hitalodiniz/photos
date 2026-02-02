@@ -117,7 +117,7 @@ export default function UpgradeModal({
           {planBenefits.map((benefit, i) => (
             <div key={i} className="flex items-center gap-2">
               <CheckCircle2 size={12} className="text-gold shrink-0" />
-              <span className="text-[10px] font-bold uppercase tracking-widest text-petroleum/80">
+              <span className="text-[10px] font-bold uppercase tracking-luxury-widest text-petroleum/80">
                 {benefit}
               </span>
             </div>

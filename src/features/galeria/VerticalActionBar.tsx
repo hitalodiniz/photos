@@ -272,7 +272,7 @@ export function VerticalActionBar({
               }}
             >
               <div className="flex justify-between items-center mb-1">
-                <span className="font-bold text-[11px] uppercase tracking-tighter">
+                <span className="font-bold text-[11px] uppercase tracking-luxury-tight">
                   Alta Resolução Disponível
                 </span>
                 <button

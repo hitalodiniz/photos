@@ -12,10 +12,9 @@ const config: Config = {
   theme: {
     extend: {
       fontFamily: {
-        // Isso mapeia a classe 'font-sans' (padrão do Tailwind) para sua variável do Next Font
-        sans: ['var(--font-montserrat)', 'sans-serif'],
-        montserrat: ['var(--font-montserrat)', 'sans-serif'],
-        barlow: ['var(--font-barlow)', 'sans-serif'],
+        // Unificando: 'sans' agora é o padrão global
+        sans: ['var(--font-montserrat)', 'ui-sans-serif', 'system-ui'],
+        mono: ['var(--font-barlow)', 'ui-monospace', 'SFMono-Regular'],
       },
       colors: {
         // Luxury Editorial Photography Official Palette
@@ -29,23 +28,26 @@ const config: Config = {
           light: 'rgba(243,229,171,0.15)',
           glow: 'rgba(243,229,171,0.3)',
           // light: 'rgba(212, 175, 55, 0.15)',
-            // glow: 'rgba(212, 175, 55, 0.3)',
+          // glow: 'rgba(212, 175, 55, 0.3)',
         },
         petroleum: {
           DEFAULT: '#00212E',
           light: '#002D3F', // Para hovers sutis em fundos escuros
           dark: '#001822',
         },
+
         'luxury-bg': '#F8F9FA', // Fundo claro para o dashboard
-        'editorial-ink': 'rgba(0, 33, 46, 0.9)', // Azul Petróleo para textos
-        'editorial-gray': 'rgba(0, 33, 46, 0.9)', // Azul Petróleo Profundo (Opacidade Suave)
       },
+      // Padronização de Tracking (Letter Spacing)
       letterSpacing: {
-        'luxury': '0em', // tracking-widest editorial
+        'luxury-tight': '-0.02em', // Para Títulos H1/H2
+        'luxury-normal': '0em', // Para parágrafos
+        'luxury-widest': '0.25em', // Para Labels, Botões e Microcopy (Editorial)
       },
       borderRadius: {
-        'luxury': '0.75rem', // Arredondamento padrão
-      }
+        luxury: '0.75rem',
+        'luxury-sm': '0.375rem',
+      },
     },
   },
   plugins: [require('@tailwindcss/typography')],

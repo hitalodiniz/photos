@@ -56,7 +56,7 @@ export default function GaleriaFooter({
                 <path d="m18 15-6-6-6 6" />
               </svg>
             </div>
-            <span className="text-[10px] uppercase tracking-[0.25em] font-semibold text-[#F3E5AB]/60 group-hover:text-[#F3E5AB]">
+            <span className="text-[10px] uppercase tracking-luxury-widest font-semibold text-[#F3E5AB]/60 group-hover:text-[#F3E5AB]">
               Topo
             </span>
           </button>
@@ -65,7 +65,7 @@ export default function GaleriaFooter({
         {/* 2. Bloco Central Editorial */}
         <div className="text-center space-y-3 px-4">
           {title && (
-            <h3 className="italic text-lg md:text-3xl text-white tracking-tight font-light">
+            <h3 className="italic text-lg md:text-3xl text-white tracking-luxury-tight font-light">
               {title}
             </h3>
           )}
@@ -162,13 +162,13 @@ export default function GaleriaFooter({
       {/* 3. Rodapé Inferior */}
       <div className="w-full border-t border-white/5 mt-2 pt-6 pb-6 px-8 bg-black/20">
         <div className="max-w-[1600px] mx-auto flex flex-col md:flex-row justify-between items-center gap-4 text-white/30">
-          <div className="text-[10px] md:text-[11px] tracking-[0.2em] font-medium uppercase text-center md:text-left">
+          <div className="text-[10px] md:text-[11px] tracking-luxury-widest font-medium uppercase text-center md:text-left">
             © {new Date().getFullYear()} — Todos os direitos reservados
           </div>
 
           {/* 🛡️ TRAVA DE BRANDING: Só exibe se NÃO puder remover */}
           {!permissions.removeBranding ? (
-            <div className="text-[10px] md:text-[12px] tracking-[0.2em] font-semibold uppercase flex items-center gap-2 animate-in fade-in duration-700">
+            <div className="text-[10px] md:text-[12px] tracking-luxury-widest font-semibold uppercase flex items-center gap-2 animate-in fade-in duration-700">
               <span>Powered by</span>
               <a
                 href={`https://${process.env.NEXT_PUBLIC_MAIN_DOMAIN}`}
@@ -176,14 +176,14 @@ export default function GaleriaFooter({
                 rel="noopener noreferrer"
                 className="group"
               >
-                <span className="text-[#F3E5AB] italic tracking-tight text-sm md:text-base group-hover:text-white transition-colors ml-1">
+                <span className="text-[#F3E5AB] italic tracking-luxury-tight text-sm md:text-base group-hover:text-white transition-colors ml-1">
                   Sua Galeria
                 </span>
               </a>
             </div>
           ) : (
             /* Fallback Minimalista quando o Branding é removido */
-            <div className="text-[10px] uppercase tracking-[0.3em] font-bold text-white/10">
+            <div className="text-[10px] uppercase tracking-luxury-widest font-bold text-white/10">
               Galeria Profissional
             </div>
           )}

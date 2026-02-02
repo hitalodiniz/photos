@@ -92,7 +92,7 @@ export function PublicGaleriaCard({
           {/* Topo: Badges Maiores */}
           <div className="flex justify-between items-start">
             <span
-              className={`flex items-center gap-2 px-4 py-1.5 rounded-md text-[10px] font-semibold uppercase tracking-[0.1em] backdrop-blur-md border border-white/10 shadow-xl ${
+              className={`flex items-center gap-2 px-4 py-1.5 rounded-md text-[10px] font-semibold uppercase tracking-luxury-normal backdrop-blur-md border border-white/10 shadow-xl ${
                 galeria.is_public
                   ? 'bg-emerald-600/90 text-white'
                   : 'bg-amber-600/90 text-white'
@@ -109,7 +109,7 @@ export function PublicGaleriaCard({
 
           {/* Base: Tipografia Aumentada */}
           <div className="space-y-3">
-            <h3 className="text-white text-2xl md:text-3xl font-bold leading-tight group-hover:text-gold transition-colors drop-shadow-2xl font-artistic italic flex items-center gap-3">
+            <h3 className="text-white text-2xl md:text-3xl font-bold leading-tight group-hover:text-gold transition-colors drop-shadow-2xl  italic flex items-center gap-3">
               <Camera
                 className={`text-[#F3E5AB] shrink-0 transition-all duration-1000 drop-shadow-md 
                 w-6 h-6 md:w-8 md:h-8
@@ -154,7 +154,7 @@ export function PublicGaleriaCard({
                 </div>
 
                 {/* Badge de Fotos Profissional */}
-                <div className="hidden sm:flex items-center gap-2 text-gold text-[11px] font-semibold tracking-widest opacity-90 group-hover:opacity-100 transition-opacity">
+                <div className="hidden sm:flex items-center gap-2 text-gold text-[11px] font-semibold tracking-luxury-widest opacity-90 group-hover:opacity-100 transition-opacity">
                   <Images size={16} strokeWidth={3} />
                   <span>VER GALERIA</span>
                 </div>

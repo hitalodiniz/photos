@@ -2,7 +2,11 @@
 
 import { LeadCaptureFields } from './LeadCaptureFields';
 import { LGPDPurposeField } from './LGPDPurposeField';
-import { UseFormRegister, UseFormSetValue, UseFormWatch } from 'react-hook-form';
+import {
+  UseFormRegister,
+  UseFormSetValue,
+  UseFormWatch,
+} from 'react-hook-form';
 
 interface LeadCaptureSectionProps {
   enabled: boolean;
@@ -30,7 +34,7 @@ export function LeadCaptureSection({
   watch,
   purposeFieldName,
   initialPurposeValue,
-  toggleLabel = "Habilitar cadastro de visitante",
+  toggleLabel = 'Habilitar cadastro de visitante',
   description,
   isEdit = false,
   showLayout = 'stacked',
@@ -39,7 +43,7 @@ export function LeadCaptureSection({
     <div className="flex flex-col gap-4">
       <div className="flex flex-col items-start gap-1">
         <div className="flex items-center gap-4">
-          <label className="text-[11px] font-semibold uppercase tracking-widest text-petroleum">
+          <label className="text-[11px] font-semibold uppercase tracking-luxury-widest text-petroleum">
             {toggleLabel}
           </label>
           <button
@@ -60,13 +64,27 @@ export function LeadCaptureSection({
       </div>
 
       {enabled && (
-        <div className={showLayout === 'grid' ? 'grid grid-cols-1 md:grid-cols-2 gap-6 items-start' : 'space-y-6'}>
+        <div
+          className={
+            showLayout === 'grid'
+              ? 'grid grid-cols-1 md:grid-cols-2 gap-6 items-start'
+              : 'space-y-6'
+          }
+        >
           <div className="w-full">
             <LeadCaptureFields
               requiredFields={requiredFields}
               onChange={setRequiredFields}
-              className={showLayout === 'grid' ? 'flex flex-wrap gap-4 p-3 h-11 items-center' : undefined}
-              labelClassName={showLayout === 'grid' ? 'text-[11px] font-bold uppercase tracking-widest text-petroleum mb-0' : undefined}
+              className={
+                showLayout === 'grid'
+                  ? 'flex flex-wrap gap-4 p-3 h-11 items-center'
+                  : undefined
+              }
+              labelClassName={
+                showLayout === 'grid'
+                  ? 'text-[11px] font-bold uppercase tracking-luxury-widest text-petroleum mb-0'
+                  : undefined
+              }
             />
           </div>
 

@@ -73,7 +73,7 @@ export default function Sidebar({
         {!isSidebarCollapsed && (
           <div className="lg:hidden flex items-center gap-3 px-6 py-4 border-b border-white/5">
             <Camera className="text-gold w-6 h-6" strokeWidth={1.5} />
-            <span className="font-artistic text-lg font-bold tracking-tight text-white italic">
+            <span className=" text-lg font-bold tracking-luxury-tight text-white italic">
               Espaço das <span className="text-gold">Galerias</span>
             </span>
           </div>
@@ -146,10 +146,10 @@ export default function Sidebar({
           {(!isSidebarCollapsed || isMobile) && (
             <div className="px-2 py-1 mb-2">
               <div className="flex items-center justify-between px-3 py-2 rounded-luxury bg-white/5 border border-white/5">
-                <span className="text-[9px] font-bold uppercase tracking-widest text-white/40">
+                <span className="text-[9px] font-bold uppercase tracking-luxury-widest text-white/40">
                   Plano
                 </span>
-                <span className="text-[9px] font-black uppercase tracking-widest text-gold">
+                <span className="text-[9px] font-black uppercase tracking-luxury-widest text-gold">
                   {planKey}
                 </span>
               </div>

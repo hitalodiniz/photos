@@ -80,7 +80,7 @@ export default function LandingPageContent() {
                     <div className="text-gold shrink-0 drop-shadow-[0_0_8px_rgba(243,229,171,0.4)]">
                       {item.icon}
                     </div>
-                    <h3 className="text-[12px] font-bold uppercase tracking-[0.15em] text-white/90 leading-none">
+                    <h3 className="text-[12px] font-bold uppercase tracking-luxury-widest text-white/90 leading-none">
                       {item.title}
                     </h3>
                   </div>
@@ -101,12 +101,12 @@ export default function LandingPageContent() {
         <div className="lg:col-span-4 flex flex-col justify-center">
           <div className="bg-white rounded-luxury shadow-[0_20px_50px_rgba(0,0,0,0.15)] p-10 md:p-12 border-t-4 border-gold relative text-center">
             {/* Badge de Acesso (Vidro Petroleum) */}
-            <div className="absolute -top-3.5 left-1/2 -translate-x-1/2 bg-petroleum text-gold text-[10px] font-bold px-5 py-2 rounded-full uppercase tracking-widest shadow-xl whitespace-nowrap">
+            <div className="absolute -top-3.5 left-1/2 -translate-x-1/2 bg-petroleum text-gold text-[10px] font-bold px-5 py-2 rounded-full uppercase tracking-luxury-widest shadow-xl whitespace-nowrap">
               Acesso Profissional
             </div>
 
             {/* Título Artístico */}
-            <h2 className="text-petroleum text-[18px] md:text-[24px] font-bold mb-4 tracking-tight leading-tight italic font-artistic">
+            <h2 className="text-petroleum text-[18px] md:text-[24px] font-bold mb-4 tracking-luxury-tight leading-tight italic ">
               Bem-vindo à sua galeria
             </h2>
 
@@ -135,7 +135,7 @@ export default function LandingPageContent() {
                   fotos nunca saiam do seu controle.
                 </p>
 
-                <div className="flex justify-center items-center gap-2.5 text-petroleum text-[10px] font-bold uppercase tracking-widest">
+                <div className="flex justify-center items-center gap-2.5 text-petroleum text-[10px] font-bold uppercase tracking-luxury-widest">
                   <ShieldCheck size={16} />
                   <span>Ambiente 100% Seguro</span>
                 </div>

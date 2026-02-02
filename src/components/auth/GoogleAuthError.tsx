@@ -33,7 +33,10 @@ export default function GoogleAuthError({
         if (supabaseUrl && typeof window !== 'undefined') {
           // Se estiver em uma rota de dashboard ou similar, assume que é o dono
           const currentPath = window.location.pathname;
-          if (currentPath.includes('/dashboard') || document.cookie.includes('sb-')) {
+          if (
+            currentPath.includes('/dashboard') ||
+            document.cookie.includes('sb-')
+          ) {
             setIsOwner(true);
           }
         }
@@ -66,7 +69,7 @@ export default function GoogleAuthError({
         </div>
 
         <div className="space-y-4">
-          <h1 className="text-white text-xl md:text-2xl font-bold uppercase tracking-[0.2em] leading-tight">
+          <h1 className="text-white text-xl md:text-2xl font-bold uppercase tracking-luxury-widest leading-tight">
             {isPermissionError ? 'Acesso Pendente' : 'Galeria Indisponível'}
           </h1>
           <div className="h-1 w-12 bg-[#F3E5AB] mx-auto rounded-full"></div>
@@ -76,7 +79,7 @@ export default function GoogleAuthError({
         <div className="bg-white/5 border border-white/10 p-6 rounded-2xl space-y-5 text-left">
           <div className="flex items-center gap-3 text-[#F3E5AB]">
             <MessageCircle size={18} />
-            <span className="text-[11px] font-bold uppercase tracking-widest">
+            <span className="text-[11px] font-bold uppercase tracking-luxury-widest">
               Informativo
             </span>
           </div>
@@ -98,9 +101,9 @@ export default function GoogleAuthError({
             <p className="text-white text-xs md:text-sm leading-relaxed">
               {isTokenMissing ? (
                 <>
-                  O autor desta galeria precisa reconectar sua conta do Google Drive
-                  para que as fotos possam ser exibidas. A conexão foi interrompida ou
-                  expirou.
+                  O autor desta galeria precisa reconectar sua conta do Google
+                  Drive para que as fotos possam ser exibidas. A conexão foi
+                  interrompida ou expirou.
                 </>
               ) : isPermissionError ? (
                 <>
@@ -119,15 +122,15 @@ export default function GoogleAuthError({
               <p className="text-white/80 text-[11px] md:text-xs leading-relaxed italic">
                 {isTokenMissing ? (
                   <>
-                    O autor <strong>{photographerName}</strong> precisa reconectar sua
-                    conta do Google Drive no painel de controle para restaurar o acesso
-                    às fotos desta galeria.
+                    O autor <strong>{photographerName}</strong> precisa
+                    reconectar sua conta do Google Drive no painel de controle
+                    para restaurar o acesso às fotos desta galeria.
                   </>
                 ) : (
                   <>
                     Para resolver este problema, entre em contato com{' '}
-                    <strong>{photographerName}</strong> e solicite a regularização
-                    do acesso aos arquivos desta galeria.
+                    <strong>{photographerName}</strong> e solicite a
+                    regularização do acesso aos arquivos desta galeria.
                   </>
                 )}
               </p>
@@ -147,7 +150,7 @@ export default function GoogleAuthError({
           )}
           <button
             onClick={() => window.location.reload()}
-            className="flex items-center justify-center gap-3 text-white/40 hover:text-[#F3E5AB] transition-colors text-[10px] font-bold uppercase tracking-[0.3em]"
+            className="flex items-center justify-center gap-3 text-white/40 hover:text-[#F3E5AB] transition-colors text-[10px] font-bold uppercase tracking-luxury-widest"
           >
             <RefreshCw size={12} /> Tentar atualizar a página
           </button>

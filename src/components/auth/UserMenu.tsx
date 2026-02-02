@@ -136,7 +136,7 @@ export default function UserMenu({ session, avatarUrl }: UserMenuProps) {
                 </div>
                 <div className="absolute bottom-0 right-0 w-6 h-6 bg-green-500 border-4 border-white rounded-full shadow-sm" />
               </div>
-              <h3 className="text-base font-bold text-petroleum truncate w-full tracking-tight">
+              <h3 className="text-base font-bold text-petroleum truncate w-full tracking-luxury-tight">
                 {fullName}
               </h3>
               <p className="text-[11px] text-editorial-gray truncate w-full font-bold tracking-luxury mt-1 uppercase">

@@ -36,21 +36,21 @@ export function GaleriaDriveSection({
       {isValidatingDrive && (
         <div className="absolute inset-0 z-50 flex flex-col items-center justify-center bg-white/80 backdrop-blur-sm animate-in fade-in duration-300">
           <Loader2 className="w-8 h-8 text-gold animate-spin mb-2" />
-          <p className="text-[10px] font-bold uppercase tracking-widest text-petroleum">
+          <p className="text-[10px] font-bold uppercase tracking-luxury-widest text-petroleum">
             Validando Pasta...
           </p>
         </div>
       )}
       <div className="flex items-center gap-2 pb-2 border-b border-petroleum/40">
         <FolderSync size={14} className="" />
-        <h3 className="text-[10px] font-bold uppercase tracking-widest text-petroleum">
+        <h3 className="text-[10px] font-bold uppercase tracking-luxury-widest text-petroleum">
           Google Drive
         </h3>
       </div>
 
       {/* Subseção 1: Vincular Pasta do Google Drive */}
       <div className="space-y-3">
-        <label className="text-[10px] font-semibold uppercase tracking-widest text-petroleum flex items-center gap-1.5">
+        <label className="text-[10px] font-semibold uppercase tracking-luxury-widest text-petroleum flex items-center gap-1.5">
           <FolderSync size={12} strokeWidth={2} className="inline" />
           Vincular Pasta do Google Drive
         </label>
@@ -120,7 +120,7 @@ export function GaleriaDriveSection({
 
       {/* Subseção 2: Preview de Capa */}
       <div className="space-y-3 pt-3 border-t border-petroleum/40">
-        <label className="text-[10px] font-semibold uppercase tracking-widest text-petroleum flex items-center gap-1.5">
+        <label className="text-[10px] font-semibold uppercase tracking-luxury-widest text-petroleum flex items-center gap-1.5">
           <ImageIcon size={12} strokeWidth={2} className="inline" />
           Foto de capa selecionada
         </label>
@@ -153,7 +153,7 @@ export function GaleriaDriveSection({
       >
         <div className="space-y-3 pt-4 border-t border-petroleum/40">
           <div className="flex items-center justify-between">
-            <label className="text-[10px] font-semibold uppercase tracking-widest text-petroleum flex items-center gap-1.5">
+            <label className="text-[10px] font-semibold uppercase tracking-luxury-widest text-petroleum flex items-center gap-1.5">
               <ImageIcon size={12} strokeWidth={2} className="inline" />
               Renomear fotos (foto-001...)
             </label>

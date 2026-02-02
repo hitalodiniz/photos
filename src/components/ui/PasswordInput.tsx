@@ -8,16 +8,20 @@ interface PasswordInputProps extends React.InputHTMLAttributes<HTMLInputElement>
   error?: string;
 }
 
-export default function PasswordInput({ label, error, className, ...props }: PasswordInputProps) {
+export default function PasswordInput({
+  label,
+  error,
+  className,
+  ...props
+}: PasswordInputProps) {
   const [showPassword, setShowPassword] = useState(false);
 
   return (
     <div className="space-y-1.5">
       {label && (
-        <label className="text-[10px] font-bold uppercase tracking-widest text-petroleum flex items-center gap-2">
+        <label className="text-[10px] font-bold uppercase tracking-luxury-widest text-petroleum flex items-center gap-2">
           <ShieldCheck size={14} className="text-gold" />
           <span>{label}</span>
-          
         </label>
       )}
       <div className="relative group">
@@ -25,7 +29,7 @@ export default function PasswordInput({ label, error, className, ...props }: Pas
           {...props}
           type={showPassword ? 'text' : 'password'}
           inputMode="numeric"
-                    pattern="[0-9]*"
+          pattern="[0-9]*"
           className={`w-full bg-white border ${
             error ? 'border-red-500/50' : 'border-petroleum/20'
           } rounded-luxury px-4 pr-12 h-11 text-petroleum text-sm outline-none focus:border-gold transition-all placeholder:text-petroleum/30 ${className}`}

@@ -500,7 +500,7 @@ export default function GaleriaCard({
         </div>
 
         <div className="absolute bottom-3 left-4 right-4 flex items-end justify-between gap-4">
-          <h3 className="text-white text-[15px] truncate font-semibold leading-tight tracking-tight drop-shadow-md italic">
+          <h3 className="text-white text-[15px] truncate font-semibold leading-tight tracking-luxury-tight drop-shadow-md italic">
             {galeria.title}
           </h3>
         </div>

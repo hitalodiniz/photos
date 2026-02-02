@@ -114,7 +114,7 @@ export const PhotographerInfoBar = ({
                     onClick={() => setIsDrawerOpen(!isDrawerOpen)}
                     className="flex items-center justify-between px-4 py-1.5 w-[155px] h-8 rounded-luxury bg-white/5 border border-white/10 text-white/80 hover:text-white hover:bg-white/10 transition-all shrink-0"
                   >
-                    <span className="text-[11px] font-medium tracking-tight">
+                    <span className="text-[11px] font-medium tracking-luxury-tight">
                       {isDrawerOpen ? 'Fechar cidades' : 'Cidades de atuação'}
                     </span>
                     <ChevronDown
