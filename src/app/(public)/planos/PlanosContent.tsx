@@ -10,6 +10,7 @@ import {
   Users,
   FileArchive,
   Link as LinkIcon,
+  ShieldCheck,
 } from 'lucide-react';
 import EditorialCard from '@/components/ui/EditorialCard';
 import EditorialView from '@/components/layout/EditorialView';
@@ -20,7 +21,6 @@ import {
   PERMISSIONS_BY_PLAN,
   PlanPermissions,
 } from '@/core/config/plans';
-import { usePlan } from '@/core/context/PlanContext';
 import { Footer } from '@/components/layout';
 
 export default function PlanosPage() {
@@ -63,299 +63,276 @@ export default function PlanosPage() {
   };
 
   return (
-    <div
-      className={`relative min-h-screen w-full flex flex-col theme-${config.theme} font-montserrat bg-luxury-bg`}
+    <EditorialView
+      title={`Planos ${config.name}`}
+      subtitle="A estrutura definitiva para sua entrega profissional."
     >
-      <div className="relative z-10 flex flex-col min-h-screen">
-        <EditorialView
-          title={`Planos ${config.name}`}
-          subtitle="A estrutura definitiva para sua entrega profissional."
-        >
-          <div className="sticky top-0 z-[10] w-full pointer-events-auto">
-            <div className="w-full bg-petroleum backdrop-blur-md border-b border-white/10 shadow-2xl transition-all duration-500 h-12"></div>
-          </div>
+      <main className="w-full">
+        {/* 🎯 HEADER DA SEÇÃO: Seletor de Período */}
+        <section className="bg-white py-20 border-b border-slate-100 relative z-20">
+          <div className="max-w-[1600px] mx-auto px-6 md:px-12 flex flex-col items-center">
+            <div className="text-center mb-10">
+              <p className="text-gold text-xs uppercase tracking-[0.3em] font-semibold mb-3">
+                Flexibilidade Profissional
+              </p>
+              <h2 className="text-3xl md:text-4xl font-semibold text-petroleum italic">
+                Escolha o ciclo da sua entrega
+              </h2>
+            </div>
 
-          {/* 🎯 SELETOR MENSAL/ANUAL */}
-          <div className="flex flex-col items-center gap-4 mb-8 -mt-16 relative z-30">
-            <div className="flex items-center gap-3 bg-white backdrop-blur px-4 py-2 rounded-luxury border border-petroleum/10 shadow-sm">
-              <span
-                className={`text-[11px] font-semibold uppercase tracking-luxury-widest transition-colors ${!isAnnual ? 'text-petroleum' : 'text-petroleum/40'}`}
+            <div className="flex items-center gap-6 bg-slate-50 p-2 rounded-full border border-slate-200 shadow-sm">
+              <button
+                onClick={() => setIsAnnual(false)}
+                className={`px-8 py-3 rounded-full text-[11px] font-bold uppercase tracking-widest transition-all ${!isAnnual ? 'bg-petroleum text-white shadow-lg' : 'text-petroleum/40 hover:text-petroleum'}`}
               >
                 Mensal
-              </span>
-              <button
-                onClick={() => setIsAnnual(!isAnnual)}
-                className="relative w-12 h-6 rounded-full bg-petroleum p-1 transition-all"
-              >
-                <div
-                  className={`w-4 h-4 rounded-full bg-gold transition-all shadow-sm ${isAnnual ? 'translate-x-6' : 'translate-x-0'}`}
-                />
               </button>
-              <div className="flex items-center gap-2">
-                <span
-                  className={`text-[11px] font-bold uppercase tracking-luxury-widest transition-colors ${isAnnual ? 'text-petroleum' : 'text-petroleum/40'}`}
-                >
-                  Anual
+              <button
+                onClick={() => setIsAnnual(true)}
+                className={`relative px-8 py-3 rounded-full text-[11px] font-bold uppercase tracking-widest transition-all ${isAnnual ? 'bg-petroleum text-white shadow-lg' : 'text-petroleum/40 hover:text-petroleum'}`}
+              >
+                Anual
+                <span className="absolute -top-2 -right-4 bg-emerald-500 text-white text-[8px] px-2 py-1 rounded-full animate-bounce">
+                  -20%
                 </span>
-                <span className="bg-emerald-500 text-white text-[12px] font-semibold px-2 py-0.5 rounded-full uppercase tracking-luxury-widest shadow-sm">
-                  Economize 20%
-                </span>
-              </div>
+              </button>
             </div>
           </div>
+        </section>
 
-          <main className="flex-grow px-4 md:px-6 max-w-[1650px] mx-auto w-full relative z-20">
-            {/* CARDS SECTION */}
-            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-5 gap-5 mb-16 items-stretch">
-              {planosKeys.map((key, idx) => {
-                const plan = { ...currentPlans[key], key };
-                const isPro = key === 'PRO';
-                const displayPrice = isAnnual ? plan.yearlyPrice : plan.price;
+        {/* 🎯 GRID DE CARDS: Utilizando EditorialCard para Padronização */}
+        <section className="py-24 max-w-[1650px] mx-auto px-6">
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-5 gap-5 mb-16 items-stretch">
+            {planosKeys.map((key, idx) => {
+              const plan = { ...currentPlans[key], key };
+              const isPro = key === 'PRO';
+              const displayPrice = isAnnual ? plan.yearlyPrice : plan.price;
 
-                const indicators = [
-                  {
-                    icon: <ImageIcon />,
-                    label: 'Galerias ativas',
-                    value: getFeatureValue('Galerias Ativas', key, idx),
-                  },
-                  {
-                    icon: <Users />,
-                    label: 'Visitantes',
-                    value:
-                      getFeatureValue(
-                        'Formulário de Acesso à galeria',
-                        key,
-                        idx,
-                      ) === false
-                        ? 'Acesso Livre'
-                        : 'Captura de Leads',
-                  },
-                  {
-                    icon: <FileArchive />,
-                    label: 'Capacidade por galeria',
-                    value: getFeatureValue('Capacidade por Galeria', key, idx),
-                  },
-                  {
-                    icon: <FileArchive />,
-                    label: 'Resolução ZIP',
-                    value: getFeatureValue(
-                      'Download ZIP - Tamanho/foto',
+              // Recuperando todos os seus indicadores originais
+              const indicators = [
+                {
+                  icon: <ImageIcon />,
+                  label: 'Galerias ativas',
+                  value: getFeatureValue('Galerias Ativas', key, idx),
+                },
+                {
+                  icon: <Users />,
+                  label: 'Visitantes',
+                  value:
+                    getFeatureValue(
+                      'Formulário de Acesso à galeria',
                       key,
                       idx,
-                    ),
-                  },
-                  {
-                    icon: <LinkIcon />,
-                    label: 'Links externos',
-                    value: getFeatureValue(
-                      'Links de Download Externos',
-                      key,
-                      idx,
-                    ),
-                  },
-                ];
+                    ) === false
+                      ? 'Acesso Livre'
+                      : 'Captura de Leads',
+                },
+                {
+                  icon: <FileArchive />,
+                  label: 'Capacidade',
+                  value: getFeatureValue('Capacidade por Galeria', key, idx),
+                },
+                {
+                  icon: <FileArchive />,
+                  label: 'Resolução ZIP',
+                  value: getFeatureValue(
+                    'Download ZIP - Tamanho/foto',
+                    key,
+                    idx,
+                  ),
+                },
+                {
+                  icon: <LinkIcon />,
+                  label: 'Links externos',
+                  value: getFeatureValue(
+                    'Links de Download Externos',
+                    key,
+                    idx,
+                  ),
+                },
+              ];
 
-                return (
-                  <EditorialCard
-                    key={key}
-                    title={plan.name}
-                    icon={<plan.icon />}
-                    badge={isPro ? 'Mais escolhido' : undefined}
-                    isHighlighted={isPro}
-                  >
-                    <div className="text-center mb-6">
-                      <div className="flex items-start justify-center gap-1 text-petroleum ">
-                        <span className="text-[16px] font-semibold mt-2">
-                          R$
-                        </span>
-                        <span className="text-6xl font-semibold tracking-luxury-tight ">
-                          {displayPrice.toFixed(0)}
-                        </span>
-                      </div>
-                      <p className="text-[10px] font-semibold text-petroleum/80 tracking-luxury-widest uppercase mt-1">
-                        {isAnnual ? 'Equivalente / Mês' : 'Cobrança Mensal'}
-                      </p>
+              return (
+                <EditorialCard
+                  key={key}
+                  title={plan.name}
+                  icon={<plan.icon size={32} strokeWidth={1.5} />}
+                  accentColor={isPro ? '#B8860B' : '#1a363d'}
+                  badge={isPro ? 'Mais Escolhido' : undefined}
+                >
+                  {/* CONTEÚDO TÉCNICO COMPLETO DENTRO DO CARD */}
+                  <div className="text-center mb-8">
+                    <div className="flex items-start justify-center gap-1 text-petroleum">
+                      <span className="text-[14px] font-bold mt-2 text-gold">
+                        R$
+                      </span>
+                      <span className="text-5xl font-semibold tracking-tighter italic">
+                        {displayPrice.toFixed(0)}
+                      </span>
                     </div>
+                    <p className="text-[9px] font-bold text-petroleum/40 uppercase tracking-widest mt-1">
+                      {isAnnual ? 'Equivalente / mês' : 'Cobrança mensal'}
+                    </p>
+                  </div>
 
-                    <div className="space-y-4 mb-8 flex-grow">
-                      {indicators.map((ind, i) => (
-                        <div key={i} className="flex items-start gap-4">
-                          <div className="w-9 h-9 rounded-lg bg-slate-50 flex items-center justify-center shrink-0 text-petroleum/70">
-                            {React.cloneElement(
-                              ind.icon as React.ReactElement,
-                              {
-                                size: 18,
-                                strokeWidth: 2,
-                              },
-                            )}
-                          </div>
-                          <div className="flex flex-col">
-                            <span className="text-[13px] font-bold leading-tight text-petroleum">
-                              {ind.value}
-                            </span>
-                            <span className="text-[11px] text-petroleum/70 font-medium tracking-luxury-tight leading-tight">
-                              {ind.label}
-                            </span>
-                          </div>
+                  {/* LISTA DE INDICADORES (TODOS OS RECURSOS) */}
+                  <div className="space-y-4 mb-8 flex-grow">
+                    {indicators.map((ind, i) => (
+                      <div key={i} className="flex items-start gap-3">
+                        <div className="w-8 h-8 rounded-lg bg-slate-100 flex items-center justify-center shrink-0 text-petroleum/60">
+                          {React.cloneElement(ind.icon as React.ReactElement, {
+                            size: 16,
+                            strokeWidth: 2,
+                          })}
                         </div>
-                      ))}
-                    </div>
+                        <div className="flex flex-col">
+                          <span className="text-[12px] font-bold text-petroleum leading-tight">
+                            {ind.value}
+                          </span>
+                          <span className="text-[10px] text-petroleum/50 font-medium uppercase tracking-tighter">
+                            {ind.label}
+                          </span>
+                        </div>
+                      </div>
+                    ))}
+                  </div>
 
-                    <button
-                      onClick={() => setLoadingPlan(key)}
-                      className={`w-full h-12 flex items-center justify-center gap-3 rounded-luxury transition-all font-bold text-[11px] uppercase tracking-luxury-widest ${
-                        isPro
-                          ? 'bg-petroleum text-white shadow-xl hover:bg-slate-800'
-                          : 'bg-white border-2 border-petroleum/20 text-petroleum hover:border-petroleum'
-                      }`}
-                    >
-                      {loadingPlan === key ? (
-                        <Loader2 className="animate-spin" size={18} />
-                      ) : (
-                        <>
-                          <plan.icon size={16} strokeWidth={2.5} />{' '}
-                          {/* Ícone adicionado aqui */}
-                          <span>{plan.cta}</span>
-                        </>
-                      )}
-                    </button>
-                  </EditorialCard>
-                );
-              })}
-            </div>
+                  <button
+                    onClick={() => setLoadingPlan(key)}
+                    disabled={!!loadingPlan}
+                    className={`w-full h-14 flex items-center justify-center gap-3 rounded-xl transition-all font-bold text-[10px] uppercase tracking-widest ${
+                      isPro
+                        ? 'bg-petroleum text-white shadow-xl hover:bg-black active:scale-95'
+                        : 'bg-white border border-petroleum/20 text-petroleum hover:border-petroleum'
+                    }`}
+                  >
+                    {loadingPlan === key ? (
+                      <Loader2 className="animate-spin" size={16} />
+                    ) : (
+                      <>
+                        {/* Ícone dinâmico do plano alinhado à esquerda do texto */}
+                        <plan.icon
+                          size={16}
+                          strokeWidth={2.5}
+                          className={isPro ? 'text-gold' : 'text-petroleum/60'}
+                        />
+                        <span>{plan.cta}</span>
+                      </>
+                    )}
+                  </button>
+                </EditorialCard>
+              );
+            })}
+          </div>
+        </section>
 
-            {/* TABLE SECTION */}
-            <div className="text-center mb-6">
-              <h2 className="text-petroleum font-semibold text-[20px] md:text-[24px] uppercase tracking-luxury-widest">
+        {/* 🎯 TABELA DE ESPECIFICAÇÕES: Refinamento Editorial */}
+        <section className="bg-slate-50 py-24 border-t border-slate-100">
+          <div className="max-w-[1400px] mx-auto px-6">
+            <div className="text-center mb-16">
+              <h2 className="text-petroleum font-semibold text-2xl uppercase tracking-[0.3em] italic">
                 Especificações Técnicas
               </h2>
-              <div className="w-20 h-px bg-gold mx-auto opacity-60 mt-2" />
+              <div className="w-12 h-1 bg-gold mx-auto mt-4 rounded-full opacity-40" />
             </div>
 
-            <div className="rounded-luxury overflow-hidden border border-white/10 shadow-2xl bg-white mb-20 max-w-full">
-              <div className="overflow-x-auto scrollbar-hide">
-                {/* 🎯 Ajuste Mobile: min-w otimizado para não achatar no mobile */}
-                <table className="w-full text-left border-collapse min-w-[900px]">
+            <div className="rounded-3xl overflow-hidden border border-slate-200 shadow-2xl bg-white">
+              <div className="overflow-x-auto">
+                <table className="w-full text-left border-collapse min-w-[1000px]">
                   <thead>
                     <tr className="bg-petroleum">
-                      <th className="p-4 sticky left-0 z-50 bg-petroleum border-b border-white/10">
-                        <span className="text-[11px] font-bold uppercase tracking-luxury-widest text-gold">
-                          Recurso
+                      <th className="p-6 sticky left-0 z-50 bg-petroleum border-b border-white/5">
+                        <span className="text-[10px] font-bold uppercase tracking-widest text-gold/80">
+                          Recursos
                         </span>
                       </th>
                       {planosKeys.map((key) => (
                         <th
                           key={key}
-                          className="p-4 text-center border-b border-white/10"
+                          className="p-6 text-center border-b border-white/5"
                         >
-                          <span className="text-[12px] text-white font-semibold block">
+                          <span className="text-[11px] text-white font-bold uppercase tracking-widest">
                             {currentPlans[key].name}
-                          </span>
-                          <span className="text-[14px] text-gold font-bold">
-                            R$ {currentPlans[key].price}
                           </span>
                         </th>
                       ))}
                     </tr>
                   </thead>
                   <tbody>
-                    {groups.map((groupName) => {
-                      const isExpanded = expandedGroups.includes(groupName);
-                      return (
-                        <React.Fragment key={groupName}>
-                          <tr
-                            className="cursor-pointer bg-slate-50 transition-colors hover:bg-slate-100"
-                            onClick={() =>
-                              setExpandedGroups((prev) =>
-                                prev.includes(groupName)
-                                  ? prev.filter((g) => g !== groupName)
-                                  : [...prev, groupName],
-                              )
-                            }
+                    {groups.map((groupName) => (
+                      <React.Fragment key={groupName}>
+                        <tr className="bg-slate-50/50">
+                          <td
+                            colSpan={6}
+                            className="py-4 px-8 border-b border-slate-100"
                           >
-                            {/* 🎯 FIXADO NO MOBILE: Adicionado sticky left-0 e z-40 */}
-                            <td
-                              colSpan={6}
-                              className="py-3 px-5 border-b border-slate-200 sticky left-10 z-40 bg-slate-50 shadow-[2px_0_5px_-2px_rgba(0,0,0,0.05)]"
-                            >
-                              <div className="flex items-center gap-3 text-petroleum sticky left-10">
-                                {isExpanded ? (
-                                  <ChevronUp size={14} />
-                                ) : (
-                                  <ChevronDown size={14} />
-                                )}
-                                <span className="text-[11px] font-bold uppercase tracking-luxury-widest whitespace-nowrap sticky left-10">
-                                  {groupName}
-                                </span>
-                              </div>
+                            <span className="text-[9px] font-black uppercase tracking-[0.4em] text-petroleum/30">
+                              {groupName}
+                            </span>
+                          </td>
+                        </tr>
+                        {COMMON_FEATURES.filter(
+                          (f) => f.group.toUpperCase() === groupName,
+                        ).map((feature, fIdx) => (
+                          <tr
+                            key={fIdx}
+                            className="hover:bg-slate-50 transition-colors group"
+                          >
+                            <td className="py-4 px-8 border-b border-slate-100 bg-white sticky left-0 z-30 text-[12px] font-medium text-petroleum/70">
+                              {feature.label}
                             </td>
-                          </tr>
-
-                          {isExpanded &&
-                            COMMON_FEATURES.filter(
-                              (f) => f.group.toUpperCase() === groupName,
-                            ).map((feature, fIdx) => (
-                              <tr
-                                key={fIdx}
-                                className="hover:bg-slate-50/80 group transition-colors"
+                            {planosKeys.map((key, pIdx) => (
+                              <td
+                                key={key}
+                                className="py-4 px-4 border-b border-slate-100 text-center"
                               >
-                                {/* Esta célula já estava correta, mantida para contexto */}
-                                <td className="py-4 px-6 md:px-8 border-b border-slate-100 bg-white sticky left-0 z-30 text-[12px] md:text-[13px] font-medium text-petroleum/80 shadow-[2px_0_5px_-2px_rgba(0,0,0,0.05)]">
-                                  {feature.label}
-                                </td>
-                                {planosKeys.map((key, pIdx) => {
-                                  const val = getFeatureValue(
-                                    feature.label,
-                                    key,
-                                    pIdx,
-                                  );
-                                  const isLocked =
-                                    val === false ||
-                                    (typeof val === 'string' &&
-                                      val
-                                        .toLowerCase()
-                                        .includes('não disponível'));
-                                  return (
-                                    <td
-                                      key={key}
-                                      className={`py-4 px-4 border-b border-slate-100 text-center ${key === 'PRO' ? 'bg-gold/5' : ''} ${isLocked ? 'opacity-40 grayscale' : ''}`}
-                                    >
-                                      <div className="flex items-center justify-center min-h-[30px]">
-                                        {val === true ? (
-                                          <Check
-                                            size={20}
-                                            className="text-emerald-600"
-                                            strokeWidth={2.5}
-                                          />
-                                        ) : val === false ? (
-                                          <X
-                                            size={18}
-                                            className="text-petroleum/20"
-                                          />
-                                        ) : (
-                                          <span
-                                            className={`text-[12px] md:text-[13px] font-medium text-petroleum ${isLocked ? 'italic' : ''}`}
-                                          >
-                                            {val}
-                                          </span>
-                                        )}
-                                      </div>
-                                    </td>
-                                  );
-                                })}
-                              </tr>
+                                <div className="flex items-center justify-center">
+                                  {getFeatureValue(feature.label, key, pIdx) ===
+                                  true ? (
+                                    <Check
+                                      size={18}
+                                      className="text-emerald-500"
+                                      strokeWidth={3}
+                                    />
+                                  ) : getFeatureValue(
+                                      feature.label,
+                                      key,
+                                      pIdx,
+                                    ) === false ? (
+                                    <X
+                                      size={16}
+                                      className="text-slate-200"
+                                      strokeWidth={2}
+                                    />
+                                  ) : (
+                                    <span className="text-[12px] font-bold text-petroleum">
+                                      {getFeatureValue(
+                                        feature.label,
+                                        key,
+                                        pIdx,
+                                      )}
+                                    </span>
+                                  )}
+                                </div>
+                              </td>
                             ))}
-                        </React.Fragment>
-                      );
-                    })}
+                          </tr>
+                        ))}
+                      </React.Fragment>
+                    ))}
                   </tbody>
                 </table>
               </div>
             </div>
-          </main>
-        </EditorialView>
-        <Footer />
-      </div>
-    </div>
+          </div>
+          <div className="flex items-center gap-3 bg-petroleum border border-white/10 px-8 py-4 rounded-full backdrop-blur-xl w-fit mx-auto mt-10">
+            <ShieldCheck size={20} className="text-gold" />
+            <span className="text-[10px] font-bold uppercase tracking-luxury-widest text-white whitespace-nowrap">
+              Pagamento Seguro via Criptografia Bancária • 2026
+            </span>
+          </div>
+        </section>
+      </main>
+    </EditorialView>
   );
 }
