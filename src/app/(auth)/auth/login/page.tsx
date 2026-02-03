@@ -28,7 +28,9 @@ function LoginContent() {
     if (error === 'session_expired') {
       setErrorMessage('Sua sessão expirou. Por favor, faça login novamente.');
     } else if (error === 'session_error') {
-      setErrorMessage('Erro ao validar sua sessão. Por favor, faça login novamente.');
+      setErrorMessage(
+        'Erro ao validar sua sessão. Por favor, faça login novamente.',
+      );
     } else if (error === 'auth_failed') {
       setErrorMessage('Falha na autenticação. Tente novamente.');
     } else {
@@ -53,7 +55,7 @@ function LoginContent() {
 
       // 2. Busca o perfil para triagem via Server Action (permitida)
       const result = await getProfileData();
-      
+
       if (!result.success || !result.profile) {
         // Se não conseguir buscar o perfil, manda para onboarding por segurança
         router.replace('/onboarding');
@@ -110,7 +112,7 @@ function LoginContent() {
       desc: (
         <div className="flex flex-col items-center gap-6 text-center">
           <div className="flex flex-col gap-2">
-            <p className="text-white/70 max-w-sm">
+            <p className="text-white/90 max-w-sm">
               Utilize sua conta Google para gerenciar suas galerias e conteúdos
               profissionais com segurança total.
             </p>
@@ -120,14 +122,16 @@ function LoginContent() {
           {errorMessage && (
             <div className="w-full max-w-sm mx-auto mb-4 p-4 bg-red-500/10 border border-red-500/30 rounded-luxury flex items-center gap-3 animate-in fade-in slide-in-from-top-2">
               <AlertCircle className="text-red-500 flex-shrink-0" size={20} />
-              <p className="text-red-200/80 text-sm font-medium">{errorMessage}</p>
+              <p className="text-red-200/80 text-sm font-medium">
+                {errorMessage}
+              </p>
             </div>
           )}
 
           <GoogleSignInButton />
 
           <div className="pt-6 border-t border-white/5 w-full">
-            <p className="text-editorial-label text-white/40">
+            <p className="text-editorial-label text-white/90">
               Ambiente seguro • Criptografia ponta a ponta
             </p>
           </div>

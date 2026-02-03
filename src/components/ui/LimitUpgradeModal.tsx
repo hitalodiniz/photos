@@ -35,7 +35,7 @@ export const LimitUpgradeModal = ({
 
       <button
         onClick={onClose}
-        className="w-full h-10 text-white/40 font-bold uppercase text-[10px] tracking-luxury hover:text-gold rounded-luxury transition-all"
+        className="w-full h-10 text-white/90 font-bold uppercase text-[10px] tracking-luxury hover:text-gold rounded-luxury transition-all"
       >
         Continuar com {planLimit} fotos
       </button>

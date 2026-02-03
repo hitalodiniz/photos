@@ -225,12 +225,12 @@ export const ToolbarGalleryView = ({
         {/* 1. FAVORITAR */}
         {showClose && !isSingleView && (
           <button
-          onClick={onToggleFavorite}
-          className="btn-luxury-base flex-1"
-          aria-label={
-            isFavorited ? 'Remover dos favoritos' : 'Adicionar aos favoritos'
-          }
-        >
+            onClick={onToggleFavorite}
+            className="btn-luxury-base flex-1"
+            aria-label={
+              isFavorited ? 'Remover dos favoritos' : 'Adicionar aos favoritos'
+            }
+          >
             <div
               className={`w-12 h-12 rounded-full flex items-center justify-center transition-all ${isFavorited ? 'bg-[#E67E70]' : 'bg-slate-200 dark:bg-white/10 active:bg-slate-800 dark:active:bg-white/20'}`}
             >
@@ -555,7 +555,7 @@ export const ToolbarGalleryView = ({
                 <span className="text-[10px] md:text-[11px]  font-semibold uppercase tracking-wider mb-1 text-white">
                   Favoritar
                 </span>
-                <span className="text-[9px] md:text-[10px]  opacity-80 text-white/70 whitespace-nowrap">
+                <span className="text-[9px] md:text-[10px]  opacity-80 text-white/90 whitespace-nowrap">
                   {isFavorited ? 'Salvo' : 'Salvar foto'}
                 </span>
               </div>
@@ -587,7 +587,7 @@ export const ToolbarGalleryView = ({
             <span className="text-[10px] md:text-[11px]  font-semibold uppercase tracking-wider mb-1 text-white">
               WhatsApp
             </span>
-            <span className="text-[9px] md:text-[10px]  opacity-80 text-white/70 whitespace-nowrap">
+            <span className="text-[9px] md:text-[10px]  opacity-80 text-white/90 whitespace-nowrap">
               Compartilhar
             </span>
           </div>
@@ -614,7 +614,7 @@ export const ToolbarGalleryView = ({
             <span className="text-[10px] md:text-[11px]  font-semibold uppercase tracking-wider mb-1 text-white">
               {copied ? 'Copiado' : 'Link'}
             </span>
-            <span className="text-[9px] md:text-[10px]  opacity-80 text-white/70 whitespace-nowrap">
+            <span className="text-[9px] md:text-[10px]  opacity-80 text-white/90 whitespace-nowrap">
               Copiar URL
             </span>
           </div>
@@ -640,7 +640,7 @@ export const ToolbarGalleryView = ({
               <span className="text-[10px] md:text-[11px]  font-semibold uppercase tracking-wider mb-1 text-white">
                 {isSlideshowActive ? 'Pausar' : 'Slideshow'}
               </span>
-              <span className="text-[9px] md:text-[10px]  opacity-80 text-white/70 whitespace-nowrap">
+              <span className="text-[9px] md:text-[10px]  opacity-80 text-white/90 whitespace-nowrap">
                 {isSlideshowActive ? 'Parar' : 'Automático'}
               </span>
             </div>
@@ -721,7 +721,7 @@ export const ToolbarGalleryView = ({
             <span className="text-[10px] md:text-[11px]  font-semibold uppercase tracking-wider mb-1 text-white">
               Download
             </span>
-            <span className="text-[9px] md:text-[10px]  opacity-80 text-white/70 whitespace-nowrap">
+            <span className="text-[9px] md:text-[10px]  opacity-80 text-white/90 whitespace-nowrap">
               Original
             </span>
           </div>
@@ -764,7 +764,7 @@ export const ToolbarGalleryView = ({
               <span className="text-[10px] md:text-[11px]  font-semibold uppercase tracking-wider mb-1 text-white">
                 Fechar
               </span>
-              <span className="text-[9px] md:text-[10px]  opacity-80 text-white/70 whitespace-nowrap">
+              <span className="text-[9px] md:text-[10px]  opacity-80 text-white/90 whitespace-nowrap">
                 Sair
               </span>
             </div>

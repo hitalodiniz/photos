@@ -24,7 +24,7 @@ export default function DocsListContent({ docsFiles }: DocsListContentProps) {
               Documentação Técnica
             </h1>
           </div>
-          <p className="text-white/70 text-sm md:text-base">
+          <p className="text-white/90 text-sm md:text-base">
             Documentação técnica completa do projeto
           </p>
         </div>

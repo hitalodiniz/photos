@@ -115,7 +115,7 @@ export default function BaseModal({
           {showCloseButton && (
             <button
               onClick={onClose}
-              className="text-white/40 hover:text-white transition-colors"
+              className="text-white/90 hover:text-white transition-colors"
             >
               <X size={18} />
             </button>

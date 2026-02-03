@@ -59,7 +59,7 @@ export default function UpgradeModal({
 
   const footer = (
     <div className="grid grid-cols-2 gap-3 w-full">
-      <button onClick={onClose} className="btn-luxury-secondary">
+      <button onClick={onClose} className="btn-secondary-white">
         Talvez mais tarde
       </button>
       <button
@@ -80,7 +80,7 @@ export default function UpgradeModal({
       subtitle="Upgrade Necessário"
       headerIcon={headerIcon}
       footer={footer}
-      maxWidth="md"
+      maxWidth="2xl"
     >
       <div className="space-y-4">
         {/* Card de Feature Bloqueada */}
@@ -105,19 +105,19 @@ export default function UpgradeModal({
           O recurso{' '}
           <span className="text-petroleum font-bold">{featureName}</span> é
           exclusivo para assinantes do plano{' '}
-          <span className="text-gold font-extrabold">{nextPlanKey}</span> ou
-          superior.
+          <span className="text-petroleum font-extrabold">{nextPlanKey}</span>{' '}
+          ou superior.
         </p>
 
         {/* Lista de Benefícios Dinâmicos */}
         <div className="space-y-2.5 p-4 bg-slate-50 border border-petroleum/10 rounded-luxury">
-          <p className="text-[9px] font-bold uppercase tracking-luxury text-petroleum/40 mb-2">
+          <p className="text-[10px] font-bold uppercase tracking-luxury text-petroleum/90 mb-2">
             Vantagens ao migrar para o {nextPlanKey}:
           </p>
           {planBenefits.map((benefit, i) => (
             <div key={i} className="flex items-center gap-2">
-              <CheckCircle2 size={12} className="text-gold shrink-0" />
-              <span className="text-[10px] font-bold uppercase tracking-luxury-widest text-petroleum/80">
+              <CheckCircle2 size={12} className="text-petroleum shrink-0" />
+              <span className="text-[10px] font-bold uppercase tracking-luxury text-petroleum/80">
                 {benefit}
               </span>
             </div>

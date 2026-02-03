@@ -58,7 +58,7 @@ export default function FormPageBase({
 
   return (
     <div
-      className="w-full min-h-[calc(100vh-72px)] flex flex-col animate-in fade-in duration-300"
+      className="w-full min-h-[calc(100vh-55px)] flex flex-col animate-in fade-in duration-300"
       role="main"
       aria-labelledby="form-page-title"
     >
@@ -81,7 +81,7 @@ export default function FormPageBase({
         <div className="sticky bottom-0 z-[60] shrink-0 bg-petroleum border-t border-white/10 shadow-[0_-10px_30px_rgba(0,0,0,0.3)]">
           {isShowButtons && (
             <div className="flex items-center justify-between px-6 py-4">
-              <div className="text-[10px] text-white/70 uppercase tracking-luxury-widest">
+              <div className="text-[10px] text-white/90 uppercase tracking-luxury-widest">
                 {footerStatusText ||
                   (hasUnsavedChanges ? 'Alterações não salvas' : 'Tudo salvo')}
               </div>

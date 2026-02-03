@@ -113,7 +113,7 @@ export const GaleriaHero = ({
 
       {/* 4. AVATAR DO FOTÓGRAFO (Canto Superior Direito) */}
       <div
-        className={`absolute top-4 right-4 md:top-6 md:right-8 transition-all duration-1000 hero-avatar-container z-[10] ${
+        className={`absolute top-4 right-4 md:top-6 md:right-8 transition-all duration-1000 z-[10] ${
           isExpanded
             ? 'opacity-0 pointer-events-none'
             : 'opacity-100 pointer-events-auto'

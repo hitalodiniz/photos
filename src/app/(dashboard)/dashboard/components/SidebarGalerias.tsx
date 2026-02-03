@@ -21,7 +21,12 @@ export default function SidebarGalerias({
   const isMobile = typeof window !== 'undefined' && window.innerWidth < 1024;
   const items = [
     { id: 'active', label: 'Ativas', icon: Inbox, count: counts.active },
-    { id: 'archived', label: 'Arquivadas', icon: Archive, count: counts.archived },
+    {
+      id: 'archived',
+      label: 'Arquivadas',
+      icon: Archive,
+      count: counts.archived,
+    },
     { id: 'trash', label: 'Lixeira', icon: Trash2, count: counts.trash },
   ];
 
@@ -29,9 +34,7 @@ export default function SidebarGalerias({
     <div className="space-y-1">
       {(!isSidebarCollapsed || isMobile) && (
         <div className="mb-2 px-2">
-          <span className="text-editorial-label text-white/90">
-            GALERIAS
-          </span>
+          <span className="text-editorial-label text-white/90">GALERIAS</span>
         </div>
       )}
       <div className="flex flex-col gap-1 w-full">
@@ -46,32 +49,45 @@ export default function SidebarGalerias({
                 toggleSidebar();
               }
             }}
-            className={`flex items-center justify-between group relative w-full px-3 py-2 rounded-luxury transition-all duration-300 ${currentView === item.id ? 'bg-white/10 text-gold translate-x-1' : 'text-white/90 hover:bg-white/5 hover:text-gold'}`}
+            className={`relative flex items-center justify-start gap-3 w-full !px-3 py-2 
+      rounded-luxury transition-all duration-300 text-left 
+      ${
+        currentView === item.id
+          ? 'bg-white/10 text-gold !translate-x-1'
+          : 'text-white/90 hover:bg-white/5 hover:text-gold'
+      }`}
           >
+            {/* 1. Indicador Ativo (Absoluto) */}
             {currentView === item.id && (
               <div className="absolute left-0 top-1/2 -translate-y-1/2 w-1 h-5 bg-gold rounded-r-full" />
             )}
-            <div className="flex items-center gap-3">
-              <item.icon
-                size={18}
-                className={
-                  currentView === item.id
-                    ? 'text-gold'
-                    : 'text-current transition-colors'
-                }
-              />
-              {(!isSidebarCollapsed || isMobile) && (
-                <span
-                  className={`text-editorial-label text-left ${currentView === item.id ? 'font-semibold' : ''}`}
-                >
-                  {item.label}
-                </span>
-              )}
-            </div>
+
+            {/* 2. Ícone (Filho direto para alinhar pelo justify-start) */}
+            <item.icon
+              size={18}
+              className={`${
+                currentView === item.id ? 'text-gold' : 'text-current'
+              } shrink-0 ${currentView === item.id ? 'ml-1' : ''}`}
+            />
+
+            {/* 3. Texto (flex-grow garante que ele ocupe o centro e empurre o badge) */}
+            {(!isSidebarCollapsed || isMobile) && (
+              <span
+                className={`text-editorial-label text-left flex-grow font-semibold tracking-widest ${
+                  currentView === item.id ? 'opacity-100' : 'opacity-80'
+                }`}
+              >
+                {item.label}
+              </span>
+            )}
+
+            {/* 4. Contador (Alinhado à direita pelo flex-grow do span anterior) */}
             {(!isSidebarCollapsed || isMobile) && item.count > 0 && (
               <span
-                className={`text-[10px] font-semibold tracking-luxury px-2 py-0.5 rounded-full ${
-                  currentView === item.id ? 'bg-gold text-black' : 'bg-white/10 text-white/90'
+                className={`text-[10px] font-bold tracking-widest px-2 py-0.5 rounded-full shrink-0 ${
+                  currentView === item.id
+                    ? 'bg-gold text-black'
+                    : 'bg-white/10 text-white/50'
                 }`}
               >
                 {item.count}

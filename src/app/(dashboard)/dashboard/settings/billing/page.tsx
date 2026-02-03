@@ -15,7 +15,7 @@ export default function BillingPage() {
             <h4 className="text-white font-semibold text-sm">
               Método de Pagamento
             </h4>
-            <p className="text-white/40 text-xs mt-1">Visa final 4242</p>
+            <p className="text-white/90 text-xs mt-1">Visa final 4242</p>
           </button>
 
           <button className="p-6 bg-white/5 border border-white/10 rounded-3xl text-left hover:bg-white/10 transition-all group">
@@ -23,7 +23,7 @@ export default function BillingPage() {
             <h4 className="text-white font-semibold text-sm">
               Histórico de Faturas
             </h4>
-            <p className="text-white/40 text-xs mt-1">
+            <p className="text-white/90 text-xs mt-1">
               Acessar recibos anteriores
             </p>
           </button>

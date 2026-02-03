@@ -36,7 +36,16 @@ export default function PhotographerAvatar({
   const hasWebsite = planKey === 'PREMIUM';
 
   useEffect(() => {
-    if (isExpanded) {
+    const isDesktop = window.innerWidth >= 768; // breakpoint md
+    if (isDesktop) {
+      setIsExpanded(true);
+    }
+  }, []);
+
+  useEffect(() => {
+    const isDesktop = window.innerWidth >= 768;
+    if (isExpanded && !isDesktop) {
+      // Só fecha sozinho no Mobile
       const timer = setTimeout(() => setIsExpanded(false), 4000);
       return () => clearTimeout(timer);
     }
@@ -75,12 +84,17 @@ export default function PhotographerAvatar({
   return (
     <div
       className={`${positionClasses} flex items-center cursor-pointer select-none`}
-      onClick={() => setIsExpanded(!isExpanded)}
+      onClick={() => {
+        if (window.innerWidth < 768) setIsExpanded(!isExpanded);
+      }}
     >
       <div
         className={`
         flex items-center rounded-luxury md:p-2 border shadow-2xl transition-all duration-500 ease-[cubic-bezier(0.23,1,0.32,1)]
+/* Mobile logic */
         ${isExpanded ? 'gap-2 p-1.5' : 'gap-0 p-0 px-1'} 
+        /* Desktop forced expansion */
+        md:gap-1 md:p-2 md:px-3
         ${
           position === 'bottom-lightbox'
             ? 'bg-white/90 dark:bg-[#1A1A1A]/90 backdrop-blur-3xl border-black/20 dark:border-white/20'
@@ -113,12 +127,15 @@ export default function PhotographerAvatar({
         <div
           className={`
           flex flex-col items-start gap-1.5 transition-all duration-500 ease-[cubic-bezier(0.23,1,0.32,1)] overflow-hidden
+          /* Mobile transition */
           ${isExpanded ? 'max-w-[280px] opacity-100 ml-1' : 'max-w-0 opacity-0'}
+          /* Desktop forced visibility */
+          md:max-w-[350px] md:opacity-100 md:ml-2
         `}
         >
           <div className="flex flex-col items-start whitespace-nowrap">
             <p
-              className={`text-[8px] md:text-[9px] tracking-luxury-widest uppercase font-bold leading-none mb-1 transition-colors ${
+              className={`text-[8px] md:text-[9px] tracking-luxury-normal uppercase font-semibold leading-none mb-1 transition-colors ${
                 position === 'bottom-lightbox'
                   ? 'text-slate-500 dark:text-[#F3E5AB]/80'
                   : 'text-[#F3E5AB]'
@@ -127,7 +144,7 @@ export default function PhotographerAvatar({
               Registrado por
             </p>
             <span
-              className={`text-[10px] md:text-[11px] font-bold tracking-luxury-tight leading-tight ${
+              className={`text-[11px] md:text-[11px] font-semibold tracking-luxury-tight leading-tight ${
                 position === 'bottom-lightbox'
                   ? 'text-slate-900 dark:text-white'
                   : 'text-white'

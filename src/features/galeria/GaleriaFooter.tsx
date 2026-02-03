@@ -71,7 +71,7 @@ export default function GaleriaFooter({
           )}
 
           <div className="flex flex-col md:flex-row items-center justify-center gap-2 md:gap-3">
-            <div className="flex items-center gap-2 text-white/70 italic">
+            <div className="flex items-center gap-2 text-white/90 italic">
               <span className="text-[13px] md:text-[16px]">Registrado por</span>
 
               <div className="flex items-center gap-4 py-1.5 not-italic">

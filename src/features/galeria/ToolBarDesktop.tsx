@@ -11,8 +11,12 @@ import {
   Wand2,
   Zap,
   FileCheck,
+  Smartphone,
+  Tablet,
 } from 'lucide-react';
 import WhatsAppIcon from '@/components/ui/WhatsAppIcon';
+import { usePlan } from '@/core/context/PlanContext';
+import UpgradeModal from '@/components/ui/UpgradeModal';
 
 export const ToolBarDesktop = ({
   showOnlyFavorites,
@@ -28,11 +32,12 @@ export const ToolBarDesktop = ({
   handleExternalDownload,
   galeria,
   externalLinks = [],
+  setUpsellFeature,
 }: any) => {
   const [copied, setCopied] = useState(false);
   const [showDownloadMenu, setShowDownloadMenu] = useState(false);
   const [linksStatus, setLinksStatus] = useState<Record<number, boolean>>({});
-
+  const { permissions } = usePlan();
   const isCompact = false;
   const hasTags = tags.length > 1;
 
@@ -96,7 +101,7 @@ export const ToolBarDesktop = ({
         pointer-events-auto relative
         w-full bg-petroleum backdrop-blur-md border-b border-white/10 shadow-2xl
         /* 🎯 FIX DOWNLOAD: Permite que o menu suspenso apareça para baixo */
-        ${showDownloadMenu ? 'overflow-visible' : 'overflow-hidden'}
+        overflow-visible
       `}
       >
         <div className="flex items-center w-full max-w-[1600px] px-6 gap-3 h-14 mx-auto min-w-0">
@@ -104,27 +109,81 @@ export const ToolBarDesktop = ({
           <div className="flex items-center gap-4 border-r border-white/10 pr-4 shrink-0">
             <div className="flex items-center gap-2">
               <Wand2 size={18} className="text-gold" />
-              <span className="text-editorial-label text-white hidden lg:block">
-                Ferramentas
-              </span>
             </div>
-            <div className="flex items-center gap-1 bg-white/5 rounded-luxury px-1.5 h-10 border border-white/10 shadow-inner">
-              <Monitor size={14} className="text-gold mx-1" />
-              {[3, 4, 5, 6, 7, 8].map((num) => (
-                <button
-                  key={num}
-                  onClick={() =>
-                    setColumns((p: any) => ({ ...p, desktop: num }))
-                  }
-                  className={`w-7 h-7 rounded-luxury text-[10px] font-bold transition-all ${
-                    columns.desktop === num
-                      ? 'bg-gold text-black shadow-lg'
-                      : 'text-white hover:text-white/40 hover:bg-white/5'
-                  }`}
-                >
-                  {num}
-                </button>
-              ))}
+            <div className="flex items-center gap-3">
+              {[
+                {
+                  k: 'tablet' as const,
+                  i: Tablet,
+                  options: [2, 3, 4, 5, 6],
+                  display: 'hidden md:flex lg:hidden',
+                },
+                {
+                  k: 'desktop' as const,
+                  i: Monitor,
+                  options: [3, 4, 5, 6, 8],
+                  display: 'hidden lg:flex',
+                },
+              ].map((d) => {
+                const availableOptions = d.options.filter(
+                  (num) => num <= (permissions?.maxGridColumns || 2),
+                );
+                const hasLockedOptions = d.options.some(
+                  (num) => num > (permissions?.maxGridColumns || 2),
+                );
+
+                if (availableOptions.length < 2 && !hasLockedOptions)
+                  return null;
+
+                return (
+                  <div
+                    key={d.k}
+                    className={`${d.display} items-center gap-1 bg-white/5 rounded-luxury px-1.5 h-10 border border-white/10 shadow-inner`}
+                  >
+                    <d.i size={14} className="text-gold mx-1 shrink-0" />
+
+                    {availableOptions.map((num) => (
+                      <button
+                        key={num}
+                        type="button"
+                        onClick={() =>
+                          setColumns((p: any) => ({ ...p, [d.k]: num }))
+                        }
+                        className={`w-7 h-7 rounded-luxury text-[10px] font-bold transition-all flex items-center justify-center
+              ${columns[d.k] === num ? 'bg-gold text-black shadow-lg' : 'text-white/60 hover:bg-white/10'}
+            `}
+                      >
+                        {num}
+                      </button>
+                    ))}
+
+                    {hasLockedOptions && (
+                      <button
+                        type="button"
+                        onClick={() =>
+                          setUpsellFeature?.({
+                            label: 'Colunas no Grid',
+                            feature: 'maxGridColumns',
+                          })
+                        }
+                        className="w-7 h-7 rounded-luxury flex items-center justify-center bg-white/5 text-gold hover:bg-white/10 transition-all group relative"
+                      >
+                        <Zap
+                          size={12}
+                          fill="currentColor"
+                          className="animate-pulse"
+                        />
+
+                        {/* Tooltip com Z-Index e Overflow garantido */}
+                        <span className="absolute bottom-[calc(100%+10px)] left-1/2 -translate-x-1/2 hidden group-hover:block w-32 p-2 bg-slate-900 text-[9px] text-white rounded shadow-2xl border border-white/10 z-[120] pointer-events-none">
+                          Upgrade para liberar até 8 colunas
+                          <div className="absolute top-full left-1/2 -translate-x-1/2 border-4 border-transparent border-t-slate-900" />
+                        </span>
+                      </button>
+                    )}
+                  </div>
+                );
+              })}
             </div>
           </div>
 
@@ -237,14 +296,14 @@ export const ToolBarDesktop = ({
                           <p className="text-white text-editorial-label">
                             Fotos Otimizadas
                           </p>
-                          <p className="text-white/40 text-[10px] leading-tight font-medium italic">
+                          <p className="text-white/90 text-[10px] leading-tight font-medium italic">
                             Até 2MB por foto. Ideal para celular.
                           </p>
                         </div>
                       </button>
 
                       {/* Links Externos - Múltiplos links do JSON */}
-                      {/* Links Externos - Múltiplos links do JSON */}
+
                       {externalLinks.map((linkObj, index) => {
                         if (!linksStatus[index]) return null;
 
@@ -269,7 +328,7 @@ export const ToolBarDesktop = ({
                                 {/* 🎯 Exibe o rótulo personalizado cadastrado pelo fotógrafo */}
                                 {linkObj.label}
                               </p>
-                              <p className="text-white/40 text-[9px] leading-tight truncate italic font-medium mt-0.5">
+                              <p className="text-white/90 text-[9px] leading-tight truncate italic font-medium mt-0.5">
                                 {linkObj.url}
                               </p>
                             </div>

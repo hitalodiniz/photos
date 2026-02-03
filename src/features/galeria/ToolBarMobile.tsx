@@ -274,7 +274,7 @@ export const ToolBarMobile = ({
                         <p className="text-white text-editorial-label">
                           Fotos Otimizadas
                         </p>
-                        <p className="text-white/40 text-[9px] leading-tight font-medium italic">
+                        <p className="text-white/90 text-[9px] leading-tight font-medium italic">
                           Ideal para celular e postagens.
                         </p>
                       </div>
@@ -307,7 +307,7 @@ export const ToolBarMobile = ({
                               {/* 🎯 Exibe o rótulo personalizado cadastrado pelo fotógrafo */}
                               {linkObj.label}
                             </p>
-                            <p className="text-white/40 text-[9px] leading-tight truncate italic font-medium mt-0.5">
+                            <p className="text-white/90 text-[9px] leading-tight truncate italic font-medium mt-0.5">
                               {linkObj.url}
                             </p>
                           </div>
@@ -347,7 +347,7 @@ export const ToolBarMobile = ({
           className={`overflow-hidden transition-all duration-500 bg-petroleum backdrop-blur-xl border-b border-white/10 ${showTagsPanel ? 'max-h-[70vh] opacity-100' : 'max-h-0 opacity-0 pointer-events-none'}`}
         >
           <div className="p-6 flex flex-col gap-4">
-            <span className="text-editorial-label text-white/40">
+            <span className="text-editorial-label text-white/90">
               Categorias
             </span>
             <div className="flex flex-wrap gap-2 pb-2">

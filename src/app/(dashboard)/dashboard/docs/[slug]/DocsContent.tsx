@@ -28,7 +28,9 @@ export default function DocsContent({ content, slug }: DocsContentProps) {
               className="group-hover:-translate-x-1 transition-transform duration-300"
               size={20}
             />
-            <span className="text-sm font-medium">Voltar para documentação</span>
+            <span className="text-sm font-medium">
+              Voltar para documentação
+            </span>
           </Link>
 
           <div className="flex items-center gap-3 mb-4">
@@ -46,7 +48,7 @@ export default function DocsContent({ content, slug }: DocsContentProps) {
 
         {/* Conteúdo Markdown */}
         <div className="bg-black/90 dark:bg-black/90 backdrop-blur-md border border-white/10 dark:border-white/10 rounded-2xl p-8 md:p-12">
-          <div className="prose prose-invert prose-lg max-w-none prose-headings:text-champagne prose-a:text-champagne prose-a:hover:text-champagne/80 prose-strong:text-champagne prose-code:text-champagne prose-code:bg-champagne/10 prose-pre:bg-black/50 prose-pre:border prose-pre:border-white/10 prose-blockquote:border-l-champagne/50 prose-blockquote:text-white/70 prose-hr:border-white/10 prose-th:bg-champagne/10 prose-th:text-champagne prose-th:border-white/10 prose-td:border-white/10 prose-td:text-white/80">
+          <div className="prose prose-invert prose-lg max-w-none prose-headings:text-champagne prose-a:text-champagne prose-a:hover:text-champagne/80 prose-strong:text-champagne prose-code:text-champagne prose-code:bg-champagne/10 prose-pre:bg-black/50 prose-pre:border prose-pre:border-white/10 prose-blockquote:border-l-champagne/50 prose-blockquote:text-white/90 prose-hr:border-white/10 prose-th:bg-champagne/10 prose-th:text-champagne prose-th:border-white/10 prose-td:border-white/10 prose-td:text-white/80">
             <ReactMarkdown
               components={{
                 // Customizações específicas para manter cores douradas e melhorar visualização

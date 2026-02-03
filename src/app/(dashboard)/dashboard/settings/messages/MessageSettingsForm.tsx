@@ -22,6 +22,9 @@ import BaseModal from '@/components/ui/BaseModal';
 import { GALLERY_MESSAGES } from '@/core/config/messages';
 import { div } from 'framer-motion/client';
 
+import { PlanGuard } from '@/components/auth/PlanGuard';
+import { usePlan } from '@/core/context/PlanContext';
+
 // --- SCHEMAS E TIPOS ---
 type EditableMessageKey = keyof Omit<MessageTemplates, 'CARD_SHARE'>;
 type EditableMessagePath = `message_templates.${EditableMessageKey}`;
@@ -281,7 +284,13 @@ export default function MessageSettingsForm({ profile }: { profile: any }) {
 
   const hasError = invalidTags.length > 0;
 
+  const { permissions } = usePlan();
+
   return (
+    <PlanGuard
+      feature="canCustomWhatsApp"
+      label="Edição de Mensagens"
+    >
     <FormPageBase
       title="Modelos de Mensagens"
       isEdit={true}
@@ -501,5 +510,6 @@ export default function MessageSettingsForm({ profile }: { profile: any }) {
         />
       )}
     </FormPageBase>
+    </PlanGuard>
   );
 }

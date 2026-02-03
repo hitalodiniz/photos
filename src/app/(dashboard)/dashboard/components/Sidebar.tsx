@@ -79,16 +79,6 @@ export default function Sidebar({
           </div>
         )}
 
-        {/* Botão Fechar (Mobile) */}
-        {!isSidebarCollapsed && (
-          <button
-            onClick={toggleSidebar}
-            className="lg:hidden absolute top-4 -right-4 p-2 bg-gold text-black rounded-full shadow-xl z-[130]"
-          >
-            <ArrowLeft size={20} />
-          </button>
-        )}
-
         {/* Botão Nova Galeria */}
         <div className="px-3 pt-3">
           <button
@@ -106,7 +96,7 @@ export default function Sidebar({
               h-12 w-full gap-2
               ${
                 !canCreateMore
-                  ? 'bg-slate-800 border-white/10 text-white/40 cursor-pointer hover:border-gold'
+                  ? 'bg-slate-800 border-white/10 text-white/90 cursor-pointer hover:border-gold'
                   : 'bg-gold text-black border-gold hover:bg-white'
               }
               ${isRedirecting ? 'opacity-70 cursor-not-allowed' : ''}`}
@@ -146,10 +136,10 @@ export default function Sidebar({
           {(!isSidebarCollapsed || isMobile) && (
             <div className="px-2 py-1 mb-2">
               <div className="flex items-center justify-between px-3 py-2 rounded-luxury bg-white/5 border border-white/5">
-                <span className="text-[9px] font-bold uppercase tracking-luxury-widest text-white/40">
+                <span className="text-[9px] font-bold uppercase tracking-luxury-widest text-white/90">
                   Plano
                 </span>
-                <span className="text-[9px] font-black uppercase tracking-luxury-widest text-gold">
+                <span className="text-[9px] font-semibold uppercase tracking-luxury-widest text-gold">
                   {planKey}
                 </span>
               </div>
@@ -192,7 +182,7 @@ export default function Sidebar({
 
           <button
             onClick={toggleSidebar}
-            className="hidden lg:flex absolute -right-3 top-6 bg-slate-800 border border-white/10 rounded-full p-1 shadow-xl hover:bg-slate-700 z-10 text-white/40 hover:text-gold transition-colors"
+            className="!px-3 hidden lg:flex absolute -right-4 top-20 bg-champagne border border-white/10 rounded-full p-1 shadow-xl hover:bg-slate-700 z-10 text-petroleum/70 hover:text-gold transition-colors"
             title={isSidebarCollapsed ? 'Expandir Menu' : 'Recolher Menu'}
           >
             {isSidebarCollapsed ? (

@@ -3,13 +3,10 @@
 import { useEffect } from 'react';
 import { useRouter } from 'next/navigation';
 import { AlertTriangle, RefreshCcw, Home } from 'lucide-react';
-import {
-  EditorialHeader,
-  DynamicHeroBackground,
-  Footer,
-} from '@/components/layout';
+
 import FeatureGrid from '@/components/ui/FeatureGrid';
 import { usePageTitle } from '@/hooks/usePageTitle';
+import EditorialView from '@/components/layout/EditorialView';
 
 export default function GlobalError({
   error,
@@ -38,7 +35,7 @@ export default function GlobalError({
       desc: (
         <div className="flex flex-col items-center gap-6 text-center">
           <div className="flex flex-col gap-2">
-            <p className="text-white/70 text-[12px] md:text-[14px] leading-relaxed max-w-sm">
+            <p className="text-white/90 text-[12px] md:text-[14px] leading-relaxed max-w-sm">
               Ocorreu uma falha inesperada. Nossa equipe de monitoramento já
               recebeu um relatório detalhado e está trabalhando na solução.
             </p>
@@ -72,29 +69,18 @@ export default function GlobalError({
   ];
 
   return (
-    <div className="relative min-h-screen w-full flex flex-col overflow-hidden bg-black">
-      <DynamicHeroBackground />
-      <div className="relative z-10 flex flex-col min-h-screen">
-        <EditorialHeader
-          title="Erro de Sistema"
-          subtitle={
-            <>
-              Falha crítica no{' '}
-              <span className="font-semibold border-b-2 border-champagne/50 text-white">
-                processamento de dados
-              </span>
-            </>
-          }
-        />
-
-        <main className="flex-grow flex flex-col items-center justify-center py-6 md:py-10">
-          <div className="w-full max-w-2xl mx-auto px-4">
-            {/* Ícone centralizado no topo com 32px no mobile conforme padronizado */}
-            <FeatureGrid items={errorItems} iconPosition="top" />
-          </div>
-        </main>
-        <Footer />
-      </div>
-    </div>
+    <EditorialView
+      title="Erro de Sistema"
+      subtitle={
+        <>
+          Falha crítica no{' '}
+          <span className="font-semibold border-b-2 border-champagne/50 text-white">
+            processamento de dados
+          </span>
+        </>
+      }
+    >
+      <FeatureGrid items={errorItems} iconPosition="top" />
+    </EditorialView>
   );
 }

@@ -620,38 +620,18 @@ export async function processSubscriptionAction(
  * 📝 REGISTRA LOG DE MUDANÇA DE PLANO
  * Função auxiliar interna para auditoria.
  */
-// async function logPlanChange(
-//   supabase: any,
-//   profileId: string,
-//   oldPlan: string,
-//   newPlan: string,
-//   reason: string,
-// ) {
-//   await supabase.from('tb_plan_history').insert({
-//     profile_id: profileId,
-//     old_plan: oldPlan,
-//     new_plan: newPlan,
-//     reason: reason,
-//     created_at: new Date().toISOString(),
-//   });
-// }
-
-// -- Criação da tabela de histórico de planos
-// CREATE TABLE IF NOT EXISTS public.tb_plan_history (
-//     id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
-//     profile_id UUID NOT NULL REFERENCES public.tb_profiles(id) ON DELETE CASCADE,
-//     old_plan TEXT NOT NULL,
-//     new_plan TEXT NOT NULL,
-//     reason TEXT NOT NULL,
-//     created_at TIMESTAMPTZ NOT NULL DEFAULT now()
-// );
-
-// -- Índices para performance em consultas de auditoria por usuário
-// CREATE INDEX IF NOT EXISTS idx_plan_history_profile_id ON public.tb_plan_history(profile_id);
-
-// -- Habilitar RLS (Row Level Security) - Apenas leitura pelo dono do perfil
-// ALTER TABLE public.tb_plan_history ENABLE ROW LEVEL SECURITY;
-
-// CREATE POLICY "Usuários podem ver seu próprio histórico de planos"
-// ON public.tb_plan_history FOR SELECT
-// USING (auth.uid() = profile_id);
+async function logPlanChange(
+  supabase: any,
+  profileId: string,
+  oldPlan: string,
+  newPlan: string,
+  reason: string,
+) {
+  await supabase.from('tb_plan_history').insert({
+    profile_id: profileId,
+    old_plan: oldPlan,
+    new_plan: newPlan,
+    reason: reason,
+    created_at: new Date().toISOString(),
+  });
+}

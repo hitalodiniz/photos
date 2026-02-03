@@ -21,6 +21,7 @@ import {
 import { DownloadCenterModal } from './DownloadCenterModal';
 import { ToolBarMobile } from './ToolBarMobile';
 import { V } from 'node_modules/vitest/dist/chunks/reporters.d.Rsi0PyxX';
+import UpgradeModal from '@/components/ui/UpgradeModal';
 
 export default function PhotoGrid({ photos, galeria }: any) {
   // --- 1. ESTADOS DE INTERFACE ---
@@ -33,6 +34,10 @@ export default function PhotoGrid({ photos, galeria }: any) {
   const [activeTag, setActiveTag] = useState('Todas');
   const [showVolumeDashboard, setShowVolumeDashboard] = useState(false);
   const [canShowFavButton, setCanShowFavButton] = useState(false);
+  const [upsellFeature, setUpsellFeature] = useState<{
+    label: string;
+    feature: string;
+  } | null>(null);
 
   // --- 2. ESTADOS DE DOWNLOAD E DADOS ---
   const [isDownloading, setIsDownloading] = useState(false);
@@ -405,6 +410,7 @@ export default function PhotoGrid({ photos, galeria }: any) {
             setIsHovered,
             handleExternalDownload,
             externalLinks,
+            setUpsellFeature,
           }}
           tags={tagsDaGaleria}
           handleShare={handleShare}
@@ -513,6 +519,12 @@ export default function PhotoGrid({ photos, galeria }: any) {
           onNavigateToIndex={(index) => setSelectedPhotoIndex(index)}
         />
       )}
+      <UpgradeModal
+        isOpen={!!upsellFeature}
+        onClose={() => setUpsellFeature(null)}
+        featureName={upsellFeature?.label || ''}
+        featureKey={upsellFeature?.feature as any}
+      />
     </div>
   );
 }

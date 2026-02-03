@@ -59,7 +59,7 @@ export default function SidebarStorage({
               />
             </button>
           ) : (
-            <p className="text-[10px] text-white/40 uppercase tracking-luxury font-bold px-1">
+            <p className="text-[10px] text-white/90 uppercase tracking-luxury font-bold px-1">
               Galerias Ativas
             </p>
           )}

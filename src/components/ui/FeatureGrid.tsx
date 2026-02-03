@@ -71,7 +71,7 @@ export default function FeatureGrid({
                     {item.title}
                   </h3>
                   <div
-                    className={`text-white/70 text-[11px] md:text-[13px] font-medium leading-relaxed transition-colors group-hover:text-white/90 ${
+                    className={`text-white/90 text-[11px] md:text-[13px] font-medium leading-relaxed transition-colors group-hover:text-white/90 ${
                       isTop ? 'max-w-md' : ''
                     }`}
                   >

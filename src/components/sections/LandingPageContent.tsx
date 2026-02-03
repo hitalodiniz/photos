@@ -58,6 +58,7 @@ export default function LandingPageContent() {
           em uma Galeria Profissional
         </>
       }
+      altura="h-[80vh]"
     >
       <div className="grid grid-cols-1 lg:grid-cols-12 gap-10 items-center w-full max-w-[1500px] mx-auto pb-4">
         {/* LADO ESQUERDO: RECURSOS (Aumentados) */}

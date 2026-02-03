@@ -20,7 +20,7 @@ export default function ReconnectPage() {
       desc: (
         <div className="flex flex-col items-center gap-6 text-center">
           <div className="flex flex-col gap-2">
-            <p className="text-white/70 text-[13px] md:text-[14px] leading-relaxed max-w-sm">
+            <p className="text-white/90 text-[13px] md:text-[14px] leading-relaxed max-w-sm">
               Para sua proteção, o vínculo com o <strong>Google Drive™</strong>{' '}
               deve ser reestabelecido. Valide sua identidade para continuar
               gerenciando seu perfil.

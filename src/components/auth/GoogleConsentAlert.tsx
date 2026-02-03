@@ -36,7 +36,7 @@ export default function GoogleConsentAlert({
 
       <button
         onClick={onClose}
-        className="w-full py-3 text-white/40 text-[9px] font-bold uppercase tracking-luxury hover:text-gold transition-colors"
+        className="w-full py-3 text-white/90 text-[9px] font-bold uppercase tracking-luxury hover:text-gold transition-colors"
       >
         Cancelar
       </button>
@@ -55,11 +55,13 @@ export default function GoogleConsentAlert({
     >
       <div className="space-y-3">
         <p className="text-[13px] md:text-[14px] leading-relaxed text-petroleum font-medium text-center">
-          Para usar o Google Picker e importar fotos do Google Drive, é necessário conceder permissão de acesso ao Google Drive.
+          Para usar o Google Picker e importar fotos do Google Drive, é
+          necessário conceder permissão de acesso ao Google Drive.
         </p>
         <div className="p-4 bg-slate-50 border border-petroleum/10 rounded-luxury italic">
           <p className="text-[11px] md:text-[12px] leading-relaxed text-petroleum/70 text-center">
-            Você será redirecionado para a tela de consentimento do Google para autorizar o acesso.
+            Você será redirecionado para a tela de consentimento do Google para
+            autorizar o acesso.
           </p>
         </div>
       </div>

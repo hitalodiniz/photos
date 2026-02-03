@@ -32,9 +32,6 @@
   }
 
   /* Aplica o estilo base em todos os botões do site automaticamente */
-  button:not(.custom-btn) {
-    @apply btn-luxury-base;
-  }
 
   /* Aplica o estilo em todos os inputs e textareas */
   input[type='text'],
@@ -51,6 +48,10 @@
     @apply text-[10px] font-semibold uppercase tracking-widest;
   }
 
+  .text-editorial-label {
+    @apply text-[10px] font-semibold uppercase tracking-widest;
+  }
+
   /* 🎯 CLASSE MESTRE: Padronização H-10 e PX-4 */
   .btn-luxury-base {
     @apply h-10 px-4 rounded-luxury transition-all duration-300 
@@ -61,19 +62,22 @@
   /* Botão Primário (Champagne) */
   .btn-luxury-primary {
     @apply btn-luxury-base bg-champagne text-petroleum border border-champagne 
-           shadow-lg hover:bg-white;
+           shadow-lg hover:italic;
+    @apply transition-all duration-500 ease-in-out;
   }
 
   /* Botão Secundário (Fundo Petroleum/Escuro) */
   .btn-secondary-petroleum {
     @apply btn-luxury-base border-white/20 bg-transparent text-white 
            hover:bg-white/5 hover:border-white/40;
+    @apply transition-all duration-500 ease-in-out;
   }
 
   /* Botão Secundário (Fundo Branco/Claro) */
   .btn-secondary-white {
     @apply btn-luxury-base border-petroleum/40 bg-white text-petroleum 
-           hover:bg-petroleum/5;
+           hover:border-white hover:italic;
+    @apply transition-all duration-500 ease-in-out;
   }
 
   /* Botão Toolbar (Otimizado para a barra superior) */

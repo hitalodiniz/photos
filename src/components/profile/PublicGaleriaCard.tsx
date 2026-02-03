@@ -102,7 +102,7 @@ export function PublicGaleriaCard({
               {galeria.is_public ? 'Público' : 'Privado'}
             </span>
 
-            <button className="text-white/70 hover:text-gold transition-colors p-1">
+            <button className="text-white/90 hover:text-gold transition-colors p-1">
               <MoreVertical size={24} />
             </button>
           </div>

@@ -137,7 +137,7 @@ export default function StyleGuidePage() {
 
         {/* Exemplo: Card Adaptativo */}
         <div className="space-y-3">
-          <p className="text-editorial-label text-white/40">Card Adaptativo</p>
+          <p className="text-editorial-label text-white/90">Card Adaptativo</p>
           <div className="bg-white dark:bg-slate-950/50 p-6 rounded-luxury border border-slate-200 dark:border-white/10 shadow-sm transition-colors duration-300">
             <h3 className="text-editorial-ink dark:text-gold text-lg font-bold mb-2 transition-colors duration-300 italic">
               Título Adaptativo
@@ -152,7 +152,7 @@ export default function StyleGuidePage() {
         {/* Exemplo: Botões Adaptativos */}
         <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
           <div className="space-y-3">
-            <p className="text-editorial-label text-white/40">
+            <p className="text-editorial-label text-white/90">
               Botão Primário Adaptativo
             </p>
             <button className="w-full px-8 h-11 rounded-luxury bg-white dark:bg-white/5 backdrop-blur-xl border border-black/10 dark:border-white/10 text-black dark:text-white text-editorial-label shadow-xl hover:bg-black/5 dark:hover:bg-white/10 transition-all duration-300">
@@ -160,7 +160,7 @@ export default function StyleGuidePage() {
             </button>
           </div>
           <div className="space-y-3">
-            <p className="text-editorial-label text-white/40">
+            <p className="text-editorial-label text-white/90">
               Botão com Destaque Adaptativo
             </p>
             <button className="w-full px-8 h-11 rounded-luxury bg-gold text-black text-editorial-label shadow-xl hover:bg-white transition-all duration-300">
@@ -171,7 +171,7 @@ export default function StyleGuidePage() {
 
         {/* Exemplo: Input Adaptativo */}
         <div className="space-y-3">
-          <p className="text-editorial-label text-white/40">Input Adaptativo</p>
+          <p className="text-editorial-label text-white/90">Input Adaptativo</p>
           <div className="max-w-xs space-y-1.5">
             <label className="text-editorial-label text-petroleum dark:text-gold flex items-center gap-2 transition-colors duration-300">
               <User size={12} strokeWidth={2} /> Campo de Texto
@@ -239,7 +239,7 @@ export default function StyleGuidePage() {
         <div className="bg-white dark:bg-petroleum p-8 rounded-2xl border border-slate-200 dark:border-white/10 shadow-sm transition-colors duration-300 space-y-6">
           {/* Título Adaptativo */}
           <div className="space-y-2">
-            <p className="text-[10px] text-slate-400 dark:text-white/40 font-semibold uppercase tracking-luxury-widest">
+            <p className="text-[10px] text-slate-400 dark:text-white/90 font-semibold uppercase tracking-luxury-widest">
               Título (GaleriaHeader)
             </p>
             <div className="flex items-start gap-3">
@@ -258,7 +258,7 @@ export default function StyleGuidePage() {
 
           {/* Contador Adaptativo */}
           <div className="space-y-2">
-            <p className="text-[10px] text-slate-400 dark:text-white/40 font-semibold uppercase tracking-luxury-widest">
+            <p className="text-[10px] text-slate-400 dark:text-white/90 font-semibold uppercase tracking-luxury-widest">
               Contador de Fotos
             </p>
             <div className="bg-white/90 dark:bg-black/90 backdrop-blur-md px-3 py-1.5 rounded-luxury border border-black/10 dark:border-white/20 shadow-2xl flex items-center gap-3 transition-colors duration-300">
@@ -280,7 +280,7 @@ export default function StyleGuidePage() {
 
           {/* Botões de Navegação Adaptativos */}
           <div className="space-y-2">
-            <p className="text-[10px] text-slate-400 dark:text-white/40 font-semibold uppercase tracking-luxury-widest">
+            <p className="text-[10px] text-slate-400 dark:text-white/90 font-semibold uppercase tracking-luxury-widest">
               Botões de Navegação
             </p>
             <div className="flex gap-4">
@@ -310,7 +310,7 @@ export default function StyleGuidePage() {
 
           <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
             <div className="space-y-3">
-              <p className="text-[10px] text-white/40 font-bold uppercase tracking-luxury-widest text-center md:text-left">
+              <p className="text-[10px] text-white/90 font-bold uppercase tracking-luxury-widest text-center md:text-left">
                 Card de Item (Ex: Pacote)
               </p>
               <div className="w-full flex items-center gap-5 p-5 rounded-xl border border-champagne/30 bg-white/10 shadow-[0_0_20px_rgba(243,229,171,0.1)]">
@@ -330,7 +330,7 @@ export default function StyleGuidePage() {
             </div>
 
             <div className="space-y-4">
-              <p className="text-[10px] text-white/40 font-bold uppercase tracking-luxury-widest text-center md:text-left">
+              <p className="text-[10px] text-white/90 font-bold uppercase tracking-luxury-widest text-center md:text-left">
                 Ação de Conversão/Upgrade
               </p>
               <button className="w-full h-12 bg-champagne hover:bg-white text-black font-bold uppercase text-xs tracking-luxury-widest rounded-xl shadow-[0_0_15px_rgba(243,229,171,0.4)] transition-all flex items-center justify-center gap-2">

@@ -112,6 +112,10 @@ export default function OnboardingForm({
     return 400; // PRO e PREMIUM
   }, [planKey]);
 
+  const profileCarouselLimit = useMemo(() => {
+    return permissions.profileCarouselLimit;
+  }, [permissions.profileCarouselLimit]);
+
   const maxBgImages = useMemo(() => {
     if (planKey === 'PREMIUM') return 5;
     if (planKey === 'PRO') return 3;
@@ -390,6 +394,12 @@ export default function OnboardingForm({
               <FormSection title="Presença Digital" icon={<Globe size={14} />}>
                 <div className="space-y-4">
                   <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+                    <PlanGuard
+                  feature="profileLevel"
+                  required="advanced"
+                  label="Website"
+                  onClickLocked={() => setUpsellFeature('profileLevel')}
+                >
                     <div className="space-y-1.5">
                       <label className="text-editorial-label text-petroleum">
                         <Globe
@@ -406,6 +416,13 @@ export default function OnboardingForm({
                         placeholder="seusite.com"
                       />
                     </div>
+                </PlanGuard>
+                <PlanGuard
+                  feature="profileLevel"
+                  required="advanced"
+                  label="Instagram"
+                  onClickLocked={() => setUpsellFeature('profileLevel')}
+                >
                     <div className="space-y-1.5">
                       <label className="text-editorial-label text-petroleum">
                         <Instagram
@@ -422,6 +439,7 @@ export default function OnboardingForm({
                         placeholder="@seu.perfil"
                       />
                     </div>
+                </PlanGuard>
                   </div>
 
                   <div className="space-y-1.5">
@@ -444,12 +462,12 @@ export default function OnboardingForm({
                       ref={bgInputRef}
                       className="hidden"
                       accept="image/*"
-                      multiple={maxBgImages > 1} // 🛡️ Ativa seleção múltipla se o plano permitir
+                      multiple={profileCarouselLimit > 1} // 🛡️ Ativa seleção múltipla se o plano permitir
                       onChange={(e) => {
                         const files = Array.from(e.target.files || []);
-                        if (files.length > maxBgImages) {
+                        if (files.length > profileCarouselLimit) {
                           setToastConfig({
-                            message: `Seu plano permite no máximo ${maxBgImages} imagens de fundo.`,
+                            message: `Seu plano permite no máximo ${profileCarouselLimit} imagens de fundo.`,
                             type: 'error',
                           });
                           return;

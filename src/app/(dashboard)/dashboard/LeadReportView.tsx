@@ -25,7 +25,7 @@ import {
 import { Galeria } from '@/core/types/galeria';
 import { useRouter } from 'next/navigation';
 import { GridBasePage } from '@/components/ui';
-import { normalizePhoneNumber } from '@/core/utils/masks-helpers';
+import { PlanGuard } from '@/components/auth';
 import { usePlan } from '@/core/context/PlanContext';
 interface LeadReportViewProps {
   galeria: Galeria;
@@ -221,6 +221,11 @@ export default function LeadReportView({ galeria }: LeadReportViewProps) {
             </div>
 
             {/* Botões de Exportação */}
+            <PlanGuard
+              feature="canExportLeads"
+              label="Exportar Leads"
+              onClickLocked={() => setUpsellFeature('canExportLeads')}
+            >
             <div className="flex items-center gap-2">
               {[
                 { type: 'csv', icon: FileText, label: 'CSV' },
@@ -237,6 +242,7 @@ export default function LeadReportView({ galeria }: LeadReportViewProps) {
                 </button>
               ))}
             </div>
+            </PlanGuard>
           </div>
         </div>
       }

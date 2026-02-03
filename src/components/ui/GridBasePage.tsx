@@ -24,10 +24,10 @@ export default function GridBasePage({
     maxWidth === 'full' ? 'w-full px-6' : 'max-w-7xl mx-auto px-6';
 
   return (
-    <div className="min-h-[calc(100vh-72px)] bg-white flex flex-col animate-in fade-in duration-500">
+    <div className="min-h-[calc(100vh-55px)] bg-white flex flex-col animate-in fade-in duration-500">
       {/* Barra de Ações Superior - Petroleum Contained */}
       {actions && (
-        <div className="sticky top-[72px] z-30">
+        <div className="sticky top-[55px] z-30">
           <div className={containerClass}>
             <div className="bg-petroleum rounded-luxury border border-white/10 shadow-xl px-4 py-2 md:py-3">
               {actions}
@@ -47,7 +47,7 @@ export default function GridBasePage({
           className={`${containerClass} flex items-center justify-between py-4`}
         >
           {/* Status - Esquerda */}
-          <div className="text-[10px] text-white/70 uppercase tracking-luxury-widest font-semibold truncate mr-4">
+          <div className="text-[10px] text-white/90 uppercase tracking-luxury-widest font-semibold truncate mr-4">
             {footerStatus}
           </div>
 

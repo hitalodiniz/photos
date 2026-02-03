@@ -25,6 +25,7 @@ export default function EditorialView({
   subtitle,
   children,
   bgImage,
+  altura = 'h-[35vh]',
 }: any) {
   const [isMounted, setIsMounted] = useState(false);
   const [currentBg, setCurrentBg] = useState<string | null>(null);
@@ -47,7 +48,7 @@ export default function EditorialView({
         className={`relative flex flex-col flex-grow transition-opacity duration-1000 ${isMounted ? 'opacity-100' : 'opacity-0'}`}
       >
         {/* HERO SECTION */}
-        <section className="relative h-[80vh] flex flex-col overflow-hidden">
+        <section className={`relative ${altura} flex flex-col overflow-hidden`}>
           <div className="absolute inset-0 z-0">
             {/* 3. Renderização condicional: apenas exibe a imagem após o sorteio no cliente */}
             {currentBg && (
@@ -60,7 +61,7 @@ export default function EditorialView({
                 alt="Hero Background"
               />
             )}
-            <div className="absolute inset-0 bg-gradient-to-b from-transparent from-70% via-petroleum/60 via-75% to-petroleum" />
+            <div className="absolute inset-0 bg-gradient-to-b from-transparent from-70% via-petroleum/60 via-100% to-petroleum" />
           </div>
 
           {/* 🎯 TÍTULO ALINHADO: Removido max-w-4xl e px-16, usando o padrão do sistema */}
@@ -86,12 +87,8 @@ export default function EditorialView({
         <main className="relative z-10 bg-petroleum flex-grow">
           <div className="max-w-[1600px] mx-auto px-6 md:px-12">{children}</div>
         </main>
-
-        {/* FOOTER: Agora alinhado pelo componente interno */}
-        <div className="bg-petroleum">
-          <Footer />
-        </div>
       </div>
+      <Footer />
     </div>
   );
 }

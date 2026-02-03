@@ -150,7 +150,7 @@ export default function GoogleAuthError({
           )}
           <button
             onClick={() => window.location.reload()}
-            className="flex items-center justify-center gap-3 text-white/40 hover:text-[#F3E5AB] transition-colors text-[10px] font-bold uppercase tracking-luxury-widest"
+            className="flex items-center justify-center gap-3 text-white/90 hover:text-[#F3E5AB] transition-colors text-[10px] font-bold uppercase tracking-luxury-widest"
           >
             <RefreshCw size={12} /> Tentar atualizar a página
           </button>

@@ -160,12 +160,12 @@ export default function Navbar() {
                     ) : item.href ? (
                       <Link
                         href={item.href}
-                        className="text-sm md:text-base text-white/40 hover:text-gold transition-colors font-medium"
+                        className="text-sm md:text-base text-white/90 hover:text-gold transition-colors font-medium"
                       >
                         {item.label}
                       </Link>
                     ) : (
-                      <span className="text-sm md:text-base text-white/40 font-medium">
+                      <span className="text-sm md:text-base text-white/90 font-medium">
                         {item.label}
                       </span>
                     )}
@@ -183,7 +183,7 @@ export default function Navbar() {
       </nav>
 
       {/* Spacer */}
-      <div className="h-[72px] w-full" />
+      <div className="h-[55px] w-full" />
     </>
   );
 }

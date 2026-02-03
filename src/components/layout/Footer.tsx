@@ -23,7 +23,7 @@ export default function Footer() {
             </span>
           </div>
 
-          <div className="text-white/70 text-[11px] md:text-[13px] flex items-center gap-3 italic tracking-wide">
+          <div className="text-white/90 text-[11px] md:text-[13px] flex items-center gap-3 italic tracking-wide">
             Entregas profissionais e personalizadas
             <span>© {new Date().getFullYear()}</span>
             <div className="w-[1px] h-3 bg-white/10" />

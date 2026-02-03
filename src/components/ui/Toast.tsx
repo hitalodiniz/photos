@@ -93,7 +93,7 @@ export default function Toast({ message, type, onClose }: ToastProps) {
 
             <button
               onClick={onClose}
-              className="shrink-0 p-1 hover:bg-white/10 rounded-full transition-colors text-white/40"
+              className="shrink-0 p-1 hover:bg-white/10 rounded-full transition-colors text-white/90"
             >
               <X size={18} />
             </button>

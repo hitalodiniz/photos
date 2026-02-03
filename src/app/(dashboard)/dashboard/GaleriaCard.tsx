@@ -442,7 +442,7 @@ export default function GaleriaCard({
                 fill="currentColor"
               />
             ) : (
-              <Square size={18} className="text-white/40" />
+              <Square size={18} className="text-white/70" />
             )}
           </button>
         )}
@@ -639,8 +639,8 @@ export default function GaleriaCard({
                 className="p-2 text-petroleum bg-white border border-petroleum/40 rounded-luxury interactive-luxury-petroleum flex items-center justify-center disabled:opacity-30 disabled:grayscale disabled:cursor-not-allowed"
                 title={
                   galeria.leads_enabled || (galeria.leads_count ?? 0) > 0
-                    ? 'Ver Leads'
-                    : 'Leads não disponíveis'
+                    ? 'Ver cadastro de visitantes'
+                    : 'Cadastro de visitantes não disponíveis'
                 }
                 disabled={
                   isNavigating ||

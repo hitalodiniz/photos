@@ -38,7 +38,7 @@ export default function NotFound() {
       desc: (
         /* items-center e text-center para centralização total */
         <div className="flex flex-col items-center gap-6 text-center">
-          <p className="text-white/70 max-w-xs">
+          <p className="text-white/90 max-w-xs">
             Retorne à vitrine principal para explorar outras galerias
             profissionais disponíveis.
           </p>
@@ -56,7 +56,7 @@ export default function NotFound() {
       title: 'Link Incorreto',
       desc: (
         <div className="flex flex-col items-center gap-6 text-center">
-          <p className="text-white/70 max-w-xs">
+          <p className="text-white/90 max-w-xs">
             Verifique a URL ou acesse o ambiente restrito se você for o
             administrador.
           </p>
@@ -93,7 +93,7 @@ export default function NotFound() {
           <div className="mb-8 animate-in fade-in slide-in-from-bottom-4 duration-700">
             <div className="flex items-center gap-3 px-5 py-2.5 bg-white/5 border border-white/10 rounded-full backdrop-blur-md">
               <Timer size={14} className="text-gold animate-pulse" />
-              <p className="text-[10px] md:text-xs text-white/70 uppercase tracking-luxury-widest font-semibold">
+              <p className="text-[10px] md:text-xs text-white/90 uppercase tracking-luxury-widest font-semibold">
                 Redirecionando em{' '}
                 <span className="text-gold">{countdown}s</span>
               </p>
