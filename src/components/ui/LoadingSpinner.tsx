@@ -47,19 +47,23 @@ export default function LoadingSpinner({
   const s = sizes[size];
 
   // Cores baseadas no padrão editorial
-  const colorClass = variant === 'light' ? 'text-petroleum' : 'text-gold';
-  const borderColorClass = variant === 'light' ? 'border-petroleum' : 'border-gold';
-  const bgBlurClass = variant === 'light' ? 'bg-petroleum/5' : 'bg-gold/10';
+  const colorClass = variant === 'light' ? 'text-petroleum' : 'text-champagne';
+  const borderColorClass =
+    variant === 'light' ? 'border-petroleum' : 'border-champagne';
+  const bgBlurClass =
+    variant === 'light' ? 'bg-petroleum/5' : 'bg-champagne/10';
 
   return (
     <div className="flex flex-col items-center justify-center gap-3">
       <div className={`relative ${s.container}`}>
         {/* Círculo de fundo (Estrutura do usuário) */}
-        <div className={`absolute inset-0 rounded-full border border-white/5 transition-colors duration-300`} />
+        <div
+          className={`absolute inset-0 rounded-full border border-white/5 transition-colors duration-300`}
+        />
 
         {/* Círculo Giratório - Usando as cores padronizadas */}
         <div
-          className={`absolute inset-0 rounded-full border-t-2 border-r-2 border-transparent ${borderColorClass} border-r-gold/20 animate-spin transition-colors duration-300`}
+          className={`absolute inset-0 rounded-full border-t-2 border-r-2 border-transparent ${borderColorClass} border-r-champagne/20 animate-spin transition-colors duration-300`}
           style={{ animationDuration: '1.5s' }}
         />
 
@@ -83,15 +87,24 @@ export default function LoadingSpinner({
 
       {/* Mensagem Opcional - Microcopy Editorial Standard */}
       {message && size !== 'xs' && (
-        <p className={`text-editorial-label ${colorClass} opacity-60 animate-pulse text-center px-4`}>
+        <p
+          className={`text-editorial-label ${colorClass} opacity-60 animate-pulse text-center px-4`}
+        >
           {message}
         </p>
       )}
 
       <style jsx global>{`
         @keyframes pulse-gentle {
-          0%, 100% { opacity: 0.4; transform: scale(1); }
-          50% { opacity: 0.8; transform: scale(1.05); }
+          0%,
+          100% {
+            opacity: 0.4;
+            transform: scale(1);
+          }
+          50% {
+            opacity: 0.8;
+            transform: scale(1.05);
+          }
         }
         .animate-pulse-gentle {
           animation: pulse-gentle 2.5s infinite ease-in-out;

@@ -28,7 +28,7 @@
 
   /* Automação de Labels Editoriais */
   label {
-    @apply text-[10px] font-semibold uppercase tracking-widest text-petroleum/60 mb-1.5 flex items-center gap-2;
+    @apply text-[11px] font-semibold uppercase tracking-widest text-petroleum mb-1.5 flex items-center gap-2;
   }
 
   /* Aplica o estilo base em todos os botões do site automaticamente */
@@ -89,7 +89,7 @@
 
   /* INPUT PADRÃO EDITORIAL */
   .input-luxury {
-    @apply h-10 w-full bg-white border border-slate-200 rounded-luxury px-4 
+    @apply h-10 w-full bg-white border border-gold/20 rounded-luxury px-4 
            text-sm font-medium tracking-luxury-normal
            focus:border-gold focus:ring-4 focus:ring-gold/5 outline-none transition-all
            placeholder:text-slate-300;

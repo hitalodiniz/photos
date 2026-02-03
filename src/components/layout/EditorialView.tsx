@@ -1,10 +1,11 @@
 'use client';
 import React, { useState, useEffect } from 'react';
 import LoadingScreen from '@/components/ui/LoadingScreen';
-import Footer from '@/components/layout/Footer'; // Garanta a importação correta
+import Footer from '@/components/layout/Footer';
 import EditorialToolbar from './EditorialToolBar';
+import { GoogleSignInButton } from '@/components/auth';
+import { ShieldCheck } from 'lucide-react';
 
-// 1. Definição das imagens disponíveis
 const HERO_IMAGES = [
   '/hero-bg-1.webp',
   '/hero-bg-2.webp',
@@ -26,14 +27,13 @@ export default function EditorialView({
   children,
   bgImage,
   altura = 'h-[35vh]',
+  showHeroAction = false, // Novo parâmetro para controlar o Login
 }: any) {
   const [isMounted, setIsMounted] = useState(false);
   const [currentBg, setCurrentBg] = useState<string | null>(null);
 
   useEffect(() => {
     setIsMounted(true);
-
-    // 2. Lógica de sorteio: se não vier uma bgImage via prop, sorteamos uma da lista
     const selected =
       bgImage || HERO_IMAGES[Math.floor(Math.random() * HERO_IMAGES.length)];
     setCurrentBg(selected);
@@ -50,43 +50,69 @@ export default function EditorialView({
         {/* HERO SECTION */}
         <section className={`relative ${altura} flex flex-col overflow-hidden`}>
           <div className="absolute inset-0 z-0">
-            {/* 3. Renderização condicional: apenas exibe a imagem após o sorteio no cliente */}
             {currentBg && (
               <img
                 src={currentBg}
-                className={`w-full h-full object-cover transition-opacity duration-700 ${
-                  currentBg ? 'opacity-85' : 'opacity-0'
-                }`}
+                className="w-full h-full object-cover opacity-85 transition-opacity duration-700"
                 style={{ objectPosition: 'center 40%' }}
                 alt="Hero Background"
               />
             )}
-            <div className="absolute inset-0 bg-gradient-to-b from-transparent from-70% via-petroleum/60 via-100% to-petroleum" />
+            <div className="absolute inset-0 bg-gradient-to-b from-transparent from-40% via-petroleum/60 to-petroleum" />
           </div>
 
-          {/* 🎯 TÍTULO ALINHADO: Removido max-w-4xl e px-16, usando o padrão do sistema */}
+          {/* 🎯 ÁREA DE CONTEÚDO DO HERO: Título + Ação de Login */}
           <div className="absolute bottom-10 left-0 w-full z-10">
-            <div className="max-w-[1600px] mx-auto px-6 md:px-12 flex flex-col items-start">
-              <div className="inline-block">
-                <h1 className="text-2xl md:text-5xl font-semibold text-white drop-shadow-[0_2px_10px_rgba(0,0,0,0.5)]  italic">
-                  {title}
-                </h1>
-                <div className="h-[2px] md:h-[3px] bg-gold rounded-full mt-2 shadow-lg w-full" />
+            <div className="max-w-[1600px] mx-auto px-6 md:px-12 flex flex-col md:flex-row items-end justify-between gap-8">
+              {/* Lado Esquerdo: Título e Subtítulo */}
+              <div className="flex flex-col items-start flex-1">
+                <div className="inline-block">
+                  <h1 className="text-2xl md:text-5xl font-semibold text-white drop-shadow-[0_2px_10px_rgba(0,0,0,0.5)] italic">
+                    {title}
+                  </h1>
+                  <div className="h-[2px] md:h-[3px] bg-gold rounded-full mt-2 shadow-lg w-full" />
+                </div>
+                <p className="text-white text-sm md:text-[14px] font-medium tracking-[0.15em] uppercase opacity-80 mt-6 drop-shadow-md">
+                  {subtitle}
+                </p>
               </div>
 
-              <p className="text-white text-sm md:text-[14px] font-medium tracking-[0.15em] uppercase opacity-80 mt-6 drop-shadow-md">
-                {subtitle}
-              </p>
+              {/* 🎯 Lado Direito: Login do Google (Renderiza apenas se showHeroAction for true) */}
+              {/* Lado Direito: Login do Google */}
+              {showHeroAction && (
+                <div className="flex flex-col items-center md:items-end gap-2 animate-in fade-in slide-in-from-right-4 duration-1000">
+                  {/* Texto padronizado com o estilo do título "Sua Galeria" */}
+                  <div className="w-full text-left md:text-right">
+                    <p className="text-white text-base md:text-lg font-medium italic leading-tight drop-shadow-md">
+                      Conecte com sua conta do Google
+                    </p>
+                  </div>
+
+                  {/* Bloco de Ação: Botão e Selo Centralizados entre si */}
+                  <div className="flex flex-col items-center gap-3 w-full max-w-[280px]">
+                    <div className="w-full transform transition-all hover:scale-105 active:scale-95 shadow-[0_20px_50px_rgba(0,0,0,0.3)]">
+                      <GoogleSignInButton variant="full" />
+                    </div>
+
+                    <div
+                      className="flex items-center justify-center gap-2 text-white text-[9px] font-bold uppercase tracking-[0.2em] cursor-help transition-colors hover:text-gold"
+                      title="Acesso 100% Seguro via Google Auth™"
+                    >
+                      <ShieldCheck
+                        size={12}
+                        className="text-gold"
+                        strokeWidth={2.5}
+                      />
+                      <span>Acesso 100% Seguro</span>
+                    </div>
+                  </div>
+                </div>
+              )}
             </div>
           </div>
-          {/* Gradiente sutil apenas na base do Hero para transição suave */}
-          <div className="absolute bottom-0 left-0 w-full h-32 bg-gradient-to-t from-petroleum to-transparent" />
         </section>
 
-        {/* MAIN CONTENT: Padrão [1600px] e px-6/12 */}
-        <main className="relative z-10 bg-petroleum flex-grow">
-          <div className="max-w-[1600px] mx-auto px-6 md:px-12">{children}</div>
-        </main>
+        <main className="relative z-10 flex-grow w-full">{children}</main>
       </div>
       <Footer />
     </div>

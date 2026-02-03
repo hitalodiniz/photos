@@ -23,8 +23,8 @@ const config: Config = {
           hover: '#E5D69A',
         },
         gold: {
-          // DEFAULT: '#D4AF37',
-          DEFAULT: '#F3E5AB',
+          DEFAULT: '#D4AF37',
+          //DEFAULT: '#F3E5AB',
           light: 'rgba(243,229,171,0.15)',
           glow: 'rgba(243,229,171,0.3)',
           // light: 'rgba(212, 175, 55, 0.15)',

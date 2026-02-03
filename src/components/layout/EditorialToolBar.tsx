@@ -12,6 +12,7 @@ import {
 import { useRouter } from 'next/navigation';
 import { GoogleSignInButton } from '@/components/auth';
 import WhatsAppIcon from '@/components/ui/WhatsAppIcon';
+import AuthButton from '../auth/AuthButton';
 
 export default function EditorialToolbar() {
   const router = useRouter();
@@ -40,179 +41,185 @@ export default function EditorialToolbar() {
 
   return (
     <>
-      <nav className="fixed top-0 left-0 right-0 z-[100] bg-petroleum/95 backdrop-blur-md border-b border-white/5 h-12 flex items-center justify-between px-4 md:px-10 transition-all shadow-2xl">
-        {/* 1. LADO ESQUERDO: Branding */}
+      <nav className="fixed top-0 left-0 right-0 z-[100] bg-petroleum backdrop-blur-md border-b border-white/5 h-12 flex items-center justify-between px-4 md:px-10">
+        {/* LADO ESQUERDO: Branding Limpo */}
         <div
           className="flex items-center gap-2 cursor-pointer group"
           onClick={() => router.push('/')}
         >
           <Camera
-            className="w-5 h-5 text-gold group-hover:scale-110 transition-transform"
+            className="w-5 h-5 text-champagne group-hover:scale-110 transition-transform"
             strokeWidth={1.5}
           />
-          <span className="font-artistic text-[18px] font-semibold text-white italic tracking-tight">
+          <span className="text-[18px] font-semibold text-white italic tracking-tight">
             Sua Galeria
           </span>
         </div>
 
-        {/* 2. LADO DIREITO: Ações Organizadas por Grupos */}
-        <nav className="fixed top-0 left-0 right-0 z-[100] bg-petroleum/95 backdrop-blur-md border-b border-white/5 h-12 flex items-center justify-between px-4 md:px-10">
-          {/* LADO ESQUERDO: Branding Limpo */}
-          <div
-            className="flex items-center gap-2 cursor-pointer group"
-            onClick={() => router.push('/')}
-          >
-            <Camera
-              className="w-5 h-5 text-gold group-hover:scale-110 transition-transform"
-              strokeWidth={1.5}
-            />
-            <span className="font-artistic text-[18px] font-semibold text-white italic tracking-tight">
-              Sua Galeria
-            </span>
+        {/* LADO DIREITO: Ações Minimalistas */}
+        {/* LADO DIREITO: Ações Minimalistas Padronizadas */}
+        <div className="flex items-center">
+          {/* GRUPO SOCIAL (Desktop) */}
+          <div className="hidden md:flex items-center gap-5 px-4 border-r border-white/10">
+            <a
+              href="https://instagram.com"
+              target="_blank"
+              className="text-white hover:text-white transition-all"
+            >
+              <Instagram className="w-4 h-4" />
+            </a>
+            <a
+              href="https://wa.me/seu-numero"
+              target="_blank"
+              className="text-white hover:text-green-400 transition-all"
+            >
+              <WhatsAppIcon className="w-4 h-4" />
+            </a>
+            <button
+              onClick={handleShare}
+              className="!px-0 text-white hover:text-champagne transition-all bg-transparent border-none"
+            >
+              {copied ? (
+                <Check className="w-4 h-4" />
+              ) : (
+                <Share2 className="w-4 h-4" />
+              )}
+            </button>
           </div>
 
-          {/* LADO DIREITO: Ações Minimalistas */}
-          <div className="flex items-center">
-            {/* GRUPO 1: Navegação e Social (Sem botões em caixa, apenas glifos) */}
-            <div className="hidden md:flex items-center gap-4">
-              {/* Botão de Planos - Removendo padding lateral forçado */}
-              <button
-                onClick={() => router.push('/planos')}
-                className="!px-0 text-white/90 hover:text-gold transition-colors flex items-center gap-2 text-[10px] font-bold uppercase tracking-normal border-none bg-transparent h-auto"
-              >
-                <LayoutGrid size={14} strokeWidth={1.5} />
+          {/* 🎯 HUB DE AÇÕES: Planos e Login Lado a Lado */}
+          <div className="flex items-center gap-1 pl-2">
+            {/* Botão Planos - Agora vizinho direto do Login */}
+            <button
+              onClick={() => router.push('/planos')}
+              className="flex items-center gap-2 px-4 py-2 rounded-luxury bg-transparent hover:bg-white/5 transition-all group"
+            >
+              <LayoutGrid
+                size={16}
+                className="text-champagne"
+                strokeWidth={1.5}
+              />
+              <span className="text-[10px] font-semibold uppercase tracking-luxury-widest text-white">
                 Planos
-              </button>
+              </span>
+            </button>
 
-              {/* Divisor vertical sutil */}
-              <div className="h-4 w-[1px] bg-white/10 hidden md:block" />
+            {/* Divisor vertical sutil entre os dois botões principais */}
+            <div className="h-4 w-[1px] bg-white/10 mx-1" />
 
-              <div className="md:flex items-center gap-6">
-                {/* Ícones Sociais - Forçando px-0 para evitar distorção no alinhamento */}
-                <a
-                  href="https://instagram.com"
-                  target="_blank"
-                  rel="noopener noreferrer"
-                  className="text-white/90 hover:text-white transition-all transform hover:scale-110 px-0!"
-                >
-                  <Instagram size={16} strokeWidth={1.5} />
-                </a>
+            {/* Componente de Login (Entrar) */}
+            <AuthButton variant="minimal" />
 
-                <a
-                  href="https://wa.me/seu-numero"
-                  target="_blank"
-                  rel="noopener noreferrer"
-                  className="text-white/90 hover:text-green-400/80 transition-all transform hover:scale-110 px-0!"
-                >
-                  <WhatsAppIcon className="w-4 h-4" />
-                </a>
-
-                <button
-                  onClick={handleShare}
-                  className="!px-0 !h-auto !bg-transparent !border-none text-white/90 hover:text-gold transition-all transform hover:scale-110 flex items-center justify-center"
-                  title={copied ? 'Link copiado!' : 'Compartilhar página'}
-                >
-                  {copied ? (
-                    <Check size={16} className="text-gold animate-in zoom-in" />
-                  ) : (
-                    <Share2 size={16} strokeWidth={1.5} />
-                  )}
-                </button>
-              </div>
-            </div>
-
-            {/* DIVISOR ÚNICO: Separa o social do acesso  */}
-            <div className="h-4 w-[1px] bg-white/10 mx-4 hidden md:block" />
-
-            {/* GRUPO 2: Acesso Técnico */}
-            <div className="flex items-center gap-2">
-              <div className="scale-90 origin-right">
-                {/* O botão minimal deve ser apenas texto e ícone, sem borda forte */}
-                <GoogleSignInButton variant="minimal" />
-              </div>
-
-              <button
-                onClick={() => setIsMenuOpen(true)}
-                className="text-white/90 hover:text-gold transition-colors"
-              >
-                <Menu size={22} strokeWidth={1} />
-              </button>
-            </div>
+            {/* Menu Hambúrguer */}
+            <button
+              onClick={() => setIsMenuOpen(true)}
+              className="text-white hover:text-champagne transition-colors p-2 ml-1"
+            >
+              <Menu size={22} strokeWidth={1} />
+            </button>
           </div>
-        </nav>
+        </div>
       </nav>
 
-      {/* Menu Lateral Recolhido (Overlay) */}
       {/* Overlay de Menu Lateral */}
       <div
         className={`fixed inset-0 z-[110] transition-all duration-700 ${
           isMenuOpen ? 'visible' : 'invisible'
         }`}
       >
-        {/* Backdrop Escuro (Fecha o menu ao clicar fora) */}
+        {/* Backdrop Escuro Suave */}
         <div
-          className={`absolute inset-0 bg-black/20 backdrop-blur-sm transition-opacity duration-700 ${
+          className={`absolute inset-0 bg-black/40 backdrop-blur-sm transition-opacity duration-700 ${
             isMenuOpen ? 'opacity-100' : 'opacity-0'
           }`}
           onClick={() => setIsMenuOpen(false)}
         />
 
-        {/* Painel do Menu (30% de largura) */}
+        {/* Painel do Menu - Mesma cor bg-petroleum da Toolbar */}
         <div
-          className={`absolute top-0 right-0 h-full w-full md:w-[30%] bg-petroleum/95 backdrop-blur-2xl border-l border-white/5 p-8 md:p-12 flex flex-col justify-between transition-transform duration-500 ease-in-out shadow-2xl ${
+          className={`absolute top-0 right-0 h-full w-full md:w-[320px] bg-petroleum border-l border-white/5 p-8 flex flex-col transition-transform duration-500 ease-in-out shadow-2xl ${
             isMenuOpen ? 'translate-x-0' : 'translate-x-full'
           }`}
         >
-          {/* Cabeçalho do Menu */}
-          <div className="flex justify-between items-center mb-12">
-            <div className="flex items-center gap-2 opacity-30">
-              <Camera className="w-4 h-4 text-gold" />
-              <span className=" text-sm text-white italic">Sua Galeria</span>
+          {/* Cabeçalho: Identidade Visual Toolbar */}
+          <div className="flex justify-between items-center mb-10 pb-6 border-b border-white/5">
+            <div className="flex items-center gap-2">
+              <Camera className="w-4 h-4 text-champagne" strokeWidth={1.5} />
+              <span className="text-[11px] font-semibold uppercase tracking-[0.2em] text-white italic">
+                Sua Galeria
+              </span>
             </div>
             <button
               onClick={() => setIsMenuOpen(false)}
-              className="text-white/90 hover:text-gold transition-colors p-2"
+              className="text-white hover:text-champagne transition-colors p-1"
             >
-              <X size={24} strokeWidth={1.5} />
+              <X size={20} strokeWidth={1.5} />
             </button>
           </div>
 
-          {/* Links de Navegação */}
-          <nav className="flex flex-col gap-8">
-            <p className="text-editorial">Navegação</p>
-            {['Nossos Planos', 'A Tecnologia', 'Suporte'].map((item, i) => (
+          {/* Navegação Principal com Ícones */}
+          <nav className="flex flex-col gap-2">
+            {[
+              { label: 'Nossos Planos', icon: LayoutGrid, path: '/planos' },
+              { label: 'A Tecnologia', icon: Camera, path: '/tech' },
+              { label: 'Suporte & Ajuda', icon: Share2, path: '/suporte' },
+            ].map((item, i) => (
               <button
                 key={i}
-                className="text-left text-2xl md:text-3xl  text-white italic hover:text-gold hover:translate-x-2 transition-all duration-300"
+                onClick={() => {
+                  router.push(item.path);
+                  setIsMenuOpen(false);
+                }}
+                className="group flex items-center gap-4 px-4 py-3 rounded-luxury hover:bg-white/5 text-white hover:text-champagne transition-all"
               >
-                {item}
+                <item.icon
+                  size={16}
+                  strokeWidth={1.5}
+                  className="text-champagne group-hover:text-champagne transition-colors"
+                />
+                <span className="text-[11px] font-semibold uppercase tracking-luxury-widest">
+                  {item.label}
+                </span>
               </button>
             ))}
           </nav>
 
-          {/* Rodapé do Menu (Institucional) */}
-          <div className="mt-auto pt-8 border-t border-white/5 space-y-6">
-            <div>
-              <p className="text-editorial text-gold/60 mb-4">Institucional</p>
-              <div className="flex flex-col gap-3">
-                <button
-                  onClick={() => router.push('/privacidade')}
-                  className="text-left text-white/90 text-xs uppercase tracking-widest hover:text-white transition-colors"
-                >
-                  Privacidade
-                </button>
-                <button
-                  onClick={() => router.push('/termos')}
-                  className="text-left text-white/90 text-xs uppercase tracking-widest hover:text-white transition-colors"
-                >
-                  Termos de Uso
-                </button>
+          {/* Rodapé: Estilo Editorial Minimalista */}
+          <div className="mt-auto pt-8 border-t border-white/5 space-y-8">
+            {/* Bloco de Integração */}
+            <div className="px-4 py-4 rounded-luxury bg-white/[0.02] border border-white/5">
+              <p className="text-champagne text-[8px] uppercase tracking-[0.3em] font-semibold mb-3 italic">
+                Integração
+              </p>
+              <div className="flex items-center gap-3">
+                <WhatsAppIcon className="w-3 h-3" />
+                <span className="text-white text-[10px] font-semibold uppercase tracking-widest">
+                  Google Drive™ Partner
+                </span>
               </div>
             </div>
 
-            <div className="flex justify-between items-center opacity-20 text-[9px] uppercase tracking-[0.3em] text-white">
-              <span>© 2026</span>
-              <span>Premium Experience</span>
+            {/* Links Legais e Copyright */}
+            <div className="space-y-4 px-1">
+              <div className="flex flex-col gap-2">
+                <button
+                  onClick={() => router.push('/privacidade')}
+                  className="text-left text-white text-[9px] uppercase tracking-widest hover:text-white transition-colors"
+                >
+                  Políticas de Privacidade
+                </button>
+                <button
+                  onClick={() => router.push('/termos')}
+                  className="text-left text-white text-[9px] uppercase tracking-widest hover:text-white transition-colors"
+                >
+                  Termos de Serviço
+                </button>
+              </div>
+
+              <div className="flex justify-between items-center text-[9px] uppercase tracking-luxury-widest text-white pt-4">
+                <span>© 2026</span>
+                <span className="italic">Experiência Premium</span>
+              </div>
             </div>
           </div>
         </div>

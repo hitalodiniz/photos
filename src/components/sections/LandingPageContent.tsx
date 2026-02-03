@@ -8,41 +8,41 @@ import {
   Infinity,
   Cloud,
   ShieldCheck,
+  CheckCircle2,
+  ArrowRight,
 } from 'lucide-react';
 import EditorialView from '../layout/EditorialView';
+import router from 'next/router';
 
 export default function LandingPageContent() {
-  const features = useMemo(
+  const benefits = useMemo(
     () => [
       {
-        icon: <Camera size={22} />,
-        title: 'Fotos Ultra HD',
-        desc: 'Preservação de cada pixel e cor original.',
+        title: 'Suas fotos rendem mais',
+        items: [
+          'Toda foto importa',
+          'Qualidade superior ao Instagram',
+          'Protege suas memórias em alta resolução',
+          'Subiu no Drive, está na galeria em tempo real',
+        ],
       },
       {
-        icon: <Zap size={22} />,
-        title: 'Fluxo Instantâneo',
-        desc: 'Subiu no Drive, está na galeria em tempo real.',
+        title: 'A galeria fica na sua nuvem',
+        items: [
+          'Hospedagem direta no seu Google Drive™',
+          'Acesso protegido pela autenticação do Google™',
+          'Acesso quando e onde quiser',
+          'Sem barreiras ou limites de upload',
+        ],
       },
       {
-        icon: <Smartphone size={22} />,
-        title: 'Mobile First',
-        desc: 'Experiência fluida e elegante no celular.',
-      },
-      {
-        icon: <Infinity size={22} />,
-        title: 'Fotos Ilimitadas',
-        desc: 'Sem barreiras ou limites de upload.',
-      },
-      {
-        icon: <Cloud size={22} />,
-        title: 'Cloud Power',
-        desc: 'Hospedagem direta no seu Google Drive™.',
-      },
-      {
-        icon: <ShieldCheck size={22} />,
-        title: 'Segurança',
-        desc: 'Acesso protegido por senha profissional.',
+        title: 'Acessível e para todos',
+        items: [
+          'Planos a partir de R$ 29/mês',
+          'Interface descomplicada',
+          'Suporte profissional incluído',
+          'Experiência fluida e elegante no celular',
+        ],
       },
     ],
     [],
@@ -58,88 +58,72 @@ export default function LandingPageContent() {
           em uma Galeria Profissional
         </>
       }
-      altura="h-[80vh]"
+      altura="h-[75vh]"
+      showHeroAction={true}
     >
-      <div className="grid grid-cols-1 lg:grid-cols-12 gap-10 items-center w-full max-w-[1500px] mx-auto pb-4">
-        {/* LADO ESQUERDO: RECURSOS (Aumentados) */}
-        <div className="lg:col-span-7 flex flex-col gap-2">
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-5">
-            {features.map((item, index) => (
+      {/* SEÇÃO 1: RECURSOS - Layout Grid Limpo */}
+
+      {/* SEÇÃO 2: POR QUE ESCOLHER - Inspirado no "Por que milhões preferem" */}
+      <section className="w-full bg-white py-10 shadow-sm border-y border-slate-100">
+        <div className="max-w-[1600px] mx-auto px-6 md:px-12">
+          <div className="text-center mb-20 md:mb-24">
+            <p className="text-gold text-xs uppercase tracking-[0.2em] font-semibold mb-3">
+              O Essencial para suas Fotos
+            </p>
+            <h2 className="text-3xl md:text-4xl font-semibold text-petroleum italic mb-4">
+              Por que fotógrafos escolhem a Sua Galeria?
+            </h2>
+            <p className="text-slate-600 text-sm md:text-base max-w-2xl mx-auto font-medium">
+              Na Sua Galeria suas fotos crescem com segurança, de forma
+              acessível e com opções para cada objetivo profissional
+            </p>
+          </div>
+
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-6 ">
+            {benefits.map((benefit, idx) => (
               <div
-                key={index}
-                className="flex flex-col bg-white rounded-luxury overflow-hidden shadow-2xl transition-all hover:scale-[1.03] border border-slate-100 group"
+                key={idx}
+                className="bg-slate-50 rounded-3xl overflow-visible shadow-lg flex flex-col relative border border-slate-100 group transition-all duration-500 hover:shadow-2xl hover:-translate-y-2"
               >
-                {/* HEADER DO CARD: Sincronizado com a Toolbar (Petroleum + Blur) */}
-                <div className="relative h-11 flex items-center shrink-0 overflow-hidden">
-                  {/* Camada de fundo Petroleum com Blur */}
-                  <div className="absolute inset-0 bg-petroleum backdrop-blur-md z-0" />
+                {/* Barra lateral colorida inspirada no Tesouro Direto */}
+                <div
+                  className="absolute left-0 top-0 bottom-0 w-1.5 rounded-l-3xl transition-all duration-500 group-hover:w-3"
+                  style={{ backgroundColor: benefit.accent }}
+                />
 
-                  {/* Borda inferior sutil para separação de "vidro" */}
-                  <div className="absolute bottom-0 left-0 w-full h-[1px] bg-white/10 z-10" />
-
-                  <div className="relative z-20 px-5 flex items-center gap-4 w-full">
-                    <div className="text-gold shrink-0 drop-shadow-[0_0_8px_rgba(243,229,171,0.4)]">
-                      {item.icon}
-                    </div>
-                    <h3 className="text-[10px] font-bold uppercase tracking-[0.15em] text-white/90 leading-none">
-                      {item.title}
-                    </h3>
-                  </div>
+                {/* Ícone Circular Posicionado no topo (metade para fora) */}
+                <div className="absolute -top-10 left-1/2 -translate-x-1/2 w-20 h-20 rounded-full bg-petroleum flex items-center justify-center text-white shadow-xl z-10 transition-transform group-hover:scale-110">
+                  {idx === 0 && <Camera size={32} strokeWidth={1.5} />}
+                  {idx === 1 && <Cloud size={32} strokeWidth={1.5} />}
+                  {idx === 2 && <Smartphone size={32} strokeWidth={1.5} />}
                 </div>
 
-                {/* CORPO DO CARD */}
-                <div className="px-5 py-3 bg-white flex-grow flex items-center">
-                  <p className="text-[14px] text-petroleum/80 font-medium leading-relaxed">
-                    {item.desc}
-                  </p>
+                <div className="p-10 pt-16 flex flex-col h-full text-center">
+                  <h3 className="text-petroleum text-xl font-semibold leading-tight mb-8 min-h-[3rem]">
+                    {benefit.title}
+                  </h3>
+
+                  <ul className="space-y-5 text-left">
+                    {benefit.items.map((item, i) => (
+                      <li
+                        key={i}
+                        className="flex items-start gap-4 text-slate-900 text-sm font-medium leading-relaxed"
+                      >
+                        <CheckCircle2
+                          size={20}
+                          className="text-gold shrink-0 mt-0.5"
+                          strokeWidth={2.5}
+                        />
+                        <span>{item}</span>
+                      </li>
+                    ))}
+                  </ul>
                 </div>
               </div>
             ))}
           </div>
         </div>
-
-        {/* 🎯 LADO DIREITO: CARD DE LOGIN (Compacto e Centralizado) */}
-        <div className="lg:col-span-4 flex flex-col justify-center">
-          <div className="bg-white rounded-luxury shadow-[0_20px_50px_rgba(0,0,0,0.15)] px-4 py-6 md:px-8 md:py-6 border-t-4 border-gold relative text-center">
-            {/* Título Artístico */}
-            <h2 className="text-petroleum text-[18px] md:text-[24px] font-bold mb-4 tracking-luxury-tight leading-tight italic ">
-              Bem-vindo à sua galeria
-            </h2>
-
-            {/* TEXTO ATUALIZADO: "Galeria" */}
-            <p className="text-petroleum/70 text-[15px] md:text-[14px] font-medium mb-5 leading-relaxed italic mx-auto max-w-[340px]">
-              Conecte seu{' '}
-              <span className="text-petroleum font-bold">Google Drive™</span> e
-              apresente suas fotos em uma{' '}
-              <span className="text-petroleum font-bold">
-                galeria de alto padrão
-              </span>
-              , sem uploads e sem perda de qualidade.
-            </p>
-
-            {/* Área de Ação */}
-            <div className="flex flex-col gap-0 items-center">
-              {/* Botão Google (Largura controlada para luxo) */}
-              <div className="w-full max-w-[280px] transform transition-all hover:scale-[1.02] active:scale-[0.98]">
-                <GoogleSignInButton variant="full" />
-              </div>
-
-              {/* Footer do Card */}
-              <div className="space-y-4 pt-6 border-t border-slate-100 w-full">
-                <p className="text-[11px] text-petroleum italic leading-relaxed mx-auto max-w-[240px]">
-                  Utilizamos o serviço oficial do Google Drive para garantir que
-                  suas fotos nunca saiam do seu controle.
-                </p>
-
-                <div className="flex justify-center items-center gap-2.5 text-petroleum text-[10px] font-bold uppercase tracking-luxury-widest">
-                  <ShieldCheck size={16} />
-                  <span>Ambiente 100% Seguro</span>
-                </div>
-              </div>
-            </div>
-          </div>
-        </div>
-      </div>
+      </section>
     </EditorialView>
   );
 }

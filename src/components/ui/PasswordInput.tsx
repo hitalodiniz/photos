@@ -35,7 +35,7 @@ export default function PasswordInput({
         <button
           type="button"
           onClick={() => setShowPassword(!showPassword)}
-          className="absolute right-4 top-1/2 -translate-y-1/2 text-petroleum/40 hover:text-gold transition-colors p-1"
+          className="absolute right-4 top-1/2 -translate-y-1/2 text-petroleum hover:text-gold transition-colors p-1"
         >
           {showPassword ? <Eye size={18} /> : <EyeOff size={18} />}
         </button>
