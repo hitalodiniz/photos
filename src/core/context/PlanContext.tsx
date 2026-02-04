@@ -5,8 +5,9 @@ import {
   PlanKey,
   PlanPermissions,
   PERMISSIONS_BY_PLAN,
-  getPlansByDomain,
+  PLANS_BY_SEGMENT, // Importado do seu plans.ts
   PlanInfo,
+  SegmentType, // Certifique-se de que este tipo existe no seu core
 } from '@/core/config/plans';
 import { Profile } from '@/core/types/profile';
 
@@ -14,6 +15,7 @@ interface PlanContextProps {
   planKey: PlanKey;
   permissions: PlanPermissions;
   planInfo: PlanInfo;
+  segment: SegmentType; // 🎯 Novo campo
   isPro: boolean;
   isPremium: boolean;
   canAddMore: (feature: keyof PlanPermissions, currentCount: number) => boolean;
@@ -30,54 +32,43 @@ export function PlanProvider({
   planKey?: PlanKey;
   profile?: Profile;
 }) {
-  /**
-   * 🎯 Determinação do Plano Efetivo
-   * Unifica a segurança de Trial e Assinatura em um único cálculo.
-   */
+  // 1. Determinação do Segmento Efetivo
+  const currentSegment = useMemo((): SegmentType => {
+    // 2. Fallback para a variável de ambiente configurada no .env
+    const envSegment = process.env.NEXT_PUBLIC_APP_SEGMENT as SegmentType;
+
+    // 3. Fallback final de segurança
+    return envSegment || 'PHOTOGRAPHER';
+  }, [profile]);
+
+  // 2. Determinação do Plano Efetivo (Mantendo sua lógica de Trial)
   const planToUse = useMemo(() => {
     if (!profile) return fallbackKey as PlanKey;
-
-    // 1. Se NÃO é trial, o plano do banco é absoluto (Assinante ou Free manual)
-    if (!profile.is_trial) {
-      return (profile.plan_key || 'FREE') as PlanKey;
-    }
-
-    // 2. Se É TRIAL, validação rigorosa de data
-    if (!profile.plan_trial_expires) {
-      return 'FREE'; // Bloqueia se a data estiver ausente
-    }
+    if (!profile.is_trial) return (profile.plan_key || 'FREE') as PlanKey;
+    if (!profile.plan_trial_expires) return 'FREE';
 
     const expiresAt = new Date(profile.plan_trial_expires);
     const now = new Date();
+    if (isNaN(expiresAt.getTime()) || now >= expiresAt) return 'FREE';
 
-    // Bloqueia se a data for inválida ou se já expirou (incluindo o exato momento agora)
-    if (isNaN(expiresAt.getTime()) || now >= expiresAt) {
-      return 'FREE';
-    }
-
-    // 3. Trial válido
     return (profile.plan_key || 'FREE') as PlanKey;
   }, [profile, fallbackKey]);
 
-  /**
-   * 💎 Geração dos valores do Contexto baseados no plano definido acima
-   */
+  // 3. Geração dos valores do Contexto
   const value = useMemo(() => {
-    const hostname =
-      typeof window !== 'undefined' ? window.location.hostname : '';
-    const domainConfig = getPlansByDomain(hostname);
-
-    // Proteção contra chaves inexistentes
     const currentKey = (
       PERMISSIONS_BY_PLAN[planToUse] ? planToUse : 'FREE'
     ) as PlanKey;
     const permissions = PERMISSIONS_BY_PLAN[currentKey];
-    const planInfo = domainConfig.plans[currentKey];
+
+    // 💎 Usa o segmento detectado para buscar os nomes/preços corretos no plans.ts
+    const planInfo = PLANS_BY_SEGMENT[currentSegment][currentKey];
 
     return {
       planKey: currentKey,
       permissions,
       planInfo,
+      segment: currentSegment, // Agora retorna corretamente para o PlanGuard
       isPro: ['PRO', 'PREMIUM'].includes(currentKey),
       isPremium: currentKey === 'PREMIUM',
       canAddMore: (feature: keyof PlanPermissions, currentCount: number) => {
@@ -87,7 +78,7 @@ export function PlanProvider({
         return !!limit;
       },
     };
-  }, [planToUse]);
+  }, [planToUse, currentSegment]);
 
   return <PlanContext.Provider value={value}>{children}</PlanContext.Provider>;
 }

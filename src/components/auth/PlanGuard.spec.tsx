@@ -1,13 +1,24 @@
 'use client';
 
-import { describe, test, expect, vi } from 'vitest';
-import { render, screen, fireEvent, renderHook } from '@testing-library/react';
+import { describe, test, expect, vi, beforeAll } from 'vitest';
+import {
+  render,
+  screen,
+  fireEvent,
+  renderHook,
+  within,
+} from '@testing-library/react';
 import React from 'react';
 import { PlanGuard } from '@/components/auth/PlanGuard';
-import { Camera } from 'lucide-react';
+
 import { PlanProvider, usePlan } from '@/core/context/PlanContext';
 import { findNextPlanWithFeature, PlanKey } from '@/core/config/plans';
 import { Profile } from '@/core/types/profile';
+
+beforeAll(() => {
+  // Simula a variável de ambiente para o ambiente de testes
+  vi.stubEnv('NEXT_PUBLIC_APP_SEGMENT', 'PHOTOGRAPHER');
+});
 /**
  * 🏭 Factory para perfis consistentes
  * Nota: plan_trial_expires agora é opcional para não interferir em testes de assinantes.
@@ -47,20 +58,46 @@ const makeMockProfile = (overrides: Partial<Profile> = {}): Profile => ({
   ...overrides,
 });
 
+vi.mock('../ui/UpgradeModal', () => ({
+  default: ({ isOpen, onClose, featureName }: any) =>
+    isOpen ? (
+      <div data-testid="mock-upgrade-modal">
+        <p>{featureName}</p>
+        <button onClick={onClose}>Fechar</button>
+      </div>
+    ) : null,
+}));
+
 const renderWithPlan = (ui: React.ReactNode, profile: Profile) => {
   return render(<PlanProvider profile={profile}>{ui}</PlanProvider>);
 };
 
 describe('PlanGuard & UI Access', () => {
-  test('não deve renderizar conteúdo bloqueado para plano FREE', () => {
+  test('não deve permitir interação com conteúdo bloqueado para plano FREE', () => {
     const profile = makeMockProfile({ plan_key: 'FREE' });
+
     renderWithPlan(
       <PlanGuard feature="canCaptureLeads">
         <div data-testid="secret-content">VIP</div>
       </PlanGuard>,
       profile,
     );
-    expect(screen.queryByTestId('secret-content')).not.toBeInTheDocument();
+
+    // 1. O conteúdo agora EXISTE no DOM (mudança de comportamento do componente)
+    const content = screen.getByTestId('secret-content');
+    expect(content).toBeInTheDocument();
+
+    // 2. 🎯 VALIDAÇÃO TÉCNICA: O conteúdo deve estar bloqueado
+    // Verificamos se o elemento pai (ou o container de blur) tem as classes de restrição
+    const contentWrapper = content.parentElement;
+    expect(contentWrapper).toHaveClass(
+      'opacity-25',
+      'blur-[2px]',
+      'pointer-events-none',
+    );
+
+    // 3. O overlay de bloqueio com o cadeado deve estar presente
+    expect(screen.getByTestId('plan-guard-overlay')).toBeInTheDocument();
   });
 
   test('deve permitir acesso ao customizationLevel PLUS (colors)', () => {
@@ -263,5 +300,32 @@ describe('6. Verificação de Tags de Revalidação (Lógica Mockada)', () => {
 
     expect(spyRevalidateTag).toHaveBeenCalledWith('profile-private-123');
     expect(spyRevalidateTag).toHaveBeenCalledWith('profile-username-teste');
+  });
+});
+
+describe('PlanGuard: Interatividade de Upgrade', () => {
+  test('deve abrir o modal de upgrade ao clicar no conteúdo bloqueado', () => {
+    const profile = makeMockProfile({ plan_key: 'FREE' });
+
+    renderWithPlan(
+      <PlanGuard feature="canCaptureLeads" label="Captura de Leads">
+        <div data-testid="locked-feat">Recurso VIP</div>
+      </PlanGuard>,
+      profile,
+    );
+
+    // 🎯 Seleção simplificada e infalível via test-id
+    const lockOverlay = screen.getByTestId('plan-guard-overlay');
+
+    fireEvent.click(lockOverlay);
+
+    // Verifica se o modal (mockado) apareceu
+    expect(screen.getByTestId('mock-upgrade-modal')).toBeInTheDocument();
+
+    // 1. Verifica se o modal (mockado) apareceu
+    const modal = screen.getByTestId('mock-upgrade-modal');
+    expect(modal).toBeInTheDocument();
+    // Opcional: Verificar se o nome da feature passou corretamente para o modal
+    expect(within(modal).getByText('Captura de Leads')).toBeInTheDocument();
   });
 });

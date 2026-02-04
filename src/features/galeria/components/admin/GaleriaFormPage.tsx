@@ -378,7 +378,7 @@ export default function GaleriaFormPage({
 
               <button
                 onClick={handleCopyLink}
-                className="btn-luxury-base text-petroleum bg-white border border-petroleum/20 hover:border-petroleum/40"
+                className="btn-luxury-base text-petroleum bg-white border border-petroleum/20 hover:border-slate-200"
                 title="Copiar Link da Galeria"
               >
                 {copied ? (

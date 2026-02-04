@@ -31,6 +31,7 @@ import { fetchStates, fetchCitiesByState } from '@/core/utils/cidades-helpers';
 import { compressImage } from '@/core/utils/user-helpers';
 import { useNavigation } from '@/components/providers/NavigationProvider';
 import { usePlan } from '@/core/context/PlanContext';
+import { PlanGuard } from '@/components/auth/PlanGuard';
 // 🎯 Componente de seção simples - Estilo Editorial
 const FormSection = ({
   title,
@@ -41,8 +42,8 @@ const FormSection = ({
   icon?: React.ReactNode;
   children: React.ReactNode;
 }) => (
-  <div className="bg-white rounded-luxury border border-petroleum/40 p-4 space-y-3">
-    <div className="flex items-center gap-2 pb-2 border-b border-petroleum/40">
+  <div className="bg-white rounded-luxury border border-slate-200 p-4 space-y-3">
+    <div className="flex items-center gap-2 pb-2 border-b border-slate-200">
       {icon && <div>{icon}</div>}
       <h3 className="text-[10px] font-semibold uppercase tracking-luxury text-petroleum dark:text-slate-700">
         {title}
@@ -336,7 +337,7 @@ export default function OnboardingForm({
                       <div className="relative">
                         <input
                           readOnly={isEditMode}
-                          className={`w-full px-3 h-10 bg-white border border-petroleum/40 rounded-luxury text-editorial-ink text-[13px] font-medium outline-none transition-all ${isEditMode ? 'bg-slate-50 text-editorial-gray italic' : 'focus:border-gold'}`}
+                          className={`w-full px-3 h-10 bg-white border border-slate-200 rounded-luxury text-editorial-ink text-[13px] font-medium outline-none transition-all ${isEditMode ? 'bg-slate-50 text-editorial-gray italic' : 'focus:border-gold'}`}
                           value={username}
                           onChange={(e) =>
                             !isEditMode &&
@@ -364,7 +365,7 @@ export default function OnboardingForm({
                         Nome Completo <span className="text-gold">*</span>
                       </label>
                       <input
-                        className="w-full px-3 h-10 bg-white border border-petroleum/40 rounded-luxury text-editorial-ink text-[13px] font-medium outline-none focus:border-gold transition-all"
+                        className="w-full px-3 h-10 bg-white border border-slate-200 rounded-luxury text-editorial-ink text-[13px] font-medium outline-none focus:border-gold transition-all"
                         value={fullName}
                         onChange={(e) => setFullName(e.target.value)}
                         required
@@ -380,7 +381,7 @@ export default function OnboardingForm({
                         WhatsApp
                       </label>
                       <input
-                        className="w-full px-3 h-10 bg-white border border-petroleum/40 rounded-luxury text-editorial-ink text-[13px] font-medium outline-none focus:border-gold transition-all"
+                        className="w-full px-3 h-10 bg-white border border-slate-200 rounded-luxury text-editorial-ink text-[13px] font-medium outline-none focus:border-gold transition-all"
                         value={phone}
                         onChange={(e) => setPhone(maskPhone(e))}
                         placeholder="(00) 00000-0000"
@@ -395,51 +396,49 @@ export default function OnboardingForm({
                 <div className="space-y-4">
                   <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
                     <PlanGuard
-                  feature="profileLevel"
-                  required="advanced"
-                  label="Website"
-                  onClickLocked={() => setUpsellFeature('profileLevel')}
-                >
-                    <div className="space-y-1.5">
-                      <label className="text-editorial-label text-petroleum">
-                        <Globe
-                          size={12}
-                          strokeWidth={2}
-                          className="inline mr-1.5"
-                        />{' '}
-                        Website
-                      </label>
-                      <input
-                        className="w-full px-3 h-10 bg-white border border-petroleum/40 rounded-luxury text-editorial-ink text-[13px] font-medium outline-none focus:border-gold transition-all"
-                        value={website}
-                        onChange={(e) => setWebsite(e.target.value)}
-                        placeholder="seusite.com"
-                      />
-                    </div>
-                </PlanGuard>
-                <PlanGuard
-                  feature="profileLevel"
-                  required="advanced"
-                  label="Instagram"
-                  onClickLocked={() => setUpsellFeature('profileLevel')}
-                >
-                    <div className="space-y-1.5">
-                      <label className="text-editorial-label text-petroleum">
-                        <Instagram
-                          size={12}
-                          strokeWidth={2}
-                          className="inline mr-1.5"
-                        />{' '}
-                        Instagram
-                      </label>
-                      <input
-                        className="w-full px-3 h-10 bg-white border border-petroleum/40 rounded-luxury text-editorial-ink text-[13px] font-medium outline-none focus:border-gold transition-all"
-                        value={instagram}
-                        onChange={(e) => setInstagram(e.target.value)}
-                        placeholder="@seu.perfil"
-                      />
-                    </div>
-                </PlanGuard>
+                      feature="profileLevel"
+                      label="Website"
+                      onClickLocked={() => setUpsellFeature('profileLevel')}
+                    >
+                      <div className="space-y-1.5">
+                        <label className="text-editorial-label text-petroleum">
+                          <Globe
+                            size={12}
+                            strokeWidth={2}
+                            className="inline mr-1.5"
+                          />{' '}
+                          Website
+                        </label>
+                        <input
+                          className="w-full px-3 h-10 bg-white border border-slate-200 rounded-luxury text-editorial-ink text-[13px] font-medium outline-none focus:border-gold transition-all"
+                          value={website}
+                          onChange={(e) => setWebsite(e.target.value)}
+                          placeholder="seusite.com"
+                        />
+                      </div>
+                    </PlanGuard>
+                    <PlanGuard
+                      feature="profileLevel"
+                      label="Instagram"
+                      onClickLocked={() => setUpsellFeature('profileLevel')}
+                    >
+                      <div className="space-y-1.5">
+                        <label className="text-editorial-label text-petroleum">
+                          <Instagram
+                            size={12}
+                            strokeWidth={2}
+                            className="inline mr-1.5"
+                          />{' '}
+                          Instagram
+                        </label>
+                        <input
+                          className="w-full px-3 h-10 bg-white border border-slate-200 rounded-luxury text-editorial-ink text-[13px] font-medium outline-none focus:border-gold transition-all"
+                          value={instagram}
+                          onChange={(e) => setInstagram(e.target.value)}
+                          placeholder="@seu.perfil"
+                        />
+                      </div>
+                    </PlanGuard>
                   </div>
 
                   <div className="space-y-1.5">
@@ -481,10 +480,10 @@ export default function OnboardingForm({
                       }}
                     />
                     <button
-                    type="button"
-                    onClick={() => bgInputRef.current?.click()}
-                    className="btn-luxury-base w-full bg-slate-50 border-dashed justify-between"
-                  >
+                      type="button"
+                      onClick={() => bgInputRef.current?.click()}
+                      className="btn-luxury-base w-full bg-slate-50 border-dashed justify-between"
+                    >
                       <div className="flex flex-col items-start min-w-0">
                         <span className="text-editorial-label text-petroleum truncate w-full">
                           {bgFile ? bgFile.name : 'Alterar Imagem de Fundo'}
@@ -496,7 +495,7 @@ export default function OnboardingForm({
                         )}
                       </div>
                       {bgPreview && (
-                        <div className="w-8 h-8 rounded-[0.3rem] overflow-hidden border border-petroleum/40 shrink-0 shadow-sm group-hover:scale-110 transition-transform">
+                        <div className="w-8 h-8 rounded-[0.3rem] overflow-hidden border border-slate-200 shrink-0 shadow-sm group-hover:scale-110 transition-transform">
                           <img
                             src={bgPreview}
                             alt="Preview fundo"
@@ -514,7 +513,7 @@ export default function OnboardingForm({
                 <div className="space-y-3">
                   <div className="space-y-1.5">
                     <textarea
-                      className="w-full px-3 py-2 bg-white border border-petroleum/40 rounded-luxury text-editorial-ink text-[13px] font-medium outline-none focus:border-gold transition-all resize-none"
+                      className="w-full px-3 py-2 bg-white border border-slate-200 rounded-luxury text-editorial-ink text-[13px] font-medium outline-none focus:border-gold transition-all resize-none"
                       value={miniBio}
                       maxLength={bioLimit} // 🛡️ Trava dinâmica
                       onChange={(e) => setMiniBio(e.target.value)}
@@ -545,7 +544,7 @@ export default function OnboardingForm({
                     {selectedCities.map((city) => (
                       <span
                         key={city}
-                        className="bg-slate-50 border border-petroleum/40 text-petroleum text-[9px] font-medium px-2.5 py-1.5 rounded-luxury flex items-center gap-2 shadow-sm uppercase tracking-luxury"
+                        className="bg-slate-50 border border-slate-200 text-petroleum text-[9px] font-medium px-2.5 py-1.5 rounded-luxury flex items-center gap-2 shadow-sm uppercase tracking-luxury"
                       >
                         {city}
                         <X
@@ -568,7 +567,7 @@ export default function OnboardingForm({
                         setCityInput('');
                         setSuggestions([]);
                       }}
-                      className="w-20 bg-slate-50 border border-petroleum/40 rounded-luxury px-2 h-10 text-xs font-semibold outline-none focus:border-gold transition-all"
+                      className="w-20 bg-slate-50 border border-slate-200 rounded-luxury px-2 h-10 text-xs font-semibold outline-none focus:border-gold transition-all"
                     >
                       <option value="">UF</option>
                       {states.map((uf) => (
@@ -582,11 +581,11 @@ export default function OnboardingForm({
                         disabled={!selectedUF}
                         value={cityInput}
                         onChange={(e) => setCityInput(e.target.value)}
-                        className="w-full px-3 h-10 bg-white border border-petroleum/40 rounded-luxury text-editorial-ink text-[13px] font-medium outline-none focus:border-gold transition-all"
+                        className="w-full px-3 h-10 bg-white border border-slate-200 rounded-luxury text-editorial-ink text-[13px] font-medium outline-none focus:border-gold transition-all"
                         placeholder="Digite a cidade..."
                       />
                       {suggestions.length > 0 && (
-                        <div className="absolute z-[100] w-full bg-white border border-petroleum/40 rounded-luxury bottom-full mb-2 shadow-2xl max-h-48 overflow-y-auto no-scrollbar animate-in fade-in slide-in-from-bottom-2 duration-200">
+                        <div className="absolute z-[100] w-full bg-white border border-slate-200 rounded-luxury bottom-full mb-2 shadow-2xl max-h-48 overflow-y-auto no-scrollbar animate-in fade-in slide-in-from-bottom-2 duration-200">
                           {suggestions.map((city) => (
                             <button
                               key={city}

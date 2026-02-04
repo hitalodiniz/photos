@@ -315,7 +315,7 @@ export default function GaleriaModal({
 
               <button
                 onClick={handleCopyLink}
-                className="h-11 px-6 flex items-center justify-center gap-2 text-petroleum bg-white border border-petroleum/20 rounded-luxury shadow-sm hover:border-petroleum/40 transition-all text-[10px] font-bold uppercase tracking-luxury-widest active:scale-95"
+                className="h-11 px-6 flex items-center justify-center gap-2 text-petroleum bg-white border border-petroleum/20 rounded-luxury shadow-sm hover:border-slate-200 transition-all text-[10px] font-bold uppercase tracking-luxury-widest active:scale-95"
                 title="Copiar Link da Galeria"
               >
                 {copied ? (

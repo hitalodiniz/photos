@@ -50,7 +50,7 @@ export function LGPDPurposeField({
 
         {/* Tooltip de Informação */}
         <div className="group relative flex items-center">
-          <div className="flex items-center justify-center w-3.5 h-3.5 rounded-full border border-petroleum/40 text-petroleum/60 hover:border-gold transition-colors cursor-help">
+          <div className="flex items-center justify-center w-3.5 h-3.5 rounded-full border border-slate-200 text-petroleum/60 hover:border-gold transition-colors cursor-help">
             <span className="text-[10px] font-semibold font-sans">?</span>
           </div>
           <div className="absolute bottom-full left-0 mb-3 w-72 p-3 bg-slate-900 text-white text-[10px] font-medium leading-relaxed rounded-luxury opacity-0 pointer-events-none group-hover:opacity-100 transition-all duration-300 shadow-2xl z-[100] border border-white/10 font-sans">

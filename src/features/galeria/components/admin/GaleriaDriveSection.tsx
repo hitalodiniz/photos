@@ -22,7 +22,6 @@ export function GaleriaDriveSection({
   handleError,
   renameFilesSequential,
   setRenameFilesSequential,
-  setUpsellFeature, // Função para abrir o modal de upgrade global
 }) {
   const { permissions } = usePlan();
 
@@ -31,7 +30,7 @@ export function GaleriaDriveSection({
   const isOverLimit = driveData.photoCount > photoLimit;
 
   return (
-    <div className="relative bg-white rounded-luxury border border-petroleum/40 p-4 space-y-4 mt-2 overflow-hidden">
+    <div className="relative bg-white rounded-luxury border border-slate-200 p-4 space-y-4 mt-2 overflow-hidden">
       {/* Overlay de Validação */}
       {isValidatingDrive && (
         <div className="absolute inset-0 z-50 flex flex-col items-center justify-center bg-white/80 backdrop-blur-sm animate-in fade-in duration-300">
@@ -41,7 +40,7 @@ export function GaleriaDriveSection({
           </p>
         </div>
       )}
-      <div className="flex items-center gap-2 pb-2 border-b border-petroleum/40">
+      <div className="flex items-center gap-2 pb-2 border-b border-slate-200">
         <FolderSync size={14} className="" />
         <h3 className="text-[10px] font-bold uppercase tracking-luxury-widest text-petroleum">
           Google Drive
@@ -50,13 +49,13 @@ export function GaleriaDriveSection({
 
       {/* Subseção 1: Vincular Pasta do Google Drive */}
       <div className="space-y-3">
-        <label className="text-[10px] font-semibold uppercase tracking-luxury-widest text-petroleum flex items-center gap-1.5">
+        <label>
           <FolderSync size={12} strokeWidth={2} className="inline" />
           Vincular Pasta do Google Drive
         </label>
 
-        <div className="flex flex-col bg-slate-50 p-3 rounded-luxury border border-petroleum/40 space-y-3">
-          <p className="text-[13px] text-petroleum/90 dark:text-slate-500 font-semibold truncate bg-white/50 px-2 py-1.5 rounded border border-petroleum/40">
+        <div className="flex flex-col bg-slate-50 p-3 rounded-luxury border border-slate-200 space-y-3">
+          <p className="text-[13px] text-petroleum/90 dark:text-slate-500 font-semibold truncate bg-white/50 px-2 py-1.5 rounded border border-slate-200">
             {driveData.name || 'Nenhuma pasta selecionada'}
           </p>
 
@@ -72,37 +71,34 @@ export function GaleriaDriveSection({
 
           {/* ⚠️ ALERTA DE LIMITE DO PLANO */}
           {driveData.id && (
-            <div
-              className={`p-2.5 rounded-luxury border flex gap-2.5 ${isOverLimit ? 'bg-red-50 border-red-200' : 'bg-blue-50 border-blue-100'}`}
+            <PlanGuard
+              feature="maxPhotosPerGallery"
+              label="Limite de Fotos por Galeria"
+              scenarioType="limit"
+              forceShowLock={isOverLimit}
             >
-              <AlertTriangle
-                size={14}
-                className={isOverLimit ? 'text-red-500' : 'text-blue-500'}
-              />
-              <div className="space-y-0.5">
-                <p className="text-[9px] font-bold uppercase text-petroleum">
-                  {driveData.photoCount || 0} fotos encontradas
-                </p>
-                <p className="text-[9px] text-petroleum/70 leading-tight">
-                  Seu plano ({permissions.maxPhotosPerGallery} fotos){' '}
-                  {isOverLimit ? 'não suporta esta pasta.' : 'é compatível.'}
-                </p>
-                {isOverLimit && (
-                  <button
-                    type="button"
-                    onClick={() =>
-                      setUpsellFeature({
-                        label: 'Aumento de Limite de Fotos',
-                        feature: 'maxPhotosPerGallery',
-                      })
-                    }
-                    className="text-[9px] font-bold text-red-600 underline uppercase"
-                  >
-                    Fazer Upgrade
-                  </button>
-                )}
+              <div
+                className={`p-2.5 rounded-luxury border flex gap-2.5 ${
+                  isOverLimit
+                    ? 'bg-red-50 border-red-200'
+                    : 'bg-blue-50 border-blue-100'
+                }`}
+              >
+                <AlertTriangle
+                  size={14}
+                  className={isOverLimit ? 'text-red-500' : 'text-blue-500'}
+                />
+                <div className="space-y-0.5">
+                  <p className="text-[9px] font-bold uppercase text-petroleum">
+                    {driveData.photoCount || 0} fotos encontradas
+                  </p>
+                  <p className="text-[9px] text-petroleum/70 leading-tight">
+                    Seu plano ({permissions.maxPhotosPerGallery} fotos){' '}
+                    {isOverLimit ? 'não suporta esta pasta.' : 'é compatível.'}
+                  </p>
+                </div>
               </div>
-            </div>
+            </PlanGuard>
           )}
           {driveData.id && (
             <a
@@ -119,13 +115,13 @@ export function GaleriaDriveSection({
       </div>
 
       {/* Subseção 2: Preview de Capa */}
-      <div className="space-y-3 pt-3 border-t border-petroleum/40">
-        <label className="text-[10px] font-semibold uppercase tracking-luxury-widest text-petroleum flex items-center gap-1.5">
+      <div className="space-y-3 pt-3 border-t border-slate-200">
+        <label>
           <ImageIcon size={12} strokeWidth={2} className="inline" />
           Foto de capa selecionada
         </label>
 
-        <div className="relative aspect-[16/9] w-full overflow-hidden rounded-luxury bg-slate-100 border border-petroleum/40">
+        <div className="relative aspect-[16/9] w-full overflow-hidden rounded-luxury bg-slate-100 border border-slate-200">
           {coverPreviewUrl ? (
             <img
               ref={imgRef}
@@ -145,15 +141,10 @@ export function GaleriaDriveSection({
 
       {/* Subseção 3: Renomear Arquivos */}
       {/* 🛡️ Proteção: Renomear Arquivos */}
-      <PlanGuard
-        feature="keepOriginalFilenames"
-        label="Renomear fotos"
-        icon={ImageIcon}
-        onClickLocked={setUpsellFeature}
-      >
-        <div className="space-y-3 pt-4 border-t border-petroleum/40">
+      <PlanGuard feature="keepOriginalFilenames" label="Renomear fotos">
+        <div className="space-y-3 pt-4 border-t border-slate-200">
           <div className="flex items-center justify-between">
-            <label className="text-[10px] font-semibold uppercase tracking-luxury-widest text-petroleum flex items-center gap-1.5">
+            <label>
               <ImageIcon size={12} strokeWidth={2} className="inline" />
               Renomear fotos (foto-001...)
             </label>

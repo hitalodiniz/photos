@@ -38,22 +38,22 @@ export default function GalleryList({
 }: GalleryListProps) {
   if (galerias.length === 0) {
     return (
-    <div className="flex flex-col items-center justify-center py-32 text-center bg-white rounded-luxury border border-petroleum/40 shadow-sm p-4 min-h-[500px]">
-      <div className="w-20 h-20 bg-slate-50 rounded-luxury flex items-center justify-center mb-6 border border-champagne">
-        <Inbox className="text-gold opacity-40" size={32} />
+      <div className="flex flex-col items-center justify-center py-32 text-center bg-white rounded-luxury border border-slate-200 shadow-sm p-4 min-h-[500px]">
+        <div className="w-20 h-20 bg-slate-50 rounded-luxury flex items-center justify-center mb-6 border border-champagne">
+          <Inbox className="text-gold opacity-40" size={32} />
+        </div>
+        <h3 className="text-xl italic text-editorial-ink mb-2">
+          Nenhuma galeria por aqui
+        </h3>
+        <p className="text-sm text-editorial-gray max-w-xs mb-8">
+          Não encontramos resultados para sua busca.
+        </p>
       </div>
-      <h3 className="text-xl italic text-editorial-ink mb-2">
-        Nenhuma galeria por aqui
-      </h3>
-      <p className="text-sm text-editorial-gray max-w-xs mb-8">
-        Não encontramos resultados para sua busca.
-      </p>
-    </div>
-  );
-}
+    );
+  }
 
-return (
-  <div className="bg-white rounded-luxury border border-petroleum/40 shadow-sm p-4 min-h-[500px]">
+  return (
+    <div className="bg-white rounded-luxury border border-slate-200 shadow-sm p-4 min-h-[500px]">
       <div
         className={
           viewMode === 'grid'

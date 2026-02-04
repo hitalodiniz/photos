@@ -27,8 +27,8 @@ const FormSection = ({
   icon?: React.ReactNode;
   children: React.ReactNode;
 }) => (
-  <div className="bg-white rounded-luxury border border-petroleum/40 p-4 space-y-3">
-    <div className="flex flex-col gap-1 pb-2 border-b border-petroleum/40">
+  <div className="bg-white rounded-luxury border border-slate-200 p-4 space-y-3">
+    <div className="flex flex-col gap-1 pb-2 border-b border-slate-200">
       <div className="flex items-center gap-2">
         {icon && <div className="text-gold">{icon}</div>}
         <h3 className="text-[10px] font-bold uppercase tracking-luxury-widest text-petroleum">

@@ -3,10 +3,7 @@
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { z } from 'zod';
-import {
-  UserSettingsSchema,
-  MessageTemplatesSchema,
-} from '@/core/types/profile';
+import { UserSettingsSchema } from '@/core/types/profile';
 import { updateProfileSettings } from '@/core/services/profile.service';
 import { GalleryDesignFields } from '@/features/galeria/components/admin/GaleriaDesignFields';
 import { useRef, useState } from 'react';
@@ -14,7 +11,7 @@ import { useRouter } from 'next/navigation';
 import { usePlan } from '@/core/context/PlanContext';
 import { Toast } from '@/components/ui';
 import FormPageBase from '@/components/ui/FormPageBase';
-import { LGPDPurposeField } from '@/components/ui/LGPDPurposeField';
+
 import { LeadCaptureSection } from '@/components/ui/LeadCaptureSection';
 import { Layout, CheckCircle2, Lock } from 'lucide-react';
 import { PlanGuard } from '@/components/auth/PlanGuard';
@@ -34,8 +31,8 @@ const FormSection = ({
   icon?: React.ReactNode;
   children: React.ReactNode;
 }) => (
-  <div className="bg-white rounded-luxury border border-petroleum/40 p-4 md:p-6 space-y-4">
-    <div className="flex items-center gap-2 pb-3 border-b border-petroleum/40">
+  <div className="bg-white rounded-luxury border border-slate-200 p-4 md:p-6 space-y-4">
+    <div className="flex items-center gap-2 pb-3 border-b border-slate-200">
       {icon && <div className="text-petroleum">{icon}</div>}
       <h3 className="text-xs font-bold uppercase tracking-luxury-widest text-petroleum ">
         {title}
@@ -68,7 +65,7 @@ export default function SettingsForm({ profile }: { profile: any }) {
         list_on_profile: profile.settings?.defaults?.list_on_profile ?? false,
         // Conditionally set enable_guest_registration based on plan permission
         enable_guest_registration: canCaptureLeads
-          ? profile.settings?.defaults?.enable_guest_registration ?? false
+          ? (profile.settings?.defaults?.enable_guest_registration ?? false)
           : false,
         required_guest_fields: profile.settings?.defaults
           ?.required_guest_fields ?? ['name', 'whatsapp'],
@@ -167,51 +164,48 @@ export default function SettingsForm({ profile }: { profile: any }) {
                         Oculta ou exibe o tipo de galeria na criação.
                       </p>
                     </div>
-                    <PlanGuard feature="show_contract_type" label="Habilitar tipo Contrato" icon={Lock}>
-                      <button
-                        type="button"
-                        onClick={() =>
-                          setValue(
-                            'settings.display.show_contract_type',
-                            !showContractType,
-                            { shouldDirty: true },
-                          )
-                        }
-                        className={`relative h-5 w-9 shrink-0 rounded-full transition-colors ${showContractType ? 'bg-gold' : 'bg-slate-200'}`}
-                      >
-                        <span
-                          className={`absolute top-0.5 left-0.5 w-3.5 h-3.5 rounded-full bg-white shadow-sm transition-transform duration-200 ${showBackgroundPhoto ? 'translate-x-3.5' : ''}`}
-                        />
-                      </button>
-                    </PlanGuard>
+
+                    <button
+                      type="button"
+                      onClick={() =>
+                        setValue(
+                          'settings.display.show_contract_type',
+                          !showContractType,
+                          { shouldDirty: true },
+                        )
+                      }
+                      className={`relative h-5 w-9 shrink-0 rounded-full transition-colors ${showContractType ? 'bg-gold' : 'bg-slate-200'}`}
+                    >
+                      <span
+                        className={`absolute top-0.5 left-0.5 w-3.5 h-3.5 rounded-full bg-white shadow-sm transition-transform duration-200 ${showBackgroundPhoto ? 'translate-x-3.5' : ''}`}
+                      />
+                    </button>
                   </div>
                   <div className="flex items-center gap-4">
                     <label className="text-[11px] font-semibold uppercase tracking-luxury-widest text-petroleum ">
                       Exibir galeria no meu perfil público
                     </label>
-                    <PlanGuard feature="list_on_profile" label="Exibir galeria pública" icon={Lock}>
-                      <button
-                        type="button"
-                        onClick={() =>
-                          setValue(
-                            'settings.defaults.list_on_profile',
-                            !listOnProfile,
-                            { shouldDirty: true },
-                          )
-                        }
-                        className={`relative h-5 w-9 rounded-full transition-colors duration-200 ${listOnProfile ? 'bg-gold' : 'bg-slate-200'}`}
-                      >
-                        <span
-                          className={`absolute top-0.5 left-0.5 h-4 w-4 rounded-full bg-white shadow-sm transition-transform duration-200 ${listOnProfile ? 'translate-x-4' : ''}`}
-                        />
-                      </button>
-                    </PlanGuard>
+
+                    <button
+                      type="button"
+                      onClick={() =>
+                        setValue(
+                          'settings.defaults.list_on_profile',
+                          !listOnProfile,
+                          { shouldDirty: true },
+                        )
+                      }
+                      className={`relative h-5 w-9 rounded-full transition-colors duration-200 ${listOnProfile ? 'bg-gold' : 'bg-slate-200'}`}
+                    >
+                      <span
+                        className={`absolute top-0.5 left-0.5 h-4 w-4 rounded-full bg-white shadow-sm transition-transform duration-200 ${listOnProfile ? 'translate-x-4' : ''}`}
+                      />
+                    </button>
                   </div>
 
                   <PlanGuard
                     feature="canCaptureLeads"
                     label="Cadastro de Visitante"
-                    icon={Lock}
                   >
                     <LeadCaptureSection
                       enabled={enableGuestRegistration}

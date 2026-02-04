@@ -27,6 +27,7 @@ import { useRouter } from 'next/navigation';
 import { GridBasePage } from '@/components/ui';
 import { PlanGuard } from '@/components/auth';
 import { usePlan } from '@/core/context/PlanContext';
+import { normalizePhoneNumber } from '@/core/utils/masks-helpers';
 interface LeadReportViewProps {
   galeria: Galeria;
 }
@@ -224,24 +225,24 @@ export default function LeadReportView({ galeria }: LeadReportViewProps) {
             <PlanGuard
               feature="canExportLeads"
               label="Exportar Leads"
-              onClickLocked={() => setUpsellFeature('canExportLeads')}
+              scenarioType="feature"
             >
-            <div className="flex items-center gap-2">
-              {[
-                { type: 'csv', icon: FileText, label: 'CSV' },
-                { type: 'excel', icon: TableIcon, label: 'Excel' },
-                { type: 'pdf', icon: FileDown, label: 'PDF' },
-              ].map((btn) => (
-                <button
-                  key={btn.type}
-                  onClick={() => handleExport(btn.type as any)}
-                  className={`${btn.type === 'pdf' ? 'btn-luxury-primary' : 'btn-secondary-petroleum'} px-4 w-28 flex items-center gap-2 justify-center relative group`}
-                >
-                  <btn.icon size={16} />
-                  <span className="hidden md:inline">{btn.label}</span>
-                </button>
-              ))}
-            </div>
+              <div className="flex items-center gap-2">
+                {[
+                  { type: 'csv', icon: FileText, label: 'CSV' },
+                  { type: 'excel', icon: TableIcon, label: 'Excel' },
+                  { type: 'pdf', icon: FileDown, label: 'PDF' },
+                ].map((btn) => (
+                  <button
+                    key={btn.type}
+                    onClick={() => handleExport(btn.type as any)}
+                    className={`${btn.type === 'pdf' ? 'btn-luxury-primary' : 'btn-secondary-petroleum'} px-4 w-28 flex items-center gap-2 justify-center relative group`}
+                  >
+                    <btn.icon size={16} />
+                    <span className="hidden md:inline">{btn.label}</span>
+                  </button>
+                ))}
+              </div>
             </PlanGuard>
           </div>
         </div>

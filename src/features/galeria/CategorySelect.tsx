@@ -118,7 +118,7 @@ export default function CategorySelect({
             }
           }}
           required
-          className="w-full pl-4 pr-10 bg-white border border-petroleum/40 rounded-luxury 
+          className="w-full pl-4 pr-10 bg-white border border-slate-200 rounded-luxury 
                      text-petroleum/90 text-[13px] font-medium h-10
                      focus:border-gold outline-none appearance-none cursor-pointer
                      disabled:opacity-50 transition-all group-hover:border-petroleum/60"

@@ -21,19 +21,12 @@ import {
   Briefcase,
   Tag,
   Layout,
-  Monitor,
-  Smartphone,
-  Tablet,
   Eye,
-  EyeOff,
   CheckCircle2,
   Download,
-  Database,
-  Image as ImageIcon,
   Plus,
   Trash2,
   Users,
-  Loader2,
   Shield,
   ShieldCheck,
 } from 'lucide-react';
@@ -42,9 +35,9 @@ import { convertToDirectDownloadUrl } from '@/core/utils/url-helper';
 import { LimitUpgradeModal } from '@/components/ui/LimitUpgradeModal';
 import { useGoogleDriveImage } from '@/hooks/useGoogleDriveImage';
 import { GalleryDesignFields } from './GaleriaDesignFields';
-import { LGPDPurposeField } from '@/components/ui/LGPDPurposeField';
+
 import { LeadCaptureSection } from '@/components/ui/LeadCaptureSection';
-import { div } from 'framer-motion/client';
+
 import { PlanGuard } from '@/components/auth/PlanGuard';
 import { GaleriaDriveSection } from './GaleriaDriveSection';
 import { usePlan } from '@/core/context/PlanContext';
@@ -63,8 +56,8 @@ const FormSection = ({
   icon?: React.ReactNode;
   children: React.ReactNode;
 }) => (
-  <div className="bg-white rounded-luxury border border-petroleum/40 p-4 space-y-3">
-    <div className="flex flex-col gap-1 pb-2 border-b border-petroleum/40">
+  <div className="bg-white rounded-luxury border border-slate-200 p-4 space-y-3">
+    <div className="flex flex-col gap-1 pb-2 border-b border-slate-200">
       <div className="flex items-center gap-2">
         {icon && <div className="text-petroleum">{icon}</div>}{' '}
         {/* Ícones agora em Gold */}
@@ -533,7 +526,7 @@ export default function GaleriaFormContent({
                     />{' '}
                     Tipo
                   </label>
-                  <div className="flex p-1 bg-slate-50 rounded-luxury border border-petroleum/40 h-10 items-center relative">
+                  <div className="flex p-1 bg-slate-50 rounded-luxury border border-slate-200 h-10 items-center relative">
                     <div
                       className={`absolute top-1 bottom-1 w-[calc(50%-4px)] rounded-[0.35rem] transition-all duration-300 bg-champagne border border-gold/20 shadow-sm ${hasContractingClient ? 'left-1' : 'left-[calc(50%+1px)]'}`}
                     />
@@ -625,7 +618,7 @@ export default function GaleriaFormContent({
                     setTitleValue(e.target.value);
                     onTitleChange?.(e.target.value);
                   }}
-                  className="w-full px-3 h-10 bg-white border border-petroleum/40 rounded-luxury text-petroleum/90 text-[13px] font-medium outline-none focus:border-gold transition-all"
+                  className="w-full px-3 h-10 bg-white border border-slate-200 rounded-luxury text-petroleum/90 text-[13px] font-medium outline-none focus:border-gold transition-all"
                 />
               </div>
               <div className="md:col-span-6">
@@ -686,7 +679,7 @@ export default function GaleriaFormContent({
                     Galeria
                   </label>
                   <div className="group relative flex items-center">
-                    <div className="flex items-center justify-center w-3.5 h-3.5 rounded-full border border-petroleum/40 text-petroleum/60 dark:text-slate-400 group-hover:border-gold group-hover: transition-colors cursor-help">
+                    <div className="flex items-center justify-center w-3.5 h-3.5 rounded-full border border-slate-200 text-petroleum/60 dark:text-slate-400 group-hover:border-gold group-hover: transition-colors cursor-help">
                       <span className="text-[10px] font-semibold">?</span>
                     </div>
                     <div className="absolute bottom-full left-0 mb-3 w-64 p-3 bg-slate-900 text-white text-[10px] font-medium leading-relaxed rounded-luxury opacity-0 pointer-events-none group-hover:opacity-100 transition-all duration-300 shadow-2xl z-[100] text-left border border-white/10">
@@ -703,7 +696,7 @@ export default function GaleriaFormContent({
                 </div>
 
                 <div className="flex items-center gap-3 w-full sm:w-auto">
-                  <div className="flex bg-slate-50 rounded-[0.4rem] border border-petroleum/40 p-1 gap-1 w-40 shrink-0">
+                  <div className="flex bg-slate-50 rounded-[0.4rem] border border-slate-200 p-1 gap-1 w-40 shrink-0">
                     <button
                       type="button"
                       onClick={() => setIsPublic(true)}
@@ -726,13 +719,6 @@ export default function GaleriaFormContent({
                     <PlanGuard
                       feature="privacyLevel"
                       label="Proteção por Senha"
-                      icon={Lock}
-                      onClickLocked={() =>
-                        setUpsellFeature({
-                          label: 'Proteção por Senha',
-                          feature: 'privacyLevel',
-                        })
-                      }
                     >
                       <div className="relative group w-32">
                         <PasswordInput
@@ -760,8 +746,6 @@ export default function GaleriaFormContent({
               <PlanGuard
                 feature="profileLevel" // Planos básicos podem ter limitações aqui
                 label="Listar no Perfil"
-                icon={Eye}
-                onClickLocked={setUpsellFeature}
               >
                 <div className="flex flex-col sm:flex-row items-start sm:items-center gap-3">
                   <div className="flex items-center gap-1.5 shrink-0">
@@ -770,7 +754,7 @@ export default function GaleriaFormContent({
                       Perfil
                     </label>
                     <div className="group relative flex items-center">
-                      <div className="flex items-center justify-center w-3.5 h-3.5 rounded-full border border-petroleum/40 text-petroleum/60 dark:text-slate-400 group-hover:border-gold group-hover: transition-colors cursor-help">
+                      <div className="flex items-center justify-center w-3.5 h-3.5 rounded-full border border-slate-200 text-petroleum/60 dark:text-slate-400 group-hover:border-gold group-hover: transition-colors cursor-help">
                         <span className="text-[10px] font-semibold">?</span>
                       </div>
                       <div className="absolute bottom-full left-0 lg:left-auto lg:right-0 mb-3 w-64 p-3 bg-slate-900 text-white text-[10px] font-medium leading-relaxed rounded-luxury opacity-0 pointer-events-none group-hover:opacity-100 transition-all duration-300 shadow-2xl z-[100] text-left border border-white/10">
@@ -852,7 +836,7 @@ export default function GaleriaFormContent({
       </div>
 
       {/* COLUNA LATERAL (35%) */}
-      <div className="w-full lg:w-[35%] border-t lg:border-t-0 lg:border-l border-petroleum/40 pl-0 lg:pl-2 space-y-4 bg-slate-50/30  px-2 pb-6">
+      <div className="w-full lg:w-[35%] border-t lg:border-t-0 lg:border-l border-slate-200 pl-0 lg:pl-2 space-y-4 bg-slate-50/30  px-2 pb-6">
         {/* GOOGLE DRIVE - Seção Principal */}
         <GaleriaDriveSection
           driveData={driveData}
@@ -866,12 +850,11 @@ export default function GaleriaFormContent({
           handleError={handleError}
           renameFilesSequential={renameFilesSequential}
           setRenameFilesSequential={setRenameFilesSequential}
-          setUpsellFeature={setUpsellFeature}
         />
 
         {/*LINKS E ARQUIVOS */}
-        <div className="bg-white rounded-luxury border border-petroleum/40 p-4 space-y-3">
-          <div className="flex items-center gap-2 pb-2 border-b border-petroleum/40">
+        <div className="bg-white rounded-luxury border border-slate-200 p-4 space-y-3">
+          <div className="flex items-center gap-2 pb-2 border-b border-slate-200">
             <Download size={14} className="text-gold" />
             <h3 className="text-[10px] font-bold uppercase tracking-luxury-widest text-petroleum">
               links e arquivos de entrega
@@ -1001,14 +984,6 @@ export default function GaleriaFormContent({
           </div>
         </div>
       </div>
-      {/* MODAL DE UPGRADE ÚNICO */}
-      <UpgradeModal
-        isOpen={!!upsellFeature}
-        onClose={() => setUpsellFeature(null)}
-        featureName={upsellFeature?.label || ''}
-        featureKey={upsellFeature?.feature as any} // Passa a chave técnica
-        scenarioType="feature"
-      />
 
       <LimitUpgradeModal
         isOpen={showLimitModal}

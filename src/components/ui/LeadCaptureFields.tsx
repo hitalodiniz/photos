@@ -67,7 +67,7 @@ export const LeadCaptureFields = ({
                 className={`w-4 h-4 rounded border transition-all duration-300 flex items-center justify-center ${
                   isRequired
                     ? 'bg-gold border-gold scale-110 shadow-sm'
-                    : 'bg-white border-petroleum/40 group-hover:border-gold/60'
+                    : 'bg-white border-slate-200 group-hover:border-gold/60'
                 }`}
               >
                 {isRequired && (

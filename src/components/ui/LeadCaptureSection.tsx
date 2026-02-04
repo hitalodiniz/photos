@@ -85,26 +85,9 @@ export function LeadCaptureSection({
 
   const isFeatureLocked = !canCaptureLeads;
 
-  // State for the upgrade modal, managed internally
-
-  const [upsellFeature, setUpsellFeature] = React.useState<{
-    label: string;
-
-    feature: string;
-  } | null>(null);
-
-  const handleUpgrade = (label: string, feature: string) => {
-    setUpsellFeature({ label, feature });
-  };
-
   return (
     <div className="flex flex-col gap-4">
-      <PlanGuard
-        feature="canCaptureLeads"
-        label={toggleLabel}
-        icon={Lock}
-        onClickLocked={() => handleUpgrade('Cadastro de Visitante')}
-      >
+      <PlanGuard feature="canCaptureLeads" label={toggleLabel}>
         <div className="flex flex-col items-start gap-1">
           <div className="flex items-center gap-4">
             <label>{toggleLabel}</label>
@@ -165,13 +148,6 @@ export function LeadCaptureSection({
           </div>
         )}
       </PlanGuard>
-      <UpgradeModal
-        isOpen={!!upsellFeature}
-        onClose={() => setUpsellFeature(null)}
-        featureName={upsellFeature?.label || ''}
-        featureKey={upsellFeature?.feature as any}
-        scenarioType="feature"
-      />
     </div>
   );
 }

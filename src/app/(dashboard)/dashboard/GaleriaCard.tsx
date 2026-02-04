@@ -183,7 +183,7 @@ export default function GaleriaCard({
         onClick={() =>
           !isBulkMode && links.url && window.open(links.url, '_blank')
         }
-        className={`group relative flex items-center gap-4 overflow-hidden rounded-luxury border border-petroleum/40 bg-white p-3 transition-all w-full animate-in fade-in slide-in-from-bottom-2 duration-500 fill-mode-both hover:border-petroleum/70 ${
+        className={`group relative flex items-center gap-4 overflow-hidden rounded-luxury border border-slate-200 bg-white p-3 transition-all w-full animate-in fade-in slide-in-from-bottom-2 duration-500 fill-mode-both hover:border-petroleum/70 ${
           isBulkMode ? 'cursor-default' : 'cursor-pointer'
         } ${isSelected && isBulkMode ? 'ring-2 ring-gold border-gold' : ''}`}
         style={{ animationDelay: `${index * 30}ms` }}
@@ -275,7 +275,7 @@ export default function GaleriaCard({
               <>
                 <button
                   onClick={handleWhatsAppShare}
-                  className="p-2 text-petroleum bg-white border border-petroleum/40 rounded-luxury interactive-luxury-petroleum"
+                  className="p-2 text-petroleum bg-white border border-slate-200 rounded-luxury interactive-luxury-petroleum"
                   title="WhatsApp"
                 >
                   <WhatsAppIcon className="w-4 h-4" />
@@ -286,7 +286,7 @@ export default function GaleriaCard({
                     if (!isNavigating) handleEditClick(e);
                   }}
                   disabled={isNavigating}
-                  className="p-2 text-petroleum bg-white border border-petroleum/40 rounded-luxury interactive-luxury-petroleum"
+                  className="p-2 text-petroleum bg-white border border-slate-200 rounded-luxury interactive-luxury-petroleum"
                   title="Editar"
                 >
                   <Pencil size={16} />
@@ -294,7 +294,7 @@ export default function GaleriaCard({
                 {mounted && (
                   <button
                     onClick={handleCopy}
-                    className="p-2 text-petroleum bg-white border border-petroleum/40 rounded-luxury interactive-luxury-petroleum"
+                    className="p-2 text-petroleum bg-white border border-slate-200 rounded-luxury interactive-luxury-petroleum"
                     title="Link"
                   >
                     {copied ? (
@@ -320,7 +320,7 @@ export default function GaleriaCard({
                       'Gerando relatório...',
                     );
                   }}
-                  className={`p-2 bg-white border border-petroleum/40 rounded-luxury flex items-center justify-center transition-all ${!canViewLeads ? 'text-petroleum/30 grayscale hover:border-gold' : 'text-petroleum interactive-luxury-petroleum'}`}
+                  className={`p-2 bg-white border border-slate-200 rounded-luxury flex items-center justify-center transition-all ${!canViewLeads ? 'text-petroleum/30 grayscale hover:border-gold' : 'text-petroleum interactive-luxury-petroleum'}`}
                   disabled={
                     canViewLeads &&
                     (isNavigating ||
@@ -368,7 +368,7 @@ export default function GaleriaCard({
         onClick={() =>
           !isBulkMode && links.url && window.open(links.url, '_blank')
         }
-        className={`group relative flex flex-col overflow-hidden rounded-luxury border border-petroleum/40 bg-white transition-all w-full animate-in fade-in slide-in-from-bottom-2 duration-500 fill-mode-both hover:border-petroleum/70 ${isBulkMode ? 'cursor-default' : 'cursor-pointer'} ${isSelected && isBulkMode ? 'ring-2 ring-gold border-gold' : ''}`}
+        className={`group relative flex flex-col overflow-hidden rounded-luxury border border-slate-200 bg-white transition-all w-full animate-in fade-in slide-in-from-bottom-2 duration-500 fill-mode-both hover:border-petroleum/70 ${isBulkMode ? 'cursor-default' : 'cursor-pointer'} ${isSelected && isBulkMode ? 'ring-2 ring-gold border-gold' : ''}`}
         style={{ animationDelay: `${index * 50}ms` }}
       >
         {(isUpdating || isDeleting) && (
@@ -523,7 +523,7 @@ export default function GaleriaCard({
               <>
                 <button
                   onClick={handleWhatsAppShare}
-                  className="p-2 text-petroleum bg-white border border-petroleum/40 rounded-luxury interactive-luxury-petroleum"
+                  className="p-2 text-petroleum bg-white border border-slate-200 rounded-luxury interactive-luxury-petroleum"
                   title="WhatsApp"
                 >
                   <WhatsAppIcon className="w-4 h-4" />
@@ -534,7 +534,7 @@ export default function GaleriaCard({
                     if (!isNavigating) handleEditClick(e);
                   }}
                   disabled={isNavigating}
-                  className="p-2 text-petroleum bg-white border border-petroleum/40 rounded-luxury interactive-luxury-petroleum"
+                  className="p-2 text-petroleum bg-white border border-slate-200 rounded-luxury interactive-luxury-petroleum"
                   title="Editar"
                 >
                   <Pencil size={16} />
@@ -542,7 +542,7 @@ export default function GaleriaCard({
                 {mounted && (
                   <button
                     onClick={handleCopy}
-                    className="p-2 text-petroleum bg-white border border-petroleum/40 rounded-luxury interactive-luxury-petroleum"
+                    className="p-2 text-petroleum bg-white border border-slate-200 rounded-luxury interactive-luxury-petroleum"
                     title="Link"
                   >
                     {copied ? (
@@ -568,7 +568,7 @@ export default function GaleriaCard({
                       'Gerando relatório...',
                     );
                   }}
-                  className={`p-2 bg-white border border-petroleum/40 rounded-luxury flex items-center justify-center transition-all ${!canViewLeads ? 'text-petroleum/30 grayscale hover:border-gold' : 'text-petroleum interactive-luxury-petroleum'}`}
+                  className={`p-2 bg-white border border-slate-200 rounded-luxury flex items-center justify-center transition-all ${!canViewLeads ? 'text-petroleum/30 grayscale hover:border-gold' : 'text-petroleum interactive-luxury-petroleum'}`}
                   disabled={
                     canViewLeads &&
                     (isNavigating ||

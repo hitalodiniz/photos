@@ -41,13 +41,8 @@ export const GalleryDesignFields: React.FC<GalleryDesignFieldsProps> = ({
   setBackgroundColor,
   columns,
   setColumns,
-  onBackgroundPhotoUrlChange,
   register,
 }) => {
-  const [upsellFeature, setUpsellFeature] = useState<{
-    label: string;
-    feature: string;
-  } | null>(null);
   const { planKey } = usePlan();
 
   const getFilteredOptions = (originalOptions: number[]) => {
@@ -59,19 +54,14 @@ export const GalleryDesignFields: React.FC<GalleryDesignFieldsProps> = ({
   return (
     <div className="flex flex-wrap items-center gap-x-2.5 gap-y-1.5">
       {/* FOTO DE FUNDO / TOGGLE */}
-      <PlanGuard
-        feature="customizationLevel"
-        label="Foto de fundo"
-        icon={ImageIcon}
-        onClickLocked={setUpsellFeature}
-      >
+      <PlanGuard feature="customizationLevel" label="Foto de fundo">
         <div className="flex items-center gap-2 border-r border-petroleum/10 pr-2.5 shrink-0 h-8">
           <div className="flex items-center gap-1 shrink-0">
             <label className="text-[10px] font-bold uppercase tracking-luxury-widest text-petroleum flex items-center gap-1">
               <ImageIcon size={11} className="text-gold" /> Foto de fundo
             </label>
             <div className="group relative flex items-center">
-              <div className="flex items-center justify-center w-3.5 h-3.5 rounded-full border border-petroleum/40 text-petroleum/60 dark:text-slate-400 group-hover:border-gold transition-colors cursor-help">
+              <div className="flex items-center justify-center w-3.5 h-3.5 rounded-full border border-slate-200 text-petroleum/60 dark:text-slate-400 group-hover:border-gold transition-colors cursor-help">
                 <span className="text-[10px] font-semibold">?</span>
               </div>
               <div className="absolute bottom-full left-1/2 -translate-x-1/2 mb-2 w-48 p-2 bg-slate-900 text-white text-[10px] font-medium leading-relaxed rounded-luxury opacity-0 pointer-events-none group-hover:opacity-100 transition-all duration-300 shadow-2xl z-50 text-center border border-white/10">
@@ -113,7 +103,7 @@ export const GalleryDesignFields: React.FC<GalleryDesignFieldsProps> = ({
               Cor de fundo
             </label>
             <div className="group relative flex items-center">
-              <div className="flex items-center justify-center w-3.5 h-3.5 rounded-full border border-petroleum/40 text-petroleum/60 dark:text-slate-400 group-hover:border-gold transition-colors cursor-help">
+              <div className="flex items-center justify-center w-3.5 h-3.5 rounded-full border border-slate-200 text-petroleum/60 dark:text-slate-400 group-hover:border-gold transition-colors cursor-help">
                 <span className="text-[8px] font-semibold">?</span>
               </div>
               <div className="absolute bottom-full left-1/2 -translate-x-1/2 mb-2 w-56 p-2 bg-slate-900 text-white text-[9px] font-medium leading-relaxed rounded-luxury opacity-0 pointer-events-none group-hover:opacity-100 transition-all duration-300 shadow-2xl z-[100] text-center border border-white/10">
@@ -135,9 +125,9 @@ export const GalleryDesignFields: React.FC<GalleryDesignFieldsProps> = ({
                 />
               ))}
             </div>
-            <div className="flex items-center gap-1 bg-slate-50 border border-petroleum/40 rounded-[0.25rem] px-1 h-5.5 shrink-0">
+            <div className="flex items-center gap-1 bg-slate-50 border border-slate-200 rounded-[0.25rem] px-1 h-5.5 shrink-0">
               <div
-                className="w-3 h-3 rounded-[0.1rem] border border-petroleum/40 relative overflow-hidden shadow-sm shrink-0"
+                className="w-3 h-3 rounded-[0.1rem] border border-slate-200 relative overflow-hidden shadow-sm shrink-0"
                 style={{ backgroundColor }}
               >
                 <input
@@ -173,7 +163,7 @@ export const GalleryDesignFields: React.FC<GalleryDesignFieldsProps> = ({
             Grid
           </label>
           <div className="group relative flex items-center">
-            <div className="flex items-center justify-center w-3.5 h-3.5 rounded-full border border-petroleum/40 text-petroleum/60 dark:text-slate-400 group-hover:border-gold transition-colors cursor-help">
+            <div className="flex items-center justify-center w-3.5 h-3.5 rounded-full border border-slate-200 text-petroleum/60 dark:text-slate-400 group-hover:border-gold transition-colors cursor-help">
               <span className="text-[8px] font-semibold">?</span>
             </div>
             <div className="absolute bottom-full right-0 xl:left-1/2 xl:-translate-x-1/2 mb-2 w-56 p-2 bg-slate-900 text-white text-[9px] font-medium leading-relaxed rounded-luxury opacity-0 pointer-events-none group-hover:opacity-100 transition-all duration-300 shadow-2xl z-[100] text-left xl:text-center border border-white/10">
@@ -210,13 +200,6 @@ export const GalleryDesignFields: React.FC<GalleryDesignFieldsProps> = ({
           ))}
         </div>
       </div>
-
-      <UpgradeModal
-        isOpen={!!upsellFeature}
-        onClose={() => setUpsellFeature(null)}
-        featureName={upsellFeature?.label || ''}
-        featureKey={upsellFeature?.feature as any}
-      />
     </div>
   );
 };
