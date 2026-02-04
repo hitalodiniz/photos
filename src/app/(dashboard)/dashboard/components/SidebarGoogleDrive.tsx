@@ -54,16 +54,22 @@ export default function SidebarGoogleDrive({
               <span
                 className={`text-[10px] font-semibold tracking-luxury truncate ${photographer?.google_refresh_token ? 'text-green-500' : 'text-amber-500'}`}
               >
-                {photographer?.google_refresh_token ? 'Sincronizado' : 'Ação Necessária'}
+                {photographer?.google_refresh_token
+                  ? 'Sincronizado'
+                  : 'Ação Necessária'}
               </span>
               <button
-                onClick={() => handleGoogleLogin(!photographer?.google_refresh_token)}
+                onClick={() =>
+                  handleGoogleLogin(!photographer?.google_refresh_token)
+                }
                 className="p-1 hover:bg-white/10 rounded-luxury transition-colors text-white/90 interactive-luxury"
               >
                 <RefreshCw
                   size={12}
                   strokeWidth={2.5}
-                  className={!photographer?.google_refresh_token ? 'animate-spin' : ''}
+                  className={
+                    !photographer?.google_refresh_token ? 'animate-spin' : ''
+                  }
                 />
               </button>
             </div>

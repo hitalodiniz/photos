@@ -66,40 +66,28 @@ export default function PlanosPage() {
     <EditorialView
       title={`Planos ${config.name}`}
       subtitle="A estrutura definitiva para sua entrega profissional."
+      sectionTitle="Flexibilidade Profissional"
     >
       <main className="w-full">
+        {' '}
         {/* 🎯 HEADER DA SEÇÃO: Seletor de Período */}
-        <section className="bg-white py-20 border-b border-slate-100 relative z-20">
-          <div className="max-w-[1600px] mx-auto px-6 md:px-12 flex flex-col items-center">
-            <div className="text-center mb-10">
-              <p className="text-gold text-xs uppercase tracking-[0.3em] font-semibold mb-3">
-                Flexibilidade Profissional
-              </p>
-              <h2 className="text-3xl md:text-4xl font-semibold text-petroleum italic">
-                Escolha o ciclo da sua entrega
-              </h2>
-            </div>
-
-            <div className="flex items-center gap-6 bg-slate-50 p-2 rounded-full border border-slate-200 shadow-sm">
-              <button
-                onClick={() => setIsAnnual(false)}
-                className={`px-8 py-3 rounded-full text-[11px] font-bold uppercase tracking-widest transition-all ${!isAnnual ? 'bg-petroleum text-white shadow-lg' : 'text-petroleum/40 hover:text-petroleum'}`}
-              >
-                Mensal
-              </button>
-              <button
-                onClick={() => setIsAnnual(true)}
-                className={`relative px-8 py-3 rounded-full text-[11px] font-bold uppercase tracking-widest transition-all ${isAnnual ? 'bg-petroleum text-white shadow-lg' : 'text-petroleum/40 hover:text-petroleum'}`}
-              >
-                Anual
-                <span className="absolute -top-2 -right-4 bg-emerald-500 text-white text-[8px] px-2 py-1 rounded-full animate-bounce">
-                  -20%
-                </span>
-              </button>
-            </div>
-          </div>
-        </section>
-
+        <div className="flex items-center gap-6 bg-slate-50 p-2 rounded-full border border-slate-200 shadow-sm">
+          <button
+            onClick={() => setIsAnnual(false)}
+            className={`px-8 py-3 rounded-full text-[11px] font-bold uppercase tracking-widest transition-all ${!isAnnual ? 'bg-petroleum text-white shadow-lg' : 'text-petroleum/40 hover:text-petroleum'}`}
+          >
+            Mensal
+          </button>
+          <button
+            onClick={() => setIsAnnual(true)}
+            className={`relative px-8 py-3 rounded-full text-[11px] font-bold uppercase tracking-widest transition-all ${isAnnual ? 'bg-petroleum text-white shadow-lg' : 'text-petroleum/40 hover:text-petroleum'}`}
+          >
+            Anual
+            <span className="absolute -top-2 -right-4 bg-emerald-500 text-white text-[8px] px-2 py-1 rounded-full animate-bounce">
+              -20%
+            </span>
+          </button>
+        </div>
         {/* 🎯 GRID DE CARDS: Utilizando EditorialCard para Padronização */}
         <section className="py-24 max-w-[1650px] mx-auto px-6">
           <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-5 gap-5 mb-16 items-stretch">
@@ -225,7 +213,6 @@ export default function PlanosPage() {
             })}
           </div>
         </section>
-
         {/* 🎯 TABELA DE ESPECIFICAÇÕES: Refinamento Editorial */}
         <section className="bg-slate-50 py-24 border-t border-slate-100">
           <div className="max-w-[1400px] mx-auto px-6">

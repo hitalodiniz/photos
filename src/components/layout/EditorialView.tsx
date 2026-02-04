@@ -4,7 +4,7 @@ import LoadingScreen from '@/components/ui/LoadingScreen';
 import Footer from '@/components/layout/Footer';
 import EditorialToolbar from './EditorialToolBar';
 import { GoogleSignInButton } from '@/components/auth';
-import { ShieldCheck } from 'lucide-react';
+import { Camera, ShieldCheck } from 'lucide-react';
 
 const HERO_IMAGES = [
   '/hero-bg-1.webp',
@@ -24,6 +24,10 @@ const HERO_IMAGES = [
 export default function EditorialView({
   title,
   subtitle,
+  sectionTitle,
+  sectionSubtitle,
+  sectionDescription,
+
   children,
   bgImage,
   altura = 'h-[35vh]',
@@ -53,8 +57,8 @@ export default function EditorialView({
             {currentBg && (
               <img
                 src={currentBg}
-                className="w-full h-full object-cover opacity-85 transition-opacity duration-700"
-                style={{ objectPosition: 'center 40%' }}
+                className="w-full h-full object-cover  opacity-85 transition-opacity duration-700"
+                style={{ objectPosition: 'center 10%' }}
                 alt="Hero Background"
               />
             )}
@@ -67,12 +71,16 @@ export default function EditorialView({
               {/* Lado Esquerdo: Título e Subtítulo */}
               <div className="flex flex-col items-start flex-1">
                 <div className="inline-block">
-                  <h1 className="text-2xl md:text-5xl font-semibold text-white drop-shadow-[0_2px_10px_rgba(0,0,0,0.5)] italic">
+                  <h1 className="text-2xl md:text-5xl font-semibold text-white drop-shadow-[0_2px_10px_rgba(0,0,0,0.5)] italic flex items-center gap-2">
+                    <Camera
+                      className="text-[#F3E5AB] shrink-0 transition-all duration-1000 drop-shadow-md w-6 h-6 md:w-12 md:h-12"
+                      strokeWidth={1.5}
+                    />
                     {title}
                   </h1>
-                  <div className="h-[2px] md:h-[3px] bg-gold rounded-full mt-2 shadow-lg w-full" />
+                  <div className="h-[2px] md:h-[3px] bg-gold rounded-full md:mt-2 shadow-lg w-full" />
                 </div>
-                <p className="text-white text-sm md:text-[14px] font-medium tracking-[0.15em] uppercase opacity-80 mt-6 drop-shadow-md">
+                <p className="text-white text-[10px] md:text-[14px] font-medium tracking-[0.15em] uppercase opacity-80 mt-6 drop-shadow-md">
                   {subtitle}
                 </p>
               </div>
@@ -80,7 +88,7 @@ export default function EditorialView({
               {/* 🎯 Lado Direito: Login do Google (Renderiza apenas se showHeroAction for true) */}
               {/* Lado Direito: Login do Google */}
               {showHeroAction && (
-                <div className="flex flex-col items-center md:items-end gap-2 animate-in fade-in slide-in-from-right-4 duration-1000">
+                <div className="flex flex-col items-center gap-2 animate-in fade-in slide-in-from-right-4 duration-1000">
                   {/* Texto padronizado com o estilo do título "Sua Galeria" */}
                   <div className="w-full text-left md:text-right">
                     <p className="text-white text-base md:text-lg font-medium italic leading-tight drop-shadow-md">
@@ -112,7 +120,32 @@ export default function EditorialView({
           </div>
         </section>
 
-        <main className="relative z-10 flex-grow w-full">{children}</main>
+        <section className="w-full bg-white py-10 shadow-sm border-y border-slate-100">
+          <div className="max-w-[1600px] mx-auto px-6 md:px-12">
+            {(sectionTitle || sectionSubtitle || sectionDescription) && (
+              <div className="text-left mb-14">
+                {sectionTitle && (
+                  <p className="text-gold text-xs uppercase tracking-[0.2em] font-semibold mb-2">
+                    {sectionTitle}
+                  </p>
+                )}
+
+                {sectionSubtitle && (
+                  <h2 className="text-lg md:text-3xl font-semibold text-petroleum italic mb-2">
+                    {sectionSubtitle}
+                  </h2>
+                )}
+
+                {sectionDescription && (
+                  <p className="text-slate-600 text-sm md:text-base max-w-full font-medium">
+                    {sectionDescription}
+                  </p>
+                )}
+              </div>
+            )}
+            {children}
+          </div>
+        </section>
       </div>
       <Footer />
     </div>

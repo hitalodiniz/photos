@@ -84,30 +84,36 @@ export function useGaleria(options: UseGaleriaOptions = {}) {
       setLoading(true);
       try {
         const result = await updateGaleria(id, formData);
-      if (result.success) {
-        showToast(result.message || 'Galeria atualizada com sucesso!', 'success');
-        await fetchGalerias();
-        return { success: true, data: result };
-      } else {
-        showToast(result.error || 'Erro ao atualizar galeria', 'error');
-        return { success: false, error: result.error };
+        if (result.success) {
+          showToast(
+            result.message || 'Galeria atualizada com sucesso!',
+            'success',
+          );
+          await fetchGalerias();
+          return { success: true, data: result };
+        } else {
+          showToast(result.error || 'Erro ao atualizar galeria', 'error');
+          return { success: false, error: result.error };
+        }
+      } catch (error: any) {
+        showToast(error.message || 'Erro ao atualizar galeria', 'error');
+        return { success: false, error: error.message };
+      } finally {
+        setLoading(false);
       }
-    } catch (error: any) {
-      showToast(error.message || 'Erro ao atualizar galeria', 'error');
-      return { success: false, error: error.message };
-    } finally {
-      setLoading(false);
-    }
-  },
-  [fetchGalerias, showToast],
-);
+    },
+    [fetchGalerias, showToast],
+  );
 
   // Alternar arquivamento
   const handleToggleArchive = useCallback(
     async (galeria: Galeria) => {
       setUpdatingId(galeria.id);
       try {
-        const result = await toggleArchiveGaleria(galeria.id, galeria.is_archived);
+        const result = await toggleArchiveGaleria(
+          galeria.id,
+          galeria.is_archived,
+        );
         if (result.success) {
           setGalerias((prev) =>
             prev.map((item) =>
@@ -216,11 +222,11 @@ export function useGaleria(options: UseGaleriaOptions = {}) {
           showToast('Galeria restaurada!', 'success');
           return result;
         } else {
-          showToast('Erro ao restaurar', 'error');
+          showToast('Erro ao restaurar galeria', 'error');
           return result;
         }
       } catch (error: any) {
-        showToast(error.message || 'Erro ao restaurar', 'error');
+        showToast(error.message || 'Erro ao restaurar galeria', 'error');
         return { success: false, error: error.message };
       } finally {
         setUpdatingId(null);

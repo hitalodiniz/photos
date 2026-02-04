@@ -1,6 +1,6 @@
 'use client';
 import React, { useState, useEffect, useMemo } from 'react';
-import { PhotographerAvatar, PhotographerBio } from './ProfileHero';
+import { PhotographerAvatar, ProfileBio } from './ProfileHero';
 import { PhotographerInfoBar } from './ProfileToolBar';
 import { EditorialHero } from '@/components/ui/EditorialHero';
 import { getPublicProfileGalerias } from '@/core/services/galeria.service';
@@ -138,7 +138,7 @@ export default function PhotographerContent({
       >
         {/* 🛡️ Exibe a Bio apenas se o nível de perfil permitir detalhes */}
         {showDetailedBio && (
-          <PhotographerBio miniBio={miniBio} isExpanded={isExpanded} />
+          <ProfileBio miniBio={miniBio} isExpanded={isExpanded} />
         )}
       </EditorialHero>
       {/* INFOBAR ADAPTADA (Sticky e flutuante no scroll) */}
@@ -154,7 +154,6 @@ export default function PhotographerContent({
           cities={showCities ? cities : []}
           username={username}
           useSubdomain={photographerData.use_subdomain}
-          isScrolled={isScrolled}
           isHovered={isHovered}
         />
       </div>
@@ -225,7 +224,7 @@ export default function PhotographerContent({
                   <div className="w-full h-2 bg-gradient-to-b from-[#F3E5AB]/30 to-transparent mx-auto mb-6" />
                   {/* Branding / Créditos: Aparece APENAS para FREE e START (onde removeBranding é false e são planos de entrada) */}
                   {(planKey === 'FREE' || planKey === 'START') && (
-<p className="text-petroleum text-[11px] uppercase tracking-luxury-widest max-w-lg mx-auto leading-relaxed">
+                    <p className="text-petroleum text-[11px] uppercase tracking-luxury-widest max-w-lg mx-auto leading-relaxed">
                       Este profissional utiliza o app{' '}
                       <span className="font-bold">Sua Galeria</span> para suas
                       entregas.

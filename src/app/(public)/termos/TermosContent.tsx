@@ -10,6 +10,7 @@ import {
 } from 'lucide-react';
 import EditorialView from '@/components/layout/EditorialView';
 import EditorialCard from '@/components/ui/EditorialCard';
+import { div } from 'framer-motion/client';
 
 export default function TermosDeUsoPage() {
   const termosCards = [
@@ -86,46 +87,30 @@ export default function TermosDeUsoPage() {
           </span>
         </>
       }
+      sectionTitle="Compromisso Profissional"
+      sectionSubtitle="Transparência na nossa relação tecnológica"
+      sectionDescription="Estabelecemos diretrizes claras para garantir que seu fluxo de trabalho seja estável, seguro e juridicamente transparente em todas as etapas."
     >
-      {/* SEÇÃO BRANCA LARGURA TOTAL */}
-      <section className="w-full bg-white py-10 shadow-sm border-y border-slate-100">
-        <div className="max-w-[1600px] mx-auto px-6 md:px-12">
-          {/* CABEÇALHO CENTRALIZADO */}
-          <div className="text-left mb-14">
-            <p className="text-gold text-xs uppercase tracking-[0.2em] font-semibold mb-3">
-              Compromisso Profissional
-            </p>
-            <h2 className="text-3xl md:text-4xl font-semibold text-petroleum italic mb-4">
-              Transparência na nossa relação tecnológica
-            </h2>
-            <p className="text-slate-600 text-sm md:text-base max-w-full font-medium">
-              Estabelecemos diretrizes claras para garantir que seu fluxo de
-              trabalho seja estável, seguro e juridicamente transparente em
-              todas as etapas.
-            </p>
-          </div>
+      {/* GRID DE CARDS: CÓDIGO IDENTICO À PRIVACIDADE */}
 
-          {/* GRID DE CARDS: CÓDIGO IDENTICO À PRIVACIDADE */}
+      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-12">
+        {termosCards.map((card, idx) => (
+          <EditorialCard
+            key={idx}
+            title={card.title}
+            items={card.items}
+            icon={card.icon}
+            accentColor={card.accent}
+          />
+        ))}
+      </div>
 
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-10">
-            {termosCards.map((card, idx) => (
-              <EditorialCard
-                key={idx}
-                title={card.title}
-                items={card.items}
-                icon={card.icon}
-                accentColor={card.accent}
-              />
-            ))}
-          </div>
-        </div>
-        <div className="flex items-center justify-center gap-3 bg-petroleum border border-white/10 px-6 py-3 rounded-full backdrop-blur-xl w-fit mx-auto mt-10">
-          <ShieldCheck size={20} className="text-gold" />
-          <span className="text-[10px] font-semibold uppercase tracking-luxury-widest text-white whitespace-nowrap">
-            Termos atualizados em janeiro 2026
-          </span>
-        </div>
-      </section>
+      <div className="flex items-center justify-center gap-3 bg-petroleum border border-white/10 px-6 py-3 rounded-full backdrop-blur-xl w-fit mx-auto mt-10">
+        <ShieldCheck size={20} className="text-gold" />
+        <span className="text-[10px] font-semibold uppercase tracking-luxury-widest text-white whitespace-nowrap">
+          Termos atualizados em janeiro 2026
+        </span>
+      </div>
     </EditorialView>
   );
 }

@@ -53,20 +53,20 @@ export default function SidebarGalerias({
       rounded-luxury transition-all duration-300 text-left 
       ${
         currentView === item.id
-          ? 'bg-white/10 text-gold !translate-x-1'
-          : 'text-white/90 hover:bg-white/5 hover:text-gold'
+          ? 'bg-white/10 text-champagne !translate-x-1'
+          : 'text-white/90 hover:bg-white/5 hover:text-champagne'
       }`}
           >
             {/* 1. Indicador Ativo (Absoluto) */}
             {currentView === item.id && (
-              <div className="absolute left-0 top-1/2 -translate-y-1/2 w-1 h-5 bg-gold rounded-r-full" />
+              <div className="absolute left-0 top-1/2 -translate-y-1/2 w-1 h-5 bg-champagne rounded-r-full" />
             )}
 
             {/* 2. Ícone (Filho direto para alinhar pelo justify-start) */}
             <item.icon
               size={18}
               className={`${
-                currentView === item.id ? 'text-gold' : 'text-current'
+                currentView === item.id ? 'text-champagne' : 'text-current'
               } shrink-0 ${currentView === item.id ? 'ml-1' : ''}`}
             />
 
@@ -86,7 +86,7 @@ export default function SidebarGalerias({
               <span
                 className={`text-[10px] font-bold tracking-widest px-2 py-0.5 rounded-full shrink-0 ${
                   currentView === item.id
-                    ? 'bg-gold text-black'
+                    ? 'bg-champagne text-black'
                     : 'bg-white/10 text-white/50'
                 }`}
               >

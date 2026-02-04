@@ -36,7 +36,7 @@ export default function CookieBanner() {
             <h4 className="text-white font-semibold text-lg">
               Privacidade e Experiência
             </h4>
-            <p className="text-gray-400 text-sm leading-relaxed max-w-xl">
+            <p className="text-white text-sm leading-relaxed max-w-xl">
               Utilizamos cookies para otimizar sua visualização e garantir a
               segurança do seu acesso à galeria. Ao continuar, você concorda com
               nossa{' '}

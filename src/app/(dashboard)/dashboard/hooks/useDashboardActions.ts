@@ -28,13 +28,16 @@ export function useDashboardActions(
   galerias: Galeria[],
   setGalerias: React.Dispatch<React.SetStateAction<Galeria[]>>,
   photographer: PhotographerProfile | null,
-  setToast: (toast: { message: string; type: 'success' | 'error' } | null) => void,
-  currentView: 'active' | 'archived' | 'trash'
+  setToast: (
+    toast: { message: string; type: 'success' | 'error' } | null,
+  ) => void,
+  currentView: 'active' | 'archived' | 'trash',
 ) {
   const [updatingId, setUpdatingId] = useState<string | null>(null);
   const [selectedIds, setSelectedIds] = useState<Set<string>>(new Set());
   const [isBulkMode, setIsBulkMode] = useState(false);
-  const [galeriaToPermanentlyDelete, setGaleriaToPermanentlyDelete] = useState<Galeria | null>(null);
+  const [galeriaToPermanentlyDelete, setGaleriaToPermanentlyDelete] =
+    useState<Galeria | null>(null);
 
   const handleGoogleLogin = async (force: boolean) => {
     try {
@@ -60,7 +63,10 @@ export function useDashboardActions(
         type: 'success',
       });
     } else {
-      setToast({ message: result.error || 'Erro ao processar arquivamento', type: 'error' });
+      setToast({
+        message: result.error || 'Erro ao processar arquivamento',
+        type: 'error',
+      });
     }
     setUpdatingId(null);
   };
@@ -77,7 +83,7 @@ export function useDashboardActions(
       await revalidateProfile(photographer?.username);
       setToast({ message: 'Galeria restaurada!', type: 'success' });
     } else {
-      setToast({ message: 'Erro ao restaurar', type: 'error' });
+      setToast({ message: 'Erro ao restaurar galeria', type: 'error' });
     }
     setUpdatingId(null);
   };
@@ -85,12 +91,17 @@ export function useDashboardActions(
   const handleToggleProfile = async (g: Galeria) => {
     setUpdatingId(g.id);
     try {
-      const { success, error } = await toggleShowOnProfile(g.id, g.show_on_profile);
+      const { success, error } = await toggleShowOnProfile(
+        g.id,
+        g.show_on_profile,
+      );
       if (!success) throw new Error(error);
 
       setGalerias((prev) =>
         prev.map((item) =>
-          item.id === g.id ? { ...item, show_on_profile: !g.show_on_profile } : item,
+          item.id === g.id
+            ? { ...item, show_on_profile: !g.show_on_profile }
+            : item,
         ),
       );
       await revalidateProfile(photographer?.username);
@@ -101,7 +112,10 @@ export function useDashboardActions(
         type: 'success',
       });
     } catch (err: unknown) {
-      const errorMessage = err instanceof Error ? err.message : 'Não foi possível alterar a visibilidade.';
+      const errorMessage =
+        err instanceof Error
+          ? err.message
+          : 'Não foi possível alterar a visibilidade.';
       setToast({ message: errorMessage, type: 'error' });
     } finally {
       setUpdatingId(null);
@@ -113,7 +127,9 @@ export function useDashboardActions(
     const result = await moveToTrash(g.id);
     if (result.success) {
       setGalerias((prev) =>
-        prev.map((item) => (item.id === g.id ? { ...item, is_deleted: true } : item)),
+        prev.map((item) =>
+          item.id === g.id ? { ...item, is_deleted: true } : item,
+        ),
       );
       await revalidateProfile(photographer?.username);
       setToast({ message: 'Movido para lixeira', type: 'success' });
@@ -128,7 +144,7 @@ export function useDashboardActions(
     try {
       // Força a revalidação de todas as tags relacionadas
       await revalidateDrivePhotos(galeria.drive_folder_id);
-      
+
       await revalidateGallery(
         galeria.drive_folder_id,
         galeria.slug,
@@ -152,7 +168,9 @@ export function useDashboardActions(
     if (!galeriaToPermanentlyDelete) return;
     try {
       await deleteGalleryPermanently(galeriaToPermanentlyDelete.id);
-      setGalerias((prev) => prev.filter((g) => g.id !== galeriaToPermanentlyDelete.id));
+      setGalerias((prev) =>
+        prev.filter((g) => g.id !== galeriaToPermanentlyDelete.id),
+      );
       setToast({ message: 'Removida definitivamente!', type: 'success' });
     } catch {
       setToast({ message: 'Erro na exclusão.', type: 'error' });
@@ -180,7 +198,9 @@ export function useDashboardActions(
       if (successCount > 0) {
         setGalerias((prev) =>
           prev.map((item) =>
-            selectedIds.has(item.id) ? { ...item, is_archived: !item.is_archived } : item,
+            selectedIds.has(item.id)
+              ? { ...item, is_archived: !item.is_archived }
+              : item,
           ),
         );
         await revalidateProfile(photographer?.username);
@@ -190,10 +210,16 @@ export function useDashboardActions(
         });
         setSelectedIds(new Set());
       } else {
-        setToast({ message: 'Erro ao processar arquivamento em lote', type: 'error' });
+        setToast({
+          message: 'Erro ao processar arquivamento em lote',
+          type: 'error',
+        });
       }
     } catch {
-      setToast({ message: 'Erro ao processar arquivamento em lote', type: 'error' });
+      setToast({
+        message: 'Erro ao processar arquivamento em lote',
+        type: 'error',
+      });
     } finally {
       setUpdatingId(null);
     }
@@ -211,7 +237,9 @@ export function useDashboardActions(
 
       if (successCount > 0) {
         setGalerias((prev) =>
-          prev.map((item) => (selectedIds.has(item.id) ? { ...item, is_deleted: true } : item)),
+          prev.map((item) =>
+            selectedIds.has(item.id) ? { ...item, is_deleted: true } : item,
+          ),
         );
         await revalidateProfile(photographer?.username);
         setToast({
@@ -242,17 +270,22 @@ export function useDashboardActions(
       if (successCount > 0) {
         setGalerias((prev) =>
           prev.map((item) =>
-            selectedIds.has(item.id) ? { ...item, is_deleted: false, is_archived: false } : item,
+            selectedIds.has(item.id)
+              ? { ...item, is_deleted: false, is_archived: false }
+              : item,
           ),
         );
         await revalidateProfile(photographer?.username);
-        setToast({ message: `${successCount} galeria(s) restaurada(s)`, type: 'success' });
+        setToast({
+          message: `${successCount} galeria(s) restaurada(s)`,
+          type: 'success',
+        });
         setSelectedIds(new Set());
       } else {
-        setToast({ message: 'Erro ao restaurar', type: 'error' });
+        setToast({ message: 'Erro ao restaurar galeria', type: 'error' });
       }
     } catch {
-      setToast({ message: 'Erro ao restaurar', type: 'error' });
+      setToast({ message: 'Erro ao restaurar galeria', type: 'error' });
     } finally {
       setUpdatingId(null);
     }

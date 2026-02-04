@@ -32,12 +32,12 @@ export default function EditorialCard({
         style={{ backgroundColor: accentColor }}
       />
 
-      <div className="absolute -top-10 left-1/2 -translate-x-1/2 w-20 h-20 rounded-full bg-petroleum flex items-center justify-center text-white shadow-xl z-10 transition-transform group-hover:scale-110">
+      <div className="absolute -top-6 left-1/2 -translate-x-1/2 w-14 h-14 rounded-full bg-petroleum/90 flex items-center justify-center text-white shadow-xl z-10 transition-transform group-hover:scale-110">
         {icon}
       </div>
 
-      <div className="p-8 pt-16 flex flex-col h-full">
-        <h3 className="text-petroleum text-xl font-semibold text-center leading-tight mb-8">
+      <div className="p-6 pt-12 flex flex-col h-full">
+        <h3 className="text-petroleum text-xl font-semibold text-center leading-tight mb-4">
           {title}
         </h3>
 
@@ -45,7 +45,7 @@ export default function EditorialCard({
         <div className="flex-grow flex flex-col">{children}</div>
 
         {items && items.length > 0 && (
-          <ul className="space-y-4 mt-6 text-left border-t border-slate-200 pt-6">
+          <ul className="space-y-4 text-left border-t border-slate-200 pt-6">
             {items.map((item, i) => (
               <li
                 key={i}

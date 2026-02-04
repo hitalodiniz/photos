@@ -72,9 +72,9 @@ export default function Sidebar({
         {/* Header Mobile no Sidebar */}
         {!isSidebarCollapsed && (
           <div className="lg:hidden flex items-center gap-3 px-6 py-4 border-b border-white/5">
-            <Camera className="text-gold w-6 h-6" strokeWidth={1.5} />
+            <Camera className="text-champagne w-6 h-6" strokeWidth={1.5} />
             <span className=" text-lg font-bold tracking-luxury-tight text-white italic">
-              Espaço das <span className="text-gold">Galerias</span>
+              Espaço das <span className="text-champagne">Galerias</span>
             </span>
           </div>
         )}
@@ -88,43 +88,44 @@ export default function Sidebar({
                 if (isMobile) toggleSidebar();
               } else {
                 setUpsellFeature('Limite de Galerias');
+                // Adicione aqui a chamada para abrir o modal de upgrade se necessário
               }
             }}
             disabled={isRedirecting}
-            className={`flex items-center justify-center bg-gold text-black hover:bg-white
-              transition-all duration-300 rounded-luxury border border-gold group shadow-lg 
-              h-12 w-full gap-2
-              ${
-                !canCreateMore
-                  ? 'bg-slate-800 border-white/10 text-white/90 cursor-pointer hover:border-gold'
-                  : 'bg-gold text-black border-gold hover:bg-white'
-              }
-              ${isRedirecting ? 'opacity-70 cursor-not-allowed' : ''}`}
+            className={`flex items-center justify-center transition-all duration-300 rounded-luxury border h-12 w-full gap-2 group shadow-lg
+      ${
+        !canCreateMore
+          ? 'bg-champagne/80 border-champagne/20 text-black/80 cursor-pointer hover:border-champagne/60'
+          : 'bg-champagne text-black border-champagne hover:bg-white'
+      }
+      ${isRedirecting ? 'opacity-70 cursor-not-allowed' : ''}`}
             title={
               !canCreateMore
-                ? `Limite de ${permissions.maxGalleries} galerias atingido`
+                ? `Limite de ${permissions.maxGalleries} galerias atingido. Clique para upgrade.`
                 : 'Criar nova galeria'
             }
           >
-            {canCreateMore ? (
+            <div className="relative flex items-center justify-center">
+              {/* Ícone principal Plus com opacidade condicional */}
               <Plus
                 size={20}
-                className={
-                  isRedirecting
-                    ? 'animate-spin'
-                    : 'group-hover:rotate-90 transition-transform'
-                }
+                className={`transition-all ${
+                  isRedirecting ? 'animate-spin' : 'group-hover:rotate-90'
+                } ${!canCreateMore ? 'opacity-0' : ''}`}
               />
-            ) : (
-              <Lock size={16} className="text-gold" />
-            )}
+
+              {/* Cadeado posicionado como badge flutuante quando bloqueado */}
+              {!canCreateMore && !isRedirecting && (
+                <Lock
+                  size={12}
+                  className="absolute top-1 text-black animate-in zoom-in duration-300"
+                />
+              )}
+            </div>
+
             {(!isSidebarCollapsed || isMobile) && (
               <span className="text-editorial-label font-semibold">
-                {isRedirecting
-                  ? 'Iniciando...'
-                  : canCreateMore
-                    ? 'Nova Galeria'
-                    : 'Upgrade Necessário'}{' '}
+                {isRedirecting ? 'Iniciando...' : 'Nova Galeria'}
               </span>
             )}
           </button>
@@ -139,7 +140,7 @@ export default function Sidebar({
                 <span className="text-[9px] font-bold uppercase tracking-luxury-widest text-white/90">
                   Plano
                 </span>
-                <span className="text-[9px] font-semibold uppercase tracking-luxury-widest text-gold">
+                <span className="text-[9px] font-semibold uppercase tracking-luxury-widest text-champagne">
                   {planKey}
                 </span>
               </div>
@@ -182,13 +183,13 @@ export default function Sidebar({
 
           <button
             onClick={toggleSidebar}
-            className="!px-3 hidden lg:flex absolute -right-4 top-20 bg-champagne border border-white/10 rounded-full p-1 shadow-xl hover:bg-slate-700 z-10 text-petroleum/70 hover:text-gold transition-colors"
+            className="!px-1 p-1 flex absolute -right- top-20 bg-champagne border border-white/10 rounded-full p-1 shadow-xl hover:bg-slate-700 z-10 text-petroleum/70 hover:text-champagne transition-colors"
             title={isSidebarCollapsed ? 'Expandir Menu' : 'Recolher Menu'}
           >
             {isSidebarCollapsed ? (
-              <ChevronRight size={14} />
+              <ChevronRight size={18} />
             ) : (
-              <ChevronLeft size={14} />
+              <ChevronLeft size={18} />
             )}
           </button>
         </div>
@@ -198,7 +199,9 @@ export default function Sidebar({
       <UpgradeModal
         isOpen={!!upsellFeature}
         onClose={() => setUpsellFeature(null)}
-        featureName={upsellFeature || ''}
+        featureName="Galerias Ativas"
+        featureKey="maxGalleries"
+        scenarioType="limit"
       />
     </>
   );
