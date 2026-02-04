@@ -34,6 +34,8 @@ import {
   Trash2,
   Users,
   Loader2,
+  Shield,
+  ShieldCheck,
 } from 'lucide-react';
 import WhatsAppIcon from '@/components/ui/WhatsAppIcon';
 import { convertToDirectDownloadUrl } from '@/core/utils/url-helper';
@@ -47,6 +49,7 @@ import { PlanGuard } from '@/components/auth/PlanGuard';
 import { GaleriaDriveSection } from './GaleriaDriveSection';
 import { usePlan } from '@/core/context/PlanContext';
 import UpgradeModal from '@/components/ui/UpgradeModal';
+import PasswordInput from '@/components/ui/PasswordInput'; // Import PasswordInput
 
 // 🎯 Componente de seção simples (sem accordion) - Estilo Editorial
 const FormSection = ({
@@ -103,7 +106,6 @@ export default function GaleriaFormContent({
     permissions.privacyLevel,
   );
 
-  const [showPassword, setShowPassword] = useState(false);
   const [, setLimitInfo] = useState({ count: 0, hasMore: false });
   const [showLimitModal, setShowLimitModal] = useState(false);
   const [showOnProfile, setShowOnProfile] = useState(() => {
@@ -112,7 +114,7 @@ export default function GaleriaFormContent({
         initialData.show_on_profile === true ||
         initialData.show_on_profile === 'true'
       );
-    return profile?.settings?.defaults?.list_on_profile ?? false; // Por padrão, não exibe no perfil
+    return profile?.settings?.defaults?.list_on_profile ?? false; // Padrão: Não exibe no perfil
   });
 
   const leadsEnabled = watch('leads_enabled');
@@ -523,7 +525,7 @@ export default function GaleriaFormContent({
             <fieldset>
               <div className="grid grid-cols-1 md:grid-cols-12 gap-2 items-end">
                 <div className="md:col-span-3 ">
-                  <label className="text-[10px] font-semibold uppercase tracking-luxury-widest text-petroleum">
+                  <label>
                     <Briefcase
                       size={12}
                       strokeWidth={2}
@@ -541,7 +543,7 @@ export default function GaleriaFormContent({
                         profile?.settings?.display?.show_contract_type === false
                       }
                       onClick={() => setHasContractingClient(true)}
-                      className={`relative z-10 flex-1 text-[10px] font-semibold uppercase tracking-luxury-widest transition-colors ${hasContractingClient ? 'text-black' : 'text-petroleum/60 dark:text-slate-400'}`}
+                      className={`relative z-10 flex-1 text-[9px] font-semibold uppercase tracking-luxury-widest transition-colors ${hasContractingClient ? 'text-black' : 'text-petroleum/60 dark:text-slate-400'}`}
                     >
                       Contrato
                     </button>
@@ -551,7 +553,7 @@ export default function GaleriaFormContent({
                         setHasContractingClient(false);
                         setIsPublic(true);
                       }}
-                      className={`relative z-10 flex-1 text-[10px] font-semibold uppercase tracking-luxury-widest transition-colors ${!hasContractingClient ? 'text-black' : 'text-petroleum/60 dark:text-slate-400'}`}
+                      className={`relative z-10 flex-1 text-[9px] font-semibold uppercase tracking-luxury-widest transition-colors ${!hasContractingClient ? 'text-black' : 'text-petroleum/60 dark:text-slate-400'}`}
                     >
                       Cobertura
                     </button>
@@ -559,8 +561,8 @@ export default function GaleriaFormContent({
                 </div>
                 {hasContractingClient ? (
                   <>
-                    <div className="md:col-span-6 space-y-1.5 animate-in slide-in-from-left-2">
-                      <label className="text-[10px] font-semibold uppercase tracking-luxury-widest text-petroleum">
+                    <div className="md:col-span-6 animate-in slide-in-from-left-2">
+                      <label>
                         <User
                           size={12}
                           strokeWidth={2}
@@ -576,8 +578,8 @@ export default function GaleriaFormContent({
                         className="input-luxury"
                       />
                     </div>
-                    <div className="md:col-span-3 space-y-1.5">
-                      <label className="text-[10px] font-semibold uppercase tracking-luxury-widest text-petroleum">
+                    <div className="md:col-span-3">
+                      <label>
                         <WhatsAppIcon className="w-3 h-3 inline mr-1.5" />{' '}
                         WhatsApp
                       </label>
@@ -610,10 +612,9 @@ export default function GaleriaFormContent({
           <fieldset>
             {/* Detalhes da Galeria - Primeira Linha */}
             <div className="grid grid-cols-1 md:grid-cols-12 gap-3 items-end mb-3">
-              <div className="md:col-span-6 space-y-1.5">
-                <label className="text-[10px] font-semibold uppercase tracking-luxury-widest text-petroleum">
-                  <Type size={12} strokeWidth={2} className="inline mr-1.5" />{' '}
-                  Título
+              <div className="md:col-span-6">
+                <label>
+                  <Type size={12} /> Título
                 </label>
                 <input
                   name="title"
@@ -627,10 +628,9 @@ export default function GaleriaFormContent({
                   className="w-full px-3 h-10 bg-white border border-petroleum/40 rounded-luxury text-petroleum/90 text-[13px] font-medium outline-none focus:border-gold transition-all"
                 />
               </div>
-              <div className="md:col-span-6 space-y-1.5">
-                <label className="text-[10px] font-semibold uppercase tracking-luxury-widest text-petroleum">
-                  <Tag size={12} strokeWidth={2} className="inline mr-1.5" />{' '}
-                  Categoria
+              <div className="md:col-span-6">
+                <label>
+                  <Tag size={12} /> Categoria
                 </label>
                 <CategorySelect
                   value={category}
@@ -642,8 +642,8 @@ export default function GaleriaFormContent({
 
             {/* Segunda Linha */}
             <div className="grid grid-cols-1 md:grid-cols-12 gap-3 items-end mb-3">
-              <div className="md:col-span-6 space-y-1.5">
-                <label className="text-[10px] font-semibold uppercase tracking-luxury-widest text-petroleum">
+              <div className="md:col-span-6">
+                <label>
                   <Calendar
                     size={12}
                     strokeWidth={2}
@@ -659,10 +659,9 @@ export default function GaleriaFormContent({
                   className="input-luxury"
                 />
               </div>
-              <div className="md:col-span-6 space-y-1.5">
-                <label className="text-[10px] font-semibold uppercase tracking-luxury-widest text-petroleum">
-                  <MapPin size={12} strokeWidth={2} className="inline mr-1.5" />{' '}
-                  Local
+              <div className="md:col-span-6">
+                <label>
+                  <MapPin size={12} /> Local
                 </label>
                 <input
                   name="location"
@@ -676,14 +675,14 @@ export default function GaleriaFormContent({
         </FormSection>
 
         {/* SEÇÃO 3: PRIVACIDADE */}
-        <FormSection title="Privacidade" icon={<Lock size={14} />}>
+        <FormSection title="Privacidade" icon={<ShieldCheck size={14} />}>
           <fieldset>
             <div className="flex flex-col lg:flex-row lg:items-center gap-6 lg:gap-x-12">
               {/* ACESSO */}
               <div className="flex flex-col sm:flex-row items-start sm:items-center gap-3">
                 <div className="flex items-center gap-1.5 shrink-0">
-                  <label className="text-[10px] font-semibold uppercase tracking-luxury-widest text-petroleum">
-                    <Lock size={12} className="inline mr-1.5" /> Acesso à
+                  <label>
+                    <Shield size={12} className="inline mr-1.5" /> Acesso à
                     Galeria
                   </label>
                   <div className="group relative flex items-center">
@@ -708,63 +707,51 @@ export default function GaleriaFormContent({
                     <button
                       type="button"
                       onClick={() => setIsPublic(true)}
-                      className={`flex-1 py-1 rounded-[0.3rem] text-[10px] font-semibold uppercase tracking-luxury-widest transition-all ${isPublic ? 'bg-champagne  shadow-sm' : 'text-slate-400'}`}
+                      className={`flex-1 py-1 rounded-[0.3rem] text-[9px] font-semibold uppercase tracking-luxury-widest transition-all ${isPublic ? 'bg-champagne  shadow-sm' : 'text-slate-400'}`}
                     >
                       Público
                     </button>
                     <button
                       type="button"
-                      onClick={() => setIsPublic(false)}
-                      className={`flex-1 py-1 rounded-[0.3rem] text-[10px] font-semibold uppercase tracking-luxury-widest transition-all ${!isPublic ? 'bg-champagne  shadow-sm' : 'text-petroleum/60 dark:text-slate-400'}`}
+                      onClick={() => {
+                        setHasContractingClient(false);
+                        setIsPublic(false);
+                      }}
+                      className={`flex-1 py-1 rounded-[0.3rem] text-[9px] font-semibold uppercase tracking-luxury-widest transition-all ${!isPublic ? 'bg-champagne  shadow-sm' : 'text-petroleum/60 dark:text-slate-400'}`}
                     >
                       Privado
                     </button>
                   </div>
                   {!isPublic && (
-                    <div className="relative group w-32">
-                      {/* 🛡️ PlanGuard para o campo de Senha */}
-                      {!canUsePassword && (
-                        <div
-                          onClick={() =>
-                            setUpsellFeature({
-                              label: 'Proteção por Senha',
-                              feature: 'privacyLevel',
-                            })
-                          }
-                          className="absolute inset-0 z-20 cursor-pointer bg-white/50 backdrop-blur-[1px] flex items-center justify-center rounded-[0.4rem]"
-                        >
-                          <Lock size={12} className="text-gold" />
-                        </div>
-                      )}
-                      <input
-                        name="password"
-                        disabled={!canUsePassword}
-                        type={showPassword ? 'text' : 'password'}
-                        inputMode="numeric"
-                        pattern="[0-9]*"
-                        minLength={4}
-                        maxLength={8}
-                        defaultValue={initialData?.password || ''}
-                        className="w-full pl-3 pr-10 h-9 bg-white border border-champagne rounded-[0.4rem] text-xs font-medium tracking-luxury-widest outline-none focus:border-gold shadow-sm"
-                        required
-                        placeholder="Senha"
-                        onChange={(e) => {
-                          e.target.value = e.target.value.replace(/\D/g, '');
-                        }}
-                      />
-                      <button
-                        type="button"
-                        disabled={!canUsePassword}
-                        onClick={() => setShowPassword(!showPassword)}
-                        className="absolute right-2 top-1/2 -translate-y-1/2 text-slate-400 hover: transition-colors p-1"
-                      >
-                        {showPassword ? (
-                          <EyeOff size={14} />
-                        ) : (
-                          <Eye size={14} />
-                        )}
-                      </button>
-                    </div>
+                    <PlanGuard
+                      feature="privacyLevel"
+                      label="Proteção por Senha"
+                      icon={Lock}
+                      onClickLocked={() =>
+                        setUpsellFeature({
+                          label: 'Proteção por Senha',
+                          feature: 'privacyLevel',
+                        })
+                      }
+                    >
+                      <div className="relative group w-32">
+                        <PasswordInput
+                          name="password"
+                          disabled={!canUsePassword}
+                          type="password"
+                          inputMode="numeric"
+                          pattern="[0-9]*"
+                          minLength={4}
+                          maxLength={8}
+                          defaultValue={initialData?.password || ''}
+                          required
+                          placeholder="Senha"
+                          onChange={(e) => {
+                            e.target.value = e.target.value.replace(/\D/g, '');
+                          }}
+                        />
+                      </div>
+                    </PlanGuard>
                   )}
                 </div>
               </div>
@@ -778,7 +765,7 @@ export default function GaleriaFormContent({
               >
                 <div className="flex flex-col sm:flex-row items-start sm:items-center gap-3">
                   <div className="flex items-center gap-1.5 shrink-0">
-                    <label className="text-[10px] font-semibold uppercase tracking-luxury-widest text-petroleum">
+                    <label>
                       <Eye size={12} className=" inline mr-1.5" /> Listar no
                       Perfil
                     </label>
@@ -817,6 +804,7 @@ export default function GaleriaFormContent({
               onClose={() => setUpsellFeature(null)}
               featureName={upsellFeature?.label || ''}
               featureKey={upsellFeature?.feature as any} // Passa a chave técnica
+              scenarioType="feature"
             />
           </fieldset>
         </FormSection>
@@ -825,28 +813,21 @@ export default function GaleriaFormContent({
 
         <FormSection title="Cadastro de visitante" icon={<Users size={14} />}>
           <fieldset>
-            <PlanGuard
-              feature="canCaptureLeads"
-              label="Cadastro de visitante"
-              icon={Users}
-              onClickLocked={setUpsellFeature}
-            >
-              <LeadCaptureSection
-                enabled={leadsEnabled}
-                setEnabled={setLeadsEnabled}
-                requiredFields={requiredGuestFields}
-                setRequiredFields={setRequiredGuestFields}
-                register={register}
-                setValue={setValue}
-                watch={watch}
-                purposeFieldName="lead_purpose"
-                initialPurposeValue={initialData?.lead_purpose}
-                toggleLabel="Habilitar cadastro de visitante para visualizar a galeria"
-                description="Aumente sua base de contatos exigindo dados básicos antes dos clientes visualizarem as fotos."
-                isEdit={isEdit}
-                showLayout="stacked"
-              />
-            </PlanGuard>
+            <LeadCaptureSection
+              enabled={leadsEnabled}
+              setEnabled={setLeadsEnabled}
+              requiredFields={requiredGuestFields}
+              setRequiredFields={setRequiredGuestFields}
+              register={register}
+              setValue={setValue}
+              watch={watch}
+              purposeFieldName="lead_purpose"
+              initialPurposeValue={initialData?.lead_purpose}
+              toggleLabel="Habilitar cadastro de visitante para visualizar a galeria"
+              description="Aumente sua base de contatos exigindo dados básicos antes dos clientes visualizarem as fotos."
+              isEdit={isEdit}
+              showLayout="stacked"
+            />
           </fieldset>
         </FormSection>
 
@@ -888,7 +869,7 @@ export default function GaleriaFormContent({
           setUpsellFeature={setUpsellFeature}
         />
 
-        {/* LINKS E ARQUIVOS */}
+        {/*LINKS E ARQUIVOS */}
         <div className="bg-white rounded-luxury border border-petroleum/40 p-4 space-y-3">
           <div className="flex items-center gap-2 pb-2 border-b border-petroleum/40">
             <Download size={14} className="text-gold" />
@@ -1026,6 +1007,7 @@ export default function GaleriaFormContent({
         onClose={() => setUpsellFeature(null)}
         featureName={upsellFeature?.label || ''}
         featureKey={upsellFeature?.feature as any} // Passa a chave técnica
+        scenarioType="feature"
       />
 
       <LimitUpgradeModal

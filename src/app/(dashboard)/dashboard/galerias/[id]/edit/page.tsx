@@ -3,6 +3,7 @@ import { redirect, notFound } from 'next/navigation';
 import { getProfileData } from '@/core/services/profile.service';
 import { getGaleriaById, getProfileListCount } from '@/core/services/galeria.service';
 import GaleriaFormPage from '@/features/galeria/components/admin/GaleriaFormPage';
+import { PlanProvider } from '@/core/context/PlanContext';
 
 export async function generateMetadata({
   params,
@@ -71,11 +72,13 @@ export default async function EditGaleriaPage({
   const profileListCount = await getProfileListCount(profile.id);
 
   return (
-    <GaleriaFormPage
-      galeria={galeria}
-      isEdit={true}
-      initialProfile={profile}
-      profileListCount={profileListCount}
-    />
+    <PlanProvider profile={profile}>
+      <GaleriaFormPage
+        galeria={galeria}
+        isEdit={true}
+        initialProfile={profile}
+        profileListCount={profileListCount}
+      />
+    </PlanProvider>
   );
 }

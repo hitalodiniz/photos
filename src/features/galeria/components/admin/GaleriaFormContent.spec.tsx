@@ -152,7 +152,7 @@ describe('GaleriaFormContent', () => {
     fireEvent.click(leadsToggle);
 
     const getHiddenInputValue = (testId: string) => {
-      const input = screen.getByTestId(testId) as HTMLInputElement;
+      const input = screen.getByTestId(testId, { selector: 'input' }) as HTMLInputElement;
       return input?.value;
     };
 

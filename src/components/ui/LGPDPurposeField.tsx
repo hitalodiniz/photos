@@ -100,7 +100,7 @@ export function LGPDPurposeField({
           <textarea
             {...register(fieldName)}
             placeholder="ex: coleta para fins de sorteio durante o evento..."
-            className="input-luxury min-h-[80px] resize-none"
+            className="input-luxury min-h-[80px] resize-none py-2"
             required={required && isCustomPurpose}
           />
         </div>

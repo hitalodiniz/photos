@@ -183,7 +183,7 @@ export default function Sidebar({
 
           <button
             onClick={toggleSidebar}
-            className="!px-1 p-1 flex absolute -right- top-20 bg-champagne border border-white/10 rounded-full p-1 shadow-xl hover:bg-slate-700 z-10 text-petroleum/70 hover:text-champagne transition-colors"
+            className="!px-1 !py-1 flex absolute -right-3 top-20 bg-champagne border border-white/10 rounded-full p-1 shadow-xl hover:bg-slate-700 z-10 text-petroleum/70 hover:text-champagne transition-colors"
             title={isSidebarCollapsed ? 'Expandir Menu' : 'Recolher Menu'}
           >
             {isSidebarCollapsed ? (

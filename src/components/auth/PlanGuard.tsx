@@ -57,9 +57,9 @@ export function PlanGuard({
         className="flex items-center gap-2 border-r border-petroleum/10 pr-2.5 shrink-0 h-8 opacity-50 cursor-pointer hover:opacity-80 transition-opacity"
       >
         <label className="text-[10px] font-bold uppercase tracking-luxury-widest text-petroleum flex items-center gap-1">
-          <Icon size={16} className="text-petroleum" /> {label}
+          {label}
         </label>
-        <Lock size={10} className="text-petroleum/40" />
+        <Lock size={16} className="text-petroleum/40" />
       </div>
     );
   }

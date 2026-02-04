@@ -16,7 +16,8 @@ import { Toast } from '@/components/ui';
 import FormPageBase from '@/components/ui/FormPageBase';
 import { LGPDPurposeField } from '@/components/ui/LGPDPurposeField';
 import { LeadCaptureSection } from '@/components/ui/LeadCaptureSection';
-import { Layout, CheckCircle2 } from 'lucide-react';
+import { Layout, CheckCircle2, Lock } from 'lucide-react';
+import { PlanGuard } from '@/components/auth/PlanGuard';
 
 const CombinedSchema = z.object({
   settings: UserSettingsSchema,
@@ -53,7 +54,9 @@ export default function SettingsForm({ profile }: { profile: any }) {
     type: 'success' | 'error';
   } | null>(null);
 
-  const { planKey } = usePlan(); // Obter planKey aqui
+  // Destructure canCaptureLeads from permissions
+  const { planKey, permissions } = usePlan();
+  const canCaptureLeads = permissions.canCaptureLeads;
 
   const defaultValues: CombinedData = {
     settings: {
@@ -63,8 +66,10 @@ export default function SettingsForm({ profile }: { profile: any }) {
       },
       defaults: {
         list_on_profile: profile.settings?.defaults?.list_on_profile ?? false,
-        enable_guest_registration:
-          profile.settings?.defaults?.enable_guest_registration ?? false,
+        // Conditionally set enable_guest_registration based on plan permission
+        enable_guest_registration: canCaptureLeads
+          ? profile.settings?.defaults?.enable_guest_registration ?? false
+          : false,
         required_guest_fields: profile.settings?.defaults
           ?.required_guest_fields ?? ['name', 'whatsapp'],
         data_treatment_purpose:
@@ -162,75 +167,85 @@ export default function SettingsForm({ profile }: { profile: any }) {
                         Oculta ou exibe o tipo de galeria na criação.
                       </p>
                     </div>
-                    <button
-                      type="button"
-                      onClick={() =>
-                        setValue(
-                          'settings.display.show_contract_type',
-                          !showContractType,
-                          { shouldDirty: true },
-                        )
-                      }
-                      className={`relative h-5 w-9 shrink-0 rounded-full transition-colors ${showContractType ? 'bg-gold' : 'bg-slate-200'}`}
-                    >
-                      <span
-                        className={`absolute top-0.5 left-0.5 h-4 w-4 rounded-full bg-white transition-transform ${showContractType ? 'translate-x-4' : ''}`}
-                      />
-                    </button>
+                    <PlanGuard feature="show_contract_type" label="Habilitar tipo Contrato" icon={Lock}>
+                      <button
+                        type="button"
+                        onClick={() =>
+                          setValue(
+                            'settings.display.show_contract_type',
+                            !showContractType,
+                            { shouldDirty: true },
+                          )
+                        }
+                        className={`relative h-5 w-9 shrink-0 rounded-full transition-colors ${showContractType ? 'bg-gold' : 'bg-slate-200'}`}
+                      >
+                        <span
+                          className={`absolute top-0.5 left-0.5 w-3.5 h-3.5 rounded-full bg-white shadow-sm transition-transform duration-200 ${showBackgroundPhoto ? 'translate-x-3.5' : ''}`}
+                        />
+                      </button>
+                    </PlanGuard>
                   </div>
                   <div className="flex items-center gap-4">
                     <label className="text-[11px] font-semibold uppercase tracking-luxury-widest text-petroleum ">
                       Exibir galeria no meu perfil público
                     </label>
-                    <button
-                      type="button"
-                      onClick={() =>
-                        setValue(
-                          'settings.defaults.list_on_profile',
-                          !listOnProfile,
-                          { shouldDirty: true },
-                        )
-                      }
-                      className={`relative h-5 w-9 rounded-full transition-colors duration-200 ${listOnProfile ? 'bg-gold' : 'bg-slate-200'}`}
-                    >
-                      <span
-                        className={`absolute top-0.5 left-0.5 h-4 w-4 rounded-full bg-white shadow-sm transition-transform duration-200 ${listOnProfile ? 'translate-x-4' : ''}`}
-                      />
-                    </button>
+                    <PlanGuard feature="list_on_profile" label="Exibir galeria pública" icon={Lock}>
+                      <button
+                        type="button"
+                        onClick={() =>
+                          setValue(
+                            'settings.defaults.list_on_profile',
+                            !listOnProfile,
+                            { shouldDirty: true },
+                          )
+                        }
+                        className={`relative h-5 w-9 rounded-full transition-colors duration-200 ${listOnProfile ? 'bg-gold' : 'bg-slate-200'}`}
+                      >
+                        <span
+                          className={`absolute top-0.5 left-0.5 h-4 w-4 rounded-full bg-white shadow-sm transition-transform duration-200 ${listOnProfile ? 'translate-x-4' : ''}`}
+                        />
+                      </button>
+                    </PlanGuard>
                   </div>
 
-                  <LeadCaptureSection
-                    enabled={enableGuestRegistration}
-                    setEnabled={(val) =>
-                      setValue(
-                        'settings.defaults.enable_guest_registration',
-                        val,
-                        {
-                          shouldDirty: true,
-                        },
-                      )
-                    }
-                    requiredFields={requiredGuestFields}
-                    setRequiredFields={(newFields) =>
-                      setValue(
-                        'settings.defaults.required_guest_fields',
-                        newFields,
-                        {
-                          shouldDirty: true,
-                        },
-                      )
-                    }
-                    register={register}
-                    setValue={setValue}
-                    watch={watch}
-                    purposeFieldName="settings.defaults.data_treatment_purpose"
-                    initialPurposeValue={
-                      profile.settings?.defaults?.data_treatment_purpose
-                    }
-                    toggleLabel="Habilitar cadastro de visitante por padrão"
-                    showLayout="grid"
-                    isEdit={true}
-                  />
+                  <PlanGuard
+                    feature="canCaptureLeads"
+                    label="Cadastro de Visitante"
+                    icon={Lock}
+                  >
+                    <LeadCaptureSection
+                      enabled={enableGuestRegistration}
+                      setEnabled={(val) =>
+                        setValue(
+                          'settings.defaults.enable_guest_registration',
+                          val,
+                          {
+                            shouldDirty: true,
+                          },
+                        )
+                      }
+                      requiredFields={requiredGuestFields}
+                      setRequiredFields={(newFields) =>
+                        setValue(
+                          'settings.defaults.required_guest_fields',
+                          newFields,
+                          {
+                            shouldDirty: true,
+                          },
+                        )
+                      }
+                      register={register}
+                      setValue={setValue}
+                      watch={watch}
+                      purposeFieldName="settings.defaults.data_treatment_purpose"
+                      initialPurposeValue={
+                        profile.settings?.defaults?.data_treatment_purpose
+                      }
+                      toggleLabel="Habilitar cadastro de visitante por padrão"
+                      showLayout="grid"
+                      isEdit={true}
+                    />
+                  </PlanGuard>
                 </div>
 
                 <div className="space-y-6 border-t border-petroleum/20 pt-6">

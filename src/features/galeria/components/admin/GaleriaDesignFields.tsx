@@ -50,11 +50,6 @@ export const GalleryDesignFields: React.FC<GalleryDesignFieldsProps> = ({
   } | null>(null);
   const { planKey } = usePlan();
 
-  // 🛡️ Oculta totalmente o componente nos planos FREE e START
-  if (['FREE', 'START'].includes(planKey)) {
-    return null;
-  }
-
   const getFilteredOptions = (originalOptions: number[]) => {
     if (planKey === 'FREE') {
       return [originalOptions[0]];
