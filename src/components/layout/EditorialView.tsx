@@ -4,7 +4,7 @@ import LoadingScreen from '@/components/ui/LoadingScreen';
 import Footer from '@/components/layout/Footer';
 import EditorialToolbar from './EditorialToolBar';
 import { GoogleSignInButton } from '@/components/auth';
-import { Camera, ShieldCheck } from 'lucide-react';
+import { Camera, FileText, ShieldCheck, Lock } from 'lucide-react';
 
 const HERO_IMAGES = [
   '/hero-bg-1.webp',
@@ -32,6 +32,10 @@ export default function EditorialView({
   bgImage,
   altura = 'h-[35vh]',
   showHeroAction = false, // Novo parâmetro para controlar o Login
+  showTermsAction = false, // Nova prop para Termos
+  showPrivacyAction = false, // Nova prop para Privacidade
+  onTermsClick, // Callback para abrir o modal
+  onPrivacyClick, // Callback para abrir o modal
 }: any) {
   const [isMounted, setIsMounted] = useState(false);
   const [currentBg, setCurrentBg] = useState<string | null>(null);
@@ -85,34 +89,57 @@ export default function EditorialView({
                 </p>
               </div>
 
-              {/* 🎯 Lado Direito: Login do Google (Renderiza apenas se showHeroAction for true) */}
-              {/* Lado Direito: Login do Google */}
-              {showHeroAction && (
+              {/* 🎯 Lado Direito: Ações (Google, Termos ou Privacidade) */}
+              {(showHeroAction || showTermsAction || showPrivacyAction) && (
                 <div className="flex flex-col items-center gap-2 animate-in fade-in slide-in-from-right-4 duration-1000">
                   {/* Texto padronizado com o estilo do título "Sua Galeria" */}
                   <div className="w-full text-left md:text-right">
                     <p className="text-white text-base md:text-lg font-medium italic leading-tight drop-shadow-md">
-                      Conecte com sua conta do Google
+                      {showHeroAction && 'Conecte com sua conta do Google'}
                     </p>
                   </div>
 
                   {/* Bloco de Ação: Botão e Selo Centralizados entre si */}
                   <div className="flex flex-col items-center gap-3 w-full max-w-[280px]">
-                    <div className="w-full transform transition-all hover:scale-105 active:scale-95 shadow-[0_20px_50px_rgba(0,0,0,0.3)]">
-                      <GoogleSignInButton variant="full" />
+                    <div className="w-full transform transition-all hover:scale-105 shadow-[0_20px_50px_rgba(0,0,0,0.3)]">
+                      {showHeroAction && <GoogleSignInButton variant="full" />}
+                      {/* Botão de Termos (Estilo Luxury) */}
+                      {showTermsAction && (
+                        <button
+                          onClick={onTermsClick}
+                          className="w-full bg-white py-3 px-6 rounded-luxury flex items-center justify-center gap-3 group transition-all"
+                        >
+                          <FileText size={18} className="text-gold" />
+                          <span className="text-[12px] text-petroleum font-semibold uppercase tracking-luxury-tight">
+                            Ler Termos de uso
+                          </span>
+                        </button>
+                      )}
+
+                      {/* Botão de Privacidade (Estilo Luxury) */}
+                      {showPrivacyAction && (
+                        <button
+                          onClick={onPrivacyClick}
+                          className="w-full bg-white py-3 px-6 rounded-luxury flex items-center justify-center gap-3 group transition-all"
+                        >
+                          <Lock size={18} className="text-gold" />
+                          <span className="text-[12px] text-petroleum font-semibold uppercase tracking-luxury-tight">
+                            Ler Política de Privacidade
+                          </span>
+                        </button>
+                      )}
                     </div>
 
-                    <div
-                      className="flex items-center justify-center gap-2 text-white text-[9px] font-bold uppercase tracking-[0.2em] cursor-help transition-colors hover:text-gold"
-                      title="Acesso 100% Seguro via Google Auth™"
-                    >
-                      <ShieldCheck
-                        size={12}
-                        className="text-gold"
-                        strokeWidth={2.5}
-                      />
-                      <span>Acesso 100% Seguro</span>
-                    </div>
+                    {showHeroAction && (
+                      <div className="flex items-center justify-center gap-2 text-white text-[9px] font-bold uppercase tracking-[0.2em] cursor-help transition-colors hover:text-gold">
+                        <ShieldCheck
+                          size={12}
+                          className="text-gold"
+                          strokeWidth={2.5}
+                        />
+                        <span>Acesso 100% Seguro via Google Auth</span>
+                      </div>
+                    )}
                   </div>
                 </div>
               )}

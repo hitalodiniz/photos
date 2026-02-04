@@ -90,12 +90,7 @@ export const GalleryDesignFields: React.FC<GalleryDesignFieldsProps> = ({
 
       {/* COR DE FUNDO */}
 
-      <PlanGuard
-        feature="customizationLevel"
-        label="Cor de fundo"
-        icon={Palette}
-        onClickLocked={setUpsellFeature}
-      >
+      <PlanGuard feature="customizationLevel" label="Cor de fundo">
         <div className="flex items-center gap-2 border-r border-petroleum/10 shrink-0 h-8 pr-2.5">
           <div className="flex items-center gap-1 shrink-0">
             <Palette size={12} className="text-gold" />
