@@ -140,14 +140,19 @@ export default function AccessUsername({
           )}
 
           {/* Call to Action para Registro (Opcional) */}
-          <div className="pt-4 text-center">
-            <p className="text-[11px] text-petroleum font-medium">
+          <div className="pt-4 text-center antialiased-premium">
+            <p className="text-[13px] text-petroleum/80 font-medium tracking-tight">
               Ainda não tem uma conta?{' '}
               <button
                 type="button"
-                className="text-gold font-semibold hover:underline underline-offset-4 transition-all"
+                className="text-gold font-semibold hover:text-gold/80 transition-colors inline-flex items-center gap-1 group"
               >
-                Registre-se agora <ArrowRight size={12} className="inline" />
+                {/* Ajustamos para font-bold mas aumentamos o tracking levemente para dar respiro */}
+                <span className="tracking-normal">Registre-se agora</span>
+                <ArrowRight
+                  size={12}
+                  className="group-hover:translate-x-0.5 transition-transform"
+                />
               </button>
             </p>
           </div>

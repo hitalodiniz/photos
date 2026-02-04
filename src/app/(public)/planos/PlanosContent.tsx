@@ -22,12 +22,12 @@ import {
   PlanPermissions,
 } from '@/core/config/plans';
 import { Footer } from '@/components/layout';
+import { main } from 'framer-motion/client';
 
 export default function PlanosPage() {
   const [loadingPlan, setLoadingPlan] = useState<string | null>(null);
   const [mounted, setMounted] = useState(false);
   const [isAnnual, setIsAnnual] = useState(false);
-  const [expandedGroups, setExpandedGroups] = useState<string[]>(['GESTÃO']);
 
   const config = useMemo(() => {
     if (typeof window === 'undefined')
@@ -39,13 +39,21 @@ export default function PlanosPage() {
     setMounted(true);
   }, []);
 
-  if (!mounted) return null;
-
   const currentPlans = config.plans;
   const planosKeys = Object.keys(currentPlans) as PlanKey[];
   const groups = Array.from(
     new Set(COMMON_FEATURES.map((f) => f.group.toUpperCase())),
   );
+
+  const [expandedGroups, setExpandedGroups] = useState<Record<string, boolean>>(
+    Object.fromEntries(groups.map((g) => [g, true])), // Começa tudo aberto
+  );
+
+  if (!mounted) return null;
+
+  const toggleGroup = (groupName: string) => {
+    setExpandedGroups((prev) => ({ ...prev, [groupName]: !prev[groupName] }));
+  };
 
   const getFeatureValue = (
     label: string,
@@ -66,31 +74,38 @@ export default function PlanosPage() {
     <EditorialView
       title={`Planos ${config.name}`}
       subtitle="A estrutura definitiva para sua entrega profissional."
-      sectionTitle="Flexibilidade Profissional"
     >
-      <main className="w-full">
-        {' '}
+      <main className="w-full -mt-8">
         {/* 🎯 HEADER DA SEÇÃO: Seletor de Período */}
-        <div className="flex items-center gap-6 bg-slate-50 p-2 rounded-full border border-slate-200 shadow-sm">
+        <div className="flex items-center justify-between gap-2 mb-8 bg-slate-50 p-1.5 rounded-full border border-slate-200 shadow-sm max-w-sm w-full mx-auto">
           <button
             onClick={() => setIsAnnual(false)}
-            className={`px-8 py-3 rounded-full text-[11px] font-bold uppercase tracking-widest transition-all ${!isAnnual ? 'bg-petroleum text-white shadow-lg' : 'text-petroleum/40 hover:text-petroleum'}`}
+            className={`flex-1 py-2.5 rounded-full text-[10px] font-semibold uppercase tracking-widest transition-all duration-500 ease-in-out ${
+              !isAnnual
+                ? 'bg-petroleum text-white shadow-md scale-[1.02]'
+                : 'text-petroleum/40 hover:text-petroleum hover:bg-black/5'
+            }`}
           >
             Mensal
           </button>
+
           <button
             onClick={() => setIsAnnual(true)}
-            className={`relative px-8 py-3 rounded-full text-[11px] font-bold uppercase tracking-widest transition-all ${isAnnual ? 'bg-petroleum text-white shadow-lg' : 'text-petroleum/40 hover:text-petroleum'}`}
+            className={`relative flex-1 py-2.5 rounded-full text-[10px] font-semibold uppercase tracking-widest transition-all duration-500 ease-in-out ${
+              isAnnual
+                ? 'bg-petroleum text-white shadow-md scale-[1.02]'
+                : 'text-petroleum/40 hover:text-petroleum hover:bg-black/5'
+            }`}
           >
             Anual
-            <span className="absolute -top-2 -right-4 bg-emerald-500 text-white text-[8px] px-2 py-1 rounded-full animate-bounce">
+            <span className="absolute -top-2 -right-2 bg-emerald-500 text-white text-[12px] px-2 py-0.5 rounded-full font-semibold tracking-normal animate-pulse shadow-sm">
               -20%
             </span>
           </button>
         </div>
         {/* 🎯 GRID DE CARDS: Utilizando EditorialCard para Padronização */}
-        <section className="py-24 max-w-[1650px] mx-auto px-6">
-          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-5 gap-5 mb-16 items-stretch">
+        <section className="max-w-[1650px] mx-auto px-6">
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-5 gap-5 mb-8 items-stretch">
             {planosKeys.map((key, idx) => {
               const plan = { ...currentPlans[key], key };
               const isPro = key === 'PRO';
@@ -149,35 +164,35 @@ export default function PlanosPage() {
                   badge={isPro ? 'Mais Escolhido' : undefined}
                 >
                   {/* CONTEÚDO TÉCNICO COMPLETO DENTRO DO CARD */}
-                  <div className="text-center mb-8">
+                  <div className="text-center mb-2">
                     <div className="flex items-start justify-center gap-1 text-petroleum">
-                      <span className="text-[14px] font-bold mt-2 text-gold">
+                      <span className="text-[14px] font-semibold mt-2 text-gold">
                         R$
                       </span>
                       <span className="text-5xl font-semibold tracking-tighter italic">
                         {displayPrice.toFixed(0)}
                       </span>
                     </div>
-                    <p className="text-[9px] font-bold text-petroleum/40 uppercase tracking-widest mt-1">
+                    <p className="text-[9px] font-semibold text-petroleum/70 uppercase tracking-widest mt-1">
                       {isAnnual ? 'Equivalente / mês' : 'Cobrança mensal'}
                     </p>
                   </div>
 
                   {/* LISTA DE INDICADORES (TODOS OS RECURSOS) */}
-                  <div className="space-y-4 mb-8 flex-grow">
+                  <div className="space-y-2 mb-4 flex-grow">
                     {indicators.map((ind, i) => (
                       <div key={i} className="flex items-start gap-3">
-                        <div className="w-8 h-8 rounded-lg bg-slate-100 flex items-center justify-center shrink-0 text-petroleum/60">
+                        <div className="w-8 h-8 rounded-lg  flex items-center justify-center shrink-0 text-gold">
                           {React.cloneElement(ind.icon as React.ReactElement, {
                             size: 16,
                             strokeWidth: 2,
                           })}
                         </div>
                         <div className="flex flex-col">
-                          <span className="text-[12px] font-bold text-petroleum leading-tight">
+                          <span className="text-[12px] font-semibold text-petroleum leading-tight">
                             {ind.value}
                           </span>
-                          <span className="text-[10px] text-petroleum/50 font-medium uppercase tracking-tighter">
+                          <span className="text-[10px] text-petroleum/70 font-medium uppercase tracking-normal">
                             {ind.label}
                           </span>
                         </div>
@@ -188,7 +203,7 @@ export default function PlanosPage() {
                   <button
                     onClick={() => setLoadingPlan(key)}
                     disabled={!!loadingPlan}
-                    className={`w-full h-14 flex items-center justify-center gap-3 rounded-xl transition-all font-bold text-[10px] uppercase tracking-widest ${
+                    className={`w-full h-12 flex items-center justify-center gap-3 rounded-xl transition-all font-semibold text-[10px] uppercase tracking-widest ${
                       isPro
                         ? 'bg-petroleum text-white shadow-xl hover:bg-black active:scale-95'
                         : 'bg-white border border-petroleum/20 text-petroleum hover:border-petroleum'
@@ -214,13 +229,13 @@ export default function PlanosPage() {
           </div>
         </section>
         {/* 🎯 TABELA DE ESPECIFICAÇÕES: Refinamento Editorial */}
-        <section className="bg-slate-50 py-24 border-t border-slate-100">
+        <section>
           <div className="max-w-[1400px] mx-auto px-6">
-            <div className="text-center mb-16">
+            <div className="text-center mb-4">
               <h2 className="text-petroleum font-semibold text-2xl uppercase tracking-[0.3em] italic">
                 Especificações Técnicas
               </h2>
-              <div className="w-12 h-1 bg-gold mx-auto mt-4 rounded-full opacity-40" />
+              <div className="max-w-lg h-1 bg-gold mx-auto mt-4 rounded-full opacity-40" />
             </div>
 
             <div className="rounded-3xl overflow-hidden border border-slate-200 shadow-2xl bg-white">
@@ -229,7 +244,7 @@ export default function PlanosPage() {
                   <thead>
                     <tr className="bg-petroleum">
                       <th className="p-6 sticky left-0 z-50 bg-petroleum border-b border-white/5">
-                        <span className="text-[10px] font-bold uppercase tracking-widest text-gold/80">
+                        <span className="text-[10px] font-semibold uppercase tracking-widest text-gold/80">
                           Recursos
                         </span>
                       </th>
@@ -238,7 +253,7 @@ export default function PlanosPage() {
                           key={key}
                           className="p-6 text-center border-b border-white/5"
                         >
-                          <span className="text-[11px] text-white font-bold uppercase tracking-widest">
+                          <span className="text-[11px] text-white font-semibold uppercase tracking-widest">
                             {currentPlans[key].name}
                           </span>
                         </th>
@@ -248,63 +263,85 @@ export default function PlanosPage() {
                   <tbody>
                     {groups.map((groupName) => (
                       <React.Fragment key={groupName}>
-                        <tr className="bg-slate-50/50">
+                        <tr
+                          className="bg-slate-50/50 cursor-pointer hover:bg-slate-100 transition-colors"
+                          onClick={() => toggleGroup(groupName)}
+                        >
                           <td
                             colSpan={6}
                             className="py-4 px-8 border-b border-slate-100"
                           >
-                            <span className="text-[9px] font-black uppercase tracking-[0.4em] text-petroleum/30">
-                              {groupName}
-                            </span>
+                            <div className="flex items-center gap-3">
+                              {/* Ícone de Seta da Lucide à Esquerda */}
+                              <ChevronDown
+                                size={14}
+                                strokeWidth={2.5}
+                                className={`text-gold transition-transform duration-500 ease-in-out ${
+                                  expandedGroups[groupName]
+                                    ? 'rotate-0'
+                                    : '-rotate-90'
+                                }`}
+                              />
+
+                              <span className="text-[10px] font-bold uppercase tracking-luxury-widest text-gold select-none">
+                                {groupName}
+                              </span>
+                            </div>
                           </td>
                         </tr>
-                        {COMMON_FEATURES.filter(
-                          (f) => f.group.toUpperCase() === groupName,
-                        ).map((feature, fIdx) => (
-                          <tr
-                            key={fIdx}
-                            className="hover:bg-slate-50 transition-colors group"
-                          >
-                            <td className="py-4 px-8 border-b border-slate-100 bg-white sticky left-0 z-30 text-[12px] font-medium text-petroleum/70">
-                              {feature.label}
-                            </td>
-                            {planosKeys.map((key, pIdx) => (
-                              <td
-                                key={key}
-                                className="py-4 px-4 border-b border-slate-100 text-center"
-                              >
-                                <div className="flex items-center justify-center">
-                                  {getFeatureValue(feature.label, key, pIdx) ===
-                                  true ? (
-                                    <Check
-                                      size={18}
-                                      className="text-emerald-500"
-                                      strokeWidth={3}
-                                    />
-                                  ) : getFeatureValue(
+
+                        {/* Condição de exibição para o grupo */}
+                        {expandedGroups[groupName] &&
+                          COMMON_FEATURES.filter(
+                            (f) => f.group.toUpperCase() === groupName,
+                          ).map((feature, fIdx) => (
+                            <tr
+                              key={fIdx}
+                              className="hover:bg-slate-50 transition-colors group"
+                            >
+                              <td className="py-4 px-8 border-b border-slate-100 bg-white sticky left-0 z-30 text-[12px] font-semibold text-petroleum">
+                                {feature.label}
+                              </td>
+                              {planosKeys.map((key, pIdx) => (
+                                <td
+                                  key={key}
+                                  className="py-4 px-4 border-b border-slate-100 text-center"
+                                >
+                                  <div className="flex items-center justify-center">
+                                    {getFeatureValue(
                                       feature.label,
                                       key,
                                       pIdx,
-                                    ) === false ? (
-                                    <X
-                                      size={16}
-                                      className="text-slate-200"
-                                      strokeWidth={2}
-                                    />
-                                  ) : (
-                                    <span className="text-[12px] font-bold text-petroleum">
-                                      {getFeatureValue(
+                                    ) === true ? (
+                                      <Check
+                                        size={18}
+                                        className="text-emerald"
+                                        strokeWidth={3}
+                                      />
+                                    ) : getFeatureValue(
                                         feature.label,
                                         key,
                                         pIdx,
-                                      )}
-                                    </span>
-                                  )}
-                                </div>
-                              </td>
-                            ))}
-                          </tr>
-                        ))}
+                                      ) === false ? (
+                                      <X
+                                        size={16}
+                                        className="text-slate-600"
+                                        strokeWidth={2}
+                                      />
+                                    ) : (
+                                      <span className="text-[12px] font-medium text-petroleum">
+                                        {getFeatureValue(
+                                          feature.label,
+                                          key,
+                                          pIdx,
+                                        )}
+                                      </span>
+                                    )}
+                                  </div>
+                                </td>
+                              ))}
+                            </tr>
+                          ))}
                       </React.Fragment>
                     ))}
                   </tbody>
@@ -314,7 +351,7 @@ export default function PlanosPage() {
           </div>
           <div className="flex items-center gap-3 bg-petroleum border border-white/10 px-8 py-4 rounded-full backdrop-blur-xl w-fit mx-auto mt-10">
             <ShieldCheck size={20} className="text-gold" />
-            <span className="text-[10px] font-bold uppercase tracking-luxury-widest text-white whitespace-nowrap">
+            <span className="text-[10px] font-semibold uppercase tracking-luxury-widest text-white whitespace-nowrap">
               Pagamento Seguro via Criptografia Bancária • 2026
             </span>
           </div>

@@ -8,14 +8,19 @@
     --luxury-gold: 243 229 171;
   }
 
+  html,
+  body {
+    font-family: var(--font-montserrat), sans-serif;
+    -webkit-font-smoothing: antialiased;
+    -moz-osx-font-smoothing: grayscale;
+    text-rendering: optimizeLegibility;
+    @apply bg-luxury-bg text-petroleum selection:bg-gold/30;
+  }
+
   *,
   *::before,
   *::after {
     font-family: var(--font-montserrat), sans-serif !important;
-  }
-
-  body {
-    @apply bg-luxury-bg text-petroleum antialiased font-sans tracking-luxury-normal;
   }
 
   /* Padronização de Títulos - Permite sobrescrever com font-artistic */
@@ -31,14 +36,29 @@
     @apply text-[11px] font-semibold uppercase tracking-widest text-petroleum mb-1.5 flex items-center gap-2;
   }
 
-  /* Aplica o estilo base em todos os botões do site automaticamente */
-
+  /* 4. RESET DE INPUTS E BOTÕES */
+  input,
+  textarea,
+  button,
+  select {
+    font-family: inherit;
+    -webkit-font-smoothing: inherit;
+  }
   /* Aplica o estilo em todos os inputs e textareas */
   input[type='text'],
   input[type='email'],
   input[type='password'],
   textarea {
     @apply input-luxury;
+  }
+
+  /* Força a nitidez em botões e inputs que costumam ignorar herança */
+  button,
+  input,
+  textarea,
+  select {
+    -webkit-font-smoothing: inherit;
+    -moz-osx-font-smoothing: inherit;
   }
 }
 
@@ -54,23 +74,20 @@
 
   /* 🎯 CLASSE MESTRE: Padronização H-10 e PX-4 */
   .btn-luxury-base {
-    @apply h-10 px-4 rounded-luxury transition-all duration-300 
-           active:scale-95 flex items-center justify-center gap-2 
-           text-[10px] font-bold uppercase tracking-luxury-widest;
+    @apply h-10 px-4 rounded-luxury flex items-center justify-center gap-2;
+    @apply text-[10px] font-bold uppercase tracking-luxury-widest;
+    /* Centralize a transição aqui */
+    @apply transition-all duration-500 ease-in-out active:scale-95;
   }
 
   /* Botão Primário (Champagne) */
   .btn-luxury-primary {
-    @apply btn-luxury-base bg-champagne text-petroleum border border-champagne 
-           shadow-lg hover:italic;
-    @apply transition-all duration-500 ease-in-out;
+    @apply btn-luxury-base bg-champagne text-petroleum border border-champagne shadow-lg hover:italic hover:bg-white;
   }
 
   /* Botão Secundário (Fundo Petroleum/Escuro) */
   .btn-secondary-petroleum {
-    @apply btn-luxury-base border-white/20 bg-transparent text-white 
-           hover:bg-white/5 hover:border-white/40;
-    @apply transition-all duration-500 ease-in-out;
+    @apply btn-luxury-base border-white/20 bg-transparent text-white hover:bg-white/5 hover:border-white/40;
   }
 
   /* Botão Secundário (Fundo Branco/Claro) */
@@ -89,10 +106,10 @@
 
   /* INPUT PADRÃO EDITORIAL */
   .input-luxury {
-    @apply h-10 w-full bg-white border border-gold/20 rounded-luxury px-4 
-           text-sm font-medium tracking-luxury-normal
-           focus:border-gold focus:ring-4 focus:ring-gold/5 outline-none transition-all
-           placeholder:text-slate-300;
+    @apply h-10 w-full bg-white border border-slate-200 rounded-luxury px-4;
+    @apply text-sm font-medium tracking-luxury-normal;
+    @apply focus:border-gold focus:ring-4 focus:ring-gold/5 outline-none transition-all;
+    @apply placeholder:text-slate-300;
   }
 
   /* LOADING E OVERLAYS */

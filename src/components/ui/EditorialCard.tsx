@@ -22,7 +22,7 @@ export default function EditorialCard({
   return (
     <div className="bg-slate-50 rounded-3xl overflow-visible shadow-lg flex flex-col relative border border-slate-100 group transition-all duration-500 hover:shadow-2xl hover:-translate-y-2 h-full">
       {badge && (
-        <div className="absolute -top-3 right-6 bg-gold text-petroleum text-[9px] font-black uppercase tracking-tighter px-3 py-1 rounded-full z-20 shadow-sm">
+        <div className="absolute top-3 right-2 bg-gold text-petroleum text-[9px] font-semibold uppercase tracking-tighter px-3 py-1 rounded-full z-20 shadow-sm">
           {badge}
         </div>
       )}

@@ -60,7 +60,7 @@ export default function RootLayout({
 }) {
   return (
     <html lang="pt-BR" className={`${montserrat.variable} ${barlow.variable}`}>
-      <body className="font-montserrat bg-luxury-bg antialiased">
+      <body className="antialiased font-sans text-rendering-optimize bg-luxury-bg">
         <AuthProvider>
           <NavigationProvider>
             <SidebarProvider>
