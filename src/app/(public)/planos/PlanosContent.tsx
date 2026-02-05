@@ -20,14 +20,22 @@ import {
   PlanKey,
   PERMISSIONS_BY_PLAN,
   PlanPermissions,
+  SegmentType,
+  PLANS_BY_SEGMENT,
 } from '@/core/config/plans';
 import { Footer } from '@/components/layout';
 import { main } from 'framer-motion/client';
+import { SEGMENT_DICTIONARY } from '@/core/config/segments';
 
 export default function PlanosPage() {
   const [loadingPlan, setLoadingPlan] = useState<string | null>(null);
   const [mounted, setMounted] = useState(false);
   const [isAnnual, setIsAnnual] = useState(false);
+
+  // Captura Segmento e Termos
+  const segment = (process.env.NEXT_PUBLIC_APP_SEGMENT ||
+    'PHOTOGRAPHER') as SegmentType;
+  const terms = SEGMENT_DICTIONARY[segment];
 
   const config = useMemo(() => {
     if (typeof window === 'undefined')
@@ -46,14 +54,10 @@ export default function PlanosPage() {
   );
 
   const [expandedGroups, setExpandedGroups] = useState<Record<string, boolean>>(
-    Object.fromEntries(groups.map((g) => [g, true])), // Começa tudo aberto
+    Object.fromEntries(groups.map((g) => [g, true])),
   );
 
   if (!mounted) return null;
-
-  const toggleGroup = (groupName: string) => {
-    setExpandedGroups((prev) => ({ ...prev, [groupName]: !prev[groupName] }));
-  };
 
   const getFeatureValue = (
     label: string,
@@ -63,59 +67,68 @@ export default function PlanosPage() {
     const feature = COMMON_FEATURES.find((f) => f.label === label);
     if (!feature) return '—';
     if (feature.key) {
-      const technicalValue =
+      const val =
         PERMISSIONS_BY_PLAN[planKey][feature.key as keyof PlanPermissions];
-      return technicalValue === 9999 ? 'Ilimitado' : technicalValue;
+      return val === 9999 ? 'Ilimitado' : val;
     }
     return feature.values?.[planIdx];
   };
 
+  // Captura o segmento configurado no ambiente
+  const currentSegment = (process.env.NEXT_PUBLIC_APP_SEGMENT ||
+    'PHOTOGRAPHER') as keyof typeof PLANS_BY_SEGMENT;
+
+  // Filtra os planos exclusivos deste segmento (ex: PHOTOGRAPHER, EVENT, CAMPAIGN ou OFFICE)
+  const segmentPlans = PLANS_BY_SEGMENT[currentSegment];
+
+  // Mapeia os nomes reais definidos no seu objeto PLANS_BY_SEGMENT
+  const planNames = Object.values(segmentPlans)
+    .map((p) => p.name)
+    .join(', ')
+    .replace(/, ([^,]*)$/, ' e $1');
+
   return (
     <EditorialView
       title={`Planos ${config.name}`}
-      subtitle="A estrutura definitiva para sua entrega profissional."
+      subtitle={`A estrutura definitiva para sua entrega como ${terms.singular}.`}
     >
-      <main className="w-full -mt-8">
-        {/* 🎯 HEADER DA SEÇÃO: Seletor de Período */}
-        <div className="flex items-center justify-between gap-2 mb-8 bg-slate-50 p-1.5 rounded-full border border-slate-200 shadow-sm max-w-sm w-full mx-auto">
+      <main className="w-full -mt-4 md:-mt-8">
+        {/* SELETOR DE PERÍODO - Ajustado padding mobile */}
+        <div className="flex items-center justify-between gap-2 mb-10 bg-slate-50 p-1.5 rounded-full border border-slate-200 shadow-sm max-w-[280px] md:max-w-sm w-full mx-auto">
           <button
             onClick={() => setIsAnnual(false)}
-            className={`flex-1 py-2.5 rounded-full text-[10px] font-semibold uppercase tracking-widest transition-all duration-500 ease-in-out ${
-              !isAnnual
-                ? 'bg-petroleum text-white shadow-md scale-[1.02]'
-                : 'text-petroleum/40 hover:text-petroleum hover:bg-black/5'
-            }`}
+            className={`flex-1 py-2 md:py-2.5 rounded-full text-[9px] md:text-[10px] font-bold uppercase tracking-widest transition-all ${!isAnnual ? 'bg-petroleum text-white shadow-md' : 'text-petroleum/40'}`}
           >
             Mensal
           </button>
-
           <button
             onClick={() => setIsAnnual(true)}
-            className={`relative flex-1 py-2.5 rounded-full text-[10px] font-semibold uppercase tracking-widest transition-all duration-500 ease-in-out ${
-              isAnnual
-                ? 'bg-petroleum text-white shadow-md scale-[1.02]'
-                : 'text-petroleum/40 hover:text-petroleum hover:bg-black/5'
-            }`}
+            className={`relative flex-1 py-2 md:py-2.5 rounded-full text-[9px] md:text-[10px] font-bold uppercase tracking-widest transition-all ${isAnnual ? 'bg-petroleum text-white shadow-md' : 'text-petroleum/40'}`}
           >
             Anual
-            <span className="absolute -top-2 -right-2 bg-emerald-500 text-white text-[12px] px-2 py-0.5 rounded-full font-semibold tracking-normal animate-pulse shadow-sm">
-              -20%
+            <span className="absolute -top-2 -right-1 bg-emerald-500 text-white text-[10px] px-1.5 py-0.5 rounded-full font-bold animate-pulse">
+              {' '}
+              -20%{' '}
             </span>
           </button>
         </div>
-        {/* 🎯 GRID DE CARDS: Utilizando EditorialCard para Padronização */}
-        <section className="max-w-[1650px] mx-auto px-6">
-          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-5 gap-5 mb-8 items-stretch">
-            {planosKeys.map((key, idx) => {
-              const plan = { ...currentPlans[key], key };
-              const isPro = key === 'PRO';
-              const displayPrice = isAnnual ? plan.yearlyPrice : plan.price;
 
-              // Recuperando todos os seus indicadores originais
+        {/* GRID DE CARDS - Horizontal scroll no mobile ou grid empilhado */}
+        <section className="max-w-[1650px] mx-auto px-4 md:px-6">
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-5 gap-4 md:gap-5 mb-12">
+            {planosKeys.map((key, idx) => {
+              // Busca o plano específico do segmento (ex: se for OFFICE, key START terá name 'Essential')
+              const planInfo = segmentPlans[key as keyof typeof segmentPlans];
+              const isPro = key === 'PRO';
+              const displayPrice = isAnnual
+                ? planInfo.yearlyPrice
+                : planInfo.price;
+
+              // Indicadores parametrizados conforme o segmento ativo
               const indicators = [
                 {
                   icon: <ImageIcon />,
-                  label: 'Galerias ativas',
+                  label: `${terms.plural} ativas`,
                   value: getFeatureValue('Galerias Ativas', key, idx),
                 },
                 {
@@ -132,12 +145,12 @@ export default function PlanosPage() {
                 },
                 {
                   icon: <FileArchive />,
-                  label: 'Capacidade',
+                  label: `Capacidade por ${terms.item}`,
                   value: getFeatureValue('Capacidade por Galeria', key, idx),
                 },
                 {
                   icon: <FileArchive />,
-                  label: 'Resolução ZIP',
+                  label: `Resolução ZIP`,
                   value: getFeatureValue(
                     'Download ZIP - Tamanho/foto',
                     key,
@@ -158,13 +171,12 @@ export default function PlanosPage() {
               return (
                 <EditorialCard
                   key={key}
-                  title={plan.name}
-                  icon={<plan.icon size={32} strokeWidth={1.5} />}
+                  title={planInfo.name} // Nome dinâmico (ex: 'Militante', 'Essential', 'Event')
+                  icon={<planInfo.icon size={32} strokeWidth={1.5} />}
                   accentColor={isPro ? '#B8860B' : '#1a363d'}
                   badge={isPro ? 'Mais Escolhido' : undefined}
                 >
-                  {/* CONTEÚDO TÉCNICO COMPLETO DENTRO DO CARD */}
-                  <div className="text-center mb-2">
+                  <div className="text-center mb-4">
                     <div className="flex items-start justify-center gap-1 text-petroleum">
                       <span className="text-[14px] font-semibold mt-2 text-gold">
                         R$
@@ -178,12 +190,11 @@ export default function PlanosPage() {
                     </p>
                   </div>
 
-                  {/* LISTA DE INDICADORES (TODOS OS RECURSOS) */}
-                  <div className="space-y-2 mb-4 flex-grow">
+                  <div className="space-y-2 mb-6 flex-grow">
                     {indicators.map((ind, i) => (
                       <div key={i} className="flex items-start gap-3">
-                        <div className="w-8 h-8 rounded-lg  flex items-center justify-center shrink-0 text-gold">
-                          {React.cloneElement(ind.icon as React.ReactElement, {
+                        <div className="w-8 h-8 rounded-lg flex items-center justify-center shrink-0 text-gold">
+                          {React.cloneElement(ind.icon as any, {
                             size: 16,
                             strokeWidth: 2,
                           })}
@@ -213,13 +224,12 @@ export default function PlanosPage() {
                       <Loader2 className="animate-spin" size={16} />
                     ) : (
                       <>
-                        {/* Ícone dinâmico do plano alinhado à esquerda do texto */}
-                        <plan.icon
+                        <planInfo.icon
                           size={16}
                           strokeWidth={2.5}
                           className={isPro ? 'text-gold' : 'text-petroleum/60'}
                         />
-                        <span>{plan.cta}</span>
+                        <span>{planInfo.cta}</span>
                       </>
                     )}
                   </button>
@@ -228,33 +238,35 @@ export default function PlanosPage() {
             })}
           </div>
         </section>
-        {/* 🎯 TABELA DE ESPECIFICAÇÕES: Refinamento Editorial */}
+
+        {/* TABELA TÉCNICA - Melhoria de Scroll Mobile */}
         <section>
-          <div className="max-w-[1400px] mx-auto px-6">
-            <div className="text-center mb-4">
-              <h2 className="text-petroleum font-semibold text-2xl uppercase tracking-[0.3em] italic">
+          <div className="max-w-[1400px] mx-auto px-4 md:px-6">
+            <div className="text-center mb-8">
+              <h2 className="text-petroleum font-bold text-lg md:text-2xl uppercase tracking-[0.2em] italic">
                 Especificações Técnicas
               </h2>
-              <div className="max-w-lg h-1 bg-gold mx-auto mt-4 rounded-full opacity-40" />
+              <p className="text-[10px] text-slate-400 md:hidden mt-2 italic">
+                Role para o lado para ver todos os planos →
+              </p>
             </div>
 
-            <div className="rounded-3xl overflow-hidden border border-slate-200 shadow-2xl bg-white">
-              <div className="overflow-x-auto">
-                <table className="w-full text-left border-collapse min-w-[1000px]">
+            <div className="rounded-2xl md:rounded-3xl overflow-hidden border border-slate-200 shadow-xl bg-white">
+              <div className="overflow-x-auto scrollbar-hide">
+                <table className="w-full text-left border-collapse min-w-[800px] md:min-w-[1000px]">
+                  {/* ... Cabeçalho e Corpo da Tabela mantidos com as variáveis de termos ... */}
                   <thead>
                     <tr className="bg-petroleum">
-                      <th className="p-6 sticky left-0 z-50 bg-petroleum border-b border-white/5">
-                        <span className="text-[10px] font-semibold uppercase tracking-widest text-gold/80">
-                          Recursos
-                        </span>
+                      <th className="p-6 text-[10px] font-semibold uppercase tracking-widest text-gold/80">
+                        Recursos
                       </th>
-                      {planosKeys.map((key) => (
-                        <th
-                          key={key}
-                          className="p-6 text-center border-b border-white/5"
-                        >
+                      {Object.keys(segmentPlans).map((key) => (
+                        <th key={key} className="p-6 text-center">
                           <span className="text-[11px] text-white font-semibold uppercase tracking-widest">
-                            {currentPlans[key].name}
+                            {
+                              segmentPlans[key as keyof typeof segmentPlans]
+                                .name
+                            }
                           </span>
                         </th>
                       ))}
@@ -349,10 +361,10 @@ export default function PlanosPage() {
               </div>
             </div>
           </div>
-          <div className="flex items-center gap-3 bg-petroleum border border-white/10 px-8 py-4 rounded-full backdrop-blur-xl w-fit mx-auto mt-10">
-            <ShieldCheck size={20} className="text-gold" />
-            <span className="text-[10px] font-semibold uppercase tracking-luxury-widest text-white whitespace-nowrap">
-              Pagamento Seguro via Criptografia Bancária • 2026
+          <div className="flex flex-col md:flex-row items-center gap-3 bg-petroleum/5 border border-petroleum/10 px-6 py-4 rounded-2xl md:rounded-full w-fit mx-auto mt-12">
+            <ShieldCheck size={18} className="text-gold" />
+            <span className="text-[9px] md:text-[10px] font-bold uppercase tracking-widest text-petroleum/70 text-center">
+              Pagamento Seguro • {new Date().getFullYear()} • SSL 256-bits
             </span>
           </div>
         </section>

@@ -19,10 +19,16 @@ import {
 import EditorialCard from '../ui/EditorialCard';
 import EditorialView from '../layout/EditorialView';
 import { authService } from '@photos/core-auth';
+import { SEGMENT_DICTIONARY, SegmentType } from '@/core/config/segments'; // Importe o dicionário criado
 
 const STORAGE_KEY = '@suagaleria:active-tab';
 
 export default function LandingPageContent() {
+  // Captura o segmento da env
+  const segment = (process.env.NEXT_PUBLIC_APP_SEGMENT ||
+    'PHOTOGRAPHER') as SegmentType;
+  const terms = SEGMENT_DICTIONARY[segment];
+
   const [userType, setUserType] = useState<'explorer' | 'photographer'>(
     'explorer',
   );
@@ -50,10 +56,10 @@ export default function LandingPageContent() {
   const benefits = useMemo(
     () => [
       {
-        title: 'Suas fotos rendem mais',
+        title: `Seus ${terms.items} rendem mais`,
         accent: '#B8860B',
         items: [
-          'Toda foto importa',
+          `Cada ${terms.item} importa`,
           'Qualidade superior ao Instagram',
           'Protege suas memórias em alta resolução',
           'Subiu no Drive, está na galeria em tempo real',
@@ -80,13 +86,12 @@ export default function LandingPageContent() {
         ],
       },
     ],
-    [],
+    [terms],
   );
 
   const cardModo = useMemo(() => {
     if (!isDecided) {
       return (
-        /* Ajuste Mobile: top reduzido e largura total com padding */
         <div className="absolute top-[15%] md:top-[20%] left-1/2 -translate-x-1/2 -translate-y-1/2 md:-translate-y-3/4 w-full max-w-2xl px-4 md:px-6 z-50">
           <div className="grid grid-cols-1 md:grid-cols-2 gap-3 md:gap-6 animate-in fade-in zoom-in-95 duration-700">
             <button
@@ -121,7 +126,7 @@ export default function LandingPageContent() {
                 </div>
                 <div className="text-left">
                   <h3 className="text-petroleum font-semibold text-sm md:text-base">
-                    Sou Fotógrafo
+                    Sou {terms.singular}
                   </h3>
                   <p className="text-petroleum/60 font-semibold text-[9px] md:text-[10px] uppercase tracking-widest">
                     Criar minha galeria
@@ -134,7 +139,7 @@ export default function LandingPageContent() {
       );
     }
     return null;
-  }, [isDecided, handleTypeSelection]);
+  }, [isDecided, terms, handleTypeSelection]);
 
   const compactSelector = useMemo(() => {
     if (!isDecided) return null;
@@ -150,11 +155,11 @@ export default function LandingPageContent() {
           onClick={() => handleTypeSelection('photographer')}
           className={`px-3 py-1.5 rounded-full text-[9px] md:text-[10px] font-semibold transition-all ${userType === 'photographer' ? 'bg-white text-petroleum' : 'text-white/70'}`}
         >
-          MODO FOTÓGRAFO
+          MODO {terms.singular.toUpperCase()}
         </button>
       </div>
     );
-  }, [isDecided, userType, handleTypeSelection]);
+  }, [isDecided, userType, terms, handleTypeSelection]);
 
   const [searchTerm, setSearchTerm] = useState('');
 
@@ -177,8 +182,8 @@ export default function LandingPageContent() {
       }
       sectionDescription={
         userType === 'explorer'
-          ? 'Navegue por galerias públicas e conecte-se direto com fotógrafos.'
-          : 'Toda a tecnologia necessária para entregar fotos com elegância e baixo custo.'
+          ? `Navegue por galerias públicas e conecte-se direto com ${terms.plural}.`
+          : `Toda a tecnologia necessária para entregar ${terms.items} com elegância e baixo custo.`
       }
       heroCustomAction={cardModo}
       heroSecondaryAction={compactSelector}
@@ -186,7 +191,6 @@ export default function LandingPageContent() {
       <div className="px-2 md:px-0">
         {userType === 'explorer' ? (
           <div className="space-y-4 md:space-y-12 animate-in fade-in duration-500 md:-mt-32">
-            {/* Barra de busca ajustada para mobile (empilha no mobile) */}
             <div className="flex flex-col md:flex-row gap-2 max-w-2xl ml-auto bg-white p-1.5 rounded-2xl border md:border-none shadow-lg md:shadow-none">
               <div className="flex-1 flex items-center relative group">
                 <Search
@@ -281,7 +285,16 @@ export default function LandingPageContent() {
                     </span>
                     .
                   </p>
-                  <button className="bg-petroleum text-white px-6 py-4 rounded-xl md:rounded-2xl font-bold flex items-center justify-center gap-3 w-full md:w-auto">
+                  <button
+                    onClick={async () => {
+                      try {
+                        await authService.signInWithGoogle(true);
+                      } catch (e) {
+                        console.error(e);
+                      }
+                    }}
+                    className="bg-petroleum text-white px-6 py-4 rounded-xl md:rounded-2xl font-bold flex items-center justify-center gap-3 w-full md:w-auto"
+                  >
                     <LogIn size={20} />
                     <span className="text-sm">Começar com Google Drive</span>
                   </button>
