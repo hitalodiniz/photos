@@ -25,15 +25,23 @@ export interface Profile {
   message_templates: MessageTemplates;
 }
 
+// 🎯 Zod Schema atualizado para suportar o novo JSON
 export const UserSettingsSchema = z.object({
   display: z.object({
+    // Mantemos o booleano para compatibilidade, mas o default_type é o novo padrão
     show_contract_type: z.boolean().default(true),
+    default_type: z.enum(['contract', 'event']).default('contract'),
   }),
   defaults: z.object({
+    is_public: z.boolean().default(true), // 👈 Adicionado campo de privacidade padrão
     list_on_profile: z.boolean().default(false),
+    google_drive_root_id: z.string().default(''), // ID da pasta inicial
+    rename_files_sequential: z.boolean().default(false), // Padrão de renomeação
     enable_guest_registration: z.boolean().default(false),
     required_guest_fields: z.array(z.string()).default(['name', 'whatsapp']),
-    data_treatment_purpose: z.string().default(''),
+    data_treatment_purpose: z
+      .string()
+      .default('Visualização de galeria fotográfica'),
     background_color: z.string().default('#FFFFFF'),
     background_photo: z.string().default(''),
     grid_mobile: z.number().min(1).max(6).default(2),

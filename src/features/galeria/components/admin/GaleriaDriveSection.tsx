@@ -1,13 +1,17 @@
 'use client';
 import { PlanGuard } from '@/components/auth/PlanGuard';
 import { GooglePickerButton } from '@/components/google-drive';
+import GoogleDriveImagePreview from '@/components/ui/GoogleDriveImagePreview';
+import { InfoTooltip } from '@/components/ui/InfoTooltip';
 import { usePlan } from '@/core/context/PlanContext';
+import { profile } from 'console';
 import {
   FolderSync,
   ImageIcon,
   Loader2,
   AlertTriangle,
   ExternalLink,
+  X,
 } from 'lucide-react';
 
 export function GaleriaDriveSection({
@@ -16,18 +20,16 @@ export function GaleriaDriveSection({
   onPickerError,
   onTokenExpired,
   isValidatingDrive,
-  coverPreviewUrl,
-  imgRef,
-  handleLoad,
-  handleError,
   renameFilesSequential,
   setRenameFilesSequential,
+  setDriveData,
 }) {
   const { permissions } = usePlan();
 
   // 🛡️ Validação de Limite de Fotos
   const photoLimit = permissions.maxPhotosPerGallery;
   const isOverLimit = driveData.photoCount > photoLimit;
+  const maxCovers = permissions.maxCoverPerGallery || 1;
 
   return (
     <div className="relative bg-white rounded-luxury border border-slate-200 p-4 space-y-4 mt-2 overflow-hidden">
@@ -41,7 +43,7 @@ export function GaleriaDriveSection({
         </div>
       )}
       <div className="flex items-center gap-2 pb-2 border-b border-slate-200">
-        <FolderSync size={14} className="" />
+        <FolderSync size={14} className="text-gold" />
         <h3 className="text-[10px] font-bold uppercase tracking-luxury-widest text-petroleum">
           Google Drive
         </h3>
@@ -50,7 +52,7 @@ export function GaleriaDriveSection({
       {/* Subseção 1: Vincular Pasta do Google Drive */}
       <div className="space-y-3">
         <label>
-          <FolderSync size={12} strokeWidth={2} className="inline" />
+          <FolderSync size={12} strokeWidth={2} className="text-gold" />
           Vincular Pasta do Google Drive
         </label>
 
@@ -107,7 +109,7 @@ export function GaleriaDriveSection({
               rel="noopener noreferrer"
               className="btn-secondary-white w-full"
             >
-              <FolderSync size={14} className="" />
+              <FolderSync size={14} className="text-gold" />
               Abrir no Google Drive
             </a>
           )}
@@ -115,25 +117,70 @@ export function GaleriaDriveSection({
       </div>
 
       {/* Subseção 2: Preview de Capa */}
+      {/* 🎯 Subseção 2 Ajustada: Grid de Capas com GoogleDriveImagePreview */}
       <div className="space-y-3 pt-3 border-t border-slate-200">
-        <label>
-          <ImageIcon size={12} strokeWidth={2} className="inline" />
-          Foto de capa selecionada
+        <label className="text-[10px] font-bold uppercase tracking-luxury text-petroleum flex items-center gap-2">
+          <ImageIcon size={12} strokeWidth={2} className="text-gold" />
+          Fotos de capa selecionadas ({driveData.allCovers?.length || 0}/
+          {maxCovers})
         </label>
 
-        <div className="relative aspect-[16/9] w-full overflow-hidden rounded-luxury bg-slate-100 border border-slate-200">
-          {coverPreviewUrl ? (
-            <img
-              ref={imgRef}
-              src={coverPreviewUrl}
-              onLoad={handleLoad}
-              onError={handleError}
-              alt="Preview da capa"
-              className="w-full h-full object-contain"
-            />
+        <div className="flex flex-wrap gap-3 p-3 bg-slate-50 rounded-luxury border border-slate-200 min-h-[100px] items-center justify-start">
+          {driveData.allCovers && driveData.allCovers.length > 0 ? (
+            driveData.allCovers.map((photoId, index) => (
+              <div
+                key={photoId}
+                className="relative group animate-in zoom-in-95 duration-300"
+              >
+                <div className="w-20 h-20 rounded-md overflow-hidden border-2 border-gold/40 shadow-md bg-white">
+                  <GoogleDriveImagePreview
+                    photoId={photoId}
+                    className="w-full h-full object-cover"
+                  />
+                </div>
+
+                {/* Badge de Ordem */}
+                <div className="absolute -top-2 -right-2 w-5 h-5 bg-petroleum text-gold text-[9px] font-black rounded-full flex items-center justify-center border border-gold/30 shadow-sm">
+                  {index + 1}
+                </div>
+
+                {/* Botão Remover */}
+                <button
+                  type="button"
+                  onClick={() => {
+                    const filtered = driveData.allCovers.filter(
+                      (id) => id !== photoId,
+                    );
+                    setDriveData({
+                      ...driveData,
+                      allCovers: filtered,
+                      coverId: filtered[0] || '',
+                    });
+                  }}
+                  className="absolute -bottom-1 -right-1 bg-red-500 text-white rounded-full p-1 opacity-0 group-hover:opacity-100 transition-opacity shadow-lg"
+                >
+                  <X size={10} strokeWidth={3} />
+                </button>
+              </div>
+            ))
           ) : (
-            <div className="absolute inset-0 flex items-center justify-center">
-              <ImageIcon size={32} className="text-slate-300" />
+            <div className="w-full flex flex-col items-center justify-center py-4 text-slate-400">
+              <ImageIcon
+                size={24}
+                strokeWidth={1}
+                className="mb-1 opacity-50"
+              />
+              <span className="text-[8px] font-bold uppercase tracking-widest">
+                Aguardando seleção
+              </span>
+            </div>
+          )}
+
+          {/* Slot de Incentivo (Se ainda houver limite) */}
+          {driveData.id && driveData.allCovers?.length < maxCovers && (
+            <div className="w-20 h-20 rounded-md border-2 border-dashed border-slate-300 flex flex-col items-center justify-center text-slate-300 gap-1">
+              <ImageIcon size={16} />
+              <span className="text-[7px] font-black uppercase">Vago</span>
             </div>
           )}
         </div>
@@ -144,10 +191,19 @@ export function GaleriaDriveSection({
       <PlanGuard feature="keepOriginalFilenames" label="Renomear fotos">
         <div className="space-y-3 pt-4 border-t border-slate-200">
           <div className="flex items-center justify-between">
-            <label>
-              <ImageIcon size={12} strokeWidth={2} className="inline" />
-              Renomear fotos (foto-001...)
-            </label>
+            <div className="flex items-center gap-1.5 shrink-0">
+              <label>
+                <ImageIcon size={12} strokeWidth={2} className="text-gold" />
+                Renomear fotos (foto-001...)
+              </label>
+              <InfoTooltip
+                content='Se habilitado, padroniza o nome das fotos para
+            "foto-1.jpg", "foto-2.jpg",
+            etc."foto-2.jpg", etc. Desabilitado, usa os nomes
+            originais das fotos.'
+                width="w-48"
+              />
+            </div>
             <button
               type="button"
               onClick={() => setRenameFilesSequential(!renameFilesSequential)}
@@ -158,10 +214,6 @@ export function GaleriaDriveSection({
               />
             </button>
           </div>
-          <p className="text-[10px] text-petroleum/60 dark:text-slate-400 italic leading-tight">
-            Padroniza o nome das fotos para &quot;foto-1.jpg&quot;,
-            &quot;foto-2.jpg&quot;, etc, facilitando a organização do cliente.
-          </p>
         </div>
       </PlanGuard>
     </div>

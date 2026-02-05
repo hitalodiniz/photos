@@ -14,6 +14,7 @@ import { PERMISSIONS_BY_PLAN } from '@/core/config/plans';
 import { PlanGuard } from '@/components/auth/PlanGuard';
 import UpgradeModal from '@/components/ui/UpgradeModal';
 import { PlanSelect } from '@/components/ui/PlanSelect';
+import { InfoTooltip } from '@/components/ui/InfoTooltip';
 
 interface GalleryDesignFieldsProps {
   showBackgroundPhoto: boolean;
@@ -52,23 +53,19 @@ export const GalleryDesignFields: React.FC<GalleryDesignFieldsProps> = ({
     return originalOptions;
   };
   return (
-    <div className="flex flex-wrap items-center gap-x-2.5 gap-y-1.5">
+    <div className="flex flex-wrap items-center gap-x-1 gap-y-1.5">
       {/* FOTO DE FUNDO / TOGGLE */}
       <PlanGuard feature="customizationLevel" label="Foto de fundo">
         <div className="flex items-center gap-2 border-r border-petroleum/10 pr-2.5 shrink-0 h-8">
           <div className="flex items-center gap-1 shrink-0">
             <label className="text-[10px] font-bold uppercase tracking-luxury-widest text-petroleum flex items-center gap-1">
-              <ImageIcon size={11} className="text-gold" /> Foto de fundo
+              <ImageIcon size={11} className="text-gold" /> Foto fundo
             </label>
-            <div className="group relative flex items-center">
-              <div className="flex items-center justify-center w-3.5 h-3.5 rounded-full border border-slate-200 text-petroleum/60 dark:text-slate-400 group-hover:border-gold transition-colors cursor-help">
-                <span className="text-[10px] font-semibold">?</span>
-              </div>
-              <div className="absolute bottom-full left-1/2 -translate-x-1/2 mb-2 w-48 p-2 bg-slate-900 text-white text-[10px] font-medium leading-relaxed rounded-luxury opacity-0 pointer-events-none group-hover:opacity-100 transition-all duration-300 shadow-2xl z-50 text-center border border-white/10">
-                <p>Usa a foto selecionada como fundo da grade.</p>
-                <div className="absolute top-full left-1/2 -translate-x-1/2 border-6 border-transparent border-t-slate-900" />
-              </div>
-            </div>
+            <InfoTooltip
+              content="Usa a foto selecionada como fundo da grade de fotos da página
+                  da galeria acessada pelo visitante."
+              width="w-48"
+            />
           </div>
 
           <button
@@ -95,17 +92,13 @@ export const GalleryDesignFields: React.FC<GalleryDesignFieldsProps> = ({
           <div className="flex items-center gap-1 shrink-0">
             <Palette size={12} className="text-gold" />
             <label className="text-[10px] font-bold uppercase tracking-luxury-widest text-petroleum">
-              Cor de fundo
+              Cor fundo
             </label>
-            <div className="group relative flex items-center">
-              <div className="flex items-center justify-center w-3.5 h-3.5 rounded-full border border-slate-200 text-petroleum/60 dark:text-slate-400 group-hover:border-gold transition-colors cursor-help">
-                <span className="text-[8px] font-semibold">?</span>
-              </div>
-              <div className="absolute bottom-full left-1/2 -translate-x-1/2 mb-2 w-56 p-2 bg-slate-900 text-white text-[9px] font-medium leading-relaxed rounded-luxury opacity-0 pointer-events-none group-hover:opacity-100 transition-all duration-300 shadow-2xl z-[100] text-center border border-white/10">
-                <p>Define a cor sólida do grid.</p>
-                <div className="absolute top-full left-1/2 -translate-x-1/2 border-6 border-transparent border-t-slate-900" />
-              </div>
-            </div>
+            <InfoTooltip
+              content="Define a cor sólida do grid de fotos da página da galeria
+                  acessada pelo visitante."
+              width="w-48"
+            />
           </div>
 
           <div className="flex items-center gap-1.5 h-full">
@@ -120,9 +113,10 @@ export const GalleryDesignFields: React.FC<GalleryDesignFieldsProps> = ({
                 />
               ))}
             </div>
-            <div className="flex items-center gap-1 bg-slate-50 border border-slate-200 rounded-[0.25rem] px-1 h-5.5 shrink-0">
+            <div className="flex items-center gap-1.5 bg-slate-50 border border-slate-200 rounded-[0.25rem] pl-1 pr-1.5 h-5.5 w-fit shrink-0 shadow-sm transition-all hover:border-slate-300">
+              {/* Color Picker Wrapper */}
               <div
-                className="w-3 h-3 rounded-[0.1rem] border border-slate-200 relative overflow-hidden shadow-sm shrink-0"
+                className="w-3.5 h-3.5 rounded-[0.1rem] border border-slate-200 relative overflow-hidden shadow-inner shrink-0"
                 style={{ backgroundColor }}
               >
                 <input
@@ -131,9 +125,11 @@ export const GalleryDesignFields: React.FC<GalleryDesignFieldsProps> = ({
                   onChange={(e) =>
                     setBackgroundColor(e.target.value.toUpperCase())
                   }
-                  className="absolute inset-0 opacity-0 cursor-pointer scale-150"
+                  className="absolute inset-0 opacity-0 cursor-pointer scale-[2]"
                 />
               </div>
+
+              {/* Hex Input - Exatamente o tamanho de 7 caracteres mono */}
               <input
                 {...(register ? register : {})}
                 type="text"
@@ -142,7 +138,7 @@ export const GalleryDesignFields: React.FC<GalleryDesignFieldsProps> = ({
                 onChange={(e) =>
                   setBackgroundColor(e.target.value.toUpperCase())
                 }
-                className="w-9 h-5 bg-transparent text-[9px] font-mono font-bold text-petroleum outline-none uppercase"
+                className="max-w-[9ch] !gap-0 !p-1 !h-8 rounded-luxury bg-transparent text-[9px] font-mono text-petroleum outline-none uppercase"
               />
             </div>
           </div>
@@ -157,15 +153,10 @@ export const GalleryDesignFields: React.FC<GalleryDesignFieldsProps> = ({
           <label className="text-[10px] font-bold uppercase tracking-luxury-widest text-petroleum">
             Grid
           </label>
-          <div className="group relative flex items-center">
-            <div className="flex items-center justify-center w-3.5 h-3.5 rounded-full border border-slate-200 text-petroleum/60 dark:text-slate-400 group-hover:border-gold transition-colors cursor-help">
-              <span className="text-[8px] font-semibold">?</span>
-            </div>
-            <div className="absolute bottom-full right-0 xl:left-1/2 xl:-translate-x-1/2 mb-2 w-56 p-2 bg-slate-900 text-white text-[9px] font-medium leading-relaxed rounded-luxury opacity-0 pointer-events-none group-hover:opacity-100 transition-all duration-300 shadow-2xl z-[100] text-left xl:text-center border border-white/10">
-              <p>Colunas por dispositivo.</p>
-              <div className="absolute top-full right-2 xl:left-1/2 xl:-translate-x-1/2 border-6 border-transparent border-t-slate-900" />
-            </div>
-          </div>
+          <InfoTooltip
+            content="Colunas por dispositivo: Mobile | Tablet | Desktop."
+            width="w-48"
+          />
         </div>
 
         <div className="flex items-center gap-1 h-full">
@@ -173,14 +164,14 @@ export const GalleryDesignFields: React.FC<GalleryDesignFieldsProps> = ({
             {
               k: 'mobile' as const,
               i: Smartphone,
-              options: getFilteredOptions([1, 2, 3, 4]),
+              options: getFilteredOptions([1, 2]),
             },
             { k: 'tablet' as const, i: Tablet, options: [2, 3, 4, 5, 6] },
             { k: 'desktop' as const, i: Monitor, options: [3, 4, 5, 6, 8] },
           ].map((d) => (
             <div
               key={d.k}
-              className="flex items-center gap-1.5 bg-slate-50 border border-petroleum/20 px-1 rounded-[0.25rem] h-5"
+              className="flex items-center gap-1 bg-slate-50 border border-petroleum/20  px-1 rounded-[0.25rem] h-6"
             >
               <d.i size={11} className="text-petroleum/60" strokeWidth={2} />
               <PlanSelect

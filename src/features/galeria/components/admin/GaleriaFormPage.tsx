@@ -151,7 +151,7 @@ export default function GaleriaFormPage({
     const clientName = formData.get('client_name') as string;
     const password = formData.get('password') as string;
     const isPublicValue = formData.get('is_public') === 'true';
-
+    const cover_image_ids = formData.get('cover_image_ids') as string;
     // Validações
     if (!title?.trim()) {
       setToast({ message: 'O título é obrigatório.', type: 'error' });
@@ -208,6 +208,11 @@ export default function GaleriaFormPage({
       formData.set('client_name', 'Cobertura');
       formData.set('client_whatsapp', '');
     }
+
+    // 🎯 Captura o array de capas do estado driveData
+    // Adiciona ao formData como uma string JSON ou múltiplos valores dependendo da sua Server Action
+    // Para compatibilidade com PostgreSQL TEXT[], o ideal é enviar como JSON string ou parsear na Action
+    formData.set('cover_image_ids', JSON.stringify(cover_image_ids));
 
     try {
       const result = isEdit

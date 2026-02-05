@@ -4,6 +4,7 @@ import { useEffect, useRef, useState } from 'react';
 import { useSupabaseSession } from '@photos/core-auth';
 import { getGoogleClientId } from '@/actions/google.actions';
 import { Loader2 } from 'lucide-react';
+import { usePlan } from '@/core/context/PlanContext';
 
 interface GooglePickerProps {
   onFolderSelect: (
@@ -13,6 +14,9 @@ interface GooglePickerProps {
   currentDriveId: string | null;
   onError: (message: string) => void;
   onTokenExpired?: () => void; // Callback quando o token expirar/for revogado
+  // 🎯 Modo de operação: 'root' (selecionar pasta pai) ou 'covers' (selecionar fotos)
+  // mode: 'root' | 'covers';
+  // googleDriveRootId: string | null;
 }
 
 declare global {
@@ -84,17 +88,24 @@ export default function GooglePickerButton({
   const [loading, setLoading] = useState(false);
   const loadingRef = useRef(false);
   const [isReadyToOpen, setIsReadyToOpen] = useState(isPickerLoaded);
-  const onFolderSelectRef = useRef(onFolderSelect);
+
   const { getAuthDetails } = useSupabaseSession();
+  const { planKey, permissions } = usePlan(); // Pegamos o limite do plano atual
+  // Define o limite de seleção baseado no plano (ex: PRO/PREMIUM = 5, outros = 1)
+  const maxSelections = (permissions?.maxCoverPerGallery as number) || 1;
+  //
+  //o plano do usuário
+
+  const onFolderSelectRef = useRef(onFolderSelect);
+
+  useEffect(() => {
+    onFolderSelectRef.current = onFolderSelect;
+  }, [onFolderSelect]);
 
   // 🎯 Sincroniza o ref de loading para uso em timeouts (evita stale closure)
   useEffect(() => {
     loadingRef.current = loading;
   }, [loading]);
-
-  useEffect(() => {
-    onFolderSelectRef.current = onFolderSelect;
-  }, [onFolderSelect]);
 
   useEffect(() => {
     if (isReadyToOpen) {
@@ -315,72 +326,85 @@ export default function GooglePickerButton({
         window.google.picker.ViewId.DOCS,
       )
         .setMimeTypes(
-          'application/vnd.google-apps.folder,image/jpeg,image/png,image/tiff',
+          'application/vnd.google-apps.folder,image/jpeg,image/png,image/webp',
         )
         .setMode(window.google.picker.DocsViewMode.GRID)
-        .setSelectFolderEnabled(false)
-        .setOwnedByMe(true); // 🎯 Mostra apenas arquivos e pastas próprios, excluindo pastas compartilhadas
+        .setOwnedByMe(true);
 
       const pickerBuilder = new window.google.picker.PickerBuilder()
         .setAppId(googleClientId)
         .setOAuthToken(accessToken)
         .addView(view)
-        .enableFeature(window.google.picker.Feature.NAVIGATE_TO_DRIVE)
         .setLocale('pt-BR')
-        .setOrigin(window.location.origin); // 🎯 Compatibilidade com Vercel
+        .setOrigin(window.location.origin) // 🎯 Compatibilidade com Vercel
+        .enableFeature(window.google.picker.Feature.MULTISELECT_ENABLED)
+        // 🎯 ESSENCIAL: Permite que pastas apareçam como itens clicáveis para navegação
+        .enableFeature(window.google.picker.Feature.SUPPORT_DRIVES)
+        .enableFeature(window.google.picker.Feature.NAVIGATE_TO_DRIVE);
 
       const picker = pickerBuilder
         .setCallback(async (data: any) => {
-          /* console.log('[GooglePickerButton] Picker callback recebido:', {
-            action: data.action,
-            hasDocs: !!data.docs,
-            docsLength: data.docs?.length || 0,
-          }); */
-
           if (data.action === window.google.picker.Action.PICKED) {
-            setLoading(true);
-            const selectedItem = data.docs[0];
+            const selectedDocs = data.docs;
 
-            /* console.log('[GooglePickerButton] Item selecionado:', {
-              id: selectedItem?.id,
-              name: selectedItem?.name,
-              mimeType: selectedItem?.mimeType,
-            }); */
+            // 🛡️ Filtro de Segurança: Garante que o usuário não "selecionou" uma pasta por erro
+            // no modo de capas, queremos apenas os arquivos de imagem.
+            const selectedFiles = selectedDocs.filter(
+              (doc: any) =>
+                doc.mimeType !== 'application/vnd.google-apps.folder',
+            );
 
-            // 🎯 Componente "burro": apenas retorna o que foi selecionado
-            // A validação será feita no componente pai
-            if (selectedItem) {
+            if (selectedFiles.length > maxSelections) {
+              onError(
+                `Seu plano permite selecionar no máximo ${maxSelections} fotos de capa.`,
+              );
+              setLoading(false);
+              return;
+            }
+
+            // 🎯 Tenta pegar o parentId do primeiro arquivo,
+            // ou o ID do próprio item se ele for uma pasta
+            const firstItem = selectedDocs[0];
+            const folderId =
+              firstItem.mimeType === 'application/vnd.google-apps.folder'
+                ? firstItem.id
+                : firstItem.parentId;
+
+            if (!folderId) {
+              console.error(
+                'Não foi possível determinar o ID da pasta',
+                firstItem,
+              );
+              onError(
+                'Erro ao identificar a pasta de origem. Tente selecionar os arquivos novamente.',
+              );
+              return;
+            }
+
+            // 2. Se a contagem estiver correta, prosseguimos
+            if (selectedFiles.length > 0) {
+              setLoading(true);
               try {
-                // Se selecionou uma pasta, retorna diretamente
-                if (
-                  selectedItem.mimeType === 'application/vnd.google-apps.folder'
-                ) {
-                  await onFolderSelectRef.current(
-                    selectedItem.id,
-                    selectedItem.name,
-                  );
-                } else {
-                  // Se selecionou um arquivo, retorna o ID do arquivo (o pai vai buscar a pasta)
-                  // Por enquanto, retornamos o ID do arquivo e o nome
-                  await onFolderSelectRef.current(
-                    selectedItem.id,
-                    selectedItem.name,
-                  );
-                }
+                const firstFile = selectedFiles[0];
+                const folderId = firstFile.parentId;
+                const folderNameReference = firstFile.name;
+
+                const files = selectedFiles.map((doc: any) => ({
+                  id: doc.id,
+                  name: doc.name,
+                  url: doc.url,
+                  parentId: doc.parentId,
+                }));
+
+                // 3. Envia os dados limpos para o "Cérebro" (handleDriveSelection)
+                await onFolderSelectRef.current(folderId, folderNameReference);
               } catch (error) {
-                console.error(
-                  '[GooglePickerButton] Erro ao processar seleção no componente pai:',
-                  error,
-                );
+                onError('Erro ao processar a seleção.');
+              } finally {
+                setLoading(false);
               }
             }
-          } else if (data.action === window.google.picker.Action.CANCEL) {
-            // console.log('[GooglePickerButton] Usuário cancelou a seleção');
-            // Usuário cancelou - apenas fecha o loading
-          } else {
-            // console.log('[GooglePickerButton] Ação desconhecida:', data.action);
           }
-          setLoading(false);
         })
         .build();
 
@@ -425,17 +449,24 @@ export default function GooglePickerButton({
 
   return (
     <button
-        type="button"
-        onClick={openPicker}
-        disabled={isDisabled}
-        className={`btn-luxury-base h-9 px-4 ${
-          isDisabled
-            ? 'bg-slate-50 text-slate-300 border-slate-100 cursor-not-allowed'
-            : hasSelected
-              ? 'bg-[#F3E5AB]/20 border-[#D4AF37]/40 text-champagne hover:bg-[#F3E5AB]/40'
-              : 'btn-luxury-primary'
-        }`}
-      >
+      type="button"
+      onClick={openPicker}
+      disabled={isDisabled}
+      className={`
+      /* Layout Compacto e Alinhamento */
+      flex items-center justify-center h-9 px-4 rounded-[0.4rem] shrink-0
+      transition-all duration-300 text-[10px] font-semibold uppercase tracking-widest
+      border shadow-sm active:scale-[0.98]
+      
+      ${
+        isDisabled
+          ? 'bg-slate-50 text-slate-300 border-slate-100 cursor-not-allowed'
+          : hasSelected
+            ? 'bg-[#F3E5AB]/20 border-[#D4AF37]/40 text-champagnehover:bg-[#F3E5AB]/40'
+            : 'bg-[#F3E5AB] text-black border-[#F3E5AB] hover:bg-white shadow-[#D4AF37]/10'
+      }
+    `}
+    >
       {loading ? (
         <div className="flex items-center gap-2">
           <Loader2 size={14} className="animate-spin" />

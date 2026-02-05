@@ -60,29 +60,34 @@ export function PlanGuard({
         data-testid="plan-guard-overlay"
         className="relative group cursor-pointer overflow-hidden rounded-luxury border border-transparent hover:border-gold/20 transition-all duration-500"
       >
-        {/* Badge Discreto de Plano no Canto Superior Direito */}
+        {/* 🎯 AJUSTE 1: Badge no fluxo normal para evitar sobreposição */}
         {requiredPlan && (
-          <div className="absolute top-2 right-2 z-20 flex items-center gap-1.5 px-2 py-1 bg-petroleum/80 backdrop-blur-md rounded-full border border-white/10 shadow-lg scale-90 group-hover:scale-100 transition-all duration-500">
+          <div className="absolute top-1.5 right-1.5 z-20 flex items-center gap-1 px-2 py-0.5 bg-petroleum/90 backdrop-blur-md rounded-full border border-white/10 shadow-md">
             <Sparkles size={8} className="text-gold animate-pulse" />
-            <span className="text-[8px] font-black uppercase tracking-[0.15em] text-gold/90">
+            <span className="text-[8px] font-bold uppercase tracking-wider text-gold">
               {requiredPlan}
             </span>
           </div>
         )}
 
         {/* Camada Visual Desabilitada */}
-        <div className="opacity-25 blur-[2px] pointer-events-none select-none grayscale transition-all duration-700">
+        <div className="opacity-10 pointer-events-none select-none grayscale transition-all duration-700">
           {children}
         </div>
 
         {/* Overlay Editorial de Bloqueio */}
-        <div className="absolute inset-0 z-10 flex flex-col items-center justify-center gap-2 bg-petroleum/10 backdrop-blur-[1px] group-hover:bg-petroleum/20 transition-all duration-500">
-          <div className="bg-white p-2.5 rounded-full shadow-2xl scale-90 group-hover:scale-100 transition-transform duration-500 border border-gold/20">
-            <Lock size={14} className="text-gold" strokeWidth={3} />
+        <div className="absolute inset-0 z-10 flex items-center px-3 bg-petroleum/5 group-hover:bg-petroleum/10 transition-all duration-500">
+          <div className="flex items-center gap-3 w-full">
+            {/* Ícone fixo à esquerda */}
+            <div className="bg-white p-2 rounded-full shadow-xl border border-gold/20 flex items-center justify-center shrink-0 translate-y-[1px]">
+              <Lock size={12} className="text-gold" strokeWidth={3} />
+            </div>
+
+            {/* 🎯 AJUSTE 2: Texto Flex-1 com margem direita para o badge */}
+            <span className="flex-1 text-[10px] font-bold uppercase tracking-widest text-petroleum drop-shadow-sm truncate pr-12">
+              {label ? label : 'Premium'}
+            </span>
           </div>
-          <span className="text-[9px] font-black uppercase tracking-[0.2em] text-white drop-shadow-md">
-            {label ? label : 'Premium'}
-          </span>
         </div>
       </div>
 

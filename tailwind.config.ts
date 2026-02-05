@@ -42,6 +42,7 @@ const config: Config = {
       letterSpacing: {
         'luxury-tight': '-0.02em', // Para Títulos H1/H2
         'luxury-normal': '0em', // Para parágrafos
+        'luxury-wide': '0.15em', // Para Labels, Botões e Microcopy (Editorial)
         'luxury-widest': '0.25em', // Para Labels, Botões e Microcopy (Editorial)
       },
       borderRadius: {

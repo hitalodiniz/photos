@@ -1,20 +1,32 @@
 'use client';
 
+import { useState } from 'react';
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { z } from 'zod';
+import { useRouter } from 'next/navigation';
+import {
+  Layout,
+  ShieldCheck,
+  User,
+  Eye,
+  Users,
+  Palette,
+  Briefcase,
+  Shield,
+  FolderSync,
+  ImageIcon,
+} from 'lucide-react';
+
 import { UserSettingsSchema } from '@/core/types/profile';
 import { updateProfileSettings } from '@/core/services/profile.service';
-import { GalleryDesignFields } from '@/features/galeria/components/admin/GaleriaDesignFields';
-import { useRef, useState } from 'react';
-import { useRouter } from 'next/navigation';
+
 import { usePlan } from '@/core/context/PlanContext';
 import { Toast } from '@/components/ui';
 import FormPageBase from '@/components/ui/FormPageBase';
-
 import { LeadCaptureSection } from '@/components/ui/LeadCaptureSection';
-import { Layout, CheckCircle2, Lock } from 'lucide-react';
 import { PlanGuard } from '@/components/auth/PlanGuard';
+import { GalleryDesignFields } from '@/features/galeria/components/admin/GaleriaDesignFields';
 
 const CombinedSchema = z.object({
   settings: UserSettingsSchema,
@@ -31,10 +43,10 @@ const FormSection = ({
   icon?: React.ReactNode;
   children: React.ReactNode;
 }) => (
-  <div className="bg-white rounded-luxury border border-slate-200 p-4 md:p-6 space-y-4">
-    <div className="flex items-center gap-2 pb-3 border-b border-slate-200">
-      {icon && <div className="text-petroleum">{icon}</div>}
-      <h3 className="text-xs font-bold uppercase tracking-luxury-widest text-petroleum ">
+  <div className="bg-white rounded-luxury border border-slate-400 p-4 space-y-3">
+    <div className="flex items-center gap-2 pb-2 border-b border-slate-200">
+      {icon && <div className="text-gold">{icon}</div>}
+      <h3 className="text-[10px] font-bold uppercase tracking-luxury-widest text-petroleum">
         {title}
       </h3>
     </div>
@@ -51,20 +63,19 @@ export default function SettingsForm({ profile }: { profile: any }) {
     type: 'success' | 'error';
   } | null>(null);
 
-  // Destructure canCaptureLeads from permissions
-  const { planKey, permissions } = usePlan();
-  const canCaptureLeads = permissions.canCaptureLeads;
+  const { permissions } = usePlan();
 
   const defaultValues: CombinedData = {
     settings: {
       display: {
         show_contract_type:
           profile.settings?.display?.show_contract_type ?? true,
+        default_type: profile.settings?.display?.default_type ?? 'contract',
       },
       defaults: {
         list_on_profile: profile.settings?.defaults?.list_on_profile ?? false,
-        // Conditionally set enable_guest_registration based on plan permission
-        enable_guest_registration: canCaptureLeads
+        is_public: profile.settings?.defaults?.is_public ?? true,
+        enable_guest_registration: permissions.canCaptureLeads
           ? (profile.settings?.defaults?.enable_guest_registration ?? false)
           : false,
         required_guest_fields: profile.settings?.defaults
@@ -87,49 +98,37 @@ export default function SettingsForm({ profile }: { profile: any }) {
     watch,
     setValue,
     formState: { isDirty },
-  } = useForm<any>({
+  } = useForm<CombinedData>({
     resolver: zodResolver(CombinedSchema),
     defaultValues,
   });
 
   const onSubmit = async (data: CombinedData) => {
     setIsSaving(true);
-    setIsSuccess(false);
     try {
       const result = await updateProfileSettings(data);
       if (result.success) {
         setIsSuccess(true);
         setToast({
-          message: 'Configurações salvas com sucesso!',
+          message: 'Preferências salvas com sucesso!',
           type: 'success',
         });
         setTimeout(() => setIsSuccess(false), 3000);
       } else {
-        setToast({
-          message: result.error || 'Erro ao salvar configurações.',
-          type: 'error',
-        });
+        setToast({ message: result.error || 'Erro ao salvar.', type: 'error' });
       }
     } catch (error) {
-      setToast({ message: 'Ocorreu um erro ao salvar.', type: 'error' });
+      setToast({ message: 'Ocorreu um erro técnico.', type: 'error' });
     } finally {
       setIsSaving(false);
     }
   };
 
-  const showContractType = watch('settings.display.show_contract_type');
-  const listOnProfile = watch('settings.defaults.list_on_profile');
-  const enableGuestRegistration = watch(
-    'settings.defaults.enable_guest_registration',
-  );
-  const requiredGuestFields = watch('settings.defaults.required_guest_fields');
-  const gridMobile = watch('settings.defaults.grid_mobile');
-  const gridTablet = watch('settings.defaults.grid_tablet');
-  const gridDesktop = watch('settings.defaults.grid_desktop');
+  const settings = watch('settings');
 
   return (
     <FormPageBase
-      title="Preferências do Usuário"
+      title="Preferências do Aplicativo"
       isEdit={true}
       loading={isSaving}
       isSuccess={isSuccess}
@@ -139,165 +138,286 @@ export default function SettingsForm({ profile }: { profile: any }) {
       submitLabel="SALVAR PREFERÊNCIAS"
       id="settings-form"
     >
-      <div className="flex flex-col lg:flex-row">
-        {/* COLUNA ÚNICA */}
-        <div className="w-full relative z-10 pb-24">
-          <div className="max-w-5xl mx-auto space-y-6">
-            <FormSection title="Padrões de Galeria" icon={<Layout size={16} />}>
-              <div className="flex flex-col gap-8">
-                <div className="space-y-6">
-                  <div className="flex items-center gap-4">
-                    <div className="space-y-0.5">
-                      <label
-                        className="text-[11px] font-bold uppercase tracking-luxury-widest text-petroleum mb-0 cursor-pointer"
-                        onClick={() =>
-                          setValue(
-                            'settings.display.show_contract_type',
-                            !showContractType,
-                            { shouldDirty: true },
-                          )
-                        }
-                      >
-                        Habilitar tipo "Contrato"
-                      </label>
-                      <p className="text-[10px] text-petroleum/60 italic">
-                        Oculta ou exibe o tipo de galeria na criação.
-                      </p>
-                    </div>
+      <div className="max-w-5xl mx-auto space-y-3 pb-4 font-sans">
+        {/* SEÇÃO 1: PADRÕES DE IDENTIFICAÇÃO (ALINHADO HORIZONTALMENTE) */}
+        <FormSection title="Padrões de Identificação" icon={<User size={14} />}>
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-8 items-start">
+            {/* TIPO PADRÃO */}
+            <div className="space-y-2">
+              <label className="text-[10px] font-bold uppercase tracking-luxury-widest text-petroleum/60 flex items-center gap-1.5">
+                <Briefcase size={12} strokeWidth={2} className="text-gold" />
+                Tipo de Galeria Padrão
+              </label>
 
-                    <button
-                      type="button"
-                      onClick={() =>
-                        setValue(
-                          'settings.display.show_contract_type',
-                          !showContractType,
-                          { shouldDirty: true },
-                        )
-                      }
-                      className={`relative h-5 w-9 shrink-0 rounded-full transition-colors ${showContractType ? 'bg-gold' : 'bg-slate-200'}`}
-                    >
-                      <span
-                        className={`absolute top-0.5 left-0.5 w-3.5 h-3.5 rounded-full bg-white shadow-sm transition-transform duration-200 ${showBackgroundPhoto ? 'translate-x-3.5' : ''}`}
-                      />
-                    </button>
-                  </div>
-                  <div className="flex items-center gap-4">
-                    <label className="text-[11px] font-semibold uppercase tracking-luxury-widest text-petroleum ">
-                      Exibir galeria no meu perfil público
-                    </label>
-
-                    <button
-                      type="button"
-                      onClick={() =>
-                        setValue(
-                          'settings.defaults.list_on_profile',
-                          !listOnProfile,
-                          { shouldDirty: true },
-                        )
-                      }
-                      className={`relative h-5 w-9 rounded-full transition-colors duration-200 ${listOnProfile ? 'bg-gold' : 'bg-slate-200'}`}
-                    >
-                      <span
-                        className={`absolute top-0.5 left-0.5 h-4 w-4 rounded-full bg-white shadow-sm transition-transform duration-200 ${listOnProfile ? 'translate-x-4' : ''}`}
-                      />
-                    </button>
-                  </div>
-
-                  <PlanGuard
-                    feature="canCaptureLeads"
-                    label="Cadastro de Visitante"
-                  >
-                    <LeadCaptureSection
-                      enabled={enableGuestRegistration}
-                      setEnabled={(val) =>
-                        setValue(
-                          'settings.defaults.enable_guest_registration',
-                          val,
-                          {
-                            shouldDirty: true,
-                          },
-                        )
-                      }
-                      requiredFields={requiredGuestFields}
-                      setRequiredFields={(newFields) =>
-                        setValue(
-                          'settings.defaults.required_guest_fields',
-                          newFields,
-                          {
-                            shouldDirty: true,
-                          },
-                        )
-                      }
-                      register={register}
-                      setValue={setValue}
-                      watch={watch}
-                      purposeFieldName="settings.defaults.data_treatment_purpose"
-                      initialPurposeValue={
-                        profile.settings?.defaults?.data_treatment_purpose
-                      }
-                      toggleLabel="Habilitar cadastro de visitante por padrão"
-                      showLayout="grid"
-                      isEdit={true}
-                    />
-                  </PlanGuard>
-                </div>
-
-                <div className="space-y-6 border-t border-petroleum/20 pt-6">
-                  <GalleryDesignFields
-                    showBackgroundPhoto={
-                      !!watch('settings.defaults.background_photo')
-                    }
-                    setShowBackgroundPhoto={(val) => {
-                      if (!val)
-                        setValue('settings.defaults.background_photo', '', {
-                          shouldDirty: true,
-                        });
-                    }}
-                    onBackgroundPhotoUrlChange={(val) =>
-                      setValue('settings.defaults.background_photo', val, {
-                        shouldDirty: true,
-                      })
-                    }
-                    backgroundColor={watch(
-                      'settings.defaults.background_color',
-                    )}
-                    setBackgroundColor={(val) =>
-                      setValue('settings.defaults.background_color', val, {
-                        shouldDirty: true,
-                      })
-                    }
-                    columns={{
-                      mobile: watch('settings.defaults.grid_mobile'),
-                      tablet: watch('settings.defaults.grid_tablet'),
-                      desktop: watch('settings.defaults.grid_desktop'),
-                    }}
-                    setColumns={(cols) => {
-                      setValue('settings.defaults.grid_mobile', cols.mobile, {
-                        shouldDirty: true,
-                      });
-                      setValue('settings.defaults.grid_tablet', cols.tablet, {
-                        shouldDirty: true,
-                      });
-                      setValue('settings.defaults.grid_desktop', cols.desktop, {
-                        shouldDirty: true,
-                      });
-                    }}
-                    register={register}
-                  />
-                </div>
+              <div className="flex p-1 bg-slate-50 rounded-luxury border border-slate-200 h-10 items-center relative">
+                <div
+                  className={`absolute top-1 bottom-1 w-[calc(50%-4px)] rounded-[0.35rem] transition-all duration-300 bg-champagne border border-gold/20 shadow-sm ${
+                    settings.display.default_type === 'contract'
+                      ? 'left-1'
+                      : 'left-[calc(50%+1px)]'
+                  }`}
+                />
+                <button
+                  type="button"
+                  onClick={() =>
+                    setValue('settings.display.default_type', 'contract', {
+                      shouldDirty: true,
+                    })
+                  }
+                  className={`relative z-10 flex-1 text-[9px] font-semibold uppercase tracking-luxury-widest transition-colors ${
+                    settings.display.default_type === 'contract'
+                      ? 'text-black'
+                      : 'text-petroleum/60'
+                  }`}
+                >
+                  Contrato
+                </button>
+                <button
+                  type="button"
+                  onClick={() =>
+                    setValue('settings.display.default_type', 'event', {
+                      shouldDirty: true,
+                    })
+                  }
+                  className={`relative z-10 flex-1 text-[9px] font-semibold uppercase tracking-luxury-widest transition-colors ${
+                    settings.display.default_type === 'event'
+                      ? 'text-black'
+                      : 'text-petroleum/60'
+                  }`}
+                >
+                  Cobertura
+                </button>
               </div>
-            </FormSection>
+              <p className="text-[9px] text-petroleum/50 italic px-1">
+                Define qual opção virá selecionada ao criar uma nova galeria.
+              </p>
+            </div>
 
-            {toast && (
-              <Toast
-                message={toast.message}
-                type={toast.type}
-                onClose={() => setToast(null)}
-              />
-            )}
+            {/* VISIBILIDADE NO PERFIL */}
+            <div className="space-y-2">
+              <label className="text-[10px] font-bold uppercase tracking-luxury-widest text-petroleum/60 flex items-center gap-1.5">
+                <Eye size={12} strokeWidth={2} className="text-gold" />
+                Listagem no Perfil
+              </label>
+
+              <div className="flex items-center justify-between p-1 px-4 bg-slate-50 rounded-luxury border border-slate-200 h-10">
+                <span className="text-[9px] font-semibold uppercase tracking-luxury-widest text-petroleum/80">
+                  {settings.defaults.list_on_profile ? 'Ativado' : 'Desativado'}
+                </span>
+                <button
+                  type="button"
+                  onClick={() =>
+                    setValue(
+                      'settings.defaults.list_on_profile',
+                      !settings.defaults.list_on_profile,
+                      { shouldDirty: true },
+                    )
+                  }
+                  className={`relative h-5 w-9 shrink-0 rounded-full transition-colors ${settings.defaults.list_on_profile ? 'bg-gold' : 'bg-slate-200'}`}
+                >
+                  <span
+                    className={`absolute top-0.5 left-0.5 w-3.5 h-3.5 rounded-full bg-white shadow-sm transition-transform ${settings.defaults.list_on_profile ? 'translate-x-4' : ''}`}
+                  />
+                </button>
+              </div>
+              <p className="text-[9px] text-petroleum/50 italic px-1">
+                Define se as novas galerias serão exibidas automaticamente no
+                seu perfil público.
+              </p>
+            </div>
           </div>
-        </div>
+        </FormSection>
+
+        {/* SEÇÃO 2: PRIVACIDADE PADRÃO */}
+        <FormSection
+          title="Privacidade Padrão"
+          icon={<ShieldCheck size={14} />}
+        >
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-8 items-start">
+            <div className="space-y-2">
+              <label className="text-[10px] font-bold uppercase tracking-widest text-petroleum/60 flex items-center gap-1.5">
+                <Shield size={12} className="text-gold" />
+                Acesso Inicial
+              </label>
+              <div className="flex bg-slate-100 p-1 rounded-luxury border border-slate-200 h-10 items-center">
+                <button
+                  type="button"
+                  onClick={() =>
+                    setValue('settings.defaults.is_public', true, {
+                      shouldDirty: true,
+                    })
+                  }
+                  className={`flex-1 h-full rounded-[0.4rem] text-[9px] font-bold uppercase tracking-widest transition-all ${settings.defaults.is_public ? 'bg-champagne shadow-sm text-petroleum' : 'text-slate-400'}`}
+                >
+                  Público
+                </button>
+                <button
+                  type="button"
+                  onClick={() =>
+                    setValue('settings.defaults.is_public', false, {
+                      shouldDirty: true,
+                    })
+                  }
+                  className={`flex-1 h-full rounded-[0.4rem] text-[9px] font-bold uppercase tracking-widest transition-all ${!settings.defaults.is_public ? 'bg-champagne shadow-sm text-petroleum' : 'text-slate-400'}`}
+                >
+                  Privado
+                </button>
+              </div>
+              <p className="text-[9px] text-petroleum/50 italic px-1">
+                Define se novas galerias começam como públicas ou protegidas.
+              </p>
+            </div>
+          </div>
+        </FormSection>
+
+        {/* SEÇÃO 3: CAPTURA DE LEADS PADRÃO */}
+        <FormSection title="Captação de Visitantes" icon={<Users size={14} />}>
+          <PlanGuard feature="canCaptureLeads" label="Cadastro de Visitante">
+            <div className="space-y-2">
+              <LeadCaptureSection
+                enabled={settings.defaults.enable_guest_registration}
+                setEnabled={(val) =>
+                  setValue('settings.defaults.enable_guest_registration', val, {
+                    shouldDirty: true,
+                  })
+                }
+                requiredFields={settings.defaults.required_guest_fields}
+                setRequiredFields={(val) =>
+                  setValue('settings.defaults.required_guest_fields', val, {
+                    shouldDirty: true,
+                  })
+                }
+                register={register}
+                setValue={setValue}
+                watch={watch}
+                purposeFieldName="settings.defaults.data_treatment_purpose"
+                initialPurposeValue={
+                  profile.settings?.defaults?.data_treatment_purpose
+                }
+                toggleLabel="Habilitar cadastro por padrão em novas galerias"
+                showLayout="grid"
+                isEdit={true}
+              />
+              <p className="text-[9px] text-petroleum/50 italic px-1 pt-2">
+                Configure se deseja capturar dados dos visitantes para gerar
+                novos leads automaticamente.
+              </p>
+            </div>
+          </PlanGuard>
+        </FormSection>
+
+        {/* SEÇÃO 4: DESIGN PADRÃO */}
+        <FormSection title="Design Padrão" icon={<Palette size={14} />}>
+          <div className="space-y-4">
+            <GalleryDesignFields
+              showBackgroundPhoto={!!settings.defaults.background_photo}
+              setShowBackgroundPhoto={(val) =>
+                !val &&
+                setValue('settings.defaults.background_photo', '', {
+                  shouldDirty: true,
+                })
+              }
+              backgroundColor={settings.defaults.background_color}
+              setBackgroundColor={(val) =>
+                setValue('settings.defaults.background_color', val, {
+                  shouldDirty: true,
+                })
+              }
+              onBackgroundPhotoUrlChange={(val) =>
+                setValue('settings.defaults.background_photo', val, {
+                  shouldDirty: true,
+                })
+              }
+              columns={{
+                mobile: settings.defaults.grid_mobile,
+                tablet: settings.defaults.grid_tablet,
+                desktop: settings.defaults.grid_desktop,
+              }}
+              setColumns={(cols) => {
+                setValue('settings.defaults.grid_mobile', cols.mobile, {
+                  shouldDirty: true,
+                });
+                setValue('settings.defaults.grid_tablet', cols.tablet, {
+                  shouldDirty: true,
+                });
+                setValue('settings.defaults.grid_desktop', cols.desktop, {
+                  shouldDirty: true,
+                });
+              }}
+              register={register}
+            />
+            <p className="text-[9px] text-petroleum/50 italic px-1">
+              Personalize a aparência que suas novas galerias terão por padrão.
+            </p>
+          </div>
+        </FormSection>
+        {/* SEÇÃO 2: PADRÕES DO GOOGLE DRIVE (NOVA) */}
+        <FormSection
+          title="Padrões do Google Drive"
+          icon={<FolderSync size={14} />}
+        >
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-8 items-start">
+            {/* PASTA RAIZ PADRÃO */}
+            <div className="space-y-2">
+              <label className="text-[10px] font-bold uppercase tracking-luxury-widest text-petroleum/60 flex items-center gap-1.5">
+                <FolderSync size={12} strokeWidth={2} className="text-gold" />
+                Pasta Raiz (ID)
+              </label>
+              <input
+                {...register('settings.defaults.google_drive_root_id')}
+                placeholder="ID da pasta no Google Drive"
+                className="w-full px-3 h-10 bg-slate-50 border border-slate-200 rounded-luxury text-[12px] outline-none focus:border-gold transition-all"
+              />
+              <p className="text-[9px] text-petroleum/50 italic px-1">
+                O seletor de arquivos abrirá diretamente nesta pasta (Ex: sua
+                pasta de 'Trabalhos').
+              </p>
+            </div>
+
+            {/* RENOMEAR FOTOS PADRÃO */}
+            <div className="space-y-2">
+              <label className="text-[10px] font-bold uppercase tracking-luxury-widest text-petroleum/60 flex items-center gap-1.5">
+                <ImageIcon size={12} strokeWidth={2} className="text-gold" />
+                Renomeação Sequencial
+              </label>
+              <div className="flex items-center justify-between p-1 px-4 bg-slate-50 rounded-luxury border border-slate-200 h-10">
+                <span className="text-[9px] font-semibold uppercase tracking-luxury-widest text-petroleum/80">
+                  {watch('settings.defaults.rename_files_sequential')
+                    ? 'Ativado'
+                    : 'Desativado'}
+                </span>
+                <button
+                  type="button"
+                  onClick={() =>
+                    setValue(
+                      'settings.defaults.rename_files_sequential',
+                      !watch('settings.defaults.rename_files_sequential'),
+                      { shouldDirty: true },
+                    )
+                  }
+                  className={`relative h-5 w-9 shrink-0 rounded-full transition-colors ${watch('settings.defaults.rename_files_sequential') ? 'bg-gold' : 'bg-slate-200'}`}
+                >
+                  <span
+                    className={`absolute top-0.5 left-0.5 w-3.5 h-3.5 rounded-full bg-white shadow-sm transition-transform ${watch('settings.defaults.rename_files_sequential') ? 'translate-x-4' : ''}`}
+                  />
+                </button>
+              </div>
+              <p className="text-[9px] text-petroleum/50 italic px-1">
+                Padroniza fotos para "foto-001.jpg" automaticamente em novas
+                galerias.
+              </p>
+            </div>
+          </div>
+        </FormSection>
       </div>
+
+      {toast && (
+        <Toast
+          message={toast.message}
+          type={toast.type}
+          onClose={() => setToast(null)}
+        />
+      )}
     </FormPageBase>
   );
 }

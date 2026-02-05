@@ -33,7 +33,7 @@
 
   /* Automação de Labels Editoriais */
   label {
-    @apply text-[11px] font-semibold uppercase tracking-widest text-petroleum mb-1.5 flex items-center gap-2;
+    @apply text-[10px] font-semibold uppercase tracking-wide text-petroleum flex items-center gap-2;
   }
 
   /* 4. RESET DE INPUTS E BOTÕES */
@@ -69,7 +69,7 @@
   }
 
   .text-editorial-label {
-    @apply text-[10px] font-semibold uppercase tracking-widest;
+    @apply text-[10px] font-semibold uppercase tracking-wide;
   }
 
   /* 🎯 CLASSE MESTRE: Padronização H-10 e PX-4 */
@@ -107,7 +107,7 @@
   /* INPUT PADRÃO EDITORIAL */
   .input-luxury {
     @apply h-10 w-full bg-white border border-slate-200 rounded-luxury px-4;
-    @apply text-sm font-medium tracking-luxury-normal;
+    @apply text-[11px] font-medium tracking-wide;
     @apply focus:border-gold focus:ring-4 focus:ring-gold/5 outline-none transition-all;
     @apply placeholder:text-slate-300;
   }

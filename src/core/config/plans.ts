@@ -91,6 +91,7 @@ export interface PlanPermissions {
 
   // Galeria & Experiência
   socialDisplayLevel: 'minimal' | 'social' | 'full';
+  maxCoverPerGallery: number;
   canFavorite: boolean;
   canDownloadFavoriteSelection: boolean;
   canShowSlideshow: boolean;
@@ -102,7 +103,7 @@ export interface PlanPermissions {
   canCustomLinkLabel: boolean; //Implementado com o overlay de cadeado (Lock) e desabilitação do input de label nos links de entrega.
 
   // Segurança & Automação
-  privacyLevel: 'public' | 'private' | 'password' | 'expiration'; //Implementado	Trava para as opções de "Senha" e "Expiração" no seletor de privacidade.
+  privacyLevel: 'public' | 'password' | 'password' | 'password' | 'password'; //Implementado	Trava para as opções de "Senha" e "Expiração" no seletor de privacidade.
   keepOriginalFilenames: boolean; //Implementado através do PlanGuard envolvendo a seção de "Renomear arquivos" no formulário da galeria
   customizationLevel: 'default' | 'colors' | 'full'; //Implementado através do PlanGuard protegendo os seletores de "Cor de Fundo" e "Foto de Fundo" no design da galeria.
 
@@ -130,6 +131,7 @@ export const PERMISSIONS_BY_PLAN: Record<PlanKey, PlanPermissions> = {
   FREE: {
     maxGalleries: 2,
     maxPhotosPerGallery: 80,
+    maxCoverPerGallery: 1,
     teamMembers: 0,
     profileLevel: 'basic', // Avatar + Nome
     profileCarouselLimit: 0, // Imagem Padrão
@@ -156,6 +158,7 @@ export const PERMISSIONS_BY_PLAN: Record<PlanKey, PlanPermissions> = {
   START: {
     maxGalleries: 10,
     maxPhotosPerGallery: 200,
+    maxCoverPerGallery: 1,
     teamMembers: 0,
     profileLevel: 'standard', // + Bio + Localização
     profileCarouselLimit: 1, // 1 Foto Personalizada
@@ -174,7 +177,7 @@ export const PERMISSIONS_BY_PLAN: Record<PlanKey, PlanPermissions> = {
     zipSizeLimit: '1MB',
     maxExternalLinks: 1, // 1 Link Direto
     canCustomLinkLabel: false,
-    privacyLevel: 'private', // Link Privado
+    privacyLevel: 'password', // Link Privado
     keepOriginalFilenames: false,
     customizationLevel: 'default',
     canCustomCategories: false,
@@ -182,6 +185,7 @@ export const PERMISSIONS_BY_PLAN: Record<PlanKey, PlanPermissions> = {
   PLUS: {
     maxGalleries: 20,
     maxPhotosPerGallery: 400,
+    maxCoverPerGallery: 2,
     teamMembers: 2, // + 2 Colaboradores
     profileLevel: 'standard', // + Áreas de Atuação
     profileCarouselLimit: 1,
@@ -200,7 +204,7 @@ export const PERMISSIONS_BY_PLAN: Record<PlanKey, PlanPermissions> = {
     zipSizeLimit: '1.5MB',
     maxExternalLinks: 2, // 2 Links Diretos
     canCustomLinkLabel: false,
-    privacyLevel: 'private',
+    privacyLevel: 'password',
     keepOriginalFilenames: true, // Nomes Originais
     customizationLevel: 'colors', // + Cores do Grid
     canCustomCategories: true, // + Categorias Próprias
@@ -208,6 +212,7 @@ export const PERMISSIONS_BY_PLAN: Record<PlanKey, PlanPermissions> = {
   PRO: {
     maxGalleries: 50,
     maxPhotosPerGallery: 600,
+    maxCoverPerGallery: 3,
     teamMembers: 5, // + 5 Colaboradores
     profileLevel: 'advanced', // + Subdomínio + SEO
     profileCarouselLimit: 3, // + Carrossel (3 fotos)
@@ -234,6 +239,7 @@ export const PERMISSIONS_BY_PLAN: Record<PlanKey, PlanPermissions> = {
   PREMIUM: {
     maxGalleries: 9999,
     maxPhotosPerGallery: 1000,
+    maxCoverPerGallery: 5,
     teamMembers: 99, // Acessos Ilimitados
     profileLevel: 'seo', // + Subdomínio + SEO (Nível Máximo)
     profileCarouselLimit: 5, // + Carrossel (5 fotos)
@@ -252,7 +258,7 @@ export const PERMISSIONS_BY_PLAN: Record<PlanKey, PlanPermissions> = {
     zipSizeLimit: '3MB',
     maxExternalLinks: 10, // Até 10 Links (Custom)
     canCustomLinkLabel: true,
-    privacyLevel: 'expiration', // + Link com Expiração
+    privacyLevel: 'password', // + Link com Expiração
     keepOriginalFilenames: true,
     customizationLevel: 'full', // + Fundo Personalizado
     canCustomCategories: true,
@@ -572,7 +578,7 @@ export const COMMON_FEATURES = [
 
   // --- EXPERIÊNCIA DA GALERIA ---
   {
-    group: 'Experiência Visual',
+    group: 'Experiência do Visitante',
     label: 'Contato no Visualizador',
     values: [
       'Avatar + Link Perfil',
@@ -583,7 +589,18 @@ export const COMMON_FEATURES = [
     ],
   },
   {
-    group: 'Experiência Visual',
+    group: 'Experiência do Visitante',
+    label: 'Capa da galeria',
+    values: [
+      '1 Foto',
+      '1 Foto',
+      'Carrossel (2 fotos)',
+      'Carrossel (3 fotos)',
+      'Carrossel (5 fotos)',
+    ],
+  },
+  {
+    group: 'Experiência do Visitante',
     label: 'Interação com Fotos',
     values: [
       'Visualização',
@@ -594,7 +611,7 @@ export const COMMON_FEATURES = [
     ],
   },
   {
-    group: 'Experiência Visual',
+    group: 'Experiência do Visitante',
     label: 'Recursos do Slider',
     values: [
       'Download Simples',
@@ -605,7 +622,7 @@ export const COMMON_FEATURES = [
     ],
   },
   {
-    group: 'Experiência Visual',
+    group: 'Experiência do Visitante',
     label: 'Organização e Tags',
     values: [
       'Categorias Padrão',
@@ -616,7 +633,7 @@ export const COMMON_FEATURES = [
     ],
   },
   {
-    group: 'Experiência Visual',
+    group: 'Experiência do Visitante',
     label: 'Personalização da Grade',
     values: [
       'Fixo (3 colunas)',
@@ -627,7 +644,7 @@ export const COMMON_FEATURES = [
     ],
   },
   {
-    group: 'Experiência Visual',
+    group: 'Experiência do Visitante',
     label: 'Design da Interface',
     values: [
       'Tema Editorial',
@@ -677,10 +694,10 @@ export const COMMON_FEATURES = [
     label: 'Controle de Acesso',
     values: [
       'Link Público',
-      '+ Proteção por Senha',
-      '+ Proteção por Senha',
-      '+ Link com Expiração',
-      '+ Link com Expiração',
+      'Proteção por Senha',
+      'Proteção por Senha',
+      'Proteção por Senha',
+      'Proteção por Senha',
     ],
   },
 ];
