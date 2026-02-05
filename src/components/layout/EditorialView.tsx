@@ -36,6 +36,9 @@ export default function EditorialView({
   showPrivacyAction = false, // Nova prop para Privacidade
   onTermsClick, // Callback para abrir o modal
   onPrivacyClick, // Callback para abrir o modal
+  hideContentSection = false, // Nova prop para flexibilidade
+  heroCustomAction, // 🎯 Nova Prop para os Cards de Decisão
+  heroSecondaryAction, // 🎯 Nova Prop para Ação Secundária
 }: any) {
   const [isMounted, setIsMounted] = useState(false);
   const [currentBg, setCurrentBg] = useState<string | null>(null);
@@ -69,6 +72,20 @@ export default function EditorialView({
             <div className="absolute inset-0 bg-gradient-to-b from-transparent from-40% via-petroleum/60 to-petroleum" />
           </div>
 
+          {/* 🎯 ACÕES CUSTOMIZADAS (CARDS) - Centralizados Acima do Título */}
+          {heroCustomAction && (
+            <div className="absolute top-[30%] left-1/2 -translate-x-1/2 -translate-y-1/2 z-20 w-full px-6">
+              {heroCustomAction}
+            </div>
+          )}
+
+          {/* 🎯 MODO COMPACTO (PÍLULA) - Fixo a 80px do topo e centralizado */}
+          {heroSecondaryAction && (
+            <div className="absolute top-[60px] left-1/2 -translate-x-1/2 z-30 w-full px-6 flex justify-center pointer-events-none">
+              <div className="pointer-events-auto">{heroSecondaryAction}</div>
+            </div>
+          )}
+
           {/* 🎯 ÁREA DE CONTEÚDO DO HERO: Título + Ação de Login */}
           <div className="absolute bottom-10 left-0 w-full z-10">
             <div className="max-w-[1600px] mx-auto px-6 md:px-12 flex flex-col md:flex-row items-end justify-between gap-8">
@@ -88,6 +105,7 @@ export default function EditorialView({
                   {subtitle}
                 </p>
               </div>
+              {/* 🎯 Injeção do Modo Compacto aqui */}
 
               {/* 🎯 Lado Direito: Ações (Google, Termos ou Privacidade) */}
               {(showHeroAction || showTermsAction || showPrivacyAction) && (
@@ -147,32 +165,34 @@ export default function EditorialView({
           </div>
         </section>
 
-        <section className="w-full bg-white py-10 shadow-sm border-y border-slate-100">
-          <div className="max-w-[1600px] mx-auto px-6 md:px-12">
-            {(sectionTitle || sectionSubtitle || sectionDescription) && (
-              <div className="text-left mb-14">
-                {sectionTitle && (
-                  <p className="text-gold text-xs uppercase tracking-[0.2em] font-semibold mb-2">
-                    {sectionTitle}
-                  </p>
-                )}
+        {!hideContentSection && (
+          <section className="w-full bg-white py-10 shadow-sm border-y border-slate-100">
+            <div className="max-w-[1600px] mx-auto px-6 md:px-12">
+              {(sectionTitle || sectionSubtitle || sectionDescription) && (
+                <div className="text-left mb-14">
+                  {sectionTitle && (
+                    <p className="text-gold text-xs uppercase tracking-[0.2em] font-semibold mb-2">
+                      {sectionTitle}
+                    </p>
+                  )}
 
-                {sectionSubtitle && (
-                  <h2 className="text-lg md:text-3xl font-semibold text-petroleum italic mb-2">
-                    {sectionSubtitle}
-                  </h2>
-                )}
+                  {sectionSubtitle && (
+                    <h2 className="text-lg md:text-3xl font-semibold text-petroleum italic mb-2">
+                      {sectionSubtitle}
+                    </h2>
+                  )}
 
-                {sectionDescription && (
-                  <p className="text-slate-600 text-sm md:text-base max-w-full font-medium">
-                    {sectionDescription}
-                  </p>
-                )}
-              </div>
-            )}
-            {children}
-          </div>
-        </section>
+                  {sectionDescription && (
+                    <p className="text-slate-600 text-sm md:text-base max-w-full font-medium">
+                      {sectionDescription}
+                    </p>
+                  )}
+                </div>
+              )}
+              {children}
+            </div>
+          </section>
+        )}
       </div>
       <Footer />
     </div>
