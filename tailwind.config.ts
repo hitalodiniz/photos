@@ -13,8 +13,13 @@ const config: Config = {
     extend: {
       fontFamily: {
         // Unificando: 'sans' agora é o padrão global
-        sans: ['var(--font-montserrat)', 'ui-sans-serif', 'system-ui'],
-        mono: ['var(--font-barlow)', 'ui-monospace', 'SFMono-Regular'],
+        sans: [
+          'var(--font-montserrat)',
+          'system-ui',
+          '-apple-system',
+          'sans-serif',
+        ],
+        mono: ['var(--font-barlow)', 'monospace'],
       },
       colors: {
         // Luxury Editorial Photography Official Palette
@@ -38,6 +43,16 @@ const config: Config = {
 
         'luxury-bg': '#F8F9FA', // Fundo claro para o dashboard
       },
+      // Adicione animações para o "X" do input e transições de modo
+      keyframes: {
+        'fade-in-up': {
+          '0%': { opacity: '0', transform: 'translateY(10px)' },
+          '100%': { opacity: '1', transform: 'translateY(0)' },
+        },
+      },
+      animation: {
+        'fade-in-up': 'fade-in-up 0.5s ease-out',
+      },
       // Padronização de Tracking (Letter Spacing)
       letterSpacing: {
         'luxury-tight': '-0.02em', // Para Títulos H1/H2
@@ -46,8 +61,14 @@ const config: Config = {
         'luxury-widest': '0.25em', // Para Labels, Botões e Microcopy (Editorial)
       },
       borderRadius: {
-        luxury: '0.75rem',
+        'luxury-xl': '2rem', // Para os cards grandes de decisão
+        'luxury-lg': '1.5rem', // Para a barra de busca
+        luxury: '0.75rem', // Para botões
         'luxury-sm': '0.375rem',
+      },
+      boxShadow: {
+        'luxury-gold': '0 10px 40px -10px rgba(212, 175, 55, 0.3)',
+        'luxury-soft': '0 20px 50px -12px rgba(0, 0, 0, 0.1)',
       },
     },
   },

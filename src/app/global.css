@@ -10,10 +10,18 @@
 
   html,
   body {
+    /* Use a variável da fonte diretamente sem o @apply */
     font-family: var(--font-montserrat), sans-serif;
+
+    /* Suavização de serrilhado */
     -webkit-font-smoothing: antialiased;
     -moz-osx-font-smoothing: grayscale;
+
+    /* Melhora a renderização de ligaduras e kerning */
     text-rendering: optimizeLegibility;
+
+    /* Opcional: Garante que o Tailwind aplique a classe antialiased nativa */
+    @apply antialiased;
     @apply bg-luxury-bg text-petroleum selection:bg-gold/30;
   }
 

@@ -10,7 +10,6 @@ import {
   X,
 } from 'lucide-react';
 import { useRouter } from 'next/navigation';
-import { GoogleSignInButton } from '@/components/auth';
 import WhatsAppIcon from '@/components/ui/WhatsAppIcon';
 import AuthButton from '../auth/AuthButton';
 
@@ -19,7 +18,6 @@ export default function EditorialToolbar() {
   const [copied, setCopied] = useState(false);
   const [isMenuOpen, setIsMenuOpen] = useState(false);
 
-  // Função Híbrida: Compartilhamento Nativo ou Cópia de Link
   const handleShare = async () => {
     if (navigator.share) {
       try {
@@ -32,7 +30,6 @@ export default function EditorialToolbar() {
         console.log('Compartilhamento cancelado');
       }
     } else {
-      // Fallback para cópia de link se o navegador não suportar share nativo
       navigator.clipboard.writeText(window.location.href);
       setCopied(true);
       setTimeout(() => setCopied(false), 2000);
@@ -42,42 +39,42 @@ export default function EditorialToolbar() {
   return (
     <>
       <nav className="fixed top-0 left-0 right-0 z-[100] bg-petroleum backdrop-blur-md border-b border-white/5 h-12 flex items-center justify-between px-4 md:px-10">
-        {/* LADO ESQUERDO: Branding Limpo */}
+        {/* LADO ESQUERDO: Branding */}
         <div
-          className="flex items-center gap-2 cursor-pointer group"
+          className="flex items-center gap-2 cursor-pointer group shrink-0"
           onClick={() => router.push('/')}
         >
           <Camera
             className="w-5 h-5 text-champagne group-hover:scale-110 transition-transform"
             strokeWidth={1.5}
           />
-          <span className="text-[18px] font-semibold text-white italic tracking-tight">
+          {/* Esconde o texto da marca em celulares muito pequenos se necessário, ou mantém fixo */}
+          <span className="text-[16px] md:text-[18px] font-semibold text-white italic tracking-tight">
             Sua Galeria
           </span>
         </div>
 
-        {/* LADO DIREITO: Ações Minimalistas */}
-        {/* LADO DIREITO: Ações Minimalistas Padronizadas */}
+        {/* LADO DIREITO: Ações */}
         <div className="flex items-center">
-          {/* GRUPO SOCIAL (Desktop) */}
+          {/* GRUPO SOCIAL (Oculto no Mobile por padrão no seu código, mantido) */}
           <div className="hidden md:flex items-center gap-5 px-4 border-r border-white/10">
             <a
               href="https://instagram.com"
               target="_blank"
-              className="text-white hover:text-white transition-all"
+              className="text-white"
             >
               <Instagram className="w-4 h-4" />
             </a>
             <a
               href="https://wa.me/seu-numero"
               target="_blank"
-              className="text-white hover:text-green-400 transition-all"
+              className="text-white"
             >
               <WhatsAppIcon className="w-4 h-4" />
             </a>
             <button
               onClick={handleShare}
-              className="!px-0 text-white hover:text-champagne transition-all bg-transparent border-none"
+              className="!px-0 text-white bg-transparent border-none"
             >
               {copied ? (
                 <Check className="w-4 h-4" />
@@ -87,35 +84,36 @@ export default function EditorialToolbar() {
             </button>
           </div>
 
-          {/* 🎯 HUB DE AÇÕES: Planos e Login Lado a Lado */}
-          <div className="flex items-center gap-1 pl-2">
-            {/* Botão Planos - Agora vizinho direto do Login */}
+          {/* HUB DE AÇÕES MOBILE-FIRST */}
+          <div className="flex items-center gap-1 pl-1 md:pl-2">
+            {/* Botão Planos: No mobile mostramos apenas o ícone para economizar espaço */}
             <button
               onClick={() => router.push('/planos')}
-              className="flex items-center gap-2 px-4 py-2 rounded-luxury bg-transparent hover:bg-white/5 transition-all group"
+              className="flex items-center gap-2 px-2 md:px-4 py-2 rounded-luxury bg-transparent hover:bg-white/5 transition-all"
             >
               <LayoutGrid
-                size={16}
+                size={18}
                 className="text-champagne"
                 strokeWidth={1.5}
               />
-              <span className="text-[10px] font-semibold uppercase tracking-luxury-widest text-white">
+              <span className="hidden md:block text-[10px] font-semibold uppercase tracking-luxury-widest text-white">
                 Planos
               </span>
             </button>
 
-            {/* Divisor vertical sutil entre os dois botões principais */}
             <div className="h-4 w-[1px] bg-white/10 mx-1" />
 
-            {/* Componente de Login (Entrar) */}
-            <AuthButton variant="minimal" />
+            {/* Componente de Login (Minimalista já é ideal) */}
+            <div className="scale-90 md:scale-100">
+              <AuthButton variant="minimal" />
+            </div>
 
             {/* Menu Hambúrguer */}
             <button
               onClick={() => setIsMenuOpen(true)}
-              className="text-white hover:text-champagne transition-colors p-2 ml-1"
+              className="text-white hover:text-champagne transition-colors p-2"
             >
-              <Menu size={22} strokeWidth={1} />
+              <Menu size={22} strokeWidth={1.5} />
             </button>
           </div>
         </div>
@@ -127,22 +125,21 @@ export default function EditorialToolbar() {
           isMenuOpen ? 'visible' : 'invisible'
         }`}
       >
-        {/* Backdrop Escuro Suave */}
         <div
-          className={`absolute inset-0 bg-black/40 backdrop-blur-sm transition-opacity duration-700 ${
+          className={`absolute inset-0 bg-black/60 backdrop-blur-sm transition-opacity duration-700 ${
             isMenuOpen ? 'opacity-100' : 'opacity-0'
           }`}
           onClick={() => setIsMenuOpen(false)}
         />
 
-        {/* Painel do Menu - Mesma cor bg-petroleum da Toolbar */}
+        {/* Painel do Menu: Ajuste de largura mobile total */}
         <div
-          className={`absolute top-0 right-0 h-full w-full md:w-[320px] bg-petroleum border-l border-white/5 p-8 flex flex-col transition-transform duration-500 ease-in-out shadow-2xl ${
+          className={`absolute top-0 right-0 h-full w-[85%] md:w-[320px] bg-petroleum border-l border-white/5 p-6 md:p-8 flex flex-col transition-transform duration-500 ease-in-out shadow-2xl ${
             isMenuOpen ? 'translate-x-0' : 'translate-x-full'
           }`}
         >
-          {/* Cabeçalho: Identidade Visual Toolbar */}
-          <div className="flex justify-between items-center mb-10 pb-6 border-b border-white/5">
+          {/* Cabeçalho Menu */}
+          <div className="flex justify-between items-center mb-8 pb-6 border-b border-white/5">
             <div className="flex items-center gap-2">
               <Camera className="w-4 h-4 text-champagne" strokeWidth={1.5} />
               <span className="text-[11px] font-semibold uppercase tracking-[0.2em] text-white italic">
@@ -151,14 +148,14 @@ export default function EditorialToolbar() {
             </div>
             <button
               onClick={() => setIsMenuOpen(false)}
-              className="text-white hover:text-champagne transition-colors p-1"
+              className="text-white p-1"
             >
-              <X size={20} strokeWidth={1.5} />
+              <X size={24} strokeWidth={1.5} />
             </button>
           </div>
 
-          {/* Navegação Principal com Ícones */}
-          <nav className="flex flex-col gap-2">
+          {/* Navegação */}
+          <nav className="flex flex-col gap-1">
             {[
               { label: 'Nossos Planos', icon: LayoutGrid, path: '/planos' },
               { label: 'A Tecnologia', icon: Camera, path: '/tech' },
@@ -170,23 +167,18 @@ export default function EditorialToolbar() {
                   router.push(item.path);
                   setIsMenuOpen(false);
                 }}
-                className="group flex items-center gap-4 px-4 py-3 rounded-luxury hover:bg-white/5 text-white hover:text-champagne transition-all"
+                className="group flex items-center gap-4 px-4 py-4 rounded-luxury hover:bg-white/5 text-white active:bg-white/10 transition-all"
               >
-                <item.icon
-                  size={16}
-                  strokeWidth={1.5}
-                  className="text-champagne group-hover:text-champagne transition-colors"
-                />
-                <span className="text-[11px] font-semibold uppercase tracking-luxury-widest">
+                <item.icon size={18} className="text-champagne" />
+                <span className="text-[12px] md:text-[11px] font-semibold uppercase tracking-luxury-widest">
                   {item.label}
                 </span>
               </button>
             ))}
           </nav>
 
-          {/* Rodapé: Estilo Editorial Minimalista */}
-          <div className="mt-auto pt-8 border-t border-white/5 space-y-8">
-            {/* Bloco de Integração */}
+          {/* Rodapé Menu */}
+          <div className="mt-auto pt-8 border-t border-white/5 space-y-6">
             <div className="px-4 py-4 rounded-luxury bg-white/[0.02] border border-white/5">
               <p className="text-champagne text-[8px] uppercase tracking-[0.3em] font-semibold mb-3 italic">
                 Integração
@@ -199,26 +191,24 @@ export default function EditorialToolbar() {
               </div>
             </div>
 
-            {/* Links Legais e Copyright */}
-            <div className="space-y-4 px-1">
-              <div className="flex flex-col gap-2">
+            <div className="space-y-4 px-1 pb-4">
+              <div className="flex flex-col gap-3">
                 <button
                   onClick={() => router.push('/privacidade')}
-                  className="text-left text-white text-[9px] uppercase tracking-widest hover:text-white transition-colors"
+                  className="text-left text-white/60 text-[10px] uppercase tracking-widest"
                 >
-                  Políticas de Privacidade
+                  Privacidade
                 </button>
                 <button
                   onClick={() => router.push('/termos')}
-                  className="text-left text-white text-[9px] uppercase tracking-widest hover:text-white transition-colors"
+                  className="text-left text-white/60 text-[10px] uppercase tracking-widest"
                 >
-                  Termos de Serviço
+                  Termos
                 </button>
               </div>
-
-              <div className="flex justify-between items-center text-[9px] uppercase tracking-luxury-widest text-white pt-4">
+              <div className="flex justify-between items-center text-[9px] uppercase tracking-luxury-widest text-white/40 pt-2">
                 <span>© 2026</span>
-                <span className="italic">Experiência Premium</span>
+                <span className="italic">Premium</span>
               </div>
             </div>
           </div>

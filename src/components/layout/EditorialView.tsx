@@ -169,7 +169,7 @@ export default function EditorialView({
           <section className="w-full bg-white py-10 shadow-sm border-y border-slate-100">
             <div className="max-w-[1600px] mx-auto px-6 md:px-12">
               {(sectionTitle || sectionSubtitle || sectionDescription) && (
-                <div className="text-left mb-14">
+                <div className="text-left mb-4 md:mb-14">
                   {sectionTitle && (
                     <p className="text-gold text-xs uppercase tracking-[0.2em] font-semibold mb-2">
                       {sectionTitle}
