@@ -170,6 +170,24 @@ export async function createGaleria(
     new Date(formData.get('date') as string).toISOString(),
   );
 
+  // TRATAMENTO DE CAPAS
+  // 1. Recupere a string bruta do FormData
+  const rawIds = formData.get('cover_image_ids') as string;
+  let idsArray: string[] = [];
+
+  // 2. Garante que coverIdsArray seja SEMPRE um array de strings
+  try {
+    // Converte a string JSON ["id1"] em um Array JS real
+    const parsed = JSON.parse(rawIds);
+    idsArray = Array.isArray(parsed) ? parsed : [];
+  } catch {
+    idsArray = [];
+  }
+
+  // 🎯 3. FORMATAÇÃO PARA POSTGRESQL (Resolução do erro 22P02)
+  // Usamos as chaves {} exigidas pelo tipo text[] do Postgres
+  const pgFormat = `{${idsArray.map((id) => `"${id}"`).join(',')}}`;
+
   try {
     const data = {
       user_id: userId, // ID do criador
@@ -194,7 +212,13 @@ export async function createGaleria(
       location: (formData.get('location') as string) || '',
       drive_folder_id: formData.get('drive_folder_id') as string,
       drive_folder_name: formData.get('drive_folder_name') as string,
-      cover_image_url: formData.get('cover_image_url') as string,
+      //  Usar o array tratado e a primeira foto como capa principal
+      cover_image_ids: pgFormat,
+      cover_image_url:
+        idsArray.length > 0
+          ? idsArray[0]
+          : (formData.get('cover_image_url') as string) || null,
+      photo_count: Number(formData.get('photo_count')) || 0,
       is_public: formData.get('is_public') === 'true',
       category: (formData.get('category') as string) || 'evento',
       has_contracting_client: formData.get('has_contracting_client') === 'true',
@@ -310,6 +334,24 @@ export async function updateGaleria(
         error: 'Esta galeria está arquivada e não pode ser editada.',
       };
     }
+
+    // 1. Recupere a string bruta do FormData
+    const rawIds = formData.get('cover_image_ids') as string;
+    let idsArray: string[] = [];
+
+    // 2. Garante que coverIdsArray seja SEMPRE um array de strings
+    try {
+      // Converte a string JSON ["id1"] em um Array JS real
+      const parsed = JSON.parse(rawIds);
+      idsArray = Array.isArray(parsed) ? parsed : [];
+    } catch {
+      idsArray = [];
+    }
+
+    // 🎯 3. FORMATAÇÃO PARA POSTGRESQL (Resolução do erro 22P02)
+    // Usamos as chaves {} exigidas pelo tipo text[] do Postgres
+    const pgFormat = `{${idsArray.map((id) => `"${id}"`).join(',')}}`;
+
     // 1. Extração segura de dados com fallbacks
     const updates: any = {
       title: formData.get('title') as string,
@@ -331,7 +373,14 @@ export async function updateGaleria(
       location: (formData.get('location') as string) || '',
       drive_folder_id: formData.get('drive_folder_id') as string,
       drive_folder_name: formData.get('drive_folder_name') as string,
-      cover_image_url: formData.get('cover_image_url') as string,
+      // 🚀 O SEGREDO: Passe o Array puro. NÃO use JSON.stringify aqui.
+      // O Supabase converterá [] para {} automaticamente para o Postgres.
+      cover_image_ids: pgFormat,
+      cover_image_url:
+        idsArray.length > 0
+          ? idsArray[0]
+          : (formData.get('cover_image_url') as string) || null,
+      photo_count: Number(formData.get('photo_count')) || 0,
       is_public: formData.get('is_public') === 'true',
       category: (formData.get('category') as string) || 'evento',
       has_contracting_client: formData.get('has_contracting_client') === 'true',
@@ -370,7 +419,7 @@ export async function updateGaleria(
     if (updates.is_public) {
       updates.password = null; // Se tornou pública, remove a senha
     } else if (newPassword && newPassword.trim() !== '') {
-      updates.password = newPassword; // Só atualiza se o usuário digitou uma nova
+      updates.password = newPassword.trim(); // Só atualiza se o usuário digitou uma nova
     }
 
     // Busca o slug antes de atualizar para revalidar o cache
@@ -962,7 +1011,7 @@ export async function restoreGaleria(id: string): Promise<ActionResult> {
 
   // 2. ⚡ Sincronização Automática
   // Chamamos a Action de sincronização para garantir que o
-   // status de todas as galerias esteja correto e gerar o log de auditoria
+  // status de todas as galerias esteja correto e gerar o log de auditoria
   await syncUserGalleriesAction();
 
   return {

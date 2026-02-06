@@ -81,7 +81,9 @@ export function formatGalleryData(
     location: raw.location,
     slug: raw.slug,
     category: (raw as any).category || 'Outros',
-    cover_image_url: raw.cover_image_url,
+    cover_image_ids: raw.cover_image_ids || [],
+    photo_count: raw.photo_count || 0,
+    cover_image_url: raw.cover_image_url || null,
     drive_folder_id: raw.drive_folder_id,
     drive_folder_name: (raw as any).drive_folder_name || null,
     is_public: raw.is_public,
@@ -111,23 +113,24 @@ export function formatGalleryData(
 
     photographer: raw.photographer
       ? {
-        id: raw.photographer.id,
-        full_name: raw.photographer.full_name,
-        username: raw.photographer.username,
-        profile_picture_url: raw.photographer.profile_picture_url,
-        phone_contact: raw.photographer.phone_contact,
-        instagram_link: raw.photographer.instagram_link,
-        use_subdomain: hasSubdomain,
-        profile_url: profileUrl,
-        message_templates: raw.photographer.message_templates,
-      }
+          id: raw.photographer.id,
+          full_name: raw.photographer.full_name,
+          username: raw.photographer.username,
+          profile_picture_url: raw.photographer.profile_picture_url,
+          phone_contact: raw.photographer.phone_contact,
+          instagram_link: raw.photographer.instagram_link,
+          use_subdomain: hasSubdomain,
+          profile_url: profileUrl,
+          message_templates: raw.photographer.message_templates,
+          plan_key: raw.photographer.plan_key, // 🎯 Essencial estar aqui!
+        }
       : undefined,
 
     photographer_name: raw.photographer?.full_name || 'Autor',
     photographer_avatar_url: raw.photographer?.profile_picture_url || null,
     photographer_username: raw.photographer?.username || username,
     use_subdomain: hasSubdomain,
-    leads_count: raw.leads?.[0] ? (raw.leads[0] as any).count ?? 0 : 0,
+    leads_count: raw.leads?.[0] ? ((raw.leads[0] as any).count ?? 0) : 0,
   };
 }
 
@@ -156,7 +159,10 @@ export const fetchDrivePhotos = (userId?: string, folderId?: string) =>
 
         // Chama listPhotosFromDriveFolder mesmo se token for null/undefined
         // console.log(`[fetchDrivePhotos] Tentando listar com OAuth (token ${token ? 'disponível' : 'não disponível, usando API Key'})...`);
-        const photos = await listPhotosFromDriveFolder(folderId, token || undefined);
+        const photos = await listPhotosFromDriveFolder(
+          folderId,
+          token || undefined,
+        );
 
         if (photos && photos.length > 0) {
           // console.log(`[fetchDrivePhotos] ✅ ${photos.length} fotos encontradas via ${token ? 'OAuth' : 'API Key'}`);
@@ -207,7 +213,9 @@ export const fetchPhotosByGalleryId = (galleryId: string) =>
         // Esta é a estratégia prioritária - funciona SEM precisar do refresh token do criador
         // Funciona para pastas públicas compartilhadas como "Qualquer pessoa com o link"
         // console.log(`[fetchPhotosByGalleryId] Tentando acesso via API Key (pasta pública)...`);
-        const publicPhotos = await listPhotosFromDriveFolder(galeria.drive_folder_id);
+        const publicPhotos = await listPhotosFromDriveFolder(
+          galeria.drive_folder_id,
+        );
 
         if (publicPhotos && publicPhotos.length > 0) {
           // console.log(`[fetchPhotosByGalleryId] ✅ ${publicPhotos.length} fotos encontradas via API Key`);
@@ -245,7 +253,10 @@ export const fetchPhotosByGalleryId = (galleryId: string) =>
         });
 
         // Trata apenas erros específicos que realmente impedem o acesso
-        if (error.message?.includes('PERMISSION_DENIED') || error.message === 'PERMISSION_DENIED') {
+        if (
+          error.message?.includes('PERMISSION_DENIED') ||
+          error.message === 'PERMISSION_DENIED'
+        ) {
           return { photos: [], error: 'PERMISSION_DENIED' };
         }
 

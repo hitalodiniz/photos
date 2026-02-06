@@ -7,74 +7,62 @@ import {
   MapPin,
   Calendar,
   ImageIcon,
+  ChevronLeft, // Adicionado
+  ChevronRight, // Adicionado
 } from 'lucide-react';
 import PhotographerAvatar from './ProfileAvatar';
+import { getInternalGoogleDriveUrl } from '@/core/utils/url-helper';
 
 interface GaleriaHeroProps {
   galeria: any;
   photos: any[];
   coverUrl: string | null;
-  isCoverLoading: boolean; // 🎯 Recebido do GaleriaView
 }
 
 export const GaleriaHero = ({
   galeria,
   photos,
   coverUrl,
-  isCoverLoading,
 }: GaleriaHeroProps) => {
   const [isExpanded, setIsExpanded] = useState(true);
-  const [isImageActuallyLoaded, setIsImageActuallyLoaded] = useState(false);
+  const [currentImageIndex, setCurrentImageIndex] = useState(0);
 
-  // 🎯 Verifica se a imagem já está em cache (resolve problema de refresh)
+  const carouselImages =
+    galeria.cover_image_ids.length > 0
+      ? galeria.cover_image_ids.map((id) =>
+          getInternalGoogleDriveUrl(id, '2048'),
+        )
+      : ([coverUrl].filter(Boolean) as string[]);
+
+  // Funções de navegação manual
+  const nextImage = (e?: React.MouseEvent) => {
+    e?.stopPropagation();
+    setCurrentImageIndex((prev) => (prev + 1) % carouselImages.length);
+  };
+
+  const prevImage = (e?: React.MouseEvent) => {
+    e?.stopPropagation();
+    setCurrentImageIndex((prev) =>
+      prev === 0 ? carouselImages.length - 1 : prev - 1,
+    );
+  };
+
   useEffect(() => {
-    if (!coverUrl) {
-      setIsImageActuallyLoaded(false);
-      return;
-    }
+    if (!isExpanded || carouselImages.length <= 1) return;
 
-    // Cria uma imagem temporária para verificar se já está em cache
-    const img = new Image();
+    const interval = setInterval(() => {
+      setCurrentImageIndex((prev) => (prev + 1) % carouselImages.length);
+    }, 3000);
 
-    const checkCache = () => {
-      // Se a imagem já está completa (em cache), marca como carregada imediatamente
-      if (img.complete && img.naturalWidth > 0) {
-        setIsImageActuallyLoaded(true);
-      }
-    };
+    return () => clearInterval(interval);
+  }, [isExpanded, carouselImages.length, currentImageIndex]);
 
-    img.onload = () => {
-      setIsImageActuallyLoaded(true);
-    };
-
-    img.onerror = () => {
-      // Se der erro, mantém o estado baseado no prop
-      setIsImageActuallyLoaded(!isCoverLoading);
-    };
-
-    // Verifica cache imediatamente
-    img.src = coverUrl;
-    checkCache();
-
-    // Verifica novamente após pequenos delays (para garantir detecção de cache)
-    const timeout1 = setTimeout(checkCache, 50);
-    const timeout2 = setTimeout(checkCache, 150);
-    const timeout3 = setTimeout(checkCache, 300);
-
-    return () => {
-      clearTimeout(timeout1);
-      clearTimeout(timeout2);
-      clearTimeout(timeout3);
-    };
-  }, [coverUrl, isCoverLoading]);
-
-  // Auto-recolher após 5 segundos
   useEffect(() => {
-    const timer = setTimeout(() => setIsExpanded(false), 5000);
+    const totalTime = Math.max(carouselImages.length * 3000, 5000);
+    const timer = setTimeout(() => setIsExpanded(false), totalTime);
     return () => clearTimeout(timer);
-  }, []);
+  }, [carouselImages.length]);
 
-  // Recolher ao scroll
   useEffect(() => {
     const handleScroll = () => {
       if (window.scrollY > 50 && isExpanded) {
@@ -91,27 +79,55 @@ export const GaleriaHero = ({
         isExpanded ? 'h-screen' : 'h-[28vh] md:h-[40vh]'
       }`}
     >
-      {/* 1. BACKGROUND IMAGE */}
-      {coverUrl && (
-        <div
-          className={`absolute inset-0 bg-cover bg-center transition-all duration-[1500ms] ease-in-out
-            ${isCoverLoading && !isImageActuallyLoaded ? 'scale-110 blur-2xl opacity-50' : 'scale-100 blur-0 opacity-100'}`}
-          style={{
-            backgroundImage: `url('${coverUrl}')`,
-            backgroundPosition: 'center 35%',
-          }}
-        />
+      <div className="absolute inset-0 z-0">
+        {carouselImages.map((img, index) => (
+          <div
+            key={img}
+            className={`absolute inset-0 bg-cover bg-center transition-opacity duration-1000 ease-in-out
+              ${index === currentImageIndex ? 'opacity-100' : 'opacity-0'}`}
+            style={{
+              backgroundImage: `url('${img}')`,
+              backgroundPosition: 'center 35%',
+            }}
+          />
+        ))}
+        {carouselImages.length === 0 && (
+          <div className="absolute inset-0 bg-gradient-to-br from-slate-900 via-slate-800 to-black" />
+        )}
+      </div>
+
+      {/* NAVEGAÇÃO MANUAL (Apenas quando expandido) */}
+      {isExpanded && carouselImages.length > 1 && (
+        <>
+          <button
+            onClick={prevImage}
+            className="absolute left-4 top-1/2 -translate-y-1/2 z-[20] p-2 rounded-full bg-black/20 text-white hover:bg-black/50 transition-all"
+          >
+            <ChevronLeft size={32} />
+          </button>
+          <button
+            onClick={nextImage}
+            className="absolute right-4 top-1/2 -translate-y-1/2 z-[20] p-2 rounded-full bg-black/20 text-white hover:bg-black/50 transition-all"
+          >
+            <ChevronRight size={32} />
+          </button>
+          <div className="absolute bottom-32 left-1/2 -translate-x-1/2 z-[20] flex gap-2">
+            {carouselImages.map((_, i) => (
+              <button
+                key={i}
+                onClick={(e) => {
+                  e.stopPropagation();
+                  setCurrentImageIndex(i);
+                }}
+                className={`h-1.5 rounded-full transition-all ${i === currentImageIndex ? 'w-8 bg-[#F3E5AB]' : 'w-2 bg-white/40'}`}
+              />
+            ))}
+          </div>
+        </>
       )}
 
-      {/* Fallback quando não há imagem */}
-      {!coverUrl && (
-        <div className="absolute inset-0 bg-gradient-to-br from-slate-900 via-slate-800 to-black" />
-      )}
-
-      {/* 3. OVERLAY DE PROTEÇÃO (Gradiente para leitura do texto) */}
       <div className="absolute inset-0 transition-opacity duration-1000 bg-gradient-to-t from-black/90 via-black/30 to-transparent opacity-100 z-[2]" />
 
-      {/* 4. AVATAR DO FOTÓGRAFO (Canto Superior Direito) */}
       <div
         className={`absolute top-4 right-4 md:top-6 md:right-8 transition-all duration-1000 z-[10] ${
           isExpanded
@@ -127,7 +143,6 @@ export const GaleriaHero = ({
         />
       </div>
 
-      {/* 6. CONTAINER DE CONTEÚDO (Títulos e Dados) */}
       <div
         className={`relative h-full flex flex-col transition-all duration-[1200ms] max-w-[1600px] mx-auto w-full z-[5] justify-end ${
           isExpanded
@@ -136,44 +151,33 @@ export const GaleriaHero = ({
         }`}
       >
         <div
-          className={`flex transition-all duration-1000 items-center gap-4 md:gap-8 w-full pointer-events-auto ${
-            isExpanded ? 'scale-100 md:scale-105' : 'scale-95 md:scale-100'
-          }`}
+          className={`flex transition-all duration-1000 items-center gap-4 md:gap-8 w-full pointer-events-auto scale-100`}
         >
           <div className="flex flex-col items-start text-left transition-all duration-1000 min-w-0 flex-1">
             <div className="flex flex-col min-w-0 w-full">
               <h1
-                className={` font-semibold text-white transition-all duration-1000 leading-tight tracking-luxury-normal break-words flex items-center gap-3 drop-shadow-[0_2px_8px_rgba(0,0,0,0.8)]
+                className={`font-semibold text-white transition-all duration-1000 leading-tight tracking-luxury-normal break-words flex items-center gap-3 drop-shadow-[0_2px_8_rgba(0,0,0,0.8)]
                 ${isExpanded ? 'text-2xl md:text-5xl mb-2' : 'text-xl md:text-4xl mb-1'}`}
               >
                 <Camera
-                  className={`text-[#F3E5AB] shrink-0 transition-all duration-1000 drop-shadow-md ${
-                    isExpanded
-                      ? 'w-8 h-8 md:w-12 md:h-12'
-                      : 'w-6 h-6 md:w-8 md:h-8'
-                  }`}
+                  className={`text-[#F3E5AB] shrink-0 transition-all duration-1000 drop-shadow-md ${isExpanded ? 'w-8 h-8 md:w-12 md:h-12' : 'w-6 h-6 md:w-8 md:h-8'}`}
                   strokeWidth={1.5}
                 />
                 <span className="drop-shadow-lg">{galeria.title}</span>
               </h1>
-
-              {/* LINHA DECORATIVA */}
               <div className="h-[2px] md:h-[3px] bg-[#F3E5AB] rounded-full mb-3 md:mb-4 w-full max-w-[150px] md:max-w-[300px] shadow-lg" />
             </div>
 
-            {/* METADADOS */}
             <div className="flex flex-col md:flex-row md:items-center gap-x-3 gap-y-1.5 md:gap-x-4 md:gap-y-2 transition-all duration-1000 items-start justify-start opacity-90">
               {galeria.location && (
                 <div className="flex items-center text-white text-[10px] md:text-[14px] font-medium shrink-0 gap-1.5 drop-shadow-md">
-                  <MapPin size={14} className="text-white drop-shadow-sm" />
+                  <MapPin size={14} className="text-white" />
                   <span>{galeria.location}</span>
                 </div>
               )}
-
-              <div className="hidden md:block w-[1px] h-3 bg-white/40 shrink-0" />
-
+              <div className="hidden md:block w-[1px] h-3 bg-white/40" />
               <div className="flex items-center text-white text-[10px] md:text-[14px] font-medium shrink-0 gap-1.5 drop-shadow-md">
-                <Calendar size={14} className="text-white drop-shadow-sm" />
+                <Calendar size={14} className="text-white" />
                 <span>
                   {new Date(galeria.date).toLocaleDateString('pt-BR', {
                     day: '2-digit',
@@ -182,31 +186,24 @@ export const GaleriaHero = ({
                   })}
                 </span>
               </div>
-
-              <div className="hidden md:block w-[1px] h-3 bg-white/40 shrink-0" />
-
+              <div className="hidden md:block w-[1px] h-3 bg-white/40" />
               <div className="flex items-center text-white text-[10px] md:text-[14px] font-medium shrink-0 gap-1.5 drop-shadow-md">
-                <ImageIcon
-                  size={14}
-                  className="text-[#F3E5AB] drop-shadow-sm"
-                />
+                <ImageIcon size={14} className="text-[#F3E5AB]" />
                 <span>{photos?.length || 0} fotos</span>
               </div>
             </div>
           </div>
         </div>
 
-        {/* 6. BOTÕES DE INTERAÇÃO (Scroll e Expand) */}
         {isExpanded && (
           <button
             onClick={() => setIsExpanded(false)}
-            className="fixed bottom-6 left-1/2 -translate-x-1/2 animate-bounce group z-[400] pointer-events-auto p-2"
+            className="fixed bottom-6 left-1/2 -translate-x-1/2 animate-bounce group z-[400] p-2"
           >
             <div className="relative flex items-center justify-center w-12 h-12 rounded-full bg-black/40 backdrop-blur-md border border-white/10 shadow-2xl transition-all duration-500 hover:bg-black/60">
               <ChevronDown
                 size={28}
-                strokeWidth={1.5}
-                className="text-white transition-colors group-hover:text-[#F3E5AB]"
+                className="text-white group-hover:text-[#F3E5AB]"
               />
             </div>
           </button>
@@ -215,7 +212,7 @@ export const GaleriaHero = ({
         {!isExpanded && (
           <button
             onClick={() => setIsExpanded(true)}
-            className="w-9 h-9 md:w-12 md:h-12 absolute bottom-4 right-6 flex items-center justify-center bg-black/60 backdrop-blur-md border border-white/20 text-white/90 rounded-lg transition-all shadow-xl active:scale-95 hover:bg-black/80"
+            className="w-9 h-9 md:w-12 md:h-12 absolute bottom-4 right-6 flex items-center justify-center bg-black/60 backdrop-blur-md border border-white/20 text-white/90 rounded-lg transition-all shadow-xl  hover:bg-black/80"
           >
             <Maximize2 className="w-4 h-4 md:w-5 md:h-5" />
           </button>

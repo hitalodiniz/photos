@@ -3,6 +3,7 @@ import { notFound, redirect } from 'next/navigation';
 import PhotographerContainer from './ProfileContainer';
 import { getPublicProfile } from '@/core/services/profile.service';
 import { resolveGalleryUrl } from '@/core/utils/url-helper';
+import { PlanProvider } from '@/core/context/PlanContext';
 
 const MAIN_DOMAIN = (
   process.env.NEXT_PUBLIC_MAIN_DOMAIN || 'localhost:3000'
@@ -33,11 +34,13 @@ export default async function PhotographerProfileBase({
     }
     // Se está tudo certo, renderiza o container que você já tem
     return (
-      <PhotographerContainer username={username} initialProfile={profile} />
+      <PlanProvider>
+        <PhotographerContainer username={username} initialProfile={profile} />
+      </PlanProvider>
     );
   }
 
-  // 3. REGRA DE ROTA CLÁSSICA (Acesso via site.com/hitalo)
+  // 3. REGRA DE ROTA CLÁssica (Acesso via site.com/hitalo)
   if (!isSubdomainContext) {
     // Se ele tem subdomínio ativo, mandamos ele para lá (SEO)
     if (profile.use_subdomain) {
@@ -52,9 +55,15 @@ export default async function PhotographerProfileBase({
     }
     // Se ele NÃO tem subdomínio, ele pode usar a rota clássica normalmente
     return (
-      <PhotographerContainer username={username} initialProfile={profile} />
+      <PlanProvider>
+        <PhotographerContainer username={username} initialProfile={profile} />
+      </PlanProvider>
     );
   }
 
-  return <PhotographerContainer username={username} initialProfile={profile} />;
+  return (
+    <PlanProvider>
+      <PhotographerContainer username={username} initialProfile={profile} />
+    </PlanProvider>
+  );
 }

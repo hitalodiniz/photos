@@ -68,6 +68,7 @@ export function GaleriaDriveSection({
               onError={onPickerError}
               currentDriveId={driveData.id}
               onTokenExpired={onTokenExpired}
+              rootFolderId={driveData.id}
             />
           </div>
 
@@ -92,7 +93,7 @@ export function GaleriaDriveSection({
                 />
                 <div className="space-y-0.5">
                   <p className="text-[9px] font-bold uppercase text-petroleum">
-                    {driveData.photoCount || 0} fotos encontradas
+                    {driveData.photoCount || 0} fotos sincronizadas
                   </p>
                   <p className="text-[9px] text-petroleum/70 leading-tight">
                     Seu plano ({permissions.maxPhotosPerGallery} fotos){' '}
@@ -154,6 +155,7 @@ export function GaleriaDriveSection({
                     setDriveData({
                       ...driveData,
                       allCovers: filtered,
+                      // 🎯 Importante: Se removeu a primeira, a segunda vira a coverId do preview imediato
                       coverId: filtered[0] || '',
                     });
                   }}

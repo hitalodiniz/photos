@@ -16,6 +16,7 @@ import {
   Square,
   Link2,
   Users,
+  ImageIcon,
 } from 'lucide-react';
 import { useState, useEffect } from 'react';
 import type { Galeria } from '@/core/types/galeria';
@@ -82,7 +83,13 @@ export default function GaleriaCard({
   const [mounted, setMounted] = useState(false);
   const [copied, setCopied] = useState(false);
   const [links, setLinks] = useState({ url: '', whatsapp: '', message: '' });
-  const [isImageLoading, setIsImageLoading] = useState(true);
+  const [isImageLoading, setIsImageLoading] = useState(
+    !!galeria.cover_image_url,
+  );
+
+  useEffect(() => {
+    setIsImageLoading(!!galeria.cover_image_url);
+  }, [galeria.cover_image_url]);
 
   useEffect(() => {
     setMounted(true);
@@ -220,14 +227,20 @@ export default function GaleriaCard({
               <div className="loading-luxury-dark w-4 h-4" />
             </div>
           )}
-          <img
-            ref={imgRef}
-            src={imageUrl}
-            alt={galeria.title}
-            onError={handleError}
-            onLoad={onImageLoad}
-            className={`h-full w-full object-cover transition-all duration-500 ${isImageLoading ? 'opacity-0' : 'opacity-100'}`}
-          />
+          {imageUrl ? (
+            <img
+              ref={imgRef}
+              src={imageUrl}
+              alt={galeria.title}
+              onError={handleError}
+              onLoad={onImageLoad}
+              className={`h-full w-full object-cover transition-all duration-500 ${isImageLoading ? 'opacity-0' : 'opacity-100'}`}
+            />
+          ) : (
+            <div className="flex h-full w-full items-center justify-center bg-slate-100">
+              <ImageIcon className="h-6 w-6 text-slate-300" />
+            </div>
+          )}
         </div>
 
         <div className="flex-1 min-w-0 flex items-center justify-between gap-4">
@@ -266,6 +279,22 @@ export default function GaleriaCard({
                   <Calendar size={11} className="text-editorial-gray" />
                   {formatDateSafely(galeria.date)}
                 </span>
+              </div>
+              {/* Contagem de Fotos e Indicador de Múltiplas Capas */}
+              <div className="flex items-center gap-2 text-[10px] font-medium text-editorial-gray/70">
+                <span className="flex items-center gap-1">
+                  <ImageIcon size={10} className="text-gold" />
+                  {galeria.photo_count || 0} fotos
+                </span>
+                {galeria.cover_image_ids &&
+                  galeria.cover_image_ids.length > 1 && (
+                    <>
+                      <span className="text-editorial-gray/40">•</span>
+                      <span className="text-gold bg-gold/5 px-1.5 py-0.5 rounded-full border border-gold/10">
+                        {galeria.cover_image_ids.length} capas
+                      </span>
+                    </>
+                  )}
               </div>
             </div>
           </div>
@@ -404,14 +433,20 @@ export default function GaleriaCard({
             </div>
           )}
 
-          <img
-            ref={imgRef}
-            src={imageUrl}
-            alt={galeria.title}
-            onError={handleError}
-            onLoad={onImageLoad}
-            className={`h-full w-full object-cover transition-all duration-1000 ease-out group-hover:scale-110 ${isImageLoading ? 'opacity-0' : 'opacity-100'}`}
-          />
+          {imageUrl ? (
+            <img
+              ref={imgRef}
+              src={imageUrl}
+              alt={galeria.title}
+              onError={handleError}
+              onLoad={onImageLoad}
+              className={`h-full w-full object-cover transition-all duration-1000 ease-out group-hover:scale-105 ${isImageLoading ? 'opacity-0' : 'opacity-100'}`}
+            />
+          ) : (
+            <div className="flex h-full w-full items-center justify-center bg-slate-100">
+              <ImageIcon className="h-10 w-10 text-slate-300" />
+            </div>
+          )}
           <div className="absolute inset-0 bg-gradient-to-t from-black/60 via-transparent to-transparent" />
 
           <div className="absolute top-3 left-3 flex gap-2">
@@ -441,6 +476,11 @@ export default function GaleriaCard({
               {galeria.title}
             </h3>
           </div>
+          {galeria.cover_image_ids && galeria.cover_image_ids.length > 1 && (
+            <div className="absolute top-3 right-3 z-10 px-2 py-1 bg-black/60 backdrop-blur-md rounded-luxury border border-white/20 text-white text-[9px] font-bold flex items-center gap-1.5">
+              <Check size={10} className="text-gold" /> MULTI-CAPA
+            </div>
+          )}
         </div>
 
         <div className="flex flex-col p-3 space-y-2 bg-white">
@@ -494,21 +534,31 @@ export default function GaleriaCard({
                   Drive: {galeria.drive_folder_name || 'Sem pasta vinculada'}
                 </span>
                 <span className="text-editorial-label text-petroleum-light opacity-0 group-hover/drive:opacity-100 transition-opacity shrink-0">
-                  Abrir
+                  Acessar
                 </span>
               </a>
               <div className="w-[1px] h-3 bg-petroleum/10" />
+              {/* 🎯 NOVO: Indicador de fotos no canto do botão de Sync */}
+              {galeria.photo_count > 0 && (
+                <div className="flex items-center gap-1.5 px-2 text-editorial-gray border-l border-petroleum/10 h-full bg-slate-100/50">
+                  <ImageIcon size={11} className="text-gold/70" />
+                  <span className="text-[10px] font-medium text-petroleum">
+                    {galeria.photo_count || 0}
+                  </span>
+                </div>
+              )}
+
+              <div className="w-[1px] h-3 bg-petroleum/10" />
               <button
                 onClick={(e) => {
-                  e.preventDefault();
                   e.stopPropagation();
                   onSync();
                 }}
                 disabled={isUpdating}
-                className="flex items-center justify-center px-2.5 h-full hover:bg-white text-editorial-gray hover:text-gold transition-all disabled:opacity-50 shrink-0"
+                className="flex items-center justify-center px-2.5 border-l border-slate-200 h-full hover:bg-white text-editorial-gray hover:text-gold transition-all"
               >
                 {isUpdating ? (
-                  <div className="loading-luxury w-3 h-3" />
+                  <Loader2 size={12} className="animate-spin" />
                 ) : (
                   <RefreshCw size={12} />
                 )}

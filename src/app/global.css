@@ -136,3 +136,26 @@
     filter: drop-shadow(0 0 4px rgba(243, 229, 171, 0.4));
   }
 }
+
+/* Centraliza o modal do Google Picker e impede que ele role a página */
+.picker-dialog {
+  top: 50% !important;
+  left: 50% !important;
+  transform: translate(-50%, -50%) !important;
+  z-index: 10000 !important; /* Deve ser maior que o seu Header, mas menor que o Toast */
+  position: fixed !important;
+  box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.5) !important;
+  border-radius: 8px !important;
+  overflow: hidden !important;
+}
+
+/* Garante que o fundo escuro (overlay) cubra a tela toda sem rolar */
+.picker-dialog-bg {
+  z-index: 9999 !important;
+  position: fixed !important;
+  top: 0 !important;
+  left: 0 !important;
+  width: 100% !important;
+  height: 100% !important;
+  background-color: rgba(0, 0, 0, 0.4) !important;
+}

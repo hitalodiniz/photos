@@ -8,6 +8,7 @@ import InstagramIcon from '@/components/ui/InstagramIcon';
 import { getCreatorProfileUrl } from '@/core/utils/url-helper';
 import { Globe, User, MessageCircle } from 'lucide-react';
 import { usePlan } from '@/core/context/PlanContext';
+
 interface PhotographerAvatarProps {
   galeria: Galeria;
   position: 'top-page' | 'bottom-lightbox';
@@ -20,38 +21,42 @@ export default function PhotographerAvatar({
   isVisible = true,
 }: PhotographerAvatarProps) {
   const [isExpanded, setIsExpanded] = useState(false);
-  const { planKey } = usePlan();
 
+  // 🎯 CONCILIAÇÃO: Buscamos as permissões dinâmicas do plano atual
+  const { permissions, planKey } = usePlan();
+  // Log temporário para debug no console do navegador
+  console.log('DEBUG AVATAR:', {
+    plano: planKey,
+    nivelSocial: permissions?.socialDisplayLevel,
+    whats: galeria.photographer?.phone_contact,
+    insta: galeria.photographer?.instagram_link,
+  });
   const photographer = galeria.photographer;
   const profileLink = getCreatorProfileUrl(photographer);
 
-  // 🛡️ Definição de Permissões Progressivas
-  // FREE: Avatar + Nome + Perfil Interno
-  // START: + WhatsApp
-  // PLUS: + Instagram
-  // PRO: (Mantém anteriores)
-  // PREMIUM: + Website Direto
-  const hasWhatsApp = ['START', 'PLUS', 'PRO', 'PREMIUM'].includes(planKey);
-  const hasInstagram = ['PLUS', 'PRO', 'PREMIUM'].includes(planKey);
-  const hasWebsite = planKey === 'PREMIUM';
+  /** * 🛡️ Lógica de Visibilidade Baseada em socialDisplayLevel:
+   * 'minimal' -> Apenas Perfil Interno (Avatar + Nome)
+   * 'social'  -> + WhatsApp + Instagram
+   * 'full'    -> + Website Direto
+   */
+  const displayLevel = permissions.socialDisplayLevel;
+  const hasSocial = displayLevel === 'social' || displayLevel === 'full';
+  const hasWebsite = displayLevel === 'full';
 
   useEffect(() => {
-    const isDesktop = window.innerWidth >= 768; // breakpoint md
-    if (isDesktop) {
-      setIsExpanded(true);
-    }
+    const isDesktop = window.innerWidth >= 768;
+    if (isDesktop) setIsExpanded(true);
   }, []);
 
   useEffect(() => {
     const isDesktop = window.innerWidth >= 768;
     if (isExpanded && !isDesktop) {
-      // Só fecha sozinho no Mobile
       const timer = setTimeout(() => setIsExpanded(false), 4000);
       return () => clearTimeout(timer);
     }
   }, [isExpanded]);
 
-  const whatsappLink = `https://wa.me/${photographer.phone_contact?.replace(/\D/g, '')}?text=${encodeURIComponent(
+  const whatsappLink = `https://wa.me/${photographer?.phone_contact?.replace(/\D/g, '')}?text=${encodeURIComponent(
     GALLERY_MESSAGES.CONTACT_PHOTOGRAPHER_DIRETO(),
   )}`;
 
@@ -66,11 +71,6 @@ export default function PhotographerAvatar({
 
   if (!isVisible && position === 'top-page') return null;
 
-  const positionClasses =
-    position === 'top-page'
-      ? 'relative z-10 animate-in fade-in scale-90 md:scale-100 slide-in-from-right-10 duration-700 z-[20]'
-      : 'relative scale-90 md:scale-100 z-[20]';
-
   const getBtnClass = (activeColor: string) => `
     p-1.5 rounded-full transition-all border flex items-center justify-center
     ${activeColor}
@@ -83,80 +83,67 @@ export default function PhotographerAvatar({
 
   return (
     <div
-      className={`${positionClasses} flex items-center cursor-pointer select-none`}
+      className={`flex items-center cursor-pointer select-none ${
+        position === 'top-page'
+          ? 'relative z-20 animate-in fade-in scale-90 md:scale-100 slide-in-from-right-10 duration-700'
+          : 'relative z-20 scale-90 md:scale-100'
+      }`}
       onClick={() => {
         if (window.innerWidth < 768) setIsExpanded(!isExpanded);
       }}
     >
       <div
         className={`
-        flex items-center rounded-luxury md:p-2 border shadow-2xl transition-all duration-500 ease-[cubic-bezier(0.23,1,0.32,1)]
-/* Mobile logic */
-        ${isExpanded ? 'gap-2 p-1.5' : 'gap-0 p-0 px-1'} 
-        /* Desktop forced expansion */
-        md:gap-1 md:p-2 md:px-3
-        ${
-          position === 'bottom-lightbox'
-            ? 'bg-white/90 dark:bg-[#1A1A1A]/90 backdrop-blur-3xl border-black/20 dark:border-white/20'
-            : 'bg-black/45 backdrop-blur-xl border-white/10'
-        }
-      `}
+          flex items-center rounded-luxury transition-all duration-500 ease-[cubic-bezier(0.23,1,0.32,1)] border shadow-2xl
+          ${isExpanded ? 'gap-2 p-1.5' : 'gap-0 p-0 px-1'} 
+          md:gap-1 md:p-2 md:px-3
+          ${
+            position === 'bottom-lightbox'
+              ? 'bg-white/90 dark:bg-[#1A1A1A]/90 backdrop-blur-3xl border-black/20 dark:border-white/20'
+              : 'bg-black/45 backdrop-blur-xl border-white/10'
+          }
+        `}
       >
-        {/* Avatar Container */}
-        <div className="relative group flex-shrink-0 w-10 h-10 md:w-14 md:h-14 rounded-full overflow-hidden flex items-center justify-center shadow-inner">
-          <div className="absolute -inset-1 bg-gradient-to-tr from-gold/40 to-[#F3E5AB]/40 rounded-full blur-sm opacity-30 group-hover:opacity-60 transition duration-700"></div>
-
+        {/* Avatar */}
+        <div className="relative group w-10 h-10 md:w-14 md:h-14 rounded-full overflow-hidden flex items-center justify-center shadow-inner">
+          <div className="absolute -inset-1 bg-gradient-to-tr from-gold/40 to-[#F3E5AB]/40 rounded-full blur-sm opacity-30"></div>
           {displayAvatar ? (
             <Image
               src={displayAvatar}
               alt={fullName}
               fill
-              sizes="(max-width: 768px) 40px, 56px"
-              className="object-cover transition-transform duration-500 group-hover:scale-105 z-10 rounded-full"
+              sizes="56px"
+              className="object-cover z-10 rounded-full"
             />
           ) : (
             <div className="z-10 w-full h-full bg-slate-800 flex items-center justify-center border border-white/10 rounded-full">
-              <span className="text-white font-semibold text-lg md:text-xl font-barlow tracking-luxury-tight">
+              <span className="text-white font-semibold text-lg md:text-xl">
                 {initialLetter}
               </span>
             </div>
           )}
         </div>
 
-        {/* Expandable Content */}
+        {/* Content */}
         <div
-          className={`
-          flex flex-col items-start gap-1.5 transition-all duration-500 ease-[cubic-bezier(0.23,1,0.32,1)] overflow-hidden
-          /* Mobile transition */
-          ${isExpanded ? 'max-w-[280px] opacity-100 ml-1' : 'max-w-0 opacity-0'}
-          /* Desktop forced visibility */
-          md:max-w-[350px] md:opacity-100 md:ml-2
-        `}
+          className={`flex flex-col items-start gap-1.5 transition-all duration-500 overflow-hidden ${isExpanded ? 'max-w-[280px] opacity-100 ml-1' : 'max-w-0 opacity-0'} md:max-w-[350px] md:opacity-100 md:ml-2`}
         >
           <div className="flex flex-col items-start whitespace-nowrap">
             <p
-              className={`text-[8px] md:text-[9px] tracking-luxury-normal uppercase font-semibold leading-none mb-1 transition-colors ${
-                position === 'bottom-lightbox'
-                  ? 'text-slate-500 dark:text-[#F3E5AB]/80'
-                  : 'text-[#F3E5AB]'
-              }`}
+              className={`text-[8px] md:text-[9px] tracking-luxury-normal uppercase font-semibold leading-none mb-1 ${position === 'bottom-lightbox' ? 'text-slate-500 dark:text-[#F3E5AB]/80' : 'text-[#F3E5AB]'}`}
             >
               Registrado por
             </p>
             <span
-              className={`text-[11px] md:text-[11px] font-semibold tracking-luxury-tight leading-tight ${
-                position === 'bottom-lightbox'
-                  ? 'text-slate-900 dark:text-white'
-                  : 'text-white'
-              }`}
+              className={`text-[11px] md:text-[11px] font-semibold leading-tight ${position === 'bottom-lightbox' ? 'text-slate-900 dark:text-white' : 'text-white'}`}
             >
               {fullName}
             </span>
           </div>
 
           <div className="flex items-center gap-2 relative z-10">
-            {/* WHATSAPP (START+) */}
-            {hasWhatsApp && photographer?.phone_contact && (
+            {/* WHATSAPP (Sincronizado com socialDisplayLevel) */}
+            {hasSocial && photographer?.phone_contact && (
               <a
                 href={whatsappLink}
                 target="_blank"
@@ -168,8 +155,8 @@ export default function PhotographerAvatar({
               </a>
             )}
 
-            {/* INSTAGRAM (PLUS+) */}
-            {hasInstagram && photographer?.instagram_link && (
+            {/* INSTAGRAM (Sincronizado com socialDisplayLevel) */}
+            {hasSocial && photographer?.instagram_link && (
               <a
                 href={`https://instagram.com/${photographer.instagram_link.replace('@', '')}`}
                 target="_blank"
@@ -183,7 +170,7 @@ export default function PhotographerAvatar({
               </a>
             )}
 
-            {/* PERFIL INTERNO (FREE+) */}
+            {/* PERFIL INTERNO (Sempre disponível) */}
             <a
               href={profileLink}
               target="_blank"
@@ -194,7 +181,7 @@ export default function PhotographerAvatar({
               <User size={12} strokeWidth={3} />
             </a>
 
-            {/* WEBSITE (PREMIUM) */}
+            {/* WEBSITE (Apenas para nível 'full' / PREMIUM) */}
             {hasWebsite && photographer?.website && (
               <a
                 href={

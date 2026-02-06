@@ -8,15 +8,14 @@ import { usePlan } from '@/core/context/PlanContext';
 
 interface GooglePickerProps {
   onFolderSelect: (
-    folderId: string,
-    folderName: string,
+    items: Array<{ id: string; name: string; parentId?: string }>,
   ) => void | Promise<void>;
   currentDriveId: string | null;
   onError: (message: string) => void;
   onTokenExpired?: () => void; // Callback quando o token expirar/for revogado
   // 🎯 Modo de operação: 'root' (selecionar pasta pai) ou 'covers' (selecionar fotos)
   // mode: 'root' | 'covers';
-  // googleDriveRootId: string | null;
+  rootFolderId?: string | null;
 }
 
 declare global {
@@ -84,6 +83,7 @@ export default function GooglePickerButton({
   currentDriveId,
   onError,
   onTokenExpired,
+  rootFolderId,
 }: GooglePickerProps) {
   const [loading, setLoading] = useState(false);
   const loadingRef = useRef(false);
@@ -331,6 +331,11 @@ export default function GooglePickerButton({
         .setMode(window.google.picker.DocsViewMode.GRID)
         .setOwnedByMe(true);
 
+      // se já temos um ID de pasta, abrimos direto nela
+      if (rootFolderId) {
+        view.setParent(rootFolderId);
+      }
+
       const pickerBuilder = new window.google.picker.PickerBuilder()
         .setAppId(googleClientId)
         .setOAuthToken(accessToken)
@@ -347,13 +352,13 @@ export default function GooglePickerButton({
           if (data.action === window.google.picker.Action.PICKED) {
             const selectedDocs = data.docs;
 
-            // 🛡️ Filtro de Segurança: Garante que o usuário não "selecionou" uma pasta por erro
-            // no modo de capas, queremos apenas os arquivos de imagem.
+            // 1. Filtro de Segurança: Apenas arquivos (fotos)
             const selectedFiles = selectedDocs.filter(
               (doc: any) =>
                 doc.mimeType !== 'application/vnd.google-apps.folder',
             );
 
+            // 2. Validação de Limite por Plano
             if (selectedFiles.length > maxSelections) {
               onError(
                 `Seu plano permite selecionar no máximo ${maxSelections} fotos de capa.`,
@@ -362,48 +367,37 @@ export default function GooglePickerButton({
               return;
             }
 
-            // 🎯 Tenta pegar o parentId do primeiro arquivo,
-            // ou o ID do próprio item se ele for uma pasta
-            const firstItem = selectedDocs[0];
-            const folderId =
-              firstItem.mimeType === 'application/vnd.google-apps.folder'
-                ? firstItem.id
-                : firstItem.parentId;
-
-            if (!folderId) {
-              console.error(
-                'Não foi possível determinar o ID da pasta',
-                firstItem,
-              );
-              onError(
-                'Erro ao identificar a pasta de origem. Tente selecionar os arquivos novamente.',
-              );
+            if (selectedFiles.length === 0) {
+              onError('Por favor, selecione as fotos de capa dentro da pasta.');
+              setLoading(false);
               return;
             }
 
-            // 2. Se a contagem estiver correta, prosseguimos
-            if (selectedFiles.length > 0) {
-              setLoading(true);
-              try {
-                const firstFile = selectedFiles[0];
-                const folderId = firstFile.parentId;
-                const folderNameReference = firstFile.name;
+            // 🎯 PASSO CRUCIAL: Mapear os arquivos para o formato que o handleDriveSelection espera
+            // Incluímos o parentId em cada item para que o "Cérebro" saiba qual é a pasta
+            const itemsForBrain = selectedFiles.map((doc: any) => ({
+              id: doc.id,
+              name: doc.name,
+              parentId: doc.parentId, // Importante para detectar a pasta pai automaticamente
+            }));
 
-                const files = selectedFiles.map((doc: any) => ({
-                  id: doc.id,
-                  name: doc.name,
-                  url: doc.url,
-                  parentId: doc.parentId,
-                }));
-
-                // 3. Envia os dados limpos para o "Cérebro" (handleDriveSelection)
-                await onFolderSelectRef.current(folderId, folderNameReference);
-              } catch (error) {
-                onError('Erro ao processar a seleção.');
-              } finally {
-                setLoading(false);
-              }
+            setLoading(true);
+            try {
+              // 🚀 CORREÇÃO AQUI:
+              // Enviamos APENAS o array para o handleDriveSelection
+              // pois ele agora espera: (selectedItems: Array<{id, name, parentId}>)
+              await onFolderSelectRef.current(itemsForBrain);
+            } catch (error) {
+              console.error(
+                '[Picker Callback] Erro ao enviar para o cérebro:',
+                error,
+              );
+              onError('Erro ao processar a seleção.');
+            } finally {
+              setLoading(false);
             }
+          } else if (data.action === window.google.picker.Action.CANCEL) {
+            setLoading(false);
           }
         })
         .build();

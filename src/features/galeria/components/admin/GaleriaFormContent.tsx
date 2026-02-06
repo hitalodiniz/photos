@@ -186,8 +186,8 @@ export default function GaleriaFormContent({
     id: initialData?.drive_folder_id ?? '',
     name: initialData?.drive_folder_name ?? 'Nenhuma pasta selecionada',
     coverId: initialData?.cover_image_url ?? '',
-    allCovers: [], // Inicializa com um array vazio
-    photoCount: 0,
+    allCovers: initialData?.cover_image_ids || [], // Captura as capas já salvas
+    photoCount: initialData?.photo_count || 0, // Captura a contagem salva no banco
   });
 
   // 🎯 ESTADO PARA MÚLTIPLOS LINKS (JSON)
@@ -217,7 +217,20 @@ export default function GaleriaFormContent({
   const [links, setLinks] =
     useState<{ url: string; label: string }[]>(parseInitialLinks());
 
-  const [photoCount, setPhotoCount] = useState<number | null>(null);
+  const [photoCount, setPhotoCount] = useState<number | null>(
+    initialData?.photo_count ?? null,
+  );
+
+  useEffect(() => {
+    if (isEdit && initialData?.photo_count) {
+      setPhotoCount(initialData.photo_count);
+      setDriveData((prev) => ({
+        ...prev,
+        photoCount: initialData.photo_count,
+      }));
+    }
+  }, [initialData, isEdit]);
+
   const [isValidatingDrive, setIsValidatingDrive] = useState(false);
 
   // 🎯 PROTEÇÃO: Verifica se useSupabaseSession retorna getAuthDetails corretamente
@@ -255,18 +268,22 @@ export default function GaleriaFormContent({
       const selection = selectedItems[0];
       const selectedId = selection.id;
 
-      // 🎯 PASSO 1: Determinar a Pasta Pai (Onde as fotos moram)
+      const isFolder =
+        selection.mimeType === 'application/vnd.google-apps.folder';
+
       let driveFolderId: string | null = null;
 
-      if (selection.parentId) {
-        // O Google Picker já nos deu o pai, economizamos uma chamada de API
+      if (isFolder) {
+        // Se o usuário selecionou a própria pasta (Modo Root)
+        driveFolderId = selection.id;
+      } else if (selection.parentId) {
+        // Se selecionou arquivos e o Google deu o pai
         driveFolderId = selection.parentId;
       } else {
-        // Se não houver parentId (comum quando selecionamos a própria pasta), verificamos no servidor
-        const parentId = await getParentFolderIdServer(selectedId, userId);
-        driveFolderId = parentId || selectedId;
+        // Fallback total: busca no servidor
+        const parentId = await getParentFolderIdServer(selection.id, userId);
+        driveFolderId = parentId || selection.id;
       }
-
       // Validação final do ID da pasta para evitar o erro de 'undefined' no console
       if (!driveFolderId || driveFolderId === 'undefined') {
         throw new Error('ID da pasta não encontrado ou inválido.');
@@ -355,7 +372,9 @@ export default function GaleriaFormContent({
   /**
    * 🎯 Handler atualizado para receber o array de docs
    */
-  const handleFolderSelect = async (items: any[]) => {
+  const handleFolderSelect = async (items: any) => {
+    // Verifique o que está chegando aqui com um log
+    console.log('Dados chegando no handleFolderSelect:', items);
     return await handleDriveSelection(items);
   };
 
@@ -438,6 +457,13 @@ export default function GaleriaFormContent({
               driveData.allCovers ||
                 (driveData.coverId ? [driveData.coverId] : []),
             )}
+          />
+
+          {/* 🎯 NOVO: Quantidade de fotos para salvar na tb_galerias */}
+          <input
+            type="hidden"
+            name="photo_count"
+            value={driveData.photoCount || 0}
           />
 
           <input type="hidden" name="is_public" value={String(isPublic)} />

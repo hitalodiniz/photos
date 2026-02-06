@@ -152,6 +152,9 @@ export default function GaleriaFormPage({
     const password = formData.get('password') as string;
     const isPublicValue = formData.get('is_public') === 'true';
     const cover_image_ids = formData.get('cover_image_ids') as string;
+    const cover_image_url = formData.get('cover_image_url') as string;
+    const photoCount = parseInt(formData.get('photo_count') as string) || 0;
+
     // Validações
     if (!title?.trim()) {
       setToast({ message: 'O título é obrigatório.', type: 'error' });
@@ -199,6 +202,7 @@ export default function GaleriaFormPage({
     formData.set('columns_mobile', String(columns.mobile));
     formData.set('columns_tablet', String(columns.tablet));
     formData.set('columns_desktop', String(columns.desktop));
+    formData.set('photo_count', String(photoCount));
 
     const whatsappRaw = formData.get('client_whatsapp') as string;
     if (whatsappRaw)
@@ -209,10 +213,22 @@ export default function GaleriaFormPage({
       formData.set('client_whatsapp', '');
     }
 
-    // 🎯 Captura o array de capas do estado driveData
-    // Adiciona ao formData como uma string JSON ou múltiplos valores dependendo da sua Server Action
-    // Para compatibilidade com PostgreSQL TEXT[], o ideal é enviar como JSON string ou parsear na Action
-    formData.set('cover_image_ids', JSON.stringify(cover_image_ids));
+    try {
+      // 2. Convertemos para Array real para poder manipular
+      const idsArray = cover_image_ids ? JSON.parse(cover_image_ids) : [];
+
+      // 3. Agora sim, extraímos o primeiro ID como objeto real
+      const primaryCover = idsArray.length > 0 ? idsArray[0] : '';
+
+      // 4. Atualizamos o formData com os valores processados
+      // Mantemos o 'cover_image_ids' como JSON para a Action fazer o parse final
+      formData.set('cover_image_url', primaryCover);
+
+      // Opcional: garantir que photo_count esteja lá
+      if (!formData.has('photo_count')) formData.set('photo_count', '0');
+    } catch (err) {
+      console.error('Erro ao processar IDs no submit:', err);
+    }
 
     try {
       const result = isEdit

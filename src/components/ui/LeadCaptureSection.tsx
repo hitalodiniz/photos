@@ -85,6 +85,11 @@ export function LeadCaptureSection({
 
   const isFeatureLocked = !canCaptureLeads;
 
+  // 🎯 LÓGICA DE EXIBIÇÃO:
+  // Se o plano está bloqueado, forçamos a visualização dos campos internos
+  // para o usuário ver o que está perdendo (efeito vitrine).
+  const shouldShowFields = !canCaptureLeads || enabled;
+
   return (
     <div className="flex flex-col gap-4">
       <PlanGuard feature="canCaptureLeads" label={toggleLabel}>
@@ -115,7 +120,7 @@ export function LeadCaptureSection({
           )}
         </div>
 
-        {enabled && (
+        {shouldShowFields && (
           <div
             className={
               showLayout === 'grid'

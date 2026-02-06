@@ -150,7 +150,7 @@ export function useDashboardActions(
         galeria.slug,
         galeria.photographer_username,
         galeria.photographer_username,
-        galeria.cover_image_url,
+        galeria.cover_image_ids?.[0] || null,
       );
       // Força a revalidação da lista de galerias para atualizar contadores (como leads)
       if (photographer?.id) {

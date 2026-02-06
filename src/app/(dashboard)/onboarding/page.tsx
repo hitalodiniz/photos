@@ -3,6 +3,7 @@ import { AuthGuard } from '@/components/auth';
 import { redirect } from 'next/navigation';
 import OnboardingForm from './OnboardingForm';
 import { Metadata } from 'next';
+import { PlanProvider } from '@/core/context/PlanContext';
 
 /**
  * SERVER COMPONENT: OnboardingPage
@@ -32,15 +33,17 @@ export default async function OnboardingPage() {
 
   return (
     <AuthGuard>
-      <div className="min-h-screen bg-luxury-bg">
-        <OnboardingForm
-          initialData={profile}
-          suggestedUsername={data.suggestedUsername}
-          email={data.email || ''}
-          isEditMode={isProfileComplete}
-          isGoogleConnected={isGoogleConnected}
-        />
-      </div>
+      <PlanProvider>
+        <div className="min-h-screen bg-luxury-bg">
+          <OnboardingForm
+            initialData={profile}
+            suggestedUsername={data.suggestedUsername}
+            email={data.email || ''}
+            isEditMode={isProfileComplete}
+            isGoogleConnected={isGoogleConnected}
+          />
+        </div>
+      </PlanProvider>
     </AuthGuard>
   );
 }

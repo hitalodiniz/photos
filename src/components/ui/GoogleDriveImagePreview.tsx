@@ -1,6 +1,6 @@
 'use client';
 
-import { getDirectGoogleUrl } from '@/core/utils/url-helper';
+import { getDirectGoogleUrl, getProxyUrl } from '@/core/utils/url-helper';
 import React, { useState } from 'react';
 import { ImageIcon, Loader2 } from 'lucide-react';
 
@@ -18,7 +18,9 @@ export default function GoogleDriveImagePreview({
 
   // 🎯 URL de miniatura do Google Drive (sz=w400 garante boa resolução para o preview)
   // Usamos o parâmetro &export=view ou a URL de thumbnail direta
-  const thumbnailUrl = getDirectGoogleUrl(photoId, 400);
+  const thumbnailUrl = getProxyUrl(photoId, 400);
+  console.log('thumbnailUrl', thumbnailUrl);
+  console.log('error', error);
 
   return (
     <div

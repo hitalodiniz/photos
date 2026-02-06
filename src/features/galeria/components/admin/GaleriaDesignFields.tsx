@@ -58,7 +58,7 @@ export const GalleryDesignFields: React.FC<GalleryDesignFieldsProps> = ({
       <PlanGuard feature="customizationLevel" label="Foto de fundo">
         <div className="flex items-center gap-2 border-r border-petroleum/10 pr-2.5 shrink-0 h-8">
           <div className="flex items-center gap-1 shrink-0">
-            <label className="text-[10px] font-bold uppercase tracking-luxury-widest text-petroleum flex items-center gap-1">
+            <label>
               <ImageIcon size={11} className="text-gold" /> Foto fundo
             </label>
             <InfoTooltip
@@ -91,9 +91,7 @@ export const GalleryDesignFields: React.FC<GalleryDesignFieldsProps> = ({
         <div className="flex items-center gap-2 border-r border-petroleum/10 shrink-0 h-8 pr-2.5">
           <div className="flex items-center gap-1 shrink-0">
             <Palette size={12} className="text-gold" />
-            <label className="text-[10px] font-bold uppercase tracking-luxury-widest text-petroleum">
-              Cor fundo
-            </label>
+            <label>Cor fundo</label>
             <InfoTooltip
               content="Define a cor sólida do grid de fotos da página da galeria
                   acessada pelo visitante."
@@ -150,9 +148,7 @@ export const GalleryDesignFields: React.FC<GalleryDesignFieldsProps> = ({
       <div className="flex items-center gap-2 shrink-0 h-8">
         <div className="flex items-center gap-1 shrink-0">
           <Layout size={12} className="text-gold" />
-          <label className="text-[10px] font-bold uppercase tracking-luxury-widest text-petroleum">
-            Grid
-          </label>
+          <label>Grid</label>
           <InfoTooltip
             content="Colunas por dispositivo: Mobile | Tablet | Desktop."
             width="w-48"

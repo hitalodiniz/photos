@@ -28,6 +28,7 @@ export interface Photographer {
   roles?: string[];
   website?: string | null;
   message_templates?: MessageTemplates;
+  plan_key: string;
 }
 
 // Interface Base (Reflete exatamente a tabela tb_galerias no Banco)
@@ -39,6 +40,7 @@ export interface GaleriaBase {
   location: string;
   slug: string;
   cover_image_url: string | null;
+  cover_image_ids: string[] | null;
   drive_folder_id: string | null;
   is_public: boolean;
   password: string | null;
@@ -66,6 +68,7 @@ export interface GaleriaBase {
   leads_require_whatsapp: boolean;
   lead_purpose?: string;
   rename_files_sequential: boolean;
+  photo_count: number;
 }
 
 // Interface utilizada na UI (GaleriaCard e GaleriaView)
@@ -77,13 +80,13 @@ export interface Galeria extends GaleriaBase {
   photographer_instagram?: string | null;
   photographer_email?: string | null;
   photographer_url?: string;
+  photographer_message_templates: MessageTemplates;
   leads_count?: number;
 
   // Atalhos úteis para facilitar o acesso no GaleriaCard
   photographer_username?: string;
   photographer_id?: string;
   use_subdomain?: boolean;
-  message_templates: MessageTemplates;
 }
 
 // Interface para a Resposta Bruta do Supabase (Joins)
@@ -102,6 +105,8 @@ export interface GaleriaRawResponse extends Omit<
     instagram_link: string | null;
     use_subdomain: boolean; // Garante a tipagem correta vinda do DB
     message_templates: MessageTemplates;
+    plan_key: string;
+    plan_key: string;
   };
   leads?: { count: number }[];
 }
