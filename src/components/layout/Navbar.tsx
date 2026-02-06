@@ -1,17 +1,19 @@
 'use client';
 
 import { usePathname, useRouter } from 'next/navigation';
-import { Camera, ArrowLeft, Menu } from 'lucide-react';
+import { SegmentIcon, ArrowLeft, Menu } from 'lucide-react';
 import Link from 'next/link';
 import { useEffect, useState } from 'react';
 
 import { useAuth } from '@photos/core-auth';
 import { UserMenu } from '@/components/auth';
 import { useSidebar } from '@/components/providers/SidebarProvider';
+import { useSegment } from '@/hooks/useSegment';
 
 export default function Navbar() {
   const pathname = usePathname();
   const router = useRouter();
+  const { SegmentIcon } = useSegment();
   const { user, avatarUrl, isLoading } = useAuth();
   const { toggleSidebar } = useSidebar();
   const [mounted, setMounted] = useState(false);
@@ -135,7 +137,7 @@ export default function Navbar() {
             className="flex items-center gap-2 group transition-all"
           >
             {/* 🎯 Ícone da Câmera - Apenas o ícone, sem borda e sem fundo */}
-            <Camera
+            <SegmentIcon
               className="text-champagne w-5 h-5 md:w-6 md:h-6 transition-transform group-hover:scale-110"
               strokeWidth={1.5}
             />

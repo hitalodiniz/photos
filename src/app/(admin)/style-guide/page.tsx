@@ -15,9 +15,11 @@ import {
   ChevronLeft,
   ChevronRight,
 } from 'lucide-react';
+import { useSegment } from '@/hooks/useSegment';
 
 export default function StyleGuidePage() {
   const [copied, setCopied] = useState(false);
+  const { terms, segment, SegmentIcon } = useSegment();
 
   // 🎯 PROMPT UNIFICADO: Sistema adaptativo com tema claro/escuro automático
   const aiPrompt = `Contexto de Design: Sistema Luxury Hybrid Adaptativo (Light/Dark Auto)
@@ -25,7 +27,7 @@ export default function StyleGuidePage() {
 🎨 TEMA ADAPTATIVO AUTOMÁTICO:
 - O site detecta automaticamente o tema do sistema operacional (darkMode: 'media' no Tailwind)
 - Use classes dark: para adaptar cores ao tema escuro
-- Sempre forneça versões para ambos os temas usando: text-petroleum dark:text-[#F3E5AB]
+- Sempre forneça versões para ambos os temas usando: text-petroleum dark:text-champagne
 
 📋 CORES POR TEMA:
 1. TEMA CLARO (Light):
@@ -37,8 +39,8 @@ export default function StyleGuidePage() {
 
 2. TEMA ESCURO (Dark):
    - Fundo principal: dark:bg-black ou dark:bg-[#1A1A1A]
-   - Cor de destaque: dark:text-[#F3E5AB] (champagne/dourado)
-   - Ícones: dark:text-[#F3E5AB]
+   - Cor de destaque: dark:text-champagne (champagne/dourado)
+   - Ícones: dark:text-champagne
    - Bordas: dark:border-white/10 ou dark:border-white/20
    - Fundos de componentes: dark:bg-black/90 ou dark:bg-[#1A1A1A]/90
 
@@ -51,7 +53,7 @@ export default function StyleGuidePage() {
 
 2. TEXTOS ADAPTATIVOS:
    - Títulos: text-black dark:text-white
-   - Destaques: text-petroleum dark:text-[#F3E5AB]
+   - Destaques: text-petroleum dark:text-champagne
    - Secundários: text-black/70 dark:text-white/80
 
 3. FUNDOS ADAPTATIVOS:
@@ -68,7 +70,7 @@ export default function StyleGuidePage() {
 
 💡 EXEMPLO DE COMPONENTE ADAPTATIVO:
 <div className="bg-white/90 dark:bg-black/90 backdrop-blur-md border border-black/10 dark:border-white/20 text-black dark:text-white transition-colors duration-300">
-  <h2 className="text-petroleum dark:text-[#F3E5AB]">Título</h2>
+  <h2 className="text-petroleum dark:text-champagne">Título</h2>
   <p className="text-black/70 dark:text-white/80">Texto secundário</p>
 </div>
 
@@ -213,17 +215,17 @@ export default function StyleGuidePage() {
           {/* TEMA ESCURO */}
           <div className="bg-petroleum p-6 rounded-2xl border border-white/10 shadow-2xl">
             <div className="flex items-center gap-2 mb-4">
-              <div className="w-3 h-3 rounded-full bg-[#F3E5AB]" />
-              <h3 className="text-xs font-semibold uppercase tracking-luxury-widest text-[#F3E5AB]">
+              <div className="w-3 h-3 rounded-full bg-champagne" />
+              <h3 className="text-xs font-semibold uppercase tracking-luxury-widest text-champagne">
                 Tema Escuro (Dark)
               </h3>
             </div>
             <div className="space-y-3">
               <div className="p-4 bg-black/90 border border-white/10 rounded-lg">
-                <p className="text-[#F3E5AB] text-sm font-semibold">Título</p>
+                <p className="text-champagne text-sm font-semibold">Título</p>
                 <p className="text-white/80 text-xs mt-1">Texto secundário</p>
               </div>
-              <button className="w-full h-10 bg-[#F3E5AB] text-black rounded-lg text-xs font-semibold uppercase tracking-luxury-widest">
+              <button className="w-full h-10 bg-champagne text-black rounded-lg text-xs font-semibold uppercase tracking-luxury-widest">
                 Botão
               </button>
             </div>
@@ -243,15 +245,15 @@ export default function StyleGuidePage() {
               Título (GaleriaHeader)
             </p>
             <div className="flex items-start gap-3">
-              <Camera
-                className="text-petroleum dark:text-[#F3E5AB] w-6 h-6 transition-colors duration-300"
+              <SegmentIcon
+                className="text-petroleum dark:text-champagne w-6 h-6 transition-colors duration-300"
                 strokeWidth={1.5}
               />
               <div>
                 <h1 className="text-black dark:text-white text-xl font-semibold transition-colors duration-300">
                   Tour de France
                 </h1>
-                <div className="h-[2px] bg-petroleum dark:bg-[#F3E5AB] rounded-full w-24 mt-1 transition-colors duration-300" />
+                <div className="h-[2px] bg-petroleum dark:bg-champagne rounded-full w-24 mt-1 transition-colors duration-300" />
               </div>
             </div>
           </div>
@@ -264,15 +266,15 @@ export default function StyleGuidePage() {
             <div className="bg-white/90 dark:bg-black/90 backdrop-blur-md px-3 py-1.5 rounded-luxury border border-black/10 dark:border-white/20 shadow-2xl flex items-center gap-3 transition-colors duration-300">
               <ImageIcon
                 size={13}
-                className="text-petroleum dark:text-[#F3E5AB] transition-colors duration-300"
+                className="text-petroleum dark:text-champagne transition-colors duration-300"
               />
               <p className="text-[11px] font-medium text-black dark:text-white transition-colors duration-300">
                 Foto{' '}
-                <span className="text-petroleum dark:text-[#F3E5AB]">10</span>{' '}
+                <span className="text-petroleum dark:text-champagne">10</span>{' '}
                 de 153
               </p>
               <div className="h-3 w-[1px] bg-black/10 dark:bg-white/20" />
-              <p className="text-black/60 dark:text-[#F3E5AB] text-[11px] font-medium transition-colors duration-300">
+              <p className="text-black/60 dark:text-champagne text-[11px] font-medium transition-colors duration-300">
                 97 KB
               </p>
             </div>
@@ -284,10 +286,10 @@ export default function StyleGuidePage() {
               Botões de Navegação
             </p>
             <div className="flex gap-4">
-              <button className="w-12 h-12 rounded-full flex items-center justify-center text-black/20 dark:text-white/20 hover:text-petroleum dark:hover:text-[#F3E5AB] transition-all">
+              <button className="w-12 h-12 rounded-full flex items-center justify-center text-black/20 dark:text-white/20 hover:text-petroleum dark:hover:text-champagne transition-all">
                 <ChevronLeft size={20} strokeWidth={1} />
               </button>
-              <button className="w-12 h-12 rounded-full flex items-center justify-center text-black/20 dark:text-white/20 hover:text-petroleum dark:hover:text-[#F3E5AB] transition-all">
+              <button className="w-12 h-12 rounded-full flex items-center justify-center text-black/20 dark:text-white/20 hover:text-petroleum dark:hover:text-champagne transition-all">
                 <ChevronRight size={20} strokeWidth={1} />
               </button>
             </div>

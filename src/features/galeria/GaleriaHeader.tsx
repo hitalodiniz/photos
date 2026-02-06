@@ -1,11 +1,8 @@
+import { useSegment } from '@/hooks/useSegment';
 import { Camera, MapPin, Calendar } from 'lucide-react';
 
-export const GaleriaHeader: React.FC<GaleriaHeaderProps> = ({
-  title,
-  location,
-  data,
-  className,
-}) => {
+export const GaleriaHeader = ({ title, location, data, className }) => {
+  const { SegmentIcon } = useSegment();
   return (
     <div
       className={`flex flex-col items-start text-left min-w-0 flex-1 pointer-events-auto select-none ${className}`}
@@ -13,7 +10,7 @@ export const GaleriaHeader: React.FC<GaleriaHeaderProps> = ({
       <div className="flex flex-col min-w-0 w-full">
         <h1 className=" font-bold text-editorial-ink dark:text-white leading-tight tracking-luxury-tight flex items-start gap-3 text-xl md:text-2xl mb-1 w-full transition-colors duration-300">
           <div className="relative shrink-0 mt-1">
-            <Camera
+            <SegmentIcon
               className="text-editorial-gray dark:text-gold w-5 h-5 md:w-6 md:h-6 transition-colors duration-300"
               strokeWidth={1.5}
             />

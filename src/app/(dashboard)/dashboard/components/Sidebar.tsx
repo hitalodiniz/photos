@@ -3,7 +3,7 @@ import {
   ChevronLeft,
   ChevronRight,
   Lock,
-  Camera,
+  SegmentIcon,
   ArrowLeft,
 } from 'lucide-react';
 import type { ViewType } from '../hooks/useDashboardFilters';
@@ -17,6 +17,7 @@ import { useSidebar } from '@/components/providers/SidebarProvider';
 import { usePlan } from '@/core/context/PlanContext';
 import { useState } from 'react';
 import UpgradeModal from '@/components/ui/UpgradeModal';
+import { useSegment } from '@/hooks/useSegment';
 
 interface SidebarProps {
   counts: { active: number; archived: number; trash: number };
@@ -47,6 +48,7 @@ export default function Sidebar({
   isRedirecting,
   onOpenAdminModal,
 }: SidebarProps) {
+  const { SegmentIcon } = useSegment();
   const { isSidebarCollapsed, toggleSidebar } = useSidebar();
   const isMobile = typeof window !== 'undefined' && window.innerWidth < 1024;
 
@@ -72,7 +74,7 @@ export default function Sidebar({
         {/* Header Mobile no Sidebar */}
         {!isSidebarCollapsed && (
           <div className="lg:hidden flex items-center gap-3 px-6 py-4 border-b border-white/5">
-            <Camera className="text-champagne w-6 h-6" strokeWidth={1.5} />
+            <SegmentIcon className="text-champagne w-6 h-6" strokeWidth={1.5} />
             <span className=" text-lg font-bold tracking-luxury-tight text-white italic">
               Espaço das <span className="text-champagne">Galerias</span>
             </span>

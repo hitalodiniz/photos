@@ -234,7 +234,7 @@ const SafeImage = memo(
             >
               {usingProxy ? 'A' : 'D'}
             </span>
-            <span className="text-[#F3E5AB] text-[9px] font-mono font-medium">
+            <span className="text-champagne text-[9px] font-mono font-medium">
               {imageSize}
             </span>
           </div>
@@ -571,7 +571,7 @@ const MasonryGrid = ({
               {!allLoaded && (
                 <div className="flex justify-center py-10">
                   <Loader2
-                    className="animate-spin text-[#F3E5AB] opacity-50"
+                    className="animate-spin text-champagne opacity-50"
                     size={32}
                   />
                 </div>

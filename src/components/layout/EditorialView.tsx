@@ -5,6 +5,7 @@ import Footer from '@/components/layout/Footer';
 import EditorialToolbar from './EditorialToolBar';
 import { GoogleSignInButton } from '@/components/auth';
 import { Camera, FileText, ShieldCheck, Lock } from 'lucide-react';
+import { useSegment } from '@/hooks/useSegment';
 
 const HERO_IMAGES = [
   '/hero-bg-1.webp',
@@ -42,6 +43,8 @@ export default function EditorialView({
 }: any) {
   const [isMounted, setIsMounted] = useState(false);
   const [currentBg, setCurrentBg] = useState<string | null>(null);
+
+  const { SegmentIcon } = useSegment();
 
   useEffect(() => {
     setIsMounted(true);
@@ -93,8 +96,8 @@ export default function EditorialView({
               <div className="flex flex-col items-start flex-1">
                 <div className="inline-block">
                   <h1 className="text-2xl md:text-5xl font-semibold text-white drop-shadow-[0_2px_10px_rgba(0,0,0,0.5)] italic flex items-center gap-2">
-                    <Camera
-                      className="text-[#F3E5AB] shrink-0 transition-all duration-1000 drop-shadow-md w-6 h-6 md:w-12 md:h-12"
+                    <SegmentIcon
+                      className="text-champagne shrink-0 transition-all duration-1000 drop-shadow-md w-6 h-6 md:w-12 md:h-12"
                       strokeWidth={1.5}
                     />
                     {title}
@@ -110,7 +113,6 @@ export default function EditorialView({
               {/* 🎯 Lado Direito: Ações (Google, Termos ou Privacidade) */}
               {(showHeroAction || showTermsAction || showPrivacyAction) && (
                 <div className="flex flex-col items-center gap-2 animate-in fade-in slide-in-from-right-4 duration-1000">
-                  {/* Texto padronizado com o estilo do título "Sua Galeria" */}
                   <div className="w-full text-left md:text-right">
                     <p className="text-white text-base md:text-lg font-medium italic leading-tight drop-shadow-md">
                       {showHeroAction && 'Conecte com sua conta do Google'}

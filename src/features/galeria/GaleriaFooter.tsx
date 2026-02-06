@@ -36,7 +36,7 @@ export default function GaleriaFooter({
   const profileLink = getCreatorProfileUrl(photographer);
 
   return (
-    <footer className="relative z-20 w-full mt-4 pt-6 bg-[#111827] border-t border-white/5">
+    <footer className="relative z-20 w-full mt-4 pt-6 bg-petroleum border-t border-white/5">
       <div className="max-w-[1600px] mx-auto flex flex-col items-center gap-6">
         {/* 1. Botão Voltar ao Topo */}
         {showTopButton && (
@@ -44,7 +44,7 @@ export default function GaleriaFooter({
             onClick={() => window.scrollTo({ top: 0, behavior: 'smooth' })}
             className="group flex flex-col items-center gap-2 transition-all duration-500"
           >
-            <div className="p-3 rounded-full border border-white/10 group-hover:border-[#F3E5AB] group-hover:bg-white/5 transition-all">
+            <div className="p-3 rounded-full border border-white/10 group-hover:border-champagne group-hover:bg-white/5 transition-all">
               <svg
                 width="20"
                 height="20"
@@ -56,7 +56,7 @@ export default function GaleriaFooter({
                 <path d="m18 15-6-6-6 6" />
               </svg>
             </div>
-            <span className="text-[10px] uppercase tracking-luxury-widest font-semibold text-[#F3E5AB]/60 group-hover:text-[#F3E5AB]">
+            <span className="text-[10px] uppercase tracking-luxury-widest font-semibold text-champagne/60 group-hover:text-champagne">
               Topo
             </span>
           </button>
@@ -123,7 +123,7 @@ export default function GaleriaFooter({
                     href={profileLink}
                     target="_blank"
                     rel="noopener noreferrer"
-                    className="text-white/60 hover:text-[#F3E5AB] transition-all"
+                    className="text-white/60 hover:text-champagne transition-all"
                   >
                     <svg
                       width="18"
@@ -176,7 +176,7 @@ export default function GaleriaFooter({
                 rel="noopener noreferrer"
                 className="group"
               >
-                <span className="text-[#F3E5AB] italic tracking-luxury-tight text-sm md:text-base group-hover:text-white transition-colors ml-1">
+                <span className="text-champagne italic tracking-luxury-tight text-sm md:text-base group-hover:text-white transition-colors ml-1">
                   Sua Galeria
                 </span>
               </a>

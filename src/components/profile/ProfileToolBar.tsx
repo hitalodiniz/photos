@@ -90,7 +90,7 @@ export const PhotographerInfoBar = ({
           {/* SEÇÃO CIDADES (Filtrada por Plano) */}
           {displayCities.length > 0 && (
             <div className="flex items-center gap-1.5 md:gap-3 flex-1 min-w-0 animate-in fade-in duration-500">
-              <MapPin size={16} className="text-[#F3E5AB] shrink-0" />
+              <MapPin size={16} className="text-champagne shrink-0" />
               <div
                 ref={containerRef}
                 className="flex items-center gap-2 flex-1 min-w-0"
@@ -103,7 +103,7 @@ export const PhotographerInfoBar = ({
                         href={`https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(city)}`}
                         target="_blank"
                         rel="noopener noreferrer"
-                        className="px-4 py-1.5 rounded-luxury text-[12px] font-semibold text-white/90 bg-white/5 border border-white/10 h-9 flex items-center shrink-0 italic hover:bg-white/10 hover:border-[#F3E5AB]/50 transition-all"
+                        className="px-4 py-1.5 rounded-luxury text-[12px] font-semibold text-white/90 bg-white/5 border border-white/10 h-9 flex items-center shrink-0 italic hover:bg-white/10 hover:border-champagne/50 transition-all"
                       >
                         {city}
                       </a>
@@ -119,7 +119,7 @@ export const PhotographerInfoBar = ({
                     </span>
                     <ChevronDown
                       size={14}
-                      className={`text-[#F3E5AB] transition-transform duration-500 ${isDrawerOpen ? 'rotate-180' : ''}`}
+                      className={`text-champagne transition-transform duration-500 ${isDrawerOpen ? 'rotate-180' : ''}`}
                     />
                   </button>
                 )}
@@ -178,7 +178,7 @@ export const PhotographerInfoBar = ({
                 href={`https://wa.me/${phone.replace(/\D/g, '')}`}
                 target="_blank"
                 // 🎯 WhatsApp: Fundo Slate-800 padrão, tornando-se verde apenas no HOVER conforme solicitado
-                className="flex items-center justify-center rounded-lg h-9 w-9 md:h-10 md:w-auto md:px-5 border border-white/10 bg-slate-800 text-white hover:bg-[#25D366] hover:shadow-lg active:scale-95 transition-all group"
+                className="flex items-center justify-center rounded-lg h-9 w-9 md:h-10 md:w-auto md:px-5 border border-white/10 bg-slate-800 text-white hover:bg-green-500 hover:shadow-lg active:scale-95 transition-all group"
               >
                 <WhatsAppIcon className="w-5 h-5 md:w-[18px] md:h-[18px]" />
                 <span className="text-[11px] font-semibold uppercase hidden md:block ml-2">
@@ -200,7 +200,7 @@ export const PhotographerInfoBar = ({
                 href={`https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(city)}`}
                 target="_blank"
                 rel="noopener noreferrer"
-                className="px-4 py-1.5 rounded-luxury text-[12px] font-semibold text-white/90 bg-white/5 border border-white/10 h-9 flex items-center shrink-0 italic hover:bg-white/10 hover:border-[#F3E5AB]/50 transition-all"
+                className="px-4 py-1.5 rounded-luxury text-[12px] font-semibold text-white/90 bg-white/5 border border-white/10 h-9 flex items-center shrink-0 italic hover:bg-white/10 hover:border-champagne/50 transition-all"
               >
                 {city}
               </a>

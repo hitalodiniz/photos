@@ -9,12 +9,13 @@ import {
 import { usePlan } from '@/core/context/PlanContext';
 import { Lock, Sparkles } from 'lucide-react';
 import UpgradeModal from '../ui/UpgradeModal';
+import { useSegment } from '@/hooks/useSegment'; // 🎯 Import do Hook
 
 interface PlanGuardProps {
   feature: keyof PlanPermissions;
   children: React.ReactNode;
   label?: string;
-  scenarioType?: 'limit' | 'feature'; // Optional prop to specify scenario type
+  scenarioType?: 'limit' | 'feature';
   forceShowLock?: boolean;
 }
 
@@ -25,12 +26,13 @@ export function PlanGuard({
   scenarioType = 'feature',
   forceShowLock = false,
 }: PlanGuardProps) {
-  const { planKey, permissions, segment } = usePlan();
+  const { planKey, permissions } = usePlan();
+  const { terms, segment } = useSegment(); // 🎯 Obtendo termos do segmento
   const [isUpgradeModalOpen, setIsUpgradeModalOpen] = useState(false);
 
   // 1. Verificação de Acesso
   const hasAccess = (() => {
-    if (forceShowLock) return false; // Se o limite estourou, bloqueia independente da feature
+    if (forceShowLock) return false;
     const val = permissions[feature];
     if (typeof val === 'number') return val > 0;
     if (typeof val === 'boolean') return val === true;
@@ -53,6 +55,12 @@ export function PlanGuard({
 
   if (hasAccess) return <>{children}</>;
 
+  // 🎯 Parametrização do Label padrão baseada no segmento
+  const defaultLabel =
+    scenarioType === 'limit'
+      ? `Limite de ${terms.items} atingido`
+      : 'Recurso Premium';
+
   return (
     <>
       <div
@@ -60,7 +68,7 @@ export function PlanGuard({
         data-testid="plan-guard-overlay"
         className="relative group cursor-pointer overflow-hidden rounded-luxury border border-transparent hover:border-gold/20 transition-all duration-500"
       >
-        {/* 🎯 AJUSTE 1: Badge no fluxo normal para evitar sobreposição */}
+        {/* Badge de Plano */}
         {requiredPlan && (
           <div className="absolute top-1.5 right-1.5 z-20 flex items-center gap-1 px-2 py-0.5 bg-petroleum/90 backdrop-blur-md rounded-full border border-white/10 shadow-md">
             <Sparkles size={8} className="text-gold animate-pulse" />
@@ -78,14 +86,12 @@ export function PlanGuard({
         {/* Overlay Editorial de Bloqueio */}
         <div className="absolute inset-0 z-10 flex items-center px-3 bg-petroleum/5 group-hover:bg-petroleum/10 transition-all duration-500">
           <div className="flex items-center gap-3 w-full">
-            {/* Ícone fixo à esquerda */}
             <div className="bg-white p-2 rounded-full shadow-xl border border-gold/20 flex items-center justify-center shrink-0 translate-y-[1px]">
               <Lock size={12} className="text-gold" strokeWidth={3} />
             </div>
 
-            {/* 🎯 AJUSTE 2: Texto Flex-1 com margem direita para o badge */}
             <span className="flex-1 text-[10px] font-bold uppercase tracking-widest text-petroleum drop-shadow-sm truncate pr-12">
-              {label ? label : 'Premium'}
+              {label ? label : defaultLabel}
             </span>
           </div>
         </div>
@@ -94,7 +100,7 @@ export function PlanGuard({
       <UpgradeModal
         isOpen={isUpgradeModalOpen}
         onClose={() => setIsUpgradeModalOpen(false)}
-        featureName={label || 'Recurso Premium'}
+        featureName={label || defaultLabel}
         featureKey={feature}
         scenarioType={scenarioType}
       />

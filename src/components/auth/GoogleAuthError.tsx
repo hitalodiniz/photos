@@ -48,7 +48,7 @@ export default function GoogleAuthError({
   }, []);
 
   return (
-    <div className="min-h-screen bg-[#111827] flex items-center justify-center p-6 text-center">
+    <div className="min-h-screen bg-petroleum flex items-center justify-center p-6 text-center">
       <div className="max-w-md w-full space-y-8 animate-in fade-in zoom-in-95 duration-500">
         {/* Ícone de Alerta com Glow */}
         <div className="relative mx-auto w-20 h-20 flex items-center justify-center">
@@ -72,12 +72,12 @@ export default function GoogleAuthError({
           <h1 className="text-white text-xl md:text-2xl font-bold uppercase tracking-luxury-widest leading-tight">
             {isPermissionError ? 'Acesso Pendente' : 'Galeria Indisponível'}
           </h1>
-          <div className="h-1 w-12 bg-[#F3E5AB] mx-auto rounded-full"></div>
+          <div className="h-1 w-12 bg-champagne mx-auto rounded-full"></div>
         </div>
 
         {/* Card de Instrução para o Usuário Final */}
         <div className="bg-white/5 border border-white/10 p-6 rounded-2xl space-y-5 text-left">
-          <div className="flex items-center gap-3 text-[#F3E5AB]">
+          <div className="flex items-center gap-3 text-champagne">
             <MessageCircle size={18} />
             <span className="text-[11px] font-bold uppercase tracking-luxury-widest">
               Informativo
@@ -118,7 +118,7 @@ export default function GoogleAuthError({
               )}
             </p>
 
-            <div className="p-4 bg-black/30 rounded-lg border-l-2 border-[#F3E5AB]">
+            <div className="p-4 bg-black/30 rounded-lg border-l-2 border-champagne">
               <p className="text-white/80 text-[11px] md:text-xs leading-relaxed italic">
                 {isTokenMissing ? (
                   <>
@@ -143,14 +143,14 @@ export default function GoogleAuthError({
           {isTokenMissing && isOwner && (
             <button
               onClick={() => router.push('/auth/reconnect')}
-              className="flex items-center justify-center gap-3 px-6 py-3 bg-[#F3E5AB] text-black hover:bg-champagnetransition-colors rounded-lg text-[11px] font-bold uppercase tracking-wider shadow-lg"
+              className="flex items-center justify-center gap-3 px-6 py-3 bg-champagne text-black hover:bg-champagnetransition-colors rounded-lg text-[11px] font-bold uppercase tracking-wider shadow-lg"
             >
               <LogIn size={14} /> Reconectar Google Drive
             </button>
           )}
           <button
             onClick={() => window.location.reload()}
-            className="flex items-center justify-center gap-3 text-white/90 hover:text-[#F3E5AB] transition-colors text-[10px] font-bold uppercase tracking-luxury-widest"
+            className="flex items-center justify-center gap-3 text-white/90 hover:text-champagne transition-colors text-[10px] font-bold uppercase tracking-luxury-widest"
           >
             <RefreshCw size={12} /> Tentar atualizar a página
           </button>

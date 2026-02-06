@@ -19,16 +19,12 @@ import {
 import EditorialCard from '../ui/EditorialCard';
 import EditorialView from '../layout/EditorialView';
 import { authService } from '@photos/core-auth';
-import { SEGMENT_DICTIONARY, SegmentType } from '@/core/config/segments'; // Importe o dicionário criado
+import { useSegment } from '@/hooks/useSegment';
 
+const { terms, segment, SegmentIcon } = useSegment();
 const STORAGE_KEY = '@suagaleria:active-tab';
 
 export default function LandingPageContent() {
-  // Captura o segmento da env
-  const segment = (process.env.NEXT_PUBLIC_APP_SEGMENT ||
-    'PHOTOGRAPHER') as SegmentType;
-  const terms = SEGMENT_DICTIONARY[segment];
-
   const [userType, setUserType] = useState<'explorer' | 'photographer'>(
     'explorer',
   );
@@ -57,17 +53,17 @@ export default function LandingPageContent() {
     () => [
       {
         title: `Seus ${terms.items} rendem mais`,
-        accent: '#B8860B',
+        accent: 'gold',
         items: [
           `Cada ${terms.item} importa`,
           'Qualidade superior ao Instagram',
-          'Protege suas memórias em alta resolução',
+          `Protege suas ${terms.items} no formato original`,
           'Subiu no Drive, está na galeria em tempo real',
         ],
       },
       {
         title: 'A galeria fica na sua nuvem',
-        accent: '#1a363d',
+        accent: 'petroleum',
         items: [
           'Hospedagem direta no seu Google Drive™',
           'Acesso protegido pela autenticação do Google™',
@@ -77,7 +73,7 @@ export default function LandingPageContent() {
       },
       {
         title: 'Acessível e para todos',
-        accent: '#B8860B',
+        accent: 'gold',
         items: [
           'Planos a partir de R$ 29/mês',
           'Interface descomplicada',
@@ -122,7 +118,7 @@ export default function LandingPageContent() {
             >
               <div className="flex items-center gap-4">
                 <div className="p-2 md:p-3 rounded-2xl">
-                  <Camera className="text-petroleum" size={24} />
+                  <SegmentIcon className="text-petroleum" size={24} />
                 </div>
                 <div className="text-left">
                   <h3 className="text-petroleum font-semibold text-sm md:text-base">
@@ -165,26 +161,12 @@ export default function LandingPageContent() {
 
   return (
     <EditorialView
-      title="Sua Galeria"
-      subtitle={
-        <>
-          Encontre profissionais ou transforme seu{' '}
-          <span className="italic font-semibold text-white">Google Drive™</span>{' '}
-          em uma Galeria Profissional
-        </>
-      }
+      title={terms.site_name}
+      subtitle={terms.heroSubtitle(segment)}
       altura="h-[75vh] md:h-[65vh]"
       showHeroAction={userType === 'photographer'}
-      sectionSubtitle={
-        userType === 'photographer'
-          ? 'Sua estrutura profissional'
-          : 'Encontre o clique perfeito'
-      }
-      sectionDescription={
-        userType === 'explorer'
-          ? `Navegue por galerias públicas e conecte-se direto com ${terms.plural}.`
-          : `Toda a tecnologia necessária para entregar ${terms.items} com elegância e baixo custo.`
-      }
+      sectionSubtitle={terms.sectionSubtitle(userType)}
+      sectionDescription={terms.sectionDescription(userType, terms)}
       heroCustomAction={cardModo}
       heroSecondaryAction={compactSelector}
     >

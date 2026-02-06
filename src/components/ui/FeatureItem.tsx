@@ -9,7 +9,7 @@ export default function FeatureItem({ icon, title, desc }) {
     <div className="flex flex-row items-center gap-4 group transition-all w-full">
       {/* Ícone: Fundo sólido suave para destacar no branco translúcido */}
       <div
-        className="w-12 h-12 md:w-16 md:h-16 shrink-0 bg-[#FAF7ED] rounded-2xl flex items-center justify-center 
+        className="w-12 h-12 md:w-16 md:h-16 shrink-0 bg-luxury-bg rounded-2xl flex items-center justify-center 
         border border-gold/50 group-hover:border-gold group-hover:bg-champagne-dark transition-all text-champagneshadow-sm"
       >
         {icon}

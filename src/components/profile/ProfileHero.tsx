@@ -11,7 +11,7 @@ interface ProfileBioProps {
 // SUB-COMPONENTE PARA O AVATAR (Passado no sideElement)
 export const PhotographerAvatar = ({ photoPreview, isExpanded }: any) => (
   <div
-    className={`relative flex items-center justify-center border border-[#F3E5AB]/60 rounded-full bg-black/40 backdrop-blur-md transition-all duration-1000 shrink-0 shadow-2xl overflow-hidden aspect-square ${isExpanded ? 'w-14 h-14 md:w-28 md:h-28' : 'w-10 h-10 md:w-20 md:h-20'}`}
+    className={`relative flex items-center justify-center border border-champagne/60 rounded-full bg-black/40 backdrop-blur-md transition-all duration-1000 shrink-0 shadow-2xl overflow-hidden aspect-square ${isExpanded ? 'w-14 h-14 md:w-28 md:h-28' : 'w-10 h-10 md:w-20 md:h-20'}`}
   >
     {photoPreview ? (
       <Image
@@ -23,7 +23,7 @@ export const PhotographerAvatar = ({ photoPreview, isExpanded }: any) => (
         sizes="(max-width: 768px) 112px, 112px"
       />
     ) : (
-      <User className="text-[#F3E5AB] w-1/2 h-1/2" />
+      <User className="text-champagne w-1/2 h-1/2" />
     )}
   </div>
 );
@@ -50,7 +50,7 @@ export const ProfileBio = ({ miniBio, isExpanded }: ProfileBioProps) => {
         >
           <Sparkles
             size={isExpanded ? 18 : 14}
-            className="text-[#F3E5AB] shrink-0 mt-1"
+            className="text-champagne shrink-0 mt-1"
           />
           <span
             className={
@@ -64,7 +64,7 @@ export const ProfileBio = ({ miniBio, isExpanded }: ProfileBioProps) => {
         </div>
       )}
       {/*<div className="flex items-center text-white text-[10px] md:text-[14px] font-medium gap-1.5 opacity-90">
-      <MapPin size={14} className="text-[#F3E5AB]" />
+      <MapPin size={14} className="text-champagne" />
       <span className="tracking-wider">{cities.join(' • ')}</span>
     </div>*/}
     </div>

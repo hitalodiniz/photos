@@ -155,7 +155,7 @@ export const EditorialHero = ({
               >
                 {title}
               </h1>
-              <div className="h-[2px] md:h-[3px] bg-[#F3E5AB] rounded-full w-full mt-1" />
+              <div className="h-[2px] md:h-[3px] bg-champagne rounded-full w-full mt-1" />
             </div>
           </div>
 
@@ -178,7 +178,7 @@ export const EditorialHero = ({
         {isExpanded ? (
           <button
             onClick={() => setIsExpanded(false)}
-            className="absolute bottom-12 left-1/2 -translate-x-1/2 animate-bounce text-white/60 hover:text-[#F3E5AB] p-2"
+            className="absolute bottom-12 left-1/2 -translate-x-1/2 animate-bounce text-white/60 hover:text-champagne p-2"
           >
             <ChevronDown size={32} />
           </button>

@@ -456,8 +456,8 @@ export default function GooglePickerButton({
         isDisabled
           ? 'bg-slate-50 text-slate-300 border-slate-100 cursor-not-allowed'
           : hasSelected
-            ? 'bg-[#F3E5AB]/20 border-[#D4AF37]/40 text-champagnehover:bg-[#F3E5AB]/40'
-            : 'bg-[#F3E5AB] text-black border-[#F3E5AB] hover:bg-white shadow-[#D4AF37]/10'
+            ? 'bg-champagne/20 border-gold/40 text-champagnehover:bg-champagne/40'
+            : 'bg-champagne text-black border-champagne hover:bg-white shadow-gold/10'
       }
     `}
     >
@@ -469,7 +469,7 @@ export default function GooglePickerButton({
       ) : (
         <div className="flex items-center gap-2">
           <svg
-            className={`w-3.5 h-3.5 ${hasSelected ? 'text-[#D4AF37]' : 'text-slate-400'}`}
+            className={`w-3.5 h-3.5 ${hasSelected ? 'text-gold' : 'text-slate-400'}`}
             fill="none"
             stroke="currentColor"
             viewBox="0 0 24 24"

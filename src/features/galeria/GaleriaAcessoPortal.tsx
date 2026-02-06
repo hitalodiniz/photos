@@ -13,6 +13,7 @@ import Link from 'next/link';
 import PasswordInput from '@/components/ui/PasswordInput';
 import * as z from 'zod';
 import { getDirectGoogleUrl } from '@/core/utils/url-helper';
+import { useSegment } from '@/hooks/useSegment';
 
 interface GalleryAccessPortalProps {
   galeria: Galeria;
@@ -33,6 +34,7 @@ export default function GalleryAccessPortal({
     whatsapp: '',
     password: '',
   });
+  const { SegmentIcon } = useSegment();
   const [errors, setErrors] = useState<Record<string, string>>({});
   const [loading, setLoading] = useState(false);
   const [globalError, setGlobalError] = useState('');
@@ -223,7 +225,7 @@ export default function GalleryAccessPortal({
       >
         <div className="space-y-4">
           <div className="flex items-start gap-3 text-left mb-1">
-            <Camera className="text-champagne w-8 h-8" strokeWidth={1.5} />
+            <SegmentIcon className="text-champagne w-8 h-8" strokeWidth={1.5} />
             <p className="text-petroleum/70 text-[13px] italic leading-relaxed text-left font-semibold">
               {hasPassword ? (
                 <span>

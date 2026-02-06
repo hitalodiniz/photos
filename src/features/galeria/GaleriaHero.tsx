@@ -12,6 +12,7 @@ import {
 } from 'lucide-react';
 import PhotographerAvatar from './ProfileAvatar';
 import { getInternalGoogleDriveUrl } from '@/core/utils/url-helper';
+import { useSegment } from '@/hooks/useSegment';
 
 interface GaleriaHeroProps {
   galeria: any;
@@ -24,6 +25,7 @@ export const GaleriaHero = ({
   photos,
   coverUrl,
 }: GaleriaHeroProps) => {
+  const { SegmentIcon } = useSegment();
   const [isExpanded, setIsExpanded] = useState(true);
   const [currentImageIndex, setCurrentImageIndex] = useState(0);
 
@@ -160,11 +162,17 @@ export const GaleriaHero = ({
                 ${isExpanded ? 'text-2xl md:text-5xl mb-2' : 'text-xl md:text-4xl mb-1'}`}
               >
                 <Camera
-                  className={`text-[#F3E5AB] shrink-0 transition-all duration-1000 drop-shadow-md ${isExpanded ? 'w-8 h-8 md:w-12 md:h-12' : 'w-6 h-6 md:w-8 md:h-8'}`}
+                  className={`text-[#F3E5AB] shrink-0 transition-all duration-1000 drop-shadow-md ${
+                    isExpanded
+                      ? 'w-8 h-8 md:w-12 md:h-12'
+                      : 'w-6 h-6 md:w-8 md:h-8'
+                  }`}
                   strokeWidth={1.5}
                 />
                 <span className="drop-shadow-lg">{galeria.title}</span>
               </h1>
+
+              {/* LINHA DECORATIVA */}
               <div className="h-[2px] md:h-[3px] bg-[#F3E5AB] rounded-full mb-3 md:mb-4 w-full max-w-[150px] md:max-w-[300px] shadow-lg" />
             </div>
 
@@ -188,7 +196,10 @@ export const GaleriaHero = ({
               </div>
               <div className="hidden md:block w-[1px] h-3 bg-white/40" />
               <div className="flex items-center text-white text-[10px] md:text-[14px] font-medium shrink-0 gap-1.5 drop-shadow-md">
-                <ImageIcon size={14} className="text-[#F3E5AB]" />
+                <ImageIcon
+                  size={14}
+                  className="text-[#F3E5AB] drop-shadow-sm"
+                />
                 <span>{photos?.length || 0} fotos</span>
               </div>
             </div>
@@ -203,7 +214,8 @@ export const GaleriaHero = ({
             <div className="relative flex items-center justify-center w-12 h-12 rounded-full bg-black/40 backdrop-blur-md border border-white/10 shadow-2xl transition-all duration-500 hover:bg-black/60">
               <ChevronDown
                 size={28}
-                className="text-white group-hover:text-[#F3E5AB]"
+                strokeWidth={1.5}
+                className="text-white transition-colors group-hover:text-[#F3E5AB]"
               />
             </div>
           </button>

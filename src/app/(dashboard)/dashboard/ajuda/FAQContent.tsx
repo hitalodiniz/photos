@@ -1,7 +1,15 @@
 'use client';
 
 import { useState } from 'react';
-import { ChevronDown, ChevronUp, HelpCircle, LogIn, HardDrive, Shield, RefreshCw } from 'lucide-react';
+import {
+  ChevronDown,
+  ChevronUp,
+  HelpCircle,
+  LogIn,
+  HardDrive,
+  Shield,
+  RefreshCw,
+} from 'lucide-react';
 import { useAuth } from '@photos/core-auth';
 import { useRouter } from 'next/navigation';
 
@@ -21,10 +29,13 @@ const faqData: FAQItem[] = [
     answer: (
       <div className="space-y-3">
         <p>
-          O sistema usa o Google Drive para importar suas fotos. Para acessar suas pastas, precisamos de uma permissão especial chamada <strong>refresh token</strong>.
+          O sistema usa o Google Drive para importar suas fotos. Para acessar
+          suas pastas, precisamos de uma permissão especial chamada{' '}
+          <strong>refresh token</strong>.
         </p>
         <p>
-          Este token pode expirar ou ser revogado pelo Google em algumas situações:
+          Este token pode expirar ou ser revogado pelo Google em algumas
+          situações:
         </p>
         <ul className="list-disc list-inside space-y-1 ml-4 text-sm">
           <li>Você revogou o acesso manualmente nas configurações do Google</li>
@@ -32,7 +43,8 @@ const faqData: FAQItem[] = [
           <li>É a primeira vez que você está usando o sistema</li>
         </ul>
         <p>
-          Quando isso acontece, o sistema detecta automaticamente e solicita que você faça login novamente para renovar o acesso.
+          Quando isso acontece, o sistema detecta automaticamente e solicita que
+          você faça login novamente para renovar o acesso.
         </p>
       </div>
     ),
@@ -45,7 +57,8 @@ const faqData: FAQItem[] = [
     answer: (
       <div className="space-y-3">
         <p>
-          A tela de consentimento é exibida pelo Google quando você precisa autorizar o acesso ao seu Google Drive. Ela aparece quando:
+          A tela de consentimento é exibida pelo Google quando você precisa
+          autorizar o acesso ao seu Google Drive. Ela aparece quando:
         </p>
         <ul className="list-disc list-inside space-y-1 ml-4 text-sm">
           <li>É a primeira vez que você autoriza o acesso</li>
@@ -53,7 +66,9 @@ const faqData: FAQItem[] = [
           <li>Você precisa renovar as permissões</li>
         </ul>
         <p>
-          <strong>Importante:</strong> Se você já tem um refresh token válido, o sistema usa um login rápido (sem tela de consentimento) para melhorar sua experiência.
+          <strong>Importante:</strong> Se você já tem um refresh token válido, o
+          sistema usa um login rápido (sem tela de consentimento) para melhorar
+          sua experiência.
         </p>
       </div>
     ),
@@ -65,16 +80,16 @@ const faqData: FAQItem[] = [
     question: 'Por que não consigo selecionar uma pasta do Google Drive?',
     answer: (
       <div className="space-y-3">
-        <p>
-          Se você não consegue selecionar uma pasta, pode ser porque:
-        </p>
+        <p>Se você não consegue selecionar uma pasta, pode ser porque:</p>
         <ul className="list-disc list-inside space-y-1 ml-4 text-sm">
           <li>Seu refresh token expirou ou foi revogado</li>
           <li>A pasta está privada e não permite acesso externo</li>
           <li>Há um problema temporário com a conexão</li>
         </ul>
         <p>
-          <strong>Solução:</strong> Quando isso acontecer, um modal aparecerá automaticamente pedindo para você renovar o acesso. Basta clicar em &quot;Entendi, continuar&quot; e autorizar novamente.
+          <strong>Solução:</strong> Quando isso acontecer, um modal aparecerá
+          automaticamente pedindo para você renovar o acesso. Basta clicar em
+          &quot;Entendi, continuar&quot; e autorizar novamente.
         </p>
       </div>
     ),
@@ -87,10 +102,14 @@ const faqData: FAQItem[] = [
     answer: (
       <div className="space-y-3">
         <p>
-          Para que o sistema possa acessar suas fotos, a pasta do Google Drive precisa estar configurada como:
+          Para que o sistema possa acessar suas fotos, a pasta do Google Drive
+          precisa estar configurada como:
         </p>
         <ul className="list-disc list-inside space-y-1 ml-4 text-sm">
-          <li><strong>&quot;Qualquer pessoa com o link&quot;</strong> - Esta é a configuração recomendada</li>
+          <li>
+            <strong>&quot;Qualquer pessoa com o link&quot;</strong> - Esta é a
+            configuração recomendada
+          </li>
           <li>Ou você precisa ter dado permissão de acesso ao sistema</li>
         </ul>
         <p>
@@ -98,7 +117,9 @@ const faqData: FAQItem[] = [
         </p>
         <ol className="list-decimal list-inside space-y-1 ml-4 text-sm">
           <li>Abra a pasta no Google Drive</li>
-          <li>Clique com o botão direito e selecione &quot;Compartilhar&quot;</li>
+          <li>
+            Clique com o botão direito e selecione &quot;Compartilhar&quot;
+          </li>
           <li>Altere o acesso para &quot;Qualquer pessoa com o link&quot;</li>
           <li>Tente selecionar a pasta novamente no sistema</li>
         </ol>
@@ -112,16 +133,16 @@ const faqData: FAQItem[] = [
     question: 'O que acontece se eu não renovar o refresh token?',
     answer: (
       <div className="space-y-3">
-        <p>
-          Sem um refresh token válido, você não conseguirá:
-        </p>
+        <p>Sem um refresh token válido, você não conseguirá:</p>
         <ul className="list-disc list-inside space-y-1 ml-4 text-sm">
           <li>Selecionar pastas do Google Drive</li>
           <li>Importar fotos automaticamente</li>
           <li>Usar o Google Picker para vincular pastas</li>
         </ul>
         <p>
-          O sistema continuará funcionando normalmente para outras funcionalidades, mas a integração com o Google Drive ficará desabilitada até que você renove o acesso.
+          O sistema continuará funcionando normalmente para outras
+          funcionalidades, mas a integração com o Google Drive ficará
+          desabilitada até que você renove o acesso.
         </p>
       </div>
     ),
@@ -131,7 +152,11 @@ const faqData: FAQItem[] = [
 
 const categories = [
   { id: 'all', name: 'Todas', icon: <HelpCircle size={18} /> },
-  { id: 'Autenticação Google', name: 'Autenticação', icon: <LogIn size={18} /> },
+  {
+    id: 'Autenticação Google',
+    name: 'Autenticação',
+    icon: <LogIn size={18} />,
+  },
   { id: 'Google Drive', name: 'Google Drive', icon: <HardDrive size={18} /> },
   { id: 'Tokens e Permissões', name: 'Permissões', icon: <Shield size={18} /> },
 ];
@@ -152,9 +177,10 @@ export default function FAQContent() {
     setOpenItems(newOpenItems);
   };
 
-  const filteredFAQs = selectedCategory === 'all'
-    ? faqData
-    : faqData.filter(item => item.category === selectedCategory);
+  const filteredFAQs =
+    selectedCategory === 'all'
+      ? faqData
+      : faqData.filter((item) => item.category === selectedCategory);
 
   // Redireciona se não houver usuário
   if (!user) {
@@ -174,7 +200,8 @@ export default function FAQContent() {
             Perguntas Frequentes
           </h1>
           <p className="text-slate-600">
-            Encontre respostas para as dúvidas mais comuns sobre o uso da plataforma
+            Encontre respostas para as dúvidas mais comuns sobre o uso da
+            plataforma
           </p>
         </div>
 
@@ -215,10 +242,8 @@ export default function FAQContent() {
                   className="w-full px-6 py-4 flex items-center justify-between text-left hover:bg-slate-50 transition-colors"
                 >
                   <div className="flex items-center gap-3 flex-1 min-w-0">
-                    {item.icon && (
-                      <div className="shrink-0 text-gold">
-                        {item.icon}
-                      </div>
+                    {SegmentIcon && (
+                      <div className="shrink-0 text-gold">{SegmentIcon}</div>
                     )}
                     <span className="font-semibold text-slate-900 flex-1">
                       {item.question}
@@ -232,7 +257,7 @@ export default function FAQContent() {
                     )}
                   </div>
                 </button>
-                
+
                 {isOpen && (
                   <div className="px-6 pb-4 pt-2 border-t border-slate-100 bg-slate-50/50">
                     <div className="text-sm text-slate-700 leading-relaxed">
@@ -256,10 +281,12 @@ export default function FAQContent() {
                 Não encontrou sua resposta?
               </h3>
               <p className="text-sm text-slate-600 mb-4">
-                Se você ainda tem dúvidas ou precisa de ajuda adicional, entre em contato com nosso suporte.
+                Se você ainda tem dúvidas ou precisa de ajuda adicional, entre
+                em contato com nosso suporte.
               </p>
               <p className="text-xs text-slate-500">
-                Esta página será atualizada conforme novas funcionalidades forem adicionadas ao sistema.
+                Esta página será atualizada conforme novas funcionalidades forem
+                adicionadas ao sistema.
               </p>
             </div>
           </div>

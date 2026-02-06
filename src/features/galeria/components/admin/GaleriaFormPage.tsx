@@ -390,7 +390,7 @@ export default function GaleriaFormPage({
             <div className="flex items-center justify-center gap-3">
               <button
                 onClick={handleShareWhatsApp}
-                className="btn-luxury-base text-white bg-[#25D366] hover:bg-[#20ba56]"
+                className="btn-luxury-base text-white bg-green-500 hover:bg-[#20ba56]"
                 title="Compartilhar via WhatsApp"
               >
                 <WhatsAppIcon className="w-4 h-4 fill-current" />

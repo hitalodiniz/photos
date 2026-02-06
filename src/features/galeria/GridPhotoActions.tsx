@@ -80,7 +80,7 @@ export const GridPhotoActions = ({
               onShareWhatsApp();
             }}
             style={{ width: btnSize, height: btnSize }}
-            className={`${baseBtnClass} bg-black/40 backdrop-blur-md border-white/10 text-white hover:bg-[#25D366]
+            className={`${baseBtnClass} bg-black/40 backdrop-blur-md border-white/10 text-white hover:bg-green-500
               opacity-0 group-hover:opacity-100 scale-0 group-hover:scale-100 delay-[50ms]`}
           >
             <WhatsAppIcon size={finalIconSize} className="" />

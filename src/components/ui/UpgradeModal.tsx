@@ -11,13 +11,14 @@ import {
 } from '@/core/config/plans';
 import { usePlan } from '@/core/context/PlanContext';
 import { findNextPlanWithFeature } from '@/core/config/plans';
+import { useSegment } from '@/hooks/useSegment'; // 🎯 Import do Hook
 
 interface UpgradeModalProps {
   isOpen: boolean;
   onClose: () => void;
-  featureName: string; // e.g., "Armazenamento", "Galerias"
+  featureName: string;
   featureKey?: keyof PlanPermissions;
-  scenarioType: 'limit' | 'feature'; // New prop to distinguish scenarios
+  scenarioType: 'limit' | 'feature';
 }
 
 export default function UpgradeModal({
@@ -25,43 +26,37 @@ export default function UpgradeModal({
   onClose,
   featureName,
   featureKey,
-  scenarioType, // Use the new prop
+  scenarioType,
 }: UpgradeModalProps) {
-  const { planKey, segment } = usePlan();
+  const { planKey } = usePlan();
+  const { terms, segment } = useSegment(); // 🎯 Obtendo termos dinâmicos
 
-  // Logic for finding the next plan (relevant for 'feature' scenario)
   const nextPlanKey = useMemo(() => {
-    if (!featureKey) return 'PREMIUM'; // Default or fallback
+    if (!featureKey) return 'PREMIUM';
     return findNextPlanWithFeature(planKey as PlanKey, featureKey, segment);
   }, [planKey, featureKey, segment]);
 
-  // Benefits list (can be adapted for both scenarios)
   const planBenefits = useMemo(() => {
-    // Ensure we only try to get permissions if nextPlanKey is valid and for 'feature' scenario
-    // For 'limit' scenario, we might still want to show benefits of upgrading
-    if (!nextPlanKey) {
-      // Simplified check: if no next plan determined, return empty
-      return [];
-    }
+    if (!nextPlanKey) return [];
     const perms = PERMISSIONS_BY_PLAN[nextPlanKey];
     if (!perms) return [];
 
+    // 🎯 Benefícios parametrizados por segmento
     return [
-      `Até ${perms.maxGalleries} galerias ativas`,
-      `Capacidade de ${perms.maxPhotosPerGallery} fotos por galeria`,
+      `Até ${perms.maxGalleries} ${terms.items} ativas`,
+      `Capacidade de ${perms.maxPhotosPerGallery} itens por ${terms.item}`,
       perms.removeBranding
         ? 'Remoção total de branding (White Label)'
         : 'Identidade visual profissional',
       perms.canCaptureLeads
         ? 'Captura e exportação de leads'
-        : 'Interação avançada com clientes',
+        : 'Interação avançada com usuários',
       `Suporte a até ${perms.maxExternalLinks} links externos`,
     ];
-  }, [nextPlanKey]); // Removed scenarioType dependency if benefits are always shown for upgrade context
+  }, [nextPlanKey, terms]);
 
   if (!isOpen) return null;
 
-  // Header icon - consider a different icon for 'limit' scenario if needed
   const headerIcon = (
     <Crown size={20} strokeWidth={2.5} className="text-gold" />
   );
@@ -93,12 +88,11 @@ export default function UpgradeModal({
           ? `O limite de ${featureName} foi alcançado.`
           : `Upgrade Necessário - ${featureName}`
       }
-      headerIcon={headerIcon} // Keep Crown, or change for limit scenario
+      headerIcon={headerIcon}
       footer={footer}
       maxWidth="2xl"
     >
       <div className="space-y-4">
-        {/* Always show the "locked feature" card, as limits also imply restricted usage */}
         <div className="w-full flex items-center gap-4 p-4 rounded-luxury border border-gold/20 bg-gold/5">
           <div className="w-10 h-10 rounded-luxury flex items-center justify-center shrink-0 bg-gold text-petroleum shadow-[0_0_15px_rgba(212,175,55,0.2)]">
             <Lock size={20} />
@@ -117,23 +111,21 @@ export default function UpgradeModal({
           </div>
         </div>
 
-        {/* Conditional text based on scenarioType */}
         {scenarioType === 'limit' ? (
           <p className="text-[13px] text-petroleum font-medium leading-relaxed px-1">
             Você atingiu o limite de {featureName}. Faça o upgrade para ter mais
-            espaço e recursos avançados.
+            espaço e recursos avançados para seu {terms.singular}.
           </p>
         ) : (
           <p className="text-[13px] text-petroleum font-medium leading-relaxed px-1">
             O recurso{' '}
             <span className="text-petroleum font-semibold">{featureName}</span>{' '}
-            é exclusivo para assinantes do plano{' '}
+            é exclusivo para usuários do plano{' '}
             <span className="text-petroleum font-extrabold">{nextPlanKey}</span>{' '}
-            ou superior.
+            ou superior no {terms.site_name}.
           </p>
         )}
 
-        {/* Lista de Benefícios Dinâmlicos - Always show benefits now */}
         <div className="space-y-2.5 p-4 bg-slate-50 border border-petroleum/10 rounded-luxury">
           <p className="text-[11px] font-semibold uppercase tracking-luxury text-petroleum/90 mb-2">
             Vantagens ao migrar para o{' '}

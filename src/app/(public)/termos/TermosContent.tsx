@@ -188,7 +188,7 @@ export default function TermosDeUsoPage() {
   const termosCards = [
     {
       title: 'Aceitação',
-      accent: '#B8860B',
+      accent: 'gold',
       icon: <UserCheck size={32} strokeWidth={1.5} />,
       items: [
         'Concordância integral com nossas diretrizes profissionais',
@@ -198,7 +198,7 @@ export default function TermosDeUsoPage() {
     },
     {
       title: 'Propriedade & Backup',
-      accent: '#1a363d',
+      accent: 'petroleum',
       icon: <Globe size={32} strokeWidth={1.5} />,
       items: [
         'Direitos autorais permanecem 100% com o profissional',
@@ -208,7 +208,7 @@ export default function TermosDeUsoPage() {
     },
     {
       title: 'Segurança e Acesso',
-      accent: '#B8860B',
+      accent: 'gold',
       icon: <ShieldCheck size={32} strokeWidth={1.5} />,
       items: [
         'Responsabilidade total do usuário sobre suas credenciais',
@@ -218,7 +218,7 @@ export default function TermosDeUsoPage() {
     },
     {
       title: 'Uso de Planos',
-      accent: '#1a363d',
+      accent: 'petroleum',
       icon: <ShieldAlert size={32} strokeWidth={1.5} />,
       items: [
         'Funções vinculadas estritamente ao nível de plano vigente',
@@ -228,7 +228,7 @@ export default function TermosDeUsoPage() {
     },
     {
       title: 'Proibições',
-      accent: '#B8860B',
+      accent: 'gold',
       icon: <UserCheck size={32} strokeWidth={1.5} />,
       items: [
         'Proibido burlar travas de segurança ou scraping de dados',
@@ -238,7 +238,7 @@ export default function TermosDeUsoPage() {
     },
     {
       title: 'Geral',
-      accent: '#1a363d',
+      accent: 'petroleum',
       icon: <FileText size={32} strokeWidth={1.5} />,
       items: [
         'Atualizações constantes para melhoria da estabilidade',

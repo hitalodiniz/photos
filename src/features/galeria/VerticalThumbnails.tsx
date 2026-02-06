@@ -30,7 +30,10 @@ export function VerticalThumbnails({
       const scrollBottom = currentScrollTop + containerHeight;
 
       // Se a miniatura ativa está fora da área visível, centraliza
-      if (thumbTop < currentScrollTop || thumbTop + thumbHeight > scrollBottom) {
+      if (
+        thumbTop < currentScrollTop ||
+        thumbTop + thumbHeight > scrollBottom
+      ) {
         container.scrollTo({
           top: thumbTop - containerHeight / 2 + thumbHeight / 2,
           behavior: 'smooth',
@@ -42,10 +45,12 @@ export function VerticalThumbnails({
   return (
     <div
       className={`fixed top-0 z-[260] bg-gradient-to-l from-white/95 dark:from-black/95 via-white/80 dark:via-black/80 to-transparent transition-all duration-500 ${
-        isVisible ? 'opacity-100 translate-x-0' : 'opacity-0 translate-x-full pointer-events-none'
+        isVisible
+          ? 'opacity-100 translate-x-0'
+          : 'opacity-0 translate-x-full pointer-events-none'
       }`}
       onClick={(e) => e.stopPropagation()}
-      style={{ 
+      style={{
         height: '100vh', // Altura total - passa por baixo do contador e toolbar
         top: 0,
         right: '0', // Borda direita da tela
@@ -92,14 +97,15 @@ interface ThumbnailItemProps {
 const ThumbnailItem = React.forwardRef<HTMLButtonElement, ThumbnailItemProps>(
   ({ photoId, index, isActive, onClick }, ref) => {
     const validPhotoId = photoId ? String(photoId) : '';
-    
-    const { imgSrc, isLoading, handleError, handleLoad, imgRef } = useGoogleDriveImage({
-      photoId: validPhotoId,
-      width: '200', // Resolução mínima para miniaturas verticais
-      priority: index < 20, // Prioriza as primeiras 20
-      fallbackToProxy: true,
-      useProxyDirectly: false,
-    });
+
+    const { imgSrc, isLoading, handleError, handleLoad, imgRef } =
+      useGoogleDriveImage({
+        photoId: validPhotoId,
+        width: '200', // Resolução mínima para miniaturas verticais
+        priority: index < 20, // Prioriza as primeiras 20
+        fallbackToProxy: true,
+        useProxyDirectly: false,
+      });
 
     return (
       <button
@@ -107,7 +113,7 @@ const ThumbnailItem = React.forwardRef<HTMLButtonElement, ThumbnailItemProps>(
         onClick={onClick}
         className={`relative flex-shrink-0 transition-all duration-300 cursor-pointer w-full ${
           isActive
-            ? 'ring-2 ring-petroleum dark:ring-[#F3E5AB] scale-105'
+            ? 'ring-2 ring-petroleum dark:ring-champagne scale-105'
             : 'opacity-70 hover:opacity-100 hover:scale-105'
         }`}
         style={{
@@ -115,9 +121,13 @@ const ThumbnailItem = React.forwardRef<HTMLButtonElement, ThumbnailItemProps>(
         }}
         aria-label={`Ver foto ${index + 1}`}
       >
-        <div className={`relative w-full h-full rounded-lg overflow-hidden bg-black/10 dark:bg-white/10 transition-all ${
-          isActive ? 'border-2 border-petroleum dark:border-[#F3E5AB]' : 'border-2 border-transparent'
-        }`}>
+        <div
+          className={`relative w-full h-full rounded-lg overflow-hidden bg-black/10 dark:bg-white/10 transition-all ${
+            isActive
+              ? 'border-2 border-petroleum dark:border-champagne'
+              : 'border-2 border-transparent'
+          }`}
+        >
           {isLoading && !imgSrc ? (
             <div className="absolute inset-0 flex items-center justify-center bg-black/20 dark:bg-white/20">
               <div className="w-3 h-3 border-2 border-black/30 dark:border-white/30 border-t-black dark:border-t-white rounded-full animate-spin" />
@@ -139,12 +149,12 @@ const ThumbnailItem = React.forwardRef<HTMLButtonElement, ThumbnailItemProps>(
             </div>
           )}
           {isActive && (
-            <div className="absolute inset-0 bg-petroleum/10 dark:bg-[#F3E5AB]/10 pointer-events-none" />
+            <div className="absolute inset-0 bg-petroleum/10 dark:bg-champagne/10 pointer-events-none" />
           )}
         </div>
       </button>
     );
-  }
+  },
 );
 
 ThumbnailItem.displayName = 'ThumbnailItem';

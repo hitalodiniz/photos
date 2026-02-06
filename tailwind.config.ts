@@ -22,26 +22,24 @@ const config: Config = {
         mono: ['var(--font-barlow)', 'monospace'],
       },
       colors: {
-        // Luxury Editorial Photography Official Palette
         champagne: {
-          DEFAULT: '#F3E5AB',
-          hover: '#E5D69A',
+          DEFAULT: 'rgb(var(--color-champagne) / <alpha-value>)',
+          hover: 'rgb(var(--color-champagne-hover) / <alpha-value>)',
         },
         gold: {
-          DEFAULT: '#D4AF37',
-          //DEFAULT: '#F3E5AB',
-          light: 'rgba(243,229,171,0.15)',
-          glow: 'rgba(243,229,171,0.3)',
-          // light: 'rgba(212, 175, 55, 0.15)',
-          // glow: 'rgba(212, 175, 55, 0.3)',
+          DEFAULT: 'rgb(var(--color-gold) / <alpha-value>)',
+          light: 'rgb(var(--color-gold) / 0.15)',
+          glow: 'rgb(var(--color-gold) / 0.3)',
         },
         petroleum: {
-          DEFAULT: '#00212E',
-          light: '#002D3F', // Para hovers sutis em fundos escuros
-          dark: '#001822',
+          DEFAULT: 'rgb(var(--color-petroleum) / <alpha-value>)',
+          light: 'rgb(var(--color-petroleum-light) / <alpha-value>)',
+          dark: 'rgb(var(--color-petroleum-dark) / <alpha-value>)',
         },
-
-        'luxury-bg': '#F8F9FA', // Fundo claro para o dashboard
+        'luxury-bg': 'rgb(var(--color-luxury-bg) / <alpha-value>)',
+        'surface-dark': 'rgb(var(--color-surface-dark) / <alpha-value>)',
+        'surface-mixed': 'rgb(var(--color-surface-mixed) / <alpha-value>)',
+        'status-success': 'rgb(var(--color-status-success) / <alpha-value>)',
       },
       // Adicione animações para o "X" do input e transições de modo
       keyframes: {

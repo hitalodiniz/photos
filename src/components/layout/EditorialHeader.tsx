@@ -1,8 +1,9 @@
 'use client';
 import React, { useState, useEffect, useMemo } from 'react';
 import Image from 'next/image';
-import { Camera, ArrowLeft, Home } from 'lucide-react';
+import { SegmentIcon, ArrowLeft, Home } from 'lucide-react';
 import { useRouter } from 'next/navigation';
+import { useSegment } from '@/hooks/useSegment';
 
 const heroImages = [
   '/hero-bg-1.webp',
@@ -33,6 +34,7 @@ export default function EditorialHeader({
   bgImage,
 }: EditorialHeaderProps) {
   const router = useRouter();
+  const { SegmentIcon } = useSegment();
   const [isLoaded, setIsLoaded] = useState(false);
   const [originUrl, setOriginUrl] = useState<string | null>(null);
   // 1. Começamos com um estado vazio ou uma imagem padrão fixa
@@ -113,8 +115,8 @@ export default function EditorialHeader({
           <div className="flex flex-col mb-4 w-full">
             <h1 className=" font-semibold text-white leading-tight tracking-luxury-normal flex items-center gap-4 drop-shadow-[0_2px_15px_rgba(0,0,0,0.8)] text-2xl md:text-5xl italic">
               <a href="/">
-                <Camera
-                  className="text-[#F3E5AB] shrink-0 w-8 h-8 md:w-14 md:h-14 drop-shadow-md"
+                <SegmentIcon
+                  className="text-champagne shrink-0 w-8 h-8 md:w-14 md:h-14 drop-shadow-md"
                   strokeWidth={1.2}
                 />
               </a>
@@ -122,7 +124,7 @@ export default function EditorialHeader({
             </h1>
 
             {/* LINHA DECORATIVA (Marca registrada Altar - Alinhada à esquerda) */}
-            <div className="h-[2px] md:h-[3px] bg-[#F3E5AB] rounded-full mt-3 md:mt-4 w-full max-w-[150px] md:max-w-[300px] shadow-lg shadow-black/50" />
+            <div className="h-[2px] md:h-[3px] bg-champagne rounded-full mt-3 md:mt-4 w-full max-w-[150px] md:max-w-[300px] shadow-lg shadow-black/50" />
           </div>
 
           {/* Subtítulo */}

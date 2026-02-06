@@ -4,10 +4,11 @@ import { CheckCircle2 } from 'lucide-react';
 
 interface EditorialCardProps {
   title: string;
-  items?: string[]; // Opcional, caso use children
+  items?: string[];
   icon: React.ReactNode;
-  accentColor?: string;
-  children?: React.ReactNode; // Permite inserir os indicadores originais
+  // Alterado: agora aceita o nome da cor ou uma classe utilitária
+  accentColor?: 'gold' | 'petroleum';
+  children?: React.ReactNode;
   badge?: string;
 }
 
@@ -15,21 +16,27 @@ export default function EditorialCard({
   title,
   items,
   icon,
-  accentColor = '#B8860B',
+  accentColor = 'gold', // Default agora é a variável CSS
   children,
   badge,
 }: EditorialCardProps) {
+  // Mapeamento de classes para garantir que o Tailwind encontre os tokens
+  const accentClasses = {
+    gold: 'bg-gold',
+    petroleum: 'bg-petroleum',
+  };
+
   return (
-    <div className="bg-slate-50 rounded-3xl overflow-visible shadow-lg flex flex-col relative border border-slate-100 group transition-all duration-500 hover:shadow-2xl hover:-translate-y-2 h-full">
+    <div className="bg-white rounded-3xl overflow-visible shadow-lg flex flex-col relative border border-slate-100 group transition-all duration-500 hover:shadow-2xl hover:-translate-y-2 h-full">
       {badge && (
         <div className="absolute top-3 right-2 bg-gold text-petroleum text-[9px] font-semibold uppercase tracking-tighter px-3 py-1 rounded-full z-20 shadow-sm">
           {badge}
         </div>
       )}
 
+      {/* 🎯 Ajuste: Agora usa a classe dinâmica em vez de style inline */}
       <div
-        className="absolute left-0 top-0 bottom-0 w-1.5 rounded-l-3xl transition-all duration-500 group-hover:w-3"
-        style={{ backgroundColor: accentColor }}
+        className={`absolute left-0 top-0 bottom-0 w-1.5 rounded-l-3xl transition-all duration-500 group-hover:w-3 ${accentClasses[accentColor]}`}
       />
 
       <div className="absolute -top-6 left-1/2 -translate-x-1/2 w-14 h-14 rounded-full bg-petroleum/90 flex items-center justify-center text-white shadow-xl z-10 transition-transform group-hover:scale-110">
@@ -41,7 +48,6 @@ export default function EditorialCard({
           {title}
         </h3>
 
-        {/* Slot para o conteúdo dinâmico (Preços, Indicadores, CTAs) */}
         <div className="flex-grow flex flex-col">{children}</div>
 
         {items && items.length > 0 && (
