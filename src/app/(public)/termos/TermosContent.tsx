@@ -12,19 +12,19 @@ import EditorialView from '@/components/layout/EditorialView';
 import EditorialCard from '@/components/ui/EditorialCard';
 import BaseModal from '@/components/ui/BaseModal';
 import { PLANS_BY_SEGMENT } from '@/core/config/plans';
+import { useSegment } from '@/hooks/useSegment';
 
 /**
  * 📄 Conteúdo Jurídico Estilizado
  * Exportado para ser usado de forma independente se necessário.
  */
 export const TermsOfServiceContent = () => {
-  // Captura o segmento da variável de ambiente (Default para PHOTOGRAPHER)
-  const currentSegment = (process.env.NEXT_PUBLIC_APP_SEGMENT ||
-    'PHOTOGRAPHER') as keyof typeof PLANS_BY_SEGMENT;
+  // 🎯 Injeção do Hook Reativo
+  const { segment } = useSegment();
 
   // Obtém as informações dos planos para o segmento atual
-  const segmentPlans = PLANS_BY_SEGMENT[currentSegment];
-
+  const segmentPlans =
+    PLANS_BY_SEGMENT[segment as keyof typeof PLANS_BY_SEGMENT];
   // Gera a string de nomes (ex: "Free, Start, Plus, Pro e Premium")
   const planNames = Object.values(segmentPlans)
     .map((p) => p.name)

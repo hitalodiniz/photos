@@ -7,21 +7,24 @@ import { GoogleSignInButton } from '@/components/auth';
 import { Camera, FileText, ShieldCheck, Lock } from 'lucide-react';
 import { useSegment } from '@/hooks/useSegment';
 
-const HERO_IMAGES = [
-  '/hero-bg-1.webp',
-  '/hero-bg-2.webp',
-  '/hero-bg-3.webp',
-  '/hero-bg-4.webp',
-  '/hero-bg-5.webp',
-  '/hero-bg-6.webp',
-  '/hero-bg-7.webp',
-  '/hero-bg-8.webp',
-  '/hero-bg-9.webp',
-  '/hero-bg-10.webp',
-  '/hero-bg-11.webp',
-  '/hero-bg-12.webp',
-];
-
+const SEGMENT_ASSETS = {
+  PHOTOGRAPHER: {
+    path: '/heros/photographer/',
+    count: 12, // Quantidade de fotos (1.webp até 12.webp)
+  },
+  EVENT: {
+    path: '/heros/event/',
+    count: 3,
+  },
+  OFFICE: {
+    path: '/heros/office/',
+    count: 3,
+  },
+  CAMPAIGN: {
+    path: '/heros/campaign/',
+    count: 2,
+  },
+};
 export default function EditorialView({
   title,
   subtitle,
@@ -44,14 +47,27 @@ export default function EditorialView({
   const [isMounted, setIsMounted] = useState(false);
   const [currentBg, setCurrentBg] = useState<string | null>(null);
 
-  const { SegmentIcon } = useSegment();
+  const { segment, SegmentIcon } = useSegment();
 
   useEffect(() => {
     setIsMounted(true);
-    const selected =
-      bgImage || HERO_IMAGES[Math.floor(Math.random() * HERO_IMAGES.length)];
-    setCurrentBg(selected);
-  }, [bgImage]);
+
+    if (bgImage) {
+      setCurrentBg(bgImage);
+      return;
+    }
+
+    // 1. Busca configuração do segmento atual
+    const config =
+      SEGMENT_ASSETS[segment as keyof typeof SEGMENT_ASSETS] ||
+      SEGMENT_ASSETS.PHOTOGRAPHER;
+
+    // 2. Gera um número aleatório entre 1 e o total de fotos (count)
+    const randomIndex = Math.floor(Math.random() * config.count) + 1;
+
+    // 3. Monta o caminho final (ex: /heros/campaign/2.webp)
+    setCurrentBg(`${config.path}${randomIndex}.webp`);
+  }, [bgImage, segment]);
 
   return (
     <div className="relative min-h-screen w-full flex flex-col bg-petroleum overflow-x-hidden transition-all">
@@ -63,16 +79,19 @@ export default function EditorialView({
       >
         {/* HERO SECTION */}
         <section className={`relative ${altura} flex flex-col overflow-hidden`}>
-          <div className="absolute inset-0 z-0">
+          <div className="absolute inset-0 z-0 bg-petroleum">
+            {' '}
+            {/* Fundo sólido para evitar transparência indesejada */}
             {currentBg && (
               <img
                 src={currentBg}
-                className="w-full h-full object-cover  opacity-85 transition-opacity duration-700"
-                style={{ objectPosition: 'center 10%' }}
+                className="w-full h-full object-cover opacity-60 transition-opacity duration-1000"
+                style={{ objectPosition: 'center 20%' }}
                 alt="Hero Background"
               />
             )}
-            <div className="absolute inset-0 bg-gradient-to-b from-transparent from-40% via-petroleum/60 to-petroleum" />
+            {/* Gradiente que "funde" a imagem com a cor do tema (Slate, Ardósia ou Azul Petróleo) */}
+            <div className="absolute inset-0 bg-gradient-to-b from-transparent via-petroleum/40 to-petroleum" />
           </div>
 
           {/* 🎯 ACÕES CUSTOMIZADAS (CARDS) - Centralizados Acima do Título */}

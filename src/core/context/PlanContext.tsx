@@ -1,6 +1,12 @@
 'use client';
 
-import React, { createContext, useContext, useMemo } from 'react';
+import React, {
+  createContext,
+  useContext,
+  useEffect,
+  useMemo,
+  useState,
+} from 'react';
 import {
   PlanKey,
   PlanPermissions,
@@ -32,14 +38,23 @@ export function PlanProvider({
   planKey?: PlanKey;
   profile?: Profile;
 }) {
-  // 1. Determinação do Segmento Efetivo
-  const currentSegment = useMemo((): SegmentType => {
-    // 2. Fallback para a variável de ambiente configurada no .env
-    const envSegment = process.env.NEXT_PUBLIC_APP_SEGMENT as SegmentType;
+  // 🎯 Estado para permitir reatividade no Cliente
+  const [activeSegment, setActiveSegment] = useState<SegmentType>(
+    (process.env.NEXT_PUBLIC_APP_SEGMENT as SegmentType) || 'PHOTOGRAPHER',
+  );
+  useEffect(() => {
+    // Sincroniza com o ThemeSwitcher/LocalStorage no mount
+    const sync = () => {
+      const domSeg = document.documentElement.getAttribute(
+        'data-segment',
+      ) as SegmentType;
+      if (domSeg) setActiveSegment(domSeg);
+    };
 
-    // 3. Fallback final de segurança
-    return envSegment || 'PHOTOGRAPHER';
-  }, [profile]);
+    sync();
+    window.addEventListener('segment-change', sync);
+    return () => window.removeEventListener('segment-change', sync);
+  }, []);
 
   // 2. Determinação do Plano Efetivo (Mantendo sua lógica de Trial)
   const planToUse = useMemo(() => {
@@ -61,24 +76,23 @@ export function PlanProvider({
     ) as PlanKey;
     const permissions = PERMISSIONS_BY_PLAN[currentKey];
 
-    // 💎 Usa o segmento detectado para buscar os nomes/preços corretos no plans.ts
-    const planInfo = PLANS_BY_SEGMENT[currentSegment][currentKey];
+    // 💎 Agora o plano (Militante vs Pro) muda em tempo real no debug!
+    const planInfo = PLANS_BY_SEGMENT[activeSegment][currentKey];
 
     return {
       planKey: currentKey,
       permissions,
       planInfo,
-      segment: currentSegment, // Agora retorna corretamente para o PlanGuard
+      segment: activeSegment, // Agora retorna corretamente para o PlanGuard
       isPro: ['PRO', 'PREMIUM'].includes(currentKey),
       isPremium: currentKey === 'PREMIUM',
       canAddMore: (feature: keyof PlanPermissions, currentCount: number) => {
         const limit = permissions[feature];
         if (typeof limit === 'number') return currentCount < limit;
-        if (limit === 'unlimited') return true;
-        return !!limit;
+        return limit === true; // Ajustado para booleano simples se necessário
       },
     };
-  }, [planToUse, currentSegment]);
+  }, [planToUse, activeSegment]);
 
   return <PlanContext.Provider value={value}>{children}</PlanContext.Provider>;
 }

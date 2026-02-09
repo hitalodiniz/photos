@@ -1,23 +1,36 @@
-// src/components/debug/ThemeSwitcher.tsx
 'use client';
 
 import { useEffect, useState } from 'react';
 
-// Atualizado para refletir as classes CSS: bg-petroleum, font-gold, font-champagne
 const segments = ['PHOTOGRAPHER', 'EVENT', 'OFFICE', 'CAMPAIGN'];
 
 export function ThemeSwitcher() {
   const [active, setActive] = useState('');
 
   useEffect(() => {
+    // 1. Busca do atributo HTML ou do LocalStorage
+    const saved = localStorage.getItem('debug-segment');
     const initial =
-      document.documentElement.getAttribute('data-segment') || 'PHOTOGRAPHER';
+      saved ||
+      document.documentElement.getAttribute('data-segment') ||
+      'PHOTOGRAPHER';
+
+    if (saved) {
+      document.documentElement.setAttribute('data-segment', saved);
+    }
     setActive(initial);
   }, []);
 
   const changeSegment = (seg: string) => {
+    // 2. Aplica visualmente via CSS
     document.documentElement.setAttribute('data-segment', seg);
+
+    // 3. Persiste para futuros carregamentos
+    localStorage.setItem('debug-segment', seg);
     setActive(seg);
+
+    // 4. Notifica o restante da aplicação (útil para hooks e imagens)
+    window.dispatchEvent(new Event('segment-change'));
   };
 
   if (process.env.NODE_ENV !== 'development') return null;

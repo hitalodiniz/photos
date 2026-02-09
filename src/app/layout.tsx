@@ -1,8 +1,6 @@
 import './global.css';
 import { Barlow, Montserrat } from 'next/font/google';
-
 import { Metadata } from 'next';
-import { useSegment } from '@/hooks/useSegment';
 import { GoogleApiLoader } from '@/components/google-drive';
 import { Navbar } from '@/components/layout';
 import { NavigationProvider } from '@/components/providers/NavigationProvider';
@@ -10,11 +8,30 @@ import { SidebarProvider } from '@/components/providers/SidebarProvider';
 import { CookieBanner } from '@/components/ui';
 import { AuthProvider } from '@photos/core-auth';
 import { ThemeSwitcher } from '@/components/debug/ThemeSwitcher';
-import { html } from 'framer-motion/client';
+import { getThemeFavicon } from '@/core/utils/get-theme-favicon';
+import { SEGMENT_DICTIONARY, SegmentType } from '@/core/config/segments';
 
-const { terms, segment } = useSegment();
+// 🎯 Lógica de Servidor para Metadados
+const segment =
+  (process.env.NEXT_PUBLIC_APP_SEGMENT as SegmentType) || 'PHOTOGRAPHER';
+const terms = SEGMENT_DICTIONARY[segment];
+const faviconUrl = getThemeFavicon(segment);
 
-// Configuração com mais pesos para suportar títulos e botões
+export const metadata: Metadata = {
+  metadataBase: new URL(process.env.NEXT_PUBLIC_BASE_URL!),
+  alternates: { canonical: '/' },
+  title: {
+    default: terms.site_name,
+    template: `%s - ${terms.site_name}`,
+  },
+  description: terms.site_description,
+  icons: {
+    icon: [{ url: faviconUrl, type: 'image/svg+xml' }],
+    shortcut: faviconUrl,
+    apple: faviconUrl,
+  },
+};
+
 const montserrat = Montserrat({
   subsets: ['latin'],
   weight: ['300', '400', '500', '600', '700', '800', '900'],
@@ -27,36 +44,6 @@ const barlow = Barlow({
   variable: '--font-barlow',
 });
 
-export const metadata: Metadata = {
-  metadataBase: new URL(process.env.NEXT_PUBLIC_BASE_URL!),
-  alternates: {
-    canonical: '/',
-  },
-  title: {
-    default: process.env.NEXT_PUBLIC_TITLE_DEFAULT || 'Sua Galeria',
-    template: `%s - ${terms.site_name}`,
-  },
-  description: terms.site_description,
-  icons: {
-    icon: [
-      {
-        url: "data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='%23F3E5AB' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'><path d='M14.5 4h-5L7 7H4a2 2 0 0 0-2 2v9a2 2 0 0 0 2 2h16a2 2 0 0 0 2-2V9a2 2 0 0 0-2-2h-3l-2.5-3z'/><circle cx='12' cy='13' r='3'/></svg>",
-        type: 'image/svg+xml',
-      },
-    ],
-    shortcut:
-      "data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='%23F3E5AB' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'><path d='M14.5 4h-5L7 7H4a2 2 0 0 0-2 2v9a2 2 0 0 0 2 2h16a2 2 0 0 0 2-2V9a2 2 0 0 0-2-2h-3l-2.5-3z'/><circle cx='12' cy='13' r='3'/></svg>",
-  },
-};
-
-declare global {
-  interface Window {
-    gapi: any;
-    google: any;
-    onGoogleLibraryLoad: (() => void) | undefined;
-  }
-}
-
 export default function RootLayout({
   children,
 }: {
@@ -66,13 +53,24 @@ export default function RootLayout({
     <html
       lang="pt-BR"
       className={`${montserrat.variable} ${barlow.variable}`}
-      data-segment={process.env.NEXT_PUBLIC_APP_SEGMENT || 'PHOTOGRAPHER'}
+      suppressHydrationWarning // 🎯 Necessário para o script de injeção
     >
-      <body
-        className="antialiased font-sans bg-luxury-bg text-petroleum"
-        style={{ backgroundColor: 'rgb(var(--color-luxury-bg))' }}
-      >
-        {' '}
+      <head>
+        {/* 🎯 Injeção do LocalStorage para evitar o "Flash" de tema */}
+        <script
+          dangerouslySetInnerHTML={{
+            __html: `
+              (function() {
+                try {
+                  var seg = localStorage.getItem('debug-segment') || '${segment}';
+                  document.documentElement.setAttribute('data-segment', seg);
+                } catch (e) {}
+              })();
+            `,
+          }}
+        />
+      </head>
+      <body className="antialiased font-sans bg-luxury-bg text-petroleum">
         <AuthProvider>
           <NavigationProvider>
             <SidebarProvider>
@@ -80,9 +78,7 @@ export default function RootLayout({
               <main id="main-content" className="w-full">
                 {children}
               </main>
-
               <GoogleApiLoader />
-
               <CookieBanner />
               <ThemeSwitcher />
             </SidebarProvider>

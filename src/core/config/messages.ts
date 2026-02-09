@@ -1,14 +1,23 @@
 // src/constants/messages.ts
 import { SEGMENT_DICTIONARY, SegmentType } from '@/core/config/segments';
 
-// Resolve o segmento atual para as mensagens padrão
-const segment =
-  (process.env.NEXT_PUBLIC_APP_SEGMENT as SegmentType) || 'PHOTOGRAPHER';
-const terms = SEGMENT_DICTIONARY[segment];
+// 1. Função interna de detecção (Pega do HTML se estiver no browser ou do .env no server)
+const getActiveTerms = () => {
+  if (typeof window !== 'undefined') {
+    const active = document.documentElement.getAttribute(
+      'data-segment',
+    ) as SegmentType;
+    if (active) return SEGMENT_DICTIONARY[active];
+  }
+  const segment =
+    (process.env.NEXT_PUBLIC_APP_SEGMENT as SegmentType) || 'PHOTOGRAPHER';
+  return SEGMENT_DICTIONARY[segment];
+};
 
 export const GALLERY_MESSAGES = {
   // Mensagens de compartilhamento de galeria
   CARD_SHARE: (galeria_titulo: string, galeria_link: string) => {
+    const terms = getActiveTerms();
     const itemTerm = terms.item === 'foto' ? 'ensaio fotográfico' : terms.item;
     return [
       'Olá! ✨',
@@ -28,6 +37,7 @@ export const GALLERY_MESSAGES = {
 
   // Mensagens de compartilhamento de item único
   PHOTO_SHARE: (galeria_titulo: string, galeria_link: string) => {
+    const terms = getActiveTerms();
     return [
       'Olá! ✨',
       '',
@@ -45,6 +55,7 @@ export const GALLERY_MESSAGES = {
 
   // Mensagens de compartilhamento da grade/galeria por visitantes
   GUEST_SHARE: (galeria_titulo: string, galeria_link: string) => {
+    const terms = getActiveTerms();
     return [
       'Olá! ✨',
       '',
@@ -62,14 +73,17 @@ export const GALLERY_MESSAGES = {
   },
 
   CONTACT_PHOTOGRAPHER: (galeria_titulo: string) => {
+    const terms = getActiveTerms();
     return `Olá! Vi seu trabalho na galeria "${galeria_titulo}" através do aplicativo ${terms.site_name}. Gostaria de saber mais informações sobre o seu trabalho!`;
   },
 
   CONTACT_PHOTOGRAPHER_DIRETO: () => {
+    const terms = getActiveTerms();
     return `Olá! Vi seu perfil através do aplicativo ${terms.site_name}. Gostaria de saber mais informações sobre o seu trabalho!`;
   },
 
   CONTACT_DEVELOPER: () => {
+    const terms = getActiveTerms();
     return `Olá! Gostaria de saber mais informações sobre o aplicativo ${terms.site_name}!`;
   },
 };

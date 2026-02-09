@@ -23,19 +23,19 @@ import {
   SegmentType,
   PLANS_BY_SEGMENT,
 } from '@/core/config/plans';
-import { Footer } from '@/components/layout';
-import { main } from 'framer-motion/client';
-import { SEGMENT_DICTIONARY } from '@/core/config/segments';
+
+import { useSegment } from '@/hooks/useSegment';
 
 export default function PlanosPage() {
   const [loadingPlan, setLoadingPlan] = useState<string | null>(null);
   const [mounted, setMounted] = useState(false);
   const [isAnnual, setIsAnnual] = useState(false);
+  const [expandedGroups, setExpandedGroups] = useState<Record<string, boolean>>(
+    {},
+  );
 
-  // Captura Segmento e Termos
-  const segment = (process.env.NEXT_PUBLIC_APP_SEGMENT ||
-    'PHOTOGRAPHER') as SegmentType;
-  const terms = SEGMENT_DICTIONARY[segment];
+  // 🎯 Injeção da lógica reativa: segment e terms agora mudam via ThemeSwitcher
+  const { segment, terms } = useSegment();
 
   const config = useMemo(() => {
     if (typeof window === 'undefined')
@@ -45,19 +45,26 @@ export default function PlanosPage() {
 
   useEffect(() => {
     setMounted(true);
+    // Inicializa grupos expandidos
+    const groups = Array.from(
+      new Set(COMMON_FEATURES.map((f) => f.group.toUpperCase())),
+    );
+    setExpandedGroups(Object.fromEntries(groups.map((g) => [g, true])));
   }, []);
 
-  const currentPlans = config.plans;
-  const planosKeys = Object.keys(currentPlans) as PlanKey[];
+  if (!mounted) return null;
+
+  // Filtra os planos exclusivos do segmento ativo (CAMPAIGN, OFFICE, etc)
+  const segmentPlans =
+    PLANS_BY_SEGMENT[segment as keyof typeof PLANS_BY_SEGMENT];
+  const planosKeys = Object.keys(segmentPlans) as PlanKey[];
   const groups = Array.from(
     new Set(COMMON_FEATURES.map((f) => f.group.toUpperCase())),
   );
 
-  const [expandedGroups, setExpandedGroups] = useState<Record<string, boolean>>(
-    Object.fromEntries(groups.map((g) => [g, true])),
-  );
-
-  if (!mounted) return null;
+  const toggleGroup = (name: string) => {
+    setExpandedGroups((prev) => ({ ...prev, [name]: !prev[name] }));
+  };
 
   const getFeatureValue = (
     label: string,
@@ -74,26 +81,13 @@ export default function PlanosPage() {
     return feature.values?.[planIdx];
   };
 
-  // Captura o segmento configurado no ambiente
-  const currentSegment = (process.env.NEXT_PUBLIC_APP_SEGMENT ||
-    'PHOTOGRAPHER') as keyof typeof PLANS_BY_SEGMENT;
-
-  // Filtra os planos exclusivos deste segmento (ex: PHOTOGRAPHER, EVENT, CAMPAIGN ou OFFICE)
-  const segmentPlans = PLANS_BY_SEGMENT[currentSegment];
-
-  // Mapeia os nomes reais definidos no seu objeto PLANS_BY_SEGMENT
-  const planNames = Object.values(segmentPlans)
-    .map((p) => p.name)
-    .join(', ')
-    .replace(/, ([^,]*)$/, ' e $1');
-
   return (
     <EditorialView
       title="Planos"
-      subtitle={`A estrutura definitiva para sua entrega como ${terms.singular}.`}
+      subtitle={`A estrutura definitiva para sua entrega como ${terms.singular}.`} // 🎯 Reativo ao segmento
     >
       <main className="w-full -mt-4 md:-mt-8">
-        {/* SELETOR DE PERÍODO - Ajustado padding mobile */}
+        {/* SELETOR DE PERÍODO */}
         <div className="flex items-center justify-between gap-2 mb-10 bg-slate-50 p-1.5 rounded-full border border-slate-200 shadow-sm max-w-[280px] md:max-w-sm w-full mx-auto">
           <button
             onClick={() => setIsAnnual(false)}
@@ -107,28 +101,25 @@ export default function PlanosPage() {
           >
             Anual
             <span className="absolute -top-2 -right-1 bg-emerald-500 text-white text-[10px] px-1.5 py-0.5 rounded-full font-bold animate-pulse">
-              {' '}
-              -20%{' '}
+              -20%
             </span>
           </button>
         </div>
 
-        {/* GRID DE CARDS - Horizontal scroll no mobile ou grid empilhado */}
+        {/* GRID DE CARDS */}
         <section className="max-w-[1650px] mx-auto px-4 md:px-6">
           <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-5 gap-4 md:gap-5 mb-12">
             {planosKeys.map((key, idx) => {
-              // Busca o plano específico do segmento (ex: se for OFFICE, key START terá name 'Essential')
               const planInfo = segmentPlans[key as keyof typeof segmentPlans];
               const isPro = key === 'PRO';
               const displayPrice = isAnnual
                 ? planInfo.yearlyPrice
                 : planInfo.price;
 
-              // Indicadores parametrizados conforme o segmento ativo
               const indicators = [
                 {
                   icon: <ImageIcon />,
-                  label: `${terms.plural} ativas`,
+                  label: `Galerias ativas`, // 🎯 Reativo (ex: Militantes ativas)
                   value: getFeatureValue('Galerias Ativas', key, idx),
                 },
                 {
@@ -141,21 +132,12 @@ export default function PlanosPage() {
                       idx,
                     ) === false
                       ? 'Acesso Livre'
-                      : 'Captura de Leads',
+                      : 'Cadastro de visitantes',
                 },
                 {
                   icon: <FileArchive />,
-                  label: `Capacidade por ${terms.item}`,
+                  label: `Capacidade por ${terms.item}`, // 🎯 Reativo (ex: por Candidato)
                   value: getFeatureValue('Capacidade por Galeria', key, idx),
-                },
-                {
-                  icon: <FileArchive />,
-                  label: `Resolução ZIP`,
-                  value: getFeatureValue(
-                    'Download ZIP - Tamanho/foto',
-                    key,
-                    idx,
-                  ),
                 },
                 {
                   icon: <LinkIcon />,
@@ -171,7 +153,7 @@ export default function PlanosPage() {
               return (
                 <EditorialCard
                   key={key}
-                  title={planInfo.name} // Nome dinâmico (ex: 'Militante', 'Essential', 'Event')
+                  title={planInfo.name}
                   icon={<planInfo.icon size={32} strokeWidth={1.5} />}
                   accentColor={isPro ? 'gold' : 'champagne'}
                   badge={isPro ? 'Mais Escolhido' : undefined}

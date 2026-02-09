@@ -21,10 +21,10 @@ import EditorialView from '../layout/EditorialView';
 import { authService } from '@photos/core-auth';
 import { useSegment } from '@/hooks/useSegment';
 
-const { terms, segment, SegmentIcon } = useSegment();
 const STORAGE_KEY = '@suagaleria:active-tab';
 
 export default function LandingPageContent() {
+  const { terms, segment, SegmentIcon } = useSegment();
   const [userType, setUserType] = useState<'explorer' | 'photographer'>(
     'explorer',
   );
