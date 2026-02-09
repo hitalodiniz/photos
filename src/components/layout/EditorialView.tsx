@@ -40,9 +40,6 @@ export default function EditorialView({
   hideContentSection = false, // Nova prop para flexibilidade
   heroCustomAction, // 🎯 Nova Prop para os Cards de Decisão
   heroSecondaryAction, // 🎯 Nova Prop para Ação Secundária
-  hideContentSection = false, // Nova prop para flexibilidade
-  heroCustomAction, // 🎯 Nova Prop para os Cards de Decisão
-  heroSecondaryAction, // 🎯 Nova Prop para Ação Secundária
 }: any) {
   const [isMounted, setIsMounted] = useState(false);
   const [currentBg, setCurrentBg] = useState<string | null>(null);
@@ -206,17 +203,6 @@ export default function EditorialView({
                     </h2>
                   )}
 
-                  {sectionDescription && (
-                    <p className="text-slate-600 text-sm md:text-base max-w-full font-medium">
-                      {sectionDescription}
-                    </p>
-                  )}
-                </div>
-              )}
-              {children}
-            </div>
-          </section>
-        )}
                   {sectionDescription && (
                     <p className="text-slate-600 text-sm md:text-base max-w-full font-medium">
                       {sectionDescription}

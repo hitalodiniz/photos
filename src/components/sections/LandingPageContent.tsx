@@ -1,28 +1,15 @@
 'use client';
 import React, { useEffect, useMemo, useState } from 'react';
-import React, { useEffect, useMemo, useState } from 'react';
+
 import {
+  ArrowRight,
   Camera,
   Cloud,
-  Smartphone,
-  Search,
   Grid,
-  Users,
-  MessageCircle,
-  ArrowRight,
-  RefreshCw,
   LogIn,
-  Smartphone,
+  MessageCircle,
   Search,
-  Grid,
-  Users,
-  MessageCircle,
-  ArrowRight,
-  RefreshCw,
-  LogIn,
-  ShieldCheck,
-  Sparkles,
-  X,
+  Smartphone,
   Sparkles,
   X,
 } from 'lucide-react';
