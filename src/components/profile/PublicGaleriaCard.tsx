@@ -8,14 +8,13 @@ import {
   Lock,
   MoreVertical,
   MapPin,
-  SegmentIcon,
+  Camera,
 } from 'lucide-react';
 import type { Galeria } from '@/core/types/galeria';
 import { resolveGalleryUrl, RESOLUTIONS } from '@/core/utils/url-helper';
 import { useGoogleDriveImage } from '@/hooks/useGoogleDriveImage';
 import { formatDateLong } from '@/core/utils/data-helpers';
 import { w } from 'node_modules/vitest/dist/chunks/reporters.d.Rsi0PyxX';
-import { useSegment } from '@/hooks/useSegment';
 
 export function PublicGaleriaCard({
   galeria,
@@ -24,7 +23,6 @@ export function PublicGaleriaCard({
   galeria: Galeria;
   isFeatured?: boolean;
 }) {
-  const { SegmentIcon } = useSegment();
   const [mounted, setMounted] = useState(false);
 
   const {
@@ -112,8 +110,8 @@ export function PublicGaleriaCard({
           {/* Base: Tipografia Aumentada */}
           <div className="space-y-3">
             <h3 className="text-white text-2xl md:text-3xl font-bold leading-tight group-hover:text-gold transition-colors drop-shadow-2xl  italic flex items-center gap-3">
-              <SegmentIcon
-                className={`text-champagne shrink-0 transition-all duration-1000 drop-shadow-md 
+              <Camera
+                className={`text-[#F3E5AB] shrink-0 transition-all duration-1000 drop-shadow-md 
                 w-6 h-6 md:w-8 md:h-8
               }`}
                 strokeWidth={1.5}

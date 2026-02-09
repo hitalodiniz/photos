@@ -3,17 +3,10 @@ import { Metadata } from 'next';
 import { fetchGalleryBySlug } from '@/core/logic/galeria-logic';
 import { getDirectGoogleUrl } from '@/core/utils/url-helper';
 import { getPublicProfile } from '@/core/services/profile.service';
-import { SegmentType } from '../config/plans';
-import { SEGMENT_DICTIONARY } from '../config/segments';
 
 // 🎯 Definimos um tipo que estende o Metadata padrão para incluir o fullname
 type GalleryMetadata = Metadata & { fullname?: string };
-const BASE_URL =
-  process.env.NEXT_PUBLIC_BASE_URL || 'https://suagaleria.com.br';
-
-const segment =
-  (process.env.NEXT_PUBLIC_APP_SEGMENT as SegmentType) || 'PHOTOGRAPHER';
-const terms = SEGMENT_DICTIONARY[segment];
+const BASE_URL = process.env.NEXT_PUBLIC_BASE_URL || 'https://suagaleria.com.br';
 
 // No seu metadata-helper.ts
 
@@ -22,42 +15,52 @@ export async function getPhotoMetadata(
   googleId: string,
 ): Promise<Metadata> {
   const galeriaRaw = await fetchGalleryBySlug(fullSlug);
+  const baseUrl = process.env.NEXT_PUBLIC_BASE_URL || 'https://suagaleria.com.br';
 
   if (!galeriaRaw) return { title: 'Foto não encontrada' };
 
   // URL Direta da foto
-  // WhatsApp prefere JPEGs diretos. Forçamos o parâmetro de largura para garantir < 300KB
-  const ogImage = googleId
-    ? getDirectGoogleUrl(googleId, '800')
-    : `${BASE_URL}/default-og.jpg`;
+  const ogImage = googleId 
+    ? getDirectGoogleUrl(googleId, '1200') 
+    : `${baseUrl}/default-og.jpg`;
 
   const title = `${galeriaRaw.title} - Foto`;
   const description = `Veja esta foto na galeria ${galeriaRaw.title}.`;
-
+  
   // URL absoluta da foto para o og:url
-  const photoUrl = `${BASE_URL}/photo/${googleId}?s=${encodeURIComponent(fullSlug)}`;
+  const photoUrl = `${baseUrl}/photo/${googleId}?s=${encodeURIComponent(fullSlug)}`;
 
   return {
-    metadataBase: new URL(BASE_URL),
+    metadataBase: new URL(baseUrl),
     title,
     description,
     openGraph: {
       title,
       description,
       type: 'website', // 🎯 Resolve og:type
-      url: photoUrl, // 🎯 Resolve og:url
-      siteName: terms.site_name,
+      url: photoUrl,   // 🎯 Resolve og:url
+      siteName: 'Sua Galeria',
       images: ogImage
         ? [
             {
               url: ogImage,
-              width: 800,
-              height: 420,
-              alt: title,
+              width: 1200,
+              height: 630,
+              type: 'image/jpeg',
             },
           ]
         : [],
     },
+    // 🎯 RESOLVE OS ERROS DO DEBUGGER (Tags Explícitas)
+    // other: {
+    //   'og:url': photoUrl,
+    //   'og:type': 'website',
+    //   'og:image': ogImage,
+    //   'og:image:width': '1200',
+    //   'og:image:height': '630',
+    //   'og:image:type': 'image/jpeg',
+    //   'fb:app_id': process.env.NEXT_PUBLIC_FB_APP_ID || '', // 🎯 Resolve fb:app_id
+    // }
   };
 }
 
@@ -66,39 +69,39 @@ export async function getPhotographerMetadata(
   username: string,
 ): Promise<GalleryMetadata> {
   const profile = await getPublicProfile(username);
+  const baseUrl = process.env.NEXT_PUBLIC_BASE_URL || 'https://suagaleria.com.br';
+
   if (!profile) {
-    return { title: `${terms.singular} não encontrado | ${terms.site_name}` };
+    return { title: 'Fotógrafo não encontrado | Sua Galeria' };
   }
 
   const title = `Portfólio de ${profile.full_name || username}`;
-  const description =
-    profile.mini_bio ||
-    `Confira as galerias de ${terms.items} de ${profile.full_name || username}.`;
-  const profileUrl = `${BASE_URL}/${username}`;
+  const description = profile.mini_bio || `Confira o trabalho e as galerias de ${profile.full_name || username}.`;
+  const profileUrl = `${baseUrl}/${username}`;
 
   // Tratamento da imagem do Supabase (Redimensionamento para evitar > 300KB)
-  const rawImage = profile.photo_url || `${BASE_URL}/default-og-profile.jpg`;
-  const ogImage = rawImage.includes('supabase.co')
-    ? `${rawImage}?width=400&height=400&resize=contain&quality=80&format=jpg&ignore=.jpg`
+  const rawImage = profile.photo_url || `${baseUrl}/default-og-profile.jpg`;
+  const ogImage = rawImage.includes('supabase.co') 
+    ? `${rawImage}?width=1200&height=630&resize=contain&quality=70&.jpg`
     : rawImage;
 
   return {
-    metadataBase: new URL(BASE_URL),
+    metadataBase: new URL(baseUrl),
     title,
     description,
     fullname: profile.full_name || '',
     openGraph: {
       title,
       description,
-      type: 'website', // 🎯 Resolve og:type
-      url: profileUrl, // 🎯 Resolve og:url
-      siteName: terms.site_name,
+      type: 'profile', // 🎯 Resolve og:type
+      url: profileUrl,  // 🎯 Resolve og:url
+      siteName: 'Sua Galeria',
       images: ogImage
         ? [
             {
               url: ogImage,
-              width: 400,
-              height: 400,
+              width: 1200,
+              height: 630,
               type: 'image/jpeg',
             },
           ]
@@ -110,6 +113,15 @@ export async function getPhotographerMetadata(
       description,
       images: [ogImage],
     },
+    // // 🎯 RESOLVE OS ERROS DO DEBUGGER (Tags Explícitas)
+    // other: {
+    //   'og:url': profileUrl,
+    //   'og:type': 'profile',
+    //   'og:image': ogImage,
+    //   'og:image:width': '1200',
+    //   'og:image:height': '630',
+    //   'fb:app_id': process.env.NEXT_PUBLIC_FB_APP_ID || '', // 🎯 Resolve fb:app_id (se tiver)
+    // },
   };
 }
 
@@ -119,12 +131,15 @@ export async function getGalleryMetadata(
   const galeriaRaw = await fetchGalleryBySlug(fullSlug);
 
   if (!galeriaRaw) {
-    return { title: `Galeria não encontrada | ${terms.site_name}` };
+    return { title: 'Galeria não encontrada | Sua Galeria' };
   }
 
   // 1. Extração de dados
   const fullname = galeriaRaw.photographer?.full_name || '';
-
+  // 🎯 Título composto: "Nome da Galeria | Nome do Fotógrafo"
+  /*const title = fullname
+    ? `${galeriaRaw.title} | ${fullname}`
+    : galeriaRaw.title;*/
   // 🎯 Título Nome da Galeria
   const title = galeriaRaw.title;
 
@@ -153,9 +168,9 @@ export async function getGalleryMetadata(
   // 4. Tratamento da Imagem (OpenGraph)
   // 🎯 FALLBACK: Prefere URL direta (server-side), cliente fará fallback se necessário
   const ogImage = galeriaRaw.cover_image_url
-    ? getDirectGoogleUrl(galeriaRaw.cover_image_url, '800')
+    ? getDirectGoogleUrl(galeriaRaw.cover_image_url, '1200')
     : null;
-  const url = `${BASE_URL}/${fullSlug}`;
+  const url = `${process.env.NEXT_PUBLIC_BASE_URL}/${fullSlug}`;
 
   return {
     title,
@@ -170,8 +185,8 @@ export async function getGalleryMetadata(
         ? [
             {
               url: ogImage,
-              width: 800,
-              height: 420,
+              width: 1200,
+              height: 630,
               type: 'image/jpeg',
             },
           ]

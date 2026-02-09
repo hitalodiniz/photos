@@ -36,7 +36,7 @@ export default function AdminControlModal({
         onClick={() => setActiveTab('cache')}
         className={`flex-1 py-3 text-[10px] font-bold uppercase tracking-luxury-widest transition-colors ${
           activeTab === 'cache'
-            ? 'text-champagneborder-b-2 border-gold'
+            ? 'text-champagneborder-b-2 border-[#D4AF37]'
             : 'text-white/60 hover:text-white'
         }`}
       >
@@ -46,7 +46,7 @@ export default function AdminControlModal({
         onClick={() => setActiveTab('tokens')}
         className={`flex-1 py-3 text-[10px] font-bold uppercase tracking-luxury-widest transition-colors ${
           activeTab === 'tokens'
-            ? 'text-champagneborder-b-2 border-gold'
+            ? 'text-champagneborder-b-2 border-[#D4AF37]'
             : 'text-white/60 hover:text-white'
         }`}
       >

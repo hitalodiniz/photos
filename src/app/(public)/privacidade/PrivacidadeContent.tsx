@@ -136,7 +136,7 @@ export default function PRIVACIDADEPage() {
   const privacidadeCards = [
     {
       title: 'Google Drive™',
-      accent: 'gold',
+      accent: '#B8860B',
       icon: <Share2 size={32} strokeWidth={1.5} />,
       items: [
         'Uso estrito do escopo de leitura (readonly)',
@@ -146,7 +146,7 @@ export default function PRIVACIDADEPage() {
     },
     {
       title: 'Propriedade e IA',
-      accent: 'petroleum',
+      accent: '#1a363d',
       icon: <Database size={32} strokeWidth={1.5} />,
       items: [
         'Suas fotos permanecem sob seu controle absoluto',
@@ -156,7 +156,7 @@ export default function PRIVACIDADEPage() {
     },
     {
       title: 'Dados Técnicos',
-      accent: 'gold',
+      accent: '#B8860B',
       icon: <Lock size={32} strokeWidth={1.5} />,
       items: [
         'Autenticação via Google Auth (OAuth2 oficial)',

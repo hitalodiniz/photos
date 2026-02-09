@@ -18,7 +18,7 @@ export default function TrustSeal({
       <div className="flex items-center gap-4 bg-white/15 border border-white/10 px-4 py-3 rounded-luxury backdrop-blur-sm transition-all hover:bg-white/10 hover:border-gold/30 group">
         {/* Mantive o ícone em 18px com a cor gold */}
         <div className="text-gold transition-transform group-hover:scale-110">
-          <SegmentIcon size={18} strokeWidth={1.5} />
+          <Icon size={18} strokeWidth={1.5} />
         </div>
 
         {/* Mantive a tipografia exata: 11px, Medium, Tracking 0.2em */}

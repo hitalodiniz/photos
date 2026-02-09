@@ -27,9 +27,9 @@ export default function CookieBanner() {
 
   return (
     <div className="fixed bottom-6 left-6 right-6 z-[2000] flex justify-center animate-in slide-in-from-bottom-10 duration-700">
-      <div className="bg-petroleum/95/95 backdrop-blur-md border border-white/10 p-4 md:p-6 rounded-2xl shadow-2xl max-w-4xl w-full flex flex-col md:flex-row items-center justify-between gap-4">
+      <div className="bg-[#2D2E30]/95 backdrop-blur-md border border-white/10 p-4 md:p-6 rounded-2xl shadow-2xl max-w-4xl w-full flex flex-col md:flex-row items-center justify-between gap-4">
         <div className="flex items-center gap-4 text-left">
-          <div className="bg-gold/20 p-3 rounded-full hidden sm:block">
+          <div className="bg-[#D4AF37]/20 p-3 rounded-full hidden sm:block">
             <Cookie className="text-champagnew-6 h-6" />
           </div>
           <div className="space-y-1">
@@ -42,7 +42,7 @@ export default function CookieBanner() {
               nossa{' '}
               <Link
                 href="/privacidade"
-                className="text-champagnehover:text-champagne underline underline-offset-4 transition-colors font-medium"
+                className="text-champagnehover:text-[#F3E5AB] underline underline-offset-4 transition-colors font-medium"
               >
                 política de privacidade
               </Link>

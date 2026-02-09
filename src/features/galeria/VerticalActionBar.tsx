@@ -157,7 +157,7 @@ export function VerticalActionBar({
           </div>
           {/* Tooltip */}
           <div className="absolute right-full mr-3 opacity-0 group-hover:opacity-100 transition-opacity pointer-events-none whitespace-nowrap">
-            <div className="bg-champagne text-black text-[10px] font-semibold px-2 py-1 rounded shadow-xl">
+            <div className="bg-[#F3E5AB] text-black text-[10px] font-semibold px-2 py-1 rounded shadow-xl">
               {isFavorited
                 ? 'Remover dos favoritos'
                 : 'Adicionar aos favoritos'}
@@ -169,13 +169,13 @@ export function VerticalActionBar({
       {/* 2. WHATSAPP */}
       <button
         onClick={handleShare}
-        className="btn-luxury-base w-12 h-12 rounded-full bg-black/5 dark:bg-white/5 hover:bg-green-500"
+        className="btn-luxury-base w-12 h-12 rounded-full bg-black/5 dark:bg-white/5 hover:bg-[#25D366]"
         aria-label="Compartilhar no WhatsApp"
       >
         <WhatsAppIcon className="text-black dark:text-white w-5 h-5 transition-colors duration-300" />
         {/* Tooltip */}
         <div className="absolute right-full mr-3 opacity-0 group-hover:opacity-100 transition-opacity pointer-events-none whitespace-nowrap">
-          <div className="bg-champagne text-black text-[10px] font-semibold px-2 py-1 rounded shadow-xl">
+          <div className="bg-[#F3E5AB] text-black text-[10px] font-semibold px-2 py-1 rounded shadow-xl">
             WhatsApp
           </div>
         </div>
@@ -190,7 +190,7 @@ export function VerticalActionBar({
         {copied ? (
           <Check
             size={20}
-            className="text-black dark:text-champagne transition-colors duration-300"
+            className="text-black dark:text-[#F3E5AB] transition-colors duration-300"
             strokeWidth={2}
           />
         ) : (
@@ -202,7 +202,7 @@ export function VerticalActionBar({
         )}
         {/* Tooltip */}
         <div className="absolute right-full mr-3 opacity-0 group-hover:opacity-100 transition-opacity pointer-events-none whitespace-nowrap">
-          <div className="bg-champagne text-black text-[10px] font-semibold px-2 py-1 rounded shadow-xl">
+          <div className="bg-[#F3E5AB] text-black text-[10px] font-semibold px-2 py-1 rounded shadow-xl">
             {copied ? 'Link copiado!' : 'Copiar link'}
           </div>
         </div>
@@ -214,7 +214,7 @@ export function VerticalActionBar({
           onClick={onToggleSlideshow}
           className={`btn-luxury-base w-12 h-12 rounded-full ${
             isSlideshowActive
-              ? 'bg-black dark:bg-champagne'
+              ? 'bg-black dark:bg-[#F3E5AB]'
               : 'bg-black/5 dark:bg-white/5 hover:bg-black/10 dark:hover:bg-white/10'
           }`}
           aria-label={
@@ -236,7 +236,7 @@ export function VerticalActionBar({
           )}
           {/* Tooltip */}
           <div className="absolute right-full mr-3 opacity-0 group-hover:opacity-100 transition-opacity pointer-events-none whitespace-nowrap">
-            <div className="bg-champagne text-black text-[10px] font-semibold px-2 py-1 rounded shadow-xl">
+            <div className="bg-[#F3E5AB] text-black text-[10px] font-semibold px-2 py-1 rounded shadow-xl">
               {isSlideshowActive ? 'Pausar slideshow' : 'Iniciar slideshow'}
             </div>
           </div>
@@ -262,9 +262,9 @@ export function VerticalActionBar({
               e.stopPropagation();
             }}
           >
-            <div className="absolute left-full top-1/2 -translate-y-1/2 border-[8px] border-transparent border-l-champagne pointer-events-none" />
+            <div className="absolute left-full top-1/2 -translate-y-1/2 border-[8px] border-transparent border-l-[#F3E5AB] pointer-events-none" />
             <div
-              className="bg-champagne shadow-2xl rounded-luxury p-4 border border-white/20 text-black relative"
+              className="bg-[#F3E5AB] shadow-2xl rounded-luxury p-4 border border-white/20 text-black relative"
               style={{ pointerEvents: 'auto' }}
               onClick={(e) => {
                 e.preventDefault();
@@ -320,12 +320,12 @@ export function VerticalActionBar({
         >
           <div className="relative w-full h-full flex items-center justify-center">
             {showQualityWarning && (
-              <div className="absolute -inset-1 rounded-full bg-champagne animate-ping opacity-80" />
+              <div className="absolute -inset-1 rounded-full bg-[#F3E5AB] animate-ping opacity-80" />
             )}
             <div
               className={`w-full h-full rounded-full flex items-center justify-center transition-all ${
                 showQualityWarning
-                  ? 'bg-black dark:bg-champagne text-white dark:text-black'
+                  ? 'bg-black dark:bg-[#F3E5AB] text-white dark:text-black'
                   : 'bg-black/5 dark:bg-white/5 hover:bg-black/10 dark:hover:bg-white/10 text-black dark:text-white'
               }`}
             >
@@ -339,7 +339,7 @@ export function VerticalActionBar({
           {/* Tooltip */}
           {!showQualityWarning && (
             <div className="absolute right-full mr-3 opacity-0 group-hover:opacity-100 transition-opacity pointer-events-none whitespace-nowrap">
-              <div className="bg-champagne text-black text-[10px] font-semibold px-2 py-1 rounded shadow-xl">
+              <div className="bg-[#F3E5AB] text-black text-[10px] font-semibold px-2 py-1 rounded shadow-xl">
                 Baixar foto
               </div>
             </div>

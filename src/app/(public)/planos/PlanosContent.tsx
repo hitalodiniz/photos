@@ -89,7 +89,7 @@ export default function PlanosPage() {
 
   return (
     <EditorialView
-      title="Planos"
+      title={`Planos ${config.name}`}
       subtitle={`A estrutura definitiva para sua entrega como ${terms.singular}.`}
     >
       <main className="w-full -mt-4 md:-mt-8">
@@ -173,7 +173,7 @@ export default function PlanosPage() {
                   key={key}
                   title={planInfo.name} // Nome dinâmico (ex: 'Militante', 'Essential', 'Event')
                   icon={<planInfo.icon size={32} strokeWidth={1.5} />}
-                  accentColor={isPro ? 'gold' : 'champagne'}
+                  accentColor={isPro ? '#B8860B' : '#1a363d'}
                   badge={isPro ? 'Mais Escolhido' : undefined}
                 >
                   <div className="text-center mb-4">

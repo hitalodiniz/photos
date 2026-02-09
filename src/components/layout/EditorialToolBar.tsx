@@ -1,5 +1,4 @@
 'use client';
-
 import React, { useState } from 'react';
 import {
   Instagram,
@@ -9,25 +8,22 @@ import {
   Share2,
   Check,
   X,
-  Icon,
 } from 'lucide-react';
 import { useRouter } from 'next/navigation';
 import WhatsAppIcon from '@/components/ui/WhatsAppIcon';
 import AuthButton from '../auth/AuthButton';
-import { useSegment } from '@/hooks/useSegment'; // 🎯 Import do Hook
 
 export default function EditorialToolbar() {
   const router = useRouter();
   const [copied, setCopied] = useState(false);
   const [isMenuOpen, setIsMenuOpen] = useState(false);
-  const { SegmentIcon, terms } = useSegment(); // 🎯 Obtendo termos dinâmicos
 
   const handleShare = async () => {
     if (navigator.share) {
       try {
         await navigator.share({
-          title: terms.site_name, // 🎯 Dinâmico
-          text: `Confira este portfólio incrível!`,
+          title: 'Sua Galeria',
+          text: 'Confira este portfólio incrível!',
           url: window.location.href,
         });
       } catch (err) {
@@ -48,17 +44,19 @@ export default function EditorialToolbar() {
           className="flex items-center gap-2 cursor-pointer group shrink-0"
           onClick={() => router.push('/')}
         >
-          <SegmentIcon
-            className="w-7 h-7 text-champagne group-hover:scale-110 transition-transform"
+          <Camera
+            className="w-5 h-5 text-champagne group-hover:scale-110 transition-transform"
             strokeWidth={1.5}
           />
+          {/* Esconde o texto da marca em celulares muito pequenos se necessário, ou mantém fixo */}
           <span className="text-[16px] md:text-[18px] font-semibold text-white italic tracking-tight">
-            {terms.site_name} {/* 🎯 Dinâmico */}
+            Sua Galeria
           </span>
         </div>
 
         {/* LADO DIREITO: Ações */}
         <div className="flex items-center">
+          {/* GRUPO SOCIAL (Oculto no Mobile por padrão no seu código, mantido) */}
           <div className="hidden md:flex items-center gap-5 px-4 border-r border-white/10">
             <a
               href="https://instagram.com"
@@ -86,7 +84,9 @@ export default function EditorialToolbar() {
             </button>
           </div>
 
+          {/* HUB DE AÇÕES MOBILE-FIRST */}
           <div className="flex items-center gap-1 pl-1 md:pl-2">
+            {/* Botão Planos: No mobile mostramos apenas o ícone para economizar espaço */}
             <button
               onClick={() => router.push('/planos')}
               className="flex items-center gap-2 px-2 md:px-4 py-2 rounded-luxury bg-transparent hover:bg-white/5 transition-all"
@@ -103,10 +103,12 @@ export default function EditorialToolbar() {
 
             <div className="h-4 w-[1px] bg-white/10 mx-1" />
 
+            {/* Componente de Login (Minimalista já é ideal) */}
             <div className="scale-90 md:scale-100">
               <AuthButton variant="minimal" />
             </div>
 
+            {/* Menu Hambúrguer */}
             <button
               onClick={() => setIsMenuOpen(true)}
               className="text-white hover:text-champagne transition-colors p-2"
@@ -130,6 +132,7 @@ export default function EditorialToolbar() {
           onClick={() => setIsMenuOpen(false)}
         />
 
+        {/* Painel do Menu: Ajuste de largura mobile total */}
         <div
           className={`absolute top-0 right-0 h-full w-[85%] md:w-[320px] bg-petroleum border-l border-white/5 p-6 md:p-8 flex flex-col transition-transform duration-500 ease-in-out shadow-2xl ${
             isMenuOpen ? 'translate-x-0' : 'translate-x-full'
@@ -138,12 +141,9 @@ export default function EditorialToolbar() {
           {/* Cabeçalho Menu */}
           <div className="flex justify-between items-center mb-8 pb-6 border-b border-white/5">
             <div className="flex items-center gap-2">
-              <SegmentIcon
-                className="w-4 h-4 text-champagne"
-                strokeWidth={1.5}
-              />
+              <Camera className="w-4 h-4 text-champagne" strokeWidth={1.5} />
               <span className="text-[11px] font-semibold uppercase tracking-[0.2em] text-white italic">
-                {terms.site_name} {/* 🎯 Dinâmico */}
+                Sua Galeria
               </span>
             </div>
             <button
@@ -158,7 +158,7 @@ export default function EditorialToolbar() {
           <nav className="flex flex-col gap-1">
             {[
               { label: 'Nossos Planos', icon: LayoutGrid, path: '/planos' },
-              { label: 'A Tecnologia', icon: Icon, path: '/tech' },
+              { label: 'A Tecnologia', icon: Camera, path: '/tech' },
               { label: 'Suporte & Ajuda', icon: Share2, path: '/suporte' },
             ].map((item, i) => (
               <button
@@ -169,7 +169,7 @@ export default function EditorialToolbar() {
                 }}
                 className="group flex items-center gap-4 px-4 py-4 rounded-luxury hover:bg-white/5 text-white active:bg-white/10 transition-all"
               >
-                <SegmentIcon size={18} className="text-champagne" />
+                <item.icon size={18} className="text-champagne" />
                 <span className="text-[12px] md:text-[11px] font-semibold uppercase tracking-luxury-widest">
                   {item.label}
                 </span>

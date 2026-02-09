@@ -1,20 +1,15 @@
 import './global.css';
 import { Barlow, Montserrat } from 'next/font/google';
-
+import Navbar from '@/components/layout/Navbar';
 import { Metadata } from 'next';
-import { useSegment } from '@/hooks/useSegment';
-import { GoogleApiLoader } from '@/components/google-drive';
-import { Navbar } from '@/components/layout';
-import { NavigationProvider } from '@/components/providers/NavigationProvider';
-import { SidebarProvider } from '@/components/providers/SidebarProvider';
 import { CookieBanner } from '@/components/ui';
 import { AuthProvider } from '@photos/core-auth';
-import { ThemeSwitcher } from '@/components/debug/ThemeSwitcher';
-import { html } from 'framer-motion/client';
+import { Analytics } from '@vercel/analytics/next';
+import GoogleApiLoader from '@/components/google-drive/GoogleApiLoader';
+import { NavigationProvider } from '@/components/providers/NavigationProvider';
+import { SidebarProvider } from '@/components/providers/SidebarProvider';
 
-const { terms, segment } = useSegment();
-
-// Configuração com mais pesos para suportar títulos e botões
+// 2. Configuração com mais pesos para suportar títulos e botões
 const montserrat = Montserrat({
   subsets: ['latin'],
   weight: ['300', '400', '500', '600', '700', '800', '900'],
@@ -34,9 +29,10 @@ export const metadata: Metadata = {
   },
   title: {
     default: process.env.NEXT_PUBLIC_TITLE_DEFAULT || 'Sua Galeria',
-    template: `%s - ${terms.site_name}`,
+    template: '%s - Sua Galeria',
   },
-  description: terms.site_description,
+  description:
+    'Seu momento especial, acessível a um clique. Bem-vindo à Sua Galeria.',
   icons: {
     icon: [
       {
@@ -63,16 +59,8 @@ export default function RootLayout({
   children: React.ReactNode;
 }) {
   return (
-    <html
-      lang="pt-BR"
-      className={`${montserrat.variable} ${barlow.variable}`}
-      data-segment={process.env.NEXT_PUBLIC_APP_SEGMENT || 'PHOTOGRAPHER'}
-    >
-      <body
-        className="antialiased font-sans bg-luxury-bg text-petroleum"
-        style={{ backgroundColor: 'rgb(var(--color-luxury-bg))' }}
-      >
-        {' '}
+    <html lang="pt-BR" className={`${montserrat.variable} ${barlow.variable}`}>
+      <body className="antialiased font-sans text-rendering-optimize bg-luxury-bg">
         <AuthProvider>
           <NavigationProvider>
             <SidebarProvider>
@@ -84,10 +72,10 @@ export default function RootLayout({
               <GoogleApiLoader />
 
               <CookieBanner />
-              <ThemeSwitcher />
             </SidebarProvider>
           </NavigationProvider>
         </AuthProvider>
+        <Analytics />
       </body>
     </html>
   );

@@ -104,10 +104,9 @@ export default function PhotographerAvatar({
           }
         `}
       >
-        {/* Avatar Container */}
-        <div className="relative group flex-shrink-0 w-10 h-10 md:w-14 md:h-14 rounded-full overflow-hidden flex items-center justify-center shadow-inner">
-          <div className="absolute -inset-1 bg-gradient-to-tr from-gold/40 to-champagne/40 rounded-full blur-sm opacity-30 group-hover:opacity-60 transition duration-700"></div>
-
+        {/* Avatar */}
+        <div className="relative group w-10 h-10 md:w-14 md:h-14 rounded-full overflow-hidden flex items-center justify-center shadow-inner">
+          <div className="absolute -inset-1 bg-gradient-to-tr from-gold/40 to-[#F3E5AB]/40 rounded-full blur-sm opacity-30"></div>
           {displayAvatar ? (
             <Image
               src={displayAvatar}
@@ -131,11 +130,7 @@ export default function PhotographerAvatar({
         >
           <div className="flex flex-col items-start whitespace-nowrap">
             <p
-              className={`text-[8px] md:text-[9px] tracking-luxury-normal uppercase font-semibold leading-none mb-1 transition-colors ${
-                position === 'bottom-lightbox'
-                  ? 'text-slate-500 dark:text-champagne/80'
-                  : 'text-champagne'
-              }`}
+              className={`text-[8px] md:text-[9px] tracking-luxury-normal uppercase font-semibold leading-none mb-1 ${position === 'bottom-lightbox' ? 'text-slate-500 dark:text-[#F3E5AB]/80' : 'text-[#F3E5AB]'}`}
             >
               Registrado por
             </p>
@@ -153,7 +148,7 @@ export default function PhotographerAvatar({
                 href={whatsappLink}
                 target="_blank"
                 rel="noopener noreferrer"
-                className={getBtnClass('hover:bg-green-500 hover:text-white')}
+                className={getBtnClass('hover:bg-[#25D366] hover:text-white')}
                 onClick={(e) => e.stopPropagation()}
               >
                 <MessageCircle size={12} fill="currentColor" />

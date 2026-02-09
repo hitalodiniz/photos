@@ -5,7 +5,7 @@ import Footer from '@/components/layout/Footer';
 import EditorialToolbar from './EditorialToolBar';
 import { GoogleSignInButton } from '@/components/auth';
 import { Camera, FileText, ShieldCheck, Lock } from 'lucide-react';
-import { useSegment } from '@/hooks/useSegment';
+import { section, div } from 'framer-motion/client';
 
 const HERO_IMAGES = [
   '/hero-bg-1.webp',
@@ -40,11 +40,12 @@ export default function EditorialView({
   hideContentSection = false, // Nova prop para flexibilidade
   heroCustomAction, // 🎯 Nova Prop para os Cards de Decisão
   heroSecondaryAction, // 🎯 Nova Prop para Ação Secundária
+  hideContentSection = false, // Nova prop para flexibilidade
+  heroCustomAction, // 🎯 Nova Prop para os Cards de Decisão
+  heroSecondaryAction, // 🎯 Nova Prop para Ação Secundária
 }: any) {
   const [isMounted, setIsMounted] = useState(false);
   const [currentBg, setCurrentBg] = useState<string | null>(null);
-
-  const { SegmentIcon } = useSegment();
 
   useEffect(() => {
     setIsMounted(true);
@@ -89,6 +90,20 @@ export default function EditorialView({
             </div>
           )}
 
+          {/* 🎯 ACÕES CUSTOMIZADAS (CARDS) - Centralizados Acima do Título */}
+          {heroCustomAction && (
+            <div className="absolute top-[30%] left-1/2 -translate-x-1/2 -translate-y-1/2 z-20 w-full px-6">
+              {heroCustomAction}
+            </div>
+          )}
+
+          {/* 🎯 MODO COMPACTO (PÍLULA) - Fixo a 80px do topo e centralizado */}
+          {heroSecondaryAction && (
+            <div className="absolute top-[60px] left-1/2 -translate-x-1/2 z-30 w-full px-6 flex justify-center pointer-events-none">
+              <div className="pointer-events-auto">{heroSecondaryAction}</div>
+            </div>
+          )}
+
           {/* 🎯 ÁREA DE CONTEÚDO DO HERO: Título + Ação de Login */}
           <div className="absolute bottom-10 left-0 w-full z-10">
             <div className="max-w-[1600px] mx-auto px-6 md:px-12 flex flex-col md:flex-row items-end justify-between gap-8">
@@ -96,8 +111,8 @@ export default function EditorialView({
               <div className="flex flex-col items-start flex-1">
                 <div className="inline-block">
                   <h1 className="text-2xl md:text-5xl font-semibold text-white drop-shadow-[0_2px_10px_rgba(0,0,0,0.5)] italic flex items-center gap-2">
-                    <SegmentIcon
-                      className="text-champagne shrink-0 transition-all duration-1000 drop-shadow-md w-6 h-6 md:w-12 md:h-12"
+                    <Camera
+                      className="text-[#F3E5AB] shrink-0 transition-all duration-1000 drop-shadow-md w-6 h-6 md:w-12 md:h-12"
                       strokeWidth={1.5}
                     />
                     {title}
@@ -109,10 +124,12 @@ export default function EditorialView({
                 </p>
               </div>
               {/* 🎯 Injeção do Modo Compacto aqui */}
+              {/* 🎯 Injeção do Modo Compacto aqui */}
 
               {/* 🎯 Lado Direito: Ações (Google, Termos ou Privacidade) */}
               {(showHeroAction || showTermsAction || showPrivacyAction) && (
                 <div className="flex flex-col items-center gap-2 animate-in fade-in slide-in-from-right-4 duration-1000">
+                  {/* Texto padronizado com o estilo do título "Sua Galeria" */}
                   <div className="w-full text-left md:text-right">
                     <p className="text-white text-base md:text-lg font-medium italic leading-tight drop-shadow-md">
                       {showHeroAction && 'Conecte com sua conta do Google'}
@@ -183,7 +200,23 @@ export default function EditorialView({
                       {sectionSubtitle}
                     </h2>
                   )}
+                  {sectionSubtitle && (
+                    <h2 className="text-lg md:text-3xl font-semibold text-petroleum italic mb-2">
+                      {sectionSubtitle}
+                    </h2>
+                  )}
 
+                  {sectionDescription && (
+                    <p className="text-slate-600 text-sm md:text-base max-w-full font-medium">
+                      {sectionDescription}
+                    </p>
+                  )}
+                </div>
+              )}
+              {children}
+            </div>
+          </section>
+        )}
                   {sectionDescription && (
                     <p className="text-slate-600 text-sm md:text-base max-w-full font-medium">
                       {sectionDescription}

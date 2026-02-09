@@ -477,7 +477,7 @@ export default function PhotoGrid({ photos, galeria }: any) {
           <button
             onClick={handleDownloadFavorites}
             disabled={isDownloadingFavs}
-            className="flex items-center justify-center rounded-[0.7rem] h-12 bg-champagne text-black border border-white/20 shadow-[0_20px_50px_rgba(0,0,0,0.5)] hover:scale-105 active:scale-95 transition-all px-6 gap-3"
+            className="flex items-center justify-center rounded-[0.7rem] h-12 bg-[#F3E5AB] text-black border border-white/20 shadow-[0_20px_50px_rgba(0,0,0,0.5)] hover:scale-105 active:scale-95 transition-all px-6 gap-3"
           >
             {isDownloadingFavs ? (
               <Loader2 size={18} className="animate-spin" />

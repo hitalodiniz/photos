@@ -66,7 +66,7 @@ export default function NotFound() {
             {/* Opção 1: Home */}
             <EditorialCard
               title="Página Inicial"
-              accentColor="petroleum"
+              accentColor="#B8860B"
               icon={<Home size={32} strokeWidth={1.5} />}
               items={[
                 'Retorne à vitrine principal',
@@ -85,7 +85,7 @@ export default function NotFound() {
             {/* Opção 2: Área do Usuário */}
             <EditorialCard
               title="Área do Usuário"
-              accentColor="gold"
+              accentColor="#1a363d"
               icon={<Globe size={32} strokeWidth={1.5} />}
               items={[
                 'Verifique a URL digitada',

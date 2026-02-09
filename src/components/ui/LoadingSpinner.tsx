@@ -1,5 +1,4 @@
 'use client';
-import { useSegment } from '@/hooks/useSegment';
 import { Camera } from 'lucide-react';
 
 interface LoadingSpinnerProps {
@@ -45,7 +44,6 @@ export default function LoadingSpinner({
     },
   };
 
-  const { SegmentIcon } = useSegment();
   const s = sizes[size];
 
   // Cores baseadas no padrão editorial
@@ -78,7 +76,7 @@ export default function LoadingSpinner({
                 className={`absolute ${s.blur} ${bgBlurClass} blur-[15px] rounded-full animate-pulse transition-colors duration-300`}
               />
             )}
-            <SegmentIcon
+            <Camera
               size={s.camera}
               strokeWidth={s.stroke}
               className={`${colorClass} relative z-10 animate-pulse-gentle transition-colors duration-300`}

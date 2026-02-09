@@ -1,13 +1,10 @@
 'use client';
 import { usePlan } from '@/core/context/PlanContext';
-import { useSegment } from '@/hooks/useSegment';
-
 export const BrandWatermark = () => {
-  const { permissions } = usePlan();
-  const { terms } = useSegment();
+  const { planKey } = usePlan();
 
-  // 🛡️ Exibe a marca apenas se a permissão de remover branding for falsa
-  if (permissions.removeBranding) return null;
+  // 🛡️ Só aparece nos planos FREE e START
+  if (!['FREE', 'START'].includes(planKey)) return null;
 
   return (
     <div className="fixed bottom-6 left-6 z-[100] pointer-events-none select-none animate-in fade-in duration-1000">
@@ -16,7 +13,7 @@ export const BrandWatermark = () => {
           Powered by
         </span>
         <span className="text-gold italic tracking-luxury-tight text-sm font-light">
-          {terms.site_name}
+          Sua Galeria
         </span>
       </div>
     </div>

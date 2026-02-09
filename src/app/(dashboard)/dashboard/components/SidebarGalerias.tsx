@@ -63,7 +63,7 @@ export default function SidebarGalerias({
             )}
 
             {/* 2. Ícone (Filho direto para alinhar pelo justify-start) */}
-            <SegmentIcon
+            <item.icon
               size={18}
               className={`${
                 currentView === item.id ? 'text-champagne' : 'text-current'

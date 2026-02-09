@@ -1,16 +1,13 @@
 'use client';
 import { sendTestNotificationAction } from '@/actions/notification.actions';
-import { getAuthenticatedUser } from '@/core/services/auth-context.service';
 import { updatePushSubscriptionAction } from '@/core/services/profile.service';
-import { useSegment } from '@/hooks/useSegment';
 import { subscribeUserToPush } from '@/lib/push-notifications';
-import { BellRing, SegmentIcon } from 'lucide-react';
+import { BellRing, Camera } from 'lucide-react';
 import { useTransition, useState } from 'react';
 
 export default function GerarLogoPage() {
   const [isPending, startTransition] = useTransition();
   const [status, setStatus] = useState<string>('');
-  const { SegmentIcon } = useSegment();
 
   const handleTestPush = async () => {
     setStatus('Solicitando permissão...');
@@ -60,22 +57,22 @@ export default function GerarLogoPage() {
         className="w-[512px] h-[512px] flex items-center justify-center bg-white gap-3"
       >
         {/* O círculo luxuoso que você usa no seu app */}
-        <div className="p-12 bg-petroleum-dark rounded-full border border-white/10 shadow-2xl flex items-center justify-center">
-          <SegmentIcon
+        <div className="p-12 bg-[#0a0a0a] rounded-full border border-white/10 shadow-2xl flex items-center justify-center">
+          <Camera
             size={240}
             strokeWidth={1.5}
             className="text-champagne drop-shadow-[0_0_30px_rgba(243,229,171,0.4)]"
           />
         </div>
         <div className="p-12 bg-white rounded-full border border-petroleum shadow-2xl flex items-center justify-center text">
-          <SegmentIcon
+          <Camera
             size={240}
             strokeWidth={1.5}
             className="text-petroleum drop-shadow-[0_0_30px_rgba(243,229,171,0.4)]"
           />
         </div>
         <div className="p-12 bg-petroleum rounded-full border border-white/10 shadow-2xl flex items-center justify-center">
-          <SegmentIcon
+          <Camera
             size={240}
             strokeWidth={1.5}
             className="text-champagne drop-shadow-[0_0_30px_rgba(243,229,171,0.4)]"
@@ -87,22 +84,22 @@ export default function GerarLogoPage() {
         className="w-[192px] h-[192px] flex items-center justify-center bg-white gap-3"
       >
         {/* O círculo luxuoso que você usa no seu app */}
-        <div className="p-12 bg-petroleum-dark rounded-full border border-white/10 shadow-2xl flex items-center justify-center">
-          <SegmentIcon
+        <div className="p-12 bg-[#0a0a0a] rounded-full border border-white/10 shadow-2xl flex items-center justify-center">
+          <Camera
             size={192}
             strokeWidth={1.5}
             className="text-champagne drop-shadow-[0_0_30px_rgba(243,229,171,0.4)]"
           />
         </div>
         <div className="p-12 bg-white rounded-full border border-petroleum shadow-2xl flex items-center justify-center text">
-          <SegmentIcon
+          <Camera
             size={192}
             strokeWidth={1.5}
             className="text-petroleum drop-shadow-[0_0_30px_rgba(243,229,171,0.4)]"
           />
         </div>
         <div className="p-12 bg-petroleum rounded-full border border-white/10 shadow-2xl flex items-center justify-center">
-          <SegmentIcon
+          <Camera
             size={192}
             strokeWidth={1.5}
             className="text-champagne drop-shadow-[0_0_30px_rgba(243,229,171,0.4)]"

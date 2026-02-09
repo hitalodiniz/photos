@@ -306,7 +306,7 @@ export default function GaleriaModal({
             <div className="flex items-center justify-center gap-3">
               <button
                 onClick={handleShareWhatsApp}
-                className="h-11 px-6 flex items-center justify-center gap-2 text-white bg-green-500 hover:bg-[#20ba56] rounded-luxury shadow-md transition-all text-[10px] font-bold uppercase tracking-luxury-widest active:scale-95"
+                className="h-11 px-6 flex items-center justify-center gap-2 text-white bg-[#25D366] hover:bg-[#20ba56] rounded-luxury shadow-md transition-all text-[10px] font-bold uppercase tracking-luxury-widest active:scale-95"
                 title="Compartilhar via WhatsApp"
               >
                 <WhatsAppIcon className="w-4 h-4 fill-current" />
