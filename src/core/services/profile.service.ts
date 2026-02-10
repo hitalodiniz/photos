@@ -12,6 +12,25 @@ import { GLOBAL_CACHE_REVALIDATE } from '@/core/utils/url-helper';
 import { MessageTemplates, UserSettings } from '../types/profile';
 import { PlanKey } from '../config/plans';
 
+// 🛠️ IMPORTS DE HELPERS
+import {
+  validateRequiredFields,
+  extractFormData,
+  parseOperatingCities,
+  parseBackgroundUrls,
+  buildTrialData,
+} from '../utils/profile-helpers';
+import {
+  uploadProfilePicture,
+  uploadBackgroundImages,
+} from '../utils/profile-upload.helper';
+import {
+  revalidateProfileTags,
+  revalidateProfileComplete,
+} from '../utils/profile-revalidation.helper';
+import { revalidateUserGalleries } from '@/actions/revalidate.actions';
+import { normalizePhoneNumber } from '../utils/masks-helpers';
+
 // =========================================================================
 // 1. LEITURA DE DADOS (READ)
 // =========================================================================
@@ -156,17 +175,27 @@ export async function getAvatarUrl(
 // =========================================================================
 
 /**
- * Salva ou Atualiza o perfil (Upsert)
+ * Salva ou Atualiza o perfil (Upsert) - VERSÃO REFATORADA
  */
 export async function upsertProfile(formData: FormData, supabaseClient?: any) {
   const supabase = supabaseClient || (await createSupabaseServerClient());
+
+  // 1. Autenticação
   const {
     data: { user },
   } = await supabase.auth.getUser();
 
-  if (!user) return { success: false, error: 'Sessão expirada.' };
+  if (!user) {
+    return { success: false, error: 'Sessão expirada.' };
+  }
 
-  // 1. Verificar se é Onboarding (Novo Usuário) para liberar Trial
+  // 2. Validação de campos obrigatórios
+  const validation = validateRequiredFields(formData);
+  if (!validation.isValid) {
+    return { success: false, error: validation.error };
+  }
+
+  // 3. Verificar se é primeiro setup (para ativar trial)
   const { data: existingProfile } = await supabase
     .from('tb_profiles')
     .select('plan_key, plan_trial_expires')
@@ -175,215 +204,86 @@ export async function upsertProfile(formData: FormData, supabaseClient?: any) {
 
   const isFirstSetup = !existingProfile?.plan_key;
 
-  const username = (formData.get('username') as string)?.toLowerCase().trim();
-  const full_name = (formData.get('full_name') as string)?.trim();
-  const mini_bio = formData.get('mini_bio') as string;
-  const phone_contact = formData.get('phone_contact') as string;
-  const instagram_link = formData.get('instagram_link') as string;
-  const website = formData.get('website') as string;
-  const operating_cities_json = formData.get('operating_cities') as string;
-  const background_url = formData.get('background_url_existing') as string;
+  // 4. Extrair dados do FormData
+  const formFields = extractFormData(formData);
 
-  if (!username || !full_name) {
-    return { success: false, error: 'Nome e Username são obrigatórios.' };
-  }
+  // 5. Parse de dados JSON
+  const operating_cities = parseOperatingCities(
+    formFields.operating_cities_json,
+  );
 
-  let operating_cities: string[] = [];
-  try {
-    operating_cities = operating_cities_json
-      ? JSON.parse(operating_cities_json)
-      : [];
-  } catch {
-    operating_cities = [];
-  }
+  // 6. Processar uploads de imagens
+  const profile_picture_url = await uploadProfilePicture(
+    supabase,
+    formFields.profile_picture,
+    user.id,
+    formFields.profile_picture_url_existing,
+  );
 
-  // Processamento de Fotos (Profile e Background) permanece igual...
-  let profile_picture_url = formData.get(
-    'profile_picture_url_existing',
-  ) as string;
-  const profileFile = formData.get('profile_picture') as File;
-  if (profileFile && profileFile.size > 0) {
-    // 🎯 Segurança: Fallback para extensões se o nome for inválido ou ausente
-    const fileName = profileFile.name || 'avatar.webp';
-    const fileExt = fileName.includes('.') ? fileName.split('.').pop() : 'webp';
-    const filePath = `${user.id}/avatar-${Date.now()}.${fileExt}`;
+  const existingBgUrls = parseBackgroundUrls(
+    formFields.background_urls_existing,
+  );
+  const background_urls = await uploadBackgroundImages(
+    supabase,
+    formFields.background_images,
+    user.id,
+    existingBgUrls,
+  );
 
-    // console.log('[upsertProfile] Uploading avatar:', filePath);
+  // 7. Normalizar telefone
+  const phone_contact = normalizePhoneNumber(formFields.phone_contact);
 
-    const { error: uploadError } = await supabase.storage
-      .from('profile_pictures')
-      .upload(filePath, profileFile, { upsert: true });
-
-    if (!uploadError) {
-      const {
-        data: { publicUrl },
-      } = supabase.storage.from('profile_pictures').getPublicUrl(filePath);
-      profile_picture_url = publicUrl;
-    } else {
-      console.error('[upsertProfile] Error uploading avatar:', uploadError);
-    }
-  }
-
-  // let background_url = formData.get('background_url_existing') as string;
-  // const backgroundFile = formData.get('background_image') as File;
-  // if (backgroundFile && backgroundFile.size > 0) {
-  //   const bgName = backgroundFile.name || 'bg.webp';
-  //   const bgExt = bgName.includes('.') ? bgName.split('.').pop() : 'webp';
-  //   const bgPath = `${user.id}/bg-${Date.now()}.${bgExt}`;
-
-  //   // console.log('[upsertProfile] Uploading background:', bgPath);
-
-  //   const { error: bgUploadError } = await supabase.storage
-  //     .from('profile_pictures')
-  //     .upload(bgPath, backgroundFile, { upsert: true });
-
-  //   if (!bgUploadError) {
-  //     const {
-  //       data: { publicUrl },
-  //     } = supabase.storage.from('profile_pictures').getPublicUrl(bgPath);
-  //     background_url = publicUrl;
-  //   } else {
-  //     console.error(
-  //       '[upsertProfile] Error uploading background:',
-  //       bgUploadError,
-  //     );
-  //   }
-  // }
-
-  // 1. Recuperar URLs existentes para não sobrescrever se não houver novo upload
-  const existingBgsJson = formData.get('background_urls_existing') as string;
-  let finalBackgroundUrls: string[] = existingBgsJson
-    ? JSON.parse(existingBgsJson)
-    : [];
-
-  // 2. Recuperar todos os novos arquivos (input multiple)
-  const backgroundFiles = formData.getAll('background_images') as File[];
-
-  // 3. Se houver novos arquivos com conteúdo, processamos o upload
-  if (backgroundFiles.length > 0 && backgroundFiles[0].size > 0) {
-    const uploadedUrls: string[] = [];
-
-    for (const file of backgroundFiles) {
-      if (file.size === 0) continue;
-
-      const bgName = file.name || 'bg.webp';
-      const bgExt = bgName.includes('.') ? bgName.split('.').pop() : 'webp';
-      // Adicionamos um random para evitar colisão em uploads múltiplos simultâneos
-      const bgPath = `${user.id}/bg-${Date.now()}-${Math.random().toString(36).substring(2, 7)}.${bgExt}`;
-
-      const { error: bgUploadError } = await supabase.storage
-        .from('profile_pictures')
-        .upload(bgPath, file, { upsert: true });
-
-      if (!bgUploadError) {
-        const {
-          data: { publicUrl },
-        } = supabase.storage.from('profile_pictures').getPublicUrl(bgPath);
-        uploadedUrls.push(publicUrl);
-      } else {
-        console.error(
-          '[upsertProfile] Error uploading background:',
-          bgUploadError,
-        );
-      }
-    }
-
-    // Se o upload teve sucesso, as novas URLs substituem as antigas
-    if (uploadedUrls.length > 0) {
-      finalBackgroundUrls = uploadedUrls;
-    }
-  }
-
-  // 1. Limpeza e padronização do telefone (Garante prefixo 55 para WhatsApp)
-  let cleanPhone = phone_contact ? phone_contact.replace(/\D/g, '') : '';
-  if (
-    cleanPhone &&
-    (cleanPhone.length === 10 || cleanPhone.length === 11) &&
-    !cleanPhone.startsWith('55')
-  ) {
-    cleanPhone = `55${cleanPhone}`;
-  }
-
+  // 8. Montar dados para update
   const updateData: any = {
-    full_name,
-    username,
-    mini_bio,
-    phone_contact: cleanPhone,
-    instagram_link,
-    website,
+    full_name: formFields.full_name,
+    username: formFields.username,
+    mini_bio: formFields.mini_bio,
+    phone_contact,
+    instagram_link: formFields.instagram_link,
+    website: formFields.website,
     operating_cities,
     profile_picture_url,
+    background_urls,
     updated_at: new Date().toISOString(),
-    background_urls: finalBackgroundUrls,
   };
 
-  // 🛡️ Lógica de Ativação do Trial PRO (14 Dias)
+  // 9. Adicionar dados de trial se for primeiro setup
   if (isFirstSetup) {
-    const trialDays = 14;
-    const expirationDate = new Date();
-    expirationDate.setDate(expirationDate.getDate() + trialDays);
-
-    updateData.plan_key = 'PRO' as PlanKey;
-    updateData.plan_trial_expires = expirationDate.toISOString();
-    updateData.is_trial = true;
+    Object.assign(updateData, buildTrialData());
   }
 
-  if (background_url !== undefined && background_url !== null) {
-    updateData.background_url = background_url;
+  // 10. Incluir background_url se fornecido (legacy)
+  if (
+    formFields.background_url !== undefined &&
+    formFields.background_url !== null
+  ) {
+    updateData.background_url = formFields.background_url;
   }
 
+  // 11. Executar update no banco
   const { error } = await supabase
     .from('tb_profiles')
     .update(updateData)
     .eq('id', user.id);
 
+  // 12. Tratamento de erros
   if (error) {
-    if (error.code === '23505')
+    if (error.code === '23505') {
       return { success: false, error: 'Username já está em uso.' };
+    }
     return { success: false, error: error.message };
   }
 
-  // 🔄 REVALIDAÇÃO ESTRATÉGICA COMPLETA
-  // Invalida a tag específica do perfil (público e privado)
-  revalidateTag(`profile-${username}`);
-  revalidateTag(`profile-private-${user.id}`);
-  // Revalida as galerias públicas do perfil
-  revalidateTag(`profile-galerias-${username}`);
-  // Busca todas as galerias do usuário para revalidar individualmente
-  const { data: galerias } = await supabase
-    .from('tb_galerias')
-    .select('id, slug, drive_folder_id')
-    .eq('user_id', user.id);
-
-  if (galerias && galerias.length > 0) {
-    // Revalida cada galeria individualmente
-    galerias.forEach((galeria) => {
-      if (galeria.slug) {
-        revalidateTag(`gallery-${galeria.slug}`);
-      }
-      if (galeria.drive_folder_id) {
-        revalidateTag(`drive-${galeria.drive_folder_id}`);
-      }
-      if (galeria.id) {
-        revalidateTag(`photos-${galeria.id}`);
-      }
-    });
-    // Revalida a lista de galerias do usuário
-    revalidateTag(`user-galerias-${user.id}`);
-  }
-
-  // Revalida as rotas físicas
-  revalidatePath('/dashboard');
-  revalidatePath(`/${username}`);
+  // 13. Revalidação completa de cache
+  await revalidateProfileComplete(supabase, formFields.username!, user.id);
 
   return { success: true };
 }
 
 /**
  * Atualiza as configurações e templates de mensagem do perfil
+ * ✅ REFATORADA: Usa helper de revalidação
  */
-import { revalidateUserGalleries } from '@/actions/revalidate.actions';
-
 export async function updateProfileSettings(data: {
   settings: UserSettings;
   message_templates: MessageTemplates;
@@ -415,10 +315,12 @@ export async function updateProfileSettings(data: {
     return { success: false, error: error.message };
   }
 
+  // ✅ USA HELPER: Revalidação centralizada
   if (profile?.username) {
-    revalidateTag(`profile-${profile.username}`);
+    revalidateProfileTags(profile.username, user.id);
+  } else {
+    revalidateTag(`profile-private-${user.id}`);
   }
-  revalidateTag(`profile-private-${user.id}`);
 
   // Revalida o cache de todas as galerias do usuário
   await revalidateUserGalleries(user.id);
@@ -435,6 +337,7 @@ export async function signOut() {
 
 /**
  * Atualiza a preferência de visualização da barra lateral
+ * ✅ REFATORADA: Usa helper de revalidação
  */
 export async function updateSidebarPreference(isCollapsed: boolean) {
   const supabase = await createSupabaseServerClient();
@@ -458,11 +361,12 @@ export async function updateSidebarPreference(isCollapsed: boolean) {
 
   if (error) return { success: false, error: error.message };
 
-  // 🔄 REVALIDAÇÃO: Limpa o cache do perfil (público e privado)
+  // ✅ USA HELPER: Revalidação centralizada
   if (profile?.username) {
-    revalidateTag(`profile-${profile.username}`);
+    revalidateProfileTags(profile.username, user.id);
+  } else {
+    revalidateTag(`profile-private-${user.id}`);
   }
-  revalidateTag(`profile-private-${user.id}`);
 
   return { success: true };
 }
@@ -470,6 +374,7 @@ export async function updateSidebarPreference(isCollapsed: boolean) {
 /**
  * Atualiza ou Adiciona categorias personalizadas no perfil do usuário
  * Armazena no campo JSONB 'custom_categories'
+ * ✅ REFATORADA: Usa helper de revalidação
  */
 export async function updateCustomCategories(categories: string[]) {
   const supabase = await createSupabaseServerClient();
@@ -500,16 +405,15 @@ export async function updateCustomCategories(categories: string[]) {
     return { success: false, error: error.message };
   }
 
-  // 🔄 REVALIDAÇÃO: Garante que o perfil em cache reflita as novas categorias
+  // ✅ USA HELPER: Revalidação centralizada
   if (profile?.username) {
-    revalidateTag(`profile-${profile.username}`);
+    revalidateProfileTags(profile.username, user.id);
+  } else {
+    revalidateTag(`profile-private-${user.id}`);
   }
-  revalidateTag(`profile-private-${user.id}`);
 
   return { success: true };
 }
-
-// src/actions/profile.service.ts
 
 /**
  * 🎯 BUSCA PERFIL POR USERNAME (Com Cache de 30 dias)
@@ -544,7 +448,9 @@ export const getProfileByUsername = cache(async (username: string) => {
   )(cleanUsername);
 });
 
-// Atualiza push notificações do usuário
+/**
+ * Atualiza push notificações do usuário
+ */
 export async function updatePushSubscriptionAction(subscription: any) {
   const supabase = await createSupabaseServerClient();
   const {
@@ -570,6 +476,7 @@ export async function updatePushSubscriptionAction(subscription: any) {
 /**
  * 🎯 CENTRALIZADOR DE MUDANÇA DE PLANOS
  * Válido para: Ativação pós-trial, Upgrade e Downgrade.
+ * ✅ REFATORADA: Usa helper de revalidação
  */
 export async function processSubscriptionAction(
   profileId: string,
@@ -604,10 +511,11 @@ export async function processSubscriptionAction(
     return { success: false, error: error.message };
   }
 
-  // 3. 🔄 Invalidação em cascata (Garante que o app reflita a mudança na hora)
-  revalidateTag(`profile-private-${profileId}`);
+  // ✅ USA HELPER: Revalidação centralizada
   if (profile?.username) {
-    revalidateTag(`profile-${profile.username}`);
+    revalidateProfileTags(profile.username, profileId);
+  } else {
+    revalidateTag(`profile-private-${profileId}`);
   }
 
   // Força o Next.js a re-renderizar componentes de layout (Sidebar, Header)
