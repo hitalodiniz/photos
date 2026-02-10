@@ -8,7 +8,8 @@ import {
   Calendar,
   ImageIcon,
   ChevronLeft, // Adicionado
-  ChevronRight, // Adicionado
+  ChevronRight,
+  ChevronUp, // Adicionado
 } from 'lucide-react';
 import PhotographerAvatar from './ProfileAvatar';
 import { getInternalGoogleDriveUrl } from '@/core/utils/url-helper';
@@ -121,7 +122,7 @@ export const GaleriaHero = ({
                   e.stopPropagation();
                   setCurrentImageIndex(i);
                 }}
-                className={`h-1.5 rounded-full transition-all ${i === currentImageIndex ? 'w-8 bg-[#F3E5AB]' : 'w-2 bg-white/40'}`}
+                className={`h-1.5 rounded-full transition-all ${i === currentImageIndex ? 'w-8 bg-champagne' : 'w-2 bg-white/40'}`}
               />
             ))}
           </div>
@@ -161,8 +162,8 @@ export const GaleriaHero = ({
                 className={`font-semibold text-white transition-all duration-1000 leading-tight tracking-luxury-normal break-words flex items-center gap-3 drop-shadow-[0_2px_8_rgba(0,0,0,0.8)]
                 ${isExpanded ? 'text-2xl md:text-5xl mb-2' : 'text-xl md:text-4xl mb-1'}`}
               >
-                <Camera
-                  className={`text-[#F3E5AB] shrink-0 transition-all duration-1000 drop-shadow-md ${
+                <SegmentIcon
+                  className={`text-champagne shrink-0 transition-all duration-1000 drop-shadow-md ${
                     isExpanded
                       ? 'w-8 h-8 md:w-12 md:h-12'
                       : 'w-6 h-6 md:w-8 md:h-8'
@@ -173,7 +174,7 @@ export const GaleriaHero = ({
               </h1>
 
               {/* LINHA DECORATIVA */}
-              <div className="h-[2px] md:h-[3px] bg-[#F3E5AB] rounded-full mb-3 md:mb-4 w-full max-w-[150px] md:max-w-[300px] shadow-lg" />
+              <div className="h-[2px] md:h-[3px] bg-champagne rounded-full mb-3 md:mb-4 w-full max-w-[150px] md:max-w-[300px] shadow-lg" />
             </div>
 
             <div className="flex flex-col md:flex-row md:items-center gap-x-3 gap-y-1.5 md:gap-x-4 md:gap-y-2 transition-all duration-1000 items-start justify-start opacity-90">
@@ -198,7 +199,7 @@ export const GaleriaHero = ({
               <div className="flex items-center text-white text-[10px] md:text-[14px] font-medium shrink-0 gap-1.5 drop-shadow-md">
                 <ImageIcon
                   size={14}
-                  className="text-[#F3E5AB] drop-shadow-sm"
+                  className="text-champagne drop-shadow-sm"
                 />
                 <span>{photos?.length || 0} fotos</span>
               </div>
@@ -212,10 +213,10 @@ export const GaleriaHero = ({
             className="fixed bottom-6 left-1/2 -translate-x-1/2 animate-bounce group z-[400] p-2"
           >
             <div className="relative flex items-center justify-center w-12 h-12 rounded-full bg-black/40 backdrop-blur-md border border-white/10 shadow-2xl transition-all duration-500 hover:bg-black/60">
-              <ChevronDown
+              <ChevronUp
                 size={28}
                 strokeWidth={1.5}
-                className="text-white transition-colors group-hover:text-[#F3E5AB]"
+                className="text-white transition-colors group-hover:text-champagne"
               />
             </div>
           </button>

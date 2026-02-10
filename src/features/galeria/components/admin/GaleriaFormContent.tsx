@@ -879,44 +879,35 @@ export default function GaleriaFormContent({
                   </div>
 
                   <div className="flex flex-row items-center gap-2">
-                    {/* Input de Descrição/Label - 30% de largura */}
-                    <div className="relative w-[30%]">
-                      {!permissions.canCustomLinkLabel && (
-                        <div
-                          onClick={() =>
-                            setUpsellFeature({
-                              label: 'Nome do Link Customizado',
-                              feature: 'canCustomLinkLabel',
-                            })
-                          }
-                          className="absolute inset-0 z-10 cursor-pointer bg-slate-50/50 flex items-center justify-center"
-                        >
-                          <Lock size={10} className="text-petroleum/30" />
-                        </div>
-                      )}
-
-                      <input
-                        type="text"
-                        disabled={!permissions.canCustomLinkLabel}
-                        required // 🎯 Torna obrigatório
-                        value={link.label}
-                        minLength={3} // 🎯 Mínimo de caracteres (ajustado de 5 para 3 para ser mais flexível)
-                        maxLength={20} // 🎯 Máximo de caracteres
-                        placeholder={`LINK ${index + 1}`}
-                        onChange={(e) => {
-                          const newLinks = [...links];
-                          newLinks[index].label = e.target.value;
-                          setLinks(newLinks);
-                        }}
-                        className="input-luxury"
-                      />
+                    {/* 🎯 Uso do Mini PlanGuard no Input de Label */}
+                    <div className="w-[30%]">
+                      <PlanGuard
+                        feature="canCustomLinkLabel"
+                        variant="mini"
+                        label="Nome Customizado"
+                      >
+                        <input
+                          type="text"
+                          required
+                          value={link.label}
+                          minLength={3}
+                          maxLength={20}
+                          placeholder={`LINK ${index + 1}`}
+                          onChange={(e) => {
+                            const newLinks = [...links];
+                            newLinks[index].label = e.target.value;
+                            setLinks(newLinks);
+                          }}
+                          className="input-luxury"
+                        />
+                      </PlanGuard>
                     </div>
 
-                    {/* Input de URL - 70% de largura */}
+                    {/* Input de URL - 70% de largura (Sempre liberado por padrão) */}
                     <div className="relative w-[70%]">
                       <input
                         type="url"
-                        required // 🎯 Torna obrigatório
+                        required
                         value={link.url}
                         onChange={(e) => {
                           const newLinks = [...links];

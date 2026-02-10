@@ -271,39 +271,36 @@ export default function SettingsForm({ profile }: { profile: any }) {
         </FormSection>
 
         {/* SEÇÃO 3: CAPTURA DE LEADS PADRÃO */}
-        <FormSection title="Captação de Visitantes" icon={<Users size={14} />}>
-          <PlanGuard feature="canCaptureLeads" label="Cadastro de Visitante">
-            <div className="space-y-2">
-              <LeadCaptureSection
-                enabled={settings.defaults.enable_guest_registration}
-                setEnabled={(val) =>
-                  setValue('settings.defaults.enable_guest_registration', val, {
-                    shouldDirty: true,
-                  })
-                }
-                requiredFields={settings.defaults.required_guest_fields}
-                setRequiredFields={(val) =>
-                  setValue('settings.defaults.required_guest_fields', val, {
-                    shouldDirty: true,
-                  })
-                }
-                register={register}
-                setValue={setValue}
-                watch={watch}
-                purposeFieldName="settings.defaults.data_treatment_purpose"
-                initialPurposeValue={
-                  profile.settings?.defaults?.data_treatment_purpose
-                }
-                toggleLabel="Habilitar cadastro por padrão em novas galerias"
-                showLayout="grid"
-                isEdit={true}
-              />
-              <p className="text-[9px] text-petroleum/50 italic px-1 pt-2">
-                Configure se deseja capturar dados dos visitantes para gerar
-                novos leads automaticamente.
-              </p>
-            </div>
-          </PlanGuard>
+        <FormSection title="Cadastro de Visitante" icon={<Users size={14} />}>
+          <div className="space-y-2">
+            <LeadCaptureSection
+              enabled={settings.defaults.enable_guest_registration}
+              setEnabled={(val) =>
+                setValue('settings.defaults.enable_guest_registration', val, {
+                  shouldDirty: true,
+                })
+              }
+              requiredFields={settings.defaults.required_guest_fields}
+              setRequiredFields={(val) =>
+                setValue('settings.defaults.required_guest_fields', val, {
+                  shouldDirty: true,
+                })
+              }
+              register={register}
+              setValue={setValue}
+              watch={watch}
+              purposeFieldName="settings.defaults.data_treatment_purpose"
+              initialPurposeValue={
+                profile.settings?.defaults?.data_treatment_purpose
+              }
+              toggleLabel="Habilitar cadastro por padrão em novas galerias"
+              showLayout="grid"
+              isEdit={true}
+            />
+            <p className="text-[9px] text-petroleum/50 italic px-1 pt-2">
+              Configure se deseja capturar dados dos visitantes da galeria.
+            </p>
+          </div>
         </FormSection>
 
         {/* SEÇÃO 4: DESIGN PADRÃO */}

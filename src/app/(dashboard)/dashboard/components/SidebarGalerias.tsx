@@ -1,4 +1,4 @@
-import { Inbox, Archive, Trash2 } from 'lucide-react';
+import { Inbox, Archive, Trash2, Icon } from 'lucide-react';
 import type { ViewType } from '../hooks/useDashboardFilters';
 import { useSidebar } from '@/components/providers/SidebarProvider';
 
@@ -63,7 +63,7 @@ export default function SidebarGalerias({
             )}
 
             {/* 2. Ícone (Filho direto para alinhar pelo justify-start) */}
-            <SegmentIcon
+            <item.icon
               size={18}
               className={`${
                 currentView === item.id ? 'text-champagne' : 'text-current'

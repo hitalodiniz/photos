@@ -8,15 +8,17 @@ import {
   PlanKey,
   PlanPermissions,
   PERMISSIONS_BY_PLAN,
+  FEATURE_DESCRIPTIONS, // 🎯 Importado do plans.ts
 } from '@/core/config/plans';
 import { usePlan } from '@/core/context/PlanContext';
 import { findNextPlanWithFeature } from '@/core/config/plans';
-import { useSegment } from '@/hooks/useSegment'; // 🎯 Import do Hook
+import { useSegment } from '@/hooks/useSegment';
 
 interface UpgradeModalProps {
   isOpen: boolean;
   onClose: () => void;
   featureName: string;
+  description?: string; // 🎯 Nova prop para a descrição amigável
   featureKey?: keyof PlanPermissions;
   scenarioType: 'limit' | 'feature';
 }
@@ -25,23 +27,30 @@ export default function UpgradeModal({
   isOpen,
   onClose,
   featureName,
+  description,
   featureKey,
   scenarioType,
 }: UpgradeModalProps) {
   const { planKey } = usePlan();
-  const { terms, segment } = useSegment(); // 🎯 Obtendo termos dinâmicos
+  const { terms, segment } = useSegment();
 
   const nextPlanKey = useMemo(() => {
     if (!featureKey) return 'PREMIUM';
     return findNextPlanWithFeature(planKey as PlanKey, featureKey, segment);
   }, [planKey, featureKey, segment]);
 
+  // 🎯 Busca a descrição no dicionário se não for passada via prop
+  const displayDescription = useMemo(() => {
+    if (description) return description;
+    if (featureKey) return FEATURE_DESCRIPTIONS[featureKey]?.description;
+    return null;
+  }, [description, featureKey]);
+
   const planBenefits = useMemo(() => {
     if (!nextPlanKey) return [];
     const perms = PERMISSIONS_BY_PLAN[nextPlanKey];
     if (!perms) return [];
 
-    // 🎯 Benefícios parametrizados por segmento
     return [
       `Até ${perms.maxGalleries} ${terms.items} ativas`,
       `Capacidade de ${perms.maxPhotosPerGallery} itens por ${terms.item}`,
@@ -93,6 +102,7 @@ export default function UpgradeModal({
       maxWidth="2xl"
     >
       <div className="space-y-4">
+        {/* Header do Recurso */}
         <div className="w-full flex items-center gap-4 p-4 rounded-luxury border border-gold/20 bg-gold/5">
           <div className="w-10 h-10 rounded-luxury flex items-center justify-center shrink-0 bg-gold text-petroleum shadow-[0_0_15px_rgba(212,175,55,0.2)]">
             <Lock size={20} />
@@ -111,21 +121,37 @@ export default function UpgradeModal({
           </div>
         </div>
 
-        {scenarioType === 'limit' ? (
-          <p className="text-[13px] text-petroleum font-medium leading-relaxed px-1">
-            Você atingiu o limite de {featureName}. Faça o upgrade para ter mais
-            espaço e recursos avançados para seu {terms.singular}.
-          </p>
-        ) : (
-          <p className="text-[13px] text-petroleum font-medium leading-relaxed px-1">
-            O recurso{' '}
-            <span className="text-petroleum font-semibold">{featureName}</span>{' '}
-            é exclusivo para usuários do plano{' '}
-            <span className="text-petroleum font-extrabold">{nextPlanKey}</span>{' '}
-            ou superior no {terms.site_name}.
-          </p>
-        )}
+        {/* 🎯 Texto Explicativo com Descrição Amigável */}
+        <div className="px-1 space-y-2">
+          {displayDescription && (
+            <p className="text-[14px] text-petroleum font-bold leading-relaxed border-l-2 border-gold/40 pl-3 py-0.5 bg-slate-50/50">
+              {displayDescription}
+            </p>
+          )}
 
+          <p className="text-[13px] text-petroleum/80 font-medium leading-relaxed">
+            {scenarioType === 'limit' ? (
+              <>
+                Você atingiu o limite de {featureName}. Faça o upgrade para ter
+                mais espaço e recursos avançados para seu {terms.singular}.
+              </>
+            ) : (
+              <>
+                O recurso{' '}
+                <span className="text-petroleum font-semibold">
+                  {featureName}
+                </span>{' '}
+                é exclusivo para usuários do plano{' '}
+                <span className="text-petroleum font-extrabold">
+                  {nextPlanKey}
+                </span>{' '}
+                ou superior no {terms.site_name}.
+              </>
+            )}
+          </p>
+        </div>
+
+        {/* Lista de Benefícios */}
         <div className="space-y-2.5 p-4 bg-slate-50 border border-petroleum/10 rounded-luxury">
           <p className="text-[11px] font-semibold uppercase tracking-luxury text-petroleum/90 mb-2">
             Vantagens ao migrar para o{' '}

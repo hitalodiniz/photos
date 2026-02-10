@@ -59,6 +59,127 @@ export function findNextPlanWithFeature(
   return 'PREMIUM'; // Se não encontrar em nenhum plano superior, sugere o PREMIUM
 }
 
+/**
+ * 🎨 Dicionário de labels e descrições amigáveis para o Upsell.
+ * Serve para que o PlanGuard e o UpgradeModal saibam explicar o valor da feature.
+ */
+export const FEATURE_DESCRIPTIONS: Record<
+  keyof PlanPermissions,
+  { label: string; description: string }
+> = {
+  maxGalleries: {
+    label: 'Limite de Galerias',
+    description:
+      'Aumente o número de galerias ativas simultaneamente em sua conta.',
+  },
+  maxPhotosPerGallery: {
+    label: 'Capacidade de Fotos',
+    description: 'Aumente o limite de fotos permitidas em cada galeria.',
+  },
+  teamMembers: {
+    label: 'Membros de Equipe',
+    description:
+      'Adicione colaboradores para gerenciar suas galerias com você.',
+  },
+  profileLevel: {
+    label: 'Perfil Profissional',
+    description:
+      'Desbloqueie Bio, Localização e ferramentas de SEO no seu perfil.',
+  },
+  profileCarouselLimit: {
+    label: 'Carrossel de Capa',
+    description:
+      'Personalize seu perfil com um carrossel de fotos profissionais.',
+  },
+  profileListLimit: {
+    label: 'Exibição no Portfólio',
+    description: 'Aumente o número de galerias visíveis no seu perfil público.',
+  },
+  removeBranding: {
+    label: 'Remover Marca',
+    description:
+      'Remova a marca do app do rodapé da galeria e do seu perfil público.',
+  },
+  canCaptureLeads: {
+    label: 'Cadastro de Visitantes',
+    description:
+      'Solicite nome, WhatsApp e e-mail dos visitantes antes de liberarem as fotos na galeria.',
+  },
+  canExportLeads: {
+    label: 'Exportação de dados dos Visitantes',
+    description: 'Exporte sua base de visitantes em CSV, Excel ou PDF.',
+  },
+  socialDisplayLevel: {
+    label: 'Links de Contato',
+    description:
+      'Adicione botões diretos para seu WhatsApp, Instagram e Website.',
+  },
+  maxCoverPerGallery: {
+    label: 'Fotos de Capa',
+    description: 'Crie carrosséis de impacto na capa das suas galerias.',
+  },
+  canFavorite: {
+    label: 'Sistema de Favoritos',
+    description:
+      'Permita que seus clientes selecionem e marquem as fotos favoritas.',
+  },
+  canDownloadFavoriteSelection: {
+    label: 'Download de Seleção',
+    description: 'Permita o download filtrado apenas das fotos favoritadas.',
+  },
+  canShowSlideshow: {
+    label: 'Modo Slideshow',
+    description: 'Habilite a apresentação automática de fotos em tela cheia.',
+  },
+  maxGridColumns: {
+    label: 'Colunas da Grade',
+    description:
+      'Tenha mais liberdade para organizar o layout das fotos na galeria.',
+  },
+  maxTags: {
+    label: 'Categorias e Filtros',
+    description:
+      'Crie categorias personalizadas para organizar grandes eventos.',
+  },
+  tagSelectionMode: {
+    label: 'Organização em Lote',
+    description:
+      'Organize suas fotos rapidamente através de pastas ou seleções em massa.',
+  },
+  zipSizeLimit: {
+    label: 'Resolução de Download',
+    description: 'Libere downloads em alta definição (HD) para seus clientes.',
+  },
+  maxExternalLinks: {
+    label: 'Links de Entrega',
+    description: 'Adicione botões externos para download de arquivos pesados.',
+  },
+  canCustomLinkLabel: {
+    label: 'Nomes de Links Customizados',
+    description: 'Dê nomes personalizados aos seus links de entrega externa.',
+  },
+  privacyLevel: {
+    label: 'Proteção por Senha',
+    description: 'Aumente a segurança das suas galerias com senhas.',
+  },
+  keepOriginalFilenames: {
+    label: 'Preservar Nomes Originais',
+    description: 'Mantenha os nomes originais dos arquivos durante o download.',
+  },
+  customizationLevel: {
+    label: 'Personalização Visual',
+    description:
+      'Altere cores e fotos de fundo para criar galerias exclusivas.',
+  },
+  canCustomWhatsApp: {
+    label: 'WhatsApp Customizado',
+    description: 'Edite os templates das mensagens enviadas aos seus clientes.',
+  },
+  canCustomCategories: {
+    label: 'Categorias Próprias',
+    description: 'Crie nomes de categorias fora do padrão do sistema.',
+  },
+};
 // Pendencias
 // teamMembers	Tela de Configurações de Time / Convite de Colaboradores.
 // profileLevel	Tela de Edição de Perfil (campos de Bio, Localização e SEO).
