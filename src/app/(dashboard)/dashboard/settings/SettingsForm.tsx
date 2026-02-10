@@ -17,6 +17,7 @@ import {
   FolderSync,
   ImageIcon,
   PlayCircle,
+  X,
 } from 'lucide-react';
 
 import { UserSettingsSchema } from '@/core/types/profile';
@@ -61,6 +62,11 @@ export default function SettingsForm({ profile }: { profile: any }) {
   const router = useRouter();
   const [isSaving, setIsSaving] = useState(false);
   const [isSuccess, setIsSuccess] = useState(false);
+
+  const [rootFolderName, setRootFolderName] = useState(
+    profile.settings?.defaults?.google_drive_root_name || '',
+  );
+
   const [toast, setToast] = useState<{
     message: string;
     type: 'success' | 'error';
@@ -384,7 +390,6 @@ export default function SettingsForm({ profile }: { profile: any }) {
         >
           <div className="grid grid-cols-1 md:grid-cols-2 gap-8 items-start">
             {/* PASTA RAIZ PADRÃO */}
-            {/* PASTA RAIZ PADRÃO */}
             <div className="space-y-2">
               <label className="text-[10px] font-bold uppercase tracking-luxury-widest text-petroleum/60 flex items-center gap-1.5">
                 <FolderSync size={12} strokeWidth={2} className="text-gold" />
@@ -392,19 +397,25 @@ export default function SettingsForm({ profile }: { profile: any }) {
               </label>
 
               <div className="flex items-center gap-2">
-                {/* 🎯 O Botão agora gerencia a seleção da pasta raiz */}
                 <GooglePickerButton
                   mode="root"
                   currentDriveId={watch(
                     'settings.defaults.google_drive_root_id',
                   )}
                   onFolderSelect={(items) => {
-                    const folder = items[0]; // Pegamos a primeira pasta selecionada
+                    const folder = items?.[0];
+                    if (!folder || !folder.id) return;
+
+                    // 1. Salva o ID no formulário para persistência
                     setValue(
                       'settings.defaults.google_drive_root_id',
                       folder.id,
                       { shouldDirty: true },
                     );
+
+                    // 2. Atualiza o nome visual
+                    setRootFolderName(folder.name);
+
                     setToast({
                       message: `Pasta "${folder.name}" definida como raiz.`,
                       type: 'success',
@@ -413,13 +424,54 @@ export default function SettingsForm({ profile }: { profile: any }) {
                   onError={(msg) => setToast({ message: msg, type: 'error' })}
                 />
 
-                {/* Input de ID (Opcional: Apenas leitura para debug visual) */}
-                <input
-                  {...register('settings.defaults.google_drive_root_id')}
-                  readOnly
-                  className="flex-1 px-3 h-9 bg-slate-50/50 border border-slate-200 rounded-[0.4rem] text-[10px] text-slate-400 font-mono outline-none"
-                />
+                <div className="flex-1 relative flex items-center group">
+                  {/* Input que exibe o NOME da pasta, mas é apenas visual */}
+                  <input
+                    value={
+                      rootFolderName ||
+                      watch('settings.defaults.google_drive_root_id') ||
+                      ''
+                    }
+                    readOnly
+                    placeholder="Nenhuma pasta definida"
+                    className="w-full px-3 h-9 bg-slate-50 border border-slate-200 rounded-[0.4rem] text-[10px] text-petroleum font-medium outline-none"
+                  />
+
+                  {/* Botão de Limpar (Aparece apenas se houver algo selecionado) */}
+                  {(rootFolderName ||
+                    watch('settings.defaults.google_drive_root_id')) && (
+                    <button
+                      type="button"
+                      onClick={() => {
+                        setValue('settings.defaults.google_drive_root_id', '', {
+                          shouldDirty: true,
+                        });
+                        setRootFolderName('');
+                        setToast({
+                          message: 'Pasta raiz removida.',
+                          type: 'success',
+                        });
+                      }}
+                      className="absolute right-2 p-1 text-slate-400 hover:text-red-500 transition-colors bg-white/50 backdrop-blur-sm rounded-md"
+                      title="Limpar pasta raiz"
+                    >
+                      <X size={14} strokeWidth={2.5} />
+                    </button>
+                  )}
+                </div>
               </div>
+
+              {/* Input oculto real que será enviado no POST */}
+              <input
+                type="hidden"
+                {...register('settings.defaults.google_drive_root_id')}
+              />
+              {/* Opcional: Salvar o nome no banco também para evitar buscas extras no futuro */}
+              <input
+                type="hidden"
+                name="settings.defaults.google_drive_root_name"
+                value={rootFolderName}
+              />
 
               <p className="text-[9px] text-petroleum/50 italic px-1">
                 Ao criar uma nova galeria, o seletor abrirá automaticamente

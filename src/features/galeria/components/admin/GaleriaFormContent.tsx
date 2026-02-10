@@ -177,6 +177,10 @@ export default function GaleriaFormContent({
     return profile?.settings?.defaults?.is_public ?? true;
   });
 
+  // Busca o ID da pasta raiz salvo nas preferências do perfil
+  const profileRootFolderId =
+    profile?.settings?.defaults?.google_drive_root_id || null;
+
   const [category, setCategory] = useState(() => initialData?.category ?? '');
   const customCategoriesFromProfile = profile?.custom_categories || [];
   const [clientWhatsapp, setClientWhatsapp] = useState(() =>
@@ -276,10 +280,10 @@ export default function GaleriaFormContent({
       let driveFolderId: string | null = null;
 
       if (isFolder) {
-        // Se o usuário selecionou a própria pasta (Modo Root)
+        // Se selecionou uma pasta (comum nas abas Sugestões/Estrela), ela é o próprio alvo
         driveFolderId = selection.id;
       } else if (selection.parentId) {
-        // Se selecionou arquivos e o Google deu o pai
+        // Se selecionou um arquivo e o parentId veio no objeto
         driveFolderId = selection.parentId;
       } else {
         // Fallback total: busca no servidor
@@ -288,7 +292,9 @@ export default function GaleriaFormContent({
       }
       // Validação final do ID da pasta para evitar o erro de 'undefined' no console
       if (!driveFolderId || driveFolderId === 'undefined') {
-        throw new Error('ID da pasta não encontrado ou inválido.');
+        throw new Error(
+          'Não foi possível identificar a pasta de origem deste item.',
+        );
       }
 
       // 3. 📸 Captura de IDs para Capas (Suporte a múltiplos arquivos)
@@ -335,12 +341,12 @@ export default function GaleriaFormContent({
         coverIds,
       });
 
-      if (!folderPermissionInfo.isOwner) {
-        onPickerError(
-          'Propriedade inválida: Vincule apenas pastas de sua própria conta.',
-        );
-        return;
-      }
+      // if (!folderPermissionInfo.isOwner) {
+      //   onPickerError(
+      //     'Propriedade inválida: Vincule apenas pastas de sua própria conta.',
+      //   );
+      //   return;
+      // }
 
       if (!folderPermissionInfo.isPublic) {
         onPickerError(
@@ -850,6 +856,7 @@ export default function GaleriaFormContent({
           renameFilesSequential={renameFilesSequential}
           setRenameFilesSequential={setRenameFilesSequential}
           setDriveData={setDriveData}
+          rootFolderId={profileRootFolderId}
         />
 
         {/*LINKS E ARQUIVOS */}

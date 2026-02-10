@@ -23,6 +23,7 @@ export function GaleriaDriveSection({
   renameFilesSequential,
   setRenameFilesSequential,
   setDriveData,
+  rootFolderId,
 }) {
   const { permissions } = usePlan();
 
@@ -68,7 +69,7 @@ export function GaleriaDriveSection({
               onError={onPickerError}
               currentDriveId={driveData.id}
               onTokenExpired={onTokenExpired}
-              rootFolderId={driveData.id}
+              rootFolderId={driveData.id ? driveData.id : rootFolderId}
             />
           </div>
 

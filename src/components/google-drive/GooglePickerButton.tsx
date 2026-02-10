@@ -5,6 +5,7 @@ import { useSupabaseSession } from '@photos/core-auth';
 import { getGoogleClientId } from '@/actions/google.actions';
 import { Loader2 } from 'lucide-react';
 import { usePlan } from '@/core/context/PlanContext';
+import { view } from 'framer-motion/client';
 
 interface GooglePickerProps {
   onFolderSelect: (
@@ -306,12 +307,12 @@ export default function GooglePickerButton({
       // O Google Picker requer access token OAuth válido, que só pode ser gerado com um refresh token válido
       if (!accessToken) {
         let errorMessage =
-          'Token do Google não encontrado. Seu refresh token expirou ou foi revogado. Por favor, faça login novamente com Google para renovar o acesso ao Google Drive.';
+          'Autorização do Google não encontrado. A sua autorização do Google Drive expirou ou foi revogada. Por favor, faça login novamente com Google para renovar o acesso ao Google Drive.';
 
         // 🎯 Mensagem específica para timeout
         if (timedOut) {
           errorMessage =
-            'Tempo de espera excedido ao buscar token do Google. Por favor, tente novamente ou refaça o login.';
+            'Tempo de espera excedido ao buscar a autorização do Google. Por favor, tente novamente ou refaça o login.';
         }
 
         onError(errorMessage);
@@ -323,93 +324,160 @@ export default function GooglePickerButton({
         return;
       }
 
-      const mimeTypes =
-        mode === 'root'
-          ? 'application/vnd.google-apps.folder' // Apenas pastas
-          : 'application/vnd.google-apps.folder,image/jpeg,image/png,image/webp'; // Pastas + Fotos
+      // 1. Definição de MimeTypes baseada no objetivo
+      const folderMime = 'application/vnd.google-apps.folder';
+      const imageMimes = 'image/jpeg,image/png,image/webp';
+      const allMimes = `${folderMime},${imageMimes}`;
 
-      const view = new window.google.picker.DocsView(
+      // --- ABA 1: PASTA PADRÃO (Focada) ---
+      const defaultView = new window.google.picker.DocsView(
         window.google.picker.ViewId.DOCS,
       )
-        .setMimeTypes(mimeTypes)
+        .setMimeTypes(mode === 'root' ? folderMime : allMimes)
         .setMode(window.google.picker.DocsViewMode.GRID)
-        .setOwnedByMe(true);
+        .setIncludeFolders(true)
+        .setLabel('Google Drive'); // Nome da aba
 
-      // No modo ROOT, permitimos selecionar a própria pasta
-      if (mode === 'root') {
-        view.setSelectFolderEnabled(true);
-      }
-
-      // se já temos um ID de pasta, abrimos direto nela
       if (rootFolderId) {
-        view.setParent(rootFolderId);
+        defaultView.setParent(rootFolderId); // Abre na pasta do fotógrafo
       }
 
-      const pickerBuilder = new window.google.picker.PickerBuilder()
-        .setAppId(googleClientId)
-        .setOAuthToken(accessToken)
-        .addView(view)
-        .setLocale('pt-BR')
-        .setOrigin(window.location.origin) // 🎯 Compatibilidade com Vercel
-        .enableFeature(window.google.picker.Feature.MULTISELECT_ENABLED)
-        // 🎯 ESSENCIAL: Permite que pastas apareçam como itens clicáveis para navegação
-        .enableFeature(window.google.picker.Feature.SUPPORT_DRIVES)
-        .enableFeature(window.google.picker.Feature.NAVIGATE_TO_DRIVE);
+      if (rootFolderId) {
+        defaultView.setParent(rootFolderId);
+      }
 
-      // 🎯 LÓGICA CONDICIONAL DE SELEÇÃO
+      // --- ABA 2: TODOS OS LOCAIS (Libera o Breadcrumb e Meu Drive) ---
+      // 🎯 O segredo: Esta View NÃO tem setParent, o que força a navegação global.
+      const globalView = new window.google.picker.DocsView(
+        window.google.picker.ViewId.DOCS,
+      )
+        .setMimeTypes(mode === 'root' ? folderMime : allMimes)
+        .setMode(window.google.picker.DocsViewMode.GRID)
+        .setIncludeFolders(true)
+        .setLabel('Todos os locais');
+
       if (mode === 'root') {
-        // No modo root, queremos selecionar apenas UMA pasta por vez
-        // O Google Picker por padrão seleciona apenas um item se MULTISELECT não for habilitado
-      } else {
-        // No modo capas, habilitamos a seleção múltipla baseada no plano
+        defaultView.setSelectFolderEnabled(true);
+        globalView.setSelectFolderEnabled(true);
+      }
+
+      // Usamos o ViewId.RECENT que puxa o histórico de uso do usuário
+      const suggestionsView = new window.google.picker.DocsView(
+        window.google.picker.ViewId.RECENT,
+      )
+        .setMimeTypes(mode === 'root' ? folderMime : allMimes)
+        .setLabel('Sugestões'); // 🎯 Nome visual da aba igual à sua referência
+
+      // 3. Inicialização do Builder
+      const pickerBuilder = new window.google.picker.PickerBuilder()
+        .setAppId(googleClientId.toString())
+        .setOAuthToken(accessToken)
+        .setLocale('pt-BR')
+        .setOrigin(window.location.origin);
+
+      // 3. Ordem das Views (Abas)
+      pickerBuilder.addView(defaultView); // Aba 1
+      pickerBuilder.addView(globalView); // Aba 2: 🎯 Ativa o breadcrumb global
+
+      // 4. Features de Navegação
+      pickerBuilder
+        .enableFeature(window.google.picker.Feature.NAVIGATE_TO_DRIVE) // Permite subir nível
+        .enableFeature(window.google.picker.Feature.NAVIGATION_HINT) // Exibe o caminho visual
+        .enableFeature(window.google.picker.Feature.SUPPORT_DRIVES); // Drives compartilhados
+
+      if (mode !== 'root') {
+        pickerBuilder.enableFeature(
+          window.google.picker.Feature.MULTISELECT_ENABLED,
+        );
+      }
+      pickerBuilder.addView(suggestionsView); // Aba 2: Sugestões (Histórico)
+      // Aba 3: Com Estrela (Favoritos do usuário no Drive)
+      pickerBuilder.addView(
+        new window.google.picker.DocsView(window.google.picker.ViewId.DOCS)
+          .setMimeTypes(mode === 'root' ? folderMime : allMimes)
+          .setStarred(true)
+          .setLabel('Com Estrela'),
+      );
+
+      // 6. Lógica de Multiseleção Condicional (Corrigido para não duplicar)
+      if (mode !== 'root') {
         pickerBuilder.enableFeature(
           window.google.picker.Feature.MULTISELECT_ENABLED,
         );
       }
 
+      // 7. Configuração do Callback e Build Final
       const picker = pickerBuilder
         .setCallback(async (data: any) => {
           if (data.action === window.google.picker.Action.PICKED) {
             const selectedDocs = data.docs;
 
-            // 1. Filtro de Segurança: Apenas arquivos (fotos)
-            const selectedFiles = selectedDocs.filter(
-              (doc: any) =>
-                doc.mimeType !== 'application/vnd.google-apps.folder',
-            );
+            // 🎯 Garante que não enviamos um array vazio para o SettingsForm
+            if (!selectedDocs || selectedDocs.length === 0) {
+              setLoading(false);
+              return;
+            }
 
-            // 2. Validação de Limite por Plano
-            if (selectedFiles.length > maxSelections) {
-              onError(
-                `Seu plano permite selecionar no máximo ${maxSelections} fotos de capa.`,
+            let finalItems = [];
+
+            if (mode === 'root') {
+              // 🎯 No modo ROOT, aceitamos apenas pastas
+              finalItems = selectedDocs
+                .filter(
+                  (doc: any) =>
+                    doc.mimeType === 'application/vnd.google-apps.folder',
+                )
+                .map((doc: any) => ({
+                  id: doc.id,
+                  name: doc.name,
+                  parentId: doc.parentId,
+                }));
+
+              if (finalItems.length === 0) {
+                onError('Por favor, selecione uma pasta válida.');
+                setLoading(false);
+                return;
+              }
+            } else {
+              // 🎯 No modo COVERS (Padrão/Galeria), filtramos apenas arquivos (fotos)
+              const selectedFiles = selectedDocs.filter(
+                (doc: any) =>
+                  doc.mimeType !== 'application/vnd.google-apps.folder',
               );
-              setLoading(false);
-              return;
-            }
 
-            if (selectedFiles.length === 0) {
-              onError('Por favor, selecione as fotos de capa dentro da pasta.');
-              setLoading(false);
-              return;
-            }
+              // Validação de Limite por Plano (Apenas para capas)
+              if (selectedFiles.length > maxSelections) {
+                onError(
+                  `Seu plano permite selecionar no máximo ${maxSelections} fotos de capa.`,
+                );
+                setLoading(false);
+                return;
+              }
 
-            // 🎯 PASSO CRUCIAL: Mapear os arquivos para o formato que o handleDriveSelection espera
-            // Incluímos o parentId em cada item para que o "Cérebro" saiba qual é a pasta
-            const itemsForBrain = selectedFiles.map((doc: any) => ({
-              id: doc.id,
-              name: doc.name,
-              parentId: doc.parentId, // Importante para detectar a pasta pai automaticamente
-            }));
+              if (selectedFiles.length === 0) {
+                onError(
+                  'Por favor, selecione as fotos de capa dentro da pasta.',
+                );
+                setLoading(false);
+                return;
+              }
+
+              finalItems = selectedFiles.map((doc: any) => ({
+                id: doc.id,
+                name: doc.name,
+                parentId: doc.parentId,
+              }));
+            }
 
             setLoading(true);
             try {
               // 🚀 CORREÇÃO AQUI:
               // Enviamos APENAS o array para o handleDriveSelection
               // pois ele agora espera: (selectedItems: Array<{id, name, parentId}>)
-              await onFolderSelectRef.current(itemsForBrain);
+              await onFolderSelectRef.current(finalItems);
             } catch (error) {
               console.error(
-                '[Picker Callback] Erro ao enviar para o cérebro:',
+                '[Picker Callback] Erro ao processar seleção:',
                 error,
               );
               onError('Erro ao processar a seleção.');
@@ -427,11 +495,12 @@ export default function GooglePickerButton({
       // console.log('[GooglePickerButton] ✅ Picker.setVisible(true) chamado com sucesso');
       clearTimeout(timeoutId);
     } catch (error: any) {
-      console.error('[GooglePickerButton] ❌ Erro ao abrir picker:', {
-        error: error?.message,
-        stack: error?.stack,
+      // 🎯 Log detalhado para identificar se o erro vem do Google ou da lógica interna
+      console.error('[GooglePickerButton] ❌ Erro bruto:', error);
+      console.error('[GooglePickerButton] ❌ Detalhes:', {
+        message: error?.message || 'Sem mensagem',
         name: error?.name,
-        origin: window.location.origin,
+        details: error?.details, // Erros do Google costumam vir aqui
       });
 
       clearTimeout(timeoutId);
