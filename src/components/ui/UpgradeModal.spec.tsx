@@ -1,6 +1,6 @@
 'use client';
 
-import { describe, test, expect, vi, beforeEach } from 'vitest';
+import { describe, test, expect, vi, beforeEach, expect } from 'vitest';
 import { render, screen, fireEvent } from '@testing-library/react';
 import UpgradeModal from './UpgradeModal';
 import { PlanProvider } from '@/core/context/PlanContext';
@@ -21,6 +21,8 @@ const makeMockProfile = (overrides: Partial<Profile> = {}): Profile => ({
 });
 
 describe('UpgradeModal Integration', () => {
+  // src/components/ui/UpgradeModal.spec.tsx
+
   test('deve aplicar fallback para PREMIUM quando featureKey não for fornecido', () => {
     const profile = makeMockProfile({ plan_key: 'FREE' });
 
@@ -30,16 +32,21 @@ describe('UpgradeModal Integration', () => {
           isOpen={true}
           onClose={() => {}}
           featureName="Recurso Especial"
+          scenarioType="feature" // Garantindo a prop obrigatória
         />
       </PlanProvider>,
     );
 
-    // 1. Valida o texto explicativo (usando query por parágrafo ou texto parcial)
-    expect(
-      screen.getByText(/exclusivo para assinantes do plano/i),
-    ).toHaveTextContent('PREMIUM');
+    // 🎯 ESTRATÉGIA QA: Buscar o texto de forma fragmentada, mas garantindo que estejam no mesmo contexto
+    const explanatoryText = screen.getByText(
+      /exclusivo para usuários do plano/i,
+    );
 
-    // 2. Valida o botão de ação especificamente (Resolvendo o erro de duplicidade)
+    expect(explanatoryText).toBeInTheDocument();
+    // Validamos se o "PREMIUM" (que está em negrito/outro span) está próximo
+    expect(explanatoryText.parentElement?.textContent).toContain('PREMIUM');
+
+    // 2. Valida o botão de ação (Target principal do clique)
     const upgradeButton = screen.getByRole('button', {
       name: /Migrar para o PREMIUM/i,
     });
@@ -76,7 +83,12 @@ describe('UpgradeModal Integration', () => {
     const profile = makeMockProfile();
     const { container } = render(
       <PlanProvider profile={profile}>
-        <UpgradeModal isOpen={false} onClose={() => {}} featureName="Teste" />
+        <UpgradeModal
+          isOpen={false}
+          onClose={() => {}}
+          featureName="Teste"
+          scenarioType="feature"
+        />
       </PlanProvider>,
     );
 

@@ -29,7 +29,7 @@ export default function UpgradeModal({
   featureName,
   description,
   featureKey,
-  scenarioType,
+  scenarioType = 'feature',
 }: UpgradeModalProps) {
   const { planKey } = usePlan();
   const { terms, segment } = useSegment();

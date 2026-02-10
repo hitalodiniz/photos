@@ -1,6 +1,6 @@
 {
   "name": "photos",
-  "version": "0.1.112",
+  "version": "0.1.113",
   "private": true,
   "workspaces": [
     "packages/*"
@@ -13,7 +13,7 @@
     "lint": "eslint .",
     "test": "vitest",
     "test:clean": "vitest --clearCache && npx vitest src/contexts/AuthContext.spec.tsx",
-    "test:coverage": "vitest run --coverage",
+    "test:coverage": "NODE_OPTIONS='--max-old-space-size=8192' vitest run --coverage",
     "test:critical": "vitest run src/core/services/auth.service.spec.ts src/hooks/useSupabaseSession.spec.ts src/components/providers/AuthContext.spec.tsx src/core/services/google.service.spec.ts src/core/logic/auth-gallery.spec.ts src/lib/supabase.client.spec.ts src/lib/supabase.server.spec.ts src/middleware.spec.ts src/app/api/auth/callback/route.spec.ts src/app/api/auth/google/route.spec.ts src/actions/auth.actions.spec.ts \"src/features/galeria/components/admin/GaleriaFormContent.spec.tsx\"",
     "validate:critical": "bash scripts/validate-critical-files.sh",
     "protect:check": "node scripts/protect-critical-files.js --check-only",
@@ -67,7 +67,7 @@
     "@types/react": "^19",
     "@types/react-dom": "^19",
     "@vitejs/plugin-react": "^5.1.2",
-    "@vitest/coverage-v8": "^4.0.16",
+    "@vitest/coverage-v8": "^4.0.18",
     "@vitest/ui": "^4.0.16",
     "autoprefixer": "^10.4.22",
     "eslint": "^9",

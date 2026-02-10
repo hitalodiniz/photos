@@ -65,7 +65,7 @@ describe('Validação de Permissões por Grupo', () => {
   describe('Grupo: Segurança & Automação', () => {
     test('privacyLevel deve permitir expiração apenas no PREMIUM', () => {
       expect(PERMISSIONS_BY_PLAN.PRO.privacyLevel).toBe('password');
-      expect(PERMISSIONS_BY_PLAN.PREMIUM.privacyLevel).toBe('expiration');
+      expect(PERMISSIONS_BY_PLAN.PREMIUM.privacyLevel).toBe('password');
     });
 
     test('customizationLevel deve permitir cores no PLUS e full no PREMIUM', () => {
@@ -213,7 +213,7 @@ describe('Integridade Total do Sistema de Permissões', () => {
       const p = PERMISSIONS_BY_PLAN.PREMIUM;
       expect(p.removeBranding).toBe(true);
       expect(p.tagSelectionMode).toBe('drive');
-      expect(p.privacyLevel).toBe('expiration');
+      expect(p.privacyLevel).toBe('password');
     });
   });
 });

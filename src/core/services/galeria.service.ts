@@ -139,6 +139,27 @@ export async function createGaleria(
   if (!authSuccess || !userId || !profile)
     return { success: false, error: 'Não autorizado ou perfil não carregado.' };
 
+  // 🎯 NOVO: VALIDAÇÃO DE CAMPOS OBRIGATÓRIOS
+  const title = formData.get('title') as string;
+  const date = formData.get('date') as string;
+  const driveFolderId = formData.get('drive_folder_id') as string;
+
+  if (!title || title.trim().length < 3) {
+    return {
+      success: false,
+      error: 'O título da galeria é obrigatório (mín. 3 caracteres).',
+    };
+  }
+  if (!date) {
+    return { success: false, error: 'A data do evento é obrigatória.' };
+  }
+  if (!driveFolderId || driveFolderId === 'undefined') {
+    return {
+      success: false,
+      error: 'Você precisa selecionar uma pasta do Google Drive.',
+    };
+  }
+
   // 🎯 1. CONTROLE DE LIMITE (MAX GALLERIES)
   try {
     const limit = resolveGalleryLimitByPlan(profile.plan_key);
@@ -1030,31 +1051,42 @@ export async function permanentDelete(id: string) {
 
     if (!userId) return { success: false, error: 'Não autorizado' };
 
-    // Busca o slug e drive_folder_id antes de deletar para revalidar o cache
-    const { data: galeriaAntes } = await supabase
+    // 🎯 CORREÇÃO 1: Busca e validação de existência
+    const { data: galeriaAntes, error: fetchError } = await supabase
       .from('tb_galerias')
       .select('slug, drive_folder_id')
       .eq('id', id)
       .eq('user_id', userId)
       .single();
 
-    const { error } = await supabase
+    // Se houver erro na busca ou galeria não existir, interrompe aqui
+    if (fetchError || !galeriaAntes) {
+      return {
+        success: false,
+        error: 'Galeria não encontrada ou você não tem permissão.',
+      };
+    }
+
+    // 🎯 EXECUÇÃO: Delete físico
+    const { error: deleteError } = await supabase
       .from('tb_galerias')
       .delete()
       .eq('id', id)
       .eq('user_id', userId);
 
-    if (error) throw error;
+    if (deleteError) throw deleteError;
 
-    // REVALIDAÇÃO ESTRATÉGICA: Limpa o cache da galeria, fotos e perfil
-    if (galeriaAntes?.slug) {
+    // 🔄 REVALIDAÇÃO ESTRATÉGICA
+    // Usamos blocos protegidos para garantir que o cache limpe mesmo com dados parciais
+    if (galeriaAntes.slug) {
       revalidateTag(`gallery-${galeriaAntes.slug}`);
     }
-    if (galeriaAntes?.drive_folder_id) {
+
+    if (galeriaAntes.drive_folder_id) {
       revalidateTag(`drive-${galeriaAntes.drive_folder_id}`);
     }
+
     revalidateTag(`photos-${id}`);
-    // Revalida todas as galerias do usuário
     revalidateTag(`user-galerias-${userId}`);
 
     if (profile?.username) {
@@ -1062,11 +1094,16 @@ export async function permanentDelete(id: string) {
       revalidateTag(`profile-galerias-${profile.username}`);
     }
 
+    // Revalida o dashboard para remover o card da UI imediatamente
     revalidatePath('/dashboard');
+
     return { success: true, message: 'Galeria excluída permanentemente.' };
   } catch (error: any) {
-    console.error('Erro ao excluir permanentemente:', error);
-    return { success: false, error: 'Erro ao excluir permanentemente' };
+    console.error('[permanentDelete] Erro crítico:', error);
+    return {
+      success: false,
+      error: error.message || 'Erro ao processar exclusão no banco de dados.',
+    };
   }
 }
 

@@ -142,9 +142,10 @@ export default function PublicSupportContent() {
           <h3 className="text-champagne font-bold uppercase tracking-widest text-sm">
             Pronto para elevar o nível das suas entregas?
           </h3>
-          <p className="text-slate-400 text-sm max-w-md mx-auto">
+          <p className="text-white text-sm max-w-md mx-auto">
             Junte-se a milhares de profissionais que já automatizaram seu fluxo
-            de trabalho com <strong>{seo.brandName}</strong>.
+            de trabalho com{' '}
+            <span className="text-champagne">{seo.brandName}</span>.
           </p>
           <div className="flex flex-col sm:flex-row gap-4 justify-center">
             <button className="px-8 py-3 bg-gold text-black text-[10px] font-bold uppercase tracking-widest rounded-full hover:bg-champagne transition-all">

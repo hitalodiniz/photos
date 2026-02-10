@@ -91,8 +91,8 @@ describe('PlanGuard & UI Access', () => {
     // Verificamos se o elemento pai (ou o container de blur) tem as classes de restrição
     const contentWrapper = content.parentElement;
     expect(contentWrapper).toHaveClass(
-      'opacity-25',
-      'blur-[2px]',
+      'opacity-40',
+      'grayscale-[0.4]',
       'pointer-events-none',
     );
 

@@ -78,6 +78,7 @@ export function PlanGuard({
 
         {/* 3. ESCUDO DE INTERCEPTAÇÃO SUPREMO */}
         <div
+          data-testid="plan-guard-overlay"
           onClick={(e) => {
             e.preventDefault();
             e.stopPropagation();

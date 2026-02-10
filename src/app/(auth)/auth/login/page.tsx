@@ -8,12 +8,9 @@ import { getProfileData } from '@/core/services/profile.service';
 import { usePageTitle } from '@/hooks/usePageTitle';
 
 import { GoogleSignInButton } from '@/components/auth';
-import {
-  EditorialHeader,
-  DynamicHeroBackground,
-  Footer,
-} from '@/components/layout';
+import { DynamicHeroBackground, Footer } from '@/components/layout';
 import FeatureGrid from '@/components/ui/FeatureGrid';
+import EditorialHeader from '@/components/layout/EditorialHeader';
 
 function LoginContent() {
   const { user, isLoading: authLoading } = useAuth();

@@ -1,10 +1,9 @@
 'use client';
 
 import { useEffect, useState } from 'react';
-import { getSEOBySegment, SEO_CONFIG } from '@/core/config/seo.config';
+import { getSEOBySegment } from '@/core/config/seo.config';
+import { SegmentType } from '@/core/config/segments';
 import LoadingSpinner from './LoadingSpinner';
-import { div } from 'framer-motion/client';
-import { useSegment } from '@/hooks/useSegment';
 
 interface LoadingScreenProps {
   message?: string;
@@ -18,16 +17,14 @@ export default function LoadingScreen({
   type = 'full',
 }: LoadingScreenProps) {
   const [isVisible, setIsVisible] = useState(true);
-  // 🎯 Passo 1: Estado para controlar a hidratação
-  const [isMounted, setIsMounted] = useState(false);
 
-  const { segment } = useSegment();
+  // 🎯 CORREÇÃO: Usamos diretamente a variável de ambiente para garantir que o
+  // valor no Servidor e no Cliente seja IDÊNTICO durante a hidratação.
+  const segment =
+    (process.env.NEXT_PUBLIC_APP_SEGMENT as SegmentType) || 'PHOTOGRAPHER';
   const seo = getSEOBySegment(segment);
 
   useEffect(() => {
-    // 🎯 Passo 2: Marcar como montado apenas no cliente
-    setIsMounted(true);
-
     if (!fadeOut) {
       document.body.classList.remove('js-ready');
     }
@@ -48,14 +45,13 @@ export default function LoadingScreen({
 
   return (
     <div
-      className={`${containerClasses} flex flex-col items-center justify-center transition-all duration-1000 bg-petroleum
-      }`}
+      className={`${containerClasses} flex flex-col items-center justify-center transition-all duration-1000 bg-petroleum`}
     >
-      {/* 🌊 O Truque da Navbar: Gradiente que "funde" com o topo */}
+      {/* 🌊 Efeito de profundidade */}
       <div className="absolute inset-0 bg-[radial-gradient(circle_at_center,_var(--tw-gradient-stops))] from-petroleum/10 via-transparent to-black/20 pointer-events-none" />
 
       <div className="relative z-10 flex flex-col items-center">
-        {/* 🎯 Branding - Em Champagne Suave */}
+        {/* 🎯 Branding Estático (Baseado no Segmento da ENV) */}
         <div
           className={`mb-12 transition-transform duration-1000 ${fadeOut ? '-translate-y-4' : 'translate-y-0'}`}
         >
@@ -69,7 +65,7 @@ export default function LoadingScreen({
           <LoadingSpinner size="md" />
         </div>
 
-        {/* 🎯 Mensagem */}
+        {/* 🎯 Mensagem de Status */}
         <div
           className={`mt-12 flex flex-col items-center gap-8 transition-transform duration-1000 ${fadeOut ? 'translate-y-4' : 'translate-y-0'}`}
         >

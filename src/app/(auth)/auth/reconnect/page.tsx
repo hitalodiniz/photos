@@ -2,13 +2,10 @@
 
 import { RefreshCw } from 'lucide-react';
 import { GoogleSignInButton } from '@/components/auth';
-import {
-  EditorialHeader,
-  DynamicHeroBackground,
-  Footer,
-} from '@/components/layout';
+import { DynamicHeroBackground, Footer } from '@/components/layout';
 import FeatureGrid from '@/components/ui/FeatureGrid';
 import { usePageTitle } from '@/hooks/usePageTitle';
+import EditorialHeader from '@/components/layout/EditorialHeader';
 
 export default function ReconnectPage() {
   usePageTitle('Restaurar Conexão');

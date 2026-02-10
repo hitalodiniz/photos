@@ -251,22 +251,33 @@ export default function LandingPageContent() {
             </div>
 
             <div className="mt-10">
-              <div className="max-w-4xl mx-auto relative overflow-hidden bg-white border border-slate-200 rounded-[1.5rem] md:rounded-[2.5rem] p-6 md:p-10 shadow-sm">
+              {/* 🎯 Container Principal com bg-petroleum e bordas arredondadas de luxo */}
+              <div className="max-w-4xl mx-auto relative overflow-hidden bg-petroleum border border-white/10 rounded-[1.5rem] md:rounded-[2.5rem] p-6 md:p-10 shadow-2xl">
+                {/* 🌊 Efeito de gradiente radial sutil para profundidade */}
+                <div className="absolute inset-0 bg-[radial-gradient(circle_at_center,_var(--tw-gradient-stops))] from-white/5 via-transparent to-transparent pointer-events-none" />
+
                 <div className="relative z-10 flex flex-col items-center text-center">
-                  <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-slate-50 text-slate-500 text-[9px] font-bold uppercase tracking-widest mb-6">
+                  {/* 🏷️ Badge em Champagne com fundo translúcido */}
+                  <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-white/10 text-champagne text-[9px] font-bold uppercase tracking-widest mb-6 border border-white/5">
                     <Sparkles size={10} className="text-gold" /> Portfólio
                     Profissional
                   </div>
-                  <h3 className="text-xl md:text-3xl font-semibold text-petroleum italic mb-4">
+
+                  {/* ✍️ Título em Champagne Italic */}
+                  <h3 className="text-xl md:text-3xl font-semibold text-champagne italic mb-4">
                     Pronto para transformar sua entrega?
                   </h3>
-                  <p className="text-slate-500 mb-8 text-xs md:text-base leading-relaxed">
+
+                  {/* 📄 Descrição em branco suave com destaque em Champagne */}
+                  <p className="text-white/70 mb-8 text-xs md:text-base leading-relaxed max-w-lg">
                     Crie galerias elegantes usando apenas seu{' '}
-                    <span className="font-semibold text-petroleum">
+                    <span className="font-semibold text-champagne">
                       Google Drive™
                     </span>
                     .
                   </p>
+
+                  {/* 🔘 Botão de Ação em Gold (Padrão de conversão) */}
                   <button
                     onClick={async () => {
                       try {
@@ -275,10 +286,15 @@ export default function LandingPageContent() {
                         console.error(e);
                       }
                     }}
-                    className="bg-petroleum text-white px-6 py-4 rounded-xl md:rounded-2xl font-bold flex items-center justify-center gap-3 w-full md:w-auto"
+                    className="bg-gold text-black px-8 py-4 rounded-full font-bold flex items-center justify-center gap-3 w-full md:w-auto hover:bg-champagne transition-all shadow-lg active:scale-95 group"
                   >
-                    <LogIn size={20} />
-                    <span className="text-sm">Começar com Google Drive</span>
+                    <LogIn
+                      size={18}
+                      className="group-hover:translate-x-1 transition-transform"
+                    />
+                    <span className="text-[11px] uppercase tracking-widest">
+                      Começar com Google Drive
+                    </span>
                   </button>
                 </div>
               </div>

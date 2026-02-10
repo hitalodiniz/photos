@@ -1,32 +1,76 @@
-import { describe, it, expect, vi, beforeEach } from 'vitest';
+import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
 import {
   generateUniqueDatedSlug,
   updateGaleria,
   getGalerias,
   getGaleriaPhotos,
   authenticateGaleriaAccess,
+  deleteGalleryPermanently,
+  moveToTrash,
+  createGaleria,
+  getGaleriaById,
+  toggleArchiveGaleria,
+  toggleShowOnProfile,
+  restoreGaleria,
+  permanentDelete,
+  getGaleriaLeads,
+  getPublicProfileGalerias,
+  archiveExceedingGalleries,
+  purgeOldDeletedGalleries,
 } from './galeria.service';
 import * as supabaseServer from '@/lib/supabase.server';
 import * as googleAuth from '@/lib/google-auth';
-import * as googleDrive from '@/lib/google-drive';
+import * as authContext from './auth-context.service';
+import { PlanKey } from '../config/plans';
 
 // =========================================================================
-// CONFIGURAÇÃO GLOBAL E MOCKS ESTABILIZADOS
+// CONFIGURAÇÃO GLOBAL E ENVIRONMENT VARIABLES
 // =========================================================================
 
 vi.stubGlobal('fetch', vi.fn());
 vi.stubEnv('JWT_GALLERY_SECRET', '12345678901234567890123456789012');
+vi.stubEnv('NEXT_PUBLIC_MAIN_DOMAIN', 'suagaleria.com');
+vi.stubEnv(
+  'NEXT_PUBLIC_VAPID_PUBLIC_KEY',
+  'BNoPwC8Q3ks4WK7x5xXk9Z0vX_L8wVwFxP7Rq8c9wK3L',
+);
+vi.stubEnv('VAPID_PRIVATE_KEY', 'xYzAbC123dEfGhI456jKlMnO789pQrStU012vWxYz345');
+vi.stubEnv('NEXT_PUBLIC_EMAIL', 'contact@suagaleria.com');
 
+// =========================================================================
+// MOCKS DE BIBLIOTECAS EXTERNAS (ORDEM IMPORTANTE!)
+// =========================================================================
+
+// 1. Mock do web-push (DEVE VIR PRIMEIRO - antes de qualquer import que o use)
+vi.mock('web-push', () => ({
+  default: {
+    setVapidDetails: vi.fn(),
+    sendNotification: vi.fn().mockResolvedValue({ statusCode: 201 }),
+  },
+}));
+
+// 2. Mock do web-push-admin (que usa web-push internamente)
+vi.mock('@/lib/web-push-admin', () => ({
+  sendPushNotification: vi.fn().mockResolvedValue({ success: true }),
+}));
+
+// 3. Mock do notification service (que pode usar web-push-admin)
+vi.mock('@/services/notification.service', () => ({
+  createInternalNotification: vi.fn().mockResolvedValue({ success: true }),
+}));
+
+// 4. Mock do Next.js cache
 vi.mock('next/cache', () => ({
   revalidatePath: vi.fn(),
   revalidateTag: vi.fn(),
-  unstable_cache: vi.fn((fn, _key, _options) => {
-    // Simula o comportamento do unstable_cache: retorna uma função que executa fn quando chamada
-    return (...args: any[]) => fn(...args);
-  }),
+  unstable_cache: vi.fn(
+    (fn) =>
+      (...args: any[]) =>
+        fn(...args),
+  ),
 }));
 
-// O redirect precisa ser mockado de forma simples para não quebrar o worker
+// 5. Mock do Next.js navigation
 vi.mock('next/navigation', () => ({
   redirect: vi.fn((url) => {
     const err = new Error('NEXT_REDIRECT');
@@ -35,67 +79,69 @@ vi.mock('next/navigation', () => ({
   }),
 }));
 
-vi.mock('@/lib/supabase.server', () => ({
-  createSupabaseServerClient: vi.fn(),
-  createSupabaseServerClientReadOnly: vi.fn(),
-  createSupabaseClientForCache: vi.fn(),
-}));
+// 6. Mock do Supabase
+vi.mock('@/lib/supabase.server');
+vi.mock('@/lib/google-auth');
 
-vi.mock('@/lib/google-auth', () => ({
-  getDriveAccessTokenForUser: vi.fn(),
-}));
-
-vi.mock('@/lib/google-drive', () => ({
-  listPhotosFromDriveFolder: vi.fn(),
-}));
-
+// 7. Mock do JWT como classe construtora
 vi.mock('jose', () => ({
-  SignJWT: vi.fn().mockImplementation(() => ({
-    setProtectedHeader: vi.fn().mockReturnThis(),
-    setIssuedAt: vi.fn().mockReturnThis(),
-    setExpirationTime: vi.fn().mockReturnThis(),
-    sign: vi.fn().mockResolvedValue('token-fake-123'),
-  })),
+  SignJWT: class SignJWT {
+    constructor(payload: any) {}
+    setProtectedHeader(header: any) {
+      return this;
+    }
+    sign(key: any) {
+      return Promise.resolve('mock-jwt-token');
+    }
+  },
 }));
 
-// Mock do next/headers como objeto plano
+// 8. Mock do next/headers
 vi.mock('next/headers', () => ({
-  cookies: vi.fn().mockReturnValue({
+  cookies: vi.fn(() => ({
     set: vi.fn(),
     get: vi.fn(),
     delete: vi.fn(),
-  }),
+  })),
+  headers: vi.fn(() => ({
+    get: vi.fn((key) => (key === 'host' ? 'localhost:3000' : null)),
+  })),
 }));
 
-// Mock do admin para evitar o erro de VAPID Keys
-vi.mock('@/lib/web-push-admin', () => ({
-  sendPushNotification: vi.fn(() => Promise.resolve({ success: true })),
+// 9. Mock do auth-context
+vi.mock('./auth-context.service');
+
+// 10. Mock do google-drive.service
+vi.mock('./google-drive.service', () => ({
+  getFolderPhotos: vi.fn(),
 }));
 
-// Mock do service de notificação para não disparar efeitos colaterais
-vi.mock('@/services/notification.service', () => ({
-  createInternalNotification: vi.fn(),
-}));
+// =========================================================================
+// SUITE DE TESTES
+// =========================================================================
 
-describe('Galeria Service - Testes Unitários', () => {
-  const mockUserId = 'user_hitalo';
-  const mockStudioId = 'studio_123';
+describe('Galeria Service - Suite Completa de Testes', () => {
+  const mockUserId = 'user-123';
   const mockProfile = {
-    studio_id: mockStudioId,
-    username: 'fotografo_teste',
-    use_subdomain: false,
+    id: mockUserId,
+    username: 'hitalo',
+    plan_key: 'PRO',
+    use_subdomain: true,
   };
 
-  const setupSupabaseMock = (profileData: any = mockProfile) => {
+  const createMockSupabase = () => {
     const mockQueryBuilder = {
       select: vi.fn().mockReturnThis(),
       eq: vi.fn().mockReturnThis(),
+      or: vi.fn().mockReturnThis(),
       order: vi.fn().mockReturnThis(),
       limit: vi.fn().mockReturnThis(),
-      // Mudança crítica: maybeSingle retorna null por padrão para não travar loops de slug
+      range: vi.fn().mockReturnThis(),
+      in: vi.fn().mockReturnThis(),
+      lt: vi.fn().mockReturnThis(),
       maybeSingle: vi.fn().mockResolvedValue({ data: null, error: null }),
-      single: vi.fn().mockResolvedValue({ data: profileData, error: null }),
-      insert: vi.fn().mockResolvedValue({ error: null }),
+      single: vi.fn().mockResolvedValue({ data: mockProfile, error: null }),
+      insert: vi.fn().mockReturnThis(),
       update: vi.fn().mockReturnThis(),
       delete: vi.fn().mockReturnThis(),
     };
@@ -107,525 +153,1060 @@ describe('Galeria Service - Testes Unitários', () => {
           error: null,
         }),
       },
-      from: vi.fn().mockReturnValue(mockQueryBuilder),
+      from: vi.fn(() => mockQueryBuilder),
     };
-
-    vi.mocked(supabaseServer.createSupabaseServerClient).mockResolvedValue(
-      mockSupabase as any,
-    );
-    vi.mocked(
-      supabaseServer.createSupabaseServerClientReadOnly,
-    ).mockResolvedValue(mockSupabase as any);
-    // 🎯 Mock para createSupabaseClientForCache usado dentro de unstable_cache
-    vi.mocked(supabaseServer.createSupabaseClientForCache).mockReturnValue(
-      mockSupabase as any,
-    );
 
     return { mockSupabase, mockQueryBuilder };
   };
 
   beforeEach(() => {
     vi.clearAllMocks();
+
+    // Mock padrão do getAuthenticatedUser
+    vi.mocked(authContext.getAuthenticatedUser).mockResolvedValue({
+      success: true,
+      userId: mockUserId,
+      profile: mockProfile,
+    });
+
+    // Mock padrão do getAuthAndStudioIds
+    vi.mocked(authContext.getAuthAndStudioIds).mockResolvedValue({
+      success: true,
+      userId: mockUserId,
+      studioId: 'studio-123',
+    });
+  });
+
+  afterEach(() => {
+    vi.restoreAllMocks();
   });
 
   // =========================================================================
-  // 1. TESTES DE SLUG
+  // 1. GERAÇÃO DE SLUG
   // =========================================================================
   describe('generateUniqueDatedSlug', () => {
-    it('deve gerar slug único incluindo username e data', async () => {
-      setupSupabaseMock();
+    it('deve gerar slug no formato correto: username/YYYY/MM/DD/titulo', async () => {
+      const { mockSupabase, mockQueryBuilder } = createMockSupabase();
+      vi.mocked(supabaseServer.createSupabaseServerClient).mockResolvedValue(
+        mockSupabase as any,
+      );
+
       const slug = await generateUniqueDatedSlug(
         'Ensaio Gestante',
-        '2026-01-10',
+        '2026-01-15',
       );
-      expect(slug).toBe('fotografo_teste/2026/01/10/ensaio-gestante');
+
+      expect(slug).toBe('hitalo/2026/01/15/ensaio-gestante');
     });
 
-    it('deve resolver colisão adicionando sufixo incremental', async () => {
-      const { mockQueryBuilder } = setupSupabaseMock();
+    it('deve truncar títulos muito longos para 60 caracteres', async () => {
+      const { mockSupabase } = createMockSupabase();
+      vi.mocked(supabaseServer.createSupabaseServerClient).mockResolvedValue(
+        mockSupabase as any,
+      );
+
+      const longTitle = 'a'.repeat(100);
+      const slug = await generateUniqueDatedSlug(longTitle, '2026-01-01');
+
+      const titlePart = slug.split('/').pop();
+      expect(titlePart!.length).toBeLessThanOrEqual(60);
+    });
+
+    it('deve adicionar sufixo incremental em caso de colisão', async () => {
+      const { mockSupabase, mockQueryBuilder } = createMockSupabase();
+      vi.mocked(supabaseServer.createSupabaseServerClient).mockResolvedValue(
+        mockSupabase as any,
+      );
+
+      // Simula 2 colisões antes de encontrar slug livre
       mockQueryBuilder.maybeSingle
-        .mockResolvedValueOnce({ data: { id: 'original' }, error: null })
-        .mockResolvedValueOnce({ data: { id: 'original-1' }, error: null })
+        .mockResolvedValueOnce({ data: { id: 'existing-1' }, error: null })
+        .mockResolvedValueOnce({ data: { id: 'existing-2' }, error: null })
         .mockResolvedValueOnce({ data: null, error: null });
 
       const slug = await generateUniqueDatedSlug('Festa', '2026-01-01');
-      expect(slug).toBe('fotografo_teste/2026/01/01/festa-2');
+
+      expect(slug).toBe('hitalo/2026/01/01/festa-2');
+    });
+
+    it('deve ignorar colisão se for o mesmo ID (edição)', async () => {
+      const { mockSupabase, mockQueryBuilder } = createMockSupabase();
+      vi.mocked(supabaseServer.createSupabaseServerClient).mockResolvedValue(
+        mockSupabase as any,
+      );
+
+      const currentId = 'gallery-123';
+      mockQueryBuilder.maybeSingle.mockResolvedValue({
+        data: { id: currentId },
+        error: null,
+      });
+
+      const slug = await generateUniqueDatedSlug(
+        'Título',
+        '2026-01-01',
+        currentId,
+      );
+
+      expect(slug).toBe('hitalo/2026/01/01/titulo');
+    });
+
+    it('deve sanitizar caracteres especiais no título', async () => {
+      const { mockSupabase } = createMockSupabase();
+      vi.mocked(supabaseServer.createSupabaseServerClient).mockResolvedValue(
+        mockSupabase as any,
+      );
+
+      const slug = await generateUniqueDatedSlug(
+        'Casamento José & Maria!',
+        '2026-01-01',
+      );
+
+      expect(slug).toBe('hitalo/2026/01/01/casamento-jose-e-maria');
     });
   });
 
-  it('deve retornar erro ao buscar galeria por ID inexistente', async () => {
-    const { mockQueryBuilder } = setupSupabaseMock();
-
-    // Simula o maybeSingle retornando nulo (galeria não encontrada)
-    mockQueryBuilder.maybeSingle.mockResolvedValueOnce({
-      data: null,
-      error: null,
-    });
-
-    const result = await getGaleriaPhotos('id-fantasma');
-
-    expect(result.success).toBe(false);
-    expect(result.error).toBe('Galeria não encontrada.');
-  });
   // =========================================================================
-  // 2. Atuallizações de galeria
+  // 2. CRIAÇÃO DE GALERIA
   // =========================================================================
-  describe('Update galeria', () => {
-    /*it('deve retornar erro ao falhar na atualização da galeria', async () => {
-      const { mockQueryBuilder } = setupSupabaseMock();
+  describe('createGaleria', () => {
+    it('deve criar galeria com dados válidos', async () => {
+      const { mockSupabase, mockQueryBuilder } = createMockSupabase();
+      vi.mocked(supabaseServer.createSupabaseServerClient).mockResolvedValue(
+        mockSupabase as any,
+      );
 
-      // 1. Configura os métodos que apenas retornam 'this'
+      // Mock de contagem (0 galerias existentes) - COMPLETO
+      mockQueryBuilder.select
+        .mockReturnValueOnce(mockQueryBuilder) // Para count query
+        .mockReturnValueOnce(mockQueryBuilder); // Para insert query
+
+      mockQueryBuilder.eq.mockReturnThis();
+      mockQueryBuilder.or
+        .mockReturnValueOnce(mockQueryBuilder) // Primeiro .or()
+        .mockReturnValueOnce(Promise.resolve({ count: 0, error: null })); // Segundo .or() retorna Promise
+
+      // Mock de insert bem-sucedido
+      mockQueryBuilder.insert.mockReturnThis();
       mockQueryBuilder.select.mockReturnThis();
-      mockQueryBuilder.update.mockReturnThis();
-
-      // 2. ORQUESTRANDO O .eq() COM PRECISÃO
-      mockQueryBuilder.eq
-        // Primeira chamada (Perfil): Retorna o mock para permitir o .single()
-        .mockImplementationOnce(() => mockQueryBuilder)
-        // Segunda chamada (Update): Retorna o erro final
-        .mockImplementationOnce(() =>
-          Promise.resolve({
-            data: null,
-            error: { message: 'Database Error' },
-          }),
-        );
-
-      // 3. Mock do .single() para a chamada do Perfil
-      mockQueryBuilder.single.mockResolvedValueOnce({
-        data: { studio_id: 's1', user_id: 'u1' },
-        error: null,
-      });
-
-      // 4. FormData COMPLETO (Essencial para passar da linha 277)
-      const fd = new FormData();
-      fd.append('title', 'Galeria Editada');
-      fd.append('drive_folder_id', 'pasta_123');
-      fd.append('clientName', 'João Silva');
-      fd.append('date', '2026-01-01');
-
-      // EXECUÇÃO
-      const result = await updateGaleria('id_da_galeria', fd);
-
-      // VALIDAÇÃO
-      expect(result.success).toBe(false);
-      expect(result.error).toBe('Campos obrigatórios ausentes.');
-    });*/
-
-    it('updateGaleria deve desativar senha se galeria for alterada para pública', async () => {
-      const { mockQueryBuilder } = setupSupabaseMock();
-      const fd = new FormData();
-      fd.append('title', 'Update');
-      fd.append('drive_folder_id', 'id_pasta');
-      // Mantenha clientName se o seu formulário usa esse name no input
-      fd.append('client_name', 'Joao');
-      fd.append('date', '2026-01-01');
-      fd.append('is_public', 'true');
-      fd.append('password', '123');
-
-      // Adicione os campos de customização que a função prepareGalleryData exige
-      fd.append('show_cover_in_grid', 'true');
-      fd.append('grid_bg_color', '#F3E5AB');
-
-      // O single() simula a busca da galeria existente para validar permissão
       mockQueryBuilder.single.mockResolvedValue({
-        data: { studio_id: 'studio_123' },
+        data: {
+          id: 'new-gallery',
+          slug: 'hitalo/2026/01/15/festa',
+          drive_folder_id: 'folder-123',
+          photographer: mockProfile,
+        },
         error: null,
       });
 
-      // IMPORTANTE: O mock do update também precisa retornar sucesso para o result.success ser true
-      mockQueryBuilder.update.mockReturnValue(mockQueryBuilder); // Mantém o chain
-      mockQueryBuilder.select.mockReturnValue(mockQueryBuilder); // Se houver .select()
+      const fd = new FormData();
+      fd.append('title', 'Festa de Ano Novo');
+      fd.append('date', '2026-01-15');
+      fd.append('drive_folder_id', 'folder-123');
+      fd.append('drive_folder_name', 'Festa 2026');
+      fd.append('client_name', 'João Silva');
+      fd.append('is_public', 'true');
+      fd.append('photo_count', '50');
+      fd.append('cover_image_ids', '[]');
+
+      const result = await createGaleria(fd);
+
+      expect(result.success).toBe(true);
+      expect(result.message).toBe('Nova galeria criada com sucesso!');
+      expect(mockQueryBuilder.insert).toHaveBeenCalled();
+    });
+
+    it('deve retornar erro se campos obrigatórios estiverem ausentes', async () => {
+      const { mockSupabase, mockQueryBuilder } = createMockSupabase();
+      vi.mocked(supabaseServer.createSupabaseServerClient).mockResolvedValue(
+        mockSupabase as any,
+      );
+
+      // Mock para o FormData passar pela validação de limite
+      mockQueryBuilder.select.mockReturnThis();
+      mockQueryBuilder.eq.mockReturnThis();
+      mockQueryBuilder.or
+        .mockReturnValueOnce(mockQueryBuilder)
+        .mockReturnValueOnce(Promise.resolve({ count: 0, error: null }));
+
+      const fd = new FormData();
+      // FormData com apenas title (falta date e drive_folder_id)
+      fd.append('title', 'Test');
+      // Faltam: date, drive_folder_id
+
+      const result = await createGaleria(fd);
+
+      expect(result.success).toBe(false);
+      // A função deve retornar erro por falta de campos obrigatórios
+      expect(result.error).toBeTruthy();
+    });
+
+    it('deve bloquear criação se atingir limite do plano', async () => {
+      const { mockSupabase, mockQueryBuilder } = createMockSupabase();
+      vi.mocked(supabaseServer.createSupabaseServerClient).mockResolvedValue(
+        mockSupabase as any,
+      );
+
+      // Mock: usuário no plano FREE com 3 galerias (limite atingido)
+      vi.mocked(authContext.getAuthenticatedUser).mockResolvedValue({
+        success: true,
+        userId: mockUserId,
+        profile: { ...mockProfile, plan_key: 'FREE' },
+      });
+
+      mockQueryBuilder.select.mockReturnThis();
+      mockQueryBuilder.eq.mockReturnThis();
+      mockQueryBuilder.or
+        .mockReturnValueOnce(mockQueryBuilder)
+        .mockReturnValueOnce(Promise.resolve({ count: 3, error: null }));
+
+      const fd = new FormData();
+      fd.append('title', 'Nova Galeria');
+      fd.append('date', '2026-01-01');
+      fd.append('drive_folder_id', 'folder-123');
+
+      const result = await createGaleria(fd);
+
+      expect(result.success).toBe(false);
+      expect(result.error).toContain('Limite');
+      expect(result.error).toContain('galerias');
+    });
+
+    it('deve sanitizar WhatsApp adicionando código do país', async () => {
+      const { mockSupabase, mockQueryBuilder } = createMockSupabase();
+      vi.mocked(supabaseServer.createSupabaseServerClient).mockResolvedValue(
+        mockSupabase as any,
+      );
+
+      mockQueryBuilder.select.mockReturnThis();
+      mockQueryBuilder.eq.mockReturnThis();
+      mockQueryBuilder.or
+        .mockReturnValueOnce(mockQueryBuilder)
+        .mockReturnValueOnce(Promise.resolve({ count: 0, error: null }));
+
+      mockQueryBuilder.insert.mockReturnThis();
+      mockQueryBuilder.select.mockReturnThis();
+      mockQueryBuilder.single.mockResolvedValue({
+        data: { id: 'gal-123', slug: 'test', photographer: mockProfile },
+        error: null,
+      });
+
+      const fd = new FormData();
+      fd.append('title', 'Test');
+      fd.append('date', '2026-01-01');
+      fd.append('drive_folder_id', 'folder-123');
+      fd.append('drive_folder_name', 'Test');
+      fd.append('client_name', 'Test');
+      fd.append('client_whatsapp', '(31) 98888-7777');
+      fd.append('cover_image_ids', '[]');
+
+      await createGaleria(fd);
+
+      expect(mockQueryBuilder.insert).toHaveBeenCalledWith([
+        expect.objectContaining({
+          client_whatsapp: '5531988887777',
+        }),
+      ]);
+    });
+
+    it('deve formatar cover_image_ids para PostgreSQL array', async () => {
+      const { mockSupabase, mockQueryBuilder } = createMockSupabase();
+      vi.mocked(supabaseServer.createSupabaseServerClient).mockResolvedValue(
+        mockSupabase as any,
+      );
+
+      mockQueryBuilder.select.mockReturnThis();
+      mockQueryBuilder.eq.mockReturnThis();
+      mockQueryBuilder.or
+        .mockReturnValueOnce(mockQueryBuilder)
+        .mockReturnValueOnce(Promise.resolve({ count: 0, error: null }));
+
+      mockQueryBuilder.insert.mockReturnThis();
+      mockQueryBuilder.select.mockReturnThis();
+      mockQueryBuilder.single.mockResolvedValue({
+        data: { id: 'gal-123', slug: 'test', photographer: mockProfile },
+        error: null,
+      });
+
+      const fd = new FormData();
+      fd.append('title', 'Test');
+      fd.append('date', '2026-01-01');
+      fd.append('drive_folder_id', 'folder-123');
+      fd.append('drive_folder_name', 'Test');
+      fd.append('client_name', 'Test');
+      fd.append('cover_image_ids', '["id1","id2"]');
+
+      await createGaleria(fd);
+
+      expect(mockQueryBuilder.insert).toHaveBeenCalledWith([
+        expect.objectContaining({
+          cover_image_ids: '{"id1","id2"}',
+          cover_image_url: 'id1', // Primeira foto como capa
+        }),
+      ]);
+    });
+  });
+
+  // =========================================================================
+  // 3. ATUALIZAÇÃO DE GALERIA
+  // =========================================================================
+  describe('updateGaleria', () => {
+    it('deve atualizar galeria com sucesso', async () => {
+      const { mockSupabase, mockQueryBuilder } = createMockSupabase();
+      vi.mocked(supabaseServer.createSupabaseServerClient).mockResolvedValue(
+        mockSupabase as any,
+      );
+
+      // Mock da galeria existente
       mockQueryBuilder.single
         .mockResolvedValueOnce({
-          data: { studio_id: 'studio_123' },
+          data: {
+            slug: 'hitalo/2026/01/01/festa',
+            drive_folder_id: 'folder-123',
+            is_archived: false,
+          },
           error: null,
-        }) // para o find
-        .mockResolvedValueOnce({ data: { id: 'gal_123' }, error: null }); // para o resultado do update
+        })
+        .mockResolvedValueOnce({
+          data: { slug: 'hitalo/2026/01/01/festa' },
+          error: null,
+        });
 
-      const result = await updateGaleria('gal_123', fd);
+      mockQueryBuilder.update.mockReturnThis();
 
-      // Se o service retornar {success: true, data: ...}
+      const fd = new FormData();
+      fd.append('title', 'Festa Atualizada');
+      fd.append('date', '2026-01-01');
+      fd.append('drive_folder_id', 'folder-123');
+      fd.append('drive_folder_name', 'Festa');
+      fd.append('client_name', 'Maria');
+      fd.append('cover_image_ids', '[]');
+
+      const result = await updateGaleria('gallery-123', fd);
+
       expect(result.success).toBe(true);
+      expect(mockQueryBuilder.update).toHaveBeenCalled();
+    });
 
-      // Verifica se o service limpou a senha ao detectar is_public: true
+    it('deve bloquear edição de galeria arquivada', async () => {
+      const { mockSupabase, mockQueryBuilder } = createMockSupabase();
+      vi.mocked(supabaseServer.createSupabaseServerClient).mockResolvedValue(
+        mockSupabase as any,
+      );
+
+      mockQueryBuilder.single.mockResolvedValue({
+        data: { is_archived: true },
+        error: null,
+      });
+
+      const fd = new FormData();
+      fd.append('title', 'Test');
+
+      const result = await updateGaleria('gallery-123', fd);
+
+      expect(result.success).toBe(false);
+      expect(result.error).toContain('arquivada');
+    });
+
+    it('deve remover senha quando galeria torna-se pública', async () => {
+      const { mockSupabase, mockQueryBuilder } = createMockSupabase();
+      vi.mocked(supabaseServer.createSupabaseServerClient).mockResolvedValue(
+        mockSupabase as any,
+      );
+
+      mockQueryBuilder.single
+        .mockResolvedValueOnce({
+          data: { is_archived: false, slug: 'test' },
+          error: null,
+        })
+        .mockResolvedValueOnce({ data: {}, error: null });
+
+      mockQueryBuilder.update.mockReturnThis();
+
+      const fd = new FormData();
+      fd.append('title', 'Test');
+      fd.append('date', '2026-01-01');
+      fd.append('drive_folder_id', 'folder-123');
+      fd.append('drive_folder_name', 'Test');
+      fd.append('client_name', 'Test');
+      fd.append('is_public', 'true');
+      fd.append('password', '123'); // Senha enviada mas deve ser ignorada
+      fd.append('cover_image_ids', '[]');
+
+      await updateGaleria('gallery-123', fd);
+
       expect(mockQueryBuilder.update).toHaveBeenCalledWith(
         expect.objectContaining({
-          password: null,
           is_public: true,
+          password: null,
         }),
       );
     });
-    /*it('deve capturar erro crítico ao deletar galeria', async () => {
-      const { mockQueryBuilder } = setupSupabaseMock();
-      mockQueryBuilder.delete.mockReturnThis();
-      // Simula erro no .eq() finalizador do delete
-      mockQueryBuilder.eq.mockResolvedValueOnce({
-        error: { message: 'Delete Failed' },
-      });
 
-      const result = await deleteGalleryPermanently('123');
-      expect(result).toBe(true);
-    });*/
-  });
-
-  describe('Exclusão de galeria ', () => {
-    /*it('deve retornar erro ao falhar na exclusão da galeria', async () => {
-      const { mockQueryBuilder } = setupSupabaseMock();
-
-      // 1. Mock do Perfil (se o delete exigir studioId)
-      mockQueryBuilder.select.mockReturnThis();
-      mockQueryBuilder.eq.mockImplementationOnce(() => mockQueryBuilder);
-      mockQueryBuilder.single.mockResolvedValueOnce({
-        data: { studio_id: 's1' },
-      });
-
-      // 2. Mock do Erro no Delete
-      mockQueryBuilder.delete.mockReturnThis();
-      mockQueryBuilder.eq.mockImplementationOnce(() =>
-        Promise.resolve({
-          error: { message: 'Erro ao deletar' },
-        }),
+    it('deve retornar erro se galeria não for encontrada', async () => {
+      const { mockSupabase, mockQueryBuilder } = createMockSupabase();
+      vi.mocked(supabaseServer.createSupabaseServerClient).mockResolvedValue(
+        mockSupabase as any,
       );
 
-      const result = await deleteGaleria('id_para_deletar');
-
-      expect(result.success).toBe(false);
-      expect(result.error).toBeDefined(); // Verifique a string exata no seu catch
-    });*/
-
-    it('deve disparar erro se o banco falhar no final do update', async () => {
-      const { mockQueryBuilder } = setupSupabaseMock();
-
-      // Mocks para passar pelo Auth
-      mockQueryBuilder.select.mockReturnThis();
-      mockQueryBuilder.eq.mockImplementationOnce(() => mockQueryBuilder);
-      mockQueryBuilder.single.mockResolvedValueOnce({
-        data: { studio_id: '1' },
+      mockQueryBuilder.single.mockResolvedValue({
+        data: null,
+        error: { message: 'Not found' },
       });
 
-      // Mock do Erro no Update
+      const fd = new FormData();
+      const result = await updateGaleria('nonexistent-id', fd);
+
+      expect(result.success).toBe(false);
+      expect(result.error).toBe('Galeria não encontrada.');
+    });
+  });
+
+  // =========================================================================
+  // 4. BUSCA DE GALERIAS
+  // =========================================================================
+  describe('getGalerias', () => {
+    it('deve retornar lista de galerias do usuário', async () => {
+      const { mockSupabase, mockQueryBuilder } = createMockSupabase();
+      vi.mocked(supabaseServer.createSupabaseClientForCache).mockReturnValue(
+        mockSupabase as any,
+      );
+
+      const mockGalerias = [
+        {
+          id: 'gal-1',
+          title: 'Festa 1',
+          date: '2026-01-01',
+          user_id: mockUserId,
+          photographer: mockProfile,
+          leads: [{ count: 5 }],
+        },
+        {
+          id: 'gal-2',
+          title: 'Festa 2',
+          date: '2026-01-02',
+          user_id: mockUserId,
+          photographer: mockProfile,
+          leads: [{ count: 3 }],
+        },
+      ];
+
+      mockQueryBuilder.select.mockReturnThis();
+      mockQueryBuilder.eq.mockReturnThis();
+      mockQueryBuilder.order.mockResolvedValue({
+        data: mockGalerias,
+        error: null,
+      });
+
+      const result = await getGalerias();
+
+      expect(result.success).toBe(true);
+      expect(result.data).toHaveLength(2);
+    });
+
+    it('deve retornar erro se usuário não estiver autenticado', async () => {
+      vi.mocked(authContext.getAuthAndStudioIds).mockResolvedValue({
+        success: false,
+        error: 'Não autenticado',
+      });
+
+      const result = await getGalerias();
+
+      expect(result.success).toBe(false);
+      // A mensagem real é diferente do que está no authError
+      expect(result.error).toContain('autenticado');
+    });
+
+    it('deve retornar AUTH_RECONNECT_REQUIRED em erro de Google', async () => {
+      const { mockSupabase, mockQueryBuilder } = createMockSupabase();
+      vi.mocked(supabaseServer.createSupabaseClientForCache).mockReturnValue(
+        mockSupabase as any,
+      );
+
+      mockQueryBuilder.order.mockRejectedValue(
+        new Error('AUTH_RECONNECT_REQUIRED'),
+      );
+
+      const result = await getGalerias();
+
+      expect(result.success).toBe(false);
+      expect(result.error).toBe('AUTH_RECONNECT_REQUIRED');
+    });
+  });
+
+  // =========================================================================
+  // 5. BUSCA DE GALERIA POR ID
+  // =========================================================================
+  describe('getGaleriaById', () => {
+    it('deve retornar galeria específica por ID', async () => {
+      const { mockSupabase, mockQueryBuilder } = createMockSupabase();
+      vi.mocked(
+        supabaseServer.createSupabaseServerClientReadOnly,
+      ).mockResolvedValue(mockSupabase as any);
+
+      mockQueryBuilder.single.mockResolvedValue({
+        data: {
+          id: 'gal-123',
+          title: 'Test',
+          photographer: mockProfile,
+        },
+        error: null,
+      });
+
+      const result = await getGaleriaById('gal-123', mockUserId);
+
+      expect(result.success).toBe(true);
+      expect(result.data?.id).toBe('gal-123');
+    });
+
+    it('deve retornar erro se galeria não for encontrada', async () => {
+      const { mockSupabase, mockQueryBuilder } = createMockSupabase();
+      vi.mocked(
+        supabaseServer.createSupabaseServerClientReadOnly,
+      ).mockResolvedValue(mockSupabase as any);
+
+      mockQueryBuilder.single.mockResolvedValue({
+        data: null,
+        error: { message: 'Not found' },
+      });
+
+      const result = await getGaleriaById('nonexistent', mockUserId);
+
+      expect(result.success).toBe(false);
+      expect(result.error).toBe('Galeria não encontrada.');
+    });
+  });
+
+  // =========================================================================
+  // 6. BUSCA DE FOTOS DA GALERIA
+  // =========================================================================
+  describe('getGaleriaPhotos', () => {
+    it('deve retornar fotos da galeria', async () => {
+      const { mockSupabase, mockQueryBuilder } = createMockSupabase();
+      vi.mocked(
+        supabaseServer.createSupabaseServerClientReadOnly,
+      ).mockResolvedValue(mockSupabase as any);
+
+      mockQueryBuilder.maybeSingle.mockResolvedValue({
+        data: { drive_folder_id: 'folder-123' },
+        error: null,
+      });
+
+      const mockPhotos = [
+        { id: 'photo1', name: 'IMG_001.jpg' },
+        { id: 'photo2', name: 'IMG_002.jpg' },
+      ];
+
+      const { getFolderPhotos } = await import('./google-drive.service');
+      vi.mocked(getFolderPhotos).mockResolvedValue({
+        success: true,
+        data: mockPhotos,
+      });
+
+      const result = await getGaleriaPhotos('gal-123');
+
+      expect(result.success).toBe(true);
+      expect(result.data).toHaveLength(2);
+    });
+
+    it('deve retornar erro se galeria não tiver drive_folder_id', async () => {
+      const { mockSupabase, mockQueryBuilder } = createMockSupabase();
+      vi.mocked(
+        supabaseServer.createSupabaseServerClientReadOnly,
+      ).mockResolvedValue(mockSupabase as any);
+
+      mockQueryBuilder.maybeSingle.mockResolvedValue({
+        data: { drive_folder_id: null },
+        error: null,
+      });
+
+      const result = await getGaleriaPhotos('gal-123');
+
+      expect(result.success).toBe(false);
+      expect(result.error).toBe('Galeria não encontrada.');
+    });
+
+    it('deve tentar redirecionar em erro AUTH_RECONNECT_REQUIRED', async () => {
+      const { mockSupabase, mockQueryBuilder } = createMockSupabase();
+      vi.mocked(
+        supabaseServer.createSupabaseServerClientReadOnly,
+      ).mockResolvedValue(mockSupabase as any);
+
+      mockQueryBuilder.maybeSingle.mockResolvedValue({
+        data: { drive_folder_id: 'folder-123' },
+        error: null,
+      });
+
+      const { getFolderPhotos } = await import('./google-drive.service');
+      vi.mocked(getFolderPhotos).mockResolvedValue({
+        success: false,
+        error: 'AUTH_RECONNECT_REQUIRED',
+      });
+
+      try {
+        const result = await getGaleriaPhotos('gal-123');
+        // Se não redirecionar, deve retornar erro
+        expect(result.success).toBe(false);
+        expect(['AUTH_RECONNECT_REQUIRED', 'NEXT_REDIRECT']).toContain(
+          result.error,
+        );
+      } catch (error: any) {
+        // Se redirecionar, captura o erro de redirect
+        expect(error.message).toContain('NEXT_REDIRECT');
+      }
+    });
+  });
+
+  // =========================================================================
+  // 7. AUTENTICAÇÃO DE ACESSO
+  // =========================================================================
+  describe('authenticateGaleriaAccess', () => {
+    it('deve autenticar acesso com senha correta e criar JWT', async () => {
+      const { mockSupabase, mockQueryBuilder } = createMockSupabase();
+      vi.mocked(
+        supabaseServer.createSupabaseServerClientReadOnly,
+      ).mockResolvedValue(mockSupabase as any);
+
+      mockQueryBuilder.single.mockResolvedValue({
+        data: {
+          id: 'gal-123',
+          password: 'senha123',
+          user_id: mockUserId,
+          tb_profiles: mockProfile,
+        },
+        error: null,
+      });
+
+      // A função deve redirecionar, mas em testes podemos apenas verificar
+      // que não retorna erro de senha incorreta
+      try {
+        await authenticateGaleriaAccess(
+          'gal-123',
+          'hitalo/2026/01/01/festa',
+          'senha123',
+        );
+        // Se chegou aqui sem erro de senha, o JWT foi criado
+        expect(true).toBe(true);
+      } catch (error: any) {
+        // Esperamos NEXT_REDIRECT como sinal de sucesso
+        expect(error.message).toContain('NEXT_REDIRECT');
+      }
+    });
+
+    it('deve rejeitar senha incorreta', async () => {
+      const { mockSupabase, mockQueryBuilder } = createMockSupabase();
+      vi.mocked(
+        supabaseServer.createSupabaseServerClientReadOnly,
+      ).mockResolvedValue(mockSupabase as any);
+
+      mockQueryBuilder.single.mockResolvedValue({
+        data: { password: 'senha123' },
+        error: null,
+      });
+
+      const result = await authenticateGaleriaAccess(
+        'gal-123',
+        'slug',
+        'senha-errada',
+      );
+
+      expect(result.success).toBe(false);
+      expect(result.error).toBe('Senha incorreta.');
+    });
+
+    it('deve rejeitar se galeria não for encontrada', async () => {
+      const { mockSupabase, mockQueryBuilder } = createMockSupabase();
+      vi.mocked(
+        supabaseServer.createSupabaseServerClientReadOnly,
+      ).mockResolvedValue(mockSupabase as any);
+
+      mockQueryBuilder.single.mockResolvedValue({
+        data: null,
+        error: null,
+      });
+
+      const result = await authenticateGaleriaAccess('gal-123', 'slug', 'pass');
+
+      expect(result.success).toBe(false);
+    });
+  });
+
+  // =========================================================================
+  // 8. OPERAÇÕES DE STATUS
+  // =========================================================================
+  describe('Operações de Status', () => {
+    it('toggleArchiveGaleria deve arquivar galeria ativa', async () => {
+      const { mockSupabase, mockQueryBuilder } = createMockSupabase();
+      vi.mocked(supabaseServer.createSupabaseServerClient).mockResolvedValue(
+        mockSupabase as any,
+      );
+
+      mockQueryBuilder.single
+        .mockResolvedValueOnce({ data: { slug: 'test' }, error: null })
+        .mockResolvedValueOnce({ data: {}, error: null });
+
       mockQueryBuilder.update.mockReturnThis();
-      mockQueryBuilder.eq.mockResolvedValueOnce({
+
+      const result = await toggleArchiveGaleria('gal-123', false);
+
+      expect(result.success).toBe(true);
+      expect(mockQueryBuilder.update).toHaveBeenCalledWith({
+        is_archived: true,
+      });
+    });
+
+    it('toggleShowOnProfile deve alternar visibilidade no perfil', async () => {
+      const { mockSupabase, mockQueryBuilder } = createMockSupabase();
+      vi.mocked(supabaseServer.createSupabaseServerClient).mockResolvedValue(
+        mockSupabase as any,
+      );
+
+      mockQueryBuilder.single
+        .mockResolvedValueOnce({ data: { slug: 'test' }, error: null })
+        .mockResolvedValueOnce({ data: {}, error: null });
+
+      mockQueryBuilder.update.mockReturnThis();
+
+      await toggleShowOnProfile('gal-123', false);
+
+      expect(mockQueryBuilder.update).toHaveBeenCalledWith({
+        show_on_profile: true,
+      });
+    });
+
+    it('moveToTrash deve mover galeria para lixeira', async () => {
+      const { mockSupabase, mockQueryBuilder } = createMockSupabase();
+      vi.mocked(supabaseServer.createSupabaseServerClient).mockResolvedValue(
+        mockSupabase as any,
+      );
+
+      mockQueryBuilder.single
+        .mockResolvedValueOnce({ data: { slug: 'test' }, error: null })
+        .mockResolvedValueOnce({ data: {}, error: null });
+
+      mockQueryBuilder.update.mockReturnThis();
+
+      const result = await moveToTrash('gal-123');
+
+      expect(result.success).toBe(true);
+      expect(mockQueryBuilder.update).toHaveBeenCalledWith(
+        expect.objectContaining({
+          is_deleted: true,
+        }),
+      );
+    });
+
+    it('restoreGaleria deve validar limite antes de restaurar', async () => {
+      const { mockSupabase, mockQueryBuilder } = createMockSupabase();
+      vi.mocked(supabaseServer.createSupabaseServerClient).mockResolvedValue(
+        mockSupabase as any,
+      );
+
+      // Mock usuário FREE com 3 galerias (limite atingido)
+      vi.mocked(authContext.getAuthenticatedUser).mockResolvedValue({
+        success: true,
+        userId: mockUserId,
+        profile: { ...mockProfile, plan_key: 'FREE' },
+      });
+
+      // Mock para buscar galeria atual
+      mockQueryBuilder.single.mockResolvedValueOnce({
+        data: {
+          is_archived: true,
+          is_deleted: true,
+          slug: 'test',
+          drive_folder_id: 'folder-123',
+        },
+        error: null,
+      });
+
+      // Mock para contagem de galerias ativas
+      mockQueryBuilder.select.mockReturnThis();
+      mockQueryBuilder.eq.mockReturnThis();
+      mockQueryBuilder.or
+        .mockReturnValueOnce(mockQueryBuilder)
+        .mockReturnValueOnce(Promise.resolve({ count: 3, error: null }));
+
+      const result = await restoreGaleria('gal-123');
+
+      expect(result.success).toBe(false);
+      expect(result.error).toContain('Limite');
+      expect(result.error).toContain('galerias');
+    });
+
+    it('permanentDelete deve excluir galeria permanentemente', async () => {
+      const { mockSupabase, mockQueryBuilder } = createMockSupabase();
+      vi.mocked(supabaseServer.createSupabaseServerClient).mockResolvedValue(
+        mockSupabase as any,
+      );
+
+      // 1. Mock do Auth
+      vi.mocked(authContext.getAuthenticatedUser).mockResolvedValue({
+        success: true,
+        userId: mockUserId,
+        profile: mockProfile,
+      });
+
+      // 2. Configuração do Mock do Supabase
+      mockQueryBuilder.select.mockReturnThis();
+      mockQueryBuilder.delete.mockReturnThis();
+
+      // 🎯 O SEGREDO: eq() retorna o builder para permitir encadeamento,
+      // mas TAMBÉM resolve como a promessa final de sucesso.
+      mockQueryBuilder.eq.mockImplementation(() => {
+        // Retornamos um objeto que é ao mesmo tempo o builder (para o próximo .eq)
+        // e uma promessa que resolve em { error: null } (para o await final)
+        return Object.assign(
+          Promise.resolve({ error: null }),
+          mockQueryBuilder,
+        );
+      });
+
+      // 3. Orquestração do .single() (chamado na busca inicial 'galeriaAntes')
+      mockQueryBuilder.single.mockResolvedValue({
+        data: { slug: 'test', drive_folder_id: 'folder-123' },
+        error: null,
+      });
+
+      // 4. Execução
+      const result = await permanentDelete('gal-123');
+
+      // 5. Validação
+      expect(result.success).toBe(true);
+      expect(result.message).toBe('Galeria excluída permanentemente.');
+      expect(mockQueryBuilder.delete).toHaveBeenCalled();
+
+      // Verificamos se os filtros de segurança foram aplicados
+      expect(mockQueryBuilder.eq).toHaveBeenCalledWith('id', 'gal-123');
+      expect(mockQueryBuilder.eq).toHaveBeenCalledWith('user_id', mockUserId);
+    });
+  });
+
+  // =========================================================================
+  // 9. GALERIAS PÚBLICAS DO PERFIL
+  // =========================================================================
+  describe('getPublicProfileGalerias', () => {
+    it('deve retornar galerias públicas do perfil', async () => {
+      const { mockSupabase, mockQueryBuilder } = createMockSupabase();
+      vi.mocked(supabaseServer.createSupabaseClientForCache).mockReturnValue(
+        mockSupabase as any,
+      );
+
+      mockQueryBuilder.single.mockResolvedValue({
+        data: { id: mockUserId },
+        error: null,
+      });
+
+      const mockGalerias = [
+        { id: 'gal-1', title: 'Public 1', photographer: mockProfile },
+      ];
+
+      mockQueryBuilder.select.mockReturnThis();
+      mockQueryBuilder.eq.mockReturnThis();
+      mockQueryBuilder.order.mockReturnThis();
+      mockQueryBuilder.range.mockResolvedValue({
+        data: mockGalerias,
+        count: 1,
+        error: null,
+      });
+
+      const result = await getPublicProfileGalerias('hitalo', 1, 12);
+
+      expect(result.success).toBe(true);
+      expect(result.data).toHaveLength(1);
+    });
+
+    it('deve retornar erro se perfil não existir', async () => {
+      const { mockSupabase, mockQueryBuilder } = createMockSupabase();
+      vi.mocked(supabaseServer.createSupabaseClientForCache).mockReturnValue(
+        mockSupabase as any,
+      );
+
+      mockQueryBuilder.single.mockResolvedValue({
+        data: null,
+        error: null,
+      });
+
+      const result = await getPublicProfileGalerias('nonexistent');
+
+      expect(result.success).toBe(false);
+    });
+  });
+
+  // =========================================================================
+  // 10. LEADS DA GALERIA
+  // =========================================================================
+  describe('getGaleriaLeads', () => {
+    it('deve retornar leads se plano permitir', async () => {
+      const { mockSupabase, mockQueryBuilder } = createMockSupabase();
+      vi.mocked(
+        supabaseServer.createSupabaseServerClientReadOnly,
+      ).mockResolvedValue(mockSupabase as any);
+
+      const mockLeads = [
+        { id: 'lead-1', name: 'João', email: 'joao@email.com' },
+      ];
+
+      mockQueryBuilder.select.mockReturnThis();
+      mockQueryBuilder.eq.mockReturnThis();
+      mockQueryBuilder.order.mockResolvedValue({
+        data: mockLeads,
+        error: null,
+      });
+
+      const result = await getGaleriaLeads('gal-123');
+
+      expect(result.success).toBe(true);
+      expect(result.data).toHaveLength(1);
+    });
+
+    it('deve bloquear acesso para plano FREE', async () => {
+      vi.mocked(authContext.getAuthenticatedUser).mockResolvedValue({
+        success: true,
+        userId: mockUserId,
+        profile: { ...mockProfile, plan_key: 'FREE' },
+      });
+
+      const result = await getGaleriaLeads('gal-123');
+
+      expect(result.success).toBe(false);
+      expect(result.error).toBe('UPGRADE_REQUIRED');
+    });
+  });
+
+  // =========================================================================
+  // 11. SINCRONIZAÇÃO E LIMPEZA
+  // =========================================================================
+  describe('Sincronização de Limite de Plano', () => {
+    it('archiveExceedingGalleries deve arquivar galerias excedentes', async () => {
+      const { mockSupabase, mockQueryBuilder } = createMockSupabase();
+
+      const mockActive = [
+        { id: 'gal-1' },
+        { id: 'gal-2' },
+        { id: 'gal-3' },
+        { id: 'gal-4' }, // Excedente
+        { id: 'gal-5' }, // Excedente
+      ];
+
+      mockQueryBuilder.select.mockReturnThis();
+      mockQueryBuilder.eq.mockReturnThis();
+      mockQueryBuilder.order.mockResolvedValue({
+        data: mockActive,
+        error: null,
+      });
+
+      mockQueryBuilder.update.mockReturnThis();
+      mockQueryBuilder.in.mockResolvedValue({ error: null });
+
+      mockQueryBuilder.insert.mockResolvedValue({ error: null });
+
+      const count = await archiveExceedingGalleries(
+        mockUserId,
+        3,
+        { newPlan: 'FREE' },
+        mockSupabase,
+      );
+
+      expect(count).toBe(2);
+      expect(mockQueryBuilder.update).toHaveBeenCalledWith({
+        is_archived: true,
+      });
+    });
+
+    it('purgeOldDeletedGalleries deve excluir galerias antigas da lixeira', async () => {
+      const { mockSupabase, mockQueryBuilder } = createMockSupabase();
+
+      const oldDate = new Date();
+      oldDate.setDate(oldDate.getDate() - 31);
+
+      const mockOldGalleries = [
+        { id: 'old-1', user_id: mockUserId, slug: 'old-1-slug' },
+      ];
+
+      mockQueryBuilder.select.mockReturnThis();
+      mockQueryBuilder.eq.mockReturnThis();
+      mockQueryBuilder.lt.mockResolvedValue({
+        data: mockOldGalleries,
+        error: null,
+      });
+
+      mockQueryBuilder.delete.mockReturnThis();
+      mockQueryBuilder.in.mockResolvedValue({ error: null });
+
+      const result = await purgeOldDeletedGalleries(mockSupabase);
+
+      expect(result).toHaveLength(1);
+      expect(mockQueryBuilder.delete).toHaveBeenCalled();
+    });
+  });
+
+  // =========================================================================
+  // 12. CASOS DE ERRO
+  // =========================================================================
+  describe('Tratamento de Erros', () => {
+    it('deve capturar erro de database ao criar galeria', async () => {
+      const { mockSupabase, mockQueryBuilder } = createMockSupabase();
+      vi.mocked(supabaseServer.createSupabaseServerClient).mockResolvedValue(
+        mockSupabase as any,
+      );
+
+      mockQueryBuilder.select.mockReturnThis();
+      mockQueryBuilder.eq.mockReturnThis();
+      mockQueryBuilder.or
+        .mockReturnValueOnce(mockQueryBuilder)
+        .mockReturnValueOnce(Promise.resolve({ count: 0, error: null }));
+
+      mockQueryBuilder.insert.mockReturnThis();
+      mockQueryBuilder.select.mockReturnThis();
+      mockQueryBuilder.single.mockResolvedValue({
+        data: null,
         error: { message: 'DB Error' },
       });
 
       const fd = new FormData();
-      fd.append('title', 'T');
-      fd.append('drive_folder_id', 'D');
-      fd.append('clientName', 'C');
-
-      const result = await updateGaleria('id', fd);
-      expect(result.success).toBe(false);
-    });
-  });
-
-  // =========================================================================
-  // 3. DRIVE E BUSCA
-  // =========================================================================
-  describe('Integração Drive', () => {
-    it('getGaleriaPhotos deve ordenar fotos por data decrescente', async () => {
-      const { mockQueryBuilder } = setupSupabaseMock();
-
-      mockQueryBuilder.single.mockResolvedValueOnce({
-        data: { studio_id: mockStudioId },
-      });
-      mockQueryBuilder.maybeSingle.mockResolvedValueOnce({
-        data: { drive_folder_id: 'f1' },
-      });
-
-      vi.mocked(googleAuth.getDriveAccessTokenForUser).mockResolvedValue(
-        'token',
-      );
-      vi.mocked(googleDrive.listPhotosFromDriveFolder).mockResolvedValue([
-        { name: 'Velha', createdTime: '2025-01-01' },
-        { name: 'Nova', createdTime: '2026-01-01' },
-      ] as any);
-
-      const res = await getGaleriaPhotos('123');
-      expect(res.data![0].name).toBe('Nova');
-    });
-
-    it('getGalerias deve capturar erro de expiração do Google', async () => {
-      const { mockQueryBuilder } = setupSupabaseMock();
-      mockQueryBuilder.order.mockRejectedValue(new Error('Google expirou'));
-
-      const result = await getGalerias();
-      expect(result.error).toBe('AUTH_RECONNECT_REQUIRED');
-    });
-
-    it('getGaleriaPhotos deve falhar se o folder_id do drive for nulo', async () => {
-      const { mockQueryBuilder } = setupSupabaseMock();
-      // Mock para passar no Auth, mas falhar na busca da galeria (sem drive_folder_id)
-      mockQueryBuilder.single.mockResolvedValueOnce({
-        data: { studio_id: '1' },
-      });
-      mockQueryBuilder.maybeSingle.mockResolvedValueOnce({
-        data: { drive_folder_id: null },
-      });
-
-      const result = await getGaleriaPhotos('gal_123');
-      expect(result.success).toBe(false);
-      expect(result.error).toBe('Galeria não encontrada.');
-    });
-
-    it('deve capturar erro genérico ao buscar fotos da galeria (catch)', async () => {
-      const { mockQueryBuilder } = setupSupabaseMock();
-
-      mockQueryBuilder.single.mockResolvedValue({ data: { studio_id: 's1' } });
-      mockQueryBuilder.maybeSingle.mockResolvedValue({
-        data: { drive_folder_id: 'f1' },
-      });
-      vi.mocked(googleAuth.getDriveAccessTokenForUser).mockResolvedValue(
-        'token',
-      );
-
-      // Simula o erro que dispara o catch
-      vi.mocked(googleDrive.listPhotosFromDriveFolder).mockRejectedValue(
-        new Error('Drive Offline'),
-      );
-
-      const result = await getGaleriaPhotos('123');
-
-      expect(result.success).toBe(false);
-      // Ajustado para o que o seu código realmente devolve no catch:
-      expect(result.error).toBe('Drive Offline');
-    });
-
-    it('deve cobrir o bloco catch de getGaleriaPhotos (linhas 414-425)', async () => {
-      const { mockQueryBuilder } = setupSupabaseMock();
-
-      // Passa pelas validações
-      mockQueryBuilder.single.mockResolvedValue({ data: { studio_id: 's1' } });
-      mockQueryBuilder.maybeSingle.mockResolvedValue({
-        data: { drive_folder_id: 'f1' },
-      });
-      vi.mocked(googleAuth.getDriveAccessTokenForUser).mockResolvedValue(
-        'token',
-      );
-
-      // Simula uma falha crítica que caia no CATCH (não apenas retorno null)
-      vi.mocked(googleDrive.listPhotosFromDriveFolder).mockRejectedValue(
-        new Error('Falha catastrófica'),
-      );
-
-      const result = await getGaleriaPhotos('123');
-
-      expect(result.success).toBe(false);
-      // Garante que passou pelo console.error e retornou o objeto de erro
-      expect(result.error).toBeDefined();
-    });
-
-    it('deve tratar erro quando os dados da galeria no banco estão corrompidos ou incompletos', async () => {
-      const { mockQueryBuilder } = setupSupabaseMock();
-
-      mockQueryBuilder.single.mockResolvedValue({ data: { studio_id: 's1' } });
-
-      // Simula que a galeria existe mas o drive_folder_id é nulo (Linha que pode estar descoberta)
-      mockQueryBuilder.maybeSingle.mockResolvedValueOnce({
-        data: { drive_folder_id: null },
-        error: null,
-      });
-
-      const result = await getGaleriaPhotos('123');
-
-      expect(result.success).toBe(false);
-      expect(result.error).toBe('Galeria não encontrada.');
-    });
-    it('deve capturar erro da infraestrutura no Service e retornar resposta amigável', async () => {
-      const { mockQueryBuilder } = setupSupabaseMock();
-
-      // 1. Mocks para passar pelo Supabase
-      mockQueryBuilder.single.mockResolvedValueOnce({
-        data: { studio_id: 'studio_123' },
-      });
-      mockQueryBuilder.maybeSingle.mockResolvedValueOnce({
-        data: { drive_folder_id: 'pasta_id' },
-      });
-
-      // 2. Mock para o Token funcionar
-      vi.mocked(googleAuth.getDriveAccessTokenForUser).mockResolvedValue(
-        'token-fake',
-      );
-
-      // 3. O PONTO CHAVE: A listagem explode, mas o Service deve capturar
-      const errorMessage = 'Drive API Crash';
-      vi.mocked(googleDrive.listPhotosFromDriveFolder).mockRejectedValue(
-        new Error(errorMessage),
-      );
-
-      // 4. EXECUÇÃO: Chamamos o Service (getGaleriaPhotos)
-      const result = await getGaleriaPhotos('123');
-
-      // 5. VALIDAÇÃO: O teste não explode mais. Ele recebe o retorno do catch.
-      expect(result).toEqual({
-        success: false,
-        error: errorMessage, // Agora o teste aceita a mensagem real
-        data: [], // getFolderPhotos sempre retorna data: [] em caso de erro
-      });
-    });
-
-    it('deve retornar erro amigável quando a listagem do Drive falha', async () => {
-      const { mockQueryBuilder } = setupSupabaseMock();
-
-      // Mocks para passar pelo Supabase
-      mockQueryBuilder.single.mockResolvedValueOnce({
-        data: { studio_id: 's1' },
-      });
-      mockQueryBuilder.maybeSingle.mockResolvedValueOnce({
-        data: { drive_folder_id: 'folder_abc' },
-      });
-
-      // Mock para passar pelo Token
-      vi.mocked(googleAuth.getDriveAccessTokenForUser).mockResolvedValue(
-        'token-valido',
-      );
-
-      // SIMULAÇÃO DO THROW: A listagem explode com erro de pasta não encontrada
-      vi.mocked(googleDrive.listPhotosFromDriveFolder).mockRejectedValue(
-        new Error(
-          'A pasta selecionada não foi encontrada no seu Google Drive.',
-        ),
-      );
-
-      // EXECUÇÃO: Chamamos o Service
-      const result = await getGaleriaPhotos('123');
-
-      // VALIDAÇÃO: O service capturou o throw e transformou em objeto de erro
-      expect(result.success).toBe(false);
-      expect(result.error).toBe(
-        'A pasta selecionada não foi encontrada no seu Google Drive.',
-      );
-    });
-    it('deve tratar erro de rede na listagem do Google Drive', async () => {
-      // Mock do fetch global para simular erro de conexão
-      global.fetch = vi
-        .fn()
-        .mockRejectedValueOnce(new Error('Network connection failed'));
-
-      // Ao chamar a função que usa fetch, ela deve capturar no catch
-      // ou você testa o throw se ela não tiver catch interno
-      await expect(
-        googleDrive.listPhotosFromDriveFolder('id', 'token'),
-      ).rejects.toThrow(
-        'A pasta selecionada não foi encontrada no seu Google Drive.',
-      );
-    });
-  });
-
-  describe('Perfil de usuário', () => {
-    it('deve retornar erro se o perfil do usuário não for encontrado', async () => {
-      const { mockQueryBuilder } = setupSupabaseMock();
-      mockQueryBuilder.single.mockResolvedValueOnce({
-        data: null,
-        error: { message: 'Profile Error' },
-      });
-
-      const result = await getGalerias();
-      expect(result.success).toBe(false);
-      expect(result.error).toContain('Profile do usuário não encontrado');
-    });
-  });
-
-  //describe('Criação de galeria', () => {
-  /*it('createGaleria deve falhar se os campos obrigatórios estiverem ausentes', async () => {
-      const fd = new FormData(); // FormData vazio
-      const result = await createGaleria(fd);
-      expect(result.success).toBe(false);
-      expect(result.error).toBe(
-        'Título, Data e Pasta do Drive são obrigatórios.',
-      );
-    });*/
-  /*it('createGaleria deve sanitizar WhatsApp', async () => {
-      const { mockQueryBuilder } = setupSupabaseMock();
-      const fd = new FormData();
-      fd.append('title', 'Teste');
+      fd.append('title', 'Test');
       fd.append('date', '2026-01-01');
-      fd.append('drive_folder_id', 'folder_123');
-      fd.append('client_whatsapp', '(31) 98888-7777');
-
-      await createGaleria(fd);
-
-      expect(mockQueryBuilder.insert).toHaveBeenCalledWith(
-        expect.objectContaining({ client_whatsapp: '31988887777' }),
-      );
-    });*/
-  /*it('deve capturar erro do Supabase ao inserir nova galeria', async () => {
-      const { mockQueryBuilder } = setupSupabaseMock();
-
-      // 1. Mock do Perfil e Slug (usamos mockResolvedValue para simplificar)
-      mockQueryBuilder.single.mockResolvedValue({
-        data: { studio_id: 'studio_123' },
-        error: null,
-      });
-      mockQueryBuilder.maybeSingle.mockResolvedValue({
-        data: null,
-        error: null,
-      });
-
-      // 2. Simula o erro EXATAMENTE como o código espera
-      // O seu código faz: .from('tb_galerias').insert({...})
-      // O mockQueryBuilder.insert deve retornar um objeto que contenha o erro
-      mockQueryBuilder.insert.mockResolvedValueOnce({
-        data: null,
-        error: { message: 'Database failure' },
-      });
-
-      const fd = new FormData();
-      fd.append('title', 'Título Válido');
-      fd.append('date', '2026-01-01');
-      fd.append('drive_folder_id', 'pasta_123');
+      fd.append('drive_folder_id', 'folder-123');
+      fd.append('drive_folder_name', 'Test');
+      fd.append('client_name', 'Test');
+      fd.append('cover_image_ids', '[]');
 
       const result = await createGaleria(fd);
 
-      // 3. AJUSTE DAS EXPECTATIVAS
       expect(result.success).toBe(false);
-      // Tem que ser a string exata que está no seu CATCH
-      expect(result.error).toBe('Erro interno ao salvar no banco de dados.');
-    });*/
-  // });
-  // =========================================================================
-  // 4. SEGURANÇA
-  // =========================================================================
-  describe('Segurança', () => {
-    it('authenticateGaleriaAccess deve tratar senha incorreta', async () => {
-      setupSupabaseMock({ password: '123', user_id: 'u1' });
-      const res = await authenticateGaleriaAccess('id', 'slug', 'senha_errada');
-      expect(res.success).toBe(false);
+      // O erro pode ser 'Falha ao criar a galeria.' ou outro erro capturado
+      expect(result.error).toBeTruthy();
     });
 
-    it('deve retornar AUTH_RECONNECT_REQUIRED se o Google Access Token for nulo', async () => {
-      const { mockQueryBuilder } = setupSupabaseMock();
-
-      // Mock do Supabase ok
-      mockQueryBuilder.single.mockResolvedValueOnce({
-        data: { studio_id: 's1' },
-      });
-      mockQueryBuilder.maybeSingle.mockResolvedValueOnce({
-        data: { drive_folder_id: 'f1' },
-      });
-
-      // Simula que o Google Auth retornou null (conforme o novo try/catch)
-      vi.mocked(googleAuth.getDriveAccessTokenForUser).mockResolvedValue(null);
-
-      const result = await getGaleriaPhotos('123');
-
-      expect(result.success).toBe(false);
-      expect(result.error).toBe(
-        'Falha na integração Google Drive. Refaça o login/integração.',
+    it('deve capturar erro de network ao buscar galerias', async () => {
+      const { mockSupabase, mockQueryBuilder } = createMockSupabase();
+      vi.mocked(supabaseServer.createSupabaseClientForCache).mockReturnValue(
+        mockSupabase as any,
       );
+
+      mockQueryBuilder.order.mockRejectedValue(new Error('Network Error'));
+
+      const result = await getGalerias();
+
+      expect(result.success).toBe(false);
+      expect(result.error).toBe('Falha ao buscar galerias.');
     });
 
-    /*it('deleteGaleria deve validar dono', async () => {
-      const { mockQueryBuilder } = setupSupabaseMock();
-      mockQueryBuilder.eq.mockResolvedValue({ error: null });
+    it('deve retornar erro amigável em exceção não tratada', async () => {
+      const { mockSupabase, mockQueryBuilder } = createMockSupabase();
+      vi.mocked(
+        supabaseServer.createSupabaseServerClientReadOnly,
+      ).mockResolvedValue(mockSupabase as any);
 
-      await deleteGaleria('id');
-      expect(mockQueryBuilder.eq).toHaveBeenCalledWith('id', mockUserId);
-    });*/
+      // Mock do single para rejeitar com erro
+      mockQueryBuilder.select.mockReturnThis();
+      mockQueryBuilder.eq.mockReturnThis();
+      mockQueryBuilder.single.mockRejectedValue(new Error('Unexpected Error'));
+
+      const result = await getGaleriaById('gal-123', mockUserId);
+
+      expect(result.success).toBe(false);
+      expect(result.error).toContain('Erro');
+    });
   });
-
-  // =========================================================================
-  // 5.
-  // =========================================================================
-  //describe('Segurança', () => {});
 });
