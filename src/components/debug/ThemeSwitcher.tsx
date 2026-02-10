@@ -36,7 +36,7 @@ export function ThemeSwitcher() {
   if (process.env.NODE_ENV !== 'development') return null;
 
   return (
-    <div className="fixed top-0 right-28 z-[9999] flex gap-2 bg-petroleum p-2 rounded-luxury border border-white/10 backdrop-blur-md">
+    <div className="fixed top-0 right-1/3 z-[9999] flex gap-2 bg-petroleum p-2 rounded-luxury border border-white/10 backdrop-blur-md">
       {segments.map((seg) => (
         <button
           key={seg}

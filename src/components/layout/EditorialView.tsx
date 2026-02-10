@@ -91,7 +91,7 @@ export default function EditorialView({
               />
             )}
             {/* Gradiente que "funde" a imagem com a cor do tema (Slate, Ardósia ou Azul Petróleo) */}
-            <div className="absolute inset-0 bg-gradient-to-b from-transparent via-petroleum/40 to-petroleum" />
+            {/* <div className="absolute inset-0 bg-gradient-to-b from-transparent via-petroleum/5 to-petroleum" /> */}
           </div>
 
           {/* 🎯 ACÕES CUSTOMIZADAS (CARDS) - Centralizados Acima do Título */}
@@ -109,7 +109,7 @@ export default function EditorialView({
           )}
 
           {/* 🎯 ÁREA DE CONTEÚDO DO HERO: Título + Ação de Login */}
-          <div className="absolute bottom-10 left-0 w-full z-10">
+          <div className="absolute bottom-2 left-0 w-full z-10">
             <div className="max-w-[1600px] mx-auto px-6 md:px-12 flex flex-col md:flex-row items-end justify-between gap-8">
               {/* Lado Esquerdo: Título e Subtítulo */}
               <div className="flex flex-col items-start flex-1">

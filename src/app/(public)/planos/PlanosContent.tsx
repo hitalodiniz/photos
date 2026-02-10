@@ -62,6 +62,12 @@ export default function PlanosPage() {
     new Set(COMMON_FEATURES.map((f) => f.group.toUpperCase())),
   );
 
+  // 3. Pegue os nomes reais dos planos (normalmente os dois últimos são os pagos)
+  // Ex: Se for OFFICE, pode ser 'Gabinete' e 'Mandato' em vez de PRO e PREMIUM
+  const planProName =
+    segmentPlans[planosKeys[planosKeys.length - 2]]?.name || 'PRO'; //
+  const planPremiumName =
+    segmentPlans[planosKeys[planosKeys.length - 1]]?.name || 'PREMIUM'; //
   const toggleGroup = (name: string) => {
     setExpandedGroups((prev) => ({ ...prev, [name]: !prev[name] }));
   };

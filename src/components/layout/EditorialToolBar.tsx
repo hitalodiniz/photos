@@ -5,16 +5,17 @@ import {
   Instagram,
   LayoutGrid,
   Menu,
-  Camera,
   Share2,
   Check,
   X,
   Icon,
+  Layout,
 } from 'lucide-react';
 import { useRouter } from 'next/navigation';
 import WhatsAppIcon from '@/components/ui/WhatsAppIcon';
 import AuthButton from '../auth/AuthButton';
 import { useSegment } from '@/hooks/useSegment'; // 🎯 Import do Hook
+import { i } from 'framer-motion/client';
 
 export default function EditorialToolbar() {
   const router = useRouter();
@@ -158,23 +159,34 @@ export default function EditorialToolbar() {
           <nav className="flex flex-col gap-1">
             {[
               { label: 'Nossos Planos', icon: LayoutGrid, path: '/planos' },
-              { label: 'A Tecnologia', icon: Icon, path: '/tech' },
-              { label: 'Suporte & Ajuda', icon: Share2, path: '/suporte' },
-            ].map((item, i) => (
-              <button
-                key={i}
-                onClick={() => {
-                  router.push(item.path);
-                  setIsMenuOpen(false);
-                }}
-                className="group flex items-center gap-4 px-4 py-4 rounded-luxury hover:bg-white/5 text-white active:bg-white/10 transition-all"
-              >
-                <SegmentIcon size={18} className="text-champagne" />
-                <span className="text-[12px] md:text-[11px] font-semibold uppercase tracking-luxury-widest">
-                  {item.label}
-                </span>
-              </button>
-            ))}
+              // { label: 'A Tecnologia', icon: Layout, path: '/tech' }, // Substituí 'Icon' por um válido
+              {
+                label: 'Tecnologia e Suporte ',
+                icon: Share2,
+                path: '/suporte',
+              },
+            ].map((item, i) => {
+              // 🎯 Dica: Atribuir a uma variável começando com Maiúscula garante compatibilidade
+              const IconComponent = item.icon;
+
+              return (
+                <button
+                  key={i}
+                  onClick={() => {
+                    router.push(item.path);
+                    setIsMenuOpen(false);
+                  }}
+                  className="group flex items-center gap-4 px-4 py-4 rounded-luxury hover:bg-white/5 text-white active:bg-white/10 transition-all"
+                >
+                  {/* Renderização do ícone com as propriedades desejadas */}
+                  <IconComponent size={18} className="text-champagne" />
+
+                  <span className="text-[12px] md:text-[11px] font-semibold uppercase tracking-luxury-widest">
+                    {item.label}
+                  </span>
+                </button>
+              );
+            })}
           </nav>
 
           {/* Rodapé Menu */}

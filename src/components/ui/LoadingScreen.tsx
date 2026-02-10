@@ -1,9 +1,10 @@
 'use client';
 
 import { useEffect, useState } from 'react';
-import { SEO_CONFIG } from '@/core/config/seo.config';
+import { getSEOBySegment, SEO_CONFIG } from '@/core/config/seo.config';
 import LoadingSpinner from './LoadingSpinner';
 import { div } from 'framer-motion/client';
+import { useSegment } from '@/hooks/useSegment';
 
 interface LoadingScreenProps {
   message?: string;
@@ -17,8 +18,16 @@ export default function LoadingScreen({
   type = 'full',
 }: LoadingScreenProps) {
   const [isVisible, setIsVisible] = useState(true);
+  // 🎯 Passo 1: Estado para controlar a hidratação
+  const [isMounted, setIsMounted] = useState(false);
+
+  const { segment } = useSegment();
+  const seo = getSEOBySegment(segment);
 
   useEffect(() => {
+    // 🎯 Passo 2: Marcar como montado apenas no cliente
+    setIsMounted(true);
+
     if (!fadeOut) {
       document.body.classList.remove('js-ready');
     }
@@ -51,7 +60,7 @@ export default function LoadingScreen({
           className={`mb-12 transition-transform duration-1000 ${fadeOut ? '-translate-y-4' : 'translate-y-0'}`}
         >
           <h2 className="text-[10px] font-medium uppercase tracking-luxury-widest text-champagne text-center">
-            {SEO_CONFIG.brandName}
+            {seo.brandName}
           </h2>
         </div>
 

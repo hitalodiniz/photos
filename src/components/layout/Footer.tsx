@@ -33,18 +33,18 @@ export default function Footer() {
             <span className="hidden md:inline text-white/20">•</span>
             <span>© {new Date().getFullYear()}</span>
             <div className="w-[1px] h-3 bg-white/10 hidden md:block" />
-            <Link
+            <a
               href="/privacidade"
               className="hover:text-champagne transition-colors underline underline-offset-4 decoration-white/10"
             >
               Privacidade
-            </Link>
-            <Link
+            </a>
+            <a
               href="/termos"
               className="hover:text-champagne transition-colors underline underline-offset-4 decoration-white/10"
             >
               Termos
-            </Link>
+            </a>
           </div>
         </div>
       </div>
