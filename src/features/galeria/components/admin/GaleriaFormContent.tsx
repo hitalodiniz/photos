@@ -29,6 +29,7 @@ import {
   Users,
   Shield,
   ShieldCheck,
+  PlayCircle,
 } from 'lucide-react';
 import WhatsAppIcon from '@/components/ui/WhatsAppIcon';
 import { convertToDirectDownloadUrl } from '@/core/utils/url-helper';
@@ -45,6 +46,7 @@ import UpgradeModal from '@/components/ui/UpgradeModal';
 import PasswordInput from '@/components/ui/PasswordInput'; // Import PasswordInput
 import { InfoTooltip } from '@/components/ui/InfoTooltip';
 import { div } from 'framer-motion/client';
+import { GalleryInteractionFields } from './GalleryInteractionFields';
 
 // 🎯 Componente de seção simples (sem accordion) - Estilo Editorial
 const FormSection = ({
@@ -822,6 +824,16 @@ export default function GaleriaFormContent({
               columns={customization.columns}
               setColumns={setCustomization.setColumns}
             />
+          </fieldset>
+        </FormSection>
+        {/* SEÇÃO: INTERAÇÃO (Experiência do Visitante) */}
+        <FormSection
+          title="Interação & Experiência"
+          subtitle="Recursos para o visitante usar na galeria"
+          icon={<PlayCircle size={14} className="text-gold" />}
+        >
+          <fieldset>
+            <GalleryInteractionFields register={register} />
           </fieldset>
         </FormSection>
       </div>

@@ -28,6 +28,8 @@ interface LightboxProps {
   galleryTitle: string;
   location: string;
   galeria: Galeria;
+  canUseFavorites: boolean;
+  canUseSlideshow: boolean;
   onClose: () => void;
   onNext: () => void;
   onPrev: () => void;
@@ -44,6 +46,8 @@ export default function Lightbox({
   galleryTitle,
   location,
   galeria,
+  canUseFavorites,
+  canUseSlideshow,
   onClose,
   onNext,
   onPrev,
@@ -389,6 +393,8 @@ export default function Lightbox({
               galeria={galeria}
               activeIndex={activeIndex}
               isFavorited={isFavorited}
+              canUseFavorites={canUseFavorites}
+              canUseSlideshow={canUseSlideshow}
               onToggleFavorite={() => onToggleFavorite(String(currentPhoto.id))}
               isSlideshowActive={isSlideshowActive}
               onToggleSlideshow={() => setIsSlideshowActive(!isSlideshowActive)}
@@ -432,7 +438,7 @@ export default function Lightbox({
               }}
               className="fixed left-0 top-1/2 -translate-y-1/2 z-[190] 
                w-16 md:w-32 h-32 md:h-64 flex items-center justify-center 
-               text-black/20 dark:text-white/20 hover:text-petroleum hover:dark:text-gold transition-all group"
+               text-black/20 dark:text-white/20 hover:text-petroleum hover:dark:text-champagne transition-all group"
             >
               <ChevronLeft
                 className="w-10 h-10 md:w-16 md:h-16 shrink-0 transition-transform group-hover:scale-110"
@@ -449,7 +455,7 @@ export default function Lightbox({
               }}
               className="fixed top-1/2 -translate-y-1/2 z-[190] 
                w-16 md:w-32 h-32 md:h-64 flex items-center justify-center 
-               dark:text-white/20 hover:text-petroleum hover:dark:text-gold transition-all group"
+               dark:text-white/20 hover:text-petroleum hover:dark:text-champagne transition-all group"
               style={{ right: onNavigateToIndex && !isMobile ? '160px' : '0' }} // Mais à esquerda, fora da barra (112px barra + 48px espaço)
             >
               <ChevronRight
@@ -510,7 +516,7 @@ export default function Lightbox({
               <div className="hidden md:flex w-auto justify-end shrink-0 z-[310]">
                 <button
                   onClick={onClose}
-                  className="w-12 h-12 bg-white/95 dark:bg-black/95 backdrop-blur-xl border border-white/10 shadow-2xl flex items-center justify-center transition-all text-black dark:text-white hover:bg-gold/10 hover:text-gold group relative rounded-luxury"
+                  className="w-12 h-12 bg-white/95 dark:bg-black/95 backdrop-blur-xl border border-white/10 shadow-2xl flex items-center justify-center transition-all text-black dark:text-white hover:bg-champagne/10 hover:text-champagne group relative rounded-luxury"
                   aria-label="Fechar galeria"
                 >
                   <X
@@ -520,10 +526,10 @@ export default function Lightbox({
                   />
                   {/* Tooltip - Abaixo do botão */}
                   <div className="absolute top-full mt-2 left-1/2 -translate-x-1/2 opacity-0 group-hover:opacity-100 transition-opacity pointer-events-none whitespace-nowrap">
-                    <div className="bg-gold text-black text-editorial-label px-2 py-1 rounded shadow-xl">
+                    <div className="bg-champagne text-black text-editorial-label px-2 py-1 rounded shadow-xl">
                       Fechar
                     </div>
-                    <div className="absolute bottom-full left-1/2 -translate-x-1/2 border-[4px] border-transparent border-b-gold" />
+                    <div className="absolute bottom-full left-1/2 -translate-x-1/2 border-[4px] border-transparent border-b-champagne" />
                   </div>
                 </button>
               </div>
@@ -607,6 +613,8 @@ export default function Lightbox({
                 galeria={galeria}
                 activeIndex={activeIndex}
                 isFavorited={isFavorited}
+                canUseFavorites={canUseFavorites}
+                canUseSlideshow={canUseSlideshow}
                 onToggleFavorite={() =>
                   onToggleFavorite(String(currentPhoto.id))
                 }
@@ -647,13 +655,15 @@ export default function Lightbox({
                 {/* Ícone que muda de cor conforme o tema */}
                 <ImageIcon
                   size={13}
-                  className="text-gold transition-colors duration-300"
+                  className="text-champagne transition-colors duration-300"
                 />
 
                 <p className="text-[11px] font-semibold tracking-luxury text-white/90">
                   FOTO{' '}
-                  <span className="text-gold italic">{activeIndex + 1}</span> DE{' '}
-                  {totalPhotos}
+                  <span className="text-champagne italic">
+                    {activeIndex + 1}
+                  </span>{' '}
+                  DE {totalPhotos}
                 </p>
 
                 {/* Divisor que adapta a opacidade */}
@@ -661,7 +671,7 @@ export default function Lightbox({
 
                 {/* Dados Técnicos */}
                 <div className="flex items-center gap-2.5">
-                  <p className="text-gold text-[11px] font-semibold tracking-luxury italic">
+                  <p className="text-champagne text-[11px] font-semibold tracking-luxury italic">
                     {imageSize || '--- KB'}
                   </p>
                   {/* Indicador de origem */}

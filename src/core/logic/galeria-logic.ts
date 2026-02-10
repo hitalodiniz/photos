@@ -110,6 +110,8 @@ export function formatGalleryData(
     leads_require_whatsapp: !!(raw as any).leads_require_whatsapp,
     lead_purpose: (raw as any).lead_purpose || null,
     rename_files_sequential: !!(raw as any).rename_files_sequential,
+    enable_favorites: !!(raw as any).enable_favorites,
+    enable_slideshow: !!(raw as any).enable_slideshow,
 
     photographer: raw.photographer
       ? {

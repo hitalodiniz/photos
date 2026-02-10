@@ -47,6 +47,8 @@ export const UserSettingsSchema = z.object({
     grid_mobile: z.number().min(1).max(6).default(2),
     grid_tablet: z.number().min(1).max(6).default(3),
     grid_desktop: z.number().min(1).max(10).default(4),
+    enable_favorites: z.boolean().default(false),
+    enable_slideshow: z.boolean().default(false),
   }),
 });
 

@@ -22,6 +22,8 @@ interface VerticalActionBarProps {
   gallerySlug: string;
   galleryTitle: string;
   galeria: any;
+  canUseFavorites: boolean;
+  canUseSlideshow: boolean;
   activeIndex: number;
   isFavorited: boolean;
   onToggleFavorite: () => void;
@@ -36,7 +38,9 @@ interface VerticalActionBarProps {
 export function VerticalActionBar({
   handleShare,
   photoId,
-  photoName, // 🎯 Nova prop
+  photoName,
+  canUseFavorites,
+  canUseSlideshow,
   gallerySlug,
   galleryTitle,
   galeria,
@@ -131,7 +135,7 @@ export function VerticalActionBar({
       onClick={(e) => e.stopPropagation()}
     >
       {/* 1. FAVORITAR */}
-      {showClose && (
+      {showClose && canUseFavorites && (
         <button
           onClick={onToggleFavorite}
           className="btn-luxury-base w-12 h-12 rounded-full"
@@ -209,7 +213,7 @@ export function VerticalActionBar({
       </button>
 
       {/* 4. SLIDESHOW */}
-      {showClose && (
+      {showClose && canUseSlideshow && (
         <button
           onClick={onToggleSlideshow}
           className={`btn-luxury-base w-12 h-12 rounded-full ${

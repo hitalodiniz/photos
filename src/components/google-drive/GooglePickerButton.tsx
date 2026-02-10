@@ -14,7 +14,7 @@ interface GooglePickerProps {
   onError: (message: string) => void;
   onTokenExpired?: () => void; // Callback quando o token expirar/for revogado
   // 🎯 Modo de operação: 'root' (selecionar pasta pai) ou 'covers' (selecionar fotos)
-  // mode: 'root' | 'covers';
+  mode?: 'root' | 'covers';
   rootFolderId?: string | null;
 }
 
@@ -84,6 +84,7 @@ export default function GooglePickerButton({
   onError,
   onTokenExpired,
   rootFolderId,
+  mode = 'covers',
 }: GooglePickerProps) {
   const [loading, setLoading] = useState(false);
   const loadingRef = useRef(false);
@@ -322,14 +323,22 @@ export default function GooglePickerButton({
         return;
       }
 
+      const mimeTypes =
+        mode === 'root'
+          ? 'application/vnd.google-apps.folder' // Apenas pastas
+          : 'application/vnd.google-apps.folder,image/jpeg,image/png,image/webp'; // Pastas + Fotos
+
       const view = new window.google.picker.DocsView(
         window.google.picker.ViewId.DOCS,
       )
-        .setMimeTypes(
-          'application/vnd.google-apps.folder,image/jpeg,image/png,image/webp',
-        )
+        .setMimeTypes(mimeTypes)
         .setMode(window.google.picker.DocsViewMode.GRID)
         .setOwnedByMe(true);
+
+      // No modo ROOT, permitimos selecionar a própria pasta
+      if (mode === 'root') {
+        view.setSelectFolderEnabled(true);
+      }
 
       // se já temos um ID de pasta, abrimos direto nela
       if (rootFolderId) {
@@ -346,6 +355,17 @@ export default function GooglePickerButton({
         // 🎯 ESSENCIAL: Permite que pastas apareçam como itens clicáveis para navegação
         .enableFeature(window.google.picker.Feature.SUPPORT_DRIVES)
         .enableFeature(window.google.picker.Feature.NAVIGATE_TO_DRIVE);
+
+      // 🎯 LÓGICA CONDICIONAL DE SELEÇÃO
+      if (mode === 'root') {
+        // No modo root, queremos selecionar apenas UMA pasta por vez
+        // O Google Picker por padrão seleciona apenas um item se MULTISELECT não for habilitado
+      } else {
+        // No modo capas, habilitamos a seleção múltipla baseada no plano
+        pickerBuilder.enableFeature(
+          window.google.picker.Feature.MULTISELECT_ENABLED,
+        );
+      }
 
       const picker = pickerBuilder
         .setCallback(async (data: any) => {
@@ -483,8 +503,14 @@ export default function GooglePickerButton({
           </svg>
           <span>
             {hasSelected
-              ? 'Alterar Pasta/Foto de capa'
-              : 'Vincular pasta do Drive e foto de capa'}
+              ? // Se já existe um ID selecionado
+                mode === 'root'
+                ? 'Alterar Pasta Raiz'
+                : 'Alterar Pasta/Foto de capa'
+              : // Se o campo está vazio
+                mode === 'root'
+                ? 'Selecionar Pasta Raiz'
+                : 'Vincular pasta do Drive e foto de capa'}
           </span>
         </div>
       )}

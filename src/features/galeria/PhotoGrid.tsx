@@ -22,6 +22,7 @@ import { DownloadCenterModal } from './DownloadCenterModal';
 import { ToolBarMobile } from './ToolBarMobile';
 import { V } from 'node_modules/vitest/dist/chunks/reporters.d.Rsi0PyxX';
 import UpgradeModal from '@/components/ui/UpgradeModal';
+import { PlanKey, PERMISSIONS_BY_PLAN } from '@/core/config/plans';
 
 export default function PhotoGrid({ photos, galeria }: any) {
   // --- 1. ESTADOS DE INTERFACE ---
@@ -177,6 +178,33 @@ export default function PhotoGrid({ photos, galeria }: any) {
       observer.disconnect();
     };
   }, []);
+
+  const canUseFavorites = useMemo(() => {
+    // 1. Recupera a chave do plano do fotógrafo
+    const photographerPlanKey = (galeria.photographer?.plan_key ||
+      'FREE') as PlanKey;
+
+    // 2. Consulta dinamicamente as permissões deste plano no mapa mestre
+    const photographerPermissions = PERMISSIONS_BY_PLAN[photographerPlanKey];
+
+    // 3. Validação: Plano permite + Fotógrafo ativou para esta galeria
+    const planAllows = !!photographerPermissions?.canFavorite;
+    const isEnabledOnGallery = !!galeria.enable_favorites;
+
+    return planAllows && isEnabledOnGallery;
+  }, [galeria]);
+
+  const canUseSlideshow = useMemo(() => {
+    const photographerPlanKey = (galeria.photographer?.plan_key ||
+      'FREE') as PlanKey;
+    const photographerPermissions = PERMISSIONS_BY_PLAN[photographerPlanKey];
+
+    // Validação para o Slideshow
+    const planAllows = !!photographerPermissions?.canShowSlideshow;
+    const isEnabledOnGallery = !!galeria.enable_slideshow;
+
+    return planAllows && isEnabledOnGallery;
+  }, [galeria]);
 
   const parseLinks = (
     jsonString: string | null | undefined,
@@ -506,6 +534,8 @@ export default function PhotoGrid({ photos, galeria }: any) {
           galeria={galeria}
           location={galeria.location || ''}
           favorites={favorites}
+          canUseFavorites={canUseFavorites} // 🎯 Trava dinâmica
+          canUseSlideshow={canUseSlideshow} // 🎯 Trava dinâmica
           onToggleFavorite={toggleFavoriteFromGrid}
           onClose={() => setSelectedPhotoIndex(null)}
           onNext={() =>

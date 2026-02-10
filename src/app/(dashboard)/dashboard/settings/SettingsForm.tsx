@@ -16,6 +16,7 @@ import {
   Shield,
   FolderSync,
   ImageIcon,
+  PlayCircle,
 } from 'lucide-react';
 
 import { UserSettingsSchema } from '@/core/types/profile';
@@ -27,6 +28,8 @@ import FormPageBase from '@/components/ui/FormPageBase';
 import { LeadCaptureSection } from '@/components/ui/LeadCaptureSection';
 import { PlanGuard } from '@/components/auth/PlanGuard';
 import { GalleryDesignFields } from '@/features/galeria/components/admin/GaleriaDesignFields';
+import { GalleryInteractionFields } from '@/features/galeria/components/admin/GalleryInteractionFields';
+import { GooglePickerButton } from '@/components/google-drive';
 
 const CombinedSchema = z.object({
   settings: UserSettingsSchema,
@@ -88,6 +91,12 @@ export default function SettingsForm({ profile }: { profile: any }) {
         grid_mobile: profile.settings?.defaults?.grid_mobile ?? 2,
         grid_tablet: profile.settings?.defaults?.grid_tablet ?? 3,
         grid_desktop: profile.settings?.defaults?.grid_desktop ?? 4,
+        enable_favorites: profile.settings?.defaults?.enable_favorites ?? false,
+        enable_slideshow: profile.settings?.defaults?.enable_slideshow ?? false,
+        google_drive_root_id:
+          profile.settings?.defaults?.google_drive_root_id ?? '',
+        rename_files_sequential:
+          profile.settings?.defaults?.rename_files_sequential ?? true,
       },
     },
   };
@@ -348,6 +357,26 @@ export default function SettingsForm({ profile }: { profile: any }) {
             </p>
           </div>
         </FormSection>
+
+        {/* 🎯 SEÇÃO 5: INTERAÇÃO PADRÃO (NOVA) */}
+        <FormSection
+          title="Interação & Experiência Padrão"
+          icon={<PlayCircle size={14} />}
+        >
+          <div className="space-y-4">
+            <GalleryInteractionFields
+              // 🎯 Mapeia os registros para dentro de settings.defaults
+              register={(name: string) =>
+                register(`settings.defaults.${name}` as any)
+              }
+            />
+            <p className="text-[9px] text-petroleum/50 italic px-1">
+              Habilite quais recursos estarão ativos por padrão em suas novas
+              galerias.
+            </p>
+          </div>
+        </FormSection>
+
         {/* SEÇÃO 2: PADRÕES DO GOOGLE DRIVE (NOVA) */}
         <FormSection
           title="Padrões do Google Drive"
@@ -355,19 +384,46 @@ export default function SettingsForm({ profile }: { profile: any }) {
         >
           <div className="grid grid-cols-1 md:grid-cols-2 gap-8 items-start">
             {/* PASTA RAIZ PADRÃO */}
+            {/* PASTA RAIZ PADRÃO */}
             <div className="space-y-2">
               <label className="text-[10px] font-bold uppercase tracking-luxury-widest text-petroleum/60 flex items-center gap-1.5">
                 <FolderSync size={12} strokeWidth={2} className="text-gold" />
-                Pasta Raiz (ID)
+                Pasta Raiz (Google Drive)
               </label>
-              <input
-                {...register('settings.defaults.google_drive_root_id')}
-                placeholder="ID da pasta no Google Drive"
-                className="w-full px-3 h-10 bg-slate-50 border border-slate-200 rounded-luxury text-[12px] outline-none focus:border-gold transition-all"
-              />
+
+              <div className="flex items-center gap-2">
+                {/* 🎯 O Botão agora gerencia a seleção da pasta raiz */}
+                <GooglePickerButton
+                  mode="root"
+                  currentDriveId={watch(
+                    'settings.defaults.google_drive_root_id',
+                  )}
+                  onFolderSelect={(items) => {
+                    const folder = items[0]; // Pegamos a primeira pasta selecionada
+                    setValue(
+                      'settings.defaults.google_drive_root_id',
+                      folder.id,
+                      { shouldDirty: true },
+                    );
+                    setToast({
+                      message: `Pasta "${folder.name}" definida como raiz.`,
+                      type: 'success',
+                    });
+                  }}
+                  onError={(msg) => setToast({ message: msg, type: 'error' })}
+                />
+
+                {/* Input de ID (Opcional: Apenas leitura para debug visual) */}
+                <input
+                  {...register('settings.defaults.google_drive_root_id')}
+                  readOnly
+                  className="flex-1 px-3 h-9 bg-slate-50/50 border border-slate-200 rounded-[0.4rem] text-[10px] text-slate-400 font-mono outline-none"
+                />
+              </div>
+
               <p className="text-[9px] text-petroleum/50 italic px-1">
-                O seletor de arquivos abrirá diretamente nesta pasta (Ex: sua
-                pasta de 'Trabalhos').
+                Ao criar uma nova galeria, o seletor abrirá automaticamente
+                dentro desta pasta.
               </p>
             </div>
 

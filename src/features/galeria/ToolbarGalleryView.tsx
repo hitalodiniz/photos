@@ -35,6 +35,8 @@ export const ToolbarGalleryView = ({
   galeria,
   activeIndex,
   isFavorited,
+  canUseFavorites,
+  canUseSlideshow,
   onToggleFavorite,
   onClose,
   showClose = true,
@@ -223,7 +225,7 @@ export const ToolbarGalleryView = ({
         data-mobile-toolbar
       >
         {/* 1. FAVORITAR */}
-        {showClose && !isSingleView && (
+        {showClose && !isSingleView && canUseFavorites && (
           <button
             onClick={onToggleFavorite}
             className="btn-luxury-base flex-1"
@@ -247,30 +249,33 @@ export const ToolbarGalleryView = ({
         )}
 
         {/* 2. MINIATURAS (Toggle - Estilo Instagram) */}
-        {showClose && !isSingleView && onToggleThumbnails && (
-          <button
-            onClick={(e) => {
-              e.stopPropagation();
-              onToggleThumbnails();
-            }}
-            className="btn-luxury-base flex-1"
-            aria-label={
-              showThumbnails ? 'Ocultar miniaturas' : 'Mostrar miniaturas'
-            }
-          >
-            <div
-              className={`w-12 h-12 rounded-full flex items-center justify-center transition-all ${showThumbnails ? 'bg-champagne' : 'bg-slate-200 dark:bg-white/10 active:bg-slate-800 dark:active:bg-white/20'}`}
+        {showClose &&
+          !isSingleView &&
+          canUseFavorites &&
+          onToggleThumbnails && (
+            <button
+              onClick={(e) => {
+                e.stopPropagation();
+                onToggleThumbnails();
+              }}
+              className="btn-luxury-base flex-1"
+              aria-label={
+                showThumbnails ? 'Ocultar miniaturas' : 'Mostrar miniaturas'
+              }
             >
-              <SquareStack
-                size={22}
-                className={
-                  showThumbnails ? 'text-black' : 'text-black dark:text-white'
-                }
-                strokeWidth={2.5}
-              />
-            </div>
-          </button>
-        )}
+              <div
+                className={`w-12 h-12 rounded-full flex items-center justify-center transition-all ${showThumbnails ? 'bg-champagne' : 'bg-slate-200 dark:bg-white/10 active:bg-slate-800 dark:active:bg-white/20'}`}
+              >
+                <SquareStack
+                  size={22}
+                  className={
+                    showThumbnails ? 'text-black' : 'text-black dark:text-white'
+                  }
+                  strokeWidth={2.5}
+                />
+              </div>
+            </button>
+          )}
 
         {/* 3. COMPARTILHAR (Share nativo - abre menu com WhatsApp, Instagram, Twitter, etc.) */}
         <button

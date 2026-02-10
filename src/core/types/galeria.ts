@@ -69,6 +69,8 @@ export interface GaleriaBase {
   lead_purpose?: string;
   rename_files_sequential: boolean;
   photo_count: number;
+  enable_favorites: boolean;
+  enable_slideshow: boolean;
 }
 
 // Interface utilizada na UI (GaleriaCard e GaleriaView)
