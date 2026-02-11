@@ -63,13 +63,23 @@ export function PlanProvider({
     //   profileObj: profile,
     // });
     if (profile) {
-      if (profile.is_trial && profile.plan_trial_expires) {
+      // Se o perfil está marcado como Trial
+      if (profile.is_trial) {
+        // Caso não tenha data OU a data seja inválida OU já passou de hoje -> FREE
+        if (!profile.plan_trial_expires) return 'FREE';
+
         const expiresAt = new Date(profile.plan_trial_expires);
-        if (!isNaN(expiresAt.getTime()) && new Date() < expiresAt) {
+        const isValidDate = !isNaN(expiresAt.getTime());
+        const isNotExpired = new Date() < expiresAt;
+
+        if (isValidDate && isNotExpired) {
           return (profile.plan_key || 'FREE') as PlanKey;
         }
-        return 'FREE'; // Trial expirado
+
+        return 'FREE'; // Trial expirado ou data inválida
       }
+
+      // Se não for trial, segue o plano assinado (ou FREE como fallback)
       return (profile.plan_key || 'FREE') as PlanKey;
     }
 

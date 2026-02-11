@@ -25,9 +25,22 @@ export default defineConfig({
     },
     coverage: {
       provider: 'v8',
-      reporter: ['text', 'json', 'html'], // 'text' mostra no terminal, 'html' cria um site
-      include: ['src/core/services/**/*.ts'], // Foca nos seus services
-      exclude: ['**/*.spec.ts', 'node_modules/**'],
+      reporter: ['text', 'json', 'html'],
+      all: true,
+      // 🎯 Expandindo para pegar todas as pastas lógicas do projeto
+      include: [
+        'src/core/services/**/*.ts',
+        'src/features/**/*.ts',
+        'src/features/**/*.tsx',
+        'src/actions/**/*.ts',
+      ],
+      exclude: [
+        '**/*.spec.ts',
+        '**/*.test.ts',
+        'node_modules/**',
+        'src/core/types/**', // Geralmente não testamos arquivos de apenas tipos
+        'src/components/ui/**', // Opcional: remover se forem apenas componentes visuais (shadcn)
+      ],
     },
   },
 });
