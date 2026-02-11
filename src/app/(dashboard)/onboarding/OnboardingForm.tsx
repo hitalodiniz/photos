@@ -17,6 +17,7 @@ import {
   CheckCircle2,
   Sparkles,
   Save,
+  ShieldCheck,
 } from 'lucide-react';
 
 import {
@@ -32,7 +33,12 @@ import { compressImage } from '@/core/utils/user-helpers';
 import { useNavigation } from '@/components/providers/NavigationProvider';
 import { usePlan } from '@/core/context/PlanContext';
 import { PlanGuard } from '@/components/auth/PlanGuard';
-// 🎯 Componente de seção simples - Estilo Editorial
+import { PrivacyPolicyModal } from '@/app/(public)/privacidade/PrivacidadeContent';
+import { TermsOfServiceModal } from '@/app/(public)/termos/TermosContent';
+
+/**
+ * 🎯 Componente de seção - Estilo Editorial
+ */
 const FormSection = ({
   title,
   icon,
@@ -42,10 +48,10 @@ const FormSection = ({
   icon?: React.ReactNode;
   children: React.ReactNode;
 }) => (
-  <div className="bg-white rounded-luxury border border-slate-200 p-4 space-y-3">
+  <div className="bg-white rounded-luxury border border-slate-200 p-4 space-y-3 shadow-sm transition-all hover:border-slate-300">
     <div className="flex items-center gap-2 pb-2 border-b border-slate-200">
-      {icon && <div>{icon}</div>}
-      <h3 className="text-[10px] font-semibold uppercase tracking-luxury text-petroleum dark:text-slate-700">
+      {icon && <div className="text-gold">{icon}</div>}
+      <h3 className="text-[10px] font-bold uppercase tracking-luxury-widest text-petroleum">
         {title}
       </h3>
     </div>
@@ -62,18 +68,28 @@ export default function OnboardingForm({
   suggestedUsername?: string;
   isEditMode?: boolean;
 }) {
-  const { permissions, planKey } = usePlan(); // 🛡️ Hook de Planos
-  const [upsellFeature, setUpsellFeature] = useState<string | null>(null);
+  const { permissions, planKey } = usePlan();
   const { navigate, isNavigating: isGlobalNavigating } = useNavigation();
+
   const fileInputRef = useRef<HTMLInputElement>(null);
   const bgInputRef = useRef<HTMLInputElement>(null);
 
+  // --- ESTADOS DE CONFORMIDADE ---
+  const [acceptTerms, setAcceptTerms] = useState(
+    initialData?.accepted_terms || false,
+  );
+  const [acceptPrivacy, setAcceptPrivacy] = useState(
+    initialData?.accepted_terms || false,
+  );
+  const [showTermsModal, setShowTermsModal] = useState(false);
+  const [showPrivacyModal, setShowPrivacyModal] = useState(false);
+
+  // --- ESTADOS DE PERFIL ---
   const [fullName, setFullName] = useState(initialData?.full_name || '');
   const [username, setUsername] = useState(
-    initialData?.username || suggestedUsername,
+    initialData?.username || suggestedUsername || '',
   );
   const [miniBio, setMiniBio] = useState(initialData?.mini_bio || '');
-
   const [phone, setPhone] = useState(() =>
     normalizePhoneNumber(initialData?.phone_contact),
   );
@@ -83,22 +99,20 @@ export default function OnboardingForm({
     initialData?.operating_cities || [],
   );
 
+  // --- ESTADOS DE LOCALIZAÇÃO ---
   const [states, setStates] = useState<{ sigla: string; nome: string }[]>([]);
   const [selectedUF, setSelectedUF] = useState('');
   const [cityInput, setCityInput] = useState('');
   const [suggestions, setSuggestions] = useState<string[]>([]);
 
-  // 📸 FOTOS (RESTAURADO)
+  // --- ESTADOS DE MÍDIA ---
   const [photoFile, setPhotoFile] = useState<File | null>(null);
   const [photoPreview, setPhotoPreview] = useState<string | null>(
     initialData?.profile_picture_url || null,
   );
-  const [bgFiles, setBgFiles] = useState<File[] | null>(null);
-  const [bgPreviews, setBgPreviews] = useState<string[] | null>(
-    initialData?.background_url || null,
-  );
+  const [bgFiles, setBgFiles] = useState<File[]>([]);
 
-  const [, setIsChecking] = useState(false);
+  // --- ESTADOS DE UI ---
   const [isAvailable, setIsAvailable] = useState<boolean | null>(null);
   const [showSuccessModal, setShowSuccessModal] = useState(false);
   const [isSaving, setIsSaving] = useState(false);
@@ -107,22 +121,30 @@ export default function OnboardingForm({
     type: 'success' | 'error';
   } | null>(null);
 
+  // 🛡️ REGRAS DE NEGÓCIO POR PLANO
   const bioLimit = useMemo(() => {
     if (planKey === 'START') return 150;
     if (planKey === 'PLUS') return 250;
     return 400; // PRO e PREMIUM
   }, [planKey]);
 
-  const profileCarouselLimit = useMemo(() => {
-    return permissions.profileCarouselLimit;
-  }, [permissions.profileCarouselLimit]);
+  const profileCarouselLimit = useMemo(
+    () => permissions.profileCarouselLimit || 1,
+    [permissions],
+  );
 
-  const maxBgImages = useMemo(() => {
-    if (planKey === 'PREMIUM') return 5;
-    if (planKey === 'PRO') return 3;
-    return 1; // START e PLUS (FREE usa aleatório)
-  }, [planKey]);
+  // 🛡️ LÓGICA DE BACKGROUNDS (Para Preview e Upload)
+  const activeBackgrounds = useMemo(() => {
+    if (planKey === 'FREE') return [];
+    if (bgFiles.length > 0)
+      return bgFiles.map((file) => URL.createObjectURL(file));
+    const initialBg = initialData?.background_url;
+    if (!initialBg) return [];
+    const normalized = Array.isArray(initialBg) ? initialBg : [initialBg];
+    return normalized.slice(0, profileCarouselLimit);
+  }, [bgFiles, planKey, initialData?.background_url, profileCarouselLimit]);
 
+  // --- EFFECTS ---
   useEffect(() => {
     fetchStates().then(setStates);
   }, []);
@@ -145,15 +167,14 @@ export default function OnboardingForm({
       return;
     }
     const check = async () => {
-      setIsChecking(true);
       const { data } = await getPublicProfile(username);
       setIsAvailable(!data);
-      setIsChecking(false);
     };
     const timer = setTimeout(check, 500);
     return () => clearTimeout(timer);
   }, [username, initialData?.username]);
 
+  // --- HANDLERS ---
   const handleSelectCity = (city: string) => {
     if (!selectedCities.includes(city))
       setSelectedCities((prev) => [...prev, city]);
@@ -161,19 +182,25 @@ export default function OnboardingForm({
     setSuggestions([]);
   };
 
+  const handleLockedFeature = () => {
+    setToastConfig({
+      message:
+        'Este recurso está disponível em planos superiores. Faça o upgrade para desbloquear.',
+      type: 'error',
+    });
+  };
+
   const clientAction = async (formData: FormData) => {
-    // 🛡️ TRAVA DE SEGURANÇA
-    if (!fullName.trim() || !username.trim()) {
+    if (!acceptTerms || !acceptPrivacy) {
       setToastConfig({
-        message: 'Nome e Username são obrigatórios.',
+        message: 'Você precisa aceitar os termos e a política de privacidade.',
         type: 'error',
       });
       return;
     }
-
-    if (!isEditMode && isAvailable === false) {
+    if (!fullName.trim() || !username.trim()) {
       setToastConfig({
-        message: 'Este username já está em uso.',
+        message: 'Nome e Username são obrigatórios.',
         type: 'error',
       });
       return;
@@ -188,15 +215,30 @@ export default function OnboardingForm({
     formData.set('instagram_link', instagram);
     formData.set('website', website);
     formData.set('operating_cities', JSON.stringify(selectedCities));
+    formData.set('accepted_terms', 'true');
+
+    // Envia quais URLs existentes devem ser mantidas (filtramos blobs locais)
+    const existingUrls = activeBackgrounds.filter((url) =>
+      url.startsWith('http'),
+    );
+    formData.set('background_urls_existing', JSON.stringify(existingUrls));
 
     try {
       if (photoFile) {
         const compressed = await compressImage(photoFile);
         formData.set('profile_picture', compressed, 'avatar.webp');
       }
-      if (bgFile) {
-        const compressedBg = await compressImage(bgFile);
-        formData.set('background_image', compressedBg, 'background.webp');
+
+      if (bgFiles.length > 0) {
+        formData.delete('background_images');
+        for (const file of bgFiles) {
+          const compressedBg = await compressImage(file);
+          formData.append(
+            'background_images',
+            compressedBg,
+            `bg-${Math.random()}.webp`,
+          );
+        }
       }
 
       const result = await upsertProfile(formData);
@@ -204,24 +246,14 @@ export default function OnboardingForm({
         setShowSuccessModal(true);
       } else {
         setToastConfig({
-          message: result?.error || 'Erro ao salvar perfil.',
+          message: result?.error || 'Erro ao salvar.',
           type: 'error',
         });
       }
     } catch (err: any) {
-      console.error('[OnboardingForm] Erro ao salvar:', err);
-      let errorMsg = 'Falha na conexão.';
-
-      // 🎯 Tratamento amigável para erro de tamanho de arquivo do Next.js
-      if (err.message?.includes('Body exceeded')) {
-        errorMsg =
-          'A foto é muito grande para o servidor. Tente uma imagem com menos de 2MB.';
-      } else if (err.message) {
-        errorMsg = `Falha na conexão: ${err.message}`;
-      }
-
+      console.error('[OnboardingForm] Erro:', err);
       setToastConfig({
-        message: errorMsg,
+        message: 'Falha na conexão ao salvar perfil.',
         type: 'error',
       });
     } finally {
@@ -233,67 +265,51 @@ export default function OnboardingForm({
     <>
       <div className="relative min-h-screen bg-luxury-bg flex flex-col md:flex-row w-full z-[99]">
         <aside className="w-full md:w-[35%] bg-white border-r border-slate-100 flex flex-col h-screen md:sticky md:top-0 z-20 shadow-xl overflow-hidden">
-          <div className="flex-1 overflow-y-auto px-4 no-scrollbar -mt-4">
-            {isEditMode && planKey === 'PRO' && permissions.isTrial && (
-              <div className="mb-6 p-3 bg-gold/10 border border-gold/30 rounded-luxury flex items-center justify-between animate-in slide-in-from-top-4">
+          <div className="flex-1 overflow-y-auto px-4 no-scrollbar py-6">
+            {/* BANNER TRIAL/UPGRADE */}
+            {isEditMode && permissions.isTrial && (
+              <div className="mb-6 p-3 bg-gold/10 border border-gold/30 rounded-luxury flex items-center justify-between">
                 <div className="flex items-center gap-3">
                   <div className="p-2 bg-gold rounded-full text-petroleum">
                     <Sparkles size={14} />
                   </div>
                   <div>
-                    <p className="text-[10px] font-bold uppercase tracking-luxury-widest text-petroleum">
-                      Período de Degustação Ativo
+                    <p className="text-[10px] font-bold uppercase tracking-widest text-petroleum">
+                      Período de Trial Ativo
                     </p>
                     <p className="text-[9px] text-petroleum/60 uppercase">
-                      Você tem acesso total ao Plano PRO por mais 14 dias
+                      Desfrute dos recursos PRO por 14 dias
                     </p>
                   </div>
                 </div>
-                <button className="text-[9px] font-bold text-gold underline tracking-luxury-widest uppercase">
-                  Assinar Agora
-                </button>
               </div>
             )}
+
             <form
               id="onboarding-form"
               action={clientAction}
               className="space-y-4"
             >
-              {/* PARA MANTER A FOTO ATUAL */}
-              <input
-                type="hidden"
-                name="profile_picture_url_existing"
-                value={initialData?.profile_picture_url || ''}
-              />
-
               {/* SEÇÃO 1: IDENTIFICAÇÃO */}
               <FormSection title="Identificação" icon={<User size={14} />}>
                 <div className="space-y-4">
-                  {/* AVATAR + USERNAME EM LINHA */}
                   <div className="flex items-center gap-6">
-                    {/* AVATAR UPLOAD */}
                     <div className="relative group shrink-0">
                       <input
                         type="file"
-                        name="profile_picture"
                         ref={fileInputRef}
                         className="hidden"
                         accept="image/*"
                         onChange={(e) => {
                           const file = e.target.files?.[0];
-                          if (file) {
-                            // 🎯 Validação de tamanho: Máximo 5MB antes da compressão
-                            if (file.size > 2 * 1024 * 1024) {
-                              setToastConfig({
-                                message:
-                                  'A foto de perfil é muito grande. Máximo 2MB.',
-                                type: 'error',
-                              });
-                              e.target.value = '';
-                              return;
-                            }
+                          if (file && file.size <= 2 * 1024 * 1024) {
                             setPhotoFile(file);
                             setPhotoPreview(URL.createObjectURL(file));
+                          } else if (file) {
+                            setToastConfig({
+                              message: 'A foto deve ter no máximo 2MB.',
+                              type: 'error',
+                            });
                           }
                         }}
                       />
@@ -306,8 +322,8 @@ export default function OnboardingForm({
                             {photoPreview ? (
                               <img
                                 src={photoPreview}
-                                className="w-full h-full object-cover scale-110"
-                                alt="Preview"
+                                className="w-full h-full object-cover"
+                                alt="Avatar"
                               />
                             ) : (
                               <Upload size={20} className="text-slate-300" />
@@ -318,13 +334,12 @@ export default function OnboardingForm({
                       <button
                         type="button"
                         onClick={() => fileInputRef.current?.click()}
-                        className="btn-luxury-base absolute bottom-0 right-0 p-1.5"
+                        className="btn-luxury-base absolute bottom-0 right-0 p-1.5 shadow-lg"
                       >
                         <Pencil size={10} />
                       </button>
                     </div>
 
-                    {/* USERNAME */}
                     <div className="flex-grow space-y-1.5">
                       <label className="text-editorial-label text-petroleum">
                         <AtSign
@@ -334,26 +349,23 @@ export default function OnboardingForm({
                         />{' '}
                         Username <span className="text-gold">*</span>
                       </label>
-                      <div className="relative">
-                        <input
-                          readOnly={isEditMode}
-                          className={`w-full px-3 h-10 bg-white border border-slate-200 rounded-luxury text-editorial-ink text-[13px] font-medium outline-none transition-all ${isEditMode ? 'bg-slate-50 text-editorial-gray italic' : 'focus:border-gold'}`}
-                          value={username}
-                          onChange={(e) =>
-                            !isEditMode &&
-                            setUsername(
-                              e.target.value
-                                .toLowerCase()
-                                .replace(/[^a-z0-9._]/g, ''),
-                            )
-                          }
-                          required
-                        />
-                      </div>
+                      <input
+                        readOnly={isEditMode}
+                        className={`w-full px-3 h-10 bg-white border border-slate-200 rounded-luxury text-[13px] font-medium outline-none transition-all ${isEditMode ? 'bg-slate-50 text-slate-400 italic' : 'focus:border-gold'}`}
+                        value={username}
+                        onChange={(e) =>
+                          !isEditMode &&
+                          setUsername(
+                            e.target.value
+                              .toLowerCase()
+                              .replace(/[^a-z0-9._]/g, ''),
+                          )
+                        }
+                        required
+                      />
                     </div>
                   </div>
 
-                  {/* NOME + WHATSAPP EM LINHA */}
                   <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
                     <div className="space-y-1.5">
                       <label className="text-editorial-label text-petroleum">
@@ -362,10 +374,10 @@ export default function OnboardingForm({
                           strokeWidth={2}
                           className="inline mr-1.5"
                         />{' '}
-                        Nome Completo <span className="text-gold">*</span>
+                        Nome Completo
                       </label>
                       <input
-                        className="w-full px-3 h-10 bg-white border border-slate-200 rounded-luxury text-editorial-ink text-[13px] font-medium outline-none focus:border-gold transition-all"
+                        className="w-full px-3 h-10 border border-slate-200 rounded-luxury text-[13px] outline-none focus:border-gold"
                         value={fullName}
                         onChange={(e) => setFullName(e.target.value)}
                         required
@@ -381,7 +393,7 @@ export default function OnboardingForm({
                         WhatsApp
                       </label>
                       <input
-                        className="w-full px-3 h-10 bg-white border border-slate-200 rounded-luxury text-editorial-ink text-[13px] font-medium outline-none focus:border-gold transition-all"
+                        className="w-full px-3 h-10 border border-slate-200 rounded-luxury text-[13px] outline-none focus:border-gold"
                         value={phone}
                         onChange={(e) => setPhone(maskPhone(e))}
                         placeholder="(00) 00000-0000"
@@ -391,48 +403,31 @@ export default function OnboardingForm({
                 </div>
               </FormSection>
 
-              {/* SEÇÃO 2: PRESENÇA DIGITAL */}
+              {/* SEÇÃO 2: PRESENÇA DIGITAL (Trava: profileLevel) */}
               <FormSection title="Presença Digital" icon={<Globe size={14} />}>
                 <div className="space-y-4">
                   <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
-                    <PlanGuard
-                      feature="profileLevel"
-                      label="Website"
-                      onClickLocked={() => setUpsellFeature('profileLevel')}
-                    >
+                    <PlanGuard feature="profileLevel" label="Website">
                       <div className="space-y-1.5">
                         <label className="text-editorial-label text-petroleum">
-                          <Globe
-                            size={12}
-                            strokeWidth={2}
-                            className="inline mr-1.5"
-                          />{' '}
-                          Website
+                          <Globe size={12} className="inline mr-1.5" /> Website
                         </label>
                         <input
-                          className="w-full px-3 h-10 bg-white border border-slate-200 rounded-luxury text-editorial-ink text-[13px] font-medium outline-none focus:border-gold transition-all"
+                          className="w-full px-3 h-10 border border-slate-200 rounded-luxury text-[13px]"
                           value={website}
                           onChange={(e) => setWebsite(e.target.value)}
                           placeholder="seusite.com"
                         />
                       </div>
                     </PlanGuard>
-                    <PlanGuard
-                      feature="profileLevel"
-                      label="Instagram"
-                      onClickLocked={() => setUpsellFeature('profileLevel')}
-                    >
+                    <PlanGuard feature="profileLevel" label="Instagram">
                       <div className="space-y-1.5">
                         <label className="text-editorial-label text-petroleum">
-                          <Instagram
-                            size={12}
-                            strokeWidth={2}
-                            className="inline mr-1.5"
-                          />{' '}
+                          <Instagram size={12} className="inline mr-1.5" />{' '}
                           Instagram
                         </label>
                         <input
-                          className="w-full px-3 h-10 bg-white border border-slate-200 rounded-luxury text-editorial-ink text-[13px] font-medium outline-none focus:border-gold transition-all"
+                          className="w-full px-3 h-10 border border-slate-200 rounded-luxury text-[13px]"
                           value={instagram}
                           onChange={(e) => setInstagram(e.target.value)}
                           placeholder="@seu.perfil"
@@ -441,180 +436,237 @@ export default function OnboardingForm({
                     </PlanGuard>
                   </div>
 
-                  <div className="space-y-1.5">
-                    <label className="text-editorial-label text-petroleum">
-                      <ImageIcon
-                        size={12}
-                        strokeWidth={2}
-                        className="inline mr-1.5"
-                      />{' '}
-                      Foto de capa do Perfil
-                    </label>
-                    <input
-                      type="hidden"
-                      name="background_url_existing"
-                      value={initialData?.background_url || ''}
-                    />
-                    <input
-                      type="file"
-                      name="background_images"
-                      ref={bgInputRef}
-                      className="hidden"
-                      accept="image/*"
-                      multiple={profileCarouselLimit > 1} // 🛡️ Ativa seleção múltipla se o plano permitir
-                      onChange={(e) => {
-                        const files = Array.from(e.target.files || []);
-                        if (files.length > profileCarouselLimit) {
-                          setToastConfig({
-                            message: `Seu plano permite no máximo ${profileCarouselLimit} imagens de fundo.`,
-                            type: 'error',
-                          });
-                          return;
-                        }
-                        // Lógica para setar múltiplos previews...
-                        setBgFiles(files);
-                        const previews = files.map((file) =>
-                          URL.createObjectURL(file),
-                        );
-                        setBgPreviews(previews);
-                      }}
-                    />
-                    <button
-                      type="button"
-                      onClick={() => bgInputRef.current?.click()}
-                      className="btn-luxury-base w-full bg-slate-50 border-dashed justify-between"
-                    >
-                      <div className="flex flex-col items-start min-w-0">
-                        <span className="text-editorial-label text-petroleum truncate w-full">
-                          {bgFile ? bgFile.name : 'Alterar Imagem de Fundo'}
+                  {/* CARROSSEL DE CAPA (Trava: profileCarouselLimit) */}
+                  <PlanGuard
+                    feature="profileCarouselLimit"
+                    label="Personalização de Capa"
+                  >
+                    <div className="space-y-2 pt-2 border-t border-slate-100">
+                      <label className="text-editorial-label text-petroleum flex items-center justify-between">
+                        <span className="flex items-center">
+                          <ImageIcon size={12} className="inline mr-1.5" />
+                          Capa do Perfil
                         </span>
-                        {!bgFile && (
-                          <span className="text-[9px] text-editorial-gray uppercase tracking-luxury">
-                            Recomendado: 1920x1080px (Máx 2MB)
-                          </span>
-                        )}
-                      </div>
-                      {bgPreview && (
-                        <div className="w-8 h-8 rounded-[0.3rem] overflow-hidden border border-slate-200 shrink-0 shadow-sm group-hover:scale-110 transition-transform">
-                          <img
-                            src={bgPreview}
-                            alt="Preview fundo"
-                            className="w-full h-full object-cover"
-                          />
+                        <span className="text-[9px] font-bold text-gold uppercase tracking-tighter">
+                          {planKey === 'FREE'
+                            ? 'Sorteio Automático'
+                            : `Até ${profileCarouselLimit} fotos`}
+                        </span>
+                      </label>
+
+                      <input
+                        type="file"
+                        ref={bgInputRef}
+                        className="hidden"
+                        accept="image/*"
+                        multiple={profileCarouselLimit > 1}
+                        onChange={(e) => {
+                          const files = Array.from(e.target.files || []);
+                          if (files.length > profileCarouselLimit) {
+                            setToastConfig({
+                              message: `Seu plano permite no máximo ${profileCarouselLimit} imagens.`,
+                              type: 'error',
+                            });
+                            e.target.value = '';
+                            return;
+                          }
+                          setBgFiles(files);
+                        }}
+                      />
+
+                      <button
+                        type="button"
+                        disabled={planKey === 'FREE'}
+                        onClick={() => bgInputRef.current?.click()}
+                        className={`btn-luxury-base w-full bg-slate-50 border-dashed min-h-[50px] flex-wrap justify-between ${
+                          planKey === 'FREE'
+                            ? 'opacity-60 cursor-not-allowed'
+                            : ''
+                        }`}
+                      >
+                        <span className="text-editorial-label text-petroleum">
+                          {bgFiles.length > 0
+                            ? `${bgFiles.length} selecionadas`
+                            : 'Alterar Imagens de Capa'}
+                        </span>
+                        <div className="flex gap-1 ml-2">
+                          {activeBackgrounds.map((src, i) => (
+                            <div
+                              key={i}
+                              className="w-8 h-8 rounded-[0.3rem] overflow-hidden border border-slate-200 shadow-sm"
+                            >
+                              <img
+                                src={src}
+                                className="w-full h-full object-cover"
+                                alt={`Preview ${i}`}
+                              />
+                            </div>
+                          ))}
                         </div>
+                      </button>
+
+                      {planKey === 'FREE' && (
+                        <p className="text-[10px] text-petroleum italic">
+                          No plano gratuito a capa é dinâmica e profissional por
+                          padrão.
+                        </p>
                       )}
-                    </button>
-                  </div>
+                    </div>
+                  </PlanGuard>
                 </div>
               </FormSection>
 
-              {/* SEÇÃO 3: BIO & CONTATO */}
-              <FormSection title="Mini Biografia" icon={<FileText size={14} />}>
-                <div className="space-y-3">
+              {/* SEÇÃO 3: BIO (Trava: profileLevel) */}
+              <PlanGuard feature="profileLevel" label="Biografia Editorial">
+                <FormSection
+                  title="Mini Biografia"
+                  icon={<FileText size={14} />}
+                >
                   <div className="space-y-1.5">
                     <textarea
-                      className="w-full px-3 py-2 bg-white border border-slate-200 rounded-luxury text-editorial-ink text-[13px] font-medium outline-none focus:border-gold transition-all resize-none"
+                      className="w-full px-3 py-2 h-40 bg-white border border-slate-200 rounded-luxury text-[13px] outline-none focus:border-gold transition-all resize-none"
                       value={miniBio}
-                      maxLength={bioLimit} // 🛡️ Trava dinâmica
+                      maxLength={bioLimit}
                       onChange={(e) => setMiniBio(e.target.value)}
-                      required
-                      rows={4}
-                      placeholder="Conte um pouco sobre sua trajetória profissional..."
+                      placeholder="Sua trajetória profissional..."
                     />
-                    <div className="flex justify-between items-center mb-1">
+                    <div className="flex justify-between items-center">
                       <span
-                        className={`text-[9px] font-semibold uppercase tracking-luxury ${miniBio.length >= bioLimit ? 'text-gold' : 'text-editorial-gray'}`}
+                        className={`text-[9px] font-bold uppercase ${miniBio.length >= bioLimit ? 'text-gold' : 'text-slate-400'}`}
                       >
                         {miniBio.length} / {bioLimit}
                       </span>
-                      {miniBio.length >= bioLimit && planKey !== 'PREMIUM' && (
-                        <span className="text-[8px] text-gold font-bold uppercase animate-pulse">
-                          Faça upgrade para aumentar sua Bio
+                    </div>
+                  </div>
+                </FormSection>
+              </PlanGuard>
+
+              {/* SEÇÃO 4: ÁREA DE ATUAÇÃO (Trava: profileLevel) */}
+              <PlanGuard feature="profileLevel" label="Cidades de Atuação">
+                <FormSection
+                  title="Cidades de Atuação"
+                  icon={<MapPin size={14} />}
+                >
+                  <div className="space-y-3">
+                    <div className="flex flex-wrap gap-2">
+                      {selectedCities.map((city) => (
+                        <span
+                          key={city}
+                          className="bg-slate-50 border border-slate-200 text-petroleum text-[9px] font-bold px-2.5 py-1.5 rounded-luxury flex items-center gap-2 uppercase tracking-widest"
+                        >
+                          {city}{' '}
+                          <X
+                            size={12}
+                            className="cursor-pointer hover:text-red-500"
+                            onClick={() =>
+                              setSelectedCities(
+                                selectedCities.filter((c) => c !== city),
+                              )
+                            }
+                          />
                         </span>
-                      )}
-                    </div>
-                  </div>
-                </div>
-              </FormSection>
-
-              {/* SEÇÃO 4: ÁREA DE ATUAÇÃO */}
-              <FormSection title="Área de Atuação" icon={<MapPin size={14} />}>
-                <div className="space-y-3">
-                  <div className="flex flex-wrap gap-2">
-                    {selectedCities.map((city) => (
-                      <span
-                        key={city}
-                        className="bg-slate-50 border border-slate-200 text-petroleum text-[9px] font-medium px-2.5 py-1.5 rounded-luxury flex items-center gap-2 shadow-sm uppercase tracking-luxury"
-                      >
-                        {city}
-                        <X
-                          size={12}
-                          className="cursor-pointer text-editorial-gray hover:text-red-500 transition-colors"
-                          onClick={() =>
-                            setSelectedCities(
-                              selectedCities.filter((c) => c !== city),
-                            )
-                          }
-                        />
-                      </span>
-                    ))}
-                  </div>
-                  <div className="flex gap-2">
-                    <select
-                      value={selectedUF}
-                      onChange={(e) => {
-                        setSelectedUF(e.target.value);
-                        setCityInput('');
-                        setSuggestions([]);
-                      }}
-                      className="w-20 bg-slate-50 border border-slate-200 rounded-luxury px-2 h-10 text-xs font-semibold outline-none focus:border-gold transition-all"
-                    >
-                      <option value="">UF</option>
-                      {states.map((uf) => (
-                        <option key={uf.sigla} value={uf.sigla}>
-                          {uf.sigla}
-                        </option>
                       ))}
-                    </select>
-                    <div className="relative flex-grow">
-                      <input
-                        disabled={!selectedUF}
-                        value={cityInput}
-                        onChange={(e) => setCityInput(e.target.value)}
-                        className="w-full px-3 h-10 bg-white border border-slate-200 rounded-luxury text-editorial-ink text-[13px] font-medium outline-none focus:border-gold transition-all"
-                        placeholder="Digite a cidade..."
-                      />
-                      {suggestions.length > 0 && (
-                        <div className="absolute z-[100] w-full bg-white border border-slate-200 rounded-luxury bottom-full mb-2 shadow-2xl max-h-48 overflow-y-auto no-scrollbar animate-in fade-in slide-in-from-bottom-2 duration-200">
-                          {suggestions.map((city) => (
-                            <button
-                              key={city}
-                              type="button"
-                              onClick={() => handleSelectCity(city)}
-                              className="w-full text-left px-4 py-3 text-editorial-label hover:bg-slate-50 border-b border-slate-100 last:border-0 transition-colors text-petroleum"
-                            >
-                              {city}
-                            </button>
-                          ))}
-                        </div>
-                      )}
+                    </div>
+                    <div className="flex gap-2">
+                      <select
+                        value={selectedUF}
+                        onChange={(e) => {
+                          setSelectedUF(e.target.value);
+                          setCityInput('');
+                        }}
+                        className="w-20 bg-slate-50 border border-slate-200 rounded-luxury px-2 h-10 text-xs font-bold"
+                      >
+                        <option value="">UF</option>
+                        {states.map((uf) => (
+                          <option key={uf.sigla} value={uf.sigla}>
+                            {uf.sigla}
+                          </option>
+                        ))}
+                      </select>
+                      <div className="relative flex-grow">
+                        <input
+                          disabled={!selectedUF}
+                          value={cityInput}
+                          onChange={(e) => setCityInput(e.target.value)}
+                          className="w-full px-3 h-10 border border-slate-200 rounded-luxury text-[13px]"
+                          placeholder="Digite a cidade..."
+                        />
+                        {suggestions.length > 0 && (
+                          <div className="absolute z-[100] w-full bg-white border border-slate-200 rounded-luxury bottom-full mb-2 shadow-2xl max-h-48 overflow-y-auto">
+                            {suggestions.map((city) => (
+                              <button
+                                key={city}
+                                type="button"
+                                onClick={() => handleSelectCity(city)}
+                                className="w-full text-left px-4 py-3 text-[10px] uppercase font-bold hover:bg-slate-50 border-b last:border-0"
+                              >
+                                {city}
+                              </button>
+                            ))}
+                          </div>
+                        )}
+                      </div>
                     </div>
                   </div>
-                </div>
-              </FormSection>
+                </FormSection>
+              </PlanGuard>
 
-              {/* BOTÕES DE AÇÃO - Integrados ao formulário */}
-              <div className="flex items-center justify-end gap-4 pb-8">
+              {/* SEÇÃO 5: CONFORMIDADE */}
+              {!acceptTerms && (
+                <FormSection
+                  title="Termos e Privacidade"
+                  icon={<ShieldCheck size={14} />}
+                >
+                  <div className="space-y-4 py-2">
+                    <div className="flex items-start gap-3">
+                      <input
+                        type="checkbox"
+                        checked={acceptTerms}
+                        onChange={(e) => setAcceptTerms(e.target.checked)}
+                        className="h-4 w-4 rounded border-slate-300 text-gold focus:ring-gold"
+                      />
+                      <label className="text-[11px] text-petroleum/80 font-medium">
+                        Li e aceito os{' '}
+                        <button
+                          type="button"
+                          onClick={() => setShowTermsModal(true)}
+                          className="text-gold underline"
+                        >
+                          Termos de Serviço
+                        </button>
+                      </label>
+                    </div>
+                    <div className="flex items-start gap-3">
+                      <input
+                        type="checkbox"
+                        checked={acceptPrivacy}
+                        onChange={(e) => setAcceptPrivacy(e.target.checked)}
+                        className="h-4 w-4 rounded border-slate-300 text-gold focus:ring-gold"
+                      />
+                      <label className="text-[11px] text-petroleum/80 font-medium">
+                        Concordo com a{' '}
+                        <button
+                          type="button"
+                          onClick={() => setShowPrivacyModal(true)}
+                          className="text-gold underline"
+                        >
+                          Política de Privacidade
+                        </button>
+                      </label>
+                    </div>
+                  </div>
+                </FormSection>
+              )}
+              {/* BOTÕES */}
+              <div className="flex flex-row items-center justify-end gap-4 p-4 bg-petroleum ">
                 <button
                   type="button"
-                  onClick={() =>
-                    navigate('/dashboard', 'Cancelando alterações...')
-                  }
-                  disabled={isSaving || isGlobalNavigating}
+                  onClick={() => navigate('/dashboard')}
                   className="btn-secondary-white"
                 >
-                  {isGlobalNavigating ? 'SAINDO...' : 'CANCELAR'}
+                  CANCELAR
                 </button>
+
                 <SubmitButton
                   form="onboarding-form"
                   success={showSuccessModal}
@@ -628,6 +680,7 @@ export default function OnboardingForm({
           </div>
         </aside>
 
+        {/* PREVIEW */}
         <main className="w-full md:w-[65%] min-h-[600px] md:h-screen bg-black relative flex-grow overflow-y-auto">
           <ProfilePreview
             initialData={{
@@ -639,12 +692,21 @@ export default function OnboardingForm({
               avatar_url: photoPreview,
               cities: selectedCities,
               website,
-              background_url: bgPreview,
+              background_url: activeBackgrounds, // Passa o carrossel/capa filtrado para o preview
             }}
           />
         </main>
       </div>
-      {/* 🎯 MODAL DE SUCESSO PADRONIZADO */}
+
+      {/* MODAIS */}
+      <TermsOfServiceModal
+        isOpen={showTermsModal}
+        onClose={() => setShowTermsModal(false)}
+      />
+      <PrivacyPolicyModal
+        isOpen={showPrivacyModal}
+        onClose={() => setShowPrivacyModal(false)}
+      />
       <BaseModal
         isOpen={showSuccessModal}
         onClose={() => setShowSuccessModal(false)}
@@ -658,20 +720,22 @@ export default function OnboardingForm({
         }
         footer={
           <div className="flex flex-col gap-3">
-            <div className="flex flex-row gap-3 w-full">
+            {/* Linha Única: Ações Principais com Larguras Iguais via Grid */}
+            <div className="grid grid-cols-2 gap-3 w-full items-center">
               <button
                 onClick={() => {
                   navigate('/dashboard', 'Abrindo seu espaço...');
                 }}
-                className="btn-secondary-white flex-1"
+                className="btn-secondary-white w-full text-[10px]"
               >
-                Ir para o Espaço de Galerias
+                {/* ArrowLeft se disponível nos seus imports, ou mantenha o padrão */}
+                Ir para Dashboard
               </button>
 
               <a
                 href={`/${username}`}
                 target="_blank"
-                className="btn-luxury-primary flex-1"
+                className="btn-luxury-primary w-full text-[10px]"
               >
                 <Sparkles size={14} /> Ver Perfil Público
               </a>
@@ -687,7 +751,7 @@ export default function OnboardingForm({
           <div className="p-4 bg-slate-50 border border-petroleum/10 rounded-luxury">
             <p className="text-[10px] font-semibold text-petroleum/80 text-center uppercase tracking-luxury">
               Dica: Você pode alterar sua foto de capa e mini bio a qualquer
-              momento.
+              momento, desde que o seu plano permita.
             </p>
           </div>
         </div>

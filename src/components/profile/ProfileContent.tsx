@@ -21,7 +21,7 @@ interface ProfileContentProps {
   website?: string;
   photoPreview: string | null;
   cities: string[];
-  backgroundUrl?: string;
+  backgroundUrl?: string | string[];
   useSubdomain?: boolean;
 }
 
@@ -48,11 +48,16 @@ export default function PhotographerContent({
   const [hasMore, setHasMore] = useState(false);
   const [loadingMore, setLoadingMore] = useState(false);
 
-  const activeBackground = useMemo(() => {
-    if (planKey === 'FREE') {
-      return 'https://images.unsplash.com/photo-1493863641943-9b68992a8d07?q=80&w=2058';
-    }
-    return backgroundUrl;
+  // Lógica de Backgrounds
+  const activeBackgrounds = useMemo(() => {
+    // Se for FREE, enviamos vazio para o EditorialHero usar os DEFAULT_HEROS internos
+    if (planKey === 'FREE') return [];
+
+    // Se não houver URL customizada, retorna vazio (o Hero tratará o fallback)
+    if (!backgroundUrl) return [];
+
+    // Normaliza para array (suporta legado de string única e novo formato de array)
+    return Array.isArray(backgroundUrl) ? backgroundUrl : [backgroundUrl];
   }, [planKey, backgroundUrl]);
 
   const showCities = !['FREE', 'START'].includes(planKey);
@@ -113,7 +118,7 @@ export default function PhotographerContent({
     <div className="relative min-h-screen bg-white font-sans overflow-x-hidden">
       <EditorialHero
         title={fullName}
-        coverUrls={activeBackground ? [activeBackground] : []}
+        coverUrls={activeBackgrounds}
         sideElement={
           <PhotographerAvatar
             photoPreview={photoPreview}
@@ -138,7 +143,6 @@ export default function PhotographerContent({
           cities={showCities ? cities : []}
           username={username}
           useSubdomain={photographerData.use_subdomain}
-          isHovered={isHovered}
         />
       </div>
 
@@ -196,7 +200,7 @@ export default function PhotographerContent({
                   {(planKey === 'FREE' || planKey === 'START') && (
                     <p className="text-petroleum text-[11px] uppercase tracking-luxury-widest max-w-lg mx-auto leading-relaxed">
                       Este {terms.singular} utiliza o app
-                      <span className="font-bold">{terms.site_name}</span> para
+                      <span className="font-bold"> {terms.site_name}</span> para
                       suas entregas.
                     </p>
                   )}

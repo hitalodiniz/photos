@@ -38,7 +38,7 @@ export const InfoTooltip = ({
       {/* Balão do Tooltip (Tema Baseado no Toast) */}
       <div
         className={`
-        absolute bottom-full mb-2 z-[100]
+        absolute bottom-full mb-2 z-[1004]
         ${width} ${alignClasses[align]}
         p-3 bg-white text-petroleum text-[10px] font-medium leading-relaxed 
         rounded-lg opacity-0 pointer-events-none 

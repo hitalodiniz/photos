@@ -1,5 +1,6 @@
 import { useState } from 'react';
 import type { Galeria } from '@/core/types/galeria';
+import type { Profile } from '@/core/types/profile';
 import {
   moveToTrash,
   restoreGaleria,
@@ -15,19 +16,10 @@ import {
 } from '@/actions/revalidate.actions';
 import { authService } from '@photos/core-auth';
 
-interface PhotographerProfile {
-  id: string;
-  username: string;
-  full_name: string;
-  google_refresh_token?: string | null;
-  sidebar_collapsed?: boolean;
-  mini_bio?: string | null;
-}
-
 export function useDashboardActions(
   galerias: Galeria[],
   setGalerias: React.Dispatch<React.SetStateAction<Galeria[]>>,
-  photographer: PhotographerProfile | null,
+  photographer: Profile | null,
   setToast: (
     toast: { message: string; type: 'success' | 'error' } | null,
   ) => void,

@@ -93,20 +93,13 @@ export default function UserMenu({ session, avatarUrl }: UserMenuProps) {
         <div
           className={`${sizeClass} rounded-full overflow-hidden relative flex-shrink-0 ${borderStyle} transition-transform hover:scale-105`}
         >
-          <Image
-            src={displayAvatar}
-            alt="Avatar"
-            fill
-            className="object-cover"
-            sizes="100px"
-            priority
-          />
+          <img src={displayAvatar} alt="Avatar" className="object-cover" />
         </div>
       );
     }
     return (
       <div
-        className={`${sizeClass} rounded-full bg-white text-petroleum flex items-center justify-center ${textClass} font-bold ${borderStyle} transition-transform hover:scale-105 shadow-[0_0_15px_rgba(212,175,55,0.2)]`}
+        className={`${sizeClass} rounded-full bg-white text-petroleum flex items-center justify-center ${textClass} font-semibold ${borderStyle} transition-transform hover:scale-105 shadow-[0_0_15px_rgba(212,175,55,0.2)]`}
       >
         {initialLetter}
       </div>
@@ -135,10 +128,10 @@ export default function UserMenu({ session, avatarUrl }: UserMenuProps) {
                 </div>
                 <div className="absolute bottom-0 right-0 w-6 h-6 bg-green-500 border-4 border-white rounded-full shadow-sm" />
               </div>
-              <h3 className="text-base font-bold text-petroleum truncate w-full tracking-luxury-tight">
+              <h3 className="text-base font-semibold text-petroleum truncate w-full tracking-luxury-tight">
                 {fullName}
               </h3>
-              <p className="text-[11px] text-editorial-gray truncate w-full font-bold tracking-luxury mt-1 uppercase">
+              <p className="text-[11px] text-editorial-gray truncate w-full font-semibold tracking-luxury mt-1 uppercase">
                 {userEmail}
               </p>
             </div>

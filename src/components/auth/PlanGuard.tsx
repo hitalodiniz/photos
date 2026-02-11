@@ -11,11 +11,13 @@ import { usePlan } from '@/core/context/PlanContext';
 import { Lock, Sparkles } from 'lucide-react';
 import UpgradeModal from '../ui/UpgradeModal';
 import { useSegment } from '@/hooks/useSegment';
+import { InfoTooltip } from '../ui/InfoTooltip';
 
 interface PlanGuardProps {
   feature: keyof PlanPermissions;
   children: React.ReactNode;
   label?: string;
+  infoExtra?: string;
   scenarioType?: 'limit' | 'feature';
   forceShowLock?: boolean;
   variant?: 'default' | 'mini';
@@ -25,12 +27,13 @@ export function PlanGuard({
   feature,
   children,
   label,
+  infoExtra,
   scenarioType = 'feature',
   forceShowLock = false,
   variant = 'default',
 }: PlanGuardProps) {
   const { planKey, permissions } = usePlan();
-  const { terms, segment } = useSegment();
+  const { segment } = useSegment();
   const [isUpgradeModalOpen, setIsUpgradeModalOpen] = useState(false);
 
   const featureInfo = FEATURE_DESCRIPTIONS[feature];
@@ -63,20 +66,19 @@ export function PlanGuard({
 
   return (
     <>
-      {/* 🎯 Ajuste: Se for mini, removemos padding, bordas e fundo do container */}
       <div
-        className={`relative overflow-hidden transition-all duration-500 ${
+        className={`relative transition-all duration-500 ${
           isMini
-            ? 'rounded-md' // No mini, apenas o arredondamento básico do input
+            ? 'rounded-md'
             : 'rounded-luxury border border-gold/20 p-4 bg-slate-50/10'
         }`}
       >
-        {/* 2. CAMADA DE CONTEÚDO */}
-        <div className="opacity-40 grayscale-[0.4] pointer-events-none select-none z-0">
+        {/* 1. CAMADA DE CONTEÚDO (BLOQUEADO) */}
+        <div className="opacity-40 grayscale-[0.4] pointer-events-none select-none z-0 overflow-hidden">
           {children}
         </div>
 
-        {/* 3. ESCUDO DE INTERCEPTAÇÃO SUPREMO */}
+        {/* 2. ESCUDO DE INTERCEPTAÇÃO SUPREMO */}
         <div
           data-testid="plan-guard-overlay"
           onClick={(e) => {
@@ -87,12 +89,22 @@ export function PlanGuard({
           className="absolute inset-0 z-[1001] cursor-pointer bg-transparent"
         />
 
-        {/* 4. UI DE BLOQUEIO */}
+        {/* 3. UI DE BLOQUEIO */}
+        {/* 🎯 Ajuste: Adicionado pointer-events-none no container pai, 
+            mas pointer-events-auto nos elementos internos que precisam de hover */}
         <div className="absolute inset-0 z-[1002] pointer-events-none flex items-center justify-center">
           {isMini ? (
-            // Mini Lock: Apenas o ícone com um leve brilho central
-            <div className="bg-white/80 backdrop-blur-sm p-1.5 rounded-full shadow-lg border border-gold/30">
-              <Lock size={10} className="text-gold" strokeWidth={3} />
+            <div className="flex items-center gap-2">
+              <div className="bg-white/80 backdrop-blur-sm p-1.5 rounded-full shadow-lg border border-gold/30">
+                <Lock size={10} className="text-gold" strokeWidth={3} />
+              </div>
+              {infoExtra && (
+                // 🎯 O container do tooltip precisa de pointer-events-auto
+                // para que o 'group-hover' do InfoTooltip funcione
+                <div className="animate-in fade-in zoom-in duration-300 z-[1004] pointer-events-auto">
+                  <InfoTooltip content={infoExtra} align="left" />
+                </div>
+              )}
             </div>
           ) : (
             <div className="flex flex-col items-center gap-2">
@@ -103,6 +115,11 @@ export function PlanGuard({
                 <span className="text-[11px] font-bold uppercase tracking-widest text-petroleum leading-tight drop-shadow-sm">
                   {displayLabel}
                 </span>
+                {infoExtra && (
+                  <span className="text-[9px] font-medium text-petroleum/60 mt-0.5 leading-tight italic">
+                    {infoExtra}
+                  </span>
+                )}
                 <span className="text-[10px] font-semibold text-gold mt-1 drop-shadow-sm text-center">
                   {upgradeMessage}
                 </span>
@@ -111,11 +128,11 @@ export function PlanGuard({
           )}
         </div>
 
-        {/* 5. BADGE DE PLANO: Menor e mais discreto no Mini */}
-        {requiredPlan && (
+        {/* 4. BADGE DE PLANO */}
+        {requiredPlan && !isMini && (
           <div
             className={`absolute z-[1003] flex items-center bg-petroleum rounded-full border border-gold/30 shadow-lg pointer-events-none
-            ${isMini ? 'top-1 right-1 px-1 py-0.5' : 'top-3 right-3 px-2.5 py-1'}`}
+            top-3 right-3 px-2.5 py-1`}
           >
             <Sparkles
               size={isMini ? 6 : 10}

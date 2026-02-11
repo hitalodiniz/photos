@@ -86,6 +86,15 @@ export default function Dashboard({
     }
   }, [searchParams, user, router, setShowConsentAlert]);
 
+  useEffect(() => {
+    // Se o perfil existe mas NÃO aceitou os termos, redireciona para onboarding
+    if (initialProfile && initialProfile.accepted_terms === false) {
+      // Usamos window.location para garantir que o estado do App seja resetado
+      // ou navigate se preferir a transição suave do seu provider
+      navigate('/onboarding', 'Concluindo sua configuração de segurança...');
+    }
+  }, [initialProfile, navigate]);
+
   // --- HANDLERS ---
   const handleConsentConfirm = async () => {
     try {

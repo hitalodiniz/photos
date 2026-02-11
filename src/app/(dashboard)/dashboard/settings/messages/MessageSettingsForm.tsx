@@ -1,30 +1,30 @@
 'use client';
 
-import { useState, useRef, useCallback, useMemo } from 'react';
-import { useForm } from 'react-hook-form';
-import { zodResolver } from '@hookform/resolvers/zod';
-import { z } from 'zod';
-import { useRouter } from 'next/navigation';
-import {
-  MessageSquare,
-  Settings,
-  RotateCcw,
-  Tag,
-  AlertCircle,
-} from 'lucide-react';
-
+// --- SCHEMAS E TIPOS ---
 import { MessageTemplates, MessageTemplatesSchema } from '@/core/types/profile';
+import { z } from 'zod';
+import React from 'react';
+import {
+  AlertCircle,
+  MessageSquare,
+  RotateCcw,
+  Settings,
+  Tag,
+} from 'lucide-react';
+import { useRouter } from 'next/navigation';
+import { useRef } from 'react';
+import { useSegment } from '@/hooks/useSegment';
+import { useState, useMemo, useCallback } from 'react';
+type EditableMessageKey = keyof Omit<MessageTemplates, 'CARD_SHARE'>;
 import { updateProfileSettings } from '@/core/services/profile.service';
 import { Toast } from '@/components/ui';
 import FormPageBase from '@/components/ui/FormPageBase';
-import BaseModal from '@/components/ui/BaseModal';
-import { GALLERY_MESSAGES } from '@/core/config/messages';
 import { PlanGuard } from '@/components/auth/PlanGuard';
-import { usePlan } from '@/core/context/PlanContext';
-import { useSegment } from '@/hooks/useSegment'; // 🎯 Import do Hook
 
-// --- SCHEMAS E TIPOS ---
-type EditableMessageKey = keyof Omit<MessageTemplates, 'CARD_SHARE'>;
+import { GALLERY_MESSAGES } from '@/core/config/messages';
+import { zodResolver } from '@hookform/resolvers/zod';
+import { useForm } from 'react-hook-form';
+import BaseModal from '@/components/ui/BaseModal';
 
 const CombinedSchema = z.object({
   message_templates: MessageTemplatesSchema,

@@ -1,7 +1,7 @@
-// Exemplo de caminho: src/features/galeria/GaleriaBasePage.tsx
 import React from 'react';
 import { notFound, redirect } from 'next/navigation';
 import { cookies } from 'next/headers';
+import Link from 'next/link';
 import {
   fetchGalleryBySlug,
   formatGalleryData,
@@ -18,6 +18,7 @@ import GoogleAuthError from '@/components/auth/GoogleAuthError';
 import PhotographerProfileBase from '@/components/profile/ProfileBase';
 import { PlanProvider } from '@/core/context/PlanContext';
 import { PlanKey } from '@/core/config/plans';
+import WhatsAppIcon from '@/components/ui/WhatsAppIcon';
 
 const MAIN_DOMAIN = (
   process.env.NEXT_PUBLIC_MAIN_DOMAIN || 'localhost:3000'
@@ -86,6 +87,71 @@ export default async function GaleriaBasePage({
   const photographerProfile = galeriaRaw.photographer;
   if (photographerProfile) {
     galeriaData.photographer = photographerProfile;
+  }
+
+  if (galeriaData.is_archived) {
+    return (
+      <div className="w-full min-h-[70vh] flex flex-col items-center justify-center px-6 py-20 text-center animate-in fade-in duration-1000">
+        {/* Ícone de Arquivo com Estilo Minimalista */}
+        <div className="w-px h-24 bg-gradient-to-b from-champagne/40 to-transparent mb-12" />
+
+        <div className="max-w-2xl space-y-8">
+          <h2 className="text-[10px] uppercase tracking-[0.3em] text-petroleum/60 font-bold">
+            Galeria Arquivada
+          </h2>
+
+          <h3 className="text-3xl md:text-4xl font-light text-petroleum leading-tight tracking-tight">
+            As memórias desta galeria foram guardadas em segurança.
+          </h3>
+
+          <p className="text-[13px] md:text-[15px] leading-relaxed text-petroleum/70 font-medium max-w-lg mx-auto italic">
+            Para solicitar o acesso novamente entre em contato diretamente com o
+            profissional.
+          </p>
+
+          <div className="w-12 h-px bg-gold/30 mx-auto mt-12" />
+
+          {/* Ações de Contato */}
+          <div className="flex flex-col md:flex-row items-center justify-center gap-4 pt-6">
+            {galeriaData.photographer?.phone_contact && (
+              <a
+                href={`https://wa.me/${galeriaData.photographer.phone_contact.replace(/\D/g, '')}?text=${encodeURIComponent(
+                  `Olá! Gostaria de solicitar o acesso à galeria arquivada:\n\n` +
+                    `*Título:* ${galeriaData.title}\n` +
+                    `*Data:* ${
+                      galeriaData.date && !isNaN(Date.parse(galeriaData.date))
+                        ? new Date(galeriaData.date).toLocaleDateString('pt-BR')
+                        : 'Não informada'
+                    }\n` +
+                    `*Link:* ${resolveGalleryUrl(
+                      galeriaData.photographer.username,
+                      fullSlug,
+                      !!galeriaData.photographer.use_subdomain,
+                      MAIN_DOMAIN,
+                      process.env.NODE_ENV === 'production' ? 'https' : 'http',
+                    )}\n\n` +
+                    `Como posso proceder?`,
+                )}`}
+                target="_blank"
+                className="btn-luxury-primary flex items-center gap-3 px-8 h-12 rounded-full text-[11px] uppercase font-bold tracking-widest"
+              >
+                <WhatsAppIcon className="w-4 h-4" />
+                Falar com o Profissional
+              </a>
+            )}
+
+            <Link
+              href={`/${galeriaData.photographer?.username}`}
+              className="px-8 h-12 rounded-full border border-petroleum/10 text-petroleum text-[11px] uppercase font-bold tracking-widest hover:bg-slate-50 transition-all flex items-center justify-center"
+            >
+              Visitar Perfil
+            </Link>
+          </div>
+        </div>
+
+        <div className="w-px h-24 bg-gradient-to-t from-champagne/40 to-transparent mt-20" />
+      </div>
+    );
   }
 
   // 🎯 LÓGICA DE ACESSO PROTEGIDO (Servidor)
@@ -160,8 +226,6 @@ export default async function GaleriaBasePage({
     );
   }
 
-  console.log('--- SERVER CHECK ---');
-  console.log('RAW PLAN:', planKey);
   return (
     <PlanProvider planKey={planKey as PlanKey}>
       <GaleriaView galeria={galeriaData} photos={photos} />

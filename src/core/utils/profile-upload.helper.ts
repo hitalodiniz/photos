@@ -79,19 +79,21 @@ export async function uploadBackgroundImages(
   userId: string,
   existingUrls: string[],
 ): Promise<string[]> {
-  // Se não há arquivos novos, retorna URLs existentes
-  if (files.length === 0 || files[0].size === 0) {
+  // 1. Filtra arquivos válidos (remove arquivos vazios ou mofados)
+  const validFiles = files.filter((file) => file && file.size > 0);
+
+  // 2. Se não há arquivos novos para subir, retorna apenas o que já existe
+  if (validFiles.length === 0) {
     return existingUrls;
   }
 
   const uploadedUrls: string[] = [];
 
-  for (const file of files) {
-    if (file.size === 0) continue;
-
+  // 3. Loop de Upload
+  for (const file of validFiles) {
     const result = await uploadFile(
       supabase,
-      'profile_pictures',
+      'profile_pictures', // 💡 Dica: Considere mudar o bucket para 'backgrounds' no futuro
       file,
       userId,
       'bg',
@@ -102,11 +104,15 @@ export async function uploadBackgroundImages(
     }
   }
 
-  // Se nenhum upload teve sucesso, retorna URLs existentes
-  if (uploadedUrls.length === 0) {
+  // 4. MESCLAGEM (O ponto crucial para o Carrossel)
+  // Retornamos as URLs que já estavam lá + as novas URLs que acabamos de subir
+  const finalArray = [...existingUrls, ...uploadedUrls];
+
+  // 5. Fallback de Segurança
+  // Se por algum erro bizarro o array final ficar vazio, mas existiam URLs antes, preserva as antigas
+  if (finalArray.length === 0 && existingUrls.length > 0) {
     return existingUrls;
   }
 
-  // Se houve sucesso, substitui as antigas pelas novas
-  return uploadedUrls;
+  return finalArray;
 }

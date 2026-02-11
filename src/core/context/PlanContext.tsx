@@ -105,9 +105,17 @@ export function PlanProvider({
     // Busca informações de marketing baseadas no segmento (Militante vs Fotógrafo)
     const planInfo = PLANS_BY_SEGMENT[activeSegment][currentKey];
 
+    const isTrial = profile?.is_trial ?? false;
+
+    // Se estiver em trial, injetamos isTrial nas permissões para consumo fácil
+    const finalPermissions: PlanPermissions = {
+      ...permissions,
+      isTrial,
+    };
+
     return {
       planKey: currentKey,
-      permissions,
+      permissions: finalPermissions,
       planInfo,
       segment: activeSegment,
       isPro: ['PRO', 'PREMIUM'].includes(currentKey),

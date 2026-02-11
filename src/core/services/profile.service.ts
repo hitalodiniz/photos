@@ -220,14 +220,19 @@ export async function upsertProfile(formData: FormData, supabaseClient?: any) {
     formFields.profile_picture_url_existing,
   );
 
+  // 📸 HERO CAROUSEL (Múltiplas imagens no campo background_url)
+  // Pegamos as URLs que o usuário manteve (já estão no Storage)
   const existingBgUrls = parseBackgroundUrls(
     formFields.background_urls_existing,
   );
+
+  // Fazemos upload das NOVAS imagens e mesclamos com as antigas
+  // O resultado 'background_urls' será o array final: string[]
   const background_urls = await uploadBackgroundImages(
     supabase,
-    formFields.background_images,
+    formFields.background_images, // Array de novos Files
     user.id,
-    existingBgUrls,
+    existingBgUrls, // Array de strings (URLs mantidas)
   );
 
   // 7. Normalizar telefone
@@ -243,7 +248,9 @@ export async function upsertProfile(formData: FormData, supabaseClient?: any) {
     website: formFields.website,
     operating_cities,
     profile_picture_url,
-    background_urls,
+    accepted_terms: formFields.accepted_terms,
+    accepted_at: formFields.accepted_terms ? new Date().toISOString() : null,
+    background_url: background_urls,
     updated_at: new Date().toISOString(),
   };
 
@@ -252,13 +259,9 @@ export async function upsertProfile(formData: FormData, supabaseClient?: any) {
     Object.assign(updateData, buildTrialData());
   }
 
-  // 10. Incluir background_url se fornecido (legacy)
-  if (
-    formFields.background_url !== undefined &&
-    formFields.background_url !== null
-  ) {
-    updateData.background_url = formFields.background_url;
-  }
+  // 10. (REMOVIDO LÓGICA LEGACY DE BACKGROUND ÚNICO - AGORA É SEMPRE ARRAY)
+  // O bloco anterior que sobrescrevia background_url se viesse como string foi removido
+  // pois background_urls já é o array correto.
 
   // 11. Executar update no banco
   const { error } = await supabase

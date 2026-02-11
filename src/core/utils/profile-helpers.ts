@@ -135,6 +135,11 @@ export function validateRequiredFields(formData: FormData): {
  * Extrai e normaliza dados do FormData
  */
 export function extractFormData(formData: FormData) {
+  // Pegamos as URLs que o usuário decidiu manter no carrossel (que já estavam lá)
+  const existingUrls = JSON.parse(
+    (formData.get('background_urls_existing') as string) || '[]',
+  );
+
   return {
     username: (formData.get('username') as string)?.toLowerCase().trim(),
     full_name: (formData.get('full_name') as string)?.trim(),
@@ -147,11 +152,17 @@ export function extractFormData(formData: FormData) {
     profile_picture_url_existing: formData.get(
       'profile_picture_url_existing',
     ) as string,
-    background_urls_existing: formData.get(
-      'background_urls_existing',
-    ) as string,
+
+    background_urls_existing: formData.get('background_urls_existing') as
+      | string
+      | null,
+
+    background_images: [] as File[], // Será preenchido abaixo
+
     profile_picture: formData.get('profile_picture') as File,
-    background_images: formData.getAll('background_images') as File[],
+
+    accepted_terms: formData.get('accepted_terms') === 'true',
+    accepted_at: new Date().toISOString(),
   };
 }
 

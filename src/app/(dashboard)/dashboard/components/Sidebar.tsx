@@ -7,6 +7,7 @@ import {
   ArrowLeft,
 } from 'lucide-react';
 import type { ViewType } from '../hooks/useDashboardFilters';
+import type { Profile } from '@/core/types/profile';
 import VersionInfo from '@/components/dashboard/VersionInfo';
 import SidebarGalerias from './SidebarGalerias';
 import SidebarStorage from './SidebarStorage';
@@ -25,11 +26,7 @@ interface SidebarProps {
   setCurrentView: (view: ViewType) => void;
   setCardsToShow: (count: number) => void;
   galeriasCount: number;
-  photographer: {
-    username: string;
-    google_refresh_token?: string | null;
-    roles?: string[];
-  } | null;
+  photographer: Profile | null;
   handleGoogleLogin: (force: boolean) => void;
   handleNovaGaleria: () => void;
   isRedirecting: boolean;

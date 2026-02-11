@@ -476,11 +476,6 @@ export default function GaleriaCard({
               {galeria.title}
             </h3>
           </div>
-          {galeria.cover_image_ids && galeria.cover_image_ids.length > 1 && (
-            <div className="absolute top-3 right-3 z-10 px-2 py-1 bg-black/60 backdrop-blur-md rounded-luxury border border-white/20 text-white text-[9px] font-bold flex items-center gap-1.5">
-              <Check size={10} className="text-gold" /> MULTI-CAPA
-            </div>
-          )}
         </div>
 
         <div className="flex flex-col p-3 space-y-2 bg-white">

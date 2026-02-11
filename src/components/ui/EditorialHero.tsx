@@ -1,35 +1,42 @@
 'use client';
-import React, { useState, useEffect, useMemo, useCallback } from 'react';
-import { ChevronDown, Maximize2 } from 'lucide-react';
+import React, { useState, useEffect, useMemo } from 'react';
+import { ChevronDown, ChevronUp, Maximize2 } from 'lucide-react';
 
 import { usePlan } from '@/core/context/PlanContext';
 import { Swiper, SwiperSlide } from 'swiper/react';
 import { Autoplay, EffectFade } from 'swiper/modules';
+
 // Import Swiper styles
 import 'swiper/css';
 import 'swiper/css/effect-fade';
 
 interface EditorialHeroProps {
   title: string;
-  coverUrls?: string[]; // Alterado para array para suportar carrossel
+  coverUrls?: string | string[]; // Suporta string (legado) ou array
   sideElement?: React.ReactNode;
   children: React.ReactNode;
 }
 
-const DEFAULT_HEROS = [
-  '/hero-bg-1.webp',
-  '/hero-bg-2.webp',
-  '/hero-bg-3.webp',
-  '/hero-bg-4.webp',
-  '/hero-bg-5.webp',
-  '/hero-bg-6.webp',
-  '/hero-bg-7.webp',
-  '/hero-bg-8.webp',
-  '/hero-bg-9.webp',
-  '/hero-bg-10.webp',
-  '/hero-bg-11.webp',
-  '/hero-bg-12.webp',
-];
+import { useSegment } from '@/hooks/useSegment';
+
+const SEGMENT_ASSETS = {
+  PHOTOGRAPHER: {
+    path: '/heros/photographer/',
+    count: 12,
+  },
+  EVENT: {
+    path: '/heros/event/',
+    count: 3,
+  },
+  OFFICE: {
+    path: '/heros/office/',
+    count: 2,
+  },
+  CAMPAIGN: {
+    path: '/heros/campaign/',
+    count: 2,
+  },
+};
 
 export const EditorialHero = ({
   title,
@@ -37,28 +44,44 @@ export const EditorialHero = ({
   sideElement,
   children,
 }: EditorialHeroProps) => {
-  const { planKey } = usePlan();
+  const { planKey, permissions } = usePlan();
+  const { segment } = useSegment();
   const [isExpanded, setIsExpanded] = useState(true);
   const [isImageLoaded, setIsImageLoaded] = useState(false);
 
-  // 🛡️ 1. Lógica de Seleção de Imagens baseada no Plano
+  // 🛡️ 1. Lógica de Normalização e Seleção baseada no Plano
   const finalImages = useMemo(() => {
-    if (planKey === 'FREE') {
-      const index = title ? title.length % DEFAULT_HEROS.length : 0;
-      return [DEFAULT_HEROS[index]];
+    // Normaliza para Array (trata o legado de string única)
+    const normalizedUrls = Array.isArray(coverUrls)
+      ? coverUrls
+      : typeof coverUrls === 'string' && coverUrls
+        ? [coverUrls]
+        : [];
+
+    if (planKey === 'FREE' || normalizedUrls.length === 0) {
+      // 1. Busca configuração do segmento atual
+      const config =
+        SEGMENT_ASSETS[segment as keyof typeof SEGMENT_ASSETS] ||
+        SEGMENT_ASSETS.PHOTOGRAPHER;
+
+      // 2. Gera um número aleatório entre 1 e o total de fotos (count) baseado no título
+      const seed = title ? title.length : Math.floor(Math.random() * 100);
+      const index = (seed % config.count) + 1;
+
+      // 3. Monta o caminho final (ex: /heros/campaign/2.webp)
+      return [`${config.path}${index}.webp`];
     }
 
-    // REGRA PRO/PREMIUM: Carrossel (Limite de 3 ou 5)
-    if (planKey === 'PREMIUM') return coverUrls.slice(0, 5);
-    if (planKey === 'PRO') return coverUrls.slice(0, 3);
+    // Usa o limite definido nas permissões do plano (CarouselLimit)
+    const limit = permissions?.profileCarouselLimit || 1;
+    return normalizedUrls.slice(0, limit);
+  }, [coverUrls, planKey, title, permissions]);
 
-    // REGRA START/PLUS: Imagem única (primeira do array do usuário)
-    return coverUrls.slice(0, 1);
-  }, [coverUrls, planKey, title]);
-
+  // Só ativa o carrossel se houver mais de uma imagem E o plano permitir
   const isCarousel =
     finalImages.length > 1 && (planKey === 'PRO' || planKey === 'PREMIUM');
 
+  // Efeitos de Expansão (Scroll e Timer)
   useEffect(() => {
     const timer = setTimeout(() => setIsExpanded(false), 5000);
     return () => clearTimeout(timer);
@@ -72,14 +95,15 @@ export const EditorialHero = ({
     return () => window.removeEventListener('scroll', handleScroll);
   }, [isExpanded]);
 
+  // Força o carregamento para evitar tela preta em fallbacks
   useEffect(() => {
-    if (planKey === 'FREE') {
-      const timer = setTimeout(() => {
-        if (!isImageLoaded) setIsImageLoaded(true);
-      }, 3000);
-      return () => clearTimeout(timer);
+    if (finalImages.length > 0) {
+      const img = new Image();
+      img.src = finalImages[0];
+      img.onload = () => setIsImageLoaded(true);
+      img.onerror = () => setIsImageLoaded(true);
     }
-  }, [planKey, isImageLoaded]);
+  }, [finalImages]);
 
   return (
     <section
@@ -87,9 +111,11 @@ export const EditorialHero = ({
         isExpanded ? 'h-screen' : 'h-[32vh] md:h-[45vh]'
       }`}
     >
-      {/* 🖼️ BACKGROUND: IMAGEM ÚNICA OU CARROSSEL */}
+      {/* 🖼️ BACKGROUND LAYER */}
       <div
-        className={`absolute inset-0 transition-all duration-[2000ms] ease-out ${isImageLoaded ? 'opacity-100 scale-100' : 'opacity-0 scale-110'}`}
+        className={`absolute inset-0 transition-all duration-[2000ms] ease-out ${
+          isImageLoaded ? 'opacity-100 scale-100' : 'opacity-0 scale-110'
+        }`}
       >
         {!isCarousel ? (
           <div
@@ -97,26 +123,16 @@ export const EditorialHero = ({
             style={{
               backgroundImage: `url('${finalImages[0]}')`,
               backgroundPosition: 'center 40%',
-              // Garante visibilidade imediata se já estiver carregada
-              opacity: isImageLoaded ? 1 : 0,
             }}
-          >
-            <img
-              src={finalImages[0]}
-              className="hidden"
-              onLoad={() => setIsImageLoaded(true)}
-              onError={() => setIsImageLoaded(true)} // Força exibição mesmo em erro para não ficar tela preta
-              alt=""
-            />
-          </div>
+          />
         ) : (
           <Swiper
             modules={[Autoplay, EffectFade]}
             effect="fade"
-            autoplay={{ delay: 6000 }}
+            autoplay={{ delay: 6000, disableOnInteraction: false }}
             loop={true}
+            speed={2000} // Transição suave entre as fotos
             className="w-full h-full"
-            onSwiper={() => setIsImageLoaded(true)}
           >
             {finalImages.map((url, i) => (
               <SwiperSlide key={i}>
@@ -133,11 +149,14 @@ export const EditorialHero = ({
         )}
       </div>
 
-      <div className="absolute inset-0 bg-black/40" />
+      {/* Overlay Dark Gradiente */}
+      <div className="absolute inset-0 bg-gradient-to-t from-black/80 via-black/20 to-transparent md:bg-black/40" />
 
-      {/* CONTEÚDO (Avatar, Nome, Bio) */}
+      {/* CONTEÚDO */}
       <div
-        className={`relative h-full flex flex-col transition-all duration-[1200ms] max-w-[1600px] mx-auto w-full px-6 md:px-12 justify-end ${isExpanded ? 'pb-20 md:pb-24' : 'pb-6 md:pb-8'}`}
+        className={`relative h-full flex flex-col transition-all duration-[1200ms] max-w-[1600px] mx-auto w-full px-6 md:px-12 justify-end ${
+          isExpanded ? 'pb-20 md:pb-24' : 'pb-6 md:pb-8'
+        }`}
       >
         <div className="w-full">
           <div className="flex items-center gap-4 md:gap-6 mb-4">
@@ -151,7 +170,9 @@ export const EditorialHero = ({
 
             <div className="flex flex-col items-start min-w-0">
               <h1
-                className={` font-semibold text-white transition-all duration-1000 leading-tight tracking-luxury-tight ${isExpanded ? 'text-3xl md:text-6xl' : 'text-2xl md:text-4xl'}`}
+                className={`font-semibold text-white transition-all duration-1000 leading-tight tracking-luxury-tight ${
+                  isExpanded ? 'text-3xl md:text-6xl' : 'text-2xl md:text-4xl'
+                }`}
               >
                 {title}
               </h1>
@@ -160,7 +181,9 @@ export const EditorialHero = ({
           </div>
 
           <div
-            className={`w-full transition-all duration-1000 delay-100 ${isExpanded ? 'opacity-100 translate-y-0' : 'opacity-90'}`}
+            className={`w-full transition-all duration-1000 delay-100 ${
+              isExpanded ? 'opacity-100 translate-y-0' : 'opacity-90'
+            }`}
           >
             <div className="max-w-3xl">
               {React.Children.map(children, (child) =>
@@ -174,18 +197,18 @@ export const EditorialHero = ({
           </div>
         </div>
 
-        {/* CONTROLES DE EXPANSÃO */}
+        {/* CONTROLES */}
         {isExpanded ? (
           <button
             onClick={() => setIsExpanded(false)}
             className="absolute bottom-12 left-1/2 -translate-x-1/2 animate-bounce text-white/60 hover:text-champagne p-2"
           >
-            <ChevronDown size={32} />
+            <ChevronUp size={32} />
           </button>
         ) : (
           <button
             onClick={() => setIsExpanded(true)}
-            className="w-9 h-9 md:w-12 md:h-12 absolute bottom-6 right-8 flex items-center justify-center bg-black/40 backdrop-blur-md text-white/90 rounded-lg border border-white/10 hover:bg-black/60 transition-all"
+            className="w-9 h-9 md:w-12 md:h-12 absolute bottom-6 right-8 flex items-center justify-center bg-black/40 backdrop-blur-md text-white/90 rounded-lg border border-white/10 hover:bg-black/60 transition-all shadow-xl"
           >
             <Maximize2 className="w-4 h-4 md:w-5 md:h-5" />
           </button>

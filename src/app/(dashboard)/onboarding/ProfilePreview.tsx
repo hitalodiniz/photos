@@ -81,7 +81,6 @@ export default function Photographer({ initialData }: { initialData?: any }) {
         instagram={instaLink}
         photoPreview={avatar}
         cities={cities}
-        showBackButton={false}
         website={website}
         backgroundUrl={backgroundUrl}
         useSubdomain={useSubdomain}

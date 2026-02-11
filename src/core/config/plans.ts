@@ -233,6 +233,9 @@ export interface PlanPermissions {
 
   // Categorias
   canCustomCategories: boolean; //Permite criar categorias fora da GALLERY_CATEGORIES implementado no CategorySelect.tsx -> handleOpenModal - Implementado no GalleryDesignFields
+
+  // Trial
+  isTrial?: boolean;
 }
 
 export interface PlanInfo {
@@ -628,17 +631,7 @@ export const COMMON_FEATURES = [
       '+ Carrossel (5 fotos)',
     ],
   },
-  {
-    group: 'Perfil Público',
-    label: 'Tamanho da Biográfia',
-    values: [
-      false,
-      '150 caracteres',
-      '250 caracteres',
-      '400 caracteres',
-      '400 caracteres',
-    ],
-  },
+
   {
     group: 'Perfil Público',
     label: 'Catálogo de Galerias',

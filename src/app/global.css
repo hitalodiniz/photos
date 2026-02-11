@@ -283,7 +283,7 @@
 
   /* Botão Secundário (Fundo Claro) */
   .btn-secondary-white {
-    @apply btn-luxury-base border-petroleum/40 bg-white text-petroleum 
+    @apply btn-luxury-base border-petroleum/40  bg-white text-petroleum 
            hover:border-petroleum hover:bg-petroleum/5;
     @apply transition-all duration-500 ease-in-out;
   }

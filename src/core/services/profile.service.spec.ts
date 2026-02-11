@@ -649,7 +649,7 @@ describe('Profile Service - Cobertura Total 100%', () => {
 
       expect(mockBuilder.update).toHaveBeenCalledWith(
         expect.objectContaining({
-          background_urls: [
+          background_url: [
             'https://cdn.com/bg1.jpg',
             'https://cdn.com/bg2.jpg',
           ],

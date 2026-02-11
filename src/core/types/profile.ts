@@ -11,7 +11,7 @@ export interface Profile {
   website?: string;
   operating_cities: string[];
   profile_picture_url?: string;
-  background_url?: string;
+  background_url?: string[];
 
   // 🛡️ Campos de Plano e Trial
   plan_key: PlanKey;
@@ -23,6 +23,13 @@ export interface Profile {
 
   settings: UserSettings;
   message_templates: MessageTemplates;
+
+  // 🛠️ Campos Adicionais para Dashboard e Admin
+  google_refresh_token?: string | null;
+  sidebar_collapsed?: boolean;
+  roles?: string[];
+  accepted_terms: boolean;
+  accepted_at: string;
 }
 
 // 🎯 Zod Schema atualizado para suportar o novo JSON
@@ -68,4 +75,9 @@ export interface ProfileWithSettings {
   full_name: string;
   settings: UserSettings;
   message_templates: MessageTemplates;
+
+  // 🛠️ Campos Adicionais para Dashboard e Admin
+  google_refresh_token?: string | null;
+  sidebar_collapsed?: boolean;
+  roles?: string[];
 }

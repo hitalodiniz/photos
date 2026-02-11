@@ -36,6 +36,7 @@ export const fetchGalleryBySlug = (fullSlug: string) =>
         `,
         )
         .eq('slug', fullSlug)
+        .eq('is_deleted', false)
         .single();
 
       if (error || !data) return null;
