@@ -161,14 +161,19 @@ export default function PhotoGrid({ photos, galeria }: any) {
 
   // Scroll e Observer
   useEffect(() => {
+    // Controle de estilo da barra (scrolled)
     const handleScroll = () => setIsScrolled(window.scrollY > 100);
     window.addEventListener('scroll', handleScroll);
 
     const observer = new IntersectionObserver(
       ([entry]) => {
-        setCanShowFavButton(entry.isIntersecting);
+        // 🎯 INVERSÃO LÓGICA:
+        // Se o topo (anchorRef) NÃO está visível (!entry.isIntersecting),
+        // então o usuário desceu e podemos mostrar o botão de favoritos.
+        setCanShowFavButton(!entry.isIntersecting);
       },
-      { threshold: 0, rootMargin: '0px 0px -10% 0px' },
+      // Ajustamos o rootMargin para o botão não brotar "colado" no topo
+      { threshold: 0, rootMargin: '-100px 0px 0px 0px' },
     );
 
     if (anchorRef.current) observer.observe(anchorRef.current);
@@ -439,6 +444,7 @@ export default function PhotoGrid({ photos, galeria }: any) {
             handleExternalDownload,
             externalLinks,
             setUpsellFeature,
+            canUseFavorites: canUseFavorites && galeria.enable_favorites,
           }}
           tags={tagsDaGaleria}
           handleShare={handleShare}
@@ -460,6 +466,7 @@ export default function PhotoGrid({ photos, galeria }: any) {
             setActiveTag,
             handleExternalDownload,
             externalLinks,
+            canUseFavorites: canUseFavorites && galeria.enable_favorites,
           }}
           tags={tagsDaGaleria}
           handleShare={handleShare}
@@ -478,6 +485,7 @@ export default function PhotoGrid({ photos, galeria }: any) {
             showOnlyFavorites,
             setShowOnlyFavorites,
             columns,
+            canUseFavorites: canUseFavorites && galeria.enable_favorites,
           }}
           galleryTitle={galeria.title}
         />
@@ -496,33 +504,37 @@ export default function PhotoGrid({ photos, galeria }: any) {
           isDownloading={isDownloading}
           handleDownloadZip={handleDownloadZip}
           totalGallerySizeMB={totalGallerySizeMB}
+          canUseFavorites={canUseFavorites && galeria.enable_favorites}
         />
       )}
 
       {/* BOTÃO FLUTUANTE DE DOWNLOAD FAVORITOS */}
-      {favorites.length > 0 && !showVolumeDashboard && canShowFavButton && (
-        <div className="fixed bottom-6 left-1/2 -translate-x-1/2 z-[150] animate-in fade-in zoom-in slide-in-from-bottom-5 duration-300 pointer-events-auto w-fit">
-          <button
-            onClick={handleDownloadFavorites}
-            disabled={isDownloadingFavs}
-            className="flex items-center justify-center rounded-[0.7rem] h-12 bg-champagne text-black border border-white/20 shadow-[0_20px_50px_rgba(0,0,0,0.5)] hover:scale-105 active:scale-95 transition-all px-6 gap-3"
-          >
-            {isDownloadingFavs ? (
-              <Loader2 size={18} className="animate-spin" />
-            ) : (
-              <Download size={18} />
-            )}
-            <div className="flex flex-col items-start leading-tight text-left">
-              <span className="text-[11px] font-bold uppercase tracking-luxury-tight">
-                Baixar Favoritas
-              </span>
-              <span className="text-[9px] font-medium opacity-70 italic">
-                {favorites.length} {favorites.length === 1 ? 'foto' : 'fotos'}
-              </span>
-            </div>
-          </button>
-        </div>
-      )}
+      {favorites.length > 0 &&
+        !showVolumeDashboard &&
+        canShowFavButton &&
+        canUseFavorites && (
+          <div className="fixed bottom-6 left-1/2 -translate-x-1/2 z-[150] animate-in fade-in zoom-in slide-in-from-bottom-5 duration-300 pointer-events-auto w-fit">
+            <button
+              onClick={handleDownloadFavorites}
+              disabled={isDownloadingFavs}
+              className="flex items-center justify-center rounded-[0.7rem] h-12 bg-champagne text-black border border-white/20 shadow-[0_20px_50px_rgba(0,0,0,0.5)] hover:scale-105 active:scale-95 transition-all px-6 gap-3"
+            >
+              {isDownloadingFavs ? (
+                <Loader2 size={18} className="animate-spin" />
+              ) : (
+                <Download size={18} />
+              )}
+              <div className="flex flex-col items-start leading-tight text-left">
+                <span className="text-[11px] font-bold uppercase tracking-luxury-tight">
+                  Baixar Favoritas
+                </span>
+                <span className="text-[9px] font-medium opacity-70 italic">
+                  {favorites.length} {favorites.length === 1 ? 'foto' : 'fotos'}
+                </span>
+              </div>
+            </button>
+          </div>
+        )}
 
       {/* LIGHTBOX */}
       {selectedPhotoIndex !== null && photos.length > 0 && (
@@ -534,8 +546,8 @@ export default function PhotoGrid({ photos, galeria }: any) {
           galeria={galeria}
           location={galeria.location || ''}
           favorites={favorites}
-          canUseFavorites={canUseFavorites} // 🎯 Trava dinâmica
-          canUseSlideshow={canUseSlideshow} // 🎯 Trava dinâmica
+          canUseFavorites={galeria.enable_favorites && canUseFavorites} // 🎯 Trava dinâmica
+          canUseSlideshow={galeria.enable_slideshow && canUseSlideshow} // 🎯 Trava dinâmica
           onToggleFavorite={toggleFavoriteFromGrid}
           onClose={() => setSelectedPhotoIndex(null)}
           onNext={() =>
@@ -554,6 +566,7 @@ export default function PhotoGrid({ photos, galeria }: any) {
         onClose={() => setUpsellFeature(null)}
         featureName={upsellFeature?.label || ''}
         featureKey={upsellFeature?.feature as any}
+        scenarioType="feature"
       />
     </div>
   );

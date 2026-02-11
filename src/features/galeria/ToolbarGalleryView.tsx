@@ -14,15 +14,14 @@ import {
 } from 'lucide-react';
 import WhatsAppIcon from '@/components/ui/WhatsAppIcon';
 import { executeShare, getCleanSlug } from '@/core/utils/share-helper';
-import { formatMessage } from '@/core/utils/message-helper';
 import { GALLERY_MESSAGES } from '@/core/config/messages';
 import { handleDownloadPhoto } from '@/core/utils/foto-helpers';
 
 const Tooltip = ({ text }: { text: string }) => (
   <div className="hidden md:block absolute -bottom-12 left-1/2 -translate-x-1/2 z-[130] animate-in fade-in zoom-in slide-in-from-top-2 duration-500">
-    <div className="bg-champagne text-black text-[9px] md:text-[10px]  font-semibold px-2 py-1 rounded shadow-xl whitespace-nowrap relative ring-1 ring-black/10">
+    <div className="bg-[#F3E5AB] text-black text-[9px] md:text-[10px]  font-semibold px-2 py-1 rounded shadow-xl whitespace-nowrap relative ring-1 ring-black/10">
       {text}
-      <div className="absolute -top-1 left-1/2 -translate-x-1/2 border-l-[4px] border-l-transparent border-r-[4px] border-r-transparent border-b-[4px] border-b-champagne" />
+      <div className="absolute -top-1 left-1/2 -translate-x-1/2 border-l-[4px] border-l-transparent border-r-[4px] border-r-transparent border-b-[4px] border-b-[#F3E5AB]" />
     </div>
   </div>
 );
@@ -35,8 +34,6 @@ export const ToolbarGalleryView = ({
   galeria,
   activeIndex,
   isFavorited,
-  canUseFavorites,
-  canUseSlideshow,
   onToggleFavorite,
   onClose,
   showClose = true,
@@ -48,7 +45,8 @@ export const ToolbarGalleryView = ({
   isSingleView = false, // 🎯 Nova prop
   hasShownQualityWarning = false, // 🎯 Controlado pelo Lightbox
   onQualityWarningShown, // 🎯 Callback quando o tooltip é mostrado
-  handleShare,
+  canUseFavorites = true,
+  canUseSlideshow = true,
 }: any) => {
   const [showQualityWarning, setShowQualityWarning] = useState(false);
   const [copied, setCopied] = useState(false);
@@ -195,9 +193,29 @@ export const ToolbarGalleryView = ({
     setTimeout(() => setCopied(false), 2000);
   };
 
+  // 🎯 Função para compartilhamento nativo no mobile (Web Share API)
   const handleNativeShare = async () => {
-    if (handleShare) {
-      handleShare();
+    const shareUrl = `${window.location.origin}/photo/${photoId}?s=${getCleanSlug(gallerySlug)}`;
+    const shareText = GALLERY_MESSAGES.PHOTO_SHARE(galleryTitle, shareUrl);
+
+    // Verifica se a Web Share API está disponível
+    if (navigator.share) {
+      try {
+        await navigator.share({
+          title: galleryTitle,
+          text: shareText,
+        });
+      } catch (error) {
+        // Usuário cancelou ou erro no compartilhamento
+        if ((error as Error).name !== 'AbortError') {
+          console.error('Erro ao compartilhar:', error);
+          // Fallback: copia o link para a área de transferência
+          handleCopyLink();
+        }
+      }
+    } else {
+      // Fallback: se não suportar Web Share API, copia o link
+      handleCopyLink();
     }
   };
 
@@ -225,10 +243,10 @@ export const ToolbarGalleryView = ({
         data-mobile-toolbar
       >
         {/* 1. FAVORITAR */}
-        {showClose && !isSingleView && canUseFavorites && (
+        {showClose && !isSingleView && (
           <button
             onClick={onToggleFavorite}
-            className="btn-luxury-base flex-1"
+            className="flex-1 flex items-center justify-center py-3 active:scale-95 transition-all touch-manipulation"
             aria-label={
               isFavorited ? 'Remover dos favoritos' : 'Adicionar aos favoritos'
             }
@@ -249,33 +267,30 @@ export const ToolbarGalleryView = ({
         )}
 
         {/* 2. MINIATURAS (Toggle - Estilo Instagram) */}
-        {showClose &&
-          !isSingleView &&
-          canUseFavorites &&
-          onToggleThumbnails && (
-            <button
-              onClick={(e) => {
-                e.stopPropagation();
-                onToggleThumbnails();
-              }}
-              className="btn-luxury-base flex-1"
-              aria-label={
-                showThumbnails ? 'Ocultar miniaturas' : 'Mostrar miniaturas'
-              }
+        {showClose && !isSingleView && onToggleThumbnails && (
+          <button
+            onClick={(e) => {
+              e.stopPropagation();
+              onToggleThumbnails();
+            }}
+            className="flex-1 flex items-center justify-center py-3 active:scale-95 transition-all touch-manipulation"
+            aria-label={
+              showThumbnails ? 'Ocultar miniaturas' : 'Mostrar miniaturas'
+            }
+          >
+            <div
+              className={`w-12 h-12 rounded-full flex items-center justify-center transition-all ${showThumbnails ? 'bg-[#F3E5AB]' : 'bg-slate-200 dark:bg-white/10 active:bg-slate-800 dark:active:bg-white/20'}`}
             >
-              <div
-                className={`w-12 h-12 rounded-full flex items-center justify-center transition-all ${showThumbnails ? 'bg-champagne' : 'bg-slate-200 dark:bg-white/10 active:bg-slate-800 dark:active:bg-white/20'}`}
-              >
-                <SquareStack
-                  size={22}
-                  className={
-                    showThumbnails ? 'text-black' : 'text-black dark:text-white'
-                  }
-                  strokeWidth={2.5}
-                />
-              </div>
-            </button>
-          )}
+              <SquareStack
+                size={22}
+                className={
+                  showThumbnails ? 'text-black' : 'text-black dark:text-white'
+                }
+                strokeWidth={2.5}
+              />
+            </div>
+          </button>
+        )}
 
         {/* 3. COMPARTILHAR (Share nativo - abre menu com WhatsApp, Instagram, Twitter, etc.) */}
         <button
@@ -293,16 +308,16 @@ export const ToolbarGalleryView = ({
         </button>
 
         {/* 4. SLIDESHOW (Play/Pause) */}
-        {showClose && !isSingleView && onToggleSlideshow && (
+        {showClose && !isSingleView && onToggleSlideshow && canUseSlideshow && (
           <button
             onClick={onToggleSlideshow}
-            className="btn-luxury-base flex-1"
+            className="flex-1 flex items-center justify-center py-3 active:scale-95 transition-all touch-manipulation"
             aria-label={
               isSlideshowActive ? 'Pausar slideshow' : 'Iniciar slideshow'
             }
           >
             <div
-              className={`w-12 h-12 rounded-full flex items-center justify-center transition-all ${isSlideshowActive ? 'bg-champagne' : 'bg-slate-200 dark:bg-white/10 active:bg-slate-800 dark:active:bg-white/20'}`}
+              className={`w-12 h-12 rounded-full flex items-center justify-center transition-all ${isSlideshowActive ? 'bg-[#F3E5AB]' : 'bg-slate-200 dark:bg-white/10 active:bg-slate-800 dark:active:bg-white/20'}`}
             >
               {isSlideshowActive ? (
                 <Pause size={22} className="text-black" strokeWidth={2.5} />
@@ -369,12 +384,12 @@ export const ToolbarGalleryView = ({
               }}
             >
               {/* Seta apontando para baixo - centralizada */}
-              <div className="absolute top-full left-1/2 -translate-x-1/2 border-[6px] border-transparent border-t-champagne pointer-events-none" />
+              <div className="absolute top-full left-1/2 -translate-x-1/2 border-[6px] border-transparent border-t-[#F3E5AB] pointer-events-none" />
 
               {/* Tooltip - Sem animações que causam piscar */}
               <div
                 data-quality-warning="true"
-                className="bg-champagne shadow-2xl rounded-luxury border border-white/20 text-black relative w-ful pr-6"
+                className="bg-[#F3E5AB] shadow-2xl rounded-luxury border border-white/20 text-black relative w-ful pr-6"
                 style={{
                   pointerEvents: 'auto',
                   transform: 'translateZ(0)', // Força aceleração de hardware
@@ -410,7 +425,7 @@ export const ToolbarGalleryView = ({
                 }}
               >
                 <div className="flex justify-between items-center gap-2 mb-1.5">
-                  <span className="font-bold text-[10px] uppercase tracking-luxury-tight flex-1 leading-tight">
+                  <span className="font-bold text-[10px] uppercase tracking-tighter flex-1 leading-tight">
                     Alta Resolução Disponível
                   </span>
                   <button
@@ -460,18 +475,18 @@ export const ToolbarGalleryView = ({
               );
               setIsDownloading(false);
             }}
-            className="btn-luxury-base flex-1"
+            className="flex-1 flex items-center justify-center py-3 active:scale-95 transition-all touch-manipulation relative"
             aria-label="Baixar foto"
             disabled={isDownloading}
           >
             <div className="relative w-12 h-12">
               {showQualityWarning && (
-                <div className="absolute -inset-1 rounded-full bg-champagne animate-ping opacity-80" />
+                <div className="absolute -inset-1 rounded-full bg-[#F3E5AB] animate-ping opacity-80" />
               )}
               <div
                 className={`w-12 h-12 rounded-full flex items-center justify-center transition-all ${
                   showQualityWarning
-                    ? 'bg-champagne'
+                    ? 'bg-[#F3E5AB]'
                     : 'bg-slate-200 dark:bg-white/10 active:bg-slate-800 dark:active:bg-white/20'
                 }`}
               >
@@ -501,21 +516,22 @@ export const ToolbarGalleryView = ({
         {showClose && (
           <button
             onClick={onClose}
-            className="btn-luxury-base flex-1"
+            className="flex-1 flex items-center justify-center py-3 active:scale-95 transition-all touch-manipulation"
             aria-label="Fechar"
             style={{
-              minWidth: '60px',
-              minHeight: '60px',
+              // Tamanho conforme boas práticas: 60x60px (acima do mínimo de 48x48px)
+              minWidth: '48px',
+              minHeight: '48px',
             }}
           >
             <div
               className="rounded-full bg-slate-200 dark:bg-white/10 flex items-center justify-center active:bg-slate-800 dark:active:bg-white/20 transition-all"
               style={{
                 // Área de toque de 60x60px para melhor usabilidade (acima do mínimo de 48x48px)
-                width: '60px',
-                height: '60px',
-                minWidth: '60px',
-                minHeight: '60px',
+                width: '48px',
+                height: '48px',
+                minWidth: '48px',
+                minHeight: '48px',
               }}
             >
               <X
@@ -539,6 +555,7 @@ export const ToolbarGalleryView = ({
     >
       {/* 1. FAVORITAR */}
       {showClose &&
+        canUseFavorites &&
         !isSingleView && ( // para nao exibir na visualização unica de foto
           <div className="relative">
             <button
@@ -560,7 +577,7 @@ export const ToolbarGalleryView = ({
                 <span className="text-[10px] md:text-[11px]  font-semibold uppercase tracking-wider mb-1 text-white">
                   Favoritar
                 </span>
-                <span className="text-[9px] md:text-[10px]  opacity-80 text-white/90 whitespace-nowrap">
+                <span className="text-[9px] md:text-[10px]  opacity-80 text-white/70 whitespace-nowrap">
                   {isFavorited ? 'Salvo' : 'Salvar foto'}
                 </span>
               </div>
@@ -580,19 +597,26 @@ export const ToolbarGalleryView = ({
       {/* 2. WHATSAPP */}
       <div className="relative">
         <button
-          onClick={handleShare}
+          onClick={() => {
+            const shareUrl = `${window.location.origin}/photo/${photoId}?s=${getCleanSlug(gallerySlug)}`;
+            const shareText = GALLERY_MESSAGES.PHOTO_SHARE(
+              galleryTitle,
+              shareUrl,
+            );
+            executeShare({ title: galleryTitle, text: shareText });
+          }}
           onMouseEnter={() => setActiveTooltip('whats')}
           onMouseLeave={() => setActiveTooltip(null)}
           className="flex items-center border-r border-white/10 pr-3 mx-1 shrink-0 group"
         >
-          <div className="w-9 h-9 md:w-11 md:h-11 rounded-full bg-white/5 flex items-center justify-center group-hover:bg-green-500 transition-all">
+          <div className="w-9 h-9 md:w-11 md:h-11 rounded-full bg-white/5 flex items-center justify-center group-hover:bg-[#25D366] transition-all">
             <WhatsAppIcon className="text-white w-5 h-5" />
           </div>
           <div className={textContainerClass}>
             <span className="text-[10px] md:text-[11px]  font-semibold uppercase tracking-wider mb-1 text-white">
               WhatsApp
             </span>
-            <span className="text-[9px] md:text-[10px]  opacity-80 text-white/90 whitespace-nowrap">
+            <span className="text-[9px] md:text-[10px]  opacity-80 text-white/70 whitespace-nowrap">
               Compartilhar
             </span>
           </div>
@@ -610,7 +634,7 @@ export const ToolbarGalleryView = ({
         >
           <div className="w-9 h-9 md:w-11 md:h-11 rounded-full bg-white/5 flex items-center justify-center hover:bg-white/10 transition-all">
             {copied ? (
-              <Check size={18} className="text-champagne" />
+              <Check size={18} className="text-[#F3E5AB]" />
             ) : (
               <LinkIcon size={18} className="text-white" />
             )}
@@ -619,7 +643,7 @@ export const ToolbarGalleryView = ({
             <span className="text-[10px] md:text-[11px]  font-semibold uppercase tracking-wider mb-1 text-white">
               {copied ? 'Copiado' : 'Link'}
             </span>
-            <span className="text-[9px] md:text-[10px]  opacity-80 text-white/90 whitespace-nowrap">
+            <span className="text-[9px] md:text-[10px]  opacity-80 text-white/70 whitespace-nowrap">
               Copiar URL
             </span>
           </div>
@@ -637,7 +661,7 @@ export const ToolbarGalleryView = ({
             className="flex items-center border-r border-white/10 pr-3 mx-1 shrink-0 group"
           >
             <div
-              className={`w-9 h-9 md:w-11 md:h-11 rounded-full flex items-center justify-center transition-all ${isSlideshowActive ? 'bg-champagne text-black' : 'bg-white/5 text-white group-hover:bg-white group-hover:text-black'}`}
+              className={`w-9 h-9 md:w-11 md:h-11 rounded-full flex items-center justify-center transition-all ${isSlideshowActive ? 'bg-[#F3E5AB] text-black' : 'bg-white/5 text-white group-hover:bg-white group-hover:text-black'}`}
             >
               {isSlideshowActive ? <Pause size={18} /> : <Play size={18} />}
             </div>
@@ -645,7 +669,7 @@ export const ToolbarGalleryView = ({
               <span className="text-[10px] md:text-[11px]  font-semibold uppercase tracking-wider mb-1 text-white">
                 {isSlideshowActive ? 'Pausar' : 'Slideshow'}
               </span>
-              <span className="text-[9px] md:text-[10px]  opacity-80 text-white/90 whitespace-nowrap">
+              <span className="text-[9px] md:text-[10px]  opacity-80 text-white/70 whitespace-nowrap">
                 {isSlideshowActive ? 'Parar' : 'Automático'}
               </span>
             </div>
@@ -670,11 +694,11 @@ export const ToolbarGalleryView = ({
           <div className="absolute top-full mt-4 right-[-10px] md:right-0 z-[1001] w-64 md:w-80 animate-in fade-in slide-in-from-top-4 duration-700">
             {/* 🎯 A Seta: Posicionada fixamente sob o centro do botão de download */}
             {/* No desktop, o botão tem 44px (w-11), então a seta deve estar a 22px da direita */}
-            <div className="absolute bottom-full right-[23px] md:right-[95px] border-[8px] border-transparent border-b-champagne" />
+            <div className="absolute bottom-full right-[23px] md:right-[95px] border-[8px] border-transparent border-b-[#F3E5AB]" />
 
-            <div className="bg-champagne shadow-2xl rounded-2xl p-4 border border-white/20 text-black">
+            <div className="bg-[#F3E5AB] shadow-2xl rounded-2xl p-4 border border-white/20 text-black">
               <div className="flex justify-between items-center mb-1">
-                <span className="font-bold text-[11px] uppercase tracking-luxury-tight">
+                <span className="font-bold text-[11px] uppercase tracking-tighter">
                   Alta Resolução Disponível
                 </span>
                 <X
@@ -710,10 +734,10 @@ export const ToolbarGalleryView = ({
         >
           <div className="relative shrink-0">
             {showQualityWarning && isMobile && (
-              <div className="absolute inset-0 rounded-full bg-champagne animate-ping opacity-80" />
+              <div className="absolute inset-0 rounded-full bg-[#F3E5AB] animate-ping opacity-80" />
             )}
             <div
-              className={`w-9 h-9 md:w-11 md:h-11 rounded-full flex items-center justify-center transition-all ${showQualityWarning && isMobile ? 'bg-champagne text-black' : 'bg-white/5 text-white group-hover:bg-white group-hover:text-black'}`}
+              className={`w-9 h-9 md:w-11 md:h-11 rounded-full flex items-center justify-center transition-all ${showQualityWarning && isMobile ? 'bg-[#F3E5AB] text-black' : 'bg-white/5 text-white group-hover:bg-white group-hover:text-black'}`}
             >
               {isDownloading ? (
                 <Loader2 className="animate-spin" size={18} />
@@ -726,7 +750,7 @@ export const ToolbarGalleryView = ({
             <span className="text-[10px] md:text-[11px]  font-semibold uppercase tracking-wider mb-1 text-white">
               Download
             </span>
-            <span className="text-[9px] md:text-[10px]  opacity-80 text-white/90 whitespace-nowrap">
+            <span className="text-[9px] md:text-[10px]  opacity-80 text-white/70 whitespace-nowrap">
               Original
             </span>
           </div>
@@ -769,7 +793,7 @@ export const ToolbarGalleryView = ({
               <span className="text-[10px] md:text-[11px]  font-semibold uppercase tracking-wider mb-1 text-white">
                 Fechar
               </span>
-              <span className="text-[9px] md:text-[10px]  opacity-80 text-white/90 whitespace-nowrap">
+              <span className="text-[9px] md:text-[10px]  opacity-80 text-white/70 whitespace-nowrap">
                 Sair
               </span>
             </div>

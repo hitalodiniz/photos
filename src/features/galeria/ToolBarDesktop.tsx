@@ -19,6 +19,7 @@ import { usePlan } from '@/core/context/PlanContext';
 import UpgradeModal from '@/components/ui/UpgradeModal';
 
 export const ToolBarDesktop = ({
+  canUseFavorites,
   showOnlyFavorites,
   setShowOnlyFavorites,
   downloadAllAsZip,
@@ -38,6 +39,7 @@ export const ToolBarDesktop = ({
   const [showDownloadMenu, setShowDownloadMenu] = useState(false);
   const [linksStatus, setLinksStatus] = useState<Record<number, boolean>>({});
   const { permissions } = usePlan();
+  console.log(permissions);
   const isCompact = false;
   const hasTags = tags.length > 1;
 
@@ -104,7 +106,7 @@ export const ToolBarDesktop = ({
         overflow-visible
       `}
       >
-        <div className="flex items-center w-full max-w-[1600px] px-6 gap-3 h-14 mx-auto min-w-0">
+        <div className="flex items-center w-full max-w-[1600px] px-6 gap-3 h-12 mx-auto min-w-0">
           {/* 1. FERRAMENTAS + COLUNAS */}
           <div className="flex items-center gap-4 border-r border-white/10 pr-4 shrink-0">
             <div className="flex items-center gap-2">
@@ -138,7 +140,7 @@ export const ToolBarDesktop = ({
                 return (
                   <div
                     key={d.k}
-                    className={`${d.display} items-center gap-1 bg-white/5 rounded-luxury px-1.5 h-10 border border-white/10 shadow-inner`}
+                    className={`${d.display} items-center gap-1 bg-white/5 rounded-md px-1.5 h-8 border border-white/10 shadow-inner`}
                   >
                     <d.i size={14} className="text-champagne mx-1 shrink-0" />
 
@@ -149,7 +151,7 @@ export const ToolBarDesktop = ({
                         onClick={() =>
                           setColumns((p: any) => ({ ...p, [d.k]: num }))
                         }
-                        className={`w-7 h-7 rounded-luxury text-[10px] font-bold transition-all flex items-center justify-center
+                        className={`w-7 h-7 rounded-md text-[10px] font-bold transition-all flex items-center justify-center
               ${columns[d.k] === num ? 'bg-champagne text-black shadow-lg' : 'text-white/60 hover:bg-white/10'}
             `}
                       >
@@ -166,7 +168,7 @@ export const ToolBarDesktop = ({
                             feature: 'maxGridColumns',
                           })
                         }
-                        className="w-7 h-7 rounded-luxury flex items-center justify-center bg-white/5 text-champagne hover:bg-white/10 transition-all group relative"
+                        className="w-7 h-7 rounded-md flex items-center justify-center bg-white/5 text-champagne hover:bg-white/10 transition-all group relative"
                       >
                         <Zap
                           size={12}
@@ -198,7 +200,7 @@ export const ToolBarDesktop = ({
                   <button
                     key={tag}
                     onClick={() => setActiveTag(tag === activeTag ? '' : tag)}
-                    className={`px-4 py-1.5 rounded-luxury text-editorial-label transition-all shrink-0 border h-9 ${
+                    className={`px-4 py-1.5 rounded-md text-editorial-label transition-all shrink-0 border h-9 ${
                       activeTag === tag
                         ? 'bg-champagne text-black border-champagne shadow-lg'
                         : 'bg-white/5 text-white/50 border-white/10 hover:text-white'
@@ -215,21 +217,24 @@ export const ToolBarDesktop = ({
 
           {/* 3. AÇÕES */}
           <div className="flex items-center gap-2 shrink-0 ml-auto">
-            <button
-              onClick={() => setShowOnlyFavorites(!showOnlyFavorites)}
-              className={`flex items-center justify-center rounded-luxury h-10 border transition-all duration-300 w-28 gap-2 ${
-                showOnlyFavorites
-                  ? 'bg-red-600 border-red-600 text-white shadow-lg'
-                  : 'bg-white/5 border-white/10 text-white hover:text-white'
-              }`}
-            >
-              <Filter size={16} />
-              <span className="text-editorial-label">Favoritos</span>
-            </button>
+            {/* 🎯 NOVA TRAVA: Verifica preferência da galeria + permissão do plano */}
+            {canUseFavorites && (
+              <button
+                onClick={() => setShowOnlyFavorites(!showOnlyFavorites)}
+                className={`flex items-center justify-center rounded-md h-8 border transition-all duration-300 w-28 gap-2 ${
+                  showOnlyFavorites
+                    ? 'bg-red-600 border-red-600 text-white shadow-lg'
+                    : 'bg-white/5 border-white/10 text-white hover:text-white'
+                }`}
+              >
+                <Filter size={16} />
+                <span className="text-editorial-label">Favoritos</span>
+              </button>
+            )}
 
             <button
               onClick={handleShare}
-              className="flex items-center justify-center rounded-luxury h-10 border border-white/10 bg-white/5 text-white hover:bg-green-600 hover:text-white transition-all w-28 gap-2"
+              className="flex items-center justify-center rounded-md h-8 border border-white/10 bg-white/5 text-white hover:bg-green-600 hover:text-white transition-all w-28 gap-2"
             >
               <WhatsAppIcon className="text-current w-[16px] h-[16px]" />
               <span className="text-editorial-label">Whatsapp</span>
@@ -242,7 +247,7 @@ export const ToolBarDesktop = ({
                 setCopied(true);
                 setTimeout(() => setCopied(false), 2000);
               }}
-              className="flex items-center justify-center rounded-luxury h-10 border border-white/10 bg-white/5 text-white hover:bg-white hover:text-black transition-all w-24 gap-2"
+              className="flex items-center justify-center rounded-md h-8 border border-white/10 bg-white/5 text-white hover:bg-white hover:text-black transition-all w-24 gap-2"
             >
               {copied ? (
                 <Check size={16} className="text-green-500" />
@@ -261,7 +266,7 @@ export const ToolBarDesktop = ({
                     setShowDownloadMenu(!showDownloadMenu);
                   }}
                   disabled={isDownloading}
-                  className="flex items-center justify-center rounded-luxury bg-champagne text-black h-10 font-bold shadow-xl hover:bg-white transition-all disabled:opacity-50 w-32 gap-2 px-4"
+                  className="flex items-center justify-center rounded-md bg-champagne text-black h-8 font-bold shadow-xl hover:bg-white transition-all disabled:opacity-50 w-32 gap-2 px-4"
                 >
                   {isDownloading ? (
                     <div className="loading-luxury w-4 h-4 border-black/30 border-t-black" />
@@ -282,14 +287,14 @@ export const ToolBarDesktop = ({
                     className="fixed inset-0 z-[190]"
                     onClick={() => setShowDownloadMenu(false)}
                   />
-                  <div className="absolute top-full mt-2 right-0 w-72 bg-slate-950/95 backdrop-blur-xl border border-white/10 rounded-luxury shadow-2xl animate-in fade-in slide-in-from-top-2 duration-300 z-[200] pointer-events-auto overflow-hidden">
+                  <div className="absolute top-full mt-2 right-0 w-72 bg-slate-950/95 backdrop-blur-xl border border-white/10 rounded-md shadow-2xl animate-in fade-in slide-in-from-top-2 duration-300 z-[200] pointer-events-auto overflow-hidden">
                     <div className="p-2 flex flex-col gap-1">
                       <button
                         onClick={() => {
                           downloadAllAsZip();
                           setShowDownloadMenu(false);
                         }}
-                        className="flex items-start gap-3 p-3 rounded-luxury hover:bg-white/10 transition-all text-left group"
+                        className="flex items-start gap-3 p-3 rounded-md hover:bg-white/10 transition-all text-left group"
                       >
                         <Zap size={18} className="text-champagne mt-0.5" />
                         <div>
@@ -317,7 +322,7 @@ export const ToolBarDesktop = ({
                                 `${galeria.title}_${linkObj.label.replace(/\s+/g, '_')}.zip`, // Nome do arquivo limpo
                               );
                             }}
-                            className="w-full flex items-start gap-3 p-3 rounded-luxury hover:bg-white/10 transition-all text-left group border-t border-white/5"
+                            className="w-full flex items-start gap-3 p-3 rounded-md hover:bg-white/10 transition-all text-left group border-t border-white/5"
                           >
                             <FileCheck
                               size={18}

@@ -6,6 +6,7 @@ import { usePlan } from '@/core/context/PlanContext';
 import { Wifi, Download, Heart, Package, CheckCircle2 } from 'lucide-react';
 
 interface DownloadCenterProps {
+  canUseFavorites: boolean;
   isOpen: boolean;
   onClose: () => void;
   volumes: any[][];
@@ -25,6 +26,7 @@ interface DownloadCenterProps {
 }
 
 export const DownloadCenterModal = ({
+  canUseFavorites,
   isOpen,
   onClose,
   volumes,
@@ -95,82 +97,74 @@ export const DownloadCenterModal = ({
       maxWidth="md"
     >
       <div className="space-y-2">
-        <PlanGuard
-          feature="canDownloadFavoriteSelection"
-          label="Download de Favoritas"
-        >
-          {/* FAVORITOS */}
-          {favoriteVolumes.length > 0 &&
-            favoriteVolumes.map((favChunk, index) => {
-              const isCurrent = activeDownloadingIndex === `fav-${index}`;
-              const sizeMB =
-                favChunk.reduce(
-                  (acc, photo) => acc + estimatePhotoDownloadSize(photo),
-                  0,
-                ) /
-                (1024 * 1024);
+        {/* FAVORITOS */}
+        {canUseFavorites &&
+          favoriteVolumes.length > 0 &&
+          favoriteVolumes.map((favChunk, index) => {
+            const isCurrent = activeDownloadingIndex === `fav-${index}`;
+            const sizeMB =
+              favChunk.reduce(
+                (acc, photo) => acc + estimatePhotoDownloadSize(photo),
+                0,
+              ) /
+              (1024 * 1024);
 
-              return (
-                <button
-                  key={`fav-${index}`}
-                  disabled={isDownloading && !isCurrent}
-                  onClick={() =>
-                    handleDownloadZip(
-                      favChunk,
-                      `Favoritas_${index + 1}`,
-                      false,
-                      true,
-                      `fav-${index}`,
-                    )
-                  }
-                  className={`btn-luxury-base w-full ${
+            return (
+              <button
+                key={`fav-${index}`}
+                disabled={isDownloading && !isCurrent}
+                onClick={() =>
+                  handleDownloadZip(
+                    favChunk,
+                    `Favoritas_${index + 1}`,
+                    false,
+                    true,
+                    `fav-${index}`,
+                  )
+                }
+                className={`btn-luxury-base w-full ${
+                  isCurrent
+                    ? 'border-petroleum bg-slate-50 shadow-sm'
+                    : 'bg-white border-petroleum/30 hover:border-petroleum/50 hover:bg-slate-50'
+                }`}
+              >
+                <div
+                  className={`w-10 h-10 rounded-luxury flex items-center justify-center shrink-0 transition-transform group-hover:scale-105 ${
                     isCurrent
-                      ? 'border-petroleum bg-slate-50 shadow-sm'
-                      : 'bg-white border-petroleum/30 hover:border-petroleum/50 hover:bg-slate-50'
+                      ? 'bg-petroleum text-white shadow-[0_0_15px_rgba(23,42,56,0.3)]'
+                      : 'bg-petroleum/10 text-petroleum'
                   }`}
                 >
-                  <div
-                    className={`w-10 h-10 rounded-luxury flex items-center justify-center shrink-0 transition-transform group-hover:scale-105 ${
-                      isCurrent
-                        ? 'bg-petroleum text-white shadow-[0_0_15px_rgba(23,42,56,0.3)]'
-                        : 'bg-petroleum/10 text-petroleum'
-                    }`}
-                  >
-                    <Heart
-                      size={18}
-                      fill={isCurrent ? 'currentColor' : 'none'}
-                    />
-                  </div>
+                  <Heart size={18} fill={isCurrent ? 'currentColor' : 'none'} />
+                </div>
 
-                  <div className="flex-1 text-left min-w-0">
-                    <p className="text-[13px] md:text-[14px] font-semibold text-petroleum tracking-wide uppercase">
-                      Suas Favoritas{' '}
-                      {favoriteVolumes.length > 1 ? index + 1 : ''}
-                    </p>
-                    <div className="flex items-center gap-2 mt-0.5">
-                      <span className="text-editorial">
-                        {sizeMB.toFixed(0)} MB
-                      </span>
-                      <span className="text-petroleum/10 text-xs">•</span>
-                      <span className="text-editorial text-petroleum/80">
-                        Otimizadas
-                      </span>
+                <div className="flex-1 text-left min-w-0">
+                  <p className="text-[13px] md:text-[14px] font-semibold text-petroleum tracking-wide uppercase">
+                    Suas Favoritas {favoriteVolumes.length > 1 ? index + 1 : ''}
+                  </p>
+                  <div className="flex items-center gap-2 mt-0.5">
+                    <span className="text-editorial">
+                      {sizeMB.toFixed(0)} MB
+                    </span>
+                    <span className="text-petroleum/10 text-xs">•</span>
+                    <span className="text-editorial text-petroleum/80">
+                      Otimizadas
+                    </span>
+                  </div>
+                </div>
+
+                <div className="shrink-0">
+                  {isCurrent ? (
+                    <div className="loading-luxury w-4 h-4 border-petroleum/30 border-t-petroleum" />
+                  ) : (
+                    <div className="w-8 h-8 rounded-full border border-petroleum/30 flex items-center justify-center text-petroleum/40 group-hover:border-petroleum/60 group-hover:text-petroleum transition-colors">
+                      <Download size={16} />
                     </div>
-                  </div>
-
-                  <div className="shrink-0">
-                    {isCurrent ? (
-                      <div className="loading-luxury w-4 h-4 border-petroleum/30 border-t-petroleum" />
-                    ) : (
-                      <div className="w-8 h-8 rounded-full border border-petroleum/30 flex items-center justify-center text-petroleum/40 group-hover:border-petroleum/60 group-hover:text-petroleum transition-colors">
-                        <Download size={16} />
-                      </div>
-                    )}
-                  </div>
-                </button>
-              );
-            })}
-        </PlanGuard>
+                  )}
+                </div>
+              </button>
+            );
+          })}
 
         {favoriteVolumes.length > 0 && (
           <div className="flex items-center gap-3 py-2 px-2">

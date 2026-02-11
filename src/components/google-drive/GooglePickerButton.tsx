@@ -390,7 +390,7 @@ export default function GooglePickerButton({
           window.google.picker.Feature.MULTISELECT_ENABLED,
         );
       }
-      pickerBuilder.addView(suggestionsView); // Aba 2: Sugestões (Histórico)
+      //pickerBuilder.addView(suggestionsView); // Aba 2: Sugestões (Histórico)
       // Aba 3: Com Estrela (Favoritos do usuário no Drive)
       pickerBuilder.addView(
         new window.google.picker.DocsView(window.google.picker.ViewId.DOCS)

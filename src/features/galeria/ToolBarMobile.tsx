@@ -63,6 +63,7 @@ const Tooltip = ({
 };
 
 export const ToolBarMobile = ({
+  canUseFavorites,
   showOnlyFavorites,
   setShowOnlyFavorites,
   downloadAllAsZip,
@@ -224,12 +225,15 @@ export const ToolBarMobile = ({
           </div>
 
           <div className="relative overflow-visible">
-            <button
-              onClick={() => setShowOnlyFavorites(!showOnlyFavorites)}
-              className={`w-9 h-9 rounded-luxury flex items-center justify-center transition-all border ${showOnlyFavorites ? 'bg-red-600 border-red-600 text-white shadow-lg shadow-red-900/40' : 'bg-white/5 border-white/10 text-white'}`}
-            >
-              <Filter size={15} />
-            </button>
+            {canUseFavorites && (
+              <button
+                onClick={() => setShowOnlyFavorites(!showOnlyFavorites)}
+                className={`w-9 h-9 rounded-luxury flex items-center justify-center transition-all border ${showOnlyFavorites ? 'bg-red-600 border-red-600 text-white shadow-lg shadow-red-900/40' : 'bg-white/5 border-white/10 text-white'}`}
+              >
+                <Filter size={15} />
+              </button>
+            )}
+
             {hintStep === 5 && <Tooltip text="Favoritos" position="center" />}
           </div>
 

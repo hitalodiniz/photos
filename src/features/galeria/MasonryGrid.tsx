@@ -34,6 +34,7 @@ interface Photo {
   width: number;
   height: number;
   tag?: string;
+  canUseFavorites: boolean;
 }
 
 interface SafeImageProps {
@@ -62,6 +63,7 @@ interface MasonryItemProps {
   currentCols: number;
   isSelected: boolean;
   columnWidth: number;
+  canUseFavorites: boolean;
 }
 
 interface MasonryGridProps {
@@ -74,6 +76,7 @@ interface MasonryGridProps {
   showOnlyFavorites: boolean;
   setShowOnlyFavorites: (value: boolean) => void;
   columns: { mobile: number; tablet: number; desktop: number };
+  canUseFavorites: boolean;
 }
 
 // --- COMPONENTE DE IMAGEM OTIMIZADO ---
@@ -266,6 +269,7 @@ const MasonryItem = memo(
     currentCols,
     isSelected,
     columnWidth,
+    canUseFavorites,
   }: MasonryItemProps) => {
     // 🎯 Estado local para orientação e dimensões reais
     const [orientation, setOrientation] = useState({
@@ -357,6 +361,7 @@ const MasonryItem = memo(
               </a>
 
               <GridPhotoActions
+                canUseFavorites={canUseFavorites}
                 isFavorited={isSelected}
                 onToggleFavorite={() => toggleFavoriteFromGrid(photo.id)}
                 onShareWhatsApp={() => handleShareWhatsAppGrid(photo.id)}
@@ -392,6 +397,7 @@ const MasonryGrid = ({
   showOnlyFavorites,
   setShowOnlyFavorites,
   columns,
+  canUseFavorites,
 }: MasonryGridProps) => {
   const CARDS_PER_PAGE = 50;
   const [displayLimit, setDisplayLimit] = useState(CARDS_PER_PAGE);
@@ -505,9 +511,13 @@ const MasonryGrid = ({
       : Math.max(0.6, 1 - (currentCols - 4) * 0.1);
   const iconSize = Math.round(18 * btnScale);
 
-  const limitedPhotos = showOnlyFavorites
-    ? displayedPhotos
-    : displayedPhotos.slice(0, displayLimit);
+  const limitedPhotos = useMemo(() => {
+    // Se o plano/galeria não permite favoritos, ignoramos o filtro de showOnlyFavorites
+    const finalPhotos =
+      showOnlyFavorites && canUseFavorites ? displayedPhotos : displayedPhotos;
+
+    return showOnlyFavorites ? finalPhotos : finalPhotos.slice(0, displayLimit);
+  }, [showOnlyFavorites, canUseFavorites, displayedPhotos, displayLimit]);
 
   return (
     <div className="w-full h-auto">
@@ -561,6 +571,7 @@ const MasonryGrid = ({
                   isMobile={isMobile}
                   currentCols={currentCols}
                   columnWidth={columnWidth}
+                  canUseFavorites={galeria.enable_favorites}
                 />
               ))}
             </div>

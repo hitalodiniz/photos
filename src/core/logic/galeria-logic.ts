@@ -29,7 +29,9 @@ export const fetchGalleryBySlug = (fullSlug: string) =>
             phone_contact,
             instagram_link,
             google_refresh_token,
-            message_templates
+            message_templates,
+            plan_key,         
+            plan_trial_expires
           )
         `,
         )
@@ -74,60 +76,31 @@ export function formatGalleryData(
     : `https://${domain}/${raw.photographer?.username || username}`;
 
   return {
+    // 1. Espalhamos tudo o que veio do banco para não perder colunas novas
+    ...(raw as any),
+
+    // 2. Sobrescrevemos/Garantimos os campos formatados da Galeria
     id: raw.id,
     title: raw.title,
-    client_name: raw.client_name,
-    date: raw.date,
-    location: raw.location,
     slug: raw.slug,
     category: (raw as any).category || 'Outros',
-    cover_image_ids: raw.cover_image_ids || [],
     photo_count: raw.photo_count || 0,
-    cover_image_url: raw.cover_image_url || null,
-    drive_folder_id: raw.drive_folder_id,
-    drive_folder_name: (raw as any).drive_folder_name || null,
-    is_public: raw.is_public,
-    password: raw.password,
-    user_id: (raw as any).user_id,
-    zip_url_full: (raw as any).zip_url_full || null,
-    zip_url_social: (raw as any).zip_url_social || null,
-    created_at: (raw as any).created_at || new Date().toISOString(),
-    updated_at: (raw as any).updated_at || new Date().toISOString(),
-    has_contracting_client: !!(raw as any).has_contracting_client,
-    client_whatsapp: (raw as any).client_whatsapp || null,
-    is_archived: !!(raw as any).is_archived,
-    is_deleted: !!(raw as any).is_deleted,
-    deleted_at: (raw as any).deleted_at || null,
-    show_cover_in_grid: !!(raw as any).show_cover_in_grid,
     grid_bg_color: (raw as any).grid_bg_color || '#F3E5AB',
-    columns_mobile: Number((raw as any).columns_mobile) || 2,
-    columns_tablet: Number((raw as any).columns_tablet) || 3,
-    columns_desktop: Number((raw as any).columns_desktop) || 4,
-    show_on_profile: raw.show_on_profile ?? false,
-    leads_enabled: !!(raw as any).leads_enabled,
-    leads_require_name: !!(raw as any).leads_require_name,
-    leads_require_email: !!(raw as any).leads_require_email,
-    leads_require_whatsapp: !!(raw as any).leads_require_whatsapp,
-    lead_purpose: (raw as any).lead_purpose || null,
-    rename_files_sequential: !!(raw as any).rename_files_sequential,
-    enable_favorites: !!(raw as any).enable_favorites,
-    enable_slideshow: !!(raw as any).enable_slideshow,
 
+    // 3. Mapeamento do Fotógrafo (O ponto crítico)
     photographer: raw.photographer
       ? {
-          id: raw.photographer.id,
-          full_name: raw.photographer.full_name,
-          username: raw.photographer.username,
-          profile_picture_url: raw.photographer.profile_picture_url,
-          phone_contact: raw.photographer.phone_contact,
-          instagram_link: raw.photographer.instagram_link,
+          // 🎯 O SEGREDO: Espalha o objeto original primeiro.
+          // Isso garante que plan_key, plan_trial_expires e outros passem adiante.
+          ...raw.photographer,
+
+          // Adiciona ou sobrescreve apenas os campos calculados/específicos
           use_subdomain: hasSubdomain,
           profile_url: profileUrl,
-          message_templates: raw.photographer.message_templates,
-          plan_key: raw.photographer.plan_key, // 🎯 Essencial estar aqui!
         }
       : undefined,
 
+    // 4. Campos de compatibilidade da UI
     photographer_name: raw.photographer?.full_name || 'Autor',
     photographer_avatar_url: raw.photographer?.profile_picture_url || null,
     photographer_username: raw.photographer?.username || username,
@@ -202,7 +175,17 @@ export const fetchPhotosByGalleryId = (galleryId: string) =>
       // Busca os dados da galeria para obter folderId e userId
       const { data: galeria, error: galeriaError } = await supabase
         .from('tb_galerias')
-        .select('id, drive_folder_id, user_id')
+        .select(
+          `
+          id, 
+          drive_folder_id, 
+          user_id,
+          photographer:tb_profiles!user_id (
+            plan_key,
+            plan_trial_expires
+          )
+        `,
+        )
         .eq('id', galleryId)
         .single();
 
@@ -246,7 +229,11 @@ export const fetchPhotosByGalleryId = (galleryId: string) =>
         // console.log(`[fetchPhotosByGalleryId] Nenhuma foto encontrada após tentar ambas as estratégias (API Key e OAuth)`);
 
         // Retorna array vazio sem erro - a pasta pode estar vazia ou não ser acessível
-        return { photos: [], error: null };
+        return {
+          photos: photos || [],
+          photographer: galeria.photographer,
+          error: null,
+        };
       } catch (error: any) {
         console.error('[fetchPhotosByGalleryId] Erro ao buscar fotos:', {
           error: error.message,

@@ -212,7 +212,7 @@
 
   /* Botão Primário (Champagne) */
   .btn-luxury-primary {
-    @apply btn-luxury-base bg-champagne text-white border border-champagne shadow-lg hover:bg-champagne-hover;
+    @apply btn-luxury-base bg-champagne text-petroleum border border-champagne shadow-lg hover:bg-champagne-hover;
   }
 
   /* Botão Secundário (Fundo Escuro) */

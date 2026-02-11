@@ -92,21 +92,41 @@ export default function GaleriaFormContent({
   setValue,
   watch,
 }) {
+  // =========================================================================
+  // 1. REFS E CONTEXTOS
+  // =========================================================================
   const defaultsAppliedRef = useRef(false);
-  // Lógica de permissão de acesso
   const { permissions, canAddMore } = usePlan();
-  const defaultsApplied = useRef(false);
+
+  // =========================================================================
+  // 2. ESTADOS DE INTERFACE E MODAIS
+  // =========================================================================
   const [upsellFeature, setUpsellFeature] = useState<{
     label: string;
     feature: string;
   } | null>(null);
-  const canUsePrivate = permissions.privacyLevel !== 'public';
-  const canUsePassword = permissions.privacyLevel === 'password';
-  console.log(permissions.privacyLevel);
-
-  const [, setLimitInfo] = useState({ count: 0, hasMore: false });
   const [showLimitModal, setShowLimitModal] = useState(false);
-  // 🎯 1. VISIBILIDADE NO PERFIL (HERDADO)
+  const [, setLimitInfo] = useState({ count: 0, hasMore: false });
+  const [isValidatingDrive, setIsValidatingDrive] = useState(false);
+
+  // =========================================================================
+  // 3. ESTADOS SINCRONIZADOS (WATCH / REACT-HOOK-FORM)
+  // =========================================================================
+  const leadsEnabled = watch('leads_enabled');
+  const enableFavorites = watch('enable_favorites');
+  const enableSlideshow = watch('enable_slideshow');
+
+  // Helpers para atualização manual se necessário
+  const setLeadsEnabled = (val: boolean) =>
+    setValue('leads_enabled', val, { shouldDirty: true });
+  const setEnableFavorites = (val: boolean) =>
+    setValue('enable_favorites', val, { shouldDirty: true });
+  const setEnableSlideshow = (val: boolean) =>
+    setValue('enable_slideshow', val, { shouldDirty: true });
+
+  // =========================================================================
+  // 4. ESTADOS LOCAIS DE DADOS (UI STATE)
+  // =========================================================================
   const [showOnProfile, setShowOnProfile] = useState(() => {
     if (initialData)
       return (
@@ -116,11 +136,6 @@ export default function GaleriaFormContent({
     return profile?.settings?.defaults?.list_on_profile ?? false;
   });
 
-  const leadsEnabled = watch('leads_enabled');
-  const setLeadsEnabled = (val: boolean) =>
-    setValue('leads_enabled', val, { shouldDirty: true });
-
-  // 🎯 2. CAMPOS DE LEADS (HERDADO)
   const [requiredGuestFields, setRequiredGuestFields] = useState<string[]>(
     () => {
       if (initialData) {
@@ -148,85 +163,108 @@ export default function GaleriaFormContent({
     return profile?.settings?.defaults?.rename_files_sequential ?? true;
   });
 
-  // 🎯 Garantia de consistência: se leads habilitados, pelo menos um deve ser true
-  useEffect(() => {
-    if (leadsEnabled && requiredGuestFields.length === 0) {
-      setRequiredGuestFields(['name', 'whatsapp']);
-    }
-  }, [leadsEnabled, requiredGuestFields]);
-
-  const PLAN_LIMIT = permissions.maxPhotosPerGallery; // 🎯 Dinâmico pelo plano
-
-  // 🎯 3. TIPO DE GALERIA (HERDADO DO default_type)
   const [hasContractingClient, setHasContractingClient] = useState(() => {
     if (isEdit)
       return (
         initialData.has_contracting_client === true ||
         initialData.has_contracting_client === 'true'
       );
-
-    // Se for novo, checa o código de string salvo no settings
     const defaultType = profile?.settings?.display?.default_type;
-    return defaultType === 'contract' || !defaultType; // 'contract' é o fallback
+    return defaultType === 'contract' || !defaultType;
   });
 
-  // 🎯 4. PRIVACIDADE INICIAL (HERDADO)
   const [isPublic, setIsPublic] = useState(() => {
     if (initialData)
       return initialData.is_public === true || initialData.is_public === 'true';
     return profile?.settings?.defaults?.is_public ?? true;
   });
 
-  // Busca o ID da pasta raiz salvo nas preferências do perfil
-  const profileRootFolderId =
-    profile?.settings?.defaults?.google_drive_root_id || null;
-
   const [category, setCategory] = useState(() => initialData?.category ?? '');
   const customCategoriesFromProfile = profile?.custom_categories || [];
+
   const [clientWhatsapp, setClientWhatsapp] = useState(() =>
     initialData?.client_whatsapp
       ? maskPhone({ target: { value: initialData.client_whatsapp } } as any)
       : '',
   );
+
   const [driveData, setDriveData] = useState({
     id: initialData?.drive_folder_id ?? '',
     name: initialData?.drive_folder_name ?? 'Nenhuma pasta selecionada',
     coverId: initialData?.cover_image_url ?? '',
-    allCovers: initialData?.cover_image_ids || [], // Captura as capas já salvas
-    photoCount: initialData?.photo_count || 0, // Captura a contagem salva no banco
+    allCovers: initialData?.cover_image_ids || [],
+    photoCount: initialData?.photo_count || 0,
   });
 
-  // 🎯 ESTADO PARA MÚLTIPLOS LINKS (JSON)
-  // Converte dados iniciais (zip_url_full e zip_url_social) para array
-  // 🎯 parseInitialLinks atualizado para objetos
-  const parseInitialLinks = () => {
+  const [links, setLinks] = useState<{ url: string; label: string }[]>(() => {
     if (initialData?.zip_url_full) {
       try {
         const parsed = JSON.parse(initialData.zip_url_full);
-        if (Array.isArray(parsed)) {
-          // Garante que cada item tenha label e url
-          return parsed.map((item, index) => ({
-            url: typeof item === 'string' ? item : item.url || '',
-            label:
-              typeof item === 'string'
-                ? `LINK ${index + 1}`
-                : item.label || `LINK ${index + 1}`,
-          }));
-        }
+        return Array.isArray(parsed)
+          ? parsed.map((item, idx) => ({
+              url: typeof item === 'string' ? item : item.url || '',
+              label:
+                typeof item === 'string'
+                  ? `LINK ${idx + 1}`
+                  : item.label || `LINK ${idx + 1}`,
+            }))
+          : [];
       } catch {
         return [{ url: initialData.zip_url_full, label: 'LINK 1' }];
       }
     }
     return [];
-  };
-
-  const [links, setLinks] =
-    useState<{ url: string; label: string }[]>(parseInitialLinks());
+  });
 
   const [photoCount, setPhotoCount] = useState<number | null>(
     initialData?.photo_count ?? null,
   );
 
+  // =========================================================================
+  // 5. USEEFFECTS (LÓGICA DE INICIALIZAÇÃO E SINCRONIZAÇÃO)
+  // =========================================================================
+
+  // 🎯 UNIFICADO: Aplicação de padrões (Novas Galerias) e Edição
+  useEffect(() => {
+    if (profile?.settings?.defaults && !defaultsAppliedRef.current) {
+      if (!isEdit) {
+        // --- MODO CRIAÇÃO: Aplica Padrões do Perfil ---
+        const d = profile.settings.defaults;
+        setValue('is_public', d.is_public ?? true);
+        setValue('show_on_profile', d.list_on_profile ?? false);
+        setValue('leads_enabled', d.enable_guest_registration ?? false);
+        setValue('lead_purpose', d.data_treatment_purpose ?? '');
+        setValue('enable_favorites', d.enable_favorites ?? true); // 🎯 Preferência Favoritos
+        setValue('enable_slideshow', d.enable_slideshow ?? true); // 🎯 Preferência Slideshow
+
+        if (setCustomization) {
+          setCustomization.setGridBgColor(d.background_color ?? '#FFFFFF');
+          setCustomization.setShowCoverInGrid(!!d.background_photo);
+          setCustomization.setColumns({
+            mobile: d.grid_mobile ?? 2,
+            tablet: d.grid_tablet ?? 3,
+            desktop: d.grid_desktop ?? 4,
+          });
+        }
+      } else if (initialData) {
+        // --- MODO EDIÇÃO: Sincroniza com dados existentes ---
+        setValue('enable_favorites', initialData.enable_favorites ?? true);
+        setValue('enable_slideshow', initialData.enable_slideshow ?? true);
+        setValue('leads_enabled', initialData.leads_enabled ?? false);
+        // ... outros campos de edição aqui se necessário
+      }
+      defaultsAppliedRef.current = true;
+    }
+  }, [profile, isEdit, initialData, setValue, setCustomization]);
+
+  // Consistência de Leads
+  useEffect(() => {
+    if (leadsEnabled && requiredGuestFields.length === 0) {
+      setRequiredGuestFields(['name', 'whatsapp']);
+    }
+  }, [leadsEnabled, requiredGuestFields]);
+
+  // Sincronização de fotos na edição
   useEffect(() => {
     if (isEdit && initialData?.photo_count) {
       setPhotoCount(initialData.photo_count);
@@ -237,7 +275,12 @@ export default function GaleriaFormContent({
     }
   }, [initialData, isEdit]);
 
-  const [isValidatingDrive, setIsValidatingDrive] = useState(false);
+  // Constantes de Limite
+  const PLAN_LIMIT = permissions.maxPhotosPerGallery;
+  const profileRootFolderId =
+    profile?.settings?.defaults?.google_drive_root_id || null;
+  const canUsePrivate = permissions.privacyLevel !== 'public';
+  const canUsePassword = permissions.privacyLevel === 'password';
 
   // 🎯 PROTEÇÃO: Verifica se useSupabaseSession retorna getAuthDetails corretamente
   const sessionHook = useSupabaseSession();
@@ -420,6 +463,12 @@ export default function GaleriaFormContent({
         shouldDirty: false,
       });
 
+      setValue('enable_favorites', defaults.enable_favorites ?? true, {
+        shouldDirty: false,
+      });
+      setValue('enable_slideshow', defaults.enable_slideshow ?? true, {
+        shouldDirty: false,
+      });
       // Design
       if (setCustomization) {
         setCustomization.setGridBgColor(defaults.background_color ?? '#FFFFFF');
@@ -533,6 +582,17 @@ export default function GaleriaFormContent({
             type="hidden"
             name="rename_files_sequential"
             value={String(renameFilesSequential)}
+          />
+
+          <input
+            type="hidden"
+            name="enable_favorites"
+            value={String(enableFavorites)}
+          />
+          <input
+            type="hidden"
+            name="enable_slideshow"
+            value={String(enableSlideshow)}
           />
         </div>
 
@@ -839,7 +899,12 @@ export default function GaleriaFormContent({
           icon={<PlayCircle size={14} className="text-gold" />}
         >
           <fieldset>
-            <GalleryInteractionFields register={register} />
+            <GalleryInteractionFields
+              enableFavorites={enableFavorites}
+              setEnableFavorites={setEnableFavorites}
+              enableSlideshow={enableSlideshow}
+              setEnableSlideshow={setEnableSlideshow}
+            />
           </fieldset>
         </FormSection>
       </div>
@@ -952,6 +1017,7 @@ export default function GaleriaFormContent({
 
             <button
               type="button"
+              className="btn-luxury-primary text-[9px]"
               onClick={() => {
                 if (canAddMore('maxExternalLinks', links.length)) {
                   setLinks([
@@ -968,7 +1034,7 @@ export default function GaleriaFormContent({
             >
               {canAddMore('maxExternalLinks', links.length) ? (
                 <>
-                  <Plus size={14} /> adicionar novo link
+                  <Plus size={14} /> adicionar link
                 </>
               ) : (
                 <>

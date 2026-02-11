@@ -138,7 +138,7 @@ export function VerticalActionBar({
       {showClose && canUseFavorites && (
         <button
           onClick={onToggleFavorite}
-          className="btn-luxury-base w-12 h-12 rounded-full"
+          className="w-12 h-12 rounded-full flex items-center justify-center transition-all group relative"
           aria-label={
             isFavorited ? 'Remover dos favoritos' : 'Adicionar aos favoritos'
           }
@@ -161,7 +161,7 @@ export function VerticalActionBar({
           </div>
           {/* Tooltip */}
           <div className="absolute right-full mr-3 opacity-0 group-hover:opacity-100 transition-opacity pointer-events-none whitespace-nowrap">
-            <div className="bg-champagne text-black text-[10px] font-semibold px-2 py-1 rounded shadow-xl">
+            <div className="bg-[#F3E5AB] text-black text-[10px] font-semibold px-2 py-1 rounded shadow-xl">
               {isFavorited
                 ? 'Remover dos favoritos'
                 : 'Adicionar aos favoritos'}

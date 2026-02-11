@@ -4,6 +4,7 @@ import { Download, Heart, Link as LinkIcon, Check, Share2 } from 'lucide-react';
 import WhatsAppIcon from '@/components/ui/WhatsAppIcon';
 
 export const GridPhotoActions = ({
+  canUseFavorites,
   isFavorited,
   onToggleFavorite,
   onShareWhatsApp,
@@ -39,20 +40,22 @@ export const GridPhotoActions = ({
     <div className="absolute bottom-2 left-0 right-0 px-2 z-30 pointer-events-none flex flex-row justify-between items-start">
       {/* LADO ESQUERDO: APENAS O FAVORITO */}
       <div className="flex justify-start">
-        <button
-          onClick={(e) => {
-            e.stopPropagation();
-            onToggleFavorite();
-          }}
-          style={{ width: btnSize, height: btnSize }}
-          className={`${baseBtnClass} ${
-            isFavorited
-              ? 'bg-[#E67E70] border-[#E67E70] text-white opacity-100 scale-100'
-              : 'bg-black/40 backdrop-blur-md border-white/10 text-white opacity-0 group-hover:opacity-100 scale-0 group-hover:scale-100'
-          }`}
-        >
-          <Heart size={finalIconSize} fill={isFavorited ? 'white' : 'none'} />
-        </button>
+        {canUseFavorites && (
+          <button
+            onClick={(e) => {
+              e.stopPropagation();
+              onToggleFavorite();
+            }}
+            style={{ width: btnSize, height: btnSize }}
+            className={`${baseBtnClass} ${
+              isFavorited
+                ? 'bg-[#E67E70] border-[#E67E70] text-white opacity-100 scale-100'
+                : 'bg-black/40 backdrop-blur-md border-white/10 text-white opacity-0 group-hover:opacity-100 scale-0 group-hover:scale-100'
+            }`}
+          >
+            <Heart size={finalIconSize} fill={isFavorited ? 'white' : 'none'} />
+          </button>
+        )}
       </div>
 
       {/* LADO DIREITO: GRUPO DE AÇÕES (Share/WhatsApp, Link, Download) */}

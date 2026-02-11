@@ -358,7 +358,7 @@ export const PERMISSIONS_BY_PLAN: Record<PlanKey, PlanPermissions> = {
     canCustomCategories: true,
   },
   PREMIUM: {
-    maxGalleries: 9999,
+    maxGalleries: 100,
     maxPhotosPerGallery: 1000,
     maxCoverPerGallery: 5,
     teamMembers: 99, // Acessos Ilimitados

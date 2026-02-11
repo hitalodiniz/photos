@@ -16,6 +16,8 @@ import {
 } from '@/core/utils/metadata-helper';
 import GoogleAuthError from '@/components/auth/GoogleAuthError';
 import PhotographerProfileBase from '@/components/profile/ProfileBase';
+import { PlanProvider } from '@/core/context/PlanContext';
+import { PlanKey } from '@/core/config/plans';
 
 const MAIN_DOMAIN = (
   process.env.NEXT_PUBLIC_MAIN_DOMAIN || 'localhost:3000'
@@ -81,8 +83,9 @@ export default async function GaleriaBasePage({
   const galeriaData = formatGalleryData(galeriaRaw, username);
 
   // Garante que os dados do fotógrafo (incluindo templates) sejam injetados
-  if (galeriaRaw.photographer) {
-    galeriaData.photographer = galeriaRaw.photographer;
+  const photographerProfile = galeriaRaw.photographer;
+  if (photographerProfile) {
+    galeriaData.photographer = photographerProfile;
   }
 
   // 🎯 LÓGICA DE ACESSO PROTEGIDO (Servidor)
@@ -114,6 +117,8 @@ export default async function GaleriaBasePage({
   // 🎯 CACHE: Usa fetchPhotosByGalleryId para cache com tag photos-[galleryId]
   // A função já gerencia API Key e OAuth internamente (Estratégia Dual)
   const { photos, error } = await fetchPhotosByGalleryId(galeriaData.id);
+
+  const planKey = galeriaData.photographer.plan_key || 'FREE';
 
   // TOKEN_NOT_FOUND não é mais um erro - a função já tentou API Key automaticamente
   // Se retornar TOKEN_NOT_FOUND, significa que ambas as estratégias falharam
@@ -155,7 +160,13 @@ export default async function GaleriaBasePage({
     );
   }
 
-  return <GaleriaView galeria={galeriaData} photos={photos} />;
+  console.log('--- SERVER CHECK ---');
+  console.log('RAW PLAN:', planKey);
+  return (
+    <PlanProvider planKey={planKey as PlanKey}>
+      <GaleriaView galeria={galeriaData} photos={photos} />
+    </PlanProvider>
+  );
 }
 
 export async function generateMetadata({ params }: { params: Promise<any> }) {

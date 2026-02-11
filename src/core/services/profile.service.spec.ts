@@ -737,23 +737,28 @@ describe('Profile Service - Cobertura Total 100%', () => {
     });
 
     it('deve retornar erro quando username já está em uso', async () => {
-      // Criar builders separados para cada chamada .from()
-      const firstBuilder = { ...mockBuilder };
-      const secondBuilder = { ...mockBuilder };
-
       // Mock da primeira chamada .from() - busca perfil existente
-      mockSupabase.from.mockReturnValueOnce(firstBuilder);
-      firstBuilder.single = vi.fn().mockResolvedValueOnce({
-        data: { plan_key: 'FREE' },
-        error: null,
-      });
+      const firstBuilder = {
+        select: vi.fn().mockReturnThis(),
+        eq: vi.fn().mockReturnThis(),
+        single: vi.fn().mockResolvedValue({
+          data: { plan_key: 'FREE' },
+          error: null,
+        }),
+      };
 
       // Mock da segunda chamada .from() - update que vai falhar
-      mockSupabase.from.mockReturnValueOnce(secondBuilder);
-      secondBuilder.eq = vi.fn().mockResolvedValueOnce({
-        data: null,
-        error: { code: '23505', message: 'Duplicate key' },
-      });
+      const secondBuilder = {
+        update: vi.fn().mockReturnThis(),
+        eq: vi.fn().mockResolvedValue({
+          data: null,
+          error: { code: '23505', message: 'Duplicate key' },
+        }),
+      };
+
+      mockSupabase.from
+        .mockReturnValueOnce(firstBuilder)
+        .mockReturnValueOnce(secondBuilder);
 
       const formData = new FormData();
       formData.append('username', 'existente');
@@ -768,23 +773,28 @@ describe('Profile Service - Cobertura Total 100%', () => {
     });
 
     it('deve retornar erro genérico para outros erros de banco', async () => {
-      // Criar builders separados para cada chamada .from()
-      const firstBuilder = { ...mockBuilder };
-      const secondBuilder = { ...mockBuilder };
-
       // Mock da primeira chamada .from() - busca perfil existente
-      mockSupabase.from.mockReturnValueOnce(firstBuilder);
-      firstBuilder.single = vi.fn().mockResolvedValueOnce({
-        data: { plan_key: 'FREE' },
-        error: null,
-      });
+      const firstBuilder = {
+        select: vi.fn().mockReturnThis(),
+        eq: vi.fn().mockReturnThis(),
+        single: vi.fn().mockResolvedValue({
+          data: { plan_key: 'FREE' },
+          error: null,
+        }),
+      };
 
       // Mock da segunda chamada .from() - update que vai falhar
-      mockSupabase.from.mockReturnValueOnce(secondBuilder);
-      secondBuilder.eq = vi.fn().mockResolvedValueOnce({
-        data: null,
-        error: { code: '23503', message: 'Foreign key violation' },
-      });
+      const secondBuilder = {
+        update: vi.fn().mockReturnThis(),
+        eq: vi.fn().mockResolvedValue({
+          data: null,
+          error: { code: '23503', message: 'Foreign key violation' },
+        }),
+      };
+
+      mockSupabase.from
+        .mockReturnValueOnce(firstBuilder)
+        .mockReturnValueOnce(secondBuilder);
 
       const formData = new FormData();
       formData.append('username', mockUsername);
@@ -952,23 +962,28 @@ describe('Profile Service - Cobertura Total 100%', () => {
         .spyOn(console, 'error')
         .mockImplementation(() => {});
 
-      // Criar builders separados
-      const firstBuilder = { ...mockBuilder };
-      const secondBuilder = { ...mockBuilder };
-
       // Mock da primeira chamada .from() - busca username
-      mockSupabase.from.mockReturnValueOnce(firstBuilder);
-      firstBuilder.single = vi.fn().mockResolvedValueOnce({
-        data: { username: mockUsername },
-        error: null,
-      });
+      const firstBuilder = {
+        select: vi.fn().mockReturnThis(),
+        eq: vi.fn().mockReturnThis(),
+        single: vi.fn().mockResolvedValue({
+          data: { username: mockUsername },
+          error: null,
+        }),
+      };
 
       // Mock da segunda chamada .from() - update que vai falhar
-      mockSupabase.from.mockReturnValueOnce(secondBuilder);
-      secondBuilder.eq = vi.fn().mockResolvedValueOnce({
-        data: null,
-        error: { message: 'Update failed' },
-      });
+      const secondBuilder = {
+        update: vi.fn().mockReturnThis(),
+        eq: vi.fn().mockResolvedValue({
+          data: null,
+          error: { message: 'Update failed' },
+        }),
+      };
+
+      mockSupabase.from
+        .mockReturnValueOnce(firstBuilder)
+        .mockReturnValueOnce(secondBuilder);
 
       const result = await updateProfileSettings({
         settings: mockSettings,
@@ -1077,23 +1092,28 @@ describe('Profile Service - Cobertura Total 100%', () => {
     });
 
     it('deve retornar erro quando update falha', async () => {
-      // Criar builders separados
-      const firstBuilder = { ...mockBuilder };
-      const secondBuilder = { ...mockBuilder };
-
       // Mock da primeira chamada .from() - busca username
-      mockSupabase.from.mockReturnValueOnce(firstBuilder);
-      firstBuilder.single = vi.fn().mockResolvedValueOnce({
-        data: { username: mockUsername },
-        error: null,
-      });
+      const firstBuilder = {
+        select: vi.fn().mockReturnThis(),
+        eq: vi.fn().mockReturnThis(),
+        single: vi.fn().mockResolvedValue({
+          data: { username: mockUsername },
+          error: null,
+        }),
+      };
 
       // Mock da segunda chamada .from() - update que vai falhar
-      mockSupabase.from.mockReturnValueOnce(secondBuilder);
-      secondBuilder.eq = vi.fn().mockResolvedValueOnce({
-        data: null,
-        error: { message: 'Update failed' },
-      });
+      const secondBuilder = {
+        update: vi.fn().mockReturnThis(),
+        eq: vi.fn().mockResolvedValue({
+          data: null,
+          error: { message: 'Update failed' },
+        }),
+      };
+
+      mockSupabase.from
+        .mockReturnValueOnce(firstBuilder)
+        .mockReturnValueOnce(secondBuilder);
 
       const result = await updateSidebarPreference(true);
 
@@ -1173,23 +1193,28 @@ describe('Profile Service - Cobertura Total 100%', () => {
         .spyOn(console, 'error')
         .mockImplementation(() => {});
 
-      // Criar builders separados
-      const firstBuilder = { ...mockBuilder };
-      const secondBuilder = { ...mockBuilder };
-
       // Mock da primeira chamada .from() - busca username
-      mockSupabase.from.mockReturnValueOnce(firstBuilder);
-      firstBuilder.single = vi.fn().mockResolvedValueOnce({
-        data: { username: mockUsername },
-        error: null,
-      });
+      const firstBuilder = {
+        select: vi.fn().mockReturnThis(),
+        eq: vi.fn().mockReturnThis(),
+        single: vi.fn().mockResolvedValue({
+          data: { username: mockUsername },
+          error: null,
+        }),
+      };
 
       // Mock da segunda chamada .from() - update que vai falhar
-      mockSupabase.from.mockReturnValueOnce(secondBuilder);
-      secondBuilder.eq = vi.fn().mockResolvedValueOnce({
-        data: null,
-        error: { message: 'Database error' },
-      });
+      const secondBuilder = {
+        update: vi.fn().mockReturnThis(),
+        eq: vi.fn().mockResolvedValue({
+          data: null,
+          error: { message: 'Database error' },
+        }),
+      };
+
+      mockSupabase.from
+        .mockReturnValueOnce(firstBuilder)
+        .mockReturnValueOnce(secondBuilder);
 
       const result = await updateCustomCategories(mockCategories);
 

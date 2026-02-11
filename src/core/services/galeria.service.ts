@@ -269,6 +269,9 @@ export async function createGaleria(
         formData.get('is_public') === 'true'
           ? null
           : (formData.get('password') as string),
+
+      enable_favorites: formData.get('enable_favorites') === 'true',
+      enable_slideshow: formData.get('enable_slideshow') === 'true',
     };
 
     const { error, data: insertedData } = await supabase
@@ -425,6 +428,9 @@ export async function updateGaleria(
       lead_purpose: (formData.get('lead_purpose') as string) || null,
       rename_files_sequential:
         formData.get('rename_files_sequential') === 'true',
+
+      enable_favorites: formData.get('enable_favorites') === 'true',
+      enable_slideshow: formData.get('enable_slideshow') === 'true',
     };
 
     // 2. Validação básica de integridade
