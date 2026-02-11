@@ -73,7 +73,7 @@ export const SEGMENT_DICTIONARY: Record<SegmentType, SegmentDictionary> = {
     sectionSubtitle: (userType) =>
       userType === 'photographer'
         ? 'Sua estrutura de eventos'
-        : 'Encontre o registro perfeito',
+        : 'Encontre eventos incríveis',
     sectionDescription: (userType, terms) =>
       userType === 'explorer'
         ? `Navegue por ${terms.items} públicos e conecte-se direto com ${terms.plural}.`
@@ -99,7 +99,7 @@ export const SEGMENT_DICTIONARY: Record<SegmentType, SegmentDictionary> = {
     sectionSubtitle: (userType) =>
       userType === 'photographer'
         ? 'Gestão de campanha digital'
-        : 'Acompanhe seu candidato',
+        : 'Acompanhe candidatos',
     sectionDescription: (userType, terms) =>
       userType === 'explorer'
         ? `Acesse as ${terms.items} oficiais e conecte-se com os ${terms.plural}.`

@@ -423,7 +423,7 @@ export const PLANS_BY_SEGMENT: Record<
     },
     PRO: {
       name: 'Pro',
-      price: 89,
+      price: 79,
       yearlyPrice: 74,
       maxGalleries: 50,
       icon: Crown,
@@ -432,7 +432,7 @@ export const PLANS_BY_SEGMENT: Record<
     },
     PREMIUM: {
       name: 'Premium',
-      price: 119,
+      price: 109,
       yearlyPrice: 99,
       maxGalleries: 9999,
       icon: Sparkles,

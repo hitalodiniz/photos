@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import {
   Instagram,
   LayoutGrid,
@@ -8,26 +8,30 @@ import {
   Share2,
   Check,
   X,
-  Icon,
   Layout,
 } from 'lucide-react';
 import { useRouter } from 'next/navigation';
 import WhatsAppIcon from '@/components/ui/WhatsAppIcon';
 import AuthButton from '../auth/AuthButton';
-import { useSegment } from '@/hooks/useSegment'; // 🎯 Import do Hook
-import { i } from 'framer-motion/client';
+import { useSegment } from '@/hooks/useSegment';
 
 export default function EditorialToolbar() {
   const router = useRouter();
   const [copied, setCopied] = useState(false);
   const [isMenuOpen, setIsMenuOpen] = useState(false);
-  const { SegmentIcon, terms } = useSegment(); // 🎯 Obtendo termos dinâmicos
+  const [mounted, setMounted] = useState(false); // 🎯 Estado para controlar hidratação
+  const { SegmentIcon, terms } = useSegment();
+
+  // 🎯 Garante que o componente só renderize ícones dinâmicos após o mount no cliente
+  useEffect(() => {
+    setMounted(true);
+  }, []);
 
   const handleShare = async () => {
-    if (navigator.share) {
+    if (typeof window !== 'undefined' && navigator.share) {
       try {
         await navigator.share({
-          title: terms.site_name, // 🎯 Dinâmico
+          title: terms.site_name,
           text: `Confira este portfólio incrível!`,
           url: window.location.href,
         });
@@ -49,12 +53,15 @@ export default function EditorialToolbar() {
           className="flex items-center gap-2 cursor-pointer group shrink-0"
           onClick={() => router.push('/')}
         >
-          <SegmentIcon
-            className="w-7 h-7 text-champagne group-hover:scale-110 transition-transform"
-            strokeWidth={1.5}
-          />
+          {/* 🎯 Só renderiza o ícone do segmento após montar para evitar erro de hidratação */}
+          {mounted && SegmentIcon && (
+            <SegmentIcon
+              className="w-7 h-7 text-champagne group-hover:scale-110 transition-transform"
+              strokeWidth={1.5}
+            />
+          )}
           <span className="text-[16px] md:text-[18px] font-semibold text-white italic tracking-tight">
-            {terms.site_name} {/* 🎯 Dinâmico */}
+            {terms.site_name}
           </span>
         </div>
 
@@ -120,31 +127,26 @@ export default function EditorialToolbar() {
 
       {/* Overlay de Menu Lateral */}
       <div
-        className={`fixed inset-0 z-[110] transition-all duration-700 ${
-          isMenuOpen ? 'visible' : 'invisible'
-        }`}
+        className={`fixed inset-0 z-[110] transition-all duration-700 ${isMenuOpen ? 'visible' : 'invisible'}`}
       >
         <div
-          className={`absolute inset-0 bg-black/60 backdrop-blur-sm transition-opacity duration-700 ${
-            isMenuOpen ? 'opacity-100' : 'opacity-0'
-          }`}
+          className={`absolute inset-0 bg-black/60 backdrop-blur-sm transition-opacity duration-700 ${isMenuOpen ? 'opacity-100' : 'opacity-0'}`}
           onClick={() => setIsMenuOpen(false)}
         />
 
         <div
-          className={`absolute top-0 right-0 h-full w-[85%] md:w-[320px] bg-petroleum border-l border-white/5 p-6 md:p-8 flex flex-col transition-transform duration-500 ease-in-out shadow-2xl ${
-            isMenuOpen ? 'translate-x-0' : 'translate-x-full'
-          }`}
+          className={`absolute top-0 right-0 h-full w-[85%] md:w-[320px] bg-petroleum border-l border-white/5 p-6 md:p-8 flex flex-col transition-transform duration-500 ease-in-out shadow-2xl ${isMenuOpen ? 'translate-x-0' : 'translate-x-full'}`}
         >
-          {/* Cabeçalho Menu */}
           <div className="flex justify-between items-center mb-8 pb-6 border-b border-white/5">
             <div className="flex items-center gap-2">
-              <SegmentIcon
-                className="w-4 h-4 text-champagne"
-                strokeWidth={1.5}
-              />
+              {mounted && SegmentIcon && (
+                <SegmentIcon
+                  className="w-4 h-4 text-champagne"
+                  strokeWidth={1.5}
+                />
+              )}
               <span className="text-[11px] font-semibold uppercase tracking-[0.2em] text-white italic">
-                {terms.site_name} {/* 🎯 Dinâmico */}
+                {terms.site_name}
               </span>
             </div>
             <button
@@ -159,16 +161,9 @@ export default function EditorialToolbar() {
           <nav className="flex flex-col gap-1">
             {[
               { label: 'Nossos Planos', icon: LayoutGrid, path: '/planos' },
-              // { label: 'A Tecnologia', icon: Layout, path: '/tech' }, // Substituí 'Icon' por um válido
-              {
-                label: 'Tecnologia e Suporte ',
-                icon: Share2,
-                path: '/suporte',
-              },
+              { label: 'Tecnologia e Suporte', icon: Share2, path: '/suporte' },
             ].map((item, i) => {
-              // 🎯 Dica: Atribuir a uma variável começando com Maiúscula garante compatibilidade
               const IconComponent = item.icon;
-
               return (
                 <button
                   key={i}
@@ -178,9 +173,7 @@ export default function EditorialToolbar() {
                   }}
                   className="group flex items-center gap-4 px-4 py-4 rounded-luxury hover:bg-white/5 text-white active:bg-white/10 transition-all"
                 >
-                  {/* Renderização do ícone com as propriedades desejadas */}
                   <IconComponent size={18} className="text-champagne" />
-
                   <span className="text-[12px] md:text-[11px] font-semibold uppercase tracking-luxury-widest">
                     {item.label}
                   </span>

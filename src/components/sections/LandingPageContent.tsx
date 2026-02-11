@@ -20,6 +20,7 @@ import EditorialCard from '../ui/EditorialCard';
 import EditorialView from '../layout/EditorialView';
 import { authService } from '@photos/core-auth';
 import { useSegment } from '@/hooks/useSegment';
+import { PLANS_BY_SEGMENT } from '@/core/config/plans';
 
 const STORAGE_KEY = '@suagaleria:active-tab';
 
@@ -38,6 +39,14 @@ export default function LandingPageContent() {
     }
   }, []);
 
+  // Busca o preço do plano inicial dinamicamente
+  const startingPrice = useMemo(() => {
+    const segmentPlans = PLANS_BY_SEGMENT[segment];
+    // Buscamos o valor do plano 'START' ou o primeiro disponível
+    const startPlan = segmentPlans['START'] || Object.values(segmentPlans)[0];
+    return startPlan?.price || '29';
+  }, [segment]);
+
   const handleTypeSelection = (type: 'explorer' | 'photographer') => {
     setUserType(type);
     localStorage.setItem(STORAGE_KEY, type);
@@ -52,11 +61,11 @@ export default function LandingPageContent() {
   const benefits = useMemo(
     () => [
       {
-        title: `Seus ${terms.items} rendem mais`,
+        title: `Sua galeria de ${terms.items} entregam mais`,
         accent: 'gold',
         items: [
           `Cada ${terms.item} importa`,
-          'Qualidade superior ao Instagram',
+          'Qualidade superior ao Instagram e Whatsapp',
           `Protege suas ${terms.items} no formato original`,
           'Subiu no Drive, está na galeria em tempo real',
         ],
@@ -75,7 +84,7 @@ export default function LandingPageContent() {
         title: 'Acessível e para todos',
         accent: 'gold',
         items: [
-          'Planos a partir de R$ 29/mês',
+          `Planos a partir de R$ ${startingPrice}/mês`,
           'Interface descomplicada',
           'Suporte profissional incluído',
           'Experiência fluida e elegante no celular',
@@ -258,8 +267,8 @@ export default function LandingPageContent() {
 
                 <div className="relative z-10 flex flex-col items-center text-center">
                   {/* 🏷️ Badge em Champagne com fundo translúcido */}
-                  <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-white/10 text-champagne text-[9px] font-bold uppercase tracking-widest mb-6 border border-white/5">
-                    <Sparkles size={10} className="text-gold" /> Portfólio
+                  <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-white/10 text-champagne text-[10px] font-semibold uppercase tracking-widest mb-6 border border-white/5">
+                    <Sparkles size={11} className="text-gold" /> Portfólio
                     Profissional
                   </div>
 

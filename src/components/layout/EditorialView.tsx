@@ -18,7 +18,7 @@ const SEGMENT_ASSETS = {
   },
   OFFICE: {
     path: '/heros/office/',
-    count: 3,
+    count: 2,
   },
   CAMPAIGN: {
     path: '/heros/campaign/',
