@@ -51,17 +51,21 @@ export const resolveResolutionByPlan = (
 ): string => {
   if (!planKeyOrWidth) return RESOLUTIONS.DEFAULT_DOWNLOAD;
 
-  // Se for uma PlanKey (ex: 'PRO', 'PREMIUM')
+  // Se for uma PlanKey (PRO, PREMIUM, etc)
   if (
     typeof planKeyOrWidth === 'string' &&
     planKeyOrWidth in PERMISSIONS_BY_PLAN
   ) {
     const permissions = PERMISSIONS_BY_PLAN[planKeyOrWidth as PlanKey];
-    const limitKey = permissions.zipSizeLimit as keyof typeof RESOLUTIONS;
-    return RESOLUTIONS[limitKey] || RESOLUTIONS.DEFAULT_DOWNLOAD;
+    const limitKey = permissions.zipSizeLimit; // Ex: '2MB'
+
+    // Retorna a resolução mapeada para aquele limite de peso (ex: '2560')
+    return (
+      RESOLUTIONS[limitKey as keyof typeof RESOLUTIONS] ||
+      RESOLUTIONS.DEFAULT_DOWNLOAD
+    );
   }
 
-  // Se for largura manual (ex: 1080)
   return planKeyOrWidth.toString().replace(/\D/g, '');
 };
 

@@ -163,6 +163,9 @@ export function extractFormData(formData: FormData) {
 
     accepted_terms: formData.get('accepted_terms') === 'true',
     accepted_at: new Date().toISOString(),
+
+    specialty: formData.get('specialty') as string,
+    custom_specialties: formData.get('custom_specialties') as string,
   };
 }
 

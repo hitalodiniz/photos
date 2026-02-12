@@ -228,6 +228,9 @@ export async function upsertProfile(formData: FormData, supabaseClient?: any) {
     accepted_at: formFields.accepted_terms ? new Date().toISOString() : null,
     background_url: backgroundUrls,
     updated_at: new Date().toISOString(),
+    specialty: formFields.specialty,
+    custom_specialties: formFields.custom_specialties,
+
     ...(isFirstSetup ? buildTrialData() : {}), // Merge condicional limpo
   };
 

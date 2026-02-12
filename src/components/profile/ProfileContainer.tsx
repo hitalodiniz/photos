@@ -2,7 +2,7 @@
 
 import React, { useEffect, useState } from 'react';
 import { notFound } from 'next/navigation';
-import PhotographerContent from './ProfileContent';
+import ProfileContent from './ProfileContent';
 import * as profileService from '@/core/services/profile.service';
 import LoadingScreen from '@/components/ui/LoadingScreen';
 
@@ -35,7 +35,7 @@ export default function PhotographerContainer({
   }, [username, initialProfile]);
 
   // 1. Enquanto carrega o perfil básico, não mostramos nada (ou um loader simples)
-  // pois o PhotographerContent já possui seu próprio LoadingScreen interno
+  // pois o ProfileContent já possui seu próprio LoadingScreen interno
   if (loading) {
     return null;
   }
@@ -47,7 +47,7 @@ export default function PhotographerContainer({
 
   // 3. Agora é seguro renderizar, pois o 'profile' certamente existe
   return (
-    <PhotographerContent
+    <ProfileContent
       fullName={profile.full_name}
       username={profile.username}
       miniBio={profile.mini_bio}

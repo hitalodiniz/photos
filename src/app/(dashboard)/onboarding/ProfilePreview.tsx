@@ -2,7 +2,7 @@
 import React, { useEffect, useState } from 'react';
 
 import { useParams } from 'next/navigation';
-import PhotographerContent from '@/components/profile/ProfileContent';
+import ProfileContent from '@/components/profile/ProfileContent';
 import { getPublicProfile } from '@/core/services/profile.service';
 
 export default function Photographer({ initialData }: { initialData?: any }) {
@@ -73,7 +73,7 @@ export default function Photographer({ initialData }: { initialData?: any }) {
 
   return (
     <div className="w-full min-h-screen bg-black">
-      <PhotographerContent
+      <ProfileContent
         fullName={fullName}
         username={username}
         miniBio={bio}

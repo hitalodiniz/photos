@@ -30,6 +30,8 @@ export interface Profile {
   roles?: string[];
   accepted_terms: boolean;
   accepted_at: string;
+  specialty?: string;
+  custom_specialties?: string[];
 }
 
 // 🎯 Zod Schema atualizado para suportar o novo JSON

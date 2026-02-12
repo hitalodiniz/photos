@@ -1,5 +1,3 @@
-import { PlanGuard } from '@/components/auth/PlanGuard';
-import { a } from 'framer-motion/client';
 import {
   Zap,
   Rocket,
@@ -12,8 +10,6 @@ import {
   Medal,
   Award,
 } from 'lucide-react';
-import { boolean } from 'zod';
-import { de, no, da } from 'zod/locales';
 
 export type SegmentType = 'PHOTOGRAPHER' | 'EVENT' | 'CAMPAIGN' | 'OFFICE';
 export type PlanKey = 'FREE' | 'START' | 'PLUS' | 'PRO' | 'PREMIUM';
@@ -23,45 +19,56 @@ export const planOrder: PlanKey[] = ['FREE', 'START', 'PLUS', 'PRO', 'PREMIUM'];
 export function findNextPlanWithFeature(
   currentPlanKey: PlanKey,
   featureName: keyof PlanPermissions,
-  segment: SegmentType,
+  segment: SegmentType = 'PHOTOGRAPHER',
 ): PlanKey {
   const currentPlanIndex = planOrder.indexOf(currentPlanKey);
-  if (currentPlanIndex === -1) return 'PREMIUM'; // Fallback se a chave atual não for encontrada
+  if (currentPlanIndex === -1) return 'PREMIUM';
 
-  // Percorre os planos a partir do plano atual
+  const levelWeights: Record<string, number> = {
+    basic: 1,
+    standard: 2,
+    advanced: 3,
+    seo: 4,
+    minimal: 1,
+    social: 2,
+    full: 3,
+    manual: 1,
+    bulk: 2,
+    drive: 3,
+    default: 1,
+    colors: 2,
+    'full-custom': 3,
+  };
+
   for (let i = currentPlanIndex + 1; i < planOrder.length; i++) {
     const planKey = planOrder[i];
-    const planPermissions = PERMISSIONS_BY_PLAN[planKey];
-    const featureValue = planPermissions[featureName];
+    const planPerms = PERMISSIONS_BY_PLAN[planKey];
+    const currentPerms = PERMISSIONS_BY_PLAN[currentPlanKey];
 
-    let isFeatureAvailable = false;
+    const nextValue = planPerms[featureName];
+    const currentValue = currentPerms[featureName];
 
-    // Lógica para determinar se a feature está "disponível" neste plano
-    if (typeof featureValue === 'boolean') {
-      isFeatureAvailable = featureValue === true;
-    } else if (typeof featureValue === 'number') {
-      isFeatureAvailable = featureValue > 0;
-    } else if (featureValue === 'unlimited') {
-      isFeatureAvailable = true;
-    } else if (typeof featureValue === 'string') {
-      // Para as strings (e.g., profileLevel, socialDisplayLevel), consideramos "disponível"
-      // se o valor do recurso for diferente do plano FREE,
-      // indicando uma melhoria ou ativação do recurso.
-      const freePlanFeatureValue = PERMISSIONS_BY_PLAN.FREE[featureName];
-      isFeatureAvailable = featureValue !== freePlanFeatureValue;
-    }
-
-    if (isFeatureAvailable) {
+    if (typeof nextValue === 'boolean' && nextValue) return planKey;
+    if (
+      typeof nextValue === 'number' &&
+      typeof currentValue === 'number' &&
+      nextValue > currentValue
+    )
       return planKey;
+    if (nextValue === 'unlimited' && currentValue !== 'unlimited')
+      return planKey;
+
+    if (typeof nextValue === 'string' && typeof currentValue === 'string') {
+      if ((levelWeights[nextValue] || 0) > (levelWeights[currentValue] || 0))
+        return planKey;
     }
   }
 
-  return 'PREMIUM'; // Se não encontrar em nenhum plano superior, sugere o PREMIUM
+  return 'PREMIUM';
 }
 
 /**
  * 🎨 Dicionário de labels e descrições amigáveis para o Upsell.
- * Serve para que o PlanGuard e o UpgradeModal saibam explicar o valor da feature.
  */
 export const FEATURE_DESCRIPTIONS: Record<
   keyof PlanPermissions,
@@ -84,7 +91,7 @@ export const FEATURE_DESCRIPTIONS: Record<
   profileLevel: {
     label: 'Perfil Profissional',
     description:
-      'Desbloqueie Bio, Localização e ferramentas de SEO no seu perfil.',
+      'Desbloqueie Bio, Cidades e Áreas de Atuação e ferramentas de SEO no seu perfil.',
   },
   profileCarouselLimit: {
     label: 'Carrossel de Capa',
@@ -180,76 +187,45 @@ export const FEATURE_DESCRIPTIONS: Record<
     description: 'Crie nomes de categorias fora do padrão do sistema.',
   },
 };
-// Pendencias
-// teamMembers	Tela de Configurações de Time / Convite de Colaboradores.
-// profileLevel	Tela de Edição de Perfil (campos de Bio, Localização e SEO).
-// profileCarouselLimit	Upload de fotos de capa no Perfil Profissional.
-// removeBranding	Componente de Footer das galerias públicas.
-// canExportLeads	Botão de "Exportar CSV" na listagem de contatos.
-// canFavorite	Toggle de habilitar favoritos na galeria e exibição no front público.
-//
-// canCustomWhatsApp	Tela de edição de templates de mensagens de WhatsApp.
 
-/**
- * Interface técnica para o motor de permissões.
- * Ajustada para refletir exatamente os novos grupos da tabela visual.
- */
 export interface PlanPermissions {
-  // Gestão
-  maxGalleries: number; // implementado no galeria.actions.ts -> syncUserGalleriesAction
-  maxPhotosPerGallery: number; // implementado no google-drive.ts -> resolvePhotoLimitByPlan - LimitUpgradeModal e GaleriaDriveSection
+  maxGalleries: number;
+  maxPhotosPerGallery: number;
   teamMembers: number;
-
-  // Divulgação do Perfil
   profileLevel: 'basic' | 'standard' | 'advanced' | 'seo';
   profileCarouselLimit: number;
-  profileListLimit: number | 'unlimited'; // BT listar galeria no pefil travado
-  removeBranding: boolean; // Atrelado ao Rodapé (Footer) -- Implementado
-
-  // Cadastro de visitantes (Leads)
-  canCaptureLeads: boolean; //Implementado no GaleriaFormContent através do PlanGuard envolvendo toda a seção de "Cadastro de Visitante"
-  canExportLeads: boolean; //Não utilizado, pois o canCaptureLeads já bloqueia tudo, não tem a opção de ver
-
-  // Galeria & Experiência
+  profileListLimit: number | 'unlimited';
+  removeBranding: boolean;
+  canCaptureLeads: boolean;
+  canExportLeads: boolean;
   socialDisplayLevel: 'minimal' | 'social' | 'full';
   maxCoverPerGallery: number;
   canFavorite: boolean;
   canDownloadFavoriteSelection: boolean;
   canShowSlideshow: boolean;
-  maxGridColumns: number; //implementado no GalleryDesingFields.tsx
+  maxGridColumns: number;
   maxTags: number;
   tagSelectionMode: 'manual' | 'bulk' | 'drive';
-  zipSizeLimit: string; // Ex: '500KB', '3MB' -- implementado no url-helpers.ts -> resolveResolutionByPlan
-  maxExternalLinks: number; //Implementado na sidebar de links; o botão "adicionar novo" bloqueia e abre o UpgradeModal ao atingir o limite
-  canCustomLinkLabel: boolean; //Implementado com o overlay de cadeado (Lock) e desabilitação do input de label nos links de entrega.
-
-  // Segurança & Automação
-  privacyLevel: 'public' | 'password' | 'password' | 'password' | 'password'; //Implementado	Trava para as opções de "Senha" e "Expiração" no seletor de privacidade.
-  keepOriginalFilenames: boolean; //Implementado através do PlanGuard envolvendo a seção de "Renomear arquivos" no formulário da galeria
-  customizationLevel: 'default' | 'colors' | 'full'; //Implementado através do PlanGuard protegendo os seletores de "Cor de Fundo" e "Foto de Fundo" no design da galeria.
-
-  // WhatsApp & Mensagens
-  canCustomWhatsApp: boolean; //Permite editar os templates de GALLERY_MESSAGES
-
-  // Categorias
-  canCustomCategories: boolean; //Permite criar categorias fora da GALLERY_CATEGORIES implementado no CategorySelect.tsx -> handleOpenModal - Implementado no GalleryDesignFields
-
-  // Trial
+  zipSizeLimit: string;
+  maxExternalLinks: number;
+  canCustomLinkLabel: boolean;
+  privacyLevel: 'public' | 'password';
+  keepOriginalFilenames: boolean;
+  customizationLevel: 'default' | 'colors' | 'full';
+  canCustomWhatsApp: boolean;
+  canCustomCategories: boolean;
   isTrial?: boolean;
 }
 
 export interface PlanInfo {
   name: string;
-  price: number; // Mensal
-  yearlyPrice: number; // Valor da parcela no anual (com desconto)
+  price: number;
+  yearlyPrice: number;
   maxGalleries: number;
   icon: any;
   cta: string;
   permissions: PlanPermissions;
 }
-
-// --- MASTER PERMISSIONS MAP ---
-// Revisado para total coerência com os grupos visuais
 
 export const PERMISSIONS_BY_PLAN: Record<PlanKey, PlanPermissions> = {
   FREE: {
@@ -257,51 +233,51 @@ export const PERMISSIONS_BY_PLAN: Record<PlanKey, PlanPermissions> = {
     maxPhotosPerGallery: 80,
     maxCoverPerGallery: 1,
     teamMembers: 0,
-    profileLevel: 'basic', // Avatar + Nome
-    profileCarouselLimit: 0, // Imagem Padrão
-    profileListLimit: 1, // Exibir 1 galeria
-    removeBranding: false, // Marca do App
+    profileLevel: 'basic',
+    profileCarouselLimit: 0,
+    profileListLimit: 1,
+    removeBranding: false,
     canCaptureLeads: false,
     canExportLeads: false,
-    canCustomWhatsApp: false, // Templates Padrão
-    socialDisplayLevel: 'minimal', // Apenas Avatar
+    canCustomWhatsApp: false,
+    socialDisplayLevel: 'minimal',
     canFavorite: false,
     canDownloadFavoriteSelection: false,
     canShowSlideshow: false,
-    maxGridColumns: 3, // Fixo (3 colunas)
-    maxTags: 0, // Categorias Padrão
+    maxGridColumns: 3,
+    maxTags: 0,
     tagSelectionMode: 'manual',
     zipSizeLimit: '500KB',
     maxExternalLinks: 0,
     canCustomLinkLabel: false,
-    privacyLevel: 'public', // Link Público
-    keepOriginalFilenames: false, // Nomes Aleatórios
-    customizationLevel: 'default', // Tema Editorial
-    canCustomCategories: false, // Categorias Padrão
+    privacyLevel: 'public',
+    keepOriginalFilenames: false,
+    customizationLevel: 'default',
+    canCustomCategories: false,
   },
   START: {
     maxGalleries: 10,
     maxPhotosPerGallery: 200,
     maxCoverPerGallery: 1,
     teamMembers: 0,
-    profileLevel: 'standard', // + Bio + Localização
-    profileCarouselLimit: 1, // 1 Foto Personalizada
-    profileListLimit: 10, // Exibir até 10
+    profileLevel: 'standard',
+    profileCarouselLimit: 1,
+    profileListLimit: 10,
     removeBranding: false,
     canCaptureLeads: false,
     canExportLeads: false,
     canCustomWhatsApp: false,
-    socialDisplayLevel: 'social', // + Atalho WhatsApp
-    canFavorite: true, // + Favoritar (Coração)
+    socialDisplayLevel: 'social',
+    canFavorite: true,
     canDownloadFavoriteSelection: false,
     canShowSlideshow: false,
-    maxGridColumns: 4, // Escolha (3 ou 4)
-    maxTags: 0, // Categorias Padrão
+    maxGridColumns: 4,
+    maxTags: 0,
     tagSelectionMode: 'manual',
     zipSizeLimit: '1MB',
-    maxExternalLinks: 1, // 1 Link Direto
+    maxExternalLinks: 1,
     canCustomLinkLabel: false,
-    privacyLevel: 'password', // Link Privado
+    privacyLevel: 'password',
     keepOriginalFilenames: false,
     customizationLevel: 'default',
     canCustomCategories: false,
@@ -310,52 +286,52 @@ export const PERMISSIONS_BY_PLAN: Record<PlanKey, PlanPermissions> = {
     maxGalleries: 20,
     maxPhotosPerGallery: 400,
     maxCoverPerGallery: 2,
-    teamMembers: 2, // + 2 Colaboradores
-    profileLevel: 'standard', // + Áreas de Atuação
+    teamMembers: 2,
+    profileLevel: 'advanced',
     profileCarouselLimit: 1,
-    profileListLimit: 20, // Exibir até 20
+    profileListLimit: 20,
     removeBranding: false,
     canCaptureLeads: false,
     canExportLeads: false,
     canCustomWhatsApp: false,
-    socialDisplayLevel: 'social', // + Link Instagram
+    socialDisplayLevel: 'social',
     canFavorite: true,
-    canDownloadFavoriteSelection: true, // + Baixar seleção (Filtro)
+    canDownloadFavoriteSelection: true,
     canShowSlideshow: false,
-    maxGridColumns: 5, // Escolha (3 a 5)
-    maxTags: 7, // + Categorias Próprias
+    maxGridColumns: 5,
+    maxTags: 7,
     tagSelectionMode: 'manual',
     zipSizeLimit: '1.5MB',
-    maxExternalLinks: 2, // 2 Links Diretos
+    maxExternalLinks: 2,
     canCustomLinkLabel: false,
     privacyLevel: 'password',
-    keepOriginalFilenames: true, // Nomes Originais
-    customizationLevel: 'colors', // + Cores do Grid
-    canCustomCategories: true, // + Categorias Próprias
+    keepOriginalFilenames: true,
+    customizationLevel: 'colors',
+    canCustomCategories: true,
   },
   PRO: {
     maxGalleries: 50,
     maxPhotosPerGallery: 600,
     maxCoverPerGallery: 3,
-    teamMembers: 5, // + 5 Colaboradores
-    profileLevel: 'advanced', // + Subdomínio + SEO
-    profileCarouselLimit: 3, // + Carrossel (3 fotos)
-    profileListLimit: 'unlimited', // Portfólio Completo
+    teamMembers: 5,
+    profileLevel: 'seo',
+    profileCarouselLimit: 3,
+    profileListLimit: 'unlimited',
     removeBranding: false,
-    canCaptureLeads: true, // Coleta de Leads (Whats)
-    canExportLeads: true, // Exportação (CSV/XLS)
-    canCustomWhatsApp: true, // + Edição Customizada
-    socialDisplayLevel: 'full', // + Link Perfil Full
+    canCaptureLeads: true,
+    canExportLeads: true,
+    canCustomWhatsApp: true,
+    socialDisplayLevel: 'full',
     canFavorite: true,
     canDownloadFavoriteSelection: true,
-    canShowSlideshow: true, // + Modo Slideshow
-    maxGridColumns: 6, // Até 6 colunas
-    maxTags: 12, // + Filtros por Tags
-    tagSelectionMode: 'bulk', // + Seleção em Lote
+    canShowSlideshow: true,
+    maxGridColumns: 6,
+    maxTags: 12,
+    tagSelectionMode: 'bulk',
     zipSizeLimit: '2MB',
-    maxExternalLinks: 5, // Até 5 Links (Custom)
+    maxExternalLinks: 5,
     canCustomLinkLabel: true,
-    privacyLevel: 'password', // + Proteção por Senha
+    privacyLevel: 'password',
     keepOriginalFilenames: true,
     customizationLevel: 'colors',
     canCustomCategories: true,
@@ -364,33 +340,30 @@ export const PERMISSIONS_BY_PLAN: Record<PlanKey, PlanPermissions> = {
     maxGalleries: 9999,
     maxPhotosPerGallery: 1000,
     maxCoverPerGallery: 5,
-    teamMembers: 99, // Acessos Ilimitados
-    profileLevel: 'seo', // + Subdomínio + SEO (Nível Máximo)
-    profileCarouselLimit: 5, // + Carrossel (5 fotos)
+    teamMembers: 99,
+    profileLevel: 'seo',
+    profileCarouselLimit: 5,
     profileListLimit: 'unlimited',
-    removeBranding: true, // White Label (Sem Marca)
+    removeBranding: true,
     canCaptureLeads: true,
     canExportLeads: true,
     canCustomWhatsApp: true,
-    socialDisplayLevel: 'full', // + Website Direto
+    socialDisplayLevel: 'full',
     canFavorite: true,
     canDownloadFavoriteSelection: true,
     canShowSlideshow: true,
-    maxGridColumns: 8, // Até 8 colunas
-    maxTags: 30, // + Auto-Tags (Pastas)
+    maxGridColumns: 8,
+    maxTags: 30,
     tagSelectionMode: 'drive',
     zipSizeLimit: '3MB',
-    maxExternalLinks: 10, // Até 10 Links (Custom)
+    maxExternalLinks: 10,
     canCustomLinkLabel: true,
-    privacyLevel: 'password', // + Link com Expiração
+    privacyLevel: 'password',
     keepOriginalFilenames: true,
-    customizationLevel: 'full', // + Fundo Personalizado
+    customizationLevel: 'full',
     canCustomCategories: true,
   },
 };
-
-// --- SEGMENTED PLANS ---
-// Injeta automaticamente as permissões baseadas na PlanKey
 
 export const PLANS_BY_SEGMENT: Record<
   SegmentType,
@@ -448,7 +421,7 @@ export const PLANS_BY_SEGMENT: Record<
       name: 'Free Trial',
       price: 0,
       yearlyPrice: 0,
-      maxGalleries: 1,
+      maxGalleries: 2,
       icon: Zap,
       cta: 'Testar',
       permissions: PERMISSIONS_BY_PLAN.FREE,
@@ -466,7 +439,7 @@ export const PLANS_BY_SEGMENT: Record<
       name: 'Plus',
       price: 159,
       yearlyPrice: 129,
-      maxGalleries: 25,
+      maxGalleries: 20,
       icon: Star,
       cta: 'Expandir',
       permissions: PERMISSIONS_BY_PLAN.PLUS,
@@ -495,7 +468,7 @@ export const PLANS_BY_SEGMENT: Record<
       name: 'Militante',
       price: 0,
       yearlyPrice: 0,
-      maxGalleries: 1,
+      maxGalleries: 2,
       icon: Shield,
       cta: 'Começar',
       permissions: PERMISSIONS_BY_PLAN.FREE,
@@ -513,7 +486,7 @@ export const PLANS_BY_SEGMENT: Record<
       name: 'Prata',
       price: 399,
       yearlyPrice: 329,
-      maxGalleries: 25,
+      maxGalleries: 20,
       icon: Award,
       cta: 'Plano Prata',
       permissions: PERMISSIONS_BY_PLAN.PLUS,
@@ -542,7 +515,7 @@ export const PLANS_BY_SEGMENT: Record<
       name: 'Básico',
       price: 0,
       yearlyPrice: 0,
-      maxGalleries: 1,
+      maxGalleries: 2,
       icon: Layout,
       cta: 'Começar',
       permissions: PERMISSIONS_BY_PLAN.FREE,
@@ -560,7 +533,7 @@ export const PLANS_BY_SEGMENT: Record<
       name: 'Advanced',
       price: 299,
       yearlyPrice: 249,
-      maxGalleries: 25,
+      maxGalleries: 20,
       icon: Star,
       cta: 'Assinar',
       permissions: PERMISSIONS_BY_PLAN.PLUS,
@@ -586,12 +559,16 @@ export const PLANS_BY_SEGMENT: Record<
   },
 };
 
-// --- VISUAL FEATURES (UI TABLE) ---
-// Mantido para renderização da tabela de preços (Landing Page)
 export const COMMON_FEATURES = [
   // --- GESTÃO ---
-  { group: 'Gestão', label: 'Galerias Ativas', key: 'maxGalleries' },
   {
+    key: 'maxGalleries', // 🎯 Ajustado: era 'active-galleries'
+    group: 'Gestão',
+    label: 'Galerias Ativas',
+    values: ['2', '10', '20', '50', 'Ilimitadas'],
+  },
+  {
+    key: 'teamMembers', // 🎯 Ajustado: era 'team-members-ui'
     group: 'Gestão',
     label: 'Equipe de Trabalho',
     values: [
@@ -603,6 +580,7 @@ export const COMMON_FEATURES = [
     ],
   },
   {
+    key: 'maxPhotosPerGallery', // 🎯 Ajustado: era 'photo-capacity'
     group: 'Gestão',
     label: 'Capacidade por Galeria',
     values: ['80 fotos', '200 fotos', '400 fotos', '600 fotos', '1000 fotos'],
@@ -610,6 +588,7 @@ export const COMMON_FEATURES = [
 
   // --- IDENTIDADE & DIVULGAÇÃO ---
   {
+    key: 'profileLevel', // 🎯 Ajustado: era 'professional-profile'
     group: 'Perfil Público',
     label: 'Perfil Profissional',
     values: [
@@ -621,6 +600,7 @@ export const COMMON_FEATURES = [
     ],
   },
   {
+    key: 'profileCarouselLimit', // 🎯 Ajustado: era 'profile-cover'
     group: 'Perfil Público',
     label: 'Capa do Perfil',
     values: [
@@ -631,8 +611,8 @@ export const COMMON_FEATURES = [
       '+ Carrossel (5 fotos)',
     ],
   },
-
   {
+    key: 'profileListLimit', // 🎯 Ajustado: era 'gallery-catalog'
     group: 'Perfil Público',
     label: 'Catálogo de Galerias',
     values: [
@@ -644,6 +624,7 @@ export const COMMON_FEATURES = [
     ],
   },
   {
+    key: 'removeBranding', // 🎯 Ajustado: era 'branding-footer'
     group: 'Perfil Público',
     label: 'Branding (Rodapé)',
     values: [
@@ -657,8 +638,9 @@ export const COMMON_FEATURES = [
 
   // --- LEADS & RELACIONAMENTO ---
   {
+    key: 'canCaptureLeads', // 🎯 Ajustado: era 'access-form'
     group: 'Cadastro de visitantes',
-    label: 'Formulário de Acesso à galeria',
+    label: 'Formulário de Acesso',
     values: [
       false,
       false,
@@ -668,6 +650,7 @@ export const COMMON_FEATURES = [
     ],
   },
   {
+    key: 'canExportLeads', // 🎯 Ajustado: era 'lead-management'
     group: 'Cadastro de visitantes',
     label: 'Gestão de Contatos',
     values: [
@@ -679,6 +662,7 @@ export const COMMON_FEATURES = [
     ],
   },
   {
+    key: 'canCustomWhatsApp', // 🎯 Ajustado: era 'whatsapp-messages'
     group: 'Cadastro de visitantes',
     label: 'Mensagens de WhatsApp',
     values: [
@@ -692,8 +676,9 @@ export const COMMON_FEATURES = [
 
   // --- EXPERIÊNCIA DA GALERIA ---
   {
+    key: 'socialDisplayLevel', // 🎯 Ajustado: era 'viewer-contact'
     group: 'Experiência do Visitante',
-    label: 'Contato no Visualizador',
+    label: 'Contato no avatar profissional',
     values: [
       'Avatar + Link Perfil',
       '+ Atalho WhatsApp',
@@ -703,6 +688,7 @@ export const COMMON_FEATURES = [
     ],
   },
   {
+    key: 'maxCoverPerGallery', // 🎯 Ajustado: era 'gallery-cover'
     group: 'Experiência do Visitante',
     label: 'Capa da galeria',
     values: [
@@ -714,6 +700,7 @@ export const COMMON_FEATURES = [
     ],
   },
   {
+    key: 'canFavorite', // 🎯 Ajustado: era 'photo-interaction'
     group: 'Experiência do Visitante',
     label: 'Interação com Fotos',
     values: [
@@ -725,6 +712,7 @@ export const COMMON_FEATURES = [
     ],
   },
   {
+    key: 'canShowSlideshow', // 🎯 Ajustado: era 'slider-features'
     group: 'Experiência do Visitante',
     label: 'Recursos do Slider',
     values: [
@@ -736,6 +724,7 @@ export const COMMON_FEATURES = [
     ],
   },
   {
+    key: 'maxTags', // 🎯 Ajustado: era 'org-tags'
     group: 'Experiência do Visitante',
     label: 'Organização e Tags',
     values: [
@@ -747,6 +736,7 @@ export const COMMON_FEATURES = [
     ],
   },
   {
+    key: 'maxGridColumns', // 🎯 Ajustado: era 'grid-custom'
     group: 'Experiência do Visitante',
     label: 'Personalização da Grade',
     values: [
@@ -758,6 +748,7 @@ export const COMMON_FEATURES = [
     ],
   },
   {
+    key: 'customizationLevel', // 🎯 Ajustado: era 'interface-design'
     group: 'Experiência do Visitante',
     label: 'Design da Interface',
     values: [
@@ -771,6 +762,7 @@ export const COMMON_FEATURES = [
 
   // --- ENTREGA & SEGURANÇA ---
   {
+    key: 'zipSizeLimit', // 🎯 Ajustado: era 'zip-limit-ui'
     group: 'Entrega de Arquivos',
     label: 'Download ZIP - Tamanho/foto',
     values: [
@@ -782,28 +774,31 @@ export const COMMON_FEATURES = [
     ],
   },
   {
+    key: 'maxExternalLinks', // 🎯 Ajustado: era 'external-links-ui'
     group: 'Entrega de Arquivos',
     label: 'Links de Download Externos',
     values: [
       false,
       '1 Link Direto',
       '2 Links Diretos',
-      'Até 5 Links (Nomes Personalizados)',
-      'Até 10 Links (Nomes Personalizados)',
+      'Até 5 Links',
+      'Até 10 Links',
     ],
   },
   {
+    key: 'keepOriginalFilenames', // 🎯 Ajustado: era 'data-preservation'
     group: 'Entrega de Arquivos',
     label: 'Preservação de Dados',
     values: [
-      'Sequênciais númericos',
-      'Sequênciais númericos',
+      'Sequenciais',
+      'Sequenciais',
       'Nomes Originais',
       'Nomes Originais',
       'Nomes Originais',
     ],
   },
   {
+    key: 'privacyLevel', // 🎯 Ajustado: era 'access-control'
     group: 'Segurança',
     label: 'Controle de Acesso',
     values: [
@@ -815,7 +810,6 @@ export const COMMON_FEATURES = [
     ],
   },
 ];
-
 export function getPlansByDomain(hostname: string) {
   const SITE_CONFIG = {
     'suagaleria.com.br': {

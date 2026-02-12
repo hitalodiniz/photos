@@ -13,6 +13,7 @@ import { updateCustomCategories } from '@/core/services/profile.service';
 import BaseModal from '@/components/ui/BaseModal';
 import { usePlan } from '@/core/context/PlanContext';
 import UpgradeModal from '@/components/ui/UpgradeModal';
+import { findNextPlanWithFeature } from '@/core/config/plans';
 
 export default function CategorySelect({
   value,
@@ -161,7 +162,11 @@ export default function CategorySelect({
               </option>
             ) : (
               <option disabled className="text-petroleum/30">
-                🔒 Nova categoria (Plano Plus)
+                🔒 Nova categoria{' '}
+                {findNextPlanWithFeature(
+                  permissions.plan,
+                  'canCustomCategories',
+                )}
               </option>
             )}
           </optgroup>
@@ -170,6 +175,7 @@ export default function CategorySelect({
           isOpen={isUpgradeModalOpen}
           onClose={() => setIsUpgradeModalOpen(false)}
           featureName="Categorias Personalizadas"
+          scenarioType="feature"
         />
         <div className="absolute right-3.5 top-1/2 -translate-y-1/2 pointer-events-none text-petroleum/60 group-hover:text-gold transition-colors">
           {loading ? (

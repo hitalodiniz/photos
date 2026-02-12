@@ -35,6 +35,7 @@ import { usePlan } from '@/core/context/PlanContext';
 import { PlanGuard } from '@/components/auth/PlanGuard';
 import { PrivacyPolicyModal } from '@/app/(public)/privacidade/PrivacidadeContent';
 import { TermsOfServiceModal } from '@/app/(public)/termos/TermosContent';
+import SpecialtySelect from '@/features/galeria/SpecialtySelect';
 
 /**
  * 🎯 Componente de seção - Estilo Editorial
@@ -99,6 +100,11 @@ export default function OnboardingForm({
     initialData?.operating_cities || [],
   );
 
+  const [specialty, setSpecialty] = useState(initialData?.specialty || '');
+  const [customSpecialties, setCustomSpecialties] = useState<string[]>(
+    initialData?.custom_specialties || [],
+  );
+
   // --- ESTADOS DE LOCALIZAÇÃO ---
   const [states, setStates] = useState<{ sigla: string; nome: string }[]>([]);
   const [selectedUF, setSelectedUF] = useState('');
@@ -123,10 +129,10 @@ export default function OnboardingForm({
 
   // 🛡️ REGRAS DE NEGÓCIO POR PLANO
   const bioLimit = useMemo(() => {
-    if (planKey === 'START') return 150;
-    if (planKey === 'PLUS') return 250;
-    return 400; // PRO e PREMIUM
-  }, [planKey]);
+    if (permissions.profileLevel === 'basic') return 150;
+    if (permissions.profileLevel === 'standard') return 250;
+    return 400; // advanced e seo
+  }, [permissions.profileLevel]);
 
   const profileCarouselLimit = useMemo(
     () => permissions.profileCarouselLimit || 1,
@@ -135,14 +141,22 @@ export default function OnboardingForm({
 
   // 🛡️ LÓGICA DE BACKGROUNDS (Para Preview e Upload)
   const activeBackgrounds = useMemo(() => {
-    if (planKey === 'FREE') return [];
+    // Se o limite for 0, é o comportamento do plano básico (Sorteio Automático)
+    if (permissions.profileCarouselLimit === 0) return [];
+
     if (bgFiles.length > 0)
       return bgFiles.map((file) => URL.createObjectURL(file));
+
     const initialBg = initialData?.background_url;
     if (!initialBg) return [];
     const normalized = Array.isArray(initialBg) ? initialBg : [initialBg];
     return normalized.slice(0, profileCarouselLimit);
-  }, [bgFiles, planKey, initialData?.background_url, profileCarouselLimit]);
+  }, [
+    bgFiles,
+    permissions.profileCarouselLimit,
+    initialData?.background_url,
+    profileCarouselLimit,
+  ]);
 
   // --- EFFECTS ---
   useEffect(() => {
@@ -216,6 +230,8 @@ export default function OnboardingForm({
     formData.set('website', website);
     formData.set('operating_cities', JSON.stringify(selectedCities));
     formData.set('accepted_terms', 'true');
+    formData.set('specialty', specialty);
+    formData.set('custom_specialties', JSON.stringify(customSpecialties));
 
     // Envia quais URLs existentes devem ser mantidas (filtramos blobs locais)
     const existingUrls = activeBackgrounds.filter((url) =>
@@ -476,10 +492,10 @@ export default function OnboardingForm({
 
                       <button
                         type="button"
-                        disabled={planKey === 'FREE'}
+                        disabled={permissions.profileCarouselLimit === 0}
                         onClick={() => bgInputRef.current?.click()}
                         className={`btn-luxury-base w-full bg-slate-50 border-dashed min-h-[50px] flex-wrap justify-between ${
-                          planKey === 'FREE'
+                          permissions.profileCarouselLimit === 0
                             ? 'opacity-60 cursor-not-allowed'
                             : ''
                         }`}
@@ -489,25 +505,12 @@ export default function OnboardingForm({
                             ? `${bgFiles.length} selecionadas`
                             : 'Alterar Imagens de Capa'}
                         </span>
-                        <div className="flex gap-1 ml-2">
-                          {activeBackgrounds.map((src, i) => (
-                            <div
-                              key={i}
-                              className="w-8 h-8 rounded-[0.3rem] overflow-hidden border border-slate-200 shadow-sm"
-                            >
-                              <img
-                                src={src}
-                                className="w-full h-full object-cover"
-                                alt={`Preview ${i}`}
-                              />
-                            </div>
-                          ))}
-                        </div>
+                        {/* ... preview das imagens ... */}
                       </button>
 
-                      {planKey === 'FREE' && (
+                      {permissions.profileCarouselLimit === 0 && (
                         <p className="text-[10px] text-petroleum italic">
-                          No plano gratuito a capa é dinâmica e profissional por
+                          No plano básico a capa é dinâmica e profissional por
                           padrão.
                         </p>
                       )}
@@ -541,6 +544,33 @@ export default function OnboardingForm({
                 </FormSection>
               </PlanGuard>
 
+              {/* SEÇÃO 4: ÁREA DE ATUAÇÃO (ESPECIALIDADE) */}
+              <PlanGuard feature="profileLevel" label="Área de Atuação">
+                <FormSection
+                  title="Área de atuação"
+                  icon={<Sparkles size={14} className="text-gold" />}
+                >
+                  <div className="space-y-4">
+                    <div className="space-y-3">
+                      <label className="text-editorial-label text-petroleum">
+                        Sua Especialidade Principal
+                      </label>
+                      <SpecialtySelect
+                        value={specialty}
+                        onChange={(val, newList) => {
+                          setSpecialty(val);
+                          if (newList) setCustomSpecialties(newList);
+                        }}
+                        initialCustoms={customSpecialties}
+                      />
+                      <p className="text-[10px] text-petroleum/50 italic leading-tight">
+                        Sua especialidade define como você será encontrado por
+                        clientes em nosso portal.
+                      </p>
+                    </div>
+                  </div>
+                </FormSection>
+              </PlanGuard>
               {/* SEÇÃO 4: ÁREA DE ATUAÇÃO (Trava: profileLevel) */}
               <PlanGuard feature="profileLevel" label="Cidades de Atuação">
                 <FormSection

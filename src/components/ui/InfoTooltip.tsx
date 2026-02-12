@@ -3,12 +3,14 @@
 import React from 'react';
 
 interface InfoTooltipProps {
+  title?: string; // 🎯 Agora opcional
   content: string;
   width?: string;
   align?: 'center' | 'left' | 'right';
 }
 
 export const InfoTooltip = ({
+  title,
   content,
   width = 'w-56',
   align = 'center',
@@ -35,7 +37,7 @@ export const InfoTooltip = ({
         <span className="text-[9px] font-semibold">?</span>
       </div>
 
-      {/* Balão do Tooltip (Tema Baseado no Toast) */}
+      {/* Balão do Tooltip */}
       <div
         className={`
         absolute bottom-full mb-2 z-[1004]
@@ -46,12 +48,20 @@ export const InfoTooltip = ({
         border border-slate-200 text-justify overflow-hidden
       `}
       >
-        {/* Barra Lateral de Acento (Estilo Toast Success) */}
+        {/* Barra Lateral de Acento (Estilo Editorial) */}
         <div className="absolute left-0 top-0 bottom-0 w-1 bg-gold" />
 
-        <p className="pl-1 drop-shadow-sm">{content}</p>
+        <div className="pl-1">
+          {/* 🎯 Título Opcional */}
+          {title && (
+            <p className="font-bold uppercase tracking-widest text-[9px] text-gold mb-1 leading-none">
+              {title}
+            </p>
+          )}
+          <p className="drop-shadow-sm text-petroleum/80 italic">{content}</p>
+        </div>
 
-        {/* Triângulo (Seta) - Ajustado para branco com borda sutil */}
+        {/* Triângulo (Seta) */}
         <div
           className={`
           absolute top-full w-2 h-2 bg-white border-r border-b border-slate-200 rotate-45 -mt-1

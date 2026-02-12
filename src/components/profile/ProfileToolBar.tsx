@@ -13,7 +13,7 @@ import { usePlan } from '@/core/context/PlanContext';
 import { PlanGuard } from '@/components/auth/PlanGuard';
 import { useAuth } from '@photos/core-auth';
 
-interface PhotographerInfoBarProps {
+interface ProfileToolBarProps {
   phone?: string;
   instagram?: string;
   website?: string;
@@ -22,14 +22,14 @@ interface PhotographerInfoBarProps {
   useSubdomain?: boolean;
 }
 
-export const PhotographerInfoBar = ({
+export const ProfileToolBar = ({
   phone,
   instagram,
   website,
   cities = [],
   username,
   useSubdomain = true,
-}: PhotographerInfoBarProps) => {
+}: ProfileToolBarProps) => {
   const { permissions } = usePlan();
   const { user } = useAuth();
   const [isDrawerOpen, setIsDrawerOpen] = useState(false);
@@ -74,9 +74,7 @@ export const PhotographerInfoBar = ({
   };
 
   return (
-    // 🎯 Adicionado z-[110] para garantir que a barra e seus tooltips fiquem acima de tudo
     <div className="z-[110] sticky top-0 w-full pointer-events-auto font-sans">
-      {/* 🎯 REMOVIDO overflow-hidden para permitir que o tooltip saia do limite da barra */}
       <div className="mx-auto bg-petroleum w-full border-b border-white/10 shadow-2xl relative">
         <div className="flex flex-row items-center w-full max-w-[1600px] px-3 md:px-6 h-14 mx-auto gap-2 md:gap-4">
           <div className="flex-1 min-w-0">
@@ -146,7 +144,7 @@ export const PhotographerInfoBar = ({
                   permissions.socialDisplayLevel,
                 ))) && (
               <PlanGuard
-                feature="profileLevel"
+                feature="socialDisplayLevel"
                 variant="mini"
                 infoExtra="Este recurso é exclusivo para planos superiores e está oculto para o público."
               >
@@ -167,7 +165,7 @@ export const PhotographerInfoBar = ({
             {(isOwnerViewing ||
               (website && permissions.socialDisplayLevel === 'full')) && (
               <PlanGuard
-                feature="profileLevel"
+                feature="socialDisplayLevel"
                 variant="mini"
                 infoExtra="Este recurso é exclusivo para planos superiores e está oculto para o público."
               >
@@ -204,7 +202,7 @@ export const PhotographerInfoBar = ({
             {(isOwnerViewing ||
               (phone && permissions.socialDisplayLevel !== 'minimal')) && (
               <PlanGuard
-                feature="profileLevel"
+                feature="socialDisplayLevel"
                 variant="mini"
                 infoExtra="Este recurso é exclusivo para planos superiores e está oculto para o público."
               >
@@ -223,7 +221,7 @@ export const PhotographerInfoBar = ({
           </div>
         </div>
 
-        {/* GAVETA CIDADES - 🎯 Adicionado overflow-hidden apenas aqui para a animação de slide funcionar */}
+        {/* GAVETA CIDADES */}
         <div
           className={`overflow-hidden transition-all duration-500 w-full border-t border-white/10 bg-petroleum ${isDrawerOpen && shouldHideToDrawer ? 'max-h-[500px] opacity-100' : 'max-h-0 opacity-0 pointer-events-none'}`}
         >
