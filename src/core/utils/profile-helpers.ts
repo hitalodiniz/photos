@@ -157,7 +157,7 @@ export function extractFormData(formData: FormData) {
       | string
       | null,
 
-    background_images: [] as File[], // Será preenchido abaixo
+    background_images: formData.getAll('background_images') as File[],
 
     profile_picture: formData.get('profile_picture') as File,
 

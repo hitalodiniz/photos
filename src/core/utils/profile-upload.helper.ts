@@ -79,40 +79,33 @@ export async function uploadBackgroundImages(
   userId: string,
   existingUrls: string[],
 ): Promise<string[]> {
-  // 1. Filtra arquivos válidos (remove arquivos vazios ou mofados)
-  const validFiles = files.filter((file) => file && file.size > 0);
+  // 1. Filtro rigoroso: garante que temos apenas objetos File válidos
+  const validFiles = files.filter(
+    (file) => file instanceof File && file.size > 0,
+  );
 
-  // 2. Se não há arquivos novos para subir, retorna apenas o que já existe
-  if (validFiles.length === 0) {
-    return existingUrls;
-  }
+  // 2. Early return se não houver novos uploads
+  if (validFiles.length === 0) return existingUrls;
 
-  const uploadedUrls: string[] = [];
+  // 3. Execução Paralela (Promise.all)
+  // Otimiza o tempo de resposta, disparando todos os uploads simultaneamente
+  const uploadPromises = validFiles.map((file) =>
+    uploadFile(supabase, 'profile_pictures', file, userId, 'bg'),
+  );
 
-  // 3. Loop de Upload
-  for (const file of validFiles) {
-    const result = await uploadFile(
-      supabase,
-      'profile_pictures', // 💡 Dica: Considere mudar o bucket para 'backgrounds' no futuro
-      file,
-      userId,
-      'bg',
-    );
+  const results = await Promise.all(uploadPromises);
 
-    if (result.success && result.url) {
-      uploadedUrls.push(result.url);
-    }
-  }
+  // 4. Extração de URLs com filtro de sucesso
+  const newUrls = results
+    .filter((res) => res.success && res.url)
+    .map((res) => res.url as string);
 
-  // 4. MESCLAGEM (O ponto crucial para o Carrossel)
-  // Retornamos as URLs que já estavam lá + as novas URLs que acabamos de subir
-  const finalArray = [...existingUrls, ...uploadedUrls];
+  // 5. Mesclagem e Sanitização
+  // Usamos Set para evitar duplicatas acidentais e filtramos strings vazias
+  const finalArray = [...new Set([...existingUrls, ...newUrls])].filter(
+    Boolean,
+  );
 
-  // 5. Fallback de Segurança
-  // Se por algum erro bizarro o array final ficar vazio, mas existiam URLs antes, preserva as antigas
-  if (finalArray.length === 0 && existingUrls.length > 0) {
-    return existingUrls;
-  }
-
-  return finalArray;
+  // 6. Fallback de integridade
+  return finalArray.length > 0 ? finalArray : existingUrls;
 }

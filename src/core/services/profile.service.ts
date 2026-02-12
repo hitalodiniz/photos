@@ -180,109 +180,77 @@ export async function getAvatarUrl(
 export async function upsertProfile(formData: FormData, supabaseClient?: any) {
   const supabase = supabaseClient || (await createSupabaseServerClient());
 
-  // 1. Autenticação
+  // 1. Autenticação (Execução imediata necessária)
   const {
     data: { user },
   } = await supabase.auth.getUser();
+  if (!user) return { success: false, error: 'Sessão expirada.' };
 
-  if (!user) {
-    return { success: false, error: 'Sessão expirada.' };
-  }
-
-  // 2. Validação de campos obrigatórios
+  // 2. Validação e Extração (Síncronos - baixo custo)
   const validation = validateRequiredFields(formData);
-  if (!validation.isValid) {
-    return { success: false, error: validation.error };
-  }
+  if (!validation.isValid) return { success: false, error: validation.error };
 
-  // 3. Verificar se é primeiro setup (para ativar trial)
-  const { data: existingProfile } = await supabase
-    .from('tb_profiles')
-    .select('plan_key, plan_trial_expires')
-    .eq('id', user.id)
-    .single();
-
-  const isFirstSetup = !existingProfile?.plan_key;
-
-  // 4. Extrair dados do FormData
   const formFields = extractFormData(formData);
 
-  // 5. Parse de dados JSON
-  const operating_cities = parseOperatingCities(
-    formFields.operating_cities_json,
-  );
+  // 3. Paralelismo de Busca e Uploads (Otimização de Performance)
+  // Iniciamos a verificação do profile e os uploads simultaneamente
+  const [profileRes, profilePictureUrl, backgroundUrls] = await Promise.all([
+    supabase.from('tb_profiles').select('plan_key').eq('id', user.id).single(),
 
-  // 6. Processar uploads de imagens
-  const profile_picture_url = await uploadProfilePicture(
-    supabase,
-    formFields.profile_picture,
-    user.id,
-    formFields.profile_picture_url_existing,
-  );
+    uploadProfilePicture(
+      supabase,
+      formFields.profile_picture,
+      user.id,
+      formFields.profile_picture_url_existing,
+    ),
 
-  // 📸 HERO CAROUSEL (Múltiplas imagens no campo background_url)
-  // Pegamos as URLs que o usuário manteve (já estão no Storage)
-  const existingBgUrls = parseBackgroundUrls(
-    formFields.background_urls_existing,
-  );
+    uploadBackgroundImages(
+      supabase,
+      formFields.background_images,
+      user.id,
+      parseBackgroundUrls(formFields.background_urls_existing),
+    ),
+  ]);
 
-  // Fazemos upload das NOVAS imagens e mesclamos com as antigas
-  // O resultado 'background_urls' será o array final: string[]
-  const background_urls = await uploadBackgroundImages(
-    supabase,
-    formFields.background_images, // Array de novos Files
-    user.id,
-    existingBgUrls, // Array de strings (URLs mantidas)
-  );
+  const isFirstSetup = !profileRes.data?.plan_key;
 
-  // 7. Normalizar telefone
-  const phone_contact = normalizePhoneNumber(formFields.phone_contact);
-
-  // 8. Montar dados para update
-  const updateData: any = {
+  // 4. Montagem dos dados (Separação de lógica)
+  const updateData = {
     full_name: formFields.full_name,
     username: formFields.username,
     mini_bio: formFields.mini_bio,
-    phone_contact,
+    phone_contact: normalizePhoneNumber(formFields.phone_contact),
     instagram_link: formFields.instagram_link,
     website: formFields.website,
-    operating_cities,
-    profile_picture_url,
+    operating_cities: parseOperatingCities(formFields.operating_cities_json),
+    profile_picture_url: profilePictureUrl,
     accepted_terms: formFields.accepted_terms,
     accepted_at: formFields.accepted_terms ? new Date().toISOString() : null,
-    background_url: background_urls,
+    background_url: backgroundUrls,
     updated_at: new Date().toISOString(),
+    ...(isFirstSetup ? buildTrialData() : {}), // Merge condicional limpo
   };
 
-  // 9. Adicionar dados de trial se for primeiro setup
-  if (isFirstSetup) {
-    Object.assign(updateData, buildTrialData());
-  }
-
-  // 10. (REMOVIDO LÓGICA LEGACY DE BACKGROUND ÚNICO - AGORA É SEMPRE ARRAY)
-  // O bloco anterior que sobrescrevia background_url se viesse como string foi removido
-  // pois background_urls já é o array correto.
-
-  // 11. Executar update no banco
+  // 5. Persistência
   const { error } = await supabase
     .from('tb_profiles')
     .update(updateData)
     .eq('id', user.id);
 
-  // 12. Tratamento de erros
   if (error) {
-    if (error.code === '23505') {
-      return { success: false, error: 'Username já está em uso.' };
-    }
-    return { success: false, error: error.message };
+    return {
+      success: false,
+      error:
+        error.code === '23505' ? 'Username já está em uso.' : error.message,
+    };
   }
 
-  // 13. Revalidação completa de cache
+  // 6. Revalidação (Não precisa bloquear o retorno se o update foi sucesso)
+  // Se o seu ambiente suportar, pode rodar sem await ou usar edge functions
   await revalidateProfileComplete(supabase, formFields.username!, user.id);
 
   return { success: true };
 }
-
 /**
  * Atualiza as configurações e templates de mensagem do perfil
  * ✅ REFATORADA: Usa helper de revalidação

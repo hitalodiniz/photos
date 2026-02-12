@@ -609,6 +609,23 @@ describe('Profile Service - Cobertura Total 100%', () => {
     });
 
     it('deve fazer upload de múltiplas imagens de background', async () => {
+      // Criamos o mock do upload
+      const uploadMock = vi.fn().mockResolvedValue({ error: null });
+
+      // Criamos o mock do getPublicUrl (que geralmente vem do storage ou do bucket)
+      const getPublicUrlMock = vi.fn().mockReturnValue({
+        data: { publicUrl: 'https://cdn.com/bg.jpg' },
+      });
+
+      // Configuramos o storage.from para retornar um objeto que tenha o upload e o getPublicUrl
+      mockSupabase.storage.from = vi.fn().mockReturnValue({
+        upload: uploadMock,
+        getPublicUrl: getPublicUrlMock,
+      });
+
+      // Caso o código use getPublicUrl direto do storage
+      mockSupabase.storage.getPublicUrl = getPublicUrlMock;
+
       const file1 = new File(['bg1'], 'bg1.jpg', { type: 'image/jpeg' });
       const file2 = new File(['bg2'], 'bg2.png', { type: 'image/png' });
 
@@ -620,7 +637,17 @@ describe('Profile Service - Cobertura Total 100%', () => {
 
       await upsertProfile(formData, mockSupabase);
 
-      expect(mockSupabase.storage.upload).toHaveBeenCalledTimes(2);
+      // Agora o rastreio deve funcionar
+      expect(uploadMock).toHaveBeenCalledTimes(2);
+
+      expect(mockBuilder.update).toHaveBeenCalledWith(
+        expect.objectContaining({
+          background_url: expect.arrayContaining([
+            'https://cdn.com/bg.jpg',
+            'https://cdn.com/bg.jpg',
+          ]),
+        }),
+      );
     });
 
     it('deve ignorar arquivos vazios de background', async () => {
@@ -867,7 +894,11 @@ describe('Profile Service - Cobertura Total 100%', () => {
       formData.append('mini_bio', 'Fotógrafo profissional');
       formData.append('instagram_link', '@hitalo');
       formData.append('website', 'https://hitalo.com');
-      formData.append('background_url_existing', 'https://cdn.com/bg.jpg');
+      // background_urls_existing agora é um array JSON
+      formData.append(
+        'background_urls_existing',
+        JSON.stringify(['https://cdn.com/bg.jpg']),
+      );
 
       await upsertProfile(formData, mockSupabase);
 
@@ -876,7 +907,7 @@ describe('Profile Service - Cobertura Total 100%', () => {
           mini_bio: 'Fotógrafo profissional',
           instagram_link: '@hitalo',
           website: 'https://hitalo.com',
-          background_url: 'https://cdn.com/bg.jpg',
+          background_url: ['https://cdn.com/bg.jpg'], // Agora é array
         }),
       );
     });
