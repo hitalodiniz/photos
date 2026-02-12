@@ -24,7 +24,7 @@ describe('Validação de Permissões por Grupo', () => {
   describe('Grupo: Divulgação do Perfil', () => {
     test('profileLevel deve evoluir em sofisticação', () => {
       expect(PERMISSIONS_BY_PLAN.FREE.profileLevel).toBe('basic');
-      expect(PERMISSIONS_BY_PLAN.PRO.profileLevel).toBe('advanced');
+      expect(PERMISSIONS_BY_PLAN.PRO.profileLevel).toBe('seo');
       expect(PERMISSIONS_BY_PLAN.PREMIUM.profileLevel).toBe('seo');
     });
 
@@ -206,7 +206,7 @@ describe('Integridade Total do Sistema de Permissões', () => {
       const p = PERMISSIONS_BY_PLAN.PRO;
       expect(p.canCaptureLeads).toBe(true);
       expect(p.canCustomWhatsApp).toBe(true);
-      expect(p.profileLevel).toBe('advanced');
+      expect(p.profileLevel).toBe('seo');
     });
 
     test('PREMIUM: deve ser o estado "Full Experience"', () => {
