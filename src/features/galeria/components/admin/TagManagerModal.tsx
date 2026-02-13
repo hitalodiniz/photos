@@ -31,10 +31,15 @@ export function TagManagerModal({
   const [newTagName, setNewTagName] = useState('');
   const [selectedIds, setSelectedIds] = useState<string[]>([]);
 
+  // 🛡️ VALIDAÇÃO: Garante que photos seja um array
+  const safePhotos = Array.isArray(photos) ? photos : [];
+  const safePhotoTags = Array.isArray(photoTags) ? photoTags : [];
+  const safeExistingTags = Array.isArray(existingTags) ? existingTags : [];
+
   // 🎯 Transforma o array de objetos photoTags em um formato que o MasonryItem entenda
-  const photosWithTags = photos.map((p) => ({
+  const photosWithTags = safePhotos.map((p) => ({
     ...p,
-    tag: photoTags.find((t) => t.id === p.id)?.tag,
+    tag: safePhotoTags.find((t) => t.id === p.id)?.tag,
   }));
 
   const handleCreate = () => {
@@ -85,7 +90,7 @@ export function TagManagerModal({
                   {selectedIds.length} selecionadas:
                 </span>
                 <div className="flex gap-1">
-                  {existingTags.map((tag) => (
+                  {safeExistingTags.map((tag) => (
                     <button
                       key={tag}
                       onClick={() => {

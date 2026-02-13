@@ -117,12 +117,12 @@ export async function listPhotosFromPublicFolder(
     // APLICA O LIMITE DO PLANO:
     const limitedFiles = limit ? imageFiles.slice(0, limit) : imageFiles;
 
-    if (imageFiles.length === 0) {
-      // console.log('[listPhotosFromPublicFolder] ℹ️ Pasta encontrada, mas sem imagens.');
+    if (limitedFiles.length === 0) {
       return null;
     }
 
-    return imageFiles.map((file) => ({
+    return limitedFiles.map((file) => ({
+      // ✅ CORRETO
       id: file.id,
       name: file.name,
       size: file.size || '0',
@@ -188,24 +188,25 @@ export async function listPhotosWithOAuth(
     } while (pageToken);
 
     // 🎯 Ordenação natural (mais rápida que orderBy do Drive API)
-    return allFiles
-      .sort((a, b) =>
-        a.name
-          .localeCompare(b.name, undefined, {
-            numeric: true,
-            sensitivity: 'base',
-          })
-          .slice(0, limit || allFiles.length),
-      )
-      .map((file) => ({
-        id: file.id,
-        name: file.name,
-        size: file.size || '0',
-        thumbnailUrl: `/api/galeria/cover/${file.id}?w=600`,
-        webViewUrl: file.webViewLink,
-        width: file.imageMediaMetadata?.width || 1600,
-        height: file.imageMediaMetadata?.height || 1200,
-      }));
+    const sortedFiles = allFiles.sort((a, b) =>
+      a.name.localeCompare(b.name, undefined, {
+        numeric: true,
+        sensitivity: 'base',
+      }),
+    );
+
+    // Aplica o limite do plano
+    const limitedFiles = limit ? sortedFiles.slice(0, limit) : sortedFiles;
+
+    return limitedFiles.map((file) => ({
+      id: file.id,
+      name: file.name,
+      size: file.size || '0',
+      thumbnailUrl: `/api/galeria/cover/${file.id}?w=600`,
+      webViewUrl: file.webViewLink,
+      width: file.imageMediaMetadata?.width || 1600,
+      height: file.imageMediaMetadata?.height || 1200,
+    }));
   } catch (error: any) {
     console.error('[listPhotosWithOAuth] ❌ Erro OAuth:', error.message);
     throw error;
@@ -218,28 +219,32 @@ export async function listPhotosWithOAuth(
  */
 export async function listPhotosFromDriveFolder(
   driveFolderId: string,
-  accessToken?: string,
+  accessToken: string,
   planOrLimit?: PlanKey | number, // 🎯 Aceita a chave 'PRO' ou o número direto
 ): Promise<DrivePhoto[]> {
   if (!driveFolderId) {
     throw new Error('ID da pasta do Google Drive não fornecido.');
   }
 
-  // 🧠 O Helper resolve se é 'FREE' -> 80, 'PRO' -> 600 ou se já é um número
+  // O Helper resolve se é 'FREE' -> 80, 'PRO' -> 600 ou se já é um número
   const limit = resolvePhotoLimitByPlan(planOrLimit);
-  // 1. TENTATIVA 1: API Key (Público)
-  // Resolve o problema de galerias que "pararam de carregar" por falta de token
-  const publicPhotos = await listPhotosFromPublicFolder(driveFolderId, limit);
-  if (publicPhotos && publicPhotos.length > 0) {
-    // console.log(`[listPhotosFromDriveFolder] ✅ Sucesso via API Key: ${publicPhotos.length} fotos.`);
-    return publicPhotos;
+
+  // 1. TENTATIVA 1: OAuth (Privado) - PRIORITÁRIO
+  if (accessToken) {
+    try {
+      return await listPhotosWithOAuth(driveFolderId, accessToken, limit);
+    } catch (error) {
+      console.warn(
+        '[listPhotosFromDriveFolder] ⚠️ OAuth falhou, tentando API Key...',
+      );
+      // Continua para tentar API Key
+    }
   }
 
-  // 2. TENTATIVA 2: OAuth (Privado)
-  // Fallback para quando o fotógrafo usa pastas restritas no Drive
-  if (accessToken) {
-    // console.log('[listPhotosFromDriveFolder] ℹ️ Tentando fallback via OAuth...');
-    return await listPhotosWithOAuth(driveFolderId, accessToken, limit);
+  // 2. TENTATIVA 2: API Key (Público) - FALLBACK
+  const publicPhotos = await listPhotosFromPublicFolder(driveFolderId, limit);
+  if (publicPhotos && publicPhotos.length > 0) {
+    return publicPhotos;
   }
 
   console.warn(

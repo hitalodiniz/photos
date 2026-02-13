@@ -1,672 +1,747 @@
 import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
-import { getFolderPhotos, checkDriveAccess } from './google-drive.service';
-import * as googleAuth from '@/lib/google-auth';
-import * as googleDrive from '@/lib/google-drive';
-import * as authContext from './auth-context.service';
+import {
+  listPhotosFromDriveFolder,
+  listPhotosWithOAuth,
+  listPhotosFromPublicFolder,
+  resolvePhotoLimitByPlan,
+  DrivePhoto,
+} from '@/lib/google-drive';
 
 // =========================================================================
 // MOCKS
 // =========================================================================
 
-vi.mock('@/lib/google-auth');
-vi.mock('@/lib/google-drive');
-vi.mock('./auth-context.service');
+global.fetch = vi.fn();
 
-describe('Google Drive Service - Suite Completa de Testes', () => {
-  const mockUserId = 'user-123';
-  const mockFolderId = 'folder-abc';
-  const mockAccessToken = 'access-token-xyz';
+describe('Google Drive Library - Suite Completa de Testes', () => {
+  const mockFolderId = 'folder-abc123';
+  const mockAccessToken = 'oauth-token-xyz';
 
-  const mockPhotos = [
+  const mockDriveFiles = [
     {
       id: 'photo-1',
-      name: 'IMG_003.jpg',
-      createdTime: '2026-01-03T10:00:00Z',
+      name: 'IMG_001.jpg',
+      size: '2048000',
       mimeType: 'image/jpeg',
+      webViewLink: 'https://drive.google.com/file/d/photo-1',
+      imageMediaMetadata: { width: 1920, height: 1080 },
     },
     {
       id: 'photo-2',
-      name: 'IMG_001.jpg',
-      createdTime: '2026-01-01T10:00:00Z',
+      name: 'IMG_002.jpg',
+      size: '1024000',
       mimeType: 'image/jpeg',
+      webViewLink: 'https://drive.google.com/file/d/photo-2',
+      imageMediaMetadata: { width: 1600, height: 1200 },
     },
     {
       id: 'photo-3',
-      name: 'IMG_002.jpg',
-      createdTime: '2026-01-02T10:00:00Z',
+      name: 'IMG_003.jpg',
+      size: '3072000',
       mimeType: 'image/jpeg',
+      webViewLink: 'https://drive.google.com/file/d/photo-3',
+      imageMediaMetadata: { width: 2048, height: 1536 },
     },
   ];
 
   beforeEach(() => {
     vi.clearAllMocks();
-
-    // Mock padrão: autenticação bem-sucedida
-    vi.mocked(authContext.getAuthAndStudioIds).mockResolvedValue({
-      success: true,
-      userId: mockUserId,
-      studioId: 'studio-123',
-    });
-
-    // Mock padrão: token válido
-    vi.mocked(googleAuth.getDriveAccessTokenForUser).mockResolvedValue(
-      mockAccessToken,
-    );
-
-    // Mock padrão: fotos do drive
-    vi.mocked(googleDrive.listPhotosFromDriveFolder).mockResolvedValue(
-      mockPhotos,
-    );
+    vi.stubEnv('GOOGLE_API_KEY', 'test-api-key');
   });
 
   afterEach(() => {
-    vi.restoreAllMocks();
+    vi.unstubAllEnvs();
   });
 
   // =========================================================================
-  // 1. TESTES DE getFolderPhotos - CASOS DE SUCESSO
+  // 1. TESTES DE resolvePhotoLimitByPlan
   // =========================================================================
-  describe('getFolderPhotos - Casos de Sucesso', () => {
-    it('deve retornar fotos ordenadas por data decrescente', async () => {
-      const result = await getFolderPhotos(mockFolderId);
-
-      expect(result.success).toBe(true);
-      expect(result.data).toHaveLength(3);
-
-      // Verifica ordenação: mais recente primeiro
-      expect(result.data![0].name).toBe('IMG_003.jpg'); // 2026-01-03
-      expect(result.data![1].name).toBe('IMG_002.jpg'); // 2026-01-02
-      expect(result.data![2].name).toBe('IMG_001.jpg'); // 2026-01-01
+  describe('resolvePhotoLimitByPlan', () => {
+    it('deve retornar limite para plano FREE', () => {
+      const limit = resolvePhotoLimitByPlan('FREE');
+      expect(limit).toBe(80);
     });
 
-    it('deve usar userId fornecido como parâmetro', async () => {
-      const customUserId = 'custom-user-456';
-
-      await getFolderPhotos(mockFolderId, customUserId);
-
-      expect(googleAuth.getDriveAccessTokenForUser).toHaveBeenCalledWith(
-        customUserId,
-      );
-      expect(authContext.getAuthAndStudioIds).not.toHaveBeenCalled();
+    it('deve retornar limite para plano PRO', () => {
+      const limit = resolvePhotoLimitByPlan('PRO');
+      expect(limit).toBe(600);
     });
 
-    it('deve buscar userId automaticamente se não fornecido', async () => {
-      await getFolderPhotos(mockFolderId);
-
-      expect(authContext.getAuthAndStudioIds).toHaveBeenCalled();
-      expect(googleAuth.getDriveAccessTokenForUser).toHaveBeenCalledWith(
-        mockUserId,
-      );
+    it('deve retornar número direto quando fornecido', () => {
+      const limit = resolvePhotoLimitByPlan(150);
+      expect(limit).toBe(150);
     });
 
-    it('deve retornar array vazio se pasta não tiver fotos', async () => {
-      vi.mocked(googleDrive.listPhotosFromDriveFolder).mockResolvedValue([]);
-
-      const result = await getFolderPhotos(mockFolderId);
-
-      expect(result.success).toBe(true);
-      expect(result.data).toEqual([]);
+    it('deve retornar limite FREE quando plano não existe', () => {
+      const limit = resolvePhotoLimitByPlan('INVALID_PLAN' as any);
+      expect(limit).toBe(80);
     });
 
-    it('deve ordenar por nome alfabético quando datas forem iguais', async () => {
-      const photosWithSameDate = [
-        {
-          id: 'photo-1',
-          name: 'IMG_003.jpg',
-          createdTime: '2026-01-01T10:00:00Z',
-          mimeType: 'image/jpeg',
-        },
-        {
-          id: 'photo-2',
-          name: 'IMG_001.jpg',
-          createdTime: '2026-01-01T10:00:00Z',
-          mimeType: 'image/jpeg',
-        },
-        {
-          id: 'photo-3',
-          name: 'IMG_002.jpg',
-          createdTime: '2026-01-01T10:00:00Z',
-          mimeType: 'image/jpeg',
-        },
-      ];
-
-      vi.mocked(googleDrive.listPhotosFromDriveFolder).mockResolvedValue(
-        photosWithSameDate,
-      );
-
-      const result = await getFolderPhotos(mockFolderId);
-
-      expect(result.success).toBe(true);
-      expect(result.data![0].name).toBe('IMG_001.jpg');
-      expect(result.data![1].name).toBe('IMG_002.jpg');
-      expect(result.data![2].name).toBe('IMG_003.jpg');
-    });
-
-    it('deve usar imageMediaMetadata.time como fallback para data', async () => {
-      const photosWithMetadata = [
-        {
-          id: 'photo-1',
-          name: 'IMG_001.jpg',
-          mimeType: 'image/jpeg',
-          imageMediaMetadata: { time: '2026-01-02T10:00:00Z' },
-        },
-        {
-          id: 'photo-2',
-          name: 'IMG_002.jpg',
-          mimeType: 'image/jpeg',
-          imageMediaMetadata: { time: '2026-01-01T10:00:00Z' },
-        },
-      ];
-
-      vi.mocked(googleDrive.listPhotosFromDriveFolder).mockResolvedValue(
-        photosWithMetadata as any,
-      );
-
-      const result = await getFolderPhotos(mockFolderId);
-
-      expect(result.success).toBe(true);
-      // Deve ordenar por metadata time
-      expect(result.data![0].name).toBe('IMG_001.jpg'); // 2026-01-02
-      expect(result.data![1].name).toBe('IMG_002.jpg'); // 2026-01-01
+    it('deve retornar limite FREE quando plano é undefined', () => {
+      const limit = resolvePhotoLimitByPlan(undefined);
+      expect(limit).toBe(80);
     });
   });
 
   // =========================================================================
-  // 2. TESTES DE getFolderPhotos - VALIDAÇÕES
+  // 2. TESTES DE listPhotosWithOAuth - CASOS DE SUCESSO
   // =========================================================================
-  describe('getFolderPhotos - Validações', () => {
-    it('deve retornar erro se driveFolderId não for fornecido', async () => {
-      const result = await getFolderPhotos('');
+  describe('listPhotosWithOAuth - Casos de Sucesso', () => {
+    it('deve listar fotos com OAuth com sucesso', async () => {
+      vi.mocked(fetch).mockResolvedValueOnce({
+        ok: true,
+        json: async () => ({ files: mockDriveFiles, nextPageToken: null }),
+      } as Response);
 
-      expect(result.success).toBe(false);
-      expect(result.error).toContain('ID da pasta do Google Drive');
-      expect(result.data).toEqual([]);
+      const result = await listPhotosWithOAuth(mockFolderId, mockAccessToken);
+
+      expect(result).toHaveLength(3);
+      expect(result[0].id).toBe('photo-1');
+      expect(result[0].name).toBe('IMG_001.jpg');
+      expect(result[0].thumbnailUrl).toContain('/api/galeria/cover/photo-1');
+      expect(fetch).toHaveBeenCalledWith(
+        expect.stringContaining('googleapis.com/drive/v3/files'),
+        expect.objectContaining({
+          headers: { Authorization: `Bearer ${mockAccessToken}` },
+        }),
+      );
     });
 
-    it('deve retornar erro se driveFolderId for null', async () => {
-      const result = await getFolderPhotos(null as any);
+    it('deve aplicar limite de fotos do plano', async () => {
+      const manyFiles = Array.from({ length: 100 }, (_, i) => ({
+        id: `photo-${i}`,
+        name: `IMG_${String(i).padStart(3, '0')}.jpg`,
+        size: '1024000',
+        mimeType: 'image/jpeg',
+        webViewLink: `https://drive.google.com/file/d/photo-${i}`,
+        imageMediaMetadata: { width: 1920, height: 1080 },
+      }));
 
-      expect(result.success).toBe(false);
-      expect(result.error).toContain('ID da pasta do Google Drive');
-      expect(result.data).toEqual([]);
-    });
+      vi.mocked(fetch).mockResolvedValueOnce({
+        ok: true,
+        json: async () => ({ files: manyFiles, nextPageToken: null }),
+      } as Response);
 
-    it('deve retornar erro se driveFolderId for undefined', async () => {
-      const result = await getFolderPhotos(undefined as any);
-
-      expect(result.success).toBe(false);
-      expect(result.error).toContain('ID da pasta do Google Drive');
-      expect(result.data).toEqual([]);
-    });
-  });
-
-  // =========================================================================
-  // 3. TESTES DE getFolderPhotos - AUTENTICAÇÃO
-  // =========================================================================
-  describe('getFolderPhotos - Autenticação', () => {
-    it('deve retornar erro se usuário não estiver autenticado', async () => {
-      vi.mocked(authContext.getAuthAndStudioIds).mockResolvedValue({
-        success: false,
-        error: 'Não autenticado',
-      });
-
-      const result = await getFolderPhotos(mockFolderId);
-
-      expect(result.success).toBe(false);
-      expect(result.error).toContain('autenticado');
-      expect(result.data).toEqual([]);
-    });
-
-    it('deve retornar erro se getAuthAndStudioIds retornar sem userId', async () => {
-      vi.mocked(authContext.getAuthAndStudioIds).mockResolvedValue({
-        success: true,
-        userId: undefined,
-      });
-
-      const result = await getFolderPhotos(mockFolderId);
-
-      expect(result.success).toBe(false);
-      expect(result.error).toContain('autenticado');
-      expect(result.data).toEqual([]);
-    });
-
-    it('deve retornar erro se access token for null', async () => {
-      vi.mocked(googleAuth.getDriveAccessTokenForUser).mockResolvedValue(null);
-
-      const result = await getFolderPhotos(mockFolderId);
-
-      expect(result.success).toBe(false);
-      expect(result.error).toContain('Falha na integração Google Drive');
-      expect(result.data).toEqual([]);
-    });
-
-    it('deve retornar erro se access token for undefined', async () => {
-      vi.mocked(googleAuth.getDriveAccessTokenForUser).mockResolvedValue(
-        undefined as any,
+      const result = await listPhotosWithOAuth(
+        mockFolderId,
+        mockAccessToken,
+        50,
       );
 
-      const result = await getFolderPhotos(mockFolderId);
-
-      expect(result.success).toBe(false);
-      expect(result.error).toContain('Falha na integração Google Drive');
-      expect(result.data).toEqual([]);
-    });
-
-    it('deve retornar erro se access token for string vazia', async () => {
-      vi.mocked(googleAuth.getDriveAccessTokenForUser).mockResolvedValue('');
-
-      const result = await getFolderPhotos(mockFolderId);
-
-      expect(result.success).toBe(false);
-      expect(result.error).toContain('Falha na integração Google Drive');
-      expect(result.data).toEqual([]);
-    });
-  });
-
-  // =========================================================================
-  // 4. TESTES DE getFolderPhotos - ERROS DO GOOGLE DRIVE
-  // =========================================================================
-  describe('getFolderPhotos - Erros do Google Drive', () => {
-    it('deve retornar AUTH_RECONNECT_REQUIRED em erro de sessão expirada', async () => {
-      vi.mocked(googleDrive.listPhotosFromDriveFolder).mockRejectedValue(
-        new Error('Sua sessão expirou. Por favor, faça login novamente.'),
+      expect(result.length).toBeLessThanOrEqual(50);
+      expect(fetch).toHaveBeenCalledWith(
+        expect.stringContaining('pageSize=50'),
+        expect.any(Object),
       );
-
-      const result = await getFolderPhotos(mockFolderId);
-
-      expect(result.success).toBe(false);
-      expect(result.error).toBe('AUTH_RECONNECT_REQUIRED');
-      expect(result.data).toEqual([]);
     });
 
-    it('deve capturar erro genérico da API do Drive', async () => {
-      vi.mocked(googleDrive.listPhotosFromDriveFolder).mockRejectedValue(
-        new Error('API quota exceeded'),
-      );
-
-      const result = await getFolderPhotos(mockFolderId);
-
-      expect(result.success).toBe(false);
-      expect(result.error).toBe('API quota exceeded');
-      expect(result.data).toEqual([]);
-    });
-
-    it('deve tratar erro de pasta não encontrada', async () => {
-      vi.mocked(googleDrive.listPhotosFromDriveFolder).mockRejectedValue(
-        new Error(
-          'A pasta selecionada não foi encontrada no seu Google Drive.',
-        ),
-      );
-
-      const result = await getFolderPhotos(mockFolderId);
-
-      expect(result.success).toBe(false);
-      expect(result.error).toContain('não foi encontrada');
-      expect(result.data).toEqual([]);
-    });
-
-    it('deve tratar erro de permissão negada', async () => {
-      vi.mocked(googleDrive.listPhotosFromDriveFolder).mockRejectedValue(
-        new Error('Permission denied'),
-      );
-
-      const result = await getFolderPhotos(mockFolderId);
-
-      expect(result.success).toBe(false);
-      expect(result.error).toBe('Permission denied');
-      expect(result.data).toEqual([]);
-    });
-
-    it('deve tratar erro de rede', async () => {
-      vi.mocked(googleDrive.listPhotosFromDriveFolder).mockRejectedValue(
-        new Error('Network request failed'),
-      );
-
-      const result = await getFolderPhotos(mockFolderId);
-
-      expect(result.success).toBe(false);
-      expect(result.error).toBe('Network request failed');
-      expect(result.data).toEqual([]);
-    });
-
-    it('deve tratar erro não-Error (throw de string)', async () => {
-      vi.mocked(googleDrive.listPhotosFromDriveFolder).mockRejectedValue(
-        'Erro inesperado',
-      );
-
-      const result = await getFolderPhotos(mockFolderId);
-
-      expect(result.success).toBe(false);
-      expect(result.error).toBe('Erro desconhecido');
-      expect(result.data).toEqual([]);
-    });
-
-    it('deve tratar erro sem mensagem', async () => {
-      const errorSemMensagem = new Error();
-      errorSemMensagem.message = '';
-
-      vi.mocked(googleDrive.listPhotosFromDriveFolder).mockRejectedValue(
-        errorSemMensagem,
-      );
-
-      const result = await getFolderPhotos(mockFolderId);
-
-      expect(result.success).toBe(false);
-      expect(result.error).toContain('carregar as fotos');
-      expect(result.data).toEqual([]);
-    });
-  });
-
-  // =========================================================================
-  // 5. TESTES DE getFolderPhotos - ORDENAÇÃO COMPLEXA
-  // =========================================================================
-  describe('getFolderPhotos - Ordenação Complexa', () => {
-    it('deve ordenar corretamente fotos sem data (considerar como 0)', async () => {
-      const photosWithMissingDates = [
+    it('deve ordenar fotos numericamente (natural sort)', async () => {
+      const unorderedFiles = [
         {
-          id: 'photo-1',
-          name: 'IMG_002.jpg',
-          mimeType: 'image/jpeg',
-        },
-        {
-          id: 'photo-2',
-          name: 'IMG_001.jpg',
-          createdTime: '2026-01-01T10:00:00Z',
-          mimeType: 'image/jpeg',
-        },
-      ];
-
-      vi.mocked(googleDrive.listPhotosFromDriveFolder).mockResolvedValue(
-        photosWithMissingDates as any,
-      );
-
-      const result = await getFolderPhotos(mockFolderId);
-
-      expect(result.success).toBe(true);
-      // Foto com data deve vir primeiro (maior timestamp)
-      expect(result.data![0].name).toBe('IMG_001.jpg');
-      expect(result.data![1].name).toBe('IMG_002.jpg');
-    });
-
-    it('deve ordenar numericamente nomes com números', async () => {
-      const photosWithNumbers = [
-        {
-          id: 'photo-1',
+          id: 'photo-10',
           name: 'IMG_10.jpg',
-          createdTime: '2026-01-01T10:00:00Z',
+          size: '1024000',
           mimeType: 'image/jpeg',
+          webViewLink: 'https://drive.google.com/file/d/photo-10',
+          imageMediaMetadata: { width: 1920, height: 1080 },
         },
         {
           id: 'photo-2',
           name: 'IMG_2.jpg',
-          createdTime: '2026-01-01T10:00:00Z',
+          size: '1024000',
           mimeType: 'image/jpeg',
+          webViewLink: 'https://drive.google.com/file/d/photo-2',
+          imageMediaMetadata: { width: 1920, height: 1080 },
         },
         {
-          id: 'photo-3',
+          id: 'photo-1',
           name: 'IMG_1.jpg',
-          createdTime: '2026-01-01T10:00:00Z',
+          size: '1024000',
           mimeType: 'image/jpeg',
+          webViewLink: 'https://drive.google.com/file/d/photo-1',
+          imageMediaMetadata: { width: 1920, height: 1080 },
         },
       ];
 
-      vi.mocked(googleDrive.listPhotosFromDriveFolder).mockResolvedValue(
-        photosWithNumbers,
-      );
+      vi.mocked(fetch).mockResolvedValueOnce({
+        ok: true,
+        json: async () => ({ files: unorderedFiles, nextPageToken: null }),
+      } as Response);
 
-      const result = await getFolderPhotos(mockFolderId);
+      const result = await listPhotosWithOAuth(mockFolderId, mockAccessToken);
 
-      expect(result.success).toBe(true);
-      // Ordenação numérica: 1, 2, 10 (não 1, 10, 2)
-      expect(result.data![0].name).toBe('IMG_1.jpg');
-      expect(result.data![1].name).toBe('IMG_2.jpg');
-      expect(result.data![2].name).toBe('IMG_10.jpg');
+      expect(result[0].name).toBe('IMG_1.jpg');
+      expect(result[1].name).toBe('IMG_2.jpg');
+      expect(result[2].name).toBe('IMG_10.jpg');
     });
 
-    it('deve manter ordem estável para fotos idênticas', async () => {
-      const identicalPhotos = [
+    it('deve usar valores padrão para dimensões ausentes', async () => {
+      const filesWithoutMetadata = [
         {
           id: 'photo-1',
           name: 'IMG_001.jpg',
-          createdTime: '2026-01-01T10:00:00Z',
+          size: '1024000',
           mimeType: 'image/jpeg',
-        },
-        {
-          id: 'photo-2',
-          name: 'IMG_001.jpg',
-          createdTime: '2026-01-01T10:00:00Z',
-          mimeType: 'image/jpeg',
+          webViewLink: 'https://drive.google.com/file/d/photo-1',
         },
       ];
 
-      vi.mocked(googleDrive.listPhotosFromDriveFolder).mockResolvedValue(
-        identicalPhotos,
+      vi.mocked(fetch).mockResolvedValueOnce({
+        ok: true,
+        json: async () => ({
+          files: filesWithoutMetadata,
+          nextPageToken: null,
+        }),
+      } as Response);
+
+      const result = await listPhotosWithOAuth(mockFolderId, mockAccessToken);
+
+      expect(result[0].width).toBe(1600);
+      expect(result[0].height).toBe(1200);
+    });
+
+    it('deve lidar com paginação múltipla', async () => {
+      const page1 = mockDriveFiles.slice(0, 2);
+      const page2 = mockDriveFiles.slice(2);
+
+      vi.mocked(fetch)
+        .mockResolvedValueOnce({
+          ok: true,
+          json: async () => ({ files: page1, nextPageToken: 'token-page-2' }),
+        } as Response)
+        .mockResolvedValueOnce({
+          ok: true,
+          json: async () => ({ files: page2, nextPageToken: null }),
+        } as Response);
+
+      const result = await listPhotosWithOAuth(mockFolderId, mockAccessToken);
+
+      expect(result).toHaveLength(3);
+      expect(fetch).toHaveBeenCalledTimes(2);
+    });
+
+    it('deve parar paginação ao atingir limite do plano', async () => {
+      const page1 = Array.from({ length: 50 }, (_, i) => ({
+        id: `photo-${i}`,
+        name: `IMG_${i}.jpg`,
+        size: '1024000',
+        mimeType: 'image/jpeg',
+        webViewLink: `https://drive.google.com/file/d/photo-${i}`,
+      }));
+
+      vi.mocked(fetch).mockResolvedValueOnce({
+        ok: true,
+        json: async () => ({ files: page1, nextPageToken: 'has-more' }),
+      } as Response);
+
+      const result = await listPhotosWithOAuth(
+        mockFolderId,
+        mockAccessToken,
+        50,
       );
 
-      const result = await getFolderPhotos(mockFolderId);
-
-      expect(result.success).toBe(true);
-      expect(result.data).toHaveLength(2);
-      // Ordem original mantida (estável)
-      expect(result.data![0].id).toBe('photo-1');
-      expect(result.data![1].id).toBe('photo-2');
+      expect(result).toHaveLength(50);
+      expect(fetch).toHaveBeenCalledTimes(1); // Não busca segunda página
     });
   });
 
   // =========================================================================
-  // 6. TESTES DE checkDriveAccess - CASOS DE SUCESSO
+  // 3. TESTES DE listPhotosWithOAuth - ERROS
   // =========================================================================
-  describe('checkDriveAccess - Casos de Sucesso', () => {
-    it('deve retornar true se token for válido', async () => {
-      const result = await checkDriveAccess();
+  describe('listPhotosWithOAuth - Erros', () => {
+    it('deve lançar erro se API retornar status não-ok', async () => {
+      vi.mocked(fetch).mockResolvedValueOnce({
+        ok: false,
+        status: 403,
+      } as Response);
 
-      expect(result.success).toBe(true);
-      expect(result.data).toBe(true);
+      await expect(
+        listPhotosWithOAuth(mockFolderId, mockAccessToken),
+      ).rejects.toThrow('Status API Drive: 403');
     });
 
-    it('deve retornar false se token for null', async () => {
-      vi.mocked(googleAuth.getDriveAccessTokenForUser).mockResolvedValue(null);
+    it('deve lançar erro se API retornar 401 (token inválido)', async () => {
+      vi.mocked(fetch).mockResolvedValueOnce({
+        ok: false,
+        status: 401,
+      } as Response);
 
-      const result = await checkDriveAccess();
-
-      expect(result.success).toBe(true);
-      expect(result.data).toBe(false);
+      await expect(
+        listPhotosWithOAuth(mockFolderId, mockAccessToken),
+      ).rejects.toThrow('Status API Drive: 401');
     });
 
-    it('deve usar userId fornecido como parâmetro', async () => {
-      const customUserId = 'custom-user-789';
+    it('deve lançar erro se API retornar 404 (pasta não encontrada)', async () => {
+      vi.mocked(fetch).mockResolvedValueOnce({
+        ok: false,
+        status: 404,
+      } as Response);
 
-      await checkDriveAccess(customUserId);
-
-      expect(googleAuth.getDriveAccessTokenForUser).toHaveBeenCalledWith(
-        customUserId,
-      );
-      expect(authContext.getAuthAndStudioIds).not.toHaveBeenCalled();
+      await expect(
+        listPhotosWithOAuth(mockFolderId, mockAccessToken),
+      ).rejects.toThrow('Status API Drive: 404');
     });
 
-    it('deve buscar userId automaticamente se não fornecido', async () => {
-      await checkDriveAccess();
+    it('deve capturar erro de rede', async () => {
+      vi.mocked(fetch).mockRejectedValueOnce(new Error('Network failure'));
 
-      expect(authContext.getAuthAndStudioIds).toHaveBeenCalled();
-      expect(googleAuth.getDriveAccessTokenForUser).toHaveBeenCalledWith(
-        mockUserId,
-      );
+      await expect(
+        listPhotosWithOAuth(mockFolderId, mockAccessToken),
+      ).rejects.toThrow('Network failure');
     });
   });
 
   // =========================================================================
-  // 7. TESTES DE checkDriveAccess - ERROS
+  // 4. TESTES DE listPhotosFromPublicFolder - CASOS DE SUCESSO
   // =========================================================================
-  describe('checkDriveAccess - Erros', () => {
-    it('deve retornar erro se usuário não estiver autenticado', async () => {
-      vi.mocked(authContext.getAuthAndStudioIds).mockResolvedValue({
-        success: false,
-        error: 'Não autenticado',
-      });
+  describe('listPhotosFromPublicFolder - Casos de Sucesso', () => {
+    it('deve listar fotos de pasta pública com API Key', async () => {
+      vi.mocked(fetch).mockResolvedValueOnce({
+        ok: true,
+        json: async () => ({ files: mockDriveFiles, nextPageToken: null }),
+      } as Response);
 
-      const result = await checkDriveAccess();
+      const result = await listPhotosFromPublicFolder(mockFolderId);
 
-      expect(result.success).toBe(false);
-      expect(result.error).toContain('autenticado');
-      expect(result.data).toBe(false);
+      expect(result).not.toBeNull();
+      expect(result).toHaveLength(3);
+      expect(fetch).toHaveBeenCalledWith(
+        expect.stringContaining('key=test-api-key'),
+        expect.any(Object),
+      );
     });
 
-    it('deve retornar erro se getDriveAccessTokenForUser lançar exceção', async () => {
-      vi.mocked(googleAuth.getDriveAccessTokenForUser).mockRejectedValue(
-        new Error('Token refresh failed'),
-      );
+    it('deve retornar null se GOOGLE_API_KEY não estiver configurada', async () => {
+      vi.unstubAllEnvs();
 
-      const result = await checkDriveAccess();
+      const result = await listPhotosFromPublicFolder(mockFolderId);
 
-      expect(result.success).toBe(false);
-      expect(result.error).toBe('Token refresh failed');
-      expect(result.data).toBe(false);
+      expect(result).toBeNull();
+      expect(fetch).not.toHaveBeenCalled();
     });
 
-    it('deve tratar erro genérico sem mensagem', async () => {
-      vi.mocked(googleAuth.getDriveAccessTokenForUser).mockRejectedValue(
-        'Erro genérico',
-      );
+    it('deve aplicar limite de fotos do plano', async () => {
+      const manyFiles = Array.from({ length: 150 }, (_, i) => ({
+        id: `photo-${i}`,
+        name: `IMG_${i}.jpg`,
+        size: '1024000',
+        mimeType: 'image/jpeg',
+        webViewLink: `https://drive.google.com/file/d/photo-${i}`,
+      }));
 
-      const result = await checkDriveAccess();
+      vi.mocked(fetch).mockResolvedValueOnce({
+        ok: true,
+        json: async () => ({ files: manyFiles, nextPageToken: null }),
+      } as Response);
 
-      expect(result.success).toBe(false);
-      expect(result.error).toContain('verificar acesso');
-      expect(result.data).toBe(false);
+      const result = await listPhotosFromPublicFolder(mockFolderId, 80);
+
+      expect(result).not.toBeNull();
+      expect(result!.length).toBeLessThanOrEqual(80);
+    });
+
+    it('deve filtrar apenas arquivos de imagem', async () => {
+      const mixedFiles = [
+        ...mockDriveFiles,
+        {
+          id: 'doc-1',
+          name: 'documento.pdf',
+          size: '512000',
+          mimeType: 'application/pdf',
+          webViewLink: 'https://drive.google.com/file/d/doc-1',
+        },
+      ];
+
+      vi.mocked(fetch).mockResolvedValueOnce({
+        ok: true,
+        json: async () => ({ files: mixedFiles, nextPageToken: null }),
+      } as Response);
+
+      const result = await listPhotosFromPublicFolder(mockFolderId);
+
+      expect(result).not.toBeNull();
+      expect(result).toHaveLength(3);
+      expect(result!.every((photo) => photo.name.endsWith('.jpg'))).toBe(true);
+    });
+
+    it('deve retornar null se pasta não tiver imagens', async () => {
+      vi.mocked(fetch).mockResolvedValueOnce({
+        ok: true,
+        json: async () => ({ files: [], nextPageToken: null }),
+      } as Response);
+
+      const result = await listPhotosFromPublicFolder(mockFolderId);
+
+      expect(result).toBeNull();
+    });
+
+    it('deve ordenar fotos alfabeticamente com ordenação natural', async () => {
+      const unorderedFiles = [
+        {
+          id: 'photo-10',
+          name: 'IMG_10.jpg',
+          size: '1024000',
+          mimeType: 'image/jpeg',
+          webViewLink: 'https://drive.google.com/file/d/photo-10',
+        },
+        {
+          id: 'photo-2',
+          name: 'IMG_2.jpg',
+          size: '1024000',
+          mimeType: 'image/jpeg',
+          webViewLink: 'https://drive.google.com/file/d/photo-2',
+        },
+      ];
+
+      vi.mocked(fetch).mockResolvedValueOnce({
+        ok: true,
+        json: async () => ({ files: unorderedFiles, nextPageToken: null }),
+      } as Response);
+
+      const result = await listPhotosFromPublicFolder(mockFolderId);
+
+      expect(result).not.toBeNull();
+      expect(result![0].name).toBe('IMG_2.jpg');
+      expect(result![1].name).toBe('IMG_10.jpg');
+    });
+
+    it('deve parar paginação ao atingir limite', async () => {
+      const page1Files = Array.from({ length: 80 }, (_, i) => ({
+        id: `photo-${i}`,
+        name: `IMG_${i}.jpg`,
+        size: '1024000',
+        mimeType: 'image/jpeg',
+        webViewLink: `https://drive.google.com/file/d/photo-${i}`,
+      }));
+
+      vi.mocked(fetch).mockResolvedValueOnce({
+        ok: true,
+        json: async () => ({ files: page1Files, nextPageToken: 'has-more' }),
+      } as Response);
+
+      const result = await listPhotosFromPublicFolder(mockFolderId, 80);
+
+      expect(result).not.toBeNull();
+      expect(result!.length).toBeLessThanOrEqual(80);
+      expect(fetch).toHaveBeenCalledTimes(1);
     });
   });
 
   // =========================================================================
-  // 8. TESTES DE INTEGRAÇÃO (Fluxo Completo)
+  // 5. TESTES DE listPhotosFromPublicFolder - ERROS
   // =========================================================================
-  describe('Integração - Fluxo Completo', () => {
-    it('deve executar fluxo completo de sucesso: auth → token → fotos → ordenação', async () => {
-      const result = await getFolderPhotos(mockFolderId);
+  describe('listPhotosFromPublicFolder - Erros', () => {
+    it('deve retornar null em erro da API', async () => {
+      vi.mocked(fetch).mockResolvedValueOnce({
+        ok: false,
+        status: 403,
+        json: async () => ({ error: { message: 'Permission denied' } }),
+      } as Response);
 
-      // 1. Verificar autenticação
-      expect(authContext.getAuthAndStudioIds).toHaveBeenCalled();
+      const result = await listPhotosFromPublicFolder(mockFolderId);
 
-      // 2. Verificar obtenção de token
-      expect(googleAuth.getDriveAccessTokenForUser).toHaveBeenCalledWith(
-        mockUserId,
-      );
+      expect(result).toBeNull();
+    });
 
-      // 3. Verificar listagem de fotos
-      expect(googleDrive.listPhotosFromDriveFolder).toHaveBeenCalledWith(
+    it('deve retornar null em erro de rede', async () => {
+      vi.mocked(fetch).mockRejectedValueOnce(new Error('Network error'));
+
+      const result = await listPhotosFromPublicFolder(mockFolderId);
+
+      expect(result).toBeNull();
+    });
+
+    it('deve retornar null se resposta JSON for inválida', async () => {
+      vi.mocked(fetch).mockResolvedValueOnce({
+        ok: true,
+        json: async () => {
+          throw new Error('Invalid JSON');
+        },
+      } as Response);
+
+      const result = await listPhotosFromPublicFolder(mockFolderId);
+
+      expect(result).toBeNull();
+    });
+  });
+
+  // =========================================================================
+  // 6. TESTES DE listPhotosFromDriveFolder - ESTRATÉGIA OAUTH PRIORITÁRIA
+  // =========================================================================
+  describe('listPhotosFromDriveFolder - OAuth Prioritário', () => {
+    it('deve usar OAuth quando accessToken é fornecido', async () => {
+      vi.mocked(fetch).mockResolvedValueOnce({
+        ok: true,
+        json: async () => ({ files: mockDriveFiles, nextPageToken: null }),
+      } as Response);
+
+      const result = await listPhotosFromDriveFolder(
         mockFolderId,
         mockAccessToken,
       );
 
-      // 4. Verificar resultado final
-      expect(result.success).toBe(true);
-      expect(result.data).toHaveLength(3);
-      expect(result.data![0].name).toBe('IMG_003.jpg'); // Mais recente
-    });
-
-    it('deve executar verificação de acesso completa', async () => {
-      const result = await checkDriveAccess(mockUserId);
-
-      expect(googleAuth.getDriveAccessTokenForUser).toHaveBeenCalledWith(
-        mockUserId,
+      expect(result).toHaveLength(3);
+      expect(fetch).toHaveBeenCalledWith(
+        expect.stringContaining('googleapis.com/drive/v3/files'),
+        expect.objectContaining({
+          headers: { Authorization: `Bearer ${mockAccessToken}` },
+        }),
       );
-      expect(result.success).toBe(true);
-      expect(result.data).toBe(true);
     });
 
-    it('deve falhar graciosamente em cada etapa do fluxo', async () => {
-      // Simula falha na autenticação
-      vi.mocked(authContext.getAuthAndStudioIds).mockResolvedValue({
-        success: false,
-        error: 'Auth failed',
-      });
+    it('deve usar OAuth com limite do plano PRO', async () => {
+      vi.mocked(fetch).mockResolvedValueOnce({
+        ok: true,
+        json: async () => ({ files: mockDriveFiles, nextPageToken: null }),
+      } as Response);
 
-      const result = await getFolderPhotos(mockFolderId);
+      const result = await listPhotosFromDriveFolder(
+        mockFolderId,
+        mockAccessToken,
+        'PRO',
+      );
 
-      expect(result.success).toBe(false);
-      expect(result.data).toEqual([]);
-      // Não deve tentar buscar token se auth falhar
-      expect(googleAuth.getDriveAccessTokenForUser).not.toHaveBeenCalled();
+      expect(result).toHaveLength(3);
+      expect(fetch).toHaveBeenCalledWith(
+        expect.stringContaining('pageSize=600'),
+        expect.any(Object),
+      );
+    });
+
+    it('deve usar OAuth com limite numérico direto', async () => {
+      vi.mocked(fetch).mockResolvedValueOnce({
+        ok: true,
+        json: async () => ({ files: mockDriveFiles, nextPageToken: null }),
+      } as Response);
+
+      const result = await listPhotosFromDriveFolder(
+        mockFolderId,
+        mockAccessToken,
+        150,
+      );
+
+      expect(result).toHaveLength(3);
+      expect(fetch).toHaveBeenCalledWith(
+        expect.stringContaining('pageSize=150'),
+        expect.any(Object),
+      );
+    });
+
+    it('deve fazer fallback para API Key se OAuth falhar', async () => {
+      // OAuth falha
+      vi.mocked(fetch)
+        .mockResolvedValueOnce({
+          ok: false,
+          status: 401,
+        } as Response)
+        // API Key sucede
+        .mockResolvedValueOnce({
+          ok: true,
+          json: async () => ({ files: mockDriveFiles, nextPageToken: null }),
+        } as Response);
+
+      const result = await listPhotosFromDriveFolder(
+        mockFolderId,
+        mockAccessToken,
+      );
+
+      expect(result).toHaveLength(3);
+      expect(fetch).toHaveBeenCalledTimes(2);
+    });
+
+    it('deve tentar API Key se accessToken não for fornecido', async () => {
+      vi.mocked(fetch).mockResolvedValueOnce({
+        ok: true,
+        json: async () => ({ files: mockDriveFiles, nextPageToken: null }),
+      } as Response);
+
+      const result = await listPhotosFromDriveFolder(mockFolderId);
+
+      expect(result).toHaveLength(3);
+      expect(fetch).toHaveBeenCalledWith(
+        expect.stringContaining('key=test-api-key'),
+        expect.any(Object),
+      );
+    });
+
+    it('deve retornar array vazio se ambos os métodos falharem', async () => {
+      vi.mocked(fetch)
+        .mockResolvedValueOnce({
+          ok: false,
+          status: 401,
+        } as Response)
+        .mockResolvedValueOnce({
+          ok: false,
+          status: 403,
+          json: async () => ({ error: { message: 'Forbidden' } }),
+        } as Response);
+
+      const result = await listPhotosFromDriveFolder(
+        mockFolderId,
+        mockAccessToken,
+      );
+
+      expect(result).toEqual([]);
+    });
+
+    it('deve lançar erro se driveFolderId não for fornecido', async () => {
+      await expect(
+        listPhotosFromDriveFolder('', mockAccessToken),
+      ).rejects.toThrow('ID da pasta do Google Drive não fornecido');
+    });
+
+    it('deve aplicar limite do plano FREE por padrão', async () => {
+      vi.mocked(fetch).mockResolvedValueOnce({
+        ok: true,
+        json: async () => ({ files: mockDriveFiles, nextPageToken: null }),
+      } as Response);
+
+      const result = await listPhotosFromDriveFolder(
+        mockFolderId,
+        mockAccessToken,
+      );
+
+      expect(result).toHaveLength(3);
+      // Limite FREE = 80
+      expect(fetch).toHaveBeenCalledWith(
+        expect.stringContaining('pageSize=80'),
+        expect.any(Object),
+      );
     });
   });
 
   // =========================================================================
-  // 9. TESTES DE EDGE CASES
+  // 7. TESTES DE EDGE CASES
   // =========================================================================
   describe('Edge Cases', () => {
-    it('deve lidar com array muito grande de fotos (1000+)', async () => {
-      const manyPhotos = Array.from({ length: 1500 }, (_, i) => ({
-        id: `photo-${i}`,
-        name: `IMG_${String(i).padStart(4, '0')}.jpg`,
-        createdTime: new Date(2026, 0, 1 + i).toISOString(),
-        mimeType: 'image/jpeg',
-      }));
-
-      vi.mocked(googleDrive.listPhotosFromDriveFolder).mockResolvedValue(
-        manyPhotos,
-      );
-
-      const result = await getFolderPhotos(mockFolderId);
-
-      expect(result.success).toBe(true);
-      expect(result.data).toHaveLength(1500);
-      // Última foto criada deve vir primeiro
-      expect(result.data![0].name).toContain('1499');
-    });
-
-    it('deve lidar com caracteres especiais em nomes de arquivo', async () => {
-      const specialPhotos = [
-        {
-          id: 'photo-1',
-          name: 'Café & Açúcar.jpg',
-          createdTime: '2026-01-01T10:00:00Z',
-          mimeType: 'image/jpeg',
-        },
-        {
-          id: 'photo-2',
-          name: 'Ação.jpg',
-          createdTime: '2026-01-01T10:00:00Z',
-          mimeType: 'image/jpeg',
-        },
-      ];
-
-      vi.mocked(googleDrive.listPhotosFromDriveFolder).mockResolvedValue(
-        specialPhotos,
-      );
-
-      const result = await getFolderPhotos(mockFolderId);
-
-      expect(result.success).toBe(true);
-      expect(result.data).toHaveLength(2);
-      // Ordenação deve funcionar com caracteres especiais
-      expect(result.data![0].name).toBe('Ação.jpg');
-      expect(result.data![1].name).toBe('Café & Açúcar.jpg');
-    });
-
-    it('deve lidar com datas inválidas graciosamente', async () => {
-      const invalidDatePhotos = [
+    it('deve lidar com fotos sem dimensões', async () => {
+      const filesWithoutDimensions = [
         {
           id: 'photo-1',
           name: 'IMG_001.jpg',
-          createdTime: 'invalid-date',
+          size: '1024000',
           mimeType: 'image/jpeg',
-        },
-        {
-          id: 'photo-2',
-          name: 'IMG_002.jpg',
-          createdTime: '2026-01-01T10:00:00Z',
-          mimeType: 'image/jpeg',
+          webViewLink: 'https://drive.google.com/file/d/photo-1',
         },
       ];
 
-      vi.mocked(googleDrive.listPhotosFromDriveFolder).mockResolvedValue(
-        invalidDatePhotos as any,
+      vi.mocked(fetch).mockResolvedValueOnce({
+        ok: true,
+        json: async () => ({
+          files: filesWithoutDimensions,
+          nextPageToken: null,
+        }),
+      } as Response);
+
+      const result = await listPhotosWithOAuth(mockFolderId, mockAccessToken);
+
+      expect(result[0].width).toBe(1600);
+      expect(result[0].height).toBe(1200);
+    });
+
+    it('deve lidar com caracteres especiais em nomes', async () => {
+      const specialFiles = [
+        {
+          id: 'photo-1',
+          name: 'Café & Açúcar.jpg',
+          size: '1024000',
+          mimeType: 'image/jpeg',
+          webViewLink: 'https://drive.google.com/file/d/photo-1',
+        },
+      ];
+
+      vi.mocked(fetch).mockResolvedValueOnce({
+        ok: true,
+        json: async () => ({ files: specialFiles, nextPageToken: null }),
+      } as Response);
+
+      const result = await listPhotosWithOAuth(mockFolderId, mockAccessToken);
+
+      expect(result[0].name).toBe('Café & Açúcar.jpg');
+    });
+
+    it('deve lidar com size ausente', async () => {
+      const filesWithoutSize = [
+        {
+          id: 'photo-1',
+          name: 'IMG_001.jpg',
+          mimeType: 'image/jpeg',
+          webViewLink: 'https://drive.google.com/file/d/photo-1',
+        },
+      ];
+
+      vi.mocked(fetch).mockResolvedValueOnce({
+        ok: true,
+        json: async () => ({ files: filesWithoutSize, nextPageToken: null }),
+      } as Response);
+
+      const result = await listPhotosWithOAuth(mockFolderId, mockAccessToken);
+
+      expect(result[0].size).toBe('0');
+    });
+
+    it('deve lidar com resposta sem campo files', async () => {
+      vi.mocked(fetch).mockResolvedValueOnce({
+        ok: true,
+        json: async () => ({ nextPageToken: null }),
+      } as Response);
+
+      const result = await listPhotosWithOAuth(mockFolderId, mockAccessToken);
+
+      expect(result).toEqual([]);
+    });
+  });
+
+  // =========================================================================
+  // 8. TESTES DE PERFORMANCE E LIMITES
+  // =========================================================================
+  describe('Performance e Limites', () => {
+    it('deve limitar pageSize ao máximo de 1000', async () => {
+      vi.mocked(fetch).mockResolvedValueOnce({
+        ok: true,
+        json: async () => ({ files: mockDriveFiles, nextPageToken: null }),
+      } as Response);
+
+      await listPhotosWithOAuth(mockFolderId, mockAccessToken, 5000);
+
+      expect(fetch).toHaveBeenCalledWith(
+        expect.stringContaining('pageSize=1000'),
+        expect.any(Object),
       );
+    });
 
-      const result = await getFolderPhotos(mockFolderId);
+    it('deve usar pageSize * 2 para API Key para compensar não-imagens', async () => {
+      vi.mocked(fetch).mockResolvedValueOnce({
+        ok: true,
+        json: async () => ({ files: mockDriveFiles, nextPageToken: null }),
+      } as Response);
 
-      expect(result.success).toBe(true);
-      // Data inválida vira NaN, que deve ser tratada como 0
-      expect(result.data).toHaveLength(2);
+      await listPhotosFromPublicFolder(mockFolderId, 100);
+
+      // 100 * 2 = 200, mas limitado a 1000
+      expect(fetch).toHaveBeenCalledWith(
+        expect.stringContaining('pageSize=200'),
+        expect.any(Object),
+      );
+    });
+
+    it('deve processar 1500+ fotos sem erro', async () => {
+      const manyFiles = Array.from({ length: 1500 }, (_, i) => ({
+        id: `photo-${i}`,
+        name: `IMG_${String(i).padStart(4, '0')}.jpg`,
+        size: '1024000',
+        mimeType: 'image/jpeg',
+        webViewLink: `https://drive.google.com/file/d/photo-${i}`,
+      }));
+
+      vi.mocked(fetch).mockResolvedValueOnce({
+        ok: true,
+        json: async () => ({ files: manyFiles, nextPageToken: null }),
+      } as Response);
+
+      const result = await listPhotosWithOAuth(mockFolderId, mockAccessToken);
+
+      expect(result).toHaveLength(1500);
     });
   });
 });

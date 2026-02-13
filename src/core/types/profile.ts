@@ -25,7 +25,7 @@ export interface Profile {
   message_templates: MessageTemplates;
 
   // 🛠️ Campos Adicionais para Dashboard e Admin
-  google_refresh_token?: string | null;
+  google_refresh_token: string | null;
   sidebar_collapsed?: boolean;
   roles?: string[];
   accepted_terms: boolean;

@@ -71,6 +71,7 @@ export interface GaleriaBase {
   photo_count: number;
   enable_favorites: boolean;
   enable_slideshow: boolean;
+  google_refresh_token: string | null;
 }
 
 // Interface utilizada na UI (GaleriaCard e GaleriaView)
@@ -108,6 +109,7 @@ export interface GaleriaRawResponse extends Omit<
     use_subdomain: boolean; // Garante a tipagem correta vinda do DB
     message_templates: MessageTemplates;
     plan_key: string;
+    google_refresh_token: string | null;
   };
   leads?: { count: number }[];
 }
