@@ -1,5 +1,5 @@
 'use client';
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useMemo } from 'react';
 import {
   Filter,
   Download,
@@ -11,6 +11,7 @@ import {
   Zap,
   Share2,
 } from 'lucide-react';
+import { usePlan } from '@/core/context/PlanContext';
 import { GALLERY_MESSAGES } from '@/core/config/messages';
 import { formatMessage } from '@/core/utils/message-helper';
 
@@ -118,7 +119,31 @@ export const ToolBarMobile = ({
     }
   }, [externalLinks]); // 🎯 Monitore o array de objetos processado
 
-  const hasMultipleTags = tags.length > 1;
+  const { permissions } = usePlan(); // Se precisar de permissions no futuro
+
+  // 🎯 Extrai as tags únicas diretamente do objeto galeria
+  const galleryTags = useMemo(() => {
+    if (!galeria?.photo_tags) return [];
+    try {
+      const parsed =
+        typeof galeria.photo_tags === 'string'
+          ? JSON.parse(galeria.photo_tags)
+          : galeria.photo_tags;
+
+      if (!Array.isArray(parsed)) return [];
+
+      const uniqueTags = Array.from(
+        new Set(parsed.map((item: any) => item.tag)),
+      ).filter((tag) => tag && typeof tag === 'string') as string[];
+
+      return uniqueTags.sort();
+    } catch (err) {
+      console.error('Erro ao processar tags mobile:', err);
+      return [];
+    }
+  }, [galeria?.photo_tags]);
+
+  const hasMultipleTags = galleryTags.length > 0;
 
   // Ciclo de dicas de ajuda (Hints) - Ordem: Categorias, Layout, Compartilhar, Link, Favoritos, Baixar
   useEffect(() => {
@@ -355,14 +380,33 @@ export const ToolBarMobile = ({
               Categorias
             </span>
             <div className="flex flex-wrap gap-2 pb-2">
-              {tags.map((tag: string) => (
+              {/* BOTÃO TODAS */}
+              <button
+                onClick={() => {
+                  setActiveTag('');
+                  setShowTagsPanel(false);
+                }}
+                className={`px-4 py-2 rounded-luxury text-editorial-label transition-all border ${
+                  activeTag === '' || !activeTag
+                    ? 'bg-gold text-black border-gold shadow-lg'
+                    : 'bg-white/5 text-white border border-white/10'
+                }`}
+              >
+                Todas
+              </button>
+
+              {galleryTags.map((tag: string) => (
                 <button
                   key={tag}
                   onClick={() => {
                     setActiveTag(tag);
                     setShowTagsPanel(false);
                   }}
-                  className={`px-4 py-2 rounded-luxury text-editorial-label transition-all border ${activeTag === tag ? 'bg-gold text-black border-gold shadow-lg' : 'bg-white/5 text-white border border-white/10'}`}
+                  className={`px-4 py-2 rounded-luxury text-editorial-label transition-all border ${
+                    activeTag === tag
+                      ? 'bg-gold text-black border-gold shadow-lg'
+                      : 'bg-white/5 text-white border border-white/10'
+                  }`}
                 >
                   {tag}
                 </button>

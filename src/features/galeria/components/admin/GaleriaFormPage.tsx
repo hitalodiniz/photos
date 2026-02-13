@@ -154,6 +154,8 @@ export default function GaleriaFormPage({
     const cover_image_ids = formData.get('cover_image_ids') as string;
     const cover_image_url = formData.get('cover_image_url') as string;
     const photoCount = parseInt(formData.get('photo_count') as string) || 0;
+    const galleryTags = formData.get('gallery_tags') as string;
+    const photo_tags = formData.get('photo_tags') as string;
 
     // Validações
     if (!title?.trim()) {
@@ -203,6 +205,8 @@ export default function GaleriaFormPage({
     formData.set('columns_tablet', String(columns.tablet));
     formData.set('columns_desktop', String(columns.desktop));
     formData.set('photo_count', String(photoCount));
+    formData.set('gallery_tags', String(galleryTags));
+    formData.set('photo_tags', String(photo_tags));
 
     const whatsappRaw = formData.get('client_whatsapp') as string;
     if (whatsappRaw)

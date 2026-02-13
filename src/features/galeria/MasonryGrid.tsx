@@ -428,8 +428,8 @@ const MasonryItem = memo(
 
                 {/* 🎯 Badge de Tag Existente (Para o Admin ver o que já marcou) */}
                 {photo.tag && (
-                  <div className="absolute top-2 right-2 z-30 bg-petroleum/90 backdrop-blur-md px-2 py-0.5 rounded border border-gold/30 shadow-lg">
-                    <span className="text-gold text-[8px] font-black uppercase tracking-widest">
+                  <div className="absolute top-2 right-2 !py-0 z-30 bg-petroleum/90 backdrop-blur-md px-2 ded border border-gold/30 rounded-md">
+                    <span className="text-champagne text-[8px] font-semibold uppercase tracking-widest">
                       {photo.tag}
                     </span>
                   </div>
@@ -447,7 +447,7 @@ const MasonryItem = memo(
                     <div
                       className={`absolute top-3 left-3 p-1 rounded-full border-2 transition-all ${
                         isSelected
-                          ? 'bg-gold border-gold text-petroleum scale-110'
+                          ? 'bg-champagne border-champagne text-petroleum scale-110'
                           : 'bg-white/20 border-white/40 text-transparent group-hover:text-white/60'
                       }`}
                     >

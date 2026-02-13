@@ -255,6 +255,30 @@ export default function GaleriaFormContent({
     },
   );
 
+  const handleDeleteTag = (tagName: string) => {
+    // 1. Remove o nome da tag da lista de disponíveis
+    const updatedAvailableTags = galleryTags.filter((t) => t !== tagName);
+    setGalleryTags(updatedAvailableTags);
+    setValue('galleryTags', JSON.stringify(updatedAvailableTags), {
+      shouldDirty: true,
+    });
+
+    // 2. Limpa a tag de todas as fotos que a utilizavam (Limpeza do JSON)
+    setPhotoTags((prev) => {
+      const cleanedTags = prev.filter((item) => item.tag !== tagName);
+
+      // Atualiza o input hidden para persistir no banco ao salvar
+      setValue('photo_tags', JSON.stringify(cleanedTags), {
+        shouldDirty: true,
+      });
+
+      return cleanedTags;
+    });
+
+    // 3. Feedback Visual
+    showToast(`Categoria "${tagName}" removida com sucesso.`, 'success');
+  };
+
   const [isTagModalOpen, setIsTagModalOpen] = useState(false);
   const [selectedPhotosForTag, setSelectedPhotosForTag] = useState<string[]>(
     [],
@@ -577,34 +601,38 @@ export default function GaleriaFormContent({
   // 🎯 Função 2: "Carimba" os IDs selecionados com uma tag
   // Dentro do GaleriaFormContent
   const handleApplyTagToPhotos = (selectedIds: string[], tagName: string) => {
-    if (!selectedIds || selectedIds.length === 0) {
-      showToast('Selecione fotos para marcar primeiro', 'error');
-      return;
-    }
+    if (!selectedIds || selectedIds.length === 0) return;
 
     setPhotoTags((prev) => {
-      // 1. Filtra removendo duplicatas
+      // 1. Sempre filtramos para remover o vínculo antigo dos IDs selecionados
       const filtered = prev.filter((item) => !selectedIds.includes(item.id));
 
-      // 2. Cria novos mapeamentos
-      const newMappings = selectedIds.map((id) => ({
-        id,
-        tag: tagName,
-      }));
+      let updatedTags;
 
-      const updatedTags = [...filtered, ...newMappings];
+      // 2. Se tagName for vazio, as fotos ficam apenas "filtradas" (sem tag no JSON)
+      if (tagName === '') {
+        updatedTags = filtered;
+        showToast(
+          `${selectedIds.length} fotos agora estão sem marcação.`,
+          'success',
+        );
+      } else {
+        // 3. Caso contrário, adicionamos o novo mapeamento
+        const newMappings = selectedIds.map((id) => ({ id, tag: tagName }));
+        updatedTags = [...filtered, ...newMappings];
+        showToast(
+          `${selectedIds.length} fotos marcadas como ${tagName}`,
+          'success',
+        );
+      }
 
-      // 3. Sincroniza com o react-hook-form
+      // 4. Sincroniza o input hidden para o salvamento final
       setValue('photo_tags', JSON.stringify(updatedTags), {
         shouldDirty: true,
       });
 
       return updatedTags;
     });
-
-    // 🎯 Feedback visual usando o SEU componente
-    const msg = `${selectedIds.length} ${selectedIds.length === 1 ? 'foto marcada' : 'fotos marcadas'} como ${tagName}`;
-    showToast(msg, 'success');
   };
 
   return (
@@ -1263,6 +1291,7 @@ export default function GaleriaFormContent({
         existingTags={galleryTags} // Lista de nomes [ "CERIMONIA", "FESTA" ]
         onApplyTag={handleApplyTagToPhotos}
         onCreateTag={handleCreateNewTag}
+        onDeleteTag={handleDeleteTag}
       />
     </>
   );

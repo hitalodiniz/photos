@@ -72,6 +72,8 @@ export interface GaleriaBase {
   enable_favorites: boolean;
   enable_slideshow: boolean;
   google_refresh_token: string | null;
+  gallery_tags: string | null;
+  photo_tags: string | null;
 }
 
 // Interface utilizada na UI (GaleriaCard e GaleriaView)

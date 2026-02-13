@@ -34,7 +34,7 @@ export default function PhotoGrid({ photos, galeria }: any) {
   const [isScrolled, setIsScrolled] = useState(false);
   const [isHovered, setIsHovered] = useState(false);
   const [showOnlyFavorites, setShowOnlyFavorites] = useState(false);
-  const [activeTag, setActiveTag] = useState('Todas');
+  const [activeTag, setActiveTag] = useState('');
   const [showVolumeDashboard, setShowVolumeDashboard] = useState(false);
   const [canShowFavButton, setCanShowFavButton] = useState(false);
   const [upsellFeature, setUpsellFeature] = useState<{
@@ -58,49 +58,85 @@ export default function PhotoGrid({ photos, galeria }: any) {
   const storageKey = `favoritos_galeria_${galeria.id}`;
 
   // --- 4. MEMOS (CÁLCULOS) ---
+
+  // 🎯 MAPEAMENTO DE TAGS NAS FOTOS (Crucial para o filtro funcionar)
+  const photosWithTags = useMemo(() => {
+    const safePhotos = Array.isArray(photos) ? photos : [];
+    if (!galeria?.photo_tags) return safePhotos;
+
+    try {
+      const parsedTags =
+        typeof galeria.photo_tags === 'string'
+          ? JSON.parse(galeria.photo_tags)
+          : galeria.photo_tags;
+
+      if (!Array.isArray(parsedTags)) return safePhotos;
+
+      // Cria um mapa para acesso rápido O(1)
+      const tagsMap = new Map(parsedTags.map((t: any) => [t.id, t.tag]));
+
+      return safePhotos.map((p: any) => ({
+        ...p,
+        tag: tagsMap.get(p.id) || p.tag, // Prioriza o mapa, mas mantém se já existir
+      }));
+    } catch (err) {
+      console.error('Erro ao processar tags no Grid:', err);
+      return safePhotos;
+    }
+  }, [photos, galeria?.photo_tags]);
+
   const VOLUMES = useMemo(() => {
     const isMobile = typeof window !== 'undefined' && window.innerWidth < 768;
     const LIMIT = (isMobile ? 200 : 500) * 1024 * 1024;
-    return groupPhotosByWeight(photos, LIMIT);
-  }, [photos]);
+    return groupPhotosByWeight(photosWithTags, LIMIT);
+  }, [photosWithTags]);
 
   const FAVORITE_VOLUMES = useMemo(() => {
     const isMobile = typeof window !== 'undefined' && window.innerWidth < 768;
     const LIMIT = (isMobile ? 200 : 500) * 1024 * 1024;
     const targetList = favorites
-      .map((id) => photos.find((p: any) => p.id === id))
+      .map((id) => photosWithTags.find((p: any) => p.id === id))
       .filter(Boolean);
     return groupPhotosByWeight(targetList, LIMIT);
-  }, [favorites, photos]);
+  }, [favorites, photosWithTags]);
 
   const totalGallerySizeMB = useMemo(() => {
     return (
-      photos.reduce(
+      photosWithTags.reduce(
         (acc: number, p: any) => acc + estimatePhotoDownloadSize(p),
         0,
       ) /
       (1024 * 1024)
     );
-  }, [photos]);
+  }, [photosWithTags]);
 
+  // Não precisamos mais calcular tagsDaGaleria aqui se o ToolBar faz isso,
+  // mas vamos manter para compatibilidade se algo mais usar.
+  // Agora usando photosWithTags, ele vai popular corretamente.
   const tagsDaGaleria = useMemo(
     () => [
       'Todas',
-      ...Array.from(new Set(photos.map((p: any) => p.tag).filter(Boolean))),
+      ...Array.from(new Set(photosWithTags.map((p: any) => p.tag).filter(Boolean))),
     ],
-    [photos],
+    [photosWithTags],
   );
 
   const displayedPhotos = useMemo(
     () =>
-      photos.filter((photo: any) => {
+      photosWithTags.filter((photo: any) => {
         const matchesFavorite = showOnlyFavorites
           ? favorites.includes(photo.id)
           : true;
-        const matchesTag = activeTag === 'Todas' || photo.tag === activeTag;
+        
+        // 🎯 Lógica de filtro de tags mais robusta (aceita vazio ou 'Todas')
+        const matchesTag = 
+          !activeTag || 
+          activeTag === 'Todas' || 
+          photo.tag === activeTag;
+
         return matchesFavorite && matchesTag;
       }),
-    [photos, showOnlyFavorites, favorites, activeTag],
+    [photosWithTags, showOnlyFavorites, favorites, activeTag],
   );
 
   const [columns, setColumns] = useState({
@@ -288,7 +324,7 @@ export default function PhotoGrid({ photos, galeria }: any) {
     if (chunkIndex !== undefined) setActiveDownloadingIndex(chunkIndex);
 
     // 2. Cálculos iniciais (Tamanho estimado baseado no alvo de 1.0MB)
-    const firstPhotoGlobalIndex = photos.indexOf(targetList[0]);
+    const firstPhotoGlobalIndex = photosWithTags.indexOf(targetList[0]);
 
     if (!confirmed && !isFavAction) {
       setShowVolumeDashboard(true);
@@ -385,7 +421,7 @@ export default function PhotoGrid({ photos, galeria }: any) {
   };
 
   const handleDownloadFavorites = () => setShowVolumeDashboard(true);
-  const downloadAllAsZip = () => handleDownloadZip(photos, 'completa', false);
+  const downloadAllAsZip = () => handleDownloadZip(photosWithTags, 'completa', false);
 
   const handleShare = () => {
     const url = window.location.href;
@@ -528,11 +564,11 @@ export default function PhotoGrid({ photos, galeria }: any) {
         )}
 
       {/* LIGHTBOX */}
-      {selectedPhotoIndex !== null && photos.length > 0 && (
+      {selectedPhotoIndex !== null && photosWithTags.length > 0 && (
         <Lightbox
-          photos={photos}
+          photos={photosWithTags}
           activeIndex={selectedPhotoIndex}
-          totalPhotos={photos.length}
+          totalPhotos={photosWithTags.length}
           galleryTitle={galeria.title}
           galeria={galeria}
           location={galeria.location || ''}
@@ -542,11 +578,11 @@ export default function PhotoGrid({ photos, galeria }: any) {
           onToggleFavorite={toggleFavoriteFromGrid}
           onClose={() => setSelectedPhotoIndex(null)}
           onNext={() =>
-            setSelectedPhotoIndex((selectedPhotoIndex + 1) % photos.length)
+            setSelectedPhotoIndex((selectedPhotoIndex + 1) % photosWithTags.length)
           }
           onPrev={() =>
             setSelectedPhotoIndex(
-              (selectedPhotoIndex - 1 + photos.length) % photos.length,
+              (selectedPhotoIndex - 1 + photosWithTags.length) % photosWithTags.length,
             )
           }
           onNavigateToIndex={(index) => setSelectedPhotoIndex(index)}

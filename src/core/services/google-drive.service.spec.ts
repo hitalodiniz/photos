@@ -6,6 +6,7 @@ import {
   resolvePhotoLimitByPlan,
   DrivePhoto,
 } from '@/lib/google-drive';
+import { GLOBAL_CACHE_REVALIDATE } from '@/core/utils/url-helper';
 
 // =========================================================================
 // MOCKS
@@ -102,7 +103,14 @@ describe('Google Drive Library - Suite Completa de Testes', () => {
       expect(fetch).toHaveBeenCalledWith(
         expect.stringContaining('googleapis.com/drive/v3/files'),
         expect.objectContaining({
-          headers: { Authorization: `Bearer ${mockAccessToken}` },
+          headers: {
+            Authorization: `Bearer ${mockAccessToken}`,
+            'Cache-Control': 'no-cache',
+          },
+          next: {
+            revalidate: GLOBAL_CACHE_REVALIDATE,
+            tags: [`drive-${mockFolderId}`],
+          },
         }),
       );
     });
@@ -253,6 +261,7 @@ describe('Google Drive Library - Suite Completa de Testes', () => {
       vi.mocked(fetch).mockResolvedValueOnce({
         ok: false,
         status: 403,
+        json: vi.fn().mockResolvedValue({ error: { message: 'Forbidden' } }),
       } as Response);
 
       await expect(
@@ -264,6 +273,7 @@ describe('Google Drive Library - Suite Completa de Testes', () => {
       vi.mocked(fetch).mockResolvedValueOnce({
         ok: false,
         status: 401,
+        json: vi.fn().mockResolvedValue({ error: { message: 'Unauthorized' } }),
       } as Response);
 
       await expect(
@@ -275,6 +285,7 @@ describe('Google Drive Library - Suite Completa de Testes', () => {
       vi.mocked(fetch).mockResolvedValueOnce({
         ok: false,
         status: 404,
+        json: vi.fn().mockResolvedValue({ error: { message: 'Not Found' } }),
       } as Response);
 
       await expect(
@@ -484,7 +495,11 @@ describe('Google Drive Library - Suite Completa de Testes', () => {
       expect(fetch).toHaveBeenCalledWith(
         expect.stringContaining('googleapis.com/drive/v3/files'),
         expect.objectContaining({
-          headers: { Authorization: `Bearer ${mockAccessToken}` },
+          headers: expect.objectContaining({
+            Authorization: `Bearer ${mockAccessToken}`,
+            'Cache-Control': 'no-cache',
+          }),
+          cache: 'no-store',
         }),
       );
     });

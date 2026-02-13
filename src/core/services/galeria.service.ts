@@ -44,6 +44,19 @@ import {
   resolveGalleryLimitByPlan,
   syncUserGalleriesAction,
 } from '@/actions/galeria.actions';
+import {
+  extractGalleryFormData,
+  validateGalleryData,
+  processPassword,
+} from '../utils/galeria-form.helper';
+import {
+  checkGalleryLimit,
+  checkReactivationLimit,
+} from '../utils/galeria-limit.helper';
+import {
+  getGalleryRevalidationData,
+  revalidateGalleryCache,
+} from '../utils/galeria-revalidation.helper';
 
 // =========================================================================
 // 2. SLUG ÚNICO POR DATA
@@ -120,7 +133,7 @@ export async function generateUniqueDatedSlug(
 }
 
 // =========================================================================
-// 3. CREATE GALERIA
+// 3. CREATE GALERIA - VERSÃO REFATORADA
 // =========================================================================
 export async function createGaleria(
   formData: FormData,
@@ -128,155 +141,61 @@ export async function createGaleria(
 ): Promise<ActionResult> {
   const supabase = supabaseClient || (await createSupabaseServerClient());
 
-  //OBTÉM CONTEXTO (Auth + Profile completo via getAuthenticatedUser)
-  // Como essa função usa o cache do React, não há custo extra se já foi chamada no layout.
+  // 1. AUTENTICAÇÃO E PERFIL
   const {
     success: authSuccess,
     userId,
     profile,
   } = await getAuthenticatedUser();
 
-  if (!authSuccess || !userId || !profile)
+  if (!authSuccess || !userId || !profile) {
     return { success: false, error: 'Não autorizado ou perfil não carregado.' };
-
-  // 🎯 NOVO: VALIDAÇÃO DE CAMPOS OBRIGATÓRIOS
-  const title = formData.get('title') as string;
-  const date = formData.get('date') as string;
-  const driveFolderId = formData.get('drive_folder_id') as string;
-
-  if (!title || title.trim().length < 3) {
-    return {
-      success: false,
-      error: 'O título da galeria é obrigatório (mín. 3 caracteres).',
-    };
-  }
-  if (!date) {
-    return { success: false, error: 'A data do evento é obrigatória.' };
-  }
-  if (!driveFolderId || driveFolderId === 'undefined') {
-    return {
-      success: false,
-      error: 'Você precisa selecionar uma pasta do Google Drive.',
-    };
   }
 
-  // 🎯 1. CONTROLE DE LIMITE (MAX GALLERIES)
+  // 2. EXTRAÇÃO E VALIDAÇÃO DE DADOS
+  const formFields = extractGalleryFormData(formData);
+  const validation = validateGalleryData(formFields);
+
+  if (!validation.isValid) {
+    return { success: false, error: validation.firstError };
+  }
+
+  // 3. VALIDAÇÃO DE LIMITE
   try {
-    const limit = resolveGalleryLimitByPlan(profile.plan_key);
+    const limitCheck = await checkGalleryLimit(
+      supabase,
+      userId,
+      profile.plan_key,
+    );
 
-    // Contagem robusta de galerias ativas
-    const { count, error: countError } = await supabase
-      .from('tb_galerias')
-      .select('*', { count: 'exact', head: true })
-      .eq('user_id', userId)
-      .or('is_deleted.eq.false,is_deleted.is.null')
-      .or('is_archived.eq.false,is_archived.is.null');
-
-    if (countError) throw countError;
-
-    if (count !== null && count >= limit) {
-      return {
-        success: false,
-        error: `Limite de ${limit} galerias atingido para seu plano (${profile.plan_key}). Arquive uma galeria ou faça upgrade.`,
-      };
+    if (!limitCheck.canCreate) {
+      return { success: false, error: limitCheck.error };
     }
   } catch (err) {
     console.error('[createGaleria] Erro ao validar limites:', err);
     return { success: false, error: 'Falha ao validar limites do plano.' };
   }
 
-  // 🎯 2. GERAÇÃO DE SLUG
-  const slug = await generateUniqueDatedSlug(
-    formData.get('title') as string,
-    new Date(formData.get('date') as string).toISOString(),
-  );
+  // 4. GERAÇÃO DE SLUG
+  const slug = await generateUniqueDatedSlug(formFields.title, formFields.date);
 
-  // TRATAMENTO DE CAPAS
-  // 1. Recupere a string bruta do FormData
-  const rawIds = formData.get('cover_image_ids') as string;
-  let idsArray: string[] = [];
+  // 5. MONTAGEM DE DADOS PARA INSERT
+  const { _password, ...dataWithoutPassword } = formFields;
+  const password = processPassword(formFields, false);
 
-  // 2. Garante que coverIdsArray seja SEMPRE um array de strings
+  const insertData = {
+    ...dataWithoutPassword,
+    user_id: userId,
+    slug,
+    password,
+    zip_url_social: null, // Mantido para compatibilidade
+  };
+
+  // 6. INSERT NO BANCO
   try {
-    // Converte a string JSON ["id1"] em um Array JS real
-    const parsed = JSON.parse(rawIds);
-    idsArray = Array.isArray(parsed) ? parsed : [];
-  } catch {
-    idsArray = [];
-  }
-
-  // 🎯 3. FORMATAÇÃO PARA POSTGRESQL (Resolução do erro 22P02)
-  // Usamos as chaves {} exigidas pelo tipo text[] do Postgres
-  const pgFormat = `{${idsArray.map((id) => `"${id}"`).join(',')}}`;
-
-  try {
-    const data = {
-      user_id: userId, // ID do criador
-      slug: slug,
-      //studio_id: studioId,
-      title: formData.get('title') as string,
-      show_on_profile: formData.get('show_on_profile') === 'true',
-      client_name: (formData.get('client_name') as string) || 'Cobertura',
-      client_whatsapp: (() => {
-        let val =
-          (formData.get('client_whatsapp') as string)?.replace(/\D/g, '') || '';
-        if (
-          val &&
-          (val.length === 10 || val.length === 11) &&
-          !val.startsWith('55')
-        ) {
-          val = `55${val}`;
-        }
-        return val || null;
-      })(),
-      date: new Date(formData.get('date') as string).toISOString(),
-      location: (formData.get('location') as string) || '',
-      drive_folder_id: formData.get('drive_folder_id') as string,
-      drive_folder_name: formData.get('drive_folder_name') as string,
-      //  Usar o array tratado e a primeira foto como capa principal
-      cover_image_ids: pgFormat,
-      cover_image_url:
-        idsArray.length > 0
-          ? idsArray[0]
-          : (formData.get('cover_image_url') as string) || null,
-      photo_count: Number(formData.get('photo_count')) || 0,
-      is_public: formData.get('is_public') === 'true',
-      category: (formData.get('category') as string) || 'evento',
-      has_contracting_client: formData.get('has_contracting_client') === 'true',
-
-      // 🎯 Customização Visual Inicial
-      show_cover_in_grid: formData.get('show_cover_in_grid') === 'true',
-      grid_bg_color: (formData.get('grid_bg_color') as string) || '#F3E5AB',
-      columns_mobile: Number(formData.get('columns_mobile')) || 2,
-      columns_tablet: Number(formData.get('columns_tablet')) || 3,
-      columns_desktop: Number(formData.get('columns_desktop')) || 4,
-
-      // 🎯 Links armazenados como JSON (array de strings) no campo zip_url_full
-      zip_url_full: (formData.get('zip_url_full') as string) || null,
-      zip_url_social: null, // Mantido para compatibilidade, mas não usado mais
-
-      // 🎯 Captura de Leads
-      leads_enabled: formData.get('leads_enabled') === 'true',
-      leads_require_name: formData.get('leads_require_name') === 'true',
-      leads_require_email: formData.get('leads_require_email') === 'true',
-      leads_require_whatsapp: formData.get('leads_require_whatsapp') === 'true',
-      lead_purpose: (formData.get('lead_purpose') as string) || null,
-      rename_files_sequential:
-        formData.get('rename_files_sequential') === 'true',
-
-      // Senha inicial (se houver)
-      password:
-        formData.get('is_public') === 'true'
-          ? null
-          : (formData.get('password') as string),
-
-      enable_favorites: formData.get('enable_favorites') === 'true',
-      enable_slideshow: formData.get('enable_slideshow') === 'true',
-    };
-
     const { error, data: insertedData } = await supabase
       .from('tb_galerias')
-      .insert([data])
+      .insert([insertData])
       .select(
         'id, slug, drive_folder_id, photographer:tb_profiles!user_id(username)',
       )
@@ -284,209 +203,110 @@ export async function createGaleria(
 
     if (error) throw error;
 
-    // 🔄 REVALIDAÇÃO ESTRATÉGICA COMPLETA: Limpa o cache da galeria, fotos e perfil
-    if (insertedData?.slug) {
-      revalidateTag(`gallery-${insertedData.slug}`);
-    }
-    if (insertedData?.drive_folder_id) {
-      revalidateTag(`drive-${insertedData.drive_folder_id}`);
-    }
-    if (insertedData?.id) {
-      revalidateTag(`photos-${insertedData.id}`);
-    }
-    // 🎯 CRÍTICO: Revalida a lista de galerias do usuário para aparecer no dashboard
-    // console.log(`[createGaleria] Revalidando cache para userId: ${userId}`);
-    revalidateTag(`user-galerias-${userId}`);
+    // 7. REVALIDAÇÃO DE CACHE
+    revalidateGalleryCache({
+      galeriaId: insertedData.id,
+      slug: insertedData.slug,
+      driveFolderId: insertedData.drive_folder_id,
+      userId,
+      username: profile.username,
+    });
 
-    // Aproveita o username que já temos no profile
-    if (profile.username) {
-      revalidateTag(`profile-${profile.username}`);
-      revalidateTag(`profile-galerias-${profile.username}`);
-    }
-
-    // 🎯 FORÇA REVALIDAÇÃO COMPLETA: Revalida o dashboard e todas as rotas relacionadas
-    revalidatePath('/dashboard', 'layout');
-    revalidatePath('/dashboard');
     return {
       success: true,
       message: 'Nova galeria criada com sucesso!',
       data: insertedData,
     };
   } catch (error) {
-    console.error('Erro no create:', error);
+    console.error('[createGaleria] Erro no insert:', error);
     return { success: false, error: 'Falha ao criar a galeria.' };
   }
 }
-
 // =========================================================================
-// 4. UPDATE GALERIA
+// 4. UPDATE GALERIA - VERSÃO REFATORADA
 // =========================================================================
-
 export async function updateGaleria(
   id: string,
   formData: FormData,
   supabaseClient?: any,
 ): Promise<ActionResult> {
   const supabase = supabaseClient || (await createSupabaseServerClient());
-  // 🎯 OBTÉM CONTEXTO (Auth + Profile completo via cache do React)
+
+  // 1. AUTENTICAÇÃO E PERFIL
   const {
     success: authSuccess,
     userId,
     profile,
   } = await getAuthenticatedUser();
 
-  if (!authSuccess || !userId || !profile)
+  if (!authSuccess || !userId || !profile) {
     return { success: false, error: 'Não autorizado' };
+  }
 
-  try {
-    // 1. Busca o status atual da galeria e valida a posse
-    const { data: galeriaStatus, error: statusError } = await supabase
-      .from('tb_galerias')
-      .select('slug, drive_folder_id, is_archived')
-      .eq('id', id)
-      .eq('user_id', userId)
-      .single();
+  // 2. BUSCAR DADOS ATUAIS DA GALERIA
+  const { data: currentGallery, error: fetchError } = await supabase
+    .from('tb_galerias')
+    .select('slug, drive_folder_id, is_archived')
+    .eq('id', id)
+    .eq('user_id', userId)
+    .single();
 
-    if (statusError || !galeriaStatus) {
-      return { success: false, error: 'Galeria não encontrada.' };
-    }
+  if (fetchError || !currentGallery) {
+    return { success: false, error: 'Galeria não encontrada.' };
+  }
 
-    // 🎯 TRAVA DE ARQUIVAMENTO
-    if (galeriaStatus.is_archived) {
-      return {
-        success: false,
-        error: 'Esta galeria está arquivada e não pode ser editada.',
-      };
-    }
-
-    // 1. Recupere a string bruta do FormData
-    const rawIds = formData.get('cover_image_ids') as string;
-    let idsArray: string[] = [];
-
-    // 2. Garante que coverIdsArray seja SEMPRE um array de strings
-    try {
-      // Converte a string JSON ["id1"] em um Array JS real
-      const parsed = JSON.parse(rawIds);
-      idsArray = Array.isArray(parsed) ? parsed : [];
-    } catch {
-      idsArray = [];
-    }
-
-    // 🎯 3. FORMATAÇÃO PARA POSTGRESQL (Resolução do erro 22P02)
-    // Usamos as chaves {} exigidas pelo tipo text[] do Postgres
-    const pgFormat = `{${idsArray.map((id) => `"${id}"`).join(',')}}`;
-
-    // 1. Extração segura de dados com fallbacks
-    const updates: any = {
-      title: formData.get('title') as string,
-      show_on_profile: formData.get('show_on_profile') === 'true',
-      client_name: (formData.get('client_name') as string) || 'Cobertura',
-      client_whatsapp: (() => {
-        let val =
-          (formData.get('client_whatsapp') as string)?.replace(/\D/g, '') || '';
-        if (
-          val &&
-          (val.length === 10 || val.length === 11) &&
-          !val.startsWith('55')
-        ) {
-          val = `55${val}`;
-        }
-        return val || null;
-      })(),
-      date: new Date(formData.get('date') as string).toISOString(),
-      location: (formData.get('location') as string) || '',
-      drive_folder_id: formData.get('drive_folder_id') as string,
-      drive_folder_name: formData.get('drive_folder_name') as string,
-      // 🚀 O SEGREDO: Passe o Array puro. NÃO use JSON.stringify aqui.
-      // O Supabase converterá [] para {} automaticamente para o Postgres.
-      cover_image_ids: pgFormat,
-      cover_image_url:
-        idsArray.length > 0
-          ? idsArray[0]
-          : (formData.get('cover_image_url') as string) || null,
-      photo_count: Number(formData.get('photo_count')) || 0,
-      is_public: formData.get('is_public') === 'true',
-      category: (formData.get('category') as string) || 'evento',
-      has_contracting_client: formData.get('has_contracting_client') === 'true',
-
-      // 🎯 Customização Visual (Garantindo que nunca vá vazio)
-      show_cover_in_grid: formData.get('show_cover_in_grid') === 'true',
-      grid_bg_color: (formData.get('grid_bg_color') as string) || '#F3E5AB',
-      columns_mobile: Number(formData.get('columns_mobile')) || 2,
-      columns_tablet: Number(formData.get('columns_tablet')) || 3,
-      columns_desktop: Number(formData.get('columns_desktop')) || 4,
-
-      // 🎯 Links armazenados como JSON (array de strings) no campo zip_url_full
-      zip_url_full: (formData.get('zip_url_full') as string) || null,
-      zip_url_social: null, // Mantido para compatibilidade, mas não usado mais
-
-      // 🎯 Captura de Leads
-      leads_enabled: formData.get('leads_enabled') === 'true',
-      leads_require_name: formData.get('leads_require_name') === 'true',
-      leads_require_email: formData.get('leads_require_email') === 'true',
-      leads_require_whatsapp: formData.get('leads_require_whatsapp') === 'true',
-      lead_purpose: (formData.get('lead_purpose') as string) || null,
-      rename_files_sequential:
-        formData.get('rename_files_sequential') === 'true',
-
-      enable_favorites: formData.get('enable_favorites') === 'true',
-      enable_slideshow: formData.get('enable_slideshow') === 'true',
+  // 3. VALIDAR SE NÃO ESTÁ ARQUIVADA
+  if (currentGallery.is_archived) {
+    return {
+      success: false,
+      error: 'Esta galeria está arquivada e não pode ser editada.',
     };
+  }
 
-    // 2. Validação básica de integridade
-    if (!updates.title || !updates.drive_folder_id) {
-      return {
-        success: false,
-        error: 'Dados essenciais ausentes (Título/Drive).',
-      };
-    }
+  // 4. EXTRAÇÃO E VALIDAÇÃO DE DADOS
+  const formFields = extractGalleryFormData(formData);
+  const validation = validateGalleryData(formFields);
 
-    // 3. Lógica de senha refinada
-    const newPassword = formData.get('password') as string;
-    if (updates.is_public) {
-      updates.password = null; // Se tornou pública, remove a senha
-    } else if (newPassword && newPassword.trim() !== '') {
-      updates.password = newPassword.trim(); // Só atualiza se o usuário digitou uma nova
-    }
+  if (!validation.isValid) {
+    return { success: false, error: validation.firstError };
+  }
 
-    // Busca o slug antes de atualizar para revalidar o cache
-    const { data: galeriaAntes } = await supabase
-      .from('tb_galerias')
-      .select('slug, drive_folder_id')
-      .eq('id', id)
-      .single();
+  // 5. MONTAGEM DE DADOS PARA UPDATE
+  const { _password, ...dataWithoutPassword } = formFields;
+  const password = processPassword(formFields, true);
 
+  const updateData = {
+    ...dataWithoutPassword,
+    zip_url_social: null, // Mantido para compatibilidade
+    ...(password !== undefined && { password }), // Só inclui se houver mudança
+  };
+
+  // 6. UPDATE NO BANCO
+  try {
     const { error } = await supabase
       .from('tb_galerias')
-      .update(updates)
-      .eq('id', id);
+      .update(updateData)
+      .eq('id', id)
+      .eq('user_id', userId);
 
     if (error) throw error;
 
-    // 🔄 REVALIDAÇÃO ESTRATÉGICA: Limpa o cache da galeria, fotos e perfil
-    if (galeriaAntes?.slug) {
-      revalidateTag(`gallery-${galeriaAntes.slug}`);
-    }
-    if (galeriaAntes?.drive_folder_id) {
-      revalidateTag(`drive-${galeriaAntes.drive_folder_id}`);
-    }
-    revalidateTag(`photos-${id}`);
-    // Revalida todas as galerias do usuário
-    revalidateTag(`user-galerias-${userId}`);
+    // 7. REVALIDAÇÃO DE CACHE
+    revalidateGalleryCache({
+      galeriaId: id,
+      slug: currentGallery.slug,
+      driveFolderId: currentGallery.drive_folder_id,
+      userId,
+      username: profile.username,
+    });
 
-    if (profile.username) {
-      revalidateTag(`profile-${profile.username}`);
-      revalidateTag(`profile-galerias-${profile.username}`);
-    }
-
-    revalidatePath('/dashboard');
     return {
       success: true,
       message: 'Galeria refinada com sucesso!',
-      data: { id, ...updates },
+      data: { id, ...updateData },
     };
   } catch (error) {
-    console.error('Erro no update:', error);
+    console.error('[updateGaleria] Erro no update:', error);
     return { success: false, error: 'Falha ao atualizar a galeria.' };
   }
 }
@@ -897,94 +717,73 @@ export async function getPublicProfileGalerias(
 /**
  * Função genérica para atualizar status via Supabase (Server Action)
  */
-async function updateGaleriaStatus(id: string, updates: any) {
+async function updateGaleriaStatus(
+  id: string,
+  updates: any,
+  shouldCheckLimit: boolean = false,
+) {
   try {
     const supabase = await createSupabaseServerClient();
-    // 🎯 OBTÉM CONTEXTO (Auth + Profile completo via cache)
+
+    // 1. AUTENTICAÇÃO
     const {
       success: authSuccess,
       userId,
       profile,
     } = await getAuthenticatedUser();
 
-    if (!authSuccess || !userId || !profile)
+    if (!authSuccess || !userId || !profile) {
       return { success: false, error: 'Não autenticado' };
+    }
 
-    // 🎯 1. VALIDAÇÃO DE LIMITE PARA REATIVAÇÃO
-    // Se a ação for tornar a galeria ATIVA (is_archived: false ou is_deleted: false)
-    const isActivating =
-      updates.is_archived === false || updates.is_deleted === false;
+    // 2. VALIDAÇÃO DE LIMITE (se necessário)
+    if (shouldCheckLimit) {
+      const limitCheck = await checkReactivationLimit(
+        supabase,
+        userId,
+        profile.plan_key,
+        id,
+      );
 
-    if (isActivating) {
-      // Busca o status atual para saber se já era ativa
-      const { data: current } = await supabase
-        .from('tb_galerias')
-        .select('is_archived, is_deleted')
-        .eq('id', id)
-        .single();
-
-      const wasActive = current && !current.is_archived && !current.is_deleted;
-
-      // Só valida limite se estiver tentando ativar algo que NÃO estava ativo
-      if (!wasActive) {
-        const limit = resolveGalleryLimitByPlan(profile.plan_key);
-        const { count } = await supabase
-          .from('tb_galerias')
-          .select('*', { count: 'exact', head: true })
-          .eq('user_id', userId)
-          .or('is_deleted.eq.false,is_deleted.is.null')
-          .or('is_archived.eq.false,is_archived.is.null');
-
-        if (count !== null && count >= limit) {
-          return {
-            success: false,
-            error: `Limite de ${limit} galerias atingido (Você já possui ${count} ativas). Arquive outra galeria antes de restaurar esta.`,
-          };
-        }
+      if (!limitCheck.canCreate) {
+        return { success: false, error: limitCheck.error };
       }
     }
 
-    // 2. Busca o slug e drive_folder_id antes de atualizar para revalidar o cache
-    const { data: galeriaAntes } = await supabase
-      .from('tb_galerias')
-      .select('slug, drive_folder_id')
-      .eq('id', id)
-      .eq('user_id', userId)
-      .single();
+    // 3. BUSCAR DADOS PARA REVALIDAÇÃO
+    const revalidationData = await getGalleryRevalidationData(
+      supabase,
+      id,
+      userId,
+    );
 
-    // 3. Executa o Update
+    if (!revalidationData) {
+      return { success: false, error: 'Galeria não encontrada.' };
+    }
+
+    // 4. EXECUTAR UPDATE
     const { data, error } = await supabase
       .from('tb_galerias')
       .update(updates)
       .eq('id', id)
       .eq('user_id', userId)
       .select()
-      .single(); // Use single para garantir que pegamos o objeto atualizado
+      .single();
 
     if (error) throw error;
 
-    // REVALIDAÇÃO ESTRATÉGICA: Limpa o cache da galeria, fotos e perfil
-    if (galeriaAntes?.slug) {
-      revalidateTag(`gallery-${galeriaAntes.slug}`);
-    }
-    if (galeriaAntes?.drive_folder_id) {
-      revalidateTag(`drive-${galeriaAntes.drive_folder_id}`);
-    }
-    revalidateTag(`photos-${id}`);
-    // Revalida todas as galerias do usuário
-    revalidateTag(`user-galerias-${userId}`);
-
-    if (profile.username) {
-      revalidateTag(`profile-${profile.username}`);
-      revalidateTag(`profile-galerias-${profile.username}`);
-    }
-
-    // O revalidatePath limpa o cache do servidor.
-    // No Next.js 14/15, isso força o componente pai a enviar novas props.
-    revalidatePath('/dashboard');
+    // 5. REVALIDAÇÃO
+    revalidateGalleryCache({
+      galeriaId: id,
+      slug: revalidationData.slug,
+      driveFolderId: revalidationData.drive_folder_id,
+      userId,
+      username: profile.username,
+    });
 
     return { success: true, data };
   } catch (error: any) {
+    console.error('[updateGaleriaStatus] Erro:', error);
     return { success: false, error: error.message };
   }
 }
@@ -994,22 +793,26 @@ async function updateGaleriaStatus(id: string, updates: any) {
  * Se currentStatus for true (arquivada), tentará desarquivar (passa pela validação de limite).
  */
 export async function toggleArchiveGaleria(id: string, currentStatus: boolean) {
-  const isUnarchiving = currentStatus === true; // Estava arquivada e vai para ativa
+  const isUnarchiving = currentStatus === true;
 
-  const result = await updateGaleriaStatus(id, { is_archived: !currentStatus });
+  const result = await updateGaleriaStatus(
+    id,
+    { is_archived: !currentStatus },
+    isUnarchiving, // Valida limite apenas ao desarquivar
+  );
 
+  // Sincroniza após desarquivar
   if (result.success && isUnarchiving) {
-    // Sincroniza para garantir que ele não ativou algo fora do limite
     await syncUserGalleriesAction();
   }
 
   return result;
 }
+
 /**
  * PERFIL: Alterna a visibilidade da galeria no portfólio público
  */
 export async function toggleShowOnProfile(id: string, currentStatus: boolean) {
-  // Reutiliza a função base de update que você já possui
   return updateGaleriaStatus(id, { show_on_profile: !currentStatus });
 }
 /**

@@ -10,14 +10,23 @@ interface BaseModalProps {
   title: string;
   subtitle?: string;
   children: ReactNode;
-  maxWidth?: 'sm' | 'md' | 'lg' | 'xl' | '2xl' | '3xl' | '4xl' | '5xl' | '6xl';
+  maxWidth?:
+    | 'sm'
+    | 'md'
+    | 'lg'
+    | 'xl'
+    | '2xl'
+    | '3xl'
+    | '4xl'
+    | '5xl'
+    | '6xl'
+    | 'full';
   showCloseButton?: boolean;
   headerIcon?: ReactNode;
   footer?: ReactNode;
   topBanner?: ReactNode;
-  // 🎯 Novos parâmetros para controle total do fundo (Overlay)
-  overlayColor?: string; // Ex: 'bg-black' ou 'bg-petroleum'
-  overlayOpacity?: string; // Ex: '20', '10', '05'
+  overlayColor?: string;
+  overlayOpacity?: string;
   blurLevel?: 'none' | 'sm' | 'md' | 'lg' | 'xl';
 }
 
@@ -33,17 +42,15 @@ export default function BaseModal({
   footer,
   topBanner,
   overlayColor = 'bg-petroleum',
-  overlayOpacity = '60', // Padrão John (30%)
-  blurLevel = 'md', // Padrão John (Blur médio)
+  overlayOpacity = '60',
+  blurLevel = 'md',
 }: BaseModalProps) {
   const [mounted, setMounted] = useState(false);
 
-  // 🎯 Garante que o modal só renderize no cliente (para o Portal)
   useEffect(() => {
     setMounted(true);
   }, []);
 
-  // 🎯 Fecha modal com a tecla ESC (Apenas se o botão fechar estiver habilitado)
   useEffect(() => {
     const handleEsc = (e: KeyboardEvent) => {
       if (e.key === 'Escape' && isOpen && showCloseButton) {
@@ -74,9 +81,9 @@ export default function BaseModal({
     '4xl': 'max-w-4xl',
     '5xl': 'max-w-5xl',
     '6xl': 'max-w-6xl',
+    full: ' w-[98%] h-[98%]',
   };
 
-  // Mapeamento de blur para classes Tailwind
   const blurClasses = {
     none: 'backdrop-blur-none',
     sm: 'backdrop-blur-sm',
@@ -85,20 +92,26 @@ export default function BaseModal({
     xl: 'backdrop-blur-xl',
   };
 
+  const containerPadding = maxWidth === 'full' ? 'p-0' : 'px-6 md:p-6';
+
   const modalContent = (
     <div
-      className={`fixed inset-0 z-[10000] ${overlayColor}/${overlayOpacity} ${blurClasses[blurLevel]} flex items-center justify-center px-6 md:p-6 animate-in fade-in duration-500`}
+      className={`fixed inset-0 z-[10000] ${overlayColor}/${overlayOpacity} ${blurClasses[blurLevel]} flex items-center justify-center ${containerPadding} animate-in fade-in duration-500`}
     >
       <div
         className="absolute inset-0"
         onClick={() => showCloseButton && onClose()}
       />
 
-      {/* O Modal em si (Corpo Branco) */}
+      {/* O Modal em si */}
       <div
-        className={`w-full ${maxWidthClasses[maxWidth]} flex flex-col h-auto max-h-[90vh] relative shadow-2xl rounded-luxury overflow-hidden border border-white/10`}
+        className={`${maxWidthClasses[maxWidth]} flex flex-col ${
+          maxWidth === 'full' ? 'h-full' : 'h-auto max-h-[90vh]'
+        } relative shadow-2xl ${
+          maxWidth === 'full' ? 'rounded-none' : 'rounded-luxury'
+        } overflow-hidden border border-white/10`}
       >
-        {/* HEADER - Azul Petróleo Profundo */}
+        {/* HEADER */}
         <div className="bg-petroleum px-6 py-4 flex justify-between items-center shrink-0">
           <div className="flex items-center gap-3">
             {headerIcon && (
@@ -125,21 +138,26 @@ export default function BaseModal({
           )}
         </div>
 
-        {/* CORPO - Branco (Aqui é onde a informação aparece limpa) */}
+        {/* CORPO - Sem padding/border quando full */}
         <div className="bg-white flex-1 overflow-y-auto no-scrollbar">
           {topBanner && (
             <div className="border-b border-petroleum/10">{topBanner}</div>
           )}
 
-          <div className="p-5">
-            {/* Borda interna Petroleum sutil seguindo a estética do formulário */}
-            <div className="border border-petroleum/20 rounded-luxury p-4 bg-white shadow-sm">
-              {children}
+          {maxWidth === 'full' ? (
+            // ✅ Modo FULL: Sem padding, sem border, sem wrapper
+            <div className="h-full">{children}</div>
+          ) : (
+            // ✅ Modo NORMAL: Com padding e border como antes
+            <div className="p-5">
+              <div className="border border-petroleum/20 rounded-luxury p-4 bg-white shadow-sm">
+                {children}
+              </div>
             </div>
-          </div>
+          )}
         </div>
 
-        {/* FOOTER - Azul Petróleo Profundo */}
+        {/* FOOTER */}
         {footer && (
           <div className="bg-petroleum px-6 py-4 border-t border-white/10 shrink-0 text-white">
             {footer}

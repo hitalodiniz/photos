@@ -39,9 +39,31 @@ export const ToolBarDesktop = ({
   const [showDownloadMenu, setShowDownloadMenu] = useState(false);
   const [linksStatus, setLinksStatus] = useState<Record<number, boolean>>({});
   const { permissions } = usePlan();
-  console.log(permissions);
   const isCompact = false;
-  const hasTags = tags.length > 1;
+
+  // 🎯 Extrai as tags únicas diretamente do objeto galeria
+  const galleryTags = useMemo(() => {
+    if (!galeria?.photo_tags) return [];
+    try {
+      const parsed =
+        typeof galeria.photo_tags === 'string'
+          ? JSON.parse(galeria.photo_tags)
+          : galeria.photo_tags;
+
+      if (!Array.isArray(parsed)) return [];
+
+      const uniqueTags = Array.from(
+        new Set(parsed.map((item: any) => item.tag)),
+      ).filter((tag) => tag && typeof tag === 'string') as string[];
+
+      return uniqueTags.sort();
+    } catch (err) {
+      console.error('Erro ao processar tags:', err);
+      return [];
+    }
+  }, [galeria?.photo_tags]);
+
+  const hasTags = galleryTags.length > 0;
 
   useEffect(() => {
     if (isCompact) setShowDownloadMenu(false);
@@ -82,18 +104,7 @@ export const ToolBarDesktop = ({
     }
   }, [externalLinks]); // 🎯 Monitore o array de objetos processado
 
-  const { visibleTags } = useMemo(() => {
-    const limit = 4;
-    let sortedTags = [...tags];
-
-    if (activeTag && activeTag !== '' && activeTag !== 'Todas') {
-      sortedTags = [activeTag, ...tags.filter((t) => t !== activeTag)];
-    }
-
-    return {
-      visibleTags: sortedTags.slice(0, limit),
-    };
-  }, [tags, activeTag]);
+  const visibleTags = galleryTags;
 
   return (
     <div className="hidden md:block z-[100] sticky top-0 w-full pointer-events-none">
@@ -196,10 +207,22 @@ export const ToolBarDesktop = ({
                 <Tag size={16} className="text-champagne" />
               </div>
               <nav className="flex items-center gap-2 flex-1 min-w-0 overflow-x-auto no-scrollbar scroll-smooth">
+                {/* BOTÃO TODAS */}
+                <button
+                  onClick={() => setActiveTag('')}
+                  className={`px-4 py-1.5 rounded-md text-editorial-label transition-all shrink-0 border h-9 ${
+                    activeTag === '' || !activeTag
+                      ? 'bg-champagne text-black border-champagne shadow-lg'
+                      : 'bg-white/5 text-white/50 border-white/10 hover:text-white'
+                  }`}
+                >
+                  Todas
+                </button>
+
                 {visibleTags.map((tag: string) => (
                   <button
                     key={tag}
-                    onClick={() => setActiveTag(tag === activeTag ? '' : tag)}
+                    onClick={() => setActiveTag(tag)}
                     className={`px-4 py-1.5 rounded-md text-editorial-label transition-all shrink-0 border h-9 ${
                       activeTag === tag
                         ? 'bg-champagne text-black border-champagne shadow-lg'

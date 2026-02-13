@@ -107,6 +107,8 @@ export function formatGalleryData(
     photographer_username: raw.photographer?.username || username,
     use_subdomain: hasSubdomain,
     leads_count: raw.leads?.[0] ? ((raw.leads[0] as any).count ?? 0) : 0,
+    gallery_tags: raw.gallery_tags || null,
+    photo_tags: raw.photo_tags || null,
   };
 }
 
