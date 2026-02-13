@@ -2,7 +2,10 @@
 
 import { getDriveAccessTokenForUser } from '@/lib/google-auth';
 import { listPhotosFromDriveFolder } from '@/lib/google-drive';
-import { getAuthAndStudioIds } from './auth-context.service';
+import {
+  getAuthAndStudioIds,
+  getAuthenticatedUser,
+} from './auth-context.service';
 import type { DrivePhoto } from '@/lib/google-drive';
 
 interface ActionResult<T = unknown> {
@@ -15,7 +18,7 @@ interface ActionResult<T = unknown> {
 /**
  * Service unificado para operações do Google Drive
  * Centraliza lógica de autenticação e listagem de fotos
- * 
+ *
  * Nota: Funções exportadas (não classe) para compatibilidade com 'use server'
  */
 
@@ -25,22 +28,9 @@ interface ActionResult<T = unknown> {
  */
 export async function getFolderPhotos(
   driveFolderId: string,
-  userId?: string,
 ): Promise<ActionResult<DrivePhoto[]>> {
   try {
-    // 1. AUTENTICAÇÃO
-    let finalUserId = userId;
-    if (!finalUserId) {
-      const authResult = await getAuthAndStudioIds();
-      if (!authResult.success || !authResult.userId) {
-        return {
-          success: false,
-          error: authResult.error || 'Usuário não autenticado.',
-          data: [],
-        };
-      }
-      finalUserId = authResult.userId;
-    }
+    const { userId } = await getAuthenticatedUser();
 
     // 2. VALIDAÇÃO
     if (!driveFolderId) {
@@ -52,7 +42,7 @@ export async function getFolderPhotos(
     }
 
     // 3. RENOVAR O ACCESS TOKEN
-    const accessToken = await getDriveAccessTokenForUser(finalUserId);
+    const accessToken = await getDriveAccessTokenForUser(userId);
 
     if (!accessToken) {
       return {

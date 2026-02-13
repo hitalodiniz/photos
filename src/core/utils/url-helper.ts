@@ -387,6 +387,7 @@ export const getDirectGoogleUrl = (
 
   return url;
 };
+
 export const getDownloadUrl = (
   photoId: string | number,
   planOrWidth?: PlanKey | string | number,

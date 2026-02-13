@@ -1,10 +1,8 @@
 'use client';
 
 import { useState, useEffect, useCallback, useRef } from 'react';
-import {
-  getDirectGoogleUrl,
-  getProxyUrl,
-} from '@/core/utils/url-helper';
+import { getDirectGoogleUrl, getProxyUrl } from '@/core/utils/url-helper';
+import { delay } from 'framer-motion';
 
 interface UseGoogleDriveImageOptions {
   photoId: string | number;
@@ -16,6 +14,7 @@ interface UseGoogleDriveImageOptions {
    * Útil para evitar 429 quando há muitas imagens carregando simultaneamente (ex: grid de cards)
    */
   useProxyDirectly?: boolean;
+  index?: number;
 }
 
 export function useGoogleDriveImage({
@@ -23,37 +22,38 @@ export function useGoogleDriveImage({
   width = '500',
   fallbackToProxy = true,
   useProxyDirectly = false,
+  index,
 }: UseGoogleDriveImageOptions) {
   // 🎯 Se useProxyDirectly=true, usa proxy desde o início (evita 429 em grids)
-  const [imgSrc, setImgSrc] = useState<string>(
-    useProxyDirectly
-      ? getProxyUrl(photoId, width)
-      : getDirectGoogleUrl(photoId, width),
-  );
+  const [imgSrc, setImgSrc] = useState<string | null>(null);
   const [usingProxy, setUsingProxy] = useState(useProxyDirectly);
-  const [status, setStatus] = useState<'loading' | 'loaded' | 'error'>('loading');
+  const [status, setStatus] = useState<'loading' | 'loaded' | 'error'>(
+    'loading',
+  );
   const [error, setError] = useState<string | null>(null);
   const imgRef = useRef<HTMLImageElement | null>(null);
 
   // Reset quando photoId ou width mudarem
   useEffect(() => {
-    // 🎯 Segurança: Se não houver ID, não tenta carregar
-    if (!photoId) {
-      setStatus('error');
-      return;
-    }
-  
-    if (useProxyDirectly) {
-      setImgSrc(getProxyUrl(photoId, width));
-      setUsingProxy(true);
-    } else {
-      // 🎯 Fluxo padrão: Tenta Drive Direto primeiro
-      setImgSrc(getDirectGoogleUrl(photoId, width));
-      setUsingProxy(false);
-    }
-    setStatus('loading');
-    setError(null);
-  }, [photoId, width, useProxyDirectly]);
+    if (!photoId) return;
+
+    // 🎯 LÓGICA DE DELAY:
+    // 🎯 Aumentamos para 80ms para dar mais fôlego ao limite do Google
+    // Além disso, adicionamos um "jitter" (atraso aleatório) para não parecer um bot
+    const baseDelay = index * 150;
+    const jitter = Math.random() * 200;
+    const finalDelay = baseDelay + jitter;
+
+    const timeout = setTimeout(() => {
+      const url = useProxyDirectly
+        ? getProxyUrl(photoId, width)
+        : getDirectGoogleUrl(photoId, width);
+
+      setImgSrc(url);
+    }, finalDelay);
+
+    return () => clearTimeout(timeout);
+  }, [photoId, width, useProxyDirectly, index]);
 
   // Verificar se imagem já está carregada quando imgSrc muda (cache do navegador)
   // Isso garante que imagens em cache sejam detectadas mesmo se onLoad não disparar
@@ -63,7 +63,7 @@ export function useGoogleDriveImage({
       if (!imgRef.current) return;
 
       const img = imgRef.current;
-      
+
       // Se a imagem já está completa (em cache), marca como carregada imediatamente
       if (img.complete && img.naturalWidth > 0 && status === 'loading') {
         setStatus('loaded');
@@ -77,7 +77,7 @@ export function useGoogleDriveImage({
     const timeout1 = setTimeout(checkImageLoaded, 50);
     const timeout2 = setTimeout(checkImageLoaded, 150);
     const timeout3 = setTimeout(checkImageLoaded, 300);
-    
+
     return () => {
       clearTimeout(timeout1);
       clearTimeout(timeout2);
@@ -89,7 +89,7 @@ export function useGoogleDriveImage({
   // Isso resolve o problema de imagens em cache que não disparam onLoad
   const setImgRef = useCallback((img: HTMLImageElement | null) => {
     imgRef.current = img;
-    
+
     // Verifica imediatamente se a imagem já está carregada
     if (img && img.complete && img.naturalWidth > 0) {
       // Imagem já está carregada (em cache), marca como carregada imediatamente
@@ -111,8 +111,9 @@ export function useGoogleDriveImage({
         const proxyUrl = getProxyUrl(photoId, width);
 
         // Verifica se é erro 429 (Rate Limit) para log mais específico
-        const isRateLimit =
-          event?.currentTarget?.src?.includes('lh3.googleusercontent.com');
+        const isRateLimit = event?.currentTarget?.src?.includes(
+          'lh3.googleusercontent.com',
+        );
 
         console.warn(
           `[IMAGE_FALLBACK] Google Direct falhou para ID: ${photoId}. ${
@@ -132,20 +133,23 @@ export function useGoogleDriveImage({
     [photoId, width, usingProxy, fallbackToProxy],
   );
 
-  const handleLoad = useCallback((event?: React.SyntheticEvent<HTMLImageElement, Event>) => {
-    // Quando onLoad dispara, marca como carregada
-    const img = event?.currentTarget || imgRef.current;
-    
-    // Verifica se a imagem realmente carregou
-    if (img && img.complete && img.naturalWidth > 0) {
-      setStatus('loaded');
-      setError(null);
-    } else {
-      // Mesmo que complete não seja true, se o evento disparou, a imagem carregou
-      setStatus('loaded');
-      setError(null);
-    }
-  }, []);
+  const handleLoad = useCallback(
+    (event?: React.SyntheticEvent<HTMLImageElement, Event>) => {
+      // Quando onLoad dispara, marca como carregada
+      const img = event?.currentTarget || imgRef.current;
+
+      // Verifica se a imagem realmente carregou
+      if (img && img.complete && img.naturalWidth > 0) {
+        setStatus('loaded');
+        setError(null);
+      } else {
+        // Mesmo que complete não seja true, se o evento disparou, a imagem carregou
+        setStatus('loaded');
+        setError(null);
+      }
+    },
+    [],
+  );
 
   return {
     imgSrc,

@@ -267,8 +267,7 @@ export default function GaleriaFormContent({
 
     setIsLoadingPhotos(true);
     try {
-      const userId = await getAuthenticatedUser().then((user) => user.userId);
-      const result = await authService.getFolderPhotos(driveData.id, userId);
+      const result = await getFolderPhotos(driveData.id);
 
       if (result.success && result.data) {
         setDrivePhotos(result.data);
@@ -474,8 +473,8 @@ export default function GaleriaFormContent({
 
       setLimitInfo(limitData);
       setPhotoCount(limitData.totalInDrive || limitData.count);
-      const photos = await getFolderPhotos(driveFolderId, userId);
-      setDrivePhotos(photos);
+      const photos = await getFolderPhotos(driveFolderId);
+      setDrivePhotos(photos.data);
 
       if (limitData.hasMore) setShowLimitModal(true);
     } catch (error: any) {

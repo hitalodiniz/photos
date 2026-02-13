@@ -14,7 +14,9 @@ export async function getDriveAccessTokenForUser(
     // 1. Buscar o refresh_token do usuário (incluindo status de autenticação)
     const { data: profile, error } = await supabase
       .from('tb_profiles')
-      .select('full_name, google_refresh_token, google_access_token, google_token_expires_at, google_auth_status')
+      .select(
+        'full_name, google_refresh_token, google_access_token, google_token_expires_at, google_auth_status',
+      )
       .eq('id', userId)
       .single();
 
@@ -35,7 +37,10 @@ export async function getDriveAccessTokenForUser(
     }
 
     // 🎯 Verifica se o status de autenticação indica problema
-    if (profile.google_auth_status === 'revoked' || profile.google_auth_status === 'expired') {
+    if (
+      profile.google_auth_status === 'revoked' ||
+      profile.google_auth_status === 'expired'
+    ) {
       // console.log(`[getDriveAccessTokenForUser] Status de autenticação indica token revogado/expirado para userId: ${userId}`);
       return null;
     }
@@ -53,7 +58,10 @@ export async function getDriveAccessTokenForUser(
           return profile.google_access_token;
         }
       } catch (dateError) {
-        console.warn(`[getDriveAccessTokenForUser] Erro ao validar data de expiração:`, dateError);
+        console.warn(
+          `[getDriveAccessTokenForUser] Erro ao validar data de expiração:`,
+          dateError,
+        );
       }
     }
 
@@ -61,19 +69,26 @@ export async function getDriveAccessTokenForUser(
 
     // 2. Chamar Google OAuth para renovar o access_token
     // 🎯 USA HELPER DE RATE LIMITING: Previne 429 errors
-    const { fetchGoogleToken } = await import('@/core/utils/google-oauth-throttle');
-    
+    const { fetchGoogleToken } =
+      await import('@/core/utils/google-oauth-throttle');
+
     const tokenRes = await fetchGoogleToken(
       refreshToken,
       process.env.GOOGLE_CLIENT_ID!,
-      process.env.GOOGLE_CLIENT_SECRET!
+      process.env.GOOGLE_CLIENT_SECRET!,
     );
 
     const tokenData = await tokenRes.json();
     if (!tokenRes.ok) {
       // 🎯 TRATAMENTO DE ERRO CRÍTICO: Token Inválido/Revogado
-      if (tokenData.error === 'invalid_grant' || tokenData.error === 'invalid_request') {
-        console.error(`[getDriveAccessTokenForUser] Token do usuário ${userId} expirou ou foi revogado. Erro:`, tokenData.error);
+      if (
+        tokenData.error === 'invalid_grant' ||
+        tokenData.error === 'invalid_request'
+      ) {
+        console.error(
+          `[getDriveAccessTokenForUser] Token do usuário ${userId} expirou ou foi revogado. Erro:`,
+          tokenData.error,
+        );
 
         // Limpa o refresh_token inválido do banco e marca status
         try {
@@ -88,15 +103,21 @@ export async function getDriveAccessTokenForUser(
             .eq('id', userId);
           // console.log(`[getDriveAccessTokenForUser] Refresh token inválido removido do banco para userId: ${userId}`);
         } catch (dbError) {
-          console.error('[getDriveAccessTokenForUser] Erro ao limpar token do banco:', dbError);
+          console.error(
+            '[getDriveAccessTokenForUser] Erro ao limpar token do banco:',
+            dbError,
+          );
         }
       }
 
-      console.error('[getDriveAccessTokenForUser] Erro na renovação do Google:', {
-        error: tokenData.error,
-        error_description: tokenData.error_description,
-        status: tokenRes.status,
-      });
+      console.error(
+        '[getDriveAccessTokenForUser] Erro na renovação do Google:',
+        {
+          error: tokenData.error,
+          error_description: tokenData.error_description,
+          status: tokenRes.status,
+        },
+      );
       return null;
     }
 
@@ -118,13 +139,13 @@ export async function getDriveAccessTokenForUser(
       }
 
       try {
-        await supabase
-          .from('tb_profiles')
-          .update(updates)
-          .eq('id', userId);
+        await supabase.from('tb_profiles').update(updates).eq('id', userId);
         // console.log(`[getDriveAccessTokenForUser] Token renovado e salvo com sucesso para userId: ${userId}`);
       } catch (updateError) {
-        console.error(`[getDriveAccessTokenForUser] Erro ao salvar token renovado:`, updateError);
+        console.error(
+          `[getDriveAccessTokenForUser] Erro ao salvar token renovado:`,
+          updateError,
+        );
         // Ainda retorna o token mesmo se falhar ao salvar
       }
     }

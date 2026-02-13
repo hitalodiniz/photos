@@ -4,6 +4,7 @@ import {
   PlanPermissions,
 } from '@/core/config/plans';
 import { GLOBAL_CACHE_REVALIDATE } from '@/core/utils/url-helper';
+import next from 'next';
 
 /**
  * 🛠️ RESOLVE LIMITE DE FOTOS
@@ -145,6 +146,7 @@ export async function listPhotosWithOAuth(
   driveFolderId: string,
   accessToken: string,
   limit?: number, //Adicionado limite do plano
+  isAdmin: boolean = false,
 ): Promise<DrivePhoto[]> {
   const query = `'${driveFolderId}' in parents and mimeType contains 'image/' and trashed = false`;
   const fields =
@@ -158,10 +160,9 @@ export async function listPhotosWithOAuth(
       const params = new URLSearchParams();
       params.append('q', query);
       params.append('fields', fields);
-      params.append(
-        'pageSize',
-        limit ? Math.min(limit, 1000).toString() : '1000',
-      );
+      // 🎯 Se temos um limite baixo (ex: 80 fotos), não pedimos 1000 para o Google
+      const pageSize = limit ? Math.min(limit, 1000) : 1000;
+      params.append('pageSize', pageSize.toString());
       params.append('supportsAllDrives', 'true');
       params.append('includeItemsFromAllDrives', 'true');
 
@@ -170,15 +171,28 @@ export async function listPhotosWithOAuth(
       const url = `https://www.googleapis.com/drive/v3/files?${params.toString()}`;
 
       const response = await fetch(url, {
-        headers: { Authorization: `Bearer ${accessToken}` },
-        next: {
-          revalidate: GLOBAL_CACHE_REVALIDATE,
-          tags: [`drive-${driveFolderId}`],
+        headers: {
+          Authorization: `Bearer ${accessToken}`,
+          'Cache-Control': 'no-cache',
         },
+        ...(isAdmin
+          ? { cache: 'no-store' }
+          : {
+              next: {
+                revalidate: GLOBAL_CACHE_REVALIDATE,
+                tags: [`drive-${driveFolderId}`],
+              },
+            }),
       });
 
-      if (!response.ok) throw new Error(`Status API Drive: ${response.status}`);
-
+      if (!response.ok) {
+        // Captura o erro real para o catch do listPhotosFromDriveFolder
+        const errorBody = await response.json().catch(() => ({}));
+        const error: any = new Error(`Status API Drive: ${response.status}`);
+        error.status = response.status; // 🎯 Facilita a verificação no seu fallback
+        error.details = errorBody;
+        throw error;
+      }
       const data = await response.json();
       allFiles = [...allFiles, ...(data.files || [])];
       pageToken = data.nextPageToken || null;
@@ -208,8 +222,13 @@ export async function listPhotosWithOAuth(
       height: file.imageMediaMetadata?.height || 1200,
     }));
   } catch (error: any) {
-    console.error('[listPhotosWithOAuth] ❌ Erro OAuth:', error.message);
-    throw error;
+    // Log detalhado para o servidor
+    console.error('[listPhotosWithOAuth] ❌ Erro na requisição:', {
+      message: error.message,
+      status: error.status,
+      folder: driveFolderId,
+    });
+    throw error; // Re-lança para acionar o fallback de API Key se necessário
   }
 }
 
@@ -232,7 +251,8 @@ export async function listPhotosFromDriveFolder(
   // 1. TENTATIVA 1: OAuth (Privado) - PRIORITÁRIO
   if (accessToken) {
     try {
-      return await listPhotosWithOAuth(driveFolderId, accessToken, limit);
+      //console.log('buscou o accessToken');
+      return await listPhotosWithOAuth(driveFolderId, accessToken, limit, true);
     } catch (error) {
       console.warn(
         '[listPhotosFromDriveFolder] ⚠️ OAuth falhou, tentando API Key...',
@@ -242,9 +262,16 @@ export async function listPhotosFromDriveFolder(
   }
 
   // 2. TENTATIVA 2: API Key (Público) - FALLBACK
-  const publicPhotos = await listPhotosFromPublicFolder(driveFolderId, limit);
-  if (publicPhotos && publicPhotos.length > 0) {
-    return publicPhotos;
+  try {
+    const publicPhotos = await listPhotosFromPublicFolder(driveFolderId, limit);
+    if (publicPhotos && publicPhotos.length > 0) {
+      return publicPhotos;
+    }
+  } catch (publicError) {
+    console.error(
+      '[listPhotosFromDriveFolder] ❌ Erro no acesso público:',
+      publicError,
+    );
   }
 
   console.warn(

@@ -128,6 +128,7 @@ export function TagManagerModal({
             setSelectedPhotoIndex={() => {}} // Desativado no admin
             showOnlyFavorites={false}
             setShowOnlyFavorites={() => {}}
+            mode="admin"
           />
         </div>
       </div>
