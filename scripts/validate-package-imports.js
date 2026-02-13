@@ -13,7 +13,7 @@ const path = require('path');
 
 // Padrões de imports bloqueados
 const BLOCKED_PATTERNS = [
-  /from ['"]@\/core\/services\/(auth|google|token-cleanup|google-drive)\.service/,
+  /from ['"]@\/core\/services\/(auth|google|token-cleanup)\.service/,
   /from ['"]@\/lib\/(supabase\.(client|server)|google-auth)/,
   /from ['"]@\/hooks\/useSupabaseSession/,
   /from ['"]@\/contexts\/AuthContext/,

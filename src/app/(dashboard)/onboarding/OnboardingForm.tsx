@@ -280,8 +280,8 @@ export default function OnboardingForm({
   return (
     <>
       <div className="relative min-h-screen bg-luxury-bg flex flex-col md:flex-row w-full z-[99]">
-        <aside className="w-full md:w-[35%] bg-white border-r border-slate-100 flex flex-col h-screen md:sticky md:top-0 z-20 shadow-xl overflow-hidden">
-          <div className="flex-1 overflow-y-auto px-4 no-scrollbar py-6">
+        <aside className="w-full md:w-[45%] bg-white border-r border-slate-100 flex flex-col h-screen md:sticky md:top-0 z-20 shadow-xl overflow-hidden">
+          <div className="flex-1 overflow-y-auto px-4 no-scrollbar py-2">
             {/* BANNER TRIAL/UPGRADE */}
             {isEditMode && permissions.isTrial && (
               <div className="mb-6 p-3 bg-gold/10 border border-gold/30 rounded-luxury flex items-center justify-between">

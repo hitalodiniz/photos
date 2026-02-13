@@ -133,7 +133,7 @@ export default async function GaleriaBasePage({
                     `Como posso proceder?`,
                 )}`}
                 target="_blank"
-                className="btn-luxury-primary flex items-center gap-3 px-8 h-12 rounded-full text-[11px] uppercase font-bold tracking-widest"
+                className="btn-luxury-primary flex items-center gap-3 px-8 h-12 rounded-luxury text-[11px] uppercase font-bold tracking-widest"
               >
                 <WhatsAppIcon className="w-4 h-4" />
                 Falar com o Profissional
@@ -142,7 +142,7 @@ export default async function GaleriaBasePage({
 
             <Link
               href={`/${galeriaData.photographer?.username}`}
-              className="px-8 h-12 rounded-full border border-petroleum/10 text-petroleum text-[11px] uppercase font-bold tracking-widest hover:bg-slate-50 transition-all flex items-center justify-center"
+              className="px-8 h-12 rounded-luxury border border-petroleum/10 text-petroleum text-[11px] uppercase font-bold tracking-widest hover:bg-slate-50 transition-all flex items-center justify-center"
             >
               Visitar Perfil
             </Link>

@@ -108,7 +108,6 @@ export interface GaleriaRawResponse extends Omit<
     use_subdomain: boolean; // Garante a tipagem correta vinda do DB
     message_templates: MessageTemplates;
     plan_key: string;
-    plan_key: string;
   };
   leads?: { count: number }[];
 }

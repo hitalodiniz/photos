@@ -128,7 +128,7 @@ export const FEATURE_DESCRIPTIONS: Record<
   canFavorite: {
     label: 'Sistema de Favoritos',
     description:
-      'Permita que seus clientes selecionem e marquem as fotos favoritas.',
+      'Permita que seus clientes selecionem e favoritem várias fotos de uma só vez, agilizando o processo de escolha.',
   },
   canDownloadFavoriteSelection: {
     label: 'Download de Seleção',
@@ -202,6 +202,7 @@ export interface PlanPermissions {
   maxCoverPerGallery: number;
   canFavorite: boolean;
   canDownloadFavoriteSelection: boolean;
+  tagSelectionFavoriteMode: 'single' | 'multiple'; //não usada por enquanto
   canShowSlideshow: boolean;
   maxGridColumns: number;
   maxTags: number;
@@ -254,6 +255,7 @@ export const PERMISSIONS_BY_PLAN: Record<PlanKey, PlanPermissions> = {
     keepOriginalFilenames: false,
     customizationLevel: 'default',
     canCustomCategories: false,
+    tagSelectionFavoriteMode: 'single',
   },
   START: {
     maxGalleries: 10,
@@ -281,6 +283,7 @@ export const PERMISSIONS_BY_PLAN: Record<PlanKey, PlanPermissions> = {
     keepOriginalFilenames: false,
     customizationLevel: 'default',
     canCustomCategories: false,
+    tagSelectionFavoriteMode: 'single',
   },
   PLUS: {
     maxGalleries: 20,
@@ -308,6 +311,7 @@ export const PERMISSIONS_BY_PLAN: Record<PlanKey, PlanPermissions> = {
     keepOriginalFilenames: true,
     customizationLevel: 'colors',
     canCustomCategories: true,
+    tagSelectionFavoriteMode: 'single',
   },
   PRO: {
     maxGalleries: 50,
@@ -335,6 +339,7 @@ export const PERMISSIONS_BY_PLAN: Record<PlanKey, PlanPermissions> = {
     keepOriginalFilenames: true,
     customizationLevel: 'colors',
     canCustomCategories: true,
+    tagSelectionFavoriteMode: 'multiple',
   },
   PREMIUM: {
     maxGalleries: 9999,
@@ -362,6 +367,7 @@ export const PERMISSIONS_BY_PLAN: Record<PlanKey, PlanPermissions> = {
     keepOriginalFilenames: true,
     customizationLevel: 'full',
     canCustomCategories: true,
+    tagSelectionFavoriteMode: 'multiple',
   },
 };
 
@@ -707,8 +713,8 @@ export const COMMON_FEATURES = [
       'Visualização',
       '+ Favoritar (Coração)',
       '+ Filtro de Favoritas',
-      '+ Seleção em Lote',
-      '+ Seleção em Lote',
+      '+ Filtro de Favoritas',
+      '+ Filtro de Favoritas',
     ],
   },
   {

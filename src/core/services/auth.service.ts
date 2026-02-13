@@ -35,6 +35,7 @@
 import { getBaseUrl } from '@/lib/get-base-url';
 import { supabase } from '@/lib/supabase.client';
 import { Session } from '@supabase/supabase-js';
+import { getFolderPhotos } from './google-drive.service';
 
 // Use globalThis to ensure singleton even with multiple module evaluations
 const GLOBAL_CACHE_KEY = '___PHOTOS_AUTH_CACHE___';

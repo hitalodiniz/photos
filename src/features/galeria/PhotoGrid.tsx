@@ -23,6 +23,8 @@ import { ToolBarMobile } from './ToolBarMobile';
 import { V } from 'node_modules/vitest/dist/chunks/reporters.d.Rsi0PyxX';
 import UpgradeModal from '@/components/ui/UpgradeModal';
 import { PlanKey, PERMISSIONS_BY_PLAN } from '@/core/config/plans';
+import { usePlan } from '@/core/context/PlanContext';
+import { getGalleryPermission } from '@/core/utils/plan-helpers';
 
 export default function PhotoGrid({ photos, galeria }: any) {
   // --- 1. ESTADOS DE INTERFACE ---
@@ -184,28 +186,17 @@ export default function PhotoGrid({ photos, galeria }: any) {
     };
   }, []);
 
+  // 🎯 Para Favoritos (Lógica Composta: Plano + Switch da Galeria)
   const canUseFavorites = useMemo(() => {
-    // 1. Recupera a chave do plano do fotógrafo
-    const photographerPlanKey = (galeria.photographer?.plan_key ||
-      'FREE') as PlanKey;
-
-    // 2. Consulta dinamicamente as permissões deste plano no mapa mestre
-    const photographerPermissions = PERMISSIONS_BY_PLAN[photographerPlanKey];
-
-    // 3. Validação: Plano permite + Fotógrafo ativou para esta galeria
-    const planAllows = !!photographerPermissions?.canFavorite;
+    const planAllows = !!getGalleryPermission(galeria, 'canFavorite');
     const isEnabledOnGallery = !!galeria.enable_favorites;
-
     return planAllows && isEnabledOnGallery;
   }, [galeria]);
 
   const canUseSlideshow = useMemo(() => {
-    const photographerPlanKey = (galeria.photographer?.plan_key ||
-      'FREE') as PlanKey;
-    const photographerPermissions = PERMISSIONS_BY_PLAN[photographerPlanKey];
+    const planAllows = !!getGalleryPermission(galeria, 'canShowSlideshow');
 
-    // Validação para o Slideshow
-    const planAllows = !!photographerPermissions?.canShowSlideshow;
+    // Validação específica da Galeria (Switch manual)
     const isEnabledOnGallery = !!galeria.enable_slideshow;
 
     return planAllows && isEnabledOnGallery;

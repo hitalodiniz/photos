@@ -8,7 +8,7 @@ import React, {
   useMemo,
 } from 'react';
 import { useSearchParams } from 'next/navigation';
-import { Heart, HeartOff, Loader2 } from 'lucide-react';
+import { Check, Heart, HeartOff, Loader2 } from 'lucide-react';
 import 'photoswipe/dist/photoswipe.css';
 import { Gallery, Item } from 'react-photoswipe-gallery';
 import { Galeria } from '@/core/types/galeria';
@@ -64,6 +64,7 @@ interface MasonryItemProps {
   isSelected: boolean;
   columnWidth: number;
   canUseFavorites: boolean;
+  tagSelectionMode: 'manual' | 'bulk' | 'drive';
 }
 
 interface MasonryGridProps {
@@ -77,6 +78,9 @@ interface MasonryGridProps {
   setShowOnlyFavorites: (value: boolean) => void;
   columns: { mobile: number; tablet: number; desktop: number };
   canUseFavorites: boolean;
+  mode?: 'public' | 'admin'; // define se mostra 'Coração' ou 'Marcação'
+  availableTags?: string[]; //pílulas de tags do fotógrafo
+  onAssignTag?: (ids: string[], tag: string) => void; // callback para o banco
 }
 
 // --- COMPONENTE DE IMAGEM OTIMIZADO ---
@@ -270,8 +274,8 @@ const MasonryItem = memo(
     isSelected,
     columnWidth,
     canUseFavorites,
-  }: MasonryItemProps) => {
-    // 🎯 Estado local para orientação e dimensões reais
+    tagSelectionMode,
+  }: MasonryItemProps & { isDragging?: boolean }) => {
     const [orientation, setOrientation] = useState({
       isPortrait: photo.height > photo.width,
       realW: photo.width,
@@ -340,15 +344,31 @@ const MasonryItem = memo(
               padding: '1px',
             }}
           >
-            <div className="w-full h-full relative overflow-hidden border border-black/5 ring-1 ring-white/10 shadow-sm hover:shadow-xl transition-all duration-500 rounded-none bg-white/5">
+            <div
+              className={`w-full h-full relative overflow-hidden border transition-all duration-500 rounded-none bg-white/5 ${
+                isSelected && tagSelectionMode === 'bulk'
+                  ? 'border-gold ring-2 ring-gold/50 shadow-2xl z-20'
+                  : 'border-black/5 ring-1 ring-white/10 shadow-sm hover:shadow-xl'
+              }`}
+            >
               <a
                 href="#"
                 ref={ref as any}
                 onClick={(e) => {
                   e.preventDefault();
-                  setSelectedPhotoIndex(index);
+                  // 🎯 Se estiver em modo bulk (Admin), o clique seleciona/deseleciona
+                  if (tagSelectionMode === 'bulk') {
+                    toggleFavoriteFromGrid(photo.id);
+                  } else {
+                    // Modo normal: abre seu Lightbox customizado
+                    setSelectedPhotoIndex(index);
+                  }
                 }}
-                className="block cursor-zoom-in relative w-full h-full"
+                className={`block relative w-full h-full ${
+                  tagSelectionMode === 'bulk'
+                    ? 'cursor-pointer'
+                    : 'cursor-zoom-in'
+                }`}
               >
                 <SafeImage
                   photoId={photo.id}
@@ -358,8 +378,37 @@ const MasonryItem = memo(
                   className="relative z-10"
                   onImageDimensionsDetected={onDimensionsDetected}
                 />
-              </a>
 
+                {/* 🎯 Badge de Tag Existente (Para o Admin ver o que já marcou) */}
+                {photo.tag && (
+                  <div className="absolute top-2 right-2 z-30 bg-petroleum/90 backdrop-blur-md px-2 py-0.5 rounded border border-gold/30 shadow-lg">
+                    <span className="text-gold text-[8px] font-black uppercase tracking-widest">
+                      {photo.tag}
+                    </span>
+                  </div>
+                )}
+
+                {/* 🎯 Check de Seleção Estilo Google Fotos */}
+                {tagSelectionMode === 'bulk' && (
+                  <div
+                    className={`absolute inset-0 transition-all duration-300 z-20 ${
+                      isSelected
+                        ? 'bg-gold/10'
+                        : 'bg-transparent group-hover:bg-black/10'
+                    }`}
+                  >
+                    <div
+                      className={`absolute top-3 left-3 p-1 rounded-full border-2 transition-all ${
+                        isSelected
+                          ? 'bg-gold border-gold text-petroleum scale-110'
+                          : 'bg-white/20 border-white/40 text-transparent group-hover:text-white/60'
+                      }`}
+                    >
+                      <Check size={12} strokeWidth={4} />
+                    </div>
+                  </div>
+                )}
+              </a>
               <GridPhotoActions
                 canUseFavorites={canUseFavorites}
                 isFavorited={isSelected}
@@ -388,6 +437,9 @@ MasonryItem.displayName = 'MasonryItem';
 // --- MASONRY GRID PRINCIPAL ---
 
 const MasonryGrid = ({
+  mode = 'public',
+  availableTags = [],
+  onAssignTag,
   galleryTitle,
   galeria,
   displayedPhotos,

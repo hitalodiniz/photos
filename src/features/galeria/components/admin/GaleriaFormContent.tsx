@@ -2,7 +2,6 @@
 
 import { useEffect, useState, useRef } from 'react';
 import { maskPhone } from '@/core/utils/masks-helpers';
-import { GooglePickerButton } from '@/components/google-drive';
 import { CategorySelect } from '@/components/galeria';
 import { useSupabaseSession } from '@photos/core-auth';
 import {
@@ -30,6 +29,7 @@ import {
   Shield,
   ShieldCheck,
   PlayCircle,
+  Loader2,
 } from 'lucide-react';
 import WhatsAppIcon from '@/components/ui/WhatsAppIcon';
 import { convertToDirectDownloadUrl } from '@/core/utils/url-helper';
@@ -45,8 +45,13 @@ import { usePlan } from '@/core/context/PlanContext';
 import UpgradeModal from '@/components/ui/UpgradeModal';
 import PasswordInput from '@/components/ui/PasswordInput'; // Import PasswordInput
 import { InfoTooltip } from '@/components/ui/InfoTooltip';
-import { div } from 'framer-motion/client';
 import { GalleryInteractionFields } from './GalleryInteractionFields';
+import { TagManagerModal } from './TagManagerModal';
+import { authService } from '@photos/core-auth';
+import { Toast } from '@/components/ui';
+import { getFolderPhotos } from '@/core/services/google-drive.service';
+import { getAuthenticatedUser } from '@/core/services/auth-context.service';
+import { DrivePhoto } from '@/lib/google-drive';
 
 // 🎯 Componente de seção simples (sem accordion) - Estilo Editorial
 const FormSection = ({
@@ -219,6 +224,66 @@ export default function GaleriaFormContent({
   const [photoCount, setPhotoCount] = useState<number | null>(
     initialData?.photo_count ?? null,
   );
+
+  //Estado para as Tags da Galeria
+  const [galleryTags, setGalleryTags] = useState<string[]>(() => {
+    if (initialData?.galleryTags) {
+      try {
+        return typeof initialData.galleryTags === 'string'
+          ? JSON.parse(initialData.galleryTags)
+          : initialData.galleryTags;
+      } catch {
+        return [];
+      }
+    }
+    return [];
+  });
+
+  // Armazena o mapeamento: [ {id: "foto_1", tag: "CERIMONIA"} ]
+  const [photoTags, setPhotoTags] = useState<{ id: string; tag: string }[]>(
+    () => {
+      if (initialData?.photo_tags) {
+        try {
+          return typeof initialData.photo_tags === 'string'
+            ? JSON.parse(initialData.photo_tags)
+            : initialData.photo_tags;
+        } catch {
+          return [];
+        }
+      }
+      return [];
+    },
+  );
+
+  const [isTagModalOpen, setIsTagModalOpen] = useState(false);
+  const [selectedPhotosForTag, setSelectedPhotosForTag] = useState<string[]>(
+    [],
+  );
+  const [drivePhotos, setDrivePhotos] = useState<DrivePhoto[]>([]);
+  const [isLoadingPhotos, setIsLoadingPhotos] = useState(false);
+  // 🎯 Função para carregar as fotos quando o fotógrafo abrir o organizador
+  const loadDrivePhotos = async () => {
+    if (!driveData.id) return;
+
+    setIsLoadingPhotos(true);
+    try {
+      const userId = await getAuthenticatedUser().then((user) => user.userId);
+      const result = await authService.getFolderPhotos(driveData.id, userId);
+
+      if (result.success && result.data) {
+        setDrivePhotos(result.data);
+        setIsTagModalOpen(true); // Só abre o modal quando as fotos carregarem
+      } else {
+        onPickerError(
+          result.error || 'Não foi possível carregar as fotos da pasta.',
+        );
+      }
+    } catch (error) {
+      onPickerError('Erro ao conectar com o Google Drive.');
+    } finally {
+      setIsLoadingPhotos(false);
+    }
+  };
 
   // =========================================================================
   // 5. USEEFFECTS (LÓGICA DE INICIALIZAÇÃO E SINCRONIZAÇÃO)
@@ -409,10 +474,12 @@ export default function GaleriaFormContent({
 
       setLimitInfo(limitData);
       setPhotoCount(limitData.totalInDrive || limitData.count);
+      const photos = await getFolderPhotos(driveFolderId, userId);
+      setDrivePhotos(photos);
 
       if (limitData.hasMore) setShowLimitModal(true);
     } catch (error: any) {
-      console.error('[handleDriveSelection] Erro crítico:', error);
+      // console.error('[handleDriveSelection] Erro crítico:', error);
       onPickerError(
         error?.message || 'Erro ao processar a seleção do Google Drive.',
       );
@@ -483,576 +550,721 @@ export default function GaleriaFormContent({
     }
   }, [profile, isEdit, setValue, setCustomization]);
 
+  //Cria apenas o "nome" da tag na lista de opções do fotógrafo
+  const handleCreateNewTag = (tagName: string) => {
+    const normalizedTag = tagName.trim().toUpperCase();
+    if (!galleryTags.includes(normalizedTag)) {
+      const updatedTags = [...galleryTags, normalizedTag];
+      setGalleryTags(updatedTags);
+      setValue('galleryTags', JSON.stringify(updatedTags), {
+        shouldDirty: true,
+      });
+    }
+  };
+
+  const [toastConfig, setToastConfig] = useState<{
+    message: string;
+    type: 'success' | 'error';
+  } | null>(null);
+
+  // Helper para facilitar a chamada
+  const showToast = (
+    message: string,
+    type: 'success' | 'error' = 'success',
+  ) => {
+    setToastConfig({ message, type });
+  };
+
+  // 🎯 Função 2: "Carimba" os IDs selecionados com uma tag
+  // Dentro do GaleriaFormContent
+  const handleApplyTagToPhotos = (selectedIds: string[], tagName: string) => {
+    if (!selectedIds || selectedIds.length === 0) {
+      showToast('Selecione fotos para marcar primeiro', 'error');
+      return;
+    }
+
+    setPhotoTags((prev) => {
+      // 1. Filtra removendo duplicatas
+      const filtered = prev.filter((item) => !selectedIds.includes(item.id));
+
+      // 2. Cria novos mapeamentos
+      const newMappings = selectedIds.map((id) => ({
+        id,
+        tag: tagName,
+      }));
+
+      const updatedTags = [...filtered, ...newMappings];
+
+      // 3. Sincroniza com o react-hook-form
+      setValue('photo_tags', JSON.stringify(updatedTags), {
+        shouldDirty: true,
+      });
+
+      return updatedTags;
+    });
+
+    // 🎯 Feedback visual usando o SEU componente
+    const msg = `${selectedIds.length} ${selectedIds.length === 1 ? 'foto marcada' : 'fotos marcadas'} como ${tagName}`;
+    showToast(msg, 'success');
+  };
+
   return (
-    <div className="flex flex-col lg:flex-row gap-2">
-      {/* COLUNA PRINCIPAL (65%) */}
-      <div className="w-full lg:w-[65%] relative z-10 space-y-3 pb-2">
-        {/* INPUTS OCULTOS */}
-        <div className="hidden">
-          <input type="hidden" name="drive_folder_id" value={driveData.id} />
-          <input
-            type="hidden"
-            name="drive_folder_name"
-            value={driveData.name}
-          />
-          <input
-            type="hidden"
-            name="show_on_profile"
-            value={String(showOnProfile)}
-          />
-          <input
-            type="hidden"
-            name="cover_image_url"
-            value={driveData.coverId || driveData.id}
-          />
+    <>
+      <div className="flex flex-col lg:flex-row gap-2">
+        {/* COLUNA PRINCIPAL (65%) */}
+        <div className="w-full lg:w-[65%] relative z-10 space-y-3 pb-2">
+          {/* INPUTS OCULTOS */}
+          <div className="hidden">
+            <input type="hidden" name="drive_folder_id" value={driveData.id} />
+            <input
+              type="hidden"
+              name="drive_folder_name"
+              value={driveData.name}
+            />
+            <input
+              type="hidden"
+              name="show_on_profile"
+              value={String(showOnProfile)}
+            />
+            <input
+              type="hidden"
+              name="cover_image_url"
+              value={driveData.coverId || driveData.id}
+            />
 
-          {/* 🎯 NOVO: Array de IDs das fotos de capa selecionadas */}
-          <input
-            type="hidden"
-            name="cover_image_ids"
-            value={JSON.stringify(
-              driveData.allCovers ||
-                (driveData.coverId ? [driveData.coverId] : []),
-            )}
-          />
+            {/* 🎯 NOVO: Array de IDs das fotos de capa selecionadas */}
+            <input
+              type="hidden"
+              name="cover_image_ids"
+              value={JSON.stringify(
+                driveData.allCovers ||
+                  (driveData.coverId ? [driveData.coverId] : []),
+              )}
+            />
 
-          {/* 🎯 NOVO: Quantidade de fotos para salvar na tb_galerias */}
-          <input
-            type="hidden"
-            name="photo_count"
-            value={driveData.photoCount || 0}
-          />
+            {/* 🎯 NOVO: Quantidade de fotos para salvar na tb_galerias */}
+            <input
+              type="hidden"
+              name="photo_count"
+              value={driveData.photoCount || 0}
+            />
 
-          <input type="hidden" name="is_public" value={String(isPublic)} />
-          <input type="hidden" name="category" value={category} />
-          <input
-            type="hidden"
-            name="has_contracting_client"
-            value={String(hasContractingClient)}
-          />
-          <input
-            type="hidden"
-            name="show_cover_in_grid"
-            value={String(customization.showCoverInGrid)}
-          />
-          <input
-            type="hidden"
-            name="grid_bg_color"
-            value={customization.gridBgColor}
-          />
-          <input
-            type="hidden"
-            name="columns_mobile"
-            value={String(customization.columns.mobile)}
-          />
-          <input
-            type="hidden"
-            name="columns_tablet"
-            value={String(customization.columns.tablet)}
-          />
-          <input
-            type="hidden"
-            name="columns_desktop"
-            value={String(customization.columns.desktop)}
-          />
-          <input
-            type="hidden"
-            name="leads_enabled"
-            value={String(leadsEnabled)}
-          />
-          <input
-            type="hidden"
-            name="leads_require_name"
-            data-testid="leads_require_name"
-            value={String(requiredGuestFields.includes('name'))}
-          />
-          <input
-            type="hidden"
-            name="leads_require_email"
-            data-testid="leads_require_email"
-            value={String(requiredGuestFields.includes('email'))}
-          />
-          <input
-            type="hidden"
-            name="leads_require_whatsapp"
-            data-testid="leads_require_whatsapp"
-            value={String(requiredGuestFields.includes('whatsapp'))}
-          />
-          <input
-            type="hidden"
-            name="rename_files_sequential"
-            value={String(renameFilesSequential)}
-          />
+            <input type="hidden" name="is_public" value={String(isPublic)} />
+            <input type="hidden" name="category" value={category} />
+            <input
+              type="hidden"
+              name="has_contracting_client"
+              value={String(hasContractingClient)}
+            />
+            <input
+              type="hidden"
+              name="show_cover_in_grid"
+              value={String(customization.showCoverInGrid)}
+            />
+            <input
+              type="hidden"
+              name="grid_bg_color"
+              value={customization.gridBgColor}
+            />
+            <input
+              type="hidden"
+              name="columns_mobile"
+              value={String(customization.columns.mobile)}
+            />
+            <input
+              type="hidden"
+              name="columns_tablet"
+              value={String(customization.columns.tablet)}
+            />
+            <input
+              type="hidden"
+              name="columns_desktop"
+              value={String(customization.columns.desktop)}
+            />
+            <input
+              type="hidden"
+              name="leads_enabled"
+              value={String(leadsEnabled)}
+            />
+            <input
+              type="hidden"
+              name="leads_require_name"
+              data-testid="leads_require_name"
+              value={String(requiredGuestFields.includes('name'))}
+            />
+            <input
+              type="hidden"
+              name="leads_require_email"
+              data-testid="leads_require_email"
+              value={String(requiredGuestFields.includes('email'))}
+            />
+            <input
+              type="hidden"
+              name="leads_require_whatsapp"
+              data-testid="leads_require_whatsapp"
+              value={String(requiredGuestFields.includes('whatsapp'))}
+            />
+            <input
+              type="hidden"
+              name="rename_files_sequential"
+              value={String(renameFilesSequential)}
+            />
 
-          <input
-            type="hidden"
-            name="enable_favorites"
-            value={String(enableFavorites)}
-          />
-          <input
-            type="hidden"
-            name="enable_slideshow"
-            value={String(enableSlideshow)}
-          />
-        </div>
+            <input
+              type="hidden"
+              name="enable_favorites"
+              value={String(enableFavorites)}
+            />
+            <input
+              type="hidden"
+              name="enable_slideshow"
+              value={String(enableSlideshow)}
+            />
+            <input
+              type="hidden"
+              name="gallery_tags"
+              value={JSON.stringify(galleryTags || [])}
+            />
 
-        {/* SEÇÃO 1: IDENTIFICAÇÃO */}
-        {(profile?.settings?.display?.show_contract_type !== false ||
-          hasContractingClient) && (
+            {/* 🎯 Vínculo das tags com os IDs das fotos */}
+            <input
+              type="hidden"
+              name="photo_tags"
+              value={JSON.stringify(photoTags)}
+            />
+          </div>
+
+          {/* SEÇÃO 1: IDENTIFICAÇÃO */}
+          {(profile?.settings?.display?.show_contract_type !== false ||
+            hasContractingClient) && (
+            <FormSection
+              title="Identificação"
+              icon={<User size={14} className="text-gold" />}
+            >
+              <fieldset>
+                <div className="grid grid-cols-1 md:grid-cols-12 gap-2 items-end">
+                  <div className="md:col-span-3 ">
+                    <label className="mb-1.5">
+                      <Briefcase
+                        size={12}
+                        strokeWidth={2}
+                        className="text-gold"
+                      />{' '}
+                      Tipo
+                    </label>
+                    <div className="flex p-1 bg-slate-50 rounded-luxury border border-slate-200 h-10 items-center relative">
+                      <div
+                        className={`absolute top-1 bottom-1 w-[calc(50%-4px)] rounded-[0.35rem] transition-all duration-300 bg-champagne border border-gold/20 shadow-sm ${hasContractingClient ? 'left-1' : 'left-[calc(50%+1px)]'}`}
+                      />
+                      <button
+                        type="button"
+                        disabled={
+                          profile?.settings?.display?.show_contract_type ===
+                          false
+                        }
+                        onClick={() => setHasContractingClient(true)}
+                        className={`relative z-10 flex-1 text-[9px] font-semibold uppercase tracking-luxury-widest transition-colors ${hasContractingClient ? 'text-black' : 'text-petroleum/60 dark:text-slate-400'}`}
+                      >
+                        Contrato
+                      </button>
+                      <button
+                        type="button"
+                        onClick={() => {
+                          setHasContractingClient(false);
+                        }}
+                        className={`relative z-10 flex-1 text-[9px] font-semibold uppercase tracking-luxury-widest transition-colors ${!hasContractingClient ? 'text-black' : 'text-petroleum/60 dark:text-slate-400'}`}
+                      >
+                        Cobertura
+                      </button>
+                    </div>
+                  </div>
+                  {hasContractingClient ? (
+                    <>
+                      <div className="md:col-span-6 animate-in slide-in-from-left-2">
+                        <label className="mb-1.5">
+                          <User
+                            size={12}
+                            strokeWidth={2}
+                            className="text-gold"
+                          />{' '}
+                          Cliente
+                        </label>
+                        <input
+                          name="client_name"
+                          defaultValue={initialData?.client_name}
+                          required
+                          placeholder="Nome do cliente"
+                          className="input-luxury"
+                        />
+                      </div>
+                      <div className="md:col-span-3">
+                        <label className="mb-1.5">
+                          <WhatsAppIcon className="w-3 h-3 text-gold" />{' '}
+                          WhatsApp
+                        </label>
+                        <input
+                          value={clientWhatsapp}
+                          name="client_whatsapp"
+                          onChange={(e) => setClientWhatsapp(maskPhone(e))}
+                          placeholder="(00) 00000-0000"
+                          className="input-luxury"
+                        />
+                      </div>
+                    </>
+                  ) : (
+                    <div className="md:col-span-9 h-10 flex items-center px-4 bg-slate-50 border border-dashed border-slate-200 rounded-luxury">
+                      <p className="text-[9px] font-semibold uppercase tracking-luxury-wide text-petroleum/60 dark:text-slate-400 italic">
+                        Identificação de cliente não disponível em coberturas.
+                      </p>
+                    </div>
+                  )}
+                </div>
+              </fieldset>
+            </FormSection>
+          )}
+
+          {/* SEÇÃO 2: GALERIA & SINCRONIZAÇÃO */}
           <FormSection
-            title="Identificação"
-            icon={<User size={14} className="text-gold" />}
+            title="Galeria & Sincronização"
+            icon={<FolderSync size={14} className="text-gold" />}
           >
             <fieldset>
-              <div className="grid grid-cols-1 md:grid-cols-12 gap-2 items-end">
-                <div className="md:col-span-3 ">
+              {/* Detalhes da Galeria - Primeira Linha */}
+              <div className="grid grid-cols-1 md:grid-cols-12 gap-3 items-end mb-3">
+                <div className="md:col-span-6">
                   <label className="mb-1.5">
-                    <Briefcase
+                    <Type size={12} className="text-gold" /> Título
+                  </label>
+                  <input
+                    name="title"
+                    defaultValue={initialData?.title}
+                    required
+                    placeholder="Ex: Wedding Day"
+                    onChange={(e) => {
+                      setTitleValue(e.target.value);
+                      onTitleChange?.(e.target.value);
+                    }}
+                    className="w-full px-3 h-10 bg-white border border-slate-200 rounded-luxury text-petroleum/90 text-[13px] font-medium outline-none focus:border-gold transition-all"
+                  />
+                </div>
+                <div className="md:col-span-6">
+                  <label className="mb-1.5">
+                    <Tag size={12} className="text-gold" /> Categoria
+                  </label>
+                  <CategorySelect
+                    value={category}
+                    onChange={setCategory}
+                    initialCustomCategories={customCategoriesFromProfile} // Dados vindos do JSON do banco
+                  />
+                </div>
+              </div>
+
+              {/* Segunda Linha */}
+              <div className="grid grid-cols-1 md:grid-cols-12 gap-3 items-end mb-3">
+                <div className="md:col-span-6">
+                  <label className="mb-1.5">
+                    <Calendar
                       size={12}
                       strokeWidth={2}
-                      className="text-gold"
+                      className=" text-gold"
                     />{' '}
-                    Tipo
+                    Data
                   </label>
-                  <div className="flex p-1 bg-slate-50 rounded-luxury border border-slate-200 h-10 items-center relative">
-                    <div
-                      className={`absolute top-1 bottom-1 w-[calc(50%-4px)] rounded-[0.35rem] transition-all duration-300 bg-champagne border border-gold/20 shadow-sm ${hasContractingClient ? 'left-1' : 'left-[calc(50%+1px)]'}`}
-                    />
-                    <button
-                      type="button"
-                      disabled={
-                        profile?.settings?.display?.show_contract_type === false
-                      }
-                      onClick={() => setHasContractingClient(true)}
-                      className={`relative z-10 flex-1 text-[9px] font-semibold uppercase tracking-luxury-widest transition-colors ${hasContractingClient ? 'text-black' : 'text-petroleum/60 dark:text-slate-400'}`}
-                    >
-                      Contrato
-                    </button>
-                    <button
-                      type="button"
-                      onClick={() => {
-                        setHasContractingClient(false);
-                      }}
-                      className={`relative z-10 flex-1 text-[9px] font-semibold uppercase tracking-luxury-widest transition-colors ${!hasContractingClient ? 'text-black' : 'text-petroleum/60 dark:text-slate-400'}`}
-                    >
-                      Cobertura
-                    </button>
-                  </div>
+                  <input
+                    name="date"
+                    type="date"
+                    defaultValue={initialData?.date}
+                    required
+                    className="input-luxury"
+                  />
                 </div>
-                {hasContractingClient ? (
-                  <>
-                    <div className="md:col-span-6 animate-in slide-in-from-left-2">
-                      <label className="mb-1.5">
-                        <User size={12} strokeWidth={2} className="text-gold" />{' '}
-                        Cliente
-                      </label>
-                      <input
-                        name="client_name"
-                        defaultValue={initialData?.client_name}
-                        required
-                        placeholder="Nome do cliente"
-                        className="input-luxury"
-                      />
-                    </div>
-                    <div className="md:col-span-3">
-                      <label className="mb-1.5">
-                        <WhatsAppIcon className="w-3 h-3 text-gold" /> WhatsApp
-                      </label>
-                      <input
-                        value={clientWhatsapp}
-                        name="client_whatsapp"
-                        onChange={(e) => setClientWhatsapp(maskPhone(e))}
-                        placeholder="(00) 00000-0000"
-                        className="input-luxury"
-                      />
-                    </div>
-                  </>
-                ) : (
-                  <div className="md:col-span-9 h-10 flex items-center px-4 bg-slate-50 border border-dashed border-slate-200 rounded-luxury">
-                    <p className="text-[9px] font-semibold uppercase tracking-luxury-wide text-petroleum/60 dark:text-slate-400 italic">
-                      Identificação de cliente não disponível em coberturas.
-                    </p>
-                  </div>
-                )}
+                <div className="md:col-span-6">
+                  <label className="mb-1.5">
+                    <MapPin size={12} className="text-gold" /> Local
+                  </label>
+                  <input
+                    name="location"
+                    defaultValue={initialData?.location}
+                    placeholder="Cidade/UF"
+                    className="input-luxury"
+                  />
+                </div>
               </div>
             </fieldset>
           </FormSection>
-        )}
 
-        {/* SEÇÃO 2: GALERIA & SINCRONIZAÇÃO */}
-        <FormSection
-          title="Galeria & Sincronização"
-          icon={<FolderSync size={14} className="text-gold" />}
-        >
-          <fieldset>
-            {/* Detalhes da Galeria - Primeira Linha */}
-            <div className="grid grid-cols-1 md:grid-cols-12 gap-3 items-end mb-3">
-              <div className="md:col-span-6">
-                <label className="mb-1.5">
-                  <Type size={12} className="text-gold" /> Título
-                </label>
-                <input
-                  name="title"
-                  defaultValue={initialData?.title}
-                  required
-                  placeholder="Ex: Wedding Day"
-                  onChange={(e) => {
-                    setTitleValue(e.target.value);
-                    onTitleChange?.(e.target.value);
-                  }}
-                  className="w-full px-3 h-10 bg-white border border-slate-200 rounded-luxury text-petroleum/90 text-[13px] font-medium outline-none focus:border-gold transition-all"
-                />
-              </div>
-              <div className="md:col-span-6">
-                <label className="mb-1.5">
-                  <Tag size={12} className="text-gold" /> Categoria
-                </label>
-                <CategorySelect
-                  value={category}
-                  onChange={setCategory}
-                  initialCustomCategories={customCategoriesFromProfile} // Dados vindos do JSON do banco
-                />
-              </div>
-            </div>
-
-            {/* Segunda Linha */}
-            <div className="grid grid-cols-1 md:grid-cols-12 gap-3 items-end mb-3">
-              <div className="md:col-span-6">
-                <label className="mb-1.5">
-                  <Calendar size={12} strokeWidth={2} className=" text-gold" />{' '}
-                  Data
-                </label>
-                <input
-                  name="date"
-                  type="date"
-                  defaultValue={initialData?.date}
-                  required
-                  className="input-luxury"
-                />
-              </div>
-              <div className="md:col-span-6">
-                <label className="mb-1.5">
-                  <MapPin size={12} className="text-gold" /> Local
-                </label>
-                <input
-                  name="location"
-                  defaultValue={initialData?.location}
-                  placeholder="Cidade/UF"
-                  className="input-luxury"
-                />
-              </div>
-            </div>
-          </fieldset>
-        </FormSection>
-
-        {/* SEÇÃO 3: PRIVACIDADE */}
-        <FormSection
-          title="Privacidade"
-          icon={<ShieldCheck size={14} className="text-gold" />}
-        >
-          <fieldset>
-            <div className="flex flex-col lg:flex-row lg:items-center gap-6 lg:gap-x-12">
-              {/* ACESSO */}
-              <div className="flex flex-col sm:flex-row items-start sm:items-center gap-3">
-                <div className="flex items-center gap-1.5 shrink-0">
-                  <label>
-                    <Shield size={12} className=" text-gold" /> Acesso à Galeria
-                  </label>
-                  <InfoTooltip
-                    content="Para acessar uma galeria protegida por senha, o visitante deve informar a senha cadastrada nesta tela. Sem senha, qualquer pessoa com o link pode acessar. Com senha, apenas quem informar a senha correta terá acesso."
-                    width="w-48"
-                  />
-                </div>
-
-                <div className="flex items-center gap-3 w-full sm:w-auto">
-                  <div className="flex bg-slate-50 rounded-[0.4rem] border border-slate-200 p-1 gap-1 w-40 shrink-0">
-                    <button
-                      type="button"
-                      onClick={() => setIsPublic(true)}
-                      className={`flex-1 py-1 rounded-[0.3rem] text-[9px] font-semibold uppercase tracking-luxury-widest transition-all ${isPublic ? 'bg-champagne  shadow-sm' : 'text-slate-400'}`}
-                    >
-                      Público
-                    </button>
-                    <button
-                      type="button"
-                      onClick={() => {
-                        setIsPublic(false);
-                      }}
-                      className={`flex-1 py-1 rounded-[0.3rem] text-[9px] font-semibold uppercase tracking-luxury-widest transition-all ${!isPublic ? 'bg-champagne  shadow-sm' : 'text-petroleum/60 dark:text-slate-400'}`}
-                    >
-                      Privado
-                    </button>
-                  </div>
-                  {!isPublic && (
-                    <PlanGuard
-                      feature="privacyLevel"
-                      label="Proteção por Senha"
-                    >
-                      <div className="relative group w-32">
-                        <PasswordInput
-                          name="password"
-                          disabled={!canUsePassword}
-                          type="password"
-                          inputMode="numeric"
-                          pattern="[0-9]*"
-                          minLength={4}
-                          maxLength={6}
-                          defaultValue={initialData?.password || ''}
-                          required
-                          placeholder="Senha"
-                          onChange={(e) => {
-                            e.target.value = e.target.value.replace(/\D/g, '');
-                          }}
-                        />
-                      </div>
-                    </PlanGuard>
-                  )}
-                </div>
-              </div>
-
-              {/* LISTAGEM NO PERFIL - Também pode ser protegida pelo profileListLimit */}
-              <PlanGuard
-                feature="profileLevel" // Planos básicos podem ter limitações aqui
-                label="Listar no Perfil"
-              >
+          {/* SEÇÃO 3: PRIVACIDADE */}
+          <FormSection
+            title="Privacidade"
+            icon={<ShieldCheck size={14} className="text-gold" />}
+          >
+            <fieldset>
+              <div className="flex flex-col lg:flex-row lg:items-center gap-6 lg:gap-x-12">
+                {/* ACESSO */}
                 <div className="flex flex-col sm:flex-row items-start sm:items-center gap-3">
                   <div className="flex items-center gap-1.5 shrink-0">
                     <label>
-                      <Eye size={12} className="  text-gold" /> Listar no Perfil
+                      <Shield size={12} className=" text-gold" /> Acesso à
+                      Galeria
                     </label>
                     <InfoTooltip
-                      content="Se ativado, esta galeria será visível na sua página de perfil pública para todos os visitantes."
+                      content="Para acessar uma galeria protegida por senha, o visitante deve informar a senha cadastrada nesta tela. Sem senha, qualquer pessoa com o link pode acessar. Com senha, apenas quem informar a senha correta terá acesso."
                       width="w-48"
                     />
                   </div>
 
-                  <button
-                    type="button"
-                    onClick={() => setShowOnProfile(!showOnProfile)}
-                    className={`relative h-5 w-9 rounded-full transition-colors duration-200 ${showOnProfile ? 'bg-gold' : 'bg-slate-200'}`}
-                  >
-                    <span
-                      className={`absolute top-0.5 left-0.5 h-4 w-4 rounded-full bg-white shadow-sm transition-transform duration-200 ${showOnProfile ? 'translate-x-4' : ''}`}
-                    />
-                  </button>
+                  <div className="flex items-center gap-3 w-full sm:w-auto">
+                    <div className="flex bg-slate-50 rounded-[0.4rem] border border-slate-200 p-1 gap-1 w-40 shrink-0">
+                      <button
+                        type="button"
+                        onClick={() => setIsPublic(true)}
+                        className={`flex-1 py-1 rounded-[0.3rem] text-[9px] font-semibold uppercase tracking-luxury-widest transition-all ${isPublic ? 'bg-champagne  shadow-sm' : 'text-slate-400'}`}
+                      >
+                        Público
+                      </button>
+                      <button
+                        type="button"
+                        onClick={() => {
+                          setIsPublic(false);
+                        }}
+                        className={`flex-1 py-1 rounded-[0.3rem] text-[9px] font-semibold uppercase tracking-luxury-widest transition-all ${!isPublic ? 'bg-champagne  shadow-sm' : 'text-petroleum/60 dark:text-slate-400'}`}
+                      >
+                        Privado
+                      </button>
+                    </div>
+                    {!isPublic && (
+                      <PlanGuard
+                        feature="privacyLevel"
+                        label="Proteção por Senha"
+                      >
+                        <div className="relative group w-32">
+                          <PasswordInput
+                            name="password"
+                            disabled={!canUsePassword}
+                            type="password"
+                            inputMode="numeric"
+                            pattern="[0-9]*"
+                            minLength={4}
+                            maxLength={6}
+                            defaultValue={initialData?.password || ''}
+                            required
+                            placeholder="Senha"
+                            onChange={(e) => {
+                              e.target.value = e.target.value.replace(
+                                /\D/g,
+                                '',
+                              );
+                            }}
+                          />
+                        </div>
+                      </PlanGuard>
+                    )}
+                  </div>
                 </div>
-              </PlanGuard>
-            </div>
-            {/* Renderizar o UpgradeModal no final do componente pai */}
-            <UpgradeModal
-              isOpen={!!upsellFeature}
-              onClose={() => setUpsellFeature(null)}
-              featureName={upsellFeature?.label || ''}
-              featureKey={upsellFeature?.feature as any} // Passa a chave técnica
-              scenarioType="feature"
-            />
-          </fieldset>
-        </FormSection>
 
-        {/* SEÇÃO NOVA: CAPTURA DE LEADS */}
-
-        <FormSection
-          title="Cadastro de visitante"
-          icon={<Users size={14} className="text-gold" />}
-        >
-          <fieldset>
-            <LeadCaptureSection
-              enabled={leadsEnabled}
-              setEnabled={setLeadsEnabled}
-              requiredFields={requiredGuestFields}
-              setRequiredFields={setRequiredGuestFields}
-              register={register}
-              setValue={setValue}
-              watch={watch}
-              purposeFieldName="lead_purpose"
-              initialPurposeValue={initialData?.lead_purpose}
-              toggleLabel="Habilitar cadastro de visitante para visualizar a galeria"
-              description="Aumente sua base de contatos exigindo dados básicos antes dos clientes visualizarem as fotos."
-              isEdit={isEdit}
-              showLayout="stacked"
-            />
-          </fieldset>
-        </FormSection>
-
-        {/* SEÇÃO 4: CUSTOMIZAÇÃO VISUAL */}
-
-        <FormSection
-          title="Design da Galeria"
-          subtitle="Personalize a experiência visual do visitante"
-          icon={<Layout size={14} className="text-gold" />}
-        >
-          <fieldset>
-            <GalleryDesignFields
-              showBackgroundPhoto={customization.showCoverInGrid}
-              setShowBackgroundPhoto={setCustomization.setShowCoverInGrid}
-              backgroundColor={customization.gridBgColor}
-              setBackgroundColor={setCustomization.setGridBgColor}
-              columns={customization.columns}
-              setColumns={setCustomization.setColumns}
-            />
-          </fieldset>
-        </FormSection>
-        {/* SEÇÃO: INTERAÇÃO (Experiência do Visitante) */}
-        <FormSection
-          title="Interação & Experiência"
-          subtitle="Recursos para o visitante usar na galeria"
-          icon={<PlayCircle size={14} className="text-gold" />}
-        >
-          <fieldset>
-            <GalleryInteractionFields
-              enableFavorites={enableFavorites}
-              setEnableFavorites={setEnableFavorites}
-              enableSlideshow={enableSlideshow}
-              setEnableSlideshow={setEnableSlideshow}
-            />
-          </fieldset>
-        </FormSection>
-      </div>
-
-      {/* COLUNA LATERAL (35%) */}
-      <div className="w-full lg:w-[35%] border-t lg:border-t-0 lg:border-l border-slate-200 pl-0 lg:pl-2 space-y-4 bg-slate-50/30  px-2 pb-6">
-        {/* GOOGLE DRIVE - Seção Principal */}
-        <GaleriaDriveSection
-          driveData={driveData}
-          handleFolderSelect={handleFolderSelect}
-          onPickerError={onPickerError}
-          onTokenExpired={onTokenExpired}
-          isValidatingDrive={isValidatingDrive}
-          renameFilesSequential={renameFilesSequential}
-          setRenameFilesSequential={setRenameFilesSequential}
-          setDriveData={setDriveData}
-          rootFolderId={profileRootFolderId}
-        />
-
-        {/*LINKS E ARQUIVOS */}
-        <div className="bg-white rounded-luxury border border-slate-200 p-4 space-y-3">
-          <div className="flex items-center gap-2 pb-2 border-b border-slate-200">
-            <Download size={14} className="text-gold" />
-            <h3 className="text-[10px] font-bold uppercase tracking-luxury-widest text-petroleum">
-              links e arquivos de entrega
-            </h3>
-          </div>
-
-          <div className="space-y-4">
-            {/* input oculto para persistência em JSON */}
-            <input
-              type="hidden"
-              name="zip_url_full"
-              value={links.length > 0 ? JSON.stringify(links) : ''}
-            />
-
-            <div className="space-y-3">
-              {links.map((link, index) => (
-                <div
-                  key={index}
-                  className="p-3 bg-slate-50/50 rounded-luxury border border-petroleum/10 space-y-2 animate-in fade-in slide-in-from-right-2 duration-300"
+                {/* LISTAGEM NO PERFIL - Também pode ser protegida pelo profileListLimit */}
+                <PlanGuard
+                  feature="profileLevel" // Planos básicos podem ter limitações aqui
+                  label="Listar no Perfil"
                 >
-                  <div className="flex items-center justify-between">
-                    <span className="text-[10px] font-semibold text-petroleum uppercase tracking-luxury-widest">
-                      recurso #{index + 1}
-                    </span>
+                  <div className="flex flex-col sm:flex-row items-start sm:items-center gap-3">
+                    <div className="flex items-center gap-1.5 shrink-0">
+                      <label>
+                        <Eye size={12} className="  text-gold" /> Listar no
+                        Perfil
+                      </label>
+                      <InfoTooltip
+                        content="Se ativado, esta galeria será visível na sua página de perfil pública para todos os visitantes."
+                        width="w-48"
+                      />
+                    </div>
+
                     <button
                       type="button"
-                      onClick={() =>
-                        setLinks(links.filter((_, i) => i !== index))
-                      }
-                      className="text-petroleum/70 hover:text-red-500 transition-colors"
+                      onClick={() => setShowOnProfile(!showOnProfile)}
+                      className={`relative h-5 w-9 rounded-full transition-colors duration-200 ${showOnProfile ? 'bg-gold' : 'bg-slate-200'}`}
                     >
-                      <Trash2 size={12} />
+                      <span
+                        className={`absolute top-0.5 left-0.5 h-4 w-4 rounded-full bg-white shadow-sm transition-transform duration-200 ${showOnProfile ? 'translate-x-4' : ''}`}
+                      />
                     </button>
                   </div>
+                </PlanGuard>
+              </div>
+              {/* Renderizar o UpgradeModal no final do componente pai */}
+              <UpgradeModal
+                isOpen={!!upsellFeature}
+                onClose={() => setUpsellFeature(null)}
+                featureName={upsellFeature?.label || ''}
+                featureKey={upsellFeature?.feature as any} // Passa a chave técnica
+                scenarioType="feature"
+              />
+            </fieldset>
+          </FormSection>
 
-                  <div className="flex flex-row items-center gap-2">
-                    {/* 🎯 Uso do Mini PlanGuard no Input de Label */}
-                    <div className="w-[30%]">
-                      <PlanGuard
-                        feature="canCustomLinkLabel"
-                        variant="mini"
-                        label="Nome Customizado"
-                      >
-                        <input
-                          type="text"
-                          required
-                          value={link.label}
-                          minLength={3}
-                          maxLength={20}
-                          placeholder={`LINK ${index + 1}`}
-                          onChange={(e) => {
-                            const newLinks = [...links];
-                            newLinks[index].label = e.target.value;
-                            setLinks(newLinks);
-                          }}
-                          className="input-luxury"
-                        />
-                      </PlanGuard>
-                    </div>
+          {/* SEÇÃO NOVA: CAPTURA DE LEADS */}
 
-                    {/* Input de URL - 70% de largura (Sempre liberado por padrão) */}
-                    <div className="relative w-[70%]">
-                      <input
-                        type="url"
-                        required
-                        value={link.url}
-                        onChange={(e) => {
-                          const newLinks = [...links];
-                          newLinks[index].url = convertToDirectDownloadUrl(
-                            e.target.value,
-                          );
-                          setLinks(newLinks);
-                        }}
-                        placeholder="https://link..."
-                        className="input-luxury"
-                      />
-                      {link.url && (
-                        <CheckCircle2
-                          size={12}
-                          className="absolute right-2 top-1/2 -translate-y-1/2 text-green-500"
-                        />
-                      )}
-                    </div>
-                  </div>
+          <FormSection
+            title="Cadastro de visitante"
+            icon={<Users size={14} className="text-gold" />}
+          >
+            <fieldset>
+              <LeadCaptureSection
+                enabled={leadsEnabled}
+                setEnabled={setLeadsEnabled}
+                requiredFields={requiredGuestFields}
+                setRequiredFields={setRequiredGuestFields}
+                register={register}
+                setValue={setValue}
+                watch={watch}
+                purposeFieldName="lead_purpose"
+                initialPurposeValue={initialData?.lead_purpose}
+                toggleLabel="Habilitar cadastro de visitante para visualizar a galeria"
+                description="Aumente sua base de contatos exigindo dados básicos antes dos clientes visualizarem as fotos."
+                isEdit={isEdit}
+                showLayout="stacked"
+              />
+            </fieldset>
+          </FormSection>
+
+          {/* SEÇÃO 4: CUSTOMIZAÇÃO VISUAL */}
+
+          <FormSection
+            title="Design da Galeria"
+            subtitle="Personalize a experiência visual do visitante"
+            icon={<Layout size={14} className="text-gold" />}
+          >
+            <fieldset>
+              <GalleryDesignFields
+                showBackgroundPhoto={customization.showCoverInGrid}
+                setShowBackgroundPhoto={setCustomization.setShowCoverInGrid}
+                backgroundColor={customization.gridBgColor}
+                setBackgroundColor={setCustomization.setGridBgColor}
+                columns={customization.columns}
+                setColumns={setCustomization.setColumns}
+              />
+            </fieldset>
+          </FormSection>
+          {/* SEÇÃO: INTERAÇÃO (Experiência do Visitante) */}
+          <FormSection
+            title="Interação & Experiência"
+            subtitle="Recursos para o visitante usar na galeria"
+            icon={<PlayCircle size={14} className="text-gold" />}
+          >
+            <fieldset>
+              <GalleryInteractionFields
+                enableFavorites={enableFavorites}
+                setEnableFavorites={setEnableFavorites}
+                enableSlideshow={enableSlideshow}
+                setEnableSlideshow={setEnableSlideshow}
+              />
+            </fieldset>
+          </FormSection>
+        </div>
+
+        {/* COLUNA LATERAL (35%) */}
+        <div className="w-full lg:w-[35%] border-t lg:border-t-0 lg:border-l border-slate-200 pl-0 lg:pl-2 space-y-4 bg-slate-50/30  px-2 pb-6">
+          {/* GOOGLE DRIVE - Seção Principal */}
+          <GaleriaDriveSection
+            driveData={driveData}
+            handleFolderSelect={handleFolderSelect}
+            onPickerError={onPickerError}
+            onTokenExpired={onTokenExpired}
+            isValidatingDrive={isValidatingDrive}
+            renameFilesSequential={renameFilesSequential}
+            setRenameFilesSequential={setRenameFilesSequential}
+            setDriveData={setDriveData}
+            rootFolderId={profileRootFolderId}
+          />
+          {/* SEÇÃO: MARCAÇÕES */}
+          <FormSection
+            title="Marcações"
+            subtitle="Organize as fotos por categorias"
+            icon={<Tag size={14} className="text-gold" />}
+          >
+            <div className="space-y-3">
+              <div className="p-3 bg-slate-50 rounded-luxury border border-dashed border-slate-300">
+                <div className="flex items-center justify-between mb-2">
+                  <span className="text-[9px] font-bold uppercase text-petroleum/60">
+                    Status da Organização
+                  </span>
+                  <span className="text-[10px] font-bold text-gold">
+                    {galleryTags.length} fotos marcadas
+                  </span>
                 </div>
-              ))}
+
+                {/* Botão para abrir o Masonry em modo Admin/Bulk */}
+                <button
+                  type="button"
+                  onClick={loadDrivePhotos} // 🎯 Chama a função que busca no Drive
+                  disabled={!driveData.id || isLoadingPhotos}
+                  className="..."
+                >
+                  {isLoadingPhotos ? (
+                    <Loader2 size={14} className="animate-spin" />
+                  ) : (
+                    <Layout size={14} className="text-gold" />
+                  )}
+                  {isLoadingPhotos
+                    ? 'Carregando Fotos...'
+                    : 'Abrir Organizador de Fotos'}
+                </button>
+              </div>
+
+              <p className="text-[9px] text-petroleum/50 italic leading-relaxed">
+                Dica: Use o organizador para separar fotos em "Cerimônia",
+                "Festa", etc. Isso cria filtros automáticos para seu cliente.
+              </p>
+            </div>
+          </FormSection>
+          {/*LINKS E ARQUIVOS */}
+          <div className="bg-white rounded-luxury border border-slate-200 p-4 space-y-3">
+            <div className="flex items-center gap-2 pb-2 border-b border-slate-200">
+              <Download size={14} className="text-gold" />
+              <h3 className="text-[10px] font-bold uppercase tracking-luxury-widest text-petroleum">
+                links e arquivos de entrega
+              </h3>
             </div>
 
-            <button
-              type="button"
-              className="btn-luxury-primary text-[9px]"
-              onClick={() => {
-                if (canAddMore('maxExternalLinks', links.length)) {
-                  setLinks([
-                    ...links,
-                    { url: '', label: `LINK ${links.length + 1}` },
-                  ]);
-                } else {
-                  setUpsellFeature({
-                    label: 'Mais Links de Entrega',
-                    feature: 'maxExternalLinks',
-                  });
-                }
-              }}
-            >
-              {canAddMore('maxExternalLinks', links.length) ? (
-                <>
-                  <Plus size={14} /> adicionar link
-                </>
-              ) : (
-                <>
-                  <Lock size={14} className="text-gold" /> Limite atingido
-                  (Upgrade)
-                </>
-              )}
-            </button>
+            <div className="space-y-4">
+              {/* input oculto para persistência em JSON */}
+              <input
+                type="hidden"
+                name="zip_url_full"
+                value={links.length > 0 ? JSON.stringify(links) : ''}
+              />
+
+              <div className="space-y-3">
+                {links.map((link, index) => (
+                  <div
+                    key={index}
+                    className="p-3 bg-slate-50/50 rounded-luxury border border-petroleum/10 space-y-2 animate-in fade-in slide-in-from-right-2 duration-300"
+                  >
+                    <div className="flex items-center justify-between">
+                      <span className="text-[10px] font-semibold text-petroleum uppercase tracking-luxury-widest">
+                        recurso #{index + 1}
+                      </span>
+                      <button
+                        type="button"
+                        onClick={() =>
+                          setLinks(links.filter((_, i) => i !== index))
+                        }
+                        className="text-petroleum/70 hover:text-red-500 transition-colors"
+                      >
+                        <Trash2 size={12} />
+                      </button>
+                    </div>
+
+                    <div className="flex flex-row items-center gap-2">
+                      {/* 🎯 Uso do Mini PlanGuard no Input de Label */}
+                      <div className="w-[30%]">
+                        <PlanGuard
+                          feature="canCustomLinkLabel"
+                          variant="mini"
+                          label="Nome Customizado"
+                        >
+                          <input
+                            type="text"
+                            required
+                            value={link.label}
+                            minLength={3}
+                            maxLength={20}
+                            placeholder={`LINK ${index + 1}`}
+                            onChange={(e) => {
+                              const newLinks = [...links];
+                              newLinks[index].label = e.target.value;
+                              setLinks(newLinks);
+                            }}
+                            className="input-luxury"
+                          />
+                        </PlanGuard>
+                      </div>
+
+                      {/* Input de URL - 70% de largura (Sempre liberado por padrão) */}
+                      <div className="relative w-[70%]">
+                        <input
+                          type="url"
+                          required
+                          value={link.url}
+                          onChange={(e) => {
+                            const newLinks = [...links];
+                            newLinks[index].url = convertToDirectDownloadUrl(
+                              e.target.value,
+                            );
+                            setLinks(newLinks);
+                          }}
+                          placeholder="https://link..."
+                          className="input-luxury"
+                        />
+                        {link.url && (
+                          <CheckCircle2
+                            size={12}
+                            className="absolute right-2 top-1/2 -translate-y-1/2 text-green-500"
+                          />
+                        )}
+                      </div>
+                    </div>
+                  </div>
+                ))}
+              </div>
+
+              <button
+                type="button"
+                className="btn-luxury-primary text-[9px]"
+                onClick={() => {
+                  if (canAddMore('maxExternalLinks', links.length)) {
+                    setLinks([
+                      ...links,
+                      { url: '', label: `LINK ${links.length + 1}` },
+                    ]);
+                  } else {
+                    setUpsellFeature({
+                      label: 'Mais Links de Entrega',
+                      feature: 'maxExternalLinks',
+                    });
+                  }
+                }}
+              >
+                {canAddMore('maxExternalLinks', links.length) ? (
+                  <>
+                    <Plus size={14} /> adicionar link
+                  </>
+                ) : (
+                  <>
+                    <Lock size={14} className="text-gold" /> Limite atingido
+                    (Upgrade)
+                  </>
+                )}
+              </button>
+            </div>
           </div>
         </div>
-      </div>
 
-      <LimitUpgradeModal
-        isOpen={showLimitModal}
-        photoCount={photoCount}
-        onClose={() => setShowLimitModal(false)}
-        planLimit={PLAN_LIMIT}
+        <LimitUpgradeModal
+          isOpen={showLimitModal}
+          photoCount={photoCount}
+          onClose={() => setShowLimitModal(false)}
+          planLimit={PLAN_LIMIT}
+        />
+      </div>
+      {/* Renderização do seu componente Toast customizado */}
+      {toastConfig && (
+        <Toast
+          message={toastConfig.message}
+          type={toastConfig.type}
+          onClose={() => setToastConfig(null)}
+        />
+      )}
+      <TagManagerModal
+        isOpen={isTagModalOpen}
+        onClose={() => setIsTagModalOpen(false)}
+        photos={drivePhotos} // 🎯 Fotos vindas do getFolderPhotos
+        galeria={{ ...initialData, drive_folder_id: driveData.id }} // Contexto para o Masonry
+        photoTags={photoTags} // O mapeamento JSON [ {id, tag} ]
+        existingTags={galleryTags} // Lista de nomes [ "CERIMONIA", "FESTA" ]
+        onApplyTag={handleApplyTagToPhotos}
+        onCreateTag={handleCreateNewTag}
       />
-    </div>
+    </>
   );
 }
