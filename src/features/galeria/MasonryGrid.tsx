@@ -428,7 +428,7 @@ const MasonryItem = memo(
 
                 {/* 🎯 Badge de Tag Existente (Para o Admin ver o que já marcou) */}
                 {photo.tag && (
-                  <div className="absolute top-2 right-2 !py-0 z-30 bg-petroleum/90 backdrop-blur-md px-2 ded border border-gold/30 rounded-md">
+                  <div className="absolute top-2 right-2 !py-0 z-30 bg-petroleum/90 backdrop-blur-md px-2 border-1 border-gold/30 rounded-md">
                     <span className="text-champagne text-[8px] font-semibold uppercase tracking-widest">
                       {photo.tag}
                     </span>
@@ -666,18 +666,15 @@ const MasonryGrid = ({
         <div className="text-center py-10 md:py-20 px-4 animate-in fade-in duration-700">
           <Heart size={48} className="text-champagne mb-4 mx-auto opacity-80" />
           <p
-            className={`italic text-[14px] md:text-[18px] mb-8 transition-colors duration-500 ${
-              galeria.grid_bg_color === '#FFFFFF' ||
-              galeria.grid_bg_color === '#F3E5AB'
-                ? 'text-slate-600'
-                : 'text-white/90'
-            }`}
+            className={`italic text-[14px] md:text-[18px] mb-8 transition-colors duration-500
+                text-gray-600`}
           >
             Nenhuma foto favorita selecionada
           </p>
           <button
             onClick={() => setShowOnlyFavorites(false)}
-            className="mx-auto px-6 py-2.5 rounded-luxury bg-champagne text-black hover:bg-white border border-champagne transition-all uppercase text-[11px] font-bold tracking-luxury-widest shadow-lg"
+            className="mx-auto px-6 py-2.5 rounded-luxury bg-champagne text-black
+             hover:bg-white border border-champagne transition-all uppercase text-[10px] font-semibold tracking-luxury-widest shadow-lg"
           >
             Exibir todas as fotos
           </button>

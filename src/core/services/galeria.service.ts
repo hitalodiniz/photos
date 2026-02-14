@@ -1074,3 +1074,41 @@ export async function purgeOldDeletedGalleries(supabaseClient?: any) {
 
   return [];
 }
+export async function updateGaleriaTagsAction(
+  galeria: any, // 🎯 Recebe o objeto completo agora
+  photo_tags: any,
+  gallery_tags: any,
+  supabaseClient?: any,
+) {
+  const supabase = supabaseClient || (await createSupabaseServerClient());
+
+  try {
+    // 1. Apenas executa o update, sem necessidade de .select()
+    const { error } = await supabase
+      .from('tb_galerias')
+      .update({
+        photo_tags,
+        gallery_tags,
+        updated_at: new Date().toISOString(),
+      })
+      .eq('id', galeria.id);
+
+    if (error) throw error;
+
+    // 2. Usa os dados do objeto passado para revalidar o cache
+    revalidateGalleryCache({
+      galeriaId: galeria.id,
+      slug: galeria.slug,
+      userId: galeria.user_id,
+      username: galeria.photographer?.username,
+    });
+
+    return { success: true };
+  } catch (error: any) {
+    console.error('[updateGaleriaTagsAction] Erro:', error.message);
+    return {
+      success: false,
+      error: error.message || 'Erro ao atualizar marcações.',
+    };
+  }
+}

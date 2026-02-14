@@ -52,6 +52,7 @@ import { Toast } from '@/components/ui';
 import { getFolderPhotos } from '@/core/services/google-drive.service';
 import { getAuthenticatedUser } from '@/core/services/auth-context.service';
 import { DrivePhoto } from '@/lib/google-drive';
+import { FEATURE_DESCRIPTIONS } from '@/core/config/plans';
 
 // 🎯 Componente de seção simples (sem accordion) - Estilo Editorial
 const FormSection = ({
@@ -225,89 +226,6 @@ export default function GaleriaFormContent({
     initialData?.photo_count ?? null,
   );
 
-  //Estado para as Tags da Galeria
-  const [galleryTags, setGalleryTags] = useState<string[]>(() => {
-    if (initialData?.galleryTags) {
-      try {
-        return typeof initialData.galleryTags === 'string'
-          ? JSON.parse(initialData.galleryTags)
-          : initialData.galleryTags;
-      } catch {
-        return [];
-      }
-    }
-    return [];
-  });
-
-  // Armazena o mapeamento: [ {id: "foto_1", tag: "CERIMONIA"} ]
-  const [photoTags, setPhotoTags] = useState<{ id: string; tag: string }[]>(
-    () => {
-      if (initialData?.photo_tags) {
-        try {
-          return typeof initialData.photo_tags === 'string'
-            ? JSON.parse(initialData.photo_tags)
-            : initialData.photo_tags;
-        } catch {
-          return [];
-        }
-      }
-      return [];
-    },
-  );
-
-  const handleDeleteTag = (tagName: string) => {
-    // 1. Remove o nome da tag da lista de disponíveis
-    const updatedAvailableTags = galleryTags.filter((t) => t !== tagName);
-    setGalleryTags(updatedAvailableTags);
-    setValue('galleryTags', JSON.stringify(updatedAvailableTags), {
-      shouldDirty: true,
-    });
-
-    // 2. Limpa a tag de todas as fotos que a utilizavam (Limpeza do JSON)
-    setPhotoTags((prev) => {
-      const cleanedTags = prev.filter((item) => item.tag !== tagName);
-
-      // Atualiza o input hidden para persistir no banco ao salvar
-      setValue('photo_tags', JSON.stringify(cleanedTags), {
-        shouldDirty: true,
-      });
-
-      return cleanedTags;
-    });
-
-    // 3. Feedback Visual
-    showToast(`Categoria "${tagName}" removida com sucesso.`, 'success');
-  };
-
-  const [isTagModalOpen, setIsTagModalOpen] = useState(false);
-  const [selectedPhotosForTag, setSelectedPhotosForTag] = useState<string[]>(
-    [],
-  );
-  const [drivePhotos, setDrivePhotos] = useState<DrivePhoto[]>([]);
-  const [isLoadingPhotos, setIsLoadingPhotos] = useState(false);
-  // 🎯 Função para carregar as fotos quando o fotógrafo abrir o organizador
-  const loadDrivePhotos = async () => {
-    if (!driveData.id) return;
-
-    setIsLoadingPhotos(true);
-    try {
-      const result = await getFolderPhotos(driveData.id);
-
-      if (result.success && result.data) {
-        setDrivePhotos(result.data);
-        setIsTagModalOpen(true); // Só abre o modal quando as fotos carregarem
-      } else {
-        onPickerError(
-          result.error || 'Não foi possível carregar as fotos da pasta.',
-        );
-      }
-    } catch (error) {
-      onPickerError('Erro ao conectar com o Google Drive.');
-    } finally {
-      setIsLoadingPhotos(false);
-    }
-  };
-
   // =========================================================================
   // 5. USEEFFECTS (LÓGICA DE INICIALIZAÇÃO E SINCRONIZAÇÃO)
   // =========================================================================
@@ -466,11 +384,11 @@ export default function GaleriaFormContent({
       }
 
       // 🎯 LOG DE DEPURAÇÃO: Útil para o seu monitor de 20"
-      console.log('DEBUG DRIVE SELECTION:', {
-        driveFolderId,
-        folderPermissionInfo,
-        coverIds,
-      });
+      // console.log('DEBUG DRIVE SELECTION:', {
+      //   driveFolderId,
+      //   folderPermissionInfo,
+      //   coverIds,
+      // });
 
       // if (!folderPermissionInfo.isOwner) {
       //   onPickerError(
@@ -498,7 +416,6 @@ export default function GaleriaFormContent({
       setLimitInfo(limitData);
       setPhotoCount(limitData.totalInDrive || limitData.count);
       const photos = await getFolderPhotos(driveFolderId);
-      setDrivePhotos(photos.data);
 
       if (limitData.hasMore) setShowLimitModal(true);
     } catch (error: any) {
@@ -573,18 +490,6 @@ export default function GaleriaFormContent({
     }
   }, [profile, isEdit, setValue, setCustomization]);
 
-  //Cria apenas o "nome" da tag na lista de opções do fotógrafo
-  const handleCreateNewTag = (tagName: string) => {
-    const normalizedTag = tagName.trim().toUpperCase();
-    if (!galleryTags.includes(normalizedTag)) {
-      const updatedTags = [...galleryTags, normalizedTag];
-      setGalleryTags(updatedTags);
-      setValue('galleryTags', JSON.stringify(updatedTags), {
-        shouldDirty: true,
-      });
-    }
-  };
-
   const [toastConfig, setToastConfig] = useState<{
     message: string;
     type: 'success' | 'error';
@@ -596,43 +501,6 @@ export default function GaleriaFormContent({
     type: 'success' | 'error' = 'success',
   ) => {
     setToastConfig({ message, type });
-  };
-
-  // 🎯 Função 2: "Carimba" os IDs selecionados com uma tag
-  // Dentro do GaleriaFormContent
-  const handleApplyTagToPhotos = (selectedIds: string[], tagName: string) => {
-    if (!selectedIds || selectedIds.length === 0) return;
-
-    setPhotoTags((prev) => {
-      // 1. Sempre filtramos para remover o vínculo antigo dos IDs selecionados
-      const filtered = prev.filter((item) => !selectedIds.includes(item.id));
-
-      let updatedTags;
-
-      // 2. Se tagName for vazio, as fotos ficam apenas "filtradas" (sem tag no JSON)
-      if (tagName === '') {
-        updatedTags = filtered;
-        showToast(
-          `${selectedIds.length} fotos agora estão sem marcação.`,
-          'success',
-        );
-      } else {
-        // 3. Caso contrário, adicionamos o novo mapeamento
-        const newMappings = selectedIds.map((id) => ({ id, tag: tagName }));
-        updatedTags = [...filtered, ...newMappings];
-        showToast(
-          `${selectedIds.length} fotos marcadas como ${tagName}`,
-          'success',
-        );
-      }
-
-      // 4. Sincroniza o input hidden para o salvamento final
-      setValue('photo_tags', JSON.stringify(updatedTags), {
-        shouldDirty: true,
-      });
-
-      return updatedTags;
-    });
   };
 
   return (
@@ -746,18 +614,6 @@ export default function GaleriaFormContent({
               type="hidden"
               name="enable_slideshow"
               value={String(enableSlideshow)}
-            />
-            <input
-              type="hidden"
-              name="gallery_tags"
-              value={JSON.stringify(galleryTags || [])}
-            />
-
-            {/* 🎯 Vínculo das tags com os IDs das fotos */}
-            <input
-              type="hidden"
-              name="photo_tags"
-              value={JSON.stringify(photoTags)}
             />
           </div>
 
@@ -1103,47 +959,7 @@ export default function GaleriaFormContent({
             setDriveData={setDriveData}
             rootFolderId={profileRootFolderId}
           />
-          {/* SEÇÃO: MARCAÇÕES */}
-          <FormSection
-            title="Marcações"
-            subtitle="Organize as fotos por categorias"
-            icon={<Tag size={14} className="text-gold" />}
-          >
-            <div className="space-y-3">
-              <div className="p-3 bg-slate-50 rounded-luxury border border-dashed border-slate-300">
-                <div className="flex items-center justify-between mb-2">
-                  <span className="text-[9px] font-bold uppercase text-petroleum/60">
-                    Status da Organização
-                  </span>
-                  <span className="text-[10px] font-bold text-gold">
-                    {galleryTags.length} fotos marcadas
-                  </span>
-                </div>
 
-                {/* Botão para abrir o Masonry em modo Admin/Bulk */}
-                <button
-                  type="button"
-                  onClick={loadDrivePhotos} // 🎯 Chama a função que busca no Drive
-                  disabled={!driveData.id || isLoadingPhotos}
-                  className="..."
-                >
-                  {isLoadingPhotos ? (
-                    <Loader2 size={14} className="animate-spin" />
-                  ) : (
-                    <Layout size={14} className="text-gold" />
-                  )}
-                  {isLoadingPhotos
-                    ? 'Carregando Fotos...'
-                    : 'Abrir Organizador de Fotos'}
-                </button>
-              </div>
-
-              <p className="text-[9px] text-petroleum/50 italic leading-relaxed">
-                Dica: Use o organizador para separar fotos em "Cerimônia",
-                "Festa", etc. Isso cria filtros automáticos para seu cliente.
-              </p>
-            </div>
-          </FormSection>
           {/*LINKS E ARQUIVOS */}
           <div className="bg-white rounded-luxury border border-slate-200 p-4 space-y-3">
             <div className="flex items-center gap-2 pb-2 border-b border-slate-200">
@@ -1282,17 +1098,6 @@ export default function GaleriaFormContent({
           onClose={() => setToastConfig(null)}
         />
       )}
-      <TagManagerModal
-        isOpen={isTagModalOpen}
-        onClose={() => setIsTagModalOpen(false)}
-        photos={drivePhotos} // 🎯 Fotos vindas do getFolderPhotos
-        galeria={{ ...initialData, drive_folder_id: driveData.id }} // Contexto para o Masonry
-        photoTags={photoTags} // O mapeamento JSON [ {id, tag} ]
-        existingTags={galleryTags} // Lista de nomes [ "CERIMONIA", "FESTA" ]
-        onApplyTag={handleApplyTagToPhotos}
-        onCreateTag={handleCreateNewTag}
-        onDeleteTag={handleDeleteTag}
-      />
     </>
   );
 }

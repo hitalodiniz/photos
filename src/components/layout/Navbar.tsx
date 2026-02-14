@@ -92,6 +92,8 @@ export default function Navbar() {
       items.push({ label: 'Preferências do Usuário' });
     } else if (pathname.includes('/edit')) {
       items.push({ label: 'Editar Galeria' });
+    } else if (pathname.includes('/tags')) {
+      items.push({ label: 'Marcações de Fotos' });
     } else if (pathname.includes('/leads')) {
       items.push({ label: 'Relatório de Cadastro de Visitantes' });
     } else if (pathname.includes('/new')) {

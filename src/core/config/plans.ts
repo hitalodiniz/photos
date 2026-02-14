@@ -143,10 +143,10 @@ export const FEATURE_DESCRIPTIONS: Record<
     description:
       'Tenha mais liberdade para organizar o layout das fotos na galeria.',
   },
-  maxTags: {
-    label: 'Categorias e Filtros',
+  canTagPhotos: {
+    label: 'Marcações (tags)',
     description:
-      'Crie categorias personalizadas para organizar grandes eventos.',
+      'Crie marcações e filtros personalizados para organizar grandes galerias.',
   },
   tagSelectionMode: {
     label: 'Organização em Lote',
@@ -205,7 +205,7 @@ export interface PlanPermissions {
   tagSelectionFavoriteMode: 'single' | 'multiple'; //não usada por enquanto
   canShowSlideshow: boolean;
   maxGridColumns: number;
-  maxTags: number;
+  canTagPhotos: number;
   tagSelectionMode: 'manual' | 'bulk' | 'drive';
   zipSizeLimit: string;
   maxExternalLinks: number;
@@ -246,7 +246,7 @@ export const PERMISSIONS_BY_PLAN: Record<PlanKey, PlanPermissions> = {
     canDownloadFavoriteSelection: false,
     canShowSlideshow: false,
     maxGridColumns: 3,
-    maxTags: 0,
+    canTagPhotos: 0,
     tagSelectionMode: 'manual',
     zipSizeLimit: '500KB',
     maxExternalLinks: 0,
@@ -274,7 +274,7 @@ export const PERMISSIONS_BY_PLAN: Record<PlanKey, PlanPermissions> = {
     canDownloadFavoriteSelection: false,
     canShowSlideshow: false,
     maxGridColumns: 4,
-    maxTags: 0,
+    canTagPhotos: 0,
     tagSelectionMode: 'manual',
     zipSizeLimit: '1MB',
     maxExternalLinks: 1,
@@ -302,7 +302,7 @@ export const PERMISSIONS_BY_PLAN: Record<PlanKey, PlanPermissions> = {
     canDownloadFavoriteSelection: true,
     canShowSlideshow: false,
     maxGridColumns: 5,
-    maxTags: 7,
+    canTagPhotos: 7,
     tagSelectionMode: 'manual',
     zipSizeLimit: '1.5MB',
     maxExternalLinks: 2,
@@ -329,8 +329,8 @@ export const PERMISSIONS_BY_PLAN: Record<PlanKey, PlanPermissions> = {
     canFavorite: true,
     canDownloadFavoriteSelection: true,
     canShowSlideshow: true,
-    maxGridColumns: 6,
-    maxTags: 12,
+    maxGridColumns: 8,
+    canTagPhotos: 12,
     tagSelectionMode: 'bulk',
     zipSizeLimit: '2MB',
     maxExternalLinks: 5,
@@ -358,7 +358,7 @@ export const PERMISSIONS_BY_PLAN: Record<PlanKey, PlanPermissions> = {
     canDownloadFavoriteSelection: true,
     canShowSlideshow: true,
     maxGridColumns: 8,
-    maxTags: 30,
+    canTagPhotos: 30,
     tagSelectionMode: 'drive',
     zipSizeLimit: '3MB',
     maxExternalLinks: 10,
@@ -414,7 +414,7 @@ export const PLANS_BY_SEGMENT: Record<
     },
     PREMIUM: {
       name: 'Premium',
-      price: 109,
+      price: 119,
       yearlyPrice: 99,
       maxGalleries: 9999,
       icon: Sparkles,
@@ -730,15 +730,15 @@ export const COMMON_FEATURES = [
     ],
   },
   {
-    key: 'maxTags', // 🎯 Ajustado: era 'org-tags'
+    key: 'canTagPhotos', // 🎯 Ajustado: era 'org-tags'
     group: 'Experiência do Visitante',
-    label: 'Organização e Tags',
+    label: 'Organização de fotos',
     values: [
-      'Categorias Padrão',
-      'Categorias Padrão',
-      '+ Categorias Próprias',
-      '+ Filtros por Tags',
-      '+ Auto-Tags (Pastas)',
+      false,
+      false,
+      false,
+      'Organização por marcações (tags)',
+      'Organização por marcações (tags)',
     ],
   },
   {

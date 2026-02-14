@@ -28,6 +28,7 @@ export function revalidateGalleryCache(data: GalleryRevalidationData) {
   }
 
   revalidateTag(`photos-${galeriaId}`);
+  revalidateTag(`gallery-tags-${galeriaId}`);
 
   // 2. Tags do usuário
   revalidateTag(`user-galerias-${userId}`);

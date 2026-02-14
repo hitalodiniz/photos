@@ -4,7 +4,7 @@ import { useEffect, useState } from 'react';
 import { useSearchParams, useRouter } from 'next/navigation';
 import { Loader2 } from 'lucide-react';
 
-import type { Galeria } from '@/core/types/galeria';
+import type { DrivePhoto, Galeria } from '@/core/types/galeria';
 import type { DashboardProps } from './types';
 
 import { ConfirmationModal, LoadingScreen, Toast } from '@/components/ui';
@@ -71,6 +71,24 @@ export default function Dashboard({
     filters.currentView,
   );
 
+  const [toastConfig, setToastConfig] = useState<{
+    message: string;
+    type: 'success' | 'error';
+  } | null>(null);
+
+  const showToast = (
+    message: string,
+    type: 'success' | 'error' = 'success',
+  ) => {
+    setToastConfig({ message, type });
+  };
+
+  const handleOpenOrganizer = (galeria: Galeria) => {
+    navigate(
+      `/dashboard/galerias/${galeria.id}/tags`,
+      'Abrindo organizador...',
+    );
+  };
   // --- EFFECTS ---
   useEffect(() => {
     if (!authLoading && !user) {
@@ -113,6 +131,7 @@ export default function Dashboard({
   const handleEdit = (g: Galeria) => {
     navigate(`/dashboard/galerias/${g.id}/edit`, 'Abrindo galeria...');
   };
+
 
   // --- RENDERING ---
   if (authLoading) {
@@ -201,6 +220,7 @@ export default function Dashboard({
             isBulkMode={actions.isBulkMode}
             selectedIds={actions.selectedIds}
             onToggleSelect={actions.handleToggleSelect}
+            onOpenTags={handleOpenOrganizer}
           />
 
           <DashboardFooter

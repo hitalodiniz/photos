@@ -22,8 +22,7 @@ import { DownloadCenterModal } from './DownloadCenterModal';
 import { ToolBarMobile } from './ToolBarMobile';
 import { V } from 'node_modules/vitest/dist/chunks/reporters.d.Rsi0PyxX';
 import UpgradeModal from '@/components/ui/UpgradeModal';
-import { PlanKey, PERMISSIONS_BY_PLAN } from '@/core/config/plans';
-import { usePlan } from '@/core/context/PlanContext';
+
 import { getGalleryPermission } from '@/core/utils/plan-helpers';
 
 export default function PhotoGrid({ photos, galeria }: any) {
@@ -34,7 +33,7 @@ export default function PhotoGrid({ photos, galeria }: any) {
   const [isScrolled, setIsScrolled] = useState(false);
   const [isHovered, setIsHovered] = useState(false);
   const [showOnlyFavorites, setShowOnlyFavorites] = useState(false);
-  const [activeTag, setActiveTag] = useState('');
+  const [activeTag, setActiveTag] = useState<string[]>([]);
   const [showVolumeDashboard, setShowVolumeDashboard] = useState(false);
   const [canShowFavButton, setCanShowFavButton] = useState(false);
   const [upsellFeature, setUpsellFeature] = useState<{
@@ -115,24 +114,26 @@ export default function PhotoGrid({ photos, galeria }: any) {
   // Agora usando photosWithTags, ele vai popular corretamente.
   const tagsDaGaleria = useMemo(
     () => [
-      'Todas',
-      ...Array.from(new Set(photosWithTags.map((p: any) => p.tag).filter(Boolean))),
+      'Todas as fotos',
+      ...Array.from(
+        new Set(photosWithTags.map((p: any) => p.tag).filter(Boolean)),
+      ),
     ],
     [photosWithTags],
   );
 
+  // Substitua o filtro do displayedPhotos por este:
   const displayedPhotos = useMemo(
     () =>
       photosWithTags.filter((photo: any) => {
         const matchesFavorite = showOnlyFavorites
           ? favorites.includes(photo.id)
           : true;
-        
-        // 🎯 Lógica de filtro de tags mais robusta (aceita vazio ou 'Todas')
-        const matchesTag = 
-          !activeTag || 
-          activeTag === 'Todas' || 
-          photo.tag === activeTag;
+
+        // 🎯 Se o array estiver vazio, exibe todas.
+        // Se tiver algo, verifica se a tag da foto está no array.
+        const matchesTag =
+          activeTag.length === 0 || activeTag.includes(photo.tag);
 
         return matchesFavorite && matchesTag;
       }),
@@ -421,7 +422,8 @@ export default function PhotoGrid({ photos, galeria }: any) {
   };
 
   const handleDownloadFavorites = () => setShowVolumeDashboard(true);
-  const downloadAllAsZip = () => handleDownloadZip(photosWithTags, 'completa', false);
+  const downloadAllAsZip = () =>
+    handleDownloadZip(photosWithTags, 'completa', false);
 
   const handleShare = () => {
     const url = window.location.href;
@@ -471,7 +473,7 @@ export default function PhotoGrid({ photos, galeria }: any) {
             handleExternalDownload,
             externalLinks,
             setUpsellFeature,
-            canUseFavorites: canUseFavorites && galeria.enable_favorites,
+            getGalleryPermission,
           }}
           tags={tagsDaGaleria}
           handleShare={handleShare}
@@ -493,7 +495,7 @@ export default function PhotoGrid({ photos, galeria }: any) {
             setActiveTag,
             handleExternalDownload,
             externalLinks,
-            canUseFavorites: canUseFavorites && galeria.enable_favorites,
+            getGalleryPermission,
           }}
           tags={tagsDaGaleria}
           handleShare={handleShare}
@@ -566,9 +568,9 @@ export default function PhotoGrid({ photos, galeria }: any) {
       {/* LIGHTBOX */}
       {selectedPhotoIndex !== null && photosWithTags.length > 0 && (
         <Lightbox
-          photos={photosWithTags}
+          photos={displayedPhotos}
           activeIndex={selectedPhotoIndex}
-          totalPhotos={photosWithTags.length}
+          totalPhotos={displayedPhotos.length}
           galleryTitle={galeria.title}
           galeria={galeria}
           location={galeria.location || ''}
@@ -578,11 +580,14 @@ export default function PhotoGrid({ photos, galeria }: any) {
           onToggleFavorite={toggleFavoriteFromGrid}
           onClose={() => setSelectedPhotoIndex(null)}
           onNext={() =>
-            setSelectedPhotoIndex((selectedPhotoIndex + 1) % photosWithTags.length)
+            setSelectedPhotoIndex(
+              (selectedPhotoIndex + 1) % displayedPhotos.length,
+            )
           }
           onPrev={() =>
             setSelectedPhotoIndex(
-              (selectedPhotoIndex - 1 + photosWithTags.length) % photosWithTags.length,
+              (selectedPhotoIndex - 1 + displayedPhotos.length) %
+                displayedPhotos.length,
             )
           }
           onNavigateToIndex={(index) => setSelectedPhotoIndex(index)}

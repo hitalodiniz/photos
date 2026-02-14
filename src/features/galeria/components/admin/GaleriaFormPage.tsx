@@ -154,8 +154,6 @@ export default function GaleriaFormPage({
     const cover_image_ids = formData.get('cover_image_ids') as string;
     const cover_image_url = formData.get('cover_image_url') as string;
     const photoCount = parseInt(formData.get('photo_count') as string) || 0;
-    const galleryTags = formData.get('gallery_tags') as string;
-    const photo_tags = formData.get('photo_tags') as string;
 
     // Validações
     if (!title?.trim()) {
@@ -205,8 +203,6 @@ export default function GaleriaFormPage({
     formData.set('columns_tablet', String(columns.tablet));
     formData.set('columns_desktop', String(columns.desktop));
     formData.set('photo_count', String(photoCount));
-    formData.set('gallery_tags', String(galleryTags));
-    formData.set('photo_tags', String(photo_tags));
 
     const whatsappRaw = formData.get('client_whatsapp') as string;
     if (whatsappRaw)
@@ -232,6 +228,23 @@ export default function GaleriaFormPage({
       if (!formData.has('photo_count')) formData.set('photo_count', '0');
     } catch (err) {
       console.error('Erro ao processar IDs no submit:', err);
+    }
+
+    // 🎯 PRESERVAÇÃO DE TAGS: Injeta os valores atuais para não resetar no banco
+    if (isEdit && galeria) {
+      // Converte para string se for objeto, ou mantém se já for string JSON
+      const currentPhotoTags =
+        typeof galeria.photo_tags === 'string'
+          ? galeria.photo_tags
+          : JSON.stringify(galeria.photo_tags || []);
+
+      const currentGalleryTags =
+        typeof galeria.gallery_tags === 'string'
+          ? galeria.gallery_tags
+          : JSON.stringify(galeria.gallery_tags || []);
+
+      formData.set('photo_tags', currentPhotoTags);
+      formData.set('gallery_tags', currentGalleryTags);
     }
 
     try {

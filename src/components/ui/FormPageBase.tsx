@@ -65,7 +65,7 @@ export default function FormPageBase({
       <div ref={modalRef} className="relative w-full flex-1 flex flex-col">
         {/* FORM CONTENT */}
         <div className="flex-1">
-          <div className="w-full max-w-7xl mx-auto px-4 md:px-10">
+          <div className="w-full max-w-[1600px] mx-auto px-4 md:px-10">
             <form
               id={id}
               onSubmit={onSubmit}

@@ -17,6 +17,7 @@ import {
   Link2,
   Users,
   ImageIcon,
+  Tag,
 } from 'lucide-react';
 import { useState, useEffect } from 'react';
 import type { Galeria } from '@/core/types/galeria';
@@ -54,6 +55,7 @@ interface GaleriaCardProps {
   isBulkMode?: boolean;
   isSelected?: boolean;
   onToggleSelect?: (id: string) => void;
+  onOpenTags?: (galeria: Galeria) => void;
 }
 
 export default function GaleriaCard({
@@ -73,6 +75,7 @@ export default function GaleriaCard({
   isBulkMode = false,
   isSelected = false,
   onToggleSelect,
+  onOpenTags,
 }: GaleriaCardProps) {
   const { permissions } = usePlan();
   const [upsellFeature, setUpsellFeature] = useState<string | null>(null);
@@ -184,15 +187,120 @@ export default function GaleriaCard({
     });
   };
 
+  // 🎯 FUNÇÃO ÚNICA PARA OS BOTÕES DE AÇÃO
+  const renderActionButtons = () => {
+    if (currentView !== 'active') return null;
+
+    return (
+      <>
+        <button
+          onClick={handleWhatsAppShare}
+          className="p-2 text-petroleum bg-white border border-slate-200 rounded-luxury interactive-luxury-petroleum"
+          title="WhatsApp"
+        >
+          <WhatsAppIcon className="w-4 h-4" />
+        </button>
+
+        <button
+          onClick={(e) => {
+            e.stopPropagation();
+            if (!isNavigating) handleEditClick(e);
+          }}
+          disabled={isNavigating}
+          className="p-2 text-petroleum bg-white border border-slate-200 rounded-luxury interactive-luxury-petroleum"
+          title="Editar"
+        >
+          <Pencil size={16} />
+        </button>
+
+        <button
+          onClick={(e) => {
+            e.stopPropagation();
+            if (!permissions.canTagPhotos) {
+              setUpsellFeature('Organizador de Fotos');
+              setIsUpgradeModalOpen(true);
+              return;
+            }
+            navigate(
+              `/dashboard/galerias/${galeria.id}/tags`,
+              'Abrindo marcação de fotos...',
+            );
+          }}
+          disabled={isNavigating}
+          className={`p-2 rounded-luxury transition-all flex items-center justify-center border shadow-sm ${
+            isNavigating
+              ? 'opacity-50'
+              : 'text-gold bg-white border-slate-200 interactive-luxury-gold'
+          }`}
+          title="Marcação de Fotos (Tags)"
+        >
+          {isNavigating ? (
+            <Loader2 size={16} className="animate-spin" />
+          ) : (
+            <Tag size={16} />
+          )}
+        </button>
+
+        {mounted && (
+          <button
+            onClick={handleCopy}
+            className="p-2 text-petroleum bg-white border border-slate-200 rounded-luxury interactive-luxury-petroleum"
+            title="Link"
+          >
+            {copied ? (
+              <Check size={16} className="text-green-500 animate-in zoom-in" />
+            ) : (
+              <Link2 size={16} />
+            )}
+          </button>
+        )}
+
+        <button
+          onClick={(e) => {
+            e.stopPropagation();
+            if (!canViewLeads) {
+              setUpsellFeature('Relatório de Visitantes');
+              setIsUpgradeModalOpen(true);
+              return;
+            }
+            navigate(
+              `/dashboard/galerias/${galeria.id}/leads`,
+              'Gerando relatório...',
+            );
+          }}
+          className={`p-2 rounded-luxury flex items-center justify-center transition-all border shadow-sm ${
+            !canViewLeads
+              ? 'bg-white text-petroleum/30 border-slate-200 grayscale hover:border-gold cursor-pointer'
+              : 'bg-white text-petroleum border-slate-200 interactive-luxury-petroleum disabled:opacity-50 disabled:bg-slate-50 disabled:text-slate-400 disabled:border-slate-200 disabled:cursor-not-allowed'
+          }`}
+          disabled={
+            canViewLeads &&
+            (isNavigating ||
+              (!galeria.leads_enabled && (galeria.leads_count ?? 0) <= 0))
+          }
+        >
+          {canViewLeads ? (
+            <Users size={16} />
+          ) : (
+            <div className="relative">
+              <Users size={16} className="opacity-40" />
+              <Lock size={8} className="absolute -top-1 -right-1 text-gold" />
+            </div>
+          )}
+        </button>
+      </>
+    );
+  };
+
+  // --- RENDERS ---
+
   if (viewMode === 'list') {
     return (
       <div
         onClick={() =>
           !isBulkMode && links.url && window.open(links.url, '_blank')
         }
-        className={`group relative flex items-center gap-4 overflow-hidden rounded-luxury border border-slate-200 bg-white p-3 transition-all w-full animate-in fade-in slide-in-from-bottom-2 duration-500 fill-mode-both hover:border-petroleum/70 ${
-          isBulkMode ? 'cursor-default' : 'cursor-pointer'
-        } ${isSelected && isBulkMode ? 'ring-2 ring-gold border-gold' : ''}`}
+        className={`group relative flex items-center gap-4 overflow-hidden rounded-luxury border border-slate-200 bg-white p-3 transition-all w-full animate-in fade-in slide-in-from-bottom-2 duration-500 fill-mode-both hover:border-petroleum/70 ${isBulkMode ? 'cursor-default' : 'cursor-pointer'} ${isSelected && isBulkMode ? 'ring-2 ring-gold border-gold' : ''}`}
         style={{ animationDelay: `${index * 30}ms` }}
       >
         {isBulkMode && (
@@ -280,7 +388,6 @@ export default function GaleriaCard({
                   {formatDateSafely(galeria.date)}
                 </span>
               </div>
-              {/* Contagem de Fotos e Indicador de Múltiplas Capas */}
               <div className="flex items-center gap-2 text-[10px] font-medium text-editorial-gray/70">
                 <span className="flex items-center gap-1">
                   <ImageIcon size={10} className="text-gold" />
@@ -300,79 +407,7 @@ export default function GaleriaCard({
           </div>
 
           <div className="flex items-center gap-2 flex-shrink-0">
-            {currentView === 'active' && (
-              <>
-                <button
-                  onClick={handleWhatsAppShare}
-                  className="p-2 text-petroleum bg-white border border-slate-200 rounded-luxury interactive-luxury-petroleum"
-                  title="WhatsApp"
-                >
-                  <WhatsAppIcon className="w-4 h-4" />
-                </button>
-                <button
-                  onClick={(e) => {
-                    e.stopPropagation();
-                    if (!isNavigating) handleEditClick(e);
-                  }}
-                  disabled={isNavigating}
-                  className="p-2 text-petroleum bg-white border border-slate-200 rounded-luxury interactive-luxury-petroleum"
-                  title="Editar"
-                >
-                  <Pencil size={16} />
-                </button>
-                {mounted && (
-                  <button
-                    onClick={handleCopy}
-                    className="p-2 text-petroleum bg-white border border-slate-200 rounded-luxury interactive-luxury-petroleum"
-                    title="Link"
-                  >
-                    {copied ? (
-                      <Check
-                        size={16}
-                        className="text-green-500 animate-in zoom-in"
-                      />
-                    ) : (
-                      <Link2 size={16} />
-                    )}
-                  </button>
-                )}
-                <button
-                  onClick={(e) => {
-                    e.stopPropagation();
-                    if (!canViewLeads) {
-                      setUpsellFeature('Relatório de Visitantes');
-                      setIsUpgradeModalOpen(true);
-                      return;
-                    }
-                    navigate(
-                      `/dashboard/galerias/${galeria.id}/leads`,
-                      'Gerando relatório...',
-                    );
-                  }}
-                  className={`p-2 bg-white border border-slate-200 rounded-luxury flex items-center justify-center transition-all ${!canViewLeads ? 'text-petroleum/30 grayscale hover:border-gold' : 'text-petroleum interactive-luxury-petroleum'}`}
-                  disabled={
-                    canViewLeads &&
-                    (isNavigating ||
-                      !(
-                        galeria.leads_enabled || (galeria.leads_count ?? 0) > 0
-                      ))
-                  }
-                >
-                  {canViewLeads ? (
-                    <Users size={16} />
-                  ) : (
-                    <div className="relative">
-                      <Users size={16} className="opacity-40" />
-                      <Lock
-                        size={8}
-                        className="absolute -top-1 -right-1 text-gold"
-                      />
-                    </div>
-                  )}
-                </button>
-              </>
-            )}
-            {/* Alinhamento à Direita via Flex Container */}
+            {renderActionButtons()}
             <div className="flex justify-end min-w-[32px]">
               <GaleriaContextMenu
                 galeria={galeria}
@@ -521,10 +556,7 @@ export default function GaleriaCard({
                 onClick={(e) => e.stopPropagation()}
                 className="flex-1 flex items-center gap-1.5 px-2.5 h-full hover:bg-white transition-all group/drive min-w-0"
               >
-                <FolderOpen
-                  size={13}
-                  className="text-editorial-gray shrink-0"
-                />
+                <FolderOpen size={13} className="text-gold shrink-0" />
                 <span className="text-[10px] font-medium text-editorial-gray truncate">
                   Drive: {galeria.drive_folder_name || 'Sem pasta vinculada'}
                 </span>
@@ -533,7 +565,6 @@ export default function GaleriaCard({
                 </span>
               </a>
               <div className="w-[1px] h-3 bg-petroleum/10" />
-              {/* 🎯 NOVO: Indicador de fotos no canto do botão de Sync */}
               {galeria.photo_count > 0 && (
                 <div className="flex items-center gap-1.5 px-2 text-editorial-gray border-l border-petroleum/10 h-full bg-slate-100/50">
                   <ImageIcon size={11} className="text-gold/70" />
@@ -542,7 +573,6 @@ export default function GaleriaCard({
                   </span>
                 </div>
               )}
-
               <div className="w-[1px] h-3 bg-petroleum/10" />
               <button
                 onClick={(e) => {
@@ -550,7 +580,7 @@ export default function GaleriaCard({
                   onSync();
                 }}
                 disabled={isUpdating}
-                className="flex items-center justify-center px-2.5 border-l border-slate-200 h-full hover:bg-white text-editorial-gray hover:text-gold transition-all"
+                className="flex items-center justify-center px-2.5 border-l border-slate-200 h-full hover:bg-white text-gold hover:text-gold transition-all"
               >
                 {isUpdating ? (
                   <Loader2 size={12} className="animate-spin" />
@@ -560,94 +590,22 @@ export default function GaleriaCard({
               </button>
             </div>
           </div>
-        </div>
 
-        <div className="flex items-center justify-between p-3 md:p-2.5 bg-slate-50/50 border-t border-petroleum/10 mt-auto">
-          <div className="flex gap-2 md:gap-1.5 flex-1">
-            {currentView === 'active' && (
-              <>
-                <button
-                  onClick={handleWhatsAppShare}
-                  className="p-2 text-petroleum bg-white border border-slate-200 rounded-luxury interactive-luxury-petroleum"
-                  title="WhatsApp"
-                >
-                  <WhatsAppIcon className="w-4 h-4" />
-                </button>
-                <button
-                  onClick={(e) => {
-                    e.stopPropagation();
-                    if (!isNavigating) handleEditClick(e);
-                  }}
-                  disabled={isNavigating}
-                  className="p-2 text-petroleum bg-white border border-slate-200 rounded-luxury interactive-luxury-petroleum"
-                  title="Editar"
-                >
-                  <Pencil size={16} />
-                </button>
-                {mounted && (
-                  <button
-                    onClick={handleCopy}
-                    className="p-2 text-petroleum bg-white border border-slate-200 rounded-luxury interactive-luxury-petroleum"
-                    title="Link"
-                  >
-                    {copied ? (
-                      <Check
-                        size={16}
-                        className="text-green-500 animate-in zoom-in"
-                      />
-                    ) : (
-                      <Link2 size={16} />
-                    )}
-                  </button>
-                )}
-                <button
-                  onClick={(e) => {
-                    e.stopPropagation();
-                    if (!canViewLeads) {
-                      setUpsellFeature('Relatório de Visitantes');
-                      setIsUpgradeModalOpen(true);
-                      return;
-                    }
-                    navigate(
-                      `/dashboard/galerias/${galeria.id}/leads`,
-                      'Gerando relatório...',
-                    );
-                  }}
-                  className={`p-2 bg-white border border-slate-200 rounded-luxury flex items-center justify-center transition-all ${!canViewLeads ? 'text-petroleum/30 grayscale hover:border-gold' : 'text-petroleum interactive-luxury-petroleum'}`}
-                  disabled={
-                    canViewLeads &&
-                    (isNavigating ||
-                      !(
-                        galeria.leads_enabled || (galeria.leads_count ?? 0) > 0
-                      ))
-                  }
-                >
-                  {canViewLeads ? (
-                    <Users size={16} />
-                  ) : (
-                    <div className="relative">
-                      <Users size={16} className="opacity-40" />
-                      <Lock
-                        size={8}
-                        className="absolute -top-1 -right-1 text-gold"
-                      />
-                    </div>
-                  )}
-                </button>
-              </>
-            )}
-            {/* Alinhamento à Direita via Flex-1 e justify-end no container pai ou div específica */}
-            <div className="flex-1 flex justify-end">
-              <GaleriaContextMenu
-                galeria={galeria}
-                currentView={currentView}
-                onArchive={onArchive}
-                onDelete={onDelete}
-                onToggleShowOnProfile={onToggleShowOnProfile}
-                onRestore={onRestore}
-                onPermanentDelete={onPermanentDelete}
-                isUpdating={isUpdating}
-              />
+          <div className="flex items-center justify-between p-3 md:p-2.5 bg-slate-50/50 border-t border-petroleum/10 mt-auto">
+            <div className="flex gap-2 md:gap-1.5 flex-1">
+              {renderActionButtons()}
+              <div className="flex-1 flex justify-end">
+                <GaleriaContextMenu
+                  galeria={galeria}
+                  currentView={currentView}
+                  onArchive={onArchive}
+                  onDelete={onDelete}
+                  onToggleShowOnProfile={onToggleShowOnProfile}
+                  onRestore={onRestore}
+                  onPermanentDelete={onPermanentDelete}
+                  isUpdating={isUpdating}
+                />
+              </div>
             </div>
           </div>
         </div>
@@ -655,7 +613,7 @@ export default function GaleriaCard({
       <UpgradeModal
         isOpen={Boolean(isUpgradeModalOpen)}
         onClose={() => setIsUpgradeModalOpen(false)}
-        featureName="Cadastro de visitantes"
+        featureName={upsellFeature || 'Recurso Premium'}
         featureKey="canCaptureLeads"
         scenarioType="feature"
       />

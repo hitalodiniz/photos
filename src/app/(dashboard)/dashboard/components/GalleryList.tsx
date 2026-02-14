@@ -18,6 +18,7 @@ interface GalleryListProps {
   isBulkMode: boolean;
   selectedIds: Set<string>;
   onToggleSelect: (id: string) => void;
+  onOpenTags: (g: Galeria) => void;
 }
 
 export default function GalleryList({
@@ -35,6 +36,8 @@ export default function GalleryList({
   isBulkMode,
   selectedIds,
   onToggleSelect,
+  onOpenTags,
+  updatingId: loadingId,
 }: GalleryListProps) {
   if (galerias.length === 0) {
     return (
@@ -79,6 +82,7 @@ export default function GalleryList({
             isBulkMode={isBulkMode}
             isSelected={selectedIds.has(g.id)}
             onToggleSelect={onToggleSelect}
+            onOpenTags={() => onOpenTags(g)}
           />
         ))}
       </div>
