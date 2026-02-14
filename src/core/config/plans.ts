@@ -206,6 +206,7 @@ export interface PlanPermissions {
   canShowSlideshow: boolean;
   maxGridColumns: number;
   canTagPhotos: number;
+  maxTags: number;
   tagSelectionMode: 'manual' | 'bulk' | 'drive';
   zipSizeLimit: string;
   maxExternalLinks: number;
@@ -247,6 +248,7 @@ export const PERMISSIONS_BY_PLAN: Record<PlanKey, PlanPermissions> = {
     canShowSlideshow: false,
     maxGridColumns: 3,
     canTagPhotos: 0,
+    maxTags: 0,
     tagSelectionMode: 'manual',
     zipSizeLimit: '500KB',
     maxExternalLinks: 0,
@@ -275,6 +277,7 @@ export const PERMISSIONS_BY_PLAN: Record<PlanKey, PlanPermissions> = {
     canShowSlideshow: false,
     maxGridColumns: 4,
     canTagPhotos: 0,
+    maxTags: 0,
     tagSelectionMode: 'manual',
     zipSizeLimit: '1MB',
     maxExternalLinks: 1,
@@ -303,6 +306,7 @@ export const PERMISSIONS_BY_PLAN: Record<PlanKey, PlanPermissions> = {
     canShowSlideshow: false,
     maxGridColumns: 5,
     canTagPhotos: 7,
+    maxTags: 7,
     tagSelectionMode: 'manual',
     zipSizeLimit: '1.5MB',
     maxExternalLinks: 2,
@@ -331,6 +335,7 @@ export const PERMISSIONS_BY_PLAN: Record<PlanKey, PlanPermissions> = {
     canShowSlideshow: true,
     maxGridColumns: 8,
     canTagPhotos: 12,
+    maxTags: 15,
     tagSelectionMode: 'bulk',
     zipSizeLimit: '2MB',
     maxExternalLinks: 5,
@@ -359,6 +364,7 @@ export const PERMISSIONS_BY_PLAN: Record<PlanKey, PlanPermissions> = {
     canShowSlideshow: true,
     maxGridColumns: 8,
     canTagPhotos: 30,
+    maxTags: 50,
     tagSelectionMode: 'drive',
     zipSizeLimit: '3MB',
     maxExternalLinks: 10,
