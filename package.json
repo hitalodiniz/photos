@@ -1,6 +1,6 @@
 {
   "name": "photos",
-  "version": "0.1.124",
+  "version": "0.1.128",
   "private": true,
   "workspaces": [
     "packages/*"
@@ -11,7 +11,7 @@
     "start": "next start",
     "test:ui": "vitest --ui",
     "lint": "eslint .",
-    "test": "vitest",
+    "test": "set NODE_OPTIONS=--max-old-space-size=4096 && vitest run",
     "test:clean": "vitest --clearCache && npx vitest src/contexts/AuthContext.spec.tsx",
     "test:coverage": "NODE_OPTIONS='--max-old-space-size=8192' vitest run --coverage",
     "test:critical": "vitest run src/core/services/auth.service.spec.ts src/hooks/useSupabaseSession.spec.ts src/components/providers/AuthContext.spec.tsx src/core/services/google.service.spec.ts src/core/logic/auth-gallery.spec.ts src/lib/supabase.client.spec.ts src/lib/supabase.server.spec.ts src/middleware.spec.ts src/app/api/auth/callback/route.spec.ts src/app/api/auth/google/route.spec.ts src/actions/auth.actions.spec.ts \"src/features/galeria/components/admin/GaleriaFormContent.spec.tsx\"",

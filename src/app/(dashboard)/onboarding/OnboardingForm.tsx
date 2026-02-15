@@ -105,6 +105,8 @@ export default function OnboardingForm({
     initialData?.custom_specialties || [],
   );
 
+  const hasAcceptedBefore = !!initialData?.accepted_terms;
+
   // --- ESTADOS DE LOCALIZAÇÃO ---
   const [states, setStates] = useState<{ sigla: string; nome: string }[]>([]);
   const [selectedUF, setSelectedUF] = useState('');
@@ -642,57 +644,59 @@ export default function OnboardingForm({
               </PlanGuard>
 
               {/* SEÇÃO 5: CONFORMIDADE */}
-              {!acceptTerms && (
-                <FormSection
-                  title="Termos e Privacidade"
-                  icon={<ShieldCheck size={14} />}
-                >
-                  <div className="space-y-4 py-2">
-                    <div className="flex items-start gap-3">
-                      <input
-                        type="checkbox"
-                        checked={acceptTerms}
-                        onChange={(e) => setAcceptTerms(e.target.checked)}
-                        className="h-4 w-4 rounded border-slate-300 text-gold focus:ring-gold"
-                      />
-                      <label className="text-[11px] text-petroleum/80 font-medium">
-                        Li e aceito os{' '}
-                        <button
-                          type="button"
-                          onClick={() => setShowTermsModal(true)}
-                          className="text-gold underline"
-                        >
-                          Termos de Serviço
-                        </button>
-                      </label>
-                    </div>
-                    <div className="flex items-start gap-3">
-                      <input
-                        type="checkbox"
-                        checked={acceptPrivacy}
-                        onChange={(e) => setAcceptPrivacy(e.target.checked)}
-                        className="h-4 w-4 rounded border-slate-300 text-gold focus:ring-gold"
-                      />
-                      <label className="text-[11px] text-petroleum/80 font-medium">
-                        Concordo com a{' '}
-                        <button
-                          type="button"
-                          onClick={() => setShowPrivacyModal(true)}
-                          className="text-gold underline"
-                        >
-                          Política de Privacidade
-                        </button>
-                      </label>
-                    </div>
+
+              <FormSection
+                title="Termos e Privacidade"
+                icon={<ShieldCheck size={14} />}
+              >
+                <div className="space-y-4 py-2">
+                  <div className="flex items-start gap-3">
+                    <input
+                      type="checkbox"
+                      checked={acceptTerms}
+                      disabled={hasAcceptedBefore} // 🔒 Trava se já foi aceito no banco
+                      onChange={(e) => setAcceptTerms(e.target.checked)}
+                      className="h-4 w-4 rounded border-slate-300 text-gold focus:ring-gold"
+                    />
+                    <label className="text-[11px] text-petroleum/80 font-medium">
+                      Li e aceito os{' '}
+                      <button
+                        type="button"
+                        onClick={() => setShowTermsModal(true)}
+                        className="text-gold underline"
+                      >
+                        Termos de Serviço
+                      </button>
+                    </label>
                   </div>
-                </FormSection>
-              )}
+                  <div className="flex items-start gap-3">
+                    <input
+                      type="checkbox"
+                      checked={acceptPrivacy}
+                      disabled={hasAcceptedBefore} // 🔒 Trava se já foi aceito no banco
+                      onChange={(e) => setAcceptPrivacy(e.target.checked)}
+                      className="h-4 w-4 rounded border-slate-300 text-gold focus:ring-gold"
+                    />
+                    <label className="text-[11px] text-petroleum/80 font-medium">
+                      Concordo com a{' '}
+                      <button
+                        type="button"
+                        onClick={() => setShowPrivacyModal(true)}
+                        className="text-gold underline"
+                      >
+                        Política de Privacidade
+                      </button>
+                    </label>
+                  </div>
+                </div>
+              </FormSection>
+
               {/* BOTÕES */}
               <div className="flex flex-row items-center justify-end gap-4 p-4 bg-petroleum ">
                 <button
                   type="button"
                   onClick={() => navigate('/dashboard')}
-                  className="btn-secondary-white"
+                  className="btn-secondary-petroleum"
                 >
                   CANCELAR
                 </button>

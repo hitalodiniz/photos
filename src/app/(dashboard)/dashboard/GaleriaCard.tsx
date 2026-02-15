@@ -237,7 +237,7 @@ export default function GaleriaCard({
           {isNavigating ? (
             <Loader2 size={16} className="animate-spin" />
           ) : (
-            <Tag size={16} />
+            <Tag size={16} className="text-petroleum" />
           )}
         </button>
 

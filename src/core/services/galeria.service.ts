@@ -953,7 +953,7 @@ export async function getGaleriaLeads(
 
     // 3. Busca os dados apenas se autorizado
     const { data, error } = await supabase
-      .from('tb_galerias')
+      .from('tb_galeria_leads')
       .select('*')
       .eq('galeria_id', galeriaId)
       .order('created_at', { ascending: false });

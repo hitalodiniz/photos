@@ -18,9 +18,11 @@ interface FormPageBaseProps {
   footerStatusText?: string;
   submitLabel?: string;
   id?: string;
+  footerButtons?: ReactNode; // Added footerButtons prop
 }
 
 export default function FormPageBase({
+  title,
   isEdit = false,
   loading = false,
   isSuccess = false,
@@ -33,6 +35,7 @@ export default function FormPageBase({
   footerStatusText,
   submitLabel,
   id = 'master-form',
+  footerButtons, // Destructure footerButtons
 }: FormPageBaseProps) {
   const modalRef = useRef<HTMLDivElement>(null);
 
@@ -79,32 +82,37 @@ export default function FormPageBase({
 
         {/* STICKY FOOTER */}
         <div className="sticky bottom-0 z-[60] shrink-0 bg-petroleum border-t border-white/10 shadow-[0_-10px_30px_rgba(0,0,0,0.3)]">
-          {isShowButtons && (
-            <div className="flex items-center justify-between px-6 py-4">
+          {(isShowButtons || footerButtons) && (
+            <div className="flex items-center justify-between px-6 py-1.5">
               <div className="text-[10px] text-white/90 uppercase tracking-luxury-widest">
                 {footerStatusText ||
                   (hasUnsavedChanges ? 'Alterações não salvas' : 'Tudo salvo')}
               </div>
 
               <div className="flex items-center gap-3">
-                {isEdit && (
-                  <button
-                    type="button"
-                    onClick={onClose}
-                    disabled={loading}
-                    className="btn-secondary-petroleum"
-                  >
-                    CANCELAR
-                  </button>
+                {footerButtons || (
+                  // Original buttons when no footerButtons are provided
+                  <>
+                    {isEdit && (
+                      <button
+                        type="button"
+                        onClick={onClose}
+                        disabled={loading}
+                        className="btn-secondary-petroleum"
+                      >
+                        CANCELAR
+                      </button>
+                    )}
+                    <SubmitButton
+                      form={id}
+                      success={isSuccess}
+                      disabled={loading}
+                      icon={<Save size={14} />}
+                      className="px-6"
+                      label={submitLabel || defaultSubmitLabel}
+                    />
+                  </>
                 )}
-                <SubmitButton
-                  form={id}
-                  success={isSuccess}
-                  disabled={loading}
-                  icon={<Save size={14} />}
-                  className="px-6"
-                  label={submitLabel || defaultSubmitLabel}
-                />
               </div>
             </div>
           )}

@@ -14,7 +14,7 @@ export default function DashboardFooter({
   showLoadMore,
 }: DashboardFooterProps) {
   return (
-    <div className="bg-petroleum rounded-luxury py-6 px-4 mt-12">
+    <div className="w-full bg-petroleum rounded-luxury py-3 px-4 mt-4 shadow-xl border border-white/5">
       <div className="flex items-center justify-center gap-4">
         {/* Contador - Botão Secundário */}
         <div className="px-4 py-3.5 rounded-luxury bg-white/10 border border-white/20 text-[10px] font-bold uppercase tracking-luxury text-white">

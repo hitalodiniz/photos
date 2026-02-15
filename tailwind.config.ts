@@ -35,6 +35,7 @@ const config: Config = {
           DEFAULT: 'rgb(var(--color-petroleum) / <alpha-value>)',
           light: 'rgb(var(--color-petroleum-light) / <alpha-value>)',
           dark: 'rgb(var(--color-petroleum-dark) / <alpha-value>)',
+          surface: 'rgb(var(--color-petroleum) / 0.9)',
         },
         'luxury-bg': 'rgb(var(--color-luxury-bg) / <alpha-value>)',
         'surface-dark': 'rgb(var(--color-surface-dark) / <alpha-value>)',

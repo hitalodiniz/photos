@@ -1,8 +1,10 @@
 import { Metadata } from 'next';
 import { redirect, notFound } from 'next/navigation';
 import { getProfileData } from '@/core/services/profile.service';
-import { getGaleriaById } from '@/core/services/galeria.service';
+
 import LeadReportView from '../../../LeadReportView';
+import { PlanProvider } from '@/core/context/PlanContext';
+import { getGaleriaById } from '@/core/services/galeria.service';
 
 export async function generateMetadata({
   params,
@@ -17,15 +19,15 @@ export async function generateMetadata({
     const result = await getGaleriaById(id, resultProfile.profile.id);
     if (result.success && result.data) {
       return {
-        title: `Leads - ${result.data.title}`,
-        description: `Relatório de leads: ${result.data.title}`,
+        title: `Visitantes - ${result.data.title}`,
+        description: `Relatório de Visitantes: ${result.data.title}`,
       };
     }
   }
 
   return {
-    title: 'Relatório de Leads',
-    description: 'Relatório de leads',
+    title: 'Relatório de Visitantes',
+    description: 'Relatório de Visitantes',
   };
 }
 
@@ -56,5 +58,9 @@ export default async function LeadsPage({
 
   const galeria = result.data;
 
-  return <LeadReportView galeria={galeria} />;
+  return (
+    <PlanProvider profile={profile}>
+      <LeadReportView galeria={galeria} />
+    </PlanProvider>
+  );
 }

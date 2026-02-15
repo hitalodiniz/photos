@@ -41,27 +41,30 @@ export default function GalleryList({
 }: GalleryListProps) {
   if (galerias.length === 0) {
     return (
-      <div className="flex flex-col items-center justify-center py-32 text-center bg-white rounded-luxury border border-slate-200 shadow-sm p-4 min-h-[500px]">
-        <div className="w-20 h-20 bg-slate-50 rounded-luxury flex items-center justify-center mb-6 border border-champagne">
-          <Inbox className="text-gold opacity-40" size={32} />
+      /* 🎯 Empty State: Centralizado e limpo */
+      <div className="flex flex-col items-center justify-center py-24 text-center rounded-luxury animate-in fade-in duration-500 mt-2">
+        <div className="w-16 h-16 bg-slate-50 rounded-full flex items-center justify-center mb-6 border border-gold/20 shadow-sm">
+          <Inbox className="text-gold/40" size={28} />
         </div>
-        <h3 className="text-xl italic text-editorial-ink mb-2">
+        <h3 className="text-sm font-semibold uppercase tracking-[0.2em] text-petroleum mb-2">
           Nenhuma galeria por aqui
         </h3>
-        <p className="text-sm text-editorial-gray max-w-xs mb-8">
-          Não encontramos resultados para sua busca.
+        <p className="text-[11px] text-editorial-gray max-w-[240px] font-medium leading-relaxed">
+          O seu acervo está vazio ou os filtros aplicados não encontraram
+          resultados.
         </p>
       </div>
     );
   }
 
   return (
-    <div className="bg-white rounded-luxury border border-slate-200 shadow-sm p-4 min-h-[500px]">
+    <div className="w-full mt-2">
       <div
         className={
           viewMode === 'grid'
-            ? 'grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 xl:grid-cols-4 gap-4'
-            : 'space-y-2'
+            ? /* 🎯 Grid Padronizado: Mantém largura fixa por coluna para não esticar cards sozinhos */
+              'grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-2 auto-rows-max'
+            : 'space-y-3'
         }
       >
         {galerias.map((g, index) => (

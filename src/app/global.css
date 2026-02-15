@@ -4,207 +4,81 @@
 
 @layer base {
   /* ========================================================================
-     🎯 SISTEMA DE TEMAS POR SEGMENTO
+     🎯 SISTEMA DE TEMAS POR SEGMENTO (TONALIDADES SÓLIDAS RECALIBRADAS)
      ======================================================================== */
 
-  /* 🎯 TEMA PHOTOGRAPHER: (Sua Galeria) - VALIDADO ✓ */
+  /* 🎯 TEMA PHOTOGRAPHER: (Sua Galeria) */
   :root,
   [data-segment='PHOTOGRAPHER'] {
     --color-champagne: 243 229 171; /* Bege suave e elegante */
     --color-champagne-hover: 229 214 154;
     --color-gold: 212 175 55; /* Dourado clássico */
-    --color-petroleum: 0 33 46; /* Azul petróleo profundo */
-    --color-petroleum-light: 0 45 63;
-    --color-petroleum-dark: 0 24 34;
+    /* 🎯 Ajustado para emular o tom do antigo /90 de forma sólida */
+    --color-petroleum: 5 38 51;
+    --color-petroleum-light: 8 48 65;
+    --color-petroleum-dark: 2 28 38;
     --color-luxury-bg: 248 249 250; /* Fundo off-white suave */
     --color-surface-dark: 17 24 39;
     --color-surface-mixed: 45 46 102;
     --color-status-success: 37 161 102;
   }
 
-  /* 🎯 TEMA EVENT: (Na Selfie) - VALIDADO ✓ */
+  /* 🎯 TEMA EVENT: (Na Selfie) */
   [data-segment='EVENT'] {
-    /* Cores Primárias: Rosa Pink + Azul Ciano */
-    --color-champagne: 255 71 126; /* Pink vibrante (principal) */
-    --color-champagne-hover: 236 72 153; /* Pink-500 hover */
-    /* 2. Gold (Acento): De Cyan para Rosa Choque Neon (Energia Máxima) */
-    --color-gold: 255 20 147; /* #FF1493 - Deep Pink Intenso */
-
-    /* Petroleum vira Preto Moderno */
-    --color-petroleum: 23 23 23; /* Neutral-900: preto suave */
-    --color-petroleum-light: 38 38 38; /* Neutral-800 */
-    --color-petroleum-dark: 10 10 10; /* Quase preto absoluto */
-
-    /* Fundos e Superfícies */
-    --color-luxury-bg: 250 250 250; /* Branco quente para contraste */
-    --color-surface-dark: 23 23 23; /* Preto moderno */
-    --color-surface-mixed: 244 63 94; /* Rose-500 para elementos UI */
-    --color-status-success: 34 197 94; /* Green-500 */
+    --color-champagne: 255 71 126; /* Pink vibrante */
+    --color-champagne-hover: 236 72 153;
+    --color-gold: 255 20 147;
+    /* 🎯 Preto suave sólido */
+    --color-petroleum: 28 28 28;
+    --color-petroleum-light: 42 42 42;
+    --color-petroleum-dark: 15 15 15;
+    --color-luxury-bg: 250 250 250;
+    --color-surface-dark: 23 23 23;
+    --color-surface-mixed: 244 63 94;
+    --color-status-success: 34 197 94;
   }
 
-  /* 🎯 TEMA OFFICE: (Em Mandato) - Institucional Premium Chumbo & Prata */
-  /* 🎯 TEMA OFFICE: (Em Mandato) - Platina & Antracite Editorial */
+  /* 🎯 TEMA OFFICE: (Institucional Premium) */
   [data-segment='OFFICE'] {
-    /* 🎯 ACENTO: Platina Real (Um champagne mais pálido e metálico)
-     Substituímos o areia pelo rgb(210 215 225). Ele tem o mesmo 'peso' visual 
-     do tema campanha, mas com uma alma institucional. */
     --color-champagne: 210 215 225;
     --color-champagne-hover: 180 190 205;
     --color-gold: 148 163 184;
-
-    /* 🎯 FUNDO: Carbono Antracite (#1A1D21) 
-     Exatamente o mesmo tom profundo que você gostou no Campaign. */
-    --color-petroleum: 26 29 33;
-    --color-petroleum-light: 52 58 64;
-    --color-petroleum-dark: 13 15 17;
-
-    /* Fundo de Leitura: Off-white neutro */
+    /* 🎯 Antracite sólido recalibrado */
+    --color-petroleum: 32 35 39;
+    --color-petroleum-light: 58 64 70;
+    --color-petroleum-dark: 18 20 23;
     --color-luxury-bg: 250 250 250;
-
-    /* Superfícies */
     --color-surface-dark: 26 29 33;
     --color-surface-mixed: 255 255 255;
     --color-status-success: 33 37 41;
   }
 
-  [data-segment='OFFICE'] body {
-    background-color: rgb(250 250 250) !important;
-    color: rgb(26 29 33) !important;
-  }
-
-  /* 🎯 BANNER: Antracite Sólido (Igual ao Campaign para manter o impacto) */
-  [data-segment='OFFICE'] .bg-petroleum,
-  [data-segment='OFFICE'] .bg-slate-900 {
-    background-color: rgb(26 29 33) !important;
-    color: white !important;
-  }
-
-  /* 🎯 BOTÕES E BADGES: Usando o tom Platina (Ouro Branco) */
-  [data-segment='OFFICE'] .btn-primary,
-  [data-segment='OFFICE'] button[class*='bg-gold'],
-  [data-segment='OFFICE'] .bg-rose-900,
-  [data-segment='OFFICE'] .bg-red-900 {
-    background-color: rgb(210 215 225) !important;
-    color: rgb(26 29 33) !important;
-    border: none !important;
-    font-weight: 700 !important;
-    text-transform: uppercase !important;
-    letter-spacing: 0.05em !important;
-  }
-
-  /* Hover do botão */
-  [data-segment='OFFICE'] .btn-primary:hover {
-    background-color: rgb(180 190 205) !important;
-  }
-
-  /* 🎯 TEXTO DE DESTAQUE: Títulos em Platina sobre fundo escuro */
-  [data-segment='OFFICE'] .text-yellow-400,
-  [data-segment='OFFICE'] .text-champagne {
-    color: rgb(210 215 225) !important;
-  }
-
-  /* Cards com borda sutil para não 'gritar' no fundo claro */
-  [data-segment='OFFICE'] .bg-white {
-    background-color: rgb(255 255 255) !important;
-    border: 1px solid rgb(230 235 240) !important;
-    box-shadow: 0 4px 20px rgba(0, 0, 0, 0.03) !important;
-  }
-  /* 🎯 TEMA CAMPAIGN: Neutro Antracite & Champagne Editorial (Ajustado para tom Areia) */
+  /* 🎯 TEMA CAMPAIGN: (Editorial Areia) */
   [data-segment='CAMPAIGN'] {
     --color-champagne: 225 205 160;
     --color-champagne-hover: 210 185 130;
-    --color-gold: 168 153 132; /* Tom bronze acinzentado para detalhes sutis */
-
-    /* 🎯 PETROLEUM: Cinza Chumbo Profundo Profissional */
-    --color-petroleum: 26 29 33;
-    --color-petroleum-light: 52 58 64;
-    --color-petroleum-dark: 13 15 17;
-
-    /* Fundo de Leitura: Off-white neutro */
+    --color-gold: 168 153 132;
+    /* 🎯 Chumbo profundo sólido */
+    --color-petroleum: 32 35 39;
+    --color-petroleum-light: 58 64 70;
+    --color-petroleum-dark: 18 20 23;
     --color-luxury-bg: 250 250 250;
-
-    /* Superfícies */
     --color-surface-dark: 26 29 33;
     --color-surface-mixed: 255 255 255;
     --color-status-success: 33 37 41;
   }
 
-  [data-segment='CAMPAIGN'] body {
-    background-color: rgb(250 250 250) !important;
-    color: rgb(26 29 33) !important;
-  }
-
-  /* 🎯 CORREÇÃO DO BANNER: Antracite Sólido */
-  [data-segment='CAMPAIGN'] .bg-petroleum,
-  [data-segment='CAMPAIGN'] .bg-slate-900 {
-    background-color: rgb(26 29 33) !important;
-    color: white !important;
-  }
-
-  /* 🎯 BOTÕES E BADGES: Usando o novo tom Champagne Areia pálido */
-  [data-segment='CAMPAIGN'] .btn-primary,
-  [data-segment='CAMPAIGN'] button[class*='bg-gold'],
-  [data-segment='CAMPAIGN'] .bg-rose-900,
-  [data-segment='CAMPAIGN'] .bg-red-900 {
-    background-color: rgb(225 205 160) !important;
-    color: rgb(26 29 33) !important; /* Texto escuro para contraste nítido */
-    border: none !important;
-    font-weight: 700 !important; /* Reforça a leitura no tom areia */
-  }
-
-  /* Hover do botão principal */
-  [data-segment='CAMPAIGN'] .btn-primary:hover {
-    background-color: rgb(210 185 130) !important;
-  }
-
-  /* 🎯 TEXTO DE DESTAQUE: Títulos e elementos que eram amarelos agora são Areia */
-
-  [data-segment='CAMPAIGN'] .text-yellow-700,
-  [data-segment='CAMPAIGN'] .text-champagne {
-    color: rgb(225 205 160) !important;
-  }
-
-  /* Cards com borda sutil e sombra leve */
-  [data-segment='CAMPAIGN'] .bg-white {
-    background-color: rgb(255 255 255) !important;
-    border: 1px solid rgb(233 236 239) !important;
-    box-shadow: 0 4px 20px rgba(0, 0, 0, 0.05) !important;
-  }
-
   /* ========================================================================
-     🎯 AJUSTES ESPECÍFICOS POR SEGMENTO
-     ======================================================================== */
-
-  /* EVENT: Fundo branco limpo para contraste com pink */
-  [data-segment='EVENT'] body {
-    background-color: rgb(250 250 250) !important;
-    color: rgb(23 23 23) !important;
-  }
-
-  [data-segment='EVENT'] nav,
-  [data-segment='EVENT'] .bg-petroleum {
-    background-color: rgb(23 23 23) !important;
-  }
-
-  /* ========================================================================
-     🎯 APLICAÇÕES GLOBAIS DE TEMA
+     🎯 APLICAÇÕES GLOBAIS E TIPOGRAFIA
      ======================================================================== */
 
   html,
   body {
-    /* Tipografia */
     font-family: var(--font-montserrat), sans-serif;
-
-    /* Renderização */
     -webkit-font-smoothing: antialiased;
     -moz-osx-font-smoothing: grayscale;
     text-rendering: optimizeLegibility;
-
-    /* Cores Dinâmicas por Tema */
-    @apply antialiased bg-luxury-bg text-petroleum selection:bg-gold/30;
-
-    /* Transição suave entre temas */
-    @apply transition-colors duration-300;
+    @apply antialiased bg-luxury-bg text-petroleum selection:bg-gold/30 transition-colors duration-300;
   }
 
   *,
@@ -212,10 +86,6 @@
   *::after {
     font-family: var(--font-montserrat), sans-serif !important;
   }
-
-  /* ========================================================================
-     🎯 TIPOGRAFIA E PADRÕES GLOBAIS
-     ======================================================================== */
 
   h1,
   h2,
@@ -228,7 +98,6 @@
     @apply text-[10px] font-semibold uppercase tracking-wide text-petroleum flex items-center gap-2;
   }
 
-  /* Inputs herdam fonte e suavização */
   input,
   textarea,
   button,
@@ -238,18 +107,40 @@
     -moz-osx-font-smoothing: inherit;
   }
 
-  /* Aplica estilo luxury em inputs de texto */
   input[type='text'],
   input[type='email'],
   input[type='password'],
   textarea {
     @apply input-luxury;
   }
+
+  /* Segura resets de background específicos para cada segmento */
+  [data-segment='OFFICE'] body,
+  [data-segment='CAMPAIGN'] body,
+  [data-segment='EVENT'] body {
+    background-color: rgb(250 250 250) !important;
+  }
 }
 
 @layer components {
   /* ========================================================================
-     🎯 CLASSES EDITORIAIS
+     🎯 CLASSES DE SUPERFÍCIE (SÓLIDAS)
+     ======================================================================== */
+
+  .glass-surface {
+    /* 🎯 Cor sólida para evitar transparência indesejada */
+    @apply bg-petroleum border-b border-white/5 shadow-lg;
+    backdrop-filter: none !important;
+  }
+
+  .glass-surface-dark {
+    /* 🎯 Cor sólida escura para dropdowns e modais */
+    @apply bg-petroleum-dark border border-white/10 shadow-2xl;
+    backdrop-filter: none !important;
+  }
+
+  /* ========================================================================
+     🎯 CLASSES EDITORIAIS E BOTÕES
      ======================================================================== */
 
   .text-editorial {
@@ -260,58 +151,43 @@
     @apply text-[10px] font-semibold uppercase tracking-wide;
   }
 
-  /* ========================================================================
-     🎯 SISTEMA DE BOTÕES
-     ======================================================================== */
-
-  /* Base: H-10 e PX-4 padronizado */
   .btn-luxury-base {
     @apply h-10 px-4 rounded-luxury flex items-center justify-center gap-2;
-    @apply text-[10px] font-bold uppercase tracking-luxury-widest;
+    @apply text-[10px] font-semibold uppercase tracking-luxury-widest;
     @apply transition-all duration-500 ease-in-out active:scale-95;
   }
 
-  /* Botão Primário (Champagne) */
   .btn-luxury-primary {
     @apply btn-luxury-base bg-champagne text-petroleum border border-champagne shadow-lg hover:bg-champagne-hover;
   }
 
-  /* Botão Secundário (Fundo Escuro) */
+  /* No seu globals.css */
   .btn-secondary-petroleum {
-    @apply btn-luxury-base border-white/20 bg-transparent text-white hover:bg-white/5 hover:border-white/40;
+    /* Base */
+    @apply btn-luxury-base border-white/40 bg-white/5 text-white/90;
+
+    /* Interação Premium */
+    @apply transition-all duration-300 ease-out;
+
+    /* Hover: O botão "acende" levemente */
+    @apply hover:bg-white/10 hover:border-white/30 hover:text-white;
   }
 
-  /* Botão Secundário (Fundo Claro) */
   .btn-secondary-white {
-    @apply btn-luxury-base border-petroleum/40  bg-white text-petroleum 
-           hover:border-petroleum hover:bg-petroleum/5;
-    @apply transition-all duration-500 ease-in-out;
+    @apply btn-luxury-base border-petroleum/40 bg-white text-petroleum hover:border-petroleum hover:bg-petroleum/5 transition-all duration-500;
   }
 
-  /* Botão Toolbar (Navbar) */
   .btn-toolbar {
-    @apply btn-luxury-base h-9 px-3 rounded-luxury-sm border-white/10 
-           bg-white/5 text-white/80 hover:bg-gold hover:text-petroleum 
-           hover:border-gold shadow-none;
+    @apply btn-luxury-base h-9 px-3 rounded-luxury-sm border-white/10 bg-white/5 text-white/80 hover:bg-gold hover:text-petroleum hover:border-gold shadow-none;
   }
-
-  /* ========================================================================
-     🎯 INPUTS E FORMULÁRIOS
-     ======================================================================== */
 
   .input-luxury {
-    @apply h-10 w-full bg-white border border-slate-200 rounded-luxury px-4;
-    @apply text-[11px] font-medium tracking-wide;
-    @apply focus:border-gold focus:ring-4 focus:ring-gold/5 outline-none transition-all;
-    @apply placeholder:text-slate-300;
+    @apply h-10 w-full bg-white border border-slate-200 rounded-luxury px-4 text-[11px] font-medium tracking-wide outline-none transition-all;
+    @apply focus:border-gold focus:ring-4 focus:ring-gold/5 placeholder:text-slate-300;
   }
 
-  /* ========================================================================
-     🎯 LOADING E OVERLAYS
-     ======================================================================== */
-
   .loading-screen-luxury {
-    @apply fixed inset-0 z-[9999] flex flex-col items-center justify-center bg-petroleum backdrop-blur-md;
+    @apply fixed inset-0 z-[9999] flex flex-col items-center justify-center bg-petroleum;
   }
 
   .loading-luxury::after {
@@ -324,32 +200,7 @@
   .glow-gold {
     filter: drop-shadow(0 0 4px rgba(243, 229, 171, 0.4));
   }
-}
 
-/* Centraliza o modal do Google Picker e impede que ele role a página */
-.picker-dialog {
-  top: 50% !important;
-  left: 50% !important;
-  transform: translate(-50%, -50%) !important;
-  z-index: 10000 !important; /* Deve ser maior que o seu Header, mas menor que o Toast */
-  position: fixed !important;
-  box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.5) !important;
-  border-radius: 8px !important;
-  overflow: hidden !important;
-}
-
-/* Garante que o fundo escuro (overlay) cubra a tela toda sem rolar */
-.picker-dialog-bg {
-  z-index: 9999 !important;
-  position: fixed !important;
-  top: 0 !important;
-  left: 0 !important;
-  width: 100% !important;
-  height: 100% !important;
-  background-color: rgba(0, 0, 0, 0.4) !important;
-}
-
-@layer utilities {
   .custom-scrollbar::-webkit-scrollbar {
     width: 6px;
   }
@@ -358,21 +209,40 @@
     border-radius: 10px;
   }
   .custom-scrollbar::-webkit-scrollbar-thumb {
-    background: #1a2f33; /* Seu Petroleum */
+    background: #052633;
     border-radius: 10px;
     border: 2px solid #f1f1f1;
   }
   .custom-scrollbar::-webkit-scrollbar-thumb:hover {
-    background: #c5a358; /* Seu Gold */
+    background: #c5a358;
   }
-}
 
-@layer utilities {
   .no-scrollbar::-webkit-scrollbar {
     display: none;
   }
   .no-scrollbar {
     -ms-overflow-style: none;
     scrollbar-width: none;
+  }
+
+  /* Modais e Pickers */
+  .picker-dialog {
+    top: 50% !important;
+    left: 50% !important;
+    transform: translate(-50%, -50%) !important;
+    z-index: 10000 !important;
+    position: fixed !important;
+    box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.5) !important;
+    border-radius: 8px !important;
+    overflow: hidden !important;
+  }
+  .picker-dialog-bg {
+    z-index: 9999 !important;
+    position: fixed !important;
+    top: 0 !important;
+    left: 0 !important;
+    width: 100% !important;
+    height: 100% !important;
+    background-color: rgba(0, 0, 0, 0.6) !important;
   }
 }

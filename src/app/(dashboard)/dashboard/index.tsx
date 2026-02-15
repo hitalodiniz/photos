@@ -132,7 +132,6 @@ export default function Dashboard({
     navigate(`/dashboard/galerias/${g.id}/edit`, 'Abrindo galeria...');
   };
 
-
   // --- RENDERING ---
   if (authLoading) {
     return (
@@ -164,7 +163,7 @@ export default function Dashboard({
           onOpenAdminModal={() => setIsAdminModalOpen(true)}
         />
         <TrialBanner />
-        <main className="flex-1 space-y-2 min-w-0">
+        <main className="flex-1 flex flex-col min-w-0 min-h-[calc(100vh-120px)]">
           <BulkActionsBar
             selectedCount={actions.selectedIds.size}
             onSelectAll={() =>
@@ -204,24 +203,27 @@ export default function Dashboard({
             setViewMode={setViewMode}
             toggleSidebar={toggleSidebar}
           />
-
-          <GalleryList
-            galerias={filters.visibleGalerias}
-            viewMode={viewMode}
-            currentView={filters.currentView}
-            onEdit={handleEdit}
-            onDelete={actions.handleMoveToTrash}
-            onArchive={actions.handleArchiveToggle}
-            onToggleShowOnProfile={actions.handleToggleProfile}
-            onRestore={actions.handleRestore}
-            onPermanentDelete={(g) => actions.setGaleriaToPermanentlyDelete(g)}
-            updatingId={actions.updatingId}
-            onSync={actions.handleSyncDrive}
-            isBulkMode={actions.isBulkMode}
-            selectedIds={actions.selectedIds}
-            onToggleSelect={actions.handleToggleSelect}
-            onOpenTags={handleOpenOrganizer}
-          />
+          <div className="flex-1">
+            <GalleryList
+              galerias={filters.visibleGalerias}
+              viewMode={viewMode}
+              currentView={filters.currentView}
+              onEdit={handleEdit}
+              onDelete={actions.handleMoveToTrash}
+              onArchive={actions.handleArchiveToggle}
+              onToggleShowOnProfile={actions.handleToggleProfile}
+              onRestore={actions.handleRestore}
+              onPermanentDelete={(g) =>
+                actions.setGaleriaToPermanentlyDelete(g)
+              }
+              updatingId={actions.updatingId}
+              onSync={actions.handleSyncDrive}
+              isBulkMode={actions.isBulkMode}
+              selectedIds={actions.selectedIds}
+              onToggleSelect={actions.handleToggleSelect}
+              onOpenTags={handleOpenOrganizer}
+            />
+          </div>
 
           <DashboardFooter
             visibleCount={filters.visibleGalerias.length}

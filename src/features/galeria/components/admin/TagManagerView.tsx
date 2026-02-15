@@ -204,7 +204,7 @@ export default function TagManagerView({
 
   return (
     <FormPageBase
-      title={`Organizador de fotos - ${galeria.title}`}
+      title={`${galeria.theme_icon ? `${galeria.theme_icon} ` : ''}Organizador de fotos - ${galeria.title}`}
       isEdit={true}
       loading={isSaving}
       onClose={() => router.back()}
@@ -215,6 +215,18 @@ export default function TagManagerView({
       <div className="flex h-[calc(100vh-140px)] -mx-6 overflow-hidden w-[calc(100%+3rem)] gap-3">
         {/* SIDEBAR ESQUERDA - FERRAMENTAS */}
         <aside className="w-64 border-r border-slate-200 bg-slate-50/50 flex flex-col shrink-0 h-full overflow-y-auto custom-scrollbar rounded-luxury">
+          {/* 🎯 NOVA SEÇÃO: Título da Galeria */}
+          <div className="p-5 border-b border-slate-200 bg-white/50">
+            <span className="text-[9px] font-bold uppercase tracking-[0.2em] text-gold mb-1 block">
+              Galeria selecionada
+            </span>
+            <h2
+              className="text-[13px] font-semibold text-petroleum leading-tight tracking-luxury-tight truncate"
+              title={galeria.title}
+            >
+              {galeria.title}
+            </h2>
+          </div>
           {/* SEÇÃO: NOVA marcação */}
           <div className="p-5 border-b border-slate-200 bg-white">
             <h3 className="text-[10px] font-semibold uppercase tracking-widest text-petroleum mb-3 flex items-center gap-2">
@@ -363,6 +375,7 @@ export default function TagManagerView({
       {/* Modais e Toast */}
       <ConfirmationModal
         isOpen={!!tagToDelete}
+        showCloseButton={true}
         onClose={() => setTagToDelete(null)}
         onConfirm={() => {
           handleDeleteTag(tagToDelete!);
