@@ -164,22 +164,28 @@ export default function Dashboard({
         />
         <TrialBanner />
         <main className="flex-1 flex flex-col min-w-0 min-h-[calc(100vh-120px)]">
-          <BulkActionsBar
-            selectedCount={actions.selectedIds.size}
-            onSelectAll={() =>
-              actions.handleSelectAll(filters.visibleGalerias.map((g) => g.id))
-            }
-            onDeselectAll={actions.handleDeselectAll}
-            isAllSelected={
-              actions.selectedIds.size === filters.visibleGalerias.length &&
-              filters.visibleGalerias.length > 0
-            }
-            currentView={filters.currentView}
-            onBulkArchive={actions.handleBulkArchive}
-            onBulkDelete={actions.handleBulkDelete}
-            onBulkRestore={actions.handleBulkRestore}
-            isUpdating={actions.updatingId === 'bulk'}
-          />
+          {/* 🎯 Lógica de Exibição Imediata da BulkActionsBar */}
+          {(actions.isBulkMode || actions.selectedIds.size > 0) && (
+            <BulkActionsBar
+              selectedCount={actions.selectedIds.size}
+              onSelectAll={() =>
+                actions.handleSelectAll(
+                  filters.visibleGalerias.map((g) => g.id),
+                )
+              }
+              onDeselectAll={actions.handleDeselectAll}
+              isAllSelected={
+                actions.selectedIds.size === filters.visibleGalerias.length &&
+                filters.visibleGalerias.length > 0
+              }
+              currentView={filters.currentView}
+              onBulkArchive={actions.handleBulkArchive}
+              onBulkDelete={actions.handleBulkDelete}
+              onBulkRestore={actions.handleBulkRestore}
+              isUpdating={actions.updatingId === 'bulk'}
+              setIsBulkMode={actions.setIsBulkMode}
+            />
+          )}
 
           <DashboardHeader
             isBulkMode={actions.isBulkMode}
@@ -202,6 +208,7 @@ export default function Dashboard({
             viewMode={viewMode}
             setViewMode={setViewMode}
             toggleSidebar={toggleSidebar}
+            currentView={filters.currentView}
           />
           <div className="flex-1">
             <GalleryList

@@ -1,11 +1,16 @@
+'use client';
+
+import { useEffect } from 'react';
 import { X, CheckSquare, Grid3x3, List } from 'lucide-react';
 import Filters from '../Filters';
+import type { ViewType } from '../hooks/useDashboardFilters';
 
 interface DashboardHeaderProps {
   isBulkMode: boolean;
   setIsBulkMode: (val: boolean) => void;
   selectedCount: number;
   onDeselectAll: () => void;
+  currentView: ViewType;
   filterName: string;
   setFilterName: (val: string) => void;
   filterLocation: string;
@@ -27,7 +32,9 @@ interface DashboardHeaderProps {
 export default function DashboardHeader({
   isBulkMode,
   setIsBulkMode,
+  selectedCount,
   onDeselectAll,
+  currentView,
   filterName,
   setFilterName,
   filterLocation,
@@ -44,6 +51,16 @@ export default function DashboardHeader({
   viewMode,
   setViewMode,
 }: DashboardHeaderProps) {
+  // 🎯 CORREÇÃO: Resetar modo lote ao mudar de aba com trava de segurança
+  useEffect(() => {
+    // Só dispara se o estado atual permitir limpeza, evitando o loop infinito
+    if (isBulkMode || selectedCount > 0) {
+      setIsBulkMode(false);
+      onDeselectAll();
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [currentView]); // Dependemos apenas da troca de visão
+
   return (
     <header className="bg-petroleum rounded-luxury border-b border-white/10 shadow-lg">
       <div className="flex items-center gap-2 px-2 py-1">
@@ -68,6 +85,7 @@ export default function DashboardHeader({
             <CheckSquare size={16} />
           </button>
         )}
+
         <Filters
           filterName={filterName}
           filterLocation={filterLocation}
@@ -84,11 +102,14 @@ export default function DashboardHeader({
           resetFilters={resetFilters}
           variant="minimal"
         />
+
         <div className="flex items-center gap-2 shrink-0 ml-auto">
           <button
             onClick={() => setViewMode('grid')}
             className={`p-2 transition-all ${
-              viewMode === 'grid' ? 'text-gold' : 'text-white/60 hover:text-white/80'
+              viewMode === 'grid'
+                ? 'text-champagne'
+                : 'text-white/60 hover:text-white/80'
             }`}
             title="Grid"
           >
@@ -97,7 +118,9 @@ export default function DashboardHeader({
           <button
             onClick={() => setViewMode('list')}
             className={`p-2 transition-all ${
-              viewMode === 'list' ? 'text-gold' : 'text-white/60 hover:text-white/80'
+              viewMode === 'list'
+                ? 'text-champagne'
+                : 'text-white/60 hover:text-white/80'
             }`}
             title="Lista"
           >

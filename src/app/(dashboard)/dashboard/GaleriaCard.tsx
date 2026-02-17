@@ -18,6 +18,8 @@ import {
   Users,
   ImageIcon,
   Tag,
+  CheckCircle2,
+  Circle,
 } from 'lucide-react';
 import { useState, useEffect } from 'react';
 import type { Galeria } from '@/core/types/galeria';
@@ -309,16 +311,31 @@ export default function GaleriaCard({
               e.stopPropagation();
               onToggleSelect?.(galeria.id);
             }}
-            className="p-1.5 bg-white border border-petroleum/30 rounded-luxury hover:bg-slate-50 transition-colors shrink-0"
+            /* 🎯 O segredo do contraste: Invertemos as cores do fundo e do ícone */
+            className={`absolute top-2 left-2 z-30 p-1.5 rounded-luxury border transition-all duration-300 backdrop-blur-md
+      ${
+        isSelected
+          ? 'bg-champagne border-champagne shadow-lg shadow-champagne/20'
+          : 'bg-petroleum/80 border-white/10 hover:bg-petroleum'
+      }`}
           >
             {isSelected ? (
+              /* 🎯 Ícone Petroleum sobre fundo Gold: Contraste perfeito */
               <CheckSquare
                 size={16}
-                className="text-gold"
-                fill="currentColor"
+                strokeWidth={3}
+                /* Forçamos fill="none" para evitar a mancha dourada */
+                fill="none"
+                className="text-petroleum"
               />
             ) : (
-              <Square size={16} className="text-slate-400" />
+              /* 🎯 Ícone Discreto: Apenas contorno branco sobre fundo Petroleum */
+              <Square
+                size={16}
+                strokeWidth={2}
+                fill="none"
+                className="text-white/40"
+              />
             )}
           </button>
         )}
@@ -448,20 +465,34 @@ export default function GaleriaCard({
                 e.stopPropagation();
                 onToggleSelect?.(galeria.id);
               }}
-              className="absolute top-2 left-2 z-30 p-1.5 bg-petroleum/80 backdrop-blur-md rounded-luxury border border-white/10 hover:bg-petroleum transition-colors"
+              /* 🎯 O segredo do contraste: Invertemos as cores do fundo e do ícone */
+              className={`absolute top-2 left-2 z-30 p-1.5 rounded-luxury border transition-all duration-300 backdrop-blur-md
+      ${
+        isSelected
+          ? 'bg-champagne border-champagne shadow-lg shadow-champagne/20'
+          : 'bg-petroleum/80 border-white/10 hover:bg-petroleum'
+      }`}
             >
               {isSelected ? (
+                /* 🎯 Ícone Petroleum sobre fundo Gold: Contraste perfeito */
                 <CheckSquare
                   size={16}
-                  className="text-gold"
-                  fill="currentColor"
+                  strokeWidth={3}
+                  /* Forçamos fill="none" para evitar a mancha dourada */
+                  fill="none"
+                  className="text-petroleum"
                 />
               ) : (
-                <Square size={16} className="text-white/70" />
+                /* 🎯 Ícone Discreto: Apenas contorno branco sobre fundo Petroleum */
+                <Square
+                  size={16}
+                  strokeWidth={2}
+                  fill="none"
+                  className="text-white/40"
+                />
               )}
             </button>
           )}
-
           {isImageLoading && !isUpdating && (
             <div className="absolute inset-0 z-10 flex items-center justify-center bg-white">
               <div className="loading-luxury-dark w-6 h-6" />

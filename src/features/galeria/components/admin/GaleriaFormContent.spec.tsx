@@ -3,7 +3,30 @@ import { vi, describe, it, expect, beforeEach } from 'vitest';
 import { useForm } from 'react-hook-form';
 import GaleriaFormContent from './GaleriaFormContent';
 import { PlanProvider } from '@/core/context/PlanContext';
-import { mockPermissionsByPlan } from '@/core/config/plans'; // Certifique-se de que este mock exista
+
+// --- 🎯 OTIMIZAÇÃO DE MEMÓRIA: MOCK DE ÍCONES ---
+// Reduz drasticamente o uso de RAM ao evitar o carregamento de centenas de SVGs
+vi.mock('lucide-react', () => ({
+  User: () => <div data-testid="icon-user" />,
+  FolderSync: () => <div data-testid="icon-folder" />,
+  ShieldCheck: () => <div data-testid="icon-shield" />,
+  Users: () => <div data-testid="icon-users" />,
+  Layout: () => <div data-testid="icon-layout" />,
+  PlayCircle: () => <div data-testid="icon-play" />,
+  Download: () => <div data-testid="icon-download" />,
+  Briefcase: () => <div data-testid="icon-briefcase" />,
+  Type: () => <div data-testid="icon-type" />,
+  Tag: () => <div data-testid="icon-tag" />,
+  Calendar: () => <div data-testid="icon-calendar" />,
+  MapPin: () => <div data-testid="icon-pin" />,
+  Shield: () => <div data-testid="icon-shield-simple" />,
+  Eye: () => <div data-testid="icon-eye" />,
+  Lock: () => <div data-testid="icon-lock" />,
+  Plus: () => <div data-testid="icon-plus" />,
+  Trash2: () => <div data-testid="icon-trash" />,
+  CheckCircle2: () => <div data-testid="icon-check" />,
+  Loader2: () => <div data-testid="icon-loader" className="animate-spin" />,
+}));
 
 // --- MOCKS DE INFRAESTRUTURA ---
 
@@ -11,6 +34,9 @@ vi.mock('@photos/core-auth', () => ({
   useSupabaseSession: vi.fn(() => ({
     getAuthDetails: vi.fn().mockResolvedValue({ userId: 'user_123' }),
   })),
+  authService: {
+    getUser: vi.fn(),
+  },
 }));
 
 vi.mock('@/actions/google.actions', () => ({
@@ -20,9 +46,7 @@ vi.mock('@/actions/google.actions', () => ({
   checkFolderLimits: vi.fn(),
 }));
 
-// Mock do botão para disparar o callback esperado pelo componente pai
 vi.mock('@/components/google-drive', () => ({
-  // 🎯 FIX: A prop correta que o GaleriaDriveSection passa é onFolderSelect
   GooglePickerButton: ({ onFolderSelect }: any) => (
     <button
       onClick={() =>
@@ -60,7 +84,7 @@ vi.mock('@/hooks/useGoogleDriveImage', () => ({
 // --- WRAPPER DE CONTEXTO ---
 
 const GaleriaFormContentWrapper = (props: any) => {
-  const { register, setValue, watch } = useForm({
+  const methods = useForm({
     defaultValues: {
       leads_enabled:
         props.profile?.settings?.defaults?.enable_guest_registration ?? false,
@@ -70,6 +94,8 @@ const GaleriaFormContentWrapper = (props: any) => {
         '',
       is_public: props.initialData?.is_public ?? true,
       show_on_profile: props.initialData?.show_on_profile ?? false,
+      enable_favorites: props.initialData?.enable_favorites ?? true,
+      enable_slideshow: props.initialData?.enable_slideshow ?? true,
     },
   });
 
@@ -77,9 +103,9 @@ const GaleriaFormContentWrapper = (props: any) => {
     <PlanProvider profile={props.profile}>
       <GaleriaFormContent
         {...props}
-        register={register}
-        setValue={setValue}
-        watch={watch}
+        register={methods.register}
+        setValue={methods.setValue}
+        watch={methods.watch}
       />
     </PlanProvider>
   );
@@ -131,42 +157,41 @@ describe('GaleriaFormContent', () => {
   it('handles various lead capture field combinations', async () => {
     render(<GaleriaFormContentWrapper {...defaultProps} />);
 
-    const leadsToggle = screen.getByText(/Habilitar cadastro de visitante/i)
-      .nextElementSibling as HTMLElement;
+    // Localiza o botão de toggle pelo texto da descrição ou label
+    const leadsToggle = screen.getByText(/Habilitar cadastro de visitante/i);
     fireEvent.click(leadsToggle);
 
     await waitFor(() => {
-      expect(screen.getByText('Exigir Nome')).toBeInTheDocument();
+      expect(screen.getByText(/Exigir Nome/i)).toBeInTheDocument();
     });
 
-    const getHiddenInput = (testId: string) =>
-      screen.getByTestId(testId) as HTMLInputElement;
+    const getHiddenInput = (name: string) =>
+      document.querySelector(`input[name="${name}"]`) as HTMLInputElement;
+
     expect(getHiddenInput('leads_require_name').value).toBe('true');
   });
 
   describe('Drive Selection Integration', () => {
     it('handles drive selection correctly and updates hidden inputs', async () => {
-      const {
-        getParentFolderIdServer,
-        getDriveFolderName,
-        checkFolderPublicPermission,
-        checkFolderLimits,
-      } = await import('@/actions/google.actions');
+      const googleActions = await import('@/actions/google.actions');
 
-      vi.mocked(getParentFolderIdServer).mockResolvedValue('parent_123');
-      vi.mocked(getDriveFolderName).mockResolvedValue('Folder Name');
-      vi.mocked(checkFolderPublicPermission).mockResolvedValue({
+      vi.mocked(googleActions.getParentFolderIdServer).mockResolvedValue(
+        'parent_123',
+      );
+      vi.mocked(googleActions.getDriveFolderName).mockResolvedValue(
+        'Folder Name',
+      );
+      vi.mocked(googleActions.checkFolderPublicPermission).mockResolvedValue({
         isPublic: true,
         isOwner: true,
         folderLink: 'link',
       } as any);
-      vi.mocked(checkFolderLimits).mockResolvedValue({
+      vi.mocked(googleActions.checkFolderLimits).mockResolvedValue({
         count: 10,
         hasMore: false,
         totalInDrive: 10,
       });
 
-      // 🎯 CORREÇÃO: Renderizar o WRAPPER e não o componente puro
       render(<GaleriaFormContentWrapper {...defaultProps} />);
 
       const selectButton = screen.getByText(/Selecionar Pasta/i);
