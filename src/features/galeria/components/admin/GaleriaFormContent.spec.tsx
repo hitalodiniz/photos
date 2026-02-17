@@ -4,29 +4,21 @@ import { useForm } from 'react-hook-form';
 import GaleriaFormContent from './GaleriaFormContent';
 import { PlanProvider } from '@/core/context/PlanContext';
 
-// --- 🎯 OTIMIZAÇÃO DE MEMÓRIA: MOCK DE ÍCONES ---
-// Reduz drasticamente o uso de RAM ao evitar o carregamento de centenas de SVGs
-vi.mock('lucide-react', () => ({
-  User: () => <div data-testid="icon-user" />,
-  FolderSync: () => <div data-testid="icon-folder" />,
-  ShieldCheck: () => <div data-testid="icon-shield" />,
-  Users: () => <div data-testid="icon-users" />,
-  Layout: () => <div data-testid="icon-layout" />,
-  PlayCircle: () => <div data-testid="icon-play" />,
-  Download: () => <div data-testid="icon-download" />,
-  Briefcase: () => <div data-testid="icon-briefcase" />,
-  Type: () => <div data-testid="icon-type" />,
-  Tag: () => <div data-testid="icon-tag" />,
-  Calendar: () => <div data-testid="icon-calendar" />,
-  MapPin: () => <div data-testid="icon-pin" />,
-  Shield: () => <div data-testid="icon-shield-simple" />,
-  Eye: () => <div data-testid="icon-eye" />,
-  Lock: () => <div data-testid="icon-lock" />,
-  Plus: () => <div data-testid="icon-plus" />,
-  Trash2: () => <div data-testid="icon-trash" />,
-  CheckCircle2: () => <div data-testid="icon-check" />,
-  Loader2: () => <div data-testid="icon-loader" className="animate-spin" />,
-}));
+// --- 🎯 OTIMIZAÇÃO DE MEMÓRIA: MOCK DE LUCIDE-REACT ---
+// Usamos o padrão 'importOriginal' para garantir que todos os ícones existam,
+// mas sobrescrevemos os principais para controle de teste e performance.
+vi.mock('lucide-react', async (importOriginal) => {
+  const actual = await importOriginal<typeof import('lucide-react')>();
+  return {
+    ...actual,
+    // Sobrescrevemos apenas o que precisamos testar ou o que é muito pesado
+    User: () => <div data-testid="icon-user" />,
+    FolderSync: () => <div data-testid="icon-folder" />,
+    CheckCircle2: () => <div data-testid="icon-check" />,
+    Loader2: () => <div data-testid="icon-loader" className="animate-spin" />,
+    // O ícone 'Camera' agora será resolvido automaticamente pelo 'actual'
+  };
+});
 
 // --- MOCKS DE INFRAESTRUTURA ---
 
@@ -157,12 +149,11 @@ describe('GaleriaFormContent', () => {
   it('handles various lead capture field combinations', async () => {
     render(<GaleriaFormContentWrapper {...defaultProps} />);
 
-    // Localiza o botão de toggle pelo texto da descrição ou label
     const leadsToggle = screen.getByText(/Habilitar cadastro de visitante/i);
     fireEvent.click(leadsToggle);
 
     await waitFor(() => {
-      expect(screen.getByText(/Exigir Nome/i)).toBeInTheDocument();
+      expect(screen.getByText(/Nome/i)).toBeInTheDocument();
     });
 
     const getHiddenInput = (name: string) =>

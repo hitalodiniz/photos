@@ -1,11 +1,4 @@
-import {
-  Calendar,
-  Camera,
-  Landmark,
-  LucideIcon,
-  Megaphone,
-  Image,
-} from 'lucide-react';
+import { Camera, Landmark, LucideIcon, Megaphone, Image } from 'lucide-react';
 import React, { ReactNode } from 'react';
 
 export type SegmentType = 'PHOTOGRAPHER' | 'EVENT' | 'CAMPAIGN' | 'OFFICE';
