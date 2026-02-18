@@ -1,0 +1,108 @@
+'use server';
+
+import { createSupabaseClientForCache } from '@/lib/supabase.server';
+import { headers } from 'next/headers';
+import { createInternalNotification } from './notification.service';
+import { UAParser } from 'ua-parser-js';
+import { Galeria } from '../types/galeria';
+
+interface GaleriaEventPayload {
+  galeria: Galeria;
+  eventType: 'view' | 'lead' | 'download' | 'share';
+  visitorId?: string;
+  metadata?: any;
+}
+
+export async function emitGaleriaEvent({
+  galeria,
+  eventType,
+  visitorId,
+  metadata = {},
+}: GaleriaEventPayload) {
+  const supabase = await createSupabaseClientForCache();
+  const headerList = await headers();
+  const ua = headerList.get('user-agent') || '';
+
+  const parser = new UAParser(ua);
+  const deviceInfo = {
+    os: parser.getOS().name,
+    browser: parser.getBrowser().name,
+    type: parser.getDevice().type || 'desktop',
+  };
+
+  if (!galeria) return;
+  const galeriaId = galeria.id;
+
+  const ip = headerList.get('x-forwarded-for')?.split(',')[0] || 'unknown';
+  const trackId = visitorId || ip;
+
+  // 2. Gravação de Estatística (Sempre acontece para o relatório)
+  if (eventType === 'view') {
+    const oneHourAgo = new Date(Date.now() - 60 * 60 * 1000).toISOString();
+    const { data: recent } = await supabase
+      .from('tb_galeria_stats')
+      .select('id')
+      .eq('galeria_id', galeria.id)
+      .eq('event_type', 'view')
+      .eq('visitor_id', trackId)
+      .gt('created_at', oneHourAgo)
+      .limit(1);
+
+    // Se já visualizou na última hora, não grava de novo nem notifica
+    if (recent && recent.length > 0) return;
+  }
+
+  await supabase.from('tb_galeria_stats').insert([
+    {
+      galeria_id: galeria.id,
+      event_type: eventType,
+      visitor_id: trackId,
+      device_info: deviceInfo,
+      metadata: metadata,
+    },
+  ]);
+
+  // 3. LÓGICA DE NOTIFICAÇÃO INTELIGENTE
+  const userId = galeria.photographer_id;
+
+  switch (eventType) {
+    case 'view':
+      /**
+       * 💡 REGRA DE OURO:
+       * Se a galeria TEM LEADS ativado, NÃO notificamos a visualização aqui.
+       * Pois sabemos que o evento 'lead' virá em seguida e fará a notificação.
+       * Se a galeria for ABERTA (leads_enabled = false), notificamos o acesso.
+       */
+      if (!galeria.leads_enabled) {
+        await createInternalNotification({
+          userId,
+          title: '👀 Novo Acesso',
+          message: `Sua galeria aberta "${galeria.title}" está sendo visualizada agora.`,
+          type: 'info',
+          link: `/dashboard/galerias/${galeriaId}`,
+        });
+      }
+      break;
+
+    case 'lead':
+      // Notifica sempre, pois é a conversão real
+      await createInternalNotification({
+        userId,
+        title: '👤 Visitante Identificado',
+        message: `${metadata.nome || 'Um visitante'} acessou a galeria "${galeria.title}".`,
+        type: 'success',
+        link: `/dashboard/galerias/${galeriaId}/leads`,
+      });
+      break;
+
+    case 'download':
+      await createInternalNotification({
+        userId,
+        title: '📥 Download Realizado',
+        message: `Arquivos baixados na galeria "${galeria.title}".`,
+        type: 'info',
+        link: `/dashboard/galerias/${galeriaId}`,
+      });
+      break;
+  }
+}

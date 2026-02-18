@@ -9,6 +9,7 @@ import { useAuth } from '@photos/core-auth';
 import { UserMenu } from '@/components/auth';
 import { useSidebar } from '@/components/providers/SidebarProvider';
 import { useSegment } from '@/hooks/useSegment';
+import { NotificationMenu } from '../dashboard/NotificationMenu';
 
 export default function Navbar() {
   const pathname = usePathname();
@@ -27,8 +28,10 @@ export default function Navbar() {
     if (pathname.includes('/settings')) return 'Preferências';
     if (pathname.includes('/edit')) return 'Editar Galeria';
     if (pathname.includes('/tags')) return 'Marcações';
-    if (pathname.includes('/leads')) return 'Relatório de Visitantes';
+    if (pathname.includes('/leads'))
+      return 'Relatório de Cadastro de Visitantes';
     if (pathname.includes('/new')) return 'Nova Galeria';
+    if (pathname.includes('/stats')) return 'Estatísticas da galeria';
     return null;
   }, [pathname]);
 
@@ -99,6 +102,7 @@ export default function Navbar() {
 
           {/* Lado Direito: User Actions */}
           <div className="flex items-center gap-4">
+            {user && <NotificationMenu userId={user.id} />}
             <UserMenu session={user} avatarUrl={avatarUrl} />
           </div>
         </div>

@@ -112,6 +112,11 @@ export const FEATURE_DESCRIPTIONS: Record<
     description:
       'Solicite nome, WhatsApp e e-mail dos visitantes antes de liberarem as fotos na galeria.',
   },
+  canAccessStats: {
+    label: 'Estatísticas da galeria',
+    description:
+      'Acesse as estatísticas da galeria para analisar o desempenho de suas fotos.',
+  },
   canExportLeads: {
     label: 'Exportação de dados dos Visitantes',
     description: 'Exporte sua base de visitantes em CSV, Excel ou PDF.',
@@ -198,6 +203,7 @@ export interface PlanPermissions {
   removeBranding: boolean;
   canCaptureLeads: boolean;
   canExportLeads: boolean;
+  canAccessStats: boolean;
   socialDisplayLevel: 'minimal' | 'social' | 'full';
   maxCoverPerGallery: number;
   canFavorite: boolean;
@@ -241,6 +247,7 @@ export const PERMISSIONS_BY_PLAN: Record<PlanKey, PlanPermissions> = {
     removeBranding: false,
     canCaptureLeads: false,
     canExportLeads: false,
+    canAccessStats: false,
     canCustomWhatsApp: false,
     socialDisplayLevel: 'minimal',
     canFavorite: false,
@@ -270,6 +277,7 @@ export const PERMISSIONS_BY_PLAN: Record<PlanKey, PlanPermissions> = {
     removeBranding: false,
     canCaptureLeads: false,
     canExportLeads: false,
+    canAccessStats: false,
     canCustomWhatsApp: false,
     socialDisplayLevel: 'social',
     canFavorite: true,
@@ -299,6 +307,7 @@ export const PERMISSIONS_BY_PLAN: Record<PlanKey, PlanPermissions> = {
     removeBranding: false,
     canCaptureLeads: false,
     canExportLeads: false,
+    canAccessStats: false,
     canCustomWhatsApp: false,
     socialDisplayLevel: 'social',
     canFavorite: true,
@@ -328,6 +337,7 @@ export const PERMISSIONS_BY_PLAN: Record<PlanKey, PlanPermissions> = {
     removeBranding: false,
     canCaptureLeads: true,
     canExportLeads: true,
+    canAccessStats: true,
     canCustomWhatsApp: true,
     socialDisplayLevel: 'full',
     canFavorite: true,
@@ -357,6 +367,7 @@ export const PERMISSIONS_BY_PLAN: Record<PlanKey, PlanPermissions> = {
     removeBranding: true,
     canCaptureLeads: true,
     canExportLeads: true,
+    canAccessStats: true,
     canCustomWhatsApp: true,
     socialDisplayLevel: 'full',
     canFavorite: true,
@@ -578,6 +589,12 @@ export const COMMON_FEATURES = [
     group: 'Gestão',
     label: 'Galerias Ativas',
     values: ['2', '10', '20', '50', 'Ilimitadas'],
+  },
+  {
+    key: 'canAccessStats', // 🎯 Ajustado: era 'access-stats'
+    group: 'Gestão',
+    label: 'Estatísticas da galeria',
+    values: [false, false, false, true, true],
   },
   {
     key: 'teamMembers', // 🎯 Ajustado: era 'team-members-ui'

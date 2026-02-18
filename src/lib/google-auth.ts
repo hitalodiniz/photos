@@ -9,7 +9,7 @@ export async function getDriveAccessTokenForUser(
   userId: string,
 ): Promise<string | null> {
   try {
-    const supabase = createSupabaseClientForCache();
+    const supabase = await createSupabaseClientForCache();
 
     // 1. Buscar o refresh_token do usuário (incluindo status de autenticação)
     const { data: profile, error } = await supabase

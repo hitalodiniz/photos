@@ -18,12 +18,15 @@ import {
   groupPhotosByWeight,
   estimatePhotoDownloadSize,
 } from '@/core/utils/foto-helpers';
-import { DownloadCenterModal } from './DownloadCenterModal';
+
 import { ToolBarMobile } from './ToolBarMobile';
-import { V } from 'node_modules/vitest/dist/chunks/reporters.d.Rsi0PyxX';
+
 import UpgradeModal from '@/components/ui/UpgradeModal';
 
 import { getGalleryPermission } from '@/core/utils/plan-helpers';
+
+import { DownloadCenterModal } from './DownloadCenterModal';
+import { emitGaleriaEvent } from '@/core/services/galeria-stats.service';
 
 export default function PhotoGrid({ photos, galeria }: any) {
   // --- 1. ESTADOS DE INTERFACE ---
@@ -313,6 +316,7 @@ export default function PhotoGrid({ photos, galeria }: any) {
       setIsDownloading(false);
     }
   };
+
   const handleDownloadZip = async (
     targetList: any[],
     zipSuffix: string,
@@ -410,6 +414,16 @@ export default function PhotoGrid({ photos, galeria }: any) {
       setProgress(100);
       if (typeof chunkIndex === 'number')
         setDownloadedVolumes((prev) => [...new Set([...prev, chunkIndex])]);
+
+      emitGaleriaEvent({
+        galeria: galeria,
+        eventType: 'download',
+        metadata: {
+          count: targetList.length,
+          type: isFavAction ? 'favorites' : 'all',
+          suffix: zipSuffix,
+        },
+      });
     } catch (error) {
       console.error('Erro crítico na geração do ZIP:', error);
     } finally {
@@ -437,6 +451,12 @@ export default function PhotoGrid({ photos, galeria }: any) {
     } else {
       shareText = GALLERY_MESSAGES.GUEST_SHARE(title, url);
     }
+
+    emitGaleriaEvent({
+      galeria: galeria,
+      eventType: 'share',
+      metadata: { method: 'web_share', title: galeria.title },
+    });
 
     executeShare({
       title: title,
@@ -466,7 +486,7 @@ export default function PhotoGrid({ photos, galeria }: any) {
             setShowOnlyFavorites,
             isDownloading,
             downloadProgress,
-            downloadAllAsZip,
+            downloadAllAsZip: () => setShowVolumeDashboard(true),
             isScrolled,
             isHovered,
             setIsHovered,
@@ -485,7 +505,7 @@ export default function PhotoGrid({ photos, galeria }: any) {
             favorites,
             showOnlyFavorites,
             setShowOnlyFavorites,
-            downloadAllAsZip,
+            downloadAllAsZip: () => setShowVolumeDashboard(true),
             isDownloading,
             downloadProgress,
             isScrolled,
@@ -515,6 +535,7 @@ export default function PhotoGrid({ photos, galeria }: any) {
             setShowOnlyFavorites,
             columns,
             canUseFavorites: canUseFavorites && galeria.enable_favorites,
+            tagSelectionMode: 'single',
           }}
           galleryTitle={galeria.title}
         />

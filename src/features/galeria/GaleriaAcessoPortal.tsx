@@ -133,7 +133,7 @@ export default function GalleryAccessPortal({
 
     try {
       if (leadsEnabled) {
-        const leadResult = await captureLeadAction(galeria.id, {
+        const leadResult = await captureLeadAction(galeria, {
           nome: formData.name,
           email: formData.email,
           whatsapp: formData.whatsapp.replace(/\D/g, ''),

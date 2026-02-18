@@ -4,18 +4,24 @@ import { createSupabaseServerClient } from '@/lib/supabase.server';
 import { authenticateGaleriaAccess } from '@/core/services/galeria.service';
 import { cookies } from 'next/headers';
 import { revalidateTag } from 'next/cache';
+import { emitGaleriaEvent } from '@/core/services/galeria-stats.service';
+import { Galeria } from '@/core/types/galeria';
 
 /**
  * Server Action para capturar leads e autorizar acesso via cookie
  */
 export async function captureLeadAction(
-  galeriaId: string,
-  data: { nome: string; email?: string | null; whatsapp?: string | null }
+  galeria: Galeria,
+  data: { nome: string; email?: string | null; whatsapp?: string | null },
 ) {
   try {
     // 1. Limpeza e padronização dos dados (Garante prefixo 55 para WhatsApp do Brasil)
     let cleanWhatsapp = data.whatsapp ? data.whatsapp.replace(/\D/g, '') : null;
-    if (cleanWhatsapp && (cleanWhatsapp.length === 10 || cleanWhatsapp.length === 11) && !cleanWhatsapp.startsWith('55')) {
+    if (
+      cleanWhatsapp &&
+      (cleanWhatsapp.length === 10 || cleanWhatsapp.length === 11) &&
+      !cleanWhatsapp.startsWith('55')
+    ) {
       cleanWhatsapp = `55${cleanWhatsapp}`;
     }
 
@@ -25,36 +31,56 @@ export async function captureLeadAction(
     const { data: galeriaOwner } = await supabase
       .from('tb_galerias')
       .select('user_id')
-      .eq('id', galeriaId)
+      .eq('id', galeria.id)
       .single();
-    
+
     const ownerId = galeriaOwner?.user_id;
 
-    // 3. Salva o lead no banco
-    const { error: leadError } = await supabase
+    // 1. Salva o lead no banco e SOLICITA o retorno dos dados (.select())
+    const { data: newLead, error: leadError } = await supabase
       .from('tb_galeria_leads')
       .insert([
         {
-          galeria_id: galeriaId,
-          name: data.nome, // 🎯 Coluna corrigida de 'nome' para 'name'
+          galeria_id: galeria.id,
+          name: data.nome,
           email: data.email || null,
           whatsapp: cleanWhatsapp,
         },
-      ]);
+      ])
+      .select('id') // 🎯 Isso retorna o ID gerado pelo banco
+      .single(); // 🎯 Como é apenas um registro, usamos .single() para facilitar o acesso
+
+    if (leadError) {
+      console.error('Erro ao salvar lead:', leadError);
+      // Trate o erro conforme sua lógica
+    }
+
+    // 2. Agora você tem o ID para o seu Maestro
+    const leadId = newLead?.id;
+
+    // 3. Emite o evento usando o ID capturado
+    await emitGaleriaEvent({
+      galeria: galeria,
+      eventType: 'lead',
+      visitorId: leadId,
+      metadata: {
+        nome: data.nome,
+      },
+    });
 
     // 4. Tratamento de deduplicação inteligente (erro 23505 = unique_violation, 42501 = RLS violation que esconde unique)
     if (leadError) {
       if (leadError.code === '23505' || leadError.code === '42501') {
         // console.log(`[captureLeadAction] Lead já existente ou bloqueado por RLS (deduplicado): ${data.email || cleanWhatsapp}`);
-        
+
         if (ownerId) {
           revalidateTag(`user-galerias-${ownerId}`);
         }
       } else {
         console.error('[captureLeadAction] Erro ao salvar lead:', leadError);
-        return { 
-          success: false, 
-          error: `Erro ao salvar dados: ${leadError.message} (${leadError.code})` 
+        return {
+          success: false,
+          error: `Erro ao salvar dados: ${leadError.message} (${leadError.code})`,
         };
       }
     } else if (ownerId) {
@@ -65,7 +91,7 @@ export async function captureLeadAction(
 
     // 5. Define o cookie de acesso (válido por 24h)
     const cookieStore = await cookies();
-    cookieStore.set(`galeria-${galeriaId}-lead`, 'captured', {
+    cookieStore.set(`galeria-${galeria.id}-lead`, 'captured', {
       path: '/',
       httpOnly: true,
       secure: process.env.NODE_ENV === 'production',
@@ -73,9 +99,12 @@ export async function captureLeadAction(
       sameSite: 'lax',
     });
 
-    return { 
-      success: true, 
-      message: (leadError?.code === '23505' || leadError?.code === '42501') ? 'Reconhecido' : undefined 
+    return {
+      success: true,
+      message:
+        leadError?.code === '23505' || leadError?.code === '42501'
+          ? 'Reconhecido'
+          : undefined,
     };
   } catch (error) {
     console.error('[captureLeadAction] Erro crítico:', error);
@@ -94,7 +123,7 @@ export async function checkGoogleRefreshTokenStatus(): Promise<{
 }> {
   try {
     const supabase = await createSupabaseServerClient();
-    
+
     // Busca o usuário atual
     const {
       data: { user },
@@ -106,10 +135,10 @@ export async function checkGoogleRefreshTokenStatus(): Promise<{
       // IMPORTANTE: Isso acontece quando:
       // 1. Primeiro login (usuário nunca fez login antes)
       // 2. Usuário fez logout e está fazendo login novamente
-      // 
+      //
       // Neste caso, não podemos saber se o usuário já tem refresh_token no banco ou não.
       // Por segurança, usamos consent para garantir que sempre recebemos o refresh_token.
-      // 
+      //
       // NOTA: O Google pode retornar refresh_token mesmo com select_account se o usuário já autorizou antes,
       // mas não podemos confiar nisso sem verificar o banco primeiro.
       /* console.log('[checkGoogleRefreshTokenStatus] ⚠️ Usuário não autenticado (sem sessão ativa)');
@@ -119,16 +148,19 @@ export async function checkGoogleRefreshTokenStatus(): Promise<{
       return {
         hasValidToken: false,
         needsConsent: true, // Usa consent quando não há sessão para garantir refresh_token
-        reason: 'Usuário não autenticado - não é possível verificar token sem sessão (pode ser primeiro login ou re-login após logout)',
+        reason:
+          'Usuário não autenticado - não é possível verificar token sem sessão (pode ser primeiro login ou re-login após logout)',
       };
     }
-    
+
     // console.log(`[checkGoogleRefreshTokenStatus] Usuário autenticado: ${user.id}, verificando token no banco...`);
 
     // Busca o perfil do usuário
     const { data: profile, error: profileError } = await supabase
       .from('tb_profiles')
-      .select('google_refresh_token, google_auth_status, google_access_token, google_token_expires_at')
+      .select(
+        'google_refresh_token, google_auth_status, google_access_token, google_token_expires_at',
+      )
       .eq('id', user.id)
       .single();
 
@@ -168,7 +200,7 @@ export async function checkGoogleRefreshTokenStatus(): Promise<{
         reason: `Token ${authStatus}`,
       };
     }
-    
+
     // Se o status for 'active' ou null/undefined (registros antigos), considera válido se tem token
     if (authStatus && authStatus !== 'active') {
       // console.log(`[checkGoogleRefreshTokenStatus] Status desconhecido: ${authStatus}, assumindo válido se token existe`);
@@ -176,9 +208,11 @@ export async function checkGoogleRefreshTokenStatus(): Promise<{
 
     // 🎯 Validação adicional: Verifica se o refresh token tem formato válido do Google
     // Tokens do Google geralmente começam with "1//0" e têm 50+ caracteres
-    const isValidFormat = profile.google_refresh_token && 
-      (profile.google_refresh_token.startsWith('1//0') || profile.google_refresh_token.length > 30);
-    
+    const isValidFormat =
+      profile.google_refresh_token &&
+      (profile.google_refresh_token.startsWith('1//0') ||
+        profile.google_refresh_token.length > 30);
+
     if (!isValidFormat) {
       // console.log(`[checkGoogleRefreshTokenStatus] Token tem formato inválido (pode ser token do Supabase)`);
       return {
@@ -195,7 +229,10 @@ export async function checkGoogleRefreshTokenStatus(): Promise<{
       needsConsent: false,
     };
   } catch (error) {
-    console.error('[checkGoogleRefreshTokenStatus] Erro ao verificar token:', error);
+    console.error(
+      '[checkGoogleRefreshTokenStatus] Erro ao verificar token:',
+      error,
+    );
     // Em caso de erro, assume que precisa de consent para garantir
     return {
       hasValidToken: false,

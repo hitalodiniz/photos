@@ -1,24 +1,24 @@
 /**
  * ⚠️⚠️⚠️ ARQUIVO CRÍTICO DE SEGURANÇA ⚠️⚠️⚠️
- * 
+ *
  * Este arquivo gerencia:
  * - Cliente Supabase do servidor (SSR)
  * - Gerenciamento de cookies no servidor
  * - Clientes read-only para SSR
  * - Cliente para cache (sem cookies)
- * 
+ *
  * 🔴 IMPACTO DE MUDANÇAS:
  * - Mudanças podem quebrar autenticação SSR
  * - Pode expor cookies incorretamente
  * - Pode causar problemas de sincronização de sessão
- * 
+ *
  * ✅ ANTES DE ALTERAR:
  * 1. Leia CRITICAL_AUTH_FILES.md
  * 2. Leia AUTH_CONTRACT.md
  * 3. Entenda diferença entre clientes (read/write/read-only)
  * 4. Teste extensivamente em SSR
  * 5. Solicite revisão de código
- * 
+ *
  * 🚨 NÃO ALTERE SEM ENTENDER COMPLETAMENTE O IMPACTO!
  */
 
@@ -56,7 +56,7 @@ export async function createSupabaseServerClient() {
         },
         setAll: (cookiesToSet) => {
           cookiesToSet.forEach(({ name, value, options }) => {
-            const finalOptions = { 
+            const finalOptions = {
               ...options,
               domain: cookieDomain,
               path: '/',
@@ -125,10 +125,17 @@ export async function createSupabaseServerClientReadOnly() {
  * - Quando você precisa apenas de dados públicos
  * ============================================================
  */
-export function createSupabaseClientForCache() {
+export async function createSupabaseClientForCache() {
   // 🎯 Retorna um cliente simples que não depende de cookies do Next.js
   return createClient(
     process.env.NEXT_PUBLIC_SUPABASE_URL!,
     process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!,
   );
 }
+
+export const createSupabaseAdmin = () => {
+  return createClient(
+    process.env.NEXT_PUBLIC_SUPABASE_URL!,
+    process.env.SUPABASE_SERVICE_ROLE_KEY!, // ⚠️ Chave secreta que NUNCA vai para o cliente
+  );
+};

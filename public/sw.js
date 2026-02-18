@@ -21,3 +21,10 @@ self.addEventListener('notificationclick', function (event) {
   event.notification.close();
   event.waitUntil(clients.openWindow(event.notification.data.url));
 });
+
+// Força o SW a se tornar ativo imediatamente
+self.addEventListener('install', () => self.skipWaiting());
+
+self.addEventListener('activate', (event) => {
+  event.waitUntil(clients.claim()); // Assume o controle das abas abertas imediatamente
+});

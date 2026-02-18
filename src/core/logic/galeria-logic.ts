@@ -13,7 +13,7 @@ import { GLOBAL_CACHE_REVALIDATE } from '../utils/url-helper';
 export const fetchGalleryBySlug = (fullSlug: string) =>
   unstable_cache(
     async () => {
-      const supabase = createSupabaseClientForCache();
+      const supabase = await createSupabaseClientForCache();
       const { data, error } = await supabase
         .from('tb_galerias')
         .select(
@@ -173,7 +173,7 @@ export const fetchDrivePhotos = (userId?: string, folderId?: string) =>
 export const fetchPhotosByGalleryId = (galleryId: string) =>
   unstable_cache(
     async () => {
-      const supabase = createSupabaseClientForCache();
+      const supabase = await createSupabaseClientForCache();
 
       // Busca os dados da galeria para obter folderId e userId
       const { data: galeria, error: galeriaError } = await supabase

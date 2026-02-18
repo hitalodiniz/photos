@@ -540,7 +540,11 @@ describe('Galeria Service - Suite Completa de Testes', () => {
 
       mockQueryBuilder.single
         .mockResolvedValueOnce({
-          data: { is_archived: false, slug: 'test', photographer_id: mockUserId },
+          data: {
+            is_archived: false,
+            slug: 'test',
+            photographer_id: mockUserId,
+          },
           error: null,
         })
         .mockResolvedValueOnce({ data: {}, error: null });
@@ -1248,7 +1252,11 @@ describe('Galeria Service - Suite Completa de Testes', () => {
 
       // 3. Orquestração do .single() (chamado na busca inicial 'galeriaAntes')
       mockQueryBuilder.single.mockResolvedValue({
-        data: { slug: 'test', drive_folder_id: 'folder-123', photographer_id: mockUserId },
+        data: {
+          slug: 'test',
+          drive_folder_id: 'folder-123',
+          photographer_id: mockUserId,
+        },
         error: null,
       });
 

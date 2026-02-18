@@ -40,7 +40,7 @@ import { normalizePhoneNumber } from '../utils/masks-helpers';
  * 🎯 USE ESTA NO MIDDLEWARE (Middleware não aceita unstable_cache)
  */
 export async function fetchProfileDirectDB(username: string) {
-  const supabase = createSupabaseClientForCache();
+  const supabase = await createSupabaseClientForCache();
   const { data, error } = await supabase
     .from('tb_profiles')
     .select('*')
@@ -399,7 +399,7 @@ export const getProfileByUsername = cache(async (username: string) => {
 
   return unstable_cache(
     async (uname: string) => {
-      const supabase = createSupabaseClientForCache();
+      const supabase = await createSupabaseClientForCache();
 
       const { data, error } = await supabase
         .from('tb_profiles')
@@ -427,23 +427,27 @@ export const getProfileByUsername = cache(async (username: string) => {
  */
 export async function updatePushSubscriptionAction(subscription: any) {
   const supabase = await createSupabaseServerClient();
+
+  // Busca o usuário atual da sessão
   const {
     data: { user },
   } = await supabase.auth.getUser();
 
-  if (!user) return { success: false, error: 'Não autorizado' };
+  if (!user) return { success: false, error: 'Usuário não autenticado' };
 
   const { error } = await supabase
     .from('tb_profiles')
     .update({
       push_subscription: subscription,
-      notifications_enabled: true, // Campo extra para controle visual no front
+      notifications_enabled: !!subscription,
     })
     .eq('id', user.id);
 
-  if (error) return { success: false, error: error.message };
+  if (error) {
+    console.error('Erro ao salvar assinatura:', error);
+    return { success: false, error: 'Falha ao sincronizar notificações' };
+  }
 
-  revalidatePath('/dashboard/perfil');
   return { success: true };
 }
 

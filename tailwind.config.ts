@@ -1,5 +1,6 @@
 // tailwind.config.ts
 import type { Config } from 'tailwindcss';
+import typography from '@tailwindcss/typography'; // Importação ESM
 
 const config: Config = {
   content: [
@@ -71,7 +72,9 @@ const config: Config = {
       },
     },
   },
-  plugins: [require('@tailwindcss/typography')],
+  plugins: [
+    typography, // Use a variável diretamente
+  ],
 };
 
 export default config;

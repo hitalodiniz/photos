@@ -19,6 +19,11 @@ import PhotographerProfileBase from '@/components/profile/ProfileBase';
 import { PlanProvider } from '@/core/context/PlanContext';
 import { PlanKey } from '@/core/config/plans';
 import WhatsAppIcon from '@/components/ui/WhatsAppIcon';
+import {
+  emitGaleriaEvent,
+  trackGaleriaEvent,
+} from '@/core/services/galeria-stats.service';
+import { Galeria } from '@/core/types/galeria';
 
 const MAIN_DOMAIN = (
   process.env.NEXT_PUBLIC_MAIN_DOMAIN || 'localhost:3000'
@@ -51,6 +56,15 @@ export default async function GaleriaBasePage({
 
   const galeriaRaw = await fetchGalleryBySlug(fullSlug);
   if (!galeriaRaw) notFound();
+
+  // 🎯 REGISTRO DE ACESSO (Server Side)
+  // Como este é o componente de página, ele roda a cada acesso.
+  // A função trackGaleriaEvent já tem a lógica de 1 hora para evitar duplicidade.
+  emitGaleriaEvent({
+    galeria: galeriaRaw as unknown as Galeria,
+    eventType: 'view',
+    metadata: { context: isSubdomainContext ? 'subdomain' : 'main' },
+  });
 
   // LÓGICA DE REDIRECIONAMENTO INTELIGENTE
   const hasSubdomain = !!galeriaRaw.photographer?.use_subdomain;

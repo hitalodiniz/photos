@@ -345,7 +345,7 @@ export async function getGalerias(
     async (cachedUserId: string) => {
       try {
         // 🎯 USA createSupabaseClientForCache (sem cookies) dentro do cache
-        const supabase = createSupabaseClientForCache();
+        const supabase = await createSupabaseClientForCache();
 
         // 🎯 USA SELECT '*' PARA EVITAR ERROS DE JOIN
         const { data, error } = await supabase
@@ -653,7 +653,7 @@ export async function getPublicProfileGalerias(
   return unstable_cache(
     async () => {
       // 🎯 USA CLIENTE PARA CACHE: Não usa cookies (dados públicos)
-      const supabase = createSupabaseClientForCache();
+      const supabase = await createSupabaseClientForCache();
       const from = (page - 1) * pageSize;
       const to = from + pageSize - 1;
 

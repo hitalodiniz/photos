@@ -20,6 +20,7 @@ import {
   Tag,
   CheckCircle2,
   Circle,
+  BarChart3,
 } from 'lucide-react';
 import { useState, useEffect } from 'react';
 import type { Galeria } from '@/core/types/galeria';
@@ -39,6 +40,8 @@ import { usePlan } from '@/core/context/PlanContext';
 import UpgradeModal from '@/components/ui/UpgradeModal';
 import React from 'react';
 import { executeShare } from '@/core/utils/share-helper';
+import StatsModal from './StatsModal';
+import { getGaleriaStatsAction } from '@/actions/galeria-stats.actions';
 
 interface GaleriaCardProps {
   galeria: Galeria;
@@ -91,6 +94,11 @@ export default function GaleriaCard({
   const [isImageLoading, setIsImageLoading] = useState(
     !!galeria.cover_image_url,
   );
+
+  // --- NOVOS ESTADOS PARA ESTATÍSTICAS ---
+  const [isStatsOpen, setIsStatsOpen] = useState(false);
+  const [statsData, setStatsData] = useState<any>(null);
+  const [isLoadingStats, setIsLoadingStats] = useState(false);
 
   useEffect(() => {
     setIsImageLoading(!!galeria.cover_image_url);
@@ -189,6 +197,15 @@ export default function GaleriaCard({
     });
   };
 
+  const handleOpenBIReport = (e: React.MouseEvent) => {
+    e.stopPropagation();
+    // Você pode ajustar a rota conforme sua estrutura (ex: /dashboard/galerias/[id]/bi ou /stats)
+    navigate(
+      `/dashboard/galerias/${galeria.id}/stats`,
+      'Gerando estatísticas da galeria...',
+    );
+  };
+
   // 🎯 FUNÇÃO ÚNICA PARA OS BOTÕES DE AÇÃO
   const renderActionButtons = () => {
     if (currentView !== 'active') return null;
@@ -267,7 +284,7 @@ export default function GaleriaCard({
             }
             navigate(
               `/dashboard/galerias/${galeria.id}/leads`,
-              'Gerando relatório...',
+              'Gerando relatório de visitantes...',
             );
           }}
           className={`p-2 rounded-luxury flex items-center justify-center transition-all border shadow-sm ${
@@ -288,6 +305,20 @@ export default function GaleriaCard({
               <Users size={16} className="opacity-40" />
               <Lock size={8} className="absolute -top-1 -right-1 text-gold" />
             </div>
+          )}
+        </button>
+        {/* 📊 BOTÃO DE ANÁLISE DE PERFORMANCE (BI) */}
+
+        <button
+          onClick={handleOpenBIReport}
+          disabled={isNavigating}
+          className="p-2 text-petroleum bg-white border border-slate-200 rounded-luxury interactive-luxury-petroleum"
+          title="Estatísticas da galeria"
+        >
+          {isNavigating ? (
+            <Loader2 size={16} className="animate-spin text-gold" />
+          ) : (
+            <BarChart3 size={16} />
           )}
         </button>
       </>
@@ -641,6 +672,7 @@ export default function GaleriaCard({
           </div>
         </div>
       </div>
+
       <UpgradeModal
         isOpen={Boolean(isUpgradeModalOpen)}
         onClose={() => setIsUpgradeModalOpen(false)}
