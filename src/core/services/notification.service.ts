@@ -2,7 +2,11 @@
 
 import { revalidatePath } from 'next/cache';
 import { sendPushNotification } from '@/lib/web-push-admin';
-import { getSupabaseAdmin, getSupabaseClientForCache } from './auth.service';
+import {
+  createSupabaseAdmin,
+  createSupabaseServerClient,
+  createSupabaseServerClientReadOnly,
+} from '@/lib/supabase.server';
 
 /**
  * 🛠️ SERVICE (SERVER-SIDE SQL)
@@ -10,7 +14,7 @@ import { getSupabaseAdmin, getSupabaseClientForCache } from './auth.service';
 
 export async function getLatestNotifications(userId: string, limit = 15) {
   // ✅ Admin para garantir que o fotógrafo veja as notificações criadas pelo sistema
-  const supabase = await getSupabaseAdmin();
+  const supabase = await createSupabaseServerClientReadOnly();
 
   const { data, error } = await supabase
     .from('tb_notifications')
@@ -27,7 +31,7 @@ export async function getLatestNotifications(userId: string, limit = 15) {
 }
 
 export async function getPushStatus(userId: string) {
-  const supabase = await getSupabaseClientForCache();
+  const supabase = await createSupabaseServerClientReadOnly();
   const { data } = await supabase
     .from('tb_profiles')
     .select('notifications_enabled')
@@ -37,7 +41,7 @@ export async function getPushStatus(userId: string) {
 }
 
 export async function markNotificationsAsRead(userId: string) {
-  const supabase = await getSupabaseClientForCache();
+  const supabase = await createSupabaseServerClient();
   await supabase
     .from('tb_notifications')
     .update({ read_at: new Date().toISOString() })
@@ -48,7 +52,7 @@ export async function markNotificationsAsRead(userId: string) {
 }
 
 export async function disablePush(userId: string) {
-  const supabase = await getSupabaseClientForCache();
+  const supabase = await createSupabaseServerClient();
   await supabase
     .from('tb_profiles')
     .update({ push_subscription: null, notifications_enabled: false })
@@ -77,7 +81,7 @@ export async function createInternalNotification({
   eventData?: any;
 }) {
   try {
-    const supabase = await getSupabaseAdmin();
+    const supabase = await createSupabaseAdmin();
 
     // 1. Inserção com metadados do evento para o BI ler depois
     const { data, error } = await supabase

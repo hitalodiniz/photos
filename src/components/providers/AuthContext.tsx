@@ -1,17 +1,17 @@
 /**
  * ⚠️⚠️⚠️ ARQUIVO CRÍTICO DE SEGURANÇA ⚠️⚠️⚠️
- * 
+ *
  * Este arquivo gerencia:
  * - Contexto global de autenticação
  * - Estado do usuário em toda a aplicação
  * - Inicialização de sessão
  * - Listeners de mudança de autenticação
- * 
+ *
  * 🔴 IMPACTO DE MUDANÇAS:
  * - Qualquer bug pode quebrar autenticação em toda a aplicação
  * - Pode expor estado de usuário incorretamente
  * - Pode causar loops infinitos de renderização
- * 
+ *
  * ✅ ANTES DE ALTERAR:
  * 1. Leia CRITICAL_AUTH_FILES.md
  * 2. Leia AUTH_CONTRACT.md
@@ -19,7 +19,7 @@
  * 4. Crie/atualize testes unitários
  * 5. Teste extensivamente localmente
  * 6. Solicite revisão de código
- * 
+ *
  * 📋 CHECKLIST OBRIGATÓRIO:
  * [ ] Testes unitários criados/atualizados
  * [ ] Testado inicialização de sessão
@@ -27,7 +27,7 @@
  * [ ] Testado timeout de segurança
  * [ ] Revisão de código aprovada
  * [ ] Documentação atualizada
- * 
+ *
  * 🚨 NÃO ALTERE SEM ENTENDER COMPLETAMENTE O IMPACTO!
  */
 
@@ -58,7 +58,9 @@ interface AuthContextType {
   protectRoute: (redirectTo?: string) => void;
 }
 
-export const AuthContext = createContext<AuthContextType | undefined>(undefined);
+export const AuthContext = createContext<AuthContextType | undefined>(
+  undefined,
+);
 
 export function AuthProvider({ children }: { children: ReactNode }) {
   const [user, setUser] = useState<any>(null);
@@ -66,7 +68,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   const [avatarUrl, setAvatarUrl] = useState<string | null>(null);
   const [isLoading, setIsLoading] = useState(true);
   const [isLoggingOut, setIsLoggingOut] = useState(false);
-  
+
   // Refs para controle de busca do perfil e evitar loops
   const lastLoadedUserId = useRef<string | null>(null);
   const isFetchingProfile = useRef<boolean>(false);
@@ -117,68 +119,80 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     let isLoadingStillTrue = true;
     const timeoutId = setTimeout(() => {
       if (isLoadingStillTrue) {
-        console.warn('[AuthContext] Timeout: Forçando isLoading = false após 5s');
+        console.warn(
+          '[AuthContext] Timeout: Forçando isLoading = false após 5s',
+        );
         setIsLoading(false);
         isInitializingAuth.current = false;
       }
     }, 5000);
 
-    authService.getSession().then((session) => {
-      /* console.log('[AuthContext] Sessão inicial:', {
+    authService
+      .getSession()
+      .then((session) => {
+        /* console.log('[AuthContext] Sessão inicial:', {
         hasSession: !!session,
         hasUser: !!session?.user,
         userId: session?.user?.id,
       }); */
 
-      if (session?.user) {
-        const userData = {
-          id: session.user.id,
-          email: session.user.email,
-          name:
-            session.user.user_metadata?.full_name ||
-            session.user.email?.split('@')[0],
-        };
-        setUser(userData);
-        loadProfile(session.user.id);
-        // console.log('[AuthContext] Usuário definido:', userData);
-      } else {
-        // console.log('[AuthContext] Nenhuma sessão encontrada - usuário não autenticado');
-        // 🎯 LIMPA ESTADO: Garante que não há usuário quando não há sessão
+        if (session?.user) {
+          const userData = {
+            id: session.user.id,
+            email: session.user.email,
+            name:
+              session.user.user_metadata?.full_name ||
+              session.user.email?.split('@')[0],
+          };
+          setUser(userData);
+          loadProfile(session.user.id);
+          // console.log('[AuthContext] Usuário definido:', userData);
+        } else {
+          // console.log('[AuthContext] Nenhuma sessão encontrada - usuário não autenticado');
+          // 🎯 LIMPA ESTADO: Garante que não há usuário quando não há sessão
+          setUser(null);
+          setAvatarUrl(null);
+          setRoles([]);
+          lastLoadedUserId.current = null;
+        }
+        isLoadingStillTrue = false;
+        setIsLoading(false);
+        isInitializingAuth.current = false;
+        clearTimeout(timeoutId);
+      })
+      .catch((error) => {
+        console.error('[AuthContext] Erro ao buscar sessão:', error);
+        // 🎯 ERRO: Limpa estado e força logout em caso de erro crítico
         setUser(null);
         setAvatarUrl(null);
         setRoles([]);
         lastLoadedUserId.current = null;
-      }
-      isLoadingStillTrue = false;
-      setIsLoading(false);
-      isInitializingAuth.current = false;
-      clearTimeout(timeoutId);
-    }).catch((error) => {
-      console.error('[AuthContext] Erro ao buscar sessão:', error);
-      // 🎯 ERRO: Limpa estado e força logout em caso de erro crítico
-      setUser(null);
-      setAvatarUrl(null);
-      setRoles([]);
-      lastLoadedUserId.current = null;
-      isLoadingStillTrue = false;
-      setIsLoading(false);
-      isInitializingAuth.current = false;
-      clearTimeout(timeoutId);
-      
-      // Se estiver em rota protegida, redireciona
-      if (typeof window !== 'undefined') {
-        const currentPath = window.location.pathname;
-        if (currentPath.startsWith('/dashboard') || currentPath.startsWith('/onboarding')) {
-          // console.log('[AuthContext] Erro crítico - redirecionando para home');
-          window.location.href = '/';
+        isLoadingStillTrue = false;
+        setIsLoading(false);
+        isInitializingAuth.current = false;
+        clearTimeout(timeoutId);
+
+        // Se estiver em rota protegida, redireciona
+        if (typeof window !== 'undefined') {
+          const currentPath = window.location.pathname;
+          if (
+            currentPath.startsWith('/dashboard') ||
+            currentPath.startsWith('/onboarding')
+          ) {
+            // console.log('[AuthContext] Erro crítico - redirecionando para home');
+            window.location.href = '/';
+          }
         }
-      }
-    });
+      });
 
     const subscription = authService.onAuthStateChange((event, session) => {
       // 🛡️ TRAVA: Se já estivermos carregando o perfil ou validando a sessão inicial, ignora eventos redundantes
       // Exceto SIGNED_OUT e SIGNED_IN, que devem ser processados para garantir o estado correto
-      if ((isFetchingProfile.current || isLoadingStillTrue) && event !== 'SIGNED_OUT' && event !== 'SIGNED_IN') {
+      if (
+        (isFetchingProfile.current || isLoadingStillTrue) &&
+        event !== 'SIGNED_OUT' &&
+        event !== 'SIGNED_IN'
+      ) {
         // console.log('[AuthContext] Ignorando evento redundante durante busca de perfil ou validação:', event);
         return;
       }
@@ -196,11 +210,14 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         isLoadingStillTrue = false;
         setIsLoading(false);
         clearTimeout(timeoutId);
-        
+
         // Se estiver em rota protegida, redireciona para home
         if (typeof window !== 'undefined') {
           const currentPath = window.location.pathname;
-          if (currentPath.startsWith('/dashboard') || currentPath.startsWith('/onboarding')) {
+          if (
+            currentPath.startsWith('/dashboard') ||
+            currentPath.startsWith('/onboarding')
+          ) {
             // console.log('[AuthContext] Redirecionando para home...');
             window.location.href = '/';
           }
@@ -216,10 +233,13 @@ export function AuthProvider({ children }: { children: ReactNode }) {
             session.user.user_metadata?.full_name ||
             session.user.email?.split('@')[0],
         };
-        
+
         // Só atualiza o estado se o usuário mudar ou os dados básicos mudarem
         setUser((prevUser: any) => {
-          if (prevUser?.id === userData.id && prevUser?.email === userData.email) {
+          if (
+            prevUser?.id === userData.id &&
+            prevUser?.email === userData.email
+          ) {
             return prevUser;
           }
           return userData;
@@ -262,10 +282,21 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   return (
     // O value agora contém exatamente o que a interface descreve
     <AuthContext.Provider
-      value={{ user, roles, avatarUrl, logout, isLoading, isLoggingOut, protectRoute }}
+      value={{
+        user,
+        roles,
+        avatarUrl,
+        logout,
+        isLoading,
+        isLoggingOut,
+        protectRoute,
+      }}
     >
       {isLoggingOut && (
-        <LoadingScreen message="Encerrando sua sessão com segurança..." fadeOut={false} />
+        <LoadingScreen
+          message="Encerrando sua sessão com segurança..."
+          fadeOut={false}
+        />
       )}
       {children}
     </AuthContext.Provider>

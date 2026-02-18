@@ -35,13 +35,6 @@
 import { getBaseUrl } from '@/lib/get-base-url';
 import { supabase } from '@/lib/supabase.client';
 import { Session } from '@supabase/supabase-js';
-import { getFolderPhotos } from './google-drive.service';
-import {
-  createSupabaseAdmin,
-  createSupabaseClientForCache,
-  createSupabaseServerClient,
-  createSupabaseServerClientReadOnly,
-} from '@/lib/supabase.server';
 
 // Use globalThis to ensure singleton even with multiple module evaluations
 const GLOBAL_CACHE_KEY = '___PHOTOS_AUTH_CACHE___';
@@ -242,19 +235,3 @@ export const authService = {
     return data;
   },
 };
-
-export async function getSupabaseAdmin() {
-  return createSupabaseAdmin();
-}
-
-export async function getSupabaseClientForCache() {
-  return createSupabaseClientForCache();
-}
-
-export async function getSupabaseServerClient() {
-  return createSupabaseServerClient();
-}
-
-export async function getSupabaseServerClientReadOnly() {
-  return createSupabaseServerClientReadOnly();
-}

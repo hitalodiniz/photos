@@ -1,6 +1,9 @@
 'use server';
 
-import { createSupabaseServerClient } from '@/lib/supabase.server';
+import {
+  createSupabaseAdmin,
+  createSupabaseServerClient,
+} from '@/lib/supabase.server';
 import { authenticateGaleriaAccess } from '@/core/services/galeria.service';
 import { cookies } from 'next/headers';
 import { revalidateTag } from 'next/cache';
@@ -25,7 +28,7 @@ export async function captureLeadAction(
       cleanWhatsapp = `55${cleanWhatsapp}`;
     }
 
-    const supabase = await createSupabaseServerClient();
+    const supabase = await createSupabaseAdmin();
 
     // 2. Busca o dono da galeria ANTES para evitar RLS no retorno do insert e para revalidação
     const { data: galeriaOwner } = await supabase
