@@ -17,8 +17,6 @@ import {
   X,
 } from 'lucide-react';
 import WhatsAppIcon from '@/components/ui/WhatsAppIcon';
-import { usePlan } from '@/core/context/PlanContext';
-import UpgradeModal from '@/components/ui/UpgradeModal';
 
 export const ToolBarDesktop = ({
   showOnlyFavorites,

@@ -71,7 +71,7 @@ export async function createInternalNotification({
   message,
   type = 'info',
   link,
-  eventData = null, // 🎯 Novo parâmetro opcional
+  eventData = null,
 }: {
   userId: string;
   title: string;
@@ -81,10 +81,11 @@ export async function createInternalNotification({
   eventData?: any;
 }) {
   try {
+    // 🎯 Usamos o ADMIN para ter bypass total de RLS
     const supabase = await createSupabaseAdmin();
 
-    // 1. Inserção com metadados do evento para o BI ler depois
-    const { data, error } = await supabase
+    // 1. Inserção na tb_notifications (Sempre ocorre para alimentar o sino cinza)
+    const { data: insertedData, error: insertError } = await supabase
       .from('tb_notifications')
       .insert([
         {
@@ -93,36 +94,52 @@ export async function createInternalNotification({
           message,
           type,
           link,
-          // ✅ Salvamos o objeto do evento dentro da notificação
-          // Isso permite que o "Ver Detalhes" abra o BI imediatamente
           metadata: eventData ? { event_data: eventData } : {},
           created_at: new Date().toISOString(),
         },
       ])
-      .select();
+      .select()
+      .single();
 
-    if (error) {
-      console.error('❌ Erro Supabase Admin (Insert Notif):', error.message);
-      return { success: false, error };
+    if (insertError) {
+      console.error('❌ Erro ao inserir notificação:', insertError.message);
+      return { success: false, error: insertError };
     }
 
-    // 2. Push Notification
-    const { data: profile } = await supabase
+    // 2. Busca o Perfil para disparar o Push Notification do Navegador
+    // IMPORTANTE: Buscamos tanto a subscrição quanto o booleano de controle
+    const { data: profile, error: profileError } = await supabase
       .from('tb_profiles')
-      .select('push_subscription')
+      .select('push_subscription, notifications_enabled')
       .eq('id', userId)
       .single();
 
-    if (profile?.push_subscription) {
+    if (profileError) {
+      console.error(
+        '⚠️ Perfil não encontrado para envio de Push:',
+        profileError.message,
+      );
+    }
+
+    // ✅ VALIDAÇÃO TRIPLA PARA O PUSH:
+    // 1. Tem que ter o token (push_subscription)
+    // 2. O usuário tem que ter permitido no switch (notifications_enabled)
+    // 3. O navegador não pode estar bloqueando (isso o servidor não vê, mas ele envia)
+    if (
+      profile?.push_subscription &&
+      profile?.notifications_enabled !== false
+    ) {
+      // console.log('📡 Disparando Web Push para o servidor do navegador...');
+
       await sendPushNotification(profile.push_subscription, {
         title,
         message,
-        link,
+        link: link || '/dashboard', // Fallback de link para o clique no banner
       });
     }
 
     revalidatePath('/dashboard');
-    return { success: true, data: data[0] };
+    return { success: true, data: insertedData };
   } catch (err) {
     console.error('💥 Erro crítico no service de notificação:', err);
     return { success: false, error: err };

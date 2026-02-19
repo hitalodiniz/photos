@@ -8,6 +8,9 @@ import InstagramIcon from '@/components/ui/InstagramIcon';
 import { getCreatorProfileUrl } from '@/core/utils/url-helper';
 import { Globe, User, MessageCircle } from 'lucide-react';
 import { usePlan } from '@/core/context/PlanContext';
+// 🎯 Importação da lógica de permissões
+import { getGalleryPermission } from '@/core/utils/plan-helpers';
+import WhatsAppIcon from '@/components/ui/WhatsAppIcon';
 
 interface PhotographerAvatarProps {
   galeria: Galeria;
@@ -24,22 +27,20 @@ export default function PhotographerAvatar({
 
   // 🎯 CONCILIAÇÃO: Buscamos as permissões dinâmicas do plano atual
   const { permissions, planKey } = usePlan();
-  // Log temporário para debug no console do navegador
-  console.log('DEBUG AVATAR:', {
-    plano: planKey,
-    nivelSocial: permissions?.socialDisplayLevel,
-    whats: galeria.photographer?.phone_contact,
-    insta: galeria.photographer?.instagram_link,
-  });
+
   const photographer = galeria.photographer;
   const profileLink = getCreatorProfileUrl(photographer);
 
   /** * 🛡️ Lógica de Visibilidade Baseada em socialDisplayLevel:
-   * 'minimal' -> Apenas Perfil Interno (Avatar + Nome)
-   * 'social'  -> + WhatsApp + Instagram
-   * 'full'    -> + Website Direto
+   * Ajustada para validar via getGalleryPermission
    */
-  const displayLevel = permissions.socialDisplayLevel;
+  const displayLevel = useMemo(() => {
+    return (
+      getGalleryPermission(galeria, 'socialDisplayLevel') ||
+      permissions.socialDisplayLevel
+    );
+  }, [galeria, permissions.socialDisplayLevel]);
+
   const hasSocial = displayLevel === 'social' || displayLevel === 'full';
   const hasWebsite = displayLevel === 'full';
 
@@ -156,7 +157,7 @@ export default function PhotographerAvatar({
                 className={getBtnClass('hover:bg-green-500 hover:text-white')}
                 onClick={(e) => e.stopPropagation()}
               >
-                <MessageCircle size={12} fill="currentColor" />
+                <WhatsAppIcon className="text-champagne w-4 h-4" />
               </a>
             )}
 
@@ -171,7 +172,7 @@ export default function PhotographerAvatar({
                 )}
                 onClick={(e) => e.stopPropagation()}
               >
-                <InstagramIcon size={12} />
+                <InstagramIcon className="text-champagne w-4 h-4" />
               </a>
             )}
 
@@ -183,7 +184,7 @@ export default function PhotographerAvatar({
               className={getBtnClass('hover:bg-gold hover:text-petroleum')}
               onClick={(e) => e.stopPropagation()}
             >
-              <User size={12} strokeWidth={3} />
+              <User className="text-champagne w-4 h-4" />
             </a>
 
             {/* WEBSITE (Apenas para nível 'full' / PREMIUM) */}

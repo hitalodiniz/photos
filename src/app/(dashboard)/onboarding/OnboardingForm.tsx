@@ -70,6 +70,8 @@ export default function OnboardingForm({
   isEditMode?: boolean;
 }) {
   const { permissions, planKey } = usePlan();
+  console.log(planKey, 'planKey');
+
   const { navigate, isNavigating: isGlobalNavigating } = useNavigation();
 
   const fileInputRef = useRef<HTMLInputElement>(null);

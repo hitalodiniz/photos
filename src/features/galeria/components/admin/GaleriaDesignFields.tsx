@@ -10,9 +10,7 @@ import {
   Monitor,
 } from 'lucide-react';
 import { usePlan } from '@/core/context/PlanContext';
-import { PERMISSIONS_BY_PLAN } from '@/core/config/plans';
 import { PlanGuard } from '@/components/auth/PlanGuard';
-import UpgradeModal from '@/components/ui/UpgradeModal';
 import { PlanSelect } from '@/components/ui/PlanSelect';
 import { InfoTooltip } from '@/components/ui/InfoTooltip';
 

@@ -24,6 +24,7 @@ interface PlanContextProps {
   segment: SegmentType;
   isPro: boolean;
   isPremium: boolean;
+  isLoading: boolean;
   canAddMore: (feature: keyof PlanPermissions, currentCount: number) => boolean;
 }
 
@@ -54,6 +55,13 @@ export function PlanProvider({
     window.addEventListener('segment-change', sync);
     return () => window.removeEventListener('segment-change', sync);
   }, []);
+
+  /**
+   * 🎯 CORREÇÃO DO LOADING
+   * Consideramos "carregando" apenas enquanto as propriedades forem estritamente UNDEFINED.
+   * Se vier NULL, significa que o servidor já respondeu (mesmo que sem dados).
+   */
+  const isLoading = planKey === undefined && profile === undefined;
 
   // 2. DETERMINAÇÃO DO PLANO (Lógica de Precedência)
   const planToUse = useMemo((): PlanKey => {
@@ -118,6 +126,7 @@ export function PlanProvider({
       permissions: finalPermissions,
       planInfo,
       segment: activeSegment,
+      isLoading,
       isPro: ['PRO', 'PREMIUM'].includes(currentKey),
       isPremium: currentKey === 'PREMIUM',
       canAddMore: (feature: keyof PlanPermissions, currentCount: number) => {
@@ -125,8 +134,15 @@ export function PlanProvider({
         if (typeof limit === 'number') return currentCount < limit;
         return !!limit;
       },
+      // 🎯 Helper para facilitar o que fizemos no Avatar
+      getGalleryPermission: (galeria: any, feature: keyof PlanPermissions) => {
+        // Se a galeria tem uma trava específica, ela manda. Se não, manda o plano.
+        if (feature === 'canFavorite' && galeria?.enable_favorites === false)
+          return false;
+        return permissions[feature];
+      },
     };
-  }, [planToUse, activeSegment]);
+  }, [planToUse, activeSegment, isLoading, profile]);
 
   return <PlanContext.Provider value={value}>{children}</PlanContext.Provider>;
 }

@@ -18,15 +18,36 @@ interface GaleriaEventPayload {
  * 🌍 Captura a localização via IP (Service Side)
  */
 async function getIPLocation(ip: string) {
-  if (!ip || ip === 'unknown' || ip.includes('127.0.0.1')) return null;
+  let targetIp = ip;
+
+  // 🎯 GATILHO PARA LOCALHOST: Se o IP for interno, busca o IP público real da máquina
+  if (
+    !targetIp ||
+    targetIp === 'unknown' ||
+    targetIp === '127.0.0.1' ||
+    targetIp === '::1'
+  ) {
+    try {
+      // Busca o seu IP real na internet para poder testar a geolocalização
+      const ipRes = await fetch('https://api.ipify.org?format=json');
+      const ipData = await ipRes.json();
+      targetIp = ipData.ip;
+    } catch (e) {
+      return null;
+    }
+  }
+
   try {
-    const res = await fetch(`https://ipapi.co/${ip}/json/`);
+    const res = await fetch(`https://ipapi.co/${targetIp}/json/`);
     const data = await res.json();
+
     if (data.error) return null;
+
     return {
       city: data.city,
       region: data.region_code,
       country: data.country_code,
+      ip: targetIp, // Retornamos o IP real para gravar na tb_galeria_stats
     };
   } catch {
     return null;
@@ -45,8 +66,23 @@ export async function emitGaleriaEvent({
   const supabase = await createSupabaseClientForCache();
   const headerList = await headers();
   const ua = headerList.get('user-agent') || '';
-  const ip = headerList.get('x-forwarded-for')?.split(',')[0] || 'unknown';
 
+  // 1. Captura o IP inicial do header
+  let ip = headerList.get('x-forwarded-for')?.split(',')[0] || 'unknown';
+
+  // 2. Localização e Tratamento de IP (Local vs Produção)
+  const locationData = await getIPLocation(ip);
+
+  // 🎯 Se o getIPLocation detectou um IP real em localhost, atualizamos a variável ip
+  if (locationData?.ip) {
+    ip = locationData.ip;
+  }
+
+  const locationStr = locationData
+    ? `${locationData.city}, ${locationData.region}`
+    : 'Não rastreado';
+
+  // 3. Device Info
   const parser = new UAParser(ua);
   const deviceInfo = {
     os: parser.getOS().name || 'Desconhecido',
@@ -54,19 +90,15 @@ export async function emitGaleriaEvent({
     type: parser.getDevice().type || 'desktop',
   };
 
-  const locationData = await getIPLocation(ip);
-  const locationStr = locationData
-    ? `${locationData.city}, ${locationData.region}`
-    : 'Não rastreado';
-
   const finalMetadata = {
     ...metadata,
     location: locationStr,
   };
 
+  // 🎯 O trackId agora será o IP real (mesmo em localhost) ou o visitorId do Lead
   const trackId = visitorId || ip;
 
-  // Trava de 1 hora para visualizações repetidas do mesmo IP/Visitante
+  // 4. Trava de 1 hora para visualizações repetidas
   if (eventType === 'view') {
     const oneHourAgo = new Date(Date.now() - 60 * 60 * 1000).toISOString();
     const { data: recent } = await supabase
@@ -81,7 +113,7 @@ export async function emitGaleriaEvent({
     if (recent && recent.length > 0) return;
   }
 
-  // Inserção no Banco de Estatísticas
+  // 5. Inserção no Banco de Estatísticas
   const { data: newEvent, error: insertError } = await supabase
     .from('tb_galeria_stats')
     .insert([
@@ -96,9 +128,12 @@ export async function emitGaleriaEvent({
     .select()
     .single();
 
-  if (insertError) return;
+  if (insertError) {
+    console.error('❌ Erro ao salvar estatística:', insertError.message);
+    return;
+  }
 
-  // Lógica de Notificação
+  // 6. Lógica de Notificação
   const userId = galeria.user_id || galeria.photographer_id;
   if (!userId) return;
 
@@ -109,7 +144,11 @@ export async function emitGaleriaEvent({
     share: 'Compartilhamento',
   };
 
-  // Objeto preparado para o "Ver Detalhes" do BI
+  // 🎯 Incluímos a localização no título para dar aquele toque de luxo/BI
+  const locationBadge = locationData
+    ? ` em ${locationData.city}/${locationData.region}`
+    : '';
+
   const eventDataForBI = {
     ...newEvent,
     event_label: eventLabels[eventType],
@@ -121,11 +160,11 @@ export async function emitGaleriaEvent({
       if (!galeria.leads_enabled) {
         await createInternalNotification({
           userId,
-          title: '👀 Novo Acesso',
+          title: `👀 Novo Acesso${locationBadge}`,
           message: `Sua galeria "${galeria.title}" está sendo visualizada agora.`,
           type: 'info',
           link: `/dashboard/galerias/${galeria.id}/stats`,
-          eventData: eventDataForBI, // ✅ Vínculo com BI
+          eventData: eventDataForBI,
         });
       }
       break;
@@ -133,38 +172,37 @@ export async function emitGaleriaEvent({
     case 'lead':
       await createInternalNotification({
         userId,
-        title: '👤 Visitante Identificado',
+        title: `👤 Visitante Identificado${locationBadge}`,
         message: `${metadata.nome || 'Um visitante'} entrou na galeria "${galeria.title}".`,
         type: 'success',
         link: `/dashboard/galerias/${galeria.id}/leads`,
-        eventData: eventDataForBI, // ✅ Vínculo com BI
+        eventData: eventDataForBI,
       });
       break;
 
     case 'download':
       await createInternalNotification({
         userId,
-        title: '📥 Download Realizado',
+        title: `📥 Download Realizado${locationBadge}`,
         message: `Fotos baixadas na galeria "${galeria.title}".`,
         type: 'info',
         link: `/dashboard/galerias/${galeria.id}/stats`,
-        eventData: eventDataForBI, // ✅ Vínculo com BI
+        eventData: eventDataForBI,
       });
       break;
 
     case 'share':
       await createInternalNotification({
         userId,
-        title: '📤 Compartilhamento',
+        title: `📤 Compartilhamento${locationBadge}`,
         message: `Fotos compartilhadas na galeria "${galeria.title}".`,
         type: 'info',
         link: `/dashboard/galerias/${galeria.id}/stats`,
-        eventData: eventDataForBI, // ✅ Vínculo com BI
+        eventData: eventDataForBI,
       });
       break;
   }
 }
-
 /**
  * 📊 Consolida os dados para a Página de BI
  */

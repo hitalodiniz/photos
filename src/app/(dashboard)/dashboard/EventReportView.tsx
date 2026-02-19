@@ -13,15 +13,12 @@ import {
   FileText,
   FileDown,
   MapPin,
-  TrendingUp,
   Target,
-  BarChart,
-  Table as TableIcon,
-  X,
-  Info,
   ChevronRight,
   CalendarDays,
   Zap,
+  ExternalLink,
+  TableIcon,
 } from 'lucide-react';
 import { useRouter } from 'next/navigation';
 import { RelatorioBasePage, LoadingScreen } from '@/components/ui';
@@ -32,6 +29,8 @@ import {
 } from '@/core/utils/export-helper';
 import { getGaleriaEventReport } from '@/core/services/galeria-stats.service';
 import { EventDetailsSheet } from '@/components/ui/EventDetailsSheet';
+// 🎯 Importamos o utilitário de URL que o Card usa
+import { getPublicGalleryUrl } from '@/core/utils/url-helper';
 
 export default function EventReportView({ galeria }: any) {
   const router = useRouter();
@@ -39,6 +38,13 @@ export default function EventReportView({ galeria }: any) {
   const [loading, setLoading] = useState(true);
   const [searchTerm, setSearchTerm] = useState('');
   const [selectedEvent, setSelectedEvent] = useState<any>(null);
+
+  // 🎯 Extraímos a lógica de link do Card para cá
+  const publicUrl = useMemo(() => {
+    return (
+      galeria?.url || getPublicGalleryUrl(galeria?.photographer, galeria?.slug)
+    );
+  }, [galeria]);
 
   const showVisitorData = galeria.leads_enabled === true;
 
@@ -60,7 +66,6 @@ export default function EventReportView({ galeria }: any) {
   const events = reportData?.rawEvents || [];
 
   const stats = useMemo(() => {
-    const total = events.length;
     const viewsEvents = events.filter((e: any) => e.event_type === 'view');
     const downloadsEvents = events.filter(
       (e: any) => e.event_type === 'download',
@@ -71,9 +76,8 @@ export default function EventReportView({ galeria }: any) {
     const mobile = events.filter(
       (e: any) => e.device_info?.type === 'mobile',
     ).length;
-    const desktop = total - mobile;
+    const desktop = events.length - mobile;
 
-    // 🎯 Captura de Primeiros Marcos
     const firstAccess =
       viewsEvents.length > 0
         ? viewsEvents[viewsEvents.length - 1].created_at
@@ -86,7 +90,7 @@ export default function EventReportView({ galeria }: any) {
     const radius = 35;
     const circumference = 2 * Math.PI * radius;
     const mobileOffset =
-      circumference - (mobile / (total || 1)) * circumference;
+      circumference - (mobile / (events.length || 1)) * circumference;
 
     return {
       views: viewsEvents.length,
@@ -94,9 +98,11 @@ export default function EventReportView({ galeria }: any) {
       downloads: downloadsEvents.length,
       shares,
       mobileCount: mobile,
-      mobilePct: total > 0 ? Math.round((mobile / total) * 100) : 0,
+      mobilePct:
+        events.length > 0 ? Math.round((mobile / events.length) * 100) : 0,
       desktopCount: desktop,
-      desktopPct: total > 0 ? Math.round((desktop / total) * 100) : 0,
+      desktopPct:
+        events.length > 0 ? Math.round((desktop / events.length) * 100) : 0,
       convRate:
         viewsEvents.length > 0
           ? ((leads / viewsEvents.length) * 100).toFixed(1)
@@ -160,7 +166,7 @@ export default function EventReportView({ galeria }: any) {
         <div className="flex flex-col lg:flex-row gap-6">
           {/* COLUNA DA ESQUERDA */}
           <div className="w-full lg:w-[350px] shrink-0 space-y-4">
-            {/* 🎯 MARCOS DA GALERIA */}
+            {/* MARCOS DA GALERIA */}
             <div className="p-5 rounded-luxury bg-white border border-slate-200 shadow-sm space-y-4">
               <h3 className="text-[10px] font-semibold uppercase tracking-widest text-gold mb-2">
                 Marcos da Galeria
@@ -171,7 +177,7 @@ export default function EventReportView({ galeria }: any) {
                     <CalendarDays size={16} />
                   </div>
                   <div>
-                    <p className="text-[9px] uppercase font-semiboldd text-slate-400">
+                    <p className="text-[9px] uppercase font-semibold text-slate-400">
                       Primeiro Acesso
                     </p>
                     <p className="text-[11px] font-semibold text-petroleum">
@@ -186,7 +192,7 @@ export default function EventReportView({ galeria }: any) {
                     <Zap size={16} />
                   </div>
                   <div>
-                    <p className="text-[9px] uppercase font-semiboldd text-slate-400">
+                    <p className="text-[9px] uppercase font-semibold text-slate-400">
                       Primeiro Download
                     </p>
                     <p className="text-[11px] font-semibold text-petroleum">
@@ -199,18 +205,69 @@ export default function EventReportView({ galeria }: any) {
               </div>
             </div>
 
-            <div className="grid grid-cols-2 gap-3">
-              <div className="p-4 rounded-luxury bg-white border border-slate-200 shadow-sm">
-                <p className="text-[9px] uppercase font-semibold text-slate-400 tracking-widest mb-1">
-                  Visualizações
-                </p>
-                <div className="flex items-center justify-between">
-                  <p className="text-xl font-semibold text-petroleum">
-                    {stats.views}
-                  </p>
-                  <Eye size={16} className="text-blue-500" />
+            {/* FUNIL DE CONVERSÃO */}
+            {showVisitorData && (
+              <div className="p-5 rounded-luxury bg-white border border-slate-200 shadow-sm">
+                <div className="flex justify-between items-center mb-4">
+                  <h3 className="text-[10px] font-semibold uppercase tracking-widest text-petroleum">
+                    Funil de Conversão
+                  </h3>
+                  <Target size={14} className="text-gold" />
+                </div>
+                <div className="space-y-4">
+                  {[
+                    {
+                      label: 'Visualizações',
+                      val: stats.views,
+                      pct: 100,
+                      color: 'bg-blue-500',
+                    },
+                    {
+                      label: 'Cadastros (Leads)',
+                      val: stats.leads,
+                      pct: (stats.leads / (stats.views || 1)) * 100,
+                      color: 'bg-green-500',
+                    },
+                  ].map((item, idx) => (
+                    <div key={idx}>
+                      <div className="flex justify-between text-[10px] font-bold mb-1 uppercase tracking-tighter">
+                        <span className="text-slate-400">{item.label}</span>
+                        <span className="text-petroleum">{item.val}</span>
+                      </div>
+                      <div className="h-1.5 bg-slate-100 rounded-full overflow-hidden">
+                        <div
+                          className={`h-full ${item.color} transition-all duration-1000`}
+                          style={{ width: `${item.pct}%` }}
+                        />
+                      </div>
+                    </div>
+                  ))}
+                  <div className="pt-2 mt-2 border-t border-slate-50 flex justify-between items-center">
+                    <span className="text-[9px] font-bold text-slate-400 uppercase">
+                      Taxa de Eficiência
+                    </span>
+                    <span className="text-lg font-bold text-gold">
+                      {stats.convRate}%
+                    </span>
+                  </div>
                 </div>
               </div>
+            )}
+
+            <div className="grid grid-cols-2 gap-3">
+              {!showVisitorData && (
+                <div className="p-4 rounded-luxury bg-white border border-slate-200 shadow-sm">
+                  <p className="text-[9px] uppercase font-semibold text-slate-400 tracking-widest mb-1">
+                    Visualizações
+                  </p>
+                  <div className="flex items-center justify-between">
+                    <p className="text-xl font-semibold text-petroleum">
+                      {stats.views}
+                    </p>
+                    <Eye size={16} className="text-blue-500" />
+                  </div>
+                </div>
+              )}
               <div className="p-4 rounded-luxury bg-white border border-slate-200 shadow-sm">
                 <p className="text-[9px] uppercase font-semibold text-slate-400 tracking-widest mb-1">
                   Downloads
@@ -222,9 +279,6 @@ export default function EventReportView({ galeria }: any) {
                   <Download size={16} className="text-gold" />
                 </div>
               </div>
-            </div>
-
-            <div className="grid grid-cols-2 gap-3">
               <div className="p-4 rounded-luxury bg-white border border-slate-200 shadow-sm">
                 <p className="text-[9px] uppercase font-semibold text-slate-400 tracking-widest mb-1">
                   Shares
@@ -236,19 +290,6 @@ export default function EventReportView({ galeria }: any) {
                   <Share2 size={16} className="text-purple-500" />
                 </div>
               </div>
-              {showVisitorData && (
-                <div className="p-4 rounded-luxury bg-white border border-slate-200 shadow-sm">
-                  <p className="text-[9px] uppercase font-semibold text-slate-400 tracking-widest mb-1">
-                    Cadastros
-                  </p>
-                  <div className="flex items-center justify-between">
-                    <p className="text-xl font-semibold text-petroleum">
-                      {stats.leads}
-                    </p>
-                    <Users size={16} className="text-green-600" />
-                  </div>
-                </div>
-              )}
             </div>
 
             <div className="p-5 rounded-luxury bg-white border border-slate-200 shadow-sm">
@@ -266,7 +307,7 @@ export default function EventReportView({ galeria }: any) {
                       cy="50"
                       r="35"
                       fill="transparent"
-                      stroke="#0F292F"
+                      stroke="#f1f5f9"
                       strokeWidth="12"
                     />
                     <circle
@@ -307,30 +348,6 @@ export default function EventReportView({ galeria }: any) {
                 </div>
               </div>
             </div>
-
-            <div className="p-5 rounded-luxury bg-white border border-slate-200 shadow-sm">
-              <h3 className="text-[10px] font-semibold uppercase tracking-widest text-slate-400 mb-4">
-                Navegadores
-              </h3>
-              <div className="space-y-2">
-                {reportData?.topBrowsers.map((b: any, i: number) => (
-                  <div
-                    key={i}
-                    className="flex items-center justify-between p-2 bg-slate-50 rounded-lg"
-                  >
-                    <div className="flex items-center gap-2">
-                      <Globe size={12} className="text-gold" />
-                      <span className="text-[10px] font-semibold text-petroleum uppercase truncate w-24">
-                        {b.name}
-                      </span>
-                    </div>
-                    <span className="text-xs font-semibold text-petroleum/60">
-                      {b.count}
-                    </span>
-                  </div>
-                ))}
-              </div>
-            </div>
           </div>
 
           {/* COLUNA DA DIREITA */}
@@ -345,7 +362,16 @@ export default function EventReportView({ galeria }: any) {
                     className="text-[15px] font-semibold text-petroleum leading-tight tracking-luxury-tight truncate"
                     title={galeria.title}
                   >
-                    {galeria.title}
+                    {/* 🎯 Implementação do Link conforme solicitado */}
+                    <a
+                      href={publicUrl}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      className="hover:text-gold transition-colors flex items-center gap-2"
+                    >
+                      {galeria.title}
+                      <ExternalLink size={14} className="shrink-0 opacity-50" />
+                    </a>
                   </h2>
                 </div>
                 <div className="flex-1 max-w-md w-full">
@@ -450,8 +476,6 @@ export default function EventReportView({ galeria }: any) {
             </div>
           </div>
         </div>
-
-        {/* MODAL LATERAL */}
         <EventDetailsSheet
           event={selectedEvent}
           onClose={() => setSelectedEvent(null)}

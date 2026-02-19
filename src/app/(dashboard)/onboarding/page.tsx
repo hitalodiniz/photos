@@ -33,7 +33,7 @@ export default async function OnboardingPage() {
 
   return (
     <AuthGuard>
-      <PlanProvider>
+      <PlanProvider profile={profile}>
         <div className="min-h-screen bg-luxury-bg">
           <OnboardingForm
             initialData={profile}
