@@ -27,7 +27,7 @@ const STORAGE_KEY = '@suagaleria:active-tab';
 export default function LandingPageContent() {
   const { terms, segment, SegmentIcon } = useSegment();
   const [userType, setUserType] = useState<'explorer' | 'photographer'>(
-    'explorer',
+    'photographer',
   );
   const [isDecided, setIsDecided] = useState(false);
 
@@ -99,7 +99,7 @@ export default function LandingPageContent() {
       return (
         <div className="absolute top-[15%] md:top-[20%] left-1/2 -translate-x-1/2 -translate-y-1/2 md:-translate-y-3/4 w-full max-w-2xl px-4 md:px-6 z-50">
           <div className="grid grid-cols-1 md:grid-cols-2 gap-3 md:gap-6 animate-in fade-in zoom-in-95 duration-700">
-            <button
+            {/* <button
               onClick={() => handleTypeSelection('explorer')}
               className="group bg-slate-50 border border-white/10 p-4 md:p-6 rounded-3xl hover:border-gold/50 transition-all shadow-xl"
             >
@@ -138,7 +138,7 @@ export default function LandingPageContent() {
                   </p>
                 </div>
               </div>
-            </button>
+            </button> */}
           </div>
         </div>
       );
@@ -261,7 +261,7 @@ export default function LandingPageContent() {
 
             <div className="mt-10">
               {/* 🎯 Container Principal com bg-petroleum e bordas arredondadas de luxo */}
-              <div className="max-w-4xl mx-auto relative overflow-hidden bg-petroleum border border-white/10 rounded-[1.5rem] md:rounded-[2.5rem] p-6 md:p-10 shadow-2xl">
+              <div className="max-w-3xl mx-auto relative overflow-hidden bg-petroleum border border-white/10 rounded-luxury-lg p-6 shadow-2xl">
                 {/* 🌊 Efeito de gradiente radial sutil para profundidade */}
                 <div className="absolute inset-0 bg-[radial-gradient(circle_at_center,_var(--tw-gradient-stops))] from-white/5 via-transparent to-transparent pointer-events-none" />
 
@@ -273,12 +273,12 @@ export default function LandingPageContent() {
                   </div>
 
                   {/* ✍️ Título em Champagne Italic */}
-                  <h3 className="text-xl md:text-3xl font-semibold text-champagne italic mb-4">
+                  <h3 className="text-xl md:text-2xl font-semibold text-champagne italic mb-4">
                     Pronto para transformar sua entrega?
                   </h3>
 
                   {/* 📄 Descrição em branco suave com destaque em Champagne */}
-                  <p className="text-white/70 mb-8 text-xs md:text-base leading-relaxed max-w-lg">
+                  <p className="text-white/70 mb-8 text-xs md:text-[16px] leading-relaxed max-w-lg">
                     Crie galerias elegantes usando apenas seu{' '}
                     <span className="font-semibold text-champagne">
                       Google Drive™
@@ -295,7 +295,7 @@ export default function LandingPageContent() {
                         console.error(e);
                       }
                     }}
-                    className="bg-gold text-black px-8 py-4 rounded-full font-bold flex items-center justify-center gap-3 w-full md:w-auto hover:bg-champagne transition-all shadow-lg active:scale-95 group"
+                    className="bg-gold text-black px-8 py-4 rounded-luxury font-semibold uppercase tracking-widest flex items-center justify-center gap-3 w-full md:w-auto hover:bg-champagne transition-all shadow-lg active:scale-95 group"
                   >
                     <LogIn
                       size={18}

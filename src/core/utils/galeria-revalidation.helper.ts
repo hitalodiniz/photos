@@ -32,7 +32,6 @@ export function revalidateGalleryCache(data: GalleryRevalidationData) {
 
   // 2. Tags do usuário
   revalidateTag(`user-galerias-${userId}`);
-  revalidateTag(`user-galleries-${userId}`);
 
   // 3. Tags do perfil público
   if (username) {

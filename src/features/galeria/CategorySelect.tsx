@@ -87,14 +87,14 @@ export default function CategorySelect({
     <div className="flex gap-3 w-full">
       <button
         onClick={() => setIsModalOpen(false)}
-        className="flex-1 px-4 py-2.5 rounded-luxury text-[10px] font-bold uppercase tracking-luxury-widest text-white/60 hover:text-white transition-colors border border-white/10"
+        className="btn-secondary-petroleum"
       >
         cancelar
       </button>
       <button
         onClick={handleSaveCategory}
         disabled={loading}
-        className="flex-1 bg-gold hover:bg-white text-petroleum px-4 py-2.5 rounded-luxury text-[10px] font-bold uppercase tracking-luxury-widest transition-all shadow-lg flex items-center justify-center gap-2 disabled:opacity-50"
+        className="btn-luxury-primary"
       >
         {loading ? (
           <Loader2 size={14} className="animate-spin" />
@@ -127,31 +127,6 @@ export default function CategorySelect({
           <option value="" disabled hidden>
             selecione a categoria
           </option>
-
-          <optgroup
-            label="categorias padrão"
-            className="text-petroleum font-semibold uppercase text-[10px]"
-          >
-            {GALLERY_CATEGORIES.map((cat) => (
-              <option key={cat.id} value={cat.id}>
-                {cat.label}
-              </option>
-            ))}
-          </optgroup>
-
-          {customCategories.length > 0 && (
-            <optgroup
-              label="minhas categorias"
-              className="text-petroleum font-semibold uppercase text-[10px]"
-            >
-              {customCategories.map((cat, idx) => (
-                <option key={idx} value={cat}>
-                  {cat}
-                </option>
-              ))}
-            </optgroup>
-          )}
-
           <optgroup label="Personalização">
             {permissions.canCustomCategories ? (
               <option
@@ -169,6 +144,29 @@ export default function CategorySelect({
                 )}
               </option>
             )}
+          </optgroup>
+          {customCategories.length > 0 && (
+            <optgroup
+              label="minhas categorias"
+              className="text-petroleum font-semibold uppercase text-[10px]"
+            >
+              {customCategories.map((cat, idx) => (
+                <option key={idx} value={cat}>
+                  {cat}
+                </option>
+              ))}
+            </optgroup>
+          )}
+
+          <optgroup
+            label="categorias padrão"
+            className="text-petroleum font-semibold uppercase text-[10px]"
+          >
+            {GALLERY_CATEGORIES.map((cat) => (
+              <option key={cat.id} value={cat.id}>
+                {cat.label}
+              </option>
+            ))}
           </optgroup>
         </select>
         <UpgradeModal
@@ -193,7 +191,7 @@ export default function CategorySelect({
         title="nova categoria"
         subtitle="personalize a organização da sua galeria"
         headerIcon={<Tag size={18} />}
-        maxWidth="sm"
+        maxWidth="lg"
         footer={modalFooter}
       >
         <div className="space-y-4">

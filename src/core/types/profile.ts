@@ -45,6 +45,7 @@ export const UserSettingsSchema = z.object({
     is_public: z.boolean().default(true), // 👈 Adicionado campo de privacidade padrão
     list_on_profile: z.boolean().default(false),
     google_drive_root_id: z.string().default(''), // ID da pasta inicial
+    google_drive_root_name: z.string().default(''), // Nome da pasta inicial
     rename_files_sequential: z.boolean().default(false), // Padrão de renomeação
     enable_guest_registration: z.boolean().default(false),
     required_guest_fields: z.array(z.string()).default(['name', 'whatsapp']),

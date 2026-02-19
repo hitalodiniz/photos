@@ -67,7 +67,7 @@ export async function revalidateGallery(
  */
 export async function revalidateUserGalleries(userId: string) {
   try {
-    revalidateTag(`user-galleries-${userId}`);
+    revalidateTag(`user-galerias-${userId}`);
     return { success: true };
   } catch (error) {
     console.error('Erro ao revalidar galerias do usuário:', error);

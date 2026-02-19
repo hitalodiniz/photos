@@ -194,7 +194,7 @@ export const ToolBarDesktop = ({
                 </span>
                 {/* Badge discreto com o número atual */}
                 <div
-                  className={`ml-1 px-1.5 rounded bg-black/10 text-[9px] font-bold ${showGridMenu ? 'text-black/60' : 'text-champagne/60'}`}
+                  className={`ml-1 px-1.5 rounded bg-black/10 text-[9px] font-semibold ${showGridMenu ? 'text-black/60' : 'text-champagne/60'}`}
                 >
                   {columns.desktop}
                 </div>
@@ -208,7 +208,7 @@ export const ToolBarDesktop = ({
               {showGridMenu && (
                 <div className="absolute top-[calc(100%+8px)] left-0 w-48 bg-petroleum backdrop-blur-xl border border-white/10 rounded-xl shadow-[0_20px_50px_rgba(0,0,0,0.5)] p-2 animate-in fade-in zoom-in-95 duration-200 z-[120] overflow-hidden">
                   <div className="px-3 py-2">
-                    <span className="text-[9px] font-bold uppercase tracking-widest text-white/40">
+                    <span className="text-[9px] font-semibold uppercase tracking-widest text-white/40">
                       Colunas no Grid
                     </span>
                   </div>
@@ -278,7 +278,7 @@ export const ToolBarDesktop = ({
                   onClick={() => setShowTagsMenu(!showTagsMenu)}
                   className={`flex items-center gap-2 px-3 h-8 rounded-md border transition-all duration-300 ${
                     showTagsMenu || activeTag.length > 0
-                      ? 'bg-champagne border-champagne text-black shadow-lg shadow-champagne/10'
+                      ? 'bg-champagne border-champagne text-petroleum shadow-lg shadow-champagne/10'
                       : 'bg-white/5 border-white/10 text-white/90 hover:border-white/30'
                   }`}
                 >
@@ -286,7 +286,7 @@ export const ToolBarDesktop = ({
                     size={14}
                     className={
                       showTagsMenu || activeTag.length > 0
-                        ? 'text-black'
+                        ? 'text-petroleum'
                         : 'text-champagne'
                     }
                     strokeWidth={2.5}
@@ -312,7 +312,8 @@ export const ToolBarDesktop = ({
                           setActiveTag([]);
                           setShowTagsMenu(false);
                         }}
-                        className={`flex items-center justify-between px-4 py-2.5 rounded-lg text-[11px] font-semibold uppercase tracking-wider transition-colors ${activeTag.length === 0 ? 'bg-champagne text-black' : 'text-white/90 hover:bg-white/5'}`}
+                        className={`flex items-center justify-between px-4 py-1 rounded-lg text-[10px] font-semibold uppercase 
+                          tracking-wider transition-colors ${activeTag.length === 0 ? 'bg-champagne text-black' : 'text-white hover:bg-white/5'}`}
                       >
                         <span>Todas as fotos</span>
                         {activeTag.length === 0 && <Check size={14} />}
@@ -331,7 +332,7 @@ export const ToolBarDesktop = ({
                               key={tag}
                               disabled={isDisabled}
                               onClick={() => toggleTag(tag)}
-                              className={`w-full flex items-center justify-between px-4 py-2.5 rounded-lg text-[11px] font-semibold uppercase tracking-wider transition-all ${
+                              className={`w-full flex items-center justify-between px-4 py-2.5 mt-1 rounded-lg text-[11px] font-semibold uppercase tracking-wider transition-all ${
                                 isSelected
                                   ? 'bg-champagne text-black shadow-md'
                                   : isDisabled
@@ -347,7 +348,7 @@ export const ToolBarDesktop = ({
                       </div>
 
                       {activeTag.length >= 3 && (
-                        <p className="text-[8px] text-center text-champagne/50 uppercase mt-2 font-bold tracking-widest">
+                        <p className="text-[8px] text-center text-champagne/50 uppercase mt-2 font-semibold tracking-widest">
                           Limite de 3 seleções atingido
                         </p>
                       )}
@@ -361,9 +362,9 @@ export const ToolBarDesktop = ({
                 {activeTag.map((tag: string) => (
                   <div
                     key={tag}
-                    className="flex items-center gap-2 px-3 h-8 bg-champagne border border-champagne text-black rounded-md animate-in fade-in slide-in-from-left-2 duration-300 shrink-0"
+                    className="flex items-center gap-2 px-3 h-8 bg-champagne border border-champagne text-petroleum rounded-md animate-in fade-in slide-in-from-left-2 duration-300 shrink-0"
                   >
-                    <span className="text-[10px] font-bold uppercase tracking-wider whitespace-nowrap">
+                    <span className="text-[10px] font-semibold uppercase tracking-wider whitespace-nowrap">
                       {tag}
                     </span>
                     <button
@@ -382,7 +383,7 @@ export const ToolBarDesktop = ({
                     className="flex items-center gap-1.5 px-3 h-8 bg-white/5 hover:bg-white/10 border border-white/10 rounded-md transition-all group shrink-0"
                     title="Limpar todos os filtros"
                   >
-                    <span className="text-[9px] font-semibold uppercase tracking-widest text-white/40 group-hover:text-white">
+                    <span className="text-[9px] font-semibold uppercase tracking-widest text-white/90 group-hover:text-white">
                       Limpar
                     </span>
                   </button>
@@ -445,7 +446,7 @@ export const ToolBarDesktop = ({
                     setShowDownloadMenu(!showDownloadMenu);
                   }}
                   disabled={isDownloading}
-                  className="flex items-center justify-center rounded-md bg-champagne text-black h-8 font-bold shadow-xl hover:bg-white transition-all disabled:opacity-50 w-32 gap-2 px-4"
+                  className="flex items-center justify-center rounded-md bg-champagne text-black h-8 font-semibold shadow-xl hover:bg-white transition-all disabled:opacity-50 w-32 gap-2 px-4"
                 >
                   {isDownloading ? (
                     <div className="loading-luxury w-4 h-4 border-black/30 border-t-black" />
@@ -505,7 +506,7 @@ export const ToolBarDesktop = ({
                             Fotos Otimizadas
                           </p>
                           <p className="text-white/90 text-[10px] leading-tight font-medium italic">
-                            Até 2MB por foto. Ideal para celular.
+                            Mantendo a qualidade das fotos originais.
                           </p>
                         </div>
                       </button>

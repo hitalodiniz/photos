@@ -65,20 +65,20 @@ export default function PublicSupportContent() {
         },
       ],
     },
-    {
-      category: 'Planos',
-      icon: <Zap size={20} />,
-      questions: [
-        {
-          q: 'Posso começar gratuitamente?',
-          a: `Sim. Oferecemos um plano permanente para quem está começando, permitindo criar ${terms.items} com limites básicos e recursos de design padrão.`,
-        },
-        {
-          q: 'Como funcionam os upgrades?',
-          a: `Ao assinar um plano ${planProName} ou ${planPremiumName}, você libera recursos como download de ${terms.items} em alta resolução, carrossel de capas, slideshow e remoção da nossa marca.`,
-        },
-      ],
-    },
+    // {
+    //   category: 'Planos',
+    //   icon: <Zap size={20} />,
+    //   questions: [
+    //     {
+    //       q: 'Posso começar gratuitamente?',
+    //       a: `Sim. Oferecemos um plano permanente para quem está começando, permitindo criar ${terms.items} com limites básicos e recursos de design padrão.`,
+    //     },
+    //     {
+    //       q: 'Como funcionam os upgrades?',
+    //       a: `Ao assinar um plano ${planProName} ou ${planPremiumName}, você libera recursos como download de ${terms.items} em alta resolução, carrossel de capas, slideshow e remoção da nossa marca.`,
+    //     },
+    //   ],
+    // },
   ];
 
   return (
@@ -153,9 +153,9 @@ export default function PublicSupportContent() {
                 ? 'Criar Galeria Grátis'
                 : 'Começar Agora'}
             </button>
-            <button className="px-8 py-3 bg-white/10 text-white text-[10px] font-bold uppercase tracking-widest rounded-full hover:bg-white/20 transition-all">
+            {/* <button className="px-8 py-3 bg-white/10 text-white text-[10px] font-bold uppercase tracking-widest rounded-full hover:bg-white/20 transition-all">
               Ver Planos PRO
-            </button>
+            </button> */}
           </div>
         </div>
       </div>

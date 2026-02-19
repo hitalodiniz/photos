@@ -7,7 +7,8 @@ const vapidKeys = {
 };
 
 webpush.setVapidDetails(
-  `mailto:${process.env.NEXT_PUBLIC_EMAIL}`,
+  // `mailto:${process.env.NEXT_PUBLIC_EMAIL}`,
+  'mailto:suporte@suagaleria.com.br',
   vapidKeys.publicKey,
   vapidKeys.privateKey,
 );
@@ -19,13 +20,11 @@ export async function sendPushNotification(
   subscription: any,
   payload: { title: string; message: string; link?: string },
 ) {
-  console.log('📡 Disparando Push para o Google/Mozilla Servers...');
   try {
     const response = await webpush.sendNotification(
       subscription,
       JSON.stringify(payload),
     );
-    console.log('✅ Resposta do servidor de Push:', response.statusCode);
     return { success: true, statusCode: response.statusCode };
   } catch (error: any) {
     console.error('[WebPush] Erro ao enviar:', error);

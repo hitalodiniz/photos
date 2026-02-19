@@ -101,6 +101,8 @@ export default function SettingsForm({ profile }: { profile: any }) {
         enable_slideshow: profile.settings?.defaults?.enable_slideshow ?? false,
         google_drive_root_id:
           profile.settings?.defaults?.google_drive_root_id ?? '',
+        google_drive_root_name:
+          profile.settings?.defaults?.google_drive_root_name ?? '', // Adicione esta linha
         rename_files_sequential:
           profile.settings?.defaults?.rename_files_sequential ?? true,
       },
@@ -414,6 +416,11 @@ export default function SettingsForm({ profile }: { profile: any }) {
                     );
 
                     // 2. Atualiza o nome visual
+                    setValue(
+                      'settings.defaults.google_drive_root_name',
+                      folder.name,
+                      { shouldDirty: true },
+                    );
                     setRootFolderName(folder.name);
 
                     setToast({
@@ -429,7 +436,7 @@ export default function SettingsForm({ profile }: { profile: any }) {
                   <input
                     value={
                       rootFolderName ||
-                      watch('settings.defaults.google_drive_root_id') ||
+                      watch('settings.defaults.google_drive_root_name') ||
                       ''
                     }
                     readOnly
@@ -446,11 +453,12 @@ export default function SettingsForm({ profile }: { profile: any }) {
                         setValue('settings.defaults.google_drive_root_id', '', {
                           shouldDirty: true,
                         });
+                        setValue(
+                          'settings.defaults.google_drive_root_name',
+                          '',
+                          { shouldDirty: true },
+                        );
                         setRootFolderName('');
-                        setToast({
-                          message: 'Pasta raiz removida.',
-                          type: 'success',
-                        });
                       }}
                       className="absolute right-2 p-1 text-slate-400 hover:text-red-500 transition-colors bg-white/50 backdrop-blur-sm rounded-md"
                       title="Limpar pasta raiz"
@@ -466,7 +474,7 @@ export default function SettingsForm({ profile }: { profile: any }) {
                 type="hidden"
                 {...register('settings.defaults.google_drive_root_id')}
               />
-              {/* Opcional: Salvar o nome no banco também para evitar buscas extras no futuro */}
+
               <input
                 type="hidden"
                 name="settings.defaults.google_drive_root_name"

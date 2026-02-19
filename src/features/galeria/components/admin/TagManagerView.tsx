@@ -217,7 +217,7 @@ export default function TagManagerView({
         <aside className="w-64 border-r border-slate-200 bg-slate-50/50 flex flex-col shrink-0 h-full overflow-y-auto custom-scrollbar rounded-luxury">
           {/* 🎯 NOVA SEÇÃO: Título da Galeria */}
           <div className="p-5 border-b border-slate-200 bg-white/50">
-            <span className="text-[9px] font-bold uppercase tracking-[0.2em] text-gold mb-1 block">
+            <span className="text-[9px] font-semibold uppercase tracking-[0.2em] text-gold mb-1 block">
               Galeria selecionada
             </span>
             <h2
@@ -467,7 +467,7 @@ export default function TagManagerView({
             <div className="grid grid-cols-2 gap-3 w-full items-center">
               <button
                 onClick={() => navigate('/dashboard', 'Voltando ao painel...')}
-                className="btn-secondary-white w-full text-[11px] h-10 uppercase font-bold"
+                className="btn-secondary-white w-full h-10 uppercase font-semibold"
               >
                 <ArrowLeft size={14} /> Painel
               </button>
@@ -475,7 +475,7 @@ export default function TagManagerView({
               <a
                 href={getPublicGalleryUrl(galeria.photographer, galeria.slug)}
                 target="_blank"
-                className="btn-luxury-primary w-full text-[11px] h-10 uppercase font-bold flex items-center justify-center gap-2"
+                className="btn-luxury-primary w-full h-10 uppercase font-semibold flex items-center justify-center gap-2"
               >
                 <Sparkles size={14} /> Ver Galeria
               </a>
@@ -491,7 +491,7 @@ export default function TagManagerView({
           </p>
 
           <div className="p-4 bg-slate-50 border border-petroleum/10 rounded-luxury flex flex-col items-center gap-4">
-            <p className="text-[10px] font-semibold text-petroleum/80 text-center uppercase tracking-luxury">
+            <p className="text-[10px] font-semibold text-petroleum/80 text-center font-semibold uppercase tracking-luxury">
               Compartilhe com seu cliente:
             </p>
 
@@ -504,7 +504,7 @@ export default function TagManagerView({
                     phone: galeria.client_whatsapp,
                   })
                 }
-                className="btn-luxury-base text-white bg-green-500 hover:bg-[#20ba56] px-4 py-2 rounded-lg flex items-center gap-2 text-xs font-bold"
+                className="btn-luxury-base text-white bg-green-500 hover:bg-[#20ba56] px-4 py-2 rounded-lg flex items-center gap-2  font-semibold"
               >
                 <WhatsAppIcon className="w-4 h-4 fill-current" />
                 WhatsApp
@@ -522,7 +522,7 @@ export default function TagManagerView({
                     setTimeout(() => setCopied(false), 2000);
                   }
                 }}
-                className="btn-luxury-base text-petroleum bg-white border border-petroleum/20 hover:border-slate-200 px-4 py-2 rounded-lg flex items-center gap-2 text-xs font-bold"
+                className="btn-luxury-base text-petroleum bg-white border border-petroleum/20 hover:border-slate-200 px-4 py-2 rounded-lg flex items-center gap-2  font-semibold"
               >
                 {copied ? (
                   <Check

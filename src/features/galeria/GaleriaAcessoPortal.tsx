@@ -8,7 +8,14 @@ import {
   captureLeadAction,
 } from '@/actions/auth.actions';
 import { Galeria } from '@/core/types/galeria';
-import { User, Mail, Smartphone, CheckCircle, Camera } from 'lucide-react';
+import {
+  User,
+  Mail,
+  Smartphone,
+  CheckCircle,
+  Camera,
+  Loader2,
+} from 'lucide-react';
 import Link from 'next/link';
 import PasswordInput from '@/components/ui/PasswordInput';
 import * as z from 'zod';
@@ -160,6 +167,7 @@ export default function GalleryAccessPortal({
         }
       }
 
+      setLoading(false);
       // 🎯 EVITA DOUBLE LOADING: Removemos o reload() para não disparar o LoadingScreen da página novamente
       if (onSuccess) {
         onSuccess();
@@ -178,17 +186,20 @@ export default function GalleryAccessPortal({
         form="access-portal-form"
         type="submit"
         disabled={loading}
-        className="btn-luxury-primary w-full"
+        className="btn-luxury-primary w-full flex items-center justify-center gap-2 disabled:opacity-70 disabled:cursor-not-allowed"
       >
         {loading ? (
-          <div className="loading-luxury w-4 h-4 border-petroleum" />
+          <>
+            <Loader2 size={16} className="animate-spin" />
+            <span>Processando...</span>
+          </>
         ) : (
           <>
             <CheckCircle
               size={14}
               className="group-hover:scale-110 transition-transform"
             />
-            Acessar Galeria
+            <span>Acessar Galeria</span>
           </>
         )}
       </button>
@@ -213,7 +224,7 @@ export default function GalleryAccessPortal({
       </div>
 
       <BaseModal
-        isOpen={isOpen && !loading}
+        isOpen={isOpen}
         onClose={() => {}}
         showCloseButton={false}
         title="Acesso à Galeria"

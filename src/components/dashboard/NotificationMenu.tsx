@@ -43,19 +43,35 @@ export function NotificationMenu({ userId }: { userId: string }) {
   useEffect(() => {
     if (!userId) return;
 
+    // 1. Busca inicial (Mantém as antigas)
     getLatestNotifications(userId).then((data) => {
       if (data) setNotifications(data);
     });
 
     getPushStatus(userId).then(setIsPushEnabled);
 
+    // 2. Realtime Inteligente
     const channel = notificationClientService.subscribeRealtime(
       userId,
-      (newNotif) => {
+      (payload) => {
+        const { eventType, new: newRecord, old: oldRecord } = payload;
+
         setNotifications((prev) => {
-          const exists = prev.some((n) => n.id === newNotif.id);
-          if (exists) return prev;
-          return [newNotif, ...prev].slice(0, 15);
+          // SE FOR UMA NOVA NOTIFICAÇÃO (INSERT)
+          if (eventType === 'INSERT') {
+            const exists = prev.some((n) => n.id === newRecord.id);
+            if (exists) return prev;
+            return [newRecord, ...prev].slice(0, 15); // Adiciona no topo e limita a 15
+          }
+
+          // SE FOR MUDANÇA DE STATUS (UPDATE - Ex: Marcar como lido)
+          if (eventType === 'UPDATE') {
+            return prev.map((n) =>
+              n.id === newRecord.id ? { ...n, ...newRecord } : n,
+            );
+          }
+
+          return prev;
         });
       },
     );
@@ -86,33 +102,75 @@ export function NotificationMenu({ userId }: { userId: string }) {
     const nextState = !isOpen;
 
     if (nextState) {
-      // ✅ Ao abrir, guardamos quem é unread nesta sessão
+      // 1. Ao abrir, guardamos quem era unread
       sessionOpenedRef.current = notifications
         .filter((n) => !n.read_at)
         .map((n) => n.id);
 
       setIsOpen(true);
+
+      // OPCIONAL: Se quiser que o contador suma ASSIM QUE ABRIR, descomente abaixo:
+      // markAsReadLocally();
     } else {
-      // ✅ Ao fechar, se havia notificações não lidas, marcamos como lidas no banco e localmente
+      // 2. Ao fechar, se havia algo não lido, limpamos tudo
       if (unreadCount > 0) {
-        const now = new Date().toISOString();
-        setNotifications((prev) =>
-          prev.map((n) => ({ ...n, read_at: n.read_at || now })),
-        );
-        try {
-          await markNotificationsAsRead(userId);
-        } catch (error) {
-          console.error('Erro ao marcar notificações como lidas:', error);
-        }
+        markAsReadLocally();
+
+        // Usamos startTransition para não travar a UI enquanto o banco atualiza
+        startTransition(async () => {
+          try {
+            await markNotificationsAsRead(userId);
+          } catch (error) {
+            console.error('Erro ao sincronizar leitura:', error);
+          }
+        });
       }
       setIsOpen(false);
+    }
+  };
+
+  // Função auxiliar para atualizar o estado local instantaneamente
+  const markAsReadLocally = () => {
+    const now = new Date().toISOString();
+    setNotifications((prev) =>
+      prev.map((n) => ({ ...n, read_at: n.read_at || now })),
+    );
+  };
+
+  const handleMarkAllAsRead = async () => {
+    if (unreadCount === 0) return;
+
+    const now = new Date().toISOString();
+
+    // 1. Update local instantâneo
+    setNotifications((prev) =>
+      prev.map((n) => ({ ...n, read_at: n.read_at || now })),
+    );
+
+    // 2. Sincroniza com o banco
+    try {
+      await markNotificationsAsRead(userId);
+    } catch (error) {
+      console.error('Erro ao marcar todas como lidas:', error);
     }
   };
 
   const openEventDetails = (n: any) => {
     if (n.metadata?.event_data) {
       setSelectedEvent(n.metadata.event_data);
-      // Não fechamos o menu automaticamente para permitir que ele continue lendo outras
+
+      // 🎯 Se a notificação ainda não tiver lida, marca agora para mudar o botão
+      if (!n.read_at) {
+        const now = new Date().toISOString();
+        setNotifications((prev) =>
+          prev.map((item) =>
+            item.id === n.id ? { ...item, read_at: now } : item,
+          ),
+        );
+
+        // Opcional: Notifica o banco de dados imediatamente para este ID específico
+        // markSingleNotificationAsRead(n.id);
+      }
     }
   };
 
@@ -129,12 +187,12 @@ export function NotificationMenu({ userId }: { userId: string }) {
         onClick={handleToggle}
         className="relative p-2 text-white/90 hover:text-champagne transition-all rounded-full hover:bg-white/5"
       >
-        {unreadCount > 0 ? (
+        {unreadCount > 0 && !isOpen ? (
           <BellRing size={20} className="text-champagne animate-pulse" />
         ) : (
           <Bell size={20} />
         )}
-        {unreadCount > 0 && (
+        {unreadCount > 0 && !isOpen && (
           <span className="absolute top-1 right-1 w-4 h-4 bg-red-600 text-white text-[9px] font-semibold flex items-center justify-center rounded-full border-2 border-petroleum">
             {unreadCount > 9 ? '9+' : unreadCount}
           </span>
@@ -153,17 +211,28 @@ export function NotificationMenu({ userId }: { userId: string }) {
             <div className="p-5 bg-white/5 border-b border-white/5 flex items-center justify-between">
               <div className="flex items-center gap-3">
                 <div
-                  className={`p-2 rounded-lg ${isPushEnabled ? 'bg-gold/10 text-gold' : 'bg-white/5 text-white/40'}`}
+                  className={`p-2 rounded-lg ${isPushEnabled ? 'bg-champagne text-petroleum' : 'bg-white/5 text-white/40'}`}
                 >
-                  {isPushEnabled ? <Bell size={16} /> : <BellOff size={16} />}
+                  {isPushEnabled ? <Bell size={18} /> : <BellOff size={18} />}
                 </div>
                 <div className="leading-tight">
-                  <p className="text-[10px] font-extrabold text-champagne uppercase tracking-widest">
+                  <p className="text-[10px] font-semibold text-champagne uppercase tracking-widest">
                     Notificações
                   </p>
-                  <p className="text-[9px] text-white/40 font-medium">
-                    Fique por dentro
-                  </p>
+                  {/* Botão de Marcar Todas */}
+                  {unreadCount > 0 && (
+                    <button
+                      onClick={handleMarkAllAsRead}
+                      className="text-[10px] text-white/80 hover:text-gold font-semibold uppercase tracking-tighter transition-colors"
+                    >
+                      Marcar todas como lidas
+                    </button>
+                  )}
+                  {unreadCount === 0 && (
+                    <p className="text-[10px] text-white/80 font-semibold py-1">
+                      Todas visualizadas
+                    </p>
+                  )}
                 </div>
               </div>
               <button
@@ -171,7 +240,7 @@ export function NotificationMenu({ userId }: { userId: string }) {
                 disabled={isPending}
                 className={`px-4 py-1.5 rounded-luxury text-[9px] font-semibold uppercase transition-all ${
                   isPushEnabled
-                    ? 'border border-white/10 text-white/40 hover:bg-white/5'
+                    ? 'border border-white/10 text-petroleum hover:bg-white/5 hover:text-white/80 bg-champagne'
                     : 'bg-gold text-petroleum hover:bg-champagne'
                 }`}
               >
@@ -180,41 +249,40 @@ export function NotificationMenu({ userId }: { userId: string }) {
             </div>
 
             {/* Listagem */}
-            <div className="max-h-[450px] overflow-y-auto custom-scrollbar bg-black/20">
+            <div className="max-h-[450px] overflow-y-auto custom-scrollbar bg-white">
               {notifications.length === 0 ? (
-                <div className="p-12 text-center text-white/30 text-[11px] italic font-medium uppercase tracking-widest">
+                <div className="p-12 text-center text-petroleum/30 text-[11px] italic font-medium uppercase tracking-widest">
                   Nenhuma atividade recente.
                 </div>
               ) : (
                 notifications.map((n) => {
-                  // Uma notificação é "nova" se não tinha read_at QUANDO o menu foi aberto agora
-                  const isNewInThisSession = sessionOpenedRef.current.includes(
-                    n.id,
-                  );
-
                   return (
                     <div
                       key={n.id}
-                      className={`px-5 py-4 border-b border-white/5 hover:bg-white/[0.03] transition-colors relative ${!n.read_at ? 'bg-white/[0.02]' : ''}`}
+                      className={`px-5 py-4 border-b border-petroleum/20 hover:bg-petroleum/[0.02] transition-colors relative ${
+                        !n.read_at ? 'bg-champagne/5' : 'bg-transparent'
+                      }`}
                     >
+                      {/* Indicador de "Não Lido" com Glow suave */}
                       {!n.read_at && (
-                        <div className="absolute left-0 top-0 bottom-0 w-1 bg-gold shadow-[0_0_15px_rgba(212,175,55,0.6)]" />
+                        <div className="absolute left-0 top-0 bottom-0 w-1 bg-gold shadow-[2px_0_10px_rgba(212,175,55,0.3)]" />
                       )}
 
                       <div className="flex gap-4">
-                        <div className="mt-1 shrink-0">
-                          {icons[n.type as keyof typeof icons] || icons.info}
-                        </div>
                         <div className="flex-1 min-w-0">
-                          <p className="text-sm font-semibold text-white leading-tight mb-1">
+                          {/* Título em Petróleo para peso visual */}
+                          <p className="text-sm font-semibold text-petroleum leading-tight mb-1">
                             {n.title}
                           </p>
-                          <p className="text-[12px] text-white/70 leading-relaxed font-medium line-clamp-2">
+
+                          {/* Mensagem com opacidade reduzida para hierarquia */}
+                          <p className="text-[12px] text-petroleum/70 leading-relaxed font-medium line-clamp-2">
                             {n.message}
                           </p>
 
-                          <div className="flex items-center justify-between mt-4">
-                            <span className="text-[9px] text-white/30 font-semibold uppercase tracking-widest">
+                          <div className="flex items-center justify-between mt-3">
+                            {/* Data em cinza sutil */}
+                            <span className="text-[9px] text-petroleum/80 font-semibold uppercase tracking-widest">
                               {formatDistanceToNow(new Date(n.created_at), {
                                 addSuffix: true,
                                 locale: ptBR,
@@ -222,22 +290,19 @@ export function NotificationMenu({ userId }: { userId: string }) {
                             </span>
 
                             <div className="flex items-center gap-4">
-                              {/* 🎯 O SEGREDO: Verificamos PRIMEIRO se existe o dado. Se existir, mostramos o botão. */}
                               {n.metadata?.event_data ? (
                                 <button
                                   onClick={(e) => {
-                                    e.stopPropagation(); // Evita conflitos de clique
+                                    e.stopPropagation();
                                     openEventDetails(n);
                                   }}
-                                  className={`font-extrabold text-[10px] uppercase tracking-luxury transition-all hover:text-champagne ${
-                                    isNewInThisSession || !n.read_at
-                                      ? 'text-gold'
-                                      : 'text-white/20 italic'
+                                  className={`font-semibold text-[10px] uppercase tracking-luxury transition-all duration-300 ${
+                                    !n.read_at
+                                      ? 'text-gold hover:text-petroleum'
+                                      : 'text-petroleum/80 italic'
                                   }`}
                                 >
-                                  {isNewInThisSession || !n.read_at
-                                    ? 'Ver Detalhes'
-                                    : 'Visualizado'}
+                                  {!n.read_at ? 'Ver Detalhes' : 'Visualizado'}
                                 </button>
                               ) : null}
                             </div>

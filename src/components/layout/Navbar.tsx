@@ -75,7 +75,7 @@ export default function Navbar() {
             )}
 
             <div className="flex items-center gap-3">
-              <Link
+              <a
                 href="/dashboard"
                 className="flex items-center gap-2 group shrink-0"
               >
@@ -86,7 +86,7 @@ export default function Navbar() {
                 <h1 className="hidden sm:block text-[15px] md:text-sm font-semibold tracking-[0.05em] text-white uppercase">
                   Espaço das <span className="text-champagne">Galerias</span>
                 </h1>
-              </Link>
+              </a>
 
               {/* Título Dinâmico (Estilo Breadcrumb Minimalista) */}
               {isFormPage && (

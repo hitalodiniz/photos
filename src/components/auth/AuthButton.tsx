@@ -101,9 +101,9 @@ export default function AuthButton({
               </span>
             </button>
 
-            <div className="h-[1px] bg-white/5 my-1" />
+            {/*<div className="h-[1px] bg-white/5 my-1" />
 
-            <button
+             <button
               onClick={handlePasswordLogin}
               className="w-full flex items-center gap-3 px-4 py-3 rounded-xl hover:bg-white/5 text-white transition-colors"
             >
@@ -111,7 +111,7 @@ export default function AuthButton({
               <span className="text-xs font-medium uppercase tracking-widest">
                 Usuário e Senha
               </span>
-            </button>
+            </button> */}
           </div>
         )}
         {/* 🎯 RENDERIZAÇÃO DO MODAL DE LOGIN */}

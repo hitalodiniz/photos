@@ -1,0 +1,37 @@
+.next/
+node_modules/
+.git/
+public/
+docs/
+.env*
+.env.local
+.env.development.local
+.env.test.local
+.env.production.local
+.env.development
+.env.test
+.env.production
+.env.example
+.env.local.example
+node_modules/
+scripts/
+
+# Ignora artefatos de build e dependências
+.next/
+node_modules/
+dist/
+build/
+out/
+
+# Ignora arquivos de mídia (consomem muito contexto)
+public/images/
+public/assets/
+*.png
+*.jpg
+*.jpeg
+*.svg
+
+# Ignora logs e cache
+.turbo/
+.cache/
+*.log

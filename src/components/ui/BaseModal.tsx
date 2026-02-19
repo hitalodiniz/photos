@@ -72,16 +72,16 @@ export default function BaseModal({
   if (!isOpen || !mounted) return null;
 
   const maxWidthClasses = {
-    sm: 'max-w-sm',
-    md: 'max-w-md',
-    lg: 'max-w-lg',
-    xl: 'max-w-xl',
-    '2xl': 'max-w-2xl',
-    '3xl': 'max-w-3xl',
-    '4xl': 'max-w-4xl',
-    '5xl': 'max-w-5xl',
-    '6xl': 'max-w-6xl',
-    full: ' w-[98%] h-[98%]',
+    sm: 'max-w-sm w-full',
+    md: 'max-w-md w-full',
+    lg: 'max-w-lg w-full',
+    xl: 'max-w-xl w-full',
+    '2xl': 'max-w-2xl w-full',
+    '3xl': 'max-w-3xl w-full',
+    '4xl': 'max-w-4xl w-full',
+    '5xl': 'max-w-5xl w-full',
+    '6xl': 'max-w-6xl w-full',
+    full: 'w-[98%] h-[98%]',
   };
 
   const blurClasses = {
@@ -103,7 +103,6 @@ export default function BaseModal({
         onClick={() => showCloseButton && onClose()}
       />
 
-      {/* O Modal em si */}
       <div
         className={`${maxWidthClasses[maxWidth]} flex flex-col ${
           maxWidth === 'full' ? 'h-full' : 'h-auto max-h-[90vh]'
@@ -111,7 +110,6 @@ export default function BaseModal({
           maxWidth === 'full' ? 'rounded-none' : 'rounded-luxury'
         } overflow-hidden border border-white/10`}
       >
-        {/* HEADER */}
         <div className="bg-petroleum px-6 py-4 flex justify-between items-center shrink-0">
           <div className="flex items-center gap-3">
             {headerIcon && (
@@ -138,17 +136,14 @@ export default function BaseModal({
           )}
         </div>
 
-        {/* CORPO - Sem padding/border quando full */}
         <div className="bg-white flex-1 overflow-y-auto no-scrollbar">
           {topBanner && (
             <div className="border-b border-petroleum/10">{topBanner}</div>
           )}
 
           {maxWidth === 'full' ? (
-            // ✅ Modo FULL: Sem padding, sem border, sem wrapper
             <div className="h-full">{children}</div>
           ) : (
-            // ✅ Modo NORMAL: Com padding e border como antes
             <div className="p-5">
               <div className="border border-petroleum/20 rounded-luxury p-4 bg-white shadow-sm">
                 {children}
@@ -157,7 +152,6 @@ export default function BaseModal({
           )}
         </div>
 
-        {/* FOOTER */}
         {footer && (
           <div className="bg-petroleum px-6 py-4 border-t border-white/10 shrink-0 text-white">
             {footer}

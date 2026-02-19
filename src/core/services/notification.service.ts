@@ -40,15 +40,16 @@ export async function getPushStatus(userId: string) {
   return !!data?.notifications_enabled;
 }
 
+// @/core/services/notification.service
 export async function markNotificationsAsRead(userId: string) {
   const supabase = await createSupabaseServerClient();
-  await supabase
+  const { error } = await supabase
     .from('tb_notifications')
     .update({ read_at: new Date().toISOString() })
     .eq('user_id', userId)
-    .is('read_at', null);
+    .is('read_at', null); // Importante: só atualiza o que for nulo
 
-  revalidatePath('/dashboard');
+  if (error) throw error;
 }
 
 export async function disablePush(userId: string) {

@@ -22,7 +22,10 @@ import {
   createSupabaseServerClientReadOnly,
 } from '@/lib/supabase.server';
 import { revalidateTag, revalidatePath } from 'next/cache';
-import { revalidateUserGalleries } from '@/actions/revalidate.actions';
+import {
+  revalidateProfile,
+  revalidateUserGalleries,
+} from '@/actions/revalidate.actions';
 
 // =========================================================================
 // MOCKS DE INFRAESTRUTURA
@@ -47,6 +50,7 @@ vi.mock('@/lib/supabase.server', () => ({
 
 vi.mock('@/actions/revalidate.actions', () => ({
   revalidateUserGalleries: vi.fn().mockResolvedValue(true),
+  revalidateProfile: vi.fn(),
 }));
 
 vi.mock('@/core/utils/user-helpers', () => ({
@@ -1008,7 +1012,7 @@ describe('Profile Service - Cobertura Total 100%', () => {
         update: vi.fn().mockReturnThis(),
         eq: vi.fn().mockResolvedValue({
           data: null,
-          error: { message: 'Update failed' },
+          error: { message: 'Falha ao sincronizar notificações' },
         }),
       };
 
@@ -1023,11 +1027,13 @@ describe('Profile Service - Cobertura Total 100%', () => {
 
       expect(result).toEqual({
         success: false,
-        error: 'Update failed',
+        error: 'Falha ao sincronizar notificações',
       });
       expect(consoleErrorSpy).toHaveBeenCalledWith(
         '[updateProfileSettings] Erro:',
-        expect.objectContaining({ message: 'Update failed' }),
+        expect.objectContaining({
+          message: 'Falha ao sincronizar notificações',
+        }),
       );
 
       consoleErrorSpy.mockRestore();
@@ -1138,7 +1144,7 @@ describe('Profile Service - Cobertura Total 100%', () => {
         update: vi.fn().mockReturnThis(),
         eq: vi.fn().mockResolvedValue({
           data: null,
-          error: { message: 'Update failed' },
+          error: { message: 'Falha ao sincronizar notificações' },
         }),
       };
 
@@ -1150,7 +1156,7 @@ describe('Profile Service - Cobertura Total 100%', () => {
 
       expect(result).toEqual({
         success: false,
-        error: 'Update failed',
+        error: 'Falha ao sincronizar notificações',
       });
     });
 
@@ -1303,7 +1309,7 @@ describe('Profile Service - Cobertura Total 100%', () => {
         push_subscription: mockSubscription,
         notifications_enabled: true,
       });
-      expect(revalidatePath).toHaveBeenCalledWith('/dashboard/perfil');
+      expect(revalidateProfile).toHaveBeenCalled();
     });
 
     it('deve retornar erro quando não há usuário autenticado', async () => {
@@ -1316,20 +1322,20 @@ describe('Profile Service - Cobertura Total 100%', () => {
 
       expect(result).toEqual({
         success: false,
-        error: 'Não autorizado',
+        error: 'Usuário não autenticado',
       });
     });
 
     it('deve retornar erro quando update falha', async () => {
       mockBuilder.eq.mockResolvedValueOnce({
-        error: { message: 'Update failed' },
+        error: { message: 'Falha ao sincronizar notificações' },
       });
 
       const result = await updatePushSubscriptionAction(mockSubscription);
 
       expect(result).toEqual({
         success: false,
-        error: 'Update failed',
+        error: 'Falha ao sincronizar notificações',
       });
     });
   });
@@ -1416,18 +1422,18 @@ describe('Profile Service - Cobertura Total 100%', () => {
         // Mock para o select().single() final que retorna erro
         .mockResolvedValueOnce({
           data: null,
-          error: { message: 'Update failed' },
+          error: { message: 'Falha ao sincronizar notificações' },
         });
 
       const result = await processSubscriptionAction(mockUserId, 'PRO');
 
       expect(result).toEqual({
         success: false,
-        error: 'Update failed',
+        error: 'Falha ao sincronizar notificações',
       });
       expect(consoleErrorSpy).toHaveBeenCalledWith(
         '[processSubscriptionAction] Erro na transição:',
-        'Update failed',
+        'Falha ao sincronizar notificações',
       );
 
       consoleErrorSpy.mockRestore();

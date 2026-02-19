@@ -14,7 +14,7 @@ export const getSEOBySegment = (segment?: SegmentType) => {
   return {
     brandName: terms.site_name,
     identity: terms.identity,
-    defaultTitle: `${terms.site_name} — ${terms.identity}`,
+    defaultTitle: `${terms.site_name}`,
     defaultDescription: terms.site_description,
   };
 };
@@ -27,6 +27,6 @@ export const formatTitle = (
   pageName: string | undefined,
   brandName: string,
 ) => {
-  if (!pageName) return brandName;
+  if (!pageName || pageName === brandName) return brandName;
   return `${pageName} - ${brandName}`;
 };

@@ -18,7 +18,7 @@ export function PlanSelect({ feature, options, ...props }: PlanSelectProps) {
         className={`appearance-none bg-transparent pl-0.5 pr-3 text-[9px] font-bold text-petroleum outline-none cursor-pointer disabled:cursor-not-allowed ${props.className}`}
       >
         {options.map((v) => {
-          const isBlocked = v > limit - 1;
+          const isBlocked = v > limit;
           return (
             <option key={v} value={v} disabled={isBlocked}>
               {v} {isBlocked ? '🔒' : ''}

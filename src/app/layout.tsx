@@ -21,7 +21,9 @@ export const metadata: Metadata = {
   metadataBase: new URL(process.env.NEXT_PUBLIC_BASE_URL!),
   alternates: { canonical: '/' },
   title: {
+    // 1. O nome puro para a Home
     default: terms.site_name,
+    // 2. O template para as subpáginas
     template: `%s - ${terms.site_name}`,
   },
   description: terms.site_description,
@@ -80,7 +82,7 @@ export default function RootLayout({
               </main>
               <GoogleApiLoader />
               <CookieBanner />
-              <ThemeSwitcher />
+              {/* <ThemeSwitcher /> */}
             </SidebarProvider>
           </NavigationProvider>
         </AuthProvider>

@@ -27,6 +27,7 @@ import { getGalleryPermission } from '@/core/utils/plan-helpers';
 
 import { DownloadCenterModal } from './DownloadCenterModal';
 import { emitGaleriaEvent } from '@/core/services/galeria-stats.service';
+import { getProfileByUsername } from '@/core/services/profile.service';
 
 export default function PhotoGrid({ photos, galeria }: any) {
   // --- 1. ESTADOS DE INTERFACE ---
@@ -439,15 +440,19 @@ export default function PhotoGrid({ photos, galeria }: any) {
   const downloadAllAsZip = () =>
     handleDownloadZip(photosWithTags, 'completa', false);
 
-  const handleShare = () => {
+  const handleShare = async () => {
     const url = window.location.href;
     const title = galeria.title;
 
-    const customTemplate = galeria.photographer?.message_templates?.guest_share;
     let shareText: string;
-
-    if (customTemplate && customTemplate.trim() !== '') {
-      shareText = formatMessage(customTemplate, galeria, url);
+    const profile = await getProfileByUsername(galeria.photographer?.username);
+    if (profile) {
+      const customTemplate = profile.message_templates?.guest_share;
+      if (customTemplate && customTemplate.trim() !== '') {
+        shareText = formatMessage(customTemplate, galeria, url);
+      } else {
+        shareText = GALLERY_MESSAGES.GUEST_SHARE(title, url);
+      }
     } else {
       shareText = GALLERY_MESSAGES.GUEST_SHARE(title, url);
     }

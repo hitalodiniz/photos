@@ -23,6 +23,21 @@ export default defineConfig({
       NEXT_PUBLIC_SUPABASE_ANON_KEY: 'fake-key',
       NEXT_PUBLIC_EMAIL: 'app.suagaleria@gmail.com',
     },
+    // 1. Desativa o isolamento de threads se os testes forem independentes (ganho massivo de memória)
+    pool: 'forks',
+    poolOptions: {
+      forks: {
+        isolate: false,
+      },
+    },
+    // 2. Limita a quantidade de workers para não saturar a CPU/RAM
+    maxWorkers: 2,
+    minWorkers: 1,
+    // 3. Força o garbage collector (opcional)
+    logHeapUsage: true,
+    clearMocks: true,
+    restoreMocks: true,
+    unstubEnvs: true,
     coverage: {
       provider: 'v8',
       reporter: ['text', 'json', 'html'],

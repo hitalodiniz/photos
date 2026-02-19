@@ -43,7 +43,7 @@ export function EventDetailsSheet({
 
         <div className="flex-1 overflow-y-auto p-6 space-y-8">
           <section>
-            <p className="text-[9px] font-semibold text-gold uppercase tracking-widest mb-4">
+            <p className="text-[9px] font-semibold text-petroleum uppercase tracking-widest mb-4">
               Informações de Acesso
             </p>
             <div className="grid grid-cols-2 gap-4">
@@ -67,7 +67,7 @@ export function EventDetailsSheet({
           </section>
 
           <section>
-            <p className="text-[9px] font-semibold text-gold uppercase tracking-widest mb-4">
+            <p className="text-[9px] font-semibold text-petroleum uppercase tracking-widest mb-4">
               Dispositivo e Navegador
             </p>
             <div className="space-y-2">
@@ -88,11 +88,11 @@ export function EventDetailsSheet({
                   key={idx}
                   className="flex items-center justify-between p-3 border-b border-slate-50"
                 >
-                  <span className="text-[10px] font-semibold text-slate-400 uppercase">
+                  <span className="text-[10px] font-semibold text-slate-900 uppercase">
                     {item.label}
                   </span>
                   <span className="text-[11px] font-semibold text-petroleum uppercase flex items-center gap-2">
-                    <item.icon size={12} className="text-gold" />{' '}
+                    <item.icon size={12} className="text-petroleum" />{' '}
                     {item.val || '---'}
                   </span>
                 </div>
@@ -102,7 +102,7 @@ export function EventDetailsSheet({
 
           {event.metadata && (
             <section>
-              <p className="text-[9px] font-semibold text-gold uppercase tracking-widest mb-4">
+              <p className="text-[9px] font-semibold text-petroleum uppercase tracking-widest mb-4">
                 Metadados Brutos (Logs)
               </p>
               <div className="p-4 bg-petroleum rounded-luxury text-champagne font-mono text-[10px] overflow-x-auto whitespace-pre">

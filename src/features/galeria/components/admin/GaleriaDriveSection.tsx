@@ -39,7 +39,7 @@ export function GaleriaDriveSection({
         <div className="absolute inset-0 z-50 flex flex-col items-center justify-center bg-white/80 backdrop-blur-sm animate-in fade-in duration-300">
           <Loader2 className="w-8 h-8 text-gold animate-spin mb-2" />
           <p className="text-[10px] font-bold uppercase tracking-luxury-widest text-petroleum">
-            Validando Pasta...
+            Carregando arquivos da pasta...
           </p>
         </div>
       )}
@@ -131,7 +131,7 @@ export function GaleriaDriveSection({
           {driveData.allCovers && driveData.allCovers.length > 0 ? (
             driveData.allCovers.map((photoId, index) => (
               <div
-                key={photoId}
+                key={`cover-${photoId}-${index}`}
                 className="relative group animate-in zoom-in-95 duration-300"
               >
                 <div className="w-20 h-20 rounded-md overflow-hidden border-2 border-gold/40 shadow-md bg-white">

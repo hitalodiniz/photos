@@ -28,7 +28,10 @@ import {
   revalidateProfileTags,
   revalidateProfileComplete,
 } from '../utils/profile-revalidation.helper';
-import { revalidateUserGalleries } from '@/actions/revalidate.actions';
+import {
+  revalidateProfile,
+  revalidateUserGalleries,
+} from '@/actions/revalidate.actions';
 import { normalizePhoneNumber } from '../utils/masks-helpers';
 
 // =========================================================================
@@ -447,7 +450,7 @@ export async function updatePushSubscriptionAction(subscription: any) {
     console.error('Erro ao salvar assinatura:', error);
     return { success: false, error: 'Falha ao sincronizar notificações' };
   }
-
+  await revalidateProfile();
   return { success: true };
 }
 

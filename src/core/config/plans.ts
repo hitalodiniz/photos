@@ -772,7 +772,7 @@ export const COMMON_FEATURES = [
       'Fixo (3 colunas)',
       'Escolha (3 ou 4)',
       'Escolha (3 a 5)',
-      'Até 6 colunas',
+      'Até 8 colunas',
       'Até 8 colunas',
     ],
   },

@@ -95,9 +95,10 @@ export function LeadCaptureSection({
       <PlanGuard feature="canCaptureLeads" label={toggleLabel}>
         <div className="flex flex-col items-start gap-1">
           <div className="flex items-center gap-4">
-            <label>{toggleLabel}</label>
+            <label htmlFor="lead-capture-toggle">{toggleLabel}</label>
 
             <button
+              id="lead-capture-toggle"
               type="button"
               onClick={() => {
                 if (!isFeatureLocked) {

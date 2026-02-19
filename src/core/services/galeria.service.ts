@@ -403,7 +403,7 @@ export async function getGalerias(
     [`user-galerias-${userId}`],
     {
       revalidate: GLOBAL_CACHE_REVALIDATE,
-      tags: [`user-galleries-${userId}`, `user-galerias-${userId}`],
+      tags: [`user-galerias-${userId}`],
     },
   )(userId);
 }
@@ -725,7 +725,6 @@ async function updateGaleriaStatus(
   try {
     const supabase = await createSupabaseServerClient();
 
-    // 1. AUTENTICAÇÃO
     const {
       success: authSuccess,
       userId,
@@ -736,7 +735,23 @@ async function updateGaleriaStatus(
       return { success: false, error: 'Não autenticado' };
     }
 
-    // 2. VALIDAÇÃO DE LIMITE (se necessário)
+    const { data: galleryData, error: fetchError } = await supabase
+      .from('tb_galerias')
+      .select('user_id, slug, drive_folder_id')
+      .eq('id', id)
+      .single();
+
+    if (fetchError || !galleryData) {
+      return {
+        success: false,
+        error: 'Galeria não encontrada ou você não tem permissão.',
+      };
+    }
+
+    if (galleryData.user_id !== userId) {
+      return { success: false, error: 'Operação não autorizada.' };
+    }
+
     if (shouldCheckLimit) {
       const limitCheck = await checkReactivationLimit(
         supabase,
@@ -750,33 +765,19 @@ async function updateGaleriaStatus(
       }
     }
 
-    // 3. BUSCAR DADOS PARA REVALIDAÇÃO
-    const revalidationData = await getGalleryRevalidationData(
-      supabase,
-      id,
-      userId,
-    );
-
-    if (!revalidationData) {
-      return { success: false, error: 'Galeria não encontrada.' };
-    }
-
-    // 4. EXECUTAR UPDATE
-    const { data, error } = await supabase
+    const { data, error: updateError } = await supabase
       .from('tb_galerias')
       .update(updates)
       .eq('id', id)
-      .eq('user_id', userId)
       .select()
       .single();
 
-    if (error) throw error;
+    if (updateError) throw updateError;
 
-    // 5. REVALIDAÇÃO
     revalidateGalleryCache({
       galeriaId: id,
-      slug: revalidationData.slug,
-      driveFolderId: revalidationData.drive_folder_id,
+      slug: galleryData.slug,
+      driveFolderId: galleryData.drive_folder_id,
       userId,
       username: profile.username,
     });
@@ -831,11 +832,15 @@ export async function moveToTrash(id: string) {
 export async function restoreGaleria(id: string): Promise<ActionResult> {
   // 1. Executa a restauração básica via update genérico
   // O updateGaleriaStatus já possui a trava de limite que implementamos
-  const result = await updateGaleriaStatus(id, {
-    is_deleted: false,
-    is_archived: false,
-    deleted_at: null,
-  });
+  const result = await updateGaleriaStatus(
+    id,
+    {
+      is_deleted: false,
+      is_archived: false,
+      deleted_at: null,
+    },
+    true, // Valida o limite ao restaurar
+  );
 
   if (!result.success) return result;
 
@@ -860,50 +865,43 @@ export async function permanentDelete(id: string) {
 
     if (!userId) return { success: false, error: 'Não autorizado' };
 
-    // 🎯 CORREÇÃO 1: Busca e validação de existência
-    const { data: galeriaAntes, error: fetchError } = await supabase
+    // 1. Fetch gallery data to verify ownership
+    const { data: galeria, error: fetchError } = await supabase
       .from('tb_galerias')
-      .select('slug, drive_folder_id')
+      .select('user_id, slug, drive_folder_id')
       .eq('id', id)
-      .eq('user_id', userId)
       .single();
 
-    // Se houver erro na busca ou galeria não existir, interrompe aqui
-    if (fetchError || !galeriaAntes) {
-      return {
-        success: false,
-        error: 'Galeria não encontrada ou você não tem permissão.',
-      };
+    if (fetchError || !galeria) {
+      return { success: false, error: 'Galeria não encontrada.' };
     }
 
-    // 🎯 EXECUÇÃO: Delete físico
+    // 2. Explicit ownership check
+    if (galeria.user_id !== userId) {
+      return { success: false, error: 'Operação não autorizada.' };
+    }
+
+    // 3. Proceed with deletion
     const { error: deleteError } = await supabase
       .from('tb_galerias')
       .delete()
-      .eq('id', id)
-      .eq('user_id', userId);
+      .eq('id', id);
 
     if (deleteError) throw deleteError;
 
-    // 🔄 REVALIDAÇÃO ESTRATÉGICA
-    // Usamos blocos protegidos para garantir que o cache limpe mesmo com dados parciais
-    if (galeriaAntes.slug) {
-      revalidateTag(`gallery-${galeriaAntes.slug}`);
+    // Revalidation logic
+    if (galeria.slug) {
+      revalidateTag(`gallery-${galeria.slug}`);
     }
-
-    if (galeriaAntes.drive_folder_id) {
-      revalidateTag(`drive-${galeriaAntes.drive_folder_id}`);
+    if (galeria.drive_folder_id) {
+      revalidateTag(`drive-${galeria.drive_folder_id}`);
     }
-
     revalidateTag(`photos-${id}`);
     revalidateTag(`user-galerias-${userId}`);
-
     if (profile?.username) {
       revalidateTag(`profile-${profile.username}`);
       revalidateTag(`profile-galerias-${profile.username}`);
     }
-
-    // Revalida o dashboard para remover o card da UI imediatamente
     revalidatePath('/dashboard');
 
     return { success: true, message: 'Galeria excluída permanentemente.' };
@@ -1002,7 +1000,7 @@ export async function archiveExceedingGalleries(
   // 1. Busca galerias ativas (mais recentes no topo)
   const { data: active, error: fetchError } = await supabase
     .from('tb_galerias')
-    .select('id')
+    .select('id', { count: 'exact' })
     .eq('user_id', userId)
     .eq('is_deleted', false)
     .eq('is_archived', false)
@@ -1062,7 +1060,7 @@ export async function purgeOldDeletedGalleries(supabaseClient?: any) {
     console.log(`[Cron] Removendo ${ids.length} galerias da lixeira.`);
 
     // 2. Hard Delete no banco
-    const { error: deleteError } = await supabase
+    const { count, error: deleteError } = await supabase
       .from('tb_galerias')
       .delete()
       .in('id', ids);

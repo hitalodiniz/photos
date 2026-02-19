@@ -17,7 +17,7 @@ import { useSegment } from '@/hooks/useSegment';
 import { useState, useMemo, useCallback } from 'react';
 type EditableMessageKey = keyof Omit<MessageTemplates, 'CARD_SHARE'>;
 import { updateProfileSettings } from '@/core/services/profile.service';
-import { Toast } from '@/components/ui';
+import { ConfirmationModal, Toast } from '@/components/ui';
 import FormPageBase from '@/components/ui/FormPageBase';
 import { PlanGuard } from '@/components/auth/PlanGuard';
 
@@ -25,6 +25,7 @@ import { GALLERY_MESSAGES } from '@/core/config/messages';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { useForm } from 'react-hook-form';
 import BaseModal from '@/components/ui/BaseModal';
+import { revalidateProfile } from '@/actions/revalidate.actions';
 
 const CombinedSchema = z.object({
   message_templates: MessageTemplatesSchema,
@@ -82,7 +83,7 @@ const FormSection = ({
   <div className="bg-white rounded-luxury border border-petroleum/10 p-6 ">
     <div className="flex items-center gap-3 border-b border-petroleum/10 pb-4">
       {icon && <div className="text-petroleum">{icon}</div>}
-      <h3 className="text-[11px] font-semibold uppercase tracking-luxury text-petroleum">
+      <h3 className="text-[11px] font-semibold uppercase tracking-widest text-petroleum">
         {title}
       </h3>
     </div>
@@ -96,17 +97,18 @@ export default function MessageSettingsForm({ profile }: { profile: any }) {
   const router = useRouter();
   const textareaRef = useRef<HTMLTextAreaElement>(null);
   const { terms, segment } = useSegment(); // 🎯 Hook de Segmento
+  const [showResetModal, setShowResetModal] = useState<string | null>(null);
 
   // 🎯 MAPEAMENTO DINÂMICO BASEADO NOS TERMS
   const MESSAGE_TITLES: Record<string, string> = {
     card_share: 'Espaço de Galerias',
-    photo_share: `Foto Individual`,
-    guest_share: `${terms.item.charAt(0).toUpperCase() + terms.item.slice(1)} de Fotos`,
+    photo_share: `${terms.item.charAt(0).toUpperCase() + terms.item.slice(1)} Individual`,
+    guest_share: `Galeria de ${terms.item.charAt(0).toUpperCase() + terms.item.slice(1)}`,
   };
 
   const MESSAGE_LABELS: Record<string, string> = {
     card_share: `Mensagem de compartilhamento de galeria no Espaço de Galerias`,
-    photo_share: `Mensagem de compartilhamento de foto única pelo visitante`,
+    photo_share: `Mensagem de compartilhamento de ${terms.item.charAt(0).toUpperCase() + terms.item.slice(1)} única pelo visitante`,
     guest_share: `Mensagem de compartilhamento da galeria pelo visitante`,
   };
 
@@ -201,6 +203,7 @@ export default function MessageSettingsForm({ profile }: { profile: any }) {
     try {
       const result = await updateProfileSettings(data);
       if (result.success) {
+        await revalidateProfile(profile.username);
         setIsSuccess(true);
         setToast({ message: 'Mensagens salvas com sucesso!', type: 'success' });
         router.refresh();
@@ -311,10 +314,7 @@ export default function MessageSettingsForm({ profile }: { profile: any }) {
                         type="button"
                         onClick={(e) => {
                           e.stopPropagation();
-                          if (confirm('Restaurar para o padrão?'))
-                            setValue(`message_templates.${key as any}`, '', {
-                              shouldDirty: true,
-                            });
+                          setShowResetModal(key);
                         }}
                         className="flex items-center justify-center gap-2 h-9 bg-white/5 text-white rounded-luxury text-[11px] font-semibold hover:bg-red-500/20 transition-all border border-white/10"
                       >
@@ -397,7 +397,7 @@ export default function MessageSettingsForm({ profile }: { profile: any }) {
                           type="button"
                           onClick={() => insertVariable(v)}
                           title={VARIABLE_DESCRIPTIONS[v]}
-                          className="btn-luxury-base bg-white"
+                          className="btn-luxury-base bg-white text-[10px]"
                         >
                           • {v.replace('galeria_', '').replace('_', ' ')}
                         </button>
@@ -408,7 +408,7 @@ export default function MessageSettingsForm({ profile }: { profile: any }) {
                           type="button"
                           onClick={() => insertVariable(v)}
                           title={VARIABLE_DESCRIPTIONS[v]}
-                          className="btn-luxury-base bg-petroleum/10"
+                          className="btn-luxury-base bg-petroleum/10 text-[10px]"
                         >
                           👤 {v.replace('profissional_', '').replace('_', ' ')}
                         </button>
@@ -450,6 +450,26 @@ export default function MessageSettingsForm({ profile }: { profile: any }) {
             </BaseModal>
           )}
         </div>
+        <ConfirmationModal
+          isOpen={!!showResetModal}
+          onClose={() => setShowResetModal(null)}
+          title="Restaurar Padrão"
+          message={`Deseja realmente restaurar a mensagem "${MESSAGE_TITLES[showResetModal ?? '']}" para o padrão original? Esta ação não pode ser desfeita.`}
+          confirmText="Sim, Restaurar"
+          variant="danger"
+          onConfirm={() => {
+            if (showResetModal) {
+              setValue(`message_templates.${showResetModal as any}`, '', {
+                shouldDirty: true,
+              });
+              setShowResetModal(null);
+              setToast({
+                message: 'Mensagem resetada (clique em salvar para aplicar).',
+                type: 'success',
+              });
+            }
+          }}
+        />
         {toast && (
           <Toast
             message={toast.message}

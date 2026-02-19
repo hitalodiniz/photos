@@ -115,6 +115,7 @@ export default function GaleriaView({ galeria, photos }: GaleriaViewProps) {
             />
           )}
           <GaleriaFooter
+            galeria={galeria}
             photographer={galeria.photographer}
             title={galeria.title}
           />

@@ -29,7 +29,6 @@ import {
   Shield,
   ShieldCheck,
   PlayCircle,
-  Loader2,
 } from 'lucide-react';
 import WhatsAppIcon from '@/components/ui/WhatsAppIcon';
 import { convertToDirectDownloadUrl } from '@/core/utils/url-helper';
@@ -46,13 +45,9 @@ import UpgradeModal from '@/components/ui/UpgradeModal';
 import PasswordInput from '@/components/ui/PasswordInput'; // Import PasswordInput
 import { InfoTooltip } from '@/components/ui/InfoTooltip';
 import { GalleryInteractionFields } from './GalleryInteractionFields';
-import { TagManagerModal } from './TagManagerModal';
-import { authService } from '@photos/core-auth';
+
 import { Toast } from '@/components/ui';
 import { getFolderPhotos } from '@/core/services/google-drive.service';
-import { getAuthenticatedUser } from '@/core/services/auth-context.service';
-import { DrivePhoto } from '@/lib/google-drive';
-import { FEATURE_DESCRIPTIONS } from '@/core/config/plans';
 
 // 🎯 Componente de seção simples (sem accordion) - Estilo Editorial
 const FormSection = ({

@@ -29,6 +29,9 @@ export const GaleriaHero = ({
   const { SegmentIcon } = useSegment();
   const [isExpanded, setIsExpanded] = useState(true);
   const [currentImageIndex, setCurrentImageIndex] = useState(0);
+  const [imagesOrientation, setImagesOrientation] = useState<
+    Record<string, 'portrait' | 'landscape'>
+  >({});
 
   const carouselImages =
     galeria.cover_image_ids.length > 0
@@ -36,6 +39,21 @@ export const GaleriaHero = ({
           getInternalGoogleDriveUrl(id, '2048'),
         )
       : ([coverUrl].filter(Boolean) as string[]);
+
+  // Efeito para detectar a orientação das imagens
+  useEffect(() => {
+    carouselImages.forEach((img) => {
+      if (imagesOrientation[img]) return; // Evita reprocessamento
+
+      const imageLoader = new Image();
+      imageLoader.src = img;
+      imageLoader.onload = () => {
+        const orientation =
+          imageLoader.height > imageLoader.width ? 'portrait' : 'landscape';
+        setImagesOrientation((prev) => ({ ...prev, [img]: orientation }));
+      };
+    });
+  }, [carouselImages]);
 
   // Funções de navegação manual
   const nextImage = (e?: React.MouseEvent) => {
@@ -50,6 +68,7 @@ export const GaleriaHero = ({
     );
   };
 
+  // Autoplay do Carrossel
   useEffect(() => {
     if (!isExpanded || carouselImages.length <= 1) return;
 
@@ -60,6 +79,7 @@ export const GaleriaHero = ({
     return () => clearInterval(interval);
   }, [isExpanded, carouselImages.length, currentImageIndex]);
 
+  // Controle de fechamento automático e scroll (Lógica original mantida)
   useEffect(() => {
     const totalTime = Math.max(carouselImages.length * 3000, 5000);
     const timer = setTimeout(() => setIsExpanded(false), totalTime);
@@ -83,17 +103,36 @@ export const GaleriaHero = ({
       }`}
     >
       <div className="absolute inset-0 z-0">
-        {carouselImages.map((img, index) => (
-          <div
-            key={img}
-            className={`absolute inset-0 bg-cover bg-center transition-opacity duration-1000 ease-in-out
-              ${index === currentImageIndex ? 'opacity-100' : 'opacity-0'}`}
-            style={{
-              backgroundImage: `url('${img}')`,
-              backgroundPosition: 'center 35%',
-            }}
-          />
-        ))}
+        {carouselImages.map((img, index) => {
+          const orientation = imagesOrientation[img];
+          const isPortrait = orientation === 'portrait';
+
+          // Lógica de posicionamento refinada
+          const getPosition = () => {
+            if (isPortrait) {
+              // No mobile, fotos verticais precisam de foco total no topo (0%)
+              // No desktop, um leve respiro (5%) evita colar no limite da tela
+              return 'center 10%';
+            }
+
+            // Para paisagem:
+            // Se expandido (isExpanded), 35% é ótimo para manter o horizonte.
+            // Se recolhido (h-[28vh]), o centro (50%) costuma ser mais seguro.
+            return isExpanded ? 'center 35%' : 'center center';
+          };
+
+          return (
+            <div
+              key={img}
+              className={`absolute inset-0 bg-cover transition-opacity duration-1000
+        ${index === currentImageIndex ? 'opacity-100' : 'opacity-0'}`}
+              style={{
+                backgroundImage: `url('${img}')`,
+                backgroundPosition: getPosition(),
+              }}
+            />
+          );
+        })}
         {carouselImages.length === 0 && (
           <div className="absolute inset-0 bg-gradient-to-br from-slate-900 via-slate-800 to-black" />
         )}
@@ -128,8 +167,8 @@ export const GaleriaHero = ({
           </div>
         </>
       )}
-
-      <div className="absolute inset-0 transition-opacity duration-1000 bg-gradient-to-t from-black/90 via-black/30 to-transparent opacity-100 z-[2]" />
+      {/* OVERLAY GRADIENT */}
+      {/* <div className="absolute inset-0 transition-opacity duration-1000 bg-gradient-to-t from-black/90 via-black/30 to-transparent opacity-100 z-[2]" /> */}
 
       <div
         className={`absolute top-4 right-4 md:top-6 md:right-8 transition-all duration-1000 z-[10] ${

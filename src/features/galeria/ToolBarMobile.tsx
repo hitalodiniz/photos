@@ -1,5 +1,5 @@
 'use client';
-import React, { useState, useEffect, useMemo } from 'react';
+import React, { useState, useEffect, useMemo, useRef } from 'react';
 import {
   Filter,
   Download,
@@ -79,8 +79,6 @@ export const ToolBarMobile = ({
   const [showDownloadMenu, setShowDownloadMenu] = useState(false);
   const [linksStatus, setLinksStatus] = useState<Record<number, boolean>>({});
 
-  const { permissions } = usePlan();
-
   // 🎯 Lógica de Favoritos: Verifica permissão do plano E configuração da galeria
   const canUseFavorites = useMemo(() => {
     const planAllows = !!getGalleryPermission?.(galeria, 'canFavorite');
@@ -97,6 +95,25 @@ export const ToolBarMobile = ({
   const canDownloadFavorites = useMemo(() => {
     return !!getGalleryPermission?.(galeria, 'canDownloadFavoriteSelection');
   }, [galeria, getGalleryPermission]);
+
+  const [isVisible, setIsVisible] = useState(false); // Novo estado de visibilidade real
+  const barRef = useRef<HTMLDivElement>(null); // Referência para observar a barra
+
+  // 🎯 Observador de Interseção: Detecta quando a barra entra na tela
+  useEffect(() => {
+    const observer = new IntersectionObserver(
+      ([entry]) => {
+        setIsVisible(entry.isIntersecting);
+      },
+      { threshold: 0.1 }, // Dispara quando 10% da barra estiver visível
+    );
+
+    if (barRef.current) {
+      observer.observe(barRef.current);
+    }
+
+    return () => observer.disconnect();
+  }, []);
 
   // Valida links externos
   useEffect(() => {
@@ -163,17 +180,25 @@ export const ToolBarMobile = ({
 
   // Ciclo de dicas de ajuda (Hints)
   useEffect(() => {
+    // Se a barra não está visível no scroll, reseta e para
+    if (!isVisible) {
+      setHintStep(0);
+      return;
+    }
+
+    // Sequência de exibição (Inicia 1s após a barra aparecer)
     const timers = [
-      setTimeout(() => hasMultipleTags && setHintStep(1), 5800), // 1. Categorias
-      setTimeout(() => setHintStep(2), 7300), // 2. Layout
-      setTimeout(() => setHintStep(3), 8800), // 3. Compartilhar
-      setTimeout(() => setHintStep(4), 10300), // 4. Link
-      setTimeout(() => canUseFavorites && setHintStep(5), 11800), // 5. Favoritos
-      setTimeout(() => setHintStep(6), 13300), // 6. Baixar
-      setTimeout(() => setHintStep(0), 17000), // Limpa
+      setTimeout(() => setHintStep(1), 1000), // 1. Layout
+      setTimeout(() => hasMultipleTags && setHintStep(2), 2500), // 2. Marcações (Se houver)
+      setTimeout(() => setHintStep(3), 4000), // 3. Compartilhar
+      setTimeout(() => setHintStep(4), 5500), // 4. Link
+      setTimeout(() => canUseFavorites && setHintStep(5), 7000), // 5. Favoritos
+      setTimeout(() => setHintStep(6), 8500), // 6. Baixar
+      setTimeout(() => setHintStep(0), 11000), // Encerra ciclo
     ];
+
     return () => timers.forEach((t) => clearTimeout(t));
-  }, [hasMultipleTags, canUseFavorites]);
+  }, [isVisible, hasMultipleTags, canUseFavorites]);
 
   const handleCopyLink = () => {
     navigator.clipboard.writeText(window.location.href);
@@ -216,7 +241,10 @@ export const ToolBarMobile = ({
   };
 
   return (
-    <div className="w-full z-[110] sticky top-0 md:hidden pointer-events-auto overflow-visible">
+    <div
+      ref={barRef}
+      className="w-full z-[110] sticky top-0 md:hidden pointer-events-auto overflow-visible"
+    >
       {/* OVERLAY DE FECHAMENTO */}
       {(showTagsPanel || showColumnsPanel || showDownloadMenu) && (
         <div
@@ -241,7 +269,7 @@ export const ToolBarMobile = ({
                 className="text-champagne hover:text-petroleum"
               />
             </button>
-            {hintStep === 2 && <Tooltip text="Layout" position="left" />}
+            {hintStep === 1 && <Tooltip text="Layout" position="left" />}
           </div>
 
           {/* Tags - Só exibe se tiver permissão E tags */}
@@ -266,7 +294,7 @@ export const ToolBarMobile = ({
                   </span>
                 )}
               </button>
-              {hintStep === 1 && <Tooltip text="Marcações" position="left" />}
+              {hintStep === 2 && <Tooltip text="Marcações" position="left" />}
             </div>
           )}
         </div>

@@ -93,16 +93,15 @@ export default function FormPageBase({
                 {footerButtons || (
                   // Original buttons when no footerButtons are provided
                   <>
-                    {isEdit && (
-                      <button
-                        type="button"
-                        onClick={onClose}
-                        disabled={loading}
-                        className="btn-secondary-petroleum"
-                      >
-                        CANCELAR
-                      </button>
-                    )}
+                    <button
+                      type="button"
+                      onClick={onClose}
+                      disabled={loading}
+                      className="btn-secondary-petroleum"
+                    >
+                      CANCELAR
+                    </button>
+
                     <SubmitButton
                       form={id}
                       success={isSuccess}

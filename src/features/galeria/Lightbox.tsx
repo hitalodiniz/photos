@@ -15,6 +15,7 @@ import { VerticalThumbnails } from './VerticalThumbnails';
 import { ThumbnailStrip } from './ThumbnailStrip';
 import { VerticalActionBar } from './VerticalActionBar';
 import { getCleanSlug, executeShare } from '@/core/utils/share-helper';
+import { getProfileByUsername } from '@/core/services/profile.service';
 
 interface Photo {
   id: string | number;
@@ -338,14 +339,26 @@ export default function Lightbox({
     };
   }, [isMobile, showThumbnails, handleClickOutside]);
 
-  const handleShare = () => {
+  const handleShare = async () => {
     const shareUrl = `${window.location.origin}/photo/${currentPhoto?.id}?s=${getCleanSlug(galeria.slug)}`;
-    const customTemplate = galeria.photographer?.message_templates?.photo_share;
-    let shareText: string;
 
-    if (customTemplate && customTemplate.trim() !== '') {
-      shareText = formatMessage(customTemplate, galeria, shareUrl);
+    let shareText: string;
+    const profile = await getProfileByUsername(galeria.photographer?.username);
+    if (profile) {
+      const customTemplate = profile.message_templates?.guest_share;
+      if (customTemplate && customTemplate.trim() !== '') {
+        alert(`template de compartilhamento: ${customTemplate}`);
+        shareText = formatMessage(customTemplate, galeria, shareUrl);
+      } else {
+        alert(
+          `Não foi possível obter o template de compartilhamento: ${customTemplate}`,
+        );
+        shareText = GALLERY_MESSAGES.PHOTO_SHARE(galleryTitle, shareUrl);
+      }
     } else {
+      alert(
+        `Não foi possível obter o perfil do fotógrafo: ${galeria.photographer?.username}`,
+      );
       shareText = GALLERY_MESSAGES.PHOTO_SHARE(galleryTitle, shareUrl);
     }
 

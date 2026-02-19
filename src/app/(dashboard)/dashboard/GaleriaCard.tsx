@@ -287,6 +287,13 @@ export default function GaleriaCard({
               'Gerando relatório de visitantes...',
             );
           }}
+          title={
+            canViewLeads &&
+            (isNavigating ||
+              (!galeria.leads_enabled && (galeria.leads_count ?? 0) <= 0))
+              ? 'Cadastro de Visitantes (Não habilitado nesta galeria)'
+              : 'Relatório de Visitantes'
+          }
           className={`p-2 rounded-luxury flex items-center justify-center transition-all border shadow-sm ${
             !canViewLeads
               ? 'bg-white text-petroleum/30 border-slate-200 grayscale hover:border-gold cursor-pointer'
@@ -438,14 +445,14 @@ export default function GaleriaCard({
               </div>
               <div className="flex items-center gap-2 text-[10px] font-medium text-editorial-gray/70">
                 <span className="flex items-center gap-1">
-                  <ImageIcon size={10} className="text-gold" />
+                  <ImageIcon size={10} className="text-editorial-gray" />
                   {galeria.photo_count || 0} fotos
                 </span>
                 {galeria.cover_image_ids &&
                   galeria.cover_image_ids.length > 1 && (
                     <>
                       <span className="text-editorial-gray/40">•</span>
-                      <span className="text-gold bg-gold/5 px-1.5 py-0.5 rounded-full border border-gold/10">
+                      <span className="text-editorial-gray bg-gold/5 px-1.5 rounded-full border border-gold/10">
                         {galeria.cover_image_ids.length} capas
                       </span>
                     </>
@@ -611,31 +618,32 @@ export default function GaleriaCard({
           </div>
 
           <div className="flex items-center gap-2">
-            <div className="flex-1 flex items-center h-8 rounded-luxury bg-slate-50 border border-petroleum/20 overflow-hidden">
+            <div className="flex-1 flex items-center h-8 rounded-luxury-sm bg-slate-50 border border-petroleum/20 overflow-hidden">
               <a
                 href={`https://drive.google.com/drive/folders/${galeria.drive_folder_id}`}
                 target="_blank"
                 onClick={(e) => e.stopPropagation()}
                 className="flex-1 flex items-center gap-1.5 px-2.5 h-full hover:bg-white transition-all group/drive min-w-0"
+                title="Acessar pasta do Google Drive"
               >
                 <FolderOpen size={13} className="text-gold shrink-0" />
                 <span className="text-[10px] font-medium text-editorial-gray truncate">
                   Drive: {galeria.drive_folder_name || 'Sem pasta vinculada'}
                 </span>
-                <span className="text-editorial-label text-petroleum-light opacity-0 group-hover/drive:opacity-100 transition-opacity shrink-0">
-                  Acessar
-                </span>
               </a>
-              <div className="w-[1px] h-3 bg-petroleum/10" />
+
               {galeria.photo_count > 0 && (
                 <div className="flex items-center gap-1.5 px-2 text-editorial-gray border-l border-petroleum/10 h-full bg-slate-100/50">
                   <ImageIcon size={11} className="text-gold/70" />
-                  <span className="text-[10px] font-medium text-petroleum">
+                  <span
+                    className="text-[10px] font-medium text-petroleum"
+                    title="Quantidade de fotos na galeria"
+                  >
                     {galeria.photo_count || 0}
                   </span>
                 </div>
               )}
-              <div className="w-[1px] h-3 bg-petroleum/10" />
+
               <button
                 onClick={(e) => {
                   e.stopPropagation();
@@ -643,6 +651,7 @@ export default function GaleriaCard({
                 }}
                 disabled={isUpdating}
                 className="flex items-center justify-center px-2.5 border-l border-slate-200 h-full hover:bg-white text-gold hover:text-gold transition-all"
+                title="Sincronizar com o Google Drive"
               >
                 {isUpdating ? (
                   <Loader2 size={12} className="animate-spin" />

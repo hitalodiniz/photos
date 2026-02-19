@@ -6,60 +6,37 @@ import Image from 'next/image';
 import { GALLERY_MESSAGES } from '@/core/config/messages';
 import InstagramIcon from '@/components/ui/InstagramIcon';
 import { getCreatorProfileUrl } from '@/core/utils/url-helper';
-import { Globe, User, MessageCircle } from 'lucide-react';
+import { Globe, User } from 'lucide-react';
 import { usePlan } from '@/core/context/PlanContext';
-// 🎯 Importação da lógica de permissões
 import { getGalleryPermission } from '@/core/utils/plan-helpers';
 import WhatsAppIcon from '@/components/ui/WhatsAppIcon';
-
-interface PhotographerAvatarProps {
-  galeria: Galeria;
-  position: 'top-page' | 'bottom-lightbox';
-  isVisible?: boolean;
-}
 
 export default function PhotographerAvatar({
   galeria,
   position,
   isVisible = true,
-}: PhotographerAvatarProps) {
+}: {
+  galeria: Galeria;
+  position: 'top-page' | 'bottom-lightbox';
+  isVisible?: boolean;
+}) {
   const [isExpanded, setIsExpanded] = useState(false);
-
-  // 🎯 CONCILIAÇÃO: Buscamos as permissões dinâmicas do plano atual
-  const { permissions, planKey } = usePlan();
-
+  const { permissions } = usePlan();
   const photographer = galeria.photographer;
-  const profileLink = getCreatorProfileUrl(photographer);
 
-  /** * 🛡️ Lógica de Visibilidade Baseada em socialDisplayLevel:
-   * Ajustada para validar via getGalleryPermission
-   */
-  const displayLevel = useMemo(() => {
-    return (
+  const displayLevel = useMemo(
+    () =>
       getGalleryPermission(galeria, 'socialDisplayLevel') ||
-      permissions.socialDisplayLevel
-    );
-  }, [galeria, permissions.socialDisplayLevel]);
+      permissions.socialDisplayLevel,
+    [galeria, permissions.socialDisplayLevel],
+  );
 
   const hasSocial = displayLevel === 'social' || displayLevel === 'full';
   const hasWebsite = displayLevel === 'full';
 
   useEffect(() => {
-    const isDesktop = window.innerWidth >= 768;
-    if (isDesktop) setIsExpanded(true);
+    if (window.innerWidth >= 768) setIsExpanded(true);
   }, []);
-
-  useEffect(() => {
-    const isDesktop = window.innerWidth >= 768;
-    if (isExpanded && !isDesktop) {
-      const timer = setTimeout(() => setIsExpanded(false), 4000);
-      return () => clearTimeout(timer);
-    }
-  }, [isExpanded]);
-
-  const whatsappLink = `https://wa.me/${photographer?.phone_contact?.replace(/\D/g, '')}?text=${encodeURIComponent(
-    GALLERY_MESSAGES.CONTACT_PHOTOGRAPHER_DIRETO(),
-  )}`;
 
   const { fullName, displayAvatar, initialLetter } = useMemo(() => {
     const name = photographer?.full_name || 'Autor';
@@ -72,122 +49,108 @@ export default function PhotographerAvatar({
 
   if (!isVisible && position === 'top-page') return null;
 
-  const getBtnClass = (activeColor: string) => `
-    p-1.5 rounded-full transition-all border flex items-center justify-center
-    ${activeColor}
-    ${
-      position === 'bottom-lightbox'
-        ? 'bg-black/10 dark:bg-white/10 text-black dark:text-white border-black/20 dark:border-white/20'
-        : 'bg-white/10 text-white border-white/10'
-    }
+  const getBtnClass = (hover: string) => `
+    transition-all duration-200 hover:scale-110
+    ${position === 'bottom-lightbox' ? 'text-slate-600 dark:text-white/60' : 'text-white/70'}
+    ${hover}
   `;
 
   return (
     <div
-      className={`flex items-center cursor-pointer select-none ${
-        position === 'top-page'
-          ? 'relative z-20 animate-in fade-in scale-90 md:scale-100 slide-in-from-right-10 duration-700'
-          : 'relative z-20 scale-90 md:scale-100'
+      className={`flex items-center cursor-pointer select-none transition-all duration-300 ${
+        position === 'top-page' ? 'z-20' : 'z-20 scale-95'
       }`}
-      onClick={() => {
-        if (window.innerWidth < 768) setIsExpanded(!isExpanded);
-      }}
+      onClick={() => window.innerWidth < 768 && setIsExpanded(!isExpanded)}
     >
       <div
         className={`
-          flex items-center rounded-luxury transition-all duration-500 ease-[cubic-bezier(0.23,1,0.32,1)] border shadow-2xl
-          ${isExpanded ? 'gap-2 p-1.5' : 'gap-0 p-0 px-1'} 
-          md:gap-1 md:p-2 md:px-3
+          flex items-center p-2 rounded-luxury transition-all duration-500 border
+          ${isExpanded ? 'pr-5 gap-3' : 'gap-0'}
           ${
             position === 'bottom-lightbox'
-              ? 'bg-white/90 dark:bg-[#1A1A1A]/90 backdrop-blur-3xl border-black/20 dark:border-white/20'
-              : 'bg-black/45 backdrop-blur-xl border-white/10'
+              ? 'bg-white/90 dark:bg-black/80 backdrop-blur-md border-slate-200 dark:border-white/10 shadow-sm'
+              : 'bg-black/40 backdrop-blur-md border-white/20'
           }
         `}
       >
-        {/* Avatar Container */}
-        <div className="relative group flex-shrink-0 w-10 h-10 md:w-14 md:h-14 rounded-full overflow-hidden flex items-center justify-center shadow-inner">
-          <div className="absolute -inset-1 bg-gradient-to-tr from-gold/40 to-champagne/40 rounded-full blur-sm opacity-30 group-hover:opacity-60 transition duration-700"></div>
-
+        {/* Avatar - Ocupa a altura possível */}
+        <div className="relative flex-shrink-0 w-11 h-11 rounded-full overflow-hidden border border-white/10 shadow-md">
           {displayAvatar ? (
             <Image
               src={displayAvatar}
               alt={fullName}
               fill
-              sizes="56px"
-              className="object-cover z-10 rounded-full"
+              sizes="44px"
+              className="object-cover"
             />
           ) : (
-            <div className="z-10 w-full h-full bg-slate-800 flex items-center justify-center border border-white/10 rounded-full">
-              <span className="text-white font-semibold text-lg md:text-xl">
+            <div className="w-full h-full bg-slate-800 flex items-center justify-center">
+              <span className="text-white text-sm font-bold">
                 {initialLetter}
               </span>
             </div>
           )}
         </div>
 
-        {/* Content */}
+        {/* Content Box - Nome em cima, Ícones embaixo */}
         <div
-          className={`flex flex-col items-start gap-1.5 transition-all duration-500 overflow-hidden ${isExpanded ? 'max-w-[280px] opacity-100 ml-1' : 'max-w-0 opacity-0'} md:max-w-[350px] md:opacity-100 md:ml-2`}
+          className={`flex flex-col justify-center overflow-hidden transition-all duration-500 ${
+            isExpanded
+              ? 'max-w-[200px] opacity-100'
+              : 'max-w-0 opacity-0 invisible'
+          }`}
         >
-          <div className="flex flex-col items-start whitespace-nowrap">
-            <p
-              className={`text-[8px] md:text-[9px] tracking-luxury-normal uppercase font-semibold leading-none mb-1 transition-colors ${
+          <div className="flex flex-col leading-tight">
+            <span
+              className={`text-[9px] uppercase tracking-tighter font-medium opacity-70 ${
                 position === 'bottom-lightbox'
-                  ? 'text-slate-500 dark:text-champagne/80'
-                  : 'text-champagne'
+                  ? 'text-slate-700 dark:text-slate-400'
+                  : 'text-white'
               }`}
             >
               Registrado por
-            </p>
+            </span>
             <span
-              className={`text-[11px] md:text-[11px] font-semibold leading-tight ${position === 'bottom-lightbox' ? 'text-slate-900 dark:text-white' : 'text-white'}`}
+              className={`text-[13px] font-semibold truncate ${
+                position === 'bottom-lightbox'
+                  ? 'text-slate-900 dark:text-white'
+                  : 'text-white'
+              }`}
             >
               {fullName}
             </span>
           </div>
 
-          <div className="flex items-center gap-2 relative z-10">
-            {/* WHATSAPP (Sincronizado com socialDisplayLevel) */}
+          {/* Ícones abaixo do nome */}
+          <div className="flex items-center gap-3 mt-2 justify-center">
             {hasSocial && photographer?.phone_contact && (
               <a
-                href={whatsappLink}
+                href={`https://wa.me/${photographer.phone_contact.replace(/\D/g, '')}`}
                 target="_blank"
-                rel="noopener noreferrer"
-                className={getBtnClass('hover:bg-green-500 hover:text-white')}
-                onClick={(e) => e.stopPropagation()}
+                className={getBtnClass('hover:text-green-500')}
               >
-                <WhatsAppIcon className="text-champagne w-4 h-4" />
+                <WhatsAppIcon className="w-3.5 h-3.5" />
               </a>
             )}
 
-            {/* INSTAGRAM (Sincronizado com socialDisplayLevel) */}
             {hasSocial && photographer?.instagram_link && (
               <a
                 href={`https://instagram.com/${photographer.instagram_link.replace('@', '')}`}
                 target="_blank"
-                rel="noopener noreferrer"
-                className={getBtnClass(
-                  'hover:bg-gradient-to-tr hover:from-[#f09433] hover:to-[#bc1888] hover:text-white',
-                )}
-                onClick={(e) => e.stopPropagation()}
+                className={getBtnClass('hover:text-pink-500')}
               >
-                <InstagramIcon className="text-champagne w-4 h-4" />
+                <InstagramIcon className="w-3.5 h-3.5" />
               </a>
             )}
 
-            {/* PERFIL INTERNO (Sempre disponível) */}
             <a
-              href={profileLink}
+              href={getCreatorProfileUrl(photographer)}
               target="_blank"
-              rel="noopener noreferrer"
-              className={getBtnClass('hover:bg-gold hover:text-petroleum')}
-              onClick={(e) => e.stopPropagation()}
+              className={getBtnClass('hover:text-amber-500')}
             >
-              <User className="text-champagne w-4 h-4" />
+              <User size={14} />
             </a>
 
-            {/* WEBSITE (Apenas para nível 'full' / PREMIUM) */}
             {hasWebsite && photographer?.website && (
               <a
                 href={
@@ -196,11 +159,9 @@ export default function PhotographerAvatar({
                     : `https://${photographer.website}`
                 }
                 target="_blank"
-                rel="noopener noreferrer"
-                className={getBtnClass('hover:bg-blue-600 hover:text-white')}
-                onClick={(e) => e.stopPropagation()}
+                className={getBtnClass('hover:text-blue-500')}
               >
-                <Globe size={12} strokeWidth={3} />
+                <Globe size={13} />
               </a>
             )}
           </div>

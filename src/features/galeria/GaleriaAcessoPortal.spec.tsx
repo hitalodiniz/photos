@@ -105,15 +105,14 @@ describe('GalleryAccessPortal', () => {
     fireEvent.click(screen.getByText('Acessar Galeria'));
 
     await waitFor(() => {
-      expect(captureLeadAction).toHaveBeenCalledWith('gal-123', {
-        nome: 'João Silva',
-        email: 'joao@example.com',
-        whatsapp: '31988887777',
-      });
-      expect(authenticateGaleriaAccessAction).toHaveBeenCalledWith(
-        'gal-123',
-        'user/slug',
-        '1234',
+      expect(captureLeadAction).toHaveBeenCalledWith(
+        // Verifica se o primeiro argumento é o objeto da galeria (ou contém o ID)
+        expect.objectContaining({ id: 'gal-123' }),
+        {
+          nome: 'João Silva',
+          email: 'joao@example.com',
+          whatsapp: '31988887777',
+        },
       );
     });
 

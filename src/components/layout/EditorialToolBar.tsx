@@ -95,7 +95,7 @@ export default function EditorialToolbar() {
           </div>
 
           <div className="flex items-center gap-1 pl-1 md:pl-2">
-            <button
+            {/* <button
               onClick={() => router.push('/planos')}
               className="flex items-center gap-2 px-2 md:px-4 py-2 rounded-luxury bg-transparent hover:bg-white/5 transition-all"
             >
@@ -109,7 +109,7 @@ export default function EditorialToolbar() {
               </span>
             </button>
 
-            <div className="h-4 w-[1px] bg-white/10 mx-1" />
+            <div className="h-4 w-[1px] bg-white/10 mx-1" /> */}
 
             <div className="scale-90 md:scale-100">
               <AuthButton variant="minimal" />
@@ -135,9 +135,9 @@ export default function EditorialToolbar() {
         />
 
         <div
-          className={`absolute top-0 right-0 h-full w-[85%] md:w-[320px] bg-petroleum border-l border-white/5 p-6 md:p-8 flex flex-col transition-transform duration-500 ease-in-out shadow-2xl ${isMenuOpen ? 'translate-x-0' : 'translate-x-full'}`}
+          className={`absolute top-0 right-0 h-full w-[85%] md:w-[320px] bg-petroleum border-l border-white/5 p-4 md:p-6 flex flex-col transition-transform duration-500 ease-in-out shadow-2xl ${isMenuOpen ? 'translate-x-0' : 'translate-x-full'}`}
         >
-          <div className="flex justify-between items-center mb-8 pb-6 border-b border-white/5">
+          <div className="flex justify-between items-center mb-2 pb-6 border-b border-white/5">
             <div className="flex items-center gap-2">
               {mounted && SegmentIcon && (
                 <SegmentIcon
@@ -145,7 +145,7 @@ export default function EditorialToolbar() {
                   strokeWidth={1.5}
                 />
               )}
-              <span className="text-[11px] font-semibold uppercase tracking-[0.2em] text-white italic">
+              <span className="text-[12px] font-semibold uppercase tracking-[0.2em] text-white ">
                 {terms.site_name}
               </span>
             </div>
@@ -158,9 +158,10 @@ export default function EditorialToolbar() {
           </div>
 
           {/* Navegação */}
-          <nav className="flex flex-col gap-1">
+
+          <nav className="flex flex-col gap-1 w-full">
             {[
-              { label: 'Nossos Planos', icon: LayoutGrid, path: '/planos' },
+              // { label: 'Nossos Planos', icon: LayoutGrid, path: '/planos' },
               { label: 'Tecnologia e Suporte', icon: Share2, path: '/suporte' },
             ].map((item, i) => {
               const IconComponent = item.icon;
@@ -171,10 +172,19 @@ export default function EditorialToolbar() {
                     router.push(item.path);
                     setIsMenuOpen(false);
                   }}
-                  className="group flex items-center gap-4 px-4 py-4 rounded-luxury hover:bg-white/5 text-white active:bg-white/10 transition-all"
+                  /* 1. w-full: Garante que o botão ocupe a largura total
+           2. items-center: Alinha ícone e texto verticalmente no centro
+           3. justify-start: Alinha o bloco de conteúdo à esquerda
+        */
+                  className="group flex w-full items-center justify-start gap-4 px-2 py-4 rounded-luxury hover:bg-white/5 text-white active:bg-white/10 transition-all"
                 >
-                  <IconComponent size={18} className="text-champagne" />
-                  <span className="text-[12px] md:text-[11px] font-semibold uppercase tracking-luxury-widest">
+                  {/* shrink-0 impede que o ícone amasse se o texto for longo */}
+                  <IconComponent
+                    size={18}
+                    className="text-champagne shrink-0"
+                  />
+
+                  <span className="text-[12px] md:text-[11px] font-semibold uppercase tracking-luxury-widest text-left">
                     {item.label}
                   </span>
                 </button>
@@ -200,18 +210,18 @@ export default function EditorialToolbar() {
               <div className="flex flex-col gap-3">
                 <button
                   onClick={() => router.push('/privacidade')}
-                  className="text-left text-white/60 text-[10px] uppercase tracking-widest"
+                  className="text-left text-white/90 text-[10px] uppercase tracking-widest"
                 >
                   Privacidade
                 </button>
                 <button
                   onClick={() => router.push('/termos')}
-                  className="text-left text-white/60 text-[10px] uppercase tracking-widest"
+                  className="text-left text-white/90 text-[10px] uppercase tracking-widest"
                 >
                   Termos
                 </button>
               </div>
-              <div className="flex justify-between items-center text-[9px] uppercase tracking-luxury-widest text-white/40 pt-2">
+              <div className="flex justify-between items-center text-[9px] uppercase tracking-luxury-widest text-white/90 pt-2">
                 <span>© 2026</span>
                 <span className="italic">Premium</span>
               </div>
