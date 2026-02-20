@@ -27,6 +27,7 @@ import { updatePushSubscriptionAction } from '@/core/services/profile.service';
 import { formatDistanceToNow } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
 import { EventDetailsSheet } from '@/components/ui/EventDetailsSheet';
+import { TrafficInfoCard } from './TrafficInfoCard';
 
 export function NotificationMenu({ userId }: { userId: string }) {
   const [notifications, setNotifications] = useState<any[]>([]);
@@ -250,6 +251,8 @@ export function NotificationMenu({ userId }: { userId: string }) {
 
             {/* Listagem */}
             <div className="max-h-[450px] overflow-y-auto custom-scrollbar bg-white">
+              {/* 🎯 INSERÇÃO DO HELP TIP FIXO NO TOPO */}
+
               {notifications.length === 0 ? (
                 <div className="p-12 text-center text-petroleum/30 text-[11px] italic font-medium uppercase tracking-widest">
                   Nenhuma atividade recente.
@@ -317,9 +320,7 @@ export function NotificationMenu({ userId }: { userId: string }) {
 
             {/* Footer */}
             <div className="p-3 bg-white/5 text-center border-t border-white/5">
-              <p className="text-[9px] text-white/50 uppercase tracking-[0.4em] font-semibold italic">
-                central de notificações
-              </p>
+              <TrafficInfoCard variant="minimal" />
             </div>
           </div>
         </>

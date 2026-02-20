@@ -112,6 +112,7 @@ export interface GaleriaRawResponse extends Omit<
     message_templates: MessageTemplates;
     plan_key: string;
     google_refresh_token: string | null;
+    ignored_visitor_ids: string[];
   };
   leads?: { count: number }[];
 }

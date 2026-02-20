@@ -21,6 +21,12 @@ import { PlanKey } from '@/core/config/plans';
 import WhatsAppIcon from '@/components/ui/WhatsAppIcon';
 import { emitGaleriaEvent } from '@/core/services/galeria-stats.service';
 import { Galeria } from '@/core/types/galeria';
+import {
+  InternalTrafficSync,
+  useSyncInternalTraffic,
+} from '@/hooks/useSyncInternalTraffic';
+import { supabase } from '@/lib/supabase.client';
+import { getAuthenticatedUser } from '@/core/services/auth-context.service';
 
 const MAIN_DOMAIN = (
   process.env.NEXT_PUBLIC_MAIN_DOMAIN || 'localhost:3000'
@@ -81,6 +87,9 @@ export default async function GaleriaBasePage({
     );
     redirect(fallbackUrl);
   }
+
+  // Se o fotógrafo estiver logado enquanto vê a própria galeria:
+  const userId = await getAuthenticatedUser().then((user) => user.userId);
 
   // ... (Restante da sua lógica de formatação, senha e Drive igual ao seu código)
   const galeriaData = formatGalleryData(galeriaRaw, username);
@@ -253,9 +262,12 @@ export default async function GaleriaBasePage({
   }
 
   return (
-    <PlanProvider planKey={planKey as PlanKey}>
-      <GaleriaView galeria={galeriaData} photos={photos} />
-    </PlanProvider>
+    <>
+      <InternalTrafficSync userId={userId} />
+      <PlanProvider planKey={planKey as PlanKey}>
+        <GaleriaView galeria={galeriaData} photos={photos} />
+      </PlanProvider>
+    </>
   );
 }
 

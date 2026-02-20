@@ -1,7 +1,7 @@
 'use client';
 
-import React, { useMemo } from 'react';
-import { ChevronRight, ArrowUpDown } from 'lucide-react';
+import React, { useMemo, useState, useEffect } from 'react';
+import { ChevronRight, ArrowUpDown, ChevronLeft } from 'lucide-react';
 
 interface Column<T> {
   header: string;
@@ -18,6 +18,7 @@ interface RelatorioTableProps<T> {
   onRowClick?: (item: T) => void;
   onSort?: (key: string) => void;
   emptyMessage?: string;
+  itemsPerPage?: number; // Propriedade opcional para controle de altura
 }
 
 export function RelatorioTable<T extends { id: string | number }>({
@@ -26,9 +27,25 @@ export function RelatorioTable<T extends { id: string | number }>({
   onRowClick,
   onSort,
   emptyMessage = 'Nenhum registro encontrado.',
+  itemsPerPage = 10,
 }: RelatorioTableProps<T>) {
+  const [currentPage, setCurrentPage] = useState(1);
+
+  // Reset da página caso os dados mudem (filtro externo)
+  useEffect(() => {
+    setCurrentPage(1);
+  }, [data.length]);
+
+  const totalPages = Math.ceil(data.length / itemsPerPage);
+
+  // Fatiamento dos dados para exibição
+  const paginatedData = useMemo(() => {
+    const start = (currentPage - 1) * itemsPerPage;
+    return data.slice(start, start + itemsPerPage);
+  }, [data, currentPage, itemsPerPage]);
+
   const tableRows = useMemo(() => {
-    if (data.length === 0) {
+    if (paginatedData.length === 0) {
       return (
         <tr>
           <td
@@ -41,18 +58,18 @@ export function RelatorioTable<T extends { id: string | number }>({
       );
     }
 
-    return data.map((item) => (
+    return paginatedData.map((item) => (
       <tr
         key={item.id}
         onClick={() => onRowClick?.(item)}
-        className={`group transition-all duration-200 ${
+        className={`group transition-all duration-150 ${
           onRowClick ? 'cursor-pointer hover:bg-slate-50/50' : ''
         }`}
       >
         {columns.map((col, idx) => (
           <td
             key={idx}
-            className={`px-6 py-4 border-b border-slate-50 ${col.width || ''} ${
+            className={`px-6 py-3 border-b border-slate-50 text-[11px] text-slate-600 ${col.width || ''} ${
               col.align === 'right' ? 'text-right' : ''
             }`}
           >
@@ -62,55 +79,77 @@ export function RelatorioTable<T extends { id: string | number }>({
           </td>
         ))}
         {onRowClick && (
-          <td className="px-6 py-4 border-b border-slate-50 w-12 text-right">
+          <td className="px-6 py-3 border-b border-slate-50 w-12 text-right">
             <ChevronRight
               size={14}
-              className="text-slate-200 group-hover:text-champagne transition-colors ml-auto"
+              className="text-slate-200 group-hover:text-gold transition-colors ml-auto"
             />
           </td>
         )}
       </tr>
     ));
-  }, [data, columns, onRowClick, emptyMessage]);
+  }, [paginatedData, columns, onRowClick, emptyMessage]);
 
   return (
-    <div className="w-full bg-white border border-slate-100 rounded-luxury overflow-hidden shadow-sm">
+    <div className="w-full bg-white border border-slate-200 rounded-luxury overflow-hidden shadow-sm flex flex-col">
       <div className="overflow-x-auto">
         <table className="w-full text-left border-collapse table-fixed min-w-[800px]">
           <thead>
-            {/* CABEÇALHO TEMA PETRÓLEO + GOLD/CHAMPAGNE */}
-            <tr className="bg-petroleum/90 text-[9px] uppercase tracking-[0.2em] text-white font-medium border-b border-petroleum-light/10">
+            <tr className="bg-petroleum text-[9px] uppercase tracking-[0.2em] text-white font-semibold">
               {columns.map((col, idx) => (
                 <th
                   key={idx}
                   className={`px-6 py-4 ${col.width || ''} ${
                     onSort && col.sortKey
-                      ? 'cursor-pointer hover:text-white transition-colors'
+                      ? 'cursor-pointer hover:bg-petroleum-light'
                       : ''
                   }`}
                   onClick={() => col.sortKey && onSort?.(col.sortKey)}
                 >
                   <div
-                    className={`flex items-center gap-2 ${
-                      col.align === 'right' ? 'justify-end' : ''
-                    }`}
+                    className={`flex items-center gap-2 ${col.align === 'right' ? 'justify-end' : ''}`}
                   >
-                    {col.icon && <col.icon size={14} className="text-white" />}
+                    {col.icon && <col.icon size={12} />}
                     {col.header}
                     {col.sortKey && (
-                      <ArrowUpDown size={10} className="text-white" />
+                      <ArrowUpDown size={10} className="opacity-50" />
                     )}
                   </div>
                 </th>
               ))}
-              {onRowClick && (
-                <th className="w-12 border-b border-petroleum-light/10"></th>
-              )}
+              {onRowClick && <th className="w-12"></th>}
             </tr>
           </thead>
-          <tbody className="bg-white">{tableRows}</tbody>
+          <tbody className="bg-white min-h-[400px]">{tableRows}</tbody>
         </table>
       </div>
+
+      {/* Footer com Paginação Compacta */}
+      {totalPages > 1 && (
+        <div className="px-6 py-3 bg-slate-50 border-t flex items-center justify-between">
+          <span className="text-[10px] font-semibold text-slate-800 uppercase tracking-widest">
+            Total: {data.length} registros | Pág {currentPage} de {totalPages}
+          </span>
+          <div className="flex gap-1">
+            <button
+              type="button"
+              disabled={currentPage === 1}
+              onClick={() => setCurrentPage((p) => p - 1)}
+              className="p-1.5 rounded border bg-white disabled:opacity-30 hover:bg-slate-50 transition-colors"
+            >
+              <ChevronLeft size={14} />
+            </button>
+            <button
+              type="button"
+              disabled={currentPage === totalPages}
+              onClick={() => setCurrentPage((p) => p + 1)}
+              className="p-1.5 rounded border bg-white disabled:opacity-30 hover:bg-slate-50 transition-colors"
+            >
+              <ChevronRight size={14} />
+            </button>
+          </div>
+        </div>
+      )}
     </div>
   );
 }

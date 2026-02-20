@@ -3,33 +3,47 @@ import * as XLSX from 'xlsx';
 import jsPDF from 'jspdf';
 import autoTable from 'jspdf-autotable';
 
+// Helper para tratar dados complexos antes da exportação
+const formatDataForExport = (data: any[]) => {
+  return data.map((item) => ({
+    Data: new Date(item.created_at).toLocaleString('pt-BR'),
+    Evento: item.event_label || item.event_type,
+    Localização: item.location || 'N/A',
+    Dispositivo: item.device_info?.type || 'N/A',
+    OS: item.device_info?.os || 'N/A',
+    ID_Visitante: item.visitor_id,
+  }));
+};
+
 /**
- * Exporta dados para CSV
+ * Exporta para CSV com tratamento de BOM para acentuação no Excel
  */
-export const exportToCSV = (data: any[], filename: string) => {
+export const exportToCSV = (rawData: any[], filename: string) => {
+  const data = formatDataForExport(rawData);
   if (data.length === 0) return;
 
   const headers = Object.keys(data[0]).join(',');
   const rows = data
     .map((obj) =>
       Object.values(obj)
-        .map((val) => `"${val}"`)
+        .map((val) => `"${String(val).replace(/"/g, '""')}"`)
         .join(','),
     )
     .join('\n');
 
-  const csvContent = `${headers}\n${rows}`;
+  const csvContent = `\uFEFF${headers}\n${rows}`; // \uFEFF garante acentos no Excel
   const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
   saveAs(blob, `${filename}.csv`);
 };
 
 /**
- * Exporta dados para Excel
+ * Exporta para Excel (XLSX)
  */
-export const exportToExcel = (data: any[], filename: string) => {
+export const exportToExcel = (rawData: any[], filename: string) => {
+  const data = formatDataForExport(rawData);
   const worksheet = XLSX.utils.json_to_sheet(data);
   const workbook = XLSX.utils.book_new();
-  XLSX.utils.book_append_sheet(workbook, worksheet, 'Leads');
+  XLSX.utils.book_append_sheet(workbook, worksheet, 'Relatorio');
 
   const excelBuffer = XLSX.write(workbook, { bookType: 'xlsx', type: 'array' });
   const blob = new Blob([excelBuffer], {
@@ -39,62 +53,38 @@ export const exportToExcel = (data: any[], filename: string) => {
 };
 
 /**
- * Exporta dados para PDF
+ * Exporta para PDF com layout otimizado
  */
-export const exportToPDF = (data: any[], filename: string, title: string) => {
-  const doc = new jsPDF();
-  const pageWidth = doc.internal.pageSize.getWidth();
+export const exportToPDF = (
+  rawData: any[],
+  filename: string,
+  title: string,
+) => {
+  const data = formatDataForExport(rawData);
+  const doc = new jsPDF('l', 'mm', 'a4'); // 'l' para modo Paisagem (Landscape)
   const margin = 14;
 
-  // 1. Ajuste do Título Principal com quebra de linha automática
-  doc.setFontSize(18);
-  doc.setTextColor(40, 40, 40); // Cinza grafite neutro e elegante
+  doc.setFontSize(16);
+  doc.setTextColor(26, 46, 53); // Cor Petroleum
+  doc.text(title, margin, 20);
 
-  // Divide o título em linhas para não ultrapassar a largura da página
-  const splitTitle = doc.splitTextToSize(title, pageWidth - margin * 2);
-  doc.text(splitTitle, margin, 22);
-
-  // Calcula a posição Y atual com base no número de linhas do título
-  // Cada linha de fonte 18 ocupa aproximadamente 8 unidades de altura
-  const titleHeight = splitTitle.length * 8;
-  let currentY = 22 + titleHeight;
-
-  // 2. Informações de Geração (Subtítulo)
-  doc.setFontSize(10);
+  doc.setFontSize(9);
   doc.setTextColor(100);
-  const date = new Date().toLocaleDateString('pt-BR');
+  doc.text(`Gerado em: ${new Date().toLocaleString('pt-BR')}`, margin, 28);
 
-  doc.text(`Relatório gerado em: ${date}`, margin, currentY);
-  currentY += 4; // Espaçamento entre linhas
-
-  doc.text(
-    `Gerado pelo aplicativo ${process.env.NEXT_PUBLIC_MAIN_DOMAIN || 'localhost:3000'}`,
-    margin,
-    currentY,
-  );
-
-  currentY += 4; // Espaçamento antes da tabela
-
-  // 3. Renderização da Tabela
   if (data.length > 0) {
-    const headers = [Object.keys(data[0])];
-    const body = data.map((obj) => Object.values(obj));
-
     autoTable(doc, {
-      head: headers,
-      body: body,
-      startY: currentY, // Começa dinamicamente após os textos
+      head: [Object.keys(data[0])],
+      body: data.map((obj) => Object.values(obj)),
+      startY: 35,
       theme: 'grid',
-      headStyles: {
-        fillColor: [40, 40, 40], // Cinza grafite neutro e elegante
-        fontSize: 10,
-        fontStyle: 'bold',
+      headStyles: { fillColor: [26, 46, 53], fontSize: 8 },
+      styles: { fontSize: 7, cellPadding: 2 },
+      columnStyles: {
+        0: { cellWidth: 35 }, // Data
+        2: { cellWidth: 'auto' }, // Localização (flexível)
       },
-      styles: { fontSize: 9 },
-      margin: { left: margin, right: margin },
     });
-  } else {
-    doc.text('Nenhum cadastro de visitante encontrado.', margin, currentY);
   }
 
   doc.save(`${filename}.pdf`);

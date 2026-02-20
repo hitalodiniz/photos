@@ -4,7 +4,7 @@ import { useEffect, useState } from 'react';
 import { useSearchParams, useRouter } from 'next/navigation';
 import { Loader2 } from 'lucide-react';
 
-import type { DrivePhoto, Galeria } from '@/core/types/galeria';
+import type { Galeria } from '@/core/types/galeria';
 import type { DashboardProps } from './types';
 
 import { ConfirmationModal, LoadingScreen, Toast } from '@/components/ui';
@@ -28,6 +28,8 @@ import GalleryList from './components/GalleryList';
 import DashboardFooter from './components/DashboardFooter';
 import TrialBanner from '@/components/ui/TrialBanner';
 import { PlanProvider } from '@/core/context/PlanContext';
+import { useSyncInternalTraffic } from '@/hooks/useSyncInternalTraffic';
+import { TrafficStatusBadge } from '@/components/dashboard/TrafficStatusBadge';
 
 export default function Dashboard({
   initialGalerias,
@@ -52,8 +54,7 @@ export default function Dashboard({
     setViewMode,
   } = useDashboardState(initialProfile?.sidebar_collapsed ?? false);
 
-  const { isSidebarCollapsed, toggleSidebar, setIsSidebarCollapsed } =
-    useSidebar();
+  const { toggleSidebar, setIsSidebarCollapsed } = useSidebar();
 
   // Sincroniza a preferência inicial do usuário com o context
   useEffect(() => {
@@ -89,6 +90,8 @@ export default function Dashboard({
       'Abrindo organizador...',
     );
   };
+
+  useSyncInternalTraffic(initialProfile?.id);
   // --- EFFECTS ---
   useEffect(() => {
     if (!authLoading && !user) {
