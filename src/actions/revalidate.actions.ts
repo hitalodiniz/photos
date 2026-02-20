@@ -1,151 +1,172 @@
-'use server'; // Obrigatório no topo para Client Components poderem chamar
+'use server';
 
 import { revalidatePath, revalidateTag } from 'next/cache';
 
-export async function revalidateDrivePhotos(folderId: string) {
-  if (!folderId) return;
-  // Invalida o cache da lista de fotos (Grid) na Vercel
-  revalidateTag(`drive-photos-${folderId}`);
+// =========================================================================
+// INTERFACES & TIPAGEM
+// =========================================================================
+
+interface GaleriaData {
+  id: string;
+  slug?: string;
+  drive_folder_id?: string;
 }
 
-export async function revalidateGalleryCover(photoId: string) {
-  if (!photoId) return;
-  // Invalida o cache da imagem de capa na CDN
-  revalidateTag(`cover-${photoId}`);
+interface GalleryRevalidationData {
+  galeriaId: string;
+  slug?: string;
+  driveFolderId?: string;
+  userId: string;
+  username?: string;
+}
+
+// =========================================================================
+// 1. REVALIDAÇÃO DE PERFIL (CENTRALIZADA)
+// =========================================================================
+
+/**
+ * Revalida o perfil em todos os níveis: público, privado e dados de cache.
+ * Use em: Update de bio, redes sociais, configurações, mensagens ou planos.
+ */
+export async function revalidateProfile(username: string, userId: string) {
+  try {
+    const cleanUsername = username.toLowerCase().trim();
+
+    // Tags de Cache (unstable_cache)
+    revalidateTag(`profile-${cleanUsername}`);
+    revalidateTag(`profile-data-${cleanUsername}`); // Bate com getProfileByUsername
+    revalidateTag(`profile-private-${userId}`);
+    revalidateTag(`user-profile-data-${userId}`);
+
+    // Tags de Listagem
+    revalidateTag(`profile-galerias-${cleanUsername}`);
+    revalidateTag(`user-galerias-${userId}`);
+
+    // Revalidação de Rotas (Layouts e Dashboard)
+    revalidatePath(`/${cleanUsername}`, 'layout'); // Atualiza templates em todas as sub-rotas
+    revalidatePath('/dashboard', 'layout');
+
+    return { success: true };
+  } catch (error) {
+    console.error('[revalidateProfile] Erro:', error);
+    return { success: false };
+  }
 }
 
 /**
- * Ação para limpar todos os níveis de cache de uma galeria específica.
- * @param folderId ID da pasta no Google Drive (usado para as Tags)
- * @param slug O slug da galeria (ex: 'casamento-joao-e-maria')
- * @param username O username do autor (ex: 'fotografo1')
- * @param subdomain O subdomínio (se houver, ex: 'galeria.meusite.com')
- * @param coverPhotoId ID da foto de capa (para revalidar cache da imagem quando a capa mudar)
+ * Revalidação profunda: Profile + Todas as Galerias do usuário.
+ * Útil após mudanças drásticas (como alteração de username ou reset de plano).
  */
-export async function revalidateGallery(
-  folderId: string,
-  slug: string,
+export async function revalidateProfileComplete(
+  supabase: any,
   username: string,
-  subdomain?: string,
-  coverPhotoId?: string,
+  userId: string,
 ) {
   try {
-    // 1. Limpa o cache de dados (Fetch Cache)
-    revalidateTag(`drive-photos-${folderId}`);
-    revalidateTag(`cover-${folderId}`);
+    // 1. Revalida o perfil base
+    await revalidateProfile(username, userId);
 
-    // 2. 🎯 Revalida o cache da imagem de capa se o photoId for fornecido
-    // Isso é essencial quando a capa da galeria é alterada
-    if (coverPhotoId) {
-      revalidateGalleryCover(coverPhotoId);
-    }
+    // 2. Busca e revalida cada galeria para limpar caches de slugs e fotos
+    const { data: galerias } = await supabase
+      .from('tb_galerias')
+      .select('id, slug, drive_folder_id')
+      .eq('user_id', userId);
 
-    // 3. Limpa a rota padrão (Username)
-    // Caminho: /fotografo/slug-da-galeria
-    revalidatePath(`/${username}/${slug}`);
-
-    // 4. Limpa a rota de subdomínio (Rewrite Path)
-    if (subdomain && subdomain !== 'www') {
-      // O Next.js armazena o cache estático no caminho real da pasta
-      // De acordo com seu middleware: /subdomain/[subdomain]/[slug]
-      revalidatePath(`/subdomain/${subdomain}/${slug}`);
-
-      // Também revalidamos a Home do subdomínio se necessário
-      revalidatePath(`/${subdomain}`);
+    if (galerias) {
+      galerias.forEach((g: GaleriaData) => {
+        if (g.slug) {
+          revalidateTag(`gallery-${g.slug}`);
+          revalidateTag(`gallery-data-${g.slug}`);
+        }
+        if (g.drive_folder_id) revalidateTag(`drive-${g.drive_folder_id}`);
+        revalidateTag(`photos-${g.id}`);
+      });
     }
 
     return { success: true };
   } catch (error) {
-    console.error('Erro na revalidação:', error);
+    console.error('[revalidateProfileComplete] Erro:', error);
     return { success: false };
   }
 }
 
+// =========================================================================
+// 2. REVALIDAÇÃO DE GALERIAS
+// =========================================================================
+
 /**
- * 🎯 REVALIDA GALERIAS DO USUÁRIO
- * Função específica para revalidar o cache de galerias de um usuário específico
+ * Revalida uma galeria específica e sua presença nas listagens.
  */
-export async function revalidateUserGalleries(userId: string) {
+export async function revalidateGalleryCache(data: GalleryRevalidationData) {
+  const { galeriaId, slug, driveFolderId, userId, username } = data;
+
   try {
+    if (slug) {
+      revalidateTag(`gallery-${slug}`);
+      revalidateTag(`gallery-data-${slug}`);
+    }
+
+    if (driveFolderId) revalidateTag(`drive-${driveFolderId}`);
+
+    revalidateTag(`photos-${galeriaId}`);
+    revalidateTag(`gallery-tags-${galeriaId}`);
     revalidateTag(`user-galerias-${userId}`);
+
+    if (username) {
+      const cleanUsername = username.toLowerCase().trim();
+      revalidateTag(`profile-galerias-${cleanUsername}`);
+
+      if (slug) revalidatePath(`/${cleanUsername}/${slug}`, 'page');
+      revalidatePath(`/${cleanUsername}`, 'layout');
+    }
+
+    revalidatePath('/dashboard', 'layout');
     return { success: true };
-  } catch (error) {
-    console.error('Erro ao revalidar galerias do usuário:', error);
+  } catch (err) {
+    console.error('[revalidateGalleryCache] Erro:', err);
     return { success: false };
   }
 }
 
-/**
- * 🎯 REVALIDAÇÃO DEFINITIVA
- * Deve ser chamada sempre que o status do Google Drive mudar
- * ou após um login/onboarding bem-sucedido.
- */
-export async function revalidateProfile(username?: string) {
-  // 1. Limpa o cache de todas as funções marcadas com a tag 'user-profile'
-  revalidateTag('user-profile');
+// =========================================================================
+// 3. FOTOS E DRIVE
+// =========================================================================
 
-  // 2. Se tiver o username, limpa o cache específico da galeria pública
-  if (username) {
-    revalidateTag(`profile-${username.toLowerCase()}`);
-    revalidatePath(`/${username}`, 'layout');
-  }
-  // 3. Limpa o dashboard para garantir que o Aside mostre o status correto
-  revalidatePath('/dashboard', 'layout');
+export async function revalidateDrivePhotos(
+  folderId: string,
+  galleryId?: string,
+) {
+  if (!folderId) return;
+  revalidateTag(`drive-${folderId}`);
+  if (galleryId) revalidateTag(`photos-${galleryId}`);
 }
 
-/**
- * 🧹 LIMPEZA TOTAL DE CACHE (ADMIN)
- * Invalida todos os dados em cache no servidor e na Vercel.
- */
-/**
- * 🧹 PURGE ALL CACHE (ADMIN)
- * Invalida todas as tags de dados e rotas estáticas do sistema.
- * 🎯 ATUALIZADO: Agora revalida também todas as tags de galerias e perfis
- */
+// =========================================================================
+// 4. HELPERS E ADMIN
+// =========================================================================
+
+export async function getGalleryRevalidationData(
+  supabase: any,
+  galeriaId: string,
+  userId: string,
+) {
+  const { data } = await supabase
+    .from('tb_galerias')
+    .select('slug, drive_folder_id')
+    .eq('id', galeriaId)
+    .eq('user_id', userId)
+    .maybeSingle();
+  return data;
+}
+
 export async function purgeAllCache() {
   try {
-    // 1. Invalida as tags de dados dinâmicos (vistas no seu VS Code)
     revalidateTag('user-profile');
-    revalidateTag('drive-photos'); // Tag base para fotos do Drive
-    revalidateTag('cover-image'); // Tag base para capas
+    revalidateTag('drive-photos');
     revalidateTag('public-profile');
-
-    // 2. 🎯 NOVO: Revalida tags de galerias e perfis
-    // Nota: Next.js não suporta wildcards, mas revalidamos o dashboard que força refresh
-    // As tags específicas serão revalidadas quando necessário via revalidateTag individual
-
-    // 3. Invalida a árvore de renderização completa (Páginas Estáticas/Edge)
-    // O parâmetro 'layout' na raiz garante que subdomínios e rotas [username]
-    // sejam marcadas para reconstrução no próximo acesso.
     revalidatePath('/', 'layout');
-    // 🎯 CRÍTICO: Revalida o dashboard para forçar refresh das galerias
-    revalidatePath('/dashboard', 'layout');
-
-    return {
-      success: true,
-      message:
-        'Todos os caches (Dados, Fotos e Páginas) foram invalidados com sucesso. Recarregue a página.',
-    };
-  } catch (error) {
-    console.error('Erro ao limpar cache global:', error);
-    return {
-      success: false,
-      error: 'Falha crítica ao processar a limpeza global de cache.',
-    };
-  }
-}
-
-/**
- * 🎯 REVALIDA GALERIAS DO USUÁRIO
- * Função específica para revalidar o cache de galerias de um usuário específico
- */
-export async function revalidateUserGalerias(userId: string) {
-  try {
-    revalidateTag(`user-galerias-${userId}`);
-    revalidatePath('/dashboard', 'layout');
     return { success: true };
-  } catch (error) {
-    console.error('Erro ao revalidar galerias do usuário:', error);
+  } catch {
     return { success: false };
   }
 }

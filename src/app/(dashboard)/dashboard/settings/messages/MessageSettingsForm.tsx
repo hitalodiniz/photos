@@ -1,37 +1,33 @@
 'use client';
 
-// --- SCHEMAS E TIPOS ---
 import { MessageTemplates, MessageTemplatesSchema } from '@/core/types/profile';
 import { z } from 'zod';
-import React from 'react';
+import React, { useRef, useState, useMemo, useCallback } from 'react';
 import {
   AlertCircle,
   MessageSquare,
   RotateCcw,
+  Save,
   Settings,
   Tag,
 } from 'lucide-react';
 import { useRouter } from 'next/navigation';
-import { useRef } from 'react';
 import { useSegment } from '@/hooks/useSegment';
-import { useState, useMemo, useCallback } from 'react';
-type EditableMessageKey = keyof Omit<MessageTemplates, 'CARD_SHARE'>;
 import { updateProfileSettings } from '@/core/services/profile.service';
 import { ConfirmationModal, Toast } from '@/components/ui';
 import FormPageBase from '@/components/ui/FormPageBase';
 import { PlanGuard } from '@/components/auth/PlanGuard';
-
 import { GALLERY_MESSAGES } from '@/core/config/messages';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { useForm } from 'react-hook-form';
 import BaseModal from '@/components/ui/BaseModal';
-import { revalidateProfile } from '@/actions/revalidate.actions';
 
 const CombinedSchema = z.object({
   message_templates: MessageTemplatesSchema,
 });
 
 type CombinedData = z.infer<typeof CombinedSchema>;
+type MessageKey = keyof CombinedData['message_templates'];
 
 // --- COMPONENTES AUXILIARES ---
 
@@ -45,7 +41,7 @@ const WhatsAppPreview = React.memo(
           </div>
           <div className="flex flex-col">
             <span className="text-white text-[9px] font-semibold leading-none">
-              {siteName} {/* 🎯 Dinâmico */}
+              {siteName}
             </span>
             <span className="text-white/60 text-[7px]">Online</span>
           </div>
@@ -96,23 +92,22 @@ const FormSection = ({
 export default function MessageSettingsForm({ profile }: { profile: any }) {
   const router = useRouter();
   const textareaRef = useRef<HTMLTextAreaElement>(null);
-  const { terms, segment } = useSegment(); // 🎯 Hook de Segmento
-  const [showResetModal, setShowResetModal] = useState<string | null>(null);
+  const { terms } = useSegment();
+  const [showResetModal, setShowResetModal] = useState<MessageKey | null>(null);
 
-  // 🎯 MAPEAMENTO DINÂMICO BASEADO NOS TERMS
-  const MESSAGE_TITLES: Record<string, string> = {
+  const MESSAGE_TITLES: Record<MessageKey, string> = {
     card_share: 'Espaço de Galerias',
     photo_share: `${terms.item.charAt(0).toUpperCase() + terms.item.slice(1)} Individual`,
     guest_share: `Galeria de ${terms.item.charAt(0).toUpperCase() + terms.item.slice(1)}`,
   };
 
-  const MESSAGE_LABELS: Record<string, string> = {
+  const MESSAGE_LABELS: Record<MessageKey, string> = {
     card_share: `Mensagem de compartilhamento de galeria no Espaço de Galerias`,
-    photo_share: `Mensagem de compartilhamento de ${terms.item.charAt(0).toUpperCase() + terms.item.slice(1)} única pelo visitante`,
+    photo_share: `Mensagem de compartilhamento de ${terms.item} única pelo visitante`,
     guest_share: `Mensagem de compartilhamento da galeria pelo visitante`,
   };
 
-  const DEFAULT_MESSAGES: Record<string, string> = {
+  const DEFAULT_MESSAGES: Record<MessageKey, string> = {
     card_share: GALLERY_MESSAGES.CARD_SHARE(
       '{galeria_titulo}',
       '{galeria_link}',
@@ -146,30 +141,19 @@ export default function MessageSettingsForm({ profile }: { profile: any }) {
     ],
   };
 
-  const VARIABLE_DESCRIPTIONS: Record<string, string> = {
-    profissional_nome: `Nome completo do ${terms.singular} responsável.`,
-    profissional_fone: `Telefone de contato do ${terms.singular}.`,
-    profissional_instagram: `Link para o perfil do Instagram do ${terms.singular}.`,
-    profissional_link_perfil: `Link para o perfil público do ${terms.singular} no ${terms.site_name}.`,
-    profissional_email: `e-Mail de contato do ${terms.singular}.`,
-    galeria_titulo: `Título da galeria.`,
-    galeria_nome_cliente: `Nome do cliente da galeria, se existir.`,
-    galeria_data: `Data de registro da galeria.`,
-    galeria_local: `Local onde a galeria foi realizada.`,
-    galeria_categoria: `Categoria da galeria (ex: Casamento, Ensaio).`,
-    galeria_senha: `Senha de acesso, se a galeria for privada.`,
-    galeria_link: `Link público para acessar a galeria.`,
-  };
-
-  const ALL_VALID_TAGS = [
-    ...VARIAVEIS_MENSAGEM.galeria,
-    ...VARIAVEIS_MENSAGEM.profissional,
-    'url',
-  ];
+  const ALL_VALID_TAGS = useMemo(
+    () =>
+      new Set([
+        ...VARIAVEIS_MENSAGEM.galeria,
+        ...VARIAVEIS_MENSAGEM.profissional,
+        'url',
+      ]),
+    [],
+  );
 
   const [isSaving, setIsSaving] = useState(false);
   const [isSuccess, setIsSuccess] = useState(false);
-  const [editingMessageKey, setEditingMessageKey] = useState<string | null>(
+  const [editingMessageKey, setEditingMessageKey] = useState<MessageKey | null>(
     null,
   );
   const [toast, setToast] = useState<{
@@ -192,6 +176,7 @@ export default function MessageSettingsForm({ profile }: { profile: any }) {
     handleSubmit,
     watch,
     setValue,
+    getValues,
     formState: { isDirty },
   } = useForm<CombinedData>({
     resolver: zodResolver(CombinedSchema),
@@ -203,7 +188,6 @@ export default function MessageSettingsForm({ profile }: { profile: any }) {
     try {
       const result = await updateProfileSettings(data);
       if (result.success) {
-        await revalidateProfile(profile.username);
         setIsSuccess(true);
         setToast({ message: 'Mensagens salvas com sucesso!', type: 'success' });
         router.refresh();
@@ -218,42 +202,51 @@ export default function MessageSettingsForm({ profile }: { profile: any }) {
 
   const insertVariable = useCallback(
     (variable: string) => {
-      if (!editingMessageKey || !textareaRef.current) return;
       const textarea = textareaRef.current;
+      if (!editingMessageKey || !textarea) return;
+
       const start = textarea.selectionStart;
       const end = textarea.selectionEnd;
-      const currentPath = `message_templates.${editingMessageKey}` as any;
+      const currentPath = `message_templates.${editingMessageKey}` as const;
       const currentValue =
-        watch(currentPath) || DEFAULT_MESSAGES[editingMessageKey] || '';
-      const newValue = `${currentValue.substring(0, start)}{${variable}}${currentValue.substring(end)}`;
-      setValue(currentPath, newValue, { shouldDirty: true });
+        getValues(currentPath) || DEFAULT_MESSAGES[editingMessageKey] || '';
+
+      const tag = `{${variable}}`;
+      const newValue =
+        currentValue.substring(0, start) + tag + currentValue.substring(end);
+
+      setValue(currentPath, newValue, {
+        shouldDirty: true,
+        shouldValidate: true,
+      });
+
       setTimeout(() => {
         textarea.focus();
-        const pos = start + variable.length + 2;
+        const pos = start + tag.length;
         textarea.setSelectionRange(pos, pos);
       }, 0);
     },
-    [editingMessageKey, setValue, watch],
+    [editingMessageKey, setValue, getValues],
   );
 
-  const validateTags = (text: string): boolean => {
-    const foundTags = text.match(/\{([^}]+)\}/g);
-    if (!foundTags) return true;
-    return foundTags.every((tag) =>
-      ALL_VALID_TAGS.includes(tag.replace(/\{|\}/g, '')),
-    );
-  };
+  const validateTags = useCallback(
+    (text: string): boolean => {
+      const matches = text.matchAll(/\{([^}]+)\}/g);
+      for (const match of matches) {
+        if (!ALL_VALID_TAGS.has(match[1])) return false;
+      }
+      return true;
+    },
+    [ALL_VALID_TAGS],
+  );
 
   const currentText =
-    watch(`message_templates.${editingMessageKey as any}`) || '';
+    watch(`message_templates.${editingMessageKey as MessageKey}`) || '';
 
   const invalidTags = useMemo(() => {
-    const matches = currentText.match(/\{([^}]+)\}/g);
-    if (!matches) return [];
-    return matches
-      .map((tag) => tag.replace(/\{|\}/g, ''))
-      .filter((tagName) => !ALL_VALID_TAGS.includes(tagName));
-  }, [currentText]);
+    const matches = Array.from(currentText.matchAll(/\{([^}]+)\}/g));
+    return matches.map((m) => m[1]).filter((tag) => !ALL_VALID_TAGS.has(tag));
+  }, [currentText, ALL_VALID_TAGS]);
 
   const hasError = invalidTags.length > 0;
 
@@ -272,14 +265,12 @@ export default function MessageSettingsForm({ profile }: { profile: any }) {
       >
         <div className="max-w-full mx-auto ">
           <FormSection
-            title="Mensagens de compartilhamento no WhatsApp e em redes sociais"
+            title="Mensagens de compartilhamento"
             icon={<MessageSquare size={16} />}
           >
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-              {Object.keys(MESSAGE_LABELS).map((key) => {
-                const val = watch(
-                  `message_templates.${key as keyof CombinedData['message_templates']}`,
-                );
+              {(Object.keys(MESSAGE_LABELS) as MessageKey[]).map((key) => {
+                const val = watch(`message_templates.${key}`);
                 const isDefault = !val || val.trim() === '';
                 const displayContent = isDefault ? DEFAULT_MESSAGES[key] : val;
 
@@ -312,10 +303,7 @@ export default function MessageSettingsForm({ profile }: { profile: any }) {
                     <div className="bg-petroleum/95 px-4 h-14 grid grid-cols-2 gap-3 items-center border-t border-white/10">
                       <button
                         type="button"
-                        onClick={(e) => {
-                          e.stopPropagation();
-                          setShowResetModal(key);
-                        }}
+                        onClick={() => setShowResetModal(key)}
                         className="flex items-center justify-center gap-2 h-9 bg-white/5 text-white rounded-luxury text-[11px] font-semibold hover:bg-red-500/20 transition-all border border-white/10"
                       >
                         <RotateCcw size={12} /> Resetar
@@ -340,6 +328,26 @@ export default function MessageSettingsForm({ profile }: { profile: any }) {
               onClose={() => setEditingMessageKey(null)}
               title={`Configurar: ${MESSAGE_TITLES[editingMessageKey]}`}
               maxWidth="4xl"
+              footer={
+                <div className="flex justify-end items-end gap-3">
+                  <button
+                    type="button"
+                    onClick={() => setEditingMessageKey(null)}
+                    className="btn-secondary-petroleum"
+                  >
+                    Cancelar
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => !hasError && setEditingMessageKey(null)}
+                    className="btn-luxury-primary"
+                    disabled={hasError}
+                  >
+                    <Save size={14} />
+                    Confirmar Alterações
+                  </button>
+                </div>
+              }
             >
               <div className="grid grid-cols-1 lg:grid-cols-2 gap-8 items-start py-2">
                 <div className="space-y-6">
@@ -350,34 +358,32 @@ export default function MessageSettingsForm({ profile }: { profile: any }) {
                       </label>
                       {hasError && (
                         <span className="text-[9px] font-semibold text-red-500 uppercase animate-pulse">
-                          Tag inválida detectada
+                          Tag inválida
                         </span>
                       )}
                     </div>
                     <textarea
                       ref={textareaRef}
                       value={
-                        currentText ||
-                        DEFAULT_MESSAGES[editingMessageKey as any] ||
-                        ''
+                        currentText || DEFAULT_MESSAGES[editingMessageKey] || ''
                       }
                       onChange={(e) =>
                         setValue(
-                          `message_templates.${editingMessageKey as any}`,
+                          `message_templates.${editingMessageKey}`,
                           e.target.value,
                           { shouldDirty: true },
                         )
                       }
-                      className={`input-luxury h-64 p-5 resize-none ${hasError ? 'bg-red-50 border-red-200 text-red-900 focus:ring-red-100' : 'bg-slate-50 border-petroleum/10 text-petroleum'}`}
+                      className={`input-luxury h-64 p-5 resize-none transition-colors ${hasError ? 'bg-red-50 border-red-200 text-red-900' : 'bg-slate-50 text-petroleum'}`}
                       placeholder="Escreva sua mensagem aqui..."
                     />
                     {hasError && (
                       <div className="flex items-center gap-2 text-red-600 bg-red-50 p-3 rounded-lg border border-red-100">
                         <AlertCircle size={14} />
-                        <p className="text-[10px] font-medium">
-                          As seguintes tags não funcionam:{' '}
+                        <p className="text-[10px]">
+                          Tags inválidas:{' '}
                           <span className="font-semibold">
-                            {invalidTags.map((t) => `{${t}}`).join(', ')}
+                            {invalidTags.join(', ')}
                           </span>
                         </p>
                       </div>
@@ -386,63 +392,34 @@ export default function MessageSettingsForm({ profile }: { profile: any }) {
                   <div className="bg-petroleum/5 p-5 rounded-luxury border border-petroleum/5">
                     <div className="flex items-center gap-2 mb-4">
                       <Tag size={12} className="text-gold" />
-                      <span className="text-[10px] font-semibold uppercase tracking-luxury-widest text-petroleum">
-                        Variáveis de Inserção
+                      <span className="text-[10px] font-semibold uppercase text-petroleum">
+                        Variáveis
                       </span>
                     </div>
                     <div className="flex flex-wrap gap-2">
-                      {VARIAVEIS_MENSAGEM.galeria.map((v) => (
+                      {[
+                        ...VARIAVEIS_MENSAGEM.galeria,
+                        ...VARIAVEIS_MENSAGEM.profissional,
+                      ].map((v) => (
                         <button
                           key={v}
                           type="button"
                           onClick={() => insertVariable(v)}
-                          title={VARIABLE_DESCRIPTIONS[v]}
-                          className="btn-luxury-base bg-white text-[10px]"
+                          className="btn-luxury-base bg-white text-[10px] hover:border-gold/50"
                         >
-                          • {v.replace('galeria_', '').replace('_', ' ')}
-                        </button>
-                      ))}
-                      {VARIAVEIS_MENSAGEM.profissional.map((v) => (
-                        <button
-                          key={v}
-                          type="button"
-                          onClick={() => insertVariable(v)}
-                          title={VARIABLE_DESCRIPTIONS[v]}
-                          className="btn-luxury-base bg-petroleum/10 text-[10px]"
-                        >
-                          👤 {v.replace('profissional_', '').replace('_', ' ')}
+                          {v.includes('profissional') ? '👤' : '•'}{' '}
+                          {v.split('_').slice(1).join(' ')}
                         </button>
                       ))}
                     </div>
                   </div>
-                  <div className="pt-6 border-t border-petroleum/10">
-                    <button
-                      type="button"
-                      onClick={() => {
-                        if (currentText && !validateTags(currentText)) {
-                          setToast({
-                            message: 'Atenção: Você utilizou uma tag inválida.',
-                            type: 'error',
-                          });
-                          return;
-                        }
-                        setEditingMessageKey(null);
-                      }}
-                      className="btn-luxury-primary w-60"
-                    >
-                      Confirmar Edição
-                    </button>
-                  </div>
                 </div>
                 <div className="lg:sticky lg:top-0 space-y-4">
-                  <label className="text-[11px] font-bold uppercase tracking-widest text-petroleum/50">
+                  <label className="text-[11px] font-bold uppercase text-petroleum/50">
                     Visualização
                   </label>
                   <WhatsAppPreview
-                    text={
-                      watch(`message_templates.${editingMessageKey as any}`) ||
-                      DEFAULT_MESSAGES[editingMessageKey]
-                    }
+                    text={currentText || DEFAULT_MESSAGES[editingMessageKey]}
                     siteName={terms.site_name}
                   />
                 </div>
@@ -450,23 +427,20 @@ export default function MessageSettingsForm({ profile }: { profile: any }) {
             </BaseModal>
           )}
         </div>
+
         <ConfirmationModal
           isOpen={!!showResetModal}
           onClose={() => setShowResetModal(null)}
           title="Restaurar Padrão"
-          message={`Deseja realmente restaurar a mensagem "${MESSAGE_TITLES[showResetModal ?? '']}" para o padrão original? Esta ação não pode ser desfeita.`}
+          message={`Deseja realmente restaurar a mensagem para o padrão original?`}
           confirmText="Sim, Restaurar"
           variant="danger"
           onConfirm={() => {
             if (showResetModal) {
-              setValue(`message_templates.${showResetModal as any}`, '', {
+              setValue(`message_templates.${showResetModal}`, '', {
                 shouldDirty: true,
               });
               setShowResetModal(null);
-              setToast({
-                message: 'Mensagem resetada (clique em salvar para aplicar).',
-                type: 'success',
-              });
             }
           }}
         />

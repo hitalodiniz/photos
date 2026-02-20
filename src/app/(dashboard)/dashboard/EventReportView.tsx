@@ -27,7 +27,6 @@ import {
 } from '@/core/utils/export-helper';
 import { getGaleriaEventReport } from '@/core/services/galeria-stats.service';
 import { EventDetailsSheet } from '@/components/ui/EventDetailsSheet';
-import { getPublicGalleryUrl } from '@/core/utils/url-helper';
 import { RelatorioTable } from '@/components/ui/RelatorioTable';
 import {
   RelatorioSearchInput,
@@ -62,21 +61,40 @@ export default function EventReportView({ galeria }: any) {
   const events = reportData?.rawEvents || [];
 
   const stats = useMemo(() => {
+    // 🎯 ESTATÍSTICAS BASEADAS EM VISITANTES ÚNICOS (FUNIL REAL)
+    const uniqueVisitors = new Set(
+      events
+        .filter((e: any) => e.event_type === 'view')
+        .map((e: any) => e.visitor_id),
+    );
+    const uniqueLeads = new Set(
+      events
+        .filter((e: any) => e.event_type === 'lead')
+        .map((e: any) => e.visitor_id),
+    );
+
+    const viewsCount = uniqueVisitors.size;
+    const leadsCount = uniqueLeads.size;
+
+    // Eventos brutos para outros cards
+    const totalDownloads = events.filter(
+      (e: any) => e.event_type === 'download',
+    ).length;
+    const totalShares = events.filter(
+      (e: any) => e.event_type === 'share',
+    ).length;
+
+    // Dispositivos (Baseado no total de interações para amostragem técnica)
+    const mobileCount = events.filter(
+      (e: any) => e.device_info?.type === 'mobile',
+    ).length;
+    const totalWithDevice = events.length || 1;
+
+    // Marcos temporais
     const viewsEvents = events.filter((e: any) => e.event_type === 'view');
     const downloadsEvents = events.filter(
       (e: any) => e.event_type === 'download',
     );
-    const leadsCount = events.filter(
-      (e: any) => e.event_type === 'lead',
-    ).length;
-    const sharesCount = events.filter(
-      (e: any) => e.event_type === 'share',
-    ).length;
-
-    const mobileCount = events.filter(
-      (e: any) => e.device_info?.type === 'mobile',
-    ).length;
-    const desktopCount = events.length - mobileCount;
 
     const firstAccess =
       viewsEvents.length > 0
@@ -87,32 +105,52 @@ export default function EventReportView({ galeria }: any) {
         ? downloadsEvents[downloadsEvents.length - 1].created_at
         : null;
 
-    const radius = 35;
-    const circumference = 2 * Math.PI * radius;
-    const mobilePct = events.length > 0 ? mobileCount / events.length : 0;
-    const mobileOffset = circumference - mobilePct * circumference;
-
     return {
-      views: viewsEvents.length,
-      leads: leadsCount,
-      downloads: downloadsEvents.length,
-      shares: sharesCount,
+      views: viewsCount, // Visitantes únicos
+      leads: leadsCount, // Leads únicos
+      downloads: totalDownloads,
+      shares: totalShares,
       mobileCount,
-      mobilePct: Math.round(mobilePct * 100),
-      desktopCount,
-      desktopPct:
-        events.length > 0
-          ? Math.round((desktopCount / events.length) * 100)
-          : 0,
+      mobilePct: Math.round((mobileCount / totalWithDevice) * 100),
+      desktopPct: Math.round(
+        ((totalWithDevice - mobileCount) / totalWithDevice) * 100,
+      ),
+      // 🎯 Taxa de conversão real: Visitantes que viraram Leads
       convRate:
-        viewsEvents.length > 0
-          ? ((leadsCount / viewsEvents.length) * 100).toFixed(1)
-          : '0',
+        viewsCount > 0 ? ((leadsCount / viewsCount) * 100).toFixed(1) : '0',
       firstAccess,
       firstDownload,
-      circumference,
-      mobileOffset,
+      circumference: 2 * Math.PI * 35,
+      mobileOffset:
+        2 * Math.PI * 35 - (mobileCount / totalWithDevice) * (2 * Math.PI * 35),
     };
+  }, [events]);
+
+  const timelineData = useMemo(() => {
+    const dailyGroups: Record<
+      string,
+      { date: string; views: Set<string>; leads: Set<string> }
+    > = {};
+
+    // Ordenamos para garantir a cronologia correta
+    const sortedEvents = [...events].sort(
+      (a, b) =>
+        new Date(a.created_at).getTime() - new Date(b.created_at).getTime(),
+    );
+
+    sortedEvents.forEach((e: any) => {
+      const date = new Date(e.created_at).toLocaleDateString('pt-BR', {
+        day: '2-digit',
+        month: '2-digit',
+      });
+      if (!dailyGroups[date]) {
+        dailyGroups[date] = { date, views: new Set(), leads: new Set() };
+      }
+      if (e.event_type === 'view') dailyGroups[date].views.add(e.visitor_id);
+      if (e.event_type === 'lead') dailyGroups[date].leads.add(e.visitor_id);
+    });
+
+    return Object.values(dailyGroups).slice(-7); // Últimos 7 dias ativos
   }, [events]);
 
   const filteredEvents = useMemo(() => {
@@ -240,20 +278,21 @@ export default function EventReportView({ galeria }: any) {
               <div className="p-5 rounded-luxury bg-white border border-slate-200 shadow-sm">
                 <div className="flex justify-between items-center mb-4">
                   <h3 className="text-[10px] font-semibold uppercase tracking-widest text-petroleum">
-                    Funil de Conversão
+                    Funil de Conversão (Único)
                   </h3>
                   <Target size={14} className="text-gold" />
                 </div>
+
                 <div className="space-y-4">
                   {[
                     {
-                      label: 'Visualizações',
+                      label: 'Visitantes Únicos',
                       val: stats.views,
                       pct: 100,
                       color: 'bg-blue-500',
                     },
                     {
-                      label: 'Cadastros de visitantes',
+                      label: 'Leads Capturados',
                       val: stats.leads,
                       pct: (stats.leads / (stats.views || 1)) * 100,
                       color: 'bg-green-500',
@@ -272,10 +311,16 @@ export default function EventReportView({ galeria }: any) {
                       </div>
                     </div>
                   ))}
+
                   <div className="pt-2 mt-2 border-t border-slate-50 flex justify-between items-center">
-                    <span className="text-[10px] font-semibold text-petroleum/90 uppercase">
-                      Taxa de Eficiência
-                    </span>
+                    <div className="flex flex-col">
+                      <span className="text-[10px] font-semibold text-petroleum/90 uppercase">
+                        Taxa de Conversão
+                      </span>
+                      <span className="text-[8px] text-slate-400 uppercase">
+                        Acesso → Cadastro
+                      </span>
+                    </div>
                     <span className="text-lg font-semibold text-gold">
                       {stats.convRate}%
                     </span>
@@ -284,6 +329,80 @@ export default function EventReportView({ galeria }: any) {
               </div>
             )}
 
+            {/* GRÁFICO DE EVOLUÇÃO TEMPORAL */}
+            <div className="p-5 rounded-luxury bg-white border border-slate-200 shadow-sm mt-3">
+              <div className="flex justify-between items-center mb-6">
+                <h3 className="text-[10px] font-semibold uppercase tracking-widest text-petroleum">
+                  Tendência de Tráfego
+                </h3>
+                <div className="flex gap-2">
+                  <div className="flex items-center gap-1">
+                    <div className="w-2 h-2 rounded-full bg-blue-400" />
+                    <span className="text-[8px] font-bold text-slate-400">
+                      VIEWS
+                    </span>
+                  </div>
+                  {showVisitorData && (
+                    <div className="flex items-center gap-1">
+                      <div className="w-2 h-2 rounded-full bg-gold" />
+                      <span className="text-[8px] font-bold text-slate-400">
+                        LEADS
+                      </span>
+                    </div>
+                  )}
+                </div>
+              </div>
+
+              <div className="h-24 flex items-end justify-between gap-3 px-1">
+                {timelineData.length > 0 ? (
+                  timelineData.map((day, i) => {
+                    const maxVal = Math.max(
+                      ...timelineData.map((d) => d.views.size),
+                      1,
+                    );
+                    const viewHeight = (day.views.size / maxVal) * 100;
+                    const leadHeight = (day.leads.size / maxVal) * 100;
+
+                    return (
+                      <div
+                        key={i}
+                        className="flex-1 flex flex-col items-center gap-2 group relative"
+                      >
+                        {/* Tooltip Simples */}
+                        <div className="absolute -top-8 opacity-0 group-hover:opacity-100 transition-opacity bg-petroleum text-white text-[9px] py-1 px-2 rounded z-10 pointer-events-none whitespace-nowrap">
+                          {day.views.size} v{' '}
+                          {showVisitorData ? `| ${day.leads.size} l` : ''}
+                        </div>
+
+                        <div className="relative w-full h-full flex items-end justify-center gap-0.5">
+                          {/* Barra de Views */}
+                          <div
+                            className="w-full max-w-[12px] bg-blue-500/20 rounded-t-sm transition-all duration-700 group-hover:bg-blue-500/40"
+                            style={{ height: `${viewHeight}%` }}
+                          />
+                          {/* Barra de Leads (Sobreposta ou ao lado) */}
+                          {showVisitorData && (
+                            <div
+                              className="w-full max-w-[12px] bg-gold rounded-t-sm transition-all duration-1000"
+                              style={{ height: `${leadHeight}%` }}
+                            />
+                          )}
+                        </div>
+                        <span className="text-[9px] font-bold text-slate-400">
+                          {day.date}
+                        </span>
+                      </div>
+                    );
+                  })
+                ) : (
+                  <div className="w-full h-full flex items-center justify-center border-2 border-dashed border-slate-50 rounded-lg">
+                    <span className="text-[10px] text-slate-300 uppercase tracking-tighter">
+                      Sem dados no período
+                    </span>
+                  </div>
+                )}
+              </div>
+            </div>
             {/* GRID DE CARDS RÁPIDOS */}
             <div className="grid grid-cols-2 gap-3">
               {!showVisitorData && (
@@ -462,6 +581,7 @@ export default function EventReportView({ galeria }: any) {
 
         <EventDetailsSheet
           event={selectedEvent}
+          allEvents={events}
           onClose={() => setSelectedEvent(null)}
         />
       </div>

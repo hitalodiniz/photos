@@ -839,6 +839,7 @@ export const COMMON_FEATURES = [
     ],
   },
 ];
+
 export function getPlansByDomain(hostname: string) {
   const SITE_CONFIG = {
     'suagaleria.com.br': {
@@ -868,3 +869,11 @@ export function getPlansByDomain(hostname: string) {
     plans: PLANS_BY_SEGMENT[config.segment as SegmentType],
   };
 }
+
+/** 🧠 RESOLVE LIMITE DE GALERIAS */
+export const resolveGalleryLimitByPlan = (planKey?: string): number => {
+  const normalizedKey = (planKey?.toUpperCase() as PlanKey) || 'FREE';
+  const permissions =
+    PERMISSIONS_BY_PLAN[normalizedKey] || PERMISSIONS_BY_PLAN.FREE;
+  return permissions?.maxGalleries || 1;
+};

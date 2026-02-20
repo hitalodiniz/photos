@@ -238,7 +238,7 @@ export async function listPhotosWithOAuth(
  */
 export async function listPhotosFromDriveFolder(
   driveFolderId: string,
-  accessToken: string,
+  accessToken?: string,
   planOrLimit?: PlanKey | number, // 🎯 Aceita a chave 'PRO' ou o número direto
 ): Promise<DrivePhoto[]> {
   if (!driveFolderId) {

@@ -1,3 +1,5 @@
+'use client';
+
 import { useState } from 'react';
 import type { Galeria } from '@/core/types/galeria';
 import type { Profile } from '@/core/types/profile';
@@ -10,9 +12,8 @@ import {
 } from '@/core/services/galeria.service';
 import {
   revalidateDrivePhotos,
-  revalidateGallery,
   revalidateProfile,
-  revalidateUserGalerias,
+  revalidateGalleryCache,
 } from '@/actions/revalidate.actions';
 import { authService } from '@photos/core-auth';
 
@@ -31,11 +32,10 @@ export function useDashboardActions(
   const [galeriaToPermanentlyDelete, setGaleriaToPermanentlyDelete] =
     useState<Galeria | null>(null);
 
-  const handleGoogleLogin = async (force: boolean) => {
-    try {
-      await authService.signInWithGoogle(force);
-    } catch {
-      setToast({ message: 'Erro ao conectar com Google', type: 'error' });
+  // Helper interno para evitar repetição e garantir que username/id existam
+  const triggerProfileRevalidation = async () => {
+    if (photographer?.username && photographer?.id) {
+      await revalidateProfile(photographer.username, photographer.id);
     }
   };
 
@@ -43,52 +43,32 @@ export function useDashboardActions(
     const newStatus = !g.is_archived;
     setUpdatingId(g.id);
     const result = await toggleArchiveGaleria(g.id, g.is_archived);
+
     if (result.success) {
       setGalerias((prev) =>
         prev.map((item) =>
           item.id === g.id ? { ...item, is_archived: newStatus } : item,
         ),
       );
-      await revalidateProfile(photographer?.username);
+      await triggerProfileRevalidation();
       setToast({
         message: newStatus ? 'Galeria arquivada' : 'Galeria restaurada',
         type: 'success',
       });
     } else {
-      setToast({
-        message: result.error || 'Erro ao processar arquivamento',
-        type: 'error',
-      });
-    }
-    setUpdatingId(null);
-  };
-
-  const handleRestore = async (id: string) => {
-    setUpdatingId(id);
-    const result = await restoreGaleria(id);
-    if (result.success) {
-      setGalerias((prev) =>
-        prev.map((g) =>
-          g.id === id ? { ...g, is_deleted: false, is_archived: false } : g,
-        ),
-      );
-      await revalidateProfile(photographer?.username);
-      setToast({ message: 'Galeria restaurada!', type: 'success' });
-    } else {
-      setToast({ message: 'Erro ao restaurar galeria', type: 'error' });
+      setToast({ message: result.error || 'Erro ao arquivar', type: 'error' });
     }
     setUpdatingId(null);
   };
 
   const handleToggleProfile = async (g: Galeria) => {
     setUpdatingId(g.id);
-    try {
-      const { success, error } = await toggleShowOnProfile(
-        g.id,
-        g.show_on_profile,
-      );
-      if (!success) throw new Error(error);
+    const { success, error } = await toggleShowOnProfile(
+      g.id,
+      g.show_on_profile,
+    );
 
+    if (success) {
       setGalerias((prev) =>
         prev.map((item) =>
           item.id === g.id
@@ -96,37 +76,18 @@ export function useDashboardActions(
             : item,
         ),
       );
-      await revalidateProfile(photographer?.username);
+      await triggerProfileRevalidation();
       setToast({
         message: !g.show_on_profile
-          ? 'Galeria agora aparece no seu perfil público!'
-          : 'Galeria removida do perfil público.',
+          ? 'Visível no perfil!'
+          : 'Removida do perfil.',
         type: 'success',
       });
-    } catch (err: unknown) {
-      const errorMessage =
-        err instanceof Error
-          ? err.message
-          : 'Não foi possível alterar a visibilidade.';
-      setToast({ message: errorMessage, type: 'error' });
-    } finally {
-      setUpdatingId(null);
-    }
-  };
-
-  const handleMoveToTrash = async (g: Galeria) => {
-    setUpdatingId(g.id);
-    const result = await moveToTrash(g.id);
-    if (result.success) {
-      setGalerias((prev) =>
-        prev.map((item) =>
-          item.id === g.id ? { ...item, is_deleted: true } : item,
-        ),
-      );
-      await revalidateProfile(photographer?.username);
-      setToast({ message: 'Movido para lixeira', type: 'success' });
     } else {
-      setToast({ message: 'Erro ao excluir', type: 'error' });
+      setToast({
+        message: error || 'Erro ao alterar visibilidade',
+        type: 'error',
+      });
     }
     setUpdatingId(null);
   };
@@ -134,19 +95,18 @@ export function useDashboardActions(
   const handleSyncDrive = async (galeria: Galeria) => {
     setUpdatingId(galeria.id);
     try {
-      // Força a revalidação de todas as tags relacionadas
-      await revalidateDrivePhotos(galeria.drive_folder_id);
+      // 1. Limpa cache bruto do Drive
+      await revalidateDrivePhotos(galeria.drive_folder_id, galeria.id);
 
-      await revalidateGallery(
-        galeria.drive_folder_id,
-        galeria.slug,
-        galeria.photographer_username,
-        galeria.photographer_username,
-        galeria.cover_image_ids?.[0] || null,
-      );
-      // Força a revalidação da lista de galerias para atualizar contadores (como leads)
+      // 2. Limpa cache da galeria (slug e dados formatados)
       if (photographer?.id) {
-        await revalidateUserGalerias(photographer.id);
+        await revalidateGalleryCache({
+          galeriaId: galeria.id,
+          userId: photographer.id,
+          slug: galeria.slug,
+          driveFolderId: galeria.drive_folder_id,
+          username: photographer.username,
+        });
       }
       setToast({ message: 'Sincronização concluída!', type: 'success' });
     } catch {
@@ -157,12 +117,21 @@ export function useDashboardActions(
   };
 
   const executePermanentDelete = async () => {
-    if (!galeriaToPermanentlyDelete) return;
+    if (!galeriaToPermanentlyDelete || !photographer) return;
     try {
       await deleteGalleryPermanently(galeriaToPermanentlyDelete.id);
       setGalerias((prev) =>
         prev.filter((g) => g.id !== galeriaToPermanentlyDelete.id),
       );
+
+      // Revalida para atualizar contadores e remover slug do cache
+      await revalidateGalleryCache({
+        galeriaId: galeriaToPermanentlyDelete.id,
+        userId: photographer.id,
+        slug: galeriaToPermanentlyDelete.slug,
+        username: photographer.username,
+      });
+
       setToast({ message: 'Removida definitivamente!', type: 'success' });
     } catch {
       setToast({ message: 'Erro na exclusão.', type: 'error' });
@@ -171,7 +140,7 @@ export function useDashboardActions(
     }
   };
 
-  // --- BULK ACTIONS ---
+  // --- BULK ACTIONS (Revalidação Única no Final) ---
   const handleBulkArchive = async () => {
     const ids = Array.from(selectedIds);
     if (ids.length === 0) return;
@@ -180,14 +149,11 @@ export function useDashboardActions(
     try {
       const promises = ids.map((id) => {
         const galeria = galerias.find((g) => g.id === id);
-        if (!galeria) return Promise.resolve({ success: false });
-        return toggleArchiveGaleria(id, galeria.is_archived);
+        return toggleArchiveGaleria(id, !!galeria?.is_archived);
       });
 
       const results = await Promise.all(promises);
-      const successCount = results.filter((r) => r.success).length;
-
-      if (successCount > 0) {
+      if (results.some((r) => r.success)) {
         setGalerias((prev) =>
           prev.map((item) =>
             selectedIds.has(item.id)
@@ -195,112 +161,16 @@ export function useDashboardActions(
               : item,
           ),
         );
-        await revalidateProfile(photographer?.username);
-        setToast({
-          message: `${successCount} galeria(s) ${currentView === 'archived' ? 'desarquivada(s)' : 'arquivada(s)'}`,
-          type: 'success',
-        });
+        // ✅ Revalida apenas uma vez para o lote todo
+        await triggerProfileRevalidation();
+        setToast({ message: `Operação em lote concluída`, type: 'success' });
         setSelectedIds(new Set());
-      } else {
-        setToast({
-          message: 'Erro ao processar arquivamento em lote',
-          type: 'error',
-        });
       }
     } catch {
-      setToast({
-        message: 'Erro ao processar arquivamento em lote',
-        type: 'error',
-      });
+      setToast({ message: 'Erro no processamento em lote', type: 'error' });
     } finally {
       setUpdatingId(null);
     }
-  };
-
-  const handleBulkDelete = async () => {
-    const ids = Array.from(selectedIds);
-    if (ids.length === 0) return;
-
-    setUpdatingId('bulk');
-    try {
-      const promises = ids.map((id) => moveToTrash(id));
-      const results = await Promise.all(promises);
-      const successCount = results.filter((r) => r.success).length;
-
-      if (successCount > 0) {
-        setGalerias((prev) =>
-          prev.map((item) =>
-            selectedIds.has(item.id) ? { ...item, is_deleted: true } : item,
-          ),
-        );
-        await revalidateProfile(photographer?.username);
-        setToast({
-          message: `${successCount} galeria(s) movida(s) para lixeira`,
-          type: 'success',
-        });
-        setSelectedIds(new Set());
-      } else {
-        setToast({ message: 'Erro ao mover para lixeira', type: 'error' });
-      }
-    } catch {
-      setToast({ message: 'Erro ao mover para lixeira', type: 'error' });
-    } finally {
-      setUpdatingId(null);
-    }
-  };
-
-  const handleBulkRestore = async () => {
-    const ids = Array.from(selectedIds);
-    if (ids.length === 0) return;
-
-    setUpdatingId('bulk');
-    try {
-      const promises = ids.map((id) => restoreGaleria(id));
-      const results = await Promise.all(promises);
-      const successCount = results.filter((r) => r.success).length;
-
-      if (successCount > 0) {
-        setGalerias((prev) =>
-          prev.map((item) =>
-            selectedIds.has(item.id)
-              ? { ...item, is_deleted: false, is_archived: false }
-              : item,
-          ),
-        );
-        await revalidateProfile(photographer?.username);
-        setToast({
-          message: `${successCount} galeria(s) restaurada(s)`,
-          type: 'success',
-        });
-        setSelectedIds(new Set());
-      } else {
-        setToast({ message: 'Erro ao restaurar galeria', type: 'error' });
-      }
-    } catch {
-      setToast({ message: 'Erro ao restaurar galeria', type: 'error' });
-    } finally {
-      setUpdatingId(null);
-    }
-  };
-
-  const handleToggleSelect = (id: string) => {
-    setSelectedIds((prev) => {
-      const newSet = new Set(prev);
-      if (newSet.has(id)) {
-        newSet.delete(id);
-      } else {
-        newSet.add(id);
-      }
-      return newSet;
-    });
-  };
-
-  const handleSelectAll = (ids: string[]) => {
-    setSelectedIds(new Set(ids));
-  };
-
-  const handleDeselectAll = () => {
-    setSelectedIds(new Set());
   };
 
   return {
@@ -310,18 +180,52 @@ export function useDashboardActions(
     setIsBulkMode,
     galeriaToPermanentlyDelete,
     setGaleriaToPermanentlyDelete,
-    handleGoogleLogin,
     handleArchiveToggle,
-    handleRestore,
     handleToggleProfile,
-    handleMoveToTrash,
     handleSyncDrive,
     executePermanentDelete,
     handleBulkArchive,
-    handleBulkDelete,
-    handleBulkRestore,
-    handleToggleSelect,
-    handleSelectAll,
-    handleDeselectAll,
+    handleToggleSelect: (id: string) => {
+      setSelectedIds((prev) => {
+        const newSet = new Set(prev);
+        newSet.has(id) ? newSet.delete(id) : newSet.add(id);
+        return newSet;
+      });
+    },
+    handleSelectAll: (ids: string[]) => setSelectedIds(new Set(ids)),
+    handleDeselectAll: () => setSelectedIds(new Set()),
+    handleGoogleLogin: async (force: boolean) => {
+      try {
+        await authService.signInWithGoogle(force);
+      } catch {
+        setToast({ message: 'Erro Google', type: 'error' });
+      }
+    },
+    handleRestore: async (id: string) => {
+      setUpdatingId(id);
+      const res = await restoreGaleria(id);
+      if (res.success) {
+        setGalerias((prev) =>
+          prev.map((g) =>
+            g.id === id ? { ...g, is_deleted: false, is_archived: false } : g,
+          ),
+        );
+        await triggerProfileRevalidation();
+      }
+      setUpdatingId(null);
+    },
+    handleMoveToTrash: async (g: Galeria) => {
+      setUpdatingId(g.id);
+      const res = await moveToTrash(g.id);
+      if (res.success) {
+        setGalerias((prev) =>
+          prev.map((item) =>
+            item.id === g.id ? { ...item, is_deleted: true } : item,
+          ),
+        );
+        await triggerProfileRevalidation();
+      }
+      setUpdatingId(null);
+    },
   };
 }

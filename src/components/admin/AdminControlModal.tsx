@@ -7,7 +7,6 @@ import {
   fullCleanupTokens,
 } from '@/actions/token-cleanup.actions';
 import { Trash2, ShieldAlert, Zap, RefreshCw, Database } from 'lucide-react';
-
 import BaseModal from '@/components/ui/BaseModal';
 
 export default function AdminControlModal({
@@ -28,6 +27,26 @@ export default function AdminControlModal({
 
   if (!isOpen || !mounted) return null;
 
+  const handlePurgeCache = async () => {
+    setIsSyncing(true);
+    try {
+      const result = await purgeAllCache();
+
+      if (result.success) {
+        // Fallback para mensagem caso result.message seja undefined
+        alert(result.message || 'Cache global invalidado com sucesso!');
+        onClose();
+        window.location.reload();
+      } else {
+        alert('Falha ao limpar cache.');
+      }
+    } catch (error) {
+      alert('Erro crítico na requisição de limpeza.');
+    } finally {
+      setIsSyncing(false);
+    }
+  };
+
   const headerIcon = <ShieldAlert size={20} strokeWidth={2.5} />;
 
   const tabs = (
@@ -36,7 +55,7 @@ export default function AdminControlModal({
         onClick={() => setActiveTab('cache')}
         className={`flex-1 py-3 text-[10px] font-bold uppercase tracking-luxury-widest transition-colors ${
           activeTab === 'cache'
-            ? 'text-champagneborder-b-2 border-gold'
+            ? 'text-gold border-b-2 border-gold'
             : 'text-white/60 hover:text-white'
         }`}
       >
@@ -46,7 +65,7 @@ export default function AdminControlModal({
         onClick={() => setActiveTab('tokens')}
         className={`flex-1 py-3 text-[10px] font-bold uppercase tracking-luxury-widest transition-colors ${
           activeTab === 'tokens'
-            ? 'text-champagneborder-b-2 border-gold'
+            ? 'text-gold border-b-2 border-gold'
             : 'text-white/60 hover:text-white'
         }`}
       >
@@ -66,7 +85,6 @@ export default function AdminControlModal({
       maxWidth="md"
     >
       <div className="space-y-4">
-        {/* Cache Tab */}
         {activeTab === 'cache' && (
           <div className="text-center space-y-4">
             <div className="inline-flex p-3 bg-petroleum/5 rounded-full text-champagneborder border-petroleum/10">
@@ -82,18 +100,7 @@ export default function AdminControlModal({
             </div>
 
             <button
-              onClick={async () => {
-                setIsSyncing(true);
-                const result = await purgeAllCache();
-                setIsSyncing(false);
-                if (result.success) {
-                  alert(result.message);
-                  onClose();
-                  window.location.reload();
-                } else {
-                  alert(`Erro: ${result.error || 'Falha ao limpar cache'}`);
-                }
-              }}
+              onClick={handlePurgeCache}
               disabled={isSyncing}
               className={`w-full h-11 rounded-luxury font-bold uppercase tracking-luxury-widest text-[10px] flex items-center justify-center gap-3 transition-all
                 ${
@@ -109,7 +116,6 @@ export default function AdminControlModal({
           </div>
         )}
 
-        {/* Tokens Tab */}
         {activeTab === 'tokens' && (
           <div className="space-y-4">
             <div className="flex justify-center">
@@ -164,7 +170,6 @@ export default function AdminControlModal({
               <button
                 onClick={async () => {
                   if (!confirm('Deseja executar a limpeza completa?')) return;
-
                   setIsCleaningTokens(true);
                   const result = await fullCleanupTokens();
                   setIsCleaningTokens(false);
@@ -196,13 +201,6 @@ export default function AdminControlModal({
                 />
                 {isCleaningTokens ? 'Validando...' : 'Limpeza Completa'}
               </button>
-            </div>
-
-            <div className="pt-3 border-t border-petroleum/10">
-              <p className="text-[8px] text-petroleum/30 text-center leading-relaxed font-bold uppercase tracking-luxury">
-                <strong className="text-petroleum/40">Rápida:</strong> Veloz •{' '}
-                <strong className="text-petroleum/40">Completa:</strong> Lento
-              </p>
             </div>
           </div>
         )}

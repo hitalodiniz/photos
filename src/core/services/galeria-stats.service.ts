@@ -1,7 +1,7 @@
 'use server';
 
 import { createSupabaseClientForCache } from '@/lib/supabase.server';
-import { headers } from 'next/headers';
+import { cookies, headers } from 'next/headers';
 import { createInternalNotification } from './notification.service';
 import { UAParser } from 'ua-parser-js';
 import { subDays, format, eachDayOfInterval } from 'date-fns';
@@ -60,29 +60,44 @@ async function getIPLocation(ip: string) {
 export async function emitGaleriaEvent({
   galeria,
   eventType,
-  visitorId,
+  visitorId: providedVisitorId,
   metadata = {},
 }: GaleriaEventPayload) {
   const supabase = await createSupabaseClientForCache();
   const headerList = await headers();
-  const ua = headerList.get('user-agent') || '';
+  const cookieStore = await cookies();
 
-  // 1. Captura o IP inicial do header
+  // 1. Definição de Visitor ID Persistente
+  // Prioridade: 1. ID fornecido (Lead) | 2. Cookie de Sessão | 3. IP (Fallback)
+  const sessionCookieName = `gsid-${galeria.id}`;
+  const sessionCookie = cookieStore.get(sessionCookieName)?.value;
+
   let ip = headerList.get('x-forwarded-for')?.split(',')[0] || 'unknown';
-
-  // 2. Localização e Tratamento de IP (Local vs Produção)
   const locationData = await getIPLocation(ip);
+  if (locationData?.ip) ip = locationData.ip;
 
-  // 🎯 Se o getIPLocation detectou um IP real em localhost, atualizamos a variável ip
-  if (locationData?.ip) {
-    ip = locationData.ip;
+  // Se for um LEAD, o visitorId vindo do form (ex: email)
+  // deve ser o mesmo usado na VIEW anterior via cookie.
+  const finalVisitorId = providedVisitorId || sessionCookie || ip;
+
+  // 2. Trava de Duplicidade Inteligente
+  // Evita contar múltiplos 'views' do mesmo gsid/ip em menos de 24h
+  if (eventType === 'view') {
+    const timeLimit = new Date(Date.now() - 24 * 60 * 60 * 1000).toISOString();
+    const { data: recent } = await supabase
+      .from('tb_galeria_stats')
+      .select('id')
+      .eq('galeria_id', galeria.id)
+      .eq('event_type', 'view')
+      .eq('visitor_id', finalVisitorId)
+      .gt('created_at', timeLimit)
+      .limit(1);
+
+    if (recent && recent.length > 0) return;
   }
 
-  const locationStr = locationData
-    ? `${locationData.city}, ${locationData.region}`
-    : 'Não rastreado';
-
-  // 3. Device Info
+  // 3. Captura de Device
+  const ua = headerList.get('user-agent') || '';
   const parser = new UAParser(ua);
   const deviceInfo = {
     os: parser.getOS().name || 'Desconhecido',
@@ -90,118 +105,85 @@ export async function emitGaleriaEvent({
     type: parser.getDevice().type || 'desktop',
   };
 
-  const finalMetadata = {
-    ...metadata,
-    location: locationStr,
-  };
-
-  // 🎯 O trackId agora será o IP real (mesmo em localhost) ou o visitorId do Lead
-  const trackId = visitorId || ip;
-
-  // 4. Trava de 1 hora para visualizações repetidas
-  if (eventType === 'view') {
-    const oneHourAgo = new Date(Date.now() - 60 * 60 * 1000).toISOString();
-    const { data: recent } = await supabase
-      .from('tb_galeria_stats')
-      .select('id')
-      .eq('galeria_id', galeria.id)
-      .eq('event_type', 'view')
-      .eq('visitor_id', trackId)
-      .gt('created_at', oneHourAgo)
-      .limit(1);
-
-    if (recent && recent.length > 0) return;
-  }
-
-  // 5. Inserção no Banco de Estatísticas
+  // 4. Gravação com Metadata de Conversão
   const { data: newEvent, error: insertError } = await supabase
     .from('tb_galeria_stats')
     .insert([
       {
         galeria_id: galeria.id,
         event_type: eventType,
-        visitor_id: trackId,
+        visitor_id: finalVisitorId,
         device_info: deviceInfo,
-        metadata: finalMetadata,
+        metadata: {
+          ...metadata,
+          location: locationData
+            ? `${locationData.city}, ${locationData.region}`
+            : 'Não rastreado',
+          session_id: sessionCookie, // Ajuda a agrupar no BI
+        },
       },
     ])
     .select()
     .single();
 
-  if (insertError) {
-    console.error('❌ Erro ao salvar estatística:', insertError.message);
-    return;
-  }
+  if (insertError) return;
 
-  // 6. Lógica de Notificação
+  // 5. Notificações (Otimizado)
+  await handleNotifications(
+    eventType,
+    galeria,
+    newEvent,
+    metadata,
+    locationData,
+  );
+}
+
+// Função auxiliar para limpar o switch do switch
+async function handleNotifications(
+  type: string,
+  galeria: any,
+  event: any,
+  metadata: any,
+  loc: any,
+) {
   const userId = galeria.user_id || galeria.photographer_id;
   if (!userId) return;
 
-  const eventLabels: Record<string, string> = {
-    view: 'Visualização',
-    lead: 'Cadastro de Visitante',
-    download: 'Download de Fotos',
-    share: 'Compartilhamento',
+  const locBadge = loc ? ` em ${loc.city}/${loc.region}` : '';
+  const config: Record<string, any> = {
+    view: {
+      title: `👀 Novo Acesso${locBadge}`,
+      type: 'info',
+      msg: `Galeria "${galeria.title}" visualizada.`,
+    },
+    lead: {
+      title: `👤 Visitante Identificado${locBadge}`,
+      type: 'success',
+      msg: `${metadata.nome || 'Um visitante'} entrou.`,
+    },
+    download: {
+      title: `📥 Download Realizado${locBadge}`,
+      type: 'info',
+      msg: `Fotos baixadas.`,
+    },
+    share: {
+      title: `📤 Compartilhamento${locBadge}`,
+      type: 'info',
+      msg: `Galeria compartilhada.`,
+    },
   };
 
-  // 🎯 Incluímos a localização no título para dar aquele toque de luxo/BI
-  const locationBadge = locationData
-    ? ` em ${locationData.city}/${locationData.region}`
-    : '';
+  const item = config[type];
+  if (!item || (type === 'view' && galeria.leads_enabled)) return;
 
-  const eventDataForBI = {
-    ...newEvent,
-    event_label: eventLabels[eventType],
-    location: locationStr,
-  };
-
-  switch (eventType) {
-    case 'view':
-      if (!galeria.leads_enabled) {
-        await createInternalNotification({
-          userId,
-          title: `👀 Novo Acesso${locationBadge}`,
-          message: `Sua galeria "${galeria.title}" está sendo visualizada agora.`,
-          type: 'info',
-          link: `/dashboard/galerias/${galeria.id}/stats`,
-          eventData: eventDataForBI,
-        });
-      }
-      break;
-
-    case 'lead':
-      await createInternalNotification({
-        userId,
-        title: `👤 Visitante Identificado${locationBadge}`,
-        message: `${metadata.nome || 'Um visitante'} entrou na galeria "${galeria.title}".`,
-        type: 'success',
-        link: `/dashboard/galerias/${galeria.id}/leads`,
-        eventData: eventDataForBI,
-      });
-      break;
-
-    case 'download':
-      await createInternalNotification({
-        userId,
-        title: `📥 Download Realizado${locationBadge}`,
-        message: `Fotos baixadas na galeria "${galeria.title}".`,
-        type: 'info',
-        link: `/dashboard/galerias/${galeria.id}/stats`,
-        eventData: eventDataForBI,
-      });
-      break;
-
-    case 'share':
-      await createInternalNotification({
-        userId,
-        title: `📤 Compartilhamento${locationBadge}`,
-        message: `Fotos compartilhadas na galeria "${galeria.title}".`,
-        type: 'info',
-        link: `/dashboard/galerias/${galeria.id}/stats`,
-        eventData: eventDataForBI,
-      });
-      break;
-  }
+  await createInternalNotification({
+    userId,
+    title: item.title,
+    message: item.msg,
+    type: item.type,
+    link: `/dashboard/galerias/${galeria.id}/stats`,
+    eventData: event,
+  });
 }
 /**
  * 📊 Consolida os dados para a Página de BI

@@ -116,7 +116,7 @@ export default function BaseModal({
               <div className="text-gold scale-90">{headerIcon}</div>
             )}
             <div>
-              <h2 className="text-sm text-white font-bold uppercase -tracking-luxury-normal leading-none">
+              <h2 className="text-sm text-white font-bold uppercase tracking-luxury-wide leading-none">
                 {title}
               </h2>
               {subtitle && (
@@ -153,7 +153,7 @@ export default function BaseModal({
         </div>
 
         {footer && (
-          <div className="bg-petroleum px-6 py-4 border-t border-white/10 shrink-0 text-white">
+          <div className="bg-petroleum px-6 py-2 border-t border-white/10 shrink-0 text-white">
             {footer}
           </div>
         )}

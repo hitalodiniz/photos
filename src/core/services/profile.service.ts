@@ -24,15 +24,10 @@ import {
   uploadProfilePicture,
   uploadBackgroundImages,
 } from '../utils/profile-upload.helper';
-import {
-  revalidateProfileTags,
-  revalidateProfileComplete,
-} from '../utils/profile-revalidation.helper';
-import {
-  revalidateProfile,
-  revalidateUserGalleries,
-} from '@/actions/revalidate.actions';
+
+import { revalidateProfile } from '@/actions/revalidate.actions';
 import { normalizePhoneNumber } from '../utils/masks-helpers';
+import { profile } from 'console';
 
 // =========================================================================
 // 1. LEITURA DE DADOS (READ)
@@ -253,8 +248,9 @@ export async function upsertProfile(formData: FormData, supabaseClient?: any) {
 
   // 6. Revalidação (Não precisa bloquear o retorno se o update foi sucesso)
   // Se o seu ambiente suportar, pode rodar sem await ou usar edge functions
-  await revalidateProfileComplete(supabase, formFields.username!, user.id);
-
+  if (formFields.username) {
+    await revalidateProfile(formFields.username, user.id);
+  }
   return { success: true };
 }
 /**
@@ -269,14 +265,7 @@ export async function updateProfileSettings(data: {
   const {
     data: { user },
   } = await supabase.auth.getUser();
-
   if (!user) return { success: false, error: 'Sessão expirada.' };
-
-  const { data: profile } = await supabase
-    .from('tb_profiles')
-    .select('username')
-    .eq('id', user.id)
-    .single();
 
   const { error } = await supabase
     .from('tb_profiles')
@@ -287,26 +276,21 @@ export async function updateProfileSettings(data: {
     })
     .eq('id', user.id);
 
-  if (error) {
-    console.error('[updateProfileSettings] Erro:', error);
-    return { success: false, error: error.message };
-  }
+  if (error) return { success: false, error: error.message };
 
-  // ✅ USA HELPER: Revalidação centralizada
+  const { data: profile } = await supabase
+    .from('tb_profiles')
+    .select('username')
+    .eq('id', user.id)
+    .single();
+
   if (profile?.username) {
-    revalidateProfileTags(profile.username, user.id);
-  } else {
-    revalidateTag(`profile-private-${user.id}`);
+    // ✅ Centralizado: Limpa perfil público, privado e força layout das galerias
+    await revalidateProfile(profile.username, user.id);
   }
-
-  // Revalida o cache de todas as galerias do usuário
-  await revalidateUserGalleries(user.id);
-
-  revalidatePath('/dashboard/settings');
 
   return { success: true };
 }
-
 export async function signOut() {
   const supabase = await createSupabaseServerClient();
   await supabase.auth.signOut();
@@ -338,13 +322,9 @@ export async function updateSidebarPreference(isCollapsed: boolean) {
 
   if (error) return { success: false, error: error.message };
 
-  // ✅ USA HELPER: Revalidação centralizada
   if (profile?.username) {
-    revalidateProfileTags(profile.username, user.id);
-  } else {
-    revalidateTag(`profile-private-${user.id}`);
+    await revalidateProfile(profile.username, user.id);
   }
-
   return { success: true };
 }
 
@@ -384,7 +364,7 @@ export async function updateCustomCategories(categories: string[]) {
 
   // ✅ USA HELPER: Revalidação centralizada
   if (profile?.username) {
-    revalidateProfileTags(profile.username, user.id);
+    revalidateProfile(profile.username, user.id);
   } else {
     revalidateTag(`profile-private-${user.id}`);
   }
@@ -446,11 +426,20 @@ export async function updatePushSubscriptionAction(subscription: any) {
     })
     .eq('id', user.id);
 
+  const { data: profile } = await supabase
+    .from('tb_profiles')
+    .select('username')
+    .eq('id', user.id)
+    .single();
+
   if (error) {
     console.error('Erro ao salvar assinatura:', error);
     return { success: false, error: 'Falha ao sincronizar notificações' };
   }
-  await revalidateProfile();
+  if (profile?.username) {
+    await revalidateProfile(profile.username, user.id);
+  }
+
   return { success: true };
 }
 
@@ -492,15 +481,11 @@ export async function processSubscriptionAction(
     return { success: false, error: error.message };
   }
 
-  // ✅ USA HELPER: Revalidação centralizada
+  // Ele vai limpar o cache das galerias do usuário, o que é vital
+  // para remover banners de "Upgrade necessário".
   if (profile?.username) {
-    revalidateProfileTags(profile.username, profileId);
-  } else {
-    revalidateTag(`profile-private-${profileId}`);
+    await revalidateProfile(profile.username, profileId);
   }
-
-  // Força o Next.js a re-renderizar componentes de layout (Sidebar, Header)
-  revalidatePath('/dashboard', 'layout');
 
   return { success: true, data };
 }

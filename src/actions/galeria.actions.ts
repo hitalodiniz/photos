@@ -1,34 +1,27 @@
-// src/actions/galeria.actions.ts (ou um service de orquestração)
+'use server';
 
-import { PlanKey, PERMISSIONS_BY_PLAN } from '@/core/config/plans';
-import {
-  getAuthAndStudioIds,
-  getAuthenticatedUser,
-} from '@/core/services/auth-context.service';
+import { PlanKey, PERMISSIONS_BY_PLAN, resolveGalleryLimitByPlan } from '@/core/config/plans';
+import { getAuthenticatedUser } from '@/core/services/auth-context.service';
 import {
   archiveExceedingGalleries,
   purgeOldDeletedGalleries,
 } from '@/core/services/galeria.service';
-import { revalidatePath, revalidateTag } from 'next/cache';
-import { ActionResult } from 'next/dist/server/app-render/types';
+
 import {
-  revalidateUserGalerias,
   revalidateProfile,
+  revalidateGalleryCache,
 } from './revalidate.actions';
 import { createInternalNotification } from '@/core/services/notification.service';
 
-/** 🧠 RESOLVE LIMITE DE GALERIAS */
-export const resolveGalleryLimitByPlan = (planKey?: string): number => {
-  // Busca no mapa de permissões usando a chave do plano (Normalizada para Uppercase)
-  const normalizedKey = (planKey?.toUpperCase() as PlanKey) || 'FREE';
-  const permissions = PERMISSIONS_BY_PLAN[normalizedKey] || PERMISSIONS_BY_PLAN.FREE;
+interface ActionResult {
+  success: boolean;
+  message?: string;
+  error?: string;
+}
 
-  return permissions?.maxGalleries || 1;
-};
 /**
  * 🔄 SINCRONIZAÇÃO DE PLANO:
- * Verifica se a quantidade de galerias ativas respeita o plano atual.
- * Se houver excesso (downgrade), as mais antigas são movidas para o arquivo.
+ * Se houver excesso, as antigas são arquivadas e o cache é renovado.
  */
 export async function syncUserGalleriesAction(
   oldPlanKey?: string,
@@ -40,15 +33,15 @@ export async function syncUserGalleriesAction(
   try {
     const limit = resolveGalleryLimitByPlan(profile.plan_key);
 
-    // Chama o service enviando os dados para o log
     const archivedCount = await archiveExceedingGalleries(userId, limit, {
       oldPlan: oldPlanKey,
       newPlan: profile.plan_key,
     });
 
     if (archivedCount > 0) {
-      await revalidateUserGalerias(userId);
-      if (profile.username) await revalidateProfile(profile.username);
+      // ✅ REVALIDAÇÃO CENTRALIZADA
+      // Atualiza caches de listagem, perfil e rotas afetadas
+      await revalidateProfile(profile.username, userId);
 
       return {
         success: true,
@@ -65,35 +58,41 @@ export async function syncUserGalleriesAction(
 
 /**
  * 🤖 ACTION: Executa a limpeza automática da lixeira.
- * Pode ser agendada para rodar uma vez por dia.
  */
 export async function autoPurgeTrashAction(): Promise<ActionResult> {
   try {
-    const deletedGalleries = await purgeOldDeletedGalleries();
+    const deletedGalleries: any[] = await purgeOldDeletedGalleries();
 
     if (deletedGalleries.length > 0) {
-      // Revalida caches de forma eficiente
-      // Como podem ser múltiplos usuários, limpamos o cache global de tags se necessário
-      // ou iteramos pelos usuários únicos afetados
-      const uniqueUserIds = [
-        ...new Set(deletedGalleries.map((g) => g.user_id)),
-      ];
+      // Mapeia usuários afetados para notificação e revalidação
+      const uniqueUsers: any[] = Array.from(
+        new Map(deletedGalleries.map((g: any) => [g.user_id, g])).values(),
+      );
 
-      for (const userId of uniqueUserIds) {
+      for (const user of uniqueUsers) {
+        // 1. Notifica o usuário
         await createInternalNotification({
-          userId: userId as string,
+          userId: user.user_id,
           title: '🧹 Limpeza de Lixeira',
           message:
             'Galerias antigas foram removidas permanentemente conforme a política de 30 dias.',
           type: 'info',
           link: '/dashboard/lixeira',
         });
-        revalidateTag(`user-galerias-${userId}`);
+
+        // 2. ✅ REVALIDAÇÃO CENTRALIZADA
+        // Usamos revalidateGalleryCache para cada usuário afetado (limpa listagem do admin)
+        await revalidateGalleryCache({
+          galeriaId: user.id, // Correção: user_id -> id
+          userId: user.user_id,
+          // Se tivermos o slug, ele limpa o cache ISR da página também
+          slug: user.slug,
+        });
       }
 
       return {
         success: true,
-        message: `${deletedGalleries.length} galerias antigas foram removidas permanentemente.`,
+        message: `${deletedGalleries.length} galerias removidas permanentemente.`,
       };
     }
 
@@ -103,7 +102,3 @@ export async function autoPurgeTrashAction(): Promise<ActionResult> {
     return { success: false, error: 'Falha na limpeza automática.' };
   }
 }
-// -- Índice para acelerar a busca por galerias deletadas antigas
-// CREATE INDEX IF NOT EXISTS idx_galerias_purge_lookup
-// ON public.tb_galerias (is_deleted, deleted_at)
-// WHERE is_deleted = true;

@@ -39,9 +39,8 @@ import {
   createSupabaseClientForCache,
   createSupabaseServerClientReadOnly,
 } from '@/lib/supabase.server';
-import { PlanKey, PERMISSIONS_BY_PLAN } from '../config/plans';
+import { PlanKey, PERMISSIONS_BY_PLAN, resolveGalleryLimitByPlan } from '../config/plans';
 import {
-  resolveGalleryLimitByPlan,
   syncUserGalleriesAction,
 } from '@/actions/galeria.actions';
 import {
@@ -53,10 +52,7 @@ import {
   checkGalleryLimit,
   checkReactivationLimit,
 } from '../utils/galeria-limit.helper';
-import {
-  getGalleryRevalidationData,
-  revalidateGalleryCache,
-} from '../utils/galeria-revalidation.helper';
+import { revalidateGalleryCache } from '@/actions/revalidate.actions';
 
 // =========================================================================
 // 2. SLUG ÚNICO POR DATA
@@ -203,8 +199,7 @@ export async function createGaleria(
 
     if (error) throw error;
 
-    // 7. REVALIDAÇÃO DE CACHE
-    revalidateGalleryCache({
+    await revalidateGalleryCache({
       galeriaId: insertedData.id,
       slug: insertedData.slug,
       driveFolderId: insertedData.drive_folder_id,
@@ -291,8 +286,7 @@ export async function updateGaleria(
 
     if (error) throw error;
 
-    // 7. REVALIDAÇÃO DE CACHE
-    revalidateGalleryCache({
+    await revalidateGalleryCache({
       galeriaId: id,
       slug: currentGallery.slug,
       driveFolderId: currentGallery.drive_folder_id,
@@ -533,7 +527,12 @@ export async function authenticateGaleriaAccess(
     cookieOptions.domain = undefined;
   } else if (process.env.NEXT_PUBLIC_MAIN_DOMAIN) {
     // O ponto antes do domínio permite que subdomínios acessem o cookie
-    cookieOptions.domain = `.${process.env.NEXT_PUBLIC_MAIN_DOMAIN.replace('https://', '').replace('http://', '')}`;
+    // Use .meudominio.com para que sub.meudominio.com e meudominio.com compartilhem o JWT
+    const domain = process.env.NEXT_PUBLIC_MAIN_DOMAIN.replace(
+      /https?:\/\//,
+      '',
+    ).split(':')[0]; // Remove porta se houver
+    cookieOptions.domain = `.${domain}`;
   }
 
   cookieStore.set(`galeria-${galeriaId}-auth`, token, cookieOptions);
@@ -703,10 +702,15 @@ export async function getPublicProfileGalerias(
         hasMore: count ? to < count - 1 : false,
       };
     },
-    [`profile-galerias-${username}-page-${page}`],
+    [`profile-galerias-${username}-p-${page}`],
     {
       revalidate: GLOBAL_CACHE_REVALIDATE,
-      tags: [`profile-${username}`, `profile-galerias-${username}`],
+      tags: [
+        `profile-${username}`,
+        `profile-galerias-${username}`,
+        // Adicione esta para revalidação via ID do fotógrafo:
+        `user-galerias-${(await getAuthenticatedUser()).userId}`,
+      ],
     },
   )();
 }
@@ -774,10 +778,10 @@ async function updateGaleriaStatus(
 
     if (updateError) throw updateError;
 
-    revalidateGalleryCache({
+    await revalidateGalleryCache({
       galeriaId: id,
-      slug: galleryData.slug,
-      driveFolderId: galleryData.drive_folder_id,
+      slug: data.slug,
+      driveFolderId: data.drive_folder_id,
       userId,
       username: profile.username,
     });
@@ -889,20 +893,13 @@ export async function permanentDelete(id: string) {
 
     if (deleteError) throw deleteError;
 
-    // Revalidation logic
-    if (galeria.slug) {
-      revalidateTag(`gallery-${galeria.slug}`);
-    }
-    if (galeria.drive_folder_id) {
-      revalidateTag(`drive-${galeria.drive_folder_id}`);
-    }
-    revalidateTag(`photos-${id}`);
-    revalidateTag(`user-galerias-${userId}`);
-    if (profile?.username) {
-      revalidateTag(`profile-${profile.username}`);
-      revalidateTag(`profile-galerias-${profile.username}`);
-    }
-    revalidatePath('/dashboard');
+    await revalidateGalleryCache({
+      galeriaId: id,
+      slug: galeria.slug,
+      driveFolderId: galeria.drive_folder_id,
+      userId,
+      username: profile?.username,
+    });
 
     return { success: true, message: 'Galeria excluída permanentemente.' };
   } catch (error: any) {
@@ -1094,7 +1091,7 @@ export async function updateGaleriaTagsAction(
     if (error) throw error;
 
     // 2. Usa os dados do objeto passado para revalidar o cache
-    revalidateGalleryCache({
+    await revalidateGalleryCache({
       galeriaId: galeria.id,
       slug: galeria.slug,
       userId: galeria.user_id,

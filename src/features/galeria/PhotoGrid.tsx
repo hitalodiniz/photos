@@ -445,14 +445,10 @@ export default function PhotoGrid({ photos, galeria }: any) {
     const title = galeria.title;
 
     let shareText: string;
-    const profile = await getProfileByUsername(galeria.photographer?.username);
-    if (profile) {
-      const customTemplate = profile.message_templates?.guest_share;
-      if (customTemplate && customTemplate.trim() !== '') {
-        shareText = formatMessage(customTemplate, galeria, url);
-      } else {
-        shareText = GALLERY_MESSAGES.GUEST_SHARE(title, url);
-      }
+
+    const customTemplate = galeria.photographer?.message_templates?.guest_share;
+    if (customTemplate && customTemplate.trim() !== '') {
+      shareText = formatMessage(customTemplate, galeria, url);
     } else {
       shareText = GALLERY_MESSAGES.GUEST_SHARE(title, url);
     }

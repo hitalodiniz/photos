@@ -12,7 +12,7 @@ import { GLOBAL_CACHE_REVALIDATE } from '../utils/url-helper';
  */
 export const fetchGalleryBySlug = (fullSlug: string) =>
   unstable_cache(
-    async () => {
+    async (slugParam: string) => {
       const supabase = await createSupabaseClientForCache();
       const { data, error } = await supabase
         .from('tb_galerias')
@@ -56,12 +56,14 @@ export const fetchGalleryBySlug = (fullSlug: string) =>
         },
       } as GaleriaRawResponse;
     },
-    [`gallery-data-${fullSlug}`],
+    [`gallery-data-${fullSlug}`], // 🎯 Key (estática ou baseada no param)
     {
       revalidate: GLOBAL_CACHE_REVALIDATE,
+      // 🎯 Use apenas a tag do slug aqui.
+      // A atualização das mensagens será feita pela revalidação do PATH ou via ID no updateProfile.
       tags: [`gallery-${fullSlug}`],
     },
-  )();
+  )(fullSlug); // 🎯 A chamada da função acontece aqui
 
 /**
  * 2. Transforma (Map) os dados brutos

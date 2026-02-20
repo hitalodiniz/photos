@@ -327,6 +327,7 @@ export function NotificationMenu({ userId }: { userId: string }) {
 
       <EventDetailsSheet
         event={selectedEvent}
+        allEvents={notifications}
         onClose={() => setSelectedEvent(null)}
       />
     </div>

@@ -8,15 +8,16 @@ import {
   captureLeadAction,
 } from '@/actions/auth.actions';
 import { Galeria } from '@/core/types/galeria';
+import { getCookie } from '@/core/utils/cookie-helper';
 import {
-  User,
   Mail,
   Smartphone,
   CheckCircle,
   Camera,
   Loader2,
+  User,
 } from 'lucide-react';
-import Link from 'next/link';
+
 import PasswordInput from '@/components/ui/PasswordInput';
 import * as z from 'zod';
 import { getDirectGoogleUrl } from '@/core/utils/url-helper';
@@ -140,10 +141,14 @@ export default function GalleryAccessPortal({
 
     try {
       if (leadsEnabled) {
+        // 🎯 RECUPERA O ID DE SESSÃO DA VIEW (Gerado no GaleriaBasePage/Server)
+        // Isso garante que o BI ligue este "Lead" à "View" que acabou de acontecer.
+        const sessionVisitorId = getCookie(`gsid-${galeria.id}`);
         const leadResult = await captureLeadAction(galeria, {
           nome: formData.name,
           email: formData.email,
           whatsapp: formData.whatsapp.replace(/\D/g, ''),
+          visitorId: sessionVisitorId,
         });
 
         if (!leadResult.success) {

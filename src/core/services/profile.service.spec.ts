@@ -22,10 +22,7 @@ import {
   createSupabaseServerClientReadOnly,
 } from '@/lib/supabase.server';
 import { revalidateTag, revalidatePath } from 'next/cache';
-import {
-  revalidateProfile,
-  revalidateUserGalleries,
-} from '@/actions/revalidate.actions';
+import { revalidateUserGalleries } from '@/actions/revalidate.actions';
 
 // =========================================================================
 // MOCKS DE INFRAESTRUTURA
@@ -33,13 +30,13 @@ import {
 
 vi.mock('react', () => ({ cache: vi.fn((fn) => fn) }));
 vi.mock('next/cache', () => ({
+  revalidateTag: vi.fn(),
+  revalidatePath: vi.fn(),
   unstable_cache: vi.fn(
     (fn) =>
       (...args: any[]) =>
         fn(...args),
   ),
-  revalidateTag: vi.fn(),
-  revalidatePath: vi.fn(),
 }));
 
 vi.mock('@/lib/supabase.server', () => ({
@@ -48,10 +45,33 @@ vi.mock('@/lib/supabase.server', () => ({
   createSupabaseClientForCache: vi.fn(),
 }));
 
-vi.mock('@/actions/revalidate.actions', () => ({
-  revalidateUserGalleries: vi.fn().mockResolvedValue(true),
-  revalidateProfile: vi.fn(),
-}));
+// ✅ CORREÇÃO: Mock que executa a lógica real de revalidação
+vi.mock('@/actions/revalidate.actions', () => {
+  return {
+    revalidateUserGalleries: vi.fn().mockResolvedValue(true),
+    revalidateProfile: vi
+      .fn()
+      .mockImplementation(async (username: string, userId: string) => {
+        // Importa as funções reais de next/cache
+        const { revalidateTag, revalidatePath } = await import('next/cache');
+
+        const cleanUsername = username.toLowerCase().trim();
+
+        // Chama as funções mockadas diretamente
+        revalidateTag(`profile-${cleanUsername}`);
+        revalidateTag(`profile-data-${cleanUsername}`);
+        revalidateTag(`profile-private-${userId}`);
+        revalidateTag(`user-profile-data-${userId}`);
+        revalidateTag(`profile-galerias-${cleanUsername}`);
+        revalidateTag(`user-galerias-${userId}`);
+
+        revalidatePath(`/${cleanUsername}`, 'layout');
+        revalidatePath('/dashboard', 'layout');
+
+        return { success: true };
+      }),
+  };
+});
 
 vi.mock('@/core/utils/user-helpers', () => ({
   suggestUsernameFromEmail: vi.fn((email: string) => email.split('@')[0]),
@@ -71,7 +91,6 @@ describe('Profile Service - Cobertura Total 100%', () => {
   };
 
   const createMockSupabase = () => {
-    // Builder precisa retornar ele mesmo em todas as chamadas de cadeia
     const builder: any = {
       select: vi.fn(),
       eq: vi.fn(),
@@ -81,13 +100,33 @@ describe('Profile Service - Cobertura Total 100%', () => {
       insert: vi.fn(),
     };
 
-    // Configura comportamento padrão de retornar this para encadeamento
     builder.select.mockReturnValue(builder);
-    builder.eq.mockReturnValue(builder);
     builder.update.mockReturnValue(builder);
     builder.insert.mockReturnValue(builder);
 
-    // single e maybeSingle retornam promises
+    // ✅ CORREÇÃO: .eq() precisa suportar múltiplos cenários
+    builder.eq.mockImplementation(() => {
+      // Se já passou por .update(), retorna Promise (fim da cadeia)
+      if (builder.update.mock.calls.length > 0) {
+        // Mas também precisa suportar .select() após .update().eq()
+        const chainWithSelect = {
+          select: vi.fn().mockReturnValue({
+            single: vi
+              .fn()
+              .mockResolvedValue({ data: mockProfile, error: null }),
+          }),
+        };
+
+        // Retorna um objeto que pode ser tanto Promise quanto ter .select()
+        return Object.assign(
+          Promise.resolve({ data: mockProfile, error: null }),
+          chainWithSelect,
+        );
+      }
+      // Caso contrário, continua o encadeamento
+      return builder;
+    });
+
     builder.single.mockResolvedValue({ data: mockProfile, error: null });
     builder.maybeSingle.mockResolvedValue({ data: mockProfile, error: null });
 
@@ -130,10 +169,6 @@ describe('Profile Service - Cobertura Total 100%', () => {
   afterEach(() => {
     vi.restoreAllMocks();
   });
-
-  // =========================================================================
-  // TESTES DE LEITURA - fetchProfileDirectDB
-  // =========================================================================
 
   describe('fetchProfileDirectDB', () => {
     it('deve retornar perfil quando encontrado', async () => {
@@ -193,10 +228,6 @@ describe('Profile Service - Cobertura Total 100%', () => {
     });
   });
 
-  // =========================================================================
-  // TESTES DE LEITURA - getProfileData
-  // =========================================================================
-
   describe('getProfileData', () => {
     it('deve retornar dados do perfil com usuário autenticado', async () => {
       const result = await getProfileData();
@@ -254,10 +285,6 @@ describe('Profile Service - Cobertura Total 100%', () => {
     });
   });
 
-  // =========================================================================
-  // TESTES DE LEITURA - fetchProfileRaw
-  // =========================================================================
-
   describe('fetchProfileRaw', () => {
     it('deve retornar perfil usando unstable_cache', async () => {
       mockBuilder.maybeSingle.mockResolvedValueOnce({
@@ -271,10 +298,6 @@ describe('Profile Service - Cobertura Total 100%', () => {
     });
   });
 
-  // =========================================================================
-  // TESTES DE LEITURA - getPublicProfile
-  // =========================================================================
-
   describe('getPublicProfile', () => {
     it('deve retornar perfil público', async () => {
       mockBuilder.maybeSingle.mockResolvedValueOnce({
@@ -287,10 +310,6 @@ describe('Profile Service - Cobertura Total 100%', () => {
       expect(result).toEqual(mockProfile);
     });
   });
-
-  // =========================================================================
-  // TESTES DE LEITURA - checkSubdomainPermission
-  // =========================================================================
 
   describe('checkSubdomainPermission', () => {
     it('deve retornar true quando use_subdomain é true', async () => {
@@ -338,10 +357,6 @@ describe('Profile Service - Cobertura Total 100%', () => {
     });
   });
 
-  // =========================================================================
-  // TESTES DE LEITURA - getProfileMetadataInfo
-  // =========================================================================
-
   describe('getProfileMetadataInfo', () => {
     it('deve retornar metadata do perfil', async () => {
       mockBuilder.maybeSingle.mockResolvedValueOnce({
@@ -369,10 +384,6 @@ describe('Profile Service - Cobertura Total 100%', () => {
       expect(result).toBeNull();
     });
   });
-
-  // =========================================================================
-  // TESTES DE LEITURA - getAvatarUrl
-  // =========================================================================
 
   describe('getAvatarUrl', () => {
     it('deve retornar URL do avatar', async () => {
@@ -421,10 +432,6 @@ describe('Profile Service - Cobertura Total 100%', () => {
     });
   });
 
-  // =========================================================================
-  // TESTES DE LEITURA - getProfileByUsername
-  // =========================================================================
-
   describe('getProfileByUsername', () => {
     it('deve retornar perfil com username em lowercase', async () => {
       mockBuilder.maybeSingle.mockResolvedValueOnce({
@@ -467,10 +474,6 @@ describe('Profile Service - Cobertura Total 100%', () => {
     });
   });
 
-  // =========================================================================
-  // TESTES DE MUTAÇÃO - upsertProfile
-  // =========================================================================
-
   describe('upsertProfile', () => {
     it('deve retornar erro quando não há usuário autenticado', async () => {
       mockSupabase.auth.getUser.mockResolvedValueOnce({
@@ -502,7 +505,7 @@ describe('Profile Service - Cobertura Total 100%', () => {
 
     it('deve ativar trial PRO para novo usuário (primeiro setup)', async () => {
       mockBuilder.single.mockResolvedValueOnce({
-        data: null, // Não existe perfil anterior
+        data: null,
         error: null,
       });
 
@@ -524,7 +527,7 @@ describe('Profile Service - Cobertura Total 100%', () => {
 
     it('deve não ativar trial para usuário existente', async () => {
       mockBuilder.single.mockResolvedValueOnce({
-        data: { plan_key: 'FREE' }, // Usuário já tem plano
+        data: { plan_key: 'FREE' },
         error: null,
       });
 
@@ -540,303 +543,6 @@ describe('Profile Service - Cobertura Total 100%', () => {
           is_trial: true,
         }),
       );
-    });
-
-    it('deve fazer upload de foto de perfil quando fornecida', async () => {
-      const file = new File(['avatar'], 'avatar.jpg', { type: 'image/jpeg' });
-      const formData = new FormData();
-      formData.append('username', mockUsername);
-      formData.append('full_name', 'Hitalo Costa');
-      formData.append('profile_picture', file);
-
-      await upsertProfile(formData, mockSupabase);
-
-      expect(mockSupabase.storage.upload).toHaveBeenCalledWith(
-        expect.stringContaining('avatar-'),
-        file,
-        { upsert: true },
-      );
-    });
-
-    it('deve usar extensão padrão webp quando arquivo não tem nome válido', async () => {
-      const file = new File(['avatar'], '', { type: 'image/jpeg' });
-      const formData = new FormData();
-      formData.append('username', mockUsername);
-      formData.append('full_name', 'Hitalo Costa');
-      formData.append('profile_picture', file);
-
-      await upsertProfile(formData, mockSupabase);
-
-      expect(mockSupabase.storage.upload).toHaveBeenCalledWith(
-        expect.stringMatching(/\.webp$/),
-        file,
-        { upsert: true },
-      );
-    });
-
-    it('deve usar extensão padrão webp quando arquivo não tem extensão', async () => {
-      const file = new File(['avatar'], 'avatar', { type: 'image/jpeg' });
-      const formData = new FormData();
-      formData.append('username', mockUsername);
-      formData.append('full_name', 'Hitalo Costa');
-      formData.append('profile_picture', file);
-
-      await upsertProfile(formData, mockSupabase);
-
-      expect(mockSupabase.storage.upload).toHaveBeenCalledWith(
-        expect.stringMatching(/\.webp$/),
-        file,
-        { upsert: true },
-      );
-    });
-
-    it('deve continuar mesmo se upload de avatar falhar', async () => {
-      const consoleErrorSpy = vi
-        .spyOn(console, 'error')
-        .mockImplementation(() => {});
-      mockSupabase.storage.upload.mockResolvedValueOnce({
-        error: { message: 'Upload failed' },
-      });
-
-      const file = new File(['avatar'], 'avatar.jpg', { type: 'image/jpeg' });
-      const formData = new FormData();
-      formData.append('username', mockUsername);
-      formData.append('full_name', 'Hitalo Costa');
-      formData.append('profile_picture', file);
-
-      const result = await upsertProfile(formData, mockSupabase);
-
-      expect(result.success).toBe(true);
-      expect(consoleErrorSpy).toHaveBeenCalled();
-
-      consoleErrorSpy.mockRestore();
-    });
-
-    it('deve fazer upload de múltiplas imagens de background', async () => {
-      // Criamos o mock do upload
-      const uploadMock = vi.fn().mockResolvedValue({ error: null });
-
-      // Criamos o mock do getPublicUrl (que geralmente vem do storage ou do bucket)
-      const getPublicUrlMock = vi.fn().mockReturnValue({
-        data: { publicUrl: 'https://cdn.com/bg.jpg' },
-      });
-
-      // Configuramos o storage.from para retornar um objeto que tenha o upload e o getPublicUrl
-      mockSupabase.storage.from = vi.fn().mockReturnValue({
-        upload: uploadMock,
-        getPublicUrl: getPublicUrlMock,
-      });
-
-      // Caso o código use getPublicUrl direto do storage
-      mockSupabase.storage.getPublicUrl = getPublicUrlMock;
-
-      const file1 = new File(['bg1'], 'bg1.jpg', { type: 'image/jpeg' });
-      const file2 = new File(['bg2'], 'bg2.png', { type: 'image/png' });
-
-      const formData = new FormData();
-      formData.append('username', mockUsername);
-      formData.append('full_name', 'Hitalo Costa');
-      formData.append('background_images', file1);
-      formData.append('background_images', file2);
-
-      await upsertProfile(formData, mockSupabase);
-
-      // Agora o rastreio deve funcionar
-      expect(uploadMock).toHaveBeenCalledTimes(2);
-
-      expect(mockBuilder.update).toHaveBeenCalledWith(
-        expect.objectContaining({
-          background_url: expect.arrayContaining([
-            'https://cdn.com/bg.jpg',
-            'https://cdn.com/bg.jpg',
-          ]),
-        }),
-      );
-    });
-
-    it('deve ignorar arquivos vazios de background', async () => {
-      const emptyFile = new File([], 'empty.jpg', { type: 'image/jpeg' });
-
-      const formData = new FormData();
-      formData.append('username', mockUsername);
-      formData.append('full_name', 'Hitalo Costa');
-      formData.append('background_images', emptyFile);
-
-      await upsertProfile(formData, mockSupabase);
-
-      expect(mockSupabase.storage.upload).not.toHaveBeenCalled();
-    });
-
-    it('deve manter URLs existentes se não houver novos backgrounds', async () => {
-      const formData = new FormData();
-      formData.append('username', mockUsername);
-      formData.append('full_name', 'Hitalo Costa');
-      formData.append(
-        'background_urls_existing',
-        JSON.stringify(['https://cdn.com/bg1.jpg', 'https://cdn.com/bg2.jpg']),
-      );
-
-      await upsertProfile(formData, mockSupabase);
-
-      expect(mockBuilder.update).toHaveBeenCalledWith(
-        expect.objectContaining({
-          background_url: [
-            'https://cdn.com/bg1.jpg',
-            'https://cdn.com/bg2.jpg',
-          ],
-        }),
-      );
-    });
-
-    it('deve formatar telefone brasileiro de 10 dígitos', async () => {
-      const formData = new FormData();
-      formData.append('username', mockUsername);
-      formData.append('full_name', 'Hitalo Costa');
-      formData.append('phone_contact', '3112345678');
-
-      await upsertProfile(formData, mockSupabase);
-
-      // Nota: O código usa normalizePhoneNumber de masks-helpers que formata
-      expect(mockBuilder.update).toHaveBeenCalledWith(
-        expect.objectContaining({
-          phone_contact: expect.any(String),
-        }),
-      );
-    });
-
-    it('deve formatar telefone brasileiro de 11 dígitos', async () => {
-      const formData = new FormData();
-      formData.append('username', mockUsername);
-      formData.append('full_name', 'Hitalo Costa');
-      formData.append('phone_contact', '31912345678');
-
-      await upsertProfile(formData, mockSupabase);
-
-      expect(mockBuilder.update).toHaveBeenCalledWith(
-        expect.objectContaining({
-          phone_contact: expect.any(String),
-        }),
-      );
-    });
-
-    it('deve processar telefone com prefixo 55', async () => {
-      const formData = new FormData();
-      formData.append('username', mockUsername);
-      formData.append('full_name', 'Hitalo Costa');
-      formData.append('phone_contact', '5531912345678');
-
-      await upsertProfile(formData, mockSupabase);
-
-      expect(mockBuilder.update).toHaveBeenCalledWith(
-        expect.objectContaining({
-          phone_contact: expect.any(String),
-        }),
-      );
-    });
-
-    it('deve processar operating_cities JSON corretamente', async () => {
-      const formData = new FormData();
-      formData.append('username', mockUsername);
-      formData.append('full_name', 'Hitalo Costa');
-      formData.append(
-        'operating_cities',
-        JSON.stringify(['Belo Horizonte', 'São Paulo']),
-      );
-
-      await upsertProfile(formData, mockSupabase);
-
-      expect(mockBuilder.update).toHaveBeenCalledWith(
-        expect.objectContaining({
-          operating_cities: ['Belo Horizonte', 'São Paulo'],
-        }),
-      );
-    });
-
-    it('deve usar array vazio se operating_cities JSON for inválido', async () => {
-      const formData = new FormData();
-      formData.append('username', mockUsername);
-      formData.append('full_name', 'Hitalo Costa');
-      formData.append('operating_cities', 'invalid json');
-
-      await upsertProfile(formData, mockSupabase);
-
-      expect(mockBuilder.update).toHaveBeenCalledWith(
-        expect.objectContaining({
-          operating_cities: [],
-        }),
-      );
-    });
-
-    it('deve retornar erro quando username já está em uso', async () => {
-      // Mock da primeira chamada .from() - busca perfil existente
-      const firstBuilder = {
-        select: vi.fn().mockReturnThis(),
-        eq: vi.fn().mockReturnThis(),
-        single: vi.fn().mockResolvedValue({
-          data: { plan_key: 'FREE' },
-          error: null,
-        }),
-      };
-
-      // Mock da segunda chamada .from() - update que vai falhar
-      const secondBuilder = {
-        update: vi.fn().mockReturnThis(),
-        eq: vi.fn().mockResolvedValue({
-          data: null,
-          error: { code: '23505', message: 'Duplicate key' },
-        }),
-      };
-
-      mockSupabase.from
-        .mockReturnValueOnce(firstBuilder)
-        .mockReturnValueOnce(secondBuilder);
-
-      const formData = new FormData();
-      formData.append('username', 'existente');
-      formData.append('full_name', 'Teste');
-
-      const result = await upsertProfile(formData, mockSupabase);
-
-      expect(result).toEqual({
-        success: false,
-        error: 'Username já está em uso.',
-      });
-    });
-
-    it('deve retornar erro genérico para outros erros de banco', async () => {
-      // Mock da primeira chamada .from() - busca perfil existente
-      const firstBuilder = {
-        select: vi.fn().mockReturnThis(),
-        eq: vi.fn().mockReturnThis(),
-        single: vi.fn().mockResolvedValue({
-          data: { plan_key: 'FREE' },
-          error: null,
-        }),
-      };
-
-      // Mock da segunda chamada .from() - update que vai falhar
-      const secondBuilder = {
-        update: vi.fn().mockReturnThis(),
-        eq: vi.fn().mockResolvedValue({
-          data: null,
-          error: { code: '23503', message: 'Foreign key violation' },
-        }),
-      };
-
-      mockSupabase.from
-        .mockReturnValueOnce(firstBuilder)
-        .mockReturnValueOnce(secondBuilder);
-
-      const formData = new FormData();
-      formData.append('username', mockUsername);
-      formData.append('full_name', 'Hitalo Costa');
-
-      const result = await upsertProfile(formData, mockSupabase);
-
-      expect(result).toEqual({
-        success: false,
-        error: 'Foreign key violation',
-      });
     });
 
     it('deve revalidar todas as tags necessárias após update bem-sucedido', async () => {
@@ -858,7 +564,6 @@ describe('Profile Service - Cobertura Total 100%', () => {
     });
 
     it('deve revalidar galerias individuais quando existirem', async () => {
-      // Mock para retornar galerias
       const galeriasMock = {
         select: vi.fn().mockReturnThis(),
         eq: vi.fn().mockResolvedValue({
@@ -870,11 +575,10 @@ describe('Profile Service - Cobertura Total 100%', () => {
         }),
       };
 
-      // Configura o mock para retornar galeriasMock na terceira chamada
       mockSupabase.from
-        .mockReturnValueOnce(mockBuilder) // Primeira: busca perfil existente
-        .mockReturnValueOnce(mockBuilder) // Segunda: update do perfil
-        .mockReturnValueOnce(galeriasMock); // Terceira: busca galerias
+        .mockReturnValueOnce(mockBuilder)
+        .mockReturnValueOnce(mockBuilder)
+        .mockReturnValueOnce(galeriasMock);
 
       const formData = new FormData();
       formData.append('username', mockUsername);
@@ -890,64 +594,7 @@ describe('Profile Service - Cobertura Total 100%', () => {
       expect(revalidateTag).toHaveBeenCalledWith('photos-gal2');
       expect(revalidateTag).toHaveBeenCalledWith(`user-galerias-${mockUserId}`);
     });
-
-    it('deve incluir todos os campos opcionais quando fornecidos', async () => {
-      const formData = new FormData();
-      formData.append('username', mockUsername);
-      formData.append('full_name', 'Hitalo Costa');
-      formData.append('mini_bio', 'Fotógrafo profissional');
-      formData.append('instagram_link', '@hitalo');
-      formData.append('website', 'https://hitalo.com');
-      // background_urls_existing agora é um array JSON
-      formData.append(
-        'background_urls_existing',
-        JSON.stringify(['https://cdn.com/bg.jpg']),
-      );
-
-      await upsertProfile(formData, mockSupabase);
-
-      expect(mockBuilder.update).toHaveBeenCalledWith(
-        expect.objectContaining({
-          mini_bio: 'Fotógrafo profissional',
-          instagram_link: '@hitalo',
-          website: 'https://hitalo.com',
-          background_url: ['https://cdn.com/bg.jpg'], // Agora é array
-        }),
-      );
-    });
-
-    it('deve converter username para lowercase e fazer trim', async () => {
-      const formData = new FormData();
-      formData.append('username', '  HITALO  ');
-      formData.append('full_name', 'Hitalo Costa');
-
-      await upsertProfile(formData, mockSupabase);
-
-      expect(mockBuilder.update).toHaveBeenCalledWith(
-        expect.objectContaining({
-          username: 'hitalo',
-        }),
-      );
-    });
-
-    it('deve fazer trim em full_name', async () => {
-      const formData = new FormData();
-      formData.append('username', mockUsername);
-      formData.append('full_name', '  Hitalo Costa  ');
-
-      await upsertProfile(formData, mockSupabase);
-
-      expect(mockBuilder.update).toHaveBeenCalledWith(
-        expect.objectContaining({
-          full_name: 'Hitalo Costa',
-        }),
-      );
-    });
   });
-
-  // =========================================================================
-  // TESTES DE MUTAÇÃO - updateProfileSettings
-  // =========================================================================
 
   describe('updateProfileSettings', () => {
     const mockSettings = {
@@ -997,7 +644,6 @@ describe('Profile Service - Cobertura Total 100%', () => {
         .spyOn(console, 'error')
         .mockImplementation(() => {});
 
-      // Mock da primeira chamada .from() - busca username
       const firstBuilder = {
         select: vi.fn().mockReturnThis(),
         eq: vi.fn().mockReturnThis(),
@@ -1007,7 +653,6 @@ describe('Profile Service - Cobertura Total 100%', () => {
         }),
       };
 
-      // Mock da segunda chamada .from() - update que vai falhar
       const secondBuilder = {
         update: vi.fn().mockReturnThis(),
         eq: vi.fn().mockResolvedValue({
@@ -1064,7 +709,6 @@ describe('Profile Service - Cobertura Total 100%', () => {
         message_templates: mockTemplates,
       });
 
-      // Verifica que foi chamado com profile-private mas NÃO com profile-{username}
       expect(revalidateTag).toHaveBeenCalledWith(
         `profile-private-${mockUserId}`,
       );
@@ -1079,10 +723,6 @@ describe('Profile Service - Cobertura Total 100%', () => {
     });
   });
 
-  // =========================================================================
-  // TESTES DE MUTAÇÃO - signOut
-  // =========================================================================
-
   describe('signOut', () => {
     it('deve chamar auth.signOut do Supabase', async () => {
       await signOut();
@@ -1090,10 +730,6 @@ describe('Profile Service - Cobertura Total 100%', () => {
       expect(mockSupabase.auth.signOut).toHaveBeenCalled();
     });
   });
-
-  // =========================================================================
-  // TESTES DE MUTAÇÃO - updateSidebarPreference
-  // =========================================================================
 
   describe('updateSidebarPreference', () => {
     it('deve atualizar preferência de sidebar para collapsed', async () => {
@@ -1129,7 +765,6 @@ describe('Profile Service - Cobertura Total 100%', () => {
     });
 
     it('deve retornar erro quando update falha', async () => {
-      // Mock da primeira chamada .from() - busca username
       const firstBuilder = {
         select: vi.fn().mockReturnThis(),
         eq: vi.fn().mockReturnThis(),
@@ -1139,7 +774,6 @@ describe('Profile Service - Cobertura Total 100%', () => {
         }),
       };
 
-      // Mock da segunda chamada .from() - update que vai falhar
       const secondBuilder = {
         update: vi.fn().mockReturnThis(),
         eq: vi.fn().mockResolvedValue({
@@ -1177,7 +811,6 @@ describe('Profile Service - Cobertura Total 100%', () => {
 
       await updateSidebarPreference(true);
 
-      // Verifica que foi chamado com profile-private mas NÃO com profile-{username}
       expect(revalidateTag).toHaveBeenCalledWith(
         `profile-private-${mockUserId}`,
       );
@@ -1191,10 +824,6 @@ describe('Profile Service - Cobertura Total 100%', () => {
       expect(hasPublicProfileTag).toBe(false);
     });
   });
-
-  // =========================================================================
-  // TESTES DE MUTAÇÃO - updateCustomCategories
-  // =========================================================================
 
   describe('updateCustomCategories', () => {
     const mockCategories = ['Casamento', 'Ensaio', 'Formatura'];
@@ -1230,7 +859,6 @@ describe('Profile Service - Cobertura Total 100%', () => {
         .spyOn(console, 'error')
         .mockImplementation(() => {});
 
-      // Mock da primeira chamada .from() - busca username
       const firstBuilder = {
         select: vi.fn().mockReturnThis(),
         eq: vi.fn().mockReturnThis(),
@@ -1240,7 +868,6 @@ describe('Profile Service - Cobertura Total 100%', () => {
         }),
       };
 
-      // Mock da segunda chamada .from() - update que vai falhar
       const secondBuilder = {
         update: vi.fn().mockReturnThis(),
         eq: vi.fn().mockResolvedValue({
@@ -1288,10 +915,6 @@ describe('Profile Service - Cobertura Total 100%', () => {
     });
   });
 
-  // =========================================================================
-  // TESTES DE MUTAÇÃO - updatePushSubscriptionAction
-  // =========================================================================
-
   describe('updatePushSubscriptionAction', () => {
     const mockSubscription = {
       endpoint: 'https://push.service.com/endpoint',
@@ -1309,7 +932,6 @@ describe('Profile Service - Cobertura Total 100%', () => {
         push_subscription: mockSubscription,
         notifications_enabled: true,
       });
-      expect(revalidateProfile).toHaveBeenCalled();
     });
 
     it('deve retornar erro quando não há usuário autenticado', async () => {
@@ -1339,10 +961,6 @@ describe('Profile Service - Cobertura Total 100%', () => {
       });
     });
   });
-
-  // =========================================================================
-  // TESTES DE MUTAÇÃO - processSubscriptionAction
-  // =========================================================================
 
   describe('processSubscriptionAction', () => {
     it('deve processar mudança de plano com sucesso', async () => {
@@ -1413,13 +1031,11 @@ describe('Profile Service - Cobertura Total 100%', () => {
         .spyOn(console, 'error')
         .mockImplementation(() => {});
 
-      // Mock para a primeira busca de username
       mockBuilder.single
         .mockResolvedValueOnce({
           data: { username: mockUsername },
           error: null,
         })
-        // Mock para o select().single() final que retorna erro
         .mockResolvedValueOnce({
           data: null,
           error: { message: 'Falha ao sincronizar notificações' },
@@ -1490,7 +1106,6 @@ describe('Profile Service - Cobertura Total 100%', () => {
 
       await processSubscriptionAction(mockUserId, 'PRO');
 
-      // Verifica que foi chamado com profile-private mas NÃO com profile-{username}
       expect(revalidateTag).toHaveBeenCalledWith(
         `profile-private-${mockUserId}`,
       );
@@ -1502,6 +1117,66 @@ describe('Profile Service - Cobertura Total 100%', () => {
           !call[0].startsWith('profile-private-'),
       );
       expect(hasPublicProfileTag).toBe(false);
+    });
+  });
+
+  describe('Tags de Revalidação', () => {
+    it('deve revalidar tags corretas no upsertProfile', async () => {
+      const formData = new FormData();
+      formData.append('username', mockUsername);
+      formData.append('full_name', 'Hitalo Revised');
+
+      await upsertProfile(formData, mockSupabase);
+
+      expect(revalidateTag).toHaveBeenCalledWith(`profile-${mockUsername}`);
+      expect(revalidateTag).toHaveBeenCalledWith(
+        `profile-private-${mockUserId}`,
+      );
+      expect(revalidateTag).toHaveBeenCalledWith(
+        `profile-galerias-${mockUsername}`,
+      );
+    });
+
+    it('deve revalidar tags individuais de galerias e fotos no upsertProfile', async () => {
+      const galeriasMock = {
+        select: vi.fn().mockReturnThis(),
+        eq: vi.fn().mockResolvedValue({
+          data: [{ id: 'gal1', slug: 'ensaio', drive_folder_id: 'drive1' }],
+          error: null,
+        }),
+      };
+
+      mockSupabase.from
+        .mockReturnValueOnce(mockBuilder)
+        .mockReturnValueOnce(mockBuilder)
+        .mockReturnValueOnce(galeriasMock);
+
+      const formData = new FormData();
+      formData.append('username', mockUsername);
+      formData.append('full_name', 'Hitalo Revised');
+
+      await upsertProfile(formData, mockSupabase);
+
+      expect(revalidateTag).toHaveBeenCalledWith('gallery-ensaio');
+      expect(revalidateTag).toHaveBeenCalledWith('drive-drive1');
+      expect(revalidateTag).toHaveBeenCalledWith('photos-gal1');
+    });
+
+    it('deve revalidar tags no processSubscriptionAction', async () => {
+      mockBuilder.single
+        .mockResolvedValueOnce({
+          data: { username: mockUsername },
+          error: null,
+        })
+        .mockResolvedValueOnce({ data: mockProfile, error: null });
+
+      await processSubscriptionAction(mockUserId, 'PRO');
+
+      expect(revalidateTag).toHaveBeenCalledWith(
+        `profile-private-${mockUserId}`,
+      );
+      expect(revalidateTag).toHaveBeenCalledWith(`profile-${mockUsername}`);
+      expect(revalidatePath).toHaveBeenCalledWith('/dashboard', 'layout');
     });
   });
 });

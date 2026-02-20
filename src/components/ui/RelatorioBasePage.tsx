@@ -63,15 +63,15 @@ export function RelatorioSelectedGallery({
 
   return (
     <div className={`flex flex-col min-w-0 ${className}`}>
-      <span className="text-[10px] font-bold uppercase tracking-wider text-gold/80 mb-0.5">
+      <span className="text-[10px] font-semibold uppercase tracking-wider text-gold/80 mb-0.5">
         Galeria selecionada
       </span>
-      <h2 className="text-[15px] font-bold text-petroleum truncate leading-tight">
+      <h2 className="text-[15px] font-semibold uppercase text-petroleum truncate leading-tight">
         <a
           href={publicUrl}
           target="_blank"
           rel="noopener noreferrer"
-          className="hover:text-gold transition-colors inline-flex items-center gap-2"
+          className="hover:text-petroleum/80 transition-colors inline-flex items-center gap-2"
         >
           {galeria?.title}
           <ExternalLink size={14} className="opacity-50 shrink-0" />

@@ -12,7 +12,12 @@ import { Galeria } from '@/core/types/galeria';
  */
 export async function captureLeadAction(
   galeria: Galeria,
-  data: { nome: string; email?: string | null; whatsapp?: string | null },
+  data: {
+    nome: string;
+    email?: string | null;
+    whatsapp?: string | null;
+    visitorId?: string | null;
+  },
 ) {
   try {
     // 1. Limpeza e padronização dos dados (Garante prefixo 55 para WhatsApp do Brasil)
@@ -55,16 +60,21 @@ export async function captureLeadAction(
       // Trate o erro conforme sua lógica
     }
 
-    // 2. Agora você tem o ID para o seu Maestro
-    const leadId = newLead?.id;
+    // 4. 🎯 EMISSÃO DO EVENTO DE CONVERSÃO (LEAD)
+    // Usamos o visitor_id da VIEW anterior para que o BI entenda que é o mesmo usuário
+    // Se não houver, usamos o email ou o novo leadId como fallback
+    const trackId = data.visitorId || data.email || newLead?.id;
 
     // 3. Emite o evento usando o ID capturado
     await emitGaleriaEvent({
       galeria: galeria,
       eventType: 'lead',
-      visitorId: leadId,
+      visitorId: trackId,
       metadata: {
         nome: data.nome,
+        email: data.email,
+        whatsapp: data.whatsapp,
+        is_conversion: !!data.visitorId, // Flag técnica para facilitar queries de BI
       },
     });
 

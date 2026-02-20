@@ -19,10 +19,7 @@ import PhotographerProfileBase from '@/components/profile/ProfileBase';
 import { PlanProvider } from '@/core/context/PlanContext';
 import { PlanKey } from '@/core/config/plans';
 import WhatsAppIcon from '@/components/ui/WhatsAppIcon';
-import {
-  emitGaleriaEvent,
-  trackGaleriaEvent,
-} from '@/core/services/galeria-stats.service';
+import { emitGaleriaEvent } from '@/core/services/galeria-stats.service';
 import { Galeria } from '@/core/types/galeria';
 
 const MAIN_DOMAIN = (
@@ -56,15 +53,6 @@ export default async function GaleriaBasePage({
 
   const galeriaRaw = await fetchGalleryBySlug(fullSlug);
   if (!galeriaRaw) notFound();
-
-  // 🎯 REGISTRO DE ACESSO (Server Side)
-  // Como este é o componente de página, ele roda a cada acesso.
-  // A função trackGaleriaEvent já tem a lógica de 1 hora para evitar duplicidade.
-  emitGaleriaEvent({
-    galeria: galeriaRaw as unknown as Galeria,
-    eventType: 'view',
-    metadata: { context: isSubdomainContext ? 'subdomain' : 'main' },
-  });
 
   // LÓGICA DE REDIRECIONAMENTO INTELIGENTE
   const hasSubdomain = !!galeriaRaw.photographer?.use_subdomain;
@@ -170,6 +158,30 @@ export default async function GaleriaBasePage({
 
   // 🎯 LÓGICA DE ACESSO PROTEGIDO (Servidor)
   const cookieStore = await cookies();
+  const sessionCookieName = `view-sid-${galeriaData.id}`;
+  let sessionId = cookieStore.get(sessionCookieName)?.value;
+  let isNewSession = false;
+
+  if (!sessionId) {
+    sessionId = crypto.randomUUID();
+    isNewSession = true;
+    // Opcional: Você não consegue 'setar' cookie aqui diretamente no Server Component
+    // de forma fácil sem usar Middleware ou Action, mas podemos passar a flag para o emitGaleriaEvent
+  }
+
+  // 🎯 REGISTRO DE ACESSO (Server Side)
+  // Só disparamos o evento se não houver um processamento recente detectado pelo serviço
+  // ou se for explicitamente uma nova sessão de cookie.
+  emitGaleriaEvent({
+    galeria: galeriaRaw as unknown as Galeria,
+    eventType: 'view',
+    metadata: {
+      context: isSubdomainContext ? 'subdomain' : 'main',
+      sessionId: sessionId, // Passamos o ID para o banco fazer o "Upsert" ou Ignore
+      isNewSession: isNewSession,
+    },
+  });
+
   const needsPassword = !galeriaData.is_public;
   const needsLead = galeriaData.leads_enabled;
 

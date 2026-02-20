@@ -113,7 +113,6 @@ vi.mock('@/core/utils/galeria-revalidation.helper', () => ({
 // 12. galeria.actions — syncUserGalleriesAction é chamado após restaurar/desarquivar
 vi.mock('@/actions/galeria.actions', () => ({
   syncUserGalleriesAction: vi.fn().mockResolvedValue({ success: true }),
-  resolveGalleryLimitByPlan: vi.fn().mockResolvedValue(10),
 }));
 
 // =========================================================================

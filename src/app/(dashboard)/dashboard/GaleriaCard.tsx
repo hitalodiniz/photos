@@ -40,8 +40,6 @@ import { usePlan } from '@/core/context/PlanContext';
 import UpgradeModal from '@/components/ui/UpgradeModal';
 import React from 'react';
 import { executeShare } from '@/core/utils/share-helper';
-import StatsModal from './StatsModal';
-import { getGaleriaStatsAction } from '@/actions/galeria-stats.actions';
 
 interface GaleriaCardProps {
   galeria: Galeria;
