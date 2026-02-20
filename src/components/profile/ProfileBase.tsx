@@ -34,7 +34,7 @@ export default async function PhotographerProfileBase({
     }
     // Se está tudo certo, renderiza o container que você já tem
     return (
-      <PlanProvider>
+      <PlanProvider profile={profile}>
         <PhotographerContainer username={username} initialProfile={profile} />
       </PlanProvider>
     );
@@ -55,14 +55,14 @@ export default async function PhotographerProfileBase({
     }
     // Se ele NÃO tem subdomínio, ele pode usar a rota clássica normalmente
     return (
-      <PlanProvider>
+      <PlanProvider profile={profile}>
         <PhotographerContainer username={username} initialProfile={profile} />
       </PlanProvider>
     );
   }
 
   return (
-    <PlanProvider>
+    <PlanProvider profile={profile}>
       <PhotographerContainer username={username} initialProfile={profile} />
     </PlanProvider>
   );

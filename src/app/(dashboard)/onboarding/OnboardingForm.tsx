@@ -18,6 +18,7 @@ import {
   Sparkles,
   Save,
   ShieldCheck,
+  Loader2,
 } from 'lucide-react';
 
 import {
@@ -29,6 +30,10 @@ import ProfilePreview from './ProfilePreview';
 import { Toast, SubmitButton } from '@/components/ui';
 import BaseModal from '@/components/ui/BaseModal';
 import { fetchStates, fetchCitiesByState } from '@/core/utils/cidades-helpers';
+import {
+  getFileExtension,
+  generateFilePath,
+} from '@/core/utils/profile-helpers';
 import { compressImage } from '@/core/utils/user-helpers';
 import { useNavigation } from '@/components/providers/NavigationProvider';
 import { usePlan } from '@/core/context/PlanContext';
@@ -36,7 +41,7 @@ import { PlanGuard } from '@/components/auth/PlanGuard';
 import { PrivacyPolicyModal } from '@/app/(public)/privacidade/PrivacidadeContent';
 import { TermsOfServiceModal } from '@/app/(public)/termos/TermosContent';
 import SpecialtySelect from '@/features/galeria/SpecialtySelect';
-
+import { supabase } from '@/lib/supabase.client';
 /**
  * 🎯 Componente de seção - Estilo Editorial
  */
@@ -59,6 +64,72 @@ const FormSection = ({
     <div className="pl-0">{children}</div>
   </div>
 );
+
+/**
+ * Preview de imagem do Supabase Storage
+ * Segue o mesmo padrão visual do GoogleDriveImagePreview:
+ * loading spinner, estado de erro, transição suave.
+ */
+function SupabaseImagePreview({
+  url,
+  className = 'w-full h-full object-cover',
+}: {
+  url: string;
+  className?: string;
+}) {
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState(false);
+
+  useEffect(() => {
+    if (url) {
+      setLoading(true);
+      setError(false);
+    }
+  }, [url]);
+
+  if (!url) {
+    return (
+      <div
+        className={`bg-slate-100 flex items-center justify-center ${className}`}
+      >
+        <ImageIcon size={16} className="text-slate-300" />
+      </div>
+    );
+  }
+
+  return (
+    <div
+      className={`relative bg-slate-100 flex items-center justify-center overflow-hidden ${className}`}
+    >
+      {loading && !error && (
+        <div className="absolute inset-0 flex items-center justify-center bg-slate-50 z-10">
+          <Loader2 size={16} className="text-gold animate-spin" />
+        </div>
+      )}
+
+      {error ? (
+        <div className="flex flex-col items-center justify-center text-slate-400 p-2 text-center">
+          <ImageIcon size={16} strokeWidth={1.5} />
+          <span className="text-[7px] font-bold uppercase mt-1 leading-tight">
+            Erro ao carregar
+          </span>
+        </div>
+      ) : (
+        <img
+          src={url}
+          alt="Preview"
+          className={`${className} ${loading ? 'opacity-0' : 'opacity-100'} transition-opacity duration-300`}
+          onLoad={() => setLoading(false)}
+          onError={() => {
+            setError(true);
+            setLoading(false);
+          }}
+          loading="lazy"
+        />
+      )}
+    </div>
+  );
+}
 
 export default function OnboardingForm({
   initialData,
@@ -102,9 +173,21 @@ export default function OnboardingForm({
     initialData?.operating_cities || [],
   );
 
-  const [specialty, setSpecialty] = useState(initialData?.specialty || '');
+  const [specialties, setSpecialties] = useState<string[]>(() => {
+    const raw = initialData?.specialty;
+    if (!raw) return [];
+    if (Array.isArray(raw)) return raw;
+    try {
+      const parsed = JSON.parse(raw);
+      return Array.isArray(parsed) ? parsed : [raw];
+    } catch {
+      return [raw];
+    }
+  });
   const [customSpecialties, setCustomSpecialties] = useState<string[]>(
-    initialData?.custom_specialties || [],
+    Array.isArray(initialData?.custom_specialties)
+      ? initialData.custom_specialties
+      : [],
   );
 
   const hasAcceptedBefore = !!initialData?.accepted_terms;
@@ -234,7 +317,7 @@ export default function OnboardingForm({
     formData.set('website', website);
     formData.set('operating_cities', JSON.stringify(selectedCities));
     formData.set('accepted_terms', 'true');
-    formData.set('specialty', specialty);
+    formData.set('specialty', JSON.stringify(specialties));
     formData.set('custom_specialties', JSON.stringify(customSpecialties));
 
     // Envia quais URLs existentes devem ser mantidas (filtramos blobs locais)
@@ -281,6 +364,73 @@ export default function OnboardingForm({
     }
   };
 
+  const handlePhotoUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+
+    if (file.size > 2 * 1024 * 1024) {
+      setToastConfig({
+        message: 'A foto deve ter no máximo 2MB.',
+        type: 'error',
+      });
+      return;
+    }
+
+    const localUrl = URL.createObjectURL(file);
+    setPhotoPreview(localUrl);
+    setPhotoFile(file);
+
+    try {
+      const { data: { user } } = await supabase.auth.getUser();
+      const userId = initialData?.id ?? user?.id;
+      if (!userId) {
+        setToastConfig({
+          message: 'Sessão inválida. Faça login novamente.',
+          type: 'error',
+        });
+        return;
+      }
+
+      const bucket = 'profile_pictures';
+      const extension = getFileExtension(file.name);
+      const filePath = generateFilePath(userId, 'avatar', extension);
+
+      // 1. Listar e remover apenas arquivos avatar antigos (igual profile-upload.helper)
+      const { data: existingFiles } = await supabase.storage
+        .from(bucket)
+        .list(userId);
+
+      if (existingFiles?.length > 0) {
+        const toDelete = existingFiles
+          .filter((f: { name: string }) => f.name.startsWith('avatar'))
+          .map((f: { name: string }) => `${userId}/${f.name}`);
+        if (toDelete.length > 0) {
+          await supabase.storage.from(bucket).remove(toDelete);
+        }
+      }
+
+      // 2. Upload do novo arquivo
+      const { error: uploadError } = await supabase.storage
+        .from(bucket)
+        .upload(filePath, file, { upsert: true, cacheControl: '3600' });
+
+      if (uploadError) throw uploadError;
+
+      // 3. URL pública para o form
+      const { data: { publicUrl } } = supabase.storage
+        .from(bucket)
+        .getPublicUrl(filePath);
+
+      setPhotoPreview(publicUrl);
+    } catch (err) {
+      console.error('Erro no Storage:', err);
+      setToastConfig({
+        message: 'Erro ao processar imagem no servidor.',
+        type: 'error',
+      });
+    }
+  };
+
   return (
     <>
       <div className="relative min-h-screen bg-luxury-bg flex flex-col md:flex-row w-full z-[99]">
@@ -320,44 +470,52 @@ export default function OnboardingForm({
                         ref={fileInputRef}
                         className="hidden"
                         accept="image/*"
-                        onChange={(e) => {
-                          const file = e.target.files?.[0];
-                          if (file && file.size <= 2 * 1024 * 1024) {
-                            setPhotoFile(file);
-                            setPhotoPreview(URL.createObjectURL(file));
-                          } else if (file) {
-                            setToastConfig({
-                              message: 'A foto deve ter no máximo 2MB.',
-                              type: 'error',
-                            });
-                          }
-                        }}
+                        onChange={handlePhotoUpload}
                       />
+
                       <div
                         onClick={() => fileInputRef.current?.click()}
-                        className="relative w-20 h-20 rounded-full p-[2px] bg-gradient-to-tr from-gold to-champagne shadow-xl cursor-pointer transition-all hover:scale-105 active:scale-95"
+                        className="relative w-24 h-24 rounded-full p-[3px] bg-gradient-to-tr from-gold/50 to-champagne shadow-2xl cursor-pointer transition-all hover:scale-105 active:scale-95 overflow-hidden group"
                       >
                         <div className="w-full h-full rounded-full overflow-hidden bg-white p-1">
                           <div className="w-full h-full rounded-full overflow-hidden bg-slate-50 flex items-center justify-center relative">
                             {photoPreview ? (
-                              <img
-                                src={photoPreview}
-                                className="w-full h-full object-cover"
-                                alt="Avatar"
-                              />
+                              <>
+                                <img
+                                  src={photoPreview}
+                                  className="w-full h-full object-cover transition-transform duration-500 group-hover:scale-110"
+                                  alt="Avatar"
+                                />
+                                {/* Overlay de Edição (Estilo Google Drive) */}
+                                <div className="absolute inset-0 bg-black/40 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity">
+                                  <Pencil size={16} className="text-white" />
+                                </div>
+                              </>
                             ) : (
-                              <Upload size={20} className="text-slate-300" />
+                              <div className="flex flex-col items-center">
+                                <Upload size={20} className="text-slate-300" />
+                                <span className="text-[8px] font-bold text-slate-400 mt-1">
+                                  UPLOAD
+                                </span>
+                              </div>
                             )}
                           </div>
                         </div>
                       </div>
-                      <button
-                        type="button"
-                        onClick={() => fileInputRef.current?.click()}
-                        className="btn-luxury-base absolute bottom-0 right-0 p-1.5 shadow-lg"
-                      >
-                        <Pencil size={10} />
-                      </button>
+
+                      {photoPreview && (
+                        <button
+                          type="button"
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            setPhotoPreview(null);
+                            setPhotoFile(null);
+                          }}
+                          className="absolute -top-1 -right-1 p-1.5 bg-white border border-slate-200 text-red-500 rounded-full shadow-md hover:bg-red-50 transition-colors z-10"
+                        >
+                          <X size={12} strokeWidth={3} />
+                        </button>
+                      )}
                     </div>
 
                     <div className="flex-grow space-y-1.5">
@@ -509,8 +667,36 @@ export default function OnboardingForm({
                             ? `${bgFiles.length} selecionadas`
                             : 'Alterar Imagens de Capa'}
                         </span>
-                        {/* ... preview das imagens ... */}
                       </button>
+
+                      {activeBackgrounds.length > 0 && (
+                        <div className="grid grid-cols-3 gap-2 mt-2">
+                          {activeBackgrounds.map((url, idx) => (
+                            <div
+                              key={`${url}-${idx}`}
+                              className="relative rounded-luxury overflow-hidden border border-slate-200 aspect-video"
+                            >
+                              <SupabaseImagePreview
+                                url={url}
+                                className="w-full h-full object-cover"
+                              />
+                              <button
+                                type="button"
+                                onClick={() => {
+                                  if (bgFiles.length > 0) {
+                                    setBgFiles((prev) =>
+                                      prev.filter((_, i) => i !== idx),
+                                    );
+                                  }
+                                }}
+                                className="absolute top-1 right-1 p-1 bg-white/80 border border-slate-200 text-red-500 rounded-full shadow-sm hover:bg-red-50 transition-colors z-10"
+                              >
+                                <X size={10} strokeWidth={3} />
+                              </button>
+                            </div>
+                          ))}
+                        </div>
+                      )}
 
                       {permissions.profileCarouselLimit === 0 && (
                         <p className="text-[10px] text-petroleum italic">
@@ -557,19 +743,43 @@ export default function OnboardingForm({
                   <div className="space-y-4">
                     <div className="space-y-3">
                       <label className="text-editorial-label text-petroleum">
-                        Sua Especialidade Principal
+                        Suas Especialidades
                       </label>
+
+                      <div className="flex flex-wrap gap-2">
+                        {specialties.map((s) => (
+                          <span
+                            key={s}
+                            className="bg-slate-50 border border-slate-200 text-petroleum text-[9px] font-bold px-2.5 py-1.5 rounded-luxury flex items-center gap-2 uppercase tracking-widest"
+                          >
+                            {s}
+                            <X
+                              size={12}
+                              className="cursor-pointer hover:text-red-500"
+                              onClick={() =>
+                                setSpecialties((prev) =>
+                                  prev.filter((item) => item !== s),
+                                )
+                              }
+                            />
+                          </span>
+                        ))}
+                      </div>
+
                       <SpecialtySelect
-                        value={specialty}
-                        onChange={(val, newList) => {
-                          setSpecialty(val);
-                          if (newList) setCustomSpecialties(newList);
-                        }}
+                        selected={specialties}
+                        onAdd={(val) =>
+                          setSpecialties((prev) =>
+                            prev.includes(val) ? prev : [...prev, val],
+                          )
+                        }
                         initialCustoms={customSpecialties}
+                        onCustomsChange={setCustomSpecialties}
                       />
+
                       <p className="text-[10px] text-petroleum/50 italic leading-tight">
-                        Sua especialidade define como você será encontrado por
-                        clientes em nosso portal.
+                        Suas especialidades definem como você será encontrado
+                        por clientes em nosso portal.
                       </p>
                     </div>
                   </div>
@@ -727,8 +937,10 @@ export default function OnboardingForm({
               instagram_link: instagram,
               avatar_url: photoPreview,
               cities: selectedCities,
+              specialty: specialties,
               website,
-              background_url: activeBackgrounds, // Passa o carrossel/capa filtrado para o preview
+              background_url: activeBackgrounds,
+              plan_key: planKey,
             }}
           />
         </main>
@@ -762,7 +974,7 @@ export default function OnboardingForm({
                 onClick={() => {
                   navigate('/dashboard', 'Abrindo seu espaço...');
                 }}
-                className="btn-secondary-white w-full text-[10px]"
+                className="btn-secondary-petroleum w-full text-[10px]"
               >
                 {/* ArrowLeft se disponível nos seus imports, ou mantenha o padrão */}
                 Ir para Dashboard

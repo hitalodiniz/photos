@@ -12,7 +12,7 @@ export interface UploadResult {
 }
 
 /**
- * Faz upload de um arquivo para o Supabase Storage
+ * Faz upload de um arquivo para o Supabase Storage com limpeza prévia
  */
 export async function uploadFile(
   supabase: any,
@@ -21,23 +21,48 @@ export async function uploadFile(
   userId: string,
   fileType: 'avatar' | 'bg',
 ): Promise<UploadResult> {
-  const extension = getFileExtension(file.name);
-  const filePath = generateFilePath(userId, fileType, extension);
+  try {
+    const extension = getFileExtension(file.name);
+    const filePath = generateFilePath(userId, fileType, extension);
 
-  const { error: uploadError } = await supabase.storage
-    .from(bucket)
-    .upload(filePath, file, { upsert: true });
+    // 1. Limpeza de Storage (Baixo custo computacional)
+    // Listamos a pasta do usuário para remover arquivos obsoletos antes do novo upload
+    const folderPath = userId;
+    const { data: existingFiles } = await supabase.storage
+      .from(bucket)
+      .list(folderPath);
 
-  if (uploadError) {
-    console.error(`[uploadFile] Error uploading ${fileType}:`, uploadError);
-    return { success: false, error: uploadError };
+    if (existingFiles && existingFiles.length > 0) {
+      // Filtra para apagar apenas arquivos do tipo correspondente (avatar ou bg)
+      // evitando apagar o avatar se estiver subindo um bg e vice-versa
+      const toDelete = existingFiles
+        .filter((f: any) => f.name.startsWith(fileType))
+        .map((f: any) => `${folderPath}/${f.name}`);
+
+      if (toDelete.length > 0) {
+        await supabase.storage.from(bucket).remove(toDelete);
+      }
+    }
+
+    // 2. Upload com upsert habilitado
+    const { error: uploadError } = await supabase.storage
+      .from(bucket)
+      .upload(filePath, file, {
+        upsert: true,
+        cacheControl: '3600',
+      });
+
+    if (uploadError) throw uploadError;
+
+    const {
+      data: { publicUrl },
+    } = supabase.storage.from(bucket).getPublicUrl(filePath);
+
+    return { success: true, url: publicUrl };
+  } catch (error) {
+    console.error(`[uploadFile] Error managing ${fileType}:`, error);
+    return { success: false, error };
   }
-
-  const {
-    data: { publicUrl },
-  } = supabase.storage.from(bucket).getPublicUrl(filePath);
-
-  return { success: true, url: publicUrl };
 }
 
 /**
@@ -49,10 +74,7 @@ export async function uploadProfilePicture(
   userId: string,
   existingUrl: string,
 ): Promise<string> {
-  // Se não há arquivo novo, retorna a URL existente
-  if (!file || file.size === 0) {
-    return existingUrl;
-  }
+  if (!file || file.size === 0) return existingUrl;
 
   const result = await uploadFile(
     supabase,
@@ -62,12 +84,7 @@ export async function uploadProfilePicture(
     'avatar',
   );
 
-  // Se upload falhou, retorna URL existente
-  if (!result.success || !result.url) {
-    return existingUrl;
-  }
-
-  return result.url;
+  return result.success && result.url ? result.url : existingUrl;
 }
 
 /**
@@ -79,33 +96,27 @@ export async function uploadBackgroundImages(
   userId: string,
   existingUrls: string[],
 ): Promise<string[]> {
-  // 1. Filtro rigoroso: garante que temos apenas objetos File válidos
   const validFiles = files.filter(
     (file) => file instanceof File && file.size > 0,
   );
 
-  // 2. Early return se não houver novos uploads
   if (validFiles.length === 0) return existingUrls;
 
-  // 3. Execução Paralela (Promise.all)
-  // Otimiza o tempo de resposta, disparando todos os uploads simultaneamente
+  // No caso de background, se o usuário enviou NOVOS arquivos,
+  // assumimos a substituição total conforme o comportamento de "sobrepor" solicitado
   const uploadPromises = validFiles.map((file) =>
     uploadFile(supabase, 'profile_pictures', file, userId, 'bg'),
   );
 
   const results = await Promise.all(uploadPromises);
 
-  // 4. Extração de URLs com filtro de sucesso
   const newUrls = results
     .filter((res) => res.success && res.url)
     .map((res) => res.url as string);
 
-  // 5. Mesclagem e Sanitização
-  // Usamos Set para evitar duplicatas acidentais e filtramos strings vazias
-  const finalArray = [...new Set([...existingUrls, ...newUrls])].filter(
-    Boolean,
-  );
+  // Mantemos as URLs existentes que não são blobs locais (se houver lógica de persistência parcial)
+  // e mesclamos com as novas URLs geradas
+  const finalArray = [...new Set([...newUrls])].filter(Boolean);
 
-  // 6. Fallback de integridade
   return finalArray.length > 0 ? finalArray : existingUrls;
 }

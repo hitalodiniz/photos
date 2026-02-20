@@ -188,6 +188,7 @@ export default async function GaleriaBasePage({
       context: isSubdomainContext ? 'subdomain' : 'main',
       sessionId: sessionId, // Passamos o ID para o banco fazer o "Upsert" ou Ignore
       isNewSession: isNewSession,
+      userId: userId,
     },
   });
 

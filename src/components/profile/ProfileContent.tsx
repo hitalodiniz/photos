@@ -9,6 +9,8 @@ import { Loader2 } from 'lucide-react';
 import { PublicGaleriaCard } from './PublicGaleriaCard';
 import { GaleriaFooter } from '@/components/galeria';
 import { usePlan } from '@/core/context/PlanContext';
+import { getProfilePermission } from '@/core/utils/plan-helpers';
+import type { ProfileForPermission } from '@/core/utils/plan-helpers';
 import { BrandWatermark } from '../ui/BrandWatermark';
 import { useSegment } from '@/hooks/useSegment';
 
@@ -21,8 +23,11 @@ interface ProfileContentProps {
   website?: string;
   photoPreview: string | null;
   cities: string[];
+  specialties?: string[];
   backgroundUrl?: string | string[];
   useSubdomain?: boolean;
+  /** Perfil exibido: quando o visitante não está logado, permissões vêm do plano deste perfil (igual ProfileAvatar) */
+  profile?: ProfileForPermission;
 }
 
 export default function ProfileContent({
@@ -34,11 +39,31 @@ export default function ProfileContent({
   website,
   photoPreview,
   cities,
+  specialties = [],
   backgroundUrl,
   useSubdomain = true,
+  profile,
 }: ProfileContentProps) {
   const { terms } = useSegment();
-  const { permissions } = usePlan(); // 🎯 Removido planKey por não ser mais necessário aqui
+  const { permissions } = usePlan();
+
+  // 🎯 Permissões do perfil exibido (igual ProfileAvatar: plano do dono do perfil quando visitante não logado)
+  const profileLevel = useMemo(
+    () => getProfilePermission(profile, 'profileLevel') || permissions.profileLevel,
+    [profile, permissions.profileLevel],
+  );
+  const profileCarouselLimit = useMemo(
+    () =>
+      getProfilePermission(profile, 'profileCarouselLimit') ??
+      permissions.profileCarouselLimit,
+    [profile, permissions.profileCarouselLimit],
+  );
+  const profileListLimit = useMemo(
+    () =>
+      getProfilePermission(profile, 'profileListLimit') ??
+      permissions.profileListLimit,
+    [profile, permissions.profileListLimit],
+  );
 
   const [isLoading, setIsLoading] = useState(true);
   const [galerias, setGalerias] = useState<Galeria[]>([]);
@@ -46,17 +71,17 @@ export default function ProfileContent({
   const [hasMore, setHasMore] = useState(false);
   const [loadingMore, setLoadingMore] = useState(false);
 
-  // 🎯 Lógica de Backgrounds baseada em CAPACIDADE (Carousel Limit)
+  // 🎯 Lógica de Backgrounds baseada em CAPACIDADE (Carousel Limit) do perfil exibido
   const activeBackgrounds = useMemo(() => {
-    if (permissions.profileCarouselLimit === 0) return [];
+    if (profileCarouselLimit === 0) return [];
     if (!backgroundUrl) return [];
     return Array.isArray(backgroundUrl) ? backgroundUrl : [backgroundUrl];
-  }, [permissions.profileCarouselLimit, backgroundUrl]);
+  }, [profileCarouselLimit, backgroundUrl]);
 
-  // 🎯 Lógica de Visibilidade baseada em NÍVEIS DE PERFIL
-  const showCities = permissions.profileLevel !== 'basic';
-  const canShowWebsite = ['advanced', 'seo'].includes(permissions.profileLevel);
-  const showDetailedBio = permissions.profileLevel !== 'basic';
+  // 🎯 Lógica de Visibilidade baseada em NÍVEIS DE PERFIL do perfil exibido
+  const showCities = profileLevel !== 'basic';
+  const canShowWebsite = ['advanced', 'seo'].includes(profileLevel);
+  const showDetailedBio = profileLevel !== 'basic';
 
   const profileData = {
     full_name: fullName,
@@ -74,24 +99,24 @@ export default function ProfileContent({
       if (res.success) {
         // 🎯 O limite de exibição agora é dinâmico vindo das permissões
         const limit =
-          permissions.profileListLimit === 'unlimited'
+          profileListLimit === 'unlimited'
             ? 9999
-            : (permissions.profileListLimit as number);
+            : (profileListLimit as number);
 
         setGalerias(res.data.slice(0, limit));
 
         // Só permite carregar mais se o plano permitir portfólio ilimitado
-        if (permissions.profileListLimit === 'unlimited') {
+        if (profileListLimit === 'unlimited') {
           setHasMore(res.hasMore);
         }
       }
       setIsLoading(false);
     }
     loadInitialData();
-  }, [username, permissions.profileListLimit]);
+  }, [username, profileListLimit]);
 
   const loadMore = async () => {
-    if (loadingMore || !hasMore || permissions.profileListLimit !== 'unlimited')
+    if (loadingMore || !hasMore || profileListLimit !== 'unlimited')
       return;
 
     setLoadingMore(true);
@@ -124,6 +149,7 @@ export default function ProfileContent({
           instagram={instagram}
           website={profileData.website_url}
           cities={showCities ? cities : []}
+          specialties={showCities ? specialties : []}
           username={username}
           useSubdomain={profileData.use_subdomain}
         />
@@ -155,7 +181,7 @@ export default function ProfileContent({
             </div>
 
             {/* 🎯 Botão parametrizado por permissão ilimitada */}
-            {hasMore && permissions.profileListLimit === 'unlimited' && (
+            {hasMore && profileListLimit === 'unlimited' && (
               <div className="flex justify-center pt-10">
                 <button
                   onClick={loadMore}
@@ -172,11 +198,11 @@ export default function ProfileContent({
             )}
 
             {/* 🎯 Rodapé de Branding: Aparece apenas se removeBranding for FALSE */}
-            {permissions.profileListLimit !== 'unlimited' &&
-              galerias.length >= (permissions.profileListLimit as number) && (
+            {profileListLimit !== 'unlimited' &&
+              galerias.length >= (profileListLimit as number) && (
                 <div className="mt-20 text-center space-y-4">
                   <div className="w-full h-2 bg-gradient-to-b from-champagne/30 to-transparent mx-auto mb-6" />
-                  {!permissions.removeBranding && (
+                  {!getProfilePermission(profile, 'removeBranding') && (
                     <p className="text-petroleum text-[11px] uppercase tracking-luxury-widest max-w-lg mx-auto leading-relaxed">
                       Este {terms.singular} utiliza o app{' '}
                       <span className="font-bold">{terms.site_name}</span> para

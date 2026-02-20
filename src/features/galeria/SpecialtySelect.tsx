@@ -1,13 +1,12 @@
 'use client';
 
 import { useState } from 'react';
-import { Tag, Plus, X, AlertCircle } from 'lucide-react';
+import { Tag, AlertCircle } from 'lucide-react';
 import BaseModal from '@/components/ui/BaseModal';
 import { usePlan } from '@/core/context/PlanContext';
 import UpgradeModal from '@/components/ui/UpgradeModal';
 
-// Especialidades padrão para o nicho de fotografia/vídeo
-const DEFAULT_SPECIALTIES = [
+export const DEFAULT_SPECIALTIES = [
   'Casamentos',
   'Ensaios Gestante',
   'Eventos Corporativos',
@@ -19,16 +18,30 @@ const DEFAULT_SPECIALTIES = [
 ];
 
 export default function SpecialtySelect({
-  value,
-  onChange,
+  selected = [],
+  onAdd,
   initialCustoms = [],
+  onCustomsChange,
+}: {
+  selected: string[];
+  onAdd: (value: string) => void;
+  initialCustoms?: string[];
+  onCustomsChange?: (customs: string[]) => void;
 }) {
   const { permissions } = usePlan();
   const [isUpgradeModalOpen, setIsUpgradeModalOpen] = useState(false);
   const [isModalOpen, setIsModalOpen] = useState(false);
-  const [customList, setCustomList] = useState<string[]>(initialCustoms);
+  const [customList, setCustomList] = useState<string[]>(
+    Array.isArray(initialCustoms) ? initialCustoms : [],
+  );
   const [newName, setNewName] = useState('');
   const [error, setError] = useState('');
+
+  const availableDefaults = DEFAULT_SPECIALTIES.filter(
+    (s) => !selected.includes(s),
+  );
+  const availableCustom = customList.filter((s) => !selected.includes(s));
+  const hasOptions = availableDefaults.length > 0 || availableCustom.length > 0;
 
   const handleAddNew = () => {
     if (!permissions.canCustomCategories) {
@@ -53,14 +66,10 @@ export default function SpecialtySelect({
       return;
     }
 
-    //Criamos a nova lista explicitamente para enviar ao pai
     const updatedList = [...customList, name];
-
     setCustomList(updatedList);
-
-    // 🎯 Enviamos o nome da nova categoria E a lista completa atualizada
-    onChange(name, updatedList);
-
+    onCustomsChange?.(updatedList);
+    onAdd(name);
     setIsModalOpen(false);
   };
 
@@ -68,33 +77,41 @@ export default function SpecialtySelect({
     <div className="space-y-3">
       <div className="relative group">
         <select
-          value={value}
-          onChange={(e) =>
-            e.target.value === 'NEW' ? handleAddNew() : onChange(e.target.value)
-          }
+          value=""
+          onChange={(e) => {
+            if (e.target.value === 'NEW') {
+              handleAddNew();
+            } else {
+              onAdd(e.target.value);
+            }
+          }}
           className="w-full pl-4 pr-10 bg-white border border-slate-200 rounded-luxury text-petroleum/90 text-[13px] font-medium h-10 focus:border-gold outline-none appearance-none cursor-pointer transition-all"
         >
           <option value="" disabled hidden>
-            Selecione sua área principal
+            {hasOptions
+              ? '+ Adicionar especialidade'
+              : 'Todas selecionadas'}
           </option>
 
-          <optgroup
-            label="Especialidades Padrão"
-            className="text-[10px] uppercase font-bold text-slate-400"
-          >
-            {DEFAULT_SPECIALTIES.map((s) => (
-              <option key={s} value={s}>
-                {s}
-              </option>
-            ))}
-          </optgroup>
+          {availableDefaults.length > 0 && (
+            <optgroup
+              label="Especialidades Padrão"
+              className="text-[10px] uppercase font-bold text-slate-400"
+            >
+              {availableDefaults.map((s) => (
+                <option key={s} value={s}>
+                  {s}
+                </option>
+              ))}
+            </optgroup>
+          )}
 
-          {customList.length > 0 && (
+          {availableCustom.length > 0 && (
             <optgroup
               label="Minhas Personalizadas"
               className="text-[10px] uppercase font-bold text-slate-400"
             >
-              {customList.map((s) => (
+              {availableCustom.map((s) => (
                 <option key={s} value={s}>
                   {s}
                 </option>
@@ -103,7 +120,7 @@ export default function SpecialtySelect({
           )}
 
           <option value="NEW" className="text-gold font-bold">
-            + Adicionar nova área...
+            + Criar nova área...
           </option>
         </select>
       </div>

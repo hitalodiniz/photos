@@ -1,14 +1,9 @@
 'use client';
 import React, { useState, useEffect, useMemo } from 'react';
-import { ChevronDown, ChevronUp, Maximize2 } from 'lucide-react';
+import { ChevronLeft, ChevronRight, ChevronUp, Maximize2 } from 'lucide-react';
 
 import { usePlan } from '@/core/context/PlanContext';
-import { Swiper, SwiperSlide } from 'swiper/react';
-import { Autoplay, EffectFade } from 'swiper/modules';
-
-// Import Swiper styles
-import 'swiper/css';
-import 'swiper/css/effect-fade';
+import { useSegment } from '@/hooks/useSegment';
 
 interface EditorialHeroProps {
   title: string;
@@ -16,8 +11,6 @@ interface EditorialHeroProps {
   sideElement?: React.ReactNode;
   children: React.ReactNode;
 }
-
-import { useSegment } from '@/hooks/useSegment';
 
 const SEGMENT_ASSETS = {
   PHOTOGRAPHER: {
@@ -48,10 +41,13 @@ export const EditorialHero = ({
   const { segment } = useSegment();
   const [isExpanded, setIsExpanded] = useState(true);
   const [isImageLoaded, setIsImageLoaded] = useState(false);
+  const [currentImageIndex, setCurrentImageIndex] = useState(0);
+  const [imagesOrientation, setImagesOrientation] = useState<
+    Record<string, 'portrait' | 'landscape'>
+  >({});
 
   // 🛡️ 1. Lógica de Normalização e Seleção baseada no Plano
   const finalImages = useMemo(() => {
-    // Normaliza para Array (trata o legado de string única)
     const normalizedUrls = Array.isArray(coverUrls)
       ? coverUrls
       : typeof coverUrls === 'string' && coverUrls
@@ -59,33 +55,59 @@ export const EditorialHero = ({
         : [];
 
     if (planKey === 'FREE' || normalizedUrls.length === 0) {
-      // 1. Busca configuração do segmento atual
       const config =
         SEGMENT_ASSETS[segment as keyof typeof SEGMENT_ASSETS] ||
         SEGMENT_ASSETS.PHOTOGRAPHER;
-
-      // 2. Gera um número aleatório entre 1 e o total de fotos (count) baseado no título
       const seed = title ? title.length : Math.floor(Math.random() * 100);
       const index = (seed % config.count) + 1;
-
-      // 3. Monta o caminho final (ex: /heros/campaign/2.webp)
       return [`${config.path}${index}.webp`];
     }
 
-    // Usa o limite definido nas permissões do plano (CarouselLimit)
     const limit = permissions?.profileCarouselLimit || 1;
     return normalizedUrls.slice(0, limit);
   }, [coverUrls, planKey, title, permissions]);
 
-  // Só ativa o carrossel se houver mais de uma imagem E o plano permitir
-  const isCarousel =
-    finalImages.length > 1 && (planKey === 'PRO' || planKey === 'PREMIUM');
-
-  // Efeitos de Expansão (Scroll e Timer)
+  // Detecção de orientação das imagens (igual GaleriaHero)
   useEffect(() => {
-    const timer = setTimeout(() => setIsExpanded(false), 5000);
+    finalImages.forEach((img) => {
+      if (imagesOrientation[img]) return;
+      const imageLoader = new Image();
+      imageLoader.src = img;
+      imageLoader.onload = () => {
+        const orientation =
+          imageLoader.height > imageLoader.width ? 'portrait' : 'landscape';
+        setImagesOrientation((prev) => ({ ...prev, [img]: orientation }));
+      };
+    });
+  }, [finalImages]);
+
+  const nextImage = (e?: React.MouseEvent) => {
+    e?.stopPropagation();
+    setCurrentImageIndex((prev) => (prev + 1) % finalImages.length);
+  };
+
+  const prevImage = (e?: React.MouseEvent) => {
+    e?.stopPropagation();
+    setCurrentImageIndex((prev) =>
+      prev === 0 ? finalImages.length - 1 : prev - 1,
+    );
+  };
+
+  // Autoplay do carrossel (igual GaleriaHero)
+  useEffect(() => {
+    if (!isExpanded || finalImages.length <= 1) return;
+    const interval = setInterval(() => {
+      setCurrentImageIndex((prev) => (prev + 1) % finalImages.length);
+    }, 3000);
+    return () => clearInterval(interval);
+  }, [isExpanded, finalImages.length]);
+
+  // Fechamento automático e scroll (igual GaleriaHero)
+  useEffect(() => {
+    const totalTime = Math.max(finalImages.length * 3000, 5000);
+    const timer = setTimeout(() => setIsExpanded(false), totalTime);
     return () => clearTimeout(timer);
-  }, []);
+  }, [finalImages.length]);
 
   useEffect(() => {
     const handleScroll = () => {
@@ -95,7 +117,6 @@ export const EditorialHero = ({
     return () => window.removeEventListener('scroll', handleScroll);
   }, [isExpanded]);
 
-  // Força o carregamento para evitar tela preta em fallbacks
   useEffect(() => {
     if (finalImages.length > 0) {
       const img = new Image();
@@ -111,43 +132,68 @@ export const EditorialHero = ({
         isExpanded ? 'h-screen' : 'h-[32vh] md:h-[45vh]'
       }`}
     >
-      {/* 🖼️ BACKGROUND LAYER */}
+      {/* 🖼️ BACKGROUND LAYER (navegação igual GaleriaHero) */}
       <div
-        className={`absolute inset-0 transition-all duration-[2000ms] ease-out ${
+        className={`absolute inset-0 z-0 transition-all duration-[2000ms] ease-out ${
           isImageLoaded ? 'opacity-100 scale-100' : 'opacity-0 scale-110'
         }`}
       >
-        {!isCarousel ? (
-          <div
-            className="w-full h-full bg-cover bg-center transition-opacity duration-1000"
-            style={{
-              backgroundImage: `url('${finalImages[0]}')`,
-              backgroundPosition: 'center 40%',
-            }}
-          />
-        ) : (
-          <Swiper
-            modules={[Autoplay, EffectFade]}
-            effect="fade"
-            autoplay={{ delay: 6000, disableOnInteraction: false }}
-            loop={true}
-            speed={2000} // Transição suave entre as fotos
-            className="w-full h-full"
-          >
-            {finalImages.map((url, i) => (
-              <SwiperSlide key={i}>
-                <div
-                  className="w-full h-full bg-cover bg-center"
-                  style={{
-                    backgroundImage: `url('${url}')`,
-                    backgroundPosition: 'center 40%',
-                  }}
-                />
-              </SwiperSlide>
-            ))}
-          </Swiper>
+        {finalImages.map((img, index) => {
+          const orientation = imagesOrientation[img];
+          const isPortrait = orientation === 'portrait';
+
+          const getPosition = () => {
+            if (isPortrait) return 'center 10%';
+            return isExpanded ? 'center 35%' : 'center center';
+          };
+
+          return (
+            <div
+              key={img}
+              className={`absolute inset-0 bg-cover transition-opacity duration-1000 ${
+                index === currentImageIndex ? 'opacity-100' : 'opacity-0'
+              }`}
+              style={{
+                backgroundImage: `url('${img}')`,
+                backgroundPosition: getPosition(),
+              }}
+            />
+          );
+        })}
+        {finalImages.length === 0 && (
+          <div className="absolute inset-0 bg-gradient-to-br from-slate-900 via-slate-800 to-black" />
         )}
       </div>
+
+      {/* NAVEGAÇÃO MANUAL (quando expandido e mais de uma imagem) */}
+      {isExpanded && finalImages.length > 1 && (
+        <>
+          <button
+            onClick={prevImage}
+            className="absolute left-4 top-1/2 -translate-y-1/2 z-[20] p-2 rounded-full bg-black/20 text-white hover:bg-black/50 transition-all"
+          >
+            <ChevronLeft size={32} />
+          </button>
+          <button
+            onClick={nextImage}
+            className="absolute right-4 top-1/2 -translate-y-1/2 z-[20] p-2 rounded-full bg-black/20 text-white hover:bg-black/50 transition-all"
+          >
+            <ChevronRight size={32} />
+          </button>
+          <div className="absolute bottom-32 left-1/2 -translate-x-1/2 z-[20] flex gap-2">
+            {finalImages.map((_, i) => (
+              <button
+                key={i}
+                onClick={(e) => {
+                  e.stopPropagation();
+                  setCurrentImageIndex(i);
+                }}
+                className={`h-1.5 rounded-full transition-all ${i === currentImageIndex ? 'w-8 bg-champagne' : 'w-2 bg-white/40'}`}
+              />
+            ))}
+          </div>
+        </>
+      )}
 
       {/* Overlay Dark Gradiente */}
       <div className="absolute inset-0 bg-gradient-to-t from-black/80 via-black/20 to-transparent md:bg-black/40" />
@@ -197,18 +243,26 @@ export const EditorialHero = ({
           </div>
         </div>
 
-        {/* CONTROLES */}
-        {isExpanded ? (
+        {/* CONTROLES (igual GaleriaHero) */}
+        {isExpanded && (
           <button
             onClick={() => setIsExpanded(false)}
-            className="absolute bottom-12 left-1/2 -translate-x-1/2 animate-bounce text-white/60 hover:text-champagne p-2"
+            className="fixed bottom-6 left-1/2 -translate-x-1/2 animate-bounce group z-[400] p-2"
           >
-            <ChevronUp size={32} />
+            <div className="relative flex items-center justify-center w-12 h-12 rounded-full bg-black/40 backdrop-blur-md border border-white/10 shadow-2xl transition-all duration-500 hover:bg-black/60">
+              <ChevronUp
+                size={28}
+                strokeWidth={1.5}
+                className="text-white transition-colors group-hover:text-champagne"
+              />
+            </div>
           </button>
-        ) : (
+        )}
+
+        {!isExpanded && (
           <button
             onClick={() => setIsExpanded(true)}
-            className="w-9 h-9 md:w-12 md:h-12 absolute bottom-6 right-8 flex items-center justify-center bg-black/40 backdrop-blur-md text-white/90 rounded-lg border border-white/10 hover:bg-black/60 transition-all shadow-xl"
+            className="w-9 h-9 md:w-12 md:h-12 absolute bottom-6 right-8 flex items-center justify-center bg-black/60 backdrop-blur-md border border-white/20 text-white/90 rounded-lg transition-all shadow-xl hover:bg-black/80"
           >
             <Maximize2 className="w-4 h-4 md:w-5 md:h-5" />
           </button>

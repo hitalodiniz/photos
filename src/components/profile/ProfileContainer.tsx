@@ -46,6 +46,18 @@ export default function PhotographerContainer({
   }
 
   // 3. Agora é seguro renderizar, pois o 'profile' certamente existe
+  const specialties = (() => {
+    const raw = profile.specialty;
+    if (!raw) return [];
+    if (Array.isArray(raw)) return raw;
+    try {
+      const parsed = JSON.parse(raw);
+      return Array.isArray(parsed) ? parsed : [raw];
+    } catch {
+      return [raw];
+    }
+  })();
+
   return (
     <ProfileContent
       fullName={profile.full_name}
@@ -55,9 +67,11 @@ export default function PhotographerContainer({
       instagram={profile.instagram_link}
       photoPreview={profile.profile_picture_url}
       cities={profile.operating_cities || []}
+      specialties={specialties}
       website={profile.website}
       backgroundUrl={profile.background_url}
       useSubdomain={profile.use_subdomain}
+      profile={profile}
     />
   );
 }

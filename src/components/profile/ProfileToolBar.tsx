@@ -4,6 +4,7 @@ import {
   Instagram,
   Globe,
   MapPin,
+  Tag,
   Link as LinkIcon,
   Check,
   ChevronDown,
@@ -18,6 +19,7 @@ interface ProfileToolBarProps {
   instagram?: string;
   website?: string;
   cities?: string[];
+  specialties?: string[];
   username?: string;
   useSubdomain?: boolean;
 }
@@ -27,6 +29,7 @@ export const ProfileToolBar = ({
   instagram,
   website,
   cities = [],
+  specialties = [],
   username,
   useSubdomain = true,
 }: ProfileToolBarProps) => {
@@ -52,20 +55,22 @@ export const ProfileToolBar = ({
     return `${protocol}//${mainDomain}/${username}`;
   }, [username, useSubdomain]);
 
+  const allItems = [...cities, ...specialties];
+
   useEffect(() => {
     const checkOverflow = () => {
       if (containerRef.current && contentRef.current) {
         const overflowed =
           contentRef.current.scrollWidth > containerRef.current.clientWidth;
         setShouldHideToDrawer(
-          overflowed || (window.innerWidth < 768 && cities.length > 1),
+          overflowed || (window.innerWidth < 768 && allItems.length > 1),
         );
       }
     };
     checkOverflow();
     window.addEventListener('resize', checkOverflow);
     return () => window.removeEventListener('resize', checkOverflow);
-  }, [cities]);
+  }, [allItems]);
 
   const handleCopyLink = () => {
     navigator.clipboard.writeText(profileUrl);
@@ -114,6 +119,15 @@ export const ProfileToolBar = ({
                             >
                               {city}
                             </a>
+                          ))}
+                          {specialties.map((s) => (
+                            <span
+                              key={s}
+                              className="px-3 py-1.5 rounded-luxury text-[11px] font-semibold text-champagne/90 bg-gold/10 border border-gold/20 h-9 flex items-center gap-1.5 shrink-0"
+                            >
+                              <Tag size={12} className="text-gold" />
+                              {s}
+                            </span>
                           ))}
                         </div>
                       ) : (
@@ -236,6 +250,15 @@ export const ProfileToolBar = ({
               >
                 {city}
               </a>
+            ))}
+            {specialties.map((s) => (
+              <span
+                key={s}
+                className="px-3 py-1.5 rounded-luxury text-[11px] font-semibold text-champagne/90 bg-gold/10 border border-gold/20 h-9 flex items-center gap-1.5"
+              >
+                <Tag size={12} className="text-gold" />
+                {s}
+              </span>
             ))}
           </div>
         </div>

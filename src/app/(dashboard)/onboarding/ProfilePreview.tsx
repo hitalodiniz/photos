@@ -71,6 +71,21 @@ export default function Photographer({ initialData }: { initialData?: any }) {
   const useSubdomain =
     profile.use_subdomain !== undefined ? profile.use_subdomain : true;
 
+  const specialties = (() => {
+    const raw = profile.specialty;
+    if (!raw) return [];
+    if (Array.isArray(raw)) return raw;
+    try {
+      const parsed = JSON.parse(raw);
+      return Array.isArray(parsed) ? parsed : [raw];
+    } catch {
+      return [raw];
+    }
+  })();
+
+  const profileForPermission =
+    profile.plan_key != null ? { plan_key: profile.plan_key } : undefined;
+
   return (
     <div className="w-full min-h-screen bg-black">
       <ProfileContent
@@ -81,9 +96,11 @@ export default function Photographer({ initialData }: { initialData?: any }) {
         instagram={instaLink}
         photoPreview={avatar}
         cities={cities}
+        specialties={specialties}
         website={website}
         backgroundUrl={backgroundUrl}
         useSubdomain={useSubdomain}
+        profile={profileForPermission}
       />
     </div>
   );
