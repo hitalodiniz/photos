@@ -81,11 +81,23 @@ export async function createInternalNotification({
   link?: string;
   eventData?: any;
 }) {
+  console.log('--- 🛡️ DEBUG NOTIFICATION START ---');
+  console.log('📍 Target UserId:', userId);
+  console.log('📍 Payload:', { title, type });
+
   try {
-    // 🎯 Usamos o ADMIN para ter bypass total de RLS
+    // 1. Validar se o cliente Admin está sendo criado com as chaves certas
     const supabase = await createSupabaseAdmin();
 
-    // 1. Inserção na tb_notifications (Sempre ocorre para alimentar o sino cinza)
+    if (!process.env.SUPABASE_SERVICE_ROLE_KEY) {
+      console.error(
+        '❌ ERRO: SUPABASE_SERVICE_ROLE_KEY não detectada no ambiente!',
+      );
+    }
+
+    // 2. Inserção na tb_notifications
+    console.log('DB: Tentando insert na tb_notifications...');
+
     const { data: insertedData, error: insertError } = await supabase
       .from('tb_notifications')
       .insert([
@@ -96,19 +108,27 @@ export async function createInternalNotification({
           type,
           link,
           metadata: eventData ? { event_data: eventData } : {},
-          created_at: new Date().toISOString(),
+          // Removido created_at manual para deixar o DB usar o default now()
         },
       ])
       .select()
       .single();
 
     if (insertError) {
-      console.error('❌ Erro ao inserir notificação:', insertError.message);
+      // Log detalhado do objeto de erro do Supabase
+      console.error('❌ Erro Supabase Insert:', {
+        message: insertError.message,
+        details: insertError.details,
+        hint: insertError.hint,
+        code: insertError.code,
+      });
       return { success: false, error: insertError };
     }
 
-    // 2. Busca o Perfil para disparar o Push Notification do Navegador
-    // IMPORTANTE: Buscamos tanto a subscrição quanto o booleano de controle
+    console.log('✅ Sucesso DB: Notificação gravada ID:', insertedData?.id);
+
+    // 3. Busca o Perfil para Push
+    console.log('DB: Buscando perfil para Push...');
     const { data: profile, error: profileError } = await supabase
       .from('tb_profiles')
       .select('push_subscription, notifications_enabled')
@@ -116,33 +136,41 @@ export async function createInternalNotification({
       .single();
 
     if (profileError) {
-      console.error(
-        '⚠️ Perfil não encontrado para envio de Push:',
-        profileError.message,
-      );
+      console.error('⚠️ Erro ao buscar perfil:', profileError.message);
+    } else {
+      console.log('📡 Status do Perfil:', {
+        hasSubscription: !!profile?.push_subscription,
+        enabled: profile?.notifications_enabled,
+      });
     }
 
-    // ✅ VALIDAÇÃO TRIPLA PARA O PUSH:
-    // 1. Tem que ter o token (push_subscription)
-    // 2. O usuário tem que ter permitido no switch (notifications_enabled)
-    // 3. O navegador não pode estar bloqueando (isso o servidor não vê, mas ele envia)
     if (
       profile?.push_subscription &&
       profile?.notifications_enabled !== false
     ) {
-      // console.log('📡 Disparando Web Push para o servidor do navegador...');
-
-      await sendPushNotification(profile.push_subscription, {
-        title,
-        message,
-        link: link || '/dashboard', // Fallback de link para o clique no banner
-      });
+      console.log('📲 Enviando Web Push...');
+      try {
+        await sendPushNotification(profile.push_subscription, {
+          title,
+          message,
+          link: link || '/dashboard',
+        });
+        console.log('🚀 Web Push enviado com sucesso');
+      } catch (pushErr) {
+        console.error('❌ Falha no envio do Web Push:', pushErr);
+      }
     }
+
+    console.log('--- 🛡️ DEBUG NOTIFICATION END ---');
 
     revalidatePath('/dashboard');
     return { success: true, data: insertedData };
-  } catch (err) {
-    console.error('💥 Erro crítico no service de notificação:', err);
+  } catch (err: any) {
+    console.error('💥 Erro Crítico (Catch):', {
+      name: err.name,
+      message: err.message,
+      stack: err.stack?.split('\n')[0], // Apenas a primeira linha da stack para o log
+    });
     return { success: false, error: err };
   }
 }
