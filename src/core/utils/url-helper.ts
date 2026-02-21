@@ -113,16 +113,7 @@ export function getWhatsAppShareLink(phone: string | null, message: string) {
 }
 
 export function getLuxuryMessageData(galeria: any, url: string) {
-  const date = galeria.date
-    ? new Date(galeria.date).toLocaleDateString('pt-BR', { timeZone: 'UTC' })
-    : '';
-
-  return GALLERY_MESSAGES.CARD_SHARE(
-    galeria.client_name,
-    galeria.title,
-    date,
-    url,
-  );
+  return GALLERY_MESSAGES.CARD_SHARE(galeria.title, url);
 }
 
 export async function copyToClipboard(text: string) {
@@ -214,6 +205,7 @@ export function getCreatorProfileUrl(photographer: any) {
  * 🌐 URL EXTERNA (Client-side)
  * Para o PhotoGrid, usamos larguras menores para economizar banda.
  * O teto aqui é para exibição rápida.
+ *
  *
  * ⚠️ DEPRECATED: Use `useGoogleDriveImage` hook em componentes React
  * ou `getImageUrlWithFallback` para server-side.
@@ -388,14 +380,6 @@ export const getDirectGoogleUrl = (
   return url;
 };
 
-export const getDownloadUrl = (
-  photoId: string | number,
-  planOrWidth?: PlanKey | string | number,
-) => {
-  const resolution = resolveResolutionByPlan(planOrWidth);
-  return getDownloadDirectGoogleUrl(photoId, resolution);
-};
-
 /**
  *
  * VERSÃO DE ALTA PERFORMANCE (Bypass Vercel)
@@ -432,8 +416,10 @@ export const getDownloadDirectGoogleUrl = (
 /**
  * 📐 GUIA DE RESOLUÇÕES
  *
+ *
  * Para documentação completa sobre resoluções recomendadas e estratégia de 2MB,
  * consulte: PERFORMANCE_GUIDE.md na raiz do projeto.
+ *
  *
  * Resumo rápido:
  * - Grid: 500-600px
@@ -441,6 +427,7 @@ export const getDownloadDirectGoogleUrl = (
  * - Lightbox Desktop: 1920px
  * - Lightbox 4K: 2560px
  * - Download: 1920px (direto) / 2560px (proxy)
+ *
  *
  * Todas as resoluções garantem arquivos < 2MB sem verificação no cliente.
  */

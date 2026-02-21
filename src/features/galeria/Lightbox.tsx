@@ -16,6 +16,7 @@ import { ThumbnailStrip } from './ThumbnailStrip';
 import { VerticalActionBar } from './VerticalActionBar';
 import { getCleanSlug, executeShare } from '@/core/utils/share-helper';
 import { getProfileByUsername } from '@/core/services/profile.service';
+import { div } from 'framer-motion/client';
 
 interface Photo {
   id: string | number;
