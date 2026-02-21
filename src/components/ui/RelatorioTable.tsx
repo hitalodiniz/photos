@@ -95,7 +95,7 @@ export function RelatorioTable<T extends { id: string | number }>({
       <div className="overflow-x-auto">
         <table className="w-full text-left border-collapse table-fixed min-w-[800px]">
           <thead>
-            <tr className="bg-petroleum text-[9px] uppercase tracking-[0.2em] text-white font-semibold">
+            <tr className="bg-petroleum/90 text-[9px] uppercase tracking-[0.2em] text-white font-semibold">
               {columns.map((col, idx) => (
                 <th
                   key={idx}
