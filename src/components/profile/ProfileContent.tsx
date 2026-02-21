@@ -86,7 +86,34 @@ export default function ProfileContent({
 
   const activeBackgrounds = useMemo(() => {
     if (profileCarouselLimit === 0 || !backgroundUrl) return [];
-    return Array.isArray(backgroundUrl) ? backgroundUrl : [backgroundUrl];
+
+    const normalizeUrl = (url: string) =>
+      url
+        .trim()
+        .replace(/^https:\/(?!\/)/, 'https://')
+        .replace(/^http:\/(?!\/)/, 'http://');
+
+    let urls: string[] = [];
+
+    if (Array.isArray(backgroundUrl)) {
+      urls = backgroundUrl;
+    } else if (typeof backgroundUrl === 'string') {
+      const raw = backgroundUrl.trim();
+
+      // Alguns registros antigos podem estar salvos como JSON string: '["https://..."]'
+      if (raw.startsWith('[')) {
+        try {
+          const parsed = JSON.parse(raw);
+          urls = Array.isArray(parsed) ? parsed : [raw];
+        } catch {
+          urls = [raw];
+        }
+      } else {
+        urls = [raw];
+      }
+    }
+
+    return urls.filter(Boolean).map(normalizeUrl);
   }, [profileCarouselLimit, backgroundUrl]);
 
   const showCities = profileLevel !== 'basic';

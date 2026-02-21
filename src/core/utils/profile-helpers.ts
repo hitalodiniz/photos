@@ -49,7 +49,22 @@ export function parseBackgroundUrls(json: string | null | undefined): string[] {
 
   try {
     const parsed = JSON.parse(json);
-    return Array.isArray(parsed) ? parsed : [];
+
+    const asArray = Array.isArray(parsed)
+      ? parsed
+      : typeof parsed === 'string'
+        ? [parsed]
+        : [];
+
+    return asArray
+      .map((item) => (typeof item === 'string' ? item.trim() : ''))
+      .filter(Boolean)
+      .map((url) =>
+        url
+          .replace(/^https:\/(?!\/)/, 'https://')
+          .replace(/^http:\/(?!\/)/, 'http://'),
+      )
+      .filter((url) => /^https?:\/\//.test(url));
   } catch {
     return [];
   }
