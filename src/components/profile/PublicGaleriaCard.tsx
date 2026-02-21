@@ -3,7 +3,7 @@
 import React, { useEffect, useMemo, useState } from 'react';
 import { Calendar, Images, Globe, Lock, MapPin } from 'lucide-react';
 import type { Galeria } from '@/core/types/galeria';
-import { RESOLUTIONS } from '@/core/utils/url-helper';
+import { getPublicGalleryUrl, RESOLUTIONS } from '@/core/utils/url-helper';
 import { useGoogleDriveImage } from '@/hooks/useGoogleDriveImage';
 import { formatDateLong } from '@/core/utils/data-helpers';
 import { useSegment } from '@/hooks/useSegment';
@@ -29,7 +29,7 @@ export function PublicGaleriaCard({ galeria }: { galeria: Galeria }) {
 
   const href = useMemo(() => {
     if (!mounted || typeof window === 'undefined') return '#';
-    return `/${galeria.photographer?.username.toLowerCase()}/${galeria.slug}`;
+    return getPublicGalleryUrl(galeria.photographer, galeria.slug);
   }, [mounted, galeria]);
 
   return (
