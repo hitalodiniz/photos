@@ -23,6 +23,26 @@
     --color-status-success: 37 161 102;
   }
 
+  /* [data-segment='PHOTOGRAPHER'] { */
+  /* ⚜️ Ouro Metálico / Champagne */
+  /* --color-gold: 212 175 55; /* #D4AF37 - Dourado clássico */
+  /* --color-champagne: 212 175 55; /* Alinhado ao ouro para consistência */
+  /* --color-champagne-hover: 184 148 42; /* Tom de ouro levemente mais escuro para o hover */
+
+  /* 🔘 Zinco (Substituindo o Petróleo) */
+  /* --color-petroleum: 9 9 11; /* Zinc 950 - A profundidade que você gostou */
+  /* --color-petroleum-light: 24 24 27; /* Zinc 900 - Para elevações e cards */
+  /* --color-petroleum-dark: 0 0 0; /* Preto absoluto para contrastes extremos */
+
+  /* 💎 Superfícies e Luxo */
+  /* --color-luxury-bg: 9 9 11; /* Fundo Zinco unificado */
+  /* --color-surface-dark: 24 24 27; /* Superfície Zinc 900 */
+  /* --color-surface-mixed: 39 39 42; /* Zinc 800 - Para divisores e bordas sutis */
+
+  /* ✅ Status */
+  --color-status-success: 34 197 94; /* Green 500 para sucesso/WhatsApp */
+  /* } */
+
   /* 🎯 TEMA EVENT: (Na Selfie) */
   [data-segment='EVENT'] {
     --color-champagne: 255 71 126; /* Pink vibrante */

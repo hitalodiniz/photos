@@ -7,6 +7,7 @@ import { RESOLUTIONS } from '@/core/utils/url-helper';
 import { useGoogleDriveImage } from '@/hooks/useGoogleDriveImage';
 import { formatDateLong } from '@/core/utils/data-helpers';
 import { useSegment } from '@/hooks/useSegment';
+import { GALLERY_CATEGORIES } from '@/core/config/categories';
 
 export function PublicGaleriaCard({ galeria }: { galeria: Galeria }) {
   const { SegmentIcon } = useSegment();
@@ -53,29 +54,41 @@ export function PublicGaleriaCard({ galeria }: { galeria: Galeria }) {
         </div>
 
         {/* Conteúdo do Card */}
-        <div className="absolute inset-0 z-10 flex flex-col justify-between p-4 md:p-6">
-          {/* Topo: Badge Status */}
-          <div className="flex justify-start">
-            <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-md text-[10px] font-bold uppercase tracking-widest backdrop-blur-md bg-black/40 border border-white/10 text-white/90">
-              {galeria.is_public ? <Globe size={12} /> : <Lock size={12} />}
-              {galeria.is_public ? 'Público' : 'Privado'}
-            </span>
+        <div className="absolute inset-0 z-10 flex flex-col justify-between p-4">
+          {/* Topo: Badge Status e Categoria */}
+          <div className="flex justify-between items-start">
+            {/* Badge de Categoria Dinâmico */}
+            {galeria.category && (
+              <span className="flex items-center gap-1.5 px-2.5 py-1 bg-black/40 backdrop-blur-md rounded-full text-white border border-white/20 text-[9px] font-semibold tracking-widest uppercase">
+                <div className="w-1 h-1 rounded-full bg-gold animate-pulse" />
+                {galeria.category}
+              </span>
+            )}
+
+            {/* Ícone de cadeado se não for pública (opcional, para consistência) */}
+            {!galeria.is_public && (
+              <div className="p-1.5 bg-black/60 backdrop-blur-md rounded-full border border-white/10">
+                <Lock size={12} className="text-gold" />
+              </div>
+            )}
           </div>
+          {/* Topo: Badge Status */}
+          <div className="flex justify-start"></div>
 
           {/* Base: Título e Informações */}
           <div className="space-y-4">
             <div className="space-y-2">
-              <h3 className="flex items-center gap-3 text-white text-xl md:text-2xl font-bold leading-tight group-hover:text-[#D4AF37] transition-colors drop-shadow-lg">
+              <h3 className="flex items-center gap-3 text-white text-xl md:text-2xl font-semibold leading-tight group-hover:text-champagne transition-colors drop-shadow-lg">
                 <SegmentIcon
                   size={28}
                   strokeWidth={1.5}
-                  className="shrink-0 text-[#D4AF37]/80 group-hover:text-[#D4AF37] transition-all"
+                  className="shrink-0 text-champagne group-hover:text-champagne transition-all"
                 />
                 <span className="truncate">{galeria.title}</span>
               </h3>
 
               {/* Linha Decorativa (Abaixo do conjunto ícone+título) */}
-              <div className="h-[2px] bg-[#D4AF37]/50 w-16 group-hover:w-full transition-all duration-700 rounded-full" />
+              <div className="h-[2px] bg-gold/80 w-16 group-hover:w-full transition-all duration-700 rounded-full" />
             </div>
 
             <div className="flex items-end justify-between">
@@ -83,19 +96,19 @@ export function PublicGaleriaCard({ galeria }: { galeria: Galeria }) {
               <div className="flex flex-col gap-1.5 text-zinc-300 text-[11px] md:text-xs font-medium">
                 {galeria.location && (
                   <span className="flex items-center gap-2">
-                    <MapPin size={14} className="text-[#D4AF37]" />
+                    <MapPin size={14} className="text-champagne" />
                     {galeria.location}
                   </span>
                 )}
                 <span className="flex items-center gap-2">
-                  <Calendar size={14} className="text-[#D4AF37]" />
+                  <Calendar size={14} className="text-champagne" />
                   {formatDateLong(galeria.date)}
                 </span>
               </div>
 
               {/* Botão de Ação (Estilo Original Refinado) */}
-              <div className="flex items-center gap-2 text-[#D4AF37] text-[10px] font-bold tracking-[0.2em] opacity-80 group-hover:opacity-100 transition-all transform group-hover:translate-x-1">
-                <Images size={16} />
+              <div className="flex items-center gap-2 text-champagne text-[10px] font-bold tracking-[0.2em] opacity-80 group-hover:opacity-100 transition-all transform group-hover:translate-x-1">
+                <Images size={18} />
                 <span className="hidden xs:inline">VER FOTOS</span>
               </div>
             </div>

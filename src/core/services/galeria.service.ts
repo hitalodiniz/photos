@@ -39,10 +39,12 @@ import {
   createSupabaseClientForCache,
   createSupabaseServerClientReadOnly,
 } from '@/lib/supabase.server';
-import { PlanKey, PERMISSIONS_BY_PLAN, resolveGalleryLimitByPlan } from '../config/plans';
 import {
-  syncUserGalleriesAction,
-} from '@/actions/galeria.actions';
+  PlanKey,
+  PERMISSIONS_BY_PLAN,
+  resolveGalleryLimitByPlan,
+} from '../config/plans';
+import { syncUserGalleriesAction } from '@/actions/galeria.actions';
 import {
   extractGalleryFormData,
   validateGalleryData,
@@ -53,6 +55,7 @@ import {
   checkReactivationLimit,
 } from '../utils/galeria-limit.helper';
 import { revalidateGalleryCache } from '@/actions/revalidate.actions';
+import { cache } from 'react';
 
 // =========================================================================
 // 2. SLUG ÚNICO POR DATA
@@ -1107,3 +1110,41 @@ export async function updateGaleriaTagsAction(
     };
   }
 }
+
+/**
+ * 🎯 BUSCA TODAS AS CATEGORIAS ÚNICAS DAS GALERIAS DE UM PERFIL
+ * Traz do banco de dados mesmo que a galeria não esteja na primeira página.
+ */
+export const getProfileCategories = cache(async (userId: string) => {
+  return unstable_cache(
+    async (id: string) => {
+      const supabase = await createSupabaseClientForCache();
+
+      // Busca apenas a coluna 'category' de todas as galerias do usuário
+      const { data, error } = await supabase
+        .from('tb_galerias')
+        .select('category')
+        .eq('user_id', id)
+        .eq('is_deleted', false)
+        .eq('is_archived', false)
+        .eq('show_on_profile', true)
+        .order('category');
+
+      if (error) {
+        console.error('[getProfileCategories] Erro:', error);
+        return [];
+      }
+
+      // Filtra únicos e remove nulos
+      const uniqueIds = Array.from(new Set(data.map((g) => g.category))).filter(
+        Boolean,
+      );
+      return uniqueIds;
+    },
+    [`profile-categories-${userId}`],
+    {
+      revalidate: GLOBAL_CACHE_REVALIDATE,
+      tags: [`profile-galerias-${userId}`], // Revalida quando uma galeria nova é criada
+    },
+  )(userId);
+});

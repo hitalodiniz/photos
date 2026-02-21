@@ -178,25 +178,17 @@ export const ToolBarDesktop = ({
                   setShowDownloadMenu(false);
                   setShowGridMenu(!showGridMenu); // Você precisará criar este state: const [showGridMenu, setShowGridMenu] = useState(false);
                 }}
-                className={`flex items-center gap-2 px-3 h-8 rounded-md border transition-all duration-300 ${
-                  showGridMenu
-                    ? 'bg-champagne border-champagne text-black shadow-lg shadow-champagne/10'
-                    : 'bg-white/5 border-white/10 text-white/90 hover:border-white/30'
-                }`}
+                className={`flex items-center gap-2 h-8 rounded-md  transition-all duration-300                   text-white `}
               >
-                <Wand2
-                  size={16}
-                  className={showGridMenu ? 'text-black' : 'text-champagne'}
-                  strokeWidth={2.5}
-                />
+                <Wand2 size={16} className="text-champagne" strokeWidth={2.5} />
                 <span className="text-[10px] uppercase font-semibold tracking-[0.15em]">
                   Layout
                 </span>
                 {/* Badge discreto com o número atual */}
                 <div
-                  className={`ml-1 px-1.5 rounded bg-black/10 text-[9px] font-semibold ${showGridMenu ? 'text-black/60' : 'text-champagne/60'}`}
+                  className={` rounded text-[10px] font-semibold text-champagne`}
                 >
-                  {columns.desktop}
+                  {columns.desktop} colunas
                 </div>
                 <ChevronDown
                   size={14}
@@ -271,24 +263,19 @@ export const ToolBarDesktop = ({
 
           {/* 2. MEIO: CATEGORIAS/TAGS - Verifica permissão E se há tags */}
           {hasTags && canUseTags ? (
-            <div className="flex-1 flex justify-start items-center gap-2 pl-4">
+            <div className="flex-1 flex justify-start items-center gap-2 border-l border-white/10 ml-1">
               {/* 1. SELETOR DE MARCAÇÕES (DROPDOWN) */}
               <div className="relative inline-block" ref={menuRef}>
                 <button
                   onClick={() => setShowTagsMenu(!showTagsMenu)}
-                  className={`flex items-center gap-2 px-3 h-8 rounded-md border transition-all duration-300 ${
-                    showTagsMenu || activeTag.length > 0
-                      ? 'bg-champagne border-champagne text-petroleum shadow-lg shadow-champagne/10'
-                      : 'bg-white/5 border-white/10 text-white/90 hover:border-white/30'
-                  }`}
+                  className={`flex items-center gap-2 px-3 h-8 rounded-md  transition-all duration-300 
+                                        
+                      text-white/90 
+                  `}
                 >
                   <TagIcon
                     size={14}
-                    className={
-                      showTagsMenu || activeTag.length > 0
-                        ? 'text-petroleum'
-                        : 'text-champagne'
-                    }
+                    className="text-champagne"
                     strokeWidth={2.5}
                   />
                   <span className="text-[10px] uppercase font-semibold tracking-[0.15em]">
@@ -296,6 +283,11 @@ export const ToolBarDesktop = ({
                       ? `Marcações (${activeTag.length})`
                       : 'Marcações'}
                   </span>
+                  {activeTag.length === 0 && (
+                    <span className="text-[10px] font-medium">
+                      ({tags.length})
+                    </span>
+                  )}
                   <ChevronDown
                     size={14}
                     className={`transition-transform duration-500 ${showTagsMenu ? 'rotate-180' : ''}`}
@@ -362,7 +354,7 @@ export const ToolBarDesktop = ({
                 {activeTag.map((tag: string) => (
                   <div
                     key={tag}
-                    className="flex items-center gap-2 px-3 h-8 bg-champagne border border-champagne text-petroleum rounded-md animate-in fade-in slide-in-from-left-2 duration-300 shrink-0"
+                    className="flex items-center gap-1 px-3 h-8 bg-champagne border border-champagne text-petroleum rounded-md animate-in fade-in slide-in-from-left-2 duration-300 shrink-0"
                   >
                     <span className="text-[10px] font-semibold uppercase tracking-wider whitespace-nowrap">
                       {tag}
@@ -371,7 +363,7 @@ export const ToolBarDesktop = ({
                       onClick={() => toggleTag(tag)}
                       className="hover:bg-black/10 rounded-full p-0.5 transition-colors"
                     >
-                      <X size={12} strokeWidth={3} />
+                      <X size={14} />
                     </button>
                   </div>
                 ))}

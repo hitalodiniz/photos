@@ -24,3 +24,10 @@ export const fetchCitiesByState = async (uf: string, query: string) => {
     .filter((item: any) => normalize(item.nome).includes(normalizedQuery))
     .map((item: any) => `${item.nome}, ${uf}`);
 };
+
+export const normalize = (text: string) =>
+  text
+    ?.toLowerCase()
+    .normalize('NFD')
+    .replace(/[\u0300-\u036f]/g, '') // Remove acentos
+    .trim() || '';

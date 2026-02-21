@@ -217,7 +217,9 @@ export const EditorialHero = ({
             <div className="flex flex-col items-start min-w-0">
               <h1
                 className={`font-semibold text-white transition-all duration-1000 leading-tight tracking-luxury-tight ${
-                  isExpanded ? 'text-3xl md:text-6xl' : 'text-2xl md:text-4xl'
+                  isExpanded
+                    ? 'text-2xl md:text-5xl mb-2'
+                    : 'text-xl md:text-4xl mb-1'
                 }`}
               >
                 {title}
@@ -231,7 +233,7 @@ export const EditorialHero = ({
               isExpanded ? 'opacity-100 translate-y-0' : 'opacity-90'
             }`}
           >
-            <div className="max-w-3xl">
+            <div className="max-w-7xl">
               {React.Children.map(children, (child) =>
                 React.isValidElement(child)
                   ? React.cloneElement(child as React.ReactElement<any>, {

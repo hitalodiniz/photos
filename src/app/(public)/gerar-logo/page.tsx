@@ -1,10 +1,10 @@
 'use client';
-import { sendTestNotificationAction } from '@/actions/notification.actions';
+
 import { getAuthenticatedUser } from '@/core/services/auth-context.service';
 import { updatePushSubscriptionAction } from '@/core/services/profile.service';
 import { useSegment } from '@/hooks/useSegment';
 import { subscribeUserToPush } from '@/lib/push-notifications';
-import { BellRing, SegmentIcon } from 'lucide-react';
+import { BellRing } from 'lucide-react';
 import { useTransition, useState } from 'react';
 
 export default function GerarLogoPage() {
