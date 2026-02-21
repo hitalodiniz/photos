@@ -57,6 +57,7 @@ export default function Lightbox({
   isSingleView,
 }: LightboxProps) {
   const [showInterface, setShowInterface] = useState(true);
+  const [isHoveringNav, setIsHoveringNav] = useState(false);
   const [imageSize, setImageSize] = useState<string | null>(null);
   const [isSlideshowActive, setIsSlideshowActive] = useState(false);
   const [slideshowProgress, setSlideshowProgress] = useState(0);
@@ -280,16 +281,15 @@ export default function Lightbox({
   }, [activeIndex, photos, isMobile]);
 
   useEffect(() => {
-    // Em mobile, sempre mostrar interface (já é o estado inicial)
-    if (typeof window === 'undefined' || window.innerWidth < 768) {
-      return;
-    }
+    if (typeof window === 'undefined' || window.innerWidth < 768) return;
 
     let timer: NodeJS.Timeout;
     const handleActivity = () => {
       setShowInterface(true);
       clearTimeout(timer);
-      timer = setTimeout(() => setShowInterface(false), 3000);
+      timer = setTimeout(() => {
+        if (!isHoveringNav) setShowInterface(false);
+      }, 3000);
     };
 
     window.addEventListener('mousemove', handleActivity);
@@ -297,7 +297,7 @@ export default function Lightbox({
       window.removeEventListener('mousemove', handleActivity);
       clearTimeout(timer);
     };
-  }, []);
+  }, [isHoveringNav]);
 
   // Memoizar classe de visibilidade da interface
   const interfaceVisibilityClass = useMemo(
@@ -438,6 +438,8 @@ export default function Lightbox({
                 setSlideshowProgress(0);
                 if (isSlideshowActive) setIsSlideshowActive(false);
               }}
+              onMouseEnter={() => setIsHoveringNav(true)}
+              onMouseLeave={() => setIsHoveringNav(false)}
               className="fixed left-0 top-1/2 -translate-y-1/2 z-[190] 
                w-16 md:w-32 h-32 md:h-64 flex items-center justify-center 
                text-black/20 dark:text-white/20 hover:text-petroleum hover:dark:text-champagne transition-all group"
@@ -455,6 +457,8 @@ export default function Lightbox({
                 setSlideshowProgress(0);
                 if (isSlideshowActive) setIsSlideshowActive(false);
               }}
+              onMouseEnter={() => setIsHoveringNav(true)}
+              onMouseLeave={() => setIsHoveringNav(false)}
               className="fixed top-1/2 -translate-y-1/2 z-[190] 
                w-16 md:w-32 h-32 md:h-64 flex items-center justify-center 
                dark:text-white/20 hover:text-petroleum hover:dark:text-champagne transition-all group"
@@ -509,7 +513,7 @@ export default function Lightbox({
                 title={galleryTitle}
                 location={location}
                 data={galeria.date}
-                className="line-clamp-2"
+                variant="lightbox"
               />
             </div>
 

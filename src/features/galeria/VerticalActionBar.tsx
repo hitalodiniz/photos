@@ -173,14 +173,14 @@ export function VerticalActionBar({
       {/* 2. WHATSAPP */}
       <button
         onClick={handleShare}
-        className="btn-luxury-base w-12 h-12 rounded-full bg-black/5 dark:bg-white/5 hover:bg-green-500"
+        className="btn-luxury-base w-12 h-12 rounded-full bg-black/5 dark:bg-white/5 hover:bg-green-500 group relative"
         aria-label="Compartilhar no WhatsApp"
       >
         <WhatsAppIcon className="text-black dark:text-white w-5 h-5 transition-colors duration-300" />
         {/* Tooltip */}
         <div className="absolute right-full mr-3 opacity-0 group-hover:opacity-100 transition-opacity pointer-events-none whitespace-nowrap">
-          <div className="bg-champagne text-black text-[10px] font-semibold px-2 py-1 rounded shadow-xl">
-            WhatsApp
+          <div className="bg-[#F3E5AB] text-black text-[10px] font-semibold px-2 py-1 rounded shadow-xl tracking-normal normal-case">
+            Compartilhar no WhatsApp
           </div>
         </div>
       </button>
@@ -188,7 +188,7 @@ export function VerticalActionBar({
       {/* 3. COPIAR LINK */}
       <button
         onClick={handleCopyLink}
-        className="btn-luxury-base w-12 h-12 rounded-full bg-black/5 dark:bg-white/5 hover:bg-black/10 dark:hover:bg-white/10"
+        className="btn-luxury-base w-12 h-12 rounded-full bg-black/5 dark:bg-white/5 hover:bg-black/10 dark:hover:bg-white/10 group relative"
         aria-label="Copiar link"
       >
         {copied ? (
@@ -206,7 +206,7 @@ export function VerticalActionBar({
         )}
         {/* Tooltip */}
         <div className="absolute right-full mr-3 opacity-0 group-hover:opacity-100 transition-opacity pointer-events-none whitespace-nowrap">
-          <div className="bg-champagne text-black text-[10px] font-semibold px-2 py-1 rounded shadow-xl">
+          <div className="bg-[#F3E5AB] text-black text-[10px] font-semibold px-2 py-1 rounded shadow-xl tracking-normal normal-case">
             {copied ? 'Link copiado!' : 'Copiar link'}
           </div>
         </div>
@@ -216,7 +216,7 @@ export function VerticalActionBar({
       {showClose && canUseSlideshow && (
         <button
           onClick={onToggleSlideshow}
-          className={`btn-luxury-base w-12 h-12 rounded-full ${
+          className={`btn-luxury-base w-12 h-12 rounded-full group relative ${
             isSlideshowActive
               ? 'bg-black dark:bg-champagne'
               : 'bg-black/5 dark:bg-white/5 hover:bg-black/10 dark:hover:bg-white/10'
@@ -240,7 +240,7 @@ export function VerticalActionBar({
           )}
           {/* Tooltip */}
           <div className="absolute right-full mr-3 opacity-0 group-hover:opacity-100 transition-opacity pointer-events-none whitespace-nowrap">
-            <div className="bg-champagne text-black text-[10px] font-semibold px-2 py-1 rounded shadow-xl">
+            <div className="bg-[#F3E5AB] text-black text-[10px] font-semibold px-2 py-1 rounded shadow-xl tracking-normal normal-case">
               {isSlideshowActive ? 'Pausar slideshow' : 'Iniciar slideshow'}
             </div>
           </div>
