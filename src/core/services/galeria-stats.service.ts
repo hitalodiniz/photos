@@ -142,7 +142,15 @@ export async function emitGaleriaEvent({
     .select()
     .single();
 
-  if (insertError) return;
+  if (insertError) {
+    // ESTE LOG É VITAL NA VERCEL
+    console.error(
+      '❌ [BI Error] falha ao gravar stat:',
+      insertError.message,
+      insertError.details,
+    );
+    return;
+  }
 
   // 5. Notificações
   await handleNotifications(

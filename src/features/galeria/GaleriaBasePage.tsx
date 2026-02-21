@@ -181,14 +181,14 @@ export default async function GaleriaBasePage({
   // 🎯 REGISTRO DE ACESSO (Server Side)
   // Só disparamos o evento se não houver um processamento recente detectado pelo serviço
   // ou se for explicitamente uma nova sessão de cookie.
-  emitGaleriaEvent({
+  await emitGaleriaEvent({
     galeria: galeriaRaw as unknown as Galeria,
     eventType: 'view',
     metadata: {
       context: isSubdomainContext ? 'subdomain' : 'main',
       sessionId: sessionId, // Passamos o ID para o banco fazer o "Upsert" ou Ignore
       isNewSession: isNewSession,
-      userId: userId,
+      userId: userId || null, // Visitante anônimo
     },
   });
 

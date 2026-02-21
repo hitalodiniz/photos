@@ -81,9 +81,9 @@ export async function createInternalNotification({
   link?: string;
   eventData?: any;
 }) {
-  console.log('--- 🛡️ DEBUG NOTIFICATION START ---');
-  console.log('📍 Target UserId:', userId);
-  console.log('📍 Payload:', { title, type });
+  // console.log('--- 🛡️ DEBUG NOTIFICATION START ---');
+  // console.log('📍 Target UserId:', userId);
+  // console.log('📍 Payload:', { title, type });
 
   try {
     // 1. Validar se o cliente Admin está sendo criado com as chaves certas
@@ -96,7 +96,7 @@ export async function createInternalNotification({
     }
 
     // 2. Inserção na tb_notifications
-    console.log('DB: Tentando insert na tb_notifications...');
+    // console.log('DB: Tentando insert na tb_notifications...');
 
     const { data: insertedData, error: insertError } = await supabase
       .from('tb_notifications')
@@ -125,7 +125,7 @@ export async function createInternalNotification({
       return { success: false, error: insertError };
     }
 
-    console.log('✅ Sucesso DB: Notificação gravada ID:', insertedData?.id);
+    // console.log('✅ Sucesso DB: Notificação gravada ID:', insertedData?.id);
 
     // 3. Busca o Perfil para Push
     console.log('DB: Buscando perfil para Push...');
@@ -137,18 +137,19 @@ export async function createInternalNotification({
 
     if (profileError) {
       console.error('⚠️ Erro ao buscar perfil:', profileError.message);
-    } else {
-      console.log('📡 Status do Perfil:', {
-        hasSubscription: !!profile?.push_subscription,
-        enabled: profile?.notifications_enabled,
-      });
     }
+    // else {
+    //   console.log('📡 Status do Perfil:', {
+    //     hasSubscription: !!profile?.push_subscription,
+    //     enabled: profile?.notifications_enabled,
+    //   });
+    // }
 
     if (
       profile?.push_subscription &&
       profile?.notifications_enabled !== false
     ) {
-      console.log('📲 Enviando Web Push...');
+      // console.log('📲 Enviando Web Push...');
       try {
         await sendPushNotification(profile.push_subscription, {
           title,
@@ -161,7 +162,7 @@ export async function createInternalNotification({
       }
     }
 
-    console.log('--- 🛡️ DEBUG NOTIFICATION END ---');
+    // console.log('--- 🛡️ DEBUG NOTIFICATION END ---');
 
     revalidatePath('/dashboard');
     return { success: true, data: insertedData };
