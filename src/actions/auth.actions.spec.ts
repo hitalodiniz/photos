@@ -4,7 +4,7 @@ import {
   authenticateGaleriaAccessAction,
 } from './auth.actions';
 import * as supabaseServer from '@/lib/supabase.server';
-import { cookies } from 'next/headers';
+import { cookies, headers } from 'next/headers';
 import * as galeriaService from '@/core/services/galeria.service';
 import { revalidateTag } from 'next/cache';
 import * as statsService from '@/core/services/galeria-stats.service';
@@ -15,6 +15,7 @@ vi.mock('@/lib/supabase.server', () => ({
 
 vi.mock('next/headers', () => ({
   cookies: vi.fn(),
+  headers: vi.fn(),
 }));
 
 vi.mock('next/cache', () => ({
@@ -36,6 +37,33 @@ describe('auth.actions.ts - Testes Unitários', () => {
 
   beforeEach(() => {
     vi.clearAllMocks();
+
+    vi.mocked(cookies).mockResolvedValue({
+      get: vi.fn().mockReturnValue(undefined),
+      set: vi.fn(),
+    } as any);
+
+    vi.mocked(headers).mockResolvedValue({
+      get: vi.fn((key: string) => {
+        if (key === 'x-forwarded-for') return '127.0.0.1';
+        if (key === 'user-agent') return 'Mozilla/5.0 (Vitest)';
+        return null;
+      }),
+    } as any);
+
+    vi.stubGlobal(
+      'fetch',
+      vi.fn().mockResolvedValue({
+        json: vi
+          .fn()
+          .mockResolvedValue({
+            query: '127.0.0.1',
+            city: 'Test City',
+            region: 'TS',
+            countryCode: 'BR',
+          }),
+      }),
+    );
   });
 
   describe('captureLeadAction', () => {
@@ -48,7 +76,10 @@ describe('auth.actions.ts - Testes Unitários', () => {
 
     it('1. deve salvar o lead com sucesso e definir o cookie', async () => {
       const mockSet = vi.fn();
-      vi.mocked(cookies).mockResolvedValue({ set: mockSet } as any);
+      vi.mocked(cookies).mockResolvedValue({
+        get: vi.fn().mockReturnValue(undefined),
+        set: mockSet,
+      } as any);
 
       const mockQueryBuilder = {
         from: vi.fn().mockReturnThis(),

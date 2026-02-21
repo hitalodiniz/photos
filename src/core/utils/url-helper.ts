@@ -20,8 +20,8 @@ export const RESOLUTIONS = {
 
   // 🎯 VISUALIZAÇÃO (VIEW) - Otimizado para qualidade visual sem excesso de peso
   // Usado em: Lightbox, visualização de fotos individuais
-  VIEW_MOBILE: '720', // 720p - Suficiente para telas mobile Retina (~500-700KB)
-  VIEW_DESKTOP: '1080', // 1080p - Suficiente para visualização Full HD (~800KB-1.2MB)
+  VIEW_MOBILE: '1280', // 720p - Suficiente para telas mobile Retina (~500-700KB)
+  VIEW_DESKTOP: '1920', // 1080p - Suficiente para visualização Full HD (~800KB-1.2MB)
 
   // 🎯 LEGADO (mantido para compatibilidade, mas preferir VIEW_*)
   MOBILE_VIEW: '1280', // @deprecated - Use VIEW_MOBILE ou VIEW_DESKTOP

@@ -42,6 +42,43 @@ interface TagManagerViewProps {
 
 type FilterMode = 'all' | 'untagged' | string;
 
+const parsePossiblySerializedJson = (input: unknown): unknown => {
+  let current = input;
+  for (let i = 0; i < 2; i++) {
+    if (typeof current !== 'string') break;
+    const trimmed = current.trim();
+    if (!trimmed) return [];
+    try {
+      current = JSON.parse(trimmed);
+    } catch {
+      break;
+    }
+  }
+  return current;
+};
+
+const normalizeTag = (value: unknown) => String(value || '').trim().toUpperCase();
+const normalizeId = (value: unknown) => String(value || '').trim();
+
+const parseGalleryTags = (raw: unknown): string[] => {
+  const parsed = parsePossiblySerializedJson(raw);
+  if (!Array.isArray(parsed)) return [];
+  return Array.from(
+    new Set(parsed.map((tag) => normalizeTag(tag)).filter(Boolean)),
+  );
+};
+
+const parsePhotoTags = (raw: unknown): { id: string; tag: string }[] => {
+  const parsed = parsePossiblySerializedJson(raw);
+  if (!Array.isArray(parsed)) return [];
+  return parsed
+    .map((item: any) => ({
+      id: normalizeId(item?.id),
+      tag: normalizeTag(item?.tag),
+    }))
+    .filter((item) => item.id && item.tag);
+};
+
 export default function TagManagerView({
   galeria,
   photos,
@@ -57,25 +94,11 @@ export default function TagManagerView({
 
   // Estados de Tags
   const [galleryTags, setGalleryTags] = useState<string[]>(() => {
-    try {
-      const data = galeria?.gallery_tags;
-      const parsed = typeof data === 'string' ? JSON.parse(data) : data;
-      return Array.isArray(parsed) ? parsed : [];
-    } catch {
-      return [];
-    }
+    return parseGalleryTags(galeria?.gallery_tags);
   });
 
   const [photoTags, setPhotoTags] = useState<{ id: string; tag: string }[]>(
-    () => {
-      try {
-        const data = galeria?.photo_tags;
-        const parsed = typeof data === 'string' ? JSON.parse(data) : data;
-        return Array.isArray(parsed) ? parsed : [];
-      } catch {
-        return [];
-      }
-    },
+    () => parsePhotoTags(galeria?.photo_tags),
   );
 
   const [newTagName, setNewTagName] = useState('');
@@ -119,7 +142,7 @@ export default function TagManagerView({
   };
 
   const handleCreateNewTag = () => {
-    const normalizedTag = newTagName.trim().toUpperCase();
+    const normalizedTag = normalizeTag(newTagName);
     if (normalizedTag && !galleryTags.includes(normalizedTag)) {
       setGalleryTags((prev) => [...prev, normalizedTag]);
       setNewTagName('');
@@ -128,17 +151,24 @@ export default function TagManagerView({
 
   const handleApplyTagToPhotos = (selectedIds: string[], tagName: string) => {
     if (!selectedIds.length) return;
+    const normalizedSelectedIds = selectedIds.map(normalizeId);
+    const normalizedTagName = normalizeTag(tagName);
     setPhotoTags((prev) => {
-      const filtered = prev.filter((item) => !selectedIds.includes(item.id));
-      return tagName === ''
+      const filtered = prev.filter(
+        (item) => !normalizedSelectedIds.includes(normalizeId(item.id)),
+      );
+      return normalizedTagName === ''
         ? filtered
-        : [...filtered, ...selectedIds.map((id) => ({ id, tag: tagName }))];
+        : [
+            ...filtered,
+            ...normalizedSelectedIds.map((id) => ({ id, tag: normalizedTagName })),
+          ];
     });
     setToast({
       message:
-        tagName === ''
+        normalizedTagName === ''
           ? 'Marcação removida.'
-          : `Fotos marcadas como ${tagName}`,
+          : `Fotos marcadas como ${normalizedTagName}`,
       type: 'success',
     });
   };
@@ -147,9 +177,10 @@ export default function TagManagerView({
 
   const photosWithTags = useMemo(() => {
     const safePhotos = Array.isArray(photos) ? photos : [];
+    const tagMap = new Map(photoTags.map((item) => [normalizeId(item.id), item.tag]));
     return safePhotos.map((p) => ({
       ...p,
-      tag: photoTags.find((t) => t.id === p.id)?.tag,
+      tag: tagMap.get(normalizeId(p.id)),
     }));
   }, [photos, photoTags]);
 
@@ -157,17 +188,37 @@ export default function TagManagerView({
     if (activeFilter === 'all') return photosWithTags;
     if (activeFilter === 'untagged')
       return photosWithTags.filter((p) => !p.tag);
-    return photosWithTags.filter((p) => p.tag === activeFilter);
+    const normalizedFilter = normalizeTag(activeFilter);
+    return photosWithTags.filter((p) => normalizeTag(p.tag) === normalizedFilter);
   }, [photosWithTags, activeFilter]);
 
   const handleSave = async (e?: React.FormEvent) => {
     if (e) e.preventDefault();
     setIsSaving(true);
     try {
+      const normalizedGalleryTags = Array.from(
+        new Set(galleryTags.map((tag) => normalizeTag(tag)).filter(Boolean)),
+      );
+      const filteredPhotoTags = photoTags
+        .map((item) => ({
+          id: normalizeId(item.id),
+          tag: normalizeTag(item.tag),
+        }))
+        .filter(
+          (item) =>
+            item.id && item.tag && normalizedGalleryTags.includes(item.tag),
+        );
+      const dedupedPhotoTags = Array.from(
+        filteredPhotoTags.reduce(
+          (map, item) => map.set(item.id, item),
+          new Map<string, { id: string; tag: string }>(),
+        ).values(),
+      );
+
       const res = await updateGaleriaTagsAction(
         galeria,
-        photoTags,
-        galleryTags,
+        dedupedPhotoTags,
+        normalizedGalleryTags,
       );
       if (res.success) {
         setShowSuccessModal(true); // 🎯 Abre o modal de sucesso
@@ -491,7 +542,7 @@ export default function TagManagerView({
           </p>
 
           <div className="p-4 bg-slate-50 border border-petroleum/10 rounded-luxury flex flex-col items-center gap-4">
-            <p className="text-[10px] font-semibold text-petroleum/80 text-center font-semibold uppercase tracking-luxury">
+            <p className="text-[10px] font-semibold text-petroleum/80 text-center uppercase tracking-luxury">
               Compartilhe com seu cliente:
             </p>
 

@@ -2,10 +2,56 @@
 
 import { createSupabaseServerClient } from '@/lib/supabase.server';
 import { authenticateGaleriaAccess } from '@/core/services/galeria.service';
-import { cookies } from 'next/headers';
+import { cookies, headers } from 'next/headers';
 import { revalidateTag } from 'next/cache';
 import { emitGaleriaEvent } from '@/core/services/galeria-stats.service';
 import { Galeria } from '@/core/types/galeria';
+import { UAParser } from 'ua-parser-js';
+import { getPublicGalleryUrl } from '@/core/utils/url-helper';
+
+function decodeHeader(value: string | null): string | null {
+  if (!value) return null;
+  try {
+    return decodeURIComponent(value);
+  } catch {
+    return value;
+  }
+}
+
+async function getIPLocation(headerList: Headers) {
+  const cfIp = headerList.get('cf-connecting-ip');
+  const cfCountry = headerList.get('cf-ipcountry');
+  if (cfIp && cfCountry) {
+    return {
+      ip: cfIp,
+      city: decodeHeader(headerList.get('cf-ipcity')),
+      region: decodeHeader(headerList.get('cf-region-code')),
+      country: decodeHeader(cfCountry),
+    };
+  }
+
+  const vercelIp = headerList.get('x-real-ip');
+  const vercelCountry = headerList.get('x-vercel-ip-country');
+  if (vercelIp && vercelCountry) {
+    return {
+      ip: vercelIp,
+      city: decodeHeader(headerList.get('x-vercel-ip-city')),
+      region: decodeHeader(headerList.get('x-vercel-ip-country-region')),
+      country: decodeHeader(vercelCountry),
+    };
+  }
+
+  const ip = headerList.get('x-forwarded-for')?.split(',')[0] || 'unknown';
+  const res = await fetch(`http://ip-api.com/json/${ip}`);
+  const data = await res.json();
+
+  return {
+    ip: data.query,
+    city: data.city,
+    region: data.region,
+    country: data.countryCode,
+  };
+}
 
 /**
  * Server Action para capturar leads e autorizar acesso via cookie
@@ -20,6 +66,25 @@ export async function captureLeadAction(
   },
 ) {
   try {
+    const headerList = await headers();
+    const cookieStore = await cookies();
+
+    // Mesmo contexto de rastreio do evento para persistir no metadata do lead
+    const browserVisitorId = cookieStore.get('visitor_id')?.value;
+    const sessionCookie = cookieStore.get(`gsid-${galeria.id}`)?.value;
+    const fallbackIp = headerList.get('x-forwarded-for')?.split(',')[0] || 'unknown';
+    const finalVisitorId =
+      data.visitorId || browserVisitorId || sessionCookie || fallbackIp;
+
+    const locationData = await getIPLocation(headerList as Headers);
+    const ua = headerList.get('user-agent') || '';
+    const parser = new UAParser(ua);
+    const deviceInfo = {
+      os: parser.getOS().name || 'Desconhecido',
+      browser: parser.getBrowser().name || 'Desconhecido',
+      type: parser.getDevice().type || 'desktop',
+    };
+
     // 1. Limpeza e padronização dos dados (Garante prefixo 55 para WhatsApp do Brasil)
     let cleanWhatsapp = data.whatsapp ? data.whatsapp.replace(/\D/g, '') : null;
     if (
@@ -29,6 +94,25 @@ export async function captureLeadAction(
     ) {
       cleanWhatsapp = `55${cleanWhatsapp}`;
     }
+
+    const galeriaUrl = getPublicGalleryUrl(galeria.photographer, galeria.slug);
+    const leadMetadata = {
+      nome: data.nome,
+      email: data.email || null,
+      whatsapp: cleanWhatsapp,
+      visitor_id: finalVisitorId,
+      session_id: sessionCookie || null,
+      galeria_title: galeria.title,
+      galeria_url: galeriaUrl,
+      location: locationData
+        ? `${locationData.city || 'N/A'}, ${locationData.region || 'N/A'}`
+        : 'Não rastreado',
+      location_data: locationData || null,
+      user_agent: ua || null,
+      device_info: deviceInfo,
+      captured_at: new Date().toISOString(),
+      is_conversion: !!data.visitorId,
+    };
 
     const supabase = await createSupabaseServerClient();
 
@@ -50,6 +134,7 @@ export async function captureLeadAction(
           name: data.nome,
           email: data.email || null,
           whatsapp: cleanWhatsapp,
+          metadata: leadMetadata,
         },
       ])
       .select('id') // 🎯 Isso retorna o ID gerado pelo banco
@@ -63,7 +148,7 @@ export async function captureLeadAction(
     // 4. 🎯 EMISSÃO DO EVENTO DE CONVERSÃO (LEAD)
     // Usamos o visitor_id da VIEW anterior para que o BI entenda que é o mesmo usuário
     // Se não houver, usamos o email ou o novo leadId como fallback
-    const trackId = data.visitorId || data.email || newLead?.id;
+    const trackId = finalVisitorId || data.email || newLead?.id;
 
     // 3. Emite o evento usando o ID capturado
     await emitGaleriaEvent({
@@ -100,7 +185,6 @@ export async function captureLeadAction(
     }
 
     // 5. Define o cookie de acesso (válido por 24h)
-    const cookieStore = await cookies();
     cookieStore.set(`galeria-${galeria.id}-lead`, 'captured', {
       path: '/',
       httpOnly: true,

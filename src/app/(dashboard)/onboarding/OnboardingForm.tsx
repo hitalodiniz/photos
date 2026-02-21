@@ -321,6 +321,16 @@ export default function OnboardingForm({
     formData.set('specialty', JSON.stringify(specialties));
     formData.set('custom_specialties', JSON.stringify(customSpecialties));
 
+    // Preserva avatar existente quando não há novo upload.
+    // Evita que profile_picture_url seja zerado no upsert.
+    const existingProfilePictureUrl =
+      !photoFile &&
+      typeof photoPreview === 'string' &&
+      photoPreview.startsWith('http')
+        ? photoPreview
+        : '';
+    formData.set('profile_picture_url_existing', existingProfilePictureUrl);
+
     // Envia quais URLs existentes devem ser mantidas (filtramos blobs locais)
     const existingUrls = activeBackgrounds.filter((url) =>
       url.startsWith('http'),

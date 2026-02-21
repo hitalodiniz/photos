@@ -179,9 +179,11 @@ export default function Lightbox({
   // VIEW_DESKTOP: 1080px (~800KB-1.2MB) - Suficiente para visualização Full HD
   // DOWNLOAD usa 2560px quando necessário
   const photoId = currentPhoto?.id;
+
   const imageWidth = isMobile
     ? RESOLUTIONS.VIEW_MOBILE
     : RESOLUTIONS.VIEW_DESKTOP;
+
   const [realResolution, setRealResolution] = useState<{
     w: number;
     h: number;
@@ -196,7 +198,7 @@ export default function Lightbox({
     imgRef,
   } = useGoogleDriveImage({
     photoId: String(photoId || ''),
-    //width: imageWidth,
+    width: imageWidth,
     priority: true,
     fallbackToProxy: true,
   });
@@ -264,6 +266,7 @@ export default function Lightbox({
       ? RESOLUTIONS.VIEW_MOBILE
       : RESOLUTIONS.VIEW_DESKTOP;
 
+    console.log('imageWidth', imageWidth);
     // Preload próxima foto
     if (activeIndex + 1 < photos.length) {
       const nextId = photos[activeIndex + 1].id;

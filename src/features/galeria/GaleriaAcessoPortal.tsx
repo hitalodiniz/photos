@@ -9,19 +9,13 @@ import {
 } from '@/actions/auth.actions';
 import { Galeria } from '@/core/types/galeria';
 import { getCookie } from '@/core/utils/cookie-helper';
-import {
-  Mail,
-  Smartphone,
-  CheckCircle,
-  Camera,
-  Loader2,
-  User,
-} from 'lucide-react';
+import { Mail, Smartphone, CheckCircle, Loader2, User } from 'lucide-react';
 
 import PasswordInput from '@/components/ui/PasswordInput';
 import * as z from 'zod';
 import { getDirectGoogleUrl } from '@/core/utils/url-helper';
 import { useSegment } from '@/hooks/useSegment';
+import { form } from 'framer-motion/client';
 
 interface GalleryAccessPortalProps {
   galeria: Galeria;
@@ -51,7 +45,19 @@ export default function GalleryAccessPortal({
   const hasPassword = !galeria.is_public;
   const leadsEnabled = galeria.leads_enabled;
 
-  // 🎯 DEDUPLICAÇÃO INTELIGENTE: Se já tem o lead, libera na hora
+  // 🎯 AUTO-SUBMIT CONDICIONAL:
+  // Só envia automático se NÃO houver captura de leads e a senha tiver 4 dígitos.
+  useEffect(() => {
+    if (
+      hasPassword &&
+      !leadsEnabled &&
+      formData.password.length === 4 &&
+      !loading
+    ) {
+      handleSubmit();
+    }
+  }, [formData.password, leadsEnabled, hasPassword]);
+
   useEffect(() => {
     if (!isOpen || !onSuccess) return;
     const leadCaptured = localStorage.getItem(`lead_captured_${galeria.id}`);
@@ -60,10 +66,10 @@ export default function GalleryAccessPortal({
     }
   }, [isOpen, galeria.id, hasPassword, onSuccess]);
 
-  const coverUrl = useMemo(
-    () => getDirectGoogleUrl(galeria.cover_image_url, '1280'),
-    [galeria.cover_image_url],
-  );
+  const coverUrl = useMemo(() => {
+    const resolved = getDirectGoogleUrl(galeria.cover_image_url, '1280');
+    return typeof resolved === 'string' ? resolved : '';
+  }, [galeria.cover_image_url]);
 
   useEffect(() => {
     if (!coverUrl) return;
@@ -122,7 +128,7 @@ export default function GalleryAccessPortal({
       });
   }, [leadsEnabled, hasPassword, galeria]);
 
-  const handleSubmit = async (e: React.FormEvent) => {
+  const handleSubmit = async (e?: React.FormEvent) => {
     if (e) e.preventDefault();
     setErrors({});
     setGlobalError('');
@@ -141,9 +147,9 @@ export default function GalleryAccessPortal({
 
     try {
       if (leadsEnabled) {
-        // 🎯 RECUPERA O ID DE SESSÃO DA VIEW (Gerado no GaleriaBasePage/Server)
-        // Isso garante que o BI ligue este "Lead" à "View" que acabou de acontecer.
-        const sessionVisitorId = getCookie(`gsid-${galeria.id}`);
+        const visitorIdRaw = await getCookie(`gsid-${galeria.id}`);
+        const sessionVisitorId =
+          typeof visitorIdRaw === 'string' ? visitorIdRaw : undefined;
         const leadResult = await captureLeadAction(galeria, {
           nome: formData.name,
           email: formData.email,
@@ -167,18 +173,20 @@ export default function GalleryAccessPortal({
         );
         if (result && !result.success) {
           setErrors({ password: result.error || 'Senha incorreta' });
+          setFormData((prev) => ({ ...prev, password: '' })); // Limpa para permitir novo shake
           setLoading(false);
+          // 🎯 Força o foco no input após o erro
+          setTimeout(() => {
+            const pinInput = document.getElementById('pin-hidden-input');
+            pinInput?.focus();
+          }, 10);
           return;
         }
       }
 
       setLoading(false);
-      // 🎯 EVITA DOUBLE LOADING: Removemos o reload() para não disparar o LoadingScreen da página novamente
-      if (onSuccess) {
-        onSuccess();
-      }
+      if (onSuccess) onSuccess();
     } catch {
-      //setGlobalError('Ocorreu um erro ao processar seu acesso.');
       setLoading(false);
     }
   };
@@ -216,14 +224,10 @@ export default function GalleryAccessPortal({
 
   return (
     <div className="relative min-h-screen w-full flex items-center justify-center overflow-hidden px-4">
-      {/* BACKGROUND - TOTALMENTE VISÍVEL (Com efeito Hero) */}
       <div className="absolute inset-0 z-0">
         <div
-          className={`absolute inset-0 bg-cover bg-center bg-no-repeat transition-all duration-[1500ms] ease-in-out
-            ${!isImageActuallyLoaded ? 'scale-110 blur-2xl opacity-50' : 'scale-100 blur-0 opacity-100'}`}
-          style={{
-            backgroundImage: `url(${coverUrl})`,
-          }}
+          className={`absolute inset-0 bg-cover bg-center bg-no-repeat transition-all duration-[1500ms] ease-in-out ${!isImageActuallyLoaded ? 'scale-110 blur-2xl opacity-50' : 'scale-100 blur-0 opacity-100'}`}
+          style={{ backgroundImage: `url(${coverUrl})` }}
         />
         <div className="absolute inset-0 bg-gradient-to-b from-black/20 via-transparent to-black/40" />
       </div>
@@ -235,28 +239,19 @@ export default function GalleryAccessPortal({
         title="Acesso à Galeria"
         subtitle={galeria.title}
         maxWidth="lg"
-        overlayOpacity="10" // Apenas 10% de escurecimento (quase invisível)
-        blurLevel="none" // Foto de fundo fica 100% nítida
+        overlayOpacity="10"
+        blurLevel="none"
         footer={footer}
       >
         <div className="space-y-4">
-          <div className="flex items-start gap-3 text-left mb-1">
-            <SegmentIcon className="text-champagne w-8 h-8" strokeWidth={1.5} />
-            <p className="text-petroleum/70 text-[13px] italic leading-relaxed text-left font-semibold">
-              {hasPassword ? (
-                <span>
-                  Galeria protegida. Por favor, identifique-se para continuar.
-                </span>
-              ) : (
-                <span>
-                  Seja bem-vindo!
-                  <br />
-                  Por favor, informe seus dados para visualizar as fotos.
-                </span>
-              )}
-            </p>
-          </div>
-
+          {leadsEnabled && (
+            <div className="flex items-start gap-3 text-left mb-1">
+              <SegmentIcon className="text-gold w-5 h-5" strokeWidth={1.5} />
+              <p className="text-petroleum text-[12px] italic leading-relaxed text-left font-medium">
+                Seja bem-vindo! Informe seus dados para visualizar as fotos.
+              </p>
+            </div>
+          )}
           <form
             id="access-portal-form"
             onSubmit={handleSubmit}
@@ -267,134 +262,115 @@ export default function GalleryAccessPortal({
                 {galeria.leads_require_name && (
                   <div className="space-y-1.5">
                     <label>
-                      <User size={12} className="text-petroleum/40" /> Nome
-                      Completo
+                      <User size={12} className="text-gold" /> Nome Completo
                     </label>
                     <input
                       type="text"
                       value={formData.name}
-                      minLength={5}
-                      maxLength={50}
+                      required
                       onChange={(e) =>
                         setFormData({ ...formData, name: e.target.value })
                       }
                       placeholder="Como devemos te chamar?"
-                      className="input-luxury"
                     />
                     {errors.name && (
-                      <p className="text-red-500/80 text-[9px] uppercase font-semibold">
+                      <p className="text-red-500 text-[10px] font-bold uppercase tracking-tighter">
                         {errors.name}
                       </p>
                     )}
                   </div>
                 )}
 
-                {(galeria.leads_require_whatsapp ||
-                  galeria.leads_require_email) && (
-                  <div className="flex flex-col md:flex-row gap-3">
-                    {galeria.leads_require_whatsapp && (
-                      <div className="flex-1 space-y-1.5">
-                        <label>
-                          <Smartphone size={12} className="text-petroleum/40" />{' '}
-                          WhatsApp
-                        </label>
-                        <input
-                          type="text"
-                          inputMode="numeric"
-                          value={formData.whatsapp}
-                          onChange={(e) =>
-                            setFormData({ ...formData, whatsapp: maskPhone(e) })
-                          }
-                          placeholder="(00) 00000-0000"
-                          maxLength={15}
-                          className="input-luxury"
-                        />
-                        {errors.whatsapp && (
-                          <p className="text-red-500/80 text-[9px] uppercase font-semibold">
-                            {errors.whatsapp}
-                          </p>
-                        )}
-                      </div>
-                    )}
-                    {galeria.leads_require_email && (
-                      <div className="flex-1 space-y-1.5">
-                        <label>
-                          <Mail size={12} className="text-petroleum/40" />{' '}
-                          E-mail
-                        </label>
-                        <input
-                          type="email"
-                          value={formData.email}
-                          onChange={(e) =>
-                            setFormData({ ...formData, email: e.target.value })
-                          }
-                          placeholder="seu@email.com"
-                          className="input-luxury"
-                        />
-                        {errors.email && (
-                          <p className="text-red-500/80 text-[9px] uppercase font-semibold">
-                            {errors.email}
-                          </p>
-                        )}
-                      </div>
-                    )}
-                  </div>
-                )}
+                <div className="flex flex-col md:flex-row gap-3">
+                  {galeria.leads_require_whatsapp && (
+                    <div className="flex-1 space-y-1.5">
+                      <label>
+                        <Smartphone size={12} className="text-gold" /> WhatsApp
+                      </label>
+                      <input
+                        type="text"
+                        inputMode="numeric"
+                        value={formData.whatsapp}
+                        onChange={(e) =>
+                          setFormData({ ...formData, whatsapp: maskPhone(e) })
+                        }
+                        placeholder="(00) 00000-0000"
+                        required
+                      />
+                      {errors.whatsapp && (
+                        <p className="text-red-500 text-[10px] font-bold uppercase tracking-tighter">
+                          {errors.whatsapp}
+                        </p>
+                      )}
+                    </div>
+                  )}
+                  {galeria.leads_require_email && (
+                    <div className="flex-1 space-y-1.5">
+                      <label>
+                        <Mail size={12} className="text-gold" /> E-mail
+                      </label>
+                      <input
+                        type="email"
+                        value={formData.email}
+                        onChange={(e) =>
+                          setFormData({ ...formData, email: e.target.value })
+                        }
+                        placeholder="seu@email.com"
+                        required
+                      />
+                      {errors.email && (
+                        <p className="text-red-500 text-[10px] font-bold uppercase tracking-tighter">
+                          {errors.email}
+                        </p>
+                      )}
+                    </div>
+                  )}
+                </div>
               </>
             )}
 
             {hasPassword && (
-              <PasswordInput
-                label="Senha de Acesso"
-                placeholder="Senha numérica"
-                inputMode="numeric"
-                pattern="[0-9]*"
-                maxLength={8}
-                value={formData.password}
-                onChange={(e) =>
-                  setFormData({
-                    ...formData,
-                    password: e.target.value.replace(/\D/g, ''),
-                  })
-                }
-                error={errors.password}
-              />
+              <div className="pt-2">
+                <PasswordInput
+                  variant={leadsEnabled ? 'compact' : 'pin'}
+                  label="Senha de Acesso"
+                  value={formData.password}
+                  onChange={(e) =>
+                    setFormData({
+                      ...formData,
+                      password: e.target.value.replace(/\D/g, ''),
+                    })
+                  }
+                  error={errors.password}
+                  autoFocus={!leadsEnabled}
+                />
+              </div>
             )}
-            {/* BLOCO LGPD EDITORIAL */}
+
             {leadsEnabled && (
-              <div className="pt-4 pb-2">
-                <div className="flex items-start gap-3 group">
-                  {/* container do checkbox */}
+              <div className="pt-2">
+                <div className="flex items-start gap-3 p-3 bg-slate-50 rounded-luxury border border-slate-200">
                   <div className="relative flex items-center mt-1 shrink-0 cursor-pointer">
                     <input
                       id="lgpd-consent"
                       type="checkbox"
                       required
-                      className="input-luxury peer"
+                      className="peer h-4 w-4 rounded border-slate-300 text-gold focus:ring-gold"
                     />
                     <CheckCircle
-                      size={11}
+                      size={12}
                       className="absolute ml-0.5 text-gold opacity-0 peer-checked:opacity-100 transition-opacity pointer-events-none"
                     />
                   </div>
-
-                  {/* texto fora do label para evitar o uppercase global */}
-                  <div className="text-[12px] text-petroleum font-semibold leading-relaxed !whitespace-normal break-words">
-                    Esta coleta de dados é uma opção do organizador desta
-                    galeria. os dados são processados pelo app{' '}
-                    <span className="font-bold">Sua Galeria</span> para a
-                    seguinte finalidade:
+                  <div className="text-[11px] text-petroleum/80 leading-relaxed">
+                    Esta coleta de dados é uma opção do organizador. Os dados
+                    são processados para:
                     <span className="font-bold">
                       {' '}
-                      {galeria.lead_purpose ||
-                        'identificação para acesso à galeria aaa'}
+                      {galeria.lead_purpose || 'identificação para acesso'}
                     </span>
-                    . não sendo utilizados para nenhuma outra finalidade,
-                    conforme a
-                    <button
-                      type="button"
-                      className="inline underline-offset-4 font-bold ml-1"
-                    >
+                    . Confira nossa{' '}
+                    <button type="button" className="underline font-bold">
                       política de privacidade
                     </button>
                     .
@@ -403,7 +379,7 @@ export default function GalleryAccessPortal({
               </div>
             )}
             {globalError && (
-              <p className="text-red-500 text-[11px] text-center font-medium bg-red-500/5 py-2 rounded-lg border border-red-500/10">
+              <p className="text-red-500 text-[10px] text-center font-semibold uppercase tracking-widest bg-red-500/5 py-2 rounded-luxury border border-red-500/10">
                 {globalError}
               </p>
             )}

@@ -211,14 +211,6 @@ export default function GaleriaCard({
     return (
       <>
         <button
-          onClick={handleWhatsAppShare}
-          className="p-2 text-petroleum bg-white border border-slate-200 rounded-luxury interactive-luxury-petroleum"
-          title="WhatsApp"
-        >
-          <WhatsAppIcon className="w-4 h-4" />
-        </button>
-
-        <button
           onClick={(e) => {
             e.stopPropagation();
             if (!isNavigating) handleEditClick(e);
@@ -257,20 +249,6 @@ export default function GaleriaCard({
             <Tag size={16} className="text-petroleum" />
           )}
         </button>
-
-        {mounted && (
-          <button
-            onClick={handleCopy}
-            className="p-2 text-petroleum bg-white border border-slate-200 rounded-luxury interactive-luxury-petroleum"
-            title="Link"
-          >
-            {copied ? (
-              <Check size={16} className="text-green-500 animate-in zoom-in" />
-            ) : (
-              <Link2 size={16} />
-            )}
-          </button>
-        )}
 
         <button
           onClick={(e) => {
@@ -326,6 +304,26 @@ export default function GaleriaCard({
             <BarChart3 size={16} />
           )}
         </button>
+        <button
+          onClick={handleWhatsAppShare}
+          className="p-2 text-petroleum bg-white border border-slate-200 rounded-luxury interactive-luxury-petroleum"
+          title="WhatsApp"
+        >
+          <WhatsAppIcon className="w-4 h-4" />
+        </button>
+        {mounted && (
+          <button
+            onClick={handleCopy}
+            className="p-2 text-petroleum bg-white border border-slate-200 rounded-luxury interactive-luxury-petroleum"
+            title="Link"
+          >
+            {copied ? (
+              <Check size={16} className="text-green-500 animate-in zoom-in" />
+            ) : (
+              <Link2 size={16} />
+            )}
+          </button>
+        )}
       </>
     );
   };
@@ -580,7 +578,7 @@ export default function GaleriaCard({
           </div>
         </div>
 
-        <div className="flex flex-col p-3 space-y-2 bg-white">
+        <div className="flex flex-col p-1 space-y-2 bg-white">
           <div className="flex flex-col gap-1 py-0.5 w-full">
             <div className="flex items-center justify-start gap-1.5 text-[11px] text-editorial-gray">
               <div className="flex items-center gap-1.5 min-w-0">
@@ -660,10 +658,11 @@ export default function GaleriaCard({
             </div>
           </div>
 
-          <div className="flex items-center justify-between p-3 md:p-2.5 bg-slate-50/50 border-t border-petroleum/10 mt-auto">
-            <div className="flex gap-2 md:gap-1.5 flex-1">
+          <div className="flex flex-wrap items-center justify-between p-2 bg-slate-50/50 border-t border-petroleum/10 mt-auto gap-2">
+            <div className="flex flex-wrap items-center gap-1.5 flex-1 min-w-0">
               {renderActionButtons()}
-              <div className="flex-1 flex justify-end">
+              {/* O ContextMenu agora fica junto ao wrap se necessário */}
+              <div className="flex items-center justify-center">
                 <GaleriaContextMenu
                   galeria={galeria}
                   currentView={currentView}

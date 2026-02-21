@@ -8,7 +8,7 @@ import {
   getPublicProfileGalerias,
 } from '@/core/services/galeria.service';
 import type { Galeria, Photographer } from '@/core/types/galeria';
-import { ChevronDown, Loader2 } from 'lucide-react';
+import { CameraOff, ChevronDown, Loader2, SearchX } from 'lucide-react';
 import { PublicGaleriaCard } from './PublicGaleriaCard';
 import { GaleriaFooter } from '@/components/galeria';
 import { usePlan } from '@/core/context/PlanContext';
@@ -372,12 +372,56 @@ export default function ProfileContent({
           </div>
         ) : (
           !isLoading && (
-            <div className="py-20 text-center">
-              <p className="text-[10px] uppercase tracking-luxury-widest text-champagne/60">
-                {activeFilter !== 'all'
-                  ? `Nenhum resultado para "${activeFilter}"`
-                  : `Nenhuma ${terms.item} disponível.`}
-              </p>
+            <div className="min-h-[60vh] flex flex-col items-center justify-center px-4 animate-in fade-in zoom-in-95 duration-1000">
+              {/* Ícone com escala maior e composição de camadas */}
+              <div className="relative mb-12 flex items-center justify-center">
+                <div className="absolute w-32 h-32 bg-champagne/5 rounded-full scale-150 blur-3xl" />
+                <div className="relative border border-gold p-8 rounded-full">
+                  {activeFilter !== 'all' ? (
+                    <SearchX
+                      size={54}
+                      strokeWidth={0.75}
+                      className="text-petroleum/20"
+                    />
+                  ) : (
+                    <CameraOff
+                      size={54}
+                      strokeWidth={0.75}
+                      className="text-gold"
+                    />
+                  )}
+                </div>
+              </div>
+
+              {/* Divisor Ornamental Estendido */}
+              <div className="flex items-center gap-6 mb-8 w-full max-w-md">
+                <div className="h-[2px] flex-1 bg-gradient-to-r from-transparent via-gold to-transparent" />
+                <div className="w-2 h-2 rotate-45 border border-gold bg-white" />
+                <div className="h-[2px] flex-1 bg-gradient-to-r from-transparent via-gold to-transparent" />
+              </div>
+
+              {/* Texto com largura controlada para evitar compressão visual */}
+              <div className="max-w-md text-center space-y-4">
+                <p className="text-[12px] md:text-14px uppercase tracking-[0.15em] text-petroleum font-medium leading-relaxed">
+                  {activeFilter !== 'all'
+                    ? `Não foram encontradas galerias registradas sob a categoria "${activeFilter}".`
+                    : `O fotógrafo ainda não disponibilizou galerias públicas em seu perfil profissional.`}
+                </p>
+
+                <p className="text-[10px] md:text-[11px] uppercase tracking-[0.4em] text-gold font-semibold">
+                  Solicite acesso privado caso possua um convite.
+                </p>
+              </div>
+
+              {/* Ação de retorno estilizada */}
+              {activeFilter !== 'all' && (
+                <button
+                  onClick={() => setActiveFilter('all')}
+                  className="mt-12 px-8 py-3 border border-petroleum/10 text-[10px] tracking-[0.3em] uppercase font-bold text-petroleum hover:bg-petroleum hover:text-white transition-all duration-500 rounded-full"
+                >
+                  Ver todas as categorias
+                </button>
+              )}
             </div>
           )
         )}

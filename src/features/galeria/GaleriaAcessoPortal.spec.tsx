@@ -51,6 +51,14 @@ describe('GalleryAccessPortal', () => {
     vi.clearAllMocks();
   });
 
+  const fillPin = (value: string) => {
+    const pinInput = document.getElementById('pin-hidden-input');
+    expect(pinInput).toBeTruthy();
+    fireEvent.change(pinInput as HTMLInputElement, {
+      target: { value },
+    });
+  };
+
   it('deve renderizar os campos de lead e senha corretamente', () => {
     render(<GalleryAccessPortal {...defaultProps} />);
 
@@ -60,17 +68,14 @@ describe('GalleryAccessPortal', () => {
     ).toBeDefined();
     expect(screen.getByPlaceholderText('seu@email.com')).toBeDefined();
     expect(screen.getByPlaceholderText('(00) 00000-0000')).toBeDefined();
-    expect(screen.getByPlaceholderText('Senha numérica')).toBeDefined();
+    expect(document.getElementById('pin-hidden-input')).toBeTruthy();
   });
 
   it('deve validar campos obrigatórios', async () => {
     render(<GalleryAccessPortal {...defaultProps} />);
-
-    // Marca o consentimento LGPD para permitir o submit
-    fireEvent.click(screen.getByRole('checkbox'));
-
-    const submitButton = screen.getByText('Acessar Galeria');
-    fireEvent.click(submitButton);
+    const form = document.getElementById('access-portal-form');
+    expect(form).toBeTruthy();
+    fireEvent.submit(form as HTMLFormElement);
 
     expect(await screen.findByText('Nome obrigatório')).toBeDefined();
     expect(await screen.findByText('E-mail inválido')).toBeDefined();
@@ -95,9 +100,7 @@ describe('GalleryAccessPortal', () => {
     fireEvent.change(screen.getByPlaceholderText('(00) 00000-0000'), {
       target: { value: '31988887777' },
     });
-    fireEvent.change(screen.getByPlaceholderText('Senha numérica'), {
-      target: { value: '1234' },
-    });
+    fillPin('1234');
 
     // Marca o consentimento LGPD
     fireEvent.click(screen.getByRole('checkbox'));
@@ -108,11 +111,11 @@ describe('GalleryAccessPortal', () => {
       expect(captureLeadAction).toHaveBeenCalledWith(
         // Verifica se o primeiro argumento é o objeto da galeria (ou contém o ID)
         expect.objectContaining({ id: 'gal-123' }),
-        {
+        expect.objectContaining({
           nome: 'João Silva',
           email: 'joao@example.com',
           whatsapp: '31988887777',
-        },
+        }),
       );
     });
 
@@ -141,9 +144,7 @@ describe('GalleryAccessPortal', () => {
     fireEvent.change(screen.getByPlaceholderText('(00) 00000-0000'), {
       target: { value: '31988887777' },
     });
-    fireEvent.change(screen.getByPlaceholderText('Senha numérica'), {
-      target: { value: '1234' },
-    });
+    fillPin('1234');
 
     // Marca o consentimento LGPD
     fireEvent.click(screen.getByRole('checkbox'));
@@ -171,9 +172,7 @@ describe('GalleryAccessPortal', () => {
     fireEvent.change(screen.getByPlaceholderText('(00) 00000-0000'), {
       target: { value: '31988887777' },
     });
-    fireEvent.change(screen.getByPlaceholderText('Senha numérica'), {
-      target: { value: '1234' },
-    });
+    fillPin('1234');
 
     // Marca o consentimento LGPD
     fireEvent.click(screen.getByRole('checkbox'));

@@ -65,6 +65,9 @@ export default function PhotoGrid({ photos, galeria }: any) {
 
   // --- 4. MEMOS (CÁLCULOS) ---
 
+  const normalizeTag = (value: unknown) => String(value || '').trim().toUpperCase();
+  const normalizeId = (value: unknown) => String(value || '').trim();
+
   // 🎯 MAPEAMENTO DE TAGS NAS FOTOS (Crucial para o filtro funcionar)
   const photosWithTags = useMemo(() => {
     const safePhotos = Array.isArray(photos) ? photos : [];
@@ -78,12 +81,20 @@ export default function PhotoGrid({ photos, galeria }: any) {
 
       if (!Array.isArray(parsedTags)) return safePhotos;
 
-      // Cria um mapa para acesso rápido O(1)
-      const tagsMap = new Map(parsedTags.map((t: any) => [t.id, t.tag]));
+      // Em produção, pequenas variações de formato (espaços/case) podem quebrar o match.
+      // Normalizamos ID e TAG para garantir consistência entre ambientes.
+      const tagsMap = new Map(
+        parsedTags
+          .filter((t: any) => t?.id != null)
+          .map((t: any) => [normalizeId(t.id), normalizeTag(t.tag)]),
+      );
 
       return safePhotos.map((p: any) => ({
         ...p,
-        tag: tagsMap.get(p.id) || p.tag, // Prioriza o mapa, mas mantém se já existir
+        tag:
+          tagsMap.get(normalizeId(p.id)) ||
+          normalizeTag(p.tag) ||
+          p.tag, // Prioriza o mapa normalizado, com fallback para valor original
       }));
     } catch (err) {
       console.error('Erro ao processar tags no Grid:', err);
@@ -139,8 +150,12 @@ export default function PhotoGrid({ photos, galeria }: any) {
 
         // 🎯 Se o array estiver vazio, exibe todas.
         // Se tiver algo, verifica se a tag da foto está no array.
+        const selectedTags = Array.isArray(activeTag)
+          ? activeTag.map(normalizeTag)
+          : [normalizeTag(activeTag)];
+        const photoTag = normalizeTag(photo.tag);
         const matchesTag =
-          activeTag.length === 0 || activeTag.includes(photo.tag);
+          selectedTags.length === 0 || selectedTags.includes(photoTag);
 
         return matchesFavorite && matchesTag;
       }),
