@@ -17,36 +17,42 @@ interface GaleriaEventPayload {
 /**
  * 🌍 Captura a localização via IP
  */
-async function getIPLocation(ip: string) {
-  let targetIp = ip;
-  if (
-    !targetIp ||
-    targetIp === 'unknown' ||
-    targetIp === '127.0.0.1' ||
-    targetIp === '::1'
-  ) {
-    try {
-      const ipRes = await fetch('https://api.ipify.org?format=json');
-      const ipData = await ipRes.json();
-      targetIp = ipData.ip;
-    } catch {
-      return null;
-    }
+async function getIPLocation(headerList: Headers) {
+  // 1. Cloudflare
+  const cfIp = headerList.get('cf-connecting-ip');
+  const cfCountry = headerList.get('cf-ipcountry');
+  if (cfIp && cfCountry) {
+    return {
+      ip: cfIp,
+      city: headerList.get('cf-ipcity'),
+      region: headerList.get('cf-region-code'),
+      country: cfCountry,
+    };
   }
 
-  try {
-    const res = await fetch(`https://ipapi.co/${targetIp}/json/`);
-    const data = await res.json();
-    if (data.error) return null;
+  // 2. Vercel
+  const vercelIp = headerList.get('x-real-ip');
+  const vercelCountry = headerList.get('x-vercel-ip-country');
+  if (vercelIp && vercelCountry) {
     return {
-      city: data.city,
-      region: data.region_code,
-      country: data.country_code,
-      ip: targetIp,
+      ip: vercelIp,
+      city: headerList.get('x-vercel-ip-city'),
+      region: headerList.get('x-vercel-ip-country-region'),
+      country: vercelCountry,
     };
-  } catch {
-    return null;
   }
+
+  // 3. Fallback: ip-api.com
+  const ip = headerList.get('x-forwarded-for')?.split(',')[0] || 'unknown';
+  const res = await fetch(`http://ip-api.com/json/${ip}`);
+  const data = await res.json();
+
+  return {
+    ip: data.query,
+    city: data.city,
+    region: data.region,
+    country: data.countryCode,
+  };
 }
 
 /**
@@ -112,7 +118,7 @@ export async function emitGaleriaEvent({
     if (recent && recent.length > 0) return;
   }
 
-  const locationData = await getIPLocation(ip);
+  const locationData = await getIPLocation(headerList as Headers);
   const ua = headerList.get('user-agent') || '';
   const parser = new UAParser(ua);
 
@@ -178,24 +184,28 @@ async function handleNotifications(
   if (!userId) return;
 
   const locBadge = loc ? ` em ${loc.city}/${loc.region}` : '';
+  let locBadgeFormatted = locBadge;
+  if (locBadge.includes('undefined')) {
+    locBadgeFormatted = '';
+  }
   const config: Record<string, any> = {
     view: {
-      title: `👀 Novo Acesso${locBadge}`,
+      title: `👀 Novo Acesso${locBadgeFormatted}`,
       type: 'info',
       msg: `Galeria "${galeria.title}" visualizada.`,
     },
     lead: {
-      title: `👤 Visitante Identificado${locBadge}`,
+      title: `👤 Visitante Identificado${locBadgeFormatted}`,
       type: 'success',
       msg: `${metadata.nome || 'Um visitante'} entrou.`,
     },
     download: {
-      title: `📥 Download Realizado${locBadge}`,
+      title: `📥 Download Realizado${locBadgeFormatted}`,
       type: 'info',
       msg: `Fotos da galeria "${galeria.title}" baixadas.`,
     },
     share: {
-      title: `📤 Compartilhamento${locBadge}`,
+      title: `📤 Compartilhamento${locBadgeFormatted}`,
       type: 'info',
       msg: `Galeria "${galeria.title}" compartilhada.`,
     },

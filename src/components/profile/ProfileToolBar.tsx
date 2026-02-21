@@ -76,7 +76,7 @@ export const ProfileToolBar = ({
   return (
     <div className="z-[110] sticky top-0 w-full font-sans">
       <div className="mx-auto bg-petroleum backdrop-blur-xl w-full border-b border-white/10 shadow-2xl relative">
-        <div className="flex flex-row items-center w-full max-w-[1600px] px-3 md:px-4 h-14 mx-auto gap-2">
+        <div className="flex flex-row items-center w-full max-w-[1600px] px-3 md:px-4 h-12 mx-auto gap-2">
           <div className="flex-1 min-w-0 flex items-center overflow-hidden">
             <PlanGuard feature="profileLevel" variant="mini">
               <div className="flex items-center gap-3 overflow-hidden">
