@@ -8,7 +8,8 @@ import { ToolBarDesktop } from './ToolBarDesktop';
 import MasonryGrid from './MasonryGrid';
 import {
   convertToDirectDownloadUrl,
-  getDownloadUrl,
+  getDownloadDirectGoogleUrl,
+  RESOLUTIONS,
   TAMANHO_MAXIMO_FOTO_SEM_COMPACTAR,
 } from '@/core/utils/url-helper';
 import { formatMessage } from '@/core/utils/message-helper';
@@ -28,6 +29,8 @@ import { getGalleryPermission } from '@/core/utils/plan-helpers';
 import { DownloadCenterModal } from './DownloadCenterModal';
 import { emitGaleriaEvent } from '@/core/services/galeria-stats.service';
 import { getProfileByUsername } from '@/core/services/profile.service';
+import { i } from 'framer-motion/client';
+import { blob } from 'stream/consumers';
 
 export default function PhotoGrid({ photos, galeria }: any) {
   // --- 1. ESTADOS DE INTERFACE ---
@@ -363,18 +366,12 @@ export default function PhotoGrid({ photos, galeria }: any) {
               // 🎯 LÓGICA INTELIGENTE:
               // Se a foto já for menor que 1.5MB, baixa o original direto do Google.
               // Se for maior, usa o proxy para reduzir para 2560px.
-              if (sizeInBytes > 0 && sizeInBytes <= tetoMaximo) {
-                // Busca original (usando a função que você já tem de download direto)
-                const res = await fetch(getDownloadUrl(photo.id));
-                if (!res.ok) throw new Error('Erro no original');
-                blob = await res.blob();
-              } else {
-                // Busca via Proxy para comprimir arquivos gigantes
-                const proxyUrl = `/api/galeria/cover/${photo.id}?w=2560`;
-                const res = await fetch(proxyUrl);
-                if (!res.ok) throw new Error('Erro no proxy');
-                blob = await res.blob();
-              }
+
+              const res = await fetch(
+                getDownloadDirectGoogleUrl(photo.id, RESOLUTIONS.DOWNLOAD),
+              );
+              if (!res.ok) throw new Error('Erro no original');
+              blob = await res.blob();
 
               const globalPhotoNumber =
                 firstPhotoGlobalIndex + i + indexInBatch + 1;
