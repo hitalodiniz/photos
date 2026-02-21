@@ -5,6 +5,7 @@ import { cookies, headers } from 'next/headers';
 import { createInternalNotification } from './notification.service';
 import { UAParser } from 'ua-parser-js';
 import { Galeria } from '../types/galeria';
+import { getPublicGalleryUrl } from '../utils/url-helper';
 
 interface GaleriaEventPayload {
   galeria: Galeria;
@@ -121,6 +122,8 @@ export async function emitGaleriaEvent({
     type: parser.getDevice().type || 'desktop',
   };
 
+  const galeriaUrl = getPublicGalleryUrl(galeria.photographer, galeria.slug);
+
   // 4. Gravação no Banco
   const { data: newEvent, error: insertError } = await supabase
     .from('tb_galeria_stats')
@@ -132,6 +135,8 @@ export async function emitGaleriaEvent({
         device_info: deviceInfo,
         metadata: {
           ...metadata,
+          galeria_title: galeria.title, // 👈 Título para o Menu
+          galeria_url: galeriaUrl, // 👈 URL para o Menu
           location: locationData
             ? `${locationData.city}, ${locationData.region}`
             : 'Não rastreado',
@@ -157,7 +162,7 @@ export async function emitGaleriaEvent({
     eventType,
     galeria,
     newEvent,
-    metadata,
+    { ...metadata, galeria_title: galeria.title, galeria_url: galeriaUrl },
     locationData,
   );
 }
@@ -187,12 +192,12 @@ async function handleNotifications(
     download: {
       title: `📥 Download Realizado${locBadge}`,
       type: 'info',
-      msg: `Fotos baixadas.`,
+      msg: `Fotos da galeria "${galeria.title}" baixadas.`,
     },
     share: {
       title: `📤 Compartilhamento${locBadge}`,
       type: 'info',
-      msg: `Galeria compartilhada.`,
+      msg: `Galeria "${galeria.title}" compartilhada.`,
     },
   };
 

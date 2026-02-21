@@ -12,6 +12,7 @@ import {
   BellOff,
   X,
   ChevronRight,
+  Images,
 } from 'lucide-react';
 
 import {
@@ -259,6 +260,13 @@ export function NotificationMenu({ userId }: { userId: string }) {
                 </div>
               ) : (
                 notifications.map((n) => {
+                  // Extração de dados da Galeria do Metadata
+                  const galeriaTitle =
+                    n.metadata?.event_data?.galeria_title ||
+                    n.metadata?.galeria_title;
+                  const galeriaUrl =
+                    n.metadata?.event_data?.galeria_url ||
+                    n.metadata?.galeria_url;
                   return (
                     <div
                       key={n.id}
@@ -282,6 +290,32 @@ export function NotificationMenu({ userId }: { userId: string }) {
                           <p className="text-[12px] text-petroleum/70 leading-relaxed font-medium line-clamp-2">
                             {n.message}
                           </p>
+
+                          {/* 🎯 SEÇÃO DA GALERIA (Título e Link) */}
+                          {galeriaTitle && (
+                            <div className="flex items-center justify-between gap-3 p-2 rounded-lg bg-petroleum/[0.03] border border-petroleum/5 mt-1">
+                              <div className="flex items-center gap-2 overflow-hidden">
+                                <Images
+                                  size={14}
+                                  className="text-gold shrink-0"
+                                />
+                                <span className="text-[10px] font-bold text-petroleum/80 uppercase tracking-wider truncate">
+                                  {galeriaTitle}
+                                </span>
+                              </div>
+
+                              {galeriaUrl && (
+                                <a
+                                  href={galeriaUrl}
+                                  target="_blank"
+                                  rel="noopener noreferrer"
+                                  className="flex items-center gap-1 text-[9px] font-black text-gold hover:text-petroleum transition-colors shrink-0 uppercase tracking-tighter"
+                                >
+                                  Abrir <ExternalLink size={10} />
+                                </a>
+                              )}
+                            </div>
+                          )}
 
                           <div className="flex items-center justify-between mt-3">
                             {/* Data em cinza sutil */}
