@@ -14,6 +14,15 @@ interface GaleriaEventPayload {
   metadata?: any;
 }
 
+function decodeHeader(value: string | null): string | null {
+  if (!value) return null;
+  try {
+    return decodeURIComponent(value);
+  } catch {
+    return value;
+  }
+}
+
 /**
  * 🌍 Captura a localização via IP
  */
@@ -24,9 +33,9 @@ async function getIPLocation(headerList: Headers) {
   if (cfIp && cfCountry) {
     return {
       ip: cfIp,
-      city: headerList.get('cf-ipcity'),
-      region: headerList.get('cf-region-code'),
-      country: cfCountry,
+      city: decodeHeader(headerList.get('cf-ipcity')),
+      region: decodeHeader(headerList.get('cf-region-code')),
+      country: decodeHeader(cfCountry),
     };
   }
 
@@ -36,9 +45,9 @@ async function getIPLocation(headerList: Headers) {
   if (vercelIp && vercelCountry) {
     return {
       ip: vercelIp,
-      city: headerList.get('x-vercel-ip-city'),
-      region: headerList.get('x-vercel-ip-country-region'),
-      country: vercelCountry,
+      city: decodeHeader(headerList.get('x-vercel-ip-city')),
+      region: decodeHeader(headerList.get('x-vercel-ip-country-region')),
+      country: decodeHeader(vercelCountry),
     };
   }
 
