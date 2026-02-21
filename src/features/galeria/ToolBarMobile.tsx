@@ -159,22 +159,54 @@ export const ToolBarMobile = ({
   };
 
   // 🎯 Extrai as tags únicas diretamente do objeto galeria
+  // Depois — lê photo_tags, e cai para gallery_tags se vazio
   const galleryTags = useMemo(() => {
-    if (!galeria?.photo_tags) return [];
-    try {
-      const parsed =
-        typeof galeria.photo_tags === 'string'
-          ? JSON.parse(galeria.photo_tags)
-          : galeria.photo_tags;
-      if (!Array.isArray(parsed)) return [];
-      const uniqueTags = Array.from(
-        new Set(parsed.map((item: any) => item.tag)),
-      ).filter((tag) => tag && typeof tag === 'string') as string[];
-      return uniqueTags.sort();
-    } catch (err) {
-      return [];
+    const parsePossiblySerializedJson = (input: unknown): unknown => {
+      let current = input;
+      for (let i = 0; i < 3; i++) {
+        if (typeof current !== 'string') break;
+        const trimmed = current.trim();
+        if (!trimmed) return [];
+        try {
+          current = JSON.parse(trimmed);
+        } catch {
+          break;
+        }
+      }
+      return current;
+    };
+
+    // 1. Tenta extrair tags únicas do photo_tags
+    if (galeria?.photo_tags) {
+      try {
+        const parsed = parsePossiblySerializedJson(galeria.photo_tags);
+
+        if (Array.isArray(parsed) && parsed.length > 0) {
+          const uniqueTags = Array.from(
+            new Set(parsed.map((item: any) => item.tag)),
+          ).filter((tag) => tag && typeof tag === 'string') as string[];
+          if (uniqueTags.length > 0) return uniqueTags.sort();
+        }
+      } catch {
+        // continua para fallback
+      }
     }
-  }, [galeria?.photo_tags]);
+
+    // 2. Fallback: usa gallery_tags (lista de nomes)
+    if (galeria?.gallery_tags) {
+      try {
+        const parsed = parsePossiblySerializedJson(galeria.gallery_tags);
+
+        if (Array.isArray(parsed)) {
+          return parsed.filter((tag) => tag && typeof tag === 'string').sort();
+        }
+      } catch {
+        // retorna vazio
+      }
+    }
+
+    return [];
+  }, [galeria?.photo_tags, galeria?.gallery_tags]);
 
   const hasMultipleTags = galleryTags.length > 0 && canUseTags;
 

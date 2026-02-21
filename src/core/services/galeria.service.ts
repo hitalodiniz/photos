@@ -1085,8 +1085,12 @@ export async function updateGaleriaTagsAction(
     const { error } = await supabase
       .from('tb_galerias')
       .update({
-        photo_tags,
-        gallery_tags,
+        photo_tags:
+          typeof photo_tags === 'string' ? JSON.parse(photo_tags) : photo_tags,
+        gallery_tags:
+          typeof gallery_tags === 'string'
+            ? JSON.parse(gallery_tags)
+            : gallery_tags,
         updated_at: new Date().toISOString(),
       })
       .eq('id', galeria.id);

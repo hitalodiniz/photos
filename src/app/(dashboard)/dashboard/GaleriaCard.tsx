@@ -40,6 +40,7 @@ import { usePlan } from '@/core/context/PlanContext';
 import UpgradeModal from '@/components/ui/UpgradeModal';
 import React from 'react';
 import { executeShare } from '@/core/utils/share-helper';
+import { div } from 'framer-motion/client';
 
 interface GaleriaCardProps {
   galeria: Galeria;
@@ -208,6 +209,12 @@ export default function GaleriaCard({
   const renderActionButtons = () => {
     if (currentView !== 'active') return null;
 
+    // 1. Reduzi a opacidade da borda para /10 ou /20 para suavizar
+    // 2. Voltei para rounded-luxury para manter a identidade do card
+    // 3. Ajustei o tamanho fixo (h-9 w-9) para garantir simetria total
+    const btnBaseClass =
+      'h-9 w-9 flex items-center justify-center text-petroleum transition-all rounded-luxury border border-petroleum/10 bg-white hover:bg-slate-50 hover:border-petroleum/30 disabled:opacity-50 shadow-sm';
+
     return (
       <>
         <button
@@ -216,7 +223,7 @@ export default function GaleriaCard({
             if (!isNavigating) handleEditClick(e);
           }}
           disabled={isNavigating}
-          className="p-2 text-petroleum bg-white border border-slate-200 rounded-luxury interactive-luxury-petroleum"
+          className={btnBaseClass}
           title="Editar"
         >
           <Pencil size={16} />
@@ -236,17 +243,13 @@ export default function GaleriaCard({
             );
           }}
           disabled={isNavigating}
-          className={`p-2 rounded-luxury transition-all flex items-center justify-center border shadow-sm ${
-            isNavigating
-              ? 'opacity-50'
-              : 'text-gold bg-white border-slate-200 interactive-luxury-gold'
-          }`}
-          title="Marcação de Fotos (Tags)"
+          className={btnBaseClass}
+          title="Marcação de Fotos"
         >
           {isNavigating ? (
             <Loader2 size={16} className="animate-spin" />
           ) : (
-            <Tag size={16} className="text-petroleum" />
+            <Tag size={16} />
           )}
         </button>
 
@@ -263,40 +266,28 @@ export default function GaleriaCard({
               'Gerando relatório de visitantes...',
             );
           }}
-          title={
-            canViewLeads &&
-            (isNavigating ||
-              (!galeria.leads_enabled && (galeria.leads_count ?? 0) <= 0))
-              ? 'Cadastro de Visitantes (Não habilitado nesta galeria)'
-              : 'Relatório de Visitantes'
-          }
-          className={`p-2 rounded-luxury flex items-center justify-center transition-all border shadow-sm ${
-            !canViewLeads
-              ? 'bg-white text-petroleum/30 border-slate-200 grayscale hover:border-gold cursor-pointer'
-              : 'bg-white text-petroleum border-slate-200 interactive-luxury-petroleum disabled:opacity-50 disabled:bg-slate-50 disabled:text-slate-400 disabled:border-slate-200 disabled:cursor-not-allowed'
-          }`}
+          className={btnBaseClass}
           disabled={
             canViewLeads &&
             (isNavigating ||
               (!galeria.leads_enabled && (galeria.leads_count ?? 0) <= 0))
           }
         >
-          {canViewLeads ? (
-            <Users size={16} />
-          ) : (
+          {!canViewLeads ? (
             <div className="relative">
               <Users size={16} className="opacity-40" />
               <Lock size={8} className="absolute -top-1 -right-1 text-gold" />
             </div>
+          ) : (
+            <Users size={16} />
           )}
         </button>
-        {/* 📊 BOTÃO DE ANÁLISE DE PERFORMANCE (BI) */}
 
         <button
           onClick={handleOpenBIReport}
           disabled={isNavigating}
-          className="p-2 text-petroleum bg-white border border-slate-200 rounded-luxury interactive-luxury-petroleum"
-          title="Estatísticas da galeria"
+          className={btnBaseClass}
+          title="Estatísticas"
         >
           {isNavigating ? (
             <Loader2 size={16} className="animate-spin text-gold" />
@@ -304,21 +295,19 @@ export default function GaleriaCard({
             <BarChart3 size={16} />
           )}
         </button>
+
         <button
           onClick={handleWhatsAppShare}
-          className="p-2 text-petroleum bg-white border border-slate-200 rounded-luxury interactive-luxury-petroleum"
+          className={btnBaseClass}
           title="WhatsApp"
         >
           <WhatsAppIcon className="w-4 h-4" />
         </button>
+
         {mounted && (
-          <button
-            onClick={handleCopy}
-            className="p-2 text-petroleum bg-white border border-slate-200 rounded-luxury interactive-luxury-petroleum"
-            title="Link"
-          >
+          <button onClick={handleCopy} className={btnBaseClass} title="Link">
             {copied ? (
-              <Check size={16} className="text-green-500 animate-in zoom-in" />
+              <Check size={16} className="text-green-500" />
             ) : (
               <Link2 size={16} />
             )}
@@ -457,7 +446,7 @@ export default function GaleriaCard({
             </div>
           </div>
 
-          <div className="flex items-center gap-2 flex-shrink-0">
+          <div className="flex items-center justify-start gap-2 flex-shrink-0">
             {renderActionButtons()}
             <div className="flex justify-end min-w-[32px]">
               <GaleriaContextMenu
@@ -578,7 +567,7 @@ export default function GaleriaCard({
           </div>
         </div>
 
-        <div className="flex flex-col p-1 space-y-2 bg-white">
+        <div className="flex flex-col py-1 px-3 space-y-4 bg-white">
           <div className="flex flex-col gap-1 py-0.5 w-full">
             <div className="flex items-center justify-start gap-1.5 text-[11px] text-editorial-gray">
               <div className="flex items-center gap-1.5 min-w-0">
@@ -658,22 +647,24 @@ export default function GaleriaCard({
             </div>
           </div>
 
-          <div className="flex flex-wrap items-center justify-between p-2 bg-slate-50/50 border-t border-petroleum/10 mt-auto gap-2">
-            <div className="flex flex-wrap items-center gap-1.5 flex-1 min-w-0">
+          <div className="flex items-center justify-between py-2 bg-slate-50/50 border-t border-petroleum/10 mt-auto w-full">
+            {/* Esquerda: Botões de Ação */}
+            <div className="flex flex-wrap items-center gap-1.5">
               {renderActionButtons()}
-              {/* O ContextMenu agora fica junto ao wrap se necessário */}
-              <div className="flex items-center justify-center">
-                <GaleriaContextMenu
-                  galeria={galeria}
-                  currentView={currentView}
-                  onArchive={onArchive}
-                  onDelete={onDelete}
-                  onToggleShowOnProfile={onToggleShowOnProfile}
-                  onRestore={onRestore}
-                  onPermanentDelete={onPermanentDelete}
-                  isUpdating={isUpdating}
-                />
-              </div>
+            </div>
+
+            {/* Direita: Menu de Contexto */}
+            <div className="flex items-center justify-end min-w-[32px] ml-auto">
+              <GaleriaContextMenu
+                galeria={galeria}
+                currentView={currentView}
+                onArchive={onArchive}
+                onDelete={onDelete}
+                onToggleShowOnProfile={onToggleShowOnProfile}
+                onRestore={onRestore}
+                onPermanentDelete={onPermanentDelete}
+                isUpdating={isUpdating}
+              />
             </div>
           </div>
         </div>

@@ -65,6 +65,21 @@ export default function PhotoGrid({ photos, galeria }: any) {
 
   // --- 4. MEMOS (CÁLCULOS) ---
 
+  const parsePossiblySerializedJson = (input: unknown): unknown => {
+    let current = input;
+    for (let i = 0; i < 3; i++) {
+      if (typeof current !== 'string') break;
+      const trimmed = current.trim();
+      if (!trimmed) return [];
+      try {
+        current = JSON.parse(trimmed);
+      } catch {
+        break;
+      }
+    }
+    return current;
+  };
+
   const normalizeTag = (value: unknown) => String(value || '').trim().toUpperCase();
   const normalizeId = (value: unknown) => String(value || '').trim();
 
@@ -74,10 +89,14 @@ export default function PhotoGrid({ photos, galeria }: any) {
     if (!galeria?.photo_tags) return safePhotos;
 
     try {
-      const parsedTags =
-        typeof galeria.photo_tags === 'string'
-          ? JSON.parse(galeria.photo_tags)
-          : galeria.photo_tags;
+      const parsedTags = parsePossiblySerializedJson(galeria.photo_tags);
+
+      console.log(
+        '[PhotoGrid] photo_tags tipo:',
+        typeof galeria?.photo_tags,
+        '| parsed length:',
+        Array.isArray(parsedTags) ? parsedTags.length : 'não é array',
+      );
 
       if (!Array.isArray(parsedTags)) return safePhotos;
 

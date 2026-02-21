@@ -230,6 +230,8 @@ async function handleNotifications(
     type: item.type,
     link: `/dashboard/galerias/${galeria.id}/stats`,
     eventData: event,
+    // Esta rotina roda durante render da galeria pública; revalidatePath é proibido nesse contexto.
+    shouldRevalidateDashboard: false,
   });
 }
 

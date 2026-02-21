@@ -358,7 +358,13 @@ export default function TagManagerView({
                     >
                       <span className="truncate">{tag}</span>
                       <span className="text-[11px] opacity-60">
-                        {photosWithTags.filter((p) => p.tag === tag).length}
+                        {
+                          photosWithTags.filter(
+                            (p) =>
+                              String(p.tag || '').trim().toUpperCase() ===
+                              String(tag || '').trim().toUpperCase(),
+                          ).length
+                        }
                       </span>
                     </button>
                     <button

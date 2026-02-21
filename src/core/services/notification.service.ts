@@ -73,6 +73,7 @@ export async function createInternalNotification({
   type = 'info',
   link,
   eventData = null,
+  shouldRevalidateDashboard = true,
 }: {
   userId: string;
   title: string;
@@ -80,6 +81,7 @@ export async function createInternalNotification({
   type?: 'info' | 'success' | 'warning' | 'error';
   link?: string;
   eventData?: any;
+  shouldRevalidateDashboard?: boolean;
 }) {
   // console.log('--- 🛡️ DEBUG NOTIFICATION START ---');
   // console.log('📍 Target UserId:', userId);
@@ -164,7 +166,9 @@ export async function createInternalNotification({
 
     // console.log('--- 🛡️ DEBUG NOTIFICATION END ---');
 
-    revalidatePath('/dashboard');
+    if (shouldRevalidateDashboard) {
+      revalidatePath('/dashboard');
+    }
     return { success: true, data: insertedData };
   } catch (err: any) {
     console.error('💥 Erro Crítico (Catch):', {

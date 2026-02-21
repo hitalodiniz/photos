@@ -15,8 +15,6 @@ import { VerticalThumbnails } from './VerticalThumbnails';
 import { ThumbnailStrip } from './ThumbnailStrip';
 import { VerticalActionBar } from './VerticalActionBar';
 import { getCleanSlug, executeShare } from '@/core/utils/share-helper';
-import { getProfileByUsername } from '@/core/services/profile.service';
-import { div } from 'framer-motion/client';
 
 interface Photo {
   id: string | number;
@@ -266,7 +264,6 @@ export default function Lightbox({
       ? RESOLUTIONS.VIEW_MOBILE
       : RESOLUTIONS.VIEW_DESKTOP;
 
-    console.log('imageWidth', imageWidth);
     // Preload próxima foto
     if (activeIndex + 1 < photos.length) {
       const nextId = photos[activeIndex + 1].id;
