@@ -173,6 +173,56 @@ export function useDashboardActions(
     }
   };
 
+  const handleBulkDelete = async () => {
+    const ids = Array.from(selectedIds);
+    if (ids.length === 0) return;
+
+    setUpdatingId('bulk');
+    try {
+      const results = await Promise.all(ids.map((id) => moveToTrash(id)));
+      if (results.some((r) => r.success)) {
+        setGalerias((prev) =>
+          prev.map((item) =>
+            selectedIds.has(item.id) ? { ...item, is_deleted: true } : item,
+          ),
+        );
+        await triggerProfileRevalidation();
+        setToast({ message: 'Galerias movidas para lixeira.', type: 'success' });
+        setSelectedIds(new Set());
+      }
+    } catch {
+      setToast({ message: 'Erro ao mover para lixeira.', type: 'error' });
+    } finally {
+      setUpdatingId(null);
+    }
+  };
+
+  const handleBulkRestore = async () => {
+    const ids = Array.from(selectedIds);
+    if (ids.length === 0) return;
+
+    setUpdatingId('bulk');
+    try {
+      const results = await Promise.all(ids.map((id) => restoreGaleria(id)));
+      if (results.some((r) => r.success)) {
+        setGalerias((prev) =>
+          prev.map((item) =>
+            selectedIds.has(item.id)
+              ? { ...item, is_deleted: false, is_archived: false }
+              : item,
+          ),
+        );
+        await triggerProfileRevalidation();
+        setToast({ message: 'Galerias restauradas.', type: 'success' });
+        setSelectedIds(new Set());
+      }
+    } catch {
+      setToast({ message: 'Erro ao restaurar galerias.', type: 'error' });
+    } finally {
+      setUpdatingId(null);
+    }
+  };
+
   return {
     updatingId,
     selectedIds,
@@ -185,6 +235,8 @@ export function useDashboardActions(
     handleSyncDrive,
     executePermanentDelete,
     handleBulkArchive,
+    handleBulkDelete,
+    handleBulkRestore,
     handleToggleSelect: (id: string) => {
       setSelectedIds((prev) => {
         const newSet = new Set(prev);

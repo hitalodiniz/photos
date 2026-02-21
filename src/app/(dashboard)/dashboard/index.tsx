@@ -29,7 +29,6 @@ import DashboardFooter from './components/DashboardFooter';
 import TrialBanner from '@/components/ui/TrialBanner';
 import { PlanProvider } from '@/core/context/PlanContext';
 import { useSyncInternalTraffic } from '@/hooks/useSyncInternalTraffic';
-import { TrafficStatusBadge } from '@/components/dashboard/TrafficStatusBadge';
 
 export default function Dashboard({
   initialGalerias,
@@ -112,7 +111,7 @@ export default function Dashboard({
     if (initialProfile && initialProfile.accepted_terms === false) {
       // Usamos window.location para garantir que o estado do App seja resetado
       // ou navigate se preferir a transição suave do seu provider
-      navigate('/onboarding', 'Concluindo sua configuração de segurança...');
+      navigate('/onboarding', 'Concluindo sua configuração...');
     }
   }, [initialProfile, navigate]);
 

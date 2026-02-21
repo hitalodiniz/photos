@@ -2,8 +2,8 @@ import { SegmentType } from '@/core/config/segments';
 
 export function getThemeFavicon(segment: SegmentType) {
   const colors: Record<SegmentType, string> = {
-    // #F3E5AB (Bege) - PHOTOGRAPHER
-    PHOTOGRAPHER: '%23F3E5AB',
+    // #D4AF37 (Gold) - PHOTOGRAPHER
+    PHOTOGRAPHER: '%23D4AF37',
 
     // #FF477E (Pink) - EVENT
     EVENT: '%23FF477E',

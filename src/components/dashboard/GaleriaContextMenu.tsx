@@ -105,7 +105,7 @@ export default function GaleriaContextMenu({
         <>
           {/* Toggle Exibir no Perfil */}
           <div
-            className={`${isMobile ? 'p-3' : 'px-4 py-2'} flex items-center justify-between gap-3 rounded-luxury hover:bg-slate-50 transition-colors`}
+            className={`${isMobile ? 'p-3' : 'px-4 py-2'} flex items-center justify-end gap-3 rounded-luxury hover:bg-slate-50 transition-colors `}
           >
             <div className="flex items-center gap-2 min-w-0 flex-1">
               {galeria.show_on_profile ? (
@@ -250,7 +250,7 @@ export default function GaleriaContextMenu({
   );
 
   return (
-    <div className="relative">
+    <div className="relative ml-1">
       <button
         ref={buttonRef}
         onClick={(e) => {

@@ -12,13 +12,13 @@ export const GaleriaHeader = ({ title, location, data, className }) => {
         <h1 className=" font-semibold text-editorial-ink dark:text-white leading-tight tracking-luxury-tight flex items-start gap-3 text-xl md:text-2xl mb-1 w-full transition-colors duration-300">
           <div className="relative shrink-0 mt-1">
             <SegmentIcon
-              className="text-editorial-gray dark:text-champagne w-5 h-5 md:w-6 md:h-6 transition-colors duration-300"
+              className="text-petroleum dark:text-champagne w-5 h-5 md:w-6 md:h-6 transition-colors duration-300"
               strokeWidth={1.5}
             />
           </div>
           <span className="line-clamp-2 break-words">{title}</span>
         </h1>
-        <div className="h-[2px] bg-editorial-gray dark:bg-champagne rounded-luxury mb-3 w-16 md:w-24 shadow-lg shrink-0 transition-colors duration-300 opacity-30" />
+        <div className="h-[2px] bg-petroleum dark:bg-champagne rounded-luxury mb-3 w-16 md:w-24 shadow-lg shrink-0 transition-colors duration-300 opacity-30" />
       </div>
 
       <div className="flex flex-col items-start gap-y-1 w-full min-w-0">

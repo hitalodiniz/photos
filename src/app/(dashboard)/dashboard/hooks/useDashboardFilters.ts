@@ -2,7 +2,7 @@ import { useState, useMemo } from 'react';
 import type { Galeria } from '@/core/types/galeria';
 import { normalizeString } from '@/core/utils/string-helpers';
 
-const CARDS_PER_PAGE = 8;
+const CARDS_PER_PAGE = 9;
 
 export type ViewType = 'active' | 'archived' | 'trash';
 
@@ -18,8 +18,10 @@ export function useDashboardFilters(galerias: Galeria[]) {
 
   const counts = useMemo(
     () => ({
-      active: (galerias || []).filter((g) => !g.is_archived && !g.is_deleted).length,
-      archived: (galerias || []).filter((g) => g.is_archived && !g.is_deleted).length,
+      active: (galerias || []).filter((g) => !g.is_archived && !g.is_deleted)
+        .length,
+      archived: (galerias || []).filter((g) => g.is_archived && !g.is_deleted)
+        .length,
       trash: (galerias || []).filter((g) => g.is_deleted).length,
     }),
     [galerias],

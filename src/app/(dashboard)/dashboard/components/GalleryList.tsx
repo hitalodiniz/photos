@@ -63,7 +63,7 @@ export default function GalleryList({
         className={
           viewMode === 'grid'
             ? /* 🎯 Grid Padronizado: Mantém largura fixa por coluna para não esticar cards sozinhos */
-              'grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-2 auto-rows-max'
+              'grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-3 gap-2 auto-rows-max'
             : 'space-y-3'
         }
       >
