@@ -11,7 +11,6 @@ const formatDataForExport = (data: any[]) => {
     Localização: item.location || 'N/A',
     Dispositivo: item.device_info?.type || 'N/A',
     OS: item.device_info?.os || 'N/A',
-    ID_Visitante: item.visitor_id,
   }));
 };
 

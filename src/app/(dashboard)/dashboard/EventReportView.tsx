@@ -142,19 +142,29 @@ export default function EventReportView({ galeria }: any) {
       exportButtons={
         <div className="flex gap-2">
           <button
-            onClick={() => exportToCSV(events, 'Estatísticas')}
+            onClick={() =>
+              exportToCSV(events, 'Estatísticas - ' + galeria.title)
+            }
             className="btn-secondary-petroleum px-4 flex items-center gap-2 text-[12px] font-semibold"
           >
             <FileText size={14} /> CSV
           </button>
           <button
-            onClick={() => exportToExcel(events, 'Estatísticas')}
+            onClick={() =>
+              exportToExcel(events, 'Estatísticas - ' + galeria.title)
+            }
             className="btn-secondary-petroleum px-4 flex items-center gap-2 text-[12px] font-semibold"
           >
             <TableIcon size={14} /> EXCEL
           </button>
           <button
-            onClick={() => exportToPDF(events, 'Estatísticas', 'Relatório')}
+            onClick={() =>
+              exportToPDF(
+                events,
+                'Estatísticas - ' + galeria.title,
+                'Relatório - ' + galeria.title,
+              )
+            }
             className="btn-luxury-primary px-4 flex items-center gap-2 text-[12px] font-semibold"
           >
             <FileDown size={14} /> PDF
