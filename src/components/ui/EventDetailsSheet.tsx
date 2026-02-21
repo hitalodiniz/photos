@@ -57,10 +57,11 @@ export function EventDetailsSheet({
               </div>
               <div className="p-3 bg-slate-50 rounded-luxury border border-slate-100">
                 <p className="text-[8px] text-slate-400 font-semibold uppercase mb-1">
-                  Endereço IP
+                  Localização
                 </p>
-                <p className="text-[11px] font-semibold text-petroleum font-mono">
-                  {event.visitor_id}
+                <p className="text-[11px] font-semibold text-petroleum flex items-center gap-1.5">
+                  <MapPin size={10} className="text-gold" />
+                  {event.location || 'Não rastreado'}
                 </p>
               </div>
             </div>

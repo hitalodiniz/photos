@@ -373,9 +373,17 @@ export default function SettingsForm({ profile }: { profile: any }) {
         >
           <div className="space-y-4">
             <GalleryInteractionFields
-              // 🎯 Mapeia os registros para dentro de settings.defaults
-              register={(name: string) =>
-                register(`settings.defaults.${name}` as any)
+              enableFavorites={!!settings.defaults.enable_favorites}
+              enableSlideshow={!!settings.defaults.enable_slideshow}
+              setEnableFavorites={(val) =>
+                setValue('settings.defaults.enable_favorites', val, {
+                  shouldDirty: true,
+                })
+              }
+              setEnableSlideshow={(val) =>
+                setValue('settings.defaults.enable_slideshow', val, {
+                  shouldDirty: true,
+                })
               }
             />
             <p className="text-[9px] text-petroleum/50 italic px-1">

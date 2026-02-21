@@ -19,6 +19,7 @@ import {
   Save,
   ShieldCheck,
   Loader2,
+  ArrowLeft,
 } from 'lucide-react';
 
 import {
@@ -381,7 +382,9 @@ export default function OnboardingForm({
     setPhotoFile(file);
 
     try {
-      const { data: { user } } = await supabase.auth.getUser();
+      const {
+        data: { user },
+      } = await supabase.auth.getUser();
       const userId = initialData?.id ?? user?.id;
       if (!userId) {
         setToastConfig({
@@ -417,9 +420,9 @@ export default function OnboardingForm({
       if (uploadError) throw uploadError;
 
       // 3. URL pública para o form
-      const { data: { publicUrl } } = supabase.storage
-        .from(bucket)
-        .getPublicUrl(filePath);
+      const {
+        data: { publicUrl },
+      } = supabase.storage.from(bucket).getPublicUrl(filePath);
 
       setPhotoPreview(publicUrl);
     } catch (err) {
@@ -976,8 +979,7 @@ export default function OnboardingForm({
                 }}
                 className="btn-secondary-petroleum w-full text-[10px]"
               >
-                {/* ArrowLeft se disponível nos seus imports, ou mantenha o padrão */}
-                Ir para Dashboard
+                <ArrowLeft size={14} /> ir para Espaço de Galerias
               </button>
 
               <a

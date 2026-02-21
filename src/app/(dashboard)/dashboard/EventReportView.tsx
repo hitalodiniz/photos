@@ -12,10 +12,15 @@ import {
   Target,
   CalendarDays,
   Zap,
+  TableIcon,
 } from 'lucide-react';
 import { useRouter } from 'next/navigation';
 import { RelatorioBasePage, LoadingScreen } from '@/components/ui';
-import { exportToCSV, exportToPDF } from '@/core/utils/export-helper';
+import {
+  exportToCSV,
+  exportToExcel,
+  exportToPDF,
+} from '@/core/utils/export-helper';
 import { getGaleriaEventReport } from '@/core/services/galeria-stats.service';
 import { EventDetailsSheet } from '@/components/ui/EventDetailsSheet';
 import { RelatorioTable } from '@/components/ui/RelatorioTable';
@@ -137,18 +142,22 @@ export default function EventReportView({ galeria }: any) {
       exportButtons={
         <div className="flex gap-2">
           <button
-            type="button"
-            onClick={() => exportToCSV(events, 'bi')}
-            className="btn-secondary-petroleum px-3 py-1.5 text-[10px] font-semibold"
+            onClick={() => exportToCSV(events, 'Estatísticas')}
+            className="btn-secondary-petroleum px-4 flex items-center gap-2 text-[12px] font-semibold"
           >
-            <FileText size={14} />
+            <FileText size={14} /> CSV
           </button>
           <button
-            type="button"
-            onClick={() => exportToPDF(events, 'bi', 'Relatório')}
-            className="btn-luxury-primary px-3 py-1.5 text-[10px] font-semibold"
+            onClick={() => exportToExcel(events, 'Estatísticas')}
+            className="btn-secondary-petroleum px-4 flex items-center gap-2 text-[12px] font-semibold"
           >
-            <FileDown size={14} />
+            <TableIcon size={14} /> EXCEL
+          </button>
+          <button
+            onClick={() => exportToPDF(events, 'Estatísticas', 'Relatório')}
+            className="btn-luxury-primary px-4 flex items-center gap-2 text-[12px] font-semibold"
+          >
+            <FileDown size={14} /> PDF
           </button>
         </div>
       }
