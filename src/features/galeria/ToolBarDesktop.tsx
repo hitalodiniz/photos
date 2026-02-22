@@ -311,7 +311,7 @@ export const ToolBarDesktop = ({
                   </span>
                   {activeTag.length === 0 && (
                     <span className="text-[10px] font-medium">
-                      ({tags.length})
+                      ({tags.length - 1})
                     </span>
                   )}
                   <ChevronDown
@@ -531,7 +531,7 @@ export const ToolBarDesktop = ({
 
                       {/* Links Externos */}
                       {externalLinks.map((linkObj: any, index: number) => {
-                        if (!linksStatus[index]) return null;
+                        if (linksStatus[index] === false) return null;
 
                         return (
                           <button

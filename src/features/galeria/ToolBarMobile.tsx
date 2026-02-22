@@ -419,7 +419,7 @@ export const ToolBarMobile = ({
 
                     {/* Links Externos */}
                     {externalLinks.map((linkObj: any, index: number) => {
-                      if (!linksStatus[index]) return null;
+                      if (linksStatus[index] === false) return null;
 
                       return (
                         <button

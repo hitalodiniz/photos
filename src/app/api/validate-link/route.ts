@@ -8,11 +8,31 @@ export async function GET(request: Request) {
   if (!url) return NextResponse.json({ valid: false }, { status: 400 });
 
   try {
-    // O servidor faz a requisição. O Google não bloqueia o servidor como bloqueia o browser.
-    const res = await fetch(url, { method: 'HEAD' });
+    // Garante URL absoluta e protocolo suportado
+    const parsed = new URL(url);
+    if (!['http:', 'https:'].includes(parsed.protocol)) {
+      return NextResponse.json({ valid: false }, { status: 400 });
+    }
 
-    // Se for Google Drive e o arquivo for privado/inexistente, ele retorna 403 ou 404
-    return NextResponse.json({ valid: res.ok });
+    // Primeiro tenta HEAD (mais leve)
+    const headRes = await fetch(url, {
+      method: 'HEAD',
+      redirect: 'follow',
+      cache: 'no-store',
+    });
+
+    if (headRes.ok) {
+      return NextResponse.json({ valid: true });
+    }
+
+    // Fallback para GET: alguns links do Drive não respondem bem em HEAD
+    const getRes = await fetch(url, {
+      method: 'GET',
+      redirect: 'follow',
+      cache: 'no-store',
+    });
+
+    return NextResponse.json({ valid: getRes.ok });
   } catch {
     return NextResponse.json({ valid: false });
   }

@@ -426,10 +426,30 @@ const MasonryItem = memo(
                   mode={mode}
                 />
 
-                {/* 🎯 Badge de Tag Existente (Para o Admin ver o que já marcou) */}
+                {/* 🎯 Badge de Tag Existente (Refatorado) */}
                 {photo.tag && (
-                  <div className="absolute top-2 right-2 !py-0 z-30 bg-petroleum/90 backdrop-blur-md px-2 border-1 border-gold/30 rounded-md">
-                    <span className="text-champagne text-[8px] font-semibold uppercase tracking-widest">
+                  <div
+                    className="absolute z-30 flex items-center justify-center backdrop-blur-md border border-white/20 rounded-full shadow-sm"
+                    style={{
+                      top: isMobile ? '6px' : '10px',
+                      right: isMobile ? '6px' : '10px',
+                      // Escala o padding e a altura proporcionalmente ao btnScale
+                      paddingLeft: `${10 * btnScale}px`,
+                      paddingRight: `${10 * btnScale}px`,
+                      height: `${24 * btnScale}px`,
+                      backgroundColor: 'rgba(0, 0, 0, 0.25)', // Transparência elegante
+                    }}
+                  >
+                    <span
+                      className="text-white font-medium whitespace-nowrap leading-none"
+                      style={{
+                        // A fonte diminui conforme as colunas aumentam
+                        fontSize:
+                          isMobile && currentCols === 2
+                            ? '9px'
+                            : `${11 * btnScale}px`,
+                      }}
+                    >
                       {photo.tag}
                     </span>
                   </div>
