@@ -5,6 +5,7 @@ import GoogleDriveImagePreview from '@/components/ui/GoogleDriveImagePreview';
 import { InfoTooltip } from '@/components/ui/InfoTooltip';
 import { usePlan } from '@/core/context/PlanContext';
 import { profile } from 'console';
+import { div } from 'framer-motion/client';
 import {
   FolderSync,
   ImageIcon,
@@ -75,34 +76,34 @@ export function GaleriaDriveSection({
 
           {/* ⚠️ ALERTA DE LIMITE DO PLANO */}
           {driveData.id && (
-            <PlanGuard
-              feature="maxPhotosPerGallery"
-              label="Limite de Fotos por Galeria"
-              scenarioType="limit"
-              forceShowLock={isOverLimit}
+            // <PlanGuard
+            //   feature="maxPhotosPerGallery"
+            //   label="Limite de Fotos por Galeria"
+            //   scenarioType="limit"
+            //   forceShowLock={isOverLimit}
+            // >
+            <div
+              className={`p-2.5 rounded-luxury border flex gap-2.5 ${
+                isOverLimit
+                  ? 'bg-red-50 border-red-200'
+                  : 'bg-blue-50 border-blue-100'
+              }`}
             >
-              <div
-                className={`p-2.5 rounded-luxury border flex gap-2.5 ${
-                  isOverLimit
-                    ? 'bg-red-50 border-red-200'
-                    : 'bg-blue-50 border-blue-100'
-                }`}
-              >
-                <AlertTriangle
-                  size={14}
-                  className={isOverLimit ? 'text-red-500' : 'text-blue-500'}
-                />
-                <div className="space-y-0.5">
-                  <p className="text-[9px] font-bold uppercase text-petroleum">
-                    {driveData.photoCount || 0} fotos sincronizadas
-                  </p>
-                  <p className="text-[9px] text-petroleum/70 leading-tight">
-                    Seu plano ({permissions.maxPhotosPerGallery} fotos){' '}
-                    {isOverLimit ? 'não suporta esta pasta.' : 'é compatível.'}
-                  </p>
-                </div>
+              <AlertTriangle
+                size={14}
+                className={isOverLimit ? 'text-red-500' : 'text-blue-500'}
+              />
+              <div className="space-y-0.5">
+                <p className="text-[9px] font-bold uppercase text-petroleum">
+                  {driveData.photoCount || 0} fotos sincronizadas
+                </p>
+                <p className="text-[9px] text-petroleum/70 leading-tight">
+                  Seu plano ({permissions.maxPhotosPerGallery} fotos){' '}
+                  {isOverLimit ? 'não suporta esta pasta.' : 'é compatível.'}
+                </p>
               </div>
-            </PlanGuard>
+            </div>
+            // </PlanGuard>
           )}
           {driveData.id && (
             <a

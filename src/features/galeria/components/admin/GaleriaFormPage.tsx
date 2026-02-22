@@ -26,6 +26,7 @@ import {
 import { executeShare } from '@/core/utils/share-helper';
 import { useNavigation } from '@/components/providers/NavigationProvider';
 import WhatsAppIcon from '@/components/ui/WhatsAppIcon';
+import { authService } from '@photos/core-auth';
 
 interface PhotographerProfile {
   id: string;
@@ -342,9 +343,16 @@ export default function GaleriaFormPage({
       <GoogleConsentAlert
         isOpen={showConsentAlert}
         onClose={() => setShowConsentAlert(false)}
-        onConfirm={() => {
+        onConfirm={async () => {
           setShowConsentAlert(false);
-          window.location.reload();
+          try {
+            await authService.signInWithGoogle(true);
+          } catch {
+            setToast({
+              message: 'Erro ao conectar com Google Drive.',
+              type: 'error',
+            });
+          }
         }}
       />
 

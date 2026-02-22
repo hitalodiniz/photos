@@ -29,6 +29,7 @@ export default function GoogleConsentAlert({
     <div className="flex flex-col gap-3">
       <button
         onClick={handleConfirm}
+        type="button"
         className="w-full py-4 rounded-luxury font-bold uppercase text-[10px] tracking-luxury transition-all active:scale-95 flex items-center justify-center gap-2 bg-champagne text-petroleum hover:bg-white shadow-lg shadow-champagne/10"
       >
         Entendi, continuar
@@ -36,6 +37,7 @@ export default function GoogleConsentAlert({
 
       <button
         onClick={onClose}
+        type="button"
         className="w-full py-3 text-white/90 text-[9px] font-bold uppercase tracking-luxury hover:text-gold transition-colors"
       >
         Cancelar

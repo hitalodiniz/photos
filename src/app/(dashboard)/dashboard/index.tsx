@@ -9,7 +9,7 @@ import type { DashboardProps } from './types';
 
 import { ConfirmationModal, LoadingScreen, Toast } from '@/components/ui';
 
-import { useAuth } from '@photos/core-auth';
+import { authService, useAuth } from '@photos/core-auth';
 import AdminControlModal from '@/components/admin/AdminControlModal';
 import GoogleConsentAlert from '@/components/auth/GoogleConsentAlert';
 
@@ -118,8 +118,7 @@ export default function Dashboard({
   // --- HANDLERS ---
   const handleConsentConfirm = async () => {
     try {
-      setShowConsentAlert(false);
-      await actions.handleGoogleLogin(true);
+      await authService.signInWithGoogle(true);
     } catch (error) {
       console.error('Erro ao iniciar login com consent:', error);
       setToast({ message: 'Erro ao conectar com Google', type: 'error' });
