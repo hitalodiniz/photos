@@ -77,7 +77,6 @@ export const ToolBarMobile = ({
   const [copied, setCopied] = useState(false);
   const [hintStep, setHintStep] = useState(0);
   const [showDownloadMenu, setShowDownloadMenu] = useState(false);
-  const [linksStatus, setLinksStatus] = useState<Record<number, boolean>>({});
 
   // 🎯 Lógica de Favoritos: Verifica permissão do plano E configuração da galeria
   const canUseFavorites = useMemo(() => {
@@ -115,34 +114,6 @@ export const ToolBarMobile = ({
     return () => observer.disconnect();
   }, []);
 
-  // Valida links externos
-  useEffect(() => {
-    const validateLinks = async () => {
-      const check = async (url: string) => {
-        if (!url) return false;
-        try {
-          const res = await fetch(
-            `/api/validate-link?url=${encodeURIComponent(url)}`,
-          );
-          const data = await res.json();
-          return data.valid;
-        } catch {
-          return false;
-        }
-      };
-
-      const status: Record<number, boolean> = {};
-      for (let i = 0; i < externalLinks.length; i++) {
-        const linkParaValidar = externalLinks[i].url;
-        status[i] = await check(linkParaValidar);
-      }
-      setLinksStatus(status);
-    };
-
-    if (externalLinks.length > 0) {
-      validateLinks();
-    }
-  }, [externalLinks]);
   // 🎯 Lógica de Toggle para Múltiplas Tags (Até 3)
   const toggleTag = (tag: string) => {
     if (tag === '') {
@@ -419,8 +390,6 @@ export const ToolBarMobile = ({
 
                     {/* Links Externos */}
                     {externalLinks.map((linkObj: any, index: number) => {
-                      if (linksStatus[index] === false) return null;
-
                       return (
                         <button
                           key={index}

@@ -57,7 +57,10 @@ const parsePossiblySerializedJson = (input: unknown): unknown => {
   return current;
 };
 
-const normalizeTag = (value: unknown) => String(value || '').trim().toUpperCase();
+const normalizeTag = (value: unknown) =>
+  String(value || '')
+    .trim()
+    .toUpperCase();
 const normalizeId = (value: unknown) => String(value || '').trim();
 
 const parseGalleryTags = (raw: unknown): string[] => {
@@ -161,7 +164,10 @@ export default function TagManagerView({
         ? filtered
         : [
             ...filtered,
-            ...normalizedSelectedIds.map((id) => ({ id, tag: normalizedTagName })),
+            ...normalizedSelectedIds.map((id) => ({
+              id,
+              tag: normalizedTagName,
+            })),
           ];
     });
     setToast({
@@ -177,7 +183,9 @@ export default function TagManagerView({
 
   const photosWithTags = useMemo(() => {
     const safePhotos = Array.isArray(photos) ? photos : [];
-    const tagMap = new Map(photoTags.map((item) => [normalizeId(item.id), item.tag]));
+    const tagMap = new Map(
+      photoTags.map((item) => [normalizeId(item.id), item.tag]),
+    );
     return safePhotos.map((p) => ({
       ...p,
       tag: tagMap.get(normalizeId(p.id)),
@@ -189,7 +197,9 @@ export default function TagManagerView({
     if (activeFilter === 'untagged')
       return photosWithTags.filter((p) => !p.tag);
     const normalizedFilter = normalizeTag(activeFilter);
-    return photosWithTags.filter((p) => normalizeTag(p.tag) === normalizedFilter);
+    return photosWithTags.filter(
+      (p) => normalizeTag(p.tag) === normalizedFilter,
+    );
   }, [photosWithTags, activeFilter]);
 
   const handleSave = async (e?: React.FormEvent) => {
@@ -209,10 +219,12 @@ export default function TagManagerView({
             item.id && item.tag && normalizedGalleryTags.includes(item.tag),
         );
       const dedupedPhotoTags = Array.from(
-        filteredPhotoTags.reduce(
-          (map, item) => map.set(item.id, item),
-          new Map<string, { id: string; tag: string }>(),
-        ).values(),
+        filteredPhotoTags
+          .reduce(
+            (map, item) => map.set(item.id, item),
+            new Map<string, { id: string; tag: string }>(),
+          )
+          .values(),
       );
 
       const res = await updateGaleriaTagsAction(
@@ -288,6 +300,8 @@ export default function TagManagerView({
                 value={newTagName}
                 onChange={(e) => setNewTagName(e.target.value)}
                 placeholder="Ex: Premiação"
+                maxLength={15}
+                minLength={3}
                 className="input-luxury h-9 text-[11px] flex-1"
                 onKeyDown={(e) =>
                   e.key === 'Enter' &&
@@ -361,8 +375,12 @@ export default function TagManagerView({
                         {
                           photosWithTags.filter(
                             (p) =>
-                              String(p.tag || '').trim().toUpperCase() ===
-                              String(tag || '').trim().toUpperCase(),
+                              String(p.tag || '')
+                                .trim()
+                                .toUpperCase() ===
+                              String(tag || '')
+                                .trim()
+                                .toUpperCase(),
                           ).length
                         }
                       </span>
@@ -426,13 +444,70 @@ export default function TagManagerView({
               )}
             </div>
           </div>
+
+          {/* BARRA DE SELEÇÃO ATIVA (Aparece quando há seleção) */}
+          {selectedIds.length > 0 && (
+            <div className="absolute bottom-4 left-3 right-3 z-50">
+              <div className="w-full bg-petroleum/95 backdrop-blur-md text-white px-5 py-3 rounded-2xl shadow-[0_20px_50px_rgba(0,0,0,0.3)] flex items-start gap-4 animate-in slide-in-from-bottom-6 duration-500 border border-white/10">
+                {/* Contador Fixo */}
+                <div className="flex items-center gap-2 border-r border-white/10 pr-4 shrink-0 mt-1">
+                  <div className="w-6 h-6 rounded-full bg-gold flex items-center justify-center shadow-lg shadow-gold/20">
+                    <span className="text-[10px] font-semibold text-petroleum">
+                      {selectedIds.length}
+                    </span>
+                  </div>
+                  <span className="text-[10px] font-semibold uppercase tracking-widest hidden sm:inline">
+                    Selecionadas
+                  </span>
+                </div>
+
+                {/* Área de Tags */}
+                <div className="flex-1 flex flex-wrap items-center gap-2 py-1 px-1 -mx-1">
+                  <button
+                    type="button"
+                    onClick={() => {
+                      handleApplyTagToPhotos(selectedIds, '');
+                      setSelectedIds([]);
+                    }}
+                    className="px-3 py-2 bg-red-500/20 text-[9px] font-semibold rounded-lg uppercase border border-red-500/30 hover:bg-red-500 hover:text-white transition-all whitespace-nowrap"
+                  >
+                    Limpar Marcação
+                  </button>
+
+                  <div className="h-4 w-px bg-white/10 mx-1 shrink-0" />
+
+                  {galleryTags.map((tag) => (
+                    <button
+                      key={tag}
+                      type="button"
+                      onClick={() => {
+                        handleApplyTagToPhotos(selectedIds, tag);
+                        setSelectedIds([]);
+                      }}
+                      className="px-4 py-2 bg-champagne text-petroleum text-[9px] font-semibold rounded-lg uppercase border border-white/10 transition-all whitespace-nowrap active:scale-95"
+                    >
+                      {tag}
+                    </button>
+                  ))}
+                </div>
+
+                {/* Botão Fechar */}
+                <button
+                  type="button"
+                  onClick={() => setSelectedIds([])}
+                  className="w-8 h-8 flex items-center justify-center rounded-full hover:bg-white/10 text-white/40 hover:text-white transition-colors shrink-0 mt-1"
+                >
+                  <X size={18} />
+                </button>
+              </div>
+            </div>
+          )}
         </main>
       </div>
 
       {/* Modais e Toast */}
       <ConfirmationModal
         isOpen={!!tagToDelete}
-        showCloseButton={true}
         onClose={() => setTagToDelete(null)}
         onConfirm={() => {
           handleDeleteTag(tagToDelete!);
@@ -449,63 +524,6 @@ export default function TagManagerView({
         />
       )}
 
-      {/* BARRA DE SELEÇÃO ATIVA (Aparece quando há seleção) */}
-      {selectedIds.length > 0 && (
-        <div className="absolute bottom-20 left-1/2 -translate-x-1/2 z-50 w-auto max-w-[90vw] md:max-w-4xl">
-          <div className="bg-petroleum/95 backdrop-blur-md text-white px-5 py-3 rounded-2xl shadow-[0_20px_50px_rgba(0,0,0,0.3)] flex items-center gap-4 animate-in slide-in-from-bottom-6 duration-500 border border-white/10">
-            {/* Contador Fixo */}
-            <div className="flex items-center gap-2 border-r border-white/10 pr-4 shrink-0">
-              <div className="w-6 h-6 rounded-full bg-gold flex items-center justify-center shadow-lg shadow-gold/20">
-                <span className="text-[10px] font-semibold text-petroleum">
-                  {selectedIds.length}
-                </span>
-              </div>
-              <span className="text-[10px] font-semibold uppercase tracking-widest hidden sm:inline">
-                Selecionadas
-              </span>
-            </div>
-
-            {/* Área de Tags com Scroll Invisível */}
-            <div className="flex items-center gap-2 overflow-x-auto no-scrollbar py-1 px-1 -mx-1">
-              <button
-                type="button"
-                onClick={() => {
-                  handleApplyTagToPhotos(selectedIds, '');
-                  setSelectedIds([]);
-                }}
-                className="px-3 py-2 bg-red-500/20 text-[9px] font-semibold rounded-lg uppercase border border-red-500/30 hover:bg-red-500 hover:text-white transition-all whitespace-nowrap"
-              >
-                Limpar Marcação
-              </button>
-
-              <div className="h-4 w-px bg-white/10 mx-1 shrink-0" />
-
-              {galleryTags.map((tag) => (
-                <button
-                  key={tag}
-                  type="button"
-                  onClick={() => {
-                    handleApplyTagToPhotos(selectedIds, tag);
-                    setSelectedIds([]);
-                  }}
-                  className="px-4 py-2 bg-champagne text-petroleum text-[9px] font-semibold rounded-lg uppercase border border-white/10 transition-all whitespace-nowrap active:scale-95"
-                >
-                  {tag}
-                </button>
-              ))}
-            </div>
-
-            {/* Botão Fechar Fixo */}
-            <button
-              type="button"
-              onClick={() => setSelectedIds([])}
-              className="w-8 h-8 flex items-center justify-center rounded-full hover:bg-white/10 text-white/40 hover:text-white transition-colors shrink-0"
-            >
-              <X size={18} />
-            </button>
-          </div>
-        </div>
-      )}
       {/* MODAL DE SUCESSO APÓS ORGANIZAÇÃO */}
       <BaseModal
         isOpen={showSuccessModal}

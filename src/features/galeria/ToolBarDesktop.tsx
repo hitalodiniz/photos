@@ -38,7 +38,6 @@ export const ToolBarDesktop = ({
   const [copied, setCopied] = useState(false);
   const [showDownloadMenu, setShowDownloadMenu] = useState(false);
   const [showTagsMenu, setShowTagsMenu] = useState(false);
-  const [linksStatus, setLinksStatus] = useState<Record<number, boolean>>({});
 
   const isCompact = false;
 
@@ -124,34 +123,6 @@ export const ToolBarDesktop = ({
   useEffect(() => {
     if (isCompact) setShowDownloadMenu(false);
   }, [isCompact]);
-
-  useEffect(() => {
-    const validateLinks = async () => {
-      const check = async (url: string) => {
-        if (!url) return false;
-        try {
-          const res = await fetch(
-            `/api/validate-link?url=${encodeURIComponent(url)}`,
-          );
-          const data = await res.json();
-          return data.valid;
-        } catch {
-          return false;
-        }
-      };
-
-      const status: Record<number, boolean> = {};
-      for (let i = 0; i < externalLinks.length; i++) {
-        const linkParaValidar = externalLinks[i].url;
-        status[i] = await check(linkParaValidar);
-      }
-      setLinksStatus(status);
-    };
-
-    if (externalLinks.length > 0) {
-      validateLinks();
-    }
-  }, [externalLinks]);
 
   useEffect(() => {
     const handleClickOutside = (event: MouseEvent) => {
@@ -531,8 +502,6 @@ export const ToolBarDesktop = ({
 
                       {/* Links Externos */}
                       {externalLinks.map((linkObj: any, index: number) => {
-                        if (linksStatus[index] === false) return null;
-
                         return (
                           <button
                             key={index}
