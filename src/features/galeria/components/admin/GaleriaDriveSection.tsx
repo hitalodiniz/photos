@@ -4,8 +4,6 @@ import { GooglePickerButton } from '@/components/google-drive';
 import GoogleDriveImagePreview from '@/components/ui/GoogleDriveImagePreview';
 import { InfoTooltip } from '@/components/ui/InfoTooltip';
 import { usePlan } from '@/core/context/PlanContext';
-import { profile } from 'console';
-import { div } from 'framer-motion/client';
 import {
   FolderSync,
   ImageIcon,
