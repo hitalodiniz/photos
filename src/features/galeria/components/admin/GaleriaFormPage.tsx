@@ -23,10 +23,10 @@ import {
   copyToClipboard,
   getLuxuryMessageData,
 } from '@/core/utils/url-helper';
-import { executeShare } from '@/core/utils/share-helper';
 import { useNavigation } from '@/components/providers/NavigationProvider';
 import WhatsAppIcon from '@/components/ui/WhatsAppIcon';
 import { authService } from '@photos/core-auth';
+import { useShare } from '@/hooks/useShare';
 
 interface PhotographerProfile {
   id: string;
@@ -275,29 +275,23 @@ export default function GaleriaFormPage({
     }
   };
 
+  const { shareToClient, copyLink } = useShare({
+    galeria: galeria || ({} as Galeria),
+  });
+
   const handleCopyLink = async () => {
     const url = getPublicGalleryUrl(
       initialProfile,
       savedGaleria?.slug || galeria?.slug || '',
     );
-    const success = await copyToClipboard(url);
-    if (success) {
-      setCopied(true);
-      setTimeout(() => setCopied(false), 2000);
-    }
+
+    // O copyLink do hook aceita uma customUrl opcional
+    await copyLink(url);
   };
 
   const handleShareWhatsApp = () => {
-    const url = getPublicGalleryUrl(
-      initialProfile,
-      savedGaleria?.slug || galeria?.slug || '',
-    );
-    const message = getLuxuryMessageData(savedGaleria || galeria, url);
-    executeShare({
-      title: (savedGaleria || galeria).title,
-      text: message,
-      phone: (savedGaleria || galeria).client_whatsapp,
-    });
+    const publicUrl = getPublicGalleryUrl(initialProfile, galeria.slug);
+    shareToClient(publicUrl);
   };
 
   return (

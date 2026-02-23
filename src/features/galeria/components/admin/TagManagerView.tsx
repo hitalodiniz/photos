@@ -25,14 +25,15 @@ import { FormPageBase, ConfirmationModal, Toast } from '@/components/ui';
 import { usePlan } from '@/core/context/PlanContext';
 import MasonryGrid from '../../MasonryGrid';
 import { updateGaleriaTagsAction } from '@/core/services/galeria.service';
-import { useSegment } from '@/hooks/useSegment';
+
 import { useNavigation } from '@/components/providers/NavigationProvider';
 import BaseModal from '@/components/ui/BaseModal';
 import WhatsAppIcon from '@/components/ui/WhatsAppIcon';
-import { executeShare } from '@/core/utils/share-helper';
+
 import { getPublicGalleryUrl, copyToClipboard } from '@/core/utils/url-helper';
 import { GALLERY_MESSAGES } from '@/core/config/messages';
 import { formatMessage } from '@/core/utils/message-helper';
+import { useShare } from '@/hooks/useShare';
 
 interface TagManagerViewProps {
   galeria: any;
@@ -92,8 +93,10 @@ export default function TagManagerView({
   const { navigate } = useNavigation();
   const [showSuccessModal, setShowSuccessModal] = useState(false);
   const [copied, setCopied] = useState(false);
-  const [links, setLinks] = useState({ url: '', message: '' });
   const [mounted, setMounted] = useState(false);
+  const { shareToClient, isSharing } = useShare({
+    galeria,
+  });
 
   // Estados de Tags
   const [galleryTags, setGalleryTags] = useState<string[]>(() => {
@@ -118,22 +121,18 @@ export default function TagManagerView({
     setMounted(true);
   }, []);
 
-  useEffect(() => {
-    if (galeria && mounted) {
-      const publicUrl = getPublicGalleryUrl(galeria.photographer, galeria.slug);
-      const customTemplate =
-        galeria.photographer?.message_templates?.card_share;
-      let message: string;
+  const links = useMemo(() => {
+    if (!galeria || !mounted) return { url: '', message: '' };
 
-      // Se houver template customizado, usa ele, senão usa o padrão
-      if (customTemplate && customTemplate.trim() !== '') {
-        message = formatMessage(customTemplate, galeria, publicUrl);
-      } else {
-        message = GALLERY_MESSAGES.CARD_SHARE(galeria.title, publicUrl);
-      }
+    const publicUrl = getPublicGalleryUrl(galeria.photographer, galeria.slug);
+    const customTemplate = galeria.photographer?.message_templates?.card_share;
 
-      setLinks({ url: publicUrl, message: message });
-    }
+    const message =
+      customTemplate && customTemplate.trim() !== ''
+        ? formatMessage(customTemplate, galeria, publicUrl)
+        : GALLERY_MESSAGES.CARD_SHARE(galeria.title, publicUrl);
+
+    return { url: publicUrl, message };
   }, [galeria, mounted]);
 
   // Handlers
@@ -572,13 +571,7 @@ export default function TagManagerView({
 
             <div className="flex items-center justify-center gap-3">
               <button
-                onClick={() =>
-                  executeShare({
-                    title: galeria.title,
-                    text: links.message, // 🎯 Texto customizado aplicado aqui
-                    phone: galeria.client_whatsapp,
-                  })
-                }
+                onClick={() => shareToClient(links.url)} // O hook resolve o WhatsApp e a mensagem via ShareService
                 className="btn-luxury-base text-white bg-green-500 hover:bg-[#20ba56] px-4 py-2 rounded-lg flex items-center gap-2  font-semibold"
               >
                 <WhatsAppIcon className="w-4 h-4 fill-current" />

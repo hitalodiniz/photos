@@ -12,9 +12,6 @@ import {
   RESOLUTIONS,
   TAMANHO_MAXIMO_FOTO_SEM_COMPACTAR,
 } from '@/core/utils/url-helper';
-import { formatMessage } from '@/core/utils/message-helper';
-import { GALLERY_MESSAGES } from '@/core/config/messages';
-import { executeShare } from '@/core/utils/share-helper';
 import {
   groupPhotosByWeight,
   estimatePhotoDownloadSize,
@@ -29,8 +26,9 @@ import { getGalleryPermission } from '@/core/utils/plan-helpers';
 import { DownloadCenterModal } from './DownloadCenterModal';
 import { emitGaleriaEvent } from '@/core/services/galeria-stats.service';
 import { getProfileByUsername } from '@/core/services/profile.service';
-import { i } from 'framer-motion/client';
+import { i, title } from 'framer-motion/client';
 import { blob } from 'stream/consumers';
+import { useShare } from '@/hooks/useShare';
 
 export default function PhotoGrid({ photos, galeria }: any) {
   // --- 1. ESTADOS DE INTERFACE ---
@@ -80,7 +78,10 @@ export default function PhotoGrid({ photos, galeria }: any) {
     return current;
   };
 
-  const normalizeTag = (value: unknown) => String(value || '').trim().toUpperCase();
+  const normalizeTag = (value: unknown) =>
+    String(value || '')
+      .trim()
+      .toUpperCase();
   const normalizeId = (value: unknown) => String(value || '').trim();
 
   // 🎯 MAPEAMENTO DE TAGS NAS FOTOS (Crucial para o filtro funcionar)
@@ -110,10 +111,7 @@ export default function PhotoGrid({ photos, galeria }: any) {
 
       return safePhotos.map((p: any) => ({
         ...p,
-        tag:
-          tagsMap.get(normalizeId(p.id)) ||
-          normalizeTag(p.tag) ||
-          p.tag, // Prioriza o mapa normalizado, com fallback para valor original
+        tag: tagsMap.get(normalizeId(p.id)) || normalizeTag(p.tag) || p.tag, // Prioriza o mapa normalizado, com fallback para valor original
       }));
     } catch (err) {
       console.error('Erro ao processar tags no Grid:', err);
@@ -471,29 +469,15 @@ export default function PhotoGrid({ photos, galeria }: any) {
   const downloadAllAsZip = () =>
     handleDownloadZip(photosWithTags, 'completa', false);
 
+  const { shareAsGuest } = useShare({ galeria });
+
   const handleShare = async () => {
-    const url = window.location.href;
-    const title = galeria.title;
-
-    let shareText: string;
-
-    const customTemplate = galeria.photographer?.message_templates?.guest_share;
-    if (customTemplate && customTemplate.trim() !== '') {
-      shareText = formatMessage(customTemplate, galeria, url);
-    } else {
-      shareText = GALLERY_MESSAGES.GUEST_SHARE(title, url);
-    }
-
     emitGaleriaEvent({
       galeria: galeria,
       eventType: 'share',
       metadata: { method: 'web_share', title: galeria.title },
     });
-
-    executeShare({
-      title: title,
-      text: shareText,
-    });
+    shareAsGuest();
   };
 
   return (
