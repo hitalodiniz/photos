@@ -8,9 +8,17 @@ interface ToastProps {
   message: string;
   type: 'success' | 'error';
   onClose: () => void;
+  position?: 'left' | 'right'; // Parâmetro opcional
 }
 
-export default function Toast({ message, type, onClose }: ToastProps) {
+export default function Toast({
+  message,
+  type,
+  onClose,
+  position = 'right',
+}: ToastProps) {
+  const isLeft = position === 'left';
+
   // 🎯 MERCADO: Fundo extremamente sutil (quase branco/cinza) com acento na borda lateral
   // Sucesso: Fundo champagne ultra-leve | Erro: Fundo avermelhado pálido
   const styles =
@@ -30,7 +38,7 @@ export default function Toast({ message, type, onClose }: ToastProps) {
     <AnimatePresence>
       {message && (
         <motion.div
-          className="fixed bottom-8 right-8 z-[10001]"
+          className={`fixed bottom-8 z-[10001] ${isLeft ? 'left-8' : 'right-8'}`}
           initial={{ opacity: 0, x: 20 }}
           animate={{ opacity: 1, x: 0 }}
           exit={{ opacity: 0, x: 10 }}

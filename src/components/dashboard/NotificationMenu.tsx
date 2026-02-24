@@ -20,6 +20,7 @@ import {
   getPushStatus,
   markNotificationsAsRead,
   disablePush,
+  markNotificationsAsReadUnique,
 } from '@/core/services/notification.service';
 import { notificationClientService } from '@/core/services/notification-client.service';
 
@@ -100,68 +101,34 @@ export function NotificationMenu({ userId }: { userId: string }) {
     });
   };
 
-  const handleToggle = async () => {
-    const nextState = !isOpen;
-
-    if (nextState) {
-      // 1. Ao abrir, guardamos quem era unread
-      sessionOpenedRef.current = notifications
-        .filter((n) => !n.read_at)
-        .map((n) => n.id);
-
-      setIsOpen(true);
-
-      // OPCIONAL: Se quiser que o contador suma ASSIM QUE ABRIR, descomente abaixo:
-      // markAsReadLocally();
-    } else {
-      // 2. Ao fechar, se havia algo não lido, limpamos tudo
-      if (unreadCount > 0) {
-        markAsReadLocally();
-
-        // Usamos startTransition para não travar a UI enquanto o banco atualiza
-        startTransition(async () => {
-          try {
-            await markNotificationsAsRead(userId);
-          } catch (error) {
-            console.error('Erro ao sincronizar leitura:', error);
-          }
-        });
-      }
-      setIsOpen(false);
-    }
+  const handleToggle = () => {
+    setIsOpen(!isOpen);
   };
 
-  // Função auxiliar para atualizar o estado local instantaneamente
-  const markAsReadLocally = () => {
+  // Função auxiliar para atualizar o estado local instantaneamente e sincronizar no banco
+  const markAsReadLocally = async () => {
     const now = new Date().toISOString();
     setNotifications((prev) =>
       prev.map((n) => ({ ...n, read_at: n.read_at || now })),
     );
+
+    try {
+      // Usa o serviço de lote para o usuário inteiro
+      await markNotificationsAsRead(userId);
+    } catch (error) {
+      console.error('Erro ao sincronizar leitura total:', error);
+    }
   };
 
   const handleMarkAllAsRead = async () => {
     if (unreadCount === 0) return;
-
-    const now = new Date().toISOString();
-
-    // 1. Update local instantâneo
-    setNotifications((prev) =>
-      prev.map((n) => ({ ...n, read_at: n.read_at || now })),
-    );
-
-    // 2. Sincroniza com o banco
-    try {
-      await markNotificationsAsRead(userId);
-    } catch (error) {
-      console.error('Erro ao marcar todas como lidas:', error);
-    }
+    await markAsReadLocally();
   };
 
-  const openEventDetails = (n: any) => {
+  const openEventDetails = async (n: any) => {
     if (n.metadata?.event_data) {
       setSelectedEvent(n.metadata.event_data);
 
-      // 🎯 Se a notificação ainda não tiver lida, marca agora para mudar o botão
       if (!n.read_at) {
         const now = new Date().toISOString();
         setNotifications((prev) =>
@@ -169,9 +136,7 @@ export function NotificationMenu({ userId }: { userId: string }) {
             item.id === n.id ? { ...item, read_at: now } : item,
           ),
         );
-
-        // Opcional: Notifica o banco de dados imediatamente para este ID específico
-        // markSingleNotificationAsRead(n.id);
+        await markNotificationsAsReadUnique(n.id); // Apenas esta
       }
     }
   };
@@ -210,44 +175,55 @@ export function NotificationMenu({ userId }: { userId: string }) {
 
           <div className="absolute right-0 mt-3 w-[400px] bg-petroleum border border-white/10 rounded-xl shadow-[0_20px_50px_rgba(0,0,0,0.5)] z-50 overflow-hidden animate-in fade-in zoom-in-95 duration-200">
             {/* Header */}
-            <div className="p-5 bg-white/5 border-b border-white/5 flex items-center justify-between">
-              <div className="flex items-center gap-3">
+            <div className="p-5 bg-white/5 border-b border-white/5 flex items-center justify-between gap-4">
+              {/* LADO ESQUERDO: ÍCONE E TÍTULO */}
+              <div className="flex items-center gap-3 shrink-0">
                 <div
-                  className={`p-2 rounded-lg ${isPushEnabled ? 'bg-champagne text-petroleum' : 'bg-white/5 text-white/40'}`}
+                  className={`p-2 rounded-luxury transition-colors ${
+                    isPushEnabled
+                      ? 'bg-champagne text-petroleum'
+                      : 'bg-white/5 text-white/40'
+                  }`}
                 >
                   {isPushEnabled ? <Bell size={18} /> : <BellOff size={18} />}
                 </div>
-                <div className="leading-tight">
-                  <p className="text-[10px] font-semibold text-champagne uppercase tracking-widest">
+                <div className="flex flex-col">
+                  <p className="text-[10px] font-bold text-white/90 uppercase tracking-widest leading-none">
                     Notificações
                   </p>
-                  {/* Botão de Marcar Todas */}
-                  {unreadCount > 0 && (
-                    <button
-                      onClick={handleMarkAllAsRead}
-                      className="text-[10px] text-white/80 hover:text-gold font-semibold uppercase tracking-tighter transition-colors"
-                    >
-                      Marcar todas como lidas
-                    </button>
-                  )}
                   {unreadCount === 0 && (
-                    <p className="text-[10px] text-white/80 font-semibold py-1">
-                      Todas visualizadas
-                    </p>
+                    <span className="text-[10px] text-white/80 font-medium mt-1">
+                      Todas lidas
+                    </span>
                   )}
                 </div>
               </div>
-              <button
-                onClick={togglePush}
-                disabled={isPending}
-                className={`px-4 py-1.5 rounded-luxury text-[9px] font-semibold uppercase transition-all ${
-                  isPushEnabled
-                    ? 'border border-white/10 text-petroleum hover:bg-white/5 hover:text-white/80 bg-champagne'
-                    : 'bg-gold text-petroleum hover:bg-champagne'
-                }`}
-              >
-                {isPending ? '...' : isPushEnabled ? 'Ativo' : 'Ativar Push'}
-              </button>
+
+              {/* LADO DIREITO: BOTÕES ALINHADOS */}
+              <div className="flex items-center gap-2">
+                {/* Botão Marcar Todas - Agora alinhado horizontalmente */}
+                {unreadCount > 0 && (
+                  <button
+                    onClick={handleMarkAllAsRead}
+                    className="px-3 py-1.5 bg-white/10 hover:bg-white text-white hover:text-petroleum border border-white/10 rounded-luxury text-[9px] font-semibold uppercase tracking-tight transition-all active:scale-95 whitespace-nowrap"
+                  >
+                    Marcar como lidas
+                  </button>
+                )}
+
+                {/* Botão Ativar Push - Mantido original conforme pedido */}
+                <button
+                  onClick={togglePush}
+                  disabled={isPending}
+                  className={`px-4 py-1.5 rounded-luxury text-[9px] font-semibold uppercase transition-all whitespace-nowrap ${
+                    isPushEnabled
+                      ? 'border border-white/10 text-petroleum hover:bg-white/5 hover:text-white/80 bg-champagne'
+                      : 'bg-gold text-petroleum hover:bg-champagne'
+                  }`}
+                >
+                  {isPending ? '...' : isPushEnabled ? 'Ativo' : 'Ativar Push'}
+                </button>
+              </div>
             </div>
 
             {/* Listagem */}

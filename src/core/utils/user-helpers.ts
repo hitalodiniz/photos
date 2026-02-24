@@ -41,13 +41,35 @@ export const compressImage = (file: File): Promise<Blob> => {
       img.src = event.target?.result as string;
       img.onload = () => {
         const canvas = document.createElement('canvas');
-        const MAX_WIDTH = 800;
-        const scaleSize = MAX_WIDTH / img.width;
-        canvas.width = MAX_WIDTH;
-        canvas.height = img.height * scaleSize;
+
+        // 1. AUMENTO DE RESOLUÇÃO (Padrão para Heros/Banners)
+        // 1920px garante nitidez em telas Full HD.
+        const MAX_WIDTH = 1920;
+
+        let width = img.width;
+        let height = img.height;
+
+        if (width > MAX_WIDTH) {
+          height *= MAX_WIDTH / width;
+          width = MAX_WIDTH;
+        }
+
+        canvas.width = width;
+        canvas.height = height;
+
         const ctx = canvas.getContext('2d');
-        ctx?.drawImage(img, 0, 0, canvas.width, canvas.height);
-        canvas.toBlob((blob) => resolve(blob!), 'image/webp', 0.8);
+
+        // 2. MELHORIA NA RENDERIZAÇÃO
+        if (ctx) {
+          ctx.imageSmoothingEnabled = true;
+          ctx.imageSmoothingQuality = 'high';
+          ctx.drawImage(img, 0, 0, width, height);
+        }
+
+        // 3. FORMATO E QUALIDADE
+        // 'image/jpeg' com 0.9 costuma ter melhor preservação de cores que WebP em alguns navegadores
+        // mas manteremos WebP pela performance, subindo para 0.92 (sweet spot de qualidade)
+        canvas.toBlob((blob) => resolve(blob!), 'image/webp', 0.92);
       };
     };
   });

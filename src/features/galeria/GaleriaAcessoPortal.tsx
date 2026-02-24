@@ -15,7 +15,6 @@ import PasswordInput from '@/components/ui/PasswordInput';
 import * as z from 'zod';
 import { getDirectGoogleUrl } from '@/core/utils/url-helper';
 import { useSegment } from '@/hooks/useSegment';
-import { form } from 'framer-motion/client';
 
 interface GalleryAccessPortalProps {
   galeria: Galeria;
@@ -239,7 +238,7 @@ export default function GalleryAccessPortal({
         title="Acesso à Galeria"
         subtitle={galeria.title}
         maxWidth="lg"
-        overlayOpacity="10"
+        overlayOpacity="20"
         blurLevel="none"
         footer={footer}
       >

@@ -29,6 +29,7 @@ import {
   RelatorioSelectedGallery,
 } from '@/components/ui/RelatorioBasePage';
 import InteractiveChart from '@/components/ui/InteractiveChart';
+import { TrafficInfoCard } from '@/components/dashboard/TrafficInfoCard';
 
 // --- VIEW PRINCIPAL ---
 export default function EventReportView({ galeria }: any) {
@@ -174,6 +175,8 @@ export default function EventReportView({ galeria }: any) {
     >
       <div className="max-w-[1600px] mx-auto p-2 flex flex-col lg:flex-row gap-4">
         <aside className="w-full lg:w-[350px] space-y-3 shrink-0">
+          {/* VERSÃO AMPLA: Educativa e explicativa */}
+          <TrafficInfoCard variant="full" tooltipPosition="bottom" />
           {/* 1. MARCOS PRINCIPAIS (Compacto) */}
           <div className="p-3 bg-white rounded-luxury border border-slate-200 grid grid-cols-2 gap-4">
             <div className="flex items-center gap-2 border-r border-slate-100">

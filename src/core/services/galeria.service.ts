@@ -609,7 +609,7 @@ export async function getGaleriaPhotos(
     const driveFolderId = galeria.drive_folder_id;
 
     // 3. USAR O SERVICE UNIFICADO PARA BUSCAR FOTOS
-    const result = await getFolderPhotos(driveFolderId, userId);
+    const result = await getFolderPhotos(driveFolderId);
 
     if (!result.success) {
       // Se for erro de autenticação, redireciona o usuário
@@ -638,6 +638,58 @@ export async function getGaleriaPhotos(
     return {
       success: false,
       error: error.message || 'Não foi possível carregar as fotos.',
+    };
+  }
+}
+
+/**
+ * =========================================================================
+ * 8.1 SINCRONIZAR PHOTO_COUNT DA GALERIA
+ * =========================================================================
+ */
+export async function syncGaleriaPhotoCount(
+  galeria: Galeria,
+): Promise<ActionResult<{ photo_count: number }>> {
+  try {
+    const supabase = await createSupabaseServerClient();
+    const { success, userId, error: authError } = await getAuthAndStudioIds();
+
+    if (!success || !userId) {
+      return {
+        success: false,
+        error: authError || 'Usuário não autenticado.',
+      };
+    }
+
+    const photosResult = await getFolderPhotos(galeria.drive_folder_id);
+    if (!photosResult.success) {
+      return {
+        success: false,
+        error:
+          photosResult.error || 'Não foi possível sincronizar fotos do Drive.',
+      };
+    }
+
+    const count = photosResult.data?.length || 0;
+    console.log('count photosResult', count);
+    const { error: updateError } = await supabase
+      .from('tb_galerias')
+      .update({
+        photo_count: count,
+        updated_at: new Date().toISOString(),
+      })
+      .eq('id', galeria.id)
+      .eq('user_id', userId);
+
+    if (updateError) {
+      return { success: false, error: updateError.message };
+    }
+
+    return { success: true, data: { photo_count: count } };
+  } catch (error: any) {
+    return {
+      success: false,
+      error: error?.message || 'Erro ao sincronizar contagem de fotos.',
     };
   }
 }

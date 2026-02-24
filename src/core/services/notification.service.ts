@@ -52,6 +52,17 @@ export async function markNotificationsAsRead(userId: string) {
   if (error) throw error;
 }
 
+export async function markNotificationsAsReadUnique(notificationId: string) {
+  const supabase = await createSupabaseServerClient();
+  const { error } = await supabase
+    .from('tb_notifications')
+    .update({ read_at: new Date().toISOString() })
+    .eq('id', notificationId)
+    .is('read_at', null); // Importante: só atualiza o que for nulo
+
+  if (error) throw error;
+}
+
 export async function disablePush(userId: string) {
   const supabase = await createSupabaseServerClient();
   await supabase

@@ -9,6 +9,7 @@ import {
   toggleArchiveGaleria,
   deleteGalleryPermanently,
   toggleShowOnProfile,
+  syncGaleriaPhotoCount,
 } from '@/core/services/galeria.service';
 import {
   revalidateDrivePhotos,
@@ -98,7 +99,27 @@ export function useDashboardActions(
       // 1. Limpa cache bruto do Drive
       await revalidateDrivePhotos(galeria.drive_folder_id, galeria.id);
 
-      // 2. Limpa cache da galeria (slug e dados formatados)
+      // 2. Sincroniza e obtém a nova contagem (certifique-se que esta service retorna o count)
+      const result = await syncGaleriaPhotoCount(galeria);
+
+      // 3. Atualiza o ESTADO LOCAL para o card refletir o novo número imediatamente
+      if (result.success && result.data) {
+        const novoTotal = result.data.photo_count;
+
+        // 3. ATUALIZAÇÃO DO ESTADO LOCAL
+        setGalerias((prev) =>
+          prev.map((g) =>
+            g.id === galeria.id ? { ...g, photo_count: novoTotal } : g,
+          ),
+        );
+
+        setToast({
+          message: `Sincronizado: ${novoTotal} fotos`,
+          type: 'success',
+        });
+      }
+
+      // 3. Limpa cache da galeria (slug e dados formatados)
       if (photographer?.id) {
         await revalidateGalleryCache({
           galeriaId: galeria.id,
@@ -108,7 +129,6 @@ export function useDashboardActions(
           username: photographer.username,
         });
       }
-      setToast({ message: 'Sincronização concluída!', type: 'success' });
     } catch {
       setToast({ message: 'Erro ao sincronizar.', type: 'error' });
     } finally {
@@ -187,7 +207,10 @@ export function useDashboardActions(
           ),
         );
         await triggerProfileRevalidation();
-        setToast({ message: 'Galerias movidas para lixeira.', type: 'success' });
+        setToast({
+          message: 'Galerias movidas para lixeira.',
+          type: 'success',
+        });
         setSelectedIds(new Set());
       }
     } catch {

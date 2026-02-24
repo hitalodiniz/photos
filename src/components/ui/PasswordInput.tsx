@@ -122,16 +122,18 @@ export default function PasswordInput({
   // Variante PIN (Luxo - Full)
   if (variant === 'pin') {
     return (
-      <div className="flex flex-col items-center space-y-8 w-full py-6">
+      <div className="flex flex-col items-center space-y-4 md:space-y-8 w-full py-4 md:py-6">
         {label && (
-          <div className="flex flex-col items-center gap-3">
+          <div className="flex flex-col items-center gap-2 md:gap-3">
             <ShieldCheck
-              size={32}
-              strokeWidth={1}
-              className={`${error ? 'text-red-500' : 'text-gold'}`}
+              size={24} // Reduzido de 32 para mobile
+              strokeWidth={1.5}
+              className={`md:w-8 md:h-8 ${error ? 'text-red-500' : 'text-gold'}`}
             />
             <h2
-              className={`text-xl font-semibold tracking-[0.2em] uppercase text-center ${error ? 'text-red-500' : 'text-petroleum'}`}
+              className={`text-base md:text-xl font-semibold tracking-[0.15em] md:tracking-[0.2em] uppercase text-center ${
+                error ? 'text-red-500' : 'text-petroleum'
+              }`}
             >
               {label}
             </h2>
@@ -158,7 +160,7 @@ export default function PasswordInput({
             autoFocus
           />
 
-          <div className="flex gap-3 md:gap-4">
+          <div className="flex gap-2 md:gap-4">
             {[...Array(4)].map((_, i) => {
               const char = pinValue[i];
               const isFocused = pinValue.length === i;
@@ -166,7 +168,8 @@ export default function PasswordInput({
               return (
                 <div
                   key={i}
-                  className={`w-12 h-16 md:w-16 md:h-20 flex items-center justify-center text-3xl font-light border-2 rounded-lg transition-all duration-300 relative
+                  // Ajuste de tamanho: w-11 h-14 no mobile, w-16 h-20 no desktop
+                  className={`w-11 h-14 md:w-16 md:h-20 flex items-center justify-center text-2xl md:text-3xl font-light border-2 rounded-lg transition-all duration-300 relative
                   ${
                     error
                       ? 'border-red-500 text-red-500 bg-red-50/5'
@@ -181,7 +184,7 @@ export default function PasswordInput({
                   {/* CURSOR PISCANTE */}
                   {isFocused && hasFocus && (
                     <div className="absolute inset-0 flex items-center justify-center pointer-events-none">
-                      <div className="w-[2px] h-8 bg-gold animate-cursor-blink shadow-[0_0_8px_rgba(212,175,55,0.8)]" />
+                      <div className="w-[2px] h-6 md:h-8 bg-gold animate-cursor-blink shadow-[0_0_8px_rgba(212,175,55,0.8)]" />
                     </div>
                   )}
                 </div>
@@ -191,9 +194,11 @@ export default function PasswordInput({
         </div>
 
         <p
-          className={`text-[10px] uppercase tracking-[0.3em] font-medium text-center ${error ? 'text-red-500 font-bold' : 'text-petroleum/80'}`}
+          className={`text-[9px] md:text-[10px] px-4 uppercase tracking-[0.2em] md:tracking-[0.3em] font-medium text-center ${
+            error ? 'text-red-500 font-bold' : 'text-petroleum/60'
+          }`}
         >
-          {error || 'Acesso Restrito • Insira o PIN de 4 dígitos'}
+          {error || 'Acesso Restrito • Digite o PIN'}
         </p>
       </div>
     );

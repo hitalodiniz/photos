@@ -193,10 +193,17 @@ async function handleNotifications(
   if (!userId) return;
 
   const locBadge = loc ? ` em ${loc.city}/${loc.region}` : '';
-  let locBadgeFormatted = locBadge;
-  if (locBadge.includes('undefined')) {
-    locBadgeFormatted = '';
-  }
+  // Limpeza da localização
+  const isValidLoc =
+    locBadge && locBadge !== 'undefined' && locBadge !== 'null';
+  const locBadgeFormatted = isValidLoc ? ` ${locBadge}` : '';
+
+  // Limpeza do nome do visitante
+  const visitorName =
+    metadata.nome && metadata.nome !== 'undefined' && metadata.nome !== 'null'
+      ? metadata.nome
+      : 'Um visitante';
+
   const config: Record<string, any> = {
     view: {
       title: `👀 Novo Acesso${locBadgeFormatted}`,
@@ -206,7 +213,7 @@ async function handleNotifications(
     lead: {
       title: `👤 Visitante Identificado${locBadgeFormatted}`,
       type: 'success',
-      msg: `${metadata.nome || 'Um visitante'} entrou.`,
+      msg: `${visitorName} entrou.`, // Usando o nome sanitizado aqui
     },
     download: {
       title: `📥 Download Realizado${locBadgeFormatted}`,
@@ -219,7 +226,6 @@ async function handleNotifications(
       msg: `Galeria "${galeria.title}" compartilhada.`,
     },
   };
-
   const item = config[type];
   if (!item || (type === 'view' && galeria.leads_enabled)) return;
 

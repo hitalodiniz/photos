@@ -429,25 +429,27 @@ const MasonryItem = memo(
                 {/* 🎯 Badge de Tag Existente (Refatorado) */}
                 {photo.tag && (
                   <div
-                    className="absolute z-30 flex items-center justify-center backdrop-blur-md border border-white/20 rounded-full shadow-sm"
+                    className="absolute z-30 flex items-center justify-center backdrop-blur-md border border-white/10 rounded-full shadow-sm pointer-events-none"
                     style={{
-                      top: isMobile ? '6px' : '10px',
-                      right: isMobile ? '6px' : '10px',
-                      // Escala o padding e a altura proporcionalmente ao btnScale
-                      paddingLeft: `${10 * btnScale}px`,
-                      paddingRight: `${10 * btnScale}px`,
-                      height: `${24 * btnScale}px`,
-                      backgroundColor: 'rgba(0, 0, 0, 0.25)', // Transparência elegante
+                      // Reduzi o posicionamento para acompanhar a escala menor
+                      top: isMobile ? '5px' : '8px',
+                      right: isMobile ? '5px' : '8px',
+                      // Reduzi base de 10px para 8px (20% menor)
+                      paddingLeft: `${8 * btnScale}px`,
+                      paddingRight: `${8 * btnScale}px`,
+                      // Reduzi base de 24px para 20px (aprox. 20% menor)
+                      height: `${20 * btnScale}px`,
+                      backgroundColor: 'rgba(0, 0, 0, 0.2)', // Levemente mais transparente para sutileza
                     }}
                   >
                     <span
-                      className="text-white font-medium whitespace-nowrap leading-none"
+                      className="text-white font-medium whitespace-nowrap leading-none tracking-tight"
                       style={{
-                        // A fonte diminui conforme as colunas aumentam
+                        // Reduzi base de 11px para 9px e mobile de 9px para 8px
                         fontSize:
                           isMobile && currentCols === 2
-                            ? '9px'
-                            : `${11 * btnScale}px`,
+                            ? '8px'
+                            : `${9 * btnScale}px`,
                       }}
                     >
                       {photo.tag}

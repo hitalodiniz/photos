@@ -94,11 +94,6 @@ export default function GaleriaCard({
     !!galeria.cover_image_url,
   );
 
-  // --- NOVOS ESTADOS PARA ESTATÍSTICAS ---
-  const [isStatsOpen, setIsStatsOpen] = useState(false);
-  const [statsData, setStatsData] = useState<any>(null);
-  const [isLoadingStats, setIsLoadingStats] = useState(false);
-
   useEffect(() => {
     setIsImageLoading(!!galeria.cover_image_url);
   }, [galeria.cover_image_url]);

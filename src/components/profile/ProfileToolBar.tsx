@@ -14,6 +14,7 @@ import {
 } from 'lucide-react';
 import WhatsAppIcon from '@/components/ui/WhatsAppIcon';
 import { PlanGuard } from '@/components/auth/PlanGuard';
+import { div } from 'framer-motion/client';
 
 export const ProfileToolBar = ({
   phone,
@@ -223,85 +224,90 @@ export const ProfileToolBar = ({
         >
           <div className="max-w-[1600px] mx-auto p-5 grid grid-cols-1 md:grid-cols-3 gap-8">
             {/* CIDADES */}
-            <div className="flex flex-col gap-4">
-              <h4 className="text-gold/80 text-[10px] font-semibold uppercase tracking-widest flex items-center gap-2">
-                <MapPin size={12} /> Cidades
-              </h4>
-              <div className="flex flex-wrap items-center gap-x-3 gap-y-2">
-                {cities.map((city, i) => (
-                  <React.Fragment key={city}>
-                    <a
-                      href={`https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(city)}`}
-                      target="_blank"
-                      rel="noopener noreferrer"
-                      className="text-[12px] font-semibold uppercase text-white/80 hover:text-gold transition-colors"
-                    >
-                      {city}
-                    </a>
-                    {i < cities.length - 1 && (
-                      <span className="text-white/10 text-[10px]">|</span>
-                    )}
-                  </React.Fragment>
-                ))}
+            {cities.length > 0 && (
+              <div className="flex flex-col gap-4">
+                <h4 className="text-gold/80 text-[10px] font-semibold uppercase tracking-widest flex items-center gap-2">
+                  <MapPin size={12} /> Cidades
+                </h4>
+                <div className="flex flex-wrap items-center gap-x-3 gap-y-2">
+                  {cities.map((city, i) => (
+                    <React.Fragment key={city}>
+                      <a
+                        href={`https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(city)}`}
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        className="text-[12px] font-semibold uppercase text-white/80 hover:text-gold transition-colors"
+                      >
+                        {city}
+                      </a>
+                      {i < cities.length - 1 && (
+                        <span className="text-white/10 text-[10px]">|</span>
+                      )}
+                    </React.Fragment>
+                  ))}
+                </div>
               </div>
-            </div>
+            )}
 
             {/* ESPECIALIDADES */}
-            <div className="flex flex-col gap-4 border-t md:border-t-0 md:border-l border-white/20 pt-6 md:pt-0 md:pl-10">
-              <h4 className="text-gold/80 text-[10px] font-semibold uppercase tracking-widest flex items-center gap-2">
-                <Tag size={12} /> Especialidades
-              </h4>
-              <div className="flex flex-wrap items-center gap-x-3 gap-y-2">
-                {specialties.map((spec, i) => (
-                  <React.Fragment key={spec}>
-                    <button
-                      onClick={() => toggleFilter(spec)}
-                      className={`text-[12px] font-semibold uppercase transition-colors ${activeFilter === spec ? 'text-gold' : 'text-white/80 hover:text-gold'}`}
-                    >
-                      {spec}
-                    </button>
-                    {i < specialties.length - 1 && (
-                      <span className="text-white/10 text-[10px]">|</span>
-                    )}
-                  </React.Fragment>
-                ))}
-              </div>
-            </div>
-
-            {/* CATEGORIAS */}
-            <div className="flex flex-col gap-4 border-t md:border-t-0 md:border-l border-white/20 pt-6 md:pt-0 md:pl-10">
-              <h4 className="text-gold/80 text-[10px] font-semibold uppercase tracking-widest flex items-center gap-2">
-                <Compass size={12} /> Categorias
-              </h4>
-              <div className="flex flex-wrap items-center gap-x-4 gap-y-3">
-                <button
-                  onClick={() => toggleFilter('all')}
-                  className={`text-[12px] font-semibold uppercase flex items-center gap-1.5 ${activeFilter === 'all' ? 'text-gold' : 'text-white/40'}`}
-                >
-                  Ver Tudo
-                  <span className="text-[9px] px-1.5 py-0.5 rounded-full bg-white/5 border border-white/10">
-                    {categories.length}
-                  </span>
-                </button>
-
-                {uniqueCategories.map((cat: string) => (
-                  <React.Fragment key={cat}>
-                    <span className="text-white/10 text-[10px]">|</span>
-                    <button
-                      onClick={() => toggleFilter(cat)}
-                      className={`text-[12px] font-semibold uppercase flex items-center gap-1.5 transition-colors ${activeFilter === cat ? 'text-gold' : 'text-white/80 hover:text-gold'}`}
-                    >
-                      {cat}
-                      <span
-                        className={`text-[9px] px-1.5 py-0.5 rounded-full border ${activeFilter === cat ? 'border-gold/30 bg-gold/10' : 'border-white/10 bg-white/5'}`}
+            {specialties.length > 0 && (
+              <div className="flex flex-col gap-4 border-t md:border-t-0 md:border-l border-white/20 pt-6 md:pt-0 md:pl-10">
+                <h4 className="text-gold/80 text-[10px] font-semibold uppercase tracking-widest flex items-center gap-2">
+                  <Tag size={12} /> Especialidades
+                </h4>
+                <div className="flex flex-wrap items-center gap-x-3 gap-y-2">
+                  {specialties.map((spec, i) => (
+                    <React.Fragment key={spec}>
+                      <button
+                        onClick={() => toggleFilter(spec)}
+                        className={`text-[12px] font-semibold uppercase transition-colors ${activeFilter === spec ? 'text-gold' : 'text-white/80 hover:text-gold'}`}
                       >
-                        {categoryCounts[cat]}
-                      </span>
-                    </button>
-                  </React.Fragment>
-                ))}
+                        {spec}
+                      </button>
+                      {i < specialties.length - 1 && (
+                        <span className="text-white/10 text-[10px]">|</span>
+                      )}
+                    </React.Fragment>
+                  ))}
+                </div>
               </div>
-            </div>
+            )}
+            {/* CATEGORIAS */}
+            {categories.length > 0 && (
+              <div className="flex flex-col gap-4 border-t md:border-t-0 md:border-l border-white/20 pt-6 md:pt-0 md:pl-10">
+                <h4 className="text-gold/80 text-[10px] font-semibold uppercase tracking-widest flex items-center gap-2">
+                  <Compass size={12} /> Categorias
+                </h4>
+                <div className="flex flex-wrap items-center gap-x-4 gap-y-3">
+                  <button
+                    onClick={() => toggleFilter('all')}
+                    className={`text-[12px] font-semibold uppercase flex items-center gap-1.5 ${activeFilter === 'all' ? 'text-gold' : 'text-white/40'}`}
+                  >
+                    Ver Tudo
+                    <span className="text-[9px] px-1.5 py-0.5 rounded-full bg-white/5 border border-white/10">
+                      {categories.length}
+                    </span>
+                  </button>
+
+                  {uniqueCategories.map((cat: string) => (
+                    <React.Fragment key={cat}>
+                      <span className="text-white/10 text-[10px]">|</span>
+                      <button
+                        onClick={() => toggleFilter(cat)}
+                        className={`text-[12px] font-semibold uppercase flex items-center gap-1.5 transition-colors ${activeFilter === cat ? 'text-gold' : 'text-white/80 hover:text-gold'}`}
+                      >
+                        {cat}
+                        <span
+                          className={`text-[9px] px-1.5 py-0.5 rounded-full border ${activeFilter === cat ? 'border-gold/30 bg-gold/10' : 'border-white/10 bg-white/5'}`}
+                        >
+                          {categoryCounts[cat]}
+                        </span>
+                      </button>
+                    </React.Fragment>
+                  ))}
+                </div>
+              </div>
+            )}
           </div>
         </div>
       </div>

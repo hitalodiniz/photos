@@ -80,7 +80,10 @@ export default function PhotoGrid({ photos, galeria }: any) {
     return current;
   };
 
-  const normalizeTag = (value: unknown) => String(value || '').trim().toUpperCase();
+  const normalizeTag = (value: unknown) =>
+    String(value || '')
+      .trim()
+      .toUpperCase();
   const normalizeId = (value: unknown) => String(value || '').trim();
 
   // 🎯 MAPEAMENTO DE TAGS NAS FOTOS (Crucial para o filtro funcionar)
@@ -110,10 +113,7 @@ export default function PhotoGrid({ photos, galeria }: any) {
 
       return safePhotos.map((p: any) => ({
         ...p,
-        tag:
-          tagsMap.get(normalizeId(p.id)) ||
-          normalizeTag(p.tag) ||
-          p.tag, // Prioriza o mapa normalizado, com fallback para valor original
+        tag: tagsMap.get(normalizeId(p.id)) || normalizeTag(p.tag) || p.tag, // Prioriza o mapa normalizado, com fallback para valor original
       }));
     } catch (err) {
       console.error('Erro ao processar tags no Grid:', err);
@@ -522,6 +522,7 @@ export default function PhotoGrid({ photos, galeria }: any) {
             isScrolled,
             isHovered,
             setIsHovered,
+            handleShare,
             handleExternalDownload,
             externalLinks,
             setUpsellFeature,
@@ -545,6 +546,7 @@ export default function PhotoGrid({ photos, galeria }: any) {
             setColumns,
             activeTag,
             setActiveTag,
+            handleShare,
             handleExternalDownload,
             externalLinks,
             getGalleryPermission,

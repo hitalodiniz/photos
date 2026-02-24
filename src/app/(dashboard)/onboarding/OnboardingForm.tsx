@@ -58,7 +58,7 @@ const FormSection = ({
   <div className="bg-white rounded-luxury border border-slate-200 p-4 space-y-3 shadow-sm transition-all hover:border-slate-300">
     <div className="flex items-center gap-2 pb-2 border-b border-slate-200">
       {icon && <div className="text-gold">{icon}</div>}
-      <h3 className="text-[10px] font-bold uppercase tracking-luxury-widest text-petroleum">
+      <h3 className="text-[10px] font-semibold uppercase tracking-luxury-widest text-petroleum">
         {title}
       </h3>
     </div>
@@ -111,7 +111,7 @@ function SupabaseImagePreview({
       {error ? (
         <div className="flex flex-col items-center justify-center text-slate-400 p-2 text-center">
           <ImageIcon size={16} strokeWidth={1.5} />
-          <span className="text-[7px] font-bold uppercase mt-1 leading-tight">
+          <span className="text-[7px] font-semibold uppercase mt-1 leading-tight">
             Erro ao carregar
           </span>
         </div>
@@ -142,7 +142,6 @@ export default function OnboardingForm({
   isEditMode?: boolean;
 }) {
   const { permissions, planKey } = usePlan();
-  console.log(planKey, 'planKey');
 
   const { navigate, isNavigating: isGlobalNavigating } = useNavigation();
 
@@ -205,6 +204,13 @@ export default function OnboardingForm({
     initialData?.profile_picture_url || null,
   );
   const [bgFiles, setBgFiles] = useState<File[]>([]);
+  const [existingBackgrounds, setExistingBackgrounds] = useState<string[]>(
+    () => {
+      const initialBg = initialData?.background_url;
+      if (!initialBg) return [];
+      return Array.isArray(initialBg) ? initialBg : [initialBg];
+    },
+  );
 
   // --- ESTADOS DE UI ---
   const [isAvailable, setIsAvailable] = useState<boolean | null>(null);
@@ -213,6 +219,7 @@ export default function OnboardingForm({
   const [toastConfig, setToastConfig] = useState<{
     message: string;
     type: 'success' | 'error';
+    position?: 'left' | 'right';
   } | null>(null);
 
   // 🛡️ REGRAS DE NEGÓCIO POR PLANO
@@ -235,14 +242,11 @@ export default function OnboardingForm({
     if (bgFiles.length > 0)
       return bgFiles.map((file) => URL.createObjectURL(file));
 
-    const initialBg = initialData?.background_url;
-    if (!initialBg) return [];
-    const normalized = Array.isArray(initialBg) ? initialBg : [initialBg];
-    return normalized.slice(0, profileCarouselLimit);
+    return existingBackgrounds.slice(0, profileCarouselLimit);
   }, [
     bgFiles,
+    existingBackgrounds,
     permissions.profileCarouselLimit,
-    initialData?.background_url,
     profileCarouselLimit,
   ]);
 
@@ -323,12 +327,14 @@ export default function OnboardingForm({
 
     // Preserva avatar existente quando não há novo upload.
     // Evita que profile_picture_url seja zerado no upsert.
+    // Dentro da clientAction:
     const existingProfilePictureUrl =
       !photoFile &&
+      photoPreview &&
       typeof photoPreview === 'string' &&
       photoPreview.startsWith('http')
         ? photoPreview
-        : '';
+        : ''; // Se photoPreview for null, enviará string vazia, limpando o banco no upsert.
     formData.set('profile_picture_url_existing', existingProfilePictureUrl);
 
     // Envia quais URLs existentes devem ser mantidas (filtramos blobs locais)
@@ -389,7 +395,10 @@ export default function OnboardingForm({
 
     const localUrl = URL.createObjectURL(file);
     setPhotoPreview(localUrl);
-    setPhotoFile(file);
+
+    const compressed = await compressImage(file);
+
+    setPhotoFile(new File([compressed], file.name, { type: 'image/webp' }));
 
     try {
       const {
@@ -444,6 +453,76 @@ export default function OnboardingForm({
     }
   };
 
+  const handleDeleteAvatar = async () => {
+    if (!photoPreview || !photoPreview.startsWith('http')) {
+      // Se for apenas um preview local (blob), apenas limpa o estado
+      setPhotoPreview(null);
+      setPhotoFile(null);
+      return;
+    }
+
+    try {
+      const bucket = 'profile_pictures';
+      const urlParts = photoPreview.split(`${bucket}/`);
+
+      if (urlParts.length >= 2) {
+        const filePath = decodeURIComponent(urlParts[1].split('?')[0]);
+
+        const { error } = await supabase.storage
+          .from(bucket)
+          .remove([filePath]);
+
+        if (error) throw error;
+      }
+
+      setPhotoPreview(null);
+      setPhotoFile(null);
+      setToastConfig({
+        message: 'Avatar removido.',
+        type: 'success',
+        position: 'left',
+      });
+    } catch (err) {
+      console.error('Erro ao deletar avatar:', err);
+      // Limpa a UI mesmo se houver erro no storage para não travar o usuário
+      setPhotoPreview(null);
+      setPhotoFile(null);
+    }
+  };
+
+  const handleDeleteBackground = async (url: string, index: number) => {
+    try {
+      const bucket = 'profile_pictures';
+
+      // 1. Se for um BLOB local, apenas removemos da UI e do estado de arquivos
+      if (url.startsWith('blob:')) {
+        setBgFiles((prev) => prev.filter((_, i) => i !== index));
+        // Nota: o activeBackgrounds é derivado, então atualizar o bgFiles já resolve
+        return;
+      }
+
+      // 2. Se for URL do Supabase, procedemos com a exclusão física
+      const urlParts = url.split(`${bucket}/`);
+      if (urlParts.length < 2) return;
+
+      const filePath = decodeURIComponent(urlParts[1].split('?')[0]);
+
+      const { error } = await supabase.storage.from(bucket).remove([filePath]);
+      if (error) throw error;
+
+      // 3. Atualiza estados após exclusão remota bem-sucedida
+      setExistingBackgrounds((prev) => prev.filter((_, i) => i !== index));
+
+      setToastConfig({
+        message: 'Imagem removida do servidor.',
+        type: 'success',
+      });
+    } catch (err: any) {
+      console.error('Erro na exclusão:', err);
+      // Remove da UI mesmo em erro para evitar travamento
+      setExistingBackgrounds((prev) => prev.filter((_, i) => i !== index));
+    }
+  };
   return (
     <>
       <div className="relative min-h-screen bg-luxury-bg flex flex-col md:flex-row w-full z-[99]">
@@ -457,7 +536,7 @@ export default function OnboardingForm({
                     <Sparkles size={14} />
                   </div>
                   <div>
-                    <p className="text-[10px] font-bold uppercase tracking-widest text-petroleum">
+                    <p className="text-[10px] font-semibold uppercase tracking-widest text-petroleum">
                       Período de Trial Ativo
                     </p>
                     <p className="text-[9px] text-petroleum/60 uppercase">
@@ -507,7 +586,7 @@ export default function OnboardingForm({
                             ) : (
                               <div className="flex flex-col items-center">
                                 <Upload size={20} className="text-slate-300" />
-                                <span className="text-[8px] font-bold text-slate-400 mt-1">
+                                <span className="text-[8px] font-semibold text-slate-400 mt-1">
                                   UPLOAD
                                 </span>
                               </div>
@@ -521,8 +600,7 @@ export default function OnboardingForm({
                           type="button"
                           onClick={(e) => {
                             e.stopPropagation();
-                            setPhotoPreview(null);
-                            setPhotoFile(null);
+                            handleDeleteAvatar();
                           }}
                           className="absolute -top-1 -right-1 p-1.5 bg-white border border-slate-200 text-red-500 rounded-full shadow-md hover:bg-red-50 transition-colors z-10"
                         >
@@ -638,7 +716,7 @@ export default function OnboardingForm({
                           <ImageIcon size={12} className="inline mr-1.5" />
                           Capa do Perfil
                         </span>
-                        <span className="text-[9px] font-bold text-gold uppercase tracking-tighter">
+                        <span className="text-[9px] font-semibold text-gold uppercase tracking-tighter">
                           {planKey === 'FREE'
                             ? 'Sorteio Automático'
                             : `Até ${profileCarouselLimit} fotos`}
@@ -661,6 +739,22 @@ export default function OnboardingForm({
                             e.target.value = '';
                             return;
                           }
+
+                          // Validação de Tamanho (4MB por arquivo)
+                          const overSized = files.some(
+                            (f) => f.size > 4 * 1024 * 1024,
+                          );
+                          if (overSized) {
+                            setToastConfig({
+                              message:
+                                'Cada imagem de capa deve ter no máximo 4MB.',
+                              type: 'error',
+                              position: 'left',
+                            });
+                            e.target.value = '';
+                            return;
+                          }
+
                           setBgFiles(files);
                         }}
                       />
@@ -695,13 +789,7 @@ export default function OnboardingForm({
                               />
                               <button
                                 type="button"
-                                onClick={() => {
-                                  if (bgFiles.length > 0) {
-                                    setBgFiles((prev) =>
-                                      prev.filter((_, i) => i !== idx),
-                                    );
-                                  }
-                                }}
+                                onClick={() => handleDeleteBackground(url, idx)}
                                 className="absolute top-1 right-1 p-1 bg-white/80 border border-slate-200 text-red-500 rounded-full shadow-sm hover:bg-red-50 transition-colors z-10"
                               >
                                 <X size={10} strokeWidth={3} />
@@ -738,7 +826,7 @@ export default function OnboardingForm({
                     />
                     <div className="flex justify-between items-center">
                       <span
-                        className={`text-[9px] font-bold uppercase ${miniBio.length >= bioLimit ? 'text-gold' : 'text-slate-400'}`}
+                        className={`text-[9px] font-semibold uppercase ${miniBio.length >= bioLimit ? 'text-gold' : 'text-slate-400'}`}
                       >
                         {miniBio.length} / {bioLimit}
                       </span>
@@ -763,7 +851,7 @@ export default function OnboardingForm({
                         {specialties.map((s) => (
                           <span
                             key={s}
-                            className="bg-slate-50 border border-slate-200 text-petroleum text-[9px] font-bold px-2.5 py-1.5 rounded-luxury flex items-center gap-2 uppercase tracking-widest"
+                            className="bg-slate-50 border border-slate-200 text-petroleum text-[9px] font-semibold px-2.5 py-1.5 rounded-luxury flex items-center gap-2 uppercase tracking-widest"
                           >
                             {s}
                             <X
@@ -809,7 +897,7 @@ export default function OnboardingForm({
                       {selectedCities.map((city) => (
                         <span
                           key={city}
-                          className="bg-slate-50 border border-slate-200 text-petroleum text-[9px] font-bold px-2.5 py-1.5 rounded-luxury flex items-center gap-2 uppercase tracking-widest"
+                          className="bg-slate-50 border border-slate-200 text-petroleum text-[9px] font-semibold px-2.5 py-1.5 rounded-luxury flex items-center gap-2 uppercase tracking-widest"
                         >
                           {city}{' '}
                           <X
@@ -831,7 +919,7 @@ export default function OnboardingForm({
                           setSelectedUF(e.target.value);
                           setCityInput('');
                         }}
-                        className="w-20 bg-slate-50 border border-slate-200 rounded-luxury px-2 h-10 text-xs font-bold"
+                        className="w-20 bg-slate-50 border border-slate-200 rounded-luxury px-2 h-10 text-xs font-semibold"
                       >
                         <option value="">UF</option>
                         {states.map((uf) => (
@@ -855,7 +943,7 @@ export default function OnboardingForm({
                                 key={city}
                                 type="button"
                                 onClick={() => handleSelectCity(city)}
-                                className="w-full text-left px-4 py-3 text-[10px] uppercase font-bold hover:bg-slate-50 border-b last:border-0"
+                                className="w-full text-left px-4 py-3 text-[10px] uppercase font-semibold hover:bg-slate-50 border-b last:border-0"
                               >
                                 {city}
                               </button>
@@ -973,7 +1061,7 @@ export default function OnboardingForm({
         onClose={() => setShowSuccessModal(false)}
         title="Perfil Atualizado"
         subtitle="Sua presença digital foi salva"
-        maxWidth="lg"
+        maxWidth="2xl"
         headerIcon={
           <div className="w-12 h-12 bg-green-500/10 text-green-500 rounded-lg flex items-center justify-center shadow-lg shadow-green-500/5">
             <CheckCircle2 size={24} strokeWidth={2.5} />
@@ -1021,6 +1109,7 @@ export default function OnboardingForm({
         <Toast
           message={toastConfig.message}
           type={toastConfig.type}
+          position={toastConfig.position}
           onClose={() => setToastConfig(null)}
         />
       )}
