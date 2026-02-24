@@ -13,9 +13,10 @@ import {
   SquareStack,
 } from 'lucide-react';
 import WhatsAppIcon from '@/components/ui/WhatsAppIcon';
-import { executeShare, getCleanSlug } from '@/core/utils/share-helper';
+import { getCleanSlug } from '@/core/utils/share-helper';
 import { GALLERY_MESSAGES } from '@/core/config/messages';
 import { handleDownloadPhoto } from '@/core/utils/foto-helpers';
+import { useShare } from '@/hooks/useShare';
 
 const Tooltip = ({ text }: { text: string }) => (
   <div className="hidden md:block absolute -bottom-12 left-1/2 -translate-x-1/2 z-[130] animate-in fade-in zoom-in slide-in-from-top-2 duration-500">
@@ -59,6 +60,12 @@ export const ToolbarGalleryView = ({
   const isMountedRef = useRef(true); // 🎯 Ref para verificar se componente está montado
   const hasShownQualityWarningRef = useRef(hasShownQualityWarning); // 🎯 Ref para valor atual
   const onQualityWarningShownRef = useRef(onQualityWarningShown); // 🎯 Ref para callback
+  const { sharePhoto } = useShare({
+    galeria,
+    onSuccess: () => {
+      // Feedback opcional
+    },
+  });
 
   // Atualiza refs quando valores mudam
   useEffect(() => {
@@ -597,14 +604,7 @@ export const ToolbarGalleryView = ({
       {/* 2. WHATSAPP */}
       <div className="relative">
         <button
-          onClick={() => {
-            const shareUrl = `${window.location.origin}/photo/${photoId}?s=${getCleanSlug(gallerySlug)}`;
-            const shareText = GALLERY_MESSAGES.PHOTO_SHARE(
-              galleryTitle,
-              shareUrl,
-            );
-            executeShare({ title: galleryTitle, text: shareText });
-          }}
+          onClick={() => sharePhoto(photoId)}
           onMouseEnter={() => setActiveTooltip('whats')}
           onMouseLeave={() => setActiveTooltip(null)}
           className="flex items-center border-r border-white/10 pr-3 mx-1 shrink-0 group"

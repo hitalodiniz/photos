@@ -11,8 +11,7 @@ import {
   Pause,
 } from 'lucide-react';
 import WhatsAppIcon from '@/components/ui/WhatsAppIcon';
-import { executeShare, getCleanSlug } from '@/core/utils/share-helper';
-import { GALLERY_MESSAGES } from '@/core/config/messages';
+import { getCleanSlug } from '@/core/utils/share-helper';
 import { handleDownloadPhoto } from '@/core/utils/foto-helpers';
 
 interface VerticalActionBarProps {

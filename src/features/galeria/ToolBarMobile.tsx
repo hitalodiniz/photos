@@ -13,6 +13,7 @@ import {
 } from 'lucide-react';
 import { usePlan } from '@/core/context/PlanContext';
 import { GALLERY_MESSAGES } from '@/core/config/messages';
+import { useShare } from '@/hooks/useShare';
 
 // Componente do Balão de Dica (Padronizado para mobile)
 const Tooltip = ({
@@ -203,26 +204,21 @@ export const ToolBarMobile = ({
     return () => timers.forEach((t) => clearTimeout(t));
   }, [isVisible, hasMultipleTags, canUseFavorites]);
 
+  const {
+    copyLink,
+    shareAsGuest, // Equivalente ao handleNativeShare para visitantes
+  } = useShare({ galeria });
+
   const handleCopyLink = () => {
-    navigator.clipboard.writeText(window.location.href);
-    setCopied(true);
-    setTimeout(() => setCopied(false), 2000);
+    copyLink(); // O hook já usa window.location.href por padrão
   };
 
   const handleNativeShare = async () => {
     if (handleShare) {
       handleShare();
     } else {
-      const title = galeria?.title || 'Galeria de Fotos';
-      const url = window.location.href;
-      const shareText = GALLERY_MESSAGES.GUEST_SHARE(title, url);
-      if (navigator.share) {
-        await navigator.share({ title, text: shareText, url });
-      } else {
-        navigator.clipboard.writeText(url);
-        setCopied(true);
-        setTimeout(() => setCopied(false), 2000);
-      }
+      // O método shareAsGuest centraliza a lógica de Navigator API e fallback
+      await shareAsGuest();
     }
   };
 

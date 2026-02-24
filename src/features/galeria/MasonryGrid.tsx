@@ -19,11 +19,11 @@ import {
 } from '@/core/utils/url-helper';
 import { useGoogleDriveImage } from '@/hooks/useGoogleDriveImage';
 import { handleDownloadPhoto } from '@/core/utils/foto-helpers';
-import { GALLERY_MESSAGES } from '@/core/config/messages';
-import { getCleanSlug, executeShare } from '@/core/utils/share-helper';
+
 import LoadingSpinner from '@/components/ui/LoadingSpinner';
 import { GridPhotoActions } from './GridPhotoActions';
 import { useSupabaseSession, authService } from '@photos/core-auth';
+import { useShare } from '@/hooks/useShare';
 
 // --- TIPOS ---
 
@@ -591,46 +591,19 @@ const MasonryGrid = ({
     return () => observer.disconnect();
   }, [displayLimit, displayedPhotos.length, showOnlyFavorites]);
 
-  const handleShareWhatsAppGrid = useCallback(
-    (photoId: string) => {
-      const shareUrl = `${window.location.origin}/photo/${photoId}?s=${getCleanSlug(galeria.slug)}`;
-      const shareText = GALLERY_MESSAGES.PHOTO_SHARE(galleryTitle, shareUrl);
-      executeShare({ title: galleryTitle, text: shareText });
-    },
-    [galeria.slug, galleryTitle],
-  );
+  const { sharePhoto, copyLink, copied } = useShare({ galeria });
 
-  const handleNativeShareGrid = useCallback(
-    async (photoId: string) => {
-      const shareUrl = `${window.location.origin}/photo/${photoId}?s=${getCleanSlug(galeria.slug)}`;
-      const shareText = GALLERY_MESSAGES.PHOTO_SHARE(galleryTitle, shareUrl);
+  const handleShareWhatsAppGrid = (photoId: string) => {
+    sharePhoto(photoId);
+  };
 
-      if (navigator.share) {
-        try {
-          await navigator.share({
-            title: galleryTitle,
-            text: shareText,
-          });
-        } catch (error) {
-          if ((error as Error).name !== 'AbortError') {
-            console.error('Erro ao compartilhar:', error);
-            handleCopyLinkGrid(photoId);
-          }
-        }
-      } else {
-        handleCopyLinkGrid(photoId);
-      }
-    },
-    [galeria.slug, galleryTitle],
-  );
+  const handleNativeShareGrid = async (photoId: string) => {
+    await sharePhoto(photoId);
+  };
 
-  const handleCopyLinkGrid = useCallback(
-    (photoId: string) => {
-      const shareUrl = `${window.location.origin}/photo/${photoId}?s=${getCleanSlug(galeria.slug)}`;
-      navigator.clipboard.writeText(shareUrl);
-    },
-    [galeria.slug],
-  );
+  const handleCopyLinkGrid = (photoId: string) => {
+    copyLink(photoId);
+  };
 
   const btnScale = isMobile
     ? currentCols === 2

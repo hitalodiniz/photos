@@ -14,7 +14,7 @@ import { useIsMobile } from '@/hooks/use-breakpoint';
 import { VerticalThumbnails } from './VerticalThumbnails';
 import { ThumbnailStrip } from './ThumbnailStrip';
 import { VerticalActionBar } from './VerticalActionBar';
-import { getCleanSlug, executeShare } from '@/core/utils/share-helper';
+import { useShare } from '@/hooks/useShare';
 
 interface Photo {
   id: string | number;
@@ -340,18 +340,12 @@ export default function Lightbox({
     };
   }, [isMobile, showThumbnails, handleClickOutside]);
 
-  const handleShare = async () => {
-    const shareUrl = `${window.location.origin}/photo/${currentPhoto?.id}?s=${getCleanSlug(galeria.slug)}`;
+  const { sharePhoto, isSharing } = useShare({ galeria });
 
-    let shareText: string;
-    const customTemplate = galeria.photographer?.message_templates?.photo_share;
-    if (customTemplate && customTemplate.trim() !== '') {
-      shareText = formatMessage(customTemplate, galeria, shareUrl);
-    } else {
-      shareText = GALLERY_MESSAGES.PHOTO_SHARE(galleryTitle, shareUrl);
+  const handleShare = () => {
+    if (currentPhoto?.id) {
+      sharePhoto(currentPhoto.id as string);
     }
-
-    executeShare({ title: galleryTitle, text: shareText });
   };
 
   if (!currentPhoto) return null;

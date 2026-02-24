@@ -39,8 +39,8 @@ import { useNavigation } from '@/components/providers/NavigationProvider';
 import { usePlan } from '@/core/context/PlanContext';
 import UpgradeModal from '@/components/ui/UpgradeModal';
 import React from 'react';
-import { executeShare } from '@/core/utils/share-helper';
-import { div } from 'framer-motion/client';
+
+import { useShare } from '@/hooks/useShare';
 
 interface GaleriaCardProps {
   galeria: Galeria;
@@ -181,14 +181,22 @@ export default function GaleriaCard({
     await onEdit(galeria);
   };
 
+  // 1. Inicialize o hook extraindo o shareToClient
+  const { shareToClient } = useShare({
+    galeria,
+    onSuccess: () => {
+      // Callback opcional (ex: registrar analytics de compartilhamento)
+    },
+  });
+
+  // 2. Refatore a função de clique
   const handleWhatsAppShare = (e: React.MouseEvent) => {
     e.preventDefault();
     e.stopPropagation();
-    executeShare({
-      title: galeria.title,
-      text: links.message,
-      phone: galeria.client_whatsapp,
-    });
+
+    // O hook já busca internamente galeria.client_whatsapp e galeria.title
+    // Você pode passar uma URL customizada se links.url for diferente da atual
+    shareToClient(links.url);
   };
 
   const handleOpenBIReport = (e: React.MouseEvent) => {

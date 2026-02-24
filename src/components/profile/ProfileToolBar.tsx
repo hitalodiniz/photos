@@ -14,7 +14,6 @@ import {
 } from 'lucide-react';
 import WhatsAppIcon from '@/components/ui/WhatsAppIcon';
 import { PlanGuard } from '@/components/auth/PlanGuard';
-import { div } from 'framer-motion/client';
 
 export const ProfileToolBar = ({
   phone,
@@ -231,7 +230,7 @@ export const ProfileToolBar = ({
                 </h4>
                 <div className="flex flex-wrap items-center gap-x-3 gap-y-2">
                   {cities.map((city, i) => (
-                    <React.Fragment key={city}>
+                    <React.Fragment key={`city-${city}`}>
                       <a
                         href={`https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(city)}`}
                         target="_blank"
@@ -241,7 +240,9 @@ export const ProfileToolBar = ({
                         {city}
                       </a>
                       {i < cities.length - 1 && (
-                        <span className="text-white/10 text-[10px]">|</span>
+                        <span className="text-white/10 text-[10px] select-none">
+                          |
+                        </span>
                       )}
                     </React.Fragment>
                   ))}
@@ -257,15 +258,21 @@ export const ProfileToolBar = ({
                 </h4>
                 <div className="flex flex-wrap items-center gap-x-3 gap-y-2">
                   {specialties.map((spec, i) => (
-                    <React.Fragment key={spec}>
+                    <React.Fragment key={`spec-${spec}`}>
                       <button
                         onClick={() => toggleFilter(spec)}
-                        className={`text-[12px] font-semibold uppercase transition-colors ${activeFilter === spec ? 'text-gold' : 'text-white/80 hover:text-gold'}`}
+                        className={`text-[12px] font-semibold uppercase transition-colors ${
+                          activeFilter === spec
+                            ? 'text-gold'
+                            : 'text-white/80 hover:text-gold'
+                        }`}
                       >
                         {spec}
                       </button>
                       {i < specialties.length - 1 && (
-                        <span className="text-white/10 text-[10px]">|</span>
+                        <span className="text-white/10 text-[10px] select-none">
+                          |
+                        </span>
                       )}
                     </React.Fragment>
                   ))}
@@ -273,7 +280,7 @@ export const ProfileToolBar = ({
               </div>
             )}
             {/* CATEGORIAS */}
-            {categories.length > 0 && (
+            {uniqueCategories.length > 0 && (
               <div className="flex flex-col gap-4 border-t md:border-t-0 md:border-l border-white/20 pt-6 md:pt-0 md:pl-10">
                 <h4 className="text-gold/80 text-[10px] font-semibold uppercase tracking-widest flex items-center gap-2">
                   <Compass size={12} /> Categorias
@@ -281,7 +288,11 @@ export const ProfileToolBar = ({
                 <div className="flex flex-wrap items-center gap-x-4 gap-y-3">
                   <button
                     onClick={() => toggleFilter('all')}
-                    className={`text-[12px] font-semibold uppercase flex items-center gap-1.5 ${activeFilter === 'all' ? 'text-gold' : 'text-white/40'}`}
+                    className={`text-[12px] font-semibold uppercase flex items-center gap-1.5 transition-colors ${
+                      activeFilter === 'all'
+                        ? 'text-gold'
+                        : 'text-white/40 hover:text-white/60'
+                    }`}
                   >
                     Ver Tudo
                     <span className="text-[9px] px-1.5 py-0.5 rounded-full bg-white/5 border border-white/10">
@@ -291,14 +302,24 @@ export const ProfileToolBar = ({
 
                   {uniqueCategories.map((cat: string) => (
                     <React.Fragment key={cat}>
-                      <span className="text-white/10 text-[10px]">|</span>
+                      <span className="text-white/10 text-[10px] select-none">
+                        |
+                      </span>
                       <button
                         onClick={() => toggleFilter(cat)}
-                        className={`text-[12px] font-semibold uppercase flex items-center gap-1.5 transition-colors ${activeFilter === cat ? 'text-gold' : 'text-white/80 hover:text-gold'}`}
+                        className={`text-[12px] font-semibold uppercase flex items-center gap-1.5 transition-colors ${
+                          activeFilter === cat
+                            ? 'text-gold'
+                            : 'text-white/80 hover:text-gold'
+                        }`}
                       >
                         {cat}
                         <span
-                          className={`text-[9px] px-1.5 py-0.5 rounded-full border ${activeFilter === cat ? 'border-gold/30 bg-gold/10' : 'border-white/10 bg-white/5'}`}
+                          className={`text-[9px] px-1.5 py-0.5 rounded-full border transition-all ${
+                            activeFilter === cat
+                              ? 'border-gold/30 bg-gold/10 text-gold'
+                              : 'border-white/10 bg-white/5 text-white/60'
+                          }`}
                         >
                           {categoryCounts[cat]}
                         </span>
