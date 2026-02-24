@@ -5,7 +5,6 @@ import {
   X,
   Loader2,
   ChevronDown,
-  ChevronUp,
   Image as ImageIcon,
   Users,
   FileArchive,
@@ -15,18 +14,15 @@ import {
 import EditorialCard from '@/components/ui/EditorialCard';
 import EditorialView from '@/components/layout/EditorialView';
 import {
-  getPlansByDomain,
   COMMON_FEATURES,
   PlanKey,
   PERMISSIONS_BY_PLAN,
   PlanPermissions,
-  SegmentType,
   PLANS_BY_SEGMENT,
-  FEATURE_DESCRIPTIONS,
 } from '@/core/config/plans';
 
 import { useSegment } from '@/hooks/useSegment';
-import { InfoTooltip } from '@/components/ui/InfoTooltip';
+import FeaturePreview from '@/components/ui/FeaturePreview';
 
 export default function PlanosPage() {
   const [loadingPlan, setLoadingPlan] = useState<string | null>(null);
@@ -38,7 +34,7 @@ export default function PlanosPage() {
 
   const { segment, terms } = useSegment();
 
-  // 1. Grupos normalizados para evitar erro de comparação
+  // Grupos para a tabela técnica
   const groups = useMemo(() => {
     return Array.from(
       new Set(COMMON_FEATURES.map((f) => f.group.trim().toUpperCase())),
@@ -47,7 +43,6 @@ export default function PlanosPage() {
 
   useEffect(() => {
     setMounted(true);
-    // Inicializa todos os grupos como abertos
     setExpandedGroups(Object.fromEntries(groups.map((g) => [g, true])));
   }, [groups]);
 
@@ -61,28 +56,33 @@ export default function PlanosPage() {
     setExpandedGroups((prev) => ({ ...prev, [name]: !prev[name] }));
   };
 
+  /**
+   * Helper para buscar valores das permissões ou valores amigáveis.
+   * Agora aceita key ou label para evitar quebras na tabela.
+   */
   const getFeatureValue = (
-    label: string,
+    featureIdentifier: string,
     planKey: PlanKey,
     planIdx: number,
   ) => {
-    const feature = COMMON_FEATURES.find((f) => f.label === label);
+    const feature = COMMON_FEATURES.find(
+      (f) => f.key === featureIdentifier || f.label === featureIdentifier,
+    );
+
     if (!feature) return '—';
 
-    // 🎯 Prioridade: Se existir um array de valores amigáveis (values),
-    // exibimos o texto correspondente ao índice do plano.
+    // Prioridade 1: Valores amigáveis definidos no array 'values' (ex: "Apenas Titular")
     if (feature.values && feature.values[planIdx] !== undefined) {
-      const val = feature.values[planIdx];
-      if (val === true) return true; // Para renderizar o ícone de Check
-      if (val === false) return false; // Para renderizar o ícone de X
-      return val;
+      return feature.values[planIdx];
     }
 
-    // Fallback para valores brutos das permissões (apenas se não houver 'values' amigáveis)
+    // Prioridade 2: Valor bruto da permissão mapeada pela 'key'
     if (feature.key) {
       const val =
         PERMISSIONS_BY_PLAN[planKey][feature.key as keyof PlanPermissions];
-      return val === 9999 ? 'Ilimitado' : val;
+      if (val === 9999) return 'Ilimitado';
+      if (val === true || val === false) return val;
+      return val;
     }
 
     return '—';
@@ -123,37 +123,37 @@ export default function PlanosPage() {
                 ? planInfo.yearlyPrice
                 : planInfo.price;
 
+              // Indicadores formatados exatamente como no print do EditorialCard
               const indicators = [
                 {
                   icon: <ImageIcon />,
-                  label: `Galerias ativas`,
-                  value: getFeatureValue('Galerias Ativas', key, idx),
+                  label: 'Galerias ativas',
+                  key: 'maxGalleries',
+                  value: getFeatureValue('maxGalleries', key, idx),
                 },
                 {
                   icon: <Users />,
                   label: 'Visitantes',
+                  key: 'canCaptureLeads',
                   value:
-                    getFeatureValue(
-                      'Formulário de Acesso à galeria',
-                      key,
-                      idx,
-                    ) === false
+                    getFeatureValue('canCaptureLeads', key, idx) === false
                       ? 'Acesso Livre'
                       : 'Cadastro de visitantes',
                 },
                 {
-                  icon: <FileArchive />,
-                  label: `Capacidade por ${terms.item}`,
-                  value: getFeatureValue('Capacidade por Galeria', key, idx),
+                  icon: <Users />,
+                  label: 'Estatísticas da galeria',
+                  key: 'canAccessStats',
+                  value:
+                    getFeatureValue('canAccessStats', key, idx) === false
+                      ? 'Não disponível'
+                      : 'Notificações de eventos',
                 },
                 {
-                  icon: <LinkIcon />,
-                  label: 'Links externos',
-                  value: getFeatureValue(
-                    'Links de Download Externos',
-                    key,
-                    idx,
-                  ),
+                  icon: <FileArchive />,
+                  label: `Capacidade por ${terms.item}`,
+                  key: 'maxPhotosPerGallery',
+                  value: `${getFeatureValue('maxPhotosPerGallery', key, idx)} fotos`,
                 },
               ];
 
@@ -179,43 +179,32 @@ export default function PlanosPage() {
                     </p>
                   </div>
 
-                  <div className="space-y-2 mb-6 flex-grow">
-                    {indicators.map((ind, i) => {
-                      const featureConfig = COMMON_FEATURES.find(
-                        (f) => f.label === ind.label,
-                      );
-                      const description = featureConfig?.key
-                        ? FEATURE_DESCRIPTIONS[
-                            featureConfig.key as keyof PlanPermissions
-                          ]
-                        : null;
-                      return (
-                        <div key={i} className="flex items-start gap-3">
-                          <div className="w-8 h-8 rounded-lg flex items-center justify-center shrink-0 text-gold">
-                            {React.cloneElement(ind.icon as any, {
-                              size: 16,
-                              strokeWidth: 2,
-                            })}
-                          </div>
-                          <div className="flex flex-col">
-                            <div className="flex items-center gap-1.5">
-                              <span className="text-[12px] font-semibold text-petroleum leading-tight">
-                                {ind.value}
-                              </span>
-                              {description && (
-                                <InfoTooltip
-                                  title={description.label}
-                                  content={description.description}
-                                />
-                              )}
-                            </div>
-                            <span className="text-[10px] text-petroleum/70 font-medium uppercase tracking-normal">
+                  <div className="space-y-4 mb-8 flex-grow">
+                    {indicators.map((ind, i) => (
+                      <div key={i} className="flex items-start gap-3">
+                        <div className="w-8 h-8 rounded-lg flex items-center justify-center shrink-0 text-gold">
+                          {React.cloneElement(ind.icon as any, {
+                            size: 16,
+                            strokeWidth: 2,
+                          })}
+                        </div>
+
+                        <div className="flex flex-col">
+                          <span className="text-[12px] font-semibold text-petroleum leading-tight">
+                            {ind.value}
+                          </span>
+                          <div className="flex items-center gap-1.5">
+                            <span className="text-[9px] text-petroleum/70 font-semibold uppercase tracking-widest">
                               {ind.label}
                             </span>
+                            <FeaturePreview
+                              featureKey={ind.key as keyof PlanPermissions}
+                              align={idx > 2 ? 'right' : 'left'}
+                            />
                           </div>
                         </div>
-                      );
-                    })}
+                      </div>
+                    ))}
                   </div>
 
                   <button
@@ -223,8 +212,8 @@ export default function PlanosPage() {
                     disabled={!!loadingPlan}
                     className={`w-full h-12 flex items-center justify-center gap-3 rounded-xl transition-all font-semibold text-[10px] uppercase tracking-widest ${
                       isPro
-                        ? 'bg-petroleum text-white shadow-xl hover:bg-black'
-                        : 'bg-white border border-petroleum/20 text-petroleum'
+                        ? 'bg-petroleum text-white shadow-xl hover:bg-black hover:-translate-y-0.5'
+                        : 'bg-white border border-petroleum/10 text-petroleum hover:bg-slate-50'
                     }`}
                   >
                     {loadingPlan === key ? (
@@ -247,19 +236,19 @@ export default function PlanosPage() {
         </section>
 
         {/* TABELA TÉCNICA */}
-        <section className="max-w-[1650px] mx-auto px-4 md:px-6">
+        <section className="max-w-[1650px] mx-auto px-4 md:px-6 mb-20">
           <div className="text-center mb-8">
             <h2 className="text-petroleum font-bold text-lg md:text-2xl uppercase tracking-[0.2em] italic">
               Especificações Técnicas
             </h2>
           </div>
 
-          <div className="rounded-2xl md:rounded-3xl overflow-hidden border border-slate-200 shadow-xl bg-white">
+          <div className="rounded-2xl md:rounded-3xl border border-slate-200 shadow-2xl bg-white">
             <div className="overflow-x-auto scrollbar-hide">
               <table className="w-full text-left border-collapse min-w-[1000px]">
                 <thead>
                   <tr className="bg-petroleum">
-                    <th className="px-7 text-[11px] font-semibold uppercase tracking-widest text-champagne border-b border-white/5">
+                    <th className="px-8 py-6 text-[11px] font-semibold uppercase tracking-widest text-champagne border-b border-white/5">
                       Recursos
                     </th>
                     {planosKeys.map((key) => {
@@ -267,29 +256,25 @@ export default function PlanosPage() {
                       const displayPrice = isAnnual
                         ? planInfo.yearlyPrice
                         : planInfo.price;
-
                       return (
                         <th key={key} className="p-6 border-b border-white/5">
                           <div className="flex flex-col items-center gap-1">
-                            {/* Linha Horizontal: Ícone + Nome */}
                             <div className="flex items-center gap-2 mb-1">
                               <div className="text-champagne">
                                 <planInfo.icon size={18} strokeWidth={2} />
                               </div>
-                              <span className="text-[11px] text-white font-bold uppercase tracking-widest whitespace-nowrap">
+                              <span className="text-[11px] text-white font-bold uppercase tracking-widest">
                                 {planInfo.name}
                               </span>
                             </div>
-
-                            {/* Preço do Plano */}
                             <div className="flex items-baseline gap-0.5">
-                              <span className="text-[9px] font-medium champagne">
+                              <span className="text-[9px] font-medium text-champagne">
                                 R$
                               </span>
                               <span className="text-xl font-semibold text-white tracking-tighter italic">
                                 {displayPrice.toFixed(0)}
                               </span>
-                              <span className="text-[8px] text-white/80 font-medium lowercase ml-0.5">
+                              <span className="text-[8px] text-white/60 font-medium ml-0.5">
                                 /mês
                               </span>
                             </div>
@@ -303,20 +288,20 @@ export default function PlanosPage() {
                   {groups.map((groupName) => (
                     <React.Fragment key={groupName}>
                       <tr
-                        className="bg-slate-50/50 cursor-pointer hover:bg-slate-100 transition-colors"
+                        className="bg-slate-50/80 cursor-pointer hover:bg-slate-100 transition-colors"
                         onClick={() => toggleGroup(groupName)}
                       >
                         <td
                           colSpan={planosKeys.length + 1}
-                          className="py-4 px-8 border-b border-slate-100"
+                          className="py-4 px-8 border-y border-slate-200/50"
                         >
                           <div className="flex items-center gap-3">
                             <ChevronDown
                               size={14}
-                              strokeWidth={2.5}
+                              strokeWidth={3}
                               className={`text-gold transition-transform duration-500 ${expandedGroups[groupName] ? '' : '-rotate-90'}`}
                             />
-                            <span className="text-[10px] font-bold uppercase tracking-luxury-widest text-gold">
+                            <span className="text-[10px] font-bold uppercase tracking-[0.2em] text-gold">
                               {groupName}
                             </span>
                           </div>
@@ -331,32 +316,32 @@ export default function PlanosPage() {
                             key={`${groupName}-${fIdx}`}
                             className="hover:bg-slate-50 transition-colors group"
                           >
-                            <td className="py-4 px-8 border-b border-slate-100 bg-white sticky left-0 z-30 text-[12px] font-semibold text-petroleum">
-                              <div className="flex items-center gap-2">
-                                {feature.label}
-                                {feature.key &&
-                                  FEATURE_DESCRIPTIONS[
-                                    feature.key as keyof PlanPermissions
-                                  ] && (
-                                    <InfoTooltip
-                                      title={
-                                        FEATURE_DESCRIPTIONS[
-                                          feature.key as keyof PlanPermissions
-                                        ].label
-                                      }
-                                      content={
-                                        FEATURE_DESCRIPTIONS[
-                                          feature.key as keyof PlanPermissions
-                                        ].description
-                                      }
-                                      align="left"
-                                    />
-                                  )}
+                            <td
+                              className={`
+    py-4 px-8 border-b border-slate-100 bg-white sticky left-0 
+    text-[12px] font-semibold text-petroleum
+    transition-all duration-200
+
+    z-30 
+  `}
+                            >
+                              <div className="flex items-center gap-2 overflow-visible">
+                                <span className="opacity-80 group-hover:opacity-100">
+                                  {feature.label}
+                                </span>
+                                {feature.key && (
+                                  <FeaturePreview
+                                    featureKey={
+                                      feature.key as keyof PlanPermissions
+                                    }
+                                    align="left"
+                                  />
+                                )}
                               </div>
                             </td>
                             {planosKeys.map((key, pIdx) => {
                               const val = getFeatureValue(
-                                feature.label,
+                                feature.key || feature.label,
                                 key,
                                 pIdx,
                               );
@@ -369,17 +354,17 @@ export default function PlanosPage() {
                                     {val === true ? (
                                       <Check
                                         size={18}
-                                        className="text-emerald"
+                                        className="text-emerald-500"
                                         strokeWidth={3}
                                       />
                                     ) : val === false ? (
                                       <X
                                         size={16}
-                                        className="text-slate-600"
+                                        className="text-slate-300"
                                         strokeWidth={2}
                                       />
                                     ) : (
-                                      <span className="text-[12px] font-medium text-petroleum">
+                                      <span className="text-[12px] font-medium text-petroleum/80">
                                         {val}
                                       </span>
                                     )}
@@ -395,6 +380,7 @@ export default function PlanosPage() {
               </table>
             </div>
           </div>
+
           <div className="flex flex-col md:flex-row items-center gap-3 bg-petroleum/5 border border-petroleum/10 px-6 py-4 rounded-2xl md:rounded-full w-fit mx-auto mt-12">
             <ShieldCheck size={18} className="text-gold" />
             <span className="text-[9px] md:text-[10px] font-bold uppercase tracking-widest text-petroleum/70 text-center">

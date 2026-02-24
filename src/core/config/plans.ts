@@ -72,12 +72,19 @@ export function findNextPlanWithFeature(
  */
 export const FEATURE_DESCRIPTIONS: Record<
   keyof PlanPermissions,
-  { label: string; description: string }
+  {
+    label: string;
+    description: string;
+    previewType?: 'image' | 'video';
+    previewUrl?: string;
+  }
 > = {
   maxGalleries: {
     label: 'Limite de Galerias',
     description:
       'Aumente o número de galerias ativas simultaneamente em sua conta.',
+    previewType: 'image',
+    previewUrl: '/previews/maxGalleries.jpg',
   },
   maxPhotosPerGallery: {
     label: 'Capacidade de Fotos',

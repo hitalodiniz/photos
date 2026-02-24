@@ -5,13 +5,9 @@ import {
   Cloud,
   Smartphone,
   Search,
-  Grid,
-  Users,
   MessageCircle,
   ArrowRight,
-  RefreshCw,
   LogIn,
-  ShieldCheck,
   Sparkles,
   X,
 } from 'lucide-react';
