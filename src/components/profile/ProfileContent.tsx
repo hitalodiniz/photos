@@ -313,7 +313,7 @@ export default function ProfileContent({
         {filteredGalerias.length > 0 ? (
           <div className="space-y-2">
             <div
-              className={`grid gap-2 w-full mx-auto ${
+              className={`grid md:gap-2 w-full mx-auto ${
                 filteredGalerias.length === 1
                   ? 'grid-cols-1 max-w-5xl'
                   : filteredGalerias.length === 2
@@ -322,7 +322,10 @@ export default function ProfileContent({
               }`}
             >
               {filteredGalerias.map((galeria) => (
-                <div key={galeria.id} className="w-full aspect-[3/2]">
+                <div
+                  key={galeria.id}
+                  className="w-full md:aspect-[3/2] mb-2 md:mb-0"
+                >
                   <PublicGaleriaCard galeria={galeria} />
                 </div>
               ))}
@@ -342,7 +345,7 @@ export default function ProfileContent({
                         <Loader2 size={14} className="animate-spin" />
                       </span>
                     ) : (
-                      `Explorar mais ${terms.items}`
+                      `Explorar mais galerias`
                     )}
                   </span>
 
