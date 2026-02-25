@@ -1204,3 +1204,52 @@ export const getProfileCategories = cache(async (userId: string) => {
     },
   )(userId);
 });
+
+/**
+ * 🎯 SALVA A SELEÇÃO DE FOTOS (IDs) DO CLIENTE
+ */
+export async function saveGaleriaSelectionAction(
+  galeria: Galeria,
+  selectionIds: string[],
+) {
+  const supabase = await createSupabaseServerClient();
+
+  try {
+    // 1. Update no banco
+    const { data, error, status } = await supabase
+      .from('tb_galerias')
+      .update({
+        // Garante que estamos enviando um array limpo
+        selection_ids: Array.isArray(selectionIds) ? selectionIds : [],
+        updated_at: new Date().toISOString(),
+      })
+      .eq('id', galeria.id)
+      .select(); // Adicionamos select para confirmar que houve alteração
+
+    // Se o status for 204 ou data estiver vazio, o RLS bloqueou ou o ID não existe
+    if (error) throw error;
+
+    if (!data || data.length === 0) {
+      console.error(
+        '[saveGaleriaSelectionAction] Nenhuma linha afetada. Verifique as políticas de RLS.',
+      );
+      return {
+        success: false,
+        error: 'Permissão negada ou galeria não encontrada.',
+      };
+    }
+
+    // 2. Revalidação de cache (Usa dados do objeto galeria recebido)
+    await revalidateGalleryCache({
+      galeriaId: galeria.id,
+      slug: galeria.slug,
+      userId: galeria.user_id,
+      username: galeria.photographer?.username,
+    });
+
+    return { success: true };
+  } catch (error: any) {
+    console.error('[saveGaleriaSelectionAction] Erro Crítico:', error.message);
+    return { success: false, error: error.message };
+  }
+}

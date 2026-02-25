@@ -31,6 +31,18 @@ export interface Photographer {
   plan_key: string;
 }
 
+/** Códigos de tipo de galeria: CT = Contrato, CB = Cobertura, ES = Ensaio */
+export type GaleriaContractTypeCode = 'CT' | 'CB' | 'ES';
+
+/** Normaliza valor legado (boolean) ou código para sempre retornar CT | CB | ES */
+export function normalizeContractType(
+  value: boolean | string | null | undefined,
+): GaleriaContractTypeCode {
+  if (value === 'CT' || value === 'CB' || value === 'ES') return value;
+  if (value === true || value === 'true') return 'CT';
+  return 'CB';
+}
+
 // Interface Base (Reflete exatamente a tabela tb_galerias no Banco)
 export interface GaleriaBase {
   id: string;
@@ -46,7 +58,8 @@ export interface GaleriaBase {
   password: string | null;
   user_id: string;
   category: string;
-  has_contracting_client: boolean;
+  /** CT = Contrato, CB = Cobertura, ES = Ensaio (aceita valor legado boolean no banco) */
+  has_contracting_client: GaleriaContractTypeCode | boolean;
   client_whatsapp: string | null;
   drive_folder_name: string | null;
   is_archived: boolean;
@@ -74,6 +87,7 @@ export interface GaleriaBase {
   google_refresh_token: string | null;
   gallery_tags: string | null;
   photo_tags: string | null;
+  selection_ids: string[] | null;
 }
 
 // Interface utilizada na UI (GaleriaCard e GaleriaView)

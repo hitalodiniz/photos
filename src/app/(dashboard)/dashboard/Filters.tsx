@@ -235,8 +235,9 @@ export default function Filters({
                     className={selectClass}
                   >
                     <option value="">Tipos</option>
-                    <option value="true">Contrato</option>
-                    <option value="false">Cobertura</option>
+                    <option value="CT">Contrato</option>
+                    <option value="CB">Cobertura</option>
+                    <option value="ES">Ensaio</option>
                   </select>
                   <ChevronDown
                     size={12}

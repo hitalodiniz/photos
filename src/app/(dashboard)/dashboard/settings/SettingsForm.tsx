@@ -31,6 +31,21 @@ import { PlanGuard } from '@/components/auth/PlanGuard';
 import { GalleryDesignFields } from '@/features/galeria/components/admin/GaleriaDesignFields';
 import { GalleryInteractionFields } from '@/features/galeria/components/admin/GalleryInteractionFields';
 import { GooglePickerButton } from '@/components/google-drive';
+import {
+  GalleryTypeToggle,
+  type GalleryTypeValue,
+} from '@/components/ui/GalleryTypeToggle';
+
+const DEFAULT_TYPE_TO_CODE: Record<string, GalleryTypeValue> = {
+  contract: 'CT',
+  event: 'CB',
+  ensaio: 'ES',
+};
+const CODE_TO_DEFAULT_TYPE: Record<GalleryTypeValue, 'contract' | 'event' | 'ensaio'> = {
+  CT: 'contract',
+  CB: 'event',
+  ES: 'ensaio',
+};
 
 const CombinedSchema = z.object({
   settings: UserSettingsSchema,
@@ -161,53 +176,20 @@ export default function SettingsForm({ profile }: { profile: any }) {
           <div className="grid grid-cols-1 md:grid-cols-2 gap-8 items-start">
             {/* TIPO PADRÃO */}
             <div className="space-y-2">
-              <label className="text-[10px] font-bold uppercase tracking-luxury-widest text-petroleum/60 flex items-center gap-1.5">
-                <Briefcase size={12} strokeWidth={2} className="text-gold" />
-                Tipo de Galeria Padrão
-              </label>
-
-              <div className="flex p-1 bg-slate-50 rounded-luxury border border-slate-200 h-10 items-center relative">
-                <div
-                  className={`absolute top-1 bottom-1 w-[calc(50%-4px)] rounded-[0.35rem] transition-all duration-300 bg-champagne border border-gold/20 shadow-sm ${
-                    settings.display.default_type === 'contract'
-                      ? 'left-1'
-                      : 'left-[calc(50%+1px)]'
-                  }`}
-                />
-                <button
-                  type="button"
-                  onClick={() =>
-                    setValue('settings.display.default_type', 'contract', {
-                      shouldDirty: true,
-                    })
-                  }
-                  className={`relative z-10 flex-1 text-[9px] font-semibold uppercase tracking-luxury-widest transition-colors ${
-                    settings.display.default_type === 'contract'
-                      ? 'text-black'
-                      : 'text-petroleum/60'
-                  }`}
-                >
-                  Contrato
-                </button>
-                <button
-                  type="button"
-                  onClick={() =>
-                    setValue('settings.display.default_type', 'event', {
-                      shouldDirty: true,
-                    })
-                  }
-                  className={`relative z-10 flex-1 text-[9px] font-semibold uppercase tracking-luxury-widest transition-colors ${
-                    settings.display.default_type === 'event'
-                      ? 'text-black'
-                      : 'text-petroleum/60'
-                  }`}
-                >
-                  Cobertura
-                </button>
-              </div>
-              <p className="text-[9px] text-petroleum/50 italic px-1">
-                Define qual opção virá selecionada ao criar uma nova galeria.
-              </p>
+              <GalleryTypeToggle
+                label="Tipo de Galeria Padrão"
+                value={
+                  DEFAULT_TYPE_TO_CODE[settings.display.default_type] ?? 'CT'
+                }
+                onChange={(v) =>
+                  setValue(
+                    'settings.display.default_type',
+                    CODE_TO_DEFAULT_TYPE[v],
+                    { shouldDirty: true },
+                  )
+                }
+                hint="Define qual opção virá selecionada ao criar uma nova galeria."
+              />
             </div>
 
             {/* VISIBILIDADE NO PERFIL */}

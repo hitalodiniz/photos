@@ -1,6 +1,6 @@
 {
   "name": "photos",
-  "version": "0.1.176",
+  "version": "0.1.178",
   "private": true,
   "workspaces": [
     "packages/*"

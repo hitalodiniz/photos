@@ -17,7 +17,6 @@ import {
   User,
   Type,
   FolderSync,
-  Briefcase,
   Tag,
   Layout,
   Eye,
@@ -48,6 +47,18 @@ import { GalleryInteractionFields } from './GalleryInteractionFields';
 
 import { Toast } from '@/components/ui';
 import { getFolderPhotos } from '@/core/services/google-drive.service';
+import {
+  GalleryTypeToggle,
+  type GalleryTypeValue,
+} from '@/components/ui/GalleryTypeToggle';
+import { normalizeContractType } from '@/core/types/galeria';
+
+/** default_type do perfil (contract/event/ensaio) → código (CT/CB/ES) */
+const DEFAULT_TYPE_TO_CODE: Record<string, GalleryTypeValue> = {
+  contract: 'CT',
+  event: 'CB',
+  ensaio: 'ES',
+};
 
 // 🎯 Componente de seção simples (sem accordion) - Estilo Editorial
 const FormSection = ({
@@ -164,15 +175,14 @@ export default function GaleriaFormContent({
     return profile?.settings?.defaults?.rename_files_sequential ?? true;
   });
 
-  const [hasContractingClient, setHasContractingClient] = useState(() => {
-    if (isEdit)
-      return (
-        initialData.has_contracting_client === true ||
-        initialData.has_contracting_client === 'true'
-      );
+  const [galleryType, setGalleryType] = useState<GalleryTypeValue>(() => {
+    if (isEdit) {
+      return normalizeContractType(initialData?.has_contracting_client);
+    }
     const defaultType = profile?.settings?.display?.default_type;
-    return defaultType === 'contract' || !defaultType;
+    return (defaultType && DEFAULT_TYPE_TO_CODE[defaultType]) || 'CT';
   });
+  const hasContractingClient = galleryType === 'CT';
 
   const [isPublic, setIsPublic] = useState(() => {
     if (initialData)
@@ -544,7 +554,7 @@ export default function GaleriaFormContent({
             <input
               type="hidden"
               name="has_contracting_client"
-              value={String(hasContractingClient)}
+              value={galleryType}
             />
             <input
               type="hidden"
@@ -613,52 +623,32 @@ export default function GaleriaFormContent({
           </div>
 
           {/* SEÇÃO 1: IDENTIFICAÇÃO */}
-          {(profile?.settings?.display?.show_contract_type !== false ||
-            hasContractingClient) && (
+          {profile?.settings?.display?.show_contract_type !== false && (
             <FormSection
               title="Identificação"
               icon={<User size={14} className="text-gold" />}
             >
               <fieldset>
                 <div className="grid grid-cols-1 md:grid-cols-12 gap-2 items-end">
-                  <div className="md:col-span-3 ">
-                    <label className="mb-1.5">
-                      <Briefcase
-                        size={12}
-                        strokeWidth={2}
-                        className="text-gold"
-                      />{' '}
-                      Tipo
-                    </label>
-                    <div className="flex p-1 bg-slate-50 rounded-luxury border border-slate-200 h-10 items-center relative">
-                      <div
-                        className={`absolute top-1 bottom-1 w-[calc(50%-4px)] rounded-[0.35rem] transition-all duration-300 bg-champagne border border-gold/20 shadow-sm ${hasContractingClient ? 'left-1' : 'left-[calc(50%+1px)]'}`}
-                      />
-                      <button
-                        type="button"
-                        disabled={
-                          profile?.settings?.display?.show_contract_type ===
-                          false
-                        }
-                        onClick={() => setHasContractingClient(true)}
-                        className={`relative z-10 flex-1 text-[9px] font-semibold uppercase tracking-luxury-widest transition-colors ${hasContractingClient ? 'text-black' : 'text-petroleum/60 dark:text-slate-400'}`}
-                      >
-                        Contrato
-                      </button>
-                      <button
-                        type="button"
-                        onClick={() => {
-                          setHasContractingClient(false);
-                        }}
-                        className={`relative z-10 flex-1 text-[9px] font-semibold uppercase tracking-luxury-widest transition-colors ${!hasContractingClient ? 'text-black' : 'text-petroleum/60 dark:text-slate-400'}`}
-                      >
-                        Cobertura
-                      </button>
-                    </div>
+                  <div className="md:col-span-4">
+                    <GalleryTypeToggle
+                      label="Tipo"
+                      value={galleryType}
+                      onChange={setGalleryType}
+                      disabledContract={
+                        profile?.settings?.display?.show_contract_type === false
+                      }
+                    />
                   </div>
-                  {hasContractingClient ? (
+                  {galleryType === 'CB' ? (
+                    <div className="md:col-span-8 h-10 flex items-center px-4 bg-slate-50 border border-dashed border-slate-200 rounded-luxury">
+                      <p className="text-[9px] font-semibold uppercase tracking-luxury-wide text-petroleum/60 dark:text-slate-400 italic">
+                        Identificação de cliente não disponível em coberturas.
+                      </p>
+                    </div>
+                  ) : (
                     <>
-                      <div className="md:col-span-6 animate-in slide-in-from-left-2">
+                      <div className="md:col-span-5 animate-in slide-in-from-left-2">
                         <label className="mb-1.5">
                           <User
                             size={12}
@@ -689,12 +679,6 @@ export default function GaleriaFormContent({
                         />
                       </div>
                     </>
-                  ) : (
-                    <div className="md:col-span-9 h-10 flex items-center px-4 bg-slate-50 border border-dashed border-slate-200 rounded-luxury">
-                      <p className="text-[9px] font-semibold uppercase tracking-luxury-wide text-petroleum/60 dark:text-slate-400 italic">
-                        Identificação de cliente não disponível em coberturas.
-                      </p>
-                    </div>
                   )}
                 </div>
               </fieldset>

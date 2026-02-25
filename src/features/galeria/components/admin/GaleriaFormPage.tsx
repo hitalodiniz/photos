@@ -148,7 +148,7 @@ export default function GaleriaFormPage({
     const title = formData.get('title') as string;
     const date = formData.get('date') as string;
     const selectedCategory = formData.get('category') as string;
-    const hasClient = formData.get('has_contracting_client') === 'true';
+    const hasClient = formData.get('has_contracting_client') === 'CT';
     const clientName = formData.get('client_name') as string;
     const password = formData.get('password') as string;
     const isPublicValue = formData.get('is_public') === 'true';

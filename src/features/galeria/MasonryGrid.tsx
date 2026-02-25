@@ -8,7 +8,7 @@ import React, {
   useMemo,
 } from 'react';
 import { useSearchParams } from 'next/navigation';
-import { Check, Heart, HeartOff, Loader2 } from 'lucide-react';
+import { Check, CheckCircle2, Heart, HeartOff, Loader2 } from 'lucide-react';
 import 'photoswipe/dist/photoswipe.css';
 import { Gallery, Item } from 'react-photoswipe-gallery';
 import { Galeria } from '@/core/types/galeria';
@@ -71,6 +71,8 @@ interface MasonryItemProps {
   isMouseDown: boolean;
   setIsMouseDown: (value: boolean) => void;
   handleSelect: (index: number, shiftKey: boolean) => void;
+  allowLightboxInAdmin?: boolean;
+  isPreSelected: boolean;
 }
 
 interface MasonryGridProps {
@@ -88,10 +90,10 @@ interface MasonryGridProps {
   mode?: 'public' | 'admin'; // define se mostra 'Coração' ou 'Marcação'
   availableTags?: string[]; //pílulas de tags do fotógrafo
   onAssignTag?: (ids: string[], tag: string) => void; // callback para o banco
+  allowLightboxInAdmin?: boolean;
 }
 
 // --- COMPONENTE DE IMAGEM OTIMIZADO ---
-
 const SafeImage = memo(
   ({
     photoId,
@@ -308,6 +310,8 @@ const MasonryItem = memo(
     isMouseDown,
     setIsMouseDown,
     handleSelect,
+    allowLightboxInAdmin,
+    isPreSelected,
   }: MasonryItemProps & { isDragging?: boolean }) => {
     const [orientation, setOrientation] = useState({
       isPortrait: photo.height > photo.width,
@@ -318,6 +322,8 @@ const MasonryItem = memo(
 
     const thumbUrl = getDirectGoogleUrl(photo.id, RESOLUTIONS.THUMB);
     const fullUrl = getHighResImageUrl(photo.id);
+    const isGalleryLocked =
+      galeria.selection_ids && galeria.selection_ids.length > 0;
 
     // 🎯 Callback para corrigir dimensões invertidas vindas da API
     const onDimensionsDetected = useCallback(
@@ -360,6 +366,30 @@ const MasonryItem = memo(
       return `span ${span}`;
     }, [orientation.realH, orientation.realW, columnWidth]);
 
+    // Dentro do seu MasonryItem...
+
+    const handleItemClick = (e: React.MouseEvent) => {
+      // 1. Sempre previne o comportamento de âncora (#) que rola a página para o topo
+      e.preventDefault();
+      e.stopPropagation();
+
+      // 2. Decisão baseada nas props:
+      // Se allowLightboxInAdmin for true, priorizamos abrir o Lightbox.
+      if (mode === 'admin' && allowLightboxInAdmin) {
+        setSelectedPhotoIndex(index);
+        return;
+      }
+
+      // 3. Comportamento Original do Admin: Se clicar no corpo da foto, seleciona.
+      if (mode === 'admin') {
+        handleSelect(index, e.shiftKey);
+        return;
+      }
+
+      // 4. Modo Público: Abre Lightbox
+      setSelectedPhotoIndex(index);
+    };
+
     return (
       <Item
         original={fullUrl}
@@ -377,15 +407,7 @@ const MasonryItem = memo(
               padding: '1px',
             }}
             // 🎯 Captura o início do clique para seleção ou início de arrasto
-            onMouseDown={(e) => {
-              if (mode === 'admin') {
-                // e.button === 0 garante que é o clique esquerdo
-                if (e.button === 0) {
-                  setIsMouseDown(true);
-                  handleSelect(index, e.shiftKey);
-                }
-              }
-            }}
+
             onMouseEnter={() => {
               // 🎯 O Masonry reordena os itens, mas o index passado via props
               // sempre refere-se à posição correta no array.
@@ -401,19 +423,12 @@ const MasonryItem = memo(
                   : 'border-black/5 ring-1 ring-white/10 shadow-sm hover:shadow-xl'
               }`}
             >
+              {/* CORPO DA FOTO */}
               <a
-                href="#"
-                ref={ref as any}
-                onClick={(e) => {
-                  e.preventDefault();
-                  // 🎯 Se estiver em modo bulk (Admin), o clique seleciona/deseleciona
-                  if (mode === 'public') {
-                    // Modo normal: abre seu Lightbox customizado
-                    setSelectedPhotoIndex(index);
-                  }
-                }}
+                href="#photo" // Altere para algo que não seja apenas # para evitar o salto se o prevent falhar
+                onClick={handleItemClick}
                 className={`block relative w-full h-full ${
-                  mode === 'admin' ? 'cursor-pointer' : 'cursor-zoom-in'
+                  allowLightboxInAdmin ? 'cursor-zoom-in' : 'cursor-pointer'
                 }`}
               >
                 <SafeImage
@@ -426,6 +441,16 @@ const MasonryItem = memo(
                   mode={mode}
                 />
 
+                {isPreSelected && (
+                  <div className="absolute top-2 right-2 z-[70] pointer-events-none">
+                    <div className="bg-gold/90 text-black px-2 py-1 rounded-full flex items-center gap-1 shadow-lg backdrop-blur-sm">
+                      <CheckCircle2 size={10} strokeWidth={3} />
+                      <span className="text-[9px] font-semibold uppercase tracking-tighter">
+                        Selecionada
+                      </span>
+                    </div>
+                  </div>
+                )}
                 {/* 🎯 Badge de Tag Existente (Refatorado) */}
                 {photo.tag && (
                   <div
@@ -458,25 +483,44 @@ const MasonryItem = memo(
                 )}
 
                 {/* 🎯 Check de Seleção Estilo Google Fotos */}
-                {mode === 'admin' && (
-                  <div
-                    className={`absolute inset-0 transition-all duration-300 z-20 ${
-                      isSelected
-                        ? 'bg-gold/10'
-                        : 'bg-transparent group-hover:bg-black/10'
-                    }`}
-                  >
+                {/* 1. BOTÃO DE SELEÇÃO INTERATIVO 
+  Só renderiza se:
+  - Modo for admin
+  - Lightbox estiver DESATIVADO (para permitir o clique de seleção)
+  - Não houver seleção gravada no banco
+*/}
+                {mode === 'admin' &&
+                  !isGalleryLocked &&
+                  (!galeria.selection_ids ||
+                    galeria.selection_ids.length === 0) && (
                     <div
-                      className={`absolute top-3 left-3 p-1 rounded-full border-2 transition-all ${
-                        isSelected
-                          ? 'bg-champagne border-champagne text-petroleum scale-110'
-                          : 'bg-white/20 border-white/40 text-transparent group-hover:text-white/60'
-                      }`}
+                      className="absolute top-0 left-0 w-14 h-14 z-40 flex items-start justify-start p-3 cursor-pointer"
+                      onClick={(e) => {
+                        e.preventDefault();
+                        e.stopPropagation();
+                        handleSelect(index, e.shiftKey);
+                      }}
+                      onMouseDown={(e) => e.stopPropagation()}
                     >
-                      <Check size={12} strokeWidth={4} />
+                      <div
+                        className={`p-1 rounded-full border-2 transition-all ${
+                          isSelected
+                            ? 'bg-gold border-gold text-black scale-110 shadow-lg'
+                            : 'bg-black/40 border-white/60 text-transparent'
+                        }`}
+                      >
+                        <Check size={14} strokeWidth={4} />
+                      </div>
                     </div>
-                  </div>
-                )}
+                  )}
+
+                {/* 3. OVERLAY DE DESTAQUE
+  Mantém a foto realçada se estiver selecionada no estado local ou no banco.
+*/}
+                {mode === 'admin' &&
+                  (isSelected || galeria.selection_ids?.includes(photo.id)) && (
+                    <div className="absolute inset-0 bg-gold/10 pointer-events-none z-10" />
+                  )}
               </a>
               {mode === 'public' && (
                 <GridPhotoActions
@@ -522,6 +566,7 @@ const MasonryGrid = ({
   columns,
   canUseFavorites,
   tagSelectionMode = 'manual',
+  allowLightboxInAdmin = false,
 }: MasonryGridProps) => {
   const CARDS_PER_PAGE = 50;
   const [displayLimit, setDisplayLimit] = useState(CARDS_PER_PAGE);
@@ -664,7 +709,7 @@ const MasonryGrid = ({
             className={`italic text-[14px] md:text-[18px] mb-8 transition-colors duration-500
                 text-gray-600`}
           >
-            Nenhuma foto favorita selecionada
+            Nenhuma foto selecionada
           </p>
           <button
             onClick={() => setShowOnlyFavorites(false)}
@@ -689,33 +734,38 @@ const MasonryGrid = ({
               // Segurança extra para resetar o mouse caso ele saia do grid
               onMouseLeave={() => setIsMouseDown(false)}
             >
-              {limitedPhotos.map((photo, index) => (
-                <MasonryItem
-                  key={photo.id}
-                  photo={photo}
-                  index={index}
-                  mode={mode}
-                  isSelected={favorites.includes(photo.id)}
-                  galleryTitle={galleryTitle}
-                  galeria={galeria}
-                  favorites={favorites}
-                  toggleFavoriteFromGrid={toggleFavoriteFromGrid}
-                  setSelectedPhotoIndex={setSelectedPhotoIndex}
-                  handleShareWhatsAppGrid={handleShareWhatsAppGrid}
-                  handleNativeShareGrid={handleNativeShareGrid}
-                  handleCopyLinkGrid={handleCopyLinkGrid}
-                  btnScale={btnScale}
-                  iconSize={iconSize}
-                  isMobile={isMobile}
-                  currentCols={currentCols}
-                  columnWidth={columnWidth}
-                  canUseFavorites={galeria.enable_favorites}
-                  tagSelectionMode={tagSelectionMode}
-                  isMouseDown={isMouseDown}
-                  setIsMouseDown={setIsMouseDown}
-                  handleSelect={handleSelect}
-                />
-              ))}
+              {limitedPhotos.map((photo, index) => {
+                const isPreSelected = galeria.selection_ids?.includes(photo.id);
+                return (
+                  <MasonryItem
+                    key={photo.id}
+                    photo={photo}
+                    index={index}
+                    mode={mode}
+                    isSelected={favorites.includes(photo.id)}
+                    galleryTitle={galleryTitle}
+                    galeria={galeria}
+                    favorites={favorites}
+                    toggleFavoriteFromGrid={toggleFavoriteFromGrid}
+                    setSelectedPhotoIndex={setSelectedPhotoIndex}
+                    handleShareWhatsAppGrid={handleShareWhatsAppGrid}
+                    handleNativeShareGrid={handleNativeShareGrid}
+                    handleCopyLinkGrid={handleCopyLinkGrid}
+                    btnScale={btnScale}
+                    iconSize={iconSize}
+                    isMobile={isMobile}
+                    currentCols={currentCols}
+                    columnWidth={columnWidth}
+                    canUseFavorites={galeria.enable_favorites}
+                    tagSelectionMode={tagSelectionMode}
+                    isMouseDown={isMouseDown}
+                    setIsMouseDown={setIsMouseDown}
+                    handleSelect={handleSelect}
+                    allowLightboxInAdmin={allowLightboxInAdmin}
+                    isPreSelected={isPreSelected}
+                  />
+                );
+              })}
             </div>
           </Gallery>
 
