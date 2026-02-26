@@ -31,10 +31,12 @@ export const GalleryInteractionFields = ({
             <span className="text-[10px] font-bold uppercase tracking-widest text-petroleum">
               Favoritos
             </span>
-            <InfoTooltip content="Permite que o visitante selecione fotos favoritas." />
+            <InfoTooltip
+              title="Sistema de Favoritos"
+              content="Permite que o visitante selecione fotos favoritas."
+            />
           </div>
 
-          {/* Toggle Switch Visual */}
           <button
             type="button"
             onClick={() => setEnableFavorites(!enableFavorites)}
@@ -49,7 +51,7 @@ export const GalleryInteractionFields = ({
             />
           </button>
 
-          {/* 🎯 IMPORTANTE: Input oculto para o FormData da Server Action */}
+          {/* Input oculto para FormData da Server Action */}
           <input
             type="hidden"
             name="enable_favorites"
@@ -69,10 +71,12 @@ export const GalleryInteractionFields = ({
             <span className="text-[10px] font-bold uppercase tracking-widest text-petroleum">
               Slideshow
             </span>
-            <InfoTooltip content="Apresentação automática de fotos em tela cheia." />
+            <InfoTooltip
+              title="Modo Slideshow"
+              content="Apresentação automática de fotos em tela cheia."
+            />
           </div>
 
-          {/* Toggle Switch Visual */}
           <button
             type="button"
             onClick={() => setEnableSlideshow(!enableSlideshow)}
@@ -87,7 +91,7 @@ export const GalleryInteractionFields = ({
             />
           </button>
 
-          {/* 🎯 IMPORTANTE: Input oculto para o FormData da Server Action */}
+          {/* Input oculto para FormData da Server Action */}
           <input
             type="hidden"
             name="enable_slideshow"

@@ -2,7 +2,6 @@
 
 import { usePathname, useRouter } from 'next/navigation';
 import { ArrowLeft, Menu } from 'lucide-react';
-import Link from 'next/link';
 import { useEffect, useState, useMemo } from 'react';
 
 import { useAuth } from '@photos/core-auth';

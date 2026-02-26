@@ -46,7 +46,6 @@ import PasswordInput from '@/components/ui/PasswordInput'; // Import PasswordInp
 import { InfoTooltip } from '@/components/ui/InfoTooltip';
 import { GalleryInteractionFields } from './GalleryInteractionFields';
 
-import { Toast } from '@/components/ui';
 import { getFolderPhotos } from '@/core/services/google-drive.service';
 
 // 🎯 Componente de seção simples (sem accordion) - Estilo Editorial
@@ -485,19 +484,6 @@ export default function GaleriaFormContent({
     }
   }, [profile, isEdit, setValue, setCustomization]);
 
-  const [toastConfig, setToastConfig] = useState<{
-    message: string;
-    type: 'success' | 'error';
-  } | null>(null);
-
-  // Helper para facilitar a chamada
-  const showToast = (
-    message: string,
-    type: 'success' | 'error' = 'success',
-  ) => {
-    setToastConfig({ message, type });
-  };
-
   return (
     <>
       <div className="flex flex-col lg:flex-row gap-2">
@@ -786,6 +772,7 @@ export default function GaleriaFormContent({
                       Galeria
                     </label>
                     <InfoTooltip
+                      title="Acesso restrito"
                       content="Para acessar uma galeria protegida por senha, o visitante deve informar a senha cadastrada nesta tela. Sem senha, qualquer pessoa com o link pode acessar. Com senha, apenas quem informar a senha correta terá acesso."
                       width="w-48"
                     />
@@ -852,6 +839,7 @@ export default function GaleriaFormContent({
                         Perfil
                       </label>
                       <InfoTooltip
+                        title="Exibir galeria no seu perfil"
                         content="Se ativado, esta galeria será visível na sua página de perfil pública para todos os visitantes."
                         width="w-48"
                       />
@@ -1085,14 +1073,6 @@ export default function GaleriaFormContent({
           planLimit={PLAN_LIMIT}
         />
       </div>
-      {/* Renderização do seu componente Toast customizado */}
-      {toastConfig && (
-        <Toast
-          message={toastConfig.message}
-          type={toastConfig.type}
-          onClose={() => setToastConfig(null)}
-        />
-      )}
     </>
   );
 }

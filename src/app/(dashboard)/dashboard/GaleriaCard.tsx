@@ -39,8 +39,8 @@ import { useNavigation } from '@/components/providers/NavigationProvider';
 import { usePlan } from '@/core/context/PlanContext';
 import UpgradeModal from '@/components/ui/UpgradeModal';
 import React from 'react';
-
 import { useShare } from '@/hooks/useShare';
+import type { PlanPermissions } from '@/core/config/plans';
 
 interface GaleriaCardProps {
   galeria: Galeria;
@@ -60,6 +60,12 @@ interface GaleriaCardProps {
   isSelected?: boolean;
   onToggleSelect?: (id: string) => void;
   onOpenTags?: (galeria: Galeria) => void;
+}
+
+// 🎯 FIX: Estado unificado com featureKey dinâmico (antes era sempre 'canCaptureLeads')
+interface UpsellState {
+  label: string;
+  featureKey: keyof PlanPermissions;
 }
 
 export default function GaleriaCard({
@@ -82,8 +88,9 @@ export default function GaleriaCard({
   onOpenTags,
 }: GaleriaCardProps) {
   const { permissions } = usePlan();
-  const [upsellFeature, setUpsellFeature] = useState<string | null>(null);
-  const [isUpgradeModalOpen, setIsUpgradeModalOpen] = useState(false);
+
+  // 🎯 FIX: Um único estado tipado substitui upsellFeature + isUpgradeModalOpen
+  const [upsell, setUpsell] = useState<UpsellState | null>(null);
 
   const canViewLeads = permissions.canCaptureLeads;
   const { navigate, isNavigating } = useNavigation();
@@ -108,7 +115,6 @@ export default function GaleriaCard({
       const customTemplate =
         galeria.photographer?.message_templates?.card_share;
       let message: string;
-
       if (customTemplate && customTemplate.trim() !== '') {
         message = formatMessage(customTemplate, galeria, publicUrl);
       } else {
@@ -181,40 +187,28 @@ export default function GaleriaCard({
     await onEdit(galeria);
   };
 
-  // 1. Inicialize o hook extraindo o shareToClient
   const { shareToClient } = useShare({
     galeria,
-    onSuccess: () => {
-      // Callback opcional (ex: registrar analytics de compartilhamento)
-    },
+    onSuccess: () => {},
   });
 
-  // 2. Refatore a função de clique
   const handleWhatsAppShare = (e: React.MouseEvent) => {
     e.preventDefault();
     e.stopPropagation();
-
-    // O hook já busca internamente galeria.client_whatsapp e galeria.title
-    // Você pode passar uma URL customizada se links.url for diferente da atual
     shareToClient(links.url);
   };
 
   const handleOpenBIReport = (e: React.MouseEvent) => {
     e.stopPropagation();
-    // Você pode ajustar a rota conforme sua estrutura (ex: /dashboard/galerias/[id]/bi ou /stats)
     navigate(
       `/dashboard/galerias/${galeria.id}/stats`,
       'Gerando estatísticas da galeria...',
     );
   };
 
-  // 🎯 FUNÇÃO ÚNICA PARA OS BOTÕES DE AÇÃO
   const renderActionButtons = () => {
     if (currentView !== 'active') return null;
 
-    // 1. Reduzi a opacidade da borda para /10 ou /20 para suavizar
-    // 2. Voltei para rounded-luxury para manter a identidade do card
-    // 3. Ajustei o tamanho fixo (h-9 w-9) para garantir simetria total
     const btnBaseClass =
       'h-9 w-9 flex items-center justify-center text-petroleum transition-all rounded-luxury border border-petroleum/10 bg-white hover:bg-slate-50 hover:border-petroleum/30 disabled:opacity-50 shadow-sm';
 
@@ -235,9 +229,12 @@ export default function GaleriaCard({
         <button
           onClick={(e) => {
             e.stopPropagation();
+            // 🎯 FIX: featureKey correto para o botão de Tags
             if (!permissions.canTagPhotos) {
-              setUpsellFeature('Organizador de Fotos');
-              setIsUpgradeModalOpen(true);
+              setUpsell({
+                label: 'Organizador de Fotos',
+                featureKey: 'canTagPhotos',
+              });
               return;
             }
             navigate(
@@ -259,9 +256,12 @@ export default function GaleriaCard({
         <button
           onClick={(e) => {
             e.stopPropagation();
+            // 🎯 FIX: featureKey correto para o botão de Leads
             if (!canViewLeads) {
-              setUpsellFeature('Relatório de Visitantes');
-              setIsUpgradeModalOpen(true);
+              setUpsell({
+                label: 'Relatório de Visitantes',
+                featureKey: 'canCaptureLeads',
+              });
               return;
             }
             navigate(
@@ -287,15 +287,29 @@ export default function GaleriaCard({
         </button>
 
         <button
-          onClick={handleOpenBIReport}
-          disabled={isNavigating}
+          onClick={(e) => {
+            e.stopPropagation();
+            // 🎯 FIX: featureKey correto para Estatísticas
+            if (!permissions.canAccessStats) {
+              setUpsell({
+                label: 'Estatísticas da Galeria',
+                featureKey: 'canAccessStats',
+              });
+              return;
+            }
+            handleOpenBIReport(e);
+          }}
+          disabled={isNavigating && !!permissions.canAccessStats}
           className={btnBaseClass}
           title="Estatísticas"
         >
           {isNavigating ? (
             <Loader2 size={16} className="animate-spin text-gold" />
           ) : (
-            <BarChart3 size={16} />
+            <BarChart3
+              size={16}
+              className={!permissions.canAccessStats ? 'opacity-40' : ''}
+            />
           )}
         </button>
 
@@ -320,8 +334,6 @@ export default function GaleriaCard({
     );
   };
 
-  // --- RENDERS ---
-
   if (viewMode === 'list') {
     return (
       <div
@@ -337,25 +349,16 @@ export default function GaleriaCard({
               e.stopPropagation();
               onToggleSelect?.(galeria.id);
             }}
-            /* 🎯 O segredo do contraste: Invertemos as cores do fundo e do ícone */
-            className={`absolute top-2 left-2 z-30 p-1.5 rounded-luxury border transition-all duration-300 backdrop-blur-md
-      ${
-        isSelected
-          ? 'bg-champagne border-champagne shadow-lg shadow-champagne/20'
-          : 'bg-petroleum/80 border-white/10 hover:bg-petroleum'
-      }`}
+            className={`absolute top-2 left-2 z-30 p-1.5 rounded-luxury border transition-all duration-300 backdrop-blur-md ${isSelected ? 'bg-champagne border-champagne shadow-lg shadow-champagne/20' : 'bg-petroleum/80 border-white/10 hover:bg-petroleum'}`}
           >
             {isSelected ? (
-              /* 🎯 Ícone Petroleum sobre fundo Gold: Contraste perfeito */
               <CheckSquare
                 size={16}
                 strokeWidth={3}
-                /* Forçamos fill="none" para evitar a mancha dourada */
                 fill="none"
                 className="text-petroleum"
               />
             ) : (
-              /* 🎯 Ícone Discreto: Apenas contorno branco sobre fundo Petroleum */
               <Square
                 size={16}
                 strokeWidth={2}
@@ -465,6 +468,15 @@ export default function GaleriaCard({
             </div>
           </div>
         </div>
+
+        {/* 🎯 FIX: featureKey dinâmico baseado no botão clicado */}
+        <UpgradeModal
+          isOpen={!!upsell}
+          onClose={() => setUpsell(null)}
+          featureName={upsell?.label || ''}
+          featureKey={upsell?.featureKey}
+          scenarioType="feature"
+        />
       </div>
     );
   }
@@ -491,25 +503,16 @@ export default function GaleriaCard({
                 e.stopPropagation();
                 onToggleSelect?.(galeria.id);
               }}
-              /* 🎯 O segredo do contraste: Invertemos as cores do fundo e do ícone */
-              className={`absolute top-2 left-2 z-30 p-1.5 rounded-luxury border transition-all duration-300 backdrop-blur-md
-      ${
-        isSelected
-          ? 'bg-champagne border-champagne shadow-lg shadow-champagne/20'
-          : 'bg-petroleum/80 border-white/10 hover:bg-petroleum'
-      }`}
+              className={`absolute top-2 left-2 z-30 p-1.5 rounded-luxury border transition-all duration-300 backdrop-blur-md ${isSelected ? 'bg-champagne border-champagne shadow-lg shadow-champagne/20' : 'bg-petroleum/80 border-white/10 hover:bg-petroleum'}`}
             >
               {isSelected ? (
-                /* 🎯 Ícone Petroleum sobre fundo Gold: Contraste perfeito */
                 <CheckSquare
                   size={16}
                   strokeWidth={3}
-                  /* Forçamos fill="none" para evitar a mancha dourada */
                   fill="none"
                   className="text-petroleum"
                 />
               ) : (
-                /* 🎯 Ícone Discreto: Apenas contorno branco sobre fundo Petroleum */
                 <Square
                   size={16}
                   strokeWidth={2}
@@ -524,7 +527,6 @@ export default function GaleriaCard({
               <div className="loading-luxury-dark w-6 h-6" />
             </div>
           )}
-
           {imageUrl ? (
             <img
               ref={imgRef}
@@ -612,26 +614,20 @@ export default function GaleriaCard({
                 target="_blank"
                 onClick={(e) => e.stopPropagation()}
                 className="flex-1 flex items-center gap-1.5 px-2.5 h-full hover:bg-white transition-all group/drive min-w-0"
-                title="Acessar pasta do Google Drive"
               >
                 <FolderOpen size={13} className="text-gold shrink-0" />
                 <span className="text-[10px] font-medium text-editorial-gray truncate">
                   Drive: {galeria.drive_folder_name || 'Sem pasta vinculada'}
                 </span>
               </a>
-
               {galeria.photo_count > 0 && (
                 <div className="flex items-center gap-1.5 px-2 text-editorial-gray border-l border-petroleum/10 h-full bg-slate-100/50">
                   <ImageIcon size={11} className="text-gold/70" />
-                  <span
-                    className="text-[10px] font-medium text-petroleum"
-                    title="Quantidade de fotos na galeria"
-                  >
+                  <span className="text-[10px] font-medium text-petroleum">
                     {galeria.photo_count || 0}
                   </span>
                 </div>
               )}
-
               <button
                 onClick={(e) => {
                   e.stopPropagation();
@@ -639,7 +635,6 @@ export default function GaleriaCard({
                 }}
                 disabled={isUpdating}
                 className="flex items-center justify-center px-2.5 border-l border-slate-200 h-full hover:bg-white text-gold hover:text-gold transition-all"
-                title="Sincronizar com o Google Drive"
               >
                 {isUpdating ? (
                   <Loader2 size={12} className="animate-spin" />
@@ -651,12 +646,9 @@ export default function GaleriaCard({
           </div>
 
           <div className="flex items-center justify-between py-2 bg-slate-50/50 border-t border-petroleum/10 mt-auto w-full">
-            {/* Esquerda: Botões de Ação */}
             <div className="flex flex-wrap items-center gap-1.5">
               {renderActionButtons()}
             </div>
-
-            {/* Direita: Menu de Contexto */}
             <div className="flex items-center justify-end min-w-[32px] ml-auto">
               <GaleriaContextMenu
                 galeria={galeria}
@@ -673,11 +665,12 @@ export default function GaleriaCard({
         </div>
       </div>
 
+      {/* 🎯 FIX: featureKey dinâmico — cada botão passa a key correta */}
       <UpgradeModal
-        isOpen={Boolean(isUpgradeModalOpen)}
-        onClose={() => setIsUpgradeModalOpen(false)}
-        featureName={upsellFeature || 'Recurso Premium'}
-        featureKey="canCaptureLeads"
+        isOpen={!!upsell}
+        onClose={() => setUpsell(null)}
+        featureName={upsell?.label || ''}
+        featureKey={upsell?.featureKey}
         scenarioType="feature"
       />
     </>

@@ -28,7 +28,8 @@ import {
 } from '@/core/services/profile.service';
 import { maskPhone, normalizePhoneNumber } from '@/core/utils/masks-helpers';
 import ProfilePreview from './ProfilePreview';
-import { Toast, SubmitButton } from '@/components/ui';
+import { SubmitButton, Toast } from '@/components/ui';
+import { useToast } from '@/hooks/useToast';
 import BaseModal from '@/components/ui/BaseModal';
 import { fetchStates, fetchCitiesByState } from '@/core/utils/cidades-helpers';
 import {
@@ -216,11 +217,7 @@ export default function OnboardingForm({
   const [isAvailable, setIsAvailable] = useState<boolean | null>(null);
   const [showSuccessModal, setShowSuccessModal] = useState(false);
   const [isSaving, setIsSaving] = useState(false);
-  const [toastConfig, setToastConfig] = useState<{
-    message: string;
-    type: 'success' | 'error';
-    position?: 'left' | 'right';
-  } | null>(null);
+  const { showToast, ToastElement } = useToast();
 
   // 🛡️ REGRAS DE NEGÓCIO POR PLANO
   const bioLimit = useMemo(() => {
@@ -289,26 +286,22 @@ export default function OnboardingForm({
   };
 
   const handleLockedFeature = () => {
-    setToastConfig({
-      message:
-        'Este recurso está disponível em planos superiores. Faça o upgrade para desbloquear.',
-      type: 'error',
-    });
+    showToast(
+      'Este recurso está disponível em planos superiores. Faça o upgrade para desbloquear.',
+      'error',
+    );
   };
 
   const clientAction = async (formData: FormData) => {
     if (!acceptTerms || !acceptPrivacy) {
-      setToastConfig({
-        message: 'Você precisa aceitar os termos e a política de privacidade.',
-        type: 'error',
-      });
+      showToast(
+        'Você precisa aceitar os termos e a política de privacidade.',
+        'error',
+      );
       return;
     }
     if (!fullName.trim() || !username.trim()) {
-      setToastConfig({
-        message: 'Nome e Username são obrigatórios.',
-        type: 'error',
-      });
+      showToast('Nome e Username são obrigatórios.', 'error');
       return;
     }
 
@@ -365,17 +358,11 @@ export default function OnboardingForm({
       if (result?.success) {
         setShowSuccessModal(true);
       } else {
-        setToastConfig({
-          message: result?.error || 'Erro ao salvar.',
-          type: 'error',
-        });
+        showToast(result?.error || 'Erro ao salvar.', 'error');
       }
     } catch (err: any) {
       console.error('[OnboardingForm] Erro:', err);
-      setToastConfig({
-        message: 'Falha na conexão ao salvar perfil.',
-        type: 'error',
-      });
+      showToast('Falha na conexão ao salvar perfil.', 'error');
     } finally {
       setIsSaving(false);
     }
@@ -386,10 +373,7 @@ export default function OnboardingForm({
     if (!file) return;
 
     if (file.size > 2 * 1024 * 1024) {
-      setToastConfig({
-        message: 'A foto deve ter no máximo 2MB.',
-        type: 'error',
-      });
+      showToast('A foto deve ter no máximo 2MB.', 'error');
       return;
     }
 
@@ -406,10 +390,7 @@ export default function OnboardingForm({
       } = await supabase.auth.getUser();
       const userId = initialData?.id ?? user?.id;
       if (!userId) {
-        setToastConfig({
-          message: 'Sessão inválida. Faça login novamente.',
-          type: 'error',
-        });
+        showToast('Sessão inválida. Faça login novamente.', 'error');
         return;
       }
 
@@ -446,10 +427,7 @@ export default function OnboardingForm({
       setPhotoPreview(publicUrl);
     } catch (err) {
       console.error('Erro no Storage:', err);
-      setToastConfig({
-        message: 'Erro ao processar imagem no servidor.',
-        type: 'error',
-      });
+      showToast('Erro ao processar imagem no servidor.', 'error');
     }
   };
 
@@ -477,11 +455,7 @@ export default function OnboardingForm({
 
       setPhotoPreview(null);
       setPhotoFile(null);
-      setToastConfig({
-        message: 'Avatar removido.',
-        type: 'success',
-        position: 'left',
-      });
+      showToast('Avatar removido.', 'success', 'left');
     } catch (err) {
       console.error('Erro ao deletar avatar:', err);
       // Limpa a UI mesmo se houver erro no storage para não travar o usuário
@@ -513,10 +487,7 @@ export default function OnboardingForm({
       // 3. Atualiza estados após exclusão remota bem-sucedida
       setExistingBackgrounds((prev) => prev.filter((_, i) => i !== index));
 
-      setToastConfig({
-        message: 'Imagem removida do servidor.',
-        type: 'success',
-      });
+      showToast('Imagem removida do servidor.', 'success');
     } catch (err: any) {
       console.error('Erro na exclusão:', err);
       // Remove da UI mesmo em erro para evitar travamento
@@ -732,10 +703,10 @@ export default function OnboardingForm({
                         onChange={(e) => {
                           const files = Array.from(e.target.files || []);
                           if (files.length > profileCarouselLimit) {
-                            setToastConfig({
-                              message: `Seu plano permite no máximo ${profileCarouselLimit} imagens.`,
-                              type: 'error',
-                            });
+                            showToast(
+                              `Seu plano permite no máximo ${profileCarouselLimit} imagens.`,
+                              'error',
+                            );
                             e.target.value = '';
                             return;
                           }
@@ -745,12 +716,11 @@ export default function OnboardingForm({
                             (f) => f.size > 4 * 1024 * 1024,
                           );
                           if (overSized) {
-                            setToastConfig({
-                              message:
-                                'Cada imagem de capa deve ter no máximo 4MB.',
-                              type: 'error',
-                              position: 'left',
-                            });
+                            showToast(
+                              'Cada imagem de capa deve ter no máximo 4MB.',
+                              'error',
+                              'left',
+                            );
                             e.target.value = '';
                             return;
                           }
@@ -1105,14 +1075,7 @@ export default function OnboardingForm({
         </div>
       </BaseModal>
 
-      {toastConfig && (
-        <Toast
-          message={toastConfig.message}
-          type={toastConfig.type}
-          position={toastConfig.position}
-          onClose={() => setToastConfig(null)}
-        />
-      )}
+      {ToastElement}
     </>
   );
 }

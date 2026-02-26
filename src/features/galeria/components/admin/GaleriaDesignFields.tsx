@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useState } from 'react';
+import React from 'react';
 import {
   Layout,
   Palette,
@@ -30,7 +30,7 @@ interface GalleryDesignFieldsProps {
     desktop: number;
   }) => void;
   onBackgroundPhotoUrlChange?: (url: string) => void;
-  register?: any; // Para integração opcional com react-hook-form
+  register?: any;
 }
 
 export const GalleryDesignFields: React.FC<GalleryDesignFieldsProps> = ({
@@ -44,15 +44,15 @@ export const GalleryDesignFields: React.FC<GalleryDesignFieldsProps> = ({
 }) => {
   const { planKey } = usePlan();
 
+  // FREE só pode escolher a primeira opção do mobile
   const getFilteredOptions = (originalOptions: number[]) => {
-    if (planKey === 'FREE') {
-      return [originalOptions[0]];
-    }
+    if (planKey === 'FREE') return [originalOptions[0]];
     return originalOptions;
   };
+
   return (
     <div className="flex flex-wrap items-center gap-x-1 gap-y-1.5">
-      {/* FOTO DE FUNDO / TOGGLE */}
+      {/* FOTO DE FUNDO — bloqueado em FREE (customizationLevel = 'default') */}
       <PlanGuard feature="customizationLevel" label="Foto de fundo">
         <div className="flex items-center gap-2 border-r border-petroleum/10 pr-2.5 shrink-0 h-8">
           <div className="flex items-center gap-1 shrink-0">
@@ -60,9 +60,8 @@ export const GalleryDesignFields: React.FC<GalleryDesignFieldsProps> = ({
               <ImageIcon size={11} className="text-gold" /> Foto fundo
             </label>
             <InfoTooltip
-              content="Usa a foto selecionada como fundo da grade de fotos da página
-                  da galeria acessada pelo visitante."
-              width="w-48"
+              title="Foto de fundo"
+              content="Usa a foto selecionada como fundo da grade de fotos da página da galeria acessada pelo visitante."
             />
           </div>
 
@@ -77,23 +76,23 @@ export const GalleryDesignFields: React.FC<GalleryDesignFieldsProps> = ({
             }}
           >
             <span
-              className={`absolute top-0.5 left-0.5 w-3.5 h-3.5 rounded-full bg-white shadow-sm transition-transform duration-200 ${showBackgroundPhoto ? 'translate-x-3.5' : ''}`}
+              className={`absolute top-0.5 left-0.5 w-3.5 h-3.5 rounded-full bg-white shadow-sm transition-transform duration-200 ${
+                showBackgroundPhoto ? 'translate-x-3.5' : ''
+              }`}
             />
           </button>
         </div>
       </PlanGuard>
 
-      {/* COR DE FUNDO */}
-
+      {/* COR DE FUNDO — bloqueado em FREE */}
       <PlanGuard feature="customizationLevel" label="Cor de fundo">
         <div className="flex items-center gap-2 border-r border-petroleum/10 shrink-0 h-8 pr-2.5">
           <div className="flex items-center gap-1 shrink-0">
             <Palette size={12} className="text-gold" />
             <label>Cor fundo</label>
             <InfoTooltip
-              content="Define a cor sólida do grid de fotos da página da galeria
-                  acessada pelo visitante."
-              width="w-48"
+              title="Cor de fundo"
+              content="Define a cor sólida do grid de fotos da página da galeria acessada pelo visitante."
             />
           </div>
 
@@ -104,13 +103,17 @@ export const GalleryDesignFields: React.FC<GalleryDesignFieldsProps> = ({
                   key={c}
                   type="button"
                   onClick={() => setBackgroundColor(c)}
-                  className={`w-4 h-4 rounded-[0.15rem] border transition-all ${backgroundColor === c ? 'border-gold scale-110 shadow-sm' : 'border-slate-200'}`}
+                  className={`w-4 h-4 rounded-[0.15rem] border transition-all ${
+                    backgroundColor === c
+                      ? 'border-gold scale-110 shadow-sm'
+                      : 'border-slate-200'
+                  }`}
                   style={{ backgroundColor: c }}
                 />
               ))}
             </div>
+
             <div className="flex items-center gap-1.5 bg-slate-50 border border-slate-200 rounded-[0.25rem] pl-1 pr-1.5 h-5.5 w-fit shrink-0 shadow-sm transition-all hover:border-slate-300">
-              {/* Color Picker Wrapper */}
               <div
                 className="w-3.5 h-3.5 rounded-[0.1rem] border border-slate-200 relative overflow-hidden shadow-inner shrink-0"
                 style={{ backgroundColor }}
@@ -125,7 +128,6 @@ export const GalleryDesignFields: React.FC<GalleryDesignFieldsProps> = ({
                 />
               </div>
 
-              {/* Hex Input - Exatamente o tamanho de 7 caracteres mono */}
               <input
                 {...(register ? register : {})}
                 type="text"
@@ -141,15 +143,14 @@ export const GalleryDesignFields: React.FC<GalleryDesignFieldsProps> = ({
         </div>
       </PlanGuard>
 
-      {/* GRID COLUNAS */}
-
+      {/* GRID COLUNAS — sem guard, PlanSelect já bloqueia opções acima do limite */}
       <div className="flex items-center gap-2 shrink-0 h-8">
         <div className="flex items-center gap-1 shrink-0">
           <Layout size={12} className="text-gold" />
           <label>Grid</label>
           <InfoTooltip
+            title="Colunas do Grid"
             content="Colunas por dispositivo: Mobile | Tablet | Desktop."
-            width="w-48"
           />
         </div>
 
@@ -165,7 +166,7 @@ export const GalleryDesignFields: React.FC<GalleryDesignFieldsProps> = ({
           ].map((d) => (
             <div
               key={d.k}
-              className="flex items-center gap-1 bg-slate-50 border border-petroleum/20  px-1 rounded-[0.25rem] h-6"
+              className="flex items-center gap-1 bg-slate-50 border border-petroleum/20 px-1 rounded-[0.25rem] h-6"
             >
               <d.i size={11} className="text-petroleum/60" strokeWidth={2} />
               <PlanSelect

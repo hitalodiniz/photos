@@ -15,18 +15,14 @@ import {
 } from 'lucide-react';
 import GaleriaFormContent from './GaleriaFormContent';
 import type { Galeria } from '@/core/types/galeria';
-import { Toast } from '@/components/ui';
 import GoogleConsentAlert from '@/components/auth/GoogleConsentAlert';
 import BaseModal from '@/components/ui/BaseModal';
-import {
-  getPublicGalleryUrl,
-  copyToClipboard,
-  getLuxuryMessageData,
-} from '@/core/utils/url-helper';
+import { getPublicGalleryUrl, copyToClipboard } from '@/core/utils/url-helper';
 import { useNavigation } from '@/components/providers/NavigationProvider';
 import WhatsAppIcon from '@/components/ui/WhatsAppIcon';
 import { authService } from '@photos/core-auth';
 import { useShare } from '@/hooks/useShare';
+import { useToast } from '@/hooks/useToast';
 
 interface PhotographerProfile {
   id: string;
@@ -59,13 +55,10 @@ export default function GaleriaFormPage({
   const [hasUnsavedChanges, setHasUnsavedChanges] = useState(false);
   const [formTitle, setFormTitle] = useState(galeria?.title || '');
   const [showConsentAlert, setShowConsentAlert] = useState(false);
-  const [toast, setToast] = useState<{
-    message: string;
-    type: 'success' | 'error';
-  } | null>(null);
   const formRef = useRef<HTMLFormElement>(null);
 
-  // 🎯 Form Initialization
+  const { showToast, ToastElement } = useToast();
+
   const {
     register,
     setValue,
@@ -85,7 +78,6 @@ export default function GaleriaFormPage({
     },
   });
 
-  // 🎯 ESTADOS DE CUSTOMIZAÇÃO COM VALORES PADRÃO
   const [showCoverInGrid, setShowCoverInGrid] = useState(() => {
     if (galeria) {
       return (
@@ -93,7 +85,6 @@ export default function GaleriaFormPage({
         String(galeria.show_cover_in_grid) === 'true'
       );
     }
-    // Se for uma nova galeria, verifica se há uma foto de fundo padrão
     return !!initialProfile.settings?.defaults?.background_photo;
   });
   const [gridBgColor, setGridBgColor] = useState(
@@ -116,7 +107,6 @@ export default function GaleriaFormPage({
       4,
   });
 
-  // 🎯 UX: Auto-focus no primeiro campo
   useEffect(() => {
     setTimeout(() => {
       const firstInput = formRef.current?.querySelector(
@@ -126,7 +116,6 @@ export default function GaleriaFormPage({
     }, 100);
   }, []);
 
-  // 🎯 UX: Trava scroll do body quando página está ativa
   useEffect(() => {
     document.body.style.overflow = 'unset';
     return () => {
@@ -136,10 +125,7 @@ export default function GaleriaFormPage({
 
   const handleSubmit = async (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault();
-
     const formData = new FormData(e.currentTarget);
-
-    // 🎯 Captura dados do useForm (como lead_purpose e leads_enabled que agora são gerenciados por componente compartilhado)
     const formValues = watch();
     formData.set('lead_purpose', formValues.lead_purpose || '');
     formData.set('leads_enabled', String(!!formValues.leads_enabled));
@@ -153,44 +139,36 @@ export default function GaleriaFormPage({
     const password = formData.get('password') as string;
     const isPublicValue = formData.get('is_public') === 'true';
     const cover_image_ids = formData.get('cover_image_ids') as string;
-    const cover_image_url = formData.get('cover_image_url') as string;
     const photoCount = parseInt(formData.get('photo_count') as string) || 0;
 
-    // Validações
     if (!title?.trim()) {
-      setToast({ message: 'O título é obrigatório.', type: 'error' });
+      showToast('O título é obrigatório.', 'error');
       return;
     }
     if (!date) {
-      setToast({ message: 'A data é obrigatória.', type: 'error' });
+      showToast('A data é obrigatória.', 'error');
       return;
     }
     if (!selectedCategory || selectedCategory === 'undefined') {
-      setToast({ message: 'Selecione uma categoria.', type: 'error' });
+      showToast('Selecione uma categoria.', 'error');
       return;
     }
     if (!driveId || driveId === '' || driveId === 'null') {
-      setToast({ message: 'Selecione uma pasta do Drive.', type: 'error' });
+      showToast('Selecione uma pasta do Drive.', 'error');
       return;
     }
     if (hasClient && !clientName?.trim()) {
-      setToast({ message: 'Nome do cliente é obrigatório.', type: 'error' });
+      showToast('Nome do cliente é obrigatório.', 'error');
       return;
     }
     if (!isPublicValue) {
       const hasExistingPassword = isEdit && galeria?.password;
       if (!hasExistingPassword && !password) {
-        setToast({
-          message: 'Defina uma senha para a galeria privada.',
-          type: 'error',
-        });
+        showToast('Defina uma senha para a galeria privada.', 'error');
         return;
       }
       if (!password || password.length < 4 || password.length > 8) {
-        setToast({
-          message: 'A senha privada deve ter entre 4 e 8 números.',
-          type: 'error',
-        });
+        showToast('A senha privada deve ter entre 4 e 8 números.', 'error');
         return;
       }
     }
@@ -215,35 +193,23 @@ export default function GaleriaFormPage({
     }
 
     try {
-      // 2. Convertemos para Array real para poder manipular
       const idsArray = cover_image_ids ? JSON.parse(cover_image_ids) : [];
-
-      // 3. Agora sim, extraímos o primeiro ID como objeto real
       const primaryCover = idsArray.length > 0 ? idsArray[0] : '';
-
-      // 4. Atualizamos o formData com os valores processados
-      // Mantemos o 'cover_image_ids' como JSON para a Action fazer o parse final
       formData.set('cover_image_url', primaryCover);
-
-      // Opcional: garantir que photo_count esteja lá
       if (!formData.has('photo_count')) formData.set('photo_count', '0');
     } catch (err) {
       console.error('Erro ao processar IDs no submit:', err);
     }
 
-    // 🎯 PRESERVAÇÃO DE TAGS: Injeta os valores atuais para não resetar no banco
     if (isEdit && galeria) {
-      // Converte para string se for objeto, ou mantém se já for string JSON
       const currentPhotoTags =
         typeof galeria.photo_tags === 'string'
           ? galeria.photo_tags
           : JSON.stringify(galeria.photo_tags || []);
-
       const currentGalleryTags =
         typeof galeria.gallery_tags === 'string'
           ? galeria.gallery_tags
           : JSON.stringify(galeria.gallery_tags || []);
-
       formData.set('photo_tags', currentPhotoTags);
       formData.set('gallery_tags', currentGalleryTags);
     }
@@ -262,14 +228,11 @@ export default function GaleriaFormPage({
           setIsSuccess(false);
         }, 800);
       } else {
-        setToast({
-          message: result.error || 'Falha ao salvar.',
-          type: 'error',
-        });
+        showToast(result.error || 'Falha ao salvar.', 'error');
       }
     } catch (error) {
       console.error('Erro no handleSubmit:', error);
-      setToast({ message: 'Erro de conexão.', type: 'error' });
+      showToast('Erro de conexão.', 'error');
     } finally {
       setLoading(false);
     }
@@ -284,8 +247,6 @@ export default function GaleriaFormPage({
       initialProfile,
       savedGaleria?.slug || galeria?.slug || '',
     );
-
-    // O copyLink do hook aceita uma customUrl opcional
     await copyLink(url);
   };
 
@@ -310,14 +271,8 @@ export default function GaleriaFormPage({
         initialData={galeria}
         isEdit={isEdit}
         customization={{ showCoverInGrid, gridBgColor, columns }}
-        setCustomization={{
-          setShowCoverInGrid,
-          setGridBgColor,
-          setColumns,
-        }}
-        onPickerError={(msg: string) =>
-          setToast({ message: msg, type: 'error' })
-        }
+        setCustomization={{ setShowCoverInGrid, setGridBgColor, setColumns }}
+        onPickerError={(msg: string) => showToast(msg, 'error')}
         onTokenExpired={() => setShowConsentAlert(true)}
         onTitleChange={setFormTitle}
         profile={initialProfile}
@@ -327,13 +282,8 @@ export default function GaleriaFormPage({
         profileListCount={profileListCount}
       />
 
-      {toast && (
-        <Toast
-          message={toast.message}
-          type={toast.type}
-          onClose={() => setToast(null)}
-        />
-      )}
+      {ToastElement}
+
       <GoogleConsentAlert
         isOpen={showConsentAlert}
         onClose={() => setShowConsentAlert(false)}
@@ -342,15 +292,11 @@ export default function GaleriaFormPage({
           try {
             await authService.signInWithGoogle(true);
           } catch {
-            setToast({
-              message: 'Erro ao conectar com Google Drive.',
-              type: 'error',
-            });
+            showToast('Erro ao conectar com Google Drive.', 'error');
           }
         }}
       />
 
-      {/* 🎯 MODAL DE SUCESSO PADRONIZADO (EDITORIAL) */}
       <BaseModal
         isOpen={showSuccessModal}
         showCloseButton={isEdit}
@@ -369,17 +315,13 @@ export default function GaleriaFormPage({
         }
         footer={
           <div className="flex flex-col gap-3">
-            {/* Linha Única: Ações Principais com Larguras Iguais */}
             <div className="grid grid-cols-2 gap-3 w-full items-center">
               <button
-                onClick={() => {
-                  navigate('/dashboard', 'Voltando ao painel...');
-                }}
+                onClick={() => navigate('/dashboard', 'Voltando ao painel...')}
                 className="btn-secondary-white w-full"
               >
                 <ArrowLeft size={14} /> Espaço de Galerias
               </button>
-
               <a
                 href={getPublicGalleryUrl(
                   initialProfile,
@@ -400,26 +342,21 @@ export default function GaleriaFormPage({
             {isEdit ? 'atualizada' : 'criada'} com sucesso e já pode ser
             compartilhada com seus clientes.
           </p>
-
           <div className="p-4 bg-slate-50 border border-petroleum/10 rounded-luxury flex flex-col items-center gap-4">
             <p className="text-[10px] font-semibold text-petroleum/80 text-center uppercase tracking-luxury">
               Compartilhe o link direto com seu cliente:
             </p>
-
             <div className="flex items-center justify-center gap-3">
               <button
                 onClick={handleShareWhatsApp}
                 className="btn-luxury-base text-white bg-green-500 hover:bg-[#20ba56]"
-                title="Compartilhar via WhatsApp"
               >
                 <WhatsAppIcon className="w-4 h-4 fill-current" />
                 WhatsApp
               </button>
-
               <button
                 onClick={handleCopyLink}
                 className="btn-luxury-base text-petroleum bg-white border border-petroleum/20 hover:border-slate-200"
-                title="Copiar Link da Galeria"
               >
                 {copied ? (
                   <>

@@ -9,19 +9,19 @@ import { useSegment } from '@/hooks/useSegment';
 
 const SEGMENT_ASSETS = {
   PHOTOGRAPHER: {
-    path: '/photographer/heros',
+    path: '/photographer/heros/',
     count: 12, // Quantidade de fotos (1.webp até 12.webp)
   },
   EVENT: {
-    path: '/event/heros',
+    path: '/event/heros/',
     count: 3,
   },
   OFFICE: {
-    path: '/office/heros',
+    path: '/office/heros/',
     count: 2,
   },
   CAMPAIGN: {
-    path: '/campaign/heros',
+    path: '/campaign/heros/',
     count: 2,
   },
 };

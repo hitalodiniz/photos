@@ -120,10 +120,10 @@ export default function FeaturePreview({
               <div className="p-5 relative bg-white">
                 <div className="absolute left-0 top-5 bottom-5 w-1 bg-gold rounded-r-full" />
                 <div className="pl-3">
-                  <h4 className="text-[12px] font-bold uppercase tracking-widest text-petroleum mb-1.5">
+                  <h4 className="text-[11px] md:text-[13px] font-bold uppercase tracking-widest text-petroleum mb-1.5">
                     {data.label}
                   </h4>
-                  <p className="text-[11px] text-petroleum/70 leading-relaxed italic">
+                  <p className="text-[11px] md:text-[12px] text-petroleum font-font-semibold">
                     {data.description}
                   </p>
                 </div>

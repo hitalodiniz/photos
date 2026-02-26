@@ -14,19 +14,19 @@ interface EditorialHeroProps {
 
 const SEGMENT_ASSETS = {
   PHOTOGRAPHER: {
-    path: '/photographer/heros',
+    path: '/photographer/heros/',
     count: 12,
   },
   EVENT: {
-    path: '/event/heros',
+    path: '/event/heros/',
     count: 3,
   },
   OFFICE: {
-    path: '/office/heros',
+    path: '/office/heros/',
     count: 2,
   },
   CAMPAIGN: {
-    path: '/campaign/heros',
+    path: '/campaign/heros/',
     count: 2,
   },
 };

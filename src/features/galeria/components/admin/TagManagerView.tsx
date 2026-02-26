@@ -8,9 +8,7 @@ import {
   EyeOff,
   Trash2,
   Loader2,
-  ArrowRight,
   X,
-  ChevronRight,
   Info,
   ImageIcon,
   Tag,
@@ -21,19 +19,18 @@ import {
   Sparkles,
 } from 'lucide-react';
 import { useRouter } from 'next/navigation';
-import { FormPageBase, ConfirmationModal, Toast } from '@/components/ui';
+import { FormPageBase, ConfirmationModal } from '@/components/ui';
 import { usePlan } from '@/core/context/PlanContext';
 import MasonryGrid from '../../MasonryGrid';
 import { updateGaleriaTagsAction } from '@/core/services/galeria.service';
-
 import { useNavigation } from '@/components/providers/NavigationProvider';
 import BaseModal from '@/components/ui/BaseModal';
 import WhatsAppIcon from '@/components/ui/WhatsAppIcon';
-
 import { getPublicGalleryUrl, copyToClipboard } from '@/core/utils/url-helper';
 import { GALLERY_MESSAGES } from '@/core/config/messages';
 import { formatMessage } from '@/core/utils/message-helper';
 import { useShare } from '@/hooks/useShare';
+import { useToast } from '@/hooks/useToast';
 
 interface TagManagerViewProps {
   galeria: any;
@@ -94,28 +91,20 @@ export default function TagManagerView({
   const [showSuccessModal, setShowSuccessModal] = useState(false);
   const [copied, setCopied] = useState(false);
   const [mounted, setMounted] = useState(false);
-  const { shareToClient, isSharing } = useShare({
-    galeria,
-  });
+  const { shareToClient } = useShare({ galeria });
+  const { showToast, ToastElement } = useToast();
 
-  // Estados de Tags
-  const [galleryTags, setGalleryTags] = useState<string[]>(() => {
-    return parseGalleryTags(galeria?.gallery_tags);
-  });
-
+  const [galleryTags, setGalleryTags] = useState<string[]>(() =>
+    parseGalleryTags(galeria?.gallery_tags),
+  );
   const [photoTags, setPhotoTags] = useState<{ id: string; tag: string }[]>(
     () => parsePhotoTags(galeria?.photo_tags),
   );
-
   const [newTagName, setNewTagName] = useState('');
   const [selectedIds, setSelectedIds] = useState<string[]>([]);
   const [activeFilter, setActiveFilter] = useState<FilterMode>('all');
   const [tagToDelete, setTagToDelete] = useState<string | null>(null);
   const [isSaving, setIsSaving] = useState(false);
-  const [toast, setToast] = useState<{
-    message: string;
-    type: 'success' | 'error';
-  } | null>(null);
 
   useEffect(() => {
     setMounted(true);
@@ -123,24 +112,20 @@ export default function TagManagerView({
 
   const links = useMemo(() => {
     if (!galeria || !mounted) return { url: '', message: '' };
-
     const publicUrl = getPublicGalleryUrl(galeria.photographer, galeria.slug);
     const customTemplate = galeria.photographer?.message_templates?.card_share;
-
     const message =
       customTemplate && customTemplate.trim() !== ''
         ? formatMessage(customTemplate, galeria, publicUrl)
         : GALLERY_MESSAGES.CARD_SHARE(galeria.title, publicUrl);
-
     return { url: publicUrl, message };
   }, [galeria, mounted]);
 
-  // Handlers
   const handleDeleteTag = (tagName: string) => {
     setGalleryTags((prev) => prev.filter((t) => t !== tagName));
     setPhotoTags((prev) => prev.filter((item) => item.tag !== tagName));
     if (activeFilter === tagName) setActiveFilter('all');
-    setToast({ message: `marcação "${tagName}" removida.`, type: 'success' });
+    showToast(`marcação "${tagName}" removida.`, 'success');
   };
 
   const handleCreateNewTag = () => {
@@ -169,16 +154,13 @@ export default function TagManagerView({
             })),
           ];
     });
-    setToast({
-      message:
-        normalizedTagName === ''
-          ? 'Marcação removida.'
-          : `Fotos marcadas como ${normalizedTagName}`,
-      type: 'success',
-    });
+    showToast(
+      normalizedTagName === ''
+        ? 'Marcação removida.'
+        : `Fotos marcadas como ${normalizedTagName}`,
+      'success',
+    );
   };
-
-  const canTagPhotos = permissions.canTagPhotos;
 
   const photosWithTags = useMemo(() => {
     const safePhotos = Array.isArray(photos) ? photos : [];
@@ -232,16 +214,16 @@ export default function TagManagerView({
         normalizedGalleryTags,
       );
       if (res.success) {
-        setShowSuccessModal(true); // 🎯 Abre o modal de sucesso
+        setShowSuccessModal(true);
       } else {
         const errorMsg =
           typeof res.error === 'object'
             ? (res.error as any).message
             : res.error;
-        setToast({ message: errorMsg || 'Erro ao salvar.', type: 'error' });
+        showToast(errorMsg || 'Erro ao salvar.', 'error');
       }
     } catch (error) {
-      setToast({ message: 'Erro crítico ao salvar.', type: 'error' });
+      showToast('Erro crítico ao salvar.', 'error');
     } finally {
       setIsSaving(false);
     }
@@ -275,9 +257,8 @@ export default function TagManagerView({
       footerStatusText={`${photosWithTags.length} fotos total | ${galleryTags.length} marcações`}
     >
       <div className="flex h-[calc(100vh-140px)] -mx-6 overflow-hidden w-[calc(100%+3rem)] gap-3">
-        {/* SIDEBAR ESQUERDA - FERRAMENTAS */}
+        {/* SIDEBAR ESQUERDA */}
         <aside className="w-64 border-r border-slate-200 bg-slate-50/50 flex flex-col shrink-0 h-full overflow-y-auto custom-scrollbar rounded-luxury">
-          {/* 🎯 NOVA SEÇÃO: Título da Galeria */}
           <div className="p-5 border-b border-slate-200 bg-white/50">
             <span className="text-[9px] font-semibold uppercase tracking-[0.2em] text-gold mb-1 block">
               Galeria selecionada
@@ -289,7 +270,7 @@ export default function TagManagerView({
               {galeria.title}
             </h2>
           </div>
-          {/* SEÇÃO: NOVA marcação */}
+
           <div className="p-5 border-b border-slate-200 bg-white">
             <h3 className="text-[10px] font-semibold uppercase tracking-widest text-petroleum mb-3 flex items-center gap-2">
               <TagIcon size={12} className="text-gold" /> Criar marcação
@@ -317,7 +298,6 @@ export default function TagManagerView({
             </div>
           </div>
 
-          {/* SEÇÃO: FILTROS E STATUS */}
           <div className="p-5 space-y-6 bg-white">
             <div>
               <h3 className="text-[10px] font-semibold uppercase tracking-widest text-petroleum/80 mb-3 flex items-center gap-2">
@@ -336,7 +316,6 @@ export default function TagManagerView({
                     {photosWithTags.length}
                   </span>
                 </button>
-
                 <button
                   type="button"
                   onClick={() => setActiveFilter('untagged')}
@@ -408,7 +387,7 @@ export default function TagManagerView({
           </div>
         </aside>
 
-        {/* GRID DE FOTOS - ÁREA PRINCIPAL */}
+        {/* GRID DE FOTOS */}
         <main className="flex-1 relative flex flex-col min-w-0 h-full">
           <div className="flex-1 overflow-y-auto p-3 custom-scrollbar bg-white border-t border-slate-200 rounded-luxury">
             <div className="max-w-full">
@@ -444,11 +423,9 @@ export default function TagManagerView({
             </div>
           </div>
 
-          {/* BARRA DE SELEÇÃO ATIVA (Aparece quando há seleção) */}
           {selectedIds.length > 0 && (
             <div className="absolute bottom-4 left-3 right-3 z-50">
               <div className="w-full bg-petroleum/95 backdrop-blur-md text-white px-5 py-3 rounded-2xl shadow-[0_20px_50px_rgba(0,0,0,0.3)] flex items-start gap-4 animate-in slide-in-from-bottom-6 duration-500 border border-white/10">
-                {/* Contador Fixo */}
                 <div className="flex items-center gap-2 border-r border-white/10 pr-4 shrink-0 mt-1">
                   <div className="w-6 h-6 rounded-full bg-gold flex items-center justify-center shadow-lg shadow-gold/20">
                     <span className="text-[10px] font-semibold text-petroleum">
@@ -459,8 +436,6 @@ export default function TagManagerView({
                     Selecionadas
                   </span>
                 </div>
-
-                {/* Área de Tags */}
                 <div className="flex-1 flex flex-wrap items-center gap-2 py-1 px-1 -mx-1">
                   <button
                     type="button"
@@ -472,9 +447,7 @@ export default function TagManagerView({
                   >
                     Limpar Marcação
                   </button>
-
                   <div className="h-4 w-px bg-white/10 mx-1 shrink-0" />
-
                   {galleryTags.map((tag) => (
                     <button
                       key={tag}
@@ -489,8 +462,6 @@ export default function TagManagerView({
                     </button>
                   ))}
                 </div>
-
-                {/* Botão Fechar */}
                 <button
                   type="button"
                   onClick={() => setSelectedIds([])}
@@ -504,7 +475,6 @@ export default function TagManagerView({
         </main>
       </div>
 
-      {/* Modais e Toast */}
       <ConfirmationModal
         isOpen={!!tagToDelete}
         onClose={() => setTagToDelete(null)}
@@ -515,15 +485,9 @@ export default function TagManagerView({
         title="Remover marcação"
         message={`Deseja remover "${tagToDelete}"? As fotos voltarão para o estado pendente.`}
       />
-      {toast && (
-        <Toast
-          message={toast.message}
-          type={toast.type}
-          onClose={() => setToast(null)}
-        />
-      )}
 
-      {/* MODAL DE SUCESSO APÓS ORGANIZAÇÃO */}
+      {ToastElement}
+
       <BaseModal
         isOpen={showSuccessModal}
         showCloseButton={true}
@@ -545,7 +509,6 @@ export default function TagManagerView({
               >
                 <ArrowLeft size={14} /> Painel
               </button>
-
               <a
                 href={getPublicGalleryUrl(galeria.photographer, galeria.slug)}
                 target="_blank"
@@ -563,21 +526,18 @@ export default function TagManagerView({
             sincronizadas. Seu cliente agora pode filtrar as fotos por
             marcações.
           </p>
-
           <div className="p-4 bg-slate-50 border border-petroleum/10 rounded-luxury flex flex-col items-center gap-4">
             <p className="text-[10px] font-semibold text-petroleum/80 text-center uppercase tracking-luxury">
               Compartilhe com seu cliente:
             </p>
-
             <div className="flex items-center justify-center gap-3">
               <button
-                onClick={() => shareToClient(links.url)} // O hook resolve o WhatsApp e a mensagem via ShareService
-                className="btn-luxury-base text-white bg-green-500 hover:bg-[#20ba56] px-4 py-2 rounded-lg flex items-center gap-2  font-semibold"
+                onClick={() => shareToClient(links.url)}
+                className="btn-luxury-base text-white bg-green-500 hover:bg-[#20ba56] px-4 py-2 rounded-lg flex items-center gap-2 font-semibold"
               >
                 <WhatsAppIcon className="w-4 h-4 fill-current" />
                 WhatsApp
               </button>
-
               <button
                 onClick={async () => {
                   const url = getPublicGalleryUrl(
@@ -590,7 +550,7 @@ export default function TagManagerView({
                     setTimeout(() => setCopied(false), 2000);
                   }
                 }}
-                className="btn-luxury-base text-petroleum bg-white border border-petroleum/20 hover:border-slate-200 px-4 py-2 rounded-lg flex items-center gap-2  font-semibold"
+                className="btn-luxury-base text-petroleum bg-white border border-petroleum/20 hover:border-slate-200 px-4 py-2 rounded-lg flex items-center gap-2 font-semibold"
               >
                 {copied ? (
                   <Check

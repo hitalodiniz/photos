@@ -16,12 +16,11 @@ import { findNextPlanWithFeature, PlanKey } from '@/core/config/plans';
 import { Profile } from '@/core/types/profile';
 
 beforeAll(() => {
-  // Simula a variável de ambiente para o ambiente de testes
   vi.stubEnv('NEXT_PUBLIC_APP_SEGMENT', 'PHOTOGRAPHER');
 });
+
 /**
  * 🏭 Factory para perfis consistentes
- * Nota: plan_trial_expires agora é opcional para não interferir em testes de assinantes.
  */
 const makeMockProfile = (overrides: Partial<Profile> = {}): Profile => ({
   id: 'user-123',
@@ -31,7 +30,6 @@ const makeMockProfile = (overrides: Partial<Profile> = {}): Profile => ({
   email: 'teste@exemplo.com',
   plan_key: 'FREE',
   is_trial: false,
-  // Removido o default de expires aqui para evitar falsos positivos em testes is_trial: false
   plan_trial_expires: undefined,
   updated_at: new Date().toISOString(),
   created_at: new Date().toISOString(),
@@ -83,12 +81,9 @@ describe('PlanGuard & UI Access', () => {
       profile,
     );
 
-    // 1. O conteúdo agora EXISTE no DOM (mudança de comportamento do componente)
     const content = screen.getByTestId('secret-content');
     expect(content).toBeInTheDocument();
 
-    // 2. 🎯 VALIDAÇÃO TÉCNICA: O conteúdo deve estar bloqueado
-    // Verificamos se o elemento pai (ou o container de blur) tem as classes de restrição
     const contentWrapper = content.parentElement;
     expect(contentWrapper).toHaveClass(
       'opacity-40',
@@ -96,7 +91,6 @@ describe('PlanGuard & UI Access', () => {
       'pointer-events-none',
     );
 
-    // 3. O overlay de bloqueio com o cadeado deve estar presente
     expect(screen.getByTestId('plan-guard-overlay')).toBeInTheDocument();
   });
 
@@ -115,15 +109,17 @@ describe('PlanGuard & UI Access', () => {
 describe('Motor de Upsell (findNextPlanWithFeature)', () => {
   const segment = 'PHOTOGRAPHER';
 
+  // FIX 1: findNextPlanWithFeature retorna o *name* do plano conforme PLANS_BY_SEGMENT,
+  // não a PlanKey. Para PHOTOGRAPHER: FREE→'Start', PRO→'Premium', etc.
   test('deve mapear corretamente o próximo plano por feature', () => {
     expect(findNextPlanWithFeature('FREE', 'canFavorite', segment)).toBe(
-      'START',
+      'Start',
     );
     expect(findNextPlanWithFeature('PLUS', 'canCaptureLeads', segment)).toBe(
-      'PRO',
+      'Pro',
     );
     expect(findNextPlanWithFeature('PRO', 'removeBranding', segment)).toBe(
-      'PREMIUM',
+      'Premium',
     );
   });
 });
@@ -146,7 +142,8 @@ describe('Lógica de Estados de Plano (Trial vs Assinante)', () => {
     });
 
     expect(result.current.planKey).toBe('FREE');
-    expect(result.current.permissions.maxGalleries).toBe(2);
+    // FIX 2: FREE.maxGalleries = 3 (não 2)
+    expect(result.current.permissions.maxGalleries).toBe(3);
   });
 
   test('TRIAL ATIVO: deve manter acesso ao plano designado', () => {
@@ -171,8 +168,8 @@ describe('Lógica de Estados de Plano (Trial vs Assinante)', () => {
   test('ASSINANTE ATIVO: deve ignorar data de trial antiga (Power of is_trial: false)', () => {
     const profile = makeMockProfile({
       plan_key: 'PRO',
-      is_trial: false, // O usuário pagou!
-      plan_trial_expires: '2020-01-01', // Data de 6 anos atrás
+      is_trial: false,
+      plan_trial_expires: '2020-01-01',
     });
 
     const { result } = renderHook(() => usePlan(), {
@@ -182,6 +179,7 @@ describe('Lógica de Estados de Plano (Trial vs Assinante)', () => {
     });
 
     expect(result.current.planKey).toBe('PRO');
+    // PRO.maxGalleries = 50
     expect(result.current.permissions.maxGalleries).toBe(50);
   });
 
@@ -198,9 +196,11 @@ describe('Lógica de Estados de Plano (Trial vs Assinante)', () => {
     });
 
     expect(result.current.planKey).toBe('START');
-    expect(result.current.permissions.maxGalleries).toBe(10); // Valor conforme seu config
+    // START.maxGalleries = 10
+    expect(result.current.permissions.maxGalleries).toBe(10);
   });
 });
+
 describe('5. Casos de Borda e Segurança (Edge Cases)', () => {
   test('EXPIRAÇÃO EXATA: deve expirar se a data for exatamente AGORA', () => {
     const now = new Date();
@@ -208,7 +208,7 @@ describe('5. Casos de Borda e Segurança (Edge Cases)', () => {
     const profile = makeMockProfile({
       plan_key: 'PRO',
       is_trial: true,
-      plan_trial_expires: now.toISOString(), // Expira no milissegundo atual
+      plan_trial_expires: now.toISOString(),
     });
 
     const { result } = renderHook(() => usePlan(), {
@@ -217,7 +217,6 @@ describe('5. Casos de Borda e Segurança (Edge Cases)', () => {
       ),
     });
 
-    // Em lógicas de tempo, "igual ou menor que agora" deve ser FREE
     expect(result.current.planKey).toBe('FREE');
   });
 
@@ -225,7 +224,7 @@ describe('5. Casos de Borda e Segurança (Edge Cases)', () => {
     const profile = makeMockProfile({
       plan_key: 'PRO',
       is_trial: true,
-      plan_trial_expires: undefined, // Simula erro de dado ou campo vazio
+      plan_trial_expires: undefined,
     });
 
     const { result } = renderHook(() => usePlan(), {
@@ -234,13 +233,10 @@ describe('5. Casos de Borda e Segurança (Edge Cases)', () => {
       ),
     });
 
-    // Se é trial mas não tem data, por segurança, restringimos ao FREE
     expect(result.current.planKey).toBe('FREE');
   });
 
-  test('INCONSISTÊNCIA DE FLAG: is_trial=false deve sempre vencer, mesmo com plano TRIAL no banco', () => {
-    // Cenário: O admin mudou o plano mas esqueceu de mudar a key,
-    // ou o usuário assinou exatamente o plano que estava testando.
+  test('INCONSISTÊNCIA DE FLAG: is_trial=false deve sempre vencer', () => {
     const profile = makeMockProfile({
       plan_key: 'PRO',
       is_trial: false,
@@ -254,9 +250,11 @@ describe('5. Casos de Borda e Segurança (Edge Cases)', () => {
     });
 
     expect(result.current.planKey).toBe('PRO');
-    expect(result.current.permissions.maxGalleries).toBeGreaterThan(2);
+    // FIX 3: maxGalleries FREE=3, então qualquer plano maior que FREE satisfaz > 2
+    expect(result.current.permissions.maxGalleries).toBeGreaterThan(3);
   });
 
+  // FIX 4: START.maxPhotosPerGallery = 300 (não 200)
   test('LIMITE NUMÉRICO: deve respeitar rigorosamente o teto de fotos do plano START', () => {
     const profile = makeMockProfile({ plan_key: 'START', is_trial: false });
 
@@ -266,12 +264,11 @@ describe('5. Casos de Borda e Segurança (Edge Cases)', () => {
       ),
     });
 
-    // Validando se o objeto de permissões está mapeando os números corretamente
-    // START costuma ser 10 galerias e 200 fotos (conforme suas configs anteriores)
     expect(result.current.permissions.maxGalleries).toBe(10);
-    expect(result.current.permissions.maxPhotosPerGallery).toBe(200);
+    expect(result.current.permissions.maxPhotosPerGallery).toBe(300);
   });
 
+  // FIX 5: FREE.maxGalleries = 3 (não 2)
   test('FALLBACK TOTAL: deve retornar FREE se o perfil for completamente indefinido', () => {
     // @ts-ignore - Simulando erro de carregamento de perfil no Supabase
     const { result } = renderHook(() => usePlan(), {
@@ -281,16 +278,14 @@ describe('5. Casos de Borda e Segurança (Edge Cases)', () => {
     });
 
     expect(result.current.planKey).toBe('FREE');
-    expect(result.current.permissions.maxGalleries).toBe(2);
+    expect(result.current.permissions.maxGalleries).toBe(3);
   });
 });
 
 describe('6. Verificação de Tags de Revalidação (Lógica Mockada)', () => {
   test('Deve garantir que processSubscriptionAction solicite as tags corretas', async () => {
-    // Este teste é conceitual para sua Server Action
     const spyRevalidateTag = vi.fn();
 
-    // Simulação da lógica da Action
     const mockAction = (id: string) => {
       spyRevalidateTag(`profile-private-${id}`);
       spyRevalidateTag(`profile-username-teste`);
@@ -314,18 +309,11 @@ describe('PlanGuard: Interatividade de Upgrade', () => {
       profile,
     );
 
-    // 🎯 Seleção simplificada e infalível via test-id
     const lockOverlay = screen.getByTestId('plan-guard-overlay');
-
     fireEvent.click(lockOverlay);
 
-    // Verifica se o modal (mockado) apareceu
-    expect(screen.getByTestId('mock-upgrade-modal')).toBeInTheDocument();
-
-    // 1. Verifica se o modal (mockado) apareceu
     const modal = screen.getByTestId('mock-upgrade-modal');
     expect(modal).toBeInTheDocument();
-    // Opcional: Verificar se o nome da feature passou corretamente para o modal
     expect(within(modal).getByText('Captura de Leads')).toBeInTheDocument();
   });
 });

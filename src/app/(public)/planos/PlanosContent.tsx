@@ -22,16 +22,17 @@ import {
   PlanPermissions,
   SegmentType,
   PLANS_BY_SEGMENT,
-  FEATURE_DESCRIPTIONS,
   formatPhotoCredits,
 } from '@/core/config/plans';
 import { useSegment } from '@/hooks/useSegment';
-import { InfoTooltip } from '@/components/ui/InfoTooltip';
+import FeaturePreview from '@/components/ui/FeaturePreview';
 
-export default function PlanosContent() {
+export default function PlanosPage() {
   const [loadingPlan, setLoadingPlan] = useState<string | null>(null);
   const [mounted, setMounted] = useState(false);
-  const [isAnnual, setIsAnnual] = useState(false);
+  const [billingCycle, setBillingCycle] = useState<
+    'monthly' | 'semester' | 'annual'
+  >('monthly');
   const [expandedGroups, setExpandedGroups] = useState<Record<string, boolean>>(
     {},
   );
@@ -74,31 +75,32 @@ export default function PlanosContent() {
       subtitle={`A estrutura definitiva para sua entrega como ${terms.singular}.`}
     >
       <main className="w-full -mt-4 md:-mt-8">
-        {/* ── SELETOR MENSAL / ANUAL ── */}
-        <div className="flex items-center justify-between gap-2 mb-10 bg-slate-50 p-1.5 rounded-full border border-slate-200 shadow-sm max-w-[280px] md:max-w-sm w-full mx-auto">
-          <button
-            onClick={() => setIsAnnual(false)}
-            className={`flex-1 py-2 md:py-2.5 rounded-full text-[9px] md:text-[10px] font-bold uppercase tracking-widest transition-all ${
-              !isAnnual
-                ? 'bg-petroleum text-white shadow-md'
-                : 'text-petroleum/40'
-            }`}
-          >
-            Mensal
-          </button>
-          <button
-            onClick={() => setIsAnnual(true)}
-            className={`relative flex-1 py-2 md:py-2.5 rounded-full text-[9px] md:text-[10px] font-bold uppercase tracking-widest transition-all ${
-              isAnnual
-                ? 'bg-petroleum text-white shadow-md'
-                : 'text-petroleum/40'
-            }`}
-          >
-            Anual
-            <span className="absolute -top-2 -right-1 bg-emerald-500 text-white text-[10px] px-1.5 py-0.5 rounded-full font-bold animate-pulse">
-              -20%
-            </span>
-          </button>
+        {/* ── SELETOR DE PERÍODO ── */}
+        <div className="flex items-center gap-1.5 mb-10 bg-slate-50 p-1.5 rounded-full border border-slate-200 shadow-sm w-fit mx-auto">
+          {(
+            [
+              { value: 'monthly', label: 'Mensal', badge: null },
+              { value: 'semester', label: 'Semestral', badge: '-12%' },
+              { value: 'annual', label: 'Anual', badge: '-20%' },
+            ] as const
+          ).map(({ value, label, badge }) => (
+            <button
+              key={value}
+              onClick={() => setBillingCycle(value)}
+              className={`relative py-2 px-4 md:px-5 rounded-full text-[9px] md:text-[10px] font-bold uppercase tracking-widest transition-all whitespace-nowrap ${
+                billingCycle === value
+                  ? 'bg-petroleum text-white shadow-md'
+                  : 'text-petroleum/40 hover:text-petroleum/70'
+              }`}
+            >
+              {label}
+              {badge && (
+                <span className="absolute -top-2 -right-1 bg-emerald-500 text-white text-[9px] px-1.5 py-0.5 rounded-full font-bold">
+                  {badge}
+                </span>
+              )}
+            </button>
+          ))}
         </div>
 
         {/* ── GRID DE CARDS ── */}
@@ -108,9 +110,12 @@ export default function PlanosContent() {
               const planInfo = segmentPlans[key];
               const perms = PERMISSIONS_BY_PLAN[key];
               const isPro = key === 'PRO';
-              const displayPrice = isAnnual
-                ? planInfo.yearlyPrice
-                : planInfo.price;
+              const displayPrice =
+                billingCycle === 'annual'
+                  ? planInfo.yearlyPrice
+                  : billingCycle === 'semester'
+                    ? planInfo.semesterPrice
+                    : planInfo.price;
 
               // Indicadores lidos direto das permissions — sem depender da tabela
               const indicators: Array<{
@@ -181,43 +186,42 @@ export default function PlanosContent() {
                       </span>
                     </div>
                     <p className="text-[9px] font-semibold text-petroleum/70 uppercase tracking-widest mt-1">
-                      {isAnnual ? 'Equivalente / mês' : 'Cobrança mensal'}
+                      {billingCycle === 'annual'
+                        ? 'Equivalente / mês'
+                        : billingCycle === 'semester'
+                          ? 'Equivalente / mês'
+                          : 'Cobrança mensal'}
                     </p>
                   </div>
 
                   {/* Indicadores */}
-                  <div className="space-y-2 mb-6 flex-grow">
-                    {indicators.map((ind, i) => {
-                      const desc = ind.permKey
-                        ? FEATURE_DESCRIPTIONS[ind.permKey]
-                        : null;
-                      return (
-                        <div key={i} className="flex items-start gap-3">
-                          <div className="w-8 h-8 rounded-lg flex items-center justify-center shrink-0 text-gold">
-                            {React.cloneElement(ind.icon, {
-                              size: 16,
-                              strokeWidth: 2,
-                            })}
-                          </div>
-                          <div className="flex flex-col">
-                            <div className="flex items-center gap-1.5">
-                              <span className="text-[12px] font-semibold text-petroleum leading-tight">
-                                {ind.value}
-                              </span>
-                              {desc && (
-                                <InfoTooltip
-                                  title={desc.label}
-                                  content={desc.description}
-                                />
-                              )}
-                            </div>
-                            <span className="text-[10px] text-petroleum/70 font-medium uppercase tracking-normal">
+                  <div className="space-y-4 mb-8 flex-grow">
+                    {indicators.map((ind, i) => (
+                      <div key={i} className="flex items-start gap-3">
+                        <div className="w-8 h-8 rounded-lg flex items-center justify-center shrink-0 text-gold">
+                          {React.cloneElement(ind.icon, {
+                            size: 16,
+                            strokeWidth: 2,
+                          })}
+                        </div>
+                        <div className="flex flex-col">
+                          <span className="text-[12px] font-semibold text-petroleum leading-tight">
+                            {ind.value}
+                          </span>
+                          <div className="flex items-center gap-1.5">
+                            <span className="text-[9px] text-petroleum/70 font-semibold uppercase tracking-widest">
                               {ind.label}
                             </span>
+                            {ind.permKey && (
+                              <FeaturePreview
+                                featureKey={ind.permKey}
+                                align={i > 2 ? 'right' : 'left'}
+                              />
+                            )}
                           </div>
                         </div>
-                      );
-                    })}
+                      </div>
+                    ))}
                   </div>
 
                   {/* CTA */}
@@ -267,9 +271,12 @@ export default function PlanosContent() {
                     </th>
                     {planosKeys.map((key) => {
                       const planInfo = segmentPlans[key];
-                      const displayPrice = isAnnual
-                        ? planInfo.yearlyPrice
-                        : planInfo.price;
+                      const displayPrice =
+                        billingCycle === 'annual'
+                          ? planInfo.yearlyPrice
+                          : billingCycle === 'semester'
+                            ? planInfo.semesterPrice
+                            : planInfo.price;
                       return (
                         <th key={key} className="p-6 border-b border-white/5">
                           <div className="flex flex-col items-center gap-1">
@@ -330,80 +337,60 @@ export default function PlanosContent() {
                       {expandedGroups[groupName] &&
                         COMMON_FEATURES.filter(
                           (f) => f.group.trim().toUpperCase() === groupName,
-                        ).map((feature, fIdx) => {
-                          // Tooltip: prioriza FEATURE_DESCRIPTIONS, fallback para field tooltip
-                          const descFromMap = feature.key
-                            ? FEATURE_DESCRIPTIONS[
-                                feature.key as keyof PlanPermissions
-                              ]
-                            : null;
-                          const descFromField =
-                            'tooltip' in feature
-                              ? {
-                                  label: feature.label,
-                                  description: (feature as any)
-                                    .tooltip as string,
-                                }
-                              : null;
-                          const desc = descFromMap ?? descFromField;
+                        ).map((feature, fIdx) => (
+                          <tr
+                            key={`${groupName}-${fIdx}`}
+                            className="hover:bg-slate-50 transition-colors group"
+                          >
+                            {/* Label + tooltip */}
+                            <td className="py-4 px-8 border-b border-slate-100 bg-white sticky left-0 z-30 shadow-[2px_0_5px_-2px_rgba(0,0,0,0.05)]">
+                              <div className="flex items-center gap-2">
+                                <span className="text-[12px] font-semibold text-petroleum opacity-80 group-hover:opacity-100">
+                                  {feature.label}
+                                </span>
+                                {feature.key && (
+                                  <FeaturePreview
+                                    featureKey={
+                                      feature.key as keyof PlanPermissions
+                                    }
+                                    align="left"
+                                  />
+                                )}
+                              </div>
+                            </td>
 
-                          return (
-                            <tr
-                              key={`${groupName}-${fIdx}`}
-                              className="hover:bg-slate-50 transition-colors group"
-                            >
-                              {/* Label + tooltip */}
-                              <td className="py-4 px-8 border-b border-slate-100 bg-white sticky left-0 z-30 shadow-[2px_0_5px_-2px_rgba(0,0,0,0.05)]">
-                                <div className="flex items-center gap-2">
-                                  <span className="text-[12px] font-semibold text-petroleum">
-                                    {feature.label}
-                                  </span>
-                                  {desc && (
-                                    <InfoTooltip
-                                      title={desc.label}
-                                      content={desc.description}
-                                      align="left"
-                                    />
-                                  )}
-                                </div>
-                              </td>
-
-                              {/* Valores por plano */}
-                              {planosKeys.map((key, pIdx) => {
-                                const val = getFeatureValue(
-                                  feature.label,
-                                  pIdx,
-                                );
-                                return (
-                                  <td
-                                    key={`${key}-${fIdx}`}
-                                    className="py-4 px-4 border-b border-slate-100 text-center"
-                                  >
-                                    <div className="flex items-center justify-center">
-                                      {val === true ? (
-                                        <Check
-                                          size={18}
-                                          className="text-emerald-600"
-                                          strokeWidth={3}
-                                        />
-                                      ) : val === false ? (
-                                        <X
-                                          size={16}
-                                          className="text-slate-300"
-                                          strokeWidth={2}
-                                        />
-                                      ) : (
-                                        <span className="text-[12px] font-medium text-petroleum">
-                                          {val}
-                                        </span>
-                                      )}
-                                    </div>
-                                  </td>
-                                );
-                              })}
-                            </tr>
-                          );
-                        })}
+                            {/* Valores por plano */}
+                            {planosKeys.map((key, pIdx) => {
+                              const val = getFeatureValue(feature.label, pIdx);
+                              return (
+                                <td
+                                  key={`${key}-${fIdx}`}
+                                  className="py-4 px-4 border-b border-slate-100 text-center"
+                                >
+                                  <div className="flex items-center justify-center">
+                                    {val === true ? (
+                                      <Check
+                                        size={18}
+                                        className="text-emerald-600"
+                                        strokeWidth={3}
+                                      />
+                                    ) : val === false ? (
+                                      <X
+                                        size={16}
+                                        className="text-slate-300"
+                                        strokeWidth={2}
+                                      />
+                                    ) : (
+                                      <span className="text-[12px] font-medium text-petroleum">
+                                        {val}
+                                      </span>
+                                    )}
+                                  </div>
+                                </td>
+                              );
+                            })}
+                          </tr>
+                        ))}
                     </React.Fragment>
                   ))}
                 </tbody>

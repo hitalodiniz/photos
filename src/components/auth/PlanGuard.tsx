@@ -23,6 +23,68 @@ interface PlanGuardProps {
   variant?: 'default' | 'mini';
 }
 
+/**
+ * 🛡️ Determina se o plano atual tem acesso ao feature.
+ *
+ * Trata 3 categorias de feature:
+ *  - boolean / number       → lógica simples
+ *  - hierarchical strings   → requer mapeamento explícito (ver HIERARCHY_MAP)
+ *  - qualquer outro valor   → truthy/falsy
+ *
+ * IMPORTANTE: Features hierárquicas (profileLevel, customizationLevel,
+ * privacyLevel, socialDisplayLevel, tagSelectionMode) nunca retornam `false`
+ * diretamente — o valor mínimo delas é uma string como 'basic' ou 'default'.
+ * Sem este mapa, o PlanGuard nunca bloquearia essas features.
+ */
+
+// Planos que possuem o nível MÍNIMO de cada feature hierárquica.
+// Se o plano atual for o mínimo (FREE), hasAccess = false para bloqueá-lo.
+// Ajuste conforme a regra de negócio de cada feature.
+const HIERARCHY_ACCESS: Partial<
+  Record<keyof PlanPermissions, (val: any) => boolean>
+> = {
+  // 'basic' é o mínimo → bloqueia. 'standard' ou acima → libera.
+  profileLevel: (val) => val !== 'basic',
+
+  // 'default' é o mínimo → bloqueia. 'colors' ou 'full' → libera.
+  customizationLevel: (val) => val !== 'default',
+
+  // 'public' é o mínimo → bloqueia (não permite senha/expiração). 'private' ou acima → libera.
+  privacyLevel: (val) => val !== 'public',
+
+  // 'minimal' é o mínimo → bloqueia.
+  socialDisplayLevel: (val) => val !== 'minimal',
+
+  // 'manual' é o mínimo → bloqueia.
+  tagSelectionMode: (val) => val !== 'manual',
+};
+
+function resolveAccess(
+  feature: keyof PlanPermissions,
+  permissions: PlanPermissions,
+  forceShowLock: boolean,
+): boolean {
+  if (forceShowLock) return false;
+
+  const val = permissions[feature];
+
+  // Verifica se é uma feature hierárquica com mapeamento definido
+  const hierarchyChecker = HIERARCHY_ACCESS[feature];
+  if (hierarchyChecker) return hierarchyChecker(val);
+
+  // Features numéricas: tem acesso se o limite for > 0
+  if (typeof val === 'number') return val > 0;
+
+  // Features booleanas
+  if (typeof val === 'boolean') return val;
+
+  // Strings especiais
+  if (val === 'unlimited') return true;
+
+  // Fallback: qualquer valor truthy
+  return !!val;
+}
+
 export function PlanGuard({
   feature,
   children,
@@ -41,15 +103,7 @@ export function PlanGuard({
   const displayDescription =
     featureInfo?.description || 'Faça upgrade para liberar este recurso.';
 
-  const hasAccess = (() => {
-    if (forceShowLock) return false;
-    const val = permissions[feature];
-    if (typeof val === 'number') return val > 0;
-    if (typeof val === 'boolean') return val === true;
-    if (val === 'unlimited') return true;
-    if (['default', 'basic', 'minimal'].includes(val as string)) return false;
-    return !!val;
-  })();
+  const hasAccess = resolveAccess(feature, permissions, forceShowLock);
 
   const requiredPlan = useMemo(() => {
     if (hasAccess) return null;
@@ -90,8 +144,6 @@ export function PlanGuard({
         />
 
         {/* 3. UI DE BLOQUEIO */}
-        {/* 🎯 Ajuste: Adicionado pointer-events-none no container pai, 
-            mas pointer-events-auto nos elementos internos que precisam de hover */}
         <div className="absolute inset-0 z-[1002] pointer-events-none flex items-center justify-center">
           {isMini ? (
             <div className="flex items-center gap-2">
@@ -99,10 +151,12 @@ export function PlanGuard({
                 <Lock size={10} className="text-gold" strokeWidth={3} />
               </div>
               {infoExtra && (
-                // 🎯 O container do tooltip precisa de pointer-events-auto
-                // para que o 'group-hover' do InfoTooltip funcione
                 <div className="animate-in fade-in zoom-in duration-300 z-[1004] pointer-events-auto">
-                  <InfoTooltip content={infoExtra} align="left" />
+                  <InfoTooltip
+                    title={displayLabel}
+                    content={infoExtra}
+                    align="left"
+                  />
                 </div>
               )}
             </div>

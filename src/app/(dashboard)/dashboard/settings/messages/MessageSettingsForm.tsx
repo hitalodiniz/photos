@@ -14,13 +14,14 @@ import {
 import { useRouter } from 'next/navigation';
 import { useSegment } from '@/hooks/useSegment';
 import { updateProfileSettings } from '@/core/services/profile.service';
-import { ConfirmationModal, Toast } from '@/components/ui';
+import { ConfirmationModal } from '@/components/ui';
 import FormPageBase from '@/components/ui/FormPageBase';
 import { PlanGuard } from '@/components/auth/PlanGuard';
 import { GALLERY_MESSAGES } from '@/core/config/messages';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { useForm } from 'react-hook-form';
 import BaseModal from '@/components/ui/BaseModal';
+import { useToast } from '@/hooks/useToast';
 
 const CombinedSchema = z.object({
   message_templates: MessageTemplatesSchema,
@@ -29,42 +30,38 @@ const CombinedSchema = z.object({
 type CombinedData = z.infer<typeof CombinedSchema>;
 type MessageKey = keyof CombinedData['message_templates'];
 
-// --- COMPONENTES AUXILIARES ---
-
 const WhatsAppPreview = React.memo(
-  ({ text, siteName }: { text: string; siteName: string }) => {
-    return (
-      <div className="bg-[#e5ddd5] rounded-xl p-4 md:p-6 overflow-hidden relative min-h-[250px] border border-petroleum/10 shadow-inner font-sans">
-        <div className="absolute top-0 left-0 w-full bg-[#075e54] py-2 px-4 flex items-center gap-2 z-10">
-          <div className="w-7 h-7 rounded-full bg-white/20 flex items-center justify-center">
-            <MessageSquare size={12} className="text-white" />
-          </div>
-          <div className="flex flex-col">
-            <span className="text-white text-[9px] font-semibold leading-none">
-              {siteName}
-            </span>
-            <span className="text-white/60 text-[7px]">Online</span>
-          </div>
+  ({ text, siteName }: { text: string; siteName: string }) => (
+    <div className="bg-[#e5ddd5] rounded-xl p-4 md:p-6 overflow-hidden relative min-h-[250px] border border-petroleum/10 shadow-inner font-sans">
+      <div className="absolute top-0 left-0 w-full bg-[#075e54] py-2 px-4 flex items-center gap-2 z-10">
+        <div className="w-7 h-7 rounded-full bg-white/20 flex items-center justify-center">
+          <MessageSquare size={12} className="text-white" />
         </div>
-        <div className="mt-10 flex justify-start animate-in fade-in slide-in-from-left-2">
-          <div className="bg-white p-3 rounded-lg rounded-tl-none shadow-sm max-w-[95%] relative">
-            <div className="absolute -left-2 top-0 w-0 h-0 border-t-[10px] border-t-white border-l-[10px] border-l-transparent" />
-            <p className="text-[12px] text-slate-800 whitespace-pre-line leading-relaxed italic">
-              {text || 'Digite sua mensagem...'}
-            </p>
-            <div className="flex justify-end mt-1">
-              <span className="text-[8px] text-slate-400">
-                {new Date().toLocaleTimeString([], {
-                  hour: '2-digit',
-                  minute: '2-digit',
-                })}
-              </span>
-            </div>
+        <div className="flex flex-col">
+          <span className="text-white text-[9px] font-semibold leading-none">
+            {siteName}
+          </span>
+          <span className="text-white/60 text-[7px]">Online</span>
+        </div>
+      </div>
+      <div className="mt-10 flex justify-start animate-in fade-in slide-in-from-left-2">
+        <div className="bg-white p-3 rounded-lg rounded-tl-none shadow-sm max-w-[95%] relative">
+          <div className="absolute -left-2 top-0 w-0 h-0 border-t-[10px] border-t-white border-l-[10px] border-l-transparent" />
+          <p className="text-[12px] text-slate-800 whitespace-pre-line leading-relaxed italic">
+            {text || 'Digite sua mensagem...'}
+          </p>
+          <div className="flex justify-end mt-1">
+            <span className="text-[8px] text-slate-400">
+              {new Date().toLocaleTimeString([], {
+                hour: '2-digit',
+                minute: '2-digit',
+              })}
+            </span>
           </div>
         </div>
       </div>
-    );
-  },
+    </div>
+  ),
 );
 
 const FormSection = ({
@@ -76,7 +73,7 @@ const FormSection = ({
   icon?: React.ReactNode;
   children: React.ReactNode;
 }) => (
-  <div className="bg-white rounded-luxury border border-petroleum/10 p-6 ">
+  <div className="bg-white rounded-luxury border border-petroleum/10 p-6">
     <div className="flex items-center gap-3 border-b border-petroleum/10 pb-4">
       {icon && <div className="text-petroleum">{icon}</div>}
       <h3 className="text-[11px] font-semibold uppercase tracking-widest text-petroleum">
@@ -87,13 +84,18 @@ const FormSection = ({
   </div>
 );
 
-// --- COMPONENTE PRINCIPAL ---
-
 export default function MessageSettingsForm({ profile }: { profile: any }) {
   const router = useRouter();
   const textareaRef = useRef<HTMLTextAreaElement>(null);
   const { terms } = useSegment();
   const [showResetModal, setShowResetModal] = useState<MessageKey | null>(null);
+  const [isSaving, setIsSaving] = useState(false);
+  const [isSuccess, setIsSuccess] = useState(false);
+  const [editingMessageKey, setEditingMessageKey] = useState<MessageKey | null>(
+    null,
+  );
+
+  const { showToast, ToastElement } = useToast();
 
   const MESSAGE_TITLES: Record<MessageKey, string> = {
     card_share: 'Espaço de Galerias',
@@ -151,16 +153,6 @@ export default function MessageSettingsForm({ profile }: { profile: any }) {
     [],
   );
 
-  const [isSaving, setIsSaving] = useState(false);
-  const [isSuccess, setIsSuccess] = useState(false);
-  const [editingMessageKey, setEditingMessageKey] = useState<MessageKey | null>(
-    null,
-  );
-  const [toast, setToast] = useState<{
-    message: string;
-    type: 'success' | 'error';
-  } | null>(null);
-
   const defaultValues: CombinedData = useMemo(
     () => ({
       message_templates: {
@@ -189,12 +181,12 @@ export default function MessageSettingsForm({ profile }: { profile: any }) {
       const result = await updateProfileSettings(data);
       if (result.success) {
         setIsSuccess(true);
-        setToast({ message: 'Mensagens salvas com sucesso!', type: 'success' });
+        showToast('Mensagens salvas com sucesso!', 'success');
         router.refresh();
         setTimeout(() => setIsSuccess(false), 3000);
       }
     } catch {
-      setToast({ message: 'Erro ao salvar.', type: 'error' });
+      showToast('Erro ao salvar.', 'error');
     } finally {
       setIsSaving(false);
     }
@@ -204,22 +196,18 @@ export default function MessageSettingsForm({ profile }: { profile: any }) {
     (variable: string) => {
       const textarea = textareaRef.current;
       if (!editingMessageKey || !textarea) return;
-
       const start = textarea.selectionStart;
       const end = textarea.selectionEnd;
       const currentPath = `message_templates.${editingMessageKey}` as const;
       const currentValue =
         getValues(currentPath) || DEFAULT_MESSAGES[editingMessageKey] || '';
-
       const tag = `{${variable}}`;
       const newValue =
         currentValue.substring(0, start) + tag + currentValue.substring(end);
-
       setValue(currentPath, newValue, {
         shouldDirty: true,
         shouldValidate: true,
       });
-
       setTimeout(() => {
         textarea.focus();
         const pos = start + tag.length;
@@ -263,7 +251,7 @@ export default function MessageSettingsForm({ profile }: { profile: any }) {
         submitLabel="SALVAR MENSAGENS"
         id="message-settings-form"
       >
-        <div className="max-w-full mx-auto ">
+        <div className="max-w-full mx-auto">
           <FormSection
             title="Mensagens de compartilhamento"
             icon={<MessageSquare size={16} />}
@@ -432,7 +420,7 @@ export default function MessageSettingsForm({ profile }: { profile: any }) {
           isOpen={!!showResetModal}
           onClose={() => setShowResetModal(null)}
           title="Restaurar Padrão"
-          message={`Deseja realmente restaurar a mensagem para o padrão original?`}
+          message="Deseja realmente restaurar a mensagem para o padrão original?"
           confirmText="Sim, Restaurar"
           variant="danger"
           onConfirm={() => {
@@ -444,13 +432,8 @@ export default function MessageSettingsForm({ profile }: { profile: any }) {
             }
           }}
         />
-        {toast && (
-          <Toast
-            message={toast.message}
-            type={toast.type}
-            onClose={() => setToast(null)}
-          />
-        )}
+
+        {ToastElement}
       </FormPageBase>
     </PlanGuard>
   );

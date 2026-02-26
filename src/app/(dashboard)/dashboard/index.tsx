@@ -39,7 +39,6 @@ export default function Dashboard({
   const router = useRouter();
   const { navigate, isNavigating } = useNavigation();
 
-  // --- STATE & CUSTOM HOOKS ---
   const [galerias, setGalerias] = useState<Galeria[]>(initialGalerias);
 
   const {
@@ -55,7 +54,6 @@ export default function Dashboard({
 
   const { toggleSidebar, setIsSidebarCollapsed } = useSidebar();
 
-  // Sincroniza a preferência inicial do usuário com o context
   useEffect(() => {
     if (initialProfile?.sidebar_collapsed !== undefined) {
       setIsSidebarCollapsed(initialProfile.sidebar_collapsed);
@@ -71,18 +69,6 @@ export default function Dashboard({
     filters.currentView,
   );
 
-  const [toastConfig, setToastConfig] = useState<{
-    message: string;
-    type: 'success' | 'error';
-  } | null>(null);
-
-  const showToast = (
-    message: string,
-    type: 'success' | 'error' = 'success',
-  ) => {
-    setToastConfig({ message, type });
-  };
-
   const handleOpenOrganizer = (galeria: Galeria) => {
     navigate(
       `/dashboard/galerias/${galeria.id}/tags`,
@@ -91,7 +77,7 @@ export default function Dashboard({
   };
 
   useSyncInternalTraffic(initialProfile?.id);
-  // --- EFFECTS ---
+
   useEffect(() => {
     if (!authLoading && !user) {
       window.location.href = '/';
@@ -107,15 +93,11 @@ export default function Dashboard({
   }, [searchParams, user, router, setShowConsentAlert]);
 
   useEffect(() => {
-    // Se o perfil existe mas NÃO aceitou os termos, redireciona para onboarding
     if (initialProfile && initialProfile.accepted_terms === false) {
-      // Usamos window.location para garantir que o estado do App seja resetado
-      // ou navigate se preferir a transição suave do seu provider
       navigate('/onboarding', 'Concluindo sua configuração...');
     }
   }, [initialProfile, navigate]);
 
-  // --- HANDLERS ---
   const handleConsentConfirm = async () => {
     try {
       await authService.signInWithGoogle(true);
@@ -133,12 +115,11 @@ export default function Dashboard({
     navigate(`/dashboard/galerias/${g.id}/edit`, 'Abrindo galeria...');
   };
 
-  // --- RENDERING ---
   if (authLoading) {
     return (
       <div className="min-h-screen bg-white dark:bg-black flex flex-col items-center justify-center gap-4">
         <div className="relative">
-          <Loader2 className="w-10 h-10 text-petroleum dark:text-champagneanimate-spin" />
+          <Loader2 className="w-10 h-10 text-petroleum dark:text-champagne animate-spin" />
           <div className="absolute inset-0 blur-xl bg-petroleum/10 dark:bg-champagne-dark/20 opacity-20 animate-pulse"></div>
         </div>
         <LoadingScreen message="Validando seu acesso" />
@@ -165,7 +146,6 @@ export default function Dashboard({
         />
         <TrialBanner />
         <main className="flex-1 flex flex-col min-w-0 min-h-[calc(100vh-120px)]">
-          {/* 🎯 Lógica de Exibição Imediata da BulkActionsBar */}
           {(actions.isBulkMode || actions.selectedIds.size > 0) && (
             <BulkActionsBar
               selectedCount={actions.selectedIds.size}

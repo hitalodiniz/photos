@@ -1,17 +1,16 @@
 'use client';
+
 import { PlanGuard } from '@/components/auth/PlanGuard';
 import { GooglePickerButton } from '@/components/google-drive';
 import GoogleDriveImagePreview from '@/components/ui/GoogleDriveImagePreview';
 import { InfoTooltip } from '@/components/ui/InfoTooltip';
 import { usePlan } from '@/core/context/PlanContext';
-import {
-  FolderSync,
-  ImageIcon,
-  Loader2,
-  AlertTriangle,
-  ExternalLink,
-  X,
-} from 'lucide-react';
+import { FolderSync, ImageIcon, Loader2, AlertTriangle, X } from 'lucide-react';
+
+// Número máximo de fotos de capa permitidas por galeria.
+// Não é um campo de PlanPermissions (é config visual, não de plano).
+// Se quiser tornar configurável por plano no futuro, adicione em PlanPermissions.
+const MAX_COVERS_PER_GALLERY = 3;
 
 export function GaleriaDriveSection({
   driveData,
@@ -26,14 +25,13 @@ export function GaleriaDriveSection({
 }) {
   const { permissions } = usePlan();
 
-  // 🛡️ Validação de Limite de Fotos
   const photoLimit = permissions.maxPhotosPerGallery;
   const isOverLimit = driveData.photoCount > photoLimit;
-  const maxCovers = permissions.maxCoverPerGallery || 1;
+  const maxCovers = MAX_COVERS_PER_GALLERY;
 
   return (
     <div className="relative bg-white rounded-luxury border border-slate-200 p-4 space-y-4 mt-2 overflow-hidden">
-      {/* Overlay de Validação */}
+      {/* Overlay de validação */}
       {isValidatingDrive && (
         <div className="absolute inset-0 z-50 flex flex-col items-center justify-center bg-white/80 backdrop-blur-sm animate-in fade-in duration-300">
           <Loader2 className="w-8 h-8 text-gold animate-spin mb-2" />
@@ -42,6 +40,7 @@ export function GaleriaDriveSection({
           </p>
         </div>
       )}
+
       <div className="flex items-center gap-2 pb-2 border-b border-slate-200">
         <FolderSync size={14} className="text-gold" />
         <h3 className="text-[10px] font-bold uppercase tracking-luxury-widest text-petroleum">
@@ -49,7 +48,7 @@ export function GaleriaDriveSection({
         </h3>
       </div>
 
-      {/* Subseção 1: Vincular Pasta do Google Drive */}
+      {/* Subseção 1: Vincular Pasta */}
       <div className="space-y-3">
         <label>
           <FolderSync size={12} strokeWidth={2} className="text-gold" />
@@ -57,11 +56,10 @@ export function GaleriaDriveSection({
         </label>
 
         <div className="flex flex-col bg-slate-50 p-3 rounded-luxury border border-slate-200 space-y-3">
-          <p className="text-[13px] text-petroleum/90 dark:text-slate-500 font-semibold truncate bg-white/50 px-2 py-1.5 rounded border border-slate-200">
+          <p className="text-[13px] text-petroleum/90 font-semibold truncate bg-white/50 px-2 py-1.5 rounded border border-slate-200">
             {driveData.name || 'Nenhuma pasta selecionada'}
           </p>
 
-          {/* Botão VINCULAR/ALTERAR PASTA */}
           <div>
             <GooglePickerButton
               onFolderSelect={handleFolderSelect}
@@ -72,14 +70,8 @@ export function GaleriaDriveSection({
             />
           </div>
 
-          {/* ⚠️ ALERTA DE LIMITE DO PLANO */}
+          {/* Alerta de limite do plano */}
           {driveData.id && (
-            // <PlanGuard
-            //   feature="maxPhotosPerGallery"
-            //   label="Limite de Fotos por Galeria"
-            //   scenarioType="limit"
-            //   forceShowLock={isOverLimit}
-            // >
             <div
               className={`p-2.5 rounded-luxury border flex gap-2.5 ${
                 isOverLimit
@@ -101,8 +93,8 @@ export function GaleriaDriveSection({
                 </p>
               </div>
             </div>
-            // </PlanGuard>
           )}
+
           {driveData.id && (
             <a
               href={`https://drive.google.com/drive/folders/${driveData.id}`}
@@ -117,8 +109,7 @@ export function GaleriaDriveSection({
         </div>
       </div>
 
-      {/* Subseção 2: Preview de Capa */}
-      {/* 🎯 Subseção 2 Ajustada: Grid de Capas com GoogleDriveImagePreview */}
+      {/* Subseção 2: Preview de Capas */}
       <div className="space-y-3 pt-3 border-t border-slate-200">
         <label className="text-[10px] font-bold uppercase tracking-luxury text-petroleum flex items-center gap-2">
           <ImageIcon size={12} strokeWidth={2} className="text-gold" />
@@ -140,12 +131,10 @@ export function GaleriaDriveSection({
                   />
                 </div>
 
-                {/* Badge de Ordem */}
                 <div className="absolute -top-2 -right-2 w-5 h-5 bg-petroleum text-gold text-[9px] font-black rounded-full flex items-center justify-center border border-gold/30 shadow-sm">
                   {index + 1}
                 </div>
 
-                {/* Botão Remover */}
                 <button
                   type="button"
                   onClick={() => {
@@ -155,7 +144,6 @@ export function GaleriaDriveSection({
                     setDriveData({
                       ...driveData,
                       allCovers: filtered,
-                      // 🎯 Importante: Se removeu a primeira, a segunda vira a coverId do preview imediato
                       coverId: filtered[0] || '',
                     });
                   }}
@@ -178,7 +166,7 @@ export function GaleriaDriveSection({
             </div>
           )}
 
-          {/* Slot de Incentivo (Se ainda houver limite) */}
+          {/* Slot vago */}
           {driveData.id && driveData.allCovers?.length < maxCovers && (
             <div className="w-20 h-20 rounded-md border-2 border-dashed border-slate-300 flex flex-col items-center justify-center text-slate-300 gap-1">
               <ImageIcon size={16} />
@@ -189,8 +177,11 @@ export function GaleriaDriveSection({
       </div>
 
       {/* Subseção 3: Renomear Arquivos */}
-      {/* 🛡️ Proteção: Renomear Arquivos */}
-      <PlanGuard feature="keepOriginalFilenames" label="Renomear fotos">
+      {/* keepOriginalFilenames: false em FREE/START → guard bloqueia */}
+      <PlanGuard
+        feature="keepOriginalFilenames"
+        label="Preservar nomes originais"
+      >
         <div className="space-y-3 pt-4 border-t border-slate-200">
           <div className="flex items-center justify-between">
             <div className="flex items-center gap-1.5 shrink-0">
@@ -199,20 +190,21 @@ export function GaleriaDriveSection({
                 Renomear fotos (foto-001...)
               </label>
               <InfoTooltip
-                content='Se habilitado, padroniza o nome das fotos para
-            "foto-1.jpg", "foto-2.jpg",
-            etc."foto-2.jpg", etc. Desabilitado, usa os nomes
-            originais das fotos.'
-                width="w-48"
+                title="Renomear fotos"
+                content='Se habilitado, padroniza o nome das fotos para "foto-1.jpg", "foto-2.jpg", etc. Desabilitado, usa os nomes originais das fotos.'
               />
             </div>
             <button
               type="button"
               onClick={() => setRenameFilesSequential(!renameFilesSequential)}
-              className={`relative h-5 w-9 rounded-full transition-colors duration-200 ${renameFilesSequential ? 'bg-gold' : 'bg-slate-200'}`}
+              className={`relative h-5 w-9 rounded-full transition-colors duration-200 ${
+                renameFilesSequential ? 'bg-gold' : 'bg-slate-200'
+              }`}
             >
               <span
-                className={`absolute top-0.5 left-0.5 h-4 w-4 rounded-full bg-white shadow-sm transition-transform duration-200 ${renameFilesSequential ? 'translate-x-4' : ''}`}
+                className={`absolute top-0.5 left-0.5 h-4 w-4 rounded-full bg-white shadow-sm transition-transform duration-200 ${
+                  renameFilesSequential ? 'translate-x-4' : ''
+                }`}
               />
             </button>
           </div>

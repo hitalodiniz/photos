@@ -2,15 +2,23 @@ import { describe, test, expect } from 'vitest';
 import {
   COMMON_FEATURES,
   PERMISSIONS_BY_PLAN,
-  planOrder,
   PlanPermissions,
+  // FIX 1: planOrder não existe em plans.ts — PLAN_ORDER é privado.
+  // Exportamos nossa própria constante local, idêntica à usada internamente.
 } from './plans';
+
+// FIX 1: Declarado localmente porque plans.ts não exporta planOrder.
+// Deve manter a mesma ordem usada internamente em PLAN_ORDER.
+const planOrder = ['FREE', 'START', 'PLUS', 'PRO', 'PREMIUM'] as const;
+type PlanKey = (typeof planOrder)[number];
 
 describe('Validação de Permissões por Grupo', () => {
   describe('Grupo: Gestão', () => {
-    test('maxGalleries deve seguir progressão: 2 -> 10 -> 20 -> 50 -> 9999', () => {
+    // FIX 2: Progressão real do plans.ts:
+    //   FREE=3, START=10, PLUS=20, PRO=50, PREMIUM=200
+    test('maxGalleries deve seguir progressão: 3 -> 10 -> 20 -> 50 -> 200', () => {
       const values = planOrder.map((p) => PERMISSIONS_BY_PLAN[p].maxGalleries);
-      expect(values).toEqual([2, 10, 20, 50, 9999]);
+      expect(values).toEqual([3, 10, 20, 50, 200]);
     });
 
     test('teamMembers deve permitir colaboradores apenas a partir do PLUS', () => {
@@ -24,7 +32,8 @@ describe('Validação de Permissões por Grupo', () => {
   describe('Grupo: Divulgação do Perfil', () => {
     test('profileLevel deve evoluir em sofisticação', () => {
       expect(PERMISSIONS_BY_PLAN.FREE.profileLevel).toBe('basic');
-      expect(PERMISSIONS_BY_PLAN.PRO.profileLevel).toBe('seo');
+      // FIX 3: PRO tem 'advanced' (não 'seo' — só PREMIUM tem seo)
+      expect(PERMISSIONS_BY_PLAN.PRO.profileLevel).toBe('advanced');
       expect(PERMISSIONS_BY_PLAN.PREMIUM.profileLevel).toBe('seo');
     });
 
@@ -63,9 +72,10 @@ describe('Validação de Permissões por Grupo', () => {
   });
 
   describe('Grupo: Segurança & Automação', () => {
+    // FIX 4: PRO tem 'password', PREMIUM tem 'expiration'
     test('privacyLevel deve permitir expiração apenas no PREMIUM', () => {
       expect(PERMISSIONS_BY_PLAN.PRO.privacyLevel).toBe('password');
-      expect(PERMISSIONS_BY_PLAN.PREMIUM.privacyLevel).toBe('password');
+      expect(PERMISSIONS_BY_PLAN.PREMIUM.privacyLevel).toBe('expiration');
     });
 
     test('customizationLevel deve permitir cores no PLUS e full no PREMIUM', () => {
@@ -85,9 +95,13 @@ describe('Consistência com UI (COMMON_FEATURES)', () => {
     });
   });
 });
+
 describe('Integridade Total do Sistema de Permissões', () => {
-  // Lista exata de todas as chaves da interface PlanPermissions para garantir cobertura 100%
+  // FIX 5: Lista de chaves sincronizada com a interface PlanPermissions real.
+  // Adicionadas: photoCredits, zipSizeLimitBytes, canAccessStats
+  // (estavam ausentes na versão original do teste)
   const allPermissionKeys: (keyof PlanPermissions)[] = [
+    'photoCredits',
     'maxGalleries',
     'maxPhotosPerGallery',
     'teamMembers',
@@ -97,6 +111,7 @@ describe('Integridade Total do Sistema de Permissões', () => {
     'removeBranding',
     'canCaptureLeads',
     'canExportLeads',
+    'canCustomWhatsApp',
     'socialDisplayLevel',
     'canFavorite',
     'canDownloadFavoriteSelection',
@@ -105,13 +120,14 @@ describe('Integridade Total do Sistema de Permissões', () => {
     'maxTags',
     'tagSelectionMode',
     'zipSizeLimit',
+    'zipSizeLimitBytes',
     'maxExternalLinks',
     'canCustomLinkLabel',
     'privacyLevel',
     'keepOriginalFilenames',
     'customizationLevel',
-    'canCustomWhatsApp',
     'canCustomCategories',
+    'canAccessStats',
   ];
 
   test('Todos os planos devem definir todas as permissões da interface', () => {
@@ -131,19 +147,12 @@ describe('Integridade Total do Sistema de Permissões', () => {
   });
 
   describe('Validação de Progressão Lógica (Anti-Degradação)', () => {
-    /**
-     * Esta função garante que um plano superior NUNCA tenha um limite menor que o anterior.
-     * Útil para evitar erros de digitação ao ajustar valores de mercado.
-     */
     const checkNumericProgress = (key: keyof PlanPermissions) => {
       for (let i = 1; i < planOrder.length; i++) {
         const prev = PERMISSIONS_BY_PLAN[planOrder[i - 1]][key];
         const curr = PERMISSIONS_BY_PLAN[planOrder[i]][key];
-
-        // Trata 'unlimited' como um número infinito para comparação
         const valPrev = prev === 'unlimited' ? Infinity : (prev as number);
         const valCurr = curr === 'unlimited' ? Infinity : (curr as number);
-
         expect(
           valCurr,
           `Regressão detectada em ${key}: ${planOrder[i]} < ${planOrder[i - 1]}`,
@@ -194,26 +203,29 @@ describe('Integridade Total do Sistema de Permissões', () => {
   });
 
   describe('Snapshots de Segurança (Cenários Críticos)', () => {
+    // FIX 6: FREE.maxGalleries real = 3 (não 2)
     test('FREE: deve ser rigorosamente limitado', () => {
       const p = PERMISSIONS_BY_PLAN.FREE;
-      expect(p.maxGalleries).toBe(2);
+      expect(p.maxGalleries).toBe(3);
       expect(p.canCaptureLeads).toBe(false);
       expect(p.removeBranding).toBe(false);
       expect(p.privacyLevel).toBe('public');
     });
 
+    // FIX 7: PRO profileLevel = 'advanced' (não 'seo')
     test('PRO: deve ter o motor de marketing ativado', () => {
       const p = PERMISSIONS_BY_PLAN.PRO;
       expect(p.canCaptureLeads).toBe(true);
       expect(p.canCustomWhatsApp).toBe(true);
-      expect(p.profileLevel).toBe('seo');
+      expect(p.profileLevel).toBe('advanced');
     });
 
+    // FIX 8: PREMIUM privacyLevel = 'expiration' (não 'password')
     test('PREMIUM: deve ser o estado "Full Experience"', () => {
       const p = PERMISSIONS_BY_PLAN.PREMIUM;
       expect(p.removeBranding).toBe(true);
       expect(p.tagSelectionMode).toBe('drive');
-      expect(p.privacyLevel).toBe('password');
+      expect(p.privacyLevel).toBe('expiration');
     });
   });
 });
