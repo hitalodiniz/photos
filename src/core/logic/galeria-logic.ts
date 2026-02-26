@@ -112,6 +112,8 @@ export function formatGalleryData(
     gallery_tags: raw.gallery_tags || null,
     photo_tags: raw.photo_tags || null,
     selection_ids: raw.selection_ids || null,
+    has_contracting_client: raw.has_contracting_client || null,
+    selection_metadata: raw.selection_metadata || null,
   };
 }
 

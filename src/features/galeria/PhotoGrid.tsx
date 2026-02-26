@@ -26,7 +26,7 @@ import { getGalleryPermission } from '@/core/utils/plan-helpers';
 import { DownloadCenterModal } from './DownloadCenterModal';
 import { emitGaleriaEvent } from '@/core/services/galeria-stats.service';
 import { useShare } from '@/hooks/useShare';
-import { ConfirmationModal } from '@/components/ui';
+import { ConfirmationModal, Toast } from '@/components/ui';
 import { saveGaleriaSelectionAction } from '@/core/services/galeria.service';
 
 export default function PhotoGrid({ photos, galeria }: any) {
@@ -462,6 +462,11 @@ export default function PhotoGrid({ photos, galeria }: any) {
   const downloadAllAsZip = () =>
     handleDownloadZip(photosWithTags, 'completa', false);
 
+  const [toast, setToast] = useState<{
+    message: string;
+    type: 'success' | 'error';
+  } | null>(null);
+
   // 🎯 SALVAR A SELEÇÃO DE FOTOS (IDs) DO CLIENTE
   const handleSaveSelections = async () => {
     if (favorites.length === 0) return;
@@ -472,12 +477,29 @@ export default function PhotoGrid({ photos, galeria }: any) {
       const result = await saveGaleriaSelectionAction(galeria, favorites);
 
       if (result.success) {
+        await emitGaleriaEvent({
+          galeria,
+          eventType: 'selection',
+          metadata: {
+            id_fotos_selecionadas: favorites,
+            quantidade_fotos_selecionadas: favorites.length,
+          },
+        });
+
+        setToast({
+          message: 'Seleção enviada com sucesso! O fotógrafo será notificado.',
+          type: 'success',
+        });
+
         // Opcional: Feedback visual de sucesso antes de fechar
         setIsConfirmModalOpen(false);
         // Você pode redirecionar ou mostrar um Toast aqui
       } else {
         console.error('Erro ao salvar:', result.error);
-        alert(result.error);
+        setToast({
+          message: `Erro ao enviar: ${result.error}`,
+          type: 'error',
+        });
       }
     } catch (err) {
       console.error('Erro ao salvar:', err);
@@ -551,7 +573,6 @@ export default function PhotoGrid({ photos, galeria }: any) {
           handleShare={handleShare}
         />
       </div>
-
       <div ref={gridRef}>
         <MasonryGrid
           {...{
@@ -573,7 +594,6 @@ export default function PhotoGrid({ photos, galeria }: any) {
           galleryTitle={galeria.title}
         />
       </div>
-
       {/* MODAL CENTRAL DE DOWNLOADS (TEMA BRANCO) */}
       {showVolumeDashboard && (
         <DownloadCenterModal
@@ -590,9 +610,7 @@ export default function PhotoGrid({ photos, galeria }: any) {
           canUseFavorites={canUseFavorites && galeria.enable_favorites}
         />
       )}
-
       {/* BOTÃO FLUTUANTE DE DOWNLOAD FAVORITOS */}
-
       {favorites.length > 0 &&
         !showVolumeDashboard &&
         canShowFavButton &&
@@ -629,7 +647,7 @@ export default function PhotoGrid({ photos, galeria }: any) {
                           className="flex items-center justify-center rounded-luxury h-12 bg-petroleum text-white border border-white/10 hover:bg-petroleum-light transition-all px-5 gap-2"
                         >
                           <ArrowLeft size={18} />
-                          <span className="text-[10px] font-semibold uppercase tracking-widest">
+                          <span className="text-[9px] md:text-[11px] font-semibold uppercase tracking-widest">
                             Continuar seleção
                           </span>
                         </button>
@@ -641,7 +659,7 @@ export default function PhotoGrid({ photos, galeria }: any) {
                         >
                           <CheckCircle2 size={18} strokeWidth={2.5} />
                           <div className="flex flex-col items-start leading-tight text-left">
-                            <span className="text-[11px] font-semibold uppercase tracking-widest">
+                            <span className="text-[9px] md:text-[11px] font-semibold uppercase tracking-widest">
                               Enviar Seleção
                             </span>
                             <span className="text-[9px] font-semibold opacity-80 italic">
@@ -679,7 +697,6 @@ export default function PhotoGrid({ photos, galeria }: any) {
             )}
           </div>
         )}
-
       {/* LIGHTBOX */}
       {selectedPhotoIndex !== null && photosWithTags.length > 0 && (
         <Lightbox
@@ -706,6 +723,9 @@ export default function PhotoGrid({ photos, galeria }: any) {
             )
           }
           onNavigateToIndex={(index) => setSelectedPhotoIndex(index)}
+          mode={
+            galeria.has_contracting_client === 'ES' ? 'selection' : 'favorite'
+          }
         />
       )}
       <ConfirmationModal
@@ -734,7 +754,14 @@ export default function PhotoGrid({ photos, galeria }: any) {
             </p>
           </div>
         }
-      />
+      />{' '}
+      {toast && (
+        <Toast
+          message={toast.message}
+          type={toast.type}
+          onClose={() => setToast(null)}
+        />
+      )}
       <UpgradeModal
         isOpen={!!upsellFeature}
         onClose={() => setUpsellFeature(null)}

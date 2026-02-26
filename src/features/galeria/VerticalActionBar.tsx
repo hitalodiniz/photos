@@ -9,6 +9,7 @@ import {
   Check,
   Play,
   Pause,
+  Camera,
 } from 'lucide-react';
 import WhatsAppIcon from '@/components/ui/WhatsAppIcon';
 import { getCleanSlug } from '@/core/utils/share-helper';
@@ -32,6 +33,7 @@ interface VerticalActionBarProps {
   showClose?: boolean;
   hasShownQualityWarning?: boolean; // 🎯 Controlado pelo Lightbox
   onQualityWarningShown?: () => void; // 🎯 Callback quando o tooltip é mostrado
+  mode: 'selection' | 'favorite';
 }
 
 export function VerticalActionBar({
@@ -51,6 +53,7 @@ export function VerticalActionBar({
   showClose = true,
   hasShownQualityWarning = false,
   onQualityWarningShown,
+  mode,
 }: VerticalActionBarProps) {
   const [copied, setCopied] = useState(false);
   const [isDownloading, setIsDownloading] = useState(false);
@@ -149,21 +152,35 @@ export function VerticalActionBar({
                 : 'bg-black/5 dark:bg-white/5 group-hover:bg-[#E67E70]'
             }`}
           >
-            <Heart
-              fill={isFavorited ? 'white' : 'none'}
-              size={20}
-              className={`transition-colors duration-300 ${
-                isFavorited ? 'text-white' : 'text-black dark:text-white'
-              }`}
-              strokeWidth={2}
-            />
+            {mode === 'selection' ? (
+              <Check
+                size={20}
+                className={`transition-colors duration-300 ${
+                  isFavorited ? 'text-white' : 'text-black dark:text-white'
+                }`}
+                strokeWidth={2}
+              />
+            ) : (
+              <Heart
+                fill={isFavorited ? 'white' : 'none'}
+                size={20}
+                className={`transition-colors duration-300 ${
+                  isFavorited ? 'text-white' : 'text-black dark:text-white'
+                }`}
+                strokeWidth={2}
+              />
+            )}
           </div>
-          {/* Tooltip */}
+          {/* Tooltip Dinâmico */}
           <div className="absolute right-full mr-3 opacity-0 group-hover:opacity-100 transition-opacity pointer-events-none whitespace-nowrap">
             <div className="bg-[#F3E5AB] text-black text-[10px] font-semibold px-2 py-1 rounded shadow-xl">
-              {isFavorited
-                ? 'Remover dos favoritos'
-                : 'Adicionar aos favoritos'}
+              {mode === 'selection'
+                ? isFavorited
+                  ? 'Remover da seleção'
+                  : 'Selecionar foto'
+                : isFavorited
+                  ? 'Remover dos favoritos'
+                  : 'Adicionar aos favoritos'}
             </div>
           </div>
         </button>

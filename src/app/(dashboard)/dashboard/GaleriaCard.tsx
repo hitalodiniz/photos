@@ -21,15 +21,15 @@ import {
   CheckCircle2,
   Circle,
   BarChart3,
+  Camera,
+  Trash2,
+  SlidersHorizontal,
+  Images,
 } from 'lucide-react';
 import { useState, useEffect } from 'react';
 import type { Galeria } from '@/core/types/galeria';
 import { GALLERY_CATEGORIES } from '@/core/config/categories';
-import {
-  getPublicGalleryUrl,
-  copyToClipboard,
-  RESOLUTIONS,
-} from '@/core/utils/url-helper';
+import { getPublicGalleryUrl, RESOLUTIONS } from '@/core/utils/url-helper';
 import { useGoogleDriveImage } from '@/hooks/useGoogleDriveImage';
 import { GALLERY_MESSAGES } from '@/core/config/messages';
 import { formatMessage } from '@/core/utils/message-helper';
@@ -41,6 +41,10 @@ import UpgradeModal from '@/components/ui/UpgradeModal';
 import React from 'react';
 
 import { useShare } from '@/hooks/useShare';
+import { saveGaleriaSelectionAction } from '@/core/services/galeria.service';
+import { ConfirmationModal, Toast } from '@/components/ui';
+import { div } from 'framer-motion/client';
+import { handleError } from '@supabase/auth-js/dist/module/lib/fetch';
 
 interface GaleriaCardProps {
   galeria: Galeria;
@@ -93,6 +97,21 @@ export default function GaleriaCard({
   const [isImageLoading, setIsImageLoading] = useState(
     !!galeria.cover_image_url,
   );
+
+  const [localSelectionIds, setLocalSelectionIds] = useState(
+    galeria.selection_ids || [],
+  );
+
+  // Sincroniza se a prop mudar externamente
+  useEffect(() => {
+    setLocalSelectionIds(galeria.selection_ids || []);
+  }, [galeria.selection_ids]);
+
+  const isSelectionComplete = localSelectionIds && localSelectionIds.length > 0;
+  const isEnsaio = galeria.has_contracting_client === 'ES'; // Assumi
+  //
+  console.log(galeria.has_contracting_client, 'has_contracting_client');
+  console.log(isSelectionComplete, 'isSelectionComplete');
 
   useEffect(() => {
     setIsImageLoading(!!galeria.cover_image_url);
@@ -164,6 +183,44 @@ export default function GaleriaCard({
   const onImageLoad = (e: any) => {
     setIsImageLoading(false);
     handleLoad(e);
+  };
+
+  const [toast, setToast] = useState<{
+    message: string;
+    type: 'success' | 'error';
+  } | null>(null);
+
+  const [isCopying, setIsCopying] = useState(false);
+  const [isClearModalOpen, setIsClearModalOpen] = useState(false);
+
+  const copyToClipboard = async (format: 'lightroom' | 'comma') => {
+    // 1. Prioriza o novo campo de metadados (JSON)
+    const metadata = galeria.selection_metadata as
+      | { id: string; name: string }[]
+      | null;
+    const ids = galeria.selection_ids || [];
+
+    let photoNames: string[] = [];
+
+    if (metadata && metadata.length > 0) {
+      // Se o novo campo existir, extraímos os nomes reais
+      photoNames = metadata.map((item) => item.name);
+    } else {
+      // Fallback: se não houver metadados, usa os IDs (para não retornar vazio em galerias antigas)
+      photoNames = ids;
+    }
+
+    // 2. Formatação do texto
+    const text =
+      format === 'lightroom' ? photoNames.join(' ') : photoNames.join(', ');
+
+    try {
+      await navigator.clipboard.writeText(text);
+      setIsCopying(true);
+      setTimeout(() => setIsCopying(false), 2000);
+    } catch (err) {
+      console.error('Falha ao copiar:', err);
+    }
   };
 
   const handleCopy = async (e: React.MouseEvent) => {
@@ -315,6 +372,70 @@ export default function GaleriaCard({
               <Link2 size={16} />
             )}
           </button>
+        )}
+
+        {/* Botão de Cópia para Softwares de Edição */}
+        {isEnsaio && (
+          <div className="relative group/copy pb-2 -mb-2">
+            <button
+              onClick={(e) => e.stopPropagation()}
+              className={`${btnBaseClass} bg-slate-50`}
+              title="Opções de Exportação (Lightroom/Bridge)"
+            >
+              {isCopying ? (
+                <Check size={16} className="text-green-600" />
+              ) : (
+                /* 🎯 Novo ícone: SlidersHorizontal remete a edição/ajustes */
+                <Images size={16} />
+              )}
+            </button>
+
+            {/* Dropdown com correção de "Gap" e Animação */}
+            <div className="absolute bottom-[110%] left-0 hidden group-hover/copy:flex flex-col bg-white border border-petroleum/10 rounded-lg shadow-xl z-50 overflow-hidden min-w-[170px] animate-in fade-in slide-in-from-bottom-1 duration-200">
+              {/* 💡 Camada Invisível: Serve como ponte para o mouse não perder o hover */}
+              <div className="absolute h-4 w-full -bottom-4 bg-transparent" />
+
+              <button
+                disabled={!isSelectionComplete}
+                onClick={(e) => {
+                  e.stopPropagation();
+                  copyToClipboard('lightroom');
+                }}
+                className="px-4 py-2.5 text-[11px] font-medium text-left hover:bg-slate-50 border-b border-slate-100 flex items-center gap-2 disabled:opacity-50 disabled:cursor-not-allowed"
+              >
+                <div
+                  className={`w-2 h-2 rounded-full ${isSelectionComplete ? 'bg-blue-500 shadow-[0_0_5px_rgba(59,130,246,0.5)]' : 'bg-slate-300'}`}
+                />
+                Lightroom (Espaço)
+              </button>
+
+              <button
+                disabled={!isSelectionComplete}
+                onClick={(e) => {
+                  e.stopPropagation();
+                  copyToClipboard('comma');
+                }}
+                className="px-4 py-2.5 text-[11px] font-medium text-left hover:bg-slate-50 border-b border-slate-100 flex items-center gap-2 disabled:opacity-50 disabled:cursor-not-allowed"
+              >
+                <div
+                  className={`w-2 h-2 rounded-full ${isSelectionComplete ? 'bg-slate-500' : 'bg-slate-300'}`}
+                />
+                Bridge / Win (Vírgula)
+              </button>
+
+              <button
+                disabled={!isSelectionComplete}
+                onClick={(e) => {
+                  e.stopPropagation();
+                  setIsClearModalOpen(true);
+                }}
+                className="px-4 py-2.5 text-[11px] font-medium text-left hover:bg-red-50 text-red-600 flex items-center gap-2 disabled:opacity-50 disabled:grayscale"
+              >
+                <Trash2 size={13} />
+                Limpar Seleção
+              </button>
+            </div>
+          </div>
         )}
       </>
     );
@@ -555,10 +676,38 @@ export default function GaleriaCard({
             </span>
           </div>
 
-          <div className="absolute top-3 right-3">
+          <div className="absolute top-3 right-3 flex flex-col items-end gap-1.5">
             {categoryInfo && (
-              <span className="flex items-center gap-1 px-2 py-1 bg-black/60 backdrop-blur-md rounded-luxury text-white border border-white/20 text-[8px]">
+              <span className="flex items-center gap-1.5 px-2 py-0.5 bg-black/40 backdrop-blur-md rounded-luxury border border-white/10 text-white/90 text-[9px] uppercase tracking-wider font-medium">
+                <div className="w-1 h-1 rounded-full bg-white/40" />
                 {categoryInfo.label}
+              </span>
+            )}
+
+            {isEnsaio && (
+              <span
+                className={`
+        flex items-center gap-1.5 px-2.5 py-1 
+        backdrop-blur-md rounded-full border 
+        text-[10px] font-semibold shadow-md transition-all
+        ${
+          isSelectionComplete
+            ? 'bg-green-500/90 border-green-400/50 text-white'
+            : 'bg-amber-500/90 border-amber-400/50 text-white'
+        }
+      `}
+              >
+                {isSelectionComplete ? (
+                  <>
+                    <CheckCircle2 size={11} strokeWidth={3} />
+                    <span>Fotos selecionadas</span>
+                  </>
+                ) : (
+                  <>
+                    <div className="w-2 h-2 rounded-full bg-white animate-pulse" />
+                    <span>Seleção pendente</span>
+                  </>
+                )}
               </span>
             )}
           </div>
@@ -604,7 +753,6 @@ export default function GaleriaCard({
               </span>
             </div>
           </div>
-
           <div className="flex items-center gap-2">
             <div className="flex-1 flex items-center h-8 rounded-luxury-sm bg-slate-50 border border-petroleum/20 overflow-hidden">
               <a
@@ -672,6 +820,49 @@ export default function GaleriaCard({
           </div>
         </div>
       </div>
+
+      <ConfirmationModal
+        isOpen={isClearModalOpen}
+        onClose={() => setIsClearModalOpen(false)}
+        title="Limpar Seleção"
+        message="Deseja realmente remover todas as fotos selecionadas desta galeria? Esta ação não pode ser desfeita."
+        confirmText="Sim, Limpar Tudo"
+        variant="danger"
+        onConfirm={async () => {
+          try {
+            // 1. Chama a API (Passando array vazio para limpar IDs e Metadata no banco)
+            const result = await saveGaleriaSelectionAction(galeria, []);
+
+            if (result.success) {
+              // 2. 🎯 ATUALIZAÇÃO LOCAL IMEDIATA
+              setLocalSelectionIds([]);
+
+              // Se você estiver exibindo nomes baseados no metadata, limpe-o também
+              // ou garanta que o componente pai vai disparar um refresh.
+
+              setIsClearModalOpen(false);
+              setToast({
+                message: 'Seleção limpa com sucesso!',
+                type: 'success',
+              });
+
+              // 3. Opcional: Notificar o componente pai para atualizar a lista geral
+              onSync();
+
+              setTimeout(() => setToast(null), 3000);
+            }
+          } catch (err) {
+            setToast({ message: 'Erro ao limpar seleção', type: 'error' });
+          }
+        }}
+      />
+      {toast && (
+        <Toast
+          message={toast.message}
+          type={toast.type}
+          onClose={() => setToast(null)}
+        />
+      )}
 
       <UpgradeModal
         isOpen={Boolean(isUpgradeModalOpen)}

@@ -8,6 +8,7 @@ import { GLOBAL_CACHE_REVALIDATE } from '@/core/utils/url-helper';
 
 import {
   DrivePhoto,
+  getSelectionMetadataAction,
   //makeFolderPublic as makeFolderPublicLib,
 } from '@/lib/google-drive';
 import { getFolderPhotos } from './google-drive.service';
@@ -1212,6 +1213,10 @@ export async function saveGaleriaSelectionAction(
   galeria: Galeria,
   selectionIds: string[],
 ) {
+  const metadata = await getSelectionMetadataAction(
+    galeria.drive_folder_id,
+    selectionIds,
+  );
   const supabase = await createSupabaseServerClient();
 
   try {
@@ -1221,6 +1226,7 @@ export async function saveGaleriaSelectionAction(
       .update({
         // Garante que estamos enviando um array limpo
         selection_ids: Array.isArray(selectionIds) ? selectionIds : [],
+        selection_metadata: metadata,
         updated_at: new Date().toISOString(),
       })
       .eq('id', galeria.id)
