@@ -1,127 +1,120 @@
 'use client';
-import { useEffect, useState } from 'react'; // Adicionado useEffect e useState
-import { useSegment } from '@/hooks/useSegment';
-import { Camera } from 'lucide-react';
 
-interface LoadingSpinnerProps {
-  size?: 'xs' | 'sm' | 'md' | 'lg';
-  message?: string;
-  variant?: 'default' | 'light';
-}
+import React, { useState } from 'react';
+import { Play, ImageIcon, Info, X } from 'lucide-react';
+import { FEATURE_DESCRIPTIONS, PlanPermissions } from '@/core/config/plans';
 
-export default function LoadingSpinner({
-  size = 'md',
-  message,
-  variant = 'default',
-}: LoadingSpinnerProps) {
-  // 🎯 CORREÇÃO DE HIDRATAÇÃO: Estado para verificar se já estamos no cliente
-  const [isMounted, setIsMounted] = useState(false);
+export default function FeaturePreview({
+  featureKey,
+  align = 'left',
+}: {
+  featureKey: keyof PlanPermissions;
+  align?: 'left' | 'right';
+}) {
+  const [isHovered, setIsHovered] = useState(false);
+  const [isOpen, setIsOpen] = useState(false);
 
-  useEffect(() => {
-    setIsMounted(true);
-  }, []);
-
-  const sizes = {
-    xs: {
-      container: 'w-10 h-10',
-      camera: 14,
-      blur: 'w-6 h-6',
-      text: 'text-[8px]',
-      stroke: 1,
-    },
-    sm: {
-      container: 'w-16 h-16',
-      camera: 20,
-      blur: 'w-10 h-10',
-      text: 'text-xs',
-      stroke: 1.2,
-    },
-    md: {
-      container: 'w-24 h-24',
-      camera: 28,
-      blur: 'w-16 h-16',
-      text: 'text-sm',
-      stroke: 1.5,
-    },
-    lg: {
-      container: 'w-32 h-32',
-      camera: 40,
-      blur: 'w-20 h-20',
-      text: 'text-base',
-      stroke: 1.5,
-    },
-  };
-
-  const { SegmentIcon } = useSegment();
-  const s = sizes[size];
-
-  const colorClass = variant === 'light' ? 'text-petroleum' : 'text-champagne';
-  const borderColorClass =
-    variant === 'light' ? 'border-petroleum' : 'border-champagne';
-  const bgBlurClass =
-    variant === 'light' ? 'bg-petroleum/5' : 'bg-champagne/10';
+  const data = FEATURE_DESCRIPTIONS[featureKey as string];
+  if (!data) return null;
 
   return (
-    <div className="flex flex-col items-center justify-center gap-3">
-      <div className={`relative ${s.container}`}>
-        <div className="absolute inset-0 rounded-full border border-white/5 transition-colors duration-300" />
-
-        <div
-          className={`absolute inset-0 rounded-full border-t-2 border-r-2 border-transparent ${borderColorClass} border-r-champagne/20 animate-spin transition-colors duration-300`}
-          style={{ animationDuration: '1.5s' }}
-        />
-
-        <div className="absolute inset-0 flex items-center justify-center">
-          <div className="relative flex items-center justify-center">
-            {size !== 'xs' && (
-              <div
-                className={`absolute ${s.blur} ${bgBlurClass} blur-[15px] rounded-full animate-pulse transition-colors duration-300`}
-              />
-            )}
-
-            {/* 🎯 CORREÇÃO: Enquanto não estiver montado no cliente, renderizamos um placeholder 
-                estático (Camera) para evitar que o servidor envie algo diferente do que o cliente espera inicialmente. */}
-            {!isMounted ? (
-              <Camera
-                size={s.camera}
-                strokeWidth={s.stroke}
-                className={`${colorClass} relative z-10 opacity-0`} // Mantemos invisível para evitar "pulo" visual
-              />
-            ) : (
-              <SegmentIcon
-                size={s.camera}
-                strokeWidth={s.stroke}
-                className={`${colorClass} relative z-10 animate-pulse-gentle transition-colors duration-300`}
-              />
-            )}
-          </div>
+    <>
+      <div
+        className="relative inline-flex items-center"
+        onMouseEnter={() => setIsHovered(true)}
+        onMouseLeave={() => setIsHovered(false)}
+        onClick={() => setIsOpen(true)}
+      >
+        {/* Gatilho Destacado */}
+        <div className="cursor-pointer flex items-center justify-center w-4 h-4 rounded-full bg-gold/10 text-gold hover:bg-gold hover:text-white transition-all duration-200">
+          <Info size={11} strokeWidth={3} />
         </div>
+
+        {/* Mini Preview (Hover) */}
+        {isHovered && !isOpen && (
+          <div
+            className={`absolute bottom-full mb-2 z-[100] w-64 bg-white rounded-lg shadow-xl border border-slate-200 overflow-hidden animate-in fade-in zoom-in duration-150 ${align === 'left' ? 'left-0' : 'right-0'}`}
+          >
+            {data.previewUrl && (
+              <div className="w-full aspect-video bg-slate-100">
+                <img
+                  src={data.previewUrl}
+                  className="w-full h-full object-cover opacity-80"
+                  alt=""
+                />
+              </div>
+            )}
+            <div className="p-2 bg-white">
+              <p className="text-[10px] text-petroleum/60 italic leading-tight">
+                Clique para detalhes
+              </p>
+            </div>
+          </div>
+        )}
       </div>
 
-      {message && size !== 'xs' && (
-        <p
-          className={`text-editorial-label ${colorClass} opacity-60 animate-pulse text-center px-4`}
-        >
-          {message}
-        </p>
-      )}
+      {/* Modal (Full Overlay) */}
+      {isOpen && (
+        <div className="fixed inset-0 z-[9999] flex items-center justify-center p-4 backdrop-blur-sm bg-petroleum/40 animate-in fade-in duration-300">
+          <div
+            className="bg-white w-full max-w-xl rounded-3xl overflow-hidden shadow-2xl animate-in slide-in-from-bottom-4 duration-500"
+            onClick={(e) => e.stopPropagation()}
+          >
+            {/* Header Mídia */}
+            <div className="w-full aspect-video bg-slate-900 relative">
+              {data.previewType === 'video' ? (
+                <video
+                  src={data.previewUrl}
+                  autoPlay
+                  loop
+                  muted
+                  playsInline
+                  className="w-full h-full object-contain"
+                />
+              ) : (
+                <img
+                  src={data.previewUrl}
+                  className="w-full h-full object-contain"
+                  alt={data.label}
+                />
+              )}
+              <button
+                onClick={() => setIsOpen(false)}
+                className="absolute top-4 right-4 w-10 h-10 rounded-full bg-black/20 hover:bg-black/50 text-white flex items-center justify-center backdrop-blur-md transition-colors"
+              >
+                <X size={20} />
+              </button>
+            </div>
 
-      <style jsx global>{`
-        @keyframes pulse-gentle {
-          0%,
-          100% {
-            opacity: 0.4;
-            transform: scale(1);
-          }
-          50% {
-            opacity: 0.8;
-            transform: scale(1.05);
-          }
-        }
-        .animate-pulse-gentle {
-          animation: pulse-gentle 2.5s infinite ease-in-out;
-        }
-      `}</style>
-    </div>
+            {/* Conteúdo Detalhado */}
+            <div className="p-8 relative">
+              <div className="absolute left-0 top-8 bottom-8 w-1.5 bg-gold rounded-r-full" />
+              <h3 className="text-gold font-bold uppercase tracking-[0.2em] text-[11px] mb-2">
+                Feature Deep Dive
+              </h3>
+              <h2 className="text-2xl font-semibold text-petroleum mb-4 italic">
+                {data.label}
+              </h2>
+              <p className="text-petroleum/70 leading-relaxed text-sm">
+                {data.description}
+                {/* Aqui você pode expandir o plans.ts para ter um campo 'longDescription' se desejar */}
+              </p>
+
+              <button
+                onClick={() => setIsOpen(false)}
+                className="mt-8 px-6 py-2 bg-petroleum text-white rounded-full text-[10px] font-bold uppercase tracking-widest hover:bg-black transition-colors"
+              >
+                Entendi
+              </button>
+            </div>
+          </div>
+          {/* Background click to close */}
+          <div
+            className="absolute inset-0 -z-10"
+            onClick={() => setIsOpen(false)}
+          />
+        </div>
+      )}
+    </>
   );
 }
