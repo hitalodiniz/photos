@@ -21,11 +21,8 @@ import { PlanKey } from '@/core/config/plans';
 import WhatsAppIcon from '@/components/ui/WhatsAppIcon';
 import { emitGaleriaEvent } from '@/core/services/galeria-stats.service';
 import { Galeria } from '@/core/types/galeria';
-import {
-  InternalTrafficSync,
-  useSyncInternalTraffic,
-} from '@/hooks/useSyncInternalTraffic';
-import { supabase } from '@/lib/supabase.client';
+import { InternalTrafficSync } from '@/hooks/useSyncInternalTraffic';
+
 import { getAuthenticatedUser } from '@/core/services/auth-context.service';
 
 const MAIN_DOMAIN = (
