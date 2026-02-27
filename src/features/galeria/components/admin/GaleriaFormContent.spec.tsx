@@ -125,7 +125,7 @@ describe('GaleriaFormContent', () => {
   it('renders correctly with default props', () => {
     render(<GaleriaFormContentWrapper {...defaultProps} />);
 
-    expect(screen.getByText(/Identificação/i)).toBeInTheDocument();
+    expect(screen.getByText(/Modalidade/i)).toBeInTheDocument();
     expect(screen.getByText(/Galeria & Sincronização/i)).toBeInTheDocument();
     expect(screen.getByText(/Privacidade/i)).toBeInTheDocument();
   });

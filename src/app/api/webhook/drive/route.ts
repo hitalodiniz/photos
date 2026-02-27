@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { revalidateDrivePhotos } from '@/actions/revalidate.actions';
 import { createSupabaseClientForCache } from '@/lib/supabase.server';
+import { syncGaleriaPhotoCount } from '@/core/services/galeria.service';
 
 // Debounce em memória (sobrevive por enquanto o processo estiver vivo)
 const pendingReloads = new Map<string, NodeJS.Timeout>();
@@ -52,6 +53,7 @@ async function processWebhook(channelId: string) {
       pendingReloads.delete(key);
       // Usa sua função já existente — ela invalida drive-{folderId} e photos-{galeriaId}
       await revalidateDrivePhotos(channel.folder_id, channel.galeria_id);
+      await syncGaleriaPhotoCount(channel.galeria_id);
       console.log(
         '[webhook/drive] Cache invalidado para pasta:',
         channel.folder_id,
