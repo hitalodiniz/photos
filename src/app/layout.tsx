@@ -10,6 +10,7 @@ import { AuthProvider } from '@photos/core-auth';
 import { ThemeSwitcher } from '@/components/debug/ThemeSwitcher';
 import { getThemeFavicon } from '@/core/utils/get-theme-favicon';
 import { SEGMENT_DICTIONARY, SegmentType } from '@/core/config/segments';
+import Script from 'next/script';
 
 // 🎯 Lógica de Servidor para Metadados
 const segment =
@@ -86,6 +87,21 @@ export default function RootLayout({
             </SidebarProvider>
           </NavigationProvider>
         </AuthProvider>
+
+        {/* Script do Tawk.to - Carregamento assíncrono para não afetar o SEO/Performance
+        <Script id="tawk-to" strategy="afterInteractive">
+          {`
+    var Tawk_API=Tawk_API||{}, Tawk_LoadStart=new Date();
+    (function(){
+      var s1=document.createElement("script"),s0=document.getElementsByTagName("script")[0];
+      s1.async=true;
+      s1.src='https://embed.tawk.to/69a0a64b639b701c37e9e362/1jidoj5um';
+      s1.charset='UTF-8';
+      s1.setAttribute('crossorigin','*');
+      s0.parentNode.insertBefore(s1,s0);
+    })();
+  `}
+        </Script> */}
       </body>
     </html>
   );

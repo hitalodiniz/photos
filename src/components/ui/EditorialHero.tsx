@@ -46,7 +46,12 @@ export const EditorialHero = ({
     Record<string, 'portrait' | 'landscape'>
   >({});
 
-  // 🛡️ 1. Lógica de Normalização e Seleção baseada no Plano
+  // FIX 1: Extrair o único campo de permissions que este componente usa.
+  // usePlan() sempre retorna permissions preenchido (mínimo FREE), então
+  // o optional chaining (?.) é desnecessário e enganoso aqui.
+  const profileCarouselLimit = permissions.profileCarouselLimit;
+
+  // 🛡️ Lógica de Normalização e Seleção baseada no Plano
   const finalImages = useMemo(() => {
     const normalizedUrls = Array.isArray(coverUrls)
       ? coverUrls
@@ -54,6 +59,8 @@ export const EditorialHero = ({
         ? [coverUrls]
         : [];
 
+    // FREE e sem fotos: usa imagem editorial aleatória por segmento.
+    // planKey já é normalizado pelo PlanContext (trial expirado → 'FREE').
     if (planKey === 'FREE' || normalizedUrls.length === 0) {
       const config =
         SEGMENT_ASSETS[segment as keyof typeof SEGMENT_ASSETS] ||
@@ -63,11 +70,18 @@ export const EditorialHero = ({
       return [`${config.path}${index}.webp`];
     }
 
-    const limit = permissions?.profileCarouselLimit || 1;
-    return normalizedUrls.slice(0, limit);
-  }, [coverUrls, planKey, title, permissions]);
+    // FIX 2: Remover `|| 1`.
+    // O bloco acima já garante que FREE nunca chega aqui.
+    // Para planos pagos, profileCarouselLimit é sempre >= 1 (START=1, PLUS=1,
+    // PRO=3, PREMIUM=5), então o fallback para 1 era código morto e confuso.
+    return normalizedUrls.slice(0, profileCarouselLimit);
 
-  // Detecção de orientação das imagens (igual GaleriaHero)
+    // FIX 3: Dependência ajustada para o campo escalar, não o objeto inteiro.
+    // Usar `permissions` como dependência re-executa o memo a cada render onde
+    // qualquer permissão muda — desnecessário, só profileCarouselLimit importa.
+  }, [coverUrls, planKey, title, profileCarouselLimit]);
+
+  // Detecção de orientação das imagens
   useEffect(() => {
     finalImages.forEach((img) => {
       if (imagesOrientation[img]) return;
@@ -93,7 +107,7 @@ export const EditorialHero = ({
     );
   };
 
-  // Autoplay do carrossel (igual GaleriaHero)
+  // Autoplay do carrossel
   useEffect(() => {
     if (!isExpanded || finalImages.length <= 1) return;
     const interval = setInterval(() => {
@@ -102,7 +116,7 @@ export const EditorialHero = ({
     return () => clearInterval(interval);
   }, [isExpanded, finalImages.length]);
 
-  // Fechamento automático e scroll (igual GaleriaHero)
+  // Fechamento automático e scroll
   useEffect(() => {
     const totalTime = Math.max(finalImages.length * 3000, 5000);
     const timer = setTimeout(() => setIsExpanded(false), totalTime);
@@ -132,7 +146,7 @@ export const EditorialHero = ({
         isExpanded ? 'h-screen' : 'h-[32vh] md:h-[45vh]'
       }`}
     >
-      {/* 🖼️ BACKGROUND LAYER (navegação igual GaleriaHero) */}
+      {/* 🖼️ BACKGROUND LAYER */}
       <div
         className={`absolute inset-0 z-0 transition-all duration-[2000ms] ease-out ${
           isImageLoaded ? 'opacity-100 scale-100' : 'opacity-0 scale-110'
@@ -245,7 +259,7 @@ export const EditorialHero = ({
           </div>
         </div>
 
-        {/* CONTROLES (igual GaleriaHero) */}
+        {/* CONTROLES */}
         {isExpanded && (
           <button
             onClick={() => setIsExpanded(false)}

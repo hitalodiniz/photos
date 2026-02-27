@@ -8,17 +8,32 @@ import {
   PlanKey,
   PlanPermissions,
   PERMISSIONS_BY_PLAN,
-  FEATURE_DESCRIPTIONS, // 🎯 Importado do plans.ts
+  FEATURE_DESCRIPTIONS,
+  // FIX 4: Substituído findNextPlanWithFeature por findNextPlanKeyWithFeature.
+  //
+  // MOTIVO: findNextPlanWithFeature retorna o *nome de exibição* do plano
+  // conforme o segmento (ex: 'Start', 'Pro', 'Premium'). Esses valores não
+  // são chaves válidas de PERMISSIONS_BY_PLAN (que usa 'FREE'|'START'|...).
+  // Portanto PERMISSIONS_BY_PLAN['Start'] === undefined, e planBenefits
+  // sempre retornava [].
+  //
+  // findNextPlanKeyWithFeature retorna a PlanKey canônica ('START', 'PRO'...),
+  // que é a chave correta para acessar PERMISSIONS_BY_PLAN.
+  //
+  // Para exibição no modal (ex: "Migrar para o Start"), usamos
+  // PERMISSIONS_BY_PLAN[nextPlanKey] se necessário, ou mantemos a PlanKey
+  // como label — que já é suficientemente legível no contexto do modal.
+  findNextPlanKeyWithFeature,
+  findNextPlanWithFeature, // mantido para o nome de exibição no texto do modal
 } from '@/core/config/plans';
 import { usePlan } from '@/core/context/PlanContext';
-import { findNextPlanWithFeature } from '@/core/config/plans';
 import { useSegment } from '@/hooks/useSegment';
 
 interface UpgradeModalProps {
   isOpen: boolean;
   onClose: () => void;
   featureName: string;
-  description?: string; // 🎯 Nova prop para a descrição amigável
+  description?: string;
   featureKey?: keyof PlanPermissions;
   scenarioType: 'limit' | 'feature';
 }
@@ -34,20 +49,34 @@ export default function UpgradeModal({
   const { planKey } = usePlan();
   const { terms, segment } = useSegment();
 
-  const nextPlanKey = useMemo(() => {
+  // FIX 4a: nextPlanKey agora é a PlanKey canônica ('START', 'PRO'...)
+  // usada para acessar PERMISSIONS_BY_PLAN corretamente.
+  const nextPlanKey = useMemo((): PlanKey => {
     if (!featureKey) return 'PREMIUM';
-    return findNextPlanWithFeature(planKey as PlanKey, featureKey, segment);
-  }, [planKey, featureKey, segment]);
+    return (
+      findNextPlanKeyWithFeature(planKey as PlanKey, featureKey) ?? 'PREMIUM'
+    );
+  }, [planKey, featureKey]);
 
-  // 🎯 Busca a descrição no dicionário se não for passada via prop
+  // FIX 4b: nome de exibição separado da chave.
+  // findNextPlanWithFeature retorna o nome localizado por segmento (ex: 'Start').
+  const nextPlanDisplayName = useMemo(() => {
+    if (!featureKey) return 'Premium';
+    return (
+      findNextPlanWithFeature(planKey as PlanKey, featureKey, segment) ??
+      nextPlanKey
+    );
+  }, [planKey, featureKey, segment, nextPlanKey]);
+
   const displayDescription = useMemo(() => {
     if (description) return description;
     if (featureKey) return FEATURE_DESCRIPTIONS[featureKey]?.description;
     return null;
   }, [description, featureKey]);
 
+  // FIX 4c: planBenefits agora encontra permissões reais porque nextPlanKey
+  // é 'START'|'PLUS'|'PRO'|'PREMIUM', não 'Start'|'Plus'|'Pro'|'Premium'.
   const planBenefits = useMemo(() => {
-    if (!nextPlanKey) return [];
     const perms = PERMISSIONS_BY_PLAN[nextPlanKey];
     if (!perms) return [];
 
@@ -81,7 +110,7 @@ export default function UpgradeModal({
       >
         {scenarioType === 'limit'
           ? 'Aumentar Limite'
-          : `Migrar para o ${nextPlanKey}`}
+          : `Migrar para o ${nextPlanDisplayName}`}
         <ArrowRight size={16} />
       </button>
     </div>
@@ -121,7 +150,7 @@ export default function UpgradeModal({
           </div>
         </div>
 
-        {/* 🎯 Texto Explicativo com Descrição Amigável */}
+        {/* Texto Explicativo com Descrição Amigável */}
         <div className="px-1 space-y-2">
           {displayDescription && (
             <p className="text-[14px] text-petroleum font-bold leading-relaxed border-l-2 border-gold/40 pl-3 py-0.5 bg-slate-50/50">
@@ -143,7 +172,7 @@ export default function UpgradeModal({
                 </span>{' '}
                 é exclusivo para usuários do plano{' '}
                 <span className="text-petroleum font-extrabold">
-                  {nextPlanKey}
+                  {nextPlanDisplayName}
                 </span>{' '}
                 ou superior no {terms.site_name}.
               </>
@@ -155,7 +184,7 @@ export default function UpgradeModal({
         <div className="space-y-2.5 p-4 bg-slate-50 border border-petroleum/10 rounded-luxury">
           <p className="text-[11px] font-semibold uppercase tracking-luxury text-petroleum/90 mb-2">
             Vantagens ao migrar para o{' '}
-            <span className="text-gold">{nextPlanKey}</span>:
+            <span className="text-gold">{nextPlanDisplayName}</span>:
           </p>
           {planBenefits.map((benefit, i) => (
             <div key={i} className="flex items-center gap-2">

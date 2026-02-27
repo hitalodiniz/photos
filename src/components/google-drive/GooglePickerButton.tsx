@@ -92,9 +92,12 @@ export default function GooglePickerButton({
   const [isReadyToOpen, setIsReadyToOpen] = useState(isPickerLoaded);
 
   const { getAuthDetails } = useSupabaseSession();
-  const { planKey, permissions } = usePlan(); // Pegamos o limite do plano atual
-  // Define o limite de seleção baseado no plano (ex: PRO/PREMIUM = 5, outros = 1)
-  const maxSelections = (permissions?.maxCoverPerGallery as number) || 1;
+  const { permissions } = usePlan();
+  //   A chave correta para "quantas fotos de capa o plano permite" é profileCarouselLimit.
+  //   FREE=0, START=1, PLUS=1, PRO=3, PREMIUM=5.
+  //   Usado com fallback 1 aqui (não 0) porque este componente só é renderizado
+  //   para planos pagos — FREE não chega a abrir o picker de capas.
+  const maxSelections = permissions.profileCarouselLimit || 1;
   //
   //o plano do usuário
 

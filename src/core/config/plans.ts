@@ -987,3 +987,35 @@ export function findNextPlanWithFeature(
 
   return null;
 }
+
+/**
+ * Retorna a PlanKey (ex: 'START', 'PRO') do próximo plano que possui acesso ao feature.
+ * Use esta função quando precisar acessar PERMISSIONS_BY_PLAN com o resultado.
+ *
+ * Diferença em relação a findNextPlanWithFeature:
+ *   findNextPlanWithFeature → 'Start'   (nome de exibição, varia por segmento)
+ *   findNextPlanKeyWithFeature → 'START'  (chave canônica, invariante)
+ */
+export function findNextPlanKeyWithFeature(
+  currentPlan: PlanKey,
+  feature: keyof PlanPermissions,
+): PlanKey | null {
+  const currentIdx = PLAN_ORDER.indexOf(currentPlan);
+
+  for (let i = currentIdx + 1; i < PLAN_ORDER.length; i++) {
+    const candidateKey = PLAN_ORDER[i];
+    const perms = PERMISSIONS_BY_PLAN[candidateKey];
+    const val = perms[feature];
+
+    const hasFeature =
+      typeof val === 'boolean'
+        ? val
+        : typeof val === 'number'
+          ? val > 0
+          : val !== 'default' && val !== 'basic' && val !== 'minimal' && !!val;
+
+    if (hasFeature) return candidateKey;
+  }
+
+  return null;
+}

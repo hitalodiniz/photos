@@ -17,7 +17,8 @@ import {
 import GoogleAuthError from '@/components/auth/GoogleAuthError';
 import PhotographerProfileBase from '@/components/profile/ProfileBase';
 import { PlanProvider } from '@/core/context/PlanContext';
-import { PlanKey } from '@/core/config/plans';
+// FIX 2: Removido import de PlanKey — não é mais necessário aqui.
+// PlanProvider agora recebe o profile completo em vez de planKey string bruta.
 import WhatsAppIcon from '@/components/ui/WhatsAppIcon';
 import { emitGaleriaEvent } from '@/core/services/galeria-stats.service';
 import { Galeria } from '@/core/types/galeria';
@@ -31,7 +32,7 @@ const MAIN_DOMAIN = (
 
 interface GaleriaBaseProps {
   params: { username: string; slug?: string[] };
-  isSubdomainContext?: boolean; // Diferencial técnico
+  isSubdomainContext?: boolean;
 }
 
 export default async function GaleriaBasePage({
@@ -41,7 +42,6 @@ export default async function GaleriaBasePage({
   const { username, slug } = params;
 
   // CASO 1: HOME (Perfil do Fotógrafo)
-  // Se o slug não existe ou está vazio, renderizamos o Perfil
   if (!slug || (Array.isArray(slug) && slug.length === 0)) {
     return (
       <PhotographerProfileBase
@@ -57,11 +57,10 @@ export default async function GaleriaBasePage({
   const galeriaRaw = await fetchGalleryBySlug(fullSlug);
   if (!galeriaRaw) notFound();
 
-  // LÓGICA DE REDIRECIONAMENTO INTELIGENTE
   const hasSubdomain = !!galeriaRaw.photographer?.use_subdomain;
   const protocol = process.env.NODE_ENV === 'production' ? 'https' : 'http';
 
-  // REGRA 1: Se estou na rota clássica mas o cara TEM subdomínio -> REDIRECIONA PARA SUBDOMÍNIO
+  // REGRA 1: Rota clássica mas fotógrafo TEM subdomínio → redireciona
   if (!isSubdomainContext && hasSubdomain) {
     const correctUrl = resolveGalleryUrl(
       username,
@@ -73,7 +72,7 @@ export default async function GaleriaBasePage({
     redirect(correctUrl);
   }
 
-  // REGRA 2: Se estou no subdomínio mas o cara NÃO TEM mais permissão -> REDIRECIONA PARA ROTA CLÁSSICA
+  // REGRA 2: Subdomínio mas fotógrafo NÃO TEM mais permissão → redireciona
   if (isSubdomainContext && !hasSubdomain) {
     const fallbackUrl = resolveGalleryUrl(
       username,
@@ -85,13 +84,10 @@ export default async function GaleriaBasePage({
     redirect(fallbackUrl);
   }
 
-  // Se o fotógrafo estiver logado enquanto vê a própria galeria:
   const userId = await getAuthenticatedUser().then((user) => user.userId);
 
-  // ... (Restante da sua lógica de formatação, senha e Drive igual ao seu código)
   const galeriaData = formatGalleryData(galeriaRaw, username);
 
-  // Garante que os dados do fotógrafo (incluindo templates) sejam injetados
   const photographerProfile = galeriaRaw.photographer;
   if (photographerProfile) {
     galeriaData.photographer = photographerProfile;
@@ -100,7 +96,6 @@ export default async function GaleriaBasePage({
   if (galeriaData.is_archived) {
     return (
       <div className="w-full min-h-[70vh] flex flex-col items-center justify-center px-6 py-20 text-center animate-in fade-in duration-1000">
-        {/* Ícone de Arquivo com Estilo Minimalista */}
         <div className="w-px h-24 bg-gradient-to-b from-champagne/40 to-transparent mb-12" />
 
         <div className="max-w-2xl space-y-8">
@@ -119,7 +114,6 @@ export default async function GaleriaBasePage({
 
           <div className="w-12 h-px bg-gold/30 mx-auto mt-12" />
 
-          {/* Ações de Contato */}
           <div className="flex flex-col md:flex-row items-center justify-center gap-4 pt-6">
             {galeriaData.photographer?.phone_contact && (
               <a
@@ -162,7 +156,6 @@ export default async function GaleriaBasePage({
     );
   }
 
-  // 🎯 LÓGICA DE ACESSO PROTEGIDO (Servidor)
   const cookieStore = await cookies();
   const sessionCookieName = `view-sid-${galeriaData.id}`;
   let sessionId = cookieStore.get(sessionCookieName)?.value;
@@ -171,21 +164,16 @@ export default async function GaleriaBasePage({
   if (!sessionId) {
     sessionId = crypto.randomUUID();
     isNewSession = true;
-    // Opcional: Você não consegue 'setar' cookie aqui diretamente no Server Component
-    // de forma fácil sem usar Middleware ou Action, mas podemos passar a flag para o emitGaleriaEvent
   }
 
-  // 🎯 REGISTRO DE ACESSO (Server Side)
-  // Só disparamos o evento se não houver um processamento recente detectado pelo serviço
-  // ou se for explicitamente uma nova sessão de cookie.
   await emitGaleriaEvent({
     galeria: galeriaRaw as unknown as Galeria,
     eventType: 'view',
     metadata: {
       context: isSubdomainContext ? 'subdomain' : 'main',
-      sessionId: sessionId, // Passamos o ID para o banco fazer o "Upsert" ou Ignore
+      sessionId: sessionId,
       isNewSession: isNewSession,
-      userId: userId || null, // Visitante anônimo
+      userId: userId || null,
     },
   });
 
@@ -200,8 +188,6 @@ export default async function GaleriaBasePage({
       `galeria-${galeriaData.id}-lead`,
     )?.value;
 
-    // Se precisa de senha e não tem o cookie de senha...
-    // OU se precisa de lead e não tem o cookie de lead...
     if ((needsPassword && !hasAuthCookie) || (needsLead && !hasLeadCookie)) {
       return (
         <GalleryAccessPortal
@@ -213,28 +199,14 @@ export default async function GaleriaBasePage({
     }
   }
 
-  // 🎯 CACHE: Usa fetchPhotosByGalleryId para cache com tag photos-[galleryId]
-  // A função já gerencia API Key e OAuth internamente (Estratégia Dual)
   const { photos, error } = await fetchPhotosByGalleryId(galeriaData.id);
 
-  const planKey = galeriaData.photographer.plan_key || 'FREE';
-
   // TOKEN_NOT_FOUND não é mais um erro - a função já tentou API Key automaticamente
-  // Se retornar TOKEN_NOT_FOUND, significa que ambas as estratégias falharam
-  // Mas ainda assim tentamos exibir o que foi encontrado
   if (error === 'TOKEN_NOT_FOUND') {
-    // console.log('[GaleriaBasePage] Token não encontrado, mas a busca via API Key já foi tentada. Verificando se há fotos disponíveis...');
-    // Continua a execução normalmente - pode haver fotos mesmo sem token
+    // Continua a execução normalmente
   }
 
-  // Apenas exibe erro se for um erro real que impede o acesso (PERMISSION_DENIED, GALLERY_NOT_FOUND, etc)
   if (error && error !== 'TOKEN_NOT_FOUND') {
-    /* console.log('[GaleriaBasePage] Erro ao buscar fotos:', {
-      galeriaId: galeriaData.id,
-      error,
-      photosCount: photos?.length || 0,
-    }); */
-
     return (
       <GoogleAuthError
         errorType={error}
@@ -243,14 +215,7 @@ export default async function GaleriaBasePage({
     );
   }
 
-  // Se não há fotos, pode ser pasta vazia ou inacessível
   if (!photos || photos.length === 0) {
-    /* console.log('[GaleriaBasePage] Nenhuma foto encontrada na galeria:', {
-      galeriaId: galeriaData.id,
-      folderId: galeriaData.drive_folder_id,
-      error: error || 'nenhum',
-    }); */
-
     return (
       <GoogleAuthError
         errorType={error === 'TOKEN_NOT_FOUND' ? null : error}
@@ -262,7 +227,21 @@ export default async function GaleriaBasePage({
   return (
     <>
       <InternalTrafficSync userId={userId} />
-      <PlanProvider planKey={planKey as PlanKey}>
+      {/*
+       * FIX 2: <PlanProvider profile={galeriaRaw.photographer}> em vez de
+       *        <PlanProvider planKey={planKey as PlanKey}>
+       *
+       * MOTIVO: Passar planKey como string bruta pula toda a lógica de
+       * trial/expiração do PlanContext. Se o fotógrafo está em trial expirado,
+       * o PlanContext não consegue detectar isso com apenas a string 'PRO'.
+       * galeriaRaw.photographer é o Profile completo (com is_trial,
+       * plan_trial_expires etc.), então o PlanProvider processa corretamente
+       * as permissões reais do fotógrafo cujas fotos estão sendo exibidas.
+       *
+       * TAMBÉM REMOVIDO: const planKey = galeriaData.photographer.plan_key || 'FREE'
+       * e o import de PlanKey — ambos ficam órfãos após esta correção.
+       */}
+      <PlanProvider profile={galeriaRaw.photographer}>
         <GaleriaView galeria={galeriaData} photos={photos} />
       </PlanProvider>
     </>
@@ -271,17 +250,14 @@ export default async function GaleriaBasePage({
 
 export async function generateMetadata({ params }: { params: Promise<any> }) {
   const { username, slug } = await params;
-  // Ignora se o slug parecer um arquivo técnico
   if (slug?.some((s: string) => s.includes('.'))) {
     return {};
   }
 
-  // 1. Se NÃO houver slug, buscamos metadados do FOTÓGRAFO
   if (!slug || (Array.isArray(slug) && slug.length === 0)) {
     return await getPhotographerMetadata(username);
   }
 
-  // 2. Se HOUVER slug, buscamos metadados da GALERIA
   const fullSlug = `${username}/${slug.join('/')}`;
   return await getGalleryMetadata(fullSlug);
 }
