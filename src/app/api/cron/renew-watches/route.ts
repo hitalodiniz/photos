@@ -1,9 +1,9 @@
 import { NextResponse } from 'next/server';
 import { createSupabaseClientForCache } from '@/lib/supabase.server';
+import { getDriveAccessTokenForUser } from '@/lib/google-auth';
 import { registerFolderWatch } from '@/core/services/drive-watch.service';
 
 export async function GET(req: Request) {
-  // Protege a rota de cron
   const authHeader = req.headers.get('authorization');
   if (authHeader !== `Bearer ${process.env.CRON_SECRET}`) {
     return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
@@ -12,9 +12,10 @@ export async function GET(req: Request) {
   const supabase = await createSupabaseClientForCache();
   const in24h = Date.now() + 24 * 60 * 60 * 1000;
 
+  // Usa o mesmo refresh token da tb_profiles que as outras funcionalidades (Drive, etc.)
   const { data: expiring } = await supabase
     .from('tb_drive_watch_channels')
-    .select('*, tb_profiles!user_id(id)')
+    .select('*, tb_profiles!inner(google_refresh_token)')
     .lt('expiration', in24h);
 
   if (!expiring?.length) {
@@ -24,16 +25,15 @@ export async function GET(req: Request) {
   let renewed = 0;
   for (const channel of expiring) {
     try {
-      // Busca o provider_token do usuário via auth.users
-      const {
-        data: { user },
-      } = await supabase.auth.admin.getUserById(channel.user_id);
-      const googleToken = user?.app_metadata?.provider_token;
+      const refreshToken = channel.tb_profiles?.google_refresh_token;
+      if (!refreshToken) continue;
 
-      if (!googleToken) continue;
+      const accessToken = await getDriveAccessTokenForUser(channel.user_id);
+
+      if (!accessToken) continue;
 
       await registerFolderWatch(
-        googleToken,
+        accessToken,
         channel.folder_id,
         channel.galeria_id,
         channel.user_id,

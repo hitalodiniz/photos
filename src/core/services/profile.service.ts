@@ -509,3 +509,62 @@ async function logPlanChange(
     created_at: new Date().toISOString(),
   });
 }
+
+// Adicione no final do arquivo profile.service.ts
+
+/**
+ * 🔑 Busca o Google Refresh Token do usuário autenticado
+ * Retorna o token ou null se não existir/não estiver autenticado
+ */
+export async function getGoogleRefreshToken(): Promise<{
+  success: boolean;
+  token?: string | null;
+  userId?: string;
+  error?: string;
+}> {
+  const supabase = await createSupabaseServerClient();
+
+  // 1️⃣ Verifica autenticação
+  const {
+    data: { user },
+    error: userError,
+  } = await supabase.auth.getUser();
+
+  if (userError || !user) {
+    return {
+      success: false,
+      error: 'Usuário não autenticado',
+    };
+  }
+
+  // 2️⃣ Busca o refresh token do perfil
+  const { data: profile, error: profileError } = await supabase
+    .from('tb_profiles')
+    .select('google_refresh_token')
+    .eq('id', user.id)
+    .single();
+
+  if (profileError) {
+    console.error(
+      '[getGoogleRefreshToken] Erro ao buscar perfil:',
+      profileError,
+    );
+    return {
+      success: false,
+      error: 'Erro ao buscar dados do perfil',
+    };
+  }
+
+  if (!profile?.google_refresh_token) {
+    return {
+      success: false,
+      error: 'Token do Google não encontrado. Reconecte sua conta.',
+    };
+  }
+
+  return {
+    success: true,
+    token: profile.google_refresh_token,
+    userId: user.id,
+  };
+}

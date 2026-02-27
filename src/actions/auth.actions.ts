@@ -72,7 +72,8 @@ export async function captureLeadAction(
     // Mesmo contexto de rastreio do evento para persistir no metadata do lead
     const browserVisitorId = cookieStore.get('visitor_id')?.value;
     const sessionCookie = cookieStore.get(`gsid-${galeria.id}`)?.value;
-    const fallbackIp = headerList.get('x-forwarded-for')?.split(',')[0] || 'unknown';
+    const fallbackIp =
+      headerList.get('x-forwarded-for')?.split(',')[0] || 'unknown';
     const finalVisitorId =
       data.visitorId || browserVisitorId || sessionCookie || fallbackIp;
 
@@ -346,4 +347,69 @@ export async function authenticateGaleriaAccessAction(
   password: string,
 ) {
   return authenticateGaleriaAccess(galeriaId, fullSlug, password);
+}
+
+// src/core/utils/google-auth-helper.ts
+
+// Cache simples de access tokens (válido por 55min)
+const tokenCache = new Map<string, { token: string; expiresAt: number }>();
+
+/**
+ * 🔄 Troca o refresh_token por um access_token válido (com cache)
+ * O Google OAuth retorna um access_token que expira em 1h
+ * Cacheia por 55min para evitar chamadas desnecessárias
+ */
+export async function getGoogleAccessToken(
+  refreshToken: string,
+): Promise<string | null> {
+  // 1️⃣ Verifica cache
+  const cached = tokenCache.get(refreshToken);
+  if (cached && cached.expiresAt > Date.now()) {
+    console.log('[getGoogleAccessToken] ✅ Usando token do cache');
+    return cached.token;
+  }
+
+  // 2️⃣ Busca novo token
+  try {
+    const response = await fetch('https://oauth2.googleapis.com/token', {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/x-www-form-urlencoded',
+      },
+      body: new URLSearchParams({
+        client_id: process.env.NEXT_PUBLIC_GOOGLE_CLIENT_ID!,
+        client_secret: process.env.GOOGLE_CLIENT_SECRET!,
+        refresh_token: refreshToken,
+        grant_type: 'refresh_token',
+      }),
+    });
+
+    if (!response.ok) {
+      const error = await response.json();
+      console.error('[getGoogleAccessToken] Erro ao trocar token:', error);
+
+      // Se o refresh token foi revogado, limpa o cache
+      if (error.error === 'invalid_grant') {
+        tokenCache.delete(refreshToken);
+      }
+
+      return null;
+    }
+
+    const data = await response.json();
+    const accessToken = data.access_token;
+    const expiresIn = data.expires_in || 3600; // Geralmente 3600 segundos (1h)
+
+    // 3️⃣ Cacheia por 55min (5min de margem de segurança)
+    tokenCache.set(refreshToken, {
+      token: accessToken,
+      expiresAt: Date.now() + (expiresIn - 300) * 1000,
+    });
+
+    console.log('[getGoogleAccessToken] ✅ Novo token obtido e cacheado');
+    return accessToken;
+  } catch (error) {
+    console.error('[getGoogleAccessToken] Erro ao obter access token:', error);
+    return null;
+  }
 }

@@ -58,6 +58,8 @@ import {
 import { revalidateGalleryCache } from '@/actions/revalidate.actions';
 import { cache } from 'react';
 import { registerFolderWatch } from './drive-watch.service';
+import { getGoogleRefreshToken } from './profile.service';
+import { getDriveAccessTokenForUser } from '@/lib/google-auth';
 
 // =========================================================================
 // 2. SLUG ÚNICO POR DATA
@@ -212,19 +214,33 @@ export async function createGaleria(
       username: profile.username,
     });
 
-    // Busca o accessToken do usuário (já deve estar no seu fluxo de auth)
-    const {
-      data: { session },
-    } = await supabase.auth.getSession();
-    const googleToken = session?.provider_token; // token OAuth do Google
+    if (insertedData.drive_folder_id) {
+      // 1️⃣ Busca refresh token (profile.service)
+      const tokenResult = await getGoogleRefreshToken();
 
-    if (googleToken && insertedData.drive_folder_id) {
-      registerFolderWatch(
-        googleToken,
-        insertedData.drive_folder_id,
-        insertedData.id,
-        userId,
-      ).catch(console.error); // Fire-and-forget, não bloqueia o retorno
+      if (tokenResult.success && tokenResult.token) {
+        try {
+          // 2️⃣ Troca por access token (google-auth)
+          const accessToken = await getDriveAccessTokenForUser(userId);
+
+          if (accessToken) {
+            // 3️⃣ Registra o watch (drive-watch.service)
+            await registerFolderWatch(
+              accessToken,
+              insertedData.drive_folder_id,
+              insertedData.id,
+              tokenResult.userId!,
+            );
+
+            console.log('[createGaleria] ✅ Watch registrado com sucesso');
+          } else {
+            console.warn('[createGaleria] Não foi possível obter access token');
+          }
+        } catch (error) {
+          // Não falha a criação da galeria se o watch falhar
+          console.error('[createGaleria] Erro ao registrar watch:', error);
+        }
+      }
     }
 
     return {
@@ -314,23 +330,44 @@ export async function updateGaleria(
       username: profile.username,
     });
 
-    // Busca o accessToken do usuário (já deve estar no seu fluxo de auth)
-    const {
-      data: { session },
-    } = await supabase.auth.getSession();
-    const googleToken = session?.provider_token; // token OAuth do Google
+    if (updateData.drive_folder_id) {
+      // 1️⃣ Busca refresh token (profile.service)
+      const tokenResult = await getGoogleRefreshToken();
 
-    if (googleToken && updateData.drive_folder_id) {
-      registerFolderWatch(
-        googleToken,
-        updateData.drive_folder_id,
-        updateData.id,
-        userId,
-      ).catch(console.error); // Fire-and-forget, não bloqueia o retorno
+      if (tokenResult.success && tokenResult.token) {
+        try {
+          // 2️⃣ Troca por access token (google-auth)
+          const accessToken = await getDriveAccessTokenForUser(
+            tokenResult.userId!,
+          );
+
+          if (accessToken) {
+            // 3️⃣ Registra o watch (drive-watch.service)
+            await registerFolderWatch(
+              accessToken,
+              updateData.drive_folder_id,
+              id,
+              tokenResult.userId!,
+            );
+
+            console.log('[updateGaleria] ✅ Watch registrado com sucesso');
+          } else {
+            console.warn('[updateGaleria] Não foi possível obter access token');
+          }
+        } catch (error) {
+          // Não falha a criação da galeria se o watch falhar
+          console.error('[updateGaleria] Erro ao registrar watch:', error);
+        }
+      } else {
+        console.warn(
+          '[updateGaleria] Token do Google não disponível:',
+          tokenResult.error,
+        );
+      }
     }
     return {
       success: true,
-      message: 'Galeria refinada com sucesso!',
+      message: 'Galeria atualizada com sucesso!',
       data: { id, ...updateData },
     };
   } catch (error) {

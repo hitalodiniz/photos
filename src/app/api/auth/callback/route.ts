@@ -1,18 +1,18 @@
 /**
  * ⚠️⚠️⚠️ ARQUIVO CRÍTICO DE SEGURANÇA ⚠️⚠️⚠️
- * 
+ *
  * Este arquivo gerencia:
  * - Callback OAuth do Google
  * - Troca de código por sessão Supabase
  * - Salvamento de tokens do Google (refresh_token, access_token)
  * - Criação de sessão de autenticação
- * 
+ *
  * 🔴 IMPACTO DE MUDANÇAS:
  * - Qualquer bug pode quebrar todo o fluxo de login
  * - Pode expor tokens sensíveis
  * - Pode permitir acesso não autorizado
  * - Pode salvar tokens inválidos no banco
- * 
+ *
  * ✅ ANTES DE ALTERAR:
  * 1. Leia CRITICAL_AUTH_FILES.md
  * 2. Leia AUTH_CONTRACT.md
@@ -20,7 +20,7 @@
  * 4. Crie/atualize testes unitários
  * 5. Teste extensivamente localmente
  * 6. Solicite revisão de código
- * 
+ *
  * 📋 CHECKLIST OBRIGATÓRIO:
  * [ ] Testes unitários criados/atualizados
  * [ ] Testado fluxo completo de login
@@ -28,9 +28,9 @@
  * [ ] Testado tratamento de erros
  * [ ] Revisão de código aprovada
  * [ ] Documentação atualizada
- * 
+ *
  * 🚨 NÃO ALTERE SEM ENTENDER COMPLETAMENTE O IMPACTO!
- * 
+ *
  * Fluxo: Login -> Google -> Callback -> /dashboard (ou subdomínio)
  */
 
@@ -63,7 +63,7 @@ export async function GET(request: Request) {
   if (isProduction) {
     console.log('[auth/callback] 📋 Cookies recebidos no callback:', {
       totalCookies: allCookies.length,
-      cookieNames: allCookies.map(c => c.name),
+      cookieNames: allCookies.map((c) => c.name),
       requestUrl: requestUrl.toString(),
       requestHost: requestUrl.host,
     });
@@ -71,15 +71,15 @@ export async function GET(request: Request) {
 
   // 🎯 DEBUG: Verifica se o code verifier cookie está presente
   // O Supabase SSR usa o padrão: sb-<project-id>-auth-token-code-verifier
-  const codeVerifierCookie = allCookies.find(cookie => 
-    cookie.name.endsWith('-code-verifier')
+  const codeVerifierCookie = allCookies.find((cookie) =>
+    cookie.name.endsWith('-code-verifier'),
   );
-  
+
   if (!codeVerifierCookie) {
     console.error('[auth/callback] ❌ Code verifier cookie não encontrado!', {
       isProduction,
       totalCookies: allCookies.length,
-      cookieNames: allCookies.map(c => c.name),
+      cookieNames: allCookies.map((c) => c.name),
       requestHost: requestUrl.host,
       cookieDomain: finalCookieDomain || 'não configurado',
     });
@@ -90,7 +90,7 @@ export async function GET(request: Request) {
       valueLength: codeVerifierCookie.value?.length || 0,
     });
   }
-  
+
   const supabase = createServerClient(
     process.env.NEXT_PUBLIC_SUPABASE_URL!,
     process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!,
@@ -119,7 +119,7 @@ export async function GET(request: Request) {
               secure: isProduction,
               domain: finalCookieDomain,
             };
-            
+
             cookieStore.set(name, value, cookieOptions);
           });
         },
@@ -139,12 +139,17 @@ export async function GET(request: Request) {
       hasCode: !!code,
       codeLength: code?.length,
       isProduction,
-      cookieDomain: process.env.NEXT_PUBLIC_COOKIE_DOMAIN || process.env.COOKIE_DOMAIN || 'não configurado',
+      cookieDomain:
+        process.env.NEXT_PUBLIC_COOKIE_DOMAIN ||
+        process.env.COOKIE_DOMAIN ||
+        'não configurado',
       baseUrl: process.env.NEXT_PUBLIC_BASE_URL || 'não configurado',
-      supabaseUrl: process.env.NEXT_PUBLIC_SUPABASE_URL ? 'configurado' : 'não configurado',
+      supabaseUrl: process.env.NEXT_PUBLIC_SUPABASE_URL
+        ? 'configurado'
+        : 'não configurado',
       hasAnonKey: !!process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY,
     });
-    
+
     return NextResponse.redirect(
       new URL('/login?error=auth_failed', request.url),
     );
@@ -163,13 +168,12 @@ export async function GET(request: Request) {
   // 🎯 VERIFICAÇÃO ALTERNATIVA: Tenta acessar o refresh token de outras formas
   // IMPORTANTE: Não usar refresh_token (token interno do Supabase), apenas provider_refresh_token (token do Google)
   const sessionAny = data.session as any;
-  
+
   // ⚠️ NÃO usar sessionAny.refresh_token - esse é o token interno do Supabase, não o do Google!
   // O token do Google deve começar com "1//0" e ser muito mais longo
-  const alternativeRefreshToken = 
-    sessionAny?.provider_refresh_token || 
-    sessionAny?.providerRefreshToken;
-    // NÃO incluir: sessionAny?.refresh_token (é token do Supabase, não do Google!)
+  const alternativeRefreshToken =
+    sessionAny?.provider_refresh_token || sessionAny?.providerRefreshToken;
+  // NÃO incluir: sessionAny?.refresh_token (é token do Supabase, não do Google!)
 
   // console.log('[auth/callback] Tentativas de encontrar refresh token:', {
   //   provider_refresh_token: !!provider_refresh_token,
@@ -210,12 +214,14 @@ export async function GET(request: Request) {
     // ⚠️ CRÍTICO: Usar APENAS provider_refresh_token (token do Google), NÃO refresh_token (token do Supabase)
     // O token do Google geralmente começa com "1//0" e tem ~50+ caracteres
     // O token do Supabase é muito mais curto e não serve para renovar tokens do Google
-    const refreshTokenToSave = provider_refresh_token || alternativeRefreshToken;
-    
+    const refreshTokenToSave =
+      provider_refresh_token || alternativeRefreshToken;
+
     // Validação: Verifica se o token parece ser um token do Google (formato típico: "1//0...")
-    const isValidGoogleRefreshToken = refreshTokenToSave && 
+    const isValidGoogleRefreshToken =
+      refreshTokenToSave &&
       (refreshTokenToSave.startsWith('1//0') || refreshTokenToSave.length > 30);
-    
+
     // console.log(`[auth/callback] Validação do refresh token:`, {
     //   hasRefreshTokenToSave: !!refreshTokenToSave,
     //   refreshTokenLength: refreshTokenToSave?.length || 0,
@@ -223,7 +229,7 @@ export async function GET(request: Request) {
     //   lengthGreaterThan30: (refreshTokenToSave?.length || 0) > 30,
     //   isValid: isValidGoogleRefreshToken,
     // });
-    
+
     if (refreshTokenToSave && isValidGoogleRefreshToken) {
       updates.google_refresh_token = refreshTokenToSave;
       // console.log(`[auth/callback] ✅ Refresh token do Google encontrado e será salvo para userId: ${user.id}`);
@@ -284,7 +290,9 @@ export async function GET(request: Request) {
         .from('tb_profiles')
         .update(updates)
         .eq('id', user.id)
-        .select('google_refresh_token, google_auth_status, google_access_token');
+        .select(
+          'google_refresh_token, google_auth_status, google_access_token',
+        );
 
       if (updateError) {
         // console.error('[auth/callback] ❌ Erro ao salvar tokens iniciais:', updateError.message);
@@ -304,9 +312,12 @@ export async function GET(request: Request) {
         //   statusSalvo: updateData?.[0]?.google_auth_status,
         //   accessTokenSalvo: !!updateData?.[0]?.google_access_token,
         // });
-        
+
         // 🎯 Verificação adicional: Se o refresh token não foi salvo mas estava no updates, há um problema
-        if (updates.google_refresh_token && !updateData?.[0]?.google_refresh_token) {
+        if (
+          updates.google_refresh_token &&
+          !updateData?.[0]?.google_refresh_token
+        ) {
           // console.error('[auth/callback] ❌ PROBLEMA CRÍTICO: Refresh token estava no updates mas não foi salvo no banco!');
           // console.error('[auth/callback] Isso pode indicar:');
           // console.error('  1. Problema de permissões no banco (RLS policy)');
@@ -325,7 +336,7 @@ export async function GET(request: Request) {
   // 4. VERIFICAÇÃO DO REFRESH TOKEN APÓS LOGIN
   // Se o refresh token não foi salvo, redireciona com parâmetro para mostrar alerta
   let needsConsent = false;
-  
+
   if (user?.id) {
     // Verifica se o refresh token foi realmente salvo no banco
     const { data: profile } = await supabase
@@ -334,10 +345,13 @@ export async function GET(request: Request) {
       .eq('id', user.id)
       .single();
 
-    const hasValidRefreshToken = profile?.google_refresh_token && 
-      (profile.google_refresh_token.startsWith('1//0') || profile.google_refresh_token.length > 30);
-    
-    const isTokenRevokedOrExpired = profile?.google_auth_status === 'revoked' || 
+    const hasValidRefreshToken =
+      profile?.google_refresh_token &&
+      (profile.google_refresh_token.startsWith('1//0') ||
+        profile.google_refresh_token.length > 30);
+
+    const isTokenRevokedOrExpired =
+      profile?.google_auth_status === 'revoked' ||
       profile?.google_auth_status === 'expired';
 
     if (!hasValidRefreshToken || isTokenRevokedOrExpired) {
@@ -353,8 +367,24 @@ export async function GET(request: Request) {
   // Se precisa de consent, redireciona com parâmetro para mostrar alerta
   const redirectUrl = new URL('/dashboard', request.url);
   if (needsConsent) {
-    redirectUrl.searchParams.set('needsConsent', 'true');
+    const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL!;
+    const supabaseKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!;
+    const baseUrl = process.env.NEXT_PUBLIC_APP_URL!;
+
+    // Monta a URL do Google OAuth com prompt=consent direto via Supabase
+    const params = new URLSearchParams({
+      provider: 'google',
+      scopes:
+        'email profile openid https://www.googleapis.com/auth/drive.readonly',
+      redirect_to: `${baseUrl}/api/auth/callback`,
+      'query_params[access_type]': 'offline',
+      'query_params[prompt]': 'consent',
+    });
+
+    return NextResponse.redirect(
+      `${supabaseUrl}/auth/v1/authorize?${params.toString()}`,
+    );
   }
-  
+
   return NextResponse.redirect(redirectUrl);
 }
