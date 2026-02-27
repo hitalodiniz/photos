@@ -1,5 +1,6 @@
 import { useState, useMemo } from 'react';
 import type { Galeria } from '@/core/types/galeria';
+import { normalizeContractType } from '@/core/types/galeria';
 import { normalizeString } from '@/core/utils/string-helpers';
 
 const CARDS_PER_PAGE = 9;
@@ -52,7 +53,8 @@ export function useDashboardFilters(galerias: Galeria[]) {
         !locationLower || locationNorm.includes(locationLower);
       const matchesCategory = !filterCategory || g.category === filterCategory;
       const matchesType =
-        !filterType || String(g.has_contracting_client) === filterType;
+        !filterType ||
+        normalizeContractType(g.has_contracting_client) === filterType;
       const galleryDateString = g.date ? g.date.split('T')[0] : '';
       const matchesDate =
         (!filterDateStart || galleryDateString >= filterDateStart) &&

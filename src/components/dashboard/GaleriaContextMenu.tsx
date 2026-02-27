@@ -36,7 +36,7 @@ export default function GaleriaContextMenu({
 }: GaleriaContextMenuProps) {
   const [isOpen, setIsOpen] = useState(false);
   const [isMobile, setIsMobile] = useState(false);
-  const [menuPosition, setMenuPosition] = useState({ top: 0, right: 0 });
+  const [menuPosition, setMenuPosition] = useState({ top: 0, left: 0 });
   const menuRef = useRef<HTMLDivElement>(null);
   const buttonRef = useRef<HTMLButtonElement>(null);
 
@@ -48,13 +48,19 @@ export default function GaleriaContextMenu({
     window.addEventListener('resize', checkMobile);
     return () => window.removeEventListener('resize', checkMobile);
   }, []);
-
   useEffect(() => {
     if (isOpen && buttonRef.current && !isMobile) {
       const rect = buttonRef.current.getBoundingClientRect();
+      const menuWidth = 220; // Largura mínima/estimada do seu menu
+      const gap = 4;
+
+      // Verifica se o menu ultrapassaria a borda direita da tela
+      const overflowRight = rect.left + menuWidth > window.innerWidth;
+
       setMenuPosition({
-        top: rect.bottom + 4,
-        right: window.innerWidth - rect.right,
+        top: rect.bottom + gap,
+        // Se transbordar à direita, alinha o menu pela direita do botão
+        left: overflowRight ? rect.right - menuWidth : rect.left,
       });
     }
   }, [isOpen, isMobile]);
@@ -99,13 +105,18 @@ export default function GaleriaContextMenu({
     handleAction(() => onDelete(galeria), true); // Fecha o menu ao deletar
   };
 
+  const btnClass =
+    'w-full px-4 py-2.5 text-[11px] font-medium text-left flex items-center gap-3 transition-colors';
+  const btnClassBorder = `${btnClass} hover:bg-slate-50 border-b border-slate-100`;
+  const btnClassRed = `${btnClass} hover:bg-red-50 text-red-600`;
+
   const MenuOptions = () => (
     <>
       {currentView === 'active' && (
         <>
           {/* Toggle Exibir no Perfil */}
           <div
-            className={`${isMobile ? 'p-3' : 'px-4 py-2'} flex items-center justify-end gap-3 rounded-luxury hover:bg-slate-50 transition-colors `}
+            className={`${isMobile ? 'p-3' : 'px-4 py-2.5'} flex items-center justify-end gap-3 rounded-luxury hover:bg-slate-50 transition-colors border-b border-slate-100`}
           >
             <div className="flex items-center gap-2 min-w-0 flex-1">
               {galeria.show_on_profile ? (
@@ -119,7 +130,7 @@ export default function GaleriaContextMenu({
                   className="text-editorial-gray shrink-0"
                 />
               )}
-              <span className="text-sm font-medium text-editorial-ink whitespace-nowrap">
+              <span className="text-[11px] font-medium text-editorial-ink whitespace-nowrap">
                 Exibir no Perfil
               </span>
             </div>
@@ -142,14 +153,14 @@ export default function GaleriaContextMenu({
 
           {/* Toggle Arquivar */}
           <div
-            className={`${isMobile ? 'p-3' : 'px-4 py-2'} flex items-center justify-between gap-3 rounded-luxury hover:bg-amber-50 transition-colors`}
+            className={`${isMobile ? 'p-3' : 'px-4 py-2.5'} flex items-center justify-between gap-3 rounded-luxury hover:bg-amber-50 transition-colors border-b border-slate-100`}
           >
             <div className="flex items-center gap-2 min-w-0 flex-1">
               <Archive
                 size={isMobile ? 18 : 16}
                 className="text-amber-600 shrink-0"
               />
-              <span className="text-sm font-medium text-amber-600 whitespace-nowrap">
+              <span className="text-[11px] font-medium text-amber-600 whitespace-nowrap">
                 Arquivar
               </span>
             </div>
@@ -173,18 +184,14 @@ export default function GaleriaContextMenu({
           {/* Mover para Lixeira */}
           <button
             onClick={handleDelete}
-            className={`w-full flex items-center justify-start gap-3 ${
-              isMobile ? 'p-3' : 'px-4 py-2'
-            } rounded-luxury hover:bg-red-50 transition-colors text-left !normal-case`}
+            className={
+              isMobile
+                ? 'w-full flex items-center gap-3 p-3 rounded-luxury hover:bg-red-50 transition-colors text-left'
+                : btnClassRed
+            }
           >
-            {/* O shrink-0 impede que o ícone diminua se o texto for longo */}
-            <Trash2
-              size={isMobile ? 20 : 16}
-              className="text-red-600 shrink-0"
-            />
-
-            {/* O flex-1 garante que o span ocupe o espaço restante, mantendo o alinhamento à esquerda */}
-            <span className="!text-sm !font-medium text-red-600 whitespace-nowrap !normal-case tracking-luxury-normal text-left flex-1">
+            <Trash2 size={13} className="text-red-600 shrink-0" />
+            <span className="text-red-600 flex-1 text-left">
               Mover para Lixeira
             </span>
           </button>
@@ -198,24 +205,31 @@ export default function GaleriaContextMenu({
               e.stopPropagation();
               handleAction(() => onArchive(galeria));
             }}
-            className={`w-full flex items-center gap-3 ${isMobile ? 'p-3' : 'px-4 py-2'} rounded-luxury hover:bg-amber-50 transition-colors text-left`}
+            className={
+              isMobile
+                ? 'w-full flex items-center gap-3 p-3 rounded-luxury hover:bg-amber-50 transition-colors text-left'
+                : btnClassBorder
+            }
           >
-            <Archive size={isMobile ? 20 : 16} className="text-amber-600" />
-            <span className="text-sm font-medium text-amber-600">
-              Desarquivar
-            </span>
+            <Archive
+              size={isMobile ? 20 : 16}
+              className="text-amber-600 shrink-0"
+            />
+            <span className="text-editorial-ink">Desarquivar</span>
           </button>
           <button
             onClick={(e) => {
               e.stopPropagation();
               handleAction(() => onDelete(galeria));
             }}
-            className={`w-full flex items-center gap-3 ${isMobile ? 'p-3' : 'px-4 py-2'} rounded-luxury hover:bg-red-50 transition-colors text-left`}
+            className={
+              isMobile
+                ? 'w-full flex items-center gap-3 p-3 rounded-luxury hover:bg-red-50 transition-colors text-left'
+                : btnClassRed
+            }
           >
-            <Trash2 size={isMobile ? 20 : 16} className="text-red-600" />
-            <span className="text-sm font-medium text-red-600">
-              Mover para Lixeira
-            </span>
+            <Trash2 size={13} className="text-red-600 shrink-0" />
+            <span className="text-red-600">Mover para Lixeira</span>
           </button>
         </>
       )}
@@ -227,22 +241,31 @@ export default function GaleriaContextMenu({
               e.stopPropagation();
               handleAction(() => onRestore(galeria.id));
             }}
-            className={`w-full flex items-center gap-3 ${isMobile ? 'p-3' : 'px-4 py-2'} rounded-luxury hover:bg-blue-50 transition-colors text-left`}
+            className={
+              isMobile
+                ? 'w-full flex items-center gap-3 p-3 rounded-luxury hover:bg-blue-50 transition-colors text-left'
+                : `${btnClassBorder} hover:bg-blue-50`
+            }
           >
-            <Inbox size={isMobile ? 20 : 16} className="text-blue-600" />
-            <span className="text-sm font-medium text-blue-600">Restaurar</span>
+            <Inbox
+              size={isMobile ? 20 : 16}
+              className="text-blue-600 shrink-0"
+            />
+            <span className="text-blue-600">Restaurar</span>
           </button>
           <button
             onClick={(e) => {
               e.stopPropagation();
               handleAction(() => onPermanentDelete(galeria.id));
             }}
-            className={`w-full flex items-center gap-3 ${isMobile ? 'p-3' : 'px-4 py-2'} rounded-luxury hover:bg-red-50 transition-colors text-left`}
+            className={
+              isMobile
+                ? 'w-full flex items-center gap-3 p-3 rounded-luxury hover:bg-red-50 transition-colors text-left'
+                : btnClassRed
+            }
           >
-            <Trash2 size={isMobile ? 20 : 16} className="text-red-600" />
-            <span className="text-sm font-medium text-red-600">
-              Excluir Permanentemente
-            </span>
+            <Trash2 size={13} className="text-red-600 shrink-0" />
+            <span className="text-red-600">Excluir Permanentemente</span>
           </button>
         </>
       )}
@@ -276,7 +299,7 @@ export default function GaleriaContextMenu({
               {/* Bottom Sheet */}
               <div
                 ref={menuRef}
-                className="fixed bottom-0 left-0 right-0 bg-white rounded-t-2xl shadow-2xl z-[9999] lg:hidden animate-in slide-in-from-bottom duration-300"
+                className="fixed bottom-0 left-0 right-0 bg-white rounded-t-2xl shadow-2xl z-[9999] lg:hidden"
               >
                 <div className="p-4 border-b border-petroleum/50 flex items-center justify-between">
                   <h3 className="text-lg font-bold uppercase tracking-luxury text-editorial-ink">
@@ -284,7 +307,7 @@ export default function GaleriaContextMenu({
                   </h3>
                   <button
                     onClick={() => setIsOpen(false)}
-                    className="p-2  hover:bg-slate-100 rounded-luxury transition-colors"
+                    className="p-2 hover:bg-slate-100 rounded-luxury transition-colors"
                   >
                     <X size={20} className="text-editorial-gray" />
                   </button>
@@ -295,16 +318,27 @@ export default function GaleriaContextMenu({
               </div>
             </>
           ) : (
-            <div
-              ref={menuRef}
-              className="fixed bg-white rounded-luxury shadow-xl border border-petroleum/50 z-[9999] min-w-[200px] py-1"
-              style={{
-                top: `${menuPosition.top}px`,
-                right: `${menuPosition.right}px`,
-              }}
-            >
-              <MenuOptions />
-            </div>
+            <>
+              {/* Overlay invisível para fechar ao clicar fora */}
+              <div
+                className="fixed inset-0 z-[9998]"
+                onClick={() => setIsOpen(false)}
+              />
+              {/* Menu */}
+              <div
+                ref={menuRef}
+                className="fixed bg-white rounded-lg shadow-xl border border-petroleum/10 z-[9999] min-w-[200px] py-1 "
+                style={{
+                  top: `${menuPosition.top}px`,
+                  left: `${menuPosition.left}px`,
+                  // 🎯 O SEGREDO: Só mostra quando a posição for maior que zero
+                  opacity: menuPosition.top === 0 ? 0 : 1,
+                  visibility: menuPosition.top === 0 ? 'hidden' : 'visible',
+                }}
+              >
+                <MenuOptions />
+              </div>
+            </>
           ),
           document.body,
         )}

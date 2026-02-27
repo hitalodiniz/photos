@@ -55,7 +55,11 @@ export function extractGalleryFormData(formData: FormData) {
     // Campos booleanos de visibilidade
     is_public: formData.get('is_public') === 'true',
     show_on_profile: formData.get('show_on_profile') === 'true',
-    has_contracting_client: formData.get('has_contracting_client') === 'true',
+    has_contracting_client: (() => {
+      const raw = formData.get('has_contracting_client') as string | null;
+      if (raw === 'CT' || raw === 'CB' || raw === 'ES') return raw;
+      return raw === 'true' ? 'CT' : 'CB';
+    })(),
 
     // Customização visual
     show_cover_in_grid: formData.get('show_cover_in_grid') === 'true',

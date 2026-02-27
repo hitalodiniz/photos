@@ -229,7 +229,7 @@ export default function ProfileContent({
       password: null,
       user_id: username,
       category: 'profile',
-      has_contracting_client: false,
+      has_contracting_client: 'CB',
       client_whatsapp: phone || null,
       drive_folder_name: null,
       is_archived: false,

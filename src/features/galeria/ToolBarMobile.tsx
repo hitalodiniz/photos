@@ -328,14 +328,39 @@ export const ToolBarMobile = ({
 
           {/* Favoritos - Só exibe se tiver permissão */}
           {canUseFavorites && (
-            <div className="relative overflow-visible">
+            <div className="relative">
               <button
                 onClick={() => setShowOnlyFavorites(!showOnlyFavorites)}
-                className={`w-9 h-9 rounded-luxury flex items-center justify-center transition-all border ${showOnlyFavorites ? 'bg-red-600 border-red-600 text-white shadow-lg shadow-red-900/40' : 'bg-white/5 border-white/10 text-white'}`}
+                className={`w-9 h-9 rounded-luxury flex items-center justify-center transition-all border ${
+                  showOnlyFavorites
+                    ? galeria.has_contracting_client === 'ES'
+                      ? 'bg-gold border-gold text-black shadow-lg shadow-gold/20'
+                      : 'bg-red-600 border-red-600 text-white shadow-lg'
+                    : 'bg-white/5 border-white/10 text-white'
+                }`}
               >
-                <Filter size={15} className="text-champagne" />
+                {showOnlyFavorites &&
+                galeria.has_contracting_client === 'ES' ? (
+                  <Check size={16} strokeWidth={3} />
+                ) : (
+                  <Filter
+                    size={15}
+                    className={
+                      showOnlyFavorites ? 'text-current' : 'text-champagne'
+                    }
+                  />
+                )}
               </button>
-              {hintStep === 5 && <Tooltip text="Favoritos" position="center" />}
+              {hintStep === 5 && (
+                <Tooltip
+                  text={
+                    galeria.has_contracting_client === 'ES'
+                      ? 'Fotos Selecionadas'
+                      : 'Fotos Favoritas'
+                  }
+                  position="center"
+                />
+              )}
             </div>
           )}
 

@@ -389,14 +389,31 @@ export const ToolBarDesktop = ({
             {canUseFavorites && (
               <button
                 onClick={() => setShowOnlyFavorites(!showOnlyFavorites)}
-                className={`flex items-center justify-center rounded-md h-8 border transition-all duration-300 w-28 gap-2 ${
+                className={`flex items-center justify-center rounded-md h-8 border transition-all duration-300 w-32 gap-2 ${
                   showOnlyFavorites
-                    ? 'bg-red-600 border-red-600 text-white shadow-lg'
+                    ? galeria.has_contracting_client === 'ES'
+                      ? 'bg-gold border-gold text-black shadow-lg' // Estilo Selecionado no Ensaio
+                      : 'bg-red-600 border-red-600 text-white shadow-lg' // Estilo Favoritos padrão
                     : 'bg-white/5 border-white/10 text-white hover:text-white'
                 }`}
               >
-                <Filter size={16} className="text-champagne" />
-                <span className="text-editorial-label">Favoritos</span>
+                {galeria.has_contracting_client === 'ES' ? (
+                  <>
+                    {showOnlyFavorites ? (
+                      <Check size={16} strokeWidth={3} />
+                    ) : (
+                      <Filter size={16} className="text-gold" />
+                    )}
+                    <span className="text-editorial-label">
+                      {showOnlyFavorites ? 'Selecionadas' : 'Selecionadas'}
+                    </span>
+                  </>
+                ) : (
+                  <>
+                    <Filter size={16} className="text-champagne" />
+                    <span className="text-editorial-label">Favoritos</span>
+                  </>
+                )}
               </button>
             )}
 

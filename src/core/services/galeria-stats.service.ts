@@ -9,7 +9,7 @@ import { getPublicGalleryUrl } from '../utils/url-helper';
 
 interface GaleriaEventPayload {
   galeria: Galeria;
-  eventType: 'view' | 'lead' | 'download' | 'share';
+  eventType: 'view' | 'lead' | 'download' | 'share' | 'selection';
   visitorId?: string;
   metadata?: any;
 }
@@ -192,11 +192,15 @@ async function handleNotifications(
   const userId = galeria.user_id || galeria.photographer_id;
   if (!userId) return;
 
-  const locBadge = loc ? ` em ${loc.city}/${loc.region}` : '';
-  // Limpeza da localização
-  const isValidLoc =
-    locBadge && locBadge !== 'undefined' && locBadge !== 'null';
-  const locBadgeFormatted = isValidLoc ? ` ${locBadge}` : '';
+  // 1. Tratamento robusto da localização
+  // Filtra apenas valores que existem e não são strings "undefined"/"null"
+  const locationParts = [loc?.city, loc?.region].filter(
+    (val) => val && val !== 'undefined' && val !== 'null',
+  );
+
+  // Se houver partes válidas, junta com "/", se não, string vazia
+  const locString = locationParts.length > 0 ? locationParts.join('/') : '';
+  const locBadgeFormatted = locString ? ` em ${locString}` : '';
 
   // Limpeza do nome do visitante
   const visitorName =
@@ -224,6 +228,11 @@ async function handleNotifications(
       title: `📤 Compartilhamento${locBadgeFormatted}`,
       type: 'info',
       msg: `Galeria "${galeria.title}" compartilhada.`,
+    },
+    selection: {
+      title: `🎯 Fotos Selecionadas${locBadgeFormatted}`,
+      type: 'info',
+      msg: `Fotos da galeria "${galeria.title}" selecionadas.`,
     },
   };
   const item = config[type];

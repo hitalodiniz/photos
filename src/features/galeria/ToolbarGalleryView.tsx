@@ -48,6 +48,7 @@ export const ToolbarGalleryView = ({
   onQualityWarningShown, // 🎯 Callback quando o tooltip é mostrado
   canUseFavorites = true,
   canUseSlideshow = true,
+  mode,
 }: any) => {
   const [showQualityWarning, setShowQualityWarning] = useState(false);
   const [copied, setCopied] = useState(false);
@@ -261,14 +262,24 @@ export const ToolbarGalleryView = ({
             <div
               className={`w-12 h-12 rounded-full flex items-center justify-center transition-all ${isFavorited ? 'bg-[#E67E70]' : 'bg-slate-200 dark:bg-white/10 active:bg-slate-800 dark:active:bg-white/20'}`}
             >
-              <Heart
-                fill={isFavorited ? 'white' : 'none'}
-                size={22}
-                className={
-                  isFavorited ? 'text-white' : 'text-black dark:text-white'
-                }
-                strokeWidth={2.5}
-              />
+              {mode === 'selection' ? (
+                <Check
+                  size={22}
+                  className={
+                    isFavorited ? 'text-white' : 'text-black dark:text-white'
+                  }
+                  strokeWidth={2.5}
+                />
+              ) : (
+                <Heart
+                  fill={isFavorited ? 'white' : 'none'}
+                  size={22}
+                  className={
+                    isFavorited ? 'text-white' : 'text-black dark:text-white'
+                  }
+                  strokeWidth={2.5}
+                />
+              )}
             </div>
           </button>
         )}
