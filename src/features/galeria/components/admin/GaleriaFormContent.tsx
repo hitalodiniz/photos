@@ -28,6 +28,7 @@ import {
   Shield,
   ShieldCheck,
   PlayCircle,
+  Settings2,
 } from 'lucide-react';
 import WhatsAppIcon from '@/components/ui/WhatsAppIcon';
 import { convertToDirectDownloadUrl } from '@/core/utils/url-helper';
@@ -625,14 +626,15 @@ export default function GaleriaFormContent({
           {/* SEÇÃO 1: IDENTIFICAÇÃO */}
           {profile?.settings?.display?.show_contract_type !== false && (
             <FormSection
-              title="Identificação"
-              icon={<User size={14} className="text-gold" />}
+              title="Modalidade"
+              icon={<Settings2 size={14} className="text-gold" />} // Ícone mais genérico de configuração
             >
               <fieldset>
                 <div className="grid grid-cols-1 md:grid-cols-12 gap-2 items-end">
+                  {/* Seletor de Tipo */}
                   <div className="md:col-span-4">
                     <GalleryTypeToggle
-                      label="Tipo"
+                      label="Tipo de galeria"
                       value={galleryType}
                       onChange={setGalleryType}
                       disabledContract={
@@ -640,22 +642,20 @@ export default function GaleriaFormContent({
                       }
                     />
                   </div>
+
+                  {/* Área Dinâmica baseada no Tipo */}
                   {galleryType === 'CB' ? (
-                    <div className="md:col-span-8 h-10 flex items-center px-4 bg-slate-50 border border-dashed border-slate-200 rounded-luxury">
-                      <p className="text-[9px] font-semibold uppercase tracking-luxury-wide text-petroleum/60 dark:text-slate-400 italic">
-                        Identificação de cliente não disponível em coberturas.
+                    <div className="md:col-span-8 h-11 flex items-center px-4 bg-slate-50/50 border border-dashed border-slate-200 rounded-lg">
+                      <p className="text-[10px] font-medium uppercase tracking-wider text-slate-400 italic">
+                        Esta modalidade gera um link público. Vinculação de
+                        cliente desativada.
                       </p>
                     </div>
                   ) : (
                     <>
-                      <div className="md:col-span-5 animate-in slide-in-from-left-2">
-                        <label className="mb-1.5">
-                          <User
-                            size={12}
-                            strokeWidth={2}
-                            className="text-gold"
-                          />{' '}
-                          Cliente
+                      <div className="md:col-span-5 animate-in fade-in slide-in-from-left-2 duration-300">
+                        <label className="mb-1.5 flex items-center gap-1.5 text-[10px] font-bold uppercase tracking-wider">
+                          <User size={12} className="text-gold" /> Cliente
                         </label>
                         <input
                           name="client_name"
@@ -665,8 +665,8 @@ export default function GaleriaFormContent({
                           className="input-luxury"
                         />
                       </div>
-                      <div className="md:col-span-3">
-                        <label className="mb-1.5">
+                      <div className="md:col-span-3 animate-in fade-in slide-in-from-left-3 duration-500">
+                        <label className="mb-1.5 flex items-center gap-1.5 text-[10px] font-bold uppercase tracking-wider">
                           <WhatsAppIcon className="w-3 h-3 text-gold" />{' '}
                           WhatsApp
                         </label>

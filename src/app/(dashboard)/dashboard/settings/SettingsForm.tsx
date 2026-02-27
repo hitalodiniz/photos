@@ -18,6 +18,7 @@ import {
   ImageIcon,
   PlayCircle,
   X,
+  Settings,
 } from 'lucide-react';
 
 import { UserSettingsSchema } from '@/core/types/profile';
@@ -35,13 +36,17 @@ import {
   GalleryTypeToggle,
   type GalleryTypeValue,
 } from '@/components/ui/GalleryTypeToggle';
+import { div } from 'framer-motion/client';
 
 const DEFAULT_TYPE_TO_CODE: Record<string, GalleryTypeValue> = {
   contract: 'CT',
   event: 'CB',
   ensaio: 'ES',
 };
-const CODE_TO_DEFAULT_TYPE: Record<GalleryTypeValue, 'contract' | 'event' | 'ensaio'> = {
+const CODE_TO_DEFAULT_TYPE: Record<
+  GalleryTypeValue,
+  'contract' | 'event' | 'ensaio'
+> = {
   CT: 'contract',
   CB: 'event',
   ES: 'ensaio',
@@ -172,12 +177,15 @@ export default function SettingsForm({ profile }: { profile: any }) {
     >
       <div className="max-w-5xl mx-auto space-y-3 pb-4 font-sans">
         {/* SEÇÃO 1: PADRÕES DE IDENTIFICAÇÃO (ALINHADO HORIZONTALMENTE) */}
-        <FormSection title="Padrões de Identificação" icon={<User size={14} />}>
+        <FormSection
+          title="Preferências de Modalidade"
+          icon={<Settings size={14} className="text-gold" />}
+        >
           <div className="grid grid-cols-1 md:grid-cols-2 gap-8 items-start">
             {/* TIPO PADRÃO */}
             <div className="space-y-2">
               <GalleryTypeToggle
-                label="Tipo de Galeria Padrão"
+                label="Modalidade Padrão"
                 value={
                   DEFAULT_TYPE_TO_CODE[settings.display.default_type] ?? 'CT'
                 }
@@ -196,7 +204,7 @@ export default function SettingsForm({ profile }: { profile: any }) {
             <div className="space-y-2">
               <label className="text-[10px] font-bold uppercase tracking-luxury-widest text-petroleum/60 flex items-center gap-1.5">
                 <Eye size={12} strokeWidth={2} className="text-gold" />
-                Listagem no Perfil
+                Exposição no Perfil Público
               </label>
 
               <div className="flex items-center justify-between p-1 px-4 bg-slate-50 rounded-luxury border border-slate-200 h-10">

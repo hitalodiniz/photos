@@ -1,114 +1,97 @@
 'use client';
 
-import { Briefcase } from 'lucide-react';
+import { Briefcase, ChevronDown } from 'lucide-react';
 import { InfoTooltip } from './InfoTooltip';
 
 export type GalleryTypeValue = 'CT' | 'ES' | 'CB';
 
-const OPTIONS: { value: GalleryTypeValue; label: string }[] = [
-  { value: 'CT', label: 'Contrato' },
-  { value: 'ES', label: 'Ensaio' },
-  { value: 'CB', label: 'Cobertura' },
+const OPTIONS: {
+  value: GalleryTypeValue;
+  label: string;
+  description: string;
+}[] = [
+  {
+    value: 'CT',
+    label: 'Entrega de fotos',
+    description: 'Acesso exclusivo para o cliente contratante.',
+  },
+  {
+    value: 'ES',
+    label: 'Seleção de fotos',
+    description:
+      'O cliente seleciona as fotos para tratamento e entrega final.',
+  },
+  {
+    value: 'CB',
+    label: 'Disponibilização de fotos',
+    description: 'Link público para visualização, sem um cliente específico.',
+  },
 ];
 
-// Texto unificado com formatação JSX para o Tooltip
 const UNIFIED_TOOLTIP_CONTENT = (
   <div className="flex flex-col gap-2.5">
-    <div>
-      <strong className="text-gold uppercase text-[9px] block mb-0.5">
-        Contrato:
-      </strong>
-      <p>Acesso exclusivo para o cliente contratante.</p>
-    </div>
-    <div>
-      <strong className="text-gold uppercase text-[9px] block mb-0.5">
-        Ensaio:
-      </strong>
-      <p>
-        O cliente seleciona as fotos do ensaio para tratamento pelo fotógrafo e
-        entrega final.
-      </p>
-    </div>
-    <div>
-      <strong className="text-gold uppercase text-[9px] block mb-0.5">
-        Cobertura:
-      </strong>
-      <p>Link público para visualização, sem um cliente específico.</p>
-    </div>
+    {OPTIONS.map((opt) => (
+      <div key={opt.value}>
+        <strong className="text-gold uppercase text-[9px] font-semibold block mb-0.5">
+          {opt.label}:
+        </strong>
+        <p className="text-[10px] leading-relaxed">{opt.description}</p>
+      </div>
+    ))}
   </div>
 );
-
-export interface GalleryTypeToggleProps {
-  value: GalleryTypeValue;
-  onChange: (value: GalleryTypeValue) => void;
-  label?: string;
-  showLabelIcon?: boolean;
-  disabledContract?: boolean;
-  hint?: string;
-  className?: string;
-}
 
 export function GalleryTypeToggle({
   value,
   onChange,
-  label,
+  label = 'TIPO de galeria',
   showLabelIcon = true,
   disabledContract = false,
-  hint,
   className = '',
-}: GalleryTypeToggleProps) {
-  const index = OPTIONS.findIndex((o) => o.value === value);
-  const safeIndex = index >= 0 ? index : 0;
-
+}: any) {
   return (
-    <div className={className}>
-      {label && (
-        <div className="mb-1.5 flex items-center gap-1.5">
-          <label>
-            {showLabelIcon && (
-              <Briefcase size={12} strokeWidth={2} className="text-gold" />
-            )}
-            {label}
-          </label>
-          <InfoTooltip
-            content={UNIFIED_TOOLTIP_CONTENT}
-            align="left"
-            position="bottom"
-            size="2xl" // Aumentado para comportar os 3 textos confortavelmente
-          />
-        </div>
-      )}
-
-      <div className="flex p-1 bg-slate-50 rounded-luxury border border-slate-200 h-10 items-center relative">
-        <div
-          className="absolute top-1 bottom-1 rounded-[0.35rem] transition-all duration-300 bg-champagne border border-gold/20 shadow-sm"
-          style={{
-            width: 'calc(33.333% - 4px)',
-            left: `calc(${safeIndex * 33.333}% + 2px)`,
-          }}
+    <div className={`flex flex-col ${className}`}>
+      <div className="mb-1.5 flex items-center gap-1.5">
+        <label className="text-[10px] font-semibold text-slate-900 flex items-center gap-1.5 uppercase tracking-wider">
+          {showLabelIcon && <Briefcase size={12} className="text-gold" />}
+          {label}
+        </label>
+        <InfoTooltip
+          content={UNIFIED_TOOLTIP_CONTENT}
+          align="left"
+          position="bottom"
+          size="2xl"
         />
-        {OPTIONS.map((opt) => (
-          <button
-            key={opt.value}
-            type="button"
-            disabled={opt.value === 'CT' && disabledContract}
-            onClick={() => onChange(opt.value)}
-            className={`relative z-10 flex-1 text-[9px] font-semibold uppercase tracking-luxury-widest transition-colors ${
-              value === opt.value
-                ? 'text-black'
-                : 'text-petroleum/60 dark:text-slate-400'
-            } ${opt.value === 'CT' && disabledContract ? 'opacity-60 cursor-not-allowed' : ''}`}
-          >
-            {opt.label}
-          </button>
-        ))}
       </div>
 
-      {hint && (
-        <p className="mt-1.5 text-[9px] text-petroleum/50 italic px-1">
-          {hint}
-        </p>
-      )}
+      <div className="relative group">
+        <select
+          // 1. Garanta que o estado inicial no componente pai seja ""
+          value={value || ''}
+          onChange={(e) => onChange(e.target.value)}
+          className={`w-full h-11 bg-white border rounded-lg px-3 pr-10 text-xs font-medium appearance-none focus:outline-none focus:ring-2 transition-all cursor-pointer
+    ${
+      !value
+        ? 'border-slate-200 text-slate-400'
+        : 'border-slate-200 text-slate-700 focus:ring-gold/20 focus:border-gold'
+    }`}
+        >
+          {OPTIONS.map((opt) => (
+            <option
+              key={opt.value}
+              value={opt.value}
+              disabled={opt.value === 'CT' && disabledContract}
+              className="text-slate-700 bg-white"
+            >
+              {opt.label}
+            </option>
+          ))}
+        </select>
+
+        <div className="absolute right-3 top-1/2 -translate-y-1/2 pointer-events-none text-slate-400 group-hover:text-gold transition-colors">
+          <ChevronDown size={16} />
+        </div>
+      </div>
     </div>
   );
 }
