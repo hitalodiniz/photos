@@ -3,6 +3,7 @@
     {
       "path": "/api/cron/purge-trash",
       "schedule": "0 3 * * *"
-    }
+    },
+    { "path": "/api/cron/renew-watches", "schedule": "0 6 * * *" }
   ]
 }

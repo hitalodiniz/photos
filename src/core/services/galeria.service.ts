@@ -56,6 +56,7 @@ import {
 } from '../utils/galeria-limit.helper';
 import { revalidateGalleryCache } from '@/actions/revalidate.actions';
 import { cache } from 'react';
+import { registerFolderWatch } from './drive-watch.service';
 
 // =========================================================================
 // 2. SLUG ÚNICO POR DATA
@@ -210,6 +211,21 @@ export async function createGaleria(
       username: profile.username,
     });
 
+    // Busca o accessToken do usuário (já deve estar no seu fluxo de auth)
+    const {
+      data: { session },
+    } = await supabase.auth.getSession();
+    const googleToken = session?.provider_token; // token OAuth do Google
+
+    if (googleToken && insertedData.drive_folder_id) {
+      registerFolderWatch(
+        googleToken,
+        insertedData.drive_folder_id,
+        insertedData.id,
+        userId,
+      ).catch(console.error); // Fire-and-forget, não bloqueia o retorno
+    }
+
     return {
       success: true,
       message: 'Nova galeria criada com sucesso!',
@@ -297,6 +313,20 @@ export async function updateGaleria(
       username: profile.username,
     });
 
+    // Busca o accessToken do usuário (já deve estar no seu fluxo de auth)
+    const {
+      data: { session },
+    } = await supabase.auth.getSession();
+    const googleToken = session?.provider_token; // token OAuth do Google
+
+    if (googleToken && updateData.drive_folder_id) {
+      registerFolderWatch(
+        googleToken,
+        updateData.drive_folder_id,
+        updateData.id,
+        userId,
+      ).catch(console.error); // Fire-and-forget, não bloqueia o retorno
+    }
     return {
       success: true,
       message: 'Galeria refinada com sucesso!',
