@@ -28,6 +28,8 @@ export async function registerFolderWatch(
       '[registerFolderWatch] Pulando em desenvolvimento (sem HTTPS público)',
     );
     return null;
+  } else {
+    console.log('[registerFolderWatch] Registrando watch...');
   }
   const supabase = await createSupabaseServerClient();
 

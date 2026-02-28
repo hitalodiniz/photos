@@ -739,7 +739,6 @@ export async function syncGaleriaPhotoCount(
     }
 
     const count = photosResult.data?.length || 0;
-    console.log('count photosResult', count);
     const { error: updateError } = await supabase
       .from('tb_galerias')
       .update({

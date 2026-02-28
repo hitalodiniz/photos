@@ -663,7 +663,12 @@ export default function GaleriaCard({
                 )}
 
                 <button
-                  onClick={onSync}
+                  type="button"
+                  onClick={(e) => {
+                    e.preventDefault();
+                    e.stopPropagation();
+                    onSync();
+                  }}
                   className="flex items-center justify-center px-2 border-l border-slate-200 h-full hover:bg-white text-gold transition-all"
                 >
                   <RefreshCw
@@ -886,7 +891,12 @@ export default function GaleriaCard({
               )}
 
               <button
-                onClick={onSync}
+                type="button"
+                onClick={(e) => {
+                  e.preventDefault();
+                  e.stopPropagation();
+                  onSync();
+                }}
                 className="flex items-center justify-center px-3 border-l border-slate-200 h-full hover:bg-white text-gold transition-all"
               >
                 <RefreshCw

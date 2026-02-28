@@ -105,12 +105,12 @@ export async function emitGaleriaEvent({
   const ignoredIds = profile?.ignored_visitor_ids || [];
 
   // Se o ID atual estiver na lista de bloqueio do fotógrafo, abortamos tudo
-  if (ignoredIds.includes(finalVisitorId)) {
-    console.log(
-      `🚫 [BI] Ignorado: ${eventType} por ID interno ${finalVisitorId}`,
-    );
-    return;
-  }
+  // if (ignoredIds.includes(finalVisitorId)) {
+  //   console.log(
+  //     `🚫 [BI] Ignorado: ${eventType} por ID interno ${finalVisitorId}`,
+  //   );
+  //   return;
+  // }
 
   // 3. Trava de Duplicidade (Apenas para View)
   if (eventType === 'view') {

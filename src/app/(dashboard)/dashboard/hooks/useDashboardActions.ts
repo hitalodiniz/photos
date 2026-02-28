@@ -99,27 +99,28 @@ export function useDashboardActions(
       // 1. Limpa cache bruto do Drive
       await revalidateDrivePhotos(galeria.drive_folder_id, galeria.id);
 
-      // 2. Sincroniza e obtém a nova contagem (certifique-se que esta service retorna o count)
+      // 2. Sincroniza e obtém a nova contagem
       const result = await syncGaleriaPhotoCount(galeria);
 
-      // 3. Atualiza o ESTADO LOCAL para o card refletir o novo número imediatamente
-      if (result.success && result.data) {
-        const novoTotal = result.data.photo_count;
+      const novoTotal = result.data?.photo_count;
 
-        // 3. ATUALIZAÇÃO DO ESTADO LOCAL
+      if (result.success && typeof novoTotal === 'number') {
         setGalerias((prev) =>
           prev.map((g) =>
             g.id === galeria.id ? { ...g, photo_count: novoTotal } : g,
           ),
         );
-
         setToast({
           message: `Sincronizado: ${novoTotal} fotos`,
           type: 'success',
         });
+      } else if (!result.success) {
+        setToast({
+          message: result.error || 'Erro ao sincronizar.',
+          type: 'error',
+        });
       }
 
-      // 3. Limpa cache da galeria (slug e dados formatados)
       if (photographer?.id) {
         await revalidateGalleryCache({
           galeriaId: galeria.id,
