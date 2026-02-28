@@ -35,6 +35,7 @@ import { GALLERY_MESSAGES } from '@/core/config/messages';
 import { formatMessage } from '@/core/utils/message-helper';
 import WhatsAppIcon from '@/components/ui/WhatsAppIcon';
 import GaleriaContextMenu from '@/components/dashboard/GaleriaContextMenu';
+import { getGalleryTypeLabel } from '@/components/ui/GalleryTypeToggle';
 import { useNavigation } from '@/components/providers/NavigationProvider';
 import { usePlan } from '@/core/context/PlanContext';
 import UpgradeModal from '@/components/ui/UpgradeModal';
@@ -46,6 +47,7 @@ import { ConfirmationModal, Toast } from '@/components/ui';
 import { div } from 'framer-motion/client';
 import { handleError } from '@supabase/auth-js/dist/module/lib/fetch';
 import { createPortal } from 'react-dom';
+import { is } from 'date-fns/locale';
 
 interface GaleriaCardProps {
   galeria: Galeria;
@@ -162,8 +164,16 @@ export default function GaleriaCard({
     return phone;
   };
 
-  const hasClientInfo =
-    galeria.client_name && galeria.client_name !== 'Cobertura';
+  const clientName = (galeria: Galeria) => {
+    if (
+      galeria.has_contracting_client == null ||
+      galeria.has_contracting_client === undefined
+    )
+      return 'Disponibilização de fotos';
+    else if (galeria.has_contracting_client === 'CT')
+      return galeria.client_name;
+    else return getGalleryTypeLabel(galeria.has_contracting_client);
+  };
 
   const {
     imgSrc: imageUrl,
@@ -611,7 +621,7 @@ export default function GaleriaCard({
             <div className="flex items-center flex-wrap gap-y-2 gap-x-4 text-[11px] text-petroleum font-medium">
               <span className="flex items-center gap-1.5 truncate">
                 <User size={12} className="text-gold" />
-                {galeria.client_name || 'Link Público'}
+                {clientName(galeria)}
               </span>
 
               <span className="text-slate-200">|</span>
@@ -825,7 +835,7 @@ export default function GaleriaCard({
               <div className="flex items-center gap-1.5 min-w-0">
                 <User size={12} className="text-gold shrink-0" />
                 <span className="font-semibold text-petroleum uppercase tracking-luxury truncate">
-                  {galeria.client_name || 'COBERTURA'}
+                  {clientName(galeria)}
                 </span>
               </div>
               {galeria.client_whatsapp && (

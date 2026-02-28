@@ -735,7 +735,9 @@ const MasonryGrid = ({
               onMouseLeave={() => setIsMouseDown(false)}
             >
               {limitedPhotos.map((photo, index) => {
-                const isPreSelected = galeria.selection_ids?.includes(photo.id);
+                const isPreSelected =
+                  galeria.selection_ids?.includes(photo.id) &&
+                  galeria.has_contracting_client === 'ES';
                 return (
                   <MasonryItem
                     key={photo.id}

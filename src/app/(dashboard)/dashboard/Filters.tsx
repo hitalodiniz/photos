@@ -72,11 +72,11 @@ export default function Filters({
   }, [isAdvancedOpen]);
 
   // Contar filtros avançados ativos
-  const hasAdvancedFilters =
-    filterCategory || filterType || filterLocation;
-  
+  const hasAdvancedFilters = filterCategory || filterType || filterLocation;
+
   // Verificar se há filtros ativos (busca ou data)
-  const hasActiveFilters = filterName || filterDateStart || filterDateEnd || hasAdvancedFilters;
+  const hasActiveFilters =
+    filterName || filterDateStart || filterDateEnd || hasAdvancedFilters;
 
   // Classe base: Luxury Editorial com mais padding-y
   const sharedInputClass = `
@@ -168,15 +168,18 @@ export default function Filters({
         </div>
 
         {/* Botão Filtros Avançados */}
-        <div className="relative col-span-2 md:col-span-1" ref={advancedDropdownRef}>
+        <div
+          className="relative col-span-2 md:col-span-1"
+          ref={advancedDropdownRef}
+        >
           <button
             onClick={() => setIsAdvancedOpen(!isAdvancedOpen)}
             className={`w-full md:w-auto py-2.5 px-4 flex items-center justify-between gap-2 rounded-luxury transition-all border bg-white border-slate-200 hover:border-slate-300`}
           >
             <div className="flex items-center gap-2">
-              <Filter 
-                size={14} 
-                className={hasAdvancedFilters ? 'text-gold' : 'text-slate-400'} 
+              <Filter
+                size={14}
+                className={hasAdvancedFilters ? 'text-gold' : 'text-slate-400'}
               />
               <span className="text-editorial-label text-slate-700">
                 FILTROS AVANÇADOS
@@ -235,9 +238,9 @@ export default function Filters({
                     className={selectClass}
                   >
                     <option value="">Tipos</option>
-                    <option value="CT">Contrato</option>
-                    <option value="CB">Cobertura</option>
-                    <option value="ES">Ensaio</option>
+                    <option value="CT">Entrega de fotos</option>
+                    <option value="CB">Disponibilização de fotos</option>
+                    <option value="ES">Seleção de fotos</option>
                   </select>
                   <ChevronDown
                     size={12}

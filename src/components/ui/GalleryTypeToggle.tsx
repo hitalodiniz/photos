@@ -5,7 +5,7 @@ import { InfoTooltip } from './InfoTooltip';
 
 export type GalleryTypeValue = 'CT' | 'ES' | 'CB';
 
-const OPTIONS: {
+export const GALLERY_TYPE_OPTIONS: {
   value: GalleryTypeValue;
   label: string;
   description: string;
@@ -27,6 +27,21 @@ const OPTIONS: {
     description: 'Link público para visualização, sem um cliente específico.',
   },
 ];
+
+/** Retorna o label do tipo de galeria (CT/ES/CB ou boolean legado). */
+export function getGalleryTypeLabel(
+  value: GalleryTypeValue | boolean | null | undefined,
+): string {
+  if (value === true) return GALLERY_TYPE_OPTIONS[0].label;
+  if (value === false) return GALLERY_TYPE_OPTIONS[2].label;
+  if (typeof value === 'string') {
+    const opt = GALLERY_TYPE_OPTIONS.find((o) => o.value === value);
+    if (opt) return opt.label;
+  }
+  return GALLERY_TYPE_OPTIONS[0].label;
+}
+
+const OPTIONS = GALLERY_TYPE_OPTIONS;
 
 const UNIFIED_TOOLTIP_CONTENT = (
   <div className="flex flex-col gap-2.5">
