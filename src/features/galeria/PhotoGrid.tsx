@@ -34,6 +34,8 @@ export default function PhotoGrid({ photos, galeria }: any) {
   const [selectedPhotoIndex, setSelectedPhotoIndex] = useState<number | null>(
     null,
   );
+  const [showSelectionFromUrl, setShowSelectionFromUrl] = useState(false);
+
   const [isScrolled, setIsScrolled] = useState(false);
   const [isHovered, setIsHovered] = useState(false);
   const [showOnlyFavorites, setShowOnlyFavorites] = useState(false);
@@ -254,6 +256,25 @@ export default function PhotoGrid({ photos, galeria }: any) {
     window.addEventListener('scroll', handleScroll);
     return () => window.removeEventListener('scroll', handleScroll);
   }, []);
+
+  // useEffect para ler a URL
+  useEffect(() => {
+    if (typeof window !== 'undefined') {
+      const urlParams = new URLSearchParams(window.location.search);
+      const selectionParam = urlParams.get('selection');
+
+      // Se a URL tem ?selection=true e existem fotos selecionadas salvas
+      if (selectionParam === 'true' && galeria.selection_ids?.length > 0) {
+        setShowSelectionFromUrl(true);
+
+        // ✅ Força o filtro de favoritos
+        setShowOnlyFavorites(true);
+
+        // ✅ Carrega as fotos selecionadas nos favoritos
+        setFavorites(galeria.selection_ids);
+      }
+    }
+  }, [galeria.selection_ids]);
 
   // 🎯 Para Favoritos (Lógica Composta: Plano + Switch da Galeria)
   const canUseFavorites = useMemo(() => {

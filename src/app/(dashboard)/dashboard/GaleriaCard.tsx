@@ -464,6 +464,22 @@ export default function GaleriaCard({
                         exportMenuPosition.top === 0 ? 'hidden' : 'visible',
                     }}
                   >
+                    {/* ✅ NOVO: Ver Fotos Selecionadas */}
+                    <button
+                      disabled={!isSelectionComplete}
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        const selectionUrl = `${links.url}?selection=true`;
+                        window.open(selectionUrl, '_blank');
+                        setIsExportMenuOpen(false);
+                      }}
+                      className="w-full px-4 py-2.5 text-[11px] font-medium text-left hover:bg-green-50 border-b border-slate-100 flex items-center gap-3 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
+                    >
+                      <Eye size={13} className="text-green-600 shrink-0" />
+                      <span className="text-green-600 font-semibold">
+                        Ver Selecionadas
+                      </span>
+                    </button>
                     {/* Lightroom */}
                     <button
                       disabled={!isSelectionComplete}
