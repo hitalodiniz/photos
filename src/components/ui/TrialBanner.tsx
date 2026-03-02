@@ -3,18 +3,14 @@ import { Sparkles, Clock, ArrowRight } from 'lucide-react';
 
 import { differenceInDays, parseISO } from 'date-fns';
 import { usePlan } from '@/core/context/PlanContext';
+import { profile } from 'console';
 export default function TrialBanner() {
-  const { planKey, profile } = usePlan();
-
-  // Só exibe se for plano PRO e for Trial
-  if (planKey !== 'PRO' || !profile?.is_trial || !profile?.plan_trial_expires) {
+  const { planKey, permissions, trialExpiresAt } = usePlan(); // ← usa o que o contexto realmente expõe
+  // permissions.isTrial é injetado pelo PlanProvider em runtime
+  if (planKey !== 'PRO' || !permissions.isTrial) {
     return null;
   }
-
-  const daysLeft = differenceInDays(
-    parseISO(profile.plan_trial_expires),
-    new Date(),
-  );
+  const daysLeft = differenceInDays(parseISO(trialExpiresAt), new Date());
 
   return (
     <div className="w-full bg-gradient-to-r from-petroleum to-slate-900 border border-gold/30 rounded-luxury p-4 mb-4 relative overflow-hidden group shadow-xl">

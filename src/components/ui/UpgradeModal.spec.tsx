@@ -1,5 +1,4 @@
-'use client';
-
+// src/components/ui/UpgradeModal.test.tsx
 import { describe, test, expect, vi, beforeAll } from 'vitest';
 import { render, screen, fireEvent } from '@testing-library/react';
 import React from 'react';
@@ -47,11 +46,9 @@ const makeMockProfile = (overrides: Partial<Profile> = {}): Profile => ({
 });
 
 describe('UpgradeModal Integration', () => {
-  test('deve aplicar fallback para PREMIUM quando featureKey não for fornecido', () => {
-    const profile = makeMockProfile({ plan_key: 'FREE' });
-
+  test('fallback para PREMIUM quando featureKey não fornecida', () => {
     render(
-      <PlanProvider profile={profile}>
+      <PlanProvider profile={makeMockProfile({ plan_key: 'FREE' })}>
         <UpgradeModal
           isOpen={true}
           onClose={() => {}}
@@ -60,49 +57,34 @@ describe('UpgradeModal Integration', () => {
         />
       </PlanProvider>,
     );
-
-    const explanatoryText = screen.getByText(
-      /exclusivo para usuários do plano/i,
-    );
-
-    expect(explanatoryText).toBeInTheDocument();
-    expect(explanatoryText.parentElement?.textContent).toMatch(/premium/i);
-
-    const upgradeButton = screen.getByRole('button', {
-      name: /migrar para o premium/i,
-    });
-    expect(upgradeButton).toBeInTheDocument();
+    expect(
+      screen.getByText(/exclusivo para usuários do plano/i),
+    ).toBeInTheDocument();
+    expect(
+      screen.getByRole('button', { name: /migrar para o premium/i }),
+    ).toBeInTheDocument();
   });
 
-  test('deve abrir a página de planos corretamente ao clicar no botão', () => {
-    const profile = makeMockProfile({ plan_key: 'FREE' });
+  test('abre página de planos ao clicar em upgrade', () => {
     const windowSpy = vi.spyOn(window, 'open').mockImplementation(() => null);
-
     render(
-      <PlanProvider profile={profile}>
+      <PlanProvider profile={makeMockProfile({ plan_key: 'FREE' })}>
         <UpgradeModal
           isOpen={true}
           onClose={() => {}}
-          featureName="Qualquer Feature"
+          featureName="Qualquer"
           featureKey="maxGalleries"
         />
       </PlanProvider>,
     );
-
-    const upgradeButton = screen.getByRole('button', {
-      name: /Migrar para o/i,
-    });
-
-    fireEvent.click(upgradeButton);
-
+    fireEvent.click(screen.getByRole('button', { name: /migrar para o/i }));
     expect(windowSpy).toHaveBeenCalledWith('/dashboard/planos', '_blank');
     windowSpy.mockRestore();
   });
 
-  test('não deve renderizar nada quando isOpen for false', () => {
-    const profile = makeMockProfile();
+  test('não renderiza quando isOpen=false', () => {
     const { container } = render(
-      <PlanProvider profile={profile}>
+      <PlanProvider profile={makeMockProfile()}>
         <UpgradeModal
           isOpen={false}
           onClose={() => {}}
@@ -111,7 +93,133 @@ describe('UpgradeModal Integration', () => {
         />
       </PlanProvider>,
     );
-
     expect(container.firstChild).toBeNull();
+  });
+
+  test('scenarioType=limit exibe "Limite Atingido" e "Aumentar Limite"', () => {
+    render(
+      <PlanProvider profile={makeMockProfile({ plan_key: 'FREE' })}>
+        <UpgradeModal
+          isOpen={true}
+          onClose={() => {}}
+          featureName="Galerias Ativas"
+          featureKey="maxGalleries"
+          scenarioType="limit"
+        />
+      </PlanProvider>,
+    );
+    expect(screen.getByText(/limite atingido/i)).toBeInTheDocument();
+    expect(
+      screen.getByRole('button', { name: /aumentar limite/i }),
+    ).toBeInTheDocument();
+  });
+
+  test('FREE com featureKey=canCaptureLeads → indica próximo plano PRO', () => {
+    render(
+      <PlanProvider profile={makeMockProfile({ plan_key: 'FREE' })}>
+        <UpgradeModal
+          isOpen={true}
+          onClose={() => {}}
+          featureName="Captura de Leads"
+          featureKey="canCaptureLeads"
+          scenarioType="feature"
+        />
+      </PlanProvider>,
+    );
+    // PRO é o próximo plano que tem canCaptureLeads
+    expect(
+      screen.getByRole('button', { name: /migrar para o pro/i }),
+    ).toBeInTheDocument();
+  });
+
+  test('exibe benefícios do plano próximo na lista', () => {
+    render(
+      <PlanProvider profile={makeMockProfile({ plan_key: 'FREE' })}>
+               {' '}
+        <UpgradeModal
+          isOpen={true}
+          onClose={() => {}}
+          featureName="Captura de Leads"
+          featureKey="canCaptureLeads"
+          scenarioType="feature"
+        />
+             {' '}
+      </PlanProvider>,
+    );
+
+    // Em vez de buscar o número exato "50", buscamos pela estrutura do benefício
+    // que contém o termo dinâmico (galerias/itens/etc)
+    expect(screen.getByText(/ativas/i)).toBeInTheDocument();
+
+    expect(
+      screen.getByText(/captura e exportação de leads/i),
+    ).toBeInTheDocument();
+  });
+
+  test('START com featureKey=canShowSlideshow → indica PRO como próximo plano', () => {
+    render(
+      <PlanProvider profile={makeMockProfile({ plan_key: 'START' })}>
+        <UpgradeModal
+          isOpen={true}
+          onClose={() => {}}
+          featureName="Slideshow"
+          featureKey="canShowSlideshow"
+          scenarioType="feature"
+        />
+      </PlanProvider>,
+    );
+    expect(
+      screen.getByRole('button', { name: /migrar para o pro/i }),
+    ).toBeInTheDocument();
+  });
+
+  test('featureKey=removeBranding → indica PREMIUM', () => {
+    render(
+      <PlanProvider profile={makeMockProfile({ plan_key: 'PRO' })}>
+        <UpgradeModal
+          isOpen={true}
+          onClose={() => {}}
+          featureName="White Label"
+          featureKey="removeBranding"
+          scenarioType="feature"
+        />
+      </PlanProvider>,
+    );
+    expect(
+      screen.getByRole('button', { name: /migrar para o premium/i }),
+    ).toBeInTheDocument();
+  });
+
+  test('PLUS com featureKey=privacyLevel → indica PRO (password)', () => {
+    render(
+      <PlanProvider profile={makeMockProfile({ plan_key: 'PLUS' })}>
+        <UpgradeModal
+          isOpen={true}
+          onClose={() => {}}
+          featureName="Proteção por Senha"
+          featureKey="privacyLevel"
+          scenarioType="feature"
+        />
+      </PlanProvider>,
+    );
+    expect(
+      screen.getByRole('button', { name: /migrar para o pro/i }),
+    ).toBeInTheDocument();
+  });
+
+  test('onClose dispara ao clicar em "Talvez mais tarde"', () => {
+    const onClose = vi.fn();
+    render(
+      <PlanProvider profile={makeMockProfile({ plan_key: 'FREE' })}>
+        <UpgradeModal
+          isOpen={true}
+          onClose={onClose}
+          featureName="X"
+          scenarioType="feature"
+        />
+      </PlanProvider>,
+    );
+    fireEvent.click(screen.getByRole('button', { name: /talvez mais tarde/i }));
+    expect(onClose).toHaveBeenCalled();
   });
 });

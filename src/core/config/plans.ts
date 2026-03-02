@@ -201,11 +201,11 @@ export const MAX_GALLERIES_BY_PLAN: Record<PlanKey, number> = {
 
 // Hard cap por galeria — varia por plano, reflete a densidade esperada
 export const MAX_PHOTOS_PER_GALLERY_BY_PLAN: Record<PlanKey, number> = {
-  FREE: 150,
-  START: 300,
-  PLUS: 400,
-  PRO: 600,
-  PREMIUM: 1_000,
+  FREE: 200,
+  START: 450,
+  PLUS: 800,
+  PRO: 1_500,
+  PREMIUM: 3_000,
 };
 
 // Helper para exibição amigável dos créditos
@@ -221,6 +221,14 @@ export const ZIP_LIMITS: Record<PlanKey, number> = {
   PLUS: 1_500_000, // 1.5 MB
   PRO: 2_000_000, // 2 MB
   PREMIUM: 3_000_000, // 3 MB
+};
+
+export const ZIP_LIMIT_TO_RESOLUTION: Record<number, number> = {
+  500_000: 1024, // FREE   → 500KB  → ~1024px
+  1_000_000: 1600, // START  → 1MB    → ~1600px
+  1_500_000: 2048, // PLUS   → 1.5MB  → ~2048px
+  2_000_000: 2560, // PRO    → 2MB    → ~2560px
+  3_000_000: 0, // PREMIUM → 3MB   → original (0 = sem limite)
 };
 
 // =============================================================================

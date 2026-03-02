@@ -26,6 +26,7 @@ interface PlanContextProps {
   isPremium: boolean;
   isLoading: boolean;
   canAddMore: (feature: keyof PlanPermissions, currentCount: number) => boolean;
+  trialExpiresAt: string | null;
 }
 
 const PlanContext = createContext<PlanContextProps | undefined>(undefined);
@@ -70,35 +71,27 @@ export function PlanProvider({
     //   propPlanKey: planKey,
     //   profileObj: profile,
     // });
+    // Dentro do useMemo do planToUse no PlanProvider.tsx
+    // Dentro do PlanProvider.tsx
     if (profile) {
-      // Se o perfil está marcado como Trial
       if (profile.is_trial) {
-        // Caso não tenha data OU a data seja inválida OU já passou de hoje -> FREE
         if (!profile.plan_trial_expires) return 'FREE';
 
-        const expiresAt = new Date(profile.plan_trial_expires);
-        const isValidDate = !isNaN(expiresAt.getTime());
-        const isNotExpired = new Date() < expiresAt;
+        const expiresTimestamp = new Date(profile.plan_trial_expires).getTime();
+        const isNotExpired = Date.now() < expiresTimestamp;
 
-        if (isValidDate && isNotExpired) {
-          return (profile.plan_key || 'FREE') as PlanKey;
-        }
+        if (isNaN(expiresTimestamp) || !isNotExpired) return 'FREE';
 
-        return 'FREE'; // Trial expirado ou data inválida
+        return (profile.plan_key || 'FREE') as PlanKey;
       }
 
-      // Se não for trial, segue o plano assinado (ou FREE como fallback)
-      return (profile.plan_key || 'FREE') as PlanKey;
+      // ✅ Não-trial: usa o plano do perfil diretamente
+      if (profile.plan_key) return profile.plan_key as PlanKey;
     }
 
-    // Prioridade 2: Se não houver perfil (Galeria Pública), usa o planKey passado via prop
+    // Fallback: prop planKey (galerias públicas sem perfil)
     if (planKey) return planKey;
 
-    // Se ambos falharem, mas o perfil existir sem a chave (erro de query)
-    if (profile && !profile.plan_key) {
-      console.warn('Cuidado: Perfil recebido sem plan_key!');
-    }
-    // Fallback Final
     return 'FREE';
   }, [profile, planKey]);
 
@@ -134,6 +127,7 @@ export function PlanProvider({
         if (typeof limit === 'number') return currentCount < limit;
         return !!limit;
       },
+      trialExpiresAt: profile?.plan_trial_expires ?? null,
       // 🎯 Helper para facilitar o que fizemos no Avatar
       getGalleryPermission: (galeria: any, feature: keyof PlanPermissions) => {
         // Se a galeria tem uma trava específica, ela manda. Se não, manda o plano.

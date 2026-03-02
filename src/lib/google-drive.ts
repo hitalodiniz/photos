@@ -20,7 +20,7 @@ export const resolvePhotoLimitByPlan = (planKey?: PlanKey | number): number => {
     ? PERMISSIONS_BY_PLAN[planKey]
     : PERMISSIONS_BY_PLAN.FREE;
 
-  return permissions?.maxPhotosPerGallery || 10000;
+  return permissions.maxPhotosPerGallery; // FREE=150, START=300, PRO=600...
 };
 
 export interface DrivePhoto {
@@ -246,7 +246,7 @@ export async function listPhotosFromDriveFolder(
   }
 
   // O Helper resolve se é 'FREE' -> 80, 'PRO' -> 600 ou se já é um número
-  const limit = 10000; //resolvePhotoLimitByPlan(planOrLimit);
+  const limit = resolvePhotoLimitByPlan(planOrLimit); // era: const limit = 10000;
 
   // 1. TENTATIVA 1: OAuth (Privado) - PRIORITÁRIO
   if (accessToken) {

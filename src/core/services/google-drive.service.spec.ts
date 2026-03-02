@@ -62,29 +62,29 @@ describe('Google Drive Library - Suite Completa de Testes', () => {
     // Os valores reais são: FREE=150, START=300, PLUS=400, PRO=600, PREMIUM=1000
     it('deve retornar limite para plano FREE', () => {
       const limit = resolvePhotoLimitByPlan('FREE');
-      expect(limit).toBe(150);
+      expect(limit).toBe(200);
     });
 
     it('deve retornar limite para plano PRO', () => {
       const limit = resolvePhotoLimitByPlan('PRO');
-      expect(limit).toBe(600);
+      expect(limit).toBe(1500);
     });
 
     it('deve retornar número direto quando fornecido', () => {
-      const limit = resolvePhotoLimitByPlan(150);
-      expect(limit).toBe(150);
+      const limit = resolvePhotoLimitByPlan(200);
+      expect(limit).toBe(200);
     });
 
     // FIX 2: Plano inválido → fallback para FREE = 150
     it('deve retornar limite FREE quando plano não existe', () => {
       const limit = resolvePhotoLimitByPlan('INVALID_PLAN' as any);
-      expect(limit).toBe(150);
+      expect(limit).toBe(200);
     });
 
     // FIX 3: undefined → fallback para FREE = 150
     it('deve retornar limite FREE quando plano é undefined', () => {
       const limit = resolvePhotoLimitByPlan(undefined);
-      expect(limit).toBe(150);
+      expect(limit).toBe(200);
     });
   });
 
@@ -524,7 +524,7 @@ describe('Google Drive Library - Suite Completa de Testes', () => {
 
       expect(result).toHaveLength(3);
       expect(fetch).toHaveBeenCalledWith(
-        expect.stringContaining('pageSize=600'),
+        expect.stringContaining('pageSize=1500'),
         expect.any(Object),
       );
     });
@@ -623,7 +623,7 @@ describe('Google Drive Library - Suite Completa de Testes', () => {
 
       expect(result).toHaveLength(3);
       expect(fetch).toHaveBeenCalledWith(
-        expect.stringContaining('pageSize=150'),
+        expect.stringContaining('pageSize=200'),
         expect.any(Object),
       );
     });

@@ -1,4 +1,4 @@
-import { ArrowUpCircle, HardDrive } from 'lucide-react';
+import { ArrowUpCircle, HardDrive, ImageIcon } from 'lucide-react';
 import UpgradeModal from '@/components/ui/UpgradeModal';
 import React, { useState } from 'react';
 import { usePlan } from '@/core/context/PlanContext';
@@ -93,6 +93,41 @@ export default function SidebarStorage({
             </div>
           </div>
         )}
+        // Adicionar logo após o estado de galerias existente no bloco showFull:
+        {/* Pool de Fotos Restante */}
+        {(() => {
+          const photosUsed =
+            galeriasCount * (permissions.maxPhotosPerGallery || 0);
+          const photosTotal = permissions.photoCredits;
+          const photosRemaining = Math.max(photosTotal - photosUsed, 0);
+          const photosPercent = Math.min((photosUsed / photosTotal) * 100, 100);
+
+          return (
+            <div className="space-y-1.5 pt-2 border-t border-white/5">
+              <div className="flex justify-between items-end px-1">
+                <span className="text-editorial-label text-white/90 flex items-center gap-2">
+                  <ImageIcon size={12} strokeWidth={2} /> Créditos de Fotos
+                </span>
+                <span className="text-[10px] font-semibold tracking-luxury text-white/90">
+                  {photosRemaining.toLocaleString('pt-BR')} restantes
+                </span>
+              </div>
+              <div className="w-full h-1.5 bg-white/5 rounded-full overflow-hidden border border-white/5 shadow-inner">
+                <div
+                  className={`h-full transition-all duration-1000 ease-out rounded-full ${
+                    photosPercent >= 90
+                      ? 'bg-red-500 shadow-[0_0_10px_rgba(239,68,68,0.5)]'
+                      : 'bg-champagne/60 shadow-[0_0_10px_rgba(212,175,55,0.3)]'
+                  }`}
+                  style={{ width: `${photosPercent}%` }}
+                />
+              </div>
+              <p className="text-[9px] text-white/50 uppercase tracking-luxury-widest px-1">
+                Pool total: {photosTotal.toLocaleString('pt-BR')} fotos
+              </p>
+            </div>
+          );
+        })()}
       </div>
       {/* The UpgradeModal is rendered here, controlled by state */}
       <UpgradeModal

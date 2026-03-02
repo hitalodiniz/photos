@@ -10,7 +10,6 @@ import {
   convertToDirectDownloadUrl,
   getDownloadDirectGoogleUrl,
   RESOLUTIONS,
-  TAMANHO_MAXIMO_FOTO_SEM_COMPACTAR,
 } from '@/core/utils/url-helper';
 import {
   groupPhotosByWeight,
@@ -25,11 +24,16 @@ import { getGalleryPermission } from '@/core/utils/plan-helpers';
 
 import { DownloadCenterModal } from './DownloadCenterModal';
 import { emitGaleriaEvent } from '@/core/services/galeria-stats.service';
+
 import { useShare } from '@/hooks/useShare';
+import { usePlan } from '@/core/context/PlanContext';
+import { ZIP_LIMIT_TO_RESOLUTION } from '@/core/config/plans';
 import { ConfirmationModal, Toast } from '@/components/ui';
 import { saveGaleriaSelectionAction } from '@/core/services/galeria.service';
 
 export default function PhotoGrid({ photos, galeria }: any) {
+  const { planKey, permissions } = usePlan();
+
   // --- 1. ESTADOS DE INTERFACE ---
   const [selectedPhotoIndex, setSelectedPhotoIndex] = useState<number | null>(
     null,
@@ -374,11 +378,9 @@ export default function PhotoGrid({ photos, galeria }: any) {
     confirmed = false,
     chunkIndex?: number | string,
   ) => {
-    // 1. Guard Clauses (Proteção de execução)
     if (isDownloading || isDownloadingFavs || targetList.length === 0) return;
     if (chunkIndex !== undefined) setActiveDownloadingIndex(chunkIndex);
 
-    // 2. Cálculos iniciais (Tamanho estimado baseado no alvo de 1.0MB)
     const firstPhotoGlobalIndex = photosWithTags.indexOf(targetList[0]);
 
     if (!confirmed && !isFavAction) {
@@ -386,7 +388,10 @@ export default function PhotoGrid({ photos, galeria }: any) {
       return;
     }
 
-    // 3. Definição dinâmica de estados
+    // ✅ Lê o limite do plano do contexto
+    const zipSizeLimitBytes = permissions.zipSizeLimitBytes;
+    const targetResolution = ZIP_LIMIT_TO_RESOLUTION[zipSizeLimitBytes] ?? 1600;
+
     const setProgress = setDownloadProgress;
     const setStatus = isFavAction ? setIsDownloadingFavs : setIsDownloading;
 
@@ -396,28 +401,34 @@ export default function PhotoGrid({ photos, galeria }: any) {
       const zip = new JSZip();
       let completedCount = 0;
 
-      // Otimização de concorrência baseada no dispositivo
-      const batchSize = window.innerWidth < 768 ? 20 : 50; // Reduzido ligeiramente para estabilidade em fotos maiores
+      const batchSize = window.innerWidth < 768 ? 20 : 50;
 
-      // 4. Processamento em Lotes (Batches)
       for (let i = 0; i < targetList.length; i += batchSize) {
         const currentBatch = targetList.slice(i, i + batchSize);
         await Promise.all(
           currentBatch.map(async (photo, indexInBatch) => {
             try {
-              let blob;
               const sizeInBytes = Number(photo.size) || 0;
-              const tetoMaximo = TAMANHO_MAXIMO_FOTO_SEM_COMPACTAR;
 
-              // 🎯 LÓGICA INTELIGENTE:
-              // Se a foto já for menor que 1.5MB, baixa o original direto do Google.
-              // Se for maior, usa o proxy para reduzir para 2560px.
+              // ✅ LÓGICA DO PLANO:
+              // PREMIUM (targetResolution === 0) ou foto já dentro do limite → original
+              // Outros planos com foto acima do limite → usa proxy com resolução limitada
+              let url: string;
 
-              const res = await fetch(
-                getDownloadDirectGoogleUrl(photo.id, RESOLUTIONS.DOWNLOAD),
-              );
-              if (!res.ok) throw new Error('Erro no original');
-              blob = await res.blob();
+              if (targetResolution === 0 || sizeInBytes <= zipSizeLimitBytes) {
+                // Original direto do Google
+                url = getDownloadDirectGoogleUrl(
+                  photo.id,
+                  RESOLUTIONS.DOWNLOAD,
+                );
+              } else {
+                // Proxy com resolução limitada pelo plano
+                url = getDownloadDirectGoogleUrl(photo.id, targetResolution);
+              }
+
+              const res = await fetch(url);
+              if (!res.ok) throw new Error('Erro no download');
+              const blob = await res.blob();
 
               const globalPhotoNumber =
                 firstPhotoGlobalIndex + i + indexInBatch + 1;
@@ -438,29 +449,26 @@ export default function PhotoGrid({ photos, galeria }: any) {
           }),
         );
 
-        // Respiro para a Main Thread
         if (i + batchSize < targetList.length)
           await new Promise((r) =>
             setTimeout(r, window.innerWidth < 768 ? 400 : 150),
           );
       }
 
-      // 5. Geração do arquivo final (Blob)
       const content = await zip.generateAsync({
         type: 'blob',
-        compression: 'STORE', // Não comprimimos novamente para poupar CPU do cliente
+        compression: 'STORE',
         streamFiles: true,
       });
 
-      // 6. Nomeação e Download
       saveAs(content, `${galeria.title.replace(/\s+/g, '_')}_${zipSuffix}.zip`);
-
       setProgress(100);
+
       if (typeof chunkIndex === 'number')
         setDownloadedVolumes((prev) => [...new Set([...prev, chunkIndex])]);
 
       emitGaleriaEvent({
-        galeria: galeria,
+        galeria,
         eventType: 'download',
         metadata: {
           count: targetList.length,
