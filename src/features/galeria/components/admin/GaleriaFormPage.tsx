@@ -18,11 +18,7 @@ import type { Galeria } from '@/core/types/galeria';
 import { Toast } from '@/components/ui';
 import GoogleConsentAlert from '@/components/auth/GoogleConsentAlert';
 import BaseModal from '@/components/ui/BaseModal';
-import {
-  getPublicGalleryUrl,
-  copyToClipboard,
-  getLuxuryMessageData,
-} from '@/core/utils/url-helper';
+import { getPublicGalleryUrl } from '@/core/utils/url-helper';
 import { useNavigation } from '@/components/providers/NavigationProvider';
 import WhatsAppIcon from '@/components/ui/WhatsAppIcon';
 import { authService } from '@photos/core-auth';
@@ -155,6 +151,7 @@ export default function GaleriaFormPage({
     const cover_image_ids = formData.get('cover_image_ids') as string;
     const cover_image_url = formData.get('cover_image_url') as string;
     const photoCount = parseInt(formData.get('photo_count') as string) || 0;
+    const expiresAt = (formData.get('expires_at') as string) ?? '';
 
     // Validações
     if (!title?.trim()) {
@@ -204,6 +201,7 @@ export default function GaleriaFormPage({
     formData.set('columns_tablet', String(columns.tablet));
     formData.set('columns_desktop', String(columns.desktop));
     formData.set('photo_count', String(photoCount));
+    formData.set('expires_at', expiresAt ?? '');
 
     const whatsappRaw = formData.get('client_whatsapp') as string;
     if (whatsappRaw)

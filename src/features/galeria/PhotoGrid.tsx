@@ -751,6 +751,7 @@ export default function PhotoGrid({ photos, galeria }: any) {
       )}
       <ConfirmationModal
         isOpen={isConfirmModalOpen}
+        pkopipkopkpiop4
         onClose={() => setIsConfirmModalOpen(false)}
         onConfirm={async () => {
           // Aqui entra a lógica de envio da seleção (ex: API call)

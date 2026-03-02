@@ -117,6 +117,11 @@ export const FEATURE_DESCRIPTIONS: Record<
     description:
       'Acesse as estatísticas da galeria para analisar o desempenho de suas fotos.',
   },
+  canAccessNotifyEvents: {
+    label: 'Notificações de eventos da galeria',
+    description:
+      'Receba notificações quando a galeria for visualizada, compartilhada, baixada, etc.',
+  },
   canExportLeads: {
     label: 'Exportação de dados dos Visitantes',
     description: 'Exporte sua base de visitantes em CSV, Excel ou PDF.',
@@ -174,6 +179,11 @@ export const FEATURE_DESCRIPTIONS: Record<
     label: 'Proteção por Senha',
     description: 'Aumente a segurança das suas galerias com senhas.',
   },
+  expiresAt: {
+    label: 'Data de Expiração',
+    description:
+      'Defina uma data para expiração do acesso à galeria. Após esta data, a galeria ficará indisponível para acesso.',
+  },
   keepOriginalFilenames: {
     label: 'Preservar Nomes Originais',
     description: 'Mantenha os nomes originais dos arquivos durante o download.',
@@ -202,6 +212,7 @@ export interface PlanPermissions {
   profileListLimit: number | 'unlimited';
   removeBranding: boolean;
   canCaptureLeads: boolean;
+  canAccessNotifyEvents: boolean;
   canExportLeads: boolean;
   canAccessStats: boolean;
   socialDisplayLevel: 'minimal' | 'social' | 'full';
@@ -218,6 +229,7 @@ export interface PlanPermissions {
   maxExternalLinks: number;
   canCustomLinkLabel: boolean;
   privacyLevel: 'public' | 'password';
+  expiresAt: boolean | null;
   keepOriginalFilenames: boolean;
   customizationLevel: 'default' | 'colors' | 'full';
   canCustomWhatsApp: boolean;
@@ -248,6 +260,7 @@ export const PERMISSIONS_BY_PLAN: Record<PlanKey, PlanPermissions> = {
     canCaptureLeads: false,
     canExportLeads: false,
     canAccessStats: false,
+    canAccessNotifyEvents: false,
     canCustomWhatsApp: false,
     socialDisplayLevel: 'minimal',
     canFavorite: false,
@@ -261,6 +274,7 @@ export const PERMISSIONS_BY_PLAN: Record<PlanKey, PlanPermissions> = {
     maxExternalLinks: 0,
     canCustomLinkLabel: false,
     privacyLevel: 'public',
+    expiresAt: false,
     keepOriginalFilenames: false,
     customizationLevel: 'default',
     canCustomCategories: false,
@@ -278,6 +292,7 @@ export const PERMISSIONS_BY_PLAN: Record<PlanKey, PlanPermissions> = {
     canCaptureLeads: false,
     canExportLeads: false,
     canAccessStats: false,
+    canAccessNotifyEvents: false,
     canCustomWhatsApp: false,
     socialDisplayLevel: 'social',
     canFavorite: true,
@@ -291,6 +306,7 @@ export const PERMISSIONS_BY_PLAN: Record<PlanKey, PlanPermissions> = {
     maxExternalLinks: 1,
     canCustomLinkLabel: false,
     privacyLevel: 'password',
+    expiresAt: false,
     keepOriginalFilenames: false,
     customizationLevel: 'default',
     canCustomCategories: false,
@@ -308,6 +324,7 @@ export const PERMISSIONS_BY_PLAN: Record<PlanKey, PlanPermissions> = {
     canCaptureLeads: false,
     canExportLeads: false,
     canAccessStats: false,
+    canAccessNotifyEvents: false,
     canCustomWhatsApp: false,
     socialDisplayLevel: 'social',
     canFavorite: true,
@@ -321,6 +338,7 @@ export const PERMISSIONS_BY_PLAN: Record<PlanKey, PlanPermissions> = {
     maxExternalLinks: 2,
     canCustomLinkLabel: false,
     privacyLevel: 'password',
+    expiresAt: false,
     keepOriginalFilenames: true,
     customizationLevel: 'colors',
     canCustomCategories: true,
@@ -338,6 +356,7 @@ export const PERMISSIONS_BY_PLAN: Record<PlanKey, PlanPermissions> = {
     canCaptureLeads: true,
     canExportLeads: true,
     canAccessStats: true,
+    canAccessNotifyEvents: true,
     canCustomWhatsApp: true,
     socialDisplayLevel: 'full',
     canFavorite: true,
@@ -351,6 +370,7 @@ export const PERMISSIONS_BY_PLAN: Record<PlanKey, PlanPermissions> = {
     maxExternalLinks: 5,
     canCustomLinkLabel: true,
     privacyLevel: 'password',
+    expiresAt: true,
     keepOriginalFilenames: true,
     customizationLevel: 'colors',
     canCustomCategories: true,
@@ -368,6 +388,7 @@ export const PERMISSIONS_BY_PLAN: Record<PlanKey, PlanPermissions> = {
     canCaptureLeads: true,
     canExportLeads: true,
     canAccessStats: true,
+    canAccessNotifyEvents: true,
     canCustomWhatsApp: true,
     socialDisplayLevel: 'full',
     canFavorite: true,
@@ -381,6 +402,7 @@ export const PERMISSIONS_BY_PLAN: Record<PlanKey, PlanPermissions> = {
     maxExternalLinks: 10,
     canCustomLinkLabel: true,
     privacyLevel: 'password',
+    expiresAt: true,
     keepOriginalFilenames: true,
     customizationLevel: 'full',
     canCustomCategories: true,
@@ -594,7 +616,13 @@ export const COMMON_FEATURES = [
     key: 'canAccessStats', // 🎯 Ajustado: era 'access-stats'
     group: 'Gestão',
     label: 'Estatísticas da galeria',
-    values: [false, false, false, true, true],
+    values: [false, false, false, 'Ativadas', 'Ativadas'],
+  },
+  {
+    key: 'canAccessNotifyEvents', // 🎯 Ajustado: era 'access-notify-events'
+    group: 'Gestão',
+    label: 'Notificações de eventos',
+    values: [false, false, false, 'Ativadas', 'Ativadas'],
   },
   {
     key: 'teamMembers', // 🎯 Ajustado: era 'team-members-ui'
@@ -837,6 +865,12 @@ export const COMMON_FEATURES = [
       'Proteção por Senha',
       'Proteção por Senha',
     ],
+  },
+  {
+    key: 'expiresAt', // 🎯 Ajustado: era 'access-control'
+    group: 'Segurança',
+    label: 'Data de Expiração',
+    values: [false, false, false, 'Ativa', 'Ativa'],
   },
 ];
 
