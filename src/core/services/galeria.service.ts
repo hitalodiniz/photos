@@ -8,6 +8,7 @@ import { GLOBAL_CACHE_REVALIDATE } from '@/core/utils/url-helper';
 
 import {
   DrivePhoto,
+  getSelectionMetadataAction,
   //makeFolderPublic as makeFolderPublicLib,
 } from '@/lib/google-drive';
 import { getFolderPhotos } from './google-drive.service';
@@ -56,6 +57,9 @@ import {
 } from '../utils/galeria-limit.helper';
 import { revalidateGalleryCache } from '@/actions/revalidate.actions';
 import { cache } from 'react';
+import { registerFolderWatch } from './drive-watch.service';
+import { getGoogleRefreshToken } from './profile.service';
+import { getDriveAccessTokenForUser } from '@/lib/google-auth';
 
 // =========================================================================
 // 2. SLUG ÚNICO POR DATA
@@ -210,6 +214,35 @@ export async function createGaleria(
       username: profile.username,
     });
 
+    if (insertedData.drive_folder_id) {
+      // 1️⃣ Busca refresh token (profile.service)
+      const tokenResult = await getGoogleRefreshToken();
+
+      if (tokenResult.success && tokenResult.token) {
+        try {
+          // 2️⃣ Troca por access token (google-auth)
+          const accessToken = await getDriveAccessTokenForUser(userId);
+
+          if (accessToken) {
+            // 3️⃣ Registra o watch (drive-watch.service)
+            await registerFolderWatch(
+              accessToken,
+              insertedData.drive_folder_id,
+              insertedData.id,
+              tokenResult.userId!,
+            );
+
+            console.log('[createGaleria] ✅ Watch registrado com sucesso');
+          } else {
+            console.warn('[createGaleria] Não foi possível obter access token');
+          }
+        } catch (error) {
+          // Não falha a criação da galeria se o watch falhar
+          console.error('[createGaleria] Erro ao registrar watch:', error);
+        }
+      }
+    }
+
     return {
       success: true,
       message: 'Nova galeria criada com sucesso!',
@@ -297,9 +330,44 @@ export async function updateGaleria(
       username: profile.username,
     });
 
+    if (updateData.drive_folder_id) {
+      // 1️⃣ Busca refresh token (profile.service)
+      const tokenResult = await getGoogleRefreshToken();
+
+      if (tokenResult.success && tokenResult.token) {
+        try {
+          // 2️⃣ Troca por access token (google-auth)
+          const accessToken = await getDriveAccessTokenForUser(
+            tokenResult.userId!,
+          );
+
+          if (accessToken) {
+            // 3️⃣ Registra o watch (drive-watch.service)
+            await registerFolderWatch(
+              accessToken,
+              updateData.drive_folder_id,
+              id,
+              tokenResult.userId!,
+            );
+
+            console.log('[updateGaleria] ✅ Watch registrado com sucesso');
+          } else {
+            console.warn('[updateGaleria] Não foi possível obter access token');
+          }
+        } catch (error) {
+          // Não falha a criação da galeria se o watch falhar
+          console.error('[updateGaleria] Erro ao registrar watch:', error);
+        }
+      } else {
+        console.warn(
+          '[updateGaleria] Token do Google não disponível:',
+          tokenResult.error,
+        );
+      }
+    }
     return {
       success: true,
-      message: 'Galeria refinada com sucesso!',
+      message: 'Galeria atualizada com sucesso!',
       data: { id, ...updateData },
     };
   } catch (error) {
@@ -671,7 +739,6 @@ export async function syncGaleriaPhotoCount(
     }
 
     const count = photosResult.data?.length || 0;
-    console.log('count photosResult', count);
     const { error: updateError } = await supabase
       .from('tb_galerias')
       .update({
@@ -1204,3 +1271,57 @@ export const getProfileCategories = cache(async (userId: string) => {
     },
   )(userId);
 });
+
+/**
+ * 🎯 SALVA A SELEÇÃO DE FOTOS (IDs) DO CLIENTE
+ */
+export async function saveGaleriaSelectionAction(
+  galeria: Galeria,
+  selectionIds: string[],
+) {
+  const metadata = await getSelectionMetadataAction(
+    galeria.drive_folder_id,
+    selectionIds,
+  );
+  const supabase = await createSupabaseServerClient();
+
+  try {
+    // 1. Update no banco
+    const { data, error, status } = await supabase
+      .from('tb_galerias')
+      .update({
+        // Garante que estamos enviando um array limpo
+        selection_ids: Array.isArray(selectionIds) ? selectionIds : [],
+        selection_metadata: metadata,
+        updated_at: new Date().toISOString(),
+      })
+      .eq('id', galeria.id)
+      .select(); // Adicionamos select para confirmar que houve alteração
+
+    // Se o status for 204 ou data estiver vazio, o RLS bloqueou ou o ID não existe
+    if (error) throw error;
+
+    if (!data || data.length === 0) {
+      console.error(
+        '[saveGaleriaSelectionAction] Nenhuma linha afetada. Verifique as políticas de RLS.',
+      );
+      return {
+        success: false,
+        error: 'Permissão negada ou galeria não encontrada.',
+      };
+    }
+
+    // 2. Revalidação de cache (Usa dados do objeto galeria recebido)
+    await revalidateGalleryCache({
+      galeriaId: galeria.id,
+      slug: galeria.slug,
+      userId: galeria.user_id,
+      username: galeria.photographer?.username,
+    });
+
+    return { success: true };
+  } catch (error: any) {
+    console.error('[saveGaleriaSelectionAction] Erro Crítico:', error.message);
+    return { success: false, error: error.message };
+  }
+}

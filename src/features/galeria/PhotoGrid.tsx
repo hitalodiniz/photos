@@ -1,6 +1,6 @@
 'use client';
 import React, { useState, useEffect, useMemo, useRef } from 'react';
-import { Download, Loader2 } from 'lucide-react';
+import { ArrowLeft, CheckCircle2, Download, Eye, Loader2 } from 'lucide-react';
 import { saveAs } from 'file-saver';
 import JSZip from 'jszip';
 import Lightbox from './Lightbox';
@@ -25,16 +25,17 @@ import { getGalleryPermission } from '@/core/utils/plan-helpers';
 
 import { DownloadCenterModal } from './DownloadCenterModal';
 import { emitGaleriaEvent } from '@/core/services/galeria-stats.service';
-import { getProfileByUsername } from '@/core/services/profile.service';
-import { i, title } from 'framer-motion/client';
-import { blob } from 'stream/consumers';
 import { useShare } from '@/hooks/useShare';
+import { ConfirmationModal, Toast } from '@/components/ui';
+import { saveGaleriaSelectionAction } from '@/core/services/galeria.service';
 
 export default function PhotoGrid({ photos, galeria }: any) {
   // --- 1. ESTADOS DE INTERFACE ---
   const [selectedPhotoIndex, setSelectedPhotoIndex] = useState<number | null>(
     null,
   );
+  const [showSelectionFromUrl, setShowSelectionFromUrl] = useState(false);
+
   const [isScrolled, setIsScrolled] = useState(false);
   const [isHovered, setIsHovered] = useState(false);
   const [showOnlyFavorites, setShowOnlyFavorites] = useState(false);
@@ -45,6 +46,10 @@ export default function PhotoGrid({ photos, galeria }: any) {
     label: string;
     feature: string;
   } | null>(null);
+
+  // --- 2. ESTADOS DE CONFIRMAÇÃO DE SELEÇÃO ---
+  const [isConfirmModalOpen, setIsConfirmModalOpen] = useState(false);
+  const [isSavingSelections, setIsSavingSelections] = useState(false);
 
   // --- 2. ESTADOS DE DOWNLOAD E DADOS ---
   const [isDownloading, setIsDownloading] = useState(false);
@@ -58,7 +63,7 @@ export default function PhotoGrid({ photos, galeria }: any) {
 
   // --- 3. REFS E CONSTANTES ---
   const gridRef = useRef<HTMLDivElement>(null);
-  const anchorRef = useRef<HTMLDivElement>(null);
+
   const storageKey = `favoritos_galeria_${galeria.id}`;
 
   // --- 4. MEMOS (CÁLCULOS) ---
@@ -91,13 +96,6 @@ export default function PhotoGrid({ photos, galeria }: any) {
 
     try {
       const parsedTags = parsePossiblySerializedJson(galeria.photo_tags);
-
-      console.log(
-        '[PhotoGrid] photo_tags tipo:',
-        typeof galeria?.photo_tags,
-        '| parsed length:',
-        Array.isArray(parsedTags) ? parsedTags.length : 'não é array',
-      );
 
       if (!Array.isArray(parsedTags)) return safePhotos;
 
@@ -190,6 +188,12 @@ export default function PhotoGrid({ photos, galeria }: any) {
   // Persistência: Carregar (30 dias)
   // 1. CARREGAR E RENOVAR (Roda ao abrir a página)
   useEffect(() => {
+    // 1. Prioridade: Dados já salvos no banco de dados da galeria
+    if (galeria.selection_ids && galeria.selection_ids.length > 0) {
+      setFavorites(galeria.selection_ids);
+      return;
+    }
+    // 2. Fallback: LocalStorage (para seleções em rascunho/sessão atual)
     const savedData = localStorage.getItem(storageKey);
     if (savedData) {
       try {
@@ -219,7 +223,7 @@ export default function PhotoGrid({ photos, galeria }: any) {
         console.error('Erro ao processar favoritos:', e);
       }
     }
-  }, [storageKey]);
+  }, [galeria.selection_ids, storageKey]);
 
   // 2. SALVAR MUDANÇAS (Roda ao favoritar/desfavoritar)
   useEffect(() => {
@@ -239,28 +243,38 @@ export default function PhotoGrid({ photos, galeria }: any) {
 
   // Scroll e Observer
   useEffect(() => {
-    // Controle de estilo da barra (scrolled)
-    const handleScroll = () => setIsScrolled(window.scrollY > 100);
-    window.addEventListener('scroll', handleScroll);
+    const handleScroll = () => {
+      // Define isScrolled para a estética da Toolbar (20px)
+      const scrolled = window.scrollY > 1;
+      setIsScrolled(scrolled);
 
-    const observer = new IntersectionObserver(
-      ([entry]) => {
-        // 🎯 INVERSÃO LÓGICA:
-        // Se o topo (anchorRef) NÃO está visível (!entry.isIntersecting),
-        // então o usuário desceu e podemos mostrar o botão de favoritos.
-        setCanShowFavButton(!entry.isIntersecting);
-      },
-      // Ajustamos o rootMargin para o botão não brotar "colado" no topo
-      { threshold: 0, rootMargin: '-100px 0px 0px 0px' },
-    );
-
-    if (anchorRef.current) observer.observe(anchorRef.current);
-
-    return () => {
-      window.removeEventListener('scroll', handleScroll);
-      observer.disconnect();
+      // O botão de favoritos aparece após o usuário rolar 150px
+      // (suficiente para sair do impacto inicial do Hero)
+      setCanShowFavButton(window.scrollY > 1);
     };
+
+    window.addEventListener('scroll', handleScroll);
+    return () => window.removeEventListener('scroll', handleScroll);
   }, []);
+
+  // useEffect para ler a URL
+  useEffect(() => {
+    if (typeof window !== 'undefined') {
+      const urlParams = new URLSearchParams(window.location.search);
+      const selectionParam = urlParams.get('selection');
+
+      // Se a URL tem ?selection=true e existem fotos selecionadas salvas
+      if (selectionParam === 'true' && galeria.selection_ids?.length > 0) {
+        setShowSelectionFromUrl(true);
+
+        // ✅ Força o filtro de favoritos
+        setShowOnlyFavorites(true);
+
+        // ✅ Carrega as fotos selecionadas nos favoritos
+        setFavorites(galeria.selection_ids);
+      }
+    }
+  }, [galeria.selection_ids]);
 
   // 🎯 Para Favoritos (Lógica Composta: Plano + Switch da Galeria)
   const canUseFavorites = useMemo(() => {
@@ -469,6 +483,52 @@ export default function PhotoGrid({ photos, galeria }: any) {
   const downloadAllAsZip = () =>
     handleDownloadZip(photosWithTags, 'completa', false);
 
+  const [toast, setToast] = useState<{
+    message: string;
+    type: 'success' | 'error';
+  } | null>(null);
+
+  // 🎯 SALVAR A SELEÇÃO DE FOTOS (IDs) DO CLIENTE
+  const handleSaveSelections = async () => {
+    if (favorites.length === 0) return;
+    if (galeria.selection_ids?.length > 0) return;
+
+    setIsSavingSelections(true);
+    try {
+      const result = await saveGaleriaSelectionAction(galeria, favorites);
+
+      if (result.success) {
+        await emitGaleriaEvent({
+          galeria,
+          eventType: 'selection',
+          metadata: {
+            id_fotos_selecionadas: favorites,
+            quantidade_fotos_selecionadas: favorites.length,
+          },
+        });
+
+        setToast({
+          message: 'Seleção enviada com sucesso! O fotógrafo será notificado.',
+          type: 'success',
+        });
+
+        // Opcional: Feedback visual de sucesso antes de fechar
+        setIsConfirmModalOpen(false);
+        // Você pode redirecionar ou mostrar um Toast aqui
+      } else {
+        console.error('Erro ao salvar:', result.error);
+        setToast({
+          message: `Erro ao enviar: ${result.error}`,
+          type: 'error',
+        });
+      }
+    } catch (err) {
+      console.error('Erro ao salvar:', err);
+    } finally {
+      setIsSavingSelections(false);
+    }
+  };
+
   const { shareAsGuest } = useShare({ galeria });
 
   const handleShare = async () => {
@@ -482,11 +542,6 @@ export default function PhotoGrid({ photos, galeria }: any) {
 
   return (
     <div className="relative w-full">
-      <div
-        ref={anchorRef}
-        className="absolute top-0 h-10 w-full pointer-events-none"
-      />
-
       {/* INFO BARS */}
       <div className="sticky top-0 z-[100] w-full pointer-events-none">
         <ToolBarDesktop
@@ -539,7 +594,6 @@ export default function PhotoGrid({ photos, galeria }: any) {
           handleShare={handleShare}
         />
       </div>
-
       <div ref={gridRef}>
         <MasonryGrid
           {...{
@@ -555,10 +609,12 @@ export default function PhotoGrid({ photos, galeria }: any) {
             canUseFavorites: canUseFavorites && galeria.enable_favorites,
             tagSelectionMode: 'single',
           }}
+          /* 🎯 AJUSTE CHAVE: Alterna entre Marcação (admin) e Coração (public) */
+          mode={galeria.has_contracting_client === 'ES' ? 'admin' : 'public'}
+          allowLightboxInAdmin={galeria.has_contracting_client === 'ES'} // 🎯 Ativa o lightbox mesmo em modo seleção
           galleryTitle={galeria.title}
         />
       </div>
-
       {/* MODAL CENTRAL DE DOWNLOADS (TEMA BRANCO) */}
       {showVolumeDashboard && (
         <DownloadCenterModal
@@ -575,35 +631,93 @@ export default function PhotoGrid({ photos, galeria }: any) {
           canUseFavorites={canUseFavorites && galeria.enable_favorites}
         />
       )}
-
       {/* BOTÃO FLUTUANTE DE DOWNLOAD FAVORITOS */}
       {favorites.length > 0 &&
         !showVolumeDashboard &&
         canShowFavButton &&
         canUseFavorites && (
-          <div className="fixed bottom-6 left-1/2 -translate-x-1/2 z-[150] animate-in fade-in zoom-in slide-in-from-bottom-5 duration-300 pointer-events-auto w-fit">
-            <button
-              onClick={handleDownloadFavorites}
-              disabled={isDownloadingFavs}
-              className="flex items-center justify-center rounded-[0.7rem] h-12 bg-champagne text-black border border-white/20 shadow-[0_20px_50px_rgba(0,0,0,0.5)] hover:scale-105 active:scale-95 transition-all px-6 gap-3"
-            >
-              {isDownloadingFavs ? (
-                <Loader2 size={18} className="animate-spin" />
-              ) : (
-                <Download size={18} />
-              )}
-              <div className="flex flex-col items-start leading-tight text-left">
-                <span className="text-[11px] font-bold uppercase tracking-luxury-tight">
-                  Baixar Favoritas
-                </span>
-                <span className="text-[9px] font-medium opacity-70 italic">
-                  {favorites.length} {favorites.length === 1 ? 'foto' : 'fotos'}
-                </span>
+          <div className="fixed bottom-6 left-1/2 -translate-x-1/2 z-[150] animate-in fade-in zoom-in slide-in-from-bottom-5 duration-300 w-fit">
+            {galeria.has_contracting_client === 'ES' ? (
+              /* --- LOGICA PARA ENSAIO (ES) --- */
+              <div className="flex items-center gap-2 p-1.5">
+                {!showOnlyFavorites && galeria.selection_ids?.length === 0 ? (
+                  /* ESTADO 1: VER SELECIONADAS (BOTÃO INICIAL) */
+                  <button
+                    onClick={() => setShowOnlyFavorites(true)}
+                    className="flex items-center justify-center rounded-luxury h-12 bg-white text-black border border-white/20 shadow-xl hover:scale-105 active:scale-95 transition-all px-8 gap-3 min-w-[200px]"
+                  >
+                    <Eye size={18} className="text-petroleum" />
+                    <div className="flex flex-col items-start leading-tight text-left">
+                      <span className="text-[11px] font-bold uppercase tracking-widest">
+                        Ver Selecionadas
+                      </span>
+                      <span className="text-[9px] font-bold opacity-60 italic">
+                        {favorites.length}{' '}
+                        {favorites.length === 1 ? 'foto' : 'fotos'}
+                      </span>
+                    </div>
+                  </button>
+                ) : (
+                  <>
+                    {/* ESTADO 2: FILTRO ATIVO (DUAS OPÇÕES) */}
+                    {galeria.selection_ids?.length === 0 && (
+                      <div className="flex items-center gap-2 animate-in slide-in-from-right-2 duration-300">
+                        {/* BOTÃO VOLTAR / CONTINUAR */}
+                        <button
+                          onClick={() => setShowOnlyFavorites(false)}
+                          className="flex items-center justify-center rounded-luxury h-12 bg-petroleum text-white border border-white/10 hover:bg-petroleum-light transition-all px-5 gap-2"
+                        >
+                          <ArrowLeft size={18} />
+                          <span className="text-[9px] md:text-[11px] font-semibold uppercase tracking-widest">
+                            Continuar seleção
+                          </span>
+                        </button>
+
+                        {/* BOTÃO FINALIZAR (DESTAQUE) */}
+                        <button
+                          onClick={() => setIsConfirmModalOpen(true)}
+                          className="flex items-center justify-center rounded-luxury h-12 bg-gold text-black border border-black/10 shadow-[0_0_20px_rgba(212,175,55,0.4)] hover:scale-105 active:scale-95 transition-all px-5 gap-2"
+                        >
+                          <CheckCircle2 size={18} strokeWidth={2.5} />
+                          <div className="flex flex-col items-start leading-tight text-left">
+                            <span className="text-[9px] md:text-[11px] font-semibold uppercase tracking-widest">
+                              Enviar Seleção
+                            </span>
+                            <span className="text-[9px] font-semibold opacity-80 italic">
+                              Concluir Etapa
+                            </span>
+                          </div>
+                        </button>
+                      </div>
+                    )}
+                  </>
+                )}
               </div>
-            </button>
+            ) : (
+              /* --- BOTÃO PADRÃO PARA OUTROS TIPOS (BAIXAR) --- */
+              <button
+                onClick={handleDownloadFavorites}
+                disabled={isDownloadingFavs}
+                className="flex items-center justify-center rounded-luxury h-12 bg-champagne text-black border border-white/20 shadow-2xl hover:scale-105 active:scale-95 transition-all px-6 gap-3"
+              >
+                {isDownloadingFavs ? (
+                  <Loader2 size={18} className="animate-spin" />
+                ) : (
+                  <Download size={18} />
+                )}
+                <div className="flex flex-col items-start leading-tight text-left">
+                  <span className="text-[11px] font-bold uppercase tracking-luxury-tight">
+                    Baixar Favoritas
+                  </span>
+                  <span className="text-[9px] font-medium opacity-70 italic">
+                    {favorites.length}{' '}
+                    {favorites.length === 1 ? 'foto' : 'fotos'}
+                  </span>
+                </div>
+              </button>
+            )}
           </div>
         )}
-
       {/* LIGHTBOX */}
       {selectedPhotoIndex !== null && photosWithTags.length > 0 && (
         <Lightbox
@@ -630,6 +744,43 @@ export default function PhotoGrid({ photos, galeria }: any) {
             )
           }
           onNavigateToIndex={(index) => setSelectedPhotoIndex(index)}
+          mode={
+            galeria.has_contracting_client === 'ES' ? 'selection' : 'favorite'
+          }
+        />
+      )}
+      <ConfirmationModal
+        isOpen={isConfirmModalOpen}
+        onClose={() => setIsConfirmModalOpen(false)}
+        onConfirm={async () => {
+          // Aqui entra a lógica de envio da seleção (ex: API call)
+          await handleSaveSelections();
+          setIsConfirmModalOpen(false);
+        }}
+        variant="primary" // "primary" usa o padrão Gold/Info do seu código
+        title="Finalizar Seleção"
+        confirmText="Sim, Enviar Seleção"
+        isLoading={isSavingSelections}
+        message={
+          <div className="space-y-2">
+            <p>
+              Você selecionou <strong>{favorites.length} fotos</strong>.
+            </p>
+            <p>
+              Ao confirmar, sua seleção será enviada para o fotógrafo e não
+              poderá mais ser alterada através deste link.
+            </p>
+            <p className="text-[11px] mt-4 opacity-70">
+              Esta ação encerra sua etapa de escolha.
+            </p>
+          </div>
+        }
+      />{' '}
+      {toast && (
+        <Toast
+          message={toast.message}
+          type={toast.type}
+          onClose={() => setToast(null)}
         />
       )}
       <UpgradeModal

@@ -72,7 +72,8 @@ export async function captureLeadAction(
     // Mesmo contexto de rastreio do evento para persistir no metadata do lead
     const browserVisitorId = cookieStore.get('visitor_id')?.value;
     const sessionCookie = cookieStore.get(`gsid-${galeria.id}`)?.value;
-    const fallbackIp = headerList.get('x-forwarded-for')?.split(',')[0] || 'unknown';
+    const fallbackIp =
+      headerList.get('x-forwarded-for')?.split(',')[0] || 'unknown';
     const finalVisitorId =
       data.visitorId || browserVisitorId || sessionCookie || fallbackIp;
 

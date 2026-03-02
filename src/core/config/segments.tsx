@@ -32,7 +32,10 @@ export const SEGMENT_DICTIONARY: Record<SegmentType, SegmentDictionary> = {
 
     heroSubtitle: () => (
       <>
-        Encontre profissionais ou transforme seu{' '}
+        {/* Encontre profissionais ou transforme seu{' '}
+        <span className="italic font-semibold text-white">Google Drive™</span>{' '}
+        em uma Galeria Profissional */}
+        Transforme seu{' '}
         <span className="italic font-semibold text-white">Google Drive™</span>{' '}
         em uma Galeria Profissional
       </>

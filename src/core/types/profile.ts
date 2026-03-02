@@ -39,7 +39,7 @@ export const UserSettingsSchema = z.object({
   display: z.object({
     // Mantemos o booleano para compatibilidade, mas o default_type é o novo padrão
     show_contract_type: z.boolean().default(true),
-    default_type: z.enum(['contract', 'event']).default('contract'),
+    default_type: z.enum(['contract', 'event', 'ensaio']).default('contract'),
   }),
   defaults: z.object({
     is_public: z.boolean().default(true), // 👈 Adicionado campo de privacidade padrão

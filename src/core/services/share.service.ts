@@ -14,6 +14,7 @@ export interface ShareOptions {
   url: string;
   photoId?: string;
   phone?: string;
+  files?: File[];
 }
 
 /**
@@ -25,22 +26,38 @@ export class ShareService {
    * Executa o compartilhamento (nativo ou WhatsApp)
    */
   static async share(options: ShareOptions): Promise<void> {
-    const { type, galeria, url, phone } = options;
+    const { type, galeria, url, phone, files } = options;
 
     // 1. Monta o título e mensagem
     const title = this.getTitle(galeria, type);
     const message = this.getMessage(options);
 
-    // 2. Tenta compartilhamento nativo (mobile)
+    // 2. Tenta compartilhamento nativo (Prioriza arquivos se existirem)
     if (this.canUseNativeShare()) {
       try {
-        await navigator.share({
+        const shareData: ShareData = {
           title,
           text: message,
-        });
+        };
+
+        // 🚀 O SEGREDO: Se houver arquivos, verifica se pode compartilhar
+        if (
+          files &&
+          files.length > 0 &&
+          navigator.canShare &&
+          navigator.canShare({ files })
+        ) {
+          shareData.files = files;
+          // Importante: Algumas redes (Instagram) ignoram o 'text' se houver 'files'
+          // Elas focam 100% na imagem recebida.
+        } else {
+          // Se não houver arquivo ou não for suportado, envia a URL no corpo
+          shareData.url = url;
+        }
+
+        await navigator.share(shareData);
         return;
       } catch (error) {
-        // Se usuário cancelar, não faz nada
         if ((error as Error).name === 'AbortError') {
           return;
         }
@@ -48,7 +65,7 @@ export class ShareService {
       }
     }
 
-    // 3. Fallback: Abre WhatsApp
+    // 3. Fallback: Abre WhatsApp (WhatsApp Web/App não aceita 'files' via link direto, apenas texto)
     this.openWhatsApp(message, phone);
   }
 

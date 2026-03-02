@@ -80,44 +80,26 @@ export async function getDriveAccessTokenForUser(
 
     const tokenData = await tokenRes.json();
     if (!tokenRes.ok) {
-      // 🎯 TRATAMENTO DE ERRO CRÍTICO: Token Inválido/Revogado
+      // invalid_grant pode ser revogação real ou erro temporário do Google.
+      // Não limpamos o refresh_token no perfil — o usuário pode reconectar se precisar.
       if (
         tokenData.error === 'invalid_grant' ||
         tokenData.error === 'invalid_request'
       ) {
-        console.error(
-          `[getDriveAccessTokenForUser] Token do usuário ${userId} expirou ou foi revogado. Erro:`,
-          tokenData.error,
+        console.warn(
+          `[getDriveAccessTokenForUser] Google retornou ${tokenData.error} para userId ${userId}. Não alteramos o token no perfil.`,
+          tokenData.error_description || '',
         );
-
-        // Limpa o refresh_token inválido do banco e marca status
-        try {
-          await supabase
-            .from('tb_profiles')
-            .update({
-              google_refresh_token: null,
-              google_access_token: null,
-              google_token_expires_at: null,
-              google_auth_status: 'expired', // Marca como expirado
-            })
-            .eq('id', userId);
-          // console.log(`[getDriveAccessTokenForUser] Refresh token inválido removido do banco para userId: ${userId}`);
-        } catch (dbError) {
-          console.error(
-            '[getDriveAccessTokenForUser] Erro ao limpar token do banco:',
-            dbError,
-          );
-        }
+      } else {
+        console.error(
+          '[getDriveAccessTokenForUser] Erro na renovação do Google:',
+          {
+            error: tokenData.error,
+            error_description: tokenData.error_description,
+            status: tokenRes.status,
+          },
+        );
       }
-
-      console.error(
-        '[getDriveAccessTokenForUser] Erro na renovação do Google:',
-        {
-          error: tokenData.error,
-          error_description: tokenData.error_description,
-          status: tokenRes.status,
-        },
-      );
       return null;
     }
 

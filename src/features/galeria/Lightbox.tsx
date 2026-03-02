@@ -37,6 +37,7 @@ interface LightboxProps {
   favorites: string[];
   onToggleFavorite: (id: string) => void;
   isSingleView?: boolean; // Se true, esconde setas e gestos
+  mode: 'selection' | 'favorite';
 }
 
 export default function Lightbox({
@@ -55,6 +56,7 @@ export default function Lightbox({
   favorites,
   onToggleFavorite,
   isSingleView,
+  mode,
 }: LightboxProps) {
   const [showInterface, setShowInterface] = useState(true);
   const [isHoveringNav, setIsHoveringNav] = useState(false);
@@ -398,6 +400,7 @@ export default function Lightbox({
               showClose={!isSingleView}
               hasShownQualityWarning={hasShownQualityWarning}
               onQualityWarningShown={() => setHasShownQualityWarning(true)}
+              mode={mode}
             />
           </div>
         )}
@@ -639,6 +642,7 @@ export default function Lightbox({
                   setHasShownQualityWarning(true);
                 }}
                 handleShare={handleShare} // Passa a função centralizada
+                mode={mode}
               />
             </div>
           </div>

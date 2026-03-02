@@ -1,6 +1,10 @@
 'use server';
 
-import { PlanKey, PERMISSIONS_BY_PLAN, resolveGalleryLimitByPlan } from '@/core/config/plans';
+import {
+  PlanKey,
+  PERMISSIONS_BY_PLAN,
+  resolveGalleryLimitByPlan,
+} from '@/core/config/plans';
 import { getAuthenticatedUser } from '@/core/services/auth-context.service';
 import {
   archiveExceedingGalleries,
@@ -12,6 +16,7 @@ import {
   revalidateGalleryCache,
 } from './revalidate.actions';
 import { createInternalNotification } from '@/core/services/notification.service';
+import { listPhotosFromDriveFolder } from '@/lib/google-drive';
 
 interface ActionResult {
   success: boolean;
@@ -101,4 +106,30 @@ export async function autoPurgeTrashAction(): Promise<ActionResult> {
     console.error('[autoPurgeTrashAction] Erro:', error);
     return { success: false, error: 'Falha na limpeza automática.' };
   }
+}
+
+/**
+ * 🎯 CONVERSÃO CENTRALIZADA (DE-PARA)
+ * Utiliza o cache da listagem completa para extrair os nomes dos arquivos.
+ * Vantagem: Zero chamadas extras ao Google se o cache estiver quente.
+ */
+export async function getSelectionMetadataAction(
+  driveFolderId: string,
+  selectedIds: string[],
+  accessToken?: string,
+): Promise<{ id: string; name: string }[]> {
+  if (!selectedIds.length) return [];
+
+  // Busca via listagem (aproveita cache do Next.js)
+  const allPhotos = await listPhotosFromDriveFolder(driveFolderId, accessToken);
+  if (!allPhotos) return [];
+
+  const idSet = new Set(selectedIds);
+
+  return allPhotos
+    .filter((photo) => idSet.has(photo.id))
+    .map((photo) => ({
+      id: photo.id,
+      name: photo.name,
+    }));
 }

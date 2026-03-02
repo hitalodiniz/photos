@@ -111,6 +111,9 @@ export function formatGalleryData(
     leads_count: raw.leads?.[0] ? ((raw.leads[0] as any).count ?? 0) : 0,
     gallery_tags: raw.gallery_tags || null,
     photo_tags: raw.photo_tags || null,
+    selection_ids: raw.selection_ids || null,
+    has_contracting_client: raw.has_contracting_client || null,
+    selection_metadata: raw.selection_metadata || null,
   };
 }
 

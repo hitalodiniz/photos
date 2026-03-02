@@ -194,7 +194,7 @@
   }
 
   .btn-secondary-white {
-    @apply btn-luxury-base border-petroleum/40 bg-white text-petroleum hover:border-petroleum hover:bg-petroleum/5 transition-all duration-500;
+    @apply btn-luxury-base border-petroleum/40 bg-white text-petroleum hover:border-white/80 hover:bg-white/80 transition-all duration-500;
   }
 
   .btn-toolbar {

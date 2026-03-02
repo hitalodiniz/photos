@@ -280,6 +280,27 @@ export async function listPhotosFromDriveFolder(
   return [];
 }
 
+export async function getSelectionMetadataAction(
+  driveFolderId: string,
+  selectionIds: string[],
+  accessToken?: string,
+): Promise<{ id: string; name: string }[]> {
+  // 🎯 Se a lista vier vazia (limpeza), retorna array vazio imediatamente
+  if (!selectionIds || selectionIds.length === 0) return [];
+
+  const allPhotos = await listPhotosFromDriveFolder(driveFolderId, accessToken);
+  if (!allPhotos) return [];
+
+  const idSet = new Set(selectionIds);
+
+  return allPhotos
+    .filter((photo) => idSet.has(photo.id))
+    .map((photo) => ({
+      id: photo.id,
+      name: photo.name,
+    }));
+}
+
 /**
  * Torna a pasta pública (Leitor para Qualquer Pessoa).
  */
