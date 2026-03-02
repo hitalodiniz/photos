@@ -50,11 +50,22 @@ export function useShare({ galeria, onSuccess, onError }: UseShareOptions) {
       setIsSharing(true);
       try {
         const url = `${window.location.origin}/photo/${photoId}?s=${galeria.slug}`;
+
+        // 2. Baixar a imagem e converter para File (O SEGREDO PARA ATIVAR O INSTAGRAM)
+        const response = await fetch(
+          `${window.location.origin}/photo/${photoId}`,
+        );
+        const blob = await response.blob();
+        const file = new File([blob], `foto-${photoId}.jpg`, {
+          type: 'image/jpeg',
+        });
+
         await ShareService.share({
           type: 'photo',
           galeria,
           url,
           photoId,
+          files: [file],
         });
         onSuccess?.();
       } catch (error) {
