@@ -56,7 +56,7 @@ export const DownloadCenterModal = ({
               <span className="text-[10px] font-semibolduppercase tracking-luxury text-gold animate-pulse">
                 Gerando Arquivo
               </span>
-              <span className="text-[8px] text-white/40 uppercase font-semibold tracking-luxury">
+              <span className="text-[8px] text-white/70 uppercase font-semibold tracking-luxury">
                 {activeDownloadingIndex !== null
                   ? 'Não feche esta tela'
                   : 'Iniciando...'}
@@ -116,7 +116,7 @@ export const DownloadCenterModal = ({
                   handleDownloadZip(
                     favChunk,
                     `Favoritas_${index + 1}`,
-                    false,
+                    true,
                     true,
                     `fav-${index}`,
                   )

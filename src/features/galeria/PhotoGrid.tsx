@@ -406,9 +406,6 @@ export default function PhotoGrid({ photos, galeria }: any) {
           currentBatch.map(async (photo, indexInBatch) => {
             try {
               let blob;
-              const sizeInBytes = Number(photo.size) || 0;
-              const tetoMaximo = TAMANHO_MAXIMO_FOTO_SEM_COMPACTAR;
-
               // 🎯 LÓGICA INTELIGENTE:
               // Se a foto já for menor que 1.5MB, baixa o original direto do Google.
               // Se for maior, usa o proxy para reduzir para 2560px.
@@ -480,8 +477,6 @@ export default function PhotoGrid({ photos, galeria }: any) {
   };
 
   const handleDownloadFavorites = () => setShowVolumeDashboard(true);
-  const downloadAllAsZip = () =>
-    handleDownloadZip(photosWithTags, 'completa', false);
 
   const [toast, setToast] = useState<{
     message: string;
