@@ -1,13 +1,15 @@
 {
   "name": "photos",
-  "version": "0.1.181",
+  "version": "0.1.182",
   "private": true,
   "workspaces": [
     "packages/*"
   ],
   "scripts": {
-    "dev": "node scripts/generate-version-env.js && next dev",
-    "build": "node scripts/generate-version-env.js && next build",
+    "predev": "node scripts/generate-version-env.js",
+    "dev": "next dev",
+    "prebuild": "node scripts/generate-version-env.js --build",
+    "build": "next build",
     "start": "next start",
     "test:ui": "vitest --ui",
     "lint": "eslint .",
