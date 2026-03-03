@@ -29,6 +29,7 @@ import {
   ShieldCheck,
   PlayCircle,
   Settings2,
+  CalendarClock,
 } from 'lucide-react';
 import WhatsAppIcon from '@/components/ui/WhatsAppIcon';
 import { convertToDirectDownloadUrl } from '@/core/utils/url-helper';
@@ -52,6 +53,7 @@ import {
   type GalleryTypeValue,
 } from '@/components/ui/GalleryTypeToggle';
 import { normalizeContractType } from '@/core/types/galeria';
+import { div } from 'framer-motion/client';
 
 /** default_type do perfil (contract/event/ensaio) → código (CT/CB/ES) */
 const DEFAULT_TYPE_TO_CODE: Record<string, GalleryTypeValue> = {
@@ -182,7 +184,8 @@ export default function GaleriaFormContent({
     const defaultType = profile?.settings?.display?.default_type;
     return (defaultType && DEFAULT_TYPE_TO_CODE[defaultType]) || 'CT';
   });
-  const hasContractingClient = galleryType === 'CT';
+
+  const today = new Date().toISOString().split('T')[0];
 
   const [isPublic, setIsPublic] = useState(() => {
     if (initialData)
@@ -404,7 +407,8 @@ export default function GaleriaFormContent({
 
       if (!folderPermissionInfo.isPublic) {
         onPickerError(
-          `Pasta privada: Altere o acesso no Drive para "Qualquer pessoa com o link" antes de vincular.\nLink: ${folderPermissionInfo.folderLink}`,
+          'Pasta privada: Altere o acesso no Drive para "Qualquer pessoa com o link" antes de vincular.',
+          folderPermissionInfo.folderLink,
         );
         return;
       }
@@ -746,109 +750,125 @@ export default function GaleriaFormContent({
             title="Privacidade"
             icon={<ShieldCheck size={14} className="text-gold" />}
           >
-            <fieldset>
-              <div className="flex flex-col lg:flex-row lg:items-center gap-6 lg:gap-x-12">
-                {/* ACESSO */}
-                <div className="flex flex-col sm:flex-row items-start sm:items-center gap-3">
-                  <div className="flex items-center gap-1.5 shrink-0">
+            <fieldset className="w-full">
+              {/* Flex-row para alinhar os cards, mantendo-os fixos e proporcionais */}
+              <div className="flex flex-wrap items-stretch gap-2 w-full">
+                {/* CARD 1: ACESSO (O maior, com PIN fixo) */}
+                <div className="flex-[1.8] flex items-center justify-between p-3 bg-slate-50/50 rounded-luxury border border-petroleum/10 h-14 w-full">
+                  <div className="flex items-center gap-2 shrink-0">
                     <label>
-                      <Shield size={12} className=" text-gold" /> Acesso à
-                      Galeria
+                      <Shield
+                        size={14}
+                        className={
+                          !isPublic ? 'text-gold' : 'text-petroleum/40'
+                        }
+                      />
+                      Acesso
                     </label>
                     <InfoTooltip
                       title="Acesso restrito"
                       content="Para acessar uma galeria protegida por senha, o visitante deve informar a senha cadastrada nesta tela. Sem senha, qualquer pessoa com o link pode acessar. Com senha, apenas quem informar a senha correta terá acesso."
-                      width="w-48"
+                      title="Acesso"
                     />
                   </div>
 
-                  <div className="flex items-center gap-3 w-full sm:w-auto">
-                    <div className="flex bg-slate-50 rounded-[0.4rem] border border-slate-200 p-1 gap-1 w-40 shrink-0">
+                  <div className="flex items-center gap-3">
+                    {/* Toggle fixo em 120px */}
+                    <div className="flex bg-slate-100 rounded-[0.4rem] p-0.5 gap-0.5 w-[150px] shrink-0 h-9">
                       <button
                         type="button"
                         onClick={() => setIsPublic(true)}
-                        className={`flex-1 py-1 rounded-[0.3rem] text-[9px] font-semibold uppercase tracking-luxury-widest transition-all ${isPublic ? 'bg-champagne  shadow-sm' : 'text-slate-400'}`}
+                        className={`flex-1 rounded-[0.3rem] text-[10px] font-semibold uppercase tracking-tighter ${isPublic ? 'bg-champagne shadow-sm' : 'text-slate-400'}`}
                       >
                         Público
                       </button>
                       <button
                         type="button"
-                        onClick={() => {
-                          setIsPublic(false);
-                        }}
-                        className={`flex-1 py-1 rounded-[0.3rem] text-[9px] font-semibold uppercase tracking-luxury-widest transition-all ${!isPublic ? 'bg-champagne  shadow-sm' : 'text-petroleum/60 dark:text-slate-400'}`}
+                        onClick={() => setIsPublic(false)}
+                        className={`flex-1 rounded-[0.3rem] text-[10px] font-semibold uppercase tracking-tighter ${!isPublic ? 'bg-champagne shadow-sm' : 'text-petroleum/60'}`}
                       >
                         Privado
                       </button>
                     </div>
-                    {!isPublic && (
-                      <PlanGuard
-                        feature="privacyLevel"
-                        label="Proteção por Senha"
-                      >
-                        <div className="relative group w-32">
-                          <PasswordInput
-                            name="password"
-                            disabled={!canUsePassword}
-                            type="password"
-                            inputMode="numeric"
-                            pattern="[0-9]*"
-                            minLength={4}
-                            maxLength={6}
-                            defaultValue={initialData?.password || ''}
-                            required
-                            placeholder="Senha"
-                            onChange={(e) => {
-                              e.target.value = e.target.value.replace(
-                                /\D/g,
-                                '',
-                              );
-                            }}
-                          />
-                        </div>
+
+                    {/* PIN fixo em 100px para o ícone do olho não vazar */}
+                    <div
+                      className={`flex items-center gap-1 transition-all duration-300 w-[100px] ${isPublic ? 'opacity-20 grayscale pointer-events-none' : 'opacity-100'}`}
+                    >
+                      <PlanGuard feature="privacyLevel" label="Senha">
+                        <PasswordInput
+                          name="password"
+                          disabled={isPublic}
+                          defaultValue={initialData?.password || ''}
+                          placeholder="PIN"
+                          className="h-9"
+                          style={{ width: '64px', minWidth: '64px' }}
+                        />
                       </PlanGuard>
-                    )}
+                    </div>
                   </div>
                 </div>
 
-                {/* LISTAGEM NO PERFIL - Também pode ser protegida pelo profileListLimit */}
-                <PlanGuard
-                  feature="profileLevel" // Planos básicos podem ter limitações aqui
-                  label="Listar no Perfil"
-                >
-                  <div className="flex flex-col sm:flex-row items-start sm:items-center gap-3">
-                    <div className="flex items-center gap-1.5 shrink-0">
-                      <label>
-                        <Eye size={12} className="  text-gold" /> Listar no
-                        Perfil
-                      </label>
-                      <InfoTooltip
-                        title="Exibir galeria no seu perfil"
-                        content="Se ativado, esta galeria será visível na sua página de perfil pública para todos os visitantes."
-                        width="w-48"
-                      />
-                    </div>
+                {/* CARD 2: EXPIRAÇÃO */}
+                <div className="flex-1 flex items-center justify-between p-3 bg-slate-50/50 rounded-luxury border border-petroleum/10 h-14 w-full gap-2">
+                  <div className="flex items-center gap-2 shrink-0">
+                    <label>
+                      <Calendar size={14} className="text-gold" />
+                      Expiração
+                    </label>
+                    <InfoTooltip
+                      content="Se ativada, a galeria ficará indisponível para acesso após esta data."
+                      title="Expiração"
+                    />
+                  </div>
 
+                  <PlanGuard feature="expiresAt" label="Expiração">
+                    <input
+                      type="date"
+                      name="expires_at"
+                      min={today}
+                      defaultValue={
+                        initialData?.expires_at
+                          ? String(initialData.expires_at).slice(0, 10)
+                          : ''
+                      }
+                      disabled={!permissions.expiresAt}
+                      className="input-luxury w-[115px] !px-2"
+                    />
+                  </PlanGuard>
+                </div>
+
+                {/* CARD 3: NO PERFIL (Compacto e sem vácuo) */}
+                <div className="flex-none w-full md:w-[230px] flex items-center justify-between p-3 bg-slate-50/50 rounded-luxury border border-petroleum/10 h-14">
+                  <div className="flex items-center gap-2 shrink-0">
+                    <label>
+                      <Eye
+                        size={14}
+                        className={
+                          showOnProfile ? 'text-gold' : 'text-petroleum/40'
+                        }
+                      />
+                      Listar no Perfil
+                    </label>
+                    <InfoTooltip
+                      content="Se ativado, esta galeria será visível na sua página de perfil pública para todos os visitantes."
+                      title="Listar no Perfil"
+                    />
+                  </div>
+
+                  <PlanGuard feature="profileLevel" label="Perfil">
                     <button
                       type="button"
                       onClick={() => setShowOnProfile(!showOnProfile)}
-                      className={`relative h-5 w-9 rounded-full transition-colors duration-200 ${showOnProfile ? 'bg-gold' : 'bg-slate-200'}`}
+                      className={`relative inline-flex h-5 w-9 shrink-0 rounded-full border-2 border-transparent transition-colors duration-200 ${showOnProfile ? 'bg-gold' : 'bg-slate-200'}`}
                     >
                       <span
-                        className={`absolute top-0.5 left-0.5 h-4 w-4 rounded-full bg-white shadow-sm transition-transform duration-200 ${showOnProfile ? 'translate-x-4' : ''}`}
+                        className={`inline-block h-4 w-4 transform rounded-full bg-white transition duration-200 ${showOnProfile ? 'translate-x-4' : 'translate-x-0'}`}
                       />
                     </button>
-                  </div>
-                </PlanGuard>
+                  </PlanGuard>
+                </div>
               </div>
-              {/* Renderizar o UpgradeModal no final do componente pai */}
-              <UpgradeModal
-                isOpen={!!upsellFeature}
-                onClose={() => setUpsellFeature(null)}
-                featureName={upsellFeature?.label || ''}
-                featureKey={upsellFeature?.feature as any} // Passa a chave técnica
-                scenarioType="feature"
-              />
             </fieldset>
           </FormSection>
 

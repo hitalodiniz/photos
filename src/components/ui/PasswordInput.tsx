@@ -71,7 +71,7 @@ export default function PasswordInput({
               onChange={onChange}
               onFocus={() => setHasFocus(true)}
               onBlur={() => setHasFocus(false)}
-              className="absolute inset-0 opacity-0 z-10 cursor-pointer"
+              className={`input-luxury w-12 min-w-[48px] text-center px-1 tracking-widest ${className} ${error ? 'border-red-500/50' : ''}`}
             />
 
             <div className="flex gap-2">
@@ -100,11 +100,12 @@ export default function PasswordInput({
 
             <button
               type="button"
+              disabled={props.disabled} // Adicione isso aqui
+              className={`ml-2 p-2 z-20 text-petroleum/40 hover:text-gold transition-colors bg-white/5 rounded-md border border-white/10 ${props.disabled ? 'cursor-not-allowed opacity-50' : ''}`}
               onClick={(e) => {
                 e.stopPropagation();
                 setShowPassword(!showPassword);
               }}
-              className="ml-2 p-2 text-petroleum/30 hover:text-gold z-20"
             >
               {showPassword ? <Eye size={16} /> : <EyeOff size={16} />}
             </button>
@@ -222,7 +223,8 @@ export default function PasswordInput({
             maxLength={4}
             value={value}
             onChange={onChange}
-            className={`input-luxury w-[32px] text-center px-0 tracking-widest ${className} ${error ? 'border-red-500/50' : ''}`}
+            className={`input-luxury text-center px-1 text-lg h-10 tracking-wider ${className} ${error ? 'border-red-500/50' : ''}`}
+            style={{ width: '64px', minWidth: '64px' }}
           />
         </div>
         <button

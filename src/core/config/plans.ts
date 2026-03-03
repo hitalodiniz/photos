@@ -104,6 +104,11 @@ export const FEATURE_DESCRIPTIONS: Partial<
     description:
       'Exibe um formulário de acesso à galeria coletando nome, e-mail e WhatsApp do visitante antes de liberar as fotos.',
   },
+  canAccessNotifyEvents: {
+    label: 'Notificações de eventos da galeria',
+    description:
+      'Receba notificações quando a galeria for visualizada, compartilhada, baixada, etc.',
+  },
   canExportLeads: {
     label: 'Exportar Contatos',
     description:
@@ -139,6 +144,13 @@ export const FEATURE_DESCRIPTIONS: Partial<
     description:
       'Define o nível de proteção da galeria: pública, privada (só com link), protegida por senha ou com link de expiração.',
   },
+
+  expiresAt: {
+    label: 'Data de Expiração',
+    description:
+      'Defina uma data para expiração do acesso à galeria. Após esta data, a galeria ficará indisponível para acesso.',
+  },
+
   customizationLevel: {
     label: 'Personalização Visual',
     description:
@@ -147,7 +159,7 @@ export const FEATURE_DESCRIPTIONS: Partial<
   keepOriginalFilenames: {
     label: 'Nomes de Arquivo',
     description:
-      'Preserva os nomes originais dos arquivos no download. Sem este recurso, os arquivos recebem nomes aleatórios.',
+      'Preserva os nomes originais dos arquivos no download. Sem este recurso, os arquivos recebem nomes sequências.',
   },
   tagSelectionMode: {
     label: 'Modo de Seleção',
@@ -250,6 +262,7 @@ export interface PlanPermissions {
 
   // Leads
   canCaptureLeads: boolean;
+  canAccessNotifyEvents: boolean;
   canExportLeads: boolean;
   canCustomWhatsApp: boolean;
 
@@ -267,10 +280,9 @@ export interface PlanPermissions {
   zipSizeLimitBytes: number; // Valor real para comparação no código
   maxExternalLinks: number;
   canCustomLinkLabel: boolean;
+  privacyLevel: 'public' | 'password';
+  expiresAt: boolean | null;
   keepOriginalFilenames: boolean;
-
-  // Segurança
-  privacyLevel: 'public' | 'private' | 'password' | 'expiration';
 
   // Personalização
   customizationLevel: 'default' | 'colors' | 'full';
@@ -295,6 +307,8 @@ export const PERMISSIONS_BY_PLAN: Record<PlanKey, PlanPermissions> = {
     removeBranding: false,
     canCaptureLeads: false,
     canExportLeads: false,
+    canAccessStats: false,
+    canAccessNotifyEvents: false,
     canCustomWhatsApp: false,
     socialDisplayLevel: 'minimal',
     canFavorite: false,
@@ -307,11 +321,11 @@ export const PERMISSIONS_BY_PLAN: Record<PlanKey, PlanPermissions> = {
     zipSizeLimitBytes: ZIP_LIMITS.FREE,
     maxExternalLinks: 0,
     canCustomLinkLabel: false,
-    keepOriginalFilenames: false,
     privacyLevel: 'public',
+    expiresAt: false,
+    keepOriginalFilenames: false,
     customizationLevel: 'default',
     canCustomCategories: false,
-    canAccessStats: false,
   },
   START: {
     photoCredits: PHOTO_CREDITS_BY_PLAN.START,
@@ -324,6 +338,8 @@ export const PERMISSIONS_BY_PLAN: Record<PlanKey, PlanPermissions> = {
     removeBranding: false,
     canCaptureLeads: false,
     canExportLeads: false,
+    canAccessStats: false,
+    canAccessNotifyEvents: false,
     canCustomWhatsApp: false,
     socialDisplayLevel: 'social',
     canFavorite: true,
@@ -336,11 +352,12 @@ export const PERMISSIONS_BY_PLAN: Record<PlanKey, PlanPermissions> = {
     zipSizeLimitBytes: ZIP_LIMITS.START,
     maxExternalLinks: 1,
     canCustomLinkLabel: false,
+    privacyLevel: 'password',
+    expiresAt: false,
     keepOriginalFilenames: false,
-    privacyLevel: 'private',
+
     customizationLevel: 'default',
     canCustomCategories: false,
-    canAccessStats: false,
   },
   PLUS: {
     photoCredits: PHOTO_CREDITS_BY_PLAN.PLUS,
@@ -353,6 +370,8 @@ export const PERMISSIONS_BY_PLAN: Record<PlanKey, PlanPermissions> = {
     removeBranding: false,
     canCaptureLeads: false,
     canExportLeads: false,
+    canAccessStats: false,
+    canAccessNotifyEvents: false,
     canCustomWhatsApp: false,
     socialDisplayLevel: 'social',
     canFavorite: true,
@@ -365,11 +384,11 @@ export const PERMISSIONS_BY_PLAN: Record<PlanKey, PlanPermissions> = {
     zipSizeLimitBytes: ZIP_LIMITS.PLUS,
     maxExternalLinks: 2,
     canCustomLinkLabel: false,
+    privacyLevel: 'password',
+    expiresAt: false,
     keepOriginalFilenames: true,
-    privacyLevel: 'private',
     customizationLevel: 'colors',
     canCustomCategories: true,
-    canAccessStats: false,
   },
   PRO: {
     photoCredits: PHOTO_CREDITS_BY_PLAN.PRO,
@@ -399,6 +418,8 @@ export const PERMISSIONS_BY_PLAN: Record<PlanKey, PlanPermissions> = {
     customizationLevel: 'colors',
     canCustomCategories: true,
     canAccessStats: true,
+    canAccessNotifyEvents: true,
+    expiresAt: true,
   },
   PREMIUM: {
     photoCredits: PHOTO_CREDITS_BY_PLAN.PREMIUM,
@@ -424,10 +445,12 @@ export const PERMISSIONS_BY_PLAN: Record<PlanKey, PlanPermissions> = {
     maxExternalLinks: 10,
     canCustomLinkLabel: true,
     keepOriginalFilenames: true,
-    privacyLevel: 'expiration',
+    privacyLevel: 'password',
     customizationLevel: 'full',
     canCustomCategories: true,
     canAccessStats: true,
+    canAccessNotifyEvents: true,
+    expiresAt: true,
   },
 };
 
@@ -691,7 +714,21 @@ export const COMMON_FEATURES = [
       '50 galerias',
       '200 galerias',
     ],
+  },
+  {
+    group: 'Gestão',
+    key: 'canAccessStats' as const,
     tooltip: 'Limite máximo de galerias simultâneas — trava ao atingir',
+    label: 'Estatísticas da galeria',
+    values: [false, false, false, 'Ativadas', 'Ativadas'],
+  },
+  {
+    group: 'Gestão',
+    key: 'canAccessNotifyEvents',
+    tooltip:
+      'Receba notificações de eventos em tempo real: visualizações, downloads, favoritos e acessos à galeria.',
+    label: 'Notificações de eventos',
+    values: [false, false, false, 'Ativadas', 'Ativadas'],
   },
   {
     group: 'Gestão',
@@ -921,6 +958,12 @@ export const COMMON_FEATURES = [
       '+ Proteção por Senha',
       '+ Link com Expiração',
     ],
+  },
+  {
+    key: 'expiresAt', // 🎯 Ajustado: era 'access-control'
+    group: 'Segurança',
+    label: 'Data de Expiração',
+    values: [false, false, false, 'Ativa', 'Ativa'],
   },
 ];
 

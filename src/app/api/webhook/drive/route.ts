@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { revalidateDrivePhotos } from '@/actions/revalidate.actions';
-import { createSupabaseClientForCache } from '@/lib/supabase.server';
+import { createSupabaseAdmin } from '@/lib/supabase.server';
 import { syncGaleriaPhotoCount } from '@/core/services/galeria.service';
 
 // Debounce em memória (sobrevive por enquanto o processo estiver vivo)
@@ -29,7 +29,7 @@ export async function POST(req: NextRequest) {
 
 async function processWebhook(channelId: string) {
   try {
-    const supabase = await createSupabaseClientForCache();
+    const supabase = createSupabaseAdmin();
 
     // Busca qual pasta está associada a esse channelId
     const { data: channel } = await supabase

@@ -17,7 +17,7 @@ import GaleriaFormContent from './GaleriaFormContent';
 import type { Galeria } from '@/core/types/galeria';
 import GoogleConsentAlert from '@/components/auth/GoogleConsentAlert';
 import BaseModal from '@/components/ui/BaseModal';
-import { getPublicGalleryUrl, copyToClipboard } from '@/core/utils/url-helper';
+import { getPublicGalleryUrl } from '@/core/utils/url-helper';
 import { useNavigation } from '@/components/providers/NavigationProvider';
 import WhatsAppIcon from '@/components/ui/WhatsAppIcon';
 import { authService } from '@photos/core-auth';
@@ -55,6 +55,11 @@ export default function GaleriaFormPage({
   const [hasUnsavedChanges, setHasUnsavedChanges] = useState(false);
   const [formTitle, setFormTitle] = useState(galeria?.title || '');
   const [showConsentAlert, setShowConsentAlert] = useState(false);
+  const [toast, setToast] = useState<{
+    message: string;
+    type: 'success' | 'error';
+    link?: string;
+  } | null>(null);
   const formRef = useRef<HTMLFormElement>(null);
 
   const { showToast, ToastElement } = useToast();
@@ -140,6 +145,7 @@ export default function GaleriaFormPage({
     const isPublicValue = formData.get('is_public') === 'true';
     const cover_image_ids = formData.get('cover_image_ids') as string;
     const photoCount = parseInt(formData.get('photo_count') as string) || 0;
+    const expiresAt = (formData.get('expires_at') as string) ?? '';
 
     if (!title?.trim()) {
       showToast('O título é obrigatório.', 'error');
@@ -182,6 +188,7 @@ export default function GaleriaFormPage({
     formData.set('columns_tablet', String(columns.tablet));
     formData.set('columns_desktop', String(columns.desktop));
     formData.set('photo_count', String(photoCount));
+    formData.set('expires_at', expiresAt ?? '');
 
     const whatsappRaw = formData.get('client_whatsapp') as string;
     if (whatsappRaw)
@@ -271,8 +278,14 @@ export default function GaleriaFormPage({
         initialData={galeria}
         isEdit={isEdit}
         customization={{ showCoverInGrid, gridBgColor, columns }}
-        setCustomization={{ setShowCoverInGrid, setGridBgColor, setColumns }}
-        onPickerError={(msg: string) => showToast(msg, 'error')}
+        setCustomization={{
+          setShowCoverInGrid,
+          setGridBgColor,
+          setColumns,
+        }}
+        onPickerError={(msg: string, link?: string) =>
+          setToast({ message: msg, type: 'error', link })
+        }
         onTokenExpired={() => setShowConsentAlert(true)}
         onTitleChange={setFormTitle}
         profile={initialProfile}

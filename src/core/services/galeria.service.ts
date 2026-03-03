@@ -340,6 +340,7 @@ export async function updateGaleria(
           const accessToken = await getDriveAccessTokenForUser(
             tokenResult.userId!,
           );
+          console.log('accessToken', 'tem token no update');
 
           if (accessToken) {
             // 3️⃣ Registra o watch (drive-watch.service)

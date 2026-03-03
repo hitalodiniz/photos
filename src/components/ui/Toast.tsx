@@ -8,7 +8,9 @@ interface ToastProps {
   message: string;
   type: 'success' | 'error';
   onClose: () => void;
-  position?: 'left' | 'right'; // Parâmetro opcional
+  position?: 'left' | 'right';
+  /** Link opcional exibido abaixo da mensagem (ex.: abrir pasta no Drive) */
+  link?: { url: string; label?: string };
 }
 
 export default function Toast({
@@ -16,6 +18,7 @@ export default function Toast({
   type,
   onClose,
   position = 'right',
+  link,
 }: ToastProps) {
   const isLeft = position === 'left';
 
@@ -65,6 +68,17 @@ export default function Toast({
               <p className="text-[13px] font-semibold leading-tight tracking-tight">
                 {message}
               </p>
+              {link?.url && (
+                <a
+                  href={link.url}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="inline-flex items-center gap-1 mt-2 text-[12px] font-semibold text-gold hover:underline"
+                >
+                  <ExternalLink size={12} />
+                  {link.label ?? 'Abrir link'}
+                </a>
+              )}
             </div>
 
             <button

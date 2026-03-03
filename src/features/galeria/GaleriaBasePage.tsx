@@ -2,6 +2,7 @@ import React from 'react';
 import { notFound, redirect } from 'next/navigation';
 import { cookies } from 'next/headers';
 import Link from 'next/link';
+import { Lock } from 'lucide-react';
 import {
   fetchGalleryBySlug,
   formatGalleryData,
@@ -88,9 +89,53 @@ export default async function GaleriaBasePage({
 
   const galeriaData = formatGalleryData(galeriaRaw, username);
 
+  // Verificamos se existe data de expiração e se ela já passou
+  const isExpired =
+    galeriaData.expires_at && new Date() > new Date(galeriaData.expires_at);
+
+  const isOwner = userId === galeriaRaw.user_id;
+
+  // Garante que os dados do fotógrafo (incluindo templates) sejam injetados
   const photographerProfile = galeriaRaw.photographer;
   if (photographerProfile) {
     galeriaData.photographer = photographerProfile;
+  }
+
+  if (isExpired && !isOwner) {
+    return (
+      <div className="w-full min-h-[80vh] flex flex-col items-center justify-center px-6 py-20 text-center animate-in fade-in zoom-in-95 duration-1000">
+        <div className="w-12 h-12 rounded-full bg-slate-50 flex items-center justify-center border border-slate-100 mb-8 shadow-sm">
+          <Lock size={20} className="text-gold" />
+        </div>
+
+        <div className="max-w-2xl space-y-6">
+          <h2 className="text-[10px] uppercase tracking-[0.4em] text-gold font-bold">
+            Acesso Encerrado
+          </h2>
+
+          <h3 className="text-3xl md:text-4xl font-light text-petroleum leading-tight tracking-tight">
+            Esta galeria atingiu o prazo limite de visualização.
+          </h3>
+
+          <p className="text-[13px] md:text-[15px] leading-relaxed text-petroleum/60 max-w-md mx-auto">
+            Por questões de segurança e armazenamento, o link expirou em{' '}
+            <span className="font-bold text-petroleum/80">
+              {new Date(galeriaData.expires_at).toLocaleDateString('pt-BR')}
+            </span>
+            .
+          </p>
+
+          <div className="pt-8">
+            <Link
+              href={`/${galeriaData.photographer?.username}`}
+              className="btn-luxury-primary inline-flex items-center gap-3 px-10 h-12 rounded-luxury text-[11px] uppercase font-bold tracking-widest"
+            >
+              Voltar ao Início
+            </Link>
+          </div>
+        </div>
+      </div>
+    );
   }
 
   if (galeriaData.is_archived) {

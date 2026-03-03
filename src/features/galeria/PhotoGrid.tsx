@@ -415,6 +415,10 @@ export default function PhotoGrid({ photos, galeria }: any) {
               // Outros planos com foto acima do limite → usa proxy com resolução limitada
               let url: string;
 
+              // 🎯 LÓGICA INTELIGENTE:
+              // Se a foto já for menor que 1.5MB, baixa o original direto do Google.
+              // Se for maior, usa o proxy para reduzir para 2560px.
+
               if (targetResolution === 0 || sizeInBytes <= zipSizeLimitBytes) {
                 // Original direto do Google
                 url = getDownloadDirectGoogleUrl(
@@ -468,12 +472,12 @@ export default function PhotoGrid({ photos, galeria }: any) {
         setDownloadedVolumes((prev) => [...new Set([...prev, chunkIndex])]);
 
       emitGaleriaEvent({
-        galeria,
-        eventType: 'download',
+        galeria: galeria,
+        eventType: isFavAction ? 'download_favorites' : 'download',
         metadata: {
           count: targetList.length,
-          type: isFavAction ? 'favorites' : 'all',
           suffix: zipSuffix,
+          volume: typeof chunkIndex === 'number' ? chunkIndex + 1 : undefined,
         },
       });
     } catch (error) {
@@ -488,8 +492,6 @@ export default function PhotoGrid({ photos, galeria }: any) {
   };
 
   const handleDownloadFavorites = () => setShowVolumeDashboard(true);
-  const downloadAllAsZip = () =>
-    handleDownloadZip(photosWithTags, 'completa', false);
 
   const [toast, setToast] = useState<{
     message: string;

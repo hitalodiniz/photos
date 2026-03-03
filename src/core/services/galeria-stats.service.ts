@@ -9,7 +9,13 @@ import { getPublicGalleryUrl } from '../utils/url-helper';
 
 interface GaleriaEventPayload {
   galeria: Galeria;
-  eventType: 'view' | 'lead' | 'download' | 'share' | 'selection';
+  eventType:
+    | 'view'
+    | 'lead'
+    | 'download'
+    | 'download_favorites'
+    | 'share'
+    | 'selection';
   visitorId?: string;
   metadata?: any;
 }
@@ -220,9 +226,15 @@ async function handleNotifications(
       msg: `${visitorName} entrou.`, // Usando o nome sanitizado aqui
     },
     download: {
-      title: `📥 Download Realizado${locBadgeFormatted}`,
+      title: `📥 Download Completo${locBadgeFormatted}`,
       type: 'info',
-      msg: `Fotos da galeria "${galeria.title}" baixadas.`,
+      msg: `${metadata.count || 'Todas as'} fotos da galeria "${galeria.title}" baixadas.`,
+    },
+    // ✅ NOVO: Evento específico para favoritas
+    download_favorites: {
+      title: `💖 Download de Favoritas${locBadgeFormatted}`,
+      type: 'success',
+      msg: `${metadata.count} ${metadata.count === 1 ? 'foto favorita' : 'fotos favoritas'} da galeria "${galeria.title}" ${metadata.count === 1 ? 'baixada' : 'baixadas'}.`,
     },
     share: {
       title: `📤 Compartilhamento${locBadgeFormatted}`,
@@ -296,8 +308,10 @@ export async function getGaleriaEventReport(galeriaId: string) {
   const eventLabels: Record<string, string> = {
     view: 'Visualização',
     lead: 'Cadastro de Visitante',
-    download: 'Download de Fotos',
+    download: 'Download Completo',
+    download_favorites: 'Download de Favoritas', // ✅ Adicionado
     share: 'Compartilhamento',
+    selection: 'Seleção de Fotos', // ✅ Adicionado
   };
 
   // 3. Processamento de métricas (Baixo custo: feito em uma única iteração)

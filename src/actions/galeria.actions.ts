@@ -1,10 +1,6 @@
 'use server';
 
-import {
-  PlanKey,
-  PERMISSIONS_BY_PLAN,
-  resolveGalleryLimitByPlan,
-} from '@/core/config/plans';
+import { resolveGalleryLimitByPlan } from '@/core/config/plans';
 import { getAuthenticatedUser } from '@/core/services/auth-context.service';
 import {
   archiveExceedingGalleries,

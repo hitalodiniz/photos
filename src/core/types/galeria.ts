@@ -89,6 +89,7 @@ export interface GaleriaBase {
   photo_tags: string | null;
   selection_ids: string[] | null;
   selection_metadata: { id: string; name: string }[] | null;
+  expires_at?: string | null;
 }
 
 // Interface utilizada na UI (GaleriaCard e GaleriaView)

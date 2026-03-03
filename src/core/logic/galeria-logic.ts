@@ -114,6 +114,7 @@ export function formatGalleryData(
     selection_ids: raw.selection_ids || null,
     has_contracting_client: raw.has_contracting_client || null,
     selection_metadata: raw.selection_metadata || null,
+    expires_at: raw.expires_at || null,
   };
 }
 

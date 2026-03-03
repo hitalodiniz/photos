@@ -13,6 +13,7 @@ import {
   CalendarDays,
   Zap,
   TableIcon,
+  Heart,
 } from 'lucide-react';
 import { useRouter } from 'next/navigation';
 import { RelatorioBasePage, LoadingScreen } from '@/components/ui';
@@ -30,6 +31,7 @@ import {
 } from '@/components/ui/RelatorioBasePage';
 import InteractiveChart from '@/components/ui/InteractiveChart';
 import { TrafficInfoCard } from '@/components/dashboard/TrafficInfoCard';
+import { InfoTooltip } from '@/components/ui/InfoTooltip';
 
 // --- VIEW PRINCIPAL ---
 export default function EventReportView({ galeria }: any) {
@@ -66,6 +68,9 @@ export default function EventReportView({ galeria }: any) {
     const views = events.filter((e: any) => e.event_type === 'view');
     const leads = events.filter((e: any) => e.event_type === 'lead');
     const downloads = events.filter((e: any) => e.event_type === 'download');
+    const downloadFavorites = events.filter(
+      (e: any) => e.event_type === 'download_favorites',
+    );
 
     const mobileEvents = events.filter(
       (e: any) => e.device_info?.type === 'mobile',
@@ -80,6 +85,7 @@ export default function EventReportView({ galeria }: any) {
       uniqueVisitors,
       uniqueLeads,
       downloads: downloads.length,
+      downloadFavorites: downloadFavorites.length,
       shares: events.filter((e: any) => e.event_type === 'share').length,
       mobileCount,
       desktopCount: totalEvents - mobileCount,
@@ -100,7 +106,6 @@ export default function EventReportView({ galeria }: any) {
     const days = [];
     const now = new Date();
 
-    // Gera o array para o intervalo selecionado (ex: 7, 15 ou 30 dias)
     for (let i = daysRange - 1; i >= 0; i--) {
       const d = new Date(now);
       d.setDate(d.getDate() - i);
@@ -109,7 +114,6 @@ export default function EventReportView({ galeria }: any) {
         month: '2-digit',
       });
 
-      // Filtra todos os eventos deste dia específico
       const dayEvents = events.filter(
         (e) =>
           new Date(e.created_at).toLocaleDateString('pt-BR', {
@@ -120,13 +124,15 @@ export default function EventReportView({ galeria }: any) {
 
       days.push({
         date: dateStr,
-        // Métricas baseadas no event_type do seu banco/API
         views: new Set(
           dayEvents
             .filter((e) => e.event_type === 'view')
             .map((e) => e.visitor_id),
-        ).size, // Visitantes únicos
+        ).size,
         downloads: dayEvents.filter((e) => e.event_type === 'download').length,
+        downloadFavorites: dayEvents.filter(
+          (e) => e.event_type === 'download_favorites',
+        ).length,
         shares: dayEvents.filter((e) => e.event_type === 'share').length,
       });
     }
@@ -177,6 +183,7 @@ export default function EventReportView({ galeria }: any) {
         <aside className="w-full lg:w-[350px] space-y-3 shrink-0">
           {/* VERSÃO AMPLA: Educativa e explicativa */}
           <TrafficInfoCard variant="full" tooltipPosition="bottom" />
+
           {/* 1. MARCOS PRINCIPAIS (Compacto) */}
           <div className="p-3 bg-white rounded-luxury border border-slate-200 grid grid-cols-2 gap-4">
             <div className="flex items-center gap-2 border-r border-slate-100">
@@ -235,29 +242,55 @@ export default function EventReportView({ galeria }: any) {
             <InteractiveChart timelineData={timelineData} />
           </div>
 
-          {/* 3. METRICAS RÁPIDAS (Downloads e Shares Subiram) */}
-          <div className="grid grid-cols-2 gap-2">
-            <div className="p-3 bg-white rounded-luxury border border-slate-200 flex items-center justify-between">
-              <div>
-                <p className="text-[8px] font-semibold text-slate-400 uppercase leading-none mb-1">
-                  Downloads
-                </p>
-                <p className="text-lg font-semibold text-petroleum leading-none px-1">
-                  {stats.downloads}
-                </p>
-              </div>
-              <Download size={18} className="text-blue opacity-20" />
+          {/* 3. METRICAS RÁPIDAS (Downloads, Favoritas e Shares) */}
+          <div className="grid grid-cols-3 gap-2">
+            {/* Download Completo */}
+            <div className="p-3 bg-white rounded-luxury border border-slate-200 flex flex-col items-center justify-center space-y-1">
+              <Download size={16} className="text-purple-500 mb-1" />
+              <p className="text-[8px] font-semibold text-slate-400 uppercase leading-none mb-1 text-center">
+                Downloads Completos
+              </p>
+              <InfoTooltip
+                title="Downloads Completos"
+                content="Downloads de todas as fotos da galeria por arquivo ZIP, mesmo que sejam favoritas."
+              />
+              <p className="text-lg font-semibold text-petroleum leading-none">
+                {stats.downloads}
+              </p>
             </div>
-            <div className="p-3 bg-white rounded-luxury border border-slate-200 flex items-center justify-between">
-              <div>
-                <p className="text-[8px] font-semibold text-slate-400 uppercase leading-none mb-1">
-                  Compartilhamentos
-                </p>
-                <p className="text-lg font-semibold text-petroleum leading-none px-1">
-                  {stats.shares}
-                </p>
-              </div>
-              <Share2 size={18} className="text-emerald opacity-20" />
+
+            {/* Download de Favoritas */}
+            <div className="p-3 bg-white rounded-luxury border border-slate-200 flex flex-col items-center justify-center space-y-1">
+              <Heart
+                size={16}
+                className="text-pink-500 mb-1"
+                fill="currentColor"
+              />
+              <p className="text-[8px] font-semibold text-slate-400 uppercase leading-none mb-1 text-center">
+                Downloads Favoritas
+              </p>
+              <InfoTooltip
+                title="Downloads Favoritas"
+                content="Downloads de fotos favoritas do visitante por arquivo ZIP."
+              />
+              <p className="text-lg font-semibold text-petroleum leading-none">
+                {stats.downloadFavorites}
+              </p>
+            </div>
+
+            {/* Compartilhamentos */}
+            <div className="p-3 bg-white rounded-luxury border border-slate-200 flex flex-col items-center justify-center space-y-1">
+              <Share2 size={16} className="text-emerald-500 mb-1" />
+              <p className="text-[8px] font-semibold text-slate-400 uppercase leading-none mb-1 text-center">
+                Compartilhamentos
+              </p>
+              <InfoTooltip
+                title="Compartilhamentos"
+                content="Compartilhamentos da galeria pelo visitante através de WhatsApp."
+              />
+              <p className="text-lg font-semibold text-petroleum leading-none">
+                {stats.shares}
+              </p>
             </div>
           </div>
 

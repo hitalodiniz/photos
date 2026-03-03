@@ -13,7 +13,7 @@ export async function startInternalCron() {
     // Evita rodar múltiplos crons se você tiver várias instâncias (em prod)
   }
 
-  console.log('🚀 Cron Interno iniciado: Monitorando estatísticas...');
+  //console.log('🚀 Cron Interno iniciado: Monitorando estatísticas...');
 
   // Roda a cada 1 hora (3600000 ms)
   // setInterval(

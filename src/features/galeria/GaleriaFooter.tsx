@@ -43,7 +43,7 @@ export default function GaleriaFooter({
         {showTopButton && (
           <button
             onClick={() => window.scrollTo({ top: 0, behavior: 'smooth' })}
-            className="group flex flex-col items-center gap-1 opacity-50 hover:opacity-100 transition-all"
+            className="group flex flex-col items-center gap-1 opacity-70 hover:opacity-100 transition-all"
           >
             <div className="p-2 rounded-full border border-white/10 group-hover:border-champagne transition-all">
               <svg
@@ -66,7 +66,7 @@ export default function GaleriaFooter({
         {/* 2. Conteúdo Central - Linha Única no Desktop */}
         <div className="flex flex-col items-center text-center px-4">
           {title && (
-            <h3 className="italic text-base md:text-xl text-white/90 font-light mb-1">
+            <h3 className="text-base md:text-xl text-white/90 font-light mb-1">
               {title}
             </h3>
           )}
