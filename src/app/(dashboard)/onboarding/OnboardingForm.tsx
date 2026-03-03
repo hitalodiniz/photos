@@ -44,6 +44,7 @@ import { PrivacyPolicyModal } from '@/app/(public)/privacidade/PrivacidadeConten
 import { TermsOfServiceModal } from '@/app/(public)/termos/TermosContent';
 import SpecialtySelect from '@/features/galeria/SpecialtySelect';
 import { supabase } from '@/lib/supabase.client';
+import { ThemeKey, ThemeSelector } from '@/components/ui/ThemeSelector';
 /**
  * 🎯 Componente de seção - Estilo Editorial
  */
@@ -190,6 +191,9 @@ export default function OnboardingForm({
       ? initialData.custom_specialties
       : [],
   );
+  const [themeKey, setThemeKey] = useState<ThemeKey>(
+    initialData?.theme_key || (process.env.NEXT_PUBLIC_APP_SEGMENT as ThemeKey),
+  );
 
   const hasAcceptedBefore = !!initialData?.accepted_terms;
 
@@ -317,6 +321,7 @@ export default function OnboardingForm({
     formData.set('accepted_terms', 'true');
     formData.set('specialty', JSON.stringify(specialties));
     formData.set('custom_specialties', JSON.stringify(customSpecialties));
+    formData.set('theme_key', themeKey);
 
     // Preserva avatar existente quando não há novo upload.
     // Evita que profile_picture_url seja zerado no upsert.
@@ -805,6 +810,18 @@ export default function OnboardingForm({
                 </FormSection>
               </PlanGuard>
 
+              <PlanGuard feature="profileLevel" label="Biografia Editorial">
+                <FormSection title="Tema Visual" icon={<Sparkles size={14} />}>
+                  <ThemeSelector
+                    currentTheme={themeKey}
+                    previewTargetId="profile-preview-wrapper"
+                    onConfirm={(theme) => setThemeKey(theme)}
+                    confirmLabel="Aplicar ao Perfil"
+                    compact
+                  />
+                </FormSection>
+              </PlanGuard>
+
               {/* SEÇÃO 4: ÁREA DE ATUAÇÃO (ESPECIALIDADE) */}
               <PlanGuard feature="profileLevel" label="Área de Atuação">
                 <FormSection
@@ -998,7 +1015,10 @@ export default function OnboardingForm({
         </aside>
 
         {/* PREVIEW */}
-        <main className="w-full md:w-[65%] min-h-[600px] md:h-screen bg-black relative flex-grow overflow-y-auto">
+        <main
+          id="profile-preview-wrapper"
+          className="w-full md:w-[65%] min-h-[600px] md:h-screen bg-black relative flex-grow overflow-y-auto"
+        >
           <ProfilePreview
             initialData={{
               full_name: fullName,
@@ -1012,6 +1032,7 @@ export default function OnboardingForm({
               website,
               background_url: activeBackgrounds,
               plan_key: planKey,
+              theme_key: themeKey,
             }}
           />
         </main>

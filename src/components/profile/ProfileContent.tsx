@@ -17,6 +17,7 @@ import { BrandWatermark } from '../ui/BrandWatermark';
 import { useSegment } from '@/hooks/useSegment';
 import { GALLERY_CATEGORIES } from '@/core/config/categories';
 import { Profile } from '@/core/types/profile';
+import { env } from 'process';
 
 // 🎯 Função de normalização local (removido import de 'path')
 const normalizeText = (text: string) =>
@@ -39,6 +40,7 @@ interface ProfileContentProps {
   backgroundUrl?: string | string[];
   useSubdomain?: boolean;
   profile?: Profile;
+  themeKey?: string;
 }
 
 export default function ProfileContent({
@@ -54,8 +56,8 @@ export default function ProfileContent({
   backgroundUrl,
   useSubdomain = true,
   profile,
+  themeKey,
 }: ProfileContentProps) {
-  const { terms } = useSegment();
   const { permissions } = usePlan();
 
   const [isLoading, setIsLoading] = useState(true);
@@ -283,7 +285,10 @@ export default function ProfileContent({
   );
 
   return (
-    <div className="relative min-h-screen bg-white font-sans overflow-x-hidden">
+    <div
+      className="relative min-h-screen font-sans overflow-x-hidden bg-luxury-bg text-petroleum transition-colors duration-500"
+      data-theme={themeKey}
+    >
       <EditorialHero
         title={fullName}
         coverUrls={activeBackgrounds}
@@ -293,7 +298,6 @@ export default function ProfileContent({
       >
         {showDetailedBio && <ProfileBio miniBio={miniBio} isExpanded={false} />}
       </EditorialHero>
-
       <div className="relative z-50">
         <ProfileToolBar
           phone={phone}
@@ -308,7 +312,6 @@ export default function ProfileContent({
           categories={allCategories}
         />
       </div>
-
       <main className="relative z-30 max-w-[1600px] mx-auto px-2 py-2 min-h-[50vh] bg-white">
         {filteredGalerias.length > 0 ? (
           <div className="space-y-2">
@@ -429,7 +432,6 @@ export default function ProfileContent({
           )
         )}
       </main>
-
       <GaleriaFooter
         galeria={footerGaleria}
         photographer={footerPhotographer}

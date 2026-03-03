@@ -32,19 +32,17 @@ export default async function OnboardingPage() {
   );
 
   return (
-    <AuthGuard>
-      <PlanProvider profile={profile}>
-        <div className="min-h-screen bg-luxury-bg">
-          <OnboardingForm
-            initialData={profile}
-            suggestedUsername={data.suggestedUsername}
-            email={data.email || ''}
-            isEditMode={isProfileComplete}
-            isGoogleConnected={isGoogleConnected}
-          />
-        </div>
-      </PlanProvider>
-    </AuthGuard>
+    <PlanProvider profile={profile}>
+      <div className="min-h-screen bg-luxury-bg">
+        <OnboardingForm
+          initialData={profile}
+          suggestedUsername={data.suggestedUsername}
+          email={data.email || ''}
+          isEditMode={isProfileComplete}
+          isGoogleConnected={isGoogleConnected}
+        />
+      </div>
+    </PlanProvider>
   );
 }
 export const metadata: Metadata = {

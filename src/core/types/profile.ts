@@ -32,6 +32,7 @@ export interface Profile {
   accepted_at: string;
   specialty?: string;
   custom_specialties?: string[];
+  theme_key?: string; // 'PHOTOGRAPHER' | 'DARK_CINEMA' | 'EDITORIAL_WHITE' | 'NATURE' | 'NOCTURNAL_LUXURY' | 'OFF_WHITE' | 'PLATINUM'
 }
 
 // 🎯 Zod Schema atualizado para suportar o novo JSON

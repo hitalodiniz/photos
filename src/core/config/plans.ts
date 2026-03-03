@@ -272,6 +272,7 @@ export interface PlanPermissions {
   profileCarouselLimit: number;
   profileListLimit: number | 'unlimited';
   removeBranding: boolean;
+  selectedProfileTheme?: boolean;
 
   // Leads
   canCaptureLeads: boolean;
@@ -340,6 +341,7 @@ export const PERMISSIONS_BY_PLAN: Record<PlanKey, PlanPermissions> = {
     keepOriginalFilenames: false,
     customizationLevel: 'default',
     canCustomCategories: false,
+    selectedProfileTheme: false,
   },
   START: {
     photoCredits: PHOTO_CREDITS_BY_PLAN.START,
@@ -372,6 +374,7 @@ export const PERMISSIONS_BY_PLAN: Record<PlanKey, PlanPermissions> = {
     keepOriginalFilenames: false,
     customizationLevel: 'default',
     canCustomCategories: false,
+    selectedProfileTheme: false,
   },
   PLUS: {
     photoCredits: PHOTO_CREDITS_BY_PLAN.PLUS,
@@ -404,6 +407,7 @@ export const PERMISSIONS_BY_PLAN: Record<PlanKey, PlanPermissions> = {
     keepOriginalFilenames: true,
     customizationLevel: 'colors',
     canCustomCategories: true,
+    selectedProfileTheme: true,
   },
   PRO: {
     photoCredits: PHOTO_CREDITS_BY_PLAN.PRO,
@@ -436,6 +440,7 @@ export const PERMISSIONS_BY_PLAN: Record<PlanKey, PlanPermissions> = {
     canAccessStats: true,
     canAccessNotifyEvents: true,
     expiresAt: true,
+    selectedProfileTheme: true,
   },
   PREMIUM: {
     photoCredits: PHOTO_CREDITS_BY_PLAN.PREMIUM,
@@ -468,6 +473,7 @@ export const PERMISSIONS_BY_PLAN: Record<PlanKey, PlanPermissions> = {
     canAccessStats: true,
     canAccessNotifyEvents: true,
     expiresAt: true,
+    selectedProfileTheme: true,
   },
 };
 

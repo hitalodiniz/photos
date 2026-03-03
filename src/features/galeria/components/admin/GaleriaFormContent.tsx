@@ -30,6 +30,7 @@ import {
   PlayCircle,
   Settings2,
   CalendarClock,
+  Sparkles,
 } from 'lucide-react';
 import WhatsAppIcon from '@/components/ui/WhatsAppIcon';
 import { convertToDirectDownloadUrl } from '@/core/utils/url-helper';
@@ -54,6 +55,8 @@ import {
 } from '@/components/ui/GalleryTypeToggle';
 import { normalizeContractType } from '@/core/types/galeria';
 import { div } from 'framer-motion/client';
+import { ThemeKey, ThemeSelector } from '@/components/ui/ThemeSelector';
+import { env } from 'process';
 
 /** default_type do perfil (contract/event/ensaio) → código (CT/CB/ES) */
 const DEFAULT_TYPE_TO_CODE: Record<string, GalleryTypeValue> = {
@@ -168,6 +171,11 @@ export default function GaleriaFormContent({
     },
   );
 
+  const [galleryTheme, setGalleryTheme] = useState<ThemeKey>(
+    initialData?.theme_key ||
+      process.env.NEXT_PUBLIC_APP_SEGMENT ||
+      'PHOTOGRAPHER',
+  );
   const [renameFilesSequential, setRenameFilesSequential] = useState(() => {
     if (initialData)
       return (
@@ -539,6 +547,8 @@ export default function GaleriaFormContent({
               name="photo_count"
               value={driveData.photoCount || 0}
             />
+
+            <input type="hidden" name="theme_key" value={galleryTheme} />
 
             <input type="hidden" name="is_public" value={String(isPublic)} />
             <input type="hidden" name="category" value={category} />
@@ -947,6 +957,20 @@ export default function GaleriaFormContent({
             rootFolderId={profileRootFolderId}
           />
 
+          <div className="bg-white rounded-luxury border border-slate-200 p-4 space-y-3">
+            <div className="flex items-center gap-2 pb-2 border-b border-slate-200">
+              <Sparkles size={14} className="text-gold" />
+              <h3 className="text-[10px] font-bold uppercase tracking-luxury-widest text-petroleum">
+                Tema Visual
+              </h3>
+            </div>
+            <ThemeSelector
+              currentTheme={galleryTheme}
+              onConfirm={(theme) => setGalleryTheme(theme)}
+              confirmLabel="Aplicar à Galeria"
+              compact
+            />
+          </div>
           {/*LINKS E ARQUIVOS */}
           <div className="bg-white rounded-luxury border border-slate-200 p-4 space-y-3">
             <div className="flex items-center gap-2 pb-2 border-b border-slate-200">

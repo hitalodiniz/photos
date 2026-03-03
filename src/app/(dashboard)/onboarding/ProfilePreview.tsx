@@ -83,6 +83,9 @@ export default function Photographer({ initialData }: { initialData?: any }) {
     }
   })();
 
+  const themeKey =
+    profile.theme_key || process.env.NEXT_PUBLIC_APP_SEGMENT || 'PHOTOGRAPHER';
+
   const profileForPermission =
     profile.plan_key != null ? { plan_key: profile.plan_key } : undefined;
 
@@ -101,6 +104,7 @@ export default function Photographer({ initialData }: { initialData?: any }) {
         backgroundUrl={backgroundUrl}
         useSubdomain={useSubdomain}
         profile={profileForPermission}
+        theme_key={themeKey}
       />
     </div>
   );
