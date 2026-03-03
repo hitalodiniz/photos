@@ -53,7 +53,7 @@ export async function listPhotosFromPublicFolder(
   }
 
   // Query simplificada para evitar erros 400 em chamadas anônimas
-  const query = `'${driveFolderId}' in parents and trashed = false`;
+  const query = `'${driveFolderId}' in parents and trashed = false and mimeType contains 'image/'`;
   const fields =
     'nextPageToken, files(id, name, size, mimeType, webViewLink, imageMediaMetadata(width,height))';
 
@@ -99,7 +99,9 @@ export async function listPhotosFromPublicFolder(
       // PERFORMANCE: Se já coletamos arquivos suficientes para o limite do plano, paramos o do-while
       if (
         limit &&
-        allFiles.filter((f) => f.mimeType?.startsWith('image/')).length >= limit
+        allFiles.filter((f) => f.mimeType?.startsWith('image/')).length +
+          allFiles.filter((f) => f.mimeType?.startsWith('video/')).length >=
+          limit
       ) {
         break;
       }
@@ -107,7 +109,10 @@ export async function listPhotosFromPublicFolder(
 
     // Filtro manual de imagens e ordenação natural
     const imageFiles = allFiles
-      .filter((f) => f.mimeType?.startsWith('image/'))
+      .filter(
+        (f) =>
+          f.mimeType?.startsWith('image/') && !f.mimeType?.startsWith('video/'),
+      )
       .sort((a, b) =>
         a.name.localeCompare(b.name, undefined, {
           numeric: true,

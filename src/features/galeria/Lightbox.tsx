@@ -1,6 +1,4 @@
 'use client';
-import { GALLERY_MESSAGES } from '@/core/config/messages';
-import { formatMessage } from '@/core/utils/message-helper';
 import React, { useEffect, useState, useMemo, useCallback } from 'react';
 import { ChevronLeft, ChevronRight, ImageIcon, X } from 'lucide-react';
 import { GaleriaHeader } from './GaleriaHeader';
@@ -19,6 +17,7 @@ import { useShare } from '@/hooks/useShare';
 interface Photo {
   id: string | number;
   name?: string;
+  type?: 'photo' | 'video';
 }
 
 interface LightboxProps {
@@ -209,6 +208,7 @@ export default function Lightbox({
     let cancelled = false;
 
     const getImageSize = async () => {
+      if (currentPhoto?.type === 'video') return;
       // Precisamos da imagem carregada primeiro
       if (!imgSrc || isImageLoading) {
         if (!cancelled) setImageSize(null);
@@ -263,6 +263,9 @@ export default function Lightbox({
 
   // 🎯 LÓGICA DE PRELOAD (Próxima + Anterior) - usa mesmas resoluções VIEW
   useEffect(() => {
+    // Não faz preload de vídeos
+    if (photos[activeIndex]?.type === 'video') return;
+
     const imageWidth = isMobile
       ? RESOLUTIONS.VIEW_MOBILE
       : RESOLUTIONS.VIEW_DESKTOP;
@@ -570,14 +573,29 @@ export default function Lightbox({
               - object-contain mantém proporção sem distorção
               - Centralizado com flex
           */}
-            <img
-              key={`${photoId}-${usingProxy}`}
-              ref={imgRef}
-              src={imgSrc}
-              onLoad={handleLoad}
-              onError={handleError}
-              style={{ imageOrientation: 'from-image' }}
-              className={`transition-all duration-700 ease-out
+            {currentPhoto.type === 'video' ? (
+              <iframe
+                key={String(photoId)}
+                src={`https://drive.google.com/file/d/${photoId}/preview`}
+                className="w-full h-full rounded-lg"
+                style={{
+                  maxWidth: '90vw',
+                  maxHeight: '85vh',
+                  border: 'none',
+                  background: '#000',
+                }}
+                allow="autoplay; fullscreen"
+                allowFullScreen
+              />
+            ) : (
+              <img
+                key={`${photoId}-${usingProxy}`}
+                ref={imgRef}
+                src={imgSrc}
+                onLoad={handleLoad}
+                onError={handleError}
+                style={{ imageOrientation: 'from-image' }}
+                className={`transition-all duration-700 ease-out
               ${
                 isMobile
                   ? 'w-full h-full object-contain'
@@ -588,10 +606,11 @@ export default function Lightbox({
                   ? 'opacity-0 scale-95 blur-md'
                   : 'opacity-100 scale-100 blur-0 animate-in fade-in zoom-in duration-500'
               }`}
-              loading="eager"
-              decoding="sync"
-              alt={`${galleryTitle} - Foto ${activeIndex + 1}`}
-            />
+                loading="eager"
+                decoding="sync"
+                alt={`${galleryTitle} - Foto ${activeIndex + 1}`}
+              />
+            )}
           </div>
         </main>
 
