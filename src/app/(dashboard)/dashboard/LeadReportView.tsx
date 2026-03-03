@@ -13,6 +13,7 @@ import {
   Cpu,
   Calendar,
   CalendarDays,
+  Users,
 } from 'lucide-react';
 import { getGaleriaLeads } from '@/core/services/galeria.service';
 import {
@@ -30,13 +31,17 @@ import {
   RelatorioSelectedGallery,
   RelatorioSearchInput,
 } from '@/components/ui/RelatorioBasePage';
-import { div } from 'framer-motion/client';
+import { PlanGateScreen } from '@/components/ui/PlanGateScreen';
 
 interface LeadReportViewProps {
   galeria: Galeria;
+  leadCount: number;
 }
 
-export default function LeadReportView({ galeria }: LeadReportViewProps) {
+export default function LeadReportView({
+  galeria,
+  leadCount,
+}: LeadReportViewProps) {
   const router = useRouter();
   const { permissions } = usePlan();
   const { canCaptureLeads } = permissions;
@@ -159,6 +164,48 @@ export default function LeadReportView({ galeria }: LeadReportViewProps) {
 
   if (loading && canCaptureLeads)
     return <LoadingScreen message="Carregando cadastros de visitantes..." />;
+
+  // ← INSIRA AQUI
+  if (!canCaptureLeads) {
+    return (
+      <RelatorioBasePage
+        title={`Relatório - ${galeria.title}`}
+        onBack={() => router.back()}
+      >
+        <PlanGateScreen
+          feature="canCaptureLeads"
+          title="Cadastro de Visitantes"
+          description="Capture automaticamente nome, e-mail e WhatsApp de quem acessa suas galerias. Construa sua lista de clientes sem esforço e exporte quando quiser."
+          teasers={[
+            {
+              icon: Users,
+              label: 'Visitantes cadastrados',
+              value: leadCount,
+              hint: 'aguardando',
+            },
+            {
+              icon: Mail,
+              label: 'E-mails capturados',
+              value: '---',
+              hint: 'na sua galeria',
+            },
+            {
+              icon: Smartphone,
+              label: 'Via mobile',
+              value: '---',
+              hint: 'dos acessos',
+            },
+            {
+              icon: MapPin,
+              label: 'Com localização',
+              value: '---',
+              hint: 'identificados',
+            },
+          ]}
+        />
+      </RelatorioBasePage>
+    );
+  }
 
   return (
     <RelatorioBasePage

@@ -62,7 +62,7 @@ export default function SidebarGoogleDrive({
                 onClick={() =>
                   handleGoogleLogin(!photographer?.google_refresh_token)
                 }
-                className="p-1 hover:bg-white/10 rounded-luxury transition-colors text-white/90 interactive-luxury"
+                className="p-1 hover:bg-white/10 active:bg-white/20 rounded-luxury transition-colors text-white/90 interactive-luxury"
               >
                 <RefreshCw
                   size={12}

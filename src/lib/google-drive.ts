@@ -1,26 +1,26 @@
-import {
-  PERMISSIONS_BY_PLAN,
-  PlanKey,
-  PlanPermissions,
-} from '@/core/config/plans';
+import { PERMISSIONS_BY_PLAN, PlanKey } from '@/core/config/plans';
 import { GLOBAL_CACHE_REVALIDATE } from '@/core/utils/url-helper';
-import next from 'next';
 
 /**
  * 🛠️ RESOLVE LIMITE DE FOTOS
  * Recebe apenas a chave do plano (ex: 'FREE') e retorna o número de fotos permitido.
+ *
+ * FIX: fallback seguro para FREE quando planKey é undefined, null, string vazia
+ * ou uma chave que não existe no dicionário PERMISSIONS_BY_PLAN.
  */
 export const resolvePhotoLimitByPlan = (planKey?: PlanKey | number): number => {
   // 1. Caso receba um número direto (fallback para uso manual)
   if (typeof planKey === 'number') return planKey;
 
   // 2. Busca no mapa mestre usando a chave (ex: 'PRO')
-  // Se a chave não existir ou não for passada, assume o limite do plano FREE (80)
-  const permissions = planKey
-    ? PERMISSIONS_BY_PLAN[planKey]
-    : PERMISSIONS_BY_PLAN.FREE;
+  // FIX: verifica se planKey existe E se a entrada está no dicionário antes de acessar
+  // Sem isso, PERMISSIONS_BY_PLAN['INVALID'] retorna undefined e `.maxPhotosPerGallery` crasha
+  const permissions =
+    planKey && PERMISSIONS_BY_PLAN[planKey]
+      ? PERMISSIONS_BY_PLAN[planKey]
+      : PERMISSIONS_BY_PLAN.FREE;
 
-  return permissions.maxPhotosPerGallery; // FREE=150, START=300, PRO=600...
+  return permissions.maxPhotosPerGallery; // FREE=200, START=450, PLUS=800, PRO=1500, PREMIUM=3000
 };
 
 export interface DrivePhoto {
@@ -245,13 +245,12 @@ export async function listPhotosFromDriveFolder(
     throw new Error('ID da pasta do Google Drive não fornecido.');
   }
 
-  // O Helper resolve se é 'FREE' -> 80, 'PRO' -> 600 ou se já é um número
-  const limit = resolvePhotoLimitByPlan(planOrLimit); // era: const limit = 10000;
+  // O Helper resolve se é 'FREE' -> 200, 'PRO' -> 1500 ou se já é um número
+  const limit = resolvePhotoLimitByPlan(planOrLimit);
 
   // 1. TENTATIVA 1: OAuth (Privado) - PRIORITÁRIO
   if (accessToken) {
     try {
-      //console.log('buscou o accessToken');
       return await listPhotosWithOAuth(driveFolderId, accessToken, limit, true);
     } catch (error) {
       console.warn(

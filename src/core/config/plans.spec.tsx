@@ -124,9 +124,9 @@ describe('Validação de Permissões por Grupo', () => {
 
   describe('Grupo: Segurança & Automação', () => {
     // FIX 4: PRO tem 'password', PREMIUM tem 'expiration'
-    test('privacyLevel deve permitir expiração apenas no PREMIUM', () => {
+    test('privacyLevel deve permitir password no PRO e PREMIUM', () => {
       expect(PERMISSIONS_BY_PLAN.PRO.privacyLevel).toBe('password');
-      expect(PERMISSIONS_BY_PLAN.PREMIUM.privacyLevel).toBe('expiration');
+      expect(PERMISSIONS_BY_PLAN.PREMIUM.privacyLevel).toBe('password');
     });
 
     test('customizationLevel deve permitir cores no PLUS e full no PREMIUM', () => {
@@ -261,6 +261,8 @@ describe('Integridade Total do Sistema de Permissões', () => {
       expect(p.canCaptureLeads).toBe(false);
       expect(p.removeBranding).toBe(false);
       expect(p.privacyLevel).toBe('public');
+      expect(p.canAccessNotifyEvents).toBe(false);
+      expect(p.expiresAt).toBe(false);
     });
 
     // FIX 7: PRO profileLevel = 'advanced' (não 'seo')
@@ -271,12 +273,14 @@ describe('Integridade Total do Sistema de Permissões', () => {
       expect(p.profileLevel).toBe('advanced');
     });
 
-    // FIX 8: PREMIUM privacyLevel = 'expiration' (não 'password')
+    // FIX 8: PREMIUM privacyLevel = 'password'
     test('PREMIUM: deve ser o estado "Full Experience"', () => {
       const p = PERMISSIONS_BY_PLAN.PREMIUM;
       expect(p.removeBranding).toBe(true);
       expect(p.tagSelectionMode).toBe('drive');
-      expect(p.privacyLevel).toBe('expiration');
+      expect(p.privacyLevel).toBe('password');
+      expect(p.canAccessNotifyEvents).toBe(true);
+      expect(p.expiresAt).toBe(true);
     });
   });
 });
@@ -284,11 +288,11 @@ describe('Integridade Total do Sistema de Permissões', () => {
 // ─── POOL SYSTEM ─────────────────────────────────────────────────────────────
 describe('Pool System — Créditos de Fotos e Galerias', () => {
   const poolCases: Array<[string, number, number, number]> = [
-    ['FREE', 450, 3, 150],
-    ['START', 3000, 10, 300],
-    ['PLUS', 8000, 20, 400],
-    ['PRO', 30000, 50, 600],
-    ['PREMIUM', 200000, 200, 1000],
+    ['FREE', 450, 3, 200],
+    ['START', 3000, 10, 450],
+    ['PLUS', 8000, 20, 800],
+    ['PRO', 30000, 50, 1500],
+    ['PREMIUM', 200000, 200, 3000],
   ];
 
   test.each(poolCases)(
@@ -439,10 +443,10 @@ describe('ZIP Limits por Plano', () => {
 describe('Permissões de Nível (enum)', () => {
   test.each([
     ['FREE', 'public'],
-    ['START', 'private'],
-    ['PLUS', 'private'],
+    ['START', 'password'],
+    ['PLUS', 'password'],
     ['PRO', 'password'],
-    ['PREMIUM', 'expiration'],
+    ['PREMIUM', 'password'],
   ] as const)('privacyLevel plano %s = %s', (planKey, level) => {
     let captured: any;
     render(

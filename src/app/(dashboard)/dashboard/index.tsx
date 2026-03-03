@@ -1,6 +1,6 @@
 'use client';
 
-import { useEffect, useState } from 'react';
+import { useEffect, useMemo, useState } from 'react';
 import { useSearchParams, useRouter } from 'next/navigation';
 import { Loader2 } from 'lucide-react';
 
@@ -40,6 +40,11 @@ export default function Dashboard({
   const { navigate, isNavigating } = useNavigation();
 
   const [galerias, setGalerias] = useState<Galeria[]>(initialGalerias);
+
+  const totalPhotosUsed = useMemo(
+    () => galerias.reduce((sum, g) => sum + (g.photo_count || 0), 0),
+    [galerias],
+  );
 
   const {
     isAdminModalOpen,
@@ -143,6 +148,7 @@ export default function Dashboard({
           handleNovaGaleria={handleNovaGaleria}
           isRedirecting={isNavigating}
           onOpenAdminModal={() => setIsAdminModalOpen(true)}
+          totalPhotosUsed={totalPhotosUsed}
         />
         <TrialBanner />
         <main className="flex-1 flex flex-col min-w-0 min-h-[calc(100vh-120px)]">

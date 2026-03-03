@@ -193,12 +193,10 @@ export function canUploadFile(
 // 🔒 privacyAllows() — Verifica se o plano suporta certo nível de privacidade
 // =============================================================================
 
-type PrivacyLevel = 'public' | 'private' | 'password' | 'expiration';
+type PrivacyLevel = 'public' | 'password';
 const PRIVACY_RANK: Record<PrivacyLevel, number> = {
   public: 0,
-  private: 1,
-  password: 2,
-  expiration: 3,
+  password: 1,
 };
 
 export function privacyAllows(plan: PlanKey, level: PrivacyLevel): boolean {

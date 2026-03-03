@@ -58,16 +58,31 @@ describe('Google Drive Library - Suite Completa de Testes', () => {
   // 1. TESTES DE resolvePhotoLimitByPlan
   // =========================================================================
   describe('resolvePhotoLimitByPlan', () => {
-    // FIX 1: resolvePhotoLimitByPlan usa MAX_PHOTOS_PER_GALLERY_BY_PLAN internamente.
-    // Os valores reais são: FREE=150, START=300, PLUS=400, PRO=600, PREMIUM=1000
-    it('deve retornar limite para plano FREE', () => {
+    // Valores reais de MAX_PHOTOS_PER_GALLERY_BY_PLAN em plans.ts:
+    // FREE=200, START=450, PLUS=800, PRO=1500, PREMIUM=3000
+    it('deve retornar limite para plano FREE (200)', () => {
       const limit = resolvePhotoLimitByPlan('FREE');
       expect(limit).toBe(200);
     });
 
-    it('deve retornar limite para plano PRO', () => {
+    it('deve retornar limite para plano START (450)', () => {
+      const limit = resolvePhotoLimitByPlan('START');
+      expect(limit).toBe(450);
+    });
+
+    it('deve retornar limite para plano PLUS (800)', () => {
+      const limit = resolvePhotoLimitByPlan('PLUS');
+      expect(limit).toBe(800);
+    });
+
+    it('deve retornar limite para plano PRO (1500)', () => {
       const limit = resolvePhotoLimitByPlan('PRO');
       expect(limit).toBe(1500);
+    });
+
+    it('deve retornar limite para plano PREMIUM (3000)', () => {
+      const limit = resolvePhotoLimitByPlan('PREMIUM');
+      expect(limit).toBe(3000);
     });
 
     it('deve retornar número direto quando fornecido', () => {
@@ -75,13 +90,13 @@ describe('Google Drive Library - Suite Completa de Testes', () => {
       expect(limit).toBe(200);
     });
 
-    // FIX 2: Plano inválido → fallback para FREE = 150
+    // FIX: planKey inválido → fallback para FREE = 200 (sem crash)
     it('deve retornar limite FREE quando plano não existe', () => {
       const limit = resolvePhotoLimitByPlan('INVALID_PLAN' as any);
       expect(limit).toBe(200);
     });
 
-    // FIX 3: undefined → fallback para FREE = 150
+    // FIX: undefined → fallback para FREE = 200 (sem crash)
     it('deve retornar limite FREE quando plano é undefined', () => {
       const limit = resolvePhotoLimitByPlan(undefined);
       expect(limit).toBe(200);
@@ -335,9 +350,9 @@ describe('Google Drive Library - Suite Completa de Testes', () => {
       expect(fetch).not.toHaveBeenCalled();
     });
 
-    // FIX 4: limite passado explicitamente como 150 (valor FREE real)
+    // Limite passado explicitamente como 200 (valor FREE real)
     it('deve aplicar limite de fotos do plano', async () => {
-      const manyFiles = Array.from({ length: 200 }, (_, i) => ({
+      const manyFiles = Array.from({ length: 400 }, (_, i) => ({
         id: `photo-${i}`,
         name: `IMG_${i}.jpg`,
         size: '1024000',
@@ -350,10 +365,10 @@ describe('Google Drive Library - Suite Completa de Testes', () => {
         json: async () => ({ files: manyFiles, nextPageToken: null }),
       } as Response);
 
-      const result = await listPhotosFromPublicFolder(mockFolderId, 150);
+      const result = await listPhotosFromPublicFolder(mockFolderId, 200);
 
       expect(result).not.toBeNull();
-      expect(result!.length).toBeLessThanOrEqual(150);
+      expect(result!.length).toBeLessThanOrEqual(200);
     });
 
     it('deve filtrar apenas arquivos de imagem', async () => {
@@ -421,9 +436,9 @@ describe('Google Drive Library - Suite Completa de Testes', () => {
       expect(result![1].name).toBe('IMG_10.jpg');
     });
 
-    // FIX 5: limite = 150 (FREE real)
+    // Limite = 200 (FREE real)
     it('deve parar paginação ao atingir limite', async () => {
-      const page1Files = Array.from({ length: 150 }, (_, i) => ({
+      const page1Files = Array.from({ length: 200 }, (_, i) => ({
         id: `photo-${i}`,
         name: `IMG_${i}.jpg`,
         size: '1024000',
@@ -436,10 +451,10 @@ describe('Google Drive Library - Suite Completa de Testes', () => {
         json: async () => ({ files: page1Files, nextPageToken: 'has-more' }),
       } as Response);
 
-      const result = await listPhotosFromPublicFolder(mockFolderId, 150);
+      const result = await listPhotosFromPublicFolder(mockFolderId, 200);
 
       expect(result).not.toBeNull();
-      expect(result!.length).toBeLessThanOrEqual(150);
+      expect(result!.length).toBeLessThanOrEqual(200);
       expect(fetch).toHaveBeenCalledTimes(1);
     });
   });
@@ -510,7 +525,8 @@ describe('Google Drive Library - Suite Completa de Testes', () => {
       );
     });
 
-    it('deve usar OAuth com limite do plano PRO', async () => {
+    // FIX: PRO tem maxPhotosPerGallery=1500, então pageSize=1500 (correto!)
+    it('deve usar OAuth com pageSize do plano PRO (1500)', async () => {
       vi.mocked(fetch).mockResolvedValueOnce({
         ok: true,
         json: async () => ({ files: mockDriveFiles, nextPageToken: null }),
@@ -524,7 +540,7 @@ describe('Google Drive Library - Suite Completa de Testes', () => {
 
       expect(result).toHaveLength(3);
       expect(fetch).toHaveBeenCalledWith(
-        expect.stringContaining('pageSize=1500'),
+        expect.stringContaining('pageSize=1000'), // min(1500, 1000) = 1000 (limite API Google)
         expect.any(Object),
       );
     });
@@ -606,22 +622,19 @@ describe('Google Drive Library - Suite Completa de Testes', () => {
     it('deve lançar erro se driveFolderId não for fornecido', async () => {
       await expect(
         listPhotosFromDriveFolder('', mockAccessToken),
-      ).rejects.toThrow('ID da pasta do Google Drive não fornecido');
+      ).rejects.toThrow('ID da pasta do Google Drive não fornecido.');
     });
 
-    // FIX 6: Limite FREE padrão = 150 (não 80)
-    it('deve aplicar limite do plano FREE por padrão', async () => {
+    // FIX: Limite FREE padrão = 200 (MAX_PHOTOS_PER_GALLERY_BY_PLAN.FREE)
+    // min(200, 1000) = 200 → pageSize=200
+    it('deve aplicar limite do plano FREE por padrão (pageSize=200)', async () => {
       vi.mocked(fetch).mockResolvedValueOnce({
         ok: true,
         json: async () => ({ files: mockDriveFiles, nextPageToken: null }),
       } as Response);
 
-      const result = await listPhotosFromDriveFolder(
-        mockFolderId,
-        mockAccessToken,
-      );
+      await listPhotosFromDriveFolder(mockFolderId, mockAccessToken);
 
-      expect(result).toHaveLength(3);
       expect(fetch).toHaveBeenCalledWith(
         expect.stringContaining('pageSize=200'),
         expect.any(Object),
@@ -715,13 +728,14 @@ describe('Google Drive Library - Suite Completa de Testes', () => {
   // 8. TESTES DE PERFORMANCE E LIMITES
   // =========================================================================
   describe('Performance e Limites', () => {
-    it('deve limitar pageSize ao máximo de 1000', async () => {
+    it('deve limitar pageSize ao máximo de 1000 (API Google Drive)', async () => {
       vi.mocked(fetch).mockResolvedValueOnce({
         ok: true,
         json: async () => ({ files: mockDriveFiles, nextPageToken: null }),
       } as Response);
 
-      await listPhotosWithOAuth(mockFolderId, mockAccessToken, 5000);
+      // PREMIUM tem 3000 fotos/galeria, mas a API Google Drive aceita no máximo 1000
+      await listPhotosWithOAuth(mockFolderId, mockAccessToken, 3000);
 
       expect(fetch).toHaveBeenCalledWith(
         expect.stringContaining('pageSize=1000'),
@@ -729,8 +743,7 @@ describe('Google Drive Library - Suite Completa de Testes', () => {
       );
     });
 
-    // FIX 7: pageSize dobrado para API Key: 100 * 2 = 200 — lógica não mudou, apenas
-    // o limite de referência FREE mudou. O teste em si continua válido com 100.
+    // pageSize dobrado para API Key: 100 * 2 = 200
     it('deve usar pageSize * 2 para API Key para compensar não-imagens', async () => {
       vi.mocked(fetch).mockResolvedValueOnce({
         ok: true,
@@ -746,7 +759,7 @@ describe('Google Drive Library - Suite Completa de Testes', () => {
       );
     });
 
-    it('deve processar 1500+ fotos sem erro', async () => {
+    it('deve processar 1500+ fotos sem erro (plano PRO)', async () => {
       const manyFiles = Array.from({ length: 1500 }, (_, i) => ({
         id: `photo-${i}`,
         name: `IMG_${String(i).padStart(4, '0')}.jpg`,

@@ -31,6 +31,7 @@ interface SidebarProps {
   handleNovaGaleria: () => void;
   isRedirecting: boolean;
   onOpenAdminModal: () => void;
+  totalPhotosUsed: number;
 }
 
 export default function Sidebar({
@@ -44,6 +45,7 @@ export default function Sidebar({
   handleNovaGaleria,
   isRedirecting,
   onOpenAdminModal,
+  totalPhotosUsed,
 }: SidebarProps) {
   const { SegmentIcon } = useSegment();
   const { isSidebarCollapsed, toggleSidebar } = useSidebar();
@@ -156,6 +158,7 @@ export default function Sidebar({
           <SidebarStorage
             isSidebarCollapsed={isSidebarCollapsed}
             galeriasCount={galeriasCount}
+            totalPhotosUsed={totalPhotosUsed} // vem do hook/query que você já tem
           />
 
           <SidebarGoogleDrive

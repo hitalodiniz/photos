@@ -35,6 +35,7 @@ interface Photo {
   height: number;
   tag?: string;
   canUseFavorites: boolean;
+  duration?: string; // ex: "1:32"
 }
 
 interface SafeImageProps {

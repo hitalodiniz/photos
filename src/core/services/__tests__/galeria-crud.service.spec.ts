@@ -14,7 +14,6 @@ import {
   createMockSupabase,
   mockUserId,
   mockProfile,
-  mockGalleryBase,
 } from './galeria.test-setup';
 
 setupEnvironment();

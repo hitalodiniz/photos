@@ -40,11 +40,7 @@ import {
   createSupabaseClientForCache,
   createSupabaseServerClientReadOnly,
 } from '@/lib/supabase.server';
-import {
-  PlanKey,
-  PERMISSIONS_BY_PLAN,
-  resolveGalleryLimitByPlan,
-} from '../config/plans';
+import { PlanKey, PERMISSIONS_BY_PLAN } from '../config/plans';
 import { syncUserGalleriesAction } from '@/actions/galeria.actions';
 import {
   extractGalleryFormData,

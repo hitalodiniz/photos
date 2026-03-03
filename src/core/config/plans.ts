@@ -24,6 +24,7 @@ export const FEATURE = {
   PHOTO_CREDITS: 'photoCredits',
   MAX_GALLERIES: 'maxGalleries',
   MAX_PHOTOS_PER_GALLERY: 'maxPhotosPerGallery',
+  RECOMMENDED_PHOTOS_PER_GALLERY: 'recommendedPhotosPerGallery', // ✅ NOVO
   TEAM_MEMBERS: 'teamMembers',
 
   // --- Presença Digital ---
@@ -89,6 +90,12 @@ export const FEATURE_DESCRIPTIONS: Partial<
     description:
       'Limite de fotos por galeria individual. Garante que cada galeria permaneça organizada e com boa performance.',
   },
+  // ✅ NOVO
+  recommendedPhotosPerGallery: {
+    label: 'Fotos Recomendadas por Galeria',
+    description:
+      'Quantidade recomendada de fotos por galeria para garantir melhor performance e experiência do cliente. Ao ultrapassar, um aviso é exibido.',
+  },
   teamMembers: {
     label: 'Equipe de Trabalho',
     description:
@@ -144,13 +151,11 @@ export const FEATURE_DESCRIPTIONS: Partial<
     description:
       'Define o nível de proteção da galeria: pública, privada (só com link), protegida por senha ou com link de expiração.',
   },
-
   expiresAt: {
     label: 'Data de Expiração',
     description:
       'Defina uma data para expiração do acesso à galeria. Após esta data, a galeria ficará indisponível para acesso.',
   },
-
   customizationLevel: {
     label: 'Personalização Visual',
     description:
@@ -181,15 +186,11 @@ export const FEATURE_DESCRIPTIONS: Partial<
 //
 //   1. totalPhotosUsed + newPhotos <= photoCredits   → pool global
 //   2. galleries.length < maxGalleries               → limite de galerias
-//   3. gallery.photos.length < maxPhotosPerGallery   → limite por galeria (anti-bagunça)
+//   3. gallery.photos.length < maxPhotosPerGallery   → hard cap por galeria (bloqueia)
+//   4. gallery.photos.length >= recommendedPhotosPerGallery → aviso ao usuário
 //
-// Ambos os limites 1 e 2 TRAVAM o plano quando atingidos.
-// Limite 3 existe para evitar galerias caóticas com dezenas de milhares de fotos.
-//
-// Exemplos com PLUS (8.000 créditos / 20 galerias / 2.000 por galeria):
-//   → 20 galerias × 400 fotos  (distribuição uniforme)
-//   → 4 galerias  × 2.000 fotos (poucas galerias, bem cheias)
-//   → 1 galeria   × 2.000 fotos + 18 galerias pequenas
+// Limites 1, 2 e 3 TRAVAM o sistema quando atingidos.
+// Limite 4 emite aviso amarelo antes do hard cap para orientar o usuário.
 //
 // =============================================================================
 
@@ -211,13 +212,24 @@ export const MAX_GALLERIES_BY_PLAN: Record<PlanKey, number> = {
   PREMIUM: 200,
 };
 
-// Hard cap por galeria — varia por plano, reflete a densidade esperada
+// Hard cap por galeria — bloqueia ao atingir (sem exceção)
 export const MAX_PHOTOS_PER_GALLERY_BY_PLAN: Record<PlanKey, number> = {
   FREE: 200,
   START: 450,
   PLUS: 800,
   PRO: 1_500,
   PREMIUM: 3_000,
+};
+
+// ✅ NOVO — Valor recomendado por galeria (coluna "Fotos/galeria" da planilha)
+// Ao ultrapassar: exibe aviso amarelo no formulário de galeria.
+// Ao ultrapassar MAX_PHOTOS_PER_GALLERY_BY_PLAN: bloqueia completamente.
+export const RECOMMENDED_PHOTOS_PER_GALLERY_BY_PLAN: Record<PlanKey, number> = {
+  FREE: 150, // hard cap: 200   → aviso ao atingir 150
+  START: 300, // hard cap: 450   → aviso ao atingir 300
+  PLUS: 600, // hard cap: 800   → aviso ao atingir 600
+  PRO: 800, // hard cap: 1.500 → aviso ao atingir 800
+  PREMIUM: 1_000, // hard cap: 3.000 → aviso ao atingir 1.000
 };
 
 // Helper para exibição amigável dos créditos
@@ -236,11 +248,11 @@ export const ZIP_LIMITS: Record<PlanKey, number> = {
 };
 
 export const ZIP_LIMIT_TO_RESOLUTION: Record<number, number> = {
-  500_000: 1024, // FREE   → 500KB  → ~1024px
-  1_000_000: 1600, // START  → 1MB    → ~1600px
-  1_500_000: 2048, // PLUS   → 1.5MB  → ~2048px
-  2_000_000: 2560, // PRO    → 2MB    → ~2560px
-  3_000_000: 0, // PREMIUM → 3MB   → original (0 = sem limite)
+  500_000: 1024, // FREE    → 500KB  → ~1024px
+  1_000_000: 1600, // START   → 1MB    → ~1600px
+  1_500_000: 2048, // PLUS    → 1.5MB  → ~2048px
+  2_000_000: 2560, // PRO     → 2MB    → ~2560px
+  3_000_000: 0, // PREMIUM → 3MB    → original (0 = sem limite)
 };
 
 // =============================================================================
@@ -251,7 +263,8 @@ export interface PlanPermissions {
   // Capacidade (sistema flexível com dois hard caps)
   photoCredits: number; // Pool total — trava ao esgotar
   maxGalleries: number; // Hard cap de galerias — trava ao atingir
-  maxPhotosPerGallery: number; // Hard cap por galeria — varia por plano
+  maxPhotosPerGallery: number; // Hard cap por galeria — bloqueia ao atingir
+  recommendedPhotosPerGallery: number; // ✅ NOVO — emite aviso ao ultrapassar
   teamMembers: number;
 
   // Presença Digital
@@ -300,6 +313,7 @@ export const PERMISSIONS_BY_PLAN: Record<PlanKey, PlanPermissions> = {
     photoCredits: PHOTO_CREDITS_BY_PLAN.FREE,
     maxGalleries: MAX_GALLERIES_BY_PLAN.FREE,
     maxPhotosPerGallery: MAX_PHOTOS_PER_GALLERY_BY_PLAN.FREE,
+    recommendedPhotosPerGallery: RECOMMENDED_PHOTOS_PER_GALLERY_BY_PLAN.FREE, // ✅ NOVO
     teamMembers: 0,
     profileLevel: 'basic',
     profileCarouselLimit: 0,
@@ -331,6 +345,7 @@ export const PERMISSIONS_BY_PLAN: Record<PlanKey, PlanPermissions> = {
     photoCredits: PHOTO_CREDITS_BY_PLAN.START,
     maxGalleries: MAX_GALLERIES_BY_PLAN.START,
     maxPhotosPerGallery: MAX_PHOTOS_PER_GALLERY_BY_PLAN.START,
+    recommendedPhotosPerGallery: RECOMMENDED_PHOTOS_PER_GALLERY_BY_PLAN.START, // ✅ NOVO
     teamMembers: 0,
     profileLevel: 'standard',
     profileCarouselLimit: 1,
@@ -355,7 +370,6 @@ export const PERMISSIONS_BY_PLAN: Record<PlanKey, PlanPermissions> = {
     privacyLevel: 'password',
     expiresAt: false,
     keepOriginalFilenames: false,
-
     customizationLevel: 'default',
     canCustomCategories: false,
   },
@@ -363,6 +377,7 @@ export const PERMISSIONS_BY_PLAN: Record<PlanKey, PlanPermissions> = {
     photoCredits: PHOTO_CREDITS_BY_PLAN.PLUS,
     maxGalleries: MAX_GALLERIES_BY_PLAN.PLUS,
     maxPhotosPerGallery: MAX_PHOTOS_PER_GALLERY_BY_PLAN.PLUS,
+    recommendedPhotosPerGallery: RECOMMENDED_PHOTOS_PER_GALLERY_BY_PLAN.PLUS, // ✅ NOVO
     teamMembers: 2,
     profileLevel: 'standard',
     profileCarouselLimit: 1,
@@ -394,6 +409,7 @@ export const PERMISSIONS_BY_PLAN: Record<PlanKey, PlanPermissions> = {
     photoCredits: PHOTO_CREDITS_BY_PLAN.PRO,
     maxGalleries: MAX_GALLERIES_BY_PLAN.PRO,
     maxPhotosPerGallery: MAX_PHOTOS_PER_GALLERY_BY_PLAN.PRO,
+    recommendedPhotosPerGallery: RECOMMENDED_PHOTOS_PER_GALLERY_BY_PLAN.PRO, // ✅ NOVO
     teamMembers: 5,
     profileLevel: 'advanced',
     profileCarouselLimit: 3,
@@ -425,6 +441,7 @@ export const PERMISSIONS_BY_PLAN: Record<PlanKey, PlanPermissions> = {
     photoCredits: PHOTO_CREDITS_BY_PLAN.PREMIUM,
     maxGalleries: MAX_GALLERIES_BY_PLAN.PREMIUM,
     maxPhotosPerGallery: MAX_PHOTOS_PER_GALLERY_BY_PLAN.PREMIUM,
+    recommendedPhotosPerGallery: RECOMMENDED_PHOTOS_PER_GALLERY_BY_PLAN.PREMIUM, // ✅ NOVO
     teamMembers: 99,
     profileLevel: 'seo',
     profileCarouselLimit: 5,
@@ -734,7 +751,13 @@ export const COMMON_FEATURES = [
     group: 'Gestão',
     key: 'maxPhotosPerGallery' as const,
     label: 'Fotos por Galeria (máximo)',
-    values: ['150 fotos', '300 fotos', '400 fotos', '600 fotos', '1.000 fotos'],
+    values: [
+      '200 fotos',
+      '450 fotos',
+      '800 fotos',
+      '1.500 fotos',
+      '3.000 fotos',
+    ],
     tooltip: 'Limite por galeria individual — trava ao atingir',
   },
   {
@@ -960,7 +983,7 @@ export const COMMON_FEATURES = [
     ],
   },
   {
-    key: 'expiresAt', // 🎯 Ajustado: era 'access-control'
+    key: 'expiresAt',
     group: 'Segurança',
     label: 'Data de Expiração',
     values: [false, false, false, 'Ativa', 'Ativa'],

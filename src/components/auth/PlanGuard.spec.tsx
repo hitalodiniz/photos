@@ -265,7 +265,7 @@ describe('5. Casos de Borda e Segurança (Edge Cases)', () => {
     });
 
     expect(result.current.permissions.maxGalleries).toBe(10);
-    expect(result.current.permissions.maxPhotosPerGallery).toBe(300);
+    expect(result.current.permissions.maxPhotosPerGallery).toBe(450);
   });
 
   // FIX 5: FREE.maxGalleries = 3 (não 2)

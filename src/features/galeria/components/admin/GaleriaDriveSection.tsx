@@ -5,11 +5,18 @@ import { GooglePickerButton } from '@/components/google-drive';
 import GoogleDriveImagePreview from '@/components/ui/GoogleDriveImagePreview';
 import { InfoTooltip } from '@/components/ui/InfoTooltip';
 import { usePlan } from '@/core/context/PlanContext';
-import { FolderSync, ImageIcon, Loader2, AlertTriangle, X } from 'lucide-react';
+import {
+  FolderSync,
+  ImageIcon,
+  Loader2,
+  AlertTriangle,
+  CheckCircle2,
+  X,
+  ExternalLink,
+} from 'lucide-react';
 
 // Número máximo de fotos de capa permitidas por galeria.
 // Não é um campo de PlanPermissions (é config visual, não de plano).
-// Se quiser tornar configurável por plano no futuro, adicione em PlanPermissions.
 const MAX_COVERS_PER_GALLERY = 3;
 
 export function GaleriaDriveSection({
@@ -25,9 +32,15 @@ export function GaleriaDriveSection({
 }) {
   const { permissions } = usePlan();
 
-  const photoLimit = permissions.maxPhotosPerGallery;
-  const isOverLimit = driveData.photoCount > photoLimit;
+  const photoCount = driveData.photoCount || 0;
+  const hardCap = permissions.maxPhotosPerGallery;
+  const recommended = permissions.recommendedPhotosPerGallery;
   const maxCovers = MAX_COVERS_PER_GALLERY;
+
+  // Três estados possíveis para o alerta de fotos
+  const isOverHardCap = photoCount > hardCap;
+  const isOverRecommended = !isOverHardCap && photoCount > recommended;
+  const isCompatible = photoCount > 0 && !isOverHardCap && !isOverRecommended;
 
   return (
     <div className="relative bg-white rounded-luxury border border-slate-200 p-4 space-y-4 mt-2 overflow-hidden">
@@ -41,6 +54,7 @@ export function GaleriaDriveSection({
         </div>
       )}
 
+      {/* Header */}
       <div className="flex items-center gap-2 pb-2 border-b border-slate-200">
         <FolderSync size={14} className="text-gold" />
         <h3 className="text-[10px] font-bold uppercase tracking-luxury-widest text-petroleum">
@@ -48,68 +62,128 @@ export function GaleriaDriveSection({
         </h3>
       </div>
 
-      {/* Subseção 1: Vincular Pasta */}
+      {/* ── Subseção 1: Vincular Pasta ── */}
       <div className="space-y-3">
-        <label>
+        <label className="text-[10px] font-bold uppercase tracking-luxury text-petroleum flex items-center gap-1.5">
           <FolderSync size={12} strokeWidth={2} className="text-gold" />
           Vincular Pasta do Google Drive
         </label>
 
         <div className="flex flex-col bg-slate-50 p-3 rounded-luxury border border-slate-200 space-y-3">
+          {/* Nome da pasta */}
           <p className="text-[13px] text-petroleum/90 font-semibold truncate bg-white/50 px-2 py-1.5 rounded border border-slate-200">
             {driveData.name || 'Nenhuma pasta selecionada'}
           </p>
 
-          <div>
-            <GooglePickerButton
-              onFolderSelect={handleFolderSelect}
-              onError={onPickerError}
-              currentDriveId={driveData.id}
-              onTokenExpired={onTokenExpired}
-              rootFolderId={driveData.id ? driveData.id : rootFolderId}
-            />
+          {/* Botões lado a lado */}
+          <div className="flex items-center gap-2">
+            {/* Botão principal — selecionar/alterar pasta */}
+            <div className="flex-1">
+              <GooglePickerButton
+                onFolderSelect={handleFolderSelect}
+                onError={onPickerError}
+                currentDriveId={driveData.id}
+                onTokenExpired={onTokenExpired}
+                rootFolderId={driveData.id ? driveData.id : rootFolderId}
+              />
+            </div>
+
+            {/* Botão secundário — abrir no Drive (só aparece quando há pasta vinculada) */}
+            {driveData.id && (
+              <a
+                href={`https://drive.google.com/drive/folders/${driveData.id}`}
+                target="_blank"
+                rel="noopener noreferrer"
+                title="Abrir pasta no Google Drive"
+                className="flex items-center justify-center h-9 w-9 shrink-0 rounded-luxury border border-slate-200 bg-white text-petroleum/60 hover:text-gold hover:border-gold/40 transition-all"
+              >
+                <ExternalLink size={14} />
+              </a>
+            )}
           </div>
 
-          {/* Alerta de limite do plano */}
-          {driveData.id && (
-            <div
-              className={`p-2.5 rounded-luxury border flex gap-2.5 ${
-                isOverLimit
-                  ? 'bg-red-50 border-red-200'
-                  : 'bg-blue-50 border-blue-100'
-              }`}
-            >
-              <AlertTriangle
-                size={14}
-                className={isOverLimit ? 'text-red-500' : 'text-blue-500'}
-              />
-              <div className="space-y-0.5">
-                <p className="text-[9px] font-bold uppercase text-petroleum">
-                  {driveData.photoCount || 0} fotos sincronizadas
-                </p>
-                <p className="text-[9px] text-petroleum/70 leading-tight">
-                  Seu plano ({permissions.maxPhotosPerGallery} fotos){' '}
-                  {isOverLimit ? 'não suporta esta pasta.' : 'é compatível.'}
-                </p>
-              </div>
-            </div>
+          {/* ── Alerta de fotos (3 estados) ── */}
+          {driveData.id && photoCount > 0 && (
+            <>
+              {/* Estado 1: acima do hard cap — bloqueio */}
+              {isOverHardCap && (
+                <div className="p-2.5 rounded-luxury border bg-red-50 border-red-200 flex gap-2.5">
+                  <AlertTriangle
+                    size={14}
+                    className="text-red-500 shrink-0 mt-0.5"
+                  />
+                  <div className="space-y-0.5">
+                    <p className="text-[9px] font-bold uppercase text-red-700">
+                      {photoCount} fotos — limite excedido
+                    </p>
+                    <p className="text-[9px] text-red-600/80 leading-tight">
+                      Seu plano suporta até <strong>{hardCap} fotos</strong> por
+                      galeria. Remova fotos da pasta ou faça upgrade para
+                      continuar.
+                    </p>
+                  </div>
+                </div>
+              )}
+
+              {/* Estado 2: acima do recomendado — aviso de consumo de cota */}
+              {isOverRecommended && (
+                <div className="p-2.5 rounded-luxury border bg-amber-50 border-amber-200 flex gap-2.5">
+                  <AlertTriangle
+                    size={14}
+                    className="text-amber-500 shrink-0 mt-0.5"
+                  />
+                  <div className="space-y-0.5">
+                    <p className="text-[9px] font-bold uppercase text-amber-700">
+                      {photoCount} fotos — acima do recomendado
+                    </p>
+                    <p className="text-[9px] text-amber-700/80 leading-tight">
+                      O recomendado para seu plano é{' '}
+                      <strong>até {recommended} fotos</strong> por galeria.
+                      Galerias maiores consomem mais da sua cota de{' '}
+                      <strong>{permissions.photoCredits} créditos</strong>,
+                      reduzindo o número de galerias ativas disponíveis.
+                    </p>
+                  </div>
+                </div>
+              )}
+
+              {/* Estado 3: compatível — confirmação */}
+              {isCompatible && (
+                <div className="p-2.5 rounded-luxury border bg-emerald-50 border-emerald-200 flex gap-2.5">
+                  <CheckCircle2
+                    size={14}
+                    className="text-emerald-500 shrink-0 mt-0.5"
+                  />
+                  <div className="space-y-0.5">
+                    <p className="text-[9px] font-bold uppercase text-emerald-700">
+                      {photoCount} fotos — compatível com seu plano
+                    </p>
+                    <p className="text-[9px] text-emerald-700/70 leading-tight">
+                      Dentro do limite recomendado de {recommended} fotos por
+                      galeria.
+                    </p>
+                  </div>
+                </div>
+              )}
+            </>
           )}
 
-          {driveData.id && (
-            <a
-              href={`https://drive.google.com/drive/folders/${driveData.id}`}
-              target="_blank"
-              rel="noopener noreferrer"
-              className="btn-secondary-white w-full"
-            >
-              <FolderSync size={14} className="text-gold" />
-              Abrir no Google Drive
-            </a>
+          {/* Pasta vinculada mas sem fotos ainda */}
+          {driveData.id && photoCount === 0 && !isValidatingDrive && (
+            <div className="p-2.5 rounded-luxury border bg-slate-50 border-slate-200 flex gap-2.5">
+              <AlertTriangle
+                size={14}
+                className="text-slate-400 shrink-0 mt-0.5"
+              />
+              <p className="text-[9px] text-slate-500 leading-tight">
+                Nenhuma foto encontrada nesta pasta.
+              </p>
+            </div>
           )}
         </div>
       </div>
 
-      {/* Subseção 2: Preview de Capas */}
+      {/* ── Subseção 2: Preview de Capas ── */}
       <div className="space-y-3 pt-3 border-t border-slate-200">
         <label className="text-[10px] font-bold uppercase tracking-luxury text-petroleum flex items-center gap-2">
           <ImageIcon size={12} strokeWidth={2} className="text-gold" />
@@ -176,7 +250,7 @@ export function GaleriaDriveSection({
         </div>
       </div>
 
-      {/* Subseção 3: Renomear Arquivos */}
+      {/* ── Subseção 3: Renomear Arquivos ── */}
       {/* keepOriginalFilenames: false em FREE/START → guard bloqueia */}
       <PlanGuard
         feature="keepOriginalFilenames"
@@ -185,7 +259,7 @@ export function GaleriaDriveSection({
         <div className="space-y-3 pt-4 border-t border-slate-200">
           <div className="flex items-center justify-between">
             <div className="flex items-center gap-1.5 shrink-0">
-              <label>
+              <label className="text-[10px] font-bold uppercase tracking-luxury text-petroleum flex items-center gap-1.5">
                 <ImageIcon size={12} strokeWidth={2} className="text-gold" />
                 Renomear fotos (foto-001...)
               </label>

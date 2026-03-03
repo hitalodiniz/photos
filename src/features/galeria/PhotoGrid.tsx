@@ -17,14 +17,13 @@ import {
 } from '@/core/utils/foto-helpers';
 
 import { ToolBarMobile } from './ToolBarMobile';
-
 import UpgradeModal from '@/components/ui/UpgradeModal';
-
 import { getGalleryPermission } from '@/core/utils/plan-helpers';
 
-import { DownloadCenterModal } from './DownloadCenterModal';
-import { emitGaleriaEvent } from '@/core/services/galeria-stats.service';
+// Substituido: DownloadCenterModal -> DownloadCenterSheet
+import { DownloadCenterSheet } from './DownloadCenterSheet';
 
+import { emitGaleriaEvent } from '@/core/services/galeria-stats.service';
 import { useShare } from '@/hooks/useShare';
 import { usePlan } from '@/core/context/PlanContext';
 import { ZIP_LIMIT_TO_RESOLUTION } from '@/core/config/plans';
@@ -34,12 +33,10 @@ import { saveGaleriaSelectionAction } from '@/core/services/galeria.service';
 export default function PhotoGrid({ photos, galeria }: any) {
   const { planKey, permissions } = usePlan();
 
-  // --- 1. ESTADOS DE INTERFACE ---
   const [selectedPhotoIndex, setSelectedPhotoIndex] = useState<number | null>(
     null,
   );
   const [showSelectionFromUrl, setShowSelectionFromUrl] = useState(false);
-
   const [isScrolled, setIsScrolled] = useState(false);
   const [isHovered, setIsHovered] = useState(false);
   const [showOnlyFavorites, setShowOnlyFavorites] = useState(false);
@@ -50,12 +47,8 @@ export default function PhotoGrid({ photos, galeria }: any) {
     label: string;
     feature: string;
   } | null>(null);
-
-  // --- 2. ESTADOS DE CONFIRMAÇÃO DE SELEÇÃO ---
   const [isConfirmModalOpen, setIsConfirmModalOpen] = useState(false);
   const [isSavingSelections, setIsSavingSelections] = useState(false);
-
-  // --- 2. ESTADOS DE DOWNLOAD E DADOS ---
   const [isDownloading, setIsDownloading] = useState(false);
   const [downloadProgress, setDownloadProgress] = useState(0);
   const [isDownloadingFavs, setIsDownloadingFavs] = useState(false);
@@ -64,13 +57,13 @@ export default function PhotoGrid({ photos, galeria }: any) {
     number | string | null
   >(null);
   const [favorites, setFavorites] = useState<string[]>([]);
+  const [toast, setToast] = useState<{
+    message: string;
+    type: 'success' | 'error';
+  } | null>(null);
 
-  // --- 3. REFS E CONSTANTES ---
   const gridRef = useRef<HTMLDivElement>(null);
-
   const storageKey = `favoritos_galeria_${galeria.id}`;
-
-  // --- 4. MEMOS (CÁLCULOS) ---
 
   const parsePossiblySerializedJson = (input: unknown): unknown => {
     let current = input;
@@ -93,27 +86,20 @@ export default function PhotoGrid({ photos, galeria }: any) {
       .toUpperCase();
   const normalizeId = (value: unknown) => String(value || '').trim();
 
-  // 🎯 MAPEAMENTO DE TAGS NAS FOTOS (Crucial para o filtro funcionar)
   const photosWithTags = useMemo(() => {
     const safePhotos = Array.isArray(photos) ? photos : [];
     if (!galeria?.photo_tags) return safePhotos;
-
     try {
       const parsedTags = parsePossiblySerializedJson(galeria.photo_tags);
-
       if (!Array.isArray(parsedTags)) return safePhotos;
-
-      // Em produção, pequenas variações de formato (espaços/case) podem quebrar o match.
-      // Normalizamos ID e TAG para garantir consistência entre ambientes.
       const tagsMap = new Map(
         parsedTags
           .filter((t: any) => t?.id != null)
           .map((t: any) => [normalizeId(t.id), normalizeTag(t.tag)]),
       );
-
       return safePhotos.map((p: any) => ({
         ...p,
-        tag: tagsMap.get(normalizeId(p.id)) || normalizeTag(p.tag) || p.tag, // Prioriza o mapa normalizado, com fallback para valor original
+        tag: tagsMap.get(normalizeId(p.id)) || normalizeTag(p.tag) || p.tag,
       }));
     } catch (err) {
       console.error('Erro ao processar tags no Grid:', err);
@@ -146,9 +132,6 @@ export default function PhotoGrid({ photos, galeria }: any) {
     );
   }, [photosWithTags]);
 
-  // Não precisamos mais calcular tagsDaGaleria aqui se o ToolBar faz isso,
-  // mas vamos manter para compatibilidade se algo mais usar.
-  // Agora usando photosWithTags, ele vai popular corretamente.
   const tagsDaGaleria = useMemo(
     () => [
       'Todas as fotos',
@@ -159,23 +142,18 @@ export default function PhotoGrid({ photos, galeria }: any) {
     [photosWithTags],
   );
 
-  // Substitua o filtro do displayedPhotos por este:
   const displayedPhotos = useMemo(
     () =>
       photosWithTags.filter((photo: any) => {
         const matchesFavorite = showOnlyFavorites
           ? favorites.includes(photo.id)
           : true;
-
-        // 🎯 Se o array estiver vazio, exibe todas.
-        // Se tiver algo, verifica se a tag da foto está no array.
         const selectedTags = Array.isArray(activeTag)
           ? activeTag.map(normalizeTag)
           : [normalizeTag(activeTag)];
         const photoTag = normalizeTag(photo.tag);
         const matchesTag =
           selectedTags.length === 0 || selectedTags.includes(photoTag);
-
         return matchesFavorite && matchesTag;
       }),
     [photosWithTags, showOnlyFavorites, favorites, activeTag],
@@ -187,40 +165,24 @@ export default function PhotoGrid({ photos, galeria }: any) {
     desktop: Math.min(8, Math.max(3, galeria.columns_desktop || 5)),
   });
 
-  // --- 5. EFFECTS (LÓGICA E SINCRONIZAÇÃO) ---
-
-  // Persistência: Carregar (30 dias)
-  // 1. CARREGAR E RENOVAR (Roda ao abrir a página)
   useEffect(() => {
-    // 1. Prioridade: Dados já salvos no banco de dados da galeria
     if (galeria.selection_ids && galeria.selection_ids.length > 0) {
       setFavorites(galeria.selection_ids);
       return;
     }
-    // 2. Fallback: LocalStorage (para seleções em rascunho/sessão atual)
     const savedData = localStorage.getItem(storageKey);
     if (savedData) {
       try {
         const { items, timestamp } = JSON.parse(savedData);
-
-        // Verifica se já expirou (30 dias sem visita)
         const isExpired = Date.now() - timestamp > 30 * 24 * 60 * 60 * 1000;
-
         if (isExpired) {
           localStorage.removeItem(storageKey);
           setFavorites([]);
         } else {
           setFavorites(items || []);
-
-          // ESTRATÉGIA DE RENOVAÇÃO:
-          // Se ele entrou e os dados são válidos, salvamos de novo com o timestamp de HOJE.
-          // Isso empurra a expiração para +30 dias a partir de agora.
           localStorage.setItem(
             storageKey,
-            JSON.stringify({
-              items: items,
-              timestamp: Date.now(),
-            }),
+            JSON.stringify({ items, timestamp: Date.now() }),
           );
         }
       } catch (e) {
@@ -229,58 +191,38 @@ export default function PhotoGrid({ photos, galeria }: any) {
     }
   }, [galeria.selection_ids, storageKey]);
 
-  // 2. SALVAR MUDANÇAS (Roda ao favoritar/desfavoritar)
   useEffect(() => {
     if (favorites.length > 0) {
       localStorage.setItem(
         storageKey,
-        JSON.stringify({
-          items: favorites,
-          timestamp: Date.now(),
-        }),
+        JSON.stringify({ items: favorites, timestamp: Date.now() }),
       );
     } else {
-      // Se a lista ficar vazia, removemos a chave para limpar o storage
       localStorage.removeItem(storageKey);
     }
   }, [favorites, storageKey]);
 
-  // Scroll e Observer
   useEffect(() => {
     const handleScroll = () => {
-      // Define isScrolled para a estética da Toolbar (20px)
-      const scrolled = window.scrollY > 1;
-      setIsScrolled(scrolled);
-
-      // O botão de favoritos aparece após o usuário rolar 150px
-      // (suficiente para sair do impacto inicial do Hero)
+      setIsScrolled(window.scrollY > 1);
       setCanShowFavButton(window.scrollY > 1);
     };
-
     window.addEventListener('scroll', handleScroll);
     return () => window.removeEventListener('scroll', handleScroll);
   }, []);
 
-  // useEffect para ler a URL
   useEffect(() => {
     if (typeof window !== 'undefined') {
       const urlParams = new URLSearchParams(window.location.search);
       const selectionParam = urlParams.get('selection');
-
-      // Se a URL tem ?selection=true e existem fotos selecionadas salvas
       if (selectionParam === 'true' && galeria.selection_ids?.length > 0) {
         setShowSelectionFromUrl(true);
-
-        // ✅ Força o filtro de favoritos
         setShowOnlyFavorites(true);
-
-        // ✅ Carrega as fotos selecionadas nos favoritos
         setFavorites(galeria.selection_ids);
       }
     }
   }, [galeria.selection_ids]);
 
-  // 🎯 Para Favoritos (Lógica Composta: Plano + Switch da Galeria)
   const canUseFavorites = useMemo(() => {
     const planAllows = !!getGalleryPermission(galeria, 'canFavorite');
     const isEnabledOnGallery = !!galeria.enable_favorites;
@@ -289,12 +231,15 @@ export default function PhotoGrid({ photos, galeria }: any) {
 
   const canUseSlideshow = useMemo(() => {
     const planAllows = !!getGalleryPermission(galeria, 'canShowSlideshow');
-
-    // Validação específica da Galeria (Switch manual)
     const isEnabledOnGallery = !!galeria.enable_slideshow;
-
     return planAllows && isEnabledOnGallery;
   }, [galeria]);
+
+  // canDownloadFavorites: permissão de plano + favoritos existem
+  const canDownloadFavorites = useMemo(
+    () => canUseFavorites && FAVORITE_VOLUMES.length > 0,
+    [canUseFavorites, FAVORITE_VOLUMES],
+  );
 
   const parseLinks = (
     jsonString: string | null | undefined,
@@ -303,7 +248,6 @@ export default function PhotoGrid({ photos, galeria }: any) {
     try {
       const parsed = JSON.parse(jsonString);
       if (Array.isArray(parsed)) {
-        // 🎯 REMOVEMOS o filtro "typeof link === 'string'" para aceitar os objetos {url, label}
         return parsed.map((item, index) => {
           if (typeof item === 'object' && item !== null) {
             return {
@@ -311,15 +255,12 @@ export default function PhotoGrid({ photos, galeria }: any) {
               label: item.label || `Link ${index + 1}`,
             };
           }
-          return {
-            url: String(item),
-            label: `Link ${index + 1}`,
-          };
+          return { url: String(item), label: `Link ${index + 1}` };
         });
       }
-      return [{ url: jsonString, label: 'Qualidade Máxima' }];
+      return [{ url: jsonString, label: 'Qualidade Maxima' }];
     } catch {
-      return [{ url: jsonString, label: 'Qualidade Máxima' }];
+      return [{ url: jsonString, label: 'Qualidade Maxima' }];
     }
   };
 
@@ -328,7 +269,6 @@ export default function PhotoGrid({ photos, galeria }: any) {
     [galeria?.zip_url_full],
   );
 
-  // --- 6. HANDLERS ---
   const toggleFavoriteFromGrid = (id: string) => {
     setFavorites((prev) =>
       prev.includes(id) ? prev.filter((f) => f !== id) : [...prev, id],
@@ -337,18 +277,11 @@ export default function PhotoGrid({ photos, galeria }: any) {
 
   const handleExternalDownload = async (rawUrl: string, filename: string) => {
     if (isDownloading) return;
-
     try {
       setIsDownloading(true);
-
-      // 🎯 CONVERSÃO AUTOMÁTICA: Garante o formato de download direto
       const directUrl = convertToDirectDownloadUrl(rawUrl);
-
       const response = await fetch(directUrl);
-
-      // Se o fetch falhar (CORS ou erro de rede), pula para o catch
       if (!response.ok) throw new Error('CORS or Network error');
-
       const blob = await response.blob();
       const blobUrl = window.URL.createObjectURL(blob);
       const link = document.createElement('a');
@@ -356,15 +289,10 @@ export default function PhotoGrid({ photos, galeria }: any) {
       link.download = filename;
       document.body.appendChild(link);
       link.click();
-
-      // Limpeza de memória
       document.body.removeChild(link);
       window.URL.revokeObjectURL(blobUrl);
     } catch {
-      // 🎯 FALLBACK: Força a abertura em uma nova aba
       const directUrl = convertToDirectDownloadUrl(rawUrl);
-
-      // O parâmetro '_blank' garante a nova aba
       window.open(directUrl, '_blank', 'noopener,noreferrer');
     } finally {
       setIsDownloading(false);
@@ -388,10 +316,8 @@ export default function PhotoGrid({ photos, galeria }: any) {
       return;
     }
 
-    // ✅ Lê o limite do plano do contexto
     const zipSizeLimitBytes = permissions.zipSizeLimitBytes;
     const targetResolution = ZIP_LIMIT_TO_RESOLUTION[zipSizeLimitBytes] ?? 1600;
-
     const setProgress = setDownloadProgress;
     const setStatus = isFavAction ? setIsDownloadingFavs : setIsDownloading;
 
@@ -400,7 +326,6 @@ export default function PhotoGrid({ photos, galeria }: any) {
       setProgress(0);
       const zip = new JSZip();
       let completedCount = 0;
-
       const batchSize = window.innerWidth < 768 ? 20 : 50;
 
       for (let i = 0; i < targetList.length; i += batchSize) {
@@ -409,40 +334,25 @@ export default function PhotoGrid({ photos, galeria }: any) {
           currentBatch.map(async (photo, indexInBatch) => {
             try {
               const sizeInBytes = Number(photo.size) || 0;
-
-              // ✅ LÓGICA DO PLANO:
-              // PREMIUM (targetResolution === 0) ou foto já dentro do limite → original
-              // Outros planos com foto acima do limite → usa proxy com resolução limitada
               let url: string;
-
-              // 🎯 LÓGICA INTELIGENTE:
-              // Se a foto já for menor que 1.5MB, baixa o original direto do Google.
-              // Se for maior, usa o proxy para reduzir para 2560px.
-
               if (targetResolution === 0 || sizeInBytes <= zipSizeLimitBytes) {
-                // Original direto do Google
                 url = getDownloadDirectGoogleUrl(
                   photo.id,
                   RESOLUTIONS.DOWNLOAD,
                 );
               } else {
-                // Proxy com resolução limitada pelo plano
                 url = getDownloadDirectGoogleUrl(photo.id, targetResolution);
               }
-
               const res = await fetch(url);
               if (!res.ok) throw new Error('Erro no download');
               const blob = await res.blob();
-
               const globalPhotoNumber =
                 firstPhotoGlobalIndex + i + indexInBatch + 1;
-
               const finalFileName =
                 galeria.rename_files_sequential === true ||
                 galeria.rename_files_sequential === 'true'
                   ? `foto-${globalPhotoNumber}.jpg`
                   : photo.name || `foto-${globalPhotoNumber}.jpg`;
-
               zip.file(finalFileName, blob, { binary: true });
             } catch (e) {
               console.error(`Falha na foto ${photo.id}:`, e);
@@ -452,7 +362,6 @@ export default function PhotoGrid({ photos, galeria }: any) {
             }
           }),
         );
-
         if (i + batchSize < targetList.length)
           await new Promise((r) =>
             setTimeout(r, window.innerWidth < 768 ? 400 : 150),
@@ -464,7 +373,6 @@ export default function PhotoGrid({ photos, galeria }: any) {
         compression: 'STORE',
         streamFiles: true,
       });
-
       saveAs(content, `${galeria.title.replace(/\s+/g, '_')}_${zipSuffix}.zip`);
       setProgress(100);
 
@@ -472,7 +380,7 @@ export default function PhotoGrid({ photos, galeria }: any) {
         setDownloadedVolumes((prev) => [...new Set([...prev, chunkIndex])]);
 
       emitGaleriaEvent({
-        galeria: galeria,
+        galeria,
         eventType: isFavAction ? 'download_favorites' : 'download',
         metadata: {
           count: targetList.length,
@@ -481,7 +389,7 @@ export default function PhotoGrid({ photos, galeria }: any) {
         },
       });
     } catch (error) {
-      console.error('Erro crítico na geração do ZIP:', error);
+      console.error('Erro critico na geracao do ZIP:', error);
     } finally {
       setTimeout(() => {
         setStatus(false);
@@ -493,20 +401,12 @@ export default function PhotoGrid({ photos, galeria }: any) {
 
   const handleDownloadFavorites = () => setShowVolumeDashboard(true);
 
-  const [toast, setToast] = useState<{
-    message: string;
-    type: 'success' | 'error';
-  } | null>(null);
-
-  // 🎯 SALVAR A SELEÇÃO DE FOTOS (IDs) DO CLIENTE
   const handleSaveSelections = async () => {
     if (favorites.length === 0) return;
     if (galeria.selection_ids?.length > 0) return;
-
     setIsSavingSelections(true);
     try {
       const result = await saveGaleriaSelectionAction(galeria, favorites);
-
       if (result.success) {
         await emitGaleriaEvent({
           galeria,
@@ -516,21 +416,14 @@ export default function PhotoGrid({ photos, galeria }: any) {
             quantidade_fotos_selecionadas: favorites.length,
           },
         });
-
         setToast({
-          message: 'Seleção enviada com sucesso! O fotógrafo será notificado.',
+          message: 'Selecao enviada com sucesso! O fotografo sera notificado.',
           type: 'success',
         });
-
-        // Opcional: Feedback visual de sucesso antes de fechar
         setIsConfirmModalOpen(false);
-        // Você pode redirecionar ou mostrar um Toast aqui
       } else {
         console.error('Erro ao salvar:', result.error);
-        setToast({
-          message: `Erro ao enviar: ${result.error}`,
-          type: 'error',
-        });
+        setToast({ message: `Erro ao enviar: ${result.error}`, type: 'error' });
       }
     } catch (err) {
       console.error('Erro ao salvar:', err);
@@ -543,7 +436,7 @@ export default function PhotoGrid({ photos, galeria }: any) {
 
   const handleShare = async () => {
     emitGaleriaEvent({
-      galeria: galeria,
+      galeria,
       eventType: 'share',
       metadata: { method: 'web_share', title: galeria.title },
     });
@@ -552,7 +445,7 @@ export default function PhotoGrid({ photos, galeria }: any) {
 
   return (
     <div className="relative w-full">
-      {/* INFO BARS */}
+      {/* TOOLBARS */}
       <div className="sticky top-0 z-[100] w-full pointer-events-none">
         <ToolBarDesktop
           {...{
@@ -604,6 +497,8 @@ export default function PhotoGrid({ photos, galeria }: any) {
           handleShare={handleShare}
         />
       </div>
+
+      {/* GRID */}
       <div ref={gridRef}>
         <MasonryGrid
           {...{
@@ -619,39 +514,45 @@ export default function PhotoGrid({ photos, galeria }: any) {
             canUseFavorites: canUseFavorites && galeria.enable_favorites,
             tagSelectionMode: 'single',
           }}
-          /* 🎯 AJUSTE CHAVE: Alterna entre Marcação (admin) e Coração (public) */
           mode={galeria.has_contracting_client === 'ES' ? 'admin' : 'public'}
-          allowLightboxInAdmin={galeria.has_contracting_client === 'ES'} // 🎯 Ativa o lightbox mesmo em modo seleção
+          allowLightboxInAdmin={galeria.has_contracting_client === 'ES'}
           galleryTitle={galeria.title}
         />
       </div>
-      {/* MODAL CENTRAL DE DOWNLOADS (TEMA BRANCO) */}
-      {showVolumeDashboard && (
-        <DownloadCenterModal
-          isOpen={showVolumeDashboard}
-          onClose={() => setShowVolumeDashboard(false)}
-          volumes={VOLUMES}
-          favoriteVolumes={FAVORITE_VOLUMES}
-          downloadedVolumes={downloadedVolumes}
-          activeDownloadingIndex={activeDownloadingIndex}
-          downloadProgress={downloadProgress}
-          isDownloading={isDownloading}
-          handleDownloadZip={handleDownloadZip}
-          totalGallerySizeMB={totalGallerySizeMB}
-          canUseFavorites={canUseFavorites && galeria.enable_favorites}
-        />
-      )}
-      {/* BOTÃO FLUTUANTE DE DOWNLOAD FAVORITOS */}
+
+      {/* CENTRAL DE DOWNLOADS — Sheet lateral */}
+      <DownloadCenterSheet
+        isOpen={showVolumeDashboard}
+        onClose={() => setShowVolumeDashboard(false)}
+        volumes={VOLUMES}
+        favoriteVolumes={FAVORITE_VOLUMES}
+        downloadedVolumes={downloadedVolumes}
+        activeDownloadingIndex={activeDownloadingIndex}
+        downloadProgress={downloadProgress}
+        isDownloading={isDownloading}
+        handleDownloadZip={handleDownloadZip}
+        totalGallerySizeMB={totalGallerySizeMB}
+        canUseFavorites={canUseFavorites && galeria.enable_favorites}
+        canDownloadFavorites={canDownloadFavorites}
+        showOnlyFavorites={showOnlyFavorites}
+        downloadAllAsZip={() => {
+          setShowVolumeDashboard(false);
+          handleDownloadZip(photosWithTags, 'Completo', false, true, 'all');
+        }}
+        externalLinks={externalLinks}
+        handleExternalDownload={handleExternalDownload}
+        galeriaTitle={galeria.title}
+      />
+
+      {/* BOTAO FLUTUANTE DE DOWNLOAD FAVORITOS */}
       {favorites.length > 0 &&
         !showVolumeDashboard &&
         canShowFavButton &&
         canUseFavorites && (
           <div className="fixed bottom-6 left-1/2 -translate-x-1/2 z-[150] animate-in fade-in zoom-in slide-in-from-bottom-5 duration-300 w-fit">
             {galeria.has_contracting_client === 'ES' ? (
-              /* --- LOGICA PARA ENSAIO (ES) --- */
               <div className="flex items-center gap-2 p-1.5">
                 {!showOnlyFavorites && galeria.selection_ids?.length === 0 ? (
-                  /* ESTADO 1: VER SELECIONADAS (BOTÃO INICIAL) */
                   <button
                     onClick={() => setShowOnlyFavorites(true)}
                     className="flex items-center justify-center rounded-luxury h-12 bg-white text-black border border-white/20 shadow-xl hover:scale-105 active:scale-95 transition-all px-8 gap-3 min-w-[200px]"
@@ -669,21 +570,17 @@ export default function PhotoGrid({ photos, galeria }: any) {
                   </button>
                 ) : (
                   <>
-                    {/* ESTADO 2: FILTRO ATIVO (DUAS OPÇÕES) */}
                     {galeria.selection_ids?.length === 0 && (
                       <div className="flex items-center gap-2 animate-in slide-in-from-right-2 duration-300">
-                        {/* BOTÃO VOLTAR / CONTINUAR */}
                         <button
                           onClick={() => setShowOnlyFavorites(false)}
                           className="flex items-center justify-center rounded-luxury h-12 bg-petroleum text-white border border-white/10 hover:bg-petroleum-light transition-all px-5 gap-2"
                         >
                           <ArrowLeft size={18} />
                           <span className="text-[9px] md:text-[11px] font-semibold uppercase tracking-widest">
-                            Continuar seleção
+                            Continuar selecao
                           </span>
                         </button>
-
-                        {/* BOTÃO FINALIZAR (DESTAQUE) */}
                         <button
                           onClick={() => setIsConfirmModalOpen(true)}
                           className="flex items-center justify-center rounded-luxury h-12 bg-gold text-black border border-black/10 shadow-[0_0_20px_rgba(212,175,55,0.4)] hover:scale-105 active:scale-95 transition-all px-5 gap-2"
@@ -691,7 +588,7 @@ export default function PhotoGrid({ photos, galeria }: any) {
                           <CheckCircle2 size={18} strokeWidth={2.5} />
                           <div className="flex flex-col items-start leading-tight text-left">
                             <span className="text-[9px] md:text-[11px] font-semibold uppercase tracking-widest">
-                              Enviar Seleção
+                              Enviar Selecao
                             </span>
                             <span className="text-[9px] font-semibold opacity-80 italic">
                               Concluir Etapa
@@ -704,7 +601,6 @@ export default function PhotoGrid({ photos, galeria }: any) {
                 )}
               </div>
             ) : (
-              /* --- BOTÃO PADRÃO PARA OUTROS TIPOS (BAIXAR) --- */
               <button
                 onClick={handleDownloadFavorites}
                 disabled={isDownloadingFavs}
@@ -728,6 +624,7 @@ export default function PhotoGrid({ photos, galeria }: any) {
             )}
           </div>
         )}
+
       {/* LIGHTBOX */}
       {selectedPhotoIndex !== null && photosWithTags.length > 0 && (
         <Lightbox
@@ -738,8 +635,8 @@ export default function PhotoGrid({ photos, galeria }: any) {
           galeria={galeria}
           location={galeria.location || ''}
           favorites={favorites}
-          canUseFavorites={galeria.enable_favorites && canUseFavorites} // 🎯 Trava dinâmica
-          canUseSlideshow={galeria.enable_slideshow && canUseSlideshow} // 🎯 Trava dinâmica
+          canUseFavorites={galeria.enable_favorites && canUseFavorites}
+          canUseSlideshow={galeria.enable_slideshow && canUseSlideshow}
           onToggleFavorite={toggleFavoriteFromGrid}
           onClose={() => setSelectedPhotoIndex(null)}
           onNext={() =>
@@ -759,33 +656,35 @@ export default function PhotoGrid({ photos, galeria }: any) {
           }
         />
       )}
+
+      {/* CONFIRMACAO DE SELECAO */}
       <ConfirmationModal
         isOpen={isConfirmModalOpen}
         onClose={() => setIsConfirmModalOpen(false)}
         onConfirm={async () => {
-          // Aqui entra a lógica de envio da seleção (ex: API call)
           await handleSaveSelections();
           setIsConfirmModalOpen(false);
         }}
-        variant="primary" // "primary" usa o padrão Gold/Info do seu código
-        title="Finalizar Seleção"
-        confirmText="Sim, Enviar Seleção"
+        variant="primary"
+        title="Finalizar Selecao"
+        confirmText="Sim, Enviar Selecao"
         isLoading={isSavingSelections}
         message={
           <div className="space-y-2">
             <p>
-              Você selecionou <strong>{favorites.length} fotos</strong>.
+              Voce selecionou <strong>{favorites.length} fotos</strong>.
             </p>
             <p>
-              Ao confirmar, sua seleção será enviada para o fotógrafo e não
-              poderá mais ser alterada através deste link.
+              Ao confirmar, sua selecao sera enviada para o fotografo e nao
+              podera mais ser alterada atraves deste link.
             </p>
             <p className="text-[11px] mt-4 opacity-70">
-              Esta ação encerra sua etapa de escolha.
+              Esta acao encerra sua etapa de escolha.
             </p>
           </div>
         }
-      />{' '}
+      />
+
       {toast && (
         <Toast
           message={toast.message}
@@ -793,6 +692,7 @@ export default function PhotoGrid({ photos, galeria }: any) {
           onClose={() => setToast(null)}
         />
       )}
+
       <UpgradeModal
         isOpen={!!upsellFeature}
         onClose={() => setUpsellFeature(null)}

@@ -13,6 +13,7 @@ import {
   X,
   ChevronRight,
   Images,
+  Sparkles,
 } from 'lucide-react';
 
 import {
@@ -30,16 +31,17 @@ import { formatDistanceToNow } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
 import { EventDetailsSheet } from '@/components/ui/EventDetailsSheet';
 import { TrafficInfoCard } from './TrafficInfoCard';
+import { usePlan } from '@/core/context/PlanContext';
+import UpgradeModal from '../ui/UpgradeModal';
 
 export function NotificationMenu({ userId }: { userId: string }) {
+  const { permissions } = usePlan();
   const [notifications, setNotifications] = useState<any[]>([]);
   const [isOpen, setIsOpen] = useState(false);
   const [isPushEnabled, setIsPushEnabled] = useState(false);
   const [selectedEvent, setSelectedEvent] = useState<any>(null);
   const [isPending, startTransition] = useTransition();
-
-  // 🎯 Ref para controlar as notificações que eram "novas" nesta sessão de abertura
-  const sessionOpenedRef = useRef<string[]>([]);
+  const [isUpgradeModalOpen, setIsUpgradeModalOpen] = useState(false);
 
   const unreadCount = notifications.filter((n) => !n.read_at).length;
 
@@ -229,8 +231,37 @@ export function NotificationMenu({ userId }: { userId: string }) {
             {/* Listagem */}
             <div className="max-h-[450px] overflow-y-auto custom-scrollbar bg-white">
               {/* 🎯 INSERÇÃO DO HELP TIP FIXO NO TOPO */}
-
-              {notifications.length === 0 ? (
+              {!permissions.canAccessNotifyEvents ? (
+                // Gate inline — mais compacto que a tela inteira
+                <div className="p-6 flex flex-col items-center text-center gap-4">
+                  <div className="p-3 bg-gold/10 rounded-xl">
+                    <Bell size={20} className="text-gold" />
+                  </div>
+                  <div>
+                    <p className="text-[11px] font-bold text-petroleum uppercase tracking-widest mb-1">
+                      Notificações em tempo real
+                    </p>
+                    <p className="text-[11px] text-slate-500 leading-relaxed">
+                      Você tem{' '}
+                      <span className="font-bold text-petroleum blur-[3px] select-none">
+                        {notifications.length > 0 ? notifications.length : '?'}
+                      </span>{' '}
+                      {notifications.length === 1
+                        ? 'notificação'
+                        : 'notificações'}{' '}
+                      aguardando. Faça upgrade para receber alertas de visitas,
+                      downloads e muito mais.
+                    </p>
+                  </div>
+                  <button
+                    onClick={() => setIsUpgradeModalOpen(true)}
+                    className="w-full py-2.5 bg-petroleum text-white text-[11px] font-bold uppercase tracking-widest rounded-xl flex items-center justify-center gap-2"
+                  >
+                    <Sparkles size={12} className="text-gold" />
+                    Ver planos
+                  </button>
+                </div>
+              ) : notifications.length === 0 ? (
                 <div className="p-12 text-center text-petroleum/30 text-[11px] italic font-medium uppercase tracking-widest">
                   Nenhuma atividade recente.
                 </div>
@@ -335,10 +366,17 @@ export function NotificationMenu({ userId }: { userId: string }) {
           </div>
         </>
       )}
+      <UpgradeModal
+        isOpen={isUpgradeModalOpen}
+        onClose={() => setIsUpgradeModalOpen(false)}
+        featureName="Notificações em Tempo Real"
+        description="Receba alertas instantâneos de visitas, downloads e interações com sua galeria."
+        featureKey="canAccessNotifyEvents"
+        scenarioType="feature"
+      />
 
       <EventDetailsSheet
         event={selectedEvent}
-        allEvents={notifications}
         onClose={() => setSelectedEvent(null)}
       />
     </div>

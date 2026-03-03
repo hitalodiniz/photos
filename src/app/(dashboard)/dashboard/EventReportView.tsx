@@ -14,6 +14,9 @@ import {
   Zap,
   TableIcon,
   Heart,
+  BarChart2,
+  TrendingUp,
+  Users,
 } from 'lucide-react';
 import { useRouter } from 'next/navigation';
 import { RelatorioBasePage, LoadingScreen } from '@/components/ui';
@@ -32,10 +35,13 @@ import {
 import InteractiveChart from '@/components/ui/InteractiveChart';
 import { TrafficInfoCard } from '@/components/dashboard/TrafficInfoCard';
 import { InfoTooltip } from '@/components/ui/InfoTooltip';
+import { usePlan } from '@/core/context/PlanContext';
+import { PlanGateScreen } from '@/components/ui/PlanGateScreen';
 
 // --- VIEW PRINCIPAL ---
 export default function EventReportView({ galeria }: any) {
   const router = useRouter();
+  const { permissions } = usePlan();
   const [reportData, setReportData] = useState<any>(null);
   const [loading, setLoading] = useState(true);
   const [searchTerm, setSearchTerm] = useState('');
@@ -44,6 +50,11 @@ export default function EventReportView({ galeria }: any) {
 
   useEffect(() => {
     async function loadData() {
+      if (!permissions.canAccessStats) {
+        // ← só carrega se tiver acesso
+        setLoading(false);
+        return;
+      }
       try {
         setLoading(true);
         const result = await getGaleriaEventReport(galeria.id);
@@ -55,7 +66,7 @@ export default function EventReportView({ galeria }: any) {
       }
     }
     loadData();
-  }, [galeria.id]);
+  }, [galeria.id, permissions.canAccessStats]);
 
   const rawEvents = reportData?.rawEvents || [];
   const events = useMemo(() => {
@@ -141,6 +152,48 @@ export default function EventReportView({ galeria }: any) {
 
   if (loading)
     return <LoadingScreen message="Gerando estatísticas da galeria..." />;
+
+  // ← Gate de plano — antes do return principal
+  if (!permissions.canAccessStats) {
+    return (
+      <RelatorioBasePage
+        title={`Estatísticas - ${galeria.title}`}
+        onBack={() => router.back()}
+      >
+        <PlanGateScreen
+          feature="canAccessStats"
+          title="Estatísticas de Galeria"
+          description="Veja quantas pessoas acessaram sua galeria, de onde vieram, quais dispositivos usaram, o que baixaram e muito mais. Dados reais para tomar decisões melhores."
+          teasers={[
+            {
+              icon: Users,
+              label: 'Visitantes únicos',
+              value: '---',
+              hint: 'aguardando',
+            },
+            {
+              icon: Download,
+              label: 'Downloads',
+              value: '---',
+              hint: 'registrados',
+            },
+            {
+              icon: TrendingUp,
+              label: 'Compartilhamentos',
+              value: '---',
+              hint: 'via WhatsApp',
+            },
+            {
+              icon: BarChart2,
+              label: 'Eventos totais',
+              value: '---',
+              hint: 'capturados',
+            },
+          ]}
+        />
+      </RelatorioBasePage>
+    );
+  }
 
   return (
     <RelatorioBasePage
@@ -445,7 +498,6 @@ export default function EventReportView({ galeria }: any) {
       </div>
       <EventDetailsSheet
         event={selectedEvent}
-        allEvents={events}
         onClose={() => setSelectedEvent(null)}
       />
     </RelatorioBasePage>
