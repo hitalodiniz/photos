@@ -461,11 +461,11 @@ export default function PhotoGrid({ photos, galeria }: any) {
 
       emitGaleriaEvent({
         galeria: galeria,
-        eventType: 'download',
+        eventType: isFavAction ? 'download_favorites' : 'download',
         metadata: {
           count: targetList.length,
-          type: isFavAction ? 'favorites' : 'all',
           suffix: zipSuffix,
+          volume: typeof chunkIndex === 'number' ? chunkIndex + 1 : undefined,
         },
       });
     } catch (error) {

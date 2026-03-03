@@ -408,7 +408,8 @@ export default function GaleriaFormContent({
 
       if (!folderPermissionInfo.isPublic) {
         onPickerError(
-          `Pasta privada: Altere o acesso no Drive para "Qualquer pessoa com o link" antes de vincular.\nLink: ${folderPermissionInfo.folderLink}`,
+          'Pasta privada: Altere o acesso no Drive para "Qualquer pessoa com o link" antes de vincular.',
+          folderPermissionInfo.folderLink,
         );
         return;
       }

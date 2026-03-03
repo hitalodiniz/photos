@@ -1,5 +1,5 @@
 import { NextResponse } from 'next/server';
-import { createSupabaseClientForCache } from '@/lib/supabase.server';
+import { createSupabaseAdmin } from '@/lib/supabase.server';
 import { getDriveAccessTokenForUser } from '@/lib/google-auth';
 import { registerFolderWatch } from '@/core/services/drive-watch.service';
 
@@ -9,10 +9,10 @@ export async function GET(req: Request) {
     return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
   }
 
-  const supabase = await createSupabaseClientForCache();
+  // Cliente admin: cron não tem sessão; RLS bloquearia leitura com anon
+  const supabase = createSupabaseAdmin();
   const in24h = Date.now() + 24 * 60 * 60 * 1000;
 
-  // Usa o mesmo refresh token da tb_profiles que as outras funcionalidades (Drive, etc.)
   const { data: expiring } = await supabase
     .from('tb_drive_watch_channels')
     .select('*, tb_profiles!inner(google_refresh_token)')

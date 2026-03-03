@@ -58,6 +58,7 @@ export default function GaleriaFormPage({
   const [toast, setToast] = useState<{
     message: string;
     type: 'success' | 'error';
+    link?: string;
   } | null>(null);
   const formRef = useRef<HTMLFormElement>(null);
 
@@ -313,8 +314,8 @@ export default function GaleriaFormPage({
           setGridBgColor,
           setColumns,
         }}
-        onPickerError={(msg: string) =>
-          setToast({ message: msg, type: 'error' })
+        onPickerError={(msg: string, link?: string) =>
+          setToast({ message: msg, type: 'error', link })
         }
         onTokenExpired={() => setShowConsentAlert(true)}
         onTitleChange={setFormTitle}
@@ -330,6 +331,11 @@ export default function GaleriaFormPage({
           message={toast.message}
           type={toast.type}
           onClose={() => setToast(null)}
+          link={
+            toast.link
+              ? { url: toast.link, label: 'Abrir pasta no Drive' }
+              : undefined
+          }
         />
       )}
       <GoogleConsentAlert
