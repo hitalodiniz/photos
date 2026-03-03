@@ -1,7 +1,10 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { revalidateDrivePhotos } from '@/actions/revalidate.actions';
 import { createSupabaseAdmin } from '@/lib/supabase.server';
-import { syncGaleriaPhotoCount } from '@/core/services/galeria.service';
+import {
+  getGaleriaByIdForServer,
+  syncGaleriaPhotoCountByGaleriaId,
+} from '@/core/services/galeria.service';
 
 // Debounce em memória (sobrevive por enquanto o processo estiver vivo)
 const pendingReloads = new Map<string, NodeJS.Timeout>();
@@ -31,39 +34,60 @@ async function processWebhook(channelId: string) {
   try {
     const supabase = createSupabaseAdmin();
 
-    // Busca qual pasta está associada a esse channelId
+    // Extrai o folderId diretamente do channelId
+    // Formato: gallery-{userId}-{folderId}-{timestamp}
+    const parts = channelId.split('-');
+    // folderId é a parte do meio — tudo entre o userId (4 partes uuid) e o timestamp final
+    // gallery + 4 partes uuid + folderId + timestamp
+    const folderIdFromChannel = parts.slice(6, -1).join('-');
+
+    // Busca pelo folder_id extraído (mais resiliente que buscar pelo channelId exato)
     const { data: channel } = await supabase
       .from('tb_drive_watch_channels')
       .select('folder_id, galeria_id')
-      .eq('channel_id', channelId)
+      .eq('folder_id', folderIdFromChannel)
       .maybeSingle();
 
     if (!channel) {
-      console.warn('[webhook/drive] channelId não encontrado:', channelId);
-      return;
+      // Fallback: tenta pelo channelId exato (para casos onde o formato muda)
+      const { data: channelById } = await supabase
+        .from('tb_drive_watch_channels')
+        .select('folder_id, galeria_id')
+        .eq('channel_id', channelId)
+        .maybeSingle();
+
+      if (!channelById) {
+        console.warn('[webhook/drive] channelId não encontrado:', channelId);
+        return;
+      }
+
+      return processRevalidation(channelById.folder_id, channelById.galeria_id);
     }
 
-    // Debounce: evita múltiplas revalidações para a mesma pasta em sequência
-    const key = channel.folder_id;
-    if (pendingReloads.has(key)) {
-      clearTimeout(pendingReloads.get(key));
-    }
-
-    const timer = setTimeout(async () => {
-      pendingReloads.delete(key);
-      // Usa sua função já existente — ela invalida drive-{folderId} e photos-{galeriaId}
-      await revalidateDrivePhotos(channel.folder_id, channel.galeria_id);
-      await syncGaleriaPhotoCount(channel.galeria_id);
-      console.log(
-        '[webhook/drive] Cache invalidado para pasta:',
-        channel.folder_id,
-      );
-    }, 2000);
-
-    pendingReloads.set(key, timer);
+    processRevalidation(channel.folder_id, channel.galeria_id);
   } catch (err) {
     console.error('[webhook/drive] Erro ao processar webhook:', err);
   }
+}
+
+function processRevalidation(folderId: string, galeriaId: string) {
+  const key = folderId;
+  if (pendingReloads.has(key)) {
+    clearTimeout(pendingReloads.get(key));
+  }
+
+  const timer = setTimeout(async () => {
+    pendingReloads.delete(key);
+    await revalidateDrivePhotos(folderId, galeriaId);
+
+    const galeria = await getGaleriaByIdForServer(galeriaId);
+    if (galeria) {
+      await syncGaleriaPhotoCountByGaleriaId(galeriaId);
+    }
+    console.log('[webhook/drive] Cache invalidado para pasta:', folderId);
+  }, 2000);
+
+  pendingReloads.set(key, timer);
 }
 
 // ## Fluxo completo com seu código
