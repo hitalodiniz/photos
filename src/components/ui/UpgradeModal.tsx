@@ -28,6 +28,10 @@ import {
 } from '@/core/config/plans';
 import { usePlan } from '@/core/context/PlanContext';
 import { useSegment } from '@/hooks/useSegment';
+import { de } from 'date-fns/locale';
+import { a } from 'framer-motion/client';
+import { o } from 'node_modules/framer-motion/dist/types.d-DagZKalS';
+import { no } from 'zod/v4/locales';
 
 interface UpgradeModalProps {
   isOpen: boolean;
@@ -81,13 +85,13 @@ export default function UpgradeModal({
     if (!perms) return [];
 
     return [
-      `Até ${perms.maxGalleries} ${terms.items} ativas`,
-      `Capacidade de ${perms.maxPhotosPerGallery} itens por ${terms.item}`,
+      `Até ${perms.maxGalleries} galerias ativas`,
+      `Capacidade de ${perms.maxPhotosPerGallery} arquivos por galeria`,
       perms.removeBranding
         ? 'Remoção total de branding (White Label)'
         : 'Identidade visual profissional',
       perms.canCaptureLeads
-        ? 'Captura e exportação de leads'
+        ? 'Cadastrao de Visitantes e exportação desses cadastros'
         : 'Interação avançada com usuários',
       `Suporte a até ${perms.maxExternalLinks} links externos`,
     ];
@@ -153,7 +157,7 @@ export default function UpgradeModal({
         {/* Texto Explicativo com Descrição Amigável */}
         <div className="px-1 space-y-2">
           {displayDescription && (
-            <p className="text-[14px] text-petroleum font-bold leading-relaxed border-l-2 border-gold/40 pl-3 py-0.5 bg-slate-50/50">
+            <p className="text-[14px] text-petroleum font-semibold leading-relaxed border-l-2 border-gold/40 pl-3 py-0.5 bg-slate-50/50">
               {displayDescription}
             </p>
           )}

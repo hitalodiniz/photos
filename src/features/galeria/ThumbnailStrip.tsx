@@ -3,7 +3,7 @@ import React, { useRef, useEffect } from 'react';
 import { useGoogleDriveImage } from '@/hooks/useGoogleDriveImage';
 
 interface ThumbnailStripProps {
-  photos: Array<{ id: string | number }>;
+  photos: Array<{ id: string | number; type?: 'photo' | 'video'; width?: number; height?: number }>;
   activeIndex: number;
   onNavigateToIndex: (index: number) => void;
   isVisible: boolean;
@@ -71,7 +71,7 @@ export function ThumbnailStrip({
             return (
               <ThumbnailItem
                 key={photo.id}
-                photoId={photo.id}
+                photo={photo}
                 index={index}
                 isActive={isActive}
                 onClick={() => onNavigateToIndex(index)}
@@ -86,16 +86,23 @@ export function ThumbnailStrip({
 }
 
 interface ThumbnailItemProps {
-  photoId: string | number;
+  photo: { id: string | number; type?: 'photo' | 'video'; width?: number; height?: number };
   index: number;
   isActive: boolean;
   onClick: () => void;
 }
 
 const ThumbnailItem = React.forwardRef<HTMLButtonElement, ThumbnailItemProps>(
-  ({ photoId, index, isActive, onClick }, ref) => {
-    // Garantir que photoId não seja vazio
-    const validPhotoId = photoId ? String(photoId) : '';
+  ({ photo, index, isActive, onClick }, ref) => {
+    const validPhotoId = photo?.id ? String(photo.id) : '';
+    const aspectRatio =
+      photo?.type === 'video' && photo?.width && photo?.height && photo.width > 0
+        ? photo.width / photo.height
+        : 1;
+    const baseSize = isActive ? 80 : 64;
+    const maxHeight = 120;
+    const width = baseSize;
+    const height = Math.min(maxHeight, Math.round(baseSize / aspectRatio)); // retrato: altura maior (limitada); paisagem: altura menor
 
     const { imgSrc, isLoading, handleError, handleLoad, imgRef } =
       useGoogleDriveImage({
@@ -119,10 +126,10 @@ const ThumbnailItem = React.forwardRef<HTMLButtonElement, ThumbnailItemProps>(
             : 'opacity-70 hover:opacity-100 active:opacity-100 hover:scale-105 active:scale-95'
         }`}
         style={{
-          width: isActive ? '80px' : '64px',
-          height: isActive ? '80px' : '64px',
+          width: `${width}px`,
+          height: `${height}px`,
         }}
-        aria-label={`Ver foto ${index + 1}`}
+        aria-label={`Ver ${photo?.type === 'video' ? 'vídeo' : 'foto'} ${index + 1}`}
       >
         <div
           className={`relative w-full h-full rounded-lg overflow-hidden bg-white/10 transition-all ${
@@ -140,7 +147,7 @@ const ThumbnailItem = React.forwardRef<HTMLButtonElement, ThumbnailItemProps>(
               ref={imgRef}
               src={imgSrc}
               alt={`Miniatura ${index + 1}`}
-              className="w-full h-full object-cover"
+              className="w-full h-full object-contain"
               loading={index < 10 ? 'eager' : 'lazy'}
               draggable={false}
               onError={handleError}

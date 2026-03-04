@@ -952,7 +952,7 @@ export default function GaleriaFormContent({
             <div className="flex items-center gap-2 pb-2 border-b border-slate-200">
               <Download size={14} className="text-gold" />
               <h3 className="text-[10px] font-bold uppercase tracking-luxury-widest text-petroleum">
-                links e arquivos de entrega
+                links externos
               </h3>
             </div>
 
@@ -1040,7 +1040,7 @@ export default function GaleriaFormContent({
 
               <button
                 type="button"
-                className="btn-luxury-primary text-[9px]"
+                className="btn-luxury-primary text-[9px] px-2"
                 onClick={() => {
                   if (canAddMore('maxExternalLinks', links.length)) {
                     setLinks([
@@ -1057,7 +1057,7 @@ export default function GaleriaFormContent({
               >
                 {canAddMore('maxExternalLinks', links.length) ? (
                   <>
-                    <Plus size={14} /> adicionar link
+                    <Plus size={14} /> Novo link
                   </>
                 ) : (
                   <>

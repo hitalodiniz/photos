@@ -86,9 +86,9 @@ export const DownloadCenterSheet = ({
         <div className="w-10 h-1 bg-slate-200 rounded-full" />
       </div>
       {/* Painel */}
-      <div className="relative z-10 bg-white shadow-2xl flex flex-col w-full max-h-[92vh] rounded-t-2xl animate-in slide-in-from-bottom duration-500 sm:w-[448px] sm:max-h-full sm:h-full sm:rounded-none sm:rounded-l-2xl sm:slide-in-from-right sm:slide-in-from-bottom-0">
+      <div className="relative z-10 bg-white shadow-2xl flex flex-col w-full max-h-[92vh] animate-in slide-in-from-bottom duration-500 sm:w-[448px] sm:max-h-full sm:h-full  sm:slide-in-from-right sm:slide-in-from-bottom-0">
         {/* ── Header ── */}
-        <div className="shrink-0 px-4 py-3 sm:p-5 flex items-center justify-between bg-petroleum rounded-t-2xl sm:rounded-none sm:rounded-tl-2xl">
+        <div className="shrink-0 px-4 py-3 sm:p-5 flex items-center justify-between bg-petroleum ">
           <div className="flex items-center gap-3">
             <div className="w-9 h-9 rounded-luxury bg-white/10 flex items-center justify-center text-gold">
               {totalGallerySizeMB > 100 ? (
@@ -98,10 +98,10 @@ export const DownloadCenterSheet = ({
               )}
             </div>
             <div>
-              <h4 className="text-[11px] font-bold uppercase tracking-luxury-widest text-white">
+              <h4 className="text-[11px] font-semibold uppercase tracking-wide text-white">
                 Central de Download
               </h4>
-              <p className="text-[9px] text-white/50 font-semibold uppercase tracking-luxury mt-0.5">
+              <p className="text-[9px] text-white/70 font-semibold uppercase tracking-luxury mt-0.5">
                 {completedCount} / {totalCount} pacotes concluídos
               </p>
             </div>
@@ -119,7 +119,7 @@ export const DownloadCenterSheet = ({
           <div className="shrink-0 px-5 py-3 bg-petroleum border-b border-white/10">
             <div className="flex justify-between items-end mb-2">
               <div>
-                <p className="text-[9px] font-bold uppercase tracking-luxury text-gold animate-pulse">
+                <p className="text-[9px] font-semibold uppercase tracking-luxury text-gold animate-pulse">
                   Gerando Arquivo
                 </p>
                 <p className="text-[8px] text-white/50 uppercase font-semibold tracking-luxury mt-0.5">
@@ -146,7 +146,7 @@ export const DownloadCenterSheet = ({
         <div className="flex-1 overflow-y-auto overscroll-contain">
           {/* Download rápido — topo */}
           <div className="p-4 border-b border-slate-100 space-y-2">
-            <p className="text-[9px] font-bold uppercase tracking-luxury-widest text-petroleum/40 px-1 mb-3">
+            <p className="text-[9px] font-semibold uppercase tracking-luxury-widest text-petroleum/70 px-1 mb-3">
               Download Rápido
             </p>
 
@@ -163,7 +163,7 @@ export const DownloadCenterSheet = ({
                   <Filter size={15} className="text-red-500" />
                 </div>
                 <div>
-                  <p className="text-[11px] font-bold text-petroleum uppercase tracking-wide">
+                  <p className="text-[11px] font-semibold text-petroleum uppercase tracking-wide">
                     Apenas Favoritos
                   </p>
                   <p className="text-[9px] text-petroleum/50 italic font-medium mt-0.5">
@@ -185,11 +185,11 @@ export const DownloadCenterSheet = ({
                 <Zap size={15} className="text-gold" />
               </div>
               <div>
-                <p className="text-[11px] font-bold text-petroleum uppercase tracking-wide">
-                  Fotos Otimizadas
+                <p className="text-[11px] font-semibold text-petroleum uppercase tracking-wide">
+                  Arquivos Otimizados
                 </p>
                 <p className="text-[9px] text-petroleum/50 italic font-medium mt-0.5">
-                  Mantendo a qualidade das fotos originais
+                  Mantendo a qualidade dos arquivos originais
                 </p>
               </div>
             </button>
@@ -197,7 +197,7 @@ export const DownloadCenterSheet = ({
 
           {/* Pacotes ZIP */}
           <div className="p-4 space-y-2">
-            <p className="text-[9px] font-bold uppercase tracking-luxury-widest text-petroleum/40 px-1 mb-3">
+            <p className="text-[9px] font-semibold uppercase tracking-luxury-widest text-petroleum/70 px-1 mb-3">
               Pacotes ZIP
             </p>
 
@@ -267,7 +267,7 @@ export const DownloadCenterSheet = ({
                         {isCurrent ? (
                           <div className="loading-luxury w-4 h-4 border-petroleum/30 border-t-petroleum" />
                         ) : (
-                          <div className="w-8 h-8 rounded-full border border-petroleum/30 flex items-center justify-center text-petroleum/40 group-hover:border-petroleum/60 group-hover:text-petroleum transition-colors">
+                          <div className="w-8 h-8 rounded-full border border-petroleum/30 flex items-center justify-center text-petroleum/70 group-hover:border-petroleum/60 group-hover:text-petroleum transition-colors">
                             <Download size={16} />
                           </div>
                         )}
@@ -278,11 +278,11 @@ export const DownloadCenterSheet = ({
 
                 {/* Divisor */}
                 <div className="flex items-center gap-3 py-1 px-1">
-                  <div className="h-px bg-petroleum/10 flex-1" />
-                  <span className="text-[8px] font-bold uppercase tracking-luxury text-petroleum/30">
+                  <div className="h-px bg-petroleum/40 flex-1" />
+                  <span className="text-[8px] font-semibold uppercase tracking-luxury text-petroleum/70">
                     Galeria Completa
                   </span>
-                  <div className="h-px bg-petroleum/10 flex-1" />
+                  <div className="h-px bg-petroleum/40 flex-1" />
                 </div>
               </>
             )}
@@ -336,7 +336,7 @@ export const DownloadCenterSheet = ({
                         {sizeMB.toFixed(0)} MB
                       </span>
                       <span className="text-petroleum/10 text-xs">•</span>
-                      <span className="text-[9px] font-semibold text-petroleum/60 tracking-luxury uppercase">
+                      <span className="text-[9px] font-semibold text-petroleum/70 tracking-luxury uppercase">
                         {isDownloaded ? 'Concluído' : 'Otimizadas'}
                       </span>
                     </div>
@@ -348,7 +348,7 @@ export const DownloadCenterSheet = ({
                     ) : isDownloaded ? (
                       <CheckCircle2 size={20} className="text-green-500" />
                     ) : (
-                      <div className="w-8 h-8 rounded-full border border-petroleum/30 flex items-center justify-center text-petroleum/40 group-hover:border-petroleum/60 group-hover:text-petroleum transition-colors">
+                      <div className="w-8 h-8 rounded-full border border-petroleum/30 flex items-center justify-center text-petroleum/70 group-hover:border-petroleum/60 group-hover:text-petroleum transition-colors">
                         <Download size={16} />
                       </div>
                     )}
@@ -363,7 +363,7 @@ export const DownloadCenterSheet = ({
         {hasExternalLinks && (
           <div className="shrink-0 border-t border-slate-100 bg-slate-50">
             <div className="px-4 pt-3 pb-1">
-              <p className="text-[9px] font-bold uppercase tracking-luxury-widest text-petroleum/40">
+              <p className="text-[9px] font-semibold uppercase tracking-luxury-widest text-petroleum/70">
                 Links Externos
               </p>
             </div>
@@ -386,10 +386,10 @@ export const DownloadCenterSheet = ({
                     />
                   </div>
                   <div className="flex-1 min-w-0">
-                    <p className="text-[11px] font-bold text-petroleum uppercase tracking-wide">
+                    <p className="text-[11px] font-semibold text-petroleum uppercase tracking-wide">
                       {linkObj.label}
                     </p>
-                    <p className="text-[9px] text-petroleum/40 italic truncate mt-0.5">
+                    <p className="text-[9px] text-petroleum/70 italic truncate mt-0.5">
                       {linkObj.url}
                     </p>
                   </div>
@@ -406,7 +406,7 @@ export const DownloadCenterSheet = ({
         {/* ── Rodapé informativo ── */}
         {!isDownloading && (
           <div className="shrink-0 px-5 py-3 bg-petroleum/5 border-t border-petroleum/10 text-center">
-            <p className="text-[9px] text-petroleum/40 font-medium uppercase tracking-luxury">
+            <p className="text-[9px] text-petroleum/70 font-medium uppercase tracking-luxury">
               Toque em um pacote para iniciar o download
             </p>
           </div>

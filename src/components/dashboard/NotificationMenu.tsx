@@ -202,30 +202,36 @@ export function NotificationMenu({ userId }: { userId: string }) {
               </div>
 
               {/* LADO DIREITO: BOTÕES ALINHADOS */}
-              <div className="flex items-center gap-2">
-                {/* Botão Marcar Todas - Agora alinhado horizontalmente */}
-                {unreadCount > 0 && (
-                  <button
-                    onClick={handleMarkAllAsRead}
-                    className="px-3 py-1.5 bg-white/10 hover:bg-white text-white hover:text-petroleum border border-white/10 rounded-luxury text-[9px] font-semibold uppercase tracking-tight transition-all active:scale-95 whitespace-nowrap"
-                  >
-                    Marcar como lidas
-                  </button>
-                )}
+              {permissions.canAccessNotifyEvents && (
+                <div className="flex items-center gap-2">
+                  {/* Botão Marcar Todas - Agora alinhado horizontalmente */}
+                  {unreadCount > 0 && (
+                    <button
+                      onClick={handleMarkAllAsRead}
+                      className="px-3 py-1.5 bg-white/10 hover:bg-white text-white hover:text-petroleum border border-white/10 rounded-luxury text-[9px] font-semibold uppercase tracking-tight transition-all active:scale-95 whitespace-nowrap"
+                    >
+                      Marcar como lidas
+                    </button>
+                  )}
 
-                {/* Botão Ativar Push - Mantido original conforme pedido */}
-                <button
-                  onClick={togglePush}
-                  disabled={isPending}
-                  className={`px-4 py-1.5 rounded-luxury text-[9px] font-semibold uppercase transition-all whitespace-nowrap ${
-                    isPushEnabled
-                      ? 'border border-white/10 text-petroleum hover:bg-white/5 hover:text-white/80 bg-champagne'
-                      : 'bg-gold text-petroleum hover:bg-champagne'
-                  }`}
-                >
-                  {isPending ? '...' : isPushEnabled ? 'Ativo' : 'Ativar Push'}
-                </button>
-              </div>
+                  {/* Botão Ativar Push - Mantido original conforme pedido */}
+                  <button
+                    onClick={togglePush}
+                    disabled={isPending}
+                    className={`px-4 py-1.5 rounded-luxury text-[9px] font-semibold uppercase transition-all whitespace-nowrap ${
+                      isPushEnabled
+                        ? 'border border-white/10 text-petroleum hover:bg-white/5 hover:text-white/80 bg-champagne'
+                        : 'bg-gold text-petroleum hover:bg-champagne'
+                    }`}
+                  >
+                    {isPending
+                      ? '...'
+                      : isPushEnabled
+                        ? 'Ativo'
+                        : 'Ativar Push'}
+                  </button>
+                </div>
+              )}
             </div>
 
             {/* Listagem */}
@@ -243,7 +249,7 @@ export function NotificationMenu({ userId }: { userId: string }) {
                     </p>
                     <p className="text-[11px] text-slate-500 leading-relaxed">
                       Você tem{' '}
-                      <span className="font-bold text-petroleum blur-[3px] select-none">
+                      <span className="font-bold text-petroleum select-none">
                         {notifications.length > 0 ? notifications.length : '?'}
                       </span>{' '}
                       {notifications.length === 1

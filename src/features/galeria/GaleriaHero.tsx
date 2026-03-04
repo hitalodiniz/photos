@@ -1,5 +1,5 @@
 'use client';
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useMemo } from 'react';
 import {
   Camera,
   ChevronDown,
@@ -7,6 +7,7 @@ import {
   MapPin,
   Calendar,
   ImageIcon,
+  Video,
   ChevronLeft,
   ChevronRight,
   ChevronUp,
@@ -93,6 +94,20 @@ export const GaleriaHero = ({
     window.addEventListener('scroll', handleScroll);
     return () => window.removeEventListener('scroll', handleScroll);
   }, [isExpanded]);
+
+  const { photoCount, videoCount } = useMemo(() => {
+    const list = photos ?? [];
+    let photosN = 0;
+    let videosN = 0;
+    list.forEach((p: any) => {
+      if (p?.type === 'video' || p?.mimeType?.startsWith?.('video/')) {
+        videosN++;
+      } else {
+        photosN++;
+      }
+    });
+    return { photoCount: photosN, videoCount: videosN };
+  }, [photos]);
 
   return (
     <section
@@ -229,13 +244,35 @@ export const GaleriaHero = ({
                 </span>
               </div>
               <div className="hidden md:block w-[1px] h-3 bg-white/40 shrink-0" />
-              <div className="flex items-center text-white text-[10px] md:text-[14px] font-medium shrink-0 gap-1.5 drop-shadow-md">
-                <ImageIcon
-                  size={14}
-                  className="text-champagne drop-shadow-sm"
-                />
-                <span>{photos?.length || 0} fotos</span>
-              </div>
+              {(photoCount > 0 || videoCount > 0) && (
+                <>
+                  {photoCount > 0 && (
+                    <div className="flex items-center text-white text-[10px] md:text-[14px] font-medium shrink-0 gap-1.5 drop-shadow-md">
+                      <ImageIcon
+                        size={14}
+                        className="text-champagne drop-shadow-sm"
+                      />
+                      <span>
+                        {photoCount} {photoCount === 1 ? 'foto' : 'fotos'}
+                      </span>
+                    </div>
+                  )}
+                  {photoCount > 0 && videoCount > 0 && (
+                    <div className="hidden md:block w-[1px] h-3 bg-white/40 shrink-0" />
+                  )}
+                  {videoCount > 0 && (
+                    <div className="flex items-center text-white text-[10px] md:text-[14px] font-medium shrink-0 gap-1.5 drop-shadow-md">
+                      <Video
+                        size={14}
+                        className="text-champagne drop-shadow-sm"
+                      />
+                      <span>
+                        {videoCount} {videoCount === 1 ? 'vídeo' : 'vídeos'}
+                      </span>
+                    </div>
+                  )}
+                </>
+              )}
             </div>
           </div>
         </div>

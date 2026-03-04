@@ -1,6 +1,6 @@
 'use client';
 import React, { useEffect, useState, useMemo, useCallback } from 'react';
-import { ChevronLeft, ChevronRight, ImageIcon, X } from 'lucide-react';
+import { ChevronLeft, ChevronRight, ImageIcon, X, Play } from 'lucide-react';
 import { GaleriaHeader } from './GaleriaHeader';
 import PhotographerAvatar from './ProfileAvatar';
 import { getDirectGoogleUrl, RESOLUTIONS } from '@/core/utils/url-helper';
@@ -18,7 +18,11 @@ interface Photo {
   id: string | number;
   name?: string;
   type?: 'photo' | 'video';
+  width?: number;
+  height?: number;
 }
+
+const QUALITY_WARNING_COOLDOWN_MS = 10 * 60 * 1000; // 10 minutes — don't show again if lightbox reopened within this
 
 interface LightboxProps {
   photos: Photo[];
@@ -37,6 +41,8 @@ interface LightboxProps {
   onToggleFavorite: (id: string) => void;
   isSingleView?: boolean; // Se true, esconde setas e gestos
   mode: 'selection' | 'favorite';
+  /** Timestamp when lightbox was last closed; if reopen is within 10 min, quality warning is skipped */
+  lastClosedAt?: number | null;
 }
 
 export default function Lightbox({
@@ -56,6 +62,7 @@ export default function Lightbox({
   onToggleFavorite,
   isSingleView,
   mode,
+  lastClosedAt = null,
 }: LightboxProps) {
   const [showInterface, setShowInterface] = useState(true);
   const [isHoveringNav, setIsHoveringNav] = useState(false);
@@ -64,6 +71,14 @@ export default function Lightbox({
   const [slideshowProgress, setSlideshowProgress] = useState(0);
   const [showThumbnails, setShowThumbnails] = useState(false); // Estado para controlar miniaturas no mobile
   const [hasShownQualityWarning, setHasShownQualityWarning] = useState(false); // 🎯 Controla se o tooltip já foi mostrado
+
+  // Se reabriu o lightbox em menos de 10 min, não mostrar o aviso de alta resolução nesta sessão
+  const withinCooldown =
+    lastClosedAt != null &&
+    typeof window !== 'undefined' &&
+    Date.now() - lastClosedAt < QUALITY_WARNING_COOLDOWN_MS;
+  const effectiveHasShownQualityWarning =
+    hasShownQualityWarning || withinCooldown;
   const [isSystemDark, setIsSystemDark] = useState(() => {
     if (typeof window === 'undefined') return false;
     return (
@@ -117,6 +132,48 @@ export default function Lightbox({
     () => favorites.includes(String(currentPhoto?.id)),
     [favorites, currentPhoto?.id],
   );
+
+  // Aspect ratio do vídeo para container sem distorção (retrato ou paisagem)
+  const videoAspectRatio = useMemo(() => {
+    if (currentPhoto?.type !== 'video') return 16 / 9;
+    const w = currentPhoto.width ?? 16;
+    const h = currentPhoto.height ?? 9;
+    return w / h;
+  }, [currentPhoto?.type, currentPhoto?.width, currentPhoto?.height]);
+
+  // Dimensões em pixels do container do vídeo (evita distorção em retrato)
+  const [videoSize, setVideoSize] = useState<{
+    width: number;
+    height: number;
+  } | null>(null);
+
+  useEffect(() => {
+    if (currentPhoto?.type !== 'video') {
+      setVideoSize(null);
+      return;
+    }
+    const update = () => {
+      const maxW = Math.min(window.innerWidth * 0.9, 1280);
+      const maxH = window.innerHeight * 0.85;
+      const ratio = videoAspectRatio;
+      if (!Number.isFinite(ratio) || ratio <= 0) return;
+      let w: number;
+      let h: number;
+      if (ratio < 1) {
+        h = maxH;
+        w = Math.min(maxW, maxH * ratio);
+      } else {
+        w = maxW;
+        h = Math.min(maxH, maxW / ratio);
+      }
+      w = Math.max(200, Math.round(w));
+      h = Math.max(200, Math.round(h));
+      setVideoSize({ width: w, height: h });
+    };
+    update();
+    window.addEventListener('resize', update);
+    return () => window.removeEventListener('resize', update);
+  }, [currentPhoto?.type, videoAspectRatio]);
 
   useEffect(() => {
     const handleKeyDown = (e: KeyboardEvent) => {
@@ -203,13 +260,13 @@ export default function Lightbox({
     fallbackToProxy: true,
   });
 
-  // 🎯 DETECTAR TAMANHO DA IMAGEM (sempre visível)
+  // 🎯 DETECTAR TAMANHO DA IMAGEM (sempre visível) — não roda para vídeo
   useEffect(() => {
+    if (currentPhoto?.type === 'video') return;
+
     let cancelled = false;
 
     const getImageSize = async () => {
-      if (currentPhoto?.type === 'video') return;
-      // Precisamos da imagem carregada primeiro
       if (!imgSrc || isImageLoading) {
         if (!cancelled) setImageSize(null);
         return;
@@ -231,7 +288,6 @@ export default function Lightbox({
             if (!cancelled) setImageSize(`${sizeInKB.toFixed(0)} KB`);
           }
         } else {
-          // Fallback caso o Google mascare o content-length
           if (!cancelled) setImageSize('Otimizada');
         }
       } catch {
@@ -242,24 +298,19 @@ export default function Lightbox({
     const img = new Image();
     img.onload = () => {
       if (cancelled) return;
-
-      // 🎯 Captura a resolução real que o Google entregou
       setRealResolution({
         w: img.naturalWidth,
         h: img.naturalHeight,
       });
     };
     img.src = imgSrc;
-    // Aguarda um pouco para garantir que a imagem está pronta
-    const timeoutId = setTimeout(() => {
-      getImageSize();
-    }, 300);
+    const timeoutId = setTimeout(() => getImageSize(), 300);
 
     return () => {
       cancelled = true;
       clearTimeout(timeoutId);
     };
-  }, [imgSrc, isImageLoading]);
+  }, [imgSrc, isImageLoading, currentPhoto?.type]);
 
   // 🎯 LÓGICA DE PRELOAD (Próxima + Anterior) - usa mesmas resoluções VIEW
   useEffect(() => {
@@ -401,7 +452,7 @@ export default function Lightbox({
               onToggleSlideshow={() => setIsSlideshowActive(!isSlideshowActive)}
               onClose={onClose}
               showClose={!isSingleView}
-              hasShownQualityWarning={hasShownQualityWarning}
+              hasShownQualityWarning={effectiveHasShownQualityWarning}
               onQualityWarningShown={() => setHasShownQualityWarning(true)}
               mode={mode}
             />
@@ -552,8 +603,8 @@ export default function Lightbox({
           <div
             className={`relative w-full h-full flex items-center justify-center ${isMobile ? 'min-h-[50vh]' : 'h-screen md:h-screen'}`}
           >
-            {/* Spinner centralizado */}
-            {isImageLoading && (
+            {/* Spinner centralizado — apenas para fotos (vídeo não usa imagem) */}
+            {isImageLoading && currentPhoto.type !== 'video' && (
               <div className="absolute inset-0 flex items-center justify-center z-[50] bg-white dark:bg-black transition-colors duration-300">
                 {/* Mostra SM no mobile e oculta no desktop */}
                 <div className="md:hidden">
@@ -574,19 +625,43 @@ export default function Lightbox({
               - Centralizado com flex
           */}
             {currentPhoto.type === 'video' ? (
-              <iframe
-                key={String(photoId)}
-                src={`https://drive.google.com/file/d/${photoId}/preview`}
-                className="w-full h-full rounded-lg"
-                style={{
-                  maxWidth: '90vw',
-                  maxHeight: '85vh',
-                  border: 'none',
-                  background: '#000',
-                }}
-                allow="autoplay; fullscreen"
-                allowFullScreen
-              />
+              <div
+                className="w-full h-full flex items-center justify-center bg-black rounded-lg"
+                style={{ minHeight: '50vh' }}
+              >
+                <div
+                  className="rounded-lg overflow-hidden shrink-0 relative"
+                  style={
+                    videoSize
+                      ? {
+                          width: videoSize.width,
+                          height: videoSize.height,
+                        }
+                      : {
+                          aspectRatio: String(videoAspectRatio),
+                          width: `min(90vw, 1280px, calc(85vh * ${videoAspectRatio}))`,
+                          maxHeight: '85vh',
+                          minHeight: '200px',
+                        }
+                  }
+                >
+                  {/* Iframe sempre montado para já carregar; fica atrás do poster até clicar em play */}
+                  <iframe
+                    key={String(photoId)}
+                    src={`https://drive.google.com/file/d/${photoId}/preview`}
+                    className="w-full h-full rounded-lg block absolute inset-0"
+                    style={{
+                      border: 'none',
+                      background: '#000',
+                      width: '100%',
+                      height: '100%',
+                    }}
+                    allow="autoplay; fullscreen; encrypted-media"
+                    allowFullScreen
+                    title={`Vídeo ${activeIndex + 1}`}
+                  />
+                </div>
+              </div>
             ) : (
               <img
                 key={`${photoId}-${usingProxy}`}
@@ -608,7 +683,7 @@ export default function Lightbox({
               }`}
                 loading="eager"
                 decoding="sync"
-                alt={`${galleryTitle} - Foto ${activeIndex + 1}`}
+                alt={`${galleryTitle} - ${activeIndex + 1}`}
               />
             )}
           </div>
@@ -655,7 +730,7 @@ export default function Lightbox({
                     ? () => setShowThumbnails(!showThumbnails)
                     : undefined
                 }
-                hasShownQualityWarning={hasShownQualityWarning}
+                hasShownQualityWarning={effectiveHasShownQualityWarning}
                 onQualityWarningShown={() => {
                   // console.log('[Lightbox] 📢 onQualityWarningShown chamado, setando hasShownQualityWarning=true');
                   setHasShownQualityWarning(true);
@@ -682,25 +757,25 @@ export default function Lightbox({
                 />
 
                 <p className="text-[11px] font-semibold tracking-luxury text-white/90">
-                  FOTO{' '}
-                  <span className="text-champagne italic">
-                    {activeIndex + 1}
-                  </span>{' '}
-                  DE {totalPhotos}
+                  <span className="text-champagne ">{activeIndex + 1}</span> DE{' '}
+                  {totalPhotos}
                 </p>
 
-                {/* Divisor que adapta a opacidade */}
+                {/* Divisor que adapta a opacidade — oculta dados de imagem para vídeo */}
                 <div className="h-3 w-[1px] bg-white/10" />
 
-                {/* Dados Técnicos */}
+                {/* Dados Técnicos (apenas para foto) */}
                 <div className="flex items-center gap-2.5">
-                  <p className="text-champagne text-[11px] font-semibold tracking-luxury italic">
-                    {imageSize || '--- KB'}
-                  </p>
-                  {/* Indicador de origem */}
-                  <span className="text-[10px] font-semibold text-white/20">
-                    {usingProxy ? 'A' : 'D'}
-                  </span>
+                  {currentPhoto.type !== 'video' && (
+                    <>
+                      <p className="text-champagne text-[11px] font-semibold tracking-luxury italic">
+                        {imageSize || '--- KB'}
+                      </p>
+                      <span className="text-[10px] font-semibold text-white/20">
+                        {usingProxy ? 'A' : 'D'}
+                      </span>
+                    </>
+                  )}
                 </div>
               </div>
             </div>

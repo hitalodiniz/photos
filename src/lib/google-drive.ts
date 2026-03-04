@@ -31,6 +31,8 @@ export interface DrivePhoto {
   webViewUrl: string;
   width?: number;
   height?: number;
+  /** image/* ou video/* — permite exibir vídeos na galeria */
+  mimeType?: string;
 }
 
 /**
@@ -52,10 +54,10 @@ export async function listPhotosFromPublicFolder(
     return null;
   }
 
-  // Query simplificada para evitar erros 400 em chamadas anônimas
-  const query = `'${driveFolderId}' in parents and trashed = false and mimeType contains 'image/'`;
+  // Query: imagens e vídeos (pasta pública)
+  const query = `'${driveFolderId}' in parents and trashed = false and (mimeType contains 'image/' or mimeType contains 'video/')`;
   const fields =
-    'nextPageToken, files(id, name, size, mimeType, webViewLink, imageMediaMetadata(width,height))';
+    'nextPageToken, files(id, name, size, mimeType, webViewLink, imageMediaMetadata(width,height), videoMediaMetadata(width,height))';
 
   let allFiles: any[] = [];
   let pageToken: string | null = null;
@@ -96,22 +98,19 @@ export async function listPhotosFromPublicFolder(
       const data = await response.json();
       allFiles = [...allFiles, ...(data.files || [])];
       pageToken = data.nextPageToken || null;
-      // PERFORMANCE: Se já coletamos arquivos suficientes para o limite do plano, paramos o do-while
-      if (
-        limit &&
-        allFiles.filter((f) => f.mimeType?.startsWith('image/')).length +
-          allFiles.filter((f) => f.mimeType?.startsWith('video/')).length >=
-          limit
-      ) {
-        break;
-      }
+      // PERFORMANCE: Se já coletamos mídias suficientes para o limite do plano, paramos
+      const mediaCount = allFiles.filter(
+        (f) =>
+          f.mimeType?.startsWith('image/') || f.mimeType?.startsWith('video/'),
+      ).length;
+      if (limit && mediaCount >= limit) break;
     } while (pageToken);
 
-    // Filtro manual de imagens e ordenação natural
-    const imageFiles = allFiles
+    // Filtro: imagens e vídeos; ordenação natural
+    const mediaFiles = allFiles
       .filter(
         (f) =>
-          f.mimeType?.startsWith('image/') && !f.mimeType?.startsWith('video/'),
+          (f.mimeType?.startsWith('image/') || f.mimeType?.startsWith('video/')),
       )
       .sort((a, b) =>
         a.name.localeCompare(b.name, undefined, {
@@ -121,22 +120,25 @@ export async function listPhotosFromPublicFolder(
       );
 
     // APLICA O LIMITE DO PLANO:
-    const limitedFiles = limit ? imageFiles.slice(0, limit) : imageFiles;
+    const limitedFiles = limit ? mediaFiles.slice(0, limit) : mediaFiles;
 
     if (limitedFiles.length === 0) {
       return null;
     }
 
-    return limitedFiles.map((file) => ({
-      // ✅ CORRETO
-      id: file.id,
-      name: file.name,
-      size: file.size || '0',
-      thumbnailUrl: `/api/galeria/cover/${file.id}?w=600`,
-      webViewUrl: file.webViewLink,
-      width: file.imageMediaMetadata?.width || 1600,
-      height: file.imageMediaMetadata?.height || 1200,
-    }));
+    return limitedFiles.map((file) => {
+      const meta = file.imageMediaMetadata || file.videoMediaMetadata || {};
+      return {
+        id: file.id,
+        name: file.name,
+        size: file.size || '0',
+        thumbnailUrl: `/api/galeria/cover/${file.id}?w=600`,
+        webViewUrl: file.webViewLink,
+        width: meta.width || 1600,
+        height: meta.height || 1200,
+        mimeType: file.mimeType,
+      };
+    });
   } catch (error: any) {
     console.error('[listPhotosFromPublicFolder] 💥 Exceção:', error.message);
     return null;
@@ -153,9 +155,9 @@ export async function listPhotosWithOAuth(
   limit?: number, //Adicionado limite do plano
   isAdmin: boolean = false,
 ): Promise<DrivePhoto[]> {
-  const query = `'${driveFolderId}' in parents and mimeType contains 'image/' and trashed = false`;
+  const query = `'${driveFolderId}' in parents and trashed = false and (mimeType contains 'image/' or mimeType contains 'video/')`;
   const fields =
-    'nextPageToken, files(id, name, size, webViewLink, imageMediaMetadata(width,height))';
+    'nextPageToken, files(id, name, size, mimeType, webViewLink, imageMediaMetadata(width,height), videoMediaMetadata(width,height))';
 
   let allFiles: any[] = [];
   let pageToken: string | null = null;
@@ -217,15 +219,19 @@ export async function listPhotosWithOAuth(
     // Aplica o limite do plano
     const limitedFiles = limit ? sortedFiles.slice(0, limit) : sortedFiles;
 
-    return limitedFiles.map((file) => ({
-      id: file.id,
-      name: file.name,
-      size: file.size || '0',
-      thumbnailUrl: `/api/galeria/cover/${file.id}?w=600`,
-      webViewUrl: file.webViewLink,
-      width: file.imageMediaMetadata?.width || 1600,
-      height: file.imageMediaMetadata?.height || 1200,
-    }));
+    return limitedFiles.map((file) => {
+      const meta = file.imageMediaMetadata || file.videoMediaMetadata || {};
+      return {
+        id: file.id,
+        name: file.name,
+        size: file.size || '0',
+        thumbnailUrl: `/api/galeria/cover/${file.id}?w=600`,
+        webViewUrl: file.webViewLink,
+        width: meta.width || 1600,
+        height: meta.height || 1200,
+        mimeType: file.mimeType,
+      };
+    });
   } catch (error: any) {
     // Log detalhado para o servidor
     console.error('[listPhotosWithOAuth] ❌ Erro na requisição:', {

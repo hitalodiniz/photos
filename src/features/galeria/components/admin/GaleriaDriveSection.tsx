@@ -114,11 +114,11 @@ export function GaleriaDriveSection({
                   />
                   <div className="space-y-0.5">
                     <p className="text-[9px] font-bold uppercase text-red-700">
-                      {photoCount} fotos — limite excedido
+                      {photoCount} arquivos — limite excedido
                     </p>
                     <p className="text-[9px] text-red-600/80 leading-tight">
-                      Seu plano suporta até <strong>{hardCap} fotos</strong> por
-                      galeria. Remova fotos da pasta ou faça upgrade para
+                      Seu plano suporta até <strong>{hardCap} arquivos</strong>{' '}
+                      por galeria. Remova arquivos da pasta ou faça upgrade para
                       continuar.
                     </p>
                   </div>
@@ -134,11 +134,11 @@ export function GaleriaDriveSection({
                   />
                   <div className="space-y-0.5">
                     <p className="text-[9px] font-bold uppercase text-amber-700">
-                      {photoCount} fotos — acima do recomendado
+                      {photoCount} arquivos — acima do recomendado
                     </p>
                     <p className="text-[9px] text-amber-700/80 leading-tight">
                       O recomendado para seu plano é{' '}
-                      <strong>até {recommended} fotos</strong> por galeria.
+                      <strong>até {recommended} arquivos</strong> por galeria.
                       Galerias maiores consomem mais da sua cota de{' '}
                       <strong>{permissions.photoCredits} créditos</strong>,
                       reduzindo o número de galerias ativas disponíveis.
@@ -155,11 +155,11 @@ export function GaleriaDriveSection({
                     className="text-emerald-500 shrink-0 mt-0.5"
                   />
                   <div className="space-y-0.5">
-                    <p className="text-[9px] font-bold uppercase text-emerald-700">
-                      {photoCount} fotos — compatível com seu plano
+                    <p className="text-[9px] font-semibold uppercase text-emerald-700">
+                      {photoCount} arquivos — compatível com seu plano
                     </p>
-                    <p className="text-[9px] text-emerald-700/70 leading-tight">
-                      Dentro do limite recomendado de {recommended} fotos por
+                    <p className="text-[9px] text-emerald-700 font-medium leading-tight">
+                      Dentro do limite recomendado de {recommended} arquivos por
                       galeria.
                     </p>
                   </div>
