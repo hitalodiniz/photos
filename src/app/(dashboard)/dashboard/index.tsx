@@ -29,6 +29,7 @@ import DashboardFooter from './components/DashboardFooter';
 import TrialBanner from '@/components/ui/TrialBanner';
 import { PlanProvider } from '@/core/context/PlanContext';
 import { useSyncInternalTraffic } from '@/hooks/useSyncInternalTraffic';
+import { GaleriaSyncObserver } from '@/features/galeria/GaleriaSyncObserver';
 
 export default function Dashboard({
   initialGalerias,
@@ -133,6 +134,14 @@ export default function Dashboard({
     navigate(`/dashboard/galerias/${g.id}/edit`, 'Abrindo galeria...');
   };
 
+  const handleGaleriaSynced = (galeriaId: string, photoCount: number) => {
+    setGalerias((prev) =>
+      prev.map((g) =>
+        g.id === galeriaId ? { ...g, photo_count: photoCount } : g,
+      ),
+    );
+  };
+
   // --- RENDERING ---
   if (authLoading) {
     return (
@@ -150,6 +159,10 @@ export default function Dashboard({
 
   return (
     <PlanProvider profile={initialProfile}>
+      <GaleriaSyncObserver
+        userId={initialProfile?.id}
+        onSynced={handleGaleriaSynced}
+      />
       <div className="mx-auto flex flex-col lg:flex-row max-w-[1600px] gap-4 px-2 bg-luxury-bg min-h-screen pb-24 lg:pb-6">
         <Sidebar
           counts={filters.counts}

@@ -238,3 +238,20 @@ export async function renewExpiringWatches() {
   );
   return { renewed, failed };
 }
+
+// drive-watch.service
+//   → registra o watch no Google ao criar/editar galeria
+//   → Google passa a enviar POST para /api/webhook/drive
+
+// webhook/drive
+//   → recebe a notificação do Google
+//   → grava needs_sync = true no banco
+
+// useGaleriaSyncObserver
+//   → detecta needs_sync = true via Realtime
+//   → chama syncAndRevalidateGaleriaAction()
+//   → photo_count atualizado + cache revalidado
+
+// renew-watches (cron diário)
+//   → renova o watch antes de expirar
+//   → mantém o ciclo funcionando indefinidamente

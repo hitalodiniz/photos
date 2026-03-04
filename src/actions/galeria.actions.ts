@@ -5,14 +5,17 @@ import { getAuthenticatedUser } from '@/core/services/auth-context.service';
 import {
   archiveExceedingGalleries,
   purgeOldDeletedGalleries,
+  syncGaleriaPhotoCountByGaleriaId,
 } from '@/core/services/galeria.service';
 
 import {
   revalidateProfile,
   revalidateGalleryCache,
+  revalidateDrivePhotos,
 } from './revalidate.actions';
 import { createInternalNotification } from '@/core/services/notification.service';
 import { listPhotosFromDriveFolder } from '@/lib/google-drive';
+import { createSupabaseAdmin } from '@/lib/supabase.server';
 
 interface ActionResult {
   success: boolean;
@@ -128,4 +131,27 @@ export async function getSelectionMetadataAction(
       id: photo.id,
       name: photo.name,
     }));
+}
+
+export async function syncAndRevalidateGaleriaAction(
+  galeriaId: string,
+  driveFolderId: string,
+): Promise<{ photo_count: number } | null> {
+  const supabase = createSupabaseAdmin();
+
+  // 1. Sincroniza photo_count
+  const result = await syncGaleriaPhotoCountByGaleriaId(galeriaId);
+
+  // 2. Revalida cache com dados já atualizados
+  await revalidateDrivePhotos(driveFolderId, galeriaId);
+
+  // 3. Limpa o flag
+  await supabase
+    .from('tb_galerias')
+    .update({ needs_sync: false })
+    .eq('id', galeriaId);
+
+  return result.success && result.data
+    ? { photo_count: result.data.photo_count }
+    : null;
 }
