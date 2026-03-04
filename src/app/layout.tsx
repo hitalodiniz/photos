@@ -83,7 +83,7 @@ export default function RootLayout({
               </main>
               <GoogleApiLoader />
               <CookieBanner />
-              {/* <ThemeSwitcher /> */}
+              <ThemeSwitcher />
             </SidebarProvider>
           </NavigationProvider>
         </AuthProvider>

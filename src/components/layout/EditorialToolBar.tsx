@@ -140,14 +140,16 @@ export default function EditorialToolbar() {
           <div className="flex justify-between items-center mb-2 pb-6 border-b border-white/5">
             <div className="flex items-center gap-2">
               {mounted && SegmentIcon && (
-                <SegmentIcon
-                  className="w-4 h-4 text-champagne"
-                  strokeWidth={1.5}
-                />
+                <>
+                  <SegmentIcon
+                    className="w-7 h-7 text-champagne group-hover:scale-110 transition-transform"
+                    strokeWidth={1.5}
+                  />
+                  <span className="text-[16px] md:text-[18px] font-semibold text-navbar-text italic tracking-tight">
+                    {terms.site_name}
+                  </span>
+                </>
               )}
-              <span className="text-[12px] font-semibold uppercase tracking-[0.2em] text-white ">
-                {terms.site_name}
-              </span>
             </div>
             <button
               onClick={() => setIsMenuOpen(false)}

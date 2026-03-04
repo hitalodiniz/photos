@@ -42,6 +42,8 @@ const config: Config = {
         'surface-dark': 'rgb(var(--color-surface-dark) / <alpha-value>)',
         'surface-mixed': 'rgb(var(--color-surface-mixed) / <alpha-value>)',
         'status-success': 'rgb(var(--color-status-success) / <alpha-value>)',
+        'navbar-bg': 'rgb(var(--color-navbar-bg) / <alpha-value>)',
+        'navbar-text': 'rgb(var(--color-navbar-text) / <alpha-value>)',
       },
       // Adicione animações para o "X" do input e transições de modo
       keyframes: {
