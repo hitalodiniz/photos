@@ -7,8 +7,6 @@ import {
   Monitor,
   Link as LinkIcon,
   Check,
-  FileCheck,
-  Zap,
   Share2,
 } from 'lucide-react';
 import { usePlan } from '@/core/context/PlanContext';
@@ -77,7 +75,6 @@ export const ToolBarMobile = ({
   const [showColumnsPanel, setShowColumnsPanel] = useState(false);
   const [copied, setCopied] = useState(false);
   const [hintStep, setHintStep] = useState(0);
-  const [showDownloadMenu, setShowDownloadMenu] = useState(false);
 
   // 🎯 Lógica de Favoritos: Verifica permissão do plano E configuração da galeria
   const canUseFavorites = useMemo(() => {
@@ -225,7 +222,6 @@ export const ToolBarMobile = ({
   const closeAllPanels = () => {
     setShowTagsPanel(false);
     setShowColumnsPanel(false);
-    setShowDownloadMenu(false);
   };
 
   const togglePanel = (panel: string) => {
@@ -245,7 +241,7 @@ export const ToolBarMobile = ({
       className="w-full z-[110] sticky top-0 md:hidden pointer-events-auto overflow-visible"
     >
       {/* OVERLAY DE FECHAMENTO */}
-      {(showTagsPanel || showColumnsPanel || showDownloadMenu) && (
+      {(showTagsPanel || showColumnsPanel) && (
         <div
           className="fixed inset-0 z-[112] bg-black/20 backdrop-blur-[2px] animate-in fade-in duration-300"
           onClick={closeAllPanels}
@@ -368,7 +364,7 @@ export const ToolBarMobile = ({
             <button
               onClick={(e) => {
                 e.stopPropagation();
-                setShowDownloadMenu(!showDownloadMenu);
+                downloadAllAsZip();
               }}
               disabled={isDownloading}
               className="w-9 h-9 rounded-luxury flex items-center justify-center bg-champagne text-black active:scale-90 shadow-xl transition-all"
@@ -380,68 +376,6 @@ export const ToolBarMobile = ({
               )}
             </button>
             {hintStep === 6 && <Tooltip text="Baixar" position="right" />}
-
-            {/* MENU DE DOWNLOAD MOBILE */}
-            {showDownloadMenu && (
-              <>
-                <div
-                  className="fixed inset-0 z-[190]"
-                  onClick={() => setShowDownloadMenu(false)}
-                />
-
-                <div className="absolute top-full mt-3 right-0 w-[75vw] max-w-[280px] bg-slate-950/95 backdrop-blur-xl border border-white/10 rounded-luxury shadow-2xl animate-in fade-in slide-in-from-top-2 duration-300 z-[200] overflow-hidden">
-                  <div className="p-1.5 flex flex-col gap-1">
-                    <button
-                      onClick={() => {
-                        downloadAllAsZip();
-                        setShowDownloadMenu(false);
-                      }}
-                      className="flex items-center gap-3 p-3 rounded-luxury bg-white/5 active:bg-white/10 text-left"
-                    >
-                      <Zap size={18} className="text-gold shrink-0" />
-                      <div>
-                        <p className="text-white text-editorial-label">
-                          Fotos Otimizadas
-                        </p>
-                        <p className="text-white/90 text-[9px] leading-tight font-medium italic">
-                          Ideal para celular e postagens.
-                        </p>
-                      </div>
-                    </button>
-
-                    {/* Links Externos */}
-                    {externalLinks.map((linkObj: any, index: number) => {
-                      return (
-                        <button
-                          key={index}
-                          onClick={() => {
-                            setShowDownloadMenu(false);
-                            handleExternalDownload(
-                              linkObj.url,
-                              `${galeria.title}_${linkObj.label.replace(/\s+/g, '_')}.zip`,
-                            );
-                          }}
-                          className="w-full flex items-start gap-3 p-3 rounded-luxury hover:bg-white/10 transition-all text-left group border-t border-white/5"
-                        >
-                          <FileCheck
-                            size={18}
-                            className="text-gold mt-0.5 group-hover:scale-110 transition-transform"
-                          />
-                          <div className="flex-1 min-w-0">
-                            <p className="text-white text-editorial-label uppercase tracking-wider">
-                              {linkObj.label}
-                            </p>
-                            <p className="text-white/90 text-[9px] leading-tight truncate italic font-medium mt-0.5">
-                              {linkObj.url}
-                            </p>
-                          </div>
-                        </button>
-                      );
-                    })}
-                  </div>
-                </div>
-              </>
-            )}
           </div>
         </div>
       </div>

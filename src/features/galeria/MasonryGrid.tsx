@@ -8,7 +8,14 @@ import React, {
   useMemo,
 } from 'react';
 import { useSearchParams } from 'next/navigation';
-import { Check, CheckCircle2, Heart, HeartOff, Loader2 } from 'lucide-react';
+import {
+  Check,
+  CheckCircle2,
+  Heart,
+  HeartOff,
+  Loader2,
+  Play,
+} from 'lucide-react';
 import 'photoswipe/dist/photoswipe.css';
 import { Gallery, Item } from 'react-photoswipe-gallery';
 import { Galeria } from '@/core/types/galeria';
@@ -36,6 +43,7 @@ interface Photo {
   tag?: string;
   canUseFavorites: boolean;
   duration?: string; // ex: "1:32"
+  type?: 'photo' | 'video';
 }
 
 interface SafeImageProps {
@@ -374,6 +382,12 @@ const MasonryItem = memo(
       e.preventDefault();
       e.stopPropagation();
 
+      // ← ADD: vídeo sempre abre lightbox, independente do modo
+      if (photo.type === 'video') {
+        setSelectedPhotoIndex(index);
+        return;
+      }
+
       // 2. Decisão baseada nas props:
       // Se allowLightboxInAdmin for true, priorizamos abrir o Lightbox.
       if (mode === 'admin' && allowLightboxInAdmin) {
@@ -393,11 +407,20 @@ const MasonryItem = memo(
 
     return (
       <Item
-        original={fullUrl}
-        thumbnail={thumbUrl}
-        width={orientation.realW}
-        height={orientation.realH}
-        caption={`${galleryTitle} - Foto ${index + 1}`}
+        {...(photo.type !== 'video'
+          ? {
+              original: fullUrl,
+              thumbnail: thumbUrl,
+              width: orientation.realW,
+              height: orientation.realH,
+            }
+          : {
+              html: `<div style="display:flex;align-items:center;justify-content:center;width:100%;height:100%;background:#000"><iframe src="https://drive.google.com/file/d/${photo.id}/preview" width="90%" height="85%" style="border:none;border-radius:8px;max-width:1280px" allow="autoplay"></iframe></div>`,
+              thumbnail: thumbUrl,
+              width: orientation.realW || 1280,
+              height: orientation.realH || 720,
+            })}
+        caption={`${galleryTitle} - ${photo.type === 'video' ? 'Vídeo' : 'Foto'} ${index + 1}`}
       >
         {({ ref }) => (
           <div
@@ -451,6 +474,21 @@ const MasonryItem = memo(
                       </span>
                     </div>
                   </div>
+                )}
+                {/* Badge de Vídeo */}
+                {photo.type === 'video' && (
+                  <>
+                    <div className="absolute inset-0 flex items-center justify-center z-20 pointer-events-none">
+                      <div className="bg-black/50 backdrop-blur-sm rounded-full p-3 border border-white/20 shadow-lg">
+                        <Play size={22} className="text-white fill-white" />
+                      </div>
+                    </div>
+                    {photo.duration && (
+                      <div className="absolute bottom-2 right-2 z-30 bg-black/70 text-white text-[9px] font-mono font-bold px-1.5 py-0.5 rounded">
+                        {photo.duration}
+                      </div>
+                    )}
+                  </>
                 )}
                 {/* 🎯 Badge de Tag Existente (Refatorado) */}
                 {photo.tag && (

@@ -7,6 +7,8 @@ import { NavigationProvider } from '@/components/providers/NavigationProvider';
 import { SidebarProvider } from '@/components/providers/SidebarProvider';
 import { CookieBanner } from '@/components/ui';
 import { AuthProvider } from '@photos/core-auth';
+import { PlanProvider } from '@/core/context/PlanContext';
+import { getProfileData } from '@/core/services/profile.service';
 import { ThemeSwitcher } from '@/components/debug/ThemeSwitcher';
 import { getThemeFavicon } from '@/core/utils/get-theme-favicon';
 import { SEGMENT_DICTIONARY, SegmentType } from '@/core/config/segments';
@@ -47,11 +49,17 @@ const barlow = Barlow({
   variable: '--font-barlow',
 });
 
-export default function RootLayout({
+export default async function RootLayout({
   children,
 }: {
   children: React.ReactNode;
 }) {
+  const resultProfile = await getProfileData();
+  const profile =
+    resultProfile.success && resultProfile.profile
+      ? resultProfile.profile
+      : undefined;
+
   return (
     <html
       lang="pt-BR"
@@ -75,17 +83,19 @@ export default function RootLayout({
       </head>
       <body className="antialiased font-sans bg-luxury-bg text-petroleum">
         <AuthProvider>
-          <NavigationProvider>
-            <SidebarProvider>
-              <Navbar />
-              <main id="main-content" className="w-full">
-                {children}
-              </main>
-              <GoogleApiLoader />
-              <CookieBanner />
-              <ThemeSwitcher />
-            </SidebarProvider>
-          </NavigationProvider>
+          <PlanProvider profile={profile}>
+            <NavigationProvider>
+              <SidebarProvider>
+                <Navbar />
+                <main id="main-content" className="w-full">
+                  {children}
+                </main>
+                <GoogleApiLoader />
+                <CookieBanner />
+                {/* <ThemeSwitcher /> */}
+              </SidebarProvider>
+            </NavigationProvider>
+          </PlanProvider>
         </AuthProvider>
 
         {/* Script do Tawk.to - Carregamento assíncrono para não afetar o SEO/Performance

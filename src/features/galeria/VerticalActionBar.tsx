@@ -177,7 +177,7 @@ export function VerticalActionBar({
               {mode === 'selection'
                 ? isFavorited
                   ? 'Remover da seleção'
-                  : 'Selecionar foto'
+                  : 'Selecionar'
                 : isFavorited
                   ? 'Remover dos favoritos'
                   : 'Adicionar aos favoritos'}
@@ -334,7 +334,7 @@ export function VerticalActionBar({
             setIsDownloading(false);
           }}
           className="w-12 h-12 rounded-full flex items-center justify-center transition-all group relative"
-          aria-label="Baixar foto"
+          aria-label="Baixar"
           disabled={isDownloading}
           type="button"
         >
@@ -360,7 +360,7 @@ export function VerticalActionBar({
           {!showQualityWarning && (
             <div className="absolute right-full mr-3 opacity-0 group-hover:opacity-100 transition-opacity pointer-events-none whitespace-nowrap">
               <div className="bg-champagne text-black text-[10px] font-semibold px-2 py-1 rounded shadow-xl">
-                Baixar foto
+                Baixar
               </div>
             </div>
           )}

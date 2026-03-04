@@ -445,8 +445,17 @@ export default function GooglePickerButton({
               // 🎯 No modo COVERS (Padrão/Galeria), filtramos apenas arquivos (fotos)
               const selectedFiles = selectedDocs.filter(
                 (doc: any) =>
-                  doc.mimeType !== 'application/vnd.google-apps.folder',
+                  doc.mimeType !== 'application/vnd.google-apps.folder' &&
+                  doc.mimeType?.startsWith('image/'),
               );
+
+              if (selectedFiles.length === 0) {
+                onError(
+                  'Por favor, selecione apenas imagens como foto de capa. Vídeos não são permitidos.',
+                );
+                setLoading(false);
+                return;
+              }
 
               // Validação de Limite por Plano (Apenas para capas)
               if (selectedFiles.length > maxSelections) {

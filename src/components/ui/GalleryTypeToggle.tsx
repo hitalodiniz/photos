@@ -12,18 +12,18 @@ export const GALLERY_TYPE_OPTIONS: {
 }[] = [
   {
     value: 'CT',
-    label: 'Entrega de fotos',
+    label: 'Entrega de fotos e vídeos',
     description: 'Acesso exclusivo para o cliente contratante.',
   },
   {
     value: 'ES',
-    label: 'Seleção de fotos',
+    label: 'Seleção de fotos e vídeos',
     description:
-      'O cliente seleciona as fotos para tratamento e entrega final.',
+      'O cliente seleciona as fotos e vídeos para tratamento e entrega final.',
   },
   {
     value: 'CB',
-    label: 'Disponibilização de fotos',
+    label: 'Disponibilização de fotos e vídeos',
     description: 'Link público para visualização, sem um cliente específico.',
   },
 ];

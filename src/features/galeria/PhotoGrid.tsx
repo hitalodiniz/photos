@@ -57,6 +57,7 @@ export default function PhotoGrid({ photos, galeria }: any) {
     number | string | null
   >(null);
   const [favorites, setFavorites] = useState<string[]>([]);
+  const [lastLightboxClosedAt, setLastLightboxClosedAt] = useState<number | null>(null);
   const [toast, setToast] = useState<{
     message: string;
     type: 'success' | 'error';
@@ -88,22 +89,28 @@ export default function PhotoGrid({ photos, galeria }: any) {
 
   const photosWithTags = useMemo(() => {
     const safePhotos = Array.isArray(photos) ? photos : [];
-    if (!galeria?.photo_tags) return safePhotos;
+    const withType = (p: any) => ({
+      ...p,
+      type: p.mimeType?.startsWith('video/') ? ('video' as const) : ('photo' as const),
+    });
+    if (!galeria?.photo_tags) return safePhotos.map(withType);
     try {
       const parsedTags = parsePossiblySerializedJson(galeria.photo_tags);
-      if (!Array.isArray(parsedTags)) return safePhotos;
+      if (!Array.isArray(parsedTags)) return safePhotos.map(withType);
       const tagsMap = new Map(
         parsedTags
           .filter((t: any) => t?.id != null)
           .map((t: any) => [normalizeId(t.id), normalizeTag(t.tag)]),
       );
-      return safePhotos.map((p: any) => ({
-        ...p,
-        tag: tagsMap.get(normalizeId(p.id)) || normalizeTag(p.tag) || p.tag,
-      }));
+      return safePhotos.map((p: any) =>
+        withType({
+          ...p,
+          tag: tagsMap.get(normalizeId(p.id)) || normalizeTag(p.tag) || p.tag,
+        }),
+      );
     } catch (err) {
       console.error('Erro ao processar tags no Grid:', err);
-      return safePhotos;
+      return safePhotos.map(withType);
     }
   }, [photos, galeria?.photo_tags]);
 
@@ -638,7 +645,11 @@ export default function PhotoGrid({ photos, galeria }: any) {
           canUseFavorites={galeria.enable_favorites && canUseFavorites}
           canUseSlideshow={galeria.enable_slideshow && canUseSlideshow}
           onToggleFavorite={toggleFavoriteFromGrid}
-          onClose={() => setSelectedPhotoIndex(null)}
+          lastClosedAt={lastLightboxClosedAt}
+          onClose={() => {
+            setLastLightboxClosedAt(Date.now());
+            setSelectedPhotoIndex(null);
+          }}
           onNext={() =>
             setSelectedPhotoIndex(
               (selectedPhotoIndex + 1) % displayedPhotos.length,

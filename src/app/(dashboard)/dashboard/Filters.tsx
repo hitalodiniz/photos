@@ -238,9 +238,9 @@ export default function Filters({
                     className={selectClass}
                   >
                     <option value="">Tipos</option>
-                    <option value="CT">Entrega de fotos</option>
-                    <option value="CB">Disponibilização de fotos</option>
-                    <option value="ES">Seleção de fotos</option>
+                    <option value="CT">Entrega de fotos/vídeos</option>
+                    <option value="CB">Disponibilização de fotos/vídeos</option>
+                    <option value="ES">Seleção de fotos/vídeos</option>
                   </select>
                   <ChevronDown
                     size={12}

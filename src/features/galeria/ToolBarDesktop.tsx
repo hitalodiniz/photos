@@ -36,7 +36,6 @@ export const ToolBarDesktop = ({
   getGalleryPermission, // ← Nova prop necessária
 }: any) => {
   const [copied, setCopied] = useState(false);
-  const [showDownloadMenu, setShowDownloadMenu] = useState(false);
   const [showTagsMenu, setShowTagsMenu] = useState(false);
 
   const isCompact = false;
@@ -121,10 +120,6 @@ export const ToolBarDesktop = ({
   const hasTags = galleryTags.length > 0;
 
   useEffect(() => {
-    if (isCompact) setShowDownloadMenu(false);
-  }, [isCompact]);
-
-  useEffect(() => {
     const handleClickOutside = (event: MouseEvent) => {
       if (menuRef.current && !menuRef.current.contains(event.target as Node)) {
         setShowTagsMenu(false);
@@ -172,8 +167,7 @@ export const ToolBarDesktop = ({
               <button
                 onClick={() => {
                   setShowTagsMenu(false); // Fecha o de tags se abrir este
-                  setShowDownloadMenu(false);
-                  setShowGridMenu(!showGridMenu); // Você precisará criar este state: const [showGridMenu, setShowGridMenu] = useState(false);
+                  setShowGridMenu(!showGridMenu);
                 }}
                 className={`flex items-center gap-2 h-8 rounded-md  transition-all duration-300                   text-white `}
               >
@@ -443,13 +437,12 @@ export const ToolBarDesktop = ({
               <span className="text-editorial-label">Link</span>
             </button>
 
-            {/* DOWNLOAD */}
-            <div className="relative">
-              <div className="relative pl-2 border-l border-white/10 ml-1">
+            {/* DOWNLOAD — abre a central de download direto */}
+            <div className="relative pl-2 border-l border-white/10 ml-1">
                 <button
                   onClick={(e) => {
                     e.stopPropagation();
-                    setShowDownloadMenu(!showDownloadMenu);
+                    downloadAllAsZip();
                   }}
                   disabled={isDownloading}
                   className="flex items-center justify-center rounded-md bg-champagne text-black h-8 font-semibold shadow-xl hover:bg-white transition-all disabled:opacity-50 w-32 gap-2 px-4"
@@ -460,97 +453,8 @@ export const ToolBarDesktop = ({
                     <Download size={16} />
                   )}
                   <span className="text-editorial-label">Baixar</span>
-                  <ChevronDown
-                    size={14}
-                    className={`transition-transform duration-300 ${showDownloadMenu ? 'rotate-180' : ''}`}
-                  />
                 </button>
               </div>
-
-              {showDownloadMenu && (
-                <>
-                  <div
-                    className="fixed inset-0 z-[190]"
-                    onClick={() => setShowDownloadMenu(false)}
-                  />
-                  <div className="absolute top-full mt-2 right-0 w-72 bg-petroleum backdrop-blur-xl border border-white/10 rounded-md shadow-2xl animate-in fade-in slide-in-from-top-2 duration-300 z-[200] pointer-events-auto overflow-hidden">
-                    <div className="p-2 flex flex-col gap-1">
-                      {/* Download Favoritos - Só aparece se estiver filtrando E tiver permissão */}
-                      {canUseFavorites &&
-                        showOnlyFavorites &&
-                        canDownloadFavorites && (
-                          <button
-                            onClick={() => {
-                              downloadAllAsZip();
-                              setShowDownloadMenu(false);
-                            }}
-                            className="flex items-start gap-3 p-3 rounded-md hover:bg-white/10 transition-all text-left group border-b border-white/5"
-                          >
-                            <Filter size={18} className="text-red-400 mt-0.5" />
-                            <div>
-                              <p className="text-white text-editorial-label">
-                                Apenas Favoritos
-                              </p>
-                              <p className="text-white/90 text-[10px] leading-tight font-medium italic">
-                                Download só das fotos marcadas
-                              </p>
-                            </div>
-                          </button>
-                        )}
-
-                      {/* Download Todas - Sempre disponível */}
-                      <button
-                        onClick={() => {
-                          downloadAllAsZip();
-                          setShowDownloadMenu(false);
-                        }}
-                        className="flex items-start gap-3 p-3 rounded-md hover:bg-white/10 transition-all text-left group"
-                      >
-                        <Zap size={18} className="text-champagne mt-0.5" />
-                        <div>
-                          <p className="text-white text-editorial-label">
-                            Fotos Otimizadas
-                          </p>
-                          <p className="text-white/90 text-[10px] leading-tight font-medium italic">
-                            Mantendo a qualidade das fotos originais.
-                          </p>
-                        </div>
-                      </button>
-
-                      {/* Links Externos */}
-                      {externalLinks.map((linkObj: any, index: number) => {
-                        return (
-                          <button
-                            key={index}
-                            onClick={() => {
-                              setShowDownloadMenu(false);
-                              handleExternalDownload(
-                                linkObj.url,
-                                `${galeria.title}_${linkObj.label.replace(/\s+/g, '_')}.zip`,
-                              );
-                            }}
-                            className="w-full flex items-start gap-3 p-3 rounded-md hover:bg-white/10 transition-all text-left group border-t border-white/5"
-                          >
-                            <FileCheck
-                              size={18}
-                              className="text-champagne mt-0.5 group-hover:scale-110 transition-transform"
-                            />
-                            <div className="flex-1 min-w-0">
-                              <p className="text-white text-editorial-label uppercase tracking-wider">
-                                {linkObj.label}
-                              </p>
-                              <p className="text-white/90 text-[9px] leading-tight truncate italic font-medium mt-0.5">
-                                {linkObj.url}
-                              </p>
-                            </div>
-                          </button>
-                        );
-                      })}
-                    </div>
-                  </div>
-                </>
-              )}
-            </div>
           </div>
         </div>
       </div>
