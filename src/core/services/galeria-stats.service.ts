@@ -95,10 +95,21 @@ export async function emitGaleriaEvent({
 
   // 2. FILTRO DE TRÁFEGO INTERNO (FOTÓGRAFO)
   const photographerId = galeria.user_id || galeria.photographer_id;
-  const currentUserId = metadata?.currentUserId; // O ID de quem está logado vendo a página
 
+  // ✅ CORREÇÃO 1: Verificar sessão do Next.js diretamente no servidor,
+  // sem depender de metadata vindo do cliente
+  const {
+    data: { user },
+  } = await supabase.auth.getUser();
+  if (user && user.id === photographerId) {
+    console.log('🚫 [BI] Fotógrafo autenticado detectado. Ignorando evento.');
+    return;
+  }
+
+  // ✅ CORREÇÃO 2: Verificar também pelo currentUserId do metadata (fallback)
+  const currentUserId = metadata?.currentUserId; // O ID de quem está logado vendo a página
   if (currentUserId && currentUserId === photographerId) {
-    console.log('🚫 [BI] Fotógrafo detectado pela sessão. Ignorando View.');
+    console.log('🚫 [BI] Fotógrafo detectado via metadata. Ignorando evento.');
     return;
   }
 
@@ -110,13 +121,12 @@ export async function emitGaleriaEvent({
 
   const ignoredIds = profile?.ignored_visitor_ids || [];
 
-  // Se o ID atual estiver na lista de bloqueio do fotógrafo, abortamos tudo
-  // if (ignoredIds.includes(finalVisitorId)) {
-  //   console.log(
-  //     `🚫 [BI] Ignorado: ${eventType} por ID interno ${finalVisitorId}`,
-  //   );
-  //   return;
-  // }
+  if (ignoredIds.includes(finalVisitorId)) {
+    console.log(
+      `🚫 [BI] Ignorado: ${eventType} por ID interno ${finalVisitorId}`,
+    );
+    return;
+  }
 
   // 3. Trava de Duplicidade (Apenas para View)
   if (eventType === 'view') {
