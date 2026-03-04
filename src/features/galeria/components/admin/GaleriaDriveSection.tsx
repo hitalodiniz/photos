@@ -5,6 +5,7 @@ import { GooglePickerButton } from '@/components/google-drive';
 import GoogleDriveImagePreview from '@/components/ui/GoogleDriveImagePreview';
 import { InfoTooltip } from '@/components/ui/InfoTooltip';
 import { usePlan } from '@/core/context/PlanContext';
+import { calcEffectiveMaxGalleries } from '@/core/config/plans';
 import {
   FolderSync,
   ImageIcon,
@@ -13,11 +14,35 @@ import {
   CheckCircle2,
   X,
   ExternalLink,
+  Ban,
 } from 'lucide-react';
 
-// Número máximo de fotos de capa permitidas por galeria.
-// Não é um campo de PlanPermissions (é config visual, não de plano).
+// Número máximo de fotos de capa por galeria.
+// Config visual — não relacionada a plano.
 const MAX_COVERS_PER_GALLERY = 3;
+
+interface DriveData {
+  id?: string;
+  name?: string;
+  photoCount?: number;
+  allCovers?: string[];
+  coverId?: string;
+}
+
+interface GaleriaDriveSectionProps {
+  driveData: DriveData;
+  handleFolderSelect: (folder: any) => void;
+  onPickerError: (error: any) => void;
+  onTokenExpired: () => void;
+  isValidatingDrive: boolean;
+  renameFilesSequential: boolean;
+  setRenameFilesSequential: (value: boolean) => void;
+  setDriveData: (data: DriveData) => void;
+  rootFolderId?: string;
+  // Pool context — necessário para calcular impacto no pool de galerias
+  usedPhotoCredits: number; // total de fotos publicadas em OUTRAS galerias
+  activeGalleryCount: number; // número de galerias ativas atualmente
+}
 
 export function GaleriaDriveSection({
   driveData,
@@ -29,18 +54,40 @@ export function GaleriaDriveSection({
   setRenameFilesSequential,
   setDriveData,
   rootFolderId,
-}) {
-  const { permissions } = usePlan();
+  usedPhotoCredits,
+  activeGalleryCount,
+}: GaleriaDriveSectionProps) {
+  const { permissions, planKey } = usePlan();
 
-  const photoCount = driveData.photoCount || 0;
+  const photoCount = driveData.photoCount ?? 0;
   const hardCap = permissions.maxPhotosPerGallery;
   const recommended = permissions.recommendedPhotosPerGallery;
   const maxCovers = MAX_COVERS_PER_GALLERY;
 
-  // Três estados possíveis para o alerta de fotos
+  // ── Estados de alerta de fotos ────────────────────────────────────────────
   const isOverHardCap = photoCount > hardCap;
   const isOverRecommended = !isOverHardCap && photoCount > recommended;
   const isCompatible = photoCount > 0 && !isOverHardCap && !isOverRecommended;
+
+  // ── Impacto no pool de galerias ───────────────────────────────────────────
+  // Quantas galerias o usuário pode criar AGORA (antes de salvar esta galeria)
+  const galleriesNow = calcEffectiveMaxGalleries(
+    planKey,
+    usedPhotoCredits,
+    activeGalleryCount,
+  );
+  // Quantas galerias o usuário poderá criar APÓS salvar esta galeria
+  // (os créditos desta galeria serão descontados do pool)
+  const galleriesAfterSave = calcEffectiveMaxGalleries(
+    planKey,
+    usedPhotoCredits + photoCount,
+    activeGalleryCount,
+  );
+  const galleriesLost = Math.max(0, galleriesNow - galleriesAfterSave);
+  const galleriesRemaining = Math.max(
+    0,
+    galleriesAfterSave - activeGalleryCount,
+  );
 
   return (
     <div className="relative bg-white rounded-luxury border border-slate-200 p-4 space-y-4 mt-2 overflow-hidden">
@@ -62,7 +109,7 @@ export function GaleriaDriveSection({
         </h3>
       </div>
 
-      {/* ── Subseção 1: Vincular Pasta ── */}
+      {/* ── Subseção 1: Vincular Pasta ─────────────────────────────────────── */}
       <div className="space-y-3">
         <label className="text-[10px] font-bold uppercase tracking-luxury text-petroleum flex items-center gap-1.5">
           <FolderSync size={12} strokeWidth={2} className="text-gold" />
@@ -75,9 +122,8 @@ export function GaleriaDriveSection({
             {driveData.name || 'Nenhuma pasta selecionada'}
           </p>
 
-          {/* Botões lado a lado */}
+          {/* Botões */}
           <div className="flex items-center gap-2">
-            {/* Botão principal — selecionar/alterar pasta */}
             <div className="flex-1">
               <GooglePickerButton
                 onFolderSelect={handleFolderSelect}
@@ -88,7 +134,6 @@ export function GaleriaDriveSection({
               />
             </div>
 
-            {/* Botão secundário — abrir no Drive (só aparece quando há pasta vinculada) */}
             {driveData.id && (
               <a
                 href={`https://drive.google.com/drive/folders/${driveData.id}`}
@@ -102,24 +147,22 @@ export function GaleriaDriveSection({
             )}
           </div>
 
-          {/* ── Alerta de fotos (3 estados) ── */}
+          {/* ── Alertas de fotos ─────────────────────────────────────────── */}
           {driveData.id && photoCount > 0 && (
             <>
-              {/* Estado 1: acima do hard cap — bloqueio */}
+              {/* Estado 1: acima do hard cap — BLOQUEIO */}
               {isOverHardCap && (
-                <div className="p-2.5 rounded-luxury border bg-red-50 border-red-200 flex gap-2.5">
-                  <AlertTriangle
-                    size={14}
-                    className="text-red-500 shrink-0 mt-0.5"
-                  />
-                  <div className="space-y-0.5">
+                <div className="p-2.5 rounded-luxury border bg-red-50 border-red-300 flex gap-2.5">
+                  <Ban size={14} className="text-red-500 shrink-0 mt-0.5" />
+                  <div className="space-y-1">
                     <p className="text-[9px] font-bold uppercase text-red-700">
-                      {photoCount} fotos — limite excedido
+                      {photoCount} fotos — limite máximo excedido
                     </p>
                     <p className="text-[9px] text-red-600/80 leading-tight">
-                      Seu plano suporta até <strong>{hardCap} fotos</strong> por
-                      galeria. Remova fotos da pasta ou faça upgrade para
-                      continuar.
+                      Seu plano suporta no máximo{' '}
+                      <strong>{hardCap} fotos</strong> por galeria. Remova fotos
+                      da pasta ou faça upgrade do plano para salvar esta
+                      galeria.
                     </p>
                   </div>
                 </div>
@@ -132,22 +175,35 @@ export function GaleriaDriveSection({
                     size={14}
                     className="text-amber-500 shrink-0 mt-0.5"
                   />
-                  <div className="space-y-0.5">
+                  <div className="space-y-1">
                     <p className="text-[9px] font-bold uppercase text-amber-700">
                       {photoCount} fotos — acima do recomendado
                     </p>
                     <p className="text-[9px] text-amber-700/80 leading-tight">
-                      O recomendado para seu plano é{' '}
-                      <strong>até {recommended} fotos</strong> por galeria.
-                      Galerias maiores consomem mais da sua cota de{' '}
-                      <strong>{permissions.photoCredits} créditos</strong>,
-                      reduzindo o número de galerias ativas disponíveis.
+                      O recomendado é <strong>até {recommended} fotos</strong>{' '}
+                      por galeria. Com {photoCount} fotos, esta galeria consome{' '}
+                      {photoCount} créditos do seu pool de{' '}
+                      <strong>
+                        {permissions.photoCredits.toLocaleString('pt-BR')}
+                      </strong>
+                      {galleriesLost > 0 && (
+                        <>
+                          {' '}
+                          — isso reduz em{' '}
+                          <strong>
+                            {galleriesLost} galeria
+                            {galleriesLost > 1 ? 's' : ''}
+                          </strong>{' '}
+                          a capacidade disponível do seu plano
+                        </>
+                      )}
+                      .
                     </p>
                   </div>
                 </div>
               )}
 
-              {/* Estado 3: compatível — confirmação */}
+              {/* Estado 3: compatível — confirmação com saldo restante */}
               {isCompatible && (
                 <div className="p-2.5 rounded-luxury border bg-emerald-50 border-emerald-200 flex gap-2.5">
                   <CheckCircle2
@@ -159,8 +215,19 @@ export function GaleriaDriveSection({
                       {photoCount} fotos — compatível com seu plano
                     </p>
                     <p className="text-[9px] text-emerald-700/70 leading-tight">
-                      Dentro do limite recomendado de {recommended} fotos por
-                      galeria.
+                      Dentro do limite recomendado de{' '}
+                      <strong>{recommended} fotos</strong> por galeria.
+                      {galleriesRemaining > 0 && (
+                        <>
+                          {' '}
+                          Após salvar, você ainda poderá criar{' '}
+                          <strong>
+                            {galleriesRemaining} galeria
+                            {galleriesRemaining > 1 ? 's' : ''}
+                          </strong>
+                          .
+                        </>
+                      )}
                     </p>
                   </div>
                 </div>
@@ -168,7 +235,7 @@ export function GaleriaDriveSection({
             </>
           )}
 
-          {/* Pasta vinculada mas sem fotos ainda */}
+          {/* Pasta vinculada mas sem fotos */}
           {driveData.id && photoCount === 0 && !isValidatingDrive && (
             <div className="p-2.5 rounded-luxury border bg-slate-50 border-slate-200 flex gap-2.5">
               <AlertTriangle
@@ -183,7 +250,7 @@ export function GaleriaDriveSection({
         </div>
       </div>
 
-      {/* ── Subseção 2: Preview de Capas ── */}
+      {/* ── Subseção 2: Preview de Capas ───────────────────────────────────── */}
       <div className="space-y-3 pt-3 border-t border-slate-200">
         <label className="text-[10px] font-bold uppercase tracking-luxury text-petroleum flex items-center gap-2">
           <ImageIcon size={12} strokeWidth={2} className="text-gold" />
@@ -212,7 +279,7 @@ export function GaleriaDriveSection({
                 <button
                   type="button"
                   onClick={() => {
-                    const filtered = driveData.allCovers.filter(
+                    const filtered = driveData.allCovers!.filter(
                       (id) => id !== photoId,
                     );
                     setDriveData({
@@ -241,7 +308,7 @@ export function GaleriaDriveSection({
           )}
 
           {/* Slot vago */}
-          {driveData.id && driveData.allCovers?.length < maxCovers && (
+          {driveData.id && (driveData.allCovers?.length ?? 0) < maxCovers && (
             <div className="w-20 h-20 rounded-md border-2 border-dashed border-slate-300 flex flex-col items-center justify-center text-slate-300 gap-1">
               <ImageIcon size={16} />
               <span className="text-[7px] font-black uppercase">Vago</span>
@@ -250,7 +317,7 @@ export function GaleriaDriveSection({
         </div>
       </div>
 
-      {/* ── Subseção 3: Renomear Arquivos ── */}
+      {/* ── Subseção 3: Renomear Arquivos ──────────────────────────────────── */}
       {/* keepOriginalFilenames: false em FREE/START → guard bloqueia */}
       <PlanGuard
         feature="keepOriginalFilenames"

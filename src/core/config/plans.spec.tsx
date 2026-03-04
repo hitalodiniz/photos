@@ -3,8 +3,9 @@ import {
   COMMON_FEATURES,
   PERMISSIONS_BY_PLAN,
   PlanPermissions,
-  // FIX 1: planOrder não existe em plans.ts — PLAN_ORDER é privado.
-  // Exportamos nossa própria constante local, idêntica à usada internamente.
+  calcEffectiveMaxGalleries,
+  getBaseGalleriesFromPool,
+  RECOMMENDED_PHOTOS_PER_GALLERY_BY_PLAN,
 } from './plans';
 
 import { render } from '@testing-library/react';
@@ -58,18 +59,24 @@ const PlanConsumer = ({ onPlan }: { onPlan: (plan: any) => void }) => {
   });
   return <div data-testid="consumer" />;
 };
-// FIX 1: Declarado localmente porque plans.ts não exporta planOrder.
-// Deve manter a mesma ordem usada internamente em PLAN_ORDER.
+
+// PLAN_ORDER é privado em plans.ts — declarado localmente com a mesma ordem.
 const planOrder = ['FREE', 'START', 'PLUS', 'PRO', 'PREMIUM'] as const;
 type PlanKey = (typeof planOrder)[number];
 
+// =============================================================================
 describe('Validação de Permissões por Grupo', () => {
   describe('Grupo: Gestão', () => {
-    // FIX 2: Progressão real do plans.ts:
-    //   FREE=3, START=10, PLUS=20, PRO=50, PREMIUM=200
     test('maxGalleries deve seguir progressão: 3 -> 10 -> 20 -> 50 -> 200', () => {
       const values = planOrder.map((p) => PERMISSIONS_BY_PLAN[p].maxGalleries);
       expect(values).toEqual([3, 10, 20, 50, 200]);
+    });
+
+    test('maxGalleriesHardCap deve seguir progressão: 10 -> 30 -> 60 -> 150 -> 500', () => {
+      const values = planOrder.map(
+        (p) => PERMISSIONS_BY_PLAN[p].maxGalleriesHardCap,
+      );
+      expect(values).toEqual([3, 20, 40, 100, 400]);
     });
 
     test('teamMembers deve permitir colaboradores apenas a partir do PLUS', () => {
@@ -83,7 +90,6 @@ describe('Validação de Permissões por Grupo', () => {
   describe('Grupo: Divulgação do Perfil', () => {
     test('profileLevel deve evoluir em sofisticação', () => {
       expect(PERMISSIONS_BY_PLAN.FREE.profileLevel).toBe('basic');
-      // FIX 3: PRO tem 'advanced' (não 'seo' — só PREMIUM tem seo)
       expect(PERMISSIONS_BY_PLAN.PRO.profileLevel).toBe('advanced');
       expect(PERMISSIONS_BY_PLAN.PREMIUM.profileLevel).toBe('seo');
     });
@@ -123,7 +129,6 @@ describe('Validação de Permissões por Grupo', () => {
   });
 
   describe('Grupo: Segurança & Automação', () => {
-    // FIX 4: PRO tem 'password', PREMIUM tem 'expiration'
     test('privacyLevel deve permitir password no PRO e PREMIUM', () => {
       expect(PERMISSIONS_BY_PLAN.PRO.privacyLevel).toBe('password');
       expect(PERMISSIONS_BY_PLAN.PREMIUM.privacyLevel).toBe('password');
@@ -136,31 +141,34 @@ describe('Validação de Permissões por Grupo', () => {
   });
 });
 
+// =============================================================================
 describe('Consistência com UI (COMMON_FEATURES)', () => {
   test('Cada entrada em COMMON_FEATURES com "key" deve existir na PlanPermissions', () => {
     const technicalKeys = Object.keys(PERMISSIONS_BY_PLAN.FREE);
     const uiKeys = COMMON_FEATURES.filter((f) => f.key).map((f) => f.key);
-
     uiKeys.forEach((key) => {
       expect(technicalKeys).toContain(key);
     });
   });
 });
 
+// =============================================================================
 describe('Integridade Total do Sistema de Permissões', () => {
-  // FIX 5: Lista de chaves sincronizada com a interface PlanPermissions real.
-  // Adicionadas: photoCredits, zipSizeLimitBytes, canAccessStats
-  // (estavam ausentes na versão original do teste)
+  // Lista sincronizada com PlanPermissions — selectedProfileTheme e isTrial são
+  // opcionais e excluídos intencionalmente da checagem de completude.
   const allPermissionKeys: (keyof PlanPermissions)[] = [
     'photoCredits',
     'maxGalleries',
+    'maxGalleriesHardCap', // pool de galerias: teto absoluto
     'maxPhotosPerGallery',
+    'recommendedPhotosPerGallery', // pool de galerias: base do cálculo dinâmico
     'teamMembers',
     'profileLevel',
     'profileCarouselLimit',
     'profileListLimit',
     'removeBranding',
     'canCaptureLeads',
+    'canAccessNotifyEvents', // notificações de eventos em tempo real
     'canExportLeads',
     'canCustomWhatsApp',
     'socialDisplayLevel',
@@ -175,6 +183,7 @@ describe('Integridade Total do Sistema de Permissões', () => {
     'maxExternalLinks',
     'canCustomLinkLabel',
     'privacyLevel',
+    'expiresAt', // data de expiração de acesso à galeria
     'keepOriginalFilenames',
     'customizationLevel',
     'canCustomCategories',
@@ -214,6 +223,8 @@ describe('Integridade Total do Sistema de Permissões', () => {
     test('Progressão de limites numéricos', () => {
       const numericKeys: (keyof PlanPermissions)[] = [
         'maxGalleries',
+        'maxGalleriesHardCap',
+        'recommendedPhotosPerGallery',
         'maxPhotosPerGallery',
         'teamMembers',
         'profileCarouselLimit',
@@ -236,6 +247,8 @@ describe('Integridade Total do Sistema de Permissões', () => {
         'keepOriginalFilenames',
         'canCustomWhatsApp',
         'canCustomCategories',
+        'canAccessStats',
+        'canAccessNotifyEvents',
       ];
 
       booleanKeys.forEach((key) => {
@@ -254,10 +267,11 @@ describe('Integridade Total do Sistema de Permissões', () => {
   });
 
   describe('Snapshots de Segurança (Cenários Críticos)', () => {
-    // FIX 6: FREE.maxGalleries real = 3 (não 2)
     test('FREE: deve ser rigorosamente limitado', () => {
       const p = PERMISSIONS_BY_PLAN.FREE;
       expect(p.maxGalleries).toBe(3);
+      expect(p.maxGalleriesHardCap).toBe(3);
+      expect(p.recommendedPhotosPerGallery).toBe(150);
       expect(p.canCaptureLeads).toBe(false);
       expect(p.removeBranding).toBe(false);
       expect(p.privacyLevel).toBe('public');
@@ -265,15 +279,16 @@ describe('Integridade Total do Sistema de Permissões', () => {
       expect(p.expiresAt).toBe(false);
     });
 
-    // FIX 7: PRO profileLevel = 'advanced' (não 'seo')
     test('PRO: deve ter o motor de marketing ativado', () => {
       const p = PERMISSIONS_BY_PLAN.PRO;
       expect(p.canCaptureLeads).toBe(true);
       expect(p.canCustomWhatsApp).toBe(true);
       expect(p.profileLevel).toBe('advanced');
+      expect(p.maxGalleriesHardCap).toBe(100);
+      expect(p.canAccessNotifyEvents).toBe(true);
+      expect(p.expiresAt).toBe(true);
     });
 
-    // FIX 8: PREMIUM privacyLevel = 'password'
     test('PREMIUM: deve ser o estado "Full Experience"', () => {
       const p = PERMISSIONS_BY_PLAN.PREMIUM;
       expect(p.removeBranding).toBe(true);
@@ -281,22 +296,27 @@ describe('Integridade Total do Sistema de Permissões', () => {
       expect(p.privacyLevel).toBe('password');
       expect(p.canAccessNotifyEvents).toBe(true);
       expect(p.expiresAt).toBe(true);
+      expect(p.maxGalleriesHardCap).toBe(400);
+      expect(p.recommendedPhotosPerGallery).toBe(1_000);
     });
   });
 });
 
-// ─── POOL SYSTEM ─────────────────────────────────────────────────────────────
+// =============================================================================
+// POOL SYSTEM
+// =============================================================================
 describe('Pool System — Créditos de Fotos e Galerias', () => {
+  // FIX: PLUS=12.000 (não 8.000), PRO=40.000 (não 30.000)
   const poolCases: Array<[string, number, number, number]> = [
     ['FREE', 450, 3, 200],
-    ['START', 3000, 10, 450],
-    ['PLUS', 8000, 20, 800],
-    ['PRO', 30000, 50, 1500],
-    ['PREMIUM', 200000, 200, 3000],
+    ['START', 3_000, 10, 450],
+    ['PLUS', 12_000, 20, 800],
+    ['PRO', 40_000, 50, 1_500],
+    ['PREMIUM', 200_000, 200, 3_000],
   ];
 
   test.each(poolCases)(
-    'plano %s → %d créditos, %d galerias, %d fotos/galeria',
+    'plano %s → %d créditos, %d galerias (pool base), %d fotos/galeria (max)',
     (planKey, credits, galleries, perGallery) => {
       let captured: any;
       render(
@@ -344,9 +364,54 @@ describe('Pool System — Créditos de Fotos e Galerias', () => {
     expect(captured.canAddMore('maxGalleries', 20)).toBe(false);
     expect(captured.canAddMore('maxGalleries', 19)).toBe(true);
   });
+
+  describe('calcEffectiveMaxGalleries — pool dinâmico de galerias', () => {
+    test('PRO: fotógrafo de ensaio (poucas fotos/galeria) obtém mais galerias que o base', () => {
+      // 500 fotos em 10 galerias → remaining=39.500, fromPool=floor(39.500/800)=49
+      // total = min(10+49, 150) = 59
+      expect(calcEffectiveMaxGalleries('PRO', 500, 10)).toBe(59);
+    });
+
+    test('PRO: fotógrafo de casamento (800 fotos/galeria) fica no base', () => {
+      // 8.000 fotos em 10 galerias → remaining=32.000, fromPool=floor(32.000/800)=40
+      // total = min(10+40, 150) = 50
+      expect(calcEffectiveMaxGalleries('PRO', 8_000, 10)).toBe(50);
+    });
+
+    test('FREE: pool reduzido respeita o hardCap de 10', () => {
+      // 20 fotos em 0 galerias → remaining=430, fromPool=floor(430/150)=2
+      expect(calcEffectiveMaxGalleries('FREE', 20, 0)).toBe(2);
+      // pool esgotado → fromPool=0, total=min(3,10)=3
+      expect(calcEffectiveMaxGalleries('FREE', 450, 3)).toBe(3);
+    });
+
+    test('PREMIUM: muitas galerias pequenas são contidas pelo hardCap de 500', () => {
+      // 1.000 fotos em 1 galeria → remaining=199.000, fromPool=floor(199.000/1.000)=199
+      // total = min(1+199, 500) = 200
+      expect(calcEffectiveMaxGalleries('PREMIUM', 1_000, 1)).toBe(200);
+    });
+
+    test('getBaseGalleriesFromPool bate com maxGalleries de PERMISSIONS_BY_PLAN', () => {
+      planOrder.forEach((p) => {
+        expect(getBaseGalleriesFromPool(p)).toBe(
+          PERMISSIONS_BY_PLAN[p].maxGalleries,
+        );
+      });
+    });
+
+    test('recommendedPhotosPerGallery correto por plano', () => {
+      expect(RECOMMENDED_PHOTOS_PER_GALLERY_BY_PLAN.FREE).toBe(150);
+      expect(RECOMMENDED_PHOTOS_PER_GALLERY_BY_PLAN.START).toBe(300);
+      expect(RECOMMENDED_PHOTOS_PER_GALLERY_BY_PLAN.PLUS).toBe(600);
+      expect(RECOMMENDED_PHOTOS_PER_GALLERY_BY_PLAN.PRO).toBe(800);
+      expect(RECOMMENDED_PHOTOS_PER_GALLERY_BY_PLAN.PREMIUM).toBe(1_000);
+    });
+  });
 });
 
-// ─── TRIAL LOGIC ─────────────────────────────────────────────────────────────
+// =============================================================================
+// TRIAL LOGIC
+// =============================================================================
 describe('Trial Logic', () => {
   test('trial ativo (PRO) → planKey=PRO, isTrial=true', () => {
     let captured: any;
@@ -414,7 +479,9 @@ describe('Trial Logic', () => {
   });
 });
 
-// ─── ZIP LIMITS ──────────────────────────────────────────────────────────────
+// =============================================================================
+// ZIP LIMITS
+// =============================================================================
 describe('ZIP Limits por Plano', () => {
   const zipCases: Array<[string, number, string]> = [
     ['FREE', 500_000, '500KB'],
@@ -439,7 +506,9 @@ describe('ZIP Limits por Plano', () => {
   });
 });
 
-// ─── ENUM PERMISSIONS ────────────────────────────────────────────────────────
+// =============================================================================
+// ENUM PERMISSIONS
+// =============================================================================
 describe('Permissões de Nível (enum)', () => {
   test.each([
     ['FREE', 'public'],
@@ -520,9 +589,31 @@ describe('Permissões de Nível (enum)', () => {
     );
     expect(captured.permissions.customizationLevel).toBe(level);
   });
+
+  test.each([
+    ['FREE', false],
+    ['START', false],
+    ['PLUS', false],
+    ['PRO', true],
+    ['PREMIUM', true],
+  ] as const)('expiresAt plano %s = %s', (planKey, expires) => {
+    let captured: any;
+    render(
+      <PlanProvider profile={makeMockProfile({ plan_key: planKey })}>
+        <PlanConsumer
+          onPlan={(p) => {
+            captured = p;
+          }}
+        />
+      </PlanProvider>,
+    );
+    expect(captured.permissions.expiresAt).toBe(expires);
+  });
 });
 
-// ─── BOOLEAN PERMISSIONS ─────────────────────────────────────────────────────
+// =============================================================================
+// BOOLEAN PERMISSIONS
+// =============================================================================
 describe('Permissões Boolean por Feature', () => {
   test('removeBranding: apenas PREMIUM = true', () => {
     ['FREE', 'START', 'PLUS', 'PRO'].forEach((planKey) => {
@@ -663,9 +754,40 @@ describe('Permissões Boolean por Feature', () => {
       expect(captured.permissions.canFavorite, planKey).toBe(true);
     });
   });
+
+  test('canAccessNotifyEvents: false em FREE/START/PLUS, true em PRO/PREMIUM', () => {
+    ['FREE', 'START', 'PLUS'].forEach((planKey) => {
+      let captured: any;
+      render(
+        <PlanProvider profile={makeMockProfile({ plan_key: planKey as any })}>
+          <PlanConsumer
+            onPlan={(p) => {
+              captured = p;
+            }}
+          />
+        </PlanProvider>,
+      );
+      expect(captured.permissions.canAccessNotifyEvents, planKey).toBe(false);
+    });
+    ['PRO', 'PREMIUM'].forEach((planKey) => {
+      let captured: any;
+      render(
+        <PlanProvider profile={makeMockProfile({ plan_key: planKey as any })}>
+          <PlanConsumer
+            onPlan={(p) => {
+              captured = p;
+            }}
+          />
+        </PlanProvider>,
+      );
+      expect(captured.permissions.canAccessNotifyEvents, planKey).toBe(true);
+    });
+  });
 });
 
-// ─── NUMERIC PERMISSIONS ─────────────────────────────────────────────────────
+// =============================================================================
+// NUMERIC PERMISSIONS
+// =============================================================================
 describe('Permissões Numéricas', () => {
   test.each([
     ['FREE', 0],
@@ -768,7 +890,9 @@ describe('Permissões Numéricas', () => {
   });
 });
 
-// ─── isPro / isPremium ────────────────────────────────────────────────────────
+// =============================================================================
+// isPro / isPremium
+// =============================================================================
 describe('isPro / isPremium helpers', () => {
   test.each(['PRO', 'PREMIUM'] as const)('isPro = true para %s', (planKey) => {
     let captured: any;

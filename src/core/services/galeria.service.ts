@@ -56,6 +56,7 @@ import { cache } from 'react';
 import { registerFolderWatch } from './drive-watch.service';
 import { getGoogleRefreshToken } from './profile.service';
 import { getDriveAccessTokenForUser } from '@/lib/google-auth';
+import { createClient } from '@supabase/supabase-js';
 
 // =========================================================================
 // 2. SLUG ÚNICO POR DATA
@@ -1321,4 +1322,44 @@ export async function saveGaleriaSelectionAction(
     console.error('[saveGaleriaSelectionAction] Erro Crítico:', error.message);
     return { success: false, error: error.message };
   }
+}
+
+export interface PhotographerPoolStats {
+  /** Soma de photo_count de todas as galerias ativas do fotógrafo */
+  totalPhotosUsed: number;
+  /** Número de galerias ativas (não arquivadas/deletadas) */
+  activeGalleryCount: number;
+}
+
+/**
+ * Busca as estatísticas de pool do fotógrafo em uma única query.
+ * Usado por GaleriaFormPage para alimentar os alertas de cota dinâmica
+ * em GaleriaDriveSection via calcEffectiveMaxGalleries().
+ *
+ * @param profileId  - ID do perfil do fotógrafo (profile.id)
+ */
+export async function getPhotographerPoolStats(
+  profileId: string,
+): Promise<PhotographerPoolStats> {
+  const supabase = await createSupabaseClientForCache();
+
+  const { data, error } = await supabase
+    .from('tb_galerias')
+    .select('photo_count')
+    .eq('profile_id', profileId)
+    .eq('is_deleted', false)
+    .eq('is_archived', false); // exclui galerias arquivadas/excluídas
+
+  if (error) {
+    console.error('[getPhotographerPoolStats]', error.message);
+    // Retorna zeros para não bloquear o formulário em caso de falha
+    return { totalPhotosUsed: 0, activeGalleryCount: 0 };
+  }
+
+  const rows = data ?? [];
+
+  return {
+    totalPhotosUsed: rows.reduce((sum, row) => sum + (row.photo_count ?? 0), 0),
+    activeGalleryCount: rows.length,
+  };
 }

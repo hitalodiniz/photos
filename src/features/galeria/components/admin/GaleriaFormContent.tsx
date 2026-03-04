@@ -37,26 +37,21 @@ import { convertToDirectDownloadUrl } from '@/core/utils/url-helper';
 import { LimitUpgradeModal } from '@/components/ui/LimitUpgradeModal';
 import { useGoogleDriveImage } from '@/hooks/useGoogleDriveImage';
 import { GalleryDesignFields } from './GaleriaDesignFields';
-
 import { LeadCaptureSection } from '@/components/ui/LeadCaptureSection';
-
 import { PlanGuard } from '@/components/auth/PlanGuard';
 import { GaleriaDriveSection } from './GaleriaDriveSection';
 import { usePlan } from '@/core/context/PlanContext';
 import UpgradeModal from '@/components/ui/UpgradeModal';
-import PasswordInput from '@/components/ui/PasswordInput'; // Import PasswordInput
+import PasswordInput from '@/components/ui/PasswordInput';
 import { InfoTooltip } from '@/components/ui/InfoTooltip';
 import { GalleryInteractionFields } from './GalleryInteractionFields';
-
 import { getFolderPhotos } from '@/core/services/google-drive.service';
 import {
   GalleryTypeToggle,
   type GalleryTypeValue,
 } from '@/components/ui/GalleryTypeToggle';
 import { normalizeContractType } from '@/core/types/galeria';
-import { div } from 'framer-motion/client';
 import { ThemeKey, ThemeSelector } from '@/components/ui/ThemeSelector';
-import { env } from 'process';
 
 /** default_type do perfil (contract/event/ensaio) → código (CT/CB/ES) */
 const DEFAULT_TYPE_TO_CODE: Record<string, GalleryTypeValue> = {
@@ -65,10 +60,10 @@ const DEFAULT_TYPE_TO_CODE: Record<string, GalleryTypeValue> = {
   ensaio: 'ES',
 };
 
-// 🎯 Componente de seção simples (sem accordion) - Estilo Editorial
+// Componente de seção simples — Estilo Editorial
 const FormSection = ({
   title,
-  subtitle, // Nova prop para o subtítulo
+  subtitle,
   icon,
   children,
 }: {
@@ -80,8 +75,7 @@ const FormSection = ({
   <div className="bg-white rounded-luxury border border-slate-400 p-4 space-y-3">
     <div className="flex flex-col gap-1 pb-2 border-b border-slate-200">
       <div className="flex items-center gap-2">
-        {icon && <div className="text-petroleum">{icon}</div>}{' '}
-        {/* Ícones agora em Gold */}
+        {icon && <div className="text-petroleum">{icon}</div>}
         <h3 className="text-[10px] font-bold uppercase tracking-luxury-wide text-petroleum dark:text-slate-700">
           {title}
         </h3>
@@ -108,6 +102,15 @@ export default function GaleriaFormContent({
   register,
   setValue,
   watch,
+  // ─── Pool de cota ────────────────────────────────────────────────────────
+  // Total de fotos publicadas em TODAS as galerias do usuário.
+  // Usado por GaleriaDriveSection para calcular o impacto desta galeria no
+  // pool dinâmico de galerias (calcEffectiveMaxGalleries).
+  // Fallback 0 para não quebrar enquanto o pai não implementa a prop.
+  usedPhotoCredits = 0,
+  // Número de galerias ativas atualmente.
+  // Fallback 0 para o mesmo motivo.
+  activeGalleryCount = 0,
 }) {
   // =========================================================================
   // 1. REFS E CONTEXTOS
@@ -133,7 +136,6 @@ export default function GaleriaFormContent({
   const enableFavorites = watch('enable_favorites');
   const enableSlideshow = watch('enable_slideshow');
 
-  // Helpers para atualização manual se necessário
   const setLeadsEnabled = (val: boolean) =>
     setValue('leads_enabled', val, { shouldDirty: true });
   const setEnableFavorites = (val: boolean) =>
@@ -176,6 +178,7 @@ export default function GaleriaFormContent({
       process.env.NEXT_PUBLIC_APP_SEGMENT ||
       'PHOTOGRAPHER',
   );
+
   const [renameFilesSequential, setRenameFilesSequential] = useState(() => {
     if (initialData)
       return (
@@ -243,21 +246,19 @@ export default function GaleriaFormContent({
   );
 
   // =========================================================================
-  // 5. USEEFFECTS (LÓGICA DE INICIALIZAÇÃO E SINCRONIZAÇÃO)
+  // 5. USEEFFECTS
   // =========================================================================
 
-  // 🎯 UNIFICADO: Aplicação de padrões (Novas Galerias) e Edição
   useEffect(() => {
     if (profile?.settings?.defaults && !defaultsAppliedRef.current) {
       if (!isEdit) {
-        // --- MODO CRIAÇÃO: Aplica Padrões do Perfil ---
         const d = profile.settings.defaults;
         setValue('is_public', d.is_public ?? true);
         setValue('show_on_profile', d.list_on_profile ?? false);
         setValue('leads_enabled', d.enable_guest_registration ?? false);
         setValue('lead_purpose', d.data_treatment_purpose ?? '');
-        setValue('enable_favorites', d.enable_favorites ?? true); // 🎯 Preferência Favoritos
-        setValue('enable_slideshow', d.enable_slideshow ?? true); // 🎯 Preferência Slideshow
+        setValue('enable_favorites', d.enable_favorites ?? true);
+        setValue('enable_slideshow', d.enable_slideshow ?? true);
 
         if (setCustomization) {
           setCustomization.setGridBgColor(d.background_color ?? '#FFFFFF');
@@ -269,11 +270,9 @@ export default function GaleriaFormContent({
           });
         }
       } else if (initialData) {
-        // --- MODO EDIÇÃO: Sincroniza com dados existentes ---
         setValue('enable_favorites', initialData.enable_favorites ?? true);
         setValue('enable_slideshow', initialData.enable_slideshow ?? true);
         setValue('leads_enabled', initialData.leads_enabled ?? false);
-        // ... outros campos de edição aqui se necessário
       }
       defaultsAppliedRef.current = true;
     }
@@ -297,26 +296,38 @@ export default function GaleriaFormContent({
     }
   }, [initialData, isEdit]);
 
-  // Constantes de Limite
+  // =========================================================================
+  // 6. CONSTANTES DERIVADAS
+  // =========================================================================
   const PLAN_LIMIT = permissions.maxPhotosPerGallery;
   const profileRootFolderId =
     profile?.settings?.defaults?.google_drive_root_id || null;
   const canUsePrivate = permissions.privacyLevel !== 'public';
   const canUsePassword = permissions.privacyLevel === 'password';
 
-  // 🎯 PROTEÇÃO: Verifica se useSupabaseSession retorna getAuthDetails corretamente
+  // ─── Pool: créditos usados por OUTRAS galerias ───────────────────────────
+  // Em modo edição, as fotos desta galeria já estão contadas em usedPhotoCredits
+  // (passados pelo pai), portanto subtraímos para evitar dupla contagem.
+  const usedCreditsExcludingThis = isEdit
+    ? Math.max(0, usedPhotoCredits - (initialData?.photo_count ?? 0))
+    : usedPhotoCredits;
+
+  // ─── Pool: galerias ativas excluindo esta em modo edição ─────────────────
+  // Em edição, esta galeria já existe no total — não deve ser contada como "nova".
+  const activeGalleriesExcludingThis = isEdit
+    ? Math.max(0, activeGalleryCount - 1)
+    : activeGalleryCount;
+
   const sessionHook = useSupabaseSession();
   const getAuthDetails = sessionHook?.getAuthDetails;
 
-  /**
-   * 🎯 Função "cérebro": Valida e processa a seleção do Drive
-   * Esta função contém toda a lógica de validação que foi removida do GooglePickerButton
-   */
+  // =========================================================================
+  // 7. HANDLERS
+  // =========================================================================
 
   const handleDriveSelection = async (
     selectedItems: Array<{ id: string; name: string; parentId?: string }>,
   ) => {
-    // 1. Validação defensiva: Se o usuário fechar o Picker sem selecionar nada
     if (
       !selectedItems ||
       !Array.isArray(selectedItems) ||
@@ -334,8 +345,6 @@ export default function GaleriaFormContent({
       }
 
       const { userId } = await getAuthDetails();
-
-      // 2. Extração de dados do item principal (o primeiro selecionado)
       const selection = selectedItems[0];
       const selectedId = selection.id;
 
@@ -345,27 +354,22 @@ export default function GaleriaFormContent({
       let driveFolderId: string | null = null;
 
       if (isFolder) {
-        // Se selecionou uma pasta (comum nas abas Sugestões/Estrela), ela é o próprio alvo
         driveFolderId = selection.id;
       } else if (selection.parentId) {
-        // Se selecionou um arquivo e o parentId veio no objeto
         driveFolderId = selection.parentId;
       } else {
-        // Fallback total: busca no servidor
         const parentId = await getParentFolderIdServer(selection.id, userId);
         driveFolderId = parentId || selection.id;
       }
-      // Validação final do ID da pasta para evitar o erro de 'undefined' no console
+
       if (!driveFolderId || driveFolderId === 'undefined') {
         throw new Error(
           'Não foi possível identificar a pasta de origem deste item.',
         );
       }
 
-      // 3. 📸 Captura de IDs para Capas (Suporte a múltiplos arquivos)
       const coverIds = selectedItems.map((item) => item.id);
 
-      // 4. 📂 Busca nome oficial da pasta (para exibir na UI)
       let driveFolderName = selection.name;
       try {
         const folderName = await getDriveFolderName(driveFolderId, userId);
@@ -377,14 +381,12 @@ export default function GaleriaFormContent({
         );
       }
 
-      // 5. ⚖️ Verificação de Limites de Fotos por Galeria (ISR/Vercel Optimization)
       const limitData = await checkFolderLimits(
         driveFolderId,
         userId,
         permissions.maxPhotosPerGallery,
       );
 
-      // 6. 🔒 Verificação de Permissões (LGPD e Segurança de Dados)
       let folderPermissionInfo;
       try {
         folderPermissionInfo = await checkFolderPublicPermission(
@@ -399,20 +401,6 @@ export default function GaleriaFormContent({
         };
       }
 
-      // 🎯 LOG DE DEPURAÇÃO: Útil para o seu monitor de 20"
-      // console.log('DEBUG DRIVE SELECTION:', {
-      //   driveFolderId,
-      //   folderPermissionInfo,
-      //   coverIds,
-      // });
-
-      // if (!folderPermissionInfo.isOwner) {
-      //   onPickerError(
-      //     'Propriedade inválida: Vincule apenas pastas de sua própria conta.',
-      //   );
-      //   return;
-      // }
-
       if (!folderPermissionInfo.isPublic) {
         onPickerError(
           'Pasta privada: Altere o acesso no Drive para "Qualquer pessoa com o link" antes de vincular.',
@@ -421,22 +409,20 @@ export default function GaleriaFormContent({
         return;
       }
 
-      // 7. ✅ ATUALIZAÇÃO DO ESTADO GLOBAL
       setDriveData({
         id: driveFolderId,
         name: driveFolderName,
-        coverId: coverIds[0], // Capa principal (compatibilidade)
-        allCovers: coverIds, // Array para o novo carrossel de capas
+        coverId: coverIds[0],
+        allCovers: coverIds,
         photoCount: limitData.totalInDrive || limitData.count,
       });
 
       setLimitInfo(limitData);
       setPhotoCount(limitData.totalInDrive || limitData.count);
-      const photos = await getFolderPhotos(driveFolderId);
+      await getFolderPhotos(driveFolderId);
 
       if (limitData.hasMore) setShowLimitModal(true);
     } catch (error: any) {
-      // console.error('[handleDriveSelection] Erro crítico:', error);
       onPickerError(
         error?.message || 'Erro ao processar a seleção do Google Drive.',
       );
@@ -444,11 +430,8 @@ export default function GaleriaFormContent({
       setIsValidatingDrive(false);
     }
   };
-  /**
-   * 🎯 Handler atualizado para receber o array de docs
-   */
+
   const handleFolderSelect = async (items: any) => {
-    // Verifique o que está chegando aqui com um log
     console.log('Dados chegando no handleFolderSelect:', items);
     return await handleDriveSelection(items);
   };
@@ -467,45 +450,7 @@ export default function GaleriaFormContent({
     useProxyDirectly: true,
   });
 
-  // Track title changes for header
   const [, setTitleValue] = useState(initialData?.title || '');
-
-  // 🎯 5. APLICAÇÃO DOS PADRÕES NO FORMULÁRIO (Efeito de carregamento)
-  useEffect(() => {
-    if (!isEdit && profile?.settings?.defaults && !defaultsAppliedRef.current) {
-      const defaults = profile.settings.defaults;
-
-      // Sincroniza o estado do react-hook-form com os padrões do perfil
-      setValue('is_public', defaults.is_public ?? true, { shouldDirty: false });
-      setValue('show_on_profile', defaults.list_on_profile ?? false, {
-        shouldDirty: false,
-      });
-      setValue('leads_enabled', defaults.enable_guest_registration ?? false, {
-        shouldDirty: false,
-      });
-      setValue('lead_purpose', defaults.data_treatment_purpose ?? '', {
-        shouldDirty: false,
-      });
-
-      setValue('enable_favorites', defaults.enable_favorites ?? true, {
-        shouldDirty: false,
-      });
-      setValue('enable_slideshow', defaults.enable_slideshow ?? true, {
-        shouldDirty: false,
-      });
-      // Design
-      if (setCustomization) {
-        setCustomization.setGridBgColor(defaults.background_color ?? '#FFFFFF');
-        setCustomization.setShowCoverInGrid(!!defaults.background_photo);
-        setCustomization.setColumns({
-          mobile: defaults.grid_mobile ?? 2,
-          tablet: defaults.grid_tablet ?? 3,
-          desktop: defaults.grid_desktop ?? 4,
-        });
-      }
-      defaultsAppliedRef.current = true;
-    }
-  }, [profile, isEdit, setValue, setCustomization]);
 
   return (
     <>
@@ -530,8 +475,6 @@ export default function GaleriaFormContent({
               name="cover_image_url"
               value={driveData.coverId || driveData.id}
             />
-
-            {/* 🎯 NOVO: Array de IDs das fotos de capa selecionadas */}
             <input
               type="hidden"
               name="cover_image_ids"
@@ -540,16 +483,12 @@ export default function GaleriaFormContent({
                   (driveData.coverId ? [driveData.coverId] : []),
               )}
             />
-
-            {/* 🎯 NOVO: Quantidade de fotos para salvar na tb_galerias */}
             <input
               type="hidden"
               name="photo_count"
               value={driveData.photoCount || 0}
             />
-
             <input type="hidden" name="theme_key" value={galleryTheme} />
-
             <input type="hidden" name="is_public" value={String(isPublic)} />
             <input type="hidden" name="category" value={category} />
             <input
@@ -610,7 +549,6 @@ export default function GaleriaFormContent({
               name="rename_files_sequential"
               value={String(renameFilesSequential)}
             />
-
             <input
               type="hidden"
               name="enable_favorites"
@@ -627,11 +565,10 @@ export default function GaleriaFormContent({
           {profile?.settings?.display?.show_contract_type !== false && (
             <FormSection
               title="Modalidade"
-              icon={<Settings2 size={14} className="text-gold" />} // Ícone mais genérico de configuração
+              icon={<Settings2 size={14} className="text-gold" />}
             >
               <fieldset>
                 <div className="grid grid-cols-1 md:grid-cols-12 gap-2 items-end">
-                  {/* Seletor de Tipo */}
                   <div className="md:col-span-4">
                     <GalleryTypeToggle
                       label="Tipo de galeria"
@@ -643,7 +580,6 @@ export default function GaleriaFormContent({
                     />
                   </div>
 
-                  {/* Área Dinâmica baseada no Tipo */}
                   {galleryType === 'CB' ? (
                     <div className="md:col-span-8 h-11 flex items-center px-4 bg-slate-50/50 border border-dashed border-slate-200 rounded-lg">
                       <p className="text-[10px] font-medium uppercase tracking-wider text-slate-400 italic">
@@ -691,7 +627,6 @@ export default function GaleriaFormContent({
             icon={<FolderSync size={14} className="text-gold" />}
           >
             <fieldset>
-              {/* Detalhes da Galeria - Primeira Linha */}
               <div className="grid grid-cols-1 md:grid-cols-12 gap-3 items-end mb-3">
                 <div className="md:col-span-6">
                   <label className="mb-1.5">
@@ -716,20 +651,15 @@ export default function GaleriaFormContent({
                   <CategorySelect
                     value={category}
                     onChange={setCategory}
-                    initialCustomCategories={customCategoriesFromProfile} // Dados vindos do JSON do banco
+                    initialCustomCategories={customCategoriesFromProfile}
                   />
                 </div>
               </div>
 
-              {/* Segunda Linha */}
               <div className="grid grid-cols-1 md:grid-cols-12 gap-3 items-end mb-3">
                 <div className="md:col-span-6">
                   <label className="mb-1.5">
-                    <Calendar
-                      size={12}
-                      strokeWidth={2}
-                      className=" text-gold"
-                    />{' '}
+                    <Calendar size={12} strokeWidth={2} className="text-gold" />{' '}
                     Data
                   </label>
                   <input
@@ -761,9 +691,7 @@ export default function GaleriaFormContent({
             icon={<ShieldCheck size={14} className="text-gold" />}
           >
             <fieldset className="w-full">
-              {/* Flex-row para alinhar os cards, mantendo-os fixos e proporcionais */}
               <div className="flex flex-wrap items-stretch gap-2 w-full">
-                {/* CARD 1: ACESSO (O maior, com PIN fixo) */}
                 <div className="flex-[1.8] flex items-center justify-between p-3 bg-slate-50/50 rounded-luxury border border-petroleum/10 h-14 w-full">
                   <div className="flex items-center gap-2 shrink-0">
                     <label>
@@ -778,12 +706,10 @@ export default function GaleriaFormContent({
                     <InfoTooltip
                       title="Acesso restrito"
                       content="Para acessar uma galeria protegida por senha, o visitante deve informar a senha cadastrada nesta tela. Sem senha, qualquer pessoa com o link pode acessar. Com senha, apenas quem informar a senha correta terá acesso."
-                      title="Acesso"
                     />
                   </div>
 
                   <div className="flex items-center gap-3">
-                    {/* Toggle fixo em 120px */}
                     <div className="flex bg-slate-100 rounded-[0.4rem] p-0.5 gap-0.5 w-[150px] shrink-0 h-9">
                       <button
                         type="button"
@@ -801,7 +727,6 @@ export default function GaleriaFormContent({
                       </button>
                     </div>
 
-                    {/* PIN fixo em 100px para o ícone do olho não vazar */}
                     <div
                       className={`flex items-center gap-1 transition-all duration-300 w-[100px] ${isPublic ? 'opacity-20 grayscale pointer-events-none' : 'opacity-100'}`}
                     >
@@ -819,7 +744,6 @@ export default function GaleriaFormContent({
                   </div>
                 </div>
 
-                {/* CARD 2: EXPIRAÇÃO */}
                 <div className="flex-1 flex items-center justify-between p-3 bg-slate-50/50 rounded-luxury border border-petroleum/10 h-14 w-full gap-2">
                   <div className="flex items-center gap-2 shrink-0">
                     <label>
@@ -848,7 +772,6 @@ export default function GaleriaFormContent({
                   </PlanGuard>
                 </div>
 
-                {/* CARD 3: NO PERFIL (Compacto e sem vácuo) */}
                 <div className="flex-none w-full md:w-[230px] flex items-center justify-between p-3 bg-slate-50/50 rounded-luxury border border-petroleum/10 h-14">
                   <div className="flex items-center gap-2 shrink-0">
                     <label>
@@ -882,8 +805,7 @@ export default function GaleriaFormContent({
             </fieldset>
           </FormSection>
 
-          {/* SEÇÃO NOVA: CAPTURA DE LEADS */}
-
+          {/* SEÇÃO: CADASTRO DE VISITANTE */}
           <FormSection
             title="Cadastro de visitante"
             icon={<Users size={14} className="text-gold" />}
@@ -907,8 +829,7 @@ export default function GaleriaFormContent({
             </fieldset>
           </FormSection>
 
-          {/* SEÇÃO 4: CUSTOMIZAÇÃO VISUAL */}
-
+          {/* SEÇÃO: DESIGN DA GALERIA */}
           <FormSection
             title="Design da Galeria"
             subtitle="Personalize a experiência visual do visitante"
@@ -925,7 +846,8 @@ export default function GaleriaFormContent({
               />
             </fieldset>
           </FormSection>
-          {/* SEÇÃO: INTERAÇÃO (Experiência do Visitante) */}
+
+          {/* SEÇÃO: INTERAÇÃO & EXPERIÊNCIA */}
           <FormSection
             title="Interação & Experiência"
             subtitle="Recursos para o visitante usar na galeria"
@@ -943,8 +865,8 @@ export default function GaleriaFormContent({
         </div>
 
         {/* COLUNA LATERAL (35%) */}
-        <div className="w-full lg:w-[35%] border-t lg:border-t-0 lg:border-l border-slate-200 pl-0 lg:pl-2 space-y-4 bg-slate-50/30  px-2 pb-6">
-          {/* GOOGLE DRIVE - Seção Principal */}
+        <div className="w-full lg:w-[35%] border-t lg:border-t-0 lg:border-l border-slate-200 pl-0 lg:pl-2 space-y-4 bg-slate-50/30 px-2 pb-6">
+          {/* GOOGLE DRIVE */}
           <GaleriaDriveSection
             driveData={driveData}
             handleFolderSelect={handleFolderSelect}
@@ -955,8 +877,15 @@ export default function GaleriaFormContent({
             setRenameFilesSequential={setRenameFilesSequential}
             setDriveData={setDriveData}
             rootFolderId={profileRootFolderId}
+            // ── Pool de cota ────────────────────────────────────────────────
+            // Em edição, subtraímos as fotos desta galeria para não contar em dobro:
+            // o pai passa o total geral, e ajustamos aqui para refletir o estado
+            // "antes de salvar esta galeria".
+            usedPhotoCredits={usedCreditsExcludingThis}
+            activeGalleryCount={activeGalleriesExcludingThis}
           />
 
+          {/* TEMA VISUAL */}
           <div className="bg-white rounded-luxury border border-slate-200 p-4 space-y-3">
             <div className="flex items-center gap-2 pb-2 border-b border-slate-200">
               <Sparkles size={14} className="text-gold" />
@@ -971,7 +900,8 @@ export default function GaleriaFormContent({
               compact
             />
           </div>
-          {/*LINKS E ARQUIVOS */}
+
+          {/* LINKS E ARQUIVOS */}
           <div className="bg-white rounded-luxury border border-slate-200 p-4 space-y-3">
             <div className="flex items-center gap-2 pb-2 border-b border-slate-200">
               <Download size={14} className="text-gold" />
@@ -981,7 +911,6 @@ export default function GaleriaFormContent({
             </div>
 
             <div className="space-y-4">
-              {/* input oculto para persistência em JSON */}
               <input
                 type="hidden"
                 name="zip_url_full"
@@ -1010,7 +939,6 @@ export default function GaleriaFormContent({
                     </div>
 
                     <div className="flex flex-row items-center gap-2">
-                      {/* 🎯 Uso do Mini PlanGuard no Input de Label */}
                       <div className="w-[30%]">
                         <PlanGuard
                           feature="canCustomLinkLabel"
@@ -1034,7 +962,6 @@ export default function GaleriaFormContent({
                         </PlanGuard>
                       </div>
 
-                      {/* Input de URL - 70% de largura (Sempre liberado por padrão) */}
                       <div className="relative w-[70%]">
                         <input
                           type="url"
@@ -1101,6 +1028,16 @@ export default function GaleriaFormContent({
           planLimit={PLAN_LIMIT}
         />
       </div>
+
+      {upsellFeature && (
+        <UpgradeModal
+          isOpen={!!upsellFeature}
+          onClose={() => setUpsellFeature(null)}
+          featureName={upsellFeature.label}
+          featureKey={upsellFeature.feature as any}
+          scenarioType="limit"
+        />
+      )}
     </>
   );
 }

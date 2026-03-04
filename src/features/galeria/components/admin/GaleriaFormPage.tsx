@@ -4,6 +4,7 @@ import { useState, useEffect, useRef } from 'react';
 import { useForm } from 'react-hook-form';
 import { useRouter } from 'next/navigation';
 import { createGaleria, updateGaleria } from '@/core/services/galeria.service';
+import { getPhotographerPoolStats } from '@/core/services/galeria.service';
 import FormPageBase from '@/components/ui/FormPageBase';
 import {
   Save,
@@ -61,6 +62,31 @@ export default function GaleriaFormPage({
     link?: string;
   } | null>(null);
   const formRef = useRef<HTMLFormElement>(null);
+
+  // ── Pool de cota ──────────────────────────────────────────────────────────
+  // profileListCount é o fallback imediato (vem do servidor via RSC).
+  // getPhotographerPoolStats traz usedPhotoCredits (SUM photo_count) e
+  // activeGalleryCount de forma consistente em uma única query client-side.
+  const [poolStats, setPoolStats] = useState({
+    usedPhotoCredits: 0,
+    activeGalleryCount: profileListCount,
+  });
+
+  useEffect(() => {
+    if (!initialProfile?.id) return;
+
+    getPhotographerPoolStats(initialProfile.id)
+      .then((stats) => {
+        setPoolStats({
+          usedPhotoCredits: stats.totalPhotosUsed,
+          activeGalleryCount: stats.activeGalleryCount,
+        });
+      })
+      .catch((err) => {
+        // Falha silenciosa: os alertas de cota ficam conservadores (baseados em 0)
+        console.warn('[GaleriaFormPage] Erro ao buscar pool stats:', err);
+      });
+  }, [initialProfile?.id]);
 
   const { showToast, ToastElement } = useToast();
 
@@ -292,7 +318,8 @@ export default function GaleriaFormPage({
         register={register}
         setValue={setValue}
         watch={watch}
-        profileListCount={profileListCount}
+        usedPhotoCredits={poolStats.usedPhotoCredits}
+        activeGalleryCount={poolStats.activeGalleryCount}
       />
 
       {ToastElement}
