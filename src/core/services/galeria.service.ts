@@ -9,6 +9,7 @@ import { GLOBAL_CACHE_REVALIDATE } from '@/core/utils/url-helper';
 import {
   DrivePhoto,
   getSelectionMetadataAction,
+  listPhotosFromDriveFolder,
   //makeFolderPublic as makeFolderPublicLib,
 } from '@/lib/google-drive';
 import { getFolderPhotos } from './google-drive.service';
@@ -39,6 +40,7 @@ import {
   createSupabaseServerClient,
   createSupabaseClientForCache,
   createSupabaseServerClientReadOnly,
+  createSupabaseAdmin,
 } from '@/lib/supabase.server';
 import { PlanKey, PERMISSIONS_BY_PLAN } from '../config/plans';
 import { syncUserGalleriesAction } from '@/actions/galeria.actions';
@@ -517,6 +519,47 @@ export async function getGaleriaById(
   }
 }
 
+/**
+ * Busca galeria por id sem exigir sessão (uso em webhook/cron).
+ * Usa createSupabaseAdmin para leitura.
+ */
+export async function getGaleriaByIdForServer(
+  id: string,
+): Promise<Galeria | null> {
+  try {
+    const supabase = createSupabaseAdmin();
+    const { data, error } = await supabase
+      .from('tb_galerias')
+      .select(
+        `
+        *,
+        leads:tb_galeria_leads(count),
+        photographer:tb_profiles!user_id (
+          id,
+          full_name,
+          username,
+          use_subdomain,
+          profile_picture_url,
+          phone_contact,
+          instagram_link,
+          email
+        )
+      `,
+      )
+      .eq('id', id)
+      .single();
+
+    if (error || !data) return null;
+
+    return formatGalleryData(
+      data as any,
+      (data as any).photographer?.username || '',
+    );
+  } catch {
+    return null;
+  }
+}
+
 // =========================================================================
 // 6. DELETE GALERIA
 // =========================================================================
@@ -756,6 +799,66 @@ export async function syncGaleriaPhotoCount(
       success: false,
       error: error?.message || 'Erro ao sincronizar contagem de fotos.',
     };
+  }
+}
+
+/**
+ * Sincroniza photo_count da galeria por id (uso em webhook/cron, sem sessão).
+ * Usa createSupabaseAdmin para leitura e update.
+ */
+export async function syncGaleriaPhotoCountByGaleriaId(
+  galeriaId: string,
+): Promise<ActionResult<{ photo_count: number }>> {
+  try {
+    const supabase = createSupabaseAdmin();
+
+    // Busca galeria E userId do dono
+    const { data: row, error: fetchError } = await supabase
+      .from('tb_galerias')
+      .select('id, drive_folder_id, user_id') // ← adiciona user_id
+      .eq('id', galeriaId)
+      .single();
+
+    if (fetchError || !row?.drive_folder_id) {
+      return {
+        success: false,
+        error: 'Galeria não encontrada ou sem pasta vinculada.',
+      };
+    }
+
+    // Usa versão sem sessão passando o userId do dono da galeria
+    const accessToken = await getDriveAccessTokenForUser(row.user_id);
+    if (!accessToken) {
+      return {
+        success: false,
+        error: 'Token do Google inválido para este usuário.',
+      };
+    }
+
+    const photos = await listPhotosFromDriveFolder(
+      row.drive_folder_id,
+      accessToken,
+    );
+    const count = photos?.length || 0;
+
+    const { error: updateError } = await supabase
+      .from('tb_galerias')
+      .update({
+        photo_count: count,
+        updated_at: new Date().toISOString(),
+      })
+      .eq('id', galeriaId);
+
+    if (updateError) {
+      return { success: false, error: updateError.message };
+    }
+
+    console.log(
+      `[syncGaleriaPhotoCount] ✅ Galeria ${galeriaId}: ${count} fotos`,
+    );
+    return { success: true, data: { photo_count: count } };
+  } catch (error: any) {
+    return { success: false, error: error?.message || 'Erro ao sincronizar.' };
   }
 }
 

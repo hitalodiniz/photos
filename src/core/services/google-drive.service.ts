@@ -99,6 +99,25 @@ export async function getFolderPhotos(
   }
 }
 
+// Versão sem sessão — para uso em webhook/cron
+async function getFolderPhotosForUser(
+  driveFolderId: string,
+  userId: string,
+): Promise<ActionResult<DrivePhoto[]>> {
+  const accessToken = await getDriveAccessTokenForUser(userId);
+
+  if (!accessToken) {
+    return {
+      success: false,
+      error: 'Falha na integração Google Drive.',
+      data: [],
+    };
+  }
+
+  const photos = await listPhotosFromDriveFolder(driveFolderId, accessToken);
+  return { success: true, data: photos };
+}
+
 /**
  * Verifica se o usuário tem acesso válido ao Google Drive
  */

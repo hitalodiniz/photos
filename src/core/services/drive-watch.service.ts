@@ -21,9 +21,7 @@
 // (RLS pode bloquear anon; cron e webhook usam createSupabaseAdmin.)
 //
 import { getDriveAccessTokenForUser } from '@/lib/google-auth';
-import {
-  createSupabaseAdmin,
-} from '@/lib/supabase.server';
+import { createSupabaseAdmin } from '@/lib/supabase.server';
 
 const WEBHOOK_URL = `${process.env.NEXT_PUBLIC_APP_URL}/api/webhook/drive`;
 
@@ -100,7 +98,10 @@ export async function registerFolderWatch(
 
   if (!res.ok) {
     const err = await res.json();
-    console.error('[registerFolderWatch] Erro ao registrar na API Google:', err);
+    console.error(
+      '[registerFolderWatch] Erro ao registrar na API Google:',
+      err,
+    );
     throw new Error(err.error?.message || 'Falha ao registrar watch');
   }
 
@@ -237,3 +238,20 @@ export async function renewExpiringWatches() {
   );
   return { renewed, failed };
 }
+
+// drive-watch.service
+//   → registra o watch no Google ao criar/editar galeria
+//   → Google passa a enviar POST para /api/webhook/drive
+
+// webhook/drive
+//   → recebe a notificação do Google
+//   → grava needs_sync = true no banco
+
+// useGaleriaSyncObserver
+//   → detecta needs_sync = true via Realtime
+//   → chama syncAndRevalidateGaleriaAction()
+//   → photo_count atualizado + cache revalidado
+
+// renew-watches (cron diário)
+//   → renova o watch antes de expirar
+//   → mantém o ciclo funcionando indefinidamente
