@@ -92,18 +92,17 @@
    * Sem bordas arredondadas — geometria rígida e cinematográfica.
    */
   [data-theme='DARK_CINEMA'] {
-    --color-champagne: 229 190 190; /* Rosa envelhecido */
-    --color-champagne-hover: 210 165 165;
-    --color-gold: 160 30 60; /* Vinho/borgonha */
-    --color-petroleum: 240 235 230; /* Quase branco creme para texto */
-    --color-petroleum-light: 200 195 190;
-    --color-petroleum-dark: 255 252 248; /* Branco puro para títulos */
-    --color-luxury-bg: 8 8 10; /* Preto profundo */
-    --color-surface-dark: 16 14 18;
-    --color-surface-mixed: 28 24 30;
+    --color-luxury-bg: 10 10 10;
+    --color-petroleum: 10 10 10; /* preto — fundo navbar */
+    --color-petroleum-light: 28 28 28;
+    --color-petroleum-dark: 0 0 0;
+    --color-gold: 180 140 35; /* dourado queimado */
+    --color-champagne: 220 195 120; /* champagne dourado claro — visível no preto ✓ */
+    --color-champagne-hover: 200 175 100;
+    --color-surface-dark: 18 18 18;
+    --color-surface-mixed: 30 30 30;
     --color-status-success: 34 197 94;
-    --font-display: Georgia, 'Times New Roman', serif; /* Serifado */
-    --radius-card: 0rem; /* Zero arredondamento */
+    --radius-card: 0rem;
     --radius-btn: 0rem;
   }
 
@@ -114,18 +113,17 @@
    * Grid denso, sem ornamentos — a foto é tudo.
    */
   [data-theme='EDITORIAL_WHITE'] {
-    --color-champagne: 30 30 30; /* Quase preto para elementos de destaque */
-    --color-champagne-hover: 10 10 10;
-    --color-gold: 20 20 20; /* Preto grafite como acento */
-    --color-petroleum: 15 15 15; /* Preto profundo para texto */
-    --color-petroleum-light: 60 60 60;
-    --color-petroleum-dark: 0 0 0;
-    --color-luxury-bg: 255 255 255; /* Branco absoluto */
+    --color-luxury-bg: 255 255 255;
+    --color-petroleum: 255 255 255; /* branco — fundo navbar */
+    --color-petroleum-light: 200 200 200;
+    --color-petroleum-dark: 240 240 240;
+    --color-gold: 30 30 30; /* grafite escuro */
+    --color-champagne: 20 20 20; /* preto — visível no branco ✓ */
+    --color-champagne-hover: 50 50 50;
     --color-surface-dark: 245 245 245;
     --color-surface-mixed: 235 235 235;
     --color-status-success: 34 197 94;
-    --font-display: var(--font-montserrat), sans-serif;
-    --radius-card: 0rem; /* Editorial: sem arredondamento */
+    --radius-card: 0rem;
     --radius-btn: 0.125rem;
   }
 
@@ -158,17 +156,16 @@
    * Variação refinada do tema padrão — mais escuro, mais dramático.
    */
   [data-theme='NOCTURNAL_LUXURY'] {
-    --color-champagne: 243 229 171; /* Champagne original */
+    --color-luxury-bg: 8 12 28;
+    --color-petroleum: 8 12 28; /* azul noite — fundo navbar */
+    --color-petroleum-light: 20 28 58;
+    --color-petroleum-dark: 4 8 18;
+    --color-gold: 212 175 55; /* dourado clássico */
+    --color-champagne: 243 229 171; /* champagne quente — visível no azul noite ✓ */
     --color-champagne-hover: 229 214 154;
-    --color-gold: 212 175 55; /* Dourado clássico */
-    --color-petroleum: 220 225 235; /* Azul gelo para texto */
-    --color-petroleum-light: 180 190 210;
-    --color-petroleum-dark: 240 245 255;
-    --color-luxury-bg: 5 18 35; /* Azul noite profundo */
-    --color-surface-dark: 8 25 48;
-    --color-surface-mixed: 12 35 65;
+    --color-surface-dark: 12 18 40;
+    --color-surface-mixed: 20 28 58;
     --color-status-success: 37 161 102;
-    --font-display: var(--font-montserrat), sans-serif;
     --radius-card: 0.75rem;
     --radius-btn: 0.4rem;
   }
