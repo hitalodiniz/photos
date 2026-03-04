@@ -9,6 +9,7 @@ import { GLOBAL_CACHE_REVALIDATE } from '@/core/utils/url-helper';
 import {
   DrivePhoto,
   getSelectionMetadataAction,
+  listPhotosFromDriveFolder,
   //makeFolderPublic as makeFolderPublicLib,
 } from '@/lib/google-drive';
 import { getFolderPhotos } from './google-drive.service';
@@ -813,9 +814,11 @@ export async function syncGaleriaPhotoCountByGaleriaId(
 ): Promise<ActionResult<{ photo_count: number }>> {
   try {
     const supabase = createSupabaseAdmin();
+
+    // Busca galeria E userId do dono
     const { data: row, error: fetchError } = await supabase
       .from('tb_galerias')
-      .select('id, drive_folder_id')
+      .select('id, drive_folder_id, user_id') // ← adiciona user_id
       .eq('id', galeriaId)
       .single();
 
@@ -826,16 +829,21 @@ export async function syncGaleriaPhotoCountByGaleriaId(
       };
     }
 
-    const photosResult = await getFolderPhotos(row.drive_folder_id);
-    if (!photosResult.success) {
+    // Usa versão sem sessão passando o userId do dono da galeria
+    const accessToken = await getDriveAccessTokenForUser(row.user_id);
+    if (!accessToken) {
       return {
         success: false,
-        error:
-          photosResult.error || 'Não foi possível sincronizar fotos do Drive.',
+        error: 'Token do Google inválido para este usuário.',
       };
     }
 
-    const count = photosResult.data?.length || 0;
+    const photos = await listPhotosFromDriveFolder(
+      row.drive_folder_id,
+      accessToken,
+    );
+    const count = photos?.length || 0;
+
     const { error: updateError } = await supabase
       .from('tb_galerias')
       .update({
@@ -848,12 +856,12 @@ export async function syncGaleriaPhotoCountByGaleriaId(
       return { success: false, error: updateError.message };
     }
 
+    console.log(
+      `[syncGaleriaPhotoCount] ✅ Galeria ${galeriaId}: ${count} fotos`,
+    );
     return { success: true, data: { photo_count: count } };
   } catch (error: any) {
-    return {
-      success: false,
-      error: error?.message || 'Erro ao sincronizar contagem de fotos.',
-    };
+    return { success: false, error: error?.message || 'Erro ao sincronizar.' };
   }
 }
 
