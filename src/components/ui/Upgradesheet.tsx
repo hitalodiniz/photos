@@ -23,6 +23,7 @@ import {
 } from '@/core/config/plans';
 import { usePlan } from '@/core/context/PlanContext';
 import { useSegment } from '@/hooks/useSegment';
+import { TermsOfServiceModal } from '@/app/(public)/termos/TermosContent';
 
 // ─── Tipos ────────────────────────────────────────────────────────────────────
 
@@ -160,6 +161,8 @@ export function UpgradeSheet({
     if (!featureKey) return 'PRO';
     return findNextPlanKeyWithFeature(planKey as PlanKey, featureKey) ?? 'PRO';
   }, [planKey, featureKey]);
+  const [acceptedTerms, setAcceptedTerms] = useState(false); // Trava do botão
+  const [showTermsModal, setShowTermsModal] = useState(false); // Controle do Modal
 
   const [step, setStep] = useState<Step>('plan');
   const [selectedPlan, setSelectedPlan] = useState<PlanKey>(suggestedPlanKey);
@@ -359,11 +362,51 @@ export function UpgradeSheet({
               <CheckCircle2 size={11} className="text-emerald-400 shrink-0" />
             )}
           </div>
+          {/* ACEITE DE TERMOS */}
+          <div
+            className={`mt-4 p-3 rounded-luxury border transition-all ${
+              acceptedTerms
+                ? 'bg-emerald-50/30 border-emerald-200/50'
+                : 'bg-slate-50 border-slate-200'
+            }`}
+          >
+            <div className="flex items-start gap-3">
+              <div className="flex items-center h-5">
+                <input
+                  id="terms-upgrade"
+                  type="checkbox"
+                  checked={acceptedTerms}
+                  onChange={(e) => setAcceptedTerms(e.target.checked)}
+                  className="h-4 w-4 rounded border-slate-300 text-gold focus:ring-gold cursor-pointer"
+                />
+              </div>
+              <div className="text-[10px] leading-relaxed text-slate-500">
+                <label
+                  htmlFor="terms-upgrade"
+                  className="cursor-pointer font-medium text-petroleum/70"
+                >
+                  Li e concordo com os{' '}
+                </label>
+                <button
+                  type="button"
+                  onClick={() => setShowTermsModal(true)}
+                  className="text-gold font-bold hover:underline underline-offset-2"
+                >
+                  Termos de Uso
+                </button>
+                <p className="mt-1">
+                  Confirmo estar ciente de que a manutenção dos arquivos é de
+                  responsabilidade do meu Google Drive™ e que este plano possui
+                  limites de <strong>de processamento de arquivos</strong>.
+                </p>
+              </div>
+            </div>
+          </div>
         </div>
 
-        <p className="text-[9px] text-slate-400 leading-relaxed pt-1 px-0.5">
-          Entraremos em contato para concluir a migração. Você não será cobrado
-          agora.
+        <p className="text-[9px] text-slate-400 leading-relaxed pt-2 px-0.5 italic">
+          * A cobrança aparecerá em sua fatura como <strong>SUAGALERIA</strong>.
+          Garantimos o direito de arrependimento de 7 dias conforme o CDC.
         </p>
       </SheetSection>
     </>
@@ -414,6 +457,7 @@ export function UpgradeSheet({
           <div className="space-y-2">
             <button
               type="button"
+              disabled={!acceptedTerms} // 🔒 Trava lógica
               onClick={() => setStep('done')}
               className="btn-luxury-primary w-full"
             >
@@ -457,6 +501,10 @@ export function UpgradeSheet({
         {step === 'confirm' && stepConfirm}
         {step === 'done' && stepDone}
       </div>
+      <TermsOfServiceModal
+        isOpen={showTermsModal}
+        onClose={() => setShowTermsModal(false)}
+      />
     </Sheet>
   );
 }
