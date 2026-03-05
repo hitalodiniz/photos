@@ -61,12 +61,13 @@ export function GaleriaDriveSection({
 
   const photoCount = driveData.photoCount ?? 0;
   const hardCap = permissions.maxPhotosPerGallery;
-  const recommended = permissions.recommendedPhotosPerGallery;
+  const recommended = permissions.recommendedPhotosPerGallery; // base do pool (cálculo dinâmico)
+  const alertThreshold = permissions.filesAlertThreshold ?? recommended; // aviso UX (ex: PRO=750, não 1000)
   const maxCovers = MAX_COVERS_PER_GALLERY;
 
   // ── Estados de alerta de fotos ────────────────────────────────────────────
   const isOverHardCap = photoCount > hardCap;
-  const isOverRecommended = !isOverHardCap && photoCount > recommended;
+  const isOverRecommended = !isOverHardCap && photoCount > alertThreshold; // usa alertThreshold
   const isCompatible = photoCount > 0 && !isOverHardCap && !isOverRecommended;
 
   // ── Impacto no pool de galerias ───────────────────────────────────────────
@@ -167,7 +168,7 @@ export function GaleriaDriveSection({
                 </div>
               )}
 
-              {/* Estado 2: acima do recomendado — aviso de consumo de cota */}
+              {/* Estado 2: acima do alertThreshold — aviso de consumo de cota */}
               {isOverRecommended && (
                 <div className="p-2.5 rounded-luxury border bg-amber-50 border-amber-200 flex gap-2.5">
                   <AlertTriangle
@@ -180,9 +181,9 @@ export function GaleriaDriveSection({
                     </p>
                     <p className="text-[9px] text-amber-700/80 leading-tight">
                       O recomendado é{' '}
-                      <strong>até {recommended} arquivos</strong> por galeria.
-                      Com {photoCount} fotos, esta galeria consome {photoCount}{' '}
-                      créditos do seu pool de{' '}
+                      <strong>até {alertThreshold} arquivos</strong> por
+                      galeria. Com {photoCount} fotos, esta galeria consome{' '}
+                      {photoCount} créditos do seu pool de{' '}
                       <strong>
                         {permissions.photoCredits.toLocaleString('pt-BR')}
                       </strong>
@@ -216,7 +217,7 @@ export function GaleriaDriveSection({
                     </p>
                     <p className="text-[9px] text-emerald-700/70 leading-tight">
                       Dentro do limite recomendado de{' '}
-                      <strong>{recommended} arquivos</strong> por galeria.
+                      <strong>{alertThreshold} arquivos</strong> por galeria.
                       {galleriesRemaining > 0 && (
                         <>
                           {' '}

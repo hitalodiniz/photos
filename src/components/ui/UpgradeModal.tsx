@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useMemo } from 'react';
+import React, { useMemo, useState } from 'react';
 import { Crown, ArrowRight, CheckCircle2, Lock } from 'lucide-react';
 import BaseModal from '@/components/ui/BaseModal';
 
@@ -28,10 +28,7 @@ import {
 } from '@/core/config/plans';
 import { usePlan } from '@/core/context/PlanContext';
 import { useSegment } from '@/hooks/useSegment';
-import { de } from 'date-fns/locale';
-import { a } from 'framer-motion/client';
-import { o } from 'node_modules/framer-motion/dist/types.d-DagZKalS';
-import { no } from 'zod/v4/locales';
+import { UpgradeSheet } from './Upgradesheet';
 
 interface UpgradeModalProps {
   isOpen: boolean;
@@ -52,6 +49,7 @@ export default function UpgradeModal({
 }: UpgradeModalProps) {
   const { planKey } = usePlan();
   const { terms, segment } = useSegment();
+  const [isSheetOpen, setIsSheetOpen] = useState(false);
 
   // FIX 4a: nextPlanKey agora é a PlanKey canônica ('START', 'PRO'...)
   // usada para acessar PERMISSIONS_BY_PLAN corretamente.
@@ -78,22 +76,30 @@ export default function UpgradeModal({
     return null;
   }, [description, featureKey]);
 
-  // FIX 4c: planBenefits agora encontra permissões reais porque nextPlanKey
-  // é 'START'|'PLUS'|'PRO'|'PREMIUM', não 'Start'|'Plus'|'Pro'|'Premium'.
   const planBenefits = useMemo(() => {
     const perms = PERMISSIONS_BY_PLAN[nextPlanKey];
     if (!perms) return [];
 
+    const storageLabel =
+      perms.storageGB >= 1_000
+        ? `${(perms.storageGB / 1_000).toFixed(perms.storageGB % 1_000 === 0 ? 0 : 1)} TB`
+        : `${perms.storageGB} GB`;
+
     return [
-      `Até ${perms.maxGalleries} galerias ativas`,
-      `Capacidade de ${perms.maxPhotosPerGallery} arquivos por galeria`,
-      perms.removeBranding
-        ? 'Remoção total de branding (White Label)'
-        : 'Identidade visual profissional',
+      `Até ${perms.maxGalleries} ${terms.items} ativas (máx. ${perms.maxGalleriesHardCap} com pool livre)`,
+      `${storageLabel} de armazenamento`,
+      `Até ${perms.maxPhotosPerGallery} arquivos por galeria`,
+      `${perms.maxVideoCount} vídeo${perms.maxVideoCount !== 1 ? 's' : ''} por galeria`,
+      perms.teamMembers > 0
+        ? `Até ${perms.teamMembers} colaborador${perms.teamMembers !== 1 ? 'es' : ''} na equipe`
+        : 'Conta individual (sem colaboradores)',
       perms.canCaptureLeads
-        ? 'Cadastrao de Visitantes e exportação desses cadastros'
-        : 'Interação avançada com usuários',
-      `Suporte a até ${perms.maxExternalLinks} links externos`,
+        ? 'Captura e exportação de leads'
+        : 'Interação avançada com visitantes',
+      perms.removeBranding
+        ? 'White Label — remove toda a marca do app'
+        : 'Identidade visual profissional',
+      `${perms.maxExternalLinks} link${perms.maxExternalLinks !== 1 ? 's' : ''} externo${perms.maxExternalLinks !== 1 ? 's' : ''} de download`,
     ];
   }, [nextPlanKey, terms]);
 
@@ -109,7 +115,7 @@ export default function UpgradeModal({
         Talvez mais tarde
       </button>
       <button
-        onClick={() => window.open('/dashboard/planos', '_blank')}
+        onClick={() => setIsSheetOpen(true)}
         className="btn-luxury-primary"
       >
         {scenarioType === 'limit'
@@ -121,85 +127,96 @@ export default function UpgradeModal({
   );
 
   return (
-    <BaseModal
-      isOpen={isOpen}
-      onClose={onClose}
-      title={scenarioType === 'limit' ? 'Limite Atingido' : 'Recurso Premium'}
-      subtitle={
-        scenarioType === 'limit'
-          ? `O limite de ${featureName} foi alcançado.`
-          : `Upgrade Necessário - ${featureName}`
-      }
-      headerIcon={headerIcon}
-      footer={footer}
-      maxWidth="2xl"
-    >
-      <div className="space-y-4">
-        {/* Header do Recurso */}
-        <div className="w-full flex items-center gap-4 p-4 rounded-luxury border border-gold/20 bg-gold/5">
-          <div className="w-10 h-10 rounded-luxury flex items-center justify-center shrink-0 bg-gold text-petroleum shadow-[0_0_15px_rgba(212,175,55,0.2)]">
-            <Lock size={20} />
-          </div>
-          <div className="flex-1 text-left min-w-0">
-            <p className="text-[14px] font-bold text-petroleum tracking-wide uppercase truncate">
-              {featureName}
-            </p>
-            <div className="flex items-center gap-2 mt-0.5">
-              <span className="text-[10px] font-semibold text-petroleum/60 uppercase tracking-luxury">
-                {scenarioType === 'limit'
-                  ? `Limite do plano ${planKey} atingido`
-                  : `Bloqueado no Plano ${planKey}`}
-              </span>
+    <>
+      <BaseModal
+        isOpen={isOpen}
+        onClose={onClose}
+        title={scenarioType === 'limit' ? 'Limite Atingido' : 'Recurso Premium'}
+        subtitle={
+          scenarioType === 'limit'
+            ? `O limite de ${featureName} foi alcançado.`
+            : `Upgrade Necessário - ${featureName}`
+        }
+        headerIcon={headerIcon}
+        footer={footer}
+        maxWidth="2xl"
+      >
+        <div className="space-y-4">
+          {/* Header do Recurso */}
+          <div className="w-full flex items-center gap-4 p-4 rounded-luxury border border-gold/20 bg-gold/5">
+            <div className="w-10 h-10 rounded-luxury flex items-center justify-center shrink-0 bg-gold text-petroleum shadow-[0_0_15px_rgba(212,175,55,0.2)]">
+              <Lock size={20} />
+            </div>
+            <div className="flex-1 text-left min-w-0">
+              <p className="text-[14px] font-bold text-petroleum tracking-wide uppercase truncate">
+                {featureName}
+              </p>
+              <div className="flex items-center gap-2 mt-0.5">
+                <span className="text-[10px] font-semibold text-petroleum/60 uppercase tracking-luxury">
+                  {scenarioType === 'limit'
+                    ? `Limite do plano ${planKey} atingido`
+                    : `Bloqueado no Plano ${planKey}`}
+                </span>
+              </div>
             </div>
           </div>
-        </div>
 
-        {/* Texto Explicativo com Descrição Amigável */}
-        <div className="px-1 space-y-2">
-          {displayDescription && (
-            <p className="text-[14px] text-petroleum font-semibold leading-relaxed border-l-2 border-gold/40 pl-3 py-0.5 bg-slate-50/50">
-              {displayDescription}
-            </p>
-          )}
-
-          <p className="text-[13px] text-petroleum/80 font-medium leading-relaxed">
-            {scenarioType === 'limit' ? (
-              <>
-                Você atingiu o limite de {featureName}. Faça o upgrade para ter
-                mais espaço e recursos avançados para seu {terms.singular}.
-              </>
-            ) : (
-              <>
-                O recurso{' '}
-                <span className="text-petroleum font-semibold">
-                  {featureName}
-                </span>{' '}
-                é exclusivo para usuários do plano{' '}
-                <span className="text-petroleum font-extrabold">
-                  {nextPlanDisplayName}
-                </span>{' '}
-                ou superior no {terms.site_name}.
-              </>
+          {/* Texto Explicativo com Descrição Amigável */}
+          <div className="px-1 space-y-2">
+            {displayDescription && (
+              <p className="text-[14px] text-petroleum font-bold leading-relaxed border-l-2 border-gold/40 pl-3 py-0.5 bg-slate-50/50">
+                {displayDescription}
+              </p>
             )}
-          </p>
-        </div>
 
-        {/* Lista de Benefícios */}
-        <div className="space-y-2.5 p-4 bg-slate-50 border border-petroleum/10 rounded-luxury">
-          <p className="text-[11px] font-semibold uppercase tracking-luxury text-petroleum/90 mb-2">
-            Vantagens ao migrar para o{' '}
-            <span className="text-gold">{nextPlanDisplayName}</span>:
-          </p>
-          {planBenefits.map((benefit, i) => (
-            <div key={i} className="flex items-center gap-2">
-              <CheckCircle2 size={12} className="text-gold shrink-0" />
-              <span className="text-[12px] font-semibold tracking-luxury text-petroleum/80">
-                {benefit}
-              </span>
-            </div>
-          ))}
+            <p className="text-[13px] text-petroleum/80 font-medium leading-relaxed">
+              {scenarioType === 'limit' ? (
+                <>
+                  Você atingiu o limite de {featureName}. Faça o upgrade para
+                  ter mais espaço e recursos avançados para seu {terms.singular}
+                  .
+                </>
+              ) : (
+                <>
+                  O recurso{' '}
+                  <span className="text-petroleum font-semibold">
+                    {featureName}
+                  </span>{' '}
+                  é exclusivo para usuários do plano{' '}
+                  <span className="text-petroleum font-extrabold">
+                    {nextPlanDisplayName}
+                  </span>{' '}
+                  ou superior no {terms.site_name}.
+                </>
+              )}
+            </p>
+          </div>
+
+          {/* Lista de Benefícios */}
+          <div className="space-y-2.5 p-4 bg-slate-50 border border-petroleum/10 rounded-luxury">
+            <p className="text-[11px] font-semibold uppercase tracking-luxury text-petroleum/90 mb-2">
+              Vantagens ao migrar para o{' '}
+              <span className="text-gold">{nextPlanDisplayName}</span>:
+            </p>
+            {planBenefits.map((benefit, i) => (
+              <div key={i} className="flex items-center gap-2">
+                <CheckCircle2 size={12} className="text-gold shrink-0" />
+                <span className="text-[12px] font-semibold tracking-luxury text-petroleum/80">
+                  {benefit}
+                </span>
+              </div>
+            ))}
+          </div>
         </div>
-      </div>
-    </BaseModal>
+      </BaseModal>
+
+      {/* Sheet de upgrade — abre ao clicar no CTA do modal */}
+      <UpgradeSheet
+        isOpen={isSheetOpen}
+        onClose={() => setIsSheetOpen(false)}
+        featureKey={featureKey}
+        featureName={featureName}
+      />
+    </>
   );
 }

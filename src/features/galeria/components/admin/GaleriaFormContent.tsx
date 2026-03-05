@@ -52,6 +52,7 @@ import {
 } from '@/components/ui/GalleryTypeToggle';
 import { normalizeContractType } from '@/core/types/galeria';
 import { ThemeKey, ThemeSelector } from '@/components/ui/ThemeSelector';
+import { HELP_CONTENT } from '@/core/config/help-content';
 
 /** default_type do perfil (contract/event/ensaio) → código (CT/CB/ES) */
 const DEFAULT_TYPE_TO_CODE: Record<string, GalleryTypeValue> = {
@@ -704,8 +705,8 @@ export default function GaleriaFormContent({
                       Acesso
                     </label>
                     <InfoTooltip
-                      title="Acesso restrito"
-                      content="Para acessar uma galeria protegida por senha, o visitante deve informar a senha cadastrada nesta tela. Sem senha, qualquer pessoa com o link pode acessar. Com senha, apenas quem informar a senha correta terá acesso."
+                      title={HELP_CONTENT.GALLERY.ACCESS.title}
+                      content={HELP_CONTENT.GALLERY.ACCESS.content}
                     />
                   </div>
 
@@ -750,9 +751,10 @@ export default function GaleriaFormContent({
                       <Calendar size={14} className="text-gold" />
                       Expiração
                     </label>
+
                     <InfoTooltip
-                      content="Se ativada, a galeria ficará indisponível para acesso após esta data."
-                      title="Expiração"
+                      title={HELP_CONTENT.GALLERY.EXPIRATION.title}
+                      content={HELP_CONTENT.GALLERY.EXPIRATION.content}
                     />
                   </div>
 
@@ -783,9 +785,10 @@ export default function GaleriaFormContent({
                       />
                       Listar no Perfil
                     </label>
+
                     <InfoTooltip
-                      content="Se ativado, esta galeria será visível na sua página de perfil pública para todos os visitantes."
-                      title="Listar no Perfil"
+                      title={HELP_CONTENT.GALLERY.PROFILE_LIST.title}
+                      content={HELP_CONTENT.GALLERY.PROFILE_LIST.content}
                     />
                   </div>
 

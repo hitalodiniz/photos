@@ -62,17 +62,17 @@ describe('Google Drive Library - Suite Completa de Testes', () => {
     // FREE=200, START=450, PLUS=800, PRO=1500, PREMIUM=3000
     it('deve retornar limite para plano FREE (200)', () => {
       const limit = resolvePhotoLimitByPlan('FREE');
-      expect(limit).toBe(200);
+      expect(limit).toBe(150);
     });
 
     it('deve retornar limite para plano START (450)', () => {
       const limit = resolvePhotoLimitByPlan('START');
-      expect(limit).toBe(450);
+      expect(limit).toBe(500);
     });
 
     it('deve retornar limite para plano PLUS (800)', () => {
       const limit = resolvePhotoLimitByPlan('PLUS');
-      expect(limit).toBe(800);
+      expect(limit).toBe(1000);
     });
 
     it('deve retornar limite para plano PRO (1500)', () => {
@@ -93,13 +93,13 @@ describe('Google Drive Library - Suite Completa de Testes', () => {
     // FIX: planKey inválido → fallback para FREE = 200 (sem crash)
     it('deve retornar limite FREE quando plano não existe', () => {
       const limit = resolvePhotoLimitByPlan('INVALID_PLAN' as any);
-      expect(limit).toBe(200);
+      expect(limit).toBe(150);
     });
 
     // FIX: undefined → fallback para FREE = 200 (sem crash)
     it('deve retornar limite FREE quando plano é undefined', () => {
       const limit = resolvePhotoLimitByPlan(undefined);
-      expect(limit).toBe(200);
+      expect(limit).toBe(150);
     });
   });
 
@@ -627,7 +627,7 @@ describe('Google Drive Library - Suite Completa de Testes', () => {
 
     // FIX: Limite FREE padrão = 200 (MAX_PHOTOS_PER_GALLERY_BY_PLAN.FREE)
     // min(200, 1000) = 200 → pageSize=200
-    it('deve aplicar limite do plano FREE por padrão (pageSize=200)', async () => {
+    it('deve aplicar limite do plano FREE por padrão (pageSize=150)', async () => {
       vi.mocked(fetch).mockResolvedValueOnce({
         ok: true,
         json: async () => ({ files: mockDriveFiles, nextPageToken: null }),
@@ -636,7 +636,7 @@ describe('Google Drive Library - Suite Completa de Testes', () => {
       await listPhotosFromDriveFolder(mockFolderId, mockAccessToken);
 
       expect(fetch).toHaveBeenCalledWith(
-        expect.stringContaining('pageSize=200'),
+        expect.stringContaining('pageSize=150'),
         expect.any(Object),
       );
     });

@@ -6,6 +6,8 @@ import { InfoTooltip } from '@/components/ui/InfoTooltip';
 import React, { useState } from 'react';
 import { usePlan } from '@/core/context/PlanContext';
 import { calcEffectiveMaxGalleries } from '@/core/config/plans';
+import { HELP_CONTENT } from '@/core/config/help-content';
+import { div } from 'framer-motion/client';
 
 interface SidebarStorageProps {
   isSidebarCollapsed: boolean;
@@ -27,6 +29,13 @@ export default function SidebarStorage({
   const hardCap = permissions.maxGalleriesHardCap;
   const recommended = permissions.recommendedPhotosPerGallery;
   const photoCredits = permissions.photoCredits;
+
+  const storageGB = permissions.storageGB;
+
+  const storageLabel =
+    storageGB >= 1000
+      ? `${(storageGB / 1000).toFixed(storageGB % 1000 === 0 ? 0 : 1)} TB`
+      : `${storageGB} GB`;
 
   const effectiveMax = calcEffectiveMaxGalleries(
     planKey,
@@ -155,10 +164,8 @@ export default function SidebarStorage({
                     )}
                   </div>
                   <InfoTooltip
-                    title="Galerias disponíveis"
-                    content={galTooltipContent}
-                    portal
-                    align="right"
+                    title={HELP_CONTENT.STORAGE.GALLERIES.title}
+                    content={HELP_CONTENT.STORAGE.GALLERIES.content}
                   />
                 </div>
               )}
@@ -193,10 +200,12 @@ export default function SidebarStorage({
                       ? `${Math.round(photoCredits / 1000)}k`
                       : photoCredits.toLocaleString('pt-BR')}
                   </span>
+                  <span className="text-[8px] text-white/10 font-normal ml-0.5">
+                    · {storageLabel}
+                  </span>
                 </div>
               </div>
 
-              {/* Barra de progresso */}
               <div className="relative h-[2px] w-full bg-white/[0.07] rounded-full overflow-hidden">
                 <div
                   className={`absolute inset-y-0 left-0 rounded-full transition-all duration-1000 ease-out ${photoState.bar}`}
@@ -217,22 +226,19 @@ export default function SidebarStorage({
                   restantes
                 </span>
                 <InfoTooltip
-                  title="Arquivos publicados"
-                  content={photoTooltipContent}
-                  portal
-                  align="right"
+                  title={HELP_CONTENT.STORAGE.POOL.title}
+                  content={HELP_CONTENT.STORAGE.POOL.content}
                 />
               </div>
             </div>
           </div>
         ) : (
-          // ── Modo colapsado ───────────────────────────────────────────────
           <div className="py-3 border-t border-white/[0.06] flex flex-col items-center gap-3">
-            {/* Galerias */}
+            {/* Galerias Colapsado */}
             <div className="group relative">
               <button
                 onClick={() => isGalLimit && setIsUpgradeModalOpen(true)}
-                className={`w-7 h-7 rounded-full border flex items-center justify-center text-[9px] font-semibold transition-all ${
+                className={`w-7 h-7 rounded-full border flex items-center justify-center text-[9px] font-bold transition-all ${
                   isGalLimit
                     ? 'bg-red-500/15 border-red-500/50 text-red-400 animate-pulse'
                     : isGalWarning
@@ -250,6 +256,7 @@ export default function SidebarStorage({
             </div>
 
             {/* Arquivos */}
+            {/* Arquivos Colapsado */}
             <div className="group relative">
               <div
                 className={`w-7 h-7 rounded-full border flex items-center justify-center transition-all ${

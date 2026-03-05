@@ -13,6 +13,7 @@ import { usePlan } from '@/core/context/PlanContext';
 import { PlanGuard } from '@/components/auth/PlanGuard';
 import { PlanSelect } from '@/components/ui/PlanSelect';
 import { InfoTooltip } from '@/components/ui/InfoTooltip';
+import { HELP_CONTENT } from '@/core/config/help-content';
 
 interface GalleryDesignFieldsProps {
   showBackgroundPhoto: boolean;
@@ -59,9 +60,10 @@ export const GalleryDesignFields: React.FC<GalleryDesignFieldsProps> = ({
             <label>
               <ImageIcon size={11} className="text-gold" /> Foto fundo
             </label>
+
             <InfoTooltip
-              title="Foto de fundo"
-              content="Usa a foto selecionada como fundo da grade de fotos da página da galeria acessada pelo visitante."
+              title={HELP_CONTENT.DESIGN.BG_PHOTO.title}
+              content={HELP_CONTENT.DESIGN.BG_PHOTO.content}
             />
           </div>
 
@@ -91,8 +93,8 @@ export const GalleryDesignFields: React.FC<GalleryDesignFieldsProps> = ({
             <Palette size={12} className="text-gold" />
             <label>Cor fundo</label>
             <InfoTooltip
-              title="Cor de fundo"
-              content="Define a cor sólida do grid de fotos da página da galeria acessada pelo visitante."
+              title={HELP_CONTENT.DESIGN.BG_COLOR.title}
+              content={HELP_CONTENT.DESIGN.BG_COLOR.content}
             />
           </div>
 
@@ -149,8 +151,8 @@ export const GalleryDesignFields: React.FC<GalleryDesignFieldsProps> = ({
           <Layout size={12} className="text-gold" />
           <label>Grid</label>
           <InfoTooltip
-            title="Colunas do Grid"
-            content="Colunas por dispositivo: Mobile | Tablet | Desktop."
+            title={HELP_CONTENT.DESIGN.GRID.title}
+            content={HELP_CONTENT.DESIGN.GRID.content}
           />
         </div>
 

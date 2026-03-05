@@ -109,17 +109,17 @@ describe('PlanGuard & UI Access', () => {
 describe('Motor de Upsell (findNextPlanWithFeature)', () => {
   const segment = 'PHOTOGRAPHER';
 
-  // FIX 1: findNextPlanWithFeature retorna o *name* do plano conforme PLANS_BY_SEGMENT,
-  // não a PlanKey. Para PHOTOGRAPHER: FREE→'Start', PRO→'Premium', etc.
+  // findNextPlanWithFeature retorna PlanKey ('START', 'PRO', 'PREMIUM'),
+  // não o nome display do plano ('Start', 'Pro', 'Premium').
   test('deve mapear corretamente o próximo plano por feature', () => {
     expect(findNextPlanWithFeature('FREE', 'canFavorite', segment)).toBe(
-      'Start',
+      'START',
     );
     expect(findNextPlanWithFeature('PLUS', 'canCaptureLeads', segment)).toBe(
-      'Pro',
+      'PRO',
     );
     expect(findNextPlanWithFeature('PRO', 'removeBranding', segment)).toBe(
-      'Premium',
+      'PREMIUM',
     );
   });
 });
@@ -142,7 +142,7 @@ describe('Lógica de Estados de Plano (Trial vs Assinante)', () => {
     });
 
     expect(result.current.planKey).toBe('FREE');
-    // FIX 2: FREE.maxGalleries = 3 (não 2)
+    // FREE.maxGalleries = 3
     expect(result.current.permissions.maxGalleries).toBe(3);
   });
 
@@ -250,11 +250,11 @@ describe('5. Casos de Borda e Segurança (Edge Cases)', () => {
     });
 
     expect(result.current.planKey).toBe('PRO');
-    // FIX 3: maxGalleries FREE=3, então qualquer plano maior que FREE satisfaz > 2
+    // PRO.maxGalleries = 50, que é maior que FREE.maxGalleries = 3
     expect(result.current.permissions.maxGalleries).toBeGreaterThan(3);
   });
 
-  // FIX 4: START.maxPhotosPerGallery = 300 (não 200)
+  // START.maxPhotosPerGallery = 500 (atualizado na nova tabela de planos)
   test('LIMITE NUMÉRICO: deve respeitar rigorosamente o teto de fotos do plano START', () => {
     const profile = makeMockProfile({ plan_key: 'START', is_trial: false });
 
@@ -265,10 +265,10 @@ describe('5. Casos de Borda e Segurança (Edge Cases)', () => {
     });
 
     expect(result.current.permissions.maxGalleries).toBe(10);
-    expect(result.current.permissions.maxPhotosPerGallery).toBe(450);
+    expect(result.current.permissions.maxPhotosPerGallery).toBe(500);
   });
 
-  // FIX 5: FREE.maxGalleries = 3 (não 2)
+  // FREE.maxGalleries = 3
   test('FALLBACK TOTAL: deve retornar FREE se o perfil for completamente indefinido', () => {
     // @ts-ignore - Simulando erro de carregamento de perfil no Supabase
     const { result } = renderHook(() => usePlan(), {

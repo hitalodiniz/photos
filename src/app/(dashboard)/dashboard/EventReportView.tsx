@@ -37,6 +37,7 @@ import { TrafficInfoCard } from '@/components/dashboard/TrafficInfoCard';
 import { InfoTooltip } from '@/components/ui/InfoTooltip';
 import { usePlan } from '@/core/context/PlanContext';
 import { PlanGateScreen } from '@/components/ui/PlanGateScreen';
+import { HELP_CONTENT } from '@/core/config/help-content';
 
 // --- VIEW PRINCIPAL ---
 export default function EventReportView({ galeria }: any) {
@@ -304,8 +305,8 @@ export default function EventReportView({ galeria }: any) {
                 Downloads Completos
               </p>
               <InfoTooltip
-                title="Downloads Completos"
-                content="Downloads de todas as fotos da galeria por arquivo ZIP, mesmo que sejam favoritas."
+                title={HELP_CONTENT.REPORTS.FULL_DOWNLOAD.title}
+                content={HELP_CONTENT.REPORTS.FULL_DOWNLOAD.content}
               />
               <p className="text-lg font-semibold text-petroleum leading-none">
                 {stats.downloads}
@@ -322,10 +323,12 @@ export default function EventReportView({ galeria }: any) {
               <p className="text-[8px] font-semibold text-slate-400 uppercase leading-none mb-1 text-center">
                 Downloads Favoritas
               </p>
+
               <InfoTooltip
-                title="Downloads Favoritas"
-                content="Downloads de fotos favoritas do visitante por arquivo ZIP."
+                title={HELP_CONTENT.REPORTS.FAV_DOWNLOAD.title}
+                content={HELP_CONTENT.REPORTS.FAV_DOWNLOAD.content}
               />
+
               <p className="text-lg font-semibold text-petroleum leading-none">
                 {stats.downloadFavorites}
               </p>
@@ -337,9 +340,10 @@ export default function EventReportView({ galeria }: any) {
               <p className="text-[8px] font-semibold text-slate-400 uppercase leading-none mb-1 text-center">
                 Compartilhamentos
               </p>
+
               <InfoTooltip
-                title="Compartilhamentos"
-                content="Compartilhamentos da galeria pelo visitante através de WhatsApp."
+                title={HELP_CONTENT.REPORTS.SHARE.title}
+                content={HELP_CONTENT.REPORTS.SHARE.content}
               />
               <p className="text-lg font-semibold text-petroleum leading-none">
                 {stats.shares}

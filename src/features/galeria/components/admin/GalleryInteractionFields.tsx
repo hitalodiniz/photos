@@ -4,6 +4,7 @@ import React from 'react';
 import { Heart, PlayCircle } from 'lucide-react';
 import { PlanGuard } from '@/components/auth/PlanGuard';
 import { InfoTooltip } from '@/components/ui/InfoTooltip';
+import { HELP_CONTENT } from '@/core/config/help-content';
 
 interface GalleryInteractionFieldsProps {
   enableFavorites: boolean;
@@ -32,8 +33,8 @@ export const GalleryInteractionFields = ({
               Favoritos
             </span>
             <InfoTooltip
-              title="Sistema de Favoritos"
-              content="Permite que o visitante selecione fotos favoritas."
+              title={HELP_CONTENT.INTERACTION.FAVORITES.title}
+              content={HELP_CONTENT.INTERACTION.FAVORITES.content}
             />
           </div>
 
@@ -72,8 +73,8 @@ export const GalleryInteractionFields = ({
               Slideshow
             </span>
             <InfoTooltip
-              title="Modo Slideshow"
-              content="Apresentação automática de fotos em tela cheia."
+              title={HELP_CONTENT.INTERACTION.SLIDESHOW.title}
+              content={HELP_CONTENT.INTERACTION.SLIDESHOW.content}
             />
           </div>
 

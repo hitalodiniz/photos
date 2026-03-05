@@ -14,12 +14,187 @@ import {
 export type SegmentType = 'PHOTOGRAPHER' | 'EVENT' | 'CAMPAIGN' | 'OFFICE';
 export type PlanKey = 'FREE' | 'START' | 'PLUS' | 'PRO' | 'PREMIUM';
 
+export const planOrder: PlanKey[] = ['FREE', 'START', 'PLUS', 'PRO', 'PREMIUM'];
+
+// =============================================================================
+// 🎫 SISTEMA DE CAPACIDADE FLEXÍVEL
+//
+// Quatro camadas de controle:
+//
+//   1. photoCredits                  → pool global de arquivos (fotos + vídeos)
+//   2. storageGB                     → capacidade em GB (informativo, exibido na UI)
+//   3. maxGalleries (base dinâmico)  → floor(photoCredits / recommendedPhotosPerGallery)
+//                                      garante este número de galerias com pool cheio
+//   4. maxGalleriesHardCap           → teto absoluto (nunca ultrapassado)
+//   5. maxPhotosPerGallery           → hard cap por galeria (bloqueia ao atingir)
+//   6. recommendedPhotosPerGallery   → aviso amarelo + base do cálculo dinâmico
+//                                      = photoCredits / maxGalleries
+//   7. maxFilesAlertThreshold        → alerta amarelo para uso "excessivo" na galeria
+//                                      (threshold de alerta, ≤ maxPhotosPerGallery)
+//   8. maxVideoCount                 → vídeos por galeria
+//   9. maxVideoSizeMB                → tamanho máximo por vídeo em MB
+//
+// Runtime check:
+//   const canCreate = calcEffectiveMaxGalleries(planKey, usedCredits, activeCount) > activeCount
+//
+// =============================================================================
+
+// ── Pool de arquivos (fotos + vídeos) ─────────────────────────────────────────
+export const PHOTO_CREDITS_BY_PLAN: Record<PlanKey, number> = {
+  FREE: 450,
+  START: 2_500,
+  PLUS: 10_000,
+  PRO: 50_000,
+  PREMIUM: 200_000,
+};
+
+// ── Capacidade em GB (informativo, exibido nos cards de plano e sidebar) ──────
+export const STORAGE_GB_BY_PLAN: Record<PlanKey, number> = {
+  FREE: 4.5,
+  START: 25,
+  PLUS: 100,
+  PRO: 500,
+  PREMIUM: 2_000,
+};
+
+// ── Teto absoluto de galerias (nunca ultrapassado mesmo com pool sobrando) ────
+export const MAX_GALLERIES_HARD_CAP_BY_PLAN: Record<PlanKey, number> = {
+  FREE: 3,
+  START: 12,
+  PLUS: 30,
+  PRO: 100,
+  PREMIUM: 300,
+};
+
+// ── Hard cap por galeria (bloqueia upload ao atingir) ─────────────────────────
+export const MAX_PHOTOS_PER_GALLERY_BY_PLAN: Record<PlanKey, number> = {
+  FREE: 150, // = recommended (FREE não tem margem)
+  START: 500,
+  PLUS: 1_000,
+  PRO: 1_500,
+  PREMIUM: 3_000,
+};
+
+// ── Recomendado por galeria = pool / galBase ──────────────────────────────────
+// Garante que, com pool cheio, o usuário tem exatamente maxGalleries disponíveis.
+// Também é usado por calcEffectiveMaxGalleries para o cálculo dinâmico.
+// FREE:    450 / 3   = 150
+// START:   2500 / 10 = 250
+// PLUS:    10000 / 20 = 500
+// PRO:     50000 / 50 = 1000
+// PREMIUM: 200000 / 200 = 1000
+export const RECOMMENDED_PHOTOS_PER_GALLERY_BY_PLAN: Record<PlanKey, number> = {
+  FREE: 150,
+  START: 250,
+  PLUS: 500,
+  PRO: 1_000,
+  PREMIUM: 1_000,
+};
+
+// ── Threshold de alerta amarelo na galeria individual ─────────────────────────
+// Aviso quando o usuário está "acima do recomendado" mas abaixo do hard cap.
+// Vem da coluna "Arq. Rec." da planilha.
+export const FILES_ALERT_THRESHOLD_BY_PLAN: Record<PlanKey, number> = {
+  FREE: 150,
+  START: 250,
+  PLUS: 500,
+  PRO: 750, // PRO: alerta em 750, bloqueia em 1500
+  PREMIUM: 1_000,
+};
+
+// ── Vídeos ────────────────────────────────────────────────────────────────────
+export const MAX_VIDEO_COUNT_BY_PLAN: Record<PlanKey, number> = {
+  FREE: 1,
+  START: 10,
+  PLUS: 20,
+  PRO: 50,
+  PREMIUM: 100,
+};
+
+export const MAX_VIDEO_SIZE_MB_BY_PLAN: Record<PlanKey, number> = {
+  FREE: 15,
+  START: 50,
+  PLUS: 100,
+  PRO: 100,
+  PREMIUM: 100,
+};
+
+// =============================================================================
+// FUNÇÕES DE CÁLCULO
+// =============================================================================
+
+/**
+ * Retorna o número base de galerias garantido pelo plano com pool cheio.
+ * Equivale a floor(photoCredits / recommendedPhotosPerGallery).
+ */
+export function getBaseGalleriesFromPool(planKey: PlanKey): number {
+  return Math.floor(
+    PHOTO_CREDITS_BY_PLAN[planKey] /
+      RECOMMENDED_PHOTOS_PER_GALLERY_BY_PLAN[planKey],
+  );
+}
+
+/**
+ * Calcula o número máximo efetivo de galerias em runtime.
+ *
+ * Fotógrafos que publicam menos arquivos por galeria se beneficiam
+ * automaticamente: o pool "sobra" e permite mais galerias, até o hardCap.
+ *
+ * @param planKey            - Plano do usuário
+ * @param usedCredits        - Total de arquivos publicados (soma de todas as galerias)
+ * @param activeGalleryCount - Número atual de galerias ativas
+ *
+ * @example
+ * // PRO, 10.000 arquivos em 10 galerias:
+ * calcEffectiveMaxGalleries('PRO', 10_000, 10)
+ * // remaining = 50.000 - 10.000 = 40.000
+ * // fromPool  = floor(40.000 / 1.000) = 40
+ * // total     = min(10 + 40, 90) = 50
+ *
+ * // PRO com pool quase esgotado (45.000 usados):
+ * calcEffectiveMaxGalleries('PRO', 45_000, 10)
+ * // remaining = 5.000, fromPool = 5
+ * // total     = min(10 + 5, 90) = 15 → pool limita
+ */
+export function calcEffectiveMaxGalleries(
+  planKey: PlanKey,
+  usedCredits: number,
+  activeGalleryCount: number,
+): number {
+  const totalCredits = PHOTO_CREDITS_BY_PLAN[planKey];
+  const recommended = RECOMMENDED_PHOTOS_PER_GALLERY_BY_PLAN[planKey];
+  const hardCap = MAX_GALLERIES_HARD_CAP_BY_PLAN[planKey];
+
+  const remainingCredits = Math.max(0, totalCredits - usedCredits);
+  const galleriesFromPool = Math.floor(remainingCredits / recommended);
+
+  return Math.min(activeGalleryCount + galleriesFromPool, hardCap);
+}
+
+export function formatPhotoCredits(credits: number): string {
+  if (credits >= 1_000) return `${(credits / 1_000).toFixed(0)}k`;
+  return String(credits);
+}
+
+export function formatStorageGB(gb: number): string {
+  if (gb >= 1_000) return `${(gb / 1_000).toFixed(1)} TB`;
+  return `${gb} GB`;
+}
+
+// =============================================================================
+// FEATURE KEYS & DESCRIPTIONS
+// =============================================================================
+
 export const FEATURE = {
   PHOTO_CREDITS: 'photoCredits',
+  STORAGE_GB: 'storageGB',
   MAX_GALLERIES: 'maxGalleries',
   MAX_GALLERIES_HARD_CAP: 'maxGalleriesHardCap',
   MAX_PHOTOS_PER_GALLERY: 'maxPhotosPerGallery',
   RECOMMENDED_PHOTOS_PER_GALLERY: 'recommendedPhotosPerGallery',
+  FILES_ALERT_THRESHOLD: 'filesAlertThreshold',
+  MAX_VIDEO_COUNT: 'maxVideoCount',
+  MAX_VIDEO_SIZE_MB: 'maxVideoSizeMB',
   TEAM_MEMBERS: 'teamMembers',
   PROFILE_LEVEL: 'profileLevel',
   PROFILE_CAROUSEL_LIMIT: 'profileCarouselLimit',
@@ -43,321 +218,95 @@ export const FEATURE = {
   CUSTOMIZATION_LEVEL: 'customizationLevel',
   CAN_CUSTOM_CATEGORIES: 'canCustomCategories',
   CAN_ACCESS_STATS: 'canAccessStats',
+  CAN_ACCESS_NOTIFY_EVENTS: 'canAccessNotifyEvents',
+  EXPIRES_AT: 'expiresAt',
 } as const;
 
 export type FeatureKey = (typeof FEATURE)[keyof typeof FEATURE];
 
-export const FEATURE_DESCRIPTIONS: Partial<
-  Record<keyof PlanPermissions, { label: string; description: string }>
-> = {
-  photoCredits: {
-    label: 'Créditos de Fotos',
-    description:
-      'Pool total de fotos distribuído livremente entre suas galerias. Ao esgotar, novos uploads ficam bloqueados até upgrade ou exclusão.',
-  },
-  maxGalleries: {
-    label: 'Galerias Ativas',
-    description:
-      'Número de galerias simultâneas baseado no seu pool de fotos e na quantidade recomendada por galeria. Fotógrafos que publicam menos fotos por galeria podem ter mais galerias ativas.',
-  },
-  maxGalleriesHardCap: {
-    label: 'Limite Absoluto de Galerias',
-    description:
-      'Teto máximo de galerias independente do pool de fotos. Mesmo que o pool permita mais, este limite nunca é ultrapassado.',
-  },
-  maxPhotosPerGallery: {
-    label: 'Fotos por Galeria (Máximo)',
-    description:
-      'Limite máximo de fotos por galeria individual. Ao atingir, novos uploads são bloqueados.',
-  },
-  recommendedPhotosPerGallery: {
-    label: 'Fotos Recomendadas por Galeria',
-    description:
-      'Quantidade recomendada de fotos por galeria. Ao ultrapassar, um aviso é exibido. Também determina quantas galerias seu pool suporta.',
-  },
-  teamMembers: {
-    label: 'Equipe de Trabalho',
-    description:
-      'Número de colaboradores que podem acessar e gerenciar o painel além do titular da conta.',
-  },
-  removeBranding: {
-    label: 'White Label',
-    description:
-      'Remove a marca do app do rodapé das galerias. Suas entregas ficam com sua identidade visual exclusiva.',
-  },
-  canCaptureLeads: {
-    label: 'Captura de Visitantes',
-    description:
-      'Exibe um formulário de acesso à galeria coletando nome, e-mail e WhatsApp do visitante antes de liberar as fotos.',
-  },
-  canAccessNotifyEvents: {
-    label: 'Notificações de eventos da galeria',
-    description:
-      'Receba notificações quando a galeria for visualizada, compartilhada, baixada, etc.',
-  },
-  canExportLeads: {
-    label: 'Exportar Contatos',
-    description:
-      'Permite exportar a lista de visitantes cadastrados em formato CSV, XLS ou PDF para uso em CRM ou campanhas.',
-  },
-  canCustomWhatsApp: {
-    label: 'WhatsApp Customizado',
-    description:
-      'Edite os templates das mensagens automáticas de WhatsApp enviadas aos clientes com link da galeria.',
-  },
-  canShowSlideshow: {
-    label: 'Modo Slideshow',
-    description:
-      'Habilita apresentação automática das fotos em tela cheia dentro do visualizador da galeria.',
-  },
-  canDownloadFavoriteSelection: {
-    label: 'Download por Seleção',
-    description:
-      'Permite que o cliente baixe apenas as fotos marcadas como favoritas, sem precisar baixar a galeria inteira.',
-  },
-  zipSizeLimit: {
-    label: 'Qualidade do ZIP',
-    description:
-      'Tamanho máximo por foto no download ZIP. Valores mais altos preservam melhor a resolução original das imagens.',
-  },
-  maxExternalLinks: {
-    label: 'Links Externos',
-    description:
-      'Links de download direto para serviços externos (Google Drive, WeTransfer, Dropbox). Facilitam a entrega de arquivos em alta resolução.',
-  },
-  privacyLevel: {
-    label: 'Controle de Acesso',
-    description:
-      'Define o nível de proteção da galeria: pública, privada (só com link), protegida por senha ou com link de expiração.',
-  },
-  expiresAt: {
-    label: 'Data de Expiração',
-    description:
-      'Defina uma data para expiração do acesso à galeria. Após esta data, a galeria ficará indisponível para acesso.',
-  },
-  customizationLevel: {
-    label: 'Personalização Visual',
-    description:
-      'Controla o nível de customização da interface da galeria: tema padrão, cores do grid ou fundo personalizado completo.',
-  },
-  keepOriginalFilenames: {
-    label: 'Nomes de Arquivo',
-    description:
-      'Preserva os nomes originais dos arquivos no download. Sem este recurso, os arquivos recebem nomes sequenciais.',
-  },
-  tagSelectionMode: {
-    label: 'Modo de Seleção',
-    description:
-      'Define como as fotos podem ser selecionadas: manual (uma a uma), em lote (múltiplas de vez) ou automático por pastas do Drive.',
-  },
-  canAccessStats: {
-    label: 'Estatísticas',
-    description:
-      'Notificações de eventos em tempo real: visualizações, downloads, favoritos e acessos à galeria.',
-  },
-};
-
-// =============================================================================
-// 🎫 SISTEMA DE CAPACIDADE FLEXÍVEL
-//
-// Três camadas de controle para galerias:
-//
-//   1. photoCredits                → pool global de fotos (trava ao esgotar)
-//   2. maxGalleries (dinâmico)     → floor(photoCredits / recommendedPhotosPerGallery)
-//                                    fotógrafos com menos fotos/galeria têm mais galerias
-//   3. maxGalleriesHardCap         → teto absoluto (nunca ultrapassado)
-//   4. maxPhotosPerGallery         → hard cap por galeria (bloqueia ao atingir)
-//   5. recommendedPhotosPerGallery → aviso amarelo antes do hard cap
-//
-// Runtime check:
-//   const canCreate = calcEffectiveMaxGalleries(planKey, usedCredits, activeCount) > activeCount
-//
-// =============================================================================
-
-export const PHOTO_CREDITS_BY_PLAN: Record<PlanKey, number> = {
-  FREE: 450,
-  START: 3_000,
-  PLUS: 12_000,
-  PRO: 40_000,
-  PREMIUM: 200_000,
-};
-
-// Teto absoluto — nunca ultrapassado mesmo com pool sobrando
-export const MAX_GALLERIES_HARD_CAP_BY_PLAN: Record<PlanKey, number> = {
-  FREE: 3,
-  START: 20,
-  PLUS: 40,
-  PRO: 100,
-  PREMIUM: 400,
-};
-
-export const MAX_PHOTOS_PER_GALLERY_BY_PLAN: Record<PlanKey, number> = {
-  FREE: 200,
-  START: 450,
-  PLUS: 800,
-  PRO: 1_500,
-  PREMIUM: 3_000,
-};
-
-// Base do cálculo do pool de galerias: floor(photoCredits / recommended)
-// FREE:    450 / 150 = 3  | START: 3.000 / 300 = 10
-// PLUS: 12.000 / 600 = 20 | PRO:  40.000 / 800 = 50 | PREMIUM: 200.000 / 1.000 = 200
-export const RECOMMENDED_PHOTOS_PER_GALLERY_BY_PLAN: Record<PlanKey, number> = {
-  FREE: 150,
-  START: 300,
-  PLUS: 600,
-  PRO: 800,
-  PREMIUM: 1_000,
-};
-
-/**
- * Retorna o número de galerias que o pool suporta com fotos na quantidade recomendada.
- * Equivale à coluna G da planilha. Usado em PERMISSIONS_BY_PLAN e exibições estáticas.
- */
-export function getBaseGalleriesFromPool(planKey: PlanKey): number {
-  return Math.floor(
-    PHOTO_CREDITS_BY_PLAN[planKey] /
-      RECOMMENDED_PHOTOS_PER_GALLERY_BY_PLAN[planKey],
-  );
-}
-
-/**
- * Calcula o número máximo efetivo de galerias em runtime.
- *
- * Fotógrafos de ensaio que publicam ~50 fotos/galeria se beneficiam
- * automaticamente: o pool "sobra" e permite mais galerias, até o hardCap.
- *
- * @param planKey          - Plano do usuário
- * @param usedCredits      - Total de fotos publicadas (soma de todas as galerias)
- * @param activeGalleryCount - Número atual de galerias ativas
- *
- * @example
- * // PRO, 5.000 fotos em 10 galerias (média 500/galeria):
- * calcEffectiveMaxGalleries('PRO', 5_000, 10)
- * // remaining = 40.000 - 5.000 = 35.000
- * // fromPool  = floor(35.000 / 800) = 43
- * // total     = min(10 + 43, 150) = 53
- *
- * // PRO, mesmo usuário mas 50 fotos/galeria em média:
- * // Se usedCredits = 500, remaining = 39.500, fromPool = 49
- * // total = min(10 + 49, 150) = 59 → mais galerias, mesmo plano
- */
-export function calcEffectiveMaxGalleries(
-  planKey: PlanKey,
-  usedCredits: number,
-  activeGalleryCount: number,
-): number {
-  const totalCredits = PHOTO_CREDITS_BY_PLAN[planKey];
-  const recommended = RECOMMENDED_PHOTOS_PER_GALLERY_BY_PLAN[planKey];
-  const hardCap = MAX_GALLERIES_HARD_CAP_BY_PLAN[planKey];
-
-  const remainingCredits = Math.max(0, totalCredits - usedCredits);
-  const galleriesFromPool = Math.floor(remainingCredits / recommended);
-
-  return Math.min(activeGalleryCount + galleriesFromPool, hardCap);
-}
-
-export function formatPhotoCredits(credits: number): string {
-  if (credits >= 1_000) return `${(credits / 1_000).toFixed(0)}k`;
-  return String(credits);
-}
-
-export const ZIP_LIMITS: Record<PlanKey, number> = {
-  FREE: 500_000,
-  START: 1_000_000,
-  PLUS: 1_500_000,
-  PRO: 2_000_000,
-  PREMIUM: 3_000_000,
-};
-
-export const ZIP_LIMIT_TO_RESOLUTION: Record<number, number> = {
-  500_000: 1024,
-  1_000_000: 1600,
-  1_500_000: 2048,
-  2_000_000: 2560,
-  3_000_000: 0,
-};
-
-// =============================================================================
-// 🛡️ PERMISSIONS
-// =============================================================================
-
 export interface PlanPermissions {
-  // Capacidade
+  // ── Capacidade ─────────────────────────────────────────────────────────────
   photoCredits: number;
-  maxGalleries: number; // Base estática: getBaseGalleriesFromPool()
-  maxGalleriesHardCap: number; // Teto absoluto: usar calcEffectiveMaxGalleries() em runtime
-  maxPhotosPerGallery: number;
-  recommendedPhotosPerGallery: number;
+  storageGB: number;
+  maxGalleries: number; // base garantido com pool cheio
+  maxGalleriesHardCap: number; // teto absoluto
+  maxPhotosPerGallery: number; // hard cap por galeria (bloqueia)
+  recommendedPhotosPerGallery: number; // = photoCredits / maxGalleries
+  filesAlertThreshold: number; // aviso amarelo (≤ maxPhotosPerGallery)
+  maxVideoCount: number;
+  maxVideoSizeMB: number;
+  // ── Equipe & Perfil ────────────────────────────────────────────────────────
   teamMembers: number;
-
-  // Presença Digital
   profileLevel: 'basic' | 'standard' | 'advanced' | 'seo';
   profileCarouselLimit: number;
   profileListLimit: number | 'unlimited';
   removeBranding: boolean;
-  selectedProfileTheme?: boolean;
-
-  // Leads
+  // ── Leads ──────────────────────────────────────────────────────────────────
   canCaptureLeads: boolean;
   canAccessNotifyEvents: boolean;
   canExportLeads: boolean;
+  canAccessStats: boolean;
   canCustomWhatsApp: boolean;
-
-  // Experiência Visual
   socialDisplayLevel: 'minimal' | 'social' | 'full';
+  // ── Galeria ────────────────────────────────────────────────────────────────
+  maxCoverPerGallery: number;
   canFavorite: boolean;
   canDownloadFavoriteSelection: boolean;
+  tagSelectionFavoriteMode: 'single' | 'multiple';
   canShowSlideshow: boolean;
   maxGridColumns: number;
+  canTagPhotos: number;
   maxTags: number;
   tagSelectionMode: 'manual' | 'bulk' | 'drive';
-
-  // Entrega de Arquivos
+  // ── Entrega & Segurança ────────────────────────────────────────────────────
   zipSizeLimit: string;
-  zipSizeLimitBytes: number;
   maxExternalLinks: number;
   canCustomLinkLabel: boolean;
   privacyLevel: 'public' | 'password';
   expiresAt: boolean | null;
   keepOriginalFilenames: boolean;
-
-  // Personalização
   customizationLevel: 'default' | 'colors' | 'full';
   canCustomCategories: boolean;
-
-  // Estatísticas
-  canAccessStats: boolean;
-
   isTrial?: boolean;
 }
 
 export const PERMISSIONS_BY_PLAN: Record<PlanKey, PlanPermissions> = {
   FREE: {
-    photoCredits: PHOTO_CREDITS_BY_PLAN.FREE,
-    maxGalleries: getBaseGalleriesFromPool('FREE'), // 3
-    maxGalleriesHardCap: MAX_GALLERIES_HARD_CAP_BY_PLAN.FREE, // 10
-    maxPhotosPerGallery: MAX_PHOTOS_PER_GALLERY_BY_PLAN.FREE,
-    recommendedPhotosPerGallery: RECOMMENDED_PHOTOS_PER_GALLERY_BY_PLAN.FREE,
+    // ── Capacidade
+    photoCredits: 450,
+    storageGB: 4.5,
+    maxGalleries: 3,
+    maxGalleriesHardCap: 3,
+    maxPhotosPerGallery: 150,
+    recommendedPhotosPerGallery: 150,
+    filesAlertThreshold: 150,
+    maxVideoCount: 1,
+    maxVideoSizeMB: 15,
+    // ── Equipe & Perfil
     teamMembers: 0,
     profileLevel: 'basic',
     profileCarouselLimit: 0,
     profileListLimit: 1,
     removeBranding: false,
+    // ── Leads
     canCaptureLeads: false,
     canExportLeads: false,
     canAccessStats: false,
     canAccessNotifyEvents: false,
     canCustomWhatsApp: false,
     socialDisplayLevel: 'minimal',
+    // ── Galeria
+    maxCoverPerGallery: 1,
     canFavorite: false,
     canDownloadFavoriteSelection: false,
     canShowSlideshow: false,
     maxGridColumns: 3,
+    canTagPhotos: 0,
     maxTags: 0,
     tagSelectionMode: 'manual',
+    tagSelectionFavoriteMode: 'single',
+    // ── Entrega & Segurança
     zipSizeLimit: '500KB',
-    zipSizeLimitBytes: ZIP_LIMITS.FREE,
     maxExternalLinks: 0,
     canCustomLinkLabel: false,
     privacyLevel: 'public',
@@ -365,33 +314,43 @@ export const PERMISSIONS_BY_PLAN: Record<PlanKey, PlanPermissions> = {
     keepOriginalFilenames: false,
     customizationLevel: 'default',
     canCustomCategories: false,
-    selectedProfileTheme: false,
   },
   START: {
-    photoCredits: PHOTO_CREDITS_BY_PLAN.START,
-    maxGalleries: getBaseGalleriesFromPool('START'), // 10
-    maxGalleriesHardCap: MAX_GALLERIES_HARD_CAP_BY_PLAN.START, // 30
-    maxPhotosPerGallery: MAX_PHOTOS_PER_GALLERY_BY_PLAN.START,
-    recommendedPhotosPerGallery: RECOMMENDED_PHOTOS_PER_GALLERY_BY_PLAN.START,
+    // ── Capacidade
+    photoCredits: 2_500,
+    storageGB: 25,
+    maxGalleries: 10,
+    maxGalleriesHardCap: 12,
+    maxPhotosPerGallery: 500,
+    recommendedPhotosPerGallery: 250,
+    filesAlertThreshold: 250,
+    maxVideoCount: 10,
+    maxVideoSizeMB: 50,
+    // ── Equipe & Perfil
     teamMembers: 0,
     profileLevel: 'standard',
     profileCarouselLimit: 1,
     profileListLimit: 10,
     removeBranding: false,
+    // ── Leads
     canCaptureLeads: false,
     canExportLeads: false,
     canAccessStats: false,
     canAccessNotifyEvents: false,
     canCustomWhatsApp: false,
     socialDisplayLevel: 'social',
+    // ── Galeria
+    maxCoverPerGallery: 1,
     canFavorite: true,
     canDownloadFavoriteSelection: false,
     canShowSlideshow: false,
     maxGridColumns: 4,
+    canTagPhotos: 0,
     maxTags: 0,
     tagSelectionMode: 'manual',
+    tagSelectionFavoriteMode: 'single',
+    // ── Entrega & Segurança
     zipSizeLimit: '1MB',
-    zipSizeLimitBytes: ZIP_LIMITS.START,
     maxExternalLinks: 1,
     canCustomLinkLabel: false,
     privacyLevel: 'password',
@@ -399,33 +358,43 @@ export const PERMISSIONS_BY_PLAN: Record<PlanKey, PlanPermissions> = {
     keepOriginalFilenames: false,
     customizationLevel: 'default',
     canCustomCategories: false,
-    selectedProfileTheme: false,
   },
   PLUS: {
-    photoCredits: PHOTO_CREDITS_BY_PLAN.PLUS,
-    maxGalleries: getBaseGalleriesFromPool('PLUS'), // 20
-    maxGalleriesHardCap: MAX_GALLERIES_HARD_CAP_BY_PLAN.PLUS, // 60
-    maxPhotosPerGallery: MAX_PHOTOS_PER_GALLERY_BY_PLAN.PLUS,
-    recommendedPhotosPerGallery: RECOMMENDED_PHOTOS_PER_GALLERY_BY_PLAN.PLUS,
+    // ── Capacidade
+    photoCredits: 10_000,
+    storageGB: 100,
+    maxGalleries: 20,
+    maxGalleriesHardCap: 30,
+    maxPhotosPerGallery: 1_000,
+    recommendedPhotosPerGallery: 500,
+    filesAlertThreshold: 500,
+    maxVideoCount: 20,
+    maxVideoSizeMB: 100,
+    // ── Equipe & Perfil
     teamMembers: 2,
-    profileLevel: 'standard',
+    profileLevel: 'advanced',
     profileCarouselLimit: 1,
     profileListLimit: 20,
     removeBranding: false,
+    // ── Leads
     canCaptureLeads: false,
     canExportLeads: false,
     canAccessStats: false,
     canAccessNotifyEvents: false,
     canCustomWhatsApp: false,
     socialDisplayLevel: 'social',
+    // ── Galeria
+    maxCoverPerGallery: 2,
     canFavorite: true,
     canDownloadFavoriteSelection: true,
     canShowSlideshow: false,
     maxGridColumns: 5,
+    canTagPhotos: 7,
     maxTags: 7,
     tagSelectionMode: 'manual',
+    tagSelectionFavoriteMode: 'single',
+    // ── Entrega & Segurança
     zipSizeLimit: '1.5MB',
-    zipSizeLimitBytes: ZIP_LIMITS.PLUS,
     maxExternalLinks: 2,
     canCustomLinkLabel: false,
     privacyLevel: 'password',
@@ -433,88 +402,278 @@ export const PERMISSIONS_BY_PLAN: Record<PlanKey, PlanPermissions> = {
     keepOriginalFilenames: true,
     customizationLevel: 'colors',
     canCustomCategories: true,
-    selectedProfileTheme: true,
   },
   PRO: {
-    photoCredits: PHOTO_CREDITS_BY_PLAN.PRO,
-    maxGalleries: getBaseGalleriesFromPool('PRO'), // 50
-    maxGalleriesHardCap: MAX_GALLERIES_HARD_CAP_BY_PLAN.PRO, // 150
-    maxPhotosPerGallery: MAX_PHOTOS_PER_GALLERY_BY_PLAN.PRO,
-    recommendedPhotosPerGallery: RECOMMENDED_PHOTOS_PER_GALLERY_BY_PLAN.PRO,
+    // ── Capacidade
+    photoCredits: 50_000,
+    storageGB: 500,
+    maxGalleries: 50,
+    maxGalleriesHardCap: 90,
+    maxPhotosPerGallery: 1_500,
+    recommendedPhotosPerGallery: 1_000, // pool / galBase = 50.000/50
+    filesAlertThreshold: 750, // alerta amarelo antes do hard cap
+    maxVideoCount: 50,
+    maxVideoSizeMB: 100,
+    // ── Equipe & Perfil
     teamMembers: 5,
-    profileLevel: 'advanced',
+    profileLevel: 'seo',
     profileCarouselLimit: 3,
     profileListLimit: 'unlimited',
     removeBranding: false,
+    // ── Leads
     canCaptureLeads: true,
     canExportLeads: true,
+    canAccessStats: true,
+    canAccessNotifyEvents: true,
     canCustomWhatsApp: true,
     socialDisplayLevel: 'full',
+    // ── Galeria
+    maxCoverPerGallery: 3,
     canFavorite: true,
     canDownloadFavoriteSelection: true,
     canShowSlideshow: true,
-    maxGridColumns: 6,
-    maxTags: 12,
+    maxGridColumns: 8,
+    canTagPhotos: 12,
+    maxTags: 15,
     tagSelectionMode: 'bulk',
+    tagSelectionFavoriteMode: 'multiple',
+    // ── Entrega & Segurança
     zipSizeLimit: '2MB',
-    zipSizeLimitBytes: ZIP_LIMITS.PRO,
     maxExternalLinks: 5,
     canCustomLinkLabel: true,
-    keepOriginalFilenames: true,
     privacyLevel: 'password',
+    expiresAt: true,
+    keepOriginalFilenames: true,
     customizationLevel: 'colors',
     canCustomCategories: true,
-    canAccessStats: true,
-    canAccessNotifyEvents: true,
-    expiresAt: true,
-    selectedProfileTheme: true,
   },
   PREMIUM: {
-    photoCredits: PHOTO_CREDITS_BY_PLAN.PREMIUM,
-    maxGalleries: getBaseGalleriesFromPool('PREMIUM'), // 200
-    maxGalleriesHardCap: MAX_GALLERIES_HARD_CAP_BY_PLAN.PREMIUM, // 500
-    maxPhotosPerGallery: MAX_PHOTOS_PER_GALLERY_BY_PLAN.PREMIUM,
-    recommendedPhotosPerGallery: RECOMMENDED_PHOTOS_PER_GALLERY_BY_PLAN.PREMIUM,
+    // ── Capacidade
+    photoCredits: 200_000,
+    storageGB: 2_000,
+    maxGalleries: 200,
+    maxGalleriesHardCap: 300,
+    maxPhotosPerGallery: 3_000,
+    recommendedPhotosPerGallery: 1_000, // pool / galBase = 200.000/200
+    filesAlertThreshold: 1_000,
+    maxVideoCount: 100,
+    maxVideoSizeMB: 100,
+    // ── Equipe & Perfil
     teamMembers: 99,
     profileLevel: 'seo',
     profileCarouselLimit: 5,
     profileListLimit: 'unlimited',
     removeBranding: true,
+    // ── Leads
     canCaptureLeads: true,
     canExportLeads: true,
+    canAccessStats: true,
+    canAccessNotifyEvents: true,
     canCustomWhatsApp: true,
     socialDisplayLevel: 'full',
+    // ── Galeria
+    maxCoverPerGallery: 5,
     canFavorite: true,
     canDownloadFavoriteSelection: true,
     canShowSlideshow: true,
     maxGridColumns: 8,
-    maxTags: 30,
+    canTagPhotos: 30,
+    maxTags: 50,
     tagSelectionMode: 'drive',
+    tagSelectionFavoriteMode: 'multiple',
+    // ── Entrega & Segurança
     zipSizeLimit: '3MB',
-    zipSizeLimitBytes: ZIP_LIMITS.PREMIUM,
     maxExternalLinks: 10,
     canCustomLinkLabel: true,
-    keepOriginalFilenames: true,
     privacyLevel: 'password',
+    expiresAt: true,
+    keepOriginalFilenames: true,
     customizationLevel: 'full',
     canCustomCategories: true,
-    canAccessStats: true,
-    canAccessNotifyEvents: true,
-    expiresAt: true,
-    selectedProfileTheme: true,
   },
 };
 
 // =============================================================================
-// 📦 PLAN INFO
+// FEATURE DESCRIPTIONS (para UpgradeModal e PlanGuard)
+// =============================================================================
+
+export const FEATURE_DESCRIPTIONS: Record<
+  keyof PlanPermissions,
+  { label: string; description: string }
+> = {
+  photoCredits: {
+    label: 'Créditos de Arquivos',
+    description:
+      'Pool total de fotos e vídeos distribuído entre suas galerias.',
+  },
+  storageGB: {
+    label: 'Armazenamento',
+    description: 'Capacidade total de armazenamento do seu plano.',
+  },
+  maxGalleries: {
+    label: 'Limite de Galerias',
+    description:
+      'Aumente o número de galerias ativas simultaneamente em sua conta.',
+  },
+  maxGalleriesHardCap: {
+    label: 'Teto de Galerias',
+    description:
+      'Limite absoluto de galerias independente do pool de arquivos.',
+  },
+  maxPhotosPerGallery: {
+    label: 'Capacidade por Galeria',
+    description: 'Aumente o limite de arquivos permitidos em cada galeria.',
+  },
+  recommendedPhotosPerGallery: {
+    label: 'Recomendado por Galeria',
+    description:
+      'Quantidade recomendada de arquivos por galeria para uso ideal do pool.',
+  },
+  filesAlertThreshold: {
+    label: 'Alerta de Galeria',
+    description: 'Aviso quando a galeria ultrapassa o uso recomendado.',
+  },
+  maxVideoCount: {
+    label: 'Vídeos por Galeria',
+    description: 'Número máximo de vídeos por galeria.',
+  },
+  maxVideoSizeMB: {
+    label: 'Tamanho Máximo de Vídeo',
+    description: 'Tamanho máximo por arquivo de vídeo em MB.',
+  },
+  teamMembers: {
+    label: 'Membros de Equipe',
+    description:
+      'Adicione colaboradores para gerenciar suas galerias com você.',
+  },
+  profileLevel: {
+    label: 'Perfil Profissional',
+    description:
+      'Desbloqueie Bio, Cidades, Áreas de Atuação e SEO no seu perfil.',
+  },
+  profileCarouselLimit: {
+    label: 'Carrossel de Capa',
+    description:
+      'Personalize seu perfil com um carrossel de fotos profissionais.',
+  },
+  profileListLimit: {
+    label: 'Exibição no Portfólio',
+    description: 'Aumente o número de galerias visíveis no seu perfil público.',
+  },
+  removeBranding: {
+    label: 'White Label',
+    description:
+      'Remova a marca do app do rodapé das galerias e perfil público.',
+  },
+  canCaptureLeads: {
+    label: 'Cadastro de Visitantes',
+    description: 'Solicite nome, WhatsApp e e-mail antes de liberar as fotos.',
+  },
+  canAccessStats: {
+    label: 'Estatísticas da Galeria',
+    description: 'Acesse estatísticas de visualizações, favoritos e downloads.',
+  },
+  canAccessNotifyEvents: {
+    label: 'Notificações de Eventos',
+    description:
+      'Receba alertas quando a galeria for visualizada, compartilhada, etc.',
+  },
+  canExportLeads: {
+    label: 'Exportação de Visitantes',
+    description: 'Exporte sua base de visitantes em CSV, Excel ou PDF.',
+  },
+  socialDisplayLevel: {
+    label: 'Links de Contato',
+    description: 'Adicione botões para WhatsApp, Instagram e Website.',
+  },
+  maxCoverPerGallery: {
+    label: 'Fotos de Capa',
+    description: 'Crie carrosséis de impacto na capa das suas galerias.',
+  },
+  canFavorite: {
+    label: 'Sistema de Favoritos',
+    description: 'Permita que clientes selecionem e favoritem fotos.',
+  },
+  canDownloadFavoriteSelection: {
+    label: 'Download de Seleção',
+    description: 'Permita download filtrado apenas das fotos favoritadas.',
+  },
+  tagSelectionFavoriteMode: {
+    label: 'Modo de Seleção de Favoritos',
+    description: 'Selecione fotos individualmente ou em lote.',
+  },
+  canShowSlideshow: {
+    label: 'Modo Slideshow',
+    description: 'Habilite apresentação automática de fotos em tela cheia.',
+  },
+  maxGridColumns: {
+    label: 'Colunas da Grade',
+    description: 'Mais liberdade para organizar o layout das fotos.',
+  },
+  canTagPhotos: {
+    label: 'Marcações (Tags)',
+    description: 'Crie marcações e filtros personalizados em galerias.',
+  },
+  maxTags: {
+    label: 'Limite de Tags',
+    description: 'Número máximo de tags por galeria.',
+  },
+  tagSelectionMode: {
+    label: 'Organização em Lote',
+    description: 'Organize fotos via pastas do Drive ou seleções em massa.',
+  },
+  zipSizeLimit: {
+    label: 'Resolução de Download',
+    description: 'Libere downloads em alta definição para seus clientes.',
+  },
+  maxExternalLinks: {
+    label: 'Links de Entrega',
+    description: 'Adicione botões externos para download de arquivos pesados.',
+  },
+  canCustomLinkLabel: {
+    label: 'Nomes de Links Customizados',
+    description: 'Dê nomes personalizados aos seus links de entrega.',
+  },
+  privacyLevel: {
+    label: 'Proteção por Senha',
+    description: 'Aumente a segurança das suas galerias com senhas.',
+  },
+  expiresAt: {
+    label: 'Data de Expiração',
+    description: 'Defina data para expiração automática do acesso à galeria.',
+  },
+  keepOriginalFilenames: {
+    label: 'Preservar Nomes Originais',
+    description: 'Mantenha os nomes originais dos arquivos no download.',
+  },
+  customizationLevel: {
+    label: 'Personalização Visual',
+    description: 'Altere cores e fundos para criar galerias exclusivas.',
+  },
+  canCustomWhatsApp: {
+    label: 'WhatsApp Customizado',
+    description: 'Edite os templates das mensagens enviadas aos clientes.',
+  },
+  canCustomCategories: {
+    label: 'Categorias Próprias',
+    description: 'Crie nomes de categorias fora do padrão do sistema.',
+  },
+  isTrial: {
+    label: 'Período de Teste',
+    description: 'Acesso temporário a recursos premium durante o trial.',
+  },
+};
+
+// =============================================================================
+// PLAN INFO (preços, ícones, CTAs)
 // =============================================================================
 
 export interface PlanInfo {
   name: string;
   price: number;
-  semesterPrice: number;
   yearlyPrice: number;
   maxGalleries: number;
+  storageLabel: string; // ex: "25 GB", "500 GB", "2 TB"
   icon: any;
   cta: string;
   permissions: PlanPermissions;
@@ -528,9 +687,9 @@ export const PLANS_BY_SEGMENT: Record<
     FREE: {
       name: 'Free',
       price: 0,
-      semesterPrice: 0,
       yearlyPrice: 0,
-      maxGalleries: MAX_GALLERIES_HARD_CAP_BY_PLAN.FREE,
+      maxGalleries: 3,
+      storageLabel: '4,5 GB',
       icon: Zap,
       cta: 'Começar Grátis',
       permissions: PERMISSIONS_BY_PLAN.FREE,
@@ -538,9 +697,9 @@ export const PLANS_BY_SEGMENT: Record<
     START: {
       name: 'Start',
       price: 29,
-      semesterPrice: 26,
       yearlyPrice: 24,
-      maxGalleries: MAX_GALLERIES_HARD_CAP_BY_PLAN.START,
+      maxGalleries: 10,
+      storageLabel: '25 GB',
       icon: Rocket,
       cta: 'Evoluir',
       permissions: PERMISSIONS_BY_PLAN.START,
@@ -548,29 +707,29 @@ export const PLANS_BY_SEGMENT: Record<
     PLUS: {
       name: 'Plus',
       price: 49,
-      semesterPrice: 43,
       yearlyPrice: 39,
-      maxGalleries: MAX_GALLERIES_HARD_CAP_BY_PLAN.PLUS,
+      maxGalleries: 20,
+      storageLabel: '100 GB',
       icon: Star,
       cta: 'Crescer',
       permissions: PERMISSIONS_BY_PLAN.PLUS,
     },
     PRO: {
       name: 'Pro',
-      price: 89,
-      semesterPrice: 78,
+      price: 79,
       yearlyPrice: 74,
-      maxGalleries: MAX_GALLERIES_HARD_CAP_BY_PLAN.PRO,
+      maxGalleries: 50,
+      storageLabel: '500 GB',
       icon: Crown,
       cta: 'Dominar',
       permissions: PERMISSIONS_BY_PLAN.PRO,
     },
     PREMIUM: {
       name: 'Premium',
-      price: 149,
-      semesterPrice: 131,
-      yearlyPrice: 124,
-      maxGalleries: MAX_GALLERIES_HARD_CAP_BY_PLAN.PREMIUM,
+      price: 119,
+      yearlyPrice: 99,
+      maxGalleries: 200,
+      storageLabel: '2 TB',
       icon: Sparkles,
       cta: 'Elite',
       permissions: PERMISSIONS_BY_PLAN.PREMIUM,
@@ -580,9 +739,9 @@ export const PLANS_BY_SEGMENT: Record<
     FREE: {
       name: 'Free Trial',
       price: 0,
-      semesterPrice: 0,
       yearlyPrice: 0,
-      maxGalleries: MAX_GALLERIES_HARD_CAP_BY_PLAN.FREE,
+      maxGalleries: 3,
+      storageLabel: '4,5 GB',
       icon: Zap,
       cta: 'Testar',
       permissions: PERMISSIONS_BY_PLAN.FREE,
@@ -590,9 +749,9 @@ export const PLANS_BY_SEGMENT: Record<
     START: {
       name: 'Event',
       price: 99,
-      semesterPrice: 87,
       yearlyPrice: 79,
-      maxGalleries: MAX_GALLERIES_HARD_CAP_BY_PLAN.START,
+      maxGalleries: 10,
+      storageLabel: '25 GB',
       icon: Rocket,
       cta: 'Iniciar',
       permissions: PERMISSIONS_BY_PLAN.START,
@@ -600,9 +759,9 @@ export const PLANS_BY_SEGMENT: Record<
     PLUS: {
       name: 'Plus',
       price: 159,
-      semesterPrice: 140,
       yearlyPrice: 129,
-      maxGalleries: MAX_GALLERIES_HARD_CAP_BY_PLAN.PLUS,
+      maxGalleries: 20,
+      storageLabel: '100 GB',
       icon: Star,
       cta: 'Expandir',
       permissions: PERMISSIONS_BY_PLAN.PLUS,
@@ -610,9 +769,9 @@ export const PLANS_BY_SEGMENT: Record<
     PRO: {
       name: 'Club',
       price: 249,
-      semesterPrice: 219,
       yearlyPrice: 199,
-      maxGalleries: MAX_GALLERIES_HARD_CAP_BY_PLAN.PRO,
+      maxGalleries: 50,
+      storageLabel: '500 GB',
       icon: Crown,
       cta: 'Assinar Club',
       permissions: PERMISSIONS_BY_PLAN.PRO,
@@ -620,9 +779,9 @@ export const PLANS_BY_SEGMENT: Record<
     PREMIUM: {
       name: 'Enterprise',
       price: 499,
-      semesterPrice: 439,
       yearlyPrice: 399,
-      maxGalleries: MAX_GALLERIES_HARD_CAP_BY_PLAN.PREMIUM,
+      maxGalleries: 200,
+      storageLabel: '2 TB',
       icon: Gem,
       cta: 'Experience',
       permissions: PERMISSIONS_BY_PLAN.PREMIUM,
@@ -632,9 +791,9 @@ export const PLANS_BY_SEGMENT: Record<
     FREE: {
       name: 'Militante',
       price: 0,
-      semesterPrice: 0,
       yearlyPrice: 0,
-      maxGalleries: MAX_GALLERIES_HARD_CAP_BY_PLAN.FREE,
+      maxGalleries: 3,
+      storageLabel: '4,5 GB',
       icon: Shield,
       cta: 'Começar',
       permissions: PERMISSIONS_BY_PLAN.FREE,
@@ -642,9 +801,9 @@ export const PLANS_BY_SEGMENT: Record<
     START: {
       name: 'Bronze',
       price: 199,
-      semesterPrice: 175,
       yearlyPrice: 159,
-      maxGalleries: MAX_GALLERIES_HARD_CAP_BY_PLAN.START,
+      maxGalleries: 10,
+      storageLabel: '25 GB',
       icon: Medal,
       cta: 'Plano Bronze',
       permissions: PERMISSIONS_BY_PLAN.START,
@@ -652,9 +811,9 @@ export const PLANS_BY_SEGMENT: Record<
     PLUS: {
       name: 'Prata',
       price: 399,
-      semesterPrice: 351,
       yearlyPrice: 329,
-      maxGalleries: MAX_GALLERIES_HARD_CAP_BY_PLAN.PLUS,
+      maxGalleries: 20,
+      storageLabel: '100 GB',
       icon: Award,
       cta: 'Plano Prata',
       permissions: PERMISSIONS_BY_PLAN.PLUS,
@@ -662,9 +821,9 @@ export const PLANS_BY_SEGMENT: Record<
     PRO: {
       name: 'Ouro',
       price: 799,
-      semesterPrice: 703,
       yearlyPrice: 659,
-      maxGalleries: MAX_GALLERIES_HARD_CAP_BY_PLAN.PRO,
+      maxGalleries: 50,
+      storageLabel: '500 GB',
       icon: Crown,
       cta: 'Plano Ouro',
       permissions: PERMISSIONS_BY_PLAN.PRO,
@@ -672,9 +831,9 @@ export const PLANS_BY_SEGMENT: Record<
     PREMIUM: {
       name: 'Majoritário',
       price: 1499,
-      semesterPrice: 1319,
       yearlyPrice: 1249,
-      maxGalleries: MAX_GALLERIES_HARD_CAP_BY_PLAN.PREMIUM,
+      maxGalleries: 200,
+      storageLabel: '2 TB',
       icon: Sparkles,
       cta: 'Plano VIP',
       permissions: PERMISSIONS_BY_PLAN.PREMIUM,
@@ -684,9 +843,9 @@ export const PLANS_BY_SEGMENT: Record<
     FREE: {
       name: 'Básico',
       price: 0,
-      semesterPrice: 0,
       yearlyPrice: 0,
-      maxGalleries: MAX_GALLERIES_HARD_CAP_BY_PLAN.FREE,
+      maxGalleries: 3,
+      storageLabel: '4,5 GB',
       icon: Layout,
       cta: 'Começar',
       permissions: PERMISSIONS_BY_PLAN.FREE,
@@ -694,9 +853,9 @@ export const PLANS_BY_SEGMENT: Record<
     START: {
       name: 'Essential',
       price: 149,
-      semesterPrice: 131,
       yearlyPrice: 119,
-      maxGalleries: MAX_GALLERIES_HARD_CAP_BY_PLAN.START,
+      maxGalleries: 10,
+      storageLabel: '25 GB',
       icon: Rocket,
       cta: 'Assinar',
       permissions: PERMISSIONS_BY_PLAN.START,
@@ -704,9 +863,9 @@ export const PLANS_BY_SEGMENT: Record<
     PLUS: {
       name: 'Advanced',
       price: 299,
-      semesterPrice: 263,
       yearlyPrice: 249,
-      maxGalleries: MAX_GALLERIES_HARD_CAP_BY_PLAN.PLUS,
+      maxGalleries: 20,
+      storageLabel: '100 GB',
       icon: Star,
       cta: 'Assinar',
       permissions: PERMISSIONS_BY_PLAN.PLUS,
@@ -714,9 +873,9 @@ export const PLANS_BY_SEGMENT: Record<
     PRO: {
       name: 'Mandato',
       price: 599,
-      semesterPrice: 527,
       yearlyPrice: 499,
-      maxGalleries: MAX_GALLERIES_HARD_CAP_BY_PLAN.PRO,
+      maxGalleries: 50,
+      storageLabel: '500 GB',
       icon: Crown,
       cta: 'Assinar',
       permissions: PERMISSIONS_BY_PLAN.PRO,
@@ -724,9 +883,9 @@ export const PLANS_BY_SEGMENT: Record<
     PREMIUM: {
       name: 'Vanguard',
       price: 999,
-      semesterPrice: 879,
       yearlyPrice: 829,
-      maxGalleries: MAX_GALLERIES_HARD_CAP_BY_PLAN.PREMIUM,
+      maxGalleries: 200,
+      storageLabel: '2 TB',
       icon: Sparkles,
       cta: 'Assinar VIP',
       permissions: PERMISSIONS_BY_PLAN.PREMIUM,
@@ -735,93 +894,63 @@ export const PLANS_BY_SEGMENT: Record<
 };
 
 // =============================================================================
-// 📊 COMMON FEATURES
+// COMMON FEATURES (tabela comparativa de planos)
 // =============================================================================
 
 export const COMMON_FEATURES = [
+  // --- GESTÃO ---
   {
+    key: 'maxGalleries',
     group: 'Gestão',
-    key: 'photoCredits' as const,
-    label: 'Créditos de Fotos',
-    tooltip: 'Pool total distribuído livremente — trava ao esgotar',
-    values: [
-      '450 fotos',
-      '3.000 fotos',
-      '12.000 fotos',
-      '40.000 fotos',
-      '200.000 fotos',
-    ],
+    label: 'Galerias Ativas',
+    values: ['3', '10', '20', '50', '200'],
   },
   {
+    key: 'storageGB',
     group: 'Gestão',
-    key: 'maxGalleries' as const,
-    label: 'Galerias (base do pool)',
-    tooltip:
-      'Galerias suportadas com fotos na quantidade recomendada. Quem publica menos fotos por galeria pode ter mais.',
-    values: [
-      '3 galerias',
-      '10 galerias',
-      '20 galerias',
-      '50 galerias',
-      '200 galerias',
-    ],
+    label: 'Armazenamento',
+    values: ['4,5 GB', '25 GB', '100 GB', '500 GB', '2 TB'],
   },
   {
+    key: 'maxPhotosPerGallery',
     group: 'Gestão',
-    key: 'maxGalleriesHardCap' as const,
-    label: 'Galerias (limite absoluto)',
-    tooltip:
-      'Teto máximo independente do pool. Mesmo publicando poucas fotos por galeria, este limite não é ultrapassado.',
-    values: [
-      '10 galerias',
-      '30 galerias',
-      '60 galerias',
-      '150 galerias',
-      '500 galerias',
-    ],
+    label: 'Capacidade por Galeria',
+    values: ['150 arq.', '500 arq.', '1.000 arq.', '1.500 arq.', '3.000 arq.'],
   },
   {
+    key: 'maxVideoCount',
     group: 'Gestão',
-    key: 'maxPhotosPerGallery' as const,
-    label: 'Fotos por Galeria (máximo)',
-    tooltip: 'Limite por galeria individual — bloqueia ao atingir',
-    values: [
-      '200 fotos',
-      '450 fotos',
-      '800 fotos',
-      '1.500 fotos',
-      '3.000 fotos',
-    ],
+    label: 'Vídeos por Galeria',
+    values: ['1 vídeo', '10 vídeos', '20 vídeos', '50 vídeos', '100 vídeos'],
   },
   {
+    key: 'canAccessStats',
     group: 'Gestão',
-    key: 'canAccessStats' as const,
-    label: 'Estatísticas da galeria',
+    label: 'Estatísticas',
     values: [false, false, false, 'Ativadas', 'Ativadas'],
   },
   {
-    group: 'Gestão',
     key: 'canAccessNotifyEvents',
-    label: 'Notificações de eventos',
-    tooltip:
-      'Receba notificações de eventos em tempo real: visualizações, downloads, favoritos e acessos.',
+    group: 'Gestão',
+    label: 'Notificações de Eventos',
     values: [false, false, false, 'Ativadas', 'Ativadas'],
   },
   {
+    key: 'teamMembers',
     group: 'Gestão',
-    key: 'teamMembers' as const,
     label: 'Equipe de Trabalho',
     values: [
       'Apenas Titular',
       'Apenas Titular',
       '+ 2 Colaboradores',
       '+ 5 Colaboradores',
-      'Acessos Ilimitados',
+      'Ilimitados',
     ],
   },
+  // --- PERFIL PÚBLICO ---
   {
-    group: 'Presença Digital',
-    key: 'profileLevel' as const,
+    key: 'profileLevel',
+    group: 'Perfil Público',
     label: 'Perfil Profissional',
     values: [
       'Avatar + Nome',
@@ -832,21 +961,23 @@ export const COMMON_FEATURES = [
     ],
   },
   {
-    group: 'Presença Digital',
+    key: 'profileCarouselLimit',
+    group: 'Perfil Público',
     label: 'Capa do Perfil',
     values: [
       'Imagem Padrão',
-      '1 Foto Personalizada',
-      '1 Foto Personalizada',
-      '+ Carrossel (3 fotos)',
-      '+ Carrossel (5 fotos)',
+      '1 Foto',
+      '1 Foto',
+      'Carrossel (3 fotos)',
+      'Carrossel (5 fotos)',
     ],
   },
   {
-    group: 'Presença Digital',
+    key: 'profileListLimit',
+    group: 'Perfil Público',
     label: 'Catálogo de Galerias',
     values: [
-      'Exibir 1 galeria',
+      'Exibir 1',
       'Exibir até 10',
       'Exibir até 20',
       'Portfólio Completo',
@@ -854,80 +985,94 @@ export const COMMON_FEATURES = [
     ],
   },
   {
-    group: 'Presença Digital',
-    key: 'removeBranding' as const,
+    key: 'removeBranding',
+    group: 'Perfil Público',
     label: 'Branding (Rodapé)',
     values: [
       'Marca do App',
       'Marca do App',
       'Identidade do Autor',
       'Identidade do Autor',
-      'White Label (Sem Marca)',
+      'White Label',
     ],
   },
+  // --- CADASTRO DE VISITANTES ---
   {
-    group: 'Cadastro de visitantes',
-    key: 'canCaptureLeads' as const,
-    label: 'Formulário de Acesso à galeria',
+    key: 'canCaptureLeads',
+    group: 'Cadastro de Visitantes',
+    label: 'Formulário de Acesso',
     values: [
       false,
       false,
       false,
-      'Nome, e-Mail e Whatsapp',
-      'Nome, e-Mail e Whatsapp',
+      'Nome, e-Mail e WhatsApp',
+      'Nome, e-Mail e WhatsApp',
     ],
   },
   {
-    group: 'Cadastro de visitantes',
-    key: 'canExportLeads' as const,
+    key: 'canExportLeads',
+    group: 'Cadastro de Visitantes',
     label: 'Gestão de Contatos',
     values: [
       false,
       false,
       false,
-      'Exportação (CSV/XLS/PDF)',
-      'Exportação (CSV/XLS/PDF)',
+      'Exportação CSV/XLS/PDF',
+      'Exportação CSV/XLS/PDF',
     ],
   },
   {
-    group: 'Captura de Clientes',
-    key: 'canCustomWhatsApp' as const,
+    key: 'canCustomWhatsApp',
+    group: 'Cadastro de Visitantes',
     label: 'Mensagens de WhatsApp',
     values: [
       'Templates Padrão',
       'Templates Padrão',
-      'Templates Padrão',
+      '+ Edição Customizada',
       '+ Edição Customizada',
       '+ Edição Customizada',
     ],
   },
+  // --- EXPERIÊNCIA DO VISITANTE ---
   {
-    group: 'Experiência Visual',
-    key: 'socialDisplayLevel' as const,
-    label: 'Contato no Visualizador',
+    key: 'socialDisplayLevel',
+    group: 'Experiência do Visitante',
+    label: 'Contato no Perfil',
     values: [
-      'Avatar',
-      '+ Atalho WhatsApp',
-      '+ Link Instagram',
-      '+ Link Perfil Full',
+      'Avatar + Link',
+      '+ WhatsApp',
+      '+ Instagram',
+      '+ Website Direto',
       '+ Website Direto',
     ],
   },
   {
-    group: 'Experiência Visual',
-    key: 'canFavorite' as const,
-    label: 'Interação com Fotos',
+    key: 'maxCoverPerGallery',
+    group: 'Experiência do Visitante',
+    label: 'Capa da Galeria',
     values: [
-      'Visualização',
-      '+ Favoritar (Coração)',
-      '+ Filtro de Favoritas',
-      '+ Seleção em Lote',
-      '+ Seleção em Lote',
+      '1 Foto',
+      '1 Foto',
+      'Carrossel (2)',
+      'Carrossel (3)',
+      'Carrossel (5)',
     ],
   },
   {
-    group: 'Experiência Visual',
-    key: 'canShowSlideshow' as const,
+    key: 'canFavorite',
+    group: 'Experiência do Visitante',
+    label: 'Interação com Fotos',
+    values: [
+      'Visualização',
+      '+ Favoritar',
+      '+ Filtro de Favoritas',
+      '+ Filtro de Favoritas',
+      '+ Filtro de Favoritas',
+    ],
+  },
+  {
+    key: 'canShowSlideshow',
+    group: 'Experiência do Visitante',
     label: 'Recursos do Slider',
     values: [
       'Download Simples',
@@ -938,100 +1083,140 @@ export const COMMON_FEATURES = [
     ],
   },
   {
-    group: 'Experiência Visual',
-    key: 'canCustomCategories' as const,
-    label: 'Organização e Tags',
-    values: [
-      'Categorias Padrão',
-      'Categorias Padrão',
-      '+ Categorias Próprias',
-      '+ Filtros por Tags',
-      '+ Auto-Tags (Pastas)',
-    ],
+    key: 'canTagPhotos',
+    group: 'Experiência do Visitante',
+    label: 'Organização de Fotos',
+    values: [false, false, false, 'Tags e Filtros', 'Tags e Filtros'],
   },
   {
-    group: 'Experiência Visual',
-    key: 'maxGridColumns' as const,
+    key: 'maxGridColumns',
+    group: 'Experiência do Visitante',
     label: 'Personalização da Grade',
     values: [
       'Fixo (3 colunas)',
       'Escolha (3 ou 4)',
       'Escolha (3 a 5)',
-      'Até 6 colunas',
+      'Até 8 colunas',
       'Até 8 colunas',
     ],
   },
   {
-    group: 'Experiência Visual',
-    key: 'customizationLevel' as const,
+    key: 'customizationLevel',
+    group: 'Experiência do Visitante',
     label: 'Design da Interface',
     values: [
       'Tema Editorial',
       'Tema Editorial',
       '+ Cores do Grid',
       '+ Cores do Grid',
-      '+ Fundo Personalizado',
+      '+ Full Custom',
     ],
   },
+  // --- ENTREGA & SEGURANÇA ---
   {
+    key: 'zipSizeLimit',
     group: 'Entrega de Arquivos',
-    key: 'zipSizeLimit' as const,
-    label: 'Download ZIP - Tamanho/foto',
+    label: 'Download ZIP — Tamanho/foto',
     values: [
-      'Até 500KB/foto',
+      'Até 500KB',
       'Até 1MB (Otimizado)',
-      'Até 1.5MB (Otimizado)',
+      'Até 1,5MB',
       'Até 2MB (HD)',
       'Até 3MB (Full-Res)',
     ],
   },
   {
+    key: 'maxExternalLinks',
     group: 'Entrega de Arquivos',
-    key: 'maxExternalLinks' as const,
     label: 'Links de Download Externos',
-    values: [
-      false,
-      '1 Link Direto',
-      '2 Links Diretos',
-      'Até 5 Links (Nomes Personalizados)',
-      'Até 10 Links (Nomes Personalizados)',
-    ],
+    values: [false, '1 Link', '2 Links', 'Até 5 Links', 'Até 10 Links'],
   },
   {
+    key: 'keepOriginalFilenames',
     group: 'Entrega de Arquivos',
-    key: 'keepOriginalFilenames' as const,
-    label: 'Preservação de Dados',
+    label: 'Preservação de Nomes',
     values: [
-      'Nomes Aleatórios',
-      'Nomes Aleatórios',
+      'Sequenciais',
+      'Sequenciais',
       'Nomes Originais',
       'Nomes Originais',
       'Nomes Originais',
     ],
   },
   {
+    key: 'privacyLevel',
     group: 'Segurança',
-    key: 'privacyLevel' as const,
     label: 'Controle de Acesso',
     values: [
       'Link Público',
-      'Link Privado',
-      'Link Privado',
-      '+ Proteção por Senha',
-      '+ Link com Expiração',
+      'Proteção por Senha',
+      'Proteção por Senha',
+      'Proteção por Senha',
+      'Proteção por Senha',
     ],
   },
   {
-    group: 'Segurança',
     key: 'expiresAt',
+    group: 'Segurança',
     label: 'Data de Expiração',
     values: [false, false, false, 'Ativa', 'Ativa'],
   },
 ];
 
 // =============================================================================
-// 🌐 DOMAIN CONFIG
+// HELPERS
 // =============================================================================
+
+export function findNextPlanWithFeature(
+  currentPlanKey: PlanKey,
+  featureName: keyof PlanPermissions,
+  segment: SegmentType = 'PHOTOGRAPHER',
+): PlanKey {
+  const currentPlanIndex = planOrder.indexOf(currentPlanKey);
+  if (currentPlanIndex === -1) return 'PREMIUM';
+
+  const levelWeights: Record<string, number> = {
+    basic: 1,
+    standard: 2,
+    advanced: 3,
+    seo: 4,
+    minimal: 1,
+    social: 2,
+    full: 3,
+    manual: 1,
+    bulk: 2,
+    drive: 3,
+    default: 1,
+    colors: 2,
+    'full-custom': 3,
+  };
+
+  for (let i = currentPlanIndex + 1; i < planOrder.length; i++) {
+    const planKey = planOrder[i];
+    const nextValue = PERMISSIONS_BY_PLAN[planKey][featureName];
+    const currValue = PERMISSIONS_BY_PLAN[currentPlanKey][featureName];
+
+    if (typeof nextValue === 'boolean' && nextValue) return planKey;
+    if (
+      typeof nextValue === 'number' &&
+      typeof currValue === 'number' &&
+      nextValue > currValue
+    )
+      return planKey;
+    if (nextValue === 'unlimited' && currValue !== 'unlimited') return planKey;
+    if (typeof nextValue === 'string' && typeof currValue === 'string') {
+      if ((levelWeights[nextValue] || 0) > (levelWeights[currValue] || 0))
+        return planKey;
+    }
+  }
+
+  return 'PREMIUM';
+}
+
+export const resolveGalleryLimitByPlan = (planKey?: string): number => {
+  const normalizedKey = (planKey?.toUpperCase() as PlanKey) || 'FREE';
+  return PERMISSIONS_BY_PLAN[normalizedKey]?.maxGalleries || 1;
+};
 
 export function getPlansByDomain(hostname: string) {
   const SITE_CONFIG = {
@@ -1054,58 +1239,54 @@ export function getPlansByDomain(hostname: string) {
   } as const;
 
   const config =
-    SITE_CONFIG[hostname as keyof typeof SITE_CONFIG] ??
+    SITE_CONFIG[hostname as keyof typeof SITE_CONFIG] ||
     SITE_CONFIG['suagaleria.com.br'];
   return { ...config, plans: PLANS_BY_SEGMENT[config.segment as SegmentType] };
 }
 
-// =============================================================================
-// 🔍 FIND NEXT PLAN
-// =============================================================================
-
-const PLAN_ORDER: PlanKey[] = ['FREE', 'START', 'PLUS', 'PRO', 'PREMIUM'];
-
-export function findNextPlanWithFeature(
-  currentPlan: PlanKey,
-  feature: keyof PlanPermissions,
-  segment: SegmentType = 'PHOTOGRAPHER',
-): string | null {
-  const currentIdx = PLAN_ORDER.indexOf(currentPlan);
-  const segmentPlans = PLANS_BY_SEGMENT[segment];
-
-  for (let i = currentIdx + 1; i < PLAN_ORDER.length; i++) {
-    const key = PLAN_ORDER[i];
-    const val = PERMISSIONS_BY_PLAN[key][feature];
-    const has =
-      typeof val === 'boolean'
-        ? val
-        : typeof val === 'number'
-          ? val > 0
-          : val !== 'default' && val !== 'basic' && val !== 'minimal' && !!val;
-    if (has) return segmentPlans[key].name;
-  }
-  return null;
-}
-
 export function findNextPlanKeyWithFeature(
-  currentPlan: PlanKey,
-  feature: keyof PlanPermissions,
-): PlanKey | null {
-  const currentIdx = PLAN_ORDER.indexOf(currentPlan);
+  currentPlanKey: PlanKey,
+  featureName: keyof PlanPermissions,
+): PlanKey {
+  const currentIndex = planOrder.indexOf(currentPlanKey);
+  if (currentIndex === -1) return 'PREMIUM';
 
-  for (let i = currentIdx + 1; i < PLAN_ORDER.length; i++) {
-    const key = PLAN_ORDER[i];
-    const val = PERMISSIONS_BY_PLAN[key][feature];
-    const has =
-      typeof val === 'boolean'
-        ? val
-        : typeof val === 'number'
-          ? val > 0
-          : val !== 'default' && val !== 'basic' && val !== 'minimal' && !!val;
-    if (has) return key;
+  const levelWeights: Record<string, number> = {
+    basic: 1,
+    standard: 2,
+    advanced: 3,
+    seo: 4,
+    minimal: 1,
+    social: 2,
+    full: 3,
+    manual: 1,
+    bulk: 2,
+    drive: 3,
+    default: 1,
+    colors: 2,
+    'full-custom': 3,
+    public: 1,
+    password: 2,
+  };
+
+  for (let i = currentIndex + 1; i < planOrder.length; i++) {
+    const planKey = planOrder[i];
+    const nextValue = PERMISSIONS_BY_PLAN[planKey][featureName];
+    const currValue = PERMISSIONS_BY_PLAN[currentPlanKey][featureName];
+
+    if (typeof nextValue === 'boolean' && nextValue) return planKey;
+    if (
+      typeof nextValue === 'number' &&
+      typeof currValue === 'number' &&
+      nextValue > currValue
+    )
+      return planKey;
+    if (nextValue === 'unlimited' && currValue !== 'unlimited') return planKey;
+    if (typeof nextValue === 'string' && typeof currValue === 'string') {
+      if ((levelWeights[nextValue] || 0) > (levelWeights[currValue] || 0))
+        return planKey;
+    }
   }
-  return null;
-}
 
-// Alias para compatibilidade com imports existentes
-export { findNextPlanKeyWithFeature as findNextPlanWithFeatureKey };
+  return 'PREMIUM';
+}
