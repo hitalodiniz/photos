@@ -165,6 +165,8 @@ export default function Sidebar({
             isSidebarCollapsed={isSidebarCollapsed}
             photographer={photographer}
             handleGoogleLogin={handleGoogleLogin}
+            usedPhotoCredits={totalPhotosUsed}
+            activeGalleryCount={galeriasCount}
           />
 
           <SidebarAjuda isSidebarCollapsed={isSidebarCollapsed} />

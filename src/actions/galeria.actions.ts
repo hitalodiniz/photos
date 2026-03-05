@@ -1,6 +1,5 @@
 'use server';
 
-import { resolveGalleryLimitByPlan } from '@/core/config/plans';
 import { getAuthenticatedUser } from '@/core/services/auth-context.service';
 import {
   archiveExceedingGalleries,
@@ -8,6 +7,7 @@ import {
   syncGaleriaPhotoCountByGaleriaId,
 } from '@/core/services/galeria.service';
 
+import { getBaseGalleriesFromPool } from '@/core/config/plans';
 import {
   revalidateProfile,
   revalidateGalleryCache,
@@ -35,7 +35,7 @@ export async function syncUserGalleriesAction(
     return { success: false, error: 'Não autorizado' };
 
   try {
-    const limit = resolveGalleryLimitByPlan(profile.plan_key);
+    const limit = getBaseGalleriesFromPool(profile.plan_key);
 
     const archivedCount = await archiveExceedingGalleries(userId, limit, {
       oldPlan: oldPlanKey,

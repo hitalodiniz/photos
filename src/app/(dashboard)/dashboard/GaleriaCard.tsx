@@ -175,7 +175,7 @@ export default function GaleriaCard({
       galeria.has_contracting_client == null ||
       galeria.has_contracting_client === undefined
     )
-      return 'Disponibilização de fotos';
+      return 'Disponibilização de arquivos';
     else if (galeria.has_contracting_client === 'CT')
       return galeria.client_name;
     else return getGalleryTypeLabel(galeria.has_contracting_client);
@@ -348,19 +348,19 @@ export default function GaleriaCard({
             // 🎯 FIX: featureKey correto para o botão de Tags
             if (!permissions.canTagPhotos) {
               setUpsell({
-                label: 'Organizador de Fotos',
+                label: 'Organizador de arquivos',
                 featureKey: 'canTagPhotos',
               });
               return;
             }
             navigate(
               `/dashboard/galerias/${galeria.id}/tags`,
-              'Abrindo marcação de fotos...',
+              'Abrindo marcação de arquivos...',
             );
           }}
           disabled={isNavigating}
           className={btnBaseClass}
-          title="Marcação de Fotos"
+          title="Marcação de arquivos"
         >
           {isNavigating ? (
             <Loader2 size={16} className="animate-spin" />
@@ -502,7 +502,7 @@ export default function GaleriaCard({
                     >
                       <Eye size={13} className="text-green-600 shrink-0" />
                       <span className="text-green-600 font-semibold">
-                        Ver Selecionadas
+                        Ver Selecionados
                       </span>
                     </button>
                     {/* Lightroom */}
@@ -817,7 +817,7 @@ export default function GaleriaCard({
                 {isSelectionComplete ? (
                   <>
                     <CheckCircle2 size={11} strokeWidth={3} />
-                    <span>Fotos selecionadas</span>
+                    <span>Arquivos selecionados</span>
                   </>
                 ) : (
                   <>
@@ -933,7 +933,7 @@ export default function GaleriaCard({
         isOpen={isClearModalOpen}
         onClose={() => setIsClearModalOpen(false)}
         title="Limpar Seleção"
-        message="Deseja realmente remover todas as fotos selecionadas desta galeria? Esta ação não pode ser desfeita."
+        message="Deseja realmente remover todos os arquivos selecionados desta galeria? Esta ação não pode ser desfeita."
         confirmText="Sim, Limpar Tudo"
         variant="danger"
         onConfirm={async () => {

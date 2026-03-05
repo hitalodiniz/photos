@@ -19,10 +19,7 @@ import {
 import { ToolBarMobile } from './ToolBarMobile';
 import UpgradeModal from '@/components/ui/UpgradeModal';
 import { getGalleryPermission } from '@/core/utils/plan-helpers';
-
-// Substituido: DownloadCenterModal -> DownloadCenterSheet
 import { DownloadCenterSheet } from './DownloadCenterSheet';
-
 import { emitGaleriaEvent } from '@/core/services/galeria-stats.service';
 import { useShare } from '@/hooks/useShare';
 import { usePlan } from '@/core/context/PlanContext';
@@ -57,7 +54,9 @@ export default function PhotoGrid({ photos, galeria }: any) {
     number | string | null
   >(null);
   const [favorites, setFavorites] = useState<string[]>([]);
-  const [lastLightboxClosedAt, setLastLightboxClosedAt] = useState<number | null>(null);
+  const [lastLightboxClosedAt, setLastLightboxClosedAt] = useState<
+    number | null
+  >(null);
   const [toast, setToast] = useState<{
     message: string;
     type: 'success' | 'error';
@@ -91,7 +90,9 @@ export default function PhotoGrid({ photos, galeria }: any) {
     const safePhotos = Array.isArray(photos) ? photos : [];
     const withType = (p: any) => ({
       ...p,
-      type: p.mimeType?.startsWith('video/') ? ('video' as const) : ('photo' as const),
+      type: p.mimeType?.startsWith('video/')
+        ? ('video' as const)
+        : ('photo' as const),
     });
     if (!galeria?.photo_tags) return safePhotos.map(withType);
     try {
@@ -275,6 +276,8 @@ export default function PhotoGrid({ photos, galeria }: any) {
     () => parseLinks(galeria?.zip_url_full),
     [galeria?.zip_url_full],
   );
+
+  console.log('externalLinks', galeria.zip_url_full);
 
   const toggleFavoriteFromGrid = (id: string) => {
     setFavorites((prev) =>
@@ -567,7 +570,7 @@ export default function PhotoGrid({ photos, galeria }: any) {
                     <Eye size={18} className="text-petroleum" />
                     <div className="flex flex-col items-start leading-tight text-left">
                       <span className="text-[11px] font-bold uppercase tracking-widest">
-                        Ver Selecionadas
+                        Ver Selecionados
                       </span>
                       <span className="text-[9px] font-bold opacity-60 italic">
                         {favorites.length}{' '}

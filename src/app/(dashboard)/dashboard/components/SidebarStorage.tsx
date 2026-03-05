@@ -1,12 +1,16 @@
-import { ArrowUpCircle, HardDrive, ImageIcon, Layers } from 'lucide-react';
+'use client';
+
+import { ArrowUpCircle, HardDrive, ImageIcon } from 'lucide-react';
 import UpgradeModal from '@/components/ui/UpgradeModal';
+import { InfoTooltip } from '@/components/ui/InfoTooltip';
 import React, { useState } from 'react';
 import { usePlan } from '@/core/context/PlanContext';
+import { calcEffectiveMaxGalleries } from '@/core/config/plans';
 
 interface SidebarStorageProps {
   isSidebarCollapsed: boolean;
   galeriasCount: number;
-  totalPhotosUsed?: number; // total real de fotos em todas as galerias
+  totalPhotosUsed?: number;
 }
 
 export default function SidebarStorage({
@@ -14,187 +18,253 @@ export default function SidebarStorage({
   galeriasCount,
   totalPhotosUsed = 0,
 }: SidebarStorageProps) {
-  const { permissions } = usePlan();
+  const { permissions, planKey } = usePlan();
   const isMobile = typeof window !== 'undefined' && window.innerWidth < 1024;
   const showFull = !isSidebarCollapsed || isMobile;
   const [isUpgradeModalOpen, setIsUpgradeModalOpen] = useState(false);
 
-  // Galerias
-  const maxGalleries = permissions.maxGalleries;
-  const galeriasPercent = Math.min((galeriasCount / maxGalleries) * 100, 100);
-  const isLimitReached = galeriasCount >= maxGalleries;
-
-  // Pool de fotos
+  // ── Cálculos ──────────────────────────────────────────────────────────────
+  const hardCap = permissions.maxGalleriesHardCap;
+  const recommended = permissions.recommendedPhotosPerGallery;
   const photoCredits = permissions.photoCredits;
-  const photosRemaining = Math.max(photoCredits - totalPhotosUsed, 0);
-  const photosPercent = Math.min((totalPhotosUsed / photoCredits) * 100, 100);
-  const isPhotoLimitCritical = photosPercent >= 90;
 
-  // Galerias disponíveis pelo pool — usa recomendado, não hard cap
-  const recommendedPerGallery =
-    permissions.recommendedPhotosPerGallery ?? permissions.maxPhotosPerGallery;
-  const galeriasDisponiveisPeloPool =
-    recommendedPerGallery > 0
-      ? Math.floor(photosRemaining / recommendedPerGallery)
-      : 0;
-  const slotsGaleria = Math.max(maxGalleries - galeriasCount, 0);
-  const galeriasDisponiveis = Math.min(
-    slotsGaleria,
-    galeriasDisponiveisPeloPool,
+  const effectiveMax = calcEffectiveMaxGalleries(
+    planKey,
+    totalPhotosUsed,
+    galeriasCount,
   );
-  const isPoolBottleneck =
-    galeriasDisponiveisPeloPool < slotsGaleria && slotsGaleria > 0;
+  const available = Math.max(0, effectiveMax - galeriasCount);
+  const isPoolLimiting = effectiveMax < hardCap;
+
+  const galPct = Math.min(Math.round((galeriasCount / hardCap) * 100), 100);
+  const isGalWarning = galPct >= 70;
+  const isGalLimit = galeriasCount >= hardCap;
+
+  const photosRemaining = Math.max(0, photoCredits - totalPhotosUsed);
+  const photoPct = Math.min(
+    Math.round((totalPhotosUsed / photoCredits) * 100),
+    100,
+  );
+  const isPhotoWarning = photoPct >= 70;
+  const isPhotoCritical = photoPct >= 90;
+
+  // ── Paleta de estado ─────────────────────────────────────────────────────
+  // Retorna classes de cor baseado no nível de uso
+  const stateColor = (pct: number) => ({
+    bar:
+      pct >= 90 ? 'bg-red-500' : pct >= 70 ? 'bg-amber-400' : 'bg-champagne/80',
+    value:
+      pct >= 90
+        ? 'text-red-400'
+        : pct >= 70
+          ? 'text-amber-300'
+          : 'text-white/90',
+    sub:
+      pct >= 90
+        ? 'text-red-400/50'
+        : pct >= 70
+          ? 'text-amber-400/50'
+          : 'text-white/70',
+  });
+
+  const galState = stateColor(galPct);
+  const photoState = stateColor(photoPct);
+
+  // ── Tooltips ─────────────────────────────────────────────────────────────
+  const galTooltipContent = isPoolLimiting
+    ? `Plano: até ${hardCap} galerias. Com ${photosRemaining.toLocaleString('pt-BR')} arquivos restantes (~${recommended}/galeria), o pool suporta mais ${available}. Publique menos arquivos por galeria ou faça upgrade.`
+    : `${available} slot${available !== 1 ? 's' : ''} livre${available !== 1 ? 's' : ''} dentro do limite de ${hardCap}. Créditos suficientes (~${recommended} arquivos/galeria recomendados).`;
+
+  const photoTooltipContent =
+    `Cada arquivo publicado consome 1 crédito do pool de ${photoCredits.toLocaleString('pt-BR')}. ` +
+    `Recomendado: ~${recommended}/galeria. Com ${photosRemaining.toLocaleString('pt-BR')} restantes ` +
+    `cabem ~${Math.floor(photosRemaining / recommended)} galeria${Math.floor(photosRemaining / recommended) !== 1 ? 's' : ''} no ritmo recomendado.`;
 
   return (
     <>
       <div
-        className={`pt-4 border-t border-white/5 transition-all duration-500 ${
-          isSidebarCollapsed && !isMobile ? 'px-0' : 'px-2'
+        className={`transition-all duration-500 ${
+          isSidebarCollapsed && !isMobile ? 'px-0' : 'px-3'
         }`}
       >
         {showFull ? (
-          <div className="space-y-4">
-            {/* Galerias */}
-            <div className="space-y-2">
-              <div className="flex justify-between items-center px-1">
-                <span className="text-editorial-label text-white/90 flex items-center gap-2">
-                  <HardDrive size={12} strokeWidth={2} /> Galerias
-                </span>
-                <span className="text-[10px] font-semibold tracking-luxury text-white/90">
-                  {galeriasCount} / {maxGalleries}
-                </span>
+          // ── Modo expandido ───────────────────────────────────────────────
+          <div className="py-3 border-t border-white/[0.06] space-y-[14px]">
+            {/* ── Bloco Galerias ─────────────────────────────────────────── */}
+            <div className="space-y-[7px]">
+              {/* Linha superior: ícone+label | número */}
+              <div className="flex items-center justify-between">
+                <div className="flex items-center gap-1.5">
+                  <HardDrive
+                    size={9}
+                    strokeWidth={2.5}
+                    className="text-white/90 shrink-0"
+                  />
+                  <span className="text-[10px] font-semibold uppercase tracking-[0.1em] text-white/90">
+                    Galerias
+                  </span>
+                </div>
+                <div className="flex items-baseline gap-0.5 tabular-nums">
+                  <span
+                    className={`text-[13px] font-semibold leading-none ${galState.value}`}
+                  >
+                    {galeriasCount}
+                  </span>
+                  <span className="text-[10px] text-white/90 font-normal">
+                    /{hardCap}
+                  </span>
+                </div>
               </div>
-              <div className="w-full h-1.5 bg-white/5 rounded-full overflow-hidden border border-white/5 shadow-inner">
+
+              {/* Barra de progresso */}
+              <div className="relative h-[2px] w-full bg-white/[0.07] rounded-full overflow-hidden">
                 <div
-                  className={`h-full transition-all duration-1000 ease-out rounded-full ${
-                    isLimitReached
-                      ? 'bg-red-500 shadow-[0_0_10px_rgba(239,68,68,0.5)]'
-                      : 'bg-champagne shadow-[0_0_10px_rgba(212,175,55,0.5)]'
-                  }`}
-                  style={{ width: `${galeriasPercent}%` }}
+                  className={`absolute inset-y-0 left-0 rounded-full transition-all duration-1000 ease-out ${galState.bar}`}
+                  style={{ width: `${galPct || (galeriasCount > 0 ? 1 : 0)}%` }}
                 />
               </div>
-              {isLimitReached ? (
+
+              {/* Linha inferior: status + tooltip */}
+              {isGalLimit ? (
                 <button
                   onClick={() => setIsUpgradeModalOpen(true)}
-                  className="w-full py-2 px-3 bg-red-500/10 hover:bg-red-500/20 active:bg-red-500/30 border border-red-500/50 rounded-luxury flex items-center justify-between group transition-all"
+                  className="w-full flex items-center justify-between px-2 py-1.5 rounded-md bg-red-500/10 hover:bg-red-500/15 border border-red-500/20 transition-colors group"
                 >
-                  <span className="text-[9px] font-black text-red-400 uppercase tracking-luxury-widest">
-                    Limite Atingido
+                  <span className="text-[10px] font-semibold uppercase tracking-[0.08em] text-red-400/80">
+                    Limite atingido — Upgrade
                   </span>
                   <ArrowUpCircle
-                    size={14}
-                    className="text-red-400 group-hover:-translate-y-0.5 transition-transform"
+                    size={10}
+                    className="text-red-400/60 group-hover:-translate-y-px transition-transform shrink-0"
                   />
                 </button>
               ) : (
-                <p className="text-[9px] text-white/40 uppercase tracking-luxury-widest px-1">
-                  Galerias Ativas
-                </p>
+                <div className="flex items-center justify-between">
+                  <div className="flex items-center gap-1">
+                    <span
+                      className={`text-[10px] font-medium tracking-[0.06em] ${
+                        isPoolLimiting ? 'text-amber-400/70' : galState.sub
+                      }`}
+                    >
+                      {available} disponíve{available !== 1 ? 'is' : 'l'}
+                    </span>
+                    {isPoolLimiting && (
+                      <span className="inline-flex items-center px-1 py-0.5 rounded text-[8px] font-semibold uppercase tracking-wider bg-amber-400/10 text-amber-400/60 leading-none">
+                        pool
+                      </span>
+                    )}
+                  </div>
+                  <InfoTooltip
+                    title="Galerias disponíveis"
+                    content={galTooltipContent}
+                    portal
+                    align="right"
+                  />
+                </div>
               )}
             </div>
 
-            {/* Pool de Fotos */}
-            <div className="space-y-2 pt-3 border-t border-white/5">
-              <div className="flex justify-between items-center px-1">
-                <span className="text-editorial-label text-white/90 flex items-center gap-2">
-                  <ImageIcon size={12} strokeWidth={2} /> Créditos de Fotos
-                </span>
-                <span
-                  className={`text-[10px] font-semibold tracking-luxury ${isPhotoLimitCritical ? 'text-red-400' : 'text-white/90'}`}
-                >
-                  {photosRemaining.toLocaleString('pt-BR')} restantes
-                </span>
+            {/* ── Divisor ────────────────────────────────────────────────── */}
+            <div className="h-px w-full bg-white/[0.04]" />
+
+            {/* ── Bloco Arquivos ─────────────────────────────────────────── */}
+            <div className="space-y-[7px]">
+              {/* Linha superior: ícone+label | número */}
+              <div className="flex items-center justify-between">
+                <div className="flex items-center gap-1.5">
+                  <ImageIcon
+                    size={9}
+                    strokeWidth={2.5}
+                    className="text-white/90 shrink-0"
+                  />
+                  <span className="text-[10px] font-semibold uppercase tracking-[0.1em] text-white/90">
+                    Fotos e vídeos
+                  </span>
+                </div>
+                <div className="flex items-baseline gap-0.5 tabular-nums">
+                  <span
+                    className={`text-[13px] font-semibold leading-none ${photoState.value}`}
+                  >
+                    {totalPhotosUsed.toLocaleString('pt-BR')}
+                  </span>
+                  <span className="text-[10px] text-white/90 font-normal">
+                    /
+                    {photoCredits >= 1000
+                      ? `${Math.round(photoCredits / 1000)}k`
+                      : photoCredits.toLocaleString('pt-BR')}
+                  </span>
+                </div>
               </div>
-              <div className="w-full h-1.5 bg-white/5 rounded-full overflow-hidden border border-white/5 shadow-inner">
+
+              {/* Barra de progresso */}
+              <div className="relative h-[2px] w-full bg-white/[0.07] rounded-full overflow-hidden">
                 <div
-                  className={`h-full transition-all duration-1000 ease-out rounded-full ${
-                    isPhotoLimitCritical
-                      ? 'bg-red-500 shadow-[0_0_10px_rgba(239,68,68,0.5)]'
-                      : 'bg-champagne/60 shadow-[0_0_10px_rgba(212,175,55,0.3)]'
-                  }`}
-                  style={{ width: `${photosPercent}%` }}
+                  className={`absolute inset-y-0 left-0 rounded-full transition-all duration-1000 ease-out ${photoState.bar}`}
+                  style={{
+                    width: `${photoPct || (totalPhotosUsed > 0 ? 1 : 0)}%`,
+                  }}
                 />
               </div>
-              <p className="text-[9px] text-white/30 uppercase tracking-luxury-widest px-1">
-                Pool total: {photoCredits.toLocaleString('pt-BR')} fotos
-              </p>
-            </div>
 
-            {/* Galerias disponíveis pelo pool */}
-            <div
-              className={`px-3 py-2.5 rounded-luxury border flex items-center gap-3 ${
-                galeriasDisponiveis === 0
-                  ? 'bg-red-500/10 border-red-500/30'
-                  : isPoolBottleneck
-                    ? 'bg-amber-500/10 border-amber-500/20'
-                    : 'bg-white/5 border-white/5'
-              }`}
-            >
-              <Layers
-                size={13}
-                className={`shrink-0 ${
-                  galeriasDisponiveis === 0
-                    ? 'text-red-400'
-                    : isPoolBottleneck
-                      ? 'text-amber-400'
-                      : 'text-white/40'
-                }`}
-              />
-              <div className="min-w-0">
-                <p
-                  className={`text-[10px] font-bold uppercase tracking-luxury-widest leading-tight ${
-                    galeriasDisponiveis === 0
-                      ? 'text-red-400'
-                      : isPoolBottleneck
-                        ? 'text-amber-400'
-                        : 'text-white/70'
-                  }`}
+              {/* Linha inferior: restantes + tooltip */}
+              <div className="flex items-center justify-between">
+                <span
+                  className={`text-[10px] font-medium tracking-[0.06em] ${photoState.sub}`}
                 >
-                  {galeriasDisponiveis === 0
-                    ? 'Sem créditos para novas galerias'
-                    : `${galeriasDisponiveis} galeria${galeriasDisponiveis !== 1 ? 's' : ''} disponível${galeriasDisponiveis !== 1 ? 'is' : ''}`}
-                </p>
-                <p className="text-[9px] text-white/30 mt-0.5 leading-tight">
-                  {isPoolBottleneck
-                    ? `Pool limita antes dos ${slotsGaleria} slots restantes`
-                    : `~${recommendedPerGallery} fotos/galeria recomendadas`}
-                </p>
+                  {photosRemaining >= 1000
+                    ? `${Math.round(photosRemaining / 1000)}k`
+                    : photosRemaining.toLocaleString('pt-BR')}{' '}
+                  restantes
+                </span>
+                <InfoTooltip
+                  title="Arquivos publicados"
+                  content={photoTooltipContent}
+                  portal
+                  align="right"
+                />
               </div>
             </div>
           </div>
         ) : (
-          /* Colapsado */
-          <div className="flex flex-col items-center gap-3 py-2">
-            <div className="group relative flex justify-center cursor-help">
+          // ── Modo colapsado ───────────────────────────────────────────────
+          <div className="py-3 border-t border-white/[0.06] flex flex-col items-center gap-3">
+            {/* Galerias */}
+            <div className="group relative">
               <button
-                onClick={() => isLimitReached && setIsUpgradeModalOpen(true)}
-                className={`w-8 h-8 rounded-full border flex items-center justify-center text-[9px] font-semibold transition-all ${
-                  isLimitReached
-                    ? 'bg-red-500/20 border-red-500 text-red-500 animate-pulse'
-                    : 'border-white/10 text-white/90 hover:text-champagne hover:border-champagne'
+                onClick={() => isGalLimit && setIsUpgradeModalOpen(true)}
+                className={`w-7 h-7 rounded-full border flex items-center justify-center text-[9px] font-semibold transition-all ${
+                  isGalLimit
+                    ? 'bg-red-500/15 border-red-500/50 text-red-400 animate-pulse'
+                    : isGalWarning
+                      ? 'border-amber-400/30 text-amber-300'
+                      : 'border-white/10 text-white/50 hover:border-champagne/30 hover:text-champagne/70'
                 }`}
               >
-                {isLimitReached ? <ArrowUpCircle size={14} /> : galeriasCount}
+                {isGalLimit ? <ArrowUpCircle size={12} /> : galeriasCount}
               </button>
-              <div className="absolute left-full ml-4 px-3 py-2 bg-slate-950 text-white text-[10px] font-semibold uppercase rounded-luxury opacity-0 pointer-events-none group-hover:opacity-100 transition-all z-[999] shadow-2xl border border-white/10 whitespace-nowrap">
-                {isLimitReached
-                  ? 'Aumentar limite agora'
-                  : `${galeriasCount} de ${maxGalleries} galerias`}
+              <div className="absolute left-full ml-3 px-2.5 py-1.5 bg-slate-950 text-white text-[9px] font-semibold uppercase tracking-wider rounded-lg opacity-0 pointer-events-none group-hover:opacity-100 transition-opacity z-[999] shadow-2xl border border-white/8 whitespace-nowrap">
+                {isGalLimit
+                  ? 'Limite atingido — Upgrade'
+                  : `${galeriasCount}/${hardCap} galerias · ${available} livres`}
               </div>
             </div>
-            <div className="group relative flex justify-center cursor-help">
+
+            {/* Arquivos */}
+            <div className="group relative">
               <div
-                className={`w-8 h-8 rounded-full border flex items-center justify-center transition-all ${
-                  isPhotoLimitCritical
-                    ? 'bg-red-500/20 border-red-500 text-red-400 animate-pulse'
-                    : 'border-white/10 text-white/50 hover:text-champagne hover:border-champagne'
+                className={`w-7 h-7 rounded-full border flex items-center justify-center transition-all ${
+                  isPhotoCritical
+                    ? 'bg-red-500/15 border-red-500/50 text-red-400 animate-pulse'
+                    : isPhotoWarning
+                      ? 'border-amber-400/30 text-amber-300'
+                      : 'border-white/10 text-white/30 hover:border-champagne/30 hover:text-champagne/70'
                 }`}
               >
-                <ImageIcon size={13} />
+                <ImageIcon size={11} strokeWidth={2} />
               </div>
-              <div className="absolute left-full ml-4 px-3 py-2 bg-slate-950 text-white text-[10px] font-semibold uppercase rounded-luxury opacity-0 pointer-events-none group-hover:opacity-100 transition-all z-[999] shadow-2xl border border-white/10 whitespace-nowrap">
-                {photosRemaining.toLocaleString('pt-BR')} créditos restantes
+              <div className="absolute left-full ml-3 px-2.5 py-1.5 bg-slate-950 text-white text-[9px] font-semibold uppercase tracking-wider rounded-lg opacity-0 pointer-events-none group-hover:opacity-100 transition-opacity z-[999] shadow-2xl border border-white/8 whitespace-nowrap">
+                {totalPhotosUsed.toLocaleString('pt-BR')}/
+                {photoCredits.toLocaleString('pt-BR')} arquivos
               </div>
             </div>
           </div>
