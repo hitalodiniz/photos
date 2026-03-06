@@ -59,6 +59,10 @@ export default async function RootLayout({
     resultProfile.success && resultProfile.profile
       ? resultProfile.profile
       : undefined;
+  const email =
+    resultProfile.success && resultProfile.profile
+      ? resultProfile.email ?? null
+      : undefined;
 
   return (
     <html
@@ -83,7 +87,7 @@ export default async function RootLayout({
       </head>
       <body className="antialiased font-sans bg-luxury-bg text-petroleum">
         <AuthProvider>
-          <PlanProvider profile={profile}>
+          <PlanProvider profile={profile} email={email}>
             <NavigationProvider>
               <SidebarProvider>
                 <Navbar />

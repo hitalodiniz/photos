@@ -7,7 +7,6 @@ import React, { useState } from 'react';
 import { usePlan } from '@/core/context/PlanContext';
 import { calcEffectiveMaxGalleries } from '@/core/config/plans';
 import { HELP_CONTENT } from '@/core/config/help-content';
-import { div } from 'framer-motion/client';
 
 interface SidebarStorageProps {
   isSidebarCollapsed: boolean;
@@ -29,13 +28,6 @@ export default function SidebarStorage({
   const hardCap = permissions.maxGalleriesHardCap;
   const recommended = permissions.recommendedPhotosPerGallery;
   const photoCredits = permissions.photoCredits;
-
-  const storageGB = permissions.storageGB;
-
-  const storageLabel =
-    storageGB >= 1000
-      ? `${(storageGB / 1000).toFixed(storageGB % 1000 === 0 ? 0 : 1)} TB`
-      : `${storageGB} GB`;
 
   const effectiveMax = calcEffectiveMaxGalleries(
     planKey,
@@ -164,6 +156,7 @@ export default function SidebarStorage({
                     )}
                   </div>
                   <InfoTooltip
+                    portal
                     title={HELP_CONTENT.STORAGE.GALLERIES.title}
                     content={HELP_CONTENT.STORAGE.GALLERIES.content}
                   />
@@ -200,9 +193,6 @@ export default function SidebarStorage({
                       ? `${Math.round(photoCredits / 1000)}k`
                       : photoCredits.toLocaleString('pt-BR')}
                   </span>
-                  <span className="text-[8px] text-white/10 font-normal ml-0.5">
-                    · {storageLabel}
-                  </span>
                 </div>
               </div>
 
@@ -226,6 +216,7 @@ export default function SidebarStorage({
                   restantes
                 </span>
                 <InfoTooltip
+                  portal
                   title={HELP_CONTENT.STORAGE.POOL.title}
                   content={HELP_CONTENT.STORAGE.POOL.content}
                 />

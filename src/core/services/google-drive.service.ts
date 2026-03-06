@@ -24,7 +24,8 @@ interface ActionResult<T = unknown> {
 
 /**
  * Busca fotos de uma pasta do Google Drive
- * Centraliza autenticação, obtenção de token e listagem
+ * Centraliza autenticação, obtenção de token e listagem.
+ * O plano do usuário logado é resolvido internamente para regras de vídeo.
  */
 export async function getFolderPhotos(
   driveFolderId: string,
@@ -52,8 +53,12 @@ export async function getFolderPhotos(
       };
     }
 
-    // 4. LISTAR FOTOS DO DRIVE
-    const photos = await listPhotosFromDriveFolder(driveFolderId, accessToken);
+    // 4. LISTAR FOTOS DO DRIVE (plano resolvido por userId nas regras de vídeo)
+    const photos = await listPhotosFromDriveFolder(
+      driveFolderId,
+      accessToken,
+      { userId },
+    );
 
     // 5. ORDENAÇÃO: Data (mais recente) > Nome (alfabético)
     photos.sort((a, b) => {

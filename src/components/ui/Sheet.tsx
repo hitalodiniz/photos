@@ -2,7 +2,8 @@
 'use client';
 
 import { X } from 'lucide-react';
-import { ReactNode } from 'react';
+import { ReactNode, useEffect, useState } from 'react';
+import { createPortal } from 'react-dom';
 
 interface SheetProps {
   isOpen: boolean;
@@ -31,7 +32,13 @@ export function Sheet({
   maxWidth = 'md',
   position = 'right',
 }: SheetProps) {
-  if (!isOpen) return null;
+  const [mounted, setMounted] = useState(false);
+
+  useEffect(() => {
+    setMounted(true);
+  }, []);
+
+  if (!isOpen || !mounted) return null;
 
   const maxWidthClasses = {
     sm: 'sm:w-[384px]',
@@ -51,9 +58,9 @@ export function Sheet({
     },
   };
 
-  return (
+  const sheetContent = (
     <div
-      className={`fixed inset-0 z-[200] animate-in fade-in duration-300 flex ${positionClasses[position].container}`}
+      className={`fixed inset-0 z-[1100] animate-in fade-in duration-300 flex ${positionClasses[position].container}`}
     >
       {/* Backdrop */}
       <div
@@ -111,6 +118,8 @@ export function Sheet({
       </div>
     </div>
   );
+
+  return createPortal(sheetContent, document.body);
 }
 
 // Subcomponentes opcionais para melhor organização

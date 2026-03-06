@@ -6,6 +6,10 @@ import UpgradeModal from './UpgradeModal';
 import { PlanProvider } from '@/core/context/PlanContext';
 import { Profile } from '@/core/types/profile';
 
+vi.mock('@/core/services/billing.service', () => ({
+  getBillingProfile: vi.fn(() => Promise.resolve(null)),
+}));
+
 beforeAll(() => {
   vi.stubEnv('NEXT_PUBLIC_APP_SEGMENT', 'PHOTOGRAPHER');
 });
@@ -214,13 +218,10 @@ describe('UpgradeModal Integration', () => {
     ).toBeInTheDocument();
   });
 
-  // ─── Benefícios exibidos ────────────────────────────────────────────────────
+  // ─── Benefícios exibidos (descrição do recurso + CTA do plano de destino) ─────
 
   test('lista de benefícios do plano PRO (FREE + canCaptureLeads)', () => {
-    // nextPlanKey = PRO
-    // PRO: maxGalleries=50, maxPhotosPerGallery=1500, maxExternalLinks=5
-    // canCaptureLeads=true → 'Captura e exportação de leads'
-    // removeBranding=false → 'Identidade visual profissional'
+    // nextPlanKey = PRO → exibe descrição do canCaptureLeads e CTA "Migrar para o Pro"
     render(
       <PlanProvider profile={makeMockProfile({ plan_key: 'FREE' })}>
         <UpgradeModal
@@ -233,29 +234,17 @@ describe('UpgradeModal Integration', () => {
       </PlanProvider>,
     );
 
-    expect(screen.getByText(/até 50.*ativas/i)).toBeInTheDocument();
-    expect(screen.getByText(/500 gb de armazenamento/i)).toBeInTheDocument();
     expect(
-      screen.getByText(/até 1.?500 arquivos por galeria/i),
-    ).toBeInTheDocument();
-    expect(screen.getByText(/50 vídeos por galeria/i)).toBeInTheDocument();
-    expect(screen.getByText(/5 colaboradores na equipe/i)).toBeInTheDocument();
+      screen.getAllByText(/solicite nome.*whatsapp.*e-mail.*liberar as fotos/i)
+        .length,
+    ).toBeGreaterThanOrEqual(1);
     expect(
-      screen.getByText(/captura e exportação de leads/i),
-    ).toBeInTheDocument();
-    expect(
-      screen.getByText(/identidade visual profissional/i),
-    ).toBeInTheDocument();
-    expect(
-      screen.getByText(/5 links externos de download/i),
+      screen.getByRole('button', { name: /migrar para o pro/i }),
     ).toBeInTheDocument();
   });
 
   test('lista de benefícios do plano PREMIUM (PRO + removeBranding)', () => {
-    // nextPlanKey = PREMIUM
-    // PREMIUM: maxGalleries=200, maxPhotosPerGallery=3000, maxExternalLinks=10
-    // canCaptureLeads=true → 'Captura e exportação de leads'
-    // removeBranding=true  → 'Remoção total de branding (White Label)'
+    // nextPlanKey = PREMIUM → exibe descrição do removeBranding e CTA "Migrar para o Premium"
     render(
       <PlanProvider profile={makeMockProfile({ plan_key: 'PRO' })}>
         <UpgradeModal
@@ -268,18 +257,8 @@ describe('UpgradeModal Integration', () => {
       </PlanProvider>,
     );
 
-    expect(screen.getByText(/até 200.*ativas/i)).toBeInTheDocument();
-    expect(screen.getByText(/2 tb de armazenamento/i)).toBeInTheDocument();
     expect(
-      screen.getByText(/até 3.?000 arquivos por galeria/i),
-    ).toBeInTheDocument();
-    expect(screen.getByText(/100 vídeos por galeria/i)).toBeInTheDocument();
-    expect(
-      screen.getByText(/captura e exportação de leads/i),
-    ).toBeInTheDocument();
-    expect(screen.getByText(/white label.*remove/i)).toBeInTheDocument();
-    expect(
-      screen.getByText(/10 links externos de download/i),
+      screen.getByText(/remova a marca do app do rodapé/i),
     ).toBeInTheDocument();
     expect(
       screen.getByRole('button', { name: /migrar para o premium/i }),
@@ -287,10 +266,7 @@ describe('UpgradeModal Integration', () => {
   });
 
   test('lista de benefícios do plano START (FREE + canFavorite)', () => {
-    // FREE.canFavorite=false, START.canFavorite=true → nextPlanKey = START
-    // START: maxGalleries=10, maxPhotosPerGallery=500, maxExternalLinks=1
-    // canCaptureLeads=false → 'Interação avançada com usuários'
-    // removeBranding=false  → 'Identidade visual profissional'
+    // nextPlanKey = START → exibe descrição do canFavorite e CTA "Migrar para o Start"
     render(
       <PlanProvider profile={makeMockProfile({ plan_key: 'FREE' })}>
         <UpgradeModal
@@ -303,18 +279,11 @@ describe('UpgradeModal Integration', () => {
       </PlanProvider>,
     );
 
-    expect(screen.getByText(/até 10.*ativas/i)).toBeInTheDocument();
-    expect(screen.getByText(/25 gb de armazenamento/i)).toBeInTheDocument();
     expect(
-      screen.getByText(/até 500 arquivos por galeria/i),
-    ).toBeInTheDocument();
-    expect(screen.getByText(/10 vídeos por galeria/i)).toBeInTheDocument();
-    expect(
-      screen.getByText(/interação avançada com visitantes/i),
+      screen.getByText(/permita que clientes selecionem e favoritem fotos/i),
     ).toBeInTheDocument();
     expect(
-      screen.getByText(/identidade visual profissional/i),
+      screen.getByRole('button', { name: /migrar para o start/i }),
     ).toBeInTheDocument();
-    expect(screen.getByText(/1 link externo de download/i)).toBeInTheDocument();
   });
 });

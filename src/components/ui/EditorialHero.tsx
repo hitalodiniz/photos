@@ -59,13 +59,16 @@ export const EditorialHero = ({
         ? [coverUrls]
         : [];
 
-    // FREE e sem fotos: usa imagem editorial aleatória por segmento.
-    // planKey já é normalizado pelo PlanContext (trial expirado → 'FREE').
+    // FREE e sem fotos: usa imagem editorial por segmento (determinístico para evitar hydration mismatch).
+    // Nunca usar Math.random() — servidor e cliente devem gerar o mesmo index.
     if (planKey === 'FREE' || normalizedUrls.length === 0) {
       const config =
         SEGMENT_ASSETS[segment as keyof typeof SEGMENT_ASSETS] ||
         SEGMENT_ASSETS.PHOTOGRAPHER;
-      const seed = title ? title.length : Math.floor(Math.random() * 100);
+      const seed =
+        typeof title === 'string' && title.length > 0
+          ? title.length
+          : (segment?.length ?? 0) || 1;
       const index = (seed % config.count) + 1;
       return [`${config.path}${index}.webp`];
     }

@@ -838,6 +838,7 @@ export async function syncGaleriaPhotoCountByGaleriaId(
     const photos = await listPhotosFromDriveFolder(
       row.drive_folder_id,
       accessToken,
+      { userId: row.user_id },
     );
     const count = photos?.length || 0;
 

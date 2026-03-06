@@ -9,22 +9,11 @@ import {
   PlanPermissions,
   PERMISSIONS_BY_PLAN,
   FEATURE_DESCRIPTIONS,
-  // FIX 4: Substituído findNextPlanWithFeature por findNextPlanKeyWithFeature.
-  //
-  // MOTIVO: findNextPlanWithFeature retorna o *nome de exibição* do plano
-  // conforme o segmento (ex: 'Start', 'Pro', 'Premium'). Esses valores não
-  // são chaves válidas de PERMISSIONS_BY_PLAN (que usa 'FREE'|'START'|...).
-  // Portanto PERMISSIONS_BY_PLAN['Start'] === undefined, e planBenefits
-  // sempre retornava [].
-  //
-  // findNextPlanKeyWithFeature retorna a PlanKey canônica ('START', 'PRO'...),
-  // que é a chave correta para acessar PERMISSIONS_BY_PLAN.
-  //
-  // Para exibição no modal (ex: "Migrar para o Start"), usamos
-  // PERMISSIONS_BY_PLAN[nextPlanKey] se necessário, ou mantemos a PlanKey
-  // como label — que já é suficientemente legível no contexto do modal.
+  getPlanBenefits,
+  type PlanBenefitItem,
+  // FIX 4: findNextPlanKeyWithFeature retorna PlanKey canônica para PERMISSIONS_BY_PLAN.
   findNextPlanKeyWithFeature,
-  findNextPlanWithFeature, // mantido para o nome de exibição no texto do modal
+  findNextPlanWithFeature,
 } from '@/core/config/plans';
 import { usePlan } from '@/core/context/PlanContext';
 import { useSegment } from '@/hooks/useSegment';
@@ -76,31 +65,10 @@ export default function UpgradeModal({
     return null;
   }, [description, featureKey]);
 
-  const planBenefits = useMemo(() => {
+  const planBenefits = useMemo((): PlanBenefitItem[] => {
     const perms = PERMISSIONS_BY_PLAN[nextPlanKey];
     if (!perms) return [];
-
-    const storageLabel =
-      perms.storageGB >= 1_000
-        ? `${(perms.storageGB / 1_000).toFixed(perms.storageGB % 1_000 === 0 ? 0 : 1)} TB`
-        : `${perms.storageGB} GB`;
-
-    return [
-      `Até ${perms.maxGalleries} ${terms.items} ativas (máx. ${perms.maxGalleriesHardCap} com pool livre)`,
-      `${storageLabel} de armazenamento`,
-      `Até ${perms.maxPhotosPerGallery} arquivos por galeria`,
-      `${perms.maxVideoCount} vídeo${perms.maxVideoCount !== 1 ? 's' : ''} por galeria`,
-      perms.teamMembers > 0
-        ? `Até ${perms.teamMembers} colaborador${perms.teamMembers !== 1 ? 'es' : ''} na equipe`
-        : 'Conta individual (sem colaboradores)',
-      perms.canCaptureLeads
-        ? 'Captura e exportação de leads'
-        : 'Interação avançada com visitantes',
-      perms.removeBranding
-        ? 'White Label — remove toda a marca do app'
-        : 'Identidade visual profissional',
-      `${perms.maxExternalLinks} link${perms.maxExternalLinks !== 1 ? 's' : ''} externo${perms.maxExternalLinks !== 1 ? 's' : ''} de download`,
-    ];
+    return getPlanBenefits(perms, terms);
   }, [nextPlanKey, terms]);
 
   if (!isOpen) return null;
@@ -139,32 +107,30 @@ export default function UpgradeModal({
         }
         headerIcon={headerIcon}
         footer={footer}
-        maxWidth="2xl"
+        maxWidth="3xl"
       >
-        <div className="space-y-4">
+        <div className="space-y-3">
           {/* Header do Recurso */}
-          <div className="w-full flex items-center gap-4 p-4 rounded-luxury border border-gold/20 bg-gold/5">
-            <div className="w-10 h-10 rounded-luxury flex items-center justify-center shrink-0 bg-gold text-petroleum shadow-[0_0_15px_rgba(212,175,55,0.2)]">
-              <Lock size={20} />
+          <div className="w-full flex items-center gap-2 p-2 rounded-luxury border border-gold/20 bg-gold/5">
+            <div className="w-7 h-7 rounded-md flex items-center justify-center shrink-0 bg-gold text-petroleum shadow-[0_0_15px_rgba(212,175,55,0.2)]">
+              <Lock size={16} />
             </div>
             <div className="flex-1 text-left min-w-0">
               <p className="text-[14px] font-bold text-petroleum tracking-wide uppercase truncate">
                 {featureName}
-              </p>
-              <div className="flex items-center gap-2 mt-0.5">
-                <span className="text-[10px] font-semibold text-petroleum/60 uppercase tracking-luxury">
+                <span className="text-[10px] font-semibold text-petroleum/60 uppercase tracking-luxury ml-2">
                   {scenarioType === 'limit'
                     ? `Limite do plano ${planKey} atingido`
                     : `Bloqueado no Plano ${planKey}`}
                 </span>
-              </div>
+              </p>
             </div>
           </div>
 
           {/* Texto Explicativo com Descrição Amigável */}
           <div className="px-1 space-y-2">
             {displayDescription && (
-              <p className="text-[14px] text-petroleum font-bold leading-relaxed border-l-2 border-gold/40 pl-3 py-0.5 bg-slate-50/50">
+              <p className="text-[14px] text-petroleum font-semibold leading-relaxed border-l-2 border-gold/40 pl-3 py-0.5 bg-slate-50/50">
                 {displayDescription}
               </p>
             )}
@@ -186,27 +152,38 @@ export default function UpgradeModal({
                   <span className="text-petroleum font-extrabold">
                     {nextPlanDisplayName}
                   </span>{' '}
-                  ou superior no {terms.site_name}.
+                  ou superior.
                 </>
               )}
             </p>
           </div>
+          <div className="h-px bg-petroleum/10 my-2" />
 
           {/* Lista de Benefícios */}
-          <div className="space-y-2.5 p-4 bg-slate-50 border border-petroleum/10 rounded-luxury">
-            <p className="text-[11px] font-semibold uppercase tracking-luxury text-petroleum/90 mb-2">
-              Vantagens ao migrar para o{' '}
-              <span className="text-gold">{nextPlanDisplayName}</span>:
-            </p>
+
+          <p className="text-[11px] font-semibold uppercase tracking-luxury-wide text-petroleum/90 mb-1">
+            Vantagens ao migrar para o{' '}
+            <span className="text-gold font-bold">{nextPlanDisplayName}</span>
+          </p>
+          <ul className="grid grid-cols-1 sm:grid-cols-2 gap-x-6 gap-y-2 list-none p-0 m-0">
             {planBenefits.map((benefit, i) => (
-              <div key={i} className="flex items-center gap-2">
-                <CheckCircle2 size={12} className="text-gold shrink-0" />
-                <span className="text-[12px] font-semibold tracking-luxury text-petroleum/80">
-                  {benefit}
-                </span>
-              </div>
+              <li key={i} className="flex gap-1">
+                <CheckCircle2
+                  size={14}
+                  className="text-gold shrink-0 mt-0.5"
+                  strokeWidth={2.5}
+                />
+                <div className="min-w-0">
+                  <span className="text-[10px] font-bold uppercase tracking-luxury text-petroleum/90 block">
+                    {benefit.label}
+                  </span>
+                  <span className="text-[12px] text-petroleum/80 ">
+                    {benefit.description}
+                  </span>
+                </div>
+              </li>
             ))}
-          </div>
+          </ul>
         </div>
       </BaseModal>
 

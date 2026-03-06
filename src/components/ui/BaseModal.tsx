@@ -96,7 +96,7 @@ export default function BaseModal({
 
   const modalContent = (
     <div
-      className={`fixed inset-0 z-[10000] ${overlayColor}/${overlayOpacity} ${blurClasses[blurLevel]} flex items-center justify-center ${containerPadding} animate-in fade-in duration-500`}
+      className={`fixed inset-0 z-[1000] ${overlayColor}/${overlayOpacity} ${blurClasses[blurLevel]} flex items-center justify-center ${containerPadding} animate-in fade-in duration-500`}
     >
       <div
         className="absolute inset-0"

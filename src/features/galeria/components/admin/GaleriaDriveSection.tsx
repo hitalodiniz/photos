@@ -117,6 +117,13 @@ export function GaleriaDriveSection({
           Vincular Pasta do Google Drive
         </label>
 
+        <p className="text-[9px] text-slate-500 leading-tight">
+          Vídeos: no máximo <strong>{permissions.maxVideoCount ?? 1}</strong>{' '}
+          por galeria e até{' '}
+          <strong>{permissions.maxVideoSizeMB ?? 15} MB</strong> cada (por
+          performance). Acima disso os vídeos não são listados e contados.
+        </p>
+
         <div className="flex flex-col bg-slate-50 p-3 rounded-luxury border border-slate-200 space-y-3">
           {/* Nome da pasta */}
           <p className="text-[13px] text-petroleum/90 font-semibold truncate bg-white/50 px-2 py-1.5 rounded border border-slate-200">

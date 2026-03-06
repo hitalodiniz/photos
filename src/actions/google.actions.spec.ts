@@ -134,9 +134,18 @@ describe('Google Actions - Testes Completos', () => {
           'valid-token-123',
         );
 
+        const imageFile = (id: string) => ({
+          id,
+          mimeType: 'image/jpeg',
+          size: '1000',
+        });
         vi.mocked(fetch).mockResolvedValue({
           json: async () => ({
-            files: [{ id: 'photo-1' }, { id: 'photo-2' }, { id: 'photo-3' }],
+            files: [
+              imageFile('photo-1'),
+              imageFile('photo-2'),
+              imageFile('photo-3'),
+            ],
             nextPageToken: null,
           }),
         } as Response);
@@ -158,7 +167,13 @@ describe('Google Actions - Testes Completos', () => {
 
         vi.mocked(fetch).mockResolvedValue({
           json: async () => ({
-            files: Array(10).fill({ id: 'photo' }),
+            files: Array(10)
+              .fill(null)
+              .map((_, i) => ({
+                id: `photo-${i}`,
+                mimeType: 'image/jpeg',
+                size: '1000',
+              })),
             nextPageToken: 'next-page-token',
           }),
         } as Response);
@@ -178,12 +193,16 @@ describe('Google Actions - Testes Completos', () => {
 
         vi.mocked(getValidGoogleTokenService).mockResolvedValue('valid-token');
 
-        // Retorna 11 fotos, mas limit é 10
+        // Retorna 11 fotos, mas limit é 10 — contagem respeita limite (não conta excedente)
         vi.mocked(fetch).mockResolvedValue({
           json: async () => ({
             files: Array(11)
               .fill(null)
-              .map((_, i) => ({ id: `photo-${i}` })),
+              .map((_, i) => ({
+                id: `photo-${i}`,
+                mimeType: 'image/jpeg',
+                size: '1000',
+              })),
             nextPageToken: null,
           }),
         } as Response);
@@ -191,13 +210,13 @@ describe('Google Actions - Testes Completos', () => {
         const result = await checkFolderLimits('folder-over', 'user-123', 10);
 
         expect(result).toEqual({
-          count: 10, // Limitado ao planLimit
-          hasMore: true, // Porque count > planLimit
-          totalInDrive: 11, // Total real
+          count: 10,
+          hasMore: true,
+          totalInDrive: 10, // Contagem que respeita regras do plano
         });
       });
 
-      it('deve usar query correta para buscar apenas imagens', async () => {
+      it('deve usar query correta para imagens e vídeos', async () => {
         const { getValidGoogleTokenService } =
           await import('@/core/services/google.service');
 
@@ -213,8 +232,9 @@ describe('Google Actions - Testes Completos', () => {
         const decodedFetchCall = decodeURIComponent(fetchCall);
 
         expect(decodedFetchCall).toContain("mimeType contains 'image/'");
+        expect(decodedFetchCall).toContain("mimeType contains 'video/'");
         expect(decodedFetchCall).toContain('trashed = false');
-        expect(decodedFetchCall).toContain('pageSize=21'); // planLimit + 1
+        expect(decodedFetchCall).toContain('pageSize=40'); // min(planLimit*2, 1000)
       });
 
       it('deve incluir Authorization header com token', async () => {
@@ -327,10 +347,15 @@ describe('Google Actions - Testes Completos', () => {
 
         const planLimits = [2, 10, 20, 50, 100, 500, 1000];
 
+        const imageFile = () => ({
+          id: 'photo',
+          mimeType: 'image/jpeg',
+          size: '1000',
+        });
         for (const limit of planLimits) {
           vi.mocked(fetch).mockResolvedValue({
             json: async () => ({
-              files: Array(5).fill({ id: 'photo' }),
+              files: Array(5).fill(null).map(imageFile),
               nextPageToken: null,
             }),
           } as Response);

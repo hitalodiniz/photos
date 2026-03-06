@@ -166,7 +166,7 @@ export const ProfileToolBar = ({
               <a
                 href={`https://instagram.com/${instagram.replace('@', '')}`}
                 target="_blank"
-                className="flex items-center justify-center rounded-luxury h-9 w-9 md:w-auto md:px-4 border border-white/10 bg-white/5 text-white hover:bg-gradient-to-tr hover:from-[#f09433] hover:via-[#dc2743] hover:to-[#bc1888] transition-all"
+                className="flex items-center justify-center rounded-md  h-9 w-9 md:w-auto md:px-4 border border-white/10 bg-white/5 text-white hover:bg-gradient-to-tr hover:from-[#f09433] hover:via-[#dc2743] hover:to-[#bc1888] transition-all"
               >
                 <Instagram size={18} />{' '}
                 <span className="text-[10px] font-semibold uppercase hidden lg:block ml-2">
@@ -180,7 +180,7 @@ export const ProfileToolBar = ({
                   website.startsWith('http') ? website : `https://${website}`
                 }
                 target="_blank"
-                className="flex items-center justify-center rounded-luxury h-9 w-9 md:w-auto md:px-4 border border-white/10 bg-white/5 text-white hover:bg-white hover:text-black transition-all"
+                className="flex items-center justify-center rounded-md h-9 w-9 md:w-auto md:px-4 border border-white/10 bg-white/5 text-white hover:bg-white hover:text-black transition-all"
               >
                 <Globe size={18} />{' '}
                 <span className="text-[10px] font-semibold uppercase hidden lg:block ml-2">
@@ -190,7 +190,7 @@ export const ProfileToolBar = ({
             )}
             <button
               onClick={handleCopyLink}
-              className="flex items-center justify-center rounded-luxury h-9 w-9 md:w-auto md:px-4 border border-white/10 bg-white/5 text-white hover:bg-white/10 transition-all"
+              className="flex items-center justify-center rounded-md h-9 w-9 md:w-auto md:px-4 border border-white/10 bg-white/5 text-white hover:bg-white/10 transition-all"
             >
               {copied ? (
                 <Check size={18} className="text-green-500" />
@@ -206,7 +206,7 @@ export const ProfileToolBar = ({
               <a
                 href={`https://wa.me/${phone.replace(/\D/g, '')}`}
                 target="_blank"
-                className="flex shrink-0 items-center justify-center rounded-luxury h-9 w-9 md:w-auto md:px-5 bg-[#25D366] text-white shadow-lg shadow-green-500/10"
+                className="flex shrink-0 items-center justify-center rounded-md h-9 w-9 md:w-auto md:px-5 bg-[#25D366] text-white shadow-lg shadow-green-500/10"
               >
                 <WhatsAppIcon className="w-5 h-5 flex-shrink-0" />
                 <span className="text-[10px] font-semibold uppercase hidden md:block ml-2 whitespace-nowrap">

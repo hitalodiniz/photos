@@ -23,7 +23,7 @@ import { DownloadCenterSheet } from './DownloadCenterSheet';
 import { emitGaleriaEvent } from '@/core/services/galeria-stats.service';
 import { useShare } from '@/hooks/useShare';
 import { usePlan } from '@/core/context/PlanContext';
-import { ZIP_LIMIT_TO_RESOLUTION } from '@/core/config/plans';
+
 import { ConfirmationModal, Toast } from '@/components/ui';
 import { saveGaleriaSelectionAction } from '@/core/services/galeria.service';
 

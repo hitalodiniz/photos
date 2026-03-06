@@ -260,6 +260,8 @@ export interface PlanPermissions {
   tagSelectionMode: 'manual' | 'bulk' | 'drive';
   // ── Entrega & Segurança ────────────────────────────────────────────────────
   zipSizeLimit: string;
+  /** Limite do ZIP em bytes (derivado de zipSizeLimit para uso em downloads). */
+  zipSizeLimitBytes: number;
   maxExternalLinks: number;
   canCustomLinkLabel: boolean;
   privacyLevel: 'public' | 'password';
@@ -274,7 +276,7 @@ export const PERMISSIONS_BY_PLAN: Record<PlanKey, PlanPermissions> = {
   FREE: {
     // ── Capacidade
     photoCredits: 450,
-    storageGB: 4.5,
+    storageGB: 2.25,
     maxGalleries: 3,
     maxGalleriesHardCap: 3,
     maxPhotosPerGallery: 150,
@@ -307,6 +309,7 @@ export const PERMISSIONS_BY_PLAN: Record<PlanKey, PlanPermissions> = {
     tagSelectionFavoriteMode: 'single',
     // ── Entrega & Segurança
     zipSizeLimit: '500KB',
+    zipSizeLimitBytes: 500 * 1024,
     maxExternalLinks: 0,
     canCustomLinkLabel: false,
     privacyLevel: 'public',
@@ -318,7 +321,7 @@ export const PERMISSIONS_BY_PLAN: Record<PlanKey, PlanPermissions> = {
   START: {
     // ── Capacidade
     photoCredits: 2_500,
-    storageGB: 25,
+    storageGB: 12.5,
     maxGalleries: 10,
     maxGalleriesHardCap: 12,
     maxPhotosPerGallery: 500,
@@ -351,6 +354,7 @@ export const PERMISSIONS_BY_PLAN: Record<PlanKey, PlanPermissions> = {
     tagSelectionFavoriteMode: 'single',
     // ── Entrega & Segurança
     zipSizeLimit: '1MB',
+    zipSizeLimitBytes: 1024 * 1024,
     maxExternalLinks: 1,
     canCustomLinkLabel: false,
     privacyLevel: 'password',
@@ -362,7 +366,7 @@ export const PERMISSIONS_BY_PLAN: Record<PlanKey, PlanPermissions> = {
   PLUS: {
     // ── Capacidade
     photoCredits: 10_000,
-    storageGB: 100,
+    storageGB: 50,
     maxGalleries: 20,
     maxGalleriesHardCap: 30,
     maxPhotosPerGallery: 1_000,
@@ -395,6 +399,7 @@ export const PERMISSIONS_BY_PLAN: Record<PlanKey, PlanPermissions> = {
     tagSelectionFavoriteMode: 'single',
     // ── Entrega & Segurança
     zipSizeLimit: '1.5MB',
+    zipSizeLimitBytes: Math.round(1.5 * 1024 * 1024),
     maxExternalLinks: 2,
     canCustomLinkLabel: false,
     privacyLevel: 'password',
@@ -406,7 +411,7 @@ export const PERMISSIONS_BY_PLAN: Record<PlanKey, PlanPermissions> = {
   PRO: {
     // ── Capacidade
     photoCredits: 50_000,
-    storageGB: 500,
+    storageGB: 250,
     maxGalleries: 50,
     maxGalleriesHardCap: 90,
     maxPhotosPerGallery: 1_500,
@@ -439,6 +444,7 @@ export const PERMISSIONS_BY_PLAN: Record<PlanKey, PlanPermissions> = {
     tagSelectionFavoriteMode: 'multiple',
     // ── Entrega & Segurança
     zipSizeLimit: '2MB',
+    zipSizeLimitBytes: 2 * 1024 * 1024,
     maxExternalLinks: 5,
     canCustomLinkLabel: true,
     privacyLevel: 'password',
@@ -450,7 +456,7 @@ export const PERMISSIONS_BY_PLAN: Record<PlanKey, PlanPermissions> = {
   PREMIUM: {
     // ── Capacidade
     photoCredits: 200_000,
-    storageGB: 2_000,
+    storageGB: 1_000,
     maxGalleries: 200,
     maxGalleriesHardCap: 300,
     maxPhotosPerGallery: 3_000,
@@ -483,6 +489,7 @@ export const PERMISSIONS_BY_PLAN: Record<PlanKey, PlanPermissions> = {
     tagSelectionFavoriteMode: 'multiple',
     // ── Entrega & Segurança
     zipSizeLimit: '3MB',
+    zipSizeLimitBytes: 3 * 1024 * 1024,
     maxExternalLinks: 10,
     canCustomLinkLabel: true,
     privacyLevel: 'password',
@@ -491,6 +498,18 @@ export const PERMISSIONS_BY_PLAN: Record<PlanKey, PlanPermissions> = {
     customizationLevel: 'full',
     canCustomCategories: true,
   },
+};
+
+// ── Mapa: limite do ZIP em bytes → resolução (px) para download ─────────────
+// Usado em PhotoGrid para decidir resolução ao baixar fotos no ZIP.
+const KB = 1024;
+const MB = KB * 1024;
+export const ZIP_LIMIT_TO_RESOLUTION: Record<number, number> = {
+  [500 * KB]: 1080,   // 500KB → 1080 (FREE)
+  [1 * MB]: 1600,     // 1MB   → 1600 (START)
+  [1.5 * MB]: 2048,   // 1.5MB → 2048 (PLUS)
+  [2 * MB]: 2560,     // 2MB   → 2560 (PRO)
+  [3 * MB]: 4000,     // 3MB   → 4000 (PREMIUM)
 };
 
 // =============================================================================
@@ -626,6 +645,10 @@ export const FEATURE_DESCRIPTIONS: Record<
     label: 'Resolução de Download',
     description: 'Libere downloads em alta definição para seus clientes.',
   },
+  zipSizeLimitBytes: {
+    label: 'Limite do ZIP (bytes)',
+    description: 'Limite em bytes para resolução do download em ZIP (uso interno).',
+  },
   maxExternalLinks: {
     label: 'Links de Entrega',
     description: 'Adicione botões externos para download de arquivos pesados.',
@@ -663,6 +686,74 @@ export const FEATURE_DESCRIPTIONS: Record<
     description: 'Acesso temporário a recursos premium durante o trial.',
   },
 };
+
+export type PlanBenefitItem = { label: string; description: string };
+
+/** Termos mínimos para montar labels (ex: "galerias" via terms.items). */
+export type PlanBenefitsTerms = { items: string };
+
+/**
+ * Retorna a lista de benefícios de um plano (capacidade + recursos disponíveis).
+ * Usado no UpgradeModal e no UpgradeSheet para exibição consistente.
+ */
+export function getPlanBenefits(
+  perms: PlanPermissions,
+  terms: PlanBenefitsTerms,
+): PlanBenefitItem[] {
+  const storageLabel =
+    perms.storageGB >= 1_000
+      ? `${(perms.storageGB / 1_000).toFixed(perms.storageGB % 1_000 === 0 ? 0 : 1)} TB`
+      : `${perms.storageGB} GB`;
+
+  const capacityItems: PlanBenefitItem[] = [
+    FEATURE_DESCRIPTIONS.maxGalleriesHardCap && {
+      label: FEATURE_DESCRIPTIONS.maxGalleriesHardCap.label,
+      description: `Até ${perms.maxGalleriesHardCap} galerias ativas`,
+    },
+    FEATURE_DESCRIPTIONS.storageGB && {
+      label: FEATURE_DESCRIPTIONS.storageGB.label,
+      description: `Equivalente a ${storageLabel} de armazenamento`,
+    },
+    FEATURE_DESCRIPTIONS.maxPhotosPerGallery && {
+      label: FEATURE_DESCRIPTIONS.maxPhotosPerGallery.label,
+      description: `Até ${perms.maxPhotosPerGallery} arquivos (fotos e vídeos) por galeria`,
+    },
+    FEATURE_DESCRIPTIONS.maxVideoCount && {
+      label: FEATURE_DESCRIPTIONS.maxVideoCount.label,
+      description: `${perms.maxVideoCount} vídeo${perms.maxVideoCount !== 1 ? 's' : ''} por galeria`,
+    },
+  ].filter(Boolean) as PlanBenefitItem[];
+
+  const featureKeys: (keyof PlanPermissions)[] = [
+    //'teamMembers',
+    'profileLevel',
+    'profileCarouselLimit',
+    'profileListLimit',
+    'canCaptureLeads',
+    'canAccessNotifyEvents',
+    'canAccessStats',
+    'canCustomWhatsApp',
+    'canTagPhotos',
+    'customizationLevel',
+    'canCustomCategories',
+  ];
+
+  const featureItems: PlanBenefitItem[] = featureKeys
+    .filter((key) => {
+      const value = perms[key];
+      //if (key === 'teamMembers') return typeof value === 'number' && value > 0;
+      if (typeof value === 'number') return value > 0;
+      if (key === 'customizationLevel') return value && value !== 'default';
+      return !!value;
+    })
+    .map((key) => {
+      const meta = FEATURE_DESCRIPTIONS[key];
+      return meta ? { label: meta.label, description: meta.description } : null;
+    })
+    .filter((b): b is PlanBenefitItem => !!b);
+
+  return [...capacityItems, ...featureItems];
+}
 
 // =============================================================================
 // PLAN INFO (preços, ícones, CTAs)
@@ -935,18 +1026,18 @@ export const COMMON_FEATURES = [
     label: 'Notificações de Eventos',
     values: [false, false, false, 'Ativadas', 'Ativadas'],
   },
-  {
-    key: 'teamMembers',
-    group: 'Gestão',
-    label: 'Equipe de Trabalho',
-    values: [
-      'Apenas Titular',
-      'Apenas Titular',
-      '+ 2 Colaboradores',
-      '+ 5 Colaboradores',
-      'Ilimitados',
-    ],
-  },
+  // {
+  //   key: 'teamMembers',
+  //   group: 'Gestão',
+  //   label: 'Equipe de Trabalho',
+  //   values: [
+  //     'Apenas Titular',
+  //     'Apenas Titular',
+  //     '+ 2 Colaboradores',
+  //     '+ 5 Colaboradores',
+  //     'Ilimitados',
+  //   ],
+  // },
   // --- PERFIL PÚBLICO ---
   {
     key: 'profileLevel',

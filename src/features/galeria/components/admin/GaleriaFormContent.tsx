@@ -117,7 +117,7 @@ export default function GaleriaFormContent({
   // 1. REFS E CONTEXTOS
   // =========================================================================
   const defaultsAppliedRef = useRef(false);
-  const { permissions, canAddMore } = usePlan();
+  const { permissions, canAddMore, planKey } = usePlan();
 
   // =========================================================================
   // 2. ESTADOS DE INTERFACE E MODAIS
@@ -386,6 +386,7 @@ export default function GaleriaFormContent({
         driveFolderId,
         userId,
         permissions.maxPhotosPerGallery,
+        planKey,
       );
 
       let folderPermissionInfo;

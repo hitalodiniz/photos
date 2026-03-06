@@ -129,8 +129,15 @@ export const fetchDrivePhotos = (userId?: string, folderId?: string) =>
       if (!userId || !folderId) return { photos: [], error: 'MISSING_PARAMS' };
 
       try {
+        // Plano resolvido internamente por userId (sem usuário logado)
+        const planContext = { userId };
+
         // 🎯 TENTATIVA 1: Tenta listar sem autenticação (pasta pública)
-        const publicPhotos = await listPhotosFromDriveFolder(folderId);
+        const publicPhotos = await listPhotosFromDriveFolder(
+          folderId,
+          undefined,
+          planContext,
+        );
         if (publicPhotos && publicPhotos.length > 0) {
           // console.log(`[fetchDrivePhotos] ✅ Listou ${publicPhotos.length} fotos de pasta pública (sem auth)`);
           return { photos: publicPhotos, error: null };
@@ -146,6 +153,7 @@ export const fetchDrivePhotos = (userId?: string, folderId?: string) =>
         const photos = await listPhotosFromDriveFolder(
           folderId,
           token || undefined,
+          planContext,
         );
 
         if (photos && photos.length > 0) {
@@ -202,6 +210,9 @@ export const fetchPhotosByGalleryId = (galleryId: string) =>
         return { photos: [], error: 'GALLERY_NOT_FOUND' };
       }
 
+      // Plano resolvido internamente por galleryId (listPhotosFromDriveFolder → plan-resolver)
+      const planContext = { galleryId };
+
       try {
         // 🎯 TENTATIVA 1: Tenta listar usando API Key (pasta pública do Google Drive)
         // Esta é a estratégia prioritária - funciona SEM precisar do refresh token do criador
@@ -209,6 +220,8 @@ export const fetchPhotosByGalleryId = (galleryId: string) =>
         // console.log(`[fetchPhotosByGalleryId] Tentando acesso via API Key (pasta pública)...`);
         const publicPhotos = await listPhotosFromDriveFolder(
           galeria.drive_folder_id,
+          undefined,
+          planContext,
         );
 
         if (publicPhotos && publicPhotos.length > 0) {
@@ -228,6 +241,7 @@ export const fetchPhotosByGalleryId = (galleryId: string) =>
         const photos = await listPhotosFromDriveFolder(
           galeria.drive_folder_id,
           token || undefined, // Garante que seja undefined se null
+          planContext,
         );
 
         if (photos && photos.length > 0) {

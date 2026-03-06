@@ -27,6 +27,10 @@ interface PlanContextProps {
   isLoading: boolean;
   canAddMore: (feature: keyof PlanPermissions, currentCount: number) => boolean;
   trialExpiresAt: string | null;
+  /** Perfil do usuário (tb_profiles). Usado no UpgradeSheet para nome e telefone. */
+  profile: Profile | undefined;
+  /** E-mail do auth. Usado no UpgradeSheet (read-only). */
+  email: string | null | undefined;
 }
 
 const PlanContext = createContext<PlanContextProps | undefined>(undefined);
@@ -35,10 +39,13 @@ export function PlanProvider({
   children,
   planKey,
   profile,
+  email,
 }: {
   children: React.ReactNode;
   planKey?: PlanKey;
   profile?: Profile;
+  /** E-mail do usuário (auth). Passado pelo layout a partir de getProfileData(). */
+  email?: string | null;
 }) {
   // 1. SINCRONIZAÇÃO DE SEGMENTO (Visual/Branding)
   const [activeSegment, setActiveSegment] = useState<SegmentType>(
@@ -128,6 +135,8 @@ export function PlanProvider({
         return !!limit;
       },
       trialExpiresAt: profile?.plan_trial_expires ?? null,
+      profile,
+      email: email ?? null,
       // 🎯 Helper para facilitar o que fizemos no Avatar
       getGalleryPermission: (galeria: any, feature: keyof PlanPermissions) => {
         // Se a galeria tem uma trava específica, ela manda. Se não, manda o plano.
@@ -136,7 +145,7 @@ export function PlanProvider({
         return permissions[feature];
       },
     };
-  }, [planToUse, activeSegment, isLoading, profile]);
+  }, [planToUse, activeSegment, isLoading, profile, email]);
 
   return <PlanContext.Provider value={value}>{children}</PlanContext.Provider>;
 }
