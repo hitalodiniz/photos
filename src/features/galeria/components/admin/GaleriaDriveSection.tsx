@@ -111,48 +111,47 @@ export function GaleriaDriveSection({
       </div>
 
       {/* ── Subseção 1: Vincular Pasta ─────────────────────────────────────── */}
-      <div className="space-y-3">
+      <div className="space-y-2">
         <label className="text-[10px] font-bold uppercase tracking-luxury text-petroleum flex items-center gap-1.5">
           <FolderSync size={12} strokeWidth={2} className="text-gold" />
           Vincular Pasta do Google Drive
         </label>
 
-        <p className="text-[9px] text-slate-500 leading-tight">
-          Vídeos: no máximo <strong>{permissions.maxVideoCount ?? 1}</strong>{' '}
-          por galeria e até{' '}
-          <strong>{permissions.maxVideoSizeMB ?? 15} MB</strong> cada (por
-          performance). Acima disso os vídeos não são listados e contados.
+        <p className="text-[10px] text-slate-800 leading-tight">
+          Máximo de <strong>{permissions.maxVideoCount ?? 1}</strong> vídeos por
+          galeria de até <strong>{permissions.maxVideoSizeMB ?? 15} MB</strong>{' '}
+          cada (por performance). Acima disso os vídeos não são listados e
+          contados.
         </p>
 
         <div className="flex flex-col bg-slate-50 p-3 rounded-luxury border border-slate-200 space-y-3">
-          {/* Nome da pasta */}
-          <p className="text-[13px] text-petroleum/90 font-semibold truncate bg-white/50 px-2 py-1.5 rounded border border-slate-200">
-            {driveData.name || 'Nenhuma pasta selecionada'}
-          </p>
-
-          {/* Botões */}
-          <div className="flex items-center gap-2">
-            <div className="flex-1">
-              <GooglePickerButton
-                onFolderSelect={handleFolderSelect}
-                onError={onPickerError}
-                currentDriveId={driveData.id}
-                onTokenExpired={onTokenExpired}
-                rootFolderId={driveData.id ? driveData.id : rootFolderId}
-              />
+          {/* Nome da pasta + Botões lado a lado */}
+          <div className="flex flex-col sm:flex-row sm:items-center gap-2 sm:gap-3">
+            <p className="text-[13px] text-petroleum/90 font-semibold truncate bg-white/50 px-2 py-1.5 rounded border border-slate-200 sm:min-w-0 sm:flex-1">
+              {driveData.name || 'Nenhuma pasta selecionada'}
+            </p>
+            <div className="flex items-center gap-2 shrink-0">
+              <div className="flex-1 min-w-0">
+                <GooglePickerButton
+                  onFolderSelect={handleFolderSelect}
+                  onError={onPickerError}
+                  currentDriveId={driveData.id}
+                  onTokenExpired={onTokenExpired}
+                  rootFolderId={driveData.id ? driveData.id : rootFolderId}
+                />
+              </div>
+              {driveData.id && (
+                <a
+                  href={`https://drive.google.com/drive/folders/${driveData.id}`}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  title="Abrir pasta no Google Drive"
+                  className="flex items-center justify-center h-9 w-9 shrink-0 rounded-luxury border border-slate-200 bg-white text-petroleum/60 hover:text-gold hover:border-gold/40 transition-all"
+                >
+                  <ExternalLink size={14} />
+                </a>
+              )}
             </div>
-
-            {driveData.id && (
-              <a
-                href={`https://drive.google.com/drive/folders/${driveData.id}`}
-                target="_blank"
-                rel="noopener noreferrer"
-                title="Abrir pasta no Google Drive"
-                className="flex items-center justify-center h-9 w-9 shrink-0 rounded-luxury border border-slate-200 bg-white text-petroleum/60 hover:text-gold hover:border-gold/40 transition-all"
-              >
-                <ExternalLink size={14} />
-              </a>
-            )}
           </div>
 
           {/* ── Alertas de fotos ─────────────────────────────────────────── */}
@@ -186,7 +185,7 @@ export function GaleriaDriveSection({
                     <p className="text-[9px] font-bold uppercase text-amber-700">
                       {photoCount} arquivos — acima do recomendado
                     </p>
-                    <p className="text-[9px] text-amber-700/80 leading-tight">
+                    <p className="text-[10px] text-amber-700 leading-tight">
                       O recomendado é{' '}
                       <strong>até {alertThreshold} arquivos</strong> por
                       galeria. Com {photoCount} fotos, esta galeria consome{' '}
@@ -222,7 +221,7 @@ export function GaleriaDriveSection({
                     <p className="text-[9px] font-semibold uppercase text-emerald-700">
                       {photoCount} arquivos — compatível com seu plano
                     </p>
-                    <p className="text-[9px] text-emerald-700/70 leading-tight">
+                    <p className="text-[10px] text-emerald-700 leading-tight">
                       Dentro do limite recomendado de{' '}
                       <strong>{alertThreshold} arquivos</strong> por galeria.
                       {galleriesRemaining > 0 && (

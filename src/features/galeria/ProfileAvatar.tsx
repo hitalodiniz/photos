@@ -123,7 +123,9 @@ export default function PhotographerAvatar({
 
           {/* Ícones abaixo do nome */}
           <div className="flex items-center gap-3 mt-2 justify-center">
-            {hasSocial && photographer?.phone_contact && (
+            {hasSocial &&
+              photographer?.phone_contact &&
+              photographer?.show_phone_on_public_profile !== true && (
               <a
                 href={`https://wa.me/${photographer.phone_contact.replace(/\D/g, '')}`}
                 target="_blank"

@@ -17,14 +17,14 @@ export type PlanKey = 'FREE' | 'START' | 'PLUS' | 'PRO' | 'PREMIUM';
 export const planOrder: PlanKey[] = ['FREE', 'START', 'PLUS', 'PRO', 'PREMIUM'];
 
 // =============================================================================
-// 🎫 SISTEMA DE CAPACIDADE FLEXÍVEL
+// 🎫 SISTEMA DE CAPACIDADE FLEXÍVEL (COTA DE ARQUIVOS)
 //
 // Quatro camadas de controle:
 //
-//   1. photoCredits                  → pool global de arquivos (fotos + vídeos)
+//   1. photoCredits                  → cota global de arquivos (processamento/exibição do Drive)
 //   2. storageGB                     → capacidade em GB (informativo, exibido na UI)
 //   3. maxGalleries (base dinâmico)  → floor(photoCredits / recommendedPhotosPerGallery)
-//                                      garante este número de galerias com pool cheio
+//                                      garante este número de galerias com cota cheia
 //   4. maxGalleriesHardCap           → teto absoluto (nunca ultrapassado)
 //   5. maxPhotosPerGallery           → hard cap por galeria (bloqueia ao atingir)
 //   6. recommendedPhotosPerGallery   → aviso amarelo + base do cálculo dinâmico
@@ -39,7 +39,7 @@ export const planOrder: PlanKey[] = ['FREE', 'START', 'PLUS', 'PRO', 'PREMIUM'];
 //
 // =============================================================================
 
-// ── Pool de arquivos (fotos + vídeos) ─────────────────────────────────────────
+// ── Cota de arquivos (fotos + vídeos vinculados / processados do Drive) ───────
 export const PHOTO_CREDITS_BY_PLAN: Record<PlanKey, number> = {
   FREE: 450,
   START: 2_500,
@@ -57,7 +57,7 @@ export const STORAGE_GB_BY_PLAN: Record<PlanKey, number> = {
   PREMIUM: 2_000,
 };
 
-// ── Teto absoluto de galerias (nunca ultrapassado mesmo com pool sobrando) ────
+// ── Teto absoluto de galerias (nunca ultrapassado mesmo com cota sobrando) ────
 export const MAX_GALLERIES_HARD_CAP_BY_PLAN: Record<PlanKey, number> = {
   FREE: 3,
   START: 12,
@@ -75,8 +75,8 @@ export const MAX_PHOTOS_PER_GALLERY_BY_PLAN: Record<PlanKey, number> = {
   PREMIUM: 3_000,
 };
 
-// ── Recomendado por galeria = pool / galBase ──────────────────────────────────
-// Garante que, com pool cheio, o usuário tem exatamente maxGalleries disponíveis.
+// ── Recomendado por galeria = cota / galBase ──────────────────────────────────
+// Garante que, com cota cheia, o usuário tem exatamente maxGalleries disponíveis.
 // Também é usado por calcEffectiveMaxGalleries para o cálculo dinâmico.
 // FREE:    450 / 3   = 150
 // START:   2500 / 10 = 250
@@ -124,7 +124,7 @@ export const MAX_VIDEO_SIZE_MB_BY_PLAN: Record<PlanKey, number> = {
 // =============================================================================
 
 /**
- * Retorna o número base de galerias garantido pelo plano com pool cheio.
+ * Retorna o número base de galerias garantido pelo plano com cota cheia.
  * Equivale a floor(photoCredits / recommendedPhotosPerGallery).
  */
 export function getBaseGalleriesFromPool(planKey: PlanKey): number {
@@ -137,24 +137,24 @@ export function getBaseGalleriesFromPool(planKey: PlanKey): number {
 /**
  * Calcula o número máximo efetivo de galerias em runtime.
  *
- * Fotógrafos que publicam menos arquivos por galeria se beneficiam
- * automaticamente: o pool "sobra" e permite mais galerias, até o hardCap.
+ * Quem vincula menos arquivos por galeria se beneficia automaticamente:
+ * a cota "sobra" e permite mais galerias, até o hardCap.
  *
  * @param planKey            - Plano do usuário
- * @param usedCredits        - Total de arquivos publicados (soma de todas as galerias)
+ * @param usedCredits        - Total de arquivos vinculados (soma de todas as galerias)
  * @param activeGalleryCount - Número atual de galerias ativas
  *
  * @example
  * // PRO, 10.000 arquivos em 10 galerias:
  * calcEffectiveMaxGalleries('PRO', 10_000, 10)
  * // remaining = 50.000 - 10.000 = 40.000
- * // fromPool  = floor(40.000 / 1.000) = 40
+ * // da cota   = floor(40.000 / 1.000) = 40
  * // total     = min(10 + 40, 90) = 50
  *
- * // PRO com pool quase esgotado (45.000 usados):
+ * // PRO com cota quase esgotada (45.000 usados):
  * calcEffectiveMaxGalleries('PRO', 45_000, 10)
- * // remaining = 5.000, fromPool = 5
- * // total     = min(10 + 5, 90) = 15 → pool limita
+ * // remaining = 5.000, da cota = 5
+ * // total     = min(10 + 5, 90) = 15 → cota limita
  */
 export function calcEffectiveMaxGalleries(
   planKey: PlanKey,
@@ -166,9 +166,9 @@ export function calcEffectiveMaxGalleries(
   const hardCap = MAX_GALLERIES_HARD_CAP_BY_PLAN[planKey];
 
   const remainingCredits = Math.max(0, totalCredits - usedCredits);
-  const galleriesFromPool = Math.floor(remainingCredits / recommended);
-
-  return Math.min(activeGalleryCount + galleriesFromPool, hardCap);
+  const galleriesFromCota = Math.floor(remainingCredits / recommended);
+  // Fórmula da Cota Elástica: min(activeCount + floor(remainingCredits / recommended), hardCap)
+  return Math.min(activeGalleryCount + galleriesFromCota, hardCap);
 }
 
 export function formatPhotoCredits(credits: number): string {
@@ -228,7 +228,7 @@ export interface PlanPermissions {
   // ── Capacidade ─────────────────────────────────────────────────────────────
   photoCredits: number;
   storageGB: number;
-  maxGalleries: number; // base garantido com pool cheio
+  maxGalleries: number; // base garantido com cota cheia
   maxGalleriesHardCap: number; // teto absoluto
   maxPhotosPerGallery: number; // hard cap por galeria (bloqueia)
   recommendedPhotosPerGallery: number; // = photoCredits / maxGalleries
@@ -353,8 +353,8 @@ export const PERMISSIONS_BY_PLAN: Record<PlanKey, PlanPermissions> = {
     tagSelectionMode: 'manual',
     tagSelectionFavoriteMode: 'single',
     // ── Entrega & Segurança
-    zipSizeLimit: '1MB',
-    zipSizeLimitBytes: 1024 * 1024,
+    zipSizeLimit: '1.5MB',
+    zipSizeLimitBytes: Math.round(1.5 * 1024 * 1024),
     maxExternalLinks: 1,
     canCustomLinkLabel: false,
     privacyLevel: 'password',
@@ -398,8 +398,8 @@ export const PERMISSIONS_BY_PLAN: Record<PlanKey, PlanPermissions> = {
     tagSelectionMode: 'manual',
     tagSelectionFavoriteMode: 'single',
     // ── Entrega & Segurança
-    zipSizeLimit: '1.5MB',
-    zipSizeLimitBytes: Math.round(1.5 * 1024 * 1024),
+    zipSizeLimit: '2MB',
+    zipSizeLimitBytes: 2 * 1024 * 1024,
     maxExternalLinks: 2,
     canCustomLinkLabel: false,
     privacyLevel: 'password',
@@ -413,9 +413,9 @@ export const PERMISSIONS_BY_PLAN: Record<PlanKey, PlanPermissions> = {
     photoCredits: 50_000,
     storageGB: 250,
     maxGalleries: 50,
-    maxGalleriesHardCap: 90,
+    maxGalleriesHardCap: 100,
     maxPhotosPerGallery: 1_500,
-    recommendedPhotosPerGallery: 1_000, // pool / galBase = 50.000/50
+    recommendedPhotosPerGallery: 1_000, // cota / galBase = 50.000/50
     filesAlertThreshold: 750, // alerta amarelo antes do hard cap
     maxVideoCount: 50,
     maxVideoSizeMB: 100,
@@ -443,8 +443,8 @@ export const PERMISSIONS_BY_PLAN: Record<PlanKey, PlanPermissions> = {
     tagSelectionMode: 'bulk',
     tagSelectionFavoriteMode: 'multiple',
     // ── Entrega & Segurança
-    zipSizeLimit: '2MB',
-    zipSizeLimitBytes: 2 * 1024 * 1024,
+    zipSizeLimit: '3MB',
+    zipSizeLimitBytes: 3 * 1024 * 1024,
     maxExternalLinks: 5,
     canCustomLinkLabel: true,
     privacyLevel: 'password',
@@ -458,9 +458,9 @@ export const PERMISSIONS_BY_PLAN: Record<PlanKey, PlanPermissions> = {
     photoCredits: 200_000,
     storageGB: 1_000,
     maxGalleries: 200,
-    maxGalleriesHardCap: 300,
+    maxGalleriesHardCap: 400,
     maxPhotosPerGallery: 3_000,
-    recommendedPhotosPerGallery: 1_000, // pool / galBase = 200.000/200
+    recommendedPhotosPerGallery: 1_000, // cota / galBase = 200.000/200
     filesAlertThreshold: 1_000,
     maxVideoCount: 100,
     maxVideoSizeMB: 100,
@@ -505,11 +505,11 @@ export const PERMISSIONS_BY_PLAN: Record<PlanKey, PlanPermissions> = {
 const KB = 1024;
 const MB = KB * 1024;
 export const ZIP_LIMIT_TO_RESOLUTION: Record<number, number> = {
-  [500 * KB]: 1080,   // 500KB → 1080 (FREE)
-  [1 * MB]: 1600,     // 1MB   → 1600 (START)
-  [1.5 * MB]: 2048,   // 1.5MB → 2048 (PLUS)
-  [2 * MB]: 2560,     // 2MB   → 2560 (PRO)
-  [3 * MB]: 4000,     // 3MB   → 4000 (PREMIUM)
+  [500 * KB]: 1080, // 500KB → 1080 (FREE)
+  [1 * MB]: 1600, // 1MB   → 1600 (START)
+  [1.5 * MB]: 2048, // 1.5MB → 2048 (PLUS)
+  [2 * MB]: 2560, // 2MB   → 2560 (PRO)
+  [3 * MB]: 4000, // 3MB   → 4000 (PREMIUM)
 };
 
 // =============================================================================
@@ -521,13 +521,13 @@ export const FEATURE_DESCRIPTIONS: Record<
   { label: string; description: string }
 > = {
   photoCredits: {
-    label: 'Créditos de Arquivos',
+    label: 'Cota de arquivos',
     description:
-      'Pool total de fotos e vídeos distribuído entre suas galerias.',
+      'Limite de fotos e vídeos que o sistema pode processar e exibir do seu Google Drive. Os arquivos permanecem no Drive; a cota refere-se ao vínculo e exibição na plataforma.',
   },
   storageGB: {
-    label: 'Armazenamento',
-    description: 'Capacidade total de armazenamento do seu plano.',
+    label: 'Capacidade',
+    description: 'Equivalente em capacidade de armazenamento para suporte à cota de arquivos.',
   },
   maxGalleries: {
     label: 'Limite de Galerias',
@@ -537,16 +537,16 @@ export const FEATURE_DESCRIPTIONS: Record<
   maxGalleriesHardCap: {
     label: 'Teto de Galerias',
     description:
-      'Limite absoluto de galerias independente do pool de arquivos.',
+      'Limite absoluto de galerias independente da cota de arquivos.',
   },
   maxPhotosPerGallery: {
     label: 'Capacidade por Galeria',
-    description: 'Aumente o limite de arquivos permitidos em cada galeria.',
+    description: 'Aumente o limite de arquivos vinculados por galeria (processados do Drive).',
   },
   recommendedPhotosPerGallery: {
     label: 'Recomendado por Galeria',
     description:
-      'Quantidade recomendada de arquivos por galeria para uso ideal do pool.',
+      'Quantidade recomendada de arquivos por galeria para uso ideal da cota.',
   },
   filesAlertThreshold: {
     label: 'Alerta de Galeria',
@@ -647,7 +647,8 @@ export const FEATURE_DESCRIPTIONS: Record<
   },
   zipSizeLimitBytes: {
     label: 'Limite do ZIP (bytes)',
-    description: 'Limite em bytes para resolução do download em ZIP (uso interno).',
+    description:
+      'Limite em bytes para resolução do download em ZIP (uso interno).',
   },
   maxExternalLinks: {
     label: 'Links de Entrega',
@@ -712,11 +713,11 @@ export function getPlanBenefits(
     },
     FEATURE_DESCRIPTIONS.storageGB && {
       label: FEATURE_DESCRIPTIONS.storageGB.label,
-      description: `Equivalente a ${storageLabel} de armazenamento`,
+      description: `Equivalente a ${storageLabel} de capacidade`,
     },
     FEATURE_DESCRIPTIONS.maxPhotosPerGallery && {
       label: FEATURE_DESCRIPTIONS.maxPhotosPerGallery.label,
-      description: `Até ${perms.maxPhotosPerGallery} arquivos (fotos e vídeos) por galeria`,
+      description: `Até ${perms.maxPhotosPerGallery} arquivos vinculados por galeria`,
     },
     FEATURE_DESCRIPTIONS.maxVideoCount && {
       label: FEATURE_DESCRIPTIONS.maxVideoCount.label,
@@ -755,6 +756,66 @@ export function getPlanBenefits(
   return [...capacityItems, ...featureItems];
 }
 
+/** Chaves de recursos exibidos como benefícios (mesma lista de getPlanBenefits). */
+const PLAN_FEATURE_KEYS: (keyof PlanPermissions)[] = [
+  'profileLevel',
+  'profileCarouselLimit',
+  'profileListLimit',
+  'canCaptureLeads',
+  'canAccessNotifyEvents',
+  'canAccessStats',
+  'canCustomWhatsApp',
+  'canTagPhotos',
+  'customizationLevel',
+  'canCustomCategories',
+];
+
+/**
+ * Retorna os rótulos dos recursos PRO que são perdidos no downgrade para FREE.
+ * Usado no dropdown de trial na Navbar para listar o que será desabilitado.
+ */
+export function getProOnlyFeatureLabels(): string[] {
+  const pro = PERMISSIONS_BY_PLAN.PRO;
+  const free = PERMISSIONS_BY_PLAN.FREE;
+  const labels: string[] = [];
+  for (const key of PLAN_FEATURE_KEYS) {
+    const proVal = pro[key];
+    const freeVal = free[key];
+    const hasInPro =
+      typeof proVal === 'number'
+        ? proVal > 0
+        : key === 'customizationLevel'
+          ? proVal && proVal !== 'default'
+          : !!proVal;
+    const hasInFree =
+      typeof freeVal === 'number'
+        ? freeVal > 0
+        : key === 'customizationLevel'
+          ? freeVal && freeVal !== 'default'
+          : !!freeVal;
+    if (hasInPro && !hasInFree) {
+      const meta = FEATURE_DESCRIPTIONS[key];
+      if (meta?.label) labels.push(meta.label);
+    }
+  }
+  // Recursos adicionais PRO (não em getPlanBenefits) que fazem sentido citar no trial
+  if (pro.canFavorite && !free.canFavorite && FEATURE_DESCRIPTIONS.canFavorite)
+    labels.push(FEATURE_DESCRIPTIONS.canFavorite.label);
+  if (
+    pro.canExportLeads &&
+    !free.canExportLeads &&
+    FEATURE_DESCRIPTIONS.canExportLeads
+  )
+    labels.push(FEATURE_DESCRIPTIONS.canExportLeads.label);
+  if (
+    pro.removeBranding &&
+    !free.removeBranding &&
+    FEATURE_DESCRIPTIONS.removeBranding
+  )
+    labels.push(FEATURE_DESCRIPTIONS.removeBranding.label);
+  return labels;
+}
+
 // =============================================================================
 // PLAN INFO (preços, ícones, CTAs)
 // =============================================================================
@@ -763,11 +824,56 @@ export interface PlanInfo {
   name: string;
   price: number;
   yearlyPrice: number;
+  /** Preço mensal equivalente no plano semestral (12% off). */
+  semesterPrice: number;
   maxGalleries: number;
   storageLabel: string; // ex: "25 GB", "500 GB", "2 TB"
   icon: any;
   cta: string;
   permissions: PlanPermissions;
+}
+
+/** Período de cobrança no UpgradeSheet e exibição de preços. */
+export type BillingPeriod = 'monthly' | 'semiannual' | 'annual';
+
+/**
+ * Retorna preço mensal efetivo, total e desconto por período.
+ * Fonte da verdade: valores de PlanInfo (price, semesterPrice, yearlyPrice).
+ */
+export function getPeriodPrice(
+  planInfo: PlanInfo,
+  period: BillingPeriod,
+): {
+  effectiveMonthly: number;
+  totalPrice: number;
+  discount: number;
+  months: number;
+} {
+  if (period === 'monthly') {
+    return {
+      effectiveMonthly: planInfo.price,
+      totalPrice: planInfo.price,
+      discount: 0,
+      months: 1,
+    };
+  }
+  if (period === 'semiannual') {
+    const effectiveMonthly = planInfo.semesterPrice;
+    return {
+      effectiveMonthly,
+      totalPrice: effectiveMonthly * 6,
+      discount: planInfo.price > 0 ? 12 : 0, // 12% off (exibição fixa; valores já em PlanInfo)
+      months: 6,
+    };
+  }
+  // annual
+  const effectiveMonthly = planInfo.yearlyPrice;
+  return {
+    effectiveMonthly,
+    totalPrice: effectiveMonthly * 12,
+    discount: planInfo.price > 0 ? 20 : 0, // 20% off (exibição fixa; valores já em PlanInfo)
+    months: 12,
+  };
 }
 
 export const PLANS_BY_SEGMENT: Record<
@@ -779,6 +885,7 @@ export const PLANS_BY_SEGMENT: Record<
       name: 'Free',
       price: 0,
       yearlyPrice: 0,
+      semesterPrice: 0,
       maxGalleries: 3,
       storageLabel: '4,5 GB',
       icon: Zap,
@@ -788,7 +895,8 @@ export const PLANS_BY_SEGMENT: Record<
     START: {
       name: 'Start',
       price: 29,
-      yearlyPrice: 24,
+      yearlyPrice: 23,
+      semesterPrice: 26,
       maxGalleries: 10,
       storageLabel: '25 GB',
       icon: Rocket,
@@ -799,6 +907,7 @@ export const PLANS_BY_SEGMENT: Record<
       name: 'Plus',
       price: 49,
       yearlyPrice: 39,
+      semesterPrice: 43,
       maxGalleries: 20,
       storageLabel: '100 GB',
       icon: Star,
@@ -808,7 +917,8 @@ export const PLANS_BY_SEGMENT: Record<
     PRO: {
       name: 'Pro',
       price: 79,
-      yearlyPrice: 74,
+      yearlyPrice: 63,
+      semesterPrice: 70,
       maxGalleries: 50,
       storageLabel: '500 GB',
       icon: Crown,
@@ -818,7 +928,8 @@ export const PLANS_BY_SEGMENT: Record<
     PREMIUM: {
       name: 'Premium',
       price: 119,
-      yearlyPrice: 99,
+      yearlyPrice: 95,
+      semesterPrice: 105,
       maxGalleries: 200,
       storageLabel: '2 TB',
       icon: Sparkles,
@@ -831,6 +942,7 @@ export const PLANS_BY_SEGMENT: Record<
       name: 'Free Trial',
       price: 0,
       yearlyPrice: 0,
+      semesterPrice: 0,
       maxGalleries: 3,
       storageLabel: '4,5 GB',
       icon: Zap,
@@ -841,6 +953,7 @@ export const PLANS_BY_SEGMENT: Record<
       name: 'Event',
       price: 99,
       yearlyPrice: 79,
+      semesterPrice: 87,
       maxGalleries: 10,
       storageLabel: '25 GB',
       icon: Rocket,
@@ -850,7 +963,8 @@ export const PLANS_BY_SEGMENT: Record<
     PLUS: {
       name: 'Plus',
       price: 159,
-      yearlyPrice: 129,
+      yearlyPrice: 127,
+      semesterPrice: 140,
       maxGalleries: 20,
       storageLabel: '100 GB',
       icon: Star,
@@ -861,6 +975,7 @@ export const PLANS_BY_SEGMENT: Record<
       name: 'Club',
       price: 249,
       yearlyPrice: 199,
+      semesterPrice: 219,
       maxGalleries: 50,
       storageLabel: '500 GB',
       icon: Crown,
@@ -871,6 +986,7 @@ export const PLANS_BY_SEGMENT: Record<
       name: 'Enterprise',
       price: 499,
       yearlyPrice: 399,
+      semesterPrice: 439,
       maxGalleries: 200,
       storageLabel: '2 TB',
       icon: Gem,
@@ -883,6 +999,7 @@ export const PLANS_BY_SEGMENT: Record<
       name: 'Militante',
       price: 0,
       yearlyPrice: 0,
+      semesterPrice: 0,
       maxGalleries: 3,
       storageLabel: '4,5 GB',
       icon: Shield,
@@ -893,6 +1010,7 @@ export const PLANS_BY_SEGMENT: Record<
       name: 'Bronze',
       price: 199,
       yearlyPrice: 159,
+      semesterPrice: 175,
       maxGalleries: 10,
       storageLabel: '25 GB',
       icon: Medal,
@@ -902,7 +1020,8 @@ export const PLANS_BY_SEGMENT: Record<
     PLUS: {
       name: 'Prata',
       price: 399,
-      yearlyPrice: 329,
+      yearlyPrice: 319,
+      semesterPrice: 351,
       maxGalleries: 20,
       storageLabel: '100 GB',
       icon: Award,
@@ -912,7 +1031,8 @@ export const PLANS_BY_SEGMENT: Record<
     PRO: {
       name: 'Ouro',
       price: 799,
-      yearlyPrice: 659,
+      yearlyPrice: 639,
+      semesterPrice: 703,
       maxGalleries: 50,
       storageLabel: '500 GB',
       icon: Crown,
@@ -922,7 +1042,8 @@ export const PLANS_BY_SEGMENT: Record<
     PREMIUM: {
       name: 'Majoritário',
       price: 1499,
-      yearlyPrice: 1249,
+      yearlyPrice: 1199,
+      semesterPrice: 1319,
       maxGalleries: 200,
       storageLabel: '2 TB',
       icon: Sparkles,
@@ -935,6 +1056,7 @@ export const PLANS_BY_SEGMENT: Record<
       name: 'Básico',
       price: 0,
       yearlyPrice: 0,
+      semesterPrice: 0,
       maxGalleries: 3,
       storageLabel: '4,5 GB',
       icon: Layout,
@@ -945,6 +1067,7 @@ export const PLANS_BY_SEGMENT: Record<
       name: 'Essential',
       price: 149,
       yearlyPrice: 119,
+      semesterPrice: 131,
       maxGalleries: 10,
       storageLabel: '25 GB',
       icon: Rocket,
@@ -954,7 +1077,8 @@ export const PLANS_BY_SEGMENT: Record<
     PLUS: {
       name: 'Advanced',
       price: 299,
-      yearlyPrice: 249,
+      yearlyPrice: 239,
+      semesterPrice: 263,
       maxGalleries: 20,
       storageLabel: '100 GB',
       icon: Star,
@@ -964,7 +1088,8 @@ export const PLANS_BY_SEGMENT: Record<
     PRO: {
       name: 'Mandato',
       price: 599,
-      yearlyPrice: 499,
+      yearlyPrice: 479,
+      semesterPrice: 527,
       maxGalleries: 50,
       storageLabel: '500 GB',
       icon: Crown,
@@ -974,7 +1099,8 @@ export const PLANS_BY_SEGMENT: Record<
     PREMIUM: {
       name: 'Vanguard',
       price: 999,
-      yearlyPrice: 829,
+      yearlyPrice: 799,
+      semesterPrice: 879,
       maxGalleries: 200,
       storageLabel: '2 TB',
       icon: Sparkles,
@@ -999,7 +1125,7 @@ export const COMMON_FEATURES = [
   {
     key: 'storageGB',
     group: 'Gestão',
-    label: 'Armazenamento',
+    label: 'Cota de Arquivos',
     values: ['4,5 GB', '25 GB', '100 GB', '500 GB', '2 TB'],
   },
   {
@@ -1210,9 +1336,9 @@ export const COMMON_FEATURES = [
     label: 'Download ZIP — Tamanho/foto',
     values: [
       'Até 500KB',
-      'Até 1MB (Otimizado)',
-      'Até 1,5MB',
-      'Até 2MB (HD)',
+      'Até 1,5MB (Otimizado)',
+      'Até 2MB',
+      'Até 3MB (HD)',
       'Até 3MB (Full-Res)',
     ],
   },

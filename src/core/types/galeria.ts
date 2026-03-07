@@ -29,6 +29,8 @@ export interface Photographer {
   website?: string | null;
   message_templates?: MessageTemplates;
   plan_key: string;
+  /** Quando true, oculta o WhatsApp no perfil/galeria pública */
+  show_phone_on_public_profile?: boolean;
 }
 
 /** Códigos de tipo de galeria: CT = Contrato, CB = Cobertura, ES = Ensaio */

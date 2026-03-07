@@ -24,6 +24,7 @@ import {
   ChevronLeft,
   ChevronRight,
   ChevronDown,
+  ArrowRight,
 } from 'lucide-react';
 
 import {
@@ -53,6 +54,7 @@ import { differenceInCalendarDays, parseISO } from 'date-fns';
 import { getPlanBenefits, PERMISSIONS_BY_PLAN } from '@/core/config/plans';
 import { useSegment } from '@/hooks/useSegment';
 import { USERNAME_BLACKLIST } from '@/core/config/username-blacklist';
+import WhatsAppIcon from '@/components/ui/WhatsAppIcon';
 
 // =============================================================================
 // FormSection — Acordeão colapsável
@@ -286,6 +288,10 @@ export default function OnboardingForm({
   const [themeKey, setThemeKey] = useState<ThemeKey>(
     initialData?.theme_key || (process.env.NEXT_PUBLIC_APP_SEGMENT as ThemeKey),
   );
+  const [showPhoneOnPublicProfile, setShowPhoneOnPublicProfile] = useState(
+    () =>
+      initialData?.settings?.defaults?.show_phone_on_public_profile ?? false,
+  );
 
   const hasAcceptedBefore = !!initialData?.accepted_terms;
 
@@ -373,8 +379,11 @@ export default function OnboardingForm({
   ]);
 
   // --- DOTS DE PREENCHIMENTO POR SEÇÃO ---
+  const phoneDigits = phone.replace(/\D/g, '');
+  const isPhoneValid = phoneDigits.length === 10 || phoneDigits.length === 11;
   const filledMap = {
-    identificacao: fullName.trim() !== '',
+    identificacao:
+      fullName.trim() !== '' && username.trim().length >= 5 && isPhoneValid,
     presencaDigital:
       website !== '' ||
       instagram !== '' ||
@@ -453,19 +462,33 @@ export default function OnboardingForm({
   const clientAction = async (formData: FormData) => {
     // Mapear erros por seção e abrir automaticamente as que têm problema
     const errors: typeof validationErrors = {};
-    if (!fullName.trim() || !username.trim()) errors.identificacao = true;
-    if (USERNAME_BLACKLIST.has(username.trim().toLowerCase()))
+    const usernameTrim = username.trim();
+    if (!fullName.trim() || !usernameTrim) errors.identificacao = true;
+    if (usernameTrim.length > 0 && usernameTrim.length < 5)
       errors.identificacao = true;
+    if (USERNAME_BLACKLIST.has(usernameTrim.toLowerCase()))
+      errors.identificacao = true;
+    const phoneDigits = phone.replace(/\D/g, '');
+    if (phoneDigits.length !== 10 && phoneDigits.length !== 11) {
+      errors.phone = true;
+    }
     if (!acceptTerms || !acceptPrivacy) errors.termos = true;
 
     if (Object.keys(errors).length > 0) {
       setValidationErrors(errors);
       if (errors.identificacao) {
-        if (USERNAME_BLACKLIST.has(username.trim().toLowerCase())) {
+        if (USERNAME_BLACKLIST.has(usernameTrim.toLowerCase())) {
           showToast('Este nome de usuário é reservado pelo sistema.', 'error');
+        } else if (usernameTrim.length > 0 && usernameTrim.length < 5) {
+          showToast('Username deve ter no mínimo 5 caracteres.', 'error');
         } else {
           showToast('Preencha Nome e Username antes de salvar.', 'error');
         }
+      } else if (errors.phone) {
+        showToast(
+          'Informe um WhatsApp válido (10 dígitos fixo ou 11 dígitos celular).',
+          'error',
+        );
       } else if (errors.termos) {
         showToast('Aceite os termos e a política de privacidade.', 'error');
       }
@@ -486,6 +509,10 @@ export default function OnboardingForm({
     formData.set('specialty', JSON.stringify(specialties));
     formData.set('custom_specialties', JSON.stringify(customSpecialties));
     formData.set('theme_key', themeKey);
+    formData.set(
+      'show_phone_on_public_profile',
+      showPhoneOnPublicProfile ? 'true' : 'false',
+    );
 
     const existingProfilePictureUrl =
       !photoFile &&
@@ -783,8 +810,8 @@ export default function OnboardingForm({
                 }
               >
                 <div className="space-y-4">
-                  <div className="flex items-start gap-3">
-                    <div className="relative group shrink-0">
+                  <div className="flex items-stretch gap-4">
+                    <div className="relative group shrink-0 flex items-center">
                       <input
                         type="file"
                         ref={fileInputRef}
@@ -794,10 +821,10 @@ export default function OnboardingForm({
                       />
                       <div
                         onClick={() => fileInputRef.current?.click()}
-                        className="relative w-16 h-16 rounded-full p-[3px] bg-gradient-to-tr from-gold/50 to-champagne shadow-2xl cursor-pointer transition-all hover:scale-105 active:scale-95 overflow-hidden group"
+                        className="relative w-24 h-24 rounded-full p-[3px] bg-gradient-to-tr from-gold/50 to-champagne shadow-2xl cursor-pointer transition-all hover:scale-105 active:scale-95 overflow-hidden group"
                       >
                         <div className="w-full h-full rounded-full overflow-hidden bg-white p-1">
-                          <div className="w-full h-full rounded-full overflow-hidden bg-slate-50 flex items-center justify-center relative">
+                          <div className="w-full h-full rounded-full overflow-hidden bg-slate-50 flex items-start justify-center relative">
                             {photoPreview ? (
                               <>
                                 <img
@@ -834,128 +861,162 @@ export default function OnboardingForm({
                       )}
                     </div>
 
-                    <div className="flex-grow min-w-0 grid grid-cols-1 sm:grid-cols-[1fr_2fr_1fr] gap-2">
-                      <div className="space-y-1.5">
-                        <label className="text-editorial-label text-petroleum">
-                          <AtSign
-                            size={12}
-                            strokeWidth={2}
-                            className="inline "
+                    <div className="flex-grow min-w-0 flex flex-col gap-4">
+                      {/* Linha 1: Username + Nome Completo */}
+                      <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                        <div className="space-y-1.5">
+                          <label className="text-editorial-label text-petroleum">
+                            <AtSign
+                              size={12}
+                              strokeWidth={2}
+                              className="inline "
+                            />
+                            Username <span className="text-gold">*</span>
+                          </label>
+                          <input
+                            readOnly={isEditMode}
+                            minLength={5}
+                            maxLength={20}
+                            className={`input-luxury h-9 px-2 ${
+                              isEditMode
+                                ? 'bg-slate-50 text-slate-400 italic border-slate-200'
+                                : validationErrors.identificacao &&
+                                    (!username.trim() ||
+                                      username.trim().length < 5)
+                                  ? 'border-red-300 focus:border-red-400 bg-red-50/30'
+                                  : 'border-slate-200 focus:border-gold'
+                            }`}
+                            value={username}
+                            onChange={(e) => {
+                              if (!isEditMode) {
+                                setUsername(
+                                  e.target.value
+                                    .toLowerCase()
+                                    .replace(/[^a-z0-9._]/g, '')
+                                    .slice(0, 20),
+                                );
+                                if (validationErrors.identificacao)
+                                  setValidationErrors({});
+                              }
+                            }}
+                            required
                           />
-                          Username <span className="text-gold">*</span>
-                        </label>
-                        <input
-                          readOnly={isEditMode}
-                          maxLength={20}
-                          className={`input-luxury  h-9 px-2 h-9 ${
-                            isEditMode
-                              ? 'bg-slate-50 text-slate-400 italic border-slate-200'
-                              : validationErrors.identificacao &&
-                                  !username.trim()
-                                ? 'border-red-300 focus:border-red-400 bg-red-50/30'
-                                : 'border-slate-200 focus:border-gold'
-                          }`}
-                          value={username}
-                          onChange={(e) => {
-                            if (!isEditMode) {
-                              setUsername(
-                                e.target.value
-                                  .toLowerCase()
-                                  .replace(/[^a-z0-9._]/g, '')
-                                  .slice(0, 20),
-                              );
-                              if (validationErrors.identificacao)
-                                setValidationErrors({});
-                            }
-                          }}
-                          required
-                        />
-                        <p className="text-[9px] font-semibold">
-                          {usernameBlacklisted && (
-                            <span className="text-red-400">
-                              Este nome de usuário é reservado pelo sistema.
-                            </span>
-                          )}
-                          {!usernameBlacklisted &&
-                            isAvailable === false &&
-                            username.trim() &&
-                            username !== initialData?.username && (
+                          <p className="text-[9px] font-semibold">
+                            {usernameBlacklisted && (
                               <span className="text-red-400">
-                                Username já está em uso.
+                                Este nome de usuário é reservado pelo sistema.
                               </span>
                             )}
-                          {!usernameBlacklisted && isAvailable === true && (
-                            <span className="text-emerald-500">
-                              Username disponível ✓
-                            </span>
-                          )}
-                        </p>
-                      </div>
-                      <div className="space-y-1.5">
-                        <label className="text-editorial-label text-petroleum">
-                          <User size={12} strokeWidth={2} className="inline " />
-                          Nome Completo
-                        </label>
-                        <input
-                          className={`input-luxury  h-9 px-2 ${
-                            validationErrors.identificacao && !fullName.trim()
-                              ? 'border-red-300 focus:border-red-400 bg-red-50/30'
-                              : 'border-slate-200 focus:border-gold'
-                          }`}
-                          value={fullName}
-                          onChange={(e) => {
-                            setFullName(e.target.value);
-                            if (validationErrors.identificacao)
-                              setValidationErrors({});
-                          }}
-                          required
-                        />
-                      </div>
-                      <div className="space-y-1.5">
-                        <label className="text-editorial-label text-petroleum">
-                          <MessageCircle
-                            size={12}
-                            strokeWidth={2}
-                            className="inline "
+                            {!usernameBlacklisted &&
+                              username.trim().length > 0 &&
+                              username.trim().length < 5 && (
+                                <span className="text-red-400">
+                                  Mínimo 5 caracteres.
+                                </span>
+                              )}
+                            {!usernameBlacklisted &&
+                              username.trim().length >= 5 &&
+                              isAvailable === false &&
+                              username !== initialData?.username && (
+                                <span className="text-red-400">
+                                  Username já está em uso.
+                                </span>
+                              )}
+                            {!usernameBlacklisted &&
+                              username.trim().length >= 5 &&
+                              isAvailable === true && (
+                                <span className="text-emerald-500">
+                                  Username disponível ✓
+                                </span>
+                              )}
+                          </p>
+                        </div>
+                        <div className="space-y-1.5">
+                          <label className="text-editorial-label text-petroleum">
+                            <User
+                              size={12}
+                              strokeWidth={2}
+                              className="inline "
+                            />
+                            Nome Completo
+                          </label>
+                          <input
+                            className={`input-luxury  h-9 px-2 ${
+                              validationErrors.identificacao && !fullName.trim()
+                                ? 'border-red-300 focus:border-red-400 bg-red-50/30'
+                                : 'border-slate-200 focus:border-gold'
+                            }`}
+                            value={fullName}
+                            onChange={(e) => {
+                              setFullName(e.target.value);
+                              if (validationErrors.identificacao)
+                                setValidationErrors({});
+                            }}
+                            required
                           />
-                          WhatsApp
+                        </div>
+                      </div>
+                      {/* Linha 2: WhatsApp + checkbox */}
+                      <div className="space-y-1.5">
+                        <label className="text-editorial-label text-petroleum">
+                          <WhatsAppIcon className="w-3 h-3 flex-shrink-0" />
+                          WhatsApp <span className="text-gold">*</span>
                         </label>
-                        <input
-                          className={`input-luxury h-9 px-2 ${
-                            validationErrors.phone
-                              ? 'border-red-500 focus:border-red-500'
-                              : 'border-slate-200'
-                          }`}
-                          value={phone}
-                          onChange={(e) => {
-                            setPhone(maskPhone(e));
-                            if (validationErrors.phone)
+                        <div className="flex flex-col sm:flex-row sm:items-center gap-2 sm:gap-3">
+                          <input
+                            className={`input-luxury h-9 px-2 flex-1 min-w-0 ${
+                              validationErrors.phone
+                                ? 'border-red-500 focus:border-red-500'
+                                : 'border-slate-200'
+                            }`}
+                            value={phone}
+                            onChange={(e) => {
+                              setPhone(maskPhone(e));
+                              if (validationErrors.phone)
+                                setValidationErrors((prev) => ({
+                                  ...prev,
+                                  phone: false,
+                                }));
+                            }}
+                            onBlur={() => {
+                              const digits = phone.replace(/\D/g, '');
+                              if (digits.length === 0) return;
+                              if (
+                                digits.length === 10 ||
+                                digits.length === 11
+                              ) {
+                                setValidationErrors((prev) => ({
+                                  ...prev,
+                                  phone: false,
+                                }));
+                                return;
+                              }
                               setValidationErrors((prev) => ({
                                 ...prev,
-                                phone: false,
+                                phone: true,
                               }));
-                          }}
-                          onBlur={() => {
-                            const digits = phone.replace(/\D/g, '');
-                            if (digits.length === 0) return; // opcional
-                            if (digits.length === 10 || digits.length === 11) {
-                              setValidationErrors((prev) => ({
-                                ...prev,
-                                phone: false,
-                              }));
-                              return;
-                            }
-                            setValidationErrors((prev) => ({
-                              ...prev,
-                              phone: true,
-                            }));
-                          }}
-                          placeholder="(00) 00000-0000"
-                        />
+                            }}
+                            placeholder="(00) 00000-0000"
+                            required
+                          />
+                          <label className="flex items-center gap-2 cursor-pointer shrink-0">
+                            <input
+                              type="checkbox"
+                              checked={showPhoneOnPublicProfile}
+                              onChange={(e) =>
+                                setShowPhoneOnPublicProfile(e.target.checked)
+                              }
+                              className="rounded border-slate-300 text-gold focus:ring-gold"
+                            />
+                            <span className="text-[11px] font-medium text-petroleum/90">
+                              Ocultar WhatsApp no perfil público
+                            </span>
+                          </label>
+                        </div>
                         {validationErrors.phone && (
                           <p className="text-xs text-red-500">
-                            Informe um número completo (10 dígitos fixo ou 11
-                            dígitos celular).
+                            WhatsApp é obrigatório. Informe um número completo
+                            (10 dígitos fixo ou 11 dígitos celular).
                           </p>
                         )}
                       </div>
@@ -1382,6 +1443,11 @@ export default function OnboardingForm({
               background_url: activeBackgrounds,
               plan_key: planKey,
               theme_key: themeKey,
+              settings: {
+                defaults: {
+                  show_phone_on_public_profile: showPhoneOnPublicProfile,
+                },
+              },
             }}
           />
         </main>
@@ -1401,7 +1467,7 @@ export default function OnboardingForm({
         onClose={() => setShowSuccessModal(false)}
         title="Perfil Atualizado"
         subtitle="Sua presença digital foi salva"
-        maxWidth="2xl"
+        maxWidth="lg"
         headerIcon={
           <div className="w-12 h-12 bg-green-500/10 text-green-500 rounded-lg flex items-center justify-center shadow-lg shadow-green-500/5">
             <CheckCircle2 size={24} strokeWidth={2.5} />
@@ -1410,12 +1476,6 @@ export default function OnboardingForm({
         footer={
           <div className="flex flex-col gap-3">
             <div className="grid grid-cols-2 gap-3 w-full items-center">
-              <button
-                onClick={() => navigate('/dashboard', 'Abrindo seu espaço...')}
-                className="btn-secondary-petroleum w-full text-[10px]"
-              >
-                <ArrowLeft size={14} /> ir para Espaço de Galerias
-              </button>
               <a
                 href={`/${username}`}
                 target="_blank"
@@ -1423,19 +1483,25 @@ export default function OnboardingForm({
               >
                 <Sparkles size={14} /> Ver Perfil Público
               </a>
+              <button
+                onClick={() => navigate('/dashboard', 'Abrindo seu espaço...')}
+                className="btn-secondary-white w-full text-[10px]"
+              >
+                <ArrowRight size={14} /> ir para Espaço de Galerias
+              </button>
             </div>
           </div>
         }
       >
         <div className="space-y-3">
-          <p className="text-[13px] md:text-[14px] leading-relaxed text-petroleum/80 font-medium text-center">
+          <p className="text-[13px] md:text-[14px] leading-relaxed text-petroleum/80 font-medium text-left">
             O seu perfil atualizado agora está configurado e pronto para ser
             acessado pelo seu público.
           </p>
           <div className="p-4 bg-slate-50 border border-petroleum/10 rounded-luxury">
-            <p className="text-[10px] font-semibold text-petroleum/80 text-center uppercase tracking-luxury">
-              Dica: Você pode alterar sua foto de capa e mini bio a qualquer
-              momento, desde que o seu plano permita.
+            <p className="text-[10px] font-semibold text-petroleum/80 text-left uppercase tracking-luxury">
+              Dica: Você pode alterar sua foto de capa e outras informações a
+              qualquer momento.
             </p>
           </div>
         </div>

@@ -20,13 +20,6 @@ export default async function NewGaleriaPage() {
 
   const profile = resultProfile.profile;
 
-  const isProfileComplete =
-    profile.full_name && profile.username && profile.mini_bio;
-
-  if (!isProfileComplete) {
-    redirect('/dashboard');
-  }
-
   // Busca contagem de galerias no perfil
   const profileListCount = await getProfileListCount(profile.id);
 

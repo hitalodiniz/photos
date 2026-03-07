@@ -8,6 +8,10 @@ import {
   Clock,
   ChevronDown,
   ArrowRight,
+  ShieldAlert,
+  ZapOff,
+  Star,
+  Crown,
 } from 'lucide-react';
 import { useEffect, useState, useMemo, useRef } from 'react';
 
@@ -16,7 +20,14 @@ import { UserMenu } from '@/components/auth';
 import { useSidebar } from '@/components/providers/SidebarProvider';
 import { useSegment } from '@/hooks/useSegment';
 import { NotificationMenu } from '../dashboard/NotificationMenu';
+import { UpgradeSheet } from '@/components/ui/Upgradesheet';
 import { usePlan } from '@/core/context/PlanContext';
+import {
+  getProOnlyFeatureLabels,
+  MAX_GALLERIES_HARD_CAP_BY_PLAN,
+  PHOTO_CREDITS_BY_PLAN,
+} from '@/core/config/plans';
+import type { PlanKey } from '@/core/config/plans';
 import { differenceInCalendarDays, parseISO } from 'date-fns';
 
 export default function Navbar() {
@@ -27,10 +38,15 @@ export default function Navbar() {
   const { toggleSidebar } = useSidebar();
   const [mounted, setMounted] = useState(false);
   const [trialOpen, setTrialOpen] = useState(false);
+  const [upgradeSheetOpen, setUpgradeSheetOpen] = useState(false);
+  const [upgradeSheetInitialPlan, setUpgradeSheetInitialPlan] = useState<
+    PlanKey | undefined
+  >(undefined);
   const trialRef = useRef<HTMLDivElement>(null);
 
   const plan = usePlan();
   const isTrial = plan.planKey === 'PRO' && plan.permissions.isTrial;
+  const proFeatureLabels = useMemo(() => getProOnlyFeatureLabels(), []);
   const trialDaysLeft = plan.trialExpiresAt
     ? Math.max(
         0,
@@ -39,6 +55,23 @@ export default function Navbar() {
     : 0;
 
   useEffect(() => setMounted(true), []);
+
+  // Abrir UpgradeSheet com plano pré-selecionado ao vir da página de planos (sessionStorage)
+  useEffect(() => {
+    if (!pathname.startsWith('/dashboard')) return;
+    try {
+      const stored = sessionStorage.getItem('openUpgrade');
+      if (!stored) return;
+      const planKeys: PlanKey[] = ['FREE', 'START', 'PLUS', 'PRO', 'PREMIUM'];
+      if (planKeys.includes(stored as PlanKey)) {
+        setUpgradeSheetInitialPlan(stored as PlanKey);
+        setUpgradeSheetOpen(true);
+      }
+      sessionStorage.removeItem('openUpgrade');
+    } catch {
+      // ignore
+    }
+  }, [pathname]);
 
   useEffect(() => {
     if (!trialOpen) return;
@@ -156,40 +189,110 @@ export default function Navbar() {
                 </button>
 
                 {trialOpen && (
-                  <div className="absolute top-full right-0 mt-2 w-80 rounded-luxury border border-gold/30 bg-petroleum shadow-xl z-[200] overflow-hidden animate-in fade-in slide-in-from-top-2 duration-200">
-                    <div className="p-3 border-b border-white/10 flex items-center gap-2">
-                      <div className="p-1.5 rounded-full bg-gold/20 border border-gold/40">
-                        <Clock size={14} className="text-champagne" />
+                  <>
+                    <div
+                      className="fixed inset-0 z-40"
+                      onClick={() => setTrialOpen(false)}
+                      aria-hidden="true"
+                    />
+                    <div className="absolute right-0 mt-3 w-[400px] bg-petroleum border border-white/10 rounded-xl shadow-[0_20px_50px_rgba(0,0,0,0.5)] z-50 overflow-hidden animate-in fade-in zoom-in-95 duration-200">
+                      {/* Header — mesmo padrão do NotificationMenu */}
+                      <div className="px-5 py-3 bg-white/5 border-b border-white/5 flex items-center gap-3">
+                        <div className="p-2 rounded-luxury bg-champagne text-petroleum">
+                          <Clock size={18} className="animate-pulse" />
+                        </div>
+                        <div className="flex flex-col">
+                          <p className="text-[12px] font-bold text-white/90 uppercase tracking-widest leading-none">
+                            TESTE PLANO PRO
+                          </p>
+                          <span className="text-[11px] text-white/80 font-medium mt-1">
+                            {trialDaysLeft}{' '}
+                            {trialDaysLeft === 1
+                              ? 'dia restante'
+                              : 'dias restantes'}
+                          </span>
+                        </div>
                       </div>
-                      <div>
-                        <p className="text-[11px] font-semibold uppercase tracking-widest text-white">
-                          Período de teste no Plano PRO
+
+                      {/* Conteúdo — bg-white e texto petroleum como no NotificationMenu */}
+                      <div className="max-h-[360px] overflow-y-auto custom-scrollbar bg-white">
+                        <div className="p-5 space-y-2">
+                          <p className="text-[11px] font-bold text-petroleum uppercase tracking-widest">
+                            Atenção ao Downgrade Automático
+                          </p>
+                          <div className="space-y-3">
+                            <div className="flex gap-3 items-start">
+                              <ShieldAlert
+                                size={14}
+                                className="text-gold shrink-0 mt-0.5"
+                              />
+                              <p className="text-[12px] text-petroleum/80 leading-relaxed font-medium">
+                                Galerias e arquivos que excederem o limite{' '}
+                                <strong className="text-petroleum">
+                                  FREE ({MAX_GALLERIES_HARD_CAP_BY_PLAN.FREE}{' '}
+                                  galerias / {PHOTO_CREDITS_BY_PLAN.FREE} fotos)
+                                </strong>{' '}
+                                serão arquivados e sairão do ar.
+                              </p>
+                            </div>
+                            <div className="flex gap-3 items-start">
+                              <ZapOff
+                                size={14}
+                                className="text-gold shrink-0 mt-0.5"
+                              />
+                              <p className="text-[12px] text-petroleum/80 leading-relaxed font-medium">
+                                Recursos como{' '}
+                                <strong className="text-petroleum">
+                                  {proFeatureLabels.length > 0
+                                    ? proFeatureLabels.length <= 4
+                                      ? proFeatureLabels.join(', ')
+                                      : `${proFeatureLabels.slice(0, 3).join(', ')} e mais`
+                                    : 'Perfil Profissional, Estatísticas e mais'}
+                                </strong>{' '}
+                                serão desabilitados após a expiração do período
+                                de teste.
+                              </p>
+                            </div>
+                          </div>
+                        </div>
+                      </div>
+
+                      {/* Footer — mesmo padrão do NotificationMenu */}
+                      <div className="p-4 bg-white/5 border-t border-white/5 flex flex-col gap-2">
+                        {/* CTA Principal — destacado */}
+                        <button
+                          type="button"
+                          onClick={() => {
+                            setTrialOpen(false);
+                            setUpgradeSheetInitialPlan('PRO');
+                            setUpgradeSheetOpen(true);
+                          }}
+                          className="btn-luxury-primary"
+                        >
+                          <Crown size={20} className="" />
+                          Manter meu plano PRO
+                          <ArrowRight size={14} />
+                        </button>
+
+                        {/* Frase de urgência */}
+                        <p className="text-center text-[9px] text-white/70 uppercase tracking-widest">
+                          Evite a interrupção das suas entregas
                         </p>
-                        <p className="text-[10px] text-white/70">
-                          {trialDaysLeft} {trialDaysLeft === 1 ? 'dia' : 'dias'}{' '}
-                          restantes com todos os recursos
-                        </p>
+
+                        {/* CTA Secundário — discreto, só texto */}
+                        <button
+                          type="button"
+                          onClick={() => {
+                            setTrialOpen(false);
+                            window.open('/planos', '_blank');
+                          }}
+                          className="w-full py-1.5 text-white/70 hover:text-white/70 text-[9px] font-medium uppercase tracking-widest transition-colors"
+                        >
+                          Ver outros planos
+                        </button>
                       </div>
                     </div>
-                    <div className="p-3 space-y-2">
-                      <p className="text-[11px] text-white/90 leading-relaxed">
-                        Aproveite todos os recursos de entrega, cadastro de
-                        visitantes, Estatísticas e notificações de acesso à
-                        galeria ilimitados.
-                      </p>
-                      <button
-                        type="button"
-                        onClick={() => {
-                          setTrialOpen(false);
-                          window.open('/dashboard/planos', '_blank');
-                        }}
-                        className="w-full h-9 px-4 bg-champagne hover:bg-gold text-petroleum font-bold text-[10px] uppercase tracking-luxury rounded-luxury flex items-center justify-center gap-2 transition-all"
-                      >
-                        Garantir Plano
-                        <ArrowRight size={12} />
-                      </button>
-                    </div>
-                  </div>
+                  </>
                 )}
               </div>
             )}
@@ -202,6 +305,15 @@ export default function Navbar() {
 
       {/* Spacer exato para a altura h-14 */}
       <div className="h-14 w-full print:hidden" />
+
+      <UpgradeSheet
+        isOpen={upgradeSheetOpen}
+        onClose={() => {
+          setUpgradeSheetOpen(false);
+          setUpgradeSheetInitialPlan(undefined);
+        }}
+        initialPlanKey={upgradeSheetInitialPlan}
+      />
     </>
   );
 }

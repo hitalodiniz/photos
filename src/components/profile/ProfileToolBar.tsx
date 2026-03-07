@@ -1,5 +1,5 @@
 'use client';
-import React, { useState, useEffect, useMemo } from 'react';
+import React, { useState, useEffect, useMemo, useRef } from 'react';
 import {
   Instagram,
   Globe,
@@ -28,8 +28,18 @@ export const ProfileToolBar = ({
   const [isDrawerOpen, setIsDrawerOpen] = useState(false);
   const [copied, setCopied] = useState(false);
   const [mounted, setMounted] = useState(false);
+  const [needsCollapse, setNeedsCollapse] = useState(false);
+  const barContentRef = useRef<HTMLDivElement>(null);
+  const [isNarrow, setIsNarrow] = useState(false);
 
   useEffect(() => setMounted(true), []);
+
+  useEffect(() => {
+    const check = () => setIsNarrow(typeof window !== 'undefined' && window.innerWidth < 1024);
+    check();
+    window.addEventListener('resize', check);
+    return () => window.removeEventListener('resize', check);
+  }, [mounted]);
 
   // 🎯 Lógica de Limite e Limpeza de Categorias
   const { barCities, barSpecs, uniqueCategories } = useMemo(() => {
@@ -43,6 +53,22 @@ export const ProfileToolBar = ({
       uniqueCategories: Array.from(new Set(categories)).filter(Boolean), // Filtra duplicados e vazios
     };
   }, [cities, specialties, categories]);
+
+  useEffect(() => {
+    if (!mounted || (barCities.length === 0 && barSpecs.length === 0)) {
+      setNeedsCollapse(false);
+      return;
+    }
+    const el = barContentRef.current;
+    if (!el) return;
+    const checkOverflow = () => {
+      setNeedsCollapse(el.scrollWidth > el.clientWidth);
+    };
+    checkOverflow();
+    const ro = new ResizeObserver(checkOverflow);
+    ro.observe(el);
+    return () => ro.disconnect();
+  }, [mounted, barCities.length, barSpecs.length, barCities, barSpecs]);
 
   const handleCopyLink = () => {
     navigator.clipboard.writeText(window.location.href);
@@ -80,7 +106,10 @@ export const ProfileToolBar = ({
           <div className="flex-1 min-w-0 flex items-center overflow-hidden">
             <PlanGuard feature="profileLevel" variant="mini">
               <div className="flex items-center gap-3 overflow-hidden">
-                <div className="hidden lg:flex items-center gap-2 overflow-hidden">
+                <div
+                  ref={barContentRef}
+                  className="hidden lg:flex items-center gap-2 overflow-hidden min-w-0"
+                >
                   {/* CIDADES */}
                   {barCities.length > 0 && (
                     <div className="flex items-center gap-2 shrink-0">
@@ -127,35 +156,40 @@ export const ProfileToolBar = ({
                   )}
                 </div>
 
-                <button
-                  onClick={() => setIsDrawerOpen(!isDrawerOpen)}
-                  className={`flex items-center gap-2 h-8 transition-all lg:hidden xl:flex ml-auto group ${isDrawerOpen || activeFilter !== 'all' ? 'text-gold' : 'text-champagne/90'}`}
-                >
-                  <div className="flex items-center gap-1.5 whitespace-nowrap">
-                    {activeFilter !== 'all' ? (
-                      <X
-                        size={14}
-                        onClick={(e) => {
-                          e.stopPropagation();
-                          onFilterChange('all');
-                        }}
-                      />
-                    ) : (
-                      <Plus size={14} />
-                    )}
-                    <span className="text-[10px] font-semibold uppercase tracking-widest text-champagne">
-                      {activeFilter !== 'all'
-                        ? activeFilter
-                        : isDrawerOpen
-                          ? 'Fechar'
-                          : 'Atuação'}
-                    </span>
-                  </div>
-                  <ChevronDown
-                    size={14}
-                    className={`transition-transform ${isDrawerOpen ? 'rotate-180' : ''}`}
-                  />
-                </button>
+                {(needsCollapse || isNarrow || activeFilter !== 'all') &&
+                  (cities.length > 0 ||
+                    specialties.length > 0 ||
+                    uniqueCategories.length > 0) && (
+                  <button
+                    onClick={() => setIsDrawerOpen(!isDrawerOpen)}
+                    className={`flex items-center gap-2 h-8 transition-all ml-auto group shrink-0 ${isDrawerOpen || activeFilter !== 'all' ? 'text-gold' : 'text-champagne/90'}`}
+                  >
+                    <div className="flex items-center gap-1.5 whitespace-nowrap">
+                      {activeFilter !== 'all' ? (
+                        <X
+                          size={14}
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            onFilterChange('all');
+                          }}
+                        />
+                      ) : (
+                        <Plus size={14} />
+                      )}
+                      <span className="text-[10px] font-semibold uppercase tracking-widest text-champagne">
+                        {activeFilter !== 'all'
+                          ? activeFilter
+                          : isDrawerOpen
+                            ? 'Fechar'
+                            : 'Atuação'}
+                      </span>
+                    </div>
+                    <ChevronDown
+                      size={14}
+                      className={`transition-transform ${isDrawerOpen ? 'rotate-180' : ''}`}
+                    />
+                  </button>
+                )}
               </div>
             </PlanGuard>
           </div>

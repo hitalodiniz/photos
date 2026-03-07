@@ -83,19 +83,15 @@ export function extractGalleryFormData(formData: FormData) {
     enable_favorites: formData.get('enable_favorites') === 'true',
     enable_slideshow: formData.get('enable_slideshow') === 'true',
 
-    // Expiração (ajustada para o final do dia)
+    // Expiração (final do dia no fuso de São Paulo, UTC-3)
     expires_at: (() => {
       const raw = formData.get('expires_at') as string | null;
       if (!raw || String(raw).trim() === '') return null;
 
-      // 1. Pegamos apenas a parte da data (YYYY-MM-DD)
       const dateStr = String(raw).trim().slice(0, 10);
+      // 23:59:59.999 em São Paulo (UTC-3); toISOString() grava em UTC no banco
+      const expirationDate = new Date(`${dateStr}T23:59:59.999-03:00`);
 
-      // 2. Criamos a data forçando o horário para o último milissegundo do dia
-      // Usamos o formato ISO completo para garantir consistência no banco
-      const expirationDate = new Date(`${dateStr}T23:59:59.999Z`);
-
-      // 3. Retornamos a string ISO pronta para o TIMESTAMPTZ do Postgres
       return isNaN(expirationDate.getTime())
         ? null
         : expirationDate.toISOString();

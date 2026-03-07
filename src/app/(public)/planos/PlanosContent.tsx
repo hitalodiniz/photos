@@ -1,5 +1,6 @@
 'use client';
 import React, { useState, useMemo, useEffect } from 'react';
+import { useRouter } from 'next/navigation';
 import {
   Check,
   X,
@@ -12,7 +13,13 @@ import {
   FileArchive,
   Link as LinkIcon,
   ShieldCheck,
+  Bell,
+  BarChart2,
+  Shield,
+  UserRound,
+  Sparkles,
 } from 'lucide-react';
+import { useAuth } from '@photos/core-auth';
 import EditorialCard from '@/components/ui/EditorialCard';
 import EditorialView from '@/components/layout/EditorialView';
 import {
@@ -26,8 +33,14 @@ import {
 } from '@/core/config/plans';
 import { useSegment } from '@/hooks/useSegment';
 import FeaturePreview from '@/components/ui/FeaturePreview';
+import BaseModal from '@/components/ui/BaseModal';
+import GoogleSignInButton from '@/components/auth/GoogleSignInButton';
+
+const OPEN_UPGRADE_KEY = 'openUpgrade';
 
 export default function PlanosPage() {
+  const router = useRouter();
+  const { user, isLoading: authLoading } = useAuth();
   const [loadingPlan, setLoadingPlan] = useState<string | null>(null);
   const [mounted, setMounted] = useState(false);
   const [billingCycle, setBillingCycle] = useState<
@@ -36,8 +49,34 @@ export default function PlanosPage() {
   const [expandedGroups, setExpandedGroups] = useState<Record<string, boolean>>(
     {},
   );
+  const [loginRequiredModalOpen, setLoginRequiredModalOpen] = useState(false);
+  const [pendingPlanKey, setPendingPlanKey] = useState<PlanKey | null>(null);
 
   const { segment, terms } = useSegment();
+
+  const handlePlanCta = (key: PlanKey) => {
+    if (authLoading) return;
+    if (typeof window !== 'undefined') {
+      try {
+        sessionStorage.setItem(OPEN_UPGRADE_KEY, key);
+      } catch {
+        // ignore
+      }
+    }
+    setLoadingPlan(key);
+    if (user) {
+      router.push('/dashboard');
+    } else {
+      setPendingPlanKey(key);
+      setLoginRequiredModalOpen(true);
+    }
+  };
+
+  const closeLoginRequiredModal = () => {
+    setLoginRequiredModalOpen(false);
+    setPendingPlanKey(null);
+    setLoadingPlan(null);
+  };
 
   const groups = useMemo(
     () =>
@@ -126,21 +165,34 @@ export default function PlanosPage() {
               }> = [
                 {
                   icon: <Images />,
-                  label: 'Créditos de fotos',
+                  label: 'Cota de fotos/vídeos',
                   value: formatPhotoCredits(perms.photoCredits),
                   permKey: 'photoCredits',
                 },
                 {
                   icon: <FolderOpen />,
                   label: 'Galerias ativas',
-                  value: `${perms.maxGalleries} galerias`,
+                  value: `Até ${perms.maxGalleriesHardCap} galerias`,
                   permKey: 'maxGalleries',
                 },
                 {
                   icon: <HardDrive />,
-                  label: `Fotos por ${terms.item}`,
+                  label: `Arquivos/galeria`,
                   value: `até ${perms.maxPhotosPerGallery}`,
                   permKey: 'maxPhotosPerGallery',
+                },
+
+                {
+                  icon: <BarChart2 />,
+                  label: 'Estatísticas',
+                  value: perms.canAccessStats ? 'Ativadas' : 'Não',
+                  permKey: 'canAccessStats',
+                },
+                {
+                  icon: <Bell />,
+                  label: 'Notificações',
+                  value: perms.canAccessNotifyEvents ? 'Ativadas' : 'Não',
+                  permKey: 'canAccessNotifyEvents',
                 },
                 {
                   icon: <Users />,
@@ -156,15 +208,6 @@ export default function PlanosPage() {
                   value: perms.zipSizeLimit,
                   permKey: 'zipSizeLimit',
                 },
-                {
-                  icon: <LinkIcon />,
-                  label: 'Links externos',
-                  value:
-                    perms.maxExternalLinks === 0
-                      ? 'Nenhum'
-                      : `${perms.maxExternalLinks} ${perms.maxExternalLinks === 1 ? 'link' : 'links'}`,
-                  permKey: 'maxExternalLinks',
-                },
               ];
 
               return (
@@ -176,7 +219,7 @@ export default function PlanosPage() {
                   badge={isPro ? 'Mais Escolhido' : undefined}
                 >
                   {/* Preço */}
-                  <div className="text-center mb-4">
+                  <div className="text-center mb-3">
                     <div className="flex items-start justify-center gap-1 text-petroleum">
                       <span className="text-[14px] font-semibold mt-2 text-gold">
                         R$
@@ -185,7 +228,7 @@ export default function PlanosPage() {
                         {displayPrice.toFixed(0)}
                       </span>
                     </div>
-                    <p className="text-[9px] font-semibold text-petroleum/70 uppercase tracking-widest mt-1">
+                    <p className="text-[9px] font-semibold text-petroleum/70 uppercase tracking-widest mt-0.5">
                       {billingCycle === 'annual'
                         ? 'Equivalente / mês'
                         : billingCycle === 'semester'
@@ -195,21 +238,21 @@ export default function PlanosPage() {
                   </div>
 
                   {/* Indicadores */}
-                  <div className="space-y-4 mb-8 flex-grow">
+                  <div className="space-y-2.5 mb-5 flex-grow">
                     {indicators.map((ind, i) => (
-                      <div key={i} className="flex items-start gap-3">
-                        <div className="w-8 h-8 rounded-lg flex items-center justify-center shrink-0 text-gold">
+                      <div key={i} className="flex items-start gap-2.5">
+                        <div className="w-7 h-7 rounded-lg flex items-center justify-center shrink-0 text-gold">
                           {React.cloneElement(ind.icon, {
-                            size: 16,
+                            size: 14,
                             strokeWidth: 2,
                           })}
                         </div>
-                        <div className="flex flex-col">
-                          <span className="text-[12px] font-semibold text-petroleum leading-tight">
+                        <div className="flex flex-col min-w-0">
+                          <span className="text-[11px] font-semibold text-petroleum leading-tight">
                             {ind.value}
                           </span>
                           <div className="flex items-center gap-1.5">
-                            <span className="text-[9px] text-petroleum/70 font-semibold uppercase tracking-widest">
+                            <span className="text-[8px] text-petroleum/70 font-semibold uppercase tracking-widest">
                               {ind.label}
                             </span>
                             {ind.permKey && (
@@ -226,8 +269,8 @@ export default function PlanosPage() {
 
                   {/* CTA */}
                   <button
-                    onClick={() => setLoadingPlan(key)}
-                    disabled={!!loadingPlan}
+                    onClick={() => handlePlanCta(key)}
+                    disabled={!!loadingPlan || authLoading}
                     className={`w-full h-12 flex items-center justify-center gap-3 rounded-xl transition-all font-semibold text-[10px] uppercase tracking-widest ${
                       isPro
                         ? 'bg-petroleum text-white shadow-xl hover:bg-black'
@@ -407,6 +450,80 @@ export default function PlanosPage() {
           </div>
         </section>
       </main>
+
+      {/* Modal: identificação para contratar (conta existente ou novo usuário) */}
+      <BaseModal
+        isOpen={loginRequiredModalOpen}
+        onClose={closeLoginRequiredModal}
+        title="Identificação"
+        subtitle="Acesse seu painel profissional"
+        maxWidth="lg"
+        headerIcon={
+          <div className="shrink-0 p-2.5 rounded-luxury bg-gold/10 border border-gold/20 shadow-[0_0_15px_rgba(212,175,55,0.1)]">
+            <UserRound size={22} strokeWidth={2.5} className="text-gold" />
+          </div>
+        }
+        footer={
+          <div className="flex flex-col gap-4 w-full px-2 items-center">
+            <GoogleSignInButton variant="full" />
+
+            <div className="flex items-center justify-center gap-2 pt-4 border-t border-slate-100">
+              <Shield size={10} className="text-emerald-500/70" />
+              <p className="text-[9px] font-semibold uppercase tracking-widest text-slate-400">
+                Ambiente Seguro • Criptografia SSL 256-bit
+              </p>
+            </div>
+          </div>
+        }
+      >
+        <div className="flex flex-col gap-6 py-2">
+          {/* Destaque: conta Google + ícone */}
+          <div className="relative overflow-hidden bg-slate-50/60 p-3 rounded-2xl border border-slate-100 flex items-start gap-3 text-left">
+            <div className="absolute top-0 left-0 w-1 h-full bg-gold/30 rounded-l" />
+            <div className="shrink-0 w-10 h-10 rounded-xl bg-gold/10 border border-gold/20 flex items-center justify-center mt-1.5">
+              <Sparkles size={18} strokeWidth={2} className="text-gold " />
+            </div>
+            <div className="min-w-0 pt-0.5">
+              <p className="text-[13px] md:text-[14px] leading-relaxed text-petroleum/85 font-medium">
+                Utilize sua conta Google para gerenciar suas galerias e
+                conteúdos profissionais com segurança total.
+              </p>
+            </div>
+          </div>
+
+          {/* Passos */}
+          <div className="space-y-5 px-1">
+            <div className="flex items-start gap-4 group">
+              <div className="w-8 h-8 rounded-full bg-petroleum text-gold flex items-center justify-center shrink-0 font-semibold text-[12px] border-2 border-gold/20 shadow-sm transition-transform group-hover:scale-105 mt-1.5">
+                1
+              </div>
+              <p className="text-[13px] text-petroleum/75 leading-relaxed">
+                Para contratar o plano{' '}
+                {pendingPlanKey && (
+                  <span className="inline-flex items-center px-2 py-0.5 rounded-md bg-gold/10 text-petroleum font-semibold text-[11px] uppercase tracking-tighter border border-gold/20">
+                    {segmentPlans?.[pendingPlanKey]?.name ?? pendingPlanKey}
+                  </span>
+                )}
+                , use o botão &quot;Entrar com Google&quot; abaixo. Quem já tem
+                conta faz login; quem é novo cria a conta na hora.
+              </p>
+            </div>
+
+            <div className="flex items-start gap-4 group">
+              <div className="w-8 h-8 rounded-full bg-petroleum text-gold flex items-center justify-center shrink-0 font-semibold text-[12px] border-2 border-gold/20 shadow-sm transition-transform group-hover:scale-105 mt-1.5">
+                2
+              </div>
+              <p className="text-[13px] text-petroleum/75 leading-relaxed pt-1.5">
+                Em seguida você acessa o{' '}
+                <strong className="text-petroleum font-semibold tracking-[0.02em]">
+                  Espaço de Galerias
+                </strong>{' '}
+                para finalizar a assinatura e começar a usar.
+              </p>
+            </div>
+          </div>
+        </div>
+      </BaseModal>
     </EditorialView>
   );
 }

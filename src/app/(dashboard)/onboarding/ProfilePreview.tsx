@@ -4,6 +4,7 @@ import React, { useEffect, useState } from 'react';
 import { useParams } from 'next/navigation';
 import ProfileContent from '@/components/profile/ProfileContent';
 import { getPublicProfile } from '@/core/services/profile.service';
+import type { Profile } from '@/core/types/profile';
 
 export default function Photographer({ initialData }: { initialData?: any }) {
   const params = useParams();
@@ -103,7 +104,11 @@ export default function Photographer({ initialData }: { initialData?: any }) {
         website={website}
         backgroundUrl={backgroundUrl}
         useSubdomain={useSubdomain}
-        profile={profileForPermission}
+        profile={
+          profile && 'settings' in profile
+            ? ({ ...profileForPermission, settings: profile.settings } as Profile)
+            : (profileForPermission as Profile)
+        }
         themeKey={themeKey}
       />
     </div>

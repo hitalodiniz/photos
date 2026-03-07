@@ -95,7 +95,7 @@ export default function EditorialToolbar() {
           </div>
 
           <div className="flex items-center gap-1 pl-1 md:pl-2">
-            {/* <button
+            <button
               onClick={() => router.push('/planos')}
               className="flex items-center gap-2 px-2 md:px-4 py-2 rounded-luxury bg-transparent hover:bg-white/5 transition-all"
             >
@@ -109,7 +109,7 @@ export default function EditorialToolbar() {
               </span>
             </button>
 
-            <div className="h-4 w-[1px] bg-white/10 mx-1" /> */}
+            <div className="h-4 w-[1px] bg-white/10 mx-1" />
 
             <div className="scale-90 md:scale-100">
               <AuthButton variant="minimal" />

@@ -135,11 +135,19 @@ export function validateRequiredFields(formData: FormData): {
 } {
   const username = (formData.get('username') as string)?.toLowerCase().trim();
   const full_name = (formData.get('full_name') as string)?.trim();
+  const phone = (formData.get('phone_contact') as string)?.replace(/\D/g, '') || '';
 
   if (!username || !full_name) {
     return {
       isValid: false,
       error: 'Nome e Username são obrigatórios.',
+    };
+  }
+
+  if (phone.length !== 10 && phone.length !== 11) {
+    return {
+      isValid: false,
+      error: 'WhatsApp é obrigatório. Informe um número completo (10 ou 11 dígitos).',
     };
   }
 
@@ -180,6 +188,9 @@ export function extractFormData(formData: FormData) {
     accepted_at: new Date().toISOString(),
 
     theme_key: (formData.get('theme_key') as string) || undefined,
+
+    show_phone_on_public_profile:
+      formData.get('show_phone_on_public_profile') === 'true',
 
     specialty: formData.get('specialty') as string,
     custom_specialties: formData.get('custom_specialties') as string | null,

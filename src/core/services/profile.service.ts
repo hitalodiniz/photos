@@ -225,7 +225,7 @@ export async function upsertProfile(formData: FormData, supabaseClient?: any) {
   // 3. Paralelismo de Busca e Uploads (Otimização de Performance)
   // Iniciamos a verificação do profile e os uploads simultaneamente
   const [profileRes, profilePictureUrl, backgroundUrls] = await Promise.all([
-    supabase.from('tb_profiles').select('plan_key').eq('id', user.id).single(),
+    supabase.from('tb_profiles').select('plan_key, settings').eq('id', user.id).single(),
 
     uploadProfilePicture(
       supabase,
@@ -244,6 +244,16 @@ export async function upsertProfile(formData: FormData, supabaseClient?: any) {
 
   const isFirstSetup = !profileRes.data?.plan_key;
 
+  const currentSettings = (profileRes.data?.settings as UserSettings | null) || {};
+  const mergedSettings: UserSettings = {
+    ...currentSettings,
+    display: currentSettings?.display ?? {},
+    defaults: {
+      ...(currentSettings?.defaults ?? {}),
+      show_phone_on_public_profile: formFields.show_phone_on_public_profile,
+    },
+  };
+
   // 4. Montagem dos dados (Separação de lógica)
   const updateData = {
     full_name: formFields.full_name,
@@ -261,6 +271,8 @@ export async function upsertProfile(formData: FormData, supabaseClient?: any) {
     specialty: parseOperatingCities(formFields.specialty),
     custom_specialties: parseOperatingCities(formFields.custom_specialties),
     ...(formFields.theme_key ? { theme_key: formFields.theme_key } : {}),
+
+    settings: mergedSettings,
 
     ...(isFirstSetup ? buildTrialData() : {}), // Merge condicional limpo
   };

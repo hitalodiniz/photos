@@ -7,18 +7,21 @@ export const HELP_CONTENT = {
   STORAGE: {
     GALLERIES: {
       title: 'Galerias disponíveis',
+      /** Use {{hardCap}} para interpolar o teto de galerias do plano. */
       content:
-        'Número total de galerias ativas permitidas no seu plano. Se atingir o limite, você pode arquivar ou apagar galerias antigas para liberar novas vagas.',
+        'Seu plano permite exibir até {{hardCap}} galerias simultâneas. Galerias com muitas fotos consomem sua cota de processamento mais rápido, o que pode reduzir o número total de galerias disponíveis.',
     },
+    /** Texto do badge quando a cota está limitando o número de galerias (effectiveMax < hardCap). */
+    POOL_LIMITING_LABEL: 'cota',
     POOL: {
-      title: 'Arquivos publicados',
+      title: 'Cota de arquivos',
       content:
-        "É o seu 'estoque' total de fotos e vídeos. Esse limite é compartilhado entre todas as suas galerias. Se você apagar arquivos de uma galeria, o espaço volta para o seu estoque imediatamente.",
+        'Limite total de fotos e vídeos que o sistema pode processar e exibir do seu Google Drive. Os arquivos permanecem no Google Drive; a cota refere-se apenas ao limite de exibição e vínculo na plataforma. Galerias muito grandes consomem mais cota, reduzindo a quantidade de galerias que você pode manter ativas.',
     },
     REMAINING: {
       title: 'Saldo Restante',
       content:
-        'Quantidade de arquivos que você ainda pode publicar antes de atingir o teto do seu plano atual.',
+        'Quantidade de arquivos que você ainda pode vincular e exibir (a partir do Google Drive) antes de atingir o teto da sua cota no plano atual.',
     },
   },
   // --- CONFIGURAÇÕES BÁSICAS DA GALERIA ---

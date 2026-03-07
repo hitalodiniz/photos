@@ -45,6 +45,7 @@ export const UserSettingsSchema = z.object({
   defaults: z.object({
     is_public: z.boolean().default(true), // 👈 Adicionado campo de privacidade padrão
     list_on_profile: z.boolean().default(false),
+    show_phone_on_public_profile: z.boolean().default(true), // exibir WhatsApp no perfil público
     google_drive_root_id: z.string().default(''), // ID da pasta inicial
     google_drive_root_name: z.string().default(''), // Nome da pasta inicial
     rename_files_sequential: z.boolean().default(false), // Padrão de renomeação

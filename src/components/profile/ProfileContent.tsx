@@ -203,6 +203,8 @@ export default function ProfileContent({
       use_subdomain: useSubdomain,
       website: website || null,
       plan_key: profile?.plan_key || 'FREE',
+      show_phone_on_public_profile:
+        profile?.settings?.defaults?.show_phone_on_public_profile ?? false,
     }),
     [
       username,
@@ -300,7 +302,11 @@ export default function ProfileContent({
       </EditorialHero>
       <div className="relative z-50">
         <ProfileToolBar
-          phone={phone}
+          phone={
+            profile?.settings?.defaults?.show_phone_on_public_profile === true
+              ? ''
+              : phone
+          }
           instagram={instagram}
           website={canShowWebsite ? website : ''}
           cities={showCities ? cities : []}
@@ -412,10 +418,6 @@ export default function ProfileContent({
                   {activeFilter !== 'all'
                     ? `Não foram encontradas galerias registradas sob a categoria "${activeFilter}".`
                     : `O fotógrafo ainda não disponibilizou galerias públicas em seu perfil profissional.`}
-                </p>
-
-                <p className="text-[10px] md:text-[11px] uppercase tracking-[0.4em] text-champagne/90 font-semibold">
-                  Solicite acesso privado caso possua um convite.
                 </p>
               </div>
 

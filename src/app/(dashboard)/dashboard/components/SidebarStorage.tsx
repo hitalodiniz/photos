@@ -72,14 +72,10 @@ export default function SidebarStorage({
   const photoState = stateColor(photoPct);
 
   // ── Tooltips ─────────────────────────────────────────────────────────────
-  const galTooltipContent = isPoolLimiting
-    ? `Plano: até ${hardCap} galerias. Com ${photosRemaining.toLocaleString('pt-BR')} arquivos restantes (~${recommended}/galeria), o pool suporta mais ${available}. Publique menos arquivos por galeria ou faça upgrade.`
-    : `${available} slot${available !== 1 ? 's' : ''} livre${available !== 1 ? 's' : ''} dentro do limite de ${hardCap}. Créditos suficientes (~${recommended} arquivos/galeria recomendados).`;
-
-  const photoTooltipContent =
-    `Cada arquivo publicado consome 1 crédito do pool de ${photoCredits.toLocaleString('pt-BR')}. ` +
-    `Recomendado: ~${recommended}/galeria. Com ${photosRemaining.toLocaleString('pt-BR')} restantes ` +
-    `cabem ~${Math.floor(photosRemaining / recommended)} galeria${Math.floor(photosRemaining / recommended) !== 1 ? 's' : ''} no ritmo recomendado.`;
+  const galleriesTooltipContent = HELP_CONTENT.STORAGE.GALLERIES.content.replace(
+    '{{hardCap}}',
+    String(hardCap),
+  );
 
   return (
     <>
@@ -111,9 +107,14 @@ export default function SidebarStorage({
                   >
                     {galeriasCount}
                   </span>
-                  <span className="text-[10px] text-white/90 font-normal">
+                  <span className="text-[10px] text-white/90 font-normal mr-1">
                     /{hardCap}
                   </span>
+                  <InfoTooltip
+                    portal
+                    title={HELP_CONTENT.STORAGE.GALLERIES.title}
+                    content={galleriesTooltipContent}
+                  />
                 </div>
               </div>
 
@@ -150,15 +151,18 @@ export default function SidebarStorage({
                       {available} disponíve{available !== 1 ? 'is' : 'l'}
                     </span>
                     {isPoolLimiting && (
-                      <span className="inline-flex items-center px-1 py-0.5 rounded text-[8px] font-semibold uppercase tracking-wider bg-amber-400/10 text-amber-400/60 leading-none">
-                        pool
+                      <span
+                        className="inline-flex items-center px-1.5 py-0.5 rounded text-[8px] font-semibold uppercase tracking-wider bg-amber-400/15 text-amber-400 border border-amber-400/30 leading-none"
+                        title="Cota está limitando o número de galerias"
+                      >
+                        {HELP_CONTENT.STORAGE.POOL_LIMITING_LABEL}
                       </span>
                     )}
                   </div>
                   <InfoTooltip
                     portal
                     title={HELP_CONTENT.STORAGE.GALLERIES.title}
-                    content={HELP_CONTENT.STORAGE.GALLERIES.content}
+                    content={galleriesTooltipContent}
                   />
                 </div>
               )}
@@ -178,7 +182,7 @@ export default function SidebarStorage({
                     className="text-white/90 shrink-0"
                   />
                   <span className="text-[10px] font-semibold uppercase tracking-[0.1em] text-white/90">
-                    Fotos e vídeos
+                    Cota utilizada
                   </span>
                 </div>
                 <div className="flex items-baseline gap-0.5 tabular-nums">
@@ -272,7 +276,7 @@ export default function SidebarStorage({
       <UpgradeModal
         isOpen={isUpgradeModalOpen}
         onClose={() => setIsUpgradeModalOpen(false)}
-        featureName="Armazenamento"
+        featureName="Cota de Arquivos"
         featureKey="maxGalleries"
         scenarioType="limit"
       />

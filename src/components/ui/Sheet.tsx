@@ -45,6 +45,12 @@ export function Sheet({
     md: 'sm:w-[448px]',
     lg: 'sm:w-[512px]',
     xl: 'sm:w-[640px]',
+    '2xl': 'sm:w-[768px]',
+    '3xl': 'sm:w-[896px]',
+    '4xl': 'sm:w-[1024px]',
+    '5xl': 'sm:w-[1152px]',
+    '6xl': 'sm:w-[1280px]',
+    full: 'w-[98%] h-[98%]',
   };
 
   const positionClasses = {
@@ -136,7 +142,7 @@ export function SheetSection({
   return (
     <div className={`p-4 border-b border-slate-100 space-y-2 ${className}`}>
       {title && (
-        <p className="text-[9px] font-semibold uppercase tracking-luxury-widest text-petroleum/70 px-1 mb-3">
+        <p className="text-[9px] font-semibold uppercase tracking-wide text-petroleum/90 px-1 mb-1">
           {title}
         </p>
       )}

@@ -81,7 +81,9 @@ export default function GaleriaFooter({
 
             {/* Ícones Minimalistas */}
             <div className="flex items-center gap-3">
-              {hasSocial && photographer?.phone_contact && (
+              {hasSocial &&
+                photographer?.phone_contact &&
+                photographer?.show_phone_on_public_profile !== true && (
                 <a
                   href={`https://wa.me/${photographer.phone_contact.replace(/\D/g, '')}`}
                   target="_blank"
