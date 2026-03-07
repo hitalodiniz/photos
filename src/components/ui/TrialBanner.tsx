@@ -3,7 +3,7 @@ import { Sparkles, Clock, ArrowRight } from 'lucide-react';
 
 import { differenceInDays, parseISO } from 'date-fns';
 import { usePlan } from '@/core/context/PlanContext';
-import { profile } from 'console';
+
 export default function TrialBanner() {
   const { planKey, permissions, trialExpiresAt } = usePlan(); // ← usa o que o contexto realmente expõe
   // permissions.isTrial é injetado pelo PlanProvider em runtime

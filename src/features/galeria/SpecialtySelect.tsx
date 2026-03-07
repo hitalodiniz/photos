@@ -94,7 +94,7 @@ export default function SpecialtySelect({
           {availableDefaults.length > 0 && (
             <optgroup
               label="Especialidades Padrão"
-              className="text-[10px] uppercase font-bold text-slate-400"
+              className="text-[10px] uppercase font-semibold"
             >
               {availableDefaults.map((s) => (
                 <option key={s} value={s}>
@@ -107,7 +107,7 @@ export default function SpecialtySelect({
           {availableCustom.length > 0 && (
             <optgroup
               label="Minhas Personalizadas"
-              className="text-[10px] uppercase font-bold text-slate-400"
+              className="text-[10px] uppercase font-semibold"
             >
               {availableCustom.map((s) => (
                 <option key={s} value={s}>
@@ -117,7 +117,7 @@ export default function SpecialtySelect({
             </optgroup>
           )}
 
-          <option value="NEW" className="text-gold font-bold">
+          <option value="NEW" className="text-petroleum font-semibold">
             + Criar nova área...
           </option>
         </select>

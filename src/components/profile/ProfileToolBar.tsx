@@ -75,7 +75,7 @@ export const ProfileToolBar = ({
 
   return (
     <div className="z-[110] sticky top-0 w-full font-sans">
-      <div className="mx-auto bg-petroleum backdrop-blur-xl w-full border-b border-white/10 shadow-2xl relative">
+      <div className="mx-auto bg-petroleum backdrop-blur-xl w-full border-b border-champagne/10 shadow-2xl relative">
         <div className="flex flex-row items-center w-full max-w-[1600px] px-3 md:px-4 h-12 mx-auto gap-2">
           <div className="flex-1 min-w-0 flex items-center overflow-hidden">
             <PlanGuard feature="profileLevel" variant="mini">
@@ -93,12 +93,12 @@ export const ProfileToolBar = ({
                             href={`https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(city)}`}
                             target="_blank"
                             rel="noopener noreferrer"
-                            className="text-[11px] font-semibold text-white uppercase whitespace-nowrap hover:text-gold transition-colors"
+                            className="text-[11px] font-semibold text-champagne uppercase whitespace-nowrap hover:text-gold transition-colors"
                           >
                             {city}
                           </a>
                           {i < barCities.length - 1 && (
-                            <span className=" text-white/30">|</span>
+                            <span className="text-champagne/50">|</span>
                           )}
                         </React.Fragment>
                       ))}
@@ -107,7 +107,7 @@ export const ProfileToolBar = ({
 
                   {/* ESPECIALIDADES */}
                   {barSpecs.length > 0 && (
-                    <div className="hidden xl:flex items-center gap-2 shrink-0 border-l border-white/10 pl-2">
+                    <div className="hidden xl:flex items-center gap-2 shrink-0 border-l border-champagne/10 pl-2">
                       <span className="text-[10px] font-semibold uppercase tracking-widest text-champagne flex items-center gap-1">
                         <Tag size={12} /> Áreas:
                       </span>
@@ -115,7 +115,7 @@ export const ProfileToolBar = ({
                         <button
                           key={spec}
                           onClick={() => toggleFilter(spec)}
-                          className={`text-[11px] font-semibold uppercase transition-colors ${activeFilter === spec ? 'text-gold' : 'text-white hover:text-gold'}`}
+                          className={`text-[11px] font-semibold uppercase transition-colors ${activeFilter === spec ? 'text-gold' : 'text-champagne hover:text-gold'}`}
                         >
                           {spec}
                           {i < barSpecs.length - 1 && (
@@ -129,7 +129,7 @@ export const ProfileToolBar = ({
 
                 <button
                   onClick={() => setIsDrawerOpen(!isDrawerOpen)}
-                  className={`flex items-center gap-2 h-8 transition-all lg:hidden xl:flex ml-auto group ${isDrawerOpen || activeFilter !== 'all' ? 'text-gold' : 'text-gold/70'}`}
+                  className={`flex items-center gap-2 h-8 transition-all lg:hidden xl:flex ml-auto group ${isDrawerOpen || activeFilter !== 'all' ? 'text-gold' : 'text-champagne/90'}`}
                 >
                   <div className="flex items-center gap-1.5 whitespace-nowrap">
                     {activeFilter !== 'all' ? (
@@ -143,7 +143,7 @@ export const ProfileToolBar = ({
                     ) : (
                       <Plus size={14} />
                     )}
-                    <span className="text-[10px] font-semibold uppercase tracking-widest">
+                    <span className="text-[10px] font-semibold uppercase tracking-widest text-champagne">
                       {activeFilter !== 'all'
                         ? activeFilter
                         : isDrawerOpen
@@ -166,7 +166,7 @@ export const ProfileToolBar = ({
               <a
                 href={`https://instagram.com/${instagram.replace('@', '')}`}
                 target="_blank"
-                className="flex items-center justify-center rounded-md  h-9 w-9 md:w-auto md:px-4 border border-white/10 bg-white/5 text-white hover:bg-gradient-to-tr hover:from-[#f09433] hover:via-[#dc2743] hover:to-[#bc1888] transition-all"
+                className="flex items-center justify-center rounded-md h-9 w-9 md:w-auto md:px-4 border border-champagne/20 bg-petroleum/5 text-champagne hover:bg-gradient-to-tr hover:from-[#f09433] hover:via-[#dc2743] hover:to-[#bc1888] hover:text-white hover:border-transparent transition-all"
               >
                 <Instagram size={18} />{' '}
                 <span className="text-[10px] font-semibold uppercase hidden lg:block ml-2">
@@ -180,24 +180,24 @@ export const ProfileToolBar = ({
                   website.startsWith('http') ? website : `https://${website}`
                 }
                 target="_blank"
-                className="flex items-center justify-center rounded-md h-9 w-9 md:w-auto md:px-4 border border-white/10 bg-white/5 text-white hover:bg-white hover:text-black transition-all"
+                className="flex items-center justify-center rounded-md h-9 w-9 md:w-auto md:px-4 border border-champagne/20 bg-petroleum/5 text-champagne hover:bg-champagne/20 hover:border-champagne/30 transition-all"
               >
                 <Globe size={18} />{' '}
-                <span className="text-[10px] font-semibold uppercase hidden lg:block ml-2">
+                <span className="text-[10px] font-semibold uppercase hidden lg:block ml-2 text-champagne">
                   Site
                 </span>
               </a>
             )}
             <button
               onClick={handleCopyLink}
-              className="flex items-center justify-center rounded-md h-9 w-9 md:w-auto md:px-4 border border-white/10 bg-white/5 text-white hover:bg-white/10 transition-all"
+              className="flex items-center justify-center rounded-md h-9 w-9 md:w-auto md:px-4 border border-champagne/20 bg-petroleum/5 text-champagne hover:bg-champagne/10 transition-all"
             >
               {copied ? (
                 <Check size={18} className="text-green-500" />
               ) : (
                 <LinkIcon size={18} />
               )}
-              <span className="text-[10px] font-semibold uppercase hidden lg:block ml-2">
+              <span className="text-[10px] font-semibold uppercase hidden lg:block ml-2 text-champagne">
                 Link
               </span>
             </button>
@@ -219,13 +219,13 @@ export const ProfileToolBar = ({
 
         {/* GAVETA */}
         <div
-          className={`overflow-hidden transition-all duration-500 bg-petroleum/95 border-t border-white/10 ${isDrawerOpen ? 'max-h-[800px] opacity-100' : 'max-h-0 opacity-0 pointer-events-none'}`}
+          className={`overflow-hidden transition-all duration-500 bg-petroleum/95 border-t border-champagne/10 ${isDrawerOpen ? 'max-h-[800px] opacity-100' : 'max-h-0 opacity-0 pointer-events-none'}`}
         >
           <div className="max-w-[1600px] mx-auto p-5 grid grid-cols-1 md:grid-cols-3 gap-8">
             {/* CIDADES */}
             {cities.length > 0 && (
               <div className="flex flex-col gap-4">
-                <h4 className="text-gold/80 text-[10px] font-semibold uppercase tracking-widest flex items-center gap-2">
+                <h4 className="text-champagne/90 text-[10px] font-semibold uppercase tracking-widest flex items-center gap-2">
                   <MapPin size={12} /> Cidades
                 </h4>
                 <div className="flex flex-wrap items-center gap-x-3 gap-y-2">
@@ -235,12 +235,12 @@ export const ProfileToolBar = ({
                         href={`https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(city)}`}
                         target="_blank"
                         rel="noopener noreferrer"
-                        className="text-[12px] font-semibold uppercase text-white/80 hover:text-gold transition-colors"
+                        className="text-[12px] font-semibold uppercase text-champagne/90 hover:text-gold transition-colors"
                       >
                         {city}
                       </a>
                       {i < cities.length - 1 && (
-                        <span className="text-white/10 text-[10px] select-none">
+                        <span className="text-champagne/30 text-[10px] select-none">
                           |
                         </span>
                       )}
@@ -252,8 +252,8 @@ export const ProfileToolBar = ({
 
             {/* ESPECIALIDADES */}
             {specialties.length > 0 && (
-              <div className="flex flex-col gap-4 border-t md:border-t-0 md:border-l border-white/20 pt-6 md:pt-0 md:pl-10">
-                <h4 className="text-gold/80 text-[10px] font-semibold uppercase tracking-widest flex items-center gap-2">
+              <div className="flex flex-col gap-4 border-t md:border-t-0 md:border-l border-champagne/20 pt-6 md:pt-0 md:pl-10">
+                <h4 className="text-champagne/90 text-[10px] font-semibold uppercase tracking-widest flex items-center gap-2">
                   <Tag size={12} /> Especialidades
                 </h4>
                 <div className="flex flex-wrap items-center gap-x-3 gap-y-2">
@@ -264,13 +264,13 @@ export const ProfileToolBar = ({
                         className={`text-[12px] font-semibold uppercase transition-colors ${
                           activeFilter === spec
                             ? 'text-gold'
-                            : 'text-white/80 hover:text-gold'
+                            : 'text-champagne/90 hover:text-gold'
                         }`}
                       >
                         {spec}
                       </button>
                       {i < specialties.length - 1 && (
-                        <span className="text-white/10 text-[10px] select-none">
+                        <span className="text-champagne/30 text-[10px] select-none">
                           |
                         </span>
                       )}
@@ -281,8 +281,8 @@ export const ProfileToolBar = ({
             )}
             {/* CATEGORIAS */}
             {uniqueCategories.length > 0 && (
-              <div className="flex flex-col gap-4 border-t md:border-t-0 md:border-l border-white/20 pt-6 md:pt-0 md:pl-10">
-                <h4 className="text-gold/80 text-[10px] font-semibold uppercase tracking-widest flex items-center gap-2">
+              <div className="flex flex-col gap-4 border-t md:border-t-0 md:border-l border-champagne/20 pt-6 md:pt-0 md:pl-10">
+                <h4 className="text-champagne/90 text-[10px] font-semibold uppercase tracking-widest flex items-center gap-2">
                   <Compass size={12} /> Categorias
                 </h4>
                 <div className="flex flex-wrap items-center gap-x-4 gap-y-3">
@@ -291,18 +291,18 @@ export const ProfileToolBar = ({
                     className={`text-[12px] font-semibold uppercase flex items-center gap-1.5 transition-colors ${
                       activeFilter === 'all'
                         ? 'text-gold'
-                        : 'text-white/40 hover:text-white/60'
+                        : 'text-champagne/60 hover:text-champagne/80'
                     }`}
                   >
                     Ver Tudo
-                    <span className="text-[9px] px-1.5 py-0.5 rounded-full bg-white/5 border border-white/10">
+                    <span className="text-[9px] px-1.5 py-0.5 rounded-full bg-champagne/10 border border-champagne/20">
                       {categories.length}
                     </span>
                   </button>
 
                   {uniqueCategories.map((cat: string) => (
                     <React.Fragment key={cat}>
-                      <span className="text-white/10 text-[10px] select-none">
+                      <span className="text-champagne/30 text-[10px] select-none">
                         |
                       </span>
                       <button
@@ -310,7 +310,7 @@ export const ProfileToolBar = ({
                         className={`text-[12px] font-semibold uppercase flex items-center gap-1.5 transition-colors ${
                           activeFilter === cat
                             ? 'text-gold'
-                            : 'text-white/80 hover:text-gold'
+                            : 'text-champagne/90 hover:text-gold'
                         }`}
                       >
                         {cat}
@@ -318,7 +318,7 @@ export const ProfileToolBar = ({
                           className={`text-[9px] px-1.5 py-0.5 rounded-full border transition-all ${
                             activeFilter === cat
                               ? 'border-gold/30 bg-gold/10 text-gold'
-                              : 'border-white/10 bg-white/5 text-white/60'
+                              : 'border-champagne/20 bg-champagne/10 text-champagne/80'
                           }`}
                         >
                           {categoryCounts[cat]}

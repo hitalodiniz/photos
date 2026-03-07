@@ -44,19 +44,16 @@ export default async function EditGaleriaPage({
   const resultProfile = await getProfileData();
 
   if (!resultProfile.success || !resultProfile.profile) {
-    redirect(
-      resultProfile.error === 'Usuário não autenticado.' ? '/' : '/onboarding',
-    );
+    redirect('/');
   }
 
   const profile = resultProfile.profile;
 
-  // Verifica se o perfil está completo
   const isProfileComplete =
     profile.full_name && profile.username && profile.mini_bio;
 
   if (!isProfileComplete) {
-    redirect('/onboarding');
+    redirect('/dashboard');
   }
 
   // Busca a galeria

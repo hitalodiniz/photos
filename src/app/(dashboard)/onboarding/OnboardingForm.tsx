@@ -20,6 +20,10 @@ import {
   ShieldCheck,
   Loader2,
   ArrowLeft,
+  Clock,
+  ChevronLeft,
+  ChevronRight,
+  ChevronDown,
 } from 'lucide-react';
 
 import {
@@ -45,34 +49,120 @@ import { TermsOfServiceModal } from '@/app/(public)/termos/TermosContent';
 import SpecialtySelect from '@/features/galeria/SpecialtySelect';
 import { supabase } from '@/lib/supabase.client';
 import { ThemeKey, ThemeSelector } from '@/components/ui/ThemeSelector';
-/**
- * 🎯 Componente de seção - Estilo Editorial
- */
+import { differenceInCalendarDays, parseISO } from 'date-fns';
+import { getPlanBenefits, PERMISSIONS_BY_PLAN } from '@/core/config/plans';
+import { useSegment } from '@/hooks/useSegment';
+import { USERNAME_BLACKLIST } from '@/core/config/username-blacklist';
+
+// =============================================================================
+// FormSection — Acordeão colapsável
+// =============================================================================
+
 const FormSection = ({
   title,
   icon,
   children,
+  defaultOpen = false,
+  filled = false,
+  hasError = false,
+  forceOpen = false,
+  allowContentOverflow = false,
 }: {
   title: string;
   icon?: React.ReactNode;
   children: React.ReactNode;
-}) => (
-  <div className="bg-white rounded-luxury border border-slate-200 p-4 space-y-3 shadow-sm transition-all hover:border-slate-300">
-    <div className="flex items-center gap-2 pb-2 border-b border-slate-200">
-      {icon && <div className="text-gold">{icon}</div>}
-      <h3 className="text-[10px] font-semibold uppercase tracking-luxury-widest text-petroleum">
-        {title}
-      </h3>
-    </div>
-    <div className="pl-0">{children}</div>
-  </div>
-);
+  defaultOpen?: boolean;
+  filled?: boolean;
+  hasError?: boolean;
+  forceOpen?: boolean;
+  /** Quando true, o conteúdo (ex.: tags de cidades) pode expandir para fora do acordeão sem ser cortado */
+  allowContentOverflow?: boolean;
+}) => {
+  const [open, setOpen] = useState(defaultOpen);
 
-/**
- * Preview de imagem do Supabase Storage
- * Segue o mesmo padrão visual do GoogleDriveImagePreview:
- * loading spinner, estado de erro, transição suave.
- */
+  // Abre automaticamente se houver erro de validação
+  useEffect(() => {
+    if (forceOpen) setOpen(true);
+  }, [forceOpen]);
+
+  return (
+    <div
+      className={`bg-white rounded-luxury border shadow-sm transition-all ${
+        allowContentOverflow ? 'overflow-visible' : 'overflow-hidden'
+      } ${
+        hasError ? 'border-red-300' : 'border-slate-200 hover:border-slate-300'
+      }`}
+    >
+      {/* Header — clicável */}
+      <button
+        type="button"
+        onClick={() => setOpen((v) => !v)}
+        className="w-full flex items-center gap-2 px-4 py-3 text-left hover:bg-slate-50/60 transition-colors"
+      >
+        {icon && (
+          <div className={hasError ? 'text-red-400' : 'text-gold'}>{icon}</div>
+        )}
+
+        {/* Dot de erro — tem precedência sobre filled */}
+        {!open && hasError && (
+          <span className="w-1.5 h-1.5 rounded-full bg-red-400 shrink-0 animate-pulse" />
+        )}
+
+        {/* Dot de preenchimento — visível apenas quando collapsed e sem erro */}
+        {!open && filled && !hasError && (
+          <span className="w-1.5 h-1.5 rounded-full bg-emerald-400 shrink-0" />
+        )}
+
+        <h3
+          className={`text-[10px] font-semibold uppercase tracking-luxury-wide flex-1 ${
+            hasError ? 'text-red-500' : 'text-petroleum'
+          }`}
+        >
+          {title}
+          {hasError && (
+            <span className="ml-2 text-[8px] normal-case font-medium text-red-400 tracking-normal">
+              — campo obrigatório
+            </span>
+          )}
+        </h3>
+
+        <ChevronDown
+          size={12}
+          className={`shrink-0 transition-transform duration-200 ${
+            open
+              ? hasError
+                ? 'rotate-180 text-red-400'
+                : 'rotate-180 text-gold'
+              : hasError
+                ? 'text-red-300'
+                : 'text-petroleum/30'
+          }`}
+        />
+      </button>
+
+      {/* Separador — visível apenas quando expandido */}
+      {open && (
+        <div
+          className={`h-px mx-4 ${hasError ? 'bg-red-100' : 'bg-slate-200'}`}
+        />
+      )}
+
+      {/*
+        IMPORTANTE: usar className="hidden" e NÃO renderização condicional.
+        Garante que todos os inputs permanecem no DOM para o FormData
+        capturar corretamente no submit, mesmo quando a seção está fechada.
+      */}
+      <div className={`px-4 pb-4 pt-3 space-y-3 ${open ? '' : 'hidden'}`}>
+        {children}
+      </div>
+    </div>
+  );
+};
+
+// =============================================================================
+// SupabaseImagePreview
+// =============================================================================
+
 function SupabaseImagePreview({
   url,
   className = 'w-full h-full object-cover',
@@ -134,6 +224,10 @@ function SupabaseImagePreview({
   );
 }
 
+// =============================================================================
+// OnboardingForm
+// =============================================================================
+
 export default function OnboardingForm({
   initialData,
   suggestedUsername,
@@ -143,8 +237,7 @@ export default function OnboardingForm({
   suggestedUsername?: string;
   isEditMode?: boolean;
 }) {
-  const { permissions, planKey } = usePlan();
-
+  const { permissions, planKey, trialExpiresAt } = usePlan();
   const { navigate, isNavigating: isGlobalNavigating } = useNavigation();
 
   const fileInputRef = useRef<HTMLInputElement>(null);
@@ -174,7 +267,6 @@ export default function OnboardingForm({
   const [selectedCities, setSelectedCities] = useState<string[]>(
     initialData?.operating_cities || [],
   );
-
   const [specialties, setSpecialties] = useState<string[]>(() => {
     const raw = initialData?.specialty;
     if (!raw) return [];
@@ -219,15 +311,44 @@ export default function OnboardingForm({
 
   // --- ESTADOS DE UI ---
   const [isAvailable, setIsAvailable] = useState<boolean | null>(null);
+  const [usernameBlacklisted, setUsernameBlacklisted] = useState(false);
   const [showSuccessModal, setShowSuccessModal] = useState(false);
+  const [showTrialWelcomeModal, setShowTrialWelcomeModal] = useState(() => {
+    const isNewSignup = !initialData?.full_name;
+    const isTrial = planKey === 'PRO' && permissions.isTrial;
+    return !!(isNewSignup && isTrial);
+  });
   const [isSaving, setIsSaving] = useState(false);
+  const [validationErrors, setValidationErrors] = useState<{
+    identificacao?: boolean;
+    termos?: boolean;
+    phone?: boolean;
+  }>({});
   const { showToast, ToastElement } = useToast();
+
+  const isNewSignupTrial =
+    !initialData?.full_name && planKey === 'PRO' && permissions.isTrial;
+  const trialDaysLeft = trialExpiresAt
+    ? Math.max(
+        0,
+        differenceInCalendarDays(parseISO(trialExpiresAt), new Date()),
+      )
+    : 14;
+
+  const { terms } = useSegment();
+  const planBenefits = useMemo(
+    () =>
+      PERMISSIONS_BY_PLAN['PRO']
+        ? getPlanBenefits(PERMISSIONS_BY_PLAN['PRO'], terms)
+        : [],
+    [terms],
+  );
 
   // 🛡️ REGRAS DE NEGÓCIO POR PLANO
   const bioLimit = useMemo(() => {
     if (permissions.profileLevel === 'basic') return 150;
     if (permissions.profileLevel === 'standard') return 250;
-    return 400; // advanced e seo
+    return 400;
   }, [permissions.profileLevel]);
 
   const profileCarouselLimit = useMemo(
@@ -235,21 +356,36 @@ export default function OnboardingForm({
     [permissions],
   );
 
-  // 🛡️ LÓGICA DE BACKGROUNDS (Para Preview e Upload)
+  // 🛡️ LÓGICA DE BACKGROUNDS: existentes primeiro, depois novos arquivos (não sobrescreve)
   const activeBackgrounds = useMemo(() => {
-    // Se o limite for 0, é o comportamento do plano básico (Sorteio Automático)
     if (permissions.profileCarouselLimit === 0) return [];
-
-    if (bgFiles.length > 0)
-      return bgFiles.map((file) => URL.createObjectURL(file));
-
-    return existingBackgrounds.slice(0, profileCarouselLimit);
+    const existing = existingBackgrounds.slice(0, profileCarouselLimit);
+    const slotsLeft = Math.max(0, profileCarouselLimit - existing.length);
+    const newBlobs = bgFiles
+      .slice(0, slotsLeft)
+      .map((file) => URL.createObjectURL(file));
+    return [...existing, ...newBlobs].slice(0, profileCarouselLimit);
   }, [
     bgFiles,
     existingBackgrounds,
     permissions.profileCarouselLimit,
     profileCarouselLimit,
   ]);
+
+  // --- DOTS DE PREENCHIMENTO POR SEÇÃO ---
+  const filledMap = {
+    identificacao: fullName.trim() !== '',
+    presencaDigital:
+      website !== '' ||
+      instagram !== '' ||
+      bgFiles.length > 0 ||
+      existingBackgrounds.length > 0,
+    miniBio: miniBio.trim() !== '',
+    temaVisual: false,
+    areaAtuacao: specialties.length > 0,
+    cidades: selectedCities.length > 0,
+    termos: acceptTerms && acceptPrivacy,
+  };
 
   // --- EFFECTS ---
   useEffect(() => {
@@ -271,15 +407,33 @@ export default function OnboardingForm({
   useEffect(() => {
     if (!username || username === initialData?.username) {
       setIsAvailable(null);
+      setUsernameBlacklisted(false);
       return;
     }
+    setUsernameBlacklisted(false);
     const check = async () => {
+      const value = username.toLowerCase();
+      if (USERNAME_BLACKLIST.has(value)) {
+        setIsAvailable(false);
+        setUsernameBlacklisted(true);
+        return;
+      }
       const { data } = await getPublicProfile(username);
       setIsAvailable(!data);
     };
     const timer = setTimeout(check, 500);
     return () => clearTimeout(timer);
   }, [username, initialData?.username]);
+
+  // Carrossel trial
+  const [activeSlide, setActiveSlide] = useState(0);
+  useEffect(() => {
+    if (!showTrialWelcomeModal) return;
+    const timer = setInterval(() => {
+      setActiveSlide((i) => (i + 1) % planBenefits.length);
+    }, 3500);
+    return () => clearInterval(timer);
+  }, [showTrialWelcomeModal, planBenefits.length]);
 
   // --- HANDLERS ---
   const handleSelectCity = (city: string) => {
@@ -297,18 +451,28 @@ export default function OnboardingForm({
   };
 
   const clientAction = async (formData: FormData) => {
-    if (!acceptTerms || !acceptPrivacy) {
-      showToast(
-        'Você precisa aceitar os termos e a política de privacidade.',
-        'error',
-      );
-      return;
-    }
-    if (!fullName.trim() || !username.trim()) {
-      showToast('Nome e Username são obrigatórios.', 'error');
+    // Mapear erros por seção e abrir automaticamente as que têm problema
+    const errors: typeof validationErrors = {};
+    if (!fullName.trim() || !username.trim()) errors.identificacao = true;
+    if (USERNAME_BLACKLIST.has(username.trim().toLowerCase()))
+      errors.identificacao = true;
+    if (!acceptTerms || !acceptPrivacy) errors.termos = true;
+
+    if (Object.keys(errors).length > 0) {
+      setValidationErrors(errors);
+      if (errors.identificacao) {
+        if (USERNAME_BLACKLIST.has(username.trim().toLowerCase())) {
+          showToast('Este nome de usuário é reservado pelo sistema.', 'error');
+        } else {
+          showToast('Preencha Nome e Username antes de salvar.', 'error');
+        }
+      } else if (errors.termos) {
+        showToast('Aceite os termos e a política de privacidade.', 'error');
+      }
       return;
     }
 
+    setValidationErrors({});
     setIsSaving(true);
 
     formData.set('full_name', fullName.trim());
@@ -323,19 +487,15 @@ export default function OnboardingForm({
     formData.set('custom_specialties', JSON.stringify(customSpecialties));
     formData.set('theme_key', themeKey);
 
-    // Preserva avatar existente quando não há novo upload.
-    // Evita que profile_picture_url seja zerado no upsert.
-    // Dentro da clientAction:
     const existingProfilePictureUrl =
       !photoFile &&
       photoPreview &&
       typeof photoPreview === 'string' &&
       photoPreview.startsWith('http')
         ? photoPreview
-        : ''; // Se photoPreview for null, enviará string vazia, limpando o banco no upsert.
+        : '';
     formData.set('profile_picture_url_existing', existingProfilePictureUrl);
 
-    // Envia quais URLs existentes devem ser mantidas (filtramos blobs locais)
     const existingUrls = activeBackgrounds.filter((url) =>
       url.startsWith('http'),
     );
@@ -386,7 +546,6 @@ export default function OnboardingForm({
     setPhotoPreview(localUrl);
 
     const compressed = await compressImage(file);
-
     setPhotoFile(new File([compressed], file.name, { type: 'image/webp' }));
 
     try {
@@ -403,7 +562,6 @@ export default function OnboardingForm({
       const extension = getFileExtension(file.name);
       const filePath = generateFilePath(userId, 'avatar', extension);
 
-      // 1. Listar e remover apenas arquivos avatar antigos (igual profile-upload.helper)
       const { data: existingFiles } = await supabase.storage
         .from(bucket)
         .list(userId);
@@ -417,14 +575,12 @@ export default function OnboardingForm({
         }
       }
 
-      // 2. Upload do novo arquivo
       const { error: uploadError } = await supabase.storage
         .from(bucket)
         .upload(filePath, file, { upsert: true, cacheControl: '3600' });
 
       if (uploadError) throw uploadError;
 
-      // 3. URL pública para o form
       const {
         data: { publicUrl },
       } = supabase.storage.from(bucket).getPublicUrl(filePath);
@@ -438,7 +594,6 @@ export default function OnboardingForm({
 
   const handleDeleteAvatar = async () => {
     if (!photoPreview || !photoPreview.startsWith('http')) {
-      // Se for apenas um preview local (blob), apenas limpa o estado
       setPhotoPreview(null);
       setPhotoFile(null);
       return;
@@ -450,11 +605,9 @@ export default function OnboardingForm({
 
       if (urlParts.length >= 2) {
         const filePath = decodeURIComponent(urlParts[1].split('?')[0]);
-
         const { error } = await supabase.storage
           .from(bucket)
           .remove([filePath]);
-
         if (error) throw error;
       }
 
@@ -463,7 +616,6 @@ export default function OnboardingForm({
       showToast('Avatar removido.', 'success', 'left');
     } catch (err) {
       console.error('Erro ao deletar avatar:', err);
-      // Limpa a UI mesmo se houver erro no storage para não travar o usuário
       setPhotoPreview(null);
       setPhotoFile(null);
     }
@@ -473,65 +625,165 @@ export default function OnboardingForm({
     try {
       const bucket = 'profile_pictures';
 
-      // 1. Se for um BLOB local, apenas removemos da UI e do estado de arquivos
       if (url.startsWith('blob:')) {
-        setBgFiles((prev) => prev.filter((_, i) => i !== index));
-        // Nota: o activeBackgrounds é derivado, então atualizar o bgFiles já resolve
+        const indexInBgFiles = index - existingBackgrounds.length;
+        setBgFiles((prev) => prev.filter((_, i) => i !== indexInBgFiles));
         return;
       }
 
-      // 2. Se for URL do Supabase, procedemos com a exclusão física
       const urlParts = url.split(`${bucket}/`);
       if (urlParts.length < 2) return;
 
       const filePath = decodeURIComponent(urlParts[1].split('?')[0]);
-
       const { error } = await supabase.storage.from(bucket).remove([filePath]);
       if (error) throw error;
 
-      // 3. Atualiza estados após exclusão remota bem-sucedida
       setExistingBackgrounds((prev) => prev.filter((_, i) => i !== index));
-
       showToast('Imagem removida do servidor.', 'success');
     } catch (err: any) {
       console.error('Erro na exclusão:', err);
-      // Remove da UI mesmo em erro para evitar travamento
       setExistingBackgrounds((prev) => prev.filter((_, i) => i !== index));
     }
   };
+
+  // =============================================================================
+  // Render
+  // =============================================================================
   return (
     <>
+      {/* Modal de boas-vindas ao trial */}
+      {isNewSignupTrial && (
+        <BaseModal
+          isOpen={showTrialWelcomeModal}
+          onClose={() => setShowTrialWelcomeModal(false)}
+          title="Bem-vindo ao período de teste PRO"
+          subtitle={`${trialDaysLeft} ${trialDaysLeft === 1 ? 'dia' : 'dias'} com todos os recursos`}
+          maxWidth="2xl"
+          headerIcon={<Clock className="text-gold" size={20} />}
+          footer={
+            <button
+              type="button"
+              onClick={() => setShowTrialWelcomeModal(false)}
+              className="w-full h-10 px-6 bg-gold hover:bg-champagne text-petroleum font-bold text-[11px] uppercase tracking-luxury rounded-luxury flex items-center justify-center gap-2 transition-all active:scale-[0.98] shadow-lg shadow-gold/10"
+            >
+              Iniciar período de teste
+              <ArrowLeft size={16} className="rotate-180" />
+            </button>
+          }
+        >
+          <div className="space-y-4 text-petroleum">
+            <p className="text-[13px] leading-relaxed">
+              Sua conta está no{' '}
+              <strong className="text-gold">
+                período de teste do Plano PRO
+              </strong>
+              . Explore todos os recursos abaixo durante esse período.
+            </p>
+
+            <div className="h-px bg-petroleum/10" />
+
+            <div className="flex items-center justify-between">
+              <p className="text-[10px] font-semibold uppercase tracking-luxury-wide text-petroleum/80">
+                Benefícios do plano PRO
+              </p>
+              <p className="text-[9px] text-petroleum/80 font-medium">
+                {activeSlide + 1} / {planBenefits.length}
+              </p>
+            </div>
+
+            <div className="relative">
+              <div className="relative overflow-hidden rounded-luxury border border-petroleum/10 bg-petroleum/[0.03] min-h-[96px] flex items-center px-10 py-4 gap-4">
+                <div className="w-10 h-10 rounded-full bg-gold/10 border border-gold/20 flex items-center justify-center shrink-0">
+                  <CheckCircle2
+                    size={18}
+                    className="text-gold"
+                    strokeWidth={2}
+                  />
+                </div>
+                <div className="min-w-0 flex-1">
+                  <p className="text-[11px] font-semibold uppercase tracking-luxury text-petroleum leading-tight">
+                    {planBenefits[activeSlide]?.label}
+                  </p>
+                  <p className="text-[13px] text-petroleum/70 mt-1 leading-snug">
+                    {planBenefits[activeSlide]?.description}
+                  </p>
+                </div>
+                <button
+                  type="button"
+                  onClick={() =>
+                    setActiveSlide((i) =>
+                      i === 0 ? planBenefits.length - 1 : i - 1,
+                    )
+                  }
+                  className="absolute left-2 top-1/2 -translate-y-1/2 w-6 h-6 rounded-full bg-white/80 border border-petroleum/10 flex items-center justify-center text-petroleum/40 hover:text-petroleum/70 hover:border-petroleum/20 transition-all shadow-sm"
+                >
+                  <ChevronLeft size={13} strokeWidth={2.5} />
+                </button>
+                <button
+                  type="button"
+                  onClick={() =>
+                    setActiveSlide((i) => (i + 1) % planBenefits.length)
+                  }
+                  className="absolute right-2 top-1/2 -translate-y-1/2 w-6 h-6 rounded-full bg-white/80 border border-petroleum/10 flex items-center justify-center text-petroleum/40 hover:text-petroleum/70 hover:border-petroleum/20 transition-all shadow-sm"
+                >
+                  <ChevronRight size={13} strokeWidth={2.5} />
+                </button>
+              </div>
+
+              <div className="flex items-center justify-center gap-1.5 mt-3">
+                {planBenefits.map((_, i) => (
+                  <button
+                    key={i}
+                    type="button"
+                    onClick={() => setActiveSlide(i)}
+                    className={`rounded-full transition-all duration-300 ${
+                      i === activeSlide
+                        ? 'w-4 h-1.5 bg-gold'
+                        : 'w-1.5 h-1.5 bg-petroleum/15 hover:bg-petroleum/30'
+                    }`}
+                  />
+                ))}
+              </div>
+
+              <div className="mt-2 h-px bg-petroleum/5 rounded-full overflow-hidden">
+                <div
+                  key={activeSlide}
+                  className="h-full bg-gold/40 rounded-full"
+                  style={{ animation: 'progress-bar 3.5s linear forwards' }}
+                />
+              </div>
+            </div>
+
+            <p className="text-center text-[9px] text-petroleum/80 font-medium">
+              Use as setas ou toque nos pontos para navegar
+            </p>
+          </div>
+        </BaseModal>
+      )}
+
       <div className="relative min-h-screen bg-luxury-bg flex flex-col md:flex-row w-full z-[99]">
         <aside className="w-full md:w-[45%] bg-white border-r border-slate-100 flex flex-col h-screen md:sticky md:top-0 z-20 shadow-xl overflow-hidden">
           <div className="flex-1 overflow-y-auto px-4 no-scrollbar py-2">
-            {/* BANNER TRIAL/UPGRADE */}
-            {isEditMode && permissions.isTrial && (
-              <div className="mb-6 p-3 bg-gold/10 border border-gold/30 rounded-luxury flex items-center justify-between">
-                <div className="flex items-center gap-3">
-                  <div className="p-2 bg-gold rounded-full text-petroleum">
-                    <Sparkles size={14} />
-                  </div>
-                  <div>
-                    <p className="text-[10px] font-semibold uppercase tracking-widest text-petroleum">
-                      Período de Trial Ativo
-                    </p>
-                    <p className="text-[9px] text-petroleum/60 uppercase">
-                      Desfrute dos recursos PRO por 14 dias
-                    </p>
-                  </div>
-                </div>
-              </div>
-            )}
-
             <form
               id="onboarding-form"
               action={clientAction}
-              className="space-y-4"
+              className="space-y-2 pb-2"
             >
-              {/* SEÇÃO 1: IDENTIFICAÇÃO */}
-              <FormSection title="Identificação" icon={<User size={14} />}>
+              {/* SEÇÃO 1: IDENTIFICAÇÃO — aberta por padrão */}
+              <FormSection
+                title="Identificação"
+                icon={<User size={14} />}
+                defaultOpen={true}
+                filled={filledMap.identificacao}
+                hasError={
+                  !!validationErrors.identificacao || !!validationErrors.phone
+                }
+                forceOpen={
+                  !!validationErrors.identificacao || !!validationErrors.phone
+                }
+              >
                 <div className="space-y-4">
-                  <div className="flex items-center gap-6">
+                  <div className="flex items-start gap-3">
                     <div className="relative group shrink-0">
                       <input
                         type="file"
@@ -540,10 +792,9 @@ export default function OnboardingForm({
                         accept="image/*"
                         onChange={handlePhotoUpload}
                       />
-
                       <div
                         onClick={() => fileInputRef.current?.click()}
-                        className="relative w-24 h-24 rounded-full p-[3px] bg-gradient-to-tr from-gold/50 to-champagne shadow-2xl cursor-pointer transition-all hover:scale-105 active:scale-95 overflow-hidden group"
+                        className="relative w-16 h-16 rounded-full p-[3px] bg-gradient-to-tr from-gold/50 to-champagne shadow-2xl cursor-pointer transition-all hover:scale-105 active:scale-95 overflow-hidden group"
                       >
                         <div className="w-full h-full rounded-full overflow-hidden bg-white p-1">
                           <div className="w-full h-full rounded-full overflow-hidden bg-slate-50 flex items-center justify-center relative">
@@ -554,7 +805,6 @@ export default function OnboardingForm({
                                   className="w-full h-full object-cover transition-transform duration-500 group-hover:scale-110"
                                   alt="Avatar"
                                 />
-                                {/* Overlay de Edição (Estilo Google Drive) */}
                                 <div className="absolute inset-0 bg-black/40 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity">
                                   <Pencil size={16} className="text-white" />
                                 </div>
@@ -570,7 +820,6 @@ export default function OnboardingForm({
                           </div>
                         </div>
                       </div>
-
                       {photoPreview && (
                         <button
                           type="button"
@@ -585,80 +834,152 @@ export default function OnboardingForm({
                       )}
                     </div>
 
-                    <div className="flex-grow space-y-1.5">
-                      <label className="text-editorial-label text-petroleum">
-                        <AtSign
-                          size={12}
-                          strokeWidth={2}
-                          className="inline mr-1.5"
-                        />{' '}
-                        Username <span className="text-gold">*</span>
-                      </label>
-                      <input
-                        readOnly={isEditMode}
-                        className={`w-full px-3 h-10 bg-white border border-slate-200 rounded-luxury text-[13px] font-medium outline-none transition-all ${isEditMode ? 'bg-slate-50 text-slate-400 italic' : 'focus:border-gold'}`}
-                        value={username}
-                        onChange={(e) =>
-                          !isEditMode &&
-                          setUsername(
-                            e.target.value
-                              .toLowerCase()
-                              .replace(/[^a-z0-9._]/g, ''),
-                          )
-                        }
-                        required
-                      />
-                    </div>
-                  </div>
-
-                  <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
-                    <div className="space-y-1.5">
-                      <label className="text-editorial-label text-petroleum">
-                        <User
-                          size={12}
-                          strokeWidth={2}
-                          className="inline mr-1.5"
-                        />{' '}
-                        Nome Completo
-                      </label>
-                      <input
-                        className="w-full px-3 h-10 border border-slate-200 rounded-luxury text-[13px] outline-none focus:border-gold"
-                        value={fullName}
-                        onChange={(e) => setFullName(e.target.value)}
-                        required
-                      />
-                    </div>
-                    <div className="space-y-1.5">
-                      <label className="text-editorial-label text-petroleum">
-                        <MessageCircle
-                          size={12}
-                          strokeWidth={2}
-                          className="inline mr-1.5"
-                        />{' '}
-                        WhatsApp
-                      </label>
-                      <input
-                        className="w-full px-3 h-10 border border-slate-200 rounded-luxury text-[13px] outline-none focus:border-gold"
-                        value={phone}
-                        onChange={(e) => setPhone(maskPhone(e))}
-                        placeholder="(00) 00000-0000"
-                      />
+                    <div className="flex-grow min-w-0 grid grid-cols-1 sm:grid-cols-[1fr_2fr_1fr] gap-2">
+                      <div className="space-y-1.5">
+                        <label className="text-editorial-label text-petroleum">
+                          <AtSign
+                            size={12}
+                            strokeWidth={2}
+                            className="inline "
+                          />
+                          Username <span className="text-gold">*</span>
+                        </label>
+                        <input
+                          readOnly={isEditMode}
+                          maxLength={20}
+                          className={`input-luxury  h-9 px-2 h-9 ${
+                            isEditMode
+                              ? 'bg-slate-50 text-slate-400 italic border-slate-200'
+                              : validationErrors.identificacao &&
+                                  !username.trim()
+                                ? 'border-red-300 focus:border-red-400 bg-red-50/30'
+                                : 'border-slate-200 focus:border-gold'
+                          }`}
+                          value={username}
+                          onChange={(e) => {
+                            if (!isEditMode) {
+                              setUsername(
+                                e.target.value
+                                  .toLowerCase()
+                                  .replace(/[^a-z0-9._]/g, '')
+                                  .slice(0, 20),
+                              );
+                              if (validationErrors.identificacao)
+                                setValidationErrors({});
+                            }
+                          }}
+                          required
+                        />
+                        <p className="text-[9px] font-semibold">
+                          {usernameBlacklisted && (
+                            <span className="text-red-400">
+                              Este nome de usuário é reservado pelo sistema.
+                            </span>
+                          )}
+                          {!usernameBlacklisted &&
+                            isAvailable === false &&
+                            username.trim() &&
+                            username !== initialData?.username && (
+                              <span className="text-red-400">
+                                Username já está em uso.
+                              </span>
+                            )}
+                          {!usernameBlacklisted && isAvailable === true && (
+                            <span className="text-emerald-500">
+                              Username disponível ✓
+                            </span>
+                          )}
+                        </p>
+                      </div>
+                      <div className="space-y-1.5">
+                        <label className="text-editorial-label text-petroleum">
+                          <User size={12} strokeWidth={2} className="inline " />
+                          Nome Completo
+                        </label>
+                        <input
+                          className={`input-luxury  h-9 px-2 ${
+                            validationErrors.identificacao && !fullName.trim()
+                              ? 'border-red-300 focus:border-red-400 bg-red-50/30'
+                              : 'border-slate-200 focus:border-gold'
+                          }`}
+                          value={fullName}
+                          onChange={(e) => {
+                            setFullName(e.target.value);
+                            if (validationErrors.identificacao)
+                              setValidationErrors({});
+                          }}
+                          required
+                        />
+                      </div>
+                      <div className="space-y-1.5">
+                        <label className="text-editorial-label text-petroleum">
+                          <MessageCircle
+                            size={12}
+                            strokeWidth={2}
+                            className="inline "
+                          />
+                          WhatsApp
+                        </label>
+                        <input
+                          className={`input-luxury h-9 px-2 ${
+                            validationErrors.phone
+                              ? 'border-red-500 focus:border-red-500'
+                              : 'border-slate-200'
+                          }`}
+                          value={phone}
+                          onChange={(e) => {
+                            setPhone(maskPhone(e));
+                            if (validationErrors.phone)
+                              setValidationErrors((prev) => ({
+                                ...prev,
+                                phone: false,
+                              }));
+                          }}
+                          onBlur={() => {
+                            const digits = phone.replace(/\D/g, '');
+                            if (digits.length === 0) return; // opcional
+                            if (digits.length === 10 || digits.length === 11) {
+                              setValidationErrors((prev) => ({
+                                ...prev,
+                                phone: false,
+                              }));
+                              return;
+                            }
+                            setValidationErrors((prev) => ({
+                              ...prev,
+                              phone: true,
+                            }));
+                          }}
+                          placeholder="(00) 00000-0000"
+                        />
+                        {validationErrors.phone && (
+                          <p className="text-xs text-red-500">
+                            Informe um número completo (10 dígitos fixo ou 11
+                            dígitos celular).
+                          </p>
+                        )}
+                      </div>
                     </div>
                   </div>
                 </div>
               </FormSection>
 
-              {/* SEÇÃO 2: PRESENÇA DIGITAL (Trava: profileLevel) */}
-              <FormSection title="Presença Digital" icon={<Globe size={14} />}>
+              {/* SEÇÃO 2: PRESENÇA DIGITAL */}
+              <FormSection
+                title="Presença Digital"
+                icon={<Globe size={14} />}
+                defaultOpen={false}
+                filled={filledMap.presencaDigital}
+              >
                 <div className="space-y-4">
                   <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
                     <PlanGuard feature="profileLevel" label="Website">
                       <div className="space-y-1.5">
                         <label className="text-editorial-label text-petroleum">
-                          <Globe size={12} className="inline mr-1.5" /> Website
+                          <Globe size={12} className="inline " /> Website
                         </label>
                         <input
-                          className="w-full px-3 h-10 border border-slate-200 rounded-luxury text-[13px]"
+                          className="input-luxury  h-9 px-2 "
                           value={website}
                           onChange={(e) => setWebsite(e.target.value)}
                           placeholder="seusite.com"
@@ -668,11 +989,10 @@ export default function OnboardingForm({
                     <PlanGuard feature="profileLevel" label="Instagram">
                       <div className="space-y-1.5">
                         <label className="text-editorial-label text-petroleum">
-                          <Instagram size={12} className="inline mr-1.5" />{' '}
-                          Instagram
+                          <Instagram size={12} className="inline " /> Instagram
                         </label>
                         <input
-                          className="w-full px-3 h-10 border border-slate-200 rounded-luxury text-[13px]"
+                          className="input-luxury  h-9 px-2 "
                           value={instagram}
                           onChange={(e) => setInstagram(e.target.value)}
                           placeholder="@seu.perfil"
@@ -681,7 +1001,6 @@ export default function OnboardingForm({
                     </PlanGuard>
                   </div>
 
-                  {/* CARROSSEL DE CAPA (Trava: profileCarouselLimit) */}
                   <PlanGuard
                     feature="profileCarouselLimit"
                     label="Personalização de Capa"
@@ -707,6 +1026,18 @@ export default function OnboardingForm({
                         multiple={profileCarouselLimit > 1}
                         onChange={(e) => {
                           const files = Array.from(e.target.files || []);
+                          const slotsLeft = Math.max(
+                            0,
+                            profileCarouselLimit - existingBackgrounds.length,
+                          );
+                          if (files.length > slotsLeft && slotsLeft > 0) {
+                            showToast(
+                              `Você pode adicionar no máximo ${slotsLeft} imagem(ns) para não exceder o limite de ${profileCarouselLimit}.`,
+                              'error',
+                            );
+                            e.target.value = '';
+                            return;
+                          }
                           if (files.length > profileCarouselLimit) {
                             showToast(
                               `Seu plano permite no máximo ${profileCarouselLimit} imagens.`,
@@ -715,8 +1046,6 @@ export default function OnboardingForm({
                             e.target.value = '';
                             return;
                           }
-
-                          // Validação de Tamanho (4MB por arquivo)
                           const overSized = files.some(
                             (f) => f.size > 4 * 1024 * 1024,
                           );
@@ -729,8 +1058,13 @@ export default function OnboardingForm({
                             e.target.value = '';
                             return;
                           }
-
-                          setBgFiles(files);
+                          setBgFiles((prev) =>
+                            [...prev, ...files].slice(
+                              0,
+                              profileCarouselLimit - existingBackgrounds.length,
+                            ),
+                          );
+                          e.target.value = '';
                         }}
                       />
 
@@ -745,9 +1079,11 @@ export default function OnboardingForm({
                         }`}
                       >
                         <span className="text-editorial-label text-petroleum">
-                          {bgFiles.length > 0
-                            ? `${bgFiles.length} selecionadas`
-                            : 'Alterar Imagens de Capa'}
+                          {activeBackgrounds.length < profileCarouselLimit
+                            ? 'Selecionar'
+                            : bgFiles.length > 0
+                              ? `${bgFiles.length} selecionadas | Alterar`
+                              : 'Alterar Imagens de Capa'}
                         </span>
                       </button>
 
@@ -785,15 +1121,17 @@ export default function OnboardingForm({
                 </div>
               </FormSection>
 
-              {/* SEÇÃO 3: BIO (Trava: profileLevel) */}
+              {/* SEÇÃO 3: MINI BIOGRAFIA */}
               <PlanGuard feature="profileLevel" label="Biografia Editorial">
                 <FormSection
                   title="Mini Biografia"
                   icon={<FileText size={14} />}
+                  defaultOpen={false}
+                  filled={filledMap.miniBio}
                 >
                   <div className="space-y-1.5">
                     <textarea
-                      className="w-full px-3 py-2 h-40 bg-white border border-slate-200 rounded-luxury text-[13px] outline-none focus:border-gold transition-all resize-none"
+                      className="w-full px-3 py-2 h-20 bg-white border border-slate-200 rounded-luxury text-[13px] outline-none focus:border-gold transition-all resize-none"
                       value={miniBio}
                       maxLength={bioLimit}
                       onChange={(e) => setMiniBio(e.target.value)}
@@ -810,8 +1148,14 @@ export default function OnboardingForm({
                 </FormSection>
               </PlanGuard>
 
+              {/* SEÇÃO 4: TEMA VISUAL */}
               <PlanGuard feature="profileLevel" label="Biografia Editorial">
-                <FormSection title="Tema Visual" icon={<Sparkles size={14} />}>
+                <FormSection
+                  title="Tema Visual"
+                  icon={<Sparkles size={14} />}
+                  defaultOpen={false}
+                  filled={filledMap.temaVisual}
+                >
                   <ThemeSelector
                     currentTheme={themeKey}
                     previewTargetId="profile-preview-wrapper"
@@ -822,23 +1166,24 @@ export default function OnboardingForm({
                 </FormSection>
               </PlanGuard>
 
-              {/* SEÇÃO 4: ÁREA DE ATUAÇÃO (ESPECIALIDADE) */}
+              {/* SEÇÃO 5: ÁREA DE ATUAÇÃO */}
               <PlanGuard feature="profileLevel" label="Área de Atuação">
                 <FormSection
                   title="Área de atuação"
                   icon={<Sparkles size={14} className="text-gold" />}
+                  defaultOpen={false}
+                  filled={filledMap.areaAtuacao}
                 >
                   <div className="space-y-4">
                     <div className="space-y-3">
                       <label className="text-editorial-label text-petroleum">
                         Suas Especialidades
                       </label>
-
                       <div className="flex flex-wrap gap-2">
                         {specialties.map((s) => (
                           <span
                             key={s}
-                            className="bg-slate-50 border border-slate-200 text-petroleum text-[9px] font-semibold px-2.5 py-1.5 rounded-luxury flex items-center gap-2 uppercase tracking-widest"
+                            className="bg-slate-50 border border-slate-200 text-petroleum text-[9px] font-semibold px-2.5 py-1.5 rounded-luxury flex items-center gap-2 uppercase tracking-wide"
                           >
                             {s}
                             <X
@@ -853,7 +1198,6 @@ export default function OnboardingForm({
                           </span>
                         ))}
                       </div>
-
                       <SpecialtySelect
                         selected={specialties}
                         onAdd={(val) =>
@@ -864,8 +1208,7 @@ export default function OnboardingForm({
                         initialCustoms={customSpecialties}
                         onCustomsChange={setCustomSpecialties}
                       />
-
-                      <p className="text-[10px] text-petroleum/50 italic leading-tight">
+                      <p className="text-[10px] text-petroleum/80 font-medium italic leading-tight">
                         Suas especialidades definem como você será encontrado
                         por clientes em nosso portal.
                       </p>
@@ -873,20 +1216,24 @@ export default function OnboardingForm({
                   </div>
                 </FormSection>
               </PlanGuard>
-              {/* SEÇÃO 4: ÁREA DE ATUAÇÃO (Trava: profileLevel) */}
+
+              {/* SEÇÃO 6: CIDADES DE ATUAÇÃO */}
               <PlanGuard feature="profileLevel" label="Cidades de Atuação">
                 <FormSection
                   title="Cidades de Atuação"
                   icon={<MapPin size={14} />}
+                  defaultOpen={false}
+                  filled={filledMap.cidades}
+                  allowContentOverflow
                 >
                   <div className="space-y-3">
                     <div className="flex flex-wrap gap-2">
                       {selectedCities.map((city) => (
                         <span
                           key={city}
-                          className="bg-slate-50 border border-slate-200 text-petroleum text-[9px] font-semibold px-2.5 py-1.5 rounded-luxury flex items-center gap-2 uppercase tracking-widest"
+                          className="bg-slate-50 border border-slate-200 text-petroleum text-[9px] font-semibold px-2.5 py-1.5 rounded-md flex items-center gap-2 uppercase tracking-wide"
                         >
-                          {city}{' '}
+                          {city}
                           <X
                             size={12}
                             className="cursor-pointer hover:text-red-500"
@@ -906,7 +1253,7 @@ export default function OnboardingForm({
                           setSelectedUF(e.target.value);
                           setCityInput('');
                         }}
-                        className="w-20 bg-slate-50 border border-slate-200 rounded-luxury px-2 h-10 text-xs font-semibold"
+                        className="w-20 bg-slate-50 border border-slate-200 rounded-md px-2 h-10 text-xs font-semibold"
                       >
                         <option value="">UF</option>
                         {states.map((uf) => (
@@ -920,11 +1267,11 @@ export default function OnboardingForm({
                           disabled={!selectedUF}
                           value={cityInput}
                           onChange={(e) => setCityInput(e.target.value)}
-                          className="w-full px-3 h-10 border border-slate-200 rounded-luxury text-[13px]"
+                          className="input-luxury  h-9 px-2 "
                           placeholder="Digite a cidade..."
                         />
                         {suggestions.length > 0 && (
-                          <div className="absolute z-[100] w-full bg-white border border-slate-200 rounded-luxury bottom-full mb-2 shadow-2xl max-h-48 overflow-y-auto">
+                          <div className="absolute z-[200] left-0 right-0 bottom-full mb-2 w-full bg-white border border-slate-200 rounded-md shadow-2xl max-h-48 overflow-y-auto">
                             {suggestions.map((city) => (
                               <button
                                 key={city}
@@ -943,18 +1290,21 @@ export default function OnboardingForm({
                 </FormSection>
               </PlanGuard>
 
-              {/* SEÇÃO 5: CONFORMIDADE */}
-
+              {/* SEÇÃO 7: TERMOS E PRIVACIDADE */}
               <FormSection
                 title="Termos e Privacidade"
                 icon={<ShieldCheck size={14} />}
+                defaultOpen={false}
+                filled={filledMap.termos}
+                hasError={!!validationErrors.termos}
+                forceOpen={!!validationErrors.termos}
               >
                 <div className="space-y-4 py-2">
                   <div className="flex items-start gap-3">
                     <input
                       type="checkbox"
                       checked={acceptTerms}
-                      disabled={hasAcceptedBefore} // 🔒 Trava se já foi aceito no banco
+                      disabled={hasAcceptedBefore}
                       onChange={(e) => setAcceptTerms(e.target.checked)}
                       className="h-4 w-4 rounded border-slate-300 text-gold focus:ring-gold"
                     />
@@ -973,7 +1323,7 @@ export default function OnboardingForm({
                     <input
                       type="checkbox"
                       checked={acceptPrivacy}
-                      disabled={hasAcceptedBefore} // 🔒 Trava se já foi aceito no banco
+                      disabled={hasAcceptedBefore}
                       onChange={(e) => setAcceptPrivacy(e.target.checked)}
                       className="h-4 w-4 rounded border-slate-300 text-gold focus:ring-gold"
                     />
@@ -990,27 +1340,26 @@ export default function OnboardingForm({
                   </div>
                 </div>
               </FormSection>
-
-              {/* BOTÕES */}
-              <div className="flex flex-row items-center justify-end gap-4 p-4 bg-petroleum ">
-                <button
-                  type="button"
-                  onClick={() => navigate('/dashboard')}
-                  className="btn-secondary-petroleum"
-                >
-                  CANCELAR
-                </button>
-
-                <SubmitButton
-                  form="onboarding-form"
-                  success={showSuccessModal}
-                  disabled={isSaving}
-                  icon={<Save size={14} />}
-                  className="px-6"
-                  label={isSaving ? 'SALVANDO...' : 'SALVAR PERFIL'}
-                />
-              </div>
             </form>
+          </div>
+
+          {/* BOTÕES — sempre visível no bottom do aside (sticky na viewport) */}
+          <div className="sticky bottom-0 z-10 shrink-0 flex flex-row items-center justify-end gap-4 px-4 py-3 bg-petroleum border-t border-white/10 shadow-[0_-4px_20px_rgba(0,0,0,0.15)]">
+            <button
+              type="button"
+              onClick={() => navigate('/dashboard')}
+              className="btn-secondary-petroleum"
+            >
+              CANCELAR
+            </button>
+            <SubmitButton
+              form="onboarding-form"
+              success={showSuccessModal}
+              disabled={isSaving}
+              icon={<Save size={14} />}
+              className="px-6"
+              label={isSaving ? 'SALVANDO...' : 'SALVAR PERFIL'}
+            />
           </div>
         </aside>
 
@@ -1060,17 +1409,13 @@ export default function OnboardingForm({
         }
         footer={
           <div className="flex flex-col gap-3">
-            {/* Linha Única: Ações Principais com Larguras Iguais via Grid */}
             <div className="grid grid-cols-2 gap-3 w-full items-center">
               <button
-                onClick={() => {
-                  navigate('/dashboard', 'Abrindo seu espaço...');
-                }}
+                onClick={() => navigate('/dashboard', 'Abrindo seu espaço...')}
                 className="btn-secondary-petroleum w-full text-[10px]"
               >
                 <ArrowLeft size={14} /> ir para Espaço de Galerias
               </button>
-
               <a
                 href={`/${username}`}
                 target="_blank"

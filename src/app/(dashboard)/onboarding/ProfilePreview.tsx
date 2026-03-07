@@ -104,7 +104,7 @@ export default function Photographer({ initialData }: { initialData?: any }) {
         backgroundUrl={backgroundUrl}
         useSubdomain={useSubdomain}
         profile={profileForPermission}
-        theme_key={themeKey}
+        themeKey={themeKey}
       />
     </div>
   );

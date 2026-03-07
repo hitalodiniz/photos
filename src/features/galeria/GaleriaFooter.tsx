@@ -37,21 +37,21 @@ export default function GaleriaFooter({
   const hasWebsite = displayLevel === 'full';
 
   return (
-    <footer className="relative z-20 w-full mt-2 bg-petroleum border-t border-white/5">
+    <footer className="relative z-20 w-full mt-2 bg-petroleum border-t border-champagne/10">
       <div className="max-w-[1600px] mx-auto flex flex-col items-center py-6 gap-4">
         {/* 1. Top Button - Compacto */}
         {showTopButton && (
           <button
             onClick={() => window.scrollTo({ top: 0, behavior: 'smooth' })}
-            className="group flex flex-col items-center gap-1 opacity-70 hover:opacity-100 transition-all"
+            className="group flex flex-col items-center gap-1 opacity-70 hover:opacity-100 transition-all text-champagne"
           >
-            <div className="p-2 rounded-full border border-white/10 group-hover:border-champagne transition-all">
+            <div className="p-2 rounded-full border border-champagne/20 group-hover:border-champagne transition-all">
               <svg
                 width="16"
                 height="16"
                 viewBox="0 0 24 24"
                 fill="none"
-                stroke="#F3E5AB"
+                stroke="currentColor"
                 strokeWidth="2"
               >
                 <path d="m18 15-6-6-6 6" />
@@ -66,18 +66,18 @@ export default function GaleriaFooter({
         {/* 2. Conteúdo Central - Linha Única no Desktop */}
         <div className="flex flex-col items-center text-center px-4">
           {title && (
-            <h3 className="text-base md:text-xl text-white/90 font-light mb-1">
+            <h3 className="text-base md:text-xl text-champagne/90 font-light mb-1">
               {title}
             </h3>
           )}
 
-          <div className="flex items-center gap-3 text-white/70 text-[11px] md:text-sm">
+          <div className="flex items-center gap-3 text-champagne/80 text-[11px] md:text-sm">
             <span className="italic">Registrado por</span>
-            <span className="text-white font-semibold tracking-tight uppercase text-[12px] md:text-base">
+            <span className="text-champagne font-semibold tracking-tight uppercase text-[12px] md:text-base">
               {photographer?.full_name}
             </span>
 
-            <div className="w-[1px] h-3 bg-white/50" />
+            <div className="w-[1px] h-3 bg-champagne/50" />
 
             {/* Ícones Minimalistas */}
             <div className="flex items-center gap-3">
@@ -101,7 +101,7 @@ export default function GaleriaFooter({
                 <a
                   href={`https://instagram.com/${photographer.instagram_link.replace('@', '')}`}
                   target="_blank"
-                  className="hover:text-white transition-colors"
+                  className="hover:text-champagne transition-colors"
                 >
                   <svg
                     width="16"
@@ -139,19 +139,19 @@ export default function GaleriaFooter({
       </div>
 
       {/* 3. Bottom Bar - Minimalista */}
-      <div className="w-full border-t border-white/5 py-4 px-6 bg-black/20">
-        <div className="max-w-[1600px] mx-auto flex flex-col md:flex-row justify-between items-center gap-2 text-[10px] text-white/70 uppercase tracking-widest font-medium">
+      <div className="w-full border-t border-champagne/10 py-4 px-6 bg-black/20">
+        <div className="max-w-[1600px] mx-auto flex flex-col md:flex-row justify-between items-center gap-2 text-[10px] text-champagne/80 uppercase tracking-widest font-medium">
           <span>
             © {new Date().getFullYear()} — Todos os direitos reservados
           </span>
 
           {!permissions.removeBranding ? (
             <div className="flex items-center gap-1.5">
-              <span className="text-white/70">Powered by</span>
+              <span className="text-champagne/80">Powered by</span>
               <a
                 href={`https://${process.env.NEXT_PUBLIC_MAIN_DOMAIN}`}
                 target="_blank"
-                className="text-champagne italic hover:text-white transition-colors"
+                className="text-champagne italic hover:text-gold transition-colors"
               >
                 {terms.site_name}
               </a>

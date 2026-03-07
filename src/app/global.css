@@ -214,6 +214,28 @@
     --radius-btn: 0.25rem;
   }
 
+  /*
+   * 🌸 BLUSH (Rosa Nude)
+   * Atmosfera: Ensaio feminino, newborn, gestante, retrato delicado.
+   * Fundo marfim/creme, texto em rosa acastanhado, acentos em dourado suave.
+   * Aconchegante e elegante.
+   */
+  [data-theme='WARM_BLUSH'] {
+    --color-luxury-bg: 253 246 240; /* Creme nude */
+    --color-petroleum: 92 68 60; /* Rosa acastanhado escuro */
+    --color-petroleum-light: 139 107 92;
+    --color-petroleum-dark: 70 52 46;
+    --color-gold: 201 168 124; /* Dourado suave */
+    --color-champagne: 220 195 160;
+    --color-champagne-hover: 200 175 140;
+    --color-surface-dark: 240 232 224;
+    --color-surface-mixed: 248 240 232;
+    --color-status-success: 34 197 94;
+    --font-display: var(--font-montserrat), sans-serif;
+    --radius-card: 0.75rem;
+    --radius-btn: 0.4rem;
+  }
+
   /* ========================================================================
      🎯 APLICAÇÕES GLOBAIS E TIPOGRAFIA
      ======================================================================== */
@@ -427,4 +449,13 @@
 
 .animate-cursor-blink {
   animation: blink 1s step-end infinite;
+}
+
+@keyframes progress-bar {
+  from {
+    width: 0%;
+  }
+  to {
+    width: 100%;
+  }
 }

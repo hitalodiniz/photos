@@ -1,7 +1,7 @@
 'use client';
 
 import { useState, useEffect, useCallback } from 'react';
-import { Check, Lock, Sparkles } from 'lucide-react';
+import { Check, Lock } from 'lucide-react';
 import { usePlan } from '@/core/context/PlanContext';
 import { InfoTooltip } from '@/components/ui/InfoTooltip';
 
@@ -14,7 +14,8 @@ export type ThemeKey =
   | 'NATURE'
   | 'NOCTURNAL_LUXURY'
   | 'OFF_WHITE'
-  | 'PLATINUM';
+  | 'PLATINUM'
+  | 'WARM_BLUSH';
 
 interface ThemeDefinition {
   key: ThemeKey;
@@ -98,6 +99,16 @@ export const THEMES: ThemeDefinition[] = [
     minPlan: 'PRO',
     segments: ['PHOTOGRAPHER', 'OFFICE', 'CAMPAIGN'],
   },
+  {
+    key: 'WARM_BLUSH',
+    label: 'Blush',
+    description: 'Rosa nude e dourado suave',
+    categories:
+      'Ensaio feminino, newborn, gestante, lifestyle, debutante, retrato delicado.',
+    swatches: ['#FDF6F0', '#8B6B5C', '#C9A87C'],
+    minPlan: 'PLUS',
+    segments: ['PHOTOGRAPHER', 'EVENT'],
+  },
 ];
 
 const PLAN_ORDER: Record<string, number> = {
@@ -123,12 +134,14 @@ function ThemeSwatch({
   theme,
   isSelected,
   isPending,
+  isSaving,
   isLocked,
   onClick,
 }: {
   theme: ThemeDefinition;
   isSelected: boolean;
   isPending: boolean;
+  isSaving: boolean;
   isLocked: boolean;
   onClick: () => void;
 }) {
@@ -138,14 +151,14 @@ function ThemeSwatch({
     <button
       type="button"
       onClick={onClick}
-      disabled={isLocked}
+      disabled={isLocked || isSaving}
       className={`
         group relative flex flex-col gap-2 p-3 rounded-xl border-2 text-left
         transition-all duration-300 active:scale-[0.97]
         ${
           isLocked
             ? 'opacity-50 cursor-not-allowed border-slate-100 bg-slate-50'
-            : isPending
+            : isSaving || isPending
               ? 'border-gold shadow-[0_0_0_3px_rgba(212,175,55,0.15)] bg-white scale-[1.02]'
               : isSelected
                 ? 'border-petroleum/30 bg-white shadow-md'
@@ -187,14 +200,15 @@ function ThemeSwatch({
           <p className="text-[10px] font-bold uppercase tracking-widest text-petroleum truncate">
             {theme.label}
           </p>
-          {/* InfoTooltip com categorias recomendadas */}
+          {/* InfoTooltip com categorias recomendadas — portal para não ser cortado */}
           <span onClick={(e) => e.stopPropagation()}>
             <InfoTooltip
               title="Recomendado para"
               content={theme.categories}
               size="xl"
               align="left"
-              position="top"
+              position="bottom"
+              portal
             />
           </span>
         </div>
@@ -213,16 +227,20 @@ function ThemeSwatch({
         </div>
       )}
 
-      {/* Check selecionado / pendente */}
-      {(isSelected || isPending) && !isLocked && (
+      {/* Check selecionado / salvando */}
+      {(isSelected || isPending || isSaving) && !isLocked && (
         <div
           className={`
           absolute top-2 right-2 w-5 h-5 rounded-full flex items-center justify-center
           transition-all duration-200
-          ${isPending ? 'bg-gold shadow-[0_0_8px_rgba(212,175,55,0.4)]' : 'bg-petroleum/20'}
+          ${isSaving ? 'bg-gold shadow-[0_0_8px_rgba(212,175,55,0.4)]' : isPending ? 'bg-gold shadow-[0_0_8px_rgba(212,175,55,0.4)]' : 'bg-petroleum/20'}
         `}
         >
-          <Check size={10} strokeWidth={3} className="text-petroleum" />
+          {isSaving ? (
+            <span className="w-2.5 h-2.5 border-2 border-petroleum/30 border-t-petroleum rounded-full animate-spin" />
+          ) : (
+            <Check size={10} strokeWidth={3} className="text-petroleum" />
+          )}
         </div>
       )}
     </button>
@@ -246,10 +264,7 @@ export function ThemeSelector({
 }: ThemeSelectorProps) {
   const { planKey } = usePlan();
   const [pendingTheme, setPendingTheme] = useState<ThemeKey>(currentTheme);
-  const [isSaving, setIsSaving] = useState(false);
-  const [savedFeedback, setSavedFeedback] = useState(false);
-
-  const hasChanges = pendingTheme !== currentTheme;
+  const [savingTheme, setSavingTheme] = useState<ThemeKey | null>(null);
 
   useEffect(() => {
     setPendingTheme(currentTheme);
@@ -273,19 +288,16 @@ export function ThemeSelector({
     };
   }, [pendingTheme, currentTheme, previewTargetId]);
 
-  const handleConfirm = async () => {
-    if (!hasChanges || isSaving) return;
-    setIsSaving(true);
+  const handleSelectTheme = async (themeKey: ThemeKey) => {
+    if (themeKey === currentTheme) return;
+    setPendingTheme(themeKey);
+    setSavingTheme(themeKey);
     try {
-      await onConfirm(pendingTheme);
-      setSavedFeedback(true);
-      setTimeout(() => setSavedFeedback(false), 2500);
+      await onConfirm(themeKey);
     } finally {
-      setIsSaving(false);
+      setSavingTheme(null);
     }
   };
-
-  const pendingThemeData = AVAILABLE_THEMES.find((t) => t.key === pendingTheme);
 
   return (
     <div className="space-y-4">
@@ -299,11 +311,6 @@ export function ThemeSelector({
               Personaliza as cores da sua página pública
             </p>
           </div>
-          {hasChanges && (
-            <span className="flex items-center gap-1 text-[9px] font-bold text-gold uppercase tracking-widest animate-pulse">
-              <Sparkles size={10} /> Preview ativo
-            </span>
-          )}
         </div>
       )}
 
@@ -314,11 +321,12 @@ export function ThemeSelector({
             <ThemeSwatch
               key={theme.key}
               theme={theme}
-              isSelected={currentTheme === theme.key && !hasChanges}
-              isPending={pendingTheme === theme.key && hasChanges}
+              isSelected={currentTheme === theme.key}
+              isPending={false}
+              isSaving={savingTheme === theme.key}
               isLocked={locked}
               onClick={() => {
-                if (!locked) setPendingTheme(theme.key);
+                if (!locked) handleSelectTheme(theme.key);
               }}
             />
           );
@@ -331,67 +339,6 @@ export function ThemeSelector({
           Alguns temas requerem upgrade de plano
         </p>
       )}
-
-      <div
-        className={`
-        flex items-center justify-between gap-3 overflow-hidden
-        transition-all duration-300 ease-in-out
-        ${hasChanges ? 'max-h-20 opacity-100 pt-3 border-t border-slate-100' : 'max-h-0 opacity-0 pointer-events-none'}
-      `}
-      >
-        <div className="flex items-center gap-2 min-w-0">
-          {pendingThemeData && (
-            <>
-              <div className="flex gap-0.5">
-                {pendingThemeData.swatches.map((color, i) => (
-                  <div
-                    key={i}
-                    className="w-3 h-3 rounded-full border border-white shadow-sm"
-                    style={{ backgroundColor: color }}
-                  />
-                ))}
-              </div>
-              <span className="text-[10px] font-semibold text-petroleum truncate">
-                {pendingThemeData.label}
-              </span>
-            </>
-          )}
-        </div>
-
-        <div className="flex items-center gap-2 shrink-0">
-          <button
-            type="button"
-            onClick={() => setPendingTheme(currentTheme)}
-            className="px-3 py-1.5 text-[9px] font-bold uppercase tracking-widest text-slate-400 hover:text-petroleum transition-colors"
-          >
-            Cancelar
-          </button>
-          <button
-            type="button"
-            onClick={handleConfirm}
-            disabled={isSaving}
-            className={`
-              flex items-center gap-1.5 px-4 py-1.5 rounded-lg
-              text-[10px] font-bold uppercase tracking-widest
-              transition-all duration-300 active:scale-95
-              ${savedFeedback ? 'bg-emerald-500 text-white' : 'bg-petroleum text-champagne hover:bg-petroleum/90'}
-            `}
-          >
-            {isSaving ? (
-              <span className="w-3 h-3 border-2 border-champagne/30 border-t-champagne rounded-full animate-spin" />
-            ) : savedFeedback ? (
-              <Check size={11} strokeWidth={3} />
-            ) : (
-              <Sparkles size={11} />
-            )}
-            {isSaving
-              ? 'Salvando...'
-              : savedFeedback
-                ? 'Aplicado!'
-                : confirmLabel}
-          </button>
-        </div>
-      </div>
     </div>
   );
 }

@@ -179,6 +179,8 @@ export function extractFormData(formData: FormData) {
     accepted_terms: formData.get('accepted_terms') === 'true',
     accepted_at: new Date().toISOString(),
 
+    theme_key: (formData.get('theme_key') as string) || undefined,
+
     specialty: formData.get('specialty') as string,
     custom_specialties: formData.get('custom_specialties') as string | null,
   };

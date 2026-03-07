@@ -408,13 +408,13 @@ export default function ProfileContent({
 
               {/* Texto com largura controlada para evitar compressão visual */}
               <div className="max-w-md text-center space-y-4">
-                <p className="text-[12px] md:text-14px uppercase tracking-[0.15em] text-petroleum font-medium leading-relaxed">
+                <p className="text-[12px] md:text-sm uppercase tracking-[0.15em] text-champagne font-medium leading-relaxed">
                   {activeFilter !== 'all'
                     ? `Não foram encontradas galerias registradas sob a categoria "${activeFilter}".`
                     : `O fotógrafo ainda não disponibilizou galerias públicas em seu perfil profissional.`}
                 </p>
 
-                <p className="text-[10px] md:text-[11px] uppercase tracking-[0.4em] text-gold font-semibold">
+                <p className="text-[10px] md:text-[11px] uppercase tracking-[0.4em] text-champagne/90 font-semibold">
                   Solicite acesso privado caso possua um convite.
                 </p>
               </div>
@@ -423,7 +423,7 @@ export default function ProfileContent({
               {activeFilter !== 'all' && (
                 <button
                   onClick={() => setActiveFilter('all')}
-                  className="mt-12 px-8 py-3 border border-petroleum/10 text-[10px] tracking-[0.3em] uppercase font-bold text-petroleum hover:bg-petroleum hover:text-white transition-all duration-500 rounded-full"
+                  className="mt-12 px-8 py-3 border border-champagne/20 text-[10px] tracking-[0.3em] uppercase font-bold text-champagne hover:bg-champagne hover:text-petroleum transition-all duration-500 rounded-full"
                 >
                   Ver todas as categorias
                 </button>

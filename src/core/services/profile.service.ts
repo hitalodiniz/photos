@@ -27,7 +27,6 @@ import {
 
 import { revalidateProfile } from '@/actions/revalidate.actions';
 import { normalizePhoneNumber } from '../utils/masks-helpers';
-import { profile } from 'console';
 
 // =========================================================================
 // 1. LEITURA DE DADOS (READ)
@@ -84,6 +83,39 @@ export async function getProfileData(supabaseClient?: any) {
       tags: [`profile-private-${user.id}`],
     },
   )(user.id);
+
+  return {
+    success: true,
+    user_id: user.id,
+    profile,
+    email: user.email,
+    suggestedUsername: suggestUsernameFromEmail(user.email!),
+  };
+}
+
+/**
+ * Mesma lógica de getProfileData mas SEM cache (fetch direto no banco).
+ * Usar em páginas de redirect (dashboard/onboarding) para evitar loop por cache desatualizado.
+ */
+export async function getProfileDataFresh(supabaseClient?: any) {
+  const supabase =
+    supabaseClient || (await createSupabaseServerClientReadOnly());
+  const {
+    data: { user },
+    error: authError,
+  } = await supabase.auth.getUser();
+
+  if (authError || !user) {
+    return { success: false, error: 'Usuário não autenticado.' };
+  }
+
+  const { data: profile, error } = await supabase
+    .from('tb_profiles')
+    .select('*')
+    .eq('id', user.id)
+    .maybeSingle();
+
+  if (error) throw error;
 
   return {
     success: true,
@@ -228,6 +260,7 @@ export async function upsertProfile(formData: FormData, supabaseClient?: any) {
     updated_at: new Date().toISOString(),
     specialty: parseOperatingCities(formFields.specialty),
     custom_specialties: parseOperatingCities(formFields.custom_specialties),
+    ...(formFields.theme_key ? { theme_key: formFields.theme_key } : {}),
 
     ...(isFirstSetup ? buildTrialData() : {}), // Merge condicional limpo
   };

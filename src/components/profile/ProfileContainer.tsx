@@ -72,6 +72,7 @@ export default function PhotographerContainer({
       backgroundUrl={profile.background_url}
       useSubdomain={profile.use_subdomain}
       profile={profile}
+      themeKey={profile.theme_key || process.env.NEXT_PUBLIC_APP_SEGMENT || 'PHOTOGRAPHER'}
     />
   );
 }

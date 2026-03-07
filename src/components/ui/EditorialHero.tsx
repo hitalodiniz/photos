@@ -1,5 +1,5 @@
 'use client';
-import React, { useState, useEffect, useMemo } from 'react';
+import React, { useState, useEffect, useMemo, useRef } from 'react';
 import { ChevronLeft, ChevronRight, ChevronUp, Maximize2 } from 'lucide-react';
 
 import { usePlan } from '@/core/context/PlanContext';
@@ -45,6 +45,10 @@ export const EditorialHero = ({
   const [imagesOrientation, setImagesOrientation] = useState<
     Record<string, 'portrait' | 'landscape'>
   >({});
+  const fallbackImageIndexRef = useRef<{
+    segment: string;
+    index: number;
+  } | null>(null);
 
   // FIX 1: Extrair o único campo de permissions que este componente usa.
   // usePlan() sempre retorna permissions preenchido (mínimo FREE), então
@@ -60,29 +64,36 @@ export const EditorialHero = ({
         : [];
 
     // FREE e sem fotos: usa imagem editorial por segmento (determinístico para evitar hydration mismatch).
-    // Nunca usar Math.random() — servidor e cliente devem gerar o mesmo index.
+    // Índice fixado no primeiro cálculo (ou quando muda o segmento) para não trocar a foto a cada caractere ao editar o title.
     if (planKey === 'FREE' || normalizedUrls.length === 0) {
       const config =
         SEGMENT_ASSETS[segment as keyof typeof SEGMENT_ASSETS] ||
         SEGMENT_ASSETS.PHOTOGRAPHER;
-      const seed =
-        typeof title === 'string' && title.length > 0
-          ? title.length
-          : (segment?.length ?? 0) || 1;
-      const index = (seed % config.count) + 1;
-      return [`${config.path}${index}.webp`];
+      const segmentKey = segment ?? 'PHOTOGRAPHER';
+      if (
+        fallbackImageIndexRef.current === null ||
+        fallbackImageIndexRef.current.segment !== segmentKey
+      ) {
+        const seed =
+          typeof title === 'string' && title.length > 0
+            ? title.length
+            : segmentKey.length || 1;
+        fallbackImageIndexRef.current = {
+          segment: segmentKey,
+          index: (seed % config.count) + 1,
+        };
+      }
+      return [`${config.path}${fallbackImageIndexRef.current.index}.webp`];
     }
 
-    // FIX 2: Remover `|| 1`.
+    fallbackImageIndexRef.current = null;
     // O bloco acima já garante que FREE nunca chega aqui.
     // Para planos pagos, profileCarouselLimit é sempre >= 1 (START=1, PLUS=1,
     // PRO=3, PREMIUM=5), então o fallback para 1 era código morto e confuso.
     return normalizedUrls.slice(0, profileCarouselLimit);
 
-    // FIX 3: Dependência ajustada para o campo escalar, não o objeto inteiro.
-    // Usar `permissions` como dependência re-executa o memo a cada render onde
-    // qualquer permissão muda — desnecessário, só profileCarouselLimit importa.
-  }, [coverUrls, planKey, title, profileCarouselLimit]);
+    // title não entra nas deps: no fallback o índice é fixado no primeiro cálculo (ref) para não trocar a cada digitação.
+  }, [coverUrls, planKey, profileCarouselLimit, segment]);
 
   // Detecção de orientação das imagens
   useEffect(() => {

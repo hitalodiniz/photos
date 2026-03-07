@@ -10,6 +10,7 @@ const visualThemes = [
   'NOCTURNAL_LUXURY',
   'OFF_WHITE',
   'PLATINUM',
+  'WARM_BLUSH',
 ];
 
 export function ThemeSwitcher() {

@@ -26,7 +26,6 @@ import BulkActionsBar from './components/BulkActionsBar';
 import DashboardHeader from './components/DashboardHeader';
 import GalleryList from './components/GalleryList';
 import DashboardFooter from './components/DashboardFooter';
-import TrialBanner from '@/components/ui/TrialBanner';
 import { PlanProvider } from '@/core/context/PlanContext';
 import { useSyncInternalTraffic } from '@/hooks/useSyncInternalTraffic';
 import { GaleriaSyncObserver } from '@/features/galeria/GaleriaSyncObserver';
@@ -85,24 +84,20 @@ export default function Dashboard({
   useSyncInternalTraffic(initialProfile?.id);
 
   useEffect(() => {
-    if (!authLoading && !user) {
-      window.location.href = '/';
-    }
-  }, [user, authLoading]);
+    // Só redireciona para / se não houver user E o servidor não enviou perfil (evita race: servidor tem sessão, cliente ainda não)
+    if (authLoading) return;
+    if (user) return;
+    if (initialProfile) return; // servidor já autenticou
+    window.location.href = '/';
+  }, [user, authLoading, initialProfile]);
 
   useEffect(() => {
     const needsConsent = searchParams.get('needsConsent') === 'true';
-    if (needsConsent && user) {
+    if (needsConsent && (user || initialProfile)) {
       setShowConsentAlert(true);
       router.replace('/dashboard', { scroll: false });
     }
-  }, [searchParams, user, router, setShowConsentAlert]);
-
-  useEffect(() => {
-    if (initialProfile && initialProfile.accepted_terms === false) {
-      navigate('/onboarding', 'Concluindo sua configuração...');
-    }
-  }, [initialProfile, navigate]);
+  }, [searchParams, user, initialProfile, router, setShowConsentAlert]);
 
   const handleConsentConfirm = async () => {
     try {
@@ -164,7 +159,6 @@ export default function Dashboard({
           onOpenAdminModal={() => setIsAdminModalOpen(true)}
           totalPhotosUsed={totalPhotosUsed}
         />
-        <TrialBanner />
         <main className="flex-1 flex flex-col min-w-0 min-h-[calc(100vh-120px)]">
           {(actions.isBulkMode || actions.selectedIds.size > 0) && (
             <BulkActionsBar

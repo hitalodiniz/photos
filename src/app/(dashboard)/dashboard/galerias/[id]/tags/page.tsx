@@ -49,9 +49,7 @@ export default async function OrganizarPage({ params }: OrganizarPageProps) {
   const resultProfile = await getProfileData();
 
   if (!resultProfile.success || !resultProfile.profile) {
-    redirect(
-      resultProfile.error === 'Usuário não autenticado.' ? '/' : '/onboarding',
-    );
+    redirect('/');
   }
 
   const profile = resultProfile.profile;
