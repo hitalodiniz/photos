@@ -2,7 +2,7 @@
 import React, { useState, useEffect, useRef, useMemo } from 'react';
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
-import { LogOut, User2, Settings2, MessageSquare } from 'lucide-react';
+import { LogOut, User2, Settings2, MessageSquare, ShieldAlert, CreditCard } from 'lucide-react';
 import { useAuth } from '@photos/core-auth';
 import { useNavigation } from '../providers/NavigationProvider';
 
@@ -17,9 +17,18 @@ interface UserMenuProps {
     };
   } | null;
   avatarUrl?: string | null;
+  /** Perfil do usuário (tb_profiles). Se roles incluir 'admin', exibe entrada do Painel Admin. */
+  profile?: { roles?: string[] } | null;
+  /** Callback para abrir o modal do Painel Admin (Cache & Tokens). Usado na Navbar. */
+  onOpenAdminModal?: () => void;
 }
 
-export default function UserMenu({ session, avatarUrl }: UserMenuProps) {
+export default function UserMenu({
+  session,
+  avatarUrl,
+  profile,
+  onOpenAdminModal,
+}: UserMenuProps) {
   const pathname = usePathname();
   const [isOpen, setIsOpen] = useState(false);
   const { logout, isLoggingOut } = useAuth();
@@ -98,7 +107,7 @@ export default function UserMenu({ session, avatarUrl }: UserMenuProps) {
           /* 🎯 glass-surface-dark: Fundo translúcido com desfoque profundo */
           <div className="absolute right-0 mt-1 w-72 glass-surface rounded-xl py-4 z-[110] animate-in fade-in zoom-in-95 duration-200">
             {' '}
-            <div className="flex flex-col items-center px-6 pb-2 text-center border-b border-white/5">
+          <div className="flex flex-col items-center px-6 pb-2 text-center border-b border-white/5">ma
               <div className="mb-2 relative">
                 <div className="p-1 rounded-full bg-white/5 ring-1 ring-gold/20">
                   {renderAvatarContent('w-16 h-16', 'text-2xl', true)}
@@ -113,8 +122,25 @@ export default function UserMenu({ session, avatarUrl }: UserMenuProps) {
               </p>
             </div>
             <div className="px-3 pt-2 space-y-1">
+              {profile?.roles?.includes('admin') && onOpenAdminModal && (
+                <button
+                  onClick={() => {
+                    setIsOpen(false);
+                    onOpenAdminModal();
+                  }}
+                  className="w-full flex items-center gap-3 px-4 py-2.5 rounded-lg text-champagne hover:bg-white/5 transition-all text-[13px] font-medium border-b border-white/5 mb-2"
+                >
+                  <ShieldAlert size={16} strokeWidth={2} />
+                  <span className="flex-1 text-left">Painel Admin</span>
+                </button>
+              )}
               {[
                 { label: 'Editar Perfil', icon: User2, path: '/onboarding' },
+                {
+                  label: 'Assinatura',
+                  icon: CreditCard,
+                  path: '/dashboard/assinatura',
+                },
                 {
                   label: 'Preferências',
                   icon: Settings2,

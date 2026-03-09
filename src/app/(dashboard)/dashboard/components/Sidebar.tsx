@@ -5,7 +5,9 @@ import {
   Lock,
   SegmentIcon,
   ArrowLeft,
+  TrendingUp,
 } from 'lucide-react';
+import Link from 'next/link';
 import type { ViewType } from '../hooks/useDashboardFilters';
 import type { Profile } from '@/core/types/profile';
 import VersionInfo from '@/components/dashboard/VersionInfo';
@@ -13,7 +15,6 @@ import SidebarGalerias from './SidebarGalerias';
 import SidebarStorage from './SidebarStorage';
 import SidebarGoogleDrive from './SidebarGoogleDrive';
 import SidebarAjuda from './SidebarAjuda';
-import SidebarAdmin from './SidebarAdmin';
 import { useSidebar } from '@/components/providers/SidebarProvider';
 import { usePlan } from '@/core/context/PlanContext';
 import { useState } from 'react';
@@ -30,7 +31,6 @@ interface SidebarProps {
   handleGoogleLogin: (force: boolean) => void;
   handleNovaGaleria: () => void;
   isRedirecting: boolean;
-  onOpenAdminModal: () => void;
   totalPhotosUsed: number;
 }
 
@@ -44,7 +44,6 @@ export default function Sidebar({
   handleGoogleLogin,
   handleNovaGaleria,
   isRedirecting,
-  onOpenAdminModal,
   totalPhotosUsed,
 }: SidebarProps) {
   const { SegmentIcon } = useSegment();
@@ -137,13 +136,25 @@ export default function Sidebar({
           {/* Badge do Plano Atual */}
           {(!isSidebarCollapsed || isMobile) && (
             <div className="px-2 py-1 mb-2">
-              <div className="flex items-center justify-between px-3 py-2 rounded-luxury bg-white/5 border border-white/5">
-                <span className="text-[9px] font-bold uppercase tracking-luxury-widest text-white/90">
-                  Plano
-                </span>
-                <span className="text-[9px] font-semibold uppercase tracking-luxury-widest text-champagne">
-                  {planKey}
-                </span>
+              <div className="flex items-center justify-between gap-2 px-3 py-2 rounded-luxury bg-white/5 border border-white/5">
+                <div className="flex items-center gap-2 min-w-0">
+                  <span className="text-[9px] font-bold uppercase tracking-luxury-widest text-white/90 shrink-0">
+                    Plano
+                  </span>
+                  <span className="text-[9px] font-semibold uppercase tracking-luxury-widest text-champagne truncate">
+                    {planKey}
+                  </span>
+                </div>
+                {planKey !== 'PREMIUM' && (
+                  <Link
+                    href="/dashboard/assinatura"
+                    className="shrink-0 flex items-center gap-1 px-2 py-1 rounded-md bg-champagne/20 border border-champagne/30 text-champagne hover:bg-champagne/30 text-[9px] font-semibold uppercase tracking-widest transition-colors"
+                    title="Fazer upgrade de plano"
+                  >
+                    <TrendingUp size={10} />
+                    Migrar
+                  </Link>
+                )}
               </div>
             </div>
           )}
@@ -171,11 +182,6 @@ export default function Sidebar({
 
           <SidebarAjuda isSidebarCollapsed={isSidebarCollapsed} />
 
-          <SidebarAdmin
-            isSidebarCollapsed={isSidebarCollapsed}
-            photographer={photographer}
-            onOpenAdminModal={onOpenAdminModal}
-          />
         </nav>
 
         {/* Rodapé: Versão e Toggle */}

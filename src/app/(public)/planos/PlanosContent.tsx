@@ -1,4 +1,5 @@
 'use client';
+
 import React, { useState, useMemo, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
 import {
@@ -11,13 +12,12 @@ import {
   HardDrive,
   Users,
   FileArchive,
-  Link as LinkIcon,
-  ShieldCheck,
-  Bell,
   BarChart2,
+  Bell,
   Shield,
   UserRound,
   Sparkles,
+  ShieldCheck,
 } from 'lucide-react';
 import { useAuth } from '@photos/core-auth';
 import EditorialCard from '@/components/ui/EditorialCard';
@@ -30,6 +30,7 @@ import {
   SegmentType,
   PLANS_BY_SEGMENT,
   formatPhotoCredits,
+  PIX_DISCOUNT_PERCENT,
 } from '@/core/config/plans';
 import { useSegment } from '@/hooks/useSegment';
 import FeaturePreview from '@/components/ui/FeaturePreview';
@@ -38,7 +39,7 @@ import GoogleSignInButton from '@/components/auth/GoogleSignInButton';
 
 const OPEN_UPGRADE_KEY = 'openUpgrade';
 
-export default function PlanosPage() {
+export default function PlanosContent() {
   const router = useRouter();
   const { user, isLoading: authLoading } = useAuth();
   const [loadingPlan, setLoadingPlan] = useState<string | null>(null);
@@ -99,13 +100,12 @@ export default function PlanosPage() {
   const toggleGroup = (name: string) =>
     setExpandedGroups((prev) => ({ ...prev, [name]: !prev[name] }));
 
-  // Lê o array values da tabela pelo índice — fonte única de verdade para a tabela
   const getFeatureValue = (label: string, planIdx: number) => {
     const feature = COMMON_FEATURES.find((f) => f.label === label);
     if (!feature) return '—';
     const val = feature.values?.[planIdx];
     if (val === undefined) return '—';
-    return val; // true | false | string
+    return val;
   };
 
   return (
@@ -115,31 +115,41 @@ export default function PlanosPage() {
     >
       <main className="w-full -mt-4 md:-mt-8">
         {/* ── SELETOR DE PERÍODO ── */}
-        <div className="flex items-center gap-1.5 mb-10 bg-slate-50 p-1.5 rounded-full border border-slate-200 shadow-sm w-fit mx-auto">
-          {(
-            [
-              { value: 'monthly', label: 'Mensal', badge: null },
-              { value: 'semester', label: 'Semestral', badge: '-12%' },
-              { value: 'annual', label: 'Anual', badge: '-20%' },
-            ] as const
-          ).map(({ value, label, badge }) => (
-            <button
-              key={value}
-              onClick={() => setBillingCycle(value)}
-              className={`relative py-2 px-4 md:px-5 rounded-full text-[9px] md:text-[10px] font-bold uppercase tracking-widest transition-all whitespace-nowrap ${
-                billingCycle === value
-                  ? 'bg-petroleum text-white shadow-md'
-                  : 'text-petroleum/40 hover:text-petroleum/70'
-              }`}
-            >
-              {label}
-              {badge && (
-                <span className="absolute -top-2 -right-1 bg-emerald-500 text-white text-[9px] px-1.5 py-0.5 rounded-full font-bold">
-                  {badge}
-                </span>
-              )}
-            </button>
-          ))}
+        <div className="flex flex-col items-center gap-3 mb-10">
+          <div className="flex items-center gap-1.5 bg-slate-50 p-1.5 rounded-full border border-slate-200 shadow-sm w-fit mx-auto">
+            {(
+              [
+                { value: 'monthly', label: 'Mensal', badge: null },
+                { value: 'semester', label: 'Semestral', badge: '-12%' },
+                { value: 'annual', label: 'Anual', badge: '-20%' },
+              ] as const
+            ).map(({ value, label, badge }) => (
+              <button
+                key={value}
+                onClick={() => setBillingCycle(value)}
+                className={`relative py-2 px-4 md:px-5 rounded-full text-[9px] md:text-[10px] font-bold uppercase tracking-widest transition-all whitespace-nowrap ${
+                  billingCycle === value
+                    ? 'bg-petroleum text-white shadow-md'
+                    : 'text-petroleum/40 hover:text-petroleum/70'
+                }`}
+              >
+                {label}
+                {badge && (
+                  <span className="absolute -top-2 -right-1 bg-emerald-500 text-white text-[9px] px-1.5 py-0.5 rounded-full font-bold">
+                    {badge}
+                  </span>
+                )}
+              </button>
+            ))}
+          </div>
+          {(billingCycle === 'semester' || billingCycle === 'annual') && (
+            <p className="text-[10px] font-semibold text-petroleum/80 text-center max-w-md">
+              <span className="text-emerald-600 font-bold">
+                +{PIX_DISCOUNT_PERCENT}% OFF
+              </span>{' '}
+              no pagamento com PIX
+            </p>
+          )}
         </div>
 
         {/* ── GRID DE CARDS ── */}
@@ -156,7 +166,6 @@ export default function PlanosPage() {
                     ? planInfo.semesterPrice
                     : planInfo.price;
 
-              // Indicadores lidos direto das permissions — sem depender da tabela
               const indicators: Array<{
                 icon: React.ReactElement;
                 label: string;
@@ -177,11 +186,10 @@ export default function PlanosPage() {
                 },
                 {
                   icon: <HardDrive />,
-                  label: `Arquivos/galeria`,
+                  label: 'Arquivos/galeria',
                   value: `até ${perms.maxPhotosPerGallery}`,
                   permKey: 'maxPhotosPerGallery',
                 },
-
                 {
                   icon: <BarChart2 />,
                   label: 'Estatísticas',
@@ -215,10 +223,9 @@ export default function PlanosPage() {
                   key={key}
                   title={planInfo.name}
                   icon={<planInfo.icon size={32} strokeWidth={1.5} />}
-                  accentColor={isPro ? 'gold' : 'champagne'}
+                  accentColor={isPro ? 'gold' : 'petroleum'}
                   badge={isPro ? 'Mais Escolhido' : undefined}
                 >
-                  {/* Preço */}
                   <div className="text-center mb-3">
                     <div className="flex items-start justify-center gap-1 text-petroleum">
                       <span className="text-[14px] font-semibold mt-2 text-gold">
@@ -237,15 +244,11 @@ export default function PlanosPage() {
                     </p>
                   </div>
 
-                  {/* Indicadores */}
                   <div className="space-y-2.5 mb-5 flex-grow">
                     {indicators.map((ind, i) => (
                       <div key={i} className="flex items-start gap-2.5">
-                        <div className="w-7 h-7 rounded-lg flex items-center justify-center shrink-0 text-gold">
-                          {React.cloneElement(ind.icon, {
-                            size: 14,
-                            strokeWidth: 2,
-                          })}
+                        <div className="w-7 h-7 rounded-lg flex items-center justify-center shrink-0 text-gold [&>svg]:w-3.5 [&>svg]:h-3.5 [&>svg]:stroke-[2]">
+                          {ind.icon}
                         </div>
                         <div className="flex flex-col min-w-0">
                           <span className="text-[11px] font-semibold text-petroleum leading-tight">
@@ -267,7 +270,6 @@ export default function PlanosPage() {
                     ))}
                   </div>
 
-                  {/* CTA */}
                   <button
                     onClick={() => handlePlanCta(key)}
                     disabled={!!loadingPlan || authLoading}
@@ -284,7 +286,9 @@ export default function PlanosPage() {
                         <planInfo.icon
                           size={16}
                           strokeWidth={2.5}
-                          className={isPro ? 'text-gold' : 'text-petroleum/60'}
+                          className={
+                            isPro ? 'text-gold' : 'text-petroleum/60'
+                          }
                         />
                         <span>{planInfo.cta}</span>
                       </>
@@ -352,7 +356,6 @@ export default function PlanosPage() {
                 <tbody>
                   {groups.map((groupName) => (
                     <React.Fragment key={groupName}>
-                      {/* Cabeçalho de grupo colapsável */}
                       <tr
                         className="bg-slate-50/50 cursor-pointer hover:bg-slate-100 transition-colors"
                         onClick={() => toggleGroup(groupName)}
@@ -376,16 +379,15 @@ export default function PlanosPage() {
                         </td>
                       </tr>
 
-                      {/* Linhas de features */}
                       {expandedGroups[groupName] &&
                         COMMON_FEATURES.filter(
-                          (f) => f.group.trim().toUpperCase() === groupName,
+                          (f) =>
+                            f.group.trim().toUpperCase() === groupName,
                         ).map((feature, fIdx) => (
                           <tr
                             key={`${groupName}-${fIdx}`}
                             className="hover:bg-slate-50 transition-colors group"
                           >
-                            {/* Label + tooltip */}
                             <td className="py-4 px-8 border-b border-slate-100 bg-white sticky left-0 z-30 shadow-[2px_0_5px_-2px_rgba(0,0,0,0.05)]">
                               <div className="flex items-center gap-2">
                                 <span className="text-[12px] font-semibold text-petroleum opacity-80 group-hover:opacity-100">
@@ -401,10 +403,11 @@ export default function PlanosPage() {
                                 )}
                               </div>
                             </td>
-
-                            {/* Valores por plano */}
                             {planosKeys.map((key, pIdx) => {
-                              const val = getFeatureValue(feature.label, pIdx);
+                              const val = getFeatureValue(
+                                feature.label,
+                                pIdx,
+                              );
                               return (
                                 <td
                                   key={`${key}-${fIdx}`}
@@ -441,7 +444,6 @@ export default function PlanosPage() {
             </div>
           </div>
 
-          {/* Badge de segurança */}
           <div className="flex flex-col md:flex-row items-center gap-3 bg-petroleum/5 border border-petroleum/10 px-6 py-4 rounded-2xl md:rounded-full w-fit mx-auto mt-12">
             <ShieldCheck size={18} className="text-gold" />
             <span className="text-[9px] md:text-[10px] font-bold uppercase tracking-widest text-petroleum/70 text-center">
@@ -451,7 +453,6 @@ export default function PlanosPage() {
         </section>
       </main>
 
-      {/* Modal: identificação para contratar (conta existente ou novo usuário) */}
       <BaseModal
         isOpen={loginRequiredModalOpen}
         onClose={closeLoginRequiredModal}
@@ -466,7 +467,6 @@ export default function PlanosPage() {
         footer={
           <div className="flex flex-col gap-4 w-full px-2 items-center">
             <GoogleSignInButton variant="full" />
-
             <div className="flex items-center justify-center gap-2 pt-4 border-t border-slate-100">
               <Shield size={10} className="text-emerald-500/70" />
               <p className="text-[9px] font-semibold uppercase tracking-widest text-slate-400">
@@ -477,11 +477,10 @@ export default function PlanosPage() {
         }
       >
         <div className="flex flex-col gap-6 py-2">
-          {/* Destaque: conta Google + ícone */}
           <div className="relative overflow-hidden bg-slate-50/60 p-3 rounded-2xl border border-slate-100 flex items-start gap-3 text-left">
             <div className="absolute top-0 left-0 w-1 h-full bg-gold/30 rounded-l" />
             <div className="shrink-0 w-10 h-10 rounded-xl bg-gold/10 border border-gold/20 flex items-center justify-center mt-1.5">
-              <Sparkles size={18} strokeWidth={2} className="text-gold " />
+              <Sparkles size={18} strokeWidth={2} className="text-gold" />
             </div>
             <div className="min-w-0 pt-0.5">
               <p className="text-[13px] md:text-[14px] leading-relaxed text-petroleum/85 font-medium">
@@ -491,7 +490,6 @@ export default function PlanosPage() {
             </div>
           </div>
 
-          {/* Passos */}
           <div className="space-y-5 px-1">
             <div className="flex items-start gap-4 group">
               <div className="w-8 h-8 rounded-full bg-petroleum text-gold flex items-center justify-center shrink-0 font-semibold text-[12px] border-2 border-gold/20 shadow-sm transition-transform group-hover:scale-105 mt-1.5">
@@ -504,11 +502,9 @@ export default function PlanosPage() {
                     {segmentPlans?.[pendingPlanKey]?.name ?? pendingPlanKey}
                   </span>
                 )}
-                , use o botão &quot;Entrar com Google&quot; abaixo. Quem já tem
-                conta faz login; quem é novo cria a conta na hora.
+                , use o botão &quot;Entrar com Google&quot; abaixo.
               </p>
             </div>
-
             <div className="flex items-start gap-4 group">
               <div className="w-8 h-8 rounded-full bg-petroleum text-gold flex items-center justify-center shrink-0 font-semibold text-[12px] border-2 border-gold/20 shadow-sm transition-transform group-hover:scale-105 mt-1.5">
                 2

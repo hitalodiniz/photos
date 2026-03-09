@@ -383,14 +383,17 @@ export async function updateGaleria(
  * 🎯 CACHE: Busca galerias do usuário logado com cache de 30 dias
  * O cache é limpo automaticamente via revalidateTag quando galerias são criadas/atualizadas
  *
- * 🎯 CORREÇÃO: Cria cliente Supabase ANTES do cache e usa createSupabaseClientForCache
- * dentro do cache para evitar erro de cookies dentro de unstable_cache
+ * 🎯 IMPERSONATE: Se options.impersonateUserId for passado e o usuário logado for admin,
+ * ignora auth.uid() e busca as galerias do targetUserId (modo suporte).
+ *
+ * @param supabaseClient - Cliente Supabase opcional
+ * @param options.impersonateUserId - UUID do usuário alvo (só aplicado se logado for admin)
  */
 export async function getGalerias(
   supabaseClient?: any,
+  options?: { impersonateUserId?: string },
 ): Promise<ActionResult<Galeria[]>> {
   // 🎯 PASSO 1: Autenticação e obtenção do userId FORA do cache
-  // Isso é necessário porque getAuthAndStudioIds usa cookies
   const {
     success,
     userId,
@@ -403,6 +406,14 @@ export async function getGalerias(
       error: authError || 'Usuário não autenticado.',
       data: [],
     };
+  }
+
+  let effectiveUserId = userId;
+  if (options?.impersonateUserId) {
+    const { profile } = await getAuthenticatedUser();
+    if (profile?.roles?.includes('admin')) {
+      effectiveUserId = options.impersonateUserId;
+    }
   }
 
   // 🎯 PASSO 2: Cache da busca de dados (sem cookies dentro)
@@ -439,9 +450,6 @@ export async function getGalerias(
           throw error;
         }
 
-        // 🎯 DEBUG: Verificação detalhada de leads
-        // console.log(`[getGalerias] userId: ${cachedUserId}, Found: ${data?.length || 0}`);
-
         // AJUSTE NO MAP: Usa a função formatGalleryData para garantir que o objeto photographer exista
         const galeriasFormatadas = (data || []).map((raw) =>
           formatGalleryData(raw as any, raw.photographer?.username || ''),
@@ -465,12 +473,12 @@ export async function getGalerias(
         };
       }
     },
-    [`user-galerias-${userId}`],
+    [`user-galerias-${effectiveUserId}`],
     {
       revalidate: GLOBAL_CACHE_REVALIDATE,
-      tags: [`user-galerias-${userId}`],
+      tags: [`user-galerias-${effectiveUserId}`],
     },
-  )(userId);
+  )(effectiveUserId);
 }
 
 // =========================================================================
@@ -1440,7 +1448,7 @@ export interface PhotographerPoolStats {
  * Usado por GaleriaFormPage para alimentar os alertas de cota dinâmica
  * em GaleriaDriveSection via calcEffectiveMaxGalleries().
  *
- * @param profileId  - ID do perfil do fotógrafo (profile.id)
+ * @param profileId  - ID do perfil do fotógrafo (profile.id = user_id nas galerias)
  */
 export async function getPhotographerPoolStats(
   profileId: string,
@@ -1450,7 +1458,7 @@ export async function getPhotographerPoolStats(
   const { data, error } = await supabase
     .from('tb_galerias')
     .select('photo_count')
-    .eq('profile_id', profileId)
+    .eq('user_id', profileId)
     .eq('is_deleted', false)
     .eq('is_archived', false); // exclui galerias arquivadas/excluídas
 

@@ -130,7 +130,7 @@ function UpgradeSheetContent({ isOpen, onClose }: { isOpen: boolean; onClose: ()
 }
 
 function ConfirmButton() {
-  const { acceptedTerms, loading, handleConfirm } = useUpgradeSheetContext();
+  const { acceptedTerms, loading, handleConfirm, billingType } = useUpgradeSheetContext();
   return (
     <button
       type="button"
@@ -146,7 +146,7 @@ function ConfirmButton() {
       ) : (
         <>
           <ArrowRight size={14} />
-          Confirmar Solicitação
+          {billingType === 'PIX' ? 'Confirmar e Gerar Pix' : 'Confirmar Solicitação'}
         </>
       )}
     </button>

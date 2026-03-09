@@ -13,7 +13,13 @@ export const PLAN_ICONS: Record<PlanKey, ElementType> = {
   PREMIUM: Sparkles,
 };
 
-export const STEP_ORDER: Step[] = ['plan', 'personal', 'billing', 'confirm', 'done'];
+export const STEP_ORDER: Step[] = [
+  'plan',
+  'personal',
+  'billing',
+  'confirm',
+  'done',
+];
 
 export const STEP_LABELS: Record<Step, string> = {
   plan: 'Plano',
@@ -24,7 +30,7 @@ export const STEP_LABELS: Record<Step, string> = {
 };
 
 export const STEP_TITLES: Record<Step, { title: string; subtitle: string }> = {
-  plan: { title: 'Upgrade de Plano', subtitle: 'Escolha o plano ideal' },
+  plan: { title: 'Assinatura de Plano', subtitle: 'Escolha o plano ideal' },
   personal: {
     title: 'Dados cadastrais',
     subtitle: 'Contato e endereço de cobrança',

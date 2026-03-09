@@ -12,11 +12,13 @@ import {
   ZapOff,
   Star,
   Crown,
+  User,
 } from 'lucide-react';
 import { useEffect, useState, useMemo, useRef } from 'react';
 
 import { useAuth } from '@photos/core-auth';
 import { UserMenu } from '@/components/auth';
+import AdminControlModal from '@/components/admin/AdminControlModal';
 import { useSidebar } from '@/components/providers/SidebarProvider';
 import { useSegment } from '@/hooks/useSegment';
 import { NotificationMenu } from '../dashboard/NotificationMenu';
@@ -42,10 +44,14 @@ export default function Navbar() {
   const [upgradeSheetInitialPlan, setUpgradeSheetInitialPlan] = useState<
     PlanKey | undefined
   >(undefined);
+  const [adminModalOpen, setAdminModalOpen] = useState(false);
   const trialRef = useRef<HTMLDivElement>(null);
 
   const plan = usePlan();
   const isTrial = plan.planKey === 'PRO' && plan.permissions.isTrial;
+  const isProfileComplete = Boolean(
+    plan.profile?.full_name && plan.profile?.username,
+  );
   const proFeatureLabels = useMemo(() => getProOnlyFeatureLabels(), []);
   const trialDaysLeft = plan.trialExpiresAt
     ? Math.max(
@@ -259,20 +265,40 @@ export default function Navbar() {
 
                       {/* Footer — mesmo padrão do NotificationMenu */}
                       <div className="p-4 bg-white/5 border-t border-white/5 flex flex-col gap-2">
-                        {/* CTA Principal — destacado */}
+                        {!isProfileComplete && (
+                          <p className="text-[11px] text-amber-600 font-medium text-center">
+                            Preencha seu perfil para assinar o plano PRO.
+                          </p>
+                        )}
+                        {/* CTA Principal — destacado (desabilitado se perfil incompleto) */}
                         <button
                           type="button"
+                          disabled={!isProfileComplete}
                           onClick={() => {
+                            if (!isProfileComplete) return;
                             setTrialOpen(false);
                             setUpgradeSheetInitialPlan('PRO');
                             setUpgradeSheetOpen(true);
                           }}
-                          className="btn-luxury-primary"
+                          className="btn-luxury-primary disabled:opacity-60 disabled:cursor-not-allowed disabled:pointer-events-none"
                         >
                           <Crown size={20} className="" />
                           Manter meu plano PRO
                           <ArrowRight size={14} />
                         </button>
+                        {!isProfileComplete && (
+                          <button
+                            type="button"
+                            onClick={() => {
+                              setTrialOpen(false);
+                              router.push('/onboarding');
+                            }}
+                            className="btn-luxury-primary "
+                          >
+                            <User size={20} className="" />
+                            Completar meu perfil
+                          </button>
+                        )}
 
                         {/* Frase de urgência */}
                         <p className="text-center text-[9px] text-white/70 uppercase tracking-widest">
@@ -298,13 +324,23 @@ export default function Navbar() {
             )}
 
             {user && <NotificationMenu userId={user.id} />}
-            <UserMenu session={user} avatarUrl={avatarUrl} />
+            <UserMenu
+              session={user}
+              avatarUrl={avatarUrl}
+              profile={plan.profile}
+              onOpenAdminModal={() => setAdminModalOpen(true)}
+            />
           </div>
         </div>
       </nav>
 
       {/* Spacer exato para a altura h-14 */}
       <div className="h-14 w-full print:hidden" />
+
+      <AdminControlModal
+        isOpen={adminModalOpen}
+        onClose={() => setAdminModalOpen(false)}
+      />
 
       <UpgradeSheet
         isOpen={upgradeSheetOpen}

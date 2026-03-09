@@ -10,7 +10,6 @@ import type { DashboardProps } from './types';
 import { ConfirmationModal, LoadingScreen, Toast } from '@/components/ui';
 
 import { authService, useAuth } from '@photos/core-auth';
-import AdminControlModal from '@/components/admin/AdminControlModal';
 import GoogleConsentAlert from '@/components/auth/GoogleConsentAlert';
 
 // Hooks
@@ -47,8 +46,6 @@ export default function Dashboard({
   );
 
   const {
-    isAdminModalOpen,
-    setIsAdminModalOpen,
     toast,
     setToast,
     showConsentAlert,
@@ -156,7 +153,7 @@ export default function Dashboard({
           handleGoogleLogin={actions.handleGoogleLogin}
           handleNovaGaleria={handleNovaGaleria}
           isRedirecting={isNavigating}
-          onOpenAdminModal={() => setIsAdminModalOpen(true)}
+          handleNovaGaleria={handleNovaGaleria}
           totalPhotosUsed={totalPhotosUsed}
         />
         <main className="flex-1 flex flex-col min-w-0 min-h-[calc(100vh-120px)]">
@@ -255,11 +252,6 @@ export default function Dashboard({
           isOpen={showConsentAlert}
           onClose={() => setShowConsentAlert(false)}
           onConfirm={handleConsentConfirm}
-        />
-
-        <AdminControlModal
-          isOpen={isAdminModalOpen}
-          onClose={() => setIsAdminModalOpen(false)}
         />
       </div>
     </PlanProvider>

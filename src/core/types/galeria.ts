@@ -60,6 +60,8 @@ export interface GaleriaBase {
   password: string | null;
   user_id: string;
   category: string;
+  /** true quando a galeria foi ocultada automaticamente por downgrade para FREE */
+  auto_archived?: boolean;
   /** CT = Contrato, CB = Cobertura, ES = Ensaio (aceita valor legado boolean no banco) */
   has_contracting_client: GaleriaContractTypeCode | boolean;
   client_whatsapp: string | null;

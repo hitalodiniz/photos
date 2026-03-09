@@ -10,7 +10,11 @@ export const metadata = {
 
 export const dynamic = 'force-dynamic';
 
-export default async function DashboardPage() {
+export default async function DashboardPage({
+  searchParams,
+}: {
+  searchParams: Promise<Record<string, string | string[] | undefined>>;
+}) {
   const resultProfile = await getProfileDataFresh();
 
   if (!resultProfile.success || !resultProfile.profile) {
@@ -18,8 +22,16 @@ export default async function DashboardPage() {
   }
 
   const profile = resultProfile.profile;
+  const params = await searchParams;
+  const impersonateRaw = params?.impersonate;
+  const impersonateUserId =
+    typeof impersonateRaw === 'string' ? impersonateRaw : undefined;
+  const isAdmin = profile.roles?.includes('admin') === true;
 
-  const resultGalerias = await getGalerias();
+  const resultGalerias = await getGalerias(undefined, {
+    impersonateUserId:
+      isAdmin && impersonateUserId ? impersonateUserId : undefined,
+  });
   if (
     !resultGalerias.success &&
     resultGalerias.error === 'AUTH_RECONNECT_REQUIRED'
@@ -37,6 +49,7 @@ export default async function DashboardPage() {
     <Dashboard
       initialGalerias={initialGalerias || []}
       initialProfile={profile}
+      impersonateUserId={isAdmin && impersonateUserId ? impersonateUserId : undefined}
     />
   );
 }

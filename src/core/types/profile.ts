@@ -7,6 +7,8 @@ export interface Profile {
   username: string;
   mini_bio?: string;
   phone_contact?: string;
+  /** E-mail (pode vir do auth ou de tb_profiles quando gravado). */
+  email?: string | null;
   instagram_link?: string;
   website?: string;
   operating_cities: string[];

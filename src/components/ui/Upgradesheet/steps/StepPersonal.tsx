@@ -1,6 +1,6 @@
 'use client';
 
-import React from 'react';
+import React, { useEffect, useRef } from 'react';
 import {
   CheckCircle2,
   CreditCard,
@@ -36,6 +36,12 @@ export function StepPersonal() {
     streetInputRef,
   } = useUpgradeSheetContext();
 
+  const cpfInputRef = useRef<HTMLInputElement>(null);
+
+  useEffect(() => {
+    if (!loadingPrefill) cpfInputRef.current?.focus();
+  }, [loadingPrefill]);
+
   return (
     <SheetSection title="Dados cadastrais">
       <div className="space-y-4">
@@ -55,6 +61,7 @@ export function StepPersonal() {
               <div className="w-full h-9 bg-slate-200 rounded-[0.4rem] animate-pulse" />
             ) : (
               <input
+                ref={cpfInputRef}
                 type="text"
                 inputMode="numeric"
                 value={personal.cpfCnpj}
@@ -82,7 +89,7 @@ export function StepPersonal() {
           <div className="space-y-1 min-w-0">
             <FieldLabel icon={Mail} label="E-mail" />
             <div className="w-full px-2.5 py-2 bg-slate-50 border border-slate-200 rounded-[0.4rem] text-[10px] text-petroleum font-medium outline-none flex items-center justify-between min-h-9">
-              <span className="truncate">{email ?? '—'}</span>
+              <span className="truncate">{profile?.email ?? email ?? '—'}</span>
               <CheckCircle2 size={10} className="text-emerald-400 shrink-0 ml-1" />
             </div>
           </div>

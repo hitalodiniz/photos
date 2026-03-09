@@ -88,7 +88,7 @@ export async function getProfileData(supabaseClient?: any) {
     success: true,
     user_id: user.id,
     profile,
-    email: user.email,
+    email: profile?.email ?? user.email,
     suggestedUsername: suggestUsernameFromEmail(user.email!),
   };
 }
@@ -121,7 +121,7 @@ export async function getProfileDataFresh(supabaseClient?: any) {
     success: true,
     user_id: user.id,
     profile,
-    email: user.email,
+    email: profile?.email ?? user.email,
     suggestedUsername: suggestUsernameFromEmail(user.email!),
   };
 }

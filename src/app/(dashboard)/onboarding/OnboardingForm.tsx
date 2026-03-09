@@ -25,6 +25,8 @@ import {
   ChevronRight,
   ChevronDown,
   ArrowRight,
+  Crown,
+  Info,
 } from 'lucide-react';
 
 import {
@@ -55,6 +57,7 @@ import { getPlanBenefits, PERMISSIONS_BY_PLAN } from '@/core/config/plans';
 import { useSegment } from '@/hooks/useSegment';
 import { USERNAME_BLACKLIST } from '@/core/config/username-blacklist';
 import WhatsAppIcon from '@/components/ui/WhatsAppIcon';
+import { UpgradeSheet } from '@/components/ui/Upgradesheet';
 
 // =============================================================================
 // FormSection — Acordeão colapsável
@@ -319,6 +322,7 @@ export default function OnboardingForm({
   const [isAvailable, setIsAvailable] = useState<boolean | null>(null);
   const [usernameBlacklisted, setUsernameBlacklisted] = useState(false);
   const [showSuccessModal, setShowSuccessModal] = useState(false);
+  const [showUpgradeSheet, setShowUpgradeSheet] = useState(false);
   const [showTrialWelcomeModal, setShowTrialWelcomeModal] = useState(() => {
     const isNewSignup = !initialData?.full_name;
     const isTrial = planKey === 'PRO' && permissions.isTrial;
@@ -380,7 +384,7 @@ export default function OnboardingForm({
 
   // --- DOTS DE PREENCHIMENTO POR SEÇÃO ---
   const phoneDigits = phone.replace(/\D/g, '');
-  const isPhoneValid = phoneDigits.length === 10 || phoneDigits.length === 11;
+  const isPhoneValid = phoneDigits.length === 11;
   const filledMap = {
     identificacao:
       fullName.trim() !== '' && username.trim().length >= 5 && isPhoneValid,
@@ -469,7 +473,7 @@ export default function OnboardingForm({
     if (USERNAME_BLACKLIST.has(usernameTrim.toLowerCase()))
       errors.identificacao = true;
     const phoneDigits = phone.replace(/\D/g, '');
-    if (phoneDigits.length !== 10 && phoneDigits.length !== 11) {
+    if (phoneDigits.length !== 11) {
       errors.phone = true;
     }
     if (!acceptTerms || !acceptPrivacy) errors.termos = true;
@@ -486,7 +490,7 @@ export default function OnboardingForm({
         }
       } else if (errors.phone) {
         showToast(
-          'Informe um WhatsApp válido (10 dígitos fixo ou 11 dígitos celular).',
+          'Informe um WhatsApp válido (11 dígitos: DDD + celular com 9).',
           'error',
         );
       } else if (errors.termos) {
@@ -699,6 +703,23 @@ export default function OnboardingForm({
           }
         >
           <div className="space-y-4 text-petroleum">
+            {/* Plano e assinatura — mesma mensagem do banner do form */}
+            <div className="rounded-luxury border border-gold/20 bg-gold/5 p-4 flex gap-3">
+              <div className="shrink-0 w-9 h-9 rounded-lg bg-gold/10 border border-gold/20 flex items-center justify-center">
+                <Info size={18} className="text-gold" />
+              </div>
+              <div className="min-w-0">
+                <p className="text-[11px] font-bold uppercase tracking-wide text-petroleum mb-1">
+                  Plano e assinatura
+                </p>
+                <p className="text-[12px] text-petroleum/80 leading-relaxed">
+                  Você pode usar o plano trial por 14 dias. Se preferir, já pode
+                  contratar um plano. Ao finalizar o preenchimento do perfil
+                  você poderá assinar seu plano.
+                </p>
+              </div>
+            </div>
+
             <p className="text-[13px] leading-relaxed">
               Sua conta está no{' '}
               <strong className="text-gold">
@@ -796,6 +817,24 @@ export default function OnboardingForm({
               action={clientAction}
               className="space-y-2 pb-2"
             >
+              {/* Alerta primeiro acesso: trial + assinatura ao final */}
+              {!initialData?.full_name && (
+                <div className="rounded-luxury border border-gold/20 bg-gold/5 p-4 mb-3 flex gap-3">
+                  <div className="shrink-0 w-9 h-9 rounded-lg bg-gold/10 border border-gold/20 flex items-center justify-center">
+                    <Info size={18} className="text-gold" />
+                  </div>
+                  <div className="min-w-0">
+                    <p className="text-[11px] font-bold uppercase tracking-wide text-petroleum mb-1">
+                      Plano e assinatura
+                    </p>
+                    <p className="text-[12px] text-petroleum/80 leading-relaxed">
+                      Você pode usar o plano trial por 14 dias. Se preferir, já
+                      pode contratar um plano. Ao finalizar o preenchimento do
+                      perfil você poderá assinar seu plano.
+                    </p>
+                  </div>
+                </div>
+              )}
               {/* SEÇÃO 1: IDENTIFICAÇÃO — aberta por padrão */}
               <FormSection
                 title="Identificação"
@@ -981,10 +1020,7 @@ export default function OnboardingForm({
                             onBlur={() => {
                               const digits = phone.replace(/\D/g, '');
                               if (digits.length === 0) return;
-                              if (
-                                digits.length === 10 ||
-                                digits.length === 11
-                              ) {
+                              if (digits.length === 11) {
                                 setValidationErrors((prev) => ({
                                   ...prev,
                                   phone: false,
@@ -1474,38 +1510,60 @@ export default function OnboardingForm({
           </div>
         }
         footer={
-          <div className="flex flex-col gap-3">
-            <div className="grid grid-cols-2 gap-3 w-full items-center">
-              <a
-                href={`/${username}`}
-                target="_blank"
-                className="btn-luxury-primary w-full text-[10px]"
-              >
-                <Sparkles size={14} /> Ver Perfil Público
-              </a>
+          <div className="flex flex-col gap-3 w-full">
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 w-full items-stretch">
               <button
-                onClick={() => navigate('/dashboard', 'Abrindo seu espaço...')}
-                className="btn-secondary-white w-full text-[10px]"
+                type="button"
+                onClick={() => {
+                  setShowSuccessModal(false);
+                  setShowUpgradeSheet(true);
+                }}
+                className="btn-luxury-primary w-full text-[10px] flex items-center justify-center gap-2"
               >
-                <ArrowRight size={14} /> ir para Espaço de Galerias
+                <Crown size={14} />
+                Assinar plano
+              </button>
+              <button
+                type="button"
+                onClick={() => navigate('/dashboard', 'Abrindo seu espaço...')}
+                className="btn-secondary-white w-full text-[10px] flex items-center justify-center gap-2"
+              >
+                <ArrowRight size={14} />
+                Ir para Espaço de Galerias
               </button>
             </div>
+            <a
+              href={`/${username}`}
+              target="_blank"
+              rel="noopener noreferrer"
+              className="btn-secondary-white"
+            >
+              <Sparkles size={12} className="inline mr-1 align-middle" />
+              Ver perfil público
+            </a>
           </div>
         }
       >
         <div className="space-y-3">
           <p className="text-[13px] md:text-[14px] leading-relaxed text-petroleum/80 font-medium text-left">
-            O seu perfil atualizado agora está configurado e pronto para ser
-            acessado pelo seu público.
+            Seu perfil está configurado e pronto para ser acessado pelo seu
+            público. Você pode assinar um plano agora ou ir direto ao Espaço de
+            Galerias para testar o Plano PRO por 14 dias.
           </p>
           <div className="p-4 bg-slate-50 border border-petroleum/10 rounded-luxury">
             <p className="text-[10px] font-semibold text-petroleum/80 text-left uppercase tracking-luxury">
-              Dica: Você pode alterar sua foto de capa e outras informações a
-              qualquer momento.
+              Dica: altere sua foto de capa e outras informações a qualquer
+              momento nas configurações do perfil.
             </p>
           </div>
         </div>
       </BaseModal>
+
+      <UpgradeSheet
+        isOpen={showUpgradeSheet}
+        onClose={() => setShowUpgradeSheet(false)}
+        initialPlanKey="PRO"
+      />
 
       {ToastElement}
     </>

@@ -1,12 +1,21 @@
 'use client';
 
 import { useState, useEffect } from 'react';
+import { useRouter } from 'next/navigation';
 import { purgeAllCache } from '@/actions/revalidate.actions';
 import {
   quickCleanupTokens,
   fullCleanupTokens,
 } from '@/actions/token-cleanup.actions';
-import { Trash2, ShieldAlert, Zap, RefreshCw, Database } from 'lucide-react';
+import {
+  Trash2,
+  ShieldAlert,
+  Zap,
+  RefreshCw,
+  Database,
+  Users,
+  Crown,
+} from 'lucide-react';
 import BaseModal from '@/components/ui/BaseModal';
 
 export default function AdminControlModal({
@@ -18,8 +27,11 @@ export default function AdminControlModal({
 }) {
   const [isSyncing, setIsSyncing] = useState(false);
   const [isCleaningTokens, setIsCleaningTokens] = useState(false);
-  const [activeTab, setActiveTab] = useState<'cache' | 'tokens'>('cache');
+  const [activeTab, setActiveTab] = useState<'painel' | 'cache' | 'tokens'>(
+    'painel',
+  );
   const [mounted, setMounted] = useState(false);
+  const router = useRouter();
 
   useEffect(() => {
     setMounted(true);
@@ -35,8 +47,8 @@ export default function AdminControlModal({
       if (result.success) {
         // Fallback para mensagem caso result.message seja undefined
         alert(result.message || 'Cache global invalidado com sucesso!');
-        onClose();
         window.location.reload();
+        onClose();
       } else {
         alert('Falha ao limpar cache.');
       }
@@ -51,6 +63,16 @@ export default function AdminControlModal({
 
   const tabs = (
     <div className="flex bg-petroleum border-b border-white/10">
+      <button
+        onClick={() => setActiveTab('painel')}
+        className={`flex-1 py-3 text-[10px] font-bold uppercase tracking-luxury-widest transition-colors ${
+          activeTab === 'painel'
+            ? 'text-gold border-b-2 border-gold'
+            : 'text-white/60 hover:text-white'
+        }`}
+      >
+        Painel
+      </button>
       <button
         onClick={() => setActiveTab('cache')}
         className={`flex-1 py-3 text-[10px] font-bold uppercase tracking-luxury-widest transition-colors ${
@@ -85,6 +107,38 @@ export default function AdminControlModal({
       maxWidth="md"
     >
       <div className="space-y-4">
+        {activeTab === 'painel' && (
+          <div className="space-y-3">
+            <p className="text-[10px] text-petroleum/60 font-bold uppercase tracking-luxury">
+              Navegação rápida
+            </p>
+            <a
+              href="/admin/usuarios"
+              onClick={(e) => {
+                e.preventDefault();
+                router.push('/admin/usuarios');
+                onClose();
+              }}
+              className="w-full h-11 rounded-luxury font-bold uppercase tracking-luxury-widest text-[10px] flex items-center justify-center gap-3 bg-champagne text-petroleum hover:bg-petroleum hover:text-white active:scale-[0.98] transition-all"
+            >
+              <Users size={14} strokeWidth={2.5} />
+              Usuários
+            </a>
+            <a
+              href="/admin/planos"
+              onClick={(e) => {
+                e.preventDefault();
+                router.push('/admin/planos');
+                onClose();
+              }}
+              className="w-full h-11 rounded-luxury font-bold uppercase tracking-luxury-widest text-[10px] flex items-center justify-center gap-3 bg-champagne text-petroleum hover:bg-petroleum hover:text-white active:scale-[0.98] transition-all"
+            >
+              <Crown size={14} strokeWidth={2.5} />
+              Gestão de planos
+            </a>
+          </div>
+        )}
+
         {activeTab === 'cache' && (
           <div className="text-center space-y-4">
             <div className="inline-flex p-3 bg-petroleum/5 rounded-full text-champagneborder border-petroleum/10">

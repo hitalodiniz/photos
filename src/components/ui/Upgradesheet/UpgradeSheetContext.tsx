@@ -7,6 +7,7 @@ import { PERMISSIONS_BY_PLAN, PLANS_BY_SEGMENT, getPeriodPrice, type PlanInfo, t
 import { requestUpgrade } from '@/core/services/asaas.service';
 import { getBillingProfile } from '@/core/services/billing.service';
 import type { BillingType } from '@/core/types/billing';
+import type { CreditCardPayload } from '@/core/types/billing';
 import type { Step } from './types';
 import type { PersonalData, AddressData } from './types';
 import { formatPhone } from './utils';
@@ -36,10 +37,18 @@ interface UpgradeSheetContextValue {
   billingPeriod: BillingPeriod;
   setBillingPeriod: (p: BillingPeriod) => void;
   planInfoForPrice: PlanInfo;
+  /** Dados do cartão (etapa 3, quando forma = Cartão). */
+  creditCard: CreditCardPayload;
+  setCreditCard: React.Dispatch<React.SetStateAction<CreditCardPayload>>;
+  /** Número de parcelas selecionado (1-6 para cartão; sempre 1 para PIX/BOLETO). */
+  installments: number;
+  setInstallments: React.Dispatch<React.SetStateAction<number>>;
   // UI state
   acceptedTerms: boolean;
   setAcceptedTerms: (v: boolean) => void;
   paymentUrl: string | null;
+  /** Dados do QR PIX (preenchido após confirmar com PIX; usado na tela de revisão). */
+  pixData: { qrCode: string; copyPaste: string };
   requestError: string | null;
   loading: boolean;
   loadingPrefill: boolean;
@@ -61,7 +70,7 @@ interface UpgradeSheetContextValue {
   /** Fechar sheet e resetar estado (chamado pelo overlay, X ou botão Fechar do step done). */
   handleClose: () => void;
   // Profile/email from usePlan
-  profile: { full_name?: string; phone_contact?: string } | null;
+  profile: { full_name?: string; phone_contact?: string; email?: string | null } | null;
   email: string | undefined;
   segment: SegmentType;
   terms: { items: string };
@@ -81,11 +90,19 @@ interface UpgradeSheetProviderProps {
   onClose: () => void;
   suggestedPlanKey: PlanKey;
   planKey: PlanKey;
-  profile: { full_name?: string; phone_contact?: string } | null;
+  profile: { full_name?: string; phone_contact?: string; email?: string | null } | null;
   email: string | undefined;
   segment: SegmentType;
   terms: { items: string };
 }
+
+const initialCreditCard: CreditCardPayload = {
+  credit_card_holder_name: '',
+  credit_card_number: '',
+  credit_card_expiry_month: '',
+  credit_card_expiry_year: '',
+  credit_card_ccv: '',
+};
 
 export function UpgradeSheetProvider({
   children,
@@ -108,9 +125,12 @@ export function UpgradeSheetProvider({
   const [loadingCep, setLoadingCep] = useState(false);
   const [acceptedTerms, setAcceptedTerms] = useState(false);
   const [showTermsModal, setShowTermsModal] = useState(false);
-  const [billingType, setBillingType] = useState<BillingType>('PIX');
+  const [billingType, setBillingType] = useState<BillingType>('CREDIT_CARD');
   const [billingPeriod, setBillingPeriod] = useState<BillingPeriod>('monthly');
+  const [installments, setInstallments] = useState<number>(1);
+  const [creditCard, setCreditCard] = useState<CreditCardPayload>(initialCreditCard);
   const [paymentUrl, setPaymentUrl] = useState<string | null>(null);
+  const [pixData, setPixData] = useState<{ qrCode: string; copyPaste: string }>({ qrCode: '', copyPaste: '' });
   const [requestError, setRequestError] = useState<string | null>(null);
   const [loading, setLoading] = useState(false);
   const [loadingPrefill, setLoadingPrefill] = useState(false);
@@ -210,9 +230,14 @@ export function UpgradeSheetProvider({
     if (!acceptedTerms) return;
     setLoading(true);
     setRequestError(null);
+    const effectiveInstallments =
+      billingType === 'CREDIT_CARD' ? installments : 1;
+
     const result = await requestUpgrade({
       plan_key_requested: selectedPlan,
       billing_type: billingType,
+      billing_period: billingPeriod,
+      installments: effectiveInstallments,
       segment,
       whatsapp: personal.whatsapp,
       cpf_cnpj: personal.cpfCnpj,
@@ -223,15 +248,22 @@ export function UpgradeSheetProvider({
       province: address.neighborhood,
       city: address.city,
       state: address.state,
+      ...(billingType === 'CREDIT_CARD' && { credit_card: creditCard }),
     });
     setLoading(false);
     if (result.success) {
       setPaymentUrl(result.payment_url ?? null);
+      if (result.billing_type === 'PIX' && result.pix_qr_code_base64 && result.payment_url) {
+        setPixData({
+          qrCode: result.pix_qr_code_base64,
+          copyPaste: result.payment_url,
+        });
+      }
       setStep('done');
     } else {
       setRequestError(result.error ?? 'Erro ao processar solicitação.');
     }
-  }, [acceptedTerms, selectedPlan, billingType, segment, personal, address]);
+  }, [acceptedTerms, selectedPlan, billingType, billingPeriod, installments, segment, personal, address, creditCard]);
 
   const resetState = useCallback(() => {
     setStep('plan');
@@ -243,9 +275,12 @@ export function UpgradeSheetProvider({
     });
     setAcceptedTerms(false);
     setPaymentUrl(null);
+    setPixData({ qrCode: '', copyPaste: '' });
     setRequestError(null);
-    setBillingType('PIX');
+    setBillingType('CREDIT_CARD');
     setBillingPeriod('monthly');
+    setInstallments(1);
+    setCreditCard(initialCreditCard);
     setHasSavedBillingData(false);
   }, [suggestedPlanKey]);
 
@@ -274,10 +309,15 @@ export function UpgradeSheetProvider({
       setBillingType,
       billingPeriod,
       setBillingPeriod,
+      installments,
+      setInstallments,
       planInfoForPrice,
+      creditCard,
+      setCreditCard,
       acceptedTerms,
       setAcceptedTerms,
       paymentUrl,
+      pixData,
       requestError,
       loading,
       loadingPrefill,
@@ -310,9 +350,12 @@ export function UpgradeSheetProvider({
       address,
       billingType,
       billingPeriod,
+      installments,
       planInfoForPrice,
+      creditCard,
       acceptedTerms,
       paymentUrl,
+      pixData,
       requestError,
       loading,
       loadingPrefill,

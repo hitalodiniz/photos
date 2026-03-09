@@ -1,6 +1,7 @@
 'use server';
 
 import { revalidatePath, revalidateTag } from 'next/cache';
+import { createSupabaseAdmin } from '@/lib/supabase.server';
 
 // =========================================================================
 // INTERFACES & TIPAGEM
@@ -26,6 +27,7 @@ interface GalleryRevalidationData {
 
 /**
  * Revalida o perfil em todos os níveis: público, privado e dados de cache.
+ * Usa tags com userId/username para limpar apenas o cache daquele usuário.
  * Use em: Update de bio, redes sociais, configurações, mensagens ou planos.
  */
 export async function revalidateProfile(username: string, userId: string) {
@@ -144,6 +146,45 @@ export async function revalidateDrivePhotos(
 // =========================================================================
 // 4. HELPERS E ADMIN
 // =========================================================================
+
+/**
+ * Limpa o cache específico de um usuário: tags de perfil + listagem de galerias
+ * + tags de cada galeria (slug, fotos, drive). Use após alterações manuais de
+ * suporte (ex.: reativação/ocultação de galerias).
+ */
+export async function revalidateUserCache(
+  userId: string,
+): Promise<{ success: boolean; error?: string }> {
+  try {
+    revalidateTag(`profile-private-${userId}`);
+    revalidateTag(`user-profile-data-${userId}`);
+    revalidateTag(`user_profile_${userId}`);
+    revalidateTag(`user-galerias-${userId}`);
+
+    const admin = createSupabaseAdmin();
+    const { data: galerias } = await admin
+      .from('tb_galerias')
+      .select('id, slug, drive_folder_id')
+      .eq('user_id', userId);
+
+    if (galerias?.length) {
+      galerias.forEach((g: GaleriaData) => {
+        if (g.slug) {
+          revalidateTag(`gallery-${g.slug}`);
+          revalidateTag(`gallery-data-${g.slug}`);
+        }
+        if (g.drive_folder_id) revalidateTag(`drive-${g.drive_folder_id}`);
+        revalidateTag(`photos-${g.id}`);
+      });
+    }
+
+    revalidatePath('/dashboard', 'layout');
+    return { success: true };
+  } catch (error) {
+    console.error('[revalidateUserCache] Erro:', error);
+    return { success: false, error: String(error) };
+  }
+}
 
 export async function getGalleryRevalidationData(
   supabase: any,

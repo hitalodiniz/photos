@@ -527,7 +527,8 @@ export const FEATURE_DESCRIPTIONS: Record<
   },
   storageGB: {
     label: 'Capacidade',
-    description: 'Equivalente em capacidade de armazenamento para suporte à cota de arquivos.',
+    description:
+      'Equivalente em capacidade de armazenamento para suporte à cota de arquivos.',
   },
   maxGalleries: {
     label: 'Limite de Galerias',
@@ -541,7 +542,8 @@ export const FEATURE_DESCRIPTIONS: Record<
   },
   maxPhotosPerGallery: {
     label: 'Capacidade por Galeria',
-    description: 'Aumente o limite de arquivos vinculados por galeria (processados do Drive).',
+    description:
+      'Aumente o limite de arquivos vinculados por galeria (processados do Drive).',
   },
   recommendedPhotosPerGallery: {
     label: 'Recomendado por Galeria',
@@ -836,9 +838,13 @@ export interface PlanInfo {
 /** Período de cobrança no UpgradeSheet e exibição de preços. */
 export type BillingPeriod = 'monthly' | 'semiannual' | 'annual';
 
+/** Desconto adicional (em %) no pagamento via PIX para períodos semestral e anual. */
+export const PIX_DISCOUNT_PERCENT = 10;
+
 /**
  * Retorna preço mensal efetivo, total e desconto por período.
  * Fonte da verdade: valores de PlanInfo (price, semesterPrice, yearlyPrice).
+ * No PIX, semestral e anual têm desconto adicional de PIX_DISCOUNT_PERCENT % — use getPixAdjustedTotal para o valor final.
  */
 export function getPeriodPrice(
   planInfo: PlanInfo,
@@ -874,6 +880,23 @@ export function getPeriodPrice(
     discount: planInfo.price > 0 ? 20 : 0, // 20% off (exibição fixa; valores já em PlanInfo)
     months: 12,
   };
+}
+
+/**
+ * Valor total com desconto PIX aplicado (10% para semestral e anual).
+ * Para mensal, retorna o mesmo totalPrice do getPeriodPrice.
+ */
+export function getPixAdjustedTotal(
+  planInfo: PlanInfo,
+  period: BillingPeriod,
+): { totalOriginal: number; discountAmount: number; totalWithPixDiscount: number } {
+  const { totalPrice, months } = getPeriodPrice(planInfo, period);
+  if (period === 'monthly') {
+    return { totalOriginal: totalPrice, discountAmount: 0, totalWithPixDiscount: totalPrice };
+  }
+  const discountAmount = Math.round(totalPrice * (PIX_DISCOUNT_PERCENT / 100) * 100) / 100;
+  const totalWithPixDiscount = Math.round((totalPrice - discountAmount) * 100) / 100;
+  return { totalOriginal: totalPrice, discountAmount, totalWithPixDiscount };
 }
 
 export const PLANS_BY_SEGMENT: Record<
@@ -927,9 +950,9 @@ export const PLANS_BY_SEGMENT: Record<
     },
     PREMIUM: {
       name: 'Premium',
-      price: 119,
-      yearlyPrice: 95,
-      semesterPrice: 105,
+      price: 139, // Mensal
+      yearlyPrice: 109, // Anual (20% desconto)
+      semesterPrice: 119, // Semestral (12% desconto)
       maxGalleries: 200,
       storageLabel: '2 TB',
       icon: Sparkles,
