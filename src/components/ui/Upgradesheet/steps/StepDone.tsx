@@ -18,11 +18,14 @@ import {
   Banknote,
 } from 'lucide-react';
 import { useUpgradeSheetContext } from '../UpgradeSheetContext';
+import { getUpgradeRequestStatus } from '@/core/services/asaas.service';
+import BaseModal from '@/components/ui/BaseModal';
+import { useRouter } from 'next/navigation';
 
 // ─── Constantes ───────────────────────────────────────────────────────────────
 
 const PIX_EXPIRY_SECONDS = 5 * 60; // 5 minutos (Asaas padrão)
-const WHATSAPP_SUPPORT = '5511999999999'; // substituir pelo número real
+const WHATSAPP_SUPPORT = '5531993522018';
 
 // ─── Helpers ─────────────────────────────────────────────────────────────────
 
@@ -79,7 +82,7 @@ function OrderSummary({
         </p>
       </div>
       {amount && (
-        <p className="text-[15px] font-black text-petroleum shrink-0">
+        <p className="text-[15px] font-bold text-petroleum shrink-0">
           {formatBRL(amount)}
         </p>
       )}
@@ -110,7 +113,7 @@ function NextStep({
 
 function SecurityBadge() {
   return (
-    <div className="flex items-center justify-center gap-1.5 text-petroleum/60">
+    <div className="flex items-center justify-center gap-1.5 text-petroleum/80">
       <ShieldCheck size={11} />
       <span className="text-[9px] font-semibold uppercase tracking-wider">
         Pagamento seguro · Processado pela Asaas
@@ -130,7 +133,7 @@ function SupportLink() {
       href={`https://wa.me/${WHATSAPP_SUPPORT}?text=${msg}`}
       target="_blank"
       rel="noopener noreferrer"
-      className="flex items-center gap-1.5 text-[10px] text-petroleum/60 hover:text-petroleum/70 transition-colors"
+      className="flex items-center gap-1.5 text-[10px] text-petroleum/80 hover:text-petroleum transition-colors"
     >
       <MessageCircle size={11} />
       Precisa de ajuda? Fale conosco
@@ -149,19 +152,47 @@ function StepDonePix({
   planName,
   period,
   amount,
+  upgradeRequestId,
+  onPaymentConfirmedClose,
 }: {
   pixData: { qrCode?: string; copyPaste?: string };
   paymentUrl?: string | null;
   planName: string;
   period: string;
   amount?: number | null;
+  upgradeRequestId?: string | null;
+  /** Chamado ao fechar o modal de confirmação pós-pagamento (fecha sheet e atualiza sidebar). */
+  onPaymentConfirmedClose?: () => void;
 }) {
   const [copyState, setCopyState] = useState<'idle' | 'copied' | 'error'>(
     'idle',
   );
   const [secondsLeft, setSecondsLeft] = useState(PIX_EXPIRY_SECONDS);
   const [expired, setExpired] = useState(false);
+  const [paymentConfirmed, setPaymentConfirmed] = useState(false);
+  const [showSuccessModal, setShowSuccessModal] = useState(false);
   const startedAt = useRef(Date.now());
+
+  // Poll status da solicitação quando temos requestId (após webhook atualizar para approved)
+  useEffect(() => {
+    if (!upgradeRequestId || paymentConfirmed) return;
+    const check = async () => {
+      const res = await getUpgradeRequestStatus(upgradeRequestId);
+      if (res.success && res.status === 'approved') {
+        setPaymentConfirmed(true);
+      }
+    };
+    check();
+    const interval = setInterval(check, 5000);
+    return () => clearInterval(interval);
+  }, [upgradeRequestId, paymentConfirmed]);
+
+  // Abrir modal de confirmação de migração quando o pagamento for confirmado
+  useEffect(() => {
+    if (paymentConfirmed && !showSuccessModal) {
+      setShowSuccessModal(true);
+    }
+  }, [paymentConfirmed, showSuccessModal]);
 
   // Timer que resiste a re-renders: usa a data de início fixada no mount
   useEffect(() => {
@@ -197,7 +228,63 @@ function StepDonePix({
       ? 'text-red-500'
       : secondsLeft <= 120
         ? 'text-amber-500'
-        : 'text-petroleum/50';
+        : 'text-petroleum/80';
+
+  // Pagamento confirmado (webhook atualizou; polling detectou)
+  if (paymentConfirmed) {
+    return (
+      <>
+        <div className="flex flex-col items-center gap-4 px-4 py-3 w-full">
+          <div className="flex flex-col items-center gap-2">
+            <div className="w-14 h-14 rounded-full bg-emerald-100 border-2 border-emerald-300 flex items-center justify-center">
+              <Check size={28} className="text-emerald-600" strokeWidth={2.5} />
+            </div>
+            <div className="text-center">
+              <p className="text-[15px] font-bold text-petroleum uppercase tracking-wide">
+                Pagamento confirmado!
+              </p>
+              <p className="text-[11px] text-petroleum/80 mt-0.5">
+                Seu plano foi ativado. Obrigado!
+              </p>
+            </div>
+          </div>
+          <OrderSummary planName={planName} period={period} amount={amount} />
+          <SecurityBadge />
+          <SupportLink />
+        </div>
+
+        <BaseModal
+          isOpen={showSuccessModal}
+          onClose={() => {
+            setShowSuccessModal(false);
+            onPaymentConfirmedClose?.();
+          }}
+          title="Migração de plano confirmada"
+          subtitle="Pagamento recebido"
+          headerIcon={<Check size={22} className="text-emerald-400" />}
+          footer={
+            <div className="flex justify-end">
+              <button
+                type="button"
+                onClick={() => {
+                  setShowSuccessModal(false);
+                  onPaymentConfirmedClose?.();
+                }}
+                className="px-4 py-2 rounded-lg bg-champagne text-petroleum font-semibold text-sm hover:bg-champagne/90 transition-colors"
+              >
+                Fechar
+              </button>
+            </div>
+          }
+        >
+          <p className="text-[13px] text-petroleum/90">
+            Seu pagamento foi confirmado e o plano <strong>{planName}</strong>{' '}
+            está ativo. O nome do plano na sidebar será atualizado em instantes.
+          </p>
+        </BaseModal>
+      </>
+    );
+  }
 
   return (
     <div className="flex flex-col items-center gap-4 px-4 py-3 w-full">
@@ -207,10 +294,10 @@ function StepDonePix({
           <QrCode size={26} className="text-gold" />
         </div>
         <div className="text-center">
-          <p className="text-[15px] font-black text-petroleum uppercase tracking-wide">
+          <p className="text-[15px] font-bold text-petroleum uppercase tracking-wide">
             Pague com PIX
           </p>
-          <p className="text-[11px] text-petroleum/50 mt-0.5">
+          <p className="text-[11px] text-petroleum/80 mt-0.5">
             Abra o app do seu banco e escaneie o código
           </p>
         </div>
@@ -311,7 +398,7 @@ function StepDonePix({
 
           {/* Instruções passo a passo */}
           <div className="w-full bg-slate-50 rounded-xl border border-slate-100 px-4 py-3 space-y-2">
-            <p className="text-[10px] font-bold uppercase tracking-wider text-petroleum/40 mb-1">
+            <p className="text-[10px] font-bold uppercase tracking-wider text-petroleum/70 mb-1">
               Como pagar
             </p>
             {[
@@ -321,10 +408,10 @@ function StepDonePix({
               'Confirme o pagamento — a ativação é automática',
             ].map((step, i) => (
               <div key={i} className="flex items-start gap-2">
-                <span className="w-4 h-4 rounded-full bg-petroleum/10 text-petroleum text-[8px] font-black flex items-center justify-center shrink-0 mt-0.5">
+                <span className="w-4 h-4 rounded-full bg-petroleum/10 text-petroleum text-[8px] font-semibold flex items-center justify-center shrink-0 mt-0.5">
                   {i + 1}
                 </span>
-                <p className="text-[11px] text-petroleum/60 leading-snug">
+                <p className="text-[11px] text-petroleum/90 font-medium leading-snug">
                   {step}
                 </p>
               </div>
@@ -468,10 +555,10 @@ function StepDoneBoleto({
           <Banknote size={26} className="text-gold" />
         </div>
         <div className="text-center">
-          <p className="text-[15px] font-black text-petroleum uppercase tracking-wide">
+          <p className="text-[15px] font-bold text-petroleum uppercase tracking-wide">
             Boleto gerado
           </p>
-          <p className="text-[11px] text-petroleum/50 mt-0.5">
+          <p className="text-[11px] text-petroleum/80 mt-0.5">
             Pague em qualquer banco, lotérica ou app
           </p>
         </div>
@@ -548,10 +635,10 @@ function StepDoneDowngrade({
         <div className="w-14 h-14 rounded-full bg-gold/10 border-2 border-gold/25 flex items-center justify-center">
           <CalendarCheck size={26} className="text-gold" />
         </div>
-        <p className="text-[15px] font-black text-petroleum uppercase tracking-wide text-center">
+        <p className="text-[15px] font-bold text-petroleum uppercase tracking-wide text-center">
           Mudança de plano agendada
         </p>
-        <p className="text-[11px] text-petroleum/50 mt-0.5 text-center">
+        <p className="text-[12px] text-petroleum/80 mt-0.5 text-center">
           Sua mudança para o plano <strong>{planName}</strong> será efetivada em{' '}
           <strong className="text-petroleum">
             {formatDateLong(effectiveAt)}
@@ -559,7 +646,7 @@ function StepDoneDowngrade({
           .
         </p>
       </div>
-      <div className="w-full bg-slate-50 border border-slate-200 rounded-xl px-4 py-3 text-[10px] text-slate-600">
+      <div className="w-full bg-slate-50 border border-slate-200 rounded-xl px-4 py-3 text-[12px] text-slate-600">
         Até lá você continua com os benefícios do plano atual. Nenhuma cobrança
         adicional foi gerada.
       </div>
@@ -579,6 +666,7 @@ function StepDoneDowngrade({
 // ═══════════════════════════════════════════════════════════════════════════════
 
 export function StepDone() {
+  const router = useRouter();
   const {
     paymentUrl,
     pixData,
@@ -588,10 +676,16 @@ export function StepDone() {
     billingType,
     billingPeriod,
     handleClose,
+    upgradeRequestId,
   } = useUpgradeSheetContext();
 
   const planName = selectedPlanInfo?.name ?? selectedPlan;
   const amount = selectedPlanInfo?.price;
+
+  const handlePaymentConfirmedClose = () => {
+    handleClose();
+    router.refresh();
+  };
 
   if (downgradeEffectiveAt) {
     return (
@@ -615,6 +709,8 @@ export function StepDone() {
           planName={planName}
           period={billingPeriod ?? 'monthly'}
           amount={amount}
+          upgradeRequestId={upgradeRequestId}
+          onPaymentConfirmedClose={handlePaymentConfirmedClose}
         />
       ) : billingType === 'BOLETO' ? (
         <StepDoneBoleto

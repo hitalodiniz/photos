@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useEffect } from 'react';
+import React, { useEffect, useState } from 'react';
 import {
   CheckCircle2,
   QrCode,
@@ -8,6 +8,7 @@ import {
   User,
   Lock,
   ChevronDown,
+  AlertCircle,
 } from 'lucide-react';
 import { SheetSection } from '@/components/ui/Sheet';
 import { FieldLabel } from '../FieldLabel';
@@ -25,6 +26,21 @@ import {
   formatExpiryYear,
   formatCcv,
 } from '../utils';
+import {
+  validateCreditCard,
+  validateCardNumber,
+  validateCardHolder,
+  validateExpiryMonth,
+  validateExpiryYear,
+  validateExpiry,
+  validateCvv,
+  detectBrand,
+  brandLabel,
+  isCardValid,
+  type CardErrors,
+} from '@/core/utils/creditCardValidation';
+
+// ─── Helper ───────────────────────────────────────────────────────────────────
 
 function formatBRL(value: number) {
   return value.toLocaleString('pt-BR', {
@@ -32,6 +48,37 @@ function formatBRL(value: number) {
     maximumFractionDigits: 2,
   });
 }
+
+// ─── Componente de erro inline ────────────────────────────────────────────────
+
+function FieldError({ message }: { message?: string | null }) {
+  if (!message) return null;
+  return (
+    <div className="flex items-center gap-1 mt-0.5">
+      <AlertCircle size={9} className="text-red-500 shrink-0" />
+      <p className="text-[8px] text-red-500 font-medium leading-tight">
+        {message}
+      </p>
+    </div>
+  );
+}
+
+// ─── Ícone de bandeira ────────────────────────────────────────────────────────
+
+function BrandBadge({ number }: { number: string }) {
+  const brand = detectBrand(number);
+  const label = brandLabel(brand);
+  if (!label) return null;
+  return (
+    <span className="absolute right-2 top-1/2 -translate-y-1/2 text-[8px] font-bold text-petroleum/40 uppercase tracking-wide pointer-events-none">
+      {label}
+    </span>
+  );
+}
+
+// ═══════════════════════════════════════════════════════════════════════════════
+// COMPONENTE PRINCIPAL
+// ═══════════════════════════════════════════════════════════════════════════════
 
 export function StepBilling() {
   const {
@@ -44,7 +91,41 @@ export function StepBilling() {
     setInstallments,
     creditCard,
     setCreditCard,
+    setCardValid, // expor ao context para desabilitar botão "Próximo"
   } = useUpgradeSheetContext();
+
+  // ── Estado de erros — só exibido após blur (touched) ──────────────────────
+  const [touched, setTouched] = useState<Record<string, boolean>>({});
+  const [errors, setErrors] = useState<CardErrors>({});
+
+  const brand = detectBrand(creditCard.credit_card_number);
+
+  // Recalcula erros a cada mudança no cartão
+  useEffect(() => {
+    if (billingType !== 'CREDIT_CARD') return;
+    const e = validateCreditCard(creditCard);
+    setErrors(e);
+    setCardValid?.(isCardValid(e));
+  }, [creditCard, billingType, setCardValid]);
+
+  // Ao trocar para PIX, marcar cartão como válido (não necessário)
+  useEffect(() => {
+    if (billingType !== 'CREDIT_CARD') {
+      setCardValid?.(true);
+      setTouched({});
+    }
+  }, [billingType, setCardValid]);
+
+  const touch = (field: string) => setTouched((t) => ({ ...t, [field]: true }));
+
+  const err = (field: keyof CardErrors) =>
+    touched[field] ? errors[field] : null;
+
+  // Erro de expiração combinado: só mostrar se ambos os campos foram tocados
+  const expiryError =
+    touched['expiry_month'] && touched['expiry_year'] ? errors.expiry : null;
+
+  // ── Período e preços ──────────────────────────────────────────────────────
 
   const maxInstallments =
     billingType === 'CREDIT_CARD' && billingPeriod === 'semiannual'
@@ -53,7 +134,6 @@ export function StepBilling() {
         ? 6
         : 1;
 
-  // Reset installments when period or billing type changes
   useEffect(() => {
     setInstallments(1);
   }, [billingPeriod, billingType, setInstallments]);
@@ -94,8 +174,11 @@ export function StepBilling() {
     },
   ];
 
+  // ── Render ────────────────────────────────────────────────────────────────
+
   return (
     <div className="space-y-0">
+      {/* ── Período de cobrança ── */}
       <SheetSection
         title="Período de Cobrança"
         className="py-2 px-3 space-y-1.5"
@@ -134,7 +217,6 @@ export function StepBilling() {
                     <div className="w-1 h-1 rounded-full bg-petroleum" />
                   )}
                 </div>
-                {/* Linha 1: nome do plano + preço/mês */}
                 <div className="flex flex-wrap items-center justify-center gap-x-1.5 gap-y-0 leading-tight">
                   <span
                     className={`text-[11px] font-bold uppercase tracking-wide ${isSelected ? 'text-petroleum' : 'text-petroleum/90'}`}
@@ -150,7 +232,6 @@ export function StepBilling() {
                     </span>
                   </span>
                 </div>
-                {/* Linha 2: sublabel ou total · período */}
                 {discount > 0 ? (
                   <p className="text-[9px] text-petroleum/80 leading-tight mt-1 font-medium">
                     R$ {totalPrice} · {key === 'semiannual' ? '6' : '12'} meses
@@ -180,6 +261,7 @@ export function StepBilling() {
         )}
       </SheetSection>
 
+      {/* ── Forma de pagamento ── */}
       <SheetSection title="Forma de Pagamento" className="py-2 px-3 space-y-1">
         <div className="flex gap-1.5">
           {(
@@ -233,44 +315,45 @@ export function StepBilling() {
         )}
       </SheetSection>
 
+      {/* ── Parcelamento ── */}
       {showInstallments && (
         <SheetSection title="Parcelamento" className="py-2 px-3 space-y-1">
-          <div className="space-y-1">
-            <div className="relative">
-              <select
-                value={installments}
-                onChange={(e) => setInstallments(Number(e.target.value))}
-                className="w-full appearance-none px-2.5 py-2 h-9 bg-slate-50 border border-slate-200 rounded-[0.4rem] text-[11px] text-petroleum font-medium outline-none cursor-pointer pr-7 focus:border-gold/60 transition-colors"
-              >
-                {Array.from({ length: maxInstallments }, (_, i) => {
-                  const n = i + 1;
-                  const parcelValue = Math.round((amountFinal / n) * 100) / 100;
-                  return (
-                    <option key={n} value={n}>
-                      {n === 1
-                        ? `1x de R$ ${formatBRL(parcelValue)} sem juros`
-                        : `${n}x de R$ ${formatBRL(parcelValue)} sem juros`}
-                    </option>
-                  );
-                })}
-              </select>
-              <ChevronDown
-                size={12}
-                className="absolute right-2 top-1/2 -translate-y-1/2 text-petroleum/50 pointer-events-none"
-              />
-            </div>
-            <p className="text-[8px] text-petroleum/60 leading-tight">
-              Total: R$ {formatBRL(amountFinal)} — parcelado sem juros no cartão
-            </p>
+          <div className="relative">
+            <select
+              value={installments}
+              onChange={(e) => setInstallments(Number(e.target.value))}
+              className="w-full appearance-none px-2.5 py-2 h-9 bg-slate-50 border border-slate-200 rounded-[0.4rem] text-[11px] text-petroleum font-medium outline-none cursor-pointer pr-7 focus:border-gold/60 transition-colors"
+            >
+              {Array.from({ length: maxInstallments }, (_, i) => {
+                const n = i + 1;
+                const parcelValue = Math.round((amountFinal / n) * 100) / 100;
+                return (
+                  <option key={n} value={n}>
+                    {n === 1
+                      ? `1x de R$ ${formatBRL(parcelValue)} sem juros`
+                      : `${n}x de R$ ${formatBRL(parcelValue)} sem juros`}
+                  </option>
+                );
+              })}
+            </select>
+            <ChevronDown
+              size={12}
+              className="absolute right-2 top-1/2 -translate-y-1/2 text-petroleum/50 pointer-events-none"
+            />
           </div>
+          <p className="text-[8px] text-petroleum/60 leading-tight">
+            Total: R$ {formatBRL(amountFinal)} — parcelado sem juros no cartão
+          </p>
         </SheetSection>
       )}
 
+      {/* ── Dados do cartão ── */}
       {billingType === 'CREDIT_CARD' && (
         <SheetSection title="Dados do cartão" className="py-2 px-3 space-y-1.5">
           <div className="space-y-2">
-            <div className="grid grid-cols-[1fr_1.2fr] gap-1.5">
-              <div className="space-y-0.5 min-w-0">
+            {/* Nome no cartão + Número do cartão (mesma linha) */}
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
+              <div className="space-y-0.5">
                 <FieldLabel icon={User} label="Nome no cartão" required />
                 <input
                   type="text"
@@ -281,35 +364,53 @@ export function StepBilling() {
                       credit_card_holder_name: e.target.value,
                     }))
                   }
+                  onBlur={() => touch('credit_card_holder_name')}
                   placeholder="Como está no cartão"
-                  className="w-full px-2 py-1.5 h-8 bg-slate-50 border border-slate-200 rounded-[0.4rem] text-[10px] text-petroleum font-medium outline-none"
+                  className={`w-full px-2 py-1.5 h-8 bg-slate-50 border rounded-[0.4rem] text-[10px] text-petroleum font-medium outline-none transition-colors focus:border-gold/60 ${
+                    err('credit_card_holder_name')
+                      ? 'border-red-300'
+                      : 'border-slate-200'
+                  }`}
                 />
+                <FieldError message={err('credit_card_holder_name')} />
               </div>
-              <div className="space-y-0.5 min-w-0">
+              <div className="space-y-0.5">
                 <FieldLabel
                   icon={CreditCard}
                   label="Número do cartão"
                   required
                 />
-                <input
-                  type="text"
-                  inputMode="numeric"
-                  value={creditCard.credit_card_number}
-                  onChange={(e) =>
-                    setCreditCard((c) => ({
-                      ...c,
-                      credit_card_number: formatCreditCardNumber(
-                        e.target.value,
-                      ),
-                    }))
-                  }
-                  placeholder="0000 0000 0000 0000"
-                  maxLength={19}
-                  className="w-full px-2 py-1.5 h-8 bg-slate-50 border border-slate-200 rounded-[0.4rem] text-[10px] text-petroleum font-medium outline-none"
-                />
+                <div className="relative">
+                  <input
+                    type="text"
+                    inputMode="numeric"
+                    value={creditCard.credit_card_number}
+                    onChange={(e) =>
+                      setCreditCard((c) => ({
+                        ...c,
+                        credit_card_number: formatCreditCardNumber(
+                          e.target.value,
+                        ),
+                      }))
+                    }
+                    onBlur={() => touch('credit_card_number')}
+                    placeholder="0000 0000 0000 0000"
+                    maxLength={19}
+                    className={`w-full px-2 py-1.5 h-8 bg-slate-50 border rounded-[0.4rem] text-[10px] text-petroleum font-medium outline-none transition-colors focus:border-gold/60 pr-14 ${
+                      err('credit_card_number')
+                        ? 'border-red-300'
+                        : 'border-slate-200'
+                    }`}
+                  />
+                  <BrandBadge number={creditCard.credit_card_number} />
+                </div>
+                <FieldError message={err('credit_card_number')} />
               </div>
             </div>
+
+            {/* Validade + CVV */}
             <div className="grid grid-cols-2 gap-1.5">
+              {/* Validade */}
               <div className="space-y-0.5">
                 <FieldLabel icon={Lock} label="Validade" required />
                 <div className="flex gap-1">
@@ -325,9 +426,14 @@ export function StepBilling() {
                         ),
                       }))
                     }
+                    onBlur={() => touch('expiry_month')}
                     placeholder="MM"
                     maxLength={2}
-                    className="w-full px-2 py-1.5 h-8 bg-slate-50 border border-slate-200 rounded-[0.4rem] text-[10px] text-petroleum font-medium outline-none"
+                    className={`w-full px-2 py-1.5 h-8 bg-slate-50 border rounded-[0.4rem] text-[10px] text-petroleum font-medium outline-none transition-colors focus:border-gold/60 ${
+                      err('expiry_month')
+                        ? 'border-red-300'
+                        : 'border-slate-200'
+                    }`}
                   />
                   <input
                     type="text"
@@ -341,12 +447,22 @@ export function StepBilling() {
                         ),
                       }))
                     }
+                    onBlur={() => touch('expiry_year')}
                     placeholder="AA"
                     maxLength={4}
-                    className="w-full px-2 py-1.5 h-8 bg-slate-50 border border-slate-200 rounded-[0.4rem] text-[10px] text-petroleum font-medium outline-none"
+                    className={`w-full px-2 py-1.5 h-8 bg-slate-50 border rounded-[0.4rem] text-[10px] text-petroleum font-medium outline-none transition-colors focus:border-gold/60 ${
+                      err('expiry_year') ? 'border-red-300' : 'border-slate-200'
+                    }`}
                   />
                 </div>
+                <FieldError
+                  message={
+                    err('expiry_month') ?? err('expiry_year') ?? expiryError
+                  }
+                />
               </div>
+
+              {/* CVV */}
               <div className="space-y-0.5">
                 <FieldLabel icon={Lock} label="CVV" required />
                 <input
@@ -359,18 +475,29 @@ export function StepBilling() {
                       credit_card_ccv: formatCcv(e.target.value),
                     }))
                   }
-                  placeholder="123"
-                  maxLength={4}
-                  className="w-full px-2 py-1.5 h-8 bg-slate-50 border border-slate-200 rounded-[0.4rem] text-[10px] text-petroleum font-medium outline-none"
+                  onBlur={() => touch('credit_card_ccv')}
+                  placeholder={brand === 'amex' ? '1234' : '123'}
+                  maxLength={brand === 'amex' ? 4 : 3}
+                  className={`w-full px-2 py-1.5 h-8 bg-slate-50 border rounded-[0.4rem] text-[10px] text-petroleum font-medium outline-none transition-colors focus:border-gold/60 ${
+                    err('credit_card_ccv')
+                      ? 'border-red-300'
+                      : 'border-slate-200'
+                  }`}
                 />
-                <p className="text-[8px] text-petroleum/60">
-                  3 ou 4 dígitos atrás do cartão
+                <FieldError message={err('credit_card_ccv')} />
+                <p className="text-[8px] text-petroleum/50">
+                  {brand === 'amex'
+                    ? '4 dígitos na frente do cartão'
+                    : '3 dígitos atrás do cartão'}
                 </p>
               </div>
             </div>
-            <p className="text-[8px] text-petroleum/60 leading-tight pt-0.5">
-              Os dados do cartão não são armazenados; são processados pela
-              plataforma parceira de pagamentos.
+
+            {/* Aviso de segurança */}
+            <p className="text-[8px] text-petroleum/50 leading-tight pt-0.5 flex items-center gap-1">
+              <Lock size={8} className="shrink-0" />
+              Dados não armazenados — processados pelo gateway parceiro de
+              pagamentos.
             </p>
           </div>
         </SheetSection>

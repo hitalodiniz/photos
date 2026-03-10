@@ -47,6 +47,51 @@ export async function getUpgradeHistory(): Promise<UpgradeRequest[]> {
   return (data ?? []) as UpgradeRequest[];
 }
 
+function billingPeriodToMonths(period: string | null | undefined): number {
+  if (period === 'semiannual') return 6;
+  if (period === 'annual') return 12;
+  return 1;
+}
+
+function addMonths(date: Date, n: number): Date {
+  const d = new Date(date);
+  d.setMonth(d.getMonth() + n);
+  return d;
+}
+
+/**
+ * Calcula a data de expiração do plano pago a partir do histórico.
+ * Usa a solicitação aprovada mais recente (processed_at + billing_period).
+ * Retorna ISO string ou null.
+ */
+export async function getSubscriptionExpiresAt(
+  history: UpgradeRequest[],
+): Promise<string | null> {
+  const approved = history.find((r) => r.status === 'approved');
+  if (!approved?.processed_at) return null;
+  const start = new Date(approved.processed_at);
+  const months = billingPeriodToMonths(approved.billing_period);
+  const endsAt = addMonths(start, months);
+  return endsAt.toISOString();
+}
+
+/**
+ * Retorna o valor da última cobrança para exibição.
+ * Preferência: solicitação aprovada; fallback: qualquer registro com amount_final > 0.
+ */
+export async function getLastChargeAmount(
+  history: UpgradeRequest[],
+): Promise<number | undefined> {
+  const approved = history.find((r) => r.status === 'approved');
+  if (approved?.amount_final != null && approved.amount_final > 0) {
+    return approved.amount_final;
+  }
+  const withCharge = history.find(
+    (r) => r.amount_final != null && r.amount_final > 0,
+  );
+  return withCharge?.amount_final;
+}
+
 /**
  * Permite ao usuário cancelar uma solicitação 'pending'.
  */

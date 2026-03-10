@@ -44,7 +44,7 @@ export function StepPersonal() {
 
   return (
     <SheetSection title="Dados cadastrais">
-      <div className="space-y-4">
+      <div className="relative space-y-4">
         {hasSavedBillingData && (
           <div className="flex items-center gap-1.5 px-1 pb-1">
             <CheckCircle2 size={10} className="text-emerald-400 shrink-0" />

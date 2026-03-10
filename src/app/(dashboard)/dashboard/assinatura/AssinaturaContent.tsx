@@ -63,6 +63,7 @@ function statusLabel(status: string): string {
     processing: 'Processando',
     approved: 'Aprovado',
     pending_cancellation: 'Cancelamento agendado',
+    pending_downgrade: 'Downgrade agendado',
     rejected: 'Rejeitado',
     cancelled: 'Cancelado',
     free: 'Plano gratuito',
@@ -76,6 +77,21 @@ function formatBRL(value: number): string {
     style: 'currency',
     currency: 'BRL',
   }).format(value);
+}
+
+function billingPeriodToMonths(period: string | null | undefined): number {
+  if (period === 'semiannual') return 6;
+  if (period === 'annual') return 12;
+  return 1;
+}
+
+function getRequestExpiresAt(item: UpgradeRequest): string | null {
+  if (!item.processed_at) return null;
+  const start = new Date(item.processed_at);
+  const months = billingPeriodToMonths(item.billing_period);
+  const d = new Date(start);
+  d.setMonth(d.getMonth() + months);
+  return d.toLocaleDateString('pt-BR');
 }
 
 function getNextPlanKey(current: PlanKey): PlanKey | null {
@@ -319,7 +335,9 @@ function PlanBenefitsSummaryCard({
       {/* Barra de uso de fotos */}
       <div className="mb-2.5">
         <div className="flex items-center justify-between mb-1">
-          <span className="text-[8px] text-slate-400 font-medium">Fotos</span>
+          <span className="text-[8px] text-slate-400 font-medium">
+            Fotos e vídeos
+          </span>
           <span className="text-[9px] font-semibold text-petroleum tabular-nums">
             {formatPhotoCredits(photoCreditsUsed)} /{' '}
             {formatPhotoCredits(photoCreditsLimit)}
@@ -493,16 +511,25 @@ export default function AssinaturaContent({
   data: AssinaturaPageData;
 }) {
   const router = useRouter();
-  const { profile, history, poolStats, lastChargeAmount, subscriptionStatus } =
-    data;
+  const {
+    profile,
+    history,
+    poolStats,
+    lastChargeAmount,
+    subscriptionStatus,
+    expiresAt: expiresAtFromData,
+  } = data;
 
   const planKey = (profile.plan_key || 'FREE') as PlanKey;
   const permissions = PERMISSIONS_BY_PLAN[planKey];
   const photoCreditsLimit = permissions.photoCredits ?? 0;
   const photoCreditsUsed = poolStats.totalPhotosUsed ?? 0;
-  const expiresAt = profile.plan_trial_expires
-    ? new Date(profile.plan_trial_expires).toLocaleDateString('pt-BR')
-    : null;
+  const expiresAt =
+    expiresAtFromData != null
+      ? new Date(expiresAtFromData).toLocaleDateString('pt-BR')
+      : profile.plan_trial_expires
+        ? new Date(profile.plan_trial_expires).toLocaleDateString('pt-BR')
+        : null;
 
   const planBenefits = useMemo(
     () => getPlanBenefits(permissions, { items: 'galerias' }),
@@ -608,24 +635,54 @@ export default function AssinaturaContent({
       ),
     },
     {
+      header: 'Vencimento',
+      accessor: (item) => (
+        <span className="text-[11px] text-slate-600 whitespace-nowrap">
+          {getRequestExpiresAt(item) ?? '—'}
+        </span>
+      ),
+      icon: Clock,
+      width: 'w-28',
+    },
+    {
       header: 'Ação',
-      accessor: (item) =>
-        item.status === 'pending' && item.payment_url ? (
+      accessor: (item) => {
+        // Só usar como link se for URL (Asaas); PIX antigo pode ter payload "copia e cola" salvo
+        const url = item.payment_url?.startsWith('http')
+          ? item.payment_url
+          : null;
+        if (!url) {
+          return <span className="text-slate-400 text-[11px]">—</span>;
+        }
+
+        let label = 'Ver pagamento';
+        if (item.status === 'pending') {
+          label = 'Abrir pagamento';
+        } else if (item.status === 'approved') {
+          label = 'Comprovante de pagamento';
+        } else if (
+          item.status === 'cancelled' ||
+          item.status === 'pending_cancellation' ||
+          item.status === 'rejected'
+        ) {
+          label = 'Comprovante de cancelamento';
+        }
+
+        return (
           <a
-            href={item.payment_url}
+            href={url}
             target="_blank"
             rel="noopener noreferrer"
             className="inline-flex items-center gap-1 text-[11px] font-medium text-gold hover:underline"
             onClick={(e) => e.stopPropagation()}
           >
-            Abrir pagamento
+            {label}
             <ExternalLink size={12} />
           </a>
-        ) : (
-          <span className="text-slate-400 text-[11px]">—</span>
-        ),
+        );
+      },
       icon: ExternalLink,
-      width: 'w-32',
+      width: 'w-40',
     },
   ];
 
@@ -737,20 +794,33 @@ export default function AssinaturaContent({
               onUpgrade={handleUpgrade}
             />
 
-            {/* Fallback: plano máximo */}
+            {/* Fallback: mesmo no plano máximo o usuário pode mudar de plano (upgrade/downgrade) */}
             {!hasNextPlan && planKey !== 'FREE' && (
-              <div className="p-3 bg-white rounded-luxury border border-slate-200 text-center">
+              <div className="p-3 bg-white rounded-luxury border border-slate-200 text-center space-y-2">
                 <p className="text-[9px] font-semibold uppercase tracking-widest text-petroleum/40">
-                  Você está no plano máximo
+                  Você está no plano mais completo
                 </p>
-                <a
-                  href="/planos"
-                  target="_blank"
-                  rel="noopener noreferrer"
-                  className="mt-2 text-[9px] font-semibold text-gold hover:text-gold/70 inline-flex items-center gap-1 transition-colors"
-                >
-                  Ver detalhes dos planos <ArrowRight size={10} />
-                </a>
+                <p className="text-[10px] text-petroleum/70">
+                  Mesmo assim, você pode alterar seu plano a qualquer momento.
+                </p>
+                <div className="flex flex-col items-center gap-1.5">
+                  <button
+                    type="button"
+                    onClick={() => handleUpgrade(planKey)}
+                    className="btn-luxury-primary h-8"
+                  >
+                    Alterar plano
+                    <ArrowRight size={10} />
+                  </button>
+                  <a
+                    href="/planos"
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="text-[9px] font-semibold text-gold hover:text-gold/70 inline-flex items-center gap-1 transition-colors"
+                  >
+                    Ver opções de planos <ArrowRight size={10} />
+                  </a>
+                </div>
               </div>
             )}
           </aside>

@@ -1,7 +1,11 @@
 // src/app/(dashboard)/dashboard/assinatura/page.tsx
 import { redirect } from 'next/navigation';
 import { getProfileDataFresh } from '@/core/services/profile.service';
-import { getUpgradeHistory } from '@/core/services/billing.service';
+import {
+  getUpgradeHistory,
+  getSubscriptionExpiresAt,
+  getLastChargeAmount,
+} from '@/core/services/billing.service';
 import { getPhotographerPoolStats } from '@/core/services/galeria.service';
 import AssinaturaContent from '@/app/(dashboard)/dashboard/assinatura/AssinaturaContent';
 import type { Profile } from '@/core/types/profile';
@@ -20,6 +24,8 @@ export interface AssinaturaPageData {
   poolStats: PhotographerPoolStats;
   lastChargeAmount: number | undefined;
   subscriptionStatus: string;
+  /** Data de expiração do plano pago (fim do período). Trial usa profile.plan_trial_expires. */
+  expiresAt: string | null;
 }
 
 async function getAssinaturaPageData(
@@ -30,18 +36,23 @@ async function getAssinaturaPageData(
     getPhotographerPoolStats(profile.id),
   ]);
 
-  const lastApproved = history.find((r) => r.status === 'approved');
   const latest = history[0];
   const subscriptionStatus =
     (latest?.status as string) ??
     (profile.plan_key !== 'FREE' ? 'active' : 'free');
 
+  const [lastChargeAmount, expiresAt] = await Promise.all([
+    getLastChargeAmount(history),
+    getSubscriptionExpiresAt(history),
+  ]);
+
   return {
     profile,
     history: history as UpgradeRequest[],
     poolStats,
-    lastChargeAmount: lastApproved?.amount_final,
+    lastChargeAmount,
     subscriptionStatus,
+    expiresAt,
   };
 }
 

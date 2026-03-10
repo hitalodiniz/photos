@@ -43,6 +43,9 @@ export function StepPlan() {
     billingType,
     billingPeriod,
     isExempt,
+    setHasPendingUpgrade,
+    setUpgradeCalculation,
+    setDowngradeBlockedMessage,
   } = useUpgradeSheetContext();
 
   const [upgradePreview, setUpgradePreview] =
@@ -51,18 +54,42 @@ export function StepPlan() {
   useEffect(() => {
     if (planKey === 'FREE' || selectedPlan === 'FREE') {
       setUpgradePreview(null);
+      setHasPendingUpgrade(false);
+      setUpgradeCalculation(null);
+      setDowngradeBlockedMessage(null);
       return;
     }
     let cancelled = false;
     getUpgradePreview(selectedPlan, billingPeriod, billingType, segment).then(
       (result) => {
-        if (!cancelled) setUpgradePreview(result);
+        if (!cancelled) {
+          setUpgradePreview(result);
+          setHasPendingUpgrade(result.has_pending ?? false);
+          const calc = result.calculation;
+          setUpgradeCalculation(calc ?? null);
+          if (calc?.type === 'downgrade' && calc.current_plan_expires_at) {
+            setDowngradeBlockedMessage(
+              `Mudança para planos inferiores permitida apenas após o vencimento do plano atual em ${formatDate(calc.current_plan_expires_at)}.`,
+            );
+          } else {
+            setDowngradeBlockedMessage(null);
+          }
+        }
       },
     );
     return () => {
       cancelled = true;
     };
-  }, [selectedPlan, billingPeriod, billingType, segment, planKey]);
+  }, [
+    selectedPlan,
+    billingPeriod,
+    billingType,
+    segment,
+    planKey,
+    setHasPendingUpgrade,
+    setUpgradeCalculation,
+    setDowngradeBlockedMessage,
+  ]);
 
   const calc =
     upgradePreview?.success &&
@@ -73,6 +100,46 @@ export function StepPlan() {
 
   return (
     <SheetSection title="Escolha seu novo plano">
+      {isExempt && selectedPlan === planKey && (
+        <div className="rounded-lg border border-gold/30 bg-gold/5 px-3 py-2.5 text-[11px] text-petroleum">
+          <p className="font-medium text-petroleum">
+            Você possui possui isenção neste plano.
+          </p>
+        </div>
+      )}
+      {upgradePreview?.has_pending && (
+        <div className="rounded-lg border border-amber-200 bg-amber-50 px-3 py-2.5 text-[11px] text-amber-900">
+          <p className="font-medium">
+            Você já possui uma solicitação de upgrade em processamento. Aguarde
+            a confirmação do pagamento ou o cancelamento automático (até 24h)
+            para assinar novamente.
+          </p>
+        </div>
+      )}
+      {calc && calc.type === 'downgrade' && (
+        <div className="rounded-lg border border-amber-200 bg-amber-50 px-3 py-2.5 text-[11px] text-amber-900">
+          <p className="font-medium">
+            Mudança para planos inferiores permitida apenas após o vencimento do
+            plano atual em{' '}
+            <span className="font-semibold text-petroleum">
+              {formatDate(calc.current_plan_expires_at ?? '')}
+            </span>
+            .
+          </p>
+        </div>
+      )}
+      {calc && calc.type !== 'downgrade' && calc.type !== 'current_plan' && (
+        <div className="rounded-lg border border-slate-200 bg-slate-50 px-3 py-2.5 text-[11px] text-slate-700">
+          {calc.type === 'upgrade' && calc.amount_final >= 0 && (
+            <p className="font-medium">
+              Upgrade imediato: pague apenas a diferença de{' '}
+              <span className="font-semibold text-petroleum">
+                {formatBRL(calc.amount_final)}
+              </span>
+            </p>
+          )}
+        </div>
+      )}
       <div className="space-y-3">
         {planOrder
           .filter((p) => p !== 'FREE')
@@ -89,7 +156,7 @@ export function StepPlan() {
                 isCurrentPlan={isCurr}
                 isSelected={selectedPlan === p}
                 isSuggested={p === suggestedPlanKey}
-                disabled={false}
+                disabled={isCurr}
                 onSelect={() => setSelectedPlan(p)}
                 perms={perms}
                 isExpanded={expandedPlanKey === p}
@@ -101,41 +168,6 @@ export function StepPlan() {
               />
             );
           })}
-
-        {isExempt && selectedPlan === planKey && (
-          <div className="rounded-lg border border-gold/30 bg-gold/5 px-3 py-2.5 text-[11px] text-petroleum">
-            <p className="font-medium text-petroleum">
-              Você possui possui isenção neste plano.
-            </p>
-          </div>
-        )}
-        {calc && (
-          <div className="rounded-lg border border-slate-200 bg-slate-50 px-3 py-2.5 text-[11px] text-slate-700">
-            {calc.type === 'current_plan' ? (
-              <p className="font-medium text-amber-800">
-                Este já é seu plano atual. Não é possível assinar novamente o
-                mesmo plano e período.
-              </p>
-            ) : calc.type === 'upgrade' && calc.amount_final >= 0 ? (
-              <p className="font-medium">
-                Upgrade imediato: pague apenas a diferença de{' '}
-                <span className="font-semibold text-petroleum">
-                  {formatBRL(calc.amount_final)}
-                </span>
-              </p>
-            ) : calc.type === 'downgrade' && calc.downgrade_effective_at ? (
-              <p className="font-medium">
-                Sua mudança para o plano{' '}
-                <span className="font-semibold">{planName}</span> será efetivada
-                em{' '}
-                <span className="font-semibold text-petroleum">
-                  {formatDate(calc.downgrade_effective_at)}
-                </span>
-                .
-              </p>
-            ) : null}
-          </div>
-        )}
       </div>
     </SheetSection>
   );

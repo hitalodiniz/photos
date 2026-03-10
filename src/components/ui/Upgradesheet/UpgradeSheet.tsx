@@ -16,7 +16,10 @@ import type { PlanKey } from '@/core/config/plans';
 import { findNextPlanKeyWithFeature, planOrder } from '@/core/config/plans';
 import { usePlan } from '@/core/context/PlanContext';
 import { useSegment } from '@/hooks/useSegment';
-import { UpgradeSheetProvider, useUpgradeSheetContext } from './UpgradeSheetContext';
+import {
+  UpgradeSheetProvider,
+  useUpgradeSheetContext,
+} from './UpgradeSheetContext';
 import { PLAN_ICONS, STEP_TITLES } from './constants';
 import { StepIndicator } from './StepIndicator';
 import { StepPlan } from './steps/StepPlan';
@@ -33,18 +36,25 @@ const goBack: Partial<Record<Step, Step>> = {
   confirm: 'billing',
 };
 
-function UpgradeSheetContent({ isOpen, onClose }: { isOpen: boolean; onClose: () => void }) {
+function UpgradeSheetContent({
+  isOpen,
+  onClose,
+}: {
+  isOpen: boolean;
+  onClose: () => void;
+}) {
   const {
     step,
     setStep,
     selectedPlan,
     selectedPlanInfo,
     canProceedData,
-    acceptedTerms,
     loading,
     handleClose,
     isExempt,
     planKey,
+    hasPendingUpgrade,
+    downgradeBlockedMessage,
   } = useUpgradeSheetContext();
 
   const [showExemptConfirm, setShowExemptConfirm] = useState(false);
@@ -58,7 +68,9 @@ function UpgradeSheetContent({ isOpen, onClose }: { isOpen: boolean; onClose: ()
   const footer =
     step === 'done' ? null : (
       <SheetFooter>
-        <div className={`flex items-center gap-2 ${goBack[step] ? 'flex-row' : ''}`}>
+        <div
+          className={`flex items-center gap-2 ${goBack[step] ? 'flex-row' : ''}`}
+        >
           {goBack[step] && (
             <button
               type="button"
@@ -72,7 +84,24 @@ function UpgradeSheetContent({ isOpen, onClose }: { isOpen: boolean; onClose: ()
           <div className="flex-1">
             {step === 'plan' && (
               <>
-                {isExemptSamePlan ? (
+                {hasPendingUpgrade ? (
+                  <button
+                    type="button"
+                    disabled
+                    className="btn-luxury-primary w-full opacity-60 cursor-not-allowed"
+                  >
+                    Aguardando confirmação do pagamento anterior
+                  </button>
+                ) : downgradeBlockedMessage ? (
+                  <button
+                    type="button"
+                    disabled
+                    title={downgradeBlockedMessage}
+                    className="btn-luxury-primary w-full opacity-60 cursor-not-allowed"
+                  >
+                    Plano inferior — permitido após vencimento
+                  </button>
+                ) : isExemptSamePlan ? (
                   <button
                     type="button"
                     onClick={handleClose}
@@ -119,9 +148,7 @@ function UpgradeSheetContent({ isOpen, onClose }: { isOpen: boolean; onClose: ()
                 <ChevronRight size={14} />
               </button>
             )}
-            {step === 'confirm' && (
-              <ConfirmButton />
-            )}
+            {step === 'confirm' && <ConfirmButton />}
           </div>
         </div>
       </SheetFooter>
@@ -147,7 +174,7 @@ function UpgradeSheetContent({ isOpen, onClose }: { isOpen: boolean; onClose: ()
         {step === 'confirm' && <StepConfirm />}
         {step === 'done' && <StepDone />}
       </div>
-      <TermsOfServiceModalWrapper />
+
       <ConfirmationModal
         isOpen={showExemptConfirm}
         onClose={() => setShowExemptConfirm(false)}
@@ -165,11 +192,11 @@ function UpgradeSheetContent({ isOpen, onClose }: { isOpen: boolean; onClose: ()
 }
 
 function ConfirmButton() {
-  const { acceptedTerms, loading, handleConfirm, billingType } = useUpgradeSheetContext();
+  const { loading, handleConfirm, billingType } = useUpgradeSheetContext();
   return (
     <button
       type="button"
-      disabled={!acceptedTerms || loading}
+      disabled={loading}
       onClick={handleConfirm}
       className="btn-luxury-primary w-full disabled:opacity-40 disabled:cursor-not-allowed"
     >
@@ -181,20 +208,12 @@ function ConfirmButton() {
       ) : (
         <>
           <ArrowRight size={14} />
-          {billingType === 'PIX' ? 'Confirmar e Gerar Pix' : 'Confirmar Solicitação'}
+          {billingType === 'PIX'
+            ? 'Confirmar e Gerar Pix'
+            : 'Confirmar Solicitação'}
         </>
       )}
     </button>
-  );
-}
-
-function TermsOfServiceModalWrapper() {
-  const { showTermsModal, setShowTermsModal } = useUpgradeSheetContext();
-  return (
-    <TermsOfServiceModal
-      isOpen={showTermsModal}
-      onClose={() => setShowTermsModal(false)}
-    />
   );
 }
 

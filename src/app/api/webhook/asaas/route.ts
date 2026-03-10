@@ -15,9 +15,19 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
     }
 
-    const body = (await request.json()) as AsaasWebhookPayload & {
-      subscription?: { id?: string };
-    };
+    const text = await request.text();
+    if (!text?.trim()) {
+      return NextResponse.json({ received: true }, { status: 200 });
+    }
+    let body: AsaasWebhookPayload & { subscription?: { id?: string } };
+    try {
+      body = JSON.parse(text) as AsaasWebhookPayload & {
+        subscription?: { id?: string };
+      };
+    } catch {
+      console.warn('[Webhook Asaas] Corpo inválido ou vazio, ignorando.');
+      return NextResponse.json({ received: true }, { status: 200 });
+    }
     const { event, payment } = body;
 
     if (!event) {

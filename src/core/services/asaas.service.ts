@@ -87,9 +87,16 @@ export interface CreateSubscriptionData {
   };
 }
 
-// ─── 1. Criar ou atualizar cliente ──────────────────────────────────────────
-
-export async function createOrUpdateAsaasCustomer(data: CreateCustomerData) {
+// ─── 1. Criar ou recuperar cliente Asaas ─────────────────────────────────────
+/**
+ * Se existingAsaasCustomerId for passado (já vinculado ao perfil), reutiliza esse cliente.
+ * Caso contrário, busca por CPF no Asaas e só reutiliza se o e-mail do cliente bater com o do usuário logado;
+ * se não bater (ex.: mesmo CPF em outra conta), cria um novo cliente para não gravar pagamento na conta errada.
+ */
+export async function createOrUpdateAsaasCustomer(
+  data: CreateCustomerData,
+  existingAsaasCustomerId?: string | null,
+) {
   try {
     const apiKey = getAsaasApiKey();
     if (!apiKey) {
@@ -98,6 +105,15 @@ export async function createOrUpdateAsaasCustomer(data: CreateCustomerData) {
         error: 'Chave Asaas não configurada (ASAAS_API_KEY no .env.local).',
       };
     }
+
+    if (existingAsaasCustomerId?.trim()) {
+      return {
+        success: true,
+        customerId: existingAsaasCustomerId.trim(),
+        isNew: false,
+      };
+    }
+
     const cpfCnpjDigits = data.cpfCnpj.replace(/\D/g, '');
     const searchResponse = await fetch(
       `${ASAAS_API_URL}/customers?cpfCnpj=${cpfCnpjDigits}`,
@@ -110,13 +126,21 @@ export async function createOrUpdateAsaasCustomer(data: CreateCustomerData) {
     );
 
     const searchData = await searchResponse.json();
+    const currentEmail = (data.email ?? '').trim().toLowerCase();
 
     if (searchData.data && searchData.data.length > 0) {
-      return {
-        success: true,
-        customerId: searchData.data[0].id,
-        isNew: false,
-      };
+      const byEmail = searchData.data.find(
+        (c: { email?: string }) =>
+          (c.email ?? '').trim().toLowerCase() === currentEmail,
+      );
+      if (byEmail) {
+        return {
+          success: true,
+          customerId: byEmail.id,
+          isNew: false,
+        };
+      }
+      // Mesmo CPF mas outro e-mail (outra conta): criar novo cliente para este perfil
     }
 
     const createResponse = await fetch(`${ASAAS_API_URL}/customers`, {
@@ -455,6 +479,42 @@ async function getPixQrCode(paymentId: string): Promise<{
   }
 }
 
+/** GET /v3/payments/{id} — retorna invoiceUrl para abrir comprovante/fatura no Asaas. */
+async function getAsaasPaymentInvoiceUrl(
+  paymentId: string,
+): Promise<{ success: boolean; invoiceUrl?: string; error?: string }> {
+  try {
+    const apiKey = getAsaasApiKey();
+    if (!apiKey) {
+      return { success: false, error: 'Chave Asaas não configurada.' };
+    }
+    const response = await fetch(`${ASAAS_API_URL}/payments/${paymentId}`, {
+      headers: { access_token: apiKey },
+    });
+
+    if (!response.ok) {
+      const err = await response.json().catch(() => ({}));
+      return {
+        success: false,
+        error: err.errors?.[0]?.description ?? 'Erro ao buscar pagamento',
+      };
+    }
+
+    const data = await response.json();
+    const url = data.invoiceUrl ?? data.invoiceLink ?? null;
+    return {
+      success: true,
+      invoiceUrl: typeof url === 'string' && url.startsWith('http') ? url : undefined,
+    };
+  } catch (error) {
+    console.error('[Asaas] Erro ao buscar pagamento:', error);
+    return {
+      success: false,
+      error: 'Erro ao buscar URL do comprovante',
+    };
+  }
+}
+
 // ─── 5. Upsert Billing Profile ─────────────────────────────────────────────
 
 /**
@@ -556,6 +616,15 @@ export async function requestUpgrade(
     return { success: true, billing_type: 'PIX' };
   }
 
+  const pendingRequest = await getPendingUpgradeRequest(userId, supabase);
+  if (pendingRequest) {
+    return {
+      success: false,
+      error:
+        'Você já possui uma solicitação de upgrade em processamento. Aguarde a confirmação do pagamento ou o cancelamento automático (até 24h) para tentar novamente.',
+    };
+  }
+
   const billingPeriod: BillingPeriod = payload.billing_period ?? 'monthly';
   const currentRequest = await getCurrentActiveRequest(userId, supabase);
   const calculation = await calculateUpgradePrice(
@@ -575,29 +644,18 @@ export async function requestUpgrade(
     };
   }
 
-  // Downgrade: não cobrar; atualizar solicitação atual para pending_downgrade
-  // Mantemos billing_period original para cálculo de expiração (accessEndsAt).
-  if (calculation.type === 'downgrade' && currentRequest) {
-    const { error: updateErr } = await supabase
-      .from('tb_upgrade_requests')
-      .update({
-        status: 'pending_downgrade',
-        plan_key_requested: planKey,
-        updated_at: new Date().toISOString(),
-        notes: JSON.stringify({
-          downgrade_billing_period: billingPeriod,
-          downgrade_requested_at: new Date().toISOString(),
-        }),
-      })
-      .eq('id', currentRequest.id);
-
-    if (updateErr) {
-      console.error('[requestUpgrade] Erro ao registrar downgrade:', updateErr);
-      return { success: false, error: 'Erro ao registrar mudança de plano.' };
-    }
+  // Downgrade vedado: não gerar cobrança nem agendamento; retornar erro com data de vencimento
+  if (calculation.type === 'downgrade') {
+    const vencto = calculation.current_plan_expires_at
+      ? new Date(calculation.current_plan_expires_at).toLocaleDateString('pt-BR', {
+          day: '2-digit',
+          month: 'long',
+          year: 'numeric',
+        })
+      : '';
     return {
-      success: true,
-      downgrade_effective_at: calculation.downgrade_effective_at,
+      success: false,
+      error: `Mudança para planos inferiores permitida apenas após o vencimento do plano atual em ${vencto}.`,
     };
   }
 
@@ -649,20 +707,29 @@ export async function requestUpgrade(
     return { success: false, error: upsertBilling.error };
   }
 
-  // 2. Criar ou recuperar cliente Asaas
-  const customerResult = await createOrUpdateAsaasCustomer({
-    name: billingFullName || (profile.full_name ?? 'Cliente'),
-    email: email ?? '',
-    cpfCnpj: payload.cpf_cnpj,
-    phone: payload.whatsapp,
-    postalCode: payload.postal_code,
-    address: payload.address,
-    addressNumber: payload.address_number,
-    complement: payload.complement,
-    province: payload.province,
-    city: payload.city,
-    state: payload.state,
-  });
+  const { data: billingRow } = await supabase
+    .from('tb_billing_profiles')
+    .select('asaas_customer_id')
+    .eq('id', userId)
+    .single();
+
+  // 2. Criar ou recuperar cliente Asaas (usa o já vinculado ao perfil para não associar pagamento a outra conta)
+  const customerResult = await createOrUpdateAsaasCustomer(
+    {
+      name: billingFullName || (profile.full_name ?? 'Cliente'),
+      email: email ?? '',
+      cpfCnpj: payload.cpf_cnpj,
+      phone: payload.whatsapp,
+      postalCode: payload.postal_code,
+      address: payload.address,
+      addressNumber: payload.address_number,
+      complement: payload.complement,
+      province: payload.province,
+      city: payload.city,
+      state: payload.state,
+    },
+    billingRow?.asaas_customer_id ?? null,
+  );
 
   if (!customerResult.success || !customerResult.customerId) {
     return {
@@ -723,6 +790,13 @@ export async function requestUpgrade(
     const paymentUrlPix = pixResult.payload ?? null;
     const pixQrCodeBase64Pix = pixResult.encodedImage;
 
+    // URL da fatura no Asaas (comprovante / abrir pagamento); não gravar o payload PIX em payment_url
+    const invoiceResult = await getAsaasPaymentInvoiceUrl(asaasPaymentIdPix);
+    const invoiceUrlPix =
+      invoiceResult.success && invoiceResult.invoiceUrl
+        ? invoiceResult.invoiceUrl
+        : null;
+
     const { data: insertRowPix, error: insertErrorPix } = await supabase
       .from('tb_upgrade_requests')
       .insert({
@@ -739,7 +813,7 @@ export async function requestUpgrade(
         asaas_customer_id: asaasCustomerId,
         asaas_subscription_id: null,
         asaas_payment_id: asaasPaymentIdPix,
-        payment_url: paymentUrlPix,
+        payment_url: invoiceUrlPix,
         amount_original: amountOriginal,
         amount_discount: amountDiscount,
         amount_final: amountFinal,
@@ -924,6 +998,7 @@ export interface CurrentActiveRequestRow {
   processed_at: string | null;
   billing_period: string | null;
   plan_key_requested: string;
+  asaas_subscription_id?: string | null;
 }
 
 /**
@@ -937,7 +1012,7 @@ export async function getCurrentActiveRequest(
   const { data } = await db
     .from('tb_upgrade_requests')
     .select(
-      'id, amount_final, processed_at, billing_period, plan_key_requested',
+      'id, amount_final, processed_at, billing_period, plan_key_requested, asaas_subscription_id',
     )
     .eq('profile_id', userId)
     .eq('status', 'approved')
@@ -945,6 +1020,39 @@ export async function getCurrentActiveRequest(
     .limit(1)
     .maybeSingle();
   return data as CurrentActiveRequestRow | null;
+}
+
+/** Idade máxima para considerar uma solicitação "pending" antes de permitir nova tentativa (24h). */
+const PENDING_UPGRADE_MAX_AGE_MS = 24 * 60 * 60 * 1000;
+
+export interface PendingUpgradeRow {
+  id: string;
+  created_at: string;
+  plan_key_requested: string;
+  billing_type: string;
+}
+
+/**
+ * Retorna a solicitação de upgrade com status 'pending' mais recente do usuário,
+ * apenas se foi criada nos últimos PENDING_UPGRADE_MAX_AGE_MS (24h).
+ * Usado para bloquear nova assinatura enquanto há pagamento em processamento.
+ */
+export async function getPendingUpgradeRequest(
+  userId: string,
+  supabase?: Awaited<ReturnType<typeof createSupabaseServerClient>>,
+): Promise<PendingUpgradeRow | null> {
+  const db = supabase ?? (await createSupabaseServerClient());
+  const since = new Date(Date.now() - PENDING_UPGRADE_MAX_AGE_MS).toISOString();
+  const { data } = await db
+    .from('tb_upgrade_requests')
+    .select('id, created_at, plan_key_requested, billing_type')
+    .eq('profile_id', userId)
+    .eq('status', 'pending')
+    .gte('created_at', since)
+    .order('created_at', { ascending: false })
+    .limit(1)
+    .maybeSingle();
+  return data as PendingUpgradeRow | null;
 }
 
 /**
@@ -1094,7 +1202,17 @@ export async function getUpgradePreview(
         error: 'Usuário não autenticado',
       };
     }
-    const current = await getCurrentActiveRequest(userId);
+    const supabase = await createSupabaseServerClient();
+    const pending = await getPendingUpgradeRequest(userId, supabase);
+    if (pending) {
+      return {
+        success: true,
+        has_active_plan: false,
+        has_pending: true,
+        calculation: undefined,
+      };
+    }
+    const current = await getCurrentActiveRequest(userId, supabase);
     const calculation = await calculateUpgradePrice(
       current,
       targetPlanKey,
@@ -1114,6 +1232,42 @@ export async function getUpgradePreview(
       success: false,
       has_active_plan: false,
       error: e instanceof Error ? e.message : 'Erro ao calcular preview',
+    };
+  }
+}
+
+/**
+ * Verifica o status de uma solicitação de upgrade (para polling na tela PIX).
+ * Só retorna status se o request pertencer ao usuário autenticado.
+ */
+export async function getUpgradeRequestStatus(
+  requestId: string,
+): Promise<{ success: boolean; status?: string; error?: string }> {
+  try {
+    const { success, userId } = await getAuthenticatedUser();
+    if (!success || !userId) {
+      return { success: false, error: 'Não autenticado' };
+    }
+    const supabase = await createSupabaseServerClient();
+    const { data, error } = await supabase
+      .from('tb_upgrade_requests')
+      .select('status')
+      .eq('id', requestId)
+      .eq('profile_id', userId)
+      .maybeSingle();
+
+    if (error) {
+      return { success: false, error: error.message };
+    }
+    if (!data) {
+      return { success: false, error: 'Solicitação não encontrada' };
+    }
+    return { success: true, status: data.status as string };
+  } catch (e) {
+    console.error('[getUpgradeRequestStatus]', e);
+    return {
+      success: false,
+      error: e instanceof Error ? e.message : 'Erro ao verificar status',
     };
   }
 }
@@ -1405,7 +1559,6 @@ export async function handleSubscriptionCancellation(
       'pending',
       'approved',
       'pending_cancellation',
-      'pending_downgrade',
     ])
     .order('created_at', { ascending: false })
     .limit(1)
@@ -1413,21 +1566,6 @@ export async function handleSubscriptionCancellation(
 
   if (!request) {
     return { success: false, error: 'Nenhuma assinatura ativa encontrada.' };
-  }
-
-  // Já está em downgrade agendado — informar data de efetivação
-  if (request.status === 'pending_downgrade') {
-    const months = billingPeriodToMonths(
-      request.billing_period as string | null,
-    );
-    const start = request.processed_at
-      ? new Date(request.processed_at)
-      : new Date(request.created_at);
-    return {
-      success: true,
-      type: 'scheduled_cancellation',
-      access_ends_at: addMonths(start, months).toISOString(),
-    };
   }
 
   // Já está agendado para cancelamento — retornar data de expiração
@@ -1597,66 +1735,6 @@ export async function checkAndApplyExpiredSubscriptions(
         needs_adjustment: result.needs_adjustment,
         excess_galleries: result.excess_galleries,
       };
-    }
-  }
-
-  // 2) pending_downgrade expirado → efetivar plano solicitado (menor plano/período)
-  const { data: pendingDowngrade } = await supabase
-    .from('tb_upgrade_requests')
-    .select(
-      'id, created_at, processed_at, billing_period, plan_key_requested, asaas_subscription_id',
-    )
-    .eq('profile_id', profileId)
-    .eq('status', 'pending_downgrade')
-    .order('created_at', { ascending: false })
-    .limit(1)
-    .maybeSingle();
-
-  if (pendingDowngrade) {
-    const startDate = pendingDowngrade.processed_at
-      ? new Date(pendingDowngrade.processed_at as string)
-      : new Date(pendingDowngrade.created_at);
-    const months = billingPeriodToMonths(
-      pendingDowngrade.billing_period as string | null,
-    );
-    const accessEndsAt = addMonths(startDate, months);
-
-    if (now >= accessEndsAt) {
-      const newPlan = pendingDowngrade.plan_key_requested as PlanKey;
-      const { data: profileRow } = await supabase
-        .from('tb_profiles')
-        .select('plan_key')
-        .eq('id', profileId)
-        .single();
-      const oldPlan = (profileRow?.plan_key ?? 'FREE') as PlanKey;
-
-      if (pendingDowngrade.asaas_subscription_id) {
-        await cancelAsaasSubscriptionById(
-          pendingDowngrade.asaas_subscription_id as string,
-        );
-      }
-      await supabase
-        .from('tb_profiles')
-        .update({
-          plan_key: newPlan,
-          updated_at: now.toISOString(),
-        })
-        .eq('id', profileId);
-      await supabase
-        .from('tb_upgrade_requests')
-        .update({
-          status: 'cancelled',
-          notes: `Downgrade efetivado em ${now.toISOString()}`,
-          updated_at: now.toISOString(),
-        })
-        .eq('id', pendingDowngrade.id);
-      await supabase.from('tb_plan_history').insert({
-        profile_id: profileId,
-        old_plan: oldPlan,
-        new_plan: newPlan,
-        reason: 'Downgrade agendado efetivado ao fim do período.',
-      });
-      return { applied: true, needs_adjustment: false, excess_galleries: [] };
     }
   }
 

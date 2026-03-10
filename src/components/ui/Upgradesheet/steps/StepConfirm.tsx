@@ -1,10 +1,18 @@
 'use client';
 
-import React from 'react';
+import React, { useEffect } from 'react';
 import { SheetSection } from '@/components/ui/Sheet';
 import { getPeriodPrice } from '@/core/config/plans';
 import { storageLabel } from '../utils';
 import { useUpgradeSheetContext } from '../UpgradeSheetContext';
+import { getUpgradePreview } from '@/core/services/asaas.service';
+
+function formatBRL(value: number): string {
+  return new Intl.NumberFormat('pt-BR', {
+    style: 'currency',
+    currency: 'BRL',
+  }).format(value);
+}
 
 export function StepConfirm() {
   const {
@@ -16,11 +24,25 @@ export function StepConfirm() {
     planInfoForPrice,
     personal,
     address,
-    acceptedTerms,
-    setAcceptedTerms,
-    setShowTermsModal,
     requestError,
+    billingType,
+    segment,
+    upgradeCalculation,
+    setUpgradeCalculation,
   } = useUpgradeSheetContext();
+
+  useEffect(() => {
+    if (selectedPlan === 'FREE') return;
+    let cancelled = false;
+    getUpgradePreview(selectedPlan, billingPeriod, billingType, segment).then(
+      (r) => {
+        if (!cancelled && r.calculation) setUpgradeCalculation(r.calculation);
+      },
+    );
+    return () => {
+      cancelled = true;
+    };
+  }, [selectedPlan, billingPeriod, billingType, segment, setUpgradeCalculation]);
 
   return (
     <>
@@ -31,7 +53,7 @@ export function StepConfirm() {
               <p className="text-[8px] font-bold uppercase tracking-luxury-wide text-petroleum/70 mb-1">
                 Plano selecionado
               </p>
-              <p className="text-[15px] font-bold text-petroleum uppercase tracking-wide leading-none">
+              <p className="text-[15px] font-bold text-petroleum uppercase tracking-wide leading-none gap-2 flex">
                 {selectedPlanInfo?.icon && (
                   <selectedPlanInfo.icon size={16} strokeWidth={1.5} />
                 )}
@@ -87,6 +109,34 @@ export function StepConfirm() {
         </div>
       </SheetSection>
 
+      {/* Resumo de simulação: valor novo, crédito, total a pagar */}
+      {upgradeCalculation?.type === 'upgrade' && (
+        <SheetSection title="Resumo do pagamento">
+          <div className="space-y-1.5 rounded-luxury border border-petroleum/10 bg-petroleum/5 p-3 text-[11px]">
+            <div className="flex justify-between">
+              <span className="text-petroleum/80">Valor do novo plano:</span>
+              <span className="font-semibold text-petroleum">
+                {formatBRL(upgradeCalculation.amount_original)}
+              </span>
+            </div>
+            {upgradeCalculation.residual_credit > 0 && (
+              <div className="flex justify-between text-emerald-700">
+                <span>Crédito do plano atual:</span>
+                <span className="font-semibold">
+                  - {formatBRL(upgradeCalculation.residual_credit)}
+                </span>
+              </div>
+            )}
+            <div className="flex justify-between border-t border-petroleum/10 pt-2 mt-2">
+              <span className="font-bold text-petroleum">Total a pagar agora:</span>
+              <span className="font-bold text-petroleum">
+                {formatBRL(upgradeCalculation.amount_final)}
+              </span>
+            </div>
+          </div>
+        </SheetSection>
+      )}
+
       <SheetSection title="Dados confirmados">
         <div className="space-y-0 divide-y divide-slate-100">
           {[
@@ -113,7 +163,7 @@ export function StepConfirm() {
           ].map(({ label, value, onEdit }) => (
             <div
               key={label}
-              className="flex items-start justify-between gap-3 py-2"
+              className="flex items-start justify-between gap-3 py-1.5"
             >
               <div className="min-w-0">
                 <p className="text-[9px] font-bold uppercase tracking-luxury-wide text-petroleum/90">
@@ -136,36 +186,7 @@ export function StepConfirm() {
       </SheetSection>
 
       <SheetSection>
-        <div
-          className={`p-3 rounded-luxury border transition-all ${
-            acceptedTerms
-              ? 'bg-emerald-50/40 border-emerald-200/60'
-              : 'bg-slate-50 border-slate-200'
-          }`}
-        >
-          <label className="flex items-start gap-3 cursor-pointer">
-            <input
-              id="terms-upgrade"
-              type="checkbox"
-              checked={acceptedTerms}
-              onChange={(e) => setAcceptedTerms(e.target.checked)}
-              className="mt-0.5 h-4 w-4 rounded border-slate-300 text-gold focus:ring-gold cursor-pointer shrink-0"
-            />
-            <span className="text-[10px] leading-relaxed text-petroleum/60 font-medium">
-              Li e concordo com os{' '}
-              <button
-                type="button"
-                onClick={() => setShowTermsModal(true)}
-                className="text-gold font-bold hover:underline"
-              >
-                Termos de Uso
-              </button>{' '}
-              e estou ciente de que os arquivos são armazenados no meu Google
-              Drive™ e que o plano possui limites de processamento.
-            </span>
-          </label>
-        </div>
-        <p className="text-[9px] text-slate-700 italic px-0.5 pt-2">
+        <p className="text-[9px] text-slate-700 italic px-0.5">
           A cobrança aparece como <strong>SUAGALERIA</strong> na sua fatura.
           Direito de arrependimento de 7 dias (CDC).
         </p>

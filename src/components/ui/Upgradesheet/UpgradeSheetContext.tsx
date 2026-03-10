@@ -1,13 +1,27 @@
 'use client';
 
-import React, { createContext, useCallback, useContext, useEffect, useMemo, useState } from 'react';
+import React, {
+  createContext,
+  useCallback,
+  useContext,
+  useEffect,
+  useMemo,
+  useState,
+} from 'react';
 import type { PlanKey } from '@/core/config/plans';
 import type { SegmentType } from '@/core/config/plans';
-import { PERMISSIONS_BY_PLAN, PLANS_BY_SEGMENT, getPeriodPrice, type PlanInfo, type BillingPeriod } from '@/core/config/plans';
+import {
+  PERMISSIONS_BY_PLAN,
+  PLANS_BY_SEGMENT,
+  getPeriodPrice,
+  type PlanInfo,
+  type BillingPeriod,
+} from '@/core/config/plans';
 import { requestUpgrade } from '@/core/services/asaas.service';
 import { getBillingProfile } from '@/core/services/billing.service';
 import type { BillingType } from '@/core/types/billing';
 import type { CreditCardPayload } from '@/core/types/billing';
+import type { UpgradePriceCalculation } from '@/core/types/billing';
 import type { Step } from './types';
 import type { PersonalData, AddressData } from './types';
 import { formatPhone } from './utils';
@@ -44,21 +58,19 @@ interface UpgradeSheetContextValue {
   installments: number;
   setInstallments: React.Dispatch<React.SetStateAction<number>>;
   // UI state
-  acceptedTerms: boolean;
-  setAcceptedTerms: (v: boolean) => void;
   paymentUrl: string | null;
   /** Quando a solicitação for downgrade agendado: data em que a mudança será efetivada. */
   downgradeEffectiveAt: string | null;
   /** Dados do QR PIX (preenchido após confirmar com PIX; usado na tela de revisão). */
   pixData: { qrCode: string; copyPaste: string };
+  /** ID da solicitação de upgrade (tb_upgrade_requests.id) para polling de confirmação PIX. */
+  upgradeRequestId: string | null;
   requestError: string | null;
   loading: boolean;
   loadingPrefill: boolean;
   hasSavedBillingData: boolean;
   loadingCep: boolean;
   setLoadingCep: (v: boolean) => void;
-  showTermsModal: boolean;
-  setShowTermsModal: (v: boolean) => void;
   // Refs
   numberInputRef: React.RefObject<HTMLInputElement | null>;
   streetInputRef: React.RefObject<HTMLInputElement | null>;
@@ -72,19 +84,38 @@ interface UpgradeSheetContextValue {
   /** Fechar sheet e resetar estado (chamado pelo overlay, X ou botão Fechar do step done). */
   handleClose: () => void;
   // Profile/email from usePlan
-  profile: { full_name?: string; phone_contact?: string; email?: string | null; is_exempt?: boolean } | null;
+  profile: {
+    full_name?: string;
+    phone_contact?: string;
+    email?: string | null;
+    is_exempt?: boolean;
+  } | null;
   email: string | undefined;
   segment: SegmentType;
   terms: { items: string };
   /** Usuário isento: plano atual vitalício; mensagens e confirmação no UpgradeSheet. */
   isExempt: boolean;
+  /** Há solicitação de upgrade pendente (pagamento em processamento); bloquear nova assinatura. */
+  hasPendingUpgrade: boolean;
+  setHasPendingUpgrade: (v: boolean) => void;
+  /** Cálculo do preview (pro-rata, crédito, total) para exibir resumo no confirm. */
+  upgradeCalculation: UpgradePriceCalculation | null;
+  setUpgradeCalculation: (c: UpgradePriceCalculation | null) => void;
+  /** Mensagem quando seleção é downgrade (bloqueado até vencimento). */
+  downgradeBlockedMessage: string | null;
+  setDowngradeBlockedMessage: (m: string | null) => void;
 }
 
-const UpgradeSheetContext = createContext<UpgradeSheetContextValue | null>(null);
+const UpgradeSheetContext = createContext<UpgradeSheetContextValue | null>(
+  null,
+);
 
 export function useUpgradeSheetContext() {
   const ctx = useContext(UpgradeSheetContext);
-  if (!ctx) throw new Error('useUpgradeSheetContext must be used within UpgradeSheetProvider');
+  if (!ctx)
+    throw new Error(
+      'useUpgradeSheetContext must be used within UpgradeSheetProvider',
+    );
   return ctx;
 }
 
@@ -94,7 +125,12 @@ interface UpgradeSheetProviderProps {
   onClose: () => void;
   suggestedPlanKey: PlanKey;
   planKey: PlanKey;
-  profile: { full_name?: string; phone_contact?: string; email?: string | null; is_exempt?: boolean } | null;
+  profile: {
+    full_name?: string;
+    phone_contact?: string;
+    email?: string | null;
+    is_exempt?: boolean;
+  } | null;
   email: string | undefined;
   segment: SegmentType;
   terms: { items: string };
@@ -128,22 +164,35 @@ export function UpgradeSheetProvider({
     fullName: '',
   });
   const [address, setAddress] = useState<AddressData>({
-    cep: '', street: '', number: '', complement: '', neighborhood: '', city: '', state: '',
+    cep: '',
+    street: '',
+    number: '',
+    complement: '',
+    neighborhood: '',
+    city: '',
+    state: '',
   });
   const [loadingCep, setLoadingCep] = useState(false);
-  const [acceptedTerms, setAcceptedTerms] = useState(false);
-  const [showTermsModal, setShowTermsModal] = useState(false);
   const [billingType, setBillingType] = useState<BillingType>('CREDIT_CARD');
   const [billingPeriod, setBillingPeriod] = useState<BillingPeriod>('monthly');
   const [installments, setInstallments] = useState<number>(1);
-  const [creditCard, setCreditCard] = useState<CreditCardPayload>(initialCreditCard);
+  const [creditCard, setCreditCard] =
+    useState<CreditCardPayload>(initialCreditCard);
   const [paymentUrl, setPaymentUrl] = useState<string | null>(null);
-  const [downgradeEffectiveAt, setDowngradeEffectiveAt] = useState<string | null>(null);
-  const [pixData, setPixData] = useState<{ qrCode: string; copyPaste: string }>({ qrCode: '', copyPaste: '' });
+  const [downgradeEffectiveAt, setDowngradeEffectiveAt] = useState<
+    string | null
+  >(null);
+  const [pixData, setPixData] = useState<{ qrCode: string; copyPaste: string }>(
+    { qrCode: '', copyPaste: '' },
+  );
+  const [upgradeRequestId, setUpgradeRequestId] = useState<string | null>(null);
   const [requestError, setRequestError] = useState<string | null>(null);
   const [loading, setLoading] = useState(false);
   const [loadingPrefill, setLoadingPrefill] = useState(false);
   const [hasSavedBillingData, setHasSavedBillingData] = useState(false);
+  const [hasPendingUpgrade, setHasPendingUpgrade] = useState(false);
+  const [upgradeCalculation, setUpgradeCalculation] = useState<UpgradePriceCalculation | null>(null);
+  const [downgradeBlockedMessage, setDowngradeBlockedMessage] = useState<string | null>(null);
   const numberInputRef = React.useRef<HTMLInputElement>(null);
   const streetInputRef = React.useRef<HTMLInputElement>(null);
 
@@ -152,6 +201,9 @@ export function UpgradeSheetProvider({
     setSelectedPlan(suggestedPlanKey);
     setStep('plan');
     setHasSavedBillingData(false);
+    setHasPendingUpgrade(false);
+    setDowngradeBlockedMessage(null);
+    setUpgradeCalculation(null);
     setPersonal((prev) => ({
       ...prev,
       fullName: profile?.full_name ?? prev.fullName ?? '',
@@ -167,7 +219,8 @@ export function UpgradeSheetProvider({
         setPersonal((prev) => ({
           ...prev,
           cpfCnpj: billing.cpf_cnpj,
-          fullName: billing.full_name ?? prev.fullName ?? profile?.full_name ?? '',
+          fullName:
+            billing.full_name ?? prev.fullName ?? profile?.full_name ?? '',
         }));
         setAddress({
           cep: billing.postal_code,
@@ -184,7 +237,8 @@ export function UpgradeSheetProvider({
 
   const selectedPerms = PERMISSIONS_BY_PLAN[selectedPlan];
   const selectedPlanInfo = PLANS_BY_SEGMENT[segment]?.[selectedPlan];
-  const planInfoForPrice: PlanInfo = selectedPlanInfo ?? PLANS_BY_SEGMENT[segment]?.FREE!;
+  const planInfoForPrice: PlanInfo =
+    selectedPlanInfo ?? PLANS_BY_SEGMENT[segment]?.FREE!;
 
   const cpfCnpjDigits = personal.cpfCnpj.replace(/\D/g, '');
   const canProceedPersonal =
@@ -232,14 +286,16 @@ export function UpgradeSheetProvider({
     if (clean.length === 8) fetchCep(clean);
   }, [address.cep, fetchCep]);
 
-  const handleCepChange = useCallback((formattedCep: string) => {
-    setAddress((a) => ({ ...a, cep: formattedCep }));
-    const clean = formattedCep.replace(/\D/g, '');
-    if (clean.length === 8) fetchCep(clean);
-  }, [fetchCep]);
+  const handleCepChange = useCallback(
+    (formattedCep: string) => {
+      setAddress((a) => ({ ...a, cep: formattedCep }));
+      const clean = formattedCep.replace(/\D/g, '');
+      if (clean.length === 8) fetchCep(clean);
+    },
+    [fetchCep],
+  );
 
   const handleConfirm = useCallback(async () => {
-    if (!acceptedTerms) return;
     setLoading(true);
     setRequestError(null);
     const effectiveInstallments =
@@ -268,7 +324,11 @@ export function UpgradeSheetProvider({
       if (result?.success) {
         setDowngradeEffectiveAt(result.downgrade_effective_at ?? null);
         setPaymentUrl(result.payment_url ?? null);
-        if (result.billing_type === 'PIX' && (result.pix_qr_code_base64 || result.payment_url)) {
+        if (result.request_id) setUpgradeRequestId(result.request_id);
+        if (
+          result.billing_type === 'PIX' &&
+          (result.pix_qr_code_base64 || result.payment_url)
+        ) {
           setPixData({
             qrCode: result.pix_qr_code_base64 ?? '',
             copyPaste: result.payment_url ?? '',
@@ -288,7 +348,10 @@ export function UpgradeSheetProvider({
       }
     } catch (err) {
       console.error('[UpgradeSheet] handleConfirm error:', err);
-      const raw = err instanceof Error ? err.message : 'Erro ao processar. Tente novamente.';
+      const raw =
+        err instanceof Error
+          ? err.message
+          : 'Erro ao processar. Tente novamente.';
       const isPixUnavailable =
         raw.includes('Pix não está disponível') ||
         raw.includes('conta precisa estar aprovada');
@@ -300,7 +363,16 @@ export function UpgradeSheetProvider({
     } finally {
       setLoading(false);
     }
-  }, [acceptedTerms, selectedPlan, billingType, billingPeriod, installments, segment, personal, address, creditCard]);
+  }, [
+    selectedPlan,
+    billingType,
+    billingPeriod,
+    installments,
+    segment,
+    personal,
+    address,
+    creditCard,
+  ]);
 
   const resetState = useCallback(() => {
     setStep('plan');
@@ -308,12 +380,19 @@ export function UpgradeSheetProvider({
     setExpandedPlanKey(null);
     setPersonal({ whatsapp: '', cpfCnpj: '', fullName: '' });
     setAddress({
-      cep: '', street: '', number: '', complement: '', neighborhood: '', city: '', state: '',
+      cep: '',
+      street: '',
+      number: '',
+      complement: '',
+      neighborhood: '',
+      city: '',
+      state: '',
     });
-    setAcceptedTerms(false);
+
     setPaymentUrl(null);
     setDowngradeEffectiveAt(null);
     setPixData({ qrCode: '', copyPaste: '' });
+    setUpgradeRequestId(null);
     setRequestError(null);
     setBillingType('CREDIT_CARD');
     setBillingPeriod('monthly');
@@ -352,19 +431,16 @@ export function UpgradeSheetProvider({
       planInfoForPrice,
       creditCard,
       setCreditCard,
-      acceptedTerms,
-      setAcceptedTerms,
       paymentUrl,
       downgradeEffectiveAt,
       pixData,
       requestError,
+      upgradeRequestId,
       loading,
       loadingPrefill,
       hasSavedBillingData,
       loadingCep,
       setLoadingCep,
-      showTermsModal,
-      setShowTermsModal,
       numberInputRef,
       streetInputRef,
       canProceedData,
@@ -378,6 +454,12 @@ export function UpgradeSheetProvider({
       segment,
       terms,
       isExempt: profile?.is_exempt ?? false,
+      hasPendingUpgrade,
+      setHasPendingUpgrade,
+      upgradeCalculation,
+      setUpgradeCalculation,
+      downgradeBlockedMessage,
+      setDowngradeBlockedMessage,
     }),
     [
       step,
@@ -393,16 +475,15 @@ export function UpgradeSheetProvider({
       installments,
       planInfoForPrice,
       creditCard,
-      acceptedTerms,
       paymentUrl,
       downgradeEffectiveAt,
       pixData,
       requestError,
+      upgradeRequestId,
       loading,
       loadingPrefill,
       hasSavedBillingData,
       loadingCep,
-      showTermsModal,
       canProceedData,
       handleCepChange,
       handleCepBlur,
@@ -414,7 +495,11 @@ export function UpgradeSheetProvider({
       segment,
       terms,
       planKey,
-    ]
+      hasPendingUpgrade,
+      upgradeCalculation,
+      downgradeBlockedMessage,
+      upgradeRequestId,
+    ],
   );
 
   return (

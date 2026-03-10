@@ -137,6 +137,8 @@ export interface UpgradePreviewResult {
   has_active_plan: boolean;
   /** Indica que o plano e período selecionados são iguais ao atual (bloquear nova assinatura). */
   is_current_plan?: boolean;
+  /** Há solicitação pendente (pagamento em processamento); bloquear nova assinatura até confirmação ou cancelamento. */
+  has_pending?: boolean;
   calculation?: UpgradePriceCalculation;
   error?: string;
 }
