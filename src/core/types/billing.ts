@@ -6,6 +6,8 @@ export type BillingPeriod = 'monthly' | 'semiannual' | 'annual';
 // ─── tb_billing_profiles ─────────────────────────────────────────────────────
 export interface BillingProfile {
   id: string;
+  /** Nome completo para cobrança/NF-e (pode diferir do nome do perfil). */
+  full_name?: string;
   cpf_cnpj: string;
   cpf_cnpj_type: 'cpf' | 'cnpj';
   postal_code: string;
@@ -26,6 +28,7 @@ export type UpgradeRequestStatus =
   | 'processing'
   | 'approved'
   | 'pending_cancellation'
+  | 'pending_downgrade'
   | 'rejected'
   | 'cancelled';
 export type BillingType = 'PIX' | 'BOLETO' | 'CREDIT_CARD';
@@ -77,6 +80,8 @@ export interface UpgradeRequestPayload {
   plan_key_requested: string;
   billing_type: BillingType;
   billing_period: BillingPeriod;
+  /** Nome completo para cobrança/NF-e (pode diferir do nome do perfil). */
+  full_name: string;
   /** Número de parcelas escolhido pelo usuário (1-6 para cartão, sempre 1 para PIX/BOLETO). */
   installments: number;
   /** Segmento do site (PHOTOGRAPHER, EVENT, etc.) para buscar preço em PLANS_BY_SEGMENT */
@@ -102,6 +107,37 @@ export interface UpgradeRequestResult {
   pix_qr_code_base64?: string;
   billing_type?: BillingType;
   request_id?: string;
+  /** Preenchido quando a solicitação é downgrade: data em que a mudança será efetivada. */
+  downgrade_effective_at?: string;
+  error?: string;
+}
+
+// ─── Cálculo de upgrade/downgrade (pro-rata e preview) ──────────────────────
+export interface UpgradePriceCalculation {
+  type: 'upgrade' | 'downgrade' | 'current_plan';
+  /** Preço cheio do novo plano (amount_original). */
+  amount_original: number;
+  /** Crédito pro-rata + desconto PIX (amount_discount). */
+  amount_discount: number;
+  /** Valor líquido a pagar (amount_final). Zero em downgrade. */
+  amount_final: number;
+  /** Crédito pelos dias restantes do plano atual. */
+  residual_credit: number;
+  /** Desconto PIX aplicado sobre a diferença (apenas upgrade). */
+  pix_discount_amount?: number;
+  /** Data em que o plano atual expira (para exibição e downgrade). */
+  current_plan_expires_at: string;
+  /** Para downgrade: data em que a mudança será efetivada (= current_plan_expires_at). */
+  downgrade_effective_at?: string;
+}
+
+export interface UpgradePreviewResult {
+  success: boolean;
+  /** Se há plano ativo (approved) para calcular pro-rata/downgrade. */
+  has_active_plan: boolean;
+  /** Indica que o plano e período selecionados são iguais ao atual (bloquear nova assinatura). */
+  is_current_plan?: boolean;
+  calculation?: UpgradePriceCalculation;
   error?: string;
 }
 

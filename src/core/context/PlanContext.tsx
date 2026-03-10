@@ -81,6 +81,9 @@ export function PlanProvider({
     // Dentro do useMemo do planToUse no PlanProvider.tsx
     // Dentro do PlanProvider.tsx
     if (profile) {
+      if (profile.is_exempt) {
+        return (profile.plan_key || 'FREE') as PlanKey;
+      }
       if (profile.is_trial) {
         if (!profile.plan_trial_expires) return 'FREE';
 

@@ -38,7 +38,7 @@ export function RelatorioBasePage({
     >
       <div className="flex flex-col h-full max-w-[1600px] mx-auto px-4 md:px-6 antialiased subpixel-antialiased">
         {headerContent && (
-          <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 py-4 border-b border-slate-100 mb-4">
+          <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 py-2 border-b border-slate-100">
             {headerContent}
           </div>
         )}

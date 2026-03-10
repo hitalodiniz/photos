@@ -175,7 +175,7 @@ export default function GaleriaCard({
       galeria.has_contracting_client == null ||
       galeria.has_contracting_client === undefined
     )
-      return 'Disponibilização de arquivos';
+      return 'Disponibilização de fotos e vídeos';
     else if (galeria.has_contracting_client === 'CT')
       return galeria.client_name;
     else return getGalleryTypeLabel(galeria.has_contracting_client);

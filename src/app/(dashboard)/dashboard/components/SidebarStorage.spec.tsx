@@ -258,7 +258,7 @@ describe('SidebarStorage — Bloco de Arquivos', () => {
 
 // UpgradeModal: abre ao clicar no botão de limite
 // O mock renderiza <div data-testid="upgrade-modal">{featureName}</div>
-// featureName passado pelo SidebarStorage = "Armazenamento"
+// featureName passado pelo SidebarStorage = "Cota de Arquivos"
 describe('SidebarStorage — UpgradeModal', () => {
   test('UpgradeModal fechado por padrão (sem clicar)', () => {
     renderWithPlan('FREE', 3);
@@ -273,6 +273,6 @@ describe('SidebarStorage — UpgradeModal', () => {
     // após clique → modal mockado aparece com data-testid
     expect(screen.getByTestId('upgrade-modal')).toBeInTheDocument();
     // e exibe o featureName passado pelo componente
-    expect(screen.getByText(/armazenamento/i)).toBeInTheDocument();
+    expect(screen.getByText(/cota de arquivos/i)).toBeInTheDocument();
   });
 });

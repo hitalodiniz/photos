@@ -1,6 +1,6 @@
 'use client';
 
-import React from 'react';
+import React, { useState } from 'react';
 import {
   Crown,
   ArrowRight,
@@ -11,8 +11,9 @@ import {
 } from 'lucide-react';
 import { Sheet, SheetFooter } from '@/components/ui/Sheet';
 import { TermsOfServiceModal } from '@/app/(public)/termos/TermosContent';
+import ConfirmationModal from '@/components/ui/ConfirmationModal';
 import type { PlanKey } from '@/core/config/plans';
-import { findNextPlanKeyWithFeature } from '@/core/config/plans';
+import { findNextPlanKeyWithFeature, planOrder } from '@/core/config/plans';
 import { usePlan } from '@/core/context/PlanContext';
 import { useSegment } from '@/hooks/useSegment';
 import { UpgradeSheetProvider, useUpgradeSheetContext } from './UpgradeSheetContext';
@@ -36,16 +37,23 @@ function UpgradeSheetContent({ isOpen, onClose }: { isOpen: boolean; onClose: ()
   const {
     step,
     setStep,
-    goBack: _gb,
     selectedPlan,
     selectedPlanInfo,
     canProceedData,
     acceptedTerms,
     loading,
     handleClose,
+    isExempt,
+    planKey,
   } = useUpgradeSheetContext();
 
+  const [showExemptConfirm, setShowExemptConfirm] = useState(false);
+
   const SelectedPlanIcon = PLAN_ICONS[selectedPlan] ?? ChevronRight;
+  const isExemptSamePlan = isExempt && selectedPlan === planKey;
+  const isExemptSuperiorPlan =
+    isExempt &&
+    planOrder.indexOf(selectedPlan) > planOrder.indexOf(planKey as PlanKey);
 
   const footer =
     step === 'done' ? null : (
@@ -63,15 +71,30 @@ function UpgradeSheetContent({ isOpen, onClose }: { isOpen: boolean; onClose: ()
           )}
           <div className="flex-1">
             {step === 'plan' && (
-              <button
-                type="button"
-                onClick={() => setStep('personal')}
-                className="btn-luxury-primary w-full"
-              >
-                <SelectedPlanIcon size={14} strokeWidth={2} />
-                Assinar Plano {selectedPlanInfo?.name ?? selectedPlan}
-                <ChevronRight size={14} />
-              </button>
+              <>
+                {isExemptSamePlan ? (
+                  <button
+                    type="button"
+                    onClick={handleClose}
+                    className="btn-luxury-primary w-full"
+                  >
+                    Entendi
+                  </button>
+                ) : (
+                  <button
+                    type="button"
+                    onClick={() => {
+                      if (isExemptSuperiorPlan) setShowExemptConfirm(true);
+                      else setStep('personal');
+                    }}
+                    className="btn-luxury-primary w-full"
+                  >
+                    <SelectedPlanIcon size={14} strokeWidth={2} />
+                    Assinar Plano {selectedPlanInfo?.name ?? selectedPlan}
+                    <ChevronRight size={14} />
+                  </button>
+                )}
+              </>
             )}
             {step === 'personal' && (
               <button
@@ -125,6 +148,18 @@ function UpgradeSheetContent({ isOpen, onClose }: { isOpen: boolean; onClose: ()
         {step === 'done' && <StepDone />}
       </div>
       <TermsOfServiceModalWrapper />
+      <ConfirmationModal
+        isOpen={showExemptConfirm}
+        onClose={() => setShowExemptConfirm(false)}
+        onConfirm={() => {
+          setShowExemptConfirm(false);
+          setStep('personal');
+        }}
+        title="Confirmar assinatura"
+        message="Ao assinar um novo plano, seu benefício de isenção atual será substituído pela nova assinatura paga. Deseja prosseguir?"
+        confirmText="Prosseguir"
+        variant="primary"
+      />
     </Sheet>
   );
 }

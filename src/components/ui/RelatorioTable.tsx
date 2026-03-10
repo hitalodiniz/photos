@@ -70,7 +70,7 @@ export function RelatorioTable<T extends { id: string | number }>({
           <td
             key={idx}
             className={`px-6 py-3 border-b border-slate-50 text-[11px] text-slate-600 ${col.width || ''} ${
-              col.align === 'right' ? 'text-right' : ''
+              col.align === 'right' ? 'text-right' : col.align === 'center' ? 'text-center' : ''
             }`}
           >
             {typeof col.accessor === 'function'

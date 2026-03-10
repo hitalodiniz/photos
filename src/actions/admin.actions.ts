@@ -13,6 +13,7 @@ export interface AdminUserRow {
   username: string;
   plan_key: string;
   plan_trial_expires: string | null;
+  is_exempt: boolean;
   gallery_count: number;
   subscription_status: string | null;
   cpf_cnpj: string | null;
@@ -35,7 +36,7 @@ export async function listAdminUsers(filters?: {
 
   const { data: profiles, error: profilesError } = await admin
     .from('tb_profiles')
-    .select('id, full_name, email, username, plan_key, plan_trial_expires')
+    .select('id, full_name, email, username, plan_key, plan_trial_expires, is_exempt')
     .order('created_at', { ascending: false });
 
   if (profilesError) {
@@ -93,6 +94,7 @@ export async function listAdminUsers(filters?: {
     username: (p.username as string) ?? '',
     plan_key: (p.plan_key as string) ?? 'FREE',
     plan_trial_expires: (p.plan_trial_expires as string) ?? null,
+    is_exempt: Boolean(p.is_exempt),
     gallery_count: galleryCountByUserId.get(p.id as string) ?? 0,
     subscription_status: latestStatusByUserId.get(p.id as string) ?? null,
     cpf_cnpj: billingByUserId.get(p.id as string) ?? null,
@@ -120,13 +122,14 @@ export async function listAdminUsers(filters?: {
 }
 
 /**
- * Atualiza manualmente o plano e a data de expiração de um usuário (suporte).
+ * Atualiza manualmente o plano, a data de expiração e a flag de isenção de um usuário (suporte).
  * Ignora Asaas. Requer role 'admin'. Após sucesso, revalida cache do usuário.
  */
 export async function updateUserPlanAdmin(payload: {
   userId: string;
   plan_key: PlanKey;
   plan_trial_expires: string | null;
+  is_exempt?: boolean;
 }): Promise<{ success: boolean; error?: string }> {
   const { success, profile } = await getAuthenticatedUser();
   if (!success || !profile?.roles?.includes('admin')) {
@@ -145,13 +148,18 @@ export async function updateUserPlanAdmin(payload: {
     return { success: false, error: 'Usuário não encontrado.' };
   }
 
+  const updates: Record<string, unknown> = {
+    plan_key: payload.plan_key,
+    plan_trial_expires: payload.plan_trial_expires || null,
+    updated_at: new Date().toISOString(),
+  };
+  if (typeof payload.is_exempt === 'boolean') {
+    updates.is_exempt = payload.is_exempt;
+  }
+
   const { error } = await supabase
     .from('tb_profiles')
-    .update({
-      plan_key: payload.plan_key,
-      plan_trial_expires: payload.plan_trial_expires || null,
-      updated_at: new Date().toISOString(),
-    })
+    .update(updates)
     .eq('id', payload.userId);
 
   if (error) {
@@ -159,9 +167,22 @@ export async function updateUserPlanAdmin(payload: {
     return { success: false, error: error.message };
   }
 
-  await revalidateProfile(target.username, payload.userId);
-
+  await revalidateUserCache(payload.userId);
   return { success: true };
+}
+
+/**
+ * Revalida o cache de um usuário (tags de perfil e galerias).
+ * Requer role 'admin'. Use após alterações manuais ou para forçar atualização.
+ */
+export async function adminRevalidateUserCache(
+  userId: string,
+): Promise<{ success: boolean; error?: string }> {
+  const { success, profile } = await getAuthenticatedUser();
+  if (!success || !profile?.roles?.includes('admin')) {
+    return { success: false, error: 'Acesso negado.' };
+  }
+  return revalidateUserCache(userId);
 }
 
 // ---------------------------------------------------------------------------

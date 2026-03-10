@@ -389,18 +389,19 @@ describe('requestUpgrade — Cartão de Crédito', () => {
     }
   });
 
-  it('semestral 1x: installmentCount undefined, value=420', async () => {
+  it('semestral 1x: installmentCount undefined, value=420, cycle=SEMIANNUALLY', async () => {
     const body = await captureSubscriptionBody({ ...base, billing_period: 'semiannual' as never, installments: 1 });
     if (body) {
-      expect(body.cycle).toBe('MONTHLY');
+      expect(body.cycle).toBe('SEMIANNUALLY');
       expect(body.value).toBe(420); // 70 × 6, sem desconto PIX
       expect(body.installmentCount).toBeUndefined(); // 1 → não enviado
     }
   });
 
-  it('semestral 3x: installmentCount=3, cada parcela=140', async () => {
+  it('semestral 3x: installmentCount=3, cycle=SEMIANNUALLY, value=420', async () => {
     const body = await captureSubscriptionBody({ ...base, billing_period: 'semiannual' as never, installments: 3 });
     if (body) {
+      expect(body.cycle).toBe('SEMIANNUALLY');
       expect(body.installmentCount).toBe(3);
       expect(body.value).toBe(420);
     }

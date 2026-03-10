@@ -77,11 +77,22 @@ export function StepPersonal() {
             )}
           </div>
           <div className="space-y-1 min-w-0">
-            <FieldLabel icon={User} label="Nome Completo" />
-            <div className="w-full px-2.5 py-2 bg-slate-50 border border-slate-200 rounded-[0.4rem] text-[10px] text-petroleum font-medium outline-none flex items-center justify-between min-h-9">
-              <span className="truncate">{profile?.full_name ?? '—'}</span>
-              <CheckCircle2 size={10} className="text-emerald-400 shrink-0 ml-1" />
-            </div>
+            <FieldLabel icon={User} label="Nome Completo" required />
+            <input
+              type="text"
+              value={personal.fullName}
+              onChange={(e) =>
+                setPersonal((p) => ({
+                  ...p,
+                  fullName: e.target.value.trimStart().replace(/\s+/g, ' '),
+                }))
+              }
+              placeholder="Nome como na cobrança / NF-e"
+              className="w-full px-2.5 py-2 h-9 bg-slate-50 border border-slate-200 rounded-[0.4rem] text-[10px] text-petroleum font-medium outline-none"
+            />
+            <p className="text-[8px] text-slate-400">
+              Pode ser diferente do nome do seu perfil. Será usado na fatura e na NF-e.
+            </p>
           </div>
         </div>
 

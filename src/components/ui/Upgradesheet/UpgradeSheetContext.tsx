@@ -47,6 +47,8 @@ interface UpgradeSheetContextValue {
   acceptedTerms: boolean;
   setAcceptedTerms: (v: boolean) => void;
   paymentUrl: string | null;
+  /** Quando a solicitação for downgrade agendado: data em que a mudança será efetivada. */
+  downgradeEffectiveAt: string | null;
   /** Dados do QR PIX (preenchido após confirmar com PIX; usado na tela de revisão). */
   pixData: { qrCode: string; copyPaste: string };
   requestError: string | null;
@@ -70,10 +72,12 @@ interface UpgradeSheetContextValue {
   /** Fechar sheet e resetar estado (chamado pelo overlay, X ou botão Fechar do step done). */
   handleClose: () => void;
   // Profile/email from usePlan
-  profile: { full_name?: string; phone_contact?: string; email?: string | null } | null;
+  profile: { full_name?: string; phone_contact?: string; email?: string | null; is_exempt?: boolean } | null;
   email: string | undefined;
   segment: SegmentType;
   terms: { items: string };
+  /** Usuário isento: plano atual vitalício; mensagens e confirmação no UpgradeSheet. */
+  isExempt: boolean;
 }
 
 const UpgradeSheetContext = createContext<UpgradeSheetContextValue | null>(null);
@@ -90,7 +94,7 @@ interface UpgradeSheetProviderProps {
   onClose: () => void;
   suggestedPlanKey: PlanKey;
   planKey: PlanKey;
-  profile: { full_name?: string; phone_contact?: string; email?: string | null } | null;
+  profile: { full_name?: string; phone_contact?: string; email?: string | null; is_exempt?: boolean } | null;
   email: string | undefined;
   segment: SegmentType;
   terms: { items: string };
@@ -118,7 +122,11 @@ export function UpgradeSheetProvider({
   const [step, setStep] = useState<Step>('plan');
   const [selectedPlan, setSelectedPlan] = useState<PlanKey>(suggestedPlanKey);
   const [expandedPlanKey, setExpandedPlanKey] = useState<PlanKey | null>(null);
-  const [personal, setPersonal] = useState<PersonalData>({ whatsapp: '', cpfCnpj: '' });
+  const [personal, setPersonal] = useState<PersonalData>({
+    whatsapp: '',
+    cpfCnpj: '',
+    fullName: '',
+  });
   const [address, setAddress] = useState<AddressData>({
     cep: '', street: '', number: '', complement: '', neighborhood: '', city: '', state: '',
   });
@@ -130,6 +138,7 @@ export function UpgradeSheetProvider({
   const [installments, setInstallments] = useState<number>(1);
   const [creditCard, setCreditCard] = useState<CreditCardPayload>(initialCreditCard);
   const [paymentUrl, setPaymentUrl] = useState<string | null>(null);
+  const [downgradeEffectiveAt, setDowngradeEffectiveAt] = useState<string | null>(null);
   const [pixData, setPixData] = useState<{ qrCode: string; copyPaste: string }>({ qrCode: '', copyPaste: '' });
   const [requestError, setRequestError] = useState<string | null>(null);
   const [loading, setLoading] = useState(false);
@@ -143,12 +152,13 @@ export function UpgradeSheetProvider({
     setSelectedPlan(suggestedPlanKey);
     setStep('plan');
     setHasSavedBillingData(false);
-    if (profile?.phone_contact) {
-      setPersonal((prev) => ({
-        ...prev,
-        whatsapp: formatPhone(profile.phone_contact!),
-      }));
-    }
+    setPersonal((prev) => ({
+      ...prev,
+      fullName: profile?.full_name ?? prev.fullName ?? '',
+      ...(profile?.phone_contact
+        ? { whatsapp: formatPhone(profile.phone_contact) }
+        : {}),
+    }));
     setLoadingPrefill(true);
     getBillingProfile()
       .then((billing) => {
@@ -157,6 +167,7 @@ export function UpgradeSheetProvider({
         setPersonal((prev) => ({
           ...prev,
           cpfCnpj: billing.cpf_cnpj,
+          fullName: billing.full_name ?? prev.fullName ?? profile?.full_name ?? '',
         }));
         setAddress({
           cep: billing.postal_code,
@@ -169,7 +180,7 @@ export function UpgradeSheetProvider({
         });
       })
       .finally(() => setLoadingPrefill(false));
-  }, [isOpen, suggestedPlanKey, profile?.phone_contact]);
+  }, [isOpen, suggestedPlanKey, profile?.phone_contact, profile?.full_name]);
 
   const selectedPerms = PERMISSIONS_BY_PLAN[selectedPlan];
   const selectedPlanInfo = PLANS_BY_SEGMENT[segment]?.[selectedPlan];
@@ -177,6 +188,7 @@ export function UpgradeSheetProvider({
 
   const cpfCnpjDigits = personal.cpfCnpj.replace(/\D/g, '');
   const canProceedPersonal =
+    personal.fullName.trim().length >= 2 &&
     personal.whatsapp.replace(/\D/g, '').length >= 10 &&
     (cpfCnpjDigits.length === 11 || cpfCnpjDigits.length === 14);
   const canProceedAddress =
@@ -233,35 +245,60 @@ export function UpgradeSheetProvider({
     const effectiveInstallments =
       billingType === 'CREDIT_CARD' ? installments : 1;
 
-    const result = await requestUpgrade({
-      plan_key_requested: selectedPlan,
-      billing_type: billingType,
-      billing_period: billingPeriod,
-      installments: effectiveInstallments,
-      segment,
-      whatsapp: personal.whatsapp,
-      cpf_cnpj: personal.cpfCnpj,
-      postal_code: address.cep,
-      address: address.street,
-      address_number: address.number,
-      complement: address.complement || undefined,
-      province: address.neighborhood,
-      city: address.city,
-      state: address.state,
-      ...(billingType === 'CREDIT_CARD' && { credit_card: creditCard }),
-    });
-    setLoading(false);
-    if (result.success) {
-      setPaymentUrl(result.payment_url ?? null);
-      if (result.billing_type === 'PIX' && result.pix_qr_code_base64 && result.payment_url) {
-        setPixData({
-          qrCode: result.pix_qr_code_base64,
-          copyPaste: result.payment_url,
-        });
+    try {
+      const result = await requestUpgrade({
+        plan_key_requested: selectedPlan,
+        billing_type: billingType,
+        billing_period: billingPeriod,
+        installments: effectiveInstallments,
+        segment,
+        full_name: personal.fullName.trim(),
+        whatsapp: personal.whatsapp,
+        cpf_cnpj: personal.cpfCnpj,
+        postal_code: address.cep,
+        address: address.street,
+        address_number: address.number,
+        complement: address.complement || undefined,
+        province: address.neighborhood,
+        city: address.city,
+        state: address.state,
+        ...(billingType === 'CREDIT_CARD' && { credit_card: creditCard }),
+      });
+
+      if (result?.success) {
+        setDowngradeEffectiveAt(result.downgrade_effective_at ?? null);
+        setPaymentUrl(result.payment_url ?? null);
+        if (result.billing_type === 'PIX' && (result.pix_qr_code_base64 || result.payment_url)) {
+          setPixData({
+            qrCode: result.pix_qr_code_base64 ?? '',
+            copyPaste: result.payment_url ?? '',
+          });
+        }
+        setStep('done');
+      } else {
+        const raw = result?.error ?? 'Erro ao processar solicitação.';
+        const isPixUnavailable =
+          raw.includes('Pix não está disponível') ||
+          raw.includes('conta precisa estar aprovada');
+        setRequestError(
+          isPixUnavailable
+            ? 'PIX não está disponível no momento para esta conta. Use Boleto ou Cartão de Crédito para assinar.'
+            : raw,
+        );
       }
-      setStep('done');
-    } else {
-      setRequestError(result.error ?? 'Erro ao processar solicitação.');
+    } catch (err) {
+      console.error('[UpgradeSheet] handleConfirm error:', err);
+      const raw = err instanceof Error ? err.message : 'Erro ao processar. Tente novamente.';
+      const isPixUnavailable =
+        raw.includes('Pix não está disponível') ||
+        raw.includes('conta precisa estar aprovada');
+      setRequestError(
+        isPixUnavailable
+          ? 'PIX não está disponível no momento para esta conta. Use Boleto ou Cartão de Crédito para assinar.'
+          : raw,
+      );
+    } finally {
+      setLoading(false);
     }
   }, [acceptedTerms, selectedPlan, billingType, billingPeriod, installments, segment, personal, address, creditCard]);
 
@@ -269,12 +306,13 @@ export function UpgradeSheetProvider({
     setStep('plan');
     setSelectedPlan(suggestedPlanKey);
     setExpandedPlanKey(null);
-    setPersonal({ whatsapp: '', cpfCnpj: '' });
+    setPersonal({ whatsapp: '', cpfCnpj: '', fullName: '' });
     setAddress({
       cep: '', street: '', number: '', complement: '', neighborhood: '', city: '', state: '',
     });
     setAcceptedTerms(false);
     setPaymentUrl(null);
+    setDowngradeEffectiveAt(null);
     setPixData({ qrCode: '', copyPaste: '' });
     setRequestError(null);
     setBillingType('CREDIT_CARD');
@@ -317,6 +355,7 @@ export function UpgradeSheetProvider({
       acceptedTerms,
       setAcceptedTerms,
       paymentUrl,
+      downgradeEffectiveAt,
       pixData,
       requestError,
       loading,
@@ -338,6 +377,7 @@ export function UpgradeSheetProvider({
       email,
       segment,
       terms,
+      isExempt: profile?.is_exempt ?? false,
     }),
     [
       step,
@@ -355,6 +395,7 @@ export function UpgradeSheetProvider({
       creditCard,
       acceptedTerms,
       paymentUrl,
+      downgradeEffectiveAt,
       pixData,
       requestError,
       loading,

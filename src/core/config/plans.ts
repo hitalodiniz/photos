@@ -889,13 +889,23 @@ export function getPeriodPrice(
 export function getPixAdjustedTotal(
   planInfo: PlanInfo,
   period: BillingPeriod,
-): { totalOriginal: number; discountAmount: number; totalWithPixDiscount: number } {
+): {
+  totalOriginal: number;
+  discountAmount: number;
+  totalWithPixDiscount: number;
+} {
   const { totalPrice, months } = getPeriodPrice(planInfo, period);
   if (period === 'monthly') {
-    return { totalOriginal: totalPrice, discountAmount: 0, totalWithPixDiscount: totalPrice };
+    return {
+      totalOriginal: totalPrice,
+      discountAmount: 0,
+      totalWithPixDiscount: totalPrice,
+    };
   }
-  const discountAmount = Math.round(totalPrice * (PIX_DISCOUNT_PERCENT / 100) * 100) / 100;
-  const totalWithPixDiscount = Math.round((totalPrice - discountAmount) * 100) / 100;
+  const discountAmount =
+    Math.round(totalPrice * (PIX_DISCOUNT_PERCENT / 100) * 100) / 100;
+  const totalWithPixDiscount =
+    Math.round((totalPrice - discountAmount) * 100) / 100;
   return { totalOriginal: totalPrice, discountAmount, totalWithPixDiscount };
 }
 
@@ -1355,7 +1365,7 @@ export const COMMON_FEATURES = [
   // --- ENTREGA & SEGURANÇA ---
   {
     key: 'zipSizeLimit',
-    group: 'Entrega de Arquivos',
+    group: 'Entrega de fotos e vídeos',
     label: 'Download ZIP — Tamanho/foto',
     values: [
       'Até 500KB',
@@ -1367,13 +1377,13 @@ export const COMMON_FEATURES = [
   },
   {
     key: 'maxExternalLinks',
-    group: 'Entrega de Arquivos',
+    group: 'Entrega de fotos e vídeos',
     label: 'Links de Download Externos',
     values: [false, '1 Link', '2 Links', 'Até 5 Links', 'Até 10 Links'],
   },
   {
     key: 'keepOriginalFilenames',
-    group: 'Entrega de Arquivos',
+    group: 'Entrega de fotos e vídeos',
     label: 'Preservação de Nomes',
     values: [
       'Sequenciais',

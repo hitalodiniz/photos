@@ -19,6 +19,8 @@ export interface Profile {
   plan_key: PlanKey;
   plan_trial_expires?: string; // ISO Date
   is_trial: boolean;
+  /** Usuário isento: acesso vitalício ao plan_key atual; ignora expiração/downgrade. */
+  is_exempt?: boolean;
 
   created_at: string;
   updated_at: string;

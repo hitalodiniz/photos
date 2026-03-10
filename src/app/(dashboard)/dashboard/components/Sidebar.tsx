@@ -7,7 +7,6 @@ import {
   ArrowLeft,
   TrendingUp,
 } from 'lucide-react';
-import Link from 'next/link';
 import type { ViewType } from '../hooks/useDashboardFilters';
 import type { Profile } from '@/core/types/profile';
 import VersionInfo from '@/components/dashboard/VersionInfo';
@@ -19,6 +18,7 @@ import { useSidebar } from '@/components/providers/SidebarProvider';
 import { usePlan } from '@/core/context/PlanContext';
 import { useState } from 'react';
 import UpgradeModal from '@/components/ui/UpgradeModal';
+import { UpgradeSheet } from '@/components/ui/Upgradesheet';
 import { useSegment } from '@/hooks/useSegment';
 
 interface SidebarProps {
@@ -52,6 +52,7 @@ export default function Sidebar({
 
   const { permissions, canAddMore, planKey } = usePlan(); // 🛡️ Permissões
   const [upsellFeature, setUpsellFeature] = useState<string | null>(null);
+  const [upgradeSheetOpen, setUpgradeSheetOpen] = useState(false);
   // 🛡️ Validação de Limite de Galerias
   const canCreateMore = canAddMore('maxGalleries', galeriasCount);
   return (
@@ -92,7 +93,7 @@ export default function Sidebar({
               }
             }}
             disabled={isRedirecting}
-            className={`flex items-center justify-center transition-all duration-300 rounded-luxury border h-12 w-full gap-2 group shadow-lg
+            className={`flex items-center justify-center transition-all duration-300 rounded-luxury border h-12 w-36 gap-2 group shadow-lg
       ${
         !canCreateMore
           ? 'bg-champagne/80 border-champagne/20 text-black/80 cursor-pointer hover:border-champagne/60'
@@ -146,14 +147,15 @@ export default function Sidebar({
                   </span>
                 </div>
                 {planKey !== 'PREMIUM' && (
-                  <Link
-                    href="/dashboard/assinatura"
+                  <button
+                    type="button"
+                    onClick={() => setUpgradeSheetOpen(true)}
                     className="shrink-0 flex items-center gap-1 px-2 py-1 rounded-md bg-champagne/20 border border-champagne/30 text-champagne hover:bg-champagne/30 text-[9px] font-semibold uppercase tracking-widest transition-colors"
                     title="Fazer upgrade de plano"
                   >
                     <TrendingUp size={10} />
                     Migrar
-                  </Link>
+                  </button>
                 )}
               </div>
             </div>
@@ -181,7 +183,6 @@ export default function Sidebar({
           />
 
           <SidebarAjuda isSidebarCollapsed={isSidebarCollapsed} />
-
         </nav>
 
         {/* Rodapé: Versão e Toggle */}
@@ -212,6 +213,12 @@ export default function Sidebar({
         featureName="Galerias Ativas"
         featureKey="maxGalleries"
         scenarioType="limit"
+      />
+
+      <UpgradeSheet
+        isOpen={upgradeSheetOpen}
+        onClose={() => setUpgradeSheetOpen(false)}
+        initialPlanKey={planKey}
       />
     </>
   );

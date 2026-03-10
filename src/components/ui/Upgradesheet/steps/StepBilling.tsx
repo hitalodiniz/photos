@@ -213,7 +213,7 @@ export function StepBilling() {
           <p className="text-[8px] text-petroleum/70 mt-1 leading-snug">
             Pagamento via <strong className="text-petroleum">PIX</strong> tem{' '}
             <strong>{PIX_DISCOUNT_PERCENT}% de desconto</strong> no semestral e
-            no anual.
+            no anual. Parcelamento só no cartão.
           </p>
         )}
         {showPixDiscount && (

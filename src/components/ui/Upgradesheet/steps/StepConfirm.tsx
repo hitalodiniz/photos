@@ -28,16 +28,19 @@ export function StepConfirm() {
         <div className="p-3.5 rounded-luxury bg-petroleum/5 border border-petroleum/10">
           <div className="flex items-start justify-between gap-2">
             <div className="min-w-0">
-              <p className="text-[8px] font-bold uppercase tracking-luxury-wide text-petroleum/50 mb-1">
+              <p className="text-[8px] font-bold uppercase tracking-luxury-wide text-petroleum/70 mb-1">
                 Plano selecionado
               </p>
               <p className="text-[15px] font-bold text-petroleum uppercase tracking-wide leading-none">
+                {selectedPlanInfo?.icon && (
+                  <selectedPlanInfo.icon size={16} strokeWidth={1.5} />
+                )}
                 {selectedPlanInfo?.name ?? selectedPlan}
               </p>
               <div className="flex items-center gap-2 mt-1.5 flex-wrap">
-                <span className="text-[11px] text-petroleum/50">
-                  {storageLabel(selectedPerms.storageGB)} ·{' '}
-                  {selectedPerms.maxGalleries} galerias
+                <span className="text-[11px] text-petroleum/70">
+                  Até {selectedPerms.maxPhotosPerGallery} arquivos por galeria ·
+                  Até {selectedPerms.maxGalleriesHardCap} galerias ativas
                 </span>
                 <span
                   className={`px-1.5 py-0.5 rounded-full text-[10px] font-semibold uppercase tracking-wide ${
@@ -54,16 +57,16 @@ export function StepConfirm() {
                 </span>
               </div>
               <p className="text-[13px] font-bold text-petroleum mt-1.5">
-                R$
+                R${' '}
                 {
                   getPeriodPrice(planInfoForPrice, billingPeriod)
                     .effectiveMonthly
                 }
-                <span className="text-[9px] font-medium text-petroleum/90">
+                <span className="text-[10px] font-medium text-petroleum/90">
                   /mês
                 </span>
                 {billingPeriod !== 'monthly' && (
-                  <span className="text-[9px] font-medium text-petroleum/90 ml-1">
+                  <span className="text-[10px] font-medium text-petroleum/90 ml-1">
                     · R$
                     {
                       getPeriodPrice(planInfoForPrice, billingPeriod).totalPrice
@@ -76,7 +79,7 @@ export function StepConfirm() {
             <button
               type="button"
               onClick={() => setStep('plan')}
-              className="text-[9px] font-semibold text-gold hover:underline shrink-0"
+              className="text-[10px] font-semibold text-gold hover:underline shrink-0"
             >
               Alterar
             </button>
@@ -88,13 +91,18 @@ export function StepConfirm() {
         <div className="space-y-0 divide-y divide-slate-100">
           {[
             {
-              label: 'WhatsApp',
-              value: personal.whatsapp,
+              label: 'Nome',
+              value: personal.fullName || '—',
               onEdit: () => setStep('personal'),
             },
             {
               label: 'CPF/CNPJ',
               value: personal.cpfCnpj,
+              onEdit: () => setStep('personal'),
+            },
+            {
+              label: 'WhatsApp',
+              value: personal.whatsapp,
               onEdit: () => setStep('personal'),
             },
             {
@@ -108,17 +116,17 @@ export function StepConfirm() {
               className="flex items-start justify-between gap-3 py-2"
             >
               <div className="min-w-0">
-                <p className="text-[8px] font-bold uppercase tracking-luxury-wide text-petroleum/90">
+                <p className="text-[9px] font-bold uppercase tracking-luxury-wide text-petroleum/90">
                   {label}
                 </p>
-                <p className="text-[11px] font-semibold text-petroleum leading-snug mt-0.5">
+                <p className="text-[11px] font-medium text-petroleum leading-snug mt-0.5">
                   {value}
                 </p>
               </div>
               <button
                 type="button"
                 onClick={onEdit}
-                className="text-[9px] font-semibold text-gold hover:underline shrink-0 mt-1"
+                className="text-[10px] font-semibold text-gold hover:underline shrink-0 mt-1"
               >
                 Editar
               </button>
@@ -157,7 +165,7 @@ export function StepConfirm() {
             </span>
           </label>
         </div>
-        <p className="text-[9px] text-slate-400 italic px-0.5 pt-2">
+        <p className="text-[9px] text-slate-700 italic px-0.5 pt-2">
           A cobrança aparece como <strong>SUAGALERIA</strong> na sua fatura.
           Direito de arrependimento de 7 dias (CDC).
         </p>

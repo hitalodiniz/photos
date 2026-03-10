@@ -7,6 +7,8 @@ export type Step = 'plan' | 'personal' | 'billing' | 'confirm' | 'done';
 export interface PersonalData {
   whatsapp: string;
   cpfCnpj: string;
+  /** Nome completo para cobrança/NF-e (pode diferir do nome do perfil). */
+  fullName: string;
 }
 
 export interface AddressData {

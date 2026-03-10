@@ -43,6 +43,14 @@ function getBoletoVencimento(days = 3) {
   return d.toLocaleDateString('pt-BR');
 }
 
+function formatDateLong(iso: string): string {
+  return new Date(iso).toLocaleDateString('pt-BR', {
+    day: '2-digit',
+    month: 'long',
+    year: 'numeric',
+  });
+}
+
 // ─── Sub-componente: resumo do pedido ────────────────────────────────────────
 
 function OrderSummary({
@@ -64,7 +72,7 @@ function OrderSummary({
     <div className="w-full bg-petroleum/5 rounded-xl border border-petroleum/10 px-4 py-3 flex items-center justify-between gap-3">
       <div className="text-left min-w-0">
         <p className="text-[10px] font-bold uppercase tracking-wider text-petroleum/40">
-          Pedido
+          Contratado
         </p>
         <p className="text-[13px] font-bold text-petroleum truncate">
           Plano {planName} · {periodLabel[period] ?? period}
@@ -93,7 +101,7 @@ function NextStep({
       <div className="w-5 h-5 rounded-full bg-gold/15 flex items-center justify-center shrink-0 mt-0.5">
         <Icon size={10} className="text-gold" />
       </div>
-      <p className="text-[11px] text-petroleum/70 leading-snug">{text}</p>
+      <p className="text-[11px] text-petroleum/80 leading-snug">{text}</p>
     </div>
   );
 }
@@ -102,7 +110,7 @@ function NextStep({
 
 function SecurityBadge() {
   return (
-    <div className="flex items-center justify-center gap-1.5 text-petroleum/30">
+    <div className="flex items-center justify-center gap-1.5 text-petroleum/60">
       <ShieldCheck size={11} />
       <span className="text-[9px] font-semibold uppercase tracking-wider">
         Pagamento seguro · Processado pela Asaas
@@ -122,7 +130,7 @@ function SupportLink() {
       href={`https://wa.me/${WHATSAPP_SUPPORT}?text=${msg}`}
       target="_blank"
       rel="noopener noreferrer"
-      className="flex items-center gap-1.5 text-[10px] text-petroleum/40 hover:text-petroleum/70 transition-colors"
+      className="flex items-center gap-1.5 text-[10px] text-petroleum/60 hover:text-petroleum/70 transition-colors"
     >
       <MessageCircle size={11} />
       Precisa de ajuda? Fale conosco
@@ -192,7 +200,7 @@ function StepDonePix({
         : 'text-petroleum/50';
 
   return (
-    <div className="flex flex-col items-center gap-4 px-4 py-6 w-full">
+    <div className="flex flex-col items-center gap-4 px-4 py-3 w-full">
       {/* Ícone + título */}
       <div className="flex flex-col items-center gap-2">
         <div className="w-14 h-14 rounded-full bg-gold/10 border-2 border-gold/25 flex items-center justify-center">
@@ -371,10 +379,10 @@ function StepDoneCreditCard({
           <Check size={26} className="text-emerald-500" strokeWidth={2.5} />
         </div>
         <div className="text-center">
-          <p className="text-[15px] font-black text-petroleum uppercase tracking-wide">
+          <p className="text-[15px] font-bold text-petroleum uppercase tracking-wide">
             Pagamento processado
           </p>
-          <p className="text-[11px] text-petroleum/50 mt-0.5">
+          <p className="text-[11px] text-petroleum/80 mt-0.5">
             Seu cartão foi submetido com sucesso
           </p>
         </div>
@@ -399,7 +407,7 @@ function StepDoneCreditCard({
 
       {/* Próximos passos */}
       <div className="w-full space-y-2.5">
-        <p className="text-[10px] font-bold uppercase tracking-wider text-petroleum/40">
+        <p className="text-[10px] font-bold uppercase tracking-wider text-petroleum/80">
           O que acontece agora
         </p>
         <NextStep
@@ -523,6 +531,49 @@ function StepDoneBoleto({
   );
 }
 
+// ─── Variante: downgrade agendado (sem pagamento) ───────────────────────────
+
+function StepDoneDowngrade({
+  planName,
+  effectiveAt,
+  handleClose,
+}: {
+  planName: string;
+  effectiveAt: string;
+  handleClose: () => void;
+}) {
+  return (
+    <div className="flex flex-col items-center gap-4 px-4 py-6 w-full">
+      <div className="flex flex-col items-center gap-2">
+        <div className="w-14 h-14 rounded-full bg-gold/10 border-2 border-gold/25 flex items-center justify-center">
+          <CalendarCheck size={26} className="text-gold" />
+        </div>
+        <p className="text-[15px] font-black text-petroleum uppercase tracking-wide text-center">
+          Mudança de plano agendada
+        </p>
+        <p className="text-[11px] text-petroleum/50 mt-0.5 text-center">
+          Sua mudança para o plano <strong>{planName}</strong> será efetivada em{' '}
+          <strong className="text-petroleum">
+            {formatDateLong(effectiveAt)}
+          </strong>
+          .
+        </p>
+      </div>
+      <div className="w-full bg-slate-50 border border-slate-200 rounded-xl px-4 py-3 text-[10px] text-slate-600">
+        Até lá você continua com os benefícios do plano atual. Nenhuma cobrança
+        adicional foi gerada.
+      </div>
+      <button
+        type="button"
+        onClick={handleClose}
+        className="btn-luxury-primary"
+      >
+        Fechar
+      </button>
+    </div>
+  );
+}
+
 // ═══════════════════════════════════════════════════════════════════════════════
 // COMPONENTE PRINCIPAL
 // ═══════════════════════════════════════════════════════════════════════════════
@@ -531,16 +582,28 @@ export function StepDone() {
   const {
     paymentUrl,
     pixData,
+    downgradeEffectiveAt,
     selectedPlanInfo,
     selectedPlan,
     billingType,
     billingPeriod,
-    amountFinal, // adicionar ao context se não existir: valor de amount_final do último requestUpgrade
     handleClose,
   } = useUpgradeSheetContext();
 
   const planName = selectedPlanInfo?.name ?? selectedPlan;
-  const amount = amountFinal ?? selectedPlanInfo?.price;
+  const amount = selectedPlanInfo?.price;
+
+  if (downgradeEffectiveAt) {
+    return (
+      <div className="flex flex-col min-h-full overflow-y-auto">
+        <StepDoneDowngrade
+          planName={planName}
+          effectiveAt={downgradeEffectiveAt}
+          handleClose={handleClose}
+        />
+      </div>
+    );
+  }
 
   return (
     <div className="flex flex-col min-h-full overflow-y-auto">
@@ -574,7 +637,7 @@ export function StepDone() {
         <button
           type="button"
           onClick={handleClose}
-          className="px-5 py-2 rounded-lg border border-slate-200 text-[10px] font-bold uppercase tracking-wider text-petroleum/40 hover:text-petroleum/70 hover:border-slate-300 transition-all"
+          className="btn-luxury-primary"
         >
           Fechar
         </button>

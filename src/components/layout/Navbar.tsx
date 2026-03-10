@@ -101,6 +101,7 @@ export default function Navbar() {
       return 'Relatório de Cadastro de Visitantes';
     if (pathname.includes('/new')) return 'Nova Galeria';
     if (pathname.includes('/stats')) return 'Estatísticas da galeria';
+    if (pathname.includes('/assinatura')) return 'Minha assinatura';
     return null;
   }, [pathname]);
 
