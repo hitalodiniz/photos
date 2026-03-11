@@ -20,6 +20,9 @@ import {
 } from '@/core/config/plans';
 import type { BillingType } from '@/core/types/billing';
 import { useUpgradeSheetContext } from '../UpgradeSheetContext';
+import { getFreeUpgradeCoverageText } from '../utils';
+import { getUpgradePreview } from '@/core/services/asaas.service';
+import { InfoTooltip } from '../../InfoTooltip';
 import {
   formatCreditCardNumber,
   formatExpiryMonth,
@@ -70,7 +73,7 @@ function BrandBadge({ number }: { number: string }) {
   const label = brandLabel(brand);
   if (!label) return null;
   return (
-    <span className="absolute right-2 top-1/2 -translate-y-1/2 text-[8px] font-bold text-petroleum/40 uppercase tracking-wide pointer-events-none">
+    <span className="absolute right-2 top-1/2 -translate-y-1/2 text-[8px] font-semibold text-petroleum/40 uppercase tracking-wide pointer-events-none">
       {label}
     </span>
   );
@@ -91,8 +94,34 @@ export function StepBilling() {
     setInstallments,
     creditCard,
     setCreditCard,
-    setCardValid, // expor ao context para desabilitar botão "Próximo"
+    upgradeCalculation,
+    setUpgradeCalculation,
+    selectedPlan,
+    segment,
+    planKey,
   } = useUpgradeSheetContext();
+
+  // Atualizar cálculo de upgrade ao mudar período/forma no Step Billing para o box de Upgrade Gratuito refletir o ciclo correto (mensal/semestral/anual)
+  useEffect(() => {
+    if (planKey === 'FREE' || selectedPlan === 'FREE') return;
+    let cancelled = false;
+    getUpgradePreview(selectedPlan, billingPeriod, billingType, segment).then(
+      (result) => {
+        if (!cancelled && result.calculation)
+          setUpgradeCalculation(result.calculation);
+      },
+    );
+    return () => {
+      cancelled = true;
+    };
+  }, [
+    billingPeriod,
+    billingType,
+    selectedPlan,
+    segment,
+    planKey,
+    setUpgradeCalculation,
+  ]);
 
   // ── Estado de erros — só exibido após blur (touched) ──────────────────────
   const [touched, setTouched] = useState<Record<string, boolean>>({});
@@ -105,16 +134,14 @@ export function StepBilling() {
     if (billingType !== 'CREDIT_CARD') return;
     const e = validateCreditCard(creditCard);
     setErrors(e);
-    setCardValid?.(isCardValid(e));
-  }, [creditCard, billingType, setCardValid]);
+  }, [creditCard, billingType]);
 
   // Ao trocar para PIX, marcar cartão como válido (não necessário)
   useEffect(() => {
     if (billingType !== 'CREDIT_CARD') {
-      setCardValid?.(true);
       setTouched({});
     }
-  }, [billingType, setCardValid]);
+  }, [billingType]);
 
   const touch = (field: string) => setTouched((t) => ({ ...t, [field]: true }));
 
@@ -138,20 +165,63 @@ export function StepBilling() {
     setInstallments(1);
   }, [billingPeriod, billingType, setInstallments]);
 
-  const showInstallments =
-    billingType === 'CREDIT_CARD' && billingPeriod !== 'monthly';
-
   const { effectiveMonthly, months } = getPeriodPrice(
     planInfoForPrice,
     billingPeriod,
   );
   const amountOriginal = Math.round(effectiveMonthly * months * 100) / 100;
   const pixAdjusted = getPixAdjustedTotal(planInfoForPrice, billingPeriod);
-  const amountFinal =
+  const amountFromPlan =
     billingType === 'PIX' && billingPeriod !== 'monthly'
       ? pixAdjusted.totalWithPixDiscount
       : amountOriginal;
+
+  // Quando há cálculo de upgrade com crédito, usar amount_final (valor já descontado) e exibir o saldo
+  const hasUpgradeCredit =
+    upgradeCalculation?.type === 'upgrade' &&
+    (upgradeCalculation.residual_credit ?? 0) > 0;
+  const amountFinal =
+    hasUpgradeCredit &&
+    typeof upgradeCalculation.amount_final === 'number' &&
+    Number.isFinite(upgradeCalculation.amount_final)
+      ? upgradeCalculation.amount_final
+      : amountFromPlan;
+
+  const showInstallments =
+    billingType === 'CREDIT_CARD' &&
+    billingPeriod !== 'monthly' &&
+    amountFinal > 0;
+
   const showPixDiscount = billingType === 'PIX' && billingPeriod !== 'monthly';
+
+  const isFreeUpgrade = upgradeCalculation?.is_free_upgrade === true;
+  const freeUpgradeCoverageText = getFreeUpgradeCoverageText(
+    billingPeriod,
+    upgradeCalculation ?? null,
+  );
+  const freeUpgradeExpiryDate = upgradeCalculation?.new_expiry_date
+    ? new Date(upgradeCalculation.new_expiry_date).toLocaleDateString('pt-BR', {
+        day: '2-digit',
+        month: 'long',
+        year: 'numeric',
+      })
+    : '';
+  const daysExtended = upgradeCalculation?.free_upgrade_days_extended ?? 0;
+  const freeUpgradeMonthsText =
+    daysExtended >= 30
+      ? daysExtended % 30 === 0
+        ? `cerca de ${daysExtended / 30} ${daysExtended / 30 === 1 ? 'mês' : 'meses'}`
+        : `cerca de ${(daysExtended / 30).toFixed(1).replace('.', ',')} meses`
+      : daysExtended > 0
+        ? `${daysExtended} ${daysExtended === 1 ? 'dia' : 'dias'}`
+        : '';
+
+  const billingPeriodExplanation =
+    billingPeriod === 'monthly'
+      ? 'Cálculo mensal: valor do plano para 1 mês (30 dias comerciais). O crédito dos dias não utilizados do plano anterior é abatido; você paga apenas a diferença.'
+      : billingPeriod === 'semiannual'
+        ? 'Cálculo semestral: valor do plano para 6 meses (180 dias comerciais). O crédito pro-rata do plano anterior é abatido do valor do semestre. No PIX há 10% de desconto sobre o valor já descontado.'
+        : 'Cálculo anual: valor do plano para 12 meses (360 dias comerciais). O crédito pro-rata é abatido do valor do ano. No PIX há 10% de desconto sobre o valor já descontado.';
 
   const periods: {
     key: BillingPeriod;
@@ -178,6 +248,75 @@ export function StepBilling() {
 
   return (
     <div className="space-y-0">
+      {/* ── Upgrade Gratuito (saldo cobre o plano) ── */}
+      {isFreeUpgrade && freeUpgradeExpiryDate && (
+        <SheetSection className="py-2 px-3">
+          <div className="rounded-lg border border-emerald-200 bg-emerald-50 px-3 py-2.5 text-[11px] text-emerald-900">
+            <div className="flex items-center gap-1.5 mb-1">
+              <p className="font-semibold text-emerald-700">Upgrade Gratuito</p>
+              <InfoTooltip
+                portal
+                size="3xl"
+                title="Como funciona"
+                content={billingPeriodExplanation}
+              />
+            </div>
+            <p className="mb-1 font-medium">
+              Crédito de{' '}
+              <span className="font-semibold text-emerald-800">
+                R$ {formatBRL(upgradeCalculation!.residual_credit ?? 0)}
+              </span>{' '}
+              (dias não utilizados do plano anterior).
+            </p>
+            <p className="font-medium">
+              Seu crédito dá direito a uso até{' '}
+              <span className="font-semibold">{freeUpgradeExpiryDate}</span>
+              {freeUpgradeMonthsText ? ` (${freeUpgradeMonthsText})` : ''}.
+              Nenhum valor a pagar. A próxima cobrança será em{' '}
+              <span className="font-semibold">{freeUpgradeExpiryDate}</span>.
+            </p>
+          </div>
+        </SheetSection>
+      )}
+
+      {/* ── Saldo (crédito) e diferença a pagar — exibir para qualquer plano/período quando houver crédito ── */}
+      {hasUpgradeCredit && !isFreeUpgrade && (
+        <SheetSection className="py-2 px-3">
+          <div className="rounded-lg border border-slate-200 bg-slate-50 px-3 py-2.5 text-[11px] text-slate-700">
+            <div className="flex items-center gap-1.5 mb-1">
+              <p className="font-semibold text-petroleum/90">
+                Crédito e valor a pagar
+              </p>
+              <InfoTooltip
+                portal
+                size="3xl"
+                title="Cálculo por período"
+                content={billingPeriodExplanation}
+              />
+            </div>
+            <p className="mb-1 font-medium">
+              Crédito de{' '}
+              <span className="font-semibold text-petroleum">
+                R$ {formatBRL(upgradeCalculation!.residual_credit!)}
+              </span>{' '}
+              (dias não utilizados do plano anterior).
+            </p>
+            <p className="font-medium">
+              Valor do período:{' '}
+              <span className="font-semibold">
+                R$ {formatBRL(upgradeCalculation!.amount_original!)}
+              </span>
+              {' — '}
+              Você paga apenas a diferença de{' '}
+              <span className="font-semibold text-petroleum">
+                R$ {formatBRL(amountFinal)}
+              </span>
+              .
+            </p>
+          </div>
+        </SheetSection>
+      )}
+
       {/* ── Período de cobrança ── */}
       <SheetSection
         title="Período de Cobrança"
@@ -195,52 +334,56 @@ export function StepBilling() {
                 key={key}
                 type="button"
                 onClick={() => setBillingPeriod(key)}
-                className={`relative flex flex-col items-center text-center rounded-lg border-2 transition-all px-2 py-2.5 min-h-0 ${
+                className={`relative flex items-center gap-3 w-full rounded-lg border-2 transition-all px-3 py-2 ${
                   isSelected
-                    ? 'border-gold bg-gold/10 shadow-[0_0_0_2px_rgba(212,175,55,0.15)]'
+                    ? 'border-gold bg-gold/10 shadow-sm'
                     : 'border-slate-200 bg-white hover:border-gold/40'
                 }`}
               >
+                {/* Badge de Desconto (opcional, ajustado para a direita) */}
                 {badge && (
-                  <span className="absolute top-1 right-1 px-1.5 py-0.5 bg-gold text-petroleum text-[10px] font-semibold uppercase rounded leading-none">
+                  <span className="absolute -top-2 -right-1 px-1.5 py-0.5 bg-gold text-petroleum text-[9px] font-bold uppercase rounded leading-none shadow-sm">
                     {badge}
                   </span>
                 )}
+
+                {/* Bolinha de Seleção (Radio Customizado) à esquerda */}
                 <div
-                  className={`w-4 h-4 rounded-full border-2 shrink-0 mb-1.5 flex items-center justify-center transition-colors ${
+                  className={`w-4 h-4 rounded-full border-2 shrink-0 flex items-center justify-center transition-colors ${
                     isSelected
                       ? 'border-gold bg-gold'
                       : 'border-slate-300 bg-white'
                   }`}
                 >
                   {isSelected && (
-                    <div className="w-1 h-1 rounded-full bg-petroleum" />
+                    <div className="w-1.5 h-1.5 rounded-full bg-white" />
                   )}
                 </div>
-                <div className="flex flex-wrap items-center justify-center gap-x-1.5 gap-y-0 leading-tight">
-                  <span
-                    className={`text-[11px] font-bold uppercase tracking-wide ${isSelected ? 'text-petroleum' : 'text-petroleum/90'}`}
-                  >
-                    {label}
-                  </span>
-                  <span
-                    className={`text-[13px] font-bold ${isSelected ? 'text-petroleum' : 'text-petroleum/80'}`}
-                  >
-                    R$ {effectiveMonthly}
-                    <span className="text-[8px] font-medium text-petroleum/70">
-                      /mês
+
+                {/* Conteúdo de Texto Alinhado à Esquerda */}
+                <div className="flex flex-col items-start text-left overflow-hidden">
+                  <div className="flex items-baseline gap-1.5">
+                    <span
+                      className={`text-[10px] font-bold uppercase tracking-wide ${isSelected ? 'text-petroleum' : 'text-petroleum/90'}`}
+                    >
+                      {label}
                     </span>
-                  </span>
-                </div>
-                {discount > 0 ? (
-                  <p className="text-[9px] text-petroleum/80 leading-tight mt-1 font-medium">
-                    R$ {totalPrice} · {key === 'semiannual' ? '6' : '12'} meses
+                    <span
+                      className={`text-[12px] font-bold ${isSelected ? 'text-petroleum' : 'text-petroleum/80'}`}
+                    >
+                      R$ {effectiveMonthly}
+                      <span className="text-[8px] font-medium opacity-70">
+                        /mês
+                      </span>
+                    </span>
+                  </div>
+
+                  <p className="text-[9px] text-petroleum/60 leading-tight font-medium truncate">
+                    {discount > 0
+                      ? `Total: R$ ${totalPrice} · ${key === 'semiannual' ? '6' : '12'} meses`
+                      : sublabel}
                   </p>
-                ) : (
-                  <span className="text-[9px] text-petroleum/80 leading-tight mt-1 block font-medium">
-                    {sublabel}
-                  </span>
-                )}
+                </div>
               </button>
             );
           })}
@@ -263,6 +406,11 @@ export function StepBilling() {
 
       {/* ── Forma de pagamento ── */}
       <SheetSection title="Forma de Pagamento" className="py-2 px-3 space-y-1">
+        {isFreeUpgrade && (
+          <p className="text-[10px] text-petroleum/70 mb-1">
+            Nenhum pagamento necessário — seu crédito cobre o plano.
+          </p>
+        )}
         <div className="flex gap-1.5">
           {(
             [
@@ -277,22 +425,25 @@ export function StepBilling() {
             <button
               key={value}
               type="button"
+              disabled={isFreeUpgrade}
               onClick={() => setBillingType(value)}
               className={`flex items-center gap-1.5 px-3 py-1.5 rounded-[0.4rem] border transition-all flex-1 min-w-0 ${
-                billingType === value
-                  ? 'border-gold bg-gold/10 text-petroleum'
-                  : 'border-slate-200 bg-slate-50 text-petroleum/50 hover:border-gold/40'
+                isFreeUpgrade
+                  ? 'border-slate-200 bg-slate-100 text-slate-400 cursor-not-allowed opacity-70'
+                  : billingType === value
+                    ? 'border-gold bg-gold/10 text-petroleum'
+                    : 'border-slate-200 bg-slate-50 text-petroleum/50 hover:border-gold/40'
               }`}
             >
               <Icon size={14} strokeWidth={1.5} className="shrink-0" />
-              <span className="text-[9px] font-bold uppercase tracking-wide truncate">
+              <span className="text-[9px] font-semibold uppercase tracking-wide truncate">
                 {label}
               </span>
             </button>
           ))}
         </div>
         {billingPeriod !== 'monthly' && (
-          <p className="text-[8px] text-petroleum/70 mt-1 leading-snug">
+          <p className="text-[10px] text-petroleum/90 mt-1 leading-snug">
             Pagamento via <strong className="text-petroleum">PIX</strong> tem{' '}
             <strong>{PIX_DISCOUNT_PERCENT}% de desconto</strong> no semestral e
             no anual. Parcelamento só no cartão.
@@ -316,42 +467,11 @@ export function StepBilling() {
       </SheetSection>
 
       {/* ── Parcelamento ── */}
-      {showInstallments && (
-        <SheetSection title="Parcelamento" className="py-2 px-3 space-y-1">
-          <div className="relative">
-            <select
-              value={installments}
-              onChange={(e) => setInstallments(Number(e.target.value))}
-              className="w-full appearance-none px-2.5 py-2 h-9 bg-slate-50 border border-slate-200 rounded-[0.4rem] text-[11px] text-petroleum font-medium outline-none cursor-pointer pr-7 focus:border-gold/60 transition-colors"
-            >
-              {Array.from({ length: maxInstallments }, (_, i) => {
-                const n = i + 1;
-                const parcelValue = Math.round((amountFinal / n) * 100) / 100;
-                return (
-                  <option key={n} value={n}>
-                    {n === 1
-                      ? `1x de R$ ${formatBRL(parcelValue)} sem juros`
-                      : `${n}x de R$ ${formatBRL(parcelValue)} sem juros`}
-                  </option>
-                );
-              })}
-            </select>
-            <ChevronDown
-              size={12}
-              className="absolute right-2 top-1/2 -translate-y-1/2 text-petroleum/50 pointer-events-none"
-            />
-          </div>
-          <p className="text-[8px] text-petroleum/60 leading-tight">
-            Total: R$ {formatBRL(amountFinal)} — parcelado sem juros no cartão
-          </p>
-        </SheetSection>
-      )}
-
       {/* ── Dados do cartão ── */}
-      {billingType === 'CREDIT_CARD' && (
+      {billingType === 'CREDIT_CARD' && !isFreeUpgrade && (
         <SheetSection title="Dados do cartão" className="py-2 px-3 space-y-1.5">
           <div className="space-y-2">
-            {/* Nome no cartão + Número do cartão (mesma linha) */}
+            {/* Nome no cartão + Número do cartão */}
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
               <div className="space-y-0.5">
                 <FieldLabel icon={User} label="Nome no cartão" required />
@@ -408,8 +528,8 @@ export function StepBilling() {
               </div>
             </div>
 
-            {/* Validade + CVV */}
-            <div className="grid grid-cols-2 gap-1.5">
+            {/* Validade + CVV + Parcelamento */}
+            <div className="grid grid-cols-3 gap-2">
               {/* Validade */}
               <div className="space-y-0.5">
                 <FieldLabel icon={Lock} label="Validade" required />
@@ -426,14 +546,8 @@ export function StepBilling() {
                         ),
                       }))
                     }
-                    onBlur={() => touch('expiry_month')}
                     placeholder="MM"
-                    maxLength={2}
-                    className={`w-full px-2 py-1.5 h-8 bg-slate-50 border rounded-[0.4rem] text-[10px] text-petroleum font-medium outline-none transition-colors focus:border-gold/60 ${
-                      err('expiry_month')
-                        ? 'border-red-300'
-                        : 'border-slate-200'
-                    }`}
+                    className="w-full px-2 py-1.5 h-8 bg-slate-50 border border-slate-200 rounded-[0.4rem] text-[10px] text-petroleum outline-none"
                   />
                   <input
                     type="text"
@@ -447,19 +561,10 @@ export function StepBilling() {
                         ),
                       }))
                     }
-                    onBlur={() => touch('expiry_year')}
                     placeholder="AA"
-                    maxLength={4}
-                    className={`w-full px-2 py-1.5 h-8 bg-slate-50 border rounded-[0.4rem] text-[10px] text-petroleum font-medium outline-none transition-colors focus:border-gold/60 ${
-                      err('expiry_year') ? 'border-red-300' : 'border-slate-200'
-                    }`}
+                    className="w-full px-2 py-1.5 h-8 bg-slate-50 border border-slate-200 rounded-[0.4rem] text-[10px] text-petroleum outline-none"
                   />
                 </div>
-                <FieldError
-                  message={
-                    err('expiry_month') ?? err('expiry_year') ?? expiryError
-                  }
-                />
               </div>
 
               {/* CVV */}
@@ -475,30 +580,52 @@ export function StepBilling() {
                       credit_card_ccv: formatCcv(e.target.value),
                     }))
                   }
-                  onBlur={() => touch('credit_card_ccv')}
                   placeholder={brand === 'amex' ? '1234' : '123'}
                   maxLength={brand === 'amex' ? 4 : 3}
-                  className={`w-full px-2 py-1.5 h-8 bg-slate-50 border rounded-[0.4rem] text-[10px] text-petroleum font-medium outline-none transition-colors focus:border-gold/60 ${
-                    err('credit_card_ccv')
-                      ? 'border-red-300'
-                      : 'border-slate-200'
-                  }`}
+                  className="w-full px-2 py-1.5 h-8 bg-slate-50 border border-slate-200 rounded-[0.4rem] text-[10px] text-petroleum outline-none"
                 />
-                <FieldError message={err('credit_card_ccv')} />
-                <p className="text-[8px] text-petroleum/50">
-                  {brand === 'amex'
-                    ? '4 dígitos na frente do cartão'
-                    : '3 dígitos atrás do cartão'}
-                </p>
+              </div>
+
+              {/* Parcelamento */}
+              <div className="space-y-0.5">
+                <FieldLabel icon={ChevronDown} label="Parcelas" />
+                <div className="relative">
+                  <select
+                    value={installments}
+                    onChange={(e) => setInstallments(Number(e.target.value))}
+                    disabled={!showInstallments}
+                    className="w-full appearance-none px-2 py-1.5 h-8 bg-slate-50 border border-slate-200 rounded-[0.4rem] text-[9.5px] text-petroleum font-medium outline-none cursor-pointer pr-6 focus:border-gold/60"
+                  >
+                    {Array.from({ length: maxInstallments }, (_, i) => {
+                      const n = i + 1;
+                      const v = Math.round((amountFinal / n) * 100) / 100;
+                      return (
+                        <option key={n} value={n}>
+                          {n}x de R$ {formatBRL(v)}
+                        </option>
+                      );
+                    })}
+                  </select>
+                  <ChevronDown
+                    size={10}
+                    className="absolute right-1.5 top-1/2 -translate-y-1/2 text-petroleum/40 pointer-events-none"
+                  />
+                </div>
               </div>
             </div>
 
-            {/* Aviso de segurança */}
-            <p className="text-[8px] text-petroleum/50 leading-tight pt-0.5 flex items-center gap-1">
-              <Lock size={8} className="shrink-0" />
-              Dados não armazenados — processados pelo gateway parceiro de
-              pagamentos.
-            </p>
+            {/* Informativo de valor parcelado */}
+            <div className="flex items-center justify-between text-[10px] text-petroleum/80">
+              <p className="flex items-center gap-1">
+                <Lock size={8} /> Dados protegidos e não armazenados.
+              </p>
+              {showInstallments && (
+                <p className="font-semibold text-gold">
+                  {installments}x de R$ {formatBRL(amountFinal / installments)}{' '}
+                  sem juros
+                </p>
+              )}
+            </div>
           </div>
         </SheetSection>
       )}

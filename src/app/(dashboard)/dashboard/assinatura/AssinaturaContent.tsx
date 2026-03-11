@@ -41,6 +41,7 @@ import BaseModal from '@/components/ui/BaseModal';
 import ConfirmationModal from '@/components/ui/ConfirmationModal';
 import { UpgradeSheet } from '@/components/ui/Upgradesheet';
 import { useToast } from '@/hooks/useToast';
+import { button } from 'framer-motion/client';
 
 // ─── Constantes ───────────────────────────────────────────────────────────────
 
@@ -85,7 +86,22 @@ function billingPeriodToMonths(period: string | null | undefined): number {
   return 1;
 }
 
+/** Extrai a data de vencimento das notes quando for upgrade gratuito (ex.: "Nova data de vencimento: 2026-06-16T16:22:36.921Z"). */
+function parseDueDateFromNotes(
+  notes: string | null | undefined,
+): string | null {
+  if (!notes?.trim()) return null;
+  const match = notes.match(/Nova data de vencimento:\s*([^\s.]+)/i);
+  if (!match?.[1]) return null;
+  const dateStr = match[1].trim();
+  const date = new Date(dateStr);
+  if (Number.isNaN(date.getTime())) return null;
+  return date.toLocaleDateString('pt-BR');
+}
+
 function getRequestExpiresAt(item: UpgradeRequest): string | null {
+  const fromNotes = parseDueDateFromNotes(item.notes);
+  if (fromNotes) return fromNotes;
   if (!item.processed_at) return null;
   const start = new Date(item.processed_at);
   const months = billingPeriodToMonths(item.billing_period);
@@ -256,7 +272,7 @@ function PlanBenefitsModal({
             onClose();
             onUpgrade();
           }}
-          className="w-full flex items-center justify-center gap-2 py-2.5 rounded-xl bg-white border border-gold/40 text-petroleum font-semibold text-[10px] uppercase tracking-widest hover:bg-gold/10 transition-all"
+          className="btn-luxury-primary w-full"
         >
           <Zap size={12} />
           Fazer upgrade de plano
@@ -269,7 +285,7 @@ function PlanBenefitsModal({
           onClose();
           onComparePlans();
         }}
-        className="w-full flex items-center justify-center gap-1.5 py-2 rounded-xl border border-white/30 text-white/90 font-semibold text-[10px] uppercase tracking-widest hover:bg-white/10 transition-all"
+        className="btn-secondary-white w-full"
       >
         Comparar todos os planos
         <ExternalLink size={11} />
@@ -283,7 +299,7 @@ function PlanBenefitsModal({
       onClose={onClose}
       title="Detalhes do plano"
       subtitle={`Plano ${planDisplayName(planKey)}`}
-      maxWidth="md"
+      maxWidth="lg"
       footer={footer}
     >
       {body}
@@ -300,21 +316,29 @@ function PlanBenefitsSummaryCard({
   planBenefits,
   photoCreditsUsed,
   photoCreditsLimit,
+  activeGalleryCount = 0,
+  maxGalleriesHardCap = 0,
   onClick,
 }: {
   planKey: PlanKey;
   planBenefits: PlanBenefitItem[];
   photoCreditsUsed: number;
   photoCreditsLimit: number;
+  activeGalleryCount?: number;
+  maxGalleriesHardCap?: number;
   onClick: () => void;
 }) {
   const usagePct = photoCreditsLimit
     ? Math.min(100, (photoCreditsUsed / photoCreditsLimit) * 100)
     : 0;
 
+  const galleriesPct =
+    maxGalleriesHardCap > 0
+      ? Math.min(100, (activeGalleryCount / maxGalleriesHardCap) * 100)
+      : 0;
+
   // Mostrar apenas os 3 primeiros benefícios como preview
-  const preview = planBenefits.slice(0, 3);
-  const remaining = planBenefits.length - preview.length;
+  const remaining = planBenefits.length - 2;
 
   return (
     <button
@@ -323,56 +347,102 @@ function PlanBenefitsSummaryCard({
       className="w-full text-left p-3 bg-white rounded-luxury border border-slate-200 hover:border-petroleum/20 hover:shadow-sm transition-all group"
     >
       <div className="flex items-center justify-between mb-2">
-        <p className="text-[8px] font-semibold uppercase tracking-widest text-slate-400">
-          Benefícios do plano {planDisplayName(planKey)}
+        <p className="text-[8px] font-semibold uppercase tracking-widest text-slate-900">
+          Recursos do plano {planDisplayName(planKey)}
         </p>
-        <div className="flex items-center gap-1 text-[8px] font-semibold text-petroleum/40 group-hover:text-petroleum/70 transition-colors">
+        <div className="flex items-center gap-1 text-[10px] font-semibold text-petroleum/70 group-hover:text-petroleum/70 transition-colors">
           <List size={10} />
           Ver todos
         </div>
       </div>
 
-      {/* Barra de uso de fotos */}
-      <div className="mb-2.5">
-        <div className="flex items-center justify-between mb-1">
-          <span className="text-[8px] text-slate-400 font-medium">
-            Fotos e vídeos
-          </span>
-          <span className="text-[9px] font-semibold text-petroleum tabular-nums">
-            {formatPhotoCredits(photoCreditsUsed)} /{' '}
-            {formatPhotoCredits(photoCreditsLimit)}
-          </span>
+      {/* Uso: mesmo layout do card "Próximo nível" (label à esquerda, quantidade à direita) */}
+      <div className="grid grid-cols-2 gap-3 mb-4">
+        {/* Card de Fotos e Vídeos */}
+        <div className="bg-white border border-slate-100 rounded-xl p-3 shadow-sm">
+          <div className="flex items-center gap-2 mb-2">
+            <div className="p-1.5 bg-purple-50 rounded-lg">
+              <Image size={16} className="text-purple-500 shrink-0" />
+            </div>
+            <p className="text-[9px] font-bold uppercase tracking-wider text-slate-500">
+              Fotos e vídeos
+            </p>
+          </div>
+
+          <div className="mb-2">
+            <p className="text-lg font-bold text-petroleum leading-none tabular-nums">
+              {formatPhotoCredits(photoCreditsUsed)}
+              <span className="text-[10px] font-medium text-slate-400 ml-1">
+                / {formatPhotoCredits(photoCreditsLimit)}
+              </span>
+            </p>
+          </div>
+
+          <div className="space-y-1">
+            <div className="h-1.5 bg-slate-100 rounded-full overflow-hidden">
+              <div
+                className={`h-full rounded-full transition-all ${
+                  usagePct >= 90
+                    ? 'bg-red-400'
+                    : usagePct >= 70
+                      ? 'bg-amber-400'
+                      : 'bg-gold/60'
+                }`}
+                style={{ width: `${usagePct}%` }}
+              />
+            </div>
+            <p className="text-[8px] font-bold text-slate-400 text-right uppercase">
+              {Math.round(usagePct)}% usado
+            </p>
+          </div>
         </div>
-        <div className="h-1 bg-slate-100 rounded-full overflow-hidden">
-          <div
-            className={`h-full rounded-full transition-all ${
-              usagePct >= 90
-                ? 'bg-red-400'
-                : usagePct >= 70
-                  ? 'bg-amber-400'
-                  : 'bg-gold/60'
-            }`}
-            style={{ width: `${usagePct}%` }}
-          />
+
+        {/* Card de Teto de Galerias */}
+        <div className="bg-white border border-slate-100 rounded-xl p-3 shadow-sm">
+          <div className="flex items-center gap-2 mb-2">
+            <div className="p-1.5 bg-blue-50 rounded-lg">
+              <LayoutGrid size={16} className="text-blue-500 shrink-0" />
+            </div>
+            <p className="text-[9px] font-bold uppercase tracking-wider text-slate-500">
+              Galerias Ativas
+            </p>
+          </div>
+
+          <div className="mb-2">
+            <p className="text-lg font-bold text-petroleum leading-none tabular-nums">
+              {activeGalleryCount}
+              <span className="text-[10px] font-medium text-slate-400 ml-1">
+                / {maxGalleriesHardCap}
+              </span>
+            </p>
+          </div>
+
+          <div className="space-y-1">
+            <div className="h-1.5 bg-slate-100 rounded-full overflow-hidden">
+              <div
+                className={`h-full rounded-full transition-all ${
+                  galleriesPct >= 90
+                    ? 'bg-red-400'
+                    : galleriesPct >= 70
+                      ? 'bg-amber-400'
+                      : 'bg-blue-400/60'
+                }`}
+                style={{ width: `${galleriesPct}%` }}
+              />
+            </div>
+            <p className="text-[8px] font-bold text-slate-400 text-right uppercase">
+              {Math.round(galleriesPct)}% usado
+            </p>
+          </div>
         </div>
       </div>
 
       {/* Preview dos benefícios */}
-      <div className="space-y-1">
-        {preview.map((item, i) => (
-          <div key={i} className="flex items-center gap-1.5">
-            <BenefitIcon label={item.label} size={10} />
-            <p className="text-[9px] text-slate-500 truncate leading-none">
-              {item.label}
-            </p>
-          </div>
-        ))}
-        {remaining > 0 && (
-          <p className="text-[8px] text-petroleum/40 font-semibold mt-0.5">
-            +{remaining} mais benefícios incluídos
-          </p>
-        )}
-      </div>
+      {remaining > 0 && (
+        <p className="text-[10px] text-slate-700 font-medium">
+          +{remaining} mais recursos incluídos
+        </p>
+      )}
     </button>
   );
 }
@@ -407,13 +477,12 @@ function UpgradeUpsellCard({
 
   return (
     <div className="rounded-luxury border border-slate-200 bg-white overflow-hidden shadow-sm">
-      <div className="px-4 pt-4 pb-3 border-b border-slate-100 flex items-center justify-between gap-3">
+      <div className="px-4 pt-3 pb-2 border-b border-slate-100 flex items-center justify-between gap-3">
         <div className="flex items-center gap-2.5">
-          <div className="w-7 h-7 rounded-lg bg-petroleum/10 border border-petroleum/20 flex items-center justify-center shrink-0">
-            <Sparkles size={13} className="text-petroleum" />
-          </div>
+          <Sparkles size={20} className="text-gold" />
+
           <div>
-            <p className="text-[9px] font-semibold uppercase tracking-widest text-slate-400">
+            <p className="text-[9px] font-semibold uppercase tracking-widest text-slate-700">
               Próximo nível
             </p>
             <p className="text-[13px] font-semibold text-petroleum leading-tight">
@@ -425,12 +494,12 @@ function UpgradeUpsellCard({
           <div className="text-right shrink-0">
             <p className="text-[15px] font-semibold text-petroleum leading-none">
               R${nextPlanInfo.price}
-              <span className="text-[9px] font-medium text-slate-400">
+              <span className="text-[9px] font-medium text-slate-700">
                 /mês
               </span>
             </p>
             {annualPrice.discount > 0 && (
-              <p className="text-[9px] text-emerald-600 font-semibold">
+              <p className="text-[10px] text-emerald-600 font-semibold">
                 −{annualPrice.discount}% no anual
               </p>
             )}
@@ -439,10 +508,10 @@ function UpgradeUpsellCard({
       </div>
 
       <div className="px-4 py-3">
-        <p className="text-[9px] font-semibold uppercase tracking-wider text-slate-400 mb-2">
+        <p className="text-[9px] font-semibold uppercase tracking-wider text-slate-700 mb-2">
           Por que fazer upgrade
         </p>
-        <ul className="space-y-1.5">
+        <ul className="space-y-2">
           {previewBenefits.map((item, i) => (
             <li key={i} className="flex items-start gap-2">
               <CheckCircle2
@@ -464,12 +533,12 @@ function UpgradeUpsellCard({
         {(semestralPrice.discount > 0 || annualPrice.discount > 0) && (
           <div className="flex flex-wrap gap-1.5 mt-2">
             {semestralPrice.discount > 0 && (
-              <span className="px-2 py-0.5 rounded-full bg-slate-100 text-[8px] font-semibold text-slate-600">
+              <span className="px-2 py-0.5 rounded-full bg-slate-100 text-[10px] font-semibold text-slate-600">
                 −{semestralPrice.discount}% semestral
               </span>
             )}
             {annualPrice.discount > 0 && (
-              <span className="px-2 py-0.5 rounded-full bg-emerald-50 text-[8px] font-semibold text-emerald-700">
+              <span className="px-2 py-0.5 rounded-full bg-emerald-50 text-[10px] font-semibold text-emerald-700">
                 −{annualPrice.discount}% anual
               </span>
             )}
@@ -481,7 +550,7 @@ function UpgradeUpsellCard({
         <button
           type="button"
           onClick={() => onUpgrade(nextPlanKey)}
-          className="w-full flex items-center justify-center gap-2 py-2.5 rounded-lg bg-petroleum text-white font-semibold text-[10px] uppercase tracking-wider hover:bg-petroleum/90 transition-colors"
+          className="btn-luxury-primary h-8 w-full"
         >
           <Zap size={12} strokeWidth={2.5} />
           Assinar Plano {nextPlanInfo.name ?? nextPlanKey}
@@ -493,8 +562,8 @@ function UpgradeUpsellCard({
           rel="noopener noreferrer"
           className="w-full flex items-center justify-center gap-1.5 py-1.5 text-petroleum/70 hover:text-petroleum font-semibold text-[9px] uppercase tracking-wider transition-colors border border-petroleum/20 rounded-lg hover:border-petroleum/40"
         >
-          Comparar todos os planos
-          <ArrowRight size={10} />
+          Comparar planos
+          <ExternalLink size={11} />
         </a>
       </div>
     </div>
@@ -547,6 +616,7 @@ export default function AssinaturaContent({
   const { showToast, ToastElement } = useToast();
 
   const handleUpgrade = (targetPlanKey: PlanKey) => {
+    router.refresh();
     setUpgradeSheetInitialPlan(targetPlanKey);
     setUpgradeSheetOpen(true);
   };
@@ -594,7 +664,9 @@ export default function AssinaturaContent({
       header: 'Data',
       accessor: (item) => (
         <span className="text-[12px] text-slate-700 whitespace-nowrap">
-          {new Date(item.created_at).toLocaleString('pt-BR')}
+          {new Date(item.created_at).toLocaleDateString('pt-BR', {
+            timeZone: 'UTC',
+          })}{' '}
         </span>
       ),
       icon: Calendar,
@@ -621,10 +693,27 @@ export default function AssinaturaContent({
     {
       header: 'Pagamento',
       accessor: (item) => (
-        <span className="text-[11px] uppercase tracking-wide">
-          {item.billing_type}
+        <span className="text-[10px] uppercase tracking-wide">
+          {item.billing_type === 'CREDIT_CARD'
+            ? 'Cartão de crédito'
+            : item.billing_type}
         </span>
       ),
+    },
+    {
+      header: 'Ciclo',
+      accessor: (item) => {
+        const periodMap: Record<string, string> = {
+          monthly: 'Mensal',
+          semiannual: 'Semestral',
+          annual: 'Anual',
+        };
+        return (
+          <span className="text-[11px] text-slate-600">
+            {periodMap[item.billing_period as string] ?? 'Mensal'}
+          </span>
+        );
+      },
     },
     {
       header: 'Status',
@@ -643,6 +732,21 @@ export default function AssinaturaContent({
       ),
       icon: Clock,
       width: 'w-28',
+    },
+    {
+      header: 'Observações',
+      accessor: (item: UpgradeRequest) =>
+        item.notes?.trim() ? (
+          <span
+            className="text-[11px] text-slate-600 max-w-[240px] block truncate"
+            title={item.notes}
+          >
+            {item.notes}
+          </span>
+        ) : (
+          <span className="text-slate-400 text-[11px]">—</span>
+        ),
+      width: 'w-56',
     },
     {
       header: 'Ação',
@@ -785,6 +889,8 @@ export default function AssinaturaContent({
               planBenefits={planBenefits}
               photoCreditsUsed={photoCreditsUsed}
               photoCreditsLimit={photoCreditsLimit}
+              activeGalleryCount={poolStats.activeGalleryCount ?? 0}
+              maxGalleriesHardCap={permissions.maxGalleriesHardCap ?? 0}
               onClick={() => setShowBenefitsModal(true)}
             />
 
@@ -863,6 +969,7 @@ export default function AssinaturaContent({
       <UpgradeSheet
         isOpen={upgradeSheetOpen}
         onClose={() => {
+          router.refresh();
           setUpgradeSheetOpen(false);
           setUpgradeSheetInitialPlan(undefined);
         }}

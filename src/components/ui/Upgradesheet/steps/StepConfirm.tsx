@@ -44,6 +44,14 @@ export function StepConfirm() {
     };
   }, [selectedPlan, billingPeriod, billingType, segment, setUpgradeCalculation]);
 
+  const nextBillingDateFormatted = upgradeCalculation?.new_expiry_date
+    ? new Date(upgradeCalculation.new_expiry_date).toLocaleDateString('pt-BR', {
+        day: '2-digit',
+        month: 'long',
+        year: 'numeric',
+      })
+    : null;
+
   return (
     <>
       <SheetSection>
@@ -97,6 +105,14 @@ export function StepConfirm() {
                   </span>
                 )}
               </p>
+              {nextBillingDateFormatted && (
+                <p className="text-[11px] text-petroleum/70 mt-1">
+                  Próxima cobrança:{' '}
+                  <span className="font-semibold text-petroleum/90">
+                    {nextBillingDateFormatted}
+                  </span>
+                </p>
+              )}
             </div>
             <button
               type="button"
@@ -113,6 +129,13 @@ export function StepConfirm() {
       {upgradeCalculation?.type === 'upgrade' && (
         <SheetSection title="Resumo do pagamento">
           <div className="space-y-1.5 rounded-luxury border border-petroleum/10 bg-petroleum/5 p-3 text-[11px]">
+            {(upgradeCalculation.amount_final ?? 0) > 0 && (
+              <p className="text-petroleum/90 font-medium mb-1.5">
+                {upgradeCalculation.residual_credit > 0
+                  ? 'Novo Plano − Crédito Residual = Valor Final'
+                  : 'Novo Plano = Valor Final'}
+              </p>
+            )}
             <div className="flex justify-between">
               <span className="text-petroleum/80">Valor do novo plano:</span>
               <span className="font-semibold text-petroleum">

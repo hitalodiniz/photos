@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { createSupabaseServerClient } from '@/lib/supabase.server';
 import { revalidatePath } from 'next/cache';
+import { revalidateUserCache } from '@/actions/revalidate.actions';
 import type { AsaasWebhookPayload, AsaasWebhookEvent } from '@/core/types/billing';
 import { performDowngradeToFree, reactivateAutoArchivedGalleries } from '@/core/services/asaas.service';
 import type { PlanKey } from '@/core/config/plans';
@@ -120,6 +121,9 @@ export async function POST(request: NextRequest) {
               req.plan_key_requested as PlanKey,
               supabase,
             );
+            await revalidateUserCache(req.profile_id).catch((err) =>
+              console.warn('[Webhook Asaas] revalidateUserCache:', err),
+            );
           }
           revalidatePath('/dashboard');
           revalidatePath('/dashboard/planos');
@@ -146,6 +150,9 @@ export async function POST(request: NextRequest) {
               refundedReq.id,
               `Downgrade via PAYMENT_REFUNDED (webhook Asaas, paymentId: ${paymentId})`,
               supabase,
+            );
+            await revalidateUserCache(refundedReq.profile_id).catch((err) =>
+              console.warn('[Webhook Asaas] revalidateUserCache:', err),
             );
             revalidatePath('/dashboard');
           } else {
@@ -188,6 +195,9 @@ export async function POST(request: NextRequest) {
                 `Downgrade via SUBSCRIPTION_CANCELED (webhook Asaas, subscriptionId: ${subscriptionId})`,
                 supabase,
               );
+              await revalidateUserCache(subReq.profile_id).catch((err) =>
+                console.warn('[Webhook Asaas] revalidateUserCache:', err),
+              );
               revalidatePath('/dashboard');
             } else {
               // Cancelamento imediato já processado — apenas garantir status 'cancelled'
@@ -218,6 +228,9 @@ export async function POST(request: NextRequest) {
               subReq.id,
               `Downgrade via SUBSCRIPTION_DELETED (webhook Asaas, subscriptionId: ${subId})`,
               supabase,
+            );
+            await revalidateUserCache(subReq.profile_id).catch((err) =>
+              console.warn('[Webhook Asaas] revalidateUserCache:', err),
             );
             revalidatePath('/dashboard');
           }

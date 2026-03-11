@@ -119,7 +119,7 @@ export interface UpgradePriceCalculation {
   amount_original: number;
   /** Crédito pro-rata + desconto PIX (amount_discount). */
   amount_discount: number;
-  /** Valor líquido a pagar (amount_final). Zero em downgrade. */
+  /** Valor líquido a pagar (amount_final). Zero em downgrade ou quando crédito cobre o plano inteiro. */
   amount_final: number;
   /** Crédito pelos dias restantes do plano atual. */
   residual_credit: number;
@@ -129,6 +129,14 @@ export interface UpgradePriceCalculation {
   current_plan_expires_at: string;
   /** Para downgrade: data em que a mudança será efetivada (= current_plan_expires_at). */
   downgrade_effective_at?: string;
+  /** Upgrade gratuito: o saldo residual cobre o valor total do novo plano. */
+  is_free_upgrade?: boolean;
+  /** Nova data de expiração calculada pelo saldo residual (upgrade gratuito) ou ciclo normal. */
+  new_expiry_date?: string;
+  /** Quantidade de mensalidades cobertas pelo saldo (apenas upgrade gratuito). */
+  free_upgrade_months_covered?: number;
+  /** Dias de acesso cobertos pelo saldo (para exibir "X semestres" ou "X anos" conforme o período). */
+  free_upgrade_days_extended?: number;
 }
 
 export interface UpgradePreviewResult {

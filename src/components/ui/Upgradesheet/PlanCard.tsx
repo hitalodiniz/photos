@@ -5,6 +5,7 @@ import { CheckCircle2, ChevronDown } from 'lucide-react';
 import type { PlanKey } from '@/core/config/plans';
 import type { PlanPermissions } from '@/core/config/plans';
 import { storageLabel } from './utils';
+import { InfoTooltip } from '@/components/ui/InfoTooltip';
 
 interface PlanCardProps {
   planKey: PlanKey;
@@ -14,6 +15,8 @@ interface PlanCardProps {
   isSelected: boolean;
   isSuggested: boolean;
   disabled?: boolean;
+  /** Quando disabled, conteúdo do tooltip de informação (ex.: motivo downgrade). Exibido ao passar o mouse. */
+  disabledTooltip?: React.ReactNode;
   onSelect: () => void;
   perms: PlanPermissions;
   isExpanded: boolean;
@@ -29,6 +32,7 @@ export function PlanCard({
   isSelected,
   isSuggested,
   disabled,
+  disabledTooltip,
   onSelect,
   perms,
   isExpanded,
@@ -36,13 +40,14 @@ export function PlanCard({
   benefits,
   planIcon: PlanIcon,
 }: PlanCardProps) {
-  const borderColor = disabled
-    ? 'border-slate-100'
-    : isCurrentPlan
-      ? 'border-petroleum/30'
-      : isSelected
-        ? 'border-gold'
-        : 'border-slate-200';
+  const borderColor =
+    disabled && !isCurrentPlan
+      ? 'border-slate-100'
+      : isCurrentPlan
+        ? 'border-petroleum/40'
+        : isSelected
+          ? 'border-gold'
+          : 'border-slate-200';
 
   const isClickable = !disabled;
 
@@ -50,8 +55,8 @@ export function PlanCard({
     <div
       className={`rounded-luxury border-2 overflow-hidden transition-all duration-200 ${borderColor} ${
         isSelected ? 'shadow-[0_0_0_3px_rgba(212,175,55,0.15)]' : ''
-      } ${isCurrentPlan ? 'shadow-[0_0_0_3px_rgba(15,23,42,0.08)] ring-1 ring-petroleum/10' : ''} ${
-        disabled ? 'opacity-50' : ''
+      } ${isCurrentPlan ? 'shadow-[0_0_0_3px_rgba(15,23,42,0.12)] ring-1 ring-petroleum/20' : ''} ${
+        disabled && !isCurrentPlan ? 'opacity-50' : ''
       }`}
     >
       <button
@@ -61,11 +66,11 @@ export function PlanCard({
           if (isClickable) onSelect();
           if (isClickable) onToggleExpand();
         }}
-        className={`w-full text-left p-3.5 transition-colors duration-200 relative ${
-          disabled
+        className={`w-full text-left px-3.5 py-3 transition-colors duration-200 relative ${
+          disabled && !isCurrentPlan
             ? 'bg-slate-50 cursor-not-allowed'
             : isCurrentPlan
-              ? 'bg-petroleum/[0.03] cursor-pointer'
+              ? 'bg-petroleum/[0.06] cursor-default'
               : isSelected
                 ? 'bg-gold/5'
                 : 'bg-white hover:bg-gold/[0.02]'
@@ -73,26 +78,27 @@ export function PlanCard({
       >
         <div className="flex items-center justify-between gap-3">
           <div className="flex items-center gap-2.5 min-w-0">
-            <div
-              className={`w-4 h-4 rounded-full border-2 shrink-0 flex items-center justify-center transition-colors ${
-                isCurrentPlan && !isSelected
-                  ? 'border-petroleum/35 bg-petroleum/8'
-                  : isSelected
-                    ? 'border-gold bg-gold'
-                    : 'border-slate-300 bg-white'
-              }`}
-            >
-              {(isSelected || isCurrentPlan) && (
-                <div
-                  className={`w-1.5 h-1.5 rounded-full ${
-                    isCurrentPlan && !isSelected
-                      ? 'bg-petroleum/50'
-                      : 'bg-petroleum'
-                  }`}
-                />
-              )}
-            </div>
-
+            {!isCurrentPlan && (
+              <div
+                className={`w-4 h-4 rounded-full border-2 shrink-0 flex items-center justify-center transition-colors ${
+                  !isSelected
+                    ? 'border-petroleum/35 bg-petroleum/8'
+                    : isSelected
+                      ? 'border-gold bg-gold'
+                      : 'border-slate-300 bg-white'
+                }`}
+              >
+                {isSelected && (
+                  <div
+                    className={`w-1.5 h-1.5 rounded-full ${
+                      isCurrentPlan && !isSelected
+                        ? 'bg-petroleum/50'
+                        : 'bg-petroleum'
+                    }`}
+                  />
+                )}
+              </div>
+            )}
             <div
               className={`shrink-0 transition-colors ${
                 disabled
@@ -113,16 +119,15 @@ export function PlanCard({
                   {planName}
                 </p>
                 {isCurrentPlan && (
-                  <span className="px-1.5 py-0.5 bg-petroleum/10 text-petroleum/80 text-[7px] font-semibold uppercase tracking-wide rounded-full leading-none">
-                    Plano Atual
+                  <span className="px-1.5 py-0.5 bg-petroleum/15 text-petroleum text-[10px] font-semibold uppercase tracking-wide rounded-full leading-none border border-petroleum/20">
+                    Seu plano atual
                   </span>
                 )}
               </div>
               {!isExpanded && (
                 <p className="text-[11px] text-petroleum/80 font-medium mt-0.5">
                   Até {perms.maxGalleriesHardCap} galerias · Até{' '}
-                  {perms.maxPhotosPerGallery} arquivos por galeria · Equivalente
-                  a {storageLabel(perms.storageGB)} de armazenamento
+                  {perms.maxPhotosPerGallery} arquivos por galeria
                 </p>
               )}
               {!isExpanded && !disabled && !isCurrentPlan && (
@@ -135,7 +140,7 @@ export function PlanCard({
                   Toque para ver seus recursos incluídos ↓
                 </p>
               )}
-              {!isExpanded && disabled && (
+              {!isExpanded && disabled && !isCurrentPlan && (
                 <p className="text-[8px] text-slate-400 font-medium mt-0.5">
                   Não disponível para assinatura
                 </p>
@@ -160,16 +165,28 @@ export function PlanCard({
                 </>
               )}
             </div>
-            <ChevronDown
-              size={14}
-              className={`shrink-0 transition-transform duration-200 ${
-                isExpanded
-                  ? isSelected
-                    ? 'rotate-180 text-gold'
-                    : 'rotate-180 text-petroleum/90'
-                  : 'text-petroleum/25'
-              }`}
-            />
+            {disabled && disabledTooltip ? (
+              <div onClick={(e) => e.stopPropagation()}>
+                <InfoTooltip
+                  content={disabledTooltip}
+                  portal
+                  position="top"
+                  align="right"
+                  size="lg"
+                />
+              </div>
+            ) : (
+              <ChevronDown
+                size={14}
+                className={`shrink-0 transition-transform duration-200 ${
+                  isExpanded
+                    ? isSelected
+                      ? 'rotate-180 text-gold'
+                      : 'rotate-180 text-petroleum/90'
+                    : 'text-petroleum/25'
+                }`}
+              />
+            )}
           </div>
         </div>
       </button>

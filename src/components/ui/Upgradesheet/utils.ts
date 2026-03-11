@@ -1,5 +1,8 @@
 'use client';
 
+import type { BillingPeriod } from '@/core/types/billing';
+import type { UpgradePriceCalculation } from '@/core/types/billing';
+
 export function storageLabel(gb: number): string {
   return gb >= 1_000 ? `${gb / 1_000} TB` : `${gb} GB`;
 }
@@ -61,4 +64,29 @@ export function formatExpiryYear(value: string): string {
 /** CVV 3 ou 4 dígitos. */
 export function formatCcv(value: string): string {
   return value.replace(/\D/g, '').slice(0, 4);
+}
+
+/**
+ * Texto de cobertura do upgrade gratuito por período: "X mensalidades", "X semestre(s)", "X ano(s)".
+ * Usado em StepPlan e StepBilling para exibir "Seu saldo cobre as próximas X mensalidades" etc.
+ */
+export function getFreeUpgradeCoverageText(
+  billingPeriod: BillingPeriod,
+  calc: UpgradePriceCalculation | null,
+): string {
+  if (!calc?.is_free_upgrade) return '';
+  const days = calc.free_upgrade_days_extended ?? 0;
+  if (billingPeriod === 'monthly') {
+    const n = calc.free_upgrade_months_covered ?? Math.floor(days / 30);
+    return n > 1 ? `as próximas ${n} mensalidades` : 'a próxima mensalidade';
+  }
+  if (billingPeriod === 'semiannual') {
+    const n = Math.floor(days / 180) || 1;
+    return n > 1 ? `os próximos ${n} semestres` : 'o próximo semestre';
+  }
+  if (billingPeriod === 'annual') {
+    const n = Math.floor(days / 360) || 1;
+    return n > 1 ? `os próximos ${n} anos` : 'o próximo ano';
+  }
+  return 'o próximo ciclo';
 }

@@ -3,6 +3,7 @@
 
 import { createSupabaseServerClient } from '@/lib/supabase.server';
 import { getAuthenticatedUser } from '@/core/services/auth-context.service';
+import { revalidateUserCache } from '@/actions/revalidate.actions';
 import {
   PLANS_BY_SEGMENT,
   getPeriodPrice,
@@ -62,6 +63,8 @@ export interface CreateSubscriptionData {
   cycle: 'MONTHLY' | 'SEMIANNUALLY' | 'YEARLY';
   value: number;
   description: string;
+  /** Data do próximo vencimento (YYYY-MM-DD). Quando omitido, usa hoje. Usado quando crédito cobre N meses e a assinatura só deve cobrar a partir dessa data. */
+  nextDueDate?: string;
   /** Limite de cobranças (ex.: 1 = única cobrança; usado com PIX semestral/anual para contornar restrição do Asaas). */
   maxPayments?: number;
   /** Número de parcelas (apenas CREDIT_CARD, períodos não-mensais; 1 = sem parcelamento). */
@@ -203,7 +206,10 @@ export async function createAsaasSubscription(data: CreateSubscriptionData) {
         error: 'Chave Asaas não configurada (ASAAS_API_KEY no .env.local).',
       };
     }
-    const nextDueDate = new Date().toISOString().split('T')[0];
+    const nextDueDate =
+      data.nextDueDate && /^\d{4}-\d{2}-\d{2}$/.test(data.nextDueDate)
+        ? data.nextDueDate
+        : new Date().toISOString().split('T')[0];
     const body: Record<string, unknown> = {
       customer: data.customerId,
       billingType: data.billingType,
@@ -326,6 +332,48 @@ export async function getAsaasPaymentLink(subscriptionId: string) {
 
 // ─── 4. Buscar pagamentos da assinatura (primeira cobrança) ─────────────────
 
+/**
+ * Atualiza a data do próximo vencimento de uma assinatura no Asaas (PUT /v3/subscriptions/{id}).
+ * Usado em upgrade gratuito para que a próxima cobrança seja gerada na data calculada pelo crédito.
+ */
+async function updateAsaasSubscriptionNextDueDate(
+  subscriptionId: string,
+  nextDueDate: string,
+): Promise<{ success: boolean; error?: string }> {
+  if (!/^\d{4}-\d{2}-\d{2}$/.test(nextDueDate)) {
+    return { success: false, error: 'nextDueDate deve ser YYYY-MM-DD' };
+  }
+  try {
+    const apiKey = getAsaasApiKey();
+    if (!apiKey) {
+      return { success: false, error: 'Chave Asaas não configurada.' };
+    }
+    const response = await fetch(
+      `${ASAAS_API_URL}/subscriptions/${subscriptionId}`,
+      {
+        method: 'PUT',
+        headers: {
+          access_token: apiKey,
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({ nextDueDate }),
+      },
+    );
+    if (!response.ok) {
+      const err = await response.json().catch(() => ({}));
+      const msg = err.errors?.[0]?.description ?? 'Erro ao atualizar assinatura';
+      return { success: false, error: msg };
+    }
+    return { success: true };
+  } catch (error) {
+    console.error('[Asaas] Erro ao atualizar nextDueDate da assinatura:', error);
+    return {
+      success: false,
+      error: 'Erro de conexão com o gateway de pagamento',
+    };
+  }
+}
+
 async function getFirstPaymentFromSubscription(
   subscriptionId: string,
 ): Promise<{
@@ -435,6 +483,97 @@ async function createAsaasPixPayment(
   }
 }
 
+/**
+ * Cria cobrança avulsa com cartão (POST /v3/payments).
+ * Usado quando o crédito cobre N mensalidades e o cliente paga só a diferença agora; a assinatura recorre a partir de new_expiry_date.
+ */
+async function createAsaasCreditCardPayment(
+  customerId: string,
+  value: number,
+  dueDate: string,
+  description: string,
+  creditCardDetails: CreateSubscriptionData['creditCardDetails'],
+  creditCardHolderInfo: CreateSubscriptionData['creditCardHolderInfo'],
+): Promise<{
+  success: boolean;
+  paymentId?: string;
+  invoiceUrl?: string;
+  error?: string;
+}> {
+  try {
+    const apiKey = getAsaasApiKey();
+    if (!apiKey || !creditCardDetails || !creditCardHolderInfo) {
+      return {
+        success: false,
+        error: 'Chave Asaas não configurada ou dados do cartão incompletos.',
+      };
+    }
+    const expMonth = creditCardDetails.expiryMonth
+      .replace(/\D/g, '')
+      .padStart(2, '0')
+      .slice(-2);
+    const expYear = creditCardDetails.expiryYear.replace(/\D/g, '');
+    const body: Record<string, unknown> = {
+      customer: customerId,
+      billingType: 'CREDIT_CARD',
+      value,
+      dueDate,
+      description,
+      creditCard: {
+        holderName: creditCardDetails.holderName,
+        number: creditCardDetails.number.replace(/\D/g, ''),
+        expiryMonth: expMonth,
+        expiryYear:
+          expYear.length <= 2
+            ? `20${expYear.padStart(2, '0').slice(-2)}`
+            : expYear.slice(-4),
+        ccv: creditCardDetails.ccv.replace(/\D/g, ''),
+      },
+      creditCardHolderInfo: {
+        name: creditCardHolderInfo.name,
+        email: creditCardHolderInfo.email,
+        cpfCnpj: creditCardHolderInfo.cpfCnpj.replace(/\D/g, ''),
+        postalCode: creditCardHolderInfo.postalCode.replace(/\D/g, ''),
+        addressNumber: creditCardHolderInfo.addressNumber,
+        addressComplement: creditCardHolderInfo.addressComplement ?? null,
+        phone: creditCardHolderInfo.phone.replace(/\D/g, '') || null,
+        mobilePhone: creditCardHolderInfo.mobilePhone.replace(/\D/g, '') || null,
+      },
+    };
+    const response = await fetch(`${ASAAS_API_URL}/payments`, {
+      method: 'POST',
+      headers: {
+        access_token: apiKey,
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify(body),
+    });
+
+    if (!response.ok) {
+      const err = await response.json().catch(() => ({}));
+      return {
+        success: false,
+        error:
+          err.errors?.[0]?.description ?? 'Erro ao criar cobrança no cartão',
+      };
+    }
+
+    const data = await response.json();
+    const invoiceUrl = data.invoiceUrl ?? data.bankSlipUrl ?? null;
+    return {
+      success: true,
+      paymentId: data.id,
+      invoiceUrl: invoiceUrl ?? undefined,
+    };
+  } catch (error) {
+    console.error('[Asaas] Erro ao criar cobrança cartão:', error);
+    return {
+      success: false,
+      error: 'Erro de conexão com o gateway de pagamento',
+    };
+  }
+}
+
 /** GET /v3/payments/{id}/pixQrCode — retorna encodedImage (base64) e payload (copia e cola). */
 async function getPixQrCode(paymentId: string): Promise<{
   success: boolean;
@@ -504,7 +643,8 @@ async function getAsaasPaymentInvoiceUrl(
     const url = data.invoiceUrl ?? data.invoiceLink ?? null;
     return {
       success: true,
-      invoiceUrl: typeof url === 'string' && url.startsWith('http') ? url : undefined,
+      invoiceUrl:
+        typeof url === 'string' && url.startsWith('http') ? url : undefined,
     };
   } catch (error) {
     console.error('[Asaas] Erro ao buscar pagamento:', error);
@@ -611,13 +751,21 @@ export async function requestUpgrade(
     return { success: false, error: 'Plano inválido ou gratuito' };
   }
 
-  const planKeyCurrent = (profile.plan_key as PlanKey) ?? 'FREE';
+  const planKeyCurrent = (
+    (profile.plan_key && String(profile.plan_key).toUpperCase()) ??
+    'FREE'
+  ) as PlanKey;
   if (profile.is_exempt === true && planKey === planKeyCurrent) {
     return { success: true, billing_type: 'PIX' };
   }
 
+  const billingPeriod: BillingPeriod = payload.billing_period ?? 'monthly';
   const pendingRequest = await getPendingUpgradeRequest(userId, supabase);
-  if (pendingRequest) {
+  const isSamePendingPix =
+    pendingRequest?.billing_type === 'PIX' &&
+    pendingRequest.plan_key_requested === planKey &&
+    pendingRequest.billing_period === billingPeriod;
+  if (pendingRequest && !isSamePendingPix) {
     return {
       success: false,
       error:
@@ -625,7 +773,6 @@ export async function requestUpgrade(
     };
   }
 
-  const billingPeriod: BillingPeriod = payload.billing_period ?? 'monthly';
   const currentRequest = await getCurrentActiveRequest(userId, supabase);
   const calculation = await calculateUpgradePrice(
     currentRequest,
@@ -633,7 +780,15 @@ export async function requestUpgrade(
     billingPeriod,
     payload.billing_type,
     segment,
+    planKeyCurrent,
   );
+
+  console.info('[requestUpgrade] cálculo', {
+    type: calculation.type,
+    amount_final: calculation.amount_final,
+    is_free_upgrade: calculation.is_free_upgrade,
+    residual_credit: calculation.residual_credit,
+  });
 
   // Mesmo plano + mesmo período → bloquear
   if (calculation.type === 'current_plan') {
@@ -644,24 +799,121 @@ export async function requestUpgrade(
     };
   }
 
-  // Downgrade vedado: não gerar cobrança nem agendamento; retornar erro com data de vencimento
+  // Downgrade vedado: não gerar cobrança nem agendamento; retornar erro com data de vencimento.
+  // Nunca inserir registro em tb_upgrade_requests nem criar cobrança no Asaas para downgrade.
   if (calculation.type === 'downgrade') {
-    const vencto = calculation.current_plan_expires_at
-      ? new Date(calculation.current_plan_expires_at).toLocaleDateString('pt-BR', {
+    const dueStr = calculation.downgrade_effective_at
+      ? new Date(calculation.downgrade_effective_at).toLocaleDateString('pt-BR', {
           day: '2-digit',
           month: 'long',
           year: 'numeric',
         })
-      : '';
+      : '—';
     return {
       success: false,
-      error: `Mudança para planos inferiores permitida apenas após o vencimento do plano atual em ${vencto}.`,
+      error: `Downgrade vedado. Aguarde o vencimento do plano atual (${dueStr}) para alterar para um plano inferior.`,
+    };
+  }
+
+  // ─── Upgrade Gratuito: saldo residual cobre o plano inteiro ───────────────
+  // Não gerar cobrança no Asaas. Inserir diretamente como 'approved' e atualizar plan_key.
+  // Nenhum registro de cobrança R$ 0,00 no Asaas; apenas insert em tb_upgrade_requests + update plan_key + nextDueDate.
+  if (calculation.is_free_upgrade && calculation.amount_final === 0) {
+    console.info('[requestUpgrade] fluxo upgrade gratuito (amount_final=0), sem cobrança Asaas');
+    const snapshot_address_free = formatSnapshotAddress({
+      address: payload.address,
+      address_number: payload.address_number,
+      complement: payload.complement,
+      province: payload.province,
+      city: payload.city,
+      state: payload.state,
+      postal_code: payload.postal_code,
+    });
+    const billingFullNameFree = payload.full_name?.trim() ?? profile.full_name ?? '';
+    const now = new Date().toISOString();
+    const { data: freeRow, error: freeErr } = await supabase
+      .from('tb_upgrade_requests')
+      .insert({
+        profile_id: userId,
+        plan_key_current: planKeyCurrent,
+        plan_key_requested: planKey,
+        billing_type: payload.billing_type,
+        billing_period: billingPeriod,
+        snapshot_name: billingFullNameFree || (profile.full_name ?? ''),
+        snapshot_cpf_cnpj: payload.cpf_cnpj,
+        snapshot_email: email ?? '',
+        snapshot_whatsapp: payload.whatsapp,
+        snapshot_address: snapshot_address_free,
+        asaas_customer_id: null,
+        asaas_subscription_id: null,
+        asaas_payment_id: null,
+        payment_url: null,
+        amount_original: calculation.amount_original,
+        amount_discount: calculation.amount_discount,
+        amount_final: 0,
+        installments: 1,
+        status: 'approved',
+        processed_at: now,
+        notes: `Upgrade gratuito (aproveitamento de crédito): saldo residual de R$ ${calculation.residual_credit.toFixed(2)} cobriu o valor do novo plano. Nova data de vencimento: ${calculation.new_expiry_date ?? 'N/A'}.`,
+      })
+      .select('id')
+      .single();
+    if (freeErr) {
+      return {
+        success: false,
+        error: 'Erro ao registrar upgrade gratuito. Tente novamente.',
+      };
+    }
+    // Atualizar plan_key no perfil
+    await supabase
+      .from('tb_profiles')
+      .update({ plan_key: planKey, updated_at: now })
+      .eq('id', userId);
+
+    // Atualizar no Asaas a data da próxima cobrança para o vencimento calculado pelo crédito
+    const asaasSubId = currentRequest?.asaas_subscription_id?.trim();
+    const newExpiryIso = calculation.new_expiry_date;
+    if (asaasSubId && newExpiryIso) {
+      const nextDueStr = newExpiryIso.split('T')[0];
+      if (/^\d{4}-\d{2}-\d{2}$/.test(nextDueStr)) {
+        const updateResult = await updateAsaasSubscriptionNextDueDate(
+          asaasSubId,
+          nextDueStr,
+        );
+        if (!updateResult.success) {
+          console.error(
+            '[Asaas] Upgrade gratuito: falha ao atualizar nextDueDate da assinatura:',
+            updateResult.error,
+          );
+        }
+      }
+    }
+
+    await revalidateUserCache(userId).catch((err) => {
+      console.warn('[Upgrade gratuito] revalidateUserCache:', err);
+    });
+
+    return {
+      success: true,
+      billing_type: payload.billing_type,
+      request_id: freeRow?.id,
     };
   }
 
   const amountOriginal = calculation.amount_original;
   const amountDiscount = calculation.amount_discount;
   const amountFinal = calculation.amount_final;
+
+  /** Crédito cobre N mensalidades: cobrar só a diferença agora e assinatura com próximo vencimento em new_expiry_date. */
+  const hasCreditNextDueDate =
+    Boolean(calculation.new_expiry_date) &&
+    calculation.amount_final > 0 &&
+    !calculation.is_free_upgrade;
+
+  const notesCredit =
+    amountDiscount > 0
+      ? `Aproveitamento de crédito pro-rata: R$ ${(calculation.residual_credit ?? 0).toFixed(2)} (dias não utilizados do plano anterior). Desconto total aplicado: R$ ${amountDiscount.toFixed(2)}. Valor final cobrado: R$ ${amountFinal.toFixed(2)}.${hasCreditNextDueDate && calculation.new_expiry_date ? ` Próximo vencimento do plano: ${calculation.new_expiry_date.split('T')[0]}. Nova data de vencimento: ${calculation.new_expiry_date}.` : ''}`
+      : null;
 
   const { months } = getPeriodPrice(planInfo, billingPeriod);
 
@@ -770,6 +1022,58 @@ export async function requestUpgrade(
 
   // ─── PIX: cobrança avulsa (não usar Subscription — muitas contas Asaas rejeitam PIX em assinaturas)
   if (payload.billing_type === 'PIX') {
+    // Regenerar QR PIX para a mesma solicitação pendente (ex.: PIX expirado) — não duplica registro
+    if (isSamePendingPix && pendingRequest) {
+      const dueDate = new Date();
+      dueDate.setDate(dueDate.getDate() + 3);
+      const dueDateStr = dueDate.toISOString().split('T')[0];
+      const pixPayResult = await createAsaasPixPayment(
+        asaasCustomerId,
+        amountFinal,
+        dueDateStr,
+        `Plano ${planInfo.name} – ${planKey}`,
+      );
+      if (!pixPayResult.success || !pixPayResult.paymentId) {
+        return {
+          success: false,
+          error: pixPayResult.error ?? 'Erro ao gerar novo PIX',
+        };
+      }
+      const newPaymentId = pixPayResult.paymentId;
+      const pixResult = await getPixQrCode(newPaymentId);
+      const paymentUrlPix = pixResult.payload ?? null;
+      const pixQrCodeBase64Pix = pixResult.encodedImage;
+      const invoiceResult = await getAsaasPaymentInvoiceUrl(newPaymentId);
+      const invoiceUrlPix =
+        invoiceResult.success && invoiceResult.invoiceUrl
+          ? invoiceResult.invoiceUrl
+          : null;
+      const { error: updateErr } = await supabase
+        .from('tb_upgrade_requests')
+        .update({
+          asaas_payment_id: newPaymentId,
+          payment_url: invoiceUrlPix,
+          ...(notesCredit && { notes: notesCredit }),
+          updated_at: new Date().toISOString(),
+        })
+        .eq('id', pendingRequest.id)
+        .eq('profile_id', userId);
+      if (updateErr) {
+        console.error('[Asaas] Erro ao atualizar PIX regenerado:', updateErr);
+        return {
+          success: false,
+          error: 'Erro ao atualizar solicitação. Tente novamente.',
+        };
+      }
+      return {
+        success: true,
+        payment_url: paymentUrlPix ?? undefined,
+        pix_qr_code_base64: pixQrCodeBase64Pix,
+        billing_type: 'PIX',
+        request_id: pendingRequest.id,
+      };
+    }
+
     const dueDate = new Date();
     dueDate.setDate(dueDate.getDate() + 3);
     const dueDateStr = dueDate.toISOString().split('T')[0];
@@ -819,6 +1123,7 @@ export async function requestUpgrade(
         amount_final: amountFinal,
         installments: 1,
         status: 'pending',
+        ...(notesCredit && { notes: notesCredit }),
       })
       .select('id')
       .single();
@@ -853,12 +1158,20 @@ export async function requestUpgrade(
       : billingPeriod === 'semiannual'
         ? 'SEMIANNUALLY'
         : 'MONTHLY';
+  const planPricePerPeriod = getPeriodPrice(planInfo, billingPeriod).totalPrice;
+  const subscriptionValue =
+    hasCreditNextDueDate && isCreditCard ? planPricePerPeriod : amountFinal;
+  const nextDueDateStr =
+    hasCreditNextDueDate && calculation.new_expiry_date
+      ? calculation.new_expiry_date.split('T')[0]
+      : undefined;
   const subPayload: CreateSubscriptionData = {
     customerId: asaasCustomerId,
     billingType: payload.billing_type,
     cycle: asaasCycle,
-    value: amountFinal,
+    value: subscriptionValue,
     description: `Plano ${planInfo.name} – ${planKey}`,
+    ...(nextDueDateStr && { nextDueDate: nextDueDateStr }),
     installmentCount: installments > 1 ? installments : undefined,
   };
 
@@ -886,6 +1199,29 @@ export async function requestUpgrade(
     };
   }
 
+  // Quando crédito cobre N mensalidades: cobrar a diferença agora no cartão e criar assinatura com primeiro vencimento em new_expiry_date
+  let oneOffPaymentId: string | null = null;
+  let oneOffInvoiceUrl: string | null = null;
+  if (hasCreditNextDueDate && isCreditCard && subPayload.creditCardDetails && subPayload.creditCardHolderInfo) {
+    const dueToday = new Date().toISOString().split('T')[0];
+    const oneOffResult = await createAsaasCreditCardPayment(
+      asaasCustomerId,
+      amountFinal,
+      dueToday,
+      `Plano ${planInfo.name} – ${planKey} (diferença com crédito)`,
+      subPayload.creditCardDetails,
+      subPayload.creditCardHolderInfo,
+    );
+    if (!oneOffResult.success || !oneOffResult.paymentId) {
+      return {
+        success: false,
+        error: oneOffResult.error ?? 'Erro ao cobrar diferença no cartão',
+      };
+    }
+    oneOffPaymentId = oneOffResult.paymentId;
+    oneOffInvoiceUrl = oneOffResult.invoiceUrl ?? null;
+  }
+
   const subResult = await createAsaasSubscription(subPayload);
 
   if (!subResult.success || !subResult.subscriptionId) {
@@ -898,20 +1234,26 @@ export async function requestUpgrade(
   const asaasSubscriptionId = subResult.subscriptionId;
 
   // 5. Buscar primeiro pagamento e payment_url (e QR PIX quando for PIX — BOLETO usa invoiceUrl)
+  // Quando houve cobrança avulsa da diferença (crédito cobre N meses), usar esse pagamento como referência
   const paymentResult =
     await getFirstPaymentFromSubscription(asaasSubscriptionId);
 
-  let asaasPaymentId: string | null = null;
-  let paymentUrl: string | null = null;
+  let asaasPaymentId: string | null = oneOffPaymentId;
+  let paymentUrl: string | null = oneOffInvoiceUrl;
   let pixQrCodeBase64: string | undefined;
 
-  if (paymentResult.success) {
-    asaasPaymentId = paymentResult.paymentId ?? null;
-    paymentUrl =
-      paymentResult.paymentUrl ??
-      subResult.invoiceUrl ??
-      subResult.bankSlipUrl ??
-      null;
+  if (!asaasPaymentId || !paymentUrl) {
+    if (paymentResult.success) {
+      asaasPaymentId = asaasPaymentId ?? paymentResult.paymentId ?? null;
+      paymentUrl =
+        paymentUrl ??
+        paymentResult.paymentUrl ??
+        subResult.invoiceUrl ??
+        subResult.bankSlipUrl ??
+        null;
+    } else {
+      paymentUrl = paymentUrl ?? subResult.invoiceUrl ?? subResult.bankSlipUrl ?? null;
+    }
   }
 
   // 6. INSERT tb_upgrade_requests
@@ -937,6 +1279,7 @@ export async function requestUpgrade(
       amount_final: amountFinal,
       installments,
       status: 'pending',
+      ...(notesCredit && { notes: notesCredit }),
     })
     .select('id')
     .single();
@@ -955,6 +1298,23 @@ export async function requestUpgrade(
           ? `Erro ao registrar solicitação: ${dbMessage}`
           : 'Erro ao registrar solicitação. Tente novamente.',
     };
+  }
+
+  // Garantir que o vencimento das observações esteja sempre no Asaas (nextDueDate)
+  if (hasCreditNextDueDate && calculation.new_expiry_date && asaasSubscriptionId) {
+    const nextDueStr = calculation.new_expiry_date.split('T')[0];
+    if (/^\d{4}-\d{2}-\d{2}$/.test(nextDueStr)) {
+      const updateResult = await updateAsaasSubscriptionNextDueDate(
+        asaasSubscriptionId,
+        nextDueStr,
+      );
+      if (!updateResult.success) {
+        console.error(
+          '[Asaas] Falha ao atualizar nextDueDate após insert (crédito pro-rata):',
+          updateResult.error,
+        );
+      }
+    }
   }
 
   return {
@@ -977,6 +1337,13 @@ function addMonths(date: Date, n: number): Date {
   return d;
 }
 
+/** Adiciona `n` dias a uma data (sem dependências externas). */
+function addDays(date: Date, n: number): Date {
+  const d = new Date(date);
+  d.setDate(d.getDate() + Math.round(n));
+  return d;
+}
+
 function billingPeriodToMonths(period: string | null | undefined): number {
   if (period === 'semiannual') return 6;
   if (period === 'annual') return 12;
@@ -990,6 +1357,48 @@ function periodOrder(p: BillingPeriod): number {
   return 1;
 }
 
+/**
+ * Extrai a data de vencimento das notes (ex.: upgrade gratuito "Nova data de vencimento: 2026-06-16T...").
+ * Usado para considerar o vencimento real quando o plano veio de crédito.
+ */
+function parseExpiryFromNotes(notes: string | null | undefined): Date | null {
+  if (!notes?.trim()) return null;
+  const match = notes.match(/Nova data de vencimento:\s*([^\s.]+)/i);
+  if (!match?.[1]) return null;
+  const date = new Date(match[1].trim());
+  return Number.isNaN(date.getTime()) ? null : date;
+}
+
+/** Ano comercial: dias do período para pro-rata (30, 180, 360).
+ * Usado de forma consistente em calculateUpgradePrice, calculateProRataCredit e getPeriodPrice. */
+const COMMERCIAL_DAYS: Record<BillingPeriod, number> = {
+  monthly: 30,
+  semiannual: 180,
+  annual: 360,
+};
+
+function billingPeriodToCommercialDays(
+  period: string | null | undefined,
+): 30 | 180 | 360 {
+  const p = (period ?? 'monthly') as BillingPeriod;
+  return (COMMERCIAL_DAYS[p] ?? 30) as 30 | 180 | 360;
+}
+
+/**
+ * Calcula o crédito pro-rata a abater (ano comercial: 30, 180 ou 360 dias).
+ * credit = (currentAmount / totalDays) * remainingDays
+ */
+export async function calculateProRataCredit(
+  currentAmount: number,
+  totalDays: 30 | 180 | 360,
+  remainingDays: number,
+): Promise<number> {
+  if (totalDays <= 0 || remainingDays <= 0) return 0;
+  const credit =
+    (currentAmount / totalDays) * Math.min(remainingDays, totalDays);
+  return Math.round(credit * 100) / 100;
+}
+
 // ─── Plano ativo e cálculo de upgrade/downgrade (pro-rata) ───────────────────
 
 export interface CurrentActiveRequestRow {
@@ -999,27 +1408,41 @@ export interface CurrentActiveRequestRow {
   billing_period: string | null;
   plan_key_requested: string;
   asaas_subscription_id?: string | null;
+  notes?: string | null;
 }
 
 /**
- * Busca a solicitação de upgrade aprovada mais recente do usuário (plano ativo pago).
+ * Busca a solicitação de upgrade aprovada do usuário que representa o plano ativo.
+ * Preferência: solicitação cujo período (processed_at + billing_period) ainda contém "agora".
+ * Se nenhuma estiver em período vigente, retorna a mais recente (para cálculo sem crédito).
  */
 export async function getCurrentActiveRequest(
   userId: string,
   supabase?: Awaited<ReturnType<typeof createSupabaseServerClient>>,
 ): Promise<CurrentActiveRequestRow | null> {
   const db = supabase ?? (await createSupabaseServerClient());
-  const { data } = await db
+  const { data: rows } = await db
     .from('tb_upgrade_requests')
     .select(
-      'id, amount_final, processed_at, billing_period, plan_key_requested, asaas_subscription_id',
+      'id, amount_final, processed_at, billing_period, plan_key_requested, asaas_subscription_id, notes',
     )
     .eq('profile_id', userId)
     .eq('status', 'approved')
-    .order('created_at', { ascending: false })
-    .limit(1)
-    .maybeSingle();
-  return data as CurrentActiveRequestRow | null;
+    .order('processed_at', { ascending: false })
+    .limit(10);
+  const list = (rows ?? []) as CurrentActiveRequestRow[];
+  if (list.length === 0) return null;
+  const now = new Date();
+  for (const row of list) {
+    if (!row?.processed_at) continue;
+    const start = new Date(row.processed_at);
+    const months = billingPeriodToMonths(row.billing_period);
+    let end = addMonths(start, months);
+    const fromNotes = parseExpiryFromNotes(row.notes);
+    if (fromNotes) end = fromNotes;
+    if (end >= now) return row;
+  }
+  return list[0];
 }
 
 /** Idade máxima para considerar uma solicitação "pending" antes de permitir nova tentativa (24h). */
@@ -1030,12 +1453,14 @@ export interface PendingUpgradeRow {
   created_at: string;
   plan_key_requested: string;
   billing_type: string;
+  billing_period: string | null;
 }
 
 /**
  * Retorna a solicitação de upgrade com status 'pending' mais recente do usuário,
  * apenas se foi criada nos últimos PENDING_UPGRADE_MAX_AGE_MS (24h).
  * Usado para bloquear nova assinatura enquanto há pagamento em processamento.
+ * Inclui billing_period para permitir regenerar PIX da mesma solicitação (mesmo plano+período).
  */
 export async function getPendingUpgradeRequest(
   userId: string,
@@ -1045,7 +1470,7 @@ export async function getPendingUpgradeRequest(
   const since = new Date(Date.now() - PENDING_UPGRADE_MAX_AGE_MS).toISOString();
   const { data } = await db
     .from('tb_upgrade_requests')
-    .select('id, created_at, plan_key_requested, billing_type')
+    .select('id, created_at, plan_key_requested, billing_type, billing_period')
     .eq('profile_id', userId)
     .eq('status', 'pending')
     .gte('created_at', since)
@@ -1056,10 +1481,19 @@ export async function getPendingUpgradeRequest(
 }
 
 /**
- * Calcula o valor de upgrade com pro-rata: crédito dos dias restantes do plano atual
- * é descontado do preço do novo plano. Para PIX em períodos não-mensais, aplica 10%
- * apenas sobre a diferença a pagar.
- * Se for downgrade (plano ou período menor), retorna type 'downgrade' e amount_final = 0.
+ * Calcula o valor de upgrade com pro-rata (ano comercial 30/180/360 dias).
+ *
+ * Regras de classificação:
+ * - Upgrade: targetPlanKey está ACIMA na hierarquia (planOrder), independente do valor do ciclo.
+ * - Mesmo período + mesmo plano → current_plan (bloqueado).
+ * - Mesmo plano, período menor OU plano inferior → downgrade (efetivado no vencimento).
+ *
+ * Crédito superior ao preço do novo plano (upgrade gratuito):
+ * - amount_final = 0 — nenhuma cobrança é gerada no Asaas.
+ * - new_expiry_date = agora + (residualCredit / dailyPriceNewPlan) dias.
+ * - free_upgrade_months_covered = quantos ciclos (do novo plano) o saldo cobre.
+ *
+ * @param currentPlanKeyFromProfile plano atual em tb_profiles.plan_key (evita histórico desatualizado).
  */
 export async function calculateUpgradePrice(
   currentRequest: CurrentActiveRequestRow | null,
@@ -1067,9 +1501,15 @@ export async function calculateUpgradePrice(
   targetPeriod: BillingPeriod,
   billingType: BillingType,
   segment: SegmentType = 'PHOTOGRAPHER',
+  currentPlanKeyFromProfile?: PlanKey,
 ): Promise<UpgradePriceCalculation> {
   const planInfo = PLANS_BY_SEGMENT[segment]?.[targetPlanKey];
   if (!planInfo || planInfo.price <= 0) {
+    console.info('[calculateUpgradePrice] plano inválido ou gratuito', {
+      targetPlanKey,
+      targetPeriod,
+      segment: segment ?? 'PHOTOGRAPHER',
+    });
     const now = new Date();
     return {
       type: 'upgrade',
@@ -1078,59 +1518,101 @@ export async function calculateUpgradePrice(
       amount_final: 0,
       residual_credit: 0,
       current_plan_expires_at: now.toISOString(),
+      new_expiry_date: addDays(now, billingPeriodToCommercialDays(targetPeriod)).toISOString(),
     };
   }
+
   const fullPriceResult = getPeriodPrice(planInfo, targetPeriod);
   const totalPriceNew = fullPriceResult.totalPrice;
-  const monthsNew = fullPriceResult.months;
+  const targetCommercialDays = billingPeriodToCommercialDays(targetPeriod);
+  console.info('[calculateUpgradePrice] entrada', {
+    targetPlanKey,
+    targetPeriod,
+    targetCommercialDays,
+    totalPriceNew,
+    hasCurrentRequest: !!currentRequest,
+    currentProcessedAt: currentRequest?.processed_at ?? null,
+  });
 
   const now = new Date();
   let currentPlanExpiresAt: Date;
 
+  // Sem assinatura prévia → cobrança integral, nova expiração = agora + ciclo
   if (!currentRequest || !currentRequest.processed_at) {
     currentPlanExpiresAt = now;
+    const newExpiry = addDays(now, targetCommercialDays);
+    const pixDiscount =
+      billingType === 'PIX' && targetPeriod !== 'monthly'
+        ? Math.round(totalPriceNew * (PIX_DISCOUNT_PERCENT / 100) * 100) / 100
+        : 0;
     return {
       type: 'upgrade',
       amount_original: totalPriceNew,
-      amount_discount:
-        billingType === 'PIX' && targetPeriod !== 'monthly'
-          ? Math.round(totalPriceNew * (PIX_DISCOUNT_PERCENT / 100) * 100) / 100
-          : 0,
-      amount_final:
-        billingType === 'PIX' && targetPeriod !== 'monthly'
-          ? Math.round(totalPriceNew * (1 - PIX_DISCOUNT_PERCENT / 100) * 100) /
-            100
-          : totalPriceNew,
+      amount_discount: pixDiscount,
+      amount_final: Math.round((totalPriceNew - pixDiscount) * 100) / 100,
       residual_credit: 0,
+      pix_discount_amount: pixDiscount,
       current_plan_expires_at: currentPlanExpiresAt.toISOString(),
+      new_expiry_date: newExpiry.toISOString(),
     };
   }
 
+  // Calcular crédito pro-rata do plano atual
   const startDate = new Date(currentRequest.processed_at);
   const monthsCurrent = billingPeriodToMonths(currentRequest.billing_period);
   currentPlanExpiresAt = addMonths(startDate, monthsCurrent);
+  const expiryFromNotes = parseExpiryFromNotes(currentRequest.notes);
+  if (expiryFromNotes && expiryFromNotes > currentPlanExpiresAt) {
+    currentPlanExpiresAt = expiryFromNotes;
+  }
 
   const totalMsCurrent = currentPlanExpiresAt.getTime() - startDate.getTime();
-  const remainingMs = Math.max(
-    0,
-    currentPlanExpiresAt.getTime() - now.getTime(),
-  );
-  const remainingDays = remainingMs / (24 * 60 * 60 * 1000);
-  const totalDaysCurrent = totalMsCurrent / (24 * 60 * 60 * 1000);
-  const residualCredit =
-    totalDaysCurrent <= 0
-      ? 0
-      : Math.round(
-          currentRequest.amount_final *
-            (remainingDays / totalDaysCurrent) *
-            100,
-        ) / 100;
+  const remainingMs = Math.max(0, currentPlanExpiresAt.getTime() - now.getTime());
+  const totalDaysCommercial = billingPeriodToCommercialDays(currentRequest.billing_period);
+  const currentPlanKey = (currentPlanKeyFromProfile ??
+    currentRequest?.plan_key_requested) as PlanKey;
+  const currentPeriod = (currentRequest?.billing_period ?? 'monthly') as BillingPeriod;
+  const planInfoCurrent = PLANS_BY_SEGMENT[segment]?.[currentPlanKey];
 
-  const currentPlanKey = currentRequest.plan_key_requested as PlanKey;
-  const currentPeriod = (currentRequest.billing_period ??
-    'monthly') as BillingPeriod;
+  let remainingDaysProRata: number;
+  let residualCredit: number;
 
-  // Mesmo plano + mesmo período → bloquear (já é o plano atual)
+  if (expiryFromNotes && currentRequest.amount_final === 0 && planInfoCurrent) {
+    const totalDaysActual = Math.max(1, Math.round(totalMsCurrent / (24 * 60 * 60 * 1000)));
+    const remainingDaysActual = Math.max(0, Math.round(remainingMs / (24 * 60 * 60 * 1000)));
+    const dailyRate = planInfoCurrent.price / 30;
+    residualCredit = Math.round(dailyRate * Math.min(remainingDaysActual, totalDaysActual) * 100) / 100;
+    remainingDaysProRata = remainingDaysActual;
+    console.info('[calculateUpgradePrice] crédito de upgrade gratuito anterior', {
+      totalDaysActual,
+      remainingDaysActual,
+      residualCredit,
+    });
+  } else {
+    remainingDaysProRata =
+      totalMsCurrent <= 0
+        ? 0
+        : totalDaysCommercial * (remainingMs / totalMsCurrent);
+    const amountForProRata =
+      currentRequest.amount_final > 0
+        ? currentRequest.amount_final
+        : planInfoCurrent
+          ? getPeriodPrice(planInfoCurrent, currentPeriod).totalPrice
+          : 0;
+    residualCredit = await calculateProRataCredit(
+      amountForProRata,
+      totalDaysCommercial,
+      remainingDaysProRata,
+    );
+    console.info('[calculateUpgradePrice] pro-rata (ano comercial)', {
+      totalDaysCommercial,
+      remainingDaysProRata,
+      amountForProRata,
+      residualCredit,
+    });
+  }
+
+  // Mesmo plano + mesmo período → plano atual (bloqueado)
   if (targetPlanKey === currentPlanKey && targetPeriod === currentPeriod) {
     return {
       type: 'current_plan',
@@ -1139,17 +1621,24 @@ export async function calculateUpgradePrice(
       amount_final: 0,
       residual_credit: 0,
       current_plan_expires_at: currentPlanExpiresAt.toISOString(),
+      new_expiry_date: currentPlanExpiresAt.toISOString(),
     };
   }
 
-  const isPlanDowngrade =
-    planOrder.indexOf(targetPlanKey) < planOrder.indexOf(currentPlanKey);
+  // Downgrade: plano inferior na hierarquia OU mesmo plano com período menor
+  const isPlanUpgrade = planOrder.indexOf(targetPlanKey) > planOrder.indexOf(currentPlanKey);
+  const isPlanDowngrade = planOrder.indexOf(targetPlanKey) < planOrder.indexOf(currentPlanKey);
   const isPeriodDowngrade =
-    planOrder.indexOf(targetPlanKey) === planOrder.indexOf(currentPlanKey) &&
+    !isPlanUpgrade &&
+    !isPlanDowngrade &&
     periodOrder(targetPeriod) < periodOrder(currentPeriod);
   const isDowngrade = isPlanDowngrade || isPeriodDowngrade;
 
   if (isDowngrade) {
+    console.info('[calculateUpgradePrice] resultado: downgrade', {
+      current_plan_expires_at: currentPlanExpiresAt.toISOString(),
+      residual_credit: residualCredit,
+    });
     return {
       type: 'downgrade',
       amount_original: totalPriceNew,
@@ -1161,17 +1650,58 @@ export async function calculateUpgradePrice(
     };
   }
 
+  // ─── Upgrade ───────────────────────────────────────────────────────────────
+  const dailyPriceNew = totalPriceNew / targetCommercialDays;
+
+  // Crédito cobre pelo menos um período: upgrade gratuito. Duração exata em dias (ex.: 257/79 ≈ 3,26 meses = ~98 dias).
+  // Não arredondar para N meses inteiros nem cobrar "diferença"; o crédito compra exatamente o tempo que vale.
+  if (residualCredit >= totalPriceNew) {
+    const daysExtended = dailyPriceNew > 0
+      ? Math.round(residualCredit / dailyPriceNew)
+      : targetCommercialDays;
+    const newExpiry = addDays(startDate, daysExtended);
+    const monthsCovered = Math.floor(daysExtended / 30);
+    console.info('[calculateUpgradePrice] resultado: upgrade gratuito', {
+      residualCredit,
+      totalPriceNew,
+      daysExtended,
+      new_expiry_date: newExpiry.toISOString(),
+      amount_final: 0,
+    });
+    return {
+      type: 'upgrade',
+      is_free_upgrade: true,
+      amount_original: totalPriceNew,
+      amount_discount: totalPriceNew,
+      amount_final: 0,
+      residual_credit: residualCredit,
+      current_plan_expires_at: currentPlanExpiresAt.toISOString(),
+      new_expiry_date: newExpiry.toISOString(),
+      free_upgrade_months_covered: monthsCovered,
+      free_upgrade_days_extended: daysExtended,
+    };
+  }
+
+  // Crédito parcial → pagar apenas a diferença (+ desconto PIX se aplicável)
+  const newExpiry = addDays(now, targetCommercialDays);
   const amountToPayBeforePix = Math.max(
     0,
     Math.round((totalPriceNew - residualCredit) * 100) / 100,
   );
   const pixDiscount =
     billingType === 'PIX' && targetPeriod !== 'monthly'
-      ? Math.round(amountToPayBeforePix * (PIX_DISCOUNT_PERCENT / 100) * 100) /
-        100
+      ? Math.round(amountToPayBeforePix * (PIX_DISCOUNT_PERCENT / 100) * 100) / 100
       : 0;
-  const amountFinal =
-    Math.round((amountToPayBeforePix - pixDiscount) * 100) / 100;
+  const amountFinal = Math.round((amountToPayBeforePix - pixDiscount) * 100) / 100;
+
+  console.info('[calculateUpgradePrice] resultado: upgrade pago', {
+    totalPriceNew,
+    residualCredit,
+    amountToPayBeforePix,
+    pixDiscount,
+    amount_final: amountFinal,
+    new_expiry_date: newExpiry.toISOString(),
+  });
 
   return {
     type: 'upgrade',
@@ -1181,6 +1711,7 @@ export async function calculateUpgradePrice(
     residual_credit: residualCredit,
     pix_discount_amount: pixDiscount,
     current_plan_expires_at: currentPlanExpiresAt.toISOString(),
+    new_expiry_date: newExpiry.toISOString(),
   };
 }
 
@@ -1194,7 +1725,7 @@ export async function getUpgradePreview(
   segment: SegmentType = 'PHOTOGRAPHER',
 ): Promise<UpgradePreviewResult> {
   try {
-    const { success, userId } = await getAuthenticatedUser();
+    const { success, userId, profile } = await getAuthenticatedUser();
     if (!success || !userId) {
       return {
         success: false,
@@ -1213,16 +1744,24 @@ export async function getUpgradePreview(
       };
     }
     const current = await getCurrentActiveRequest(userId, supabase);
+    const rawPlanKey = profile?.plan_key;
+    const currentPlanKeyFromProfile = rawPlanKey
+      ? (String(rawPlanKey).toUpperCase() as PlanKey)
+      : undefined;
     const calculation = await calculateUpgradePrice(
       current,
       targetPlanKey,
       targetPeriod,
       billingType,
       segment,
+      currentPlanKeyFromProfile,
     );
+    const hasPlan =
+      !!current ||
+      (!!currentPlanKeyFromProfile && currentPlanKeyFromProfile !== 'FREE');
     return {
       success: true,
-      has_active_plan: !!current,
+      has_active_plan: hasPlan,
       is_current_plan: calculation.type === 'current_plan',
       calculation: calculation,
     };
@@ -1555,11 +2094,7 @@ export async function handleSubscriptionCancellation(
       'id, status, asaas_payment_id, asaas_subscription_id, created_at, processed_at, billing_period, plan_key_requested',
     )
     .eq('profile_id', userId)
-    .in('status', [
-      'pending',
-      'approved',
-      'pending_cancellation',
-    ])
+    .in('status', ['pending', 'approved', 'pending_cancellation'])
     .order('created_at', { ascending: false })
     .limit(1)
     .maybeSingle();

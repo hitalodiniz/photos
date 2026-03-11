@@ -839,7 +839,7 @@ export interface PlanInfo {
 export type BillingPeriod = 'monthly' | 'semiannual' | 'annual';
 
 /** Desconto adicional (em %) no pagamento via PIX para períodos semestral e anual. */
-export const PIX_DISCOUNT_PERCENT = 10;
+export const PIX_DISCOUNT_PERCENT = 5;
 
 /**
  * Retorna preço mensal efetivo, total e desconto por período.

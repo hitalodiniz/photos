@@ -620,6 +620,46 @@ function StepDoneBoleto({
 
 // ─── Variante: downgrade agendado (sem pagamento) ───────────────────────────
 
+function StepDoneFreeUpgrade({
+  planName,
+  nextBillingDate,
+}: {
+  planName: string;
+  nextBillingDate: string | null;
+}) {
+  return (
+    <div className="flex flex-col items-center gap-4 px-4 py-6 w-full">
+      <div className="flex flex-col items-center gap-2">
+        <div className="w-14 h-14 rounded-full bg-emerald-50 border-2 border-emerald-200 flex items-center justify-center">
+          <Check size={26} className="text-emerald-500" strokeWidth={2.5} />
+        </div>
+        <p className="text-[15px] font-bold text-petroleum uppercase tracking-wide text-center">
+          Upgrade concluído
+        </p>
+        <p className="text-[12px] text-petroleum/80 mt-0.5 text-center">
+          Seu crédito cobriu o plano. O plano <strong>{planName}</strong> está
+          ativo.{' '}
+          {nextBillingDate ? (
+            <>
+              A próxima cobrança será em{' '}
+              <strong className="text-petroleum">{nextBillingDate}</strong>.
+            </>
+          ) : (
+            'Nenhum valor foi cobrado.'
+          )}
+        </p>
+      </div>
+      <div className="w-full bg-slate-50 border border-slate-200 rounded-xl px-4 py-3 text-[12px] text-slate-600">
+        Nenhum pagamento foi processado. Você continua com acesso até a data de
+        vencimento calculada pelo seu saldo.
+      </div>
+      <SupportLink />
+    </div>
+  );
+}
+
+// ─── Variante: downgrade agendado (sem pagamento) ───────────────────────────
+
 function StepDoneDowngrade({
   planName,
   effectiveAt,
@@ -646,7 +686,7 @@ function StepDoneDowngrade({
           .
         </p>
       </div>
-      <div className="w-full bg-slate-50 border border-slate-200 rounded-xl px-4 py-3 text-[12px] text-slate-600">
+      <div className="w-full bg-slate-50 border border-slate-200 rounded-xl px-4 py-3 text-[12px] text-slate-600 ">
         Até lá você continua com os benefícios do plano atual. Nenhuma cobrança
         adicional foi gerada.
       </div>
@@ -677,10 +717,16 @@ export function StepDone() {
     billingPeriod,
     handleClose,
     upgradeRequestId,
+    upgradeCalculation,
   } = useUpgradeSheetContext();
 
   const planName = selectedPlanInfo?.name ?? selectedPlan;
   const amount = selectedPlanInfo?.price;
+
+  const isFreeUpgrade = upgradeCalculation?.is_free_upgrade === true;
+  const nextBillingDateFormatted = upgradeCalculation?.new_expiry_date
+    ? formatDateLong(upgradeCalculation.new_expiry_date)
+    : null;
 
   const handlePaymentConfirmedClose = () => {
     handleClose();
@@ -695,6 +741,26 @@ export function StepDone() {
           effectiveAt={downgradeEffectiveAt}
           handleClose={handleClose}
         />
+      </div>
+    );
+  }
+
+  if (isFreeUpgrade) {
+    return (
+      <div className="flex flex-col min-h-full overflow-y-auto">
+        <StepDoneFreeUpgrade
+          planName={planName}
+          nextBillingDate={nextBillingDateFormatted}
+        />
+        <div className="flex justify-center pb-6">
+          <button
+            type="button"
+            onClick={handleClose}
+            className="btn-luxury-primary"
+          >
+            Fechar
+          </button>
+        </div>
       </div>
     );
   }

@@ -192,7 +192,10 @@ function UpgradeSheetContent({
 }
 
 function ConfirmButton() {
-  const { loading, handleConfirm, billingType } = useUpgradeSheetContext();
+  const { loading, handleConfirm, billingType, upgradeCalculation } = useUpgradeSheetContext();
+  const isFreeUpgrade =
+    upgradeCalculation?.is_free_upgrade === true ||
+    (upgradeCalculation?.amount_final != null && upgradeCalculation.amount_final === 0);
   return (
     <button
       type="button"
@@ -208,9 +211,11 @@ function ConfirmButton() {
       ) : (
         <>
           <ArrowRight size={14} />
-          {billingType === 'PIX'
-            ? 'Confirmar e Gerar Pix'
-            : 'Confirmar Solicitação'}
+          {isFreeUpgrade
+            ? 'Confirmar Upgrade Gratuito'
+            : billingType === 'PIX'
+              ? 'Confirmar e Gerar Pix'
+              : 'Confirmar Solicitação'}
         </>
       )}
     </button>
