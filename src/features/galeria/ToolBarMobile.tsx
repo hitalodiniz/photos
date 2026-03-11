@@ -70,6 +70,7 @@ export const ToolBarMobile = ({
   handleExternalDownload,
   externalLinks = [],
   getGalleryPermission, // ← Nova prop necessária
+  themeKey,
 }: any) => {
   const [showTagsPanel, setShowTagsPanel] = useState(false);
   const [showColumnsPanel, setShowColumnsPanel] = useState(false);
@@ -239,6 +240,7 @@ export const ToolBarMobile = ({
     <div
       ref={barRef}
       className="w-full z-[110] sticky top-0 md:hidden pointer-events-auto overflow-visible"
+      {...(themeKey ? { 'data-theme': themeKey } : {})}
     >
       {/* OVERLAY DE FECHAMENTO */}
       {(showTagsPanel || showColumnsPanel) && (

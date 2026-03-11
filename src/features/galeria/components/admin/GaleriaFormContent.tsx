@@ -77,7 +77,7 @@ const FormSection = ({
     <div className="flex flex-col gap-1 pb-2 border-b border-slate-200">
       <div className="flex items-center gap-2">
         {icon && <div className="text-petroleum">{icon}</div>}
-        <h3 className="text-[10px] font-bold uppercase tracking-luxury-wide text-petroleum dark:text-slate-700">
+        <h3 className="text-[10px] font-bold uppercase tracking-luxury-wide text-petroleum">
           {title}
         </h3>
         {subtitle && (
@@ -179,6 +179,32 @@ export default function GaleriaFormContent({
       process.env.NEXT_PUBLIC_APP_SEGMENT ||
       'PHOTOGRAPHER',
   );
+
+  // Guarda o tema do sistema ao entrar na página; restaura ao sair para não deixar o tema da galeria aplicado no app.
+  // Gravado no primeiro render (antes de qualquer effect) para não capturar o tema de preview do ThemeSelector.
+  const systemThemeOnMountRef = useRef<string | null>(null);
+  if (
+    typeof document !== 'undefined' &&
+    systemThemeOnMountRef.current === null
+  ) {
+    systemThemeOnMountRef.current =
+      document.documentElement.getAttribute('data-theme');
+  }
+
+  useEffect(() => {
+    return () => {
+      const toRestore = systemThemeOnMountRef.current;
+      if (toRestore !== null && toRestore !== undefined) {
+        document.documentElement.setAttribute('data-theme', toRestore);
+      } else {
+        const fallback =
+          typeof localStorage !== 'undefined'
+            ? localStorage.getItem('debug-theme') || 'PHOTOGRAPHER'
+            : 'PHOTOGRAPHER';
+        document.documentElement.setAttribute('data-theme', fallback);
+      }
+    };
+  }, []);
 
   const [renameFilesSequential, setRenameFilesSequential] = useState(() => {
     if (initialData)
@@ -889,7 +915,7 @@ export default function GaleriaFormContent({
             activeGalleryCount={activeGalleriesExcludingThis}
           />
 
-          {/* TEMA VISUAL */}
+          {/* TEMA VISUAL — aplica na página inteira para preview; ao sair da página o tema é restaurado pelo effect de cleanup */}
           <div className="bg-white rounded-luxury border border-slate-200 p-4 space-y-3">
             <div className="flex items-center gap-2 pb-2 border-b border-slate-200">
               <Sparkles size={14} className="text-gold" />

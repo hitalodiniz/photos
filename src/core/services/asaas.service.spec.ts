@@ -321,7 +321,7 @@ describe('handleSubscriptionCancellation', () => {
     expect(result.error).toMatch(/assinatura/i);
   });
 
-  it('✅ arrependimento ≤7d: estorna pagamento, cancela assinatura e rebaixa imediatamente', async () => {
+  it('✅ arrependimento ≤7d: cancela assinatura no Asaas e rebaixa imediatamente (sem estorno via API)', async () => {
     const mockFetch = vi.fn().mockResolvedValue({
       ok: true,
       json: async () => ({}),
@@ -357,11 +357,10 @@ describe('handleSubscriptionCancellation', () => {
 
     expect(result.success).toBe(true);
     expect(result.type).toBe('refund_immediate');
-    // Deve ter chamado o estorno e o cancelamento no Asaas (2 POST/DELETE calls)
-    expect(mockFetch).toHaveBeenCalledTimes(2);
-    expect(mockFetch.mock.calls[0][0]).toContain('/refund');
-    expect(mockFetch.mock.calls[1][0]).toContain('/subscriptions/sub-abc');
-    expect(mockFetch.mock.calls[1][1]).toMatchObject({ method: 'DELETE' });
+    // Não chamamos mais refund/estorno via API; apenas DELETE da assinatura no Asaas
+    expect(mockFetch).toHaveBeenCalledTimes(1);
+    expect(mockFetch.mock.calls[0][0]).toContain('/subscriptions/');
+    expect(mockFetch.mock.calls[0][1]).toMatchObject({ method: 'DELETE' });
   });
 
   it('✅ cancelamento padrão >7d: agenda pending_cancellation sem estorno', async () => {

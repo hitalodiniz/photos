@@ -144,7 +144,6 @@ export async function emitGaleriaEvent({
   };
 
   const galeriaUrl = getPublicGalleryUrl(galeria.photographer, galeria.slug);
-
   // 4. Gravação no Banco
   const { data: newEvent, error: insertError } = await supabase
     .from('tb_galeria_stats')
@@ -164,9 +163,7 @@ export async function emitGaleriaEvent({
           session_id: sessionCookie,
         },
       },
-    ])
-    .select()
-    .single();
+    ]);
 
   if (insertError) {
     // ESTE LOG É VITAL NA VERCEL

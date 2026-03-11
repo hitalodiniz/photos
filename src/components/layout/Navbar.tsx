@@ -67,7 +67,7 @@ export default function Navbar() {
     if (!pathname.startsWith('/dashboard')) return;
     try {
       const stored = sessionStorage.getItem('openUpgrade');
-      if (!stored) return;
+      if (!stored || !isProfileComplete) return;
       const planKeys: PlanKey[] = ['FREE', 'START', 'PLUS', 'PRO', 'PREMIUM'];
       if (planKeys.includes(stored as PlanKey)) {
         setUpgradeSheetInitialPlan(stored as PlanKey);
@@ -202,7 +202,7 @@ export default function Navbar() {
                       onClick={() => setTrialOpen(false)}
                       aria-hidden="true"
                     />
-                    <div className="absolute right-0 mt-3 w-[400px] bg-petroleum border border-white/10 rounded-xl shadow-[0_20px_50px_rgba(0,0,0,0.5)] z-50 overflow-hidden animate-in fade-in zoom-in-95 duration-200">
+                    <div className="absolute right-0 mt-3 w-[480px] bg-petroleum border border-white/10 rounded-xl shadow-[0_20px_50px_rgba(0,0,0,0.5)] z-50 overflow-hidden animate-in fade-in zoom-in-95 duration-200">
                       {/* Header — mesmo padrão do NotificationMenu */}
                       <div className="px-5 py-3 bg-white/5 border-b border-white/5 flex items-center gap-3">
                         <div className="p-2 rounded-luxury bg-champagne text-petroleum">
@@ -222,10 +222,11 @@ export default function Navbar() {
                       </div>
 
                       {/* Conteúdo — bg-white e texto petroleum como no NotificationMenu */}
-                      <div className="max-h-[360px] overflow-y-auto custom-scrollbar bg-white">
+                      <div className="max-h-[480px] overflow-y-auto custom-scrollbar bg-white">
                         <div className="p-5 space-y-2">
-                          <p className="text-[11px] font-bold text-petroleum uppercase tracking-widest">
-                            Atenção ao Downgrade Automático
+                          <p className="text-[10px] font-bold text-petroleum uppercase tracking-widest">
+                            Atenção ao Downgrade Automático após expiração do
+                            teste
                           </p>
                           <div className="space-y-3">
                             <div className="flex gap-3 items-start">
@@ -267,7 +268,7 @@ export default function Navbar() {
                       {/* Footer — mesmo padrão do NotificationMenu */}
                       <div className="p-4 bg-white/5 border-t border-white/5 flex flex-col gap-2">
                         {!isProfileComplete && (
-                          <p className="text-[11px] text-amber-600 font-medium text-center">
+                          <p className="text-[11px] text-white font-medium text-center">
                             Preencha seu perfil para assinar o plano PRO.
                           </p>
                         )}
@@ -287,19 +288,6 @@ export default function Navbar() {
                           Manter meu plano PRO
                           <ArrowRight size={14} />
                         </button>
-                        {!isProfileComplete && (
-                          <button
-                            type="button"
-                            onClick={() => {
-                              setTrialOpen(false);
-                              router.push('/onboarding');
-                            }}
-                            className="btn-luxury-primary "
-                          >
-                            <User size={20} className="" />
-                            Completar meu perfil
-                          </button>
-                        )}
 
                         {/* Frase de urgência */}
                         <p className="text-center text-[9px] text-white/70 uppercase tracking-widest">
@@ -329,6 +317,8 @@ export default function Navbar() {
               session={user}
               avatarUrl={avatarUrl}
               profile={plan.profile}
+              planKey={plan.planKey as PlanKey}
+              planName={plan.planInfo?.name}
               onOpenAdminModal={() => setAdminModalOpen(true)}
             />
           </div>

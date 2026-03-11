@@ -27,16 +27,20 @@ vi.mock('@/core/services/auth-context.service', () => ({
 
 // ─── Helpers de mock Supabase ─────────────────────────────────────────────────
 
-const makeSelect = (data: unknown, error: unknown = null) => ({
-  select: vi.fn().mockReturnThis(),
-  eq: vi.fn().mockReturnThis(),
-  in: vi.fn().mockReturnThis(),
-  order: vi.fn().mockReturnThis(),
-  limit: vi.fn().mockReturnThis(),
-  single: vi.fn().mockResolvedValue({ data, error }),
-  maybeSingle: vi.fn().mockResolvedValue({ data, error }),
-  then: vi.fn().mockImplementation((r: (v: unknown) => void) => r({ data, error })),
-});
+const makeSelect = (data: unknown, error: unknown = null) => {
+  const mockBuilder = {
+    select: vi.fn().mockReturnThis(),
+    eq: vi.fn().mockReturnThis(),
+    in: vi.fn().mockReturnThis(),
+    gte: vi.fn().mockReturnThis(),
+    order: vi.fn().mockReturnThis(),
+    limit: vi.fn().mockReturnThis(),
+    single: vi.fn().mockResolvedValue({ data, error }),
+    maybeSingle: vi.fn().mockResolvedValue({ data, error }),
+    then: vi.fn().mockImplementation((r: (v: unknown) => void) => r({ data, error })),
+  };
+  return mockBuilder;
+};
 
 const makeUpsert = (error: unknown = null) => ({
   upsert: vi.fn().mockResolvedValue({ data: null, error }),
@@ -108,10 +112,12 @@ function mockAuth(override = {}) {
 
 // ─── Supabase padrão ──────────────────────────────────────────────────────────
 
-/** Monta um cliente Supabase com as sequências mínimas para requestUpgrade funcionar */
 function makeSupabaseForUpgrade(insertData: unknown = { id: 'req-new' }, insertError: unknown = null) {
   const fromMock = vi.fn()
+    .mockReturnValueOnce(makeSelect(null))      // getPendingUpgradeRequest (retorna null = sem pendência)
+    .mockReturnValueOnce(makeSelect(null))      // getCurrentActiveRequest (retorna null = sem plano ativo)
     .mockReturnValueOnce(makeUpsert())          // upsert tb_billing_profiles
+    .mockReturnValueOnce(makeSelect({ asaas_customer_id: 'cus-test-1' })) // select asaas_customer_id
     .mockReturnValueOnce(makeUpdate())          // update asaas_customer_id em tb_billing_profiles
     .mockReturnValueOnce(makeInsert(insertData, insertError)); // insert tb_upgrade_requests
 
@@ -258,7 +264,7 @@ describe('requestUpgrade — PIX', () => {
     const origFrom = supabase.from.bind(supabase);
     supabase.from = vi.fn((table: string) => {
       const builder = origFrom(table);
-      if (table === 'tb_upgrade_requests') {
+      if (table === 'tb_upgrade_requests' && builder.insert) {
         const origInsert = builder.insert.bind(builder);
         builder.insert = vi.fn((payload: Record<string, unknown>) => {
           capturedInsertPayload = payload;
@@ -295,7 +301,7 @@ describe('requestUpgrade — PIX', () => {
     const origFrom = supabase.from.bind(supabase);
     supabase.from = vi.fn((table: string) => {
       const b = origFrom(table);
-      if (table === 'tb_upgrade_requests') {
+      if (table === 'tb_upgrade_requests' && b.insert) {
         const oi = b.insert.bind(b);
         b.insert = vi.fn((p: Record<string, unknown>) => { capturedPayload = p; return oi(p); });
       }

@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useEffect, useState } from 'react';
+import React, { useEffect, useState, useRef } from 'react';
 import { SheetSection } from '@/components/ui/Sheet';
 import {
   planOrder,
@@ -42,6 +42,7 @@ export function StepPlan() {
     setExpandedPlanKey,
     suggestedPlanKey,
     terms,
+    profile,
     billingType,
     billingPeriod,
     isExempt,
@@ -58,64 +59,79 @@ export function StepPlan() {
   );
 
   useEffect(() => {
-    if (planKey === 'FREE') {
+    if (planKey === 'FREE' || profile?.is_trial) {
       setDowngradeExpiresAt(null);
       return;
     }
     const idx = planOrder.indexOf(planKey as PlanKey);
     if (idx <= 0) return;
     const firstLower = planOrder[idx - 1];
-    getUpgradePreview(firstLower, billingPeriod, billingType, segment).then(
-      (result) => {
-        const c = result.calculation;
-        if (c?.type === 'downgrade' && c.current_plan_expires_at)
-          setDowngradeExpiresAt(c.current_plan_expires_at);
-      },
-    );
+    const t = setTimeout(() => {
+      getUpgradePreview(firstLower, billingPeriod, billingType, segment).then(
+        (result) => {
+          const c = result.calculation;
+          if (c?.type === 'downgrade' && c.current_plan_expires_at)
+            setDowngradeExpiresAt(c.current_plan_expires_at);
+        },
+      );
+    }, 150);
+    return () => clearTimeout(t);
   }, [planKey, billingPeriod, billingType, segment]);
 
+  const previewDebounceMs = 320;
+  const previewTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+
   useEffect(() => {
-    if (planKey === 'FREE' || selectedPlan === 'FREE') {
+    if (planKey === 'FREE' || selectedPlan === 'FREE' || profile?.is_trial) {
       setUpgradePreview(null);
       setHasPendingUpgrade(false);
       setUpgradeCalculation(null);
       setDowngradeBlockedMessage(null);
       return;
     }
+    if (previewTimeoutRef.current) {
+      clearTimeout(previewTimeoutRef.current);
+      previewTimeoutRef.current = null;
+    }
     let cancelled = false;
-    // Sempre exibir o cálculo em base mensal no passo Plano; no StepBilling o valor é recalculado conforme o período selecionado.
-    getUpgradePreview(selectedPlan, 'monthly', billingType, segment).then(
-      (result) => {
-        if (!cancelled) {
-          setUpgradePreview(result);
-          setHasPendingUpgrade(result.has_pending ?? false);
-          const calc = result.calculation;
-          setUpgradeCalculation(calc ?? null);
-          // Só tratar como downgrade se o plano selecionado for realmente inferior ao atual (ordem dos planos)
-          const selectedIdx = planOrder.indexOf(selectedPlan as PlanKey);
-          const currentIdx = planOrder.indexOf(planKey as PlanKey);
-          const isDowngradeByOrder =
-            selectedIdx >= 0 && currentIdx >= 0 && selectedIdx < currentIdx;
-          if (
-            calc?.type === 'downgrade' &&
-            calc.current_plan_expires_at &&
-            isDowngradeByOrder
-          ) {
-            setDowngradeBlockedMessage(
-              `Mudança para planos inferiores permitida apenas após o vencimento do plano atual em ${formatDate(calc.current_plan_expires_at)}.`,
-            );
-            setDowngradeExpiresAt(calc.current_plan_expires_at);
-          } else {
-            setDowngradeBlockedMessage(null);
-            if (calc?.current_plan_expires_at && isDowngradeByOrder)
+    previewTimeoutRef.current = setTimeout(() => {
+      previewTimeoutRef.current = null;
+      getUpgradePreview(selectedPlan, 'monthly', billingType, segment).then(
+        (result) => {
+          if (!cancelled) {
+            setUpgradePreview(result);
+            setHasPendingUpgrade(result.has_pending ?? false);
+            const calc = result.calculation;
+            setUpgradeCalculation(calc ?? null);
+            const selectedIdx = planOrder.indexOf(selectedPlan as PlanKey);
+            const currentIdx = planOrder.indexOf(planKey as PlanKey);
+            const isDowngradeByOrder =
+              selectedIdx >= 0 && currentIdx >= 0 && selectedIdx < currentIdx;
+            if (
+              calc?.type === 'downgrade' &&
+              calc.current_plan_expires_at &&
+              isDowngradeByOrder
+            ) {
+              setDowngradeBlockedMessage(
+                `Mudança para planos inferiores permitida apenas após o vencimento do plano atual em ${formatDate(calc.current_plan_expires_at)}.`,
+              );
               setDowngradeExpiresAt(calc.current_plan_expires_at);
-            else if (!isDowngradeByOrder) setDowngradeExpiresAt(null);
+            } else {
+              setDowngradeBlockedMessage(null);
+              if (calc?.current_plan_expires_at && isDowngradeByOrder)
+                setDowngradeExpiresAt(calc.current_plan_expires_at);
+              else if (!isDowngradeByOrder) setDowngradeExpiresAt(null);
+            }
           }
-        }
-      },
-    );
+        },
+      );
+    }, previewDebounceMs);
     return () => {
       cancelled = true;
+      if (previewTimeoutRef.current) {
+        clearTimeout(previewTimeoutRef.current);
+        previewTimeoutRef.current = null;
+      }
     };
   }, [
     selectedPlan,
@@ -131,14 +147,13 @@ export function StepPlan() {
     upgradePreview?.success &&
     upgradePreview?.has_active_plan &&
     upgradePreview?.calculation;
-  const planName =
-    PLANS_BY_SEGMENT[segment]?.[selectedPlan]?.name ?? selectedPlan;
 
   // Downgrade real: plano selecionado é inferior ao atual (pela ordem dos planos)
   const selectedIdx = planOrder.indexOf(selectedPlan as PlanKey);
   const currentIdx = planOrder.indexOf(planKey as PlanKey);
   const isDowngradeByOrder =
     planKey !== 'FREE' &&
+    !profile?.is_trial &&
     selectedIdx >= 0 &&
     currentIdx >= 0 &&
     selectedIdx < currentIdx;
@@ -158,7 +173,7 @@ export function StepPlan() {
       {isExempt && selectedPlan === planKey && (
         <div className="rounded-lg border border-gold/30 bg-gold/5 px-3 py-2.5 text-[11px] text-petroleum">
           <p className="font-medium text-petroleum">
-            Você possui possui isenção neste plano.
+            Você possui possui isenção no plano atual {planKey}.
           </p>
         </div>
       )}
@@ -183,11 +198,14 @@ export function StepPlan() {
           </p>
         </div>
       )}
-      {!calc && planKey !== 'FREE' && selectedPlan !== 'FREE' ? (
+      {!calc &&
+      planKey !== 'FREE' &&
+      selectedPlan !== 'FREE' &&
+      !profile?.is_trial ? (
         <div className="py-4">
-          <LoadingSpinner text="Calculando crédito para uso no upgrade..." />
+          <LoadingSpinner message="Calculando crédito para uso no upgrade..." />
         </div>
-      ) : showUpgradeBox ? (
+      ) : showUpgradeBox && !profile?.is_trial ? (
         <div
           className={`rounded-lg border px-3 py-2.5 text-[11px] ${
             calc!.is_free_upgrade
@@ -269,8 +287,9 @@ export function StepPlan() {
             const isCurr = p === (planKey as PlanKey);
             const isDowngrade =
               planKey !== 'FREE' &&
+              !profile?.is_trial &&
               planOrder.indexOf(p) < planOrder.indexOf(planKey as PlanKey);
-            const disabled = isCurr || isDowngrade;
+            const disabled = (!profile?.is_trial && isCurr) || isDowngrade;
             const downgradeTooltip = isDowngrade
               ? downgradeExpiresAt
                 ? `Mudança para planos inferiores permitida apenas após o vencimento do plano atual em ${formatDate(downgradeExpiresAt)}.`
@@ -295,6 +314,7 @@ export function StepPlan() {
                 }
                 benefits={getPlanBenefits(perms, terms)}
                 planIcon={PLAN_ICONS[p]}
+                isTrial={profile?.is_trial ?? false}
               />
             );
           })}

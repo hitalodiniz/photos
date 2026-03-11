@@ -224,17 +224,6 @@ export function GaleriaDriveSection({
                     <p className="text-[10px] text-emerald-700 leading-tight">
                       Dentro do limite recomendado de{' '}
                       <strong>{alertThreshold} arquivos</strong> por galeria.
-                      {galleriesRemaining > 0 && (
-                        <>
-                          {' '}
-                          Após salvar, você ainda poderá criar{' '}
-                          <strong>
-                            {galleriesRemaining} galeria
-                            {galleriesRemaining > 1 ? 's' : ''}
-                          </strong>
-                          .
-                        </>
-                      )}
                     </p>
                   </div>
                 </div>

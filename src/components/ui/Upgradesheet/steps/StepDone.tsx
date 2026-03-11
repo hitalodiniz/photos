@@ -46,6 +46,13 @@ function getBoletoVencimento(days = 3) {
   return d.toLocaleDateString('pt-BR');
 }
 
+/** Formata data YYYY-MM-DD (Asaas) para DD/MM/YYYY (pt-BR). */
+function formatDueDatePtBr(iso: string): string {
+  const [y, m, d] = iso.split('-').map(Number);
+  if (!y || !m || !d) return iso;
+  return new Date(y, m - 1, d).toLocaleDateString('pt-BR');
+}
+
 function formatDateLong(iso: string): string {
   return new Date(iso).toLocaleDateString('pt-BR', {
     day: '2-digit',
@@ -74,7 +81,7 @@ function OrderSummary({
   return (
     <div className="w-full bg-petroleum/5 rounded-xl border border-petroleum/10 px-4 py-3 flex items-center justify-between gap-3">
       <div className="text-left min-w-0">
-        <p className="text-[10px] font-bold uppercase tracking-wider text-petroleum/40">
+        <p className="text-[10px] font-bold uppercase tracking-wider text-petroleum/80">
           Contratado
         </p>
         <p className="text-[13px] font-bold text-petroleum truncate">
@@ -101,10 +108,12 @@ function NextStep({
 }) {
   return (
     <div className="flex items-start gap-2.5 text-left">
-      <div className="w-5 h-5 rounded-full bg-gold/15 flex items-center justify-center shrink-0 mt-0.5">
-        <Icon size={10} className="text-gold" />
+      <div className="flex items-center justify-center shrink-0">
+        <Icon size={14} className="text-gold" />
       </div>
-      <p className="text-[11px] text-petroleum/80 leading-snug">{text}</p>
+      <p className="text-[12px] font-medium text-petroleum/90 leading-snug">
+        {text}
+      </p>
     </div>
   );
 }
@@ -113,11 +122,19 @@ function NextStep({
 
 function SecurityBadge() {
   return (
-    <div className="flex items-center justify-center gap-1.5 text-petroleum/80">
-      <ShieldCheck size={11} />
-      <span className="text-[9px] font-semibold uppercase tracking-wider">
-        Pagamento seguro · Processado pela Asaas
-      </span>
+    <div className="flex flex-col items-center gap-1">
+      <div className="flex items-center justify-center gap-1.5 text-petroleum/60">
+        <ShieldCheck size={11} className="text-emerald-600" />
+        <span className="text-[9px] font-bold uppercase tracking-wider">
+          Pagamento seguro · Processado pela Asaas
+        </span>
+      </div>
+
+      {/* Texto de reforço de autoridade */}
+      <p className="text-[9px] text-petroleum/90 max-w-[350px] text-center leading-tight ">
+        Seus dados são protegidos por criptografia SSL. O Asaas é uma
+        instituição de pagamento autorizada pelo Banco Central do Brasil.
+      </p>
     </div>
   );
 }
@@ -234,7 +251,7 @@ function StepDonePix({
   if (paymentConfirmed) {
     return (
       <>
-        <div className="flex flex-col items-center gap-4 px-4 py-3 w-full">
+        <div className="flex flex-col items-center gap-4 px-4 py-2 w-full">
           <div className="flex flex-col items-center gap-2">
             <div className="w-14 h-14 rounded-full bg-emerald-100 border-2 border-emerald-300 flex items-center justify-center">
               <Check size={28} className="text-emerald-600" strokeWidth={2.5} />
@@ -270,7 +287,7 @@ function StepDonePix({
                   setShowSuccessModal(false);
                   onPaymentConfirmedClose?.();
                 }}
-                className="px-4 py-2 rounded-lg bg-champagne text-petroleum font-semibold text-sm hover:bg-champagne/90 transition-colors"
+                className="px-4 py-2 h-8 rounded-lg bg-champagne text-petroleum font-semibold text-sm hover:bg-champagne/90 transition-colors"
               >
                 Fechar
               </button>
@@ -536,16 +553,22 @@ function StepDoneCreditCard({
 
 function StepDoneBoleto({
   paymentUrl,
+  paymentDueDate,
   planName,
   period,
   amount,
 }: {
   paymentUrl?: string | null;
+  /** Data de vencimento YYYY-MM-DD vinda do Asaas; quando presente, usada em vez do cálculo local. */
+  paymentDueDate?: string | null;
   planName: string;
   period: string;
   amount?: number | null;
 }) {
-  const vencimento = getBoletoVencimento(3);
+  const vencimento =
+    paymentDueDate && /^\d{4}-\d{2}-\d{2}/.test(paymentDueDate)
+      ? formatDueDatePtBr(paymentDueDate.split('T')[0])
+      : getBoletoVencimento(3);
 
   return (
     <div className="flex flex-col items-center gap-5 px-4 py-6 w-full">
@@ -572,9 +595,9 @@ function StepDoneBoleto({
         <AlertCircle size={13} className="text-amber-500 shrink-0 mt-0.5" />
         <div>
           <p className="text-[11px] font-bold text-amber-800">
-            Vencimento em {vencimento}
+            Vencimento do plano em {vencimento}
           </p>
-          <p className="text-[10px] text-amber-700/80 mt-0.5 leading-snug">
+          <p className="text-[11px] text-amber-700 mt-0.5 leading-snug font-medium">
             O plano é ativado após a compensação bancária, que pode levar até 1
             dia útil após o pagamento.
           </p>
@@ -583,7 +606,7 @@ function StepDoneBoleto({
 
       {/* Próximos passos */}
       <div className="w-full space-y-2.5">
-        <p className="text-[10px] font-bold uppercase tracking-wider text-petroleum/40">
+        <p className="text-[10px] font-bold uppercase tracking-wider text-petroleum/80">
           O que acontece agora
         </p>
         <NextStep
@@ -601,15 +624,21 @@ function StepDoneBoleto({
       </div>
 
       {paymentUrl && (
-        <a
-          href={paymentUrl}
-          target="_blank"
-          rel="noopener noreferrer"
-          className="btn-luxury-primary w-full flex items-center justify-center gap-2"
-        >
-          <FileText size={13} />
-          Baixar boleto
-        </a>
+        <div className="w-full space-y-2">
+          <p className="text-[10px] text-petroleum/90 text-center leading-snug">
+            O download do PDF será iniciado. Caso não ocorra, clique no botão
+            abaixo.
+          </p>
+          <a
+            href={paymentUrl}
+            target="_blank"
+            rel="noopener noreferrer"
+            className="btn-luxury-primary max-w-max-[80px] flex items-center justify-center gap-2"
+          >
+            <FileText size={13} />
+            Baixar boleto
+          </a>
+        </div>
       )}
 
       <SecurityBadge />
@@ -709,6 +738,7 @@ export function StepDone() {
   const router = useRouter();
   const {
     paymentUrl,
+    paymentDueDate,
     pixData,
     downgradeEffectiveAt,
     selectedPlanInfo,
@@ -718,6 +748,7 @@ export function StepDone() {
     handleClose,
     upgradeRequestId,
     upgradeCalculation,
+    requestWarning,
   } = useUpgradeSheetContext();
 
   const planName = selectedPlanInfo?.name ?? selectedPlan;
@@ -767,6 +798,11 @@ export function StepDone() {
 
   return (
     <div className="flex flex-col min-h-full overflow-y-auto">
+      {requestWarning && (
+        <div className="mx-4 mt-2 rounded-lg border border-amber-200 bg-amber-50 px-3 py-2.5 text-[11px] text-amber-900">
+          <p className="font-medium">{requestWarning}</p>
+        </div>
+      )}
       {/* Conteúdo por billing_type */}
       {billingType === 'PIX' ? (
         <StepDonePix
@@ -781,6 +817,7 @@ export function StepDone() {
       ) : billingType === 'BOLETO' ? (
         <StepDoneBoleto
           paymentUrl={paymentUrl}
+          paymentDueDate={paymentDueDate}
           planName={planName}
           period={billingPeriod ?? 'monthly'}
           amount={amount}

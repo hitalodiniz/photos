@@ -9,6 +9,7 @@ import {
   Lock,
   ChevronDown,
   AlertCircle,
+  Banknote,
 } from 'lucide-react';
 import { SheetSection } from '@/components/ui/Sheet';
 import { FieldLabel } from '../FieldLabel';
@@ -99,11 +100,13 @@ export function StepBilling() {
     selectedPlan,
     segment,
     planKey,
+    profile,
   } = useUpgradeSheetContext();
 
   // Atualizar cálculo de upgrade ao mudar período/forma no Step Billing para o box de Upgrade Gratuito refletir o ciclo correto (mensal/semestral/anual)
   useEffect(() => {
-    if (planKey === 'FREE' || selectedPlan === 'FREE') return;
+    if (planKey === 'FREE' || selectedPlan === 'FREE' || profile?.is_trial)
+      return;
     let cancelled = false;
     getUpgradePreview(selectedPlan, billingPeriod, billingType, segment).then(
       (result) => {
@@ -420,6 +423,7 @@ export function StepBilling() {
                 Icon: CreditCard,
               },
               { value: 'PIX' as BillingType, label: 'PIX', Icon: QrCode },
+              { value: 'BOLETO' as BillingType, label: 'Boleto', Icon: Banknote },
             ] as const
           ).map(({ value, label, Icon }) => (
             <button

@@ -277,8 +277,6 @@ export default function PhotoGrid({ photos, galeria }: any) {
     [galeria?.zip_url_full],
   );
 
-  console.log('externalLinks', galeria.zip_url_full);
-
   const toggleFavoriteFromGrid = (id: string) => {
     setFavorites((prev) =>
       prev.includes(id) ? prev.filter((f) => f !== id) : [...prev, id],
@@ -453,8 +451,16 @@ export default function PhotoGrid({ photos, galeria }: any) {
     shareAsGuest();
   };
 
+  const themeKey =
+    galeria?.theme_key && galeria.theme_key.trim() !== ''
+      ? galeria.theme_key
+      : undefined;
+
   return (
-    <div className="relative w-full">
+    <div
+      className="relative w-full min-h-full"
+      {...(themeKey ? { 'data-theme': themeKey } : {})}
+    >
       {/* TOOLBARS */}
       <div className="sticky top-0 z-[100] w-full pointer-events-none">
         <ToolBarDesktop
@@ -479,6 +485,7 @@ export default function PhotoGrid({ photos, galeria }: any) {
             externalLinks,
             setUpsellFeature,
             getGalleryPermission,
+            themeKey,
           }}
           tags={tagsDaGaleria}
           handleShare={handleShare}
@@ -502,6 +509,7 @@ export default function PhotoGrid({ photos, galeria }: any) {
             handleExternalDownload,
             externalLinks,
             getGalleryPermission,
+            themeKey,
           }}
           tags={tagsDaGaleria}
           handleShare={handleShare}
@@ -552,6 +560,7 @@ export default function PhotoGrid({ photos, galeria }: any) {
         externalLinks={externalLinks}
         handleExternalDownload={handleExternalDownload}
         galeriaTitle={galeria.title}
+        themeKey={themeKey}
       />
 
       {/* BOTAO FLUTUANTE DE DOWNLOAD FAVORITOS */}
@@ -683,6 +692,7 @@ export default function PhotoGrid({ photos, galeria }: any) {
         title="Finalizar Selecao"
         confirmText="Sim, Enviar Selecao"
         isLoading={isSavingSelections}
+        themeKey={themeKey}
         message={
           <div className="space-y-2">
             <p>

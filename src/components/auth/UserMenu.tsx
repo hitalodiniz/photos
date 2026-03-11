@@ -2,9 +2,18 @@
 import React, { useState, useEffect, useRef, useMemo } from 'react';
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
-import { LogOut, User2, Settings2, MessageSquare, ShieldAlert, CreditCard } from 'lucide-react';
+import {
+  LogOut,
+  User2,
+  Settings2,
+  MessageSquare,
+  ShieldAlert,
+  CreditCard,
+} from 'lucide-react';
 import { useAuth } from '@photos/core-auth';
 import { useNavigation } from '../providers/NavigationProvider';
+import { PLAN_ICONS } from '@/components/ui/Upgradesheet/constants';
+import type { PlanKey } from '@/core/config/plans';
 
 interface UserMenuProps {
   session: {
@@ -18,7 +27,11 @@ interface UserMenuProps {
   } | null;
   avatarUrl?: string | null;
   /** Perfil do usuário (tb_profiles). Se roles incluir 'admin', exibe entrada do Painel Admin. */
-  profile?: { roles?: string[] } | null;
+  profile?: { roles?: string[]; plan_key?: PlanKey } | null;
+  /** Plano atual (do usePlan). Usado para exibir ícone e nome no menu. */
+  planKey?: PlanKey;
+  /** Nome de exibição do plano (ex.: "Start", "Pro"). */
+  planName?: string;
   /** Callback para abrir o modal do Painel Admin (Cache & Tokens). Usado na Navbar. */
   onOpenAdminModal?: () => void;
 }
@@ -27,6 +40,8 @@ export default function UserMenu({
   session,
   avatarUrl,
   profile,
+  planKey,
+  planName,
   onOpenAdminModal,
 }: UserMenuProps) {
   const pathname = usePathname();
@@ -106,8 +121,7 @@ export default function UserMenu({
         {isOpen && (
           /* 🎯 glass-surface-dark: Fundo translúcido com desfoque profundo */
           <div className="absolute right-0 mt-1 w-72 glass-surface rounded-xl py-4 z-[110] animate-in fade-in zoom-in-95 duration-200">
-            {' '}
-          <div className="flex flex-col items-center px-6 pb-2 text-center border-b border-white/5">ma
+            <div className="flex flex-col items-center px-6 pb-2 text-center border-b border-white/5">
               <div className="mb-2 relative">
                 <div className="p-1 rounded-full bg-white/5 ring-1 ring-gold/20">
                   {renderAvatarContent('w-16 h-16', 'text-2xl', true)}
@@ -117,9 +131,25 @@ export default function UserMenu({
               <h3 className="text-[15px] font-semibold text-white truncate w-full tracking-luxury-tight">
                 {fullName}
               </h3>
-              <p className="text-[10px] text-white/80 truncate w-full font-medium tracking-luxury-wide mt-1 uppercase">
+              <p className="text-[9px] text-white/80 truncate w-full font-medium tracking-luxury-wide mt-1">
                 {userEmail}
               </p>
+              {(planKey || planName) && (
+                <p className="flex items-center justify-center gap-1.5 text-[10px] text-white/80 font-medium tracking-luxury-wide mt-1 uppercase">
+                  {planKey && PLAN_ICONS[planKey] && (
+                    <span className="text-gold shrink-0">
+                      {React.createElement(PLAN_ICONS[planKey], { size: 12 })}
+                    </span>
+                  )}
+                  <span className="truncate">
+                    {planName
+                      ? `Plano ${planName}`
+                      : planKey
+                        ? `Plano ${planKey}`
+                        : ''}
+                  </span>
+                </p>
+              )}
             </div>
             <div className="px-3 pt-2 space-y-1">
               {profile?.roles?.includes('admin') && onOpenAdminModal && (

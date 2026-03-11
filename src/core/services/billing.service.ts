@@ -60,15 +60,33 @@ function addMonths(date: Date, n: number): Date {
 }
 
 /**
+ * Extrai a data de vencimento das notes (ex.: upgrade gratuito "Nova data de vencimento: 2026-06-16T...").
+ * Retorna a Date ou null.
+ */
+function parseExpiryFromNotes(notes: string | null | undefined): Date | null {
+  if (!notes?.trim()) return null;
+  const match = notes.match(/Nova data de vencimento:\s*([^\s.]+)/i);
+  if (!match?.[1]) return null;
+  const date = new Date(match[1].trim());
+  return Number.isNaN(date.getTime()) ? null : date;
+}
+
+/**
  * Calcula a data de expiração do plano pago a partir do histórico.
- * Usa a solicitação aprovada mais recente (processed_at + billing_period).
+ * Preferência: data extraída das notes da solicitação aprovada ("Nova data de vencimento:");
+ * caso contrário usa processed_at + billing_period.
  * Retorna ISO string ou null.
  */
 export async function getSubscriptionExpiresAt(
   history: UpgradeRequest[],
 ): Promise<string | null> {
   const approved = history.find((r) => r.status === 'approved');
-  if (!approved?.processed_at) return null;
+  if (!approved) return null;
+
+  const fromNotes = parseExpiryFromNotes(approved.notes);
+  if (fromNotes) return fromNotes.toISOString();
+
+  if (!approved.processed_at) return null;
   const start = new Date(approved.processed_at);
   const months = billingPeriodToMonths(approved.billing_period);
   const endsAt = addMonths(start, months);

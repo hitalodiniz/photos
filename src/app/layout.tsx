@@ -61,7 +61,7 @@ export default async function RootLayout({
       : undefined;
   const email =
     resultProfile.success && resultProfile.profile
-      ? resultProfile.email ?? null
+      ? (resultProfile.email ?? null)
       : undefined;
 
   return (
@@ -71,21 +71,23 @@ export default async function RootLayout({
       suppressHydrationWarning // 🎯 Necessário para o script de injeção
     >
       <head>
-        {/* 🎯 Injeção do LocalStorage para evitar o "Flash" de tema */}
         <script
           dangerouslySetInnerHTML={{
             __html: `
-              (function() {
-                try {
-                  var seg = localStorage.getItem('debug-segment') || '${segment}';
-                  document.documentElement.setAttribute('data-segment', seg);
-                } catch (e) {}
-              })();
-            `,
+        (function() {
+          try {
+            var seg = localStorage.getItem('debug-segment') || '${segment}';
+            document.documentElement.setAttribute('data-segment', seg);
+            var profileTheme = ${JSON.stringify(profile?.theme_key ?? '')};
+            var theme = localStorage.getItem('debug-theme') || profileTheme || 'PHOTOGRAPHER';
+            document.documentElement.setAttribute('data-theme', theme);
+          } catch (e) {}
+        })();
+      `,
           }}
         />
       </head>
-      <body className="antialiased font-sans bg-luxury-bg text-petroleum">
+      <body className="antialiased font-sans">
         <AuthProvider>
           <PlanProvider profile={profile} email={email}>
             <NavigationProvider>

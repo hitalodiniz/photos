@@ -1,8 +1,8 @@
 'use client';
 
 import React from 'react';
-import { STEP_ORDER, STEP_LABELS } from './constants';
-import type { Step } from './types';
+import { STEP_ORDER, STEP_LABELS } from '../constants';
+import type { Step } from '../types';
 
 interface StepIndicatorProps {
   current: Step;
@@ -22,7 +22,7 @@ export function StepIndicator({ current }: StepIndicatorProps) {
           <React.Fragment key={s}>
             <div className="flex flex-col items-center gap-0.5">
               <div
-                className={`w-5 h-5 rounded-full flex items-center justify-center text-[8px] font-semibold transition-all ${
+                className={`w-5 h-5 rounded-full flex items-center justify-center text-[9px] font-semibold transition-all ${
                   isDone
                     ? 'bg-gold text-petroleum'
                     : isActive
@@ -33,7 +33,7 @@ export function StepIndicator({ current }: StepIndicatorProps) {
                 {isDone ? '✓' : i + 1}
               </div>
               <span
-                className={`text-[7px] font-bold uppercase tracking-wide ${
+                className={`text-[9px] font-semibold uppercase tracking-wide ${
                   isActive
                     ? 'text-petroleum'
                     : isDone

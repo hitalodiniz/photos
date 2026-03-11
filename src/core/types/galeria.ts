@@ -88,6 +88,8 @@ export interface GaleriaBase {
   photo_count: number;
   enable_favorites: boolean;
   enable_slideshow: boolean;
+  /** Tema visual da galeria (EDITORIAL_WHITE, PHOTOGRAPHER, DARK_CINEMA, etc.) */
+  theme_key?: string | null;
   google_refresh_token: string | null;
   gallery_tags: string | null;
   photo_tags: string | null;

@@ -1,5 +1,5 @@
 'use client';
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import type { Galeria } from '@/core/types/galeria';
 import GaleriaFooter from './GaleriaFooter';
 import { RESOLUTIONS } from '@/core/utils/url-helper';
@@ -21,11 +21,44 @@ interface GaleriaViewProps {
 export default function GaleriaView({ galeria, photos }: GaleriaViewProps) {
   const isMobile = useIsMobile();
   const [isPageLoading, setIsPageLoading] = useState(true);
+  const systemThemeForRestoreRef = useRef<string | null>(null);
 
   useEffect(() => {
     const timer = setTimeout(() => setIsPageLoading(false), 1500);
     return () => clearTimeout(timer);
   }, []);
+
+  /* Tema da galeria no <html>: aplica ao entrar e restaura ao sair. Usa valor estável para restore. */
+  useEffect(() => {
+    const galleryTheme =
+      galeria?.theme_key && String(galeria.theme_key).trim() !== ''
+        ? galeria.theme_key
+        : null;
+
+    if (galleryTheme) {
+      if (systemThemeForRestoreRef.current === null) {
+        systemThemeForRestoreRef.current =
+          document.documentElement.getAttribute('data-theme');
+      }
+      document.documentElement.setAttribute('data-theme', galleryTheme);
+    }
+
+    return () => {
+      if (galleryTheme) {
+        const toRestore = systemThemeForRestoreRef.current;
+        if (toRestore !== null && toRestore !== undefined) {
+          document.documentElement.setAttribute('data-theme', toRestore);
+        } else {
+          const fallback =
+            typeof localStorage !== 'undefined'
+              ? localStorage.getItem('debug-theme') || 'PHOTOGRAPHER'
+              : 'PHOTOGRAPHER';
+          document.documentElement.setAttribute('data-theme', fallback);
+        }
+        systemThemeForRestoreRef.current = null;
+      }
+    };
+  }, [galeria?.theme_key]);
 
   const showCover = galeria.show_cover_in_grid ?? true;
   const bgColor = galeria.grid_bg_color ?? '#F9F5F0';

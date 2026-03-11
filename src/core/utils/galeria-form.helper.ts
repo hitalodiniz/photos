@@ -83,6 +83,9 @@ export function extractGalleryFormData(formData: FormData) {
     enable_favorites: formData.get('enable_favorites') === 'true',
     enable_slideshow: formData.get('enable_slideshow') === 'true',
 
+    // Tema visual da galeria (EDITORIAL_WHITE, PHOTOGRAPHER, etc.)
+    theme_key: (formData.get('theme_key') as string) || null,
+
     // Expiração (final do dia no fuso de São Paulo, UTC-3)
     expires_at: (() => {
       const raw = formData.get('expires_at') as string | null;

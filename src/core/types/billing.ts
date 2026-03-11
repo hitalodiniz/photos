@@ -109,6 +109,10 @@ export interface UpgradeRequestResult {
   request_id?: string;
   /** Preenchido quando a solicitação é downgrade: data em que a mudança será efetivada. */
   downgrade_effective_at?: string;
+  /** Data de vencimento da cobrança (YYYY-MM-DD), vinda do Asaas; usado na tela "Boleto gerado". */
+  payment_due_date?: string;
+  /** Aviso quando o pagamento anterior já estava RECEIVED/CONFIRMED (valor será crédito no novo plano). */
+  warning?: string;
   error?: string;
 }
 

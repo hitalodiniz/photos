@@ -10,7 +10,6 @@ import {
   CreditCard,
 } from 'lucide-react';
 import { Sheet, SheetFooter } from '@/components/ui/Sheet';
-import { TermsOfServiceModal } from '@/app/(public)/termos/TermosContent';
 import ConfirmationModal from '@/components/ui/ConfirmationModal';
 import type { PlanKey } from '@/core/config/plans';
 import { findNextPlanKeyWithFeature, planOrder } from '@/core/config/plans';
@@ -21,7 +20,7 @@ import {
   useUpgradeSheetContext,
 } from './UpgradeSheetContext';
 import { PLAN_ICONS, STEP_TITLES } from './constants';
-import { StepIndicator } from './StepIndicator';
+import { StepIndicator } from './steps/StepIndicator';
 import { StepPlan } from './steps/StepPlan';
 import { StepPersonal } from './steps/StepPersonal';
 import { StepBilling } from './steps/StepBilling';
@@ -49,7 +48,6 @@ function UpgradeSheetContent({
     selectedPlan,
     selectedPlanInfo,
     canProceedData,
-    loading,
     handleClose,
     isExempt,
     planKey,
@@ -192,10 +190,12 @@ function UpgradeSheetContent({
 }
 
 function ConfirmButton() {
-  const { loading, handleConfirm, billingType, upgradeCalculation } = useUpgradeSheetContext();
+  const { loading, handleConfirm, billingType, upgradeCalculation } =
+    useUpgradeSheetContext();
   const isFreeUpgrade =
     upgradeCalculation?.is_free_upgrade === true ||
-    (upgradeCalculation?.amount_final != null && upgradeCalculation.amount_final === 0);
+    (upgradeCalculation?.amount_final != null &&
+      upgradeCalculation.amount_final === 0);
   return (
     <button
       type="button"
@@ -215,7 +215,9 @@ function ConfirmButton() {
             ? 'Confirmar Upgrade Gratuito'
             : billingType === 'PIX'
               ? 'Confirmar e Gerar Pix'
-              : 'Confirmar Solicitação'}
+              : billingType === 'BOLETO'
+                ? 'Confirmar e Gerar Boleto'
+                : 'Confirmar Solicitação'}
         </>
       )}
     </button>

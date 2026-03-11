@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useEffect, useRef } from 'react';
+import React, { useEffect, useRef, useState } from 'react';
 import {
   CheckCircle2,
   CreditCard,
@@ -12,12 +12,18 @@ import {
   Hash,
   Building2,
   Map,
+  AlertCircle,
 } from 'lucide-react';
 import { SheetSection } from '@/components/ui/Sheet';
 import { InfoTooltip } from '@/components/ui/InfoTooltip';
 import { FieldLabel } from '../FieldLabel';
 import { useUpgradeSheetContext } from '../UpgradeSheetContext';
-import { formatCpfCnpj, formatCep, formatPhone } from '../utils';
+import {
+  formatCpfCnpj,
+  formatCep,
+  formatPhone,
+  validateCpfCnpj,
+} from '../utils';
 
 export function StepPersonal() {
   const {
@@ -38,13 +44,16 @@ export function StepPersonal() {
 
   const cpfInputRef = useRef<HTMLInputElement>(null);
 
+  const [cpfTouched, setCpfTouched] = useState(false);
+  const cpfError = cpfTouched ? validateCpfCnpj(personal.cpfCnpj) : null;
+
   useEffect(() => {
     if (!loadingPrefill) cpfInputRef.current?.focus();
   }, [loadingPrefill]);
 
   return (
     <SheetSection title="Dados cadastrais">
-      <div className="relative space-y-4">
+      <div className="relative space-y-3">
         {hasSavedBillingData && (
           <div className="flex items-center gap-1.5 px-1 pb-1">
             <CheckCircle2 size={10} className="text-emerald-400 shrink-0" />
@@ -60,20 +69,33 @@ export function StepPersonal() {
             {loadingPrefill ? (
               <div className="w-full h-9 bg-slate-200 rounded-[0.4rem] animate-pulse" />
             ) : (
-              <input
-                ref={cpfInputRef}
-                type="text"
-                inputMode="numeric"
-                value={personal.cpfCnpj}
-                onChange={(e) =>
-                  setPersonal((p) => ({
-                    ...p,
-                    cpfCnpj: formatCpfCnpj(e.target.value),
-                  }))
-                }
-                placeholder="000.000.000-00"
-                className="w-full px-2.5 py-2 h-9 bg-slate-50 border border-slate-200 rounded-[0.4rem] text-[10px] text-petroleum font-medium outline-none"
-              />
+              <>
+                <input
+                  ref={cpfInputRef}
+                  type="text"
+                  inputMode="numeric"
+                  value={personal.cpfCnpj}
+                  onChange={(e) =>
+                    setPersonal((p) => ({
+                      ...p,
+                      cpfCnpj: formatCpfCnpj(e.target.value),
+                    }))
+                  }
+                  onBlur={() => setCpfTouched(true)}
+                  placeholder="000.000.000-00 ou 00.000.000/0000-00"
+                  className={`w-full px-2.5 py-2 h-9 bg-slate-50 border rounded-[0.4rem] text-[10px] text-petroleum font-medium outline-none focus:border-gold/60 ${
+                    cpfError ? 'border-red-400' : 'border-slate-200'
+                  }`}
+                />
+                {cpfError && (
+                  <div className="flex items-center gap-1 mt-0.5">
+                    <AlertCircle size={10} className="text-red-500 shrink-0" />
+                    <p className="text-[9px] text-red-600 font-medium">
+                      {cpfError}
+                    </p>
+                  </div>
+                )}
+              </>
             )}
           </div>
           <div className="space-y-1 min-w-0">
@@ -91,7 +113,8 @@ export function StepPersonal() {
               className="w-full px-2.5 py-2 h-9 bg-slate-50 border border-slate-200 rounded-[0.4rem] text-[10px] text-petroleum font-medium outline-none"
             />
             <p className="text-[8px] text-slate-400">
-              Pode ser diferente do nome do seu perfil. Será usado na fatura e na NF-e.
+              Pode ser diferente do nome do seu perfil. Será usado na fatura e
+              na NF-e.
             </p>
           </div>
         </div>
@@ -101,7 +124,10 @@ export function StepPersonal() {
             <FieldLabel icon={Mail} label="E-mail" />
             <div className="w-full px-2.5 py-2 bg-slate-50 border border-slate-200 rounded-[0.4rem] text-[10px] text-petroleum font-medium outline-none flex items-center justify-between min-h-9">
               <span className="truncate">{profile?.email ?? email ?? '—'}</span>
-              <CheckCircle2 size={10} className="text-emerald-400 shrink-0 ml-1" />
+              <CheckCircle2
+                size={10}
+                className="text-emerald-400 shrink-0 ml-1"
+              />
             </div>
           </div>
           <div className="space-y-1 min-w-0">
@@ -156,7 +182,9 @@ export function StepPersonal() {
               ref={streetInputRef}
               type="text"
               value={address.street}
-              onChange={(e) => setAddress((a) => ({ ...a, street: e.target.value }))}
+              onChange={(e) =>
+                setAddress((a) => ({ ...a, street: e.target.value }))
+              }
               onBlur={() => {
                 if (address.street.trim()) numberInputRef.current?.focus();
               }}
@@ -166,14 +194,19 @@ export function StepPersonal() {
           </div>
         </div>
 
-        <div className="grid gap-2" style={{ gridTemplateColumns: '30% 30% 40%' }}>
+        <div
+          className="grid gap-2"
+          style={{ gridTemplateColumns: '30% 30% 40%' }}
+        >
           <div className="space-y-1 min-w-0">
             <FieldLabel icon={Hash} label="Número" required />
             <input
               ref={numberInputRef}
               type="text"
               value={address.number}
-              onChange={(e) => setAddress((a) => ({ ...a, number: e.target.value }))}
+              onChange={(e) =>
+                setAddress((a) => ({ ...a, number: e.target.value }))
+              }
               placeholder="123"
               className="w-full px-2.5 py-2 h-9 bg-slate-50 border border-slate-200 rounded-[0.4rem] text-[10px] text-petroleum font-medium outline-none"
             />
@@ -210,7 +243,9 @@ export function StepPersonal() {
             <input
               type="text"
               value={address.city}
-              onChange={(e) => setAddress((a) => ({ ...a, city: e.target.value }))}
+              onChange={(e) =>
+                setAddress((a) => ({ ...a, city: e.target.value }))
+              }
               placeholder="São Paulo"
               className="w-full px-2.5 py-2 h-9 bg-slate-50 border border-slate-200 rounded-[0.4rem] text-[10px] text-petroleum font-medium outline-none"
             />

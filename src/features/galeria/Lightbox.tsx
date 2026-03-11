@@ -406,8 +406,17 @@ export default function Lightbox({
 
   if (!currentPhoto) return null;
 
+  const themeKey =
+    galeria?.theme_key && String(galeria.theme_key).trim() !== ''
+      ? galeria.theme_key
+      : undefined;
+
   return (
-    <div className={isSystemDark ? 'dark' : ''} suppressHydrationWarning>
+    <div
+      className={isSystemDark ? 'dark' : ''}
+      suppressHydrationWarning
+      {...(themeKey ? { 'data-theme': themeKey } : {})}
+    >
       <div
         className="fixed inset-0 z-[10005] bg-white dark:bg-black flex flex-col md:block overflow-y-auto md:overflow-hidden select-none transition-colors duration-300"
         onTouchStart={isSingleView ? undefined : onTouchStart}

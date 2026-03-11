@@ -2,17 +2,23 @@
 import { NextResponse } from 'next/server';
 import { revalidatePath } from 'next/cache';
 import { handleSubscriptionCancellation } from '@/core/services/asaas.service';
+import type { CancelReason } from '@/components/AssinaturaContent/CancelSubscriptionModal';
 
 export const dynamic = 'force-dynamic';
 
-/**
- * POST /api/dashboard/cancel-subscription
- * Cancela a assinatura do usuário autenticado (≤7d: refund + downgrade; >7d: agendado).
- * Usado pelo front (ex.: botão "Cancelar assinatura") e por testes de integração.
- */
-export async function POST() {
+export async function POST(req: Request) {
+  let reason: CancelReason | null = null;
+  let comment = '';
   try {
-    const result = await handleSubscriptionCancellation();
+    const body = await req.json();
+    reason = body.reason ?? null;
+    comment = typeof body.comment === 'string' ? body.comment.trim() : '';
+  } catch {
+    // body ausente ou inválido — retrocompat (chamadas sem body continuam funcionando)
+  }
+
+  try {
+    const result = await handleSubscriptionCancellation({ reason, comment });
     if (!result.success) {
       return NextResponse.json(
         { success: false, error: result.error },

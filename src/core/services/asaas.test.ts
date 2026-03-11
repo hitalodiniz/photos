@@ -293,7 +293,7 @@ describeIntegration('Asaas – Integração via Webhook (ngrok)', () => {
 
   it(
     INT_TEST_PROFILE_ID
-      ? 'Cenário de Arrependimento (≤ 7 dias): cancelamento dispara refund e downgrade imediato'
+      ? 'Cenário de Arrependimento (≤ 7 dias): cancelamento dispara downgrade imediato (sem estorno via API)'
       : 'Cenário de Arrependimento (skip: defina ASAAS_INT_TEST_PROFILE_ID)',
     async () => {
       if (!INT_TEST_PROFILE_ID) return;
@@ -320,6 +320,7 @@ describeIntegration('Asaas – Integração via Webhook (ngrok)', () => {
         installments: 1,
         status: 'approved',
         asaas_payment_id: paymentId,
+        asaas_subscription_id: 'sub-test-cancel',
         processed_at: threeDaysAgo.toISOString(),
       });
 
@@ -328,12 +329,12 @@ describeIntegration('Asaas – Integração via Webhook (ngrok)', () => {
         .update({ plan_key: 'PRO', updated_at: new Date().toISOString() })
         .eq('id', profileId);
 
-      let refundUrlCalled: string | null = null;
+      let deleteSubscriptionCalled = false;
       const originalFetch = globalThis.fetch;
       globalThis.fetch = vi.fn((input: RequestInfo | URL) => {
         const url = typeof input === 'string' ? input : input instanceof URL ? input.href : (input as Request).url;
-        if (url?.includes('/payments/') && url?.includes('/refund')) {
-          refundUrlCalled = url;
+        if (url?.includes('/subscriptions/') && (input as Request).method === 'DELETE') {
+          deleteSubscriptionCalled = true;
           return Promise.resolve({ ok: true, status: 200 } as Response);
         }
         return originalFetch(input);
@@ -349,9 +350,7 @@ describeIntegration('Asaas – Integração via Webhook (ngrok)', () => {
         const result = await handleSubscriptionCancellation(admin);
         expect(result.success).toBe(true);
         expect(result.type).toBe('refund_immediate');
-        expect(refundUrlCalled).toBeTruthy();
-        expect(refundUrlCalled).toContain(paymentId);
-        expect(refundUrlCalled).toContain('/refund');
+        expect(deleteSubscriptionCalled).toBe(true);
 
         const { data: profile } = await admin
           .from('tb_profiles')

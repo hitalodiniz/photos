@@ -17,6 +17,8 @@ interface SheetProps {
   contentClassName?: string;
   maxWidth?: 'sm' | 'md' | 'lg' | 'xl';
   position?: 'right' | 'bottom';
+  /** Tema visual (ex: EDITORIAL_WHITE) para aplicar no conteúdo do sheet */
+  dataTheme?: string;
 }
 
 export function Sheet({
@@ -31,6 +33,7 @@ export function Sheet({
   contentClassName = '',
   maxWidth = 'md',
   position = 'right',
+  dataTheme,
 }: SheetProps) {
   const [mounted, setMounted] = useState(false);
 
@@ -66,7 +69,7 @@ export function Sheet({
 
   const sheetContent = (
     <div
-      className={`fixed inset-0 z-[1100] animate-in fade-in duration-300 flex ${positionClasses[position].container}`}
+      className={`fixed inset-0 z-[1000] animate-in fade-in duration-300 flex ${positionClasses[position].container}`}
     >
       {/* Backdrop */}
       <div
@@ -82,6 +85,7 @@ export function Sheet({
       {/* Sheet Panel */}
       <div
         className={`relative z-10 bg-white shadow-2xl flex flex-col w-full max-h-[92vh] animate-in slide-in-from-bottom duration-500 ${maxWidthClasses[maxWidth]} sm:max-h-full sm:h-full ${positionClasses[position].sheet}`}
+        {...(dataTheme ? { 'data-theme': dataTheme } : {})}
       >
         {/* Header */}
         <div

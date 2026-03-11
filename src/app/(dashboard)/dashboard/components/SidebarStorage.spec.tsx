@@ -146,10 +146,10 @@ describe('SidebarStorage — Exibição de Limites', () => {
     expect(findSpanByContent(container, '/ 30')).not.toBeNull();
   });
 
-  test('PRO: exibe contador "30" e teto "/90"', () => {
+  test('PRO: exibe contador "30" e teto "/100"', () => {
     const { container } = renderWithPlan('PRO', 30);
     expect(screen.getByText('30')).toBeInTheDocument();
-    expect(findSpanByContent(container, '/ 90')).not.toBeNull();
+    expect(findSpanByContent(container, '/ 100')).not.toBeNull();
   });
 
   test('PREMIUM: exibe contador "100" e teto "/300"', () => {
@@ -183,8 +183,8 @@ describe('SidebarStorage — Estado de Limite Atingido', () => {
     expect(screen.queryByText(/limite atingido/i)).not.toBeInTheDocument();
   });
 
-  test('PRO no hard cap (90/90): exibe botão de upgrade', () => {
-    renderWithPlan('PRO', 90);
+  test('PRO no hard cap (100/100): exibe botão de upgrade', () => {
+    renderWithPlan('PRO', 100);
     expect(screen.getByText(/limite atingido/i)).toBeInTheDocument();
     expect(screen.queryByText(/disponíve/i)).not.toBeInTheDocument();
   });

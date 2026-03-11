@@ -695,7 +695,7 @@ export default function OnboardingForm({
             <button
               type="button"
               onClick={() => setShowTrialWelcomeModal(false)}
-              className="w-full h-10 px-6 bg-gold hover:bg-champagne text-petroleum font-bold text-[11px] uppercase tracking-luxury rounded-luxury flex items-center justify-center gap-2 transition-all active:scale-[0.98] shadow-lg shadow-gold/10"
+              className="w-full h-10 px-6 bg-champagne hover:bg-gold text-petroleum font-bold text-[11px] uppercase tracking-luxury rounded-luxury flex items-center justify-center gap-2 transition-all active:scale-[0.98] shadow-lg shadow-gold/10"
             >
               Iniciar período de teste
               <ArrowLeft size={16} className="rotate-180" />
@@ -902,8 +902,9 @@ export default function OnboardingForm({
 
                     <div className="flex-grow min-w-0 flex flex-col gap-4">
                       {/* Linha 1: Username + Nome Completo */}
-                      <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-                        <div className="space-y-1.5">
+
+                      <div className="grid grid-cols-1 sm:grid-cols-12 gap-3">
+                        <div className="space-y-1.5 sm:col-span-3">
                           <label className="text-editorial-label text-petroleum">
                             <AtSign
                               size={12}
@@ -970,7 +971,7 @@ export default function OnboardingForm({
                               )}
                           </p>
                         </div>
-                        <div className="space-y-1.5">
+                        <div className="space-y-1.5 sm:col-span-9">
                           <label className="text-editorial-label text-petroleum">
                             <User
                               size={12}
@@ -1391,7 +1392,7 @@ export default function OnboardingForm({
               <FormSection
                 title="Termos e Privacidade"
                 icon={<ShieldCheck size={14} />}
-                defaultOpen={false}
+                defaultOpen={!acceptTerms}
                 filled={filledMap.termos}
                 hasError={!!validationErrors.termos}
                 forceOpen={!!validationErrors.termos}

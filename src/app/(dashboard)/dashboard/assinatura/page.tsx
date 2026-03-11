@@ -6,6 +6,7 @@ import {
   getSubscriptionExpiresAt,
   getLastChargeAmount,
 } from '@/core/services/billing.service';
+import { getAsaasSubscriptionStatus } from '@/core/services/asaas.service';
 import { getPhotographerPoolStats } from '@/core/services/galeria.service';
 import AssinaturaContent from '@/app/(dashboard)/dashboard/assinatura/AssinaturaContent';
 import type { Profile } from '@/core/types/profile';
@@ -26,6 +27,10 @@ export interface AssinaturaPageData {
   subscriptionStatus: string;
   /** Data de expiração do plano pago (fim do período). Trial usa profile.plan_trial_expires. */
   expiresAt: string | null;
+  /** ID da assinatura Asaas do pedido ativo (para reativar ou alterar meio de pagamento). */
+  activeSubscriptionId: string | null;
+  /** Status da última solicitação de upgrade (para lógica de reativação/cancelamento). */
+  latestRequestStatus: string | null;
 }
 
 async function getAssinaturaPageData(
@@ -37,9 +42,26 @@ async function getAssinaturaPageData(
   ]);
 
   const latest = history[0];
-  const subscriptionStatus =
+  let subscriptionStatus: string =
     (latest?.status as string) ??
     (profile.plan_key !== 'FREE' ? 'active' : 'free');
+
+  const activeSubscriptionId =
+    latest?.asaas_subscription_id?.trim() &&
+    (latest.status === 'approved' ||
+      latest.status === 'pending_cancellation' ||
+      latest.status === 'pending_downgrade')
+      ? latest.asaas_subscription_id.trim()
+      : null;
+
+  const latestRequestStatus = latest?.status ?? null;
+
+  if (activeSubscriptionId) {
+    const asaasStatus = await getAsaasSubscriptionStatus(activeSubscriptionId);
+    if (asaasStatus.success && asaasStatus.status) {
+      subscriptionStatus = asaasStatus.status;
+    }
+  }
 
   const [lastChargeAmount, expiresAt] = await Promise.all([
     getLastChargeAmount(history),
@@ -53,6 +75,8 @@ async function getAssinaturaPageData(
     lastChargeAmount,
     subscriptionStatus,
     expiresAt,
+    activeSubscriptionId,
+     latestRequestStatus,
   };
 }
 

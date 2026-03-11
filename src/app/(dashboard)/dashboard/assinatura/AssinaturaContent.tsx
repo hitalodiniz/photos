@@ -1,6 +1,6 @@
 'use client';
 
-import { useMemo, useState, type ReactNode } from 'react';
+import { useMemo, useState, useEffect, type ReactNode } from 'react';
 import { useRouter } from 'next/navigation';
 import { RelatorioBasePage } from '@/components/ui/RelatorioBasePage';
 import { RelatorioTable } from '@/components/ui/RelatorioTable';
@@ -36,12 +36,23 @@ import {
   List,
   X,
   ArrowRight,
+  Settings,
 } from 'lucide-react';
 import BaseModal from '@/components/ui/BaseModal';
 import ConfirmationModal from '@/components/ui/ConfirmationModal';
 import { UpgradeSheet } from '@/components/ui/Upgradesheet';
 import { useToast } from '@/hooks/useToast';
 import { button } from 'framer-motion/client';
+import {
+  reactivateSubscription,
+  updateSubscriptionBillingMethod,
+} from '@/core/services/asaas.service';
+import { getBillingProfile } from '@/core/services/billing.service';
+import { CancelReason } from 'vitest';
+import {
+  CANCEL_REASONS,
+  CancelSubscriptionModal,
+} from './CancelSubscriptionModal';
 
 // ─── Constantes ───────────────────────────────────────────────────────────────
 
@@ -60,17 +71,25 @@ function planDisplayName(planKey: string): string {
 
 function statusLabel(status: string): string {
   const map: Record<string, string> = {
-    pending: 'Pendente',
+    // Status do histórico (tb_upgrade_requests)
+    pending: 'Aguardando Pagamento',
     processing: 'Processando',
     approved: 'Aprovado',
-    pending_cancellation: 'Cancelamento agendado',
-    pending_downgrade: 'Downgrade agendado',
+    pending_cancellation: 'Cancelamento Agendado',
+    pending_downgrade: 'Downgrade Agendado',
     rejected: 'Rejeitado',
     cancelled: 'Cancelado',
-    free: 'Plano gratuito',
+    free: 'Gratuito',
     active: 'Ativo',
+    // Status reais da assinatura no Asaas
+    ACTIVE: 'Ativo',
+    INACTIVE: 'Inativo',
+    EXPIRED: 'Expirado',
+    OVERDUE: 'Atrasado',
+    PENDING_CANCELLATION: 'Cancelamento Agendado',
+    FREE: 'Gratuito',
   };
-  return map[status] ?? status;
+  return map[status] ?? map[status?.toUpperCase()] ?? status ?? '—';
 }
 
 function formatBRL(value: number): string {
@@ -96,7 +115,7 @@ function parseDueDateFromNotes(
   const dateStr = match[1].trim();
   const date = new Date(dateStr);
   if (Number.isNaN(date.getTime())) return null;
-  return date.toLocaleDateString('pt-BR');
+  return date.toLocaleDateString('pt-BR', { timeZone: 'UTC' });
 }
 
 function getRequestExpiresAt(item: UpgradeRequest): string | null {
@@ -107,7 +126,37 @@ function getRequestExpiresAt(item: UpgradeRequest): string | null {
   const months = billingPeriodToMonths(item.billing_period);
   const d = new Date(start);
   d.setMonth(d.getMonth() + months);
-  return d.toLocaleDateString('pt-BR');
+  return d.toLocaleDateString('pt-BR', { timeZone: 'UTC' });
+}
+
+/** Exibe observações: se for JSON, tenta extrair .message ou usa 'Migração de plano'. */
+function formatNotesDisplay(notes: string | null | undefined): string {
+  if (!notes?.trim()) return '';
+  if (notes.startsWith('{')) {
+    try {
+      const parsed = JSON.parse(notes) as {
+        type?: string;
+        message?: string;
+        reason?: string;
+        comment?: string;
+      };
+      // Cancelamento com motivo do usuário
+      if (parsed.type === 'cancellation') {
+        const label = parsed.reason
+          ? (CANCEL_REASONS[parsed.reason] ?? parsed.reason)
+          : 'Cancelamento';
+        return parsed.comment ? `${label} — ${parsed.comment}` : label;
+      }
+      // Legado: { message: "..." }
+      if (typeof parsed.message === 'string' && parsed.message.trim()) {
+        return parsed.message.trim();
+      }
+    } catch {
+      // ignore
+    }
+    return 'Migração de plano';
+  }
+  return notes.trim();
 }
 
 function getNextPlanKey(current: PlanKey): PlanKey | null {
@@ -182,7 +231,7 @@ function PlanBenefitsModal({
         <div className="flex items-center justify-between mb-1.5">
           <div className="flex items-center gap-1.5">
             <Image size={12} className="text-purple-500" />
-            <p className="text-[9px] font-semibold uppercase tracking-wider text-slate-400">
+            <p className="text-[9px] font-semibold uppercase tracking-wider text-slate-600">
               Fotos utilizadas
             </p>
           </div>
@@ -217,7 +266,7 @@ function PlanBenefitsModal({
           <div className="flex items-center justify-between mb-1.5">
             <div className="flex items-center gap-1.5">
               <LayoutGrid size={12} className="text-purple-500" />
-              <p className="text-[9px] font-semibold uppercase tracking-wider text-slate-400">
+              <p className="text-[9px] font-semibold uppercase tracking-wider text-slate-600">
                 Galerias ativas
               </p>
             </div>
@@ -238,7 +287,7 @@ function PlanBenefitsModal({
 
       {/* Lista de benefícios */}
       <div>
-        <p className="text-[9px] font-semibold uppercase tracking-wider text-slate-400 mb-2">
+        <p className="text-[9px] font-semibold uppercase tracking-wider text-slate-600 mb-2">
           Todos os benefícios incluídos
         </p>
         <div className="space-y-1.5">
@@ -347,7 +396,7 @@ function PlanBenefitsSummaryCard({
       className="w-full text-left p-3 bg-white rounded-luxury border border-slate-200 hover:border-petroleum/20 hover:shadow-sm transition-all group"
     >
       <div className="flex items-center justify-between mb-2">
-        <p className="text-[8px] font-semibold uppercase tracking-widest text-slate-900">
+        <p className="text-[9px] font-semibold uppercase tracking-widest text-slate-900">
           Recursos do plano {planDisplayName(planKey)}
         </p>
         <div className="flex items-center gap-1 text-[10px] font-semibold text-petroleum/70 group-hover:text-petroleum/70 transition-colors">
@@ -364,15 +413,15 @@ function PlanBenefitsSummaryCard({
             <div className="p-1.5 bg-purple-50 rounded-lg">
               <Image size={16} className="text-purple-500 shrink-0" />
             </div>
-            <p className="text-[9px] font-bold uppercase tracking-wider text-slate-500">
+            <p className="text-[9px] font-semibold uppercase tracking-wider text-slate-500">
               Fotos e vídeos
             </p>
           </div>
 
           <div className="mb-2">
-            <p className="text-lg font-bold text-petroleum leading-none tabular-nums">
+            <p className="text-lg font-semibold text-petroleum leading-none tabular-nums">
               {formatPhotoCredits(photoCreditsUsed)}
-              <span className="text-[10px] font-medium text-slate-400 ml-1">
+              <span className="text-[10px] font-medium text-slate-600 ml-1">
                 / {formatPhotoCredits(photoCreditsLimit)}
               </span>
             </p>
@@ -391,7 +440,7 @@ function PlanBenefitsSummaryCard({
                 style={{ width: `${usagePct}%` }}
               />
             </div>
-            <p className="text-[8px] font-bold text-slate-400 text-right uppercase">
+            <p className="text-[9px] font-semibold text-slate-600 text-right uppercase">
               {Math.round(usagePct)}% usado
             </p>
           </div>
@@ -403,15 +452,15 @@ function PlanBenefitsSummaryCard({
             <div className="p-1.5 bg-blue-50 rounded-lg">
               <LayoutGrid size={16} className="text-blue-500 shrink-0" />
             </div>
-            <p className="text-[9px] font-bold uppercase tracking-wider text-slate-500">
+            <p className="text-[9px] font-semibold uppercase tracking-wider text-slate-500">
               Galerias Ativas
             </p>
           </div>
 
           <div className="mb-2">
-            <p className="text-lg font-bold text-petroleum leading-none tabular-nums">
+            <p className="text-lg font-semibold text-petroleum leading-none tabular-nums">
               {activeGalleryCount}
-              <span className="text-[10px] font-medium text-slate-400 ml-1">
+              <span className="text-[10px] font-medium text-slate-600 ml-1">
                 / {maxGalleriesHardCap}
               </span>
             </p>
@@ -430,7 +479,7 @@ function PlanBenefitsSummaryCard({
                 style={{ width: `${galleriesPct}%` }}
               />
             </div>
-            <p className="text-[8px] font-bold text-slate-400 text-right uppercase">
+            <p className="text-[9px] font-semibold text-slate-600 text-right uppercase">
               {Math.round(galleriesPct)}% usado
             </p>
           </div>
@@ -587,6 +636,8 @@ export default function AssinaturaContent({
     lastChargeAmount,
     subscriptionStatus,
     expiresAt: expiresAtFromData,
+    activeSubscriptionId,
+    latestRequestStatus,
   } = data;
 
   const planKey = (profile.plan_key || 'FREE') as PlanKey;
@@ -595,9 +646,13 @@ export default function AssinaturaContent({
   const photoCreditsUsed = poolStats.totalPhotosUsed ?? 0;
   const expiresAt =
     expiresAtFromData != null
-      ? new Date(expiresAtFromData).toLocaleDateString('pt-BR')
+      ? new Date(expiresAtFromData).toLocaleDateString('pt-BR', {
+          timeZone: 'UTC',
+        })
       : profile.plan_trial_expires
-        ? new Date(profile.plan_trial_expires).toLocaleDateString('pt-BR')
+        ? new Date(profile.plan_trial_expires).toLocaleDateString('pt-BR', {
+            timeZone: 'UTC',
+          })
         : null;
 
   const planBenefits = useMemo(
@@ -605,9 +660,37 @@ export default function AssinaturaContent({
     [permissions],
   );
 
+  // Data de aprovação do request vigente — usada para calcular janela de estorno
+  const latestApprovedRequest = history.find((r) => r.status === 'approved');
+  const cancelProcessedAt = latestApprovedRequest?.processed_at ?? null;
+
   const [showBenefitsModal, setShowBenefitsModal] = useState(false);
   const [showCancelModal, setShowCancelModal] = useState(false);
   const [cancelLoading, setCancelLoading] = useState(false);
+  const [reactivateLoading, setReactivateLoading] = useState(false);
+  const [showPaymentModal, setShowPaymentModal] = useState(false);
+  const [paymentMethodChoice, setPaymentMethodChoice] = useState<
+    'CREDIT_CARD' | 'PIX' | 'BOLETO' | null
+  >(null);
+  const [paymentModalLoading, setPaymentModalLoading] = useState(false);
+  const [billingProfile, setBillingProfile] = useState<{
+    full_name?: string;
+    cpf_cnpj: string;
+    postal_code: string;
+    address: string;
+    address_number: string;
+    complement?: string;
+    province: string;
+    city: string;
+    state: string;
+  } | null>(null);
+  const [manageCard, setManageCard] = useState({
+    holderName: '',
+    number: '',
+    expiryMonth: '',
+    expiryYear: '',
+    ccv: '',
+  });
   const [upgradeSheetOpen, setUpgradeSheetOpen] = useState(false);
   const [upgradeSheetInitialPlan, setUpgradeSheetInitialPlan] = useState<
     PlanKey | undefined
@@ -615,25 +698,64 @@ export default function AssinaturaContent({
   const hasNextPlan = !!getNextPlanKey(planKey);
   const { showToast, ToastElement } = useToast();
 
+  const hasPendingCancellation =
+    latestRequestStatus === 'pending_cancellation' ||
+    latestRequestStatus === 'pending_downgrade';
+
+  useEffect(() => {
+    if (
+      showPaymentModal &&
+      paymentMethodChoice === 'CREDIT_CARD' &&
+      !billingProfile
+    ) {
+      getBillingProfile().then((b) => {
+        if (b)
+          setBillingProfile({
+            full_name: b.full_name,
+            cpf_cnpj: b.cpf_cnpj,
+            postal_code: b.postal_code,
+            address: b.address,
+            address_number: b.address_number,
+            complement: b.complement,
+            province: b.province,
+            city: b.city,
+            state: b.state,
+          });
+      });
+    }
+  }, [showPaymentModal, paymentMethodChoice, billingProfile]);
+
   const handleUpgrade = (targetPlanKey: PlanKey) => {
     router.refresh();
     setUpgradeSheetInitialPlan(targetPlanKey);
     setUpgradeSheetOpen(true);
   };
 
-  const handleCancelSubscription = async () => {
+  const handleCancelSubscription = async (
+    reason: CancelReason,
+    comment: string,
+  ) => {
     setCancelLoading(true);
     try {
       const res = await fetch('/api/dashboard/cancel-subscription', {
         method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ reason, comment }),
       });
       const json = await res.json();
       if (json.success) {
         setShowCancelModal(false);
         router.refresh();
-        if (json.access_ends_at) {
+        if (json.type === 'refund_immediate') {
           showToast(
-            `Cancelamento agendado. Seu acesso segue até ${new Date(json.access_ends_at).toLocaleDateString('pt-BR')}.`,
+            'Assinatura cancelada. O estorno será processado em até 48h.',
+            'success',
+          );
+        } else if (json.access_ends_at) {
+          showToast(
+            `Cancelamento agendado. Seu acesso segue até ${new Date(
+              json.access_ends_at,
+            ).toLocaleDateString('pt-BR', { timeZone: 'UTC' })}.`,
             'success',
           );
         } else {
@@ -649,7 +771,131 @@ export default function AssinaturaContent({
     }
   };
 
+  const handleReactivateSubscription = async () => {
+    if (!activeSubscriptionId) return;
+    setReactivateLoading(true);
+    try {
+      const result = await reactivateSubscription(activeSubscriptionId);
+      if (result.success) {
+        setShowCancelModal(false);
+        router.refresh();
+        showToast('Assinatura reativada com sucesso.', 'success');
+      } else {
+        showToast(result.error ?? 'Erro ao reativar.', 'error');
+      }
+    } catch {
+      showToast('Erro ao reativar assinatura.', 'error');
+    } finally {
+      setReactivateLoading(false);
+    }
+  };
+
+  const handleSavePaymentMethod = async () => {
+    if (!activeSubscriptionId) return;
+    if (paymentMethodChoice === 'PIX' || paymentMethodChoice === 'BOLETO') {
+      setPaymentModalLoading(true);
+      try {
+        const result = await updateSubscriptionBillingMethod(
+          activeSubscriptionId,
+          paymentMethodChoice,
+        );
+        if (result.success) {
+          setShowPaymentModal(false);
+          setPaymentMethodChoice(null);
+          router.refresh();
+          showToast(
+            `Forma de pagamento alterada para ${paymentMethodChoice}. Suas próximas faturas usarão este método.`,
+            'success',
+          );
+        } else {
+          showToast(result.error ?? 'Erro ao alterar.', 'error');
+        }
+      } catch {
+        showToast('Erro ao alterar forma de pagamento.', 'error');
+      } finally {
+        setPaymentModalLoading(false);
+      }
+      return;
+    }
+    if (paymentMethodChoice === 'CREDIT_CARD') {
+      if (!billingProfile) {
+        showToast(
+          'Carregue seus dados fiscais antes de cadastrar o cartão.',
+          'error',
+        );
+        return;
+      }
+      const {
+        full_name,
+        cpf_cnpj,
+        postal_code,
+        address,
+        address_number,
+        complement,
+        province,
+        city,
+        state,
+      } = billingProfile;
+      const name = full_name?.trim() || profile.full_name || 'Titular';
+      const email = profile.email ?? '';
+      const phone = profile.phone_contact ?? '';
+      const digits = phone.replace(/\D/g, '');
+      setPaymentModalLoading(true);
+      try {
+        const result = await updateSubscriptionBillingMethod(
+          activeSubscriptionId,
+          'CREDIT_CARD',
+          {
+            holderName: manageCard.holderName,
+            number: manageCard.number.replace(/\D/g, ''),
+            expiryMonth: manageCard.expiryMonth
+              .replace(/\D/g, '')
+              .padStart(2, '0')
+              .slice(-2),
+            expiryYear: manageCard.expiryYear.replace(/\D/g, ''),
+            ccv: manageCard.ccv.replace(/\D/g, ''),
+          },
+          {
+            name,
+            email,
+            cpfCnpj: cpf_cnpj.replace(/\D/g, ''),
+            postalCode: postal_code.replace(/\D/g, ''),
+            addressNumber: address_number,
+            addressComplement: complement,
+            phone: digits || '',
+            mobilePhone: digits || '',
+          },
+        );
+        if (result.success) {
+          setShowPaymentModal(false);
+          setPaymentMethodChoice(null);
+          setManageCard({
+            holderName: '',
+            number: '',
+            expiryMonth: '',
+            expiryYear: '',
+            ccv: '',
+          });
+          router.refresh();
+          showToast(
+            'Cartão atualizado. Suas próximas cobranças usarão este cartão.',
+            'success',
+          );
+        } else {
+          showToast(result.error ?? 'Erro ao atualizar cartão.', 'error');
+        }
+      } catch {
+        showToast('Erro ao atualizar cartão.', 'error');
+      } finally {
+        setPaymentModalLoading(false);
+      }
+    }
+  };
+
   // ─── Colunas da tabela ──────────────────────────────────────────────────────
+
+  const latestApprovedId =
+    history.find((r) => r.status === 'approved')?.id ?? null;
 
   const columns: Array<{
     header: string;
@@ -666,7 +912,7 @@ export default function AssinaturaContent({
         <span className="text-[12px] text-slate-700 whitespace-nowrap">
           {new Date(item.created_at).toLocaleDateString('pt-BR', {
             timeZone: 'UTC',
-          })}{' '}
+          })}
         </span>
       ),
       icon: Calendar,
@@ -717,11 +963,29 @@ export default function AssinaturaContent({
     },
     {
       header: 'Status',
-      accessor: (item) => (
-        <span className="text-[11px] font-medium">
-          {statusLabel(item.status)}
-        </span>
-      ),
+      accessor: (item) => {
+        const isLatestApproved =
+          item.status === 'approved' && item.id === latestApprovedId;
+        if (isLatestApproved) {
+          return (
+            <span className="inline-flex items-center gap-1 px-1.5 py-0.5 rounded-md bg-emerald-100 text-emerald-800 text-[10px] font-semibold">
+              Vigente
+            </span>
+          );
+        }
+        if (item.status === 'approved') {
+          return (
+            <span className="text-[11px] font-medium text-slate-600">
+              {statusLabel(item.status)} (Ciclo Encerrado)
+            </span>
+          );
+        }
+        return (
+          <span className="text-[11px] font-medium">
+            {statusLabel(item.status)}
+          </span>
+        );
+      },
     },
     {
       header: 'Vencimento',
@@ -735,17 +999,19 @@ export default function AssinaturaContent({
     },
     {
       header: 'Observações',
-      accessor: (item: UpgradeRequest) =>
-        item.notes?.trim() ? (
+      accessor: (item: UpgradeRequest) => {
+        const text = formatNotesDisplay(item.notes);
+        return text ? (
           <span
             className="text-[11px] text-slate-600 max-w-[240px] block truncate"
-            title={item.notes}
+            title={text}
           >
-            {item.notes}
+            {text}
           </span>
         ) : (
-          <span className="text-slate-400 text-[11px]">—</span>
-        ),
+          <span className="text-slate-600 text-[11px]">—</span>
+        );
+      },
       width: 'w-56',
     },
     {
@@ -756,7 +1022,7 @@ export default function AssinaturaContent({
           ? item.payment_url
           : null;
         if (!url) {
-          return <span className="text-slate-400 text-[11px]">—</span>;
+          return <span className="text-slate-600 text-[11px]">—</span>;
         }
 
         let label = 'Ver pagamento';
@@ -801,22 +1067,42 @@ export default function AssinaturaContent({
         <h2 className="text-[15px] font-semibold uppercase text-petroleum leading-tight">
           Plano {planDisplayName(planKey)}
           {profile.is_trial && (
-            <span className="ml-2 px-2 py-0.5 rounded-full bg-gold/10 border border-gold/20 text-[9px] font-semibold text-gold align-middle">
-              TRIAL
+            <span className="ml-2 px-2 py-0.5 rounded-full bg-gold/10 border border-gold/20 text-[10px] font-semibold text-gold align-middle">
+              Teste Grátis
             </span>
           )}
         </h2>
       </div>
-      {planKey !== 'FREE' && (
-        <button
-          type="button"
-          onClick={() => setShowCancelModal(true)}
-          className="inline-flex items-center gap-1.5 text-[10px] font-semibold uppercase tracking-wider text-red-400 hover:text-red-600 transition-colors shrink-0"
-        >
-          <AlertTriangle size={11} />
-          Cancelar assinatura
-        </button>
-      )}
+      {planKey !== 'FREE' &&
+        (hasPendingCancellation ? (
+          <button
+            type="button"
+            onClick={handleReactivateSubscription}
+            disabled={!activeSubscriptionId || reactivateLoading}
+            className="inline-flex items-center gap-1.5 text-[10px] font-semibold uppercase tracking-wider text-emerald-600 hover:text-emerald-700 transition-colors shrink-0 disabled:opacity-50"
+          >
+            {reactivateLoading ? (
+              <>
+                <span className="w-3 h-3 border-2 border-emerald-400 border-t-transparent rounded-full animate-spin" />
+                Reativando…
+              </>
+            ) : (
+              <>
+                <CheckCircle2 size={11} />
+                Reativar assinatura
+              </>
+            )}
+          </button>
+        ) : (
+          <button
+            type="button"
+            onClick={() => setShowCancelModal(true)}
+            className="inline-flex items-center gap-1.5 text-[10px] font-semibold uppercase tracking-wider text-red-400 hover:text-red-600 transition-colors shrink-0"
+          >
+            <AlertTriangle size={11} />
+            Cancelar assinatura
+          </button>
+        ))}
     </div>
   );
 
@@ -838,7 +1124,7 @@ export default function AssinaturaContent({
               <div className="flex items-center gap-2 border-r border-slate-100 pr-3">
                 <Crown size={14} className="text-gold shrink-0" />
                 <div>
-                  <p className="text-[8px] uppercase font-semibold text-slate-400 leading-tight">
+                  <p className="text-[9px] uppercase font-semibold text-slate-600 leading-tight">
                     Plano
                   </p>
                   <p className="text-[10px] font-semibold text-petroleum">
@@ -849,7 +1135,7 @@ export default function AssinaturaContent({
               <div className="flex items-center gap-2">
                 <Clock size={14} className="text-gold shrink-0" />
                 <div>
-                  <p className="text-[8px] uppercase font-semibold text-slate-400 leading-tight">
+                  <p className="text-[9px] uppercase font-semibold text-slate-600 leading-tight mb-0.5">
                     Expira em
                   </p>
                   <p className="text-[10px] font-semibold text-petroleum">
@@ -858,12 +1144,21 @@ export default function AssinaturaContent({
                 </div>
               </div>
               <div className="flex items-center gap-2 border-r border-slate-100 pr-3">
-                <BadgeCheck size={14} className="text-gold shrink-0" />
+                <BadgeCheck
+                  size={14}
+                  className={
+                    subscriptionStatus === 'OVERDUE'
+                      ? 'text-red-500'
+                      : 'text-gold'
+                  }
+                />
                 <div>
-                  <p className="text-[8px] uppercase font-semibold text-slate-400 leading-tight">
-                    Status
+                  <p className="text-[9px] uppercase font-semibold text-slate-600 leading-tight mb-0.5">
+                    Status Atual
                   </p>
-                  <p className="text-[10px] font-semibold text-petroleum">
+                  <p
+                    className={`text-[10px] font-semibold ${subscriptionStatus === 'OVERDUE' ? 'text-red-600 animate-pulse' : 'text-petroleum'}`}
+                  >
                     {statusLabel(subscriptionStatus)}
                   </p>
                 </div>
@@ -871,7 +1166,7 @@ export default function AssinaturaContent({
               <div className="flex items-center gap-2">
                 <Banknote size={14} className="text-gold shrink-0" />
                 <div>
-                  <p className="text-[8px] uppercase font-semibold text-slate-400 leading-tight">
+                  <p className="text-[9px] uppercase font-semibold text-slate-600 leading-tight">
                     Última cobrança
                   </p>
                   <p className="text-[10px] font-semibold text-petroleum">
@@ -882,6 +1177,27 @@ export default function AssinaturaContent({
                 </div>
               </div>
             </div>
+
+            {planKey !== 'FREE' && activeSubscriptionId && (
+              <button
+                type="button"
+                onClick={() => {
+                  setShowPaymentModal(true);
+                  setPaymentMethodChoice(null);
+                  setManageCard({
+                    holderName: '',
+                    number: '',
+                    expiryMonth: '',
+                    expiryYear: '',
+                    ccv: '',
+                  });
+                }}
+                className="w-full flex items-center justify-center gap-2 py-2.5 px-3 rounded-luxury border border-slate-200 bg-white text-[10px] font-semibold uppercase tracking-wider text-petroleum/80 hover:text-petroleum hover:border-petroleum/30 transition-colors"
+              >
+                <Settings size={14} className="shrink-0" />
+                Gerenciar pagamento
+              </button>
+            )}
 
             {/* 2. Card compacto de benefícios — abre modal ao clicar */}
             <PlanBenefitsSummaryCard
@@ -976,16 +1292,235 @@ export default function AssinaturaContent({
         initialPlanKey={upgradeSheetInitialPlan}
       />
 
-      <ConfirmationModal
+      <CancelSubscriptionModal
         isOpen={showCancelModal}
         onClose={() => setShowCancelModal(false)}
         onConfirm={handleCancelSubscription}
-        title="Cancelar assinatura"
-        message="Tem certeza que deseja cancelar sua assinatura? Em até 7 dias o valor pode ser estornado."
-        confirmText="Sim, cancelar"
-        variant="danger"
+        processedAt={cancelProcessedAt}
+        accessEndsAt={expiresAtFromData}
+        planName={planDisplayName(planKey)}
         isLoading={cancelLoading}
+        freeMaxGalleries={PERMISSIONS_BY_PLAN['FREE'].maxGalleriesHardCap ?? 3}
+        freePhotoCredits={PERMISSIONS_BY_PLAN['FREE'].photoCredits ?? 500}
+        premiumFeatureLabels={getPlanBenefits(permissions, {
+          items: 'galerias',
+        })
+          .filter((b) => b.isPremium)
+          .map((b) => b.label)
+          .slice(0, 5)}
       />
+
+      {/* Modal Gerenciar Pagamento */}
+      <BaseModal
+        isOpen={showPaymentModal}
+        onClose={() => {
+          if (!paymentModalLoading) {
+            setShowPaymentModal(false);
+            setPaymentMethodChoice(null);
+          }
+        }}
+        title="Gerenciar pagamento"
+        subtitle={
+          paymentMethodChoice === null
+            ? 'Escolha a forma de cobrança'
+            : paymentMethodChoice === 'CREDIT_CARD'
+              ? 'Atualizar cartão'
+              : `Próximas faturas via ${paymentMethodChoice}`
+        }
+        maxWidth="sm"
+        footer={
+          paymentMethodChoice !== null ? (
+            <div className="flex gap-2 w-full">
+              <button
+                type="button"
+                onClick={handleSavePaymentMethod}
+                disabled={
+                  paymentModalLoading ||
+                  (paymentMethodChoice === 'CREDIT_CARD' &&
+                    (!billingProfile ||
+                      !manageCard.holderName.trim() ||
+                      manageCard.number.replace(/\D/g, '').length < 13 ||
+                      !manageCard.expiryMonth ||
+                      !manageCard.expiryYear ||
+                      manageCard.ccv.length < 3))
+                }
+                className="btn-luxury-primary flex-1 disabled:opacity-50 disabled:cursor-not-allowed"
+              >
+                {paymentModalLoading ? (
+                  <span className="inline-flex items-center gap-1.5">
+                    <span className="w-3 h-3 border-2 border-white/30 border-t-white rounded-full animate-spin" />
+                    Salvando…
+                  </span>
+                ) : (
+                  'Confirmar'
+                )}
+              </button>
+              <button
+                type="button"
+                onClick={() => setPaymentMethodChoice(null)}
+                disabled={paymentModalLoading}
+                className="btn-secondary-white"
+              >
+                Voltar
+              </button>
+            </div>
+          ) : undefined
+        }
+      >
+        <div className="py-2">
+          {paymentMethodChoice === null && (
+            <div className="flex gap-2">
+              <button
+                type="button"
+                onClick={() => setPaymentMethodChoice('CREDIT_CARD')}
+                className="flex-1 flex items-center justify-center gap-2 py-3 px-3 rounded-lg border-2 border-slate-200 hover:border-gold/50 bg-white transition-all text-[10px] font-semibold uppercase text-petroleum"
+              >
+                <CreditCard size={16} />
+                Cartão
+              </button>
+              <button
+                type="button"
+                onClick={() => setPaymentMethodChoice('PIX')}
+                className="flex-1 flex items-center justify-center gap-2 py-3 px-3 rounded-lg border-2 border-slate-200 hover:border-gold/50 bg-white transition-all text-[10px] font-semibold uppercase text-petroleum"
+              >
+                <Banknote size={16} />
+                PIX
+              </button>
+              <button
+                type="button"
+                onClick={() => setPaymentMethodChoice('BOLETO')}
+                className="flex-1 flex items-center justify-center gap-2 py-3 px-3 rounded-lg border-2 border-slate-200 hover:border-gold/50 bg-white transition-all text-[10px] font-semibold uppercase text-petroleum"
+              >
+                <Banknote size={16} />
+                Boleto
+              </button>
+            </div>
+          )}
+
+          {(paymentMethodChoice === 'PIX' ||
+            paymentMethodChoice === 'BOLETO') && (
+            <p className="text-[13px] text-petroleum/90 leading-relaxed">
+              Suas próximas faturas serão geradas via{' '}
+              <strong>{paymentMethodChoice}</strong>. Confirma a alteração?
+            </p>
+          )}
+
+          {paymentMethodChoice === 'CREDIT_CARD' && (
+            <div className="space-y-3">
+              {!billingProfile ? (
+                <p className="text-[11px] text-slate-600">
+                  Carregando dados fiscais…
+                </p>
+              ) : (
+                <p className="text-[10px] text-emerald-700 font-medium">
+                  Dados fiscais carregados. Preencha os dados do cartão abaixo.
+                </p>
+              )}
+              <div className="grid grid-cols-2 gap-2">
+                <div>
+                  <label className="block text-[9px] font-semibold uppercase text-slate-500 mb-0.5">
+                    Nome no cartão
+                  </label>
+                  <input
+                    type="text"
+                    value={manageCard.holderName}
+                    onChange={(e) =>
+                      setManageCard((c) => ({
+                        ...c,
+                        holderName: e.target.value,
+                      }))
+                    }
+                    placeholder="Como está no cartão"
+                    className="w-full px-2 py-1.5 h-8 bg-slate-50 border border-slate-200 rounded text-[11px] outline-none focus:border-gold/60"
+                  />
+                </div>
+                <div>
+                  <label className="block text-[9px] font-semibold uppercase text-slate-500 mb-0.5">
+                    Número
+                  </label>
+                  <input
+                    type="text"
+                    inputMode="numeric"
+                    value={manageCard.number}
+                    onChange={(e) =>
+                      setManageCard((c) => ({
+                        ...c,
+                        number: e.target.value
+                          .replace(/\D/g, '')
+                          .slice(0, 16)
+                          .replace(/(\d{4})(?=\d)/g, '$1 ')
+                          .trim(),
+                      }))
+                    }
+                    placeholder="0000 0000 0000 0000"
+                    className="w-full px-2 py-1.5 h-8 bg-slate-50 border border-slate-200 rounded text-[11px] outline-none focus:border-gold/60"
+                  />
+                </div>
+              </div>
+              <div className="flex gap-2">
+                <div className="flex-1">
+                  <label className="block text-[9px] font-semibold uppercase text-slate-500 mb-0.5">
+                    Validade (MM)
+                  </label>
+                  <input
+                    type="text"
+                    inputMode="numeric"
+                    value={manageCard.expiryMonth}
+                    onChange={(e) =>
+                      setManageCard((c) => ({
+                        ...c,
+                        expiryMonth: e.target.value
+                          .replace(/\D/g, '')
+                          .slice(0, 2),
+                      }))
+                    }
+                    placeholder="MM"
+                    className="w-full px-2 py-1.5 h-8 bg-slate-50 border border-slate-200 rounded text-[11px] outline-none focus:border-gold/60"
+                  />
+                </div>
+                <div className="flex-1">
+                  <label className="block text-[9px] font-semibold uppercase text-slate-500 mb-0.5">
+                    Ano (AA)
+                  </label>
+                  <input
+                    type="text"
+                    inputMode="numeric"
+                    value={manageCard.expiryYear}
+                    onChange={(e) =>
+                      setManageCard((c) => ({
+                        ...c,
+                        expiryYear: e.target.value
+                          .replace(/\D/g, '')
+                          .slice(0, 4),
+                      }))
+                    }
+                    placeholder="AA"
+                    className="w-full px-2 py-1.5 h-8 bg-slate-50 border border-slate-200 rounded text-[11px] outline-none focus:border-gold/60"
+                  />
+                </div>
+                <div className="w-20">
+                  <label className="block text-[9px] font-semibold uppercase text-slate-500 mb-0.5">
+                    CVV
+                  </label>
+                  <input
+                    type="text"
+                    inputMode="numeric"
+                    value={manageCard.ccv}
+                    onChange={(e) =>
+                      setManageCard((c) => ({
+                        ...c,
+                        ccv: e.target.value.replace(/\D/g, '').slice(0, 4),
+                      }))
+                    }
+                    placeholder="123"
+                    className="w-full px-2 py-1.5 h-8 bg-slate-50 border border-slate-200 rounded text-[11px] outline-none focus:border-gold/60"
+                  />
+                </div>
+              </div>
+            </div>
+          )}
+        </div>
+      </BaseModal>
 
       {ToastElement}
     </>

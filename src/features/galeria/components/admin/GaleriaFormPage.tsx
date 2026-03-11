@@ -357,7 +357,14 @@ export default function GaleriaFormPage({
           <div className="flex flex-col gap-3">
             <div className="grid grid-cols-2 gap-3 w-full items-center">
               <button
-                onClick={() => navigate('/dashboard', 'Voltando ao painel...')}
+                onClick={() => {
+                  const fallback =
+                    typeof localStorage !== 'undefined'
+                      ? localStorage.getItem('debug-theme') || 'PHOTOGRAPHER'
+                      : 'PHOTOGRAPHER';
+                  document.documentElement.setAttribute('data-theme', fallback);
+                  navigate('/dashboard', 'Voltando ao painel...');
+                }}
                 className="btn-secondary-white w-full"
               >
                 <ArrowLeft size={14} /> Espaço de Galerias

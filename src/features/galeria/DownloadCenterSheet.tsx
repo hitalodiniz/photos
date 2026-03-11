@@ -38,6 +38,8 @@ interface DownloadCenterSheetProps {
   externalLinks?: Array<{ label: string; url: string }>;
   handleExternalDownload?: (url: string, filename: string) => void;
   galeriaTitle?: string;
+  /** Tema visual da galeria (ex: EDITORIAL_WHITE) */
+  themeKey?: string;
 }
 
 export const DownloadCenterSheet = ({
@@ -58,6 +60,7 @@ export const DownloadCenterSheet = ({
   externalLinks = [],
   handleExternalDownload,
   galeriaTitle = '',
+  themeKey,
 }: DownloadCenterSheetProps) => {
   const completedCount = downloadedVolumes.length;
   const totalCount = volumes.length;
@@ -80,6 +83,7 @@ export const DownloadCenterSheet = ({
       headerClassName="bg-petroleum"
       maxWidth="md"
       position="right"
+      dataTheme={themeKey}
       footer={
         <>
           {/* Barra de progresso */}

@@ -33,11 +33,18 @@ export default function GaleriaFooter({
 
   if (!photographer || !galeria) return null;
 
+  const themeKey =
+    galeria.theme_key && String(galeria.theme_key).trim() !== ''
+      ? galeria.theme_key
+      : undefined;
   const hasSocial = displayLevel === 'social' || displayLevel === 'full';
   const hasWebsite = displayLevel === 'full';
 
   return (
-    <footer className="relative z-20 w-full mt-2 bg-petroleum border-t border-champagne/10">
+    <footer
+      className="relative z-20 w-full mt-2 bg-petroleum border-t border-champagne/10"
+      {...(themeKey ? { 'data-theme': themeKey } : {})}
+    >
       <div className="max-w-[1600px] mx-auto flex flex-col items-center py-6 gap-4">
         {/* 1. Top Button - Compacto */}
         {showTopButton && (

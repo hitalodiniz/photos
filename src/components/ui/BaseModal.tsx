@@ -28,6 +28,8 @@ interface BaseModalProps {
   overlayColor?: string;
   overlayOpacity?: string;
   blurLevel?: 'none' | 'sm' | 'md' | 'lg' | 'xl';
+  /** Tema visual (ex: EDITORIAL_WHITE) para o conteúdo do modal */
+  dataTheme?: string;
 }
 
 export default function BaseModal({
@@ -44,6 +46,7 @@ export default function BaseModal({
   overlayColor = 'bg-petroleum',
   overlayOpacity = '60',
   blurLevel = 'md',
+  dataTheme,
 }: BaseModalProps) {
   const [mounted, setMounted] = useState(false);
 
@@ -96,7 +99,7 @@ export default function BaseModal({
 
   const modalContent = (
     <div
-      className={`fixed inset-0 z-[1000] ${overlayColor}/${overlayOpacity} ${blurClasses[blurLevel]} flex items-center justify-center ${containerPadding} animate-in fade-in duration-500`}
+      className={`fixed inset-0 z-[1100] ${overlayColor}/${overlayOpacity} ${blurClasses[blurLevel]} flex items-center justify-center ${containerPadding} animate-in fade-in duration-500`}
     >
       <div
         className="absolute inset-0"
@@ -109,6 +112,7 @@ export default function BaseModal({
         } relative shadow-2xl ${
           maxWidth === 'full' ? 'rounded-none' : 'rounded-luxury'
         } overflow-hidden border border-white/10`}
+        {...(dataTheme ? { 'data-theme': dataTheme } : {})}
       >
         <div className="bg-petroleum px-6 py-4 flex justify-between items-center shrink-0">
           <div className="flex items-center gap-3">

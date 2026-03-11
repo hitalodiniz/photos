@@ -23,6 +23,7 @@ interface PlanCardProps {
   onToggleExpand: () => void;
   benefits: { label: string; description: string }[];
   planIcon: React.ElementType;
+  isTrial: boolean;
 }
 
 export function PlanCard({
@@ -39,6 +40,7 @@ export function PlanCard({
   onToggleExpand,
   benefits,
   planIcon: PlanIcon,
+  isTrial,
 }: PlanCardProps) {
   const borderColor =
     disabled && !isCurrentPlan
@@ -61,7 +63,7 @@ export function PlanCard({
     >
       <button
         type="button"
-        disabled={!isClickable}
+        disabled={!isClickable && !isTrial}
         onClick={() => {
           if (isClickable) onSelect();
           if (isClickable) onToggleExpand();
@@ -78,7 +80,7 @@ export function PlanCard({
       >
         <div className="flex items-center justify-between gap-3">
           <div className="flex items-center gap-2.5 min-w-0">
-            {!isCurrentPlan && (
+            {(!isCurrentPlan || isTrial) && (
               <div
                 className={`w-4 h-4 rounded-full border-2 shrink-0 flex items-center justify-center transition-colors ${
                   !isSelected

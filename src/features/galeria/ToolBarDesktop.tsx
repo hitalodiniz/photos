@@ -34,6 +34,7 @@ export const ToolBarDesktop = ({
   externalLinks = [],
   setUpsellFeature,
   getGalleryPermission, // ← Nova prop necessária
+  themeKey,
 }: any) => {
   const [copied, setCopied] = useState(false);
   const [showTagsMenu, setShowTagsMenu] = useState(false);
@@ -156,7 +157,10 @@ export const ToolBarDesktop = ({
   };
 
   return (
-    <div className="hidden md:block z-[100] sticky top-0 w-full pointer-events-none">
+    <div
+      className="hidden md:block z-[100] sticky top-0 w-full pointer-events-none"
+      {...(themeKey ? { 'data-theme': themeKey } : {})}
+    >
       <div className="mx-auto transition-all duration-500 ease-out pointer-events-auto relative w-full bg-petroleum backdrop-blur-md border-b border-white/10 shadow-2xl overflow-visible">
         <div className="flex items-center w-full max-w-[1600px] px-6 gap-3 h-12 mx-auto min-w-0">
           {/* 1. FERRAMENTAS + COLUNAS - Dropdown padronizado com Marcações */}

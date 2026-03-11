@@ -12,6 +12,10 @@ interface ConfirmationModalProps {
   confirmText?: string;
   variant?: 'danger' | 'primary';
   isLoading?: boolean;
+  /** Quando true, não exibe o botão de ação (apenas fechar). */
+  hideConfirm?: boolean;
+  /** Tema visual da galeria (ex: EDITORIAL_WHITE) */
+  themeKey?: string;
 }
 
 export default function ConfirmationModal({
@@ -23,6 +27,8 @@ export default function ConfirmationModal({
   confirmText = 'Confirmar',
   variant = 'danger',
   isLoading = false,
+  hideConfirm = false,
+  themeKey,
 }: ConfirmationModalProps) {
   if (!isOpen) return null;
 
@@ -40,19 +46,20 @@ export default function ConfirmationModal({
 
   const footer = (
     <div className="flex flex-col gap-3 w-full">
-      <button
-        onClick={onConfirm}
-        disabled={isLoading}
-        className={`btn-luxury-base w-full flex items-center justify-center gap-2 ${
-          variant === 'danger'
-            ? 'bg-red-600 text-white hover:bg-red-700 shadow-red-600/10'
-            : 'btn-luxury-primary'
-        } ${isLoading ? 'opacity-80 cursor-not-allowed' : ''}`}
-      >
-        {/* ✅ CORREÇÃO: Mostra spinner + texto lado a lado */}
-        {isLoading && <Loader2 className="w-4 h-4 animate-spin" />}
-        <span>{isLoading ? 'Enviando...' : confirmText}</span>
-      </button>
+      {!hideConfirm && (
+        <button
+          onClick={onConfirm}
+          disabled={isLoading}
+          className={`btn-luxury-base w-full flex items-center justify-center gap-2 ${
+            variant === 'danger'
+              ? 'bg-red-600 text-white hover:bg-red-700 shadow-red-600/10'
+              : 'btn-luxury-primary'
+          } ${isLoading ? 'opacity-80 cursor-not-allowed' : ''}`}
+        >
+          {isLoading && <Loader2 className="w-4 h-4 animate-spin" />}
+          <span>{isLoading ? 'Enviando...' : confirmText}</span>
+        </button>
+      )}
 
       <button
         onClick={onClose}
@@ -72,6 +79,7 @@ export default function ConfirmationModal({
       headerIcon={headerIcon}
       footer={footer}
       maxWidth="sm"
+      dataTheme={themeKey}
     >
       <div className="text-[13px] md:text-[14px] leading-relaxed text-petroleum/80 font-medium text-center py-1">
         {typeof message === 'string'

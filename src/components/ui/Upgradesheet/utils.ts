@@ -22,6 +22,63 @@ export function formatCpfCnpj(value: string): string {
     .replace(/(\d{4})(\d{1,2})$/, '$1-$2');
 }
 
+/**
+ * Valida CPF (11 dígitos, dígitos verificadores).
+ * Retorna null se válido, mensagem de erro se inválido.
+ */
+export function validateCpf(cpf: string): string | null {
+  const digits = cpf.replace(/\D/g, '');
+  if (digits.length !== 11) return 'CPF deve ter 11 dígitos';
+  if (/^(\d)\1{10}$/.test(digits)) return 'CPF inválido';
+  let sum = 0;
+  for (let i = 0; i < 9; i++) sum += parseInt(digits[i], 10) * (10 - i);
+  let mod = (sum * 10) % 11;
+  if (mod === 10) mod = 0;
+  if (mod !== parseInt(digits[9], 10)) return 'CPF inválido';
+  sum = 0;
+  for (let i = 0; i < 10; i++) sum += parseInt(digits[i], 10) * (11 - i);
+  mod = (sum * 10) % 11;
+  if (mod === 10) mod = 0;
+  if (mod !== parseInt(digits[10], 10)) return 'CPF inválido';
+  return null;
+}
+
+/**
+ * Valida CNPJ (14 dígitos, dígitos verificadores).
+ * Retorna null se válido, mensagem de erro se inválido.
+ */
+export function validateCnpj(cnpj: string): string | null {
+  const digits = cnpj.replace(/\D/g, '');
+  if (digits.length !== 14) return 'CNPJ deve ter 14 dígitos';
+  if (/^(\d)\1{13}$/.test(digits)) return 'CNPJ inválido';
+  const weights1 = [5, 4, 3, 2, 9, 8, 7, 6, 5, 4, 3, 2];
+  let sum = 0;
+  for (let i = 0; i < 12; i++) sum += parseInt(digits[i], 10) * weights1[i];
+  let mod = sum % 11;
+  const d1 = mod < 2 ? 0 : 11 - mod;
+  if (d1 !== parseInt(digits[12], 10)) return 'CNPJ inválido';
+  const weights2 = [6, 5, 4, 3, 2, 9, 8, 7, 6, 5, 4, 3, 2];
+  sum = 0;
+  for (let i = 0; i < 13; i++) sum += parseInt(digits[i], 10) * weights2[i];
+  mod = sum % 11;
+  const d2 = mod < 2 ? 0 : 11 - mod;
+  if (d2 !== parseInt(digits[13], 10)) return 'CNPJ inválido';
+  return null;
+}
+
+/**
+ * Valida CPF ou CNPJ conforme quantidade de dígitos (11 = CPF, 14 = CNPJ).
+ * Retorna null se válido, mensagem de erro se inválido ou incompleto.
+ */
+export function validateCpfCnpj(value: string): string | null {
+  const digits = value.replace(/\D/g, '');
+  if (digits.length === 0) return 'Informe CPF ou CNPJ';
+  if (digits.length < 11) return 'CPF deve ter 11 dígitos';
+  if (digits.length === 11) return validateCpf(value);
+  if (digits.length < 14) return 'CNPJ deve ter 14 dígitos';
+  return validateCnpj(value);
+}
+
 export function formatCep(value: string): string {
   const digits = value.replace(/\D/g, '').slice(0, 8);
   return digits.replace(/(\d{5})(\d)/, '$1-$2');

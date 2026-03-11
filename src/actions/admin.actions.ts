@@ -3,7 +3,10 @@
 import { createSupabaseAdmin } from '@/lib/supabase.server';
 import { createSupabaseServerClient } from '@/lib/supabase.server';
 import { getAuthenticatedUser } from '@/core/services/auth-context.service';
-import { revalidateProfile, revalidateUserCache } from '@/actions/revalidate.actions';
+import {
+  revalidateProfile,
+  revalidateUserCache,
+} from '@/actions/revalidate.actions';
 import type { PlanKey } from '@/core/config/plans';
 
 export interface AdminUserRow {
@@ -36,7 +39,9 @@ export async function listAdminUsers(filters?: {
 
   const { data: profiles, error: profilesError } = await admin
     .from('tb_profiles')
-    .select('id, full_name, email, username, plan_key, plan_trial_expires, is_exempt')
+    .select(
+      'id, full_name, email, username, plan_key, plan_trial_expires, is_exempt',
+    )
     .order('created_at', { ascending: false });
 
   if (profilesError) {
@@ -136,7 +141,7 @@ export async function updateUserPlanAdmin(payload: {
     return { success: false, error: 'Acesso negado.' };
   }
 
-  const supabase = await createSupabaseServerClient();
+  const supabase = createSupabaseAdmin();
 
   const { data: target } = await supabase
     .from('tb_profiles')
@@ -215,7 +220,9 @@ export async function getGaleriasForAdmin(
   const admin = createSupabaseAdmin();
   const { data, error } = await admin
     .from('tb_galerias')
-    .select('id, title, slug, date, is_public, auto_archived, is_archived, is_deleted, created_at')
+    .select(
+      'id, title, slug, date, is_public, auto_archived, is_archived, is_deleted, created_at',
+    )
     .eq('user_id', targetUserId)
     .order('date', { ascending: false });
 
@@ -224,17 +231,19 @@ export async function getGaleriasForAdmin(
     return { success: false, error: error.message };
   }
 
-  const rows: AdminGaleriaRow[] = (data ?? []).map((r: Record<string, unknown>) => ({
-    id: r.id as string,
-    title: (r.title as string) ?? '',
-    slug: (r.slug as string) ?? '',
-    date: (r.date as string) ?? '',
-    is_public: Boolean(r.is_public),
-    auto_archived: Boolean(r.auto_archived),
-    is_archived: Boolean(r.is_archived),
-    is_deleted: Boolean(r.is_deleted),
-    created_at: (r.created_at as string) ?? '',
-  }));
+  const rows: AdminGaleriaRow[] = (data ?? []).map(
+    (r: Record<string, unknown>) => ({
+      id: r.id as string,
+      title: (r.title as string) ?? '',
+      slug: (r.slug as string) ?? '',
+      date: (r.date as string) ?? '',
+      is_public: Boolean(r.is_public),
+      auto_archived: Boolean(r.auto_archived),
+      is_archived: Boolean(r.is_archived),
+      is_deleted: Boolean(r.is_deleted),
+      created_at: (r.created_at as string) ?? '',
+    }),
+  );
 
   return { success: true, data: rows };
 }

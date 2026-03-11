@@ -42,6 +42,12 @@ export async function POST(request: NextRequest) {
       payment?.subscription ?? body.subscription?.id ?? null;
 
     /**
+     * Processamento sempre por identificadores externos (asaas_payment_id / asaas_subscription_id).
+     * Não depende de sessão do usuário: compensação bancária e webhooks são tratados mesmo com
+     * sessão expirada, usando apenas os IDs fixos do Asaas.
+     */
+
+    /**
      * Validate that the payment value matches the registered amount_final.
      * Returns true if the amounts match (within R$ 0.01 tolerance) or if
      * no matching request is found (fallback: allow processing).
@@ -131,9 +137,37 @@ export async function POST(request: NextRequest) {
         break;
       }
 
-      case 'PAYMENT_OVERDUE':
-        if (paymentId) await handlePaymentRpc('OVERDUE');
+      case 'PAYMENT_OVERDUE': {
+        if (paymentId) {
+          await handlePaymentRpc('OVERDUE');
+
+          // Quando há um cancelamento agendado (pending_downgrade),
+          // o Asaas pode marcar a cobrança de renovação como OVERDUE.
+          // Nessa situação, aplicamos o downgrade para FREE aqui mesmo.
+          const subscriptionIdOverdue = payment?.subscription ?? null;
+          if (subscriptionIdOverdue) {
+            const { data: subReq } = await supabase
+              .from('tb_upgrade_requests')
+              .select('id, profile_id, status')
+              .eq('asaas_subscription_id', subscriptionIdOverdue)
+              .maybeSingle();
+
+            if (subReq?.profile_id && subReq.status === 'pending_downgrade') {
+              await performDowngradeToFree(
+                subReq.profile_id,
+                subReq.id,
+                `Downgrade via PAYMENT_OVERDUE (webhook Asaas, subscriptionId: ${subscriptionIdOverdue})`,
+                supabase,
+              );
+              await revalidateUserCache(subReq.profile_id).catch((err) =>
+                console.warn('[Webhook Asaas] revalidateUserCache:', err),
+              );
+              revalidatePath('/dashboard');
+            }
+          }
+        }
         break;
+      }
 
       case 'PAYMENT_REFUNDED': {
         // Estorno confirmado pelo Asaas → downgrade imediato para FREE

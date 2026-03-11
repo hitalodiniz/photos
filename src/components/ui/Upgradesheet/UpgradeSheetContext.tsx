@@ -24,7 +24,7 @@ import type { CreditCardPayload } from '@/core/types/billing';
 import type { UpgradePriceCalculation } from '@/core/types/billing';
 import type { Step } from './types';
 import type { PersonalData, AddressData } from './types';
-import { formatPhone } from './utils';
+import { formatPhone, validateCpfCnpj } from './utils';
 
 interface UpgradeSheetContextValue {
   // Step
@@ -61,11 +61,15 @@ interface UpgradeSheetContextValue {
   paymentUrl: string | null;
   /** Quando a solicitação for downgrade agendado: data em que a mudança será efetivada. */
   downgradeEffectiveAt: string | null;
+  /** Data de vencimento da cobrança (YYYY-MM-DD) vinda do Asaas; exibida na tela "Boleto gerado". */
+  paymentDueDate: string | null;
   /** Dados do QR PIX (preenchido após confirmar com PIX; usado na tela de revisão). */
   pixData: { qrCode: string; copyPaste: string };
   /** ID da solicitação de upgrade (tb_upgrade_requests.id) para polling de confirmação PIX. */
   upgradeRequestId: string | null;
   requestError: string | null;
+  /** Aviso quando pagamento anterior já estava RECEIVED/CONFIRMED (ex.: "Pagamento já identificado. O valor será utilizado como crédito para o novo plano."). */
+  requestWarning: string | null;
   loading: boolean;
   loadingPrefill: boolean;
   hasSavedBillingData: boolean;
@@ -89,6 +93,7 @@ interface UpgradeSheetContextValue {
     phone_contact?: string;
     email?: string | null;
     is_exempt?: boolean;
+    is_trial?: boolean;
   } | null;
   email: string | undefined;
   segment: SegmentType;
@@ -130,6 +135,7 @@ interface UpgradeSheetProviderProps {
     phone_contact?: string;
     email?: string | null;
     is_exempt?: boolean;
+    is_trial?: boolean;
   } | null;
   email: string | undefined;
   segment: SegmentType;
@@ -182,17 +188,22 @@ export function UpgradeSheetProvider({
   const [downgradeEffectiveAt, setDowngradeEffectiveAt] = useState<
     string | null
   >(null);
+  const [paymentDueDate, setPaymentDueDate] = useState<string | null>(null);
   const [pixData, setPixData] = useState<{ qrCode: string; copyPaste: string }>(
     { qrCode: '', copyPaste: '' },
   );
   const [upgradeRequestId, setUpgradeRequestId] = useState<string | null>(null);
   const [requestError, setRequestError] = useState<string | null>(null);
+  const [requestWarning, setRequestWarning] = useState<string | null>(null);
   const [loading, setLoading] = useState(false);
   const [loadingPrefill, setLoadingPrefill] = useState(false);
   const [hasSavedBillingData, setHasSavedBillingData] = useState(false);
   const [hasPendingUpgrade, setHasPendingUpgrade] = useState(false);
-  const [upgradeCalculation, setUpgradeCalculation] = useState<UpgradePriceCalculation | null>(null);
-  const [downgradeBlockedMessage, setDowngradeBlockedMessage] = useState<string | null>(null);
+  const [upgradeCalculation, setUpgradeCalculation] =
+    useState<UpgradePriceCalculation | null>(null);
+  const [downgradeBlockedMessage, setDowngradeBlockedMessage] = useState<
+    string | null
+  >(null);
   const numberInputRef = React.useRef<HTMLInputElement>(null);
   const streetInputRef = React.useRef<HTMLInputElement>(null);
 
@@ -241,10 +252,12 @@ export function UpgradeSheetProvider({
     selectedPlanInfo ?? PLANS_BY_SEGMENT[segment]?.FREE!;
 
   const cpfCnpjDigits = personal.cpfCnpj.replace(/\D/g, '');
+  const cpfCnpjValid = validateCpfCnpj(personal.cpfCnpj) === null;
   const canProceedPersonal =
     personal.fullName.trim().length >= 2 &&
     personal.whatsapp.replace(/\D/g, '').length >= 10 &&
-    (cpfCnpjDigits.length === 11 || cpfCnpjDigits.length === 14);
+    (cpfCnpjDigits.length === 11 || cpfCnpjDigits.length === 14) &&
+    cpfCnpjValid;
   const canProceedAddress =
     address.cep.replace(/\D/g, '').length === 8 &&
     address.street.trim() !== '' &&
@@ -298,6 +311,7 @@ export function UpgradeSheetProvider({
   const handleConfirm = useCallback(async () => {
     setLoading(true);
     setRequestError(null);
+    setRequestWarning(null);
     const effectiveInstallments =
       billingType === 'CREDIT_CARD' ? installments : 1;
 
@@ -324,7 +338,9 @@ export function UpgradeSheetProvider({
       if (result?.success) {
         setDowngradeEffectiveAt(result.downgrade_effective_at ?? null);
         setPaymentUrl(result.payment_url ?? null);
+        setPaymentDueDate(result.payment_due_date ?? null);
         if (result.request_id) setUpgradeRequestId(result.request_id);
+        if (result.warning) setRequestWarning(result.warning);
         if (
           result.billing_type === 'PIX' &&
           (result.pix_qr_code_base64 || result.payment_url)
@@ -391,9 +407,11 @@ export function UpgradeSheetProvider({
 
     setPaymentUrl(null);
     setDowngradeEffectiveAt(null);
+    setPaymentDueDate(null);
     setPixData({ qrCode: '', copyPaste: '' });
     setUpgradeRequestId(null);
     setRequestError(null);
+    setRequestWarning(null);
     setBillingType('CREDIT_CARD');
     setBillingPeriod('monthly');
     setInstallments(1);
@@ -433,8 +451,10 @@ export function UpgradeSheetProvider({
       setCreditCard,
       paymentUrl,
       downgradeEffectiveAt,
+      paymentDueDate,
       pixData,
       requestError,
+      requestWarning,
       upgradeRequestId,
       loading,
       loadingPrefill,
@@ -477,8 +497,10 @@ export function UpgradeSheetProvider({
       creditCard,
       paymentUrl,
       downgradeEffectiveAt,
+      paymentDueDate,
       pixData,
       requestError,
+      requestWarning,
       upgradeRequestId,
       loading,
       loadingPrefill,
