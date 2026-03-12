@@ -43,6 +43,7 @@ import {
   isCardValid,
   type CardErrors,
 } from '@/core/utils/creditCardValidation';
+import { div } from 'framer-motion/client';
 
 // ─── Helper ───────────────────────────────────────────────────────────────────
 
@@ -364,10 +365,10 @@ export function StepBilling() {
                 </div>
 
                 {/* Conteúdo de Texto Alinhado à Esquerda */}
-                <div className="flex flex-col items-start text-left overflow-hidden">
+                <div className="flex flex-col items-start text-left overflow-hidden py-1">
                   <div className="flex items-baseline gap-1.5">
                     <span
-                      className={`text-[10px] font-bold uppercase tracking-wide ${isSelected ? 'text-petroleum' : 'text-petroleum/90'}`}
+                      className={`text-[11px] font-bold uppercase tracking-wide ${isSelected ? 'text-petroleum' : 'text-petroleum/90'}`}
                     >
                       {label}
                     </span>
@@ -375,13 +376,13 @@ export function StepBilling() {
                       className={`text-[12px] font-bold ${isSelected ? 'text-petroleum' : 'text-petroleum/80'}`}
                     >
                       R$ {effectiveMonthly}
-                      <span className="text-[8px] font-medium opacity-70">
+                      <span className="text-[9px] font-medium opacity-90">
                         /mês
                       </span>
                     </span>
                   </div>
 
-                  <p className="text-[9px] text-petroleum/60 leading-tight font-medium truncate">
+                  <p className="text-[10px] text-petroleum/70 leading-tight font-medium truncate">
                     {discount > 0
                       ? `Total: R$ ${totalPrice} · ${key === 'semiannual' ? '6' : '12'} meses`
                       : sublabel}
@@ -393,15 +394,15 @@ export function StepBilling() {
         </div>
 
         {billingPeriod !== 'monthly' && (
-          <div className="mt-1.5 flex items-center gap-1.5 px-2 py-1 bg-emerald-50 border border-emerald-200/60 rounded-md">
-            <CheckCircle2 size={10} className="text-emerald-500 shrink-0" />
-            <p className="text-[9px] text-emerald-700 font-semibold leading-tight">
+          <div className="mt-1.5 flex items-center gap-1.5 px-2 py-2 bg-emerald-50 border border-emerald-200/60 rounded-md">
+            <CheckCircle2 size={14} className="text-emerald-500 shrink-0" />
+            <p className="text-[10px] text-emerald-700 font-semibold leading-tight">
               Economia de R${' '}
               {(planInfoForPrice.price -
                 getPeriodPrice(planInfoForPrice, billingPeriod)
                   .effectiveMonthly) *
                 getPeriodPrice(planInfoForPrice, billingPeriod).months}{' '}
-              vs. mensal
+              em relação ao plano mensal
             </p>
           </div>
         )}
@@ -423,7 +424,11 @@ export function StepBilling() {
                 Icon: CreditCard,
               },
               { value: 'PIX' as BillingType, label: 'PIX', Icon: QrCode },
-              { value: 'BOLETO' as BillingType, label: 'Boleto', Icon: Banknote },
+              {
+                value: 'BOLETO' as BillingType,
+                label: 'Boleto',
+                Icon: Banknote,
+              },
             ] as const
           ).map(({ value, label, Icon }) => (
             <button
@@ -446,23 +451,25 @@ export function StepBilling() {
             </button>
           ))}
         </div>
-        {billingPeriod !== 'monthly' && (
-          <p className="text-[10px] text-petroleum/90 mt-1 leading-snug">
+
+        <div className="mt-2 mb-2">
+          <p className="text-[11px] text-petroleum/90 leading-snug">
             Pagamento via <strong className="text-petroleum">PIX</strong> tem{' '}
             <strong>{PIX_DISCOUNT_PERCENT}% de desconto</strong> no semestral e
             no anual. Parcelamento só no cartão.
           </p>
-        )}
+        </div>
+
         {showPixDiscount && (
-          <div className="mt-1 flex items-center gap-1.5 px-2 py-1 bg-emerald-50 border border-emerald-200/60 rounded-md">
-            <CheckCircle2 size={10} className="text-emerald-500 shrink-0" />
-            <p className="text-[9px] text-emerald-700 font-semibold leading-tight">
-              Você paga <strong>R$ {formatBRL(amountFinal)}</strong> com{' '}
-              {PIX_DISCOUNT_PERCENT}% de desconto no PIX
+          <div className="mt-1 flex items-center gap-1.5 px-2 py-2 bg-emerald-50 border border-emerald-200/60 rounded-md">
+            <CheckCircle2 size={14} className="text-emerald-500 shrink-0" />
+            <p className="text-[11px] text-emerald-700 font-semibold leading-tight">
+              Você paga R$ {formatBRL(amountFinal)} com {PIX_DISCOUNT_PERCENT}%
+              de desconto no PIX
               {pixAdjusted.discountAmount > 0 && (
-                <span className="text-emerald-600/90 font-normal">
+                <span className="text-emerald-900 font-normal">
                   {' '}
-                  (economia R$ {formatBRL(pixAdjusted.discountAmount)})
+                  (economize R$ {formatBRL(pixAdjusted.discountAmount)})
                 </span>
               )}
             </p>

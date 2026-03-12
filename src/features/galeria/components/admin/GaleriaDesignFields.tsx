@@ -45,16 +45,14 @@ export const GalleryDesignFields: React.FC<GalleryDesignFieldsProps> = ({
 }) => {
   const { planKey } = usePlan();
 
-  // FREE só pode escolher a primeira opção do mobile
-  const getFilteredOptions = (originalOptions: number[]) => {
-    if (planKey === 'FREE') return [originalOptions[0]];
-    return originalOptions;
-  };
-
   return (
     <div className="flex flex-wrap items-center gap-x-1 gap-y-1.5">
       {/* FOTO DE FUNDO — bloqueado em FREE (customizationLevel = 'default') */}
-      <PlanGuard feature="customizationLevel" label="Foto de fundo">
+      <PlanGuard
+        feature="customizationLevel"
+        label="Foto de fundo"
+        variant="mini"
+      >
         <div className="flex items-center gap-2 border-r border-petroleum/10 pr-2.5 shrink-0 h-8">
           <div className="flex items-center gap-1 shrink-0">
             <label>
@@ -87,7 +85,11 @@ export const GalleryDesignFields: React.FC<GalleryDesignFieldsProps> = ({
       </PlanGuard>
 
       {/* COR DE FUNDO — bloqueado em FREE */}
-      <PlanGuard feature="customizationLevel" label="Cor de fundo">
+      <PlanGuard
+        feature="customizationLevel"
+        label="Cor de fundo"
+        variant="mini"
+      >
         <div className="flex items-center gap-2 border-r border-petroleum/10 shrink-0 h-8 pr-2.5">
           <div className="flex items-center gap-1 shrink-0">
             <Palette size={12} className="text-gold" />
@@ -161,7 +163,7 @@ export const GalleryDesignFields: React.FC<GalleryDesignFieldsProps> = ({
             {
               k: 'mobile' as const,
               i: Smartphone,
-              options: getFilteredOptions([1, 2]),
+              options: [1, 2],
             },
             { k: 'tablet' as const, i: Tablet, options: [2, 3, 4, 5, 6] },
             { k: 'desktop' as const, i: Monitor, options: [3, 4, 5, 6, 8] },

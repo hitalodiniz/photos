@@ -496,58 +496,6 @@ async function getFirstPaymentFromSubscription(
 }
 
 /**
- * Cria cobrança avulsa PIX (POST /v3/payments).
- * Usado quando a conta Asaas não permite PIX em assinaturas; gera uma única cobrança.
- */
-async function createAsaasPixPayment(
-  customerId: string,
-  value: number,
-  dueDate: string,
-  description: string,
-): Promise<{ success: boolean; paymentId?: string; error?: string }> {
-  try {
-    const apiKey = getAsaasApiKey();
-    if (!apiKey) {
-      return { success: false, error: 'Chave Asaas não configurada.' };
-    }
-    const response = await fetch(`${ASAAS_API_URL}/payments`, {
-      method: 'POST',
-      headers: {
-        access_token: apiKey,
-        'Content-Type': 'application/json',
-      },
-      body: JSON.stringify({
-        customer: customerId,
-        billingType: 'PIX',
-        value,
-        dueDate,
-        description,
-      }),
-    });
-
-    if (!response.ok) {
-      const err = await response.json().catch(() => ({}));
-      return {
-        success: false,
-        error: err.errors?.[0]?.description ?? 'Erro ao criar cobrança PIX',
-      };
-    }
-
-    const data = await response.json();
-    return {
-      success: true,
-      paymentId: data.id,
-    };
-  } catch (error) {
-    console.error('[Asaas] Erro ao criar cobrança PIX:', error);
-    return {
-      success: false,
-      error: 'Erro de conexão com o gateway de pagamento',
-    };
-  }
-}
-
-/**
  * Cria cobrança avulsa com cartão (POST /v3/payments).
  * Usado quando o crédito cobre N mensalidades e o cliente paga só a diferença agora; a assinatura recorre a partir de new_expiry_date.
  */
@@ -684,7 +632,7 @@ async function getPixQrCode(paymentId: string): Promise<{
 }
 
 /** GET /v3/payments/{id} — retorna invoiceUrl para abrir comprovante/fatura no Asaas. */
-async function getAsaasPaymentInvoiceUrl(
+export async function getAsaasPaymentInvoiceUrl(
   paymentId: string,
 ): Promise<{ success: boolean; invoiceUrl?: string; error?: string }> {
   try {
@@ -879,7 +827,18 @@ export async function requestUpgrade(
       cancelResult.paymentAlreadyReceived === true;
   }
 
-  const currentRequest = await getCurrentActiveRequest(userId, supabase);
+  let currentRequest = await getCurrentActiveRequest(
+    userId,
+    planKeyCurrent,
+    supabase,
+  );
+  // Se o usuário está no plano FREE, o crédito residual é zerado para evitar reaproveitamento de planos cancelados/encerrados.
+  if (planKeyCurrent === 'FREE') {
+    currentRequest = null;
+  }
+  if (profile.is_exempt === true) {
+    currentRequest = null;
+  }
   const calculation = await calculateUpgradePrice(
     currentRequest,
     planKey,
@@ -1132,142 +1091,7 @@ export async function requestUpgrade(
     }
   }
 
-  // ─── PIX: cobrança avulsa (não usar Subscription — muitas contas Asaas rejeitam PIX em assinaturas)
-  if (payload.billing_type === 'PIX') {
-    // Regenerar QR PIX para a mesma solicitação pendente (ex.: PIX expirado) — não duplica registro
-    if (isSamePendingPix && pendingRequest) {
-      const dueDate = new Date();
-      dueDate.setDate(dueDate.getDate() + 3);
-      const dueDateStr = dueDate.toISOString().split('T')[0];
-      const pixPayResult = await createAsaasPixPayment(
-        asaasCustomerId,
-        amountFinal,
-        dueDateStr,
-        `Plano ${planInfo.name}`,
-      );
-      if (!pixPayResult.success || !pixPayResult.paymentId) {
-        return {
-          success: false,
-          error: pixPayResult.error ?? 'Erro ao gerar novo PIX',
-        };
-      }
-      const newPaymentId = pixPayResult.paymentId;
-      const pixResult = await getPixQrCode(newPaymentId);
-      const paymentUrlPix = pixResult.payload ?? null;
-      const pixQrCodeBase64Pix = pixResult.encodedImage;
-      const invoiceResult = await getAsaasPaymentInvoiceUrl(newPaymentId);
-      const invoiceUrlPix =
-        invoiceResult.success && invoiceResult.invoiceUrl
-          ? invoiceResult.invoiceUrl
-          : null;
-      const { error: updateErr } = await supabase
-        .from('tb_upgrade_requests')
-        .update({
-          asaas_payment_id: newPaymentId,
-          payment_url: invoiceUrlPix,
-          ...(notesCredit && { notes: notesCredit }),
-          updated_at: new Date().toISOString(),
-        })
-        .eq('id', pendingRequest.id)
-        .eq('profile_id', userId);
-      if (updateErr) {
-        console.error('[Asaas] Erro ao atualizar PIX regenerado:', updateErr);
-        return {
-          success: false,
-          error: 'Erro ao atualizar solicitação. Tente novamente.',
-        };
-      }
-      return {
-        success: true,
-        payment_url: paymentUrlPix ?? undefined,
-        pix_qr_code_base64: pixQrCodeBase64Pix,
-        billing_type: 'PIX',
-        request_id: pendingRequest.id,
-      };
-    }
-
-    const dueDate = new Date();
-    dueDate.setDate(dueDate.getDate() + 3);
-    const dueDateStr = dueDate.toISOString().split('T')[0];
-    const pixPayResult = await createAsaasPixPayment(
-      asaasCustomerId,
-      amountFinal,
-      dueDateStr,
-      `Plano ${planInfo.name} – ${planKey}`,
-    );
-    if (!pixPayResult.success || !pixPayResult.paymentId) {
-      return {
-        success: false,
-        error: pixPayResult.error ?? 'Erro ao criar cobrança PIX',
-      };
-    }
-    const asaasPaymentIdPix = pixPayResult.paymentId;
-    const pixResult = await getPixQrCode(asaasPaymentIdPix);
-    const paymentUrlPix = pixResult.payload ?? null;
-    const pixQrCodeBase64Pix = pixResult.encodedImage;
-
-    // URL da fatura no Asaas (comprovante / abrir pagamento); não gravar o payload PIX em payment_url
-    const invoiceResult = await getAsaasPaymentInvoiceUrl(asaasPaymentIdPix);
-    const invoiceUrlPix =
-      invoiceResult.success && invoiceResult.invoiceUrl
-        ? invoiceResult.invoiceUrl
-        : null;
-
-    const { data: insertRowPix, error: insertErrorPix } = await supabase
-      .from('tb_upgrade_requests')
-      .insert({
-        profile_id: userId,
-        plan_key_current: planKeyCurrent,
-        plan_key_requested: planKey,
-        billing_type: 'PIX',
-        billing_period: billingPeriod,
-        snapshot_name: billingFullName || (profile.full_name ?? ''),
-        snapshot_cpf_cnpj: cpfCnpjFormatted,
-        snapshot_email: email ?? '',
-        snapshot_whatsapp: payload.whatsapp,
-        snapshot_address,
-        asaas_customer_id: asaasCustomerId,
-        asaas_subscription_id: null,
-        asaas_payment_id: asaasPaymentIdPix,
-        payment_url: invoiceUrlPix,
-        amount_original: amountOriginal,
-        amount_discount: amountDiscount,
-        amount_final: amountFinal,
-        installments: 1,
-        status: 'pending',
-        ...(notesCredit && { notes: notesCredit }),
-      })
-      .select('id')
-      .single();
-
-    if (insertErrorPix) {
-      console.error(
-        '[DB] Erro ao criar upgrade request (PIX):',
-        insertErrorPix,
-      );
-      return {
-        success: false,
-        error:
-          process.env.NODE_ENV === 'development'
-            ? `Erro ao registrar solicitação: ${insertErrorPix.message}`
-            : 'Erro ao registrar solicitação. Tente novamente.',
-      };
-    }
-
-    return {
-      success: true,
-      payment_url: paymentUrlPix ?? undefined,
-      pix_qr_code_base64: pixQrCodeBase64Pix,
-      billing_type: 'PIX',
-      request_id: insertRowPix?.id,
-      ...(paymentAlreadyReceivedWarning && {
-        warning:
-          'Pagamento já identificado. O valor será utilizado como crédito para o novo plano.',
-      }),
-    };
-  }
-
-  // 4. Criar assinatura recorrente (CREDIT_CARD e BOLETO)
+  // 4. Criar assinatura recorrente (PIX, BOLETO e CREDIT_CARD)
   const asaasCycle: 'MONTHLY' | 'SEMIANNUALLY' | 'YEARLY' =
     billingPeriod === 'annual'
       ? 'YEARLY'
@@ -1286,7 +1110,7 @@ export async function requestUpgrade(
     billingType: payload.billing_type,
     cycle: asaasCycle,
     value: subscriptionValue,
-    description: `Plano ${planInfo.name} – ${planKey}`,
+    description: `Plano ${planInfo.name}`,
     ...(nextDueDateStr && { nextDueDate: nextDueDateStr }),
     installmentCount: installments > 1 ? installments : undefined,
   };
@@ -1329,7 +1153,7 @@ export async function requestUpgrade(
       asaasCustomerId,
       amountFinal,
       dueToday,
-      `Plano ${planInfo.name} – ${planKey} (diferença com crédito)`,
+      `Plano ${planInfo.name}`,
       subPayload.creditCardDetails,
       subPayload.creditCardHolderInfo,
     );
@@ -1564,8 +1388,12 @@ export interface CurrentActiveRequestRow {
  */
 export async function getCurrentActiveRequest(
   userId: string,
+  currentPlanKey: PlanKey,
   supabase?: Awaited<ReturnType<typeof createSupabaseServerClient>>,
 ): Promise<CurrentActiveRequestRow | null> {
+  if (!currentPlanKey || currentPlanKey === 'FREE') {
+    return null;
+  }
   const db = supabase ?? (await createSupabaseServerClient());
   const { data: rows } = await db
     .from('tb_upgrade_requests')
@@ -1574,6 +1402,7 @@ export async function getCurrentActiveRequest(
     )
     .eq('profile_id', userId)
     .eq('status', 'approved')
+    .eq('plan_key_requested', currentPlanKey)
     .order('processed_at', { ascending: false })
     .limit(10);
   const list = (rows ?? []) as CurrentActiveRequestRow[];
@@ -1985,10 +1814,7 @@ export async function getUpgradePreview(
       };
     }
     const supabase = await createSupabaseServerClient();
-    const [pending, current] = await Promise.all([
-      getPendingUpgradeRequest(userId, supabase),
-      getCurrentActiveRequest(userId, supabase),
-    ]);
+    const pending = await getPendingUpgradeRequest(userId, supabase);
     if (pending) {
       return {
         success: true,
@@ -2001,6 +1827,14 @@ export async function getUpgradePreview(
     const currentPlanKeyFromProfile = rawPlanKey
       ? (String(rawPlanKey).toUpperCase() as PlanKey)
       : undefined;
+    let current: CurrentActiveRequestRow | null = null;
+    if (currentPlanKeyFromProfile && currentPlanKeyFromProfile !== 'FREE') {
+      current = await getCurrentActiveRequest(
+        userId,
+        currentPlanKeyFromProfile,
+        supabase,
+      );
+    }
     const calculation = await calculateUpgradePrice(
       current,
       targetPlanKey,

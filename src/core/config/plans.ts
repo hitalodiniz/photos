@@ -267,7 +267,7 @@ export interface PlanPermissions {
   privacyLevel: 'public' | 'password';
   expiresAt: boolean | null;
   keepOriginalFilenames: boolean;
-  customizationLevel: 'default' | 'colors' | 'full';
+  customizationLevel: boolean;
   canCustomCategories: boolean;
   isTrial?: boolean;
 }
@@ -315,7 +315,7 @@ export const PERMISSIONS_BY_PLAN: Record<PlanKey, PlanPermissions> = {
     privacyLevel: 'public',
     expiresAt: false,
     keepOriginalFilenames: false,
-    customizationLevel: 'default',
+    customizationLevel: false,
     canCustomCategories: false,
   },
   START: {
@@ -360,7 +360,7 @@ export const PERMISSIONS_BY_PLAN: Record<PlanKey, PlanPermissions> = {
     privacyLevel: 'password',
     expiresAt: false,
     keepOriginalFilenames: false,
-    customizationLevel: 'default',
+    customizationLevel: false,
     canCustomCategories: false,
   },
   PLUS: {
@@ -405,7 +405,7 @@ export const PERMISSIONS_BY_PLAN: Record<PlanKey, PlanPermissions> = {
     privacyLevel: 'password',
     expiresAt: false,
     keepOriginalFilenames: true,
-    customizationLevel: 'colors',
+    customizationLevel: true,
     canCustomCategories: true,
   },
   PRO: {
@@ -450,7 +450,7 @@ export const PERMISSIONS_BY_PLAN: Record<PlanKey, PlanPermissions> = {
     privacyLevel: 'password',
     expiresAt: true,
     keepOriginalFilenames: true,
-    customizationLevel: 'colors',
+    customizationLevel: true,
     canCustomCategories: true,
   },
   PREMIUM: {
@@ -495,7 +495,7 @@ export const PERMISSIONS_BY_PLAN: Record<PlanKey, PlanPermissions> = {
     privacyLevel: 'password',
     expiresAt: true,
     keepOriginalFilenames: true,
-    customizationLevel: 'full',
+    customizationLevel: true,
     canCustomCategories: true,
   },
 };
@@ -674,7 +674,7 @@ export const FEATURE_DESCRIPTIONS: Record<
   },
   customizationLevel: {
     label: 'Personalização Visual',
-    description: 'Altere cores e fundos para criar galerias exclusivas.',
+    description: 'Escolha até 7 temas para criar galerias exclusivas.',
   },
   canCustomWhatsApp: {
     label: 'WhatsApp Customizado',
@@ -746,7 +746,8 @@ export function getPlanBenefits(
       const value = perms[key];
       //if (key === 'teamMembers') return typeof value === 'number' && value > 0;
       if (typeof value === 'number') return value > 0;
-      if (key === 'customizationLevel') return value && value !== 'default';
+      // customizationLevel é boolean (true = tem temas; false = não tem)
+      if (key === 'customizationLevel') return value === true;
       return !!value;
     })
     .map((key) => {
@@ -787,13 +788,13 @@ export function getProOnlyFeatureLabels(): string[] {
       typeof proVal === 'number'
         ? proVal > 0
         : key === 'customizationLevel'
-          ? proVal && proVal !== 'default'
+          ? proVal === true
           : !!proVal;
     const hasInFree =
       typeof freeVal === 'number'
         ? freeVal > 0
         : key === 'customizationLevel'
-          ? freeVal && freeVal !== 'default'
+          ? freeVal === true
           : !!freeVal;
     if (hasInPro && !hasInFree) {
       const meta = FEATURE_DESCRIPTIONS[key];
@@ -1357,9 +1358,9 @@ export const COMMON_FEATURES = [
     values: [
       'Tema Editorial',
       'Tema Editorial',
-      '+ Cores do Grid',
-      '+ Cores do Grid',
-      '+ Full Custom',
+      '+ 7 Temas',
+      '+ 7 Temas',
+      '+ 7 Temas',
     ],
   },
   // --- ENTREGA & SEGURANÇA ---

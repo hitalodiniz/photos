@@ -965,7 +965,9 @@ export default function AssinaturaContent({
       header: 'Status',
       accessor: (item) => {
         const isLatestApproved =
-          item.status === 'approved' && item.id === latestApprovedId;
+          planKey !== 'FREE' &&
+          item.status === 'approved' &&
+          item.id === latestApprovedId;
         if (isLatestApproved) {
           return (
             <span className="inline-flex items-center gap-1 px-1.5 py-0.5 rounded-md bg-emerald-100 text-emerald-800 text-[10px] font-semibold">
@@ -1017,10 +1019,19 @@ export default function AssinaturaContent({
     {
       header: 'Ação',
       accessor: (item) => {
-        // Só usar como link se for URL (Asaas); PIX antigo pode ter payload "copia e cola" salvo
-        const url = item.payment_url?.startsWith('http')
-          ? item.payment_url
-          : null;
+        const isPaidOrCancelled =
+          item.status === 'approved' ||
+          item.status === 'cancelled' ||
+          item.status === 'pending_cancellation' ||
+          item.status === 'rejected';
+
+        // Pagamento já confirmado ou cancelado: abrir sempre o comprovante (URL atual do Asaas), não o boleto/PIX.
+        const url = isPaidOrCancelled
+          ? `/api/dashboard/payment-invoice-url?requestId=${encodeURIComponent(item.id)}`
+          : item.payment_url?.startsWith('http')
+            ? item.payment_url
+            : null;
+
         if (!url) {
           return <span className="text-slate-600 text-[11px]">—</span>;
         }
@@ -1030,11 +1041,7 @@ export default function AssinaturaContent({
           label = 'Abrir pagamento';
         } else if (item.status === 'approved') {
           label = 'Comprovante de pagamento';
-        } else if (
-          item.status === 'cancelled' ||
-          item.status === 'pending_cancellation' ||
-          item.status === 'rejected'
-        ) {
+        } else if (isPaidOrCancelled) {
           label = 'Comprovante de cancelamento';
         }
 
@@ -1132,17 +1139,19 @@ export default function AssinaturaContent({
                   </p>
                 </div>
               </div>
-              <div className="flex items-center gap-2">
-                <Clock size={14} className="text-gold shrink-0" />
-                <div>
-                  <p className="text-[9px] uppercase font-semibold text-slate-600 leading-tight mb-0.5">
-                    Expira em
-                  </p>
-                  <p className="text-[10px] font-semibold text-petroleum">
-                    {expiresAt ?? '—'}
-                  </p>
+              {planKey !== 'FREE' && (
+                <div className="flex items-center gap-2">
+                  <Clock size={14} className="text-gold shrink-0" />
+                  <div>
+                    <p className="text-[9px] uppercase font-semibold text-slate-600 leading-tight mb-0.5">
+                      Expira em
+                    </p>
+                    <p className="text-[10px] font-semibold text-petroleum">
+                      {expiresAt ?? '—'}
+                    </p>
+                  </div>
                 </div>
-              </div>
+              )}
               <div className="flex items-center gap-2 border-r border-slate-100 pr-3">
                 <BadgeCheck
                   size={14}
@@ -1163,19 +1172,21 @@ export default function AssinaturaContent({
                   </p>
                 </div>
               </div>
-              <div className="flex items-center gap-2">
-                <Banknote size={14} className="text-gold shrink-0" />
-                <div>
-                  <p className="text-[9px] uppercase font-semibold text-slate-600 leading-tight">
-                    Última cobrança
-                  </p>
-                  <p className="text-[10px] font-semibold text-petroleum">
-                    {lastChargeAmount != null
-                      ? formatBRL(lastChargeAmount)
-                      : '—'}
-                  </p>
+              {planKey !== 'FREE' && (
+                <div className="flex items-center gap-2">
+                  <Banknote size={14} className="text-gold shrink-0" />
+                  <div>
+                    <p className="text-[9px] uppercase font-semibold text-slate-600 leading-tight">
+                      Última cobrança
+                    </p>
+                    <p className="text-[10px] font-semibold text-petroleum">
+                      {lastChargeAmount != null
+                        ? formatBRL(lastChargeAmount)
+                        : '—'}
+                    </p>
+                  </div>
                 </div>
-              </div>
+              )}
             </div>
 
             {planKey !== 'FREE' && activeSubscriptionId && (

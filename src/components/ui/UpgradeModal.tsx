@@ -99,7 +99,9 @@ export default function UpgradeModal({
       <BaseModal
         isOpen={isOpen}
         onClose={onClose}
-        title={scenarioType === 'limit' ? 'Limite Atingido' : 'Recurso Premium'}
+        title={
+          scenarioType === 'limit' ? 'Limite Atingido' : 'Recurso Superior'
+        }
         subtitle={
           scenarioType === 'limit'
             ? `O limite de ${featureName} foi alcançado.`
@@ -113,15 +115,15 @@ export default function UpgradeModal({
           {/* Header do Recurso */}
           <div className="w-full flex items-center gap-2 p-2 rounded-luxury border border-gold/20 bg-gold/5">
             <div className="w-7 h-7 rounded-md flex items-center justify-center shrink-0 bg-gold text-petroleum shadow-[0_0_15px_rgba(212,175,55,0.2)]">
-              <Lock size={16} />
+              <Lock size={14} />
             </div>
             <div className="flex-1 text-left min-w-0">
-              <p className="text-[14px] font-bold text-petroleum tracking-wide uppercase truncate">
+              <p className="text-[12px] font-bold text-petroleum tracking-wide uppercase truncate">
                 {featureName}
-                <span className="text-[10px] font-semibold text-petroleum/60 uppercase tracking-luxury ml-2">
+                <span className="text-[12px] font-semibold text-petroleum/60 uppercase tracking-luxury ml-2">
                   {scenarioType === 'limit'
-                    ? `Limite do plano ${planKey} atingido`
-                    : `Bloqueado no Plano ${planKey}`}
+                    ? `- Limite do plano ${planKey} atingido`
+                    : `- Bloqueado no Plano ${planKey}`}
                 </span>
               </p>
             </div>

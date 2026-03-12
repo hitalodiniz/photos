@@ -28,26 +28,19 @@ interface PlanGuardProps {
  *
  * Trata 3 categorias de feature:
  *  - boolean / number       → lógica simples
- *  - hierarchical strings   → requer mapeamento explícito (ver HIERARCHY_MAP)
+ *  - hierarchical strings   → requer mapeamento explícito (ver HIERARCHY_ACCESS)
  *  - qualquer outro valor   → truthy/falsy
  *
- * IMPORTANTE: Features hierárquicas (profileLevel, customizationLevel,
- * privacyLevel, socialDisplayLevel, tagSelectionMode) nunca retornam `false`
- * diretamente — o valor mínimo delas é uma string como 'basic' ou 'default'.
- * Sem este mapa, o PlanGuard nunca bloquearia essas features.
+ * customizationLevel é boolean (true/false) no plano; não usa hierarquia.
  */
 
 // Planos que possuem o nível MÍNIMO de cada feature hierárquica.
-// Se o plano atual for o mínimo (FREE), hasAccess = false para bloqueá-lo.
-// Ajuste conforme a regra de negócio de cada feature.
+// customizationLevel NÃO está aqui — é tratado como boolean abaixo.
 const HIERARCHY_ACCESS: Partial<
   Record<keyof PlanPermissions, (val: any) => boolean>
 > = {
   // 'basic' é o mínimo → bloqueia. 'standard' ou acima → libera.
   profileLevel: (val) => val !== 'basic',
-
-  // 'default' é o mínimo → bloqueia. 'colors' ou 'full' → libera.
-  customizationLevel: (val) => val !== 'default',
 
   // 'public' é o mínimo → bloqueia (não permite senha/expiração). 'private' ou acima → libera.
   privacyLevel: (val) => val !== 'public',
@@ -147,26 +140,25 @@ export function PlanGuard({
         <div className="absolute inset-0 z-[1002] pointer-events-none flex items-center justify-center">
           {isMini ? (
             <div className="flex items-center gap-2">
-              <div className="bg-white/80 backdrop-blur-sm p-1.5 rounded-full shadow-lg border border-gold/30">
-                <Lock size={10} className="text-gold" strokeWidth={3} />
+              <div className="bg-petroleum backdrop-blur-sm p-1.5 rounded-full shadow-lg border border-gold/30">
+                <Lock size={12} className="text-champagne" strokeWidth={3} />
               </div>
-              {infoExtra && (
-                <div className="animate-in fade-in zoom-in duration-300 z-[1004] pointer-events-auto">
-                  <InfoTooltip
-                    title={displayLabel}
-                    content={infoExtra}
-                    align="left"
-                  />
-                </div>
-              )}
+
+              <div className="animate-in fade-in zoom-in duration-300 z-[1004] pointer-events-auto">
+                <InfoTooltip
+                  title={displayLabel}
+                  content={upgradeMessage}
+                  align="left"
+                />
+              </div>
             </div>
           ) : (
             <div className="flex flex-col items-center gap-2">
-              <div className="bg-white p-2 rounded-full shadow-2xl border border-gold/30 flex items-center justify-center shrink-0">
-                <Lock size={14} className="text-gold" strokeWidth={3} />
+              <div className="bg-petroleum p-2 rounded-full shadow-2xl border border-gold/30 flex items-center justify-center shrink-0">
+                <Lock size={14} className="text-champagne" strokeWidth={3} />
               </div>
               <div className="flex flex-col items-center">
-                <span className="text-[11px] font-bold uppercase tracking-widest text-petroleum leading-tight drop-shadow-sm">
+                <span className="text-[11px] font-semibold uppercase tracking-widest text-petroleum leading-tight drop-shadow-sm">
                   {displayLabel}
                 </span>
                 {infoExtra && (

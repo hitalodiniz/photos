@@ -758,7 +758,13 @@ export default function GaleriaFormContent({
                     <div
                       className={`flex items-center gap-1 transition-all duration-300 w-[100px] ${isPublic ? 'opacity-20 grayscale pointer-events-none' : 'opacity-100'}`}
                     >
-                      <PlanGuard feature="privacyLevel" label="Senha">
+                      <PlanGuard
+                        feature="privacyLevel"
+                        label="Senha"
+                        variant="mini"
+                        scenarioType="feature"
+                        forceShowLock={true}
+                      >
                         <PasswordInput
                           name="password"
                           disabled={isPublic}
@@ -785,7 +791,13 @@ export default function GaleriaFormContent({
                     />
                   </div>
 
-                  <PlanGuard feature="expiresAt" label="Expiração">
+                  <PlanGuard
+                    feature="expiresAt"
+                    label="Expiração"
+                    variant="mini"
+                    scenarioType="feature"
+                    forceShowLock={true}
+                  >
                     <input
                       type="date"
                       name="expires_at"
@@ -819,7 +831,13 @@ export default function GaleriaFormContent({
                     />
                   </div>
 
-                  <PlanGuard feature="profileLevel" label="Perfil">
+                  <PlanGuard
+                    feature="profileLevel"
+                    label="Perfil"
+                    variant="mini"
+                    scenarioType="feature"
+                    forceShowLock={true}
+                  >
                     <button
                       type="button"
                       onClick={() => setShowOnProfile(!showOnProfile)}

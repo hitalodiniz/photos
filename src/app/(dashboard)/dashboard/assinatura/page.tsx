@@ -42,11 +42,19 @@ async function getAssinaturaPageData(
   ]);
 
   const latest = history[0];
-  let subscriptionStatus: string =
-    (latest?.status as string) ??
-    (profile.plan_key !== 'FREE' ? 'active' : 'free');
+  const hasPaidPlan = profile.plan_key !== 'FREE';
+
+  // Se o usuário está atualmente no plano FREE, o status mostrado deve ser "Gratuito",
+  // independentemente do que o Asaas retornar para assinaturas antigas.
+  let subscriptionStatus: string;
+  if (!hasPaidPlan) {
+    subscriptionStatus = 'FREE';
+  } else {
+    subscriptionStatus = (latest?.status as string) ?? 'ACTIVE';
+  }
 
   const activeSubscriptionId =
+    hasPaidPlan &&
     latest?.asaas_subscription_id?.trim() &&
     (latest.status === 'approved' ||
       latest.status === 'pending_cancellation' ||
