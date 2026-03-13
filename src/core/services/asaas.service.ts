@@ -19,6 +19,7 @@ import type {
   BillingType,
   CancellationResult,
   ExpiredSubscriptionCheck,
+  PaymentMethodSummary,
   UpgradePriceCalculation,
   UpgradePreviewResult,
   UpgradeRequestPayload,
@@ -320,6 +321,41 @@ async function updateAsaasSubscriptionNextDueDate(
       };
 }
 
+/** PUT /v3/subscriptions/{id} com value, description, nextDueDate e opcional updatePendingPayments. */
+async function updateAsaasSubscriptionPlanAndDueDate(
+  subscriptionId: string,
+  params: {
+    value: number;
+    description: string;
+    nextDueDate: string;
+    /** false quando cobranças PENDING foram deletadas manualmente antes do PUT. */
+    updatePendingPayments?: boolean;
+  },
+): Promise<{ success: boolean; error?: string }> {
+  const { value, description, nextDueDate, updatePendingPayments } = params;
+  if (!/^\d{4}-\d{2}-\d{2}$/.test(nextDueDate))
+    return { success: false, error: 'nextDueDate deve ser YYYY-MM-DD' };
+  const body: Record<string, unknown> = {
+    value,
+    description,
+    nextDueDate,
+  };
+  if (updatePendingPayments === false) body.updatePendingPayments = false;
+  const { ok, data } = await asaasRequest<{ errors?: unknown[] }>(
+    `/subscriptions/${subscriptionId}`,
+    { method: 'PUT', body: JSON.stringify(body) },
+  );
+  return ok
+    ? { success: true }
+    : {
+        success: false,
+        error: asaasError(
+          data as Record<string, unknown>,
+          'Erro ao atualizar assinatura no Asaas',
+        ),
+      };
+}
+
 // ─── 4. Definir endDate (cancelamento agendado) ───────────────────────────────
 
 async function setAsaasSubscriptionEndDate(
@@ -343,7 +379,121 @@ async function setAsaasSubscriptionEndDate(
       };
 }
 
-// ─── 5. Buscar primeiro pagamento de uma assinatura ──────────────────────────
+// ─── 5. Buscar primeiro pagamento / listar pagamentos de uma assinatura ───────
+
+/** Lista assinaturas do cliente no Asaas (GET /v3/subscriptions?customer=xxx). Usado quando o plano atual veio de upgrade gratuito e asaas_subscription_id está nulo no banco. */
+async function listSubscriptionsByCustomer(
+  customerId: string,
+  statusFilter?: 'ACTIVE' | 'EXPIRED' | 'INACTIVE',
+): Promise<{
+  success: boolean;
+  subscriptions?: Array<{ id: string; status?: string }>;
+  error?: string;
+}> {
+  const params = new URLSearchParams({ customer: customerId });
+  if (statusFilter) params.set('status', statusFilter);
+  const path = `/subscriptions?${params.toString()}`;
+  const { ok, data } = await asaasRequest<{
+    data?: Array<{ id?: string; status?: string }>;
+    errors?: unknown[];
+  }>(path);
+  if (!ok)
+    return {
+      success: false,
+      error: asaasError(
+        data as Record<string, unknown>,
+        'Erro ao listar assinaturas do cliente',
+      ),
+    };
+  const list = (data.data ?? []).map((s) => ({
+    id: s.id ?? '',
+    status: s.status,
+  }));
+  return { success: true, subscriptions: list };
+}
+
+/**
+ * Retorna o ID da primeira assinatura ACTIVE do cliente.
+ * Usado em upgrade gratuito quando currentRequest e lastPaid não têm asaas_subscription_id (ex.: migrações sucessivas).
+ */
+async function getActiveSubscriptionIdForCustomer(
+  customerId: string,
+): Promise<{ success: boolean; subscriptionId?: string; error?: string }> {
+  const { success, subscriptions, error } = await listSubscriptionsByCustomer(
+    customerId,
+    'ACTIVE',
+  );
+  if (!success || error) return { success: false, error };
+  const first = (subscriptions ?? []).find((s) => s.id);
+  return first?.id
+    ? { success: true, subscriptionId: first.id }
+    : { success: true };
+}
+
+/** Lista pagamentos da assinatura; opcionalmente filtra por status (ex.: PENDING). */
+async function getSubscriptionPayments(
+  subscriptionId: string,
+  statusFilter?: 'PENDING' | 'RECEIVED' | 'CONFIRMED',
+): Promise<{
+  success: boolean;
+  payments?: Array<{ id: string; status?: string }>;
+  error?: string;
+}> {
+  const path =
+    statusFilter != null
+      ? `/subscriptions/${subscriptionId}/payments?status=${statusFilter}`
+      : `/subscriptions/${subscriptionId}/payments`;
+  const { ok, data } = await asaasRequest<{
+    data?: Array<{ id?: string; status?: string }>;
+  }>(path);
+  if (!ok)
+    return { success: false, error: 'Erro ao buscar pagamentos da assinatura' };
+  const list = (data.data ?? []).map((p) => ({
+    id: p.id ?? '',
+    status: p.status,
+  }));
+  return { success: true, payments: list };
+}
+
+/**
+ * Remove todos os pagamentos PENDING da assinatura (ex.: cobrança antiga de R$ 79 em 12/04).
+ * Usado antes do PUT da assinatura em upgrade/downgrade com valor zero, para que o Asaas
+ * agende uma nova cobrança na nextDueDate atualizada.
+ */
+async function deletePendingPaymentsForSubscription(
+  subscriptionId: string,
+): Promise<{ deletedIds: string[]; errors: string[] }> {
+  const deletedIds: string[] = [];
+  const errors: string[] = [];
+  const { success, payments, error } = await getSubscriptionPayments(
+    subscriptionId,
+    'PENDING',
+  );
+  if (!success || error) {
+    errors.push(error ?? 'Falha ao listar pagamentos');
+    return { deletedIds, errors };
+  }
+  const pending = (payments ?? []).filter((p) => p.id);
+  for (const p of pending) {
+    const res = await deleteAsaasPayment(p.id);
+    if (res.success) {
+      deletedIds.push(p.id);
+      console.log(
+        '[Asaas] Upgrade gratuito: cobrança PENDING deletada',
+        { subscriptionId, paymentId: p.id },
+      );
+    } else {
+      errors.push(`${p.id}: ${res.error ?? 'Erro ao deletar'}`);
+    }
+  }
+  if (deletedIds.length > 0) {
+    console.log(
+      '[Asaas] Upgrade gratuito: cobranças PENDING deletadas',
+      { subscriptionId, deletedPaymentIds: deletedIds },
+    );
+  }
+  return { deletedIds, errors };
+}
 
 async function getFirstPaymentFromSubscription(
   subscriptionId: string,
@@ -515,6 +665,56 @@ async function getAsaasPaymentStatus(
     success: true,
     status:
       typeof data.status === 'string' ? data.status.toUpperCase() : undefined,
+  };
+}
+
+/**
+ * Busca informações de cobrança de um pagamento (ex.: últimos 4 dígitos do cartão).
+ * Usa o endpoint /payments/{id}/billingInfo do Asaas.
+ */
+async function getPaymentBillingInfo(
+  paymentId: string,
+): Promise<{
+  success: boolean;
+  billingType?: BillingType;
+  cardLast4?: string;
+  cardBrand?: string;
+  error?: string;
+}> {
+  const { ok, data } = await asaasRequest<{
+    billingType?: BillingType;
+    creditCardNumber?: string; // Asaas retorna apenas os 4 últimos dígitos
+    creditCardBrand?: string;
+    errors?: unknown[];
+  }>(`/payments/${paymentId}/billingInfo`);
+
+  if (!ok)
+    return {
+      success: false,
+      error: asaasError(
+        data as Record<string, unknown>,
+        'Erro ao buscar dados do método de pagamento',
+      ),
+    };
+
+  const bt =
+    typeof data.billingType === 'string'
+      ? (data.billingType as BillingType)
+      : undefined;
+  const last4 =
+    typeof data.creditCardNumber === 'string'
+      ? data.creditCardNumber.trim()
+      : undefined;
+  const brand =
+    typeof data.creditCardBrand === 'string'
+      ? data.creditCardBrand.trim()
+      : undefined;
+
+  return {
+    success: true,
+    ...(bt && { billingType: bt }),
+    ...(last4 && { cardLast4: last4 }),
+    ...(brand && { cardBrand: brand }),
   };
 }
 
@@ -691,6 +891,15 @@ export async function requestUpgrade(
   if (planKeyCurrent === 'FREE' || profile.is_exempt === true)
     currentRequest = null;
 
+  // Se o plano atual veio de aproveitamento de crédito (amount_final === 0), usar o valor
+  // da última transação paga em dinheiro como base do pró-rata (ex.: R$ 79 do Pro, não R$ 49 do Plus).
+  let lastPaidAmountForProRata: number | undefined;
+  if (currentRequest && currentRequest.amount_final === 0) {
+    const lastPaid = await getLastPaidUpgradeRequest(userId, supabase);
+    if (lastPaid && lastPaid.amount_final > 0)
+      lastPaidAmountForProRata = lastPaid.amount_final;
+  }
+
   const calculation = await calculateUpgradePrice(
     currentRequest,
     planKey,
@@ -698,6 +907,7 @@ export async function requestUpgrade(
     payload.billing_type,
     segment,
     planKeyCurrent,
+    lastPaidAmountForProRata,
   );
 
   if (calculation.type === 'current_plan') {
@@ -708,27 +918,78 @@ export async function requestUpgrade(
     };
   }
 
-  // Downgrade vedado: retornar erro com data de vencimento
-  if (calculation.type === 'downgrade') {
-    const dueStr = calculation.downgrade_effective_at
-      ? new Date(calculation.downgrade_effective_at).toLocaleDateString(
-          'pt-BR',
-          { day: '2-digit', month: 'long', year: 'numeric' },
-        )
-      : '—';
-    return {
-      success: false,
-      error: `Downgrade vedado. Aguarde o vencimento do plano atual (${dueStr}) para alterar para um plano inferior.`,
-    };
-  }
-
   const billingFullName = payload.full_name?.trim() ?? profile.full_name ?? '';
   const snapshot_address = formatSnapshotAddress(payload);
 
   // ── Upgrade Gratuito (saldo cobre o plano inteiro) ────────────────────────
-  // Não gera cobrança no Asaas. Insere diretamente como 'approved' e atualiza plan_key.
+  // Não gera cobrança no Asaas. Primeiro sincroniza com Asaas (DELETE PENDING + PUT), depois grava no banco com notes de auditoria.
+  // Em migrações sucessivas o currentRequest pode ter asaas_subscription_id nulo (ex.: plano Plus veio de upgrade gratuito); resolve via lastPaid ou API por customer.
   if (calculation.is_free_upgrade && calculation.amount_final === 0) {
     const now = new Date().toISOString();
+    const planDescription = `Plano ${planInfo.name}`;
+    const nextDueStr = calculation.new_expiry_date?.split('T')[0];
+    let asaasSubId: string | null =
+      currentRequest?.asaas_subscription_id?.trim() ?? null;
+    if (!asaasSubId) {
+      const lastPaid = await getLastPaidUpgradeRequest(userId, supabase);
+      asaasSubId = lastPaid?.asaas_subscription_id?.trim() ?? null;
+    }
+    if (!asaasSubId) {
+      const { data: billingRow } = await supabase
+        .from('tb_billing_profiles')
+        .select('asaas_customer_id')
+        .eq('id', userId)
+        .maybeSingle();
+      const customerId = billingRow?.asaas_customer_id?.trim();
+      if (customerId) {
+        const res = await getActiveSubscriptionIdForCustomer(customerId);
+        if (res.success && res.subscriptionId)
+          asaasSubId = res.subscriptionId;
+      }
+    }
+    const value = getPeriodPrice(planInfo, billingPeriod).totalPrice;
+
+    let notesAsaasSync = '';
+    let deletedPaymentIds: string[] = [];
+    let putSuccess = false;
+
+    // 1) Executar DELETE e PUT no Asaas ANTES do insert, para registrar os IDs reais nas notes.
+    if (asaasSubId && nextDueStr && /^\d{4}-\d{2}-\d{2}$/.test(nextDueStr)) {
+      const deleteResult = await deletePendingPaymentsForSubscription(asaasSubId);
+      deletedPaymentIds = deleteResult.deletedIds;
+
+      const putResult = await updateAsaasSubscriptionPlanAndDueDate(asaasSubId, {
+        value,
+        description: planDescription,
+        nextDueDate: nextDueStr,
+        updatePendingPayments: false,
+      });
+      putSuccess = putResult.success;
+      if (!putResult.success) {
+        console.error(
+          '[Asaas] Upgrade gratuito: falha ao atualizar assinatura (value/description/nextDueDate):',
+          putResult.error,
+        );
+      }
+
+      const pendingRemoved =
+        deletedPaymentIds.length > 0
+          ? deletedPaymentIds.join(', ')
+          : 'Nenhuma';
+      const statusLine = putSuccess
+        ? 'Sincronizado com sucesso.'
+        : `Falha no PUT: ${putResult.error ?? 'erro desconhecido'}`;
+      notesAsaasSync = `\nSincronização Asaas realizada:\n- Assinatura ${asaasSubId} atualizada para R$ ${value.toFixed(2)} (Vencimento: ${nextDueStr}).\n- Cobranças PENDING removidas: ${pendingRemoved}.\n- Status: ${statusLine}.`;
+    } else {
+      notesAsaasSync =
+        '\nSincronização Asaas: não aplicável (sem assinatura anterior com nextDueDate válida).';
+    }
+
+    const notes =
+      `Upgrade gratuito (Crédito): ${planDescription}.\n` +
+      `Saldo residual R$ ${calculation.residual_credit.toFixed(2)}; nova data de vencimento: ${calculation.new_expiry_date ?? 'N/A'}.\n` +
+      notesAsaasSync.trimStart();
+
     const { data: freeRow, error: freeErr } = await supabase
       .from('tb_upgrade_requests')
       .insert({
@@ -743,7 +1004,7 @@ export async function requestUpgrade(
         snapshot_whatsapp: payload.whatsapp,
         snapshot_address,
         asaas_customer_id: null,
-        asaas_subscription_id: null,
+        asaas_subscription_id: asaasSubId,
         asaas_payment_id: null,
         payment_url: null,
         amount_original: calculation.amount_original,
@@ -752,7 +1013,7 @@ export async function requestUpgrade(
         installments: 1,
         status: 'approved',
         processed_at: now,
-        notes: `Upgrade gratuito (aproveitamento de crédito): saldo residual de R$ ${calculation.residual_credit.toFixed(2)} cobriu o valor do novo plano. Nova data de vencimento: ${calculation.new_expiry_date ?? 'N/A'}.`,
+        notes,
       })
       .select('id')
       .single();
@@ -767,19 +1028,6 @@ export async function requestUpgrade(
       .from('tb_profiles')
       .update({ plan_key: planKey, updated_at: now })
       .eq('id', userId);
-
-    // Atualiza nextDueDate na assinatura existente para o vencimento calculado pelo crédito
-    const asaasSubId = currentRequest?.asaas_subscription_id?.trim();
-    const nextDueStr = calculation.new_expiry_date?.split('T')[0];
-    if (asaasSubId && nextDueStr && /^\d{4}-\d{2}-\d{2}$/.test(nextDueStr)) {
-      await updateAsaasSubscriptionNextDueDate(asaasSubId, nextDueStr).catch(
-        (e) =>
-          console.error(
-            '[Asaas] Upgrade gratuito: falha ao atualizar nextDueDate:',
-            e,
-          ),
-      );
-    }
 
     await revalidateUserCache(userId).catch((e) =>
       console.warn('[Upgrade gratuito] revalidateUserCache:', e),
@@ -814,7 +1062,9 @@ export async function requestUpgrade(
       : null;
 
   const isCreditCard = payload.billing_type === 'CREDIT_CARD';
-  if (isCreditCard) {
+  // Cartão só é obrigatório quando há valor a pagar agora.
+  const requiresCardData = isCreditCard && calculation.amount_final > 0;
+  if (requiresCardData) {
     const c = payload.credit_card;
     if (
       !c?.credit_card_holder_name?.trim() ||
@@ -1166,6 +1416,29 @@ export async function getCurrentActiveRequest(
   return list[0];
 }
 
+/**
+ * Último request aprovado com pagamento efetivo (amount_final > 0).
+ * Usado quando o plano atual veio de "aproveitamento de crédito" (amount_final === 0)
+ * para calcular o residual sobre o valor realmente pago em dinheiro e, se necessário,
+ * obter o asaas_subscription_id para sincronização com o Asaas em migrações sucessivas.
+ */
+export async function getLastPaidUpgradeRequest(
+  userId: string,
+  supabase?: Awaited<ReturnType<typeof createSupabaseServerClient>>,
+): Promise<{ amount_final: number; asaas_subscription_id?: string | null } | null> {
+  const db = supabase ?? (await createSupabaseServerClient());
+  const { data: row } = await db
+    .from('tb_upgrade_requests')
+    .select('amount_final, asaas_subscription_id')
+    .eq('profile_id', userId)
+    .eq('status', 'approved')
+    .gt('amount_final', 0)
+    .order('processed_at', { ascending: false })
+    .limit(1)
+    .maybeSingle();
+  return row && typeof row.amount_final === 'number' ? row : null;
+}
+
 const PENDING_UPGRADE_MAX_AGE_MS = 24 * 60 * 60 * 1000;
 
 export interface PendingUpgradeRow {
@@ -1280,6 +1553,7 @@ async function cancelPendingUpgradeInAsaasAndDb(
  * - new_expiry_date = startDate + daysExtended (crédito dividido pelo preço diário)
  *
  * @param currentPlanKeyFromProfile plano atual em tb_profiles.plan_key (evita histórico desatualizado)
+ * @param lastPaidAmountForProRata quando o plano atual veio de aproveitamento de crédito (amount_final === 0), valor pago na última transação (base do pró-rata)
  */
 export async function calculateUpgradePrice(
   currentRequest: CurrentActiveRequestRow | null,
@@ -1288,6 +1562,7 @@ export async function calculateUpgradePrice(
   billingType: BillingType,
   segment: SegmentType = 'PHOTOGRAPHER',
   currentPlanKeyFromProfile?: PlanKey,
+  lastPaidAmountForProRata?: number,
 ): Promise<UpgradePriceCalculation> {
   const planInfo = PLANS_BY_SEGMENT[segment]?.[targetPlanKey];
   const now = new Date();
@@ -1350,43 +1625,31 @@ export async function calculateUpgradePrice(
     'monthly') as BillingPeriod;
   const planInfoCurrent = PLANS_BY_SEGMENT[segment]?.[currentPlanKey];
 
-  let residualCredit: number;
-  let remainingDaysProRata: number;
-
-  if (expiryFromNotes && currentRequest.amount_final === 0 && planInfoCurrent) {
-    // Crédito vindo de upgrade gratuito anterior: usa preço diário do plano atual * dias reais restantes
-    const totalDaysActual = Math.max(
-      1,
-      Math.round(totalMsCurrent / (24 * 60 * 60 * 1000)),
-    );
-    const remainingDaysActual = Math.max(
-      0,
-      Math.round(remainingMs / (24 * 60 * 60 * 1000)),
-    );
-    remainingDaysProRata = remainingDaysActual;
-    residualCredit =
-      Math.round(
-        (planInfoCurrent.price / 30) *
-          Math.min(remainingDaysActual, totalDaysActual) *
-          100,
-      ) / 100;
-  } else {
-    remainingDaysProRata =
-      totalMsCurrent <= 0
-        ? 0
-        : totalDaysCommercial * (remainingMs / totalMsCurrent);
-    const amountForProRata =
-      currentRequest.amount_final > 0
-        ? currentRequest.amount_final
+  // Base de cálculo do pró-rata: valor efetivamente pago em dinheiro.
+  // Se o plano atual veio de aproveitamento de crédito (amount_final === 0), usar
+  // lastPaidAmountForProRata (último request com amount_final > 0); senão o amount_final
+  // do request atual ou o preço de tabela do plano atual.
+  const remainingDaysProRata =
+    totalMsCurrent <= 0
+      ? 0
+      : totalDaysCommercial * (remainingMs / totalMsCurrent);
+  const amountForProRata =
+    currentRequest.amount_final > 0
+      ? currentRequest.amount_final
+      : lastPaidAmountForProRata != null && lastPaidAmountForProRata > 0
+        ? lastPaidAmountForProRata
         : planInfoCurrent
           ? getPeriodPrice(planInfoCurrent, currentPeriod).totalPrice
           : 0;
-    residualCredit = await calculateProRataCredit(
-      amountForProRata,
-      totalDaysCommercial,
-      remainingDaysProRata,
-    );
-  }
+  const residualCredit = await calculateProRataCredit(
+    amountForProRata,
+    totalDaysCommercial,
+    remainingDaysProRata,
+  );
+
+  const daysSincePurchase = Math.floor(
+    (now.getTime() - startDate.getTime()) / (1000 * 60 * 60 * 24),
+  );
 
   // Mesmo plano + mesmo período → bloqueado
   if (targetPlanKey === currentPlanKey && targetPeriod === currentPeriod) {
@@ -1410,14 +1673,83 @@ export async function calculateUpgradePrice(
       periodOrder(targetPeriod) < periodOrder(currentPeriod));
 
   if (isDowngrade) {
+    const isWithdrawalWindow = daysSincePurchase <= 7;
+    // Dentro dos 7 dias: valor efetivamente pago vira crédito (saldo = amountForProRata)
+    // e pode ser abatido do novo plano. Se o crédito for maior ou igual ao valor do
+    // novo período, o usuário não paga nada agora e o novo vencimento é estendido
+    // proporcionalmente (crédito / preço diário do novo plano).
+    // Após 7 dias: apenas agendamento, sem cobrança adicional imediata.
+    const creditForDowngrade = isWithdrawalWindow
+      ? amountForProRata
+      : residualCredit;
+    const downgradeEffectiveAt = isWithdrawalWindow ? now : currentPlanExpiresAt;
+
+    if (isWithdrawalWindow) {
+      const amountToPayRaw =
+        Math.round((totalPriceNew - creditForDowngrade) * 100) / 100;
+      const amountToPay = Math.max(0, amountToPayRaw);
+
+      // Preço diário comercial do plano alvo
+      const dailyPriceTarget =
+        targetCommercialDays > 0 ? totalPriceNew / targetCommercialDays : 0;
+
+      // Quando o crédito cobre pelo menos um período inteiro (ou mais):
+      // amountToPay <= 0 → nenhum pagamento agora e vencimento estendido
+      // proporcionalmente ao crédito.
+      if (amountToPay <= 0 && dailyPriceTarget > 0) {
+        const daysCoveredByCredit = Math.max(
+          targetCommercialDays,
+          Math.round((creditForDowngrade / dailyPriceTarget) * 100) / 100,
+        );
+        const newExpiry = addDays(now, daysCoveredByCredit);
+
+        return {
+          type: 'downgrade',
+          is_free_upgrade: true,
+          amount_original: totalPriceNew,
+          amount_discount: creditForDowngrade,
+          amount_final: 0,
+          residual_credit: creditForDowngrade,
+          current_plan_expires_at: currentPlanExpiresAt.toISOString(),
+          downgrade_effective_at: now.toISOString(),
+          is_downgrade_withdrawal_window: true,
+          days_since_purchase: daysSincePurchase,
+          new_expiry_date: newExpiry.toISOString(),
+          free_upgrade_days_extended: daysCoveredByCredit,
+          free_upgrade_months_covered: Math.floor(daysCoveredByCredit / 30),
+        };
+      }
+
+      // Crédito parcial: abate do valor do novo período e cobra apenas a diferença.
+      const newExpiry = addDays(now, targetCommercialDays);
+
+      return {
+        type: 'downgrade',
+        amount_original: totalPriceNew,
+        amount_discount: creditForDowngrade,
+        amount_final: amountToPay,
+        residual_credit: creditForDowngrade,
+        current_plan_expires_at: currentPlanExpiresAt.toISOString(),
+        downgrade_effective_at: now.toISOString(),
+        is_downgrade_withdrawal_window: true,
+        days_since_purchase: daysSincePurchase,
+        new_expiry_date: newExpiry.toISOString(),
+        free_upgrade_days_extended: targetCommercialDays,
+        free_upgrade_months_covered: Math.floor(targetCommercialDays / 30),
+      };
+    }
+
+    // Após 7 dias: apenas agendamento do downgrade para o fim do ciclo atual.
     return {
       type: 'downgrade',
       amount_original: totalPriceNew,
-      amount_discount: residualCredit,
+      amount_discount: creditForDowngrade,
       amount_final: 0,
-      residual_credit: residualCredit,
+      residual_credit: creditForDowngrade,
       current_plan_expires_at: currentPlanExpiresAt.toISOString(),
       downgrade_effective_at: currentPlanExpiresAt.toISOString(),
+      is_downgrade_withdrawal_window: false,
+      days_since_purchase: daysSincePurchase,
     };
   }
 
@@ -1508,6 +1840,15 @@ export async function getUpgradePreview(
       );
     }
 
+    // Se o plano atual veio de aproveitamento de crédito (amount_final === 0), base do
+    // pró-rata é o valor pago na última transação (ex.: R$ 79), não o preço de tabela do plano atual.
+    let lastPaidAmountForProRata: number | undefined;
+    if (current?.amount_final === 0) {
+      const lastPaid = await getLastPaidUpgradeRequest(userId, supabase);
+      if (lastPaid && lastPaid.amount_final > 0)
+        lastPaidAmountForProRata = lastPaid.amount_final;
+    }
+
     const calculation = await calculateUpgradePrice(
       current,
       targetPlanKey,
@@ -1515,6 +1856,7 @@ export async function getUpgradePreview(
       billingType,
       segment,
       currentPlanKeyFromProfile,
+      lastPaidAmountForProRata,
     );
     const hasPlan =
       !!current ||
@@ -1632,6 +1974,88 @@ async function getAsaasSubscription(subscriptionId: string): Promise<{
     status: data.status,
     endDate: data.endDate ?? null,
   };
+}
+
+/**
+ * Retorna um resumo do método de pagamento atual da assinatura ativa do usuário.
+ * - Usa o último upgrade aprovado com asaas_subscription_id.
+ * - Para cartão de crédito, busca últimos 4 dígitos e bandeira via /payments/{id}/billingInfo.
+ */
+export async function getCurrentPaymentMethodSummary(): Promise<{
+  success: boolean;
+  summary?: PaymentMethodSummary;
+  error?: string;
+}> {
+  try {
+    const { success, userId } = await getAuthenticatedUser();
+    if (!success || !userId)
+      return { success: false, error: 'Usuário não autenticado' };
+
+    const supabase = await createSupabaseServerClient();
+    const { data: row } = await supabase
+      .from('tb_upgrade_requests')
+      .select(
+        'billing_type, asaas_subscription_id, asaas_payment_id, status, processed_at',
+      )
+      .eq('profile_id', userId)
+      .eq('status', 'approved')
+      .order('processed_at', { ascending: false })
+      .limit(1)
+      .maybeSingle();
+
+    if (!row)
+      return {
+        success: true,
+        summary: { billing_type: null },
+      };
+
+    const billingType = row.billing_type as BillingType;
+    const subscriptionId =
+      (row.asaas_subscription_id as string | null) ?? null;
+    let paymentId = (row.asaas_payment_id as string | null) ?? null;
+
+    // Para PIX/BOLETO, basta expor o tipo.
+    if (billingType !== 'CREDIT_CARD')
+      return {
+        success: true,
+        summary: { billing_type: billingType },
+      };
+
+    // Garantir um paymentId (pode não estar salvo na linha).
+    if (!paymentId && subscriptionId) {
+      const first = await getFirstPaymentFromSubscription(subscriptionId);
+      if (first.success && first.paymentId) paymentId = first.paymentId;
+    }
+
+    if (!paymentId)
+      return {
+        success: true,
+        summary: { billing_type: billingType },
+      };
+
+    const billingInfo = await getPaymentBillingInfo(paymentId);
+    if (!billingInfo.success) {
+      return {
+        success: true,
+        summary: { billing_type: billingType },
+      };
+    }
+
+    return {
+      success: true,
+      summary: {
+        billing_type: billingType,
+        ...(billingInfo.cardLast4 && { card_last4: billingInfo.cardLast4 }),
+        ...(billingInfo.cardBrand && { card_brand: billingInfo.cardBrand }),
+      },
+    };
+  } catch (e) {
+    console.error('[getCurrentPaymentMethodSummary] Error:', e);
+    return {
+      success: false,
+      error: 'Erro ao buscar método de pagamento atual',
+    };
+  }
 }
 
 export async function getAsaasSubscriptionStatus(
@@ -1904,7 +2328,7 @@ export async function performDowngradeToFree(
 
   const { data: profile } = await supabase
     .from('tb_profiles')
-    .select('plan_key, is_exempt')
+    .select('plan_key, is_exempt, metadata')
     .eq('id', profileId)
     .single();
   if (profile?.is_exempt === true)
@@ -1914,9 +2338,18 @@ export async function performDowngradeToFree(
   if (oldPlan === 'FREE')
     return { success: true, needs_adjustment: false, excess_galleries: [] };
 
+  const newMetadata = {
+    ...(profile?.metadata ?? {}),
+    last_downgrade_alert_viewed: false,
+  };
+
   const { error: planError } = await supabase
     .from('tb_profiles')
-    .update({ plan_key: 'FREE', updated_at: new Date().toISOString() })
+    .update({
+      plan_key: 'FREE',
+      metadata: newMetadata,
+      updated_at: new Date().toISOString(),
+    })
     .eq('id', profileId);
   if (planError) {
     console.error('[Downgrade] Erro ao atualizar plan_key:', planError);
@@ -2029,7 +2462,7 @@ export async function handleSubscriptionCancellation(
   const { data: request } = await supabase
     .from('tb_upgrade_requests')
     .select(
-      'id, status, asaas_payment_id, asaas_subscription_id, created_at, processed_at, billing_period, plan_key_requested, notes',
+      'id, status, asaas_payment_id, asaas_subscription_id, created_at, processed_at, billing_period, plan_key_requested, notes, amount_final',
     )
     .eq('profile_id', userId)
     .in('status', [
@@ -2077,8 +2510,9 @@ export async function handleSubscriptionCancellation(
   const accessEndsAtIso = accessEndsAt.toISOString();
   const endDateStr = accessEndsAt.toISOString().split('T')[0];
 
-  // ── Direito de arrependimento (< 7 dias): cancela imediatamente ───────────
-  if (daysSincePurchase < 7) {
+  // ── Direito de arrependimento (≤ 7 dias) + pagamento confirmado (status=approved) ─
+  // Neste caso, o valor pago vira crédito (metadata.credit_balance) e o downgrade é imediato.
+  if (daysSincePurchase <= 7 && request.status === 'approved') {
     if (request.asaas_subscription_id) {
       const cancelResult = await cancelAsaasSubscriptionById(
         request.asaas_subscription_id as string,
@@ -2096,6 +2530,40 @@ export async function handleSubscriptionCancellation(
         '[Cancellation] tb_upgrade_requests sem asaas_subscription_id; cancelamento não registrado no Asaas.',
       );
     }
+
+    const amountPaid =
+      typeof (request as any).amount_final === 'number' &&
+      (request as any).amount_final > 0
+        ? (request as any).amount_final
+        : 0;
+
+    if (amountPaid > 0) {
+      const { data: profileRow } = await supabase
+        .from('tb_profiles')
+        .select('metadata')
+        .eq('id', userId)
+        .maybeSingle();
+
+      const currentMetadata =
+        (profileRow?.metadata as Record<string, unknown>) || {};
+      const currentBalanceRaw = (currentMetadata.credit_balance ??
+        0) as number | string;
+      const currentBalance =
+        typeof currentBalanceRaw === 'number'
+          ? currentBalanceRaw
+          : Number(currentBalanceRaw) || 0;
+      const newBalance =
+        Math.round((currentBalance + amountPaid) * 100) / 100;
+
+      await supabase
+        .from('tb_profiles')
+        .update({
+          metadata: { ...currentMetadata, credit_balance: newBalance },
+          updated_at: now.toISOString(),
+        })
+        .eq('id', userId);
+    }
+
     const downgradeResult = await performDowngradeToFree(
       userId,
       request.id,

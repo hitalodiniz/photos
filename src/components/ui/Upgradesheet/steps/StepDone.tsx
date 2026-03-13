@@ -150,6 +150,7 @@ function StepDonePix({
   period,
   amount,
   upgradeRequestId,
+  nextBillingDate,
   onPaymentConfirmedClose,
 }: {
   pixData: { qrCode?: string; copyPaste?: string };
@@ -158,6 +159,8 @@ function StepDonePix({
   period: string;
   amount?: number | null;
   upgradeRequestId?: string | null;
+  /** Próxima fatura formatada (ex.: \"12 de março de 2026\"). */
+  nextBillingDate?: string | null;
   /** Chamado ao fechar o modal de confirmação pós-pagamento (fecha sheet e atualiza sidebar). */
   onPaymentConfirmedClose?: () => void;
 }) {
@@ -207,6 +210,15 @@ function StepDonePix({
     return () => clearTimeout(t);
   }, []);
 
+  // Após confirmação, mantém tela por alguns segundos e fecha sheet + atualiza plano
+  useEffect(() => {
+    if (!paymentConfirmed || !onPaymentConfirmedClose) return;
+    const t = setTimeout(() => {
+      onPaymentConfirmedClose();
+    }, 10_000);
+    return () => clearTimeout(t);
+  }, [paymentConfirmed, onPaymentConfirmedClose]);
+
   const copyCode = useCallback(async () => {
     const text = pixData.copyPaste || paymentUrl || '';
     if (!text) return;
@@ -246,6 +258,15 @@ function StepDonePix({
             </div>
           </div>
           <OrderSummary planName={planName} period={period} amount={amount} />
+          {nextBillingDate && (
+            <div className="mt-1 w-full max-w-md p-2 rounded bg-slate-50 border border-slate-100 flex items-start gap-2 text-petroleum/80">
+              <CalendarCheck size={12} className="mt-0.5 shrink-0" />
+              <p className="text-[11px] leading-tight font-medium">
+                Próxima fatura em <strong>{nextBillingDate}</strong>. Pagamento
+                recorrente pelo mesmo método escolhido.
+              </p>
+            </div>
+          )}
           <SecurityBadge />
           <SupportLink />
         </div>
@@ -451,12 +472,79 @@ function StepDoneCreditCard({
   planName,
   period,
   amount,
+  upgradeRequestId,
+  nextBillingDate,
+  onPaymentConfirmedClose,
 }: {
   paymentUrl?: string | null;
   planName: string;
   period: string;
   amount?: number | null;
+  upgradeRequestId?: string | null;
+  nextBillingDate?: string | null;
+  onPaymentConfirmedClose?: () => void;
 }) {
+  const [paymentConfirmed, setPaymentConfirmed] =
+    useState<boolean>(false);
+
+  // Poll do status da solicitação (mesma lógica do PIX)
+  useEffect(() => {
+    if (!upgradeRequestId || paymentConfirmed) return;
+    const check = async () => {
+      const res = await getUpgradeRequestStatus(upgradeRequestId);
+      if (res.success && res.status === 'approved') {
+        setPaymentConfirmed(true);
+      }
+    };
+    check();
+    const interval = setInterval(check, 5_000);
+    return () => clearInterval(interval);
+  }, [upgradeRequestId, paymentConfirmed]);
+
+  // Após confirmação, aguarda alguns segundos e fecha sheet + atualiza plano
+  useEffect(() => {
+    if (!paymentConfirmed || !onPaymentConfirmedClose) return;
+    const t = setTimeout(() => {
+      onPaymentConfirmedClose();
+    }, 10_000);
+    return () => clearTimeout(t);
+  }, [paymentConfirmed, onPaymentConfirmedClose]);
+
+  if (paymentConfirmed) {
+    return (
+      <div className="flex flex-col items-center gap-5 px-4 py-6 w-full">
+        <div className="flex flex-col items-center gap-2">
+          <div className="w-14 h-14 rounded-full bg-emerald-50 border-2 border-emerald-200 flex items-center justify-center">
+            <Check size={26} className="text-emerald-500" strokeWidth={2.5} />
+          </div>
+          <div className="text-center">
+            <p className="text-[15px] font-bold text-petroleum uppercase tracking-wide">
+              Pagamento confirmado!
+            </p>
+            <p className="text-[11px] text-petroleum/80 mt-0.5">
+              Seu plano foi ativado imediatamente. Obrigado!
+            </p>
+          </div>
+        </div>
+
+        <OrderSummary planName={planName} period={period} amount={amount} />
+
+        {nextBillingDate && (
+          <div className="mt-1 w-full max-w-md p-2 rounded bg-slate-50 border border-slate-100 flex items-start gap-2 text-petroleum/80">
+            <CreditCard size={12} className="mt-0.5 shrink-0" />
+            <p className="text-[11px] leading-tight font-medium">
+              Próxima fatura em <strong>{nextBillingDate}</strong>. Cobrança
+              automática no cartão salvo.
+            </p>
+          </div>
+        )}
+
+        <SecurityBadge />
+        <SupportLink />
+      </div>
+    );
+  }
+
   return (
     <div className="flex flex-col items-center gap-5 px-4 py-6 w-full">
       {/* Ícone + título */}
@@ -757,13 +845,18 @@ export function StepDone() {
     router.refresh();
   };
 
+  const handleCloseAndRefresh = () => {
+    handleClose();
+    router.refresh();
+  };
+
   if (downgradeEffectiveAt) {
     return (
       <div className="flex flex-col min-h-full overflow-y-auto">
         <StepDoneDowngrade
           planName={planName}
           effectiveAt={downgradeEffectiveAt}
-          handleClose={handleClose}
+          handleClose={handleCloseAndRefresh}
         />
       </div>
     );
@@ -779,7 +872,7 @@ export function StepDone() {
         <div className="flex justify-center pb-6">
           <button
             type="button"
-            onClick={handleClose}
+            onClick={handleCloseAndRefresh}
             className="btn-luxury-primary"
           >
             Fechar
@@ -805,6 +898,7 @@ export function StepDone() {
           period={billingPeriod ?? 'monthly'}
           amount={amount}
           upgradeRequestId={upgradeRequestId}
+          nextBillingDate={nextBillingDateFormatted}
           onPaymentConfirmedClose={handlePaymentConfirmedClose}
         />
       ) : billingType === 'BOLETO' ? (
@@ -821,6 +915,9 @@ export function StepDone() {
           planName={planName}
           period={billingPeriod ?? 'monthly'}
           amount={amount}
+          upgradeRequestId={upgradeRequestId}
+          nextBillingDate={nextBillingDateFormatted}
+          onPaymentConfirmedClose={handlePaymentConfirmedClose}
         />
       )}
 
@@ -828,7 +925,7 @@ export function StepDone() {
       <div className="flex justify-center pb-6">
         <button
           type="button"
-          onClick={handleClose}
+          onClick={handleCloseAndRefresh}
           className="btn-luxury-primary"
         >
           Fechar

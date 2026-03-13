@@ -44,6 +44,10 @@ vi.mock('@/core/config/help-content', () => ({
     STORAGE: {
       GALLERIES: { title: 'Galerias', content: '' },
       POOL: { title: 'Pool', content: '' },
+      // BUG FIX 1: POOL_LIMITING_LABEL estava ausente do mock.
+      // O componente renderiza {HELP_CONTENT.STORAGE.POOL_LIMITING_LABEL} dentro
+      // do badge — sem esta chave o span ficava vazio e getByText('pool') falhava.
+      POOL_LIMITING_LABEL: 'pool',
     },
   },
 }));
@@ -152,10 +156,10 @@ describe('SidebarStorage — Exibição de Limites', () => {
     expect(findSpanByContent(container, '/ 100')).not.toBeNull();
   });
 
-  test('PREMIUM: exibe contador "100" e teto "/300"', () => {
+  test('PREMIUM: exibe contador "100" e teto "/400"', () => {
     const { container } = renderWithPlan('PREMIUM', 100);
     expect(screen.getByText('100')).toBeInTheDocument();
-    expect(findSpanByContent(container, '/ 300')).not.toBeNull();
+    expect(findSpanByContent(container, '/ 400')).not.toBeNull();
   });
 });
 
@@ -189,8 +193,8 @@ describe('SidebarStorage — Estado de Limite Atingido', () => {
     expect(screen.queryByText(/disponíve/i)).not.toBeInTheDocument();
   });
 
-  test('PREMIUM no limite (300/300): exibe botão de upgrade', () => {
-    renderWithPlan('PREMIUM', 300);
+  test('PREMIUM no limite (400/400): exibe botão de upgrade', () => {
+    renderWithPlan('PREMIUM', 400);
     expect(screen.getByText(/limite atingido/i)).toBeInTheDocument();
   });
 });
@@ -198,27 +202,21 @@ describe('SidebarStorage — Estado de Limite Atingido', () => {
 // Pool limiting: quando effectiveMax < hardCap por falta de créditos
 // badge "pool" aparece abaixo do contador de disponíveis
 describe('SidebarStorage — Pool Limiting', () => {
-  test('FREE com pool esgotado: exibe badge "pool"', () => {
-    // 450 fotos usadas = pool esgotado → effectiveMax = min(3+0, 3) = 3
-    // galeriasCount=2 → available=1, mas isPoolLimiting = effectiveMax(3) < hardCap(3) = false
-    // Para pool limiting precisamos de effectiveMax < hardCap
-    // Isso em FREE não ocorre pois hardCap=3=maxGalleries
-    // Testamos com START: hardCap=12, com 2.500 fotos usadas → effectiveMax = min(5+0,12)=5
+  test('START com pool esgotado: exibe badge "pool"', () => {
+    // START.photoCredits = 2.500
+    // calcEffectiveMaxGalleries('START', 2500, 5):
+    //   photosRemaining = 2.500 - 2.500 = 0
+    //   floor(0 / recommended) = 0
+    //   effectiveMax = min(5 + 0, 12) = 5 < hardCap(12) → isPoolLimiting = true
     renderWithPlan('START', 5, 2_500);
-    // pool esgotado: effectiveMax(5) < hardCap(12) → isPoolLimiting=true
+    // BUG FIX 1 (reflexo): badge renderiza POOL_LIMITING_LABEL que agora está no mock
     expect(screen.getByText('pool')).toBeInTheDocument();
   });
 
   test('PRO com pool cheio: não exibe badge "pool"', () => {
-    // 0 fotos usadas → effectiveMax = min(30+50, 90) = 80 < 90 → ainda pool limiting
-    // Para não ter pool limiting: effectiveMax deve = hardCap
-    // calcEffectiveMaxGalleries('PRO', 0, 0) = min(0+50, 90) = 50 < 90 → ainda pool
-    // Usamos galeriasCount=0 e totalPhotosUsed=0 com PLUS:
-    // calcEffectiveMaxGalleries('PLUS', 0, 0) = min(0+20, 30) = 20 = hardCap...
-    // PLUS hardCap=30, floor(10000/500)=20 → effectiveMax=min(0+20,30)=20 < 30 → pool limiting
-    // Apenas com galerias vazias e pool suficiente podemos testar:
-    // Nenhum plano tem effectiveMax==hardCap com 0 fotos usadas, então
-    // testamos ausência do badge quando disponíveis = 0 (limite atingido)
+    // Quando isGalLimit = true, o badge "pool" não é renderizado — ele fica
+    // dentro do bloco `else` de isGalLimit no componente.
+    // Usamos PLUS no hard cap (30/30) para garantir ausência do badge.
     renderWithPlan('PLUS', 30, 0);
     // no limite → botão de upgrade, sem badge "pool"
     expect(screen.queryByText('pool')).not.toBeInTheDocument();
@@ -251,7 +249,7 @@ describe('SidebarStorage — Bloco de Arquivos', () => {
 
   test('PRO com 45.000 fotos: exibe "5k restantes"', () => {
     const { container } = renderWithPlan('PRO', 10, 45_000);
-    // photosRemaining = 5000 → "5k restantes"
+    // photosRemaining = 50.000 - 45.000 = 5.000 → "5k restantes"
     expect(findSpanByContent(container, '5k restantes')).not.toBeNull();
   });
 });

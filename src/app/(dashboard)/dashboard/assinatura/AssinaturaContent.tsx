@@ -655,6 +655,9 @@ export default function AssinaturaContent({
           })
         : null;
 
+  // Assinatura recorrente (com ID de assinatura ativo no Asaas)
+  const hasRecurringSubscription = !!activeSubscriptionId;
+
   const planBenefits = useMemo(
     () => getPlanBenefits(permissions, { items: 'galerias' }),
     [permissions],
@@ -1144,7 +1147,7 @@ export default function AssinaturaContent({
                   <Clock size={14} className="text-gold shrink-0" />
                   <div>
                     <p className="text-[9px] uppercase font-semibold text-slate-600 leading-tight mb-0.5">
-                      Expira em
+                      {hasRecurringSubscription ? 'Próxima cobrança' : 'Expira em'}
                     </p>
                     <p className="text-[10px] font-semibold text-petroleum">
                       {expiresAt ?? '—'}

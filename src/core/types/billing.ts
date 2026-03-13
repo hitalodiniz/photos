@@ -72,7 +72,7 @@ export interface CreditCardPayload {
   credit_card_holder_name: string;
   credit_card_number: string;
   credit_card_expiry_month: string; // "01" a "12"
-  credit_card_expiry_year: string;  // "2025" ou "25"
+  credit_card_expiry_year: string; // "2025" ou "25"
   credit_card_ccv: string;
 }
 
@@ -133,7 +133,7 @@ export interface UpgradePriceCalculation {
   pix_discount_amount?: number;
   /** Data em que o plano atual expira (para exibição e downgrade). */
   current_plan_expires_at: string;
-  /** Para downgrade: data em que a mudança será efetivada (= current_plan_expires_at). */
+  /** Para downgrade: data em que a mudança será efetivada (= current_plan_expires_at ou imediata na janela de arrependimento). */
   downgrade_effective_at?: string;
   /** Upgrade gratuito: o saldo residual cobre o valor total do novo plano. */
   is_free_upgrade?: boolean;
@@ -143,6 +143,10 @@ export interface UpgradePriceCalculation {
   free_upgrade_months_covered?: number;
   /** Dias de acesso cobertos pelo saldo (para exibir "X semestres" ou "X anos" conforme o período). */
   free_upgrade_days_extended?: number;
+  /** Downgrade solicitado dentro da janela de arrependimento (≤ 7 dias da compra). */
+  is_downgrade_withdrawal_window?: boolean;
+  /** Dias completos desde a data de processamento da compra até agora (para UI e auditoria). */
+  days_since_purchase?: number;
 }
 
 export interface UpgradePreviewResult {
@@ -207,6 +211,15 @@ export interface AsaasPayment {
   invoiceUrl?: string;
   bankSlipUrl?: string;
   pixQrCodeUrl?: string;
+}
+
+// ─── Resumo do método de pagamento atual ──────────────────────────────────────
+export interface PaymentMethodSummary {
+  billing_type: BillingType | null;
+  /** Últimos 4 dígitos do cartão (quando billing_type === 'CREDIT_CARD'). */
+  card_last4?: string;
+  /** Bandeira do cartão, quando disponível (ex.: VISA, MASTERCARD). */
+  card_brand?: string;
 }
 
 // ─── Webhook Asaas ───────────────────────────────────────────────────────────

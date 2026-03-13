@@ -63,7 +63,7 @@ export const MAX_GALLERIES_HARD_CAP_BY_PLAN: Record<PlanKey, number> = {
   START: 12,
   PLUS: 30,
   PRO: 100,
-  PREMIUM: 300,
+  PREMIUM: 400,
 };
 
 // ── Hard cap por galeria (bloqueia upload ao atingir) ─────────────────────────

@@ -81,6 +81,18 @@ const makeInsertChain = () => ({
   insert: vi.fn().mockResolvedValue({ data: null, error: null }),
 });
 
+function makeSupabaseForScheduled(req: any) {
+  return {
+    from: vi
+      .fn()
+      .mockReturnValueOnce(makeSelectChain(req)) // busca request ativo
+      .mockReturnValueOnce(makeUpdateChain()) // update tb_profiles is_cancelling
+      .mockReturnValueOnce(makeUpdateChain()) // update tb_upgrade_requests status
+      .mockReturnValueOnce(makeInsertChain()), // insert tb_plan_history
+    rpc: vi.fn(),
+  };
+}
+
 /** fetch que aceita DELETE na assinatura Asaas */
 function mockFetchOk() {
   return vi.fn().mockResolvedValue({
@@ -168,6 +180,22 @@ describe('handleSubscriptionCancellation — < 7 dias (refund_immediate)', () =>
     expect(result.type).toBe('refund_immediate');
   });
 
+  it('mantém cálculo de daysSincePurchase (≥ 7 dias tratados como scheduled_cancellation)', async () => {
+    vi.mocked(getAuthenticatedUser).mockResolvedValue(AUTH_OK as never);
+    vi.stubGlobal('fetch', mockFetchOk());
+
+    const oldReq = makeOldRequest();
+    const supabase = makeSupabaseForScheduled(oldReq);
+    vi.mocked(
+      await import('@/lib/supabase.server'),
+    ).createSupabaseServerClient = vi.fn().mockResolvedValue(supabase);
+
+    const result = await handleSubscriptionCancellation();
+
+    expect(result.success).toBe(true);
+    expect(result.type).toBe('scheduled_cancellation');
+  });
+
   it('chama cancelAsaasSubscriptionById (DELETE fetch) com o subscription_id correto', async () => {
     const req = makeRequest({ asaas_subscription_id: 'sub-abc' });
     const supabase = {
@@ -207,18 +235,6 @@ describe('handleSubscriptionCancellation — ≥ 7 dias (scheduled_cancellation)
     vi.mocked(getAuthenticatedUser).mockResolvedValue(AUTH_OK as never);
     vi.stubGlobal('fetch', mockFetchOk());
   });
-
-  function makeSupabaseForScheduled(req: ReturnType<typeof makeOldRequest>) {
-    return {
-      from: vi
-        .fn()
-        .mockReturnValueOnce(makeSelectChain(req)) // busca request ativo
-        .mockReturnValueOnce(makeUpdateChain()) // update tb_profiles is_cancelling
-        .mockReturnValueOnce(makeUpdateChain()) // update tb_upgrade_requests status
-        .mockReturnValueOnce(makeInsertChain()), // insert tb_plan_history
-      rpc: vi.fn(),
-    };
-  }
 
   it('retorna type=scheduled_cancellation com access_ends_at', async () => {
     const req = makeOldRequest();

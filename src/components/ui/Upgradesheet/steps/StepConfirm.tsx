@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useEffect } from 'react';
+import React, { useEffect, useState } from 'react';
 import { SheetSection } from '@/components/ui/Sheet';
 import { getPeriodPrice, PIX_DISCOUNT_PERCENT } from '@/core/config/plans';
 import { useUpgradeSheetContext } from '../UpgradeSheetContext';
@@ -25,6 +25,8 @@ export function StepConfirm() {
     segment,
     upgradeCalculation,
     setUpgradeCalculation,
+    isCalculationLoading: calcLoading,
+    setIsCalculationLoading: setCalcLoading,
   } = useUpgradeSheetContext();
 
   const { showToast, ToastElement } = useToast();
@@ -37,13 +39,16 @@ export function StepConfirm() {
   useEffect(() => {
     if (selectedPlan === 'FREE') return;
     let cancelled = false;
+    setCalcLoading(true);
     getUpgradePreview(selectedPlan, billingPeriod, billingType, segment).then(
       (r) => {
         if (!cancelled && r.calculation) setUpgradeCalculation(r.calculation);
+        if (!cancelled) setCalcLoading(false);
       },
     );
     return () => {
       cancelled = true;
+      setCalcLoading(false);
     };
   }, [
     selectedPlan,
@@ -51,6 +56,7 @@ export function StepConfirm() {
     billingType,
     segment,
     setUpgradeCalculation,
+    setCalcLoading,
   ]);
 
   // ── Cálculo do total final ────────────────────────────────────────────────
@@ -71,6 +77,19 @@ export function StepConfirm() {
   const hasPixDiscount = pixDiscountActual > 0;
   const hasCredit = residualCredit > 0;
   const showFinancialSummary = hasCredit || hasPixDiscount || isFreeUpgrade;
+
+  // Qualquer cenário com amountFinal 0 é tratado como "sem pagamento agora"
+  // (upgrade gratuito OU downgrade com crédito cobrindo 100%).
+  const isZeroPayment = amountFinal === 0;
+
+  const isDowngradeWithCredit =
+    upgradeCalculation?.type === 'downgrade' &&
+    upgradeCalculation?.is_downgrade_withdrawal_window === true &&
+    (upgradeCalculation?.residual_credit ?? 0) > 0;
+
+  const creditLabel = isDowngradeWithCredit
+    ? 'Crédito de outro pagamento'
+    : 'Crédito dos dias não usados';
 
   const nextBillingDateFormatted = upgradeCalculation?.new_expiry_date
     ? new Date(upgradeCalculation.new_expiry_date).toLocaleDateString('pt-BR', {
@@ -207,6 +226,12 @@ export function StepConfirm() {
       {showFinancialSummary ? (
         <SheetSection title="Resumo do pagamento">
           <div className="p-3.5 rounded-luxury border border-slate-100 bg-white shadow-sm space-y-2">
+            {calcLoading && (
+              <div className="flex items-center gap-2 text-[11px] text-petroleum/80 mb-1.5">
+                <div className="w-3.5 h-3.5 border-2 border-emerald-200 border-t-emerald-500 rounded-full animate-spin" />
+                <span>Calculando crédito aplicado e próxima fatura…</span>
+              </div>
+            )}
             {/* Linha: valor do período */}
             <div className="flex justify-between text-[11px]">
               <span className="text-petroleum/70 font-medium">
@@ -220,7 +245,7 @@ export function StepConfirm() {
             {/* Linha: crédito */}
             {hasCredit && (
               <div className="flex justify-between text-[11px] text-emerald-600">
-                <span className="font-medium">Crédito dos dias não usados</span>
+                <span className="font-medium">{creditLabel}</span>
                 <span className="font-bold">− {formatBRL(residualCredit)}</span>
               </div>
             )}
@@ -241,10 +266,10 @@ export function StepConfirm() {
             {/* Linha: total */}
             <div className="flex justify-between border-t border-slate-100 pt-2 mt-1">
               <span className="text-[12px] font-bold text-petroleum">
-                {isFreeUpgrade ? 'Total a pagar agora' : 'Total a pagar'}
+                {isZeroPayment ? 'Total a pagar agora' : 'Total a pagar'}
               </span>
               <span className="text-[13px] font-bold text-petroleum">
-                {isFreeUpgrade ? 'R$ 0,00' : formatBRL(amountFinal)}
+                {isZeroPayment ? 'R$ 0,00' : formatBRL(amountFinal)}
               </span>
             </div>
 
@@ -257,7 +282,7 @@ export function StepConfirm() {
                   <Banknote size={12} className="mt-0.5 shrink-0" />
                 )}
                 <p className="text-[11px] leading-tight font-medium">
-                  {isFreeUpgrade
+                  {isZeroPayment
                     ? 'Nenhuma cobrança agora. Próxima fatura em '
                     : 'Próxima fatura em '}
                   <strong>{nextBillingDateFormatted}</strong>.

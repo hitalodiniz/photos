@@ -34,15 +34,24 @@ export function useUpgradePrice(
   billingType: BillingType,
   upgradeCalculation: UpgradePriceCalculation | null,
 ): UpgradePriceResult {
-  const { effectiveMonthly, months } = getPeriodPrice(planInfoForPrice, billingPeriod);
+  const { effectiveMonthly, months } = getPeriodPrice(
+    planInfoForPrice,
+    billingPeriod,
+  );
 
   const amountPeriod = Math.round(effectiveMonthly * months * 100) / 100;
 
   const isFreeUpgrade = upgradeCalculation?.is_free_upgrade === true;
 
+  // Crédito vem de:
+  // - upgrades com pro-rata (type === 'upgrade')
+  // - downgrades dentro da janela de arrependimento (is_downgrade_withdrawal_window)
   const residualCredit =
-    upgradeCalculation?.type === 'upgrade'
-      ? (upgradeCalculation.residual_credit ?? 0)
+    upgradeCalculation &&
+    (upgradeCalculation.type === 'upgrade' ||
+      (upgradeCalculation.type === 'downgrade' &&
+        upgradeCalculation.is_downgrade_withdrawal_window === true))
+      ? upgradeCalculation.residual_credit ?? 0
       : 0;
 
   const amountAfterCredit =

@@ -16,6 +16,7 @@ import { PLAN_ICONS } from '../constants';
 import { useUpgradeSheetContext } from '../UpgradeSheetContext';
 import LoadingSpinner from '../../LoadingSpinner';
 import { Sparkles } from 'lucide-react';
+import { profile } from 'console';
 
 function formatDate(iso: string): string {
   return new Date(iso).toLocaleDateString('pt-BR', {
@@ -96,31 +97,33 @@ export function StepPlan() {
 
     previewTimeoutRef.current = setTimeout(() => {
       previewTimeoutRef.current = null;
-      // Busca com 'monthly' apenas para saber SE há crédito e bloquear downgrade.
-      // O valor real será recalculado no StepBilling com o período/forma escolhidos.
-      getUpgradePreview(selectedPlan, 'monthly', billingType, segment).then(
+      // Busca já com período/forma atuais para refletir o mesmo cálculo das etapas seguintes.
+      getUpgradePreview(selectedPlan, billingPeriod, billingType, segment).then(
         (result) => {
           if (!cancelled) {
             setUpgradePreview(result);
             setPreviewLoaded(true);
             setHasPendingUpgrade(result.has_pending ?? false);
-            const calc = result.calculation;
-            setUpgradeCalculation(calc ?? null);
+            // Sempre propaga o cálculo bruto para o contexto, mesmo quando
+            // has_active_plan vier false (ex.: downgrades recentes).
+            setUpgradeCalculation(result.calculation ?? null);
 
             const selectedIdx = planOrder.indexOf(selectedPlan as PlanKey);
             const currentIdx = planOrder.indexOf(planKey as PlanKey);
             const isDowngradeByOrder =
               selectedIdx >= 0 && currentIdx >= 0 && selectedIdx < currentIdx;
 
-            if (
-              calc?.type === 'downgrade' &&
-              calc.current_plan_expires_at &&
-              isDowngradeByOrder
-            ) {
+            const isDowngrade =
+              calc?.type === 'downgrade' && calc.current_plan_expires_at;
+            const isWithdrawalWindow =
+              calc?.is_downgrade_withdrawal_window === true;
+
+            // Bloqueia downgrade apenas fora da janela de arrependimento.
+            if (isDowngrade && isDowngradeByOrder && !isWithdrawalWindow) {
               setDowngradeBlockedMessage(
-                `Mudança para planos inferiores permitida apenas após o vencimento do plano atual em ${formatDate(calc.current_plan_expires_at)}.`,
+                `Mudança para planos inferiores permitida apenas após o vencimento do plano atual em ${formatDate(calc.current_plan_expires_at!)}.`,
               );
-              setDowngradeExpiresAt(calc.current_plan_expires_at);
+              setDowngradeExpiresAt(calc.current_plan_expires_at!);
             } else {
               setDowngradeBlockedMessage(null);
               if (calc?.current_plan_expires_at && isDowngradeByOrder)
@@ -149,10 +152,8 @@ export function StepPlan() {
     setDowngradeBlockedMessage,
   ]);
 
-  const calc =
-    upgradePreview?.success &&
-    upgradePreview?.has_active_plan &&
-    upgradePreview?.calculation;
+  // Usa qualquer cálculo retornado pela API, mesmo quando has_active_plan for false.
+  const calc = upgradePreview?.calculation;
 
   const selectedIdx = planOrder.indexOf(selectedPlan as PlanKey);
   const currentIdx = planOrder.indexOf(planKey as PlanKey);
@@ -165,6 +166,18 @@ export function StepPlan() {
 
   const showDowngradeBanner =
     calc && calc.type === 'downgrade' && isDowngradeByOrder;
+
+  // Downgrade com direito de arrependimento: exibir crédito no topo
+  const showDowngradeCreditAtTop =
+    calc?.type === 'downgrade' &&
+    calc.is_downgrade_withdrawal_window === true &&
+    (calc.residual_credit ?? 0) > 0;
+  const downgradeCreditValue = showDowngradeCreditAtTop
+    ? (calc!.residual_credit ?? 0)
+    : 0;
+  const downgradeCreditExpiry = calc?.new_expiry_date;
+  const downgradeCreditDays = calc?.free_upgrade_days_extended ?? 0;
+  const downgradeCreditMonths = calc?.free_upgrade_months_covered ?? 0;
 
   // Há crédito do plano anterior (> 0) e não é downgrade
   const hasResidualCredit =
@@ -182,6 +195,34 @@ export function StepPlan() {
 
   return (
     <SheetSection title="Escolha seu novo plano">
+      {showDowngradeCreditAtTop && (
+        <div className="rounded-lg border border-emerald-200 bg-emerald-50 px-3 py-3 text-[11px] text-emerald-900 mb-3">
+          <p className="font-bold text-emerald-800 uppercase text-[10px] tracking-wider mb-1.5">
+            ✓ Crédito aplicado
+          </p>
+          <p className="font-semibold text-emerald-900">
+            Plano Mensal · Crédito{' '}
+            <span className="ml-1">R$ {downgradeCreditValue.toFixed(2)}</span>
+          </p>
+          <p className="text-emerald-800/90 mt-1 leading-snug">
+            Este valor será convertido em saldo e aplicado ao plano escolhido.
+            {downgradeCreditExpiry && downgradeCreditDays > 0 ? (
+              <>
+                {' '}
+                Na etapa <strong>Pagamento</strong> você verá por quantos dias
+                esse crédito cobre o plano e a data do próximo vencimento (
+                {downgradeCreditMonths >= 1
+                  ? `cerca de ${downgradeCreditMonths} ${downgradeCreditMonths === 1 ? 'mês' : 'meses'}`
+                  : `${downgradeCreditDays} dias`}
+                ). A próxima fatura será nessa data.
+              </>
+            ) : (
+              ' Na etapa Pagamento você verá a data do próximo vencimento. A próxima fatura será nessa data.'
+            )}
+          </p>
+        </div>
+      )}
+
       {isExempt && selectedPlan === planKey && (
         <div className="rounded-lg border border-gold/30 bg-gold/5 px-3 py-2.5 text-[11px] text-petroleum">
           <p className="font-medium text-petroleum">
@@ -202,21 +243,42 @@ export function StepPlan() {
 
       {showDowngradeBanner && (
         <div className="rounded-lg border border-amber-200 bg-amber-50 px-3 py-2.5 text-[11px] text-amber-900">
-          <p className="font-medium">
-            Mudança para planos inferiores permitida apenas após o vencimento do
-            plano atual em{' '}
-            <span className="font-semibold text-petroleum">
-              {formatDate(calc!.current_plan_expires_at ?? '')}
-            </span>
-            .
-          </p>
+          {calc!.is_downgrade_withdrawal_window ? (
+            <p className="font-medium">
+              <span className="font-semibold text-petroleum">
+                Crédito de outro pagamento:
+              </span>{' '}
+              Você receberá{' '}
+              <span className="font-semibold text-petroleum">
+                R$ {Math.max(0, calc!.residual_credit).toFixed(2)}
+              </span>{' '}
+              em créditos e a mudança para o novo plano será aplicada
+              imediatamente.
+            </p>
+          ) : (
+            <p className="font-medium">
+              <span className="font-semibold text-petroleum">Agendamento:</span>{' '}
+              Seu plano atual segue até{' '}
+              <span className="font-semibold text-petroleum">
+                {formatDate(
+                  calc!.downgrade_effective_at ??
+                    calc!.current_plan_expires_at ??
+                    '',
+                )}
+              </span>
+              . Nesta data, o downgrade será aplicado e o excesso de galerias
+              será arquivado automaticamente.
+            </p>
+          )}
         </div>
       )}
 
       {showLoading ? (
-        <div className="py-4">
-          <LoadingSpinner message="Verificando crédito disponível…" />
-        </div>
+        <LoadingSpinner
+          message="Verificando crédito disponível…"
+          size="sm"
+          variant="light"
+        />
       ) : (
         /*
          * Exibe apenas um hint discreto sobre a existência de crédito.
@@ -250,12 +312,8 @@ export function StepPlan() {
               planKey !== 'FREE' &&
               !profile?.is_trial &&
               planOrder.indexOf(p) < planOrder.indexOf(planKey as PlanKey);
-            const disabled = (!profile?.is_trial && isCurr) || isDowngrade;
-            const downgradeTooltip = isDowngrade
-              ? downgradeExpiresAt
-                ? `Mudança para planos inferiores permitida apenas após o vencimento do plano atual em ${formatDate(downgradeExpiresAt)}.`
-                : 'Mudança para planos inferiores permitida apenas após o vencimento do plano atual.'
-              : undefined;
+            const disabled = !profile?.is_trial && isCurr;
+            const downgradeTooltip = undefined;
             return (
               <PlanCard
                 key={p}

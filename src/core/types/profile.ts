@@ -37,6 +37,8 @@ export interface Profile {
   specialty?: string;
   custom_specialties?: string[];
   theme_key?: string; // PHOTOGRAPHER | DARK_CINEMA | EDITORIAL_WHITE | NATURE | NOCTURNAL_LUXURY | OFF_WHITE | PLATINUM | WARM_BLUSH
+  /** Campo JSONB para metadados diversos (ex.: last_downgrade_alert_viewed). */
+  metadata?: Record<string, unknown> | null;
 }
 
 // 🎯 Zod Schema atualizado para suportar o novo JSON

@@ -73,7 +73,7 @@ function UpgradeSheetContent({
             <button
               type="button"
               onClick={() => setStep(goBack[step]!)}
-              className="shrink-0 flex items-center gap-1.5 px-4 h-10 rounded-luxury border-2 border-slate-200 bg-white text-[10px] font-bold uppercase tracking-wider text-petroleum/50 hover:text-petroleum hover:border-slate-300 transition-all"
+              className="shrink-0 flex items-center gap-1.5 px-4 h-10 rounded-md border-2 border-slate-200 bg-white text-[10px] font-bold uppercase tracking-wider text-petroleum/50 hover:text-petroleum hover:border-slate-300 transition-all"
             >
               <ArrowLeft size={12} />
               Voltar
@@ -190,8 +190,13 @@ function UpgradeSheetContent({
 }
 
 function ConfirmButton() {
-  const { loading, handleConfirm, billingType, upgradeCalculation } =
-    useUpgradeSheetContext();
+  const {
+    loading,
+    handleConfirm,
+    billingType,
+    upgradeCalculation,
+    isCalculationLoading,
+  } = useUpgradeSheetContext();
   const isFreeUpgrade =
     upgradeCalculation?.is_free_upgrade === true ||
     (upgradeCalculation?.amount_final != null &&
@@ -199,20 +204,20 @@ function ConfirmButton() {
   return (
     <button
       type="button"
-      disabled={loading}
+      disabled={loading || isCalculationLoading}
       onClick={handleConfirm}
       className="btn-luxury-primary w-full disabled:opacity-40 disabled:cursor-not-allowed"
     >
-      {loading ? (
+      {loading || isCalculationLoading ? (
         <>
           <div className="w-3.5 h-3.5 border-2 border-petroleum/30 border-t-petroleum rounded-full animate-spin" />
-          Processando…
+          {isCalculationLoading ? 'Calculando...' : 'Processando…'}
         </>
       ) : (
         <>
           <ArrowRight size={14} />
           {isFreeUpgrade
-            ? 'Confirmar Upgrade Gratuito'
+            ? 'Confirmar Atualização do Plano'
             : billingType === 'PIX'
               ? 'Confirmar e Gerar Pix'
               : billingType === 'BOLETO'

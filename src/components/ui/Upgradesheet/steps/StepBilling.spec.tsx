@@ -52,6 +52,7 @@ let ctxState: {
     credit_card_expiry_year: string;
     credit_card_ccv: string;
   };
+  isCalculationLoading: boolean;
 };
 
 const setBillingPeriod = vi.fn((p: BillingPeriod) => {
@@ -65,6 +66,7 @@ const setInstallments = vi.fn((n: number) => {
 });
 const setUpgradeCalculation = vi.fn();
 const setCreditCard = vi.fn();
+const setIsCalculationLoading = vi.fn();
 
 function makeCtx(overrides: Partial<typeof ctxState> = {}): typeof ctxState {
   return {
@@ -84,6 +86,7 @@ function makeCtx(overrides: Partial<typeof ctxState> = {}): typeof ctxState {
       credit_card_expiry_year: '',
       credit_card_ccv: '',
     },
+    isCalculationLoading: false,
     ...overrides,
   };
 }
@@ -98,6 +101,7 @@ vi.mock('../UpgradeSheetContext', () => ({
     setInstallments,
     setUpgradeCalculation,
     setCreditCard,
+    setIsCalculationLoading,
   }),
 }));
 

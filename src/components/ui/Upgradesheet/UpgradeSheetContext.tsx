@@ -109,6 +109,8 @@ interface UpgradeSheetContextValue {
   /** Mensagem quando seleção é downgrade (bloqueado até vencimento). */
   downgradeBlockedMessage: string | null;
   setDowngradeBlockedMessage: (m: string | null) => void;
+  isCalculationLoading: boolean;
+  setIsCalculationLoading: (v: boolean) => void;
 }
 
 const UpgradeSheetContext = createContext<UpgradeSheetContextValue | null>(
@@ -204,17 +206,30 @@ export function UpgradeSheetProvider({
   const [downgradeBlockedMessage, setDowngradeBlockedMessage] = useState<
     string | null
   >(null);
+  const [isCalculationLoading, setIsCalculationLoading] = useState(false);
   const numberInputRef = React.useRef<HTMLInputElement>(null);
   const streetInputRef = React.useRef<HTMLInputElement>(null);
+  const wasOpenRef = React.useRef(false);
 
+  // Reset step e estado apenas quando o sheet ABRE (isOpen: false → true).
+  // Evita voltar para StepPlan após sucesso (ex.: upgrade gratuito) quando
+  // profile/suggestedPlanKey mudam por revalidação — o usuário fecha quando quiser.
   useEffect(() => {
-    if (!isOpen) return;
+    if (!isOpen) {
+      wasOpenRef.current = false;
+      return;
+    }
+    const justOpened = !wasOpenRef.current;
+    wasOpenRef.current = true;
+    if (!justOpened) return;
+
     setSelectedPlan(suggestedPlanKey);
     setStep('plan');
     setHasSavedBillingData(false);
     setHasPendingUpgrade(false);
     setDowngradeBlockedMessage(null);
     setUpgradeCalculation(null);
+    setIsCalculationLoading(false);
     setPersonal((prev) => ({
       ...prev,
       fullName: profile?.full_name ?? prev.fullName ?? '',
@@ -244,7 +259,8 @@ export function UpgradeSheetProvider({
         });
       })
       .finally(() => setLoadingPrefill(false));
-  }, [isOpen, suggestedPlanKey, profile?.phone_contact, profile?.full_name]);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [isOpen]);
 
   const selectedPerms = PERMISSIONS_BY_PLAN[selectedPlan];
   const selectedPlanInfo = PLANS_BY_SEGMENT[segment]?.[selectedPlan];
@@ -417,6 +433,7 @@ export function UpgradeSheetProvider({
     setInstallments(1);
     setCreditCard(initialCreditCard);
     setHasSavedBillingData(false);
+    setIsCalculationLoading(false);
   }, [suggestedPlanKey]);
 
   const handleClose = useCallback(() => {
@@ -480,6 +497,8 @@ export function UpgradeSheetProvider({
       setUpgradeCalculation,
       downgradeBlockedMessage,
       setDowngradeBlockedMessage,
+      isCalculationLoading,
+      setIsCalculationLoading,
     }),
     [
       step,
@@ -520,6 +539,7 @@ export function UpgradeSheetProvider({
       hasPendingUpgrade,
       upgradeCalculation,
       downgradeBlockedMessage,
+      isCalculationLoading,
     ],
   );
 

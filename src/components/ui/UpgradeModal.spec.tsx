@@ -197,11 +197,10 @@ describe('UpgradeModal Integration', () => {
     ).toBeInTheDocument();
   });
 
-  test('FREE + privacyLevel → próximo plano é PREMIUM', () => {
-    // findNextPlanWithFeature não tem 'public'/'password' nos levelWeights →
-    // nenhum plano passa nos checks → fallback PREMIUM.
-    // Comportamento correto está em findNextPlanKeyWithFeature (que tem esses pesos),
-    // mas o componente em produção ainda usa findNextPlanWithFeature para o display name.
+  test('FREE + privacyLevel → próximo plano é START (primeiro com senha)', () => {
+    // findNextPlanWithFeature tem regra específica para privacyLevel:
+    // qualquer mudança de valor (public -> password) já aciona o upgrade.
+    // FREE = public, START = password → upgrade para START.
     render(
       <PlanProvider profile={makeMockProfile({ plan_key: 'FREE' })}>
         <UpgradeModal
@@ -214,7 +213,7 @@ describe('UpgradeModal Integration', () => {
       </PlanProvider>,
     );
     expect(
-      screen.getByRole('button', { name: /migrar para o premium/i }),
+      screen.getByRole('button', { name: /migrar para o start/i }),
     ).toBeInTheDocument();
   });
 

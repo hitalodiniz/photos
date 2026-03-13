@@ -279,6 +279,61 @@ describe('performDowngradeToFree', () => {
   });
 });
 
+describe('calculateUpgradePrice — downgrade e direito de arrependimento', () => {
+  beforeEach(() => {
+    vi.clearAllMocks();
+  });
+
+  const makeCurrentRequest = (overrides: Partial<CurrentActiveRequestRow> = {}) =>
+    ({
+      id: 'req-1',
+      status: 'approved',
+      plan_key_requested: 'PRO',
+      billing_period: 'monthly',
+      amount_final: 120,
+      processed_at: daysAgo(2),
+      notes: null,
+      ...overrides,
+    }) as CurrentActiveRequestRow;
+
+  it('marca is_downgrade_withdrawal_window=true e usa crédito integral quando ≤ 7 dias', async () => {
+    const current = makeCurrentRequest();
+
+    const calc = await calculateUpgradePrice(
+      current,
+      'START' as PlanKey,
+      'monthly',
+      'CREDIT_CARD',
+      'PHOTOGRAPHER',
+      'PRO',
+    );
+
+    expect(calc.type).toBe('downgrade');
+    expect(calc.is_downgrade_withdrawal_window).toBe(true);
+    expect(calc.days_since_purchase).toBeGreaterThanOrEqual(0);
+    // amount_final deve ser zero e residual_credit deve refletir valor da compra (aprox)
+    expect(calc.amount_final).toBe(0);
+    expect(calc.residual_credit).toBeGreaterThan(0);
+  });
+
+  it('mantém downgrade agendado (is_downgrade_withdrawal_window=false) quando > 7 dias', async () => {
+    const current = makeCurrentRequest({ processed_at: monthsAgo(1) });
+
+    const calc = await calculateUpgradePrice(
+      current,
+      'START' as PlanKey,
+      'monthly',
+      'CREDIT_CARD',
+      'PHOTOGRAPHER',
+      'PRO',
+    );
+
+    expect(calc.type).toBe('downgrade');
+    expect(calc.is_downgrade_withdrawal_window).toBe(false);
+    expect(calc.downgrade_effective_at).toBe(calc.current_plan_expires_at);
+  });
+});
+
 // ═══════════════════════════════════════════════════════════════════════════════
 describe('handleSubscriptionCancellation', () => {
   const PROFILE_ID = 'profile-xyz';
