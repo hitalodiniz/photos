@@ -130,97 +130,121 @@ function ThemeSwatch({
 }) {
   const [bg, primary, accent] = theme.swatches;
 
-  return (
-    <PlanGuard
-      feature="customizationLevel"
-      label="Tema Visual da galeria"
-      variant="mini"
-    >
-      <button
-        type="button"
-        onClick={onClick}
-        disabled={isSaving}
-        className={`
-        group relative flex flex-col gap-2 p-3 rounded-xl border-2 text-left
-        transition-all duration-300 active:scale-[0.97]
-        ${
-          isSaving || isPending
-            ? 'border-gold shadow-[0_0_0_3px_rgba(212,175,55,0.15)] bg-white scale-[1.02]'
-            : isSelected
-              ? 'border-petroleum/30 bg-white shadow-md'
-              : 'border-slate-200 bg-white hover:border-slate-300 hover:shadow-sm'
-        }
-      `}
+  // Renderiza o interior do botão para evitar repetição de código
+  const SwatchContent = (
+    <>
+      {/* Preview visual dinâmico */}
+      <div
+        className="w-full h-10 rounded-lg flex items-center justify-between px-2.5 overflow-hidden relative"
+        style={{ backgroundColor: bg }}
       >
-        {/* Preview visual */}
         <div
-          className="w-full h-10 rounded-lg flex items-center justify-between px-2.5 overflow-hidden relative"
-          style={{ backgroundColor: bg }}
-        >
-          <div
-            className="w-1 h-6 rounded-full opacity-80"
-            style={{ backgroundColor: primary }}
-          />
-          <div className="flex items-center gap-1">
-            <div
-              className="w-2 h-2 rounded-full"
-              style={{ backgroundColor: primary, opacity: 0.6 }}
-            />
-            <div
-              className="w-3 h-1 rounded-full"
-              style={{ backgroundColor: primary, opacity: 0.3 }}
-            />
-          </div>
+          className="w-1 h-6 rounded-full opacity-80"
+          style={{ backgroundColor: primary }}
+        />
+        <div className="flex items-center gap-1">
           <div
             className="w-2 h-2 rounded-full"
-            style={{ backgroundColor: accent }}
+            style={{ backgroundColor: primary, opacity: 0.6 }}
           />
-          {theme.isDark && (
-            <div className="absolute inset-0 bg-black/5 rounded-lg" />
+          <div
+            className="w-3 h-1 rounded-full"
+            style={{ backgroundColor: primary, opacity: 0.3 }}
+          />
+        </div>
+        <div
+          className="w-2 h-2 rounded-full"
+          style={{ backgroundColor: accent }}
+        />
+        {theme.isDark && (
+          <div className="absolute inset-0 bg-black/5 rounded-lg" />
+        )}
+      </div>
+
+      {/* Label + Metadados */}
+      <div className="space-y-0.5 min-w-0">
+        <div className="flex items-center gap-1">
+          <p className="text-[10px] font-bold uppercase tracking-widest text-petroleum truncate">
+            {theme.label}
+          </p>
+          <span onClick={(e) => e.stopPropagation()}>
+            <InfoTooltip
+              title="Recomendado para"
+              content={theme.categories}
+              size="xl"
+              align="left"
+              position="bottom"
+              portal
+            />
+          </span>
+        </div>
+        <p className="text-[9px] text-slate-400 leading-tight line-clamp-1">
+          {theme.description}
+        </p>
+      </div>
+
+      {/* Status Check / Loading Indicator */}
+      {(isSelected || isPending || isSaving) && (
+        <div
+          className={`absolute top-2 right-2 w-5 h-5 rounded-full flex items-center justify-center transition-all duration-200 ${
+            isSaving || isPending
+              ? 'bg-gold shadow-[0_0_8px_rgba(212,175,55,0.4)]'
+              : 'bg-petroleum/20'
+          }`}
+        >
+          {isSaving ? (
+            <span className="w-2.5 h-2.5 border-2 border-petroleum/30 border-t-petroleum rounded-full animate-spin" />
+          ) : (
+            <Check size={10} strokeWidth={3} className="text-petroleum" />
           )}
         </div>
+      )}
+    </>
+  );
 
-        {/* Label + tooltip */}
-        <div className="space-y-0.5 min-w-0">
-          <div className="flex items-center gap-1">
-            <p className="text-[10px] font-bold uppercase tracking-widest text-petroleum truncate">
-              {theme.label}
-            </p>
-            {/* InfoTooltip com categorias recomendadas — portal para não ser cortado */}
-            <span onClick={(e) => e.stopPropagation()}>
-              <InfoTooltip
-                title="Recomendado para"
-                content={theme.categories}
-                size="xl"
-                align="left"
-                position="bottom"
-                portal
-              />
-            </span>
-          </div>
-          <p className="text-[9px] text-slate-400 leading-tight line-clamp-1">
-            {theme.description}
-          </p>
-        </div>
+  // Classes base do botão
+  const buttonClasses = `
+    group relative flex flex-col gap-2 p-3 rounded-xl border-2 text-left w-full
+    transition-all duration-300 active:scale-[0.97]
+    ${
+      isSaving || isPending
+        ? 'border-gold shadow-[0_0_0_3px_rgba(212,175,55,0.15)] bg-white scale-[1.02]'
+        : isSelected
+          ? 'border-petroleum/30 bg-white shadow-md'
+          : 'border-slate-200 bg-white hover:border-slate-300 hover:shadow-sm'
+    }
+  `;
 
-        {/* Check selecionado / salvando */}
-        {(isSelected || isPending || isSaving) && (
-          <div
-            className={`
-          absolute top-2 right-2 w-5 h-5 rounded-full flex items-center justify-center
-          transition-all duration-200
-          ${isSaving ? 'bg-gold shadow-[0_0_8px_rgba(212,175,55,0.4)]' : isPending ? 'bg-gold shadow-[0_0_8px_rgba(212,175,55,0.4)]' : 'bg-petroleum/20'}
-        `}
+  return (
+    <>
+      {theme.key === 'PHOTOGRAPHER' ? (
+        /* TEMA PADRÃO - ACESSO LIVRE */
+        <button
+          type="button"
+          onClick={onClick}
+          disabled={isSaving}
+          className={buttonClasses}
+        >
+          {SwatchContent}
+        </button>
+      ) : (
+        /* TEMAS PREMIUM - PROTEGIDOS */
+        <PlanGuard
+          feature="customizationLevel"
+          label={`Tema ${theme.label}`}
+          variant="mini"
+        >
+          <button
+            type="button"
+            onClick={onClick}
+            disabled={isSaving}
+            className={buttonClasses}
           >
-            {isSaving ? (
-              <span className="w-2.5 h-2.5 border-2 border-petroleum/30 border-t-petroleum rounded-full animate-spin" />
-            ) : (
-              <Check size={10} strokeWidth={3} className="text-petroleum" />
-            )}
-          </div>
-        )}
-      </button>
-    </PlanGuard>
+            {SwatchContent}
+          </button>
+        </PlanGuard>
+      )}
+    </>
   );
 }
 

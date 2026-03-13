@@ -1,6 +1,8 @@
 // src/components/UpgradeSheet/utils/creditCardValidation.ts
 
-const isSandbox = process.env.NEXT_PUBLIC_ASAAS_ENVIRONMENT === 'sandbox';
+function isSandboxEnv(): boolean {
+  return process.env.NEXT_PUBLIC_ASAAS_ENVIRONMENT === 'sandbox';
+}
 
 // ─── Detecção de bandeira ─────────────────────────────────────────────────────
 
@@ -14,8 +16,8 @@ export type CardBrand =
 
 export function detectBrand(number: string): CardBrand {
   const n = number.replace(/\D/g, '');
-  if (/^4/.test(n)) return 'visa';
-  if (/^5[1-5]|^2(2[2-9]|[3-6]\d|7[01])/.test(n)) return 'mastercard';
+  if (/^5[1-5]/.test(n) || /^2(2[2-9]|[3-6]\d|7[01])/.test(n) || /^2720/.test(n))
+    return 'mastercard';
   if (/^3[47]/.test(n)) return 'amex';
   if (
     /^(4011|4312|4389|4514|4576|5041|5066|5067|509|6277|6362|6363|650|6516|6550)/.test(
@@ -24,6 +26,7 @@ export function detectBrand(number: string): CardBrand {
   )
     return 'elo';
   if (/^(606282|3841)/.test(n)) return 'hipercard';
+  if (/^4/.test(n)) return 'visa';
   return 'unknown';
 }
 
@@ -70,7 +73,7 @@ export function validateCardNumber(value: string): string | null {
   if (!digits) return 'Número obrigatório';
   if (digits.length < 13) return 'Número muito curto';
   if (digits.length > 19) return 'Número muito longo';
-  if (isSandbox) return null; // pula Luhn no sandbox
+  if (isSandboxEnv()) return null; // pula Luhn no sandbox
   if (!luhn(digits)) return 'Número de cartão inválido';
   return null;
 }
@@ -115,7 +118,7 @@ export function validateExpiry(month: string, year: string): string | null {
 
 export function validateCvv(value: string, brand: CardBrand): string | null {
   if (!value) return 'CVV obrigatório';
-  if (isSandbox) return null; // pula Luhn no sandbox
+  if (isSandboxEnv()) return null; // bypass de validação de comprimento em sandbox
 
   const expected = expectedCvvLength(brand);
   if (value.replace(/\D/g, '').length !== expected)

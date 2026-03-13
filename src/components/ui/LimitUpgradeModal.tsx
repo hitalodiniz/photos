@@ -9,6 +9,10 @@ interface LimitUpgradeModalProps {
   onClose: () => void;
   planLimit: number;
   photoCount: number;
+  /** Quando 'pool': mensagem de cota do pool (só N créditos; galerias limitadas a X). */
+  variant?: 'perGallery' | 'pool';
+  /** Para variant='pool': número de galerias que o usuário pode ter com o uso atual. */
+  maxGalleriesAfter?: number;
 }
 
 export const LimitUpgradeModal = ({
@@ -16,6 +20,8 @@ export const LimitUpgradeModal = ({
   onClose,
   planLimit,
   photoCount,
+  variant = 'perGallery',
+  maxGalleriesAfter,
 }: LimitUpgradeModalProps) => {
   if (!isOpen) return null;
 
@@ -42,15 +48,17 @@ export const LimitUpgradeModal = ({
     </div>
   );
 
+  const isPool = variant === 'pool';
+
   return (
     <BaseModal
       isOpen={isOpen}
       onClose={onClose}
-      title="Limite do Plano"
-      subtitle="Importação Limitada"
+      title={isPool ? 'Cota do pool insuficiente' : 'Limite do Plano'}
+      subtitle={isPool ? 'Galeria limitada ao pool' : 'Importação Limitada'}
       headerIcon={headerIcon}
       footer={footer}
-      maxWidth="md"
+      maxWidth="lg"
     >
       <div className="space-y-4">
         <div className="w-full flex items-center gap-4 p-4 rounded-luxury border border-amber-500/20 bg-amber-500/5 transition-all">
@@ -60,11 +68,13 @@ export const LimitUpgradeModal = ({
 
           <div className="flex-1 text-left min-w-0">
             <p className="text-[14px] font-bold text-petroleum tracking-wide uppercase">
-              Capacidade do Plano
+              {isPool ? 'Créditos disponíveis no pool' : 'Capacidade do Plano'}
             </p>
             <div className="flex items-center gap-2 mt-0.5">
               <span className="text-[10px] font-bold text-amber-600 uppercase tracking-luxury">
-                Limite: {planLimit} Fotos
+                {isPool
+                  ? `Máximo nesta galeria: ${planLimit} fotos`
+                  : `Limite: ${planLimit} Fotos`}
               </span>
               <span className="text-petroleum/20 text-xs">•</span>
               <span className="text-[10px] font-bold text-petroleum/40 tracking-luxury uppercase">
@@ -74,18 +84,42 @@ export const LimitUpgradeModal = ({
           </div>
         </div>
 
-        <p className="text-[13px] text-petroleum/70 font-medium leading-relaxed px-1">
-          Sua pasta possui{' '}
-          <span className="text-petroleum font-bold">{photoCount} fotos</span>.
-          Apenas as primeiras{' '}
-          <span className="text-gold font-bold">{planLimit} fotos</span> serão
-          importadas para economizar seu armazenamento.
-        </p>
+        {isPool ? (
+          <>
+            <p className="text-[13px] text-petroleum/70 font-medium leading-relaxed px-1">
+              Sua pasta possui{' '}
+              <span className="text-petroleum font-bold">{photoCount} fotos</span>
+              , mas você só tem{' '}
+              <span className="text-gold font-bold">{planLimit} créditos</span>{' '}
+              disponíveis no pool (as outras galerias já consomem parte da cota).
+              Apenas{' '}
+              <span className="text-gold font-bold">{planLimit} fotos</span>{' '}
+              serão exibidas nesta galeria.
+            </p>
+            {typeof maxGalleriesAfter === 'number' && (
+              <p className="text-[13px] text-petroleum/70 font-medium leading-relaxed px-1">
+                Com esse uso, o número de galerias disponíveis no seu plano fica
+                limitado a{' '}
+                <span className="text-gold font-bold">{maxGalleriesAfter}</span>.
+              </p>
+            )}
+          </>
+        ) : (
+          <p className="text-[13px] text-petroleum/70 font-medium leading-relaxed px-1">
+            Sua pasta possui{' '}
+            <span className="text-petroleum font-bold">{photoCount} fotos</span>.
+            Apenas as primeiras{' '}
+            <span className="text-gold font-bold">{planLimit} fotos</span> serão
+            importadas para economizar seu armazenamento.
+          </p>
+        )}
 
         <div className="flex items-center gap-3 p-4 bg-slate-50 border border-petroleum/10 rounded-luxury italic">
           <Info size={16} className="text-gold shrink-0" />
           <p className="text-[10px] font-bold uppercase tracking-luxury text-petroleum/60">
-            As fotos excedentes não serão processadas.
+            {isPool
+              ? 'As fotos excedentes ao pool não serão exibidas nesta galeria.'
+              : 'As fotos excedentes não serão processadas.'}
           </p>
         </div>
       </div>

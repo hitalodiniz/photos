@@ -31,6 +31,7 @@ import {
   Settings2,
   CalendarClock,
   Sparkles,
+  AlertTriangle,
 } from 'lucide-react';
 import WhatsAppIcon from '@/components/ui/WhatsAppIcon';
 import { convertToDirectDownloadUrl } from '@/core/utils/url-helper';
@@ -53,6 +54,11 @@ import {
 import { normalizeContractType } from '@/core/types/galeria';
 import { ThemeKey, ThemeSelector } from '@/components/ui/ThemeSelector';
 import { HELP_CONTENT } from '@/core/config/help-content';
+import {
+  MAX_PHOTOS_PER_GALLERY_BY_PLAN,
+  calcEffectiveMaxGalleries,
+} from '@/core/config/plans';
+import type { PlanKey } from '@/core/config/plans';
 
 /** default_type do perfil (contract/event/ensaio) → código (CT/CB/ES) */
 const DEFAULT_TYPE_TO_CODE: Record<string, GalleryTypeValue> = {
@@ -127,6 +133,7 @@ export default function GaleriaFormContent({
     feature: string;
   } | null>(null);
   const [showLimitModal, setShowLimitModal] = useState(false);
+  const [showPoolCapModal, setShowPoolCapModal] = useState(false);
   const [, setLimitInfo] = useState({ count: 0, hasMore: false });
   const [isValidatingDrive, setIsValidatingDrive] = useState(false);
 
@@ -326,7 +333,11 @@ export default function GaleriaFormContent({
   // =========================================================================
   // 6. CONSTANTES DERIVADAS
   // =========================================================================
-  const PLAN_LIMIT = permissions.maxPhotosPerGallery;
+  // Hard cap: máximo de fotos por galeria (permite criar até esse valor; acima disso exibe modal de upgrade).
+  const PLAN_HARD_CAP =
+    MAX_PHOTOS_PER_GALLERY_BY_PLAN[(planKey || 'FREE') as PlanKey];
+  // Recomendado: acima disso exibimos aviso de que reduz o número de galerias na cota, mas permitimos criar.
+  const RECOMMENDED_PHOTOS = permissions.recommendedPhotosPerGallery ?? 150;
   const profileRootFolderId =
     profile?.settings?.defaults?.google_drive_root_id || null;
   const canUsePrivate = permissions.privacyLevel !== 'public';
@@ -344,6 +355,26 @@ export default function GaleriaFormContent({
   const activeGalleriesExcludingThis = isEdit
     ? Math.max(0, activeGalleryCount - 1)
     : activeGalleryCount;
+
+  // ─── Máximo que esta galeria pode ter (teto por galeria e pool) ──────────
+  const totalPool = permissions.photoCredits ?? 0;
+  const poolRemainingCredits = Math.max(0, totalPool - usedPhotoCredits);
+  const maxPhotosForThisGallery = Math.min(
+    PLAN_HARD_CAP,
+    Math.max(0, totalPool - usedCreditsExcludingThis),
+  );
+  const rawPhotoCount = driveData.photoCount ?? 0;
+  const effectivePhotoCount = Math.min(rawPhotoCount, maxPhotosForThisGallery);
+  const isOverPoolCap =
+    rawPhotoCount > maxPhotosForThisGallery && rawPhotoCount <= PLAN_HARD_CAP;
+  const maxGalleriesAfterPoolCap =
+    isOverPoolCap && (planKey as PlanKey)
+      ? calcEffectiveMaxGalleries(
+          (planKey as PlanKey) ?? 'FREE',
+          usedCreditsExcludingThis + effectivePhotoCount,
+          activeGalleriesExcludingThis + 1,
+        )
+      : undefined;
 
   const sessionHook = useSupabaseSession();
   const getAuthDetails = sessionHook?.getAuthDetails;
@@ -411,7 +442,7 @@ export default function GaleriaFormContent({
       const limitData = await checkFolderLimits(
         driveFolderId,
         userId,
-        permissions.maxPhotosPerGallery,
+        PLAN_HARD_CAP,
         planKey,
       );
 
@@ -514,7 +545,7 @@ export default function GaleriaFormContent({
             <input
               type="hidden"
               name="photo_count"
-              value={driveData.photoCount || 0}
+              value={effectivePhotoCount}
             />
             <input type="hidden" name="theme_key" value={galleryTheme} />
             <input type="hidden" name="is_public" value={String(isPublic)} />
@@ -736,34 +767,33 @@ export default function GaleriaFormContent({
                       content={HELP_CONTENT.GALLERY.ACCESS.content}
                     />
                   </div>
+                  <PlanGuard
+                    feature="privacyLevel"
+                    label="Senha"
+                    variant="mini"
+                    scenarioType="feature"
+                    forceShowLock={true}
+                  >
+                    <div className="flex items-center gap-3">
+                      <div className="flex bg-slate-100 rounded-[0.4rem] p-0.5 gap-0.5 w-[150px] shrink-0 h-9">
+                        <button
+                          type="button"
+                          onClick={() => setIsPublic(true)}
+                          className={`flex-1 rounded-[0.3rem] text-[10px] font-semibold uppercase tracking-tighter ${isPublic ? 'bg-champagne shadow-sm' : 'text-slate-400'}`}
+                        >
+                          Público
+                        </button>
+                        <button
+                          type="button"
+                          onClick={() => setIsPublic(false)}
+                          className={`flex-1 rounded-[0.3rem] text-[10px] font-semibold uppercase tracking-tighter ${!isPublic ? 'bg-champagne shadow-sm' : 'text-petroleum/60'}`}
+                        >
+                          Privado
+                        </button>
+                      </div>
 
-                  <div className="flex items-center gap-3">
-                    <div className="flex bg-slate-100 rounded-[0.4rem] p-0.5 gap-0.5 w-[150px] shrink-0 h-9">
-                      <button
-                        type="button"
-                        onClick={() => setIsPublic(true)}
-                        className={`flex-1 rounded-[0.3rem] text-[10px] font-semibold uppercase tracking-tighter ${isPublic ? 'bg-champagne shadow-sm' : 'text-slate-400'}`}
-                      >
-                        Público
-                      </button>
-                      <button
-                        type="button"
-                        onClick={() => setIsPublic(false)}
-                        className={`flex-1 rounded-[0.3rem] text-[10px] font-semibold uppercase tracking-tighter ${!isPublic ? 'bg-champagne shadow-sm' : 'text-petroleum/60'}`}
-                      >
-                        Privado
-                      </button>
-                    </div>
-
-                    <div
-                      className={`flex items-center gap-1 transition-all duration-300 w-[100px] ${isPublic ? 'opacity-20 grayscale pointer-events-none' : 'opacity-100'}`}
-                    >
-                      <PlanGuard
-                        feature="privacyLevel"
-                        label="Senha"
-                        variant="mini"
-                        scenarioType="feature"
-                        forceShowLock={true}
+                      <div
+                        className={`flex items-center gap-1 transition-all duration-300 w-[100px] ${isPublic ? 'opacity-20 grayscale pointer-events-none' : 'opacity-100'}`}
                       >
                         <PasswordInput
                           name="password"
@@ -773,9 +803,9 @@ export default function GaleriaFormContent({
                           className="h-9"
                           style={{ width: '64px', minWidth: '64px' }}
                         />
-                      </PlanGuard>
+                      </div>
                     </div>
-                  </div>
+                  </PlanGuard>
                 </div>
 
                 <div className="flex-1 flex items-center justify-between p-3 bg-slate-50/50 rounded-luxury border border-petroleum/10 h-14 w-full gap-2">
@@ -925,13 +955,53 @@ export default function GaleriaFormContent({
             setRenameFilesSequential={setRenameFilesSequential}
             setDriveData={setDriveData}
             rootFolderId={profileRootFolderId}
-            // ── Pool de cota ────────────────────────────────────────────────
-            // Em edição, subtraímos as fotos desta galeria para não contar em dobro:
-            // o pai passa o total geral, e ajustamos aqui para refletir o estado
-            // "antes de salvar esta galeria".
+            // ── Pool de cota (fonte da verdade: SUM(photo_count) em tb_galerias, não arquivadas/deletadas) ──
+            // usedCreditsExcludingThis = total usado nas outras galerias; em edição já subtraímos esta galeria.
             usedPhotoCredits={usedCreditsExcludingThis}
             activeGalleryCount={activeGalleriesExcludingThis}
+            maxPhotosByPool={maxPhotosForThisGallery}
+            poolRemainingCredits={poolRemainingCredits}
+            planHardCap={PLAN_HARD_CAP}
+            isOverHardCap={showLimitModal}
           />
+
+          {/* Aviso: pasta com mais fotos que o recomendado — permite criar; pool restante é dinâmico */}
+          {(() => {
+            const count = driveData.photoCount ?? photoCount ?? 0;
+            const overRecommended =
+              count > RECOMMENDED_PHOTOS && count <= PLAN_HARD_CAP;
+            if (!overRecommended || !driveData.id) return null;
+            const totalPool = permissions.photoCredits ?? 0;
+            const remainingAfterThis = Math.max(
+              0,
+              totalPool - usedCreditsExcludingThis - count,
+            );
+            return (
+              <div className="flex items-start gap-3 p-4 rounded-luxury border border-amber-500/30 bg-amber-500/5">
+                <AlertTriangle
+                  size={18}
+                  className="text-amber-600 shrink-0 mt-0.5"
+                />
+                <div className="min-w-0">
+                  <p className="text-[12px] font-semibold text-petroleum uppercase tracking-wide">
+                    Mais fotos que o recomendado
+                  </p>
+                  <p className="text-[11px] text-petroleum/80 mt-1 leading-relaxed">
+                    Esta pasta tem{' '}
+                    <span className="font-bold text-petroleum">{count} fotos</span>
+                    . O recomendado é até{' '}
+                    <span className="font-semibold">{RECOMMENDED_PHOTOS}</span> por
+                    galeria. Você pode continuar — a galeria será criada com todas
+                    até o limite de {PLAN_HARD_CAP}. Restam{' '}
+                    <span className="font-semibold">
+                      {remainingAfterThis.toLocaleString('pt-BR')} créditos
+                    </span>{' '}
+                    no pool para as próximas galerias; o limite é dinâmico conforme o uso.
+                  </p>
+                </div>
+              </div>
+            );
+          })()}
 
           {/* TEMA VISUAL — aplica na página inteira para preview; ao sair da página o tema é restaurado pelo effect de cleanup */}
           <div className="bg-white rounded-luxury border border-slate-200 p-4 space-y-3">
@@ -1071,9 +1141,17 @@ export default function GaleriaFormContent({
 
         <LimitUpgradeModal
           isOpen={showLimitModal}
-          photoCount={photoCount}
+          photoCount={photoCount ?? 0}
           onClose={() => setShowLimitModal(false)}
-          planLimit={PLAN_LIMIT}
+          planLimit={PLAN_HARD_CAP}
+        />
+        <LimitUpgradeModal
+          isOpen={showPoolCapModal}
+          onClose={() => setShowPoolCapModal(false)}
+          planLimit={maxPhotosForThisGallery}
+          photoCount={rawPhotoCount}
+          variant="pool"
+          maxGalleriesAfter={maxGalleriesAfterPoolCap}
         />
       </div>
 

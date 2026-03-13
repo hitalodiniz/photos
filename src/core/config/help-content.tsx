@@ -7,16 +7,17 @@ export const HELP_CONTENT = {
   STORAGE: {
     GALLERIES: {
       title: 'Galerias disponíveis',
-      /** Use {{hardCap}} para interpolar o teto de galerias do plano. */
+      /** Use {{hardCap}} e {{maxPhotosPerGallery}} para interpolar os limites do plano. */
       content:
-        'Seu plano permite exibir até {{hardCap}} galerias simultâneas. Galerias com muitas fotos consomem sua cota de processamento mais rápido, o que pode reduzir o número total de galerias disponíveis.',
+        'Seu plano permite até {{hardCap}} galerias. O limite é dinâmico: os créditos restantes no seu pool definem quantas galerias você ainda pode criar — você pode distribuir esses créditos entre várias galerias ou usar tudo em uma só. Cada galeria deve respeitar sempre o limite máximo de {{maxPhotosPerGallery}} arquivos por galeria do plano.',
     },
     /** Texto do badge quando a cota está limitando o número de galerias (effectiveMax < hardCap). */
     POOL_LIMITING_LABEL: 'cota',
     POOL: {
       title: 'Cota de arquivos',
+      /** Use {{maxPhotosPerGallery}} para interpolar o teto por galeria do plano. */
       content:
-        'Limite total de fotos e vídeos que o sistema pode processar e exibir do seu Google Drive. Os arquivos permanecem no Google Drive; a cota refere-se apenas ao limite de exibição e vínculo na plataforma. Galerias muito grandes consomem mais cota, reduzindo a quantidade de galerias que você pode manter ativas.',
+        'Limite total de fotos e vídeos que o sistema pode processar e exibir do seu Google Drive. Os arquivos permanecem no Drive; a cota é só o limite de exibição na plataforma. Os créditos restantes no pool são para as próximas galerias; o limite por galeria é dinâmico conforme o uso, sempre respeitando o máximo de {{maxPhotosPerGallery}} arquivos por galeria do plano.',
     },
     REMAINING: {
       title: 'Saldo Restante',

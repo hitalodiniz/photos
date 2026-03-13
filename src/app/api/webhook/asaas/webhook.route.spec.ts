@@ -19,7 +19,11 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest';
 import { NextRequest } from 'next/server';
 
-vi.mock('next/cache', () => ({ revalidatePath: vi.fn() }));
+vi.mock('next/cache', () => ({ revalidatePath: vi.fn(), revalidateTag: vi.fn() }));
+vi.mock('@/lib/supabase.server', () => ({
+  createSupabaseServerClient: vi.fn(),
+  createSupabaseAdmin: vi.fn(),
+}));
 vi.mock('@/core/services/asaas.service', () => ({
   performDowngradeToFree: vi.fn().mockResolvedValue({
     success: true,
@@ -141,12 +145,14 @@ describe('Webhook — PAYMENT_CONFIRMED e PAYMENT_RECEIVED', () => {
       plan_key_requested: 'PRO',
     });
     const updateMock = makeUpdate();
+    const selectGalerias = makeSelect([]);
     const supabase = {
       from: vi
         .fn()
+        .mockReturnValueOnce(selectReq) // check existing payment
         .mockReturnValueOnce(selectReq) // validatePaymentAmount: select tb_upgrade_requests
         .mockReturnValueOnce(selectProfileReq) // reactivate: select profile_id, plan_key_requested
-        .mockReturnValueOnce(updateMock), // possível update de status (rejected path)
+        .mockReturnValueOnce(selectGalerias), // revalidateUserCache
       rpc: rpcMock.rpc,
     };
     return supabase;
@@ -154,9 +160,9 @@ describe('Webhook — PAYMENT_CONFIRMED e PAYMENT_RECEIVED', () => {
 
   it('PAYMENT_CONFIRMED com valor correto → RPC chamada, reactivateAutoArchivedGalleries, revalidatePath', async () => {
     const supabase = makeSupabaseWithPayment(79);
-    vi.mocked(
-      await import('@/lib/supabase.server'),
-    ).createSupabaseServerClient = vi.fn().mockResolvedValue(supabase);
+    const mod = vi.mocked(await import('@/lib/supabase.server'));
+    mod.createSupabaseServerClient = vi.fn().mockResolvedValue(supabase);
+    mod.createSupabaseAdmin = vi.fn().mockReturnValue(supabase);
 
     const res = await POST(
       makeRequest(
@@ -188,9 +194,9 @@ describe('Webhook — PAYMENT_CONFIRMED e PAYMENT_RECEIVED', () => {
 
   it('PAYMENT_CONFIRMED com tolerância ≤ R$0.01 → aceito', async () => {
     const supabase = makeSupabaseWithPayment(79);
-    vi.mocked(
-      await import('@/lib/supabase.server'),
-    ).createSupabaseServerClient = vi.fn().mockResolvedValue(supabase);
+    const mod = vi.mocked(await import('@/lib/supabase.server'));
+    mod.createSupabaseServerClient = vi.fn().mockResolvedValue(supabase);
+    mod.createSupabaseAdmin = vi.fn().mockReturnValue(supabase);
 
     const res = await POST(
       makeRequest(
@@ -217,13 +223,14 @@ describe('Webhook — PAYMENT_CONFIRMED e PAYMENT_RECEIVED', () => {
     const supabase = {
       from: vi
         .fn()
-        .mockReturnValueOnce(selectReq)
+        .mockReturnValueOnce(selectReq) // check existing payment
+        .mockReturnValueOnce(selectReq) // validatePaymentAmount
         .mockReturnValueOnce(updateRejected),
       rpc: vi.fn(),
     };
-    vi.mocked(
-      await import('@/lib/supabase.server'),
-    ).createSupabaseServerClient = vi.fn().mockResolvedValue(supabase);
+    const mod = vi.mocked(await import('@/lib/supabase.server'));
+    mod.createSupabaseServerClient = vi.fn().mockResolvedValue(supabase);
+    mod.createSupabaseAdmin = vi.fn().mockReturnValue(supabase);
 
     const res = await POST(
       makeRequest(
@@ -250,9 +257,9 @@ describe('Webhook — PAYMENT_CONFIRMED e PAYMENT_RECEIVED', () => {
 
   it('PAYMENT_RECEIVED (idempotente) → RPC chamada normalmente', async () => {
     const supabase = makeSupabaseWithPayment(79);
-    vi.mocked(
-      await import('@/lib/supabase.server'),
-    ).createSupabaseServerClient = vi.fn().mockResolvedValue(supabase);
+    const mod = vi.mocked(await import('@/lib/supabase.server'));
+    mod.createSupabaseServerClient = vi.fn().mockResolvedValue(supabase);
+    mod.createSupabaseAdmin = vi.fn().mockReturnValue(supabase);
 
     const res = await POST(
       makeRequest(
@@ -282,13 +289,14 @@ describe('Webhook — PAYMENT_CONFIRMED e PAYMENT_RECEIVED', () => {
     const supabase = {
       from: vi
         .fn()
-        .mockReturnValueOnce(selectNone)
+        .mockReturnValueOnce(selectNone) // check existing payment
+        .mockReturnValueOnce(selectNone) // validatePaymentAmount
         .mockReturnValueOnce(selectProfileNone),
       rpc: vi.fn().mockResolvedValue({ data: null, error: null }),
     };
-    vi.mocked(
-      await import('@/lib/supabase.server'),
-    ).createSupabaseServerClient = vi.fn().mockResolvedValue(supabase);
+    const mod = vi.mocked(await import('@/lib/supabase.server'));
+    mod.createSupabaseServerClient = vi.fn().mockResolvedValue(supabase);
+    mod.createSupabaseAdmin = vi.fn().mockReturnValue(supabase);
 
     const res = await POST(
       makeRequest(
@@ -326,9 +334,9 @@ describe('Webhook — PAYMENT_OVERDUE', () => {
       from: vi.fn(),
       rpc: vi.fn().mockResolvedValue({ data: null, error: null }),
     };
-    vi.mocked(
-      await import('@/lib/supabase.server'),
-    ).createSupabaseServerClient = vi.fn().mockResolvedValue(supabase);
+    const mod = vi.mocked(await import('@/lib/supabase.server'));
+    mod.createSupabaseServerClient = vi.fn().mockResolvedValue(supabase);
+    mod.createSupabaseAdmin = vi.fn().mockReturnValue(supabase);
 
     const res = await POST(
       makeRequest(
@@ -366,13 +374,14 @@ describe('Webhook — PAYMENT_REFUNDED', () => {
   it('PAYMENT_REFUNDED com request vinculado → performDowngradeToFree chamado', async () => {
     const reqData = { id: 'req-1', profile_id: 'profile-abc' };
     const selectMock = makeSelect(reqData);
+    const selectGalerias = makeSelect([]);
     const supabase = {
-      from: vi.fn().mockReturnValueOnce(selectMock),
+      from: vi.fn().mockReturnValueOnce(selectMock).mockReturnValueOnce(selectGalerias),
       rpc: vi.fn(),
     };
-    vi.mocked(
-      await import('@/lib/supabase.server'),
-    ).createSupabaseServerClient = vi.fn().mockResolvedValue(supabase);
+    const mod = vi.mocked(await import('@/lib/supabase.server'));
+    mod.createSupabaseServerClient = vi.fn().mockResolvedValue(supabase);
+    mod.createSupabaseAdmin = vi.fn().mockReturnValue(supabase);
 
     const res = await POST(
       makeRequest(
@@ -407,9 +416,9 @@ describe('Webhook — PAYMENT_REFUNDED', () => {
       from: vi.fn().mockReturnValueOnce(selectNone),
       rpc: vi.fn().mockResolvedValue({ data: null, error: null }),
     };
-    vi.mocked(
-      await import('@/lib/supabase.server'),
-    ).createSupabaseServerClient = vi.fn().mockResolvedValue(supabase);
+    const mod = vi.mocked(await import('@/lib/supabase.server'));
+    mod.createSupabaseServerClient = vi.fn().mockResolvedValue(supabase);
+    mod.createSupabaseAdmin = vi.fn().mockReturnValue(supabase);
 
     const res = await POST(
       makeRequest(
@@ -448,13 +457,14 @@ describe('Webhook — SUBSCRIPTION_CANCELED', () => {
       profile_id: 'profile-abc',
       status: 'pending_cancellation',
     };
+    const selectGalerias = makeSelect([]);
     const supabase = {
-      from: vi.fn().mockReturnValueOnce(makeSelect(reqData)),
+      from: vi.fn().mockReturnValueOnce(makeSelect(reqData)).mockReturnValueOnce(selectGalerias),
       rpc: vi.fn(),
     };
-    vi.mocked(
-      await import('@/lib/supabase.server'),
-    ).createSupabaseServerClient = vi.fn().mockResolvedValue(supabase);
+    const mod = vi.mocked(await import('@/lib/supabase.server'));
+    mod.createSupabaseServerClient = vi.fn().mockResolvedValue(supabase);
+    mod.createSupabaseAdmin = vi.fn().mockReturnValue(supabase);
 
     const res = await POST(
       makeRequest(
@@ -491,9 +501,9 @@ describe('Webhook — SUBSCRIPTION_CANCELED', () => {
         .mockReturnValueOnce(updateMock),
       rpc: vi.fn(),
     };
-    vi.mocked(
-      await import('@/lib/supabase.server'),
-    ).createSupabaseServerClient = vi.fn().mockResolvedValue(supabase);
+    const mod = vi.mocked(await import('@/lib/supabase.server'));
+    mod.createSupabaseServerClient = vi.fn().mockResolvedValue(supabase);
+    mod.createSupabaseAdmin = vi.fn().mockReturnValue(supabase);
 
     const res = await POST(
       makeRequest(
@@ -520,9 +530,9 @@ describe('Webhook — SUBSCRIPTION_CANCELED', () => {
       from: vi.fn().mockReturnValueOnce(makeSelect(null)),
       rpc: vi.fn(),
     };
-    vi.mocked(
-      await import('@/lib/supabase.server'),
-    ).createSupabaseServerClient = vi.fn().mockResolvedValue(supabase);
+    const mod = vi.mocked(await import('@/lib/supabase.server'));
+    mod.createSupabaseServerClient = vi.fn().mockResolvedValue(supabase);
+    mod.createSupabaseAdmin = vi.fn().mockReturnValue(supabase);
 
     const res = await POST(
       makeRequest(
@@ -635,9 +645,9 @@ describe('Webhook — Resiliência a erros internos', () => {
       from: vi.fn().mockReturnValueOnce(makeSelect(reqData)),
       rpc: vi.fn(),
     };
-    vi.mocked(
-      await import('@/lib/supabase.server'),
-    ).createSupabaseServerClient = vi.fn().mockResolvedValue(supabase);
+    const mod = vi.mocked(await import('@/lib/supabase.server'));
+    mod.createSupabaseServerClient = vi.fn().mockResolvedValue(supabase);
+    mod.createSupabaseAdmin = vi.fn().mockReturnValue(supabase);
 
     const res = await POST(
       makeRequest(

@@ -68,7 +68,7 @@ export const MAX_GALLERIES_HARD_CAP_BY_PLAN: Record<PlanKey, number> = {
 
 // ── Hard cap por galeria (bloqueia upload ao atingir) ─────────────────────────
 export const MAX_PHOTOS_PER_GALLERY_BY_PLAN: Record<PlanKey, number> = {
-  FREE: 150, // = recommended (FREE não tem margem)
+  FREE: 300, // = recommended (FREE não tem margem)
   START: 500,
   PLUS: 1_000,
   PRO: 1_500,
@@ -1442,12 +1442,20 @@ export function findNextPlanWithFeature(
     'full-custom': 3,
   };
 
+  const currValue = PERMISSIONS_BY_PLAN[currentPlanKey][featureName];
+
   for (let i = currentPlanIndex + 1; i < planOrder.length; i++) {
     const planKey = planOrder[i];
     const nextValue = PERMISSIONS_BY_PLAN[planKey][featureName];
-    const currValue = PERMISSIONS_BY_PLAN[currentPlanKey][featureName];
 
-    if (typeof nextValue === 'boolean' && nextValue) return planKey;
+    // Bool: only suggest upgrade when current is false and next is true
+    if (
+      typeof nextValue === 'boolean' &&
+      nextValue === true &&
+      currValue !== true
+    )
+      return planKey;
+
     if (
       typeof nextValue === 'number' &&
       typeof currValue === 'number' &&
@@ -1456,12 +1464,19 @@ export function findNextPlanWithFeature(
       return planKey;
     if (nextValue === 'unlimited' && currValue !== 'unlimited') return planKey;
     if (typeof nextValue === 'string' && typeof currValue === 'string') {
-      if ((levelWeights[nextValue] || 0) > (levelWeights[currValue] || 0))
+      // privacyLevel: qualquer mudança de "nível" já habilita a feature
+      if (featureName === 'privacyLevel') {
+        if (nextValue !== currValue) return planKey;
+      } else if (
+        (levelWeights[nextValue] || 0) > (levelWeights[currValue] || 0)
+      )
         return planKey;
     }
   }
 
-  return 'PREMIUM';
+  // Se nenhum plano acima tiver um nível melhor para essa feature,
+  // mantemos o plano atual (não sugerir upgrade inexistente/superior).
+  return currentPlanKey;
 }
 
 export const resolveGalleryLimitByPlan = (planKey?: string): number => {

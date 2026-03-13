@@ -2,18 +2,13 @@
 
 import React, { useEffect } from 'react';
 import { SheetSection } from '@/components/ui/Sheet';
-import { getPeriodPrice } from '@/core/config/plans';
+import { getPeriodPrice, PIX_DISCOUNT_PERCENT } from '@/core/config/plans';
 import { useUpgradeSheetContext } from '../UpgradeSheetContext';
 import { getUpgradePreview } from '@/core/services/asaas.service';
-import { Banknote, CreditCard } from 'lucide-react';
+import { Banknote, CreditCard, Tag } from 'lucide-react';
 import { useToast } from '@/hooks/useToast';
-
-function formatBRL(value: number): string {
-  return new Intl.NumberFormat('pt-BR', {
-    style: 'currency',
-    currency: 'BRL',
-  }).format(value);
-}
+import { formatBRL, formatDateLong } from '../utils';
+import { useUpgradePrice } from '../useUpgradePrice';
 
 export function StepConfirm() {
   const {
@@ -22,11 +17,11 @@ export function StepConfirm() {
     selectedPlanInfo,
     selectedPerms,
     billingPeriod,
+    billingType,
     planInfoForPrice,
     personal,
     address,
     requestError,
-    billingType,
     segment,
     upgradeCalculation,
     setUpgradeCalculation,
@@ -38,6 +33,7 @@ export function StepConfirm() {
     if (requestError) showToast(requestError, 'error');
   }, [requestError]);
 
+  // Re-busca o cálculo com período e forma finais (garante resumo correto aqui)
   useEffect(() => {
     if (selectedPlan === 'FREE') return;
     let cancelled = false;
@@ -57,6 +53,25 @@ export function StepConfirm() {
     setUpgradeCalculation,
   ]);
 
+  // ── Cálculo do total final ────────────────────────────────────────────────
+
+  const {
+    amountPeriod,
+    residualCredit,
+    pixDiscountActual,
+    amountFinal,
+    isFreeUpgrade,
+  } = useUpgradePrice(
+    planInfoForPrice,
+    billingPeriod,
+    billingType,
+    upgradeCalculation,
+  );
+
+  const hasPixDiscount = pixDiscountActual > 0;
+  const hasCredit = residualCredit > 0;
+  const showFinancialSummary = hasCredit || hasPixDiscount || isFreeUpgrade;
+
   const nextBillingDateFormatted = upgradeCalculation?.new_expiry_date
     ? new Date(upgradeCalculation.new_expiry_date).toLocaleDateString('pt-BR', {
         day: '2-digit',
@@ -65,9 +80,18 @@ export function StepConfirm() {
       })
     : null;
 
+  const periodLabel =
+    billingPeriod === 'monthly'
+      ? 'Mensal'
+      : billingPeriod === 'semiannual'
+        ? 'Semestral'
+        : 'Anual';
+
+  // ── Render ────────────────────────────────────────────────────────────────
+
   return (
     <>
-      {/* CARD 1: Plano Selecionado (Branco/Minimalista) */}
+      {/* ── Plano selecionado ── */}
       <SheetSection>
         <div className="relative p-3.5 rounded-luxury border border-slate-100 bg-white shadow-sm">
           <button
@@ -108,11 +132,7 @@ export function StepConfirm() {
 
           <div className="flex items-center gap-2 mt-2">
             <span className="text-[10px] font-semibold uppercase px-1.5 py-0.5 bg-slate-100 text-petroleum/60 rounded">
-              {billingPeriod === 'monthly'
-                ? 'Mensal'
-                : billingPeriod === 'semiannual'
-                  ? 'Semestral'
-                  : 'Anual'}
+              {periodLabel}
             </span>
             <span className="text-[11px] text-petroleum/70">
               Até {selectedPerms.maxPhotosPerGallery} fotos e vídeos por galeria
@@ -122,7 +142,7 @@ export function StepConfirm() {
         </div>
       </SheetSection>
 
-      {/* CARD 3: Dados de Faturamento */}
+      {/* ── Dados de faturamento ── */}
       <SheetSection title="Dados de faturamento">
         <div className="relative p-3.5 rounded-luxury border border-slate-100 bg-white shadow-sm">
           <button
@@ -159,7 +179,6 @@ export function StepConfirm() {
           </div>
         </div>
 
-        {/* CARD 4: Endereço */}
         <div className="relative mt-3 p-3.5 rounded-luxury border border-slate-100 bg-white shadow-sm">
           <button
             onClick={() => setStep('personal')}
@@ -179,51 +198,98 @@ export function StepConfirm() {
         </div>
       </SheetSection>
 
-      {/* CARD 2: Resumo Financeiro (Branco/Minimalista) */}
-      {upgradeCalculation?.type === 'upgrade' && (
+      {/* ── Resumo financeiro ─────────────────────────────────────────────────
+           Exibido para qualquer tipo de cobrança quando há pelo menos um
+           desconto/crédito, OU sempre para upgrade gratuito.
+           Para pagamentos simples sem crédito/PIX, o total aparece implícito
+           no cartão de plano acima.
+      ── */}
+      {showFinancialSummary ? (
         <SheetSection title="Resumo do pagamento">
           <div className="p-3.5 rounded-luxury border border-slate-100 bg-white shadow-sm space-y-2">
+            {/* Linha: valor do período */}
             <div className="flex justify-between text-[11px]">
               <span className="text-petroleum/70 font-medium">
-                Valor do novo plano:
+                Plano {periodLabel}
               </span>
-              <span className="text-petroleum">
-                {formatBRL(upgradeCalculation?.amount_original ?? 0)}
+              <span className="text-petroleum font-medium">
+                {formatBRL(amountPeriod)}
               </span>
             </div>
 
-            {upgradeCalculation?.residual_credit > 0 && (
+            {/* Linha: crédito */}
+            {hasCredit && (
               <div className="flex justify-between text-[11px] text-emerald-600">
-                <span className="font-medium">Crédito do plano atual:</span>
+                <span className="font-medium">Crédito dos dias não usados</span>
+                <span className="font-bold">− {formatBRL(residualCredit)}</span>
+              </div>
+            )}
+
+            {/* Linha: desconto PIX */}
+            {hasPixDiscount && (
+              <div className="flex justify-between text-[11px] text-emerald-600">
+                <span className="font-medium flex items-center gap-1">
+                  <Tag size={10} />
+                  Desconto PIX ({PIX_DISCOUNT_PERCENT}%)
+                </span>
                 <span className="font-bold">
-                  - {formatBRL(upgradeCalculation.residual_credit)}
+                  − {formatBRL(pixDiscountActual)}
                 </span>
               </div>
             )}
 
+            {/* Linha: total */}
             <div className="flex justify-between border-t border-slate-100 pt-2 mt-1">
               <span className="text-[12px] font-bold text-petroleum">
-                Total a pagar agora:
+                {isFreeUpgrade ? 'Total a pagar agora' : 'Total a pagar'}
               </span>
               <span className="text-[13px] font-bold text-petroleum">
-                {formatBRL(upgradeCalculation?.amount_final ?? 0)}
+                {isFreeUpgrade ? 'R$ 0,00' : formatBRL(amountFinal)}
               </span>
             </div>
 
+            {/* Próxima fatura */}
             {nextBillingDateFormatted && (
-              <div className="mt-3 p-2 rounded bg-slate-50 border border-slate-100 flex items-start gap-2 text-petroleum/80">
+              <div className="mt-2 p-2 rounded bg-slate-50 border border-slate-100 flex items-start gap-2 text-petroleum/80">
                 {billingType === 'CREDIT_CARD' ? (
-                  <CreditCard size={12} className="mt-0.5" />
+                  <CreditCard size={12} className="mt-0.5 shrink-0" />
                 ) : (
-                  <Banknote size={12} className="mt-0.5" />
+                  <Banknote size={12} className="mt-0.5 shrink-0" />
                 )}
                 <p className="text-[11px] leading-tight font-medium">
-                  Próxima fatura em <strong>{nextBillingDateFormatted}</strong>.
-                  {billingType === 'CREDIT_CARD'
-                    ? ' Cobrança automática no cartão.'
-                    : ' Pagamento manual via Boleto/PIX.'}
+                  {isFreeUpgrade
+                    ? 'Nenhuma cobrança agora. Próxima fatura em '
+                    : 'Próxima fatura em '}
+                  <strong>{nextBillingDateFormatted}</strong>.
+                  {!isFreeUpgrade &&
+                    (billingType === 'CREDIT_CARD'
+                      ? ' Cobrança automática no cartão.'
+                      : ' Pagamento manual via Boleto/PIX.')}
                 </p>
               </div>
+            )}
+          </div>
+        </SheetSection>
+      ) : (
+        /* Pagamento simples sem descontos: exibe apenas o total */
+        <SheetSection title="Resumo do pagamento">
+          <div className="p-3.5 rounded-luxury border border-slate-100 bg-white shadow-sm">
+            <div className="flex justify-between">
+              <span className="text-[12px] font-bold text-petroleum">
+                Total a pagar
+              </span>
+              <span className="text-[13px] font-bold text-petroleum">
+                {formatBRL(amountFinal)}
+              </span>
+            </div>
+            {nextBillingDateFormatted && (
+              <p className="text-[10px] text-petroleum/60 mt-1.5 font-medium">
+                Próxima fatura em{' '}
+                <strong className="text-petroleum/80">
+                  {nextBillingDateFormatted}
+                </strong>
+                .
+              </p>
             )}
           </div>
         </SheetSection>

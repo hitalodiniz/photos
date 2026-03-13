@@ -31,17 +31,8 @@ export default function SubmitButton({
       form={form} // Crucial para disparar o formulário que está no corpo do modal
       disabled={isPending || success}
       className={`
-        group relative flex items-center justify-center gap-2
-        text-[10px] md:text-[11px] font-semibold uppercase tracking-luxury transition-all duration-300
-        active:scale-[0.98] overflow-hidden
-        ${
-          success
-            ? 'bg-green-500 text-white shadow-green-200 h-10 rounded-luxury'
-            : isPending
-              ? 'bg-slate-200 text-slate-400 cursor-wait border border-slate-300 h-10 rounded-luxury'
-              : 'bg-champagne text-black hover:bg-white hover:border-champagne border border-champagne h-10 rounded-luxury shadow-sm'
-        }
-        ${className}
+        btn-luxury-primary
+ 
       `}
     >
       {/* Efeito de Brilho no Hover (apenas quando não está em loading/success) */}
@@ -53,14 +44,15 @@ export default function SubmitButton({
         {isPending ? (
           <Loader2 className="h-3.5 w-3.5 animate-spin" strokeWidth={2.5} />
         ) : success ? (
-          <Check className="h-3.5 w-3.5 animate-in zoom-in duration-500" strokeWidth={2.5} />
+          <Check
+            className="h-3.5 w-3.5 animate-in zoom-in duration-500"
+            strokeWidth={2.5}
+          />
         ) : icon ? (
           <span className="shrink-0">{icon}</span>
         ) : null}
 
-        <span>
-          {isPending ? 'Salvando...' : success ? 'Salvo!' : label}
-        </span>
+        <span>{isPending ? 'Salvando...' : success ? 'Salvo!' : label}</span>
       </div>
     </button>
   );

@@ -32,7 +32,7 @@ import { ptBR } from 'date-fns/locale';
 import { EventDetailsSheet } from '@/components/ui/EventDetailsSheet';
 import { TrafficInfoCard } from './TrafficInfoCard';
 import { usePlan } from '@/core/context/PlanContext';
-import UpgradeModal from '../ui/UpgradeModal';
+import { UpgradeSheet } from '@/components/ui/Upgradesheet';
 
 export function NotificationMenu({ userId }: { userId: string }) {
   const { permissions } = usePlan();
@@ -41,7 +41,7 @@ export function NotificationMenu({ userId }: { userId: string }) {
   const [isPushEnabled, setIsPushEnabled] = useState(false);
   const [selectedEvent, setSelectedEvent] = useState<any>(null);
   const [isPending, startTransition] = useTransition();
-  const [isUpgradeModalOpen, setIsUpgradeModalOpen] = useState(false);
+  const [isUpgradeSheetOpen, setIsUpgradeSheetOpen] = useState(false);
 
   const unreadCount = notifications.filter((n) => !n.read_at).length;
 
@@ -260,8 +260,8 @@ export function NotificationMenu({ userId }: { userId: string }) {
                     </p>
                   </div>
                   <button
-                    onClick={() => setIsUpgradeModalOpen(true)}
-                    className="w-full py-2.5 bg-petroleum text-white text-[11px] font-bold uppercase tracking-widest rounded-xl flex items-center justify-center gap-2"
+                    onClick={() => setIsUpgradeSheetOpen(true)}
+                    className="btn-luxury-primary"
                   >
                     <Sparkles size={12} className="text-gold" />
                     Ver planos
@@ -372,13 +372,11 @@ export function NotificationMenu({ userId }: { userId: string }) {
           </div>
         </>
       )}
-      <UpgradeModal
-        isOpen={isUpgradeModalOpen}
-        onClose={() => setIsUpgradeModalOpen(false)}
+      <UpgradeSheet
+        isOpen={isUpgradeSheetOpen}
+        onClose={() => setIsUpgradeSheetOpen(false)}
         featureName="Notificações em Tempo Real"
-        description="Receba alertas instantâneos de visitas, downloads e interações com sua galeria."
         featureKey="canAccessNotifyEvents"
-        scenarioType="feature"
       />
 
       <EventDetailsSheet

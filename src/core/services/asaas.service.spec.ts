@@ -381,13 +381,15 @@ describe('handleSubscriptionCancellation', () => {
       plan_key_requested: 'PRO',
     };
 
+    const profileUpdateBuilder = makeUpdate();
     const requestUpdateBuilder = makeUpdate();
     const historyInsertBuilder = makeInsert();
 
     const fromFn = vi
       .fn()
       .mockReturnValueOnce(makeSelectSingle(activeRequest))
-      .mockReturnValueOnce(requestUpdateBuilder) // update pending_cancellation
+      .mockReturnValueOnce(profileUpdateBuilder) // update tb_profiles.is_cancelling
+      .mockReturnValueOnce(requestUpdateBuilder) // update pending_downgrade
       .mockReturnValueOnce(historyInsertBuilder); // plan_history insert
 
     setMockSupabase(fromFn);
@@ -398,13 +400,13 @@ describe('handleSubscriptionCancellation', () => {
     expect(result.type).toBe('scheduled_cancellation');
     expect(result.access_ends_at).toBeDefined();
 
-    // Deve ter chamado apenas DELETE (cancelamento, não estorno)
+    // Deve ter chamado apenas 1 requisição ao Asaas para definir endDate (PUT)
     expect(mockFetch).toHaveBeenCalledTimes(1);
-    expect(mockFetch.mock.calls[0][1]).toMatchObject({ method: 'DELETE' });
+    expect(mockFetch.mock.calls[0][1]).toMatchObject({ method: 'PUT' });
 
-    // Status deve ter sido atualizado para pending_cancellation
+    // Status deve ter sido atualizado para pending_downgrade
     expect(requestUpdateBuilder.update).toHaveBeenCalledWith(
-      expect.objectContaining({ status: 'pending_cancellation' }),
+      expect.objectContaining({ status: 'pending_downgrade' }),
     );
   });
 
@@ -451,12 +453,14 @@ describe('handleSubscriptionCancellation', () => {
       vi.fn().mockResolvedValue({ ok: true, json: async () => ({}) }),
     );
 
+    const profileUpdateBuilder = makeUpdate();
     const requestUpdateBuilder = makeUpdate();
     const fromFn = vi
       .fn()
       .mockReturnValueOnce(makeSelectSingle(activeRequest))
-      .mockReturnValueOnce(requestUpdateBuilder)
-      .mockReturnValueOnce(makeInsert());
+      .mockReturnValueOnce(profileUpdateBuilder) // update tb_profiles.is_cancelling
+      .mockReturnValueOnce(requestUpdateBuilder) // update pending_downgrade
+      .mockReturnValueOnce(makeInsert()); // plan_history insert
 
     setMockSupabase(fromFn);
 

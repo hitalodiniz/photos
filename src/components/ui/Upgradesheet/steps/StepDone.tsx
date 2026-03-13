@@ -21,6 +21,7 @@ import { useUpgradeSheetContext } from '../UpgradeSheetContext';
 import { getUpgradeRequestStatus } from '@/core/services/asaas.service';
 import BaseModal from '@/components/ui/BaseModal';
 import { useRouter } from 'next/navigation';
+import { formatBRL, formatDatePtBr, formatDateLong } from '../utils';
 
 // ─── Constantes ───────────────────────────────────────────────────────────────
 
@@ -35,30 +36,10 @@ function formatTimer(s: number) {
   return `${m}:${sec.toString().padStart(2, '0')}`;
 }
 
-function formatBRL(value?: number | null) {
-  if (!value) return '';
-  return value.toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' });
-}
-
 function getBoletoVencimento(days = 3) {
   const d = new Date();
   d.setDate(d.getDate() + days);
   return d.toLocaleDateString('pt-BR');
-}
-
-/** Formata data YYYY-MM-DD (Asaas) para DD/MM/YYYY (pt-BR). */
-function formatDueDatePtBr(iso: string): string {
-  const [y, m, d] = iso.split('-').map(Number);
-  if (!y || !m || !d) return iso;
-  return new Date(y, m - 1, d).toLocaleDateString('pt-BR');
-}
-
-function formatDateLong(iso: string): string {
-  return new Date(iso).toLocaleDateString('pt-BR', {
-    day: '2-digit',
-    month: 'long',
-    year: 'numeric',
-  });
 }
 
 // ─── Sub-componente: resumo do pedido ────────────────────────────────────────
@@ -88,7 +69,7 @@ function OrderSummary({
           Plano {planName} · {periodLabel[period] ?? period}
         </p>
       </div>
-      {amount && (
+      {amount != null && amount > 0 && (
         <p className="text-[15px] font-bold text-petroleum shrink-0">
           {formatBRL(amount)}
         </p>
@@ -130,7 +111,6 @@ function SecurityBadge() {
         </span>
       </div>
 
-      {/* Texto de reforço de autoridade */}
       <p className="text-[9px] text-petroleum/90 max-w-[350px] text-center leading-tight ">
         Seus dados são protegidos por criptografia SSL. O Asaas é uma
         instituição de pagamento autorizada pelo Banco Central do Brasil.
@@ -287,7 +267,7 @@ function StepDonePix({
                   setShowSuccessModal(false);
                   onPaymentConfirmedClose?.();
                 }}
-                className="px-4 py-2 h-8 rounded-lg bg-champagne text-petroleum font-semibold text-sm hover:bg-champagne/90 transition-colors"
+                className="btn-luxury-primary"
               >
                 Fechar
               </button>
@@ -296,7 +276,9 @@ function StepDonePix({
         >
           <p className="text-[13px] text-petroleum/90">
             Seu pagamento foi confirmado e o plano <strong>{planName}</strong>{' '}
-            está ativo. O nome do plano na sidebar será atualizado em instantes.
+            está ativo. Se o nome do plano na barra lateral não estiver
+            atualizado, atualize a página usando o botão de F5 ou recarregue a
+            página.
           </p>
         </BaseModal>
       </>
@@ -567,7 +549,7 @@ function StepDoneBoleto({
 }) {
   const vencimento =
     paymentDueDate && /^\d{4}-\d{2}-\d{2}/.test(paymentDueDate)
-      ? formatDueDatePtBr(paymentDueDate.split('T')[0])
+      ? formatDatePtBr(paymentDueDate)
       : getBoletoVencimento(3);
 
   return (
@@ -647,7 +629,7 @@ function StepDoneBoleto({
   );
 }
 
-// ─── Variante: downgrade agendado (sem pagamento) ───────────────────────────
+// ─── Variante: upgrade gratuito (sem pagamento) ──────────────────────────────
 
 function StepDoneFreeUpgrade({
   planName,
@@ -687,7 +669,7 @@ function StepDoneFreeUpgrade({
   );
 }
 
-// ─── Variante: downgrade agendado (sem pagamento) ───────────────────────────
+// ─── Variante: downgrade agendado ────────────────────────────────────────────
 
 function StepDoneDowngrade({
   planName,
@@ -752,9 +734,20 @@ export function StepDone() {
   } = useUpgradeSheetContext();
 
   const planName = selectedPlanInfo?.name ?? selectedPlan;
-  const amount = selectedPlanInfo?.price;
 
   const isFreeUpgrade = upgradeCalculation?.is_free_upgrade === true;
+
+  // Usa o valor efetivamente cobrado (amount_final da API), não o preço mensal base.
+  // Para upgrade gratuito: 0. Para pagamento com crédito/PIX: o valor já descontado.
+  // Fallback para selectedPlanInfo.price apenas quando não há cálculo disponível.
+  const amount: number | undefined = isFreeUpgrade
+    ? 0
+    : typeof upgradeCalculation?.amount_final === 'number' &&
+        Number.isFinite(upgradeCalculation.amount_final) &&
+        upgradeCalculation.amount_final > 0
+      ? upgradeCalculation.amount_final
+      : selectedPlanInfo?.price;
+
   const nextBillingDateFormatted = upgradeCalculation?.new_expiry_date
     ? formatDateLong(upgradeCalculation.new_expiry_date)
     : null;

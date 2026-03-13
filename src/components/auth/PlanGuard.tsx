@@ -133,11 +133,11 @@ export function PlanGuard({
             e.stopPropagation();
             setIsUpgradeModalOpen(true);
           }}
-          className="absolute inset-0 z-[1001] cursor-pointer bg-transparent"
+          className="absolute inset-0 z-[10] cursor-pointer bg-transparent"
         />
 
         {/* 3. UI DE BLOQUEIO */}
-        <div className="absolute inset-0 z-[1002] pointer-events-none flex items-center justify-center">
+        <div className="absolute inset-0 z-[10] pointer-events-none flex items-center justify-center">
           {isMini ? (
             <div className="flex items-center gap-2">
               <div className="bg-petroleum backdrop-blur-sm p-1.5 rounded-full shadow-lg border border-gold/30">

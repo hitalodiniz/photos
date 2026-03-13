@@ -343,11 +343,11 @@ export function UpgradeSheetProvider({
         if (result.warning) setRequestWarning(result.warning);
         if (
           result.billing_type === 'PIX' &&
-          (result.pix_qr_code_base64 || result.payment_url)
+          (result.pix_qr_code_base64 || result.pix_copy_paste || result.payment_url)
         ) {
           setPixData({
             qrCode: result.pix_qr_code_base64 ?? '',
-            copyPaste: result.payment_url ?? '',
+            copyPaste: result.pix_copy_paste ?? result.payment_url ?? '',
           });
         }
         setStep('done');
@@ -520,7 +520,6 @@ export function UpgradeSheetProvider({
       hasPendingUpgrade,
       upgradeCalculation,
       downgradeBlockedMessage,
-      upgradeRequestId,
     ],
   );
 

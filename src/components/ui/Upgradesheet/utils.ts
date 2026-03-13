@@ -123,6 +123,49 @@ export function formatCcv(value: string): string {
   return value.replace(/\D/g, '').slice(0, 4);
 }
 
+// ─── Formatação de valores e datas ────────────────────────────────────────────
+
+/**
+ * Formata número como moeda BRL.
+ * Ex: 172.8 → "R$ 172,80"
+ */
+export function formatBRL(value?: number | null): string {
+  if (value == null || !Number.isFinite(value)) return '';
+  return value.toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' });
+}
+
+/**
+ * Formata valor como número decimal pt-BR (sem símbolo de moeda).
+ * Usado onde já há "R$" no JSX: ex "R$ {formatBRLDecimal(v)}"
+ */
+export function formatBRLDecimal(value: number): string {
+  return value.toLocaleString('pt-BR', {
+    minimumFractionDigits: 2,
+    maximumFractionDigits: 2,
+  });
+}
+
+/**
+ * Formata data ISO (YYYY-MM-DD ou ISO completo) em "DD/MM/YYYY".
+ * Evita problemas de timezone ao fazer parse manual do segmento YYYY-MM-DD.
+ */
+export function formatDatePtBr(iso: string): string {
+  const [y, m, d] = iso.split('T')[0].split('-').map(Number);
+  if (!y || !m || !d) return iso;
+  return new Date(y, m - 1, d).toLocaleDateString('pt-BR');
+}
+
+/**
+ * Formata data ISO em extenso: "15 de janeiro de 2025".
+ */
+export function formatDateLong(iso: string): string {
+  return new Date(iso).toLocaleDateString('pt-BR', {
+    day: '2-digit',
+    month: 'long',
+    year: 'numeric',
+  });
+}
+
 /**
  * Texto de cobertura do upgrade gratuito por período: "X mensalidades", "X semestre(s)", "X ano(s)".
  * Usado em StepPlan e StepBilling para exibir "Seu saldo cobre as próximas X mensalidades" etc.

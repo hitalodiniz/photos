@@ -18,6 +18,12 @@ import {
 } from '@/actions/revalidate.actions';
 import { authService } from '@photos/core-auth';
 
+/** Limites do plano para validar sync (máx. por galeria e pool total). */
+export type DashboardPlanLimits = {
+  maxPhotosPerGallery: number;
+  photoCredits: number;
+};
+
 export function useDashboardActions(
   galerias: Galeria[],
   setGalerias: React.Dispatch<React.SetStateAction<Galeria[]>>,
@@ -26,12 +32,17 @@ export function useDashboardActions(
     toast: { message: string; type: 'success' | 'error' } | null,
   ) => void,
   currentView: 'active' | 'archived' | 'trash',
+  planLimits?: DashboardPlanLimits | null,
 ) {
   const [updatingId, setUpdatingId] = useState<string | null>(null);
   const [selectedIds, setSelectedIds] = useState<Set<string>>(new Set());
   const [isBulkMode, setIsBulkMode] = useState(false);
   const [galeriaToPermanentlyDelete, setGaleriaToPermanentlyDelete] =
     useState<Galeria | null>(null);
+  const [limitModalAfterSync, setLimitModalAfterSync] = useState<{
+    planLimit: number;
+    photoCount: number;
+  } | null>(null);
 
   // Helper interno para evitar repetição e garantir que username/id existam
   const triggerProfileRevalidation = async () => {
@@ -110,10 +121,32 @@ export function useDashboardActions(
             g.id === galeria.id ? { ...g, photo_count: novoTotal } : g,
           ),
         );
-        setToast({
-          message: `Sincronizado: ${novoTotal} fotos`,
-          type: 'success',
-        });
+        const totalUsedAfter =
+          galerias.reduce((s, g) => s + (g.photo_count ?? 0), 0) -
+          (galeria.photo_count ?? 0) +
+          novoTotal;
+        const maxPerGallery = planLimits?.maxPhotosPerGallery ?? 300;
+        const poolTotal = planLimits?.photoCredits ?? 450;
+        const overPerGallery = novoTotal > maxPerGallery;
+        const overPool = totalUsedAfter > poolTotal;
+
+        if (overPerGallery) {
+          setLimitModalAfterSync({
+            planLimit: maxPerGallery,
+            photoCount: novoTotal,
+          });
+        }
+        if (overPool && !overPerGallery) {
+          setToast({
+            message: `Sincronizado: ${novoTotal} fotos. A cota total do seu plano (${poolTotal} arquivos) foi ultrapassada — faça upgrade para evitar limitações.`,
+            type: 'error',
+          });
+        } else if (!overPerGallery) {
+          setToast({
+            message: `Sincronizado: ${novoTotal} fotos`,
+            type: 'success',
+          });
+        }
       } else if (!result.success) {
         setToast({
           message: result.error || 'Erro ao sincronizar.',
@@ -254,6 +287,8 @@ export function useDashboardActions(
     setIsBulkMode,
     galeriaToPermanentlyDelete,
     setGaleriaToPermanentlyDelete,
+    limitModalAfterSync,
+    setLimitModalAfterSync,
     handleArchiveToggle,
     handleToggleProfile,
     handleSyncDrive,

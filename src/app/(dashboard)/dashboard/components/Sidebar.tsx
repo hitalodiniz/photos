@@ -1,3 +1,4 @@
+import Link from 'next/link';
 import {
   Plus,
   ChevronLeft,
@@ -53,8 +54,15 @@ export default function Sidebar({
   const { permissions, canAddMore, planKey } = usePlan(); // 🛡️ Permissões
   const [upsellFeature, setUpsellFeature] = useState<string | null>(null);
   const [upgradeSheetOpen, setUpgradeSheetOpen] = useState(false);
-  // 🛡️ Validação de Limite de Galerias
-  const canCreateMore = canAddMore('maxGalleries', galeriasCount);
+  // 🛡️ Validação: cota de galerias e cota de fotos (pool)
+  const canCreateByGalleries = canAddMore('maxGalleries', galeriasCount);
+  const remainingPhotoCredits = Math.max(
+    0,
+    permissions.photoCredits - totalPhotosUsed,
+  );
+  const canCreateByPhotos = remainingPhotoCredits > 0;
+  const canCreateMore = canCreateByGalleries && canCreateByPhotos;
+  const isNovaGaleriaDisabled = isRedirecting || !canCreateMore;
   return (
     <>
       {/* Overlay para Mobile */}
@@ -84,26 +92,28 @@ export default function Sidebar({
         <div className="px-3 pt-3">
           <button
             onClick={() => {
+              if (isNovaGaleriaDisabled) return;
               if (canCreateMore) {
                 handleNovaGaleria();
                 if (isMobile) toggleSidebar();
               } else {
                 setUpsellFeature('Limite de Galerias');
-                // Adicione aqui a chamada para abrir o modal de upgrade se necessário
               }
             }}
-            disabled={isRedirecting}
+            disabled={isNovaGaleriaDisabled}
             className={`flex items-center justify-center transition-all duration-300 rounded-luxury border h-12 w-36 gap-2 group shadow-lg
       ${
         !canCreateMore
-          ? 'bg-champagne/80 border-champagne/20 text-black/80 cursor-pointer hover:border-champagne/60'
-          : 'bg-champagne text-black border-champagne hover:bg-white'
+          ? 'bg-champagne/80 border-champagne/20 text-black/80 cursor-not-allowed hover:border-champagne/20'
+          : 'bg-champagne text-black border-champagne hover:bg-white cursor-pointer'
       }
-      ${isRedirecting ? 'opacity-70 cursor-not-allowed' : ''}`}
+      ${isNovaGaleriaDisabled ? 'opacity-70' : ''}`}
             title={
-              !canCreateMore
-                ? `Limite de ${permissions.maxGalleries} galerias atingido. Clique para upgrade.`
-                : 'Criar nova galeria'
+              !canCreateByPhotos
+                ? 'Sem cota de fotos. Faça upgrade para criar galerias.'
+                : !canCreateByGalleries
+                  ? `Limite de ${permissions.maxGalleries} galerias atingido. Faça upgrade.`
+                  : 'Criar nova galeria'
             }
           >
             <div className="relative flex items-center justify-center">
@@ -138,14 +148,18 @@ export default function Sidebar({
           {(!isSidebarCollapsed || isMobile) && (
             <div className="px-2 py-1 mb-2">
               <div className="flex items-center justify-between gap-2 px-3 py-2 rounded-luxury bg-white/5 border border-white/5">
-                <div className="flex items-center gap-2 min-w-0">
+                <Link
+                  href="/dashboard/assinatura"
+                  className="flex items-center gap-2 min-w-0 hover:opacity-90 transition-opacity"
+                  title="Ver assinatura"
+                >
                   <span className="text-[9px] font-bold uppercase tracking-luxury-widest text-white/90 shrink-0">
                     Plano
                   </span>
                   <span className="text-[9px] font-semibold uppercase tracking-luxury-widest text-champagne truncate">
                     {planKey}
                   </span>
-                </div>
+                </Link>
                 {planKey !== 'PREMIUM' && (
                   <button
                     type="button"

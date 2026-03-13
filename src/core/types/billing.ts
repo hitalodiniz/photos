@@ -105,6 +105,8 @@ export interface UpgradeRequestResult {
   payment_url?: string;
   /** Base64 do QR Code PIX (apenas quando billing_type === 'PIX'). */
   pix_qr_code_base64?: string;
+  /** Payload PIX copia e cola (apenas quando billing_type === 'PIX'). */
+  pix_copy_paste?: string;
   billing_type?: BillingType;
   request_id?: string;
   /** Preenchido quando a solicitação é downgrade: data em que a mudança será efetivada. */

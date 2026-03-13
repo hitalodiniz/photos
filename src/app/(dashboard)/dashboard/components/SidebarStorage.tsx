@@ -28,6 +28,7 @@ export default function SidebarStorage({
   const hardCap = permissions.maxGalleriesHardCap;
   const recommended = permissions.recommendedPhotosPerGallery;
   const photoCredits = permissions.photoCredits;
+  const maxPhotosPerGallery = permissions.maxPhotosPerGallery ?? 300;
 
   const effectiveMax = calcEffectiveMaxGalleries(
     planKey,
@@ -72,9 +73,12 @@ export default function SidebarStorage({
   const photoState = stateColor(photoPct);
 
   // ── Tooltips ─────────────────────────────────────────────────────────────
-  const galleriesTooltipContent = HELP_CONTENT.STORAGE.GALLERIES.content.replace(
-    '{{hardCap}}',
-    String(hardCap),
+  const galleriesTooltipContent = HELP_CONTENT.STORAGE.GALLERIES.content
+    .replace('{{hardCap}}', String(hardCap))
+    .replace('{{maxPhotosPerGallery}}', String(maxPhotosPerGallery));
+  const poolTooltipContent = HELP_CONTENT.STORAGE.POOL.content.replace(
+    '{{maxPhotosPerGallery}}',
+    String(maxPhotosPerGallery),
   );
 
   return (
@@ -153,7 +157,7 @@ export default function SidebarStorage({
                     {isPoolLimiting && (
                       <span
                         className="inline-flex items-center px-1.5 py-0.5 rounded text-[8px] font-semibold uppercase tracking-wider bg-amber-400/15 text-amber-400 border border-amber-400/30 leading-none"
-                        title="Cota está limitando o número de galerias"
+                        title="O limite de galerias é dinâmico: os créditos restantes no pool definem quantas você ainda pode criar"
                       >
                         {HELP_CONTENT.STORAGE.POOL_LIMITING_LABEL}
                       </span>
@@ -222,7 +226,7 @@ export default function SidebarStorage({
                 <InfoTooltip
                   portal
                   title={HELP_CONTENT.STORAGE.POOL.title}
-                  content={HELP_CONTENT.STORAGE.POOL.content}
+                  content={poolTooltipContent}
                 />
               </div>
             </div>

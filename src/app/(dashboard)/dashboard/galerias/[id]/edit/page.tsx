@@ -49,13 +49,6 @@ export default async function EditGaleriaPage({
 
   const profile = resultProfile.profile;
 
-  const isProfileComplete =
-    profile.full_name && profile.username && profile.mini_bio;
-
-  if (!isProfileComplete) {
-    redirect('/dashboard');
-  }
-
   // Busca a galeria
   const result = await getGaleriaById(id, profile.id);
 

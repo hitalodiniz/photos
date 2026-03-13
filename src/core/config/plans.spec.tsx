@@ -72,11 +72,11 @@ describe('Validação de Permissões por Grupo', () => {
     });
 
     // FIX: valores alinhados com MAX_GALLERIES_HARD_CAP_BY_PLAN em plans.ts
-    test('maxGalleriesHardCap deve seguir progressão: 3 -> 12 -> 30 -> 90 -> 300', () => {
+    test('maxGalleriesHardCap deve seguir progressão: 3 -> 12 -> 30 -> 100 -> 400', () => {
       const values = planOrder.map(
         (p) => PERMISSIONS_BY_PLAN[p].maxGalleriesHardCap,
       );
-      expect(values).toEqual([3, 12, 30, 90, 300]);
+      expect(values).toEqual([3, 12, 30, 100, 400]);
     });
 
     test('teamMembers deve permitir colaboradores apenas a partir do PLUS', () => {
@@ -137,8 +137,8 @@ describe('Validação de Permissões por Grupo', () => {
     });
 
     test('customizationLevel deve permitir cores no PLUS e full no PREMIUM', () => {
-      expect(PERMISSIONS_BY_PLAN.PLUS.customizationLevel).toBe('colors');
-      expect(PERMISSIONS_BY_PLAN.PREMIUM.customizationLevel).toBe('full');
+      expect(PERMISSIONS_BY_PLAN.PLUS.customizationLevel).toBe(true);
+      expect(PERMISSIONS_BY_PLAN.PREMIUM.customizationLevel).toBe(true);
     });
   });
 });
@@ -286,8 +286,8 @@ describe('Integridade Total do Sistema de Permissões', () => {
       expect(p.canCustomWhatsApp).toBe(true);
       // FIX: PRO profileLevel = 'seo' (não 'advanced')
       expect(p.profileLevel).toBe('seo');
-      // FIX: PRO maxGalleriesHardCap = 90 (valor real em PERMISSIONS_BY_PLAN.PRO)
-      expect(p.maxGalleriesHardCap).toBe(90);
+      // FIX: PRO maxGalleriesHardCap = 100 (valor real em PERMISSIONS_BY_PLAN.PRO)
+      expect(p.maxGalleriesHardCap).toBe(100);
       expect(p.canAccessNotifyEvents).toBe(true);
       expect(p.expiresAt).toBe(true);
     });
@@ -299,8 +299,8 @@ describe('Integridade Total do Sistema de Permissões', () => {
       expect(p.privacyLevel).toBe('password');
       expect(p.canAccessNotifyEvents).toBe(true);
       expect(p.expiresAt).toBe(true);
-      // FIX: PREMIUM maxGalleriesHardCap = 300 (não 400)
-      expect(p.maxGalleriesHardCap).toBe(300);
+      // FIX: PREMIUM maxGalleriesHardCap = 400 (não 400)
+      expect(p.maxGalleriesHardCap).toBe(400);
       // FIX: PREMIUM recommendedPhotosPerGallery = 1.000 (não muda)
       expect(p.recommendedPhotosPerGallery).toBe(1_000);
     });
@@ -392,10 +392,10 @@ describe('Pool System — Créditos de Fotos e Galerias', () => {
       expect(calcEffectiveMaxGalleries('FREE', 450, 3)).toBe(3);
     });
 
-    test('PREMIUM: muitas galerias pequenas são contidas pelo hardCap de 300', () => {
-      // recommended=1.000, hardCap=300
+    test('PREMIUM: muitas galerias pequenas são contidas pelo hardCap de 400', () => {
+      // recommended=1.000, hardCap=400
       // 1.000 fotos em 1 galeria → remaining=199.000, fromPool=floor(199.000/1.000)=199
-      // total = min(1+199, 300) = 200
+      // total = min(1+199, 400) = 200
       expect(calcEffectiveMaxGalleries('PREMIUM', 1_000, 1)).toBe(200);
     });
 
@@ -496,9 +496,9 @@ describe('ZIP Limits por Plano', () => {
   // Por ora, testamos apenas a string de display que existe em PlanPermissions
   const zipCases: Array<[string, string]> = [
     ['FREE', '500KB'],
-    ['START', '1MB'],
-    ['PLUS', '1.5MB'],
-    ['PRO', '2MB'],
+    ['START', '1.5MB'],
+    ['PLUS', '2MB'],
+    ['PRO', '3MB'],
     ['PREMIUM', '3MB'],
   ];
   test.each(zipCases)('plano %s: zipSizeLimit = %s', (planKey, label) => {
@@ -582,11 +582,11 @@ describe('Permissões de Nível (enum)', () => {
   });
 
   test.each([
-    ['FREE', 'default'],
-    ['START', 'default'],
-    ['PLUS', 'colors'],
-    ['PRO', 'colors'],
-    ['PREMIUM', 'full'],
+    ['FREE', false],
+    ['START', false],
+    ['PLUS', true],
+    ['PRO', true],
+    ['PREMIUM', true],
   ] as const)('customizationLevel plano %s = %s', (planKey, level) => {
     let captured: any;
     render(

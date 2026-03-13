@@ -189,7 +189,7 @@ export const fetchPhotosByGalleryId = (galleryId: string) =>
     async () => {
       const supabase = await createSupabaseClientForCache();
 
-      // Busca os dados da galeria para obter folderId e userId
+      // Busca os dados da galeria para obter folderId, userId e photo_count (limite de exibição = gravado na tabela)
       const { data: galeria, error: galeriaError } = await supabase
         .from('tb_galerias')
         .select(
@@ -197,6 +197,7 @@ export const fetchPhotosByGalleryId = (galleryId: string) =>
           id, 
           drive_folder_id, 
           user_id,
+          photo_count,
           photographer:tb_profiles!user_id (
             plan_key,
             plan_trial_expires
@@ -210,8 +211,12 @@ export const fetchPhotosByGalleryId = (galleryId: string) =>
         return { photos: [], error: 'GALLERY_NOT_FOUND' };
       }
 
-      // Plano resolvido internamente por galleryId (listPhotosFromDriveFolder → plan-resolver)
-      const planContext = { galleryId };
+      // Plano por galleryId; photoCount faz a listagem respeitar o que está gravado (ex.: 230), não o teto do plano (300)
+      const planContext = {
+        galleryId,
+        ...(typeof galeria.photo_count === 'number' &&
+        galeria.photo_count >= 0 && { photoCount: galeria.photo_count }),
+      };
 
       try {
         // 🎯 TENTATIVA 1: Tenta listar usando API Key (pasta pública do Google Drive)

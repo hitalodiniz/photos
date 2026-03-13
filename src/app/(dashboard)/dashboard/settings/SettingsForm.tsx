@@ -192,30 +192,39 @@ export default function SettingsForm({ profile }: { profile: any }) {
             </div>
 
             <div className="space-y-2">
-              <label className="text-[10px] font-bold uppercase tracking-luxury-widest text-petroleum/60 flex items-center gap-1.5">
+              <label>
                 <Eye size={12} strokeWidth={2} className="text-gold" />
-                Exposição no Perfil Público
+                Exibição no Perfil Público
               </label>
               <div className="flex items-center justify-between p-1 px-4 bg-slate-50 rounded-luxury border border-slate-200 h-10">
                 <span className="text-[9px] font-semibold uppercase tracking-luxury-widest text-petroleum/80">
                   {settings.defaults.list_on_profile ? 'Ativado' : 'Desativado'}
                 </span>
-                <button
-                  type="button"
-                  onClick={() =>
-                    setValue(
-                      'settings.defaults.list_on_profile',
-                      !settings.defaults.list_on_profile,
-                      { shouldDirty: true },
-                    )
-                  }
-                  className={`relative h-5 w-9 shrink-0 rounded-full transition-colors ${settings.defaults.list_on_profile ? 'bg-gold' : 'bg-slate-200'}`}
+                <PlanGuard
+                  feature="profileLevel"
+                  label="Exibição no Perfil Público"
+                  variant="mini"
+                  scenarioType="feature"
+                  forceShowLock={true}
                 >
-                  <span
-                    className={`absolute top-0.5 left-0.5 w-3.5 h-3.5 rounded-full bg-white shadow-sm transition-transform ${settings.defaults.list_on_profile ? 'translate-x-4' : ''}`}
-                  />
-                </button>
+                  <button
+                    type="button"
+                    onClick={() =>
+                      setValue(
+                        'settings.defaults.list_on_profile',
+                        !settings.defaults.list_on_profile,
+                        { shouldDirty: true },
+                      )
+                    }
+                    className={`relative h-5 w-9 shrink-0 rounded-full transition-colors ${settings.defaults.list_on_profile ? 'bg-gold' : 'bg-slate-200'}`}
+                  >
+                    <span
+                      className={`absolute top-0.5 left-0.5 w-3.5 h-3.5 rounded-full bg-white shadow-sm transition-transform ${settings.defaults.list_on_profile ? 'translate-x-4' : ''}`}
+                    />
+                  </button>
+                </PlanGuard>
               </div>
+
               <p className="text-[9px] text-petroleum/50 italic px-1">
                 Define se as novas galerias serão exibidas automaticamente no
                 seu perfil público.
@@ -231,34 +240,42 @@ export default function SettingsForm({ profile }: { profile: any }) {
         >
           <div className="grid grid-cols-1 md:grid-cols-2 gap-8 items-start">
             <div className="space-y-2">
-              <label className="text-[10px] font-bold uppercase tracking-widest text-petroleum/60 flex items-center gap-1.5">
+              <label>
                 <Shield size={12} className="text-gold" />
                 Acesso Inicial
               </label>
-              <div className="flex bg-slate-100 p-1 rounded-luxury border border-slate-200 h-10 items-center">
-                <button
-                  type="button"
-                  onClick={() =>
-                    setValue('settings.defaults.is_public', true, {
-                      shouldDirty: true,
-                    })
-                  }
-                  className={`flex-1 h-full rounded-[0.4rem] text-[9px] font-bold uppercase tracking-widest transition-all ${settings.defaults.is_public ? 'bg-champagne shadow-sm text-petroleum' : 'text-slate-400'}`}
-                >
-                  Público
-                </button>
-                <button
-                  type="button"
-                  onClick={() =>
-                    setValue('settings.defaults.is_public', false, {
-                      shouldDirty: true,
-                    })
-                  }
-                  className={`flex-1 h-full rounded-[0.4rem] text-[9px] font-bold uppercase tracking-widest transition-all ${!settings.defaults.is_public ? 'bg-champagne shadow-sm text-petroleum' : 'text-slate-400'}`}
-                >
-                  Privado
-                </button>
-              </div>
+              <PlanGuard
+                feature="privacyLevel"
+                label="Senha"
+                variant="mini"
+                scenarioType="feature"
+                forceShowLock={true}
+              >
+                <div className="flex bg-slate-100 p-1 rounded-luxury border border-slate-200 h-10 items-center">
+                  <button
+                    type="button"
+                    onClick={() =>
+                      setValue('settings.defaults.is_public', true, {
+                        shouldDirty: true,
+                      })
+                    }
+                    className={`flex-1 h-full rounded-[0.4rem] text-[9px] font-bold uppercase tracking-widest transition-all ${settings.defaults.is_public ? 'bg-champagne shadow-sm text-petroleum' : 'text-slate-400'}`}
+                  >
+                    Público
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() =>
+                      setValue('settings.defaults.is_public', false, {
+                        shouldDirty: true,
+                      })
+                    }
+                    className={`flex-1 h-full rounded-[0.4rem] text-[9px] font-bold uppercase tracking-widest transition-all ${!settings.defaults.is_public ? 'bg-champagne shadow-sm text-petroleum' : 'text-slate-400'}`}
+                  >
+                    Privado
+                  </button>
+                </div>
+              </PlanGuard>
               <p className="text-[9px] text-petroleum/50 italic px-1">
                 Define se novas galerias começam como públicas ou protegidas.
               </p>
@@ -379,7 +396,7 @@ export default function SettingsForm({ profile }: { profile: any }) {
         >
           <div className="grid grid-cols-1 md:grid-cols-2 gap-8 items-start">
             <div className="space-y-2">
-              <label className="text-[10px] font-bold uppercase tracking-luxury-widest text-petroleum/60 flex items-center gap-1.5">
+              <label>
                 <FolderSync size={12} strokeWidth={2} className="text-gold" />
                 Pasta Raiz (Google Drive)
               </label>
@@ -460,32 +477,41 @@ export default function SettingsForm({ profile }: { profile: any }) {
             </div>
 
             <div className="space-y-2">
-              <label className="text-[10px] font-bold uppercase tracking-luxury-widest text-petroleum/60 flex items-center gap-1.5">
+              <label>
                 <ImageIcon size={12} strokeWidth={2} className="text-gold" />
                 Renomeação Sequencial
               </label>
-              <div className="flex items-center justify-between p-1 px-4 bg-slate-50 rounded-luxury border border-slate-200 h-10">
-                <span className="text-[9px] font-semibold uppercase tracking-luxury-widest text-petroleum/80">
-                  {watch('settings.defaults.rename_files_sequential')
-                    ? 'Ativado'
-                    : 'Desativado'}
-                </span>
-                <button
-                  type="button"
-                  onClick={() =>
-                    setValue(
-                      'settings.defaults.rename_files_sequential',
-                      !watch('settings.defaults.rename_files_sequential'),
-                      { shouldDirty: true },
-                    )
-                  }
-                  className={`relative h-5 w-9 shrink-0 rounded-full transition-colors ${watch('settings.defaults.rename_files_sequential') ? 'bg-gold' : 'bg-slate-200'}`}
-                >
-                  <span
-                    className={`absolute top-0.5 left-0.5 w-3.5 h-3.5 rounded-full bg-white shadow-sm transition-transform ${watch('settings.defaults.rename_files_sequential') ? 'translate-x-4' : ''}`}
-                  />
-                </button>
-              </div>
+              <PlanGuard
+                feature="keepOriginalFilenames"
+                label="Renomeação Sequencial"
+                variant="mini"
+                scenarioType="feature"
+                forceShowLock={true}
+              >
+                <div className="flex items-center justify-between p-1 px-4 bg-slate-50 rounded-luxury border border-slate-200 h-10">
+                  <span className="text-[9px] font-semibold uppercase tracking-luxury-widest text-petroleum/80">
+                    {watch('settings.defaults.rename_files_sequential')
+                      ? 'Ativado'
+                      : 'Desativado'}
+                  </span>
+
+                  <button
+                    type="button"
+                    onClick={() =>
+                      setValue(
+                        'settings.defaults.rename_files_sequential',
+                        !watch('settings.defaults.rename_files_sequential'),
+                        { shouldDirty: true },
+                      )
+                    }
+                    className={`relative h-5 w-9 shrink-0 rounded-full transition-colors ${watch('settings.defaults.rename_files_sequential') ? 'bg-gold' : 'bg-slate-200'}`}
+                  >
+                    <span
+                      className={`absolute top-0.5 left-0.5 w-3.5 h-3.5 rounded-full bg-white shadow-sm transition-transform ${watch('settings.defaults.rename_files_sequential') ? 'translate-x-4' : ''}`}
+                    />
+                  </button>
+                </div>
+              </PlanGuard>
               <p className="text-[9px] text-petroleum/50 italic px-1">
                 Padroniza fotos para "foto-001.jpg" automaticamente em novas
                 galerias.

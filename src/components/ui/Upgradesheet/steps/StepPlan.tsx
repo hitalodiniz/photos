@@ -15,14 +15,7 @@ import { PlanCard } from '../PlanCard';
 import { PLAN_ICONS } from '../constants';
 import { useUpgradeSheetContext } from '../UpgradeSheetContext';
 import LoadingSpinner from '../../LoadingSpinner';
-import { InfoTooltip } from '../../InfoTooltip';
-
-function formatBRL(value: number): string {
-  return new Intl.NumberFormat('pt-BR', {
-    style: 'currency',
-    currency: 'BRL',
-  }).format(value);
-}
+import { Sparkles } from 'lucide-react';
 
 function formatDate(iso: string): string {
   return new Date(iso).toLocaleDateString('pt-BR', {
@@ -53,11 +46,13 @@ export function StepPlan() {
 
   const [upgradePreview, setUpgradePreview] =
     useState<UpgradePreviewResult | null>(null);
-  /** Data de vencimento do plano atual (para tooltip em planos inferiores). Preenchida quando há cálculo de downgrade. */
   const [downgradeExpiresAt, setDowngradeExpiresAt] = useState<string | null>(
     null,
   );
+  // Sinaliza que a API já respondeu ao menos uma vez (evita spinner para FREE)
+  const [previewLoaded, setPreviewLoaded] = useState(false);
 
+  // Pré-busca vencimento do plano atual (usado no tooltip de planos inferiores)
   useEffect(() => {
     if (planKey === 'FREE' || profile?.is_trial) {
       setDowngradeExpiresAt(null);
@@ -82,31 +77,41 @@ export function StepPlan() {
   const previewTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
   useEffect(() => {
+    // Usuário FREE ou trial: sem crédito — não precisa chamar API aqui
     if (planKey === 'FREE' || selectedPlan === 'FREE' || profile?.is_trial) {
       setUpgradePreview(null);
+      setPreviewLoaded(true);
       setHasPendingUpgrade(false);
       setUpgradeCalculation(null);
       setDowngradeBlockedMessage(null);
       return;
     }
+
     if (previewTimeoutRef.current) {
       clearTimeout(previewTimeoutRef.current);
       previewTimeoutRef.current = null;
     }
     let cancelled = false;
+    setPreviewLoaded(false);
+
     previewTimeoutRef.current = setTimeout(() => {
       previewTimeoutRef.current = null;
+      // Busca com 'monthly' apenas para saber SE há crédito e bloquear downgrade.
+      // O valor real será recalculado no StepBilling com o período/forma escolhidos.
       getUpgradePreview(selectedPlan, 'monthly', billingType, segment).then(
         (result) => {
           if (!cancelled) {
             setUpgradePreview(result);
+            setPreviewLoaded(true);
             setHasPendingUpgrade(result.has_pending ?? false);
             const calc = result.calculation;
             setUpgradeCalculation(calc ?? null);
+
             const selectedIdx = planOrder.indexOf(selectedPlan as PlanKey);
             const currentIdx = planOrder.indexOf(planKey as PlanKey);
             const isDowngradeByOrder =
               selectedIdx >= 0 && currentIdx >= 0 && selectedIdx < currentIdx;
+
             if (
               calc?.type === 'downgrade' &&
               calc.current_plan_expires_at &&
@@ -126,6 +131,7 @@ export function StepPlan() {
         },
       );
     }, previewDebounceMs);
+
     return () => {
       cancelled = true;
       if (previewTimeoutRef.current) {
@@ -148,7 +154,6 @@ export function StepPlan() {
     upgradePreview?.has_active_plan &&
     upgradePreview?.calculation;
 
-  // Downgrade real: plano selecionado é inferior ao atual (pela ordem dos planos)
   const selectedIdx = planOrder.indexOf(selectedPlan as PlanKey);
   const currentIdx = planOrder.indexOf(planKey as PlanKey);
   const isDowngradeByOrder =
@@ -158,25 +163,33 @@ export function StepPlan() {
     currentIdx >= 0 &&
     selectedIdx < currentIdx;
 
-  // Exibir mensagem de downgrade só quando for realmente downgrade
   const showDowngradeBanner =
     calc && calc.type === 'downgrade' && isDowngradeByOrder;
-  // Box de upgrade: quando a API diz upgrade OU quando pela ordem é upgrade (não é downgrade) e há crédito ou valor a pagar
-  const showUpgradeBox =
+
+  // Há crédito do plano anterior (> 0) e não é downgrade
+  const hasResidualCredit =
     calc &&
     calc.type !== 'current_plan' &&
     !isDowngradeByOrder &&
-    ((calc.residual_credit ?? 0) > 0 || (calc.amount_final ?? 0) >= 0);
+    (calc.residual_credit ?? 0) > 0;
+
+  // Spinner só quando planKey !== FREE e ainda não temos resposta
+  const showLoading =
+    planKey !== 'FREE' &&
+    !profile?.is_trial &&
+    selectedPlan !== 'FREE' &&
+    !previewLoaded;
 
   return (
     <SheetSection title="Escolha seu novo plano">
       {isExempt && selectedPlan === planKey && (
         <div className="rounded-lg border border-gold/30 bg-gold/5 px-3 py-2.5 text-[11px] text-petroleum">
           <p className="font-medium text-petroleum">
-            Você possui possui isenção no plano atual {planKey}.
+            Você possui isenção no plano atual {planKey}.
           </p>
         </div>
       )}
+
       {upgradePreview?.has_pending && (
         <div className="rounded-lg border border-amber-200 bg-amber-50 px-3 py-2.5 text-[11px] text-amber-900">
           <p className="font-medium">
@@ -186,6 +199,7 @@ export function StepPlan() {
           </p>
         </div>
       )}
+
       {showDowngradeBanner && (
         <div className="rounded-lg border border-amber-200 bg-amber-50 px-3 py-2.5 text-[11px] text-amber-900">
           <p className="font-medium">
@@ -198,86 +212,33 @@ export function StepPlan() {
           </p>
         </div>
       )}
-      {!calc &&
-      planKey !== 'FREE' &&
-      selectedPlan !== 'FREE' &&
-      !profile?.is_trial ? (
+
+      {showLoading ? (
         <div className="py-4">
-          <LoadingSpinner message="Calculando crédito para uso no upgrade..." />
+          <LoadingSpinner message="Verificando crédito disponível…" />
         </div>
-      ) : showUpgradeBox && !profile?.is_trial ? (
-        <div
-          className={`rounded-lg border px-3 py-2.5 text-[11px] ${
-            calc!.is_free_upgrade
-              ? 'border-emerald-200 bg-emerald-50 text-emerald-900'
-              : 'border-slate-200 bg-slate-50 text-slate-700'
-          }`}
-        >
-          <div className="flex items-start justify-between gap-2 mb-1"></div>
-          {calc!.is_free_upgrade ? (
-            <>
-              <div className="flex items-center gap-1.5 mb-1">
-                <p className="font-bold text-emerald-600 uppercase text-[10px] tracking-wider">
-                  Upgrade Gratuito
-                </p>
-                <span className="text-[10px] text-slate-400 font-medium">
-                  (Cálculo em base mensal)
-                </span>
-                <InfoTooltip
-                  portal
-                  size="3xl"
-                  title="Cálculo de Crédito"
-                  content="O valor é exibido em base mensal para comparação. No próximo passo, ao escolher o período (mensal, semestral ou anual), o saldo será aplicado e a data de renovação será ajustada."
-                />
-              </div>
-              <p className="mb-1 font-medium">
-                Crédito de{' '}
-                <span className="font-semibold text-emerald-800">
-                  {formatBRL(calc!.residual_credit ?? 0)}
-                </span>{' '}
-                (dias não utilizados do plano anterior).
-              </p>
-              <p className="font-medium">
-                Seu crédito dá direito a uso até{' '}
-                <span className="font-semibold">
-                  {formatDate(calc!.new_expiry_date!)}
-                </span>
-                . Nenhum valor a pagar. A próxima cobrança será nessa data.
-              </p>
-            </>
-          ) : (
-            <>
-              {(calc!.residual_credit ?? 0) > 0 && (
-                <p className="mb-1 font-medium">
-                  Crédito de{' '}
-                  <span className="font-semibold text-petroleum">
-                    {formatBRL(calc!.residual_credit!)}
-                  </span>{' '}
-                  referente aos dias não utilizados do plano anterior.
-                </p>
-              )}
-              {(calc!.residual_credit ?? 0) > 0 &&
-                (calc!.amount_final ?? 0) > 0 && (
-                  <p className="font-medium">
-                    Upgrade imediato: pague apenas a diferença de{' '}
-                    <span className="font-semibold text-petroleum">
-                      {formatBRL(calc!.amount_final!)}
-                    </span>
-                  </p>
-                )}
-              {(calc!.residual_credit ?? 0) <= 0 &&
-                (calc!.amount_final ?? 0) > 0 && (
-                  <p className="font-medium">
-                    Valor a pagar:{' '}
-                    <span className="font-semibold text-petroleum">
-                      {formatBRL(calc!.amount_final!)}
-                    </span>
-                  </p>
-                )}
-            </>
-          )}
-        </div>
-      ) : null}
+      ) : (
+        /*
+         * Exibe apenas um hint discreto sobre a existência de crédito.
+         * O breakdown completo (valor do período · crédito · desconto PIX · total)
+         * aparece no StepBilling onde o usuário já escolheu período e forma —
+         * evitando mostrar valores provisórios que mudariam aqui.
+         */
+        hasResidualCredit &&
+        !profile?.is_trial && (
+          <div className="flex items-start gap-2 rounded-lg border border-emerald-200 bg-emerald-50 px-3 py-2.5 text-[11px] text-emerald-800">
+            <Sparkles size={13} className="text-emerald-500 shrink-0 mt-0.5" />
+            <p className="font-medium leading-snug">
+              Você tem crédito dos dias não usados do plano anterior.{' '}
+              <span className="font-semibold">
+                O desconto será aplicado no próximo passo,
+              </span>{' '}
+              após você escolher o período e a forma de pagamento.
+            </p>
+          </div>
+        )
+      )}
+
       <div className="space-y-3">
         {planOrder
           .filter((p) => p !== 'FREE')

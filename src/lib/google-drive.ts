@@ -1,9 +1,18 @@
-import { PERMISSIONS_BY_PLAN, PlanKey } from '@/core/config/plans';
+import {
+  MAX_PHOTOS_PER_GALLERY_BY_PLAN,
+  PERMISSIONS_BY_PLAN,
+  PlanKey,
+} from '@/core/config/plans';
 import { getPlanKeyForDriveRequest } from '@/core/utils/plan-resolver';
 import { GLOBAL_CACHE_REVALIDATE } from '@/core/utils/url-helper';
 
 /** Contexto para resolver plano por userId ou galleryId (sem usuário logado). */
-export type DrivePlanContext = { userId?: string; galleryId?: string };
+export type DrivePlanContext = {
+  userId?: string;
+  galleryId?: string;
+  /** Quando informado (ex.: galeria existente), a listagem respeita o photo_count gravado na galeria — nunca exibe mais do que o registrado. */
+  photoCount?: number;
+};
 
 /** Tamanho máximo de vídeo em bytes a partir de MB */
 const mbToBytes = (mb: number) => mb * 1024 * 1024;
@@ -44,25 +53,21 @@ function applyVideoRules(
 }
 
 /**
- * 🛠️ RESOLVE LIMITE DE FOTOS
- * Recebe apenas a chave do plano (ex: 'FREE') e retorna o número de fotos permitido.
- *
- * FIX: fallback seguro para FREE quando planKey é undefined, null, string vazia
- * ou uma chave que não existe no dicionário PERMISSIONS_BY_PLAN.
+ * 🛠️ RESOLVE LIMITE DE FOTOS (tetos por galeria para listagem no Drive)
+ * Usa MAX_PHOTOS_PER_GALLERY_BY_PLAN (hard cap) para que a listagem permita até o mesmo
+ * teto do plano (ex.: FREE=300), e não o recomendado (150). Com photoCount no contexto,
+ * listPhotosFromDriveFolder aplica min(planLimit, photoCount) para galerias existentes.
  */
 export const resolvePhotoLimitByPlan = (planKey?: PlanKey | number): number => {
   // 1. Caso receba um número direto (fallback para uso manual)
   if (typeof planKey === 'number') return planKey;
 
-  // 2. Busca no mapa mestre usando a chave (ex: 'PRO')
-  // FIX: verifica se planKey existe E se a entrada está no dicionário antes de acessar
-  // Sem isso, PERMISSIONS_BY_PLAN['INVALID'] retorna undefined e `.maxPhotosPerGallery` crasha
-  const permissions =
-    planKey && PERMISSIONS_BY_PLAN[planKey]
-      ? PERMISSIONS_BY_PLAN[planKey]
-      : PERMISSIONS_BY_PLAN.FREE;
-
-  return permissions.maxPhotosPerGallery; // FREE=200, START=450, PLUS=800, PRO=1500, PREMIUM=3000
+  // 2. Teto do plano por galeria (FREE=300, START=500, …) — mesmo usado no form/modal de limite
+  const key =
+    planKey && planKey in MAX_PHOTOS_PER_GALLERY_BY_PLAN
+      ? (planKey as PlanKey)
+      : 'FREE';
+  return MAX_PHOTOS_PER_GALLERY_BY_PLAN[key];
 };
 
 export interface DrivePhoto {
@@ -302,6 +307,11 @@ export async function listPhotosWithOAuth(
  * Implementa a estratégia dual para máxima resiliência.
  * O plano pode ser passado direto (PlanKey/número) ou via contexto ({ userId } ou { galleryId });
  * quando contexto é passado, o plano é resolvido internamente (tb_profiles / galeria).
+ *
+ * CONTROLE DE LIMITE: A listagem sempre respeita o limite máximo de arquivos por galeria do plano.
+ * Quando o contexto inclui photoCount (ex.: galeria existente), o retorno é limitado ao que está
+ * gravado na tabela da galeria — exibindo 230 fotos se a galeria tem photo_count=230, e não até 300.
+ * Assim a página pública mostra exatamente o que foi registrado; validação de pool/cota fica no salvamento.
  */
 export async function listPhotosFromDriveFolder(
   driveFolderId: string,
@@ -327,22 +337,34 @@ export async function listPhotosFromDriveFolder(
       planKeyForVideo = planOrLimitOrContext;
     }
   }
-  const limit = resolvePhotoLimitByPlan(
+  const planLimit = resolvePhotoLimitByPlan(
     typeof planOrLimitOrContext === 'number'
       ? planOrLimitOrContext
       : planKeyForVideo,
   );
+  // Para galeria existente: nunca exibir mais do que o photo_count gravado na tabela (ex.: 230), respeitando também o teto do plano (ex.: 300).
+  const limit =
+    typeof planOrLimitOrContext === 'object' &&
+    planOrLimitOrContext !== null &&
+    typeof (planOrLimitOrContext as DrivePlanContext).photoCount === 'number'
+      ? Math.min(
+          planLimit,
+          Math.max(0, (planOrLimitOrContext as DrivePlanContext).photoCount!),
+        )
+      : planLimit;
 
   // 1. TENTATIVA 1: OAuth (Privado) - PRIORITÁRIO
   if (accessToken) {
     try {
-      return await listPhotosWithOAuth(
+      const oauthPhotos = await listPhotosWithOAuth(
         driveFolderId,
         accessToken,
         limit,
         true,
         planKeyForVideo,
       );
+      // Cap final: nunca retornar mais que o limite do plano (usuário pode ter adicionado arquivos direto no Drive)
+      return oauthPhotos.slice(0, limit);
     } catch (error) {
       console.warn(
         '[listPhotosFromDriveFolder] ⚠️ OAuth falhou, tentando API Key...',
@@ -359,7 +381,8 @@ export async function listPhotosFromDriveFolder(
       planKeyForVideo,
     );
     if (publicPhotos && publicPhotos.length > 0) {
-      return publicPhotos;
+      // Cap final: nunca retornar mais que o limite do plano
+      return publicPhotos.slice(0, limit);
     }
   } catch (publicError) {
     console.error(

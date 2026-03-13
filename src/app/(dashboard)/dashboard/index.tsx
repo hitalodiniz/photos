@@ -28,6 +28,13 @@ import DashboardFooter from './components/DashboardFooter';
 import { PlanProvider } from '@/core/context/PlanContext';
 import { useSyncInternalTraffic } from '@/hooks/useSyncInternalTraffic';
 import { GaleriaSyncObserver } from '@/features/galeria/GaleriaSyncObserver';
+import {
+  MAX_PHOTOS_PER_GALLERY_BY_PLAN,
+  PERMISSIONS_BY_PLAN,
+  type PlanKey,
+} from '@/core/config/plans';
+import { LimitUpgradeModal } from '@/components/ui/LimitUpgradeModal';
+import type { DashboardPlanLimits } from './hooks/useDashboardActions';
 
 export default function Dashboard({
   initialGalerias,
@@ -63,12 +70,22 @@ export default function Dashboard({
   }, [initialProfile?.sidebar_collapsed, setIsSidebarCollapsed]);
 
   const filters = useDashboardFilters(galerias);
+  const planKey = (initialProfile?.plan_key as PlanKey) || 'FREE';
+  const planLimits: DashboardPlanLimits | null =
+    initialProfile && planKey in MAX_PHOTOS_PER_GALLERY_BY_PLAN
+      ? {
+          maxPhotosPerGallery:
+            MAX_PHOTOS_PER_GALLERY_BY_PLAN[planKey as PlanKey],
+          photoCredits: PERMISSIONS_BY_PLAN[planKey as PlanKey]?.photoCredits ?? 450,
+        }
+      : null;
   const actions = useDashboardActions(
     galerias,
     setGalerias,
     initialProfile,
     setToast,
     filters.currentView,
+    planLimits,
   );
 
   const handleOpenOrganizer = (galeria: Galeria) => {
@@ -153,7 +170,6 @@ export default function Dashboard({
           handleGoogleLogin={actions.handleGoogleLogin}
           handleNovaGaleria={handleNovaGaleria}
           isRedirecting={isNavigating}
-          handleNovaGaleria={handleNovaGaleria}
           totalPhotosUsed={totalPhotosUsed}
         />
         <main className="flex-1 flex flex-col min-w-0 min-h-[calc(100vh-120px)]">
@@ -238,6 +254,13 @@ export default function Dashboard({
           onConfirm={actions.executePermanentDelete}
           title="Excluir permanentemente"
           message={`Deseja remover "${actions.galeriaToPermanentlyDelete?.title}" permanentemente?`}
+        />
+
+        <LimitUpgradeModal
+          isOpen={!!actions.limitModalAfterSync}
+          onClose={() => actions.setLimitModalAfterSync(null)}
+          planLimit={actions.limitModalAfterSync?.planLimit ?? 0}
+          photoCount={actions.limitModalAfterSync?.photoCount ?? 0}
         />
 
         {toast && (

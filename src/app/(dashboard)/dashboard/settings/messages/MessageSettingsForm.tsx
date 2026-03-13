@@ -239,7 +239,10 @@ export default function MessageSettingsForm({ profile }: { profile: any }) {
   const hasError = invalidTags.length > 0;
 
   return (
-    <PlanGuard feature="canCustomWhatsApp" label="Edição de Mensagens">
+    <PlanGuard
+      feature="canCustomWhatsApp"
+      label="Edição de Mensagens de Compartilhamento de Galeria"
+    >
       <FormPageBase
         title="Modelos de Mensagens"
         isEdit={true}

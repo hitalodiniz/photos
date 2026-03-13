@@ -6,6 +6,7 @@ import {
   purgeOldDeletedGalleries,
   syncGaleriaPhotoCountByGaleriaId,
 } from '@/core/services/galeria.service';
+import type { PhotographerPoolStats } from '@/core/services/galeria.service';
 
 import { getBaseGalleriesFromPool } from '@/core/config/plans';
 import {
@@ -15,7 +16,10 @@ import {
 } from './revalidate.actions';
 import { createInternalNotification } from '@/core/services/notification.service';
 import { listPhotosFromDriveFolder } from '@/lib/google-drive';
-import { createSupabaseAdmin } from '@/lib/supabase.server';
+import {
+  createSupabaseAdmin,
+  createSupabaseServerClient,
+} from '@/lib/supabase.server';
 
 interface ActionResult {
   success: boolean;
@@ -154,4 +158,42 @@ export async function syncAndRevalidateGaleriaAction(
   return result.success && result.data
     ? { photo_count: result.data.photo_count }
     : null;
+}
+
+/**
+ * Fonte da verdade para créditos no pool: SUM(photo_count) em tb_galerias
+ * para galerias do usuário não arquivadas e não deletadas.
+ * Usa cliente com sessão (createSupabaseServerClient) para RLS correto.
+ */
+export async function getPoolStatsAction(): Promise<PhotographerPoolStats | null> {
+  const { success, profile } = await getAuthenticatedUser();
+  if (!success || !profile?.id) return null;
+
+  try {
+    const supabase = await createSupabaseServerClient();
+    const { data, error } = await supabase
+      .from('tb_galerias')
+      .select('photo_count')
+      .eq('user_id', profile.id)
+      .eq('is_deleted', false)
+      .eq('is_archived', false);
+
+    if (error) {
+      console.error('[getPoolStatsAction]', error.message);
+      return null;
+    }
+
+    const rows = data ?? [];
+    const totalPhotosUsed = rows.reduce(
+      (sum, row) => sum + (row.photo_count ?? 0),
+      0,
+    );
+    return {
+      totalPhotosUsed,
+      activeGalleryCount: rows.length,
+    };
+  } catch (e) {
+    console.error('[getPoolStatsAction]', e);
+    return null;
+  }
 }

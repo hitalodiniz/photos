@@ -4,7 +4,7 @@ import { useState, useEffect, useRef } from 'react';
 import { useForm } from 'react-hook-form';
 import { useRouter } from 'next/navigation';
 import { createGaleria, updateGaleria } from '@/core/services/galeria.service';
-import { getPhotographerPoolStats } from '@/core/services/galeria.service';
+import { getPoolStatsAction } from '@/actions/galeria.actions';
 import FormPageBase from '@/components/ui/FormPageBase';
 import {
   Save,
@@ -63,30 +63,44 @@ export default function GaleriaFormPage({
   } | null>(null);
   const formRef = useRef<HTMLFormElement>(null);
 
-  // ── Pool de cota ──────────────────────────────────────────────────────────
-  // profileListCount é o fallback imediato (vem do servidor via RSC).
-  // getPhotographerPoolStats traz usedPhotoCredits (SUM photo_count) e
-  // activeGalleryCount de forma consistente em uma única query client-side.
+  // ── Pool de cota: única fonte da verdade = SUM(photo_count) em tb_galerias (não arquivadas, não deletadas) ──
   const [poolStats, setPoolStats] = useState({
     usedPhotoCredits: 0,
     activeGalleryCount: profileListCount,
   });
 
-  useEffect(() => {
-    if (!initialProfile?.id) return;
-
-    getPhotographerPoolStats(initialProfile.id)
+  const refetchPoolStats = () => {
+    getPoolStatsAction()
       .then((stats) => {
-        setPoolStats({
-          usedPhotoCredits: stats.totalPhotosUsed,
-          activeGalleryCount: stats.activeGalleryCount,
-        });
+        if (stats) {
+          setPoolStats({
+            usedPhotoCredits: stats.totalPhotosUsed,
+            activeGalleryCount: stats.activeGalleryCount,
+          });
+        }
       })
       .catch((err) => {
-        // Falha silenciosa: os alertas de cota ficam conservadores (baseados em 0)
         console.warn('[GaleriaFormPage] Erro ao buscar pool stats:', err);
       });
-  }, [initialProfile?.id]);
+  };
+
+  useEffect(() => {
+    refetchPoolStats();
+  }, []);
+
+  useEffect(() => {
+    if (typeof window === 'undefined') return;
+    const refetch = () => refetchPoolStats();
+    const onVisible = () => {
+      if (document.visibilityState === 'visible') refetch();
+    };
+    window.addEventListener('focus', refetch);
+    document.addEventListener('visibilitychange', onVisible);
+    return () => {
+      window.removeEventListener('focus', refetch);
+      document.removeEventListener('visibilitychange', onVisible);
+    };
+  }, []);
 
   const { showToast, ToastElement } = useToast();
 

@@ -11,7 +11,7 @@ import {
   BarChart2,
   ArrowRight,
 } from 'lucide-react';
-import UpgradeModal from './UpgradeModal';
+import { UpgradeSheet } from '@/components/ui/Upgradesheet';
 import { usePlan } from '@/core/context/PlanContext';
 import { useSegment } from '@/hooks/useSegment';
 import {
@@ -25,7 +25,7 @@ interface StatTeaser {
   icon: React.ElementType;
   label: string;
   value: number | string;
-  hint?: string; // ex: "registros aguardando você"
+  hint?: string;
 }
 
 interface PlanGateScreenProps {
@@ -45,7 +45,7 @@ export function PlanGateScreen({
 }: PlanGateScreenProps) {
   const { planKey } = usePlan();
   const { segment } = useSegment();
-  const [isUpgradeModalOpen, setIsUpgradeModalOpen] = useState(false);
+  const [isUpgradeSheetOpen, setIsUpgradeSheetOpen] = useState(false);
 
   const featureInfo = FEATURE_DESCRIPTIONS[feature];
   const displayLabel = featureInfo?.label || title;
@@ -61,25 +61,29 @@ export function PlanGateScreen({
     <>
       <div className="flex-1 flex items-center justify-center min-h-[60vh] p-6">
         <div className="max-w-lg w-full">
-          {/* Card principal */}
-          <div className="bg-white rounded-2xl border border-gold/20 shadow-xl overflow-hidden">
+          {/* Card principal — rounded-luxury como no UpgradeModal */}
+          <div className="bg-white rounded-luxury border border-gold/20 shadow-xl overflow-hidden">
             {/* Header */}
             <div className="bg-petroleum px-8 py-6 flex items-center gap-4">
-              <div className="p-3 bg-gold/20 rounded-xl shrink-0">
-                <Lock size={22} className="text-gold" strokeWidth={2.5} />
+              {/* Ícone de cadeado — mesmo estilo do UpgradeModal (bg-gold, shadow) */}
+              <div className="w-10 h-10 rounded-luxury flex items-center justify-center shrink-0 bg-gold text-petroleum shadow-[0_0_15px_rgba(212,175,55,0.2)]">
+                <Lock size={18} strokeWidth={2.5} />
               </div>
               <div>
-                <p className="text-[10px] font-bold text-white/40 uppercase tracking-widest mb-0.5">
+                {/* Label acima do título — tracking-luxury-wide como no UpgradeModal */}
+                <p className="text-[9px] font-semibold text-white/80 uppercase tracking-luxury-wide mb-0.5">
                   Recurso Extra
                 </p>
-                <h2 className="text-lg font-bold text-white leading-tight">
+                <h2 className="text-lg font-semibold text-white leading-tight">
                   {title}
                 </h2>
               </div>
               {requiredPlan && (
-                <div className="ml-auto flex items-center gap-1.5 bg-gold/20 border border-gold/30 rounded-full px-3 py-1 shrink-0">
+                /* Badge do plano — gap-2 p-2 rounded-luxury border border-gold/20 bg-gold/5
+                   como o chip de feature no UpgradeModal */
+                <div className="ml-auto flex items-center gap-1.5 bg-gold/5 border border-gold/20 rounded-luxury px-3 py-1.5 shrink-0">
                   <Sparkles size={10} className="text-gold animate-pulse" />
-                  <span className="text-[10px] font-bold text-gold uppercase tracking-wider">
+                  <span className="text-[10px] font-bold text-gold uppercase tracking-luxury-wide">
                     Plano {requiredPlan}
                   </span>
                 </div>
@@ -89,7 +93,8 @@ export function PlanGateScreen({
             {/* Teasers — dados reais borrados */}
             {teasers.length > 0 && (
               <div className="px-8 py-5 border-b border-slate-100 bg-slate-50/60">
-                <p className="text-[9px] font-bold text-slate-400 uppercase tracking-widest mb-3">
+                {/* Label da seção — tracking-luxury-wide como no UpgradeModal */}
+                <p className="text-[9px] font-semibold text-slate-400 uppercase tracking-luxury-wide mb-3">
                   Dados aguardando você
                 </p>
                 <div className="grid grid-cols-2 gap-3">
@@ -98,16 +103,16 @@ export function PlanGateScreen({
                     return (
                       <div
                         key={i}
-                        className="bg-white rounded-xl border border-slate-200 px-4 py-3 flex items-center gap-3 relative overflow-hidden"
+                        className="bg-white rounded-luxury border border-slate-200 px-4 py-3 flex items-center gap-3 relative overflow-hidden"
                       >
-                        <div className="p-2 bg-gold/10 rounded-lg shrink-0">
+                        {/* Ícone do teaser — mesmo p-2 rounded-luxury bg-gold/5 do UpgradeModal */}
+                        <div className="p-2 rounded-luxury bg-gold/5 border border-gold/20 shrink-0">
                           <Icon size={14} className="text-gold" />
                         </div>
                         <div className="min-w-0">
-                          <p className="text-[8px] font-semibold text-slate-400 uppercase tracking-wider leading-none mb-1">
+                          <p className="text-[8px] font-semisemibold text-slate-400 uppercase tracking-luxury-wide leading-none mb-1">
                             {t.label}
                           </p>
-                          {/* Valor borrado mas presente — gera curiosidade */}
                           <div className="flex items-center gap-1.5">
                             <span className="text-xl font-black text-petroleum blur-[5px] select-none">
                               {t.value}
@@ -117,54 +122,61 @@ export function PlanGateScreen({
                             </span>
                           </div>
                         </div>
-                        {/* Overlay sutil */}
                         <div className="absolute inset-0 bg-white/30 backdrop-blur-[1px]" />
                       </div>
                     );
                   })}
                 </div>
-                <p className="text-[10px] text-slate-400 italic mt-3 text-center">
+                <p className="text-[10px] text-slate-700 italic mt-3 text-center">
                   Faça upgrade para desbloquear seus dados reais
                 </p>
               </div>
             )}
 
-            {/* Descrição */}
-            <div className="px-8 py-5">
-              <p className="text-sm text-slate-600 leading-relaxed">
+            {/* Descrição + CTA */}
+            <div className="px-8 py-5 space-y-3">
+              {/* Descrição principal — border-l-2 border-gold/40 pl-3 bg-slate-50/50
+                  idêntico ao bloco de description do UpgradeModal */}
+              <p className="text-[14px] text-petroleum font-semisemibold leading-relaxed border-l-2 border-gold/40 pl-3 py-0.5 bg-slate-50/50">
                 {description}
               </p>
 
-              {/* CTA */}
+              {/* Texto secundário — text-[13px] text-petroleum/80 font-medium como no UpgradeModal */}
+              {requiredPlan && (
+                <p className="text-[13px] text-petroleum/80 font-medium leading-relaxed">
+                  Disponível a partir do Plano{' '}
+                  <span className="font-extrasemibold text-petroleum">
+                    {requiredPlan}
+                  </span>
+                  .
+                </p>
+              )}
+
+              {/* CTA — btn-luxury-primary: abre UpgradeSheet sem submit/refresh */}
               <button
-                onClick={() => setIsUpgradeModalOpen(true)}
-                className="mt-5 w-full flex items-center justify-center gap-2 bg-petroleum hover:bg-petroleum/90 text-white font-bold text-[12px] uppercase tracking-widest py-3.5 rounded-xl transition-all active:scale-[0.98] shadow-lg"
+                type="button"
+                onClick={(e) => {
+                  e.preventDefault();
+                  e.stopPropagation();
+                  setIsUpgradeSheetOpen(true);
+                }}
+                className="btn-luxury-primary w-full mt-2"
               >
                 <Sparkles size={14} className="text-gold" />
                 Ver planos e fazer upgrade
                 <ArrowRight size={14} />
               </button>
-
-              {requiredPlan && (
-                <p className="text-[10px] text-center text-slate-400 mt-3">
-                  Disponível a partir do Plano{' '}
-                  <span className="font-bold text-petroleum">
-                    {requiredPlan}
-                  </span>
-                </p>
-              )}
             </div>
           </div>
         </div>
       </div>
 
-      <UpgradeModal
-        isOpen={isUpgradeModalOpen}
-        onClose={() => setIsUpgradeModalOpen(false)}
+      <UpgradeSheet
+        isOpen={isUpgradeSheetOpen}
+        onClose={() => setIsUpgradeSheetOpen(false)}
         featureName={displayLabel}
-        description={displayDescription}
         featureKey={feature}
-        scenarioType={scenarioType}
+        initialPlanKey={requiredPlan as PlanKey}
       />
     </>
   );

@@ -48,23 +48,23 @@ export const GalleryDesignFields: React.FC<GalleryDesignFieldsProps> = ({
   return (
     <div className="flex flex-wrap items-center gap-x-1 gap-y-1.5">
       {/* FOTO DE FUNDO — bloqueado em FREE (customizationLevel = 'default') */}
-      <PlanGuard
-        feature="customizationLevel"
-        label="Foto de fundo"
-        variant="mini"
-      >
-        <div className="flex items-center gap-2 border-r border-petroleum/10 pr-2.5 shrink-0 h-8">
-          <div className="flex items-center gap-1 shrink-0">
-            <label>
-              <ImageIcon size={11} className="text-gold" /> Foto fundo
-            </label>
 
-            <InfoTooltip
-              title={HELP_CONTENT.DESIGN.BG_PHOTO.title}
-              content={HELP_CONTENT.DESIGN.BG_PHOTO.content}
-            />
-          </div>
+      <div className="flex items-center gap-2 border-r border-petroleum/10 pr-2.5 shrink-0 h-8">
+        <div className="flex items-center gap-1 shrink-0">
+          <label>
+            <ImageIcon size={11} className="text-gold" /> Foto fundo
+          </label>
 
+          <InfoTooltip
+            title={HELP_CONTENT.DESIGN.BG_PHOTO.title}
+            content={HELP_CONTENT.DESIGN.BG_PHOTO.content}
+          />
+        </div>
+        <PlanGuard
+          feature="customizationLevel"
+          label="Foto de fundo"
+          variant="mini"
+        >
           <button
             type="button"
             onClick={() => setShowBackgroundPhoto(!showBackgroundPhoto)}
@@ -81,25 +81,26 @@ export const GalleryDesignFields: React.FC<GalleryDesignFieldsProps> = ({
               }`}
             />
           </button>
-        </div>
-      </PlanGuard>
+        </PlanGuard>
+      </div>
 
       {/* COR DE FUNDO — bloqueado em FREE */}
-      <PlanGuard
-        feature="customizationLevel"
-        label="Cor de fundo"
-        variant="mini"
-      >
-        <div className="flex items-center gap-2 border-r border-petroleum/10 shrink-0 h-8 pr-2.5">
-          <div className="flex items-center gap-1 shrink-0">
-            <Palette size={12} className="text-gold" />
-            <label>Cor fundo</label>
-            <InfoTooltip
-              title={HELP_CONTENT.DESIGN.BG_COLOR.title}
-              content={HELP_CONTENT.DESIGN.BG_COLOR.content}
-            />
-          </div>
 
+      <div className="flex items-center gap-2 border-r border-petroleum/10 shrink-0 h-8 pr-2.5">
+        <div className="flex items-center gap-1 shrink-0">
+          <Palette size={12} className="text-gold" />
+          <label>Cor fundo</label>
+          <InfoTooltip
+            title={HELP_CONTENT.DESIGN.BG_COLOR.title}
+            content={HELP_CONTENT.DESIGN.BG_COLOR.content}
+          />
+        </div>
+
+        <PlanGuard
+          feature="customizationLevel"
+          label="Cor de fundo"
+          variant="mini"
+        >
           <div className="flex items-center gap-1.5 h-full">
             <div className="flex gap-0.5 shrink-0">
               {['#F3E5AB', '#FFFFFF', '#000000'].map((c) => (
@@ -144,8 +145,8 @@ export const GalleryDesignFields: React.FC<GalleryDesignFieldsProps> = ({
               />
             </div>
           </div>
-        </div>
-      </PlanGuard>
+        </PlanGuard>
+      </div>
 
       {/* GRID COLUNAS — sem guard, PlanSelect já bloqueia opções acima do limite */}
       <div className="flex items-center gap-2 shrink-0 h-8">

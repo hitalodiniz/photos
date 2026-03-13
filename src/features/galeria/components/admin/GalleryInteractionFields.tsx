@@ -22,22 +22,28 @@ export const GalleryInteractionFields = ({
   return (
     <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
       {/* FAVORITOS */}
-      <PlanGuard feature="canFavorite" label="Sistema de Favoritos">
-        <div className="flex items-center justify-between p-3 bg-slate-50/50 rounded-luxury border border-petroleum/10 h-12">
-          <div className="flex items-center gap-2">
-            <Heart
-              size={14}
-              className={`transition-colors ${enableFavorites ? 'text-gold' : 'text-petroleum/40'}`}
-            />
-            <span className="text-[10px] font-bold uppercase tracking-widest text-petroleum">
-              Favoritos
-            </span>
-            <InfoTooltip
-              title={HELP_CONTENT.INTERACTION.FAVORITES.title}
-              content={HELP_CONTENT.INTERACTION.FAVORITES.content}
-            />
-          </div>
 
+      <div className="flex items-center justify-between p-3 bg-slate-50/50 rounded-luxury border border-petroleum/10 h-12">
+        <div className="flex items-center gap-2">
+          <Heart
+            size={14}
+            className={`transition-colors ${enableFavorites ? 'text-gold' : 'text-petroleum/40'}`}
+          />
+          <span className="text-[10px] font-bold uppercase tracking-widest text-petroleum">
+            Favoritos
+          </span>
+          <InfoTooltip
+            title={HELP_CONTENT.INTERACTION.FAVORITES.title}
+            content={HELP_CONTENT.INTERACTION.FAVORITES.content}
+          />
+        </div>
+        <PlanGuard
+          feature="canFavorite"
+          label="Sistema de Favoritos"
+          variant="mini"
+          scenarioType="feature"
+          forceShowLock={true}
+        >
           <button
             type="button"
             onClick={() => setEnableFavorites(!enableFavorites)}
@@ -58,26 +64,31 @@ export const GalleryInteractionFields = ({
             name="enable_favorites"
             value={String(enableFavorites)}
           />
-        </div>
-      </PlanGuard>
+        </PlanGuard>
+      </div>
 
       {/* SLIDESHOW */}
-      <PlanGuard feature="canShowSlideshow" label="Modo Slideshow">
-        <div className="flex items-center justify-between p-3 bg-slate-50/50 rounded-luxury border border-petroleum/10 h-12">
-          <div className="flex items-center gap-2">
-            <PlayCircle
-              size={14}
-              className={`transition-colors ${enableSlideshow ? 'text-gold' : 'text-petroleum/40'}`}
-            />
-            <span className="text-[10px] font-bold uppercase tracking-widest text-petroleum">
-              Slideshow
-            </span>
-            <InfoTooltip
-              title={HELP_CONTENT.INTERACTION.SLIDESHOW.title}
-              content={HELP_CONTENT.INTERACTION.SLIDESHOW.content}
-            />
-          </div>
-
+      <div className="flex items-center justify-between p-3 bg-slate-50/50 rounded-luxury border border-petroleum/10 h-12">
+        <div className="flex items-center gap-2">
+          <PlayCircle
+            size={14}
+            className={`transition-colors ${enableSlideshow ? 'text-gold' : 'text-petroleum/40'}`}
+          />
+          <span className="text-[10px] font-bold uppercase tracking-widest text-petroleum">
+            Slideshow
+          </span>
+          <InfoTooltip
+            title={HELP_CONTENT.INTERACTION.SLIDESHOW.title}
+            content={HELP_CONTENT.INTERACTION.SLIDESHOW.content}
+          />
+        </div>
+        <PlanGuard
+          feature="canShowSlideshow"
+          label="Modo Slideshow"
+          variant="mini"
+          scenarioType="feature"
+          forceShowLock={true}
+        >
           <button
             type="button"
             onClick={() => setEnableSlideshow(!enableSlideshow)}
@@ -98,8 +109,8 @@ export const GalleryInteractionFields = ({
             name="enable_slideshow"
             value={String(enableSlideshow)}
           />
-        </div>
-      </PlanGuard>
+        </PlanGuard>
+      </div>
     </div>
   );
 };

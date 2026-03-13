@@ -405,27 +405,17 @@ export default function GaleriaCard({
         <button
           onClick={(e) => {
             e.stopPropagation();
-            // 🎯 FIX: featureKey correto para Estatísticas
-            if (!permissions.canAccessStats) {
-              setUpsell({
-                label: 'Estatísticas da Galeria',
-                featureKey: 'canAccessStats',
-              });
-              return;
-            }
+
             handleOpenBIReport(e);
           }}
-          disabled={isNavigating && !!permissions.canAccessStats}
+          disabled={isNavigating}
           className={btnBaseClass}
           title="Estatísticas"
         >
           {isNavigating ? (
             <Loader2 size={16} className="animate-spin text-gold" />
           ) : (
-            <BarChart3
-              size={16}
-              className={!permissions.canAccessStats ? 'opacity-40' : ''}
-            />
+            <BarChart3 size={16} />
           )}
         </button>
 

@@ -1,11 +1,11 @@
 'use client';
 
+import { useEffect, useRef } from 'react';
 import { PlanGuard } from '@/components/auth/PlanGuard';
 import { GooglePickerButton } from '@/components/google-drive';
 import GoogleDriveImagePreview from '@/components/ui/GoogleDriveImagePreview';
 import { InfoTooltip } from '@/components/ui/InfoTooltip';
 import { usePlan } from '@/core/context/PlanContext';
-import { calcEffectiveMaxGalleries } from '@/core/config/plans';
 import {
   FolderSync,
   ImageIcon,
@@ -42,6 +42,16 @@ interface GaleriaDriveSectionProps {
   // Pool context — necessário para calcular impacto no pool de galerias
   usedPhotoCredits: number; // total de fotos publicadas em OUTRAS galerias
   activeGalleryCount: number; // número de galerias ativas atualmente
+  /** Teto real do plano (MAX_PHOTOS_PER_GALLERY_BY_PLAN). Quando informado, o alerta vermelho usa este valor em vez de permissions.maxPhotosPerGallery. */
+  planHardCap?: number;
+  /** Quando true, indica que a pasta excede o teto e o modal de upgrade foi aberto (alerta vermelho deve aparecer mesmo se photoCount vier capado). */
+  isOverHardCap?: boolean;
+  /** Máximo de fotos que esta galeria pode ter conforme o pool (totalPool - usedPhotoCredits). Quando a pasta tem mais, exibimos alerta e chamamos onPoolExceeded. */
+  maxPhotosByPool?: number;
+  /** Créditos restantes no pool (global): max(0, totalPool - SUM(photo_count)). Igual ao "restantes" do SidebarStorage. Quando 0, a mensagem deve mostrar "0 créditos no pool". */
+  poolRemainingCredits?: number;
+  /** Chamado quando a pasta tem mais fotos do que o pool permite (para o pai abrir o modal de cota do pool). */
+  onPoolExceeded?: () => void;
 }
 
 export function GaleriaDriveSection({
@@ -56,39 +66,56 @@ export function GaleriaDriveSection({
   rootFolderId,
   usedPhotoCredits,
   activeGalleryCount,
+  planHardCap,
+  isOverHardCap: isOverHardCapProp,
+  maxPhotosByPool,
+  poolRemainingCredits,
+  onPoolExceeded,
 }: GaleriaDriveSectionProps) {
   const { permissions, planKey } = usePlan();
 
   const photoCount = driveData.photoCount ?? 0;
-  const hardCap = permissions.maxPhotosPerGallery;
+  // Usar o mesmo teto do plano que o form (MAX_PHOTOS_PER_GALLERY_BY_PLAN) para alinhar alerta vermelho e modal.
+  const hardCap = planHardCap ?? permissions.maxPhotosPerGallery;
   const recommended = permissions.recommendedPhotosPerGallery; // base do pool (cálculo dinâmico)
   const alertThreshold = permissions.filesAlertThreshold ?? recommended; // aviso UX (ex: PRO=750, não 1000)
   const maxCovers = MAX_COVERS_PER_GALLERY;
 
-  // ── Estados de alerta de fotos ────────────────────────────────────────────
-  const isOverHardCap = photoCount > hardCap;
-  const isOverRecommended = !isOverHardCap && photoCount > alertThreshold; // usa alertThreshold
-  const isCompatible = photoCount > 0 && !isOverHardCap && !isOverRecommended;
+  // ── Pool: máximo que esta galeria pode usar (não exceder cota total)
+  // Fonte da verdade: usedPhotoCredits = SUM(photo_count) em tb_galerias (não arquivadas/deletadas).
+  // Quando o pai passa maxPhotosByPool, ele já foi calculado como totalPool - usado; senão calculamos aqui.
+  const totalPool = permissions.photoCredits ?? 0;
+  const maxAllowedByPool =
+    maxPhotosByPool ?? Math.max(0, totalPool - usedPhotoCredits);
+  // Para a mensagem "só X créditos no pool": usar o restante global (como SidebarStorage), não o limite desta galeria
+  const creditsInPoolForMessage = poolRemainingCredits ?? maxAllowedByPool;
+  const isOverPoolCap = photoCount > maxAllowedByPool && photoCount <= hardCap;
 
-  // ── Impacto no pool de galerias ───────────────────────────────────────────
-  // Quantas galerias o usuário pode criar AGORA (antes de salvar esta galeria)
-  const galleriesNow = calcEffectiveMaxGalleries(
-    planKey,
-    usedPhotoCredits,
-    activeGalleryCount,
-  );
-  // Quantas galerias o usuário poderá criar APÓS salvar esta galeria
-  // (os créditos desta galeria serão descontados do pool)
-  const galleriesAfterSave = calcEffectiveMaxGalleries(
-    planKey,
-    usedPhotoCredits + photoCount,
-    activeGalleryCount,
-  );
-  const galleriesLost = Math.max(0, galleriesNow - galleriesAfterSave);
-  const galleriesRemaining = Math.max(
+  // ── Estados de alerta de fotos ────────────────────────────────────────────
+  // Quando o pai abre o modal (pasta > teto), passamos isOverHardCap para exibir o vermelho mesmo com photoCount capado.
+  const isOverHardCap = isOverHardCapProp ?? photoCount > hardCap;
+  const isOverRecommended =
+    !isOverHardCap && !isOverPoolCap && photoCount > alertThreshold; // usa alertThreshold
+  const isCompatible =
+    photoCount > 0 && !isOverHardCap && !isOverPoolCap && !isOverRecommended;
+
+  // ── Créditos restantes no pool (dinâmico) ─────────────────────────────────
+  const remainingCreditsAfterThis = Math.max(
     0,
-    galleriesAfterSave - activeGalleryCount,
+    totalPool - usedPhotoCredits - photoCount,
   );
+  const maxGalleriesInPlan = permissions.maxGalleriesHardCap ?? 3;
+
+  const lastFiredPoolExceededRef = useRef<string | null>(null);
+  // Abre o modal de cota do pool uma vez por pasta quando excede o disponível (ex.: 230 na pasta, 220 no pool).
+  useEffect(() => {
+    if (driveData.id && isOverPoolCap && onPoolExceeded) {
+      if (lastFiredPoolExceededRef.current !== driveData.id) {
+        lastFiredPoolExceededRef.current = driveData.id;
+        onPoolExceeded();
+      }
+    }
+  }, [driveData.id, isOverPoolCap, onPoolExceeded]);
 
   return (
     <div className="relative bg-white rounded-luxury border border-slate-200 p-4 space-y-4 mt-2 overflow-hidden">
@@ -174,6 +201,45 @@ export function GaleriaDriveSection({
                 </div>
               )}
 
+              {/* Estado 1b: cota do pool insuficiente — limitar a maxAllowedByPool e abrir modal */}
+              {isOverPoolCap && (
+                <div className="p-2.5 rounded-luxury border bg-red-50 border-red-300 flex gap-2.5">
+                  <Ban size={14} className="text-red-500 shrink-0 mt-0.5" />
+                  <div className="space-y-1">
+                    <p className="text-[10px] font-bold uppercase text-red-700">
+                      {photoCount.toLocaleString('pt-BR')} arquivos na pasta —{' '}
+                      {creditsInPoolForMessage.toLocaleString('pt-BR')} créditos
+                      na cota de arquivos
+                    </p>
+                    <p className="text-[10px] text-red-600/80 leading-tight font-medium">
+                      Sua pasta tem{' '}
+                      <strong>
+                        {photoCount.toLocaleString('pt-BR')} fotos
+                      </strong>
+                      , mas você tem{' '}
+                      <strong>
+                        {creditsInPoolForMessage.toLocaleString('pt-BR')}{' '}
+                        créditos
+                      </strong>{' '}
+                      disponíveis na cota de arquivos.
+                      {creditsInPoolForMessage === 0 ? (
+                        ' Nenhuma foto a mais será exibida'
+                      ) : (
+                        <>
+                          Apenas{' '}
+                          <strong>
+                            {creditsInPoolForMessage.toLocaleString('pt-BR')}{' '}
+                            fotos
+                          </strong>{' '}
+                          serão exibidas
+                        </>
+                      )}{' '}
+                      nesta galeria.
+                    </p>
+                  </div>
+                </div>
+              )}
+
               {/* Estado 2: acima do alertThreshold — aviso de consumo de cota */}
               {isOverRecommended && (
                 <div className="p-2.5 rounded-luxury border bg-amber-50 border-amber-200 flex gap-2.5">
@@ -187,24 +253,26 @@ export function GaleriaDriveSection({
                     </p>
                     <p className="text-[10px] text-amber-700 leading-tight">
                       O recomendado é{' '}
-                      <strong>até {alertThreshold} arquivos</strong> por
-                      galeria. Com {photoCount} fotos, esta galeria consome{' '}
-                      {photoCount} créditos do seu pool de{' '}
+                      <strong>até {alertThreshold} arquivos</strong> por galeria
+                      (máximo do plano: <strong>{hardCap}</strong> por galeria).
+                      Com {photoCount} fotos, esta galeria consome {photoCount}{' '}
+                      créditos do seu pool de{' '}
+                      <strong>{totalPool.toLocaleString('pt-BR')}</strong>.
+                      Restam{' '}
                       <strong>
-                        {permissions.photoCredits.toLocaleString('pt-BR')}
-                      </strong>
-                      {galleriesLost > 0 && (
-                        <>
-                          {' '}
-                          — isso reduz em{' '}
-                          <strong>
-                            {galleriesLost} galeria
-                            {galleriesLost > 1 ? 's' : ''}
-                          </strong>{' '}
-                          a capacidade disponível do seu plano
-                        </>
-                      )}
-                      .
+                        {remainingCreditsAfterThis.toLocaleString('pt-BR')}{' '}
+                        créditos
+                      </strong>{' '}
+                      no pool para as próximas galerias. O limite é dinâmico:
+                      você pode distribuir esses créditos entre até{' '}
+                      {maxGalleriesInPlan} galerias (ex.:{' '}
+                      {remainingCreditsAfterThis > 0
+                        ? Math.floor(
+                            remainingCreditsAfterThis / maxGalleriesInPlan,
+                          )
+                        : 0}{' '}
+                      em cada) ou usar tudo em uma só — aí não haverá cota para
+                      novas galerias.
                     </p>
                   </div>
                 </div>
@@ -315,22 +383,26 @@ export function GaleriaDriveSection({
 
       {/* ── Subseção 3: Renomear Arquivos ──────────────────────────────────── */}
       {/* keepOriginalFilenames: false em FREE/START → guard bloqueia */}
-      <PlanGuard
-        feature="keepOriginalFilenames"
-        label="Preservar nomes originais"
-      >
-        <div className="space-y-3 pt-4 border-t border-slate-200">
-          <div className="flex items-center justify-between">
-            <div className="flex items-center gap-1.5 shrink-0">
-              <label className="text-[10px] font-bold uppercase tracking-luxury text-petroleum flex items-center gap-1.5">
-                <ImageIcon size={12} strokeWidth={2} className="text-gold" />
-                Renomear fotos (foto-001...)
-              </label>
-              <InfoTooltip
-                title="Renomear fotos"
-                content='Se habilitado, padroniza o nome das fotos para "foto-1.jpg", "foto-2.jpg", etc. Desabilitado, usa os nomes originais das fotos.'
-              />
-            </div>
+
+      <div className="space-y-3 pt-4 border-t border-slate-200">
+        <div className="flex items-center justify-between">
+          <div className="flex items-center gap-1.5 shrink-0">
+            <label className="text-[10px] font-bold uppercase tracking-luxury text-petroleum flex items-center gap-1.5">
+              <ImageIcon size={12} strokeWidth={2} className="text-gold" />
+              Renomear fotos (foto-001...)
+            </label>
+            <InfoTooltip
+              title="Renomear fotos"
+              content='Se habilitado, padroniza o nome das fotos para "foto-1.jpg", "foto-2.jpg", etc. Desabilitado, usa os nomes originais das fotos.'
+            />
+          </div>
+          <PlanGuard
+            feature="keepOriginalFilenames"
+            label="Preservar nomes originais"
+            variant="mini"
+            scenarioType="feature"
+            forceShowLock={true}
+          >
             <button
               type="button"
               onClick={() => setRenameFilesSequential(!renameFilesSequential)}
@@ -344,9 +416,9 @@ export function GaleriaDriveSection({
                 }`}
               />
             </button>
-          </div>
+          </PlanGuard>
         </div>
-      </PlanGuard>
+      </div>
     </div>
   );
 }
