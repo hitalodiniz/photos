@@ -86,13 +86,15 @@ export function getPublicGalleryUrl(photographer: any, slug: string) {
   // 3. Remove barras extras no início ou fim
   const finalPath = cleanPath.replace(/^\/+|\/+$/g, '');
 
-  // 4. Lógica de Subdomínio (Ex: hitalo.suagaleria.com.br/minha-galeria)
-  if (photographer?.use_subdomain && username) {
+  // 4. Decide se deve usar subdomínio com base em photographer.use_subdomain
+  const canUseSubdomain = photographer?.use_subdomain === true && !!username;
+
+  if (canUseSubdomain) {
+    // Ex: http://hitalo.dominio.com/galeria
     return `${protocol}//${username}.${mainDomain}/${finalPath}`;
   }
 
-  // 5. Lógica de Domínio Principal (Ex: suagaleria.com.br/hitalo/minha-galeria)
-  // 🎯 Aqui incluímos o username no path para o roteamento padrão funcionar
+  // 5. Caminho clássico: ex: http://dominio.com/hitalo/galeria
   return `${protocol}//${mainDomain}/${username}/${finalPath}`;
 }
 

@@ -13,6 +13,7 @@ import { VerticalThumbnails } from './VerticalThumbnails';
 import { ThumbnailStrip } from './ThumbnailStrip';
 import { VerticalActionBar } from './VerticalActionBar';
 import { useShare } from '@/hooks/useShare';
+import { useZoom } from '@/hooks/useZoom';
 
 interface Photo {
   id: string | number;
@@ -116,7 +117,8 @@ export default function Lightbox({
 
   // Desativar gestos de touch se for visão única
   const onTouchEnd = () => {
-    if (isSingleView || !touchStart || !touchEnd) return; // 🎯 TRAVA AQUI
+    if (isSingleView || !touchStart || !touchEnd) return;
+    if (isZoomed) return; // <-- bloqueia navegação com zoom ativo
     const distance = touchStart - touchEnd;
     if (distance > minSwipeDistance) onNext();
     else if (distance < -minSwipeDistance) onPrev();
@@ -411,6 +413,8 @@ export default function Lightbox({
       ? galeria.theme_key
       : undefined;
 
+  const { zoom, reset, isZoomed, containerRef, cursor, handlers } = useZoom();
+
   return (
     <div
       className={isSystemDark ? 'dark' : ''}
@@ -495,6 +499,7 @@ export default function Lightbox({
             <button
               onClick={() => {
                 onPrev();
+                reset();
                 setSlideshowProgress(0);
                 if (isSlideshowActive) setIsSlideshowActive(false);
               }}
@@ -514,6 +519,7 @@ export default function Lightbox({
             <button
               onClick={() => {
                 onNext();
+                reset();
                 setSlideshowProgress(0);
                 if (isSlideshowActive) setIsSlideshowActive(false);
               }}
@@ -605,6 +611,9 @@ export default function Lightbox({
 
         {/* ÁREA DA FOTO */}
         <main
+          ref={containerRef} // <-- adicionar ref
+          style={{ cursor }} // <-- cursor dinâmico
+          {...handlers} // <-- spread dos handlers
           className={`flex-none md:fixed md:inset-0 md:z-[10] flex flex-col items-center justify-center px-4 md:px-0 ${isMobile ? 'min-h-[calc(100vh-140px)] pb-20' : 'min-h-[60vh] md:min-h-0'} ${onNavigateToIndex !== undefined && !isMobile && !isSingleView ? 'pr-24' : ''}`}
           onClick={(e) => e.stopPropagation()} // Previne que cliques na foto fechem o lightbox
         >
@@ -672,14 +681,28 @@ export default function Lightbox({
                 </div>
               </div>
             ) : (
-              <img
-                key={`${photoId}-${usingProxy}`}
-                ref={imgRef}
-                src={imgSrc}
-                onLoad={handleLoad}
-                onError={handleError}
-                style={{ imageOrientation: 'from-image' }}
-                className={`transition-all duration-700 ease-out
+              <div
+                style={{
+                  transform: `translate(${zoom.x}px, ${zoom.y}px) scale(${zoom.scale})`,
+                  transformOrigin: 'center center',
+                  transition:
+                    zoom.scale === 1 ? 'transform 0.25s ease' : 'none',
+                  width: '100%',
+                  height: '100%',
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'center',
+                  userSelect: 'none',
+                }}
+              >
+                <img
+                  key={`${photoId}-${usingProxy}`}
+                  ref={imgRef}
+                  src={imgSrc}
+                  onLoad={handleLoad}
+                  onError={handleError}
+                  style={{ imageOrientation: 'from-image' }}
+                  className={`transition-all duration-700 ease-out
               ${
                 isMobile
                   ? 'w-full h-full object-contain'
@@ -690,10 +713,11 @@ export default function Lightbox({
                   ? 'opacity-0 scale-95 blur-md'
                   : 'opacity-100 scale-100 blur-0 animate-in fade-in zoom-in duration-500'
               }`}
-                loading="eager"
-                decoding="sync"
-                alt={`${galleryTitle} - ${activeIndex + 1}`}
-              />
+                  loading="eager"
+                  decoding="sync"
+                  alt={`${galleryTitle} - ${activeIndex + 1}`}
+                />
+              </div>
             )}
           </div>
         </main>

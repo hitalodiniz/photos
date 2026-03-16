@@ -66,7 +66,6 @@ import {
   deleteAsaasPayment,
 } from './asaas/api/payments';
 import { getPixQrCodeFromPayment } from './asaas/api/pix';
-import { getAsaasApiKeyOrThrow } from './asaas/api/client';
 import { reactivateAutoArchivedGalleries as reactivateAutoArchivedGalleriesImpl } from './asaas/gallery/adjustments';
 
 // ═══════════════════════════════════════════════════════════════════════════════
@@ -1036,8 +1035,16 @@ export async function checkAndApplyExpiredSubscriptions(
 export async function requestUpgrade(
   payload: UpgradeRequestPayload,
 ): Promise<UpgradeRequestResult> {
-  const apiKey = getAsaasApiKeyOrThrow();
-  
+  const apiKey =
+    process.env.ASAAS_API_KEY?.trim() || process.env.ASAAS_KEY?.trim() || null;
+  if (!apiKey) {
+    return {
+      success: false,
+      error:
+        'Configuração de pagamento indisponível. Configure ASAAS_API_KEY no .env.local e reinicie o servidor.',
+    };
+  }
+
   const supabase = await createSupabaseServerClient();
   const {
     success: authOk,

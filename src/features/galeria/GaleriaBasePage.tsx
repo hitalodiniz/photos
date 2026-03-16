@@ -63,14 +63,6 @@ export default async function GaleriaBasePage({
   const hasSubdomain = await checkSubdomainPermission(username);
   const protocol = process.env.NODE_ENV === 'production' ? 'https' : 'http';
 
-  console.log('[GaleriaBasePage] redirect-check', {
-    username,
-    fullSlug,
-    isSubdomainContext,
-    hasSubdomain,
-    protocol,
-  });
-
   // REGRA 1: Rota clássica mas fotógrafo TEM subdomínio → redireciona
   if (!isSubdomainContext && hasSubdomain) {
     const correctUrl = resolveGalleryUrl(
@@ -80,11 +72,7 @@ export default async function GaleriaBasePage({
       MAIN_DOMAIN,
       protocol,
     );
-    console.log('[GaleriaBasePage] REDIRECT to subdomain', {
-      username,
-      fullSlug,
-      correctUrl,
-    });
+
     redirect(correctUrl);
   }
 
@@ -97,11 +85,7 @@ export default async function GaleriaBasePage({
       MAIN_DOMAIN,
       protocol,
     );
-    console.log('[GaleriaBasePage] REDIRECT to classic', {
-      username,
-      fullSlug,
-      fallbackUrl,
-    });
+
     redirect(fallbackUrl);
   }
 

@@ -288,7 +288,7 @@ export const PERMISSIONS_BY_PLAN: Record<PlanKey, PlanPermissions> = {
     teamMembers: 0,
     profileLevel: 'basic',
     profileCarouselLimit: 0,
-    profileListLimit: 1,
+    profileListLimit: 3,
     removeBranding: false,
     // ── Leads
     canCaptureLeads: false,
@@ -1228,7 +1228,7 @@ export const COMMON_FEATURES = [
     group: 'Perfil Público',
     label: 'Catálogo de Galerias',
     values: [
-      'Exibir 1',
+      'Exibir até 3',
       'Exibir até 10',
       'Exibir até 20',
       'Portfólio Completo',

@@ -51,6 +51,9 @@ export default function UserMenu({
   const menuRef = useRef<HTMLDivElement>(null);
 
   const userEmail = session?.email || 'Usuário';
+  const username =
+    (session?.user_metadata as { username?: string } | undefined)?.username ||
+    userEmail.split('@')[0];
 
   const { fullName, displayAvatar, initialLetter } = useMemo(() => {
     const name =
@@ -122,18 +125,25 @@ export default function UserMenu({
           /* 🎯 glass-surface-dark: Fundo translúcido com desfoque profundo */
           <div className="absolute right-0 mt-1 w-72 glass-surface rounded-xl py-4 z-[110] animate-in fade-in zoom-in-95 duration-200">
             <div className="flex flex-col items-center px-6 pb-2 text-center border-b border-white/5">
-              <div className="mb-2 relative">
-                <div className="p-1 rounded-full bg-white/5 ring-1 ring-gold/20">
-                  {renderAvatarContent('w-16 h-16', 'text-2xl', true)}
+              <Link
+                href={`/${username}`}
+                target="_blank"
+                rel="noreferrer"
+                className="flex flex-col items-center"
+              >
+                <div className="mb-2 relative">
+                  <div className="p-1 rounded-full bg-white/5 ring-1 ring-gold/20">
+                    {renderAvatarContent('w-16 h-16', 'text-2xl', true)}
+                  </div>
+                  <div className="absolute bottom-0 right-1 w-4 h-4 bg-status-success border-2 border-petroleum rounded-full" />
                 </div>
-                <div className="absolute bottom-0 right-1 w-4 h-4 bg-status-success border-2 border-petroleum rounded-full" />
-              </div>
-              <h3 className="text-[15px] font-semibold text-white truncate w-full tracking-luxury-tight">
-                {fullName}
-              </h3>
-              <p className="text-[9px] text-white/80 truncate w-full font-medium tracking-luxury-wide mt-1">
-                {userEmail}
-              </p>
+                <h3 className="text-[15px] font-semibold text-white truncate w-full tracking-luxury-tight">
+                  {fullName}
+                </h3>
+                <p className="text-[9px] text-white/80 truncate w-full font-medium tracking-luxury-wide mt-1">
+                  {userEmail}
+                </p>
+              </Link>
               {(planKey || planName) && (
                 <p className="flex items-center justify-center gap-1.5 text-[10px] text-white/80 font-medium tracking-luxury-wide mt-1 uppercase">
                   {planKey && PLAN_ICONS[planKey] && (

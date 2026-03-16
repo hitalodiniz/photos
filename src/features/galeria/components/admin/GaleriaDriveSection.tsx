@@ -17,10 +17,6 @@ import {
   Ban,
 } from 'lucide-react';
 
-// Número máximo de fotos de capa por galeria.
-// Config visual — não relacionada a plano.
-const MAX_COVERS_PER_GALLERY = 3;
-
 interface DriveData {
   id?: string;
   name?: string;
@@ -79,7 +75,7 @@ export function GaleriaDriveSection({
   const hardCap = planHardCap ?? permissions.maxPhotosPerGallery;
   const recommended = permissions.recommendedPhotosPerGallery; // base do pool (cálculo dinâmico)
   const alertThreshold = permissions.filesAlertThreshold ?? recommended; // aviso UX (ex: PRO=750, não 1000)
-  const maxCovers = MAX_COVERS_PER_GALLERY;
+  const maxCovers = permissions.maxCoverPerGallery ?? 1;
 
   // ── Pool: máximo que esta galeria pode usar (não exceder cota total)
   // Fonte da verdade: usedPhotoCredits = SUM(photo_count) em tb_galerias (não arquivadas/deletadas).
@@ -183,121 +179,180 @@ export function GaleriaDriveSection({
 
           {/* ── Alertas de fotos ─────────────────────────────────────────── */}
           {driveData.id && photoCount > 0 && (
-            <>
-              {/* Estado 1: acima do hard cap — BLOQUEIO */}
+            <div className="space-y-2">
+              {/* ESTADO 1: Limite por Galeria Excedido (BLOQUEIO) */}
               {isOverHardCap && (
-                <div className="p-2.5 rounded-luxury border bg-red-50 border-red-300 flex gap-2.5">
-                  <Ban size={14} className="text-red-500 shrink-0 mt-0.5" />
-                  <div className="space-y-1">
-                    <p className="text-[9px] font-bold uppercase text-red-700">
-                      {photoCount} arquivos — limite excedido
+                <div className="p-4 rounded-luxury border bg-red-50 border-red-300 flex gap-3 shadow-sm">
+                  <Ban size={18} className="text-red-500 shrink-0 mt-0.5" />
+                  <div className="space-y-2">
+                    <p className="text-[11px] font-semibold uppercase text-red-700 tracking-wider">
+                      {photoCount.toLocaleString('pt-BR')} arquivos — Limite
+                      Excedido
                     </p>
-                    <p className="text-[9px] text-red-600/80 leading-tight">
-                      Seu plano suporta até <strong>{hardCap} arquivos</strong>{' '}
-                      por galeria. Remova arquivos da pasta ou faça upgrade para
-                      continuar.
+                    <p className="text-[12px] text-red-600 leading-relaxed">
+                      Seu plano permite no máximo{' '}
+                      <strong>{hardCap} arquivos por galeria</strong>. Para
+                      continuar:
                     </p>
+                    <ul className="list-disc list-inside text-[11px] text-red-600/90 space-y-1 ml-1">
+                      <li>Remova arquivos da pasta no Google Drive</li>
+                      <li>Faça um upgrade para um plano superior</li>
+                    </ul>
                   </div>
                 </div>
               )}
 
-              {/* Estado 1b: cota do pool insuficiente — limitar a maxAllowedByPool e abrir modal */}
-              {isOverPoolCap && (
-                <div className="p-2.5 rounded-luxury border bg-red-50 border-red-300 flex gap-2.5">
-                  <Ban size={14} className="text-red-500 shrink-0 mt-0.5" />
-                  <div className="space-y-1">
-                    <p className="text-[10px] font-bold uppercase text-red-700">
-                      {photoCount.toLocaleString('pt-BR')} arquivos na pasta —{' '}
-                      {creditsInPoolForMessage.toLocaleString('pt-BR')} créditos
-                      na cota de arquivos
+              {/* ESTADO 1b: Cota Global Insuficiente (BLOQUEIO/LIMITAÇÃO) */}
+              {isOverPoolCap && !isOverHardCap && (
+                <div className="p-4 rounded-luxury border bg-red-50 border-red-300 flex gap-3 shadow-sm">
+                  <Ban size={18} className="text-red-500 shrink-0 mt-0.5" />
+                  <div className="space-y-2">
+                    <p className="text-[11px] font-semibold uppercase text-red-700 tracking-wider">
+                      Cota de Arquivos Insuficiente
                     </p>
-                    <p className="text-[10px] text-red-600/80 leading-tight font-medium">
-                      Sua pasta tem{' '}
-                      <strong>
-                        {photoCount.toLocaleString('pt-BR')} fotos
-                      </strong>
-                      , mas você tem{' '}
-                      <strong>
-                        {creditsInPoolForMessage.toLocaleString('pt-BR')}{' '}
-                        créditos
-                      </strong>{' '}
-                      disponíveis na cota de arquivos.
-                      {creditsInPoolForMessage === 0 ? (
-                        ' Nenhuma foto a mais será exibida'
-                      ) : (
-                        <>
-                          {' '}
-                          Apenas{' '}
-                          <strong>
-                            {creditsInPoolForMessage.toLocaleString('pt-BR')}{' '}
-                            fotos
-                          </strong>{' '}
-                          serão exibidas
-                        </>
-                      )}{' '}
-                      nesta galeria.
-                    </p>
+                    <div className="text-[12px] text-red-600 leading-relaxed font-medium">
+                      <p>
+                        Esta pasta possui{' '}
+                        <strong>
+                          {photoCount.toLocaleString('pt-BR')} fotos
+                        </strong>
+                        , mas sua cota atual só permite exibir{' '}
+                        <strong>
+                          {creditsInPoolForMessage.toLocaleString('pt-BR')}{' '}
+                          arquivos
+                        </strong>
+                        .
+                      </p>
+                      <p className="mt-2 text-[11px] bg-red-100/50 p-2 rounded border border-red-200">
+                        {creditsInPoolForMessage === 0
+                          ? 'Nenhuma foto adicional desta pasta será exibida enquanto a cota permanecer cheia.'
+                          : `Serão exibidas apenas as primeiras ${creditsInPoolForMessage.toLocaleString(
+                              'pt-BR',
+                            )} de ${photoCount.toLocaleString(
+                              'pt-BR',
+                            )} fotos desta pasta.`}
+                      </p>
+                    </div>
                   </div>
                 </div>
               )}
 
-              {/* Estado 2: acima do alertThreshold — aviso de consumo de cota */}
-              {isOverRecommended && (
-                <div className="p-2.5 rounded-luxury border bg-amber-50 border-amber-200 flex gap-2.5">
-                  <AlertTriangle
-                    size={14}
-                    className="text-amber-500 shrink-0 mt-0.5"
-                  />
+              {/* ESTADO 2: Alerta de Consumo ou Cota Esgotada (AVISO) */}
+              {isOverRecommended && !isOverHardCap && !isOverPoolCap && (
+                <div
+                  className={`p-3 rounded-luxury border flex gap-3 shadow-sm ${remainingCreditsAfterThis <= 0 ? 'bg-red-50 border-red-200' : 'bg-amber-50 border-amber-200'}`}
+                >
                   <div className="space-y-1">
-                    <p className="text-[9px] font-bold uppercase text-amber-700">
-                      {photoCount} arquivos — acima do recomendado
+                    <p
+                      className={`text-[10px] font-semibold uppercase tracking-wider flex items-center gap-2 ${remainingCreditsAfterThis <= 0 ? 'text-red-700' : 'text-amber-700'}`}
+                    >
+                      <AlertTriangle
+                        size={12}
+                        className={
+                          remainingCreditsAfterThis <= 0
+                            ? 'text-red-500 shrink-0 mt-0.5'
+                            : 'text-amber-500 shrink-0 mt-0.5'
+                        }
+                      />
+                      Uso da Cota de Arquivos
                     </p>
-                    <p className="text-[10px] text-amber-700 leading-tight">
-                      O recomendado é{' '}
-                      <strong>até {alertThreshold} arquivos</strong> por galeria
-                      (máximo do plano: <strong>{hardCap}</strong> por galeria).
-                      Com {photoCount} fotos, esta galeria consome {photoCount}{' '}
-                      créditos do seu pool de{' '}
-                      <strong>{totalPool.toLocaleString('pt-BR')}</strong>.
-                      Restam{' '}
-                      <strong>
-                        {remainingCreditsAfterThis.toLocaleString('pt-BR')}{' '}
-                        créditos
-                      </strong>{' '}
-                      no pool para as próximas galerias. O limite é dinâmico:
-                      você pode distribuir esses créditos entre até{' '}
-                      {maxGalleriesInPlan} galerias (ex.:{' '}
-                      {remainingCreditsAfterThis > 0
-                        ? Math.floor(
-                            remainingCreditsAfterThis / maxGalleriesInPlan,
-                          )
-                        : 0}{' '}
-                      em cada) ou usar tudo em uma só — aí não haverá cota para
-                      novas galerias.
-                    </p>
+                    <div
+                      className={`text-[11px] leading-relaxed ${remainingCreditsAfterThis <= 0 ? 'text-red-800' : 'text-amber-800'}`}
+                    >
+                      <p>
+                        O recomendado é até{' '}
+                        <strong>{alertThreshold} arquivos</strong> por galeria
+                        (máximo do plano: {hardCap} arquivos por galeria).
+                      </p>
+
+                      <div
+                        className={`mt-3 pt-3 border-t ${remainingCreditsAfterThis <= 0 ? 'border-red-200' : 'border-amber-200'}`}
+                      >
+                        {remainingCreditsAfterThis > 0 ? (
+                          <div className="space-y-2">
+                            <p>
+                              Esta galeria usa uma parte relevante da sua cota,
+                              mas ainda{' '}
+                              <strong>
+                                sobram{' '}
+                                {remainingCreditsAfterThis.toLocaleString(
+                                  'pt-BR',
+                                )}{' '}
+                                arquivos
+                              </strong>{' '}
+                              disponíveis para outras galerias.
+                            </p>
+                            <p className="text-[11px] opacity-80 italic">
+                              * O limite é dinâmico e compartilhado entre suas
+                              galerias.
+                            </p>
+                          </div>
+                        ) : (
+                          <div className="space-y-1">
+                            <p className="font-semibold text-[11px]">
+                              COTA GLOBAL ESGOTADA
+                            </p>
+                            <p>
+                              A soma de todas as suas galerias atingiu o teto de{' '}
+                              <strong>
+                                {totalPool.toLocaleString('pt-BR')} arquivos
+                              </strong>
+                              .
+                            </p>
+                            <p>
+                              Você ainda pode manter esta galeria, mas{' '}
+                              <strong>
+                                novas galerias não terão fotos visíveis
+                              </strong>{' '}
+                              enquanto não liberar cota.
+                            </p>
+                            <p className="font-semibold">Para liberar saldo:</p>
+                            <ul className="list-disc list-inside ml-1 text-[11px]">
+                              <li>Arquive ou delete galerias antigas</li>
+                              <li>
+                                Reduza a quantidade de fotos nas galerias atuais
+                              </li>
+                              <li>Considere um upgrade de plano</li>
+                            </ul>
+                          </div>
+                        )}
+                      </div>
+                    </div>
                   </div>
                 </div>
               )}
 
-              {/* Estado 3: compatível — confirmação com saldo restante */}
+              {/* ESTADO 3: Compatível (CONFIRMAÇÃO) */}
+              {/* ESTADO 3: Compatível (CONFIRMAÇÃO) */}
               {isCompatible && (
-                <div className="p-2.5 rounded-luxury border bg-emerald-50 border-emerald-200 flex gap-2.5">
-                  <CheckCircle2
-                    size={14}
-                    className="text-emerald-500 shrink-0 mt-0.5"
-                  />
-                  <div className="space-y-0.5">
-                    <p className="text-[9px] font-semibold uppercase text-emerald-700">
-                      {photoCount} arquivos — compatível com seu plano
+                <div className="p-3  rounded-luxury border bg-emerald-50 border-emerald-200 flex gap-3 shadow-sm">
+                  <div className="space-y-1">
+                    {/* Adicionada a contagem de arquivos aqui para manter o padrão dos outros estados */}
+                    <p className="flex items-center gap-2 text-[11px] font-semibold uppercase text-emerald-700 tracking-wider">
+                      <CheckCircle2
+                        size={16}
+                        className="text-emerald-500 shrink-0"
+                      />
+                      {photoCount.toLocaleString('pt-BR')} arquivos — Compatível
                     </p>
-                    <p className="text-[10px] text-emerald-700 leading-tight">
-                      Dentro do limite recomendado de{' '}
-                      <strong>{alertThreshold} arquivos</strong> por galeria.
-                    </p>
+                    <div className="text-[12px] text-emerald-700 leading-relaxed">
+                      <p>
+                        Esta galeria está dentro do limite recomendado de{' '}
+                        <strong>{alertThreshold} arquivos</strong> do seu plano.
+                      </p>
+                      <p className="mt-1 opacity-90">
+                        Você ainda possui{' '}
+                        <strong>
+                          {remainingCreditsAfterThis.toLocaleString('pt-BR')} na
+                          sua cota
+                        </strong>{' '}
+                        de arquivos.
+                      </p>
+                    </div>
                   </div>
                 </div>
               )}
-            </>
+            </div>
           )}
 
           {/* Pasta vinculada mas sem fotos */}
