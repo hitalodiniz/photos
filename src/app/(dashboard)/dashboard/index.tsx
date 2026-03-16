@@ -48,8 +48,13 @@ export default function Dashboard({
 
   const [galerias, setGalerias] = useState<Galeria[]>(initialGalerias);
 
+  // Somente galerias ativas (não deletadas) contam para a cota de arquivos.
   const totalPhotosUsed = useMemo(
-    () => galerias.reduce((sum, g) => sum + (g.photo_count || 0), 0),
+    () =>
+      galerias
+        .filter((g) => !g.is_deleted)
+        .filter((g) => !g.is_archived)
+        .reduce((sum, g) => sum + (g.photo_count || 0), 0),
     [galerias],
   );
 
@@ -77,7 +82,8 @@ export default function Dashboard({
       ? {
           maxPhotosPerGallery:
             MAX_PHOTOS_PER_GALLERY_BY_PLAN[planKey as PlanKey],
-          photoCredits: PERMISSIONS_BY_PLAN[planKey as PlanKey]?.photoCredits ?? 450,
+          photoCredits:
+            PERMISSIONS_BY_PLAN[planKey as PlanKey]?.photoCredits ?? 450,
         }
       : null;
   const actions = useDashboardActions(

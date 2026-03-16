@@ -226,6 +226,7 @@ export function GaleriaDriveSection({
                         ' Nenhuma foto a mais será exibida'
                       ) : (
                         <>
+                          {' '}
                           Apenas{' '}
                           <strong>
                             {creditsInPoolForMessage.toLocaleString('pt-BR')}{' '}

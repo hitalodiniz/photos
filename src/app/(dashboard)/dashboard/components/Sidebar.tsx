@@ -232,7 +232,7 @@ export default function Sidebar({
       <UpgradeSheet
         isOpen={upgradeSheetOpen}
         onClose={() => setUpgradeSheetOpen(false)}
-        initialPlanKey={planKey}
+        initialPlanKey={planKey === 'PRO' ? 'PREMIUM' : 'PRO'}
       />
     </>
   );

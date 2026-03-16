@@ -80,6 +80,13 @@ interface UpgradeSheetContextValue {
   streetInputRef: React.RefObject<HTMLInputElement | null>;
   // Validation
   canProceedData: boolean;
+  /** Etapa de pagamento válida (CREDIT_CARD com dados válidos). */
+  canProceedBilling: boolean;
+  setCanProceedBilling: (v: boolean) => void;
+  /** Resultado da última consulta de CEP (true = válido, false = inválido, null = ainda não checado). */
+  cepValid: boolean | null;
+  /** Quando true, logradouro/bairro/cidade/UF foram preenchidos via CEP e ficam bloqueados para edição rápida. */
+  addressLockedByCep: boolean;
   // Handlers
   handleCepChange: (formattedCep: string) => void;
   handleCepBlur: () => void;
@@ -207,6 +214,9 @@ export function UpgradeSheetProvider({
     string | null
   >(null);
   const [isCalculationLoading, setIsCalculationLoading] = useState(false);
+  const [canProceedBilling, setCanProceedBilling] = useState(true);
+  const [cepValid, setCepValid] = useState<boolean | null>(null);
+  const [addressLockedByCep, setAddressLockedByCep] = useState(false);
   const numberInputRef = React.useRef<HTMLInputElement>(null);
   const streetInputRef = React.useRef<HTMLInputElement>(null);
   const wasOpenRef = React.useRef(false);
@@ -276,6 +286,7 @@ export function UpgradeSheetProvider({
     cpfCnpjValid;
   const canProceedAddress =
     address.cep.replace(/\D/g, '').length === 8 &&
+    cepValid !== false &&
     address.street.trim() !== '' &&
     address.number.trim() !== '' &&
     address.neighborhood.trim() !== '' &&
@@ -286,22 +297,32 @@ export function UpgradeSheetProvider({
   const fetchCep = useCallback(async (cepDigits: string) => {
     if (cepDigits.length !== 8) return;
     setLoadingCep(true);
+    setCepValid(null);
     try {
       const res = await fetch(`https://viacep.com.br/ws/${cepDigits}/json/`);
       const data = await res.json();
       if (!data.erro) {
+        setCepValid(true);
         const logradouro = data.logradouro?.trim() || '';
+        const bairro = data.bairro?.trim() || '';
         setAddress((prev) => ({
           ...prev,
           street: logradouro || prev.street,
-          neighborhood: data.bairro || prev.neighborhood,
+          neighborhood: bairro || prev.neighborhood,
           city: data.localidade || prev.city,
           state: data.uf || prev.state,
         }));
+        // Só trava os campos se a API retornou logradouro E bairro.
+        // Em muitos CEPs de interior, esses campos vêm vazios e o usuário precisa digitar manualmente.
+        setAddressLockedByCep(Boolean(logradouro) && Boolean(bairro));
         setTimeout(() => {
           numberInputRef.current?.focus();
           if (!logradouro) streetInputRef.current?.focus();
         }, 100);
+      } else {
+        // CEP não encontrado na API → marcar como inválido (campos continuam editáveis)
+        setCepValid(false);
+        setAddressLockedByCep(false);
       }
     } catch {
       // silencioso
@@ -319,6 +340,10 @@ export function UpgradeSheetProvider({
     (formattedCep: string) => {
       setAddress((a) => ({ ...a, cep: formattedCep }));
       const clean = formattedCep.replace(/\D/g, '');
+      // Sempre que o usuário edita o CEP manualmente, liberamos os campos de endereço
+      // e resetamos o status de validade até a próxima consulta.
+      setAddressLockedByCep(false);
+      setCepValid(null);
       if (clean.length === 8) fetchCep(clean);
     },
     [fetchCep],
@@ -359,7 +384,9 @@ export function UpgradeSheetProvider({
         if (result.warning) setRequestWarning(result.warning);
         if (
           result.billing_type === 'PIX' &&
-          (result.pix_qr_code_base64 || result.pix_copy_paste || result.payment_url)
+          (result.pix_qr_code_base64 ||
+            result.pix_copy_paste ||
+            result.payment_url)
         ) {
           setPixData({
             qrCode: result.pix_qr_code_base64 ?? '',
@@ -434,6 +461,9 @@ export function UpgradeSheetProvider({
     setCreditCard(initialCreditCard);
     setHasSavedBillingData(false);
     setIsCalculationLoading(false);
+    setCanProceedBilling(true);
+    setCepValid(null);
+    setAddressLockedByCep(false);
   }, [suggestedPlanKey]);
 
   const handleClose = useCallback(() => {
@@ -481,6 +511,9 @@ export function UpgradeSheetProvider({
       numberInputRef,
       streetInputRef,
       canProceedData,
+      canProceedBilling,
+      cepValid,
+      addressLockedByCep,
       handleCepChange,
       handleCepBlur,
       fetchCep,
@@ -499,6 +532,7 @@ export function UpgradeSheetProvider({
       setDowngradeBlockedMessage,
       isCalculationLoading,
       setIsCalculationLoading,
+      setCanProceedBilling,
     }),
     [
       step,
@@ -526,6 +560,10 @@ export function UpgradeSheetProvider({
       hasSavedBillingData,
       loadingCep,
       canProceedData,
+      canProceedBilling,
+      cepValid,
+      addressLockedByCep,
+      canProceedBilling,
       handleCepChange,
       handleCepBlur,
       fetchCep,

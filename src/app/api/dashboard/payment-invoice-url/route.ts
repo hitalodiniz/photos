@@ -2,7 +2,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { createSupabaseServerClient } from '@/lib/supabase.server';
 import { getAuthenticatedUser } from '@/core/services/auth-context.service';
-import { getAsaasPaymentInvoiceUrl } from '@/core/services/asaas.service';
+import { getAsaasPaymentInvoiceUrl } from '@/core/services/asaas';
 
 export const dynamic = 'force-dynamic';
 

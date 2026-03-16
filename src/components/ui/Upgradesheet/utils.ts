@@ -115,7 +115,7 @@ export function formatExpiryMonth(value: string): string {
 
 /** AA ou AAAA (2 ou 4 dígitos). */
 export function formatExpiryYear(value: string): string {
-  return value.replace(/\D/g, '').slice(0, 4);
+  return value.replace(/\D/g, '').slice(0, 2);
 }
 
 /** CVV 3 ou 4 dígitos. */

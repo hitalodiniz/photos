@@ -40,6 +40,8 @@ export function StepPersonal() {
     handleCepBlur,
     numberInputRef,
     streetInputRef,
+    cepValid,
+    addressLockedByCep,
   } = useUpgradeSheetContext();
 
   const cpfInputRef = useRef<HTMLInputElement>(null);
@@ -169,12 +171,22 @@ export function StepPersonal() {
                 onBlur={handleCepBlur}
                 placeholder="00000-000"
                 maxLength={9}
-                className="w-full px-2.5 py-2 h-9 bg-slate-50 border border-slate-200 rounded-[0.4rem] text-[10px] text-petroleum font-medium outline-none"
+                className={`w-full px-2.5 py-2 h-9 bg-slate-50 border rounded-[0.4rem] text-[10px] text-petroleum font-medium outline-none ${
+                  cepValid === false ? 'border-red-400' : 'border-slate-200'
+                }`}
               />
               {loadingCep && (
                 <div className="absolute right-2 w-2.5 h-2.5 border-2 border-petroleum/20 border-t-petroleum rounded-full animate-spin" />
               )}
             </div>
+            {cepValid === false && (
+              <div className="flex items-center gap-1 mt-0.5">
+                <AlertCircle size={10} className="text-red-500 shrink-0" />
+                <p className="text-[9px] text-red-600 font-medium">
+                  CEP não encontrado. Verifique o número ou preencha o endereço manualmente.
+                </p>
+              </div>
+            )}
           </div>
           <div className="space-y-1 min-w-0">
             <FieldLabel icon={Home} label="Logradouro" required />
@@ -182,6 +194,7 @@ export function StepPersonal() {
               ref={streetInputRef}
               type="text"
               value={address.street}
+              disabled={addressLockedByCep}
               onChange={(e) =>
                 setAddress((a) => ({ ...a, street: e.target.value }))
               }
@@ -228,6 +241,7 @@ export function StepPersonal() {
             <input
               type="text"
               value={address.neighborhood}
+              disabled={addressLockedByCep}
               onChange={(e) =>
                 setAddress((a) => ({ ...a, neighborhood: e.target.value }))
               }
@@ -243,6 +257,7 @@ export function StepPersonal() {
             <input
               type="text"
               value={address.city}
+              disabled={addressLockedByCep}
               onChange={(e) =>
                 setAddress((a) => ({ ...a, city: e.target.value }))
               }
@@ -255,6 +270,7 @@ export function StepPersonal() {
             <input
               type="text"
               value={address.state}
+              disabled={addressLockedByCep}
               onChange={(e) =>
                 setAddress((a) => ({
                   ...a,

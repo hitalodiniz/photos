@@ -5,7 +5,10 @@ import UpgradeModal from '@/components/ui/UpgradeModal';
 import { InfoTooltip } from '@/components/ui/InfoTooltip';
 import React, { useState } from 'react';
 import { usePlan } from '@/core/context/PlanContext';
-import { calcEffectiveMaxGalleries } from '@/core/config/plans';
+import {
+  calcEffectiveMaxGalleries,
+  MAX_PHOTOS_PER_GALLERY_BY_PLAN,
+} from '@/core/config/plans';
 import { HELP_CONTENT } from '@/core/config/help-content';
 
 interface SidebarStorageProps {
@@ -28,7 +31,13 @@ export default function SidebarStorage({
   const hardCap = permissions.maxGalleriesHardCap;
   const recommended = permissions.recommendedPhotosPerGallery;
   const photoCredits = permissions.photoCredits;
-  const maxPhotosPerGallery = permissions.maxPhotosPerGallery ?? 300;
+  // Hard cap real por galeria vem de MAX_PHOTOS_PER_GALLERY_BY_PLAN.
+  // O campo permissions.maxPhotosPerGallery é usado para outras regras internas
+  // e pode ser menor (ex.: limite recomendado), então o tooltip deve usar o teto real.
+  const maxPhotosPerGallery =
+    MAX_PHOTOS_PER_GALLERY_BY_PLAN[planKey] ??
+    permissions.maxPhotosPerGallery ??
+    300;
 
   const effectiveMax = calcEffectiveMaxGalleries(
     planKey,
@@ -114,11 +123,6 @@ export default function SidebarStorage({
                   <span className="text-[10px] text-white/90 font-normal mr-1">
                     /{hardCap}
                   </span>
-                  <InfoTooltip
-                    portal
-                    title={HELP_CONTENT.STORAGE.GALLERIES.title}
-                    content={galleriesTooltipContent}
-                  />
                 </div>
               </div>
 

@@ -6,7 +6,7 @@ import {
   getSubscriptionExpiresAt,
   getLastChargeAmount,
 } from '@/core/services/billing.service';
-import { getAsaasSubscriptionStatus } from '@/core/services/asaas.service';
+import { getAsaasSubscriptionStatus } from '@/core/services/asaas';
 import { getPhotographerPoolStats } from '@/core/services/galeria.service';
 import AssinaturaContent from '@/app/(dashboard)/dashboard/assinatura/AssinaturaContent';
 import type { Profile } from '@/core/types/profile';

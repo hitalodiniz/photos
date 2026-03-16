@@ -46,7 +46,7 @@ import { button } from 'framer-motion/client';
 import {
   reactivateSubscription,
   updateSubscriptionBillingMethod,
-} from '@/core/services/asaas.service';
+} from '@/core/services/asaas';
 import { getBillingProfile } from '@/core/services/billing.service';
 import { CancelReason } from 'vitest';
 import {

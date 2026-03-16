@@ -19,8 +19,8 @@ vi.mock('@/core/services/profile.service', () => ({
 }));
 
 vi.mock('@/core/utils/url-helper', () => ({
-  resolveGalleryUrl: vi.fn((username, pathname) => 
-    `https://${username}.test.com${pathname}`
+  resolveGalleryUrl: vi.fn(
+    (username, pathname) => `https://${username}.test.com${pathname}`,
   ),
 }));
 
@@ -38,24 +38,24 @@ describe('middleware', () => {
     process.env.NEXT_PUBLIC_BASE_URL = 'https://test.com';
     process.env.NEXT_PUBLIC_MAIN_DOMAIN = undefined;
     process.env.NODE_ENV = 'development';
-    
+
     vi.mocked(createServerClient).mockReturnValue(mockSupabase as any);
   });
 
   it('deve permitir acesso a arquivos estáticos', async () => {
     const request = new NextRequest('https://test.com/favicon.ico');
-    
+
     const response = await middleware(request);
-    
+
     expect(response.status).toBe(200);
     expect(createServerClient).not.toHaveBeenCalled();
   });
 
   it('deve permitir acesso a rotas de API', async () => {
     const request = new NextRequest('https://test.com/api/test');
-    
+
     const response = await middleware(request);
-    
+
     expect(response.status).toBe(200);
     expect(createServerClient).not.toHaveBeenCalled();
   });
@@ -69,9 +69,9 @@ describe('middleware', () => {
     const request = new NextRequest('https://test.com/dashboard', {
       headers: new Headers({ host: 'test.com' }),
     });
-    
+
     const response = await middleware(request);
-    
+
     expect(response.status).toBe(307); // Redirect
     expect(mockSupabase.auth.getUser).toHaveBeenCalled();
   });
@@ -85,9 +85,9 @@ describe('middleware', () => {
     const request = new NextRequest('https://test.com/dashboard', {
       headers: new Headers({ host: 'test.com' }),
     });
-    
+
     const response = await middleware(request);
-    
+
     expect(response.status).toBe(200);
     expect(mockSupabase.auth.getUser).toHaveBeenCalled();
   });
@@ -101,9 +101,9 @@ describe('middleware', () => {
     const request = new NextRequest('https://test.com/onboarding', {
       headers: new Headers({ host: 'test.com' }),
     });
-    
+
     const response = await middleware(request);
-    
+
     expect(response.status).toBe(307);
   });
 
@@ -116,9 +116,9 @@ describe('middleware', () => {
     const request = new NextRequest('https://testuser.test.com/', {
       headers: new Headers({ host: 'testuser.test.com' }),
     });
-    
+
     const response = await middleware(request);
-    
+
     expect(fetchProfileDirectDB).toHaveBeenCalledWith('testuser');
     expect(response.status).toBe(200);
   });
@@ -132,9 +132,9 @@ describe('middleware', () => {
     const request = new NextRequest('https://testuser.test.com/', {
       headers: new Headers({ host: 'testuser.test.com' }),
     });
-    
+
     const response = await middleware(request);
-    
+
     // NextResponse.rewrite para /404
     expect(response.status).toBe(200);
   });
@@ -148,9 +148,9 @@ describe('middleware', () => {
     const request = new NextRequest('https://test.com/testuser', {
       headers: new Headers({ host: 'test.com' }),
     });
-    
+
     const response = await middleware(request);
-    
+
     expect(response.status).toBe(301); // Redirect permanente (301 é usado no código)
   });
 });

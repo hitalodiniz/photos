@@ -53,6 +53,9 @@ function UpgradeSheetContent({
     planKey,
     hasPendingUpgrade,
     downgradeBlockedMessage,
+    billingType,
+    canProceedBilling,
+    upgradeCalculation,
   } = useUpgradeSheetContext();
 
   const [showExemptConfirm, setShowExemptConfirm] = useState(false);
@@ -138,8 +141,13 @@ function UpgradeSheetContent({
             {step === 'billing' && (
               <button
                 type="button"
+                disabled={
+                  billingType === 'CREDIT_CARD' &&
+                  !canProceedBilling &&
+                  !(upgradeCalculation?.amount_final === 0)
+                }
                 onClick={() => setStep('confirm')}
-                className="btn-luxury-primary w-full"
+                className="btn-luxury-primary w-full disabled:opacity-40 disabled:cursor-not-allowed"
               >
                 <CheckCircle2 size={14} />
                 Revisar e Confirmar

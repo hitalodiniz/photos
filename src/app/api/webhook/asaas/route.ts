@@ -3,7 +3,8 @@ import { createSupabaseServerClient } from '@/lib/supabase.server';
 import { revalidatePath } from 'next/cache';
 import { revalidateUserCache } from '@/actions/revalidate.actions';
 import type { AsaasWebhookPayload, AsaasWebhookEvent } from '@/core/types/billing';
-import { performDowngradeToFree, reactivateAutoArchivedGalleries } from '@/core/services/asaas.service';
+import { performDowngradeToFree } from '@/core/services/asaas.service';
+import { reactivateAutoArchivedGalleries } from '@/core/services/asaas';
 import type { PlanKey } from '@/core/config/plans';
 
 export async function POST(request: NextRequest) {

@@ -67,6 +67,7 @@ const setInstallments = vi.fn((n: number) => {
 const setUpgradeCalculation = vi.fn();
 const setCreditCard = vi.fn();
 const setIsCalculationLoading = vi.fn();
+const setCanProceedBilling = vi.fn();
 
 function makeCtx(overrides: Partial<typeof ctxState> = {}): typeof ctxState {
   return {
@@ -102,6 +103,8 @@ vi.mock('../UpgradeSheetContext', () => ({
     setUpgradeCalculation,
     setCreditCard,
     setIsCalculationLoading,
+    canProceedBilling: true,
+    setCanProceedBilling,
   }),
 }));
 

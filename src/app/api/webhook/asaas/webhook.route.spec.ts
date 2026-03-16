@@ -30,11 +30,16 @@ vi.mock('@/core/services/asaas.service', () => ({
     needs_adjustment: false,
     excess_galleries: [],
   }),
-  reactivateAutoArchivedGalleries: vi.fn().mockResolvedValue({ reactivated: 0 }),
+}));
+vi.mock('@/core/services/asaas', () => ({
+  reactivateAutoArchivedGalleries: vi
+    .fn()
+    .mockResolvedValue({ reactivated: 0 }),
 }));
 
 import { revalidatePath } from 'next/cache';
-import { performDowngradeToFree, reactivateAutoArchivedGalleries } from '@/core/services/asaas.service';
+import { performDowngradeToFree } from '@/core/services/asaas.service';
+import { reactivateAutoArchivedGalleries } from '@/core/services/asaas';
 
 // ─── Helpers ──────────────────────────────────────────────────────────────────
 

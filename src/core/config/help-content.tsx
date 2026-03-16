@@ -7,9 +7,9 @@ export const HELP_CONTENT = {
   STORAGE: {
     GALLERIES: {
       title: 'Galerias disponíveis',
-      /** Use {{hardCap}} e {{maxPhotosPerGallery}} para interpolar os limites do plano. */
+      /** Use {{hardCap}} (MAX_GALLERIES_HARD_CAP_BY_PLAN) e {{maxPhotosPerGallery}} (MAX_PHOTOS_PER_GALLERY_BY_PLAN) para interpolar os limites do plano. */
       content:
-        'Seu plano permite até {{hardCap}} galerias. O limite é dinâmico: os créditos restantes no seu pool definem quantas galerias você ainda pode criar — você pode distribuir esses créditos entre várias galerias ou usar tudo em uma só. Cada galeria deve respeitar sempre o limite máximo de {{maxPhotosPerGallery}} arquivos por galeria do plano.',
+        'Seu plano permite até {{hardCap}} galerias. O limite é dinâmico: os créditos restantes na sua cota de arquivos definem quantas galerias você ainda pode criar — você pode distribuir esses créditos entre várias galerias ou usar tudo em uma só. Cada galeria deve respeitar sempre o limite máximo de {{maxPhotosPerGallery}} arquivos por galeria do plano.',
     },
     /** Texto do badge quando a cota está limitando o número de galerias (effectiveMax < hardCap). */
     POOL_LIMITING_LABEL: 'cota',
@@ -17,7 +17,7 @@ export const HELP_CONTENT = {
       title: 'Cota de arquivos',
       /** Use {{maxPhotosPerGallery}} para interpolar o teto por galeria do plano. */
       content:
-        'Limite total de fotos e vídeos que o sistema pode processar e exibir do seu Google Drive. Os arquivos permanecem no Drive; a cota é só o limite de exibição na plataforma. Os créditos restantes no pool são para as próximas galerias; o limite por galeria é dinâmico conforme o uso, sempre respeitando o máximo de {{maxPhotosPerGallery}} arquivos por galeria do plano.',
+        'Limite total de fotos e vídeos que o sistema pode processar e exibir do seu Google Drive. Os arquivos permanecem no Drive; a cota é só o limite de exibição na plataforma. Os créditos restantes na cota de arquivos são para as próximas galerias; o limite por galeria é dinâmico conforme o uso, sempre respeitando o máximo de {{maxPhotosPerGallery}} arquivos por galeria do plano.',
     },
     REMAINING: {
       title: 'Saldo Restante',

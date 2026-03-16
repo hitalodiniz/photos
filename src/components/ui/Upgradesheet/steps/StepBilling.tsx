@@ -228,6 +228,8 @@ export function StepBilling() {
     profile,
     isCalculationLoading: calcLoading,
     setIsCalculationLoading: setCalcLoading,
+    canProceedBilling,
+    setCanProceedBilling,
   } = useUpgradeSheetContext();
 
   const isDowngradeWithCredit =
@@ -270,9 +272,20 @@ export function StepBilling() {
   const brand = detectBrand(creditCard.credit_card_number);
 
   useEffect(() => {
-    if (billingType !== 'CREDIT_CARD') return;
-    setErrors(validateCreditCard(creditCard));
-  }, [creditCard, billingType]);
+    if (billingType !== 'CREDIT_CARD') {
+      setErrors({});
+      // Outros meios de pagamento não dependem de cartão → passo de pagamento sempre válido
+      setCanProceedBilling(true);
+      return;
+    }
+
+    const nextErrors = validateCreditCard(creditCard);
+    setErrors(nextErrors);
+
+    // Sempre que recalcular os erros, atualiza a flag global de validade da etapa.
+    const hasAnyError = Object.values(nextErrors ?? {}).some(Boolean);
+    setCanProceedBilling(!hasAnyError);
+  }, [creditCard, billingType, setCanProceedBilling]);
 
   useEffect(() => {
     if (billingType !== 'CREDIT_CARD') setTouched({});
@@ -654,6 +667,8 @@ export function StepBilling() {
                       }
                       onBlur={() => touch('expiry_year')}
                       placeholder="AA"
+                      maxLength={2}
+                      minLength={2}
                       className="w-full px-2 py-1.5 h-8 bg-slate-50 border border-slate-200 rounded-[0.4rem] text-[10px] text-petroleum outline-none"
                     />
                   </div>

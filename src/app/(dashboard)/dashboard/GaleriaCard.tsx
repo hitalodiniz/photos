@@ -710,9 +710,19 @@ export default function GaleriaCard({
   return (
     <>
       <div
-        onClick={() =>
-          !isBulkMode && links.url && window.open(links.url, '_blank')
-        }
+        onClick={() => {
+          if (isBulkMode || !links.url) return;
+          console.log('[GaleriaCard] open public url', {
+            currentHost: window.location.host,
+            url: links.url,
+            galeriaSlug: galeria.slug,
+            photographer: {
+              username: galeria.photographer?.username,
+              use_subdomain: galeria.photographer?.use_subdomain,
+            },
+          });
+          window.open(links.url, '_blank');
+        }}
         className={`group relative flex flex-col overflow-hidden rounded-luxury border border-slate-200 bg-white transition-all w-full animate-in fade-in slide-in-from-bottom-2 duration-500 fill-mode-both hover:border-petroleum/70 ${isBulkMode ? 'cursor-default' : 'cursor-pointer'} ${isSelected && isBulkMode ? 'ring-2 ring-gold border-gold' : ''}`}
         style={{ animationDelay: `${index * 50}ms` }}
       >

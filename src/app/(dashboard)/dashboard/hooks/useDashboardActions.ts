@@ -4,6 +4,12 @@ import { useState } from 'react';
 import type { Galeria } from '@/core/types/galeria';
 import type { Profile } from '@/core/types/profile';
 import {
+  MAX_GALLERIES_HARD_CAP_BY_PLAN,
+  PHOTO_CREDITS_BY_PLAN,
+  MAX_PHOTOS_PER_GALLERY_BY_PLAN,
+  type PlanKey,
+} from '@/core/config/plans';
+import {
   moveToTrash,
   restoreGaleria,
   toggleArchiveGaleria,
@@ -53,6 +59,54 @@ export function useDashboardActions(
 
   const handleArchiveToggle = async (g: Galeria) => {
     const newStatus = !g.is_archived;
+
+    // Ao desarquivar, respeitar limites de plano (galerias ativas e pool de arquivos)
+    if (!newStatus && photographer) {
+      const planKey = (photographer.plan_key ?? 'FREE') as PlanKey;
+      const galleryLimit = MAX_GALLERIES_HARD_CAP_BY_PLAN[planKey] ?? 3;
+      const photoLimit =
+        planLimits?.photoCredits ?? PHOTO_CREDITS_BY_PLAN[planKey];
+      const maxPhotosPerGallery =
+        planLimits?.maxPhotosPerGallery ??
+        MAX_PHOTOS_PER_GALLERY_BY_PLAN[planKey];
+
+      const activeGalleries = galerias.filter(
+        (item) => !item.is_deleted && !item.is_archived && item.id !== g.id,
+      );
+
+      const currentGalleryCount = activeGalleries.length;
+      const currentPhotoSum = activeGalleries.reduce(
+        (sum, item) => sum + (item.photo_count ?? 0),
+        0,
+      );
+
+      const candidatePhotos = g.photo_count ?? 0;
+
+      const respectsSingleGalleryLimit =
+        candidatePhotos <= maxPhotosPerGallery;
+      const fitsInGlobalGalleryLimit = currentGalleryCount < galleryLimit;
+      const fitsInGlobalPhotoLimit =
+        currentPhotoSum + candidatePhotos <= photoLimit;
+
+      if (
+        !respectsSingleGalleryLimit ||
+        !fitsInGlobalGalleryLimit ||
+        !fitsInGlobalPhotoLimit
+      ) {
+        // Explica claramente qual limite foi atingido (galerias ou cota de arquivos)
+        let message: string;
+        if (!fitsInGlobalGalleryLimit) {
+          message = `Seu plano permite no máximo ${galleryLimit} galerias ativas. Você já atingiu esse limite. Faça upgrade para reativar mais galerias.`;
+        } else if (!fitsInGlobalPhotoLimit) {
+          message = `A cota de arquivos do seu plano (${photoLimit} arquivos) não comporta reativar esta galeria. Faça upgrade para aumentar a cota.`;
+        } else {
+          message = `Esta galeria tem mais arquivos (${candidatePhotos}) do que o limite por galeria do seu plano (${maxPhotosPerGallery}). Faça upgrade para reativar.`;
+        }
+        setToast({ message, type: 'error' });
+        return;
+      }
+    }
+
     setUpdatingId(g.id);
     const result = await toggleArchiveGaleria(g.id, g.is_archived);
 

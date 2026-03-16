@@ -18,12 +18,11 @@ import {
 import GoogleAuthError from '@/components/auth/GoogleAuthError';
 import PhotographerProfileBase from '@/components/profile/ProfileBase';
 import { PlanProvider } from '@/core/context/PlanContext';
-// FIX 2: Removido import de PlanKey — não é mais necessário aqui.
-// PlanProvider agora recebe o profile completo em vez de planKey string bruta.
 import WhatsAppIcon from '@/components/ui/WhatsAppIcon';
 import { emitGaleriaEvent } from '@/core/services/galeria-stats.service';
 import { Galeria } from '@/core/types/galeria';
 import { InternalTrafficSync } from '@/hooks/useSyncInternalTraffic';
+import { checkSubdomainPermission } from '@/core/services/profile.service';
 
 import { getAuthenticatedUser } from '@/core/services/auth-context.service';
 
@@ -55,11 +54,22 @@ export default async function GaleriaBasePage({
   // CASO 2: GALERIA
   const fullSlug = `${username}/${slug.join('/')}`;
 
+  // Busca galeria
   const galeriaRaw = await fetchGalleryBySlug(fullSlug);
   if (!galeriaRaw) notFound();
 
-  const hasSubdomain = !!galeriaRaw.photographer?.use_subdomain;
+  // Usa sempre o valor atual de use_subdomain direto do banco,
+  // sem cache, para evitar divergência após downgrade.
+  const hasSubdomain = await checkSubdomainPermission(username);
   const protocol = process.env.NODE_ENV === 'production' ? 'https' : 'http';
+
+  console.log('[GaleriaBasePage] redirect-check', {
+    username,
+    fullSlug,
+    isSubdomainContext,
+    hasSubdomain,
+    protocol,
+  });
 
   // REGRA 1: Rota clássica mas fotógrafo TEM subdomínio → redireciona
   if (!isSubdomainContext && hasSubdomain) {
@@ -70,6 +80,11 @@ export default async function GaleriaBasePage({
       MAIN_DOMAIN,
       protocol,
     );
+    console.log('[GaleriaBasePage] REDIRECT to subdomain', {
+      username,
+      fullSlug,
+      correctUrl,
+    });
     redirect(correctUrl);
   }
 
@@ -82,6 +97,11 @@ export default async function GaleriaBasePage({
       MAIN_DOMAIN,
       protocol,
     );
+    console.log('[GaleriaBasePage] REDIRECT to classic', {
+      username,
+      fullSlug,
+      fallbackUrl,
+    });
     redirect(fallbackUrl);
   }
 
@@ -118,7 +138,7 @@ export default async function GaleriaBasePage({
           </h3>
 
           <p className="text-[13px] md:text-[15px] leading-relaxed text-petroleum/60 max-w-md mx-auto">
-            Por questões de segurança e armazenamento, o link expirou em{' '}
+            Link expirou em{' '}
             <span className="font-bold text-petroleum/80">
               {new Date(galeriaData.expires_at).toLocaleDateString('pt-BR')}
             </span>
@@ -173,7 +193,7 @@ export default async function GaleriaBasePage({
                     `*Link:* ${resolveGalleryUrl(
                       galeriaData.photographer.username,
                       fullSlug,
-                      !!galeriaData.photographer.use_subdomain,
+                      hasSubdomain,
                       MAIN_DOMAIN,
                       process.env.NODE_ENV === 'production' ? 'https' : 'http',
                     )}\n\n` +
