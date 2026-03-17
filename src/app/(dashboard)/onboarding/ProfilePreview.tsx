@@ -4,7 +4,8 @@ import React, { useEffect, useState } from 'react';
 import { useParams } from 'next/navigation';
 import ProfileContent from '@/components/profile/ProfileContent';
 import { getPublicProfile } from '@/core/services/profile.service';
-import type { Profile } from '@/core/types/profile';
+import type { ThemeKey } from '../ui/ThemeSelector';
+
 
 export default function Photographer({ initialData }: { initialData?: any }) {
   const params = useParams();
@@ -16,8 +17,11 @@ export default function Photographer({ initialData }: { initialData?: any }) {
     if (initialData) {
       setProfile(initialData);
       setLoading(false);
-      return;
     }
+  }, [initialData]);
+
+  useEffect(() => {
+    if (initialData) return;
 
     async function fetchProfile() {
       if (!params.username) return;
@@ -37,7 +41,7 @@ export default function Photographer({ initialData }: { initialData?: any }) {
     }
 
     fetchProfile();
-  }, [params.username, initialData]);
+  }, [params.username]);
 
   // Loading State - Mantendo o fundo preto padrão do editorial
   if (loading) {
@@ -109,7 +113,7 @@ export default function Photographer({ initialData }: { initialData?: any }) {
             ? ({ ...profileForPermission, settings: profile.settings } as Profile)
             : (profileForPermission as Profile)
         }
-        themeKey={themeKey}
+        themeKey={themeKey as ThemeKey}
       />
     </div>
   );

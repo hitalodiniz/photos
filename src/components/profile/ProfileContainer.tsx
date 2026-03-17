@@ -4,7 +4,8 @@ import React, { useEffect, useState } from 'react';
 import { notFound } from 'next/navigation';
 import ProfileContent from './ProfileContent';
 import * as profileService from '@/core/services/profile.service';
-import LoadingScreen from '@/components/ui/LoadingScreen';
+import { ThemeKey } from '@/components/ui/ThemeSelector';
+
 
 interface Props {
   username: string;
@@ -72,7 +73,7 @@ export default function PhotographerContainer({
       backgroundUrl={profile.background_url}
       useSubdomain={profile.use_subdomain}
       profile={profile}
-      themeKey={profile.theme_key || process.env.NEXT_PUBLIC_APP_SEGMENT || 'PHOTOGRAPHER'}
+      themeKey={(profile.theme_key as ThemeKey) || (process.env.NEXT_PUBLIC_APP_SEGMENT as ThemeKey) || 'PHOTOGRAPHER'}
     />
   );
 }

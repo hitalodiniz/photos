@@ -1023,7 +1023,11 @@ export default function GaleriaFormContent({
             </div>
             <ThemeSelector
               currentTheme={galleryTheme}
-              onConfirm={(theme) => setGalleryTheme(theme)}
+              onConfirm={(theme) => {
+                setGalleryTheme(theme);
+                // O onConfirm da galeria é assíncrono e já tem o timeout
+                // para o estado de "salvando"
+              }}
               confirmLabel="Aplicar à Galeria"
               compact
             />

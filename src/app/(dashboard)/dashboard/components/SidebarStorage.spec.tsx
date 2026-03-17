@@ -115,7 +115,7 @@ const renderWithPlan = (
 // Usamos querySelector direto: buscamos todos os spans e filtramos por textContent.
 //
 // Denominador = permissions.maxGalleriesHardCap (teto absoluto)
-// FREE=3, START=12, PLUS=30, PRO=90, PREMIUM=300
+// FREE=3, START=12, PLUS=40, PRO=120, PREMIUM=400
 const findSpanByContent = (
   container: HTMLElement,
   value: string,
@@ -144,16 +144,16 @@ describe('SidebarStorage — Exibição de Limites', () => {
     expect(findSpanByContent(container, '/ 12')).not.toBeNull();
   });
 
-  test('PLUS: exibe contador "15" e teto "/30"', () => {
+  test('PLUS: exibe contador "15" e teto "/40"', () => {
     const { container } = renderWithPlan('PLUS', 15);
     expect(screen.getByText('15')).toBeInTheDocument();
-    expect(findSpanByContent(container, '/ 30')).not.toBeNull();
+    expect(findSpanByContent(container, '/ 40')).not.toBeNull();
   });
 
-  test('PRO: exibe contador "30" e teto "/100"', () => {
+  test('PRO: exibe contador "30" e teto "/120"', () => {
     const { container } = renderWithPlan('PRO', 30);
     expect(screen.getByText('30')).toBeInTheDocument();
-    expect(findSpanByContent(container, '/ 100')).not.toBeNull();
+    expect(findSpanByContent(container, '/ 120')).not.toBeNull();
   });
 
   test('PREMIUM: exibe contador "100" e teto "/400"', () => {
@@ -187,8 +187,8 @@ describe('SidebarStorage — Estado de Limite Atingido', () => {
     expect(screen.queryByText(/limite atingido/i)).not.toBeInTheDocument();
   });
 
-  test('PRO no hard cap (100/100): exibe botão de upgrade', () => {
-    renderWithPlan('PRO', 100);
+  test('PRO no hard cap (120/120): exibe botão de upgrade', () => {
+    renderWithPlan('PRO', 120);
     expect(screen.getByText(/limite atingido/i)).toBeInTheDocument();
     expect(screen.queryByText(/disponíve/i)).not.toBeInTheDocument();
   });
@@ -203,13 +203,8 @@ describe('SidebarStorage — Estado de Limite Atingido', () => {
 // badge "pool" aparece abaixo do contador de disponíveis
 describe('SidebarStorage — Pool Limiting', () => {
   test('START com pool esgotado: exibe badge "pool"', () => {
-    // START.photoCredits = 2.500
-    // calcEffectiveMaxGalleries('START', 2500, 5):
-    //   photosRemaining = 2.500 - 2.500 = 0
-    //   floor(0 / recommended) = 0
-    //   effectiveMax = min(5 + 0, 12) = 5 < hardCap(12) → isPoolLimiting = true
-    renderWithPlan('START', 5, 2_500);
-    // BUG FIX 1 (reflexo): badge renderiza POOL_LIMITING_LABEL que agora está no mock
+    // START.photoCredits = 3.000
+    renderWithPlan('START', 5, 3_000);
     expect(screen.getByText('pool')).toBeInTheDocument();
   });
 
@@ -231,9 +226,9 @@ describe('SidebarStorage — Bloco de Arquivos', () => {
     expect(findSpanByContent(container, '450 restantes')).not.toBeNull();
   });
 
-  test('PRO: photoCredits=50k exibido como "/50k"', () => {
+  test('PRO: photoCredits=60k exibido como "/60k"', () => {
     const { container } = renderWithPlan('PRO', 0, 0);
-    expect(findSpanByContent(container, '/ 50k')).not.toBeNull();
+    expect(findSpanByContent(container, '/ 60k')).not.toBeNull();
   });
 
   test('PREMIUM: photoCredits=200k exibido como "/200k"', () => {
@@ -247,10 +242,10 @@ describe('SidebarStorage — Bloco de Arquivos', () => {
     expect(findSpanByContent(container, '50 restantes')).not.toBeNull();
   });
 
-  test('PRO com 45.000 fotos: exibe "5k restantes"', () => {
+  test('PRO com 45.000 fotos: exibe "15k restantes"', () => {
     const { container } = renderWithPlan('PRO', 10, 45_000);
-    // photosRemaining = 50.000 - 45.000 = 5.000 → "5k restantes"
-    expect(findSpanByContent(container, '5k restantes')).not.toBeNull();
+    // photosRemaining = 60.000 - 45.000 = 15.000 → "15k restantes"
+    expect(findSpanByContent(container, '15k restantes')).not.toBeNull();
   });
 });
 

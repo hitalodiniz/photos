@@ -68,7 +68,7 @@ describe('Validação de Permissões por Grupo', () => {
   describe('Grupo: Gestão', () => {
     test('maxGalleries deve seguir progressão: 3 -> 10 -> 20 -> 50 -> 200', () => {
       const values = planOrder.map((p) => PERMISSIONS_BY_PLAN[p].maxGalleries);
-      expect(values).toEqual([3, 10, 20, 50, 200]);
+      expect(values).toEqual([3, 10, 25, 60, 200]);
     });
 
     // FIX: valores alinhados com MAX_GALLERIES_HARD_CAP_BY_PLAN em plans.ts
@@ -76,7 +76,7 @@ describe('Validação de Permissões por Grupo', () => {
       const values = planOrder.map(
         (p) => PERMISSIONS_BY_PLAN[p].maxGalleriesHardCap,
       );
-      expect(values).toEqual([3, 12, 30, 100, 400]);
+      expect(values).toEqual([3, 12, 40, 120, 400]);
     });
 
     test('teamMembers deve permitir colaboradores apenas a partir do PLUS', () => {
@@ -287,7 +287,7 @@ describe('Integridade Total do Sistema de Permissões', () => {
       // FIX: PRO profileLevel = 'seo' (não 'advanced')
       expect(p.profileLevel).toBe('seo');
       // FIX: PRO maxGalleriesHardCap = 100 (valor real em PERMISSIONS_BY_PLAN.PRO)
-      expect(p.maxGalleriesHardCap).toBe(100);
+      expect(p.maxGalleriesHardCap).toBe(120);
       expect(p.canAccessNotifyEvents).toBe(true);
       expect(p.expiresAt).toBe(true);
     });
@@ -313,11 +313,11 @@ describe('Integridade Total do Sistema de Permissões', () => {
 describe('Pool System — Créditos de Fotos e Galerias', () => {
   // FIX: valores alinhados com PHOTO_CREDITS_BY_PLAN e MAX_PHOTOS_PER_GALLERY_BY_PLAN
   const poolCases: Array<[string, number, number, number]> = [
-    ['FREE', 450, 3, 150],
-    ['START', 2_500, 10, 500],
-    ['PLUS', 10_000, 20, 1_000],
-    ['PRO', 50_000, 50, 1_500],
-    ['PREMIUM', 200_000, 200, 3_000],
+    ['FREE', 450, 3, 200],
+    ['START', 3_000, 10, 600],
+    ['PLUS', 15_000, 25, 1_200],
+    ['PRO', 60_000, 60, 3_000],
+    ['PREMIUM', 200_000, 200, 6_000],
   ];
 
   test.each(poolCases)(
@@ -355,7 +355,7 @@ describe('Pool System — Créditos de Fotos e Galerias', () => {
     expect(captured.canAddMore('maxGalleries', 2)).toBe(true);
   });
 
-  test('PLUS com 20 galerias: canAddMore retorna false; com 19 retorna true', () => {
+  test('PLUS com 25 galerias: canAddMore retorna false; com 24 retorna true', () => {
     let captured: any;
     render(
       <PlanProvider profile={makeMockProfile({ plan_key: 'PLUS' })}>
@@ -366,22 +366,22 @@ describe('Pool System — Créditos de Fotos e Galerias', () => {
         />
       </PlanProvider>,
     );
-    expect(captured.canAddMore('maxGalleries', 20)).toBe(false);
-    expect(captured.canAddMore('maxGalleries', 19)).toBe(true);
+    expect(captured.canAddMore('maxGalleries', 25)).toBe(false);
+    expect(captured.canAddMore('maxGalleries', 24)).toBe(true);
   });
 
   describe('calcEffectiveMaxGalleries — pool dinâmico de galerias', () => {
     test('PRO: fotógrafo de ensaio (poucas fotos/galeria) obtém mais galerias que o base', () => {
       // recommended=1.000, hardCap=100
       // 500 fotos em 10 galerias → remaining=49.500, fromPool=floor(49.500/1.000)=49
-      // total = min(10+49, 100) = 59
-      expect(calcEffectiveMaxGalleries('PRO', 500, 10)).toBe(59);
+      // total = min(10+59, 120) = 69
+      expect(calcEffectiveMaxGalleries('PRO', 500, 10)).toBe(69);
     });
 
     test('PRO: fotógrafo de casamento (muitas fotos/galeria) fica próximo ao base', () => {
       // 8.000 fotos em 10 galerias → remaining=42.000, fromPool=floor(42.000/1.000)=42
-      // total = min(10+42, 100) = 52
-      expect(calcEffectiveMaxGalleries('PRO', 8_000, 10)).toBe(52);
+      // total = min(10+52, 120) = 62
+      expect(calcEffectiveMaxGalleries('PRO', 8_000, 10)).toBe(62);
     });
 
     test('FREE: pool reduzido respeita o hardCap de 3', () => {
@@ -410,10 +410,10 @@ describe('Pool System — Créditos de Fotos e Galerias', () => {
     test('recommendedPhotosPerGallery correto por plano', () => {
       // FIX: valores alinhados com RECOMMENDED_PHOTOS_PER_GALLERY_BY_PLAN
       expect(RECOMMENDED_PHOTOS_PER_GALLERY_BY_PLAN.FREE).toBe(150);
-      expect(RECOMMENDED_PHOTOS_PER_GALLERY_BY_PLAN.START).toBe(250);
-      expect(RECOMMENDED_PHOTOS_PER_GALLERY_BY_PLAN.PLUS).toBe(500);
+      expect(RECOMMENDED_PHOTOS_PER_GALLERY_BY_PLAN.START).toBe(300);
+      expect(RECOMMENDED_PHOTOS_PER_GALLERY_BY_PLAN.PLUS).toBe(600);
       expect(RECOMMENDED_PHOTOS_PER_GALLERY_BY_PLAN.PRO).toBe(1_000);
-      expect(RECOMMENDED_PHOTOS_PER_GALLERY_BY_PLAN.PREMIUM).toBe(1_000);
+      expect(RECOMMENDED_PHOTOS_PER_GALLERY_BY_PLAN.PREMIUM).toBe(3_000);
     });
   });
 });

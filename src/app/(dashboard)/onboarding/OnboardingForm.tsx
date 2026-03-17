@@ -21,8 +21,6 @@ import {
   Loader2,
   ArrowLeft,
   Clock,
-  ChevronLeft,
-  ChevronRight,
   ChevronDown,
   ArrowRight,
   Crown,
@@ -57,7 +55,9 @@ import { getPlanBenefits, PERMISSIONS_BY_PLAN } from '@/core/config/plans';
 import { useSegment } from '@/hooks/useSegment';
 import { USERNAME_BLACKLIST } from '@/core/config/username-blacklist';
 import WhatsAppIcon from '@/components/ui/WhatsAppIcon';
+import { PlanBenefitsCarousel } from '@/components/ui/PlanBenefitsCarousel';
 import { UpgradeSheet } from '@/components/ui/Upgradesheet';
+import { SuccessMessage } from './SuccessMessage';
 
 // =============================================================================
 // FormSection — Acordeão colapsável
@@ -291,6 +291,7 @@ export default function OnboardingForm({
   const [themeKey, setThemeKey] = useState<ThemeKey>(
     initialData?.theme_key || (process.env.NEXT_PUBLIC_APP_SEGMENT as ThemeKey),
   );
+
   const [showPhoneOnPublicProfile, setShowPhoneOnPublicProfile] = useState(
     () =>
       initialData?.settings?.defaults?.show_phone_on_public_profile ?? false,
@@ -329,6 +330,8 @@ export default function OnboardingForm({
     return !!(isNewSignup && isTrial);
   });
   const [isSaving, setIsSaving] = useState(false);
+  const [formChanged, setFormChanged] = useState(false);
+  const [lastSavedState, setLastSavedState] = useState<any>(null);
   const [validationErrors, setValidationErrors] = useState<{
     identificacao?: boolean;
     termos?: boolean;
@@ -346,13 +349,6 @@ export default function OnboardingForm({
     : 14;
 
   const { terms } = useSegment();
-  const planBenefits = useMemo(
-    () =>
-      PERMISSIONS_BY_PLAN['PRO']
-        ? getPlanBenefits(PERMISSIONS_BY_PLAN['PRO'], terms)
-        : [],
-    [terms],
-  );
 
   // 🛡️ REGRAS DE NEGÓCIO POR PLANO
   const bioLimit = useMemo(() => {
@@ -438,15 +434,110 @@ export default function OnboardingForm({
     return () => clearTimeout(timer);
   }, [username, initialData?.username]);
 
-  // Carrossel trial
-  const [activeSlide, setActiveSlide] = useState(0);
+  const getCurrentFormState = () => {
+    return {
+      fullName,
+      username,
+      miniBio,
+      phone: normalizePhoneNumber(phone),
+      instagram,
+      website,
+      selectedCities,
+      specialties,
+      customSpecialties,
+      themeKey,
+      showPhoneOnPublicProfile,
+      profilePicture: photoPreview,
+      backgrounds: existingBackgrounds,
+      acceptTerms,
+      acceptPrivacy,
+    };
+  };
+
   useEffect(() => {
-    if (!showTrialWelcomeModal) return;
-    const timer = setInterval(() => {
-      setActiveSlide((i) => (i + 1) % planBenefits.length);
-    }, 3500);
-    return () => clearInterval(timer);
-  }, [showTrialWelcomeModal, planBenefits.length]);
+    // Função para obter o estado inicial dos campos, lidando com os diferentes formatos de dados
+    const getInitialState = () => {
+      const getInitialSpecialties = () => {
+        const raw = initialData?.specialty;
+        if (!raw) return [];
+        if (Array.isArray(raw)) return raw;
+        try {
+          const parsed = JSON.parse(raw);
+          return Array.isArray(parsed) ? parsed : [raw];
+        } catch {
+          return [raw];
+        }
+      };
+      const initialBg = initialData?.background_url;
+      const initialBackgrounds = !initialBg
+        ? []
+        : Array.isArray(initialBg)
+          ? initialBg
+          : [initialBg];
+
+      return {
+        fullName: initialData?.full_name || '',
+        username: initialData?.username || suggestedUsername || '',
+        miniBio: initialData?.mini_bio || '',
+        phone: normalizePhoneNumber(initialData?.phone_contact),
+        instagram: initialData?.instagram_link || '',
+        website: initialData?.website || '',
+        selectedCities: initialData?.operating_cities || [],
+        specialties: getInitialSpecialties(),
+        customSpecialties: Array.isArray(initialData?.custom_specialties)
+          ? initialData.custom_specialties
+          : [],
+        themeKey:
+          initialData?.theme_key ||
+          (process.env.NEXT_PUBLIC_APP_SEGMENT as ThemeKey),
+        showPhoneOnPublicProfile:
+          initialData?.settings?.defaults?.show_phone_on_public_profile ??
+          false,
+        profilePicture: initialData?.profile_picture_url || null,
+        backgrounds: initialBackgrounds,
+        acceptTerms: initialData?.accepted_terms || false,
+        acceptPrivacy: initialData?.accepted_terms || false,
+      };
+    };
+
+    // Define o estado inicial e o último estado salvo na primeira renderização
+    if (!lastSavedState) {
+      setLastSavedState(getInitialState());
+    }
+
+    const comparisonState = lastSavedState || getInitialState();
+    const currentState = getCurrentFormState();
+
+    // Compara o estado de referência com o atual para ver se há mudanças
+    const isDirty =
+      JSON.stringify(comparisonState) !== JSON.stringify(currentState) ||
+      photoFile !== null ||
+      bgFiles.length > 0;
+
+    setFormChanged(isDirty);
+  }, [
+    // Dependências que disparam a verificação
+    fullName,
+    username,
+    miniBio,
+    phone,
+    instagram,
+    website,
+    selectedCities,
+    specialties,
+    customSpecialties,
+    themeKey,
+    showPhoneOnPublicProfile,
+    photoFile,
+    bgFiles,
+    existingBackgrounds,
+    photoPreview,
+    acceptTerms,
+    acceptPrivacy,
+    initialData,
+    suggestedUsername,
+    lastSavedState,
+  ]);
 
   // --- HANDLERS ---
   const handleSelectCity = (city: string) => {
@@ -553,6 +644,8 @@ export default function OnboardingForm({
       const result = await upsertProfile(formData);
       if (result?.success) {
         setShowSuccessModal(true);
+        // Atualiza o estado "salvo" para o estado atual do formulário
+        setLastSavedState(getCurrentFormState());
       } else {
         showToast(result?.error || 'Erro ao salvar.', 'error');
       }
@@ -676,7 +769,6 @@ export default function OnboardingForm({
       setExistingBackgrounds((prev) => prev.filter((_, i) => i !== index));
     }
   };
-
   // =============================================================================
   // Render
   // =============================================================================
@@ -730,81 +822,7 @@ export default function OnboardingForm({
 
             <div className="h-px bg-petroleum/10" />
 
-            <div className="flex items-center justify-between">
-              <p className="text-[10px] font-semibold uppercase tracking-luxury-wide text-petroleum/80">
-                Benefícios do plano PRO
-              </p>
-              <p className="text-[9px] text-petroleum/80 font-medium">
-                {activeSlide + 1} / {planBenefits.length}
-              </p>
-            </div>
-
-            <div className="relative">
-              <div className="relative overflow-hidden rounded-luxury border border-petroleum/10 bg-petroleum/[0.03] min-h-[96px] flex items-center px-10 py-4 gap-4">
-                <div className="w-10 h-10 rounded-full bg-gold/10 border border-gold/20 flex items-center justify-center shrink-0">
-                  <CheckCircle2
-                    size={18}
-                    className="text-gold"
-                    strokeWidth={2}
-                  />
-                </div>
-                <div className="min-w-0 flex-1">
-                  <p className="text-[11px] font-semibold uppercase tracking-luxury text-petroleum leading-tight">
-                    {planBenefits[activeSlide]?.label}
-                  </p>
-                  <p className="text-[13px] text-petroleum/70 mt-1 leading-snug">
-                    {planBenefits[activeSlide]?.description}
-                  </p>
-                </div>
-                <button
-                  type="button"
-                  onClick={() =>
-                    setActiveSlide((i) =>
-                      i === 0 ? planBenefits.length - 1 : i - 1,
-                    )
-                  }
-                  className="absolute left-2 top-1/2 -translate-y-1/2 w-6 h-6 rounded-full bg-white/80 border border-petroleum/10 flex items-center justify-center text-petroleum/40 hover:text-petroleum/70 hover:border-petroleum/20 transition-all shadow-sm"
-                >
-                  <ChevronLeft size={13} strokeWidth={2.5} />
-                </button>
-                <button
-                  type="button"
-                  onClick={() =>
-                    setActiveSlide((i) => (i + 1) % planBenefits.length)
-                  }
-                  className="absolute right-2 top-1/2 -translate-y-1/2 w-6 h-6 rounded-full bg-white/80 border border-petroleum/10 flex items-center justify-center text-petroleum/40 hover:text-petroleum/70 hover:border-petroleum/20 transition-all shadow-sm"
-                >
-                  <ChevronRight size={13} strokeWidth={2.5} />
-                </button>
-              </div>
-
-              <div className="flex items-center justify-center gap-1.5 mt-3">
-                {planBenefits.map((_, i) => (
-                  <button
-                    key={i}
-                    type="button"
-                    onClick={() => setActiveSlide(i)}
-                    className={`rounded-full transition-all duration-300 ${
-                      i === activeSlide
-                        ? 'w-4 h-1.5 bg-gold'
-                        : 'w-1.5 h-1.5 bg-petroleum/15 hover:bg-petroleum/30'
-                    }`}
-                  />
-                ))}
-              </div>
-
-              <div className="mt-2 h-px bg-petroleum/5 rounded-full overflow-hidden">
-                <div
-                  key={activeSlide}
-                  className="h-full bg-gold/40 rounded-full"
-                  style={{ animation: 'progress-bar 3.5s linear forwards' }}
-                />
-              </div>
-            </div>
-
-            <p className="text-center text-[9px] text-petroleum/80 font-medium">
-              Use as setas ou toque nos pontos para navegar
-            </p>
+            <PlanBenefitsCarousel planKey="PRO" />
           </div>
         </BaseModal>
       )}
@@ -1256,9 +1274,7 @@ export default function OnboardingForm({
                 >
                   <ThemeSelector
                     currentTheme={themeKey}
-                    previewTargetId="profile-preview-wrapper"
                     onConfirm={(theme) => setThemeKey(theme)}
-                    confirmLabel="Aplicar ao Perfil"
                     compact
                   />
                 </FormSection>
@@ -1446,47 +1462,51 @@ export default function OnboardingForm({
             <button
               type="button"
               onClick={() => navigate('/dashboard')}
-              className="btn-secondary-petroleum"
+              className="btn-secondary-white"
             >
               CANCELAR
             </button>
+
             <SubmitButton
               form="onboarding-form"
               success={showSuccessModal}
-              disabled={isSaving}
+              isPending={isSaving}
+              disabled={!formChanged}
+              disabledTooltip="Não há alterações para salvar"
               icon={<Save size={14} />}
               className="px-6"
-              label={isSaving ? 'SALVANDO...' : 'SALVAR PERFIL'}
+              label={'SALVAR PERFIL'}
             />
           </div>
         </aside>
 
         {/* PREVIEW */}
-        <main
-          id="profile-preview-wrapper"
-          className="w-full md:w-[65%] min-h-[600px] md:h-screen bg-black relative flex-grow overflow-y-auto"
-        >
-          <ProfilePreview
-            initialData={{
-              full_name: fullName,
-              username,
-              mini_bio: miniBio,
-              phone_contact: phone,
-              instagram_link: instagram,
-              avatar_url: photoPreview,
-              cities: selectedCities,
-              specialty: specialties,
-              website,
-              background_url: activeBackgrounds,
-              plan_key: planKey,
-              theme_key: themeKey,
-              settings: {
-                defaults: {
-                  show_phone_on_public_profile: showPhoneOnPublicProfile,
+        <main className="w-full md:w-[65%] min-h-[600px] md:h-screen bg-black relative flex-grow overflow-y-auto">
+          {/* Tema aplicado SOMENTE neste bloco de preview */}
+          <div data-theme={themeKey}>
+            <ProfilePreview
+              key={themeKey} // FORÇA A REMONTAGEM DO COMPONENTE QUANDO O TEMA MUDA
+              initialData={{
+                full_name: fullName,
+                username,
+                mini_bio: miniBio,
+                phone_contact: phone,
+                instagram_link: instagram,
+                avatar_url: photoPreview,
+                cities: selectedCities,
+                specialty: specialties,
+                website,
+                background_url: activeBackgrounds,
+                plan_key: planKey,
+                theme_key: themeKey,
+                settings: {
+                  defaults: {
+                    show_phone_on_public_profile: showPhoneOnPublicProfile,
+                  },
                 },
-              },
-            }}
-          />
+              }}
+            />
+          </div>
         </main>
       </div>
 
@@ -1504,7 +1524,7 @@ export default function OnboardingForm({
         onClose={() => setShowSuccessModal(false)}
         title="Perfil Atualizado"
         subtitle="Sua presença digital foi salva"
-        maxWidth="lg"
+        maxWidth="xl"
         headerIcon={
           <div className="w-12 h-12 bg-green-500/10 text-green-500 rounded-lg flex items-center justify-center shadow-lg shadow-green-500/5">
             <CheckCircle2 size={24} strokeWidth={2.5} />
@@ -1513,6 +1533,26 @@ export default function OnboardingForm({
         footer={
           <div className="flex flex-col gap-3 w-full">
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 w-full items-stretch">
+              <a
+                href={`/${username}`}
+                target="_blank"
+                rel="noopener noreferrer"
+                className="btn-secondary-white w-full text-[10px] flex items-center justify-center gap-2"
+              >
+                <Sparkles size={12} className="inline mr-1 align-middle" />
+                Ver perfil público
+              </a>
+              <button
+                type="button"
+                onClick={() => navigate('/dashboard', 'Abrindo seu espaço...')}
+                className="btn-luxury-primary w-full text-[10px] flex items-center justify-center gap-2"
+              >
+                <ArrowRight size={14} />
+                Ir para Espaço de Galerias
+              </button>
+            </div>
+
+            {(planKey === 'FREE' || permissions.isTrial) && (
               <button
                 type="button"
                 onClick={() => {
@@ -1524,40 +1564,14 @@ export default function OnboardingForm({
                 <Crown size={14} />
                 Assinar plano
               </button>
-              <button
-                type="button"
-                onClick={() => navigate('/dashboard', 'Abrindo seu espaço...')}
-                className="btn-secondary-white w-full text-[10px] flex items-center justify-center gap-2"
-              >
-                <ArrowRight size={14} />
-                Ir para Espaço de Galerias
-              </button>
-            </div>
-            <a
-              href={`/${username}`}
-              target="_blank"
-              rel="noopener noreferrer"
-              className="btn-secondary-white"
-            >
-              <Sparkles size={12} className="inline mr-1 align-middle" />
-              Ver perfil público
-            </a>
+            )}
           </div>
         }
       >
-        <div className="space-y-3">
-          <p className="text-[13px] md:text-[14px] leading-relaxed text-petroleum/80 font-medium text-left">
-            Seu perfil está configurado e pronto para ser acessado pelo seu
-            público. Você pode assinar um plano agora ou ir direto ao Espaço de
-            Galerias para testar o Plano PRO por 14 dias.
-          </p>
-          <div className="p-4 bg-slate-50 border border-petroleum/10 rounded-luxury">
-            <p className="text-[10px] font-semibold text-petroleum/80 text-left uppercase tracking-luxury">
-              Dica: altere sua foto de capa e outras informações a qualquer
-              momento nas configurações do perfil.
-            </p>
-          </div>
-        </div>
+        <SuccessMessage
+          planKey={planKey}
+          isTrial={permissions.isTrial || false}
+        />
       </BaseModal>
 
       <UpgradeSheet

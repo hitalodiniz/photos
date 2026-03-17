@@ -408,12 +408,13 @@ export default function PlanosContent() {
                                 feature.label,
                                 pIdx,
                               );
+                              const isLastColumn = pIdx === planosKeys.length - 1;
                               return (
                                 <td
                                   key={`${key}-${fIdx}`}
                                   className="py-4 px-4 border-b border-slate-100 text-center"
                                 >
-                                  <div className="flex items-center justify-center">
+                                  <div className="flex items-center justify-center gap-1.5">
                                     {val === true ? (
                                       <Check
                                         size={18}
@@ -430,6 +431,17 @@ export default function PlanosContent() {
                                       <span className="text-[12px] font-medium text-petroleum">
                                         {val}
                                       </span>
+                                    )}
+                                    {/* Adiciona o FeaturePreview em cada célula de valor */}
+                                    {feature.key && (
+                                      <FeaturePreview
+                                        featureKey={
+                                          feature.key as keyof PlanPermissions
+                                        }
+                                        align={
+                                          isLastColumn ? 'right' : 'left'
+                                        }
+                                      />
                                     )}
                                   </div>
                                 </td>

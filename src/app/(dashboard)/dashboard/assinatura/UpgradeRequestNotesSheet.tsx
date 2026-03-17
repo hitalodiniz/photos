@@ -68,7 +68,10 @@ function parseNotes(notes: string | null | undefined): {
     }
   }
 
-  const lines = raw.split(/\r?\n/).map((l) => l.trim()).filter(Boolean);
+  const lines = raw
+    .split(/\r?\n/)
+    .map((l) => l.trim())
+    .filter(Boolean);
   const paymentChanges = lines.filter((l) =>
     l.startsWith('[PaymentMethodChange '),
   );
@@ -112,7 +115,8 @@ export function UpgradeRequestNotesSheet({
   const parsed = parseNotes(request?.notes);
 
   const title =
-    request?.status === 'pending_downgrade' || request?.status === 'pending_cancellation'
+    request?.status === 'pending_downgrade' ||
+    request?.status === 'pending_cancellation'
       ? 'Cancelamento'
       : 'Observações';
 
@@ -121,9 +125,12 @@ export function UpgradeRequestNotesSheet({
     : undefined;
 
   const headerIcon =
-    request?.status === 'pending_downgrade' || request?.status === 'pending_cancellation'
-      ? <AlertTriangle size={18} strokeWidth={2.5} />
-      : <FileText size={18} strokeWidth={2.5} />;
+    request?.status === 'pending_downgrade' ||
+    request?.status === 'pending_cancellation' ? (
+      <AlertTriangle size={18} strokeWidth={2.5} />
+    ) : (
+      <FileText size={18} strokeWidth={2.5} />
+    );
 
   return (
     <Sheet
@@ -195,11 +202,11 @@ export function UpgradeRequestNotesSheet({
                 </div>
               </SheetSection>
 
-              <SheetSection title="Logs brutos (JSON)">
+              {/* <SheetSection title="Logs brutos (JSON)">
                 <div className="p-4 bg-petroleum rounded-luxury text-champagne font-mono text-[10px] overflow-x-auto whitespace-pre">
                   {JSON.stringify(parsed.json, null, 2)}
                 </div>
-              </SheetSection>
+              </SheetSection> */}
             </>
           )}
 
@@ -213,10 +220,7 @@ export function UpgradeRequestNotesSheet({
                         key={line}
                         className="p-3 bg-slate-50 rounded-luxury border border-slate-100 flex items-start gap-2"
                       >
-                        <TrendingUp
-                          size={14}
-                          className="text-gold mt-0.5"
-                        />
+                        <TrendingUp size={14} className="text-gold mt-0.5" />
                         <p className="text-[11px] text-slate-700 font-medium">
                           {line}
                         </p>
@@ -254,39 +258,46 @@ export function UpgradeRequestNotesSheet({
                           !parsed.operationDetails?.includes(line),
                       )
                       .map((line, idx) => {
-                      const isSync = line.toLowerCase().includes('sincronização asaas');
-                      const isDashItem = line.startsWith('-');
-                      return (
-                        <div
-                          key={`${idx}-${line}`}
-                          className={`text-[11px] ${
-                            isDashItem ? 'pl-4' : ''
-                          } text-slate-700`}
-                        >
-                          <span className="inline-flex items-center gap-2">
-                            {isSync ? (
-                              <RefreshCw size={12} className="text-petroleum/70" />
-                            ) : null}
-                            {line}
-                          </span>
-                        </div>
-                      );
-                    })}
+                        const isSync = line
+                          .toLowerCase()
+                          .includes('sincronização asaas');
+                        const isDashItem = line.startsWith('-');
+                        return (
+                          <div
+                            key={`${idx}-${line}`}
+                            className={`text-[11px] ${
+                              isDashItem ? 'pl-4' : ''
+                            } text-slate-700`}
+                          >
+                            <span className="inline-flex items-center gap-2">
+                              {isSync ? (
+                                <RefreshCw
+                                  size={12}
+                                  className="text-petroleum/70"
+                                />
+                              ) : null}
+                              {line}
+                            </span>
+                          </div>
+                        );
+                      })}
                   </div>
                 </SheetSection>
               )}
 
-              <SheetSection title="Logs brutos (texto)">
+              {/* <SheetSection title="Logs brutos (texto)">
                 <div className="p-4 bg-slate-900 rounded-luxury text-slate-100 font-mono text-[10px] overflow-x-auto whitespace-pre-wrap">
                   {parsed.raw}
                 </div>
-              </SheetSection>
+              </SheetSection> */}
             </>
           )}
 
           {parsed.kind === 'empty' && (
             <SheetSection title="Sem observações">
-              <p className="text-[11px] text-slate-600">Nenhum detalhe registrado.</p>
+              <p className="text-[11px] text-slate-600">
+                Nenhum detalhe registrado.
+              </p>
             </SheetSection>
           )}
         </>
@@ -294,4 +305,3 @@ export function UpgradeRequestNotesSheet({
     </Sheet>
   );
 }
-

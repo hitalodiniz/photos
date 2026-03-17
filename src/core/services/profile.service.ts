@@ -1,6 +1,7 @@
 'use server';
 
 import { revalidatePath, revalidateTag, unstable_cache } from 'next/cache';
+import { headers } from 'next/headers';
 import {
   createSupabaseClientForCache,
   createSupabaseServerClient,
@@ -225,7 +226,11 @@ export async function upsertProfile(formData: FormData, supabaseClient?: any) {
   // 3. Paralelismo de Busca e Uploads (Otimização de Performance)
   // Iniciamos a verificação do profile e os uploads simultaneamente
   const [profileRes, profilePictureUrl, backgroundUrls] = await Promise.all([
-    supabase.from('tb_profiles').select('plan_key, settings').eq('id', user.id).single(),
+    supabase
+      .from('tb_profiles')
+      .select('plan_key, settings, accepted_ip, accepted_at')
+      .eq('id', user.id)
+      .single(),
 
     uploadProfilePicture(
       supabase,
@@ -242,9 +247,30 @@ export async function upsertProfile(formData: FormData, supabaseClient?: any) {
     ),
   ]);
 
-  const isFirstSetup = !profileRes.data?.plan_key;
+  const existingProfile = profileRes.data;
+  const isFirstSetup = !existingProfile?.plan_key;
 
-  const currentSettings = (profileRes.data?.settings as UserSettings | null) || {};
+  // 4. Lógica de Aceite dos Termos (IP e Data)
+  const termsData: {
+    accepted_terms: boolean;
+    accepted_at?: string;
+    accepted_ip?: string;
+  } = {
+    accepted_terms: formFields.accepted_terms,
+  };
+
+  if (formFields.accepted_terms && !existingProfile?.accepted_ip) {
+    const headersList = headers();
+    const ip = (headersList.get('x-forwarded-for') ?? '127.0.0.1').split(',')[0];
+    termsData.accepted_at = new Date().toISOString();
+    termsData.accepted_ip = ip;
+  } else if (existingProfile?.accepted_ip) {
+    // Preserva os dados originais se já existirem
+    termsData.accepted_at = existingProfile.accepted_at;
+    termsData.accepted_ip = existingProfile.accepted_ip;
+  }
+
+  const currentSettings = (existingProfile?.settings as UserSettings | null) || {};
   const mergedSettings: UserSettings = {
     ...currentSettings,
     display: currentSettings?.display ?? {},
@@ -264,8 +290,7 @@ export async function upsertProfile(formData: FormData, supabaseClient?: any) {
     website: formFields.website,
     operating_cities: parseOperatingCities(formFields.operating_cities_json),
     profile_picture_url: profilePictureUrl,
-    accepted_terms: formFields.accepted_terms,
-    accepted_at: formFields.accepted_terms ? new Date().toISOString() : null,
+    ...termsData,
     background_url: backgroundUrls,
     updated_at: new Date().toISOString(),
     specialty: parseOperatingCities(formFields.specialty),

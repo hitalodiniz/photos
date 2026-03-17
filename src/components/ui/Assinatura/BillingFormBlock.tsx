@@ -53,6 +53,8 @@ export interface BillingFormBlockProps {
   onChangeInstallments?: (n: number) => void;
   maxInstallments?: number;
   amountFinal?: number;
+  /** Oculta a primeira linha com os botões de tipo de pagamento. Padrão: false */
+  hideBillingTypeSelector?: boolean;
 }
 
 // ─── Helpers internos ─────────────────────────────────────────────────────────
@@ -106,6 +108,7 @@ export function BillingFormBlock({
   onChangeInstallments,
   maxInstallments = 1,
   amountFinal = 0,
+  hideBillingTypeSelector = false,
 }: BillingFormBlockProps) {
   const [touched, setTouched] = React.useState<Record<string, boolean>>({});
   const [errors, setErrors] = React.useState<CardErrors>({});
@@ -140,28 +143,30 @@ export function BillingFormBlock({
   return (
     <div className="space-y-3">
       {/* Seleção de método */}
-      <div className="flex gap-1.5">
-        {methods.map(({ value, label, Icon }) => (
-          <button
-            key={value}
-            type="button"
-            disabled={disabled}
-            onClick={() => onChangeBillingType(value)}
-            className={`flex items-center gap-1.5 px-3 py-1.5 rounded-[0.4rem] border transition-all flex-1 min-w-0 ${
-              disabled
-                ? 'border-slate-200 bg-slate-100 text-slate-400 cursor-not-allowed opacity-70'
-                : billingType === value
-                  ? 'border-gold bg-gold/10 text-petroleum'
-                  : 'border-slate-200 bg-slate-50 text-petroleum/50 hover:border-gold/40'
-            }`}
-          >
-            <Icon size={14} strokeWidth={1.5} className="shrink-0" />
-            <span className="text-[9px] font-semibold uppercase tracking-wide truncate">
-              {label}
-            </span>
-          </button>
-        ))}
-      </div>
+      {!hideBillingTypeSelector && (
+        <div className="flex gap-1.5">
+          {methods.map(({ value, label, Icon }) => (
+            <button
+              key={value}
+              type="button"
+              disabled={disabled}
+              onClick={() => onChangeBillingType(value)}
+              className={`flex items-center gap-1.5 px-3 py-1.5 rounded-[0.4rem] border transition-all flex-1 min-w-0 ${
+                disabled
+                  ? 'border-slate-200 bg-slate-100 text-slate-400 cursor-not-allowed opacity-70'
+                  : billingType === value
+                    ? 'border-gold bg-gold/10 text-petroleum'
+                    : 'border-slate-200 bg-slate-50 text-petroleum/50 hover:border-gold/40'
+              }`}
+            >
+              <Icon size={14} strokeWidth={1.5} className="shrink-0" />
+              <span className="text-[9px] font-semibold uppercase tracking-wide truncate">
+                {label}
+              </span>
+            </button>
+          ))}
+        </div>
+      )}
 
       {/* Nota PIX */}
       {showPixDiscountNote && (

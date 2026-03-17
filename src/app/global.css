@@ -298,12 +298,12 @@
 
 /* ========================================================================
    🎯 TEMAS VISUAIS PERSONALIZÁVEIS — FORA DE @layer (MAIOR ESPECIFICIDADE)
-   Seletores html[data-theme='X'] garantem vitória sobre :root e data-segment.
+   Seletores [data-theme='X'] garantem vitória sobre :root e data-segment.
    ======================================================================== */
 
 /* PHOTOGRAPHER (Sua Galeria — igual ao :root) */
-html[data-theme='PHOTOGRAPHER'],
-html[data-theme='PHOTOGRAPHER'] body {
+[data-theme='PHOTOGRAPHER'],
+[data-theme='PHOTOGRAPHER'] body {
   --color-champagne: 243 229 171;
   --color-champagne-hover: 229 214 154;
   --color-gold: 212 175 55;
@@ -320,8 +320,8 @@ html[data-theme='PHOTOGRAPHER'] body {
 }
 
 /* DARK CINEMA */
-html[data-theme='DARK_CINEMA'],
-html[data-theme='DARK_CINEMA'] body {
+[data-theme='DARK_CINEMA'],
+[data-theme='DARK_CINEMA'] body {
   --color-luxury-bg: 248 249 250;
   --color-petroleum: 10 10 10;
   --color-petroleum-light: 28 28 28;
@@ -337,8 +337,8 @@ html[data-theme='DARK_CINEMA'] body {
 }
 
 /* EDITORIAL_WHITE — branco absoluto, texto escuro (galeria e navbar) */
-html[data-theme='EDITORIAL_WHITE'],
-html[data-theme='EDITORIAL_WHITE'] body {
+[data-theme='EDITORIAL_WHITE'],
+[data-theme='EDITORIAL_WHITE'] body {
   --color-petroleum: 40 60 80;
   --color-petroleum-light: 55 75 95;
   --color-petroleum-dark: 20 30 45;
@@ -353,7 +353,7 @@ html[data-theme='EDITORIAL_WHITE'] body {
   --radius-card: 0.75rem;
   --radius-btn: 0.4rem;
 }
-html[data-theme='EDITORIAL_WHITE'] body {
+[data-theme='EDITORIAL_WHITE'] body {
   background-color: rgb(255 255 255) !important;
 }
 
@@ -387,8 +387,8 @@ html[data-theme='EDITORIAL_WHITE'] body {
 }
 
 /* NATURE */
-html[data-theme='NATURE'],
-html[data-theme='NATURE'] body {
+[data-theme='NATURE'],
+[data-theme='NATURE'] body {
   --color-champagne: 195 220 195;
   --color-champagne-hover: 170 200 170;
   --color-gold: 160 100 60;
@@ -405,8 +405,8 @@ html[data-theme='NATURE'] body {
 }
 
 /* NOCTURNAL LUXURY */
-html[data-theme='NOCTURNAL_LUXURY'],
-html[data-theme='NOCTURNAL_LUXURY'] body {
+[data-theme='NOCTURNAL_LUXURY'],
+[data-theme='NOCTURNAL_LUXURY'] body {
   --color-luxury-bg: 8 12 28;
   --color-petroleum: 8 12 28;
   --color-petroleum-light: 20 28 58;
@@ -420,13 +420,13 @@ html[data-theme='NOCTURNAL_LUXURY'] body {
   --radius-card: 0.75rem;
   --radius-btn: 0.4rem;
 }
-html[data-theme='NOCTURNAL_LUXURY'] body {
+[data-theme='NOCTURNAL_LUXURY'] body {
   background-color: rgb(248 249 250) !important;
 }
 
 /* OFF WHITE / GELO */
-html[data-theme='OFF_WHITE'],
-html[data-theme='OFF_WHITE'] body {
+[data-theme='OFF_WHITE'],
+[data-theme='OFF_WHITE'] body {
   --color-champagne: 180 205 225;
   --color-champagne-hover: 155 185 210;
   --color-gold: 130 160 190;
@@ -443,8 +443,8 @@ html[data-theme='OFF_WHITE'] body {
 }
 
 /* PLATINUM */
-html[data-theme='PLATINUM'],
-html[data-theme='PLATINUM'] body {
+[data-theme='PLATINUM'],
+[data-theme='PLATINUM'] body {
   --color-champagne: 195 200 210;
   --color-champagne-hover: 175 182 195;
   --color-gold: 150 158 170;
@@ -461,8 +461,8 @@ html[data-theme='PLATINUM'] body {
 }
 
 /* WARM BLUSH */
-html[data-theme='WARM_BLUSH'],
-html[data-theme='WARM_BLUSH'] body {
+[data-theme='WARM_BLUSH'],
+[data-theme='WARM_BLUSH'] body {
   --color-luxury-bg: 253 246 240;
   --color-petroleum: 92 68 60;
   --color-petroleum-light: 139 107 92;

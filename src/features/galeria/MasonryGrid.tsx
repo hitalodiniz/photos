@@ -1,4 +1,5 @@
 'use client';
+
 import React, {
   memo,
   useEffect,
@@ -8,14 +9,7 @@ import React, {
   useMemo,
 } from 'react';
 import { useSearchParams } from 'next/navigation';
-import {
-  Check,
-  CheckCircle2,
-  Heart,
-  HeartOff,
-  Loader2,
-  Play,
-} from 'lucide-react';
+import { Check, CheckCircle2, Heart, Loader2, Play } from 'lucide-react';
 import 'photoswipe/dist/photoswipe.css';
 import { Gallery, Item } from 'react-photoswipe-gallery';
 import { Galeria } from '@/core/types/galeria';
@@ -32,6 +26,11 @@ import { GridPhotoActions } from './GridPhotoActions';
 import { useSupabaseSession, authService } from '@photos/core-auth';
 import { useShare } from '@/hooks/useShare';
 
+// --- 🎯 CONSTANTES DE VIRTUALIZAÇÃO ---
+const WINDOW_SIZE = 200; // Máximo de fotos no DOM simultaneamente
+const BUFFER_BEFORE = 50; // Buffer antes da viewport
+const BUFFER_AFTER = 50; // Buffer depois da viewport
+
 // --- TIPOS ---
 
 interface Photo {
@@ -42,7 +41,7 @@ interface Photo {
   height: number;
   tag?: string;
   canUseFavorites: boolean;
-  duration?: string; // ex: "1:32"
+  duration?: string;
   type?: 'photo' | 'video';
 }
 
@@ -96,9 +95,9 @@ interface MasonryGridProps {
   columns: { mobile: number; tablet: number; desktop: number };
   canUseFavorites: boolean;
   tagSelectionMode: 'manual' | 'bulk' | 'drive';
-  mode?: 'public' | 'admin'; // define se mostra 'Coração' ou 'Marcação'
-  availableTags?: string[]; //pílulas de tags do fotógrafo
-  onAssignTag?: (ids: string[], tag: string) => void; // callback para o banco
+  mode?: 'public' | 'admin';
+  availableTags?: string[];
+  onAssignTag?: (ids: string[], tag: string) => void;
   allowLightboxInAdmin?: boolean;
 }
 
@@ -140,7 +139,7 @@ const SafeImage = memo(
       width: '500',
       priority,
       fallbackToProxy: true,
-      index, // 🎯 Passando o index para o delay do hook
+      index,
     });
 
     const combinedRef = useCallback(
@@ -170,9 +169,6 @@ const SafeImage = memo(
       const handleMetadata = async () => {
         const hasPermission = showDebugForce || userAuthenticated;
 
-        // 🎯 AJUSTE CRÍTICO: Se for modo admin (organizador de fotos),
-        // cancelamos a busca de metadados em massa para economizar requisições.
-        /// Isso remove 50% das requisições que causam o 429.
         if (!hasPermission || !imgSrc || !isLoaded || mode === 'admin') {
           if (!cancelled) {
             setImageSize(null);
@@ -182,10 +178,7 @@ const SafeImage = memo(
         }
 
         try {
-          // Mesmo no público, vamos dar um fôlego para o Google
           await new Promise((resolve) => setTimeout(resolve, index * 20));
-          if (cancelled) return;
-
           if (cancelled) return;
 
           const response = await fetch(imgSrc, {
@@ -334,12 +327,10 @@ const MasonryItem = memo(
     const isGalleryLocked =
       galeria.selection_ids && galeria.selection_ids.length > 0;
 
-    // 🎯 Callback para corrigir dimensões invertidas vindas da API
     const onDimensionsDetected = useCallback(
       (realW: number, realH: number) => {
         const isPortrait = realH > realW;
 
-        // Só atualiza se houver discordância com os metadados da API ou se for a primeira detecção
         setOrientation((prev) => {
           if (
             prev.hasDetected &&
@@ -347,12 +338,6 @@ const MasonryItem = memo(
             prev.realW === realW
           )
             return prev;
-
-          // if (prev.isPortrait !== isPortrait) {
-          //   console.log(
-          //     `📸 Correção na Foto ${index}: API dizia ${prev.isPortrait ? 'Retrato' : 'Paisagem'}, Imagem é ${isPortrait ? 'Retrato' : 'Paisagem'}.`,
-          //   );
-          // }
 
           return {
             isPortrait,
@@ -365,7 +350,6 @@ const MasonryItem = memo(
       [index],
     );
 
-    // 🎯 Cálculo de span ultra-preciso (1 row = 1px)
     const rowSpan = useMemo(() => {
       if (!columnWidth) return 'span 200';
 
@@ -375,33 +359,25 @@ const MasonryItem = memo(
       return `span ${span}`;
     }, [orientation.realH, orientation.realW, columnWidth]);
 
-    // Dentro do seu MasonryItem...
-
     const handleItemClick = (e: React.MouseEvent) => {
-      // 1. Sempre previne o comportamento de âncora (#) que rola a página para o topo
       e.preventDefault();
       e.stopPropagation();
 
-      // ← ADD: vídeo sempre abre lightbox, independente do modo
       if (photo.type === 'video') {
         setSelectedPhotoIndex(index);
         return;
       }
 
-      // 2. Decisão baseada nas props:
-      // Se allowLightboxInAdmin for true, priorizamos abrir o Lightbox.
       if (mode === 'admin' && allowLightboxInAdmin) {
         setSelectedPhotoIndex(index);
         return;
       }
 
-      // 3. Comportamento Original do Admin: Se clicar no corpo da foto, seleciona.
       if (mode === 'admin') {
         handleSelect(index, e.shiftKey);
         return;
       }
 
-      // 4. Modo Público: Abre Lightbox
       setSelectedPhotoIndex(index);
     };
 
@@ -430,11 +406,7 @@ const MasonryItem = memo(
               gridRow: rowSpan,
               padding: '1px',
             }}
-            // 🎯 Captura o início do clique para seleção ou início de arrasto
-
             onMouseEnter={() => {
-              // 🎯 O Masonry reordena os itens, mas o index passado via props
-              // sempre refere-se à posição correta no array.
               if (mode === 'admin' && isMouseDown && !isSelected) {
                 handleSelect(index, false);
               }
@@ -447,9 +419,8 @@ const MasonryItem = memo(
                   : 'border-black/5 ring-1 ring-white/10 shadow-sm hover:shadow-xl'
               }`}
             >
-              {/* CORPO DA FOTO */}
               <a
-                href="#photo" // Altere para algo que não seja apenas # para evitar o salto se o prevent falhar
+                href="#photo"
                 onClick={handleItemClick}
                 className={`block relative w-full h-full ${
                   allowLightboxInAdmin ? 'cursor-zoom-in' : 'cursor-pointer'
@@ -463,6 +434,7 @@ const MasonryItem = memo(
                   className="relative z-10"
                   onImageDimensionsDetected={onDimensionsDetected}
                   mode={mode}
+                  index={index}
                 />
 
                 {isPreSelected && (
@@ -475,7 +447,7 @@ const MasonryItem = memo(
                     </div>
                   </div>
                 )}
-                {/* Badge de Vídeo */}
+
                 {photo.type === 'video' && (
                   <>
                     <div className="absolute inset-0 flex items-center justify-center z-20 pointer-events-none">
@@ -490,26 +462,22 @@ const MasonryItem = memo(
                     )}
                   </>
                 )}
-                {/* 🎯 Badge de Tag Existente (Refatorado) */}
+
                 {photo.tag && (
                   <div
                     className="absolute z-30 flex items-center justify-center backdrop-blur-md border border-white/10 rounded-full shadow-sm pointer-events-none"
                     style={{
-                      // Reduzi o posicionamento para acompanhar a escala menor
                       top: isMobile ? '5px' : '8px',
                       right: isMobile ? '5px' : '8px',
-                      // Reduzi base de 10px para 8px (20% menor)
                       paddingLeft: `${8 * btnScale}px`,
                       paddingRight: `${8 * btnScale}px`,
-                      // Reduzi base de 24px para 20px (aprox. 20% menor)
                       height: `${20 * btnScale}px`,
-                      backgroundColor: 'rgba(0, 0, 0, 0.2)', // Levemente mais transparente para sutileza
+                      backgroundColor: 'rgba(0, 0, 0, 0.2)',
                     }}
                   >
                     <span
                       className="text-white font-medium whitespace-nowrap leading-none tracking-tight"
                       style={{
-                        // Reduzi base de 11px para 9px e mobile de 9px para 8px
                         fontSize:
                           isMobile && currentCols === 2
                             ? '8px'
@@ -521,13 +489,6 @@ const MasonryItem = memo(
                   </div>
                 )}
 
-                {/* 🎯 Check de Seleção Estilo Google Fotos */}
-                {/* 1. BOTÃO DE SELEÇÃO INTERATIVO 
-  Só renderiza se:
-  - Modo for admin
-  - Lightbox estiver DESATIVADO (para permitir o clique de seleção)
-  - Não houver seleção gravada no banco
-*/}
                 {mode === 'admin' &&
                   !isGalleryLocked &&
                   (!galeria.selection_ids ||
@@ -553,9 +514,6 @@ const MasonryItem = memo(
                     </div>
                   )}
 
-                {/* 3. OVERLAY DE DESTAQUE
-  Mantém a foto realçada se estiver selecionada no estado local ou no banco.
-*/}
                 {mode === 'admin' &&
                   (isSelected || galeria.selection_ids?.includes(photo.id)) && (
                     <div className="absolute inset-0 bg-gold/10 pointer-events-none z-10" />
@@ -607,17 +565,18 @@ const MasonryGrid = ({
   tagSelectionMode = 'manual',
   allowLightboxInAdmin = false,
 }: MasonryGridProps) => {
-  const CARDS_PER_PAGE = 50;
-  const [displayLimit, setDisplayLimit] = useState(CARDS_PER_PAGE);
-  const sentinelRef = useRef<HTMLDivElement | null>(null);
   const gridContainerRef = useRef<HTMLDivElement>(null);
   const [gridWidth, setGridWidth] = useState(0);
 
-  // 🎯 Sincronização precisa de colunas para o MasonryItem
+  // 🎯 Estado de virtualização
+  const [visibleRange, setVisibleRange] = useState({
+    start: 0,
+    end: WINDOW_SIZE,
+  });
+
   const [currentCols, setCurrentCols] = useState(columns.mobile);
   const [isMobile, setIsMobile] = useState(false);
 
-  // seleção em bloco de fotos
   const [lastSelectedIndex, setLastSelectedIndex] = useState<number | null>(
     null,
   );
@@ -636,7 +595,6 @@ const MasonryGrid = ({
     return () => window.removeEventListener('resize', checkScreen);
   }, [columns]);
 
-  // 🎯 Medição da largura real do container para cálculos precisos
   useEffect(() => {
     const el = gridContainerRef.current;
     if (!el) return;
@@ -648,32 +606,50 @@ const MasonryGrid = ({
     return () => observer.disconnect();
   }, []);
 
-  // 🎯 Cálculo simplificado da largura da coluna (o padding interno do item fará o gap visual)
   const columnWidth = useMemo(() => {
     if (!gridWidth) return 0;
     return gridWidth / currentCols;
   }, [gridWidth, currentCols]);
 
-  const allLoaded = showOnlyFavorites || displayLimit >= displayedPhotos.length;
-
+  // 🎯 VIRTUALIZAÇÃO: Atualiza range visível baseado no scroll
   useEffect(() => {
-    const observer = new IntersectionObserver(
-      (entries) => {
-        if (
-          entries[0].isIntersecting &&
-          displayLimit < displayedPhotos.length &&
-          !showOnlyFavorites
-        ) {
-          setDisplayLimit((prev) =>
-            Math.min(prev + CARDS_PER_PAGE, displayedPhotos.length),
-          );
-        }
-      },
-      { rootMargin: '0px 0px 400px 0px', threshold: 0.01 },
-    );
-    if (sentinelRef.current) observer.observe(sentinelRef.current);
-    return () => observer.disconnect();
-  }, [displayLimit, displayedPhotos.length, showOnlyFavorites]);
+    if (showOnlyFavorites) return;
+
+    let rafId: number | null = null;
+
+    const handleScroll = () => {
+      if (rafId !== null) return;
+
+      rafId = requestAnimationFrame(() => {
+        const scrollY = window.scrollY;
+        const viewportHeight = window.innerHeight;
+
+        const estimatedRowHeight = columnWidth * 1.3;
+        const photosPerRow = currentCols;
+
+        const centerIndex = Math.floor(
+          (scrollY / estimatedRowHeight) * photosPerRow,
+        );
+
+        const start = Math.max(0, centerIndex - BUFFER_BEFORE);
+        const end = Math.min(
+          displayedPhotos.length,
+          centerIndex + WINDOW_SIZE + BUFFER_AFTER,
+        );
+
+        setVisibleRange({ start, end });
+        rafId = null;
+      });
+    };
+
+    window.addEventListener('scroll', handleScroll, { passive: true });
+    handleScroll();
+
+    return () => {
+      window.removeEventListener('scroll', handleScroll);
+      if (rafId !== null) cancelAnimationFrame(rafId);
+    };
+  }, [displayedPhotos.length, columnWidth, currentCols, showOnlyFavorites]);
 
   const { sharePhoto, copyLink, copied } = useShare({ galeria });
 
@@ -698,15 +674,43 @@ const MasonryGrid = ({
       : Math.max(0.6, 1 - (currentCols - 4) * 0.1);
   const iconSize = Math.round(18 * btnScale);
 
-  const limitedPhotos = useMemo(() => {
-    // Se o plano/galeria não permite favoritos, ignoramos o filtro de showOnlyFavorites
+  // 🎯 VIRTUALIZAÇÃO: Calcula fotos visíveis + spacers
+  const { visiblePhotos, spacerBefore, spacerAfter } = useMemo(() => {
     const finalPhotos =
       showOnlyFavorites && canUseFavorites ? displayedPhotos : displayedPhotos;
 
-    return showOnlyFavorites ? finalPhotos : finalPhotos.slice(0, displayLimit);
-  }, [showOnlyFavorites, canUseFavorites, displayedPhotos, displayLimit]);
+    if (showOnlyFavorites) {
+      return {
+        visiblePhotos: finalPhotos,
+        spacerBefore: 0,
+        spacerAfter: 0,
+      };
+    }
 
-  // Função para tratar seleção em lote (Shift)
+    const visible = finalPhotos.slice(visibleRange.start, visibleRange.end);
+
+    const estimatedRowHeight = columnWidth * 1.3;
+    const totalRows = Math.ceil(finalPhotos.length / currentCols);
+    const visibleRows = Math.ceil(visible.length / currentCols);
+
+    const before =
+      Math.floor(visibleRange.start / currentCols) * estimatedRowHeight;
+    const after = (totalRows - visibleRows) * estimatedRowHeight - before;
+
+    return {
+      visiblePhotos: visible,
+      spacerBefore: Math.max(0, before),
+      spacerAfter: Math.max(0, after),
+    };
+  }, [
+    showOnlyFavorites,
+    canUseFavorites,
+    displayedPhotos,
+    visibleRange,
+    columnWidth,
+    currentCols,
+  ]);
+
   const handleSelect = useCallback(
     (index: number, shiftKey: boolean) => {
       const photoId = displayedPhotos[index].id;
@@ -715,11 +719,8 @@ const MasonryGrid = ({
         const start = Math.min(lastSelectedIndex, index);
         const end = Math.max(lastSelectedIndex, index);
 
-        // Pega o intervalo baseado na posição do ARRAY original (única forma consistente)
         const rangeIds = displayedPhotos.slice(start, end + 1).map((p) => p.id);
 
-        // 🎯 AJUSTE: Garante que estamos ADICIONANDO ao que já existia,
-        // sem remover seleções manuais fora do intervalo
         rangeIds.forEach((id) => {
           if (!favorites.includes(id)) {
             toggleFavoriteFromGrid(id);
@@ -732,7 +733,7 @@ const MasonryGrid = ({
     },
     [displayedPhotos, favorites, lastSelectedIndex, toggleFavoriteFromGrid],
   );
-  // Adicione os listeners globais de mouse para o drag
+
   useEffect(() => {
     const handleMouseUp = () => setIsMouseDown(false);
     window.addEventListener('mouseup', handleMouseUp);
@@ -744,16 +745,12 @@ const MasonryGrid = ({
       {showOnlyFavorites && displayedPhotos.length === 0 ? (
         <div className="text-center py-10 md:py-20 px-4 animate-in fade-in duration-700">
           <Heart size={48} className="text-champagne mb-4 mx-auto opacity-80" />
-          <p
-            className={`italic text-[14px] md:text-[18px] mb-8 transition-colors duration-500
-                text-gray-600`}
-          >
+          <p className="italic text-[14px] md:text-[18px] mb-8 transition-colors duration-500 text-gray-600">
             Nenhuma foto selecionada
           </p>
           <button
             onClick={() => setShowOnlyFavorites(false)}
-            className="mx-auto px-6 py-2.5 rounded-luxury bg-champagne text-black
-             hover:bg-white border border-champagne transition-all uppercase text-[10px] font-semibold tracking-luxury-widest shadow-lg"
+            className="mx-auto px-6 py-2.5 rounded-luxury bg-champagne text-black hover:bg-white border border-champagne transition-all uppercase text-[10px] font-semibold tracking-luxury-widest shadow-lg"
           >
             Exibir todas as fotos
           </button>
@@ -761,6 +758,11 @@ const MasonryGrid = ({
       ) : (
         <div className="max-w-[1600px] mx-auto px-1" ref={gridContainerRef}>
           <Gallery withCaption>
+            {/* 🎯 Spacer ANTES das fotos visíveis */}
+            {spacerBefore > 0 && (
+              <div style={{ height: `${spacerBefore}px` }} />
+            )}
+
             <div
               className={`w-full transition-all duration-700 grid grid-flow-row-dense ${
                 mode === 'admin' ? 'select-none touch-none' : ''
@@ -770,18 +772,19 @@ const MasonryGrid = ({
                 gridAutoRows: '1px',
                 gap: 0,
               }}
-              // Segurança extra para resetar o mouse caso ele saia do grid
               onMouseLeave={() => setIsMouseDown(false)}
             >
-              {limitedPhotos.map((photo, index) => {
+              {visiblePhotos.map((photo, localIndex) => {
+                const realIndex = visibleRange.start + localIndex;
                 const isPreSelected =
                   galeria.selection_ids?.includes(photo.id) &&
                   galeria.has_contracting_client === 'ES';
+
                 return (
                   <MasonryItem
                     key={photo.id}
                     photo={photo}
-                    index={index}
+                    index={realIndex}
                     mode={mode}
                     isSelected={favorites.includes(photo.id)}
                     galleryTitle={galleryTitle}
@@ -808,21 +811,10 @@ const MasonryGrid = ({
                 );
               })}
             </div>
-          </Gallery>
 
-          {!showOnlyFavorites && (
-            <div className="w-full">
-              {!allLoaded && (
-                <div className="flex justify-center py-10">
-                  <Loader2
-                    className="animate-spin text-champagne opacity-50"
-                    size={32}
-                  />
-                </div>
-              )}
-              <div ref={sentinelRef} className="h-2 w-full" />
-            </div>
-          )}
+            {/* 🎯 Spacer DEPOIS das fotos visíveis */}
+            {spacerAfter > 0 && <div style={{ height: `${spacerAfter}px` }} />}
+          </Gallery>
         </div>
       )}
     </div>

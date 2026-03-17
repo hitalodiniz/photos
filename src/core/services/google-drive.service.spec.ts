@@ -59,29 +59,29 @@ describe('Google Drive Library - Suite Completa de Testes', () => {
   // =========================================================================
   describe('resolvePhotoLimitByPlan', () => {
     // Valores de MAX_PHOTOS_PER_GALLERY_BY_PLAN (hard cap por galeria para listagem)
-    it('deve retornar limite para plano FREE (300)', () => {
+    it('deve retornar limite para plano FREE (200)', () => {
       const limit = resolvePhotoLimitByPlan('FREE');
-      expect(limit).toBe(300);
+      expect(limit).toBe(200);
     });
 
-    it('deve retornar limite para plano START (450)', () => {
+    it('deve retornar limite para plano START (600)', () => {
       const limit = resolvePhotoLimitByPlan('START');
-      expect(limit).toBe(500);
+      expect(limit).toBe(600);
     });
 
-    it('deve retornar limite para plano PLUS (800)', () => {
+    it('deve retornar limite para plano PLUS (1200)', () => {
       const limit = resolvePhotoLimitByPlan('PLUS');
-      expect(limit).toBe(1000);
+      expect(limit).toBe(1200);
     });
 
-    it('deve retornar limite para plano PRO (1500)', () => {
+    it('deve retornar limite para plano PRO (3000)', () => {
       const limit = resolvePhotoLimitByPlan('PRO');
-      expect(limit).toBe(1500);
+      expect(limit).toBe(3000);
     });
 
-    it('deve retornar limite para plano PREMIUM (3000)', () => {
+    it('deve retornar limite para plano PREMIUM (6000)', () => {
       const limit = resolvePhotoLimitByPlan('PREMIUM');
-      expect(limit).toBe(3000);
+      expect(limit).toBe(6000);
     });
 
     it('deve retornar número direto quando fornecido', () => {
@@ -92,13 +92,13 @@ describe('Google Drive Library - Suite Completa de Testes', () => {
     // FIX: planKey inválido → fallback para FREE = 300 (sem crash)
     it('deve retornar limite FREE quando plano não existe', () => {
       const limit = resolvePhotoLimitByPlan('INVALID_PLAN' as any);
-      expect(limit).toBe(300);
+      expect(limit).toBe(200);
     });
 
     // FIX: undefined → fallback para FREE = 300 (sem crash)
     it('deve retornar limite FREE quando plano é undefined', () => {
       const limit = resolvePhotoLimitByPlan(undefined);
-      expect(limit).toBe(300);
+      expect(limit).toBe(200);
     });
   });
 
@@ -539,7 +539,7 @@ describe('Google Drive Library - Suite Completa de Testes', () => {
 
       expect(result).toHaveLength(3);
       expect(fetch).toHaveBeenCalledWith(
-        expect.stringContaining('pageSize=1000'), // min(1500, 1000) = 1000 (limite API Google)
+        expect.stringContaining('pageSize=1000'), // min(3000, 1000) = 1000 (limite API Google)
         expect.any(Object),
       );
     });
@@ -625,7 +625,7 @@ describe('Google Drive Library - Suite Completa de Testes', () => {
     });
 
     // Limite FREE = MAX_PHOTOS_PER_GALLERY_BY_PLAN.FREE = 300 → pageSize=300
-    it('deve aplicar limite do plano FREE por padrão (pageSize=300)', async () => {
+    it('deve aplicar limite do plano FREE por padrão (pageSize=200)', async () => {
       vi.mocked(fetch).mockResolvedValueOnce({
         ok: true,
         json: async () => ({ files: mockDriveFiles, nextPageToken: null }),
@@ -634,7 +634,7 @@ describe('Google Drive Library - Suite Completa de Testes', () => {
       await listPhotosFromDriveFolder(mockFolderId, mockAccessToken);
 
       expect(fetch).toHaveBeenCalledWith(
-        expect.stringContaining('pageSize=300'),
+        expect.stringContaining('pageSize=200'),
         expect.any(Object),
       );
     });

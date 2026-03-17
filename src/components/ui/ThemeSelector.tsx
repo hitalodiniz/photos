@@ -254,41 +254,24 @@ export interface ThemeSelectorProps {
   onConfirm: (theme: ThemeKey) => Promise<void> | void;
   confirmLabel?: string;
   compact?: boolean;
+  /** Quando true (padrão), onConfirm é chamado e o estado de salvamento é exibido.
+   * Quando false, apenas o tema pendente é alterado para preview. */
+  applyOnSelect?: boolean;
 }
 
 export function ThemeSelector({
   currentTheme,
-  previewTargetId,
   onConfirm,
-  confirmLabel = 'Aplicar Tema',
   compact = false,
 }: ThemeSelectorProps) {
-  const [pendingTheme, setPendingTheme] = useState<ThemeKey>(currentTheme);
   const [savingTheme, setSavingTheme] = useState<ThemeKey | null>(null);
-
-  useEffect(() => {
-    setPendingTheme(currentTheme);
-  }, [currentTheme]);
-
-  useEffect(() => {
-    const target = previewTargetId
-      ? document.getElementById(previewTargetId)
-      : document.documentElement;
-    if (target) target.setAttribute('data-theme', pendingTheme);
-    return () => {
-      if (target) target.setAttribute('data-theme', currentTheme);
-    };
-  }, [pendingTheme, currentTheme, previewTargetId]);
 
   const handleSelectTheme = async (themeKey: ThemeKey) => {
     if (themeKey === currentTheme) return;
-    setPendingTheme(themeKey);
-    setSavingTheme(themeKey);
-    try {
-      await onConfirm(themeKey);
-    } finally {
-      setSavingTheme(null);
-    }
+
+    // Apenas chama onConfirm para notificar o componente pai.
+    // O pai é responsável por aplicar o tema para preview ou salvá-lo.
+    onConfirm(themeKey);
   };
 
   return (
@@ -312,7 +295,7 @@ export function ThemeSelector({
             key={theme.key}
             theme={theme}
             isSelected={currentTheme === theme.key}
-            isPending={false}
+            isPending={false} // Lógica de pending removida
             isSaving={savingTheme === theme.key}
             onClick={() => handleSelectTheme(theme.key)}
           />

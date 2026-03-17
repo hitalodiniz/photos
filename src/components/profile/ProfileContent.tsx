@@ -17,7 +17,8 @@ import { BrandWatermark } from '../ui/BrandWatermark';
 import { useSegment } from '@/hooks/useSegment';
 import { GALLERY_CATEGORIES } from '@/core/config/categories';
 import { Profile } from '@/core/types/profile';
-import { env } from 'process';
+import { ThemeKey } from '../ui/ThemeSelector';
+
 
 // 🎯 Função de normalização local (removido import de 'path')
 const normalizeText = (text: string) =>
@@ -40,7 +41,7 @@ interface ProfileContentProps {
   backgroundUrl?: string | string[];
   useSubdomain?: boolean;
   profile?: Profile;
-  themeKey?: string;
+  themeKey?: ThemeKey;
 }
 
 export default function ProfileContent({
@@ -286,10 +287,15 @@ export default function ProfileContent({
     ],
   );
 
+  const appliedTheme =
+    themeKey ||
+    (process.env.NEXT_PUBLIC_APP_SEGMENT as ThemeKey) ||
+    'PHOTOGRAPHER';
+
   return (
     <div
+      data-theme={appliedTheme}
       className="relative min-h-screen font-sans overflow-x-hidden bg-luxury-bg text-petroleum transition-colors duration-500"
-      data-theme={themeKey}
     >
       <EditorialHero
         title={fullName}

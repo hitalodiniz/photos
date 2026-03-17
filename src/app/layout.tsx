@@ -78,8 +78,7 @@ export default async function RootLayout({
           try {
             var seg = localStorage.getItem('debug-segment') || '${segment}';
             document.documentElement.setAttribute('data-segment', seg);
-            var profileTheme = ${JSON.stringify(profile?.theme_key ?? '')};
-            var theme = localStorage.getItem('debug-theme') || profileTheme || 'PHOTOGRAPHER';
+            var theme = localStorage.getItem('debug-theme') || 'PHOTOGRAPHER';
             document.documentElement.setAttribute('data-theme', theme);
           } catch (e) {}
         })();

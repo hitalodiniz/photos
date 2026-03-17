@@ -4,7 +4,7 @@ import { useMemo, useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { RelatorioBasePage } from '@/components/ui/RelatorioBasePage';
 
-import { ManagePaymentModal } from '@/components/ui/Assinatura/ManagePaymentModal';
+import { ManagePaymentSheet } from '@/components/ui/Assinatura/ManagePaymentSheet';
 import {
   PlanBenefitsModal,
   PlanBenefitsSummaryCard,
@@ -679,7 +679,7 @@ export default function AssinaturaContent({
         hasNextPlan={hasNextPlan}
       />
 
-      <ManagePaymentModal
+      <ManagePaymentSheet
         isOpen={showManagePayment}
         onClose={() => setShowManagePayment(false)}
         activeSubscriptionId={activeSubscriptionId ?? ''}

@@ -180,7 +180,7 @@ describe('Lógica de Estados de Plano (Trial vs Assinante)', () => {
 
     expect(result.current.planKey).toBe('PRO');
     // PRO.maxGalleries = 50
-    expect(result.current.permissions.maxGalleries).toBe(50);
+    expect(result.current.permissions.maxGalleries).toBe(60);
   });
 
   test('DOWNGRADE: deve reduzir permissões imediatamente ao atualizar plan_key', () => {
@@ -265,7 +265,7 @@ describe('5. Casos de Borda e Segurança (Edge Cases)', () => {
     });
 
     expect(result.current.permissions.maxGalleries).toBe(10);
-    expect(result.current.permissions.maxPhotosPerGallery).toBe(500);
+    expect(result.current.permissions.maxPhotosPerGallery).toBe(600);
   });
 
   // FREE.maxGalleries = 3

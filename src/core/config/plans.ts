@@ -45,67 +45,63 @@ export function getNextPlanKey(current: PlanKey): PlanKey | null {
 //
 // =============================================================================
 
-// ── Cota de arquivos (fotos + vídeos vinculados / processados do Drive) ───────
+// ── Cota de arquivos (Pool global: fotos + vídeos processados do Drive) ───────
 export const PHOTO_CREDITS_BY_PLAN: Record<PlanKey, number> = {
   FREE: 450,
-  START: 2_500,
-  PLUS: 10_000,
-  PRO: 50_000,
+  START: 3_000,
+  PLUS: 15_000,
+  PRO: 60_000,
   PREMIUM: 200_000,
 };
 
-// ── Capacidade em GB (informativo, exibido nos cards de plano e sidebar) ──────
+// ── Capacidade em GB (Informativo - Média de 2.5MB por arquivo otimizado) ─────
 export const STORAGE_GB_BY_PLAN: Record<PlanKey, number> = {
-  FREE: 4.5,
-  START: 25,
-  PLUS: 100,
-  PRO: 500,
-  PREMIUM: 2_000,
+  FREE: 1,
+  START: 7.5,
+  PLUS: 37.5,
+  PRO: 150,
+  PREMIUM: 500,
 };
 
-// ── Teto absoluto de galerias (nunca ultrapassado mesmo com cota sobrando) ────
+// ── Teto absoluto de galerias (Hard Cap - Independente do uso do pool) ────────
 export const MAX_GALLERIES_HARD_CAP_BY_PLAN: Record<PlanKey, number> = {
   FREE: 3,
   START: 12,
-  PLUS: 30,
-  PRO: 100,
+  PLUS: 40,
+  PRO: 120,
   PREMIUM: 400,
 };
 
-// ── Hard cap por galeria (bloqueia upload ao atingir) ─────────────────────────
+// ── Hard cap por galeria (Bloqueio de upload para preservar performance) ─────
 export const MAX_PHOTOS_PER_GALLERY_BY_PLAN: Record<PlanKey, number> = {
-  FREE: 300, // = recommended (FREE não tem margem)
-  START: 500,
-  PLUS: 1_000,
-  PRO: 1_500,
-  PREMIUM: 3_000,
+  FREE: 200,
+  START: 600,
+  PLUS: 1_200,
+  PRO: 3_000, // Resolve a dor do fotógrafo de formatura sem exagerar
+  PREMIUM: 6_000, // Limite de segurança para evitar crash em dispositivos mobile
 };
 
 // ── Recomendado por galeria = cota / galBase ──────────────────────────────────
-// Garante que, com cota cheia, o usuário tem exatamente maxGalleries disponíveis.
-// Também é usado por calcEffectiveMaxGalleries para o cálculo dinâmico.
-// FREE:    450 / 3   = 150
-// START:   2500 / 10 = 250
-// PLUS:    10000 / 20 = 500
-// PRO:     50000 / 50 = 1000
+// FREE: 450 / 3 = 150
+// START: 3000 / 10 = 300
+// PLUS: 15000 / 25 = 600
+// PRO: 60000 / 60 = 1000
 // PREMIUM: 200000 / 200 = 1000
 export const RECOMMENDED_PHOTOS_PER_GALLERY_BY_PLAN: Record<PlanKey, number> = {
   FREE: 150,
-  START: 250,
-  PLUS: 500,
+  START: 300,
+  PLUS: 600,
   PRO: 1_000,
   PREMIUM: 1_000,
 };
 
 // ── Threshold de alerta amarelo na galeria individual ─────────────────────────
-// Aviso quando o usuário está "acima do recomendado" mas abaixo do hard cap.
-// Vem da coluna "Arq. Rec." da planilha.
 export const FILES_ALERT_THRESHOLD_BY_PLAN: Record<PlanKey, number> = {
   FREE: 150,
-  START: 250,
-  PLUS: 500,
-  PRO: 750, // PRO: alerta em 750, bloqueia em 1500
-  PREMIUM: 1_000,
+  START: 400,
+  PLUS: 800,
+  PRO: 1_500,
+  PREMIUM: 3_000,
 };
 
 // ── Vídeos ────────────────────────────────────────────────────────────────────
@@ -121,10 +117,9 @@ export const MAX_VIDEO_SIZE_MB_BY_PLAN: Record<PlanKey, number> = {
   FREE: 15,
   START: 50,
   PLUS: 100,
-  PRO: 100,
-  PREMIUM: 100,
+  PRO: 200, // Maior suporte para vídeos no PRO e Premium
+  PREMIUM: 200,
 };
-
 // =============================================================================
 // FUNÇÕES DE CÁLCULO
 // =============================================================================
@@ -281,15 +276,15 @@ export interface PlanPermissions {
 export const PERMISSIONS_BY_PLAN: Record<PlanKey, PlanPermissions> = {
   FREE: {
     // ── Capacidade
-    photoCredits: 450,
-    storageGB: 2.25,
-    maxGalleries: 3,
-    maxGalleriesHardCap: 3,
-    maxPhotosPerGallery: 150,
-    recommendedPhotosPerGallery: 150,
-    filesAlertThreshold: 150,
-    maxVideoCount: 1,
-    maxVideoSizeMB: 15,
+    photoCredits: PHOTO_CREDITS_BY_PLAN.FREE,
+    storageGB: STORAGE_GB_BY_PLAN.FREE,
+    maxGalleries: getBaseGalleriesFromPool('FREE'),
+    maxGalleriesHardCap: MAX_GALLERIES_HARD_CAP_BY_PLAN.FREE,
+    maxPhotosPerGallery: MAX_PHOTOS_PER_GALLERY_BY_PLAN.FREE,
+    recommendedPhotosPerGallery: RECOMMENDED_PHOTOS_PER_GALLERY_BY_PLAN.FREE,
+    filesAlertThreshold: FILES_ALERT_THRESHOLD_BY_PLAN.FREE,
+    maxVideoCount: MAX_VIDEO_COUNT_BY_PLAN.FREE,
+    maxVideoSizeMB: MAX_VIDEO_SIZE_MB_BY_PLAN.FREE,
     // ── Equipe & Perfil
     teamMembers: 0,
     profileLevel: 'basic',
@@ -326,15 +321,15 @@ export const PERMISSIONS_BY_PLAN: Record<PlanKey, PlanPermissions> = {
   },
   START: {
     // ── Capacidade
-    photoCredits: 2_500,
-    storageGB: 12.5,
-    maxGalleries: 10,
-    maxGalleriesHardCap: 12,
-    maxPhotosPerGallery: 500,
-    recommendedPhotosPerGallery: 250,
-    filesAlertThreshold: 250,
-    maxVideoCount: 10,
-    maxVideoSizeMB: 50,
+    photoCredits: PHOTO_CREDITS_BY_PLAN.START,
+    storageGB: STORAGE_GB_BY_PLAN.START,
+    maxGalleries: getBaseGalleriesFromPool('START'),
+    maxGalleriesHardCap: MAX_GALLERIES_HARD_CAP_BY_PLAN.START,
+    maxPhotosPerGallery: MAX_PHOTOS_PER_GALLERY_BY_PLAN.START,
+    recommendedPhotosPerGallery: RECOMMENDED_PHOTOS_PER_GALLERY_BY_PLAN.START,
+    filesAlertThreshold: FILES_ALERT_THRESHOLD_BY_PLAN.START,
+    maxVideoCount: MAX_VIDEO_COUNT_BY_PLAN.START,
+    maxVideoSizeMB: MAX_VIDEO_SIZE_MB_BY_PLAN.START,
     // ── Equipe & Perfil
     teamMembers: 0,
     profileLevel: 'standard',
@@ -371,15 +366,15 @@ export const PERMISSIONS_BY_PLAN: Record<PlanKey, PlanPermissions> = {
   },
   PLUS: {
     // ── Capacidade
-    photoCredits: 10_000,
-    storageGB: 50,
-    maxGalleries: 20,
-    maxGalleriesHardCap: 30,
-    maxPhotosPerGallery: 1_000,
-    recommendedPhotosPerGallery: 500,
-    filesAlertThreshold: 500,
-    maxVideoCount: 20,
-    maxVideoSizeMB: 100,
+    photoCredits: PHOTO_CREDITS_BY_PLAN.PLUS,
+    storageGB: STORAGE_GB_BY_PLAN.PLUS,
+    maxGalleries: getBaseGalleriesFromPool('PLUS'),
+    maxGalleriesHardCap: MAX_GALLERIES_HARD_CAP_BY_PLAN.PLUS,
+    maxPhotosPerGallery: MAX_PHOTOS_PER_GALLERY_BY_PLAN.PLUS,
+    recommendedPhotosPerGallery: RECOMMENDED_PHOTOS_PER_GALLERY_BY_PLAN.PLUS,
+    filesAlertThreshold: FILES_ALERT_THRESHOLD_BY_PLAN.PLUS,
+    maxVideoCount: MAX_VIDEO_COUNT_BY_PLAN.PLUS,
+    maxVideoSizeMB: MAX_VIDEO_SIZE_MB_BY_PLAN.PLUS,
     // ── Equipe & Perfil
     teamMembers: 2,
     profileLevel: 'advanced',
@@ -416,15 +411,15 @@ export const PERMISSIONS_BY_PLAN: Record<PlanKey, PlanPermissions> = {
   },
   PRO: {
     // ── Capacidade
-    photoCredits: 50_000,
-    storageGB: 250,
-    maxGalleries: 50,
-    maxGalleriesHardCap: 100,
-    maxPhotosPerGallery: 1_500,
-    recommendedPhotosPerGallery: 1_000, // cota / galBase = 50.000/50
-    filesAlertThreshold: 750, // alerta amarelo antes do hard cap
-    maxVideoCount: 50,
-    maxVideoSizeMB: 100,
+    photoCredits: PHOTO_CREDITS_BY_PLAN.PRO,
+    storageGB: STORAGE_GB_BY_PLAN.PRO,
+    maxGalleries: getBaseGalleriesFromPool('PRO'),
+    maxGalleriesHardCap: MAX_GALLERIES_HARD_CAP_BY_PLAN.PRO,
+    maxPhotosPerGallery: MAX_PHOTOS_PER_GALLERY_BY_PLAN.PRO,
+    recommendedPhotosPerGallery: RECOMMENDED_PHOTOS_PER_GALLERY_BY_PLAN.PRO,
+    filesAlertThreshold: FILES_ALERT_THRESHOLD_BY_PLAN.PRO,
+    maxVideoCount: MAX_VIDEO_COUNT_BY_PLAN.PRO,
+    maxVideoSizeMB: MAX_VIDEO_SIZE_MB_BY_PLAN.PRO,
     // ── Equipe & Perfil
     teamMembers: 5,
     profileLevel: 'seo',
@@ -461,15 +456,15 @@ export const PERMISSIONS_BY_PLAN: Record<PlanKey, PlanPermissions> = {
   },
   PREMIUM: {
     // ── Capacidade
-    photoCredits: 200_000,
-    storageGB: 1_000,
-    maxGalleries: 200,
-    maxGalleriesHardCap: 400,
-    maxPhotosPerGallery: 3_000,
-    recommendedPhotosPerGallery: 1_000, // cota / galBase = 200.000/200
-    filesAlertThreshold: 1_000,
-    maxVideoCount: 100,
-    maxVideoSizeMB: 100,
+    photoCredits: PHOTO_CREDITS_BY_PLAN.PREMIUM,
+    storageGB: STORAGE_GB_BY_PLAN.PREMIUM,
+    maxGalleries: getBaseGalleriesFromPool('PREMIUM'),
+    maxGalleriesHardCap: MAX_GALLERIES_HARD_CAP_BY_PLAN.PREMIUM,
+    maxPhotosPerGallery: MAX_PHOTOS_PER_GALLERY_BY_PLAN.PREMIUM,
+    recommendedPhotosPerGallery: RECOMMENDED_PHOTOS_PER_GALLERY_BY_PLAN.PREMIUM,
+    filesAlertThreshold: FILES_ALERT_THRESHOLD_BY_PLAN.PREMIUM,
+    maxVideoCount: MAX_VIDEO_COUNT_BY_PLAN.PREMIUM,
+    maxVideoSizeMB: MAX_VIDEO_SIZE_MB_BY_PLAN.PREMIUM,
     // ── Equipe & Perfil
     teamMembers: 99,
     profileLevel: 'seo',
@@ -650,13 +645,13 @@ export const FEATURE_DESCRIPTIONS: Record<
     description: 'Organize fotos via pastas do Drive ou seleções em massa.',
   },
   zipSizeLimit: {
-    label: 'Resolução de Download',
+    label: 'Qualidade de Download',
     description: 'Libere downloads em alta definição para seus clientes.',
   },
   zipSizeLimitBytes: {
     label: 'Limite do ZIP (bytes)',
     description:
-      'Limite em bytes para resolução do download em ZIP (uso interno).',
+      'Limite em bytes para qualidade do download em ZIP (uso interno).',
   },
   maxExternalLinks: {
     label: 'Links de Entrega',
@@ -722,7 +717,9 @@ export function getPlanBenefits(
     FEATURE_DESCRIPTIONS.maxGalleriesHardCap && {
       label: FEATURE_DESCRIPTIONS.maxGalleriesHardCap.label,
       description: `Até ${perms.maxGalleriesHardCap} galerias ativas`,
-      isPremium: perms.maxGalleriesHardCap > PERMISSIONS_BY_PLAN.FREE.maxGalleriesHardCap,
+      isPremium:
+        perms.maxGalleriesHardCap >
+        PERMISSIONS_BY_PLAN.FREE.maxGalleriesHardCap,
     },
     FEATURE_DESCRIPTIONS.storageGB && {
       label: FEATURE_DESCRIPTIONS.storageGB.label,
@@ -732,7 +729,9 @@ export function getPlanBenefits(
     FEATURE_DESCRIPTIONS.maxPhotosPerGallery && {
       label: FEATURE_DESCRIPTIONS.maxPhotosPerGallery.label,
       description: `Até ${perms.maxPhotosPerGallery} arquivos vinculados por galeria`,
-      isPremium: perms.maxPhotosPerGallery > PERMISSIONS_BY_PLAN.FREE.maxPhotosPerGallery,
+      isPremium:
+        perms.maxPhotosPerGallery >
+        PERMISSIONS_BY_PLAN.FREE.maxPhotosPerGallery,
     },
     FEATURE_DESCRIPTIONS.maxVideoCount && {
       label: FEATURE_DESCRIPTIONS.maxVideoCount.label,
@@ -1168,31 +1167,69 @@ export const PLANS_BY_SEGMENT: Record<
 // COMMON FEATURES (tabela comparativa de planos)
 // =============================================================================
 
+/**
+ * Gera um array de valores para a tabela de comparação a partir de uma constante
+ * de limites, com uma função de formatação opcional.
+ */
+function getComparisonValues<T>(
+  source: Record<PlanKey, T>,
+  formatter: (value: T, planKey: PlanKey) => string,
+): string[] {
+  return planOrder.map((planKey) => formatter(source[planKey], planKey));
+}
+
+/** Formata números grandes com "mil" e sufixo. */
+const formatNumber =
+  (suffix = '') =>
+  (value: number) => {
+    const num = Number(value);
+    if (num >= 1000) {
+      return `${num / 1000} mil${suffix}`;
+    }
+    return `${num}${suffix}`;
+  };
+
+/** Formata GB, convertendo para TB se necessário. */
+const formatGB = (value: number) => {
+  if (value >= 1000) {
+    return `${value / 1000} TB`;
+  }
+  return `${value} GB`;
+};
+
 export const COMMON_FEATURES = [
   // --- GESTÃO ---
   {
     key: 'maxGalleries',
     group: 'Gestão',
     label: 'Galerias Ativas',
-    values: ['3', '10', '20', '50', '200'],
+    values: getComparisonValues(MAX_GALLERIES_HARD_CAP_BY_PLAN, (v) =>
+      String(v),
+    ),
   },
   {
     key: 'storageGB',
     group: 'Gestão',
     label: 'Cota de Arquivos',
-    values: ['4,5 GB', '25 GB', '100 GB', '500 GB', '2 TB'],
+    values: getComparisonValues(STORAGE_GB_BY_PLAN, (v) => formatGB(v)),
   },
   {
     key: 'maxPhotosPerGallery',
     group: 'Gestão',
     label: 'Capacidade por Galeria',
-    values: ['150 arq.', '500 arq.', '1.000 arq.', '1.500 arq.', '3.000 arq.'],
+    values: getComparisonValues(MAX_PHOTOS_PER_GALLERY_BY_PLAN, (v) =>
+      formatNumber(' arq.')(v),
+    ),
   },
   {
     key: 'maxVideoCount',
     group: 'Gestão',
     label: 'Vídeos por Galeria',
-    values: ['1 vídeo', '10 vídeos', '20 vídeos', '50 vídeos', '100 vídeos'],
+    values: getComparisonValues(MAX_VIDEO_COUNT_BY_PLAN, (count, planKey) => {
+      const size = MAX_VIDEO_SIZE_MB_BY_PLAN[planKey];
+      const plural = count !== 1 ? 's' : '';
+      return `${count} vídeo${plural} (até ${size}MB)`;
+    }),
   },
   {
     key: 'canAccessStats',
@@ -1347,7 +1384,7 @@ export const COMMON_FEATURES = [
     label: 'Recursos do Slider',
     values: [
       'Download Simples',
-      '+ Alta Resolução',
+      '+ Alta Qualidade',
       '+ Favoritar na Tela',
       '+ Modo Slideshow',
       '+ Modo Slideshow',
