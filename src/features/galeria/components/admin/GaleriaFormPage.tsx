@@ -108,9 +108,14 @@ export default function GaleriaFormPage({
     register,
     setValue,
     watch,
+    formState: { errors },
     handleSubmit: handleFormSubmit,
   } = useForm({
+    mode: 'onBlur',
     defaultValues: {
+      expires_at: galeria?.expires_at
+        ? String(galeria.expires_at).slice(0, 10)
+        : '',
       lead_purpose:
         galeria?.lead_purpose ||
         initialProfile.settings?.defaults?.data_treatment_purpose ||
@@ -170,6 +175,12 @@ export default function GaleriaFormPage({
 
   const handleSubmit = async (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault();
+
+    if (Object.keys(errors).length > 0) {
+      showToast('Corrija os erros antes de salvar.', 'error');
+      return;
+    }
+
     const formData = new FormData(e.currentTarget);
     const formValues = watch();
     formData.set('lead_purpose', formValues.lead_purpose || '');
@@ -330,6 +341,7 @@ export default function GaleriaFormPage({
         onTitleChange={setFormTitle}
         profile={initialProfile}
         register={register}
+        errors={errors}
         setValue={setValue}
         watch={watch}
         usedPhotoCredits={poolStats.usedPhotoCredits}

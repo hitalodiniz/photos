@@ -350,10 +350,9 @@ describe('handleSubscriptionCancellation — notes com reason/comment', () => {
     });
 
     expect(capturedNotes).not.toBeNull();
-    const parsed = JSON.parse(capturedNotes as string);
-    expect(parsed.type).toBe('cancellation');
-    expect(parsed.reason).toBe('not_using');
-    expect(parsed.comment).toBe('Não uso o suficiente');
+    expect(capturedNotes).toContain('Cancelamento solicitado');
+    expect(capturedNotes).toContain('Motivo: not_using');
+    expect(capturedNotes).toContain('Comentário: Não uso o suficiente');
   });
 
   it('sem reason ainda retorna refund_immediate', async () => {

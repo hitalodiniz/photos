@@ -16,6 +16,12 @@ export type PlanKey = 'FREE' | 'START' | 'PLUS' | 'PRO' | 'PREMIUM';
 
 export const planOrder: PlanKey[] = ['FREE', 'START', 'PLUS', 'PRO', 'PREMIUM'];
 
+export function getNextPlanKey(current: PlanKey): PlanKey | null {
+  const idx = planOrder.indexOf(current);
+  if (idx === -1 || idx >= planOrder.length - 1) return null;
+  return planOrder[idx + 1];
+}
+
 // =============================================================================
 // 🎫 SISTEMA DE CAPACIDADE FLEXÍVEL (COTA DE ARQUIVOS)
 //
@@ -690,7 +696,11 @@ export const FEATURE_DESCRIPTIONS: Record<
   },
 };
 
-export type PlanBenefitItem = { label: string; description: string };
+export type PlanBenefitItem = {
+  label: string;
+  description: string;
+  isPremium?: boolean;
+};
 
 /** Termos mínimos para montar labels (ex: "galerias" via terms.items). */
 export type PlanBenefitsTerms = { items: string };
@@ -712,18 +722,22 @@ export function getPlanBenefits(
     FEATURE_DESCRIPTIONS.maxGalleriesHardCap && {
       label: FEATURE_DESCRIPTIONS.maxGalleriesHardCap.label,
       description: `Até ${perms.maxGalleriesHardCap} galerias ativas`,
+      isPremium: perms.maxGalleriesHardCap > PERMISSIONS_BY_PLAN.FREE.maxGalleriesHardCap,
     },
     FEATURE_DESCRIPTIONS.storageGB && {
       label: FEATURE_DESCRIPTIONS.storageGB.label,
       description: `Equivalente a ${storageLabel} de capacidade`,
+      isPremium: perms.storageGB > PERMISSIONS_BY_PLAN.FREE.storageGB,
     },
     FEATURE_DESCRIPTIONS.maxPhotosPerGallery && {
       label: FEATURE_DESCRIPTIONS.maxPhotosPerGallery.label,
       description: `Até ${perms.maxPhotosPerGallery} arquivos vinculados por galeria`,
+      isPremium: perms.maxPhotosPerGallery > PERMISSIONS_BY_PLAN.FREE.maxPhotosPerGallery,
     },
     FEATURE_DESCRIPTIONS.maxVideoCount && {
       label: FEATURE_DESCRIPTIONS.maxVideoCount.label,
       description: `${perms.maxVideoCount} vídeo${perms.maxVideoCount !== 1 ? 's' : ''} por galeria`,
+      isPremium: perms.maxVideoCount > PERMISSIONS_BY_PLAN.FREE.maxVideoCount,
     },
   ].filter(Boolean) as PlanBenefitItem[];
 
@@ -750,9 +764,15 @@ export function getPlanBenefits(
       if (key === 'customizationLevel') return value === true;
       return !!value;
     })
-    .map((key) => {
+    .map((key): PlanBenefitItem | null => {
       const meta = FEATURE_DESCRIPTIONS[key];
-      return meta ? { label: meta.label, description: meta.description } : null;
+      const isPremium =
+        typeof perms[key] === 'number'
+          ? (perms[key] as number) > (PERMISSIONS_BY_PLAN.FREE[key] as number)
+          : perms[key] !== PERMISSIONS_BY_PLAN.FREE[key];
+      return meta
+        ? { label: meta.label, description: meta.description, isPremium }
+        : null;
     })
     .filter((b): b is PlanBenefitItem => !!b);
 

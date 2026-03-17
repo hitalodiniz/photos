@@ -5,6 +5,7 @@ import { Heart, PlayCircle } from 'lucide-react';
 import { PlanGuard } from '@/components/auth/PlanGuard';
 import { InfoTooltip } from '@/components/ui/InfoTooltip';
 import { HELP_CONTENT } from '@/core/config/help-content';
+import { usePlan } from '@/core/context/PlanContext';
 
 interface GalleryInteractionFieldsProps {
   enableFavorites: boolean;
@@ -19,6 +20,11 @@ export const GalleryInteractionFields = ({
   enableSlideshow,
   setEnableSlideshow,
 }: GalleryInteractionFieldsProps) => {
+  const { permissions } = usePlan();
+
+  enableFavorites = permissions.canFavorite;
+  enableSlideshow = permissions.canShowSlideshow;
+
   return (
     <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
       {/* FAVORITOS */}
@@ -41,8 +47,6 @@ export const GalleryInteractionFields = ({
           feature="canFavorite"
           label="Sistema de Favoritos"
           variant="mini"
-          scenarioType="feature"
-          forceShowLock={true}
         >
           <button
             type="button"
@@ -87,7 +91,6 @@ export const GalleryInteractionFields = ({
           label="Modo Slideshow"
           variant="mini"
           scenarioType="feature"
-          forceShowLock={true}
         >
           <button
             type="button"

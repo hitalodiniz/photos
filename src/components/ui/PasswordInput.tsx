@@ -223,14 +223,14 @@ export default function PasswordInput({
             maxLength={4}
             value={value}
             onChange={onChange}
-            className={`input-luxury text-center px-1 text-lg h-10 tracking-wider ${className} ${error ? 'border-red-500/50' : ''}`}
+            className={`input-luxury text-center px-1 text-lg h-10 placeholder:text-petroleum tracking-wider ${className} ${error ? 'border-red-500/50' : ''}`}
             style={{ width: '64px', minWidth: '64px' }}
           />
         </div>
         <button
           type="button"
           onClick={() => setShowPassword(!showPassword)}
-          className="text-petroleum/40 hover:text-gold transition-colors p-1.5 bg-white/5 rounded-md border border-white/10"
+          className="text-petroleum/80 hover:text-gold transition-colors p-1.5 bg-white/5 rounded-md border border-white/10"
         >
           {showPassword ? <Eye size={14} /> : <EyeOff size={14} />}
         </button>

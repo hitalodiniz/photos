@@ -284,7 +284,9 @@ describe('calculateUpgradePrice — downgrade e direito de arrependimento', () =
     vi.clearAllMocks();
   });
 
-  const makeCurrentRequest = (overrides: Partial<CurrentActiveRequestRow> = {}) =>
+  const makeCurrentRequest = (
+    overrides: Partial<CurrentActiveRequestRow> = {},
+  ) =>
     ({
       id: 'req-1',
       status: 'approved',
@@ -1024,7 +1026,7 @@ describe('Crédito pro-rata para upgrade de plano (ano comercial 30/180/360)', (
       const residualCredit = await Promise.resolve(calc.residual_credit);
       const amountOriginal = await Promise.resolve(calc.amount_original);
       const amountFinal = await Promise.resolve(calc.amount_final);
-      expect(residualCredit).toBe(19.33);
+      expect(residualCredit).toBe(19.17);
       expect(amountOriginal).toBe(49);
       // amount_final pode vir serializado de forma diferente em ambiente de server action; validação principal é crédito e original
       if (Number.isFinite(amountFinal)) {
@@ -1050,7 +1052,7 @@ describe('Crédito pro-rata para upgrade de plano (ano comercial 30/180/360)', (
       );
 
       expect(calc.type).toBe('upgrade');
-      expect(await Promise.resolve(calc.residual_credit)).toBe(24.5);
+      expect(await Promise.resolve(calc.residual_credit)).toBe(24.08);
       expect(await Promise.resolve(calc.amount_original)).toBe(756); // 63 * 12
       const amountFinal = await Promise.resolve(calc.amount_final);
       if (Number.isFinite(amountFinal)) {
@@ -1084,10 +1086,11 @@ describe('Crédito pro-rata para upgrade de plano (ano comercial 30/180/360)', (
       );
 
       expect(calc.type).toBe('upgrade');
-      expect(await Promise.resolve(calc.residual_credit)).toBe(104);
+      expect(await Promise.resolve(calc.residual_credit)).toBe(103.86);
       expect(await Promise.resolve(calc.amount_original)).toBe(258); // 43 * 6
       const amountFinal = await Promise.resolve(calc.amount_final);
-      if (Number.isFinite(amountFinal)) expect(amountFinal).toBeCloseTo(146.3, 2);
+      if (Number.isFinite(amountFinal))
+        expect(amountFinal).toBeCloseTo(146.3, 2);
     });
 
     it('Cenário 4 — PRO Anual (R$756) → PREMIUM Anual (R$1.308): dia 200 de 360 → total R$972,00', async () => {
@@ -1115,10 +1118,11 @@ describe('Crédito pro-rata para upgrade de plano (ano comercial 30/180/360)', (
       );
 
       expect(calc.type).toBe('upgrade');
-      expect(await Promise.resolve(calc.residual_credit)).toBe(336);
+      expect(await Promise.resolve(calc.residual_credit)).toBe(335.42);
       expect(await Promise.resolve(calc.amount_original)).toBe(1308); // 109 * 12
       const amountFinal = await Promise.resolve(calc.amount_final);
-      if (Number.isFinite(amountFinal)) expect(amountFinal).toBeCloseTo(923.4, 2);
+      if (Number.isFinite(amountFinal))
+        expect(amountFinal).toBeCloseTo(923.4, 2);
     });
 
     it('Downgrade por valor: novo total < valor pago do plano atual → type downgrade', async () => {

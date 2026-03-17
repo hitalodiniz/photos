@@ -1,46 +1,32 @@
 'use client';
-
 import { CheckCircle2 } from 'lucide-react';
-
-import { useState } from 'react'; // Import useState
 
 interface LeadCaptureFieldsProps {
   requiredFields: string[];
-
   onChange: (fields: string[]) => void;
-
   title?: string;
-
   className?: string;
-
   labelClassName?: string;
 }
 
 export const LeadCaptureFields = ({
   requiredFields,
-
   onChange,
-
   className = 'grid grid-cols-1 sm:grid-cols-3 gap-4 p-4',
 }: LeadCaptureFieldsProps) => {
   const fields = [
     { id: 'name', label: 'Nome' },
-
     { id: 'email', label: 'E-mail' },
-
     { id: 'whatsapp', label: 'WhatsApp' },
   ];
 
   const toggleField = (fieldId: string) => {
     const isCurrentlyRequired = requiredFields.includes(fieldId);
-
     let newRequiredFields: string[];
 
     if (isCurrentlyRequired) {
       // 🛡️ Não permite desativar se for o último campo ativo
-
       if (requiredFields.length <= 1) return;
-
       newRequiredFields = requiredFields.filter((id) => id !== fieldId);
     } else {
       newRequiredFields = [...requiredFields, fieldId];

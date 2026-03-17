@@ -55,11 +55,14 @@ export function buildCancellationNotes(
   reason?: string | null,
   comment?: string,
 ): string {
-  if (!reason) return baseText;
-  return JSON.stringify({
-    type: 'cancellation',
-    reason,
-    ...(comment ? { comment: comment.slice(0, 400) } : {}),
-    detail: baseText,
-  });
+  const reasonLabel = reason
+    ? `Motivo: ${reason?.slice(0, 200)}`
+    : '';
+  const commentText = comment
+    ? `Comentário: ${comment?.slice(0, 400)}`
+    : '';
+  const fullText = [baseText, reasonLabel, commentText]
+    .filter(Boolean)
+    .join(' | ');
+  return fullText;
 }

@@ -1,7 +1,17 @@
 // src/core/services/asaas/billing/pro-rata.ts
+
 import { COMMERCIAL_DAYS } from '../utils/constants';
 import type { BillingPeriod } from '@/core/types/billing';
 
+/**
+ * ✅ MANTÉM ANO COMERCIAL (360 dias) para cálculo de crédito.
+ *
+ * Converte período de cobrança em dias comerciais.
+ * Mensal = 30 dias | Semestral = 180 dias | Anual = 360 dias
+ *
+ * ⚠️ NÃO usar para calcular data de vencimento!
+ * Para vencimento, use: addMonths(date, billingPeriodToMonths(period))
+ */
 export function billingPeriodToCommercialDays(
   period: string | null | undefined,
 ): 30 | 180 | 360 {
@@ -10,8 +20,15 @@ export function billingPeriodToCommercialDays(
 }
 
 /**
- * Crédito pro-rata (ano comercial 30/180/360).
- * credit = (currentAmount / totalDays) * min(remainingDays, totalDays)
+ * ✅ Crédito pro-rata usando ano comercial (30/180/360 dias).
+ *
+ * Fórmula: credit = (currentAmount / totalDays) * min(remainingDays, totalDays)
+ *
+ * Exemplo:
+ * - Plano anual R$ 1.200
+ * - Usado 90 dias de 360
+ * - Restam 270 dias
+ * - Crédito = (1200 / 360) * 270 = R$ 900
  */
 export async function calculateProRataCredit(
   currentAmount: number,

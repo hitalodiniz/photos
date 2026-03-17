@@ -107,6 +107,7 @@ export default function GaleriaFormContent({
   onTitleChange,
   profile,
   register,
+  errors,
   setValue,
   watch,
   // ─── Pool de cota ────────────────────────────────────────────────────────
@@ -212,6 +213,19 @@ export default function GaleriaFormContent({
       }
     };
   }, []);
+
+  // Previa temporária do tema: quando o usuário seleciona um tema, ele é exibido por 5s
+  // e depois o sistema volta para o tema original do admin.
+  useEffect(() => {
+    const timer = setTimeout(() => {
+      const toRestore = systemThemeOnMountRef.current;
+      if (toRestore) {
+        document.documentElement.setAttribute('data-theme', toRestore);
+      }
+    }, 5000);
+
+    return () => clearTimeout(timer);
+  }, [galleryTheme]);
 
   const [renameFilesSequential, setRenameFilesSequential] = useState(() => {
     if (initialData)
@@ -384,7 +398,12 @@ export default function GaleriaFormContent({
   // =========================================================================
 
   const handleDriveSelection = async (
-    selectedItems: Array<{ id: string; name: string; parentId?: string }>,
+    selectedItems: Array<{
+      id: string;
+      name: string;
+      parentId?: string;
+      mimeType?: string;
+    }>,
   ) => {
     if (
       !selectedItems ||
@@ -772,7 +791,6 @@ export default function GaleriaFormContent({
                     label="Senha"
                     variant="mini"
                     scenarioType="feature"
-                    forceShowLock={true}
                   >
                     <div className="flex items-center gap-3">
                       <div className="flex bg-slate-100 rounded-[0.4rem] p-0.5 gap-0.5 w-[150px] shrink-0 h-9">
@@ -793,7 +811,7 @@ export default function GaleriaFormContent({
                       </div>
 
                       <div
-                        className={`flex items-center gap-1 transition-all duration-300 w-[100px] ${isPublic ? 'opacity-20 grayscale pointer-events-none' : 'opacity-100'}`}
+                        className={`flex items-center gap-1 transition-all duration-300 w-[100px] ${isPublic ? 'grayscale pointer-events-none' : 'opacity-100'}`}
                       >
                         <PasswordInput
                           name="password"
@@ -826,20 +844,49 @@ export default function GaleriaFormContent({
                     label="Expiração"
                     variant="mini"
                     scenarioType="feature"
-                    forceShowLock={true}
                   >
-                    <input
-                      type="date"
-                      name="expires_at"
-                      min={today}
-                      defaultValue={
-                        initialData?.expires_at
-                          ? String(initialData.expires_at).slice(0, 10)
-                          : ''
-                      }
-                      disabled={!permissions.expiresAt}
-                      className="input-luxury w-[115px] !px-2"
-                    />
+                    <div className="flex flex-col items-end gap-1">
+                      <input
+                        type="date"
+                        {...register('expires_at', {
+                          minLength: {
+                            value: 10,
+                            message: 'Data incompleta',
+                          },
+                          maxLength: {
+                            value: 10,
+                            message: 'Data inválida',
+                          },
+                          validate: (value) => {
+                            if (!value) return true;
+                            const [year, month, day] = value
+                              .split('-')
+                              .map(Number);
+                            const selectedDate = new Date(year, month - 1, day);
+                            const todayDate = new Date();
+                            todayDate.setHours(0, 0, 0, 0);
+                            selectedDate.setHours(0, 0, 0, 0);
+
+                            if (selectedDate < todayDate) {
+                              return 'A expiração não pode ser anterior a hoje';
+                            }
+                            return true;
+                          },
+                        })}
+                        min={today}
+                        disabled={!permissions.expiresAt}
+                        className={`input-luxury w-[115px] !px-2 ${
+                          errors?.expires_at
+                            ? 'border-red-500 text-red-600 bg-red-50'
+                            : ''
+                        }`}
+                      />
+                      {errors?.expires_at && (
+                        <span className="text-[9px] text-red-500 font-bold animate-in fade-in slide-in-from-top-1 whitespace-nowrap">
+                          {errors.expires_at.message as string}
+                        </span>
+                      )}
+                    </div>
                   </PlanGuard>
                 </div>
 
@@ -866,7 +913,6 @@ export default function GaleriaFormContent({
                     label="Perfil"
                     variant="mini"
                     scenarioType="feature"
-                    forceShowLock={true}
                   >
                     <button
                       type="button"
@@ -953,7 +999,9 @@ export default function GaleriaFormContent({
             isValidatingDrive={isValidatingDrive}
             renameFilesSequential={renameFilesSequential}
             setRenameFilesSequential={setRenameFilesSequential}
-            setDriveData={setDriveData}
+            setDriveData={(data: any) =>
+              setDriveData((prev) => ({ ...prev, ...data }))
+            }
             rootFolderId={profileRootFolderId}
             // ── Pool de cota (fonte da verdade: SUM(photo_count) em tb_galerias, não arquivadas/deletadas) ──
             // usedCreditsExcludingThis = total usado nas outras galerias; em edição já subtraímos esta galeria.
@@ -964,44 +1012,6 @@ export default function GaleriaFormContent({
             planHardCap={PLAN_HARD_CAP}
             isOverHardCap={showLimitModal}
           />
-
-          {/* Aviso: pasta com mais fotos que o recomendado — permite criar; pool restante é dinâmico */}
-          {(() => {
-            const count = driveData.photoCount ?? photoCount ?? 0;
-            const overRecommended =
-              count > RECOMMENDED_PHOTOS && count <= PLAN_HARD_CAP;
-            if (!overRecommended || !driveData.id) return null;
-            const totalPool = permissions.photoCredits ?? 0;
-            const remainingAfterThis = Math.max(
-              0,
-              totalPool - usedCreditsExcludingThis - count,
-            );
-            return (
-              <div className="flex items-start gap-3 p-4 rounded-luxury border border-amber-500/30 bg-amber-500/5">
-                <AlertTriangle
-                  size={18}
-                  className="text-amber-600 shrink-0 mt-0.5"
-                />
-                <div className="min-w-0">
-                  <p className="text-[12px] font-semibold text-petroleum uppercase tracking-wide">
-                    Mais fotos que o recomendado
-                  </p>
-                  <p className="text-[11px] text-petroleum/80 mt-1 leading-relaxed">
-                    Esta pasta tem{' '}
-                    <span className="font-bold text-petroleum">{count} fotos</span>
-                    . O recomendado é até{' '}
-                    <span className="font-semibold">{RECOMMENDED_PHOTOS}</span> por
-                    galeria. Você pode continuar — a galeria será criada com todas
-                    até o limite de {PLAN_HARD_CAP}. Restam{' '}
-                    <span className="font-semibold">
-                      {remainingAfterThis.toLocaleString('pt-BR')} créditos
-                    </span>{' '}
-                    no pool para as próximas galerias; o limite é dinâmico conforme o uso.
-                  </p>
-                </div>
-              </div>
-            );
-          })()}
 
           {/* TEMA VISUAL — aplica na página inteira para preview; ao sair da página o tema é restaurado pelo effect de cleanup */}
           <div className="bg-white rounded-luxury border border-slate-200 p-4 space-y-3">

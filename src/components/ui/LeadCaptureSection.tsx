@@ -1,7 +1,6 @@
 'use client';
 
 import { LeadCaptureFields } from './LeadCaptureFields';
-
 import { LGPDPurposeField } from './LGPDPurposeField';
 
 import {
@@ -11,70 +10,39 @@ import {
 } from 'react-hook-form';
 
 import { PlanGuard } from '@/components/auth/PlanGuard';
-
-import { Lock } from 'lucide-react';
-
 import { usePlan } from '@/core/context/PlanContext';
-
-import UpgradeModal from '@/components/ui/UpgradeModal';
-
 import React from 'react';
-import { div } from 'framer-motion/client';
 
 interface LeadCaptureSectionProps {
   enabled: boolean;
-
   setEnabled: (enabled: boolean) => void;
-
   requiredFields: string[];
-
   setRequiredFields: (fields: string[]) => void;
-
   register: UseFormRegister<any>;
-
   setValue: UseFormSetValue<any>;
-
   watch: UseFormWatch<any>;
-
   purposeFieldName: string;
-
   initialPurposeValue?: string;
-
   toggleLabel?: string;
-
   description?: string;
-
   isEdit?: boolean;
-
   showLayout?: 'stacked' | 'grid';
-
   // No longer need to pass setUpsellFeature down from parent
   // setUpsellFeature: React.Dispatch<React.SetStateAction<{ label: string; feature: string; } | null>>;
 }
 
 export function LeadCaptureSection({
   enabled,
-
   setEnabled,
-
   requiredFields,
-
   setRequiredFields,
-
   register,
-
   setValue,
-
   watch,
-
   purposeFieldName,
-
   initialPurposeValue,
-
   toggleLabel = 'Habilitar cadastro de visitante',
-
   description,
-
   isEdit = false,
 
   showLayout = 'stacked',

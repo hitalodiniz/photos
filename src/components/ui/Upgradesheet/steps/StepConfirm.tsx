@@ -5,10 +5,11 @@ import { SheetSection } from '@/components/ui/Sheet';
 import { getPeriodPrice, PIX_DISCOUNT_PERCENT } from '@/core/config/plans';
 import { useUpgradeSheetContext } from '../UpgradeSheetContext';
 import { getUpgradePreview } from '@/core/services/asaas.service';
-import { Banknote, CreditCard, Tag } from 'lucide-react';
+import { Banknote, CreditCard, Tag, QrCode } from 'lucide-react';
 import { useToast } from '@/hooks/useToast';
-import { formatBRL, formatDateLong } from '../utils';
+import { formatBRL } from '../utils';
 import { useUpgradePrice } from '../useUpgradePrice';
+import { addDays } from '@/core/services/asaas/utils/dates';
 
 export function StepConfirm() {
   const {
@@ -27,6 +28,7 @@ export function StepConfirm() {
     setUpgradeCalculation,
     isCalculationLoading: calcLoading,
     setIsCalculationLoading: setCalcLoading,
+    installments,
   } = useUpgradeSheetContext();
 
   const { showToast, ToastElement } = useToast();
@@ -35,7 +37,7 @@ export function StepConfirm() {
     if (requestError) showToast(requestError, 'error');
   }, [requestError]);
 
-  // Re-busca o cálculo com período e forma finais (garante resumo correto aqui)
+  // Re-busca o cálculo com período e forma finais
   useEffect(() => {
     if (selectedPlan === 'FREE') return;
     let cancelled = false;
@@ -78,8 +80,6 @@ export function StepConfirm() {
   const hasCredit = residualCredit > 0;
   const showFinancialSummary = hasCredit || hasPixDiscount || isFreeUpgrade;
 
-  // Qualquer cenário com amountFinal 0 é tratado como "sem pagamento agora"
-  // (upgrade gratuito OU downgrade com crédito cobrindo 100%).
   const isZeroPayment = amountFinal === 0;
 
   const isDowngradeWithCredit =
@@ -91,13 +91,19 @@ export function StepConfirm() {
     ? 'Crédito de outro pagamento'
     : 'Crédito dos dias não usados';
 
-  const nextBillingDateFormatted = upgradeCalculation?.new_expiry_date
-    ? new Date(upgradeCalculation.new_expiry_date).toLocaleDateString('pt-BR', {
-        day: '2-digit',
-        month: 'long',
-        year: 'numeric',
-      })
-    : null;
+  const nextBillingDateFormatted = React.useMemo(() => {
+    if (!upgradeCalculation?.new_expiry_date) return null;
+
+    // new_expiry_date representa o fim do ciclo atual;
+    // a próxima fatura é no dia seguinte
+    const expiryDate = new Date(upgradeCalculation.new_expiry_date);
+    const invoiceDate = addDays(expiryDate, 1);
+    return invoiceDate.toLocaleDateString('pt-BR', {
+      day: '2-digit',
+      month: 'long',
+      year: 'numeric',
+    });
+  }, [upgradeCalculation?.new_expiry_date]);
 
   const periodLabel =
     billingPeriod === 'monthly'
@@ -106,13 +112,33 @@ export function StepConfirm() {
         ? 'Semestral'
         : 'Anual';
 
+  // ✅ Ícone e texto da forma de pagamento
+  const PaymentIcon =
+    billingType === 'CREDIT_CARD'
+      ? CreditCard
+      : billingType === 'PIX'
+        ? QrCode
+        : Banknote;
+
+  const paymentMethodLabel =
+    billingType === 'CREDIT_CARD'
+      ? 'Cartão de Crédito'
+      : billingType === 'PIX'
+        ? 'PIX'
+        : 'Boleto Bancário';
+
+  const installmentsSuffix =
+    billingType === 'CREDIT_CARD' && installments > 1
+      ? ` - ${installments}x sem juros de ${formatBRL(amountFinal / installments)}`
+      : '';
+
   // ── Render ────────────────────────────────────────────────────────────────
 
   return (
     <>
       {/* ── Plano selecionado ── */}
       <SheetSection>
-        <div className="relative p-3.5 rounded-luxury border border-slate-100 bg-white shadow-sm">
+        <div className="relative px-3.5 py-1.5 rounded-luxury border border-slate-100 bg-white shadow-sm">
           <button
             type="button"
             onClick={() => setStep('plan')}
@@ -150,7 +176,7 @@ export function StepConfirm() {
           </div>
 
           <div className="flex items-center gap-2 mt-2">
-            <span className="text-[10px] font-semibold uppercase px-1.5 py-0.5 bg-slate-100 text-petroleum/60 rounded">
+            <span className="text-[10px] font-bold uppercase px-1.5 py-0.5 bg-champagne text-petroleum rounded">
               {periodLabel}
             </span>
             <span className="text-[11px] text-petroleum/70">
@@ -163,7 +189,7 @@ export function StepConfirm() {
 
       {/* ── Dados de faturamento ── */}
       <SheetSection title="Dados de faturamento">
-        <div className="relative p-3.5 rounded-luxury border border-slate-100 bg-white shadow-sm">
+        <div className="relative px-3.5 py-1.5 rounded-luxury border border-slate-100 bg-white shadow-sm">
           <button
             onClick={() => setStep('personal')}
             className="absolute top-3.5 right-3.5 text-[10px] font-semibold text-gold hover:underline"
@@ -217,21 +243,34 @@ export function StepConfirm() {
         </div>
       </SheetSection>
 
-      {/* ── Resumo financeiro ─────────────────────────────────────────────────
-           Exibido para qualquer tipo de cobrança quando há pelo menos um
-           desconto/crédito, OU sempre para upgrade gratuito.
-           Para pagamentos simples sem crédito/PIX, o total aparece implícito
-           no cartão de plano acima.
-      ── */}
+      {/* ── Resumo do pagamento (COM forma de pagamento integrada) ── */}
       {showFinancialSummary ? (
         <SheetSection title="Resumo do pagamento">
-          <div className="p-3.5 rounded-luxury border border-slate-100 bg-white shadow-sm space-y-2">
+          <div className="px-3.5 py-1.5 rounded-luxury border border-slate-100 bg-white shadow-sm space-y-2">
             {calcLoading && (
               <div className="flex items-center gap-2 text-[11px] text-petroleum/80 mb-1.5">
                 <div className="w-3.5 h-3.5 border-2 border-emerald-200 border-t-emerald-500 rounded-full animate-spin" />
                 <span>Calculando crédito aplicado e próxima fatura…</span>
               </div>
             )}
+
+            {/* ✅ FORMA DE PAGAMENTO (primeira linha) */}
+            <div className="relative flex items-center justify-between pb-1.5 border-b border-slate-100">
+              <div className="flex items-center gap-2">
+                <PaymentIcon size={14} className="text-petroleum/70" />
+                <p className="text-[11px] font-bold text-petroleum">
+                  {paymentMethodLabel}
+                  {installmentsSuffix}
+                </p>
+              </div>
+              <button
+                onClick={() => setStep('billing')}
+                className="text-[10px] font-semibold text-gold hover:underline"
+              >
+                Editar
+              </button>
+            </div>
+
             {/* Linha: valor do período */}
             <div className="flex justify-between text-[11px]">
               <span className="text-petroleum/70 font-medium">
@@ -264,9 +303,9 @@ export function StepConfirm() {
             )}
 
             {/* Linha: total */}
-            <div className="flex justify-between border-t border-slate-100 pt-2 mt-1">
+            <div className="flex justify-between border-t border-slate-100 pt-1 ">
               <span className="text-[12px] font-bold text-petroleum">
-                {isZeroPayment ? 'Total a pagar agora' : 'Total a pagar'}
+                Total a pagar
               </span>
               <span className="text-[13px] font-bold text-petroleum">
                 {isZeroPayment ? 'R$ 0,00' : formatBRL(amountFinal)}
@@ -276,11 +315,7 @@ export function StepConfirm() {
             {/* Próxima fatura */}
             {nextBillingDateFormatted && (
               <div className="mt-2 p-2 rounded bg-slate-50 border border-slate-100 flex items-start gap-2 text-petroleum/80">
-                {billingType === 'CREDIT_CARD' ? (
-                  <CreditCard size={12} className="mt-0.5 shrink-0" />
-                ) : (
-                  <Banknote size={12} className="mt-0.5 shrink-0" />
-                )}
+                <PaymentIcon size={12} className="mt-0.5 shrink-0" />
                 <p className="text-[11px] leading-tight font-medium">
                   {isZeroPayment
                     ? 'Nenhuma cobrança agora. Próxima fatura em '
@@ -296,9 +331,26 @@ export function StepConfirm() {
           </div>
         </SheetSection>
       ) : (
-        /* Pagamento simples sem descontos: exibe apenas o total */
         <SheetSection title="Resumo do pagamento">
-          <div className="p-3.5 rounded-luxury border border-slate-100 bg-white shadow-sm">
+          <div className="p-3.5 rounded-luxury border border-slate-100 bg-white shadow-sm space-y-2">
+            {/* ✅ FORMA DE PAGAMENTO */}
+            <div className="relative flex items-center justify-between pb-1 border-b border-slate-100">
+              <div className="flex items-center gap-2">
+                <PaymentIcon size={14} className="text-petroleum/70" />
+                <p className="text-[11px] font-bold text-petroleum">
+                  {paymentMethodLabel}
+                  {installmentsSuffix}
+                </p>
+              </div>
+              <button
+                onClick={() => setStep('billing')}
+                className="text-[10px] font-semibold text-gold hover:underline"
+              >
+                Editar
+              </button>
+            </div>
+
+            {/* Total */}
             <div className="flex justify-between">
               <span className="text-[12px] font-bold text-petroleum">
                 Total a pagar
@@ -307,8 +359,10 @@ export function StepConfirm() {
                 {formatBRL(amountFinal)}
               </span>
             </div>
+
+            {/* Próxima fatura */}
             {nextBillingDateFormatted && (
-              <p className="text-[10px] text-petroleum/60 mt-1.5 font-medium">
+              <p className="text-[10px] text-petroleum/60 font-medium border-t border-slate-100 pt-1">
                 Próxima fatura em{' '}
                 <strong className="text-petroleum/80">
                   {nextBillingDateFormatted}

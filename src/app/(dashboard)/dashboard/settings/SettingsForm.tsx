@@ -205,7 +205,6 @@ export default function SettingsForm({ profile }: { profile: any }) {
                   label="Exibição no Perfil Público"
                   variant="mini"
                   scenarioType="feature"
-                  forceShowLock={true}
                 >
                   <button
                     type="button"
@@ -249,7 +248,6 @@ export default function SettingsForm({ profile }: { profile: any }) {
                 label="Senha"
                 variant="mini"
                 scenarioType="feature"
-                forceShowLock={true}
               >
                 <div className="flex bg-slate-100 p-1 rounded-luxury border border-slate-200 h-10 items-center">
                   <button
@@ -486,7 +484,6 @@ export default function SettingsForm({ profile }: { profile: any }) {
                 label="Renomeação Sequencial"
                 variant="mini"
                 scenarioType="feature"
-                forceShowLock={true}
               >
                 <div className="flex items-center justify-between p-1 px-4 bg-slate-50 rounded-luxury border border-slate-200 h-10">
                   <span className="text-[9px] font-semibold uppercase tracking-luxury-widest text-petroleum/80">

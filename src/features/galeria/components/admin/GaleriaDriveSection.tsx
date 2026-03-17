@@ -143,7 +143,7 @@ export function GaleriaDriveSection({
         <p className="text-[10px] text-slate-800 leading-tight">
           Máximo de <strong>{permissions.maxVideoCount ?? 1}</strong> vídeos por
           galeria de até <strong>{permissions.maxVideoSizeMB ?? 15} MB</strong>{' '}
-          cada (por performance). Acima disso os vídeos não são listados e
+          cada (por performance). Acima disso os vídeos não são listados e nem
           contados.
         </p>
 
@@ -457,7 +457,6 @@ export function GaleriaDriveSection({
             label="Preservar nomes originais"
             variant="mini"
             scenarioType="feature"
-            forceShowLock={true}
           >
             <button
               type="button"

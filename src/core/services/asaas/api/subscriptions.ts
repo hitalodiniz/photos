@@ -316,6 +316,7 @@ export async function updateSubscriptionBillingMethod(
 
     if (billingType === 'BOLETO' || billingType === 'PIX') {
       body.creditCard = null;
+      body.creditCardHolderInfo = null;
     } else if (billingType === 'CREDIT_CARD') {
       if (!creditCard || !creditCardHolderInfo) {
         return {

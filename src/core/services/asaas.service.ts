@@ -5,9 +5,10 @@
 // 📦 IMPORTS INTERNOS (para as funções que ainda estão aqui)
 // ═══════════════════════════════════════════════════════════════════════════════
 
-import { createSupabaseServerClient } from '@/lib/supabase.server';
+import { createSupabaseAdmin, createSupabaseServerClient } from '@/lib/supabase.server';
 import { getAuthenticatedUser } from '@/core/services/auth-context.service';
 import { revalidateUserCache } from '@/actions/revalidate.actions';
+import { revalidatePath } from 'next/cache';
 import {
   PLANS_BY_SEGMENT,
   getPeriodPrice,
@@ -56,6 +57,7 @@ import {
   cancelAsaasSubscriptionById,
   getAsaasSubscription,
   getActiveSubscriptionIdForCustomer,
+  updateSubscriptionBillingMethod as updateAsaasSubscriptionBillingMethod,
 } from './asaas/api/subscriptions';
 import {
   getFirstPaymentFromSubscription,
@@ -112,7 +114,11 @@ export async function reactivateAutoArchivedGalleries(
   newPlanKey: PlanKey,
   supabaseClient?: Awaited<ReturnType<typeof createSupabaseServerClient>>,
 ): Promise<{ reactivated: number; error?: string }> {
-  return reactivateAutoArchivedGalleriesImpl(profileId, newPlanKey, supabaseClient);
+  return reactivateAutoArchivedGalleriesImpl(
+    profileId,
+    newPlanKey,
+    supabaseClient,
+  );
 }
 
 /**
@@ -283,10 +289,10 @@ export async function calculateUpgradePrice(
       amount_final: 0,
       residual_credit: 0,
       current_plan_expires_at: now.toISOString(),
-      new_expiry_date: addDays(
+      new_expiry_date: addMonths(
         now,
-        billingPeriodToCommercialDays(targetPeriod),
-      ).toISOString(),
+        billingPeriodToMonths(targetPeriod),
+      ).toISOString(), // ✅
     };
   }
 
@@ -306,7 +312,10 @@ export async function calculateUpgradePrice(
       residual_credit: 0,
       pix_discount_amount: pixDiscount,
       current_plan_expires_at: now.toISOString(),
-      new_expiry_date: addDays(now, targetCommercialDays).toISOString(),
+      new_expiry_date: addMonths(
+        now,
+        billingPeriodToMonths(targetPeriod),
+      ).toISOString(),
     };
   }
 
@@ -454,12 +463,16 @@ export async function calculateUpgradePrice(
   }
 
   if (residualCredit >= totalPriceNew) {
+    const monthsCovered = billingPeriodToMonths(targetPeriod);
+    const newExpiry = addMonths(startDate, monthsCovered); // ✅ Usa meses reais
+
+    // Mantém cálculo comercial APENAS para exibir dias estendidos
     const dailyPriceNew = totalPriceNew / targetCommercialDays;
     const daysExtended =
       dailyPriceNew > 0
         ? Math.round(residualCredit / dailyPriceNew)
         : targetCommercialDays;
-    const newExpiry = addDays(startDate, daysExtended);
+
     return {
       type: 'upgrade',
       is_free_upgrade: true,
@@ -468,15 +481,28 @@ export async function calculateUpgradePrice(
       amount_final: 0,
       residual_credit: residualCredit,
       current_plan_expires_at: currentPlanExpiresAt.toISOString(),
-      new_expiry_date: newExpiry.toISOString(),
-      free_upgrade_months_covered: Math.floor(daysExtended / 30),
-      free_upgrade_days_extended: daysExtended,
+      new_expiry_date: newExpiry.toISOString(), // ✅ Data real
+      free_upgrade_months_covered: monthsCovered,
+      free_upgrade_days_extended: daysExtended, // Info comercial
     };
   }
 
+  // Para cobrança imediata, o Asaas trabalha melhor com dias inteiros.
+  // Mantemos `residual_credit` como crédito "preciso" (dias fracionários),
+  // mas para o valor a pagar arredondamos os dias restantes para cima.
+  const remainingDaysForPayment = Math.min(
+    totalDaysCommercial,
+    Math.ceil(Math.max(0, remainingDaysProRata)),
+  );
+  const creditForPayment = await calculateProRataCredit(
+    amountForProRata,
+    totalDaysCommercial,
+    remainingDaysForPayment,
+  );
+
   const amountToPayBeforePix = Math.max(
     0,
-    Math.round((totalPriceNew - residualCredit) * 100) / 100,
+    Math.round((totalPriceNew - creditForPayment) * 100) / 100,
   );
   const pixDiscount =
     billingType === 'PIX' && targetPeriod !== 'monthly'
@@ -487,12 +513,15 @@ export async function calculateUpgradePrice(
   return {
     type: 'upgrade',
     amount_original: totalPriceNew,
-    amount_discount: residualCredit + pixDiscount,
+    amount_discount: creditForPayment + pixDiscount,
     amount_final: Math.round((amountToPayBeforePix - pixDiscount) * 100) / 100,
     residual_credit: residualCredit,
     pix_discount_amount: pixDiscount,
     current_plan_expires_at: currentPlanExpiresAt.toISOString(),
-    new_expiry_date: addDays(now, targetCommercialDays).toISOString(),
+    new_expiry_date: addMonths(
+      now,
+      billingPeriodToMonths(targetPeriod),
+    ).toISOString(),
   };
 }
 
@@ -515,6 +544,7 @@ export async function getUpgradePreview(
       };
 
     const supabase = await createSupabaseServerClient();
+
     const pending = await getPendingUpgradeRequest(userId, supabase);
     if (pending)
       return {
@@ -679,6 +709,149 @@ export async function getCurrentPaymentMethodSummary(): Promise<{
 }
 
 /**
+ * Troca a forma de pagamento da assinatura vigente (server action).
+ *
+ * Regra crítica de negócio: ao "fugir" do cartão (BOLETO/PIX), o Asaas deve
+ * esquecer imediatamente os dados do cartão para evitar recorrência fantasma.
+ *
+ * Também atualiza tb_upgrade_requests (billing_type + histórico em notes) e,
+ * ao migrar para BOLETO/PIX, limpa asaas_payment_id travado de tentativa de cartão.
+ */
+export async function updateSubscriptionBillingMethod(
+  subscriptionId: string,
+  newMethod: 'BOLETO' | 'PIX' | 'CREDIT_CARD',
+  creditCard?: {
+    holderName: string;
+    number: string;
+    expiryMonth: string;
+    expiryYear: string;
+    ccv: string;
+  } | null,
+  creditCardHolderInfo?: {
+    name: string;
+    email: string;
+    cpfCnpj: string;
+    postalCode: string;
+    addressNumber: string;
+    addressComplement?: string;
+    phone: string;
+    mobilePhone: string;
+  } | null,
+): Promise<{ success: boolean; error?: string }> {
+  try {
+    const { success, userId } = await getAuthenticatedUser();
+    if (!success || !userId) return { success: false, error: 'Não autenticado' };
+
+    const supabase = await createSupabaseServerClient();
+    const admin = createSupabaseAdmin();
+
+    // Registro alvo para atualização:
+    // A tabela do /dashboard/assinatura usa `history[0]` (getUpgradeHistory ordena por created_at DESC),
+    // então aqui atualizamos o registro mais recente daquela assinatura.
+    const {
+      data: currentReq,
+      error: currentReqErr,
+    } = await supabase
+      .from('tb_upgrade_requests')
+      .select('id, billing_type, status, notes, asaas_payment_id, asaas_subscription_id')
+      .eq('profile_id', userId)
+      .eq('asaas_subscription_id', subscriptionId)
+      .order('created_at', { ascending: false })
+      .limit(1)
+      .maybeSingle();
+    if (currentReqErr) {
+      return { success: false, error: 'Erro ao carregar registro da assinatura.' };
+    }
+    if (!currentReq?.id) {
+      // Sem um row para atualizar, não faz sentido retornar success (foi a causa da tabela "não gravar").
+      return {
+        success: false,
+        error:
+          'Não foi possível localizar o registro da sua assinatura para atualizar o pagamento.',
+      };
+    }
+
+    // Permite troca mesmo com pending_downgrade (o alerta é UI; aqui não alteramos esse request)
+    const { data: pendingDowngrade } = await supabase
+      .from('tb_upgrade_requests')
+      .select('id')
+      .eq('profile_id', userId)
+      .eq('status', 'pending_downgrade')
+      .order('created_at', { ascending: false })
+      .limit(1)
+      .maybeSingle();
+    void pendingDowngrade; // apenas para deixar explícito que não bloqueamos
+
+    const asaasSubscriptionId =
+      (currentReq.asaas_subscription_id as string | null) ?? subscriptionId;
+
+    if (!asaasSubscriptionId || asaasSubscriptionId !== subscriptionId) {
+      // Segurança: só permite operar na assinatura vigente do usuário.
+      return { success: false, error: 'Assinatura inválida.' };
+    }
+
+    // 1) Atualiza no Asaas (inclui updatePendingPayments:true no módulo API)
+    const asaasRes = await updateAsaasSubscriptionBillingMethod(
+      subscriptionId,
+      newMethod,
+      creditCard ?? null,
+      creditCardHolderInfo ?? null,
+    );
+    if (!asaasRes.success) return asaasRes;
+
+    // 2) Atualiza tb_upgrade_requests (registro mais recente da assinatura)
+    const previous = (currentReq.billing_type as string | null) ?? null;
+    const nowIso = new Date().toISOString();
+    const historyLine = `[PaymentMethodChange ${nowIso}] ${previous ?? 'UNKNOWN'} -> ${newMethod}`;
+    const nextNotes = [currentReq.notes, historyLine].filter(Boolean).join('\n');
+
+    const updatePatch: Record<string, unknown> = {
+      billing_type: newMethod,
+      notes: nextNotes,
+      updated_at: nowIso,
+    };
+
+    // Ao migrar para BOLETO/PIX, limpamos payment_id travado de cartão
+    // e registramos o NOVO paymentId gerado com updatePendingPayments:true
+    if (newMethod === 'BOLETO' || newMethod === 'PIX') {
+      const first = await getFirstPaymentFromSubscription(subscriptionId);
+      updatePatch.asaas_payment_id =
+        first.success && first.paymentId ? first.paymentId : null;
+    }
+
+    const { data: updatedRow, error: updErr } = await admin
+      .from('tb_upgrade_requests')
+      .update(updatePatch)
+      .eq('id', currentReq.id)
+      .eq('profile_id', userId)
+      .select('id')
+      .maybeSingle();
+    if (updErr) {
+      return {
+        success: false,
+        error: 'Pagamento atualizado no Asaas, mas falhou ao salvar no sistema.',
+      };
+    }
+    if (!updatedRow?.id) {
+      return {
+        success: false,
+        error:
+          'Pagamento atualizado no Asaas, mas o sistema não conseguiu registrar a mudança.',
+      };
+    }
+
+    // 3) Revalida para tabela "Comprovante/Abrir Pagamento" apontar para o novo boleto/PIX
+    revalidatePath('/dashboard/assinatura');
+    await revalidateUserCache(userId);
+
+    return { success: true };
+  } catch (e) {
+    console.error('[updateSubscriptionBillingMethod] Error:', e);
+    return { success: false, error: 'Erro ao alterar forma de pagamento.' };
+  }
+}
+
+/**
  * Aplica o downgrade de um usuário para FREE.
  */
 export async function performDowngradeToFree(
@@ -783,8 +956,9 @@ export async function handleSubscriptionCancellation(
   let comment = '';
   let resolvedSupabase = supabaseClient;
   if (opts && typeof (opts as { from?: unknown }).from === 'function') {
-    resolvedSupabase =
-      opts as Awaited<ReturnType<typeof createSupabaseServerClient>>;
+    resolvedSupabase = opts as Awaited<
+      ReturnType<typeof createSupabaseServerClient>
+    >;
   } else {
     const o = opts as { reason?: string | null; comment?: string };
     reason = o.reason ?? null;
