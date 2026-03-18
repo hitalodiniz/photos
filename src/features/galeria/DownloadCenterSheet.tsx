@@ -80,41 +80,39 @@ export const DownloadCenterSheet = ({
           <Download size={18} strokeWidth={2.5} />
         )
       }
-      headerClassName="bg-petroleum"
       maxWidth="md"
       position="right"
       dataTheme={themeKey}
       footer={
         <>
-          {/* Barra de progresso */}
+          {/* Barra de progresso — usa pub-bar-bg para seguir o tema */}
           {isDownloading && (
-            <div className="px-5 py-3 bg-petroleum border-b border-white/10">
+            <div className="px-5 py-3 pub-bar-bg border-t pub-bar-drawer-border">
               <div className="flex justify-between items-end mb-2">
                 <div>
-                  <p className="text-[9px] font-semibold uppercase tracking-luxury text-gold animate-pulse">
+                  <p className="text-[9px] font-semibold uppercase tracking-luxury pub-bar-accent animate-pulse">
                     Gerando Arquivo
                   </p>
-                  <p className="text-[8px] text-white/50 uppercase font-semibold tracking-luxury mt-0.5">
+                  <p className="text-[8px] pub-bar-muted uppercase font-semibold tracking-luxury mt-0.5">
                     {activeDownloadingIndex !== null
                       ? 'Não feche esta tela'
                       : 'Iniciando...'}
                   </p>
                 </div>
-                <span className="text-xl font-semibold text-white leading-none">
+                <span className="text-xl font-semibold pub-bar-text leading-none">
                   {Math.round(downloadProgress)}
-                  <span className="text-sm ml-0.5 text-gold">%</span>
+                  <span className="text-sm ml-0.5 pub-bar-accent">%</span>
                 </span>
               </div>
-              <div className="w-full h-1 bg-white/10 rounded-full overflow-hidden">
+              <div className="w-full h-1 pub-bar-btn border-0 rounded-full overflow-hidden">
                 <div
-                  className="h-full bg-gold transition-all duration-300 shadow-[0_0_12px_rgba(212,175,55,0.5)]"
+                  className="h-full pub-bar-btn-cta transition-all duration-300 shadow-[0_0_12px_rgba(212,175,55,0.5)]"
                   style={{ width: `${downloadProgress}%` }}
                 />
               </div>
             </div>
           )}
 
-          {/* Rodapé informativo */}
           {!isDownloading && (
             <SheetFooter>
               <p className="text-[9px] text-petroleum/70 font-medium uppercase tracking-luxury">
@@ -217,7 +215,6 @@ export const DownloadCenterSheet = ({
                       fill={isCurrent ? 'currentColor' : 'none'}
                     />
                   </div>
-
                   <div className="flex-1 text-left min-w-0">
                     <p className="text-[13px] font-semibold text-petroleum tracking-wide uppercase">
                       Suas Favoritas{' '}
@@ -233,7 +230,6 @@ export const DownloadCenterSheet = ({
                       </span>
                     </div>
                   </div>
-
                   <div className="shrink-0">
                     {isCurrent ? (
                       <div className="loading-luxury w-4 h-4 border-petroleum/30 border-t-petroleum" />
@@ -247,7 +243,6 @@ export const DownloadCenterSheet = ({
               );
             })}
 
-            {/* Divisor */}
             <div className="flex items-center gap-3 py-1 px-1">
               <div className="h-px bg-petroleum/40 flex-1" />
               <span className="text-[8px] font-semibold uppercase tracking-luxury text-petroleum/70">
@@ -297,7 +292,6 @@ export const DownloadCenterSheet = ({
               >
                 <Package size={18} />
               </div>
-
               <div className="flex-1 text-left min-w-0">
                 <p className="text-[13px] font-semibold text-petroleum tracking-wide uppercase">
                   Pacote {String(i + 1).padStart(2, '0')}
@@ -312,7 +306,6 @@ export const DownloadCenterSheet = ({
                   </span>
                 </div>
               </div>
-
               <div className="shrink-0">
                 {isCurrent ? (
                   <div className="loading-luxury w-4 h-4 border-petroleum/30 border-t-petroleum" />
@@ -329,45 +322,41 @@ export const DownloadCenterSheet = ({
         })}
       </SheetSection>
 
-      {/* ✅ Links Externos - Movido para o final */}
-
-      {/* ✅ Links Externos - Movido para o final */}
+      {/* Links Externos */}
       {hasExternalLinks && (
         <SheetSection title="Links Externos" className="border-b-0">
           <div className="space-y-2">
-            {externalLinks.map((linkObj: any, index: number) => {
-              return (
-                <button
-                  key={index}
-                  onClick={() => {
-                    handleExternalDownload?.(
-                      linkObj.url,
-                      `${galeriaTitle}_${linkObj.label.replace(/\s+/g, '_')}.zip`,
-                    );
-                  }}
-                  className="w-full flex items-center gap-3 p-3 rounded-luxury bg-white border border-slate-200 hover:border-petroleum/30 hover:bg-slate-50 active:bg-slate-100 transition-all text-left group"
-                >
-                  <div className="w-8 h-8 rounded-luxury bg-petroleum/5 flex items-center justify-center shrink-0 group-hover:bg-petroleum/10 transition-colors">
-                    <FileCheck
-                      size={15}
-                      className="text-petroleum/60 group-hover:text-petroleum transition-colors group-hover:scale-110"
-                    />
-                  </div>
-                  <div className="flex-1 min-w-0">
-                    <p className="text-[11px] font-semibold text-petroleum uppercase tracking-wide">
-                      {linkObj.label}
-                    </p>
-                    <p className="text-[9px] text-petroleum/70 italic truncate mt-0.5 leading-tight">
-                      {linkObj.url}
-                    </p>
-                  </div>
-                  <ExternalLink
-                    size={13}
-                    className="text-petroleum/30 group-hover:text-petroleum/60 shrink-0 transition-colors"
+            {externalLinks.map((linkObj: any, index: number) => (
+              <button
+                key={index}
+                onClick={() => {
+                  handleExternalDownload?.(
+                    linkObj.url,
+                    `${galeriaTitle}_${linkObj.label.replace(/\s+/g, '_')}.zip`,
+                  );
+                }}
+                className="w-full flex items-center gap-3 p-3 rounded-luxury bg-white border border-slate-200 hover:border-petroleum/30 hover:bg-slate-50 active:bg-slate-100 transition-all text-left group"
+              >
+                <div className="w-8 h-8 rounded-luxury bg-petroleum/5 flex items-center justify-center shrink-0 group-hover:bg-petroleum/10 transition-colors">
+                  <FileCheck
+                    size={15}
+                    className="text-petroleum/60 group-hover:text-petroleum transition-colors group-hover:scale-110"
                   />
-                </button>
-              );
-            })}
+                </div>
+                <div className="flex-1 min-w-0">
+                  <p className="text-[11px] font-semibold text-petroleum uppercase tracking-wide">
+                    {linkObj.label}
+                  </p>
+                  <p className="text-[9px] text-petroleum/70 italic truncate mt-0.5 leading-tight">
+                    {linkObj.url}
+                  </p>
+                </div>
+                <ExternalLink
+                  size={13}
+                  className="text-petroleum/30 group-hover:text-petroleum/60 shrink-0 transition-colors"
+                />
+              </button>
+            ))}
           </div>
         </SheetSection>
       )}

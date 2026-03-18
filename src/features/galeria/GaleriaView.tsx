@@ -8,10 +8,6 @@ import { GaleriaHero } from './GaleriaHero';
 import PhotoGrid from './PhotoGrid';
 import { useIsMobile } from '@/hooks/use-breakpoint';
 import LoadingScreen from '@/components/ui/LoadingScreen';
-// FIX 1: PlanProvider REMOVIDO deste componente.
-// GaleriaView já é renderizado dentro de um <PlanProvider> em GaleriaBasePage.
-// Ter um segundo <PlanProvider> sem props aqui sobrescrevia o context externo
-// com as permissões FREE, fazendo todos os usePlan() filhos lerem o plano errado.
 
 interface GaleriaViewProps {
   galeria: Galeria;
@@ -23,42 +19,44 @@ export default function GaleriaView({ galeria, photos }: GaleriaViewProps) {
   const [isPageLoading, setIsPageLoading] = useState(true);
   const systemThemeForRestoreRef = useRef<string | null>(null);
 
+  // Resolve o tema da galeria uma vez, estável
+  const galleryTheme =
+    galeria?.theme_key && String(galeria.theme_key).trim() !== ''
+      ? galeria.theme_key
+      : 'PHOTOGRAPHER';
+
   useEffect(() => {
     const timer = setTimeout(() => setIsPageLoading(false), 1500);
     return () => clearTimeout(timer);
   }, []);
 
-  /* Tema da galeria no <html>: aplica ao entrar e restaura ao sair. Usa valor estável para restore. */
+  /*
+    Aplica o tema no <html> para que a navbar global e outros elementos
+    fora da árvore deste componente também recebam o tema correto.
+    O data-theme no wrapper div abaixo garante SSR/hydration corretos
+    para os elementos dentro deste componente.
+  */
   useEffect(() => {
-    const galleryTheme =
-      galeria?.theme_key && String(galeria.theme_key).trim() !== ''
-        ? galeria.theme_key
-        : null;
-
-    if (galleryTheme) {
-      if (systemThemeForRestoreRef.current === null) {
-        systemThemeForRestoreRef.current =
-          document.documentElement.getAttribute('data-theme');
-      }
-      document.documentElement.setAttribute('data-theme', galleryTheme);
+    if (systemThemeForRestoreRef.current === null) {
+      systemThemeForRestoreRef.current =
+        document.documentElement.getAttribute('data-theme');
     }
+    document.documentElement.setAttribute('data-theme', galleryTheme);
 
     return () => {
-      if (galleryTheme) {
-        const toRestore = systemThemeForRestoreRef.current;
-        if (toRestore !== null && toRestore !== undefined) {
-          document.documentElement.setAttribute('data-theme', toRestore);
-        } else {
-          const fallback =
-            typeof localStorage !== 'undefined'
-              ? localStorage.getItem('debug-theme') || 'PHOTOGRAPHER'
-              : 'PHOTOGRAPHER';
-          document.documentElement.setAttribute('data-theme', fallback);
-        }
-        systemThemeForRestoreRef.current = null;
+      const toRestore = systemThemeForRestoreRef.current;
+      if (toRestore !== null && toRestore !== undefined) {
+        document.documentElement.setAttribute('data-theme', toRestore);
+      } else {
+        const fallback =
+          typeof localStorage !== 'undefined'
+            ? localStorage.getItem('debug-theme') || 'PHOTOGRAPHER'
+            : 'PHOTOGRAPHER';
+        document.documentElement.setAttribute('data-theme', fallback);
       }
+      systemThemeForRestoreRef.current = null;
     };
-  }, [galeria?.theme_key]);
+  }, [galleryTheme]);
 
   const showCover = galeria.show_cover_in_grid ?? true;
   const bgColor = galeria.grid_bg_color ?? '#F9F5F0';
@@ -81,16 +79,22 @@ export default function GaleriaView({ galeria, photos }: GaleriaViewProps) {
   });
 
   return (
+    /*
+      data-theme no wrapper garante que GaleriaHero, toolbars e footer
+      recebam as variáveis CSS corretas desde a renderização inicial (SSR/hydration),
+      sem depender do useEffect acima que só roda no cliente.
+    */
     <div
       className="relative min-h-screen font-sans"
       style={{ backgroundColor: bgColor }}
+      data-theme={galleryTheme}
     >
       <LoadingScreen
         message="Preparando sua galeria..."
         fadeOut={!isPageLoading}
       />
 
-      {/* 1. BACKGROUND LAYER */}
+      {/* BACKGROUND LAYER */}
       <div className="fixed inset-0 z-0 pointer-events-none">
         {showCover ? (
           <>
@@ -113,12 +117,12 @@ export default function GaleriaView({ galeria, photos }: GaleriaViewProps) {
 
       <GaleriaHero
         galeria={galeria}
-        coverUrl={coverUrl}
         photos={photos}
-        isCoverLoading={isCoverLoading}
+        coverUrl={coverUrl}
+        themeKey={galleryTheme}
       />
 
-      {/* 2. CONTENT LAYER */}
+      {/* CONTENT LAYER */}
       <div className="relative z-10 transition-opacity duration-1000 opacity-100">
         <main className="relative z-30 mx-auto">
           {photos?.length > 0 ? (

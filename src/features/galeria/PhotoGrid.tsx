@@ -15,7 +15,6 @@ import {
   groupPhotosByWeight,
   estimatePhotoDownloadSize,
 } from '@/core/utils/foto-helpers';
-
 import { ToolBarMobile } from './ToolBarMobile';
 import UpgradeModal from '@/components/ui/UpgradeModal';
 import { getGalleryPermission } from '@/core/utils/plan-helpers';
@@ -243,7 +242,6 @@ export default function PhotoGrid({ photos, galeria }: any) {
     return planAllows && isEnabledOnGallery;
   }, [galeria]);
 
-  // canDownloadFavorites: permissão de plano + favoritos existem
   const canDownloadFavorites = useMemo(
     () => canUseFavorites && FAVORITE_VOLUMES.length > 0,
     [canUseFavorites, FAVORITE_VOLUMES],
@@ -316,9 +314,6 @@ export default function PhotoGrid({ photos, galeria }: any) {
   ) => {
     if (isDownloading || isDownloadingFavs || targetList.length === 0) return;
     if (chunkIndex !== undefined) setActiveDownloadingIndex(chunkIndex);
-
-    const firstPhotoGlobalIndex = photosWithTags.indexOf(targetList[0]);
-
     if (!confirmed && !isFavAction) {
       setShowVolumeDashboard(true);
       return;
@@ -328,6 +323,7 @@ export default function PhotoGrid({ photos, galeria }: any) {
     const targetResolution = ZIP_LIMIT_TO_RESOLUTION[zipSizeLimitBytes] ?? 1600;
     const setProgress = setDownloadProgress;
     const setStatus = isFavAction ? setIsDownloadingFavs : setIsDownloading;
+    const firstPhotoGlobalIndex = photosWithTags.indexOf(targetList[0]);
 
     try {
       setStatus(true);
@@ -383,10 +379,8 @@ export default function PhotoGrid({ photos, galeria }: any) {
       });
       saveAs(content, `${galeria.title.replace(/\s+/g, '_')}_${zipSuffix}.zip`);
       setProgress(100);
-
       if (typeof chunkIndex === 'number')
         setDownloadedVolumes((prev) => [...new Set([...prev, chunkIndex])]);
-
       emitGaleriaEvent({
         galeria,
         eventType: isFavAction ? 'download_favorites' : 'download',
@@ -441,7 +435,6 @@ export default function PhotoGrid({ photos, galeria }: any) {
   };
 
   const { shareAsGuest } = useShare({ galeria });
-
   const handleShare = async () => {
     emitGaleriaEvent({
       galeria,
@@ -461,60 +454,58 @@ export default function PhotoGrid({ photos, galeria }: any) {
       className="relative w-full min-h-full"
       {...(themeKey ? { 'data-theme': themeKey } : {})}
     >
-      {/* TOOLBARS */}
-      <div className="sticky top-0 z-[100] w-full pointer-events-none">
-        <ToolBarDesktop
-          {...{
-            galeria,
-            photos,
-            favorites,
-            columns,
-            setColumns,
-            activeTag,
-            setActiveTag,
-            showOnlyFavorites,
-            setShowOnlyFavorites,
-            isDownloading,
-            downloadProgress,
-            downloadAllAsZip: () => setShowVolumeDashboard(true),
-            isScrolled,
-            isHovered,
-            setIsHovered,
-            handleShare,
-            handleExternalDownload,
-            externalLinks,
-            setUpsellFeature,
-            getGalleryPermission,
-            themeKey,
-          }}
-          tags={tagsDaGaleria}
-          handleShare={handleShare}
-        />
-        <ToolBarMobile
-          {...{
-            galeria,
-            photos,
-            favorites,
-            showOnlyFavorites,
-            setShowOnlyFavorites,
-            downloadAllAsZip: () => setShowVolumeDashboard(true),
-            isDownloading,
-            downloadProgress,
-            isScrolled,
-            columns,
-            setColumns,
-            activeTag,
-            setActiveTag,
-            handleShare,
-            handleExternalDownload,
-            externalLinks,
-            getGalleryPermission,
-            themeKey,
-          }}
-          tags={tagsDaGaleria}
-          handleShare={handleShare}
-        />
-      </div>
+      {/* TOOLBARS — cada uma é sticky e carrega seu próprio data-theme */}
+      <ToolBarDesktop
+        {...{
+          galeria,
+          photos,
+          favorites,
+          columns,
+          setColumns,
+          activeTag,
+          setActiveTag,
+          showOnlyFavorites,
+          setShowOnlyFavorites,
+          isDownloading,
+          downloadProgress,
+          downloadAllAsZip: () => setShowVolumeDashboard(true),
+          isScrolled,
+          isHovered,
+          setIsHovered,
+          handleShare,
+          handleExternalDownload,
+          externalLinks,
+          setUpsellFeature,
+          getGalleryPermission,
+          themeKey,
+        }}
+        tags={tagsDaGaleria}
+        handleShare={handleShare}
+      />
+      <ToolBarMobile
+        {...{
+          galeria,
+          photos,
+          favorites,
+          showOnlyFavorites,
+          setShowOnlyFavorites,
+          downloadAllAsZip: () => setShowVolumeDashboard(true),
+          isDownloading,
+          downloadProgress,
+          isScrolled,
+          columns,
+          setColumns,
+          activeTag,
+          setActiveTag,
+          handleShare,
+          handleExternalDownload,
+          externalLinks,
+          getGalleryPermission,
+          themeKey,
+        }}
+        tags={tagsDaGaleria}
+        handleShare={handleShare}
+      />
 
       {/* GRID */}
       <div ref={gridRef}>
@@ -538,7 +529,7 @@ export default function PhotoGrid({ photos, galeria }: any) {
         />
       </div>
 
-      {/* CENTRAL DE DOWNLOADS — Sheet lateral */}
+      {/* CENTRAL DE DOWNLOADS */}
       <DownloadCenterSheet
         isOpen={showVolumeDashboard}
         onClose={() => setShowVolumeDashboard(false)}
@@ -563,12 +554,15 @@ export default function PhotoGrid({ photos, galeria }: any) {
         themeKey={themeKey}
       />
 
-      {/* BOTAO FLUTUANTE DE DOWNLOAD FAVORITOS */}
+      {/* BOTÃO FLUTUANTE FAVORITOS */}
       {favorites.length > 0 &&
         !showVolumeDashboard &&
         canShowFavButton &&
         canUseFavorites && (
-          <div className="fixed bottom-6 left-1/2 -translate-x-1/2 z-[150] animate-in fade-in zoom-in slide-in-from-bottom-5 duration-300 w-fit">
+          <div
+          className="fixed bottom-6 left-1/2 -translate-x-1/2 z-[150] animate-in fade-in zoom-in slide-in-from-bottom-5 duration-300 w-fit"
+          {...(themeKey ? { 'data-theme': themeKey } : {})}
+        >
             {galeria.has_contracting_client === 'ES' ? (
               <div className="flex items-center gap-2 p-1.5">
                 {!showOnlyFavorites && galeria.selection_ids?.length === 0 ? (
@@ -680,7 +674,7 @@ export default function PhotoGrid({ photos, galeria }: any) {
         />
       )}
 
-      {/* CONFIRMACAO DE SELECAO */}
+      {/* CONFIRMAÇÃO SELEÇÃO */}
       <ConfirmationModal
         isOpen={isConfirmModalOpen}
         onClose={() => setIsConfirmModalOpen(false)}

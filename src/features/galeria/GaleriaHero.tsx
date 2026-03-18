@@ -1,7 +1,6 @@
 'use client';
 import React, { useState, useEffect, useMemo } from 'react';
 import {
-  Camera,
   ChevronDown,
   Maximize2,
   MapPin,
@@ -20,12 +19,15 @@ interface GaleriaHeroProps {
   galeria: any;
   photos: any[];
   coverUrl: string | null;
+  /** Tema visual da galeria — aplicado via data-theme para ativar as variáveis CSS do tema */
+  themeKey?: string;
 }
 
 export const GaleriaHero = ({
   galeria,
   photos,
   coverUrl,
+  themeKey,
 }: GaleriaHeroProps) => {
   const { SegmentIcon } = useSegment();
   const [isExpanded, setIsExpanded] = useState(true);
@@ -34,19 +36,24 @@ export const GaleriaHero = ({
     Record<string, 'portrait' | 'landscape'>
   >({});
 
+  // Resolve themeKey da prop ou do galeria.theme_key
+  const resolvedTheme =
+    themeKey ||
+    (galeria?.theme_key && String(galeria.theme_key).trim() !== ''
+      ? galeria.theme_key
+      : undefined);
+
   const carouselImages =
-    galeria.cover_image_ids.length > 0
-      ? galeria.cover_image_ids.map((id) =>
+    galeria.cover_image_ids?.length > 0
+      ? galeria.cover_image_ids.map((id: string) =>
           getInternalGoogleDriveUrl(id, '2048'),
         )
       : ([coverUrl].filter(Boolean) as string[]);
 
-  // Efeito para detectar a orientação das imagens
   useEffect(() => {
-    carouselImages.forEach((img) => {
+    carouselImages.forEach((img: string) => {
       if (imagesOrientation[img]) return;
-
-      const imageLoader = new Image();
+      const imageLoader = new window.Image();
       imageLoader.src = img;
       imageLoader.onload = () => {
         const orientation =
@@ -68,14 +75,11 @@ export const GaleriaHero = ({
     );
   };
 
-  // Autoplay do Carrossel
   useEffect(() => {
     if (!isExpanded || carouselImages.length <= 1) return;
-
     const interval = setInterval(() => {
       setCurrentImageIndex((prev) => (prev + 1) % carouselImages.length);
     }, 3000);
-
     return () => clearInterval(interval);
   }, [isExpanded, carouselImages.length, currentImageIndex]);
 
@@ -87,9 +91,7 @@ export const GaleriaHero = ({
 
   useEffect(() => {
     const handleScroll = () => {
-      if (window.scrollY > 50 && isExpanded) {
-        setIsExpanded(false);
-      }
+      if (window.scrollY > 50 && isExpanded) setIsExpanded(false);
     };
     window.addEventListener('scroll', handleScroll);
     return () => window.removeEventListener('scroll', handleScroll);
@@ -114,23 +116,23 @@ export const GaleriaHero = ({
       className={`relative overflow-hidden transition-all duration-[1200ms] ease-[cubic-bezier(0.23,1,0.32,1)] bg-black ${
         isExpanded ? 'h-screen' : 'h-[28vh] md:h-[40vh]'
       }`}
+      {...(resolvedTheme ? { 'data-theme': resolvedTheme } : {})}
     >
       {/* BACKGROUND CAROUSEL */}
       <div className="absolute inset-0 z-0">
-        {carouselImages.map((img, index) => {
+        {carouselImages.map((img: string, index: number) => {
           const orientation = imagesOrientation[img];
           const isPortrait = orientation === 'portrait';
-
           const getPosition = () => {
             if (isPortrait) return 'center 10%';
             return isExpanded ? 'center 35%' : 'center center';
           };
-
           return (
             <div
               key={img}
-              className={`absolute inset-0 bg-cover transition-opacity duration-1000
-                ${index === currentImageIndex ? 'opacity-100' : 'opacity-0'}`}
+              className={`absolute inset-0 bg-cover transition-opacity duration-1000 ${
+                index === currentImageIndex ? 'opacity-100' : 'opacity-0'
+              }`}
               style={{
                 backgroundImage: `url('${img}')`,
                 backgroundPosition: getPosition(),
@@ -158,27 +160,32 @@ export const GaleriaHero = ({
           >
             <ChevronRight size={32} />
           </button>
+          {/* Dots — usa champagne do tema via variável CSS */}
           <div className="absolute bottom-32 left-1/2 -translate-x-1/2 z-[20] flex gap-2">
-            {carouselImages.map((_, i) => (
+            {carouselImages.map((_: string, i: number) => (
               <button
                 key={i}
                 onClick={(e) => {
                   e.stopPropagation();
                   setCurrentImageIndex(i);
                 }}
-                className={`h-1.5 rounded-full transition-all ${i === currentImageIndex ? 'w-8 bg-champagne' : 'w-2 bg-white/40'}`}
+                className={`h-1.5 rounded-full transition-all ${
+                  i === currentImageIndex
+                    ? 'w-8 pub-hero-accent-bg'
+                    : 'w-2 bg-white/40'
+                }`}
               />
             ))}
           </div>
         </>
       )}
 
-      {/* ✅ FIX 1: OVERLAY GRADIENT restaurado — garante contraste do texto sobre qualquer foto */}
+      {/* OVERLAY GRADIENT */}
       <div className="absolute inset-0 transition-opacity duration-1000 bg-gradient-to-t from-black/90 via-black/30 to-transparent opacity-100 z-[2]" />
 
-      {/* AVATAR */}
+      {/* AVATAR — só exibe quando hero está colapsado */}
       <div
-        className={`absolute top-4 right-4 md:top-6 md:right-8 transition-all duration-1000 z-[10] ${
+        className={`absolute top-4 right-4 md:top-6 md:right-6 transition-all duration-1000 z-[10] ${
           isExpanded
             ? 'opacity-0 pointer-events-none'
             : 'opacity-100 pointer-events-auto'
@@ -203,13 +210,14 @@ export const GaleriaHero = ({
         <div className="flex transition-all duration-1000 items-center gap-4 md:gap-8 w-full pointer-events-auto scale-100">
           <div className="flex flex-col items-start text-left transition-all duration-1000 min-w-0 flex-1">
             <div className="flex flex-col min-w-0 w-full">
+              {/* TÍTULO — usa text-champagne que resolve via --color-champagne do tema */}
               <h1
                 className={`font-artistic font-semibold text-white transition-all duration-1000 leading-tight tracking-normal break-words flex items-center gap-3
                   ${isExpanded ? 'text-2xl md:text-5xl mb-2' : 'text-xl md:text-4xl mb-1'}
                   drop-shadow-[0_2px_8px_rgba(0,0,0,0.8)]`}
               >
                 <SegmentIcon
-                  className={`text-champagne shrink-0 transition-all duration-1000 drop-shadow-md ${
+                  className={`pub-hero-accent shrink-0 transition-all duration-1000 drop-shadow-md ${
                     isExpanded
                       ? 'w-8 h-8 md:w-12 md:h-12'
                       : 'w-6 h-6 md:w-8 md:h-8'
@@ -220,21 +228,26 @@ export const GaleriaHero = ({
               </h1>
 
               {/* LINHA DECORATIVA */}
-              <div className="h-[2px] md:h-[3px] bg-champagne rounded-full mb-3 md:mb-4 w-full max-w-[150px] md:max-w-[300px] shadow-lg" />
+              <div className="h-[2px] md:h-[3px] pub-hero-accent-bg rounded-full mb-3 md:mb-4 w-full max-w-[150px] md:max-w-[300px] shadow-lg" />
             </div>
 
-            {/* METADADOS */}
-            {/* ✅ FIX 4: ícones MapPin e Calendar com text-champagne igual ao v1 */}
+            {/* METADADOS — ícones text-champagne resolvem via tema */}
             <div className="flex flex-col md:flex-row md:items-center gap-x-3 gap-y-1.5 md:gap-x-4 md:gap-y-2 transition-all duration-1000 items-start justify-start opacity-90">
               {galeria.location && (
                 <div className="flex items-center text-white text-[10px] md:text-[14px] font-medium shrink-0 gap-1.5 drop-shadow-md">
-                  <MapPin size={14} className="text-champagne drop-shadow-sm" />
+                  <MapPin
+                    size={14}
+                    className="pub-hero-accent drop-shadow-sm"
+                  />
                   <span>{galeria.location}</span>
                 </div>
               )}
               <div className="hidden md:block w-[1px] h-3 bg-white/40 shrink-0" />
               <div className="flex items-center text-white text-[10px] md:text-[14px] font-medium shrink-0 gap-1.5 drop-shadow-md">
-                <Calendar size={14} className="text-champagne drop-shadow-sm" />
+                <Calendar
+                  size={14}
+                  className="pub-hero-accent drop-shadow-sm"
+                />
                 <span>
                   {new Date(galeria.date).toLocaleDateString('pt-BR', {
                     day: '2-digit',
@@ -250,7 +263,7 @@ export const GaleriaHero = ({
                     <div className="flex items-center text-white text-[10px] md:text-[14px] font-medium shrink-0 gap-1.5 drop-shadow-md">
                       <ImageIcon
                         size={14}
-                        className="text-champagne drop-shadow-sm"
+                        className="pub-hero-accent drop-shadow-sm"
                       />
                       <span>
                         {photoCount} {photoCount === 1 ? 'foto' : 'fotos'}
@@ -264,7 +277,7 @@ export const GaleriaHero = ({
                     <div className="flex items-center text-white text-[10px] md:text-[14px] font-medium shrink-0 gap-1.5 drop-shadow-md">
                       <Video
                         size={14}
-                        className="text-champagne drop-shadow-sm"
+                        className="pub-hero-accent drop-shadow-sm"
                       />
                       <span>
                         {videoCount} {videoCount === 1 ? 'vídeo' : 'vídeos'}
@@ -277,6 +290,7 @@ export const GaleriaHero = ({
           </div>
         </div>
 
+        {/* BOTÃO COLLAPSE */}
         {isExpanded && (
           <button
             onClick={() => setIsExpanded(false)}
@@ -286,12 +300,13 @@ export const GaleriaHero = ({
               <ChevronUp
                 size={28}
                 strokeWidth={1.5}
-                className="text-white transition-colors group-hover:text-champagne"
+                className="text-white transition-colors group-hover:pub-hero-accent"
               />
             </div>
           </button>
         )}
 
+        {/* BOTÃO EXPAND */}
         {!isExpanded && (
           <button
             onClick={() => setIsExpanded(true)}

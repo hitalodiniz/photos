@@ -27,9 +27,10 @@ import { useSupabaseSession, authService } from '@photos/core-auth';
 import { useShare } from '@/hooks/useShare';
 
 // --- 🎯 CONSTANTES DE VIRTUALIZAÇÃO ---
-const WINDOW_SIZE = 200; // Máximo de fotos no DOM simultaneamente
-const BUFFER_BEFORE = 50; // Buffer antes da viewport
-const BUFFER_AFTER = 50; // Buffer depois da viewport
+const VIRTUALIZATION_THRESHOLD = 500; // Só ativa virtualização com mais de 500 fotos
+const WINDOW_SIZE = 300; // Máximo de fotos no DOM simultaneamente (aumentado para suavidade)
+const BUFFER_BEFORE = 150; // Buffer antes da viewport (3 telas)
+const BUFFER_AFTER = 150; // Buffer depois da viewport (3 telas)
 
 // --- TIPOS ---
 
@@ -613,9 +614,24 @@ const MasonryGrid = ({
 
   // 🎯 VIRTUALIZAÇÃO: Atualiza range visível baseado no scroll
   useEffect(() => {
-    if (showOnlyFavorites) return;
+    // 🎯 NÃO virtualiza se:
+    // - Está mostrando só favoritos
+    // - Grid ainda não calculou largura
+    // - Galeria tem menos de VIRTUALIZATION_THRESHOLD fotos
+    if (
+      showOnlyFavorites ||
+      !columnWidth ||
+      currentCols === 0 ||
+      displayedPhotos.length < VIRTUALIZATION_THRESHOLD
+    ) {
+      // Mostra todas as fotos sem virtualização
+      setVisibleRange({ start: 0, end: displayedPhotos.length });
+      return;
+    }
 
     let rafId: number | null = null;
+    let lastRange = { start: 0, end: WINDOW_SIZE };
+    let lastScrollY = window.scrollY;
 
     const handleScroll = () => {
       if (rafId !== null) return;
@@ -623,21 +639,48 @@ const MasonryGrid = ({
       rafId = requestAnimationFrame(() => {
         const scrollY = window.scrollY;
         const viewportHeight = window.innerHeight;
+        const scrollDirection = scrollY > lastScrollY ? 'down' : 'up';
+        lastScrollY = scrollY;
 
-        const estimatedRowHeight = columnWidth * 1.3;
+        // 🎯 Altura estimada mais generosa para reduzir saltos
+        const estimatedRowHeight = columnWidth * 1.5; // Aumentado de 1.3
         const photosPerRow = currentCols;
 
-        const centerIndex = Math.floor(
+        // Calcula índice baseado no topo da viewport
+        const topIndex = Math.floor(
           (scrollY / estimatedRowHeight) * photosPerRow,
         );
 
-        const start = Math.max(0, centerIndex - BUFFER_BEFORE);
-        const end = Math.min(
+        // 🎯 Preload assimétrico: dobra buffer na direção do scroll
+        const bufferBefore =
+          scrollDirection === 'up' ? BUFFER_BEFORE * 1.5 : BUFFER_BEFORE;
+        const bufferAfter =
+          scrollDirection === 'down' ? BUFFER_AFTER * 1.5 : BUFFER_AFTER;
+
+        let start = Math.max(0, Math.floor(topIndex - bufferBefore));
+        let end = Math.min(
           displayedPhotos.length,
-          centerIndex + WINDOW_SIZE + BUFFER_AFTER,
+          Math.ceil(topIndex + WINDOW_SIZE + bufferAfter),
         );
 
-        setVisibleRange({ start, end });
+        // 🎯 Garante janela mínima mesmo perto do início
+        if (end - start < WINDOW_SIZE && end < displayedPhotos.length) {
+          end = Math.min(
+            displayedPhotos.length,
+            start + WINDOW_SIZE + BUFFER_BEFORE + BUFFER_AFTER,
+          );
+        }
+
+        // 🎯 Só atualiza se mudança for significativa (>20 fotos ou >5%)
+        const threshold = Math.max(20, Math.floor(WINDOW_SIZE * 0.05));
+        if (
+          Math.abs(start - lastRange.start) > threshold ||
+          Math.abs(end - lastRange.end) > threshold
+        ) {
+          lastRange = { start, end };
+          setVisibleRange({ start, end });
+        }
+
         rafId = null;
       });
     };
@@ -679,7 +722,8 @@ const MasonryGrid = ({
     const finalPhotos =
       showOnlyFavorites && canUseFavorites ? displayedPhotos : displayedPhotos;
 
-    if (showOnlyFavorites) {
+    // 🎯 NÃO virtualiza para galerias pequenas ou favoritos
+    if (showOnlyFavorites || finalPhotos.length < VIRTUALIZATION_THRESHOLD) {
       return {
         visiblePhotos: finalPhotos,
         spacerBefore: 0,
@@ -687,26 +731,40 @@ const MasonryGrid = ({
       };
     }
 
-    const visible = finalPhotos.slice(visibleRange.start, visibleRange.end);
+    // 🎯 FIX: Garante que o range não ultrapasse o total
+    const safeStart = Math.min(visibleRange.start, finalPhotos.length);
+    const safeEnd = Math.min(visibleRange.end, finalPhotos.length);
 
-    const estimatedRowHeight = columnWidth * 1.3;
+    const visible = finalPhotos.slice(safeStart, safeEnd);
+
+    // 🎯 FIX: Evita divisão por zero e cálculos negativos
+    if (!columnWidth || currentCols === 0 || finalPhotos.length === 0) {
+      return {
+        visiblePhotos: visible,
+        spacerBefore: 0,
+        spacerAfter: 0,
+      };
+    }
+
+    const estimatedRowHeight = columnWidth * 1.5; // Mesmo valor do scroll handler
     const totalRows = Math.ceil(finalPhotos.length / currentCols);
-    const visibleRows = Math.ceil(visible.length / currentCols);
+    const startRow = Math.floor(safeStart / currentCols);
+    const endRow = Math.ceil(safeEnd / currentCols);
 
-    const before =
-      Math.floor(visibleRange.start / currentCols) * estimatedRowHeight;
-    const after = (totalRows - visibleRows) * estimatedRowHeight - before;
+    const before = startRow * estimatedRowHeight;
+    const after = Math.max(0, (totalRows - endRow) * estimatedRowHeight);
 
     return {
       visiblePhotos: visible,
       spacerBefore: Math.max(0, before),
-      spacerAfter: Math.max(0, after),
+      spacerAfter: after,
     };
   }, [
     showOnlyFavorites,
     canUseFavorites,
     displayedPhotos,
-    visibleRange,
+    visibleRange.start,
+    visibleRange.end,
     columnWidth,
     currentCols,
   ]);

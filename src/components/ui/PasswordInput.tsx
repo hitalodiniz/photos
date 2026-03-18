@@ -7,6 +7,7 @@ interface PasswordInputProps extends React.InputHTMLAttributes<HTMLInputElement>
   label?: string;
   error?: string;
   variant?: 'default' | 'pin' | 'compact';
+  themeKey?: string; // extraído antes do spread — não vai para o DOM
 }
 
 export default function PasswordInput({
@@ -16,6 +17,7 @@ export default function PasswordInput({
   value,
   onChange,
   variant = 'default',
+  themeKey, // ← extraído aqui, fora do ...props
   ...props
 }: PasswordInputProps) {
   const [showPassword, setShowPassword] = useState(false);
@@ -38,18 +40,30 @@ export default function PasswordInput({
     }
   }, [error]);
 
-  // Variante COMPACT PIN (Para quando há Leads)
+  // Cor de acento via CSS variable — responde ao data-theme do wrapper
+  const accentColor = 'rgb(var(--pub-bar-accent, var(--color-gold)))';
+  const accentColorLight =
+    'rgb(var(--pub-bar-accent, var(--color-gold)) / 0.1)';
+  const accentRing = 'rgb(var(--pub-bar-accent, var(--color-gold)) / 0.2)';
+
+  // ── COMPACT ──
   if (variant === 'compact') {
     return (
-      <div className="flex flex-col space-y-0 w-full">
+      <div
+        className="flex flex-col space-y-0 w-full"
+        {...(themeKey ? { 'data-theme': themeKey } : {})}
+      >
         <div
-          className={`flex items-center justify-between px-4 py-2 rounded-xl border transition-all duration-300 ${error ? 'border-red-500/50 bg-red-500/5' : 'border-petroleum/10'}`}
+          className={`flex items-center justify-between px-4 py-2 rounded-xl border transition-all duration-300 ${
+            error ? 'border-red-500/50 bg-red-500/5' : 'border-petroleum/10'
+          }`}
         >
           <div className="flex items-center gap-2 shrink-0">
             <label>
               <ShieldCheck
                 size={18}
-                className={error ? 'text-red-500' : 'text-gold'}
+                style={{ color: error ? undefined : accentColor }}
+                className={error ? 'text-red-500' : ''}
               />
               Senha PIN
             </label>
@@ -71,7 +85,7 @@ export default function PasswordInput({
               onChange={onChange}
               onFocus={() => setHasFocus(true)}
               onBlur={() => setHasFocus(false)}
-              className={`input-luxury w-12 min-w-[48px] text-center px-1 tracking-widest ${className} ${error ? 'border-red-500/50' : ''}`}
+              className={`absolute inset-0 w-full h-full opacity-0 z-10 cursor-pointer ${className}`}
             />
 
             <div className="flex gap-2">
@@ -81,16 +95,37 @@ export default function PasswordInput({
                 return (
                   <div
                     key={i}
-                    className={`w-10 h-12 flex items-center justify-center text-lg font-bold rounded-lg border-2 transition-all duration-200 relative
-                      ${error ? 'border-red-500 text-red-500' : char ? 'border-gold bg-gold/5 text-petroleum' : 'border-petroleum/20 bg-white'}
-                      ${isFocused && hasFocus && !error ? 'border-gold ring-4 ring-gold/10 scale-105' : ''}`}
+                    className={`w-10 h-12 flex items-center justify-center text-lg font-bold rounded-lg border-2 transition-all duration-200 relative ${
+                      error
+                        ? 'border-red-500 text-red-500'
+                        : 'border-petroleum/20 bg-white'
+                    }`}
+                    style={
+                      !error && char
+                        ? {
+                            borderColor: accentColor,
+                            backgroundColor: accentColorLight,
+                            color: 'rgb(var(--color-petroleum))',
+                          }
+                        : isFocused && hasFocus && !error
+                          ? {
+                              borderColor: accentColor,
+                              boxShadow: `0 0 0 4px ${accentRing}`,
+                              transform: 'scale(1.05)',
+                            }
+                          : {}
+                    }
                   >
                     {char ? (showPassword ? char : '•') : null}
-
-                    {/* CURSOR PISCANTE CENTRALIZADO */}
                     {isFocused && hasFocus && (
                       <div className="absolute inset-0 flex items-center justify-center pointer-events-none">
-                        <div className="w-[2px] h-5 bg-gold animate-cursor-blink shadow-[0_0_5px_rgba(212,175,55,0.5)]" />
+                        <div
+                          className="w-[2px] h-5 animate-cursor-blink"
+                          style={{
+                            backgroundColor: accentColor,
+                            boxShadow: `0 0 5px ${accentColorLight}`,
+                          }}
+                        />
                       </div>
                     )}
                   </div>
@@ -100,7 +135,7 @@ export default function PasswordInput({
 
             <button
               type="button"
-              disabled={props.disabled} // Adicione isso aqui
+              disabled={props.disabled}
               className={`ml-2 p-2 z-20 text-petroleum/40 hover:text-gold transition-colors bg-white/5 rounded-md border border-white/10 ${props.disabled ? 'cursor-not-allowed opacity-50' : ''}`}
               onClick={(e) => {
                 e.stopPropagation();
@@ -120,16 +155,20 @@ export default function PasswordInput({
     );
   }
 
-  // Variante PIN (Luxo - Full)
+  // ── PIN (full luxo) ──
   if (variant === 'pin') {
     return (
-      <div className="flex flex-col items-center space-y-4 md:space-y-8 w-full py-4 md:py-6">
+      <div
+        className="flex flex-col items-center space-y-4 md:space-y-8 w-full py-4 md:py-6"
+        {...(themeKey ? { 'data-theme': themeKey } : {})}
+      >
         {label && (
           <div className="flex flex-col items-center gap-2 md:gap-3">
             <ShieldCheck
-              size={24} // Reduzido de 32 para mobile
+              size={24}
               strokeWidth={1.5}
-              className={`md:w-8 md:h-8 ${error ? 'text-red-500' : 'text-gold'}`}
+              style={{ color: error ? undefined : accentColor }}
+              className={`md:w-8 md:h-8 ${error ? 'text-red-500' : ''}`}
             />
             <h2
               className={`text-base md:text-xl font-semibold tracking-[0.15em] md:tracking-[0.2em] uppercase text-center ${
@@ -165,27 +204,40 @@ export default function PasswordInput({
             {[...Array(4)].map((_, i) => {
               const char = pinValue[i];
               const isFocused = pinValue.length === i;
-
               return (
                 <div
                   key={i}
-                  // Ajuste de tamanho: w-11 h-14 no mobile, w-16 h-20 no desktop
-                  className={`w-11 h-14 md:w-16 md:h-20 flex items-center justify-center text-2xl md:text-3xl font-light border-2 rounded-lg transition-all duration-300 relative
-                  ${
+                  className={`w-11 h-14 md:w-16 md:h-20 flex items-center justify-center text-2xl md:text-3xl font-light border-2 rounded-lg transition-all duration-300 relative ${
                     error
                       ? 'border-red-500 text-red-500 bg-red-50/5'
-                      : char
-                        ? 'border-gold text-petroleum bg-petroleum/[0.02]'
-                        : 'border-petroleum/10 bg-white/5'
+                      : 'border-petroleum/10 bg-white/5'
+                  }`}
+                  style={
+                    !error && char
+                      ? {
+                          borderColor: accentColor,
+                          color: 'rgb(var(--color-petroleum))',
+                          backgroundColor: 'rgb(var(--color-petroleum) / 0.02)',
+                        }
+                      : isFocused && hasFocus && !error
+                        ? {
+                            borderColor: accentColor,
+                            transform: 'scale(1.05)',
+                            boxShadow: `0 20px 25px -5px rgba(0,0,0,0.1), 0 0 0 1px ${accentRing}`,
+                          }
+                        : {}
                   }
-                  ${isFocused && hasFocus && !error ? 'border-gold scale-105 shadow-xl ring-1 ring-gold/20' : ''}`}
                 >
                   {char ? (showPassword ? char : '•') : null}
-
-                  {/* CURSOR PISCANTE */}
                   {isFocused && hasFocus && (
                     <div className="absolute inset-0 flex items-center justify-center pointer-events-none">
-                      <div className="w-[2px] h-6 md:h-8 bg-gold animate-cursor-blink shadow-[0_0_8px_rgba(212,175,55,0.8)]" />
+                      <div
+                        className="w-[2px] h-6 md:h-8 animate-cursor-blink"
+                        style={{
+                          backgroundColor: accentColor,
+                          boxShadow: `0 0 8px ${accentColor}`,
+                        }}
+                      />
                     </div>
                   )}
                 </div>
@@ -205,11 +257,15 @@ export default function PasswordInput({
     );
   }
 
+  // ── DEFAULT ──
   return (
-    <div className="space-y-1.5 w-fit">
+    <div
+      className="space-y-1.5 w-fit"
+      {...(themeKey ? { 'data-theme': themeKey } : {})}
+    >
       {label && (
         <label className="flex items-center gap-2 text-[11px] uppercase tracking-widest text-petroleum/60 font-semibold">
-          <ShieldCheck size={14} className="text-gold" />
+          <ShieldCheck size={14} style={{ color: accentColor }} />
           <span>{label}</span>
         </label>
       )}

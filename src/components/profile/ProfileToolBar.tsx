@@ -23,7 +23,7 @@ export const ProfileToolBar = ({
   specialties = [],
   onFilterChange,
   activeFilter,
-  categories = [], // Categorias das galerias enviadas pelo pai
+  categories = [],
 }: any) => {
   const [isDrawerOpen, setIsDrawerOpen] = useState(false);
   const [copied, setCopied] = useState(false);
@@ -40,7 +40,6 @@ export const ProfileToolBar = ({
     return () => window.removeEventListener('resize', check);
   }, [mounted]);
 
-  // Lógica de limite de itens na barra
   const { barCities, barSpecs, uniqueCategories } = useMemo(() => {
     const maxCitiesOnBar = 2;
     const maxSpecsOnBar = 2;
@@ -51,7 +50,6 @@ export const ProfileToolBar = ({
     };
   }, [cities, specialties, categories]);
 
-  // Se o número total de itens for maior que o exibido, mostramos o botão da gaveta
   const needsCollapse =
     cities.length > barCities.length || specialties.length > barSpecs.length;
 
@@ -82,8 +80,10 @@ export const ProfileToolBar = ({
 
   return (
     <div className="z-[110] sticky top-0 w-full font-sans">
-      <div className="mx-auto bg-petroleum backdrop-blur-xl w-full border-b border-champagne/10 shadow-2xl relative">
+      {/* ── BARRA PRINCIPAL ── */}
+      <div className="mx-auto pub-bar-bg w-full border-b pub-bar-border-b shadow-2xl relative">
         <div className="flex flex-row items-center w-full max-w-[1600px] px-3 md:px-4 h-12 mx-auto gap-2">
+          {/* ESQUERDA: cidades + especialidades + botão atuação */}
           <div className="flex-1 min-w-0 flex items-center overflow-hidden">
             <PlanGuard feature="profileLevel" variant="mini">
               <div className="flex items-center gap-4 overflow-hidden min-w-0">
@@ -91,22 +91,23 @@ export const ProfileToolBar = ({
                   {/* CIDADES */}
                   {barCities.length > 0 && (
                     <div className="flex items-center gap-3 shrink-0">
-                      <span className="text-[10px] font-bold uppercase tracking-widest text-champagne flex items-center">
-                        <MapPin size={12} className="mr-1.5" /> Cidades:
+                      <span className="text-[10px] font-bold uppercase tracking-widest pub-bar-text flex items-center">
+                        <MapPin size={12} className="mr-1.5 pub-bar-icon" />{' '}
+                        Cidades:
                       </span>
                       <div className="flex items-center gap-2">
-                        {barCities.map((city, i) => (
+                        {barCities.map((city: string, i: number) => (
                           <React.Fragment key={city}>
                             <a
                               href={`https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(city)}`}
                               target="_blank"
                               rel="noopener noreferrer"
-                              className="text-[11px] font-semibold text-champagne uppercase whitespace-nowrap hover:text-gold transition-colors"
+                              className="text-[11px] font-semibold pub-bar-text uppercase whitespace-nowrap transition-colors hover:pub-bar-accent"
                             >
                               {city}
                             </a>
                             {i < barCities.length - 1 && (
-                              <span className="text-champagne/40 text-[10px]">
+                              <span className="pub-bar-muted text-[10px]">
                                 |
                               </span>
                             )}
@@ -116,32 +117,33 @@ export const ProfileToolBar = ({
                     </div>
                   )}
 
-                  {/* SEPARADOR VERTICAL ESTRUTURAL */}
+                  {/* SEPARADOR VERTICAL */}
                   {barCities.length > 0 && barSpecs.length > 0 && (
-                    <div className="h-5 w-[1px] bg-champagne shrink-0" />
+                    <div className="h-5 w-[1px] pub-bar-divider shrink-0" />
                   )}
 
                   {/* ESPECIALIDADES */}
                   {barSpecs.length > 0 && (
                     <div className="flex items-center gap-3 shrink-0">
-                      <span className="text-[10px] font-bold uppercase tracking-widest text-champagne flex items-center gap-1.5">
-                        <Tag size={12} /> Especialidades:
+                      <span className="text-[10px] font-bold uppercase tracking-widest pub-bar-text flex items-center gap-1.5">
+                        <Tag size={12} className="pub-bar-icon" />{' '}
+                        Especialidades:
                       </span>
                       <div className="flex items-center gap-2">
-                        {barSpecs.map((spec, i) => (
+                        {barSpecs.map((spec: string, i: number) => (
                           <React.Fragment key={spec}>
                             <button
                               onClick={() => toggleFilter(spec)}
                               className={`text-[11px] font-semibold uppercase transition-all ${
                                 activeFilter === spec
-                                  ? 'text-gold'
-                                  : 'text-champagne hover:text-gold'
+                                  ? 'pub-bar-accent'
+                                  : 'pub-bar-text hover:pub-bar-accent'
                               }`}
                             >
                               {spec}
                             </button>
                             {i < barSpecs.length - 1 && (
-                              <span className="text-gold/30 text-[10px]">
+                              <span className="pub-bar-muted text-[10px]">
                                 |
                               </span>
                             )}
@@ -152,14 +154,14 @@ export const ProfileToolBar = ({
                   )}
                 </div>
 
-                {/* BOTÃO ATUAÇÃO (DIREITA) */}
+                {/* BOTÃO ATUAÇÃO */}
                 {(needsCollapse || isNarrow || activeFilter !== 'all') && (
                   <button
                     onClick={() => setIsDrawerOpen(!isDrawerOpen)}
                     className={`flex items-center justify-center rounded-md h-9 px-4 border transition-all ml-auto group shrink-0 ${
                       isDrawerOpen || activeFilter !== 'all'
-                        ? 'border-gold/40 bg-gold/10 text-gold shadow-[0_0_15px_rgba(212,175,55,0.05)]'
-                        : 'border-champagne/20 bg-petroleum/5 text-champagne hover:bg-champagne/10 hover:border-champagne/30'
+                        ? 'pub-bar-active'
+                        : 'pub-bar-btn border'
                     }`}
                   >
                     <div className="flex items-center gap-2 whitespace-nowrap">
@@ -188,15 +190,15 @@ export const ProfileToolBar = ({
             </PlanGuard>
           </div>
 
-          {/* CONTATOS */}
+          {/* DIREITA: contatos */}
           <div className="flex items-center gap-1.5 md:gap-2 shrink-0 ml-auto">
             {instagram && (
               <a
                 href={`https://instagram.com/${instagram.replace('@', '')}`}
                 target="_blank"
-                className="flex items-center justify-center rounded-md h-9 w-9 md:w-auto md:px-4 border border-champagne/20 bg-petroleum/5 text-champagne hover:bg-gradient-to-tr hover:from-[#f09433] hover:via-[#dc2743] hover:to-[#bc1888] hover:text-white hover:border-transparent transition-all"
+                className="flex items-center justify-center rounded-md h-9 w-9 md:w-auto md:px-4 border pub-bar-btn transition-all hover:bg-gradient-to-tr hover:from-[#f09433] hover:via-[#dc2743] hover:to-[#bc1888] hover:text-white hover:border-transparent"
               >
-                <Instagram size={18} />{' '}
+                <Instagram size={18} className="pub-bar-icon" />
                 <span className="text-[10px] font-semibold uppercase hidden lg:block ml-2">
                   Instagram
                 </span>
@@ -208,24 +210,24 @@ export const ProfileToolBar = ({
                   website.startsWith('http') ? website : `https://${website}`
                 }
                 target="_blank"
-                className="flex items-center justify-center rounded-md h-9 w-9 md:w-auto md:px-4 border border-champagne/20 bg-petroleum/5 text-champagne hover:bg-champagne/20 hover:border-champagne/30 transition-all"
+                className="flex items-center justify-center rounded-md h-9 w-9 md:w-auto md:px-4 border pub-bar-btn transition-all"
               >
-                <Globe size={18} />{' '}
-                <span className="text-[10px] font-semibold uppercase hidden lg:block ml-2 text-champagne">
+                <Globe size={18} className="pub-bar-icon" />
+                <span className="text-[10px] font-semibold uppercase hidden lg:block ml-2">
                   Site
                 </span>
               </a>
             )}
             <button
               onClick={handleCopyLink}
-              className="flex items-center justify-center rounded-md h-9 w-9 md:w-auto md:px-4 border border-champagne/20 bg-petroleum/5 text-champagne hover:bg-champagne/10 transition-all"
+              className="flex items-center justify-center rounded-md h-9 w-9 md:w-auto md:px-4 border pub-bar-btn transition-all"
             >
               {copied ? (
                 <Check size={18} className="text-green-500" />
               ) : (
-                <LinkIcon size={18} />
+                <LinkIcon size={18} className="pub-bar-icon" />
               )}
-              <span className="text-[10px] font-semibold uppercase hidden lg:block ml-2 text-champagne">
+              <span className="text-[10px] font-semibold uppercase hidden lg:block ml-2">
                 Link
               </span>
             </button>
@@ -246,7 +248,7 @@ export const ProfileToolBar = ({
 
         {/* GAVETA */}
         <div
-          className={`overflow-hidden transition-all duration-500 bg-petroleum/95 border-t border-champagne/10 ${
+          className={`overflow-hidden transition-all duration-500 pub-bar-drawer border-t pub-bar-drawer-border ${
             isDrawerOpen
               ? 'max-h-[800px] opacity-100'
               : 'max-h-0 opacity-0 pointer-events-none'
@@ -256,24 +258,22 @@ export const ProfileToolBar = ({
             {/* CIDADES */}
             {cities.length > 0 && (
               <div className="flex flex-col gap-4">
-                <h4 className="text-champagne text-[10px] font-semibold uppercase tracking-widest flex items-center gap-2">
-                  <MapPin size={12} /> Cidades
+                <h4 className="pub-bar-text text-[10px] font-semibold uppercase tracking-widest flex items-center gap-2">
+                  <MapPin size={12} className="pub-bar-icon" /> Cidades
                 </h4>
                 <div className="flex flex-wrap items-center gap-2">
-                  {cities.map((city, i) => (
+                  {cities.map((city: string, i: number) => (
                     <React.Fragment key={`city-${city}`}>
                       <a
-                        href={`https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(
-                          city,
-                        )}`}
+                        href={`https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(city)}`}
                         target="_blank"
                         rel="noopener noreferrer"
-                        className="text-[11px] font-medium uppercase text-champagne hover:text-gold transition-colors"
+                        className="text-[11px] font-medium uppercase pub-bar-text transition-colors hover:pub-bar-accent"
                       >
                         {city}
                       </a>
                       {i < cities.length - 1 && (
-                        <span className="text-champagne/30 text-[10px] select-none">
+                        <span className="pub-bar-muted text-[10px] select-none">
                           |
                         </span>
                       )}
@@ -285,25 +285,25 @@ export const ProfileToolBar = ({
 
             {/* ESPECIALIDADES */}
             {specialties.length > 0 && (
-              <div className="flex flex-col gap-4 border-t md:border-t-0 md:border-l border-champagne/20 pt-1 md:pt-0 md:pl-4">
-                <h4 className="text-champagne text-[10px] font-semibold uppercase tracking-widest flex items-center gap-2">
-                  <Tag size={12} /> Especialidades
+              <div className="flex flex-col gap-4 border-t md:border-t-0 md:border-l pub-bar-drawer-border pt-1 md:pt-0 md:pl-4">
+                <h4 className="pub-bar-text text-[10px] font-semibold uppercase tracking-widest flex items-center gap-2">
+                  <Tag size={12} className="pub-bar-icon" /> Especialidades
                 </h4>
                 <div className="flex flex-wrap items-center gap-2">
-                  {specialties.map((spec, i) => (
+                  {specialties.map((spec: string, i: number) => (
                     <React.Fragment key={`spec-${spec}`}>
                       <button
                         onClick={() => toggleFilter(spec)}
                         className={`text-[11px] font-medium uppercase transition-colors ${
                           activeFilter === spec
-                            ? 'text-gold'
-                            : 'text-champagne/90 hover:text-gold'
+                            ? 'pub-bar-accent'
+                            : 'pub-bar-text hover:pub-bar-accent'
                         }`}
                       >
                         {spec}
                       </button>
                       {i < specialties.length - 1 && (
-                        <span className="text-champagne/30 text-[10px] select-none">
+                        <span className="pub-bar-muted text-[10px] select-none">
                           |
                         </span>
                       )}
@@ -312,46 +312,47 @@ export const ProfileToolBar = ({
                 </div>
               </div>
             )}
+
             {/* CATEGORIAS */}
             {uniqueCategories.length > 0 && (
-              <div className="flex flex-col gap-4 border-t md:border-t-0 md:border-l border-champagne/20 pt-1 md:pt-0 md:pl-4">
-                <h4 className="text-champagne text-[10px] font-semibold uppercase tracking-widest flex items-center gap-2">
-                  <Compass size={12} /> Categorias
+              <div className="flex flex-col gap-4 border-t md:border-t-0 md:border-l pub-bar-drawer-border pt-1 md:pt-0 md:pl-4">
+                <h4 className="pub-bar-text text-[10px] font-semibold uppercase tracking-widest flex items-center gap-2">
+                  <Compass size={12} className="pub-bar-icon" /> Categorias
                 </h4>
                 <div className="flex flex-wrap items-center gap-2">
                   <button
                     onClick={() => toggleFilter('all')}
                     className={`text-[11px] font-medium uppercase flex items-center gap-1.5 transition-colors ${
                       activeFilter === 'all'
-                        ? 'text-gold'
-                        : 'text-champagne/60 hover:text-champagne/80'
+                        ? 'pub-bar-accent'
+                        : 'pub-bar-muted hover:pub-bar-text'
                     }`}
                   >
                     Ver Tudo
-                    <span className="text-[9px] px-1.5 py-0.5 rounded-full bg-champagne/10 border border-champagne/20">
+                    <span className="text-[9px] px-1.5 py-0.5 rounded-full pub-bar-btn border">
                       {categories.length}
                     </span>
                   </button>
 
-                  {uniqueCategories.map((cat: string) => (
+                  {(uniqueCategories as string[]).map((cat: string) => (
                     <React.Fragment key={cat}>
-                      <span className="text-champagne/30 text-[10px] select-none">
+                      <span className="pub-bar-muted text-[10px] select-none">
                         |
                       </span>
                       <button
                         onClick={() => toggleFilter(cat)}
                         className={`text-[11px] font-medium uppercase flex items-center gap-1.5 transition-colors ${
                           activeFilter === cat
-                            ? 'text-gold'
-                            : 'text-champagne hover:text-gold'
+                            ? 'pub-bar-accent'
+                            : 'pub-bar-text hover:pub-bar-accent'
                         }`}
                       >
                         {cat}
                         <span
                           className={`text-[9px] px-1.5 py-0.5 rounded-full border transition-all ${
                             activeFilter === cat
-                              ? 'border-gold/30 bg-gold/10 text-gold'
-                              : 'border-champagne/20 bg-champagne/10 text-champagne/80'
+                              ? 'pub-bar-active'
+                              : 'pub-bar-btn border'
                           }`}
                         >
                           {categoryCounts[cat]}

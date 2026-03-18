@@ -19,7 +19,6 @@ import { GALLERY_CATEGORIES } from '@/core/config/categories';
 import { Profile } from '@/core/types/profile';
 import { ThemeKey } from '../ui/ThemeSelector';
 
-
 // 🎯 Função de normalização local (removido import de 'path')
 const normalizeText = (text: string) =>
   text

@@ -1,4 +1,3 @@
-// src/components/ui/Sheet.tsx
 'use client';
 
 import { X } from 'lucide-react';
@@ -43,7 +42,7 @@ export function Sheet({
 
   if (!isOpen || !mounted) return null;
 
-  const maxWidthClasses = {
+  const maxWidthClasses: Record<string, string> = {
     sm: 'sm:w-[384px]',
     md: 'sm:w-[448px]',
     lg: 'sm:w-[512px]',
@@ -70,6 +69,7 @@ export function Sheet({
   const sheetContent = (
     <div
       className={`fixed inset-0 z-[1000] animate-in fade-in duration-300 flex ${positionClasses[position].container}`}
+      {...(dataTheme ? { 'data-theme': dataTheme } : {})}
     >
       {/* Backdrop */}
       <div
@@ -85,24 +85,23 @@ export function Sheet({
       {/* Sheet Panel */}
       <div
         className={`relative z-10 bg-white shadow-2xl flex flex-col w-full max-h-[92vh] animate-in slide-in-from-bottom duration-500 ${maxWidthClasses[maxWidth]} sm:max-h-full sm:h-full ${positionClasses[position].sheet}`}
-        {...(dataTheme ? { 'data-theme': dataTheme } : {})}
       >
-        {/* Header */}
+        {/* Header — usa pub-bar-bg + pub-bar-text para seguir o tema */}
         <div
-          className={`shrink-0 px-4 py-3 sm:p-5 flex items-center justify-between ${headerClassName}`}
+          className={`shrink-0 px-4 py-3 sm:p-5 flex items-center justify-between pub-bar-bg ${headerClassName}`}
         >
           <div className="flex items-center gap-3">
             {icon && (
-              <div className="w-9 h-9 rounded-luxury bg-white/10 flex items-center justify-center text-gold">
+              <div className="w-9 h-9 rounded-luxury pub-bar-btn border flex items-center justify-center pub-bar-accent">
                 {icon}
               </div>
             )}
             <div>
-              <h4 className="text-[11px] font-semibold uppercase tracking-wide text-white">
+              <h4 className="text-[11px] font-semibold uppercase tracking-wide pub-bar-text">
                 {title}
               </h4>
               {subtitle && (
-                <p className="text-[9px] text-white/70 font-semibold uppercase tracking-luxury mt-0.5">
+                <p className="text-[9px] pub-bar-muted font-semibold uppercase tracking-luxury mt-0.5">
                   {subtitle}
                 </p>
               )}
@@ -110,15 +109,15 @@ export function Sheet({
           </div>
           <button
             onClick={onClose}
-            className="p-2 hover:bg-white/10 rounded-full transition-colors text-white/60 hover:text-white"
+            className="p-2 rounded-full transition-colors pub-bar-muted hover:pub-bar-text pub-bar-btn border"
           >
             <X size={18} />
           </button>
         </div>
 
-        {/* Content */}
+        {/* Content — fundo branco, sem interferência do tema */}
         <div
-          className={`flex-1 overflow-y-auto overscroll-contain ${contentClassName}`}
+          className={`flex-1 overflow-y-auto overscroll-contain bg-white ${contentClassName}`}
         >
           {children}
         </div>
@@ -131,8 +130,6 @@ export function Sheet({
 
   return createPortal(sheetContent, document.body);
 }
-
-// Subcomponentes opcionais para melhor organização
 
 export function SheetSection({
   title,
