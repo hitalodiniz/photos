@@ -13,10 +13,15 @@ import {
   ImageIcon,
   Video,
   X,
+  Instagram,
+  Globe,
+  User,
 } from 'lucide-react';
 import { useSegment } from '@/hooks/useSegment';
 import { usePlan } from '@/core/context/PlanContext';
 import { useShare } from '@/hooks/useShare';
+import { getCreatorProfileUrl } from '@/core/utils/url-helper';
+import WhatsAppIcon from '@/components/ui/WhatsAppIcon';
 
 const Tooltip = ({
   text,
@@ -107,11 +112,8 @@ export const ToolBarMobile = ({
       return;
     }
     const isSelected = activeTag.includes(tag);
-    if (isSelected) {
-      setActiveTag(activeTag.filter((t: string) => t !== tag));
-    } else if (activeTag.length < 3) {
-      setActiveTag([...activeTag, tag]);
-    }
+    if (isSelected) setActiveTag(activeTag.filter((t: string) => t !== tag));
+    else if (activeTag.length < 3) setActiveTag([...activeTag, tag]);
   };
 
   const galleryTags = useMemo(() => {
@@ -145,9 +147,8 @@ export const ToolBarMobile = ({
     if (galeria?.gallery_tags) {
       try {
         const parsed = parsePossiblySerializedJson(galeria.gallery_tags);
-        if (Array.isArray(parsed)) {
+        if (Array.isArray(parsed))
           return parsed.filter((tag) => tag && typeof tag === 'string').sort();
-        }
       } catch {
         /* empty */
       }
@@ -156,6 +157,8 @@ export const ToolBarMobile = ({
   }, [galeria?.photo_tags, galeria?.gallery_tags]);
 
   const hasMultipleTags = galleryTags.length > 0 && canUseTags;
+  const photographer = galeria?.photographer;
+  const profileUrl = photographer ? getCreatorProfileUrl(photographer) : '#';
 
   useEffect(() => {
     if (!isVisible) {
@@ -175,11 +178,7 @@ export const ToolBarMobile = ({
     let delay = 1000;
     steps.forEach((s) => {
       if (s.condition === undefined || s.condition) {
-        timers.push(
-          setTimeout(() => {
-            setHintStep(s.step);
-          }, delay),
-        );
+        timers.push(setTimeout(() => setHintStep(s.step), delay));
         delay += 1500;
       }
     });
@@ -188,15 +187,10 @@ export const ToolBarMobile = ({
   }, [isVisible, hasMultipleTags, canUseFavorites]);
 
   const { copyLink, shareAsGuest } = useShare({ galeria });
-
   const handleCopyLink = () => copyLink();
-
   const handleNativeShare = async () => {
-    if (handleShare) {
-      handleShare();
-    } else {
-      await shareAsGuest();
-    }
+    if (handleShare) handleShare();
+    else await shareAsGuest();
   };
 
   const closeAllPanels = () => {
@@ -227,16 +221,12 @@ export const ToolBarMobile = ({
       )}
 
       {/* BARRA PRINCIPAL */}
-      <div
-        className={`flex items-center justify-between h-12 px-4 border-b pub-bar-border-b transition-all duration-500 relative z-[120] overflow-visible pub-bar-bg`}
-      >
-        {/* ESQUERDA: CONTROLES DE EXIBIÇÃO */}
+      <div className="flex items-center justify-between h-12 px-4 border-b pub-bar-border-b transition-all duration-500 relative z-[120] overflow-visible pub-bar-bg">
+        {/* ESQUERDA */}
         <div className="flex items-center gap-2 overflow-visible">
           <div className="relative overflow-visible">
             <button
-              className={`h-9 w-9 rounded-luxury flex items-center justify-center transition-all ${
-                showInfoPanel ? 'pub-bar-control-active' : 'pub-bar-btn border'
-              }`}
+              className={`h-9 w-9 rounded-luxury flex items-center justify-center transition-all ${showInfoPanel ? 'pub-bar-active border' : 'pub-bar-btn border'}`}
               onClick={() => togglePanel('info')}
             >
               <SegmentIcon size={18} className="pub-bar-icon" />
@@ -245,11 +235,7 @@ export const ToolBarMobile = ({
           </div>
           <div className="relative overflow-visible">
             <button
-              className={`h-9 w-9 rounded-luxury flex items-center justify-center transition-all ${
-                showColumnsPanel
-                  ? 'pub-bar-control-active'
-                  : 'pub-bar-btn border'
-              }`}
+              className={`h-9 w-9 rounded-luxury flex items-center justify-center transition-all ${showColumnsPanel ? 'pub-bar-active border' : 'pub-bar-btn border'}`}
               onClick={() => togglePanel('columns')}
             >
               <Monitor size={17} className="pub-bar-icon" />
@@ -259,11 +245,7 @@ export const ToolBarMobile = ({
           {hasMultipleTags && (
             <div className="relative overflow-visible">
               <button
-                className={`h-9 w-9 rounded-luxury flex items-center justify-center transition-all relative ${
-                  showTagsPanel || activeTag.length > 0
-                    ? 'pub-bar-control-active'
-                    : 'pub-bar-btn border'
-                }`}
+                className={`h-9 w-9 rounded-luxury flex items-center justify-center transition-all relative ${showTagsPanel || activeTag.length > 0 ? 'pub-bar-active border' : 'pub-bar-btn border'}`}
                 onClick={() => togglePanel('tags')}
               >
                 <Tag size={16} className="pub-bar-icon" />
@@ -278,7 +260,7 @@ export const ToolBarMobile = ({
           )}
         </div>
 
-        {/* DIREITA: AÇÕES */}
+        {/* DIREITA */}
         <div className="flex items-center gap-1.5 overflow-visible">
           <div className="relative overflow-visible">
             <button
@@ -344,44 +326,136 @@ export const ToolBarMobile = ({
         </div>
       </div>
 
-      {/* PAINÉIS DE EXPANSÃO */}
+      {/* PAINÉIS */}
       <div className="absolute top-full left-0 w-full z-[115]">
-        {/* INFORMAÇÕES */}
+        {/* INFORMAÇÕES + FOTÓGRAFO */}
         <div
-          className={`overflow-hidden transition-all duration-500 pub-bar-drawer border-b pub-bar-drawer-border ${
-            showInfoPanel
-              ? 'max-h-48 opacity-100'
-              : 'max-h-0 opacity-0 pointer-events-none'
-          }`}
+          className={`overflow-hidden transition-all duration-500 pub-bar-drawer border-b pub-bar-drawer-border ${showInfoPanel ? 'max-h-[420px] opacity-100' : 'max-h-0 opacity-0 pointer-events-none'}`}
         >
-          <div className="p-4 flex flex-col gap-2 relative">
+          <div className="px-4 py-4 flex flex-col gap-3 relative">
             <button
               onClick={closeAllPanels}
               className="absolute top-3 right-3 p-1"
             >
-              <X size={16} className="pub-bar-icon" />
+              <X size={15} className="pub-bar-icon" />
             </button>
-            <p className="text-[11px] font-semibold pub-bar-text leading-tight mb-1 pr-6">
-              {galeria.title}
-            </p>
-            {galeria.location && (
-              <div className="flex items-center gap-2">
-                <MapPin size={12} className="pub-bar-icon" />
-                <span className="text-[11px] pub-bar-text font-medium">
-                  {galeria.location}
-                </span>
-              </div>
-            )}
-            {galeria.date && (
-              <div className="flex items-center gap-2">
-                <Calendar size={12} className="pub-bar-icon" />
-                <span className="text-[11px] pub-bar-text font-medium">
-                  {new Date(galeria.date).toLocaleDateString('pt-BR', {
-                    day: '2-digit',
-                    month: 'long',
-                    year: 'numeric',
-                  })}
-                </span>
+
+            {/* Metadados */}
+            <div className="flex flex-col gap-1.5 pr-6">
+              <p className="text-[12px] font-semibold pub-bar-text leading-tight">
+                {galeria.title}
+              </p>
+              {galeria.location && (
+                <div className="flex items-center gap-2">
+                  <MapPin size={11} className="pub-bar-icon shrink-0" />
+                  <span className="text-[11px] pub-bar-text">
+                    {galeria.location}
+                  </span>
+                </div>
+              )}
+              {galeria.date && (
+                <div className="flex items-center gap-2">
+                  <Calendar size={11} className="pub-bar-icon shrink-0" />
+                  <span className="text-[11px] pub-bar-text">
+                    {new Date(galeria.date).toLocaleDateString('pt-BR', {
+                      day: '2-digit',
+                      month: 'long',
+                      year: 'numeric',
+                    })}
+                  </span>
+                </div>
+              )}
+            </div>
+
+            {/* Fotógrafo */}
+            {photographer && (
+              <div className="border-t pub-bar-drawer-border pt-3 flex flex-col gap-2.5">
+                <div className="flex items-center gap-2.5">
+                  <div className="relative w-9 h-9 rounded-full overflow-hidden shrink-0 bg-white/10">
+                    {photographer.profile_picture_url ? (
+                      <img
+                        src={photographer.profile_picture_url}
+                        alt={photographer.full_name}
+                        className="w-full h-full object-cover"
+                      />
+                    ) : (
+                      <div className="w-full h-full flex items-center justify-center">
+                        <span className="text-[12px] font-bold pub-bar-text">
+                          {photographer.full_name?.charAt(0)?.toUpperCase()}
+                        </span>
+                      </div>
+                    )}
+                  </div>
+                  <div className="flex flex-col justify-center">
+                    <span className="text-[9px] pub-bar-muted font-semibold uppercase tracking-wide">
+                      Registrado por
+                    </span>
+                    <a
+                      href={profileUrl}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      className="text-[12px] font-semibold pub-bar-text hover:pub-bar-accent transition-colors uppercase tracking-tight leading-none block"
+                    >
+                      {photographer.full_name}
+                    </a>
+                  </div>
+                </div>
+                <div className="flex items-center gap-1.5 flex-wrap">
+                  {photographer.phone_contact &&
+                    photographer.show_phone_on_public_profile !== true && (
+                      <a
+                        href={(() => {
+                          const phone = photographer.phone_contact.replace(
+                            /\D/g,
+                            '',
+                          );
+                          const siteUrl =
+                            process.env.NEXT_PUBLIC_BASE_URL ||
+                            process.env.NEXT_PUBLIC_MAIN_DOMAIN ||
+                            '';
+                          const msg = `Olá! Vi seu trabalho na galeria "${galeria?.title || ''}" através do ${siteUrl} e gostaria de saber mais sobre seus serviços. Poderia me passar mais informações?`;
+                          return `https://wa.me/${phone}?text=${encodeURIComponent(msg)}`;
+                        })()}
+                        target="_blank"
+                        className="flex items-center gap-1 px-2.5 h-7 pub-bar-btn border rounded-md text-[10px] font-semibold uppercase tracking-wide transition-all hover:bg-green-600 hover:text-white hover:border-green-600 whitespace-nowrap"
+                      >
+                        <WhatsAppIcon className="w-[11px] h-[11px]" />
+                        WhatsApp
+                      </a>
+                    )}
+                  {photographer.instagram_link && (
+                    <a
+                      href={`https://instagram.com/${photographer.instagram_link.replace('@', '')}`}
+                      target="_blank"
+                      className="flex items-center gap-1 px-2.5 h-7 pub-bar-btn border rounded-md text-[10px] font-semibold uppercase tracking-wide transition-all whitespace-nowrap"
+                    >
+                      <Instagram size={11} />
+                      Instagram
+                    </a>
+                  )}
+                  <a
+                    href={profileUrl}
+                    target="_blank"
+                    className="flex items-center gap-1 px-2.5 h-7 pub-bar-btn border rounded-md text-[10px] font-semibold uppercase tracking-wide transition-all whitespace-nowrap"
+                  >
+                    <User size={11} />
+                    Perfil
+                  </a>
+                  {photographer.website && (
+                    <a
+                      href={
+                        photographer.website.startsWith('http')
+                          ? photographer.website
+                          : `https://${photographer.website}`
+                      }
+                      target="_blank"
+                      className="flex items-center gap-1 px-2.5 h-7 pub-bar-btn border rounded-md text-[10px] font-semibold uppercase tracking-wide transition-all whitespace-nowrap"
+                    >
+                      <Globe size={11} />
+                      Site
+                    </a>
+                  )}
+                </div>
               </div>
             )}
           </div>
@@ -389,18 +463,14 @@ export const ToolBarMobile = ({
 
         {/* COLUNAS */}
         <div
-          className={`overflow-hidden transition-all duration-500 pub-bar-drawer border-b pub-bar-drawer-border ${
-            showColumnsPanel
-              ? 'max-h-20 opacity-100'
-              : 'max-h-0 opacity-0 pointer-events-none'
-          }`}
+          className={`overflow-hidden transition-all duration-500 pub-bar-drawer border-b pub-bar-drawer-border ${showColumnsPanel ? 'max-h-20 opacity-100' : 'max-h-0 opacity-0 pointer-events-none'}`}
         >
           <div className="flex items-center justify-center gap-4 h-12 relative">
             <button
               onClick={closeAllPanels}
               className="absolute top-1/2 -translate-y-1/2 right-3 p-1"
             >
-              <X size={16} className="pub-bar-icon" />
+              <X size={15} className="pub-bar-icon" />
             </button>
             {[1, 2].map((num) => (
               <button
@@ -409,11 +479,7 @@ export const ToolBarMobile = ({
                   setColumns((prev: any) => ({ ...prev, mobile: num }));
                   setShowColumnsPanel(false);
                 }}
-                className={`px-6 py-2 rounded-luxury text-editorial-label transition-all border ${
-                  columns.mobile === num
-                    ? 'pub-bar-btn-cta shadow-lg'
-                    : 'pub-bar-btn border'
-                }`}
+                className={`px-6 py-2 rounded-luxury text-editorial-label transition-all border ${columns.mobile === num ? 'pub-bar-btn-cta shadow-lg' : 'pub-bar-btn border'}`}
               >
                 {num} {num === 1 ? 'Coluna' : 'Colunas'}
               </button>
@@ -424,18 +490,14 @@ export const ToolBarMobile = ({
         {/* TAGS */}
         {canUseTags && (
           <div
-            className={`overflow-hidden transition-all duration-500 pub-bar-drawer border-b pub-bar-drawer-border ${
-              showTagsPanel
-                ? 'max-h-[70vh] opacity-100'
-                : 'max-h-0 opacity-0 pointer-events-none'
-            }`}
+            className={`overflow-hidden transition-all duration-500 pub-bar-drawer border-b pub-bar-drawer-border ${showTagsPanel ? 'max-h-[70vh] opacity-100' : 'max-h-0 opacity-0 pointer-events-none'}`}
           >
-            <div className="px-6 py-4 flex flex-col gap-4 relative">
+            <div className="px-4 py-4 flex flex-col gap-4 relative">
               <button
                 onClick={closeAllPanels}
                 className="absolute top-3 right-3 p-1"
               >
-                <X size={16} className="pub-bar-icon" />
+                <X size={15} className="pub-bar-icon" />
               </button>
               <div className="flex items-center justify-between">
                 <span className="text-editorial-label pub-bar-text font-bold uppercase text-[10px] tracking-widest">
@@ -450,19 +512,13 @@ export const ToolBarMobile = ({
                   </button>
                 )}
               </div>
-
               <div className="flex flex-wrap gap-2 pb-4">
                 <button
                   onClick={() => toggleTag('')}
-                  className={`px-4 py-2 rounded-full text-[10px] uppercase font-semibold transition-all border-2 ${
-                    activeTag.length === 0
-                      ? 'pub-bar-btn-cta border-current shadow-lg'
-                      : 'pub-bar-btn border-transparent'
-                  }`}
+                  className={`px-4 py-2 rounded-full text-[10px] uppercase font-semibold transition-all border-2 ${activeTag.length === 0 ? 'pub-bar-btn-cta border-current shadow-lg' : 'pub-bar-btn border-transparent'}`}
                 >
                   Todas
                 </button>
-
                 {galleryTags.map((tag: string) => {
                   const isSelected = activeTag.includes(tag);
                   const isLimitReached = activeTag.length >= 3 && !isSelected;

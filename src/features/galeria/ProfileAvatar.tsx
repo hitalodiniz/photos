@@ -131,7 +131,7 @@ export default function PhotographerAvatar({
 
           {/* Conteúdo — oculto no mobile até tap */}
           <div
-            className="flex items-center overflow-hidden transition-all duration-300"
+            className="flex items-center overflow-hidden transition-all duration-300 py-2"
             style={{
               maxWidth: showContent ? 300 : 0,
               opacity: showContent ? 1 : 0,
@@ -157,7 +157,7 @@ export default function PhotographerAvatar({
                 Registrado por
               </span>
               <span
-                className="text-[11px] font-semibold text-white leading-tight truncate uppercase"
+                className="text-[11px] font-semibold text-white leading-tight truncate uppercase mt-0.5"
                 style={{ maxWidth: 150, letterSpacing: '-0.01em' }}
               >
                 {fullName}

@@ -508,7 +508,7 @@ export default function PhotoGrid({ photos, galeria }: any) {
       />
 
       {/* GRID */}
-      <div ref={gridRef}>
+      <div ref={gridRef} className="mt-1">
         <MasonryGrid
           {...{
             galeria,
@@ -560,9 +560,9 @@ export default function PhotoGrid({ photos, galeria }: any) {
         canShowFavButton &&
         canUseFavorites && (
           <div
-          className="fixed bottom-6 left-1/2 -translate-x-1/2 z-[150] animate-in fade-in zoom-in slide-in-from-bottom-5 duration-300 w-fit"
-          {...(themeKey ? { 'data-theme': themeKey } : {})}
-        >
+            className="fixed bottom-6 left-1/2 -translate-x-1/2 z-[150] animate-in fade-in zoom-in slide-in-from-bottom-5 duration-300 w-fit"
+            {...(themeKey ? { 'data-theme': themeKey } : {})}
+          >
             {galeria.has_contracting_client === 'ES' ? (
               <div className="flex items-center gap-2 p-1.5">
                 {!showOnlyFavorites && galeria.selection_ids?.length === 0 ? (

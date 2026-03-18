@@ -996,7 +996,7 @@ export default function OnboardingForm({
                               strokeWidth={2}
                               className="inline "
                             />
-                            Nome Completo
+                            Nome
                           </label>
                           <input
                             className={`input-luxury  h-9 px-2 ${
