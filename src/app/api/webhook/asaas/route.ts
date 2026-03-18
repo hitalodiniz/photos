@@ -41,6 +41,30 @@ export async function POST(request: NextRequest) {
     const paymentId = payment?.id;
     const subscriptionId =
       payment?.subscription ?? body.subscription?.id ?? null;
+    const requestId = paymentId ?? subscriptionId;
+
+    let logId: number | null = null;
+    try {
+      const { data: log, error: logError } = await supabase
+        .from('tb_webhook_logs')
+        .insert({
+          provider: 'asaas',
+          event_type: body.event,
+          payload: body,
+          request_id: requestId,
+        })
+        .select('id')
+        .single();
+
+      if (logError) {
+        console.error('[Webhook Asaas] Falha ao inserir log inicial:', logError);
+      } else {
+        logId = log.id;
+      }
+    } catch (e) {
+      console.error('[Webhook Asaas] Exceção ao inserir log inicial:', e);
+    }
+
 
     /**
      * Processamento sempre por identificadores externos (asaas_payment_id / asaas_subscription_id).
@@ -100,284 +124,307 @@ export async function POST(request: NextRequest) {
       });
     };
 
-    switch (event as AsaasWebhookEvent) {
-      case 'PAYMENT_CONFIRMED':
-      case 'PAYMENT_RECEIVED': {
-        if (paymentId) {
-          const subscriptionIdFromPayment =
-            typeof payment?.subscription === 'string'
-              ? payment.subscription
-              : (payment as { subscription?: string })?.subscription ?? null;
+    try {
+      switch (event as AsaasWebhookEvent) {
+        case 'PAYMENT_CONFIRMED':
+        case 'PAYMENT_RECEIVED': {
+          if (paymentId) {
+            const subscriptionIdFromPayment =
+              typeof payment?.subscription === 'string'
+                ? payment.subscription
+                : (payment as { subscription?: string })?.subscription ?? null;
 
-          // Vínculo de assinatura: se o pagamento traz subscription e o request ainda tem asaas_subscription_id nulo, atualizar.
-          if (subscriptionIdFromPayment) {
-            const { data: byPayment } = await supabase
+            // Vínculo de assinatura: se o pagamento traz subscription e o request ainda tem asaas_subscription_id nulo, atualizar.
+            if (subscriptionIdFromPayment) {
+              const { data: byPayment } = await supabase
+                .from('tb_upgrade_requests')
+                .select('id, asaas_subscription_id')
+                .eq('asaas_payment_id', paymentId)
+                .maybeSingle();
+              if (
+                byPayment?.id &&
+                (byPayment.asaas_subscription_id == null ||
+                  byPayment.asaas_subscription_id === '')
+              ) {
+                await supabase
+                  .from('tb_upgrade_requests')
+                  .update({
+                    asaas_subscription_id: subscriptionIdFromPayment,
+                    updated_at: new Date().toISOString(),
+                  })
+                  .eq('id', byPayment.id);
+              }
+            }
+
+            // Vínculo dinâmico: se não existe request com este paymentId mas existe com este subscriptionId, criar registro herdando dados da assinatura (renovações automáticas).
+            const { data: existingByPayment } = await supabase
               .from('tb_upgrade_requests')
-              .select('id, asaas_subscription_id')
+              .select('id')
               .eq('asaas_payment_id', paymentId)
               .maybeSingle();
-            if (
-              byPayment?.id &&
-              (byPayment.asaas_subscription_id == null ||
-                byPayment.asaas_subscription_id === '')
-            ) {
+            if (!existingByPayment?.id && subscriptionIdFromPayment) {
+              const { data: subRow } = await supabase
+                .from('tb_upgrade_requests')
+                .select(
+                  'profile_id, plan_key_current, plan_key_requested, billing_type, billing_period, snapshot_name, snapshot_cpf_cnpj, snapshot_email, snapshot_whatsapp, snapshot_address, asaas_customer_id',
+                )
+                .eq('asaas_subscription_id', subscriptionIdFromPayment)
+                .order('created_at', { ascending: false })
+                .limit(1)
+                .maybeSingle();
+              if (subRow?.profile_id) {
+                const paidValue = payment?.value ?? 0;
+                const now = new Date().toISOString();
+                const { error: insertErr } = await supabase
+                  .from('tb_upgrade_requests')
+                  .insert({
+                    profile_id: subRow.profile_id,
+                    plan_key_current: subRow.plan_key_current,
+                    plan_key_requested: subRow.plan_key_requested,
+                    billing_type: subRow.billing_type,
+                    billing_period: subRow.billing_period,
+                    snapshot_name: subRow.snapshot_name,
+                    snapshot_cpf_cnpj: subRow.snapshot_cpf_cnpj,
+                    snapshot_email: subRow.snapshot_email,
+                    snapshot_whatsapp: subRow.snapshot_whatsapp,
+                    snapshot_address: subRow.snapshot_address,
+                    asaas_customer_id: subRow.asaas_customer_id ?? undefined,
+                    asaas_subscription_id: subscriptionIdFromPayment,
+                    asaas_payment_id: paymentId,
+                    amount_original: paidValue,
+                    amount_discount: 0,
+                    amount_final: paidValue,
+                    installments: 1,
+                    status: 'pending',
+                    notes: `Cobrança de renovação vinculada ao webhook (paymentId: ${paymentId})`,
+                    updated_at: now,
+                  });
+              }
+            }
+
+            const amountValidation = await validatePaymentAmount(
+              paymentId,
+              payment?.value,
+            );
+            if (!amountValidation.valid) {
+              console.error(
+                '[Webhook Asaas] Valor divergente — pagamento NÃO ativado.',
+                amountValidation.reason,
+              );
+              // Mark the request as rejected due to value mismatch
               await supabase
                 .from('tb_upgrade_requests')
                 .update({
-                  asaas_subscription_id: subscriptionIdFromPayment,
+                  status: 'rejected',
+                  notes: amountValidation.reason ?? 'Valor pago diverge do registrado',
                   updated_at: new Date().toISOString(),
                 })
-                .eq('id', byPayment.id);
+                .eq('asaas_payment_id', paymentId);
+              // Return 200 so Asaas doesn't retry; fraud/error logged above
+              return NextResponse.json({ received: true }, { status: 200 });
             }
-          }
-
-          // Vínculo dinâmico: se não existe request com este paymentId mas existe com este subscriptionId, criar registro herdando dados da assinatura (renovações automáticas).
-          const { data: existingByPayment } = await supabase
-            .from('tb_upgrade_requests')
-            .select('id')
-            .eq('asaas_payment_id', paymentId)
-            .maybeSingle();
-          if (!existingByPayment?.id && subscriptionIdFromPayment) {
-            const { data: subRow } = await supabase
+            await handlePaymentRpc('CONFIRMED');
+            // Log de sucesso ao ativar plano
+            const { data: req } = await supabase
               .from('tb_upgrade_requests')
-              .select(
-                'profile_id, plan_key_current, plan_key_requested, billing_type, billing_period, snapshot_name, snapshot_cpf_cnpj, snapshot_email, snapshot_whatsapp, snapshot_address, asaas_customer_id',
-              )
-              .eq('asaas_subscription_id', subscriptionIdFromPayment)
-              .order('created_at', { ascending: false })
-              .limit(1)
+              .select('profile_id, plan_key_requested')
+              .eq('asaas_payment_id', paymentId)
               .maybeSingle();
-            if (subRow?.profile_id) {
-              const paidValue = payment?.value ?? 0;
-              const now = new Date().toISOString();
-              const { error: insertErr } = await supabase
+            if (req?.profile_id && req?.plan_key_requested) {
+              console.log(
+                `[Webhook Asaas] Plano ativado com sucesso (activate_plan_from_payment): plano ${req.plan_key_requested}, userId ${req.profile_id}`,
+              );
+              await reactivateAutoArchivedGalleries(
+                req.profile_id,
+                req.plan_key_requested as PlanKey,
+                supabase,
+              );
+              await revalidateUserCache(req.profile_id).catch((err) =>
+                console.warn('[Webhook Asaas] revalidateUserCache:', err),
+              );
+            }
+            revalidatePath('/dashboard');
+            revalidatePath('/dashboard/planos');
+          }
+          break;
+        }
+
+        case 'PAYMENT_OVERDUE': {
+          if (paymentId) {
+            await handlePaymentRpc('OVERDUE');
+
+            // Quando há um cancelamento agendado (pending_downgrade),
+            // o Asaas pode marcar a cobrança de renovação como OVERDUE.
+            // Só aplicar downgrade se o perfil ainda não estiver em FREE (sanitização).
+            const subscriptionIdOverdue = payment?.subscription ?? null;
+            if (subscriptionIdOverdue) {
+              const { data: subReq } = await supabase
                 .from('tb_upgrade_requests')
-                .insert({
-                  profile_id: subRow.profile_id,
-                  plan_key_current: subRow.plan_key_current,
-                  plan_key_requested: subRow.plan_key_requested,
-                  billing_type: subRow.billing_type,
-                  billing_period: subRow.billing_period,
-                  snapshot_name: subRow.snapshot_name,
-                  snapshot_cpf_cnpj: subRow.snapshot_cpf_cnpj,
-                  snapshot_email: subRow.snapshot_email,
-                  snapshot_whatsapp: subRow.snapshot_whatsapp,
-                  snapshot_address: subRow.snapshot_address,
-                  asaas_customer_id: subRow.asaas_customer_id ?? undefined,
-                  asaas_subscription_id: subscriptionIdFromPayment,
-                  asaas_payment_id: paymentId,
-                  amount_original: paidValue,
-                  amount_discount: 0,
-                  amount_final: paidValue,
-                  installments: 1,
-                  status: 'pending',
-                  notes: `Cobrança de renovação vinculada ao webhook (paymentId: ${paymentId})`,
-                  updated_at: now,
-                });
+                .select('id, profile_id, status')
+                .eq('asaas_subscription_id', subscriptionIdOverdue)
+                .maybeSingle();
+
+              if (subReq?.profile_id && subReq.status === 'pending_downgrade') {
+                const { data: profileRow } = await supabase
+                  .from('tb_profiles')
+                  .select('plan_key')
+                  .eq('id', subReq.profile_id)
+                  .single();
+                const currentPlan = (profileRow?.plan_key ?? 'FREE') as string;
+                if (currentPlan !== 'FREE') {
+                  await performDowngradeToFree(
+                    subReq.profile_id,
+                    subReq.id,
+                    `Downgrade via PAYMENT_OVERDUE (webhook Asaas, subscriptionId: ${subscriptionIdOverdue})`,
+                    supabase,
+                  );
+                  await revalidateUserCache(subReq.profile_id).catch((err) =>
+                    console.warn('[Webhook Asaas] revalidateUserCache:', err),
+                  );
+                  revalidatePath('/dashboard');
+                }
+              }
             }
           }
-
-          const amountValidation = await validatePaymentAmount(
-            paymentId,
-            payment?.value,
-          );
-          if (!amountValidation.valid) {
-            console.error(
-              '[Webhook Asaas] Valor divergente — pagamento NÃO ativado.',
-              amountValidation.reason,
-            );
-            // Mark the request as rejected due to value mismatch
-            await supabase
-              .from('tb_upgrade_requests')
-              .update({
-                status: 'rejected',
-                notes: amountValidation.reason ?? 'Valor pago diverge do registrado',
-                updated_at: new Date().toISOString(),
-              })
-              .eq('asaas_payment_id', paymentId);
-            // Return 200 so Asaas doesn't retry; fraud/error logged above
-            return NextResponse.json({ received: true }, { status: 200 });
-          }
-          await handlePaymentRpc('CONFIRMED');
-          // Log de sucesso ao ativar plano
-          const { data: req } = await supabase
-            .from('tb_upgrade_requests')
-            .select('profile_id, plan_key_requested')
-            .eq('asaas_payment_id', paymentId)
-            .maybeSingle();
-          if (req?.profile_id && req?.plan_key_requested) {
-            console.log(
-              `[Webhook Asaas] Plano ativado com sucesso (activate_plan_from_payment): plano ${req.plan_key_requested}, userId ${req.profile_id}`,
-            );
-            await reactivateAutoArchivedGalleries(
-              req.profile_id,
-              req.plan_key_requested as PlanKey,
-              supabase,
-            );
-            await revalidateUserCache(req.profile_id).catch((err) =>
-              console.warn('[Webhook Asaas] revalidateUserCache:', err),
-            );
-          }
-          revalidatePath('/dashboard');
-          revalidatePath('/dashboard/planos');
+          break;
         }
-        break;
-      }
 
-      case 'PAYMENT_OVERDUE': {
-        if (paymentId) {
-          await handlePaymentRpc('OVERDUE');
+        case 'PAYMENT_REFUNDED': {
+          // Estorno confirmado pelo Asaas → downgrade imediato para FREE
+          if (paymentId) {
+            const { data: refundedReq } = await supabase
+              .from('tb_upgrade_requests')
+              .select('id, profile_id')
+              .eq('asaas_payment_id', paymentId)
+              .maybeSingle();
 
-          // Quando há um cancelamento agendado (pending_downgrade),
-          // o Asaas pode marcar a cobrança de renovação como OVERDUE.
-          // Só aplicar downgrade se o perfil ainda não estiver em FREE (sanitização).
-          const subscriptionIdOverdue = payment?.subscription ?? null;
-          if (subscriptionIdOverdue) {
+            if (refundedReq?.profile_id) {
+              await performDowngradeToFree(
+                refundedReq.profile_id,
+                refundedReq.id,
+                `Downgrade via PAYMENT_REFUNDED (webhook Asaas, paymentId: ${paymentId})`,
+                supabase,
+              );
+              await revalidateUserCache(refundedReq.profile_id).catch((err) =>
+                console.warn('[Webhook Asaas] revalidateUserCache:', err),
+              );
+              revalidatePath('/dashboard');
+            } else {
+              // Sem request vinculado — apenas registrar via RPC
+              await handlePaymentRpc(payment.status);
+            }
+          }
+          break;
+        }
+
+        case 'PAYMENT_CHARGEBACK_REQUESTED':
+        case 'PAYMENT_CHARGEBACK_DISPUTE':
+          if (paymentId) {
+            await handlePaymentRpc(payment.status);
+            revalidatePath('/dashboard');
+          }
+          break;
+
+        case 'SUBSCRIPTION_CANCELED': {
+          /**
+           * Dois cenários:
+           * 1. Cancelamento imediato (arrependimento): request já está 'cancelled'
+           *    → apenas confirmar, sem novo downgrade.
+           * 2. Cancelamento agendado (fim do período): request está 'pending_cancellation'
+           *    → aplicar downgrade agora.
+           */
+          if (subscriptionId) {
             const { data: subReq } = await supabase
               .from('tb_upgrade_requests')
               .select('id, profile_id, status')
-              .eq('asaas_subscription_id', subscriptionIdOverdue)
+              .eq('asaas_subscription_id', subscriptionId)
               .maybeSingle();
 
-            if (subReq?.profile_id && subReq.status === 'pending_downgrade') {
-              const { data: profileRow } = await supabase
-                .from('tb_profiles')
-                .select('plan_key')
-                .eq('id', subReq.profile_id)
-                .single();
-              const currentPlan = (profileRow?.plan_key ?? 'FREE') as string;
-              if (currentPlan !== 'FREE') {
+            if (subReq) {
+              if (subReq.status === 'pending_cancellation') {
+                // Período pago expirou — downgrade para FREE
                 await performDowngradeToFree(
                   subReq.profile_id,
                   subReq.id,
-                  `Downgrade via PAYMENT_OVERDUE (webhook Asaas, subscriptionId: ${subscriptionIdOverdue})`,
+                  `Downgrade via SUBSCRIPTION_CANCELED (webhook Asaas, subscriptionId: ${subscriptionId})`,
                   supabase,
                 );
                 await revalidateUserCache(subReq.profile_id).catch((err) =>
                   console.warn('[Webhook Asaas] revalidateUserCache:', err),
                 );
                 revalidatePath('/dashboard');
+              } else {
+                // Cancelamento imediato já processado — apenas garantir status 'cancelled'
+                await supabase
+                  .from('tb_upgrade_requests')
+                  .update({ status: 'cancelled', updated_at: new Date().toISOString() })
+                  .eq('id', subReq.id)
+                  .neq('status', 'cancelled');
               }
             }
           }
+          break;
         }
-        break;
-      }
 
-      case 'PAYMENT_REFUNDED': {
-        // Estorno confirmado pelo Asaas → downgrade imediato para FREE
-        if (paymentId) {
-          const { data: refundedReq } = await supabase
-            .from('tb_upgrade_requests')
-            .select('id, profile_id')
-            .eq('asaas_payment_id', paymentId)
-            .maybeSingle();
+        case 'SUBSCRIPTION_DELETED': {
+          // Assinatura removida no Asaas → downgrade imediato para FREE
+          const subId = subscriptionId ?? (body as { subscription?: { id?: string } }).subscription?.id;
+          if (subId) {
+            const { data: subReq } = await supabase
+              .from('tb_upgrade_requests')
+              .select('id, profile_id')
+              .eq('asaas_subscription_id', subId)
+              .maybeSingle();
 
-          if (refundedReq?.profile_id) {
-            await performDowngradeToFree(
-              refundedReq.profile_id,
-              refundedReq.id,
-              `Downgrade via PAYMENT_REFUNDED (webhook Asaas, paymentId: ${paymentId})`,
-              supabase,
-            );
-            await revalidateUserCache(refundedReq.profile_id).catch((err) =>
-              console.warn('[Webhook Asaas] revalidateUserCache:', err),
-            );
-            revalidatePath('/dashboard');
-          } else {
-            // Sem request vinculado — apenas registrar via RPC
-            await handlePaymentRpc(payment.status);
-          }
-        }
-        break;
-      }
-
-      case 'PAYMENT_CHARGEBACK_REQUESTED':
-      case 'PAYMENT_CHARGEBACK_DISPUTE':
-        if (paymentId) {
-          await handlePaymentRpc(payment.status);
-          revalidatePath('/dashboard');
-        }
-        break;
-
-      case 'SUBSCRIPTION_CANCELED': {
-        /**
-         * Dois cenários:
-         * 1. Cancelamento imediato (arrependimento): request já está 'cancelled'
-         *    → apenas confirmar, sem novo downgrade.
-         * 2. Cancelamento agendado (fim do período): request está 'pending_cancellation'
-         *    → aplicar downgrade agora.
-         */
-        if (subscriptionId) {
-          const { data: subReq } = await supabase
-            .from('tb_upgrade_requests')
-            .select('id, profile_id, status')
-            .eq('asaas_subscription_id', subscriptionId)
-            .maybeSingle();
-
-          if (subReq) {
-            if (subReq.status === 'pending_cancellation') {
-              // Período pago expirou — downgrade para FREE
+            if (subReq?.profile_id) {
               await performDowngradeToFree(
                 subReq.profile_id,
                 subReq.id,
-                `Downgrade via SUBSCRIPTION_CANCELED (webhook Asaas, subscriptionId: ${subscriptionId})`,
+                `Downgrade via SUBSCRIPTION_DELETED (webhook Asaas, subscriptionId: ${subId})`,
                 supabase,
               );
               await revalidateUserCache(subReq.profile_id).catch((err) =>
                 console.warn('[Webhook Asaas] revalidateUserCache:', err),
               );
               revalidatePath('/dashboard');
-            } else {
-              // Cancelamento imediato já processado — apenas garantir status 'cancelled'
-              await supabase
-                .from('tb_upgrade_requests')
-                .update({ status: 'cancelled', updated_at: new Date().toISOString() })
-                .eq('id', subReq.id)
-                .neq('status', 'cancelled');
             }
           }
+          break;
         }
-        break;
+
+        case 'PAYMENT_CREATED':
+        case 'PAYMENT_AWAITING_RISK_ANALYSIS':
+        case 'SUBSCRIPTION_CREATED':
+        case 'PAYMENT_DELETED':
+        case 'PAYMENT_RESTORED':
+          // Ignorados — retornar 200 sem ação
+          break;
+
+        default:
+          // Qualquer outro evento: 200 para o Asaas não reenviar
+          break;
       }
 
-      case 'SUBSCRIPTION_DELETED': {
-        // Assinatura removida no Asaas → downgrade imediato para FREE
-        const subId = subscriptionId ?? (body as { subscription?: { id?: string } }).subscription?.id;
-        if (subId) {
-          const { data: subReq } = await supabase
-            .from('tb_upgrade_requests')
-            .select('id, profile_id')
-            .eq('asaas_subscription_id', subId)
-            .maybeSingle();
-
-          if (subReq?.profile_id) {
-            await performDowngradeToFree(
-              subReq.profile_id,
-              subReq.id,
-              `Downgrade via SUBSCRIPTION_DELETED (webhook Asaas, subscriptionId: ${subId})`,
-              supabase,
-            );
-            await revalidateUserCache(subReq.profile_id).catch((err) =>
-              console.warn('[Webhook Asaas] revalidateUserCache:', err),
-            );
-            revalidatePath('/dashboard');
-          }
-        }
-        break;
+      if (logId) {
+        await supabase
+          .from('tb_webhook_logs')
+          .update({ status_code: 200, updated_at: new Date().toISOString() })
+          .eq('id', logId);
       }
-
-      case 'PAYMENT_CREATED':
-      case 'PAYMENT_AWAITING_RISK_ANALYSIS':
-      case 'SUBSCRIPTION_CREATED':
-      case 'PAYMENT_DELETED':
-      case 'PAYMENT_RESTORED':
-        // Ignorados — retornar 200 sem ação
-        break;
-
-      default:
-        // Qualquer outro evento: 200 para o Asaas não reenviar
-        break;
+    } catch (err) {
+      console.error(`[Webhook Asaas] Erro no evento ${event}:`, err);
+      if (logId) {
+        const errorMessage =
+          err instanceof Error ? err.message : 'Erro desconhecido';
+        await supabase
+          .from('tb_webhook_logs')
+          .update({
+            status_code: 500,
+            error_message: errorMessage,
+            updated_at: new Date().toISOString(),
+          })
+          .eq('id', logId);
+      }
     }
 
     return NextResponse.json({ received: true }, { status: 200 });

@@ -9,7 +9,14 @@ import {
 } from '@/actions/auth.actions';
 import { Galeria } from '@/core/types/galeria';
 import { getCookie } from '@/core/utils/cookie-helper';
-import { Mail, Smartphone, CheckCircle, Loader2, User } from 'lucide-react';
+import {
+  Mail,
+  Smartphone,
+  CheckCircle,
+  Loader2,
+  User,
+  Check,
+} from 'lucide-react';
 
 import PasswordInput from '@/components/ui/PasswordInput';
 import * as z from 'zod';
@@ -391,35 +398,45 @@ export default function GalleryAccessPortal({
 
             {leadsEnabled && (
               <div className="pt-2">
-                <div className="flex items-start gap-3 p-3 bg-slate-50 rounded-luxury border border-slate-200">
-                  <div className="relative flex items-center mt-1 shrink-0 cursor-pointer">
-                    <input
-                      id="lgpd-consent"
-                      type="checkbox"
-                      required
-                      className="peer h-4 w-4 rounded border-slate-300 text-gold focus:ring-gold"
-                    />
-                    <CheckCircle
-                      size={12}
-                      className="absolute ml-0.5 opacity-0 peer-checked:opacity-100 transition-opacity pointer-events-none"
-                      style={{
-                        color: 'rgb(var(--pub-bar-accent, var(--color-gold)))',
-                      }}
-                    />
-                  </div>
-                  <div className="text-[11px] text-petroleum/80 leading-relaxed">
+                <div className="p-3 bg-slate-50 rounded-luxury border border-slate-200 space-y-3">
+                  {/* 1. Explicação (Topo) */}
+                  <p className="text-[11px] text-petroleum/80 font-medium leading-relaxed">
                     Esta coleta de dados é uma opção do organizador. Os dados
                     são processados para:
-                    <span className="font-bold">
-                      {' '}
-                      {galeria.lead_purpose || 'identificação para acesso'}
+                    <span className="font-semibold ml-1">
+                      {galeria.lead_purpose || 'identificação para acesso'}.
                     </span>
-                    . Confira nossa{' '}
-                    <button type="button" className="underline font-bold">
-                      política de privacidade
-                    </button>
-                    .
-                  </div>
+                  </p>
+
+                  {/* 2. Linha de Consentimento (Checkbox + Texto) */}
+                  <label
+                    htmlFor="lgpd-consent"
+                    className="flex items-start gap-3 cursor-pointer group"
+                  >
+                    <div className="relative flex items-center mt-0.5 shrink-0">
+                      <input
+                        id="lgpd-consent"
+                        type="checkbox"
+                        required
+                        className="peer h-4 w-4 rounded border-slate-300 text-gold focus:ring-gold appearance-none border bg-white checked:bg-gold checked:border-gold transition-all"
+                      />
+                      <Check
+                        size={12}
+                        className="absolute ml-0.5 opacity-0 peer-checked:opacity-100 transition-opacity pointer-events-none text-white"
+                      />
+                    </div>
+
+                    <div className="text-[10px] text-petroleum/80 leading-snug">
+                      Eu concordo com o processamento dos meus dados e com a{' '}
+                      <button
+                        type="button"
+                        className="underline text-[10px] font-bold hover:text-gold transition-colors upercase"
+                      >
+                        política de privacidade
+                      </button>
+                      .
+                    </div>
+                  </label>
                 </div>
               </div>
             )}

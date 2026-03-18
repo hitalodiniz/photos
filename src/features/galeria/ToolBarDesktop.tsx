@@ -154,7 +154,7 @@ export const ToolBarDesktop = ({
     >
       <div className="pointer-events-auto relative w-full pub-bar-bg border-b pub-bar-border-b shadow-2xl">
         {/* ── BARRA ── */}
-        <div className="flex items-center w-full max-w-[1600px] h-10 mx-auto gap-1">
+        <div className="flex items-center w-full max-w-[1600px] h-10 mx-auto gap-1 px-3">
           <button
             onClick={() => toggleDrawer('info')}
             className={`${btnBase} max-w-[220px] xl:max-w-[300px] shrink-0 ${openDrawer === 'info' ? 'pub-bar-active border' : 'pub-bar-text'}`}

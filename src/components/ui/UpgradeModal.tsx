@@ -71,7 +71,8 @@ export default function UpgradeModal({
     return getPlanBenefits(perms, terms);
   }, [nextPlanKey, terms]);
 
-  if (!isOpen) return null;
+  // Se não estiver aberto nem o modal nem o sheet, não renderiza nada
+  if (!isOpen && !isSheetOpen) return null;
 
   const headerIcon = (
     <Crown size={20} strokeWidth={2.5} className="text-gold" />
@@ -83,7 +84,10 @@ export default function UpgradeModal({
         Talvez mais tarde
       </button>
       <button
-        onClick={() => setIsSheetOpen(true)}
+        onClick={() => {
+          // Fecha o modal base visualmente e abre o sheet
+          setIsSheetOpen(true);
+        }}
         className="btn-luxury-primary"
       >
         {scenarioType === 'limit'
@@ -97,7 +101,7 @@ export default function UpgradeModal({
   return (
     <>
       <BaseModal
-        isOpen={isOpen}
+        isOpen={isOpen && !isSheetOpen} // Esconde o BaseModal quando o Sheet abre
         onClose={onClose}
         title={
           scenarioType === 'limit' ? 'Limite Atingido' : 'Recurso Superior'
@@ -192,7 +196,10 @@ export default function UpgradeModal({
       {/* Sheet de upgrade — abre ao clicar no CTA do modal */}
       <UpgradeSheet
         isOpen={isSheetOpen}
-        onClose={() => setIsSheetOpen(false)}
+        onClose={() => {
+          setIsSheetOpen(false);
+          onClose(); // Garante que, ao fechar o sheet, todo o fluxo modal é finalizado
+        }}
         featureKey={featureKey}
         featureName={featureName}
       />

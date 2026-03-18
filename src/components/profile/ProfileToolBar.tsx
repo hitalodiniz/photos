@@ -95,7 +95,7 @@ export const ProfileToolBar = ({
     <div className="z-[110] sticky top-0 w-full font-sans">
       <div className="mx-auto pub-bar-bg w-full border-b pub-bar-border-b shadow-2xl relative">
         {/* ── BARRA PRINCIPAL ── */}
-        <div className="flex flex-row items-center w-full max-w-[1600px] px-3 md:px-4 h-10 mx-auto gap-1">
+        <div className="flex flex-row items-center w-full max-w-[1600px] px-3 h-10 mx-auto gap-1">
           {/* ESQUERDA */}
           <div className="flex-1 min-w-0 flex items-center overflow-hidden">
             <PlanGuard feature="profileLevel" variant="mini">
@@ -299,7 +299,7 @@ export const ProfileToolBar = ({
               : 'max-h-0 opacity-0 pointer-events-none'
           }`}
         >
-          <div className="max-w-[1600px] mx-auto px-4 md:px-6 py-3 relative">
+          <div className="max-w-[1600px] mx-auto px-3 md:px-6 py-3 relative">
             {/* Botão fechar */}
             <button
               onClick={() => setIsDrawerOpen(false)}

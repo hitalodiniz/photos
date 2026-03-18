@@ -64,7 +64,7 @@ export default function ConfirmationModal({
       <button
         onClick={onClose}
         disabled={isLoading} // ✅ Desabilita cancelar durante loading
-        className="btn-luxury-secondary disabled:opacity-50 disabled:cursor-not-allowed"
+        className="btn-secondary-white disabled:opacity-50 disabled:cursor-not-allowed"
       >
         Cancelar
       </button>

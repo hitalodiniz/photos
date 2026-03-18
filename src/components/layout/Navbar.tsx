@@ -60,6 +60,10 @@ export default function Navbar() {
       )
     : 0;
 
+  console.log('trialDaysLeft', trialDaysLeft);
+  console.log('plan.trialExpiresAt', plan.trialExpiresAt);
+  console.log('istrial', isTrial);
+
   useEffect(() => setMounted(true), []);
 
   // Abrir UpgradeSheet com plano pré-selecionado ao vir da página de planos (sessionStorage)
