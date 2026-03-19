@@ -259,10 +259,7 @@ export default function PlanosContent() {
                               {ind.label}
                             </span>
                             {ind.permKey && (
-                              <FeaturePreview
-                                featureKey={ind.permKey}
-                                align={i > 2 ? 'right' : 'left'}
-                              />
+                              <FeaturePreview featureKey={ind.permKey} />
                             )}
                           </div>
                         </div>
@@ -286,9 +283,7 @@ export default function PlanosContent() {
                         <planInfo.icon
                           size={16}
                           strokeWidth={2.5}
-                          className={
-                            isPro ? 'text-gold' : 'text-petroleum/60'
-                          }
+                          className={isPro ? 'text-gold' : 'text-petroleum/60'}
                         />
                         <span>{planInfo.cta}</span>
                       </>
@@ -381,8 +376,7 @@ export default function PlanosContent() {
 
                       {expandedGroups[groupName] &&
                         COMMON_FEATURES.filter(
-                          (f) =>
-                            f.group.trim().toUpperCase() === groupName,
+                          (f) => f.group.trim().toUpperCase() === groupName,
                         ).map((feature, fIdx) => (
                           <tr
                             key={`${groupName}-${fIdx}`}
@@ -398,17 +392,14 @@ export default function PlanosContent() {
                                     featureKey={
                                       feature.key as keyof PlanPermissions
                                     }
-                                    align="left"
                                   />
                                 )}
                               </div>
                             </td>
                             {planosKeys.map((key, pIdx) => {
-                              const val = getFeatureValue(
-                                feature.label,
-                                pIdx,
-                              );
-                              const isLastColumn = pIdx === planosKeys.length - 1;
+                              const val = getFeatureValue(feature.label, pIdx);
+                              const isLastColumn =
+                                pIdx === planosKeys.length - 1;
                               return (
                                 <td
                                   key={`${key}-${fIdx}`}
@@ -431,17 +422,6 @@ export default function PlanosContent() {
                                       <span className="text-[12px] font-medium text-petroleum">
                                         {val}
                                       </span>
-                                    )}
-                                    {/* Adiciona o FeaturePreview em cada célula de valor */}
-                                    {feature.key && (
-                                      <FeaturePreview
-                                        featureKey={
-                                          feature.key as keyof PlanPermissions
-                                        }
-                                        align={
-                                          isLastColumn ? 'right' : 'left'
-                                        }
-                                      />
                                     )}
                                   </div>
                                 </td>
