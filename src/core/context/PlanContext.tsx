@@ -87,8 +87,8 @@ export function PlanProvider({
         const expiresTimestamp = new Date(profile.plan_trial_expires).getTime();
         const now = new Date().getTime();
 
-        // Se a data for inválida ou já passou, rebaixa para FREE
-        if (isNaN(expiresTimestamp) || expiresTimestamp < now) {
+        // Se a data for inválida, já passou ou é exatamente agora, rebaixa para FREE
+        if (isNaN(expiresTimestamp) || expiresTimestamp <= now) {
           return 'FREE';
         }
         
