@@ -104,7 +104,7 @@ export function CancelSubscriptionModal({
   const [reason, setReason] = useState<CancelReason | null>(null);
   const [comment, setComment] = useState('');
 
-  const withinRefund = isWithinRefundWindow(processedAt);
+  const withinRefund = false; //isWithinRefundWindow(processedAt);
 
   const reset = () => {
     setStep(1);

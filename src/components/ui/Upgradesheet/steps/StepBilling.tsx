@@ -220,6 +220,9 @@ export function StepBilling() {
     setInstallments,
     creditCard,
     setCreditCard,
+    useSavedCard,
+    setUseSavedCard,
+    savedCardLast4,
     upgradeCalculation,
     setUpgradeCalculation,
     selectedPlan,
@@ -278,6 +281,11 @@ export function StepBilling() {
       setCanProceedBilling(true);
       return;
     }
+    if (useSavedCard) {
+      setErrors({});
+      setCanProceedBilling(true);
+      return;
+    }
 
     const nextErrors = validateCreditCard(creditCard);
     setErrors(nextErrors);
@@ -285,7 +293,7 @@ export function StepBilling() {
     // Sempre que recalcular os erros, atualiza a flag global de validade da etapa.
     const hasAnyError = Object.values(nextErrors ?? {}).some(Boolean);
     setCanProceedBilling(!hasAnyError);
-  }, [creditCard, billingType, setCanProceedBilling]);
+  }, [creditCard, billingType, useSavedCard, setCanProceedBilling]);
 
   useEffect(() => {
     if (billingType !== 'CREDIT_CARD') setTouched({});
@@ -337,6 +345,7 @@ export function StepBilling() {
         day: '2-digit',
         month: 'long',
         year: 'numeric',
+        timeZone: 'UTC',
       })
     : '';
 
@@ -577,130 +586,155 @@ export function StepBilling() {
             className="py-2 px-3 space-y-1.5"
           >
             <div className="space-y-2">
-              <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
-                <div className="space-y-0.5">
-                  <FieldLabel icon={User} label="Nome no cartão" required />
-                  <input
-                    type="text"
-                    value={creditCard.credit_card_holder_name}
-                    onChange={(e) =>
-                      setCreditCard((c) => ({
-                        ...c,
-                        credit_card_holder_name: e.target.value,
-                      }))
-                    }
-                    onBlur={() => touch('credit_card_holder_name')}
-                    placeholder="Como está no cartão"
-                    className={`w-full px-2 py-1.5 h-8 bg-slate-50 border rounded-[0.4rem] text-[10px] text-petroleum font-medium outline-none transition-colors focus:border-gold/60 ${
-                      err('credit_card_holder_name')
-                        ? 'border-red-300'
-                        : 'border-slate-200'
-                    }`}
-                  />
-                  <FieldError message={err('credit_card_holder_name')} />
-                </div>
-                <div className="space-y-0.5">
-                  <FieldLabel
-                    icon={CreditCard}
-                    label="Número do cartão"
-                    required
-                  />
-                  <div className="relative">
-                    <input
-                      type="text"
-                      inputMode="numeric"
-                      value={creditCard.credit_card_number}
-                      onChange={(e) =>
-                        setCreditCard((c) => ({
-                          ...c,
-                          credit_card_number: formatCreditCardNumber(
-                            e.target.value,
-                          ),
-                        }))
-                      }
-                      onBlur={() => touch('credit_card_number')}
-                      placeholder="0000 0000 0000 0000"
-                      maxLength={19}
-                      className={`w-full px-2 py-1.5 h-8 bg-slate-50 border rounded-[0.4rem] text-[10px] text-petroleum font-medium outline-none transition-colors focus:border-gold/60 pr-14 ${
-                        err('credit_card_number')
-                          ? 'border-red-300'
-                          : 'border-slate-200'
-                      }`}
-                    />
-                    <BrandBadge number={creditCard.credit_card_number} />
+              {useSavedCard ? (
+                <div className="rounded-lg border border-emerald-200 bg-emerald-50 px-3 py-2">
+                  <div className="flex items-center justify-between gap-2">
+                    <p className="text-[11px] font-semibold text-emerald-800">
+                      💳 Continuar utilizando o cartão
+                      {savedCardLast4
+                        ? ` (Final ****${savedCardLast4})`
+                        : ''}{' '}
+                      da assinatura atual.
+                    </p>
+                    <button
+                      type="button"
+                      onClick={() => setUseSavedCard(false)}
+                      className="text-[10px] font-semibold text-gold hover:underline whitespace-nowrap"
+                    >
+                      Alterar Cartão
+                    </button>
                   </div>
-                  <FieldError message={err('credit_card_number')} />
                 </div>
-              </div>
-
-              <div className="grid grid-cols-3 gap-2">
-                <div className="space-y-0.5">
-                  <FieldLabel icon={Lock} label="Validade" required />
-                  <div className="flex gap-1">
-                    <input
-                      type="text"
-                      inputMode="numeric"
-                      value={creditCard.credit_card_expiry_month}
-                      onChange={(e) =>
-                        setCreditCard((c) => ({
-                          ...c,
-                          credit_card_expiry_month: formatExpiryMonth(
-                            e.target.value,
-                          ),
-                        }))
-                      }
-                      onBlur={() => touch('expiry_month')}
-                      placeholder="MM"
-                      className="w-full px-2 py-1.5 h-8 bg-slate-50 border border-slate-200 rounded-[0.4rem] text-[10px] text-petroleum outline-none"
-                    />
-                    <input
-                      type="text"
-                      inputMode="numeric"
-                      value={creditCard.credit_card_expiry_year}
-                      onChange={(e) =>
-                        setCreditCard((c) => ({
-                          ...c,
-                          credit_card_expiry_year: formatExpiryYear(
-                            e.target.value,
-                          ),
-                        }))
-                      }
-                      onBlur={() => touch('expiry_year')}
-                      placeholder="AA"
-                      maxLength={2}
-                      minLength={2}
-                      className="w-full px-2 py-1.5 h-8 bg-slate-50 border border-slate-200 rounded-[0.4rem] text-[10px] text-petroleum outline-none"
-                    />
+              ) : (
+                <>
+                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
+                    <div className="space-y-0.5">
+                      <FieldLabel icon={User} label="Nome no cartão" required />
+                      <input
+                        type="text"
+                        value={creditCard.credit_card_holder_name}
+                        onChange={(e) =>
+                          setCreditCard((c) => ({
+                            ...c,
+                            credit_card_holder_name: e.target.value,
+                          }))
+                        }
+                        onBlur={() => touch('credit_card_holder_name')}
+                        placeholder="Como está no cartão"
+                        className={`w-full px-2 py-1.5 h-8 bg-slate-50 border rounded-[0.4rem] text-[10px] text-petroleum font-medium outline-none transition-colors focus:border-gold/60 ${
+                          err('credit_card_holder_name')
+                            ? 'border-red-300'
+                            : 'border-slate-200'
+                        }`}
+                      />
+                      <FieldError message={err('credit_card_holder_name')} />
+                    </div>
+                    <div className="space-y-0.5">
+                      <FieldLabel
+                        icon={CreditCard}
+                        label="Número do cartão"
+                        required
+                      />
+                      <div className="relative">
+                        <input
+                          type="text"
+                          inputMode="numeric"
+                          value={creditCard.credit_card_number}
+                          onChange={(e) =>
+                            setCreditCard((c) => ({
+                              ...c,
+                              credit_card_number: formatCreditCardNumber(
+                                e.target.value,
+                              ),
+                            }))
+                          }
+                          onBlur={() => touch('credit_card_number')}
+                          placeholder="0000 0000 0000 0000"
+                          maxLength={19}
+                          className={`w-full px-2 py-1.5 h-8 bg-slate-50 border rounded-[0.4rem] text-[10px] text-petroleum font-medium outline-none transition-colors focus:border-gold/60 pr-14 ${
+                            err('credit_card_number')
+                              ? 'border-red-300'
+                              : 'border-slate-200'
+                          }`}
+                        />
+                        <BrandBadge number={creditCard.credit_card_number} />
+                      </div>
+                      <FieldError message={err('credit_card_number')} />
+                    </div>
                   </div>
-                  {touched['expiry_month'] &&
-                    touched['expiry_year'] &&
-                    errors.expiry && <FieldError message={errors.expiry} />}
-                </div>
 
-                <div className="space-y-0.5">
-                  <FieldLabel icon={Lock} label="CVV" required />
-                  <input
-                    type="text"
-                    inputMode="numeric"
-                    value={creditCard.credit_card_ccv}
-                    onChange={(e) =>
-                      setCreditCard((c) => ({
-                        ...c,
-                        credit_card_ccv: formatCcv(e.target.value),
-                      }))
-                    }
-                    onBlur={() => touch('credit_card_ccv')}
-                    placeholder={brand === 'amex' ? '1234' : '123'}
-                    maxLength={brand === 'amex' ? 4 : 3}
-                    className={`w-full px-2 py-1.5 h-8 bg-slate-50 border rounded-[0.4rem] text-[10px] text-petroleum outline-none ${
-                      err('credit_card_ccv')
-                        ? 'border-red-300'
-                        : 'border-slate-200'
-                    }`}
-                  />
-                  <FieldError message={err('credit_card_ccv')} />
-                </div>
+                  <div className="grid grid-cols-2 gap-2">
+                    <div className="space-y-0.5">
+                      <FieldLabel icon={Lock} label="Validade" required />
+                      <div className="flex gap-1">
+                        <input
+                          type="text"
+                          inputMode="numeric"
+                          value={creditCard.credit_card_expiry_month}
+                          onChange={(e) =>
+                            setCreditCard((c) => ({
+                              ...c,
+                              credit_card_expiry_month: formatExpiryMonth(
+                                e.target.value,
+                              ),
+                            }))
+                          }
+                          onBlur={() => touch('expiry_month')}
+                          placeholder="MM"
+                          className="w-full px-2 py-1.5 h-8 bg-slate-50 border border-slate-200 rounded-[0.4rem] text-[10px] text-petroleum outline-none"
+                        />
+                        <input
+                          type="text"
+                          inputMode="numeric"
+                          value={creditCard.credit_card_expiry_year}
+                          onChange={(e) =>
+                            setCreditCard((c) => ({
+                              ...c,
+                              credit_card_expiry_year: formatExpiryYear(
+                                e.target.value,
+                              ),
+                            }))
+                          }
+                          onBlur={() => touch('expiry_year')}
+                          placeholder="AA"
+                          maxLength={2}
+                          minLength={2}
+                          className="w-full px-2 py-1.5 h-8 bg-slate-50 border border-slate-200 rounded-[0.4rem] text-[10px] text-petroleum outline-none"
+                        />
+                      </div>
+                      {touched['expiry_month'] &&
+                        touched['expiry_year'] &&
+                        errors.expiry && <FieldError message={errors.expiry} />}
+                    </div>
 
+                    <div className="space-y-0.5">
+                      <FieldLabel icon={Lock} label="CVV" required />
+                      <input
+                        type="text"
+                        inputMode="numeric"
+                        value={creditCard.credit_card_ccv}
+                        onChange={(e) =>
+                          setCreditCard((c) => ({
+                            ...c,
+                            credit_card_ccv: formatCcv(e.target.value),
+                          }))
+                        }
+                        onBlur={() => touch('credit_card_ccv')}
+                        placeholder={brand === 'amex' ? '1234' : '123'}
+                        maxLength={brand === 'amex' ? 4 : 3}
+                        className={`w-full px-2 py-1.5 h-8 bg-slate-50 border rounded-[0.4rem] text-[10px] text-petroleum outline-none ${
+                          err('credit_card_ccv')
+                            ? 'border-red-300'
+                            : 'border-slate-200'
+                        }`}
+                      />
+                      <FieldError message={err('credit_card_ccv')} />
+                    </div>
+                  </div>
+                </>
+              )}
+
+              <div className="grid grid-cols-1 gap-2">
                 <div className="space-y-0.5">
                   <FieldLabel icon={ChevronDown} label="Parcelas" />
                   <div className="relative">

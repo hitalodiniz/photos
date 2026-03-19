@@ -95,10 +95,12 @@ export async function updateAsaasSubscriptionPlanAndDueDate(
     value: number;
     description: string;
     nextDueDate: string;
+    cycle?: 'MONTHLY' | 'SEMIANNUALLY' | 'YEARLY';
     updatePendingPayments?: boolean;
   },
 ): Promise<{ success: boolean; error?: string }> {
-  const { value, description, nextDueDate, updatePendingPayments } = params;
+  const { value, description, nextDueDate, cycle, updatePendingPayments } =
+    params;
   if (!/^\d{4}-\d{2}-\d{2}$/.test(nextDueDate))
     return { success: false, error: 'nextDueDate deve ser YYYY-MM-DD' };
   const body: Record<string, unknown> = {
@@ -106,6 +108,7 @@ export async function updateAsaasSubscriptionPlanAndDueDate(
     description,
     nextDueDate,
   };
+  if (cycle) body.cycle = cycle;
   if (updatePendingPayments === false) body.updatePendingPayments = false;
   const { ok, data } = await asaasRequest<{ errors?: unknown[] }>(
     `/subscriptions/${subscriptionId}`,
@@ -362,6 +365,56 @@ export async function updateSubscriptionBillingMethod(
     return {
       success: false,
       error: 'Erro de conexão ao atualizar forma de pagamento',
+    };
+  }
+}
+
+/**
+ * Remove o endDate de uma assinatura no Asaas, reativando-a indefinidamente.
+ * Usado quando o usuário cancela uma intenção de mudança agendada (pending_change).
+ *
+ * Envia endDate: null via PUT — o Asaas aceita null para limpar o campo.
+ * Mantém nextDueDate inalterado para não perturbar o ciclo de cobrança.
+ */
+export async function removeAsaasSubscriptionEndDate(
+  subscriptionId: string,
+): Promise<{ success: boolean; error?: string }> {
+  try {
+    // Busca nextDueDate atual para não sobrescrever acidentalmente
+    const current = await getAsaasSubscription(subscriptionId);
+    if (!current.success) {
+      return { success: false, error: current.error };
+    }
+
+    const body: Record<string, unknown> = { endDate: null };
+
+    // Repassar nextDueDate evita que o Asaas redefina a data para hoje
+    if (
+      current.nextDueDate &&
+      /^\d{4}-\d{2}-\d{2}$/.test(current.nextDueDate)
+    ) {
+      body.nextDueDate = current.nextDueDate;
+    }
+
+    const { ok, data } = await asaasRequest<{ errors?: unknown[] }>(
+      `/subscriptions/${subscriptionId}`,
+      { method: 'PUT', body: JSON.stringify(body) },
+    );
+
+    return ok
+      ? { success: true }
+      : {
+          success: false,
+          error: asaasError(
+            data as Record<string, unknown>,
+            'Erro ao remover data de encerramento da assinatura',
+          ),
+        };
+  } catch (e) {
+    console.error('[Asaas] removeAsaasSubscriptionEndDate:', e);
+    return {
+      success: false,
+      error: 'Erro de conexão ao remover data de encerramento',
     };
   }
 }

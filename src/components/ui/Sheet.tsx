@@ -141,7 +141,9 @@ export function SheetSection({
   className?: string;
 }) {
   return (
-    <div className={`p-4 border-b border-slate-100 space-y-2 ${className}`}>
+    <div
+      className={`px-4 py-3 border-b border-slate-100 space-y-2 ${className}`}
+    >
       {title && (
         <p className="text-[9px] font-semibold uppercase tracking-wide text-petroleum/90 px-1 mb-1">
           {title}
@@ -161,7 +163,7 @@ export function SheetFooter({
 }) {
   return (
     <div
-      className={`shrink-0 px-5 py-3 bg-petroleum/5 border-t border-petroleum/10 text-center ${className}`}
+      className={`shrink-0 px-5 py-3 bg-petroleum border-t border-petroleum/10 text-center ${className}`}
     >
       {children}
     </div>

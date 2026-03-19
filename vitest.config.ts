@@ -16,6 +16,12 @@ export default defineConfig({
   test: {
     globals: true, // Permite usar 'describe', 'it', 'expect' sem importar
     include: ['**/*.{test,spec}.{js,mjs,cjs,ts,mts,cts,jsx,tsx}'],
+    exclude: [
+      '**/node_modules/**',
+      '**/tests/**',
+      '**/playwright/**',
+      '**/*.e2e.{js,mjs,cjs,ts,mts,cts,jsx,tsx}',
+    ],
     environment: 'jsdom',
     setupFiles: ['./vitest.setup.ts'], // <--- O segredo está aqui
     alias: {

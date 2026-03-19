@@ -1,10 +1,18 @@
 'use client';
 
 import { useTransition } from 'react';
-import { AlertTriangle, Archive } from 'lucide-react';
+import {
+  AlertTriangle,
+  Archive,
+  Calendar,
+  MapPin,
+  User,
+  Image,
+} from 'lucide-react';
 import BaseModal from '@/components/ui/BaseModal';
 import type { Galeria } from '@/core/types/galeria';
 import { acknowledgeDowngradeAlert } from '@/actions/downgrade.actions';
+import { getGalleryTypeLabel } from '@/components/ui/GalleryTypeToggle';
 
 interface DowngradeAlertProps {
   profile: {
@@ -37,6 +45,12 @@ export function DowngradeAlert({ profile, galerias }: DowngradeAlertProps) {
 
   const total = autoArchived.length;
 
+  // 🎯 Calcula total de fotos afetadas
+  const totalPhotos = autoArchived.reduce(
+    (sum, g) => sum + (g.photo_count || 0),
+    0,
+  );
+
   const handleConfirm = () => {
     startTransition(async () => {
       await acknowledgeDowngradeAlert();
@@ -48,12 +62,15 @@ export function DowngradeAlert({ profile, galerias }: DowngradeAlertProps) {
       isOpen
       onClose={handleConfirm}
       title="Notificação de Plano"
-      subtitle="Downgrade automático de galerias excedentes"
-      maxWidth="2xl"
+      subtitle="Ajuste automático por mudança de assinatura"
+      maxWidth="3xl"
       headerIcon={<AlertTriangle size={18} />}
       showCloseButton={!isPending}
       footer={
-        <div className="flex justify-end">
+        <div className="flex items-center justify-between w-full">
+          <p className="text-[10px] text-slate-100 italic">
+            Este aviso é exibido apenas uma vez após um downgrade
+          </p>
           <button
             type="button"
             onClick={handleConfirm}
@@ -65,53 +82,153 @@ export function DowngradeAlert({ profile, galerias }: DowngradeAlertProps) {
         </div>
       }
     >
-      <div className="space-y-3 text-sm text-petroleum">
-        <p className="text-[13px] leading-relaxed">
-          Sua assinatura foi alterada e <strong>{total}</strong> galeria
-          {total > 1 ? 's' : ''} foi
-          {total > 1 ? 'ram' : ' '} arquivada{total > 1 ? 's' : ''} para cumprir
-          o novo limite de plano.
-        </p>
-
-        <p className="text-[12px] text-petroleum/80">
-          Essas galerias foram movidas para a seção{' '}
-          <strong>&quot;Arquivadas&quot;</strong> no menu à esquerda do seu
-          Espaço de Galerias. Você pode reativá-las assinando um plano superior.
-        </p>
-
-        <div className="mt-3 border border-slate-200 rounded-luxury bg-slate-50/50 p-3 max-h-56 overflow-y-auto">
-          <div className="flex items-center gap-2 mb-2">
-            <Archive size={14} className="text-gold shrink-0" />
-            <p className="text-[11px] font-semibold text-slate-700 uppercase tracking-wider">
-              Galerias arquivadas automaticamente
-            </p>
+      <div className="space-y-4">
+        {/* 🎯 Resumo em destaque */}
+        <div className="bg-amber-50 border border-amber-200 rounded-lg p-4">
+          <div className="flex items-start gap-3">
+            <div className="flex-shrink-0 w-10 h-10 rounded-full bg-amber-100 flex items-center justify-center">
+              <Archive size={18} className="text-amber-600" />
+            </div>
+            <div className="flex-1 min-w-0">
+              <p className="text-[13px] font-semibold text-amber-900 mb-1">
+                {total} galeria{total > 1 ? 's' : ''} arquivada
+                {total > 1 ? 's' : ''} automaticamente
+              </p>
+              <p className="text-[12px] text-amber-700 leading-relaxed">
+                Sua assinatura foi alterada e estas galerias foram movidas para
+                a seção <strong>"Arquivadas"</strong> para se adequar ao novo
+                limite do plano.
+              </p>
+            </div>
           </div>
-          <ul className="space-y-1.5 text-[12px] text-slate-800">
-            {autoArchived.map((g) => (
-              <li key={g.id} className="flex justify-between gap-2">
-                <div className="min-w-0">
-                  <p className="font-medium truncate" title={g.title}>
-                    {g.title}
-                  </p>
-                  <p className="text-[11px] text-slate-500 truncate">
-                    {g.location ?? 'Local não informado'}
-                  </p>
-                </div>
-                <div className="text-right shrink-0">
-                  {g.date && (
-                    <p className="text-[11px] text-slate-500">
-                      {new Date(g.date).toLocaleDateString('pt-BR')}
-                    </p>
-                  )}
-                </div>
-              </li>
-            ))}
-          </ul>
+
+          {/* 🎯 Estatísticas */}
+          <div className="mt-3 pt-3 border-t border-amber-200 flex items-center gap-4 text-[11px]">
+            <div className="flex items-center gap-1.5">
+              <Archive size={12} className="text-amber-600" />
+              <span className="text-amber-800">
+                <strong>{total}</strong> {total === 1 ? 'galeria' : 'galerias'}
+              </span>
+            </div>
+            {totalPhotos > 0 && (
+              <div className="flex items-center gap-1.5">
+                <Image size={12} className="text-amber-600" />
+                <span className="text-amber-800">
+                  <strong>{totalPhotos.toLocaleString('pt-BR')}</strong> fotos
+                </span>
+              </div>
+            )}
+          </div>
         </div>
 
-        <p className="text-[11px] text-slate-500 mt-2">
-          Este aviso é exibido apenas uma vez para sua conta após um downgrade.
-        </p>
+        {/* 🎯 Lista aprimorada de galerias */}
+        <div className="border border-slate-200 rounded-lg bg-white overflow-hidden">
+          {/* Header da lista */}
+          <div className="bg-slate-50 border-b border-slate-200 px-4 py-2.5">
+            <p className="text-[10px] font-bold text-slate-600 uppercase tracking-wider">
+              Galerias Afetadas ({total})
+            </p>
+          </div>
+
+          {/* Lista com scroll */}
+          <div className="max-h-44 overflow-y-auto">
+            <div className="divide-y divide-slate-100">
+              {autoArchived.map((g, index) => (
+                <div
+                  key={g.id}
+                  className="p-3 hover:bg-slate-50 transition-colors"
+                >
+                  <div className="flex items-start gap-3">
+                    {/* Número da galeria */}
+                    <div className="flex-shrink-0 w-6 h-6 rounded-full bg-slate-100 flex items-center justify-center">
+                      <span className="text-[10px] font-bold text-slate-500">
+                        {index + 1}
+                      </span>
+                    </div>
+
+                    {/* Conteúdo principal */}
+                    <div className="flex-1 min-w-0">
+                      {/* Título da galeria */}
+                      <h4
+                        className="text-[13px] font-semibold text-petroleum mb-1 truncate"
+                        title={g.title}
+                      >
+                        {g.title}
+                      </h4>
+
+                      {/* Metadados em linha única */}
+                      <div className="flex flex-wrap items-center gap-x-3 gap-y-1 text-[11px] text-slate-600">
+                        {/* Cliente/Tipo */}
+                        {(g.client_name || g.has_contracting_client) && (
+                          <div className="flex items-center gap-1">
+                            <User
+                              size={11}
+                              className="text-gold flex-shrink-0"
+                            />
+                            <span className="truncate max-w-[150px]">
+                              {g.client_name ||
+                                getGalleryTypeLabel(g.has_contracting_client)}
+                            </span>
+                          </div>
+                        )}
+
+                        {/* Local */}
+                        {g.location && (
+                          <div className="flex items-center gap-1">
+                            <MapPin
+                              size={11}
+                              className="text-gold flex-shrink-0"
+                            />
+                            <span className="truncate max-w-[120px]">
+                              {g.location}
+                            </span>
+                          </div>
+                        )}
+
+                        {/* Data */}
+                        {g.date && (
+                          <div className="flex items-center gap-1">
+                            <Calendar
+                              size={11}
+                              className="text-gold flex-shrink-0"
+                            />
+                            <span>
+                              {new Date(g.date).toLocaleDateString('pt-BR')}
+                            </span>
+                          </div>
+                        )}
+
+                        {/* Fotos */}
+                        {g.photo_count > 0 && (
+                          <div className="flex items-center gap-1">
+                            <Image
+                              size={11}
+                              className="text-slate-400 flex-shrink-0"
+                            />
+                            <span className="text-slate-500">
+                              {g.photo_count}{' '}
+                              {g.photo_count === 1 ? 'foto' : 'fotos'}
+                            </span>
+                          </div>
+                        )}
+                      </div>
+                    </div>
+                  </div>
+                </div>
+              ))}
+            </div>
+          </div>
+        </div>
+
+        {/* 🎯 Instrução de como reativar */}
+        <div className="bg-blue-50 border border-blue-200 rounded-lg p-3">
+          <p className="text-[11px] text-blue-800 leading-relaxed">
+            <strong>💡 Como reativar:</strong> Para tornar estas galerias
+            públicas novamente, faça upgrade do seu plano ou desative outras
+            galerias ativas primeiro. Acesse <strong>Menu → Arquivadas</strong>{' '}
+            para gerenciá-las.
+          </p>
+        </div>
       </div>
     </BaseModal>
   );

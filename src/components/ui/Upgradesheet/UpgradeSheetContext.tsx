@@ -17,7 +17,10 @@ import {
   type PlanInfo,
   type BillingPeriod,
 } from '@/core/config/plans';
-import { requestUpgrade } from '@/core/services/asaas.service';
+import {
+  requestUpgrade,
+  getCurrentPaymentMethodSummary,
+} from '@/core/services/asaas.service';
 import { getBillingProfile } from '@/core/services/billing.service';
 import type { BillingType } from '@/core/types/billing';
 import type { CreditCardPayload } from '@/core/types/billing';
@@ -25,6 +28,7 @@ import type { UpgradePriceCalculation } from '@/core/types/billing';
 import type { Step } from './types';
 import type { PersonalData, AddressData } from './types';
 import { formatPhone, validateCpfCnpj } from './utils';
+import { scheduleDowngradeChange } from '@/core/services/scheduled-change.service';
 
 interface UpgradeSheetContextValue {
   // Step
@@ -54,6 +58,11 @@ interface UpgradeSheetContextValue {
   /** Dados do cartão (etapa 3, quando forma = Cartão). */
   creditCard: CreditCardPayload;
   setCreditCard: React.Dispatch<React.SetStateAction<CreditCardPayload>>;
+  /** Reusar cartão já cadastrado no Asaas para cobrança recorrente. */
+  useSavedCard: boolean;
+  setUseSavedCard: (v: boolean) => void;
+  /** Últimos 4 dígitos do cartão atual salvo no Asaas. */
+  savedCardLast4: string | null;
   /** Número de parcelas selecionado (1-6 para cartão; sempre 1 para PIX/BOLETO). */
   installments: number;
   setInstallments: React.Dispatch<React.SetStateAction<number>>;
@@ -68,6 +77,7 @@ interface UpgradeSheetContextValue {
   /** ID da solicitação de upgrade (tb_upgrade_requests.id) para polling de confirmação PIX. */
   upgradeRequestId: string | null;
   requestError: string | null;
+  setRequestError: (e: string | null) => void;
   /** Aviso quando pagamento anterior já estava RECEIVED/CONFIRMED (ex.: "Pagamento já identificado. O valor será utilizado como crédito para o novo plano."). */
   requestWarning: string | null;
   loading: boolean;
@@ -193,6 +203,16 @@ export function UpgradeSheetProvider({
   const [installments, setInstallments] = useState<number>(1);
   const [creditCard, setCreditCard] =
     useState<CreditCardPayload>(initialCreditCard);
+  const [useSavedCard, setUseSavedCardState] = useState(false);
+  const [savedCardChoiceTouched, setSavedCardChoiceTouched] = useState(false);
+  const [savedCardLast4, setSavedCardLast4] = useState<string | null>(null);
+
+  const setUseSavedCard = useCallback((value: boolean) => {
+    setSavedCardChoiceTouched(true);
+    setUseSavedCardState(value);
+    if (!value) setCreditCard(initialCreditCard);
+  }, []);
+
   const [paymentUrl, setPaymentUrl] = useState<string | null>(null);
   const [downgradeEffectiveAt, setDowngradeEffectiveAt] = useState<
     string | null
@@ -221,6 +241,20 @@ export function UpgradeSheetProvider({
   const streetInputRef = React.useRef<HTMLInputElement>(null);
   const wasOpenRef = React.useRef(false);
 
+  useEffect(() => {
+    if (billingType !== 'CREDIT_CARD') {
+      setUseSavedCardState(false);
+      setSavedCardChoiceTouched(false);
+      return;
+    }
+    if (savedCardChoiceTouched) return;
+    if (upgradeCalculation?.current_billing_type === 'CREDIT_CARD') {
+      setUseSavedCardState(true);
+    } else if (upgradeCalculation?.current_billing_type) {
+      setUseSavedCardState(false);
+    }
+  }, [billingType, savedCardChoiceTouched, upgradeCalculation]);
+
   // Reset step e estado apenas quando o sheet ABRE (isOpen: false → true).
   // Evita voltar para StepPlan após sucesso (ex.: upgrade gratuito) quando
   // profile/suggestedPlanKey mudam por revalidação — o usuário fecha quando quiser.
@@ -248,25 +282,27 @@ export function UpgradeSheetProvider({
         : {}),
     }));
     setLoadingPrefill(true);
-    getBillingProfile()
-      .then((billing) => {
-        if (!billing) return;
-        setHasSavedBillingData(true);
-        setPersonal((prev) => ({
-          ...prev,
-          cpfCnpj: billing.cpf_cnpj,
-          fullName:
-            billing.full_name ?? prev.fullName ?? profile?.full_name ?? '',
-        }));
-        setAddress({
-          cep: billing.postal_code,
-          street: billing.address,
-          number: billing.address_number,
-          complement: billing.complement ?? '',
-          neighborhood: billing.province,
-          city: billing.city,
-          state: billing.state,
-        });
+    Promise.all([getBillingProfile(), getCurrentPaymentMethodSummary()])
+      .then(([billing, paymentSummary]) => {
+        if (billing) {
+          setHasSavedBillingData(true);
+          setPersonal((prev) => ({
+            ...prev,
+            cpfCnpj: billing.cpf_cnpj,
+            fullName:
+              billing.full_name ?? prev.fullName ?? profile?.full_name ?? '',
+          }));
+          setAddress({
+            cep: billing.postal_code,
+            street: billing.address,
+            number: billing.address_number,
+            complement: billing.complement ?? '',
+            neighborhood: billing.province,
+            city: billing.city,
+            state: billing.state,
+          });
+        }
+        setSavedCardLast4(paymentSummary.summary?.card_last4 ?? null);
       })
       .finally(() => setLoadingPrefill(false));
     // eslint-disable-next-line react-hooks/exhaustive-deps
@@ -356,32 +392,48 @@ export function UpgradeSheetProvider({
     const effectiveInstallments =
       billingType === 'CREDIT_CARD' ? installments : 1;
 
+    // Detecta se é downgrade agendado (fora da janela de arrependimento)
+    const isScheduledDowngrade =
+      upgradeCalculation?.type === 'downgrade' &&
+      upgradeCalculation.is_downgrade_withdrawal_window === false;
+
+    const sharedPayload = {
+      plan_key_requested: selectedPlan,
+      billing_type: billingType,
+      billing_period: billingPeriod,
+      installments: effectiveInstallments,
+      segment,
+      full_name: personal.fullName.trim(),
+      whatsapp: personal.whatsapp,
+      cpf_cnpj: personal.cpfCnpj,
+      postal_code: address.cep,
+      address: address.street,
+      address_number: address.number,
+      complement: address.complement || undefined,
+      province: address.neighborhood,
+      city: address.city,
+      state: address.state,
+      ...(billingType === 'CREDIT_CARD' && { credit_card: creditCard }),
+      ...(billingType === 'CREDIT_CARD' && { use_saved_card: useSavedCard }),
+    };
+
     try {
-      const result = await requestUpgrade({
-        plan_key_requested: selectedPlan,
-        billing_type: billingType,
-        billing_period: billingPeriod,
-        installments: effectiveInstallments,
-        segment,
-        full_name: personal.fullName.trim(),
-        whatsapp: personal.whatsapp,
-        cpf_cnpj: personal.cpfCnpj,
-        postal_code: address.cep,
-        address: address.street,
-        address_number: address.number,
-        complement: address.complement || undefined,
-        province: address.neighborhood,
-        city: address.city,
-        state: address.state,
-        ...(billingType === 'CREDIT_CARD' && { credit_card: creditCard }),
-      });
+      // Roteia para a server action correta
+      const result = isScheduledDowngrade
+        ? await scheduleDowngradeChange(sharedPayload)
+        : await requestUpgrade(sharedPayload);
 
       if (result?.success) {
-        setDowngradeEffectiveAt(result.downgrade_effective_at ?? null);
+        setDowngradeEffectiveAt(
+          result.scheduled_change_effective_at ??
+            result.downgrade_effective_at ??
+            null,
+        );
         setPaymentUrl(result.payment_url ?? null);
         setPaymentDueDate(result.payment_due_date ?? null);
         if (result.request_id) setUpgradeRequestId(result.request_id);
         if (result.warning) setRequestWarning(result.warning);
+
         if (
           result.billing_type === 'PIX' &&
           (result.pix_qr_code_base64 ||
@@ -393,6 +445,7 @@ export function UpgradeSheetProvider({
             copyPaste: result.pix_copy_paste ?? result.payment_url ?? '',
           });
         }
+
         setStep('done');
       } else {
         const raw = result?.error ?? 'Erro ao processar solicitação.';
@@ -431,6 +484,8 @@ export function UpgradeSheetProvider({
     personal,
     address,
     creditCard,
+    useSavedCard,
+    upgradeCalculation, // ← ADICIONAR nas deps
   ]);
 
   const resetState = useCallback(() => {
@@ -459,6 +514,9 @@ export function UpgradeSheetProvider({
     setBillingPeriod('monthly');
     setInstallments(1);
     setCreditCard(initialCreditCard);
+    setSavedCardLast4(null);
+    setUseSavedCardState(false);
+    setSavedCardChoiceTouched(false);
     setHasSavedBillingData(false);
     setIsCalculationLoading(false);
     setCanProceedBilling(true);
@@ -496,6 +554,9 @@ export function UpgradeSheetProvider({
       planInfoForPrice,
       creditCard,
       setCreditCard,
+      useSavedCard,
+      setUseSavedCard,
+      savedCardLast4,
       paymentUrl,
       downgradeEffectiveAt,
       paymentDueDate,
@@ -533,6 +594,7 @@ export function UpgradeSheetProvider({
       isCalculationLoading,
       setIsCalculationLoading,
       setCanProceedBilling,
+      setRequestError,
     }),
     [
       step,
@@ -548,6 +610,8 @@ export function UpgradeSheetProvider({
       installments,
       planInfoForPrice,
       creditCard,
+      useSavedCard,
+      savedCardLast4,
       paymentUrl,
       downgradeEffectiveAt,
       paymentDueDate,
@@ -578,6 +642,7 @@ export function UpgradeSheetProvider({
       upgradeCalculation,
       downgradeBlockedMessage,
       isCalculationLoading,
+      setUseSavedCard,
     ],
   );
 

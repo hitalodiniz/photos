@@ -36,6 +36,7 @@ function makeRequest(overrides: Record<string, unknown> = {}) {
   return {
     id: 'req-1',
     status: 'approved',
+    amount_final: 79,
     asaas_payment_id: 'pay-1',
     asaas_subscription_id: 'sub-1',
     created_at: processedAt,
@@ -62,6 +63,7 @@ function makeOldRequest(overrides: Record<string, unknown> = {}) {
 const makeSelectChain = (data: unknown, error: unknown = null) => ({
   select: vi.fn().mockReturnThis(),
   eq: vi.fn().mockReturnThis(),
+  neq: vi.fn().mockReturnThis(),
   in: vi.fn().mockReturnThis(),
   order: vi.fn().mockReturnThis(),
   limit: vi.fn().mockReturnThis(),
@@ -89,6 +91,22 @@ function makeSupabaseForScheduled(req: any) {
       .mockReturnValueOnce(makeUpdateChain()) // update tb_profiles is_cancelling
       .mockReturnValueOnce(makeUpdateChain()) // update tb_upgrade_requests status
       .mockReturnValueOnce(makeInsertChain()), // insert tb_plan_history
+    rpc: vi.fn(),
+  };
+}
+
+function makeSupabaseForImmediate(req: any) {
+  return {
+    from: vi
+      .fn()
+      .mockReturnValueOnce(makeSelectChain(req))
+      .mockReturnValueOnce(makeSelectChain({ metadata: {} }))
+      .mockReturnValueOnce(makeUpdateChain())
+      .mockReturnValueOnce(makeSelectChain({ plan_key: 'PRO' }))
+      .mockReturnValueOnce(makeUpdateChain())
+      .mockReturnValueOnce(makeInsertChain())
+      .mockReturnValueOnce(makeUpdateChain())
+      .mockReturnValueOnce(makeSelectChain([])),
     rpc: vi.fn(),
   };
 }
@@ -166,10 +184,7 @@ describe('handleSubscriptionCancellation — < 7 dias (refund_immediate)', () =>
 
   it('retorna type=refund_immediate e success=true', async () => {
     const req = makeRequest(); // 2 dias atrás = dentro da janela
-    const supabase = {
-      from: vi.fn().mockReturnValue(makeSelectChain(req)),
-      rpc: vi.fn(),
-    };
+    const supabase = makeSupabaseForImmediate(req);
     vi.mocked(
       await import('@/lib/supabase.server'),
     ).createSupabaseServerClient = vi.fn().mockResolvedValue(supabase);
@@ -198,10 +213,7 @@ describe('handleSubscriptionCancellation — < 7 dias (refund_immediate)', () =>
 
   it('chama cancelAsaasSubscriptionById (DELETE fetch) com o subscription_id correto', async () => {
     const req = makeRequest({ asaas_subscription_id: 'sub-abc' });
-    const supabase = {
-      from: vi.fn().mockReturnValue(makeSelectChain(req)),
-      rpc: vi.fn(),
-    };
+    const supabase = makeSupabaseForImmediate(req);
     vi.mocked(
       await import('@/lib/supabase.server'),
     ).createSupabaseServerClient = vi.fn().mockResolvedValue(supabase);
@@ -300,10 +312,7 @@ describe('handleSubscriptionCancellation — notes com reason/comment', () => {
 
   it('< 7 dias com reason/comment mantém fluxo refund_immediate', async () => {
     const req = makeRequest();
-    const supabase = {
-      from: vi.fn().mockReturnValue(makeSelectChain(req)),
-      rpc: vi.fn(),
-    };
+    const supabase = makeSupabaseForImmediate(req);
     vi.mocked(
       await import('@/lib/supabase.server'),
     ).createSupabaseServerClient = vi.fn().mockResolvedValue(supabase);
@@ -357,10 +366,7 @@ describe('handleSubscriptionCancellation — notes com reason/comment', () => {
 
   it('sem reason ainda retorna refund_immediate', async () => {
     const req = makeRequest();
-    const supabase = {
-      from: vi.fn().mockReturnValue(makeSelectChain(req)),
-      rpc: vi.fn(),
-    };
+    const supabase = makeSupabaseForImmediate(req);
     vi.mocked(
       await import('@/lib/supabase.server'),
     ).createSupabaseServerClient = vi.fn().mockResolvedValue(supabase);
@@ -434,10 +440,7 @@ describe('handleSubscriptionCancellation — retrocompatibilidade', () => {
 
   it('chamada sem argumentos não lança exceção', async () => {
     const req = makeRequest();
-    const supabase = {
-      from: vi.fn().mockReturnValue(makeSelectChain(req)),
-      rpc: vi.fn(),
-    };
+    const supabase = makeSupabaseForImmediate(req);
     vi.mocked(
       await import('@/lib/supabase.server'),
     ).createSupabaseServerClient = vi.fn().mockResolvedValue(supabase);
@@ -447,10 +450,7 @@ describe('handleSubscriptionCancellation — retrocompatibilidade', () => {
 
   it('chamada com apenas supabaseClient (API antiga) não lança exceção', async () => {
     const req = makeRequest();
-    const supabase = {
-      from: vi.fn().mockReturnValue(makeSelectChain(req)),
-      rpc: vi.fn(),
-    };
+    const supabase = makeSupabaseForImmediate(req);
     vi.mocked(
       await import('@/lib/supabase.server'),
     ).createSupabaseServerClient = vi.fn().mockResolvedValue(supabase);
@@ -459,5 +459,72 @@ describe('handleSubscriptionCancellation — retrocompatibilidade', () => {
     await expect(
       handleSubscriptionCancellation(supabase as never),
     ).resolves.not.toThrow();
+  });
+});
+
+describe('handleSubscriptionCancellation — pending_change não interfere', () => {
+  beforeEach(() => {
+    vi.clearAllMocks();
+    vi.stubEnv('ASAAS_API_KEY', 'test-key');
+    vi.mocked(getAuthenticatedUser).mockResolvedValue(AUTH_OK as never);
+    vi.stubGlobal(
+      'fetch',
+      vi.fn().mockResolvedValue({ ok: true, json: async () => ({}) }),
+    );
+  });
+
+  it('✅ usuário com pending_change ativo pode cancelar normalmente (>7d) e gera pending_downgrade', async () => {
+    const approvedReq = makeOldRequest({
+      id: 'approved-1',
+      status: 'approved',
+      asaas_subscription_id: 'sub-approved',
+    });
+    const updateBuilder = makeUpdateChain();
+    const supabase = {
+      from: vi
+        .fn()
+        .mockReturnValueOnce(makeSelectChain(approvedReq))
+        .mockReturnValueOnce(makeUpdateChain())
+        .mockReturnValueOnce(updateBuilder)
+        .mockReturnValueOnce(makeInsertChain()),
+      rpc: vi.fn(),
+    };
+    vi.mocked(await import('@/lib/supabase.server')).createSupabaseServerClient =
+      vi.fn().mockResolvedValue(supabase);
+
+    const result = await handleSubscriptionCancellation();
+    expect(result.success).toBe(true);
+    expect(result.type).toBe('scheduled_cancellation');
+    expect(updateBuilder.update).toHaveBeenCalledWith(
+      expect.objectContaining({ status: 'pending_downgrade' }),
+    );
+  });
+
+  it('✅ usuário com pending_change ativo dentro da janela (≤7d): downgrade imediato sem mexer no pending_change', async () => {
+    const approvedReq = makeRequest({
+      id: 'approved-2',
+      status: 'approved',
+      asaas_subscription_id: 'sub-approved-2',
+      amount_final: 79,
+    });
+    const fromMock = vi
+      .fn()
+      .mockReturnValueOnce(makeSelectChain(approvedReq))
+      .mockReturnValueOnce(makeSelectChain({ metadata: {} }))
+      .mockReturnValueOnce(makeUpdateChain())
+      .mockReturnValueOnce(makeSelectChain({ plan_key: 'PRO' }))
+      .mockReturnValueOnce(makeUpdateChain())
+      .mockReturnValueOnce(makeInsertChain())
+      .mockReturnValueOnce(makeUpdateChain())
+      .mockReturnValueOnce(makeSelectChain([]));
+
+    const supabase = { from: fromMock, rpc: vi.fn() };
+    vi.mocked(await import('@/lib/supabase.server')).createSupabaseServerClient =
+      vi.fn().mockResolvedValue(supabase);
+
+    const result = await handleSubscriptionCancellation();
+    expect(result.success).toBe(true);
+    expect(result.type).toBe('refund_immediate');
+    expect(fromMock).not.toHaveBeenCalledWith('tb_upgrade_requests', 'pending_change');
   });
 });

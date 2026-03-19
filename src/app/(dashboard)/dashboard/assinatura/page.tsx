@@ -6,7 +6,7 @@ import {
   getSubscriptionExpiresAt,
   getLastChargeAmount,
 } from '@/core/services/billing.service';
-import { getAsaasSubscriptionStatus } from '@/core/services/asaas';
+import { getAsaasSubscription, getAsaasSubscriptionStatus } from '@/core/services/asaas';
 import { getPhotographerPoolStats } from '@/core/services/galeria.service';
 import AssinaturaContent from '@/app/(dashboard)/dashboard/assinatura/AssinaturaContent';
 import type { Profile } from '@/core/types/profile';
@@ -31,6 +31,14 @@ export interface AssinaturaPageData {
   activeSubscriptionId: string | null;
   /** Status da última solicitação de upgrade (para lógica de reativação/cancelamento). */
   latestRequestStatus: string | null;
+  /** Cache de datas vindas do Asaas por ID da assinatura. */
+  asaasDatesBySubscriptionId: Record<
+    string,
+    {
+      nextDueDate: string | null;
+      endDate: string | null;
+    }
+  >;
 }
 
 async function getAssinaturaPageData(
@@ -43,6 +51,13 @@ async function getAssinaturaPageData(
 
   const latest = history[0];
   const hasPaidPlan = profile.plan_key !== 'FREE';
+  const currentVigenteRequest = history.find(
+    (item) =>
+      !!item?.asaas_subscription_id?.trim() &&
+      (item.status === 'approved' ||
+        item.status === 'pending_cancellation' ||
+        item.status === 'pending_downgrade'),
+  );
 
   // Se o usuário está atualmente no plano FREE, o status mostrado deve ser "Gratuito",
   // independentemente do que o Asaas retornar para assinaturas antigas.
@@ -55,19 +70,44 @@ async function getAssinaturaPageData(
 
   const activeSubscriptionId =
     hasPaidPlan &&
-    latest?.asaas_subscription_id?.trim() &&
-    (latest.status === 'approved' ||
-      latest.status === 'pending_cancellation' ||
-      latest.status === 'pending_downgrade')
-      ? latest.asaas_subscription_id.trim()
+    currentVigenteRequest?.asaas_subscription_id?.trim()
+      ? currentVigenteRequest.asaas_subscription_id.trim()
       : null;
 
   const latestRequestStatus = latest?.status ?? null;
+
+  const uniqueSubscriptionIds = Array.from(
+    new Set(
+      history
+        .map((item) => item.asaas_subscription_id?.trim() ?? '')
+        .filter((id) => !!id),
+    ),
+  );
+
+  const asaasDatesBySubscriptionId: AssinaturaPageData['asaasDatesBySubscriptionId'] =
+    {};
 
   if (activeSubscriptionId) {
     const asaasStatus = await getAsaasSubscriptionStatus(activeSubscriptionId);
     if (asaasStatus.success && asaasStatus.status) {
       subscriptionStatus = asaasStatus.status;
+    }
+  }
+
+  if (uniqueSubscriptionIds.length) {
+    const dateResults = await Promise.all(
+      uniqueSubscriptionIds.map(async (subscriptionId) => {
+        const details = await getAsaasSubscription(subscriptionId);
+        return { subscriptionId, details };
+      }),
+    );
+
+    for (const { subscriptionId, details } of dateResults) {
+      if (!details.success) continue;
+      asaasDatesBySubscriptionId[subscriptionId] = {
+        nextDueDate: details.nextDueDate ?? null,
+        endDate: details.endDate ?? null,
+      };
     }
   }
 
@@ -84,7 +124,8 @@ async function getAssinaturaPageData(
     subscriptionStatus,
     expiresAt,
     activeSubscriptionId,
-     latestRequestStatus,
+    latestRequestStatus,
+    asaasDatesBySubscriptionId,
   };
 }
 

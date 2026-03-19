@@ -26,8 +26,11 @@ const makeSelectSingle = (data: unknown, error: unknown = null) => ({
   eq: vi.fn().mockReturnThis(),
   neq: vi.fn().mockReturnThis(),
   in: vi.fn().mockReturnThis(),
+  not: vi.fn().mockReturnThis(),
   order: vi.fn().mockReturnThis(),
   limit: vi.fn().mockReturnThis(),
+  gte: vi.fn().mockReturnThis(),
+  lte: vi.fn().mockReturnThis(),
   single: vi.fn().mockResolvedValue({ data, error }),
   maybeSingle: vi.fn().mockResolvedValue({ data, error }),
   // Suporte ao `await builder` direto (sem .single)
@@ -44,8 +47,11 @@ const makeSelectList = (data: unknown, error: unknown = null) => ({
   eq: vi.fn().mockReturnThis(),
   neq: vi.fn().mockReturnThis(),
   in: vi.fn().mockReturnThis(),
+  not: vi.fn().mockReturnThis(),
   order: vi.fn().mockReturnThis(),
   limit: vi.fn().mockReturnThis(),
+  gte: vi.fn().mockReturnThis(),
+  lte: vi.fn().mockReturnThis(),
   single: vi.fn().mockResolvedValue({ data, error }),
   maybeSingle: vi.fn().mockResolvedValue({ data, error }),
   then: vi
@@ -107,6 +113,7 @@ const {
   checkAndApplyExpiredSubscriptions,
   calculateProRataCredit,
   calculateUpgradePrice,
+  getUpgradePreview,
 } = await import('./asaas.service');
 
 import type { CurrentActiveRequestRow } from './asaas.service';
@@ -336,6 +343,188 @@ describe('calculateUpgradePrice — downgrade e direito de arrependimento', () =
   });
 });
 
+describe('calculateUpgradePrice — downgrade scheduling', () => {
+  beforeEach(() => {
+    vi.clearAllMocks();
+    vi.useFakeTimers();
+    vi.setSystemTime(new Date('2026-03-19T12:00:00.000Z'));
+  });
+
+  afterEach(() => {
+    vi.useRealTimers();
+  });
+
+  const baseCurrent = (overrides: Partial<CurrentActiveRequestRow> = {}) =>
+    ({
+      id: 'req-base',
+      amount_final: 120,
+      amount_discount: 0,
+      billing_period: 'monthly',
+      plan_key_requested: 'PRO',
+      processed_at: '2026-03-01T12:00:00.000Z',
+      notes: null,
+      ...overrides,
+    }) as CurrentActiveRequestRow;
+
+  it('✅ downgrade fora da janela (>7d): is_downgrade_withdrawal_window=false e amount_final=0', async () => {
+    const current = baseCurrent({ processed_at: '2026-02-01T12:00:00.000Z' });
+    const calc = await calculateUpgradePrice(
+      current,
+      'START',
+      'monthly',
+      'PIX',
+      'PHOTOGRAPHER',
+      'PRO',
+    );
+    expect(calc.type).toBe('downgrade');
+    expect(calc.is_downgrade_withdrawal_window).toBe(false);
+    expect(calc.amount_final).toBe(0);
+    expect(calc.downgrade_effective_at).toBe(calc.current_plan_expires_at);
+  });
+
+  it('✅ downgrade dentro da janela (≤7d): is_downgrade_withdrawal_window=true e amount_final=0', async () => {
+    const current = baseCurrent({ processed_at: '2026-03-16T12:00:00.000Z' });
+    const calc = await calculateUpgradePrice(
+      current,
+      'START',
+      'monthly',
+      'PIX',
+      'PHOTOGRAPHER',
+      'PRO',
+    );
+    expect(calc.type).toBe('downgrade');
+    expect(calc.is_downgrade_withdrawal_window).toBe(true);
+    expect(calc.amount_final).toBe(0);
+    expect(calc.residual_credit).toBeGreaterThan(0);
+  });
+
+  it('✅ downgrade dentro da janela com amount_final>0 quando crédito for menor que novo total', async () => {
+    const current = baseCurrent({
+      processed_at: '2026-03-18T12:00:00.000Z',
+      amount_final: 10,
+      plan_key_requested: 'PLUS',
+    });
+    const calc = await calculateUpgradePrice(
+      current,
+      'START',
+      'annual',
+      'CREDIT_CARD',
+      'PHOTOGRAPHER',
+      'PLUS',
+    );
+    expect(calc.type).toBe('downgrade');
+    expect(calc.is_downgrade_withdrawal_window).toBe(true);
+    expect(calc.amount_final).toBeGreaterThan(0);
+  });
+
+  it("✅ mesmo plano e período: type='current_plan'", async () => {
+    const current = baseCurrent({ plan_key_requested: 'PRO', billing_period: 'monthly' });
+    const calc = await calculateUpgradePrice(
+      current,
+      'PRO',
+      'monthly',
+      'PIX',
+      'PHOTOGRAPHER',
+      'PRO',
+    );
+    expect(calc.type).toBe('current_plan');
+  });
+});
+
+describe('getUpgradePreview — pending_change detection', () => {
+  beforeEach(() => {
+    vi.clearAllMocks();
+  });
+
+  const authOk = {
+    success: true,
+    userId: 'user-preview',
+    profile: { plan_key: 'PRO' },
+    email: 'preview@test.com',
+  };
+
+  it('✅ sem pending_change: has_scheduled_change ausente no retorno', async () => {
+    vi.mocked(getAuthenticatedUser).mockResolvedValue(authOk as never);
+    const supabase = {
+      from: vi
+        .fn()
+        .mockReturnValueOnce(makeSelectSingle(null)) // pending
+        .mockReturnValueOnce(makeSelectSingle(null)) // pending_change
+        .mockReturnValueOnce(makeSelectList([])), // approved list
+    } as unknown as Awaited<ReturnType<typeof createSupabaseServerClient>>;
+    vi.mocked(createSupabaseServerClient).mockResolvedValue(supabase);
+    const res = await getUpgradePreview('START', 'monthly', 'PIX');
+    expect(res.success).toBe(true);
+    expect(res.has_scheduled_change).toBeUndefined();
+  });
+
+  it('✅ com pending_change ativo: retorna has_scheduled_change e metadados', async () => {
+    vi.mocked(getAuthenticatedUser).mockResolvedValue(authOk as never);
+    const pendingChange = {
+      id: 'pc-1',
+      plan_key_requested: 'START',
+      processed_at: '2026-05-01T00:00:00.000Z',
+      billing_period: 'monthly',
+    };
+    const supabase = {
+      from: vi
+        .fn()
+        .mockReturnValueOnce(makeSelectSingle(null))
+        .mockReturnValueOnce(makeSelectSingle(pendingChange))
+        .mockReturnValueOnce(makeSelectList([])),
+    } as unknown as Awaited<ReturnType<typeof createSupabaseServerClient>>;
+    vi.mocked(createSupabaseServerClient).mockResolvedValue(supabase);
+    const res = await getUpgradePreview('START', 'monthly', 'PIX');
+    expect(res.has_scheduled_change).toBe(true);
+    expect(res.scheduled_change_plan_key).toBe('START');
+    expect(res.scheduled_change_effective_at).toBe('2026-05-01T00:00:00.000Z');
+  });
+
+  it('✅ com pending normal (<24h): retorna has_pending=true sem has_scheduled_change', async () => {
+    vi.mocked(getAuthenticatedUser).mockResolvedValue(authOk as never);
+    const supabase = {
+      from: vi.fn().mockReturnValueOnce(
+        makeSelectSingle({
+          id: 'p-1',
+          created_at: new Date().toISOString(),
+          plan_key_requested: 'PLUS',
+          billing_type: 'PIX',
+          billing_period: 'monthly',
+        }),
+      ),
+    } as unknown as Awaited<ReturnType<typeof createSupabaseServerClient>>;
+    vi.mocked(createSupabaseServerClient).mockResolvedValue(supabase);
+    const res = await getUpgradePreview('START', 'monthly', 'PIX');
+    expect(res.has_pending).toBe(true);
+    expect(res.has_scheduled_change).toBeUndefined();
+  });
+
+  it('✅ pending_change + pending simultâneos: has_pending tem prioridade', async () => {
+    vi.mocked(getAuthenticatedUser).mockResolvedValue(authOk as never);
+    const supabase = {
+      from: vi.fn().mockReturnValueOnce(
+        makeSelectSingle({
+          id: 'p-1',
+          created_at: new Date().toISOString(),
+          plan_key_requested: 'PLUS',
+          billing_type: 'PIX',
+          billing_period: 'monthly',
+        }),
+      ),
+    } as unknown as Awaited<ReturnType<typeof createSupabaseServerClient>>;
+    vi.mocked(createSupabaseServerClient).mockResolvedValue(supabase);
+    const res = await getUpgradePreview('START', 'monthly', 'PIX');
+    expect(res.has_pending).toBe(true);
+    expect(supabase.from).toHaveBeenCalledTimes(1);
+  });
+
+  it('❌ não autenticado: success=false', async () => {
+    vi.mocked(getAuthenticatedUser).mockResolvedValue({ success: false } as never);
+    const res = await getUpgradePreview('START', 'monthly', 'PIX');
+    expect(res.success).toBe(false);
+  });
+});
+
 // ═══════════════════════════════════════════════════════════════════════════════
 describe('handleSubscriptionCancellation', () => {
   const PROFILE_ID = 'profile-xyz';
@@ -394,11 +583,14 @@ describe('handleSubscriptionCancellation', () => {
       processed_at: daysAgo(3),
       billing_period: 'monthly',
       plan_key_requested: 'PRO',
+      amount_final: 120,
     };
 
     const fromFn = vi
       .fn()
       .mockReturnValueOnce(makeSelectSingle(activeRequest)) // buscar request ativo
+      .mockReturnValueOnce(makeSelectSingle({ metadata: {} })) // select metadata para crédito
+      .mockReturnValueOnce(makeUpdate()) // update credit_balance
       // performDowngradeToFree calls:
       .mockReturnValueOnce(makeSelectSingle({ plan_key: 'PRO' })) // select plan
       .mockReturnValueOnce(makeUpdate()) // update FREE
@@ -970,7 +1162,7 @@ describe('Crédito pro-rata para upgrade de plano (ano comercial 30/180/360)', (
 
     it('retorna 0 quando totalDays ou remainingDays é 0', async () => {
       expect(await calculateProRataCredit(100, 30, 0)).toBe(0);
-      expect(await calculateProRataCredit(100, 0, 10)).toBe(0);
+    expect(await calculateProRataCredit(100, 30, -1)).toBe(0);
     });
 
     it('não excede currentAmount quando remainingDays > totalDays', async () => {

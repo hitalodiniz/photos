@@ -15,8 +15,8 @@ import { PlanCard } from '../PlanCard';
 import { PLAN_ICONS } from '../constants';
 import { useUpgradeSheetContext } from '../UpgradeSheetContext';
 import LoadingSpinner from '../../LoadingSpinner';
-import { Sparkles } from 'lucide-react';
-import { profile } from 'console';
+import { Sparkles, CalendarClock, X } from 'lucide-react';
+import { cancelScheduledChange } from '@/core/services/scheduled-change.service';
 
 function formatDate(iso: string): string {
   return new Date(iso).toLocaleDateString('pt-BR', {
@@ -50,10 +50,10 @@ export function StepPlan() {
   const [downgradeExpiresAt, setDowngradeExpiresAt] = useState<string | null>(
     null,
   );
-  // Sinaliza que a API já respondeu ao menos uma vez (evita spinner para FREE)
   const [previewLoaded, setPreviewLoaded] = useState(false);
+  const [cancellingScheduled, setCancellingScheduled] = useState(false);
 
-  // Pré-busca vencimento do plano atual (usado no tooltip de planos inferiores)
+  // Pré-busca vencimento do plano atual (tooltip de planos inferiores)
   useEffect(() => {
     if (planKey === 'FREE' || profile?.is_trial) {
       setDowngradeExpiresAt(null);
@@ -78,7 +78,6 @@ export function StepPlan() {
   const previewTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
   useEffect(() => {
-    // Usuário FREE ou trial: sem crédito — não precisa chamar API aqui
     if (planKey === 'FREE' || selectedPlan === 'FREE' || profile?.is_trial) {
       setUpgradePreview(null);
       setPreviewLoaded(true);
@@ -97,17 +96,15 @@ export function StepPlan() {
 
     previewTimeoutRef.current = setTimeout(() => {
       previewTimeoutRef.current = null;
-      // Busca já com período/forma atuais para refletir o mesmo cálculo das etapas seguintes.
       getUpgradePreview(selectedPlan, billingPeriod, billingType, segment).then(
         (result) => {
           if (!cancelled) {
             setUpgradePreview(result);
             setPreviewLoaded(true);
             setHasPendingUpgrade(result.has_pending ?? false);
-            // Sempre propaga o cálculo bruto para o contexto, mesmo quando
-            // has_active_plan vier false (ex.: downgrades recentes).
             setUpgradeCalculation(result.calculation ?? null);
 
+            const calc = result.calculation;
             const selectedIdx = planOrder.indexOf(selectedPlan as PlanKey);
             const currentIdx = planOrder.indexOf(planKey as PlanKey);
             const isDowngradeByOrder =
@@ -118,12 +115,11 @@ export function StepPlan() {
             const isWithdrawalWindow =
               calc?.is_downgrade_withdrawal_window === true;
 
-            // Bloqueia downgrade apenas fora da janela de arrependimento.
+            // Fora da janela de arrependimento: NÃO bloqueia mais — permite agendar
             if (isDowngrade && isDowngradeByOrder && !isWithdrawalWindow) {
-              setDowngradeBlockedMessage(
-                `Mudança para planos inferiores permitida apenas após o vencimento do plano atual em ${formatDate(calc.current_plan_expires_at!)}.`,
-              );
-              setDowngradeExpiresAt(calc.current_plan_expires_at!);
+              // Limpa bloqueio — o fluxo de agendamento está disponível
+              setDowngradeBlockedMessage(null);
+              setDowngradeExpiresAt(calc!.current_plan_expires_at!);
             } else {
               setDowngradeBlockedMessage(null);
               if (calc?.current_plan_expires_at && isDowngradeByOrder)
@@ -152,7 +148,6 @@ export function StepPlan() {
     setDowngradeBlockedMessage,
   ]);
 
-  // Usa qualquer cálculo retornado pela API, mesmo quando has_active_plan for false.
   const calc = upgradePreview?.calculation;
 
   const selectedIdx = planOrder.indexOf(selectedPlan as PlanKey);
@@ -167,11 +162,12 @@ export function StepPlan() {
   const showDowngradeBanner =
     calc && calc.type === 'downgrade' && isDowngradeByOrder;
 
-  // Downgrade com direito de arrependimento: exibir crédito no topo
+  // Downgrade com direito de arrependimento
   const showDowngradeCreditAtTop =
     calc?.type === 'downgrade' &&
     calc.is_downgrade_withdrawal_window === true &&
     (calc.residual_credit ?? 0) > 0;
+
   const downgradeCreditValue = showDowngradeCreditAtTop
     ? (calc!.residual_credit ?? 0)
     : 0;
@@ -179,22 +175,142 @@ export function StepPlan() {
   const downgradeCreditDays = calc?.free_upgrade_days_extended ?? 0;
   const downgradeCreditMonths = calc?.free_upgrade_months_covered ?? 0;
 
-  // Há crédito do plano anterior (> 0) e não é downgrade
+  // Downgrade fora da janela: agendamento
+  const isScheduledDowngrade =
+    calc?.type === 'downgrade' &&
+    calc.is_downgrade_withdrawal_window === false &&
+    isDowngradeByOrder;
+
+  // Mudança já agendada (pending_change existente)
+  const hasScheduledChange = upgradePreview?.has_scheduled_change === true;
+  const scheduledChangePlan = upgradePreview?.scheduled_change_plan_key;
+  const scheduledChangeEffectiveAt =
+    upgradePreview?.scheduled_change_effective_at;
+
   const hasResidualCredit =
     calc &&
     calc.type !== 'current_plan' &&
     !isDowngradeByOrder &&
     (calc.residual_credit ?? 0) > 0;
+  const showZeroAmountResidualNotice =
+    calc?.type === 'upgrade' &&
+    calc.is_free_upgrade === true &&
+    (calc.amount_final ?? 0) === 0 &&
+    (calc.residual_credit ?? 0) > 0;
 
-  // Spinner só quando planKey !== FREE e ainda não temos resposta
   const showLoading =
     planKey !== 'FREE' &&
     !profile?.is_trial &&
     selectedPlan !== 'FREE' &&
     !previewLoaded;
 
+  const handleCancelScheduledChange = async () => {
+    setCancellingScheduled(true);
+    try {
+      const result = await cancelScheduledChange();
+      if (result.success) {
+        // Recarrega o preview para refletir o estado atualizado
+        setPreviewLoaded(false);
+        getUpgradePreview(
+          selectedPlan,
+          billingPeriod,
+          billingType,
+          segment,
+        ).then((r) => {
+          setUpgradePreview(r);
+          setPreviewLoaded(true);
+          setUpgradeCalculation(r.calculation ?? null);
+        });
+      } else {
+        console.error(
+          '[StepPlan] Falha ao cancelar mudança agendada:',
+          result.error,
+        );
+      }
+    } finally {
+      setCancellingScheduled(false);
+    }
+  };
+
   return (
     <SheetSection title="Escolha seu novo plano">
+      {/* ── Mudança já agendada (pending_change ativo) ── */}
+      {hasScheduledChange && scheduledChangePlan && (
+        <div className="rounded-lg border border-blue-200 bg-blue-50 px-3 py-3 text-[11px] text-blue-900 mb-3">
+          <div className="flex items-start justify-between gap-2">
+            <div className="flex items-start gap-2">
+              <CalendarClock
+                size={14}
+                className="text-blue-500 shrink-0 mt-0.5"
+              />
+              <div>
+                <p className="font-bold text-blue-800 uppercase text-[10px] tracking-wider mb-1">
+                  Mudança agendada
+                </p>
+                <p className="leading-snug text-blue-900">
+                  Seu plano será alterado para{' '}
+                  <strong>{scheduledChangePlan}</strong>
+                  {scheduledChangeEffectiveAt
+                    ? ` em ${formatDate(scheduledChangeEffectiveAt)}`
+                    : ''}
+                  , ao vencimento do plano atual.
+                </p>
+                <p className="mt-1 text-blue-700 leading-snug">
+                  Você ainda pode cancelar esta intenção e manter seu plano
+                  atual.
+                </p>
+              </div>
+            </div>
+            <button
+              type="button"
+              onClick={handleCancelScheduledChange}
+              disabled={cancellingScheduled}
+              className="shrink-0 flex items-center gap-1 px-2 py-1 rounded border border-blue-300 bg-white text-[10px] font-semibold text-blue-700 hover:bg-blue-100 transition-colors disabled:opacity-50"
+            >
+              {cancellingScheduled ? (
+                <span className="w-3 h-3 border-2 border-blue-400 border-t-transparent rounded-full animate-spin" />
+              ) : (
+                <X size={10} />
+              )}
+              Cancelar
+            </button>
+          </div>
+        </div>
+      )}
+      <div className="space-y-3">
+        {planOrder
+          .filter((p) => p !== 'FREE')
+          .map((p) => {
+            const info = PLANS_BY_SEGMENT[segment]?.[p];
+            const perms = PERMISSIONS_BY_PLAN[p];
+            const isCurr = p === (planKey as PlanKey);
+            const disabled = !profile?.is_trial && isCurr;
+            return (
+              <PlanCard
+                key={p}
+                planKey={p}
+                planName={info?.name ?? p}
+                price={info?.price ?? 0}
+                isCurrentPlan={isCurr}
+                isSelected={selectedPlan === p}
+                isSuggested={p === suggestedPlanKey}
+                disabled={disabled}
+                disabledTooltip={undefined}
+                onSelect={() => setSelectedPlan(p)}
+                perms={perms}
+                isExpanded={expandedPlanKey === p}
+                onToggleExpand={() =>
+                  setExpandedPlanKey((prev) => (prev === p ? null : p))
+                }
+                benefits={getPlanBenefits(perms, terms)}
+                planIcon={PLAN_ICONS[p]}
+                isTrial={profile?.is_trial ?? false}
+              />
+            );
+          })}
+      </div>
+
+      {/* ── Crédito de arrependimento (≤ 7 dias) ── */}
       {showDowngradeCreditAtTop && (
         <div className="rounded-lg border border-emerald-200 bg-emerald-50 px-3 py-3 text-[11px] text-emerald-900 mb-3">
           <p className="font-bold text-emerald-800 uppercase text-[10px] tracking-wider mb-1.5">
@@ -217,8 +333,28 @@ export function StepPlan() {
                 ). A próxima fatura será nessa data.
               </>
             ) : (
-              ' Na etapa Pagamento você verá a data do próximo vencimento. A próxima fatura será nessa data.'
+              ' Na etapa Pagamento você verá a data do próximo vencimento.'
             )}
+          </p>
+        </div>
+      )}
+
+      {/* ── Banner de agendamento fora da janela ── */}
+      {isScheduledDowngrade && !hasScheduledChange && showDowngradeBanner && (
+        <div className="rounded-lg border border-amber-200 bg-amber-50 px-3 py-2.5 text-[11px] text-amber-900 mb-3">
+          <p className="font-medium">
+            <span className="font-semibold text-petroleum">Agendamento:</span>{' '}
+            Seu plano atual segue até{' '}
+            <span className="font-semibold text-petroleum">
+              {formatDate(
+                calc!.downgrade_effective_at ??
+                  calc!.current_plan_expires_at ??
+                  '',
+              )}
+            </span>
+            . Ao confirmar, a mudança será agendada para essa data — você mantém
+            o acesso até lá e a nova cobrança começa automaticamente no novo
+            plano.
           </p>
         </div>
       )}
@@ -241,9 +377,21 @@ export function StepPlan() {
         </div>
       )}
 
-      {showDowngradeBanner && (
-        <div className="rounded-lg border border-amber-200 bg-amber-50 px-3 py-2.5 text-[11px] text-amber-900">
-          {calc!.is_downgrade_withdrawal_window ? (
+      {showZeroAmountResidualNotice && (
+        <div className="rounded-lg border border-blue-200 bg-blue-50 px-3 py-2.5 text-[11px] text-blue-900">
+          <p className="font-medium leading-snug">
+            Upgrade realizado com saldo residual. De acordo com o CDC, não se
+            aplica novo prazo de arrependimento para esta transação sem
+            desembolso. Cancelamento disponível como agendamento.
+          </p>
+        </div>
+      )}
+
+      {/* Banner downgrade com crédito (janela arrependimento) */}
+      {showDowngradeBanner &&
+        calc!.is_downgrade_withdrawal_window &&
+        !showDowngradeCreditAtTop && (
+          <div className="rounded-lg border border-amber-200 bg-amber-50 px-3 py-2.5 text-[11px] text-amber-900">
             <p className="font-medium">
               <span className="font-semibold text-petroleum">
                 Crédito de outro pagamento:
@@ -255,40 +403,19 @@ export function StepPlan() {
               em créditos e a mudança para o novo plano será aplicada
               imediatamente.
             </p>
-          ) : (
-            <p className="font-medium">
-              <span className="font-semibold text-petroleum">Agendamento:</span>{' '}
-              Seu plano atual segue até{' '}
-              <span className="font-semibold text-petroleum">
-                {formatDate(
-                  calc!.downgrade_effective_at ??
-                    calc!.current_plan_expires_at ??
-                    '',
-                )}
-              </span>
-              . Nesta data, o downgrade será aplicado e o excesso de galerias
-              será arquivado automaticamente.
-            </p>
-          )}
-        </div>
-      )}
+          </div>
+        )}
 
       {showLoading ? (
         <LoadingSpinner
-          message="Verificando crédito disponível…"
-          size="sm"
+          message="Buscando dados da sua assinatura atual"
+          size="xs"
           variant="light"
         />
       ) : (
-        /*
-         * Exibe apenas um hint discreto sobre a existência de crédito.
-         * O breakdown completo (valor do período · crédito · desconto PIX · total)
-         * aparece no StepBilling onde o usuário já escolheu período e forma —
-         * evitando mostrar valores provisórios que mudariam aqui.
-         */
         hasResidualCredit &&
         !profile?.is_trial && (
-          <div className="flex items-start gap-2 rounded-lg border border-emerald-200 bg-emerald-50 px-3 py-2.5 text-[11px] text-emerald-800">
+          <div className="flex items-start gap-2 rounded-lg border border-emerald-200 bg-emerald-50 px-3 text-[11px] text-emerald-800">
             <Sparkles size={13} className="text-emerald-500 shrink-0 mt-0.5" />
             <p className="font-medium leading-snug">
               Você tem crédito dos dias não usados do plano anterior.{' '}
@@ -300,44 +427,6 @@ export function StepPlan() {
           </div>
         )
       )}
-
-      <div className="space-y-3">
-        {planOrder
-          .filter((p) => p !== 'FREE')
-          .map((p) => {
-            const info = PLANS_BY_SEGMENT[segment]?.[p];
-            const perms = PERMISSIONS_BY_PLAN[p];
-            const isCurr = p === (planKey as PlanKey);
-            const isDowngrade =
-              planKey !== 'FREE' &&
-              !profile?.is_trial &&
-              planOrder.indexOf(p) < planOrder.indexOf(planKey as PlanKey);
-            const disabled = !profile?.is_trial && isCurr;
-            const downgradeTooltip = undefined;
-            return (
-              <PlanCard
-                key={p}
-                planKey={p}
-                planName={info?.name ?? p}
-                price={info?.price ?? 0}
-                isCurrentPlan={isCurr}
-                isSelected={selectedPlan === p}
-                isSuggested={p === suggestedPlanKey}
-                disabled={disabled}
-                disabledTooltip={downgradeTooltip}
-                onSelect={() => setSelectedPlan(p)}
-                perms={perms}
-                isExpanded={expandedPlanKey === p}
-                onToggleExpand={() =>
-                  setExpandedPlanKey((prev) => (prev === p ? null : p))
-                }
-                benefits={getPlanBenefits(perms, terms)}
-                planIcon={PLAN_ICONS[p]}
-                isTrial={profile?.is_trial ?? false}
-              />
-            );
-          })}
-      </div>
     </SheetSection>
   );
 }

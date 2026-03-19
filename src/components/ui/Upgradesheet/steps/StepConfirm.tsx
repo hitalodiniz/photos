@@ -23,6 +23,7 @@ export function StepConfirm() {
     personal,
     address,
     requestError,
+    setRequestError,
     segment,
     upgradeCalculation,
     setUpgradeCalculation,
@@ -35,6 +36,10 @@ export function StepConfirm() {
 
   useEffect(() => {
     if (requestError) showToast(requestError, 'error');
+
+    return () => {
+      setRequestError(null); // limpa ao sair da tela (voltar ou fechar)
+    };
   }, [requestError]);
 
   // Re-busca o cálculo com período e forma finais
@@ -86,6 +91,9 @@ export function StepConfirm() {
     upgradeCalculation?.type === 'downgrade' &&
     upgradeCalculation?.is_downgrade_withdrawal_window === true &&
     (upgradeCalculation?.residual_credit ?? 0) > 0;
+  const isScheduledDowngrade =
+    upgradeCalculation?.type === 'downgrade' &&
+    upgradeCalculation?.is_downgrade_withdrawal_window === false;
 
   const creditLabel = isDowngradeWithCredit
     ? 'Crédito de outro pagamento'
@@ -104,6 +112,41 @@ export function StepConfirm() {
       year: 'numeric',
     });
   }, [upgradeCalculation?.new_expiry_date]);
+
+  const scheduledCurrentPlanEndsAt = React.useMemo(() => {
+    if (!isScheduledDowngrade) return null;
+    const iso =
+      upgradeCalculation?.current_plan_expires_at ??
+      upgradeCalculation?.downgrade_effective_at;
+    if (!iso) return null;
+    return new Date(iso).toLocaleDateString('pt-BR', {
+      day: '2-digit',
+      month: 'long',
+      year: 'numeric',
+    });
+  }, [
+    isScheduledDowngrade,
+    upgradeCalculation?.current_plan_expires_at,
+    upgradeCalculation?.downgrade_effective_at,
+  ]);
+
+  const scheduledNewPlanStartsAt = React.useMemo(() => {
+    if (!isScheduledDowngrade) return null;
+    const iso =
+      upgradeCalculation?.downgrade_effective_at ??
+      upgradeCalculation?.current_plan_expires_at;
+    if (!iso) return null;
+    const startsAt = addDays(new Date(iso), 1);
+    return startsAt.toLocaleDateString('pt-BR', {
+      day: '2-digit',
+      month: 'long',
+      year: 'numeric',
+    });
+  }, [
+    isScheduledDowngrade,
+    upgradeCalculation?.downgrade_effective_at,
+    upgradeCalculation?.current_plan_expires_at,
+  ]);
 
   const periodLabel =
     billingPeriod === 'monthly'
@@ -128,7 +171,7 @@ export function StepConfirm() {
         : 'Boleto Bancário';
 
   const installmentsSuffix =
-    billingType === 'CREDIT_CARD' && installments > 1
+    billingType === 'CREDIT_CARD'
       ? ` - ${installments}x sem juros de ${formatBRL(amountFinal / installments)}`
       : '';
 
@@ -258,7 +301,7 @@ export function StepConfirm() {
             <div className="relative flex items-center justify-between pb-1.5 border-b border-slate-100">
               <div className="flex items-center gap-2">
                 <PaymentIcon size={14} className="text-petroleum/70" />
-                <p className="text-[11px] font-bold text-petroleum">
+                <p className="text-[12px] font-semibold text-petroleum">
                   {paymentMethodLabel}
                   {installmentsSuffix}
                 </p>
@@ -316,7 +359,7 @@ export function StepConfirm() {
             {nextBillingDateFormatted && (
               <div className="mt-2 p-2 rounded bg-slate-50 border border-slate-100 flex items-start gap-2 text-petroleum/80">
                 <PaymentIcon size={12} className="mt-0.5 shrink-0" />
-                <p className="text-[11px] leading-tight font-medium">
+                <p className="text-[12px] leading-tight font-medium">
                   {isZeroPayment
                     ? 'Nenhuma cobrança agora. Próxima fatura em '
                     : 'Próxima fatura em '}
@@ -332,12 +375,12 @@ export function StepConfirm() {
         </SheetSection>
       ) : (
         <SheetSection title="Resumo do pagamento">
-          <div className="p-3.5 rounded-luxury border border-slate-100 bg-white shadow-sm space-y-2">
+          <div className="p-3.5 rounded-luxury border border-slate-100 bg-white shadow-sm space-y-4">
             {/* ✅ FORMA DE PAGAMENTO */}
             <div className="relative flex items-center justify-between pb-1 border-b border-slate-100">
               <div className="flex items-center gap-2">
                 <PaymentIcon size={14} className="text-petroleum/70" />
-                <p className="text-[11px] font-bold text-petroleum">
+                <p className="text-[12px] font-semibold text-petroleum">
                   {paymentMethodLabel}
                   {installmentsSuffix}
                 </p>
@@ -362,7 +405,7 @@ export function StepConfirm() {
 
             {/* Próxima fatura */}
             {nextBillingDateFormatted && (
-              <p className="text-[10px] text-petroleum/60 font-medium border-t border-slate-100 pt-1">
+              <p className="text-[12px] text-petroleum/60 font-medium border-t border-slate-100 pt-1">
                 Próxima fatura em{' '}
                 <strong className="text-petroleum/80">
                   {nextBillingDateFormatted}
@@ -373,6 +416,26 @@ export function StepConfirm() {
           </div>
         </SheetSection>
       )}
+
+      {isScheduledDowngrade &&
+        scheduledCurrentPlanEndsAt &&
+        scheduledNewPlanStartsAt && (
+          <SheetSection>
+            <div className="p-2 rounded bg-amber-50 border border-amber-200 text-amber-900">
+              <p className="text-[12px] leading-snug font-medium">
+                Downgrade agendado: seu plano atual permanece ativo até{' '}
+                <strong>{scheduledCurrentPlanEndsAt}</strong>.
+              </p>
+              <p className="text-[12px] leading-snug font-medium mt-0.5">
+                A nova assinatura inicia em{' '}
+                <strong>{scheduledNewPlanStartsAt}</strong> e{' '}
+                {billingType === 'CREDIT_CARD'
+                  ? 'a cobrança recorrente no cartão começa nessa data.'
+                  : 'o primeiro vencimento será nessa data.'}
+              </p>
+            </div>
+          </SheetSection>
+        )}
 
       {ToastElement}
     </>

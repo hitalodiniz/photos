@@ -62,14 +62,14 @@ export function RelatorioTable<T extends { id: string | number }>({
       <tr
         key={item.id}
         onClick={() => onRowClick?.(item)}
-        className={`group transition-all duration-150 ${
-          onRowClick ? 'cursor-pointer hover:bg-slate-50/50' : ''
+        className={`group transition-all duration-150 odd:bg-white even:bg-slate-50/50 ${
+          onRowClick ? 'cursor-pointer hover:bg-slate-100/70' : ''
         }`}
       >
         {columns.map((col, idx) => (
           <td
             key={idx}
-            className={`px-6 py-3 border-b border-slate-50 text-[11px] text-slate-600 ${col.width || ''} ${
+            className={`px-3 py-2 border-b border-slate-100 text-[11px] text-slate-600 ${col.width || ''} ${
               col.align === 'right' ? 'text-right' : col.align === 'center' ? 'text-center' : ''
             }`}
           >
@@ -79,7 +79,7 @@ export function RelatorioTable<T extends { id: string | number }>({
           </td>
         ))}
         {onRowClick && (
-          <td className="px-6 py-3 border-b border-slate-50 w-12 text-right">
+          <td className="px-3 py-2 border-b border-slate-100 w-10 text-right">
             <ChevronRight
               size={14}
               className="text-slate-200 group-hover:text-gold transition-colors ml-auto"
@@ -93,13 +93,13 @@ export function RelatorioTable<T extends { id: string | number }>({
   return (
     <div className="w-full bg-white border border-slate-200 rounded-luxury overflow-hidden shadow-sm flex flex-col">
       <div className="overflow-x-auto">
-        <table className="w-full text-left border-collapse table-fixed min-w-[800px]">
+        <table className="w-full text-left border-collapse table-auto min-w-[820px]">
           <thead>
-            <tr className="bg-petroleum/90 text-[9px] uppercase tracking-[0.2em] text-white font-semibold">
+            <tr className="bg-petroleum/90 text-[8px] uppercase tracking-[0.12em] text-white font-semibold">
               {columns.map((col, idx) => (
                 <th
                   key={idx}
-                  className={`px-6 py-4 ${col.width || ''} ${
+                  className={`px-3 py-2.5 leading-tight whitespace-normal break-words align-middle ${col.width || ''} ${
                     onSort && col.sortKey
                       ? 'cursor-pointer hover:bg-petroleum-light'
                       : ''
@@ -107,7 +107,7 @@ export function RelatorioTable<T extends { id: string | number }>({
                   onClick={() => col.sortKey && onSort?.(col.sortKey)}
                 >
                   <div
-                    className={`flex items-center gap-2 ${col.align === 'right' ? 'justify-end' : ''}`}
+                    className={`flex items-center gap-1.5 ${col.align === 'right' ? 'justify-end' : ''}`}
                   >
                     {col.icon && <col.icon size={12} />}
                     {col.header}

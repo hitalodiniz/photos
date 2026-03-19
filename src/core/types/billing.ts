@@ -29,8 +29,10 @@ export type UpgradeRequestStatus =
   | 'approved'
   | 'pending_cancellation'
   | 'pending_downgrade'
+  | 'pending_change' // ← NOVO: intenção de downgrade agendada fora dos 7 dias
   | 'rejected'
   | 'cancelled';
+
 export type BillingType = 'PIX' | 'BOLETO' | 'CREDIT_CARD';
 
 export interface UpgradeRequest {
@@ -97,6 +99,8 @@ export interface UpgradeRequestPayload {
   state: string;
   /** Obrigatório quando billing_type === 'CREDIT_CARD' */
   credit_card?: CreditCardPayload;
+  /** Quando true, reutiliza cartão já cadastrado no Asaas (não envia novo cartão). */
+  use_saved_card?: boolean;
 }
 
 // ─── Retorno da server action para o UpgradeSheet ────────────────────────────
@@ -116,47 +120,62 @@ export interface UpgradeRequestResult {
   /** Aviso quando o pagamento anterior já estava RECEIVED/CONFIRMED (valor será crédito no novo plano). */
   warning?: string;
   error?: string;
+  /**
+   * NOVO: quando true, o downgrade foi agendado (fora da janela de arrependimento).
+   * O usuário mantém o plano atual até current_plan_expires_at.
+   */
+  is_scheduled_change?: boolean;
+  /** Data em que o plano atual expira e a mudança será aplicada. */
+  scheduled_change_effective_at?: string;
 }
 
 // ─── Cálculo de upgrade/downgrade (pro-rata e preview) ──────────────────────
 export interface UpgradePriceCalculation {
   type: 'upgrade' | 'downgrade' | 'current_plan';
-  /** Preço cheio do novo plano (amount_original). */
+  /** Preço base do novo plano (sem descontos). */
   amount_original: number;
-  /** Crédito pro-rata + desconto PIX (amount_discount). */
+  /** Crédito pro-rata + desconto PIX. */
   amount_discount: number;
-  /** Valor líquido a pagar (amount_final). Zero em downgrade ou quando crédito cobre o plano inteiro. */
+  /** Valor líquido a pagar. Zero em downgrade ou upgrade gratuito. */
   amount_final: number;
   /** Crédito pelos dias restantes do plano atual. */
   residual_credit: number;
   /** Desconto PIX aplicado sobre a diferença (apenas upgrade). */
   pix_discount_amount?: number;
-  /** Data em que o plano atual expira (para exibição e downgrade). */
+  /** Data em que o plano atual expira. */
   current_plan_expires_at: string;
-  /** Para downgrade: data em que a mudança será efetivada (= current_plan_expires_at ou imediata na janela de arrependimento). */
+  /** Para downgrade: data em que a mudança será efetivada. */
   downgrade_effective_at?: string;
-  /** Upgrade gratuito: o saldo residual cobre o valor total do novo plano. */
+  /** Upgrade gratuito: saldo residual cobre o valor total do novo plano. */
   is_free_upgrade?: boolean;
-  /** Nova data de expiração calculada pelo saldo residual (upgrade gratuito) ou ciclo normal. */
+  /** Nova data de expiração calculada (upgrade gratuito ou ciclo normal). */
   new_expiry_date?: string;
-  /** Quantidade de mensalidades cobertas pelo saldo (apenas upgrade gratuito). */
+  /** Mensalidades cobertas pelo saldo (upgrade gratuito). */
   free_upgrade_months_covered?: number;
-  /** Dias de acesso cobertos pelo saldo (para exibir "X semestres" ou "X anos" conforme o período). */
+  /** Dias cobertos pelo saldo. */
   free_upgrade_days_extended?: number;
-  /** Downgrade solicitado dentro da janela de arrependimento (≤ 7 dias da compra). */
+  /** Downgrade dentro da janela de arrependimento (≤ 7 dias). */
   is_downgrade_withdrawal_window?: boolean;
-  /** Dias completos desde a data de processamento da compra até agora (para UI e auditoria). */
+  /** Dias desde a compra. */
   days_since_purchase?: number;
+  /** Forma de pagamento vigente da assinatura atual (quando aplicável). */
+  current_billing_type?: BillingType | null;
 }
 
 export interface UpgradePreviewResult {
   success: boolean;
-  /** Se há plano ativo (approved) para calcular pro-rata/downgrade. */
   has_active_plan: boolean;
-  /** Indica que o plano e período selecionados são iguais ao atual (bloquear nova assinatura). */
   is_current_plan?: boolean;
-  /** Há solicitação pendente (pagamento em processamento); bloquear nova assinatura até confirmação ou cancelamento. */
   has_pending?: boolean;
+  /**
+   * NOVO: usuário já tem um pending_change ativo para este plano.
+   * Usado para exibir banner "Mudança já agendada para X".
+   */
+  has_scheduled_change?: boolean;
+  /** ISO string do vencimento atual quando há pending_change. */
+  scheduled_change_effective_at?: string;
+  /** Plano agendado quando há pending_change. */
+  scheduled_change_plan_key?: string;
   calculation?: UpgradePriceCalculation;
   error?: string;
 }
@@ -164,13 +183,9 @@ export interface UpgradePreviewResult {
 // ─── Retorno de handleSubscriptionCancellation ───────────────────────────────
 export interface CancellationResult {
   success: boolean;
-  /** Tipo de cancelamento aplicado. */
   type?: 'refund_immediate' | 'scheduled_cancellation';
-  /** ISO string da data em que o acesso expira (apenas para 'scheduled_cancellation'). */
   access_ends_at?: string;
-  /** True se o FREE tiver limites menores que o uso atual. */
   needs_adjustment?: boolean;
-  /** Galerias que excedem o limite do plano FREE (id + título). */
   excess_galleries?: Array<{ id: string; title: string }>;
   error?: string;
 }
@@ -213,12 +228,10 @@ export interface AsaasPayment {
   pixQrCodeUrl?: string;
 }
 
-// ─── Resumo do método de pagamento atual ──────────────────────────────────────
+// ─── Resumo do método de pagamento atual ─────────────────────────────────────
 export interface PaymentMethodSummary {
   billing_type: BillingType | null;
-  /** Últimos 4 dígitos do cartão (quando billing_type === 'CREDIT_CARD'). */
   card_last4?: string;
-  /** Bandeira do cartão, quando disponível (ex.: VISA, MASTERCARD). */
   card_brand?: string;
 }
 

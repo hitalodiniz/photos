@@ -97,24 +97,130 @@ function billingPeriodToMonths(period: string | null | undefined): number {
   return 1;
 }
 
-function parseDueDateFromNotes(
-  notes: string | null | undefined,
-): string | null {
+function parseDueDateFromNotes(notes: string | null | undefined): Date | null {
   if (!notes?.trim()) return null;
   const match = notes.match(/Nova data de vencimento:\s*([^\s.]+)/i);
   if (!match?.[1]) return null;
   const date = new Date(match[1].trim());
   if (Number.isNaN(date.getTime())) return null;
+  return date;
+}
+
+function parseEndDateFromNotes(notes: string | null | undefined): Date | null {
+  if (!notes?.trim()) return null;
+  const patterns = [
+    /encerrad[oa]\s+em:\s*([^\s.]+)/i,
+    /acesso\s+até\s*([^\s.]+)/i,
+    /expirou\s+em\s*([^\s.]+)/i,
+  ];
+  for (const pattern of patterns) {
+    const match = notes.match(pattern);
+    if (!match?.[1]) continue;
+    const date = new Date(match[1].trim());
+    if (!Number.isNaN(date.getTime())) return date;
+  }
+  return null;
+}
+
+function parseNextDueDateFromNotes(
+  notes: string | null | undefined,
+): Date | null {
+  if (!notes?.trim()) return null;
+  const match = notes.match(/nextDueDate\s+([^\s.]+)/i);
+  if (!match?.[1]) return null;
+  const date = new Date(match[1].trim());
+  if (Number.isNaN(date.getTime())) return null;
+  return date;
+}
+
+function formatAsaasYmdDate(value: string | null | undefined): string | null {
+  if (!value || !/^\d{4}-\d{2}-\d{2}$/.test(value)) return null;
+  const date = new Date(`${value}T00:00:00Z`);
+  if (Number.isNaN(date.getTime())) return null;
   return date.toLocaleDateString('pt-BR', { timeZone: 'UTC' });
 }
 
-function getRequestExpiresAt(item: UpgradeRequest): string | null {
+function calculateNextBillingDate(item: UpgradeRequest): Date | null {
   const fromNotes = parseDueDateFromNotes(item.notes);
   if (fromNotes) return fromNotes;
+
   if (!item.processed_at) return null;
+
   const d = new Date(item.processed_at);
   d.setMonth(d.getMonth() + billingPeriodToMonths(item.billing_period));
-  return d.toLocaleDateString('pt-BR', { timeZone: 'UTC' });
+  return d;
+}
+
+function getRequestExpiresAt(
+  item: UpgradeRequest,
+  opts?: { preferEndDate?: boolean },
+): string | null {
+  if (opts?.preferEndDate) {
+    const endDate = parseEndDateFromNotes(item.notes);
+    if (endDate)
+      return endDate.toLocaleDateString('pt-BR', { timeZone: 'UTC' });
+  }
+  const nextBillingDate = calculateNextBillingDate(item);
+  if (!nextBillingDate) return null;
+  return nextBillingDate.toLocaleDateString('pt-BR', { timeZone: 'UTC' });
+}
+
+function getBillingDateMeta(
+  item: UpgradeRequest,
+  opts?: {
+    isCurrentVigenteWithScheduledChange?: boolean;
+    isClosedCycle?: boolean;
+    asaasNextDueDate?: string | null;
+    asaasEndDate?: string | null;
+  },
+): {
+  label: 'Próxima cobrança' | 'Vencimento';
+  date: string | null;
+} {
+  if (item.status === 'pending_change') {
+    // Fonte da verdade: Asaas nextDueDate da assinatura agendada.
+    const fromAsaas = formatAsaasYmdDate(opts?.asaasNextDueDate);
+    if (fromAsaas) return { label: 'Próxima cobrança', date: fromAsaas };
+
+    // Fallbacks de segurança em caso de indisponibilidade do Asaas.
+    const fromNotes = parseNextDueDateFromNotes(item.notes);
+    const date = fromNotes
+      ? fromNotes.toLocaleDateString('pt-BR', { timeZone: 'UTC' })
+      : getPlanStartAt(item);
+    return { label: 'Próxima cobrança', date };
+  }
+
+  if (opts?.isCurrentVigenteWithScheduledChange) {
+    return {
+      label: 'Vencimento',
+      date:
+        formatAsaasYmdDate(opts?.asaasEndDate) ??
+        formatAsaasYmdDate(opts?.asaasNextDueDate) ??
+        getRequestExpiresAt(item),
+    };
+  }
+  if (item.status === 'approved') {
+    return {
+      label: 'Vencimento',
+      date:
+        (opts?.isClosedCycle ? formatAsaasYmdDate(opts?.asaasEndDate) : null) ??
+        getRequestExpiresAt(item, { preferEndDate: opts?.isClosedCycle }),
+    };
+  }
+  const isOpenPayment =
+    item.status === 'pending' || item.status === 'processing';
+  return {
+    label: isOpenPayment ? 'Vencimento' : 'Próxima cobrança',
+    date: getRequestExpiresAt(item),
+  };
+}
+
+function getPlanStartAt(item: UpgradeRequest): string | null {
+  const source = item.processed_at ?? item.created_at;
+  if (!source) return null;
+  const date = new Date(source);
+  if (Number.isNaN(date.getTime())) return null;
+  return date.toLocaleDateString('pt-BR', { timeZone: 'UTC' });
 }
 
 function formatNotesDisplay(notes: string | null | undefined): string {
@@ -145,7 +251,8 @@ function formatNotesDisplay(notes: string | null | undefined): string {
     }
     return 'Ver detalhes';
   }
-  if (notes.includes('Cancelamento solicitado')) return 'Cancelamento solicitado';
+  if (notes.includes('Cancelamento solicitado'))
+    return 'Cancelamento solicitado';
 
   return 'Detalhes da operação';
 }
@@ -169,6 +276,7 @@ export default function AssinaturaContent({
     expiresAt: expiresAtFromData,
     activeSubscriptionId,
     latestRequestStatus,
+    asaasDatesBySubscriptionId,
   } = data;
 
   const planKey = (profile.plan_key || 'FREE') as PlanKey;
@@ -188,6 +296,7 @@ export default function AssinaturaContent({
         : null;
 
   const hasRecurringSubscription = !!activeSubscriptionId;
+  const hasScheduledChange = latestRequestStatus === 'pending_change';
   const hasNextPlan = !!getNextPlanKey(planKey);
   const hasPendingCancellation =
     latestRequestStatus === 'pending_cancellation' ||
@@ -201,6 +310,11 @@ export default function AssinaturaContent({
   const latestApprovedRequest = history.find((r) => r.status === 'approved');
   const cancelProcessedAt = latestApprovedRequest?.processed_at ?? null;
   const latestApprovedId = latestApprovedRequest?.id ?? null;
+  const vigenteSubscriptionStatus =
+    hasScheduledChange && latestApprovedRequest
+      ? ((latestApprovedRequest.asaas_raw_status ??
+          latestApprovedRequest.status) as string)
+      : subscriptionStatus;
 
   // ─── Estado dos modais ────────────────────────────────────────────────────
 
@@ -213,9 +327,8 @@ export default function AssinaturaContent({
   const [upgradeSheetInitialPlan, setUpgradeSheetInitialPlan] = useState<
     PlanKey | undefined
   >();
-  const [notesSheetRequest, setNotesSheetRequest] = useState<UpgradeRequest | null>(
-    null,
-  );
+  const [notesSheetRequest, setNotesSheetRequest] =
+    useState<UpgradeRequest | null>(null);
 
   const { showToast, ToastElement } = useToast();
 
@@ -298,7 +411,7 @@ export default function AssinaturaContent({
     width?: string;
   }> = [
     {
-      header: 'Data',
+      header: 'Data Assinatura',
       accessor: (item) => (
         <span className="text-[12px] text-slate-700 whitespace-nowrap">
           {new Date(item.created_at).toLocaleDateString('pt-BR', {
@@ -307,6 +420,16 @@ export default function AssinaturaContent({
         </span>
       ),
       icon: Calendar,
+    },
+    {
+      header: 'Início do plano',
+      accessor: (item) => (
+        <span className="text-[12px] text-slate-700 whitespace-nowrap">
+          {getPlanStartAt(item) ?? '—'}
+        </span>
+      ),
+      icon: Calendar,
+      width: 'w-28',
     },
     {
       header: 'Plano',
@@ -373,6 +496,14 @@ export default function AssinaturaContent({
             </span>
           );
         }
+        if (item.status === 'pending_change') {
+          return (
+            <span className="text-[11px] font-medium text-slate-600">
+              Alteração de plano agendada
+            </span>
+          );
+        }
+
         return (
           <span className="text-[11px] font-medium">
             {statusLabel(item.status)}
@@ -381,21 +512,43 @@ export default function AssinaturaContent({
       },
     },
     {
-      header: 'Vencimento',
-      accessor: (item) => (
-        <span className="text-[11px] text-slate-600 whitespace-nowrap">
-          {getRequestExpiresAt(item) ?? '—'}
-        </span>
-      ),
+      header: 'Próx. cobrança / vencimento',
+      accessor: (item) => {
+        const isCurrentVigenteWithScheduledChange =
+          hasScheduledChange &&
+          item.status === 'approved' &&
+          item.id === latestApprovedId;
+        const isClosedCycle =
+          item.status === 'approved' && item.id !== latestApprovedId;
+        const asaasSubscriptionId = item.asaas_subscription_id?.trim() ?? '';
+        const asaasDates = asaasSubscriptionId
+          ? asaasDatesBySubscriptionId[asaasSubscriptionId]
+          : undefined;
+        const { label, date } = getBillingDateMeta(item, {
+          isCurrentVigenteWithScheduledChange,
+          isClosedCycle,
+          asaasNextDueDate: asaasDates?.nextDueDate ?? null,
+          asaasEndDate: asaasDates?.endDate ?? null,
+        });
+        return (
+          <div className="flex flex-col leading-tight">
+            <span className="text-[9px] uppercase tracking-wide text-slate-500">
+              {label}
+            </span>
+            <span className="text-[11px] text-slate-700 whitespace-nowrap">
+              {date ?? '—'}
+            </span>
+          </div>
+        );
+      },
       icon: Clock,
-      width: 'w-28',
+      width: 'w-36',
     },
     {
       header: 'Observações',
       accessor: (item) => {
         const text = formatNotesDisplay(item.notes);
-        if (!text)
-          return <span className="text-slate-600 text-[11px]">—</span>;
+        if (!text) return <span className="text-slate-600 text-[11px]">—</span>;
 
         return (
           <div className="flex flex-col items-start">
@@ -426,15 +579,20 @@ export default function AssinaturaContent({
           item.status === 'cancelled' ||
           item.status === 'pending_cancellation' ||
           item.status === 'rejected';
-        const url = isPaidOrCancelled
-          ? `/api/dashboard/payment-invoice-url?requestId=${encodeURIComponent(item.id)}`
-          : item.payment_url?.startsWith('http')
+        const hasOpenPayment =
+          item.status === 'pending' || item.status === 'processing';
+        const invoiceUrl = `/api/dashboard/payment-invoice-url?requestId=${encodeURIComponent(item.id)}`;
+        const url = hasOpenPayment
+          ? item.payment_url?.startsWith('http')
             ? item.payment_url
+            : invoiceUrl
+          : isPaidOrCancelled
+            ? invoiceUrl
             : null;
         if (!url) return <span className="text-slate-600 text-[11px]">—</span>;
         const actionLabel =
           item.status === 'pending'
-            ? 'Abrir pagamento'
+            ? 'Pagar agora'
             : item.status === 'approved'
               ? 'Comprovante de pagamento'
               : isPaidOrCancelled
@@ -508,6 +666,25 @@ export default function AssinaturaContent({
   );
 
   // ─── Render ───────────────────────────────────────────────────────────────
+  const pendingChangeRequest = history.find(
+    (r) => r.status === 'pending_change',
+  );
+  const nextCycleAmount =
+    pendingChangeRequest?.amount_final ?? lastChargeAmount ?? 0;
+  const nextCycleDate = pendingChangeRequest
+    ? (getPlanStartAt(pendingChangeRequest) ?? '—')
+    : (expiresAt ?? '—');
+  const latestChargedVigenteRequest = history.find(
+    (r) => r.status === 'approved' && (r.amount_final ?? 0) > 0,
+  );
+  const latestVigenteChargeAmount = latestChargedVigenteRequest?.amount_final;
+  const currentBillingType = latestChargedVigenteRequest?.billing_type ?? null;
+  const billingCycleLabel =
+    currentBillingType == null
+      ? 'Sem cobrança registrada'
+      : currentBillingType === 'CREDIT_CARD'
+        ? 'Cobrança Automática no Cartão de Crédito'
+        : 'Pagamento Manual via PIX ou Boleto';
 
   return (
     <>
@@ -536,8 +713,8 @@ export default function AssinaturaContent({
                 <div className="flex items-center gap-2">
                   <Clock size={14} className="text-gold shrink-0" />
                   <div>
-                    <p className="text-[9px] uppercase font-semibold text-slate-600 leading-tight mb-0.5">
-                      {hasRecurringSubscription
+                    <p className="text-[9px] uppercase font-semibold text-slate-600  mb-0.5">
+                      {hasRecurringSubscription && !hasScheduledChange
                         ? 'Próxima cobrança'
                         : 'Expira em'}
                     </p>
@@ -551,7 +728,7 @@ export default function AssinaturaContent({
                 <BadgeCheck
                   size={14}
                   className={
-                    subscriptionStatus === 'OVERDUE'
+                    vigenteSubscriptionStatus === 'OVERDUE'
                       ? 'text-red-500'
                       : 'text-gold'
                   }
@@ -562,12 +739,12 @@ export default function AssinaturaContent({
                   </p>
                   <p
                     className={`text-[10px] font-semibold ${
-                      subscriptionStatus === 'OVERDUE'
+                      vigenteSubscriptionStatus === 'OVERDUE'
                         ? 'text-red-600 animate-pulse'
                         : 'text-petroleum'
                     }`}
                   >
-                    {statusLabel(subscriptionStatus)}
+                    {statusLabel(vigenteSubscriptionStatus)}
                   </p>
                 </div>
               </div>
@@ -579,14 +756,48 @@ export default function AssinaturaContent({
                       Última cobrança
                     </p>
                     <p className="text-[10px] font-semibold text-petroleum">
-                      {lastChargeAmount != null
-                        ? formatBRL(lastChargeAmount)
+                      {latestVigenteChargeAmount != null
+                        ? formatBRL(latestVigenteChargeAmount)
                         : '—'}
                     </p>
                   </div>
                 </div>
               )}
             </div>
+
+            {/* ─── Card de Próximo Ciclo / Cobrança Futura ─── */}
+            {planKey !== 'FREE' && (
+              <div className="p-3 bg-white rounded-luxury border border-slate-200 shadow-sm space-y-2 animate-in fade-in slide-in-from-left-2">
+                <div className="flex items-center justify-between">
+                  <span className="text-[9px] font-semibold uppercase tracking-widest text-slate-500">
+                    Próximo Ciclo
+                  </span>
+                  <BadgeCheck size={12} className="text-gold" />
+                </div>
+
+                <div className="flex flex-col">
+                  <p className="text-[14px] font-semibold text-petroleum">
+                    {formatBRL(nextCycleAmount)}
+                  </p>
+                  <p className="text-[10px] text-slate-600 leading-tight">
+                    {hasScheduledChange
+                      ? 'Nova assinatura e cobrança em'
+                      : 'Próxima cobrança em'}
+                    :
+                    <span className="text-petroleum font-medium ml-1">
+                      {nextCycleDate}
+                    </span>
+                  </p>
+                </div>
+
+                <div className="pt-2 border-t border-slate-100 flex items-center gap-2">
+                  <CreditCard size={12} className="text-gold" />
+                  <p className="text-[9px] text-slate-500 uppercase font-semibold">
+                    {billingCycleLabel}
+                  </p>
+                </div>
+              </div>
+            )}
 
             {planKey !== 'FREE' && activeSubscriptionId && (
               <button

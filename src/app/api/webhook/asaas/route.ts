@@ -235,43 +235,42 @@ export async function POST(request: NextRequest) {
               return NextResponse.json({ received: true }, { status: 200 });
             }
 
+            // 1. Atualiza o status do pagamento via RPC (apenas uma vez)
             await handlePaymentRpc('CONFIRMED');
-            // Log de sucesso ao ativar plano
-            const { data: req } = await supabase
+
+            // 2. Busca os dados da requisição de upgrade vinculada a este pagamento
+            // Buscamos sem o filtro de 'approved' para garantir que pegamos a req.
+            // Se o RPC funcionou, ela já deve estar aprovada ou em processamento.
+            const { data: upgradeReq } = await supabase
               .from('tb_upgrade_requests')
-              .select('profile_id, plan_key_requested')
+              .select('profile_id, plan_key_requested, status')
               .eq('asaas_payment_id', paymentId)
               .maybeSingle();
-            if (req?.profile_id && req?.plan_key_requested) {
+
+            // 3. Se temos os dados necessários, executamos as ações pós-pagamento
+            if (upgradeReq?.profile_id && upgradeReq?.plan_key_requested) {
               console.log(
-                `[Webhook Asaas] Plano ativado com sucesso (activate_plan_from_payment): plano ${req.plan_key_requested}, userId ${req.profile_id}`,
+                `[Webhook Asaas] Ativando plano ${upgradeReq.plan_key_requested} para userId ${upgradeReq.profile_id}`,
               );
+
+              // Reativa galerias que foram arquivadas no downgrade (downgrade -> upgrade)
               await reactivateAutoArchivedGalleries(
-                req.profile_id,
-                req.plan_key_requested as PlanKey,
+                upgradeReq.profile_id,
+                upgradeReq.plan_key_requested as PlanKey,
                 supabase,
               );
-              await revalidateUserCache(req.profile_id).catch((err) =>
-                console.warn('[Webhook Asaas] revalidateUserCache:', err),
+
+              // Limpa o cache para o usuário ver o novo plano e as galerias voltarem ao ar
+              // Usamos o catch para o webhook não travar se a revalidação falhar
+              await revalidateUserCache(upgradeReq.profile_id).catch((err) =>
+                console.warn(
+                  '[Webhook Asaas] Falha na revalidação de cache:',
+                  err,
+                ),
               );
-            }
-
-            await handlePaymentRpc('CONFIRMED');
-
-            const { data: req } = await supabase
-              .from('tb_upgrade_requests')
-              .select('profile_id, plan_key_requested')
-              .eq('asaas_payment_id', paymentId)
-              .maybeSingle();
-
-            if (req?.profile_id && req?.plan_key_requested) {
-              await reactivateAutoArchivedGalleries(
-                req.profile_id,
-                req.plan_key_requested as PlanKey,
-                supabase,
-              );
-              await revalidateUserCache(req.profile_id).catch((err) =>
-                console.warn('[Webhook Asaas] revalidateUserCache:', err),
+            } else {
+              console.warn(
+                `[Webhook Asaas] Nenhuma requisição de upgrade encontrada para o pagamento ${paymentId}`,
               );
             }
 

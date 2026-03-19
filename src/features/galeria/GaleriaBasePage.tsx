@@ -2,7 +2,7 @@ import React from 'react';
 import { notFound, redirect } from 'next/navigation';
 import { cookies } from 'next/headers';
 import Link from 'next/link';
-import { Lock } from 'lucide-react';
+import { Archive, Calendar, Home, Lock, MessageCircle } from 'lucide-react';
 import {
   fetchGalleryBySlug,
   formatGalleryData,
@@ -25,6 +25,9 @@ import { InternalTrafficSync } from '@/hooks/useSyncInternalTraffic';
 import { checkSubdomainPermission } from '@/core/services/profile.service';
 
 import { getAuthenticatedUser } from '@/core/services/auth-context.service';
+import { Footer } from '@/components/layout';
+import EditorialView from '@/components/layout/EditorialView';
+import EditorialCard from '@/components/ui/EditorialCard';
 
 const MAIN_DOMAIN = (
   process.env.NEXT_PUBLIC_MAIN_DOMAIN || 'localhost:3000'
@@ -105,103 +108,190 @@ export default async function GaleriaBasePage({
     galeriaData.photographer = photographerProfile;
   }
 
-  if (isExpired && !isOwner) {
+  if (galeriaData.is_archived || galeriaData.auto_archived) {
     return (
-      <div className="w-full min-h-[80vh] flex flex-col items-center justify-center px-6 py-20 text-center animate-in fade-in zoom-in-95 duration-1000">
-        <div className="w-12 h-12 rounded-full bg-slate-50 flex items-center justify-center border border-slate-100 mb-8 shadow-sm">
-          <Lock size={20} className="text-gold" />
-        </div>
-
-        <div className="max-w-2xl space-y-6">
-          <h2 className="text-[10px] uppercase tracking-[0.4em] text-gold font-bold">
-            Acesso Encerrado
-          </h2>
-
-          <h3 className="text-3xl md:text-4xl font-light text-petroleum leading-tight tracking-tight">
-            Esta galeria atingiu o prazo limite de visualização.
-          </h3>
-
-          <p className="text-[13px] md:text-[15px] leading-relaxed text-petroleum/60 max-w-md mx-auto">
-            Link expirou em{' '}
-            <span className="font-bold text-petroleum/80">
-              {new Date(galeriaData.expires_at).toLocaleDateString('pt-BR')}
+      <EditorialView
+        title="Galeria Arquivada"
+        subtitle={
+          <>
+            As memórias desta galeria foram{' '}
+            <span className="font-semibold text-white italic">
+              guardadas em segurança
             </span>
-            .
-          </p>
+          </>
+        }
+      >
+        {/* 🎯 SEÇÃO BRANCA DE CONTEÚDO */}
+        <section className="w-full bg-white shadow-sm ">
+          <div className="max-w-[1600px] mx-auto px-6 md:px-12">
+            {/* CABEÇALHO CENTRALIZADO */}
+            <div className="text-left mb-8">
+              <h2 className="text-3xl md:text-4xl font-semibold text-petroleum italic mb-8">
+                Esta galeria não está mais acessível.
+              </h2>
+            </div>
 
-          <div className="pt-8">
-            <Link
-              href={`/${galeriaData.photographer?.username}`}
-              className="btn-luxury-primary inline-flex items-center gap-3 px-10 h-12 rounded-luxury text-[11px] uppercase font-bold tracking-widest"
-            >
-              Voltar ao Início
-            </Link>
+            {/* GRID DE OPÇÕES */}
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-12 pt-2">
+              {/* Opção 1: Contatar Profissional */}
+              {galeriaData.photographer?.phone_contact && (
+                <EditorialCard
+                  title="Solicitar Reativação"
+                  accentColor="gold"
+                  icon={<MessageCircle size={32} strokeWidth={1.5} />}
+                  items={[
+                    'Converse diretamente com o profissional',
+                    'Solicite a reativação da galeria',
+                    'Acesso rápido via WhatsApp',
+                  ]}
+                >
+                  <a
+                    href={`https://wa.me/${galeriaData.photographer.phone_contact.replace(/\D/g, '')}?text=${encodeURIComponent(
+                      `Olá! Gostaria de solicitar o acesso à galeria arquivada:\n\n` +
+                        `*Título:* ${galeriaData.title}\n` +
+                        `*Data:* ${
+                          galeriaData.date &&
+                          !isNaN(Date.parse(galeriaData.date))
+                            ? new Date(galeriaData.date).toLocaleDateString(
+                                'pt-BR',
+                              )
+                            : 'Não informada'
+                        }\n` +
+                        `*Link:* ${resolveGalleryUrl(
+                          galeriaData.photographer.username,
+                          fullSlug,
+                          hasSubdomain,
+                          MAIN_DOMAIN,
+                          process.env.NODE_ENV === 'production'
+                            ? 'https'
+                            : 'http',
+                        )}\n\n` +
+                        `Como posso proceder?`,
+                    )}`}
+                    target="_blank"
+                    className="mt-auto w-full py-4 bg-[#25D366] text-white rounded-xl text-[10px] font-bold uppercase tracking-widest flex items-center justify-center gap-2 hover:bg-[#20BA5A] transition-all"
+                  >
+                    <WhatsAppIcon className="w-4 h-4" /> Falar no WhatsApp
+                  </a>
+                </EditorialCard>
+              )}
+
+              {/* Opção 2: Voltar ao Perfil */}
+              <EditorialCard
+                title="Explorar Portfólio"
+                accentColor="petroleum"
+                icon={<Home size={32} strokeWidth={1.5} />}
+                items={[
+                  'Conheça outros trabalhos do profissional',
+                  'Acesse galerias públicas disponíveis',
+                  'Navegue pelo perfil completo',
+                ]}
+              >
+                <Link
+                  href={`/${galeriaData.photographer?.username}`}
+                  className="mt-auto w-full py-4 bg-petroleum text-white rounded-xl text-[10px] font-bold uppercase tracking-widest flex items-center justify-center gap-2 hover:bg-black transition-all"
+                >
+                  Visitar Perfil
+                </Link>
+              </EditorialCard>
+            </div>
           </div>
-        </div>
-      </div>
+        </section>
+      </EditorialView>
     );
   }
 
-  if (galeriaData.is_archived) {
+  if (isExpired) {
     return (
-      <div className="w-full min-h-[70vh] flex flex-col items-center justify-center px-6 py-20 text-center animate-in fade-in duration-1000">
-        <div className="w-px h-24 bg-gradient-to-b from-champagne/40 to-transparent mb-12" />
+      <EditorialView
+        title="Acesso Encerrado"
+        subtitle={
+          <>
+            Esta galeria atingiu o{' '}
+            <span className="font-semibold text-white italic">
+              prazo limite de visualização
+            </span>
+          </>
+        }
+      >
+        {/* 🎯 SEÇÃO BRANCA DE CONTEÚDO */}
+        <section className="w-full bg-white py-10 shadow-sm border-y border-slate-100">
+          <div className="max-w-[1600px] mx-auto px-6 md:px-12">
+            {/* CABEÇALHO CENTRALIZADO */}
+            <div className="text-left mb-14">
+              <p className="text-gold text-xs uppercase tracking-[0.3em] font-semibold mb-6">
+                Galeria Temporariamente Bloqueada
+              </p>
+              <h2 className="text-3xl md:text-4xl font-semibold text-petroleum italic mb-8">
+                O link desta galeria expirou
+              </h2>
 
-        <div className="max-w-2xl space-y-8">
-          <h2 className="text-[10px] uppercase tracking-[0.3em] text-petroleum/60 font-bold">
-            Galeria Arquivada
-          </h2>
+              <div className="flex items-center justify-center gap-3 bg-slate-50 border border-slate-200 px-6 py-3 rounded-full w-fit mx-auto shadow-sm">
+                <Calendar size={16} className="text-gold" />
+                <p className="text-[10px] text-petroleum uppercase tracking-widest font-bold whitespace-nowrap">
+                  Expirou em{' '}
+                  <span className="text-gold">
+                    {new Date(galeriaData.expires_at).toLocaleDateString(
+                      'pt-BR',
+                    )}
+                  </span>
+                </p>
+              </div>
+            </div>
 
-          <h3 className="text-3xl md:text-4xl font-light text-petroleum leading-tight tracking-tight">
-            As memórias desta galeria foram guardadas em segurança.
-          </h3>
+            {/* GRID DE OPÇÕES */}
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-12 pt-10">
+              {/* Opção 1: Contatar Profissional */}
+              {galeriaData.photographer?.phone_contact && (
+                <EditorialCard
+                  title="Solicitar Novo Acesso"
+                  accentColor="gold"
+                  icon={<MessageCircle size={32} strokeWidth={1.5} />}
+                  items={[
+                    'Entre em contato com o profissional',
+                    'Solicite a renovação do prazo',
+                    'Acesso rápido via WhatsApp',
+                  ]}
+                >
+                  <a
+                    href={`https://wa.me/${galeriaData.photographer.phone_contact.replace(/\D/g, '')}?text=${encodeURIComponent(
+                      `Olá! Gostaria de solicitar novo acesso à galeria:\n\n` +
+                        `*Título:* ${galeriaData.title}\n` +
+                        `*Data de Expiração:* ${new Date(galeriaData.expires_at).toLocaleDateString('pt-BR')}\n\n` +
+                        `Como posso renovar o acesso?`,
+                    )}`}
+                    target="_blank"
+                    className="mt-auto w-full py-4 bg-[#25D366] text-white rounded-xl text-[10px] font-bold uppercase tracking-widest flex items-center justify-center gap-2 hover:bg-[#20BA5A] transition-all"
+                  >
+                    <WhatsAppIcon className="w-4 h-4" /> Falar no WhatsApp
+                  </a>
+                </EditorialCard>
+              )}
 
-          <p className="text-[13px] md:text-[15px] leading-relaxed text-petroleum/70 font-medium max-w-lg mx-auto italic">
-            Para solicitar o acesso novamente entre em contato diretamente com o
-            profissional.
-          </p>
-
-          <div className="w-12 h-px bg-gold/30 mx-auto mt-12" />
-
-          <div className="flex flex-col md:flex-row items-center justify-center gap-4 pt-6">
-            {galeriaData.photographer?.phone_contact && (
-              <a
-                href={`https://wa.me/${galeriaData.photographer.phone_contact.replace(/\D/g, '')}?text=${encodeURIComponent(
-                  `Olá! Gostaria de solicitar o acesso à galeria arquivada:\n\n` +
-                    `*Título:* ${galeriaData.title}\n` +
-                    `*Data:* ${
-                      galeriaData.date && !isNaN(Date.parse(galeriaData.date))
-                        ? new Date(galeriaData.date).toLocaleDateString('pt-BR')
-                        : 'Não informada'
-                    }\n` +
-                    `*Link:* ${resolveGalleryUrl(
-                      galeriaData.photographer.username,
-                      fullSlug,
-                      hasSubdomain,
-                      MAIN_DOMAIN,
-                      process.env.NODE_ENV === 'production' ? 'https' : 'http',
-                    )}\n\n` +
-                    `Como posso proceder?`,
-                )}`}
-                target="_blank"
-                className="btn-luxury-primary flex items-center gap-3 px-8 h-12 rounded-luxury text-[11px] uppercase font-bold tracking-widest"
+              {/* Opção 2: Voltar ao Perfil */}
+              <EditorialCard
+                title="Explorar Portfólio"
+                accentColor="petroleum"
+                icon={<Home size={32} strokeWidth={1.5} />}
+                items={[
+                  'Conheça outros trabalhos do profissional',
+                  'Acesse galerias públicas disponíveis',
+                  'Navegue pelo perfil completo',
+                ]}
               >
-                <WhatsAppIcon className="w-4 h-4" />
-                Falar com o Profissional
-              </a>
-            )}
-
-            <Link
-              href={`/${galeriaData.photographer?.username}`}
-              className="px-8 h-12 rounded-luxury border border-petroleum/10 text-petroleum text-[11px] uppercase font-bold tracking-widest hover:bg-slate-50 transition-all flex items-center justify-center"
-            >
-              Visitar Perfil
-            </Link>
+                <Link
+                  href={`/${galeriaData.photographer?.username}`}
+                  className="mt-auto w-full py-4 bg-petroleum text-white rounded-xl text-[10px] font-bold uppercase tracking-widest flex items-center justify-center gap-2 hover:bg-black transition-all"
+                >
+                  Visitar Perfil
+                </Link>
+              </EditorialCard>
+            </div>
           </div>
-        </div>
+        </section>
 
-        <div className="w-px h-24 bg-gradient-to-t from-champagne/40 to-transparent mt-20" />
-      </div>
+        <Footer />
+      </EditorialView>
     );
   }
 

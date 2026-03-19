@@ -56,6 +56,7 @@ function UpgradeSheetContent({
     billingType,
     canProceedBilling,
     upgradeCalculation,
+    setRequestError,
   } = useUpgradeSheetContext();
 
   const [showExemptConfirm, setShowExemptConfirm] = useState(false);
@@ -75,7 +76,10 @@ function UpgradeSheetContent({
           {goBack[step] && (
             <button
               type="button"
-              onClick={() => setStep(goBack[step]!)}
+              onClick={() => {
+                if (goBack[step] === 'billing') setRequestError(null);
+                setStep(goBack[step]!);
+              }}
               className="shrink-0 flex items-center gap-1.5 px-4 h-10 rounded-md border-2 border-slate-200 bg-white text-[10px] font-bold uppercase tracking-wider text-petroleum/50 hover:text-petroleum hover:border-slate-300 transition-all"
             >
               <ArrowLeft size={12} />
@@ -205,10 +209,27 @@ function ConfirmButton() {
     upgradeCalculation,
     isCalculationLoading,
   } = useUpgradeSheetContext();
+
   const isFreeUpgrade =
     upgradeCalculation?.is_free_upgrade === true ||
     (upgradeCalculation?.amount_final != null &&
-      upgradeCalculation.amount_final === 0);
+      upgradeCalculation.amount_final === 0 &&
+      upgradeCalculation.type !== 'downgrade');
+
+  // Downgrade agendado fora da janela de arrependimento
+  const isScheduledDowngrade =
+    upgradeCalculation?.type === 'downgrade' &&
+    upgradeCalculation.is_downgrade_withdrawal_window === false;
+
+  const buttonLabel = () => {
+    if (loading || isCalculationLoading) return null; // tratado no spinner
+    if (isScheduledDowngrade) return 'Confirmar Agendamento';
+    if (isFreeUpgrade) return 'Confirmar Atualização do Plano';
+    if (billingType === 'PIX') return 'Confirmar e Gerar Pix';
+    if (billingType === 'BOLETO') return 'Confirmar e Gerar Boleto';
+    return 'Confirmar Solicitação';
+  };
+
   return (
     <button
       type="button"
@@ -224,13 +245,7 @@ function ConfirmButton() {
       ) : (
         <>
           <ArrowRight size={14} />
-          {isFreeUpgrade
-            ? 'Confirmar Atualização do Plano'
-            : billingType === 'PIX'
-              ? 'Confirmar e Gerar Pix'
-              : billingType === 'BOLETO'
-                ? 'Confirmar e Gerar Boleto'
-                : 'Confirmar Solicitação'}
+          {buttonLabel()}
         </>
       )}
     </button>

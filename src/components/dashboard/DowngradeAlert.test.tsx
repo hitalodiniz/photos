@@ -70,7 +70,7 @@ describe('DowngradeAlert', () => {
     
     // Content inside the modal
     expect(
-      screen.getByText(/Galerias arquivadas automaticamente/i),
+      screen.getByText(/galeria(s)? arquivada(s)? automaticamente/i),
     ).toBeInTheDocument();
     expect(screen.getByText(/Galeria Auto/i)).toBeInTheDocument();
   });

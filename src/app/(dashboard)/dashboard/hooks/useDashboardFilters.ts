@@ -1,4 +1,4 @@
-import { useState, useMemo } from 'react';
+import { useState, useMemo, useEffect } from 'react';
 import type { Galeria } from '@/core/types/galeria';
 import { normalizeContractType } from '@/core/types/galeria';
 import { normalizeString } from '@/core/utils/string-helpers';
@@ -16,6 +16,11 @@ export function useDashboardFilters(galerias: Galeria[]) {
   const [filterDateEnd, setFilterDateEnd] = useState('');
   const [filterCategory, setFilterCategory] = useState('');
   const [filterType, setFilterType] = useState('');
+
+  // 🎯 FIX: Reseta cardsToShow quando muda de view
+  useEffect(() => {
+    setCardsToShow(CARDS_PER_PAGE);
+  }, [currentView]);
 
   const counts = useMemo(
     () => ({

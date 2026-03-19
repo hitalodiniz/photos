@@ -114,7 +114,7 @@ export function PlanCard({
               )}
             </div>
 
-            <p className="text-[11px] text-petroleum/80 font-medium mt-0.5 leading-tight">
+            <p className="text-[11px] text-petroleum/80 font-medium mt-2 leading-tight">
               Até {perms.maxGalleriesHardCap} galerias · Até{' '}
               {perms.maxPhotosPerGallery} arquivos
             </p>

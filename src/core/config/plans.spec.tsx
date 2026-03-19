@@ -413,7 +413,7 @@ describe('Pool System — Créditos de Fotos e Galerias', () => {
       expect(RECOMMENDED_PHOTOS_PER_GALLERY_BY_PLAN.START).toBe(300);
       expect(RECOMMENDED_PHOTOS_PER_GALLERY_BY_PLAN.PLUS).toBe(600);
       expect(RECOMMENDED_PHOTOS_PER_GALLERY_BY_PLAN.PRO).toBe(1_000);
-      expect(RECOMMENDED_PHOTOS_PER_GALLERY_BY_PLAN.PREMIUM).toBe(3_000);
+      expect(RECOMMENDED_PHOTOS_PER_GALLERY_BY_PLAN.PREMIUM).toBe(1_000);
     });
   });
 });

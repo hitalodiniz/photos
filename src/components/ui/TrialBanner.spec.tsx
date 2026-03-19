@@ -94,8 +94,8 @@ describe('TrialBanner', () => {
     const { container } = render(
       <PlanProvider
         profile={makeProfile({
-          plan_key: 'PRO',
-          is_trial: true,
+          plan_key: 'FREE', // After expiration, the user is downgraded to FREE
+          is_trial: false, // The trial is no longer active
           plan_trial_expires: pastDate,
         })}
       >

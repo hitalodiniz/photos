@@ -64,6 +64,58 @@ export function ManagePaymentSheet({
     }
   }, [isOpen]);
 
+  const formatCancellationDetails = (detailsString: string) => {
+    if (!detailsString) return '';
+
+    // Regex para capturar as datas e o motivo
+    const dateMatch = detailsString.match(/solicitado em (.*?)Z/);
+    const accessMatch = detailsString.match(/Acesso até (.*?)Z/);
+    const reasonMatch = detailsString.match(/Motivo: (.*)/);
+
+    const formatDate = (dateStr: string) => {
+      try {
+        return new Date(dateStr).toLocaleDateString('pt-BR', {
+          day: '2-digit',
+          month: '2-digit',
+          year: 'numeric',
+        });
+      } catch {
+        return dateStr;
+      }
+    };
+
+    // Mapeamento de motivos técnicos para nomes amigáveis
+    const reasonMap: Record<string, string> = {
+      too_expensive: 'Valor muito alto',
+      not_using: 'Não estou utilizando o suficiente',
+      missing_features: 'Faltam recursos que preciso',
+      technical_issues: 'Problemas técnicos',
+      other: 'Outro motivo',
+    };
+
+    const requestedAt = dateMatch ? formatDate(dateMatch[1]) : '';
+    const accessUntil = accessMatch ? formatDate(accessMatch[1]) : '';
+    const reason = reasonMatch
+      ? reasonMap[reasonMatch[1].trim()] || reasonMatch[1]
+      : '';
+
+    return (
+      <div className="space-y-1 text-[11px] text-petroleum/70 bg-slate-50 p-2 rounded-md border border-slate-100">
+        <p>
+          📅 <strong>Solicitado em:</strong> {requestedAt}
+        </p>
+        <p>
+          🔓 <strong>Acesso liberado até:</strong> {accessUntil}
+        </p>
+        {reason && (
+          <p>
+            💬 <strong>Motivo informado:</strong> {reason}
+          </p>
+        )}
+      </div>
+    );
+  };
+
   const canConfirm =
     !loading &&
     (billingType !== 'CREDIT_CARD' ||
@@ -156,7 +208,7 @@ export function ManagePaymentSheet({
         maxWidth="md"
         position="right"
         footer={
-          <SheetFooter className="bg-slate-50 border-t border-slate-100">
+          <SheetFooter className="bg-petroleum border-t border-petroleum/10">
             <div className="flex gap-2 w-full">
               <button
                 type="button"
@@ -177,7 +229,7 @@ export function ManagePaymentSheet({
                 type="button"
                 onClick={onClose}
                 disabled={loading}
-                className="btn-secondary"
+                className="btn-secondary-white"
               >
                 Cancelar
               </button>
@@ -222,9 +274,9 @@ export function ManagePaymentSheet({
           </div>
           <p className="text-[11px] text-petroleum/90 leading-snug pt-1">
             A nova forma de pagamento será usada para todas as faturas futuras.
-            Alterar para <strong>PIX</strong> ou <strong>Boleto</strong>{' '}
-            remove o cartão de crédito da assinatura, cancelando a cobrança
-            automática recorrente.
+            Alterar para <strong>PIX</strong> ou <strong>Boleto</strong> remove
+            o cartão de crédito da assinatura, cancelando a cobrança automática
+            recorrente.
           </p>
         </SheetSection>
 
@@ -253,11 +305,6 @@ export function ManagePaymentSheet({
                   disabled={loading}
                   hideBillingTypeSelector
                 />
-                <div className="flex items-center justify-between text-[10px] text-petroleum/80 pt-1">
-                  <p className="flex items-center gap-1">
-                    <Lock size={8} /> Dados protegidos e não armazenados.
-                  </p>
-                </div>
               </>
             )}
           </SheetSection>

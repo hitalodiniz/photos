@@ -58,7 +58,8 @@ export function useDashboardActions(
   };
 
   const handleArchiveToggle = async (g: Galeria) => {
-    const newStatus = !g.is_archived;
+    const isCurrentlyArchived = g.is_archived || g.auto_archived;
+    const newStatus = !isCurrentlyArchived; // Se está arquivada, queremos desarquivar (false)
 
     // Ao desarquivar, respeitar limites de plano (galerias ativas e pool de arquivos)
     if (!newStatus && photographer) {
@@ -82,8 +83,7 @@ export function useDashboardActions(
 
       const candidatePhotos = g.photo_count ?? 0;
 
-      const respectsSingleGalleryLimit =
-        candidatePhotos <= maxPhotosPerGallery;
+      const respectsSingleGalleryLimit = candidatePhotos <= maxPhotosPerGallery;
       const fitsInGlobalGalleryLimit = currentGalleryCount < galleryLimit;
       const fitsInGlobalPhotoLimit =
         currentPhotoSum + candidatePhotos <= photoLimit;
@@ -108,12 +108,16 @@ export function useDashboardActions(
     }
 
     setUpdatingId(g.id);
-    const result = await toggleArchiveGaleria(g.id, g.is_archived);
+
+    const result = await toggleArchiveGaleria(g.id, newStatus);
 
     if (result.success) {
       setGalerias((prev) =>
         prev.map((item) =>
-          item.id === g.id ? { ...item, is_archived: newStatus } : item,
+          // IMPORTANTE: Ao atualizar o estado local, zeramos ambos para refletir o banco
+          item.id === g.id
+            ? { ...item, is_archived: newStatus, auto_archived: false }
+            : item,
         ),
       );
       await triggerProfileRevalidation();

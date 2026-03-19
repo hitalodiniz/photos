@@ -81,6 +81,7 @@ export interface CurrentActiveRequestRow {
   id: string;
   amount_final: number;
   amount_discount?: number | null;
+  billing_type?: string | null;
   processed_at: string | null;
   billing_period: string | null;
   plan_key_requested: string;
@@ -138,7 +139,7 @@ export async function getCurrentActiveRequest(
   const { data: rows } = await db
     .from('tb_upgrade_requests')
     .select(
-      'id, amount_final, amount_discount, processed_at, billing_period, plan_key_requested, asaas_subscription_id, notes',
+      'id, amount_final, amount_discount, billing_type, processed_at, billing_period, plan_key_requested, asaas_subscription_id, notes',
     )
     .eq('profile_id', userId)
     .eq('status', 'approved')
@@ -385,7 +386,8 @@ export async function calculateUpgradePrice(
       periodOrder(targetPeriod) < periodOrder(currentPeriod));
 
   if (isDowngrade) {
-    const isWithdrawalWindow = daysSincePurchase <= 7;
+    const isWithdrawalWindow =
+      daysSincePurchase <= 7 && currentRequest.amount_final > 0;
     let previousCredit = 0;
     if (
       isWithdrawalWindow &&
@@ -397,7 +399,7 @@ export async function calculateUpgradePrice(
     }
     const creditForDowngrade = isWithdrawalWindow
       ? amountForProRata + previousCredit
-      : residualCredit;
+      : 0;
     const downgradeEffectiveAt = isWithdrawalWindow
       ? now
       : currentPlanExpiresAt;
@@ -466,15 +468,16 @@ export async function calculateUpgradePrice(
   }
 
   if (residualCredit >= totalPriceNew) {
-    const monthsCovered = billingPeriodToMonths(targetPeriod);
-    const newExpiry = addMonths(startDate, monthsCovered); // ✅ Usa meses reais
-
-    // Mantém cálculo comercial APENAS para exibir dias estendidos
     const dailyPriceNew = totalPriceNew / targetCommercialDays;
-    const daysExtended =
+    const daysCovered =
       dailyPriceNew > 0
         ? Math.round(residualCredit / dailyPriceNew)
         : targetCommercialDays;
+    const newExpiry = addDays(now, Math.max(targetCommercialDays, daysCovered));
+    const monthsCovered = Math.max(
+      1,
+      Math.floor(Math.max(targetCommercialDays, daysCovered) / 30),
+    );
 
     return {
       type: 'upgrade',
@@ -486,7 +489,7 @@ export async function calculateUpgradePrice(
       current_plan_expires_at: currentPlanExpiresAt.toISOString(),
       new_expiry_date: newExpiry.toISOString(), // ✅ Data real
       free_upgrade_months_covered: monthsCovered,
-      free_upgrade_days_extended: daysExtended, // Info comercial
+      free_upgrade_days_extended: Math.max(targetCommercialDays, daysCovered),
     };
   }
 
@@ -530,6 +533,7 @@ export async function calculateUpgradePrice(
 
 /**
  * Preview de upgrade/downgrade para exibir no modal antes da confirmação.
+ * Também detecta intenções de mudança agendadas (pending_change).
  */
 export async function getUpgradePreview(
   targetPlanKey: PlanKey,
@@ -548,6 +552,7 @@ export async function getUpgradePreview(
 
     const supabase = await createSupabaseServerClient();
 
+    // ── Verifica pending normal (pagamento em processamento) ────────────────
     const pending = await getPendingUpgradeRequest(userId, supabase);
     if (pending)
       return {
@@ -556,6 +561,16 @@ export async function getUpgradePreview(
         has_pending: true,
         calculation: undefined,
       };
+
+    // ── NOVO: Verifica pending_change ativo ──────────────────────────────────
+    const { data: scheduledChange } = await supabase
+      .from('tb_upgrade_requests')
+      .select('id, plan_key_requested, processed_at, billing_period')
+      .eq('profile_id', userId)
+      .eq('status', 'pending_change')
+      .order('created_at', { ascending: false })
+      .limit(1)
+      .maybeSingle();
 
     const currentPlanKeyFromProfile = profile?.plan_key
       ? (String(profile.plan_key).toUpperCase() as PlanKey)
@@ -586,14 +601,30 @@ export async function getUpgradePreview(
       currentPlanKeyFromProfile,
       lastPaidAmountForProRata,
     );
+    const calculationWithBillingType = calculation
+      ? {
+          ...calculation,
+          current_billing_type: (current?.billing_type as BillingType | null) ??
+            null,
+        }
+      : calculation;
+
     const hasPlan =
       !!current ||
       (!!currentPlanKeyFromProfile && currentPlanKeyFromProfile !== 'FREE');
+
     return {
       success: true,
       has_active_plan: hasPlan,
       is_current_plan: calculation.type === 'current_plan',
-      calculation,
+      calculation: calculationWithBillingType,
+      // Propaga info do pending_change para a UI
+      ...(scheduledChange && {
+        has_scheduled_change: true,
+        scheduled_change_plan_key: scheduledChange.plan_key_requested as string,
+        scheduled_change_effective_at:
+          scheduledChange.processed_at ?? undefined,
+      }),
     };
   } catch (e) {
     console.error('[getUpgradePreview]', e);
@@ -949,6 +980,8 @@ export async function performDowngradeToFree(
       );
   }
 
+  revalidatePath('/dashboard', 'layout');
+
   return { success: true, ...adjustment };
 }
 
@@ -1028,8 +1061,17 @@ export async function handleSubscriptionCancellation(
 
   const accessEndsAtIso = accessEndsAt.toISOString();
   const endDateStr = accessEndsAt.toISOString().split('T')[0];
+  const amountPaid =
+    typeof (request as any).amount_final === 'number' &&
+    (request as any).amount_final > 0
+      ? (request as any).amount_final
+      : 0;
 
-  if (daysSincePurchase <= 7 && request.status === 'approved') {
+  if (
+    daysSincePurchase <= 7 &&
+    request.status === 'approved' &&
+    amountPaid > 0
+  ) {
     if (request.asaas_subscription_id) {
       const cancelResult = await cancelAsaasSubscriptionById(
         request.asaas_subscription_id as string,
@@ -1047,12 +1089,6 @@ export async function handleSubscriptionCancellation(
         '[Cancellation] tb_upgrade_requests sem asaas_subscription_id',
       );
     }
-
-    const amountPaid =
-      typeof (request as any).amount_final === 'number' &&
-      (request as any).amount_final > 0
-        ? (request as any).amount_final
-        : 0;
 
     if (amountPaid > 0) {
       const { data: profileRow } = await supabase
@@ -1141,6 +1177,7 @@ export async function handleSubscriptionCancellation(
     new_plan: request.plan_key_requested as string,
     reason: `Cancelamento agendado. Acesso até ${accessEndsAtIso}`,
   });
+  revalidatePath('/dashboard', 'layout');
 
   return {
     success: true,
@@ -1317,6 +1354,12 @@ export async function requestUpgrade(
     const now = new Date().toISOString();
     const planDescription = `Plano ${planInfo.name}`;
     const nextDueStr = calculation.new_expiry_date?.split('T')[0];
+    const asaasCycle: 'MONTHLY' | 'SEMIANNUALLY' | 'YEARLY' =
+      billingPeriod === 'annual'
+        ? 'YEARLY'
+        : billingPeriod === 'semiannual'
+          ? 'SEMIANNUALLY'
+          : 'MONTHLY';
     let asaasSubId: string | null =
       currentRequest?.asaas_subscription_id?.trim() ?? null;
     if (!asaasSubId) {
@@ -1352,6 +1395,7 @@ export async function requestUpgrade(
           value,
           description: planDescription,
           nextDueDate: nextDueStr,
+          cycle: asaasCycle,
           updatePendingPayments: false,
         },
       );
@@ -1419,6 +1463,7 @@ export async function requestUpgrade(
       .eq('id', userId);
 
     await reactivateAutoArchivedGalleries(userId, planKey, supabase);
+    revalidatePath('/dashboard', 'layout');
 
     await revalidateUserCache(userId).catch((e) =>
       console.warn('[Upgrade gratuito] revalidateUserCache:', e),
@@ -1449,8 +1494,9 @@ export async function requestUpgrade(
       : null;
 
   const isCreditCard = payload.billing_type === 'CREDIT_CARD';
+  const useSavedCard = isCreditCard && payload.use_saved_card === true;
   const requiresCardData = isCreditCard && calculation.amount_final > 0;
-  if (requiresCardData) {
+  if (requiresCardData && !useSavedCard) {
     const c = payload.credit_card;
     if (
       !c?.credit_card_holder_name?.trim() ||
@@ -1531,7 +1577,7 @@ export async function requestUpgrade(
 
   let creditCardDetails: any;
   let creditCardHolderInfo: any;
-  if (isCreditCard && payload.credit_card) {
+  if (isCreditCard && !useSavedCard && payload.credit_card) {
     const c = payload.credit_card;
     creditCardDetails = {
       holderName: c.credit_card_holder_name.trim(),

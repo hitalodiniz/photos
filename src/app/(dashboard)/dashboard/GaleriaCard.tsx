@@ -43,7 +43,7 @@ import React from 'react';
 import { useShare } from '@/hooks/useShare';
 import { saveGaleriaSelectionAction } from '@/core/services/galeria.service';
 import { ConfirmationModal, Toast } from '@/components/ui';
-import { div } from 'framer-motion/client';
+import { div, span } from 'framer-motion/client';
 import { handleError } from '@supabase/auth-js/dist/module/lib/fetch';
 import { createPortal } from 'react-dom';
 import { is } from 'date-fns/locale';
@@ -687,6 +687,18 @@ export default function GaleriaCard({
 
           {/* Bloco de Ações lateral */}
           <div className="flex items-center gap-3 pl-6 border-l border-slate-100 flex-shrink-0 self-center">
+            {/* 🎯 NOVO: Badge de Auto-arquivamento */}
+            {galeria.auto_archived && (
+              <div className="flex items-center gap-1.5 px-2.5 h-9 bg-amber-50 border border-amber-200 rounded-luxury">
+                <div className="relative flex items-center justify-center">
+                  <Calendar size={14} className="text-amber-600" />
+                  <div className="absolute -top-0.5 -right-0.5 w-1.5 h-1.5 bg-amber-500 rounded-full animate-pulse" />
+                </div>
+                <span className="text-[10px] font-semibold text-amber-700 uppercase tracking-tight">
+                  Auto-arquivado - downgrade de plano
+                </span>
+              </div>
+            )}
             <div className="flex items-center gap-1 opacity-0 group-hover:opacity-100 transition-opacity duration-300">
               {renderActionButtons()}
             </div>
@@ -912,6 +924,18 @@ export default function GaleriaCard({
           <div className="flex items-center justify-between pt-3 border-t border-slate-100 mt-auto w-full">
             <div className="flex flex-wrap items-center gap-1.5">
               {renderActionButtons()}
+              {/* 🎯 NOVO: Badge de Auto-arquivamento */}
+              {galeria.auto_archived && (
+                <div className="flex items-center gap-1.5 px-2.5 h-9 bg-amber-50 border border-amber-200 rounded-luxury">
+                  <div className="relative flex items-center justify-center">
+                    <Calendar size={14} className="text-amber-600" />
+                    <div className="absolute -top-0.5 -right-0.5 w-1.5 h-1.5 bg-amber-500 rounded-full animate-pulse" />
+                  </div>
+                  <span className="text-[10px] font-semibold text-amber-700 uppercase tracking-tight">
+                    Auto-arquivado - downgrade de plano
+                  </span>
+                </div>
+              )}
             </div>
             <div className="flex items-center justify-end min-w-[32px] ml-auto">
               <GaleriaContextMenu

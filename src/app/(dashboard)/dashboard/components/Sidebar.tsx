@@ -87,7 +87,7 @@ export default function Sidebar({
         )}
 
         {/* Botão Nova Galeria */}
-        <div className="px-3 pt-3">
+        <div className="px-5 pt-3">
           <button
             onClick={() => {
               if (isNovaGaleriaDisabled) return;
@@ -99,7 +99,8 @@ export default function Sidebar({
               }
             }}
             disabled={isNovaGaleriaDisabled}
-            className={`flex items-center justify-center transition-all duration-300 rounded-md border h-10 w-32 px-2 gap-1 group shadow-lg
+            className={`flex items-center justify-center transition-all duration-300 rounded-md border h-10 px-3 gap-2 group shadow-lg
+      ${isSidebarCollapsed ? 'w-10' : 'w-full'}
       ${
         !canCreateMore
           ? 'bg-champagne/80 border-champagne/20 text-black/80 cursor-not-allowed hover:border-champagne/20'
@@ -114,26 +115,24 @@ export default function Sidebar({
                   : 'Criar nova galeria'
             }
           >
-            <div className="relative flex items-center justify-center">
-              {/* Ícone principal Plus com opacidade condicional */}
+            <div className="relative flex items-center justify-center w-5 h-5 shrink-0">
               <Plus
-                size={15}
+                size={16}
                 className={`transition-all ${
                   isRedirecting ? 'animate-spin' : 'group-hover:rotate-90'
                 } ${!canCreateMore ? 'opacity-0' : ''}`}
+                strokeWidth={2.5}
               />
-
-              {/* Cadeado posicionado como badge flutuante quando bloqueado */}
               {!canCreateMore && !isRedirecting && (
                 <Lock
-                  size={12}
-                  className="absolute top-1 text-black animate-in zoom-in duration-300"
+                  size={14}
+                  className="absolute inset-0 m-auto text-black animate-in zoom-in duration-300"
+                  strokeWidth={2.5}
                 />
               )}
             </div>
-
-            {(!isSidebarCollapsed || isMobile) && (
-              <span className="text-editorial-label font-semibold">
+            {!isSidebarCollapsed && (
+              <span className="text-[11px] font-semibold uppercase tracking-wide whitespace-nowrap">
                 {isRedirecting ? 'Iniciando...' : 'Nova Galeria'}
               </span>
             )}
@@ -145,7 +144,7 @@ export default function Sidebar({
           {/* Badge do Plano Atual */}
           {(!isSidebarCollapsed || isMobile) && (
             <div className="px-2 py-1 mb-2">
-              <div className="flex items-center justify-between gap-2 px-3 py-2 rounded-luxury bg-white/5 border border-white/5">
+              <div className="flex items-center justify-between gap-2 px-3 py-2 rounded-md bg-white/5 border border-white/5">
                 <Link
                   href="/dashboard/assinatura"
                   className="flex items-center gap-2 min-w-0 hover:opacity-90 transition-opacity"

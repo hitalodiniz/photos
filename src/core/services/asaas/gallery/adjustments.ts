@@ -100,6 +100,7 @@ export async function reactivateAutoArchivedGalleries(
     .from('tb_galerias')
     .update({
       auto_archived: false,
+      is_public: true,
       updated_at: new Date().toISOString(),
     })
     .in('id', ids);

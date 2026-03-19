@@ -690,3 +690,60 @@ describe('requestUpgrade — Falhas intermediárias', () => {
     expect(result.error).toMatch(/registrar|solicitação/i);
   });
 });
+
+describe('requestUpgrade — rejeita quando há pending_change ativo', () => {
+  beforeEach(() => {
+    vi.clearAllMocks();
+    vi.stubEnv('ASAAS_API_KEY', 'test-key');
+    mockAuth();
+  });
+
+  const basePayload = {
+    plan_key_requested: 'PREMIUM',
+    segment: 'PHOTOGRAPHER',
+    billing_type: 'PIX' as const,
+    billing_period: 'monthly' as const,
+    whatsapp: '11999999999',
+    cpf_cnpj: '52998224725',
+    postal_code: '01310100',
+    address: 'Av Paulista',
+    address_number: '1000',
+    province: 'Bela Vista',
+    city: 'São Paulo',
+    state: 'SP',
+  };
+
+  it('✅ pending_change não é pendingRequest e upgrade prossegue normalmente', async () => {
+    vi.stubGlobal('fetch', defaultSuccessFetch());
+    const supabase = makeSupabaseForUpgrade();
+    vi.mocked(await import('@/lib/supabase.server')).createSupabaseServerClient =
+      vi.fn().mockResolvedValue(supabase);
+    const result = await requestUpgrade(basePayload as never);
+    expect(result.success).toBe(true);
+  });
+
+  it("✅ quando há pending 'normal', requestUpgrade trata como pendingRequest", async () => {
+    vi.stubGlobal('fetch', defaultSuccessFetch());
+    const pendingNormal = {
+      id: 'pending-1',
+      created_at: new Date().toISOString(),
+      plan_key_requested: 'PRO',
+      billing_type: 'PIX',
+      billing_period: 'monthly',
+      asaas_subscription_id: null,
+      asaas_payment_id: null,
+    };
+    const fromMock = vi
+      .fn()
+      .mockReturnValueOnce(makeSelect(pendingNormal))
+      .mockReturnValueOnce(makeUpdate())
+      .mockReturnValueOnce(makeUpsert())
+      .mockReturnValueOnce(makeSelect({ asaas_customer_id: null }))
+      .mockReturnValueOnce(makeUpdate())
+      .mockReturnValueOnce(makeInsert({ id: 'new-upgrade' }, null));
+    vi.mocked(await import('@/lib/supabase.server')).createSupabaseServerClient =
+      vi.fn().mockResolvedValue({ from: fromMock });
+    const result = await requestUpgrade(basePayload as never);
+    expect(result.success).toBe(true);
+  });
+});

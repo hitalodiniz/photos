@@ -85,16 +85,14 @@ export function PlanProvider({
         if (!profile.plan_trial_expires) return 'FREE';
 
         const expiresTimestamp = new Date(profile.plan_trial_expires).getTime();
+        const now = new Date().getTime();
 
-        // Se a data for inválida, volta pra FREE
-        if (isNaN(expiresTimestamp)) return 'FREE';
-
-        /**
-         * 💡 MUDANÇA AQUI:
-         * Não retornamos FREE imediatamente se expirou.
-         * Retornamos o plano do perfil (PRO) para que a UI possa
-         * mostrar "Expirado" enquanto o Cron de Downgrade não roda no banco.
-         */
+        // Se a data for inválida ou já passou, rebaixa para FREE
+        if (isNaN(expiresTimestamp) || expiresTimestamp < now) {
+          return 'FREE';
+        }
+        
+        // Se ainda não expirou, mantém o plano do trial (PRO)
         return (profile.plan_key || 'FREE') as PlanKey;
       }
 

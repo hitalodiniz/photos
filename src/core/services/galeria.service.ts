@@ -1028,17 +1028,24 @@ async function updateGaleriaStatus(
 /**
  * ARQUIVAR: Alterna o estado de arquivamento
  * Se currentStatus for true (arquivada), tentará desarquivar (passa pela validação de limite).
+ * @param currentStatus - Deve ser (is_archived || auto_archived)
  */
 export async function toggleArchiveGaleria(id: string, currentStatus: boolean) {
+  // Se currentStatus é true, significa que ela ESTÁ arquivada e queremos VOLTAR (isUnarchiving)
   const isUnarchiving = currentStatus === true;
 
   const result = await updateGaleriaStatus(
     id,
-    { is_archived: !currentStatus },
-    isUnarchiving, // Valida limite apenas ao desarquivar
+    {
+      // Se estava arquivada (true), vira false. Se estava ativa (false), vira true.
+      is_archived: !currentStatus,
+      // SEMPRE resetamos o auto_archived para false ao interagir manualmente
+      auto_archived: false,
+    },
+    isUnarchiving, // Valida limite de plano apenas se estiver tentando trazer de volta (isUnarchiving = true)
   );
 
-  // Sincroniza após desarquivar
+  // Sincroniza cache após desarquivar (trazer de volta ao ar)
   if (result.success && isUnarchiving) {
     await syncUserGalleriesAction();
   }

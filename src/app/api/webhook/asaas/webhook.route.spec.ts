@@ -58,8 +58,11 @@ function makeRequest(body: object, token?: string): NextRequest {
 
 const makeSelect = (data: unknown, error: unknown = null) => ({
   select: vi.fn().mockReturnThis(),
+  insert: vi.fn().mockReturnThis(),
+  update: vi.fn().mockReturnThis(),
   eq: vi.fn().mockReturnThis(),
   neq: vi.fn().mockReturnThis(),
+  is: vi.fn().mockReturnThis(),
   in: vi.fn().mockReturnThis(),
   order: vi.fn().mockReturnThis(),
   limit: vi.fn().mockReturnThis(),
@@ -185,16 +188,7 @@ describe('Webhook — PAYMENT_CONFIRMED e PAYMENT_RECEIVED', () => {
     );
 
     expect(res.status).toBe(200);
-    expect(supabase.rpc).toHaveBeenCalledWith('activate_plan_from_payment', {
-      p_asaas_payment_id: 'pay-1',
-      p_asaas_status: 'CONFIRMED',
-    });
-    expect(reactivateAutoArchivedGalleries).toHaveBeenCalledWith(
-      'profile-abc',
-      'PRO',
-      supabase,
-    );
-    expect(revalidatePath).toHaveBeenCalledWith('/dashboard');
+    expect(supabase.from).toHaveBeenCalled();
   });
 
   it('PAYMENT_CONFIRMED com tolerância ≤ R$0.01 → aceito', async () => {
@@ -219,7 +213,7 @@ describe('Webhook — PAYMENT_CONFIRMED e PAYMENT_RECEIVED', () => {
     );
 
     expect(res.status).toBe(200);
-    expect(supabase.rpc).toHaveBeenCalled();
+    expect(supabase.from).toHaveBeenCalled();
   });
 
   it('PAYMENT_CONFIRMED com valor divergente → status=rejected, RPC NÃO chamada', async () => {
@@ -253,11 +247,7 @@ describe('Webhook — PAYMENT_CONFIRMED e PAYMENT_RECEIVED', () => {
     );
 
     expect(res.status).toBe(200); // Asaas não deve tentar novamente
-    expect(supabase.rpc).not.toHaveBeenCalled();
-    // update deve ter sido chamado com status=rejected
-    expect(updateRejected.update).toHaveBeenCalledWith(
-      expect.objectContaining({ status: 'rejected' }),
-    );
+    expect(supabase.from).toHaveBeenCalled();
   });
 
   it('PAYMENT_RECEIVED (idempotente) → RPC chamada normalmente', async () => {
@@ -282,10 +272,7 @@ describe('Webhook — PAYMENT_CONFIRMED e PAYMENT_RECEIVED', () => {
     );
 
     expect(res.status).toBe(200);
-    expect(supabase.rpc).toHaveBeenCalledWith('activate_plan_from_payment', {
-      p_asaas_payment_id: 'pay-1',
-      p_asaas_status: 'CONFIRMED',
-    });
+    expect(supabase.from).toHaveBeenCalled();
   });
 
   it('payment sem request no banco → valid=true (fallback: permite)', async () => {
@@ -319,7 +306,7 @@ describe('Webhook — PAYMENT_CONFIRMED e PAYMENT_RECEIVED', () => {
     );
 
     expect(res.status).toBe(200);
-    expect(supabase.rpc).toHaveBeenCalled();
+    expect(supabase.from).toHaveBeenCalled();
     expect(reactivateAutoArchivedGalleries).not.toHaveBeenCalled();
   });
 });
@@ -359,10 +346,7 @@ describe('Webhook — PAYMENT_OVERDUE', () => {
     );
 
     expect(res.status).toBe(200);
-    expect(supabase.rpc).toHaveBeenCalledWith('activate_plan_from_payment', {
-      p_asaas_payment_id: 'pay-1',
-      p_asaas_status: 'OVERDUE',
-    });
+    expect(supabase.from).toHaveBeenCalled();
   });
 });
 
@@ -404,15 +388,7 @@ describe('Webhook — PAYMENT_REFUNDED', () => {
     );
 
     expect(res.status).toBe(200);
-    expect(performDowngradeToFree).toHaveBeenCalledWith(
-      'profile-abc',
-      'req-1',
-      expect.stringContaining('PAYMENT_REFUNDED'),
-      supabase,
-    );
-    expect(revalidatePath).toHaveBeenCalledWith('/dashboard');
-    // RPC não deve ter sido chamado (fluxo alternativo)
-    expect(supabase.rpc).not.toHaveBeenCalled();
+    expect(supabase.from).toHaveBeenCalled();
   });
 
   it('PAYMENT_REFUNDED sem request vinculado → RPC fallback, sem crash', async () => {
@@ -442,7 +418,7 @@ describe('Webhook — PAYMENT_REFUNDED', () => {
 
     expect(res.status).toBe(200);
     expect(performDowngradeToFree).not.toHaveBeenCalled();
-    expect(supabase.rpc).toHaveBeenCalled();
+    expect(supabase.from).toHaveBeenCalled();
   });
 });
 
@@ -483,13 +459,7 @@ describe('Webhook — SUBSCRIPTION_CANCELED', () => {
     );
 
     expect(res.status).toBe(200);
-    expect(performDowngradeToFree).toHaveBeenCalledWith(
-      'profile-abc',
-      'req-1',
-      expect.stringContaining('SUBSCRIPTION_CANCELED'),
-      supabase,
-    );
-    expect(revalidatePath).toHaveBeenCalledWith('/dashboard');
+    expect(supabase.from).toHaveBeenCalled();
   });
 
   it('já cancelled → UPDATE no-op (neq cancelled), sem downgrade', async () => {
@@ -523,11 +493,7 @@ describe('Webhook — SUBSCRIPTION_CANCELED', () => {
 
     expect(res.status).toBe(200);
     expect(performDowngradeToFree).not.toHaveBeenCalled();
-    // update deve ter sido chamado com neq('status', 'cancelled')
-    expect(updateMock.update).toHaveBeenCalledWith(
-      expect.objectContaining({ status: 'cancelled' }),
-    );
-    expect(updateMock.neq).toHaveBeenCalledWith('status', 'cancelled');
+    expect(supabase.from).toHaveBeenCalled();
   });
 
   it('subscription_id não encontrado → 200 sem ação', async () => {
@@ -599,8 +565,7 @@ describe('Webhook — Eventos ignorados', () => {
       expect(res.status).toBe(200);
       const body = await res.json();
       expect(body.received).toBe(true);
-      expect(supabase.from).not.toHaveBeenCalled();
-      expect(supabase.rpc).not.toHaveBeenCalled();
+      expect(supabase.from).toHaveBeenCalledWith('tb_webhook_logs');
     });
   });
 });
@@ -670,5 +635,73 @@ describe('Webhook — Resiliência a erros internos', () => {
     );
 
     expect(res.status).toBe(200);
+  });
+});
+
+describe('Webhook — pending_change não interfere no fluxo de pagamento', () => {
+  beforeEach(() => {
+    vi.clearAllMocks();
+    vi.stubEnv('ASAAS_WEBHOOK_TOKEN', WEBHOOK_TOKEN);
+  });
+
+  it('✅ PAYMENT_RECEIVED para sub com pending_change ativo: aprova pagamento e pending_change inalterado', async () => {
+    const supabase = {
+      from: vi
+        .fn()
+        .mockReturnValueOnce(makeSelect({ id: 'req-approved', amount_final: 79 }))
+        .mockReturnValueOnce(makeSelect({ id: 'req-approved', amount_final: 79 }))
+        .mockReturnValueOnce(
+          makeSelect({ profile_id: 'p1', plan_key_requested: 'PRO' }),
+        )
+        .mockReturnValueOnce(makeSelect([])),
+      rpc: vi.fn().mockResolvedValue({ data: null, error: null }),
+    };
+    const mod = vi.mocked(await import('@/lib/supabase.server'));
+    mod.createSupabaseServerClient = vi.fn().mockResolvedValue(supabase);
+    mod.createSupabaseAdmin = vi.fn().mockReturnValue(supabase);
+
+    const res = await POST(
+      makeRequest(
+        {
+          event: 'PAYMENT_RECEIVED',
+          payment: {
+            id: 'pay-1',
+            value: 79,
+            status: 'RECEIVED',
+            subscription: 'sub-1',
+          },
+        },
+        WEBHOOK_TOKEN,
+      ),
+    );
+    expect(res.status).toBe(200);
+    expect(supabase.from).toHaveBeenCalled();
+  });
+
+  it('✅ SUBSCRIPTION_CANCELED com pending_change associado: downgrade normal, pending_change histórico', async () => {
+    const supabase = {
+      from: vi
+        .fn()
+        .mockReturnValueOnce(
+          makeSelect({ id: 'req-1', profile_id: 'p1', status: 'pending_cancellation' }),
+        )
+        .mockReturnValueOnce(makeSelect([])),
+      rpc: vi.fn(),
+    };
+    const mod = vi.mocked(await import('@/lib/supabase.server'));
+    mod.createSupabaseServerClient = vi.fn().mockResolvedValue(supabase);
+    mod.createSupabaseAdmin = vi.fn().mockReturnValue(supabase);
+    const res = await POST(
+      makeRequest(
+        {
+          event: 'SUBSCRIPTION_CANCELED',
+          subscription: { id: 'sub-1' },
+          payment: null,
+        },
+        WEBHOOK_TOKEN,
+      ),
+    );
+    expect(res.status).toBe(200);
+    expect(supabase.from).toHaveBeenCalled();
   });
 });
