@@ -31,6 +31,9 @@ import {
 } from '@/core/config/plans';
 import type { PlanKey } from '@/core/config/plans';
 import { differenceInCalendarDays, parseISO } from 'date-fns';
+import { OverdueBadge } from '../dashboard/OverdueBadge';
+import { getOverdueSince } from '@/core/services/billing.service';
+import { fetchOverdueSince } from '@/actions/billing.actions';
 
 export default function Navbar() {
   const pathname = usePathname();
@@ -60,9 +63,12 @@ export default function Navbar() {
       )
     : 0;
 
-  console.log('trialDaysLeft', trialDaysLeft);
-  console.log('plan.trialExpiresAt', plan.trialExpiresAt);
-  console.log('istrial', isTrial);
+  const [overdueSince, setOverdueSince] = useState<string | null>(null);
+
+  useEffect(() => {
+    if (!plan.profile?.id) return;
+    fetchOverdueSince(plan.profile.id).then(setOverdueSince);
+  }, [plan.profile?.id]);
 
   useEffect(() => setMounted(true), []);
 
@@ -214,13 +220,16 @@ export default function Navbar() {
                         </div>
                         <div className="flex flex-col">
                           <p className="text-[12px] font-bold text-white/90 uppercase tracking-widest leading-none">
-                            TESTE PLANO PRO
+                            {trialDaysLeft === 0
+                              ? 'TESTE EXPIRADO'
+                              : 'TESTE PLANO PRO'}
                           </p>
-                          <span className="text-[11px] text-white/80 font-medium mt-1">
-                            {trialDaysLeft}{' '}
-                            {trialDaysLeft === 1
-                              ? 'dia restante'
-                              : 'dias restantes'}
+                          <span
+                            className={`text-[11px] font-medium mt-1 ${trialDaysLeft === 0 ? 'text-red-400' : 'text-white/80'}`}
+                          >
+                            {trialDaysLeft === 0
+                              ? 'O período de teste chegou ao fim'
+                              : `${trialDaysLeft} ${trialDaysLeft === 1 ? 'dia restante' : 'dias restantes'}`}
                           </span>
                         </div>
                       </div>
@@ -316,6 +325,7 @@ export default function Navbar() {
               </div>
             )}
 
+            <OverdueBadge overdueSince={overdueSince} />
             {user && <NotificationMenu userId={user.id} />}
             <UserMenu
               session={user}

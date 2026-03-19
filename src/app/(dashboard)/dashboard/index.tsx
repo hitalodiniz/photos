@@ -54,6 +54,7 @@ export default function Dashboard({
       galerias
         .filter((g) => !g.is_deleted)
         .filter((g) => !g.is_archived)
+        .filter((g) => !g.auto_archived)
         .reduce((sum, g) => sum + (g.photo_count || 0), 0),
     [galerias],
   );

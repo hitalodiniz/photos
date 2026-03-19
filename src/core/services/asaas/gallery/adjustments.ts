@@ -23,7 +23,7 @@ async function getNeedsAdjustment(
 
   const { data: galleries } = await supabase
     .from('tb_galerias')
-    .select('id, title, total_files_count')
+    .select('id, title, photo_count')
     .eq('user_id', profileId)
     .eq('is_deleted', false)
     .eq('is_archived', false)
@@ -38,7 +38,7 @@ async function getNeedsAdjustment(
   const excessGalleries: Array<{ id: string; title: string }> = [];
 
   for (const g of galleries) {
-    const photoCount = g.total_files_count || 0;
+    const photoCount = g.photo_count || 0;
 
     const respectsSingleGalleryLimit = photoCount <= maxPhotosPerGallery;
     const fitsInGlobalGalleryLimit = currentGalleryCount < galleryLimit;
@@ -99,7 +99,6 @@ export async function reactivateAutoArchivedGalleries(
   const { error: updateError } = await supabase
     .from('tb_galerias')
     .update({
-      is_public: true,
       auto_archived: false,
       updated_at: new Date().toISOString(),
     })

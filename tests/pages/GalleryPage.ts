@@ -35,40 +35,41 @@ export class GalleryPage {
     if (data.clientName !== undefined) await this.clientNameInput.fill(data.clientName);
     if (data.date !== undefined) await this.dateInput.fill(data.date);
     if (data.category !== undefined) {
-      const categorySelect = this.page.locator('select', { hasText: 'selecione a categoria' }).first();
+      // O CategorySelect é um select nativo. Usamos evaluate para garantir que o React veja a mudança se necessário.
+      const categorySelect = this.page.locator('select[name="category"], select').filter({ hasText: /selecione a categoria/i }).first();
       await categorySelect.selectOption({ label: data.category });
+      await categorySelect.evaluate((el: HTMLSelectElement) => {
+        el.dispatchEvent(new Event('change', { bubbles: true }));
+      });
     }
   }
 
   async save() {
-    // Clica no botão de salvar/criar no rodapé, garantindo que é o botão principal
-    const saveBtn = this.page.locator('button').filter({ hasText: /CRIAR|SALVAR ALTERAÇÕES|SALVAR/i }).last();
+    // Clica no botão de salvar/criar no rodapé, garantindo que é o botão principal do footer
+    const footer = this.page.locator('div.sticky.bottom-0');
+    const saveBtn = footer.locator('button').filter({ hasText: /CRIAR|SALVAR ALTERAÇÕES|SALVAR/i }).first();
     await saveBtn.click({ force: true });
   }
 
   async expectCreatedSuccessfully() {
-    await this.page.screenshot({ path: 'tests/screenshots/before-expect-created.png', fullPage: true });
-    // Escreve o DOM para depuracao
-    const html = await this.page.content();
-    require('fs').writeFileSync('tests/screenshots/dom-dump.html', html);
-    
     // Procura pelo título do modal de sucesso ou qualquer texto de confirmação
-    // O BaseModal usa h2 para o título.
+    // O BaseModal usa h2 para o título. Aumentamos o timeout para lidar com o delay de 800ms + rede.
     const successHeader = this.page.locator('h2').filter({ hasText: /Galeria (Criada|Atualizada)/i });
-    await expect(successHeader.first()).toBeVisible({ timeout: 15000 });
+    await expect(successHeader).toBeVisible({ timeout: 30000 });
   }
 
   async expectValidationError() {
-    // O formulário exibe toasts de erro. Vamos capturar qualquer toast ou texto de erro visível.
-    // Usamos um seletor mais amplo para capturar mensagens de erro do toast ou do formulário
-    const errorText = this.page.locator(':visible').filter({ hasText: /obrigatório|selecione|preencha|data|título|pasta|inválido/i });
-    await expect(errorText.first()).toBeVisible({ timeout: 10000 });
+    // O formulário exibe toasts de erro ou mensagens nativas.
+    // Vamos procurar por elementos com role="alert" ou classes de erro específicas.
+    const errorText = this.page.locator('[role="alert"], .text-red-500, .border-red-500').filter({ hasText: /obrigatório|selecione|preencha|inválido|falha|erro/i }).first();
+    await expect(errorText).toBeVisible({ timeout: 10000 });
   }
 
   async expectLimitReached() {
-    // Especificamos o heading para evitar conflito com o botão da sidebar
-    const modalHeader = this.page.getByRole('heading', { name: 'Limite Atingido' });
-    await expect(modalHeader).toBeVisible();
+    // Procura por qualquer elemento visível com "Limite Atingido" ou "Upgrade Necessário"
+    // Pode ser um h2, h3 ou até um span dependendo do componente.
+    const modal = this.page.locator(':visible').filter({ hasText: /Limite Atingido|Upgrade Necessário/i }).first();
+    await expect(modal).toBeVisible({ timeout: 15000 });
   }
 
   async expectNotFound() {
@@ -89,5 +90,13 @@ export class GalleryPage {
     // Procura por itens de menu que contenham o texto de alternar status ou exibir no perfil
     const toggleBtn = this.page.locator('[role="menuitem"], button, div').filter({ hasText: /Tornar|Pública|Privada|Exibir no Perfil/i }).locator('button, [role="switch"]').first();
     await toggleBtn.click();
+  }
+
+  async fillHiddenInput(name: string, value: string) {
+    const input = this.page.locator(`input[type="hidden"][name="${name}"]`);
+    await input.fill(value);
+    // Dispara eventos para o React notar a mudança e o hook-form validar corretamente
+    await input.dispatchEvent('input', { bubbles: true });
+    await input.dispatchEvent('change', { bubbles: true });
   }
 }

@@ -4,8 +4,6 @@ import {
   ChevronLeft,
   ChevronRight,
   Lock,
-  SegmentIcon,
-  ArrowLeft,
   TrendingUp,
 } from 'lucide-react';
 import type { ViewType } from '../hooks/useDashboardFilters';
@@ -101,7 +99,7 @@ export default function Sidebar({
               }
             }}
             disabled={isNovaGaleriaDisabled}
-            className={`flex items-center justify-center transition-all duration-300 rounded-luxury border h-12 w-36 gap-2 group shadow-lg
+            className={`flex items-center justify-center transition-all duration-300 rounded-md border h-10 w-32 px-2 gap-1 group shadow-lg
       ${
         !canCreateMore
           ? 'bg-champagne/80 border-champagne/20 text-black/80 cursor-not-allowed hover:border-champagne/20'
@@ -119,7 +117,7 @@ export default function Sidebar({
             <div className="relative flex items-center justify-center">
               {/* Ícone principal Plus com opacidade condicional */}
               <Plus
-                size={20}
+                size={15}
                 className={`transition-all ${
                   isRedirecting ? 'animate-spin' : 'group-hover:rotate-90'
                 } ${!canCreateMore ? 'opacity-0' : ''}`}

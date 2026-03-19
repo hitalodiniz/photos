@@ -2,7 +2,10 @@ import { NextRequest, NextResponse } from 'next/server';
 import { createSupabaseServerClient } from '@/lib/supabase.server';
 import { revalidatePath } from 'next/cache';
 import { revalidateUserCache } from '@/actions/revalidate.actions';
-import type { AsaasWebhookPayload, AsaasWebhookEvent } from '@/core/types/billing';
+import type {
+  AsaasWebhookPayload,
+  AsaasWebhookEvent,
+} from '@/core/types/billing';
 import { performDowngradeToFree } from '@/core/services/asaas.service';
 import { reactivateAutoArchivedGalleries } from '@/core/services/asaas';
 import type { PlanKey } from '@/core/config/plans';
@@ -57,14 +60,16 @@ export async function POST(request: NextRequest) {
         .single();
 
       if (logError) {
-        console.error('[Webhook Asaas] Falha ao inserir log inicial:', logError);
+        console.error(
+          '[Webhook Asaas] Falha ao inserir log inicial:',
+          logError,
+        );
       } else {
         logId = log.id;
       }
     } catch (e) {
       console.error('[Webhook Asaas] Exceção ao inserir log inicial:', e);
     }
-
 
     /**
      * Processamento sempre por identificadores externos (asaas_payment_id / asaas_subscription_id).
@@ -132,7 +137,8 @@ export async function POST(request: NextRequest) {
             const subscriptionIdFromPayment =
               typeof payment?.subscription === 'string'
                 ? payment.subscription
-                : (payment as { subscription?: string })?.subscription ?? null;
+                : ((payment as { subscription?: string })?.subscription ??
+                  null);
 
             // Vínculo de assinatura: se o pagamento traz subscription e o request ainda tem asaas_subscription_id nulo, atualizar.
             if (subscriptionIdFromPayment) {
@@ -162,6 +168,7 @@ export async function POST(request: NextRequest) {
               .select('id')
               .eq('asaas_payment_id', paymentId)
               .maybeSingle();
+
             if (!existingByPayment?.id && subscriptionIdFromPayment) {
               const { data: subRow } = await supabase
                 .from('tb_upgrade_requests')
@@ -172,6 +179,7 @@ export async function POST(request: NextRequest) {
                 .order('created_at', { ascending: false })
                 .limit(1)
                 .maybeSingle();
+
               if (subRow?.profile_id) {
                 const paidValue = payment?.value ?? 0;
                 const now = new Date().toISOString();
@@ -206,6 +214,7 @@ export async function POST(request: NextRequest) {
               paymentId,
               payment?.value,
             );
+
             if (!amountValidation.valid) {
               console.error(
                 '[Webhook Asaas] Valor divergente — pagamento NÃO ativado.',
@@ -216,13 +225,16 @@ export async function POST(request: NextRequest) {
                 .from('tb_upgrade_requests')
                 .update({
                   status: 'rejected',
-                  notes: amountValidation.reason ?? 'Valor pago diverge do registrado',
+                  notes:
+                    amountValidation.reason ??
+                    'Valor pago diverge do registrado',
                   updated_at: new Date().toISOString(),
                 })
                 .eq('asaas_payment_id', paymentId);
               // Return 200 so Asaas doesn't retry; fraud/error logged above
               return NextResponse.json({ received: true }, { status: 200 });
             }
+
             await handlePaymentRpc('CONFIRMED');
             // Log de sucesso ao ativar plano
             const { data: req } = await supabase
@@ -243,6 +255,38 @@ export async function POST(request: NextRequest) {
                 console.warn('[Webhook Asaas] revalidateUserCache:', err),
               );
             }
+
+            await handlePaymentRpc('CONFIRMED');
+
+            const { data: req } = await supabase
+              .from('tb_upgrade_requests')
+              .select('profile_id, plan_key_requested')
+              .eq('asaas_payment_id', paymentId)
+              .maybeSingle();
+
+            if (req?.profile_id && req?.plan_key_requested) {
+              await reactivateAutoArchivedGalleries(
+                req.profile_id,
+                req.plan_key_requested as PlanKey,
+                supabase,
+              );
+              await revalidateUserCache(req.profile_id).catch((err) =>
+                console.warn('[Webhook Asaas] revalidateUserCache:', err),
+              );
+            }
+
+            // ── NOVO: pagamento regularizado, limpa carência de atraso ────────────
+            if (subscriptionId) {
+              await supabase
+                .from('tb_upgrade_requests')
+                .update({
+                  overdue_since: null,
+                  updated_at: new Date().toISOString(),
+                })
+                .eq('asaas_subscription_id', subscriptionId)
+                .eq('status', 'approved');
+            }
+
             revalidatePath('/dashboard');
             revalidatePath('/dashboard/planos');
           }
@@ -253,10 +297,24 @@ export async function POST(request: NextRequest) {
           if (paymentId) {
             await handlePaymentRpc('OVERDUE');
 
+            const subscriptionIdOverdue = payment?.subscription ?? null;
+            // ── NOVO: marca início da carência de 5 dias ──────────────────────────
+            if (subscriptionIdOverdue) {
+              await supabase
+                .from('tb_upgrade_requests')
+                .update({
+                  overdue_since: new Date().toISOString(),
+                  updated_at: new Date().toISOString(),
+                })
+                .eq('asaas_subscription_id', subscriptionIdOverdue)
+                .eq('status', 'approved')
+                .is('overdue_since', null); // não sobrescreve se já foi marcado
+            }
+
             // Quando há um cancelamento agendado (pending_downgrade),
             // o Asaas pode marcar a cobrança de renovação como OVERDUE.
             // Só aplicar downgrade se o perfil ainda não estiver em FREE (sanitização).
-            const subscriptionIdOverdue = payment?.subscription ?? null;
+
             if (subscriptionIdOverdue) {
               const { data: subReq } = await supabase
                 .from('tb_upgrade_requests')
@@ -357,7 +415,10 @@ export async function POST(request: NextRequest) {
                 // Cancelamento imediato já processado — apenas garantir status 'cancelled'
                 await supabase
                   .from('tb_upgrade_requests')
-                  .update({ status: 'cancelled', updated_at: new Date().toISOString() })
+                  .update({
+                    status: 'cancelled',
+                    updated_at: new Date().toISOString(),
+                  })
                   .eq('id', subReq.id)
                   .neq('status', 'cancelled');
               }
@@ -368,7 +429,9 @@ export async function POST(request: NextRequest) {
 
         case 'SUBSCRIPTION_DELETED': {
           // Assinatura removida no Asaas → downgrade imediato para FREE
-          const subId = subscriptionId ?? (body as { subscription?: { id?: string } }).subscription?.id;
+          const subId =
+            subscriptionId ??
+            (body as { subscription?: { id?: string } }).subscription?.id;
           if (subId) {
             const { data: subReq } = await supabase
               .from('tb_upgrade_requests')

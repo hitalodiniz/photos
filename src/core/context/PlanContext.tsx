@@ -73,25 +73,28 @@ export function PlanProvider({
 
   // 2. DETERMINAÇÃO DO PLANO (Lógica de Precedência)
   const planToUse = useMemo((): PlanKey => {
-    // Prioridade 1: Se houver um perfil, valida Trial e plano salvo
-    // console.log('DEBUG PROVIDER:', {
-    //   propPlanKey: planKey,
-    //   profileObj: profile,
-    // });
-    // Dentro do useMemo do planToUse no PlanProvider.tsx
-    // Dentro do PlanProvider.tsx
     if (profile) {
+      // Isento sempre mantém o plano
       if (profile.is_exempt) {
         return (profile.plan_key || 'FREE') as PlanKey;
       }
+
+      // LÓGICA DE TRIAL AJUSTADA
       if (profile.is_trial) {
+        // Se não tem data, algo está errado, volta pra FREE
         if (!profile.plan_trial_expires) return 'FREE';
 
         const expiresTimestamp = new Date(profile.plan_trial_expires).getTime();
-        const isNotExpired = Date.now() < expiresTimestamp;
 
-        if (isNaN(expiresTimestamp) || !isNotExpired) return 'FREE';
+        // Se a data for inválida, volta pra FREE
+        if (isNaN(expiresTimestamp)) return 'FREE';
 
+        /**
+         * 💡 MUDANÇA AQUI:
+         * Não retornamos FREE imediatamente se expirou.
+         * Retornamos o plano do perfil (PRO) para que a UI possa
+         * mostrar "Expirado" enquanto o Cron de Downgrade não roda no banco.
+         */
         return (profile.plan_key || 'FREE') as PlanKey;
       }
 

@@ -15,6 +15,7 @@ import {
   Database,
   Users,
   Crown,
+  Clock,
 } from 'lucide-react';
 import BaseModal from '@/components/ui/BaseModal';
 
@@ -27,9 +28,10 @@ export default function AdminControlModal({
 }) {
   const [isSyncing, setIsSyncing] = useState(false);
   const [isCleaningTokens, setIsCleaningTokens] = useState(false);
-  const [activeTab, setActiveTab] = useState<'painel' | 'cache' | 'tokens'>(
-    'painel',
-  );
+  const [isExpiringTrials, setIsExpiringTrials] = useState(false);
+  const [activeTab, setActiveTab] = useState<
+    'painel' | 'cache' | 'tokens' | 'sistema'
+  >('painel');
   const [mounted, setMounted] = useState(false);
   const router = useRouter();
 
@@ -56,6 +58,40 @@ export default function AdminControlModal({
       alert('Erro crítico na requisição de limpeza.');
     } finally {
       setIsSyncing(false);
+    }
+  };
+
+  const handleExpireTrials = async () => {
+    if (
+      !confirm(
+        'Deseja processar a expiração de todos os trials vencidos agora?',
+      )
+    )
+      return;
+
+    setIsExpiringTrials(true);
+    try {
+      const response = await fetch('/api/cron/expire-trials', {
+        method: 'GET',
+        headers: {
+          Authorization: `Bearer ${process.env.NEXT_PUBLIC_CRON_SECRET}`,
+        },
+      });
+
+      const result = await response.json();
+
+      if (result.success) {
+        alert(`✅ Sucesso!\nTrials processados: ${result.processedCount || 0}`);
+
+        // 🎯 Truque para forçar o Next.js a ignorar o cache local do navegador
+        window.location.href = '/dashboard?updated=' + Date.now();
+      } else {
+        alert(`❌ Erro: ${result.error || 'Falha na rotina'}`);
+      }
+    } catch (error) {
+      alert('❌ Erro crítico ao conectar com a API de Cron.');
+    } finally {
+      setIsExpiringTrials(false);
     }
   };
 
@@ -92,6 +128,16 @@ export default function AdminControlModal({
         }`}
       >
         Tokens
+      </button>
+      <button
+        onClick={() => setActiveTab('sistema')}
+        className={`flex-1 py-3 text-[10px] font-bold uppercase tracking-luxury-widest transition-colors ${
+          activeTab === 'sistema'
+            ? 'text-gold border-b-2 border-gold'
+            : 'text-white/60 hover:text-white'
+        }`}
+      >
+        Sistema
       </button>
     </div>
   );
@@ -255,6 +301,53 @@ export default function AdminControlModal({
                 />
                 {isCleaningTokens ? 'Validando...' : 'Limpeza Completa'}
               </button>
+            </div>
+          </div>
+        )}
+        {activeTab === 'sistema' && (
+          <div className="space-y-4">
+            <div className="flex justify-center">
+              <div className="inline-flex p-3 bg-petroleum/5 rounded-full text-champagne border border-petroleum/10">
+                <Clock
+                  size={24}
+                  strokeWidth={2.5}
+                  className={isExpiringTrials ? 'animate-pulse' : ''}
+                />
+              </div>
+            </div>
+            <div className="text-center">
+              <h3 className="text-base font-semibold text-petroleum">
+                Manutenção de Assinaturas
+              </h3>
+              <p className="text-[10px] text-petroleum/40 mt-1 leading-relaxed font-bold uppercase tracking-luxury">
+                Rotinas de verificação de planos e períodos de teste.
+              </p>
+            </div>
+
+            <div className="space-y-2">
+              <button
+                onClick={handleExpireTrials}
+                disabled={isExpiringTrials}
+                className={`w-full h-11 rounded-luxury font-bold uppercase tracking-luxury-widest text-[10px] flex items-center justify-center gap-3 transition-all
+          ${
+            isExpiringTrials
+              ? 'bg-slate-100 text-petroleum/40 cursor-not-allowed'
+              : 'bg-gold text-petroleum hover:bg-petroleum hover:text-white active:scale-95 shadow-lg shadow-gold/10'
+          }
+        `}
+              >
+                <RefreshCw
+                  size={14}
+                  className={isExpiringTrials ? 'animate-spin' : ''}
+                />
+                {isExpiringTrials
+                  ? 'Processando Downgrades...'
+                  : 'Forçar Expiração de Trials'}
+              </button>
+
+              <p className="text-[9px] text-center text-petroleum/40 italic">
+                * Esta ação executa a mesma rotina do Cron Job da Vercel.
+              </p>
             </div>
           </div>
         )}

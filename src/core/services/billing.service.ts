@@ -160,3 +160,25 @@ export async function cancelUpgradeRequest(
 
   return { success: true };
 }
+
+/**
+ * Retorna a data desde quando a assinatura do usuário está em atraso.
+ * Retorna null se não houver atraso ou nenhuma assinatura ativa.
+ */
+export async function getOverdueSince(
+  profileId: string,
+): Promise<string | null> {
+  const supabase = await createSupabaseServerClient();
+
+  const { data } = await supabase
+    .from('tb_upgrade_requests')
+    .select('overdue_since')
+    .eq('profile_id', profileId)
+    .eq('status', 'approved')
+    .not('overdue_since', 'is', null)
+    .order('overdue_since', { ascending: false })
+    .limit(1)
+    .maybeSingle();
+
+  return data?.overdue_since ?? null;
+}

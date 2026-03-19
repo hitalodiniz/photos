@@ -15,16 +15,16 @@ export default async function DashboardGroupLayout({
     redirect('/');
   }
 
-  const expiredCheck = await checkAndApplyExpiredSubscriptions(result.user_id).catch(
-    (err) => {
-      console.error('[Layout] checkAndApplyExpiredSubscriptions falhou:', err);
-      return {
-        applied: false,
-        needs_adjustment: false,
-        excess_galleries: [] as Array<{ id: string; title: string }>,
-      };
-    },
-  );
+  const expiredCheck = await checkAndApplyExpiredSubscriptions(
+    result.user_id,
+  ).catch((err) => {
+    console.error('[Layout] checkAndApplyExpiredSubscriptions falhou:', err);
+    return {
+      applied: false,
+      needs_adjustment: false,
+      excess_galleries: [] as Array<{ id: string; title: string }>,
+    };
+  });
 
   const profile = result.profile ?? null;
 

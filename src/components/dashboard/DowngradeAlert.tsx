@@ -24,11 +24,13 @@ export function DowngradeAlert({ profile, galerias }: DowngradeAlertProps) {
     | { last_downgrade_alert_viewed?: boolean }
     | null
     | undefined;
-  const shouldShow =
-    metadata?.last_downgrade_alert_viewed === false;
+  const shouldShow = metadata?.last_downgrade_alert_viewed === false;
 
   const autoArchived = galerias.filter(
-    (g) => g.auto_archived === true && g.is_archived === false && g.is_deleted === false,
+    (g) =>
+      g.auto_archived === true &&
+      g.is_archived === false &&
+      g.is_deleted === false,
   );
 
   if (!shouldShow || autoArchived.length === 0) return null;
@@ -47,7 +49,7 @@ export function DowngradeAlert({ profile, galerias }: DowngradeAlertProps) {
       onClose={handleConfirm}
       title="Notificação de Plano"
       subtitle="Downgrade automático de galerias excedentes"
-      maxWidth="lg"
+      maxWidth="2xl"
       headerIcon={<AlertTriangle size={18} />}
       showCloseButton={!isPending}
       footer={
@@ -65,8 +67,8 @@ export function DowngradeAlert({ profile, galerias }: DowngradeAlertProps) {
     >
       <div className="space-y-3 text-sm text-petroleum">
         <p className="text-[13px] leading-relaxed">
-          <strong>Notificação de Plano.</strong> Sua assinatura foi alterada e{' '}
-          <strong>{total}</strong> galeria{total > 1 ? 's' : ''} foi
+          Sua assinatura foi alterada e <strong>{total}</strong> galeria
+          {total > 1 ? 's' : ''} foi
           {total > 1 ? 'ram' : ' '} arquivada{total > 1 ? 's' : ''} para cumprir
           o novo limite de plano.
         </p>
@@ -88,10 +90,7 @@ export function DowngradeAlert({ profile, galerias }: DowngradeAlertProps) {
             {autoArchived.map((g) => (
               <li key={g.id} className="flex justify-between gap-2">
                 <div className="min-w-0">
-                  <p
-                    className="font-medium truncate"
-                    title={g.title}
-                  >
+                  <p className="font-medium truncate" title={g.title}>
                     {g.title}
                   </p>
                   <p className="text-[11px] text-slate-500 truncate">
@@ -117,4 +116,3 @@ export function DowngradeAlert({ profile, galerias }: DowngradeAlertProps) {
     </BaseModal>
   );
 }
-

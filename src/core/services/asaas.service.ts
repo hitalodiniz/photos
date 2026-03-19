@@ -5,7 +5,10 @@
 // 📦 IMPORTS INTERNOS (para as funções que ainda estão aqui)
 // ═══════════════════════════════════════════════════════════════════════════════
 
-import { createSupabaseAdmin, createSupabaseServerClient } from '@/lib/supabase.server';
+import {
+  createSupabaseAdmin,
+  createSupabaseServerClient,
+} from '@/lib/supabase.server';
 import { getAuthenticatedUser } from '@/core/services/auth-context.service';
 import { revalidateUserCache } from '@/actions/revalidate.actions';
 import { revalidatePath } from 'next/cache';
@@ -740,7 +743,8 @@ export async function updateSubscriptionBillingMethod(
 ): Promise<{ success: boolean; error?: string }> {
   try {
     const { success, userId } = await getAuthenticatedUser();
-    if (!success || !userId) return { success: false, error: 'Não autenticado' };
+    if (!success || !userId)
+      return { success: false, error: 'Não autenticado' };
 
     const supabase = await createSupabaseServerClient();
     const admin = createSupabaseAdmin();
@@ -748,19 +752,21 @@ export async function updateSubscriptionBillingMethod(
     // Registro alvo para atualização:
     // A tabela do /dashboard/assinatura usa `history[0]` (getUpgradeHistory ordena por created_at DESC),
     // então aqui atualizamos o registro mais recente daquela assinatura.
-    const {
-      data: currentReq,
-      error: currentReqErr,
-    } = await supabase
+    const { data: currentReq, error: currentReqErr } = await supabase
       .from('tb_upgrade_requests')
-      .select('id, billing_type, status, notes, asaas_payment_id, asaas_subscription_id')
+      .select(
+        'id, billing_type, status, notes, asaas_payment_id, asaas_subscription_id',
+      )
       .eq('profile_id', userId)
       .eq('asaas_subscription_id', subscriptionId)
       .order('created_at', { ascending: false })
       .limit(1)
       .maybeSingle();
     if (currentReqErr) {
-      return { success: false, error: 'Erro ao carregar registro da assinatura.' };
+      return {
+        success: false,
+        error: 'Erro ao carregar registro da assinatura.',
+      };
     }
     if (!currentReq?.id) {
       // Sem um row para atualizar, não faz sentido retornar success (foi a causa da tabela "não gravar").
@@ -803,7 +809,9 @@ export async function updateSubscriptionBillingMethod(
     const previous = (currentReq.billing_type as string | null) ?? null;
     const nowIso = new Date().toISOString();
     const historyLine = `[PaymentMethodChange ${nowIso}] ${previous ?? 'UNKNOWN'} -> ${newMethod}`;
-    const nextNotes = [currentReq.notes, historyLine].filter(Boolean).join('\n');
+    const nextNotes = [currentReq.notes, historyLine]
+      .filter(Boolean)
+      .join('\n');
 
     const updatePatch: Record<string, unknown> = {
       billing_type: newMethod,
@@ -829,7 +837,8 @@ export async function updateSubscriptionBillingMethod(
     if (updErr) {
       return {
         success: false,
-        error: 'Pagamento atualizado no Asaas, mas falhou ao salvar no sistema.',
+        error:
+          'Pagamento atualizado no Asaas, mas falhou ao salvar no sistema.',
       };
     }
     if (!updatedRow?.id) {
@@ -865,7 +874,7 @@ export async function performDowngradeToFree(
   excess_galleries: Array<{ id: string; title: string }>;
   error?: string;
 }> {
-  const supabase = supabaseClient ?? (await createSupabaseServerClient());
+  const supabase = supabaseClient ?? (await createSupabaseAdmin());
 
   const { data: profile } = await supabase
     .from('tb_profiles')

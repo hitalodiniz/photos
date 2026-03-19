@@ -261,7 +261,9 @@ export async function upsertProfile(formData: FormData, supabaseClient?: any) {
 
   if (formFields.accepted_terms && !existingProfile?.accepted_ip) {
     const headersList = headers();
-    const ip = (headersList.get('x-forwarded-for') ?? '127.0.0.1').split(',')[0];
+    const ip = (headersList.get('x-forwarded-for') ?? '127.0.0.1').split(
+      ',',
+    )[0];
     termsData.accepted_at = new Date().toISOString();
     termsData.accepted_ip = ip;
   } else if (existingProfile?.accepted_ip) {
@@ -270,7 +272,8 @@ export async function upsertProfile(formData: FormData, supabaseClient?: any) {
     termsData.accepted_ip = existingProfile.accepted_ip;
   }
 
-  const currentSettings = (existingProfile?.settings as UserSettings | null) || {};
+  const currentSettings =
+    (existingProfile?.settings as UserSettings | null) || {};
   const mergedSettings: UserSettings = {
     ...currentSettings,
     display: currentSettings?.display ?? {},
@@ -470,7 +473,7 @@ export const getProfileByUsername = cache(async (username: string) => {
     [`profile-data-${cleanUsername}`], // Chave única do cache
     {
       revalidate: GLOBAL_CACHE_REVALIDATE, // 30 dias (definido no seu url-helper)
-      tags: [`profile-${cleanUsername}`], // Tag para revalidateTag
+      tags: [`profile-${cleanUsername}`, `profile-data-${cleanUsername}`],
     },
   )(cleanUsername);
 });

@@ -121,7 +121,14 @@ export async function cleanupAndResetTrialState(
   return userId; // Retorna para o Playwright usar na rota de revalidate
 }
 
-export async function injectTestGalleries(userEmail: string, count: number) {
+export async function injectTestGalleries(
+  userEmail: string,
+  count: number,
+  options?: {
+    show_on_profile?: boolean;
+    has_contracting_client?: 'CB' | 'CT' | 'ES';
+  },
+) {
   const { data: profile, error: profileError } = await supabase
     .from('tb_profiles')
     .select('id')
@@ -134,6 +141,9 @@ export async function injectTestGalleries(userEmail: string, count: number) {
 
   const userId = profile.id;
 
+  const showOnProfile = options?.show_on_profile ?? false;
+  const hasContractingClient = options?.has_contracting_client ?? 'CB';
+
   const galleries = Array.from({ length: count }).map((_, index) => ({
     user_id: userId,
     title: `Galeria Injetada ${index + 1}`,
@@ -145,13 +155,13 @@ export async function injectTestGalleries(userEmail: string, count: number) {
     is_public: true,
     is_archived: false,
     is_deleted: false,
-    has_contracting_client: 'CB',
+    has_contracting_client: hasContractingClient,
     show_cover_in_grid: false,
     grid_bg_color: '#ffffff',
     columns_mobile: 2,
     columns_tablet: 3,
     columns_desktop: 4,
-    show_on_profile: false,
+    show_on_profile: showOnProfile,
     leads_enabled: false,
     leads_require_name: false,
     leads_require_email: false,
