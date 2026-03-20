@@ -20,18 +20,35 @@ vi.mock('@supabase/supabase-js', () => ({
 }));
 
 function makeSupabaseForExpireTrials() {
-  const profilesBuilder = {
-    select: vi.fn(() => profilesBuilder),
-    eq: vi.fn(() => profilesBuilder),
+  const metadataSelectBuilder = {
+    eq: vi.fn(() => metadataSelectBuilder),
+    maybeSingle: vi.fn().mockResolvedValue({
+      data: { metadata: {} },
+      error: null,
+    }),
+  };
+
+  const expiredProfilesSelectBuilder = {
+    eq: vi.fn(() => expiredProfilesSelectBuilder),
     lt: vi.fn().mockResolvedValue({
       data: [{ id: 'u-1', username: 'alice' }],
       error: null,
     }),
   };
 
+  const updateBuilder = {
+    eq: vi.fn().mockResolvedValue({ data: null, error: null }),
+  };
+
   const from = vi.fn((table: string) => {
-    if (table === 'tb_profiles') return profilesBuilder;
-    return profilesBuilder;
+    if (table !== 'tb_profiles') return {};
+    return {
+      select: vi.fn((columns?: string) => {
+        if (columns?.includes('metadata')) return metadataSelectBuilder;
+        return expiredProfilesSelectBuilder;
+      }),
+      update: vi.fn(() => updateBuilder),
+    };
   });
 
   return { from };
