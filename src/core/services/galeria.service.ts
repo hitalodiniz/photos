@@ -919,6 +919,7 @@ export async function getPublicProfileGalerias(
         .eq('user_id', profile.id)
         .eq('show_on_profile', true)
         .eq('is_archived', false)
+        .eq('auto_archived', false)
         .eq('is_deleted', false)
         .order('date', { ascending: false })
         .range(from, to);
@@ -1212,7 +1213,8 @@ export async function getProfileListCount(userId: string): Promise<number> {
     .eq('user_id', userId)
     .eq('show_on_profile', true)
     .eq('is_deleted', false)
-    .eq('is_archived', false);
+    .eq('is_archived', false)
+    .eq('auto_archived', false);
 
   if (error) {
     console.error('[getProfileListCount] Erro:', error);
@@ -1240,6 +1242,7 @@ export async function archiveExceedingGalleries(
     .eq('user_id', userId)
     .eq('is_deleted', false)
     .eq('is_archived', false)
+    .eq('auto_archived', false)
     .order('date', { ascending: false });
 
   if (fetchError) throw fetchError;
@@ -1367,6 +1370,7 @@ export const getProfileCategories = cache(async (userId: string) => {
         .eq('user_id', id)
         .eq('is_deleted', false)
         .eq('is_archived', false)
+        .eq('auto_archived', false)
         .eq('show_on_profile', true)
         .order('category');
 
@@ -1467,7 +1471,8 @@ export async function getPhotographerPoolStats(
     .select('photo_count')
     .eq('user_id', profileId)
     .eq('is_deleted', false)
-    .eq('is_archived', false); // exclui galerias arquivadas/excluídas
+    .eq('is_archived', false)
+    .eq('auto_archived', false); // exclui galerias arquivadas/excluídas
 
   if (error) {
     console.error('[getPhotographerPoolStats]', error.message);

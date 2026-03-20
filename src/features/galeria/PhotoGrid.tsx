@@ -22,7 +22,10 @@ import { DownloadCenterSheet } from './DownloadCenterSheet';
 import { emitGaleriaEvent } from '@/core/services/galeria-stats.service';
 import { useShare } from '@/hooks/useShare';
 import { usePlan } from '@/core/context/PlanContext';
-import { ZIP_LIMIT_TO_RESOLUTION } from '@/core/config/plans';
+import {
+  ZIP_LIMIT_TO_RESOLUTION,
+  MAX_PHOTOS_PER_GALLERY_BY_PLAN,
+} from '@/core/config/plans';
 import { ConfirmationModal, Toast } from '@/components/ui';
 import { saveGaleriaSelectionAction } from '@/core/services/galeria.service';
 
@@ -84,6 +87,13 @@ export default function PhotoGrid({ photos, galeria }: any) {
       .trim()
       .toUpperCase();
   const normalizeId = (value: unknown) => String(value || '').trim();
+  const maxPhotosByPlan =
+    MAX_PHOTOS_PER_GALLERY_BY_PLAN[planKey] ??
+    MAX_PHOTOS_PER_GALLERY_BY_PLAN.FREE;
+  const effectiveGalleryPhotoLimit =
+    typeof galeria?.photo_count === 'number' && galeria.photo_count >= 0
+      ? Math.min(galeria.photo_count, maxPhotosByPlan)
+      : maxPhotosByPlan;
 
   const photosWithTags = useMemo(() => {
     const safePhotos = Array.isArray(photos) ? photos : [];
@@ -93,26 +103,30 @@ export default function PhotoGrid({ photos, galeria }: any) {
         ? ('video' as const)
         : ('photo' as const),
     });
-    if (!galeria?.photo_tags) return safePhotos.map(withType);
+    if (!galeria?.photo_tags)
+      return safePhotos.map(withType).slice(0, effectiveGalleryPhotoLimit);
     try {
       const parsedTags = parsePossiblySerializedJson(galeria.photo_tags);
-      if (!Array.isArray(parsedTags)) return safePhotos.map(withType);
+      if (!Array.isArray(parsedTags))
+        return safePhotos.map(withType).slice(0, effectiveGalleryPhotoLimit);
       const tagsMap = new Map(
         parsedTags
           .filter((t: any) => t?.id != null)
           .map((t: any) => [normalizeId(t.id), normalizeTag(t.tag)]),
       );
-      return safePhotos.map((p: any) =>
-        withType({
-          ...p,
-          tag: tagsMap.get(normalizeId(p.id)) || normalizeTag(p.tag) || p.tag,
-        }),
-      );
+      return safePhotos
+        .map((p: any) =>
+          withType({
+            ...p,
+            tag: tagsMap.get(normalizeId(p.id)) || normalizeTag(p.tag) || p.tag,
+          }),
+        )
+        .slice(0, effectiveGalleryPhotoLimit);
     } catch (err) {
       console.error('Erro ao processar tags no Grid:', err);
-      return safePhotos.map(withType);
+      return safePhotos.map(withType).slice(0, effectiveGalleryPhotoLimit);
     }
-  }, [photos, galeria?.photo_tags]);
+  }, [photos, galeria?.photo_tags, effectiveGalleryPhotoLimit]);
 
   const VOLUMES = useMemo(() => {
     const isMobile = typeof window !== 'undefined' && window.innerWidth < 768;
@@ -521,7 +535,7 @@ export default function PhotoGrid({ photos, galeria }: any) {
             setShowOnlyFavorites,
             columns,
             canUseFavorites: canUseFavorites && galeria.enable_favorites,
-            tagSelectionMode: 'single',
+            tagSelectionMode: 'manual',
           }}
           mode={galeria.has_contracting_client === 'ES' ? 'admin' : 'public'}
           allowLightboxInAdmin={galeria.has_contracting_client === 'ES'}

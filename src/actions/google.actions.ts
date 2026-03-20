@@ -52,6 +52,8 @@ export async function checkFolderLimits(
       count: 0,
       hasMore: false,
       totalInDrive: 0,
+      selectedPhotos: 0,
+      selectedVideos: 0,
     };
   }
 
@@ -81,7 +83,9 @@ export async function checkFolderLimits(
   );
   const allowedVideosCount = Math.min(videosWithinSize.length, maxVideoCount);
   const photoSlots = Math.max(0, planLimit - allowedVideosCount);
-  const count = Math.min(photos.length, photoSlots) + allowedVideosCount;
+  const selectedPhotos = Math.min(photos.length, photoSlots);
+  const selectedVideos = allowedVideosCount;
+  const count = selectedPhotos + selectedVideos;
 
   const totalInDrive = count;
   const hasMore =
@@ -93,6 +97,8 @@ export async function checkFolderLimits(
     count: totalInDrive,
     hasMore,
     totalInDrive,
+    selectedPhotos,
+    selectedVideos,
   };
 }
 /**

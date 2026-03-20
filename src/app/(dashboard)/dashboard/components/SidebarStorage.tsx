@@ -44,8 +44,12 @@ export default function SidebarStorage({
     totalPhotosUsed,
     galeriasCount,
   );
-  const available = Math.max(0, effectiveMax - galeriasCount);
-  const isPoolLimiting = effectiveMax < hardCap;
+  // "Disponíveis" deve ser sempre claro: vagas até o hard cap de galerias.
+  // A limitação por cota entra como contexto adicional (badge), não como número principal.
+  const availableByHardCap = Math.max(0, hardCap - galeriasCount);
+  const availableByPool = Math.max(0, effectiveMax - galeriasCount);
+  const available = availableByHardCap;
+  const isPoolLimiting = availableByPool < availableByHardCap;
 
   const galPct = Math.min(Math.round((galeriasCount / hardCap) * 100), 100);
   const isGalWarning = galPct >= 70;
@@ -111,7 +115,7 @@ export default function SidebarStorage({
                     className="text-white/90 shrink-0"
                   />
                   <span className="text-[10px] font-semibold uppercase tracking-[0.1em] text-white/90">
-                    Galerias
+                    Cota Galerias
                   </span>
                 </div>
                 <div className="flex items-baseline gap-0.5 tabular-nums">
@@ -161,7 +165,7 @@ export default function SidebarStorage({
                     {isPoolLimiting && (
                       <span
                         className="inline-flex items-center px-1.5 py-0.5 rounded text-[8px] font-semibold uppercase tracking-wider bg-amber-400/15 text-amber-400 border border-amber-400/30 leading-none"
-                        title="O limite de galerias é dinâmico: os créditos restantes no pool definem quantas você ainda pode criar"
+                        title={`Pela cota de arquivos atual, cabem em média +${availableByPool} nova(s) galeria(s) com a recomendação por galeria do plano.`}
                       >
                         {HELP_CONTENT.STORAGE.POOL_LIMITING_LABEL}
                       </span>
@@ -190,7 +194,7 @@ export default function SidebarStorage({
                     className="text-white/90 shrink-0"
                   />
                   <span className="text-[10px] font-semibold uppercase tracking-[0.1em] text-white/90">
-                    Cota utilizada
+                    Cota arquivos
                   </span>
                 </div>
                 <div className="flex items-baseline gap-0.5 tabular-nums">

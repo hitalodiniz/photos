@@ -30,6 +30,8 @@ interface BaseModalProps {
   blurLevel?: 'none' | 'sm' | 'md' | 'lg' | 'xl';
   /** Tema visual — aplicado no root do portal para que pub-bar-* e color-* resolvam */
   dataTheme?: string;
+  /** Classe CSS adicional para o container principal do modal */
+  className?: string;
 }
 
 export default function BaseModal({
@@ -47,6 +49,7 @@ export default function BaseModal({
   overlayOpacity = '60',
   blurLevel = 'md',
   dataTheme,
+  className,
 }: BaseModalProps) {
   const [mounted, setMounted] = useState(false);
 
@@ -99,7 +102,7 @@ export default function BaseModal({
       corretamente para todos os filhos, mesmo fora da árvore React principal.
     */
     <div
-      className={`fixed inset-0 z-[1100] ${overlayColor}/${overlayOpacity} ${blurClasses[blurLevel]} flex items-center justify-center ${containerPadding} animate-in fade-in duration-500`}
+      className={`fixed inset-0 z-[1100] ${overlayColor}/${overlayOpacity} ${blurClasses[blurLevel]} flex items-center justify-center ${containerPadding} animate-in fade-in duration-500 ${className || ''}`}
       {...(dataTheme ? { 'data-theme': dataTheme } : {})}
     >
       <div

@@ -9,6 +9,7 @@ import {
   Check,
   X,
   Layout,
+  Link,
 } from 'lucide-react';
 import { useRouter } from 'next/navigation';
 import WhatsAppIcon from '@/components/ui/WhatsAppIcon';
@@ -141,11 +142,8 @@ export default function EditorialToolbar() {
             <div className="flex items-center gap-2">
               {mounted && SegmentIcon && (
                 <>
-                  <SegmentIcon
-                    className="w-7 h-7 text-champagne group-hover:scale-110 transition-transform"
-                    strokeWidth={1.5}
-                  />
-                  <span className="text-[16px] md:text-[18px] font-semibold text-navbar-text italic tracking-tight">
+                  <SegmentIcon className="w-7 h-7 text-champagne group-hover:scale-110 transition-transform" />
+                  <span className="text-[16px] md:text-[18px] font-semibold text-white tracking-tight">
                     {terms.site_name}
                   </span>
                 </>
@@ -210,22 +208,24 @@ export default function EditorialToolbar() {
 
             <div className="space-y-4 px-1 pb-4">
               <div className="flex flex-col gap-3">
-                <button
-                  onClick={() => router.push('/privacidade')}
-                  className="text-left text-white/90 text-[10px] uppercase tracking-widest"
+                <Link
+                  href="/privacidade"
+                  className="text-left text-white/90 text-[10px] uppercase tracking-widest hover:text-white transition-colors"
                 >
-                  Privacidade
-                </button>
-                <button
-                  onClick={() => router.push('/termos')}
-                  className="text-left text-white/90 text-[10px] uppercase tracking-widest"
+                  Política de Privacidade
+                </Link>
+                <Link
+                  href="/termos"
+                  className="text-left text-white/90 text-[10px] uppercase tracking-widest hover:text-white transition-colors"
                 >
-                  Termos
-                </button>
-              </div>
-              <div className="flex justify-between items-center text-[9px] uppercase tracking-luxury-widest text-white/90 pt-2">
-                <span>© 2026</span>
-                <span className="italic">Premium</span>
+                  Termos de Uso
+                </Link>
+                <Link
+                  href="/politica-cancelamento"
+                  className="text-left text-white/90 text-[10px] uppercase tracking-widest hover:text-white transition-colors"
+                >
+                  Política de Cancelamento
+                </Link>
               </div>
             </div>
           </div>

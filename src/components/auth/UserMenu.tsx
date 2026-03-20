@@ -27,7 +27,11 @@ interface UserMenuProps {
   } | null;
   avatarUrl?: string | null;
   /** Perfil do usuário (tb_profiles). Se roles incluir 'admin', exibe entrada do Painel Admin. */
-  profile?: { roles?: string[]; plan_key?: PlanKey } | null;
+  profile?: {
+    roles?: string[];
+    plan_key?: PlanKey;
+    is_exempt?: boolean;
+  } | null;
   /** Plano atual (do usePlan). Usado para exibir ícone e nome no menu. */
   planKey?: PlanKey;
   /** Nome de exibição do plano (ex.: "Start", "Pro"). */
@@ -158,15 +162,20 @@ export default function UserMenu({
                         ? `Plano ${planKey}`
                         : ''}
                   </span>
+                  {profile?.is_exempt && (
+                    <span className="px-1.5 py-0.5 rounded-md bg-emerald-500/20 border border-emerald-500/30 text-[9px] font-semibold text-emerald-300">
+                      Isento
+                    </span>
+                  )}
                 </p>
               )}
             </div>
             <div className="px-3 pt-2 space-y-1">
-              {profile?.roles?.includes('admin') && onOpenAdminModal && (
+              {profile?.roles?.includes('admin') && (
                 <button
                   onClick={() => {
                     setIsOpen(false);
-                    onOpenAdminModal();
+                    navigate('/admin', 'Abrindo painel admin...');
                   }}
                   className="w-full flex items-center gap-3 px-4 py-2.5 rounded-lg text-champagne hover:bg-white/5 transition-all text-[13px] font-medium border-b border-white/5 mb-2"
                 >

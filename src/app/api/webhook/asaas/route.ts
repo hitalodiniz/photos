@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from 'next/server';
 import { createSupabaseServerClient } from '@/lib/supabase.server';
 import { revalidatePath } from 'next/cache';
 import { revalidateUserCache } from '@/actions/revalidate.actions';
+import { toSaoPauloIso } from '@/core/utils/date-time';
 import type {
   AsaasWebhookPayload,
   AsaasWebhookEvent,
@@ -12,6 +13,8 @@ import type { PlanKey } from '@/core/config/plans';
 
 export async function POST(request: NextRequest) {
   try {
+    const nowInSaoPauloIso = () => toSaoPauloIso();
+
     // 1. Verificar token de segurança do webhook
     const token = request.headers.get('asaas-access-token');
     const expectedToken = process.env.ASAAS_WEBHOOK_TOKEN;
@@ -55,6 +58,7 @@ export async function POST(request: NextRequest) {
           event_type: body.event,
           payload: body,
           request_id: requestId,
+          processed_at: nowInSaoPauloIso(),
         })
         .select('id')
         .single();
@@ -91,7 +95,7 @@ export async function POST(request: NextRequest) {
       }
       const { data: req } = await supabase
         .from('tb_upgrade_requests')
-        .select('amount_final, id')
+        .select('amount_final, amount_original, id')
         .eq('asaas_payment_id', p_payment_id)
         .maybeSingle();
 
@@ -101,32 +105,51 @@ export async function POST(request: NextRequest) {
       }
 
       const tolerance = 0.01;
-      const diff = Math.abs((req.amount_final ?? 0) - paidValue);
-      if (diff > tolerance) {
+      const amountFinal = Number(req.amount_final ?? 0);
+      const amountOriginal = Number(req.amount_original ?? 0);
+      const matchesAmountFinal = Math.abs(amountFinal - paidValue) <= tolerance;
+      const matchesAmountOriginal =
+        Math.abs(amountOriginal - paidValue) <= tolerance;
+
+      if (!matchesAmountFinal && !matchesAmountOriginal) {
         console.info(
           '[Webhook Asaas] validatePaymentAmount — divergência de valor:',
           {
             request_id: req.id,
-            amount_final_registrado: req.amount_final,
+            amount_final_registrado: amountFinal,
+            amount_original_registrado: amountOriginal,
             valor_pago: paidValue,
-            diff,
+            diff_amount_final: Math.abs(amountFinal - paidValue),
+            diff_amount_original: Math.abs(amountOriginal - paidValue),
             tolerance,
           },
         );
         return {
           valid: false,
-          reason: `Valor pago (R$ ${paidValue}) diverge do registrado (R$ ${req.amount_final}) para request ${req.id}`,
+          reason: `Valor pago (R$ ${paidValue}) diverge do registrado (amount_final R$ ${amountFinal} / amount_original R$ ${amountOriginal}) para request ${req.id}`,
         };
       }
       return { valid: true };
     };
 
-    const handlePaymentRpc = async (p_asaas_status: string) => {
+    const handlePaymentRpc = async (
+      p_asaas_status: string,
+      p_asaas_subscription_id?: string | null,
+    ) => {
       if (!paymentId) return;
-      await supabase.rpc('activate_plan_from_payment', {
+      const { error: rpcError } = await supabase.rpc('activate_plan_from_payment', {
         p_asaas_payment_id: paymentId,
         p_asaas_status,
+        p_asaas_subscription_id:
+          p_asaas_subscription_id === undefined
+            ? null
+            : p_asaas_subscription_id,
       });
+      if (rpcError) {
+        throw new Error(
+          `[Webhook Asaas] RPC activate_plan_from_payment falhou: ${rpcError.message}`,
+        );
+      }
     };
 
     try {
@@ -156,7 +179,7 @@ export async function POST(request: NextRequest) {
                   .from('tb_upgrade_requests')
                   .update({
                     asaas_subscription_id: subscriptionIdFromPayment,
-                    updated_at: new Date().toISOString(),
+                    updated_at: nowInSaoPauloIso(),
                   })
                   .eq('id', byPayment.id);
               }
@@ -182,7 +205,7 @@ export async function POST(request: NextRequest) {
 
               if (subRow?.profile_id) {
                 const paidValue = payment?.value ?? 0;
-                const now = new Date().toISOString();
+                const now = nowInSaoPauloIso();
                 const { error: insertErr } = await supabase
                   .from('tb_upgrade_requests')
                   .insert({
@@ -228,15 +251,53 @@ export async function POST(request: NextRequest) {
                   notes:
                     amountValidation.reason ??
                     'Valor pago diverge do registrado',
-                  updated_at: new Date().toISOString(),
+                  updated_at: nowInSaoPauloIso(),
                 })
                 .eq('asaas_payment_id', paymentId);
+              if (logId) {
+                await supabase
+                  .from('tb_webhook_logs')
+                  .update({
+                    status_code: 422,
+                    error_message: amountValidation.reason,
+                    updated_at: nowInSaoPauloIso(),
+                  })
+                  .eq('id', logId);
+              }
               // Return 200 so Asaas doesn't retry; fraud/error logged above
               return NextResponse.json({ received: true }, { status: 200 });
             }
 
             // 1. Atualiza o status do pagamento via RPC (apenas uma vez)
-            await handlePaymentRpc('CONFIRMED');
+            const subscriptionId =
+              payment?.subscription ?? body.subscription?.id ?? null;
+            const paidStatus = payment?.status ?? 'CONFIRMED';
+            await handlePaymentRpc(paidStatus, subscriptionId);
+
+            // Fallback de segurança: se a RPC não refletir status no request, atualiza diretamente.
+            // Evita ficar preso em "pending" quando o webhook já confirmou/recebeu pagamento.
+            const paymentMeta = payment as
+              | {
+                  confirmedDate?: string | null;
+                  clientPaymentDate?: string | null;
+                  paymentDate?: string | null;
+                }
+              | undefined;
+            const paymentTimestamp =
+              paymentMeta?.confirmedDate ??
+              paymentMeta?.clientPaymentDate ??
+              paymentMeta?.paymentDate ??
+              nowInSaoPauloIso();
+            await supabase
+              .from('tb_upgrade_requests')
+              .update({
+                status: 'approved',
+                asaas_raw_status: paidStatus,
+                processed_at: paymentTimestamp,
+                updated_at: nowInSaoPauloIso(),
+              })
+              .eq('asaas_payment_id', paymentId)
+              .in('status', ['pending', 'processing']);
 
             // 2. Busca os dados da requisição de upgrade vinculada a este pagamento
             // Buscamos sem o filtro de 'approved' para garantir que pegamos a req.
@@ -246,6 +307,15 @@ export async function POST(request: NextRequest) {
               .select('profile_id, plan_key_requested, status')
               .eq('asaas_payment_id', paymentId)
               .maybeSingle();
+
+            if (upgradeReq?.profile_id) {
+              await revalidateUserCache(upgradeReq.profile_id).catch((err) =>
+                console.warn(
+                  '[Webhook Asaas] Falha na revalidação de cache:',
+                  err,
+                ),
+              );
+            }
 
             // 3. Se temos os dados necessários, executamos as ações pós-pagamento
             if (upgradeReq?.profile_id && upgradeReq?.plan_key_requested) {
@@ -260,14 +330,6 @@ export async function POST(request: NextRequest) {
                 supabase,
               );
 
-              // Limpa o cache para o usuário ver o novo plano e as galerias voltarem ao ar
-              // Usamos o catch para o webhook não travar se a revalidação falhar
-              await revalidateUserCache(upgradeReq.profile_id).catch((err) =>
-                console.warn(
-                  '[Webhook Asaas] Falha na revalidação de cache:',
-                  err,
-                ),
-              );
             } else {
               console.warn(
                 `[Webhook Asaas] Nenhuma requisição de upgrade encontrada para o pagamento ${paymentId}`,
@@ -280,7 +342,7 @@ export async function POST(request: NextRequest) {
                 .from('tb_upgrade_requests')
                 .update({
                   overdue_since: null,
-                  updated_at: new Date().toISOString(),
+                  updated_at: nowInSaoPauloIso(),
                 })
                 .eq('asaas_subscription_id', subscriptionId)
                 .eq('status', 'approved');
@@ -302,8 +364,8 @@ export async function POST(request: NextRequest) {
               await supabase
                 .from('tb_upgrade_requests')
                 .update({
-                  overdue_since: new Date().toISOString(),
-                  updated_at: new Date().toISOString(),
+                  overdue_since: nowInSaoPauloIso(),
+                  updated_at: nowInSaoPauloIso(),
                 })
                 .eq('asaas_subscription_id', subscriptionIdOverdue)
                 .eq('status', 'approved')
@@ -416,7 +478,7 @@ export async function POST(request: NextRequest) {
                   .from('tb_upgrade_requests')
                   .update({
                     status: 'cancelled',
-                    updated_at: new Date().toISOString(),
+                    updated_at: nowInSaoPauloIso(),
                   })
                   .eq('id', subReq.id)
                   .neq('status', 'cancelled');
@@ -470,7 +532,7 @@ export async function POST(request: NextRequest) {
       if (logId) {
         await supabase
           .from('tb_webhook_logs')
-          .update({ status_code: 200, updated_at: new Date().toISOString() })
+          .update({ status_code: 200, updated_at: nowInSaoPauloIso() })
           .eq('id', logId);
       }
     } catch (err) {
@@ -483,7 +545,7 @@ export async function POST(request: NextRequest) {
           .update({
             status_code: 500,
             error_message: errorMessage,
-            updated_at: new Date().toISOString(),
+            updated_at: nowInSaoPauloIso(),
           })
           .eq('id', logId);
       }

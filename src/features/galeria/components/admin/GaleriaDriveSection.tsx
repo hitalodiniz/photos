@@ -21,6 +21,8 @@ interface DriveData {
   id?: string;
   name?: string;
   photoCount?: number;
+  selectedPhotos?: number;
+  selectedVideos?: number;
   allCovers?: string[];
   coverId?: string;
 }
@@ -71,6 +73,8 @@ export function GaleriaDriveSection({
   const { permissions, planKey } = usePlan();
 
   const photoCount = driveData.photoCount ?? 0;
+  const selectedPhotos = driveData.selectedPhotos ?? photoCount;
+  const selectedVideos = driveData.selectedVideos ?? 0;
   // Usar o mesmo teto do plano que o form (MAX_PHOTOS_PER_GALLERY_BY_PLAN) para alinhar alerta vermelho e modal.
   const hardCap = planHardCap ?? permissions.maxPhotosPerGallery;
   const recommended = permissions.recommendedPhotosPerGallery; // base do pool (cálculo dinâmico)
@@ -180,6 +184,13 @@ export function GaleriaDriveSection({
           {/* ── Alertas de fotos ─────────────────────────────────────────── */}
           {driveData.id && photoCount > 0 && (
             <div className="space-y-2">
+              <div className="text-[10px] text-slate-600 bg-slate-100 border border-slate-200 rounded px-2 py-1">
+                Selecionados para esta galeria: <strong>{selectedPhotos}</strong>{' '}
+                foto{selectedPhotos !== 1 ? 's' : ''} e{' '}
+                <strong>{selectedVideos}</strong> video
+                {selectedVideos !== 1 ? 's' : ''} (respeitando os limites do
+                plano).
+              </div>
               {/* ESTADO 1: Limite por Galeria Excedido (BLOQUEIO) */}
               {isOverHardCap && (
                 <div className="p-4 rounded-luxury border bg-red-50 border-red-300 flex gap-3 shadow-sm">

@@ -24,6 +24,7 @@ import WhatsAppIcon from '@/components/ui/WhatsAppIcon';
 import { authService } from '@photos/core-auth';
 import { useShare } from '@/hooks/useShare';
 import { useToast } from '@/hooks/useToast';
+import Toast from '@/components/ui/Toast';
 
 interface PhotographerProfile {
   id: string;
@@ -349,6 +350,18 @@ export default function GaleriaFormPage({
       />
 
       {ToastElement}
+      {toast && (
+        <Toast
+          message={toast.message}
+          type={toast.type}
+          onClose={() => setToast(null)}
+          link={
+            toast.link
+              ? { url: toast.link, label: 'Abrir pasta no Google Drive' }
+              : undefined
+          }
+        />
+      )}
 
       <GoogleConsentAlert
         isOpen={showConsentAlert}

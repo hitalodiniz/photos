@@ -2,6 +2,10 @@ import { createSupabaseClientForCache } from '@/lib/supabase.server';
 import { listPhotosFromDriveFolder } from '@/lib/google-drive';
 import { getDriveAccessTokenForUser } from '@/lib/google-auth';
 import { Galeria, GaleriaRawResponse } from '@/core/types/galeria';
+import {
+  MAX_PHOTOS_PER_GALLERY_BY_PLAN,
+  type PlanKey,
+} from '@/core/config/plans';
 import { unstable_cache } from 'next/cache';
 import { GLOBAL_CACHE_REVALIDATE } from '../utils/url-helper';
 
@@ -211,11 +215,26 @@ export const fetchPhotosByGalleryId = (galleryId: string) =>
         return { photos: [], error: 'GALLERY_NOT_FOUND' };
       }
 
-      // Plano por galleryId; photoCount faz a listagem respeitar o que está gravado (ex.: 230), não o teto do plano (300)
+      const photographerProfile = Array.isArray(galeria.photographer)
+        ? galeria.photographer[0]
+        : galeria.photographer;
+      const photographerPlanKey = (
+        String(photographerProfile?.plan_key ?? 'FREE').toUpperCase() as PlanKey
+      );
+      const maxPhotosByPlan =
+        MAX_PHOTOS_PER_GALLERY_BY_PLAN[photographerPlanKey] ??
+        MAX_PHOTOS_PER_GALLERY_BY_PLAN.FREE;
+      const normalizedPhotoCount =
+        typeof galeria.photo_count === 'number' && galeria.photo_count >= 0
+          ? Math.min(galeria.photo_count, maxPhotosByPlan)
+          : undefined;
+
+      // Plano por galleryId; photoCount nunca pode ultrapassar o teto do plano.
       const planContext = {
         galleryId,
-        ...(typeof galeria.photo_count === 'number' &&
-        galeria.photo_count >= 0 && { photoCount: galeria.photo_count }),
+        ...(typeof normalizedPhotoCount === 'number' && {
+          photoCount: normalizedPhotoCount,
+        }),
       };
 
       try {

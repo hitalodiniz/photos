@@ -11,6 +11,7 @@ import {
   TrendingDown,
   HelpCircle,
   ShieldAlert,
+  CalendarClock,
   ChevronDown,
 } from 'lucide-react';
 import BaseModal from '@/components/ui/BaseModal';
@@ -31,12 +32,21 @@ export interface CancelSubscriptionModalProps {
   onClose: () => void;
   onConfirm: (reason: CancelReason, comment: string) => Promise<void>;
   processedAt: string | null;
+  createdAt?: string | null;
   accessEndsAt: string | null;
   planName: string;
   isLoading: boolean;
   freeMaxGalleries?: number;
   freePhotoCredits?: number;
   premiumFeatureLabels?: string[];
+  /**
+   * Calculado no servidor (AssinaturaContent) — leva em conta:
+   * 1. Estar dentro de 7 dias (created_at / processed_at)
+   * 2. NÃO ter sido um upgrade com crédito pro-rata (notes contém "aproveitamento de crédito")
+   * 3. amount_final > 0 (houve desembolso real)
+   * Quando false: modal mostra fluxo "cancelar e manter até o fim do ciclo".
+   */
+  hasRefundRight?: boolean;
 }
 
 // ─── Motivos ─────────────────────────────────────────────────────────────────
@@ -61,11 +71,6 @@ export const CANCEL_REASONS: {
 
 // ─── Helpers ─────────────────────────────────────────────────────────────────
 
-function isWithinRefundWindow(processedAt: string | null): boolean {
-  if (!processedAt) return false;
-  return Date.now() - new Date(processedAt).getTime() < 7 * 24 * 60 * 60 * 1000;
-}
-
 function formatDate(iso: string | null): string {
   if (!iso) return '—';
   return new Date(iso).toLocaleDateString('pt-BR', { timeZone: 'UTC' });
@@ -81,8 +86,7 @@ const STEP_SUBTITLES = [
   'Etapa 3 de 3 — Confirmação',
 ];
 
-// Altura fixa do corpo — as três etapas preenchem exatamente esse espaço
-const BODY_HEIGHT = 'h-[300px]';
+const BODY_HEIGHT = 'min-h-[300px]';
 
 // ═══════════════════════════════════════════════════════════════════════════════
 // MODAL
@@ -93,18 +97,21 @@ export function CancelSubscriptionModal({
   onClose,
   onConfirm,
   processedAt,
+  createdAt,
   accessEndsAt,
   planName,
   isLoading,
   freeMaxGalleries = 3,
   freePhotoCredits = 500,
   premiumFeatureLabels = [],
+  hasRefundRight = false,
 }: CancelSubscriptionModalProps) {
   const [step, setStep] = useState<1 | 2 | 3>(1);
   const [reason, setReason] = useState<CancelReason | null>(null);
   const [comment, setComment] = useState('');
 
-  const withinRefund = false; //isWithinRefundWindow(processedAt);
+  // hasRefundRight vem calculado do servidor — é a fonte da verdade
+  const withinRefund = hasRefundRight;
 
   const reset = () => {
     setStep(1);
@@ -162,7 +169,7 @@ export function CancelSubscriptionModal({
           type="button"
           onClick={handleConfirm}
           disabled={isLoading || !reason}
-          className="flex-1 flex items-center justify-center gap-2 py-2.5 rounded-xl bg-red-500 hover:bg-red-600 text-white font-semibold text-[10px] uppercase tracking-widest transition-all active:scale-[0.98] disabled:opacity-50 shadow-lg shadow-red-900/30"
+          className="flex-1 flex items-center justify-center gap-2 py-2.5 rounded-md bg-red-500 hover:bg-red-600 text-white font-semibold text-[10px] uppercase tracking-widest transition-all active:scale-[0.98] disabled:opacity-50 shadow-lg shadow-red-900/30"
         >
           {isLoading ? (
             <>
@@ -178,7 +185,7 @@ export function CancelSubscriptionModal({
     </div>
   );
 
-  // ── Progress bar (topBanner) ──────────────────────────────────────────────
+  // ── Progress bar ──────────────────────────────────────────────────────────
 
   const topBanner = (
     <div className="px-5 py-2 bg-petroleum/90">
@@ -199,18 +206,17 @@ export function CancelSubscriptionModal({
       onClose={handleClose}
       title="Cancelar assinatura"
       subtitle={STEP_SUBTITLES[step - 1]}
-      maxWidth="lg"
+      maxWidth="xl"
       showCloseButton={!isLoading}
       footer={footer}
       topBanner={topBanner}
     >
-      {/* Container com altura fixa — as 3 etapas preenchem o mesmo espaço */}
       <div className={`${BODY_HEIGHT} flex flex-col`}>
         {/* ── Step 1 — Motivo ── */}
         {step === 1 && (
-          <div className="flex flex-col h-full gap-4">
-            {/* Select de motivo */}
-            <div className="space-y-1.5">
+          <div className="flex flex-col flex-1 gap-4">
+            {/* Select do motivo - com shrink-0 */}
+            <div className="space-y-1.5 shrink-0">
               <label className="text-[9px] font-semibold uppercase tracking-wider text-slate-800">
                 Motivo principal
               </label>
@@ -220,7 +226,7 @@ export function CancelSubscriptionModal({
                   onChange={(e) =>
                     setReason((e.target.value as CancelReason) || null)
                   }
-                  className={`w-full appearance-none px-3 py-2.5 pr-9 h-10 bg-slate-50 border-2 rounded-xl text-[12px] font-semibold outline-none cursor-pointer transition-colors ${
+                  className={`w-full appearance-none px-3 py-2.5 pr-9 h-10 bg-slate-50 border-2 rounded-md text-[12px] font-semibold outline-none cursor-pointer transition-colors ${
                     reason
                       ? 'border-red-300 text-petroleum'
                       : 'border-slate-200 text-slate-800'
@@ -242,24 +248,25 @@ export function CancelSubscriptionModal({
               </div>
             </div>
 
-            {/* Textarea de comentário — flex-1 para ocupar o restante */}
-            <div className="flex flex-col flex-1 gap-1.5">
-              <label className="text-[9px] font-semibold uppercase tracking-wider text-slate-800">
+            {/* Container do textarea - ADICIONAR overflow-hidden */}
+            <div className="flex flex-col flex-1 gap-1.5 min-h-0 overflow-hidden">
+              <label className="text-[9px] font-semibold uppercase tracking-wider text-slate-800 shrink-0">
                 Comentário adicional{' '}
                 <span className="font-normal normal-case text-slate-700">
                   (opcional)
                 </span>
               </label>
+
               <textarea
                 value={comment}
                 onChange={(e) => setComment(e.target.value)}
                 placeholder="Descreva o que poderia ser melhorado, o que sentiu falta ou qualquer outro detalhe que queira compartilhar…"
                 maxLength={400}
-                className="flex-1 w-full px-3 py-2.5 bg-slate-50 border border-slate-200 rounded-xl text-[11px] text-petroleum 
-                outline-none resize-none focus:border-slate-300 transition-colors placeholder:text-slate-500 leading-relaxed"
+                className="flex-1 w-full min-h-0 px-3 py-2.5 bg-slate-50 border border-slate-200 rounded-xl text-[11px] text-petroleum outline-none resize-none focus:border-slate-300 transition-colors placeholder:text-slate-500 leading-relaxed"
               />
+
               <p
-                className={`text-[8px] text-right tabular-nums transition-colors ${
+                className={`text-[8px] text-right tabular-nums transition-colors shrink-0 ${
                   comment.length > 350 ? 'text-amber-400' : 'text-slate-300'
                 }`}
               >
@@ -268,61 +275,102 @@ export function CancelSubscriptionModal({
             </div>
           </div>
         )}
-
         {/* ── Step 2 — Consequências ── */}
         {step === 2 && (
           <div className="flex flex-col h-full justify-between">
-            {/* 3 linhas — ícone à esquerda, texto à direita */}
             <div className="divide-y divide-slate-100">
-              {/* Linha 1 — pagamento (estorno ou acesso) */}
-              <div className="flex items-start gap-4 py-4">
-                <div
-                  className={`w-9 h-9 rounded-full flex items-center justify-center shrink-0 ${withinRefund ? 'bg-emerald-100' : 'bg-blue-100'}`}
-                >
-                  {withinRefund ? (
-                    <Banknote size={17} className="text-emerald-600" />
-                  ) : (
-                    <Clock size={17} className="text-blue-600" />
-                  )}
-                </div>
-                <div className="min-w-0">
-                  <p className="text-[12px] font-semibold text-petroleum leading-tight">
-                    {withinRefund
-                      ? 'Estorno em até 48h'
-                      : `Acesso até ${formatDate(accessEndsAt)}`}
-                  </p>
-                  <p className="text-[12px] text-slate-800 mt-0.5 leading-relaxed">
-                    {withinRefund
-                      ? 'Sua assinatura tem menos de 7 dias. O valor pago será devolvido automaticamente para a forma de pagamento original.'
-                      : `Você continua com acesso completo ao plano ${planName} até essa data. Após o vencimento, o plano muda sozinho para FREE.`}
-                  </p>
-                </div>
-              </div>
+              {/* ── DENTRO DOS 7 DIAS COM DIREITO A ESTORNO ── */}
+              {withinRefund && (
+                <>
+                  {/* Linha 1 — estorno total */}
+                  <div className="flex items-start gap-4 py-4">
+                    <div className="w-9 h-9 rounded-full bg-emerald-100 flex items-center justify-center shrink-0">
+                      <Banknote size={17} className="text-emerald-600" />
+                    </div>
+                    <div className="min-w-0">
+                      <p className="text-[12px] font-semibold text-petroleum leading-tight">
+                        Opção A — Cancelamento com estorno total
+                      </p>
+                      <p className="text-[12px] text-slate-800 mt-0.5 leading-relaxed">
+                        Você está dentro do prazo de 7 dias (Art. 49 CDC). O
+                        valor integral pago será estornado para a forma de
+                        pagamento original em até 48h úteis. O plano encerra
+                        imediatamente.
+                      </p>
+                    </div>
+                  </div>
 
-              {/* Linha 2 — plano / downgrade imediato ou sem estorno */}
-              <div className="flex items-start gap-4 py-4">
-                <div className="w-9 h-9 rounded-full bg-amber-100 flex items-center justify-center shrink-0">
-                  {withinRefund ? (
-                    <TrendingDown size={17} className="text-amber-600" />
-                  ) : (
-                    <HelpCircle size={17} className="text-amber-600" />
-                  )}
-                </div>
-                <div className="min-w-0">
-                  <p className="text-[12px] font-semibold text-petroleum leading-tight">
-                    {withinRefund
-                      ? 'Plano volta para FREE imediatamente'
-                      : 'Estorno não aplicável'}
-                  </p>
-                  <p className="text-[12px] text-slate-800 mt-0.5 leading-relaxed">
-                    {withinRefund
-                      ? `O plano ${planName} será desativado logo após o cancelamento e você voltará ao plano gratuito.`
-                      : 'Assinaturas com mais de 7 dias não têm direito a estorno. Você ainda aproveita tudo até o vencimento.'}
-                  </p>
-                </div>
-              </div>
+                  {/* Linha 2 — alternativa downgrade */}
+                  <div className="flex items-start gap-4 py-4">
+                    <div className="w-9 h-9 rounded-full bg-amber-100 flex items-center justify-center shrink-0">
+                      <TrendingDown size={17} className="text-amber-600" />
+                    </div>
+                    <div className="min-w-0">
+                      <p className="text-[12px] font-semibold text-petroleum leading-tight">
+                        Opção B disponível — Downgrade com crédito pro-rata
+                      </p>
+                      <p className="text-[12px] text-slate-800 mt-0.5 leading-relaxed">
+                        Prefere manter um plano inferior em vez de cancelar
+                        tudo? Feche este modal, acesse o Upgrade e escolha o
+                        plano desejado. O crédito dos dias não usados será
+                        aplicado automaticamente — sem estorno.
+                      </p>
+                    </div>
+                  </div>
+                </>
+              )}
 
-              {/* Linha 3 — downgrade automático (conteúdo arquivado + features) */}
+              {/* ── FORA DOS 7 DIAS OU SEM DIREITO A ESTORNO ── */}
+              {!withinRefund && (
+                <>
+                  {/* Linha 1 — acesso mantido até o vencimento */}
+                  <div className="flex items-start gap-4 py-4">
+                    <div className="w-9 h-9 rounded-full bg-blue-100 flex items-center justify-center shrink-0">
+                      <CalendarClock size={17} className="text-blue-600" />
+                    </div>
+                    <div className="min-w-0">
+                      <p className="text-[12px] font-semibold text-petroleum leading-tight">
+                        Acesso garantido até {formatDate(accessEndsAt)}
+                      </p>
+                      <p className="text-[12px] text-slate-800 mt-0.5 leading-relaxed">
+                        Ao confirmar o cancelamento, sua assinatura não será
+                        renovada. Você mantém acesso completo ao plano{' '}
+                        <strong className="text-petroleum">{planName}</strong>{' '}
+                        até o fim do ciclo pago. Após essa data, o plano é
+                        migrado automaticamente para FREE.
+                      </p>
+                    </div>
+                  </div>
+
+                  {/* Linha 2 — sem estorno */}
+                  <div className="flex items-start gap-4 py-4">
+                    <div className="w-9 h-9 rounded-full bg-amber-100 flex items-center justify-center shrink-0">
+                      <HelpCircle size={17} className="text-amber-600" />
+                    </div>
+                    <div className="min-w-0">
+                      <p className="text-[12px] font-semibold text-petroleum leading-tight">
+                        Sem direito a estorno
+                      </p>
+                      <p className="text-[12px] text-slate-800 mt-0.5 leading-relaxed">
+                        Cancelamentos após 7 dias da contratação não geram
+                        estorno, conforme nossa{' '}
+                        <a
+                          href="/politica-cancelamento"
+                          target="_blank"
+                          rel="noopener noreferrer"
+                          className="text-gold underline hover:text-gold/70 transition-colors"
+                        >
+                          política de cancelamento
+                        </a>
+                        . Você aproveita todos os benefícios do plano até o
+                        vencimento, sem nenhuma cobrança adicional.
+                      </p>
+                    </div>
+                  </div>
+                </>
+              )}
+
+              {/* Linha 3 — downgrade automático de conteúdo (sempre visível) */}
               <div className="flex items-start gap-4 py-4">
                 <div className="w-9 h-9 rounded-full bg-red-100 flex items-center justify-center shrink-0">
                   <ShieldAlert size={17} className="text-red-500" />
@@ -332,7 +380,10 @@ export function CancelSubscriptionModal({
                     Downgrade automático de conteúdo
                   </p>
                   <p className="text-[12px] text-slate-800 mt-0.5 leading-relaxed">
-                    Galerias acima de{' '}
+                    {withinRefund
+                      ? 'Imediatamente após o cancelamento, g'
+                      : `Em ${formatDate(accessEndsAt)}, g`}
+                    alerias acima de{' '}
                     <strong className="text-petroleum">
                       {freeMaxGalleries}
                     </strong>{' '}
@@ -349,7 +400,6 @@ export function CancelSubscriptionModal({
             </div>
           </div>
         )}
-
         {/* ── Step 3 — Confirmação ── */}
         {step === 3 && (
           <div className="flex flex-col h-full gap-3">
@@ -357,8 +407,8 @@ export function CancelSubscriptionModal({
               Você está prestes a cancelar o plano{' '}
               <strong className="text-petroleum">{planName}</strong>.{' '}
               {withinRefund
-                ? 'O valor será estornado em até 48h e o acesso encerrado imediatamente.'
-                : `Seu acesso continua normalmente até ${formatDate(accessEndsAt)}.`}
+                ? 'O plano será encerrado imediatamente (FREE) e o estorno total será processado em até 48h.'
+                : `Sua assinatura não será renovada. Você mantém acesso completo até ${formatDate(accessEndsAt)}.`}
             </p>
 
             {/* Tabela resumo */}
@@ -376,7 +426,9 @@ export function CancelSubscriptionModal({
                   Estorno
                 </span>
                 <span
-                  className={`text-[11px] font-semibold ${withinRefund ? 'text-emerald-600' : 'text-slate-800'}`}
+                  className={`text-[11px] font-semibold ${
+                    withinRefund ? 'text-emerald-600' : 'text-slate-500'
+                  }`}
                 >
                   {withinRefund ? 'Sim — em até 48h' : 'Não aplicável'}
                 </span>
@@ -393,15 +445,23 @@ export function CancelSubscriptionModal({
               </div>
               <div className="flex items-center justify-between px-3 py-2.5">
                 <span className="text-[10px] font-semibold uppercase tracking-wider text-slate-800">
-                  Downgrade
+                  Downgrade de conteúdo
                 </span>
                 <span className="text-[11px] font-semibold text-amber-600">
                   {withinRefund ? 'Imediato' : `Em ${formatDate(accessEndsAt)}`}
                 </span>
               </div>
+              <div className="flex items-center justify-between px-3 py-2.5 bg-slate-50">
+                <span className="text-[10px] font-semibold uppercase tracking-wider text-slate-800">
+                  Renovação automática
+                </span>
+                <span className="text-[11px] font-semibold text-red-500">
+                  Cancelada
+                </span>
+              </div>
             </div>
 
-            {/* Comentário — flex-1 para preencher o restante */}
+            {/* Comentário */}
             <div className="flex flex-col flex-1 gap-1">
               <p className="text-[9px] font-semibold uppercase tracking-wider text-slate-800">
                 {comment ? 'Seu comentário' : 'Comentário'}
@@ -421,9 +481,18 @@ export function CancelSubscriptionModal({
               )}
             </div>
 
-            <p className="text-[10px] text-slate-800 leading-snug shrink-0">
+            <p className="text-[11px] text-slate-800 leading-snug shrink-0 font-medium">
               Esta ação não pode ser desfeita. Você poderá reativar ou assinar
-              um novo plano a qualquer momento.
+              um novo plano a qualquer momento.{' '}
+              <a
+                href="/politica-cancelamento"
+                target="_blank"
+                rel="noopener noreferrer"
+                className="text-gold underline hover:text-gold/70 transition-colors"
+              >
+                Ver política de cancelamento
+              </a>
+              .
             </p>
           </div>
         )}

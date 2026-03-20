@@ -102,6 +102,13 @@ export default function Navbar() {
 
   // 🎯 Mapeamento de Títulos Dinâmicos (Editorial)
   const pageTitle = useMemo(() => {
+    if (pathname === '/admin') return 'Painel administrativo';
+    if (pathname === '/admin/usuarios') return 'Usuários';
+    if (pathname.includes('/admin/usuarios/') && pathname.includes('/galerias'))
+      return 'Galerias do usuário';
+    if (pathname === '/admin/assinaturas') return 'Assinaturas';
+    if (pathname === '/admin/planos') return 'Gestão de planos';
+    if (pathname === '/admin/sistema') return 'Sistema';
     if (pathname === '/onboarding') return 'Editar Perfil';
     if (pathname.includes('/settings/messages')) return 'Configurar Mensagens';
     if (pathname.includes('/settings')) return 'Preferências';
@@ -120,12 +127,15 @@ export default function Navbar() {
     user &&
     !isLoading &&
     (pathname === '/dashboard' ||
+      pathname === '/admin' ||
+      pathname.startsWith('/admin/') ||
       pathname === '/onboarding' ||
       pathname.includes('/dashboard/'));
 
   if (!showNavbar) return null;
 
   const isFormPage = !!pageTitle;
+  const isAdminRoute = pathname === '/admin' || pathname.startsWith('/admin/');
 
   return (
     <>
@@ -145,9 +155,9 @@ export default function Navbar() {
             )}
 
             {/* Botão Voltar (Páginas Internas) */}
-            {isFormPage && (
+            {isFormPage && pathname !== '/admin' && (
               <button
-                onClick={() => router.push('/dashboard')}
+                onClick={() => router.push(isAdminRoute ? '/admin' : '/dashboard')}
                 className="p-2 text-white/70 hover:text-champagne hover:bg-white/5 rounded-full transition-all shrink-0"
               >
                 <ArrowLeft size={18} />
@@ -156,7 +166,7 @@ export default function Navbar() {
 
             <div className="flex items-center gap-3">
               <a
-                href="/dashboard"
+                href={isAdminRoute ? '/admin' : '/dashboard'}
                 className="flex items-center gap-2 group shrink-0"
               >
                 <SegmentIcon

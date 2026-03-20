@@ -12,7 +12,11 @@ import React from 'react';
 import { PlanGuard } from '@/components/auth/PlanGuard';
 
 import { PlanProvider, usePlan } from '@/core/context/PlanContext';
-import { findNextPlanWithFeature, PlanKey } from '@/core/config/plans';
+import {
+  findNextPlanWithFeature,
+  PlanKey,
+  PERMISSIONS_BY_PLAN,
+} from '@/core/config/plans';
 import { Profile } from '@/core/types/profile';
 
 beforeAll(() => {
@@ -125,7 +129,7 @@ describe('Motor de Upsell (findNextPlanWithFeature)', () => {
 });
 
 describe('Lógica de Estados de Plano (Trial vs Assinante)', () => {
-  test('TRIAL EXPIRADO: deve restringir para FREE mesmo se o banco marcar PRO', () => {
+  test('TRIAL EXPIRADO: mantém plano atual até cron aplicar downgrade', () => {
     const expiredDate = new Date();
     expiredDate.setDate(expiredDate.getDate() - 2);
 
@@ -141,9 +145,10 @@ describe('Lógica de Estados de Plano (Trial vs Assinante)', () => {
       ),
     });
 
-    expect(result.current.planKey).toBe('FREE');
-    // FREE.maxGalleries = 3
-    expect(result.current.permissions.maxGalleries).toBe(3);
+    expect(result.current.planKey).toBe('PRO');
+    expect(result.current.permissions.maxGalleries).toBe(
+      PERMISSIONS_BY_PLAN.PRO.maxGalleries,
+    );
   });
 
   test('TRIAL ATIVO: deve manter acesso ao plano designado', () => {
@@ -179,8 +184,9 @@ describe('Lógica de Estados de Plano (Trial vs Assinante)', () => {
     });
 
     expect(result.current.planKey).toBe('PRO');
-    // PRO.maxGalleries = 50
-    expect(result.current.permissions.maxGalleries).toBe(60);
+    expect(result.current.permissions.maxGalleries).toBe(
+      PERMISSIONS_BY_PLAN.PRO.maxGalleries,
+    );
   });
 
   test('DOWNGRADE: deve reduzir permissões imediatamente ao atualizar plan_key', () => {
@@ -196,13 +202,14 @@ describe('Lógica de Estados de Plano (Trial vs Assinante)', () => {
     });
 
     expect(result.current.planKey).toBe('START');
-    // START.maxGalleries = 10
-    expect(result.current.permissions.maxGalleries).toBe(10);
+    expect(result.current.permissions.maxGalleries).toBe(
+      PERMISSIONS_BY_PLAN.START.maxGalleries,
+    );
   });
 });
 
 describe('5. Casos de Borda e Segurança (Edge Cases)', () => {
-  test('EXPIRAÇÃO EXATA: deve expirar se a data for exatamente AGORA', () => {
+  test('EXPIRAÇÃO EXATA: mantém plano atual até cron aplicar downgrade', () => {
     const now = new Date();
 
     const profile = makeMockProfile({
@@ -217,10 +224,10 @@ describe('5. Casos de Borda e Segurança (Edge Cases)', () => {
       ),
     });
 
-    expect(result.current.planKey).toBe('FREE');
+    expect(result.current.planKey).toBe('PRO');
   });
 
-  test('VALORES NULOS: deve assumir FREE se plan_trial_expires for nulo em um perfil trial', () => {
+  test('VALORES NULOS: mantém plano atual até cron aplicar downgrade', () => {
     const profile = makeMockProfile({
       plan_key: 'PRO',
       is_trial: true,
@@ -233,7 +240,7 @@ describe('5. Casos de Borda e Segurança (Edge Cases)', () => {
       ),
     });
 
-    expect(result.current.planKey).toBe('FREE');
+    expect(result.current.planKey).toBe('PRO');
   });
 
   test('INCONSISTÊNCIA DE FLAG: is_trial=false deve sempre vencer', () => {
@@ -250,11 +257,11 @@ describe('5. Casos de Borda e Segurança (Edge Cases)', () => {
     });
 
     expect(result.current.planKey).toBe('PRO');
-    // PRO.maxGalleries = 50, que é maior que FREE.maxGalleries = 3
-    expect(result.current.permissions.maxGalleries).toBeGreaterThan(3);
+    expect(result.current.permissions.maxGalleries).toBeGreaterThan(
+      PERMISSIONS_BY_PLAN.FREE.maxGalleries,
+    );
   });
 
-  // START.maxPhotosPerGallery = 500 (atualizado na nova tabela de planos)
   test('LIMITE NUMÉRICO: deve respeitar rigorosamente o teto de fotos do plano START', () => {
     const profile = makeMockProfile({ plan_key: 'START', is_trial: false });
 
@@ -264,11 +271,14 @@ describe('5. Casos de Borda e Segurança (Edge Cases)', () => {
       ),
     });
 
-    expect(result.current.permissions.maxGalleries).toBe(10);
-    expect(result.current.permissions.maxPhotosPerGallery).toBe(600);
+    expect(result.current.permissions.maxGalleries).toBe(
+      PERMISSIONS_BY_PLAN.START.maxGalleries,
+    );
+    expect(result.current.permissions.maxPhotosPerGallery).toBe(
+      PERMISSIONS_BY_PLAN.START.maxPhotosPerGallery,
+    );
   });
 
-  // FREE.maxGalleries = 3
   test('FALLBACK TOTAL: deve retornar FREE se o perfil for completamente indefinido', () => {
     // @ts-ignore - Simulando erro de carregamento de perfil no Supabase
     const { result } = renderHook(() => usePlan(), {
@@ -278,7 +288,9 @@ describe('5. Casos de Borda e Segurança (Edge Cases)', () => {
     });
 
     expect(result.current.planKey).toBe('FREE');
-    expect(result.current.permissions.maxGalleries).toBe(3);
+    expect(result.current.permissions.maxGalleries).toBe(
+      PERMISSIONS_BY_PLAN.FREE.maxGalleries,
+    );
   });
 });
 

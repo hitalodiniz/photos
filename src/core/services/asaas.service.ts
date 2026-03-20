@@ -83,6 +83,7 @@ export interface CurrentActiveRequestRow {
   amount_discount?: number | null;
   billing_type?: string | null;
   processed_at: string | null;
+  created_at?: string | null;
   billing_period: string | null;
   plan_key_requested: string;
   asaas_subscription_id?: string | null;
@@ -139,7 +140,7 @@ export async function getCurrentActiveRequest(
   const { data: rows } = await db
     .from('tb_upgrade_requests')
     .select(
-      'id, amount_final, amount_discount, billing_type, processed_at, billing_period, plan_key_requested, asaas_subscription_id, notes',
+      'id, amount_final, amount_discount, billing_type, processed_at, created_at, billing_period, plan_key_requested, asaas_subscription_id, notes',
     )
     .eq('profile_id', userId)
     .eq('status', 'approved')
@@ -152,8 +153,10 @@ export async function getCurrentActiveRequest(
 
   const now = new Date();
   for (const row of list) {
-    if (!row?.processed_at) continue;
-    const start = new Date(row.processed_at);
+    const referenceDate = row?.processed_at ?? row?.created_at ?? null;
+    if (!referenceDate) continue;
+    const start = new Date(referenceDate);
+    if (Number.isNaN(start.getTime())) continue;
     let end = addMonths(start, billingPeriodToMonths(row.billing_period));
     const fromNotes = parseExpiryFromNotes(row.notes);
     if (fromNotes) end = fromNotes;
@@ -303,7 +306,9 @@ export async function calculateUpgradePrice(
   const { totalPrice: totalPriceNew } = getPeriodPrice(planInfo, targetPeriod);
   const targetCommercialDays = billingPeriodToCommercialDays(targetPeriod);
 
-  if (!currentRequest?.processed_at) {
+  const startDateRaw =
+    currentRequest?.processed_at ?? currentRequest?.created_at ?? null;
+  if (!startDateRaw) {
     const pixDiscount =
       billingType === 'PIX' && targetPeriod !== 'monthly'
         ? Math.round(totalPriceNew * (PIX_DISCOUNT_PERCENT / 100) * 100) / 100
@@ -323,7 +328,26 @@ export async function calculateUpgradePrice(
     };
   }
 
-  const startDate = new Date(currentRequest.processed_at);
+  const startDate = new Date(startDateRaw);
+  if (Number.isNaN(startDate.getTime())) {
+    const pixDiscount =
+      billingType === 'PIX' && targetPeriod !== 'monthly'
+        ? Math.round(totalPriceNew * (PIX_DISCOUNT_PERCENT / 100) * 100) / 100
+        : 0;
+    return {
+      type: 'upgrade',
+      amount_original: totalPriceNew,
+      amount_discount: pixDiscount,
+      amount_final: Math.round((totalPriceNew - pixDiscount) * 100) / 100,
+      residual_credit: 0,
+      pix_discount_amount: pixDiscount,
+      current_plan_expires_at: now.toISOString(),
+      new_expiry_date: addMonths(
+        now,
+        billingPeriodToMonths(targetPeriod),
+      ).toISOString(),
+    };
+  }
   const monthsCurrent = billingPeriodToMonths(currentRequest.billing_period);
   let currentPlanExpiresAt = addMonths(startDate, monthsCurrent);
   const expiryFromNotes = parseExpiryFromNotes(currentRequest.notes);
@@ -388,12 +412,18 @@ export async function calculateUpgradePrice(
   if (isDowngrade) {
     const isWithdrawalWindow =
       daysSincePurchase <= 7 && currentRequest.amount_final > 0;
+    const notesLower = (currentRequest.notes ?? '').toLowerCase();
+    const isProRataDiscount =
+      notesLower.includes('aproveitamento de crédito') ||
+      notesLower.includes('credito pro-rata') ||
+      notesLower.includes('crédito pro-rata');
     let previousCredit = 0;
     if (
       isWithdrawalWindow &&
       currentRequest.amount_final > 0 &&
       typeof currentRequest.amount_discount === 'number' &&
-      currentRequest.amount_discount > 0
+      currentRequest.amount_discount > 0 &&
+      !isProRataDiscount
     ) {
       previousCredit = Math.max(0, currentRequest.amount_discount);
     }
@@ -1061,11 +1091,18 @@ export async function handleSubscriptionCancellation(
 
   const accessEndsAtIso = accessEndsAt.toISOString();
   const endDateStr = accessEndsAt.toISOString().split('T')[0];
-  const amountPaid =
+  let amountPaid =
     typeof (request as any).amount_final === 'number' &&
     (request as any).amount_final > 0
       ? (request as any).amount_final
       : 0;
+
+  if (amountPaid === 0) {
+    const lastPaid = await getLastPaidUpgradeRequest(userId, supabase);
+    if (lastPaid?.amount_final && lastPaid.amount_final > 0) {
+      amountPaid = lastPaid.amount_final;
+    }
+  }
 
   if (
     daysSincePurchase <= 7 &&
@@ -1633,34 +1670,96 @@ export async function requestUpgrade(
         ? 'SEMIANNUALLY'
         : 'MONTHLY';
   const planPricePerPeriod = getPeriodPrice(planInfo, billingPeriod).totalPrice;
-  const nextDueDateStr =
-    hasCreditNextDueDate && calculation.new_expiry_date
-      ? calculation.new_expiry_date.split('T')[0]
-      : undefined;
+  const immediateDueDate = new Date().toISOString().split('T')[0];
+  const subscriptionValue =
+    hasCreditNextDueDate && isCreditCard ? planPricePerPeriod : amountFinal;
+  const planDescription = `Plano ${planInfo.name}`;
 
-  const subResult = await createAsaasSubscription({
-    customerId: asaasCustomerId,
-    billingType: payload.billing_type,
-    cycle: asaasCycle,
-    value:
-      hasCreditNextDueDate && isCreditCard ? planPricePerPeriod : amountFinal,
-    description: `Plano ${planInfo.name}`,
-    ...(nextDueDateStr && { nextDueDate: nextDueDateStr }),
-    installmentCount: installments > 1 ? installments : undefined,
-    ...(creditCardDetails && { creditCardDetails }),
-    ...(creditCardHolderInfo && { creditCardHolderInfo }),
-  });
+  let asaasSubscriptionId: string | null =
+    currentRequest?.asaas_subscription_id?.trim() ?? null;
 
-  if (!subResult.success || !subResult.subscriptionId) {
-    return {
-      success: false,
-      error: subResult.error ?? 'Erro ao criar assinatura',
-    };
+  const subResult: {
+    success: boolean;
+    subscriptionId?: string;
+    invoiceUrl?: string;
+    bankSlipUrl?: string;
+    error?: string;
+  } = { success: false };
+
+  if (asaasSubscriptionId) {
+    const putResult = await updateAsaasSubscriptionPlanAndDueDate(
+      asaasSubscriptionId,
+      {
+        value: subscriptionValue,
+        description: planDescription,
+        nextDueDate: immediateDueDate,
+        cycle: asaasCycle,
+        updatePendingPayments: true,
+      },
+    );
+    if (putResult.success) {
+      subResult.success = true;
+      subResult.subscriptionId = asaasSubscriptionId;
+    } else {
+      // Fallback resiliente: se o update da assinatura existente falhar,
+      // cria nova assinatura com cobrança imediata para não bloquear checkout.
+      const createResult = await createAsaasSubscription({
+        customerId: asaasCustomerId,
+        billingType: payload.billing_type,
+        cycle: asaasCycle,
+        value: subscriptionValue,
+        description: planDescription,
+        nextDueDate: immediateDueDate,
+        updatePendingPayments: true,
+        installmentCount: installments > 1 ? installments : undefined,
+        ...(creditCardDetails && { creditCardDetails }),
+        ...(creditCardHolderInfo && { creditCardHolderInfo }),
+      });
+      if (!createResult.success || !createResult.subscriptionId) {
+        return {
+          success: false,
+          error:
+            putResult.error ??
+            createResult.error ??
+            'Erro ao atualizar/criar assinatura',
+        };
+      }
+      subResult.success = true;
+      subResult.subscriptionId = createResult.subscriptionId;
+      subResult.invoiceUrl = createResult.invoiceUrl;
+      subResult.bankSlipUrl = createResult.bankSlipUrl;
+      asaasSubscriptionId = createResult.subscriptionId;
+    }
+  } else {
+    const createResult = await createAsaasSubscription({
+      customerId: asaasCustomerId,
+      billingType: payload.billing_type,
+      cycle: asaasCycle,
+      value: subscriptionValue,
+      description: planDescription,
+      nextDueDate: immediateDueDate,
+      updatePendingPayments: true,
+      installmentCount: installments > 1 ? installments : undefined,
+      ...(creditCardDetails && { creditCardDetails }),
+      ...(creditCardHolderInfo && { creditCardHolderInfo }),
+    });
+    if (!createResult.success || !createResult.subscriptionId) {
+      return {
+        success: false,
+        error: createResult.error ?? 'Erro ao criar assinatura',
+      };
+    }
+    subResult.success = true;
+    subResult.subscriptionId = createResult.subscriptionId;
+    subResult.invoiceUrl = createResult.invoiceUrl;
+    subResult.bankSlipUrl = createResult.bankSlipUrl;
+    asaasSubscriptionId = createResult.subscriptionId;
   }
-  const asaasSubscriptionId = subResult.subscriptionId;
 
-  const paymentResult =
-    await getFirstPaymentFromSubscription(asaasSubscriptionId);
+  if (!asaasSubscriptionId) {
+    return { success: false, error: 'Assinatura Asaas não disponível.' };
+  }
+  const paymentResult = await getFirstPaymentFromSubscription(asaasSubscriptionId);
   let asaasPaymentId: string | null = oneOffPaymentId;
   let paymentUrl: string | null = oneOffInvoiceUrl;
   let paymentDueDate: string | undefined;

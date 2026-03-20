@@ -35,6 +35,12 @@ interface PlanContextProps {
 
 const PlanContext = createContext<PlanContextProps | undefined>(undefined);
 
+function parseDbTimestamp(value: string | null | undefined): number {
+  if (!value) return NaN;
+  const normalized = value.includes('T') ? value : value.replace(' ', 'T');
+  return new Date(normalized).getTime();
+}
+
 export function PlanProvider({
   children,
   planKey,
@@ -79,20 +85,13 @@ export function PlanProvider({
         return (profile.plan_key || 'FREE') as PlanKey;
       }
 
-      // LÓGICA DE TRIAL AJUSTADA
+      // LÓGICA DE TRIAL:
+      // - Não rebaixa no client quando expira; o downgrade efetivo ocorre no cron.
+      // - A UI pode usar trialExpiresAt/isTrial para engajamento (ex.: "trial expirou").
       if (profile.is_trial) {
-        // Se não tem data, algo está errado, volta pra FREE
-        if (!profile.plan_trial_expires) return 'FREE';
-
-        const expiresTimestamp = new Date(profile.plan_trial_expires).getTime();
-        const now = new Date().getTime();
-
-        // Se a data for inválida, já passou ou é exatamente agora, rebaixa para FREE
-        if (isNaN(expiresTimestamp) || expiresTimestamp <= now) {
-          return 'FREE';
-        }
-        
-        // Se ainda não expirou, mantém o plano do trial (PRO)
+        // Mantém o plano vigente durante o período de transição até o cron aplicar.
+        // O parse fica para uso futuro de sinalização sem mudar o plano no client.
+        parseDbTimestamp(profile.plan_trial_expires ?? null);
         return (profile.plan_key || 'FREE') as PlanKey;
       }
 

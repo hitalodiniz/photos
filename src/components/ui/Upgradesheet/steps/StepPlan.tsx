@@ -167,6 +167,8 @@ export function StepPlan() {
     calc?.type === 'downgrade' &&
     calc.is_downgrade_withdrawal_window === true &&
     (calc.residual_credit ?? 0) > 0;
+  const isWithinWithdrawalWindow =
+    calc?.is_downgrade_withdrawal_window === true;
 
   const downgradeCreditValue = showDowngradeCreditAtTop
     ? (calc!.residual_credit ?? 0)
@@ -339,6 +341,21 @@ export function StepPlan() {
         </div>
       )}
 
+      {/* ── Aviso explícito: downgrade dentro da janela abre mão do estorno ── */}
+      {isDowngradeByOrder && isWithinWithdrawalWindow && (
+        <div className="rounded-lg border border-amber-200 bg-amber-50 px-3 py-3 text-[11px] text-amber-900 mb-3">
+          <p className="font-bold text-amber-800 uppercase text-[10px] tracking-wider mb-1">
+            ⚠️ Atenção — você está dentro do prazo de arrependimento
+          </p>
+          <p className="leading-snug">
+            Ao fazer o downgrade agora, você{' '}
+            <strong>abre mão do direito de estorno</strong> e o crédito pro-rata
+            dos dias não usados será aplicado ao novo plano. Se preferir o
+            estorno total, cancele a assinatura em vez de fazer downgrade.
+          </p>
+        </div>
+      )}
+
       {/* ── Banner de agendamento fora da janela ── */}
       {isScheduledDowngrade && !hasScheduledChange && showDowngradeBanner && (
         <div className="rounded-lg border border-amber-200 bg-amber-50 px-3 py-2.5 text-[11px] text-amber-900 mb-3">
@@ -415,12 +432,12 @@ export function StepPlan() {
       ) : (
         hasResidualCredit &&
         !profile?.is_trial && (
-          <div className="flex items-start gap-2 rounded-lg border border-emerald-200 bg-emerald-50 px-3 text-[11px] text-emerald-800">
+          <div className="flex items-start gap-2 p-4 rounded-lg border border-emerald-200 bg-emerald-50 px-3 text-[11px] text-emerald-800">
             <Sparkles size={13} className="text-emerald-500 shrink-0 mt-0.5" />
             <p className="font-medium leading-snug">
-              Você tem crédito dos dias não usados do plano anterior.{' '}
+              Você tem crédito dos dias não usados do plano atual.{' '}
               <span className="font-semibold">
-                O desconto será aplicado no próximo passo,
+                O desconto será aplicado na etapa de pagamento,
               </span>{' '}
               após você escolher o período e a forma de pagamento.
             </p>

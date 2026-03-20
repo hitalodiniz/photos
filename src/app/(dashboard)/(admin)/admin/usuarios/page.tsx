@@ -358,7 +358,7 @@ export default function AdminUsuariosPage() {
     <>
       <RelatorioBasePage
         title="Admin – Usuários"
-        onBack={() => router.push('/dashboard')}
+        onBack={() => router.push('/admin')}
         footerStatusText={
           loading ? 'Carregando...' : `${data.length} usuário(s)`
         }

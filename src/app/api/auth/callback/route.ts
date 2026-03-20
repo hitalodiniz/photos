@@ -38,6 +38,7 @@
 import { NextResponse } from 'next/server';
 import { createServerClient } from '@supabase/ssr';
 import { cookies } from 'next/headers';
+import { addSecondsToSaoPauloIso } from '@/core/utils/date-time';
 
 export async function GET(request: Request) {
   const requestUrl = new URL(request.url);
@@ -103,7 +104,8 @@ export async function GET(request: Request) {
       if (provider_token) {
         updates.google_access_token = provider_token;
         const expiresInSeconds = expires_in || 3600;
-        updates.google_token_expires_at = new Date(Date.now() + expiresInSeconds * 1000).toISOString();
+        updates.google_token_expires_at =
+          addSecondsToSaoPauloIso(expiresInSeconds);
       }
       if (provider_refresh_token || provider_token) updates.google_auth_status = 'active';
       if (Object.keys(updates).length > 0) {
@@ -298,9 +300,8 @@ export async function GET(request: Request) {
 
       // Calcula a expiração (expires_in costuma ser 3600 segundos para o Google)
       const expiresInSeconds = expires_in || 3600;
-      updates.google_token_expires_at = new Date(
-        Date.now() + expiresInSeconds * 1000,
-      ).toISOString();
+      updates.google_token_expires_at =
+        addSecondsToSaoPauloIso(expiresInSeconds);
       // console.log(`[auth/callback] ✅ Access token encontrado e será salvo para userId: ${user.id}`);
     } else {
       // console.warn(`[auth/callback] ⚠️ Access token NÃO encontrado na sessão para userId: ${user.id}`);

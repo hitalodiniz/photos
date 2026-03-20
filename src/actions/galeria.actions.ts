@@ -176,7 +176,8 @@ export async function getPoolStatsAction(): Promise<PhotographerPoolStats | null
       .select('photo_count')
       .eq('user_id', profile.id)
       .eq('is_deleted', false)
-      .eq('is_archived', false);
+      .eq('is_archived', false)
+      .eq('auto_archived', false);
 
     if (error) {
       console.error('[getPoolStatsAction]', error.message);

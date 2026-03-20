@@ -54,21 +54,42 @@ export function useUpgradePrice(
       ? upgradeCalculation.residual_credit ?? 0
       : 0;
 
-  const amountAfterCredit =
-    residualCredit > 0 &&
+  const backendAmountFinal =
     typeof upgradeCalculation?.amount_final === 'number' &&
     Number.isFinite(upgradeCalculation.amount_final)
-      ? upgradeCalculation.amount_final
-      : amountPeriod;
+      ? Math.max(0, Math.round(upgradeCalculation.amount_final * 100) / 100)
+      : null;
+  const backendPixDiscount =
+    typeof upgradeCalculation?.pix_discount_amount === 'number' &&
+    Number.isFinite(upgradeCalculation.pix_discount_amount)
+      ? Math.max(0, Math.round(upgradeCalculation.pix_discount_amount * 100) / 100)
+      : null;
+
+  const amountAfterCredit =
+    backendAmountFinal !== null && backendPixDiscount !== null
+      ? Math.round((backendAmountFinal + backendPixDiscount) * 100) / 100
+      : residualCredit > 0 &&
+          backendAmountFinal !== null &&
+          billingType !== 'PIX'
+        ? backendAmountFinal
+        : amountPeriod;
 
   const pixDiscountActual =
-    !isFreeUpgrade && billingType === 'PIX' && billingPeriod !== 'monthly'
-      ? Math.round(amountAfterCredit * (PIX_DISCOUNT_PERCENT / 100) * 100) / 100
-      : 0;
+    backendPixDiscount !== null
+      ? backendPixDiscount
+      : !isFreeUpgrade && billingType === 'PIX' && billingPeriod !== 'monthly'
+        ? Math.round(amountAfterCredit * (PIX_DISCOUNT_PERCENT / 100) * 100) / 100
+        : 0;
 
-  const amountFinal = isFreeUpgrade
-    ? 0
-    : Math.max(0, Math.round((amountAfterCredit - pixDiscountActual) * 100) / 100);
+  const amountFinal =
+    backendAmountFinal !== null
+      ? backendAmountFinal
+      : isFreeUpgrade
+        ? 0
+        : Math.max(
+            0,
+            Math.round((amountAfterCredit - pixDiscountActual) * 100) / 100,
+          );
 
   return {
     amountPeriod,

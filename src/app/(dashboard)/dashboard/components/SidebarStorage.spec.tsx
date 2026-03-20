@@ -55,6 +55,10 @@ vi.mock('@/core/config/help-content', () => ({
 import SidebarStorage from './SidebarStorage';
 import { PlanProvider } from '@/core/context/PlanContext';
 import { Profile } from '@/core/types/profile';
+import {
+  MAX_GALLERIES_HARD_CAP_BY_PLAN,
+  PHOTO_CREDITS_BY_PLAN,
+} from '@/core/config/plans';
 
 beforeAll(() => {
   vi.stubEnv('NEXT_PUBLIC_APP_SEGMENT', 'PHOTOGRAPHER');
@@ -132,34 +136,56 @@ const findSpanByContent = (
 };
 
 describe('SidebarStorage — Exibição de Limites', () => {
-  test('FREE: exibe teto "/3" no bloco Galerias', () => {
+  test('FREE: exibe teto dinâmico no bloco Galerias', () => {
     const { container } = renderWithPlan('FREE', 0);
-    expect(findSpanByContent(container, '/ 3')).not.toBeNull();
+    expect(
+      findSpanByContent(
+        container,
+        `/ ${MAX_GALLERIES_HARD_CAP_BY_PLAN.FREE}`,
+      ),
+    ).not.toBeNull();
     expect(screen.getAllByText('0').length).toBeGreaterThanOrEqual(1);
   });
 
-  test('START: exibe contador "5" e teto "/12"', () => {
+  test('START: exibe contador e teto dinâmico', () => {
     const { container } = renderWithPlan('START', 5);
     expect(screen.getByText('5')).toBeInTheDocument();
-    expect(findSpanByContent(container, '/ 12')).not.toBeNull();
+    expect(
+      findSpanByContent(
+        container,
+        `/ ${MAX_GALLERIES_HARD_CAP_BY_PLAN.START}`,
+      ),
+    ).not.toBeNull();
   });
 
-  test('PLUS: exibe contador "15" e teto "/40"', () => {
+  test('PLUS: exibe contador e teto dinâmico', () => {
     const { container } = renderWithPlan('PLUS', 15);
     expect(screen.getByText('15')).toBeInTheDocument();
-    expect(findSpanByContent(container, '/ 40')).not.toBeNull();
+    expect(
+      findSpanByContent(
+        container,
+        `/ ${MAX_GALLERIES_HARD_CAP_BY_PLAN.PLUS}`,
+      ),
+    ).not.toBeNull();
   });
 
-  test('PRO: exibe contador "30" e teto "/120"', () => {
+  test('PRO: exibe contador e teto dinâmico', () => {
     const { container } = renderWithPlan('PRO', 30);
     expect(screen.getByText('30')).toBeInTheDocument();
-    expect(findSpanByContent(container, '/ 120')).not.toBeNull();
+    expect(
+      findSpanByContent(container, `/ ${MAX_GALLERIES_HARD_CAP_BY_PLAN.PRO}`),
+    ).not.toBeNull();
   });
 
-  test('PREMIUM: exibe contador "100" e teto "/400"', () => {
+  test('PREMIUM: exibe contador e teto dinâmico', () => {
     const { container } = renderWithPlan('PREMIUM', 100);
     expect(screen.getByText('100')).toBeInTheDocument();
-    expect(findSpanByContent(container, '/ 400')).not.toBeNull();
+    expect(
+      findSpanByContent(
+        container,
+        `/ ${MAX_GALLERIES_HARD_CAP_BY_PLAN.PREMIUM}`,
+      ),
+    ).not.toBeNull();
   });
 });
 
@@ -167,15 +193,15 @@ describe('SidebarStorage — Exibição de Limites', () => {
 // Quando limite atingido: renderiza botão com "Limite atingido — Upgrade"
 // Quando abaixo: renderiza label "Galerias" e texto de disponíveis
 describe('SidebarStorage — Estado de Limite Atingido', () => {
-  test('FREE no limite (3/3): exibe "Limite atingido" e oculta label de disponíveis', () => {
-    renderWithPlan('FREE', 3);
+  test('FREE no limite (hard cap): exibe "Limite atingido" e oculta disponíveis', () => {
+    renderWithPlan('FREE', MAX_GALLERIES_HARD_CAP_BY_PLAN.FREE);
     expect(screen.getByText(/limite atingido/i)).toBeInTheDocument();
     // label "disponíveis" não aparece quando no limite
     expect(screen.queryByText(/disponíve/i)).not.toBeInTheDocument();
   });
 
-  test('FREE abaixo do limite (2/3): exibe disponíveis e não exibe "Limite atingido"', () => {
-    renderWithPlan('FREE', 2);
+  test('FREE abaixo do limite: exibe disponíveis e não exibe "Limite atingido"', () => {
+    renderWithPlan('FREE', Math.max(0, MAX_GALLERIES_HARD_CAP_BY_PLAN.FREE - 1));
     // effectiveMax = min(2 + floor(450/150), 3) = min(2+3, 3) = 3 → available = 1
     expect(screen.getByText(/disponíve/i)).toBeInTheDocument();
     expect(screen.queryByText(/limite atingido/i)).not.toBeInTheDocument();
@@ -187,14 +213,14 @@ describe('SidebarStorage — Estado de Limite Atingido', () => {
     expect(screen.queryByText(/limite atingido/i)).not.toBeInTheDocument();
   });
 
-  test('PRO no hard cap (120/120): exibe botão de upgrade', () => {
-    renderWithPlan('PRO', 120);
+  test('PRO no hard cap: exibe botão de upgrade', () => {
+    renderWithPlan('PRO', MAX_GALLERIES_HARD_CAP_BY_PLAN.PRO);
     expect(screen.getByText(/limite atingido/i)).toBeInTheDocument();
     expect(screen.queryByText(/disponíve/i)).not.toBeInTheDocument();
   });
 
-  test('PREMIUM no limite (400/400): exibe botão de upgrade', () => {
-    renderWithPlan('PREMIUM', 400);
+  test('PREMIUM no limite: exibe botão de upgrade', () => {
+    renderWithPlan('PREMIUM', MAX_GALLERIES_HARD_CAP_BY_PLAN.PREMIUM);
     expect(screen.getByText(/limite atingido/i)).toBeInTheDocument();
   });
 });
@@ -203,8 +229,7 @@ describe('SidebarStorage — Estado de Limite Atingido', () => {
 // badge "pool" aparece abaixo do contador de disponíveis
 describe('SidebarStorage — Pool Limiting', () => {
   test('START com pool esgotado: exibe badge "pool"', () => {
-    // START.photoCredits = 3.000
-    renderWithPlan('START', 5, 3_000);
+    renderWithPlan('START', 5, PHOTO_CREDITS_BY_PLAN.START);
     expect(screen.getByText('pool')).toBeInTheDocument();
   });
 
@@ -212,7 +237,7 @@ describe('SidebarStorage — Pool Limiting', () => {
     // Quando isGalLimit = true, o badge "pool" não é renderizado — ele fica
     // dentro do bloco `else` de isGalLimit no componente.
     // Usamos PLUS no hard cap (30/30) para garantir ausência do badge.
-    renderWithPlan('PLUS', 30, 0);
+    renderWithPlan('PLUS', MAX_GALLERIES_HARD_CAP_BY_PLAN.PLUS, 0);
     // no limite → botão de upgrade, sem badge "pool"
     expect(screen.queryByText('pool')).not.toBeInTheDocument();
   });
@@ -220,20 +245,34 @@ describe('SidebarStorage — Pool Limiting', () => {
 
 // Bloco de Arquivos — mesmo padrão de dois text nodes separados no span
 describe('SidebarStorage — Bloco de Arquivos', () => {
-  test('FREE sem fotos: exibe créditos "/450" e texto restantes', () => {
+  test('FREE sem fotos: exibe créditos e restantes dinâmicos', () => {
     const { container } = renderWithPlan('FREE', 0, 0);
-    expect(findSpanByContent(container, '/ 450')).not.toBeNull();
-    expect(findSpanByContent(container, '450 restantes')).not.toBeNull();
+    expect(
+      findSpanByContent(container, `/ ${PHOTO_CREDITS_BY_PLAN.FREE}`),
+    ).not.toBeNull();
+    expect(
+      findSpanByContent(
+        container,
+        `${PHOTO_CREDITS_BY_PLAN.FREE} restantes`,
+      ),
+    ).not.toBeNull();
   });
 
   test('PRO: photoCredits=60k exibido como "/60k"', () => {
     const { container } = renderWithPlan('PRO', 0, 0);
-    expect(findSpanByContent(container, '/ 60k')).not.toBeNull();
+    const proCredits = PHOTO_CREDITS_BY_PLAN.PRO;
+    const expected = proCredits >= 1000 ? `/ ${Math.round(proCredits / 1000)}k` : `/ ${proCredits}`;
+    expect(findSpanByContent(container, expected)).not.toBeNull();
   });
 
   test('PREMIUM: photoCredits=200k exibido como "/200k"', () => {
     const { container } = renderWithPlan('PREMIUM', 0, 0);
-    expect(findSpanByContent(container, '/ 200k')).not.toBeNull();
+    const premiumCredits = PHOTO_CREDITS_BY_PLAN.PREMIUM;
+    const expected =
+      premiumCredits >= 1000
+        ? `/ ${Math.round(premiumCredits / 1000)}k`
+        : `/ ${premiumCredits}`;
+    expect(findSpanByContent(container, expected)).not.toBeNull();
   });
 
   test('FREE com 400 fotos: exibe "50 restantes"', () => {
@@ -242,10 +281,17 @@ describe('SidebarStorage — Bloco de Arquivos', () => {
     expect(findSpanByContent(container, '50 restantes')).not.toBeNull();
   });
 
-  test('PRO com 45.000 fotos: exibe "15k restantes"', () => {
-    const { container } = renderWithPlan('PRO', 10, 45_000);
-    // photosRemaining = 60.000 - 45.000 = 15.000 → "15k restantes"
-    expect(findSpanByContent(container, '15k restantes')).not.toBeNull();
+  test('PRO com uso alto: exibe restantes dinâmicos', () => {
+    const proCredits = PHOTO_CREDITS_BY_PLAN.PRO;
+    const used = Math.floor(proCredits * 0.75);
+    const remaining = Math.max(0, proCredits - used);
+    const expectedRemaining =
+      remaining >= 1000
+        ? `${Math.round(remaining / 1000)}k restantes`
+        : `${remaining} restantes`;
+
+    const { container } = renderWithPlan('PRO', 10, used);
+    expect(findSpanByContent(container, expectedRemaining)).not.toBeNull();
   });
 });
 

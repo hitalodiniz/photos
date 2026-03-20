@@ -72,7 +72,11 @@ export function useDashboardActions(
         MAX_PHOTOS_PER_GALLERY_BY_PLAN[planKey];
 
       const activeGalleries = galerias.filter(
-        (item) => !item.is_deleted && !item.is_archived && item.id !== g.id,
+        (item) =>
+          !item.is_deleted &&
+          !item.is_archived &&
+          !item.auto_archived &&
+          item.id !== g.id,
       );
 
       const currentGalleryCount = activeGalleries.length;
@@ -95,12 +99,21 @@ export function useDashboardActions(
       ) {
         // Explica claramente qual limite foi atingido (galerias ou cota de arquivos)
         let message: string;
-        if (!fitsInGlobalGalleryLimit) {
-          message = `Seu plano permite no máximo ${galleryLimit} galerias ativas. Você já atingiu esse limite. Faça upgrade para reativar mais galerias.`;
+        const canSuggestUpgrade = planKey !== 'PREMIUM';
+        if (!respectsSingleGalleryLimit) {
+          message = canSuggestUpgrade
+            ? `Esta galeria tem mais arquivos (${candidatePhotos}) do que o limite por galeria do seu plano (${maxPhotosPerGallery}). Faça upgrade para reativar.`
+            : `Esta galeria tem mais arquivos (${candidatePhotos}) do que o limite por galeria do seu plano (${maxPhotosPerGallery}).`;
+        } else if (!fitsInGlobalGalleryLimit) {
+          message = canSuggestUpgrade
+            ? `Seu plano permite no máximo ${galleryLimit} galerias ativas. Você já atingiu esse limite. Faça upgrade para reativar mais galerias.`
+            : `Seu plano permite no máximo ${galleryLimit} galerias ativas. Você já atingiu esse limite.`;
         } else if (!fitsInGlobalPhotoLimit) {
-          message = `A cota de arquivos do seu plano (${photoLimit} arquivos) não comporta reativar esta galeria. Faça upgrade para aumentar a cota.`;
+          message = canSuggestUpgrade
+            ? `A cota de arquivos do seu plano (${photoLimit} arquivos) não comporta reativar esta galeria. Faça upgrade para aumentar a cota.`
+            : `A cota de arquivos do seu plano (${photoLimit} arquivos) não comporta reativar esta galeria.`;
         } else {
-          message = `Esta galeria tem mais arquivos (${candidatePhotos}) do que o limite por galeria do seu plano (${maxPhotosPerGallery}). Faça upgrade para reativar.`;
+          message = 'Não foi possível reativar a galeria com o plano atual.';
         }
         setToast({ message, type: 'error' });
         return;
@@ -109,7 +122,8 @@ export function useDashboardActions(
 
     setUpdatingId(g.id);
 
-    const result = await toggleArchiveGaleria(g.id, newStatus);
+    // A service espera o status atual (is_archived || auto_archived), não o novo.
+    const result = await toggleArchiveGaleria(g.id, isCurrentlyArchived);
 
     if (result.success) {
       setGalerias((prev) =>
@@ -261,7 +275,9 @@ export function useDashboardActions(
     try {
       const promises = ids.map((id) => {
         const galeria = galerias.find((g) => g.id === id);
-        return toggleArchiveGaleria(id, !!galeria?.is_archived);
+        const isCurrentlyArchived =
+          !!galeria && (galeria.is_archived || galeria.auto_archived);
+        return toggleArchiveGaleria(id, isCurrentlyArchived);
       });
 
       const results = await Promise.all(promises);
@@ -269,7 +285,11 @@ export function useDashboardActions(
         setGalerias((prev) =>
           prev.map((item) =>
             selectedIds.has(item.id)
-              ? { ...item, is_archived: !item.is_archived }
+              ? {
+                  ...item,
+                  is_archived: !(item.is_archived || item.auto_archived),
+                  auto_archived: false,
+                }
               : item,
           ),
         );

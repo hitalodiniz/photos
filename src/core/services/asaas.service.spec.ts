@@ -31,6 +31,8 @@ const makeSelectSingle = (data: unknown, error: unknown = null) => ({
   limit: vi.fn().mockReturnThis(),
   gte: vi.fn().mockReturnThis(),
   lte: vi.fn().mockReturnThis(),
+  gt: vi.fn().mockReturnThis(),
+  lt: vi.fn().mockReturnThis(),
   single: vi.fn().mockResolvedValue({ data, error }),
   maybeSingle: vi.fn().mockResolvedValue({ data, error }),
   // Suporte ao `await builder` direto (sem .single)
@@ -52,6 +54,8 @@ const makeSelectList = (data: unknown, error: unknown = null) => ({
   limit: vi.fn().mockReturnThis(),
   gte: vi.fn().mockReturnThis(),
   lte: vi.fn().mockReturnThis(),
+  gt: vi.fn().mockReturnThis(),
+  lt: vi.fn().mockReturnThis(),
   single: vi.fn().mockResolvedValue({ data, error }),
   maybeSingle: vi.fn().mockResolvedValue({ data, error }),
   then: vi
@@ -637,6 +641,12 @@ describe('handleSubscriptionCancellation', () => {
     const fromFn = vi
       .fn()
       .mockReturnValueOnce(makeSelectSingle(activeRequest))
+      .mockReturnValueOnce(
+        makeSelectSingle({
+          amount_final: 420,
+          asaas_subscription_id: 'sub-def',
+        }),
+      ) // getLastPaidUpgradeRequest
       .mockReturnValueOnce(profileUpdateBuilder) // update tb_profiles.is_cancelling
       .mockReturnValueOnce(requestUpdateBuilder) // update pending_downgrade
       .mockReturnValueOnce(historyInsertBuilder); // plan_history insert
@@ -707,6 +717,12 @@ describe('handleSubscriptionCancellation', () => {
     const fromFn = vi
       .fn()
       .mockReturnValueOnce(makeSelectSingle(activeRequest))
+      .mockReturnValueOnce(
+        makeSelectSingle({
+          amount_final: 1200,
+          asaas_subscription_id: 'sub-jkl',
+        }),
+      ) // getLastPaidUpgradeRequest
       .mockReturnValueOnce(profileUpdateBuilder) // update tb_profiles.is_cancelling
       .mockReturnValueOnce(requestUpdateBuilder) // update pending_downgrade
       .mockReturnValueOnce(makeInsert()); // plan_history insert

@@ -27,6 +27,7 @@ interface SidebarProps {
   setCardsToShow: (count: number) => void;
   galeriasCount: number;
   photographer: Profile | null;
+  profile: Profile | null;
   handleGoogleLogin: (force: boolean) => void;
   handleNovaGaleria: () => void;
   isRedirecting: boolean;
@@ -40,6 +41,7 @@ export default function Sidebar({
   setCardsToShow,
   galeriasCount,
   photographer,
+  profile,
   handleGoogleLogin,
   handleNovaGaleria,
   isRedirecting,
@@ -144,29 +146,46 @@ export default function Sidebar({
           {/* Badge do Plano Atual */}
           {(!isSidebarCollapsed || isMobile) && (
             <div className="px-2 py-1 mb-2">
-              <div className="flex items-center justify-between gap-2 px-3 py-2 rounded-md bg-white/5 border border-white/5">
-                <Link
-                  href="/dashboard/assinatura"
-                  className="flex items-center gap-2 min-w-0 hover:opacity-90 transition-opacity"
-                  title="Ver assinatura"
-                >
-                  <span className="text-[9px] font-bold uppercase tracking-luxury-widest text-white/90 shrink-0">
-                    Plano
-                  </span>
-                  <span className="text-[9px] font-semibold uppercase tracking-luxury-widest text-champagne truncate">
-                    {planKey}
-                  </span>
-                </Link>
-                {planKey !== 'PREMIUM' && (
-                  <button
-                    type="button"
-                    onClick={() => setUpgradeSheetOpen(true)}
-                    className="shrink-0 flex items-center gap-1 px-2 py-1 rounded-md bg-champagne/20 border border-champagne/30 text-champagne hover:bg-champagne/30 text-[9px] font-semibold uppercase tracking-widest transition-colors"
-                    title="Fazer upgrade de plano"
+              <div className="flex flex-col gap-2 px-2 py-2 rounded-md bg-white/5 border border-white/5">
+                <div className="flex items-center justify-between gap-2">
+                  <Link
+                    href="/dashboard/assinatura"
+                    className="flex items-center gap-1 min-w-0 hover:opacity-90 transition-opacity group flex-1"
+                    title="Ver assinatura"
                   >
-                    <TrendingUp size={10} />
-                    Migrar
-                  </button>
+                    <span className="text-[10px] font-bold uppercase tracking-luxury-wide text-white/90 shrink-0">
+                      Plano
+                    </span>
+                    <span className="text-[10px] font-semibold uppercase tracking-luxury-wide text-champagne truncate">
+                      {planKey}
+                    </span>
+                    <ChevronRight
+                      size={14}
+                      strokeWidth={2.5}
+                      className="shrink-0 text-white group-hover:text-white transition-colors"
+                    />
+                  </Link>
+                  {planKey !== 'PREMIUM' && (
+                    <button
+                      type="button"
+                      onClick={() => setUpgradeSheetOpen(true)}
+                      className="shrink-0 flex items-center gap-1 px-2 py-1 
+                      rounded-md bg-champagne/20 border 
+                      border-champagne/30 text-champagne hover:bg-champagne/30 text-[8px] 
+                      font-medium uppercase tracking-widest transition-colors"
+                      title="Fazer upgrade de plano"
+                    >
+                      <TrendingUp size={10} />
+                      Migrar
+                    </button>
+                  )}
+                </div>
+                {profile?.is_exempt && (
+                  <div className="flex">
+                    <span className="px-1.5 py-0.5 rounded-md bg-emerald-500/20 border border-emerald-500/30 text-[10px] font-semibold text-emerald-300">
+                      Isento
+                    </span>
+                  </div>
                 )}
               </div>
             </div>

@@ -309,6 +309,38 @@ export default function AssinaturaContent({
 
   const latestApprovedRequest = history.find((r) => r.status === 'approved');
   const cancelProcessedAt = latestApprovedRequest?.processed_at ?? null;
+  const cancelCreatedAt = latestApprovedRequest?.created_at ?? null;
+  /**
+   * Direito de arrependimento (Art. 49 CDC):
+   * - Dentro de 7 dias da contratação
+   * - Com desembolso real (amount_final > 0)
+   * - NÃO foi upgrade com crédito pro-rata (verificado via notes)
+   */
+  const hasRefundRight = (() => {
+    if (!latestApprovedRequest) return false;
+
+    const reference =
+      latestApprovedRequest.processed_at ?? latestApprovedRequest.created_at;
+    if (!reference) return false;
+
+    const withinWindow =
+      Date.now() - new Date(reference).getTime() < 7 * 24 * 60 * 60 * 1000;
+    if (!withinWindow) return false;
+
+    const hasPaid =
+      typeof latestApprovedRequest.amount_final === 'number' &&
+      latestApprovedRequest.amount_final > 0;
+    if (!hasPaid) return false;
+
+    const notes = (latestApprovedRequest.notes ?? '').toLowerCase();
+    const isProRataUpgrade =
+      notes.includes('aproveitamento de crédito') ||
+      notes.includes('crédito pro-rata') ||
+      notes.includes('upgrade gratuito');
+    if (isProRataUpgrade) return false;
+
+    return true;
+  })();
   const latestApprovedId = latestApprovedRequest?.id ?? null;
   const vigenteSubscriptionStatus =
     hasScheduledChange && latestApprovedRequest
@@ -631,6 +663,11 @@ export default function AssinaturaContent({
               Teste Grátis
             </span>
           )}
+          {profile.is_exempt && !profile.is_trial && (
+            <span className="ml-2 px-2 py-0.5 rounded-full bg-emerald-500/10 border border-emerald-500/20 text-[10px] font-semibold text-emerald-600 align-middle">
+              Isento
+            </span>
+          )}
         </h2>
       </div>
       {planKey !== 'FREE' &&
@@ -831,13 +868,13 @@ export default function AssinaturaContent({
                   Você está no plano mais completo
                 </p>
                 <p className="text-[10px] text-petroleum/70">
-                  Mesmo assim, você pode alterar seu plano a qualquer momento.
+                  Você pode alterar seu plano a qualquer momento.
                 </p>
                 <div className="flex flex-col items-center gap-1.5">
                   <button
                     type="button"
                     onClick={() => handleUpgrade(planKey)}
-                    className="btn-luxury-primary h-8"
+                    className="btn-luxury-primary w-full"
                   >
                     Alterar plano <ArrowRight size={10} />
                   </button>
@@ -915,6 +952,8 @@ export default function AssinaturaContent({
         onClose={() => setShowCancelModal(false)}
         onConfirm={handleCancelSubscription}
         processedAt={cancelProcessedAt}
+        createdAt={cancelCreatedAt}
+        hasRefundRight={hasRefundRight}
         accessEndsAt={expiresAtFromData}
         planName={planDisplayName(planKey)}
         isLoading={cancelLoading}

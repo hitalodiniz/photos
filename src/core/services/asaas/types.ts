@@ -21,6 +21,7 @@ export interface CreateSubscriptionData {
   value: number;
   description: string;
   nextDueDate?: string;
+  updatePendingPayments?: boolean;
   maxPayments?: number;
   installmentCount?: number;
   creditCardDetails?: {

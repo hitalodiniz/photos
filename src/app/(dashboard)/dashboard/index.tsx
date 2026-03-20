@@ -176,6 +176,7 @@ export default function Dashboard({
           setCardsToShow={filters.setCardsToShow}
           galeriasCount={filters.counts.active}
           photographer={initialProfile}
+          profile={initialProfile}
           handleGoogleLogin={actions.handleGoogleLogin}
           handleNovaGaleria={handleNovaGaleria}
           isRedirecting={isNavigating}

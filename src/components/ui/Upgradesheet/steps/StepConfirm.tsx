@@ -91,6 +91,7 @@ export function StepConfirm() {
     upgradeCalculation?.type === 'downgrade' &&
     upgradeCalculation?.is_downgrade_withdrawal_window === true &&
     (upgradeCalculation?.residual_credit ?? 0) > 0;
+
   const isScheduledDowngrade =
     upgradeCalculation?.type === 'downgrade' &&
     upgradeCalculation?.is_downgrade_withdrawal_window === false;
@@ -417,6 +418,7 @@ export function StepConfirm() {
         </SheetSection>
       )}
 
+      {/* ── Downgrade agendado (fora dos 7 dias) ── */}
       {isScheduledDowngrade &&
         scheduledCurrentPlanEndsAt &&
         scheduledNewPlanStartsAt && (
@@ -436,6 +438,25 @@ export function StepConfirm() {
             </div>
           </SheetSection>
         )}
+
+      {/* ── Aviso de abertura mão do estorno (downgrade com crédito dentro dos 7 dias) ── */}
+      {isDowngradeWithCredit && (
+        <SheetSection>
+          <p className="text-[10px] text-petroleum/50 leading-snug text-center px-1">
+            Ao confirmar, você abre mão do direito de estorno e opta por aplicar
+            o crédito pro-rata ao novo plano, conforme a{' '}
+            <a
+              href="/politica-cancelamento"
+              target="_blank"
+              rel="noopener noreferrer"
+              className="text-gold underline hover:text-gold/70 transition-colors"
+            >
+              política de cancelamento
+            </a>
+            .
+          </p>
+        </SheetSection>
+      )}
 
       {ToastElement}
     </>

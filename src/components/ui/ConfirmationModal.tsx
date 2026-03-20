@@ -16,6 +16,8 @@ interface ConfirmationModalProps {
   hideConfirm?: boolean;
   /** Tema visual da galeria (ex: EDITORIAL_WHITE) */
   themeKey?: string;
+  /** Classes CSS para o modal. */
+  modalClassName?: string;
 }
 
 export default function ConfirmationModal({
@@ -29,6 +31,7 @@ export default function ConfirmationModal({
   isLoading = false,
   hideConfirm = false,
   themeKey,
+  modalClassName,
 }: ConfirmationModalProps) {
   if (!isOpen) return null;
 
@@ -80,6 +83,7 @@ export default function ConfirmationModal({
       footer={footer}
       maxWidth="sm"
       dataTheme={themeKey}
+      className={modalClassName}
     >
       <div className="text-[13px] md:text-[14px] leading-relaxed text-petroleum/80 font-medium text-center py-1">
         {typeof message === 'string'

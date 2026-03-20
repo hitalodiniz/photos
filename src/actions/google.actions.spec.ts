@@ -155,6 +155,8 @@ describe('Google Actions - Testes Completos', () => {
         expect(result).toEqual({
           count: 3,
           hasMore: false,
+          selectedPhotos: 3,
+          selectedVideos: 0,
           totalInDrive: 3,
         });
       });
@@ -183,6 +185,8 @@ describe('Google Actions - Testes Completos', () => {
         expect(result).toEqual({
           count: 10,
           hasMore: true,
+          selectedPhotos: 10,
+          selectedVideos: 0,
           totalInDrive: 10,
         });
       });
@@ -212,6 +216,8 @@ describe('Google Actions - Testes Completos', () => {
         expect(result).toEqual({
           count: 10,
           hasMore: true,
+          selectedPhotos: 10,
+          selectedVideos: 0,
           totalInDrive: 10, // Contagem que respeita regras do plano
         });
       });
@@ -275,6 +281,8 @@ describe('Google Actions - Testes Completos', () => {
         expect(result).toEqual({
           count: 0,
           hasMore: false,
+          selectedPhotos: 0,
+          selectedVideos: 0,
           totalInDrive: 0,
         });
       });
@@ -292,6 +300,8 @@ describe('Google Actions - Testes Completos', () => {
         expect(result).toEqual({
           count: 0,
           hasMore: false,
+          selectedPhotos: 0,
+          selectedVideos: 0,
           totalInDrive: 0,
         });
 
@@ -310,6 +320,8 @@ describe('Google Actions - Testes Completos', () => {
         expect(result).toEqual({
           count: 0,
           hasMore: false,
+          selectedPhotos: 0,
+          selectedVideos: 0,
           totalInDrive: 0,
         });
       });

@@ -267,6 +267,8 @@ export default function GaleriaFormContent({
     coverId: initialData?.cover_image_url ?? '',
     allCovers: initialData?.cover_image_ids || [],
     photoCount: initialData?.photo_count || 0,
+    selectedPhotos: initialData?.photo_count || 0,
+    selectedVideos: 0,
   });
 
   const [links, setLinks] = useState<{ url: string; label: string }[]>(() => {
@@ -405,6 +407,11 @@ export default function GaleriaFormContent({
       mimeType?: string;
     }>,
   ) => {
+    // console.log('[handleDriveSelection] Início', {
+    //   selectedCount: selectedItems?.length ?? 0,
+    //   firstItem: selectedItems?.[0],
+    // });
+
     if (
       !selectedItems ||
       !Array.isArray(selectedItems) ||
@@ -417,11 +424,20 @@ export default function GaleriaFormContent({
     setIsValidatingDrive(true);
 
     try {
-      if (!getAuthDetails) {
+      // Evita dependência exclusiva do hook de sessão (que pode oscilar no client):
+      // prioriza o id do perfil já carregado na tela.
+      let userId = profile?.id ?? null;
+      if (!userId && getAuthDetails) {
+        const auth = await getAuthDetails();
+        userId = auth?.userId ?? null;
+      }
+      // console.log('[handleDriveSelection] userId resolvido', {
+      //   profileId: profile?.id ?? null,
+      //   resolvedUserId: userId,
+      // });
+      if (!userId) {
         throw new Error('Sessão expirada. Por favor, faça login novamente.');
       }
-
-      const { userId } = await getAuthDetails();
       const selection = selectedItems[0];
       const selectedId = selection.id;
 
@@ -438,6 +454,13 @@ export default function GaleriaFormContent({
         const parentId = await getParentFolderIdServer(selection.id, userId);
         driveFolderId = parentId || selection.id;
       }
+
+      // console.log('[handleDriveSelection] Pasta resolvida', {
+      //   selectedId,
+      //   isFolder,
+      //   parentIdFromSelection: selection.parentId ?? null,
+      //   driveFolderId,
+      // });
 
       if (!driveFolderId || driveFolderId === 'undefined') {
         throw new Error(
@@ -464,6 +487,11 @@ export default function GaleriaFormContent({
         PLAN_HARD_CAP,
         planKey,
       );
+      // console.log('[handleDriveSelection] checkFolderLimits', {
+      //   driveFolderId,
+      //   planKey,
+      //   limitData,
+      // });
 
       let folderPermissionInfo;
       try {
@@ -479,11 +507,41 @@ export default function GaleriaFormContent({
         };
       }
 
+      // console.log('[handleDriveSelection] checkFolderPublicPermission', {
+      //   driveFolderId,
+      //   folderPermissionInfo,
+      // });
+
+      // 1. Defina o link de ajuda como uma constante
+      const GOOGLE_SHARE_HELP_URL =
+        'https://support.google.com/drive/answer/2494822#zippy=%2Ccompartilhar-um-arquivo-ou-pasta-publicamente';
+
+      // 2. No bloco de verificação de permissão:
       if (!folderPermissionInfo.isPublic) {
+        const errorMessage = (
+          <span>
+            Pasta não pública. Ative o compartilhamento como "Qualquer pessoa
+            com o link" com permissão de Leitor.
+            <a
+              href={GOOGLE_SHARE_HELP_URL}
+              target="_blank"
+              rel="noopener noreferrer"
+              className="underline ml-1 text-blue-400 hover:text-blue-300"
+            >
+              Ver como fazer.
+            </a>
+          </span>
+        );
+
         onPickerError(
-          'Pasta privada: Altere o acesso no Drive para "Qualquer pessoa com o link" antes de vincular.',
+          errorMessage as any, // Cast para any se o seu Toast aceitar apenas strings, ou ajuste a tipagem para ReactNode
           folderPermissionInfo.folderLink,
         );
+
+        console.warn('[handleDriveSelection] BLOQUEADO: pasta não pública', {
+          driveFolderId,
+          folderPermissionInfo,
+        });
         return;
       }
 
@@ -493,14 +551,29 @@ export default function GaleriaFormContent({
         coverId: coverIds[0],
         allCovers: coverIds,
         photoCount: limitData.totalInDrive || limitData.count,
+        selectedPhotos: limitData.selectedPhotos ?? 0,
+        selectedVideos: limitData.selectedVideos ?? 0,
       });
+      // console.log('[handleDriveSelection] setDriveData OK', {
+      //   id: driveFolderId,
+      //   name: driveFolderName,
+      //   coverCount: coverIds.length,
+      //   photoCount: limitData.totalInDrive || limitData.count,
+      // });
 
       setLimitInfo(limitData);
       setPhotoCount(limitData.totalInDrive || limitData.count);
       await getFolderPhotos(driveFolderId);
+      // console.log('[handleDriveSelection] getFolderPhotos OK', {
+      //   driveFolderId,
+      // });
 
       if (limitData.hasMore) setShowLimitModal(true);
     } catch (error: any) {
+      // console.error('[handleDriveSelection] ERRO', {
+      //   message: error?.message,
+      //   error,
+      // });
       onPickerError(
         error?.message || 'Erro ao processar a seleção do Google Drive.',
       );

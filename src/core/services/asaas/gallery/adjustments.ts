@@ -27,6 +27,7 @@ async function getNeedsAdjustment(
     .eq('user_id', profileId)
     .eq('is_deleted', false)
     .eq('is_archived', false)
+    .eq('auto_archived', false)
     .order('created_at', { ascending: false });
 
   if (!galleries || galleries.length === 0) {
@@ -75,9 +76,7 @@ export async function reactivateAutoArchivedGalleries(
     .select('id', { count: 'exact', head: true })
     .eq('user_id', profileId)
     .eq('is_deleted', false)
-    .eq('is_archived', false)
-    .eq('is_public', true)
-    .or('auto_archived.is.null,auto_archived.eq.false');
+    .eq('auto_archived', true);
 
   if (countError) return { reactivated: 0, error: countError.message };
 

@@ -45,68 +45,69 @@ export function getNextPlanKey(current: PlanKey): PlanKey | null {
 //
 // =============================================================================
 
+const isDev = process.env.NODE_ENV === 'development';
+
 // ── Cota de arquivos (Pool global: fotos + vídeos processados do Drive) ───────
 export const PHOTO_CREDITS_BY_PLAN: Record<PlanKey, number> = {
-  FREE: 450,
-  START: 3_000,
-  PLUS: 20_000,
-  PRO: 100_000, // 100 mil fotos (Número mágico de marketing)
-  PREMIUM: 300_000,
+  FREE: isDev ? 10 : 450,
+  START: isDev ? 30 : 3_000, // Ajustado para 30 (3 galerias de 10)
+  PLUS: isDev ? 80 : 20_000, // Ajustado para 80 (4 galerias de 20)
+  PRO: isDev ? 200 : 100_000, // 5 galerias de 40
+  PREMIUM: isDev ? 500 : 300_000, // 10 galerias de 50
 };
 
-// ── Capacidade em GB (Números redondos e intuitivos) ─────
-// Arredondados para cima/baixo para facilitar a leitura nos cards de plano
+// ── Capacidade em GB (Informativo - Média de 3MB por arquivo) ─────
 export const STORAGE_GB_BY_PLAN: Record<PlanKey, number> = {
-  FREE: 1.5, // Leitura rápida
-  START: 10, // Número forte para entrada
-  PLUS: 60, // Equilibrado
-  PRO: 300, // "300 Giga" é um marco mental de robustez
-  PREMIUM: 1000, // "1 Terabyte" (mais intuitivo que 900)
+  FREE: 1.5,
+  START: 10,
+  PLUS: 60,
+  PRO: 300,
+  PREMIUM: 1000,
 };
 
 // ── Teto absoluto de galerias (Hard Cap - Onde o sistema trava) ────────
 export const MAX_GALLERIES_HARD_CAP_BY_PLAN: Record<PlanKey, number> = {
-  FREE: 3,
-  START: 18,
-  PLUS: 75,
-  PRO: 150, // Entrega as 100 base + 50 de bônus por eficiência
-  PREMIUM: 500, // Entrega as 300 base + 200 de bônus por eficiência
+  FREE: isDev ? 2 : 3,
+  START: isDev ? 3 : 18,
+  PLUS: isDev ? 4 : 75,
+  PRO: isDev ? 5 : 150,
+  PREMIUM: isDev ? 10 : 500,
 };
 
 // ── Hard cap por galeria (Bloqueio de upload na galeria individual) ─────
 export const MAX_PHOTOS_PER_GALLERY_BY_PLAN: Record<PlanKey, number> = {
-  FREE: 200,
-  START: 800,
-  PLUS: 1_500,
-  PRO: 4_000, // Atende formaturas sem degradar a performance
-  PREMIUM: 8_000, // Limite máximo técnico recomendado
+  FREE: isDev ? 8 : 200, // Um pouco acima do recomendado para testar "uso excessivo"
+  START: isDev ? 15 : 800,
+  PLUS: isDev ? 30 : 1_500,
+  PRO: isDev ? 60 : 4_000,
+  PREMIUM: isDev ? 100 : 8_000,
 };
 
 // ── Recomendado por galeria = cota / galerias_base ───────────────────────────
-// Ajustado para que a conta (Cota / Recomendado) resulte em 100 no PRO e 300 no PREMIUM
 export const RECOMMENDED_PHOTOS_PER_GALLERY_BY_PLAN: Record<PlanKey, number> = {
-  FREE: 150, // 450 / 150 = 3 galerias base
-  START: 250, // 3.000 / 250 = 12 galerias base
-  PLUS: 400, // 20.000 / 400 = 50 galerias base
-  PRO: 1_000, // 100.000 / 1.000 = 100 galerias base (Conta exata)
-  PREMIUM: 1_000, // 300.000 / 1.000 = 300 galerias base (Conta exata)
+  FREE: isDev ? 5 : 150, // 10 / 2 = 5
+  START: isDev ? 10 : 250, // 30 / 3 = 10
+  PLUS: isDev ? 20 : 400, // 80 / 4 = 20
+  PRO: isDev ? 40 : 1_000, // 200 / 5 = 40
+  PREMIUM: isDev ? 50 : 1_000, // 500 / 10 = 50
 };
 
 // ── Threshold de alerta amarelo na galeria individual ─────────────────────────
 export const FILES_ALERT_THRESHOLD_BY_PLAN: Record<PlanKey, number> = {
-  FREE: 150,
-  START: 500,
-  PLUS: 1_000,
-  PRO: 2_500,
-  PREMIUM: 5_000,
+  FREE: isDev ? 4 : 150,
+  START: isDev ? 8 : 500,
+  PLUS: isDev ? 18 : 1_000,
+  PRO: isDev ? 35 : 2_500,
+  PREMIUM: isDev ? 45 : 5_000,
 };
+
 // ── Vídeos ────────────────────────────────────────────────────────────────────
 export const MAX_VIDEO_COUNT_BY_PLAN: Record<PlanKey, number> = {
-  FREE: 1,
-  START: 10,
-  PLUS: 20,
-  PRO: 50,
-  PREMIUM: 100,
+  FREE: isDev ? 1 : 1,
+  START: isDev ? 2 : 10,
+  PLUS: isDev ? 3 : 20,
+  PRO: isDev ? 4 : 50,
+  PREMIUM: isDev ? 5 : 100,
 };
 
 export const MAX_VIDEO_SIZE_MB_BY_PLAN: Record<PlanKey, number> = {

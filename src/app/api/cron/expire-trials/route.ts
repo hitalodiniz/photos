@@ -1,6 +1,7 @@
 import { performDowngradeToFree } from '@/core/services/asaas.service';
 import { createClient } from '@supabase/supabase-js';
 import { NextResponse } from 'next/server';
+import { enforcePhotoQuotaByArchivingOldest } from '@/core/services/asaas/gallery/quota-enforcement';
 
 // Força a rota a não ser cacheada (importante para CRON)
 export const dynamic = 'force-dynamic';
@@ -61,6 +62,27 @@ export async function GET(request: Request) {
         `[Cron] Processando expiração: ${profile.username} (${profile.id})`,
       );
 
+      // Garante exibição do alerta na próxima entrada do usuário.
+      // No fluxo atual, o modal aparece quando last_downgrade_alert_viewed === false.
+      const { data: profileMetaRow } = await supabaseAdmin
+        .from('tb_profiles')
+        .select('metadata')
+        .eq('id', profile.id)
+        .maybeSingle();
+
+      const currentMetadata =
+        (profileMetaRow?.metadata as Record<string, unknown>) || {};
+      await supabaseAdmin
+        .from('tb_profiles')
+        .update({
+          metadata: {
+            ...currentMetadata,
+            last_downgrade_alert_viewed: false,
+          },
+          updated_at: new Date().toISOString(),
+        })
+        .eq('id', profile.id);
+
       const res = await performDowngradeToFree(
         profile.id,
         null, // Não há uma requisição de upgrade específica, é expiração automática
@@ -68,10 +90,24 @@ export async function GET(request: Request) {
         supabaseAdmin, // Passamos o cliente admin para o service
       );
 
+      let extraArchived = 0;
+      let remainingTotal = 0;
+      if (res.success) {
+        const enforce = await enforcePhotoQuotaByArchivingOldest(
+          supabaseAdmin,
+          profile.id,
+          'FREE',
+        );
+        extraArchived = enforce.archivedCount;
+        remainingTotal = enforce.remainingTotal;
+      }
+
       results.push({
         username: profile.username,
         success: res.success,
         archivedGalleries: res.excess_galleries.length,
+        extraArchivedByTotalQuota: extraArchived,
+        remainingTotalAfterArchive: remainingTotal,
       });
     }
 

@@ -196,6 +196,7 @@ function UpgradeSheetContent({
         message="Ao assinar um novo plano, seu benefício de isenção atual será substituído pela nova assinatura paga. Deseja prosseguir?"
         confirmText="Prosseguir"
         variant="primary"
+        modalClassName="z-[9999]"
       />
     </Sheet>
   );

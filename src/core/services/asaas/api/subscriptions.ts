@@ -10,10 +10,11 @@ import type { CreateSubscriptionData } from '../types';
 
 export async function createAsaasSubscription(data: CreateSubscriptionData) {
   try {
+    const today = new Date().toISOString().split('T')[0];
     const nextDueDate =
       data.nextDueDate && /^\d{4}-\d{2}-\d{2}$/.test(data.nextDueDate)
         ? data.nextDueDate
-        : new Date().toISOString().split('T')[0];
+        : today;
 
     const body: Record<string, unknown> = {
       customer: data.customerId,
@@ -22,6 +23,7 @@ export async function createAsaasSubscription(data: CreateSubscriptionData) {
       value: data.value,
       description: data.description,
       nextDueDate,
+      updatePendingPayments: data.updatePendingPayments ?? true,
     };
 
     if (data.installmentCount && data.installmentCount > 1)
@@ -107,9 +109,9 @@ export async function updateAsaasSubscriptionPlanAndDueDate(
     value,
     description,
     nextDueDate,
+    updatePendingPayments: updatePendingPayments ?? true,
   };
   if (cycle) body.cycle = cycle;
-  if (updatePendingPayments === false) body.updatePendingPayments = false;
   const { ok, data } = await asaasRequest<{ errors?: unknown[] }>(
     `/subscriptions/${subscriptionId}`,
     { method: 'PUT', body: JSON.stringify(body) },

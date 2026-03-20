@@ -9,11 +9,10 @@ import {
   billingPeriodToMonths,
 } from '@/core/services/asaas/utils/dates';
 import { getAsaasSubscription } from '@/core/services/asaas/api/subscriptions';
-import { PLANS_BY_SEGMENT } from '@/core/config/plans';
 import type { PlanKey } from '@/core/config/plans';
+import { enforcePhotoQuotaByArchivingOldest } from '@/core/services/asaas/gallery/quota-enforcement';
 
 const OVERDUE_GRACE_DAYS = 5;
-const SEGMENT = 'PHOTOGRAPHER' as const;
 
 export async function GET(req: NextRequest) {
   const auth = req.headers.get('authorization');
@@ -26,11 +25,12 @@ export async function GET(req: NextRequest) {
   const results = {
     processed: 0,
     skipped: 0,
+    quota_adjusted: 0,
     errors: [] as string[],
   };
 
   // ── 1. Downgrade programado (pending_downgrade com acesso vencido) ────────
-  const { data: scheduled, error: scheduledErr } = await supabase
+  const { data: scheduledPendingDowngrade, error: scheduledPendingDowngradeErr } = await supabase
     .from('tb_upgrade_requests')
     .select(
       'id, profile_id, plan_key_requested, billing_period, processed_at, notes',
@@ -38,9 +38,31 @@ export async function GET(req: NextRequest) {
     .eq('status', 'pending_downgrade')
     .order('created_at', { ascending: true });
 
-  if (scheduledErr) {
-    return NextResponse.json({ error: scheduledErr.message }, { status: 500 });
+  const { data: scheduledPendingCancellation, error: scheduledPendingCancellationErr } =
+    await supabase
+      .from('tb_upgrade_requests')
+      .select(
+        'id, profile_id, plan_key_requested, billing_period, processed_at, notes',
+      )
+      .eq('status', 'pending_cancellation')
+    .order('created_at', { ascending: true });
+
+  if (scheduledPendingDowngradeErr || scheduledPendingCancellationErr) {
+    const msg =
+      scheduledPendingDowngradeErr?.message ??
+      scheduledPendingCancellationErr?.message ??
+      'Erro ao buscar downgrades agendados';
+    return NextResponse.json({ error: msg }, { status: 500 });
   }
+
+  const scheduled = [
+    ...(scheduledPendingDowngrade ?? []),
+    ...(scheduledPendingCancellation ?? []),
+  ].sort(
+    (a, b) =>
+      new Date(a.processed_at ?? 0).getTime() -
+      new Date(b.processed_at ?? 0).getTime(),
+  );
 
   for (const row of scheduled ?? []) {
     try {
@@ -64,6 +86,7 @@ export async function GET(req: NextRequest) {
       );
 
       if (result.success) {
+        await enforcePhotoQuotaByArchivingOldest(supabase, row.profile_id, 'FREE');
         results.processed++;
       } else {
         results.errors.push(`[scheduled] ${row.id}: ${result.error}`);
@@ -115,6 +138,7 @@ export async function GET(req: NextRequest) {
       );
 
       if (result.success) {
+        await enforcePhotoQuotaByArchivingOldest(supabase, row.profile_id, 'FREE');
         results.processed++;
       } else {
         results.errors.push(`[overdue] ${row.id}: ${result.error}`);
@@ -237,10 +261,76 @@ export async function GET(req: NextRequest) {
         }
       }
 
+      await enforcePhotoQuotaByArchivingOldest(supabase, profileId, newPlanKey);
+
       results.processed++;
     } catch (e) {
       results.errors.push(
         `[pending_change] ${row.id}: ${e instanceof Error ? e.message : String(e)}`,
+      );
+    }
+  }
+
+  // ── 4. Enforcement de limites (fallback): perfis acima da cota/limite ─────
+  // Esse passo cobre cenários em que não existe pending_downgrade, mas o usuário
+  // já está acima dos limites do plano atual (ex.: fluxo antigo/inconsistente).
+  const { data: activeProfiles, error: activeProfilesErr } = await supabase
+    .from('tb_profiles')
+    .select('id, plan_key, is_exempt');
+
+  if (activeProfilesErr) {
+    results.errors.push(`[quota_enforcement query] ${activeProfilesErr.message}`);
+  }
+
+  const nonExemptProfiles = (activeProfiles ?? []).filter(
+    (profile) => profile.is_exempt !== true,
+  );
+
+  for (const profile of nonExemptProfiles) {
+    try {
+      const planKey = (profile.plan_key ?? 'FREE') as PlanKey;
+      let adjustedAny = false;
+
+      const adjustment = await getNeedsAdjustment(profile.id, planKey, supabase);
+      if (adjustment.needs_adjustment && adjustment.excess_galleries.length > 0) {
+        const excessIds = adjustment.excess_galleries.map((g) => g.id);
+        const { error: hideError } = await supabase
+          .from('tb_galerias')
+          .update({
+            is_public: false,
+            auto_archived: true,
+            updated_at: now.toISOString(),
+          })
+          .in('id', excessIds);
+
+        if (hideError) {
+          results.errors.push(
+            `[quota_enforcement galleries] ${profile.id}: ${hideError.message}`,
+          );
+        } else {
+          results.processed++;
+          results.quota_adjusted++;
+          adjustedAny = true;
+        }
+      }
+
+      const quotaResult = await enforcePhotoQuotaByArchivingOldest(
+        supabase,
+        profile.id,
+        planKey,
+      );
+      if (quotaResult.archivedCount > 0) {
+        results.processed++;
+        results.quota_adjusted++;
+        adjustedAny = true;
+      }
+
+      if (!adjustedAny) {
+        results.skipped++;
+      }
+    } catch (e) {
+      results.errors.push(
+        `[quota_enforcement] ${profile.id}: ${e instanceof Error ? e.message : String(e)}`,
       );
     }
   }

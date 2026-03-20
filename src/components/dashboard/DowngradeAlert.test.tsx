@@ -17,6 +17,11 @@ vi.mock('@/components/ui/BaseModal', () => ({
     ) : null,
 }));
 
+vi.mock('@/components/ui/Upgradesheet', () => ({
+  UpgradeSheet: ({ isOpen }: { isOpen: boolean }) =>
+    isOpen ? <div data-testid="upgrade-sheet" /> : null,
+}));
+
 describe('DowngradeAlert', () => {
   const baseProfile = {
     id: 'p1',
@@ -24,7 +29,7 @@ describe('DowngradeAlert', () => {
     metadata: { last_downgrade_alert_viewed: false },
   };
 
-  it('não renderiza se não houver galerias auto_archived', () => {
+  it('renderiza aviso mesmo sem galerias auto_archived quando metadata pede exibição', () => {
     render(
       <DowngradeAlert
         profile={baseProfile}
@@ -41,9 +46,10 @@ describe('DowngradeAlert', () => {
       />,
     );
 
+    expect(screen.getByRole('dialog')).toBeInTheDocument();
     expect(
-      screen.queryByRole('dialog'),
-    ).not.toBeInTheDocument();
+      screen.getByText(/Seu periodo de teste terminou/i),
+    ).toBeInTheDocument();
   });
 
   it('renderiza modal quando há galerias auto_archived e metadata ainda não vista', () => {
@@ -124,6 +130,27 @@ describe('DowngradeAlert', () => {
     fireEvent.click(button);
 
     expect(acknowledgeDowngradeAlert).toHaveBeenCalled();
+  });
+
+  it('renderiza aviso de trial expirado mesmo sem auto_archived e abre UpgradeSheet', () => {
+    render(
+      <DowngradeAlert
+        profile={{
+          ...baseProfile,
+          plan_key: 'PRO',
+          is_trial: true,
+          plan_trial_expires: '2020-01-01 00:00:00+00',
+        }}
+        galerias={[]}
+      />,
+    );
+
+    expect(
+      screen.getByText(/Seu periodo de teste terminou/i),
+    ).toBeInTheDocument();
+
+    fireEvent.click(screen.getByRole('button', { name: /Assinar plano/i }));
+    expect(screen.getByTestId('upgrade-sheet')).toBeInTheDocument();
   });
 });
 
