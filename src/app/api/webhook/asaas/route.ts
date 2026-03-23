@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { createSupabaseServerClient } from '@/lib/supabase.server';
+import { createSupabaseAdmin } from '@/lib/supabase.server';
 import { revalidatePath } from 'next/cache';
 import { revalidateUserCache } from '@/actions/revalidate.actions';
 import { toSaoPauloIso } from '@/core/utils/date-time';
@@ -42,7 +42,9 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ received: true }, { status: 200 });
     }
 
-    const supabase = await createSupabaseServerClient();
+    // Webhook é processamento sistêmico (sem sessão de usuário).
+    // Usar service role evita bloqueios de RLS em updates críticos de cobrança.
+    const supabase = createSupabaseAdmin();
 
     const paymentId = payment?.id;
     const subscriptionId =
@@ -185,13 +187,21 @@ export async function POST(request: NextRequest) {
               }
             }
 
-            // Vínculo dinâmico: se não existe request com este paymentId mas existe com este subscriptionId, criar registro herdando dados da assinatura (renovações automáticas).
+            const billingPeriodLabel = (period?: string | null) => {
+              if (period === 'annual') return 'Renovação Anual';
+              if (period === 'semiannual') return 'Renovação Semestral';
+              return 'Renovação Mensal';
+            };
+
+            // Vínculo dinâmico: se não existe request com este paymentId mas existe com este subscriptionId,
+            // criar linha financeira de renovação.
             const { data: existingByPayment } = await supabase
               .from('tb_upgrade_requests')
               .select('id')
               .eq('asaas_payment_id', paymentId)
               .maybeSingle();
 
+            let isRenewalInsert = false;
             if (!existingByPayment?.id && subscriptionIdFromPayment) {
               const { data: subRow } = await supabase
                 .from('tb_upgrade_requests')
@@ -206,12 +216,14 @@ export async function POST(request: NextRequest) {
               if (subRow?.profile_id) {
                 const paidValue = payment?.value ?? 0;
                 const now = nowInSaoPauloIso();
+                const effectivePlanKey =
+                  subRow.plan_key_requested ?? subRow.plan_key_current;
                 const { error: insertErr } = await supabase
                   .from('tb_upgrade_requests')
                   .insert({
                     profile_id: subRow.profile_id,
-                    plan_key_current: subRow.plan_key_current,
-                    plan_key_requested: subRow.plan_key_requested,
+                    plan_key_current: effectivePlanKey,
+                    plan_key_requested: effectivePlanKey,
                     billing_type: subRow.billing_type,
                     billing_period: subRow.billing_period,
                     snapshot_name: subRow.snapshot_name,
@@ -226,10 +238,20 @@ export async function POST(request: NextRequest) {
                     amount_discount: 0,
                     amount_final: paidValue,
                     installments: 1,
-                    status: 'pending',
-                    notes: `Cobrança de renovação vinculada ao webhook (paymentId: ${paymentId})`,
+                    status: 'approved',
+                    asaas_raw_status: payment?.status ?? 'RECEIVED',
+                    processed_at: now,
+                    notes: `${billingPeriodLabel(subRow.billing_period)} via webhook Asaas (paymentId: ${paymentId}, subscriptionId: ${subscriptionIdFromPayment})`,
                     updated_at: now,
                   });
+                if (insertErr) {
+                  console.error(
+                    '[Webhook Asaas] Falha ao inserir request de renovação:',
+                    insertErr,
+                  );
+                } else {
+                  isRenewalInsert = true;
+                }
               }
             }
 
@@ -268,11 +290,15 @@ export async function POST(request: NextRequest) {
               return NextResponse.json({ received: true }, { status: 200 });
             }
 
-            // 1. Atualiza o status do pagamento via RPC (apenas uma vez)
+            // 1. Fluxo de ativação:
+            // - Upgrade (request já existente): RPC + update do request.
+            // - Renovação (request criado no webhook): sem RPC, apenas histórico financeiro.
             const subscriptionId =
               payment?.subscription ?? body.subscription?.id ?? null;
             const paidStatus = payment?.status ?? 'CONFIRMED';
-            await handlePaymentRpc(paidStatus, subscriptionId);
+            if (!isRenewalInsert) {
+              await handlePaymentRpc(paidStatus, subscriptionId);
+            }
 
             // Fallback de segurança: se a RPC não refletir status no request, atualiza diretamente.
             // Evita ficar preso em "pending" quando o webhook já confirmou/recebeu pagamento.
@@ -283,21 +309,30 @@ export async function POST(request: NextRequest) {
                   paymentDate?: string | null;
                 }
               | undefined;
-            const paymentTimestamp =
+            const paymentTimestampRaw =
               paymentMeta?.confirmedDate ??
               paymentMeta?.clientPaymentDate ??
               paymentMeta?.paymentDate ??
               nowInSaoPauloIso();
+            const paymentTimestamp =
+              /^\d{4}-\d{2}-\d{2}$/.test(paymentTimestampRaw)
+                ? `${paymentTimestampRaw}T00:00:00-03:00`
+                : paymentTimestampRaw;
             await supabase
               .from('tb_upgrade_requests')
               .update({
                 status: 'approved',
                 asaas_raw_status: paidStatus,
                 processed_at: paymentTimestamp,
+                ...(!isRenewalInsert
+                  ? {
+                      notes: `Upgrade de Plano aprovado via webhook Asaas (paymentId: ${paymentId})`,
+                    }
+                  : {}),
                 updated_at: nowInSaoPauloIso(),
               })
               .eq('asaas_payment_id', paymentId)
-              .in('status', ['pending', 'processing']);
+              .in('status', ['pending', 'processing', 'pending_change']);
 
             // 2. Busca os dados da requisição de upgrade vinculada a este pagamento
             // Buscamos sem o filtro de 'approved' para garantir que pegamos a req.

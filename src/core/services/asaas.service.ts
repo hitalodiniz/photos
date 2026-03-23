@@ -64,7 +64,6 @@ import {
 } from './asaas/api/subscriptions';
 import {
   getFirstPaymentFromSubscription,
-  createAsaasCreditCardPayment,
   deletePendingPaymentsForSubscription,
   getAsaasPaymentStatus,
   getPaymentBillingInfo,
@@ -72,6 +71,7 @@ import {
 } from './asaas/api/payments';
 import { getPixQrCodeFromPayment } from './asaas/api/pix';
 import { reactivateAutoArchivedGalleries as reactivateAutoArchivedGalleriesImpl } from './asaas/gallery/adjustments';
+import { toSaoPauloIso } from '@/core/utils/date-time';
 
 // ═══════════════════════════════════════════════════════════════════════════════
 // 📋 TIPOS E INTERFACES (usados pelas funções abaixo)
@@ -252,7 +252,9 @@ async function cancelPendingUpgradeInAsaasAndDb(
   }
 
   if (subId) {
-    const res = await cancelAsaasSubscriptionById(subId);
+    const res = await cancelAsaasSubscriptionById(subId, {
+      deletePendingPayments: true,
+    });
     if (!res.success) return { success: false, error: res.error };
   } else if (payId) {
     const res = await deleteAsaasPayment(payId);
@@ -1112,6 +1114,7 @@ export async function handleSubscriptionCancellation(
     if (request.asaas_subscription_id) {
       const cancelResult = await cancelAsaasSubscriptionById(
         request.asaas_subscription_id as string,
+        { deletePendingPayments: true },
       );
       if (!cancelResult.success) {
         return {
@@ -1200,6 +1203,7 @@ export async function handleSubscriptionCancellation(
     .from('tb_upgrade_requests')
     .update({
       status: 'pending_downgrade',
+      processed_at: accessEndsAtIso,
       notes: buildCancellationNotes(
         `Cancelamento solicitado em ${now.toISOString()}. Acesso até ${accessEndsAtIso}.`,
         reason,
@@ -1638,31 +1642,6 @@ export async function requestUpgrade(
     };
   }
 
-  let oneOffPaymentId: string | null = null;
-  let oneOffInvoiceUrl: string | null = null;
-  if (
-    hasCreditNextDueDate &&
-    isCreditCard &&
-    creditCardDetails &&
-    creditCardHolderInfo
-  ) {
-    const oneOff = await createAsaasCreditCardPayment(
-      asaasCustomerId,
-      amountFinal,
-      new Date().toISOString().split('T')[0],
-      `Plano ${planInfo.name}`,
-      creditCardDetails,
-      creditCardHolderInfo,
-    );
-    if (!oneOff.success || !oneOff.paymentId)
-      return {
-        success: false,
-        error: oneOff.error ?? 'Erro ao cobrar diferença no cartão',
-      };
-    oneOffPaymentId = oneOff.paymentId;
-    oneOffInvoiceUrl = oneOff.invoiceUrl ?? null;
-  }
-
   const asaasCycle: 'MONTHLY' | 'SEMIANNUALLY' | 'YEARLY' =
     billingPeriod === 'annual'
       ? 'YEARLY'
@@ -1670,9 +1649,12 @@ export async function requestUpgrade(
         ? 'SEMIANNUALLY'
         : 'MONTHLY';
   const planPricePerPeriod = getPeriodPrice(planInfo, billingPeriod).totalPrice;
-  const immediateDueDate = new Date().toISOString().split('T')[0];
-  const subscriptionValue =
-    hasCreditNextDueDate && isCreditCard ? planPricePerPeriod : amountFinal;
+  const immediateDueDate = toSaoPauloIso().split('T')[0];
+  // Regra:
+  // - Upgrade sem crédito: valor cheio do plano para cobrança imediata.
+  // - Upgrade com crédito: respeita amountFinal calculado (evita cobrar valor cheio indevido).
+  const hasCreditApplied = amountDiscount > 0;
+  const subscriptionValue = hasCreditApplied ? amountFinal : planPricePerPeriod;
   const planDescription = `Plano ${planInfo.name}`;
 
   let asaasSubscriptionId: string | null =
@@ -1687,15 +1669,29 @@ export async function requestUpgrade(
   } = { success: false };
 
   if (asaasSubscriptionId) {
+    const updatePayload = {
+      value: subscriptionValue,
+      description: planDescription,
+      nextDueDate: immediateDueDate,
+      cycle: asaasCycle,
+      updatePendingPayments: true,
+      // Explicitar billingType ajuda o gateway a reconstruir a cobrança imediata corretamente.
+      billingType: payload.billing_type,
+    };
+    console.log(
+      '[Asaas][Upgrade] update subscription payload:',
+      JSON.stringify(
+        {
+          subscriptionId: asaasSubscriptionId,
+          ...updatePayload,
+        },
+        null,
+        2,
+      ),
+    );
     const putResult = await updateAsaasSubscriptionPlanAndDueDate(
       asaasSubscriptionId,
-      {
-        value: subscriptionValue,
-        description: planDescription,
-        nextDueDate: immediateDueDate,
-        cycle: asaasCycle,
-        updatePendingPayments: true,
-      },
+      updatePayload,
     );
     if (putResult.success) {
       subResult.success = true;
@@ -1703,7 +1699,7 @@ export async function requestUpgrade(
     } else {
       // Fallback resiliente: se o update da assinatura existente falhar,
       // cria nova assinatura com cobrança imediata para não bloquear checkout.
-      const createResult = await createAsaasSubscription({
+      const createPayload = {
         customerId: asaasCustomerId,
         billingType: payload.billing_type,
         cycle: asaasCycle,
@@ -1714,7 +1710,12 @@ export async function requestUpgrade(
         installmentCount: installments > 1 ? installments : undefined,
         ...(creditCardDetails && { creditCardDetails }),
         ...(creditCardHolderInfo && { creditCardHolderInfo }),
-      });
+      };
+      console.log(
+        '[Asaas][Upgrade] create subscription payload (fallback):',
+        JSON.stringify(createPayload, null, 2),
+      );
+      const createResult = await createAsaasSubscription(createPayload);
       if (!createResult.success || !createResult.subscriptionId) {
         return {
           success: false,
@@ -1731,7 +1732,7 @@ export async function requestUpgrade(
       asaasSubscriptionId = createResult.subscriptionId;
     }
   } else {
-    const createResult = await createAsaasSubscription({
+    const createPayload = {
       customerId: asaasCustomerId,
       billingType: payload.billing_type,
       cycle: asaasCycle,
@@ -1742,7 +1743,12 @@ export async function requestUpgrade(
       installmentCount: installments > 1 ? installments : undefined,
       ...(creditCardDetails && { creditCardDetails }),
       ...(creditCardHolderInfo && { creditCardHolderInfo }),
-    });
+    };
+    console.log(
+      '[Asaas][Upgrade] create subscription payload:',
+      JSON.stringify(createPayload, null, 2),
+    );
+    const createResult = await createAsaasSubscription(createPayload);
     if (!createResult.success || !createResult.subscriptionId) {
       return {
         success: false,
@@ -1760,8 +1766,8 @@ export async function requestUpgrade(
     return { success: false, error: 'Assinatura Asaas não disponível.' };
   }
   const paymentResult = await getFirstPaymentFromSubscription(asaasSubscriptionId);
-  let asaasPaymentId: string | null = oneOffPaymentId;
-  let paymentUrl: string | null = oneOffInvoiceUrl;
+  let asaasPaymentId: string | null = null;
+  let paymentUrl: string | null = null;
   let paymentDueDate: string | undefined;
 
   if (!asaasPaymentId || !paymentUrl) {
@@ -1830,18 +1836,8 @@ export async function requestUpgrade(
     };
   }
 
-  if (hasCreditNextDueDate && calculation.new_expiry_date) {
-    const nds = calculation.new_expiry_date.split('T')[0];
-    if (/^\d{4}-\d{2}-\d{2}$/.test(nds)) {
-      await updateAsaasSubscriptionNextDueDate(asaasSubscriptionId, nds).catch(
-        (e) =>
-          console.error(
-            '[Asaas] Falha ao atualizar nextDueDate após insert:',
-            e,
-          ),
-      );
-    }
-  }
+  // Não sobrescreve nextDueDate após criação/atualização para evitar conflito de ciclo
+  // e geração de cobranças duplicadas no mesmo período.
 
   let pixQrCodeBase64: string | undefined;
   let pixCopyPaste: string | undefined;

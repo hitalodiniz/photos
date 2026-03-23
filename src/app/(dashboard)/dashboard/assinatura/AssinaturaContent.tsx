@@ -144,9 +144,10 @@ function calculateNextBillingDate(item: UpgradeRequest): Date | null {
   const fromNotes = parseDueDateFromNotes(item.notes);
   if (fromNotes) return fromNotes;
 
-  if (!item.processed_at) return null;
-
-  const d = new Date(item.processed_at);
+  const anchorDate = item.processed_at ?? item.created_at;
+  if (!anchorDate) return null;
+  const d = new Date(anchorDate);
+  if (Number.isNaN(d.getTime())) return null;
   d.setMonth(d.getMonth() + billingPeriodToMonths(item.billing_period));
   return d;
 }
@@ -228,6 +229,13 @@ function formatNotesDisplay(notes: string | null | undefined): string {
 
   const lowerNotes = notes.toLowerCase();
 
+  // Nova regra para identificar renovações do histórico simulado
+  if (
+    lowerNotes.includes('renovação mensal') ||
+    lowerNotes.includes('renovação automática')
+  ) {
+    return 'Renovação Mensal';
+  }
   if (lowerNotes.includes('aproveitamento de crédito')) {
     return 'Upgrade com crédito aproveitado';
   }
@@ -278,6 +286,14 @@ export default function AssinaturaContent({
     latestRequestStatus,
     asaasDatesBySubscriptionId,
   } = data;
+  const sortedHistory = useMemo(
+    () =>
+      [...history].sort(
+        (a, b) =>
+          new Date(b.created_at).getTime() - new Date(a.created_at).getTime(),
+      ),
+    [history],
+  );
 
   const planKey = (profile.plan_key || 'FREE') as PlanKey;
   const permissions = PERMISSIONS_BY_PLAN[planKey];
@@ -307,7 +323,9 @@ export default function AssinaturaContent({
     [permissions],
   );
 
-  const latestApprovedRequest = history.find((r) => r.status === 'approved');
+  const latestApprovedRequest = sortedHistory.find(
+    (r) => r.status === 'approved',
+  );
   const cancelProcessedAt = latestApprovedRequest?.processed_at ?? null;
   const cancelCreatedAt = latestApprovedRequest?.created_at ?? null;
   /**
@@ -510,21 +528,43 @@ export default function AssinaturaContent({
     {
       header: 'Status',
       accessor: (item) => {
+        const isRenewalApproved =
+          item.status === 'approved' &&
+          item.plan_key_requested === item.plan_key_current;
         const isLatestApproved =
           planKey !== 'FREE' &&
           item.status === 'approved' &&
           item.id === latestApprovedId;
         if (isLatestApproved) {
           return (
-            <span className="inline-flex items-center gap-1 px-1.5 py-0.5 rounded-md bg-emerald-100 text-emerald-800 text-[10px] font-semibold">
-              Vigente
-            </span>
+            <div className="flex flex-col gap-0.5">
+              <span className="inline-flex items-center gap-1 px-1.5 py-0.5 rounded-md bg-emerald-100 text-emerald-800 text-[10px] font-semibold w-fit">
+                Vigente
+              </span>
+              {isRenewalApproved && (
+                <span className="inline-flex items-center gap-1 px-1.5 py-0.5 rounded-md bg-slate-100 text-slate-700 text-[10px] font-medium w-fit">
+                  Renovação
+                </span>
+              )}
+            </div>
           );
         }
         if (item.status === 'approved') {
+          if (isRenewalApproved) {
+            return (
+              <div className="flex flex-col gap-0.5">
+                <span className="inline-flex items-center gap-1 px-1.5 py-0.5 rounded-md bg-slate-100 text-slate-700 text-[10px] font-medium w-fit">
+                  Renovação
+                </span>
+                <span className="text-[10px] font-medium text-slate-500">
+                  Pago
+                </span>
+              </div>
+            );
+          }
           return (
             <span className="text-[11px] font-medium text-slate-600">
-              {statusLabel(item.status)} (Ciclo Encerrado)
+              Pago (Ciclo Concluído)
             </span>
           );
         }
@@ -703,7 +743,7 @@ export default function AssinaturaContent({
   );
 
   // ─── Render ───────────────────────────────────────────────────────────────
-  const pendingChangeRequest = history.find(
+  const pendingChangeRequest = sortedHistory.find(
     (r) => r.status === 'pending_change',
   );
   const nextCycleAmount =
@@ -711,7 +751,7 @@ export default function AssinaturaContent({
   const nextCycleDate = pendingChangeRequest
     ? (getPlanStartAt(pendingChangeRequest) ?? '—')
     : (expiresAt ?? '—');
-  const latestChargedVigenteRequest = history.find(
+  const latestChargedVigenteRequest = sortedHistory.find(
     (r) => r.status === 'approved' && (r.amount_final ?? 0) > 0,
   );
   const latestVigenteChargeAmount = latestChargedVigenteRequest?.amount_final;
@@ -899,7 +939,7 @@ export default function AssinaturaContent({
                 Histórico de pagamentos
               </h2>
               <RelatorioTable<UpgradeRequest>
-                data={history}
+                data={sortedHistory}
                 columns={columns}
                 emptyMessage="Nenhum pagamento encontrado."
                 itemsPerPage={10}

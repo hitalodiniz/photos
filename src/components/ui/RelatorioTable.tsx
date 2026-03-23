@@ -18,7 +18,7 @@ interface RelatorioTableProps<T> {
   onRowClick?: (item: T) => void;
   onSort?: (key: string) => void;
   emptyMessage?: string;
-  itemsPerPage?: number; // Propriedade opcional para controle de altura
+  itemsPerPage?: number;
 }
 
 export function RelatorioTable<T extends { id: string | number }>({
@@ -69,8 +69,12 @@ export function RelatorioTable<T extends { id: string | number }>({
         {columns.map((col, idx) => (
           <td
             key={idx}
-            className={`px-3 py-2 border-b border-slate-100 text-[11px] text-slate-600 ${col.width || ''} ${
-              col.align === 'right' ? 'text-right' : col.align === 'center' ? 'text-center' : ''
+            className={`px-4 py-3 border-b border-slate-100 text-[12px] text-slate-600 ${col.width || ''} ${
+              col.align === 'right'
+                ? 'text-right'
+                : col.align === 'center'
+                  ? 'text-center'
+                  : ''
             }`}
           >
             {typeof col.accessor === 'function'
@@ -79,10 +83,10 @@ export function RelatorioTable<T extends { id: string | number }>({
           </td>
         ))}
         {onRowClick && (
-          <td className="px-3 py-2 border-b border-slate-100 w-10 text-right">
+          <td className="px-4 py-3 border-b border-slate-100 w-12 text-right">
             <ChevronRight
-              size={14}
-              className="text-slate-200 group-hover:text-gold transition-colors ml-auto"
+              size={16}
+              className="text-slate-300 group-hover:text-gold transition-colors ml-auto"
             />
           </td>
         )}
@@ -91,15 +95,15 @@ export function RelatorioTable<T extends { id: string | number }>({
   }, [paginatedData, columns, onRowClick, emptyMessage]);
 
   return (
-    <div className="w-full bg-white border border-slate-200 rounded-luxury overflow-hidden shadow-sm flex flex-col">
+    <div className="w-full bg-white border border-slate-200 rounded-sm overflow-hidden shadow-sm flex flex-col">
       <div className="overflow-x-auto">
         <table className="w-full text-left border-collapse table-auto min-w-[820px]">
           <thead>
-            <tr className="bg-petroleum/90 text-[8px] uppercase tracking-[0.12em] text-white font-semibold">
+            <tr className="bg-petroleum/90 text-[9px] uppercase tracking-[0.12em] text-white font-semibold">
               {columns.map((col, idx) => (
                 <th
                   key={idx}
-                  className={`px-3 py-2.5 leading-tight whitespace-normal break-words align-middle ${col.width || ''} ${
+                  className={`px-4 py-3.5 leading-tight whitespace-normal break-words align-middle ${col.width || ''} ${
                     onSort && col.sortKey
                       ? 'cursor-pointer hover:bg-petroleum-light'
                       : ''
@@ -107,12 +111,12 @@ export function RelatorioTable<T extends { id: string | number }>({
                   onClick={() => col.sortKey && onSort?.(col.sortKey)}
                 >
                   <div
-                    className={`flex items-center gap-1.5 ${col.align === 'right' ? 'justify-end' : ''}`}
+                    className={`flex items-center gap-2 ${col.align === 'right' ? 'justify-end' : ''}`}
                   >
-                    {col.icon && <col.icon size={12} />}
+                    {col.icon && <col.icon size={13} />}
                     {col.header}
                     {col.sortKey && (
-                      <ArrowUpDown size={10} className="opacity-50" />
+                      <ArrowUpDown size={11} className="opacity-50" />
                     )}
                   </div>
                 </th>
@@ -126,16 +130,16 @@ export function RelatorioTable<T extends { id: string | number }>({
 
       {/* Footer com Paginação Compacta */}
       {totalPages > 1 && (
-        <div className="px-6 py-3 bg-slate-50 border-t flex items-center justify-between">
+        <div className="px-6 py-3.5 bg-slate-50 border-t flex items-center justify-between">
           <span className="text-[10px] font-semibold text-slate-800 uppercase tracking-widest">
             Total: {data.length} registros | Pág {currentPage} de {totalPages}
           </span>
-          <div className="flex gap-1">
+          <div className="flex gap-1.5">
             <button
               type="button"
               disabled={currentPage === 1}
               onClick={() => setCurrentPage((p) => p - 1)}
-              className="p-1.5 rounded border bg-white disabled:opacity-30 hover:bg-slate-50 transition-colors"
+              className="p-2 rounded-lg border bg-white disabled:opacity-30 hover:bg-slate-50 transition-colors"
             >
               <ChevronLeft size={14} />
             </button>
@@ -143,7 +147,7 @@ export function RelatorioTable<T extends { id: string | number }>({
               type="button"
               disabled={currentPage === totalPages}
               onClick={() => setCurrentPage((p) => p + 1)}
-              className="p-1.5 rounded border bg-white disabled:opacity-30 hover:bg-slate-50 transition-colors"
+              className="p-2 rounded-lg border bg-white disabled:opacity-30 hover:bg-slate-50 transition-colors"
             >
               <ChevronRight size={14} />
             </button>

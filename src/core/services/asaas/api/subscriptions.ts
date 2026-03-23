@@ -7,10 +7,11 @@ import {
   normalizeCreditCardHolderInfo,
 } from '../utils/formatters';
 import type { CreateSubscriptionData } from '../types';
+import { toSaoPauloIso } from '@/core/utils/date-time';
 
 export async function createAsaasSubscription(data: CreateSubscriptionData) {
   try {
-    const today = new Date().toISOString().split('T')[0];
+    const today = toSaoPauloIso().split('T')[0];
     const nextDueDate =
       data.nextDueDate && /^\d{4}-\d{2}-\d{2}$/.test(data.nextDueDate)
         ? data.nextDueDate
@@ -97,11 +98,19 @@ export async function updateAsaasSubscriptionPlanAndDueDate(
     value: number;
     description: string;
     nextDueDate: string;
+    billingType?: 'BOLETO' | 'PIX' | 'CREDIT_CARD';
     cycle?: 'MONTHLY' | 'SEMIANNUALLY' | 'YEARLY';
     updatePendingPayments?: boolean;
   },
 ): Promise<{ success: boolean; error?: string }> {
-  const { value, description, nextDueDate, cycle, updatePendingPayments } =
+  const {
+    value,
+    description,
+    nextDueDate,
+    billingType,
+    cycle,
+    updatePendingPayments,
+  } =
     params;
   if (!/^\d{4}-\d{2}-\d{2}$/.test(nextDueDate))
     return { success: false, error: 'nextDueDate deve ser YYYY-MM-DD' };
@@ -111,6 +120,7 @@ export async function updateAsaasSubscriptionPlanAndDueDate(
     nextDueDate,
     updatePendingPayments: updatePendingPayments ?? true,
   };
+  if (billingType) body.billingType = billingType;
   if (cycle) body.cycle = cycle;
   const { ok, data } = await asaasRequest<{ errors?: unknown[] }>(
     `/subscriptions/${subscriptionId}`,
@@ -150,9 +160,14 @@ export async function setAsaasSubscriptionEndDate(
 
 export async function cancelAsaasSubscriptionById(
   subscriptionId: string,
+  options?: { deletePendingPayments?: boolean },
 ): Promise<{ success: boolean; error?: string }> {
+  const deletePendingPayments = options?.deletePendingPayments ?? true;
+  const path = deletePendingPayments
+    ? `/subscriptions/${subscriptionId}?deletePendingPayments=true`
+    : `/subscriptions/${subscriptionId}`;
   const { ok, data } = await asaasRequest<{ errors?: unknown[] }>(
-    `/subscriptions/${subscriptionId}`,
+    path,
     { method: 'DELETE' },
   );
   return ok
