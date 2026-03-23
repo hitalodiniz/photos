@@ -415,3 +415,168 @@ export async function adminGallerySetVisibility(
   await revalidateUserCache(userId);
   return { success: true };
 }
+
+// ---------------------------------------------------------------------------
+// Cupons (admin)
+// ---------------------------------------------------------------------------
+
+export interface AdminCouponRow {
+  id: string;
+  code: string;
+  discount_type: 'fixed' | 'percentage';
+  discount_value: number;
+  max_uses: number | null;
+  used_count: number;
+  starts_at: string;
+  expires_at: string | null;
+  active: boolean;
+  apply_mode: 'once' | 'forever';
+  created_at: string | null;
+}
+
+async function ensureAdminRole(): Promise<{ ok: boolean; error?: string }> {
+  const { success, profile } = await getAuthenticatedUser();
+  if (!success || !profile?.roles?.includes('admin')) {
+    return { ok: false, error: 'Acesso negado.' };
+  }
+  return { ok: true };
+}
+
+export async function listAdminCoupons(): Promise<{
+  success: boolean;
+  data?: AdminCouponRow[];
+  error?: string;
+}> {
+  const guard = await ensureAdminRole();
+  if (!guard.ok) return { success: false, error: guard.error };
+
+  const admin = createSupabaseAdmin();
+  const { data, error } = await admin
+    .from('tb_coupons')
+    .select(
+      'id, code, discount_type, discount_value, max_uses, used_count, starts_at, expires_at, active, apply_mode, created_at',
+    )
+    .order('created_at', { ascending: false });
+
+  if (error) return { success: false, error: error.message };
+
+  const rows: AdminCouponRow[] = (data ?? []).map((r: Record<string, unknown>) => ({
+    id: String(r.id),
+    code: String(r.code ?? '').toUpperCase(),
+    discount_type:
+      String(r.discount_type ?? '').toLowerCase().includes('percent')
+        ? 'percentage'
+        : 'fixed',
+    discount_value: Number(r.discount_value ?? 0),
+    max_uses:
+      r.max_uses == null || String(r.max_uses) === ''
+        ? null
+        : Number(r.max_uses),
+    used_count: Number(r.used_count ?? 0),
+    starts_at: String(r.starts_at ?? new Date().toISOString()),
+    expires_at: r.expires_at ? String(r.expires_at) : null,
+    active: Boolean(r.active ?? true),
+    apply_mode:
+      String(r.apply_mode ?? 'once').toLowerCase() === 'forever'
+        ? 'forever'
+        : 'once',
+    created_at: r.created_at ? String(r.created_at) : null,
+  }));
+
+  return { success: true, data: rows };
+}
+
+export async function createAdminCoupon(payload: {
+  code: string;
+  discount_type: 'fixed' | 'percentage';
+  discount_value: number;
+  apply_mode: 'once' | 'forever';
+  max_uses?: number | null;
+  starts_at: string;
+  expires_at?: string | null;
+  active?: boolean;
+}): Promise<{ success: boolean; error?: string }> {
+  const guard = await ensureAdminRole();
+  if (!guard.ok) return { success: false, error: guard.error };
+
+  const code = payload.code.trim().toUpperCase();
+  if (!code) return { success: false, error: 'Informe o código do cupom.' };
+  if (!Number.isFinite(payload.discount_value) || payload.discount_value <= 0) {
+    return { success: false, error: 'Valor de desconto inválido.' };
+  }
+
+  const admin = createSupabaseAdmin();
+  const { error } = await admin.from('tb_coupons').insert({
+    code,
+    discount_type: payload.discount_type,
+    discount_value: payload.discount_value,
+    apply_mode: payload.apply_mode,
+    max_uses:
+      payload.max_uses == null || payload.max_uses <= 0 ? null : payload.max_uses,
+    starts_at: payload.starts_at,
+    expires_at: payload.expires_at || null,
+    active: payload.active ?? true,
+  });
+  if (error) return { success: false, error: error.message };
+  return { success: true };
+}
+
+export async function updateAdminCoupon(payload: {
+  id: string;
+  code: string;
+  discount_type: 'fixed' | 'percentage';
+  discount_value: number;
+  apply_mode: 'once' | 'forever';
+  max_uses?: number | null;
+  starts_at: string;
+  expires_at?: string | null;
+  active: boolean;
+}): Promise<{ success: boolean; error?: string }> {
+  const guard = await ensureAdminRole();
+  if (!guard.ok) return { success: false, error: guard.error };
+  if (!payload.id) return { success: false, error: 'Cupom inválido.' };
+
+  const code = payload.code.trim().toUpperCase();
+  if (!code) return { success: false, error: 'Informe o código do cupom.' };
+  if (!Number.isFinite(payload.discount_value) || payload.discount_value <= 0) {
+    return { success: false, error: 'Valor de desconto inválido.' };
+  }
+
+  const admin = createSupabaseAdmin();
+  const { error } = await admin
+    .from('tb_coupons')
+    .update({
+      code,
+      discount_type: payload.discount_type,
+      discount_value: payload.discount_value,
+      apply_mode: payload.apply_mode,
+      max_uses:
+        payload.max_uses == null || payload.max_uses <= 0
+          ? null
+          : payload.max_uses,
+      starts_at: payload.starts_at,
+      expires_at: payload.expires_at || null,
+      active: payload.active,
+    })
+    .eq('id', payload.id);
+
+  if (error) return { success: false, error: error.message };
+  return { success: true };
+}
+
+export async function toggleAdminCouponActive(payload: {
+  id: string;
+  active: boolean;
+}): Promise<{ success: boolean; error?: string }> {
+  const guard = await ensureAdminRole();
+  if (!guard.ok) return { success: false, error: guard.error };
+  if (!payload.id) return { success: false, error: 'Cupom inválido.' };
+
+  const admin = createSupabaseAdmin();
+  const { error } = await admin
+    .from('tb_coupons')
+    .update({ active: payload.active })
+    .eq('id', payload.id);
+  if (error) return { success: false, error: error.message };
+  return { success: true };
+}

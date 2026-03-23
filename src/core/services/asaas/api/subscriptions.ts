@@ -8,6 +8,8 @@ import {
 } from '../utils/formatters';
 import type { CreateSubscriptionData } from '../types';
 import { toSaoPauloIso } from '@/core/utils/date-time';
+import { createSupabaseServerClient } from '@/lib/supabase.server';
+import { getAuthenticatedUser } from '@/core/services/auth-context.service';
 
 export async function createAsaasSubscription(data: CreateSubscriptionData) {
   try {
@@ -24,6 +26,8 @@ export async function createAsaasSubscription(data: CreateSubscriptionData) {
       value: data.value,
       description: data.description,
       nextDueDate,
+      // Gera a cobrança 5 dias antes do vencimento para permitir lembretes.
+      daysBeforeDue: 5,
       updatePendingPayments: data.updatePendingPayments ?? true,
     };
 
@@ -38,6 +42,13 @@ export async function createAsaasSubscription(data: CreateSubscriptionData) {
         body.creditCardHolderInfo = normalizeCreditCardHolderInfo(
           data.creditCardHolderInfo,
         );
+    }
+    if (data.discount && data.discount.value > 0) {
+      body.discount = {
+        value: data.discount.value,
+        dueDateLimitDays: data.discount.dueDateLimitDays,
+        type: data.discount.type,
+      };
     }
 
     const { ok, data: sub } = await asaasRequest<{
@@ -101,6 +112,11 @@ export async function updateAsaasSubscriptionPlanAndDueDate(
     billingType?: 'BOLETO' | 'PIX' | 'CREDIT_CARD';
     cycle?: 'MONTHLY' | 'SEMIANNUALLY' | 'YEARLY';
     updatePendingPayments?: boolean;
+    discount?: {
+      value: number;
+      dueDateLimitDays: number;
+      type: 'FIXED' | 'PERCENTAGE';
+    };
   },
 ): Promise<{ success: boolean; error?: string }> {
   const {
@@ -110,6 +126,7 @@ export async function updateAsaasSubscriptionPlanAndDueDate(
     billingType,
     cycle,
     updatePendingPayments,
+    discount,
   } =
     params;
   if (!/^\d{4}-\d{2}-\d{2}$/.test(nextDueDate))
@@ -122,6 +139,7 @@ export async function updateAsaasSubscriptionPlanAndDueDate(
   };
   if (billingType) body.billingType = billingType;
   if (cycle) body.cycle = cycle;
+  if (discount && discount.value > 0) body.discount = discount;
   const { ok, data } = await asaasRequest<{ errors?: unknown[] }>(
     `/subscriptions/${subscriptionId}`,
     { method: 'PUT', body: JSON.stringify(body) },
@@ -299,6 +317,77 @@ export async function reactivateSubscription(
           'Erro ao reativar assinatura',
         ),
       };
+
+    // Sincroniza o histórico local: cancela pedidos de cancelamento agendado
+    // e adiciona trilha explícita de reativação com data/hora.
+    const auth = await getAuthenticatedUser();
+    if (auth.success && auth.userId) {
+      const supabase = await createSupabaseServerClient();
+      const nowIso = toSaoPauloIso();
+      const nowBr = new Date(nowIso).toLocaleString('pt-BR', {
+        timeZone: 'America/Sao_Paulo',
+      });
+      const noteLine = `[Reactivation ${nowIso}] Assinatura reativada em ${nowBr}.`;
+      const { data: requests } = await supabase
+        .from('tb_upgrade_requests')
+        .select('id, status, notes')
+        .eq('profile_id', auth.userId)
+        .eq('asaas_subscription_id', subscriptionId)
+        .in('status', [
+          'approved',
+          'pending_cancellation',
+          'pending_downgrade',
+          'cancelled',
+        ])
+        .order('created_at', { ascending: false })
+        .limit(10);
+
+      for (const req of requests ?? []) {
+        const mergedNotes = req.notes
+          ? `${req.notes}\n${noteLine}`
+          : noteLine;
+        const nextStatus =
+          req.status === 'pending_cancellation' || req.status === 'pending_downgrade'
+            ? 'cancelled'
+            : req.status;
+        await supabase
+          .from('tb_upgrade_requests')
+          .update({
+            status: nextStatus,
+            notes: mergedNotes,
+            scheduled_cancel_at: null,
+            updated_at: nowIso,
+          })
+          .eq('id', req.id);
+      }
+
+      // Defesa adicional: limpa scheduled_cancel_at em todas as linhas da
+      // assinatura reativada (independente do status) para evitar resíduos.
+      await supabase
+        .from('tb_upgrade_requests')
+        .update({
+          scheduled_cancel_at: null,
+          updated_at: nowIso,
+        })
+        .eq('profile_id', auth.userId)
+        .eq('asaas_subscription_id', subscriptionId)
+        .not('scheduled_cancel_at', 'is', null);
+
+      // Fallback: linhas pendentes sem asaas_subscription_id também devem ser limpas.
+      await supabase
+        .from('tb_upgrade_requests')
+        .update({
+          scheduled_cancel_at: null,
+          updated_at: nowIso,
+        })
+        .eq('profile_id', auth.userId)
+        .in('status', [
+          'pending_cancellation',
+          'pending_downgrade',
+          'cancelled',
+        ])
+        .not('scheduled_cancel_at', 'is', null);
+    }
 
     return { success: true };
   } catch (e) {

@@ -41,6 +41,11 @@ export interface CreateSubscriptionData {
     phone: string;
     mobilePhone: string;
   };
+  discount?: {
+    value: number;
+    dueDateLimitDays: number;
+    type: 'FIXED' | 'PERCENTAGE';
+  };
 }
 
 export interface UpdateSubscriptionBillingCreditCard {

@@ -67,8 +67,10 @@ export function billingPeriodToMonths(
 }
 
 /**
- * Extrai a data de vencimento gravada nas notes pelo fluxo de upgrade gratuito.
- * Formato esperado: "Nova data de vencimento: <ISO>"
+ * Extrai a data de vencimento gravada nas notes (upgrade/crédito).
+ * Formatos aceitos:
+ * - "Nova data de vencimento: <ISO>"
+ * - "Próximo vencimento do plano: YYYY-MM-DD"
  *
  * @param notes String de notas do upgrade request
  * @returns Data extraída ou null se não encontrada/inválida
@@ -77,9 +79,16 @@ export function parseExpiryFromNotes(
   notes: string | null | undefined,
 ): Date | null {
   if (!notes?.trim()) return null;
-  const match = notes.match(/Nova data de vencimento:\s*([^\s.]+)/i);
+  const match =
+    notes.match(/Nova data de vencimento:\s*([^\s.]+)/i) ??
+    notes.match(/Pr[oó]ximo vencimento do plano:\s*([^\s.]+)/i);
   if (!match?.[1]) return null;
-  const date = new Date(match[1].trim());
+  const raw = match[1].trim();
+  if (/^\d{4}-\d{2}-\d{2}$/.test(raw)) {
+    const [y, m, d] = raw.split('-').map(Number);
+    return new Date(Date.UTC(y, (m ?? 1) - 1, d ?? 1, 0, 0, 0, 0));
+  }
+  const date = new Date(raw);
   return Number.isNaN(date.getTime()) ? null : date;
 }
 

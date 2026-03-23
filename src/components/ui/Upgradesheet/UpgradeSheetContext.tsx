@@ -52,6 +52,8 @@ interface UpgradeSheetContextValue {
   // Billing
   billingType: BillingType;
   setBillingType: (t: BillingType) => void;
+  couponCode: string;
+  setCouponCode: (v: string) => void;
   billingPeriod: BillingPeriod;
   setBillingPeriod: (p: BillingPeriod) => void;
   planInfoForPrice: PlanInfo;
@@ -169,6 +171,13 @@ const initialCreditCard: CreditCardPayload = {
   credit_card_ccv: '',
 };
 
+function normalizeBillingType(value: string | null | undefined): BillingType | null {
+  if (value === 'CREDIT_CARD' || value === 'PIX' || value === 'BOLETO') {
+    return value;
+  }
+  return null;
+}
+
 export function UpgradeSheetProvider({
   children,
   isOpen,
@@ -199,6 +208,7 @@ export function UpgradeSheetProvider({
   });
   const [loadingCep, setLoadingCep] = useState(false);
   const [billingType, setBillingType] = useState<BillingType>('CREDIT_CARD');
+  const [couponCode, setCouponCode] = useState('');
   const [billingPeriod, setBillingPeriod] = useState<BillingPeriod>('monthly');
   const [installments, setInstallments] = useState<number>(1);
   const [creditCard, setCreditCard] =
@@ -303,6 +313,12 @@ export function UpgradeSheetProvider({
           });
         }
         setSavedCardLast4(paymentSummary.summary?.card_last4 ?? null);
+        const lastBillingType = normalizeBillingType(
+          paymentSummary.summary?.billing_type ?? null,
+        );
+        if (lastBillingType) {
+          setBillingType(lastBillingType);
+        }
       })
       .finally(() => setLoadingPrefill(false));
     // eslint-disable-next-line react-hooks/exhaustive-deps
@@ -399,6 +415,7 @@ export function UpgradeSheetProvider({
 
     const sharedPayload = {
       plan_key_requested: selectedPlan,
+      coupon_code: couponCode.trim() || undefined,
       billing_type: billingType,
       billing_period: billingPeriod,
       installments: effectiveInstallments,
@@ -478,6 +495,7 @@ export function UpgradeSheetProvider({
   }, [
     selectedPlan,
     billingType,
+    couponCode,
     billingPeriod,
     installments,
     segment,
@@ -510,7 +528,7 @@ export function UpgradeSheetProvider({
     setUpgradeRequestId(null);
     setRequestError(null);
     setRequestWarning(null);
-    setBillingType('CREDIT_CARD');
+    setCouponCode('');
     setBillingPeriod('monthly');
     setInstallments(1);
     setCreditCard(initialCreditCard);
@@ -547,6 +565,8 @@ export function UpgradeSheetProvider({
       setAddress,
       billingType,
       setBillingType,
+      couponCode,
+      setCouponCode,
       billingPeriod,
       setBillingPeriod,
       installments,
@@ -606,6 +626,7 @@ export function UpgradeSheetProvider({
       personal,
       address,
       billingType,
+      couponCode,
       billingPeriod,
       installments,
       planInfoForPrice,

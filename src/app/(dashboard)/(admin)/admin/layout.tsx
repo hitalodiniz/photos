@@ -2,12 +2,13 @@
 
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
-import { CreditCard, Home, Settings, Users } from 'lucide-react';
+import { CreditCard, Home, Settings, TicketPercent, Users } from 'lucide-react';
 
 const adminNav = [
   { href: '/admin', label: 'Visão geral', icon: Home },
   { href: '/admin/usuarios', label: 'Usuários', icon: Users },
   { href: '/admin/assinaturas', label: 'Assinaturas', icon: CreditCard },
+  { href: '/admin/cupons', label: 'Cupons', icon: TicketPercent },
   { href: '/admin/sistema', label: 'Sistema', icon: Settings },
 ];
 

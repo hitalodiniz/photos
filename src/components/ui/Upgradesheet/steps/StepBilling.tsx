@@ -88,6 +88,9 @@ function PriceBreakdown({
   nextBillingDate,
   freeUpgradeDurationText,
   creditLabel,
+  currentPlanExpiresAt,
+  couponDiscountAmount = 0,
+  couponCodeApplied,
 }: {
   periodLabel: string;
   amountPeriod: number;
@@ -99,10 +102,27 @@ function PriceBreakdown({
   freeUpgradeDurationText: string;
   /** Ex.: "Crédito (direito de arrependimento)" em downgrade; senão "Crédito dos dias não usados". */
   creditLabel?: string;
+  currentPlanExpiresAt?: string | null;
+  couponDiscountAmount?: number;
+  couponCodeApplied?: string | null;
 }) {
   const hasCredit = residualCredit > 0;
   const hasPixDiscount = pixDiscountAmount > 0;
+  const hasCouponDiscount = couponDiscountAmount > 0;
   const creditDisplayLabel = creditLabel ?? 'Crédito dos dias não usados';
+  const proRataDetails = React.useMemo(() => {
+    if (!hasCredit || !currentPlanExpiresAt) return null;
+    const expiresAt = new Date(currentPlanExpiresAt);
+    if (Number.isNaN(expiresAt.getTime())) return null;
+    const remainingMs = expiresAt.getTime() - Date.now();
+    if (remainingMs <= 0) return null;
+    const daysUnused = Math.max(
+      1,
+      Math.ceil(remainingMs / (1000 * 60 * 60 * 24)),
+    );
+    const valuePerDay = residualCredit / daysUnused;
+    return { daysUnused, valuePerDay };
+  }, [hasCredit, currentPlanExpiresAt, residualCredit]);
 
   if (isFreeUpgrade) {
     return (
@@ -132,6 +152,23 @@ function PriceBreakdown({
               − R$ {formatBRLDecimal(residualCredit)}
             </span>
           </div>
+          {proRataDetails && (
+            <p className="text-[10px] text-emerald-800/90">
+              Cálculo do pro-rata: {proRataDetails.daysUnused} dias não usados ×
+              R$ {formatBRLDecimal(proRataDetails.valuePerDay)}/dia
+            </p>
+          )}
+          {hasCouponDiscount && (
+            <div className="flex justify-between text-emerald-700">
+              <span>
+                Desconto cupom{' '}
+                {couponCodeApplied ? `(${couponCodeApplied})` : ''}
+              </span>
+              <span className="font-semibold">
+                − R$ {formatBRLDecimal(couponDiscountAmount)}
+              </span>
+            </div>
+          )}
           <div className="flex justify-between border-t border-emerald-200 pt-1.5 font-bold text-emerald-800">
             <span>Total a pagar agora</span>
             <span>R$ 0,00</span>
@@ -147,9 +184,6 @@ function PriceBreakdown({
       </div>
     );
   }
-
-  // Sem nenhum desconto extra → não exibe box (valor aparece só no parcelamento)
-  if (!hasCredit && !hasPixDiscount) return null;
 
   return (
     <div className="rounded-lg border border-slate-200 bg-slate-50 px-3 py-3 space-y-1 text-[11px]">
@@ -173,11 +207,19 @@ function PriceBreakdown({
       </div>
 
       {hasCredit && (
-        <div className="flex justify-between text-[10.5px] text-emerald-700">
-          <span>{creditDisplayLabel}</span>
-          <span className="font-semibold">
-            − R$ {formatBRLDecimal(residualCredit)}
-          </span>
+        <div className="space-y-1">
+          <div className="flex justify-between text-[10.5px] text-emerald-700">
+            <span>{creditDisplayLabel}</span>
+            <span className="font-semibold">
+              − R$ {formatBRLDecimal(residualCredit)}
+            </span>
+          </div>
+          {proRataDetails && (
+            <p className="text-[10px] text-emerald-800/90">
+              Cálculo do pro-rata: {proRataDetails.daysUnused} dias não usados ×
+              R$ {formatBRLDecimal(proRataDetails.valuePerDay)}/dia
+            </p>
+          )}
         </div>
       )}
 
@@ -189,6 +231,16 @@ function PriceBreakdown({
           </span>
           <span className="font-semibold">
             − R$ {formatBRLDecimal(pixDiscountAmount)}
+          </span>
+        </div>
+      )}
+      {hasCouponDiscount && (
+        <div className="flex justify-between text-[10.5px] text-emerald-700">
+          <span>
+            Desconto cupom {couponCodeApplied ? `(${couponCodeApplied})` : ''}
+          </span>
+          <span className="font-semibold">
+            − R$ {formatBRLDecimal(couponDiscountAmount)}
           </span>
         </div>
       )}
@@ -227,6 +279,8 @@ export function StepBilling() {
     setUpgradeCalculation,
     selectedPlan,
     segment,
+    couponCode,
+    setCouponCode,
     planKey,
     profile,
     isCalculationLoading: calcLoading,
@@ -239,6 +293,16 @@ export function StepBilling() {
     upgradeCalculation?.type === 'downgrade' &&
     upgradeCalculation?.is_downgrade_withdrawal_window === true &&
     (upgradeCalculation?.residual_credit ?? 0) > 0;
+  const preservedBillingType =
+    isDowngradeWithCredit && upgradeCalculation?.current_billing_type
+      ? (upgradeCalculation.current_billing_type as BillingType)
+      : null;
+
+  useEffect(() => {
+    if (preservedBillingType && billingType !== preservedBillingType) {
+      setBillingType(preservedBillingType);
+    }
+  }, [preservedBillingType, billingType, setBillingType]);
 
   // Re-busca o cálculo com o período e forma escolhidos (reflete o valor real)
   useEffect(() => {
@@ -246,13 +310,65 @@ export function StepBilling() {
       return;
     let cancelled = false;
     setCalcLoading(true);
-    getUpgradePreview(selectedPlan, billingPeriod, billingType, segment).then(
-      (result) => {
-        if (!cancelled && result.calculation)
-          setUpgradeCalculation(result.calculation);
+    getUpgradePreview(
+      selectedPlan,
+      billingPeriod,
+      billingType,
+      segment,
+      couponCode,
+    )
+      .then((result) => {
+        if (cancelled) return;
+        if (!result.success) {
+          setUpgradeCalculation(null);
+          if (couponCode.trim()) {
+            setCouponFeedback(result.error ?? 'Cupom inválido.');
+            setCouponFeedbackTone('error');
+          }
+          return;
+        }
+        setUpgradeCalculation(result.calculation ?? null);
+        if (!couponCode.trim()) {
+          setCouponFeedback(null);
+          setCouponFeedbackTone('info');
+          return;
+        }
+        if ((result.calculation?.coupon_discount_amount ?? 0) > 0) {
+          const mode =
+            result.calculation?.coupon_apply_mode === 'forever'
+              ? 'recorrente'
+              : 'somente na 1ª cobrança';
+          const discountAmount = Math.max(
+            0,
+            result.calculation?.coupon_discount_amount ?? 0,
+          );
+          const baseBeforeDiscount = Math.max(
+            0,
+            (result.calculation?.amount_final ?? 0) + discountAmount,
+          );
+          const discountPercent =
+            baseBeforeDiscount > 0
+              ? Math.round((discountAmount / baseBeforeDiscount) * 10000) / 100
+              : 0;
+          const discountSuffix =
+            discountPercent > 0
+              ? `: - R$ ${formatBRLDecimal(discountAmount)} (${discountPercent.toFixed(2).replace('.', ',')}%)`
+              : `: - R$ ${formatBRLDecimal(discountAmount)}`;
+          setCouponFeedback(
+            `Cupom ${result.calculation?.coupon_code_applied ?? couponCode} aplicado.`,
+          );
+          setCouponFeedbackTone('success');
+          return;
+        }
+        setCouponFeedback('Cupom validado, sem desconto para este cenário.');
+        setCouponFeedbackTone('info');
+      })
+      .catch(() => {
+        if (cancelled) return;
+      })
+      .finally(() => {
         if (!cancelled) setCalcLoading(false);
-      },
-    );
+      });
     return () => {
       cancelled = true;
       setCalcLoading(false);
@@ -262,6 +378,7 @@ export function StepBilling() {
     billingType,
     selectedPlan,
     segment,
+    couponCode,
     planKey,
     setUpgradeCalculation,
     setCalcLoading,
@@ -271,6 +388,11 @@ export function StepBilling() {
 
   const [touched, setTouched] = useState<Record<string, boolean>>({});
   const [errors, setErrors] = useState<CardErrors>({});
+  const [couponDraft, setCouponDraft] = useState(couponCode);
+  const [couponFeedback, setCouponFeedback] = useState<string | null>(null);
+  const [couponFeedbackTone, setCouponFeedbackTone] = useState<
+    'success' | 'error' | 'info'
+  >('info');
 
   const brand = detectBrand(creditCard.credit_card_number);
 
@@ -298,6 +420,10 @@ export function StepBilling() {
   useEffect(() => {
     if (billingType !== 'CREDIT_CARD') setTouched({});
   }, [billingType]);
+
+  useEffect(() => {
+    setCouponDraft(couponCode);
+  }, [couponCode]);
 
   const touch = (field: string) => setTouched((t) => ({ ...t, [field]: true }));
   const err = (field: keyof CardErrors) =>
@@ -328,6 +454,100 @@ export function StepBilling() {
     billingType,
     upgradeCalculation,
   );
+  const couponDiscountAmount = Math.max(
+    0,
+    upgradeCalculation?.coupon_discount_amount ?? 0,
+  );
+  const couponCodeApplied = upgradeCalculation?.coupon_code_applied ?? null;
+  const isCouponApplied = couponCode.trim().length > 0;
+  const refreshPreviewForCoupon = async (code: string) => {
+    const result = await getUpgradePreview(
+      selectedPlan,
+      billingPeriod,
+      billingType,
+      segment,
+      code,
+    );
+    if (!result.success) {
+      setUpgradeCalculation(null);
+      return result;
+    }
+    setUpgradeCalculation(result.calculation ?? null);
+    return result;
+  };
+  const handleRemoveCoupon = async () => {
+    setCouponDraft('');
+    setCouponCode('');
+    setCouponFeedback('Cupom removido.');
+    setCouponFeedbackTone('info');
+    setCalcLoading(true);
+    try {
+      await refreshPreviewForCoupon('');
+    } finally {
+      setCalcLoading(false);
+    }
+  };
+  const handleApplyCoupon = async () => {
+    const normalized = couponDraft.toUpperCase().replace(/\s+/g, '');
+    setCouponCode(normalized);
+    if (!normalized) {
+      setCouponFeedback('Cupom removido.');
+      setCouponFeedbackTone('info');
+      setCalcLoading(true);
+      try {
+        await refreshPreviewForCoupon('');
+      } finally {
+        setCalcLoading(false);
+      }
+      return;
+    }
+
+    setCouponFeedback('Validando cupom...');
+    setCouponFeedbackTone('info');
+    setCalcLoading(true);
+    try {
+      const result = await refreshPreviewForCoupon(normalized);
+      if (!result.success) {
+        setCouponFeedback(result.error ?? 'Cupom inválido.');
+        setCouponFeedbackTone('error');
+        return;
+      }
+      if ((result.calculation?.coupon_discount_amount ?? 0) > 0) {
+        const mode =
+          result.calculation?.coupon_apply_mode === 'forever'
+            ? 'recorrente'
+            : 'somente na 1ª cobrança';
+        const discountAmount = Math.max(
+          0,
+          result.calculation?.coupon_discount_amount ?? 0,
+        );
+        const baseBeforeDiscount = Math.max(
+          0,
+          (result.calculation?.amount_final ?? 0) + discountAmount,
+        );
+        const discountPercent =
+          baseBeforeDiscount > 0
+            ? Math.round((discountAmount / baseBeforeDiscount) * 10000) / 100
+            : 0;
+        const discountSuffix =
+          discountPercent > 0
+            ? `: - R$ ${formatBRLDecimal(discountAmount)} (${discountPercent.toFixed(2).replace('.', ',')}%)`
+            : `: - R$ ${formatBRLDecimal(discountAmount)}`;
+        setCouponFeedback(
+          `Cupom ${result.calculation?.coupon_code_applied ?? normalized} aplicado.`,
+        );
+        setCouponFeedbackTone('success');
+        return;
+      }
+      setCouponFeedback('Cupom validado, sem desconto para este cenário.');
+      setCouponFeedbackTone('info');
+    } catch {
+      setCouponFeedback('Erro ao validar cupom. Tente novamente.');
+      setCouponFeedbackTone('error');
+    } finally {
+      setCalcLoading(false);
+    }
+  };
 
   const showInstallments =
     billingType === 'CREDIT_CARD' &&
@@ -507,6 +727,19 @@ export function StepBilling() {
               Nenhum pagamento necessário — seu crédito cobre o plano.
             </p>
           )}
+          {preservedBillingType && (
+            <p className="text-[10px] text-petroleum/70 mb-1">
+              Forma de pagamento preservada da contratação original:{' '}
+              <strong>
+                {preservedBillingType === 'CREDIT_CARD'
+                  ? 'Cartão'
+                  : preservedBillingType === 'PIX'
+                    ? 'PIX'
+                    : 'Boleto'}
+              </strong>
+              .
+            </p>
+          )}
           <div className="flex gap-1.5">
             {(
               [
@@ -526,10 +759,10 @@ export function StepBilling() {
               <button
                 key={value}
                 type="button"
-                disabled={isZeroPayment}
+                disabled={isZeroPayment || !!preservedBillingType}
                 onClick={() => setBillingType(value)}
                 className={`flex items-center gap-1.5 px-3 py-1.5 rounded-[0.4rem] border transition-all flex-1 min-w-0 ${
-                  isZeroPayment
+                  isZeroPayment || preservedBillingType
                     ? 'border-slate-200 bg-slate-100 text-slate-400 cursor-not-allowed opacity-70'
                     : billingType === value
                       ? 'border-gold bg-gold/10 text-petroleum'
@@ -551,6 +784,54 @@ export function StepBilling() {
               e no anual. Parcelamento só no cartão.
             </p>
           )}
+          <div className="mt-2">
+            <FieldLabel icon={Tag} label="Cupom (opcional)" />
+            <div className="mt-1 flex items-center gap-2">
+              <input
+                type="text"
+                value={couponDraft}
+                onChange={(e) =>
+                  setCouponDraft(
+                    e.target.value.toUpperCase().replace(/\s+/g, ''),
+                  )
+                }
+                onKeyDown={(e) => {
+                  if (e.key === 'Enter') {
+                    e.preventDefault();
+                    void handleApplyCoupon();
+                  }
+                }}
+                className="flex-1 px-2 py-1.5 h-8 bg-slate-50 border border-slate-200 rounded-[0.4rem] text-[10px] text-petroleum font-medium outline-none focus:border-gold/60"
+              />
+              <button
+                type="button"
+                onClick={() => {
+                  if (isCouponApplied) {
+                    void handleRemoveCoupon();
+                    return;
+                  }
+                  void handleApplyCoupon();
+                }}
+                disabled={calcLoading}
+                className="h-8 px-3 rounded-[0.4rem] bg-champagne text-petroleum text-[10px] font-bold uppercase tracking-wide hover:bg-petroleum hover:text-white transition-colors disabled:opacity-60"
+              >
+                {isCouponApplied ? 'Remover cupom' : 'Aplicar'}
+              </button>
+            </div>
+            {couponFeedback && (
+              <p
+                className={`mt-1 text-[10px] ${
+                  couponFeedbackTone === 'success'
+                    ? 'text-emerald-700'
+                    : couponFeedbackTone === 'error'
+                      ? 'text-red-600'
+                      : 'text-slate-600'
+                }`}
+              >
+                {couponFeedback}
+              </p>
+            )}
+          </div>
         </SheetSection>
       )}
 
@@ -558,24 +839,26 @@ export function StepBilling() {
            Aparece sempre que há ao menos um desconto (crédito, PIX ou gratuito).
            Substitui os dois boxes separados anteriores.
       ── */}
-      {!isCalculationLoading &&
-        (residualCredit > 0 || pixDiscountActual > 0 || isFreeUpgrade) && (
-          <SheetSection className="py-2 px-3">
-            <PriceBreakdown
-              periodLabel={periodLabels[billingPeriod]}
-              amountPeriod={amountPeriod}
-              residualCredit={residualCredit}
-              pixDiscountAmount={pixDiscountActual}
-              amountFinal={amountFinal}
-              isFreeUpgrade={isFreeUpgrade}
-              nextBillingDate={freeUpgradeExpiryDate}
-              freeUpgradeDurationText={freeUpgradeDurationText}
-              creditLabel={
-                isDowngradeWithCredit ? 'Crédito de outro pagamento' : undefined
-              }
-            />
-          </SheetSection>
-        )}
+      {!isCalculationLoading && (
+        <SheetSection className="py-2 px-3">
+          <PriceBreakdown
+            periodLabel={periodLabels[billingPeriod]}
+            amountPeriod={amountPeriod}
+            residualCredit={residualCredit}
+            pixDiscountAmount={pixDiscountActual}
+            amountFinal={amountFinal}
+            isFreeUpgrade={isFreeUpgrade}
+            nextBillingDate={freeUpgradeExpiryDate}
+            freeUpgradeDurationText={freeUpgradeDurationText}
+            creditLabel={
+              isDowngradeWithCredit ? 'Crédito de outro pagamento' : undefined
+            }
+            currentPlanExpiresAt={upgradeCalculation?.current_plan_expires_at}
+            couponDiscountAmount={couponDiscountAmount}
+            couponCodeApplied={couponCodeApplied}
+          />
+        </SheetSection>
+      )}
 
       {/* ── Dados do cartão ── */}
       {!isCalculationLoading &&

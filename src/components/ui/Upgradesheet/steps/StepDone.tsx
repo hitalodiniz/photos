@@ -19,7 +19,6 @@ import {
 } from 'lucide-react';
 import { useUpgradeSheetContext } from '../UpgradeSheetContext';
 import { getUpgradeRequestStatus } from '@/core/services/asaas.service';
-import BaseModal from '@/components/ui/BaseModal';
 import { useRouter } from 'next/navigation';
 import { formatBRL, formatDatePtBr, formatDateLong } from '../utils';
 
@@ -58,21 +57,22 @@ function OrderSummary({
     semiannual: 'Semestral',
     annual: 'Anual',
   };
+
   return (
-    <div className="w-full bg-petroleum/5 rounded-xl border border-petroleum/10 px-4 py-3 flex items-center justify-between gap-3">
-      <div className="text-left min-w-0">
-        <p className="text-[10px] font-bold uppercase tracking-wider text-petroleum/80">
-          Contratado
-        </p>
+    <div className="relative px-3.5 py-1.5 rounded-luxury border border-slate-100 bg-white shadow-sm">
+      <p className="text-[9px] font-bold uppercase tracking-luxury-wide text-petroleum/70 mb-1">
+        Contratado
+      </p>
+      <div className="flex items-center justify-between gap-3">
         <p className="text-[13px] font-bold text-petroleum truncate">
           Plano {planName} · {periodLabel[period] ?? period}
         </p>
+        {amount != null && amount > 0 && (
+          <p className="text-[15px] font-bold text-petroleum shrink-0">
+            {formatBRL(amount)}
+          </p>
+        )}
       </div>
-      {amount != null && amount > 0 && (
-        <p className="text-[15px] font-bold text-petroleum shrink-0">
-          {formatBRL(amount)}
-        </p>
-      )}
     </div>
   );
 }
@@ -85,11 +85,11 @@ function NextStep({
   text: string;
 }) {
   return (
-    <div className="flex items-start gap-2.5 text-left">
-      <div className="flex items-center justify-center shrink-0">
-        <Icon size={14} className="text-gold" />
+    <div className="flex items-start gap-2">
+      <div className="flex items-center justify-center shrink-0 mt-0.5">
+        <Icon size={12} className="text-gold" />
       </div>
-      <p className="text-[12px] font-medium text-petroleum/90 leading-snug">
+      <p className="text-[11px] font-medium text-petroleum/90 leading-snug">
         {text}
       </p>
     </div>
@@ -98,7 +98,7 @@ function NextStep({
 
 function SecurityBadge() {
   return (
-    <div className="flex flex-col items-center gap-1">
+    <div className="flex flex-col items-center gap-1 pt-2">
       <div className="flex items-center justify-center gap-1.5 text-petroleum/60">
         <ShieldCheck size={11} className="text-emerald-600" />
         <span className="text-[9px] font-bold uppercase tracking-wider">
@@ -122,7 +122,7 @@ function SupportLink() {
       href={`https://wa.me/${WHATSAPP_SUPPORT}?text=${msg}`}
       target="_blank"
       rel="noopener noreferrer"
-      className="flex items-center gap-1.5 text-[10px] text-petroleum/80 hover:text-petroleum transition-colors"
+      className="flex items-center justify-center gap-1.5 text-[10px] text-petroleum/80 hover:text-petroleum transition-colors"
     >
       <MessageCircle size={11} />
       Precisa de ajuda? Fale conosco
@@ -160,7 +160,6 @@ function StepDonePix({
   const [secondsLeft, setSecondsLeft] = useState(PIX_EXPIRY_SECONDS);
   const [expired, setExpired] = useState(false);
   const [paymentConfirmed, setPaymentConfirmed] = useState(false);
-  const [showSuccessModal, setShowSuccessModal] = useState(false);
   const startedAt = useRef(Date.now());
 
   useEffect(() => {
@@ -175,10 +174,6 @@ function StepDonePix({
   }, [upgradeRequestId, paymentConfirmed]);
 
   useEffect(() => {
-    if (paymentConfirmed && !showSuccessModal) setShowSuccessModal(true);
-  }, [paymentConfirmed, showSuccessModal]);
-
-  useEffect(() => {
     const tick = () => {
       const elapsed = Math.floor((Date.now() - startedAt.current) / 1000);
       const left = Math.max(0, PIX_EXPIRY_SECONDS - elapsed);
@@ -189,12 +184,6 @@ function StepDonePix({
     const t = setTimeout(tick, 1000);
     return () => clearTimeout(t);
   }, []);
-
-  useEffect(() => {
-    if (!paymentConfirmed || !onPaymentConfirmedClose) return;
-    const t = setTimeout(() => onPaymentConfirmedClose(), 10_000);
-    return () => clearTimeout(t);
-  }, [paymentConfirmed, onPaymentConfirmedClose]);
 
   const copyCode = useCallback(async () => {
     const text = pixData.copyPaste || paymentUrl || '';
@@ -218,70 +207,55 @@ function StepDonePix({
 
   if (paymentConfirmed) {
     return (
-      <>
-        <div className="flex flex-col items-center gap-4 px-4 py-2 w-full">
-          <div className="flex flex-col items-center gap-2">
-            <div className="w-14 h-14 rounded-full bg-emerald-100 border-2 border-emerald-300 flex items-center justify-center">
-              <Check size={28} className="text-emerald-600" strokeWidth={2.5} />
-            </div>
-            <div className="text-center">
-              <p className="text-[15px] font-bold text-petroleum uppercase tracking-wide">
-                Pagamento confirmado!
-              </p>
-              <p className="text-[11px] text-petroleum/80 mt-0.5">
-                Seu plano foi ativado. Obrigado!
-              </p>
-            </div>
+      <div className="space-y-4 px-4 py-3">
+        {/* Header de Sucesso */}
+        <div className="flex flex-col items-center gap-2">
+          <div className="w-14 h-14 rounded-full bg-emerald-50 border-2 border-emerald-200 flex items-center justify-center">
+            <Check size={26} className="text-emerald-600" strokeWidth={2.5} />
           </div>
-          <OrderSummary planName={planName} period={period} amount={amount} />
-          {nextBillingDate && (
-            <div className="mt-1 w-full max-w-md p-2 rounded bg-slate-50 border border-slate-100 flex items-start gap-2 text-petroleum/80">
-              <CalendarCheck size={12} className="mt-0.5 shrink-0" />
-              <p className="text-[11px] leading-tight font-medium">
-                Próxima fatura em <strong>{nextBillingDate}</strong>. Pagamento
-                recorrente pelo mesmo método.
-              </p>
-            </div>
-          )}
-          <SecurityBadge />
-          <SupportLink />
+          <div className="text-center">
+            <p className="text-[15px] font-bold text-petroleum uppercase tracking-wide">
+              Pagamento confirmado!
+            </p>
+            <p className="text-[11px] text-petroleum/80 mt-0.5">
+              Seu plano foi ativado. Obrigado!
+            </p>
+          </div>
         </div>
-        <BaseModal
-          isOpen={showSuccessModal}
-          onClose={() => {
-            setShowSuccessModal(false);
-            onPaymentConfirmedClose?.();
-          }}
-          title="Migração de plano confirmada"
-          subtitle="Pagamento recebido"
-          headerIcon={<Check size={22} className="text-emerald-400" />}
-          footer={
-            <div className="flex justify-end">
-              <button
-                type="button"
-                onClick={() => {
-                  setShowSuccessModal(false);
-                  onPaymentConfirmedClose?.();
-                }}
-                className="btn-luxury-primary"
-              >
-                Fechar
-              </button>
-            </div>
-          }
-        >
-          <p className="text-[13px] text-petroleum/90">
+
+        {/* Order Summary */}
+        <OrderSummary planName={planName} period={period} amount={amount} />
+
+        {/* Próxima Fatura */}
+        {nextBillingDate && (
+          <div className="p-2 rounded-luxury bg-slate-50 border border-slate-100 flex items-start gap-2 text-petroleum/80">
+            <CalendarCheck size={12} className="mt-0.5 shrink-0" />
+            <p className="text-[11px] leading-tight font-medium">
+              Próxima fatura em <strong>{nextBillingDate}</strong>. Pagamento
+              recorrente pelo mesmo método.
+            </p>
+          </div>
+        )}
+
+        {/* Info Box */}
+        <div className="rounded-luxury border border-emerald-200 bg-emerald-50/60 px-3 py-2">
+          <p className="text-[11px] text-petroleum/90 leading-snug">
             Seu pagamento foi confirmado e o plano <strong>{planName}</strong>{' '}
             está ativo. Se o nome do plano na barra lateral não estiver
             atualizado, recarregue a página (F5).
           </p>
-        </BaseModal>
-      </>
+        </div>
+
+        {/* Security + Support */}
+        <SecurityBadge />
+        <SupportLink />
+      </div>
     );
   }
 
   return (
-    <div className="flex flex-col items-center gap-4 px-4 py-3 w-full">
+    <div className="space-y-4 px-4 py-3">
+      {/* Header */}
       <div className="flex flex-col items-center gap-2">
         <div className="w-14 h-14 rounded-full bg-gold/10 border-2 border-gold/25 flex items-center justify-center">
           <QrCode size={26} className="text-gold" />
@@ -295,9 +269,14 @@ function StepDonePix({
           </p>
         </div>
       </div>
+
+      {/* Order Summary */}
       <OrderSummary planName={planName} period={period} amount={amount} />
-      {pixData.qrCode ? (
-        <div className="flex flex-col items-center gap-3 w-full">
+
+      {/* QR Code Section */}
+      {pixData.qrCode && (
+        <div className="flex flex-col items-center gap-3">
+          {/* QR Code Image */}
           <div className="relative">
             <div
               className={`rounded-xl border-2 bg-white p-3 transition-all ${expired ? 'opacity-30 blur-sm border-red-200' : 'border-petroleum/10'}`}
@@ -306,7 +285,6 @@ function StepDonePix({
                 src={`data:image/png;base64,${pixData.qrCode}`}
                 alt="QR Code PIX para pagamento"
                 className="w-[172px] h-[172px] object-contain"
-                aria-describedby="pix-timer-label"
               />
             </div>
             {expired && (
@@ -318,12 +296,11 @@ function StepDonePix({
               </div>
             )}
           </div>
+
+          {/* Timer */}
           {!expired ? (
             <div
-              id="pix-timer-label"
               className={`flex items-center gap-1.5 ${urgencyColor} transition-colors`}
-              role="timer"
-              aria-live="polite"
             >
               <Clock size={11} />
               <span className="text-[10px] font-bold tabular-nums">
@@ -344,6 +321,8 @@ function StepDonePix({
               <RefreshCw size={12} /> Gerar novo código
             </button>
           )}
+
+          {/* Copy Button */}
           {!expired && (
             <button
               type="button"
@@ -372,8 +351,10 @@ function StepDonePix({
               )}
             </button>
           )}
-          <div className="w-full bg-slate-50 rounded-xl border border-slate-100 px-4 py-3 space-y-2">
-            <p className="text-[10px] font-bold uppercase tracking-wider text-petroleum/70 mb-1">
+
+          {/* Instructions */}
+          <div className="rounded-luxury border border-slate-100 bg-slate-50 px-3.5 py-1.5 space-y-2 w-full">
+            <p className="text-[9px] font-bold uppercase tracking-luxury-wide text-petroleum/70 mb-1">
               Como pagar
             </p>
             {[
@@ -393,11 +374,18 @@ function StepDonePix({
             ))}
           </div>
         </div>
-      ) : paymentUrl ? (
+      )}
+
+      {/* Copy Button (se não tiver QR Code) */}
+      {!pixData.qrCode && paymentUrl && (
         <button
           type="button"
           onClick={copyCode}
-          className="flex items-center justify-center gap-2 w-full max-w-[240px] py-2.5 rounded-xl border-2 border-champagne bg-champagne/10 text-petroleum font-bold text-[11px] uppercase tracking-wide hover:bg-champagne/25 transition-colors"
+          className={`flex items-center justify-center gap-2 w-full max-w-[240px] py-2.5 rounded-xl border-2 font-bold text-[11px] uppercase tracking-wide transition-all ${
+            copyState === 'copied'
+              ? 'border-emerald-400 bg-emerald-50 text-emerald-700'
+              : 'border-champagne bg-champagne/10 text-petroleum hover:bg-champagne/25'
+          }`}
         >
           {copyState === 'copied' ? (
             <>
@@ -409,7 +397,9 @@ function StepDonePix({
             </>
           )}
         </button>
-      ) : null}
+      )}
+
+      {/* Security + Support */}
       <SecurityBadge />
       <SupportLink />
     </div>
@@ -458,10 +448,11 @@ function StepDoneCreditCard({
 
   if (paymentConfirmed) {
     return (
-      <div className="flex flex-col items-center gap-5 px-4 py-6 w-full">
+      <div className="space-y-4 px-4 py-3">
+        {/* Header de Sucesso */}
         <div className="flex flex-col items-center gap-2">
           <div className="w-14 h-14 rounded-full bg-emerald-50 border-2 border-emerald-200 flex items-center justify-center">
-            <Check size={26} className="text-emerald-500" strokeWidth={2.5} />
+            <Check size={26} className="text-emerald-600" strokeWidth={2.5} />
           </div>
           <div className="text-center">
             <p className="text-[15px] font-bold text-petroleum uppercase tracking-wide">
@@ -472,9 +463,13 @@ function StepDoneCreditCard({
             </p>
           </div>
         </div>
+
+        {/* Order Summary */}
         <OrderSummary planName={planName} period={period} amount={amount} />
+
+        {/* Próxima Fatura */}
         {nextBillingDate && (
-          <div className="mt-1 w-full max-w-md p-2 rounded bg-slate-50 border border-slate-100 flex items-start gap-2 text-petroleum/80">
+          <div className="p-2 rounded-luxury bg-slate-50 border border-slate-100 flex items-start gap-2 text-petroleum/80">
             <CreditCard size={12} className="mt-0.5 shrink-0" />
             <p className="text-[11px] leading-tight font-medium">
               Próxima fatura em <strong>{nextBillingDate}</strong>. Cobrança
@@ -482,6 +477,8 @@ function StepDoneCreditCard({
             </p>
           </div>
         )}
+
+        {/* Security + Support */}
         <SecurityBadge />
         <SupportLink />
       </div>
@@ -489,10 +486,11 @@ function StepDoneCreditCard({
   }
 
   return (
-    <div className="flex flex-col items-center gap-5 px-4 py-6 w-full">
+    <div className="space-y-4 px-4 py-3">
+      {/* Header */}
       <div className="flex flex-col items-center gap-2">
         <div className="w-14 h-14 rounded-full bg-emerald-50 border-2 border-emerald-200 flex items-center justify-center">
-          <Check size={26} className="text-emerald-500" strokeWidth={2.5} />
+          <Check size={26} className="text-emerald-600" strokeWidth={2.5} />
         </div>
         <div className="text-center">
           <p className="text-[15px] font-bold text-petroleum uppercase tracking-wide">
@@ -503,8 +501,12 @@ function StepDoneCreditCard({
           </p>
         </div>
       </div>
+
+      {/* Order Summary */}
       <OrderSummary planName={planName} period={period} amount={amount} />
-      <div className="w-full bg-amber-50 border border-amber-200/60 rounded-xl px-4 py-3 flex items-start gap-2.5">
+
+      {/* Aguardando Confirmação */}
+      <div className="rounded-luxury bg-amber-50 border border-amber-200/60 px-3 py-2 flex items-start gap-2">
         <Clock size={13} className="text-amber-500 shrink-0 mt-0.5" />
         <div>
           <p className="text-[11px] font-bold text-amber-800">
@@ -516,8 +518,10 @@ function StepDoneCreditCard({
           </p>
         </div>
       </div>
-      <div className="w-full space-y-2.5">
-        <p className="text-[10px] font-bold uppercase tracking-wider text-petroleum/80">
+
+      {/* Próximos Passos */}
+      <div className="space-y-2">
+        <p className="text-[9px] font-bold uppercase tracking-luxury-wide text-petroleum/70">
           O que acontece agora
         </p>
         <NextStep
@@ -533,6 +537,8 @@ function StepDoneCreditCard({
           text="Você receberá um e-mail de confirmação com o comprovante"
         />
       </div>
+
+      {/* Ver Status */}
       {paymentUrl && (
         <a
           href={paymentUrl}
@@ -544,6 +550,8 @@ function StepDoneCreditCard({
           <ChevronRight size={12} />
         </a>
       )}
+
+      {/* Security + Support */}
       <SecurityBadge />
       <SupportLink />
     </div>
@@ -573,7 +581,8 @@ function StepDoneBoleto({
       : getBoletoVencimento(3);
 
   return (
-    <div className="flex flex-col items-center gap-5 px-4 py-6 w-full">
+    <div className="space-y-4 px-4 py-3">
+      {/* Header */}
       <div className="flex flex-col items-center gap-2">
         <div className="w-14 h-14 rounded-full bg-gold/10 border-2 border-gold/25 flex items-center justify-center">
           <Banknote size={26} className="text-gold" />
@@ -587,8 +596,12 @@ function StepDoneBoleto({
           </p>
         </div>
       </div>
+
+      {/* Order Summary */}
       <OrderSummary planName={planName} period={period} amount={amount} />
-      <div className="w-full bg-amber-50 border border-amber-200/60 rounded-xl px-4 py-3 flex items-start gap-2.5">
+
+      {/* Vencimento */}
+      <div className="rounded-luxury bg-amber-50 border border-amber-200/60 px-3 py-2 flex items-start gap-2">
         <AlertCircle size={13} className="text-amber-500 shrink-0 mt-0.5" />
         <div>
           <p className="text-[11px] font-bold text-amber-800">
@@ -600,8 +613,10 @@ function StepDoneBoleto({
           </p>
         </div>
       </div>
-      <div className="w-full space-y-2.5">
-        <p className="text-[10px] font-bold uppercase tracking-wider text-petroleum/80">
+
+      {/* Próximos Passos */}
+      <div className="space-y-2">
+        <p className="text-[9px] font-bold uppercase tracking-luxury-wide text-petroleum/70">
           O que acontece agora
         </p>
         <NextStep
@@ -617,8 +632,10 @@ function StepDoneBoleto({
           text={`Plano ${planName} liberado sem nenhuma ação adicional`}
         />
       </div>
+
+      {/* Download Boleto */}
       {paymentUrl && (
-        <div className="w-full space-y-2">
+        <div className="space-y-2">
           <p className="text-[10px] text-petroleum/90 text-center leading-snug">
             O download do PDF será iniciado. Caso não ocorra, clique no botão
             abaixo.
@@ -627,12 +644,14 @@ function StepDoneBoleto({
             href={paymentUrl}
             target="_blank"
             rel="noopener noreferrer"
-            className="btn-luxury-primary max-w-max-[80px] flex items-center justify-center gap-2"
+            className="btn-luxury-primary flex items-center justify-center gap-2"
           >
             <FileText size={13} /> Baixar boleto
           </a>
         </div>
       )}
+
+      {/* Security + Support */}
       <SecurityBadge />
       <SupportLink />
     </div>
@@ -649,31 +668,40 @@ function StepDoneFreeUpgrade({
   nextBillingDate: string | null;
 }) {
   return (
-    <div className="flex flex-col items-center gap-4 px-4 py-6 w-full">
+    <div className="space-y-4 px-4 py-3">
+      {/* Header */}
       <div className="flex flex-col items-center gap-2">
         <div className="w-14 h-14 rounded-full bg-emerald-50 border-2 border-emerald-200 flex items-center justify-center">
-          <Check size={26} className="text-emerald-500" strokeWidth={2.5} />
+          <Check size={26} className="text-emerald-600" strokeWidth={2.5} />
         </div>
-        <p className="text-[15px] font-bold text-petroleum uppercase tracking-wide text-center">
-          Upgrade concluído
-        </p>
-        <p className="text-[12px] text-petroleum/80 mt-0.5 text-center">
-          Seu crédito cobriu o plano. O plano <strong>{planName}</strong> está
-          ativo.{' '}
-          {nextBillingDate ? (
-            <>
-              A próxima cobrança será em{' '}
-              <strong className="text-petroleum">{nextBillingDate}</strong>.
-            </>
-          ) : (
-            'Nenhum valor foi cobrado.'
-          )}
+        <div className="text-center">
+          <p className="text-[15px] font-bold text-petroleum uppercase tracking-wide">
+            Upgrade concluído
+          </p>
+          <p className="text-[11px] text-petroleum/80 mt-0.5 leading-snug max-w-md">
+            Seu crédito cobriu o plano. O plano <strong>{planName}</strong> está
+            ativo.{' '}
+            {nextBillingDate ? (
+              <>
+                A próxima cobrança será em{' '}
+                <strong className="text-petroleum">{nextBillingDate}</strong>.
+              </>
+            ) : (
+              'Nenhum valor foi cobrado.'
+            )}
+          </p>
+        </div>
+      </div>
+
+      {/* Info */}
+      <div className="rounded-luxury border border-slate-200 bg-slate-50 px-3 py-2">
+        <p className="text-[11px] text-slate-600 leading-snug">
+          Nenhum pagamento foi processado. Você continua com acesso até a data
+          de vencimento calculada pelo seu saldo.
         </p>
       </div>
-      <div className="w-full bg-slate-50 border border-slate-200 rounded-xl px-4 py-3 text-[12px] text-slate-600">
-        Nenhum pagamento foi processado. Você continua com acesso até a data de
-        vencimento calculada pelo seu saldo.
-      </div>
+
+      {/* Support */}
       <SupportLink />
     </div>
   );
@@ -691,44 +719,55 @@ function StepDoneScheduledChange({
   handleClose: () => void;
 }) {
   return (
-    <div className="flex flex-col items-center gap-4 px-4 py-6 w-full">
+    <div className="space-y-4 px-4 py-3">
+      {/* Header */}
       <div className="flex flex-col items-center gap-2">
         <div className="w-14 h-14 rounded-full bg-gold/10 border-2 border-gold/25 flex items-center justify-center">
           <CalendarCheck size={26} className="text-gold" />
         </div>
-        <p className="text-[15px] font-bold text-petroleum uppercase tracking-wide text-center">
-          Downgrade agendado
-        </p>
-        <p className="text-[12px] text-petroleum/80 mt-0.5 text-center leading-snug">
-          A mudança para o plano <strong>{planName}</strong> ocorrerá em{' '}
-          <strong className="text-petroleum">
-            {formatDateLong(effectiveAt)}
-          </strong>
-          .
-        </p>
+        <div className="text-center">
+          <p className="text-[15px] font-bold text-petroleum uppercase tracking-wide">
+            Downgrade agendado
+          </p>
+          <p className="text-[11px] text-petroleum/80 mt-0.5 leading-snug max-w-md">
+            A mudança para o plano <strong>{planName}</strong> ocorrerá em{' '}
+            <strong className="text-petroleum">
+              {formatDateLong(effectiveAt)}
+            </strong>
+            .
+          </p>
+        </div>
       </div>
-      <div className="w-full bg-slate-50 border border-slate-200 rounded-xl px-4 py-3 space-y-2 text-[12px] text-slate-600">
-        <p>Até essa data, você mantém todos os benefícios do plano atual.</p>
-        <p>
+
+      {/* Info */}
+      <div className="rounded-luxury border border-slate-200 bg-slate-50 px-3 py-2 space-y-2">
+        <p className="text-[11px] text-slate-600 leading-snug">
+          Até essa data, você mantém todos os benefícios do plano atual.
+        </p>
+        <p className="text-[11px] text-slate-600 leading-snug">
           Não estamos aguardando aprovação da operadora agora. A nova assinatura
           será iniciada automaticamente na data indicada.
         </p>
-        <p>
+        <p className="text-[11px] text-slate-600 leading-snug">
           A recorrência do novo plano começará nesse dia, conforme a forma de
           pagamento escolhida.
         </p>
-        <p>
+        <p className="text-[11px] text-slate-600 leading-snug">
           Se desejar, você pode cancelar esta intenção antes da data de
           efetivação na tela de assinatura.
         </p>
       </div>
+
+      {/* Button */}
       <button
         type="button"
         onClick={handleClose}
-        className="btn-luxury-primary"
+        className="btn-luxury-primary w-full"
       >
         Fechar
       </button>
+
+      {/* Support */}
       <SupportLink />
     </div>
   );
@@ -746,37 +785,51 @@ function StepDoneImmediateDowngrade({
   handleClose: () => void;
 }) {
   return (
-    <div className="flex flex-col items-center gap-4 px-4 py-6 w-full">
+    <div className="space-y-4 px-4 py-3">
+      {/* Header */}
       <div className="flex flex-col items-center gap-2">
         <div className="w-14 h-14 rounded-full bg-emerald-50 border-2 border-emerald-200 flex items-center justify-center">
-          <Check size={26} className="text-emerald-500" strokeWidth={2.5} />
+          <Check size={26} className="text-emerald-600" strokeWidth={2.5} />
         </div>
-        <p className="text-[15px] font-bold text-petroleum uppercase tracking-wide text-center">
-          Plano alterado
-        </p>
-        <p className="text-[12px] text-petroleum/80 mt-0.5 text-center leading-snug">
-          Seu plano foi alterado para <strong>{planName}</strong> imediatamente.
-          {nextBillingDate && (
-            <>
-              {' '}
-              Acesso garantido até{' '}
-              <strong className="text-petroleum">{nextBillingDate}</strong> pelo
-              crédito aplicado.
-            </>
-          )}
+        <div className="text-center">
+          <p className="text-[15px] font-bold text-petroleum uppercase tracking-wide">
+            Plano alterado
+          </p>
+          <p className="text-[11px] text-petroleum/80 mt-0.5 leading-snug max-w-md">
+            Seu plano foi alterado para <strong>{planName}</strong>{' '}
+            imediatamente.
+            {nextBillingDate && (
+              <>
+                {' '}
+                Acesso garantido até{' '}
+                <strong className="text-petroleum">
+                  {nextBillingDate}
+                </strong>{' '}
+                pelo crédito aplicado.
+              </>
+            )}
+          </p>
+        </div>
+      </div>
+
+      {/* Info */}
+      <div className="rounded-luxury border border-slate-200 bg-slate-50 px-3 py-2">
+        <p className="text-[11px] text-slate-600 leading-snug">
+          O crédito dos dias não utilizados do plano anterior foi convertido em
+          saldo e aplicado ao novo plano.
         </p>
       </div>
-      <div className="w-full bg-slate-50 border border-slate-200 rounded-xl px-4 py-3 text-[12px] text-slate-600">
-        O crédito dos dias não utilizados do plano anterior foi convertido em
-        saldo e aplicado ao novo plano.
-      </div>
+
+      {/* Button */}
       <button
         type="button"
         onClick={handleClose}
-        className="btn-luxury-primary"
+        className="btn-luxury-primary w-full"
       >
         Fechar
       </button>
+
+      {/* Support */}
       <SupportLink />
     </div>
   );
@@ -807,15 +860,11 @@ export function StepDone() {
 
   const isFreeUpgrade = upgradeCalculation?.is_free_upgrade === true;
 
-  // Downgrade agendado: fora da janela de arrependimento
-  // Distingue do downgrade imediato (dentro da janela) que usa crédito e pode
-  // gerar pagamento ou ser gratuito — não deve cair aqui.
   const isScheduledChange =
     upgradeCalculation?.type === 'downgrade' &&
     upgradeCalculation.is_downgrade_withdrawal_window === false &&
     !!downgradeEffectiveAt;
 
-  // Downgrade imediato com crédito (dentro da janela, amount_final >= 0)
   const isImmediateDowngrade =
     upgradeCalculation?.type === 'downgrade' &&
     upgradeCalculation.is_downgrade_withdrawal_window === true;
@@ -837,7 +886,7 @@ export function StepDone() {
     router.refresh();
   };
 
-  // ── 1. Downgrade agendado (fora dos 7 dias) ──────────────────────────────
+  // ── 1. Downgrade agendado ──
   if (isScheduledChange) {
     return (
       <div className="flex flex-col min-h-full overflow-y-auto">
@@ -850,7 +899,7 @@ export function StepDone() {
     );
   }
 
-  // ── 2. Downgrade imediato com crédito (dentro dos 7 dias, amount = 0) ───
+  // ── 2. Downgrade imediato com crédito ──
   if (isImmediateDowngrade && (upgradeCalculation?.amount_final ?? 0) === 0) {
     return (
       <div className="flex flex-col min-h-full overflow-y-auto">
@@ -863,7 +912,7 @@ export function StepDone() {
     );
   }
 
-  // ── 3. Upgrade gratuito (crédito cobre 100%) ─────────────────────────────
+  // ── 3. Upgrade gratuito ──
   if (isFreeUpgrade) {
     return (
       <div className="flex flex-col min-h-full overflow-y-auto">
@@ -871,11 +920,11 @@ export function StepDone() {
           planName={planName}
           nextBillingDate={nextBillingDateFormatted}
         />
-        <div className="flex justify-center pb-6">
+        <div className="flex justify-center pb-4 px-4">
           <button
             type="button"
             onClick={handleCloseAndRefresh}
-            className="btn-luxury-primary"
+            className="btn-luxury-primary w-full"
           >
             Fechar
           </button>
@@ -884,7 +933,7 @@ export function StepDone() {
     );
   }
 
-  // ── 4. Pagamento normal (PIX / Boleto / Cartão) ───────────────────────────
+  // ── 4. Pagamento normal ──
   const handlePaymentConfirmedClose = () => {
     handleClose();
     router.refresh();
@@ -893,8 +942,10 @@ export function StepDone() {
   return (
     <div className="flex flex-col min-h-full overflow-y-auto">
       {requestWarning && (
-        <div className="mx-4 mt-2 rounded-lg border border-amber-200 bg-amber-50 px-3 py-2.5 text-[11px] text-amber-900">
-          <p className="font-medium">{requestWarning}</p>
+        <div className="mx-4 mt-2 rounded-luxury border border-amber-200 bg-amber-50 px-3 py-2">
+          <p className="text-[11px] text-amber-900 font-medium">
+            {requestWarning}
+          </p>
         </div>
       )}
 
@@ -929,11 +980,11 @@ export function StepDone() {
         />
       )}
 
-      <div className="flex justify-center pb-6">
+      <div className="flex justify-center pb-4 px-4">
         <button
           type="button"
           onClick={handleCloseAndRefresh}
-          className="btn-luxury-primary"
+          className="btn-luxury-primary w-full"
         >
           Fechar
         </button>

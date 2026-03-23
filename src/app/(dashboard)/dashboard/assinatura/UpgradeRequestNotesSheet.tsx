@@ -23,6 +23,34 @@ const BILLING_TYPE_LABELS: Record<string, string> = {
   UNDEFINED: 'Não definido',
 };
 
+const SAO_PAULO_TZ = 'America/Sao_Paulo';
+
+function toFriendlySaoPauloDateTime(input: string): string {
+  const d = new Date(input);
+  if (Number.isNaN(d.getTime())) return input;
+  return d.toLocaleString('pt-BR', {
+    timeZone: SAO_PAULO_TZ,
+    day: '2-digit',
+    month: '2-digit',
+    year: 'numeric',
+    hour: '2-digit',
+    minute: '2-digit',
+    second: '2-digit',
+  });
+}
+
+function formatLineDatesToSaoPaulo(line: string): string {
+  const isoRegex = /\b\d{4}-\d{2}-\d{2}(?:T\d{2}:\d{2}:\d{2}(?:\.\d{1,3})?(?:Z|[+-]\d{2}:?\d{2})?)?\b/g;
+  return line.replace(isoRegex, (match) => {
+    // Datas sem horário ficam em formato amigável sem aplicar deslocamento.
+    if (/^\d{4}-\d{2}-\d{2}$/.test(match)) {
+      const [y, m, d] = match.split('-');
+      return `${d}/${m}/${y}`;
+    }
+    return toFriendlySaoPauloDateTime(match);
+  });
+}
+
 function formatPaymentChangeLine(line: string): string {
   const match = line.match(/\[PaymentMethodChange (.*?)\] (.*?) -> (.*)/);
 
@@ -32,14 +60,7 @@ function formatPaymentChangeLine(line: string): string {
 
   const [, timestamp, from, to] = match;
 
-  const date = new Date(timestamp);
-  const formattedDate = date.toLocaleString('pt-BR', {
-    day: '2-digit',
-    month: '2-digit',
-    year: 'numeric',
-    hour: '2-digit',
-    minute: '2-digit',
-  });
+  const formattedDate = toFriendlySaoPauloDateTime(timestamp);
 
   const fromLabel = BILLING_TYPE_LABELS[from.trim()] ?? from.trim();
   const toLabel = BILLING_TYPE_LABELS[to.trim()] ?? to.trim();
@@ -104,16 +125,18 @@ function statusLabel(status: string | null | undefined): string {
 
 function formatDateTime(iso?: unknown): string {
   if (typeof iso !== 'string') return '—';
-  const d = new Date(iso);
-  if (Number.isNaN(d.getTime())) return '—';
-  return d.toLocaleString('pt-BR');
+  return toFriendlySaoPauloDateTime(iso);
 }
 
 function formatDateOnly(iso?: string | null): string | null {
   if (!iso) return null;
+  if (/^\d{4}-\d{2}-\d{2}$/.test(iso)) {
+    const [y, m, d] = iso.split('-');
+    return `${d}/${m}/${y}`;
+  }
   const d = new Date(iso);
   if (Number.isNaN(d.getTime())) return null;
-  return d.toLocaleDateString('pt-BR', { timeZone: 'UTC' });
+  return d.toLocaleDateString('pt-BR', { timeZone: SAO_PAULO_TZ });
 }
 
 function formatCurrency(value?: number | null): string {
@@ -185,21 +208,21 @@ function buildTimeline(request: UpgradeRequest, parsed: ReturnType<typeof parseN
     if (lower.includes('cancelamento solicitado')) {
       events.push({
         title: 'Cancelamento/downgrade agendado',
-        description: line,
+        description: formatLineDatesToSaoPaulo(line),
         date: parseIsoDateFromLine(line),
         tone: 'warning',
       });
     } else if (lower.includes('sincronização asaas')) {
       events.push({
         title: 'Sincronização com Asaas',
-        description: line,
+        description: formatLineDatesToSaoPaulo(line),
         date: parseIsoDateFromLine(line),
         tone: 'info',
       });
     } else if (lower.includes('nova data de vencimento')) {
       events.push({
         title: 'Vencimento recalculado',
-        description: line,
+        description: formatLineDatesToSaoPaulo(line),
         date: parseIsoDateFromLine(line),
         tone: 'info',
       });
@@ -220,6 +243,11 @@ export function UpgradeRequestNotesSheet({
   const timeline = request ? buildTimeline(request, parsed) : [];
   const noteLines = parsed.lines ?? [];
   const asaasFieldsFromText = extractAsaasFieldsFromText(noteLines);
+  const scheduleLines = noteLines.filter(
+    (line) =>
+      !parsed.paymentChanges?.includes(line) &&
+      !parsed.operationDetails?.includes(line),
+  );
   const hasScheduledChange = request?.status === 'pending_change';
   const asaasNextDueDate =
     asaasFieldsFromText.nextDueDate ?? (hasScheduledChange ? request?.processed_at?.slice(0, 10) : undefined);
@@ -454,16 +482,10 @@ export function UpgradeRequestNotesSheet({
                 </SheetSection>
               )}
 
-              {!!parsed.lines?.length && (
+              {!!scheduleLines.length && (
                 <SheetSection title="Detalhes do Agendamento">
                   <div className="space-y-3">
-                    {parsed.lines
-                      .filter(
-                        (line) =>
-                          !parsed.paymentChanges?.includes(line) &&
-                          !parsed.operationDetails?.includes(line),
-                      )
-                      .map((line, idx) => {
+                    {scheduleLines.map((line, idx) => {
                         // Detecta se é a linha de log de cancelamento solicitado
                         const cancelMatch = line.match(
                           /Cancelamento solicitado em (.*?)Z\. Acesso até (.*?)Z/,
@@ -473,7 +495,7 @@ export function UpgradeRequestNotesSheet({
                         if (cancelMatch) {
                           const [, requestedAt, expiresAt] = cancelMatch;
                           const formatDate = (iso: string) =>
-                            new Date(iso).toLocaleDateString('pt-BR');
+                            formatDateOnly(`${iso}Z`) ?? formatLineDatesToSaoPaulo(iso);
 
                           return (
                             <div
@@ -524,6 +546,7 @@ export function UpgradeRequestNotesSheet({
                           .toLowerCase()
                           .includes('sincronização asaas');
                         const isComment = line.startsWith('Comentário:');
+                        const friendlyLine = formatLineDatesToSaoPaulo(line);
 
                         return (
                           <div
@@ -539,7 +562,10 @@ export function UpgradeRequestNotesSheet({
                                   className="text-petroleum/70 mt-0.5"
                                 />
                               )}
-                              {line.replace('Comentário:', '💬 Observação:')}
+                              {friendlyLine.replace(
+                                'Comentário:',
+                                '💬 Observação:',
+                              )}
                             </span>
                           </div>
                         );

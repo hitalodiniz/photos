@@ -62,8 +62,8 @@ export function RelatorioTable<T extends { id: string | number }>({
       <tr
         key={item.id}
         onClick={() => onRowClick?.(item)}
-        className={`group transition-all duration-150 odd:bg-white even:bg-slate-50/50 ${
-          onRowClick ? 'cursor-pointer hover:bg-slate-100/70' : ''
+        className={`group transition-all duration-150 odd:bg-white even:bg-slate-100 ${
+          onRowClick ? 'cursor-pointer hover:bg-blue-50/50' : ''
         }`}
       >
         {columns.map((col, idx) => (
@@ -95,15 +95,15 @@ export function RelatorioTable<T extends { id: string | number }>({
   }, [paginatedData, columns, onRowClick, emptyMessage]);
 
   return (
-    <div className="w-full bg-white border border-slate-200 rounded-sm overflow-hidden shadow-sm flex flex-col">
+    <div className="w-full bg-white border border-slate-200 rounded-luxury overflow-hidden shadow-sm flex flex-col">
       <div className="overflow-x-auto">
         <table className="w-full text-left border-collapse table-auto min-w-[820px]">
           <thead>
-            <tr className="bg-petroleum/90 text-[9px] uppercase tracking-[0.12em] text-white font-semibold">
+            <tr className="bg-petroleum text-[9px] uppercase tracking-[0.12em] text-white font-semibold">
               {columns.map((col, idx) => (
                 <th
                   key={idx}
-                  className={`px-4 py-3.5 leading-tight whitespace-normal break-words align-middle ${col.width || ''} ${
+                  className={`px-4 py-3.5 leading-tight whitespace-normal break-words align-middle border-r border-white/10 last:border-r-0 ${col.width || ''} ${
                     onSort && col.sortKey
                       ? 'cursor-pointer hover:bg-petroleum-light'
                       : ''
@@ -121,7 +121,7 @@ export function RelatorioTable<T extends { id: string | number }>({
                   </div>
                 </th>
               ))}
-              {onRowClick && <th className="w-12"></th>}
+              {onRowClick && <th className="w-12 border-r-0"></th>}
             </tr>
           </thead>
           <tbody className="bg-white min-h-[400px]">{tableRows}</tbody>
@@ -130,24 +130,48 @@ export function RelatorioTable<T extends { id: string | number }>({
 
       {/* Footer com Paginação Compacta */}
       {totalPages > 1 && (
-        <div className="px-6 py-3.5 bg-slate-50 border-t flex items-center justify-between">
+        <div className="px-6 py-3.5 bg-slate-50 border-t flex items-center justify-between gap-4">
           <span className="text-[10px] font-semibold text-slate-800 uppercase tracking-widest">
-            Total: {data.length} registros | Pág {currentPage} de {totalPages}
+            Total: {data.length} registros
           </span>
-          <div className="flex gap-1.5">
+
+          <div className="flex items-center gap-2">
             <button
               type="button"
               disabled={currentPage === 1}
               onClick={() => setCurrentPage((p) => p - 1)}
-              className="p-2 rounded-lg border bg-white disabled:opacity-30 hover:bg-slate-50 transition-colors"
+              className="p-2 rounded-lg border border-slate-200 bg-white disabled:opacity-30 hover:bg-slate-50 transition-colors disabled:cursor-not-allowed"
             >
               <ChevronLeft size={14} />
             </button>
+
+            <div className="flex items-center gap-2">
+              <span className="text-[10px] font-semibold text-slate-600 uppercase tracking-wider">
+                Página
+              </span>
+              <select
+                value={currentPage}
+                onChange={(e) => setCurrentPage(Number(e.target.value))}
+                className="px-2 py-1 text-[11px] font-semibold text-petroleum bg-white border border-slate-200 rounded-lg outline-none cursor-pointer hover:border-slate-300 focus:border-gold transition-colors"
+              >
+                {Array.from({ length: totalPages }, (_, i) => i + 1).map(
+                  (page) => (
+                    <option key={page} value={page}>
+                      {page}
+                    </option>
+                  ),
+                )}
+              </select>
+              <span className="text-[10px] font-semibold text-slate-600 uppercase tracking-wider">
+                de {totalPages}
+              </span>
+            </div>
+
             <button
               type="button"
               disabled={currentPage === totalPages}
               onClick={() => setCurrentPage((p) => p + 1)}
-              className="p-2 rounded-lg border bg-white disabled:opacity-30 hover:bg-slate-50 transition-colors"
+              className="p-2 rounded-lg border border-slate-200 bg-white disabled:opacity-30 hover:bg-slate-50 transition-colors disabled:cursor-not-allowed"
             >
               <ChevronRight size={14} />
             </button>

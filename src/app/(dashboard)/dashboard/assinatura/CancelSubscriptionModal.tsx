@@ -352,8 +352,9 @@ export function CancelSubscriptionModal({
                         Sem direito a estorno
                       </p>
                       <p className="text-[12px] text-slate-800 mt-0.5 leading-relaxed">
-                        Cancelamentos após 7 dias da contratação não geram
-                        estorno, conforme nossa{' '}
+                        Cancelamentos após 7 dias da contratação ou após upgrade
+                        com aproveitamento de crédito não geram estorno,
+                        conforme nossa{' '}
                         <a
                           href="/politica-cancelamento"
                           target="_blank"

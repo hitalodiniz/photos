@@ -154,6 +154,17 @@ export async function POST(request: NextRequest) {
       }
     };
 
+    const addMonths = (date: Date, n: number): Date => {
+      const d = new Date(date);
+      d.setMonth(d.getMonth() + n);
+      return d;
+    };
+    const periodMonths = (period?: string | null): number => {
+      if (period === 'semiannual') return 6;
+      if (period === 'annual') return 12;
+      return 1;
+    };
+
     try {
       switch (event as AsaasWebhookEvent) {
         case 'PAYMENT_CONFIRMED':
@@ -202,6 +213,9 @@ export async function POST(request: NextRequest) {
               .maybeSingle();
 
             let isRenewalInsert = false;
+            let renewalProfileId: string | null = null;
+            let renewalPlanKey: string | null = null;
+            let renewalBillingPeriod: string | null = null;
             if (!existingByPayment?.id && subscriptionIdFromPayment) {
               const { data: subRow } = await supabase
                 .from('tb_upgrade_requests')
@@ -251,6 +265,9 @@ export async function POST(request: NextRequest) {
                   );
                 } else {
                   isRenewalInsert = true;
+                  renewalProfileId = subRow.profile_id;
+                  renewalPlanKey = effectivePlanKey;
+                  renewalBillingPeriod = subRow.billing_period ?? 'monthly';
                 }
               }
             }
@@ -318,6 +335,53 @@ export async function POST(request: NextRequest) {
               /^\d{4}-\d{2}-\d{2}$/.test(paymentTimestampRaw)
                 ? `${paymentTimestampRaw}T00:00:00-03:00`
                 : paymentTimestampRaw;
+
+            if (isRenewalInsert && renewalProfileId && renewalPlanKey) {
+              const { data: profileRow } = await supabase
+                .from('tb_profiles')
+                .select('plan_key')
+                .eq('id', renewalProfileId)
+                .maybeSingle();
+              const currentPlan = (profileRow?.plan_key ?? null) as string | null;
+              const isRenovacao = currentPlan === renewalPlanKey;
+
+              if (isRenovacao) {
+                const anchor = new Date(paymentTimestamp);
+                const expiry = addMonths(
+                  anchor,
+                  periodMonths(renewalBillingPeriod),
+                ).toISOString();
+                await supabase
+                  .from('tb_upgrade_requests')
+                  .update({
+                    status: 'approved',
+                    asaas_raw_status: paidStatus,
+                    processed_at: paymentTimestamp,
+                    notes: `Renovação aprovada via webhook Asaas (paymentId: ${paymentId}). Nova data de vencimento: ${expiry}.`,
+                    updated_at: nowInSaoPauloIso(),
+                  })
+                  .eq('asaas_payment_id', paymentId);
+
+                if (subscriptionId) {
+                  await supabase
+                    .from('tb_upgrade_requests')
+                    .update({
+                      overdue_since: null,
+                      updated_at: nowInSaoPauloIso(),
+                    })
+                    .eq('asaas_subscription_id', subscriptionId)
+                    .eq('status', 'approved');
+                }
+
+                await revalidateUserCache(renewalProfileId).catch((err) =>
+                  console.warn('[Webhook Asaas] revalidateUserCache:', err),
+                );
+                revalidatePath('/dashboard');
+                revalidatePath('/dashboard/planos');
+                break;
+              }
+            }
+
             await supabase
               .from('tb_upgrade_requests')
               .update({

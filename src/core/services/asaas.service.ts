@@ -100,6 +100,170 @@ export interface PendingUpgradeRow {
   asaas_payment_id?: string | null;
 }
 
+type CouponApplyMode = 'once' | 'forever';
+type CouponDiscountType = 'fixed' | 'percentage';
+
+interface CouponRow {
+  id: string;
+  code: string;
+  discount_type: string;
+  discount_value: number;
+  max_uses: number | null;
+  used_count: number | null;
+  starts_at: string;
+  expires_at: string | null;
+  active: boolean | null;
+  apply_mode: string;
+}
+
+interface ResolvedCoupon {
+  row: CouponRow;
+  applyMode: CouponApplyMode;
+  discountType: CouponDiscountType;
+  discountAmount: number;
+  finalAmount: number;
+  asaasDiscount?:
+    | {
+        value: number;
+        dueDateLimitDays: number;
+        type: 'FIXED' | 'PERCENTAGE';
+      }
+    | undefined;
+}
+
+function normalizeCouponDiscountType(v: string | null | undefined): CouponDiscountType {
+  const raw = String(v ?? '').toLowerCase();
+  return raw.includes('percent') || raw.includes('perc')
+    ? 'percentage'
+    : 'fixed';
+}
+
+function normalizeCouponApplyMode(v: string | null | undefined): CouponApplyMode {
+  return String(v ?? '').toLowerCase() === 'forever' ? 'forever' : 'once';
+}
+
+function round2(value: number): number {
+  return Math.round(value * 100) / 100;
+}
+
+function calculateCouponDiscount(
+  baseAmount: number,
+  discountType: CouponDiscountType,
+  discountValue: number,
+): { discountAmount: number; finalAmount: number } {
+  const normalizedBase = Math.max(0, round2(baseAmount));
+  const normalizedDiscountValue = Math.max(0, round2(discountValue));
+  const discountAmount =
+    discountType === 'percentage'
+      ? round2(normalizedBase * (normalizedDiscountValue / 100))
+      : Math.min(normalizedBase, normalizedDiscountValue);
+  return {
+    discountAmount,
+    finalAmount: round2(Math.max(0, normalizedBase - discountAmount)),
+  };
+}
+
+async function resolveCouponForAmount(
+  couponCodeRaw: string | null | undefined,
+  amountBase: number,
+): Promise<{ coupon?: ResolvedCoupon; error?: string }> {
+  const couponCode = String(couponCodeRaw ?? '')
+    .trim()
+    .toUpperCase();
+  if (!couponCode) return {};
+
+  const admin = createSupabaseAdmin();
+  const { data: coupon, error } = await admin
+    .from('tb_coupons')
+    .select(
+      'id, code, discount_type, discount_value, max_uses, used_count, starts_at, expires_at, active, apply_mode',
+    )
+    .eq('code', couponCode)
+    .maybeSingle();
+
+  if (error) {
+    return { error: 'Não foi possível validar o cupom no momento.' };
+  }
+  if (!coupon) return { error: 'Cupom inválido.' };
+  if (coupon.active === false) return { error: 'Cupom inativo.' };
+
+  const now = new Date();
+  const startsAt = new Date(coupon.starts_at);
+  const expiresAt = coupon.expires_at ? new Date(coupon.expires_at) : null;
+  if (!Number.isNaN(startsAt.getTime()) && startsAt > now) {
+    return { error: 'Cupom ainda não está vigente.' };
+  }
+  if (expiresAt && !Number.isNaN(expiresAt.getTime()) && expiresAt < now) {
+    return { error: 'Cupom expirado.' };
+  }
+  if (
+    typeof coupon.max_uses === 'number' &&
+    (coupon.used_count ?? 0) >= coupon.max_uses
+  ) {
+    return { error: 'Cupom atingiu o limite de uso.' };
+  }
+
+  const discountType = normalizeCouponDiscountType(coupon.discount_type);
+  const applyMode = normalizeCouponApplyMode(coupon.apply_mode);
+  const { discountAmount, finalAmount } = calculateCouponDiscount(
+    amountBase,
+    discountType,
+    Number(coupon.discount_value ?? 0),
+  );
+
+  const asaasDiscount =
+    applyMode === 'once'
+      ? {
+          value:
+            discountType === 'percentage'
+              ? Number(coupon.discount_value ?? 0)
+              : discountAmount,
+          dueDateLimitDays: 0,
+          type: (discountType === 'percentage'
+            ? 'PERCENTAGE'
+            : 'FIXED') as 'PERCENTAGE' | 'FIXED',
+        }
+      : undefined;
+
+  return {
+    coupon: {
+      row: coupon as CouponRow,
+      applyMode,
+      discountType,
+      discountAmount,
+      finalAmount,
+      asaasDiscount,
+    },
+  };
+}
+
+async function applyCouponToCalculationPreview(
+  calculation: UpgradePriceCalculation,
+  couponCodeRaw: string | null | undefined,
+): Promise<{ calculation: UpgradePriceCalculation; error?: string }> {
+  const code = String(couponCodeRaw ?? '').trim();
+  if (!code) return { calculation };
+
+  const couponResolution = await resolveCouponForAmount(code, calculation.amount_final);
+  if (couponResolution.error) return { calculation, error: couponResolution.error };
+  const coupon = couponResolution.coupon;
+  if (!coupon) return { calculation };
+
+  const nextAmountFinal = coupon.applyMode === 'forever'
+    ? coupon.finalAmount
+    : round2(Math.max(0, calculation.amount_final - coupon.discountAmount));
+  return {
+    calculation: {
+      ...calculation,
+      amount_final: nextAmountFinal,
+      amount_discount: round2(calculation.amount_discount + coupon.discountAmount),
+      coupon_code_applied: coupon.row.code,
+      coupon_discount_amount: coupon.discountAmount,
+      coupon_apply_mode: coupon.applyMode,
+    },
+  };
+}
+
 // ═══════════════════════════════════════════════════════════════════════════════
 // ⚙️ FUNÇÕES QUE AINDA PERMANECEM NESTE ARQUIVO
 // (TODO: migrar para billing/upgrade.ts, billing/downgrade.ts, etc)
@@ -374,14 +538,18 @@ export async function calculateUpgradePrice(
     totalMsCurrent <= 0
       ? 0
       : totalDaysCommercial * (remainingMs / totalMsCurrent);
-  const amountForProRata =
+  const currentPlanFullPrice = planInfoCurrent
+    ? getPeriodPrice(planInfoCurrent, currentPeriod).totalPrice
+    : 0;
+  const paidReferenceAmount =
     currentRequest.amount_final > 0
       ? currentRequest.amount_final
       : lastPaidAmountForProRata != null && lastPaidAmountForProRata > 0
         ? lastPaidAmountForProRata
-        : planInfoCurrent
-          ? getPeriodPrice(planInfoCurrent, currentPeriod).totalPrice
-          : 0;
+        : 0;
+  // Baseia o pro-rata no valor integral do plano atual (investimento teórico total).
+  // Se houver um valor pago maior que o preço de tabela, preserva o maior valor.
+  const amountForProRata = Math.max(currentPlanFullPrice, paidReferenceAmount);
   const residualCredit = await calculateProRataCredit(
     amountForProRata,
     totalDaysCommercial,
@@ -572,6 +740,7 @@ export async function getUpgradePreview(
   targetPeriod: BillingPeriod,
   billingType: BillingType,
   segment: SegmentType = 'PHOTOGRAPHER',
+  couponCode?: string,
 ): Promise<UpgradePreviewResult> {
   try {
     const { success, userId, profile } = await getAuthenticatedUser();
@@ -633,13 +802,24 @@ export async function getUpgradePreview(
       currentPlanKeyFromProfile,
       lastPaidAmountForProRata,
     );
-    const calculationWithBillingType = calculation
+    const couponAppliedResult = await applyCouponToCalculationPreview(
+      calculation,
+      couponCode,
+    );
+    if (couponAppliedResult.error) {
+      return {
+        success: false,
+        has_active_plan: false,
+        error: couponAppliedResult.error,
+      };
+    }
+    const calculationWithBillingType = couponAppliedResult.calculation
       ? {
-          ...calculation,
+          ...couponAppliedResult.calculation,
           current_billing_type: (current?.billing_type as BillingType | null) ??
             null,
         }
-      : calculation;
+      : couponAppliedResult.calculation;
 
     const hasPlan =
       !!current ||
@@ -648,7 +828,8 @@ export async function getUpgradePreview(
     return {
       success: true,
       has_active_plan: hasPlan,
-      is_current_plan: calculation.type === 'current_plan',
+      is_current_plan:
+        couponAppliedResult.calculation.type === 'current_plan',
       calculation: calculationWithBillingType,
       // Propaga info do pending_change para a UI
       ...(scheduledChange && {
@@ -1079,6 +1260,12 @@ export async function handleSubscriptionCancellation(
           purchaseDate,
           billingPeriodToMonths(request.billing_period as string | null),
         );
+  const notesLower = String(request.notes ?? '').toLowerCase();
+  const hasProRataCreditInNotes =
+    notesLower.includes('aproveitamento de crédito') ||
+    notesLower.includes('credito pro-rata') ||
+    notesLower.includes('crédito pro-rata') ||
+    notesLower.includes('upgrade gratuito');
 
   if (
     request.status === 'pending_downgrade' ||
@@ -1109,7 +1296,8 @@ export async function handleSubscriptionCancellation(
   if (
     daysSincePurchase <= 7 &&
     request.status === 'approved' &&
-    amountPaid > 0
+    amountPaid > 0 &&
+    !hasProRataCreditInNotes
   ) {
     if (request.asaas_subscription_id) {
       const cancelResult = await cancelAsaasSubscriptionById(
@@ -1199,11 +1387,12 @@ export async function handleSubscriptionCancellation(
     .from('tb_profiles')
     .update({ is_cancelling: true, updated_at: now.toISOString() })
     .eq('id', userId);
-  await supabase
+  const { error: updateCancelErr } = await supabase
     .from('tb_upgrade_requests')
     .update({
       status: 'pending_downgrade',
       processed_at: accessEndsAtIso,
+      scheduled_cancel_at: accessEndsAtIso,
       notes: buildCancellationNotes(
         `Cancelamento solicitado em ${now.toISOString()}. Acesso até ${accessEndsAtIso}.`,
         reason,
@@ -1212,6 +1401,19 @@ export async function handleSubscriptionCancellation(
       updated_at: now.toISOString(),
     })
     .eq('id', request.id);
+  if (updateCancelErr) {
+    console.error(
+      '[Cancellation] failed to persist pending_downgrade:',
+      updateCancelErr,
+    );
+    return {
+      success: false,
+      error:
+        updateCancelErr.message?.includes('scheduled_cancel_at')
+          ? 'A coluna scheduled_cancel_at ainda não foi aplicada no banco. Execute as migrations pendentes.'
+          : 'Não foi possível salvar o cancelamento no histórico local.',
+    };
+  }
   await supabase.from('tb_plan_history').insert({
     profile_id: userId,
     old_plan: request.plan_key_requested as string,
@@ -1387,6 +1589,13 @@ export async function requestUpgrade(
     };
   }
 
+  const effectiveBillingType: BillingType =
+    calculation.type === 'downgrade' &&
+    calculation.is_downgrade_withdrawal_window === true &&
+    currentRequest?.billing_type
+      ? (currentRequest.billing_type as BillingType)
+      : payload.billing_type;
+
   const billingFullName = payload.full_name?.trim() ?? profile.full_name ?? '';
   const snapshot_address = formatSnapshotAddress(payload);
 
@@ -1461,7 +1670,7 @@ export async function requestUpgrade(
 
     const notes =
       `Upgrade gratuito (Crédito): ${planDescription}.\n` +
-      `Saldo residual R$ ${calculation.residual_credit.toFixed(2)}; nova data de vencimento: ${calculation.new_expiry_date ?? 'N/A'}.\n` +
+      `Saldo residual R$ ${calculation.residual_credit.toFixed(2)}; próximo vencimento do plano: ${nextDueStr ?? 'N/A'}.\n` +
       notesAsaasSync.trimStart();
 
     const { data: freeRow, error: freeErr } = await supabase
@@ -1470,7 +1679,7 @@ export async function requestUpgrade(
         profile_id: userId,
         plan_key_current: planKeyCurrent,
         plan_key_requested: planKey,
-        billing_type: payload.billing_type,
+        billing_type: effectiveBillingType,
         billing_period: billingPeriod,
         snapshot_name: billingFullName || (profile.full_name ?? ''),
         snapshot_cpf_cnpj: payload.cpf_cnpj,
@@ -1511,7 +1720,7 @@ export async function requestUpgrade(
     );
     return {
       success: true,
-      billing_type: payload.billing_type,
+      billing_type: effectiveBillingType,
       request_id: freeRow?.id,
     };
   }
@@ -1527,16 +1736,60 @@ export async function requestUpgrade(
     Boolean(calculation.new_expiry_date) &&
     amountFinal > 0 &&
     !calculation.is_free_upgrade;
+  const nextDueDateFromCalculation = calculation.new_expiry_date?.split('T')[0] ?? null;
   const residualCreditValue = calculation.residual_credit ?? 0;
   const hasResidualCredit = residualCreditValue > 0;
   const notesCredit =
     hasResidualCredit && amountDiscount > 0
-      ? `Aproveitamento de crédito pro-rata: R$ ${residualCreditValue.toFixed(2)} (dias não utilizados do plano anterior). Desconto total aplicado: R$ ${amountDiscount.toFixed(2)}. Valor final cobrado: R$ ${amountFinal.toFixed(2)}.${hasCreditNextDueDate && calculation.new_expiry_date ? ` Próximo vencimento do plano: ${calculation.new_expiry_date.split('T')[0]}. Nova data de vencimento: ${calculation.new_expiry_date}.` : ''}`
+      ? `Aproveitamento de crédito pro-rata: R$ ${residualCreditValue.toFixed(2)} (dias não utilizados do plano anterior). Desconto total aplicado: R$ ${amountDiscount.toFixed(2)}. Valor final cobrado: R$ ${amountFinal.toFixed(2)}.${hasCreditNextDueDate && nextDueDateFromCalculation ? ` Próximo vencimento do plano: ${nextDueDateFromCalculation}.` : ''}`
       : null;
+  const isFirstSubscription =
+    planKeyCurrent === 'FREE' &&
+    (profile.is_exempt !== true || !currentRequest?.asaas_subscription_id);
+  const baseRequestNotes = isFirstSubscription
+    ? `Início do plano ${planInfo.name}: primeira assinatura criada${billingPeriod ? ` (${billingPeriod})` : ''}.`
+    : `Solicitação de alteração para o plano ${planInfo.name}${billingPeriod ? ` (${billingPeriod})` : ''}.`;
+  const requestNotes = [baseRequestNotes, notesCredit].filter(Boolean).join('\n');
+  const asaasCycle: 'MONTHLY' | 'SEMIANNUALLY' | 'YEARLY' =
+    billingPeriod === 'annual'
+      ? 'YEARLY'
+      : billingPeriod === 'semiannual'
+        ? 'SEMIANNUALLY'
+        : 'MONTHLY';
+  const planPricePerPeriod = getPeriodPrice(planInfo, billingPeriod).totalPrice;
+  const immediateDueDate = toSaoPauloIso().split('T')[0];
+  // Regra:
+  // - Upgrade sem crédito: valor cheio do plano para cobrança imediata.
+  // - Upgrade com crédito: respeita amountFinal calculado (evita cobrar valor cheio indevido).
+  const hasCreditApplied = amountDiscount > 0;
+  const baseSubscriptionValue = hasCreditApplied ? amountFinal : planPricePerPeriod;
+  const couponResolution = await resolveCouponForAmount(
+    payload.coupon_code,
+    baseSubscriptionValue,
+  );
+  if (couponResolution.error) {
+    return { success: false, error: couponResolution.error };
+  }
+  const appliedCoupon = couponResolution.coupon;
+  const couponDiscountAmount = appliedCoupon?.discountAmount ?? 0;
+  const couponIsForever = appliedCoupon?.applyMode === 'forever';
+  const couponAsaasDiscount =
+    appliedCoupon?.applyMode === 'once' ? appliedCoupon.asaasDiscount : undefined;
+  const subscriptionValue = couponIsForever
+    ? (appliedCoupon?.finalAmount ?? baseSubscriptionValue)
+    : baseSubscriptionValue;
+  const amountFinalWithCoupon = couponIsForever
+    ? subscriptionValue
+    : round2(Math.max(0, baseSubscriptionValue - couponDiscountAmount));
+  const amountDiscountWithCoupon = round2(amountDiscount + couponDiscountAmount);
+  const couponNotes = appliedCoupon
+    ? `Cupom aplicado (${appliedCoupon.row.code}): ${appliedCoupon.applyMode === 'forever' ? 'desconto recorrente em todos os ciclos' : 'desconto somente na primeira cobrança'} no valor de R$ ${appliedCoupon.discountAmount.toFixed(2)}.`
+    : null;
+  const planDescription = `Plano ${planInfo.name}`;
 
-  const isCreditCard = payload.billing_type === 'CREDIT_CARD';
+  const isCreditCard = effectiveBillingType === 'CREDIT_CARD';
   const useSavedCard = isCreditCard && payload.use_saved_card === true;
-  const requiresCardData = isCreditCard && calculation.amount_final > 0;
+  const requiresCardData = isCreditCard && amountFinalWithCoupon > 0;
   if (requiresCardData && !useSavedCard) {
     const c = payload.credit_card;
     if (
@@ -1642,21 +1895,6 @@ export async function requestUpgrade(
     };
   }
 
-  const asaasCycle: 'MONTHLY' | 'SEMIANNUALLY' | 'YEARLY' =
-    billingPeriod === 'annual'
-      ? 'YEARLY'
-      : billingPeriod === 'semiannual'
-        ? 'SEMIANNUALLY'
-        : 'MONTHLY';
-  const planPricePerPeriod = getPeriodPrice(planInfo, billingPeriod).totalPrice;
-  const immediateDueDate = toSaoPauloIso().split('T')[0];
-  // Regra:
-  // - Upgrade sem crédito: valor cheio do plano para cobrança imediata.
-  // - Upgrade com crédito: respeita amountFinal calculado (evita cobrar valor cheio indevido).
-  const hasCreditApplied = amountDiscount > 0;
-  const subscriptionValue = hasCreditApplied ? amountFinal : planPricePerPeriod;
-  const planDescription = `Plano ${planInfo.name}`;
-
   let asaasSubscriptionId: string | null =
     currentRequest?.asaas_subscription_id?.trim() ?? null;
 
@@ -1676,7 +1914,8 @@ export async function requestUpgrade(
       cycle: asaasCycle,
       updatePendingPayments: true,
       // Explicitar billingType ajuda o gateway a reconstruir a cobrança imediata corretamente.
-      billingType: payload.billing_type,
+      billingType: effectiveBillingType,
+      ...(couponAsaasDiscount && { discount: couponAsaasDiscount }),
     };
     console.log(
       '[Asaas][Upgrade] update subscription payload:',
@@ -1701,13 +1940,14 @@ export async function requestUpgrade(
       // cria nova assinatura com cobrança imediata para não bloquear checkout.
       const createPayload = {
         customerId: asaasCustomerId,
-        billingType: payload.billing_type,
+        billingType: effectiveBillingType,
         cycle: asaasCycle,
         value: subscriptionValue,
         description: planDescription,
         nextDueDate: immediateDueDate,
         updatePendingPayments: true,
         installmentCount: installments > 1 ? installments : undefined,
+        ...(couponAsaasDiscount && { discount: couponAsaasDiscount }),
         ...(creditCardDetails && { creditCardDetails }),
         ...(creditCardHolderInfo && { creditCardHolderInfo }),
       };
@@ -1734,13 +1974,14 @@ export async function requestUpgrade(
   } else {
     const createPayload = {
       customerId: asaasCustomerId,
-      billingType: payload.billing_type,
+      billingType: effectiveBillingType,
       cycle: asaasCycle,
       value: subscriptionValue,
       description: planDescription,
       nextDueDate: immediateDueDate,
       updatePendingPayments: true,
       installmentCount: installments > 1 ? installments : undefined,
+      ...(couponAsaasDiscount && { discount: couponAsaasDiscount }),
       ...(creditCardDetails && { creditCardDetails }),
       ...(creditCardHolderInfo && { creditCardHolderInfo }),
     };
@@ -1774,7 +2015,7 @@ export async function requestUpgrade(
     if (paymentResult.success) {
       asaasPaymentId = asaasPaymentId ?? paymentResult.paymentId ?? null;
       paymentUrl =
-        payload.billing_type === 'BOLETO'
+        effectiveBillingType === 'BOLETO'
           ? (paymentResult.bankSlipUrl ??
             paymentResult.paymentUrl ??
             subResult.bankSlipUrl ??
@@ -1800,7 +2041,7 @@ export async function requestUpgrade(
       profile_id: userId,
       plan_key_current: planKeyCurrent,
       plan_key_requested: planKey,
-      billing_type: payload.billing_type,
+      billing_type: effectiveBillingType,
       billing_period: billingPeriod,
       snapshot_name: billingFullName || (profile.full_name ?? ''),
       snapshot_cpf_cnpj: payload.cpf_cnpj,
@@ -1812,11 +2053,11 @@ export async function requestUpgrade(
       asaas_payment_id: asaasPaymentId,
       payment_url: paymentUrl,
       amount_original: amountOriginal,
-      amount_discount: amountDiscount,
-      amount_final: amountFinal,
+      amount_discount: amountDiscountWithCoupon,
+      amount_final: amountFinalWithCoupon,
       installments,
       status: 'pending',
-      ...(notesCredit && { notes: notesCredit }),
+      notes: [requestNotes, couponNotes].filter(Boolean).join('\n'),
     })
     .select('id')
     .single();
@@ -1836,12 +2077,21 @@ export async function requestUpgrade(
     };
   }
 
+  if (appliedCoupon?.row.id) {
+    await createSupabaseAdmin()
+      .from('tb_coupons')
+      .update({
+        used_count: (appliedCoupon.row.used_count ?? 0) + 1,
+      } as Record<string, unknown>)
+      .eq('id', appliedCoupon.row.id);
+  }
+
   // Não sobrescreve nextDueDate após criação/atualização para evitar conflito de ciclo
   // e geração de cobranças duplicadas no mesmo período.
 
   let pixQrCodeBase64: string | undefined;
   let pixCopyPaste: string | undefined;
-  if (payload.billing_type === 'PIX' && asaasPaymentId) {
+  if (effectiveBillingType === 'PIX' && asaasPaymentId) {
     const pixQr = await getPixQrCodeFromPayment(asaasPaymentId);
     if (pixQr.success) {
       pixQrCodeBase64 = pixQr.encodedImage;
@@ -1852,7 +2102,7 @@ export async function requestUpgrade(
   return {
     success: true,
     payment_url: paymentUrl ?? undefined,
-    billing_type: payload.billing_type,
+    billing_type: effectiveBillingType,
     request_id: insertRow?.id,
     ...(paymentDueDate && { payment_due_date: paymentDueDate }),
     ...(pixQrCodeBase64 && { pix_qr_code_base64: pixQrCodeBase64 }),

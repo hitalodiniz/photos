@@ -25,6 +25,7 @@ export function StepConfirm() {
     requestError,
     setRequestError,
     segment,
+    couponCode,
     upgradeCalculation,
     setUpgradeCalculation,
     isCalculationLoading: calcLoading,
@@ -47,7 +48,13 @@ export function StepConfirm() {
     if (selectedPlan === 'FREE') return;
     let cancelled = false;
     setCalcLoading(true);
-    getUpgradePreview(selectedPlan, billingPeriod, billingType, segment).then(
+    getUpgradePreview(
+      selectedPlan,
+      billingPeriod,
+      billingType,
+      segment,
+      couponCode,
+    ).then(
       (r) => {
         if (!cancelled && r.calculation) setUpgradeCalculation(r.calculation);
         if (!cancelled) setCalcLoading(false);
@@ -62,6 +69,7 @@ export function StepConfirm() {
     billingPeriod,
     billingType,
     segment,
+    couponCode,
     setUpgradeCalculation,
     setCalcLoading,
   ]);
@@ -82,8 +90,15 @@ export function StepConfirm() {
   );
 
   const hasPixDiscount = pixDiscountActual > 0;
+  const couponDiscountAmount = Math.max(
+    0,
+    upgradeCalculation?.coupon_discount_amount ?? 0,
+  );
+  const couponCodeApplied = upgradeCalculation?.coupon_code_applied ?? null;
+  const hasCouponDiscount = couponDiscountAmount > 0;
   const hasCredit = residualCredit > 0;
-  const showFinancialSummary = hasCredit || hasPixDiscount || isFreeUpgrade;
+  const showFinancialSummary =
+    hasCredit || hasPixDiscount || hasCouponDiscount || isFreeUpgrade;
 
   const isZeroPayment = amountFinal === 0;
 
@@ -99,6 +114,21 @@ export function StepConfirm() {
   const creditLabel = isDowngradeWithCredit
     ? 'Crédito de outro pagamento'
     : 'Crédito dos dias não usados';
+  const proRataDetails = React.useMemo(() => {
+    if (!hasCredit) return null;
+    const expiresAtRaw = upgradeCalculation?.current_plan_expires_at;
+    if (!expiresAtRaw) return null;
+    const expiresAt = new Date(expiresAtRaw);
+    if (Number.isNaN(expiresAt.getTime())) return null;
+    const remainingMs = expiresAt.getTime() - Date.now();
+    if (remainingMs <= 0) return null;
+    const daysUnused = Math.max(
+      1,
+      Math.ceil(remainingMs / (1000 * 60 * 60 * 24)),
+    );
+    const valuePerDay = residualCredit / daysUnused;
+    return { daysUnused, valuePerDay };
+  }, [hasCredit, upgradeCalculation?.current_plan_expires_at, residualCredit]);
 
   const nextBillingDateFormatted = React.useMemo(() => {
     if (!upgradeCalculation?.new_expiry_date) return null;
@@ -327,9 +357,17 @@ export function StepConfirm() {
 
             {/* Linha: crédito */}
             {hasCredit && (
-              <div className="flex justify-between text-[11px] text-emerald-600">
-                <span className="font-medium">{creditLabel}</span>
-                <span className="font-bold">− {formatBRL(residualCredit)}</span>
+              <div className="space-y-1">
+                <div className="flex justify-between text-[11px] text-emerald-600">
+                  <span className="font-medium">{creditLabel}</span>
+                  <span className="font-bold">− {formatBRL(residualCredit)}</span>
+                </div>
+                {proRataDetails && (
+                  <p className="text-[10px] text-emerald-700/90">
+                    Cálculo do pro-rata: {proRataDetails.daysUnused} dias não
+                    usados × {formatBRL(proRataDetails.valuePerDay)}/dia
+                  </p>
+                )}
               </div>
             )}
 
@@ -342,6 +380,18 @@ export function StepConfirm() {
                 </span>
                 <span className="font-bold">
                   − {formatBRL(pixDiscountActual)}
+                </span>
+              </div>
+            )}
+            {hasCouponDiscount && (
+              <div className="flex justify-between text-[11px] text-emerald-600">
+                <span className="font-medium flex items-center gap-1">
+                  <Tag size={10} />
+                  Desconto cupom{' '}
+                  {couponCodeApplied ? `(${couponCodeApplied})` : ''}
+                </span>
+                <span className="font-bold">
+                  − {formatBRL(couponDiscountAmount)}
                 </span>
               </div>
             )}

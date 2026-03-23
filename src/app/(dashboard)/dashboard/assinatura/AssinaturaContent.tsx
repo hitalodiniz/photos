@@ -78,10 +78,16 @@ function statusLabel(status: string): string {
     INACTIVE: 'Inativo',
     EXPIRED: 'Expirado',
     OVERDUE: 'Atrasado',
+    renewed: 'Renovado',
+    RENEWED: 'Renovado',
     PENDING_CANCELLATION: 'Cancelamento Agendado',
     FREE: 'Gratuito',
   };
   return map[status] ?? map[status?.toUpperCase()] ?? status ?? '—';
+}
+
+function isRenewedStatus(status: unknown): boolean {
+  return String(status ?? '').toUpperCase() === 'RENEWED';
 }
 
 function formatBRL(value: number): string {
@@ -178,10 +184,12 @@ function getBillingDateMeta(
   label: 'Próxima cobrança' | 'Vencimento';
   date: string | null;
 } {
+  const asaasNextDueDate = formatAsaasYmdDate(opts?.asaasNextDueDate);
+  const asaasEndDate = formatAsaasYmdDate(opts?.asaasEndDate);
+
   if (item.status === 'pending_change') {
     // Fonte da verdade: Asaas nextDueDate da assinatura agendada.
-    const fromAsaas = formatAsaasYmdDate(opts?.asaasNextDueDate);
-    if (fromAsaas) return { label: 'Próxima cobrança', date: fromAsaas };
+    if (asaasNextDueDate) return { label: 'Próxima cobrança', date: asaasNextDueDate };
 
     // Fallbacks de segurança em caso de indisponibilidade do Asaas.
     const fromNotes = parseNextDueDateFromNotes(item.notes);
@@ -195,16 +203,17 @@ function getBillingDateMeta(
     return {
       label: 'Vencimento',
       date:
-        formatAsaasYmdDate(opts?.asaasEndDate) ??
-        formatAsaasYmdDate(opts?.asaasNextDueDate) ??
+        asaasEndDate ??
+        asaasNextDueDate ??
         getRequestExpiresAt(item),
     };
   }
-  if (item.status === 'approved') {
+  if (item.status === 'approved' || isRenewedStatus(item.status)) {
     return {
       label: 'Vencimento',
       date:
-        (opts?.isClosedCycle ? formatAsaasYmdDate(opts?.asaasEndDate) : null) ??
+        (opts?.isClosedCycle ? asaasEndDate : asaasNextDueDate) ??
+        (opts?.isClosedCycle ? asaasNextDueDate : null) ??
         getRequestExpiresAt(item, { preferEndDate: opts?.isClosedCycle }),
     };
   }
@@ -212,7 +221,7 @@ function getBillingDateMeta(
     item.status === 'pending' || item.status === 'processing';
   return {
     label: isOpenPayment ? 'Vencimento' : 'Próxima cobrança',
-    date: getRequestExpiresAt(item),
+    date: asaasNextDueDate ?? getRequestExpiresAt(item),
   };
 }
 
@@ -294,6 +303,9 @@ export default function AssinaturaContent({
       ),
     [history],
   );
+  const [localCancellationEndsAt, setLocalCancellationEndsAt] = useState<
+    string | null
+  >(null);
 
   const planKey = (profile.plan_key || 'FREE') as PlanKey;
   const permissions = PERMISSIONS_BY_PLAN[planKey];
@@ -314,18 +326,64 @@ export default function AssinaturaContent({
   const hasRecurringSubscription = !!activeSubscriptionId;
   const hasScheduledChange = latestRequestStatus === 'pending_change';
   const hasNextPlan = !!getNextPlanKey(planKey);
+  const latestApprovedRequest = sortedHistory.find(
+    (r) => r.status === 'approved' || isRenewedStatus(r.status),
+  );
+  const fallbackSubscriptionId =
+    sortedHistory.find((r) => (r.asaas_subscription_id?.trim() ?? '').length > 0)
+      ?.asaas_subscription_id
+      ?.trim() ?? null;
+  const effectiveSubscriptionId =
+    activeSubscriptionId ??
+    (latestApprovedRequest?.asaas_subscription_id?.trim() || null) ??
+    fallbackSubscriptionId;
+  const pendingCancellationRequest = sortedHistory.find((r) => {
+    const isPendingCancelStatus =
+      r.status === 'pending_cancellation' || r.status === 'pending_downgrade';
+    if (!isPendingCancelStatus) return false;
+    if (!effectiveSubscriptionId) return true;
+    const requestSubId = r.asaas_subscription_id?.trim() ?? '';
+    // Quando a linha pendente não traz asaas_subscription_id, ainda consideramos válida.
+    if (!requestSubId) return true;
+    return requestSubId === effectiveSubscriptionId;
+  });
   const hasPendingCancellation =
-    latestRequestStatus === 'pending_cancellation' ||
-    latestRequestStatus === 'pending_downgrade';
+    !!pendingCancellationRequest ||
+    !!localCancellationEndsAt;
+  const hasFutureAccess =
+    expiresAtFromData != null &&
+    !Number.isNaN(new Date(expiresAtFromData).getTime()) &&
+    new Date(expiresAtFromData).getTime() > Date.now();
+  const hasCancelledRecordForActiveSub = sortedHistory.some(
+    (r) =>
+      r.status === 'cancelled' &&
+      !!effectiveSubscriptionId &&
+      (r.asaas_subscription_id?.trim() ?? '') === effectiveSubscriptionId,
+  );
+  const canReactivateSubscription =
+    !!effectiveSubscriptionId &&
+    (hasPendingCancellation || (hasFutureAccess && hasCancelledRecordForActiveSub));
+  const cancellationEndsAt =
+    localCancellationEndsAt ??
+    (pendingCancellationRequest?.scheduled_cancel_at
+      ? new Date(pendingCancellationRequest.scheduled_cancel_at).toLocaleDateString(
+          'pt-BR',
+          { timeZone: 'UTC' },
+        )
+      : null) ??
+    (pendingCancellationRequest?.processed_at
+      ? new Date(pendingCancellationRequest.processed_at).toLocaleDateString(
+          'pt-BR',
+          { timeZone: 'UTC' },
+        )
+      : null) ??
+    expiresAt;
 
   const planBenefits = useMemo(
     () => getPlanBenefits(permissions, { items: 'galerias' }),
     [permissions],
   );
 
-  const latestApprovedRequest = sortedHistory.find(
-    (r) => r.status === 'approved',
-  );
   const cancelProcessedAt = latestApprovedRequest?.processed_at ?? null;
   const cancelCreatedAt = latestApprovedRequest?.created_at ?? null;
   /**
@@ -404,6 +462,23 @@ export default function AssinaturaContent({
       const json = await res.json();
       if (json.success) {
         setShowCancelModal(false);
+        if (json.type === 'refund_immediate') {
+          setLocalCancellationEndsAt(null);
+        } else if (json.access_ends_at) {
+          setLocalCancellationEndsAt(
+            new Date(json.access_ends_at).toLocaleDateString('pt-BR', {
+              timeZone: 'UTC',
+            }),
+          );
+        } else {
+          setLocalCancellationEndsAt(
+            pendingCancellationRequest?.scheduled_cancel_at
+              ? new Date(
+                  pendingCancellationRequest.scheduled_cancel_at,
+                ).toLocaleDateString('pt-BR', { timeZone: 'UTC' })
+              : null,
+          );
+        }
         router.refresh();
         if (json.type === 'refund_immediate') {
           showToast(
@@ -431,12 +506,13 @@ export default function AssinaturaContent({
   };
 
   const handleReactivateSubscription = async () => {
-    if (!activeSubscriptionId) return;
+    if (!effectiveSubscriptionId) return;
     setReactivateLoading(true);
     try {
-      const result = await reactivateSubscription(activeSubscriptionId);
+      const result = await reactivateSubscription(effectiveSubscriptionId);
       if (result.success) {
         setShowCancelModal(false);
+        setLocalCancellationEndsAt(null);
         router.refresh();
         showToast('Assinatura reativada com sucesso.', 'success');
       } else {
@@ -528,12 +604,18 @@ export default function AssinaturaContent({
     {
       header: 'Status',
       accessor: (item) => {
+        const notesLower = (item.notes ?? '').toLowerCase();
+        const isPaidCycle =
+          item.status === 'approved' || isRenewedStatus(item.status);
         const isRenewalApproved =
-          item.status === 'approved' &&
-          item.plan_key_requested === item.plan_key_current;
+          isPaidCycle &&
+          (item.plan_key_requested === item.plan_key_current ||
+            notesLower.includes('renovação') ||
+            notesLower.includes('cobrança de renovação') ||
+            isRenewedStatus(item.status));
         const isLatestApproved =
           planKey !== 'FREE' &&
-          item.status === 'approved' &&
+          isPaidCycle &&
           item.id === latestApprovedId;
         if (isLatestApproved) {
           return (
@@ -549,7 +631,7 @@ export default function AssinaturaContent({
             </div>
           );
         }
-        if (item.status === 'approved') {
+        if (isPaidCycle) {
           if (isRenewalApproved) {
             return (
               <div className="flex flex-col gap-0.5">
@@ -588,10 +670,11 @@ export default function AssinaturaContent({
       accessor: (item) => {
         const isCurrentVigenteWithScheduledChange =
           hasScheduledChange &&
-          item.status === 'approved' &&
+          (item.status === 'approved' || isRenewedStatus(item.status)) &&
           item.id === latestApprovedId;
         const isClosedCycle =
-          item.status === 'approved' && item.id !== latestApprovedId;
+          (item.status === 'approved' || isRenewedStatus(item.status)) &&
+          item.id !== latestApprovedId;
         const asaasSubscriptionId = item.asaas_subscription_id?.trim() ?? '';
         const asaasDates = asaasSubscriptionId
           ? asaasDatesBySubscriptionId[asaasSubscriptionId]
@@ -709,26 +792,36 @@ export default function AssinaturaContent({
             </span>
           )}
         </h2>
+        {hasPendingCancellation && cancellationEndsAt && (
+          <p className="text-[10px] font-medium text-amber-700 mt-1">
+            Assinatura atual será cancelada em {cancellationEndsAt}.
+          </p>
+        )}
       </div>
       {planKey !== 'FREE' &&
-        (hasPendingCancellation ? (
-          <button
-            type="button"
-            onClick={handleReactivateSubscription}
-            disabled={!activeSubscriptionId || reactivateLoading}
-            className="inline-flex items-center gap-1.5 text-[10px] font-semibold uppercase tracking-wider text-emerald-600 hover:text-emerald-700 transition-colors shrink-0 disabled:opacity-50"
-          >
-            {reactivateLoading ? (
-              <>
-                <span className="w-3 h-3 border-2 border-emerald-400 border-t-transparent rounded-full animate-spin" />
-                Reativando…
-              </>
-            ) : (
-              <>
-                <CheckCircle2 size={11} /> Reativar assinatura
-              </>
-            )}
-          </button>
+        (canReactivateSubscription ? (
+          <div className="flex items-center gap-3 shrink-0">
+            <span className="text-[10px] font-medium text-amber-700">
+              Plano atual cancelado. Pode ser reativado.
+            </span>
+            <button
+              type="button"
+              onClick={handleReactivateSubscription}
+              disabled={!effectiveSubscriptionId || reactivateLoading}
+              className="inline-flex items-center gap-1.5 text-[10px] font-semibold uppercase tracking-wider text-emerald-600 hover:text-emerald-700 transition-colors shrink-0 disabled:opacity-50"
+            >
+              {reactivateLoading ? (
+                <>
+                  <span className="w-3 h-3 border-2 border-emerald-400 border-t-transparent rounded-full animate-spin" />
+                  Reativando…
+                </>
+              ) : (
+                <>
+                  <CheckCircle2 size={11} /> Reativar assinatura
+                </>
+              )}
+            </button>
+          </div>
         ) : (
           <button
             type="button"
@@ -746,14 +839,37 @@ export default function AssinaturaContent({
   const pendingChangeRequest = sortedHistory.find(
     (r) => r.status === 'pending_change',
   );
-  const nextCycleAmount =
-    pendingChangeRequest?.amount_final ?? lastChargeAmount ?? 0;
-  const nextCycleDate = pendingChangeRequest
-    ? (getPlanStartAt(pendingChangeRequest) ?? '—')
-    : (expiresAt ?? '—');
   const latestChargedVigenteRequest = sortedHistory.find(
-    (r) => r.status === 'approved' && (r.amount_final ?? 0) > 0,
+    (r) =>
+      (r.status === 'approved' || isRenewedStatus(r.status)) &&
+      (r.amount_final ?? 0) > 0,
   );
+  const nextCycleAmount = hasScheduledChange
+    ? (pendingChangeRequest?.amount_original ??
+      pendingChangeRequest?.amount_final ??
+      latestApprovedRequest?.amount_original ??
+      latestApprovedRequest?.amount_final ??
+      latestChargedVigenteRequest?.amount_original ??
+      lastChargeAmount ??
+      0)
+    : (latestApprovedRequest?.amount_original ??
+      latestApprovedRequest?.amount_final ??
+      latestChargedVigenteRequest?.amount_original ??
+      lastChargeAmount ??
+      0);
+  const nextCycleDate = pendingChangeRequest
+    ? (formatAsaasYmdDate(
+        asaasDatesBySubscriptionId[
+          pendingChangeRequest.asaas_subscription_id?.trim() ?? ''
+        ]?.nextDueDate,
+      ) ??
+      getPlanStartAt(pendingChangeRequest) ??
+      '—')
+    : (formatAsaasYmdDate(
+        asaasDatesBySubscriptionId[activeSubscriptionId?.trim() ?? '']?.nextDueDate,
+      ) ??
+      expiresAt ??
+      '—');
   const latestVigenteChargeAmount = latestChargedVigenteRequest?.amount_final;
   const currentBillingType = latestChargedVigenteRequest?.billing_type ?? null;
   const billingCycleLabel =
@@ -796,7 +912,9 @@ export default function AssinaturaContent({
                         : 'Expira em'}
                     </p>
                     <p className="text-[10px] font-semibold text-petroleum">
-                      {expiresAt ?? '—'}
+                      {hasRecurringSubscription && !hasScheduledChange
+                        ? nextCycleDate
+                        : (expiresAt ?? '—')}
                     </p>
                   </div>
                 </div>

@@ -63,6 +63,8 @@ export interface UpgradeRequest {
   installments: number;
   notes?: string;
   processed_at?: string;
+  /** Data efetiva do cancelamento agendado (espelha endDate no Asaas). */
+  scheduled_cancel_at?: string | null;
   processed_by?: string;
   created_at: string;
   updated_at: string;
@@ -80,6 +82,8 @@ export interface CreditCardPayload {
 
 export interface UpgradeRequestPayload {
   plan_key_requested: string;
+  /** Código do cupom opcional (tb_coupons.code). */
+  coupon_code?: string;
   billing_type: BillingType;
   billing_period: BillingPeriod;
   /** Nome completo para cobrança/NF-e (pode diferir do nome do perfil). */
@@ -160,6 +164,12 @@ export interface UpgradePriceCalculation {
   days_since_purchase?: number;
   /** Forma de pagamento vigente da assinatura atual (quando aplicável). */
   current_billing_type?: BillingType | null;
+  /** Cupom aplicado no preview/cobrança. */
+  coupon_code_applied?: string | null;
+  /** Valor descontado via cupom na cobrança atual. */
+  coupon_discount_amount?: number;
+  /** Regra de persistência do cupom: somente 1ª cobrança ou recorrente. */
+  coupon_apply_mode?: 'once' | 'forever';
 }
 
 export interface UpgradePreviewResult {

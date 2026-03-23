@@ -14,7 +14,9 @@ export default function DashboardFooter({
   showLoadMore,
 }: DashboardFooterProps) {
   const remainingCount = totalCount - visibleCount;
-  const progressPercent = Math.round((visibleCount / totalCount) * 100);
+  // ── Cálculo de Progresso com Proteção Contra Divisão por Zero ────────────────
+  const progressPercent =
+    totalCount > 0 ? Math.round((visibleCount / totalCount) * 100) : 0;
   const isComplete = visibleCount >= totalCount;
 
   return (

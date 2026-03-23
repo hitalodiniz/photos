@@ -40,6 +40,8 @@ import type { DashboardPlanLimits } from './hooks/useDashboardActions';
 export default function Dashboard({
   initialGalerias,
   initialProfile,
+  latestPendingRequest,
+  scheduledCancellation,
 }: DashboardProps) {
   const { user, isLoading: authLoading } = useAuth();
   const searchParams = useSearchParams();
@@ -181,6 +183,8 @@ export default function Dashboard({
           handleNovaGaleria={handleNovaGaleria}
           isRedirecting={isNavigating}
           totalPhotosUsed={totalPhotosUsed}
+          latestPendingRequest={latestPendingRequest ?? null}
+          scheduledCancellation={scheduledCancellation ?? null}
         />
         <main className="flex-1 flex flex-col min-w-0 min-h-[calc(100vh-120px)]">
           {(actions.isBulkMode || actions.selectedIds.size > 0) && (

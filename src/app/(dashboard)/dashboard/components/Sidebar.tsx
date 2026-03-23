@@ -5,8 +5,11 @@ import {
   ChevronRight,
   Lock,
   TrendingUp,
+  AlertCircle,
+  CreditCard,
 } from 'lucide-react';
 import type { ViewType } from '../hooks/useDashboardFilters';
+import type { PendingPaymentRequest, ScheduledCancellationInfo } from '../types';
 import type { Profile } from '@/core/types/profile';
 import VersionInfo from '@/components/dashboard/VersionInfo';
 import SidebarGalerias from './SidebarGalerias';
@@ -32,6 +35,33 @@ interface SidebarProps {
   handleNovaGaleria: () => void;
   isRedirecting: boolean;
   totalPhotosUsed: number;
+  latestPendingRequest?: PendingPaymentRequest | null;
+  scheduledCancellation?: ScheduledCancellationInfo | null;
+}
+
+function getRelativeDueText(dueDateRaw: string | null | undefined): string | null {
+  if (!dueDateRaw) return null;
+  const due = new Date(dueDateRaw);
+  if (Number.isNaN(due.getTime())) return null;
+
+  const today = new Date();
+  const dueUtc = Date.UTC(
+    due.getUTCFullYear(),
+    due.getUTCMonth(),
+    due.getUTCDate(),
+  );
+  const todayUtc = Date.UTC(
+    today.getUTCFullYear(),
+    today.getUTCMonth(),
+    today.getUTCDate(),
+  );
+  const diffDays = Math.round((dueUtc - todayUtc) / (1000 * 60 * 60 * 24));
+
+  if (diffDays === 0) return 'vence hoje';
+  if (diffDays === 1) return 'vence amanhã';
+  if (diffDays > 1) return `vence em ${diffDays} dias`;
+  if (diffDays === -1) return 'vencido há 1 dia';
+  return `vencido há ${Math.abs(diffDays)} dias`;
 }
 
 export default function Sidebar({
@@ -46,6 +76,8 @@ export default function Sidebar({
   handleNovaGaleria,
   isRedirecting,
   totalPhotosUsed,
+  latestPendingRequest,
+  scheduledCancellation,
 }: SidebarProps) {
   const { SegmentIcon } = useSegment();
   const { isSidebarCollapsed, toggleSidebar } = useSidebar();
@@ -63,6 +95,21 @@ export default function Sidebar({
   const canCreateByPhotos = remainingPhotoCredits > 0;
   const canCreateMore = canCreateByGalleries && canCreateByPhotos;
   const isNovaGaleriaDisabled = isRedirecting || !canCreateMore;
+  const hasPendingPayment =
+    !!latestPendingRequest?.payment_url &&
+    latestPendingRequest.payment_url.trim().length > 0;
+  const pendingAmount = new Intl.NumberFormat('pt-BR', {
+    style: 'currency',
+    currency: 'BRL',
+  }).format(Math.max(0, latestPendingRequest?.amount_final ?? 0));
+  const pendingDueDate = latestPendingRequest?.due_date
+    ? getRelativeDueText(latestPendingRequest.due_date)
+    : null;
+  const scheduledCancellationDate = scheduledCancellation?.access_ends_at
+    ? new Date(scheduledCancellation.access_ends_at).toLocaleDateString('pt-BR', {
+        timeZone: 'UTC',
+      })
+    : null;
   return (
     <>
       {/* Overlay para Mobile */}
@@ -187,8 +234,57 @@ export default function Sidebar({
                     </span>
                   </div>
                 )}
+                {scheduledCancellationDate && (
+                  <div className="rounded-md border border-amber-500/30 bg-amber-500/10 px-1.5 py-1">
+                    <p className="text-[9px] font-semibold uppercase tracking-wide text-amber-200">
+                      Cancelamento agendado
+                    </p>
+                    <p className="text-[10px] text-amber-100/90">
+                      Acesso até {scheduledCancellationDate}
+                    </p>
+                  </div>
+                )}
               </div>
             </div>
+          )}
+          {hasPendingPayment && (!isSidebarCollapsed || isMobile) && (
+            <div className="px-2 mb-2">
+              <div className="rounded-md border border-amber-500/20 bg-amber-500/10 px-2 py-2">
+                <div className="flex items-start gap-2">
+                  <AlertCircle
+                    size={14}
+                    className="text-amber-300 shrink-0 mt-0.5"
+                  />
+                  <div className="min-w-0 flex-1">
+                    <p className="text-[10px] font-bold uppercase tracking-wide text-amber-200">
+                      Pagamento Pendente
+                    </p>
+                    <p className="text-[10px] text-amber-100/90 mt-0.5">
+                      {pendingAmount}
+                      {pendingDueDate ? ` • Vence em ${pendingDueDate}` : ''}
+                    </p>
+                    <a
+                      href={latestPendingRequest?.payment_url}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      className="mt-2 inline-flex h-7 items-center rounded-md bg-amber-500 px-2.5 text-[10px] font-bold uppercase tracking-wide text-black hover:bg-amber-400 transition-colors"
+                    >
+                      Pagar agora
+                    </a>
+                  </div>
+                </div>
+              </div>
+            </div>
+          )}
+          {hasPendingPayment && isSidebarCollapsed && !isMobile && (
+            <Link
+              href="/dashboard/assinatura"
+              className="mx-auto mb-2 relative flex h-10 w-10 items-center justify-center rounded-md border border-white/10 bg-white/5 text-amber-200 hover:bg-white/10 transition-colors"
+              title="Pagamento pendente na assinatura"
+            >
+              <CreditCard size={16} />
+              <span className="absolute -top-0.5 -right-0.5 h-2.5 w-2.5 rounded-full bg-red-500 animate-pulse" />
+            </Link>
           )}
           <SidebarGalerias
             isSidebarCollapsed={isSidebarCollapsed}
@@ -208,8 +304,6 @@ export default function Sidebar({
             isSidebarCollapsed={isSidebarCollapsed}
             photographer={photographer}
             handleGoogleLogin={handleGoogleLogin}
-            usedPhotoCredits={totalPhotosUsed}
-            activeGalleryCount={galeriasCount}
           />
 
           <SidebarAjuda isSidebarCollapsed={isSidebarCollapsed} />

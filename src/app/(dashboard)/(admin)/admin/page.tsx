@@ -6,6 +6,7 @@ import {
   Users,
   CreditCard,
   Settings,
+  TicketPercent,
   ArrowRight,
 } from 'lucide-react';
 
@@ -27,6 +28,15 @@ const cards = [
     color: 'text-emerald-600',
     bg: 'bg-emerald-50',
     border: 'border-emerald-200',
+  },
+  {
+    href: '/admin/cupons',
+    icon: TicketPercent,
+    title: 'Cupons',
+    description: 'Gerencie códigos promocionais e regras de aplicação.',
+    color: 'text-amber-600',
+    bg: 'bg-amber-50',
+    border: 'border-amber-200',
   },
   {
     href: '/admin/sistema',
