@@ -49,26 +49,42 @@ export default async function DashboardPage({
   const supabase = await createSupabaseServerClient();
   const { data: latestPending } = await supabase
     .from('tb_upgrade_requests')
-    .select('id, payment_url, amount_final, processed_at, created_at')
+    .select('id, payment_url, amount_final, processed_at, created_at, asaas_payment_id')
     .eq('profile_id', profile.id)
-    .eq('status', 'pending')
-    .not('payment_url', 'is', null)
+    .in('status', ['pending', 'processing'])
     .order('created_at', { ascending: false })
     .limit(1)
     .maybeSingle();
 
-  const latestPendingRequest =
-    latestPending?.payment_url && latestPending.payment_url.trim().length > 0
-      ? {
-          id: latestPending.id as string,
-          payment_url: latestPending.payment_url as string,
-          amount_final: Number(latestPending.amount_final ?? 0),
-          due_date:
-            (latestPending.processed_at as string | null) ??
-            (latestPending.created_at as string | null) ??
-            null,
-        }
-      : null;
+  const resolvePendingPaymentHref = (row: {
+    id: string;
+    payment_url: string | null;
+    asaas_payment_id: string | null;
+  }): string | null => {
+    const u = (row.payment_url ?? '').trim();
+    if (u.startsWith('http://') || u.startsWith('https://')) return u;
+    if (row.asaas_payment_id) {
+      return `/api/dashboard/payment-invoice-url?requestId=${encodeURIComponent(row.id)}`;
+    }
+    return null;
+  };
+
+  const latestPendingRequest = latestPending
+    ? {
+        id: latestPending.id as string,
+        payment_url:
+          resolvePendingPaymentHref({
+            id: latestPending.id as string,
+            payment_url: latestPending.payment_url as string | null,
+            asaas_payment_id: latestPending.asaas_payment_id as string | null,
+          }) ?? '/dashboard/assinatura',
+        amount_final: Number(latestPending.amount_final ?? 0),
+        due_date:
+          (latestPending.processed_at as string | null) ??
+          (latestPending.created_at as string | null) ??
+          null,
+      }
+    : null;
 
   const { data: scheduledCancellationRow } = await supabase
     .from('tb_upgrade_requests')

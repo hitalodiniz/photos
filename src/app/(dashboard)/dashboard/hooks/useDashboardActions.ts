@@ -188,34 +188,50 @@ export function useDashboardActions(
       const novoTotal = result.data?.photo_count;
 
       if (result.success && typeof novoTotal === 'number') {
-        setGalerias((prev) =>
-          prev.map((g) =>
-            g.id === galeria.id ? { ...g, photo_count: novoTotal } : g,
-          ),
-        );
-        const totalUsedAfter =
-          galerias.reduce((s, g) => s + (g.photo_count ?? 0), 0) -
-          (galeria.photo_count ?? 0) +
-          novoTotal;
         const maxPerGallery = planLimits?.maxPhotosPerGallery ?? 300;
         const poolTotal = planLimits?.photoCredits ?? 450;
+        const currentCount = galeria.photo_count ?? 0;
+
+        // Considera somente galerias ativas para cota global (mesma regra do admin).
+        const activeGalerias = galerias.filter(
+          (g) => !g.is_deleted && !g.is_archived && !g.auto_archived,
+        );
+        const activeTotal = activeGalerias.reduce(
+          (sum, g) => sum + (g.photo_count ?? 0),
+          0,
+        );
+
+        // Quantos créditos ainda podem ser adicionados sem estourar o pool.
+        const remainingCredits = Math.max(0, poolTotal - activeTotal);
+        // Limite desta galeria considerando o que ela já possui + saldo disponível.
+        const maxAllowedByPool = currentCount + remainingCredits;
+        const cappedTotal = Math.min(novoTotal, maxPerGallery, maxAllowedByPool);
+
+        setGalerias((prev) =>
+          prev.map((g) =>
+            g.id === galeria.id ? { ...g, photo_count: cappedTotal } : g,
+          ),
+        );
+
         const overPerGallery = novoTotal > maxPerGallery;
-        const overPool = totalUsedAfter > poolTotal;
+        const overPool = novoTotal > maxAllowedByPool;
 
         if (overPerGallery) {
           setLimitModalAfterSync({
             planLimit: maxPerGallery,
             photoCount: novoTotal,
           });
-        }
-        if (overPool && !overPerGallery) {
+        } else if (overPool) {
           setToast({
-            message: `Sincronizado: ${novoTotal} fotos. A cota total do seu plano (${poolTotal} arquivos) foi ultrapassada — faça upgrade para evitar limitações.`,
+            message:
+              cappedTotal === currentCount
+                ? `Foram encontrados ${novoTotal} arquivos, mas sua cota atual está no limite. Nenhuma foto adicional será exibida nesta galeria.`
+                : `Foram encontrados ${novoTotal} arquivos. Sua cota atual permite exibir somente ${cappedTotal} nesta galeria.`,
             type: 'error',
           });
-        } else if (!overPerGallery) {
+        } else {
           setToast({
-            message: `Sincronizado: ${novoTotal} fotos`,
+            message: `Sincronizado: ${cappedTotal} fotos`,
             type: 'success',
           });
         }

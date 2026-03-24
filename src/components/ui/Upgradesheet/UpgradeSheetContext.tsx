@@ -113,6 +113,8 @@ interface UpgradeSheetContextValue {
     email?: string | null;
     is_exempt?: boolean;
     is_trial?: boolean;
+    /** Mesma regra que /dashboard/assinatura: plano efetivo vem do perfil (tb_profiles). */
+    plan_key?: PlanKey;
   } | null;
   email: string | undefined;
   segment: SegmentType;
@@ -157,6 +159,7 @@ interface UpgradeSheetProviderProps {
     email?: string | null;
     is_exempt?: boolean;
     is_trial?: boolean;
+    plan_key?: PlanKey;
   } | null;
   email: string | undefined;
   segment: SegmentType;

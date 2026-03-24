@@ -452,6 +452,7 @@ describe('getUpgradePreview — pending_change detection', () => {
     const supabase = {
       from: vi
         .fn()
+        .mockReturnValueOnce(makeSelectSingle({ status: 'approved' })) // última linha (created_at)
         .mockReturnValueOnce(makeSelectSingle(null)) // pending
         .mockReturnValueOnce(makeSelectSingle(null)) // pending_change
         .mockReturnValueOnce(makeSelectList([])), // approved list
@@ -460,6 +461,8 @@ describe('getUpgradePreview — pending_change detection', () => {
     const res = await getUpgradePreview('START', 'monthly', 'PIX');
     expect(res.success).toBe(true);
     expect(res.has_scheduled_change).toBeUndefined();
+    expect(res.latest_request_cancelled).toBe(false);
+    expect(res.profile_plan_key).toBe('PRO');
   });
 
   it('✅ com pending_change ativo: retorna has_scheduled_change e metadados', async () => {
@@ -473,6 +476,7 @@ describe('getUpgradePreview — pending_change detection', () => {
     const supabase = {
       from: vi
         .fn()
+        .mockReturnValueOnce(makeSelectSingle({ status: 'approved' }))
         .mockReturnValueOnce(makeSelectSingle(null))
         .mockReturnValueOnce(makeSelectSingle(pendingChange))
         .mockReturnValueOnce(makeSelectList([])),
@@ -487,15 +491,18 @@ describe('getUpgradePreview — pending_change detection', () => {
   it('✅ com pending normal (<24h): retorna has_pending=true sem has_scheduled_change', async () => {
     vi.mocked(getAuthenticatedUser).mockResolvedValue(authOk as never);
     const supabase = {
-      from: vi.fn().mockReturnValueOnce(
-        makeSelectSingle({
-          id: 'p-1',
-          created_at: new Date().toISOString(),
-          plan_key_requested: 'PLUS',
-          billing_type: 'PIX',
-          billing_period: 'monthly',
-        }),
-      ),
+      from: vi
+        .fn()
+        .mockReturnValueOnce(makeSelectSingle({ status: 'approved' }))
+        .mockReturnValueOnce(
+          makeSelectSingle({
+            id: 'p-1',
+            created_at: new Date().toISOString(),
+            plan_key_requested: 'PLUS',
+            billing_type: 'PIX',
+            billing_period: 'monthly',
+          }),
+        ),
     } as unknown as Awaited<ReturnType<typeof createSupabaseServerClient>>;
     vi.mocked(createSupabaseServerClient).mockResolvedValue(supabase);
     const res = await getUpgradePreview('START', 'monthly', 'PIX');
@@ -506,20 +513,23 @@ describe('getUpgradePreview — pending_change detection', () => {
   it('✅ pending_change + pending simultâneos: has_pending tem prioridade', async () => {
     vi.mocked(getAuthenticatedUser).mockResolvedValue(authOk as never);
     const supabase = {
-      from: vi.fn().mockReturnValueOnce(
-        makeSelectSingle({
-          id: 'p-1',
-          created_at: new Date().toISOString(),
-          plan_key_requested: 'PLUS',
-          billing_type: 'PIX',
-          billing_period: 'monthly',
-        }),
-      ),
+      from: vi
+        .fn()
+        .mockReturnValueOnce(makeSelectSingle({ status: 'approved' }))
+        .mockReturnValueOnce(
+          makeSelectSingle({
+            id: 'p-1',
+            created_at: new Date().toISOString(),
+            plan_key_requested: 'PLUS',
+            billing_type: 'PIX',
+            billing_period: 'monthly',
+          }),
+        ),
     } as unknown as Awaited<ReturnType<typeof createSupabaseServerClient>>;
     vi.mocked(createSupabaseServerClient).mockResolvedValue(supabase);
     const res = await getUpgradePreview('START', 'monthly', 'PIX');
     expect(res.has_pending).toBe(true);
-    expect(supabase.from).toHaveBeenCalledTimes(1);
+    expect(supabase.from).toHaveBeenCalledTimes(2);
   });
 
   it('❌ não autenticado: success=false', async () => {

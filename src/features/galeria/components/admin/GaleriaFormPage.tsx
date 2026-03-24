@@ -282,8 +282,9 @@ export default function GaleriaFormPage({
         setIsSuccess(true);
         setHasUnsavedChanges(false);
         setSavedGaleria(result.data);
+        // Abre o modal sempre que salvar com sucesso (criação/edição).
+        setShowSuccessModal(true);
         setTimeout(() => {
-          setShowSuccessModal(true);
           setIsSuccess(false);
         }, 800);
       } else {
@@ -394,20 +395,22 @@ export default function GaleriaFormPage({
         }
         footer={
           <div className="flex flex-col gap-3">
-            <div className="grid grid-cols-2 gap-3 w-full items-center">
+            <div className="grid grid-cols-2 gap-3 w-full items-stretch">
               <button
+                type="button"
                 onClick={() => {
                   const fallback =
                     typeof localStorage !== 'undefined'
                       ? localStorage.getItem('debug-theme') || 'PHOTOGRAPHER'
                       : 'PHOTOGRAPHER';
                   document.documentElement.setAttribute('data-theme', fallback);
-                  navigate('/dashboard', 'Voltando ao painel...');
+                  navigate('/dashboard', 'Voltando ao Espaço de Galerias...');
                 }}
                 className="btn-secondary-white w-full"
               >
                 <ArrowLeft size={14} /> Espaço de Galerias
               </button>
+
               <a
                 href={getPublicGalleryUrl(
                   initialProfile,

@@ -9,7 +9,7 @@ import {
 } from '@/lib/supabase.server';
 import { suggestUsernameFromEmail } from '@/core/utils/user-helpers';
 import { cache } from 'react';
-import { GLOBAL_CACHE_REVALIDATE } from '@/core/utils/url-helper';
+import { PROFILE_CACHE_REVALIDATE } from '@/core/utils/url-helper';
 import { MessageTemplates, UserSettings } from '../types/profile';
 import { PlanKey } from '../config/plans';
 
@@ -80,7 +80,7 @@ export async function getProfileData(supabaseClient?: any) {
     },
     [`profile-private-${user.id}`],
     {
-      revalidate: GLOBAL_CACHE_REVALIDATE, // 30 dias
+      revalidate: PROFILE_CACHE_REVALIDATE, // 30 dias
       tags: [`profile-private-${user.id}`],
     },
   )(user.id);
@@ -137,7 +137,7 @@ export async function fetchProfileRaw(username: string) {
     async (uname: string) => fetchProfileDirectDB(uname),
     [`profile-${username}`],
     {
-      revalidate: GLOBAL_CACHE_REVALIDATE,
+      revalidate: PROFILE_CACHE_REVALIDATE,
       tags: [`profile-${username}`],
     },
   )(username);
@@ -446,7 +446,7 @@ export async function updateCustomCategories(categories: string[]) {
 }
 
 /**
- * 🎯 BUSCA PERFIL POR USERNAME (Com Cache de 30 dias)
+ * 🎯 BUSCA PERFIL POR USERNAME (Com Cache de 1 dia)
  * Esta função é a "Fonte da Verdade" para as páginas públicas e subdomínios.
  * Utiliza tags para que o cache possa ser invalidado instantaneamente no update.
  */
@@ -472,7 +472,7 @@ export const getProfileByUsername = cache(async (username: string) => {
     },
     [`profile-data-${cleanUsername}`], // Chave única do cache
     {
-      revalidate: GLOBAL_CACHE_REVALIDATE, // 30 dias (definido no seu url-helper)
+      revalidate: PROFILE_CACHE_REVALIDATE, // 30 dias (definido no seu url-helper)
       tags: [`profile-${cleanUsername}`, `profile-data-${cleanUsername}`],
     },
   )(cleanUsername);

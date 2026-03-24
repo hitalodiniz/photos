@@ -171,6 +171,46 @@ export async function revalidateDrivePhotos(
  * + tags de cada galeria (slug, fotos, drive). Use após alterações manuais de
  * suporte (ex.: reativação/ocultação de galerias).
  */
+/**
+ * Após cobrança confirmada (webhook Asaas, etc.): invalida caches de perfil
+ * usados em `profile.service.ts` (`profile-private-*`, `profile-*`,
+ * `profile-data-*`, `user-profile`, listagens) e o conjunto de tags de
+ * galerias em `revalidateUserCache`.
+ */
+export async function revalidateProfileCachesForBilling(
+  userId: string,
+): Promise<{ success: boolean; error?: string }> {
+  try {
+    const admin = createSupabaseAdmin();
+    const { data: row } = await admin
+      .from('tb_profiles')
+      .select('username')
+      .eq('id', userId)
+      .maybeSingle();
+    const username = row?.username?.toLowerCase().trim();
+
+    if (username) {
+      await revalidateProfile(username, userId);
+    } else {
+      revalidateTag('user-profile');
+      revalidateTag(`profile-private-${userId}`);
+      revalidateTag(`user-profile-data-${userId}`);
+      revalidateTag(`user_profile_${userId}`);
+      revalidateTag(`user-galerias-${userId}`);
+    }
+
+    await revalidateUserCache(userId);
+    revalidatePath('/dashboard/planos');
+    return { success: true };
+  } catch (error) {
+    console.error(
+      '[revalidateProfileCachesForBilling] Erro:',
+      error,
+    );
+    return { success: false, error: String(error) };
+  }
+}
+
 export async function revalidateUserCache(
   userId: string,
 ): Promise<{ success: boolean; error?: string }> {

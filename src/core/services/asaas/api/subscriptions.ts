@@ -328,7 +328,10 @@ export async function reactivateSubscription(
         timeZone: 'America/Sao_Paulo',
       });
       const noteLine = `[Reactivation ${nowIso}] Assinatura reativada em ${nowBr}.`;
-      const { data: requests } = await supabase
+      // Inclui pendentes de cancel/downgrade mesmo com asaas_subscription_id
+      // divergente (ex.: downgrade agendado ainda aponta ao sub antigo), para
+      // não deixar status/notes presos após reativar o sub vigente no Asaas.
+      const { data: bySubscription } = await supabase
         .from('tb_upgrade_requests')
         .select('id, status, notes')
         .eq('profile_id', auth.userId)
@@ -342,7 +345,25 @@ export async function reactivateSubscription(
         .order('created_at', { ascending: false })
         .limit(10);
 
-      for (const req of requests ?? []) {
+      const { data: pendingAnySub } = await supabase
+        .from('tb_upgrade_requests')
+        .select('id, status, notes')
+        .eq('profile_id', auth.userId)
+        .in('status', ['pending_cancellation', 'pending_downgrade'])
+        .limit(20);
+
+      const mergedById = new Map<
+        string,
+        { id: string; status: string; notes: string | null }
+      >();
+      for (const row of [
+        ...(bySubscription ?? []),
+        ...(pendingAnySub ?? []),
+      ]) {
+        if (!mergedById.has(row.id)) mergedById.set(row.id, row);
+      }
+
+      for (const req of mergedById.values()) {
         const mergedNotes = req.notes
           ? `${req.notes}\n${noteLine}`
           : noteLine;

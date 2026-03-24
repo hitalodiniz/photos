@@ -648,6 +648,7 @@ export default function GaleriaCard({
                 <a
                   href={`https://drive.google.com/drive/folders/${galeria.drive_folder_id}`}
                   target="_blank"
+                  onClick={(e) => e.stopPropagation()}
                   className="flex items-center gap-2 px-2.5 h-full hover:bg-white transition-all group/drive min-w-0"
                 >
                   <FolderOpen size={13} className="text-gold shrink-0" />
@@ -664,21 +665,26 @@ export default function GaleriaCard({
                     </span>
                   </div>
                 )}
-
-                <button
-                  type="button"
-                  onClick={(e) => {
-                    e.preventDefault();
-                    e.stopPropagation();
-                    onSync();
-                  }}
-                  className="flex items-center justify-center px-2 border-l border-slate-200 h-full hover:bg-white text-gold transition-all"
-                >
-                  <RefreshCw
-                    size={11}
-                    className={isUpdating ? 'animate-spin' : ''}
-                  />
-                </button>
+                {!(
+                  galeria.is_archived ||
+                  galeria.auto_archived ||
+                  galeria.is_deleted
+                ) && (
+                  <button
+                    type="button"
+                    onClick={(e) => {
+                      e.preventDefault();
+                      e.stopPropagation();
+                      onSync();
+                    }}
+                    className="flex items-center justify-center px-2 border-l border-slate-200 h-full hover:bg-white text-gold transition-all"
+                  >
+                    <RefreshCw
+                      size={11}
+                      className={isUpdating ? 'animate-spin' : ''}
+                    />
+                  </button>
+                )}
               </div>
 
               {/* Badge de Fotos fora do input se quiser preencher o lado, ou manter dentro como acima */}
@@ -888,6 +894,7 @@ export default function GaleriaCard({
               <a
                 href={`https://drive.google.com/drive/folders/${galeria.drive_folder_id}`}
                 target="_blank"
+                onClick={(e) => e.stopPropagation()}
                 className="flex-1 flex items-center gap-2 px-3 h-full hover:bg-white transition-all group/drive min-w-0"
               >
                 <FolderOpen size={14} className="text-gold shrink-0" />
@@ -903,20 +910,26 @@ export default function GaleriaCard({
                   </span>
                 </div>
               )}
-              <button
-                type="button"
-                onClick={(e) => {
-                  e.preventDefault();
-                  e.stopPropagation();
-                  onSync();
-                }}
-                className="flex items-center justify-center px-3 border-l border-slate-200 h-full hover:bg-white text-gold transition-all"
-              >
-                <RefreshCw
-                  size={13}
-                  className={isUpdating ? 'animate-spin' : ''}
-                />
-              </button>
+              {!(
+                galeria.is_archived ||
+                galeria.auto_archived ||
+                galeria.is_deleted
+              ) && (
+                <button
+                  type="button"
+                  onClick={(e) => {
+                    e.preventDefault();
+                    e.stopPropagation();
+                    onSync();
+                  }}
+                  className="flex items-center justify-center px-3 border-l border-slate-200 h-full hover:bg-white text-gold transition-all"
+                >
+                  <RefreshCw
+                    size={13}
+                    className={isUpdating ? 'animate-spin' : ''}
+                  />
+                </button>
+              )}
             </div>
           </div>
 

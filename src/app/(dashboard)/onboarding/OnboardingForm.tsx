@@ -1427,7 +1427,7 @@ export default function OnboardingForm({
                       <button
                         type="button"
                         onClick={() => setShowTermsModal(true)}
-                        className="text-gold underline"
+                        className="text-gold underline uppercase"
                       >
                         Termos de Serviço
                       </button>
@@ -1446,7 +1446,7 @@ export default function OnboardingForm({
                       <button
                         type="button"
                         onClick={() => setShowPrivacyModal(true)}
-                        className="text-gold underline"
+                        className="text-gold underline uppercase"
                       >
                         Política de Privacidade
                       </button>

@@ -181,15 +181,27 @@ function getBillingDateMeta(
     asaasEndDate?: string | null;
   },
 ): {
-  label: 'Próxima cobrança' | 'Vencimento';
+  label: 'Próxima cobrança' | 'Vencimento' | 'Cancelamento';
   date: string | null;
 } {
   const asaasNextDueDate = formatAsaasYmdDate(opts?.asaasNextDueDate);
   const asaasEndDate = formatAsaasYmdDate(opts?.asaasEndDate);
 
+  if (item.status === 'pending_downgrade') {
+    return {
+      label: 'Cancelamento',
+      date:
+        asaasEndDate ??
+        asaasNextDueDate ??
+        getRequestExpiresAt(item, { preferEndDate: true }) ??
+        getRequestExpiresAt(item),
+    };
+  }
+
   if (item.status === 'pending_change') {
     // Fonte da verdade: Asaas nextDueDate da assinatura agendada.
-    if (asaasNextDueDate) return { label: 'Próxima cobrança', date: asaasNextDueDate };
+    if (asaasNextDueDate)
+      return { label: 'Próxima cobrança', date: asaasNextDueDate };
 
     // Fallbacks de segurança em caso de indisponibilidade do Asaas.
     const fromNotes = parseNextDueDateFromNotes(item.notes);
@@ -202,10 +214,7 @@ function getBillingDateMeta(
   if (opts?.isCurrentVigenteWithScheduledChange) {
     return {
       label: 'Vencimento',
-      date:
-        asaasEndDate ??
-        asaasNextDueDate ??
-        getRequestExpiresAt(item),
+      date: asaasEndDate ?? asaasNextDueDate ?? getRequestExpiresAt(item),
     };
   }
   if (item.status === 'approved' || isRenewedStatus(item.status)) {
@@ -261,13 +270,20 @@ function formatNotesDisplay(notes: string | null | undefined): string {
     const lastLine = paymentLines[paymentLines.length - 1];
     const match = lastLine.match(/\] (.*)/);
     if (match?.[1]) {
-      return `Alterado para ${match[1]
+      return `Forma de pagamento alterada de ${match[1]
         .replace('->', 'para')
         .replace(/_/g, ' ')
         .toLowerCase()}`;
     }
     return 'Ver detalhes';
   }
+  if (
+    /\[Reactivation\b/i.test(notes) ||
+    /Assinatura reativada/i.test(notes)
+  ) {
+    return 'Detalhes da operação';
+  }
+
   if (notes.includes('Cancelamento solicitado'))
     return 'Cancelamento solicitado';
 
@@ -329,14 +345,31 @@ export default function AssinaturaContent({
   const latestApprovedRequest = sortedHistory.find(
     (r) => r.status === 'approved' || isRenewedStatus(r.status),
   );
+  /** Mais recente com cancelamento/downgrade agendado (não filtrar por effectiveSubscriptionId). */
+  const latestPendingCancelRow = sortedHistory.find(
+    (r) =>
+      r.status === 'pending_cancellation' || r.status === 'pending_downgrade',
+  );
   const fallbackSubscriptionId =
-    sortedHistory.find((r) => (r.asaas_subscription_id?.trim() ?? '').length > 0)
-      ?.asaas_subscription_id
-      ?.trim() ?? null;
+    sortedHistory
+      .find((r) => (r.asaas_subscription_id?.trim() ?? '').length > 0)
+      ?.asaas_subscription_id?.trim() ?? null;
   const effectiveSubscriptionId =
     activeSubscriptionId ??
     (latestApprovedRequest?.asaas_subscription_id?.trim() || null) ??
     fallbackSubscriptionId;
+  const approvedSubForReactivate =
+    latestApprovedRequest?.asaas_subscription_id?.trim() ?? '';
+  const pendingSubForReactivate =
+    latestPendingCancelRow?.asaas_subscription_id?.trim() ?? '';
+  const reactivationSubscriptionId =
+    approvedSubForReactivate &&
+    pendingSubForReactivate &&
+    approvedSubForReactivate !== pendingSubForReactivate
+      ? approvedSubForReactivate
+      : pendingSubForReactivate ||
+        approvedSubForReactivate ||
+        effectiveSubscriptionId;
   const pendingCancellationRequest = sortedHistory.find((r) => {
     const isPendingCancelStatus =
       r.status === 'pending_cancellation' || r.status === 'pending_downgrade';
@@ -348,8 +381,7 @@ export default function AssinaturaContent({
     return requestSubId === effectiveSubscriptionId;
   });
   const hasPendingCancellation =
-    !!pendingCancellationRequest ||
-    !!localCancellationEndsAt;
+    !!pendingCancellationRequest || !!localCancellationEndsAt;
   const hasFutureAccess =
     expiresAtFromData != null &&
     !Number.isNaN(new Date(expiresAtFromData).getTime()) &&
@@ -361,15 +393,22 @@ export default function AssinaturaContent({
       (r.asaas_subscription_id?.trim() ?? '') === effectiveSubscriptionId,
   );
   const canReactivateSubscription =
-    !!effectiveSubscriptionId &&
-    (hasPendingCancellation || (hasFutureAccess && hasCancelledRecordForActiveSub));
+    !!reactivationSubscriptionId &&
+    (hasPendingCancellation ||
+      (hasFutureAccess && hasCancelledRecordForActiveSub));
+  const hasVigenteSubscriptionInRequests = sortedHistory.some((r) => {
+    const isVigenteStatus =
+      r.status === 'approved' || isRenewedStatus(r.status);
+    if (!isVigenteStatus) return false;
+    if (!effectiveSubscriptionId) return true;
+    return (r.asaas_subscription_id?.trim() ?? '') === effectiveSubscriptionId;
+  });
   const cancellationEndsAt =
     localCancellationEndsAt ??
     (pendingCancellationRequest?.scheduled_cancel_at
-      ? new Date(pendingCancellationRequest.scheduled_cancel_at).toLocaleDateString(
-          'pt-BR',
-          { timeZone: 'UTC' },
-        )
+      ? new Date(
+          pendingCancellationRequest.scheduled_cancel_at,
+        ).toLocaleDateString('pt-BR', { timeZone: 'UTC' })
       : null) ??
     (pendingCancellationRequest?.processed_at
       ? new Date(pendingCancellationRequest.processed_at).toLocaleDateString(
@@ -506,10 +545,10 @@ export default function AssinaturaContent({
   };
 
   const handleReactivateSubscription = async () => {
-    if (!effectiveSubscriptionId) return;
+    if (!reactivationSubscriptionId) return;
     setReactivateLoading(true);
     try {
-      const result = await reactivateSubscription(effectiveSubscriptionId);
+      const result = await reactivateSubscription(reactivationSubscriptionId);
       if (result.success) {
         setShowCancelModal(false);
         setLocalCancellationEndsAt(null);
@@ -614,17 +653,15 @@ export default function AssinaturaContent({
             notesLower.includes('cobrança de renovação') ||
             isRenewedStatus(item.status));
         const isLatestApproved =
-          planKey !== 'FREE' &&
-          isPaidCycle &&
-          item.id === latestApprovedId;
+          planKey !== 'FREE' && isPaidCycle && item.id === latestApprovedId;
         if (isLatestApproved) {
           return (
-            <div className="flex flex-col gap-0.5">
+            <div className="flex flex-col gap-0.5 min-w-24">
               <span className="inline-flex items-center gap-1 px-1.5 py-0.5 rounded-md bg-emerald-100 text-emerald-800 text-[10px] font-semibold w-fit">
                 Vigente
               </span>
               {isRenewalApproved && (
-                <span className="inline-flex items-center gap-1 px-1.5 py-0.5 rounded-md bg-slate-100 text-slate-700 text-[10px] font-medium w-fit">
+                <span className="inline-flex items-center  gap-1 px-1.5 py-0.5 rounded-md bg-champagne/30 text-petroleum-800 text-[10px] font-medium w-fit">
                   Renovação
                 </span>
               )}
@@ -634,20 +671,25 @@ export default function AssinaturaContent({
         if (isPaidCycle) {
           if (isRenewalApproved) {
             return (
-              <div className="flex flex-col gap-0.5">
-                <span className="inline-flex items-center gap-1 px-1.5 py-0.5 rounded-md bg-slate-100 text-slate-700 text-[10px] font-medium w-fit">
+              <div className="flex flex-col gap-0.5 min-w-24">
+                <span className="inline-flex items-center gap-1 px-1.5 py-0.5 rounded-md bg-champagne/30 text-petroleum-800 text-[10px] font-medium w-fit">
                   Renovação
                 </span>
-                <span className="text-[10px] font-medium text-slate-500">
+                <span className="text-[10px] font-medium text-slate-500 inline-flex items-center">
                   Pago
                 </span>
               </div>
             );
           }
           return (
-            <span className="text-[11px] font-medium text-slate-600">
-              Pago (Ciclo Concluído)
-            </span>
+            <div className="flex flex-col gap-0.5 min-w-24">
+              <span className="inline-flex items-center gap-1 px-1.5 py-0.5 rounded-md bg-champagne/30 text-petroleum-800 text-[10px] font-medium w-fit">
+                Ciclo encerrado
+              </span>
+              <span className="text-[10px] font-medium text-slate-500 inline-flex items-center">
+                Pago
+              </span>
+            </div>
           );
         }
         if (item.status === 'pending_change') {
@@ -706,21 +748,26 @@ export default function AssinaturaContent({
         if (!text) return <span className="text-slate-600 text-[11px]">—</span>;
 
         return (
-          <div className="flex flex-col items-start">
-            <span className="text-[11px] text-slate-600 max-w-[240px] block truncate">
+          <div className="flex flex-col items-start gap-1">
+            {/* O line-clamp-3 já aplica as reticências automaticamente ao final da 3ª linha */}
+            <span className="text-[11px] text-slate-600 max-w-[200px] line-clamp-3 overflow-hidden break-words leading-snug">
               {text}
             </span>
-            <button
-              type="button"
-              onClick={(e) => {
-                e.stopPropagation();
-                setNotesSheetRequest(item);
-              }}
-              className="text-left text-[10px] text-gold font-semibold hover:underline"
-              title="Ver detalhes"
-            >
-              Ver detalhes
-            </button>
+
+            {/* Botão visível sempre que houver qualquer texto */}
+            {text && text.trim().length > 0 && (
+              <button
+                type="button"
+                onClick={(e) => {
+                  e.stopPropagation();
+                  setNotesSheetRequest(item);
+                }}
+                className="text-left text-[10px] text-gold font-semibold hover:underline"
+                title="Ver detalhes"
+              >
+                Ver detalhes
+              </button>
+            )}
           </div>
         );
       },
@@ -799,34 +846,33 @@ export default function AssinaturaContent({
         )}
       </div>
       {planKey !== 'FREE' &&
+        hasVigenteSubscriptionInRequests &&
         (canReactivateSubscription ? (
-          <div className="flex items-center gap-3 shrink-0">
-            <span className="text-[10px] font-medium text-amber-700">
-              Plano atual cancelado. Pode ser reativado.
+          /* CONTAINER DE REATIVAÇÃO */
+          <div className="flex flex-col items-end gap-1.5 shrink-0">
+            <span className="text-[9px] font-semibold uppercase tracking-wider text-gold/80">
+              Assinatura interrompida
             </span>
             <button
               type="button"
               onClick={handleReactivateSubscription}
-              disabled={!effectiveSubscriptionId || reactivateLoading}
-              className="inline-flex items-center gap-1.5 text-[10px] font-semibold uppercase tracking-wider text-emerald-600 hover:text-emerald-700 transition-colors shrink-0 disabled:opacity-50"
+              disabled={!reactivationSubscriptionId || reactivateLoading}
+              className="btn-luxury-primary h-8 "
             >
               {reactivateLoading ? (
-                <>
-                  <span className="w-3 h-3 border-2 border-emerald-400 border-t-transparent rounded-full animate-spin" />
-                  Reativando…
-                </>
+                <span className="w-3 h-3 border-2 border-white/30 border-t-white rounded-full animate-spin" />
               ) : (
-                <>
-                  <CheckCircle2 size={11} /> Reativar assinatura
-                </>
+                <CheckCircle2 size={12} />
               )}
+              {reactivateLoading ? 'Processando...' : 'Reativar Plano'}
             </button>
           </div>
         ) : (
+          /* BOTÃO CANCELAR COM BORDA */
           <button
             type="button"
             onClick={() => setShowCancelModal(true)}
-            className="inline-flex items-center gap-1.5 text-[10px] font-semibold uppercase tracking-wider text-red-400 hover:text-red-600 transition-colors shrink-0"
+            className="inline-flex items-center gap-1.5 px-3 py-1.5 border border-slate-200 rounded text-[10px] font-bold uppercase tracking-widest text-slate-400 hover:text-red-500 hover:border-red-200 hover:bg-red-50/50 transition-all shrink-0"
           >
             <AlertTriangle size={11} />
             Cancelar assinatura
@@ -866,10 +912,14 @@ export default function AssinaturaContent({
       getPlanStartAt(pendingChangeRequest) ??
       '—')
     : (formatAsaasYmdDate(
-        asaasDatesBySubscriptionId[activeSubscriptionId?.trim() ?? '']?.nextDueDate,
+        asaasDatesBySubscriptionId[activeSubscriptionId?.trim() ?? '']
+          ?.nextDueDate,
       ) ??
       expiresAt ??
       '—');
+  /** Com downgrade/cancelamento agendado ainda há assinatura ativa, mas o card deve mostrar vencimento, não próxima cobrança. */
+  const showSidebarNextCharge =
+    hasRecurringSubscription && !hasScheduledChange && !hasPendingCancellation;
   const latestVigenteChargeAmount = latestChargedVigenteRequest?.amount_final;
   const currentBillingType = latestChargedVigenteRequest?.billing_type ?? null;
   const billingCycleLabel =
@@ -907,14 +957,12 @@ export default function AssinaturaContent({
                   <Clock size={14} className="text-gold shrink-0" />
                   <div>
                     <p className="text-[9px] uppercase font-semibold text-slate-600  mb-0.5">
-                      {hasRecurringSubscription && !hasScheduledChange
-                        ? 'Próxima cobrança'
-                        : 'Expira em'}
+                      {showSidebarNextCharge ? 'Próxima cobrança' : 'Expira em'}
                     </p>
                     <p className="text-[10px] font-semibold text-petroleum">
-                      {hasRecurringSubscription && !hasScheduledChange
+                      {showSidebarNextCharge
                         ? nextCycleDate
-                        : (expiresAt ?? '—')}
+                        : (cancellationEndsAt ?? expiresAt ?? '—')}
                     </p>
                   </div>
                 </div>
@@ -961,7 +1009,7 @@ export default function AssinaturaContent({
             </div>
 
             {/* ─── Card de Próximo Ciclo / Cobrança Futura ─── */}
-            {planKey !== 'FREE' && (
+            {planKey !== 'FREE' && showSidebarNextCharge && (
               <div className="p-3 bg-white rounded-luxury border border-slate-200 shadow-sm space-y-2 animate-in fade-in slide-in-from-left-2">
                 <div className="flex items-center justify-between">
                   <span className="text-[9px] font-semibold uppercase tracking-widest text-slate-500">
@@ -994,16 +1042,18 @@ export default function AssinaturaContent({
               </div>
             )}
 
-            {planKey !== 'FREE' && activeSubscriptionId && (
-              <button
-                type="button"
-                onClick={() => setShowManagePayment(true)}
-                className="w-full flex items-center justify-center gap-2 py-2.5 px-3 rounded-luxury border border-slate-200 bg-white text-[10px] font-semibold uppercase tracking-wider text-petroleum/80 hover:text-petroleum hover:border-petroleum/30 transition-colors"
-              >
-                <Settings size={14} className="shrink-0" />
-                Gerenciar pagamento
-              </button>
-            )}
+            {planKey !== 'FREE' &&
+              activeSubscriptionId &&
+              showSidebarNextCharge && (
+                <button
+                  type="button"
+                  onClick={() => setShowManagePayment(true)}
+                  className="w-full flex items-center justify-center gap-2 py-2.5 px-3 rounded-luxury border border-slate-200 bg-white text-[10px] font-semibold uppercase tracking-wider text-petroleum/80 hover:text-petroleum hover:border-petroleum/30 transition-colors"
+                >
+                  <Settings size={14} className="shrink-0" />
+                  Gerenciar pagamento
+                </button>
+              )}
 
             <PlanBenefitsSummaryCard
               planKey={planKey}
@@ -1103,6 +1153,7 @@ export default function AssinaturaContent({
           setUpgradeSheetInitialPlan(undefined);
         }}
         initialPlanKey={upgradeSheetInitialPlan}
+        profileSource={profile}
       />
 
       <CancelSubscriptionModal

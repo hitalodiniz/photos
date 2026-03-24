@@ -9,7 +9,10 @@ import {
   CreditCard,
 } from 'lucide-react';
 import type { ViewType } from '../hooks/useDashboardFilters';
-import type { PendingPaymentRequest, ScheduledCancellationInfo } from '../types';
+import type {
+  PendingPaymentRequest,
+  ScheduledCancellationInfo,
+} from '../types';
 import type { Profile } from '@/core/types/profile';
 import VersionInfo from '@/components/dashboard/VersionInfo';
 import SidebarGalerias from './SidebarGalerias';
@@ -39,7 +42,9 @@ interface SidebarProps {
   scheduledCancellation?: ScheduledCancellationInfo | null;
 }
 
-function getRelativeDueText(dueDateRaw: string | null | undefined): string | null {
+function getRelativeDueText(
+  dueDateRaw: string | null | undefined,
+): string | null {
   if (!dueDateRaw) return null;
   const due = new Date(dueDateRaw);
   if (Number.isNaN(due.getTime())) return null;
@@ -95,9 +100,7 @@ export default function Sidebar({
   const canCreateByPhotos = remainingPhotoCredits > 0;
   const canCreateMore = canCreateByGalleries && canCreateByPhotos;
   const isNovaGaleriaDisabled = isRedirecting || !canCreateMore;
-  const hasPendingPayment =
-    !!latestPendingRequest?.payment_url &&
-    latestPendingRequest.payment_url.trim().length > 0;
+  const hasPendingPayment = latestPendingRequest != null;
   const pendingAmount = new Intl.NumberFormat('pt-BR', {
     style: 'currency',
     currency: 'BRL',
@@ -105,10 +108,17 @@ export default function Sidebar({
   const pendingDueDate = latestPendingRequest?.due_date
     ? getRelativeDueText(latestPendingRequest.due_date)
     : null;
+  const pendingPayHref =
+    latestPendingRequest?.payment_url ?? '/dashboard/assinatura';
+  const pendingPayOpenNewTab =
+    pendingPayHref.startsWith('http') || pendingPayHref.startsWith('/api/');
   const scheduledCancellationDate = scheduledCancellation?.access_ends_at
-    ? new Date(scheduledCancellation.access_ends_at).toLocaleDateString('pt-BR', {
-        timeZone: 'UTC',
-      })
+    ? new Date(scheduledCancellation.access_ends_at).toLocaleDateString(
+        'pt-BR',
+        {
+          timeZone: 'UTC',
+        },
+      )
     : null;
   return (
     <>
@@ -256,18 +266,20 @@ export default function Sidebar({
                     className="text-amber-300 shrink-0 mt-0.5"
                   />
                   <div className="min-w-0 flex-1">
-                    <p className="text-[10px] font-bold uppercase tracking-wide text-amber-200">
+                    <p className="text-[10px] font-semibold uppercase tracking-wide text-amber-200">
                       Pagamento Pendente
                     </p>
-                    <p className="text-[10px] text-amber-100/90 mt-0.5">
+                    <p className="text-[10px] text-amber-100/90 mt-0.5 uppercase">
                       {pendingAmount}
-                      {pendingDueDate ? ` • Vence em ${pendingDueDate}` : ''}
+                      {pendingDueDate ? ` • ${pendingDueDate}` : ''}
                     </p>
                     <a
-                      href={latestPendingRequest?.payment_url}
-                      target="_blank"
-                      rel="noopener noreferrer"
-                      className="mt-2 inline-flex h-7 items-center rounded-md bg-amber-500 px-2.5 text-[10px] font-bold uppercase tracking-wide text-black hover:bg-amber-400 transition-colors"
+                      href={pendingPayHref}
+                      target={pendingPayOpenNewTab ? '_blank' : '_self'}
+                      rel={
+                        pendingPayOpenNewTab ? 'noopener noreferrer' : undefined
+                      }
+                      className="mt-2 inline-flex h-7 items-center rounded-md bg-amber-500 px-2.5 text-[10px] font-semibold uppercase tracking-wide text-black hover:bg-amber-400 transition-colors"
                     >
                       Pagar agora
                     </a>
@@ -277,14 +289,16 @@ export default function Sidebar({
             </div>
           )}
           {hasPendingPayment && isSidebarCollapsed && !isMobile && (
-            <Link
-              href="/dashboard/assinatura"
+            <a
+              href={pendingPayHref}
+              target={pendingPayOpenNewTab ? '_blank' : '_self'}
+              rel={pendingPayOpenNewTab ? 'noopener noreferrer' : undefined}
               className="mx-auto mb-2 relative flex h-10 w-10 items-center justify-center rounded-md border border-white/10 bg-white/5 text-amber-200 hover:bg-white/10 transition-colors"
-              title="Pagamento pendente na assinatura"
+              title="Pagamento pendente — abrir cobrança"
             >
               <CreditCard size={16} />
               <span className="absolute -top-0.5 -right-0.5 h-2.5 w-2.5 rounded-full bg-red-500 animate-pulse" />
-            </Link>
+            </a>
           )}
           <SidebarGalerias
             isSidebarCollapsed={isSidebarCollapsed}

@@ -1,6 +1,9 @@
 'use server';
 
-import { createSupabaseClientForCache } from '@/lib/supabase.server';
+import {
+  createSupabaseAdmin,
+  createSupabaseClientForCache,
+} from '@/lib/supabase.server';
 import { cookies, headers } from 'next/headers';
 import { createInternalNotification } from './notification.service';
 import { UAParser } from 'ua-parser-js';
@@ -264,7 +267,7 @@ async function handleNotifications(
  * Otimizado para evitar processamento desnecessário se não houver dados
  */
 export async function getGaleriaEventReport(galeriaId: string) {
-  const supabase = await createSupabaseClientForCache();
+  const supabase = createSupabaseAdmin();
 
   // 1. Busca IDs ignorados e dados do dono em uma única query
   const { data: galeriaData, error: galeriaError } = await supabase
@@ -290,10 +293,16 @@ export async function getGaleriaEventReport(galeriaId: string) {
     .eq('galeria_id', galeriaId);
 
   if (ignoredIds.length > 0) {
-    // 🎯 PostgREST format correto para strings/UUIDs: ("id1","id2")
-    // Note: Usamos join com "," e envolvemos em parênteses.
-    const formattedIds = `(${ignoredIds.map((id: string) => `"${id}"`).join(',')})`;
-    query = query.not('visitor_id', 'in', formattedIds);
+    // Filtramos apenas IDs que não sejam nulos ou vazios
+    const validIgnoredIds = ignoredIds.filter(Boolean);
+
+    if (validIgnoredIds.length > 1) {
+      // Para múltiplos IDs, usamos o formato CSV sem aspas extras que o PostgREST estranha
+      query = query.not('visitor_id', 'in', `(${validIgnoredIds.join(',')})`);
+    } else if (validIgnoredIds.length === 1) {
+      // Para um único ID, eq/neq é mais seguro que 'in'
+      query = query.neq('visitor_id', validIgnoredIds[0]);
+    }
   }
 
   const { data, error: eventsError } = await query.order('created_at', {

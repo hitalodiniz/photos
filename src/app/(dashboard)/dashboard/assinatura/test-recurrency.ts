@@ -1,5 +1,22 @@
 // scripts/test-recurrency.ts
-// npx tsx scripts/test-recurrency.ts --userId="SEU_USER_ID" --scenario=all
+// Só o simulador interativo (linha do tempo + pausas ENTER)
+// cd C:\Users\hital\photos
+// npx tsx "src/app/(dashboard)/dashboard/assinatura/test-recurrency.ts" --userId="SEU_UUID_DO_USUARIO" --scenario=interactive_lifecycle
+// Todos os cenários sem o interativo primeiro
+// cd C:\Users\hital\photos
+// npx tsx "src/app/(dashboard)/dashboard/assinatura/test-recurrency.ts" --userId="SEU_UUID_DO_USUARIO" --scenario=all
+// Todos os cenários com interativo no início (recomendado para o fluxo completo)
+// cd C:\Users\hital\photos
+// npx tsx "src/app/(dashboard)/dashboard/assinatura/test-recurrency.ts" --userId="SEU_UUID_DO_USUARIO" --scenario=all --interactive=true
+// Variáveis úteis (já no .env.local)
+// ASAAS_WEBHOOK_TOKEN — obrigatório para os webhooks do script
+// ASAAS_API_KEY — necessária na Etapa 5 (cobrança real no Asaas)
+// Opcional: ASAAS_TEST_USER_ID em vez de --userId=...
+// Substitua SEU_UUID_DO_USUARIO pelo ID real do perfil (ex.: o que você já usava nos testes).
+// Variáveis úteis:
+//   --interactive=true — com --scenario=all, interactive_lifecycle roda PRIMEIRO (pausas ENTER). O cenário também pode rodar só com --scenario=interactive_lifecycle.
+//   ASAAS_API_KEY — obrigatória para a Etapa 5 do interactive_lifecycle (cria assinatura/cobrança real no Asaas).
+//   ASAAS_TEST_CPF — opcional; senão usa snapshot ou 07741043684.
 //
 // Cenários:
 //   recurrency             — renovação mensal 24 meses + overdue
@@ -16,9 +33,13 @@
 //   overdue_grace          — OVERDUE + carência 5d → FREE automático
 //   webhook_sub_canceled   — SUBSCRIPTION_CANCELED dispara downgrade
 //   pending_blocks_upgrade — pending ativo bloqueia novo upgrade
+//   interactive_lifecycle  — simulador cronológico ~2 anos (2024–2026), Supabase força datas; Etapa 5 cobrança real Asaas
 
 import { config as loadEnv } from 'dotenv';
 import { createClient } from '@supabase/supabase-js';
+import { createInterface } from 'node:readline/promises';
+import { stdin as input, stdout as output } from 'node:process';
+import { getEndOfDaySaoPauloIso } from '../../../../core/utils/data-helpers';
 
 type BillingPeriod = 'monthly' | 'semiannual' | 'annual' | string | null;
 type BillingType = 'PIX' | 'BOLETO' | 'CREDIT_CARD';
@@ -38,6 +59,7 @@ type UpgradeRow = {
   asaas_customer_id: string | null;
   asaas_subscription_id: string | null;
   asaas_payment_id: string | null;
+  payment_url?: string | null;
   amount_original: number | null;
   amount_discount: number | null;
   amount_final: number | null;
@@ -73,6 +95,12 @@ function parseArg(flag: string): string | null {
   return arg ? arg.slice(prefix.length).trim() || null : null;
 }
 
+function parseBoolArg(flag: string, defaultValue = false): boolean {
+  const raw = parseArg(flag);
+  if (!raw) return defaultValue;
+  return ['1', 'true', 'yes', 'on', 'sim'].includes(raw.toLowerCase());
+}
+
 // ─── Datas ───────────────────────────────────────────────────────────────────
 
 function addMonths(date: Date, n: number): Date {
@@ -85,6 +113,13 @@ function subDays(date: Date, n: number): Date {
 }
 function addDays(date: Date, n: number): Date {
   return new Date(date.getTime() + n * 24 * 60 * 60 * 1000);
+}
+
+/** Meio-dia em São Paulo — âncora estável para aritmética de mês em simulações. */
+function localNoonSaoPaulo(y: number, month: number, day: number): Date {
+  return new Date(
+    `${y}-${String(month).padStart(2, '0')}-${String(day).padStart(2, '0')}T12:00:00-03:00`,
+  );
 }
 function billingPeriodToMonths(p: BillingPeriod): number {
   if (p === 'semiannual') return 6;
@@ -117,6 +152,7 @@ loadEnv({ path: '.env.local' });
 const userId =
   parseArg('userId') ?? process.env.ASAAS_TEST_USER_ID?.trim() ?? null;
 const scenarioArg = parseArg('scenario') ?? 'all';
+const interactive = parseBoolArg('interactive', false);
 const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL?.trim()!;
 const serviceRoleKey = process.env.SUPABASE_SERVICE_ROLE_KEY?.trim()!;
 const webhookToken = process.env.ASAAS_WEBHOOK_TOKEN?.trim()!;
@@ -134,6 +170,230 @@ if (!supabaseUrl || !serviceRoleKey)
 if (!webhookToken) throw new Error('ASAAS_WEBHOOK_TOKEN obrigatório.');
 
 const sb = createClient(supabaseUrl, serviceRoleKey);
+
+function getAsaasApiBase(): string {
+  return process.env.ASAAS_ENVIRONMENT === 'production'
+    ? 'https://api.asaas.com/v3'
+    : 'https://sandbox.asaas.com/api/v3';
+}
+
+async function asaasScriptRequest<T>(
+  path: string,
+  init?: RequestInit,
+): Promise<{ ok: boolean; data: T }> {
+  const apiKey = process.env.ASAAS_API_KEY?.trim();
+  if (!apiKey) {
+    return {
+      ok: false,
+      data: {
+        errors: [{ description: 'ASAAS_API_KEY ausente no .env.local' }],
+      } as T,
+    };
+  }
+  const res = await fetch(`${getAsaasApiBase()}${path}`, {
+    ...init,
+    headers: {
+      access_token: apiKey,
+      'Content-Type': 'application/json',
+      ...init?.headers,
+    },
+  });
+  const data = (await res.json().catch(() => ({}))) as T;
+  return { ok: res.ok, data };
+}
+
+function addDaysSaoPauloYmd(from: Date, days: number): string {
+  const t = from.getTime() + days * 24 * 60 * 60 * 1000;
+  const d = new Date(t);
+  return new Intl.DateTimeFormat('en-CA', {
+    timeZone: 'America/Sao_Paulo',
+    year: 'numeric',
+    month: '2-digit',
+    day: '2-digit',
+  }).format(d);
+}
+
+async function ensureAsaasCustomerForScript(): Promise<string> {
+  const refs = await fetchLatestAsaasReferences();
+  if (refs.customerId?.trim()) {
+    const { ok, data } = await asaasScriptRequest<{ id?: string }>(
+      `/customers/${refs.customerId.trim()}`,
+    );
+    if (ok && (data as { id?: string })?.id) return refs.customerId.trim();
+  }
+
+  const snap = await getSnapshotFields();
+  const profile = await fetchProfile();
+  const cpfRaw =
+    process.env.ASAAS_TEST_CPF?.replace(/\D/g, '') ||
+    (snap.snapshot_cpf_cnpj ?? '').replace(/\D/g, '') ||
+    '07741043684';
+  const name =
+    snap.snapshot_name ?? profile.full_name ?? 'Teste Script Recurrency';
+  const email =
+    snap.snapshot_email ??
+    profile.email ??
+    `test-recurrency-${String(userId).slice(0, 8)}@test.local`;
+  const phone = (snap.snapshot_whatsapp ?? '31999432988').replace(/\D/g, '');
+
+  const { ok, data } = await asaasScriptRequest<{
+    id?: string;
+    errors?: Array<{ description?: string }>;
+  }>('/customers', {
+    method: 'POST',
+    body: JSON.stringify({
+      name,
+      email,
+      cpfCnpj: cpfRaw,
+      phone,
+      mobilePhone: phone,
+      postalCode: '30750000',
+      address: 'teste',
+      addressNumber: '123',
+      province: 'teste',
+      city: 'Belo Horizonte',
+      state: 'MG',
+    }),
+  });
+
+  const id = (data as { id?: string })?.id;
+  if (!ok || !id) {
+    const err = (data as { errors?: Array<{ description?: string }> })?.errors
+      ?.map((e) => e.description)
+      .filter(Boolean)
+      .join('; ');
+    throw new Error(
+      `Asaas: falha ao criar/garantir cliente: ${err ?? JSON.stringify(data)}`,
+    );
+  }
+  return id;
+}
+
+/**
+ * Cria assinatura real (PIX) no Asaas com vencimento em N dias e retorna
+ * o primeiro pagamento PENDING com URL pública (fatura / boleto / pix).
+ */
+async function createRealAsaasSubscriptionPendingCharge(opts: {
+  customerId: string;
+  value: number;
+  dueInDays: number;
+}): Promise<{
+  subscriptionId: string;
+  paymentId: string;
+  paymentUrl: string;
+}> {
+  const nextDueDate = addDaysSaoPauloYmd(new Date(), opts.dueInDays);
+  const { ok, data } = await asaasScriptRequest<{
+    id?: string;
+    errors?: Array<{ description?: string }>;
+  }>('/subscriptions', {
+    method: 'POST',
+    body: JSON.stringify({
+      customer: opts.customerId,
+      billingType: 'PIX',
+      cycle: 'MONTHLY',
+      value: opts.value,
+      description: 'test-recurrency: interactive_lifecycle etapa 5',
+      nextDueDate,
+      daysBeforeDue: 5,
+      updatePendingPayments: true,
+    }),
+  });
+
+  const subId = (data as { id?: string })?.id;
+  if (!ok || !subId) {
+    const err = (data as { errors?: Array<{ description?: string }> })?.errors
+      ?.map((e) => e.description)
+      .filter(Boolean)
+      .join('; ');
+    throw new Error(
+      `Asaas: falha ao criar assinatura: ${err ?? JSON.stringify(data)}`,
+    );
+  }
+
+  const listRes = await asaasScriptRequest<{
+    data?: Array<Record<string, unknown>>;
+  }>(`/subscriptions/${subId}/payments`);
+  const payments = listRes.ok ? (listRes.data?.data ?? []) : [];
+  const pending = payments.find(
+    (p) => String(p.status ?? '').toUpperCase() === 'PENDING',
+  );
+  const row = pending ?? payments[0];
+  if (!row?.id) {
+    throw new Error(
+      `Asaas: assinatura ${subId} sem cobranças listadas (verifique sandbox/API).`,
+    );
+  }
+
+  const paymentId = String(row.id);
+  const pickUrl = (p: Record<string, unknown>): string => {
+    for (const key of ['invoiceUrl', 'bankSlipUrl', 'pixQrCodeUrl'] as const) {
+      const v = p[key];
+      if (typeof v === 'string' && v.startsWith('http')) return v;
+    }
+    return '';
+  };
+
+  let paymentUrl = pickUrl(row);
+  if (!paymentUrl) {
+    const payRes = await asaasScriptRequest<Record<string, unknown>>(
+      `/payments/${paymentId}`,
+    );
+    if (payRes.ok) paymentUrl = pickUrl(payRes.data ?? {});
+  }
+  if (!paymentUrl) {
+    const pixRes = await asaasScriptRequest<{
+      encodedImage?: string;
+      payloadUrl?: string;
+    }>(`/payments/${paymentId}/pixQrCode`);
+    const u = pixRes.data?.payloadUrl;
+    if (typeof u === 'string' && u.startsWith('http')) paymentUrl = u;
+  }
+  if (!paymentUrl) {
+    throw new Error(
+      `Asaas: cobrança ${paymentId} sem URL pública (invoice/boleto/pix). Abra no painel Asaas.`,
+    );
+  }
+
+  return { subscriptionId: subId, paymentId, paymentUrl };
+}
+
+async function pause(message: string): Promise<void> {
+  console.log(`\n⏸ ${message}`);
+  if (!input.isTTY) {
+    console.log(
+      '   (stdin não é interativo — aguardando 5s; use terminal direto p/ pausar com ENTER)',
+    );
+    await new Promise((r) => setTimeout(r, 5000));
+    return;
+  }
+  const rl = createInterface({ input, output });
+  try {
+    await rl.question('   Pressione ENTER para continuar... ');
+  } finally {
+    rl.close();
+  }
+}
+
+/**
+ * Viagem no tempo (Supabase): alinha created_at/processed_at ao fim do dia
+ * em America/Sao_Paulo (mesmo critério do produto — ver data-helpers).
+ */
+async function forceTimeline(id: string, date: Date): Promise<void> {
+  const iso = getEndOfDaySaoPauloIso(date);
+  const { error } = await sb
+    .from('tb_upgrade_requests')
+    .update({
+      created_at: iso,
+      processed_at: iso,
+      updated_at: new Date().toISOString(),
+    })
+    .eq('id', id);
+
+  if (error) {
+    throw new Error(`forceTimeline(${id}): ${error.message}`);
+  }
+}
 
 // ─── DB Helpers ──────────────────────────────────────────────────────────────
 
@@ -178,6 +438,31 @@ async function fetchLatestTemplate(): Promise<UpgradeRow | null> {
     .limit(1)
     .maybeSingle();
   return (data as UpgradeRow | null) ?? null;
+}
+
+async function fetchLatestAsaasReferences(): Promise<{
+  customerId: string | null;
+  subscriptionId: string | null;
+  paymentId: string | null;
+  paymentUrl: string | null;
+}> {
+  const { data } = await sb
+    .from('tb_upgrade_requests')
+    .select(
+      'asaas_customer_id,asaas_subscription_id,asaas_payment_id,payment_url',
+    )
+    .eq('profile_id', userId)
+    .not('asaas_customer_id', 'is', null)
+    .order('created_at', { ascending: false })
+    .limit(1)
+    .maybeSingle();
+
+  return {
+    customerId: (data as any)?.asaas_customer_id ?? null,
+    subscriptionId: (data as any)?.asaas_subscription_id ?? null,
+    paymentId: (data as any)?.asaas_payment_id ?? null,
+    paymentUrl: (data as any)?.payment_url ?? null,
+  };
 }
 
 /**
@@ -237,13 +522,16 @@ async function insertApprovedRequest(opts: {
   processedAt?: Date;
   discount?: number;
   notes?: string;
+  planKeyCurrent?: string;
+  status?: string;
 }): Promise<UpgradeRow> {
   const snap = await getSnapshotFields();
+  const discount = opts.discount ?? 0;
   const { data, error } = await sb
     .from('tb_upgrade_requests')
     .insert({
       profile_id: userId,
-      plan_key_current: 'FREE',
+      plan_key_current: opts.planKeyCurrent ?? 'FREE',
       plan_key_requested: opts.plan,
       billing_type: opts.billingType,
       billing_period: opts.billingPeriod,
@@ -251,10 +539,10 @@ async function insertApprovedRequest(opts: {
       asaas_subscription_id: opts.subId,
       asaas_payment_id: opts.payId,
       amount_original: opts.amount,
-      amount_discount: opts.discount ?? 0,
-      amount_final: opts.amount - (opts.discount ?? 0),
+      amount_discount: discount,
+      amount_final: opts.amount - discount,
       installments: 1,
-      status: 'approved',
+      status: opts.status ?? 'approved',
       processed_at: (opts.processedAt ?? new Date()).toISOString(),
       notes: opts.notes ?? null,
     })
@@ -271,6 +559,8 @@ async function insertPendingRequest(opts: {
   billingType: BillingType;
   billingPeriod: BillingPeriod;
   amount: number;
+  paymentUrl?: string | null;
+  notes?: string;
 }): Promise<UpgradeRow> {
   const snap = await getSnapshotFields();
   const { data, error } = await sb
@@ -284,12 +574,14 @@ async function insertPendingRequest(opts: {
       ...snap,
       asaas_subscription_id: opts.subId,
       asaas_payment_id: opts.payId,
+      payment_url: opts.paymentUrl ?? null,
       amount_original: opts.amount,
       amount_discount: 0,
       amount_final: opts.amount,
       installments: 1,
       status: 'pending',
       processed_at: null,
+      notes: opts.notes ?? null,
     })
     .select('*')
     .single();
@@ -788,14 +1080,12 @@ async function scenarioDowngradeCredit(): Promise<ScenarioResult> {
     .from('tb_upgrade_requests')
     .update({ status: 'cancelled', updated_at: new Date().toISOString() })
     .eq('id', seed.id);
-  await sb
-    .from('tb_plan_history')
-    .insert({
-      profile_id: userId,
-      old_plan: 'PRO',
-      new_plan: 'FREE',
-      reason: 'Arrependimento ≤7d',
-    });
+  await sb.from('tb_plan_history').insert({
+    profile_id: userId,
+    old_plan: 'PRO',
+    new_plan: 'FREE',
+    reason: 'Arrependimento ≤7d',
+  });
 
   const p = await fetchProfile();
   const balanceAfter = Number(
@@ -913,14 +1203,12 @@ async function scenarioDowngradeScheduled(): Promise<ScenarioResult> {
     .from('tb_upgrade_requests')
     .update({ status: 'approved', updated_at: new Date().toISOString() })
     .eq('id', pcRow!.id);
-  await sb
-    .from('tb_plan_history')
-    .insert({
-      profile_id: userId,
-      old_plan: 'PRO',
-      new_plan: 'START',
-      reason: 'pending_change aplicado (cron)',
-    });
+  await sb.from('tb_plan_history').insert({
+    profile_id: userId,
+    old_plan: 'PRO',
+    new_plan: 'START',
+    reason: 'pending_change aplicado (cron)',
+  });
 
   const profileAfterCron = await fetchProfile();
   assert(
@@ -1195,14 +1483,12 @@ async function scenarioCancellationScheduled(): Promise<ScenarioResult> {
       updated_at: new Date().toISOString(),
     })
     .eq('id', seed.id);
-  await sb
-    .from('tb_plan_history')
-    .insert({
-      profile_id: userId,
-      old_plan: 'PRO',
-      new_plan: 'FREE',
-      reason: 'Downgrade automático (cron simulado)',
-    });
+  await sb.from('tb_plan_history').insert({
+    profile_id: userId,
+    old_plan: 'PRO',
+    new_plan: 'FREE',
+    reason: 'Downgrade automático (cron simulado)',
+  });
 
   const pAfter = await fetchProfile();
   assert(
@@ -1287,14 +1573,12 @@ async function scenarioOverdueGrace(): Promise<ScenarioResult> {
     .from('tb_upgrade_requests')
     .update({ status: 'cancelled', updated_at: new Date().toISOString() })
     .eq('id', overdueRow?.id ?? seed.id);
-  await sb
-    .from('tb_plan_history')
-    .insert({
-      profile_id: userId,
-      old_plan: 'PRO',
-      new_plan: 'FREE',
-      reason: `Inadimplência: carência ${GRACE}d esgotada`,
-    });
+  await sb.from('tb_plan_history').insert({
+    profile_id: userId,
+    old_plan: 'PRO',
+    new_plan: 'FREE',
+    reason: `Inadimplência: carência ${GRACE}d esgotada`,
+  });
 
   const pAfter = await fetchProfile();
   assert(
@@ -1436,6 +1720,319 @@ async function scenarioPendingBlocksUpgrade(): Promise<ScenarioResult> {
   };
 }
 
+async function scenarioInteractiveLifecycle(): Promise<ScenarioResult> {
+  const runId = Date.now();
+  const now = new Date();
+  const errors: string[] = [];
+  const details: Record<string, unknown> = {};
+
+  console.log(
+    '\n──── [interactive_lifecycle] Linha do tempo 2 anos (Supabase + Etapa 5 Asaas real) ────',
+  );
+  await resetUserState('FREE');
+
+  const subCron = `sub-cron-${runId}`;
+  const payCron = (suffix: string) => `pay-cron-${runId}-${suffix}`;
+
+  // ─── Etapa 1: 01/03/2024 PRO → arrependimento 04/03/2024 ───
+  const step1Contract = localNoonSaoPaulo(2024, 3, 1);
+  const step1Cancel = localNoonSaoPaulo(2024, 3, 4);
+
+  const step1 = await insertApprovedRequest({
+    subId: subCron,
+    payId: payCron('pro-m2024-03'),
+    plan: 'PRO',
+    billingType: 'PIX',
+    billingPeriod: 'monthly',
+    amount: 79,
+    processedAt: step1Contract,
+    notes:
+      'Etapa 1: assinatura PRO mensal (PIX). Contrato 01/03/2024 (forçado no Supabase).',
+  });
+  await forceTimeline(step1.id, step1Contract);
+
+  const pBefore1 = await fetchProfile();
+  const metaBefore1 = (pBefore1.metadata ?? {}) as Record<string, unknown>;
+  const creditAfterRefund =
+    Math.round((Number(metaBefore1.credit_balance ?? 0) + 79) * 100) / 100;
+
+  await sb
+    .from('tb_profiles')
+    .update({
+      plan_key: 'FREE',
+      metadata: { ...metaBefore1, credit_balance: creditAfterRefund },
+      updated_at: getEndOfDaySaoPauloIso(step1Cancel),
+    })
+    .eq('id', userId);
+  await sb
+    .from('tb_upgrade_requests')
+    .update({
+      status: 'cancelled',
+      notes:
+        'Etapa 1: arrependimento ≤7d sem crédito prévio. Crédito integral em metadata (simulador).',
+      created_at: getEndOfDaySaoPauloIso(step1Contract),
+      processed_at: getEndOfDaySaoPauloIso(step1Cancel),
+      updated_at: new Date().toISOString(),
+    })
+    .eq('id', step1.id);
+
+  const pAfter1 = await fetchProfile();
+  assert(pAfter1.plan_key === 'FREE', 'etapa1: perfil em FREE', errors);
+  assert(
+    Number(
+      ((pAfter1.metadata ?? {}) as Record<string, unknown>).credit_balance,
+    ) >= 79,
+    'etapa1: metadata.credit_balance preenchido',
+    errors,
+  );
+  details.etapa1 = {
+    contrato_sp: '2024-03-01',
+    cancelamento_sp: '2024-03-04',
+    request_id: step1.id,
+    credit_balance: ((pAfter1.metadata ?? {}) as Record<string, unknown>)
+      .credit_balance,
+  };
+  await pause(
+    'Etapa 1: estorno integral em metadata + plano FREE (arrependimento Mar/2024). Valide no app e dê ENTER.',
+  );
+
+  // ─── Etapa 2: 12 meses START (Abr/2024 → Mar/2025), IDs Asaas fictícios consistentes ───
+  const subStart = `sub-start-${runId}`;
+  const firstStartMonth = localNoonSaoPaulo(2024, 4, 1);
+  const pBefore2 = await fetchProfile();
+  const meta2 = (pBefore2.metadata ?? {}) as Record<string, unknown>;
+  const bal2 = Number(meta2.credit_balance ?? 0);
+  const startPrice = 29;
+  const discountFirst = Math.min(bal2, startPrice);
+
+  const startRows: string[] = [];
+  for (let m = 0; m < 12; m++) {
+    const anchor = addMonths(firstStartMonth, m);
+    const y = anchor.getFullYear();
+    const mo = anchor.getMonth() + 1;
+    const label = `${String(y)}-${String(mo).padStart(2, '0')}`;
+    const isFirst = m === 0;
+    const row = await insertApprovedRequest({
+      subId: subStart,
+      payId: payCron(`st-ren-${label}`),
+      plan: 'START',
+      billingType: 'PIX',
+      billingPeriod: 'monthly',
+      amount: startPrice,
+      processedAt: anchor,
+      planKeyCurrent: isFirst ? 'FREE' : 'START',
+      status: isFirst ? 'approved' : 'renewed',
+      discount: isFirst ? discountFirst : 0,
+      notes: isFirst
+        ? `Etapa 2: início START mensal (Abr/2024). Renovações simuladas no Supabase; Asaas sandbox sem retroativo.`
+        : `Etapa 2: Renovação START ${label}. Mensal ${m + 1}/12 (Abr/2024–Mar/2025).`,
+    });
+    await forceTimeline(row.id, anchor);
+    startRows.push(row.id);
+    console.log(
+      `  · [interactive] START mês ${m + 1}/12 → ${label} (id ${row.id})`,
+    );
+  }
+
+  const newBal = Math.round((bal2 - discountFirst) * 100) / 100;
+  await sb
+    .from('tb_profiles')
+    .update({
+      plan_key: 'START',
+      metadata: { ...meta2, credit_balance: newBal },
+      updated_at: new Date().toISOString(),
+    })
+    .eq('id', userId);
+
+  details.etapa2 = {
+    subscription_id: subStart,
+    months: 12,
+    row_ids: startRows,
+    first_discount: discountFirst,
+  };
+  await pause(
+    'Etapa 2: 12 linhas START (Abr/2024–Mar/2025). Confira a escada no histórico e dê ENTER.',
+  );
+
+  // ─── Etapa 3: Jan/2026 upgrade PRO com crédito → cancelar +2d = pending_downgrade ───
+  const upgradeDate = localNoonSaoPaulo(2026, 1, 15);
+  const cancelTryDate = addDays(upgradeDate, 2);
+  const subPro = `sub-pro-${runId}`;
+  const proOriginal = 79;
+  const creditApplied = Math.round(Math.min(24.5, proOriginal - 1) * 100) / 100;
+  const proFinal = Math.round((proOriginal - creditApplied) * 100) / 100;
+
+  const proRow = await insertApprovedRequest({
+    subId: subPro,
+    payId: payCron('pro-2026-01-upgrade'),
+    plan: 'PRO',
+    billingType: 'PIX',
+    billingPeriod: 'monthly',
+    amount: proOriginal,
+    processedAt: upgradeDate,
+    planKeyCurrent: 'START',
+    discount: creditApplied,
+    notes: `Etapa 3: Upgrade START→PRO (Jan/2026). Aproveitamento de crédito pro-rata: R$ ${creditApplied.toFixed(2)}.`,
+  });
+  await sb
+    .from('tb_upgrade_requests')
+    .update({
+      amount_original: proOriginal,
+      amount_discount: creditApplied,
+      amount_final: proFinal,
+      notes: `Etapa 3: Upgrade START→PRO com Aproveitamento de crédito pro-rata: R$ ${creditApplied.toFixed(2)}.`,
+      updated_at: new Date().toISOString(),
+    })
+    .eq('id', proRow.id);
+  await forceTimeline(proRow.id, upgradeDate);
+
+  await sb
+    .from('tb_profiles')
+    .update({
+      plan_key: 'PRO',
+      updated_at: new Date().toISOString(),
+    })
+    .eq('id', userId);
+
+  await sb
+    .from('tb_upgrade_requests')
+    .update({
+      status: 'pending_downgrade',
+      notes:
+        'Etapa 3: tentativa de arrependimento bloqueada (há Aproveitamento de crédito pro-rata). Fluxo agendado → pending_downgrade.',
+      processed_at: getEndOfDaySaoPauloIso(addMonths(upgradeDate, 1)),
+      updated_at: getEndOfDaySaoPauloIso(cancelTryDate),
+    })
+    .eq('id', proRow.id);
+
+  const check3 = await sb
+    .from('tb_upgrade_requests')
+    .select('status,notes')
+    .eq('id', proRow.id)
+    .single();
+  assert(
+    check3.data?.status === 'pending_downgrade',
+    'etapa3: pending_downgrade (sem estorno total / sem cancelled imediato)',
+    errors,
+  );
+  assert(
+    String(check3.data?.notes ?? '')
+      .toLowerCase()
+      .includes('aproveitamento'),
+    'etapa3: notas citam aproveitamento de crédito',
+    errors,
+  );
+  details.etapa3 = {
+    upgrade_row_id: proRow.id,
+    upgrade_date: '2026-01-15',
+    cancel_try: '2026-01-17',
+    status: check3.data?.status,
+  };
+  await pause(
+    'Etapa 3: regra do crédito pro-rata (Jan/2026). Confira pending_downgrade e ENTER.',
+  );
+
+  // ─── Etapa 4: PIX → Cartão → Boleto → PIX (Jan/2026, sequência rápida) ───
+  const danceBase = localNoonSaoPaulo(2026, 1, 20);
+  const paymentDance = [
+    { to: 'CREDIT_CARD' as BillingType, pay: payCron('dance-cc-1') },
+    { to: 'BOLETO' as BillingType, pay: payCron('dance-boleto') },
+    { to: 'PIX' as BillingType, pay: payCron('dance-pix-2') },
+  ] as const;
+
+  for (let i = 0; i < paymentDance.length; i++) {
+    const hop = paymentDance[i];
+    const when = addDays(danceBase, i);
+    await sb
+      .from('tb_upgrade_requests')
+      .update({
+        billing_type: hop.to,
+        asaas_payment_id: hop.pay,
+        notes: `[PaymentMethodChange ${when.toISOString().slice(0, 10)}] troca de forma de pagamento → ${hop.to}. Etapa 4 (simulador cronológico Jan/2026).`,
+        updated_at: when.toISOString(),
+      })
+      .eq('id', proRow.id);
+    await wh('PAYMENT_RECEIVED', hop.pay, proFinal, 'RECEIVED', subPro);
+  }
+
+  const check4 = await sb
+    .from('tb_upgrade_requests')
+    .select('billing_type,asaas_payment_id')
+    .eq('id', proRow.id)
+    .single();
+  assert(check4.data?.billing_type === 'PIX', 'etapa4: termina em PIX', errors);
+  details.etapa4 = {
+    billing_type_final: check4.data?.billing_type,
+    payment_id_final: check4.data?.asaas_payment_id,
+  };
+  await pause('Etapa 4: dança de métodos registrada. Valide a tabela e ENTER.');
+
+  // ─── Etapa 5: cobrança real Asaas (venc. +3 dias), pending com payment_url ───
+  const step5Due = addDays(now, 3);
+  console.log(
+    '  · [interactive] Etapa 5: criando assinatura/cobrança real no Asaas…',
+  );
+  const asaasCustomerId = await ensureAsaasCustomerForScript();
+  const realCharge = await createRealAsaasSubscriptionPendingCharge({
+    customerId: asaasCustomerId,
+    value: 79,
+    dueInDays: 3,
+  });
+
+  const snapshotName = (await getSnapshotFields()).snapshot_name ?? 'Test User';
+
+  const pending5 = await insertPendingRequest({
+    subId: realCharge.subscriptionId,
+    payId: realCharge.paymentId,
+    plan: 'PRO',
+    billingType: 'PIX',
+    billingPeriod: 'monthly',
+    amount: 79,
+    paymentUrl: realCharge.paymentUrl,
+    notes: `Etapa 5 (${snapshotName}): fatura real sandbox/produção. subscription=${realCharge.subscriptionId}. Próximo vencimento ~ ${addDaysSaoPauloYmd(now, 3)}.`,
+  });
+  await sb
+    .from('tb_upgrade_requests')
+    .update({
+      snapshot_name: snapshotName,
+      asaas_customer_id: asaasCustomerId,
+      processed_at: step5Due.toISOString(),
+      created_at: now.toISOString(),
+      updated_at: now.toISOString(),
+    })
+    .eq('id', pending5.id);
+
+  const check5 = await sb
+    .from('tb_upgrade_requests')
+    .select('status,payment_url,processed_at')
+    .eq('id', pending5.id)
+    .single();
+  assert(check5.data?.status === 'pending', 'etapa5: registro pending', errors);
+  assert(
+    typeof check5.data?.payment_url === 'string' &&
+      (check5.data?.payment_url ?? '').startsWith('http'),
+    'etapa5: payment_url http válido',
+    errors,
+  );
+  details.etapa5 = {
+    pending_id: pending5.id,
+    asaas_subscription_id: realCharge.subscriptionId,
+    asaas_payment_id: realCharge.paymentId,
+    payment_url: check5.data?.payment_url,
+    due_in_days: 3,
+  };
+  await pause(
+    'Etapa 5: dê F5 no dashboard — alerta âmbar de pagamento pendente deve aparecer.',
+  );
+
+  return {
+    scenario: 'interactive_lifecycle',
+    pass: errors.length === 0,
+    details,
+    errors,
+  };
+}
+
 // ═════════════════════════════════════════════════════════════════════════════
 // RUNNER
 // ═════════════════════════════════════════════════════════════════════════════
@@ -1444,13 +2041,14 @@ async function main() {
   console.log(
     '\n══════════════════════════════════════════════════════════════════',
   );
-  console.log(' SIMULAÇÃO COMPLETA — asaas.service (14 cenários)');
+  console.log(' SIMULAÇÃO COMPLETA — asaas.service');
   console.log(
     '══════════════════════════════════════════════════════════════════',
   );
   console.log(`  userId:   ${userId}`);
   console.log(`  webhook:  ${webhookUrl}`);
   console.log(`  cenário:  ${scenarioArg}`);
+  console.log(`  interactive: ${interactive ? 'true' : 'false'}`);
 
   const all: Record<string, () => Promise<ScenarioResult>> = {
     recurrency: scenarioRecurrency,
@@ -1467,15 +2065,41 @@ async function main() {
     overdue_grace: scenarioOverdueGrace,
     webhook_sub_canceled: scenarioWebhookSubCanceled,
     pending_blocks_upgrade: scenarioPendingBlocksUpgrade,
+    interactive_lifecycle: scenarioInteractiveLifecycle,
   };
 
-  const toRun =
-    scenarioArg === 'all'
-      ? Object.keys(all)
-      : scenarioArg
-          .split(',')
-          .map((s) => s.trim())
-          .filter((s) => s in all);
+  const STANDARD_SCENARIO_KEYS = [
+    'recurrency',
+    'first_subscription',
+    'free_upgrade',
+    'credit_upgrade',
+    'cycle_change',
+    'payment_change',
+    'downgrade_credit',
+    'downgrade_sched',
+    'downgrade_sched_cancel',
+    'cancellation_refund',
+    'cancellation_scheduled',
+    'overdue_grace',
+    'webhook_sub_canceled',
+    'pending_blocks_upgrade',
+  ] as const;
+
+  let toRun: string[];
+  if (scenarioArg === 'all') {
+    const std = STANDARD_SCENARIO_KEYS.filter((k) => k in all);
+    toRun = interactive ? ['interactive_lifecycle', ...std] : [...std];
+    if (interactive) {
+      console.log(
+        '\n  · Ordem: interactive_lifecycle primeiro (pausas ENTER), depois os demais cenários.',
+      );
+    }
+  } else {
+    toRun = scenarioArg
+      .split(',')
+      .map((s) => s.trim())
+      .filter((s) => s in all);
+  }
 
   const unknown =
     scenarioArg !== 'all'
@@ -1488,6 +2112,16 @@ async function main() {
     console.warn(
       `\n⚠ Desconhecidos: ${unknown.join(', ')}. Disponíveis: ${Object.keys(all).join(', ')}`,
     );
+
+  if (
+    scenarioArg === 'all' &&
+    !interactive &&
+    !toRun.includes('interactive_lifecycle')
+  ) {
+    console.log(
+      '  · Cenário interativo desabilitado. Use --interactive=true para acoplar ao fluxo all.',
+    );
+  }
 
   const results: ScenarioResult[] = [];
 

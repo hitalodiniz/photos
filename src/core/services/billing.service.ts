@@ -182,3 +182,45 @@ export async function getOverdueSince(
 
   return data?.overdue_since ?? null;
 }
+
+/**
+ * Dados para o badge de atraso na Navbar: link direto (PIX/boleto no banco)
+ * ou redirect pela API que resolve invoiceUrl no Asaas.
+ */
+export async function getOverdueBadgeData(profileId: string): Promise<{
+  overdueSince: string | null;
+  paymentHref: string | null;
+}> {
+  const supabase = await createSupabaseServerClient();
+
+  const { data } = await supabase
+    .from('tb_upgrade_requests')
+    .select('id, overdue_since, payment_url, asaas_payment_id')
+    .eq('profile_id', profileId)
+    .eq('status', 'approved')
+    .not('overdue_since', 'is', null)
+    .order('overdue_since', { ascending: false })
+    .limit(1)
+    .maybeSingle();
+
+  if (!data?.overdue_since) {
+    return { overdueSince: null, paymentHref: null };
+  }
+
+  const direct = (data.payment_url ?? '').trim();
+  if (direct.startsWith('http://') || direct.startsWith('https://')) {
+    return { overdueSince: data.overdue_since, paymentHref: direct };
+  }
+
+  if (data.asaas_payment_id && data.id) {
+    return {
+      overdueSince: data.overdue_since,
+      paymentHref: `/api/dashboard/payment-invoice-url?requestId=${encodeURIComponent(data.id)}`,
+    };
+  }
+
+  return {
+    overdueSince: data.overdue_since,
+    paymentHref: '/dashboard/assinatura',
+  };
+}

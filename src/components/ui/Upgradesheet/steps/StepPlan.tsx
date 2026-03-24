@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useEffect, useState, useRef } from 'react';
+import React, { useEffect, useMemo, useState, useRef } from 'react';
 import { SheetSection } from '@/components/ui/Sheet';
 import {
   planOrder,
@@ -24,6 +24,11 @@ function formatDate(iso: string): string {
     month: 'long',
     year: 'numeric',
   });
+}
+
+function normalizePlanKeyStep(raw: string | null | undefined): PlanKey {
+  const u = String(raw ?? 'FREE').trim().toUpperCase() as PlanKey;
+  return planOrder.includes(u) ? u : 'FREE';
 }
 
 export function StepPlan() {
@@ -53,13 +58,43 @@ export function StepPlan() {
   const [previewLoaded, setPreviewLoaded] = useState(false);
   const [cancellingScheduled, setCancellingScheduled] = useState(false);
 
+  /**
+   * Plano no cliente (PlanContext / props) — pode estar defasado do tb_profiles.
+   */
+  const clientPlanKey = useMemo((): PlanKey => {
+    const raw = (
+      (profile?.plan_key as PlanKey | undefined) ??
+      planKey ??
+      'FREE'
+    ) as string;
+    return normalizePlanKeyStep(raw);
+  }, [profile?.plan_key, planKey]);
+
+  /** Plano efetivo após `getUpgradePreview` (servidor / getAuthenticatedUser). */
+  const truthPlanKey = useMemo((): PlanKey => {
+    const pk = upgradePreview?.profile_plan_key;
+    if (pk != null) return normalizePlanKeyStep(pk);
+    return clientPlanKey;
+  }, [upgradePreview?.profile_plan_key, clientPlanKey]);
+
+  /**
+   * Card “Seu plano atual”: com `profile_plan_key` do servidor ou após preview carregar no cliente.
+   */
+  const planKeyForCurrentCard = useMemo((): PlanKey | null => {
+    if (upgradePreview?.profile_plan_key != null) {
+      return normalizePlanKeyStep(upgradePreview.profile_plan_key);
+    }
+    if (!previewLoaded) return null;
+    return clientPlanKey;
+  }, [upgradePreview?.profile_plan_key, previewLoaded, clientPlanKey]);
+
   // Pré-busca vencimento do plano atual (tooltip de planos inferiores)
   useEffect(() => {
-    if (planKey === 'FREE' || profile?.is_trial) {
+    if (truthPlanKey === 'FREE' || profile?.is_trial) {
       setDowngradeExpiresAt(null);
       return;
     }
-    const idx = planOrder.indexOf(planKey as PlanKey);
+    const idx = planOrder.indexOf(truthPlanKey);
     if (idx <= 0) return;
     const firstLower = planOrder[idx - 1];
     const t = setTimeout(() => {
@@ -72,13 +107,13 @@ export function StepPlan() {
       );
     }, 150);
     return () => clearTimeout(t);
-  }, [planKey, billingPeriod, billingType, segment]);
+  }, [truthPlanKey, billingPeriod, billingType, segment, profile?.is_trial]);
 
   const previewDebounceMs = 320;
   const previewTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
   useEffect(() => {
-    if (planKey === 'FREE' || selectedPlan === 'FREE' || profile?.is_trial) {
+    if (clientPlanKey === 'FREE' || selectedPlan === 'FREE' || profile?.is_trial) {
       setUpgradePreview(null);
       setPreviewLoaded(true);
       setHasPendingUpgrade(false);
@@ -93,6 +128,7 @@ export function StepPlan() {
     }
     let cancelled = false;
     setPreviewLoaded(false);
+    setUpgradePreview(null);
 
     previewTimeoutRef.current = setTimeout(() => {
       previewTimeoutRef.current = null;
@@ -106,7 +142,10 @@ export function StepPlan() {
 
             const calc = result.calculation;
             const selectedIdx = planOrder.indexOf(selectedPlan as PlanKey);
-            const currentIdx = planOrder.indexOf(planKey as PlanKey);
+            const currentPlanForIdx = result.profile_plan_key
+              ? normalizePlanKeyStep(result.profile_plan_key)
+              : clientPlanKey;
+            const currentIdx = planOrder.indexOf(currentPlanForIdx);
             const isDowngradeByOrder =
               selectedIdx >= 0 && currentIdx >= 0 && selectedIdx < currentIdx;
 
@@ -142,18 +181,19 @@ export function StepPlan() {
     selectedPlan,
     billingType,
     segment,
-    planKey,
+    clientPlanKey,
     setHasPendingUpgrade,
     setUpgradeCalculation,
     setDowngradeBlockedMessage,
+    profile?.is_trial,
   ]);
 
   const calc = upgradePreview?.calculation;
 
   const selectedIdx = planOrder.indexOf(selectedPlan as PlanKey);
-  const currentIdx = planOrder.indexOf(planKey as PlanKey);
+  const currentIdx = planOrder.indexOf(truthPlanKey);
   const isDowngradeByOrder =
-    planKey !== 'FREE' &&
+    truthPlanKey !== 'FREE' &&
     !profile?.is_trial &&
     selectedIdx >= 0 &&
     currentIdx >= 0 &&
@@ -185,6 +225,9 @@ export function StepPlan() {
 
   // Mudança já agendada (pending_change existente)
   const hasScheduledChange = upgradePreview?.has_scheduled_change === true;
+  /** Última solicitação no histórico = cancelada (rótulo "Cancelado" na assinatura). */
+  const latestRequestCancelled =
+    upgradePreview?.latest_request_cancelled === true;
   const scheduledChangePlan = upgradePreview?.scheduled_change_plan_key;
   const scheduledChangeEffectiveAt =
     upgradePreview?.scheduled_change_effective_at;
@@ -201,7 +244,7 @@ export function StepPlan() {
     (calc.residual_credit ?? 0) > 0;
 
   const showLoading =
-    planKey !== 'FREE' &&
+    truthPlanKey !== 'FREE' &&
     !profile?.is_trial &&
     selectedPlan !== 'FREE' &&
     !previewLoaded;
@@ -285,7 +328,8 @@ export function StepPlan() {
           .map((p) => {
             const info = PLANS_BY_SEGMENT[segment]?.[p];
             const perms = PERMISSIONS_BY_PLAN[p];
-            const isCurr = p === (planKey as PlanKey);
+            const isCurr =
+              planKeyForCurrentCard !== null && p === planKeyForCurrentCard;
             const disabled = !profile?.is_trial && isCurr;
             return (
               <PlanCard
@@ -376,10 +420,10 @@ export function StepPlan() {
         </div>
       )}
 
-      {isExempt && selectedPlan === planKey && (
+      {isExempt && selectedPlan === truthPlanKey && (
         <div className="rounded-lg border border-gold/30 bg-gold/5 px-3 py-2.5 text-[11px] text-petroleum">
           <p className="font-medium text-petroleum">
-            Você possui isenção no plano atual {planKey}.
+            Você possui isenção no plano atual {truthPlanKey}.
           </p>
         </div>
       )}

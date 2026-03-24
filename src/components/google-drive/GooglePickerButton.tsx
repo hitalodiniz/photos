@@ -478,8 +478,16 @@ export default function GooglePickerButton({
         })
         .build();
 
+      // 🚀 CORREÇÃO DO SCROLL:
+      // Salva a posição para não "perder" o usuário no formulário longo
+      const currentScroll = window.scrollY;
+
       // console.log('[GooglePickerButton] Picker construído, abrindo...');
       picker.setVisible(true);
+
+      // Força o scroll para o topo para alinhar com o Modal do Google
+      window.scrollTo({ top: 0, behavior: 'instant' });
+
       // console.log('[GooglePickerButton] ✅ Picker.setVisible(true) chamado com sucesso');
       clearTimeout(timeoutId);
     } catch (error: any) {

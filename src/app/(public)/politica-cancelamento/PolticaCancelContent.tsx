@@ -223,10 +223,7 @@ export function CancellationPolicyModal({
           <span className="text-[10px] text-white/80 uppercase tracking-widest">
             20 de março 2026 • Versão 1.0
           </span>
-          <button
-            onClick={onClose}
-            className="px-6 py-2 bg-champagne text-petroleum text-[10px] font-semibold uppercase rounded-luxury hover:bg-white transition-colors"
-          >
+          <button onClick={onClose} className="btn-luxury-primary">
             Compreendi a Política
           </button>
         </div>
@@ -321,8 +318,8 @@ export default function PoliticaCancelamentoPage() {
         sectionTitle="Transparência no Cancelamento"
         sectionSubtitle="Seus direitos e nossas regras explicados sem letras miúdas"
         sectionDescription="Seguimos o Código de Defesa do Consumidor e as melhores práticas do mercado SaaS. Você tem controle total sobre sua assinatura a qualquer momento."
-        showTermsAction={true}
-        onTermsClick={() => setIsModalOpen(true)}
+        showCancellationAction={true}
+        onCancellationClick={() => setIsModalOpen(true)}
       >
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-12">
           {cards.map((card, idx) => (
@@ -331,7 +328,7 @@ export default function PoliticaCancelamentoPage() {
               title={card.title}
               items={card.items}
               icon={card.icon}
-              accentColor={card.accent}
+              accentColor={card.accent as 'petroleum' | 'gold'}
             />
           ))}
         </div>

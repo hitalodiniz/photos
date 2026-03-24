@@ -1,6 +1,8 @@
 // src/core/types/billing.ts
 // Tipos que espelham tb_billing_profiles, tb_upgrade_requests e payloads Asaas.
 
+import type { PlanKey } from '@/core/config/plans';
+
 export type BillingPeriod = 'monthly' | 'semiannual' | 'annual';
 
 // ─── tb_billing_profiles ─────────────────────────────────────────────────────
@@ -27,11 +29,16 @@ export type UpgradeRequestStatus =
   | 'pending'
   | 'processing'
   | 'approved'
+  /** Renovação de ciclo (mesmo plano); espelha enum `upgrade_request_status` no banco. */
+  | 'renewed'
   | 'pending_cancellation'
   | 'pending_downgrade'
   | 'pending_change' // ← NOVO: intenção de downgrade agendada fora dos 7 dias
   | 'rejected'
   | 'cancelled';
+
+/** Valor do enum no Postgres para linhas de renovação (webhook / histórico financeiro). */
+export const UPGRADE_REQUEST_STATUS_RENEWED = 'renewed' as const satisfies UpgradeRequestStatus;
 
 export type BillingType = 'PIX' | 'BOLETO' | 'CREDIT_CARD';
 
@@ -186,6 +193,16 @@ export interface UpgradePreviewResult {
   scheduled_change_effective_at?: string;
   /** Plano agendado quando há pending_change. */
   scheduled_change_plan_key?: string;
+  /**
+   * A linha mais recente em tb_upgrade_requests está com status `cancelled` (ex.: assinatura cancelada).
+   * A UI não deve sugerir agendamento de downgrade como se houvesse ciclo ativo.
+   */
+  latest_request_cancelled?: boolean;
+  /**
+   * plan_key lido de tb_profiles no servidor (getAuthenticatedUser).
+   * Corrige folha/plan desatualizado no cliente (ex.: já FREE no banco, modal ainda com PRO).
+   */
+  profile_plan_key?: PlanKey;
   calculation?: UpgradePriceCalculation;
   error?: string;
 }

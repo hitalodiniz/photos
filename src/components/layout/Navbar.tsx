@@ -32,8 +32,7 @@ import {
 import type { PlanKey } from '@/core/config/plans';
 import { differenceInCalendarDays, parseISO } from 'date-fns';
 import { OverdueBadge } from '../dashboard/OverdueBadge';
-import { getOverdueSince } from '@/core/services/billing.service';
-import { fetchOverdueSince } from '@/actions/billing.actions';
+import { fetchOverdueBadgeData } from '@/actions/billing.actions';
 
 export default function Navbar() {
   const pathname = usePathname();
@@ -63,11 +62,14 @@ export default function Navbar() {
       )
     : 0;
 
-  const [overdueSince, setOverdueSince] = useState<string | null>(null);
+  const [overdueBadge, setOverdueBadge] = useState<{
+    overdueSince: string | null;
+    paymentHref: string | null;
+  }>({ overdueSince: null, paymentHref: null });
 
   useEffect(() => {
     if (!plan.profile?.id) return;
-    fetchOverdueSince(plan.profile.id).then(setOverdueSince);
+    fetchOverdueBadgeData(plan.profile.id).then(setOverdueBadge);
   }, [plan.profile?.id]);
 
   useEffect(() => setMounted(true), []);
@@ -335,7 +337,10 @@ export default function Navbar() {
               </div>
             )}
 
-            <OverdueBadge overdueSince={overdueSince} />
+            <OverdueBadge
+              overdueSince={overdueBadge.overdueSince}
+              paymentHref={overdueBadge.paymentHref}
+            />
             {user && <NotificationMenu userId={user.id} />}
             <UserMenu
               session={user}

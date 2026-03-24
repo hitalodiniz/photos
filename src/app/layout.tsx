@@ -8,7 +8,10 @@ import { SidebarProvider } from '@/components/providers/SidebarProvider';
 import { CookieBanner } from '@/components/ui';
 import { AuthProvider } from '@photos/core-auth';
 import { PlanProvider } from '@/core/context/PlanContext';
-import { getProfileData } from '@/core/services/profile.service';
+import {
+  getProfileData,
+  getProfileDataFresh,
+} from '@/core/services/profile.service';
 import { ThemeSwitcher } from '@/components/debug/ThemeSwitcher';
 import { getThemeFavicon } from '@/core/utils/get-theme-favicon';
 import { SEGMENT_DICTIONARY, SegmentType } from '@/core/config/segments';

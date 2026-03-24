@@ -40,7 +40,8 @@ function toFriendlySaoPauloDateTime(input: string): string {
 }
 
 function formatLineDatesToSaoPaulo(line: string): string {
-  const isoRegex = /\b\d{4}-\d{2}-\d{2}(?:T\d{2}:\d{2}:\d{2}(?:\.\d{1,3})?(?:Z|[+-]\d{2}:?\d{2})?)?\b/g;
+  const isoRegex =
+    /\b\d{4}-\d{2}-\d{2}(?:T\d{2}:\d{2}:\d{2}(?:\.\d{1,3})?(?:Z|[+-]\d{2}:?\d{2})?)?\b/g;
   return line.replace(isoRegex, (match) => {
     // Datas sem horário ficam em formato amigável sem aplicar deslocamento.
     if (/^\d{4}-\d{2}-\d{2}$/.test(match)) {
@@ -65,7 +66,7 @@ function formatPaymentChangeLine(line: string): string {
   const fromLabel = BILLING_TYPE_LABELS[from.trim()] ?? from.trim();
   const toLabel = BILLING_TYPE_LABELS[to.trim()] ?? to.trim();
 
-  return `Troca de método em ${formattedDate.replace(
+  return `Troca de forma de pagamento em ${formattedDate.replace(
     ',',
     ' às',
   )}: de ${fromLabel} para ${toLabel}`;
@@ -183,7 +184,10 @@ type TimelineEvent = {
   tone?: 'default' | 'warning' | 'info';
 };
 
-function buildTimeline(request: UpgradeRequest, parsed: ReturnType<typeof parseNotes>): TimelineEvent[] {
+function buildTimeline(
+  request: UpgradeRequest,
+  parsed: ReturnType<typeof parseNotes>,
+): TimelineEvent[] {
   const lines = parsed.lines ?? [];
   const events: TimelineEvent[] = [];
 
@@ -250,7 +254,8 @@ export function UpgradeRequestNotesSheet({
   );
   const hasScheduledChange = request?.status === 'pending_change';
   const asaasNextDueDate =
-    asaasFieldsFromText.nextDueDate ?? (hasScheduledChange ? request?.processed_at?.slice(0, 10) : undefined);
+    asaasFieldsFromText.nextDueDate ??
+    (hasScheduledChange ? request?.processed_at?.slice(0, 10) : undefined);
 
   const title =
     request?.status === 'pending_downgrade' ||
@@ -333,7 +338,8 @@ export function UpgradeRequestNotesSheet({
                   </p>
                   <p className="text-[11px] font-medium text-petroleum">
                     {billingPeriodLabel(request.billing_period)} •{' '}
-                    {BILLING_TYPE_LABELS[request.billing_type] ?? request.billing_type}
+                    {BILLING_TYPE_LABELS[request.billing_type] ??
+                      request.billing_type}
                   </p>
                 </div>
               </div>
@@ -357,19 +363,24 @@ export function UpgradeRequestNotesSheet({
               </div>
               <p className="text-[11px] text-amber-900/90">
                 Este registro mostra o valor da operação desta linha, não
-                necessariamente a última cobrança já efetivada da assinatura vigente.
+                necessariamente a última cobrança já efetivada da assinatura
+                vigente.
               </p>
               {(asaasNextDueDate || asaasFieldsFromText.endDate) && (
                 <div className="flex flex-col gap-1 text-[11px] text-amber-900/90">
                   {asaasNextDueDate && (
                     <p>
-                      <span className="font-semibold">Próxima cobrança (Asaas):</span>{' '}
+                      <span className="font-semibold">
+                        Próxima cobrança (Asaas):
+                      </span>{' '}
                       {formatDateOnly(asaasNextDueDate) ?? asaasNextDueDate}
                     </p>
                   )}
                   {asaasFieldsFromText.endDate && (
                     <p>
-                      <span className="font-semibold">Fim da assinatura (Asaas):</span>{' '}
+                      <span className="font-semibold">
+                        Fim da assinatura (Asaas):
+                      </span>{' '}
                       {formatDateOnly(asaasFieldsFromText.endDate) ??
                         asaasFieldsFromText.endDate}
                     </p>
@@ -397,7 +408,9 @@ export function UpgradeRequestNotesSheet({
                       <div className="flex items-start gap-2">
                         <Timer size={14} className="mt-0.5 shrink-0" />
                         <div className="min-w-0">
-                          <p className="text-[11px] font-semibold">{event.title}</p>
+                          <p className="text-[11px] font-semibold">
+                            {event.title}
+                          </p>
                           <p className="text-[11px]">{event.description}</p>
                           {event.date && (
                             <p className="text-[10px] opacity-80 mt-1">
@@ -486,90 +499,91 @@ export function UpgradeRequestNotesSheet({
                 <SheetSection title="Detalhes do Agendamento">
                   <div className="space-y-3">
                     {scheduleLines.map((line, idx) => {
-                        // Detecta se é a linha de log de cancelamento solicitado
-                        const cancelMatch = line.match(
-                          /Cancelamento solicitado em (.*?)Z\. Acesso até (.*?)Z/,
-                        );
-                        const reasonMatch = line.match(/Motivo: (.*)/);
+                      // Detecta se é a linha de log de cancelamento solicitado
+                      const cancelMatch = line.match(
+                        /Cancelamento solicitado em (.*?)Z\. Acesso até (.*?)Z/,
+                      );
+                      const reasonMatch = line.match(/Motivo: (.*)/);
 
-                        if (cancelMatch) {
-                          const [, requestedAt, expiresAt] = cancelMatch;
-                          const formatDate = (iso: string) =>
-                            formatDateOnly(`${iso}Z`) ?? formatLineDatesToSaoPaulo(iso);
-
-                          return (
-                            <div
-                              key={idx}
-                              className="p-3 bg-amber-50 rounded-luxury border border-amber-100 space-y-2"
-                            >
-                              <div className="flex items-center gap-2 text-[11px] text-amber-800 font-bold uppercase tracking-tight">
-                                <CalendarClock size={14} />
-                                Ciclo de cancelamento
-                              </div>
-                              <div className="grid grid-cols-1 gap-1 text-[11px] text-amber-900/70">
-                                <p>
-                                  • Solicitado em:{' '}
-                                  <span className="font-semibold">
-                                    {formatDate(requestedAt)}
-                                  </span>
-                                </p>
-                                <p>
-                                  • Acesso garantido até:{' '}
-                                  <span className="font-semibold text-amber-900">
-                                    {formatDate(expiresAt)}
-                                  </span>
-                                </p>
-                              </div>
-                            </div>
-                          );
-                        }
-
-                        if (reasonMatch) {
-                          const reasonKey = reasonMatch[1].trim();
-                          return (
-                            <div
-                              key={idx}
-                              className="p-3 bg-slate-50 rounded-luxury border border-slate-100"
-                            >
-                              <p className="text-[8px] text-slate-400 font-semibold uppercase mb-1">
-                                Motivo do Usuário
-                              </p>
-                              <p className="text-[11px] text-petroleum font-medium">
-                                {CANCEL_REASONS[reasonKey] || reasonKey}
-                              </p>
-                            </div>
-                          );
-                        }
-
-                        // Renderização padrão para outras linhas (como Comentários)
-                        const isSync = line
-                          .toLowerCase()
-                          .includes('sincronização asaas');
-                        const isComment = line.startsWith('Comentário:');
-                        const friendlyLine = formatLineDatesToSaoPaulo(line);
+                      if (cancelMatch) {
+                        const [, requestedAt, expiresAt] = cancelMatch;
+                        const formatDate = (iso: string) =>
+                          formatDateOnly(`${iso}Z`) ??
+                          formatLineDatesToSaoPaulo(iso);
 
                         return (
                           <div
-                            key={`${idx}-${line}`}
-                            className={`p-3 rounded-luxury border border-slate-100 ${
-                              isComment ? 'bg-white italic' : 'bg-slate-50'
-                            }`}
+                            key={idx}
+                            className="p-3 bg-amber-50 rounded-luxury border border-amber-100 space-y-2"
                           >
-                            <span className="flex items-start gap-2 text-[11px] text-slate-700">
-                              {isSync && (
-                                <RefreshCw
-                                  size={12}
-                                  className="text-petroleum/70 mt-0.5"
-                                />
-                              )}
-                              {friendlyLine.replace(
-                                'Comentário:',
-                                '💬 Observação:',
-                              )}
-                            </span>
+                            <div className="flex items-center gap-2 text-[11px] text-amber-800 font-bold uppercase tracking-tight">
+                              <CalendarClock size={14} />
+                              Ciclo de cancelamento
+                            </div>
+                            <div className="grid grid-cols-1 gap-1 text-[11px] text-amber-900/70">
+                              <p>
+                                • Solicitado em:{' '}
+                                <span className="font-semibold">
+                                  {formatDate(requestedAt)}
+                                </span>
+                              </p>
+                              <p>
+                                • Acesso garantido até:{' '}
+                                <span className="font-semibold text-amber-900">
+                                  {formatDate(expiresAt)}
+                                </span>
+                              </p>
+                            </div>
                           </div>
                         );
-                      })}
+                      }
+
+                      if (reasonMatch) {
+                        const reasonKey = reasonMatch[1].trim();
+                        return (
+                          <div
+                            key={idx}
+                            className="p-3 bg-slate-50 rounded-luxury border border-slate-100"
+                          >
+                            <p className="text-[8px] text-slate-400 font-semibold uppercase mb-1">
+                              Motivo do Usuário
+                            </p>
+                            <p className="text-[11px] text-petroleum font-medium">
+                              {CANCEL_REASONS[reasonKey] || reasonKey}
+                            </p>
+                          </div>
+                        );
+                      }
+
+                      // Renderização padrão para outras linhas (como Comentários)
+                      const isSync = line
+                        .toLowerCase()
+                        .includes('sincronização asaas');
+                      const isComment = line.startsWith('Comentário:');
+                      const friendlyLine = formatLineDatesToSaoPaulo(line);
+
+                      return (
+                        <div
+                          key={`${idx}-${line}`}
+                          className={`p-3 rounded-luxury border border-slate-100 ${
+                            isComment ? 'bg-white italic' : 'bg-slate-50'
+                          }`}
+                        >
+                          <span className="flex items-start gap-2 text-[11px] text-slate-700">
+                            {isSync && (
+                              <RefreshCw
+                                size={12}
+                                className="text-petroleum/70 mt-0.5"
+                              />
+                            )}
+                            {friendlyLine.replace(
+                              'Comentário:',
+                              '💬 Observação:',
+                            )}
+                          </span>
+                        </div>
+                      );
+                    })}
                   </div>
                 </SheetSection>
               )}

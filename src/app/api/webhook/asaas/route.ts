@@ -1,7 +1,10 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { createSupabaseAdmin } from '@/lib/supabase.server';
 import { revalidatePath } from 'next/cache';
-import { revalidateUserCache } from '@/actions/revalidate.actions';
+import {
+  revalidateProfileCachesForBilling,
+  revalidateUserCache,
+} from '@/actions/revalidate.actions';
 import { toSaoPauloIso } from '@/core/utils/date-time';
 import type {
   AsaasWebhookPayload,
@@ -10,6 +13,7 @@ import type {
 import { performDowngradeToFree } from '@/core/services/asaas.service';
 import { reactivateAutoArchivedGalleries } from '@/core/services/asaas';
 import type { PlanKey } from '@/core/config/plans';
+import { UPGRADE_REQUEST_STATUS_RENEWED } from '@/core/types/billing';
 
 export async function POST(request: NextRequest) {
   try {
@@ -134,6 +138,32 @@ export async function POST(request: NextRequest) {
       return { valid: true };
     };
 
+    /** Perfil dono do pagamento — fallback quando o select pós-RPC não retorna linha. */
+    const resolveProfileIdForPayment = async (
+      p_paymentId: string | undefined,
+      p_subscriptionId: string | null | undefined,
+    ): Promise<string | null> => {
+      if (p_paymentId) {
+        const { data } = await supabase
+          .from('tb_upgrade_requests')
+          .select('profile_id')
+          .eq('asaas_payment_id', p_paymentId)
+          .maybeSingle();
+        if (data?.profile_id) return data.profile_id;
+      }
+      if (p_subscriptionId) {
+        const { data } = await supabase
+          .from('tb_upgrade_requests')
+          .select('profile_id')
+          .eq('asaas_subscription_id', p_subscriptionId)
+          .order('created_at', { ascending: false })
+          .limit(1)
+          .maybeSingle();
+        if (data?.profile_id) return data.profile_id;
+      }
+      return null;
+    };
+
     const handlePaymentRpc = async (
       p_asaas_status: string,
       p_asaas_subscription_id?: string | null,
@@ -252,7 +282,7 @@ export async function POST(request: NextRequest) {
                     amount_discount: 0,
                     amount_final: paidValue,
                     installments: 1,
-                    status: 'approved',
+                    status: UPGRADE_REQUEST_STATUS_RENEWED,
                     asaas_raw_status: payment?.status ?? 'RECEIVED',
                     processed_at: now,
                     notes: `${billingPeriodLabel(subRow.billing_period)} via webhook Asaas (paymentId: ${paymentId}, subscriptionId: ${subscriptionIdFromPayment})`,
@@ -354,7 +384,7 @@ export async function POST(request: NextRequest) {
                 await supabase
                   .from('tb_upgrade_requests')
                   .update({
-                    status: 'approved',
+                    status: UPGRADE_REQUEST_STATUS_RENEWED,
                     asaas_raw_status: paidStatus,
                     processed_at: paymentTimestamp,
                     notes: `Renovação aprovada via webhook Asaas (paymentId: ${paymentId}). Nova data de vencimento: ${expiry}.`,
@@ -370,14 +400,16 @@ export async function POST(request: NextRequest) {
                       updated_at: nowInSaoPauloIso(),
                     })
                     .eq('asaas_subscription_id', subscriptionId)
-                    .eq('status', 'approved');
+                    .in('status', ['approved', UPGRADE_REQUEST_STATUS_RENEWED]);
                 }
 
-                await revalidateUserCache(renewalProfileId).catch((err) =>
-                  console.warn('[Webhook Asaas] revalidateUserCache:', err),
+                await revalidateProfileCachesForBilling(renewalProfileId).catch(
+                  (err) =>
+                    console.warn(
+                      '[Webhook Asaas] revalidateProfileCachesForBilling:',
+                      err,
+                    ),
                 );
-                revalidatePath('/dashboard');
-                revalidatePath('/dashboard/planos');
                 break;
               }
             }
@@ -407,12 +439,19 @@ export async function POST(request: NextRequest) {
               .eq('asaas_payment_id', paymentId)
               .maybeSingle();
 
-            if (upgradeReq?.profile_id) {
-              await revalidateUserCache(upgradeReq.profile_id).catch((err) =>
-                console.warn(
-                  '[Webhook Asaas] Falha na revalidação de cache:',
-                  err,
-                ),
+            const profileIdForCache =
+              upgradeReq?.profile_id ??
+              (await resolveProfileIdForPayment(
+                paymentId,
+                subscriptionId ?? subscriptionIdFromPayment ?? null,
+              ));
+            if (profileIdForCache) {
+              await revalidateProfileCachesForBilling(profileIdForCache).catch(
+                (err) =>
+                  console.warn(
+                    '[Webhook Asaas] revalidateProfileCachesForBilling:',
+                    err,
+                  ),
               );
             }
 
@@ -446,9 +485,6 @@ export async function POST(request: NextRequest) {
                 .eq('asaas_subscription_id', subscriptionId)
                 .eq('status', 'approved');
             }
-
-            revalidatePath('/dashboard');
-            revalidatePath('/dashboard/planos');
           }
           break;
         }

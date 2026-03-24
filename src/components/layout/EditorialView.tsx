@@ -38,7 +38,9 @@ export default function EditorialView({
   showHeroAction = false, // Novo parâmetro para controlar o Login
   showTermsAction = false, // Nova prop para Termos
   showPrivacyAction = false, // Nova prop para Privacidade
+  showCancellationAction = false, // Nova prop para Cancelamento
   onTermsClick, // Callback para abrir o modal
+  onCancellationClick, // Callback para abrir o modal
   onPrivacyClick, // Callback para abrir o modal
   hideContentSection = false, // Nova prop para flexibilidade
   heroCustomAction, // 🎯 Nova Prop para os Cards de Decisão
@@ -130,7 +132,10 @@ export default function EditorialView({
               {/* 🎯 Injeção do Modo Compacto aqui */}
 
               {/* 🎯 Lado Direito: Ações (Google, Termos ou Privacidade) */}
-              {(showHeroAction || showTermsAction || showPrivacyAction) && (
+              {(showHeroAction ||
+                showTermsAction ||
+                showPrivacyAction ||
+                showCancellationAction) && (
                 <div className="flex flex-col items-center gap-2 animate-in fade-in slide-in-from-right-4 duration-1000">
                   <div className="w-full text-left md:text-right">
                     <p className="text-white text-base md:text-lg font-medium italic leading-tight drop-shadow-md">
@@ -139,14 +144,14 @@ export default function EditorialView({
                   </div>
 
                   {/* Bloco de Ação: Botão e Selo Centralizados entre si */}
-                  <div className="flex flex-col items-center gap-3 w-full max-w-[280px]">
+                  <div className="flex flex-col items-center gap-3 w-full max-w-[500px]">
                     <div className="w-full transform transition-all hover:scale-105 shadow-[0_20px_50px_rgba(0,0,0,0.3)]">
                       {showHeroAction && <GoogleSignInButton variant="full" />}
                       {/* Botão de Termos (Estilo Luxury) */}
                       {showTermsAction && (
                         <button
                           onClick={onTermsClick}
-                          className="w-full bg-white py-3 px-6 rounded-luxury flex items-center justify-center gap-3 group transition-all"
+                          className="w-full bg-white py-2 px-3 rounded-md flex items-center justify-center gap-2 group transition-all"
                         >
                           <FileText size={18} className="text-gold" />
                           <span className="text-[12px] text-petroleum font-semibold uppercase tracking-luxury-tight">
@@ -154,12 +159,22 @@ export default function EditorialView({
                           </span>
                         </button>
                       )}
-
+                      {showCancellationAction && (
+                        <button
+                          onClick={onCancellationClick}
+                          className="w-full bg-white py-2 px-3 rounded-md flex items-center justify-center gap-2 group transition-all"
+                        >
+                          <FileText size={18} className="text-gold" />
+                          <span className="text-[12px] text-petroleum font-semibold uppercase tracking-luxury-tight">
+                            Ler Política de Cancelamento
+                          </span>
+                        </button>
+                      )}
                       {/* Botão de Privacidade (Estilo Luxury) */}
                       {showPrivacyAction && (
                         <button
                           onClick={onPrivacyClick}
-                          className="w-full bg-white py-3 px-6 rounded-luxury flex items-center justify-center gap-3 group transition-all"
+                          className="w-full bg-white py-2 px-3 rounded-md flex items-center justify-center gap-2 group transition-all"
                         >
                           <Lock size={18} className="text-gold" />
                           <span className="text-[12px] text-petroleum font-semibold uppercase tracking-luxury-tight">

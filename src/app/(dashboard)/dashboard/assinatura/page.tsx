@@ -41,6 +41,36 @@ export interface AssinaturaPageData {
   >;
 }
 
+function isRenewedHistoryStatus(status: unknown): boolean {
+  return String(status ?? '').toUpperCase() === 'RENEWED';
+}
+
+/**
+ * Assinatura Asaas do ciclo vigente. Quando pending_downgrade/cancellation tem ID
+ * divergente do último aprovado, usa o do aprovado (é a assinatura real em vigência).
+ */
+function resolveActiveSubscriptionId(history: UpgradeRequest[]): string | null {
+  const latestApprovedWithSub = history.find(
+    (item) =>
+      (item.status === 'approved' || isRenewedHistoryStatus(item.status)) &&
+      !!item.asaas_subscription_id?.trim(),
+  );
+  const latestPendingCancelWithSub = history.find(
+    (item) =>
+      (item.status === 'pending_cancellation' ||
+        item.status === 'pending_downgrade') &&
+      !!item.asaas_subscription_id?.trim(),
+  );
+  const approvedSub =
+    latestApprovedWithSub?.asaas_subscription_id?.trim() ?? '';
+  const pendingSub =
+    latestPendingCancelWithSub?.asaas_subscription_id?.trim() ?? '';
+  if (approvedSub && pendingSub && approvedSub !== pendingSub) {
+    return approvedSub;
+  }
+  return pendingSub || approvedSub || null;
+}
+
 async function getAssinaturaPageData(
   profile: Profile,
 ): Promise<AssinaturaPageData> {
@@ -51,13 +81,6 @@ async function getAssinaturaPageData(
 
   const latest = history[0];
   const hasPaidPlan = profile.plan_key !== 'FREE';
-  const currentVigenteRequest = history.find(
-    (item) =>
-      !!item?.asaas_subscription_id?.trim() &&
-      (item.status === 'approved' ||
-        item.status === 'pending_cancellation' ||
-        item.status === 'pending_downgrade'),
-  );
 
   // Se o usuário está atualmente no plano FREE, o status mostrado deve ser "Gratuito",
   // independentemente do que o Asaas retornar para assinaturas antigas.
@@ -68,11 +91,9 @@ async function getAssinaturaPageData(
     subscriptionStatus = (latest?.status as string) ?? 'ACTIVE';
   }
 
-  const activeSubscriptionId =
-    hasPaidPlan &&
-    currentVigenteRequest?.asaas_subscription_id?.trim()
-      ? currentVigenteRequest.asaas_subscription_id.trim()
-      : null;
+  const activeSubscriptionId = hasPaidPlan
+    ? resolveActiveSubscriptionId(history as UpgradeRequest[])
+    : null;
 
   const latestRequestStatus = latest?.status ?? null;
 

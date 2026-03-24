@@ -15,3 +15,17 @@ export const formatDateLong = (dateString: string) => {
     day: 'numeric',
   });
 };
+
+export const getEndOfDaySaoPauloIso = (date: Date): string => {
+  const saoPauloDate = getSaoPauloDateString(date);
+  return new Date(`${saoPauloDate}T23:59:59-03:00`).toISOString();
+};
+
+export const getSaoPauloDateString = (date: Date): string => {
+  return new Intl.DateTimeFormat('en-CA', {
+    timeZone: 'America/Sao_Paulo',
+    year: 'numeric',
+    month: '2-digit',
+    day: '2-digit',
+  }).format(date);
+};

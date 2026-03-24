@@ -31,6 +31,7 @@ import type {
   UpgradeRequestPayload,
   UpgradeRequestResult,
 } from '@/core/types/billing';
+import { UPGRADE_REQUEST_STATUS_RENEWED } from '@/core/types/billing';
 
 // Imports dos novos módulos
 import { getNeedsAdjustment } from './asaas/gallery/adjustments';
@@ -72,6 +73,13 @@ import {
 import { getPixQrCodeFromPayment } from './asaas/api/pix';
 import { reactivateAutoArchivedGalleries as reactivateAutoArchivedGalleriesImpl } from './asaas/gallery/adjustments';
 import { toSaoPauloIso } from '@/core/utils/date-time';
+
+/** Renovação de ciclo (mesmo plano no Asaas) — valor do enum em `tb_upgrade_requests.status`. */
+export async function isRenewalUpgradeRequestStatus(
+  status: string | null | undefined,
+): Promise<boolean> {
+  return String(status ?? '').toLowerCase() === UPGRADE_REQUEST_STATUS_RENEWED;
+}
 
 // ═══════════════════════════════════════════════════════════════════════════════
 // 📋 TIPOS E INTERFACES (usados pelas funções abaixo)
@@ -131,14 +139,18 @@ interface ResolvedCoupon {
     | undefined;
 }
 
-function normalizeCouponDiscountType(v: string | null | undefined): CouponDiscountType {
+function normalizeCouponDiscountType(
+  v: string | null | undefined,
+): CouponDiscountType {
   const raw = String(v ?? '').toLowerCase();
   return raw.includes('percent') || raw.includes('perc')
     ? 'percentage'
     : 'fixed';
 }
 
-function normalizeCouponApplyMode(v: string | null | undefined): CouponApplyMode {
+function normalizeCouponApplyMode(
+  v: string | null | undefined,
+): CouponApplyMode {
   return String(v ?? '').toLowerCase() === 'forever' ? 'forever' : 'once';
 }
 
@@ -219,9 +231,9 @@ async function resolveCouponForAmount(
               ? Number(coupon.discount_value ?? 0)
               : discountAmount,
           dueDateLimitDays: 0,
-          type: (discountType === 'percentage'
-            ? 'PERCENTAGE'
-            : 'FIXED') as 'PERCENTAGE' | 'FIXED',
+          type: (discountType === 'percentage' ? 'PERCENTAGE' : 'FIXED') as
+            | 'PERCENTAGE'
+            | 'FIXED',
         }
       : undefined;
 
@@ -244,19 +256,26 @@ async function applyCouponToCalculationPreview(
   const code = String(couponCodeRaw ?? '').trim();
   if (!code) return { calculation };
 
-  const couponResolution = await resolveCouponForAmount(code, calculation.amount_final);
-  if (couponResolution.error) return { calculation, error: couponResolution.error };
+  const couponResolution = await resolveCouponForAmount(
+    code,
+    calculation.amount_final,
+  );
+  if (couponResolution.error)
+    return { calculation, error: couponResolution.error };
   const coupon = couponResolution.coupon;
   if (!coupon) return { calculation };
 
-  const nextAmountFinal = coupon.applyMode === 'forever'
-    ? coupon.finalAmount
-    : round2(Math.max(0, calculation.amount_final - coupon.discountAmount));
+  const nextAmountFinal =
+    coupon.applyMode === 'forever'
+      ? coupon.finalAmount
+      : round2(Math.max(0, calculation.amount_final - coupon.discountAmount));
   return {
     calculation: {
       ...calculation,
       amount_final: nextAmountFinal,
-      amount_discount: round2(calculation.amount_discount + coupon.discountAmount),
+      amount_discount: round2(
+        calculation.amount_discount + coupon.discountAmount,
+      ),
       coupon_code_applied: coupon.row.code,
       coupon_discount_amount: coupon.discountAmount,
       coupon_apply_mode: coupon.applyMode,
@@ -731,6 +750,13 @@ export async function calculateUpgradePrice(
   };
 }
 
+function normalizeProfilePlanKeyForPreview(
+  planKey: string | null | undefined,
+): PlanKey {
+  const raw = String(planKey ?? 'FREE').trim().toUpperCase() as PlanKey;
+  return planOrder.includes(raw) ? raw : 'FREE';
+}
+
 /**
  * Preview de upgrade/downgrade para exibir no modal antes da confirmação.
  * Também detecta intenções de mudança agendadas (pending_change).
@@ -751,7 +777,21 @@ export async function getUpgradePreview(
         error: 'Usuário não autenticado',
       };
 
+    const profilePlanKeyForPreview = normalizeProfilePlanKeyForPreview(
+      profile?.plan_key as string | undefined,
+    );
+
     const supabase = await createSupabaseServerClient();
+
+    const { data: latestRequestRow } = await supabase
+      .from('tb_upgrade_requests')
+      .select('status')
+      .eq('profile_id', userId)
+      .order('created_at', { ascending: false })
+      .limit(1)
+      .maybeSingle();
+    const latestRequestCancelled =
+      latestRequestRow?.status === 'cancelled';
 
     // ── Verifica pending normal (pagamento em processamento) ────────────────
     const pending = await getPendingUpgradeRequest(userId, supabase);
@@ -761,6 +801,8 @@ export async function getUpgradePreview(
         has_active_plan: false,
         has_pending: true,
         calculation: undefined,
+        latest_request_cancelled: latestRequestCancelled,
+        profile_plan_key: profilePlanKeyForPreview,
       };
 
     // ── NOVO: Verifica pending_change ativo ──────────────────────────────────
@@ -773,12 +815,11 @@ export async function getUpgradePreview(
       .limit(1)
       .maybeSingle();
 
-    const currentPlanKeyFromProfile = profile?.plan_key
-      ? (String(profile.plan_key).toUpperCase() as PlanKey)
-      : undefined;
+    const currentPlanKeyFromProfile =
+      profilePlanKeyForPreview !== 'FREE' ? profilePlanKeyForPreview : undefined;
 
     let current: CurrentActiveRequestRow | null = null;
-    if (currentPlanKeyFromProfile && currentPlanKeyFromProfile !== 'FREE') {
+    if (currentPlanKeyFromProfile) {
       current = await getCurrentActiveRequest(
         userId,
         currentPlanKeyFromProfile,
@@ -816,20 +857,19 @@ export async function getUpgradePreview(
     const calculationWithBillingType = couponAppliedResult.calculation
       ? {
           ...couponAppliedResult.calculation,
-          current_billing_type: (current?.billing_type as BillingType | null) ??
-            null,
+          current_billing_type:
+            (current?.billing_type as BillingType | null) ?? null,
         }
       : couponAppliedResult.calculation;
 
-    const hasPlan =
-      !!current ||
-      (!!currentPlanKeyFromProfile && currentPlanKeyFromProfile !== 'FREE');
+    const hasPlan = !!current || !!currentPlanKeyFromProfile;
 
     return {
       success: true,
       has_active_plan: hasPlan,
-      is_current_plan:
-        couponAppliedResult.calculation.type === 'current_plan',
+      is_current_plan: couponAppliedResult.calculation.type === 'current_plan',
+      latest_request_cancelled: latestRequestCancelled,
+      profile_plan_key: profilePlanKeyForPreview,
       calculation: calculationWithBillingType,
       // Propaga info do pending_change para a UI
       ...(scheduledChange && {
@@ -1201,6 +1241,11 @@ export async function performDowngradeToFree(
 /**
  * Cancela a assinatura do usuário autenticado.
  */
+import {
+  getEndOfDaySaoPauloIso,
+  getSaoPauloDateString,
+} from '../utils/data-helpers';
+
 export async function handleSubscriptionCancellation(
   opts:
     | { reason?: string | null; comment?: string }
@@ -1278,8 +1323,8 @@ export async function handleSubscriptionCancellation(
     };
   }
 
-  const accessEndsAtIso = accessEndsAt.toISOString();
-  const endDateStr = accessEndsAt.toISOString().split('T')[0];
+  const accessEndsAtIso = getEndOfDaySaoPauloIso(accessEndsAt);
+  const endDateStr = getSaoPauloDateString(accessEndsAt);
   let amountPaid =
     typeof (request as any).amount_final === 'number' &&
     (request as any).amount_final > 0
@@ -1383,11 +1428,7 @@ export async function handleSubscriptionCancellation(
     );
   }
 
-  await supabase
-    .from('tb_profiles')
-    .update({ is_cancelling: true, updated_at: now.toISOString() })
-    .eq('id', userId);
-  const { error: updateCancelErr } = await supabase
+  const { data: updatedCancelRow, error: updateCancelErr } = await supabase
     .from('tb_upgrade_requests')
     .update({
       status: 'pending_downgrade',
@@ -1400,7 +1441,9 @@ export async function handleSubscriptionCancellation(
       ),
       updated_at: now.toISOString(),
     })
-    .eq('id', request.id);
+    .eq('id', request.id)
+    .select('id, scheduled_cancel_at, status')
+    .maybeSingle();
   if (updateCancelErr) {
     console.error(
       '[Cancellation] failed to persist pending_downgrade:',
@@ -1408,11 +1451,42 @@ export async function handleSubscriptionCancellation(
     );
     return {
       success: false,
-      error:
-        updateCancelErr.message?.includes('scheduled_cancel_at')
-          ? 'A coluna scheduled_cancel_at ainda não foi aplicada no banco. Execute as migrations pendentes.'
-          : 'Não foi possível salvar o cancelamento no histórico local.',
+      error: updateCancelErr.message?.includes('scheduled_cancel_at')
+        ? 'A coluna scheduled_cancel_at ainda não foi aplicada no banco. Execute as migrations pendentes.'
+        : 'Não foi possível salvar o cancelamento no histórico local.',
     };
+  }
+  // Hardening: alguns ambientes podem limpar/ignorar campos via trigger.
+  // Se scheduled_cancel_at não voltar preenchido, forçamos em um 2º update.
+  if (!updatedCancelRow?.id || !updatedCancelRow?.scheduled_cancel_at) {
+    const { data: forcedRow, error: forceScheduleErr } = await supabase
+      .from('tb_upgrade_requests')
+      .update({
+        scheduled_cancel_at: accessEndsAtIso,
+        updated_at: now.toISOString(),
+      })
+      .eq('id', request.id)
+      .eq('profile_id', userId)
+      .select('id, scheduled_cancel_at')
+      .maybeSingle();
+    if (forceScheduleErr) {
+      console.error(
+        '[Cancellation] failed to force scheduled_cancel_at:',
+        forceScheduleErr,
+      );
+      return {
+        success: false,
+        error:
+          'Cancelamento registrado, mas não foi possível persistir scheduled_cancel_at.',
+      };
+    }
+    if (!forcedRow?.id || !forcedRow?.scheduled_cancel_at) {
+      return {
+        success: false,
+        error:
+          'Cancelamento não foi aplicado ao registro local. Verifique políticas RLS da tb_upgrade_requests.',
+      };
+    }
   }
   await supabase.from('tb_plan_history').insert({
     profile_id: userId,
@@ -1736,7 +1810,8 @@ export async function requestUpgrade(
     Boolean(calculation.new_expiry_date) &&
     amountFinal > 0 &&
     !calculation.is_free_upgrade;
-  const nextDueDateFromCalculation = calculation.new_expiry_date?.split('T')[0] ?? null;
+  const nextDueDateFromCalculation =
+    calculation.new_expiry_date?.split('T')[0] ?? null;
   const residualCreditValue = calculation.residual_credit ?? 0;
   const hasResidualCredit = residualCreditValue > 0;
   const notesCredit =
@@ -1749,7 +1824,9 @@ export async function requestUpgrade(
   const baseRequestNotes = isFirstSubscription
     ? `Início do plano ${planInfo.name}: primeira assinatura criada${billingPeriod ? ` (${billingPeriod})` : ''}.`
     : `Solicitação de alteração para o plano ${planInfo.name}${billingPeriod ? ` (${billingPeriod})` : ''}.`;
-  const requestNotes = [baseRequestNotes, notesCredit].filter(Boolean).join('\n');
+  const requestNotes = [baseRequestNotes, notesCredit]
+    .filter(Boolean)
+    .join('\n');
   const asaasCycle: 'MONTHLY' | 'SEMIANNUALLY' | 'YEARLY' =
     billingPeriod === 'annual'
       ? 'YEARLY'
@@ -1762,7 +1839,9 @@ export async function requestUpgrade(
   // - Upgrade sem crédito: valor cheio do plano para cobrança imediata.
   // - Upgrade com crédito: respeita amountFinal calculado (evita cobrar valor cheio indevido).
   const hasCreditApplied = amountDiscount > 0;
-  const baseSubscriptionValue = hasCreditApplied ? amountFinal : planPricePerPeriod;
+  const baseSubscriptionValue = hasCreditApplied
+    ? amountFinal
+    : planPricePerPeriod;
   const couponResolution = await resolveCouponForAmount(
     payload.coupon_code,
     baseSubscriptionValue,
@@ -1774,14 +1853,18 @@ export async function requestUpgrade(
   const couponDiscountAmount = appliedCoupon?.discountAmount ?? 0;
   const couponIsForever = appliedCoupon?.applyMode === 'forever';
   const couponAsaasDiscount =
-    appliedCoupon?.applyMode === 'once' ? appliedCoupon.asaasDiscount : undefined;
+    appliedCoupon?.applyMode === 'once'
+      ? appliedCoupon.asaasDiscount
+      : undefined;
   const subscriptionValue = couponIsForever
     ? (appliedCoupon?.finalAmount ?? baseSubscriptionValue)
     : baseSubscriptionValue;
   const amountFinalWithCoupon = couponIsForever
     ? subscriptionValue
     : round2(Math.max(0, baseSubscriptionValue - couponDiscountAmount));
-  const amountDiscountWithCoupon = round2(amountDiscount + couponDiscountAmount);
+  const amountDiscountWithCoupon = round2(
+    amountDiscount + couponDiscountAmount,
+  );
   const couponNotes = appliedCoupon
     ? `Cupom aplicado (${appliedCoupon.row.code}): ${appliedCoupon.applyMode === 'forever' ? 'desconto recorrente em todos os ciclos' : 'desconto somente na primeira cobrança'} no valor de R$ ${appliedCoupon.discountAmount.toFixed(2)}.`
     : null;
@@ -2006,7 +2089,8 @@ export async function requestUpgrade(
   if (!asaasSubscriptionId) {
     return { success: false, error: 'Assinatura Asaas não disponível.' };
   }
-  const paymentResult = await getFirstPaymentFromSubscription(asaasSubscriptionId);
+  const paymentResult =
+    await getFirstPaymentFromSubscription(asaasSubscriptionId);
   let asaasPaymentId: string | null = null;
   let paymentUrl: string | null = null;
   let paymentDueDate: string | undefined;

@@ -258,8 +258,22 @@ export function UpgradeSheet({
   onClose,
   featureKey,
   initialPlanKey: initialPlanKeyProp,
+  profileSource,
 }: UpgradeSheetProps) {
-  const { planKey, profile, email } = usePlan();
+  const ctx = usePlan();
+  const profile = profileSource ?? ctx.profile;
+  const email = profile?.email ?? ctx.email;
+
+  const planKey = React.useMemo((): PlanKey => {
+    if (profileSource) {
+      const raw = String(
+        profileSource.plan_key ?? 'FREE',
+      ).toUpperCase() as PlanKey;
+      return planOrder.includes(raw) ? raw : 'FREE';
+    }
+    return ctx.planKey as PlanKey;
+  }, [profileSource, ctx.planKey]);
+
   const { terms, segment } = useSegment();
 
   const suggestedPlanKey = React.useMemo((): PlanKey => {
@@ -273,8 +287,8 @@ export function UpgradeSheet({
       isOpen={isOpen}
       onClose={onClose}
       suggestedPlanKey={suggestedPlanKey}
-      planKey={planKey as PlanKey}
-      profile={profile}
+      planKey={planKey}
+      profile={profile ?? null}
       email={email}
       segment={segment}
       terms={terms}

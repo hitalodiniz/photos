@@ -96,15 +96,12 @@ export function GaleriaDriveSection({
   const isOverHardCap = isOverHardCapProp ?? photoCount > hardCap;
   const isOverRecommended =
     !isOverHardCap && !isOverPoolCap && photoCount > alertThreshold; // usa alertThreshold
-  const isCompatible =
-    photoCount > 0 && !isOverHardCap && !isOverPoolCap && !isOverRecommended;
 
   // ── Créditos restantes no pool (dinâmico) ─────────────────────────────────
   const remainingCreditsAfterThis = Math.max(
     0,
     totalPool - usedPhotoCredits - photoCount,
   );
-  const maxGalleriesInPlan = permissions.maxGalleriesHardCap ?? 3;
 
   const lastFiredPoolExceededRef = useRef<string | null>(null);
   // Abre o modal de cota do pool uma vez por pasta quando excede o disponível (ex.: 230 na pasta, 220 no pool).
@@ -185,11 +182,12 @@ export function GaleriaDriveSection({
           {driveData.id && photoCount > 0 && (
             <div className="space-y-2">
               <div className="text-[10px] text-slate-600 bg-slate-100 border border-slate-200 rounded px-2 py-1">
-                Selecionados para esta galeria: <strong>{selectedPhotos}</strong>{' '}
-                foto{selectedPhotos !== 1 ? 's' : ''} e{' '}
+                Arquivos selecionados:{'  '}
+                <strong>{selectedPhotos}</strong> foto
+                {selectedPhotos !== 1 ? 's' : ''} e{' '}
                 <strong>{selectedVideos}</strong> video
-                {selectedVideos !== 1 ? 's' : ''} (respeitando os limites do
-                plano).
+                {selectedVideos !== 1 ? 's' : ''} (de acordo com os limites do
+                seu plano).
               </div>
               {/* ESTADO 1: Limite por Galeria Excedido (BLOQUEIO) */}
               {isOverHardCap && (
@@ -223,25 +221,24 @@ export function GaleriaDriveSection({
                     </p>
                     <div className="text-[12px] text-red-600 leading-relaxed font-medium">
                       <p>
-                        Esta pasta possui{' '}
+                        Foram selecionados nesta pasta{' '}
                         <strong>
-                          {photoCount.toLocaleString('pt-BR')} fotos
+                          {photoCount.toLocaleString('pt-BR')} arquivos
                         </strong>
-                        , mas sua cota atual só permite exibir{' '}
+                        , mas sua cota atual só permite exibir somente{' '}
                         <strong>
                           {creditsInPoolForMessage.toLocaleString('pt-BR')}{' '}
-                          arquivos
                         </strong>
                         .
                       </p>
                       <p className="mt-2 text-[11px] bg-red-100/50 p-2 rounded border border-red-200">
                         {creditsInPoolForMessage === 0
                           ? 'Nenhuma foto adicional desta pasta será exibida enquanto a cota permanecer cheia.'
-                          : `Serão exibidas apenas as primeiras ${creditsInPoolForMessage.toLocaleString(
+                          : `Serão exibidos apenas os primeiros ${creditsInPoolForMessage.toLocaleString(
                               'pt-BR',
                             )} de ${photoCount.toLocaleString(
                               'pt-BR',
-                            )} fotos desta pasta.`}
+                            )} arquivos desta pasta.`}
                       </p>
                     </div>
                   </div>
@@ -335,11 +332,11 @@ export function GaleriaDriveSection({
 
               {/* ESTADO 3: Compatível (CONFIRMAÇÃO) */}
               {/* ESTADO 3: Compatível (CONFIRMAÇÃO) */}
-              {isCompatible && (
+              {/* {isCompatible && (
                 <div className="p-3  rounded-luxury border bg-emerald-50 border-emerald-200 flex gap-3 shadow-sm">
                   <div className="space-y-1">
                     {/* Adicionada a contagem de arquivos aqui para manter o padrão dos outros estados */}
-                    <p className="flex items-center gap-2 text-[11px] font-semibold uppercase text-emerald-700 tracking-wider">
+              {/* <p className="flex items-center gap-2 text-[11px] font-semibold uppercase text-emerald-700 tracking-wider">
                       <CheckCircle2
                         size={16}
                         className="text-emerald-500 shrink-0"
@@ -352,17 +349,15 @@ export function GaleriaDriveSection({
                         <strong>{alertThreshold} arquivos</strong> do seu plano.
                       </p>
                       <p className="mt-1 opacity-90">
-                        Você ainda possui{' '}
+                        Cota restante de arquivos:{' '}
                         <strong>
-                          {remainingCreditsAfterThis.toLocaleString('pt-BR')} na
-                          sua cota
+                          {remainingCreditsAfterThis.toLocaleString('pt-BR')}
                         </strong>{' '}
-                        de arquivos.
                       </p>
                     </div>
                   </div>
-                </div>
-              )}
+                </div> */}
+              {/* )} */}
             </div>
           )}
 

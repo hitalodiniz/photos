@@ -20,15 +20,15 @@ export default async function OnboardingPage() {
 
   const profile = data.profile;
 
-  console.log('🔍 [SERVER] Onboarding Page - Profile Data:', {
-    userId: data.user_id,
-    email: profile?.email,
-    username: profile?.username,
-    plan_key: profile?.plan_key,
-    plan_trial_expires: profile?.plan_trial_expires,
-    accepted_terms: profile?.accepted_terms,
-    created_at: profile?.created_at,
-  });
+  // console.log('🔍 [SERVER] Onboarding Page - Profile Data:', {
+  //   userId: data.user_id,
+  //   email: profile?.email,
+  //   username: profile?.username,
+  //   plan_key: profile?.plan_key,
+  //   plan_trial_expires: profile?.plan_trial_expires,
+  //   accepted_terms: profile?.accepted_terms,
+  //   created_at: profile?.created_at,
+  // });
 
   // 3. Verificações (não redireciona se já aceitou termos — permite "Editar Perfil" no menu)
   const isGoogleConnected = !!profile?.google_refresh_token;
@@ -39,12 +39,12 @@ export default async function OnboardingPage() {
   );
 
   // ✅ DEBUG: Log para verificar se o plano está sendo carregado
-  console.log('📊 Profile Data:', {
-    plan_key: profile?.plan_key,
-    plan_trial_expires: profile?.plan_trial_expires,
-    accepted_terms: profile?.accepted_terms,
-    is_trial: profile?.is_trial,
-  });
+  // console.log('📊 Profile Data:', {
+  //   plan_key: profile?.plan_key,
+  //   plan_trial_expires: profile?.plan_trial_expires,
+  //   accepted_terms: profile?.accepted_terms,
+  //   is_trial: profile?.is_trial,
+  // });
 
   return (
     <PlanProvider profile={profile}>

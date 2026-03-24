@@ -197,10 +197,7 @@ export function TermsOfServiceModal({
           <span className="text-[10px] text-white/80 uppercase tracking-widest">
             4 de fevereiro 2026 • Versão 1.0
           </span>
-          <button
-            onClick={onClose}
-            className="px-6 py-2 bg-champagne text-petroleum text-[10px] font-semibold uppercase rounded-luxury hover:bg-white transition-colors"
-          >
+          <button onClick={onClose} className="btn-luxury-primary">
             Compreendi os Termos
           </button>
         </div>
