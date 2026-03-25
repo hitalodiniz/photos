@@ -35,7 +35,7 @@ export const GalleryInteractionFields = ({
       <div className="flex items-center justify-between p-3 bg-slate-50/50 rounded-luxury border border-petroleum/10 h-12">
         <div className="flex items-center gap-2">
           <Heart
-            size={14}
+            size={16}
             className={`transition-colors ${favoritesOn ? 'text-gold' : 'text-petroleum/40'}`}
           />
           <span className="text-[10px] font-bold uppercase tracking-widest text-petroleum">
@@ -74,7 +74,7 @@ export const GalleryInteractionFields = ({
       <div className="flex items-center justify-between p-3 bg-slate-50/50 rounded-luxury border border-petroleum/10 h-12">
         <div className="flex items-center gap-2">
           <PlayCircle
-            size={14}
+            size={16}
             className={`transition-colors ${slideshowOn ? 'text-gold' : 'text-petroleum/40'}`}
           />
           <span className="text-[10px] font-bold uppercase tracking-widest text-petroleum">

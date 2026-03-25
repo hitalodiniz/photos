@@ -216,7 +216,7 @@ export default function GalleryAccessPortal({
         ) : (
           <>
             <CheckCircle
-              size={14}
+              size={16}
               className="group-hover:scale-110 transition-transform"
             />
             <span>Acessar Galeria</span>

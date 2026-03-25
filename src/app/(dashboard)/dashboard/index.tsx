@@ -203,6 +203,7 @@ export default function Dashboard({
               currentView={filters.currentView}
               onBulkArchive={actions.handleBulkArchive}
               onBulkDelete={actions.handleBulkDelete}
+              onBulkPermanentDelete={actions.handleBulkPermanentDelete}
               onBulkRestore={actions.handleBulkRestore}
               isUpdating={actions.updatingId === 'bulk'}
               setIsBulkMode={actions.setIsBulkMode}

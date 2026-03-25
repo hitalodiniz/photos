@@ -153,10 +153,10 @@ export function SheetSection({
 }) {
   return (
     <div
-      className={`px-6 py-3 border-b border-slate-100 space-y-2 ${className}`}
+      className={`px-6 py-2 border-b border-slate-100 space-y-2 ${className}`}
     >
       {title && (
-        <p className="text-xs font-semibold uppercase tracking-wider pub-bar-text/70 mb-2">
+        <p className="text-[10px] font-semibold uppercase tracking-wider pub-bar-text/70 mb-2">
           {title}
         </p>
       )}

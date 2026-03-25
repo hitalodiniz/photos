@@ -265,7 +265,7 @@ export default function PasswordInput({
     >
       {label && (
         <label className="flex items-center gap-2 text-[11px] uppercase tracking-widest text-petroleum/60 font-semibold">
-          <ShieldCheck size={14} style={{ color: accentColor }} />
+          <ShieldCheck size={16} style={{ color: accentColor }} />
           <span>{label}</span>
         </label>
       )}
@@ -288,7 +288,7 @@ export default function PasswordInput({
           onClick={() => setShowPassword(!showPassword)}
           className="text-petroleum/80 hover:text-gold transition-colors p-1.5 bg-white/5 rounded-md border border-white/10"
         >
-          {showPassword ? <Eye size={14} /> : <EyeOff size={14} />}
+          {showPassword ? <Eye size={16} /> : <EyeOff size={16} />}
         </button>
       </div>
       {error && (

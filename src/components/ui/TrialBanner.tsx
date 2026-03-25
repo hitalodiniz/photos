@@ -43,7 +43,7 @@ export default function TrialBanner() {
           className="h-10 px-6 bg-gold hover:bg-white text-petroleum font-bold text-[10px] uppercase tracking-luxury rounded-luxury flex items-center gap-2 transition-all active:scale-95 shadow-lg shadow-gold/10"
         >
           Garantir Plano Vitalício
-          <ArrowRight size={14} />
+          <ArrowRight size={16} />
         </button>
       </div>
     </div>

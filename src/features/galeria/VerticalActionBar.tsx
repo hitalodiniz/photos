@@ -319,7 +319,7 @@ export function VerticalActionBar({
                   aria-label="Fechar tooltip"
                   type="button"
                 >
-                  <X size={14} />
+                  <X size={16} />
                 </button>
               </div>
               <p className="text-[11px] leading-tight font-medium">

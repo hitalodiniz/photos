@@ -11,6 +11,7 @@ import {
   AlertCircle,
   Banknote,
   Tag,
+  X,
 } from 'lucide-react';
 import { SheetSection } from '@/components/ui/Sheet';
 import { FieldLabel } from '../FieldLabel';
@@ -140,11 +141,9 @@ function PriceBreakdown({
         </div>
 
         <div className="space-y-1 text-[10.5px]">
-          <div className="flex justify-between text-emerald-800/80">
-            <span>Plano {periodLabel}</span>
-            <span className="font-medium">
-              R$ {formatBRLDecimal(amountPeriod)}
-            </span>
+          <div className="flex justify-between text-[10px] text-petroleum/60 uppercase tracking-tight">
+            <span>Assinatura {periodLabel}</span>
+            <span>R$ {formatBRLDecimal(amountPeriod)}</span>
           </div>
           <div className="flex justify-between text-emerald-700">
             <span>{creditDisplayLabel}</span>
@@ -153,20 +152,15 @@ function PriceBreakdown({
             </span>
           </div>
           {proRataDetails && (
-            <p className="text-[10px] text-emerald-800/90">
-              Cálculo do pro-rata: {proRataDetails.daysUnused} dias não usados ×
-              R$ {formatBRLDecimal(proRataDetails.valuePerDay)}/dia
-            </p>
+            <div className="flex justify-between text-[10px] text-emerald-600 font-medium">
+              <span>Crédito Pro-rata</span>
+              <span>− R$ {formatBRLDecimal(residualCredit)}</span>
+            </div>
           )}
           {hasCouponDiscount && (
-            <div className="flex justify-between text-emerald-700">
-              <span>
-                Desconto cupom{' '}
-                {couponCodeApplied ? `(${couponCodeApplied})` : ''}
-              </span>
-              <span className="font-semibold">
-                − R$ {formatBRLDecimal(couponDiscountAmount)}
-              </span>
+            <div className="flex justify-between text-[10px] text-emerald-600 font-medium">
+              <span>Desconto Cupom</span>
+              <span>− R$ {formatBRLDecimal(couponDiscountAmount)}</span>
             </div>
           )}
           <div className="flex justify-between border-t border-emerald-200 pt-1.5 font-bold text-emerald-800">
@@ -632,7 +626,7 @@ export function StepBilling() {
       {!isCalculationLoading && (
         <SheetSection
           title="Período de Cobrança"
-          className="py-2 px-3 space-y-1.5"
+          className="py-2 px-2 space-y-1.5"
         >
           <div className="grid grid-cols-3 gap-1.5">
             {periods.map(({ key, label, sublabel, badge }) => {
@@ -647,7 +641,7 @@ export function StepBilling() {
                   key={key}
                   type="button"
                   onClick={() => setBillingPeriod(key)}
-                  className={`relative flex items-center gap-3 w-full rounded-lg border-2 transition-all px-3 py-2 ${
+                  className={`relative flex items-center gap-3 w-full rounded-lg border-2 transition-all px-2 py-1 ${
                     isSelected
                       ? 'border-gold bg-gold/10 shadow-sm'
                       : 'border-slate-200 bg-white hover:border-gold/40'
@@ -674,7 +668,7 @@ export function StepBilling() {
                   <div className="flex flex-col items-start text-left overflow-hidden py-1">
                     <div className="flex items-baseline gap-1.5">
                       <span
-                        className={`text-[11px] font-bold uppercase tracking-wide ${isSelected ? 'text-petroleum' : 'text-petroleum/90'}`}
+                        className={`text-[10px] font-bold uppercase tracking-wide ${isSelected ? 'text-petroleum' : 'text-petroleum/90'}`}
                       >
                         {label}
                       </span>
@@ -702,7 +696,7 @@ export function StepBilling() {
           {/* Banner de economia vs mensal — oculto em upgrade gratuito */}
           {billingPeriod !== 'monthly' && !isFreeUpgrade && (
             <div className="mt-1.5 flex items-center gap-1.5 px-2 py-2 bg-emerald-50 border border-emerald-200/60 rounded-md">
-              <CheckCircle2 size={14} className="text-emerald-500 shrink-0" />
+              <CheckCircle2 size={16} className="text-emerald-500 shrink-0" />
               <p className="text-[10px] text-emerald-700 font-semibold leading-tight">
                 Economia de R${' '}
                 {(planInfoForPrice.price -
@@ -718,10 +712,7 @@ export function StepBilling() {
 
       {/* ── Forma de pagamento ── */}
       {!isCalculationLoading && (
-        <SheetSection
-          title="Forma de Pagamento"
-          className="py-2 px-3 space-y-1"
-        >
+        <SheetSection className="py-2 px-3 space-y-1">
           {isZeroPayment && (
             <p className="text-[10px] text-petroleum/70 mb-1">
               Nenhum pagamento necessário — seu crédito cobre o plano.
@@ -769,7 +760,7 @@ export function StepBilling() {
                       : 'border-slate-200 bg-slate-50 text-petroleum/50 hover:border-gold/40'
                 }`}
               >
-                <Icon size={14} strokeWidth={1.5} className="shrink-0" />
+                <Icon size={16} strokeWidth={1.5} className="shrink-0" />
                 <span className="text-[9px] font-semibold uppercase tracking-wide truncate">
                   {label}
                 </span>
@@ -777,60 +768,47 @@ export function StepBilling() {
             ))}
           </div>
 
-          {!isZeroPayment && (
-            <p className="text-[11px] text-petroleum/90 leading-snug mt-2 mb-1">
-              Pagamento via <strong className="text-petroleum">PIX</strong> tem{' '}
-              <strong>{PIX_DISCOUNT_PERCENT}% de desconto</strong> no semestral
-              e no anual. Parcelamento só no cartão.
-            </p>
-          )}
-          <div className="mt-2">
-            <FieldLabel icon={Tag} label="Cupom (opcional)" />
-            <div className="mt-1 flex items-center gap-2">
-              <input
-                type="text"
-                value={couponDraft}
-                onChange={(e) =>
-                  setCouponDraft(
-                    e.target.value.toUpperCase().replace(/\s+/g, ''),
-                  )
-                }
-                onKeyDown={(e) => {
-                  if (e.key === 'Enter') {
-                    e.preventDefault();
-                    void handleApplyCoupon();
-                  }
-                }}
-                className="flex-1 px-2 py-1.5 h-8 bg-slate-50 border border-slate-200 rounded-[0.4rem] text-[10px] text-petroleum font-medium outline-none focus:border-gold/60"
-              />
-              <button
-                type="button"
-                onClick={() => {
-                  if (isCouponApplied) {
-                    void handleRemoveCoupon();
-                    return;
-                  }
-                  void handleApplyCoupon();
-                }}
-                disabled={calcLoading}
-                className="h-8 px-3 rounded-[0.4rem] bg-champagne text-petroleum text-[10px] font-bold uppercase tracking-wide hover:bg-petroleum hover:text-white transition-colors disabled:opacity-60"
-              >
-                {isCouponApplied ? 'Remover cupom' : 'Aplicar'}
-              </button>
+          <div className="mt-2 pt-2 border-t border-slate-100">
+            <div className="flex items-center gap-3">
+              {!isZeroPayment && (
+                <p className="flex-1 text-[11px] text-petroleum/90 leading-snug">
+                  PIX tem <strong>{PIX_DISCOUNT_PERCENT}%</strong> off no
+                  semestral/anual.
+                </p>
+              )}
+              <div className="flex items-center gap-2 group min-w-[280px]">
+                <div className="relative flex-1">
+                  <Tag
+                    size={12}
+                    className="absolute left-2 top-1/2 -translate-y-1/2 text-petroleum/40"
+                  />
+                  <input
+                    type="text"
+                    placeholder="CUPOM"
+                    value={couponDraft}
+                    onChange={(e) =>
+                      setCouponDraft(e.target.value.toUpperCase())
+                    }
+                    className="w-full !pl-7 pr-2 !h-8"
+                  />
+                </div>
+                <button
+                  type="button"
+                  onClick={handleApplyCoupon}
+                  className="text-[9px] font-semibold uppercase text-gold hover:text-petroleum transition-colors whitespace-nowrap"
+                >
+                  {isCouponApplied ? 'Trocar' : 'Aplicar'}
+                </button>
+                {isCouponApplied && (
+                  <div className="flex items-center gap-1 px-2 py-0.5 bg-emerald-50 border border-emerald-100 rounded text-[9px] text-emerald-700 font-bold">
+                    <span>{couponCodeApplied}</span>
+                    <button onClick={handleRemoveCoupon}>
+                      <X size={10} />
+                    </button>
+                  </div>
+                )}
+              </div>
             </div>
-            {couponFeedback && (
-              <p
-                className={`mt-1 text-[10px] ${
-                  couponFeedbackTone === 'success'
-                    ? 'text-emerald-700'
-                    : couponFeedbackTone === 'error'
-                      ? 'text-red-600'
-                      : 'text-slate-600'
-                }`}
-              >
-                {couponFeedback}
-              </p>
-            )}
           </div>
         </SheetSection>
       )}
@@ -946,7 +924,7 @@ export function StepBilling() {
                     </div>
                   </div>
 
-                  <div className="grid grid-cols-2 gap-2">
+                  <div className="grid grid-cols-4 gap-2">
                     <div className="space-y-0.5">
                       <FieldLabel icon={Lock} label="Validade" required />
                       <div className="flex gap-1">
@@ -1013,37 +991,37 @@ export function StepBilling() {
                       />
                       <FieldError message={err('credit_card_ccv')} />
                     </div>
+
+                    <div className="space-y-0.5">
+                      <FieldLabel icon={ChevronDown} label="Parcelas" />
+                      <div className="relative">
+                        <select
+                          value={installments}
+                          onChange={(e) =>
+                            setInstallments(Number(e.target.value))
+                          }
+                          disabled={!showInstallments}
+                          className="w-full appearance-none px-2 py-1.5 h-10 bg-slate-50 border border-slate-200 rounded-[0.4rem] text-[10px] text-petroleum font-medium outline-none cursor-pointer pr-6 focus:border-gold/60"
+                        >
+                          {Array.from({ length: maxInstallments }, (_, i) => {
+                            const n = i + 1;
+                            const v = Math.round((amountFinal / n) * 100) / 100;
+                            return (
+                              <option key={n} value={n}>
+                                {n}x de R$ {formatBRLDecimal(v)}
+                              </option>
+                            );
+                          })}
+                        </select>
+                        <ChevronDown
+                          size={10}
+                          className="absolute right-1.5 top-1/2 -translate-y-1/2 text-petroleum/40 pointer-events-none"
+                        />
+                      </div>
+                    </div>
                   </div>
                 </>
               )}
-
-              <div className="grid grid-cols-1 gap-2">
-                <div className="space-y-0.5">
-                  <FieldLabel icon={ChevronDown} label="Parcelas" />
-                  <div className="relative">
-                    <select
-                      value={installments}
-                      onChange={(e) => setInstallments(Number(e.target.value))}
-                      disabled={!showInstallments}
-                      className="w-full appearance-none px-2 py-1.5 h-10 bg-slate-50 border border-slate-200 rounded-[0.4rem] text-[10px] text-petroleum font-medium outline-none cursor-pointer pr-6 focus:border-gold/60"
-                    >
-                      {Array.from({ length: maxInstallments }, (_, i) => {
-                        const n = i + 1;
-                        const v = Math.round((amountFinal / n) * 100) / 100;
-                        return (
-                          <option key={n} value={n}>
-                            {n}x de R$ {formatBRLDecimal(v)}
-                          </option>
-                        );
-                      })}
-                    </select>
-                    <ChevronDown
-                      size={10}
-                      className="absolute right-1.5 top-1/2 -translate-y-1/2 text-petroleum/40 pointer-events-none"
-                    />
-                  </div>
-                </div>
-              </div>
 
               <div className="flex items-center justify-between text-[10px] text-petroleum/80">
                 <p className="flex items-center gap-1">

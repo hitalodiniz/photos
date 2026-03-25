@@ -466,7 +466,7 @@ export const ToolbarGalleryView = ({
                     aria-label="Fechar tooltip"
                     type="button"
                   >
-                    <X size={14} strokeWidth={2.5} />
+                    <X size={16} strokeWidth={2.5} />
                   </button>
                 </div>
                 <p className="text-[10px] leading-tight font-medium break-words hyphens-auto">
@@ -714,7 +714,7 @@ export const ToolbarGalleryView = ({
                   Alta Resolução Disponível
                 </span>
                 <X
-                  size={14}
+                  size={16}
                   className="opacity-40 hover:opacity-100 cursor-pointer"
                   onClick={() => {
                     setShowQualityWarning(false);

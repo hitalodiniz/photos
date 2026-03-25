@@ -721,7 +721,7 @@ export default function GaleriaFormContent({
           {profile?.settings?.display?.show_contract_type !== false && (
             <FormSection
               title="Modalidade"
-              icon={<Settings2 size={14} className="text-gold" />}
+              icon={<Settings2 size={16} className="text-gold" />}
             >
               <fieldset>
                 <div className="grid grid-cols-1 md:grid-cols-12 gap-2 items-end">
@@ -780,7 +780,7 @@ export default function GaleriaFormContent({
           {/* SEÇÃO 2: GALERIA & SINCRONIZAÇÃO */}
           <FormSection
             title="Galeria & Sincronização"
-            icon={<FolderSync size={14} className="text-gold" />}
+            icon={<FolderSync size={16} className="text-gold" />}
           >
             <fieldset>
               <div className="grid grid-cols-1 md:grid-cols-12 gap-3 items-end mb-3">
@@ -844,7 +844,7 @@ export default function GaleriaFormContent({
           {/* SEÇÃO 3: PRIVACIDADE */}
           <FormSection
             title="Privacidade"
-            icon={<ShieldCheck size={14} className="text-gold" />}
+            icon={<ShieldCheck size={16} className="text-gold" />}
           >
             <fieldset className="w-full">
               <div className="flex flex-wrap items-stretch gap-2 w-full">
@@ -852,7 +852,7 @@ export default function GaleriaFormContent({
                   <div className="flex items-center gap-2 shrink-0">
                     <label>
                       <Shield
-                        size={14}
+                        size={16}
                         className={
                           !isPublic ? 'text-gold' : 'text-petroleum/40'
                         }
@@ -907,7 +907,7 @@ export default function GaleriaFormContent({
                 <div className="flex-1 flex items-center justify-between p-3 bg-slate-50/50 rounded-luxury border border-petroleum/10 h-14 w-full gap-2">
                   <div className="flex items-center gap-2 shrink-0">
                     <label>
-                      <Calendar size={14} className="text-gold" />
+                      <Calendar size={16} className="text-gold" />
                       Expiração
                     </label>
 
@@ -983,7 +983,7 @@ export default function GaleriaFormContent({
                   <div className="flex items-center gap-2 shrink-0">
                     <label>
                       <Eye
-                        size={14}
+                        size={16}
                         className={
                           showOnProfile ? 'text-gold' : 'text-petroleum/40'
                         }
@@ -1021,7 +1021,7 @@ export default function GaleriaFormContent({
           {/* SEÇÃO: CADASTRO DE VISITANTE */}
           <FormSection
             title="Cadastro de visitante"
-            icon={<Users size={14} className="text-gold" />}
+            icon={<Users size={16} className="text-gold" />}
           >
             <fieldset>
               <LeadCaptureSection
@@ -1046,7 +1046,7 @@ export default function GaleriaFormContent({
           <FormSection
             title="Design da Galeria"
             subtitle="Personalize a experiência visual do visitante"
-            icon={<Layout size={14} className="text-gold" />}
+            icon={<Layout size={16} className="text-gold" />}
           >
             <fieldset>
               <GalleryDesignFields
@@ -1064,7 +1064,7 @@ export default function GaleriaFormContent({
           <FormSection
             title="Interação & Experiência"
             subtitle="Recursos para o visitante usar na galeria"
-            icon={<PlayCircle size={14} className="text-gold" />}
+            icon={<PlayCircle size={16} className="text-gold" />}
           >
             <fieldset>
               <GalleryInteractionFields
@@ -1105,7 +1105,7 @@ export default function GaleriaFormContent({
           {/* TEMA VISUAL — aplica na página inteira para preview; ao sair da página o tema é restaurado pelo effect de cleanup */}
           <div className="bg-white rounded-luxury border border-slate-200 p-4 space-y-3">
             <div className="flex items-center gap-2 pb-2 border-b border-slate-200">
-              <Sparkles size={14} className="text-gold" />
+              <Sparkles size={16} className="text-gold" />
               <h3 className="text-[10px] font-bold uppercase tracking-luxury-widest text-petroleum">
                 Tema Visual
               </h3>
@@ -1125,7 +1125,7 @@ export default function GaleriaFormContent({
           {/* LINKS E ARQUIVOS */}
           <div className="bg-white rounded-luxury border border-slate-200 p-4 space-y-3">
             <div className="flex items-center gap-2 pb-2 border-b border-slate-200">
-              <Download size={14} className="text-gold" />
+              <Download size={16} className="text-gold" />
               <h3 className="text-[10px] font-bold uppercase tracking-luxury-widest text-petroleum">
                 links externos
               </h3>
@@ -1210,34 +1210,41 @@ export default function GaleriaFormContent({
                 ))}
               </div>
 
-              <button
-                type="button"
-                className="btn-luxury-primary text-[9px] px-2"
-                onClick={() => {
-                  if (canAddMore('maxExternalLinks', links.length)) {
-                    setLinks([
-                      ...links,
-                      { url: '', label: `LINK ${links.length + 1}` },
-                    ]);
-                  } else {
-                    setUpsellFeature({
-                      label: 'Mais Links de Entrega',
-                      feature: 'maxExternalLinks',
-                    });
-                  }
-                }}
+              <PlanGuard
+                feature="maxExternalLinks"
+                label="Links de entrega"
+                variant="mini"
+                scenarioType="feature"
               >
-                {canAddMore('maxExternalLinks', links.length) ? (
-                  <>
-                    <Plus size={14} /> Novo link
-                  </>
-                ) : (
-                  <>
-                    <Lock size={14} className="text-gold" /> Limite atingido
-                    (Upgrade)
-                  </>
-                )}
-              </button>
+                <button
+                  type="button"
+                  className="btn-luxury-primary text-[9px] px-2"
+                  onClick={() => {
+                    if (canAddMore('maxExternalLinks', links.length)) {
+                      setLinks([
+                        ...links,
+                        { url: '', label: `LINK ${links.length + 1}` },
+                      ]);
+                    } else {
+                      setUpsellFeature({
+                        label: 'Mais Links de Entrega',
+                        feature: 'maxExternalLinks',
+                      });
+                    }
+                  }}
+                >
+                  {canAddMore('maxExternalLinks', links.length) ? (
+                    <>
+                      <Plus size={16} /> Novo link
+                    </>
+                  ) : (
+                    <>
+                      <Lock size={16} className="text-gold" /> Limite atingido
+                      (Upgrade)
+                    </>
+                  )}
+                </button>
+              </PlanGuard>
             </div>
           </div>
         </div>

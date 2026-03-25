@@ -9,8 +9,10 @@ import {
   Users,
   Bell,
   BarChart2,
+  ArrowLeft,
   ArrowRight,
 } from 'lucide-react';
+import { useRouter } from 'next/navigation';
 import { UpgradeSheet } from '@/components/ui/Upgradesheet';
 import { usePlan } from '@/core/context/PlanContext';
 import { useSegment } from '@/hooks/useSegment';
@@ -43,6 +45,7 @@ export function PlanGateScreen({
   teasers,
   scenarioType = 'feature',
 }: PlanGateScreenProps) {
+  const router = useRouter();
   const { planKey } = usePlan();
   const { segment } = useSegment();
   const [isUpgradeSheetOpen, setIsUpgradeSheetOpen] = useState(false);
@@ -60,7 +63,7 @@ export function PlanGateScreen({
   return (
     <>
       <div className="flex-1 flex items-center justify-center min-h-[60vh] p-6">
-        <div className="max-w-lg w-full">
+        <div className="max-w-3xl w-full">
           {/* Card principal — rounded-luxury como no UpgradeModal */}
           <div className="bg-white rounded-luxury border border-gold/20 shadow-xl overflow-hidden">
             {/* Header */}
@@ -107,7 +110,7 @@ export function PlanGateScreen({
                       >
                         {/* Ícone do teaser — mesmo p-2 rounded-luxury bg-gold/5 do UpgradeModal */}
                         <div className="p-2 rounded-luxury bg-gold/5 border border-gold/20 shrink-0">
-                          <Icon size={14} className="text-gold" />
+                          <Icon size={16} className="text-gold" />
                         </div>
                         <div className="min-w-0">
                           <p className="text-[8px] font-semisemibold text-slate-400 uppercase tracking-luxury-wide leading-none mb-1">
@@ -128,12 +131,12 @@ export function PlanGateScreen({
                   })}
                 </div>
                 <p className="text-[10px] text-slate-700 italic mt-3 text-center">
-                  Faça upgrade para desbloquear seus dados reais
+                  Faça upgrade do seu plano para desbloquear seus dados reais
                 </p>
               </div>
             )}
 
-            {/* Descrição + CTA */}
+            {/* Descrição */}
             <div className="px-8 py-5 space-y-3">
               {/* Descrição principal — border-l-2 border-gold/40 pl-3 bg-slate-50/50
                   idêntico ao bloco de description do UpgradeModal */}
@@ -152,20 +155,32 @@ export function PlanGateScreen({
                 </p>
               )}
 
-              {/* CTA — btn-luxury-primary: abre UpgradeSheet sem submit/refresh */}
-              <button
-                type="button"
-                onClick={(e) => {
-                  e.preventDefault();
-                  e.stopPropagation();
-                  setIsUpgradeSheetOpen(true);
-                }}
-                className="btn-luxury-primary w-full mt-2"
-              >
-                <Sparkles size={14} className="text-gold" />
-                Ver planos e fazer upgrade
-                <ArrowRight size={14} />
-              </button>
+            </div>
+
+            {/* Rodapé dos botões (igual ao header) */}
+            <div className="bg-petroleum px-8 py-5 border-t border-white/10">
+              <div className="grid grid-cols-2 gap-3 w-full">
+                <button
+                  onClick={() => router.back()}
+                  className="btn-secondary-white"
+                >
+                  <ArrowLeft size={16} />
+                  manter o plano {planKey}
+                </button>
+                <button
+                  type="button"
+                  onClick={(e) => {
+                    e.preventDefault();
+                    e.stopPropagation();
+                    setIsUpgradeSheetOpen(true);
+                  }}
+                  className="btn-luxury-primary"
+                >
+                  <TrendingUp size={16} className="text-gold" />
+                  migrar para o plano {requiredPlan}
+                  <ArrowRight size={16} />
+                </button>
+              </div>
             </div>
           </div>
         </div>

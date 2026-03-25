@@ -548,7 +548,7 @@ export default function GooglePickerButton({
     >
       {loading ? (
         <div className="flex items-center gap-2">
-          <Loader2 size={14} className="animate-spin" />
+          <Loader2 size={16} className="animate-spin" />
           <span>Aguarde...</span>
         </div>
       ) : (

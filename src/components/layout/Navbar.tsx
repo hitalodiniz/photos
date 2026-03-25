@@ -159,7 +159,9 @@ export default function Navbar() {
             {/* Botão Voltar (Páginas Internas) */}
             {isFormPage && pathname !== '/admin' && (
               <button
-                onClick={() => router.push(isAdminRoute ? '/admin' : '/dashboard')}
+                onClick={() =>
+                  router.push(isAdminRoute ? '/admin' : '/dashboard')
+                }
                 className="p-2 text-white/70 hover:text-champagne hover:bg-white/5 rounded-full transition-all shrink-0"
               >
                 <ArrowLeft size={18} />
@@ -256,7 +258,7 @@ export default function Navbar() {
                           <div className="space-y-3">
                             <div className="flex gap-3 items-start">
                               <ShieldAlert
-                                size={14}
+                                size={16}
                                 className="text-gold shrink-0 mt-0.5"
                               />
                               <p className="text-[12px] text-petroleum/80 leading-relaxed font-medium">
@@ -270,7 +272,7 @@ export default function Navbar() {
                             </div>
                             <div className="flex gap-3 items-start">
                               <ZapOff
-                                size={14}
+                                size={16}
                                 className="text-gold shrink-0 mt-0.5"
                               />
                               <p className="text-[12px] text-petroleum/80 leading-relaxed font-medium">
@@ -311,7 +313,7 @@ export default function Navbar() {
                         >
                           <Crown size={20} className="" />
                           Manter meu plano PRO
-                          <ArrowRight size={14} />
+                          <ArrowRight size={16} />
                         </button>
 
                         {/* Frase de urgência */}

@@ -43,7 +43,7 @@ export const CancellationPolicyContent = () => {
               {[
                 'A assinatura é cancelada imediatamente',
                 'O valor integral pago é estornado para a forma de pagamento original',
-                'O estorno é processado em até 48h úteis (cartão de crédito pode levar até 2 faturas)',
+                'O estorno é processado em até 72h (cartão de crédito pode levar até 2 faturas)',
                 'A conta retorna imediatamente para o plano gratuito (FREE)',
                 'Galerias e fotos excedentes aos limites FREE são arquivadas automaticamente',
               ].map((item, i) => (
@@ -248,7 +248,7 @@ export default function PoliticaCancelamentoPage() {
       items: [
         'Estorno total dentro de 7 dias da contratação',
         'Retorno imediato ao plano FREE',
-        'Estorno processado em até 48h úteis',
+        'Estorno processado em até 72h',
       ],
     },
     {

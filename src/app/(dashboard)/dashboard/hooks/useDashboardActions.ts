@@ -102,15 +102,15 @@ export function useDashboardActions(
         const canSuggestUpgrade = planKey !== 'PREMIUM';
         if (!respectsSingleGalleryLimit) {
           message = canSuggestUpgrade
-            ? `Esta galeria tem mais arquivos (${candidatePhotos}) do que o limite por galeria do seu plano (${maxPhotosPerGallery}). Faça upgrade para reativar.`
+            ? `Esta galeria tem mais arquivos (${candidatePhotos}) do que o limite por galeria do seu plano (${maxPhotosPerGallery}). Faça upgrade do seu plano para reativar.`
             : `Esta galeria tem mais arquivos (${candidatePhotos}) do que o limite por galeria do seu plano (${maxPhotosPerGallery}).`;
         } else if (!fitsInGlobalGalleryLimit) {
           message = canSuggestUpgrade
-            ? `Seu plano permite no máximo ${galleryLimit} galerias ativas. Você já atingiu esse limite. Faça upgrade para reativar mais galerias.`
+            ? `Seu plano permite no máximo ${galleryLimit} galerias ativas. Você já atingiu esse limite. Faça upgrade do seu plano para reativar mais galerias.`
             : `Seu plano permite no máximo ${galleryLimit} galerias ativas. Você já atingiu esse limite.`;
         } else if (!fitsInGlobalPhotoLimit) {
           message = canSuggestUpgrade
-            ? `A cota de arquivos do seu plano (${photoLimit} arquivos) não comporta reativar esta galeria. Faça upgrade para aumentar a cota.`
+            ? `A cota de arquivos do seu plano (${photoLimit} arquivos) não comporta reativar esta galeria. Faça upgrade do seu plano para aumentar a cota.`
             : `A cota de arquivos do seu plano (${photoLimit} arquivos) não comporta reativar esta galeria.`;
         } else {
           message = 'Não foi possível reativar a galeria com o plano atual.';
@@ -205,7 +205,11 @@ export function useDashboardActions(
         const remainingCredits = Math.max(0, poolTotal - activeTotal);
         // Limite desta galeria considerando o que ela já possui + saldo disponível.
         const maxAllowedByPool = currentCount + remainingCredits;
-        const cappedTotal = Math.min(novoTotal, maxPerGallery, maxAllowedByPool);
+        const cappedTotal = Math.min(
+          novoTotal,
+          maxPerGallery,
+          maxAllowedByPool,
+        );
 
         setGalerias((prev) =>
           prev.map((g) =>
@@ -348,6 +352,38 @@ export function useDashboardActions(
     }
   };
 
+  const handleBulkPermanentDelete = async () => {
+    const ids = Array.from(selectedIds);
+    if (ids.length === 0) return;
+
+    setUpdatingId('bulk');
+    try {
+      const results = await Promise.allSettled(
+        ids.map((id) => deleteGalleryPermanently(id)),
+      );
+      const successfulIds = ids.filter((id, idx) => {
+        const r = results[idx];
+        return r.status === 'fulfilled' && (r.value === true || r.value);
+      });
+
+      if (successfulIds.length > 0) {
+        setGalerias((prev) =>
+          prev.filter((g) => !successfulIds.includes(g.id)),
+        );
+        await triggerProfileRevalidation();
+        setToast({
+          message: 'Galerias excluídas permanentemente.',
+          type: 'success',
+        });
+        setSelectedIds(new Set());
+      }
+    } catch {
+      setToast({ message: 'Erro na exclusão permanente.', type: 'error' });
+    } finally {
+      setUpdatingId(null);
+    }
+  };
+
   const handleBulkRestore = async () => {
     const ids = Array.from(selectedIds);
     if (ids.length === 0) return;
@@ -389,6 +425,7 @@ export function useDashboardActions(
     executePermanentDelete,
     handleBulkArchive,
     handleBulkDelete,
+    handleBulkPermanentDelete,
     handleBulkRestore,
     handleToggleSelect: (id: string) => {
       setSelectedIds((prev) => {

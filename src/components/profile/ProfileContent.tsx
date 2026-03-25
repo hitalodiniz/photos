@@ -356,7 +356,7 @@ export default function ProfileContent({
                     {loadingMore ? (
                       <span className="flex items-center gap-2">
                         Carregando{' '}
-                        <Loader2 size={14} className="animate-spin" />
+                        <Loader2 size={16} className="animate-spin" />
                       </span>
                     ) : (
                       `Explorar mais galerias`

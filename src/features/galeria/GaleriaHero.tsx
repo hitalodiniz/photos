@@ -236,7 +236,7 @@ export const GaleriaHero = ({
               {galeria.location && (
                 <div className="flex items-center text-white text-[10px] md:text-[14px] font-medium shrink-0 gap-1.5 drop-shadow-md">
                   <MapPin
-                    size={14}
+                    size={16}
                     className="pub-hero-accent drop-shadow-sm"
                   />
                   <span>{galeria.location}</span>
@@ -245,7 +245,7 @@ export const GaleriaHero = ({
               <div className="hidden md:block w-[1px] h-3 bg-white/40 shrink-0" />
               <div className="flex items-center text-white text-[10px] md:text-[14px] font-medium shrink-0 gap-1.5 drop-shadow-md">
                 <Calendar
-                  size={14}
+                  size={16}
                   className="pub-hero-accent drop-shadow-sm"
                 />
                 <span>
@@ -262,7 +262,7 @@ export const GaleriaHero = ({
                   {photoCount > 0 && (
                     <div className="flex items-center text-white text-[10px] md:text-[14px] font-medium shrink-0 gap-1.5 drop-shadow-md">
                       <ImageIcon
-                        size={14}
+                        size={16}
                         className="pub-hero-accent drop-shadow-sm"
                       />
                       <span>
@@ -276,7 +276,7 @@ export const GaleriaHero = ({
                   {videoCount > 0 && (
                     <div className="flex items-center text-white text-[10px] md:text-[14px] font-medium shrink-0 gap-1.5 drop-shadow-md">
                       <Video
-                        size={14}
+                        size={16}
                         className="pub-hero-accent drop-shadow-sm"
                       />
                       <span>

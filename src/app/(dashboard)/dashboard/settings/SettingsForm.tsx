@@ -186,7 +186,7 @@ export default function SettingsForm({ profile }: { profile: any }) {
         {/* SEÇÃO 1: PADRÕES DE IDENTIFICAÇÃO (ALINHADO HORIZONTALMENTE) */}
         <FormSection
           title="Preferências de Modalidade"
-          icon={<Settings size={14} className="text-gold" />}
+          icon={<Settings size={16} className="text-gold" />}
         >
           <div className="grid grid-cols-1 md:grid-cols-2 gap-8 items-start">
             <div className="space-y-2">
@@ -250,7 +250,7 @@ export default function SettingsForm({ profile }: { profile: any }) {
         {/* SEÇÃO 2: PRIVACIDADE PADRÃO */}
         <FormSection
           title="Privacidade Padrão"
-          icon={<ShieldCheck size={14} />}
+          icon={<ShieldCheck size={16} />}
         >
           <div className="grid grid-cols-1 md:grid-cols-2 gap-8 items-start">
             <div className="space-y-2">
@@ -297,7 +297,7 @@ export default function SettingsForm({ profile }: { profile: any }) {
         </FormSection>
 
         {/* SEÇÃO 3: CAPTURA DE LEADS PADRÃO */}
-        <FormSection title="Cadastro de Visitante" icon={<Users size={14} />}>
+        <FormSection title="Cadastro de Visitante" icon={<Users size={16} />}>
           <div className="space-y-2">
             <LeadCaptureSection
               enabled={settings.defaults.enable_guest_registration}
@@ -330,7 +330,7 @@ export default function SettingsForm({ profile }: { profile: any }) {
         </FormSection>
 
         {/* SEÇÃO 4: DESIGN PADRÃO */}
-        <FormSection title="Design Padrão" icon={<Palette size={14} />}>
+        <FormSection title="Design Padrão" icon={<Palette size={16} />}>
           <div className="space-y-4">
             <GalleryDesignFields
               showBackgroundPhoto={!!settings.defaults.background_photo}
@@ -378,7 +378,7 @@ export default function SettingsForm({ profile }: { profile: any }) {
         {/* SEÇÃO 5: INTERAÇÃO PADRÃO */}
         <FormSection
           title="Interação & Experiência Padrão"
-          icon={<PlayCircle size={14} />}
+          icon={<PlayCircle size={16} />}
         >
           <div className="space-y-4">
             <GalleryInteractionFields
@@ -405,7 +405,7 @@ export default function SettingsForm({ profile }: { profile: any }) {
         {/* SEÇÃO 6: PADRÕES DO GOOGLE DRIVE */}
         <FormSection
           title="Padrões do Google Drive"
-          icon={<FolderSync size={14} />}
+          icon={<FolderSync size={16} />}
         >
           <div className="grid grid-cols-1 md:grid-cols-2 gap-8 items-start">
             <div className="space-y-2">
@@ -469,7 +469,7 @@ export default function SettingsForm({ profile }: { profile: any }) {
                       className="absolute right-2 p-1 text-slate-400 hover:text-red-500 transition-colors bg-white/50 backdrop-blur-sm rounded-md"
                       title="Limpar pasta raiz"
                     >
-                      <X size={14} strokeWidth={2.5} />
+                      <X size={16} strokeWidth={2.5} />
                     </button>
                   )}
                 </div>

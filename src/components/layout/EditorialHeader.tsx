@@ -93,7 +93,7 @@ export default function EditorialHeader({
             className="inline-flex items-center gap-2.5 px-6 py-2.5 bg-petroleum text-white backdrop-blur-xl border border-white/10 rounded-full transition-all duration-300 group hover:bg-gold hover:text-black shadow-2xl"
           >
             <Home
-              size={14}
+              size={16}
               className="group-hover:scale-110 transition-transform"
             />
 

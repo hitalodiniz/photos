@@ -125,7 +125,7 @@ describe('UpgradeModal Integration', () => {
     windowSpy.mockRestore();
   });
 
-  test('onClose dispara ao clicar em "Talvez mais tarde"', () => {
+  test('onClose dispara ao clicar em "Manter o plano FREE"', () => {
     const onClose = vi.fn();
     render(
       <PlanProvider profile={makeMockProfile({ plan_key: 'FREE' })}>
@@ -137,7 +137,9 @@ describe('UpgradeModal Integration', () => {
         />
       </PlanProvider>,
     );
-    fireEvent.click(screen.getByRole('button', { name: /talvez mais tarde/i }));
+    fireEvent.click(
+      screen.getByRole('button', { name: /manter o plano free/i }),
+    );
     expect(onClose).toHaveBeenCalled();
   });
 

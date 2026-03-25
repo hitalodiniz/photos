@@ -200,7 +200,7 @@ export default function LandingPageContent() {
                     onClick={() => setSearchTerm('')}
                     className="absolute right-3 p-1 rounded-full text-slate-400"
                   >
-                    <X size={14} strokeWidth={3} />
+                    <X size={16} strokeWidth={3} />
                   </button>
                 )}
               </div>

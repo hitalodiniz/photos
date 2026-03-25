@@ -167,9 +167,7 @@ export async function emitGaleriaEvent({
   // 4. Gravação no Banco — `.select()` devolve a linha para `event_data` na notificação
   const { data: insertedRow, error: insertError } = await supabase
     .from('tb_galeria_stats')
-    .insert([statRow])
-    .select('*')
-    .single();
+    .insert([statRow]);
 
   if (insertError) {
     // ESTE LOG É VITAL NA VERCEL
@@ -190,21 +188,12 @@ export async function emitGaleriaEvent({
     selection: 'Seleção de Fotos',
   };
 
-  // Se o RLS não retornar linha no insert, ainda enviamos payload completo para o menu / sheet
-  const eventForNotification = insertedRow
-    ? {
-        ...insertedRow,
-        event_label: EVENT_LABELS[eventType] ?? eventType,
-        location:
-          (insertedRow.metadata as { location?: string } | null)?.location ??
-          statRow.metadata.location,
-      }
-    : {
-        ...statRow,
-        created_at: new Date().toISOString(),
-        event_label: EVENT_LABELS[eventType] ?? eventType,
-        location: statRow.metadata.location,
-      };
+  const eventForNotification = {
+    ...statRow,
+    created_at: new Date().toISOString(),
+    event_label: EVENT_LABELS[eventType] ?? eventType,
+    location: statRow.metadata.location,
+  };
 
   // 5. Notificações
   await handleNotifications(

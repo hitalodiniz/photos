@@ -189,7 +189,7 @@ export default function FeaturePreview({
 
                   {hasFeature ? (
                     <div className="shrink-0 w-6 h-6 rounded-full bg-emerald-500 flex items-center justify-center">
-                      <Check size={14} className="text-white" strokeWidth={3} />
+                      <Check size={16} className="text-white" strokeWidth={3} />
                     </div>
                   ) : (
                     <div className="shrink-0 w-6 h-6 rounded-full bg-slate-300 flex items-center justify-center">

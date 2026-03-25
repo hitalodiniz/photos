@@ -206,17 +206,17 @@ export default function EventReportView({ galeria }: any) {
             onClick={() =>
               exportToCSV(events, 'Estatísticas - ' + galeria.title)
             }
-            className="btn-secondary-petroleum px-4 flex items-center gap-2 text-[12px] font-semibold"
+            className="btn-secondary-white w-28"
           >
-            <FileText size={14} /> CSV
+            <FileText size={16} /> CSV
           </button>
           <button
             onClick={() =>
               exportToExcel(events, 'Estatísticas - ' + galeria.title)
             }
-            className="btn-secondary-petroleum px-4 flex items-center gap-2 text-[12px] font-semibold"
+            className="btn-secondary-white w-28"
           >
-            <TableIcon size={14} /> EXCEL
+            <TableIcon size={16} /> EXCEL
           </button>
           <button
             onClick={() =>
@@ -226,9 +226,9 @@ export default function EventReportView({ galeria }: any) {
                 'Relatório - ' + galeria.title,
               )
             }
-            className="btn-luxury-primary px-4 flex items-center gap-2 text-[12px] font-semibold"
+            className="btn-luxury-primary w-28"
           >
-            <FileDown size={14} /> PDF
+            <FileDown size={16} /> PDF
           </button>
         </div>
       }

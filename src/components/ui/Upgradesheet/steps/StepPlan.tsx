@@ -27,7 +27,9 @@ function formatDate(iso: string): string {
 }
 
 function normalizePlanKeyStep(raw: string | null | undefined): PlanKey {
-  const u = String(raw ?? 'FREE').trim().toUpperCase() as PlanKey;
+  const u = String(raw ?? 'FREE')
+    .trim()
+    .toUpperCase() as PlanKey;
   return planOrder.includes(u) ? u : 'FREE';
 }
 
@@ -64,11 +66,9 @@ export function StepPlan() {
    * Plano no cliente (PlanContext / props) — pode estar defasado do tb_profiles.
    */
   const clientPlanKey = useMemo((): PlanKey => {
-    const raw = (
-      (profile?.plan_key as PlanKey | undefined) ??
+    const raw = ((profile?.plan_key as PlanKey | undefined) ??
       planKey ??
-      'FREE'
-    ) as string;
+      'FREE') as string;
     return normalizePlanKeyStep(raw);
   }, [profile?.plan_key, planKey]);
 
@@ -115,7 +115,11 @@ export function StepPlan() {
   const previewTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
   useEffect(() => {
-    if (clientPlanKey === 'FREE' || selectedPlan === 'FREE' || profile?.is_trial) {
+    if (
+      clientPlanKey === 'FREE' ||
+      selectedPlan === 'FREE' ||
+      profile?.is_trial
+    ) {
       setUpgradePreview(null);
       setPreviewLoaded(true);
       setIsPlanPreviewLoading(false);
@@ -272,12 +276,7 @@ export function StepPlan() {
         // Recarrega o preview para refletir o estado atualizado
         setPreviewLoaded(false);
         setIsPlanPreviewLoading(true);
-        getUpgradePreview(
-          selectedPlan,
-          billingPeriod,
-          billingType,
-          segment,
-        )
+        getUpgradePreview(selectedPlan, billingPeriod, billingType, segment)
           .then((r) => {
             setUpgradePreview(r);
             setPreviewLoaded(true);
@@ -308,7 +307,7 @@ export function StepPlan() {
           <div className="flex items-start justify-between gap-2">
             <div className="flex items-start gap-2">
               <CalendarClock
-                size={14}
+                size={16}
                 className="text-blue-500 shrink-0 mt-0.5"
               />
               <div>

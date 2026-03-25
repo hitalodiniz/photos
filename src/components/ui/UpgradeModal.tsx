@@ -1,7 +1,14 @@
 'use client';
 
 import React, { useMemo, useState } from 'react';
-import { Crown, ArrowRight, CheckCircle2, Lock } from 'lucide-react';
+import {
+  Crown,
+  ArrowRight,
+  CheckCircle2,
+  Lock,
+  TrendingUp,
+  ArrowLeft,
+} from 'lucide-react';
 import BaseModal from '@/components/ui/BaseModal';
 
 import {
@@ -81,7 +88,8 @@ export default function UpgradeModal({
   const footer = (
     <div className="grid grid-cols-2 gap-3 w-full">
       <button onClick={onClose} className="btn-secondary-white">
-        Talvez mais tarde
+        <ArrowLeft size={16} />
+        Manter o plano {planKey}
       </button>
       <button
         onClick={() => {
@@ -90,10 +98,10 @@ export default function UpgradeModal({
         }}
         className="btn-luxury-primary"
       >
+        <TrendingUp size={16} />
         {scenarioType === 'limit'
           ? 'Aumentar Limite'
-          : `Migrar para o ${nextPlanDisplayName}`}
-        <ArrowRight size={16} />
+          : `Migrar para o Plano ${nextPlanDisplayName}`}
       </button>
     </div>
   );
@@ -119,7 +127,7 @@ export default function UpgradeModal({
           {/* Header do Recurso */}
           <div className="w-full flex items-center gap-2 p-2 rounded-luxury border border-gold/20 bg-gold/5">
             <div className="w-7 h-7 rounded-md flex items-center justify-center shrink-0 bg-gold text-petroleum shadow-[0_0_15px_rgba(212,175,55,0.2)]">
-              <Lock size={14} />
+              <Lock size={16} />
             </div>
             <div className="flex-1 text-left min-w-0">
               <p className="text-[12px] font-bold text-petroleum tracking-wide uppercase truncate">
@@ -175,7 +183,7 @@ export default function UpgradeModal({
             {planBenefits.map((benefit, i) => (
               <li key={i} className="flex gap-1">
                 <CheckCircle2
-                  size={14}
+                  size={16}
                   className="text-gold shrink-0 mt-0.5"
                   strokeWidth={2.5}
                 />

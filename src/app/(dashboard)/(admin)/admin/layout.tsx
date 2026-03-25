@@ -44,7 +44,7 @@ export default function AdminPagesLayout({
                         : 'text-slate-700 hover:bg-slate-100'
                     }`}
                   >
-                    <item.icon size={14} />
+                    <item.icon size={16} />
                     <span>{item.label}</span>
                   </Link>
                 );

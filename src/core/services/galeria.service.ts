@@ -102,8 +102,9 @@ export async function generateUniqueDatedSlug(
     safeTitle = safeTitle.replace(/-+$/, '');
   }
 
-  const datePart = dateStr.substring(0, 10).replace(/-/g, '/');
-  const baseSlug = `${username}/${datePart}/${safeTitle}`;
+  //const datePart = dateStr.substring(0, 10).replace(/-/g, '/');
+  //const baseSlug = `${username}/${datePart}/${safeTitle}`;
+  const baseSlug = `${username}/${safeTitle}`;
   // ---------------------------------------
 
   let uniqueSlug = baseSlug;

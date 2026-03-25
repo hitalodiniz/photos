@@ -131,7 +131,7 @@ export default function Filters({
         {/* Busca Principal */}
         <div className="relative col-span-2 md:flex-1 md:min-w-[200px] group">
           <Search
-            size={14}
+            size={16}
             className={`absolute left-4 top-1/2 -translate-y-1/2 z-10 transition-colors ${
               filterName ? 'text-gold' : 'text-slate-400'
             }`}
@@ -178,7 +178,7 @@ export default function Filters({
           >
             <div className="flex items-center gap-2">
               <Filter
-                size={14}
+                size={16}
                 className={hasAdvancedFilters ? 'text-gold' : 'text-slate-400'}
               />
               <span className="text-editorial-label text-slate-700">
@@ -201,7 +201,7 @@ export default function Filters({
                 {/* Categoria */}
                 <div className="relative group">
                   <Tag
-                    size={14}
+                    size={16}
                     className={`absolute left-4 top-1/2 -translate-y-1/2 z-10 transition-colors ${
                       filterCategory ? 'text-gold' : 'text-slate-400'
                     }`}
@@ -227,7 +227,7 @@ export default function Filters({
                 {/* Tipo */}
                 <div className="relative group">
                   <Briefcase
-                    size={14}
+                    size={16}
                     className={`absolute left-4 top-1/2 -translate-y-1/2 z-10 transition-colors ${
                       filterType ? 'text-gold' : 'text-slate-400'
                     }`}
@@ -251,7 +251,7 @@ export default function Filters({
                 {/* Localização */}
                 <div className="relative group">
                   <MapPin
-                    size={14}
+                    size={16}
                     className={`absolute left-4 top-1/2 -translate-y-1/2 z-10 transition-colors ${
                       filterLocation ? 'text-gold' : 'text-slate-400'
                     }`}
@@ -275,7 +275,7 @@ export default function Filters({
             className="col-span-2 md:w-8 md:h-8 text-slate-400 bg-white hover:bg-red-50 hover:text-red-500 rounded-luxury transition-all flex items-center justify-center shrink-0 border border-slate-200 shadow-sm active:scale-95"
             title="Limpar Filtros"
           >
-            <X size={14} strokeWidth={2.5} />
+            <X size={16} strokeWidth={2.5} />
             <span className="md:hidden ml-2 text-editorial-label">
               Limpar Filtros
             </span>

@@ -87,7 +87,7 @@ export default function CategorySelect({
       >
         {loading ? (
           <>
-            <Loader2 size={14} className="animate-spin" />
+            <Loader2 size={16} className="animate-spin" />
             <span>Salvando...</span>
           </>
         ) : (
@@ -200,7 +200,7 @@ export default function CategorySelect({
           </div>
           {errorMessage && (
             <div className="flex items-center gap-2 p-3 rounded-luxury bg-red-50 border border-red-100 animate-in fade-in slide-in-from-top-1">
-              <AlertCircle size={14} className="text-red-500 shrink-0" />
+              <AlertCircle size={16} className="text-red-500 shrink-0" />
               <p className="text-[10px] font-bold uppercase tracking-wider text-red-600">
                 {errorMessage}
               </p>

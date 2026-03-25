@@ -13,6 +13,7 @@ import {
   Link2,
   Check,
   ArrowLeft,
+  Camera,
 } from 'lucide-react';
 import GaleriaFormContent from './GaleriaFormContent';
 import type { Galeria } from '@/core/types/galeria';
@@ -408,7 +409,7 @@ export default function GaleriaFormPage({
                 }}
                 className="btn-secondary-white w-full"
               >
-                <ArrowLeft size={14} /> Espaço de Galerias
+                <ArrowLeft size={16} /> Espaço de Galerias
               </button>
 
               <a
@@ -419,7 +420,7 @@ export default function GaleriaFormPage({
                 target="_blank"
                 className="btn-luxury-primary w-full"
               >
-                <Sparkles size={14} /> Visualizar Galeria
+                <Camera size={16} /> Visualizar Galeria
               </a>
             </div>
           </div>

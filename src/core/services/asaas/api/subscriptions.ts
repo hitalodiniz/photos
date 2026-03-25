@@ -328,9 +328,6 @@ export async function reactivateSubscription(
         timeZone: 'America/Sao_Paulo',
       });
       const noteLine = `[Reactivation ${nowIso}] Assinatura reativada em ${nowBr}.`;
-      // Inclui pendentes de cancel/downgrade mesmo com asaas_subscription_id
-      // divergente (ex.: downgrade agendado ainda aponta ao sub antigo), para
-      // não deixar status/notes presos após reativar o sub vigente no Asaas.
       const { data: bySubscription } = await supabase
         .from('tb_upgrade_requests')
         .select('id, status, notes')
@@ -345,41 +342,46 @@ export async function reactivateSubscription(
         .order('created_at', { ascending: false })
         .limit(10);
 
-      const { data: pendingAnySub } = await supabase
+      const { data: latestPendingCancel } = await supabase
         .from('tb_upgrade_requests')
         .select('id, status, notes')
         .eq('profile_id', auth.userId)
         .in('status', ['pending_cancellation', 'pending_downgrade'])
-        .limit(20);
+        .order('created_at', { ascending: false })
+        .limit(1)
+        .maybeSingle();
 
-      const mergedById = new Map<
-        string,
-        { id: string; status: string; notes: string | null }
-      >();
-      for (const row of [
-        ...(bySubscription ?? []),
-        ...(pendingAnySub ?? []),
-      ]) {
-        if (!mergedById.has(row.id)) mergedById.set(row.id, row);
-      }
-
-      for (const req of mergedById.values()) {
+      for (const req of bySubscription ?? []) {
         const mergedNotes = req.notes
           ? `${req.notes}\n${noteLine}`
           : noteLine;
-        const nextStatus =
-          req.status === 'pending_cancellation' || req.status === 'pending_downgrade'
-            ? 'cancelled'
-            : req.status;
         await supabase
           .from('tb_upgrade_requests')
           .update({
-            status: nextStatus,
+            status: req.status,
             notes: mergedNotes,
             scheduled_cancel_at: null,
             updated_at: nowIso,
           })
           .eq('id', req.id);
+      }
+
+      // Regra de negócio: ao reativar, o ÚLTIMO registro de cancelamento pendente
+      // volta para approved para refletir assinatura reativada.
+      if (latestPendingCancel?.id) {
+        const mergedNotes = latestPendingCancel.notes
+          ? `${latestPendingCancel.notes}\n${noteLine}`
+          : noteLine;
+        await supabase
+          .from('tb_upgrade_requests')
+          .update({
+            status: 'approved',
+            notes: mergedNotes,
+            asaas_subscription_id: subscriptionId,
+            scheduled_cancel_at: null,
+            updated_at: nowIso,
+          })
+          .eq('id', latestPendingCancel.id);
       }
 
       // Defesa adicional: limpa scheduled_cancel_at em todas as linhas da
@@ -405,7 +407,7 @@ export async function reactivateSubscription(
         .in('status', [
           'pending_cancellation',
           'pending_downgrade',
-          'cancelled',
+          'approved',
         ])
         .not('scheduled_cancel_at', 'is', null);
     }

@@ -168,7 +168,7 @@ export function PlanCard({
                 {isExpanded ? 'Ocultar' : 'Ver recursos'}
               </span>
               <ChevronDown
-                size={14}
+                size={16}
                 className={`transition-transform duration-300 ${isExpanded ? 'rotate-180' : ''}`}
               />
             </button>

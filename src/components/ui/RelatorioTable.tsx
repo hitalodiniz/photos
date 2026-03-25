@@ -142,7 +142,7 @@ export function RelatorioTable<T extends { id: string | number }>({
               onClick={() => setCurrentPage((p) => p - 1)}
               className="p-2 rounded-lg border border-slate-200 bg-white disabled:opacity-30 hover:bg-slate-50 transition-colors disabled:cursor-not-allowed"
             >
-              <ChevronLeft size={14} />
+              <ChevronLeft size={16} />
             </button>
 
             <div className="flex items-center gap-2">
@@ -173,7 +173,7 @@ export function RelatorioTable<T extends { id: string | number }>({
               onClick={() => setCurrentPage((p) => p + 1)}
               className="p-2 rounded-lg border border-slate-200 bg-white disabled:opacity-30 hover:bg-slate-50 transition-colors disabled:cursor-not-allowed"
             >
-              <ChevronRight size={14} />
+              <ChevronRight size={16} />
             </button>
           </div>
         </div>

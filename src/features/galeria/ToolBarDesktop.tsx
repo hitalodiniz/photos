@@ -24,6 +24,8 @@ import { useSegment } from '@/hooks/useSegment';
 import { getCreatorProfileUrl } from '@/core/utils/url-helper';
 
 export const ToolBarDesktop = ({
+  openDrawer,
+  setOpenDrawer,
   showOnlyFavorites,
   setShowOnlyFavorites,
   downloadAllAsZip,
@@ -41,9 +43,7 @@ export const ToolBarDesktop = ({
 }: any) => {
   const { SegmentIcon } = useSegment();
   const [copied, setCopied] = useState(false);
-  const [openDrawer, setOpenDrawer] = useState<
-    null | 'info' | 'layout' | 'tags'
-  >(null);
+
   const barRef = useRef<HTMLDivElement>(null);
 
   const canUseFavorites = useMemo(
@@ -529,25 +529,39 @@ export const ToolBarDesktop = ({
                           key={d.k}
                           className={`${d.display} flex-col gap-2`}
                         >
-                          <div className="flex items-center gap-1.5">
-                            <d.i size={11} className="pub-bar-icon" />
-                            <span className="text-[10px] pub-bar-text uppercase tracking-widest font-semibold whitespace-nowrap">
-                              {d.label}
-                            </span>
-                          </div>
-                          <div className="flex gap-1.5">
-                            {opts.map((num: number) => (
-                              <button
-                                key={num}
-                                onClick={() =>
-                                  setColumns((p: any) => ({ ...p, [d.k]: num }))
-                                }
-                                className={`flex items-center gap-1 px-3 py-1.5 rounded-lg text-[10px] font-semibold uppercase tracking-wide transition-all border whitespace-nowrap ${columns[d.k] === num ? 'pub-bar-btn-cta border-current' : 'pub-bar-btn border'}`}
-                              >
-                                {num} col
-                                {columns[d.k] === num && <Check size={11} />}
-                              </button>
-                            ))}
+                          <div className="flex items-center justify-between gap-4 w-full">
+                            {/* Rótulo e Ícone */}
+                            <div className="flex items-center gap-2 shrink-0">
+                              <d.i size={12} className="pub-bar-icon" />
+                              <span className="text-[10px] pub-bar-text uppercase tracking-widest font-bold whitespace-nowrap">
+                                {d.label}
+                              </span>
+                            </div>
+
+                            {/* Grupo de Botões */}
+                            <div className="flex gap-1.5 overflow-x-auto no-scrollbar">
+                              {opts.map((num: number) => (
+                                <button
+                                  key={num}
+                                  onClick={() =>
+                                    setColumns((p: any) => ({
+                                      ...p,
+                                      [d.k]: num,
+                                    }))
+                                  }
+                                  className={`flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-[10px] font-semibold uppercase tracking-wide transition-all border whitespace-nowrap ${
+                                    columns[d.k] === num
+                                      ? 'pub-bar-btn-cta border-current'
+                                      : 'pub-bar-btn border-white/10'
+                                  }`}
+                                >
+                                  {num} col
+                                  {columns[d.k] === num && (
+                                    <Check size={11} strokeWidth={3} />
+                                  )}
+                                </button>
+                              ))}
+                            </div>
                           </div>
                         </div>
                       );

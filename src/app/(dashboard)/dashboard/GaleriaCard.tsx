@@ -697,7 +697,7 @@ export default function GaleriaCard({
             {galeria.auto_archived && (
               <div className="flex items-center gap-1.5 px-2.5 h-9 bg-amber-50 border border-amber-200 rounded-luxury">
                 <div className="relative flex items-center justify-center">
-                  <Calendar size={14} className="text-amber-600" />
+                  <Calendar size={16} className="text-amber-600" />
                   <div className="absolute -top-0.5 -right-0.5 w-1.5 h-1.5 bg-amber-500 rounded-full animate-pulse" />
                 </div>
                 <span className="text-[10px] font-semibold text-amber-700 uppercase tracking-tight">
@@ -897,7 +897,7 @@ export default function GaleriaCard({
                 onClick={(e) => e.stopPropagation()}
                 className="flex-1 flex items-center gap-2 px-3 h-full hover:bg-white transition-all group/drive min-w-0"
               >
-                <FolderOpen size={14} className="text-gold shrink-0" />
+                <FolderOpen size={16} className="text-gold shrink-0" />
                 <span className="text-[10px] font-semibold text-slate-800 truncate uppercase tracking-tight">
                   Drive: {galeria.drive_folder_name || 'Pasta Principal'}
                 </span>
@@ -941,7 +941,7 @@ export default function GaleriaCard({
               {galeria.auto_archived && (
                 <div className="flex items-center gap-1.5 px-2.5 h-9 bg-amber-50 border border-amber-200 rounded-luxury">
                   <div className="relative flex items-center justify-center">
-                    <Calendar size={14} className="text-amber-600" />
+                    <Calendar size={16} className="text-amber-600" />
                     <div className="absolute -top-0.5 -right-0.5 w-1.5 h-1.5 bg-amber-500 rounded-full animate-pulse" />
                   </div>
                   <span className="text-[10px] font-semibold text-amber-700 uppercase tracking-tight">

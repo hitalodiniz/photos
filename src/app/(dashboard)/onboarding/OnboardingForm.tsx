@@ -856,7 +856,7 @@ export default function OnboardingForm({
               {/* SEÇÃO 1: IDENTIFICAÇÃO — aberta por padrão */}
               <FormSection
                 title="Identificação"
-                icon={<User size={14} />}
+                icon={<User size={16} />}
                 defaultOpen={true}
                 filled={filledMap.identificacao}
                 hasError={
@@ -1083,7 +1083,7 @@ export default function OnboardingForm({
               {/* SEÇÃO 2: PRESENÇA DIGITAL */}
               <FormSection
                 title="Presença Digital"
-                icon={<Globe size={14} />}
+                icon={<Globe size={16} />}
                 defaultOpen={false}
                 filled={filledMap.presencaDigital}
               >
@@ -1241,7 +1241,7 @@ export default function OnboardingForm({
               <PlanGuard feature="profileLevel" label="Biografia Editorial">
                 <FormSection
                   title="Mini Biografia"
-                  icon={<FileText size={14} />}
+                  icon={<FileText size={16} />}
                   defaultOpen={false}
                   filled={filledMap.miniBio}
                 >
@@ -1268,7 +1268,7 @@ export default function OnboardingForm({
               <PlanGuard feature="profileLevel" label="Biografia Editorial">
                 <FormSection
                   title="Tema Visual"
-                  icon={<Sparkles size={14} />}
+                  icon={<Sparkles size={16} />}
                   defaultOpen={false}
                   filled={filledMap.temaVisual}
                 >
@@ -1284,7 +1284,7 @@ export default function OnboardingForm({
               <PlanGuard feature="profileLevel" label="Área de Atuação">
                 <FormSection
                   title="Área de atuação"
-                  icon={<Sparkles size={14} className="text-gold" />}
+                  icon={<Sparkles size={16} className="text-gold" />}
                   defaultOpen={false}
                   filled={filledMap.areaAtuacao}
                 >
@@ -1335,7 +1335,7 @@ export default function OnboardingForm({
               <PlanGuard feature="profileLevel" label="Cidades de Atuação">
                 <FormSection
                   title="Cidades de Atuação"
-                  icon={<MapPin size={14} />}
+                  icon={<MapPin size={16} />}
                   defaultOpen={false}
                   filled={filledMap.cidades}
                   allowContentOverflow
@@ -1407,7 +1407,7 @@ export default function OnboardingForm({
               {/* SEÇÃO 7: TERMOS E PRIVACIDADE */}
               <FormSection
                 title="Termos e Privacidade"
-                icon={<ShieldCheck size={14} />}
+                icon={<ShieldCheck size={16} />}
                 defaultOpen={!acceptTerms}
                 filled={filledMap.termos}
                 hasError={!!validationErrors.termos}
@@ -1473,7 +1473,7 @@ export default function OnboardingForm({
               isPending={isSaving}
               disabled={!formChanged}
               disabledTooltip="Não há alterações para salvar"
-              icon={<Save size={14} />}
+              icon={<Save size={16} />}
               className="px-6"
               label={'SALVAR PERFIL'}
             />
@@ -1547,7 +1547,7 @@ export default function OnboardingForm({
                 onClick={() => navigate('/dashboard', 'Abrindo seu espaço...')}
                 className="btn-luxury-primary w-full text-[10px] flex items-center justify-center gap-2"
               >
-                <ArrowRight size={14} />
+                <ArrowRight size={16} />
                 Ir para Espaço de Galerias
               </button>
             </div>
@@ -1561,7 +1561,7 @@ export default function OnboardingForm({
                 }}
                 className="btn-luxury-primary w-full text-[10px] flex items-center justify-center gap-2"
               >
-                <Crown size={14} />
+                <Crown size={16} />
                 Assinar plano
               </button>
             )}

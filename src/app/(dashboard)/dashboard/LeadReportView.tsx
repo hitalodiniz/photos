@@ -218,19 +218,19 @@ export default function LeadReportView({
             onClick={() => handleExport('csv')}
             className="btn-secondary-petroleum px-4 flex items-center gap-2 text-[12px] font-semibold"
           >
-            <FileText size={14} /> CSV
+            <FileText size={16} /> CSV
           </button>
           <button
             onClick={() => handleExport('excel')}
             className="btn-secondary-petroleum px-4 flex items-center gap-2 text-[12px] font-semibold"
           >
-            <TableIcon size={14} /> EXCEL
+            <TableIcon size={16} /> EXCEL
           </button>
           <button
             onClick={() => handleExport('pdf')}
             className="btn-luxury-primary px-4 flex items-center gap-2 text-[12px] font-semibold"
           >
-            <FileDown size={14} /> PDF
+            <FileDown size={16} /> PDF
           </button>
         </div>
       }
@@ -240,7 +240,7 @@ export default function LeadReportView({
         <aside className="w-full lg:w-[320px] space-y-3 shrink-0">
           <div className="p-3 bg-slate-50/50 rounded-luxury border border-slate-200">
             <div className="flex items-center gap-2 mb-2">
-              <CalendarDays size={14} className="text-gold" />
+              <CalendarDays size={16} className="text-gold" />
               <h3 className="text-[9px] font-semibold uppercase text-slate-500 tracking-tighter">
                 Período de Análise
               </h3>
@@ -265,7 +265,7 @@ export default function LeadReportView({
 
           <div className="p-3 bg-white rounded-luxury border border-slate-200">
             <div className="flex items-center gap-2 mb-3">
-              <Monitor size={14} className="text-gold" />
+              <Monitor size={16} className="text-gold" />
               <h3 className="text-[9px] font-semibold uppercase text-slate-500 tracking-tighter">
                 Dispositivo
               </h3>
@@ -310,7 +310,7 @@ export default function LeadReportView({
 
           <div className="p-3 bg-white rounded-luxury border border-slate-200">
             <div className="flex items-center gap-2 mb-3">
-              <Cpu size={14} className="text-gold" />
+              <Cpu size={16} className="text-gold" />
               <h3 className="text-[9px] font-semibold uppercase text-slate-500 tracking-tighter">
                 Sistema Operacional
               </h3>

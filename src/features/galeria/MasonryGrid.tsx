@@ -510,7 +510,7 @@ const MasonryItem = memo(
                             : 'bg-black/40 border-white/60 text-transparent'
                         }`}
                       >
-                        <Check size={14} strokeWidth={4} />
+                        <Check size={16} strokeWidth={4} />
                       </div>
                     </div>
                   )}

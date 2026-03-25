@@ -96,12 +96,12 @@ export function PublicGaleriaCard({ galeria }: { galeria: Galeria }) {
               <div className="flex flex-col gap-1.5 text-zinc-300 text-[11px] md:text-xs font-medium">
                 {galeria.location && (
                   <span className="flex items-center gap-2">
-                    <MapPin size={14} className="text-champagne" />
+                    <MapPin size={16} className="text-champagne" />
                     {galeria.location}
                   </span>
                 )}
                 <span className="flex items-center gap-2">
-                  <Calendar size={14} className="text-champagne" />
+                  <Calendar size={16} className="text-champagne" />
                   {formatDateLong(galeria.date)}
                 </span>
               </div>

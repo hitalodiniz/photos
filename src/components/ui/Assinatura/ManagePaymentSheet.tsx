@@ -244,11 +244,19 @@ export function ManagePaymentSheet({
           className="py-2 px-3 space-y-1.5"
         >
           <div className="flex items-center gap-2 p-3 bg-slate-50 border border-slate-200 rounded-luxury">
-            {currentBillingType === 'CREDIT_CARD' && <CreditCard size={18} className="text-petroleum" />}
-            {currentBillingType === 'PIX' && <QrCode size={18} className="text-petroleum" />}
-            {currentBillingType === 'BOLETO' && <Banknote size={18} className="text-petroleum" />}
+            {currentBillingType === 'CREDIT_CARD' && (
+              <CreditCard size={18} className="text-petroleum" />
+            )}
+            {currentBillingType === 'PIX' && (
+              <QrCode size={18} className="text-petroleum" />
+            )}
+            {currentBillingType === 'BOLETO' && (
+              <Banknote size={18} className="text-petroleum" />
+            )}
             <span className="text-[12px] font-semibold text-petroleum uppercase tracking-wide">
-              {currentBillingType === 'CREDIT_CARD' ? 'Cartão de Crédito' : currentBillingType}
+              {currentBillingType === 'CREDIT_CARD'
+                ? 'Cartão de Crédito'
+                : currentBillingType}
             </span>
           </div>
         </SheetSection>
@@ -281,7 +289,7 @@ export function ManagePaymentSheet({
                     : 'border-slate-200 bg-slate-50 text-petroleum/50 hover:border-gold/40'
                 }`}
               >
-                <Icon size={14} strokeWidth={1.5} className="shrink-0" />
+                <Icon size={16} strokeWidth={1.5} className="shrink-0" />
                 <span className="text-[9px] font-semibold uppercase tracking-wide truncate">
                   {label}
                 </span>

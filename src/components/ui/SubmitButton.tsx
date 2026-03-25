@@ -40,12 +40,9 @@ export default function SubmitButton({
     >
       <div className="relative z-10 flex items-center gap-2">
         {isPending ? (
-          <Loader2 className="h-3.5 w-3.5 animate-spin" strokeWidth={2.5} />
+          <Loader2 className="animate-spin" size={16} />
         ) : success ? (
-          <Check
-            className="h-3.5 w-3.5 animate-in zoom-in duration-500"
-            strokeWidth={2.5}
-          />
+          <Check className="animate-in zoom-in duration-500" size={16} />
         ) : icon ? (
           <span className="shrink-0">{icon}</span>
         ) : null}

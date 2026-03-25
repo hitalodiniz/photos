@@ -74,7 +74,7 @@ export function RelatorioSelectedGallery({
           className="hover:text-petroleum/80 transition-colors inline-flex items-center gap-2"
         >
           {galeria?.title}
-          <ExternalLink size={14} className="opacity-50 shrink-0" />
+          <ExternalLink size={16} className="opacity-50 shrink-0" />
         </a>
       </h2>
     </div>

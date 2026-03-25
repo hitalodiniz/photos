@@ -130,7 +130,7 @@ export function GaleriaDriveSection({
 
       {/* Header */}
       <div className="flex items-center gap-2 pb-2 border-b border-slate-200">
-        <FolderSync size={14} className="text-gold" />
+        <FolderSync size={16} className="text-gold" />
         <h3 className="text-[10px] font-bold uppercase tracking-luxury-widest text-petroleum">
           Google Drive
         </h3>
@@ -174,7 +174,7 @@ export function GaleriaDriveSection({
                   title="Abrir pasta no Google Drive"
                   className="flex items-center justify-center h-9 w-9 shrink-0 rounded-luxury border border-slate-200 bg-white text-petroleum/60 hover:text-gold hover:border-gold/40 transition-all"
                 >
-                  <ExternalLink size={14} />
+                  <ExternalLink size={16} />
                 </a>
               )}
             </div>
@@ -215,32 +215,40 @@ export function GaleriaDriveSection({
 
               {/* ESTADO 1b: Cota Global Insuficiente (BLOQUEIO/LIMITAÇÃO) */}
               {isOverPoolCap && !isOverHardCap && (
-                <div className="p-4 rounded-luxury border bg-red-50 border-red-300 flex gap-3 shadow-sm">
+                <div className="p-3 rounded-luxury border bg-red-50 border-red-300 flex gap-3 shadow-sm antialiased">
                   <Ban size={18} className="text-red-500 shrink-0 mt-0.5" />
-                  <div className="space-y-2">
-                    <p className="text-[11px] font-semibold uppercase text-red-700 tracking-wider">
+
+                  <div className="flex-1 space-y-2.5">
+                    <p className="text-[11px] font-bold uppercase text-red-700 tracking-wider">
                       Cota de Arquivos Insuficiente
                     </p>
-                    <div className="text-[12px] text-red-600 leading-relaxed font-medium">
+
+                    <div className="text-[12px] text-red-800 leading-tight">
                       <p>
-                        Foram selecionados nesta pasta{' '}
+                        Esta pasta contém{' '}
                         <strong>
                           {photoCount.toLocaleString('pt-BR')} arquivos
                         </strong>
-                        , mas sua cota atual só permite exibir somente{' '}
+                        , porém sua cota global disponível é de apenas{' '}
                         <strong>
                           {creditsInPoolForMessage.toLocaleString('pt-BR')}{' '}
+                          unidades
                         </strong>
                         .
                       </p>
-                      <p className="mt-2 text-[11px] bg-red-100/50 p-2 rounded border border-red-200">
-                        {creditsInPoolForMessage === 0
-                          ? 'Nenhuma foto adicional desta pasta será exibida enquanto a cota permanecer cheia.'
-                          : `Serão exibidos apenas os primeiros ${creditsInPoolForMessage.toLocaleString(
-                              'pt-BR',
-                            )} de ${photoCount.toLocaleString(
-                              'pt-BR',
-                            )} arquivos desta pasta.`}
+
+                      {/* Bloco de Consequência: Sem recuo lateral exagerado */}
+                      <div className="mt-2 p-2 bg-red-100/40 border border-red-200/50 rounded">
+                        <p className="text-[11px] font-medium italic">
+                          {creditsInPoolForMessage === 0
+                            ? 'Nenhuma foto adicional poderá ser exibida nesta galeria enquanto a cota permanecer totalmente utilizada.'
+                            : `Devido ao limite compartilhado, serão exibidos apenas os primeiros ${creditsInPoolForMessage.toLocaleString('pt-BR')} arquivos desta seleção.`}
+                        </p>
+                      </div>
+
+                      <p className="mt-2 text-[10px] font-bold uppercase tracking-tight opacity-90">
+                        DICA: ARQUIVE GALERIAS ANTIGAS PARA LIBERAR SALDO NA
+                        COTA GLOBAL.
                       </p>
                     </div>
                   </div>
@@ -248,82 +256,87 @@ export function GaleriaDriveSection({
               )}
 
               {/* ESTADO 2: Alerta de Consumo ou Cota Esgotada (AVISO) */}
+              {/* ESTADO 2: Alerta de Consumo ou Cota Esgotada (AVISO) */}
               {isOverRecommended && !isOverHardCap && !isOverPoolCap && (
                 <div
-                  className={`p-3 rounded-luxury border flex gap-3 shadow-sm ${remainingCreditsAfterThis <= 0 ? 'bg-red-50 border-red-200' : 'bg-amber-50 border-amber-200'}`}
+                  className={`p-3 rounded-luxury border flex gap-3 shadow-sm ${
+                    remainingCreditsAfterThis <= 0
+                      ? 'bg-red-50 border-red-200'
+                      : 'bg-amber-50 border-amber-200'
+                  }`}
                 >
-                  <div className="space-y-1">
+                  <div className="space-y-1 w-full">
                     <p
-                      className={`text-[10px] font-semibold uppercase tracking-wider flex items-center gap-2 ${remainingCreditsAfterThis <= 0 ? 'text-red-700' : 'text-amber-700'}`}
+                      className={`text-[10px] font-bold uppercase tracking-widest flex items-center gap-2 ${
+                        remainingCreditsAfterThis <= 0
+                          ? 'text-red-700'
+                          : 'text-amber-700'
+                      }`}
                     >
-                      <AlertTriangle
-                        size={12}
-                        className={
-                          remainingCreditsAfterThis <= 0
-                            ? 'text-red-500 shrink-0 mt-0.5'
-                            : 'text-amber-500 shrink-0 mt-0.5'
-                        }
-                      />
-                      Uso da Cota de Arquivos
+                      <AlertTriangle size={12} className="shrink-0" />
+                      Gestão de Cota da Galeria
                     </p>
+
                     <div
-                      className={`text-[11px] leading-relaxed ${remainingCreditsAfterThis <= 0 ? 'text-red-800' : 'text-amber-800'}`}
+                      className={`mt-2 space-y-1 antialiased ${
+                        remainingCreditsAfterThis <= 0
+                          ? 'text-red-800'
+                          : 'text-amber-800'
+                      }`}
                     >
-                      <p>
-                        O recomendado é até{' '}
-                        <strong>{alertThreshold} arquivos</strong> por galeria
-                        (máximo do plano: {hardCap} arquivos por galeria).
+                      {/* Mensagem Principal: Suave e Esclarecedora */}
+                      <p className="text-[11px] leading-relaxed">
+                        {photoCount >= hardCap ? (
+                          <>
+                            Esta galeria alcançou o{' '}
+                            <strong>número máximo de {hardCap} arquivos</strong>{' '}
+                            permitido em seu plano.
+                          </>
+                        ) : (
+                          <>
+                            Você utilizou{' '}
+                            <strong>
+                              {photoCount.toLocaleString('pt-BR')} arquivos
+                            </strong>{' '}
+                            nesta galeria, aproximando-se do limite do plano.
+                          </>
+                        )}
                       </p>
 
                       <div
-                        className={`mt-3 pt-3 border-t ${remainingCreditsAfterThis <= 0 ? 'border-red-200' : 'border-amber-200'}`}
+                        className={`pt-2 border-t ${remainingCreditsAfterThis <= 0 ? 'border-red-200' : 'border-amber-200'}`}
                       >
                         {remainingCreditsAfterThis > 0 ? (
                           <div className="space-y-2">
-                            <p>
-                              Esta galeria usa uma parte relevante da sua cota,
-                              mas ainda{' '}
-                              <strong>
-                                sobram{' '}
+                            <p className="text-[12px] leading-relaxed text-slate-600">
+                              Este volume reduz sua{' '}
+                              <strong>cota global compartilhada</strong>,
+                              restando ainda{' '}
+                              <span className="font-bold text-petroleum">
                                 {remainingCreditsAfterThis.toLocaleString(
                                   'pt-BR',
                                 )}{' '}
                                 arquivos
-                              </strong>{' '}
-                              disponíveis para outras galerias.
+                              </span>{' '}
+                              para distribuir entre outras galerias.
                             </p>
-                            <p className="text-[11px] opacity-80 italic">
-                              * O limite é dinâmico e compartilhado entre suas
-                              galerias.
+                            <p className="text-[10px] text-slate-800 italic">
+                              * A quantidade de arquivos recomendados por
+                              galeria é de {alertThreshold} arquivos para usar o
+                              número máximo de galerias do plano.
                             </p>
                           </div>
                         ) : (
-                          <div className="space-y-1">
-                            <p className="font-semibold text-[11px]">
-                              COTA GLOBAL ESGOTADA
+                          <div className="space-y-2">
+                            <p className="text-[11px] font-medium">
+                              Sua cota global foi totalmente utilizada nas suas
+                              galerias atuais.
                             </p>
-                            <p>
-                              A soma de todas as suas galerias atingiu o teto de{' '}
-                              <strong>
-                                {totalPool.toLocaleString('pt-BR')} arquivos
-                              </strong>
-                              .
+                            <p className="text-[11px] text-slate-600 leading-relaxed">
+                              Para criar novas galerias, você poderá arquivar
+                              galerias antigas ou expandir seu plano para
+                              aumentar o limite compartilhado.
                             </p>
-                            <p>
-                              Você ainda pode manter esta galeria, mas{' '}
-                              <strong>
-                                novas galerias não terão fotos visíveis
-                              </strong>{' '}
-                              enquanto não liberar cota.
-                            </p>
-                            <p className="font-semibold">Para liberar saldo:</p>
-                            <ul className="list-disc list-inside ml-1 text-[11px]">
-                              <li>Arquive ou delete galerias antigas</li>
-                              <li>
-                                Reduza a quantidade de fotos nas galerias atuais
-                              </li>
-                              <li>Considere um upgrade de plano</li>
-                            </ul>
                           </div>
                         )}
                       </div>
@@ -367,7 +380,7 @@ export function GaleriaDriveSection({
           {driveData.id && photoCount === 0 && !isValidatingDrive && (
             <div className="p-2.5 rounded-luxury border bg-slate-50 border-slate-200 flex gap-2.5">
               <AlertTriangle
-                size={14}
+                size={16}
                 className="text-slate-400 shrink-0 mt-0.5"
               />
               <p className="text-[9px] text-slate-500 leading-tight">

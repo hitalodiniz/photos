@@ -54,12 +54,10 @@ export function StepConfirm() {
       billingType,
       segment,
       couponCode,
-    ).then(
-      (r) => {
-        if (!cancelled && r.calculation) setUpgradeCalculation(r.calculation);
-        if (!cancelled) setCalcLoading(false);
-      },
-    );
+    ).then((r) => {
+      if (!cancelled && r.calculation) setUpgradeCalculation(r.calculation);
+      if (!cancelled) setCalcLoading(false);
+    });
     return () => {
       cancelled = true;
       setCalcLoading(false);
@@ -331,7 +329,7 @@ export function StepConfirm() {
             {/* ✅ FORMA DE PAGAMENTO (primeira linha) */}
             <div className="relative flex items-center justify-between pb-1.5 border-b border-slate-100">
               <div className="flex items-center gap-2">
-                <PaymentIcon size={14} className="text-petroleum/70" />
+                <PaymentIcon size={16} className="text-petroleum/70" />
                 <p className="text-[12px] font-semibold text-petroleum">
                   {paymentMethodLabel}
                   {installmentsSuffix}
@@ -360,7 +358,9 @@ export function StepConfirm() {
               <div className="space-y-1">
                 <div className="flex justify-between text-[11px] text-emerald-600">
                   <span className="font-medium">{creditLabel}</span>
-                  <span className="font-bold">− {formatBRL(residualCredit)}</span>
+                  <span className="font-bold">
+                    − {formatBRL(residualCredit)}
+                  </span>
                 </div>
                 {proRataDetails && (
                   <p className="text-[10px] text-emerald-700/90">
@@ -430,7 +430,7 @@ export function StepConfirm() {
             {/* ✅ FORMA DE PAGAMENTO */}
             <div className="relative flex items-center justify-between pb-1 border-b border-slate-100">
               <div className="flex items-center gap-2">
-                <PaymentIcon size={14} className="text-petroleum/70" />
+                <PaymentIcon size={16} className="text-petroleum/70" />
                 <p className="text-[12px] font-semibold text-petroleum">
                   {paymentMethodLabel}
                   {installmentsSuffix}

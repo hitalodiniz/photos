@@ -34,7 +34,9 @@ import { TrafficInfoCard } from './TrafficInfoCard';
 import { usePlan } from '@/core/context/PlanContext';
 import { UpgradeSheet } from '@/components/ui/Upgradesheet';
 
-function parseNotificationMetadata(metadata: unknown): Record<string, any> | null {
+function parseNotificationMetadata(
+  metadata: unknown,
+): Record<string, any> | null {
   if (!metadata) return null;
   if (typeof metadata === 'object') return metadata as Record<string, any>;
   if (typeof metadata === 'string') {
@@ -67,7 +69,9 @@ function buildFallbackEventFromNotification(notification: any): any | null {
     created_at: notification.created_at,
     event_label:
       (notification.title &&
-        String(notification.title).replace(/^[^\p{L}\d]+/u, '').trim()) ||
+        String(notification.title)
+          .replace(/^[^\p{L}\d]+/u, '')
+          .trim()) ||
       'Atividade na galeria',
     location:
       typeof parsed.galeria_title === 'string'
@@ -212,10 +216,10 @@ export function NotificationMenu({ userId }: { userId: string }) {
   };
 
   const icons = {
-    info: <Info size={14} className="text-blue-400" />,
-    success: <CheckCircle2 size={14} className="text-green-400" />,
-    warning: <AlertTriangle size={14} className="text-gold" />,
-    error: <XCircle size={14} className="text-red-400" />,
+    info: <Info size={16} className="text-blue-400" />,
+    success: <CheckCircle2 size={16} className="text-green-400" />,
+    warning: <AlertTriangle size={16} className="text-gold" />,
+    error: <XCircle size={16} className="text-red-400" />,
   };
 
   return (
@@ -323,8 +327,8 @@ export function NotificationMenu({ userId }: { userId: string }) {
                       {notifications.length === 1
                         ? 'notificação'
                         : 'notificações'}{' '}
-                      aguardando. Faça upgrade para receber alertas de visitas,
-                      downloads e muito mais.
+                      aguardando. Faça upgrade do seu plano para receber alertas
+                      de visitas, downloads e muito mais.
                     </p>
                   </div>
                   <button
@@ -344,11 +348,9 @@ export function NotificationMenu({ userId }: { userId: string }) {
                   const eventData = getEventDataFromNotification(n);
                   // Extração de dados da Galeria do Metadata
                   const galeriaTitle =
-                    eventData?.galeria_title ||
-                    n.metadata?.galeria_title;
+                    eventData?.galeria_title || n.metadata?.galeria_title;
                   const galeriaUrl =
-                    eventData?.galeria_url ||
-                    n.metadata?.galeria_url;
+                    eventData?.galeria_url || n.metadata?.galeria_url;
                   return (
                     <div
                       key={n.id}
@@ -378,7 +380,7 @@ export function NotificationMenu({ userId }: { userId: string }) {
                             <div className="flex items-center justify-between gap-3 p-2 rounded-lg bg-petroleum/[0.03] border border-petroleum/5 mt-1">
                               <div className="flex items-center gap-2 overflow-hidden">
                                 <Images
-                                  size={14}
+                                  size={16}
                                   className="text-gold shrink-0"
                                 />
                                 <span className="text-[10px] font-bold text-petroleum/80 uppercase tracking-wider truncate">

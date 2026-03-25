@@ -255,13 +255,13 @@ export default function InteractiveChart({
               {/* Legenda na versão expandida */}
               <div className="flex gap-6 mb-6 border-b border-slate-100 pb-4">
                 <div className="flex items-center gap-2 text-xs font-semibold text-slate-700">
-                  <Eye size={14} className="text-gold" /> VISUALIZAÇÕES
+                  <Eye size={16} className="text-gold" /> VISUALIZAÇÕES
                 </div>
                 <div className="flex items-center gap-2 text-xs font-semibold text-slate-700">
-                  <Download size={14} className="text-blue-500" /> DOWNLOADS
+                  <Download size={16} className="text-blue-500" /> DOWNLOADS
                 </div>
                 <div className="flex items-center gap-2 text-xs font-semibold text-slate-700">
-                  <Share2 size={14} className="text-emerald-500" />{' '}
+                  <Share2 size={16} className="text-emerald-500" />{' '}
                   COMPARTILHAMENTOS
                 </div>
               </div>

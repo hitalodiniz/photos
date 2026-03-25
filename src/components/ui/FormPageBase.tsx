@@ -53,11 +53,7 @@ export default function FormPageBase({
     };
   }, []);
 
-  const defaultSubmitLabel = loading
-    ? 'Salvando...'
-    : isEdit
-      ? 'SALVAR ALTERAÇÕES'
-      : 'CRIAR';
+  const defaultSubmitLabel = loading ? 'Salvando...' : 'SALVAR';
 
   return (
     <div
@@ -71,7 +67,11 @@ export default function FormPageBase({
           <div className="max-w-[1600px] mx-auto px-4 md:px-10">
             <form
               id={id}
-              onSubmit={onSubmit}
+              onSubmit={(e) => {
+                // Garante fluxo client-side; evita submit nativo/redirecionamento.
+                e.preventDefault();
+                onSubmit(e);
+              }}
               className="flex flex-col"
               onChange={onFormChange}
             >
@@ -106,7 +106,7 @@ export default function FormPageBase({
                       form={id}
                       success={isSuccess}
                       disabled={loading}
-                      icon={<Save size={14} />}
+                      icon={<Save size={16} />}
                       className="px-6"
                       label={submitLabel || defaultSubmitLabel}
                     />

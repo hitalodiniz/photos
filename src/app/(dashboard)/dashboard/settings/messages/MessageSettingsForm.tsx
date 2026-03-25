@@ -334,7 +334,7 @@ export default function MessageSettingsForm({ profile }: { profile: any }) {
                     className="btn-luxury-primary"
                     disabled={hasError}
                   >
-                    <Save size={14} />
+                    <Save size={16} />
                     Confirmar Alterações
                   </button>
                 </div>
@@ -370,7 +370,7 @@ export default function MessageSettingsForm({ profile }: { profile: any }) {
                     />
                     {hasError && (
                       <div className="flex items-center gap-2 text-red-600 bg-red-50 p-3 rounded-lg border border-red-100">
-                        <AlertCircle size={14} />
+                        <AlertCircle size={16} />
                         <p className="text-[10px]">
                           Tags inválidas:{' '}
                           <span className="font-semibold">

@@ -94,7 +94,8 @@ export function PlanGuard({
   const featureInfo = FEATURE_DESCRIPTIONS[feature];
   const displayLabel = label || featureInfo?.label || 'Recurso Premium';
   const displayDescription =
-    featureInfo?.description || 'Faça upgrade para liberar este recurso.';
+    featureInfo?.description ||
+    'Faça upgrade do seu plano para liberar este recurso.';
 
   const hasAccess = resolveAccess(feature, permissions, forceShowLock);
 
@@ -155,7 +156,7 @@ export function PlanGuard({
           ) : (
             <div className="flex flex-col items-center gap-2">
               <div className="bg-petroleum p-2 rounded-full shadow-2xl border border-gold/30 flex items-center justify-center shrink-0">
-                <Lock size={14} className="text-champagne" strokeWidth={3} />
+                <Lock size={16} className="text-champagne" strokeWidth={3} />
               </div>
               <div className="flex flex-col items-center">
                 <span className="text-[11px] font-semibold uppercase tracking-widest text-petroleum leading-tight drop-shadow-sm">

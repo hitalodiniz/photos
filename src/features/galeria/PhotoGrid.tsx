@@ -29,6 +29,7 @@ import {
 import { ConfirmationModal, Toast } from '@/components/ui';
 import { saveGaleriaSelectionAction } from '@/core/services/galeria.service';
 import { div } from 'framer-motion/client';
+import { GaleriaTour } from './ToolBarDesktopTour';
 
 export default function PhotoGrid({ photos, galeria }: any) {
   const { planKey, permissions } = usePlan();
@@ -37,6 +38,7 @@ export default function PhotoGrid({ photos, galeria }: any) {
     null,
   );
   const [showSelectionFromUrl, setShowSelectionFromUrl] = useState(false);
+  const [openDrawer, setOpenDrawer] = useState(null);
   const [isScrolled, setIsScrolled] = useState(false);
   const [isHovered, setIsHovered] = useState(false);
   const [showOnlyFavorites, setShowOnlyFavorites] = useState(false);
@@ -490,6 +492,12 @@ export default function PhotoGrid({ photos, galeria }: any) {
       {...(themeKey ? { 'data-theme': themeKey } : {})}
     >
       {/* TOOLBARS — cada uma é sticky e carrega seu próprio data-theme */}
+      <GaleriaTour
+        galeriaId={galeria.id}
+        canUseFavorites={canUseFavorites}
+        hasTags={tagsDaGaleria.length > 0}
+        onOpenDrawer={setOpenDrawer}
+      />
       <ToolBarDesktop
         {...{
           galeria,
@@ -516,6 +524,8 @@ export default function PhotoGrid({ photos, galeria }: any) {
         }}
         tags={tagsDaGaleria}
         handleShare={handleShare}
+        openDrawer={openDrawer}
+        setOpenDrawer={setOpenDrawer}
       />
       <ToolBarMobile
         {...{

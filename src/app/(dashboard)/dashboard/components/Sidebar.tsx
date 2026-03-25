@@ -21,6 +21,7 @@ import SidebarGoogleDrive from './SidebarGoogleDrive';
 import SidebarAjuda from './SidebarAjuda';
 import { useSidebar } from '@/components/providers/SidebarProvider';
 import { usePlan } from '@/core/context/PlanContext';
+import { useNavigation } from '@/components/providers/NavigationProvider';
 import { useState } from 'react';
 import UpgradeModal from '@/components/ui/UpgradeModal';
 import { UpgradeSheet } from '@/components/ui/Upgradesheet';
@@ -86,6 +87,7 @@ export default function Sidebar({
 }: SidebarProps) {
   const { SegmentIcon } = useSegment();
   const { isSidebarCollapsed, toggleSidebar } = useSidebar();
+  const { navigate } = useNavigation();
   const isMobile = typeof window !== 'undefined' && window.innerWidth < 1024;
 
   const { permissions, canAddMore, planKey } = usePlan(); // 🛡️ Permissões
@@ -168,9 +170,9 @@ export default function Sidebar({
       ${isNovaGaleriaDisabled ? 'opacity-70' : ''}`}
             title={
               !canCreateByPhotos
-                ? 'Sem cota de fotos. Faça upgrade para criar galerias.'
+                ? 'Sem cota de fotos. Faça upgrade do seu plano para criar galerias.'
                 : !canCreateByGalleries
-                  ? `Limite de ${permissions.maxGalleries} galerias atingido. Faça upgrade.`
+                  ? `Limite de ${permissions.maxGalleries} galerias atingido. Faça upgrade do seu plano.`
                   : 'Criar nova galeria'
             }
           >
@@ -184,7 +186,7 @@ export default function Sidebar({
               />
               {!canCreateMore && !isRedirecting && (
                 <Lock
-                  size={14}
+                  size={16}
                   className="absolute inset-0 m-auto text-black animate-in zoom-in duration-300"
                   strokeWidth={2.5}
                 />
@@ -207,8 +209,25 @@ export default function Sidebar({
                 <div className="flex items-center justify-between gap-2">
                   <Link
                     href="/dashboard/assinatura"
+                    onClick={(e) => {
+                      // Usa loading global de navegação em clique normal.
+                      if (
+                        e.metaKey ||
+                        e.ctrlKey ||
+                        e.shiftKey ||
+                        e.altKey ||
+                        e.button !== 0
+                      ) {
+                        return;
+                      }
+                      e.preventDefault();
+                      navigate(
+                        '/dashboard/assinatura',
+                        'Abrindo assinatura...',
+                      );
+                    }}
                     className="flex items-center gap-1 min-w-0 hover:opacity-90 transition-opacity group flex-1"
-                    title="Ver assinatura"
+                    title="Gerenciar minha assinatura"
                   >
                     <span className="text-[10px] font-bold uppercase tracking-luxury-wide text-white/90 shrink-0">
                       Plano
@@ -217,7 +236,7 @@ export default function Sidebar({
                       {planKey}
                     </span>
                     <ChevronRight
-                      size={14}
+                      size={16}
                       strokeWidth={2.5}
                       className="shrink-0 text-white group-hover:text-white transition-colors"
                     />
@@ -262,7 +281,7 @@ export default function Sidebar({
               <div className="rounded-md border border-amber-500/20 bg-amber-500/10 px-2 py-2">
                 <div className="flex items-start gap-2">
                   <AlertCircle
-                    size={14}
+                    size={16}
                     className="text-amber-300 shrink-0 mt-0.5"
                   />
                   <div className="min-w-0 flex-1">

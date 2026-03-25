@@ -313,7 +313,7 @@ export default function PhotographerAvatar({
               target="_blank"
               className="text-slate-500 dark:text-white/60 hover:text-amber-500 transition-colors"
             >
-              <User size={14} />
+              <User size={16} />
             </a>
             {hasWebsite && photographer?.website && (
               <a

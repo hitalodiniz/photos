@@ -45,7 +45,7 @@ export default function GoogleSignInButton({
           </span>
         ) : (
           <>
-            <LogIn size={14} className="text-gold" />
+            <LogIn size={16} className="text-gold" />
             <span className="text-[11px] font-semibold uppercase tracking-[0.2em] text-white">
               Google Login
             </span>

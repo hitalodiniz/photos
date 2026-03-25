@@ -615,9 +615,14 @@ export default function AssinaturaContent({
           );
         }
         router.refresh();
+        // Garantia adicional: força recarregamento da página para refletir
+        // imediatamente o estado pós-cancelamento em todos os blocos da UI.
+        if (typeof window !== 'undefined') {
+          window.setTimeout(() => window.location.reload(), 120);
+        }
         if (json.type === 'refund_immediate') {
           showToast(
-            'Assinatura cancelada. O estorno será processado em até 48h.',
+            'Assinatura cancelada. O estorno será processado em até 72h.',
             'success',
           );
         } else if (json.access_ends_at) {
@@ -913,9 +918,7 @@ export default function AssinaturaContent({
             ? 'Pagar agora'
             : item.status === 'approved'
               ? 'Comprovante de pagamento'
-              : isPaidOrCancelled
-                ? 'Comprovante de cancelamento'
-                : 'Ver pagamento';
+              : 'Ver pagamento';
         return (
           <a
             href={url}
@@ -1062,7 +1065,7 @@ export default function AssinaturaContent({
             {/* Resumo do plano */}
             <div className="p-3 bg-white rounded-luxury border border-slate-200 grid grid-cols-2 gap-3">
               <div className="flex items-center gap-2 border-r border-slate-100 pr-3">
-                <Crown size={14} className="text-gold shrink-0" />
+                <Crown size={16} className="text-gold shrink-0" />
                 <div>
                   <p className="text-[9px] uppercase font-semibold text-slate-600 leading-tight">
                     Plano
@@ -1074,7 +1077,7 @@ export default function AssinaturaContent({
               </div>
               {planKey !== 'FREE' && (
                 <div className="flex items-center gap-2">
-                  <Clock size={14} className="text-gold shrink-0" />
+                  <Clock size={16} className="text-gold shrink-0" />
                   <div>
                     <p className="text-[9px] uppercase font-semibold text-slate-600  mb-0.5">
                       {showSidebarNextCharge ? 'Próxima cobrança' : 'Expira em'}
@@ -1089,7 +1092,7 @@ export default function AssinaturaContent({
               )}
               <div className="flex items-center gap-2 border-r border-slate-100 pr-3">
                 <BadgeCheck
-                  size={14}
+                  size={16}
                   className={
                     vigenteSubscriptionStatusUpper === 'OVERDUE'
                       ? 'text-red-500'
@@ -1113,7 +1116,7 @@ export default function AssinaturaContent({
               </div>
               {planKey !== 'FREE' && (
                 <div className="flex items-center gap-2">
-                  <Banknote size={14} className="text-gold shrink-0" />
+                  <Banknote size={16} className="text-gold shrink-0" />
                   <div>
                     <p className="text-[9px] uppercase font-semibold text-slate-600 leading-tight">
                       Última cobrança
@@ -1170,7 +1173,7 @@ export default function AssinaturaContent({
                   onClick={() => setShowManagePayment(true)}
                   className="w-full flex items-center justify-center gap-2 py-2.5 px-3 rounded-luxury border border-slate-200 bg-white text-[10px] font-semibold uppercase tracking-wider text-petroleum/80 hover:text-petroleum hover:border-petroleum/30 transition-colors"
                 >
-                  <Settings size={14} className="shrink-0" />
+                  <Settings size={16} className="shrink-0" />
                   Gerenciar pagamento
                 </button>
               )}

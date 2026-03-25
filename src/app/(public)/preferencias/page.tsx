@@ -105,7 +105,7 @@ export default function PreferenciasPage({ profile, onClose }) {
         <FormSection
           title="visibilidade de categorias"
           subtitle="oculte categorias que você não utiliza no seu dia a dia"
-          icon={<Tags size={14} />}
+          icon={<Tags size={16} />}
         >
           <div className="grid grid-cols-2 md:grid-cols-3 gap-2">
             {GALLERY_CATEGORIES.map((cat) => {
@@ -146,7 +146,7 @@ export default function PreferenciasPage({ profile, onClose }) {
         <FormSection
           title="design padrão das galerias"
           subtitle="estas configurações serão aplicadas automaticamente em novas galerias"
-          icon={<Layout size={14} />}
+          icon={<Layout size={16} />}
         >
           <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
             <div className="flex items-center justify-between p-4 bg-slate-50 rounded-luxury border border-petroleum/10">
@@ -197,7 +197,7 @@ export default function PreferenciasPage({ profile, onClose }) {
         <FormSection
           title="comunicação whatsapp"
           subtitle="personalize os textos que serão enviados aos seus clientes"
-          icon={<MessageSquare size={14} />}
+          icon={<MessageSquare size={16} />}
         >
           <div className="space-y-4">
             <div className="space-y-2">

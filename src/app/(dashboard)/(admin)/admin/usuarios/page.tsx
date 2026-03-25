@@ -192,7 +192,10 @@ function EditUserModal({
             onChange={(e) => setIsExempt(e.target.checked)}
             className="rounded border-slate-300 text-petroleum focus:ring-petroleum"
           />
-          <label htmlFor="edit-is-exempt" className="text-sm font-medium text-slate-700">
+          <label
+            htmlFor="edit-is-exempt"
+            className="text-sm font-medium text-slate-700"
+          >
             Usuário isento (benefício vitalício)
           </label>
         </div>
@@ -274,8 +277,10 @@ export default function AdminUsuariosPage() {
         accessor: (r: AdminUserRow) =>
           r.is_exempt ? (
             <div className="flex items-center gap-1.5" title="Usuário isento">
-              <ShieldCheck size={14} className="text-violet-600" />
-              <span className="text-[10px] font-semibold text-violet-700">Isento</span>
+              <ShieldCheck size={16} className="text-violet-600" />
+              <span className="text-[10px] font-semibold text-violet-700">
+                Isento
+              </span>
             </div>
           ) : (
             <span className="text-slate-400 text-[10px]">—</span>

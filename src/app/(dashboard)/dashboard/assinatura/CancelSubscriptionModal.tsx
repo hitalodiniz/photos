@@ -242,7 +242,7 @@ export function CancelSubscriptionModal({
                   ))}
                 </select>
                 <ChevronDown
-                  size={14}
+                  size={16}
                   className="absolute right-3 top-1/2 -translate-y-1/2 text-slate-800 pointer-events-none"
                 />
               </div>
@@ -294,7 +294,7 @@ export function CancelSubscriptionModal({
                       <p className="text-[12px] text-slate-800 mt-0.5 leading-relaxed">
                         Você está dentro do prazo de 7 dias (Art. 49 CDC). O
                         valor integral pago será estornado para a forma de
-                        pagamento original em até 48h úteis. O plano encerra
+                        pagamento original em até 72h. O plano encerra
                         imediatamente.
                       </p>
                     </div>
@@ -408,7 +408,7 @@ export function CancelSubscriptionModal({
               Você está prestes a cancelar o plano{' '}
               <strong className="text-petroleum">{planName}</strong>.{' '}
               {withinRefund
-                ? 'O plano será encerrado imediatamente (FREE) e o estorno total será processado em até 48h.'
+                ? 'O plano será encerrado imediatamente (FREE) e o estorno total será processado em até 72h.'
                 : `Sua assinatura não será renovada. Você mantém acesso completo até ${formatDate(accessEndsAt)}.`}
             </p>
 
@@ -431,7 +431,7 @@ export function CancelSubscriptionModal({
                     withinRefund ? 'text-emerald-600' : 'text-slate-500'
                   }`}
                 >
-                  {withinRefund ? 'Sim — em até 48h' : 'Não aplicável'}
+                  {withinRefund ? 'Sim — em até 72h' : 'Não aplicável'}
                 </span>
               </div>
               <div className="flex items-center justify-between px-3 py-2.5 bg-slate-50">

@@ -298,7 +298,7 @@ export function UpgradeRequestNotesSheet({
           <SheetSection title="Resumo">
             <div className="grid grid-cols-2 gap-3 antialiased">
               <div className="p-3 bg-slate-50 rounded-luxury border border-slate-100 flex items-start gap-2">
-                <BadgeCheck size={14} className="text-gold mt-0.5" />
+                <BadgeCheck size={16} className="text-gold mt-0.5" />
                 <div>
                   <p className="text-[8px] text-slate-400 font-semibold uppercase mb-1">
                     Status
@@ -309,7 +309,7 @@ export function UpgradeRequestNotesSheet({
                 </div>
               </div>
               <div className="p-3 bg-slate-50 rounded-luxury border border-slate-100 flex items-start gap-2">
-                <CalendarClock size={14} className="text-gold mt-0.5" />
+                <CalendarClock size={16} className="text-gold mt-0.5" />
                 <div>
                   <p className="text-[8px] text-slate-400 font-semibold uppercase mb-1">
                     Processado em
@@ -320,7 +320,7 @@ export function UpgradeRequestNotesSheet({
                 </div>
               </div>
               <div className="p-3 bg-slate-50 rounded-luxury border border-slate-100 flex items-start gap-2">
-                <Banknote size={14} className="text-gold mt-0.5" />
+                <Banknote size={16} className="text-gold mt-0.5" />
                 <div>
                   <p className="text-[8px] text-slate-400 font-semibold uppercase mb-1">
                     Valor desta operação
@@ -331,7 +331,7 @@ export function UpgradeRequestNotesSheet({
                 </div>
               </div>
               <div className="p-3 bg-slate-50 rounded-luxury border border-slate-100 flex items-start gap-2">
-                <Tag size={14} className="text-gold mt-0.5" />
+                <Tag size={16} className="text-gold mt-0.5" />
                 <div>
                   <p className="text-[8px] text-slate-400 font-semibold uppercase mb-1">
                     Ciclo e pagamento
@@ -406,7 +406,7 @@ export function UpgradeRequestNotesSheet({
                       className={`p-3 rounded-luxury border ${toneClass}`}
                     >
                       <div className="flex items-start gap-2">
-                        <Timer size={14} className="mt-0.5 shrink-0" />
+                        <Timer size={16} className="mt-0.5 shrink-0" />
                         <div className="min-w-0">
                           <p className="text-[11px] font-semibold">
                             {event.title}
@@ -433,7 +433,7 @@ export function UpgradeRequestNotesSheet({
               <SheetSection title="Detalhes do cancelamento">
                 <div className="space-y-2 text-[11px] text-slate-700">
                   <div className="flex items-center gap-2 font-medium text-petroleum">
-                    <AlertTriangle size={14} className="text-gold" />
+                    <AlertTriangle size={16} className="text-gold" />
                     {String(parsed.json.reason ?? 'Cancelamento')}
                   </div>
                   {parsed.json.comment && (
@@ -469,7 +469,7 @@ export function UpgradeRequestNotesSheet({
                         key={line}
                         className="p-3 bg-slate-50 rounded-luxury border border-slate-100 flex items-start gap-2"
                       >
-                        <TrendingUp size={14} className="text-gold mt-0.5" />
+                        <TrendingUp size={16} className="text-gold mt-0.5" />
                         <p className="text-[11px] text-slate-700 font-medium">
                           {line}
                         </p>
@@ -487,7 +487,7 @@ export function UpgradeRequestNotesSheet({
                         key={line}
                         className="p-3 bg-slate-50 rounded-luxury border border-slate-100 flex items-start gap-2"
                       >
-                        <CreditCard size={14} className="text-gold mt-0.5" />
+                        <CreditCard size={16} className="text-gold mt-0.5" />
                         <p className="text-[11px] text-slate-700 font-medium">
                           {formatPaymentChangeLine(line)}
                         </p>
@@ -519,7 +519,7 @@ export function UpgradeRequestNotesSheet({
                             className="p-3 bg-amber-50 rounded-luxury border border-amber-100 space-y-2"
                           >
                             <div className="flex items-center gap-2 text-[11px] text-amber-800 font-semibold uppercase tracking-tight">
-                              <CalendarClock size={14} />
+                              <CalendarClock size={16} />
                               Ciclo de cancelamento
                             </div>
                             <div className="grid grid-cols-1 gap-1 text-[11px] text-amber-900/70 font-medium">

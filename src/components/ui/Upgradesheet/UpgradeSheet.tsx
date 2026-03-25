@@ -98,7 +98,8 @@ function UpgradeSheetContent({
                     title="Há um cancelamento com downgrade agendado."
                     className="btn-luxury-primary w-full opacity-60 cursor-not-allowed"
                   >
-                    Cancelamento com downgrade agendado — contratação indisponível
+                    Cancelamento com downgrade agendado — contratação
+                    indisponível
                   </button>
                 ) : hasPendingUpgrade ? (
                   <button
@@ -140,11 +141,11 @@ function UpgradeSheetContent({
                     }
                     className="btn-luxury-primary w-full disabled:opacity-50 disabled:cursor-not-allowed"
                   >
-                    <SelectedPlanIcon size={14} strokeWidth={2} />
+                    <SelectedPlanIcon size={16} strokeWidth={2} />
                     {isPlanPreviewLoading
                       ? 'Carregando…'
                       : `Assinar Plano ${selectedPlanInfo?.name ?? selectedPlan}`}
-                    {!isPlanPreviewLoading && <ChevronRight size={14} />}
+                    {!isPlanPreviewLoading && <ChevronRight size={16} />}
                   </button>
                 )}
               </>
@@ -156,9 +157,9 @@ function UpgradeSheetContent({
                 onClick={() => setStep('billing')}
                 className="btn-luxury-primary w-full disabled:opacity-40 disabled:cursor-not-allowed"
               >
-                <CreditCard size={14} />
+                <CreditCard size={16} />
                 Próximo: Pagamento
-                <ChevronRight size={14} />
+                <ChevronRight size={16} />
               </button>
             )}
             {step === 'billing' && (
@@ -173,9 +174,9 @@ function UpgradeSheetContent({
                 onClick={() => setStep('confirm')}
                 className="btn-luxury-primary w-full disabled:opacity-40 disabled:cursor-not-allowed"
               >
-                <CheckCircle2 size={14} />
+                <CheckCircle2 size={16} />
                 Revisar e Confirmar
-                <ChevronRight size={14} />
+                <ChevronRight size={16} />
               </button>
             )}
             {step === 'confirm' && <ConfirmButton />}
@@ -266,7 +267,7 @@ function ConfirmButton() {
         </>
       ) : (
         <>
-          <ArrowRight size={14} />
+          <ArrowRight size={16} />
           {buttonLabel()}
         </>
       )}

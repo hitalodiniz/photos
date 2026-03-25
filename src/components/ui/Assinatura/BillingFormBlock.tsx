@@ -159,7 +159,7 @@ export function BillingFormBlock({
                     : 'border-slate-200 bg-slate-50 text-petroleum/50 hover:border-gold/40'
               }`}
             >
-              <Icon size={14} strokeWidth={1.5} className="shrink-0" />
+              <Icon size={16} strokeWidth={1.5} className="shrink-0" />
               <span className="text-[9px] font-semibold uppercase tracking-wide truncate">
                 {label}
               </span>

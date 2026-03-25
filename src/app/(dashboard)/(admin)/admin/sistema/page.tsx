@@ -77,7 +77,7 @@ function SectionCard({
           danger ? 'bg-red-50 border-red-200' : 'bg-slate-50 border-slate-200'
         }`}
       >
-        <Icon size={14} className={danger ? 'text-red-500' : 'text-gold'} />
+        <Icon size={16} className={danger ? 'text-red-500' : 'text-gold'} />
         <p
           className={`text-[10px] font-bold uppercase tracking-wider ${
             danger ? 'text-red-700' : 'text-petroleum/70'

@@ -361,7 +361,7 @@ export default function PlanosContent() {
                         >
                           <div className="flex items-center gap-3">
                             <ChevronDown
-                              size={14}
+                              size={16}
                               strokeWidth={2.5}
                               className={`text-gold transition-transform duration-300 ${
                                 expandedGroups[groupName] ? '' : '-rotate-90'

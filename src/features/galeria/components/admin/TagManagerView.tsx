@@ -381,7 +381,7 @@ export default function TagManagerView({
 
           <div className="mt-auto p-5 bg-petroleum/5 border-t border-slate-200">
             <p className="text-[10px] text-petroleum/50 italic leading-relaxed flex gap-2">
-              <Info size={14} className="shrink-0" />
+              <Info size={16} className="shrink-0" />
               Selecione as fotos ao lado e clique em uma marcação para marcar.
             </p>
           </div>
@@ -507,14 +507,14 @@ export default function TagManagerView({
                 onClick={() => navigate('/dashboard', 'Voltando ao painel...')}
                 className="btn-secondary-white w-full h-10 uppercase font-semibold"
               >
-                <ArrowLeft size={14} /> Painel
+                <ArrowLeft size={16} /> Painel
               </button>
               <a
                 href={getPublicGalleryUrl(galeria.photographer, galeria.slug)}
                 target="_blank"
                 className="btn-luxury-primary w-full h-10 uppercase font-semibold flex items-center justify-center gap-2"
               >
-                <Sparkles size={14} /> Ver Galeria
+                <Sparkles size={16} /> Ver Galeria
               </a>
             </div>
           </div>

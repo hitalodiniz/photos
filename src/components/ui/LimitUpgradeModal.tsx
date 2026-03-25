@@ -1,6 +1,13 @@
 'use client';
 import React, { useState } from 'react';
-import { AlertTriangle, ArrowRight, Zap, Info } from 'lucide-react';
+import {
+  AlertTriangle,
+  ArrowRight,
+  Zap,
+  Info,
+  TrendingUp,
+  ArrowLeft,
+} from 'lucide-react';
 
 import BaseModal from '@/components/ui/BaseModal';
 import { UpgradeSheet } from './Upgradesheet';
@@ -33,17 +40,20 @@ export const LimitUpgradeModal = ({
   );
 
   const footer = (
-    <div className="flex flex-col gap-3 w-full">
+    <div className="grid grid-cols-2 gap-3 w-full items-stretch">
+      <button
+        onClick={onClose}
+        className="btn-secondary-white w-full text-[10px] px-2"
+      >
+        <ArrowLeft size={16} />
+        Continuar com {planLimit} fotos
+      </button>
       <button
         onClick={() => setIsSheetOpen(true)}
-        className="btn-luxury-primary"
+        className="btn-luxury-primary w-full flex items-center justify-center gap-2 px-2"
       >
-        Aumentar Limite Agora
-        <ArrowRight size={16} />
-      </button>
-
-      <button onClick={onClose} className="btn-secondary-white">
-        Continuar com {planLimit} fotos
+        <TrendingUp size={16} />
+        <span className="truncate">Aumentar Limite</span>
       </button>
     </div>
   );
@@ -59,7 +69,7 @@ export const LimitUpgradeModal = ({
         subtitle={isPool ? 'Galeria limitada ao pool' : 'Importação Limitada'}
         headerIcon={headerIcon}
         footer={footer}
-        maxWidth="lg"
+        maxWidth="xl"
       >
         <div className="space-y-4">
           <div className="w-full flex items-center gap-4 p-4 rounded-luxury border border-amber-500/20 bg-amber-500/5 transition-all">

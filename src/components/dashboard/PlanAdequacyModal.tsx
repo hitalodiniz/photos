@@ -35,7 +35,7 @@ export function PlanAdequacyModal({
         className="btn-luxury-primary w-full flex items-center justify-center gap-2"
         onClick={onClose}
       >
-        <Crown size={14} />
+        <Crown size={16} />
         Fazer upgrade agora
       </Link>
       <button type="button" onClick={onClose} className="btn-luxury-secondary">
