@@ -147,26 +147,29 @@ export async function emitGaleriaEvent({
   };
 
   const galeriaUrl = getPublicGalleryUrl(galeria.photographer, galeria.slug);
-  // 4. Gravação no Banco
-  const { data: newEvent, error: insertError } = await supabase
+
+  const statRow = {
+    galeria_id: galeria.id,
+    event_type: eventType,
+    visitor_id: finalVisitorId,
+    device_info: deviceInfo,
+    metadata: {
+      ...metadata,
+      galeria_title: galeria.title,
+      galeria_url: galeriaUrl,
+      location: locationData
+        ? `${locationData.city}, ${locationData.region}`
+        : 'Não rastreado',
+      session_id: sessionCookie,
+    },
+  };
+
+  // 4. Gravação no Banco — `.select()` devolve a linha para `event_data` na notificação
+  const { data: insertedRow, error: insertError } = await supabase
     .from('tb_galeria_stats')
-    .insert([
-      {
-        galeria_id: galeria.id,
-        event_type: eventType,
-        visitor_id: finalVisitorId,
-        device_info: deviceInfo,
-        metadata: {
-          ...metadata,
-          galeria_title: galeria.title, // 👈 Título para o Menu
-          galeria_url: galeriaUrl, // 👈 URL para o Menu
-          location: locationData
-            ? `${locationData.city}, ${locationData.region}`
-            : 'Não rastreado',
-          session_id: sessionCookie,
-        },
-      },
-    ]);
+    .insert([statRow])
+    .select('*')
+    .single();
 
   if (insertError) {
     // ESTE LOG É VITAL NA VERCEL
@@ -178,11 +181,36 @@ export async function emitGaleriaEvent({
     return;
   }
 
+  const EVENT_LABELS: Record<string, string> = {
+    view: 'Visualização',
+    lead: 'Cadastro de Visitante',
+    download: 'Download Completo',
+    download_favorites: 'Download de Favoritas',
+    share: 'Compartilhamento',
+    selection: 'Seleção de Fotos',
+  };
+
+  // Se o RLS não retornar linha no insert, ainda enviamos payload completo para o menu / sheet
+  const eventForNotification = insertedRow
+    ? {
+        ...insertedRow,
+        event_label: EVENT_LABELS[eventType] ?? eventType,
+        location:
+          (insertedRow.metadata as { location?: string } | null)?.location ??
+          statRow.metadata.location,
+      }
+    : {
+        ...statRow,
+        created_at: new Date().toISOString(),
+        event_label: EVENT_LABELS[eventType] ?? eventType,
+        location: statRow.metadata.location,
+      };
+
   // 5. Notificações
   await handleNotifications(
     eventType,
     galeria,
-    newEvent,
+    eventForNotification,
     { ...metadata, galeria_title: galeria.title, galeria_url: galeriaUrl },
     locationData,
   );

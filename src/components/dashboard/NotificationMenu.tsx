@@ -34,6 +34,73 @@ import { TrafficInfoCard } from './TrafficInfoCard';
 import { usePlan } from '@/core/context/PlanContext';
 import { UpgradeSheet } from '@/components/ui/Upgradesheet';
 
+function parseNotificationMetadata(metadata: unknown): Record<string, any> | null {
+  if (!metadata) return null;
+  if (typeof metadata === 'object') return metadata as Record<string, any>;
+  if (typeof metadata === 'string') {
+    try {
+      const parsed = JSON.parse(metadata);
+      return parsed && typeof parsed === 'object'
+        ? (parsed as Record<string, any>)
+        : null;
+    } catch {
+      return null;
+    }
+  }
+  return null;
+}
+
+/** Notificações antigas: gravadas sem `metadata.event_data` porque o insert não fazia `.select()`. */
+function buildFallbackEventFromNotification(notification: any): any | null {
+  const link = notification?.link;
+  if (typeof link !== 'string') return null;
+  if (!link.includes('/galerias/') || !link.includes('/stats')) return null;
+
+  const parsed = parseNotificationMetadata(notification?.metadata) ?? {};
+  const galeriaMatch = link.match(/\/galerias\/([^/]+)\/stats/);
+  const galeriaId = galeriaMatch?.[1];
+  const subDevice = parsed.device_info as
+    | { type?: string; os?: string; browser?: string }
+    | undefined;
+
+  return {
+    created_at: notification.created_at,
+    event_label:
+      (notification.title &&
+        String(notification.title).replace(/^[^\p{L}\d]+/u, '').trim()) ||
+      'Atividade na galeria',
+    location:
+      typeof parsed.galeria_title === 'string'
+        ? parsed.galeria_title
+        : typeof parsed.location === 'string'
+          ? parsed.location
+          : 'Não rastreado',
+    device_info: {
+      type: subDevice?.type ?? '—',
+      os: subDevice?.os ?? '—',
+      browser: subDevice?.browser ?? '—',
+    },
+    metadata: {
+      ...parsed,
+      notification_message: notification.message,
+      galeria_id: galeriaId,
+      stats_url: link,
+    },
+  };
+}
+
+function getEventDataFromNotification(notification: any): any | null {
+  const parsed = parseNotificationMetadata(notification?.metadata);
+  const fromMeta =
+    parsed?.event_data ??
+    parsed?.eventData ??
+    parsed?.event ??
+    notification?.event_data ??
+    null;
+  if (fromMeta) return fromMeta;
+  return buildFallbackEventFromNotification(notification);
+}
+
 export function NotificationMenu({ userId }: { userId: string }) {
   const { permissions } = usePlan();
   const [notifications, setNotifications] = useState<any[]>([]);
@@ -128,8 +195,9 @@ export function NotificationMenu({ userId }: { userId: string }) {
   };
 
   const openEventDetails = async (n: any) => {
-    if (n.metadata?.event_data) {
-      setSelectedEvent(n.metadata.event_data);
+    const eventData = getEventDataFromNotification(n);
+    if (eventData) {
+      setSelectedEvent(eventData);
 
       if (!n.read_at) {
         const now = new Date().toISOString();
@@ -273,12 +341,13 @@ export function NotificationMenu({ userId }: { userId: string }) {
                 </div>
               ) : (
                 notifications.map((n) => {
+                  const eventData = getEventDataFromNotification(n);
                   // Extração de dados da Galeria do Metadata
                   const galeriaTitle =
-                    n.metadata?.event_data?.galeria_title ||
+                    eventData?.galeria_title ||
                     n.metadata?.galeria_title;
                   const galeriaUrl =
-                    n.metadata?.event_data?.galeria_url ||
+                    eventData?.galeria_url ||
                     n.metadata?.galeria_url;
                   return (
                     <div
@@ -340,7 +409,7 @@ export function NotificationMenu({ userId }: { userId: string }) {
                             </span>
 
                             <div className="flex items-center gap-4">
-                              {n.metadata?.event_data ? (
+                              {eventData ? (
                                 <button
                                   onClick={(e) => {
                                     e.stopPropagation();
@@ -352,7 +421,7 @@ export function NotificationMenu({ userId }: { userId: string }) {
                                       : 'text-petroleum/80 italic'
                                   }`}
                                 >
-                                  {!n.read_at ? 'Ver Detalhes' : 'Visualizado'}
+                                  Ver detalhes
                                 </button>
                               ) : null}
                             </div>
