@@ -41,7 +41,7 @@ export default function Toast({
     <AnimatePresence>
       {message && (
         <motion.div
-          className={`fixed bottom-8 z-[10001] ${isLeft ? 'left-8' : 'right-8'}`}
+          className={`fixed bottom-12 z-[10001] ${isLeft ? 'left-8' : 'right-8'}`}
           initial={{ opacity: 0, x: 20 }}
           animate={{ opacity: 1, x: 0 }}
           exit={{ opacity: 0, x: 10 }}

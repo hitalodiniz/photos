@@ -94,11 +94,11 @@ export const RECOMMENDED_PHOTOS_PER_GALLERY_BY_PLAN: Record<PlanKey, number> = {
 
 // ── Threshold de alerta amarelo na galeria individual ─────────────────────────
 export const FILES_ALERT_THRESHOLD_BY_PLAN: Record<PlanKey, number> = {
-  FREE: isDev ? 4 : 150,
-  START: isDev ? 8 : 500,
-  PLUS: isDev ? 18 : 1_000,
-  PRO: isDev ? 35 : 2_500,
-  PREMIUM: isDev ? 45 : 5_000,
+  FREE: isDev ? 5 : 150, // 10 / 2 = 5
+  START: isDev ? 10 : 250, // 30 / 3 = 10
+  PLUS: isDev ? 20 : 400, // 80 / 4 = 20
+  PRO: isDev ? 40 : 1_000, // 200 / 5 = 40
+  PREMIUM: isDev ? 50 : 1_000, // 500 / 10 = 50
 };
 
 // ── Vídeos ────────────────────────────────────────────────────────────────────

@@ -185,6 +185,11 @@ export interface UpgradePreviewResult {
   is_current_plan?: boolean;
   has_pending?: boolean;
   /**
+   * Há solicitação com cancelamento e downgrade agendado (`pending_downgrade`).
+   * Não permitir nova contratação/upgrade até essa intenção ser resolvida.
+   */
+  has_pending_downgrade?: boolean;
+  /**
    * NOVO: usuário já tem um pending_change ativo para este plano.
    * Usado para exibir banner "Mudança já agendada para X".
    */

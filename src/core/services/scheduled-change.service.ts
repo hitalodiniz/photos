@@ -84,6 +84,21 @@ export async function scheduleDowngradeChange(
   if (!authOk || !profile || !userId)
     return { success: false, error: 'Usuário não autenticado' };
 
+  const { data: pendingDowngradeBlock } = await supabase
+    .from('tb_upgrade_requests')
+    .select('id')
+    .eq('profile_id', userId)
+    .eq('status', 'pending_downgrade')
+    .limit(1)
+    .maybeSingle();
+  if (pendingDowngradeBlock) {
+    return {
+      success: false,
+      error:
+        'Há um cancelamento com downgrade agendado. Não é possível alterar o plano até essa solicitação ser concluída ou alterada.',
+    };
+  }
+
   const segment = (payload.segment ?? 'PHOTOGRAPHER') as SegmentType;
   const targetPlanKey = payload.plan_key_requested as PlanKey;
   const targetPeriod: BillingPeriod = payload.billing_period ?? 'monthly';

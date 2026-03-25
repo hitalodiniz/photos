@@ -138,7 +138,22 @@ export default function SettingsForm({ profile }: { profile: any }) {
   const onSubmit = async (data: CombinedData) => {
     setIsSaving(true);
     try {
-      const result = await updateProfileSettings(data);
+      const payload: CombinedData = {
+        ...data,
+        settings: {
+          ...data.settings,
+          defaults: {
+            ...data.settings.defaults,
+            enable_favorites:
+              permissions.canFavorite === true &&
+              data.settings.defaults.enable_favorites,
+            enable_slideshow:
+              permissions.canShowSlideshow === true &&
+              data.settings.defaults.enable_slideshow,
+          },
+        },
+      };
+      const result = await updateProfileSettings(payload);
       if (result.success) {
         setIsSuccess(true);
         showToast('Preferências salvas com sucesso!', 'success');

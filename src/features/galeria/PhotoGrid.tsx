@@ -28,6 +28,7 @@ import {
 } from '@/core/config/plans';
 import { ConfirmationModal, Toast } from '@/components/ui';
 import { saveGaleriaSelectionAction } from '@/core/services/galeria.service';
+import { div } from 'framer-motion/client';
 
 export default function PhotoGrid({ photos, galeria }: any) {
   const { planKey, permissions } = usePlan();
@@ -224,13 +225,33 @@ export default function PhotoGrid({ photos, galeria }: any) {
   }, [favorites, storageKey]);
 
   useEffect(() => {
-    const handleScroll = () => {
-      setIsScrolled(window.scrollY > 1);
-      setCanShowFavButton(window.scrollY > 1);
+    const updateFabVisibility = () => {
+      if (typeof window === 'undefined') return;
+      const scrolled = window.scrollY > 1;
+      setIsScrolled(scrolled);
+      // Com poucas fotos a página não gera scroll: scrollY fica 0 e o FAB sumia.
+      // Se não há overflow rolável, exibir o botão mesmo no topo.
+      const hasScrollableOverflow =
+        document.documentElement.scrollHeight > window.innerHeight + 8;
+      setCanShowFavButton(scrolled || !hasScrollableOverflow);
     };
-    window.addEventListener('scroll', handleScroll);
-    return () => window.removeEventListener('scroll', handleScroll);
-  }, []);
+    updateFabVisibility();
+    const raf = requestAnimationFrame(() => updateFabVisibility());
+    window.addEventListener('scroll', updateFabVisibility, { passive: true });
+    window.addEventListener('resize', updateFabVisibility);
+    const gridEl = gridRef.current;
+    const ro =
+      gridEl && typeof ResizeObserver !== 'undefined'
+        ? new ResizeObserver(() => updateFabVisibility())
+        : null;
+    if (gridEl && ro) ro.observe(gridEl);
+    return () => {
+      cancelAnimationFrame(raf);
+      ro?.disconnect();
+      window.removeEventListener('scroll', updateFabVisibility);
+      window.removeEventListener('resize', updateFabVisibility);
+    };
+  }, [photosWithTags.length, favorites.length]);
 
   useEffect(() => {
     if (typeof window !== 'undefined') {
@@ -433,7 +454,7 @@ export default function PhotoGrid({ photos, galeria }: any) {
           },
         });
         setToast({
-          message: 'Selecao enviada com sucesso! O fotografo sera notificado.',
+          message: 'Seleção enviada com sucesso! O fotografo sera notificado.',
           type: 'success',
         });
         setIsConfirmModalOpen(false);
@@ -569,88 +590,71 @@ export default function PhotoGrid({ photos, galeria }: any) {
       />
 
       {/* BOTÃO FLUTUANTE FAVORITOS */}
-      {favorites.length > 0 &&
-        !showVolumeDashboard &&
-        canShowFavButton &&
-        canUseFavorites && (
-          <div
-            className="fixed bottom-6 left-1/2 -translate-x-1/2 z-[150] animate-in fade-in zoom-in slide-in-from-bottom-5 duration-300 w-fit"
-            {...(themeKey ? { 'data-theme': themeKey } : {})}
-          >
-            {galeria.has_contracting_client === 'ES' ? (
-              <div className="flex items-center gap-2 p-1.5">
-                {!showOnlyFavorites && galeria.selection_ids?.length === 0 ? (
+      {favorites.length > 0 && !showVolumeDashboard && canShowFavButton && (
+        <div
+          className="fixed bottom-6 left-1/2 -translate-x-1/2 z-[150] animate-in fade-in zoom-in slide-in-from-bottom-5 duration-300 w-fit"
+          {...(themeKey ? { 'data-theme': themeKey } : {})}
+        >
+          {galeria.has_contracting_client === 'ES' ? (
+            <div className="flex items-center gap-2 p-1.5">
+              {!showOnlyFavorites ? (
+                <button
+                  onClick={() => setShowOnlyFavorites(true)}
+                  className="btn-luxury-primary h-12"
+                >
+                  <Eye size={18} className="text-petroleum" />
+                  <div className="flex flex-col">
+                    Ver Selecionados
+                    <span className="font-medium">
+                      {favorites.length}{' '}
+                      {favorites.length === 1 ? 'foto' : 'fotos'}
+                    </span>
+                  </div>
+                </button>
+              ) : (
+                <div className="flex items-center gap-2 animate-in slide-in-from-right-2 duration-300">
                   <button
-                    onClick={() => setShowOnlyFavorites(true)}
-                    className="flex items-center justify-center rounded-luxury h-12 bg-white text-black border border-white/20 shadow-xl hover:scale-105 active:scale-95 transition-all px-8 gap-3 min-w-[200px]"
+                    type="button"
+                    onClick={() => setShowOnlyFavorites(false)}
+                    className="btn-secondary-white"
                   >
-                    <Eye size={18} className="text-petroleum" />
-                    <div className="flex flex-col items-start leading-tight text-left">
-                      <span className="text-[11px] font-bold uppercase tracking-widest">
-                        Ver Selecionados
-                      </span>
-                      <span className="text-[9px] font-bold opacity-60 italic">
-                        {favorites.length}{' '}
-                        {favorites.length === 1 ? 'foto' : 'fotos'}
-                      </span>
-                    </div>
+                    <ArrowLeft size={18} />
+                    Ver todas as fotos
                   </button>
-                ) : (
-                  <>
-                    {galeria.selection_ids?.length === 0 && (
-                      <div className="flex items-center gap-2 animate-in slide-in-from-right-2 duration-300">
-                        <button
-                          onClick={() => setShowOnlyFavorites(false)}
-                          className="flex items-center justify-center rounded-luxury h-12 bg-petroleum text-white border border-white/10 hover:bg-petroleum-light transition-all px-5 gap-2"
-                        >
-                          <ArrowLeft size={18} />
-                          <span className="text-[9px] md:text-[11px] font-semibold uppercase tracking-widest">
-                            Continuar selecao
-                          </span>
-                        </button>
-                        <button
-                          onClick={() => setIsConfirmModalOpen(true)}
-                          className="flex items-center justify-center rounded-luxury h-12 bg-gold text-black border border-black/10 shadow-[0_0_20px_rgba(212,175,55,0.4)] hover:scale-105 active:scale-95 transition-all px-5 gap-2"
-                        >
-                          <CheckCircle2 size={18} strokeWidth={2.5} />
-                          <div className="flex flex-col items-start leading-tight text-left">
-                            <span className="text-[9px] md:text-[11px] font-semibold uppercase tracking-widest">
-                              Enviar Selecao
-                            </span>
-                            <span className="text-[9px] font-semibold opacity-80 italic">
-                              Concluir Etapa
-                            </span>
-                          </div>
-                        </button>
-                      </div>
-                    )}
-                  </>
-                )}
-              </div>
-            ) : (
-              <button
-                onClick={handleDownloadFavorites}
-                disabled={isDownloadingFavs}
-                className="flex items-center justify-center rounded-luxury h-12 bg-champagne text-black border border-white/20 shadow-2xl hover:scale-105 active:scale-95 transition-all px-6 gap-3"
-              >
-                {isDownloadingFavs ? (
-                  <Loader2 size={18} className="animate-spin" />
-                ) : (
-                  <Download size={18} />
-                )}
-                <div className="flex flex-col items-start leading-tight text-left">
-                  <span className="text-[11px] font-bold uppercase tracking-luxury-tight">
-                    Baixar Favoritas
-                  </span>
-                  <span className="text-[9px] font-medium opacity-70 italic">
-                    {favorites.length}{' '}
-                    {favorites.length === 1 ? 'foto' : 'fotos'}
-                  </span>
+                  {galeria.selection_ids?.length === 0 && (
+                    <button
+                      type="button"
+                      onClick={() => setIsConfirmModalOpen(true)}
+                      className="btn-luxury-primary"
+                    >
+                      <CheckCircle2 size={18} strokeWidth={2.5} />
+                      Enviar seleção
+                    </button>
+                  )}
                 </div>
-              </button>
-            )}
-          </div>
-        )}
+              )}
+            </div>
+          ) : (
+            <button
+              onClick={handleDownloadFavorites}
+              disabled={isDownloadingFavs}
+              className="btn-luxury-primary h-12"
+            >
+              {isDownloadingFavs ? (
+                <Loader2 size={18} className="animate-spin" />
+              ) : (
+                <Download size={18} />
+              )}
+              <div className="flex flex-col">
+                Baixar Favoritas
+                <span className="font-medium">
+                  {favorites.length} {favorites.length === 1 ? 'foto' : 'fotos'}
+                </span>
+              </div>
+            </button>
+          )}
+        </div>
+      )}
 
       {/* LIGHTBOX */}
       {selectedPhotoIndex !== null && photosWithTags.length > 0 && (
@@ -697,8 +701,8 @@ export default function PhotoGrid({ photos, galeria }: any) {
           setIsConfirmModalOpen(false);
         }}
         variant="primary"
-        title="Finalizar Selecao"
-        confirmText="Sim, Enviar Selecao"
+        title="Finalizar Seleção"
+        confirmText="Sim, Enviar seleção"
         isLoading={isSavingSelections}
         themeKey={themeKey}
         message={
@@ -707,7 +711,7 @@ export default function PhotoGrid({ photos, galeria }: any) {
               Voce selecionou <strong>{favorites.length} fotos</strong>.
             </p>
             <p>
-              Ao confirmar, sua selecao sera enviada para o fotografo e nao
+              Ao confirmar, sua seleção sera enviada para o fotógrafo e nao
               podera mais ser alterada atraves deste link.
             </p>
             <p className="text-[11px] mt-4 opacity-70">

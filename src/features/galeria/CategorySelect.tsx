@@ -73,22 +73,25 @@ export default function CategorySelect({
   };
 
   const modalFooter = (
-    <div className="flex gap-3 w-full">
+    <div className="flex gap-3">
       <button
         onClick={() => setIsModalOpen(false)}
-        className="btn-secondary-petroleum"
+        className="btn-secondary-white"
       >
         cancelar
       </button>
       <button
         onClick={handleSaveCategory}
         disabled={loading}
-        className="btn-luxury-primary"
+        className="btn-luxury-primary flex items-center justify-center gap-2"
       >
         {loading ? (
-          <Loader2 size={14} className="animate-spin" />
+          <>
+            <Loader2 size={14} className="animate-spin" />
+            <span>Salvando...</span>
+          </>
         ) : (
-          'salvar categoria'
+          'Salvar Categoria'
         )}
       </button>
     </div>
@@ -181,9 +184,7 @@ export default function CategorySelect({
       >
         <div className="space-y-4">
           <div className="space-y-1.5">
-            <label className="text-[10px] font-bold uppercase tracking-luxury-widest text-petroleum/60">
-              nome da categoria
-            </label>
+            <label>nome da categoria</label>
             <input
               autoFocus
               type="text"

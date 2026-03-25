@@ -21,9 +21,12 @@ export const GalleryInteractionFields = ({
   setEnableSlideshow,
 }: GalleryInteractionFieldsProps) => {
   const { permissions } = usePlan();
+  const planAllowsFavorites = permissions.canFavorite === true;
+  const planAllowsSlideshow = permissions.canShowSlideshow === true;
 
-  enableFavorites = permissions.canFavorite;
-  enableSlideshow = permissions.canShowSlideshow;
+  /** Efeito “ligado” só se o plano permitir (ignora valor gravado quando o plano bloqueia). */
+  const favoritesOn = planAllowsFavorites && enableFavorites;
+  const slideshowOn = planAllowsSlideshow && enableSlideshow;
 
   return (
     <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
@@ -33,7 +36,7 @@ export const GalleryInteractionFields = ({
         <div className="flex items-center gap-2">
           <Heart
             size={14}
-            className={`transition-colors ${enableFavorites ? 'text-gold' : 'text-petroleum/40'}`}
+            className={`transition-colors ${favoritesOn ? 'text-gold' : 'text-petroleum/40'}`}
           />
           <span className="text-[10px] font-bold uppercase tracking-widest text-petroleum">
             Favoritos
@@ -50,24 +53,20 @@ export const GalleryInteractionFields = ({
         >
           <button
             type="button"
-            onClick={() => setEnableFavorites(!enableFavorites)}
-            className={`relative inline-flex h-5 w-9 shrink-0 cursor-pointer rounded-full border-2 border-transparent transition-colors duration-200 ease-in-out focus:outline-none ${
-              enableFavorites ? 'bg-gold' : 'bg-slate-200'
-            }`}
+            disabled={!planAllowsFavorites}
+            onClick={() => {
+              if (planAllowsFavorites) setEnableFavorites(!enableFavorites);
+            }}
+            className={`relative inline-flex h-5 w-9 shrink-0 rounded-full border-2 border-transparent transition-colors duration-200 ease-in-out focus:outline-none ${
+              favoritesOn ? 'bg-gold' : 'bg-slate-200'
+            } ${!planAllowsFavorites ? 'cursor-not-allowed opacity-60' : 'cursor-pointer'}`}
           >
             <span
               className={`pointer-events-none inline-block h-4 w-4 transform rounded-full bg-white shadow ring-0 transition duration-200 ease-in-out ${
-                enableFavorites ? 'translate-x-4' : 'translate-x-0'
+                favoritesOn ? 'translate-x-4' : 'translate-x-0'
               }`}
             />
           </button>
-
-          {/* Input oculto para FormData da Server Action */}
-          <input
-            type="hidden"
-            name="enable_favorites"
-            value={String(enableFavorites)}
-          />
         </PlanGuard>
       </div>
 
@@ -76,7 +75,7 @@ export const GalleryInteractionFields = ({
         <div className="flex items-center gap-2">
           <PlayCircle
             size={14}
-            className={`transition-colors ${enableSlideshow ? 'text-gold' : 'text-petroleum/40'}`}
+            className={`transition-colors ${slideshowOn ? 'text-gold' : 'text-petroleum/40'}`}
           />
           <span className="text-[10px] font-bold uppercase tracking-widest text-petroleum">
             Slideshow
@@ -94,24 +93,20 @@ export const GalleryInteractionFields = ({
         >
           <button
             type="button"
-            onClick={() => setEnableSlideshow(!enableSlideshow)}
-            className={`relative inline-flex h-5 w-9 shrink-0 cursor-pointer rounded-full border-2 border-transparent transition-colors duration-200 ease-in-out focus:outline-none ${
-              enableSlideshow ? 'bg-gold' : 'bg-slate-200'
-            }`}
+            disabled={!planAllowsSlideshow}
+            onClick={() => {
+              if (planAllowsSlideshow) setEnableSlideshow(!enableSlideshow);
+            }}
+            className={`relative inline-flex h-5 w-9 shrink-0 rounded-full border-2 border-transparent transition-colors duration-200 ease-in-out focus:outline-none ${
+              slideshowOn ? 'bg-gold' : 'bg-slate-200'
+            } ${!planAllowsSlideshow ? 'cursor-not-allowed opacity-60' : 'cursor-pointer'}`}
           >
             <span
               className={`pointer-events-none inline-block h-4 w-4 transform rounded-full bg-white shadow ring-0 transition duration-200 ease-in-out ${
-                enableSlideshow ? 'translate-x-4' : 'translate-x-0'
+                slideshowOn ? 'translate-x-4' : 'translate-x-0'
               }`}
             />
           </button>
-
-          {/* Input oculto para FormData da Server Action */}
-          <input
-            type="hidden"
-            name="enable_slideshow"
-            value={String(enableSlideshow)}
-          />
         </PlanGuard>
       </div>
     </div>

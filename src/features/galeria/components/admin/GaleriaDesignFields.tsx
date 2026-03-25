@@ -68,17 +68,10 @@ export const GalleryDesignFields: React.FC<GalleryDesignFieldsProps> = ({
           <button
             type="button"
             onClick={() => setShowBackgroundPhoto(!showBackgroundPhoto)}
-            className="relative h-5 w-9 shrink-0 rounded-full transition-colors duration-200"
-            style={{
-              backgroundColor: showBackgroundPhoto
-                ? 'var(--color-gold, #D4AF37)'
-                : '#e2e8f0',
-            }}
+            className={`relative h-5 w-9 shrink-0 rounded-full transition-colors duration-200 ${showBackgroundPhoto ? 'bg-gold' : 'bg-slate-200'}`}
           >
             <span
-              className={`absolute top-0.5 left-0.5 w-3.5 h-3.5 rounded-full bg-white shadow-sm transition-transform duration-200 ${
-                showBackgroundPhoto ? 'translate-x-3.5' : ''
-              }`}
+              className={`absolute top-0.5 left-0.5 h-4 w-4 rounded-full bg-white shadow-sm transition-transform duration-200 ${showBackgroundPhoto ? 'translate-x-4' : ''}`}
             />
           </button>
         </PlanGuard>

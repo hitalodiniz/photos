@@ -7,21 +7,28 @@
      🎯 APLICAÇÕES GLOBAIS E TIPOGRAFIA
      ======================================================================== */
 
-  html,
+  html {
+    /* Garante que o scrollbar não desloque o conteúdo (evita layout shift) */
+    scrollbar-gutter: stable;
+  }
+
   body {
-    font-family: var(--font-montserrat), sans-serif;
+    /* Fallback seguro: Montserrat -> Inter (Sans) -> System Sans */
+    font-family:
+      var(--font-montserrat), 'Inter', ui-sans-serif, system-ui, sans-serif;
     -webkit-font-smoothing: antialiased;
     -moz-osx-font-smoothing: grayscale;
     text-rendering: optimizeLegibility;
     @apply antialiased bg-luxury-bg text-petroleum selection:bg-gold/30 transition-colors duration-300;
   }
 
+  /* 🚀 CORREÇÃO DO SERRILHADO: Força antialiasing em todos os elementos */
   *,
   *::before,
   *::after {
-    font-family: var(--font-montserrat), sans-serif !important;
+    -webkit-font-smoothing: antialiased;
+    -moz-osx-font-smoothing: grayscale;
   }
-
   h1,
   h2,
   h3,
@@ -29,8 +36,9 @@
     @apply font-sans font-semibold tracking-luxury-tight;
   }
 
+  /* Ajuste de labels para não ficarem "esmagadas" */
   label {
-    @apply text-[10px] font-semibold uppercase tracking-wide text-petroleum flex items-center gap-2;
+    @apply text-[10px] font-bold uppercase tracking-widest text-petroleum/70 flex items-center gap-2 mb-1;
   }
 
   input,
@@ -38,8 +46,6 @@
   button,
   select {
     font-family: inherit;
-    -webkit-font-smoothing: inherit;
-    -moz-osx-font-smoothing: grayscale;
   }
 
   input[type='text'],

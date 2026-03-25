@@ -124,6 +124,9 @@ interface UpgradeSheetContextValue {
   /** Há solicitação de upgrade pendente (pagamento em processamento); bloquear nova assinatura. */
   hasPendingUpgrade: boolean;
   setHasPendingUpgrade: (v: boolean) => void;
+  /** Cancelamento com downgrade agendado (`pending_downgrade`); bloquear qualquer contratação. */
+  hasPendingDowngradeScheduled: boolean;
+  setHasPendingDowngradeScheduled: (v: boolean) => void;
   /** Cálculo do preview (pro-rata, crédito, total) para exibir resumo no confirm. */
   upgradeCalculation: UpgradePriceCalculation | null;
   setUpgradeCalculation: (c: UpgradePriceCalculation | null) => void;
@@ -132,6 +135,9 @@ interface UpgradeSheetContextValue {
   setDowngradeBlockedMessage: (m: string | null) => void;
   isCalculationLoading: boolean;
   setIsCalculationLoading: (v: boolean) => void;
+  /** Etapa plano: preview (getUpgradePreview) em andamento — bloquear avançar até carregar. */
+  isPlanPreviewLoading: boolean;
+  setIsPlanPreviewLoading: (v: boolean) => void;
 }
 
 const UpgradeSheetContext = createContext<UpgradeSheetContextValue | null>(
@@ -241,12 +247,15 @@ export function UpgradeSheetProvider({
   const [loadingPrefill, setLoadingPrefill] = useState(false);
   const [hasSavedBillingData, setHasSavedBillingData] = useState(false);
   const [hasPendingUpgrade, setHasPendingUpgrade] = useState(false);
+  const [hasPendingDowngradeScheduled, setHasPendingDowngradeScheduled] =
+    useState(false);
   const [upgradeCalculation, setUpgradeCalculation] =
     useState<UpgradePriceCalculation | null>(null);
   const [downgradeBlockedMessage, setDowngradeBlockedMessage] = useState<
     string | null
   >(null);
   const [isCalculationLoading, setIsCalculationLoading] = useState(false);
+  const [isPlanPreviewLoading, setIsPlanPreviewLoading] = useState(false);
   const [canProceedBilling, setCanProceedBilling] = useState(true);
   const [cepValid, setCepValid] = useState<boolean | null>(null);
   const [addressLockedByCep, setAddressLockedByCep] = useState(false);
@@ -284,9 +293,11 @@ export function UpgradeSheetProvider({
     setStep('plan');
     setHasSavedBillingData(false);
     setHasPendingUpgrade(false);
+    setHasPendingDowngradeScheduled(false);
     setDowngradeBlockedMessage(null);
     setUpgradeCalculation(null);
     setIsCalculationLoading(false);
+    setIsPlanPreviewLoading(false);
     setPersonal((prev) => ({
       ...prev,
       fullName: profile?.full_name ?? prev.fullName ?? '',
@@ -405,6 +416,12 @@ export function UpgradeSheetProvider({
   );
 
   const handleConfirm = useCallback(async () => {
+    if (hasPendingDowngradeScheduled) {
+      setRequestError(
+        'Há um cancelamento com downgrade agendado. Não é possível contratar um novo plano até essa solicitação ser concluída ou alterada.',
+      );
+      return;
+    }
     setLoading(true);
     setRequestError(null);
     setRequestWarning(null);
@@ -506,7 +523,8 @@ export function UpgradeSheetProvider({
     address,
     creditCard,
     useSavedCard,
-    upgradeCalculation, // ← ADICIONAR nas deps
+    upgradeCalculation,
+    hasPendingDowngradeScheduled,
   ]);
 
   const resetState = useCallback(() => {
@@ -539,7 +557,9 @@ export function UpgradeSheetProvider({
     setUseSavedCardState(false);
     setSavedCardChoiceTouched(false);
     setHasSavedBillingData(false);
+    setHasPendingDowngradeScheduled(false);
     setIsCalculationLoading(false);
+    setIsPlanPreviewLoading(false);
     setCanProceedBilling(true);
     setCepValid(null);
     setAddressLockedByCep(false);
@@ -610,12 +630,16 @@ export function UpgradeSheetProvider({
       isExempt: profile?.is_exempt ?? false,
       hasPendingUpgrade,
       setHasPendingUpgrade,
+      hasPendingDowngradeScheduled,
+      setHasPendingDowngradeScheduled,
       upgradeCalculation,
       setUpgradeCalculation,
       downgradeBlockedMessage,
       setDowngradeBlockedMessage,
       isCalculationLoading,
       setIsCalculationLoading,
+      isPlanPreviewLoading,
+      setIsPlanPreviewLoading,
       setCanProceedBilling,
       setRequestError,
     }),
@@ -663,9 +687,11 @@ export function UpgradeSheetProvider({
       terms,
       planKey,
       hasPendingUpgrade,
+      hasPendingDowngradeScheduled,
       upgradeCalculation,
       downgradeBlockedMessage,
       isCalculationLoading,
+      isPlanPreviewLoading,
       setUseSavedCard,
     ],
   );

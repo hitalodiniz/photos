@@ -588,17 +588,13 @@ export default function Lightbox({
               <div className="hidden md:flex w-auto justify-end shrink-0 z-[310]">
                 <button
                   onClick={onClose}
-                  className="w-12 h-12 bg-white/95 dark:bg-black/95 backdrop-blur-xl border border-white/10 shadow-2xl flex items-center justify-center transition-all text-black dark:text-white hover:bg-champagne/10 hover:text-champagne group relative rounded-luxury"
+                  className="w-12 h-12 pub-bar-bg dark:bg-black/95 backdrop-blur-xl border border-white/10 shadow-2xl flex items-center justify-center transition-all text-black dark:text-white hover:bg-champagne/10 hover:text-champagne group relative rounded-luxury"
                   aria-label="Fechar galeria"
                 >
-                  <X
-                    size={20}
-                    className="group-hover:scale-110"
-                    strokeWidth={2}
-                  />
+                  <X size={20} className="group-hover:scale-110 pub-bar-text" />
                   {/* Tooltip - Abaixo do botão */}
-                  <div className="absolute top-full mt-2 left-1/2 -translate-x-1/2 opacity-0 group-hover:opacity-100 transition-opacity pointer-events-none whitespace-nowrap">
-                    <div className="bg-champagne text-black text-editorial-label px-2 py-1 rounded shadow-xl">
+                  <div className="absolute top-full mt-2 left-1/2 -translate-x-1/2 transition-opacity pointer-events-none whitespace-nowrap">
+                    <div className="pub-bar-bg pub-bar-text text-editorial-label px-2 py-1 rounded shadow-xl">
                       Fechar
                     </div>
                     <div className="absolute bottom-full left-1/2 -translate-x-1/2 border-[4px] border-transparent border-b-champagne" />

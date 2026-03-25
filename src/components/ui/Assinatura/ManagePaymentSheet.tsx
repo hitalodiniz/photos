@@ -21,6 +21,7 @@ interface ManagePaymentSheetProps {
   profileFullName?: string;
   profileEmail?: string;
   profilePhone?: string;
+  currentBillingType?: BillingType;
   onSuccess: () => void;
 }
 
@@ -31,6 +32,7 @@ export function ManagePaymentSheet({
   profileFullName,
   profileEmail,
   profilePhone,
+  currentBillingType = 'CREDIT_CARD',
   onSuccess,
 }: ManagePaymentSheetProps) {
   const [billingType, setBillingType] = useState<BillingType>('CREDIT_CARD');
@@ -238,7 +240,21 @@ export function ManagePaymentSheet({
         }
       >
         <SheetSection
-          title="Forma de Pagamento"
+          title="Método de Pagamento Atual"
+          className="py-2 px-3 space-y-1.5"
+        >
+          <div className="flex items-center gap-2 p-3 bg-slate-50 border border-slate-200 rounded-luxury">
+            {currentBillingType === 'CREDIT_CARD' && <CreditCard size={18} className="text-petroleum" />}
+            {currentBillingType === 'PIX' && <QrCode size={18} className="text-petroleum" />}
+            {currentBillingType === 'BOLETO' && <Banknote size={18} className="text-petroleum" />}
+            <span className="text-[12px] font-semibold text-petroleum uppercase tracking-wide">
+              {currentBillingType === 'CREDIT_CARD' ? 'Cartão de Crédito' : currentBillingType}
+            </span>
+          </div>
+        </SheetSection>
+
+        <SheetSection
+          title="Nova Forma de Pagamento"
           className="py-2 px-3 space-y-1.5"
         >
           <div className="flex gap-1.5">

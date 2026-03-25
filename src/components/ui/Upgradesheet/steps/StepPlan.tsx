@@ -46,8 +46,10 @@ export function StepPlan() {
     billingPeriod,
     isExempt,
     setHasPendingUpgrade,
+    setHasPendingDowngradeScheduled,
     setUpgradeCalculation,
     setDowngradeBlockedMessage,
+    setIsPlanPreviewLoading,
   } = useUpgradeSheetContext();
 
   const [upgradePreview, setUpgradePreview] =
@@ -116,7 +118,9 @@ export function StepPlan() {
     if (clientPlanKey === 'FREE' || selectedPlan === 'FREE' || profile?.is_trial) {
       setUpgradePreview(null);
       setPreviewLoaded(true);
+      setIsPlanPreviewLoading(false);
       setHasPendingUpgrade(false);
+      setHasPendingDowngradeScheduled(false);
       setUpgradeCalculation(null);
       setDowngradeBlockedMessage(null);
       return;
@@ -128,16 +132,20 @@ export function StepPlan() {
     }
     let cancelled = false;
     setPreviewLoaded(false);
+    setIsPlanPreviewLoading(true);
     setUpgradePreview(null);
 
     previewTimeoutRef.current = setTimeout(() => {
       previewTimeoutRef.current = null;
-      getUpgradePreview(selectedPlan, billingPeriod, billingType, segment).then(
-        (result) => {
+      getUpgradePreview(selectedPlan, billingPeriod, billingType, segment)
+        .then((result) => {
           if (!cancelled) {
             setUpgradePreview(result);
             setPreviewLoaded(true);
             setHasPendingUpgrade(result.has_pending ?? false);
+            setHasPendingDowngradeScheduled(
+              result.has_pending_downgrade ?? false,
+            );
             setUpgradeCalculation(result.calculation ?? null);
 
             const calc = result.calculation;
@@ -166,8 +174,13 @@ export function StepPlan() {
               else if (!isDowngradeByOrder) setDowngradeExpiresAt(null);
             }
           }
-        },
-      );
+        })
+        .catch(() => {
+          if (!cancelled) setPreviewLoaded(true);
+        })
+        .finally(() => {
+          if (!cancelled) setIsPlanPreviewLoading(false);
+        });
     }, previewDebounceMs);
 
     return () => {
@@ -183,8 +196,10 @@ export function StepPlan() {
     segment,
     clientPlanKey,
     setHasPendingUpgrade,
+    setHasPendingDowngradeScheduled,
     setUpgradeCalculation,
     setDowngradeBlockedMessage,
+    setIsPlanPreviewLoading,
     profile?.is_trial,
   ]);
 
@@ -256,16 +271,24 @@ export function StepPlan() {
       if (result.success) {
         // Recarrega o preview para refletir o estado atualizado
         setPreviewLoaded(false);
+        setIsPlanPreviewLoading(true);
         getUpgradePreview(
           selectedPlan,
           billingPeriod,
           billingType,
           segment,
-        ).then((r) => {
-          setUpgradePreview(r);
-          setPreviewLoaded(true);
-          setUpgradeCalculation(r.calculation ?? null);
-        });
+        )
+          .then((r) => {
+            setUpgradePreview(r);
+            setPreviewLoaded(true);
+            setIsPlanPreviewLoading(false);
+            setHasPendingDowngradeScheduled(r.has_pending_downgrade ?? false);
+            setUpgradeCalculation(r.calculation ?? null);
+          })
+          .catch(() => {
+            setPreviewLoaded(true);
+            setIsPlanPreviewLoading(false);
+          });
       } else {
         console.error(
           '[StepPlan] Falha ao cancelar mudança agendada:',
@@ -434,6 +457,16 @@ export function StepPlan() {
             Você já possui uma solicitação de upgrade em processamento. Aguarde
             a confirmação do pagamento ou o cancelamento automático (até 24h)
             para assinar novamente.
+          </p>
+        </div>
+      )}
+
+      {upgradePreview?.has_pending_downgrade && (
+        <div className="rounded-lg border border-rose-200 bg-rose-50 px-3 py-2.5 text-[11px] text-rose-900">
+          <p className="font-medium">
+            Há um cancelamento com downgrade agendado na sua conta. Não é
+            possível contratar um novo plano por aqui até essa solicitação ser
+            concluída ou alterada em Assinatura.
           </p>
         </div>
       )}

@@ -296,7 +296,7 @@ export function UpgradeRequestNotesSheet({
       {request && (
         <>
           <SheetSection title="Resumo">
-            <div className="grid grid-cols-2 gap-3">
+            <div className="grid grid-cols-2 gap-3 antialiased">
               <div className="p-3 bg-slate-50 rounded-luxury border border-slate-100 flex items-start gap-2">
                 <BadgeCheck size={14} className="text-gold mt-0.5" />
                 <div>
@@ -347,7 +347,7 @@ export function UpgradeRequestNotesSheet({
           </SheetSection>
 
           <SheetSection title="Leitura rápida da cobrança">
-            <div className="p-3 bg-amber-50 rounded-luxury border border-amber-100 space-y-2">
+            <div className="p-3 bg-amber-50 rounded-luxury border border-amber-100 space-y-2 antialiased">
               <div className="flex flex-wrap items-center gap-2">
                 <span className="text-[10px] font-semibold text-amber-900 px-2 py-1 rounded-full bg-amber-100 border border-amber-200">
                   Cobrança: {formatCurrency(request.amount_final)}
@@ -361,7 +361,7 @@ export function UpgradeRequestNotesSheet({
                   </span>
                 )}
               </div>
-              <p className="text-[11px] text-amber-900/90">
+              <p className="text-[11px] text-amber-900/90 font-medium">
                 Este registro mostra o valor da operação desta linha, não
                 necessariamente a última cobrança já efetivada da assinatura
                 vigente.
@@ -392,7 +392,7 @@ export function UpgradeRequestNotesSheet({
 
           {!!timeline.length && (
             <SheetSection title="Linha do tempo">
-              <div className="space-y-2">
+              <div className="space-y-2 antialiased">
                 {timeline.map((event, idx) => {
                   const toneClass =
                     event.tone === 'warning'
@@ -411,9 +411,11 @@ export function UpgradeRequestNotesSheet({
                           <p className="text-[11px] font-semibold">
                             {event.title}
                           </p>
-                          <p className="text-[11px]">{event.description}</p>
+                          <p className="text-[11px] font-medium">
+                            {event.description}
+                          </p>
                           {event.date && (
-                            <p className="text-[10px] opacity-80 mt-1">
+                            <p className="text-[10px] opacity-80 mt-1 font-medium">
                               {formatDateTime(event.date)}
                             </p>
                           )}
@@ -461,7 +463,7 @@ export function UpgradeRequestNotesSheet({
             <>
               {!!parsed.operationDetails?.length && (
                 <SheetSection title="Detalhes da Operação">
-                  <div className="space-y-2">
+                  <div className="space-y-2 antialiased">
                     {parsed.operationDetails.map((line) => (
                       <div
                         key={line}
@@ -479,7 +481,7 @@ export function UpgradeRequestNotesSheet({
 
               {!!parsed.paymentChanges?.length && (
                 <SheetSection title="Mudanças de pagamento">
-                  <div className="space-y-2">
+                  <div className="space-y-2 antialiased">
                     {parsed.paymentChanges.map((line) => (
                       <div
                         key={line}
@@ -497,7 +499,7 @@ export function UpgradeRequestNotesSheet({
 
               {!!scheduleLines.length && (
                 <SheetSection title="Detalhes do Agendamento">
-                  <div className="space-y-3">
+                  <div className="space-y-3 antialiased">
                     {scheduleLines.map((line, idx) => {
                       // Detecta se é a linha de log de cancelamento solicitado
                       const cancelMatch = line.match(
@@ -516,11 +518,11 @@ export function UpgradeRequestNotesSheet({
                             key={idx}
                             className="p-3 bg-amber-50 rounded-luxury border border-amber-100 space-y-2"
                           >
-                            <div className="flex items-center gap-2 text-[11px] text-amber-800 font-bold uppercase tracking-tight">
+                            <div className="flex items-center gap-2 text-[11px] text-amber-800 font-semibold uppercase tracking-tight">
                               <CalendarClock size={14} />
                               Ciclo de cancelamento
                             </div>
-                            <div className="grid grid-cols-1 gap-1 text-[11px] text-amber-900/70">
+                            <div className="grid grid-cols-1 gap-1 text-[11px] text-amber-900/70 font-medium">
                               <p>
                                 • Solicitado em:{' '}
                                 <span className="font-semibold">
@@ -569,7 +571,7 @@ export function UpgradeRequestNotesSheet({
                             isComment ? 'bg-white italic' : 'bg-slate-50'
                           }`}
                         >
-                          <span className="flex items-start gap-2 text-[11px] text-slate-700">
+                          <span className="flex items-start gap-2 text-[11px] text-slate-700 font-medium">
                             {isSync && (
                               <RefreshCw
                                 size={12}

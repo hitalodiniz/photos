@@ -52,6 +52,8 @@ function UpgradeSheetContent({
     isExempt,
     planKey,
     hasPendingUpgrade,
+    hasPendingDowngradeScheduled,
+    isPlanPreviewLoading,
     downgradeBlockedMessage,
     billingType,
     canProceedBilling,
@@ -89,7 +91,16 @@ function UpgradeSheetContent({
           <div className="flex-1">
             {step === 'plan' && (
               <>
-                {hasPendingUpgrade ? (
+                {hasPendingDowngradeScheduled ? (
+                  <button
+                    type="button"
+                    disabled
+                    title="Há um cancelamento com downgrade agendado."
+                    className="btn-luxury-primary w-full opacity-60 cursor-not-allowed"
+                  >
+                    Cancelamento com downgrade agendado — contratação indisponível
+                  </button>
+                ) : hasPendingUpgrade ? (
                   <button
                     type="button"
                     disabled
@@ -117,15 +128,23 @@ function UpgradeSheetContent({
                 ) : (
                   <button
                     type="button"
+                    disabled={isPlanPreviewLoading}
                     onClick={() => {
                       if (isExemptSuperiorPlan) setShowExemptConfirm(true);
                       else setStep('personal');
                     }}
-                    className="btn-luxury-primary w-full"
+                    title={
+                      isPlanPreviewLoading
+                        ? 'Aguarde o carregamento dos dados da assinatura'
+                        : undefined
+                    }
+                    className="btn-luxury-primary w-full disabled:opacity-50 disabled:cursor-not-allowed"
                   >
                     <SelectedPlanIcon size={14} strokeWidth={2} />
-                    Assinar Plano {selectedPlanInfo?.name ?? selectedPlan}
-                    <ChevronRight size={14} />
+                    {isPlanPreviewLoading
+                      ? 'Carregando…'
+                      : `Assinar Plano ${selectedPlanInfo?.name ?? selectedPlan}`}
+                    {!isPlanPreviewLoading && <ChevronRight size={14} />}
                   </button>
                 )}
               </>
@@ -133,7 +152,7 @@ function UpgradeSheetContent({
             {step === 'personal' && (
               <button
                 type="button"
-                disabled={!canProceedData}
+                disabled={!canProceedData || hasPendingDowngradeScheduled}
                 onClick={() => setStep('billing')}
                 className="btn-luxury-primary w-full disabled:opacity-40 disabled:cursor-not-allowed"
               >
@@ -146,9 +165,10 @@ function UpgradeSheetContent({
               <button
                 type="button"
                 disabled={
-                  billingType === 'CREDIT_CARD' &&
-                  !canProceedBilling &&
-                  !(upgradeCalculation?.amount_final === 0)
+                  hasPendingDowngradeScheduled ||
+                  (billingType === 'CREDIT_CARD' &&
+                    !canProceedBilling &&
+                    !(upgradeCalculation?.amount_final === 0))
                 }
                 onClick={() => setStep('confirm')}
                 className="btn-luxury-primary w-full disabled:opacity-40 disabled:cursor-not-allowed"
@@ -209,6 +229,7 @@ function ConfirmButton() {
     billingType,
     upgradeCalculation,
     isCalculationLoading,
+    hasPendingDowngradeScheduled,
   } = useUpgradeSheetContext();
 
   const isFreeUpgrade =
@@ -234,7 +255,7 @@ function ConfirmButton() {
   return (
     <button
       type="button"
-      disabled={loading || isCalculationLoading}
+      disabled={loading || isCalculationLoading || hasPendingDowngradeScheduled}
       onClick={handleConfirm}
       className="btn-luxury-primary w-full disabled:opacity-40 disabled:cursor-not-allowed"
     >

@@ -454,6 +454,7 @@ describe('getUpgradePreview — pending_change detection', () => {
         .fn()
         .mockReturnValueOnce(makeSelectSingle({ status: 'approved' })) // última linha (created_at)
         .mockReturnValueOnce(makeSelectSingle(null)) // pending
+        .mockReturnValueOnce(makeSelectSingle(null)) // pending_downgrade
         .mockReturnValueOnce(makeSelectSingle(null)) // pending_change
         .mockReturnValueOnce(makeSelectList([])), // approved list
     } as unknown as Awaited<ReturnType<typeof createSupabaseServerClient>>;
@@ -478,6 +479,7 @@ describe('getUpgradePreview — pending_change detection', () => {
         .fn()
         .mockReturnValueOnce(makeSelectSingle({ status: 'approved' }))
         .mockReturnValueOnce(makeSelectSingle(null))
+        .mockReturnValueOnce(makeSelectSingle(null)) // pending_downgrade
         .mockReturnValueOnce(makeSelectSingle(pendingChange))
         .mockReturnValueOnce(makeSelectList([])),
     } as unknown as Awaited<ReturnType<typeof createSupabaseServerClient>>;
@@ -530,6 +532,23 @@ describe('getUpgradePreview — pending_change detection', () => {
     const res = await getUpgradePreview('START', 'monthly', 'PIX');
     expect(res.has_pending).toBe(true);
     expect(supabase.from).toHaveBeenCalledTimes(2);
+  });
+
+  it('✅ com pending_downgrade: has_pending_downgrade sem cálculo', async () => {
+    vi.mocked(getAuthenticatedUser).mockResolvedValue(authOk as never);
+    const supabase = {
+      from: vi
+        .fn()
+        .mockReturnValueOnce(makeSelectSingle({ status: 'approved' }))
+        .mockReturnValueOnce(makeSelectSingle(null))
+        .mockReturnValueOnce(makeSelectSingle({ id: 'pd-1' })),
+    } as unknown as Awaited<ReturnType<typeof createSupabaseServerClient>>;
+    vi.mocked(createSupabaseServerClient).mockResolvedValue(supabase);
+    const res = await getUpgradePreview('START', 'monthly', 'PIX');
+    expect(res.success).toBe(true);
+    expect(res.has_pending_downgrade).toBe(true);
+    expect(res.calculation).toBeUndefined();
+    expect(supabase.from).toHaveBeenCalledTimes(3);
   });
 
   it('❌ não autenticado: success=false', async () => {

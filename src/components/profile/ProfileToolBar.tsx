@@ -13,7 +13,6 @@ import {
 } from 'lucide-react';
 import WhatsAppIcon from '@/components/ui/WhatsAppIcon';
 import { PlanGuard } from '@/components/auth/PlanGuard';
-import { div } from 'framer-motion/client';
 
 export const ProfileToolBar = ({
   phone,
@@ -100,9 +99,17 @@ export const ProfileToolBar = ({
           <div className="flex-1 min-w-0 flex items-center overflow-hidden">
             <PlanGuard feature="profileLevel" variant="mini">
               <div className="flex items-center gap-1 overflow-hidden min-w-0">
-                <button
+                <div
                   onClick={() => setIsDrawerOpen(!isDrawerOpen)}
-                  className={`flex items-center gap-1 shrink-0 group h-7 px-3 rounded-md transition-all ${
+                  role="button"
+                  tabIndex={0}
+                  onKeyDown={(e) => {
+                    if (e.key === 'Enter' || e.key === ' ') {
+                      e.preventDefault();
+                      setIsDrawerOpen(!isDrawerOpen);
+                    }
+                  }}
+                  className={`flex items-center gap-1 shrink-0 group h-7 px-3 rounded-md transition-all cursor-pointer ${
                     isDrawerOpen && isNarrow
                       ? 'pub-bar-active'
                       : isNarrow
@@ -122,6 +129,21 @@ export const ProfileToolBar = ({
                           isDrawerOpen ? 'rotate-180' : ''
                         }`}
                       />
+                      {/* BOTÃO LIMPAR FILTRO (MOBILE) */}
+                      {activeFilter !== 'all' && (
+                        <div className="pl-2 border-l pub-bar-drawer-border ml-1">
+                          <button
+                            onClick={(e) => {
+                              e.stopPropagation(); // Evita abrir a gaveta
+                              onFilterChange?.('all');
+                            }}
+                            className={`text-[9px] font-medium uppercase px-2 py-0.5 rounded-full flex items-center gap-1 transition-colors pub-bar-btn border hover:pub-bar-accent`}
+                          >
+                            <X size={13} />
+                            Limpar filtro
+                          </button>
+                        </div>
+                      )}
                     </>
                   ) : (
                     // ── DESKTOP ──
@@ -228,9 +250,25 @@ export const ProfileToolBar = ({
                           }`}
                         />
                       )}
+                      {/* BOTÃO VER TODAS / LIMPAR FILTRO (DESKTOP) */}
+                      {activeFilter !== 'all' && (
+                        <div className="pl-3 border-l pub-bar-drawer-border ml-2">
+                          <button
+                            onClick={(e) => {
+                              e.stopPropagation(); // Evita abrir a gaveta
+                              onFilterChange?.('all');
+                            }}
+                            className={`text-[10px] font-medium uppercase px-2 py-1 rounded-full flex items-center gap-1.5 transition-colors pub-bar-btn border hover:pub-bar-accent`}
+                          >
+                            {' '}
+                            <X size={13} />
+                            Limpar Filtro
+                          </button>
+                        </div>
+                      )}
                     </>
                   )}
-                </button>
+                </div>
               </div>
             </PlanGuard>
           </div>

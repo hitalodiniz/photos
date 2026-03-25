@@ -70,6 +70,7 @@ function statusLabel(status: string): string {
     approved: 'Aprovado',
     pending_cancellation: 'Cancelamento Agendado',
     pending_downgrade: 'Downgrade Agendado',
+    pending_change: 'Alteração de plano agendada',
     rejected: 'Rejeitado',
     cancelled: 'Cancelado',
     free: 'Gratuito',
@@ -82,6 +83,10 @@ function statusLabel(status: string): string {
     RENEWED: 'Renovado',
     PENDING_CANCELLATION: 'Cancelamento Agendado',
     FREE: 'Gratuito',
+    /** Status de cobrança Asaas espelhado em `asaas_raw_status` — exibir como assinatura ativa. */
+    RECEIVED: 'Ativo',
+    CONFIRMED: 'Ativo',
+    RECEIVED_IN_CASH: 'Ativo',
   };
   return map[status] ?? map[status?.toUpperCase()] ?? status ?? '—';
 }
@@ -242,6 +247,76 @@ function getPlanStartAt(item: UpgradeRequest): string | null {
   return date.toLocaleDateString('pt-BR', { timeZone: 'UTC' });
 }
 
+/** Cancelado / rejeitado: linha encerrada para efeito de “vigente”. */
+function isTerminalHistoryStatus(status: string): boolean {
+  return status === 'cancelled' || status === 'rejected';
+}
+
+/**
+ * Linha ainda dá acesso ou representa assinatura atual? Se expirada/vencida/atrasada,
+ * o “vigente” passa para o próximo registro mais antigo na ordenação.
+ */
+function isHistoryRowExpiredOrOverdue(
+  item: UpgradeRequest,
+  asaasDates?: { endDate?: string | null; nextDueDate?: string | null },
+): boolean {
+  const raw = String(item.asaas_raw_status ?? '').toUpperCase();
+  if (raw === 'EXPIRED' || raw === 'OVERDUE') return true;
+
+  const now = Date.now();
+
+  if (
+    item.status === 'pending_downgrade' ||
+    item.status === 'pending_cancellation'
+  ) {
+    const endSrc =
+      item.scheduled_cancel_at?.trim() ||
+      (asaasDates?.endDate ? `${asaasDates.endDate}T12:00:00.000Z` : '');
+    if (endSrc) {
+      const d = new Date(endSrc);
+      if (!Number.isNaN(d.getTime()) && d.getTime() < now) return true;
+    }
+    return false;
+  }
+
+  if (item.status === 'approved' || isRenewedStatus(item.status)) {
+    if (asaasDates?.endDate) {
+      const d = new Date(`${asaasDates.endDate}T23:59:59.999Z`);
+      if (!Number.isNaN(d.getTime()) && d.getTime() < now) return true;
+    }
+    const calcEnd = calculateNextBillingDate(item);
+    if (calcEnd && calcEnd.getTime() < now) {
+      if (asaasDates?.nextDueDate) {
+        const nd = new Date(`${asaasDates.nextDueDate}T23:59:59.999Z`);
+        if (!Number.isNaN(nd.getTime()) && nd.getTime() >= now) return false;
+      }
+      return true;
+    }
+    return false;
+  }
+
+  return false;
+}
+
+/**
+ * Plano vigente na tabela: o registro mais recente (`created_at` DESC) que não está
+ * cancelado/rejeitado e ainda não está expirado, vencido ou em atraso — inclui
+ * `pending_downgrade` e `pending_cancellation` enquanto o acesso não acabou.
+ */
+function resolveVigenteHistoryRequest(
+  sortedHistory: UpgradeRequest[],
+  asaasDatesBySubscriptionId: AssinaturaPageData['asaasDatesBySubscriptionId'],
+): UpgradeRequest | null {
+  for (const row of sortedHistory) {
+    if (isTerminalHistoryStatus(row.status)) continue;
+    const subId = row.asaas_subscription_id?.trim() ?? '';
+    const asaasDates = subId ? asaasDatesBySubscriptionId[subId] : undefined;
+    if (isHistoryRowExpiredOrOverdue(row, asaasDates)) continue;
+    return row;
+  }
+  return null;
+}
+
 function formatNotesDisplay(notes: string | null | undefined): string {
   if (!notes?.trim()) return '';
 
@@ -277,10 +352,7 @@ function formatNotesDisplay(notes: string | null | undefined): string {
     }
     return 'Ver detalhes';
   }
-  if (
-    /\[Reactivation\b/i.test(notes) ||
-    /Assinatura reativada/i.test(notes)
-  ) {
+  if (/\[Reactivation\b/i.test(notes) || /Assinatura reativada/i.test(notes)) {
     return 'Detalhes da operação';
   }
 
@@ -319,6 +391,12 @@ export default function AssinaturaContent({
       ),
     [history],
   );
+  const vigenteHistoryRequest = useMemo(
+    () =>
+      resolveVigenteHistoryRequest(sortedHistory, asaasDatesBySubscriptionId),
+    [sortedHistory, asaasDatesBySubscriptionId],
+  );
+  const vigenteHistoryId = vigenteHistoryRequest?.id ?? null;
   const [localCancellationEndsAt, setLocalCancellationEndsAt] = useState<
     string | null
   >(null);
@@ -396,13 +474,8 @@ export default function AssinaturaContent({
     !!reactivationSubscriptionId &&
     (hasPendingCancellation ||
       (hasFutureAccess && hasCancelledRecordForActiveSub));
-  const hasVigenteSubscriptionInRequests = sortedHistory.some((r) => {
-    const isVigenteStatus =
-      r.status === 'approved' || isRenewedStatus(r.status);
-    if (!isVigenteStatus) return false;
-    if (!effectiveSubscriptionId) return true;
-    return (r.asaas_subscription_id?.trim() ?? '') === effectiveSubscriptionId;
-  });
+  const hasVigenteSubscriptionInRequests =
+    planKey !== 'FREE' && vigenteHistoryId != null;
   const cancellationEndsAt =
     localCancellationEndsAt ??
     (pendingCancellationRequest?.scheduled_cancel_at
@@ -456,12 +529,35 @@ export default function AssinaturaContent({
 
     return true;
   })();
-  const latestApprovedId = latestApprovedRequest?.id ?? null;
-  const vigenteSubscriptionStatus =
-    hasScheduledChange && latestApprovedRequest
-      ? ((latestApprovedRequest.asaas_raw_status ??
-          latestApprovedRequest.status) as string)
-      : subscriptionStatus;
+  const vigenteSubscriptionStatus = ((): string => {
+    if (hasScheduledChange && latestApprovedRequest) {
+      return (latestApprovedRequest.asaas_raw_status ??
+        latestApprovedRequest.status) as string;
+    }
+    const row = vigenteHistoryRequest;
+    if (!row) return subscriptionStatus;
+
+    /** Status de domínio da linha vigente tem precedência sobre último status de pagamento Asaas. */
+    const domain = row.status;
+    if (
+      domain === 'pending_downgrade' ||
+      domain === 'pending_cancellation' ||
+      domain === 'pending_change' ||
+      domain === 'pending' ||
+      domain === 'processing' ||
+      domain === 'rejected' ||
+      domain === 'cancelled'
+    ) {
+      return domain;
+    }
+
+    const raw = row.asaas_raw_status?.trim();
+    if (raw) return raw;
+    return row.status ?? subscriptionStatus;
+  })();
+  const vigenteSubscriptionStatusUpper = String(
+    vigenteSubscriptionStatus ?? '',
+  ).toUpperCase();
 
   // ─── Estado dos modais ────────────────────────────────────────────────────
 
@@ -578,7 +674,7 @@ export default function AssinaturaContent({
     {
       header: 'Data Assinatura',
       accessor: (item) => (
-        <span className="text-[12px] text-slate-700 whitespace-nowrap">
+        <span className="text-[12px] text-slate-700 whitespace-nowrap font-medium">
           {new Date(item.created_at).toLocaleDateString('pt-BR', {
             timeZone: 'UTC',
           })}
@@ -587,9 +683,9 @@ export default function AssinaturaContent({
       icon: Calendar,
     },
     {
-      header: 'Início do plano',
+      header: 'Início plano',
       accessor: (item) => (
-        <span className="text-[12px] text-slate-700 whitespace-nowrap">
+        <span className="text-[12px] text-slate-700 whitespace-nowrap font-medium">
           {getPlanStartAt(item) ?? '—'}
         </span>
       ),
@@ -618,7 +714,7 @@ export default function AssinaturaContent({
     {
       header: 'Pagamento',
       accessor: (item) => (
-        <span className="text-[10px] uppercase tracking-wide">
+        <span className="text-[10px] uppercase tracking-wide font-medium">
           {item.billing_type === 'CREDIT_CARD'
             ? 'Cartão de crédito'
             : item.billing_type}
@@ -634,7 +730,7 @@ export default function AssinaturaContent({
           annual: 'Anual',
         };
         return (
-          <span className="text-[11px] text-slate-600">
+          <span className="text-[11px] text-slate-600 font-medium">
             {periodMap[item.billing_period as string] ?? 'Mensal'}
           </span>
         );
@@ -652,15 +748,35 @@ export default function AssinaturaContent({
             notesLower.includes('renovação') ||
             notesLower.includes('cobrança de renovação') ||
             isRenewedStatus(item.status));
-        const isLatestApproved =
-          planKey !== 'FREE' && isPaidCycle && item.id === latestApprovedId;
-        if (isLatestApproved) {
+        const isTableVigente =
+          planKey !== 'FREE' && item.id === vigenteHistoryId;
+        if (isTableVigente) {
           return (
-            <div className="flex flex-col gap-0.5 min-w-24">
-              <span className="inline-flex items-center gap-1 px-1.5 py-0.5 rounded-md bg-emerald-100 text-emerald-800 text-[10px] font-semibold w-fit">
+            <div className="flex flex-col gap-0.5 min-w-24 font-medium">
+              <span className="inline-flex items-center gap-1 px-1.5 py-0.5 rounded-md bg-emerald-100 text-emerald-800 text-[10px] font-medium w-fit">
                 Vigente
               </span>
-              {isRenewalApproved && (
+              {item.status === 'pending_downgrade' && (
+                <span className="text-[10px] font-medium text-slate-600">
+                  {statusLabel('pending_downgrade')}
+                </span>
+              )}
+              {item.status === 'pending_cancellation' && (
+                <span className="text-[10px] font-medium text-slate-600">
+                  {statusLabel('pending_cancellation')}
+                </span>
+              )}
+              {item.status === 'pending_change' && (
+                <span className="text-[10px] font-medium text-slate-600">
+                  Alteração de plano agendada
+                </span>
+              )}
+              {(item.status === 'pending' || item.status === 'processing') && (
+                <span className="text-[10px] font-medium text-slate-600">
+                  {statusLabel(item.status)}
+                </span>
+              )}
+              {isPaidCycle && isRenewalApproved && (
                 <span className="inline-flex items-center  gap-1 px-1.5 py-0.5 rounded-md bg-champagne/30 text-petroleum-800 text-[10px] font-medium w-fit">
                   Renovação
                 </span>
@@ -671,7 +787,7 @@ export default function AssinaturaContent({
         if (isPaidCycle) {
           if (isRenewalApproved) {
             return (
-              <div className="flex flex-col gap-0.5 min-w-24">
+              <div className="flex flex-col gap-0.5 min-w-24 font-medium">
                 <span className="inline-flex items-center gap-1 px-1.5 py-0.5 rounded-md bg-champagne/30 text-petroleum-800 text-[10px] font-medium w-fit">
                   Renovação
                 </span>
@@ -682,7 +798,7 @@ export default function AssinaturaContent({
             );
           }
           return (
-            <div className="flex flex-col gap-0.5 min-w-24">
+            <div className="flex flex-col gap-0.5 min-w-24 font-medium">
               <span className="inline-flex items-center gap-1 px-1.5 py-0.5 rounded-md bg-champagne/30 text-petroleum-800 text-[10px] font-medium w-fit">
                 Ciclo encerrado
               </span>
@@ -692,14 +808,6 @@ export default function AssinaturaContent({
             </div>
           );
         }
-        if (item.status === 'pending_change') {
-          return (
-            <span className="text-[11px] font-medium text-slate-600">
-              Alteração de plano agendada
-            </span>
-          );
-        }
-
         return (
           <span className="text-[11px] font-medium">
             {statusLabel(item.status)}
@@ -713,10 +821,10 @@ export default function AssinaturaContent({
         const isCurrentVigenteWithScheduledChange =
           hasScheduledChange &&
           (item.status === 'approved' || isRenewedStatus(item.status)) &&
-          item.id === latestApprovedId;
+          item.id === vigenteHistoryId;
         const isClosedCycle =
           (item.status === 'approved' || isRenewedStatus(item.status)) &&
-          item.id !== latestApprovedId;
+          item.id !== vigenteHistoryId;
         const asaasSubscriptionId = item.asaas_subscription_id?.trim() ?? '';
         const asaasDates = asaasSubscriptionId
           ? asaasDatesBySubscriptionId[asaasSubscriptionId]
@@ -728,11 +836,11 @@ export default function AssinaturaContent({
           asaasEndDate: asaasDates?.endDate ?? null,
         });
         return (
-          <div className="flex flex-col leading-tight">
-            <span className="text-[9px] uppercase tracking-wide text-slate-500">
+          <div className="flex flex-col leading-tight font-medium">
+            <span className="text-[9px] uppercase tracking-wide font-medium text-slate-500">
               {label}
             </span>
-            <span className="text-[11px] text-slate-700 whitespace-nowrap">
+            <span className="text-[11px] text-slate-700 whitespace-nowrap font-medium">
               {date ?? '—'}
             </span>
           </div>
@@ -745,12 +853,17 @@ export default function AssinaturaContent({
       header: 'Observações',
       accessor: (item) => {
         const text = formatNotesDisplay(item.notes);
-        if (!text) return <span className="text-slate-600 text-[11px]">—</span>;
+        if (!text)
+          return (
+            <span className="text-[11px] leading-relaxed antialiased font-medium text-slate-500">
+              —
+            </span>
+          );
 
         return (
-          <div className="flex flex-col items-start gap-1">
+          <div className="flex flex-col items-start gap-1 antialiased font-medium">
             {/* O line-clamp-3 já aplica as reticências automaticamente ao final da 3ª linha */}
-            <span className="text-[11px] text-slate-600 max-w-[200px] line-clamp-3 overflow-hidden break-words leading-snug">
+            <span className="text-[11px] text-slate-500 max-w-[200px] line-clamp-3 overflow-hidden break-words leading-relaxed font-medium">
               {text}
             </span>
 
@@ -762,7 +875,7 @@ export default function AssinaturaContent({
                   e.stopPropagation();
                   setNotesSheetRequest(item);
                 }}
-                className="text-left text-[10px] text-gold font-semibold hover:underline"
+                className="text-left text-[10px] text-gold font-medium hover:underline mt-0.5"
                 title="Ver detalhes"
               >
                 Ver detalhes
@@ -791,7 +904,10 @@ export default function AssinaturaContent({
           : isPaidOrCancelled
             ? invoiceUrl
             : null;
-        if (!url) return <span className="text-slate-600 text-[11px]">—</span>;
+        if (!url)
+          return (
+            <span className="text-slate-500 text-[11px] font-medium">—</span>
+          );
         const actionLabel =
           item.status === 'pending'
             ? 'Pagar agora'
@@ -872,7 +988,7 @@ export default function AssinaturaContent({
           <button
             type="button"
             onClick={() => setShowCancelModal(true)}
-            className="inline-flex items-center gap-1.5 px-3 py-1.5 border border-slate-200 rounded text-[10px] font-bold uppercase tracking-widest text-slate-400 hover:text-red-500 hover:border-red-200 hover:bg-red-50/50 transition-all shrink-0"
+            className="inline-flex items-center gap-1.5 px-3 py-1.5 border border-slate-200 rounded text-[10px] font-semibold uppercase tracking-widest text-petroleum hover:text-red-500 hover:border-red-200 hover:bg-red-50/50 transition-all shrink-0"
           >
             <AlertTriangle size={11} />
             Cancelar assinatura
@@ -885,9 +1001,13 @@ export default function AssinaturaContent({
   const pendingChangeRequest = sortedHistory.find(
     (r) => r.status === 'pending_change',
   );
+  /** Mais recente com cobrança efetiva (>0): inclui plano atual agendado para downgrade/cancelamento (último plano contratado). */
   const latestChargedVigenteRequest = sortedHistory.find(
     (r) =>
-      (r.status === 'approved' || isRenewedStatus(r.status)) &&
+      (r.status === 'approved' ||
+        isRenewedStatus(r.status) ||
+        r.status === 'pending_downgrade' ||
+        r.status === 'pending_cancellation') &&
       (r.amount_final ?? 0) > 0,
   );
   const nextCycleAmount = hasScheduledChange
@@ -971,7 +1091,7 @@ export default function AssinaturaContent({
                 <BadgeCheck
                   size={14}
                   className={
-                    vigenteSubscriptionStatus === 'OVERDUE'
+                    vigenteSubscriptionStatusUpper === 'OVERDUE'
                       ? 'text-red-500'
                       : 'text-gold'
                   }
@@ -982,7 +1102,7 @@ export default function AssinaturaContent({
                   </p>
                   <p
                     className={`text-[10px] font-semibold ${
-                      vigenteSubscriptionStatus === 'OVERDUE'
+                      vigenteSubscriptionStatusUpper === 'OVERDUE'
                         ? 'text-red-600 animate-pulse'
                         : 'text-petroleum'
                     }`}
@@ -1142,6 +1262,7 @@ export default function AssinaturaContent({
         profileFullName={profile.full_name}
         profileEmail={profile.email}
         profilePhone={profile.phone_contact}
+        currentBillingType={currentBillingType as any}
         onSuccess={() => router.refresh()}
       />
 

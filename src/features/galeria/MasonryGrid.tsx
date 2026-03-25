@@ -440,9 +440,9 @@ const MasonryItem = memo(
 
                 {isPreSelected && (
                   <div className="absolute top-2 right-2 z-[70] pointer-events-none">
-                    <div className="bg-gold/90 text-black px-2 py-1 rounded-full flex items-center gap-1 shadow-lg backdrop-blur-sm">
+                    <div className="bg-champagne text-petroleum px-2 py-1 rounded-full flex items-center gap-1 shadow-lg backdrop-blur-sm">
                       <CheckCircle2 size={10} strokeWidth={3} />
-                      <span className="text-[9px] font-semibold uppercase tracking-tighter">
+                      <span className="text-[10px] font-medium uppercase">
                         Selecionada
                       </span>
                     </div>

@@ -51,6 +51,7 @@ import {
   GalleryTypeToggle,
   type GalleryTypeValue,
 } from '@/components/ui/GalleryTypeToggle';
+import { getSaoPauloDateString } from '@/core/utils/data-helpers';
 import { normalizeContractType } from '@/core/types/galeria';
 import { ThemeKey, ThemeSelector } from '@/components/ui/ThemeSelector';
 import { HELP_CONTENT } from '@/core/config/help-content';
@@ -244,7 +245,7 @@ export default function GaleriaFormContent({
     return (defaultType && DEFAULT_TYPE_TO_CODE[defaultType]) || 'CT';
   });
 
-  const today = new Date().toISOString().split('T')[0];
+  const today = getSaoPauloDateString(new Date());
 
   const [isPublic, setIsPublic] = useState(() => {
     if (initialData)
@@ -703,12 +704,16 @@ export default function GaleriaFormContent({
             <input
               type="hidden"
               name="enable_favorites"
-              value={String(enableFavorites)}
+              value={String(
+                permissions.canFavorite === true && enableFavorites,
+              )}
             />
             <input
               type="hidden"
               name="enable_slideshow"
-              value={String(enableSlideshow)}
+              value={String(
+                permissions.canShowSlideshow === true && enableSlideshow,
+              )}
             />
           </div>
 
@@ -936,7 +941,18 @@ export default function GaleriaFormContent({
                               .split('-')
                               .map(Number);
                             const selectedDate = new Date(year, month - 1, day);
-                            const todayDate = new Date();
+
+                            // Usar a data atual em São Paulo para comparação
+                            const todayStr = getSaoPauloDateString(new Date());
+                            const [todayYear, todayMonth, todayDay] = todayStr
+                              .split('-')
+                              .map(Number);
+                            const todayDate = new Date(
+                              todayYear,
+                              todayMonth - 1,
+                              todayDay,
+                            );
+
                             todayDate.setHours(0, 0, 0, 0);
                             selectedDate.setHours(0, 0, 0, 0);
 

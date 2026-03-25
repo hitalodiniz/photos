@@ -96,6 +96,8 @@ export function GaleriaDriveSection({
   const isOverHardCap = isOverHardCapProp ?? photoCount > hardCap;
   const isOverRecommended =
     !isOverHardCap && !isOverPoolCap && photoCount > alertThreshold; // usa alertThreshold
+  const isCompatible =
+    photoCount > 0 && !isOverHardCap && !isOverPoolCap && !isOverRecommended;
 
   // ── Créditos restantes no pool (dinâmico) ─────────────────────────────────
   const remainingCreditsAfterThis = Math.max(
@@ -331,12 +333,12 @@ export function GaleriaDriveSection({
               )}
 
               {/* ESTADO 3: Compatível (CONFIRMAÇÃO) */}
-              {/* ESTADO 3: Compatível (CONFIRMAÇÃO) */}
-              {/* {isCompatible && (
+
+              {isCompatible && (
                 <div className="p-3  rounded-luxury border bg-emerald-50 border-emerald-200 flex gap-3 shadow-sm">
                   <div className="space-y-1">
                     {/* Adicionada a contagem de arquivos aqui para manter o padrão dos outros estados */}
-              {/* <p className="flex items-center gap-2 text-[11px] font-semibold uppercase text-emerald-700 tracking-wider">
+                    <p className="flex items-center gap-2 text-[11px] font-semibold uppercase text-emerald-700 tracking-wider">
                       <CheckCircle2
                         size={16}
                         className="text-emerald-500 shrink-0"
@@ -356,8 +358,8 @@ export function GaleriaDriveSection({
                       </p>
                     </div>
                   </div>
-                </div> */}
-              {/* )} */}
+                </div>
+              )}
             </div>
           )}
 

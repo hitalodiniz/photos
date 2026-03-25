@@ -805,6 +805,23 @@ export async function getUpgradePreview(
         profile_plan_key: profilePlanKeyForPreview,
       };
 
+    const { data: pendingDowngradeRow } = await supabase
+      .from('tb_upgrade_requests')
+      .select('id')
+      .eq('profile_id', userId)
+      .eq('status', 'pending_downgrade')
+      .limit(1)
+      .maybeSingle();
+    if (pendingDowngradeRow)
+      return {
+        success: true,
+        has_active_plan: false,
+        has_pending_downgrade: true,
+        calculation: undefined,
+        latest_request_cancelled: latestRequestCancelled,
+        profile_plan_key: profilePlanKeyForPreview,
+      };
+
     // ── NOVO: Verifica pending_change ativo ──────────────────────────────────
     const { data: scheduledChange } = await supabase
       .from('tb_upgrade_requests')
@@ -1591,6 +1608,21 @@ export async function requestUpgrade(
   } = await getAuthenticatedUser();
   if (!authOk || !profile || !userId)
     return { success: false, error: 'Usuário não autenticado' };
+
+  const { data: pendingDowngradeBlock } = await supabase
+    .from('tb_upgrade_requests')
+    .select('id')
+    .eq('profile_id', userId)
+    .eq('status', 'pending_downgrade')
+    .limit(1)
+    .maybeSingle();
+  if (pendingDowngradeBlock) {
+    return {
+      success: false,
+      error:
+        'Há um cancelamento com downgrade agendado. Não é possível contratar um novo plano até essa solicitação ser concluída ou alterada.',
+    };
+  }
 
   const segment = (payload.segment ?? 'PHOTOGRAPHER') as SegmentType;
   const planKey = payload.plan_key_requested as PlanKey;

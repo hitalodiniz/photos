@@ -69,7 +69,7 @@ export function RelatorioTable<T extends { id: string | number }>({
         {columns.map((col, idx) => (
           <td
             key={idx}
-            className={`px-4 py-3 border-b border-slate-100 text-[12px] text-slate-600 ${col.width || ''} ${
+            className={`px-4 py-3 border-b border-slate-100 text-[12px] text-slate-600 font-medium antialiased ${col.width || ''} ${
               col.align === 'right'
                 ? 'text-right'
                 : col.align === 'center'

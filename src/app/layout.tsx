@@ -89,7 +89,10 @@ export default async function RootLayout({
           }}
         />
       </head>
-      <body className="antialiased font-sans">
+
+      <body
+        className={`${montserrat.variable} ${barlow.variable} antialiased font-sans`}
+      >
         <AuthProvider>
           <PlanProvider profile={profile} email={email}>
             <NavigationProvider>
