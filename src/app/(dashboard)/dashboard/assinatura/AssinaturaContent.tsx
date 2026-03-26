@@ -55,6 +55,7 @@ import { billingNotesDisplayText } from '@/core/services/asaas/utils/billing-not
 import { UpgradeUpsellCard } from '@/components/ui/Assinatura/UpgradeUpsellCard';
 import { RelatorioTable } from '@/components/ui/RelatorioTable';
 import { UpgradeRequestNotesSheet } from './UpgradeRequestNotesSheet';
+import { PaymentPixModal } from '@/components/ui/PaymentPixModal';
 
 // ─── Constantes ───────────────────────────────────────────────────────────────
 
@@ -539,6 +540,9 @@ export default function AssinaturaContent({
   const latestApprovedRequest = sortedHistory.find(
     (r) => r.status === 'approved' || isRenewedStatus(r.status),
   );
+  const latestPendingRequest = sortedHistory.find(
+    (r) => r.status === 'pending' || r.status === 'processing' || r.status === 'rejected',
+  );
   /** Mais recente com cancelamento/downgrade agendado (não filtrar por effectiveSubscriptionId). */
   const latestPendingCancelRow = sortedHistory.find(
     (r) =>
@@ -632,6 +636,8 @@ export default function AssinaturaContent({
    */
   const hasRefundRight = (() => {
     if (!latestApprovedRequest) return false;
+    // Regra de negócio: renovação (`renewed`) nunca entra em estorno de arrependimento.
+    if (isRenewedStatus(latestApprovedRequest.status)) return false;
 
     const reference =
       latestApprovedRequest.processed_at ?? latestApprovedRequest.created_at;
@@ -702,12 +708,16 @@ export default function AssinaturaContent({
   const [cancelLoading, setCancelLoading] = useState(false);
   const [reactivateLoading, setReactivateLoading] = useState(false);
   const [showManagePayment, setShowManagePayment] = useState(false);
+  const [managePaymentTarget, setManagePaymentTarget] =
+    useState<UpgradeRequest | null>(null);
   const [upgradeSheetOpen, setUpgradeSheetOpen] = useState(false);
   const [upgradeSheetInitialPlan, setUpgradeSheetInitialPlan] = useState<
     PlanKey | undefined
   >();
   const [notesSheetRequest, setNotesSheetRequest] =
     useState<UpgradeRequest | null>(null);
+  const [showPixModal, setShowPixModal] = useState(false);
+  const [pixRequestId, setPixRequestId] = useState<string | null>(null);
 
   const { showToast, ToastElement } = useToast();
 
@@ -795,6 +805,11 @@ export default function AssinaturaContent({
     }
   };
 
+  const handleOpenPixPayment = (requestId: string) => {
+    setPixRequestId(requestId);
+    setShowPixModal(true);
+  };
+
   // ─── Colunas da tabela ────────────────────────────────────────────────────
 
   const columns: Array<{
@@ -872,6 +887,14 @@ export default function AssinaturaContent({
     {
       header: 'Status',
       accessor: (item) => {
+        const isLatestPendingRow = item.id === latestPendingRequest?.id;
+        const isAwaitingLikeStatus =
+          item.status === 'pending' ||
+          item.status === 'processing' ||
+          item.status === 'rejected' ||
+          String(item.asaas_raw_status ?? '').toUpperCase() === 'OVERDUE';
+        const isHistoricalAwaitingWithoutOpenCharge =
+          !isLatestPendingRow && isAwaitingLikeStatus;
         const notesLower = billingNotesDisplayText(item.notes).toLowerCase();
         const isPaidCycle =
           item.status === 'approved' || isRenewedStatus(item.status);
@@ -906,11 +929,13 @@ export default function AssinaturaContent({
                   Alteração de plano agendada
                 </span>
               )}
-              {(item.status === 'pending' || item.status === 'processing') && (
+              {isLatestPendingRow &&
+                (item.status === 'pending' ||
+                  item.status === 'processing') && (
                 <span className="text-[11px] font-medium text-slate-600">
                   {statusLabel(item.status)}
                 </span>
-              )}
+                )}
               {isPaidCycle && isRenewalApproved && (
                 <span className="inline-flex items-center  gap-1 px-1.5 py-0.5 rounded-md bg-champagne/30 text-petroleum-800 text-[10px] font-medium w-fit">
                   Renovação
@@ -941,6 +966,13 @@ export default function AssinaturaContent({
                 Pago
               </span>
             </div>
+          );
+        }
+        if (isHistoricalAwaitingWithoutOpenCharge) {
+          return (
+            <span className="text-[11px] font-medium text-slate-500">
+              Ciclo encerrado
+            </span>
           );
         }
         return (
@@ -1027,29 +1059,89 @@ export default function AssinaturaContent({
     {
       header: 'Ação',
       accessor: (item) => {
+        const isLatestPendingRow = item.id === latestPendingRequest?.id;
+        const billingType = String(item.billing_type ?? '').toUpperCase();
+        const itemStatus = String(item.status ?? '').toLowerCase();
+        const rawStatus = String(item.asaas_raw_status ?? '').toUpperCase();
+        const isOverdueLike =
+          itemStatus === 'overdue' || rawStatus === 'OVERDUE';
         const isPaidOrCancelled =
-          item.status === 'approved' ||
-          item.status === 'cancelled' ||
-          item.status === 'pending_cancellation' ||
-          item.status === 'rejected';
+          itemStatus === 'approved' ||
+          itemStatus === 'cancelled' ||
+          itemStatus === 'pending_cancellation' ||
+          itemStatus === 'rejected';
         const hasOpenPayment =
-          item.status === 'pending' || item.status === 'processing';
+          itemStatus === 'pending' || itemStatus === 'processing';
+        const isRejectedCard =
+          isLatestPendingRow &&
+          itemStatus === 'rejected' &&
+          billingType === 'CREDIT_CARD';
+        const isPendingPix =
+          isLatestPendingRow &&
+          (hasOpenPayment || itemStatus === 'rejected' || isOverdueLike) &&
+          billingType === 'PIX';
+        const isPendingBoleto =
+          isLatestPendingRow &&
+          (hasOpenPayment || itemStatus === 'rejected' || isOverdueLike) &&
+          billingType === 'BOLETO';
         const invoiceUrl = `/api/dashboard/payment-invoice-url?requestId=${encodeURIComponent(item.id)}`;
-        const url = hasOpenPayment
+        const boletoUrl = `/api/dashboard/payment-boleto-url?requestId=${encodeURIComponent(item.id)}`;
+        const url = isPendingPix
+          ? null
+          : isPendingBoleto
+            ? boletoUrl
+            : isRejectedCard
+              ? null
+            : hasOpenPayment
           ? item.payment_url?.startsWith('http')
             ? item.payment_url
             : invoiceUrl
           : isPaidOrCancelled
             ? invoiceUrl
             : null;
+        if (isRejectedCard) {
+          return (
+            <button
+              type="button"
+              className="inline-flex items-center gap-1 text-[11px] font-medium text-gold hover:underline"
+              onClick={(e) => {
+                e.stopPropagation();
+                setManagePaymentTarget(item);
+                setShowManagePayment(true);
+              }}
+            >
+              Regularizar pagamento
+              <ExternalLink size={14} />
+            </button>
+          );
+        }
+        if (isPendingPix) {
+          return (
+            <button
+              type="button"
+              className="inline-flex items-center gap-1 text-[11px] font-medium text-gold hover:underline"
+              onClick={(e) => {
+                e.stopPropagation();
+                handleOpenPixPayment(item.id);
+              }}
+            >
+              Pagar agora
+              <ExternalLink size={14} />
+            </button>
+          );
+        }
         if (!url)
           return (
             <span className="text-slate-500 text-[11px] font-medium">—</span>
           );
         const actionLabel =
-          item.status === 'pending'
+          isLatestPendingRow &&
+          (itemStatus === 'pending' ||
+            itemStatus === 'processing' ||
+            itemStatus === 'rejected' ||
+            isOverdueLike)
             ? 'Pagar agora'
-            : item.status === 'approved'
+            : itemStatus === 'approved'
               ? 'Comprovante de pagamento'
               : 'Ver pagamento';
         return (
@@ -1393,13 +1485,52 @@ export default function AssinaturaContent({
 
       <ManagePaymentSheet
         isOpen={showManagePayment}
-        onClose={() => setShowManagePayment(false)}
-        activeSubscriptionId={activeSubscriptionId ?? ''}
+        onClose={() => {
+          setShowManagePayment(false);
+          setManagePaymentTarget(null);
+        }}
+        activeSubscriptionId={
+          managePaymentTarget?.asaas_subscription_id ??
+          activeSubscriptionId ??
+          ''
+        }
+        activeRequestId={managePaymentTarget?.id ?? latestPendingRequest?.id ?? null}
         profileFullName={profile.full_name}
         profileEmail={profile.email}
         profilePhone={profile.phone_contact}
-        currentBillingType={currentBillingType as any}
-        onSuccess={() => router.refresh()}
+        currentBillingType={
+          ((managePaymentTarget?.billing_type ??
+            currentBillingType ??
+            'CREDIT_CARD') as any)
+        }
+        hasRejectedInvoice={
+          String(managePaymentTarget?.status ?? latestPendingRequest?.status ?? '')
+            .toLowerCase() === 'rejected' &&
+          String(
+            managePaymentTarget?.billing_type ??
+              latestPendingRequest?.billing_type ??
+              currentBillingType ??
+              '',
+          ).toUpperCase() === 'CREDIT_CARD'
+        }
+        activeRequestStatus={
+          String(managePaymentTarget?.status ?? latestPendingRequest?.status ?? '')
+            .toLowerCase() === 'rejected'
+            ? 'rejected'
+            : String(managePaymentTarget?.asaas_raw_status ?? latestPendingRequest?.asaas_raw_status ?? '')
+                .toUpperCase() === 'OVERDUE'
+              ? 'overdue'
+              : 'pending'
+        }
+        amount={managePaymentTarget?.amount_final ?? latestPendingRequest?.amount_final ?? 0}
+        dueDate={null}
+        planName={planDisplayName(planKey)}
+        planPeriod={managePaymentTarget?.billing_period ?? 'monthly'}
+        onPixReady={({ requestId }) => {
+          setPixRequestId(requestId);
+          setShowPixModal(true);
+        }}
+        onSuccess={(_newPaymentId) => router.refresh()}
       />
 
       <UpgradeSheet
@@ -1437,6 +1568,15 @@ export default function AssinaturaContent({
         request={notesSheetRequest}
         isAdmin={profile.roles?.includes('admin') === true}
         onClose={() => setNotesSheetRequest(null)}
+      />
+
+      <PaymentPixModal
+        isOpen={showPixModal}
+        onClose={() => setShowPixModal(false)}
+        requestId={pixRequestId}
+        onCopySuccess={() => showToast('Código PIX copiado.', 'success')}
+        onCopyError={() => showToast('Não foi possível copiar o PIX.', 'error')}
+        onPaidConfirmed={() => router.refresh()}
       />
 
       {ToastElement}

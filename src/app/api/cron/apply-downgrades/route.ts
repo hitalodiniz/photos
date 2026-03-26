@@ -9,12 +9,55 @@ import {
   addMonths,
   billingPeriodToMonths,
 } from '@/core/services/asaas/utils/dates';
+import { billingNotesDisplayText } from '@/core/services/asaas/utils/billing-notes-doc';
 import { getAsaasSubscription } from '@/core/services/asaas/api/subscriptions';
 import type { PlanKey } from '@/core/config/plans';
 import { enforcePhotoQuotaByArchivingOldest } from '@/core/services/asaas/gallery/quota-enforcement';
 import { appendBillingNotesBlock } from '@/core/services/asaas/utils/billing-notes-doc';
 
 const OVERDUE_GRACE_DAYS = 5;
+
+function extractLatestCancelWindowFromNotes(
+  notes: string | null | undefined,
+): {
+  accessEndsAtFromLatestCancel: Date | null;
+  hasReactivationAfterLatestCancel: boolean;
+} {
+  const text = billingNotesDisplayText(notes);
+  if (!text.trim()) {
+    return {
+      accessEndsAtFromLatestCancel: null,
+      hasReactivationAfterLatestCancel: false,
+    };
+  }
+
+  let latestCancelPos = -1;
+  let latestCancelEndsAt: Date | null = null;
+  const cancelRegex =
+    /Cancelamento solicitado em\s+([0-9T:.+\-Z]+)\.\s*Acesso até\s+([0-9T:.+\-Z]+)\./gi;
+  let m: RegExpExecArray | null;
+  while ((m = cancelRegex.exec(text)) !== null) {
+    latestCancelPos = m.index;
+    const parsedEnd = new Date(m[2] ?? '');
+    latestCancelEndsAt = Number.isNaN(parsedEnd.getTime()) ? null : parsedEnd;
+  }
+
+  if (latestCancelPos < 0) {
+    return {
+      accessEndsAtFromLatestCancel: null,
+      hasReactivationAfterLatestCancel: false,
+    };
+  }
+
+  const reactivationPos = Math.max(
+    text.lastIndexOf('[Reactivation'),
+    text.lastIndexOf('Assinatura reativada'),
+  );
+  return {
+    accessEndsAtFromLatestCancel: latestCancelEndsAt,
+    hasReactivationAfterLatestCancel: reactivationPos > latestCancelPos,
+  };
+}
 
 export async function GET(req: NextRequest) {
   const auth = req.headers.get('authorization');
@@ -68,6 +111,29 @@ export async function GET(req: NextRequest) {
 
   for (const row of scheduled ?? []) {
     try {
+      const {
+        accessEndsAtFromLatestCancel,
+        hasReactivationAfterLatestCancel,
+      } = extractLatestCancelWindowFromNotes(row.notes);
+      if (hasReactivationAfterLatestCancel) {
+        const recoveredStatus =
+          row.status === 'pending_downgrade' || row.status === 'pending_cancellation'
+            ? 'approved'
+            : row.status;
+        const note = `[Cron apply-downgrades] ${utcIsoFrom(now)} - Linha reativada após último cancelamento; downgrade agendado ignorado. status_atual=${row.status}; status_ajustado=${recoveredStatus}.`;
+        await supabase
+          .from('tb_upgrade_requests')
+          .update({
+            status: recoveredStatus,
+            notes: appendBillingNotesBlock(row.notes, note),
+            scheduled_cancel_at: null,
+            updated_at: utcIsoFrom(now),
+          })
+          .eq('id', row.id);
+        results.skipped++;
+        continue;
+      }
+
       const fromNotes = parseExpiryFromNotes(row.notes);
       const fromScheduledCancelAt = row.scheduled_cancel_at
         ? new Date(row.scheduled_cancel_at)
@@ -76,24 +142,29 @@ export async function GET(req: NextRequest) {
       const isPendingScheduledStatus =
         row.status === 'pending_downgrade' ||
         row.status === 'pending_cancellation';
-      const accessEndSource = fromNotes
-        ? 'notes'
-        : fromScheduledCancelAt
-          ? 'scheduled_cancel_at'
-          : isPendingScheduledStatus &&
-              processedAtDate &&
-              processedAtDate.getTime() > now.getTime()
-            ? 'processed_at'
-            : 'processed_at_plus_billing_period';
+      // Fonte da verdade para cancelamento agendado:
+      // pending_* => scheduled_cancel_at.
+      // Fallback apenas quando scheduled_cancel_at estiver nulo.
+      const pendingAuthoritativeEndsAt =
+        isPendingScheduledStatus && fromScheduledCancelAt
+          ? fromScheduledCancelAt
+          : null;
+      const accessEndSource = pendingAuthoritativeEndsAt
+        ? 'scheduled_cancel_at'
+        : accessEndsAtFromLatestCancel
+          ? 'notes_latest_cancel'
+          : fromNotes
+            ? 'notes'
+            : isPendingScheduledStatus &&
+                processedAtDate &&
+                processedAtDate.getTime() > now.getTime()
+              ? 'processed_at'
+              : 'processed_at_plus_billing_period';
 
-      // Regras de prioridade para determinar quando o acesso termina:
-      // 1) "Acesso até" vindo de notes (quando existir).
-      // 2) scheduled_cancel_at explícito (fonte mais confiável para cancelamento agendado).
-      // 3) Em pending_* com processed_at no futuro, processed_at já representa o fim do acesso.
-      // 4) Fallback legado: processed_at + período de cobrança.
       const accessEndsAt =
+        pendingAuthoritativeEndsAt ??
+        accessEndsAtFromLatestCancel ??
         fromNotes ??
-        fromScheduledCancelAt ??
         (isPendingScheduledStatus &&
         processedAtDate &&
         processedAtDate.getTime() > now.getTime()

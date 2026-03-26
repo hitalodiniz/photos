@@ -203,10 +203,7 @@ export async function revalidateProfileCachesForBilling(
     revalidatePath('/dashboard/planos');
     return { success: true };
   } catch (error) {
-    console.error(
-      '[revalidateProfileCachesForBilling] Erro:',
-      error,
-    );
+    console.error('[revalidateProfileCachesForBilling] Erro:', error);
     return { success: false, error: String(error) };
   }
 }
@@ -237,7 +234,12 @@ export async function revalidateUserCache(
       });
     }
 
+    // 1. Invalida o layout global do dashboard (onde a Sidebar reside)
     revalidatePath('/dashboard', 'layout');
+
+    // 2. Invalida especificamente a página de assinatura para garantir dados novos na tabela
+    revalidatePath('/dashboard/assinatura');
+
     return { success: true };
   } catch (error) {
     console.error('[revalidateUserCache] Erro:', error);

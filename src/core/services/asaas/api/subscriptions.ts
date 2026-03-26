@@ -12,6 +12,8 @@ import { createSupabaseServerClient } from '@/lib/supabase.server';
 import { getAuthenticatedUser } from '@/core/services/auth-context.service';
 import { appendBillingNotesBlock } from '@/core/services/asaas/utils/billing-notes-doc';
 
+const BOLETO_VALIDITY_DAYS_AFTER_DUE = 3;
+
 export async function createAsaasSubscription(data: CreateSubscriptionData) {
   try {
     const today = utcIsoFrom(nowFn()).split('T')[0];
@@ -31,6 +33,11 @@ export async function createAsaasSubscription(data: CreateSubscriptionData) {
       daysBeforeDue: 5,
       updatePendingPayments: data.updatePendingPayments ?? true,
     };
+    if (data.billingType === 'BOLETO') {
+      // Boleto com validade curta: aceita pagamento somente até D+3.
+      body.daysBeforeExpirationByBillingSelfRegistration =
+        BOLETO_VALIDITY_DAYS_AFTER_DUE;
+    }
 
     if (data.installmentCount && data.installmentCount > 1)
       body.installmentCount = data.installmentCount;
@@ -139,6 +146,11 @@ export async function updateAsaasSubscriptionPlanAndDueDate(
     updatePendingPayments: updatePendingPayments ?? true,
   };
   if (billingType) body.billingType = billingType;
+  if (billingType === 'BOLETO') {
+    // Mantém validade curta também em updates de assinatura para boleto.
+    body.daysBeforeExpirationByBillingSelfRegistration =
+      BOLETO_VALIDITY_DAYS_AFTER_DUE;
+  }
   if (cycle) body.cycle = cycle;
   if (discount && discount.value > 0) body.discount = discount;
   const { ok, data } = await asaasRequest<{ errors?: unknown[] }>(
@@ -331,9 +343,8 @@ export async function reactivateSubscription(
       });
       const noteLine = `[Reactivation ${nowIso}] Assinatura reativada em ${nowBr}.`;
 
-      // Uma única linha de histórico para esta assinatura: prioriza cancelamento
-      // agendado na mesma subscription; senão a entrada mais recente (approved /
-      // cancelled / renewed). Não replicar [Reactivation] em todo o histórico.
+      // Reativação só deve afetar a linha agendada da assinatura atual.
+      // Nunca propagar [Reactivation] para registros anteriores approved/renewed.
       const { data: pendingForSub } = await supabase
         .from('tb_upgrade_requests')
         .select('id, status, notes')
@@ -344,39 +355,20 @@ export async function reactivateSubscription(
         .limit(1)
         .maybeSingle();
 
-      let primaryRow = pendingForSub;
-      if (!primaryRow?.id) {
-        const { data: latestForSub } = await supabase
-          .from('tb_upgrade_requests')
-          .select('id, status, notes')
-          .eq('profile_id', auth.userId)
-          .eq('asaas_subscription_id', subscriptionId)
-          .in('status', ['approved', 'cancelled', 'renewed'])
-          .order('created_at', { ascending: false })
-          .limit(1)
-          .maybeSingle();
-        primaryRow = latestForSub ?? null;
-      }
-
-      if (primaryRow?.id) {
+      if (pendingForSub?.id) {
         const mergedNotes = appendBillingNotesBlock(
-          primaryRow.notes,
+          pendingForSub.notes,
           noteLine,
         );
-        const nextStatus =
-          primaryRow.status === 'pending_cancellation' ||
-          primaryRow.status === 'pending_downgrade'
-            ? 'approved'
-            : primaryRow.status;
         await supabase
           .from('tb_upgrade_requests')
           .update({
-            status: nextStatus,
+            status: 'approved',
             notes: mergedNotes,
             scheduled_cancel_at: null,
             updated_at: nowIso,
           })
-          .eq('id', primaryRow.id);
+          .eq('id', pendingForSub.id);
       }
 
       // Limpa scheduled_cancel_at nas demais linhas desta assinatura (sem duplicar nota).
@@ -424,6 +416,11 @@ export async function updateSubscriptionBillingMethod(
       billingType,
       updatePendingPayments: true,
     };
+    if (billingType === 'BOLETO') {
+      // Regerar boleto com validade curta (D+3 após vencimento).
+      body.daysBeforeExpirationByBillingSelfRegistration =
+        BOLETO_VALIDITY_DAYS_AFTER_DUE;
+    }
 
     if (billingType === 'BOLETO' || billingType === 'PIX') {
       body.creditCard = null;

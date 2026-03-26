@@ -25,7 +25,7 @@ import { StepPlan } from './steps/StepPlan';
 import { StepPersonal } from './steps/StepPersonal';
 import { StepBilling } from './steps/StepBilling';
 import { StepConfirm } from './steps/StepConfirm';
-import { StepDone } from './steps/StepDone';
+import { StepDoneRefactored } from './steps/StepDoneRefactored';
 import type { Step } from './types';
 import type { UpgradeSheetProps } from './types';
 
@@ -203,7 +203,7 @@ function UpgradeSheetContent({
         {step === 'personal' && <StepPersonal />}
         {step === 'billing' && <StepBilling />}
         {step === 'confirm' && <StepConfirm />}
-        {step === 'done' && <StepDone />}
+        {step === 'done' && <StepDoneRefactored />}
       </div>
 
       <ConfirmationModal

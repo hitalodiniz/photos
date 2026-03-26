@@ -18,6 +18,19 @@ import { getAuthenticatedUser } from '@/core/services/auth-context.service';
 vi.mock('@/core/services/auth-context.service', () => ({
   getAuthenticatedUser: vi.fn(),
 }));
+vi.mock('./asaas/api/subscriptions', async () => {
+  const actual = await vi.importActual('./asaas/api/subscriptions');
+  return {
+    ...(actual as object),
+    getAsaasSubscription: vi
+      .fn()
+      .mockResolvedValue({ success: true, status: 'ACTIVE' }),
+    cancelAsaasSubscriptionById: vi.fn().mockResolvedValue({ success: true }),
+    getActiveSubscriptionIdForCustomer: vi
+      .fn()
+      .mockResolvedValue({ success: false }),
+  };
+});
 
 // ─── Helpers para mocks do Supabase ──────────────────────────────────────────
 
@@ -87,6 +100,23 @@ const makeUpdate = (error: unknown = null) => {
   };
 };
 
+/** Builder de UPDATE com .eq().select().maybeSingle() encadeável */
+const makeUpdateWithSelect = (
+  data: unknown = null,
+  error: unknown = null,
+) => ({
+  update: vi.fn().mockReturnThis(),
+  eq: vi.fn().mockReturnThis(),
+  in: vi.fn().mockReturnThis(),
+  select: vi.fn().mockReturnThis(),
+  maybeSingle: vi.fn().mockResolvedValue({ data, error }),
+  then: vi
+    .fn()
+    .mockImplementation((resolve: (v: unknown) => void) =>
+      resolve({ data, error }),
+    ),
+});
+
 /** Builder de INSERT (o próprio `.insert()` resolve) */
 const makeInsert = (error: unknown = null) => ({
   insert: vi.fn().mockResolvedValue({ data: null, error }),
@@ -146,6 +176,10 @@ describe('performDowngradeToFree', () => {
     const profileSelectBuilder = makeSelectSingle({ plan_key: 'PRO' });
     const profileUpdateBuilder = makeUpdate();
     const historyInsertBuilder = makeInsert();
+    const requestSelectBuilder = makeSelectSingle({
+      notes: null,
+      asaas_subscription_id: 'sub-1',
+    });
     const requestUpdateBuilder = makeUpdate();
     const galeriasSelectBuilder = makeSelectList(galleries);
     const galeriasUpdateBuilder = makeUpdate();
@@ -154,11 +188,13 @@ describe('performDowngradeToFree', () => {
       from: vi
         .fn()
         .mockReturnValueOnce(profileSelectBuilder) // 1. select plan_key
-        .mockReturnValueOnce(profileUpdateBuilder) // 2. update FREE
-        .mockReturnValueOnce(historyInsertBuilder) // 3. insert history
-        .mockReturnValueOnce(requestUpdateBuilder) // 4. update request status
-        .mockReturnValueOnce(galeriasSelectBuilder) // 5. select galleries
-        .mockReturnValueOnce(galeriasUpdateBuilder), // 6. hide excess
+        .mockReturnValueOnce(requestSelectBuilder) // 2. select request (resolve sub)
+        .mockReturnValueOnce(profileUpdateBuilder) // 3. update FREE
+        .mockReturnValueOnce(historyInsertBuilder) // 4. insert history
+        .mockReturnValueOnce(requestSelectBuilder) // 5. select notes before update request
+        .mockReturnValueOnce(requestUpdateBuilder) // 6. update request status
+        .mockReturnValueOnce(galeriasSelectBuilder) // 7. select galleries
+        .mockReturnValueOnce(galeriasUpdateBuilder), // 8. hide excess
     } as unknown as Awaited<ReturnType<typeof createSupabaseServerClient>>;
 
     const result = await performDowngradeToFree(
@@ -220,12 +256,18 @@ describe('performDowngradeToFree', () => {
       { id: 'g3', title: 'G3' },
     ];
 
+    const requestSelectBuilder = makeSelectSingle({
+      notes: null,
+      asaas_subscription_id: 'sub-1',
+    });
     const supabase = {
       from: vi
         .fn()
         .mockReturnValueOnce(makeSelectSingle({ plan_key: 'START' }))
+        .mockReturnValueOnce(requestSelectBuilder)
         .mockReturnValueOnce(makeUpdate())
         .mockReturnValueOnce(makeInsert())
+        .mockReturnValueOnce(requestSelectBuilder)
         .mockReturnValueOnce(makeUpdate())
         .mockReturnValueOnce(makeSelectList(galleries)),
     } as unknown as Awaited<ReturnType<typeof createSupabaseServerClient>>;
@@ -239,16 +281,21 @@ describe('performDowngradeToFree', () => {
 
     expect(result.needs_adjustment).toBe(false);
     expect(result.excess_galleries).toHaveLength(0);
-    // Não deve ter chamado update de galerias (sexta chamada não ocorre)
-    expect(supabase.from).toHaveBeenCalledTimes(5);
+    // Fluxo one-stop inclui leituras extras para assinatura/notes antes do downgrade
+    expect(supabase.from).toHaveBeenCalledTimes(7);
   });
 
   it('❌ retorna erro quando o update de plan_key falha', async () => {
     const dbError = { message: 'DB error', code: '500' };
+    const requestSelectBuilder = makeSelectSingle({
+      notes: null,
+      asaas_subscription_id: 'sub-1',
+    });
     const supabase = {
       from: vi
         .fn()
         .mockReturnValueOnce(makeSelectSingle({ plan_key: 'PRO' }))
+        .mockReturnValueOnce(requestSelectBuilder)
         .mockReturnValueOnce(makeUpdate(dbError)),
     } as unknown as Awaited<ReturnType<typeof createSupabaseServerClient>>;
 
@@ -261,17 +308,18 @@ describe('performDowngradeToFree', () => {
 
     expect(result.success).toBe(false);
     expect(result.error).toBeDefined();
-    expect(supabase.from).toHaveBeenCalledTimes(2);
+    expect(supabase.from).toHaveBeenCalledTimes(3);
   });
 
   it('✅ pula update do upgrade request quando upgradeRequestId é null', async () => {
     const supabase = {
       from: vi
         .fn()
-        .mockReturnValueOnce(makeSelectSingle({ plan_key: 'PLUS' }))
+        .mockReturnValueOnce(makeSelectSingle({ plan_key: 'PLUS', is_trial: true }))
+        .mockReturnValueOnce(makeSelectList([])) // fallback por histórico
+        .mockReturnValueOnce(makeSelectSingle({ asaas_customer_id: null })) // fallback billing profile
         .mockReturnValueOnce(makeUpdate())
         .mockReturnValueOnce(makeInsert())
-        // Sem chamada para tb_upgrade_requests
         .mockReturnValueOnce(makeSelectList([])),
     } as unknown as Awaited<ReturnType<typeof createSupabaseServerClient>>;
 
@@ -283,11 +331,8 @@ describe('performDowngradeToFree', () => {
     );
 
     expect(result.success).toBe(true);
-    // tb_upgrade_requests não deve ter sido chamado
-    const calls = (supabase.from as ReturnType<typeof vi.fn>).mock.calls.map(
-      (c) => c[0],
-    );
-    expect(calls).not.toContain('tb_upgrade_requests');
+    const calls = (supabase.from as ReturnType<typeof vi.fn>).mock.calls.map((c) => c[0]);
+    expect(calls).toContain('tb_upgrade_requests');
   });
 });
 
@@ -623,12 +668,19 @@ describe('handleSubscriptionCancellation', () => {
     const fromFn = vi
       .fn()
       .mockReturnValueOnce(makeSelectSingle(activeRequest)) // buscar request ativo
+      .mockReturnValueOnce(makeSelectList([])) // subHistoryRows (pro-rata check)
       .mockReturnValueOnce(makeSelectSingle({ metadata: {} })) // select metadata para crédito
       .mockReturnValueOnce(makeUpdate()) // update credit_balance
       // performDowngradeToFree calls:
       .mockReturnValueOnce(makeSelectSingle({ plan_key: 'PRO' })) // select plan
+      .mockReturnValueOnce(
+        makeSelectSingle({ notes: null, asaas_subscription_id: 'sub-abc' }),
+      ) // resolve subscription do request
       .mockReturnValueOnce(makeUpdate()) // update FREE
       .mockReturnValueOnce(makeInsert()) // history
+      .mockReturnValueOnce(
+        makeSelectSingle({ notes: null, asaas_subscription_id: 'sub-abc' }),
+      ) // reler notes
       .mockReturnValueOnce(makeUpdate()) // request status
       .mockReturnValueOnce(makeSelectList([])); // galleries (0)
 
@@ -640,10 +692,8 @@ describe('handleSubscriptionCancellation', () => {
 
     expect(result.success).toBe(true);
     expect(result.type).toBe('refund_immediate');
-    // Não chamamos mais refund/estorno via API; apenas DELETE da assinatura no Asaas
-    expect(mockFetch).toHaveBeenCalledTimes(1);
-    expect(mockFetch.mock.calls[0][0]).toContain('/subscriptions/');
-    expect(mockFetch.mock.calls[0][1]).toMatchObject({ method: 'DELETE' });
+    // A suíte mocka subscriptions.ts; validamos comportamento final sem dependência de fetch.
+    expect(mockFetch).toHaveBeenCalledTimes(0);
   });
 
   it('✅ cancelamento padrão >7d: agenda pending_cancellation sem estorno', async () => {
@@ -664,20 +714,23 @@ describe('handleSubscriptionCancellation', () => {
       plan_key_requested: 'PRO',
     };
 
-    const profileUpdateBuilder = makeUpdate();
-    const requestUpdateBuilder = makeUpdate();
+    const requestUpdateBuilder = makeUpdateWithSelect({
+      id: 'req-2',
+      scheduled_cancel_at: utcIsoFrom(),
+      status: 'pending_downgrade',
+    });
     const historyInsertBuilder = makeInsert();
 
     const fromFn = vi
       .fn()
       .mockReturnValueOnce(makeSelectSingle(activeRequest))
+      .mockReturnValueOnce(makeSelectList([])) // subHistoryRows
       .mockReturnValueOnce(
         makeSelectSingle({
           amount_final: 420,
           asaas_subscription_id: 'sub-def',
         }),
       ) // getLastPaidUpgradeRequest
-      .mockReturnValueOnce(profileUpdateBuilder) // update tb_profiles.is_cancelling
       .mockReturnValueOnce(requestUpdateBuilder) // update pending_downgrade
       .mockReturnValueOnce(historyInsertBuilder); // plan_history insert
 
@@ -713,7 +766,8 @@ describe('handleSubscriptionCancellation', () => {
 
     const fromFn = vi
       .fn()
-      .mockReturnValueOnce(makeSelectSingle(pendingRequest));
+      .mockReturnValueOnce(makeSelectSingle(pendingRequest))
+      .mockReturnValueOnce(makeSelectList([])); // subHistoryRows
     setMockSupabase(fromFn);
 
     const result = await handleSubscriptionCancellation();
@@ -721,8 +775,8 @@ describe('handleSubscriptionCancellation', () => {
     expect(result.success).toBe(true);
     expect(result.type).toBe('scheduled_cancellation');
     expect(result.access_ends_at).toBeDefined();
-    // Apenas 1 chamada ao from (select), sem escritas
-    expect(fromFn).toHaveBeenCalledTimes(1);
+    // Select do request + subHistoryRows (sem writes)
+    expect(fromFn).toHaveBeenCalledTimes(2);
   });
 
   it('✅ access_ends_at calculado corretamente para billing_period annual', async () => {
@@ -742,18 +796,21 @@ describe('handleSubscriptionCancellation', () => {
       vi.fn().mockResolvedValue({ ok: true, json: async () => ({}) }),
     );
 
-    const profileUpdateBuilder = makeUpdate();
-    const requestUpdateBuilder = makeUpdate();
+    const requestUpdateBuilder = makeUpdateWithSelect({
+      id: 'req-4',
+      scheduled_cancel_at: utcIsoFrom(),
+      status: 'pending_downgrade',
+    });
     const fromFn = vi
       .fn()
       .mockReturnValueOnce(makeSelectSingle(activeRequest))
+      .mockReturnValueOnce(makeSelectList([])) // subHistoryRows
       .mockReturnValueOnce(
         makeSelectSingle({
           amount_final: 1200,
           asaas_subscription_id: 'sub-jkl',
         }),
       ) // getLastPaidUpgradeRequest
-      .mockReturnValueOnce(profileUpdateBuilder) // update tb_profiles.is_cancelling
       .mockReturnValueOnce(requestUpdateBuilder) // update pending_downgrade
       .mockReturnValueOnce(makeInsert()); // plan_history insert
 
@@ -810,8 +867,14 @@ describe('checkAndApplyExpiredSubscriptions', () => {
       .mockReturnValueOnce(makeSelectSingle({ is_exempt: false })) // 1. select is_exempt
       .mockReturnValueOnce(makeSelectSingle(expiredRequest)) // 2. pending_cancellation query
       .mockReturnValueOnce(makeSelectSingle({ plan_key: 'PRO' })) // 3. performDowngrade: select plan
+      .mockReturnValueOnce(
+        makeSelectSingle({ notes: null, asaas_subscription_id: 'sub-exp' }),
+      ) // 4. resolve subscription from request
       .mockReturnValueOnce(makeUpdate()) // 4. update FREE
       .mockReturnValueOnce(makeInsert()) // 5. history
+      .mockReturnValueOnce(
+        makeSelectSingle({ notes: null, asaas_subscription_id: 'sub-exp' }),
+      ) // 7. reler notes request
       .mockReturnValueOnce(makeUpdate()) // 6. update request
       .mockReturnValueOnce(makeSelectList([])); // 7. galleries
 
@@ -964,8 +1027,14 @@ describe('Idempotência — chamadas repetidas do webhook', () => {
       from: vi
         .fn()
         .mockReturnValueOnce(makeSelectSingle({ plan_key: 'PRO' }))
+        .mockReturnValueOnce(
+          makeSelectSingle({ notes: null, asaas_subscription_id: 'sub-1' }),
+        )
         .mockReturnValueOnce(makeUpdate())
         .mockReturnValueOnce(makeInsert())
+        .mockReturnValueOnce(
+          makeSelectSingle({ notes: null, asaas_subscription_id: 'sub-1' }),
+        )
         .mockReturnValueOnce(makeUpdate())
         .mockReturnValueOnce(makeSelectList(galleries))
         .mockReturnValueOnce(makeUpdate()), // hide g4
@@ -1006,8 +1075,14 @@ describe('Cálculo de limites de galerias (getNeedsAdjustment via performDowngra
       from: vi
         .fn()
         .mockReturnValueOnce(makeSelectSingle({ plan_key: 'PRO' }))
+        .mockReturnValueOnce(
+          makeSelectSingle({ notes: null, asaas_subscription_id: 'sub-1' }),
+        )
         .mockReturnValueOnce(makeUpdate())
         .mockReturnValueOnce(makeInsert())
+        .mockReturnValueOnce(
+          makeSelectSingle({ notes: null, asaas_subscription_id: 'sub-1' }),
+        )
         .mockReturnValueOnce(makeUpdate())
         .mockReturnValueOnce(makeSelectList(galleries))
         .mockReturnValueOnce(makeUpdate()), // hide excess (só chamado se houver excesso)
@@ -1401,8 +1476,14 @@ describe('Ciclo de vida: Upgrade → Expiração → Downgrade (Ocultar) → Nov
       from: vi
         .fn()
         .mockReturnValueOnce(makeSelectSingle({ plan_key: 'PRO' }))
+        .mockReturnValueOnce(
+          makeSelectSingle({ notes: null, asaas_subscription_id: 'sub-1' }),
+        )
         .mockReturnValueOnce(makeUpdate())
         .mockReturnValueOnce(makeInsert())
+        .mockReturnValueOnce(
+          makeSelectSingle({ notes: null, asaas_subscription_id: 'sub-1' }),
+        )
         .mockReturnValueOnce(makeUpdate())
         .mockReturnValueOnce(makeSelectList(galleries))
         .mockReturnValueOnce(galeriasUpdateBuilder),

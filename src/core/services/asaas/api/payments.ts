@@ -185,6 +185,44 @@ export async function getAsaasPaymentInvoiceUrl(
   };
 }
 
+export async function getAsaasPaymentCheckoutUrls(
+  paymentId: string,
+): Promise<{
+  success: boolean;
+  invoiceUrl?: string;
+  bankSlipUrl?: string;
+  dueDate?: string;
+  error?: string;
+}> {
+  const { ok, data } = await asaasRequest<{
+    invoiceUrl?: string;
+    invoiceLink?: string;
+    bankSlipUrl?: string;
+    dueDate?: string;
+    errors?: unknown[];
+  }>(`/payments/${paymentId}`);
+  if (!ok)
+    return {
+      success: false,
+      error: asaasError(
+        data as Record<string, unknown>,
+        'Erro ao buscar pagamento',
+      ),
+    };
+  const invoice = data.invoiceUrl ?? data.invoiceLink ?? null;
+  const boleto = data.bankSlipUrl ?? null;
+  return {
+    success: true,
+    ...(typeof invoice === 'string' && invoice.startsWith('http')
+      ? { invoiceUrl: invoice }
+      : {}),
+    ...(typeof boleto === 'string' && boleto.startsWith('http')
+      ? { bankSlipUrl: boleto }
+      : {}),
+    ...(typeof data.dueDate === 'string' ? { dueDate: data.dueDate } : {}),
+  };
+}
+
 export async function getAsaasPaymentStatus(
   paymentId: string,
 ): Promise<{ success: boolean; status?: string; error?: string }> {

@@ -13,28 +13,47 @@ import {
   isCreditCardValid,
   type CreditCardFields,
 } from './BillingFormBlock';
+import { StepDoneWrapper } from '@/components/ui/Billing/StepDoneWrapper';
 
 interface ManagePaymentSheetProps {
   isOpen: boolean;
   onClose: () => void;
   activeSubscriptionId: string;
+  activeRequestId?: string;
   profileFullName?: string;
   profileEmail?: string;
   profilePhone?: string;
   currentBillingType?: BillingType;
-  onSuccess: () => void;
+  hasRejectedInvoice?: boolean;
+  activeRequestStatus?: 'pending' | 'approved' | 'rejected' | 'overdue';
+  amount?: number;
+  dueDate?: string | null;
+  planName?: string;
+  planPeriod?: string;
+  onSuccess: (newPaymentId?: string) => void;
+  onPixReady?: (params: { requestId: string; newPaymentId?: string }) => void;
 }
 
 export function ManagePaymentSheet({
   isOpen,
   onClose,
   activeSubscriptionId,
+  activeRequestId,
   profileFullName,
   profileEmail,
   profilePhone,
   currentBillingType = 'CREDIT_CARD',
+  hasRejectedInvoice = false,
+  activeRequestStatus = 'pending',
+  amount,
+  dueDate,
+  planName = 'PRO',
+  planPeriod = 'monthly',
   onSuccess,
+  onPixReady,
 }: ManagePaymentSheetProps) {
+  const mustUseImmediateMethod =
+    activeRequestStatus === 'overdue' || hasRejectedInvoice;
   const [billingType, setBillingType] = useState<BillingType>('CREDIT_CARD');
   const [creditCard, setCreditCard] =
     useState<CreditCardFields>(emptyCardFields());
@@ -50,6 +69,15 @@ export function ManagePaymentSheet({
     state: string;
   } | null>(null);
   const [loading, setLoading] = useState(false);
+  const [isCompleted, setIsCompleted] = useState(false);
+  const [completionData, setCompletionData] = useState<{
+    billingType: 'PIX' | 'BOLETO' | 'CREDIT_CARD';
+    status: 'pending' | 'approved' | 'rejected' | 'overdue';
+    paymentUrl?: string | null;
+    paymentDueDate?: string | null;
+    pixData?: { qrCode?: string; copyPaste?: string };
+  } | null>(null);
+  const [inlineError, setInlineError] = useState<string | null>(null);
   const { showToast, ToastElement } = useToast();
 
   useEffect(() => {
@@ -63,8 +91,18 @@ export function ManagePaymentSheet({
     if (!isOpen) {
       setBillingType('CREDIT_CARD');
       setCreditCard(emptyCardFields());
+      setIsCompleted(false);
+      setCompletionData(null);
+      setInlineError(null);
     }
   }, [isOpen]);
+
+  useEffect(() => {
+    if (!isOpen) return;
+    if (mustUseImmediateMethod && billingType === 'BOLETO') {
+      setBillingType('PIX');
+    }
+  }, [isOpen, mustUseImmediateMethod, billingType]);
 
   const formatCancellationDetails = (detailsString: string) => {
     if (!detailsString) return '';
@@ -125,6 +163,7 @@ export function ManagePaymentSheet({
 
   const handleConfirm = async () => {
     setLoading(true);
+    setInlineError(null);
     try {
       if (billingType === 'PIX' || billingType === 'BOLETO') {
         const result = await updateSubscriptionBillingMethod(
@@ -132,13 +171,38 @@ export function ManagePaymentSheet({
           billingType,
         );
         if (result.success) {
-          onClose();
-          onSuccess();
+          // Em atraso/rejeição, mantém a jornada dentro da Sheet para pagar/confirmar.
+          if (!mustUseImmediateMethod) {
+            onSuccess(result.newPaymentId);
+          }
+          if (
+            billingType === 'PIX' &&
+            activeRequestId &&
+            !mustUseImmediateMethod
+          ) {
+            onPixReady?.({
+              requestId: activeRequestId,
+              newPaymentId: result.newPaymentId,
+            });
+          }
+          if (result.hasPendingPayment) {
+            setCompletionData({
+              billingType,
+              status: result.paymentStatus ?? activeRequestStatus,
+              paymentUrl: result.paymentUrl ?? null,
+              paymentDueDate: result.paymentDueDate ?? null,
+              pixData: result.pixData,
+            });
+            setIsCompleted(true);
+          } else {
+            onClose();
+          }
           showToast(
             `Forma de pagamento alterada para ${billingType}. Suas próximas faturas usarão este método.`,
             'success',
           );
         } else {
+          setInlineError(result.error ?? 'Erro ao alterar forma de pagamento.');
           showToast(result.error ?? 'Erro ao alterar.', 'error');
         }
         return;
@@ -180,16 +244,30 @@ export function ManagePaymentSheet({
       );
 
       if (result.success) {
-        onClose();
-        onSuccess();
+        if (!mustUseImmediateMethod) {
+          onSuccess(result.newPaymentId);
+        }
+        // Cartão deve sempre abrir a tela de processamento/confirmação.
+        setCompletionData({
+          billingType: 'CREDIT_CARD',
+          status: result.paymentStatus ?? 'pending',
+          paymentUrl: result.paymentUrl ?? null,
+          paymentDueDate: result.paymentDueDate ?? null,
+          pixData: result.pixData,
+        });
+        setIsCompleted(true);
         showToast(
-          'Cartão atualizado. Suas próximas cobranças usarão este cartão.',
+          result.hasPendingPayment
+            ? 'Cartão atualizado e cobrança reciclada.'
+            : 'Cartão atualizado. Aguardando confirmação do pagamento.',
           'success',
         );
       } else {
+        setInlineError(result.error ?? 'Erro ao atualizar cartão.');
         showToast(result.error ?? 'Erro ao atualizar cartão.', 'error');
       }
     } catch {
+      setInlineError('Erro ao alterar forma de pagamento.');
       showToast('Erro ao alterar forma de pagamento.', 'error');
     } finally {
       setLoading(false);
@@ -210,6 +288,7 @@ export function ManagePaymentSheet({
         maxWidth="md"
         position="right"
         footer={
+          isCompleted ? null :
           <SheetFooter className="bg-petroleum border-t border-petroleum/10">
             <div className="flex gap-2 w-full">
               <button
@@ -239,6 +318,27 @@ export function ManagePaymentSheet({
           </SheetFooter>
         }
       >
+        {isCompleted && completionData ? (
+          <StepDoneWrapper
+            billingType={completionData.billingType}
+            status={completionData.status}
+            paymentData={{
+              pixData: completionData.pixData,
+              paymentUrl: completionData.paymentUrl,
+              paymentDueDate: completionData.paymentDueDate,
+              amount,
+              errorMessage: inlineError,
+            }}
+            planInfo={{
+              name: planName,
+              period: planPeriod,
+              nextBillingDate: null,
+            }}
+            upgradeRequestId={activeRequestId ?? ''}
+            onClose={onClose}
+          />
+        ) : (
+          <>
         <SheetSection
           title="Método de Pagamento Atual"
           className="py-2 px-3 space-y-1.5"
@@ -265,6 +365,23 @@ export function ManagePaymentSheet({
           title="Nova Forma de Pagamento"
           className="py-2 px-3 space-y-1.5"
         >
+          {mustUseImmediateMethod && (
+            <div className="rounded-md border border-amber-300/70 bg-amber-50 px-2.5 py-2">
+              <p className="text-[11px] text-amber-900 leading-snug font-medium">
+                Atencao: Para regularizar sua conta antes do downgrade automatico,
+                utilize metodos de compensacao imediata (PIX ou Cartao).
+              </p>
+            </div>
+          )}
+          {hasRejectedInvoice && (
+            <div className="rounded-md border border-red-400/40 bg-red-50 px-2.5 py-2">
+              <p className="text-[11px] text-red-700 leading-snug font-medium">
+                A tentativa de cobrança no seu cartão atual falhou. Você pode
+                cadastrar um novo cartão abaixo ou alterar para PIX para
+                liberação imediata.
+              </p>
+            </div>
+          )}
           <div className="flex gap-1.5">
             {[
               {
@@ -282,8 +399,15 @@ export function ManagePaymentSheet({
               <button
                 key={value}
                 type="button"
-                onClick={() => setBillingType(value)}
+                onClick={() => {
+                  if (mustUseImmediateMethod && value === 'BOLETO') return;
+                  setBillingType(value);
+                }}
+                disabled={mustUseImmediateMethod && value === 'BOLETO'}
                 className={`flex items-center gap-1.5 px-3 py-1.5 rounded-[0.4rem] border transition-all flex-1 min-w-0 ${
+                  mustUseImmediateMethod && value === 'BOLETO'
+                    ? 'opacity-40 cursor-not-allowed border-slate-200 bg-slate-100 text-slate-400'
+                    :
                   billingType === value
                     ? 'border-gold bg-gold/10 text-petroleum'
                     : 'border-slate-200 bg-slate-50 text-petroleum/50 hover:border-gold/40'
@@ -332,6 +456,13 @@ export function ManagePaymentSheet({
               </>
             )}
           </SheetSection>
+        )}
+          </>
+        )}
+        {inlineError && !isCompleted && (
+          <div className="mx-3 mb-2 rounded-md border border-red-300 bg-red-50 px-2.5 py-2">
+            <p className="text-[11px] text-red-700">{inlineError}</p>
+          </div>
         )}
       </Sheet>
       {ToastElement}

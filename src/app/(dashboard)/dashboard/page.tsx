@@ -47,14 +47,15 @@ export default async function DashboardPage({
   }));
 
   const supabase = await createSupabaseServerClient();
-  const { data: latestPending } = await supabase
+  const { data: pendingCandidates } = await supabase
     .from('tb_upgrade_requests')
-    .select('id, payment_url, amount_final, processed_at, created_at, asaas_payment_id')
+    .select(
+      'id, payment_url, amount_final, processed_at, created_at, asaas_payment_id, billing_type, status, asaas_subscription_id, asaas_raw_status, overdue_since',
+    )
     .eq('profile_id', profile.id)
-    .in('status', ['pending', 'processing'])
+    .in('status', ['pending', 'processing', 'rejected', 'approved'])
     .order('created_at', { ascending: false })
-    .limit(1)
-    .maybeSingle();
+    .limit(25);
 
   const resolvePendingPaymentHref = (row: {
     id: string;
@@ -68,6 +69,18 @@ export default async function DashboardPage({
     }
     return null;
   };
+
+  const latestPending = (pendingCandidates ?? []).find((row) => {
+    const status = String(row.status ?? '').toLowerCase();
+    const raw = String(row.asaas_raw_status ?? '').toUpperCase();
+    return (
+      status === 'pending' ||
+      status === 'processing' ||
+      status === 'rejected' ||
+      raw === 'OVERDUE' ||
+      !!row.overdue_since
+    );
+  });
 
   const latestPendingRequest = latestPending
     ? {
@@ -83,6 +96,11 @@ export default async function DashboardPage({
           (latestPending.processed_at as string | null) ??
           (latestPending.created_at as string | null) ??
           null,
+        billing_type: (latestPending.billing_type as string | null) ?? null,
+        status: (latestPending.status as string | null) ?? null,
+        asaas_subscription_id:
+          (latestPending.asaas_subscription_id as string | null) ?? null,
+        asaas_raw_status: (latestPending.asaas_raw_status as string | null) ?? null,
       }
     : null;
 

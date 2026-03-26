@@ -79,6 +79,7 @@ import {
   getFirstPaymentFromSubscription,
   deletePendingPaymentsForSubscription,
   getAsaasPaymentStatus,
+  getAsaasPaymentCheckoutUrls,
   getPaymentBillingInfo,
   deleteAsaasPayment,
 } from './asaas/api/payments';
@@ -1064,7 +1065,16 @@ export async function updateSubscriptionBillingMethod(
     phone: string;
     mobilePhone: string;
   } | null,
-): Promise<{ success: boolean; error?: string }> {
+): Promise<{
+  success: boolean;
+  newPaymentId?: string;
+  paymentUrl?: string;
+  paymentDueDate?: string;
+  hasPendingPayment?: boolean;
+  paymentStatus?: 'pending' | 'approved' | 'rejected' | 'overdue';
+  pixData?: { qrCode?: string; copyPaste?: string };
+  error?: string;
+}> {
   try {
     const { success, userId } = await getAuthenticatedUser();
     if (!success || !userId)
@@ -1079,7 +1089,7 @@ export async function updateSubscriptionBillingMethod(
     const { data: currentReq, error: currentReqErr } = await supabase
       .from('tb_upgrade_requests')
       .select(
-        'id, billing_type, status, notes, asaas_payment_id, asaas_subscription_id',
+        'id, billing_type, status, notes, asaas_payment_id, asaas_subscription_id, asaas_raw_status, overdue_since',
       )
       .eq('profile_id', userId)
       .eq('asaas_subscription_id', subscriptionId)
@@ -1120,6 +1130,18 @@ export async function updateSubscriptionBillingMethod(
       return { success: false, error: 'Assinatura inválida.' };
     }
 
+    const isOverdueRequest =
+      Boolean((currentReq as any).overdue_since) ||
+      String((currentReq as any).asaas_raw_status ?? '').toUpperCase() ===
+        'OVERDUE';
+    if (isOverdueRequest && newMethod === 'BOLETO') {
+      return {
+        success: false,
+        error:
+          'Não é possível gerar boleto para faturas vencidas. Escolha PIX ou Cartão.',
+      };
+    }
+
     // 1) Atualiza no Asaas (inclui updatePendingPayments:true no módulo API)
     const asaasRes = await updateAsaasSubscriptionBillingMethod(
       subscriptionId,
@@ -1144,12 +1166,47 @@ export async function updateSubscriptionBillingMethod(
       updated_at: nowIso,
     };
 
+    let newPaymentId: string | undefined;
+    let paymentUrl: string | undefined;
+    let paymentDueDate: string | undefined;
+    let hasPendingPayment = false;
+    let paymentStatus: 'pending' | 'approved' | 'rejected' | 'overdue' | undefined;
+    let pixData: { qrCode?: string; copyPaste?: string } | undefined;
     // Ao migrar para BOLETO/PIX, limpamos payment_id travado de cartão
     // e registramos o NOVO paymentId gerado com updatePendingPayments:true
     if (newMethod === 'BOLETO' || newMethod === 'PIX') {
       const first = await getFirstPaymentFromSubscription(subscriptionId);
-      updatePatch.asaas_payment_id =
-        first.success && first.paymentId ? first.paymentId : null;
+      if (!first.success || !first.paymentId) {
+        return {
+          success: false,
+          error:
+            first.error ??
+            'Pagamento atualizado no Asaas, mas não foi possível identificar a nova cobrança.',
+        };
+      }
+      newPaymentId = first.paymentId;
+      updatePatch.asaas_payment_id = first.paymentId;
+      paymentUrl = first.paymentUrl ?? first.invoiceUrl ?? first.bankSlipUrl;
+      paymentDueDate = first.dueDate;
+      hasPendingPayment = true;
+      paymentStatus = 'pending';
+
+      if (newMethod === 'PIX') {
+        const pixQr = await getPixQrCodeFromPayment(first.paymentId);
+        if (pixQr.success) {
+          pixData = {
+            qrCode: pixQr.encodedImage,
+            copyPaste: pixQr.payload,
+          };
+        }
+      }
+      if (newMethod === 'BOLETO' && !paymentUrl) {
+        const checkout = await getAsaasPaymentCheckoutUrls(first.paymentId);
+        if (checkout.success) {
+          paymentUrl = checkout.bankSlipUrl ?? checkout.invoiceUrl ?? paymentUrl;
+          paymentDueDate = checkout.dueDate ?? paymentDueDate;
+        }
+      }
     }
 
     const { data: updatedRow, error: updErr } = await admin
@@ -1178,7 +1235,15 @@ export async function updateSubscriptionBillingMethod(
     revalidatePath('/dashboard/assinatura');
     await revalidateUserCache(userId);
 
-    return { success: true };
+    return {
+      success: true,
+      ...(newPaymentId ? { newPaymentId } : {}),
+      ...(paymentUrl ? { paymentUrl } : {}),
+      ...(paymentDueDate ? { paymentDueDate } : {}),
+      ...(typeof hasPendingPayment === 'boolean' ? { hasPendingPayment } : {}),
+      ...(paymentStatus ? { paymentStatus } : {}),
+      ...(pixData ? { pixData } : {}),
+    };
   } catch (e) {
     console.error('[updateSubscriptionBillingMethod] Error:', e);
     return { success: false, error: 'Erro ao alterar forma de pagamento.' };
@@ -1202,9 +1267,132 @@ export async function performDowngradeToFree(
 }> {
   const supabase = supabaseClient ?? (await createSupabaseAdmin());
 
+  const readFirstUpgradeRequestById = async (
+    requestId: string,
+  ): Promise<{ notes?: string | null; asaas_subscription_id?: string | null } | null> => {
+    const queryResult = (await supabase
+      .from('tb_upgrade_requests')
+      .select('notes, asaas_subscription_id')
+      .eq('id', requestId)) as unknown as {
+      data?:
+        | { notes?: string | null; asaas_subscription_id?: string | null }
+        | Array<{ notes?: string | null; asaas_subscription_id?: string | null }>
+        | null;
+    };
+    if (!queryResult?.data) return null;
+    return Array.isArray(queryResult.data)
+      ? (queryResult.data[0] ?? null)
+      : queryResult.data;
+  };
+
+  const resolveAsaasSubscriptionIdForDowngrade = async (
+    requestId: string | null,
+    profileMetadata: Record<string, unknown> | null | undefined,
+  ): Promise<string | null> => {
+    // 1) prioridade: request alvo do downgrade
+    if (requestId) {
+      const fromRequest = await readFirstUpgradeRequestById(requestId).catch(
+        () => null,
+      );
+      const subId = fromRequest?.asaas_subscription_id?.trim();
+      if (subId) return subId;
+    }
+
+    // 2) fallback: requests do perfil (mais recente com subscription_id válido)
+    try {
+      const historyResult = (await supabase
+        .from('tb_upgrade_requests')
+        .select('asaas_subscription_id, created_at')
+        .eq('profile_id', profileId)
+        .order('created_at', { ascending: false })
+        .limit(20)) as unknown as {
+        data?: Array<{
+          asaas_subscription_id?: string | null;
+          created_at?: string | null;
+        }> | null;
+      };
+      const historySubId =
+        (historyResult.data ?? [])
+          .map((r) => r.asaas_subscription_id?.trim())
+          .find((v) => !!v) ?? null;
+      if (historySubId) return historySubId;
+    } catch (e) {
+      console.warn('[Downgrade] Fallback por histórico indisponível:', e);
+    }
+
+    // 3) fallback: customer_id (tb_billing_profiles ou metadata do perfil) -> assinatura ativa no Asaas
+    let customerId: string | null = null;
+    try {
+      const billingRow = await supabase
+        .from('tb_billing_profiles')
+        .select('asaas_customer_id')
+        .eq('id', profileId)
+        .maybeSingle();
+      customerId = billingRow.data?.asaas_customer_id?.trim() ?? null;
+    } catch (e) {
+      console.warn('[Downgrade] Fallback por billing profile indisponível:', e);
+    }
+
+    if (!customerId && profileMetadata && typeof profileMetadata === 'object') {
+      const md = profileMetadata as Record<string, unknown>;
+      const direct = md.asaas_customer_id;
+      const billing = md.billing;
+      if (typeof direct === 'string' && direct.trim()) {
+        customerId = direct.trim();
+      } else if (
+        billing &&
+        typeof billing === 'object' &&
+        typeof (billing as Record<string, unknown>).asaas_customer_id === 'string' &&
+        (billing as Record<string, unknown>).asaas_customer_id
+      ) {
+        customerId = String(
+          (billing as Record<string, unknown>).asaas_customer_id,
+        ).trim();
+      }
+    }
+
+    if (!customerId) return null;
+    const activeSub = await getActiveSubscriptionIdForCustomer(customerId);
+    if (activeSub.success && activeSub.subscriptionId) {
+      return activeSub.subscriptionId.trim();
+    }
+    return null;
+  };
+
+  const ensureAsaasSubscriptionClosed = async (
+    subscriptionId: string,
+  ): Promise<{ success: boolean; error?: string }> => {
+    const preStatus = await getAsaasSubscription(subscriptionId).catch(() => null);
+    const status = String(preStatus?.status ?? '').toUpperCase();
+    if (preStatus?.success && (status === 'INACTIVE' || status === 'EXPIRED')) {
+      return { success: true };
+    }
+
+    const cancelResult = await cancelAsaasSubscriptionById(subscriptionId, {
+      deletePendingPayments: true,
+    });
+    if (cancelResult.success) return { success: true };
+
+    // Hardening: alguns cenários já cancelaram no Asaas, mas o DELETE devolve erro de estado.
+    const postStatus = await getAsaasSubscription(subscriptionId).catch(() => null);
+    const normalizedPost = String(postStatus?.status ?? '').toUpperCase();
+    if (
+      postStatus?.success &&
+      (normalizedPost === 'INACTIVE' || normalizedPost === 'EXPIRED')
+    ) {
+      return { success: true };
+    }
+    return {
+      success: false,
+      error:
+        cancelResult.error ??
+        'Não foi possível encerrar a assinatura no gateway.',
+    };
+  };
+
   const { data: profile } = await supabase
     .from('tb_profiles')
-    .select('plan_key, is_exempt, metadata')
+    .select('plan_key, is_exempt, is_trial, metadata')
     .eq('id', profileId)
     .single();
   if (profile?.is_exempt === true)
@@ -1213,6 +1401,31 @@ export async function performDowngradeToFree(
   const oldPlan = (profile?.plan_key as string) ?? 'FREE';
   if (oldPlan === 'FREE')
     return { success: true, needs_adjustment: false, excess_galleries: [] };
+
+  const resolvedSubscriptionId = await resolveAsaasSubscriptionIdForDowngrade(
+    upgradeRequestId,
+    (profile?.metadata as Record<string, unknown> | null | undefined) ?? null,
+  );
+  if (resolvedSubscriptionId) {
+    const closeResult = await ensureAsaasSubscriptionClosed(resolvedSubscriptionId);
+    if (!closeResult.success) {
+      return {
+        success: false,
+        needs_adjustment: false,
+        excess_galleries: [],
+        error: closeResult.error ?? 'Não foi possível encerrar a assinatura no gateway.',
+      };
+    }
+  } else if (profile?.is_trial === false) {
+    // Fail-safe para plano pago: sem assinatura resolvida, não aplica FREE para evitar estado inconsistente.
+    return {
+      success: false,
+      needs_adjustment: false,
+      excess_galleries: [],
+      error:
+        'Não foi possível localizar a assinatura no gateway para encerramento antes do downgrade.',
+    };
+  }
 
   const newMetadata = {
     ...(profile?.metadata ?? {}),
@@ -1247,11 +1460,9 @@ export async function performDowngradeToFree(
   });
 
   if (upgradeRequestId) {
-    const { data: reqNotesRow } = await supabase
-      .from('tb_upgrade_requests')
-      .select('notes')
-      .eq('id', upgradeRequestId)
-      .maybeSingle();
+    const reqNotesRow = await readFirstUpgradeRequestById(upgradeRequestId).catch(
+      () => null,
+    );
     await supabase
       .from('tb_upgrade_requests')
       .update({
@@ -1403,11 +1614,16 @@ export async function handleSubscriptionCancellation(
     currency: 'BRL',
   }).format(Math.max(0, amountPaid));
 
+  // Renovação nunca entra no fluxo de estorno imediato por arrependimento.
+  const isRenewedCancellation =
+    String(request.status ?? '').toLowerCase() === 'renewed';
+
   if (
     daysSincePurchase <= 7 &&
     request.status === 'approved' &&
     amountPaid > 0 &&
-    !hasProRataCreditInNotes
+    !hasProRataCreditInNotes &&
+    !isRenewedCancellation
   ) {
     if (request.asaas_subscription_id) {
       const cancelResult = await cancelAsaasSubscriptionById(

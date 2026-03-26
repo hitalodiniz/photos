@@ -26,6 +26,8 @@ import { useState } from 'react';
 import UpgradeModal from '@/components/ui/UpgradeModal';
 import { UpgradeSheet } from '@/components/ui/Upgradesheet';
 import { useSegment } from '@/hooks/useSegment';
+import { PaymentPixModal } from '@/components/ui/PaymentPixModal';
+import { ManagePaymentSheet } from '@/components/ui/Assinatura/ManagePaymentSheet';
 
 interface SidebarProps {
   counts: { active: number; archived: number; trash: number };
@@ -103,6 +105,23 @@ export default function Sidebar({
   const canCreateMore = canCreateByGalleries && canCreateByPhotos;
   const isNovaGaleriaDisabled = isRedirecting || !canCreateMore;
   const hasPendingPayment = latestPendingRequest != null;
+  const pendingBillingType = String(
+    latestPendingRequest?.billing_type ?? '',
+  ).toUpperCase();
+  const pendingStatus = String(
+    latestPendingRequest?.status ?? '',
+  ).toLowerCase();
+  const pendingRawStatus = String(
+    latestPendingRequest?.asaas_raw_status ?? '',
+  ).toUpperCase();
+  const hasCriticalCardCapture =
+    pendingStatus === 'rejected' && pendingBillingType === 'CREDIT_CARD';
+  const hasOverdueWarning =
+    !hasCriticalCardCapture &&
+    (pendingBillingType === 'PIX' || pendingBillingType === 'BOLETO') &&
+    (pendingStatus === 'rejected' || pendingRawStatus === 'OVERDUE');
+  const requiresManageSheetToRecycle =
+    hasCriticalCardCapture || hasOverdueWarning;
   const pendingAmount = new Intl.NumberFormat('pt-BR', {
     style: 'currency',
     currency: 'BRL',
@@ -112,8 +131,26 @@ export default function Sidebar({
     : null;
   const pendingPayHref =
     latestPendingRequest?.payment_url ?? '/dashboard/assinatura';
+  const isPendingPix = pendingBillingType === 'PIX';
+  const isPendingBoleto = pendingBillingType === 'BOLETO';
+  const pendingBoletoHref = latestPendingRequest
+    ? `/api/dashboard/payment-boleto-url?requestId=${encodeURIComponent(latestPendingRequest.id)}`
+    : pendingPayHref;
+  const pendingActionHref = isPendingBoleto
+    ? pendingBoletoHref
+    : pendingPayHref;
   const pendingPayOpenNewTab =
-    pendingPayHref.startsWith('http') || pendingPayHref.startsWith('/api/');
+    pendingActionHref.startsWith('http') ||
+    pendingActionHref.startsWith('/api/');
+  const [showPixModal, setShowPixModal] = useState(false);
+  const [pixRequestId, setPixRequestId] = useState<string | null>(null);
+  const [showManagePayment, setShowManagePayment] = useState(false);
+
+  const openPendingPixModal = () => {
+    if (!latestPendingRequest?.id) return;
+    setPixRequestId(latestPendingRequest.id);
+    setShowPixModal(true);
+  };
   const scheduledCancellationDate = scheduledCancellation?.access_ends_at
     ? new Date(scheduledCancellation.access_ends_at).toLocaleDateString(
         'pt-BR',
@@ -278,47 +315,131 @@ export default function Sidebar({
           )}
           {hasPendingPayment && (!isSidebarCollapsed || isMobile) && (
             <div className="px-2 mb-2">
-              <div className="rounded-md border border-amber-500/20 bg-amber-500/10 px-2 py-2">
+              <div
+                className={`rounded-md px-2 py-2 ${
+                  hasCriticalCardCapture
+                    ? 'border border-red-500/50 bg-red-500/10'
+                    : 'border border-amber-500/20 bg-amber-500/10'
+                }`}
+              >
                 <div className="flex items-start gap-2">
                   <AlertCircle
                     size={16}
-                    className="text-amber-300 shrink-0 mt-0.5"
+                    className={`shrink-0 mt-0.5 ${
+                      hasCriticalCardCapture ? 'text-red-300' : 'text-amber-300'
+                    }`}
                   />
                   <div className="min-w-0 flex-1">
-                    <p className="text-[10px] font-semibold uppercase tracking-wide text-amber-200">
-                      Pagamento Pendente
-                    </p>
-                    <p className="text-[10px] text-amber-100/90 mt-0.5 uppercase">
-                      {pendingAmount}
-                      {pendingDueDate ? ` • ${pendingDueDate}` : ''}
-                    </p>
-                    <a
-                      href={pendingPayHref}
-                      target={pendingPayOpenNewTab ? '_blank' : '_self'}
-                      rel={
-                        pendingPayOpenNewTab ? 'noopener noreferrer' : undefined
-                      }
-                      className="mt-2 inline-flex h-7 items-center rounded-md bg-amber-500 px-2.5 text-[10px] font-semibold uppercase tracking-wide text-black hover:bg-amber-400 transition-colors"
+                    <p
+                      className={`text-[10px] font-semibold uppercase tracking-wide ${
+                        hasCriticalCardCapture
+                          ? 'text-red-200'
+                          : 'text-amber-200'
+                      }`}
                     >
-                      Pagar agora
-                    </a>
+                      {hasCriticalCardCapture
+                        ? 'Atenção crítica'
+                        : 'Pagamento Pendente'}
+                    </p>
+                    {hasCriticalCardCapture ? (
+                      <p className="text-[10px] text-red-100/90 mt-0.5 uppercase">
+                        Problema com seu cartão. Atualize seus dados para evitar
+                        o downgrade para o plano FREE.
+                      </p>
+                    ) : hasOverdueWarning ? (
+                      <p className="text-[10px] text-amber-100/90 mt-0.5 uppercase">
+                        Fatura vencida. Regularize para evitar o downgrade.
+                      </p>
+                    ) : (
+                      <p className="text-[10px] text-amber-100/90 mt-0.5 uppercase">
+                        {pendingAmount}
+                        {pendingDueDate ? ` • ${pendingDueDate}` : ''}
+                      </p>
+                    )}
+                    {requiresManageSheetToRecycle ? (
+                      <button
+                        type="button"
+                        onClick={() => setShowManagePayment(true)}
+                        className={`mt-2 inline-flex h-7 items-center rounded-md px-2.5 text-[10px] font-semibold uppercase tracking-wide text-black transition-colors ${
+                          hasCriticalCardCapture
+                            ? 'bg-red-400 hover:bg-red-300'
+                            : 'bg-amber-500 hover:bg-amber-400'
+                        }`}
+                      >
+                        {hasCriticalCardCapture
+                          ? 'Atualizar pagamento'
+                          : 'Pagar agora'}
+                      </button>
+                    ) : isPendingPix ? (
+                      <button
+                        type="button"
+                        onClick={openPendingPixModal}
+                        className="mt-2 inline-flex h-7 items-center rounded-md bg-amber-500 px-2.5 text-[10px] font-semibold uppercase tracking-wide text-black hover:bg-amber-400 transition-colors"
+                      >
+                        Pagar agora
+                      </button>
+                    ) : (
+                      <a
+                        href={pendingActionHref}
+                        target={pendingPayOpenNewTab ? '_blank' : '_self'}
+                        rel={
+                          pendingPayOpenNewTab
+                            ? 'noopener noreferrer'
+                            : undefined
+                        }
+                        className="mt-2 inline-flex h-7 items-center rounded-md bg-amber-500 px-2.5 text-[10px] font-semibold uppercase tracking-wide text-black hover:bg-amber-400 transition-colors"
+                      >
+                        Pagar agora
+                      </a>
+                    )}
                   </div>
                 </div>
               </div>
             </div>
           )}
-          {hasPendingPayment && isSidebarCollapsed && !isMobile && (
-            <a
-              href={pendingPayHref}
-              target={pendingPayOpenNewTab ? '_blank' : '_self'}
-              rel={pendingPayOpenNewTab ? 'noopener noreferrer' : undefined}
-              className="mx-auto mb-2 relative flex h-10 w-10 items-center justify-center rounded-md border border-white/10 bg-white/5 text-amber-200 hover:bg-white/10 transition-colors"
-              title="Pagamento pendente — abrir cobrança"
-            >
-              <CreditCard size={16} />
-              <span className="absolute -top-0.5 -right-0.5 h-2.5 w-2.5 rounded-full bg-red-500 animate-pulse" />
-            </a>
-          )}
+          {hasPendingPayment &&
+            isSidebarCollapsed &&
+            !isMobile &&
+            (requiresManageSheetToRecycle ? (
+              <button
+                type="button"
+                onClick={() => setShowManagePayment(true)}
+                className={`mx-auto mb-2 relative flex h-10 w-10 items-center justify-center rounded-md border transition-colors ${
+                  hasCriticalCardCapture
+                    ? 'border-red-500/40 bg-red-500/10 text-red-200 hover:bg-red-500/20'
+                    : 'border-amber-500/40 bg-amber-500/10 text-amber-200 hover:bg-amber-500/20'
+                }`}
+                title={
+                  hasCriticalCardCapture
+                    ? 'Pagamento recusado — atualizar método de pagamento'
+                    : 'Fatura vencida — regularizar pagamento'
+                }
+              >
+                <CreditCard size={16} />
+                <span className="absolute -top-0.5 -right-0.5 h-2.5 w-2.5 rounded-full bg-red-500 animate-pulse" />
+              </button>
+            ) : isPendingPix ? (
+              <button
+                type="button"
+                onClick={openPendingPixModal}
+                className="mx-auto mb-2 relative flex h-10 w-10 items-center justify-center rounded-md border border-white/10 bg-white/5 text-amber-200 hover:bg-white/10 transition-colors"
+                title="Pagamento pendente — abrir PIX"
+              >
+                <CreditCard size={16} />
+                <span className="absolute -top-0.5 -right-0.5 h-2.5 w-2.5 rounded-full bg-red-500 animate-pulse" />
+              </button>
+            ) : (
+              <a
+                href={pendingActionHref}
+                target={pendingPayOpenNewTab ? '_blank' : '_self'}
+                rel={pendingPayOpenNewTab ? 'noopener noreferrer' : undefined}
+                className="mx-auto mb-2 relative flex h-10 w-10 items-center justify-center rounded-md border border-white/10 bg-white/5 text-amber-200 hover:bg-white/10 transition-colors"
+                title="Pagamento pendente — abrir cobrança"
+              >
+                <CreditCard size={16} />
+                <span className="absolute -top-0.5 -right-0.5 h-2.5 w-2.5 rounded-full bg-red-500 animate-pulse" />
+              </a>
+            ))}
           <SidebarGalerias
             isSidebarCollapsed={isSidebarCollapsed}
             counts={counts}
@@ -376,6 +497,45 @@ export default function Sidebar({
         isOpen={upgradeSheetOpen}
         onClose={() => setUpgradeSheetOpen(false)}
         initialPlanKey={planKey === 'PRO' ? 'PREMIUM' : 'PRO'}
+      />
+      <PaymentPixModal
+        isOpen={showPixModal}
+        onClose={() => setShowPixModal(false)}
+        requestId={pixRequestId}
+        onPaidConfirmed={() => {
+          if (typeof window !== 'undefined') window.location.reload();
+        }}
+      />
+      <ManagePaymentSheet
+        isOpen={showManagePayment}
+        onClose={() => setShowManagePayment(false)}
+        activeSubscriptionId={latestPendingRequest?.asaas_subscription_id ?? ''}
+        activeRequestId={latestPendingRequest?.id ?? undefined}
+        currentBillingType={
+          String(
+            latestPendingRequest?.billing_type ?? 'CREDIT_CARD',
+          ).toUpperCase() as any
+        }
+        hasRejectedInvoice={hasCriticalCardCapture}
+        activeRequestStatus={
+          hasCriticalCardCapture
+            ? 'rejected'
+            : hasOverdueWarning
+              ? 'overdue'
+              : 'pending'
+        }
+        amount={latestPendingRequest?.amount_final ?? 0}
+        dueDate={latestPendingRequest?.due_date ?? null}
+        planName={planKey}
+        planPeriod="monthly"
+        onPixReady={({ requestId }) => {
+          setShowManagePayment(false);
+          setPixRequestId(requestId);
+          setShowPixModal(true);
+        }}
+        onSuccess={(_newPaymentId) => {
+          if (typeof window !== 'undefined') window.location.reload();
+        }}
       />
     </>
   );

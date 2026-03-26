@@ -70,7 +70,7 @@ function inferDowngradeTypeLabel(reason?: string | null) {
     return 'Fim do período pago';
 
   if (r.includes('arrependimento') || r.includes('direito de arrependimento'))
-    return 'Cancelamento com arrependimento';
+    return 'Cancelamento por arrependimento';
 
   if (r.includes('cancelamento')) return 'Cancelamento de assinatura';
   if (r.includes('limite') || r.includes('quota') || r.includes('cota'))

@@ -6,6 +6,10 @@ export interface PendingPaymentRequest {
   payment_url: string;
   amount_final: number;
   due_date: string | null;
+  billing_type?: string | null;
+  status?: string | null;
+  asaas_subscription_id?: string | null;
+  asaas_raw_status?: string | null;
 }
 
 export interface ScheduledCancellationInfo {

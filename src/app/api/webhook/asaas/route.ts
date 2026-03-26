@@ -17,11 +17,11 @@ import { UPGRADE_REQUEST_STATUS_RENEWED } from '@/core/types/billing';
 import {
   appendBillingNotesBlock,
   billingNotesForRenewalFromParent,
+  createBillingNotesForNewUpgradeRequest,
 } from '@/core/services/asaas/utils/billing-notes-doc';
 
 export async function POST(request: NextRequest) {
   try {
-
     // 1. Verificar token de segurança do webhook
     const token = request.headers.get('asaas-access-token');
     const expectedToken = process.env.ASAAS_WEBHOOK_TOKEN;
@@ -172,14 +172,17 @@ export async function POST(request: NextRequest) {
       p_asaas_subscription_id?: string | null,
     ) => {
       if (!paymentId) return;
-      const { error: rpcError } = await supabase.rpc('activate_plan_from_payment', {
-        p_asaas_payment_id: paymentId,
-        p_asaas_status,
-        p_asaas_subscription_id:
-          p_asaas_subscription_id === undefined
-            ? null
-            : p_asaas_subscription_id,
-      });
+      const { error: rpcError } = await supabase.rpc(
+        'activate_plan_from_payment',
+        {
+          p_asaas_payment_id: paymentId,
+          p_asaas_status,
+          p_asaas_subscription_id:
+            p_asaas_subscription_id === undefined
+              ? null
+              : p_asaas_subscription_id,
+        },
+      );
       if (rpcError) {
         throw new Error(
           `[Webhook Asaas] RPC activate_plan_from_payment falhou: ${rpcError.message}`,
@@ -199,7 +202,11 @@ export async function POST(request: NextRequest) {
     };
 
     try {
-      switch (event as AsaasWebhookEvent) {
+      switch (
+        event as
+          | AsaasWebhookEvent
+          | 'PAYMENT_CREDIT_CARD_CAPTURE_REFUSED'
+      ) {
         case 'PAYMENT_CONFIRMED':
         case 'PAYMENT_RECEIVED': {
           if (paymentId) {
@@ -386,12 +393,15 @@ export async function POST(request: NextRequest) {
               paymentMeta?.clientPaymentDate ??
               paymentMeta?.paymentDate ??
               utcIsoFrom(nowFn());
-            const paymentTimestamp =
-              /^\d{4}-\d{2}-\d{2}$/.test(paymentTimestampRaw)
-                ? `${paymentTimestampRaw}T00:00:00-03:00`
-                : paymentTimestampRaw;
+            const paymentTimestamp = /^\d{4}-\d{2}-\d{2}$/.test(
+              paymentTimestampRaw,
+            )
+              ? `${paymentTimestampRaw}T00:00:00-03:00`
+              : paymentTimestampRaw;
             const paymentTimestampDate = new Date(paymentTimestamp);
-            const paymentTimestampIso = Number.isNaN(paymentTimestampDate.getTime())
+            const paymentTimestampIso = Number.isNaN(
+              paymentTimestampDate.getTime(),
+            )
               ? utcIsoFrom(nowFn())
               : utcIsoFrom(paymentTimestampDate);
 
@@ -401,7 +411,9 @@ export async function POST(request: NextRequest) {
                 .select('plan_key')
                 .eq('id', renewalProfileId)
                 .maybeSingle();
-              const currentPlan = (profileRow?.plan_key ?? null) as string | null;
+              const currentPlan = (profileRow?.plan_key ?? null) as
+                | string
+                | null;
               const isRenovacao = currentPlan === renewalPlanKey;
 
               if (isRenovacao) {
@@ -516,7 +528,6 @@ export async function POST(request: NextRequest) {
                 upgradeReq.plan_key_requested as PlanKey,
                 supabase,
               );
-
             } else {
               console.warn(
                 `[Webhook Asaas] Nenhuma requisição de upgrade encontrada para o pagamento ${paymentId}`,
@@ -524,15 +535,32 @@ export async function POST(request: NextRequest) {
             }
 
             // ── NOVO: pagamento regularizado, limpa carência de atraso ────────────
-            if (subscriptionId) {
-              await supabase
+            if (paymentId || subscriptionId) {
+              const { data: targetForClear } = await supabase
                 .from('tb_upgrade_requests')
-                .update({
-                  overdue_since: null,
-                  updated_at: utcIsoFrom(nowFn()),
-                })
-                .eq('asaas_subscription_id', subscriptionId)
-                .eq('status', 'approved');
+                .select('id')
+                .or(
+                  [
+                    paymentId ? `asaas_payment_id.eq.${paymentId}` : null,
+                    subscriptionId
+                      ? `asaas_subscription_id.eq.${subscriptionId}`
+                      : null,
+                  ]
+                    .filter(Boolean)
+                    .join(','),
+                )
+                .order('created_at', { ascending: false })
+                .limit(1)
+                .maybeSingle();
+              if (targetForClear?.id) {
+                await supabase
+                  .from('tb_upgrade_requests')
+                  .update({
+                    overdue_since: null,
+                    updated_at: utcIsoFrom(nowFn()),
+                  })
+                  .eq('id', targetForClear.id);
+              }
             }
           }
           break;
@@ -540,20 +568,45 @@ export async function POST(request: NextRequest) {
 
         case 'PAYMENT_OVERDUE': {
           if (paymentId) {
-            await handlePaymentRpc('OVERDUE');
-
             const subscriptionIdOverdue = payment?.subscription ?? null;
-            // ── NOVO: marca início da carência de 5 dias ──────────────────────────
-            if (subscriptionIdOverdue) {
-              await supabase
+            // ── Marca início da carência SOMENTE no registro da cobrança alvo ─────
+            if (paymentId || subscriptionIdOverdue) {
+              const { data: targetForOverdue } = await supabase
                 .from('tb_upgrade_requests')
-                .update({
-                  overdue_since: utcIsoFrom(nowFn()),
-                  updated_at: utcIsoFrom(nowFn()),
-                })
-                .eq('asaas_subscription_id', subscriptionIdOverdue)
-                .eq('status', 'approved')
-                .is('overdue_since', null); // não sobrescreve se já foi marcado
+                .select('id, overdue_since, status')
+                .or(
+                  [
+                    paymentId ? `asaas_payment_id.eq.${paymentId}` : null,
+                    subscriptionIdOverdue
+                      ? `asaas_subscription_id.eq.${subscriptionIdOverdue}`
+                      : null,
+                  ]
+                    .filter(Boolean)
+                    .join(','),
+                )
+                .order('created_at', { ascending: false })
+                .limit(1)
+                .maybeSingle();
+              if (targetForOverdue?.id && !targetForOverdue.overdue_since) {
+                await supabase
+                  .from('tb_upgrade_requests')
+                  .update({
+                    // Em OVERDUE não forçamos 'rejected' aqui.
+                    // Status rejected é reservado para falha de captura de cartão.
+                    asaas_raw_status: 'OVERDUE',
+                    overdue_since: utcIsoFrom(nowFn()),
+                    updated_at: utcIsoFrom(nowFn()),
+                  })
+                  .eq('id', targetForOverdue.id);
+              } else if (targetForOverdue?.id) {
+                await supabase
+                  .from('tb_upgrade_requests')
+                  .update({
+                    asaas_raw_status: 'OVERDUE',
+                    updated_at: utcIsoFrom(nowFn()),
+                  })
+                  .eq('id', targetForOverdue.id);
+              }
             }
 
             // Quando há um cancelamento agendado (pending_downgrade),
@@ -565,6 +618,8 @@ export async function POST(request: NextRequest) {
                 .from('tb_upgrade_requests')
                 .select('id, profile_id, status')
                 .eq('asaas_subscription_id', subscriptionIdOverdue)
+                .order('created_at', { ascending: false })
+                .limit(1)
                 .maybeSingle();
 
               if (subReq?.profile_id && subReq.status === 'pending_downgrade') {
@@ -587,6 +642,29 @@ export async function POST(request: NextRequest) {
                   revalidatePath('/dashboard');
                 }
               }
+            }
+          }
+          break;
+        }
+
+        case 'PAYMENT_CREDIT_CARD_CAPTURE_REFUSED': {
+          if (paymentId) {
+            const { data: targetRejected } = await supabase
+              .from('tb_upgrade_requests')
+              .select('id')
+              .eq('asaas_payment_id', paymentId)
+              .order('created_at', { ascending: false })
+              .limit(1)
+              .maybeSingle();
+            if (targetRejected?.id) {
+              await supabase
+                .from('tb_upgrade_requests')
+                .update({
+                  status: 'rejected',
+                  asaas_raw_status: 'PAYMENT_CREDIT_CARD_CAPTURE_REFUSED',
+                  updated_at: utcIsoFrom(nowFn()),
+                })
+                .eq('id', targetRejected.id);
             }
           }
           break;
@@ -700,7 +778,128 @@ export async function POST(request: NextRequest) {
           break;
         }
 
-        case 'PAYMENT_CREATED':
+        case 'PAYMENT_CREATED': {
+          if (paymentId) {
+            // 1. Evita duplicidade por paymentId
+            const { data: existingReq } = await supabase
+              .from('tb_upgrade_requests')
+              .select('id')
+              .eq('asaas_payment_id', paymentId)
+              .maybeSingle();
+
+            if (!existingReq) {
+              // 2. Resolve assinatura fonte:
+              //    - prioridade: subscription no payload
+              //    - fallback: última assinatura do mesmo customer
+              const subscriptionFromPayload = (
+                (payment as { subscription?: string | null } | null)
+                  ?.subscription ?? null
+              )?.trim();
+
+              let subRow: {
+                profile_id: string | null;
+                plan_key_requested: string | null;
+                plan_key_current: string | null;
+                billing_period: string | null;
+                snapshot_name: string | null;
+                snapshot_cpf_cnpj: string | null;
+                snapshot_email: string | null;
+                snapshot_whatsapp: string | null;
+                snapshot_address: string | null;
+                asaas_customer_id: string | null;
+                asaas_subscription_id?: string | null;
+              } | null = null;
+
+              if (subscriptionFromPayload) {
+                const { data } = await supabase
+                  .from('tb_upgrade_requests')
+                  .select(
+                    `
+          profile_id, plan_key_requested, plan_key_current,
+          billing_period, snapshot_name, snapshot_cpf_cnpj,
+          snapshot_email, snapshot_whatsapp, snapshot_address,
+          asaas_customer_id, asaas_subscription_id
+        `,
+                  )
+                  .eq('asaas_subscription_id', subscriptionFromPayload)
+                  .order('created_at', { ascending: false })
+                  .limit(1)
+                  .maybeSingle();
+                subRow = data ?? null;
+              }
+
+              if (!subRow?.profile_id) {
+                const customerId =
+                  (
+                    payment as { customer?: string | null } | null
+                  )?.customer?.trim() ?? null;
+                if (customerId) {
+                  const { data } = await supabase
+                    .from('tb_upgrade_requests')
+                    .select(
+                      `
+          profile_id, plan_key_requested, plan_key_current,
+          billing_period, snapshot_name, snapshot_cpf_cnpj,
+          snapshot_email, snapshot_whatsapp, snapshot_address,
+          asaas_customer_id, asaas_subscription_id
+        `,
+                    )
+                    .eq('asaas_customer_id', customerId)
+                    .not('asaas_subscription_id', 'is', null)
+                    .order('created_at', { ascending: false })
+                    .limit(1)
+                    .maybeSingle();
+                  subRow = data ?? null;
+                }
+              }
+
+              if (subRow?.profile_id) {
+                const effectivePlanKey =
+                  subRow.plan_key_requested ?? subRow.plan_key_current;
+                const now = utcIsoFrom(nowFn());
+                const resolvedSubId =
+                  subscriptionFromPayload ??
+                  subRow.asaas_subscription_id?.trim() ??
+                  null;
+
+                // 3. Inserir como pending para refletir cobrança criada
+                await supabase.from('tb_upgrade_requests').insert({
+                  profile_id: subRow.profile_id,
+                  plan_key_current: effectivePlanKey,
+                  plan_key_requested: effectivePlanKey,
+                  billing_type: payment?.billingType ?? 'PIX',
+                  billing_period: subRow.billing_period,
+                  snapshot_name: subRow.snapshot_name,
+                  snapshot_cpf_cnpj: subRow.snapshot_cpf_cnpj,
+                  snapshot_email: subRow.snapshot_email,
+                  snapshot_whatsapp: subRow.snapshot_whatsapp,
+                  snapshot_address: subRow.snapshot_address,
+                  asaas_customer_id: subRow.asaas_customer_id,
+                  asaas_subscription_id: resolvedSubId,
+                  asaas_payment_id: paymentId,
+                  payment_url:
+                    payment?.invoiceUrl ?? payment?.bankSlipUrl ?? null,
+                  amount_original: payment?.value ?? 0,
+                  amount_discount: 0,
+                  amount_final: payment?.value ?? 0,
+                  installments: 1,
+                  status: 'pending',
+                  notes: createBillingNotesForNewUpgradeRequest({
+                    logBody: `Cobrança de renovação gerada automaticamente pelo Asaas. Vencimento: ${payment?.dueDate ?? '—'}.`,
+                  }),
+                  created_at: now,
+                  updated_at: now,
+                });
+
+                // 4. Revalidar caches para UI refletir pendência
+                await revalidateProfileCachesForBilling(subRow.profile_id);
+                revalidatePath('/dashboard/assinatura');
+              }
+            }
+          }
+          break;
+        }
+
         case 'PAYMENT_AWAITING_RISK_ANALYSIS':
         case 'SUBSCRIPTION_CREATED':
         case 'PAYMENT_DELETED':
