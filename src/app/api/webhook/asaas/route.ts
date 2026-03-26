@@ -651,17 +651,22 @@ export async function POST(request: NextRequest) {
           if (paymentId) {
             const { data: targetRejected } = await supabase
               .from('tb_upgrade_requests')
-              .select('id')
+              .select('id, notes')
               .eq('asaas_payment_id', paymentId)
               .order('created_at', { ascending: false })
               .limit(1)
               .maybeSingle();
             if (targetRejected?.id) {
+              const rejectNote = appendBillingNotesBlock(
+                targetRejected.notes,
+                `[PaymentRejected ${utcIsoFrom(nowFn())}] Pagamento rejeitado pela operadora do cartão.`,
+              );
               await supabase
                 .from('tb_upgrade_requests')
                 .update({
                   status: 'rejected',
                   asaas_raw_status: 'PAYMENT_CREDIT_CARD_CAPTURE_REFUSED',
+                  notes: rejectNote,
                   updated_at: utcIsoFrom(nowFn()),
                 })
                 .eq('id', targetRejected.id);

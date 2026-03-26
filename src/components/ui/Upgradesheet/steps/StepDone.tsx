@@ -378,25 +378,43 @@ function StepDonePix({
 
       {/* Copy Button (se não tiver QR Code) */}
       {!pixData.qrCode && paymentUrl && (
-        <button
-          type="button"
-          onClick={copyCode}
-          className={`flex items-center justify-center gap-2 w-full max-w-[240px] py-2.5 rounded-xl border-2 font-bold text-[11px] uppercase tracking-wide transition-all ${
-            copyState === 'copied'
-              ? 'border-emerald-400 bg-emerald-50 text-emerald-700'
-              : 'border-champagne bg-champagne/10 text-petroleum hover:bg-champagne/25'
-          }`}
-        >
-          {copyState === 'copied' ? (
-            <>
-              <Check size={13} /> Copiado!
-            </>
-          ) : (
-            <>
-              <Copy size={13} /> Copiar código PIX
-            </>
-          )}
-        </button>
+        <div className="w-full space-y-2">
+          <div className="rounded-luxury border border-amber-200 bg-amber-50 px-3 py-2">
+            <p className="text-[11px] text-amber-900 leading-snug font-medium">
+              Nao foi possivel gerar o QR Code agora. Voce pode concluir o
+              pagamento abrindo a cobranca direto no Asaas.
+            </p>
+          </div>
+
+          <a
+            href={paymentUrl}
+            target="_blank"
+            rel="noopener noreferrer"
+            className="btn-luxury-primary flex items-center justify-center gap-2 w-full"
+          >
+            <QrCode size={13} /> Abrir cobranca no Asaas
+          </a>
+
+          <button
+            type="button"
+            onClick={copyCode}
+            className={`flex items-center justify-center gap-2 w-full py-2.5 rounded-xl border-2 font-bold text-[11px] uppercase tracking-wide transition-all ${
+              copyState === 'copied'
+                ? 'border-emerald-400 bg-emerald-50 text-emerald-700'
+                : 'border-champagne bg-champagne/10 text-petroleum hover:bg-champagne/25'
+            }`}
+          >
+            {copyState === 'copied' ? (
+              <>
+                <Check size={13} /> Copiado!
+              </>
+            ) : (
+              <>
+                <Copy size={13} /> Copiar link da cobranca
+              </>
+            )}
+          </button>
+        </div>
       )}
 
       {/* Security + Support */}

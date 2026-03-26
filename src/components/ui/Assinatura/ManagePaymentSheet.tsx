@@ -71,6 +71,7 @@ export function ManagePaymentSheet({
   const [loading, setLoading] = useState(false);
   const [isCompleted, setIsCompleted] = useState(false);
   const [completionData, setCompletionData] = useState<{
+    requestId?: string;
     billingType: 'PIX' | 'BOLETO' | 'CREDIT_CARD';
     status: 'pending' | 'approved' | 'rejected' | 'overdue';
     paymentUrl?: string | null;
@@ -169,6 +170,9 @@ export function ManagePaymentSheet({
         const result = await updateSubscriptionBillingMethod(
           activeSubscriptionId,
           billingType,
+          null,
+          null,
+          { targetRequestId: activeRequestId ?? null },
         );
         if (result.success) {
           // Em atraso/rejeição, mantém a jornada dentro da Sheet para pagar/confirmar.
@@ -181,12 +185,13 @@ export function ManagePaymentSheet({
             !mustUseImmediateMethod
           ) {
             onPixReady?.({
-              requestId: activeRequestId,
+              requestId: result.requestId ?? activeRequestId,
               newPaymentId: result.newPaymentId,
             });
           }
           if (result.hasPendingPayment) {
             setCompletionData({
+              requestId: result.requestId ?? activeRequestId,
               billingType,
               status: result.paymentStatus ?? activeRequestStatus,
               paymentUrl: result.paymentUrl ?? null,
@@ -241,6 +246,7 @@ export function ManagePaymentSheet({
           phone: digits,
           mobilePhone: digits,
         },
+        { targetRequestId: activeRequestId ?? null },
       );
 
       if (result.success) {
@@ -249,6 +255,7 @@ export function ManagePaymentSheet({
         }
         // Cartão deve sempre abrir a tela de processamento/confirmação.
         setCompletionData({
+          requestId: result.requestId ?? activeRequestId,
           billingType: 'CREDIT_CARD',
           status: result.paymentStatus ?? 'pending',
           paymentUrl: result.paymentUrl ?? null,
@@ -334,7 +341,7 @@ export function ManagePaymentSheet({
               period: planPeriod,
               nextBillingDate: null,
             }}
-            upgradeRequestId={activeRequestId ?? ''}
+            upgradeRequestId={completionData.requestId ?? activeRequestId ?? ''}
             onClose={onClose}
           />
         ) : (

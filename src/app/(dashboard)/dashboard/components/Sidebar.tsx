@@ -121,7 +121,7 @@ export default function Sidebar({
     (pendingBillingType === 'PIX' || pendingBillingType === 'BOLETO') &&
     (pendingStatus === 'rejected' || pendingRawStatus === 'OVERDUE');
   const requiresManageSheetToRecycle =
-    hasCriticalCardCapture || hasOverdueWarning;
+    hasCriticalCardCapture || (hasOverdueWarning && pendingBillingType !== 'PIX');
   const pendingAmount = new Intl.NumberFormat('pt-BR', {
     style: 'currency',
     currency: 'BRL',
@@ -404,16 +404,8 @@ export default function Sidebar({
               <button
                 type="button"
                 onClick={() => setShowManagePayment(true)}
-                className={`mx-auto mb-2 relative flex h-10 w-10 items-center justify-center rounded-md border transition-colors ${
-                  hasCriticalCardCapture
-                    ? 'border-red-500/40 bg-red-500/10 text-red-200 hover:bg-red-500/20'
-                    : 'border-amber-500/40 bg-amber-500/10 text-amber-200 hover:bg-amber-500/20'
-                }`}
-                title={
-                  hasCriticalCardCapture
-                    ? 'Pagamento recusado — atualizar método de pagamento'
-                    : 'Fatura vencida — regularizar pagamento'
-                }
+                className="mx-auto mb-2 relative flex h-10 w-10 items-center justify-center rounded-md border border-white/10 bg-white/5 text-amber-200 hover:bg-white/10 transition-colors"
+                title="Pagamento pendente — gerenciar pagamento"
               >
                 <CreditCard size={16} />
                 <span className="absolute -top-0.5 -right-0.5 h-2.5 w-2.5 rounded-full bg-red-500 animate-pulse" />

@@ -79,7 +79,7 @@ function statusLabel(status: string): string {
     pending_cancellation: 'Cancelamento Agendado',
     pending_downgrade: 'Downgrade Agendado',
     pending_change: 'Alteração de plano agendada',
-    rejected: 'Rejeitado',
+    rejected: 'Pagamento rejeitado',
     cancelled: 'Cancelado',
     free: 'Gratuito',
     active: 'Ativo',
@@ -87,6 +87,7 @@ function statusLabel(status: string): string {
     INACTIVE: 'Inativo',
     EXPIRED: 'Expirado',
     OVERDUE: 'Atrasado',
+    PAYMENT_CREDIT_CARD_CAPTURE_REFUSED: 'Pagamento rejeitado',
     renewed: 'Renovado',
     RENEWED: 'Renovado',
     PENDING_CANCELLATION: 'Cancelamento Agendado',
@@ -108,6 +109,15 @@ function formatBRL(value: number): string {
     style: 'currency',
     currency: 'BRL',
   }).format(value);
+}
+
+function billingPeriodLabel(period: string | null | undefined): string {
+  const map: Record<string, string> = {
+    monthly: 'Mensal',
+    semiannual: 'Semestral',
+    annual: 'Anual',
+  };
+  return map[String(period ?? '').toLowerCase()] ?? 'Mensal';
 }
 
 function billingPeriodToMonths(period: string | null | undefined): number {
@@ -541,7 +551,10 @@ export default function AssinaturaContent({
     (r) => r.status === 'approved' || isRenewedStatus(r.status),
   );
   const latestPendingRequest = sortedHistory.find(
-    (r) => r.status === 'pending' || r.status === 'processing' || r.status === 'rejected',
+    (r) =>
+      r.status === 'pending' ||
+      r.status === 'processing' ||
+      r.status === 'rejected',
   );
   /** Mais recente com cancelamento/downgrade agendado (não filtrar por effectiveSubscriptionId). */
   const latestPendingCancelRow = sortedHistory.find(
@@ -738,7 +751,11 @@ export default function AssinaturaContent({
       const res = await fetch('/api/dashboard/cancel-subscription', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ reason, comment }),
+        body: JSON.stringify({
+          reason,
+          comment,
+          allowImmediateRefund: hasRefundRight,
+        }),
       });
       const json = await res.json();
       if (json.success) {
@@ -862,7 +879,7 @@ export default function AssinaturaContent({
     {
       header: 'Pagamento',
       accessor: (item) => (
-        <span className="text-[11px] font-medium uppercase tracking-wide">
+        <span className="text-[10px] font-medium uppercase">
           {item.billing_type === 'CREDIT_CARD'
             ? 'Cartão de crédito'
             : item.billing_type}
@@ -871,18 +888,11 @@ export default function AssinaturaContent({
     },
     {
       header: 'Ciclo',
-      accessor: (item) => {
-        const periodMap: Record<string, string> = {
-          monthly: 'Mensal',
-          semiannual: 'Semestral',
-          annual: 'Anual',
-        };
-        return (
-          <span className="text-[11px] font-medium text-slate-600">
-            {periodMap[item.billing_period as string] ?? 'Mensal'}
-          </span>
-        );
-      },
+      accessor: (item) => (
+        <span className="text-[11px] font-medium text-slate-600">
+          {billingPeriodLabel(item.billing_period)}
+        </span>
+      ),
     },
     {
       header: 'Status',
@@ -891,7 +901,6 @@ export default function AssinaturaContent({
         const isAwaitingLikeStatus =
           item.status === 'pending' ||
           item.status === 'processing' ||
-          item.status === 'rejected' ||
           String(item.asaas_raw_status ?? '').toUpperCase() === 'OVERDUE';
         const isHistoricalAwaitingWithoutOpenCharge =
           !isLatestPendingRow && isAwaitingLikeStatus;
@@ -930,11 +939,10 @@ export default function AssinaturaContent({
                 </span>
               )}
               {isLatestPendingRow &&
-                (item.status === 'pending' ||
-                  item.status === 'processing') && (
-                <span className="text-[11px] font-medium text-slate-600">
-                  {statusLabel(item.status)}
-                </span>
+                (item.status === 'pending' || item.status === 'processing') && (
+                  <span className="text-[11px] font-medium text-slate-600">
+                    {statusLabel(item.status)}
+                  </span>
                 )}
               {isPaidCycle && isRenewalApproved && (
                 <span className="inline-flex items-center  gap-1 px-1.5 py-0.5 rounded-md bg-champagne/30 text-petroleum-800 text-[10px] font-medium w-fit">
@@ -1068,21 +1076,25 @@ export default function AssinaturaContent({
         const isPaidOrCancelled =
           itemStatus === 'approved' ||
           itemStatus === 'cancelled' ||
+          itemStatus === 'renewed' ||
           itemStatus === 'pending_cancellation' ||
+          itemStatus === 'pending_downgrade' ||
           itemStatus === 'rejected';
         const hasOpenPayment =
           itemStatus === 'pending' || itemStatus === 'processing';
+        const isRejectedCurrentPending =
+          isLatestPendingRow && itemStatus === 'rejected';
         const isRejectedCard =
           isLatestPendingRow &&
           itemStatus === 'rejected' &&
           billingType === 'CREDIT_CARD';
         const isPendingPix =
           isLatestPendingRow &&
-          (hasOpenPayment || itemStatus === 'rejected' || isOverdueLike) &&
+          (hasOpenPayment || isOverdueLike) &&
           billingType === 'PIX';
         const isPendingBoleto =
           isLatestPendingRow &&
-          (hasOpenPayment || itemStatus === 'rejected' || isOverdueLike) &&
+          (hasOpenPayment || isOverdueLike) &&
           billingType === 'BOLETO';
         const invoiceUrl = `/api/dashboard/payment-invoice-url?requestId=${encodeURIComponent(item.id)}`;
         const boletoUrl = `/api/dashboard/payment-boleto-url?requestId=${encodeURIComponent(item.id)}`;
@@ -1092,14 +1104,14 @@ export default function AssinaturaContent({
             ? boletoUrl
             : isRejectedCard
               ? null
-            : hasOpenPayment
-          ? item.payment_url?.startsWith('http')
-            ? item.payment_url
-            : invoiceUrl
-          : isPaidOrCancelled
-            ? invoiceUrl
-            : null;
-        if (isRejectedCard) {
+              : hasOpenPayment
+                ? item.payment_url?.startsWith('http')
+                  ? item.payment_url
+                  : invoiceUrl
+                : isPaidOrCancelled
+                  ? invoiceUrl
+                  : null;
+        if (isRejectedCurrentPending || isRejectedCard) {
           return (
             <button
               type="button"
@@ -1141,7 +1153,7 @@ export default function AssinaturaContent({
             itemStatus === 'rejected' ||
             isOverdueLike)
             ? 'Pagar agora'
-            : itemStatus === 'approved'
+            : itemStatus === 'approved' || itemStatus === 'renewed'
               ? 'Comprovante de pagamento'
               : 'Ver pagamento';
         return (
@@ -1290,13 +1302,13 @@ export default function AssinaturaContent({
             {/* Resumo do plano */}
             <div className="p-3 bg-white rounded-luxury border border-slate-200 grid grid-cols-2 gap-3">
               <div className="flex items-center gap-2 border-r border-slate-100 pr-3">
-                <Crown size={16} className="text-gold shrink-0" />
+                <Calendar size={16} className="text-gold shrink-0" />
                 <div>
                   <p className="text-[9px] uppercase font-semibold text-slate-600 leading-tight">
-                    Plano
+                    Ciclo
                   </p>
                   <p className="text-[10px] font-semibold text-petroleum">
-                    {planDisplayName(planKey)}
+                    {billingPeriodLabel(latestChargedVigenteRequest?.billing_period)}
                   </p>
                 </div>
               </div>
@@ -1494,18 +1506,21 @@ export default function AssinaturaContent({
           activeSubscriptionId ??
           ''
         }
-        activeRequestId={managePaymentTarget?.id ?? latestPendingRequest?.id ?? null}
+        activeRequestId={
+          managePaymentTarget?.id ?? latestPendingRequest?.id ?? null
+        }
         profileFullName={profile.full_name}
         profileEmail={profile.email}
         profilePhone={profile.phone_contact}
         currentBillingType={
-          ((managePaymentTarget?.billing_type ??
+          (managePaymentTarget?.billing_type ??
             currentBillingType ??
-            'CREDIT_CARD') as any)
+            'CREDIT_CARD') as any
         }
         hasRejectedInvoice={
-          String(managePaymentTarget?.status ?? latestPendingRequest?.status ?? '')
-            .toLowerCase() === 'rejected' &&
+          String(
+            managePaymentTarget?.status ?? latestPendingRequest?.status ?? '',
+          ).toLowerCase() === 'rejected' &&
           String(
             managePaymentTarget?.billing_type ??
               latestPendingRequest?.billing_type ??
@@ -1514,22 +1529,26 @@ export default function AssinaturaContent({
           ).toUpperCase() === 'CREDIT_CARD'
         }
         activeRequestStatus={
-          String(managePaymentTarget?.status ?? latestPendingRequest?.status ?? '')
-            .toLowerCase() === 'rejected'
+          String(
+            managePaymentTarget?.status ?? latestPendingRequest?.status ?? '',
+          ).toLowerCase() === 'rejected'
             ? 'rejected'
-            : String(managePaymentTarget?.asaas_raw_status ?? latestPendingRequest?.asaas_raw_status ?? '')
-                .toUpperCase() === 'OVERDUE'
+            : String(
+                  managePaymentTarget?.asaas_raw_status ??
+                    latestPendingRequest?.asaas_raw_status ??
+                    '',
+                ).toUpperCase() === 'OVERDUE'
               ? 'overdue'
               : 'pending'
         }
-        amount={managePaymentTarget?.amount_final ?? latestPendingRequest?.amount_final ?? 0}
+        amount={
+          managePaymentTarget?.amount_final ??
+          latestPendingRequest?.amount_final ??
+          0
+        }
         dueDate={null}
         planName={planDisplayName(planKey)}
         planPeriod={managePaymentTarget?.billing_period ?? 'monthly'}
-        onPixReady={({ requestId }) => {
-          setPixRequestId(requestId);
-          setShowPixModal(true);
-        }}
         onSuccess={(_newPaymentId) => router.refresh()}
       />
 
