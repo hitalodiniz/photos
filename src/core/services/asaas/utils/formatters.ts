@@ -50,6 +50,8 @@ export function formatSnapshotAddress(data: {
   return `${data.address}, ${data.address_number}${data.complement ? ` – ${data.complement}` : ''}, ${data.province}, ${data.city}/${data.state} – ${data.postal_code}`;
 }
 
+export { billingNotesBlocksRefund as notesIndicateProRataOrCreditUpgrade } from './billing-notes-doc';
+
 export function buildCancellationNotes(
   baseText: string,
   reason?: string | null,

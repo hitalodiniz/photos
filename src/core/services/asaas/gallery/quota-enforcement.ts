@@ -1,4 +1,5 @@
 import { PHOTO_CREDITS_BY_PLAN, type PlanKey } from '@/core/config/plans';
+import { now as nowFn, utcIsoFrom } from '@/core/utils/data-helpers';
 
 async function resolvePlanKeyForQuota(
   supabase: any,
@@ -65,7 +66,7 @@ export async function enforcePhotoQuotaByArchivingOldest(
       is_archived: true,
       is_public: false,
       auto_archived: true,
-      updated_at: new Date().toISOString(),
+      updated_at: utcIsoFrom(nowFn()),
     })
     .in('id', toArchive);
 

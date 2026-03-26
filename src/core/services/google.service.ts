@@ -1,5 +1,6 @@
 import { getDriveAccessTokenForUser } from '@/lib/google-auth';
 import { createSupabaseServerClient } from '@/lib/supabase.server';
+import { now as nowFn, utcIsoFrom } from '@/core/utils/data-helpers';
 import { addSecondsToSaoPauloIso } from '@/core/utils/date-time';
 /**
  * Busca o ID da pasta-mãe (parent) de um arquivo no Google Drive
@@ -260,7 +261,7 @@ export async function getValidGoogleTokenService(userId: string): Promise<string
   if (profile.google_access_token && profile.google_token_expires_at) {
     try {
       const expiresAt = new Date(profile.google_token_expires_at).getTime();
-      const now = Date.now();
+      const now = nowFn().getTime();
       const margin = 5 * 60 * 1000; // 5 minutos em milissegundos
 
       // Verifica se o token ainda é válido (com margem de 5 minutos)
@@ -306,7 +307,7 @@ export async function getValidGoogleTokenService(userId: string): Promise<string
       throw fetchErr;
     }
     
-    // const fetchDuration = Date.now() - startTime;
+    // const fetchDuration = nowFn().getTime() - startTime;
     /* console.log(`[getValidGoogleTokenService] Resposta do Google recebida em ${fetchDuration}ms:`, {
       ok: response.ok,
       status: response.status,

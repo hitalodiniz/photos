@@ -195,6 +195,7 @@ export const FEATURE = {
   MAX_VIDEO_SIZE_MB: 'maxVideoSizeMB',
   TEAM_MEMBERS: 'teamMembers',
   PROFILE_LEVEL: 'profileLevel',
+  USE_SUBDOMAIN: 'useSubdomain',
   PROFILE_CAROUSEL_LIMIT: 'profileCarouselLimit',
   PROFILE_LIST_LIMIT: 'profileListLimit',
   REMOVE_BRANDING: 'removeBranding',
@@ -236,6 +237,7 @@ export interface PlanPermissions {
   // ── Equipe & Perfil ────────────────────────────────────────────────────────
   teamMembers: number;
   profileLevel: 'basic' | 'standard' | 'advanced' | 'seo';
+  useSubdomain: boolean;
   profileCarouselLimit: number;
   profileListLimit: number | 'unlimited';
   removeBranding: boolean;
@@ -285,6 +287,7 @@ export const PERMISSIONS_BY_PLAN: Record<PlanKey, PlanPermissions> = {
     // ── Equipe & Perfil
     teamMembers: 0,
     profileLevel: 'basic',
+    useSubdomain: false,
     profileCarouselLimit: 0,
     profileListLimit: 0,
     removeBranding: false,
@@ -330,6 +333,7 @@ export const PERMISSIONS_BY_PLAN: Record<PlanKey, PlanPermissions> = {
     // ── Equipe & Perfil
     teamMembers: 0,
     profileLevel: 'standard',
+    useSubdomain: false,
     profileCarouselLimit: 1,
     profileListLimit: 10,
     removeBranding: false,
@@ -375,6 +379,7 @@ export const PERMISSIONS_BY_PLAN: Record<PlanKey, PlanPermissions> = {
     // ── Equipe & Perfil
     teamMembers: 2,
     profileLevel: 'advanced',
+    useSubdomain: false,
     profileCarouselLimit: 1,
     profileListLimit: 20,
     removeBranding: false,
@@ -420,6 +425,7 @@ export const PERMISSIONS_BY_PLAN: Record<PlanKey, PlanPermissions> = {
     // ── Equipe & Perfil
     teamMembers: 5,
     profileLevel: 'seo',
+    useSubdomain: true,
     profileCarouselLimit: 3,
     profileListLimit: 'unlimited',
     removeBranding: false,
@@ -465,6 +471,7 @@ export const PERMISSIONS_BY_PLAN: Record<PlanKey, PlanPermissions> = {
     // ── Equipe & Perfil
     teamMembers: 99,
     profileLevel: 'seo',
+    useSubdomain: true,
     profileCarouselLimit: 5,
     profileListLimit: 'unlimited',
     removeBranding: true,
@@ -574,6 +581,10 @@ export const FEATURE_DESCRIPTIONS: Record<
     label: 'Perfil Profissional',
     description:
       'Desbloqueie Bio, Cidades, Áreas de Atuação e SEO no seu perfil.',
+  },
+  useSubdomain: {
+    label: 'Subdomínio',
+    description: `Ative subdomínios para acessar suas galerias via seunome.${process.env.NEXT_PUBLIC_MAIN_DOMAIN}`,
   },
   profileCarouselLimit: {
     label: 'Carrossel de Capa',

@@ -6,6 +6,7 @@ import { getAuthenticatedUser } from '@/core/services/auth-context.service';
 import { revalidateUserCache } from '@/actions/revalidate.actions';
 import type { PlanKey } from '@/core/config/plans';
 import { revalidateTag } from 'next/cache';
+import { parseExpiryFromNotes as parseExpiryDateFromBillingNotes } from '@/core/services/asaas/utils/dates';
 
 export interface AdminUserRow {
   id: string;
@@ -31,22 +32,14 @@ const BILLING_PERIOD_MONTHS: Record<string, number> = {
   annual: 12,
 };
 
-function parseExpiryFromNotes(notes?: string | null): string | null {
-  if (!notes) return null;
-  const m = notes.match(
-    /nova data de vencimento:\s*([0-9]{4}-[0-9]{2}-[0-9]{2}(?:[tT][^,\n\r]*)?)/i,
-  );
-  if (!m?.[1]) return null;
-  return m[1];
-}
-
 function calculateSubscriptionExpiresAtFromRequest(req: {
   notes?: string | null;
   processed_at?: string | null;
   created_at?: string | null;
   billing_period?: string | null;
 }): string | null {
-  const fromNotes = parseExpiryFromNotes(req.notes);
+  const fromDate = parseExpiryDateFromBillingNotes(req.notes);
+  const fromNotes = fromDate ? fromDate.toISOString() : null;
   if (fromNotes) return fromNotes;
 
   const baseRaw = req.processed_at ?? req.created_at ?? null;

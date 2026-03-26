@@ -134,6 +134,16 @@ export function useDashboardActions(
             : item,
         ),
       );
+      // Revalida cache da galeria para remover/atualizar exibição pública por slug.
+      if (photographer?.id) {
+        await revalidateGalleryCache({
+          galeriaId: g.id,
+          userId: photographer.id,
+          username: photographer.username,
+          slug: g.slug,
+          driveFolderId: g.drive_folder_id,
+        });
+      }
       await triggerProfileRevalidation();
       setToast({
         message: newStatus ? 'Galeria arquivada' : 'Galeria restaurada',

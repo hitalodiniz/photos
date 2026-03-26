@@ -1,21 +1,11 @@
-// src/app/dashboard/assinatura/formatNotesDisplay.spec.ts
 /**
- * Testes unitários de formatNotesDisplay e CANCEL_REASON_LABELS.
- *
- * Cobertura:
- *  A. Entradas vazias / nulas
- *  B. String pura (sem JSON)
- *  C. JSON type=cancellation — todas as combinações de reason/comment
- *  D. JSON legado com .message
- *  E. JSON sem campos reconhecidos → 'Migração de plano'
- *  F. JSON malformado → 'Migração de plano'
- *  G. CANCEL_REASON_LABELS — todas as 7 chaves exportadas
+ * Testes de formatNotesDisplay (espelha AssinaturaContent) com notas JSON v1.
  */
 
 import { CANCEL_REASONS as REASONS_ARRAY } from '@/app/(dashboard)/dashboard/assinatura/CancelSubscriptionModal';
+import { billingNotesDisplayText } from '@/core/services/asaas/utils/billing-notes-doc';
 import { describe, it, expect } from 'vitest';
 
-// Transforma o array de objetos em um mapa para facilitar os testes e a função mockada
 const CANCEL_REASONS = REASONS_ARRAY.reduce(
   (acc, item) => {
     acc[item.value] = item.label;
@@ -24,195 +14,181 @@ const CANCEL_REASONS = REASONS_ARRAY.reduce(
   {} as Record<string, string>,
 );
 
-// ─── Copiar a função aqui para testes isolados ────────────────────────────────
-// (Alternativa: exportar formatNotesDisplay de AssinaturaContent e importar)
-
-function formatNotesDisplay(notes: string | null | undefined): string {
-  if (!notes?.trim()) return '';
-  if (notes.startsWith('{')) {
-    try {
-      const parsed = JSON.parse(notes) as {
-        type?: string;
-        message?: string;
-        reason?: string;
-        comment?: string;
-      };
-      if (parsed.type === 'cancellation') {
-        const label = parsed.reason
-          ? (CANCEL_REASONS[parsed.reason] ?? parsed.reason)
-          : 'Cancelamento';
-        return parsed.comment ? `${label} — ${parsed.comment}` : label;
-      }
-      if (typeof parsed.message === 'string' && parsed.message.trim()) {
-        return parsed.message.trim();
-      }
-    } catch {
-      // ignore
-    }
-    return 'Migração de plano';
-  }
-  return notes.trim();
+function v1(log: string[]) {
+  return JSON.stringify({ v: 1, log });
 }
 
-// ═══════════════════════════════════════════════════════════════════════════════
-// A. Entradas vazias / nulas
-// ═══════════════════════════════════════════════════════════════════════════════
+/** Cópia da lógica em AssinaturaContent.tsx */
+function formatNotesDisplay(notes: string | null | undefined): string {
+  const text = billingNotesDisplayText(notes);
+  if (!text.trim()) return '';
 
-describe('formatNotesDisplay — entradas vazias', () => {
+  const lowerNotes = text.toLowerCase();
+
+  const posReactivation = Math.max(
+    text.lastIndexOf('[Reactivation'),
+    text.lastIndexOf('Assinatura reativada'),
+  );
+  const posCancelSolicitado = text.lastIndexOf('Cancelamento solicitado');
+  if (posCancelSolicitado > posReactivation) {
+    const tail = text.slice(posCancelSolicitado);
+    const refundTail = tail.match(/Estorno:\s*SIM\s*\(([^)]+)\)/i)?.[1];
+    if (refundTail) {
+      return `Cancelamento com estorno (${refundTail})`;
+    }
+    if (/Estorno:\s*SIM/i.test(tail)) {
+      return 'Cancelamento com estorno';
+    }
+    if (/Estorno:\s*NÃO/i.test(tail) || /Estorno:\s*NAO/i.test(tail)) {
+      return 'Cancelamento sem estorno';
+    }
+    return 'Cancelamento solicitado';
+  }
+  if (posReactivation >= 0) {
+    return 'Assinatura reativada';
+  }
+
+  const refundWithAmount = text.match(/Estorno:\s*SIM\s*\(([^)]+)\)/i)?.[1];
+  if (refundWithAmount) {
+    return `Cancelamento com estorno (${refundWithAmount})`;
+  }
+  if (/Estorno:\s*SIM/i.test(text)) {
+    return 'Cancelamento com estorno';
+  }
+  if (/Estorno:\s*NÃO/i.test(text) || /Estorno:\s*NAO/i.test(text)) {
+    return 'Cancelamento sem estorno';
+  }
+
+  const autoCancelNoPaymentMatch = text.match(
+    /Cancelamento automático por falta de pagamento no prazo\s*\(([^)]+)\)/i,
+  );
+  if (autoCancelNoPaymentMatch?.[1]) {
+    return `Cancelamento automático por falta de pagamento (${autoCancelNoPaymentMatch[1]})`;
+  }
+  if (/Cancelamento automático por falta de pagamento no prazo/i.test(text)) {
+    return 'Cancelamento automático por falta de pagamento';
+  }
+
+  if (
+    lowerNotes.includes('renovação mensal') ||
+    lowerNotes.includes('renovação automática')
+  ) {
+    return 'Renovação Mensal';
+  }
+  if (lowerNotes.includes('aproveitamento de crédito')) {
+    return 'Upgrade com crédito aproveitado';
+  }
+  if (lowerNotes.includes('upgrade gratuito')) {
+    return 'Upgrade gratuito';
+  }
+
+  const paymentLines = text
+    .split(/\r?\n/)
+    .map((l) => l.trim())
+    .filter((l) => l.startsWith('[PaymentMethodChange '));
+
+  if (paymentLines.length) {
+    const lastLine = paymentLines[paymentLines.length - 1];
+    const match = lastLine.match(/\] (.*)/);
+    if (match?.[1]) {
+      return `Forma de pagamento alterada de ${match[1]
+        .replace('->', 'para')
+        .replace(/_/g, ' ')
+        .toLowerCase()}`;
+    }
+    return '';
+  }
+
+  if (text.includes('Cancelamento solicitado')) return 'Cancelamento solicitado';
+
+  return '';
+}
+
+describe('formatNotesDisplay — vazio / inválido', () => {
   it('null → ""', () => expect(formatNotesDisplay(null)).toBe(''));
   it('undefined → ""', () => expect(formatNotesDisplay(undefined)).toBe(''));
   it('string vazia → ""', () => expect(formatNotesDisplay('')).toBe(''));
-  it('string só espaços → ""', () =>
-    expect(formatNotesDisplay('   ')).toBe(''));
+  it('JSON que não é v1 → ""', () =>
+    expect(formatNotesDisplay('{"type":"cancellation"}')).toBe(''));
 });
 
-// ═══════════════════════════════════════════════════════════════════════════════
-// B. String pura
-// ═══════════════════════════════════════════════════════════════════════════════
-
-describe('formatNotesDisplay — string pura', () => {
-  it('texto simples → retorna o texto', () => {
-    expect(formatNotesDisplay('Cancelamento solicitado em 2026-01-01')).toBe(
-      'Cancelamento solicitado em 2026-01-01',
-    );
+describe('formatNotesDisplay — resumo a partir do log v1', () => {
+  it('texto simples sem padrão → ""', () => {
+    expect(formatNotesDisplay(v1(['Apenas um registro genérico']))).toBe('');
   });
 
-  it('texto com espaços no início/fim → trimado', () => {
-    expect(formatNotesDisplay('  algum texto  ')).toBe('algum texto');
+  it('upgrade gratuito no log', () => {
+    expect(
+      formatNotesDisplay(
+        v1(['Upgrade gratuito (Crédito): Plano PLUS. Saldo residual R$ 10']),
+      ),
+    ).toBe('Upgrade gratuito');
   });
 
-  it('string legada de upgrade gratuito → retorna intacta', () => {
-    const s =
-      'Aproveitamento de crédito pro-rata: R$ 12,50. Valor final: R$ 66,50.';
-    expect(formatNotesDisplay(s)).toBe(s);
+  it('aproveitamento de crédito no log', () => {
+    expect(
+      formatNotesDisplay(v1(['Aproveitamento de crédito pro-rata: R$ 12,50'])),
+    ).toBe('Upgrade com crédito aproveitado');
+  });
+
+  it('cancelamento solicitado', () => {
+    expect(
+      formatNotesDisplay(
+        v1(['Cancelamento solicitado. Acesso até 2026-04-01T00:00:00.000Z.']),
+      ),
+    ).toBe('Cancelamento solicitado');
+  });
+
+  it('reativação após cancelamento sem estorno: linha [Reactivation] prevalece', () => {
+    expect(
+      formatNotesDisplay(
+        v1([
+          'Cancelamento solicitado em 2026-03-01. Acesso até 2026-03-31. Estorno: NÃO.',
+          '[Reactivation 25/03/2026, 22:20:23] Assinatura reativada em 25/03/2026, 22:20:23.',
+        ]),
+      ),
+    ).toBe('Assinatura reativada');
+  });
+
+  it('novo cancelamento após reativação: último Cancelamento solicitado prevalece', () => {
+    expect(
+      formatNotesDisplay(
+        v1([
+          'Cancelamento solicitado em 2026-03-01T12:00:00.000Z. Acesso até 2026-05-12T00:00:00.000Z. Estorno: NÃO.',
+          '[Reactivation 25/03/2026, 22:20:23] Assinatura reativada em 25/03/2026, 22:20:23.',
+          'Cancelamento solicitado em 2026-03-25T22:30:00.000Z. Acesso até 2026-05-12T00:00:00.000Z. Estorno: NÃO. | Motivo: not_using',
+        ]),
+      ),
+    ).toBe('Cancelamento sem estorno');
+  });
+
+  it('estorno com valor', () => {
+    expect(
+      formatNotesDisplay(
+        v1(['Cancelamento. Estorno: SIM (R$ 79,00 aplicado no cartão).']),
+      ),
+    ).toBe('Cancelamento com estorno (R$ 79,00 aplicado no cartão)');
+  });
+
+  it('PaymentMethodChange — última linha', () => {
+    const line =
+      '[PaymentMethodChange 2026-01-01T12:00:00Z] PIX -> BOLETO';
+    expect(formatNotesDisplay(v1([line]))).toMatch(/forma de pagamento/i);
   });
 });
 
-// ═══════════════════════════════════════════════════════════════════════════════
-// C. JSON type=cancellation
-// ═══════════════════════════════════════════════════════════════════════════════
-
-describe('formatNotesDisplay — JSON cancelamento', () => {
-  it('reason + comment → "Label — comentário"', () => {
+describe('formatNotesDisplay — JSON que não é BillingNotesDocV1', () => {
+  it('objeto arbitrário (ex. type=cancellation) → resumo vazio', () => {
     const notes = JSON.stringify({
       type: 'cancellation',
       reason: 'too_expensive',
       comment: 'Caro demais',
     });
-    expect(formatNotesDisplay(notes)).toBe('Preço muito alto — Caro demais');
-  });
-
-  it('reason sem comment → só o label', () => {
-    const notes = JSON.stringify({ type: 'cancellation', reason: 'not_using' });
-    expect(formatNotesDisplay(notes)).toBe('Não estou usando o suficiente');
-  });
-
-  it('sem reason → "Cancelamento"', () => {
-    const notes = JSON.stringify({ type: 'cancellation' });
-    expect(formatNotesDisplay(notes)).toBe('Cancelamento');
-  });
-
-  it('reason desconhecido → usa a própria string como label', () => {
-    const notes = JSON.stringify({
-      type: 'cancellation',
-      reason: 'alien_reason',
-    });
-    expect(formatNotesDisplay(notes)).toBe('alien_reason');
-  });
-
-  it('com detail (campo extra do buildCancellationNotes) → ignora detail, usa label', () => {
-    const notes = JSON.stringify({
-      type: 'cancellation',
-      reason: 'temporary_pause',
-      comment: 'Férias',
-      detail: 'Cancelamento solicitado em 2026-03-01. Acesso até 2026-04-01.',
-    });
-    expect(formatNotesDisplay(notes)).toBe('Pausa temporária — Férias');
-  });
-
-  it('todas as 7 chaves retornam label em português', () => {
-    const pairs: Array<[string, string]> = [
-      ['too_expensive', 'Preço muito alto'],
-      ['not_using', 'Não estou usando o suficiente'],
-      ['missing_features', 'Falta algum recurso'],
-      ['switching_competitor', 'Vou usar outra plataforma'],
-      ['temporary_pause', 'Pausa temporária'],
-      ['technical_issues', 'Problemas técnicos'],
-      ['other', 'Outro motivo'],
-    ];
-    pairs.forEach(([reason, expected]) => {
-      const notes = JSON.stringify({ type: 'cancellation', reason });
-      expect(formatNotesDisplay(notes)).toBe(expected);
-    });
+    expect(formatNotesDisplay(notes)).toBe('');
   });
 });
 
-// ═══════════════════════════════════════════════════════════════════════════════
-// D. JSON legado com .message
-// ═══════════════════════════════════════════════════════════════════════════════
-
-describe('formatNotesDisplay — JSON legado (.message)', () => {
-  it('{ message: "texto" } → retorna texto', () => {
-    const notes = JSON.stringify({
-      message: 'Upgrade gratuito: crédito cobriu o plano.',
-    });
-    expect(formatNotesDisplay(notes)).toBe(
-      'Upgrade gratuito: crédito cobriu o plano.',
-    );
-  });
-
-  it('{ message: "  texto  " } → trimado', () => {
-    const notes = JSON.stringify({ message: '  trimável  ' });
-    expect(formatNotesDisplay(notes)).toBe('trimável');
-  });
-
-  it('{ message: "" } → "Migração de plano" (message vazio não conta)', () => {
-    const notes = JSON.stringify({ message: '' });
-    expect(formatNotesDisplay(notes)).toBe('Migração de plano');
-  });
-});
-
-// ═══════════════════════════════════════════════════════════════════════════════
-// E. JSON sem campos reconhecidos
-// ═══════════════════════════════════════════════════════════════════════════════
-
-describe('formatNotesDisplay — JSON sem campos conhecidos', () => {
-  it('JSON com chaves aleatórias → "Migração de plano"', () => {
-    const notes = JSON.stringify({ foo: 'bar', baz: 42 });
-    expect(formatNotesDisplay(notes)).toBe('Migração de plano');
-  });
-
-  it('JSON com type diferente de "cancellation" sem message → "Migração de plano"', () => {
-    const notes = JSON.stringify({ type: 'something_else' });
-    expect(formatNotesDisplay(notes)).toBe('Migração de plano');
-  });
-
-  it('JSON array (não objeto) → "Migração de plano"', () => {
-    const notes = JSON.stringify([1, 2, 3]);
-    // array não começa com '{', então cai no retorno de string pura
-    expect(formatNotesDisplay(notes)).toBe('[1,2,3]');
-  });
-});
-
-// ═══════════════════════════════════════════════════════════════════════════════
-// F. JSON malformado
-// ═══════════════════════════════════════════════════════════════════════════════
-
-describe('formatNotesDisplay — JSON malformado', () => {
-  it('{ sem fechar → "Migração de plano"', () => {
-    expect(formatNotesDisplay('{sem fechar')).toBe('Migração de plano');
-  });
-
-  it('{ chave: sem aspas } → "Migração de plano"', () => {
-    expect(formatNotesDisplay('{chave: valor}')).toBe('Migração de plano');
-  });
-});
-
-// ═══════════════════════════════════════════════════════════════════════════════
-// G. CANCEL_REASON_LABELS — export e completude
-// ═══════════════════════════════════════════════════════════════════════════════
-
-describe('CANCEL_REASON_LABELS — export e completude', () => {
+describe('CANCEL_REASONS — export', () => {
   const EXPECTED_KEYS = [
     'too_expensive',
     'not_using',
@@ -228,16 +204,9 @@ describe('CANCEL_REASON_LABELS — export e completude', () => {
     expect(exportedKeys.sort()).toEqual(EXPECTED_KEYS.sort());
   });
 
-  it('todos os valores são strings não-vazias', () => {
-    REASONS_ARRAY.forEach((item) => {
-      expect(typeof item.label).toBe('string');
-      expect(item.label.length).toBeGreaterThan(0);
-    });
-  });
-
-  it('nenhuma chave mapeada é igual à chave (labels estão em português)', () => {
-    // garantir que a tradução foi feita e não é identidade
+  it('todas as chaves têm label em português', () => {
     EXPECTED_KEYS.forEach((key) => {
+      expect(CANCEL_REASONS[key]).toBeTruthy();
       expect(CANCEL_REASONS[key]).not.toBe(key);
     });
   });

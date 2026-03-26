@@ -2,6 +2,7 @@
 'use server';
 
 import { createSupabaseServerClient } from '@/lib/supabase.server';
+import { now as nowFn, utcIsoFrom } from '@/core/utils/data-helpers';
 import {
   MAX_GALLERIES_HARD_CAP_BY_PLAN,
   PHOTO_CREDITS_BY_PLAN,
@@ -100,7 +101,7 @@ export async function reactivateAutoArchivedGalleries(
     .update({
       auto_archived: false,
       is_public: true,
-      updated_at: new Date().toISOString(),
+      updated_at: utcIsoFrom(nowFn()),
     })
     .in('id', ids);
 

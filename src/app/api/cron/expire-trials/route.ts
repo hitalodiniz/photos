@@ -1,5 +1,6 @@
 import { performDowngradeToFree } from '@/core/services/asaas.service';
 import { createClient } from '@supabase/supabase-js';
+import { now as nowFn, utcIsoFrom } from '@/core/utils/data-helpers';
 import { NextResponse } from 'next/server';
 import { enforcePhotoQuotaByArchivingOldest } from '@/core/services/asaas/gallery/quota-enforcement';
 
@@ -30,7 +31,7 @@ export async function GET(request: Request) {
 
     // 3. Buscar perfis onde o Trial expirou
     // Regra: is_trial é true E a data de expiração é menor que AGORA
-    const now = new Date().toISOString();
+    const now = utcIsoFrom(nowFn());
     const { data: expiredProfiles, error: fetchError } = await supabaseAdmin
       .from('tb_profiles')
       .select('id, username')
@@ -78,8 +79,11 @@ export async function GET(request: Request) {
           metadata: {
             ...currentMetadata,
             last_downgrade_alert_viewed: false,
+            downgrade_reason:
+              'Expiração automática de período de teste (Trial)',
+            downgrade_at: utcIsoFrom(nowFn()),
           },
-          updated_at: new Date().toISOString(),
+          updated_at: utcIsoFrom(nowFn()),
         })
         .eq('id', profile.id);
 
@@ -116,7 +120,7 @@ export async function GET(request: Request) {
       success: true,
       processedCount: expiredProfiles.length,
       details: results,
-      timestamp: new Date().toISOString(),
+      timestamp: utcIsoFrom(nowFn()),
     });
   } catch (error: any) {
     console.error('[Cron] Erro crítico na rota de expiração:', error);

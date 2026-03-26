@@ -149,23 +149,28 @@ describe('dates utils', () => {
   });
 
   describe('parseExpiryFromNotes', () => {
+    const v1 = (log: string[]) => JSON.stringify({ v: 1, log });
+
     it('deve extrair data válida das notes', () => {
-      const notes = 'Upgrade gratuito. Nova data de vencimento: 2027-03-17';
+      const notes = v1([
+        'Upgrade gratuito. Nova data de vencimento: 2027-03-17',
+      ]);
       const result = parseExpiryFromNotes(notes);
       expect(result).toBeInstanceOf(Date);
       expect(result?.toISOString().split('T')[0]).toBe('2027-03-17');
     });
 
     it('deve extrair data no meio do texto', () => {
-      const notes =
-        'Saldo residual R$ 100.00; nova data de vencimento: 2027-03-17. Status: OK';
+      const notes = v1([
+        'Saldo residual R$ 100.00; nova data de vencimento: 2027-03-17. Status: OK',
+      ]);
       const result = parseExpiryFromNotes(notes);
       expect(result).toBeInstanceOf(Date);
       expect(result?.toISOString().split('T')[0]).toBe('2027-03-17');
     });
 
     it('deve ser case-insensitive', () => {
-      const notes = 'NOVA DATA DE VENCIMENTO: 2027-03-17';
+      const notes = v1(['NOVA DATA DE VENCIMENTO: 2027-03-17']);
       const result = parseExpiryFromNotes(notes);
       expect(result).toBeInstanceOf(Date);
       expect(result?.toISOString().split('T')[0]).toBe('2027-03-17');
@@ -184,17 +189,17 @@ describe('dates utils', () => {
     });
 
     it('deve retornar null para notes sem data', () => {
-      const notes = 'Upgrade realizado com sucesso';
+      const notes = v1(['Upgrade realizado com sucesso']);
       expect(parseExpiryFromNotes(notes)).toBeNull();
     });
 
     it('deve retornar null para data inválida', () => {
-      const notes = 'Nova data de vencimento: data-invalida';
+      const notes = v1(['Nova data de vencimento: data-invalida']);
       expect(parseExpiryFromNotes(notes)).toBeNull();
     });
 
     it('deve funcionar com formato ISO completo', () => {
-      const notes = 'Nova data de vencimento: 2027-03-17T00:00:00.000Z';
+      const notes = v1(['Nova data de vencimento: 2027-03-17T00:00:00.000Z']);
       const result = parseExpiryFromNotes(notes);
       expect(result).toBeInstanceOf(Date);
       expect(result?.toISOString().split('T')[0]).toBe('2027-03-17');

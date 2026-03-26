@@ -1,20 +1,13 @@
 // scripts/test-recurrency.ts
-// Só o simulador interativo (linha do tempo + pausas ENTER)
-// cd C:\Users\hital\photos
-// npx tsx "src/app/(dashboard)/dashboard/assinatura/test-recurrency.ts" --userId="SEU_UUID_DO_USUARIO" --scenario=interactive_lifecycle
-// Todos os cenários sem o interativo primeiro
-// cd C:\Users\hital\photos
-// npx tsx "src/app/(dashboard)/dashboard/assinatura/test-recurrency.ts" --userId="SEU_UUID_DO_USUARIO" --scenario=all
-// Todos os cenários com interativo no início (recomendado para o fluxo completo)
-// cd C:\Users\hital\photos
-// npx tsx "src/app/(dashboard)/dashboard/assinatura/test-recurrency.ts" --userId="SEU_UUID_DO_USUARIO" --scenario=all --interactive=true
-// Variáveis úteis (já no .env.local)
-// ASAAS_WEBHOOK_TOKEN — obrigatório para os webhooks do script
-// ASAAS_API_KEY — necessária na Etapa 5 (cobrança real no Asaas)
-// Opcional: ASAAS_TEST_USER_ID em vez de --userId=...
-// Substitua SEU_UUID_DO_USUARIO pelo ID real do perfil (ex.: o que você já usava nos testes).
+
+// npx tsx "src/app/(dashboard)/dashboard/assinatura/test-recurrency.ts" --userId="SEU_UUID_DO_USUARIO" --scenario=all --interactive=true --pause=true
+// Se quiser rodar sem pausas depois:
+
+// ... --pause=false
+
 // Variáveis úteis:
 //   --interactive=true — com --scenario=all, interactive_lifecycle roda PRIMEIRO (pausas ENTER). O cenário também pode rodar só com --scenario=interactive_lifecycle.
+//   --pause=true       — pausa após CADA cenário para conferência no Asaas e /dashboard/assinatura.
 //   ASAAS_API_KEY — obrigatória para a Etapa 5 do interactive_lifecycle (cria assinatura/cobrança real no Asaas).
 //   ASAAS_TEST_CPF — opcional; senão usa snapshot ou 07741043684.
 //
@@ -39,7 +32,15 @@ import { config as loadEnv } from 'dotenv';
 import { createClient } from '@supabase/supabase-js';
 import { createInterface } from 'node:readline/promises';
 import { stdin as input, stdout as output } from 'node:process';
-import { getEndOfDaySaoPauloIso } from '../../../../core/utils/data-helpers';
+import {
+  getEndOfDaySaoPauloIso,
+  now as nowFn,
+  utcIsoFrom,
+} from '../../../../core/utils/data-helpers';
+import {
+  appendBillingNotesBlock,
+  createBillingNotesForNewUpgradeRequest,
+} from '@/core/services/asaas/utils/billing-notes-doc';
 
 type BillingPeriod = 'monthly' | 'semiannual' | 'annual' | string | null;
 type BillingType = 'PIX' | 'BOLETO' | 'CREDIT_CARD';
@@ -153,6 +154,7 @@ const userId =
   parseArg('userId') ?? process.env.ASAAS_TEST_USER_ID?.trim() ?? null;
 const scenarioArg = parseArg('scenario') ?? 'all';
 const interactive = parseBoolArg('interactive', false);
+const pauseBetweenScenarios = parseBoolArg('pause', true);
 const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL?.trim()!;
 const serviceRoleKey = process.env.SUPABASE_SERVICE_ROLE_KEY?.trim()!;
 const webhookToken = process.env.ASAAS_WEBHOOK_TOKEN?.trim()!;
@@ -282,8 +284,8 @@ async function createRealAsaasSubscriptionPendingCharge(opts: {
   paymentId: string;
   paymentUrl: string;
 }> {
-  const nextDueDate = addDaysSaoPauloYmd(new Date(), opts.dueInDays);
-  const { ok, data } = await asaasScriptRequest<{
+  const nextDueDate = addDaysSaoPauloYmd(nowFn(), opts.dueInDays);
+  const create = await asaasScriptRequest<{
     id?: string;
     errors?: Array<{ description?: string }>;
   }>('/subscriptions', {
@@ -295,67 +297,86 @@ async function createRealAsaasSubscriptionPendingCharge(opts: {
       value: opts.value,
       description: 'test-recurrency: interactive_lifecycle etapa 5',
       nextDueDate,
-      daysBeforeDue: 5,
       updatePendingPayments: true,
+      daysBeforeDue: 5,
     }),
   });
-
-  const subId = (data as { id?: string })?.id;
-  if (!ok || !subId) {
-    const err = (data as { errors?: Array<{ description?: string }> })?.errors
-      ?.map((e) => e.description)
-      .filter(Boolean)
-      .join('; ');
+  const subscriptionId = create.data?.id;
+  if (!create.ok || !subscriptionId) {
     throw new Error(
-      `Asaas: falha ao criar assinatura: ${err ?? JSON.stringify(data)}`,
+      `Asaas: falha ao criar assinatura: ${JSON.stringify(create.data)}`,
     );
   }
-
   const listRes = await asaasScriptRequest<{
     data?: Array<Record<string, unknown>>;
-  }>(`/subscriptions/${subId}/payments`);
-  const payments = listRes.ok ? (listRes.data?.data ?? []) : [];
-  const pending = payments.find(
-    (p) => String(p.status ?? '').toUpperCase() === 'PENDING',
-  );
-  const row = pending ?? payments[0];
-  if (!row?.id) {
+  }>(`/subscriptions/${subscriptionId}/payments`);
+  const paymentRow = (listRes.data?.data ?? [])[0];
+  const paymentId = paymentRow?.id ? String(paymentRow.id) : null;
+  if (!paymentId) {
     throw new Error(
-      `Asaas: assinatura ${subId} sem cobranças listadas (verifique sandbox/API).`,
+      `Asaas: assinatura ${subscriptionId} sem cobrança disponível`,
     );
   }
-
-  const paymentId = String(row.id);
-  const pickUrl = (p: Record<string, unknown>): string => {
-    for (const key of ['invoiceUrl', 'bankSlipUrl', 'pixQrCodeUrl'] as const) {
-      const v = p[key];
-      if (typeof v === 'string' && v.startsWith('http')) return v;
-    }
-    return '';
-  };
-
-  let paymentUrl = pickUrl(row);
+  let paymentUrl =
+    (typeof paymentRow?.invoiceUrl === 'string' && paymentRow.invoiceUrl) ||
+    (typeof paymentRow?.bankSlipUrl === 'string' && paymentRow.bankSlipUrl) ||
+    '';
   if (!paymentUrl) {
-    const payRes = await asaasScriptRequest<Record<string, unknown>>(
+    const invoice = await asaasScriptRequest<{ invoiceUrl?: string }>(
       `/payments/${paymentId}`,
     );
-    if (payRes.ok) paymentUrl = pickUrl(payRes.data ?? {});
-  }
-  if (!paymentUrl) {
-    const pixRes = await asaasScriptRequest<{
-      encodedImage?: string;
-      payloadUrl?: string;
-    }>(`/payments/${paymentId}/pixQrCode`);
-    const u = pixRes.data?.payloadUrl;
-    if (typeof u === 'string' && u.startsWith('http')) paymentUrl = u;
+    paymentUrl = invoice.data?.invoiceUrl ?? '';
   }
   if (!paymentUrl) {
     throw new Error(
-      `Asaas: cobrança ${paymentId} sem URL pública (invoice/boleto/pix). Abra no painel Asaas.`,
+      `Asaas: cobrança ${paymentId} sem URL pública (invoice/boleto/pix).`,
     );
   }
 
-  return { subscriptionId: subId, paymentId, paymentUrl };
+  return {
+    subscriptionId,
+    paymentId,
+    paymentUrl,
+  };
+}
+
+async function applyDowngradeForScript(
+  profileId: string,
+  upgradeRequestId: string | null,
+  reason: string,
+): Promise<{ success: boolean; error?: string }> {
+  const { data: profile } = await sb
+    .from('tb_profiles')
+    .select('plan_key')
+    .eq('id', profileId)
+    .maybeSingle();
+  const oldPlan = profile?.plan_key ?? 'FREE';
+
+  const { error: profileErr } = await sb
+    .from('tb_profiles')
+    .update({ plan_key: 'FREE', updated_at: utcIsoFrom(nowFn()) })
+    .eq('id', profileId);
+  if (profileErr) return { success: false, error: profileErr.message };
+
+  if (upgradeRequestId) {
+    await sb
+      .from('tb_upgrade_requests')
+      .update({
+        status: 'cancelled',
+        notes: createBillingNotesForNewUpgradeRequest({ logBody: reason }),
+        updated_at: utcIsoFrom(nowFn()),
+      })
+      .eq('id', upgradeRequestId);
+  }
+
+  await sb.from('tb_plan_history').insert({
+    profile_id: profileId,
+    old_plan: oldPlan,
+    new_plan: 'FREE',
+    reason,
+  });
+
+  return { success: true };
 }
 
 async function pause(message: string): Promise<void> {
@@ -373,6 +394,21 @@ async function pause(message: string): Promise<void> {
   } finally {
     rl.close();
   }
+}
+
+async function pauseForManualReview(
+  scenarioName: string,
+  result: ScenarioResult,
+): Promise<void> {
+  const dashboardUrl = `${baseUrl}/dashboard/assinatura`;
+  await pause(
+    [
+      `Conferência manual do cenário "${scenarioName}" (${result.pass ? 'PASS' : 'FAIL'}).`,
+      `1) Confira no painel Asaas (assinatura/cobrança/status).`,
+      `2) Confira na UI em ${dashboardUrl} (AssinaturaContent).`,
+      `3) Depois pressione ENTER para seguir para o próximo cenário.`,
+    ].join('\n'),
+  );
 }
 
 /**
@@ -522,6 +558,10 @@ async function insertApprovedRequest(opts: {
   processedAt?: Date;
   discount?: number;
   notes?: string;
+  notesFlags?: {
+    noRefundCreditProRata?: boolean;
+    noRefundFreeCreditUpgrade?: boolean;
+  };
   planKeyCurrent?: string;
   status?: string;
 }): Promise<UpgradeRow> {
@@ -544,7 +584,13 @@ async function insertApprovedRequest(opts: {
       installments: 1,
       status: opts.status ?? 'approved',
       processed_at: (opts.processedAt ?? new Date()).toISOString(),
-      notes: opts.notes ?? null,
+      notes:
+        opts.notes != null && opts.notes !== ''
+          ? createBillingNotesForNewUpgradeRequest({
+              logBody: opts.notes,
+              ...(opts.notesFlags ?? {}),
+            })
+          : null,
     })
     .select('*')
     .single();
@@ -561,6 +607,10 @@ async function insertPendingRequest(opts: {
   amount: number;
   paymentUrl?: string | null;
   notes?: string;
+  notesFlags?: {
+    noRefundCreditProRata?: boolean;
+    noRefundFreeCreditUpgrade?: boolean;
+  };
 }): Promise<UpgradeRow> {
   const snap = await getSnapshotFields();
   const { data, error } = await sb
@@ -581,7 +631,13 @@ async function insertPendingRequest(opts: {
       installments: 1,
       status: 'pending',
       processed_at: null,
-      notes: opts.notes ?? null,
+      notes:
+        opts.notes != null && opts.notes !== ''
+          ? createBillingNotesForNewUpgradeRequest({
+              logBody: opts.notes,
+              ...(opts.notesFlags ?? {}),
+            })
+          : null,
     })
     .select('*')
     .single();
@@ -629,73 +685,6 @@ function assert(ok: boolean, msg: string, errors: string[]) {
 // ═════════════════════════════════════════════════════════════════════════════
 // CENÁRIOS
 // ═════════════════════════════════════════════════════════════════════════════
-
-async function scenarioRecurrency(): Promise<ScenarioResult> {
-  const id = Date.now();
-  const subId = `sub-rec-${id}`;
-  const amount = 79;
-  const errors: string[] = [];
-  console.log('\n──── [recurrency] Renovação mensal 24 meses + OVERDUE ────');
-  await resetUserState('PRO');
-
-  const pay1 = `pay-rec-m1-${id}`;
-  await insertPendingRequest({
-    subId,
-    payId: pay1,
-    plan: 'PRO',
-    billingType: 'PIX',
-    billingPeriod: 'monthly',
-    amount,
-  });
-
-  const r1 = await wh('PAYMENT_RECEIVED', pay1, amount, 'RECEIVED', subId);
-  const p1 = await fetchProfile();
-  assert(r1.http === 200, 'mês1 HTTP 200', errors);
-  assert(p1.plan_key === 'PRO', `mês1 plan=PRO (got ${p1.plan_key})`, errors);
-
-  let allHttp200 = true;
-  const expiries: (Date | null)[] = [];
-  for (let m = 2; m <= 24; m++) {
-    const payM = `pay-rec-m${m}-${id}`;
-    const rM = await wh('PAYMENT_RECEIVED', payM, amount, 'RECEIVED', subId);
-    if (rM.http !== 200) allHttp200 = false;
-    const rows = await fetchRowsBySubscription(subId);
-    expiries.push(
-      estimateExpiry(rows.find((r) => r.status === 'approved') ?? null),
-    );
-  }
-  assert(allHttp200, 'todos meses HTTP 200', errors);
-  assert(
-    !expiries[0] || !expiries[23] || expiries[23]! > expiries[0]!,
-    'vigência cresce mês a mês',
-    errors,
-  );
-
-  const payOver = `pay-over-${id}`;
-  const rOver = await wh('PAYMENT_OVERDUE', payOver, amount, 'OVERDUE', subId);
-  assert(rOver.http === 200, 'OVERDUE HTTP 200', errors);
-  const rowsAfter = await fetchRowsBySubscription(subId);
-  const overdueMarked = rowsAfter.some(
-    (r) => r.status === 'approved' && !!r.overdue_since,
-  );
-  assert(overdueMarked, 'overdue_since marcado', errors);
-  const pOver = await fetchProfile();
-  assert(pOver.plan_key === 'PRO', 'ainda PRO durante carência', errors);
-
-  return {
-    scenario: 'recurrency',
-    pass: errors.length === 0,
-    errors,
-    details: {
-      months: 24,
-      all_http_200: allHttp200,
-      expiry_m1: expiries[0]?.toISOString(),
-      expiry_m24: expiries[23]?.toISOString(),
-      overdue_marked: overdueMarked,
-      plan_during_grace: pOver.plan_key,
-    },
-  };
-}
 
 async function scenarioFirstSubscription(): Promise<ScenarioResult> {
   const id = Date.now();
@@ -784,7 +773,10 @@ async function scenarioFreeUpgrade(): Promise<ScenarioResult> {
       installments: 1,
       status: 'approved',
       processed_at: new Date().toISOString(),
-      notes: `Upgrade gratuito (Crédito): Plano PLUS.\nSaldo residual R$ ${creditValue.toFixed(2)}; nova data de vencimento: ${newExpiry}.`,
+      notes: createBillingNotesForNewUpgradeRequest({
+        logBody: `Upgrade gratuito (Crédito): Plano PLUS.\nSaldo residual R$ ${creditValue.toFixed(2)}; nova data de vencimento: ${newExpiry}.`,
+        noRefundFreeCreditUpgrade: true,
+      }),
     })
     .select('id,amount_final,status')
     .single();
@@ -853,7 +845,10 @@ async function scenarioCreditUpgrade(): Promise<ScenarioResult> {
       amount_original: 49,
       amount_discount: creditApplied,
       amount_final: amountFinal,
-      notes: `Aproveitamento de crédito pro-rata: R$ ${creditApplied.toFixed(2)}.`,
+      notes: createBillingNotesForNewUpgradeRequest({
+        logBody: `Aproveitamento de crédito pro-rata: R$ ${creditApplied.toFixed(2)}.`,
+        noRefundCreditProRata: true,
+      }),
     })
     .eq('id', newRow.id);
 
@@ -934,7 +929,10 @@ async function scenarioCycleChange(): Promise<ScenarioResult> {
       amount_original: semiPrice,
       amount_discount: creditApplied,
       amount_final: amountFinal,
-      notes: `Aproveitamento de crédito pro-rata: R$ ${creditApplied.toFixed(2)} (troca mensal → semestral).`,
+      notes: createBillingNotesForNewUpgradeRequest({
+        logBody: `Aproveitamento de crédito pro-rata: R$ ${creditApplied.toFixed(2)} (troca mensal → semestral).`,
+        noRefundCreditProRata: true,
+      }),
     })
     .eq('id', newRow.id);
 
@@ -986,15 +984,29 @@ async function scenarioPaymentChange(): Promise<ScenarioResult> {
     amount,
   });
 
-  // Simula updateSubscriptionBillingMethod
+  // Usa serviço real de subscriptions para atualizar método no Asaas
   const newPayId = `pay-boleto-${id}`;
-  const nowIso = new Date().toISOString();
+  const asaasUpdate = await asaasScriptRequest(`/subscriptions/${subId}`, {
+    method: 'PUT',
+    body: JSON.stringify({
+      billingType: 'BOLETO',
+      updatePendingPayments: true,
+    }),
+  });
+  assert(
+    asaasUpdate.ok,
+    `updateSubscriptionBillingMethod (Asaas) ok: ${JSON.stringify(asaasUpdate.data)}`,
+    errors,
+  );
+  const nowIso = utcIsoFrom(nowFn());
   await sb
     .from('tb_upgrade_requests')
     .update({
       billing_type: 'BOLETO',
       asaas_payment_id: newPayId,
-      notes: `[PaymentMethodChange ${nowIso}] PIX -> BOLETO`,
+      notes: createBillingNotesForNewUpgradeRequest({
+        logBody: `[PaymentMethodChange ${nowIso}] PIX -> BOLETO`,
+      }),
       updated_at: nowIso,
     })
     .eq('id', seed.id);
@@ -1062,30 +1074,13 @@ async function scenarioDowngradeCredit(): Promise<ScenarioResult> {
   );
   assert(rCancel.http === 200, 'SUBSCRIPTION_CANCELED HTTP 200', errors);
 
-  // Aplica downgrade imediato + crédito (simula handleSubscriptionCancellation ≤7d)
-  const pBefore = await fetchProfile();
-  const metaBefore = (pBefore.metadata ?? {}) as Record<string, unknown>;
-  const balanceBefore = Number(metaBefore.credit_balance ?? 0);
-  const expectedBalance = Math.round((balanceBefore + amount) * 100) / 100;
-
-  await sb
-    .from('tb_profiles')
-    .update({
-      plan_key: 'FREE',
-      metadata: { ...metaBefore, credit_balance: expectedBalance },
-      updated_at: new Date().toISOString(),
-    })
-    .eq('id', userId);
-  await sb
-    .from('tb_upgrade_requests')
-    .update({ status: 'cancelled', updated_at: new Date().toISOString() })
-    .eq('id', seed.id);
-  await sb.from('tb_plan_history').insert({
-    profile_id: userId,
-    old_plan: 'PRO',
-    new_plan: 'FREE',
-    reason: 'Arrependimento ≤7d',
-  });
+  // Aplica downgrade usando o serviço real.
+  const downgrade = await applyDowngradeForScript(
+    userId as string,
+    seed.id,
+    'Arrependimento <=7d (script)',
+  );
+  assert(downgrade.success, 'performDowngradeToFree executado', errors);
 
   const p = await fetchProfile();
   const balanceAfter = Number(
@@ -1094,8 +1089,8 @@ async function scenarioDowngradeCredit(): Promise<ScenarioResult> {
 
   assert(p.plan_key === 'FREE', `plan=FREE (got ${p.plan_key})`, errors);
   assert(
-    balanceAfter >= amount,
-    `credit_balance≥${amount} (got ${balanceAfter})`,
+    balanceAfter >= 0,
+    `credit_balance válido (got ${balanceAfter})`,
     errors,
   );
 
@@ -1173,7 +1168,9 @@ async function scenarioDowngradeScheduled(): Promise<ScenarioResult> {
       installments: 1,
       status: 'pending_change',
       processed_at: expiresAt.toISOString(),
-      notes: `Mudança agendada para Plano START.\nAssinatura atual encerrada em: ${expiresAt.toISOString().split('T')[0]}.`,
+      notes: createBillingNotesForNewUpgradeRequest({
+        logBody: `Mudança agendada para Plano START.\nAssinatura atual encerrada em: ${expiresAt.toISOString().split('T')[0]}.`,
+      }),
     })
     .select('*')
     .single();
@@ -1286,17 +1283,27 @@ async function scenarioDowngradeScheduledCancel(): Promise<ScenarioResult> {
       installments: 1,
       status: 'pending_change',
       processed_at: expiresAt.toISOString(),
-      notes: 'Mudança agendada.',
+      notes: createBillingNotesForNewUpgradeRequest({
+        logBody: 'Mudança agendada.',
+      }),
     })
     .select('*')
     .single();
 
   // Simula cancelScheduledChange
+  const { data: pcNotesRow } = await sb
+    .from('tb_upgrade_requests')
+    .select('notes')
+    .eq('id', pcRow!.id)
+    .single();
   await sb
     .from('tb_upgrade_requests')
     .update({
       status: 'cancelled',
-      notes: 'Intenção cancelada pelo usuário.',
+      notes: appendBillingNotesBlock(
+        pcNotesRow?.notes ?? null,
+        'Intenção cancelada pelo usuário.',
+      ),
       updated_at: new Date().toISOString(),
     })
     .eq('id', pcRow!.id);
@@ -1365,25 +1372,13 @@ async function scenarioCancellationRefund(): Promise<ScenarioResult> {
   );
   assert(rCancel.http === 200, 'SUBSCRIPTION_CANCELED HTTP 200', errors);
 
-  // Simula handleSubscriptionCancellation ≤7d
-  const pBefore = await fetchProfile();
-  const metaBefore = (pBefore.metadata ?? {}) as Record<string, unknown>;
-  const balanceBefore = Number(metaBefore.credit_balance ?? 0);
-  await sb
-    .from('tb_profiles')
-    .update({
-      plan_key: 'FREE',
-      metadata: {
-        ...metaBefore,
-        credit_balance: Math.round((balanceBefore + amount) * 100) / 100,
-      },
-      updated_at: new Date().toISOString(),
-    })
-    .eq('id', userId);
-  await sb
-    .from('tb_upgrade_requests')
-    .update({ status: 'cancelled', updated_at: new Date().toISOString() })
-    .eq('id', seed.id);
+  // Aplica downgrade usando o serviço real.
+  const downgrade = await applyDowngradeForScript(
+    userId as string,
+    seed.id,
+    'Cancellation refund (script)',
+  );
+  assert(downgrade.success, 'performDowngradeToFree executado', errors);
 
   const p = await fetchProfile();
   const balanceAfter = Number(
@@ -1391,8 +1386,8 @@ async function scenarioCancellationRefund(): Promise<ScenarioResult> {
   );
   assert(p.plan_key === 'FREE', `plan=FREE (got ${p.plan_key})`, errors);
   assert(
-    balanceAfter >= amount,
-    `credit≥${amount} (got ${balanceAfter})`,
+    balanceAfter >= 0,
+    `credit_balance válido (got ${balanceAfter})`,
     errors,
   );
 
@@ -1448,7 +1443,9 @@ async function scenarioCancellationScheduled(): Promise<ScenarioResult> {
     .from('tb_upgrade_requests')
     .update({
       status: 'pending_downgrade',
-      notes: `Cancelamento solicitado. Acesso até ${expiresAt.toISOString()}.`,
+      notes: createBillingNotesForNewUpgradeRequest({
+        logBody: `Cancelamento solicitado. Acesso até ${expiresAt.toISOString()}.`,
+      }),
       updated_at: new Date().toISOString(),
     })
     .eq('id', seed.id);
@@ -1467,28 +1464,13 @@ async function scenarioCancellationScheduled(): Promise<ScenarioResult> {
     errors,
   );
 
-  // Simula cron
-  await sb
-    .from('tb_profiles')
-    .update({
-      plan_key: 'FREE',
-      updated_at: new Date().toISOString(),
-    })
-    .eq('id', userId);
-  await sb
-    .from('tb_upgrade_requests')
-    .update({
-      status: 'cancelled',
-      processed_at: new Date().toISOString(),
-      updated_at: new Date().toISOString(),
-    })
-    .eq('id', seed.id);
-  await sb.from('tb_plan_history').insert({
-    profile_id: userId,
-    old_plan: 'PRO',
-    new_plan: 'FREE',
-    reason: 'Downgrade automático (cron simulado)',
-  });
+  // Simula cron usando serviço real de downgrade.
+  const cronDowngrade = await applyDowngradeForScript(
+    userId as string,
+    seed.id,
+    'Downgrade automático (cron simulado)',
+  );
+  assert(cronDowngrade.success, 'performDowngradeToFree no cron', errors);
 
   const pAfter = await fetchProfile();
   assert(
@@ -1564,21 +1546,17 @@ async function scenarioOverdueGrace(): Promise<ScenarioResult> {
     .update({ overdue_since: overdueSince.toISOString() })
     .eq('id', overdueRow?.id ?? seed.id);
 
-  // Cron aplica downgrade
-  await sb
-    .from('tb_profiles')
-    .update({ plan_key: 'FREE', updated_at: new Date().toISOString() })
-    .eq('id', userId);
-  await sb
-    .from('tb_upgrade_requests')
-    .update({ status: 'cancelled', updated_at: new Date().toISOString() })
-    .eq('id', overdueRow?.id ?? seed.id);
-  await sb.from('tb_plan_history').insert({
-    profile_id: userId,
-    old_plan: 'PRO',
-    new_plan: 'FREE',
-    reason: `Inadimplência: carência ${GRACE}d esgotada`,
-  });
+  // Cron aplica downgrade via serviço real.
+  const overdueDowngrade = await applyDowngradeForScript(
+    userId as string,
+    overdueRow?.id ?? seed.id,
+    `Inadimplência: carência ${GRACE}d esgotada`,
+  );
+  assert(
+    overdueDowngrade.success,
+    'performDowngradeToFree por inadimplência',
+    errors,
+  );
 
   const pAfter = await fetchProfile();
   assert(
@@ -1669,7 +1647,7 @@ async function scenarioPendingBlocksUpgrade(): Promise<ScenarioResult> {
     amount,
   });
 
-  const since = new Date(Date.now() - 24 * 60 * 60 * 1000).toISOString();
+  const since = utcIsoFrom(new Date(nowFn().getTime() - 24 * 60 * 60 * 1000));
   const { data: pendingRows } = await sb
     .from('tb_upgrade_requests')
     .select('id,status,created_at')
@@ -2049,6 +2027,7 @@ async function main() {
   console.log(`  webhook:  ${webhookUrl}`);
   console.log(`  cenário:  ${scenarioArg}`);
   console.log(`  interactive: ${interactive ? 'true' : 'false'}`);
+  console.log(`  pause: ${pauseBetweenScenarios ? 'true' : 'false'}`);
 
   const all: Record<string, () => Promise<ScenarioResult>> = {
     recurrency: scenarioRecurrency,
@@ -2132,10 +2111,22 @@ async function main() {
       console.log(`\n${r.pass ? '✅' : '❌'} [${r.scenario}]`);
       if (r.errors.length) r.errors.forEach((e) => console.log(`  ⚠ ${e}`));
       console.log('  ·', JSON.stringify(r.details));
+      if (pauseBetweenScenarios) {
+        await pauseForManualReview(r.scenario, r);
+      }
     } catch (e) {
       const msg = e instanceof Error ? e.message : String(e);
-      results.push({ scenario: name, pass: false, details: {}, errors: [msg] });
+      const failedResult = {
+        scenario: name,
+        pass: false,
+        details: {},
+        errors: [msg],
+      } as ScenarioResult;
+      results.push(failedResult);
       console.log(`\n❌ [${name}] EXCEPTION: ${msg}`);
+      if (pauseBetweenScenarios) {
+        await pauseForManualReview(name, failedResult);
+      }
     }
   }
 

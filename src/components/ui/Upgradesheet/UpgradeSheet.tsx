@@ -250,7 +250,7 @@ function ConfirmButton() {
     if (isFreeUpgrade) return 'Confirmar Atualização do Plano';
     if (billingType === 'PIX') return 'Confirmar e Gerar Pix';
     if (billingType === 'BOLETO') return 'Confirmar e Gerar Boleto';
-    return 'Confirmar Solicitação';
+    return 'Confirmar assinatura';
   };
 
   return (
@@ -275,6 +275,12 @@ function ConfirmButton() {
   );
 }
 
+/**
+ * Checkout de plano. O status em `tb_upgrade_requests` após pagamento (approved vs
+ * renewed) e o formato JSON de `notes` vêm da RPC `activate_plan_from_payment` e do
+ * webhook Asaas — trial com o mesmo `plan_key` da contratação deve sair como
+ * `approved`, não `renewed`.
+ */
 export function UpgradeSheet({
   isOpen,
   onClose,

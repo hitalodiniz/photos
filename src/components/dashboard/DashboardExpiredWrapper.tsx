@@ -1,11 +1,21 @@
 'use client';
 
-import { useState, useCallback } from 'react';
-import { PlanAdequacyModal } from '@/components/dashboard/PlanAdequacyModal';
+import { useMemo } from 'react';
 import type { ExpiredSubscriptionCheck } from '@/core/types/billing';
+import type { Galeria } from '@/core/types/galeria';
+import { DowngradeAlert } from '@/components/dashboard/DowngradeAlert';
 
 interface DashboardExpiredWrapperProps {
   expiredCheck: ExpiredSubscriptionCheck;
+  profile: {
+    id: string;
+    full_name: string;
+    plan_key?: any;
+    is_trial?: boolean | null;
+    plan_trial_expires?: string | null;
+    metadata?: { last_downgrade_alert_viewed?: boolean } | null;
+  } | null;
+  galerias: Galeria[];
   children: React.ReactNode;
 }
 
@@ -16,27 +26,23 @@ interface DashboardExpiredWrapperProps {
  */
 export function DashboardExpiredWrapper({
   expiredCheck,
+  profile,
+  galerias,
   children,
 }: DashboardExpiredWrapperProps) {
   const shouldShowModal =
-    expiredCheck.applied &&
-    expiredCheck.excess_galleries?.length > 0;
-  const [modalOpen, setModalOpen] = useState(shouldShowModal);
-
-  const handleClose = useCallback(() => {
-    setModalOpen(false);
-  }, []);
+    expiredCheck.applied ||
+    profile?.metadata?.last_downgrade_alert_viewed === false;
+  const shouldRender = useMemo(() => {
+    return shouldShowModal && !!profile;
+  }, [shouldShowModal, profile]);
 
   return (
     <>
       {children}
-      {shouldShowModal && (
-        <PlanAdequacyModal
-          isOpen={modalOpen}
-          onClose={handleClose}
-          expiredCheck={expiredCheck}
-        />
-      )}
+      {shouldRender ? (
+        <DowngradeAlert profile={profile as any} galerias={galerias} />
+      ) : null}
     </>
   );
 }

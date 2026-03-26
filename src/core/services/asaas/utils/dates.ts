@@ -1,5 +1,7 @@
 // src/core/services/asaas/utils/dates.ts
 
+import { billingNotesDisplayText } from './billing-notes-doc';
+
 /**
  * Adiciona N meses a uma data preservando o dia original.
  *
@@ -78,10 +80,11 @@ export function billingPeriodToMonths(
 export function parseExpiryFromNotes(
   notes: string | null | undefined,
 ): Date | null {
-  if (!notes?.trim()) return null;
+  const text = billingNotesDisplayText(notes);
+  if (!text.trim()) return null;
   const match =
-    notes.match(/Nova data de vencimento:\s*([^\s.]+)/i) ??
-    notes.match(/Pr[oó]ximo vencimento do plano:\s*([^\s.]+)/i);
+    text.match(/Nova data de vencimento:\s*([^\s.]+)/i) ??
+    text.match(/Pr[oó]ximo vencimento do plano:\s*([^\s.]+)/i);
   if (!match?.[1]) return null;
   const raw = match[1].trim();
   if (/^\d{4}-\d{2}-\d{2}$/.test(raw)) {

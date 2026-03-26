@@ -14,6 +14,7 @@
  */
 
 import { describe, it, expect, vi, afterEach, beforeEach } from 'vitest';
+import { now as nowFn, utcIsoFrom } from '@/core/utils/data-helpers';
 
 // Importação lazy para permitir stubEnv antes
 const {
@@ -151,7 +152,7 @@ describe('validateExpiryMonth', () => {
 });
 
 describe('validateExpiryYear', () => {
-  const currentYear = new Date().getFullYear();
+  const currentYear = nowFn().getFullYear();
 
   it('vazio → erro', () => expect(validateExpiryYear('')).not.toBeNull());
   it('ano passado → erro', () =>
@@ -169,7 +170,7 @@ describe('validateExpiryYear', () => {
 // ═══════════════════════════════════════════════════════════════════════════════
 
 describe('validateExpiry', () => {
-  const now = new Date();
+  const now = nowFn();
   const currentMonth = String(now.getMonth() + 1);
   const currentYear = String(now.getFullYear());
   const nextYear = String(now.getFullYear() + 1);
@@ -244,7 +245,7 @@ describe('validateCvv — sandbox bypass', () => {
 // ═══════════════════════════════════════════════════════════════════════════════
 
 describe('validateCreditCard + isCardValid', () => {
-  const currentYear = String(new Date().getFullYear() + 2);
+  const currentYear = String(nowFn().getFullYear() + 2);
   const validCard = {
     credit_card_number: '4111111111111111',
     credit_card_holder_name: 'João Silva',

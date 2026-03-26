@@ -13,6 +13,7 @@ import {
   Star,
   Crown,
   User,
+  TrendingUp,
 } from 'lucide-react';
 import { useEffect, useState, useMemo, useRef } from 'react';
 
@@ -293,45 +294,50 @@ export default function Navbar() {
                       </div>
 
                       {/* Footer — mesmo padrão do NotificationMenu */}
-                      <div className="p-4 bg-white/5 border-t border-white/5 flex flex-col gap-2">
-                        {!isProfileComplete && (
-                          <p className="text-[11px] text-white font-medium text-center">
-                            Preencha seu perfil para assinar o plano PRO.
+                      <div className="p-4 bg-white/5 border-t border-white/5 flex flex-col gap-4">
+                        {/* Avisos e Frases de Urgência (Mantidos no topo para clareza) */}
+                        <div className="space-y-1">
+                          {!isProfileComplete && (
+                            <p className="text-[10px] text-white font-medium text-center bg-red-500/20 py-1 rounded">
+                              Preencha seu perfil para assinar o plano PRO.
+                            </p>
+                          )}
+                          <p className="text-center text-[9px] text-white/70 uppercase tracking-widest">
+                            Evite a interrupção das suas entregas
                           </p>
-                        )}
-                        {/* CTA Principal — destacado (desabilitado se perfil incompleto) */}
-                        <button
-                          type="button"
-                          disabled={!isProfileComplete}
-                          onClick={() => {
-                            if (!isProfileComplete) return;
-                            setTrialOpen(false);
-                            setUpgradeSheetInitialPlan('PRO');
-                            setUpgradeSheetOpen(true);
-                          }}
-                          className="btn-luxury-primary disabled:opacity-60 disabled:cursor-not-allowed disabled:pointer-events-none"
-                        >
-                          <Crown size={20} className="" />
-                          Manter meu plano PRO
-                          <ArrowRight size={16} />
-                        </button>
+                        </div>
 
-                        {/* Frase de urgência */}
-                        <p className="text-center text-[9px] text-white/70 uppercase tracking-widest">
-                          Evite a interrupção das suas entregas
-                        </p>
-
-                        {/* CTA Secundário — discreto, só texto */}
-                        <button
-                          type="button"
-                          onClick={() => {
-                            setTrialOpen(false);
-                            window.open('/planos', '_blank');
-                          }}
-                          className="w-full py-1.5 text-white/70 hover:text-white/70 text-[9px] font-medium uppercase tracking-widest transition-colors"
-                        >
-                          Ver outros planos
-                        </button>
+                        {/* Container de Botões Lado a Lado */}
+                        <div className="grid grid-cols-2 gap-3 w-full items-stretch">
+                          {/* CTA Secundário */}
+                          <button
+                            type="button"
+                            onClick={() => {
+                              setTrialOpen(false);
+                              window.open('/planos', '_blank');
+                            }}
+                            className="btn-secondary-white w-full flex items-center justify-center gap-2 px-2 text-[10px]"
+                          >
+                            <TrendingUp size={16} className="shrink-0" />
+                            <span className="truncate">Comparar Planos</span>
+                          </button>
+                          {/* CTA Principal */}
+                          <button
+                            type="button"
+                            disabled={!isProfileComplete}
+                            onClick={() => {
+                              if (!isProfileComplete) return;
+                              setTrialOpen(false);
+                              setUpgradeSheetInitialPlan('PRO');
+                              setUpgradeSheetOpen(true);
+                            }}
+                            className="btn-luxury-primary w-full flex items-center justify-center gap-2 px-2 text-[10px] disabled:opacity-50"
+                          >
+                            <Crown size={16} className="shrink-0" />
+                            <span className="truncate">Manter PRO</span>
+                            <ArrowRight size={14} className="shrink-0" />
+                          </button>
+                        </div>
                       </div>
                     </div>
                   </>

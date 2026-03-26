@@ -2,12 +2,14 @@
 'use server';
 
 import { createSupabaseServerClient } from '@/lib/supabase.server';
+import { now as nowFn, utcIsoFrom } from '@/core/utils/data-helpers';
 import { getAuthenticatedUser } from '@/core/services/auth-context.service';
 import type {
   BillingProfile,
   UpgradeRequest,
   UpgradeRequestStatus,
 } from '@/core/types/billing';
+import { billingNotesDisplayText } from '@/core/services/asaas/utils/billing-notes-doc';
 
 /**
  * Carrega tb_billing_profiles do usuário atual.
@@ -64,8 +66,9 @@ function addMonths(date: Date, n: number): Date {
  * Retorna a Date ou null.
  */
 function parseExpiryFromNotes(notes: string | null | undefined): Date | null {
-  if (!notes?.trim()) return null;
-  const match = notes.match(/Nova data de vencimento:\s*([^\s.]+)/i);
+  const text = billingNotesDisplayText(notes);
+  if (!text.trim()) return null;
+  const match = text.match(/Nova data de vencimento:\s*([^\s.]+)/i);
   if (!match?.[1]) return null;
   const date = new Date(match[1].trim());
   return Number.isNaN(date.getTime()) ? null : date;
@@ -84,13 +87,13 @@ export async function getSubscriptionExpiresAt(
   if (!approved) return null;
 
   const fromNotes = parseExpiryFromNotes(approved.notes);
-  if (fromNotes) return fromNotes.toISOString();
+  if (fromNotes) return utcIsoFrom(fromNotes);
 
   if (!approved.processed_at) return null;
   const start = new Date(approved.processed_at);
   const months = billingPeriodToMonths(approved.billing_period);
   const endsAt = addMonths(start, months);
-  return endsAt.toISOString();
+  return utcIsoFrom(endsAt);
 }
 
 /**
@@ -148,7 +151,7 @@ export async function cancelUpgradeRequest(
     .from('tb_upgrade_requests')
     .update({
       status: 'cancelled',
-      updated_at: new Date().toISOString(),
+      updated_at: utcIsoFrom(nowFn()),
     })
     .eq('id', requestId)
     .eq('profile_id', userId);

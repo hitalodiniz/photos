@@ -14,6 +14,7 @@ import {
   ChevronRight,
   Images,
   Sparkles,
+  TrendingUp,
 } from 'lucide-react';
 
 import {
@@ -33,6 +34,11 @@ import { EventDetailsSheet } from '@/components/ui/EventDetailsSheet';
 import { TrafficInfoCard } from './TrafficInfoCard';
 import { usePlan } from '@/core/context/PlanContext';
 import { UpgradeSheet } from '@/components/ui/Upgradesheet';
+import {
+  findNextPlanKeyWithFeature,
+  PLANS_BY_SEGMENT,
+  type PlanKey,
+} from '@/core/config/plans';
 
 function parseNotificationMetadata(
   metadata: unknown,
@@ -106,7 +112,7 @@ function getEventDataFromNotification(notification: any): any | null {
 }
 
 export function NotificationMenu({ userId }: { userId: string }) {
-  const { permissions } = usePlan();
+  const { permissions, planKey } = usePlan();
   const [notifications, setNotifications] = useState<any[]>([]);
   const [isOpen, setIsOpen] = useState(false);
   const [isPushEnabled, setIsPushEnabled] = useState(false);
@@ -115,6 +121,13 @@ export function NotificationMenu({ userId }: { userId: string }) {
   const [isUpgradeSheetOpen, setIsUpgradeSheetOpen] = useState(false);
 
   const unreadCount = notifications.filter((n) => !n.read_at).length;
+  const nextPlanForNotifyEvents = findNextPlanKeyWithFeature(
+    planKey,
+    'canAccessNotifyEvents',
+  );
+  const nextPlanForNotifyLabel =
+    PLANS_BY_SEGMENT.PHOTOGRAPHER[nextPlanForNotifyEvents as PlanKey]?.name ??
+    nextPlanForNotifyEvents;
 
   useEffect(() => {
     if (!userId) return;
@@ -335,8 +348,8 @@ export function NotificationMenu({ userId }: { userId: string }) {
                     onClick={() => setIsUpgradeSheetOpen(true)}
                     className="btn-luxury-primary"
                   >
-                    <Sparkles size={12} className="text-gold" />
-                    Ver planos
+                    <TrendingUp size={16} className="text-gold" />
+                    {`Fazer upgrade para o plano ${nextPlanForNotifyLabel}`}
                   </button>
                 </div>
               ) : notifications.length === 0 ? (

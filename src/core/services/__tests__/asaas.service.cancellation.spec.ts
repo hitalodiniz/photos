@@ -12,6 +12,7 @@
  */
 
 import { describe, it, expect, vi, beforeEach } from 'vitest';
+import { now as nowFn, utcIsoFrom } from '@/core/utils/data-helpers';
 import { getAuthenticatedUser } from '@/core/services/auth-context.service';
 
 vi.mock('@/core/services/auth-context.service', () => ({
@@ -31,7 +32,7 @@ vi.mock('@/core/services/asaas.service', async (importOriginal) => {
 /** Constrói um request row realista para tb_upgrade_requests */
 function makeRequest(overrides: Record<string, unknown> = {}) {
   const processedAt = new Date(
-    Date.now() - 2 * 24 * 60 * 60 * 1000,
+    nowFn().getTime() - 2 * 24 * 60 * 60 * 1000,
   ).toISOString(); // 2 dias atrás
   return {
     id: 'req-1',
@@ -51,7 +52,7 @@ function makeRequest(overrides: Record<string, unknown> = {}) {
 /** Request criado há 10 dias (fora da janela de 7 dias) */
 function makeOldRequest(overrides: Record<string, unknown> = {}) {
   const processedAt = new Date(
-    Date.now() - 10 * 24 * 60 * 60 * 1000,
+    nowFn().getTime() - 10 * 24 * 60 * 60 * 1000,
   ).toISOString();
   return makeRequest({
     processed_at: processedAt,
@@ -261,7 +262,7 @@ describe('handleSubscriptionCancellation — ≥ 7 dias (scheduled_cancellation)
     expect(result.type).toBe('scheduled_cancellation');
     expect(result.access_ends_at).toBeDefined();
     const accessDate = new Date(result.access_ends_at as string);
-    expect(accessDate > new Date()).toBe(true); // acesso ainda no futuro
+    expect(accessDate.getTime() > nowFn().getTime()).toBe(true); // acesso ainda no futuro
   });
 
   it('chama setAsaasSubscriptionEndDate (PUT fetch) com a subscription correta', async () => {

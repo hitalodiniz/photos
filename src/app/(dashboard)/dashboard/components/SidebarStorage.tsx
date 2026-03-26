@@ -1,6 +1,6 @@
 'use client';
 
-import { ArrowUpCircle, HardDrive, ImageIcon } from 'lucide-react';
+import { ArrowUpCircle, HardDrive, ImageIcon, TrendingUp } from 'lucide-react';
 import UpgradeModal from '@/components/ui/UpgradeModal';
 import { InfoTooltip } from '@/components/ui/InfoTooltip';
 import React, { useState } from 'react';
@@ -142,15 +142,13 @@ export default function SidebarStorage({
               {isGalLimit ? (
                 <button
                   onClick={() => setIsUpgradeModalOpen(true)}
-                  className="w-full flex items-center justify-between px-2 py-1.5 rounded-md bg-red-500/10 hover:bg-red-500/15 border border-red-500/20 transition-colors group"
+                  className="shrink-0 flex items-center gap-1 px-2 py-1 
+                  rounded-md bg-champagne/20 border 
+                  border-champagne/30 text-champagne hover:bg-champagne/30 text-[8px] 
+                  font-medium uppercase tracking-widest transition-colors"
                 >
-                  <span className="text-[10px] font-semibold uppercase tracking-[0.08em] text-red-400/80">
-                    Limite atingido — Upgrade
-                  </span>
-                  <ArrowUpCircle
-                    size={10}
-                    className="text-red-400/60 group-hover:-translate-y-px transition-transform shrink-0"
-                  />
+                  <TrendingUp size={16} />
+                  Aumentar limite
                 </button>
               ) : (
                 <div className="flex items-center justify-between">

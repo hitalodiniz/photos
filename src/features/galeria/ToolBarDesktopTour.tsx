@@ -63,6 +63,7 @@ interface GaleriaTourProps {
   galeriaId: string;
   canUseFavorites: boolean;
   hasTags: boolean;
+  canStartTour?: boolean;
   onOpenDrawer: (drawer: 'layout' | 'tags' | 'info' | null) => void;
 }
 
@@ -70,11 +71,13 @@ export function GaleriaTour({
   galeriaId,
   canUseFavorites,
   hasTags,
+  canStartTour = true,
   onOpenDrawer,
 }: GaleriaTourProps) {
   const [isOpen, setIsOpen] = useState(false);
   const [currentStep, setCurrentStep] = useState(0);
   const [isCompleting, setIsCompleting] = useState(false);
+  const [targetRect, setTargetRect] = useState<DOMRect | null>(null);
 
   const STORAGE_KEY = `galeria_tour_${galeriaId}`;
 
@@ -90,6 +93,8 @@ export function GaleriaTour({
 
   // Verifica se deve mostrar o tour
   useEffect(() => {
+    if (!canStartTour) return;
+
     const checkTourStatus = () => {
       const lastShown = localStorage.getItem(STORAGE_KEY);
       const today = new Date().toDateString();
@@ -102,7 +107,7 @@ export function GaleriaTour({
     };
 
     checkTourStatus();
-  }, [STORAGE_KEY]);
+  }, [STORAGE_KEY, canStartTour]);
 
   // Abre gavetas conforme o step
   useEffect(() => {
@@ -110,6 +115,33 @@ export function GaleriaTour({
       onOpenDrawer(currentStepData.openDrawer);
     }
   }, [isOpen, currentStep, currentStepData, onOpenDrawer]);
+
+  // Destaca visualmente o elemento alvo acima do backdrop.
+  useEffect(() => {
+    if (!isOpen || !currentStepData?.target) {
+      setTargetRect(null);
+      return;
+    }
+
+    const updateRect = () => {
+      const el = document.querySelector(
+        `[data-tour="${currentStepData.target}"]`,
+      ) as HTMLElement | null;
+      if (!el) {
+        setTargetRect(null);
+        return;
+      }
+      setTargetRect(el.getBoundingClientRect());
+    };
+
+    updateRect();
+    window.addEventListener('resize', updateRect);
+    window.addEventListener('scroll', updateRect, true);
+    return () => {
+      window.removeEventListener('resize', updateRect);
+      window.removeEventListener('scroll', updateRect, true);
+    };
+  }, [isOpen, currentStepData?.target]);
 
   const handleNext = () => {
     if (isLastStep) {
@@ -148,37 +180,50 @@ export function GaleriaTour({
   if (!isOpen) return null;
 
   return (
-    <>
+    <div className="fixed inset-0 z-[9999]">
       {/* Backdrop */}
-      <div className="fixed inset-0 bg-black/60 backdrop-blur-sm z-[9998] animate-in fade-in duration-300" />
+      <div className="absolute inset-0  animate-in fade-in duration-300" />
+
+      {/* Highlight do alvo (acima do backdrop) */}
+      {targetRect && (
+        <div
+          className="absolute z-[10000] rounded-lg ring-2 ring-gold shadow-[0_0_0_9999px_rgba(0,0,0,0.45)] pointer-events-none transition-all duration-200"
+          style={{
+            top: Math.max(0, targetRect.top - 6),
+            left: Math.max(0, targetRect.left - 6),
+            width: targetRect.width + 12,
+            height: targetRect.height + 12,
+          }}
+        />
+      )}
 
       {/* Tour Modal */}
       <div
-        className={`fixed bottom-6 right-6 z-[9999] w-full max-w-md animate-in slide-in-from-bottom duration-300 ${
+        className={`fixed bottom-4 right-4 z-[10001] w-full max-w-sm animate-in slide-in-from-bottom duration-300 ${
           isCompleting ? 'animate-out slide-out-to-bottom' : ''
         }`}
       >
-        <div className="bg-white rounded-2xl shadow-2xl border border-slate-200 overflow-hidden">
+        <div className="bg-white rounded-xl shadow-2xl border border-slate-200 overflow-hidden">
           {/* Header */}
-          <div className="bg-gradient-to-r from-petroleum to-petroleum/90 px-6 py-4 flex items-center justify-between">
-            <div className="flex items-center gap-3">
-              <div className="w-10 h-10 rounded-full bg-white/20 flex items-center justify-center text-white font-bold text-sm">
+          <div className="bg-gradient-to-r from-petroleum to-petroleum/90 px-4 py-3 flex items-center justify-between">
+            <div className="flex items-center gap-2.5">
+              <div className="w-8 h-8 rounded-full bg-white/20 flex items-center justify-center text-white font-bold text-[11px]">
                 {currentStep + 1}/{availableSteps.length}
               </div>
               <div>
-                <p className="text-white font-bold text-sm uppercase tracking-wide">
+                <p className="text-white font-bold text-[11px] uppercase tracking-wide">
                   Tour da Galeria
                 </p>
-                <p className="text-white/70 text-xs">
+                <p className="text-white/70 text-[10px]">
                   Passo {currentStep + 1} de {availableSteps.length}
                 </p>
               </div>
             </div>
             <button
               onClick={handleSkip}
-              className="w-8 h-8 rounded-lg flex items-center justify-center text-white/60 hover:text-white hover:bg-white/10 transition-colors"
+              className="w-7 h-7 rounded-md flex items-center justify-center text-white/60 hover:text-white hover:bg-white/10 transition-colors"
             >
-              <X size={18} />
+              <X size={15} />
             </button>
           </div>
 
@@ -193,23 +238,23 @@ export function GaleriaTour({
           </div>
 
           {/* Content */}
-          <div className="p-6 space-y-4">
+          <div className="p-4 space-y-3">
             <div>
-              <h3 className="text-lg font-bold text-petroleum mb-2">
+              <h3 className="text-base font-bold text-petroleum mb-1.5">
                 {currentStepData.title}
               </h3>
-              <p className="text-sm text-petroleum/80 leading-relaxed">
+              <p className="text-[13px] text-petroleum/80 leading-relaxed">
                 {currentStepData.description}
               </p>
             </div>
 
             {/* Visual Indicator */}
             {currentStepData.target && (
-              <div className="bg-gold/10 border border-gold/30 rounded-lg p-3 flex items-start gap-3">
-                <div className="shrink-0 w-6 h-6 rounded-full bg-gold/20 flex items-center justify-center mt-0.5">
-                  <span className="text-gold text-xs font-bold">!</span>
+              <div className="bg-gold/10 border border-gold/30 rounded-md p-2.5 flex items-start gap-2.5">
+                <div className="shrink-0 w-5 h-5 rounded-full bg-gold/20 flex items-center justify-center mt-0.5">
+                  <span className="text-gold text-[10px] font-bold">!</span>
                 </div>
-                <p className="text-xs text-petroleum/70 leading-snug">
+                <p className="text-[11px] text-petroleum/70 leading-snug">
                   {currentStepData.openDrawer
                     ? 'A gaveta foi aberta automaticamente para você explorar.'
                     : 'Veja este recurso destacado na barra acima.'}
@@ -219,19 +264,19 @@ export function GaleriaTour({
           </div>
 
           {/* Footer */}
-          <div className="bg-slate-50 px-6 py-4 flex items-center justify-between border-t border-slate-200">
+          <div className="bg-slate-50 px-4 py-3 flex items-center justify-between border-t border-slate-200">
             <div className="flex gap-2">
               {currentStep > 0 && (
                 <button
                   onClick={handlePrevious}
-                  className="px-4 py-2 rounded-lg border border-slate-200 bg-white text-petroleum text-sm font-semibold uppercase tracking-wide hover:bg-slate-50 transition-colors"
+                  className="px-3 py-1.5 rounded-md border border-slate-200 bg-white text-petroleum text-[11px] font-semibold uppercase tracking-wide hover:bg-slate-50 transition-colors"
                 >
                   Anterior
                 </button>
               )}
               <button
                 onClick={handleSkip}
-                className="px-4 py-2 rounded-lg text-slate-500 text-sm font-semibold uppercase tracking-wide hover:text-slate-700 transition-colors"
+                className="px-3 py-1.5 rounded-md text-slate-500 text-[11px] font-semibold uppercase tracking-wide hover:text-slate-700 transition-colors"
               >
                 Pular Tour
               </button>
@@ -239,24 +284,24 @@ export function GaleriaTour({
 
             <button
               onClick={handleNext}
-              className="flex items-center gap-2 px-5 py-2 rounded-lg bg-petroleum text-white text-sm font-semibold uppercase tracking-wide hover:bg-petroleum/90 transition-colors shadow-lg"
+              className="flex items-center gap-1.5 px-4 py-1.5 rounded-md bg-petroleum text-white text-[11px] font-semibold uppercase tracking-wide hover:bg-petroleum/90 transition-colors shadow-lg"
             >
               {isLastStep ? (
                 <>
-                  <Check size={16} />
+                  <Check size={14} />
                   Concluir
                 </>
               ) : (
                 <>
                   Próximo
-                  <ChevronRight size={16} />
+                  <ChevronRight size={14} />
                 </>
               )}
             </button>
           </div>
         </div>
       </div>
-    </>
+    </div>
   );
 }
 

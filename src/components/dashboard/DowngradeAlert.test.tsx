@@ -48,7 +48,7 @@ describe('DowngradeAlert', () => {
 
     expect(screen.getByRole('dialog')).toBeInTheDocument();
     expect(
-      screen.getByText(/Seu periodo de teste terminou/i),
+      screen.getByText(/O período da sua assinatura expirou/i),
     ).toBeInTheDocument();
   });
 
@@ -71,7 +71,7 @@ describe('DowngradeAlert', () => {
 
     // Title passed to BaseModal
     expect(
-      screen.getByRole('heading', { name: /Notificação de Plano/i }),
+      screen.getByRole('heading', { name: /Adequação de Plano/i }),
     ).toBeInTheDocument();
     
     // Content inside the modal
@@ -126,7 +126,7 @@ describe('DowngradeAlert', () => {
       />,
     );
 
-    const button = screen.getByRole('button', { name: /Entendi/i });
+    const button = screen.getByRole('button', { name: /Manter plano Free/i });
     fireEvent.click(button);
 
     expect(acknowledgeDowngradeAlert).toHaveBeenCalled();
@@ -146,7 +146,7 @@ describe('DowngradeAlert', () => {
     );
 
     expect(
-      screen.getByText(/Seu periodo de teste terminou/i),
+      screen.getByText(/O período da sua assinatura expirou/i),
     ).toBeInTheDocument();
 
     fireEvent.click(screen.getByRole('button', { name: /Assinar plano/i }));

@@ -21,6 +21,7 @@ interface GaleriaHeroProps {
   coverUrl: string | null;
   /** Tema visual da galeria — aplicado via data-theme para ativar as variáveis CSS do tema */
   themeKey?: string;
+  onExpandedChange?: (isExpanded: boolean) => void;
 }
 
 export const GaleriaHero = ({
@@ -28,6 +29,7 @@ export const GaleriaHero = ({
   photos,
   coverUrl,
   themeKey,
+  onExpandedChange,
 }: GaleriaHeroProps) => {
   const { SegmentIcon } = useSegment();
   const [isExpanded, setIsExpanded] = useState(true);
@@ -96,6 +98,10 @@ export const GaleriaHero = ({
     window.addEventListener('scroll', handleScroll);
     return () => window.removeEventListener('scroll', handleScroll);
   }, [isExpanded]);
+
+  useEffect(() => {
+    onExpandedChange?.(isExpanded);
+  }, [isExpanded, onExpandedChange]);
 
   const { photoCount, videoCount } = useMemo(() => {
     const list = photos ?? [];

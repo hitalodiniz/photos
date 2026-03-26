@@ -11,6 +11,7 @@
  */
 
 import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
+import { now as nowFn, utcIsoFrom } from '@/core/utils/data-helpers';
 import { createSupabaseServerClient } from '@/lib/supabase.server';
 import { getAuthenticatedUser } from '@/core/services/auth-context.service';
 
@@ -100,12 +101,12 @@ const makeInsert = (error: unknown = null) => ({
 // ─── Datas utilitárias ────────────────────────────────────────────────────────
 
 const daysAgo = (n: number) =>
-  new Date(Date.now() - n * 24 * 60 * 60 * 1000).toISOString();
+  new Date(nowFn().getTime() - n * 24 * 60 * 60 * 1000).toISOString();
 
 const monthsAgo = (n: number) => {
-  const d = new Date();
+  const d = nowFn();
   d.setMonth(d.getMonth() - n);
-  return d.toISOString();
+  return utcIsoFrom(d);
 };
 
 // ─── Importação lazy (após mocks estarem prontos) ────────────────────────────
@@ -499,7 +500,7 @@ describe('getUpgradePreview — pending_change detection', () => {
         .mockReturnValueOnce(
           makeSelectSingle({
             id: 'p-1',
-            created_at: new Date().toISOString(),
+            created_at: utcIsoFrom(nowFn()),
             plan_key_requested: 'PLUS',
             billing_type: 'PIX',
             billing_period: 'monthly',
@@ -521,7 +522,7 @@ describe('getUpgradePreview — pending_change detection', () => {
         .mockReturnValueOnce(
           makeSelectSingle({
             id: 'p-1',
-            created_at: new Date().toISOString(),
+            created_at: utcIsoFrom(nowFn()),
             plan_key_requested: 'PLUS',
             billing_type: 'PIX',
             billing_period: 'monthly',
@@ -1235,7 +1236,7 @@ describe('Crédito pro-rata para upgrade de plano (ano comercial 30/180/360)', (
       return {
         id: 'req-1',
         amount_final: opts.amount_final ?? 0,
-        processed_at: opts.processed_at ?? new Date().toISOString(),
+        processed_at: opts.processed_at ?? utcIsoFrom(nowFn()),
         billing_period: opts.billing_period ?? 'monthly',
         plan_key_requested: (opts.plan_key_requested ?? 'START') as string,
       };
@@ -1308,7 +1309,7 @@ describe('Crédito pro-rata para upgrade de plano (ano comercial 30/180/360)', (
       vi.setSystemTime(now);
 
       const current = makeCurrentRequest({
-        processed_at: start.toISOString(),
+        processed_at: utcIsoFrom(start),
         amount_final: 156,
         billing_period: 'semiannual',
         plan_key_requested: 'START',
@@ -1340,7 +1341,7 @@ describe('Crédito pro-rata para upgrade de plano (ano comercial 30/180/360)', (
       vi.setSystemTime(now);
 
       const current = makeCurrentRequest({
-        processed_at: start.toISOString(),
+        processed_at: utcIsoFrom(start),
         amount_final: 756,
         billing_period: 'annual',
         plan_key_requested: 'PRO',

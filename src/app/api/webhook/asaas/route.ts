@@ -1,11 +1,11 @@
 import { NextRequest, NextResponse } from 'next/server';
+import { now as nowFn, utcIsoFrom } from '@/core/utils/data-helpers';
 import { createSupabaseAdmin } from '@/lib/supabase.server';
 import { revalidatePath } from 'next/cache';
 import {
   revalidateProfileCachesForBilling,
   revalidateUserCache,
 } from '@/actions/revalidate.actions';
-import { toSaoPauloIso } from '@/core/utils/date-time';
 import type {
   AsaasWebhookPayload,
   AsaasWebhookEvent,
@@ -14,10 +14,13 @@ import { performDowngradeToFree } from '@/core/services/asaas.service';
 import { reactivateAutoArchivedGalleries } from '@/core/services/asaas';
 import type { PlanKey } from '@/core/config/plans';
 import { UPGRADE_REQUEST_STATUS_RENEWED } from '@/core/types/billing';
+import {
+  appendBillingNotesBlock,
+  billingNotesForRenewalFromParent,
+} from '@/core/services/asaas/utils/billing-notes-doc';
 
 export async function POST(request: NextRequest) {
   try {
-    const nowInSaoPauloIso = () => toSaoPauloIso();
 
     // 1. Verificar token de segurança do webhook
     const token = request.headers.get('asaas-access-token');
@@ -64,7 +67,7 @@ export async function POST(request: NextRequest) {
           event_type: body.event,
           payload: body,
           request_id: requestId,
-          processed_at: nowInSaoPauloIso(),
+          processed_at: utcIsoFrom(nowFn()),
         })
         .select('id')
         .single();
@@ -222,7 +225,7 @@ export async function POST(request: NextRequest) {
                   .from('tb_upgrade_requests')
                   .update({
                     asaas_subscription_id: subscriptionIdFromPayment,
-                    updated_at: nowInSaoPauloIso(),
+                    updated_at: utcIsoFrom(nowFn()),
                   })
                   .eq('id', byPayment.id);
               }
@@ -250,7 +253,7 @@ export async function POST(request: NextRequest) {
               const { data: subRow } = await supabase
                 .from('tb_upgrade_requests')
                 .select(
-                  'profile_id, plan_key_current, plan_key_requested, billing_type, billing_period, snapshot_name, snapshot_cpf_cnpj, snapshot_email, snapshot_whatsapp, snapshot_address, asaas_customer_id',
+                  'profile_id, plan_key_current, plan_key_requested, billing_type, billing_period, snapshot_name, snapshot_cpf_cnpj, snapshot_email, snapshot_whatsapp, snapshot_address, asaas_customer_id, notes',
                 )
                 .eq('asaas_subscription_id', subscriptionIdFromPayment)
                 .order('created_at', { ascending: false })
@@ -258,46 +261,59 @@ export async function POST(request: NextRequest) {
                 .maybeSingle();
 
               if (subRow?.profile_id) {
-                const paidValue = payment?.value ?? 0;
-                const now = nowInSaoPauloIso();
-                const effectivePlanKey =
-                  subRow.plan_key_requested ?? subRow.plan_key_current;
-                const { error: insertErr } = await supabase
-                  .from('tb_upgrade_requests')
-                  .insert({
-                    profile_id: subRow.profile_id,
-                    plan_key_current: effectivePlanKey,
-                    plan_key_requested: effectivePlanKey,
-                    billing_type: subRow.billing_type,
-                    billing_period: subRow.billing_period,
-                    snapshot_name: subRow.snapshot_name,
-                    snapshot_cpf_cnpj: subRow.snapshot_cpf_cnpj,
-                    snapshot_email: subRow.snapshot_email,
-                    snapshot_whatsapp: subRow.snapshot_whatsapp,
-                    snapshot_address: subRow.snapshot_address,
-                    asaas_customer_id: subRow.asaas_customer_id ?? undefined,
-                    asaas_subscription_id: subscriptionIdFromPayment,
-                    asaas_payment_id: paymentId,
-                    amount_original: paidValue,
-                    amount_discount: 0,
-                    amount_final: paidValue,
-                    installments: 1,
-                    status: UPGRADE_REQUEST_STATUS_RENEWED,
-                    asaas_raw_status: payment?.status ?? 'RECEIVED',
-                    processed_at: now,
-                    notes: `${billingPeriodLabel(subRow.billing_period)} via webhook Asaas (paymentId: ${paymentId}, subscriptionId: ${subscriptionIdFromPayment})`,
-                    updated_at: now,
-                  });
-                if (insertErr) {
-                  console.error(
-                    '[Webhook Asaas] Falha ao inserir request de renovação:',
-                    insertErr,
-                  );
-                } else {
-                  isRenewalInsert = true;
-                  renewalProfileId = subRow.profile_id;
-                  renewalPlanKey = effectivePlanKey;
-                  renewalBillingPeriod = subRow.billing_period ?? 'monthly';
+                const { data: profileRenewal } = await supabase
+                  .from('tb_profiles')
+                  .select('is_trial')
+                  .eq('id', subRow.profile_id)
+                  .maybeSingle();
+                // Trial ativo: primeira cobrança paga no mesmo plano não é ciclo de renovação.
+                // Evita linha `renewed` órfã e deixa o fluxo normal (RPC + request pending).
+                if (profileRenewal?.is_trial !== true) {
+                  const paidValue = payment?.value ?? 0;
+                  const now = utcIsoFrom(nowFn());
+                  const effectivePlanKey =
+                    subRow.plan_key_requested ?? subRow.plan_key_current;
+                  const renewalLine = `${billingPeriodLabel(subRow.billing_period)} via webhook Asaas (paymentId: ${paymentId}, subscriptionId: ${subscriptionIdFromPayment})`;
+                  const { error: insertErr } = await supabase
+                    .from('tb_upgrade_requests')
+                    .insert({
+                      profile_id: subRow.profile_id,
+                      plan_key_current: effectivePlanKey,
+                      plan_key_requested: effectivePlanKey,
+                      billing_type: subRow.billing_type,
+                      billing_period: subRow.billing_period,
+                      snapshot_name: subRow.snapshot_name,
+                      snapshot_cpf_cnpj: subRow.snapshot_cpf_cnpj,
+                      snapshot_email: subRow.snapshot_email,
+                      snapshot_whatsapp: subRow.snapshot_whatsapp,
+                      snapshot_address: subRow.snapshot_address,
+                      asaas_customer_id: subRow.asaas_customer_id ?? undefined,
+                      asaas_subscription_id: subscriptionIdFromPayment,
+                      asaas_payment_id: paymentId,
+                      amount_original: paidValue,
+                      amount_discount: 0,
+                      amount_final: paidValue,
+                      installments: 1,
+                      status: UPGRADE_REQUEST_STATUS_RENEWED,
+                      asaas_raw_status: payment?.status ?? 'RECEIVED',
+                      processed_at: now,
+                      notes: billingNotesForRenewalFromParent(
+                        subRow.notes as string | null | undefined,
+                        renewalLine,
+                      ),
+                      updated_at: now,
+                    });
+                  if (insertErr) {
+                    console.error(
+                      '[Webhook Asaas] Falha ao inserir request de renovação:',
+                      insertErr,
+                    );
+                  } else {
+                    isRenewalInsert = true;
+                    renewalProfileId = subRow.profile_id;
+                    renewalPlanKey = effectivePlanKey;
+                    renewalBillingPeriod = subRow.billing_period ?? 'monthly';
+                  }
                 }
               }
             }
@@ -312,15 +328,24 @@ export async function POST(request: NextRequest) {
                 '[Webhook Asaas] Valor divergente — pagamento NÃO ativado.',
                 amountValidation.reason,
               );
+              const rejectLine =
+                amountValidation.reason ?? 'Valor pago diverge do registrado';
+              const { data: rejectRow } = await supabase
+                .from('tb_upgrade_requests')
+                .select('notes')
+                .eq('asaas_payment_id', paymentId)
+                .maybeSingle();
+              const mergedRejectNotes = appendBillingNotesBlock(
+                rejectRow?.notes ?? null,
+                rejectLine,
+              );
               // Mark the request as rejected due to value mismatch
               await supabase
                 .from('tb_upgrade_requests')
                 .update({
                   status: 'rejected',
-                  notes:
-                    amountValidation.reason ??
-                    'Valor pago diverge do registrado',
-                  updated_at: nowInSaoPauloIso(),
+                  notes: mergedRejectNotes,
+                  updated_at: utcIsoFrom(nowFn()),
                 })
                 .eq('asaas_payment_id', paymentId);
               if (logId) {
@@ -329,7 +354,7 @@ export async function POST(request: NextRequest) {
                   .update({
                     status_code: 422,
                     error_message: amountValidation.reason,
-                    updated_at: nowInSaoPauloIso(),
+                    updated_at: utcIsoFrom(nowFn()),
                   })
                   .eq('id', logId);
               }
@@ -360,11 +385,15 @@ export async function POST(request: NextRequest) {
               paymentMeta?.confirmedDate ??
               paymentMeta?.clientPaymentDate ??
               paymentMeta?.paymentDate ??
-              nowInSaoPauloIso();
+              utcIsoFrom(nowFn());
             const paymentTimestamp =
               /^\d{4}-\d{2}-\d{2}$/.test(paymentTimestampRaw)
                 ? `${paymentTimestampRaw}T00:00:00-03:00`
                 : paymentTimestampRaw;
+            const paymentTimestampDate = new Date(paymentTimestamp);
+            const paymentTimestampIso = Number.isNaN(paymentTimestampDate.getTime())
+              ? utcIsoFrom(nowFn())
+              : utcIsoFrom(paymentTimestampDate);
 
             if (isRenewalInsert && renewalProfileId && renewalPlanKey) {
               const { data: profileRow } = await supabase
@@ -376,19 +405,29 @@ export async function POST(request: NextRequest) {
               const isRenovacao = currentPlan === renewalPlanKey;
 
               if (isRenovacao) {
-                const anchor = new Date(paymentTimestamp);
+                const anchor = new Date(paymentTimestampIso);
                 const expiry = addMonths(
                   anchor,
                   periodMonths(renewalBillingPeriod),
-                ).toISOString();
+                );
+                const renewalNoteLine = `Renovação aprovada via webhook Asaas (paymentId: ${paymentId}). Nova data de vencimento: ${utcIsoFrom(expiry)}.`;
+                const { data: renewNotesRow } = await supabase
+                  .from('tb_upgrade_requests')
+                  .select('notes')
+                  .eq('asaas_payment_id', paymentId)
+                  .maybeSingle();
+                const mergedRenewalNotes = appendBillingNotesBlock(
+                  renewNotesRow?.notes ?? null,
+                  renewalNoteLine,
+                );
                 await supabase
                   .from('tb_upgrade_requests')
                   .update({
                     status: UPGRADE_REQUEST_STATUS_RENEWED,
                     asaas_raw_status: paidStatus,
-                    processed_at: paymentTimestamp,
-                    notes: `Renovação aprovada via webhook Asaas (paymentId: ${paymentId}). Nova data de vencimento: ${expiry}.`,
-                    updated_at: nowInSaoPauloIso(),
+                    processed_at: paymentTimestampIso,
+                    notes: mergedRenewalNotes,
+                    updated_at: utcIsoFrom(nowFn()),
                   })
                   .eq('asaas_payment_id', paymentId);
 
@@ -397,7 +436,7 @@ export async function POST(request: NextRequest) {
                     .from('tb_upgrade_requests')
                     .update({
                       overdue_since: null,
-                      updated_at: nowInSaoPauloIso(),
+                      updated_at: utcIsoFrom(nowFn()),
                     })
                     .eq('asaas_subscription_id', subscriptionId)
                     .in('status', ['approved', UPGRADE_REQUEST_STATUS_RENEWED]);
@@ -414,18 +453,28 @@ export async function POST(request: NextRequest) {
               }
             }
 
+            let mergedUpgradeApprovedNotes: string | undefined;
+            if (!isRenewalInsert) {
+              const { data: approveRow } = await supabase
+                .from('tb_upgrade_requests')
+                .select('notes')
+                .eq('asaas_payment_id', paymentId)
+                .maybeSingle();
+              mergedUpgradeApprovedNotes = appendBillingNotesBlock(
+                approveRow?.notes ?? null,
+                `Upgrade de Plano aprovado via webhook Asaas (paymentId: ${paymentId})`,
+              );
+            }
             await supabase
               .from('tb_upgrade_requests')
               .update({
                 status: 'approved',
                 asaas_raw_status: paidStatus,
-                processed_at: paymentTimestamp,
-                ...(!isRenewalInsert
-                  ? {
-                      notes: `Upgrade de Plano aprovado via webhook Asaas (paymentId: ${paymentId})`,
-                    }
+                processed_at: paymentTimestampIso,
+                ...(!isRenewalInsert && mergedUpgradeApprovedNotes
+                  ? { notes: mergedUpgradeApprovedNotes }
                   : {}),
-                updated_at: nowInSaoPauloIso(),
+                updated_at: utcIsoFrom(nowFn()),
               })
               .eq('asaas_payment_id', paymentId)
               .in('status', ['pending', 'processing', 'pending_change']);
@@ -480,7 +529,7 @@ export async function POST(request: NextRequest) {
                 .from('tb_upgrade_requests')
                 .update({
                   overdue_since: null,
-                  updated_at: nowInSaoPauloIso(),
+                  updated_at: utcIsoFrom(nowFn()),
                 })
                 .eq('asaas_subscription_id', subscriptionId)
                 .eq('status', 'approved');
@@ -499,8 +548,8 @@ export async function POST(request: NextRequest) {
               await supabase
                 .from('tb_upgrade_requests')
                 .update({
-                  overdue_since: nowInSaoPauloIso(),
-                  updated_at: nowInSaoPauloIso(),
+                  overdue_since: utcIsoFrom(nowFn()),
+                  updated_at: utcIsoFrom(nowFn()),
                 })
                 .eq('asaas_subscription_id', subscriptionIdOverdue)
                 .eq('status', 'approved')
@@ -613,7 +662,7 @@ export async function POST(request: NextRequest) {
                   .from('tb_upgrade_requests')
                   .update({
                     status: 'cancelled',
-                    updated_at: nowInSaoPauloIso(),
+                    updated_at: utcIsoFrom(nowFn()),
                   })
                   .eq('id', subReq.id)
                   .neq('status', 'cancelled');
@@ -667,7 +716,7 @@ export async function POST(request: NextRequest) {
       if (logId) {
         await supabase
           .from('tb_webhook_logs')
-          .update({ status_code: 200, updated_at: nowInSaoPauloIso() })
+          .update({ status_code: 200, updated_at: utcIsoFrom(nowFn()) })
           .eq('id', logId);
       }
     } catch (err) {
@@ -680,7 +729,7 @@ export async function POST(request: NextRequest) {
           .update({
             status_code: 500,
             error_message: errorMessage,
-            updated_at: nowInSaoPauloIso(),
+            updated_at: utcIsoFrom(nowFn()),
           })
           .eq('id', logId);
       }

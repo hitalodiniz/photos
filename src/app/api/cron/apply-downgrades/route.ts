@@ -1,6 +1,7 @@
 // src/app/api/cron/apply-downgrades/route.ts
 import { NextRequest, NextResponse } from 'next/server';
 import { createSupabaseAdmin } from '@/lib/supabase.server';
+import { now as nowFn, utcIsoFrom } from '@/core/utils/data-helpers';
 import { performDowngradeToFree } from '@/core/services/asaas.service';
 import { getNeedsAdjustment } from '@/core/services/asaas/gallery/adjustments';
 import {
@@ -11,6 +12,7 @@ import {
 import { getAsaasSubscription } from '@/core/services/asaas/api/subscriptions';
 import type { PlanKey } from '@/core/config/plans';
 import { enforcePhotoQuotaByArchivingOldest } from '@/core/services/asaas/gallery/quota-enforcement';
+import { appendBillingNotesBlock } from '@/core/services/asaas/utils/billing-notes-doc';
 
 const OVERDUE_GRACE_DAYS = 5;
 
@@ -21,7 +23,7 @@ export async function GET(req: NextRequest) {
   }
 
   const supabase = createSupabaseAdmin();
-  const now = new Date();
+  const now = nowFn();
   const results = {
     processed: 0,
     skipped: 0,
@@ -33,7 +35,7 @@ export async function GET(req: NextRequest) {
   const { data: scheduledPendingDowngrade, error: scheduledPendingDowngradeErr } = await supabase
     .from('tb_upgrade_requests')
     .select(
-      'id, profile_id, plan_key_requested, billing_period, processed_at, notes',
+      'id, profile_id, plan_key_requested, billing_period, processed_at, scheduled_cancel_at, notes, status, asaas_raw_status',
     )
     .eq('status', 'pending_downgrade')
     .order('created_at', { ascending: true });
@@ -42,7 +44,7 @@ export async function GET(req: NextRequest) {
     await supabase
       .from('tb_upgrade_requests')
       .select(
-        'id, profile_id, plan_key_requested, billing_period, processed_at, notes',
+        'id, profile_id, plan_key_requested, billing_period, processed_at, scheduled_cancel_at, notes, status, asaas_raw_status',
       )
       .eq('status', 'pending_cancellation')
     .order('created_at', { ascending: true });
@@ -67,14 +69,49 @@ export async function GET(req: NextRequest) {
   for (const row of scheduled ?? []) {
     try {
       const fromNotes = parseExpiryFromNotes(row.notes);
-      const accessEndsAt = fromNotes
-        ? fromNotes
-        : addMonths(
-            new Date(row.processed_at ?? now),
-            billingPeriodToMonths(row.billing_period),
-          );
+      const fromScheduledCancelAt = row.scheduled_cancel_at
+        ? new Date(row.scheduled_cancel_at)
+        : null;
+      const processedAtDate = row.processed_at ? new Date(row.processed_at) : null;
+      const isPendingScheduledStatus =
+        row.status === 'pending_downgrade' ||
+        row.status === 'pending_cancellation';
+      const accessEndSource = fromNotes
+        ? 'notes'
+        : fromScheduledCancelAt
+          ? 'scheduled_cancel_at'
+          : isPendingScheduledStatus &&
+              processedAtDate &&
+              processedAtDate.getTime() > now.getTime()
+            ? 'processed_at'
+            : 'processed_at_plus_billing_period';
 
-      if (accessEndsAt > now) {
+      // Regras de prioridade para determinar quando o acesso termina:
+      // 1) "Acesso até" vindo de notes (quando existir).
+      // 2) scheduled_cancel_at explícito (fonte mais confiável para cancelamento agendado).
+      // 3) Em pending_* com processed_at no futuro, processed_at já representa o fim do acesso.
+      // 4) Fallback legado: processed_at + período de cobrança.
+      const accessEndsAt =
+        fromNotes ??
+        fromScheduledCancelAt ??
+        (isPendingScheduledStatus &&
+        processedAtDate &&
+        processedAtDate.getTime() > now.getTime()
+          ? processedAtDate
+          : addMonths(
+              new Date(row.processed_at ?? utcIsoFrom(now)),
+              billingPeriodToMonths(row.billing_period),
+            ));
+
+      if (accessEndsAt.getTime() > now.getTime()) {
+        const skipNote = `[Cron apply-downgrades] ${utcIsoFrom(now)} - Ainda dentro do período pago. origem_data_fim=${accessEndSource}; access_ends_at=${utcIsoFrom(accessEndsAt)}; status=${row.status}; asaas_raw_status=${row.asaas_raw_status ?? 'n/a'}`;
+        await supabase
+          .from('tb_upgrade_requests')
+          .update({
+            notes: appendBillingNotesBlock(row.notes, skipNote),
+            updated_at: utcIsoFrom(now),
+          })
+          .eq('id', row.id);
         results.skipped++;
         continue;
       }
@@ -82,13 +119,29 @@ export async function GET(req: NextRequest) {
       const result = await performDowngradeToFree(
         row.profile_id,
         row.id,
-        `Downgrade automático (cron): período pago encerrado em ${accessEndsAt.toISOString()}`,
+        `Downgrade automático (cron): período pago encerrado em ${utcIsoFrom(accessEndsAt)}`,
       );
 
       if (result.success) {
+        const successNote = `[Cron apply-downgrades] ${utcIsoFrom(now)} - Downgrade aplicado para FREE. origem_data_fim=${accessEndSource}; access_ends_at=${utcIsoFrom(accessEndsAt)}; status=${row.status}; asaas_raw_status=${row.asaas_raw_status ?? 'n/a'}`;
+        await supabase
+          .from('tb_upgrade_requests')
+          .update({
+            notes: appendBillingNotesBlock(row.notes, successNote),
+            updated_at: utcIsoFrom(now),
+          })
+          .eq('id', row.id);
         await enforcePhotoQuotaByArchivingOldest(supabase, row.profile_id, 'FREE');
         results.processed++;
       } else {
+        const errorNote = `[Cron apply-downgrades] ${utcIsoFrom(now)} - Falha ao aplicar downgrade. origem_data_fim=${accessEndSource}; access_ends_at=${utcIsoFrom(accessEndsAt)}; erro=${result.error}`;
+        await supabase
+          .from('tb_upgrade_requests')
+          .update({
+            notes: appendBillingNotesBlock(row.notes, errorNote),
+            updated_at: utcIsoFrom(now),
+          })
+          .eq('id', row.id);
         results.errors.push(`[scheduled] ${row.id}: ${result.error}`);
       }
     } catch (e) {
@@ -99,9 +152,8 @@ export async function GET(req: NextRequest) {
   }
 
   // ── 2. Downgrade por atraso (approved + overdue_since + 5 dias) ───────────
-  const graceCutoff = new Date(
-    now.getTime() - OVERDUE_GRACE_DAYS * 24 * 60 * 60 * 1000,
-  );
+  const graceCutoffMs =
+    now.getTime() - OVERDUE_GRACE_DAYS * 24 * 60 * 60 * 1000;
 
   const { data: overdue, error: overdueErr } = await supabase
     .from('tb_upgrade_requests')
@@ -110,7 +162,7 @@ export async function GET(req: NextRequest) {
     )
     .eq('status', 'approved')
     .not('overdue_since', 'is', null)
-    .lte('overdue_since', graceCutoff.toISOString())
+    .lte('overdue_since', utcIsoFrom(new Date(graceCutoffMs)))
     .order('overdue_since', { ascending: true });
 
   if (overdueErr) {
@@ -124,7 +176,7 @@ export async function GET(req: NextRequest) {
         if (sub.success && sub.status === 'ACTIVE') {
           await supabase
             .from('tb_upgrade_requests')
-            .update({ overdue_since: null, updated_at: now.toISOString() })
+            .update({ overdue_since: null, updated_at: utcIsoFrom(now) })
             .eq('id', row.id);
           results.skipped++;
           continue;
@@ -169,7 +221,7 @@ export async function GET(req: NextRequest) {
       'id, profile_id, plan_key_current, plan_key_requested, billing_period, processed_at, asaas_subscription_id',
     )
     .eq('status', 'pending_change')
-    .lte('processed_at', now.toISOString())
+    .lte('processed_at', utcIsoFrom(now))
     .order('processed_at', { ascending: true });
 
   if (pendingChangeErr) {
@@ -198,6 +250,8 @@ export async function GET(req: NextRequest) {
       const newMetadata = {
         ...(profileRow?.metadata ?? {}),
         last_downgrade_alert_viewed: false,
+        downgrade_reason: `Mudança agendada aplicada (cron). Registro: ${row.id}`,
+        downgrade_at: utcIsoFrom(now),
       };
 
       const { error: planError } = await supabase
@@ -206,7 +260,7 @@ export async function GET(req: NextRequest) {
           plan_key: newPlanKey,
           metadata: newMetadata,
           is_cancelling: false,
-          updated_at: now.toISOString(),
+          updated_at: utcIsoFrom(now),
         })
         .eq('id', profileId);
 
@@ -230,7 +284,7 @@ export async function GET(req: NextRequest) {
         .from('tb_upgrade_requests')
         .update({
           status: 'approved',
-          updated_at: now.toISOString(),
+          updated_at: utcIsoFrom(now),
         })
         .eq('id', row.id);
 
@@ -250,7 +304,7 @@ export async function GET(req: NextRequest) {
           .update({
             is_public: false,
             auto_archived: true,
-            updated_at: now.toISOString(),
+            updated_at: utcIsoFrom(now),
           })
           .in('id', excessIds);
         if (hideError) {
@@ -299,7 +353,7 @@ export async function GET(req: NextRequest) {
           .update({
             is_public: false,
             auto_archived: true,
-            updated_at: now.toISOString(),
+            updated_at: utcIsoFrom(now),
           })
           .in('id', excessIds);
 
@@ -339,7 +393,7 @@ export async function GET(req: NextRequest) {
 
   return NextResponse.json({
     ok: true,
-    timestamp: now.toISOString(),
+    timestamp: utcIsoFrom(now),
     ...results,
   });
 }

@@ -20,7 +20,7 @@ interface PlanGuardProps {
   infoExtra?: string;
   scenarioType?: 'limit' | 'feature';
   forceShowLock?: boolean;
-  variant?: 'default' | 'mini';
+  variant?: 'default' | 'mini' | 'tiny';
 }
 
 /**
@@ -107,6 +107,7 @@ export function PlanGuard({
   if (hasAccess) return <>{children}</>;
 
   const isMini = variant === 'mini';
+  const isTiny = variant === 'tiny';
 
   const upgradeMessage = requiredPlan
     ? `Disponível no Plano ${requiredPlan} ou superior`
@@ -116,7 +117,7 @@ export function PlanGuard({
     <>
       <div
         className={`relative transition-all duration-500 ${
-          isMini
+          isMini || isTiny
             ? 'rounded-md'
             : 'rounded-luxury border border-gold/20 p-4 bg-slate-50/10'
         }`}
@@ -139,7 +140,11 @@ export function PlanGuard({
 
         {/* 3. UI DE BLOQUEIO */}
         <div className="absolute inset-0 z-[10] pointer-events-none flex items-center justify-center">
-          {isMini ? (
+          {isTiny ? (
+            <div className="absolute -top-1 -right-1 bg-petroleum p-1 rounded-full shadow-md border border-gold/30">
+              <Lock size={8} className="text-champagne" strokeWidth={3} />
+            </div>
+          ) : isMini ? (
             <div className="flex items-center gap-2">
               <div className="bg-petroleum backdrop-blur-sm p-1.5 rounded-full shadow-lg border border-gold/30">
                 <Lock size={12} className="text-champagne" strokeWidth={3} />
@@ -176,7 +181,7 @@ export function PlanGuard({
         </div>
 
         {/* 4. BADGE DE PLANO */}
-        {requiredPlan && !isMini && (
+        {requiredPlan && !isMini && !isTiny && (
           <div
             className={`absolute z-[1003] flex items-center bg-petroleum rounded-full border border-gold/30 shadow-lg pointer-events-none
             top-3 right-3 px-2.5 py-1`}

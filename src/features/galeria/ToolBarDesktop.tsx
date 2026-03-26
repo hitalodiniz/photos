@@ -130,8 +130,11 @@ export const ToolBarDesktop = ({
     return () => document.removeEventListener('mousedown', handler);
   }, []);
 
-  const toggleDrawer = (name: 'info' | 'layout' | 'tags') =>
+  const toggleDrawer = (name: 'info' | 'layout' | 'tags') => {
+    // Não abre a gaveta de tags quando a galeria não possui tags válidas.
+    if (name === 'tags' && !hasTags) return;
     setOpenDrawer((prev) => (prev === name ? null : name));
+  };
 
   const toggleTag = (tag: string) => {
     if (tag === '') {
@@ -173,6 +176,7 @@ export const ToolBarDesktop = ({
 
           <button
             onClick={() => toggleDrawer('layout')}
+            data-tour="layout"
             className={`${btnBase} shrink-0 ${openDrawer === 'layout' ? 'pub-bar-active border' : 'pub-bar-text'}`}
           >
             <Wand2 size={15} className="pub-bar-icon" />
@@ -194,6 +198,7 @@ export const ToolBarDesktop = ({
 
               <button
                 onClick={() => toggleDrawer('tags')}
+                data-tour="tags"
                 className={`${btnBase} shrink-0 ${openDrawer === 'tags' ? 'pub-bar-active border' : 'pub-bar-text'}`}
               >
                 <TagIcon size={15} className="pub-bar-icon" />
@@ -251,6 +256,7 @@ export const ToolBarDesktop = ({
             {canUseFavorites && (
               <button
                 onClick={() => setShowOnlyFavorites(!showOnlyFavorites)}
+                data-tour="favorites"
                 className={`flex items-center justify-center rounded-md h-8 border transition-all w-28 gap-2 ${
                   showOnlyFavorites
                     ? galeria.has_contracting_client === 'ES'
@@ -283,6 +289,7 @@ export const ToolBarDesktop = ({
 
             <button
               onClick={handleShare}
+              data-tour="share"
               className="flex items-center justify-center rounded-md h-8 border pub-bar-btn w-28 gap-2 hover:bg-green-600 hover:text-white hover:border-green-600 transition-all"
             >
               <WhatsAppIcon className="w-[15px] h-[15px] pub-bar-icon" />
@@ -315,6 +322,7 @@ export const ToolBarDesktop = ({
                   e.stopPropagation();
                   downloadAllAsZip();
                 }}
+                data-tour="download"
                 disabled={isDownloading}
                 className="flex items-center justify-center rounded-md pub-bar-btn-cta h-8 shadow-xl transition-all disabled:opacity-50 w-28 gap-2 px-4 border"
               >

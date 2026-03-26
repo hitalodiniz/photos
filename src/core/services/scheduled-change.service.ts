@@ -22,6 +22,7 @@ import {
   createSupabaseServerClient,
 } from '@/lib/supabase.server';
 import { getAuthenticatedUser } from '@/core/services/auth-context.service';
+import { now as nowFn, utcIsoFrom } from '@/core/utils/data-helpers';
 import { revalidateUserCache } from '@/actions/revalidate.actions';
 import {
   PLANS_BY_SEGMENT,
@@ -52,6 +53,7 @@ import {
   removeAsaasSubscriptionEndDate,
 } from './asaas/api/subscriptions';
 import { getCurrentActiveRequest } from './asaas.service';
+import { appendBillingNotesBlock } from './asaas/utils/billing-notes-doc';
 
 // ─────────────────────────────────────────────────────────────────────────────
 // scheduleDowngradeChange
@@ -136,10 +138,10 @@ export async function scheduleDowngradeChange(
   const monthsCurrent = billingPeriodToMonths(currentRequest.billing_period);
   let currentPlanExpiresAt = addMonths(startDate, monthsCurrent);
   const expiryFromNotes = parseExpiryFromNotes(currentRequest.notes);
-  if (expiryFromNotes && expiryFromNotes > currentPlanExpiresAt)
+  if (expiryFromNotes && expiryFromNotes.getTime() > currentPlanExpiresAt.getTime())
     currentPlanExpiresAt = expiryFromNotes;
 
-  const now = new Date();
+  const now = nowFn();
   const daysSincePurchase = Math.floor(
     (now.getTime() - startDate.getTime()) / (1000 * 60 * 60 * 24),
   );
@@ -155,7 +157,7 @@ export async function scheduleDowngradeChange(
     };
 
   // Não agenda se já expirou
-  if (currentPlanExpiresAt <= now)
+  if (currentPlanExpiresAt.getTime() <= now.getTime())
     return { success: false, error: 'O plano atual já expirou.' };
 
   // Verifica se já existe pending_change para este usuário
@@ -176,9 +178,9 @@ export async function scheduleDowngradeChange(
     };
   }
 
-  const endDateStr = currentPlanExpiresAt.toISOString().split('T')[0];
+  const endDateStr = utcIsoFrom(currentPlanExpiresAt).split('T')[0];
   const newPlanStartsAt = addDays(currentPlanExpiresAt, 1);
-  const nextDueDateStr = newPlanStartsAt.toISOString().split('T')[0];
+  const nextDueDateStr = utcIsoFrom(newPlanStartsAt).split('T')[0];
 
   // ── Upsert billing profile + customer Asaas ──────────────────────────────
   const billingFullName = payload.full_name?.trim() ?? profile.full_name ?? '';
@@ -230,7 +232,7 @@ export async function scheduleDowngradeChange(
     .from('tb_billing_profiles')
     .update({
       asaas_customer_id: asaasCustomerId,
-      updated_at: now.toISOString(),
+      updated_at: utcIsoFrom(now),
     })
     .eq('id', userId);
 
@@ -358,7 +360,7 @@ export async function scheduleDowngradeChange(
       installments: 1,
       status: 'pending_change',
       // processed_at = data em que a mudança deve ser aplicada (dia seguinte ao vencimento atual)
-      processed_at: newPlanStartsAt.toISOString(),
+      processed_at: utcIsoFrom(newPlanStartsAt),
       notes,
     })
     .select('id')
@@ -385,7 +387,7 @@ export async function scheduleDowngradeChange(
     billing_type: payload.billing_type,
     request_id: insertRow?.id,
     is_scheduled_change: true,
-    scheduled_change_effective_at: newPlanStartsAt.toISOString(),
+    scheduled_change_effective_at: utcIsoFrom(newPlanStartsAt),
   };
 }
 
@@ -412,7 +414,7 @@ export async function cancelScheduledChange(): Promise<{
   // Busca o pending_change ativo
   const { data: pendingChange } = await supabase
     .from('tb_upgrade_requests')
-    .select('id, asaas_subscription_id, plan_key_current')
+    .select('id, asaas_subscription_id, plan_key_current, notes')
     .eq('profile_id', userId)
     .eq('status', 'pending_change')
     .order('created_at', { ascending: false })
@@ -466,8 +468,11 @@ export async function cancelScheduledChange(): Promise<{
     .from('tb_upgrade_requests')
     .update({
       status: 'cancelled',
-      notes: 'Intenção de mudança cancelada pelo usuário antes do vencimento.',
-      updated_at: new Date().toISOString(),
+      notes: appendBillingNotesBlock(
+        pendingChange.notes ?? null,
+        'Intenção de mudança cancelada pelo usuário antes do vencimento.',
+      ),
+      updated_at: utcIsoFrom(nowFn()),
     })
     .eq('id', pendingChange.id);
 

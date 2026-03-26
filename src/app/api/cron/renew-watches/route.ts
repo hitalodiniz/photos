@@ -1,4 +1,5 @@
 import { NextResponse } from 'next/server';
+import { now as nowFn, utcIsoFrom } from '@/core/utils/data-helpers';
 import { createSupabaseAdmin } from '@/lib/supabase.server';
 import { getDriveAccessTokenForUser } from '@/lib/google-auth';
 import { registerFolderWatch } from '@/core/services/drive-watch.service';
@@ -11,7 +12,7 @@ export async function GET(req: Request) {
 
   // Cliente admin: cron não tem sessão; RLS bloquearia leitura com anon
   const supabase = createSupabaseAdmin();
-  const in24h = Date.now() + 24 * 60 * 60 * 1000;
+  const in24h = nowFn().getTime() + 24 * 60 * 60 * 1000;
 
   const { data: expiring } = await supabase
     .from('tb_drive_watch_channels')

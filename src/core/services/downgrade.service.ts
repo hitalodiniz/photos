@@ -7,6 +7,8 @@ import {
 import { revalidateProfileComplete } from '@/actions/revalidate.actions';
 import { getNeedsAdjustment } from './asaas'; // Ajuste conforme seu caminho
 import { revalidatePath } from 'next/cache';
+import { now as nowFn, utcIsoFrom } from '@/core/utils/data-helpers';
+import { createBillingNotesForNewUpgradeRequest } from './asaas/utils/billing-notes-doc';
 
 export async function performDowngradeToFree(
   profileId: string,
@@ -48,7 +50,7 @@ export async function performDowngradeToFree(
     ...(profile.metadata ?? {}),
     last_downgrade_alert_viewed: false,
     downgrade_reason: reason,
-    downgrade_at: new Date().toISOString(),
+    downgrade_at: utcIsoFrom(nowFn()),
   };
 
   const { error: planError } = await supabase
@@ -57,7 +59,7 @@ export async function performDowngradeToFree(
       plan_key: 'FREE',
       is_trial: false,
       metadata: newMetadata,
-      updated_at: new Date().toISOString(),
+      updated_at: utcIsoFrom(nowFn()),
     })
     .eq('id', profileId);
 
@@ -84,8 +86,8 @@ export async function performDowngradeToFree(
       .from('tb_upgrade_requests')
       .update({
         status: 'cancelled',
-        notes: reason,
-        processed_at: new Date().toISOString(),
+        notes: createBillingNotesForNewUpgradeRequest({ logBody: reason }),
+        processed_at: utcIsoFrom(nowFn()),
       })
       .eq('id', upgradeRequestId);
   }
@@ -105,7 +107,7 @@ export async function performDowngradeToFree(
       .update({
         is_archived: true, // Sua regra de negócio: arquivado = inativo
         auto_archived: true, // Marca que foi o sistema
-        updated_at: new Date().toISOString(),
+        updated_at: utcIsoFrom(nowFn()),
       })
       .in('id', excessIds);
 

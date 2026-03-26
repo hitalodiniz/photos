@@ -2,6 +2,7 @@
 'use server';
 
 import { createSupabaseServerClient } from '@/lib/supabase.server';
+import { now as nowFn, utcIsoFrom } from '@/core/utils/data-helpers';
 import type { BillingProfile } from '@/core/types/billing';
 
 export async function upsertBillingProfile(
@@ -27,7 +28,7 @@ export async function upsertBillingProfile(
       ...(data.asaas_customer_id != null && {
         asaas_customer_id: data.asaas_customer_id,
       }),
-      updated_at: new Date().toISOString(),
+      updated_at: utcIsoFrom(nowFn()),
     },
     { onConflict: 'id', ignoreDuplicates: false },
   );

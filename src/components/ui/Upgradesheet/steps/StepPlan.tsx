@@ -394,11 +394,7 @@ export function StepPlan() {
               <>
                 {' '}
                 Na etapa <strong>Pagamento</strong> você verá por quantos dias
-                esse crédito cobre o plano e a data do próximo vencimento (
-                {downgradeCreditMonths >= 1
-                  ? `cerca de ${downgradeCreditMonths} ${downgradeCreditMonths === 1 ? 'mês' : 'meses'}`
-                  : `${downgradeCreditDays} dias`}
-                ). A próxima fatura será nessa data.
+                esse crédito cobre o plano e a data do próximo vencimento.
               </>
             ) : (
               ' Na etapa Pagamento você verá a data do próximo vencimento.'

@@ -18,6 +18,7 @@
  */
 
 import { describe, it, expect, vi, beforeEach } from 'vitest';
+import { now as nowFn, utcIsoFrom } from '@/core/utils/data-helpers';
 import { getAuthenticatedUser } from '@/core/services/auth-context.service';
 import { getPeriodPrice, getPixAdjustedTotal, PIX_DISCOUNT_PERCENT, PLANS_BY_SEGMENT } from '@/core/config/plans';
 
@@ -726,7 +727,7 @@ describe('requestUpgrade — rejeita quando há pending_change ativo', () => {
     vi.stubGlobal('fetch', defaultSuccessFetch());
     const pendingNormal = {
       id: 'pending-1',
-      created_at: new Date().toISOString(),
+      created_at: utcIsoFrom(nowFn()),
       plan_key_requested: 'PRO',
       billing_type: 'PIX',
       billing_period: 'monthly',

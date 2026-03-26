@@ -15,6 +15,7 @@ import {
 import { Sheet, SheetSection, SheetFooter } from '@/components/ui/Sheet';
 import type { UpgradeRequest } from '@/core/types/billing';
 import { CANCEL_REASONS } from './CancelSubscriptionModal';
+import { parseBillingNotesDoc } from '@/core/services/asaas/utils/billing-notes-doc';
 
 const BILLING_TYPE_LABELS: Record<string, string> = {
   CREDIT_CARD: 'Cartão de Crédito',
@@ -72,42 +73,38 @@ function formatPaymentChangeLine(line: string): string {
   )}: de ${fromLabel} para ${toLabel}`;
 }
 
-type NotesKind = 'empty' | 'json' | 'text';
+type NotesKind = 'empty' | 'billing_v1' | 'invalid';
 
 function parseNotes(notes: string | null | undefined): {
   kind: NotesKind;
-  raw: string;
-  json?: Record<string, unknown>;
+  raw?: string;
   lines?: string[];
   paymentChanges?: string[];
   operationDetails?: string[];
 } {
   const raw = (notes ?? '').trim();
-  if (!raw) return { kind: 'empty', raw: '' };
+  if (!raw) return { kind: 'empty' };
 
-  if (raw.startsWith('{')) {
-    try {
-      const json = JSON.parse(raw) as Record<string, unknown>;
-      return { kind: 'json', raw, json };
-    } catch {
-      // fallthrough to text
-    }
+  try {
+    const doc = parseBillingNotesDoc(raw);
+    const lines = doc.log.map((l) => l.trim()).filter(Boolean);
+    const paymentChanges = lines.filter((l) =>
+      l.startsWith('[PaymentMethodChange '),
+    );
+    const operationDetails = lines.filter(
+      (l) =>
+        l.toLowerCase().includes('aproveitamento de crédito') ||
+        l.toLowerCase().includes('upgrade gratuito'),
+    );
+    return {
+      kind: 'billing_v1',
+      lines,
+      paymentChanges,
+      operationDetails,
+    };
+  } catch {
+    return { kind: 'invalid', raw };
   }
-
-  const lines = raw
-    .split(/\r?\n/)
-    .map((l) => l.trim())
-    .filter(Boolean);
-  const paymentChanges = lines.filter((l) =>
-    l.startsWith('[PaymentMethodChange '),
-  );
-  const operationDetails = lines.filter(
-    (l) =>
-      l.toLowerCase().includes('aproveitamento de crédito') ||
-      l.toLowerCase().includes('upgrade gratuito'),
-  );
-
-  return { kind: 'text', raw, lines, paymentChanges, operationDetails };
 }
 
 function statusLabel(status: string | null | undefined): string {
@@ -207,16 +204,14 @@ function buildTimeline(
     });
   }
 
+  // Cancelamento solicitado: não duplicar — a seção de scheduleLines abaixo já
+  // renderiza "Ciclo de cancelamento" (e motivo) a partir da mesma linha.
   for (const line of lines) {
     const lower = line.toLowerCase();
     if (lower.includes('cancelamento solicitado')) {
-      events.push({
-        title: 'Cancelamento/downgrade agendado',
-        description: formatLineDatesToSaoPaulo(line),
-        date: parseIsoDateFromLine(line),
-        tone: 'warning',
-      });
-    } else if (lower.includes('sincronização asaas')) {
+      continue;
+    }
+    if (lower.includes('sincronização asaas')) {
       events.push({
         title: 'Sincronização com Asaas',
         description: formatLineDatesToSaoPaulo(line),
@@ -238,17 +233,24 @@ function buildTimeline(
 
 export function UpgradeRequestNotesSheet({
   request,
+  isAdmin = false,
   onClose,
 }: {
   request: UpgradeRequest | null;
+  isAdmin?: boolean;
   onClose: () => void;
 }) {
   const parsed = parseNotes(request?.notes);
   const timeline = request ? buildTimeline(request, parsed) : [];
+  const cronPrefix = '[Cron apply-downgrades]';
   const noteLines = parsed.lines ?? [];
-  const asaasFieldsFromText = extractAsaasFieldsFromText(noteLines);
+  const visibleNoteLines = isAdmin
+    ? noteLines
+    : noteLines.filter((line) => !line.startsWith(cronPrefix));
+  const asaasFieldsFromText = extractAsaasFieldsFromText(visibleNoteLines);
   const scheduleLines = noteLines.filter(
     (line) =>
+      (isAdmin || !line.startsWith(cronPrefix)) &&
       !parsed.paymentChanges?.includes(line) &&
       !parsed.operationDetails?.includes(line),
   );
@@ -261,7 +263,7 @@ export function UpgradeRequestNotesSheet({
     request?.status === 'pending_downgrade' ||
     request?.status === 'pending_cancellation'
       ? 'Cancelamento'
-      : 'Observações';
+      : 'Registros';
 
   const subtitle = request
     ? `${request.plan_key_requested ?? 'Plano'} • ${request.billing_type ?? '—'}`
@@ -287,8 +289,8 @@ export function UpgradeRequestNotesSheet({
       position="right"
       footer={
         <SheetFooter className="bg-slate-50 border-t border-slate-100">
-          <p className="text-[9px] text-slate-400 italic">
-            Registro interno do sistema (notes)
+          <p className="text-[10px] text-slate-700 font-medium italic">
+            Registro de transações do aplicativo (notes)
           </p>
         </SheetFooter>
       }
@@ -428,38 +430,7 @@ export function UpgradeRequestNotesSheet({
             </SheetSection>
           )}
 
-          {parsed.kind === 'json' && parsed.json && (
-            <>
-              <SheetSection title="Detalhes do cancelamento">
-                <div className="space-y-2 text-[11px] text-slate-700">
-                  <div className="flex items-center gap-2 font-medium text-petroleum">
-                    <AlertTriangle size={16} className="text-gold" />
-                    {String(parsed.json.reason ?? 'Cancelamento')}
-                  </div>
-                  {parsed.json.comment && (
-                    <p className="text-slate-700">
-                      <span className="font-medium">Comentário:</span>{' '}
-                      {String(parsed.json.comment)}
-                    </p>
-                  )}
-                  {parsed.json.detail && (
-                    <p className="text-slate-700">
-                      <span className="font-medium">Detalhe:</span>{' '}
-                      {String(parsed.json.detail)}
-                    </p>
-                  )}
-                </div>
-              </SheetSection>
-
-              {/* <SheetSection title="Logs brutos (JSON)">
-                <div className="p-4 bg-petroleum rounded-luxury text-champagne font-mono text-[10px] overflow-x-auto whitespace-pre">
-                  {JSON.stringify(parsed.json, null, 2)}
-                </div>
-              </SheetSection> */}
-            </>
-          )}
-
-          {parsed.kind === 'text' && (
+          {parsed.kind === 'billing_v1' && (
             <>
               {!!parsed.operationDetails?.length && (
                 <SheetSection title="Detalhes da Operação">
@@ -498,7 +469,7 @@ export function UpgradeRequestNotesSheet({
               )}
 
               {!!scheduleLines.length && (
-                <SheetSection title="Detalhes do Agendamento">
+                <SheetSection>
                   <div className="space-y-3 antialiased">
                     {scheduleLines.map((line, idx) => {
                       // Detecta se é a linha de log de cancelamento solicitado
@@ -578,10 +549,7 @@ export function UpgradeRequestNotesSheet({
                                 className="text-petroleum/70 mt-0.5"
                               />
                             )}
-                            {friendlyLine.replace(
-                              'Comentário:',
-                              '💬 Observação:',
-                            )}
+                            {friendlyLine.replace('Comentário:', 'Registro:')}
                           </span>
                         </div>
                       );
@@ -598,8 +566,28 @@ export function UpgradeRequestNotesSheet({
             </>
           )}
 
+          {parsed.kind === 'invalid' && (
+            <SheetSection title="Notas">
+              <p className="text-[11px] text-slate-600">
+                Não foi possível ler o registro como JSON de faturamento (v1 com{' '}
+                <code className="font-mono text-[10px]">log[]</code>). Pode ser
+                dado antigo corrompido ou escrito fora do app.
+              </p>
+              {isAdmin && !!parsed.raw?.trim() && (
+                <div className="mt-2 p-2 rounded border border-amber-200 bg-amber-50/80">
+                  <p className="text-[9px] font-semibold text-amber-900 uppercase mb-1">
+                    Conteúdo bruto (admin)
+                  </p>
+                  <pre className="text-[10px] font-mono text-slate-800 whitespace-pre-wrap break-all max-h-48 overflow-y-auto">
+                    {parsed.raw}
+                  </pre>
+                </div>
+              )}
+            </SheetSection>
+          )}
+
           {parsed.kind === 'empty' && (
-            <SheetSection title="Sem observações">
+            <SheetSection title="Sem registros">
               <p className="text-[11px] text-slate-600">
                 Nenhum detalhe registrado.
               </p>

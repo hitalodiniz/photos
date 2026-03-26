@@ -18,6 +18,7 @@ import {
   UserRound,
   Sparkles,
   ShieldCheck,
+  Globe,
 } from 'lucide-react';
 import { useAuth } from '@photos/core-auth';
 import EditorialCard from '@/components/ui/EditorialCard';
@@ -189,6 +190,13 @@ export default function PlanosContent() {
                   label: 'Arquivos/galeria',
                   value: `até ${perms.maxPhotosPerGallery}`,
                   permKey: 'maxPhotosPerGallery',
+                },
+
+                {
+                  icon: <Globe />,
+                  label: 'Subdomínio',
+                  value: perms.useSubdomain ? 'Ativado' : 'Não',
+                  permKey: 'useSubdomain',
                 },
                 {
                   icon: <BarChart2 />,

@@ -31,7 +31,11 @@ import { saveGaleriaSelectionAction } from '@/core/services/galeria.service';
 import { div } from 'framer-motion/client';
 import { GaleriaTour } from './ToolBarDesktopTour';
 
-export default function PhotoGrid({ photos, galeria }: any) {
+export default function PhotoGrid({
+  photos,
+  galeria,
+  canStartTour = true,
+}: any) {
   const { planKey, permissions } = usePlan();
 
   const [selectedPhotoIndex, setSelectedPhotoIndex] = useState<number | null>(
@@ -165,6 +169,7 @@ export default function PhotoGrid({ photos, galeria }: any) {
     ],
     [photosWithTags],
   );
+  const hasRealTags = tagsDaGaleria.length > 1;
 
   const displayedPhotos = useMemo(
     () =>
@@ -495,7 +500,8 @@ export default function PhotoGrid({ photos, galeria }: any) {
       <GaleriaTour
         galeriaId={galeria.id}
         canUseFavorites={canUseFavorites}
-        hasTags={tagsDaGaleria.length > 0}
+        hasTags={hasRealTags}
+        canStartTour={canStartTour}
         onOpenDrawer={setOpenDrawer}
       />
       <ToolBarDesktop

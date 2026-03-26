@@ -17,6 +17,7 @@ interface GaleriaViewProps {
 export default function GaleriaView({ galeria, photos }: GaleriaViewProps) {
   const isMobile = useIsMobile();
   const [isPageLoading, setIsPageLoading] = useState(true);
+  const [isHeroExpanded, setIsHeroExpanded] = useState(true);
   const systemThemeForRestoreRef = useRef<string | null>(null);
 
   // Resolve o tema da galeria uma vez, estável
@@ -120,13 +121,18 @@ export default function GaleriaView({ galeria, photos }: GaleriaViewProps) {
         photos={photos}
         coverUrl={coverUrl}
         themeKey={galleryTheme}
+        onExpandedChange={setIsHeroExpanded}
       />
 
       {/* CONTENT LAYER */}
       <div className="relative z-10 transition-opacity duration-1000 opacity-100">
         <main className="relative z-30 mx-auto">
           {photos?.length > 0 ? (
-            <PhotoGrid photos={photos} galeria={galeria} />
+            <PhotoGrid
+              photos={photos}
+              galeria={galeria}
+              canStartTour={!isHeroExpanded}
+            />
           ) : (
             <div className="flex flex-col items-center justify-center py-24 text-center">
               <p

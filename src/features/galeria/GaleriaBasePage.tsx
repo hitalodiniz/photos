@@ -107,7 +107,7 @@ export default async function GaleriaBasePage({
   if (photographerProfile) {
     galeriaData.photographer = photographerProfile;
   }
-
+  console.log('galeriaData.is_archived', galeriaData.is_archived);
   if (galeriaData.is_archived || galeriaData.auto_archived) {
     return (
       <EditorialView

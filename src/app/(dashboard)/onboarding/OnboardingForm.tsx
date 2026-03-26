@@ -1533,23 +1533,23 @@ export default function OnboardingForm({
         footer={
           <div className="flex flex-col gap-3 w-full">
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 w-full items-stretch">
+              <button
+                type="button"
+                onClick={() => navigate('/dashboard', 'Abrindo seu espaço...')}
+                className="btn-secondary-white"
+              >
+                <ArrowLeft size={16} />
+                Espaço de Galerias
+              </button>
               <a
                 href={`/${username}`}
                 target="_blank"
                 rel="noopener noreferrer"
-                className="btn-secondary-white w-full text-[10px] flex items-center justify-center gap-2"
+                className="btn-luxury-primary"
               >
-                <Sparkles size={12} className="inline mr-1 align-middle" />
+                <User size={16} className="inline mr-1 align-middle" />
                 Ver perfil público
               </a>
-              <button
-                type="button"
-                onClick={() => navigate('/dashboard', 'Abrindo seu espaço...')}
-                className="btn-luxury-primary w-full text-[10px] flex items-center justify-center gap-2"
-              >
-                <ArrowRight size={16} />
-                Ir para Espaço de Galerias
-              </button>
             </div>
 
             {(planKey === 'FREE' || permissions.isTrial) && (

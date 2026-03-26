@@ -1,4 +1,5 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
+import { now as nowFn, utcIsoFrom } from '@/core/utils/data-helpers';
 import { createSupabaseServerClient } from '@/lib/supabase.server';
 
 vi.mock('@/lib/supabase.server', () => ({
@@ -66,12 +67,12 @@ const makeInsert = (data: unknown = { id: 'new-id' }, error: unknown = null) => 
 });
 
 const monthsAgo = (n: number) => {
-  const d = new Date();
+  const d = nowFn();
   d.setMonth(d.getMonth() - n);
-  return d.toISOString();
+  return utcIsoFrom(d);
 };
 const daysAgo = (n: number) =>
-  new Date(Date.now() - n * 24 * 60 * 60 * 1000).toISOString();
+  new Date(nowFn().getTime() - n * 24 * 60 * 60 * 1000).toISOString();
 
 const { getAuthenticatedUser } = await import('@/core/services/auth-context.service');
 const { scheduleDowngradeChange, cancelScheduledChange } = await import('../scheduled-change.service');

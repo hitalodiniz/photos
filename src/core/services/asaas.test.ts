@@ -1,4 +1,5 @@
 import { describe, it, expect, beforeAll, vi } from 'vitest';
+import { now as nowFn, utcIsoFrom } from '@/core/utils/data-helpers';
 import { createClient, type SupabaseClient } from '@supabase/supabase-js';
 import {
   PLANS_BY_SEGMENT,
@@ -152,22 +153,22 @@ describeIntegration('Asaas – Integração via Webhook (ngrok)', () => {
         );
       }
 
-      const eightMonthsAgo = new Date();
+      const eightMonthsAgo = nowFn();
       eightMonthsAgo.setMonth(eightMonthsAgo.getMonth() - 8);
 
       await admin
         .from('tb_upgrade_requests')
         .update({
           status: 'pending_cancellation',
-          processed_at: eightMonthsAgo.toISOString(),
-          updated_at: new Date().toISOString(),
+          processed_at: utcIsoFrom(eightMonthsAgo),
+          updated_at: utcIsoFrom(nowFn()),
         })
         .eq('id', lastReq.id);
 
       // Garantir perfil PRO e pelo menos 4 galerias (não deletadas, não arquivadas)
       await admin
         .from('tb_profiles')
-        .update({ plan_key: 'PRO', updated_at: new Date().toISOString() })
+        .update({ plan_key: 'PRO', updated_at: utcIsoFrom(nowFn()) })
         .eq('id', profileId);
 
       const { data: galleries } = await admin
@@ -236,7 +237,7 @@ describeIntegration('Asaas – Integração via Webhook (ngrok)', () => {
         );
       }
 
-      const paymentId = `pay-recovery-${Date.now()}`;
+      const paymentId = `pay-recovery-${nowFn().getTime()}`;
       const amountFinal = 79;
 
       await admin.from('tb_upgrade_requests').insert({
@@ -299,8 +300,8 @@ describeIntegration('Asaas – Integração via Webhook (ngrok)', () => {
       if (!INT_TEST_PROFILE_ID) return;
 
       const profileId = INT_TEST_PROFILE_ID;
-      const paymentId = `pay-refund-test-${Date.now()}`;
-      const threeDaysAgo = new Date();
+      const paymentId = `pay-refund-test-${nowFn().getTime()}`;
+      const threeDaysAgo = nowFn();
       threeDaysAgo.setDate(threeDaysAgo.getDate() - 3);
 
       await admin.from('tb_upgrade_requests').insert({
@@ -321,12 +322,12 @@ describeIntegration('Asaas – Integração via Webhook (ngrok)', () => {
         status: 'approved',
         asaas_payment_id: paymentId,
         asaas_subscription_id: 'sub-test-cancel',
-        processed_at: threeDaysAgo.toISOString(),
+        processed_at: utcIsoFrom(threeDaysAgo),
       });
 
       await admin
         .from('tb_profiles')
-        .update({ plan_key: 'PRO', updated_at: new Date().toISOString() })
+        .update({ plan_key: 'PRO', updated_at: utcIsoFrom(nowFn()) })
         .eq('id', profileId);
 
       let deleteSubscriptionCalled = false;

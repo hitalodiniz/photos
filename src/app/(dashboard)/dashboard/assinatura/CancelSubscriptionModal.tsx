@@ -15,6 +15,7 @@ import {
   ChevronDown,
 } from 'lucide-react';
 import BaseModal from '@/components/ui/BaseModal';
+import { formatDateOnlyPtBrBilling } from '@/core/utils/data-helpers';
 
 // ─── Tipos ────────────────────────────────────────────────────────────────────
 
@@ -42,7 +43,8 @@ export interface CancelSubscriptionModalProps {
   /**
    * Calculado no servidor (AssinaturaContent) — leva em conta:
    * 1. Estar dentro de 7 dias (created_at / processed_at)
-   * 2. NÃO ter sido um upgrade com crédito pro-rata (notes contém "aproveitamento de crédito")
+   * 2. NÃO ter sido upgrade com crédito pro-rata ou gratuito por crédito
+   *    (`noRefundCreditProRata` / `noRefundFreeCreditUpgrade` em notes JSON v1)
    * 3. amount_final > 0 (houve desembolso real)
    * Quando false: modal mostra fluxo "cancelar e manter até o fim do ciclo".
    */
@@ -72,8 +74,7 @@ export const CANCEL_REASONS: {
 // ─── Helpers ─────────────────────────────────────────────────────────────────
 
 function formatDate(iso: string | null): string {
-  if (!iso) return '—';
-  return new Date(iso).toLocaleDateString('pt-BR', { timeZone: 'UTC' });
+  return formatDateOnlyPtBrBilling(iso) ?? '—';
 }
 
 function formatCredits(n: number): string {
@@ -86,7 +87,7 @@ const STEP_SUBTITLES = [
   'Etapa 3 de 3 — Confirmação',
 ];
 
-const BODY_HEIGHT = 'min-h-[300px]';
+const BODY_HEIGHT = 'min-h-[350px]';
 
 // ═══════════════════════════════════════════════════════════════════════════════
 // MODAL
@@ -155,29 +156,41 @@ export function CancelSubscriptionModal({
       )}
 
       {step < 3 ? (
-        <button
-          type="button"
-          disabled={!reason}
-          onClick={() => setStep((s) => (s + 1) as 2 | 3)}
-          className="btn-luxury-primary w-full"
-        >
-          Continuar
-          <ChevronRight size={12} />
-        </button>
+        step === 1 ? (
+          <button
+            type="submit"
+            form="cancel-subscription-step1"
+            disabled={isLoading}
+            className="btn-luxury-primary w-full disabled:opacity-40 disabled:cursor-not-allowed"
+          >
+            Continuar
+            <ChevronRight size={12} />
+          </button>
+        ) : (
+          <button
+            type="button"
+            disabled={isLoading}
+            onClick={() => setStep(3)}
+            className="btn-luxury-primary w-full disabled:opacity-40 disabled:cursor-not-allowed"
+          >
+            Continuar
+            <ChevronRight size={12} />
+          </button>
+        )
       ) : (
         <button
           type="button"
           onClick={handleConfirm}
           disabled={isLoading || !reason}
-          className="flex-1 flex items-center justify-center gap-2 py-2.5 rounded-md bg-red-500 hover:bg-red-600 text-white font-semibold text-[10px] uppercase tracking-widest transition-all active:scale-[0.98] disabled:opacity-50 shadow-lg shadow-red-900/30"
+          className="flex-1 flex items-center justify-center gap-2 py-2.5 rounded-md bg-red-500 hover:bg-red-600 text-white font-semibold text-[10px] uppercase tracking-widest disabled:opacity-50 shadow-lg shadow-red-900/30"
         >
           {isLoading ? (
             <>
-              <RefreshCw size={12} className="animate-spin" /> Cancelando…
+              <RefreshCw size={16} className="animate-spin" /> Cancelando…
             </>
           ) : (
             <>
-              <AlertTriangle size={12} /> Confirmar cancelamento
+              <AlertTriangle size={16} /> Confirmar cancelamento
             </>
           )}
         </button>
@@ -214,14 +227,29 @@ export function CancelSubscriptionModal({
       <div className={`${BODY_HEIGHT} flex flex-col`}>
         {/* ── Step 1 — Motivo ── */}
         {step === 1 && (
-          <div className="flex flex-col flex-1 gap-4">
-            {/* Select do motivo - com shrink-0 */}
+          <form
+            id="cancel-subscription-step1"
+            className="flex flex-col flex-1 gap-4 min-h-0"
+            onSubmit={(e) => {
+              e.preventDefault();
+              setStep(2);
+            }}
+          >
+            {/* Select do motivo - com shrink-0; validação nativa (required) como no fluxo por etapas do UpgradeSheet */}
             <div className="space-y-1.5 shrink-0">
-              <label className="text-[9px] font-semibold uppercase tracking-wider text-slate-800">
+              <label
+                htmlFor="cancel-subscription-reason"
+                className="text-[9px] font-semibold uppercase tracking-wider text-slate-800"
+              >
                 Motivo principal
+                <span className="text-red-400" aria-hidden>
+                  *
+                </span>
               </label>
               <div className="relative">
                 <select
+                  id="cancel-subscription-reason"
+                  name="cancel_reason"
                   value={reason ?? ''}
                   onChange={(e) =>
                     setReason((e.target.value as CancelReason) || null)
@@ -231,6 +259,7 @@ export function CancelSubscriptionModal({
                       ? 'border-red-300 text-petroleum'
                       : 'border-slate-200 text-slate-800'
                   } focus:border-red-300`}
+                  required
                 >
                   <option value="" disabled>
                     Selecione um motivo…
@@ -273,7 +302,7 @@ export function CancelSubscriptionModal({
                 {comment.length}/400
               </p>
             </div>
-          </div>
+          </form>
         )}
         {/* ── Step 2 — Consequências ── */}
         {step === 2 && (

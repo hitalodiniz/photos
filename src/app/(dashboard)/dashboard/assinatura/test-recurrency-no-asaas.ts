@@ -19,6 +19,11 @@
 
 import { config as loadEnv } from 'dotenv';
 import { createClient } from '@supabase/supabase-js';
+import { parseExpiryFromNotes } from '@/core/services/asaas/utils/dates';
+import {
+  appendBillingNotesBlock,
+  createBillingNotesForNewUpgradeRequest,
+} from '@/core/services/asaas/utils/billing-notes-doc';
 
 type BillingPeriod = 'monthly' | 'semiannual' | 'annual' | string | null;
 type BillingType = 'PIX' | 'BOLETO' | 'CREDIT_CARD';
@@ -90,13 +95,6 @@ function billingPeriodToMonths(p: BillingPeriod): number {
   if (p === 'semiannual') return 6;
   if (p === 'annual') return 12;
   return 1;
-}
-function parseExpiryFromNotes(notes?: string | null): Date | null {
-  if (!notes) return null;
-  const m = notes.match(/Nova data de vencimento:\s*([^\s.]+)/i);
-  if (!m?.[1]) return null;
-  const d = new Date(m[1].trim());
-  return isNaN(d.getTime()) ? null : d;
 }
 function estimateExpiry(row: UpgradeRow | null): Date | null {
   if (!row) return null;
@@ -492,7 +490,10 @@ async function scenarioFreeUpgrade(): Promise<ScenarioResult> {
       installments: 1,
       status: 'approved',
       processed_at: new Date().toISOString(),
-      notes: `Upgrade gratuito (Crédito): Plano PLUS.\nSaldo residual R$ ${creditValue.toFixed(2)}; nova data de vencimento: ${newExpiry}.`,
+      notes: createBillingNotesForNewUpgradeRequest({
+        logBody: `Upgrade gratuito (Crédito): Plano PLUS.\nSaldo residual R$ ${creditValue.toFixed(2)}; nova data de vencimento: ${newExpiry}.`,
+        noRefundFreeCreditUpgrade: true,
+      }),
     })
     .select('id,amount_final,status')
     .single();
@@ -561,7 +562,10 @@ async function scenarioCreditUpgrade(): Promise<ScenarioResult> {
       amount_original: 49,
       amount_discount: creditApplied,
       amount_final: amountFinal,
-      notes: `Aproveitamento de crédito pro-rata: R$ ${creditApplied.toFixed(2)}.`,
+      notes: createBillingNotesForNewUpgradeRequest({
+        logBody: `Aproveitamento de crédito pro-rata: R$ ${creditApplied.toFixed(2)}.`,
+        noRefundCreditProRata: true,
+      }),
     })
     .eq('id', newRow.id);
 
@@ -642,7 +646,10 @@ async function scenarioCycleChange(): Promise<ScenarioResult> {
       amount_original: semiPrice,
       amount_discount: creditApplied,
       amount_final: amountFinal,
-      notes: `Aproveitamento de crédito pro-rata: R$ ${creditApplied.toFixed(2)} (troca mensal → semestral).`,
+      notes: createBillingNotesForNewUpgradeRequest({
+        logBody: `Aproveitamento de crédito pro-rata: R$ ${creditApplied.toFixed(2)} (troca mensal → semestral).`,
+        noRefundCreditProRata: true,
+      }),
     })
     .eq('id', newRow.id);
 
@@ -702,7 +709,10 @@ async function scenarioPaymentChange(): Promise<ScenarioResult> {
     .update({
       billing_type: 'BOLETO',
       asaas_payment_id: newPayId,
-      notes: `[PaymentMethodChange ${nowIso}] PIX -> BOLETO`,
+      notes: appendBillingNotesBlock(
+        null,
+        `[PaymentMethodChange ${nowIso}] PIX -> BOLETO`,
+      ),
       updated_at: nowIso,
     })
     .eq('id', seed.id);
@@ -883,7 +893,9 @@ async function scenarioDowngradeScheduled(): Promise<ScenarioResult> {
       installments: 1,
       status: 'pending_change',
       processed_at: expiresAt.toISOString(),
-      notes: `Mudança agendada para Plano START.\nAssinatura atual encerrada em: ${expiresAt.toISOString().split('T')[0]}.`,
+      notes: createBillingNotesForNewUpgradeRequest({
+        logBody: `Mudança agendada para Plano START.\nAssinatura atual encerrada em: ${expiresAt.toISOString().split('T')[0]}.`,
+      }),
     })
     .select('*')
     .single();
@@ -998,7 +1010,9 @@ async function scenarioDowngradeScheduledCancel(): Promise<ScenarioResult> {
       installments: 1,
       status: 'pending_change',
       processed_at: expiresAt.toISOString(),
-      notes: 'Mudança agendada.',
+      notes: createBillingNotesForNewUpgradeRequest({
+        logBody: 'Mudança agendada.',
+      }),
     })
     .select('*')
     .single();
@@ -1008,7 +1022,9 @@ async function scenarioDowngradeScheduledCancel(): Promise<ScenarioResult> {
     .from('tb_upgrade_requests')
     .update({
       status: 'cancelled',
-      notes: 'Intenção cancelada pelo usuário.',
+      notes: createBillingNotesForNewUpgradeRequest({
+        logBody: 'Intenção cancelada pelo usuário.',
+      }),
       updated_at: new Date().toISOString(),
     })
     .eq('id', pcRow!.id);
@@ -1160,7 +1176,9 @@ async function scenarioCancellationScheduled(): Promise<ScenarioResult> {
     .from('tb_upgrade_requests')
     .update({
       status: 'pending_downgrade',
-      notes: `Cancelamento solicitado. Acesso até ${expiresAt.toISOString()}.`,
+      notes: createBillingNotesForNewUpgradeRequest({
+        logBody: `Cancelamento solicitado. Acesso até ${expiresAt.toISOString()}.`,
+      }),
       updated_at: new Date().toISOString(),
     })
     .eq('id', seed.id);

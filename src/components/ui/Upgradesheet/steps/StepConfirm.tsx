@@ -210,7 +210,7 @@ export function StepConfirm() {
     <>
       {/* ── Plano selecionado ── */}
       <SheetSection>
-        <div className="relative px-3.5 py-1.5 rounded-luxury border border-slate-100 bg-white shadow-sm">
+        <div className="relative px-3.5 py-1 rounded-luxury border border-slate-100 bg-white shadow-sm">
           <button
             type="button"
             onClick={() => setStep('plan')}
@@ -219,7 +219,7 @@ export function StepConfirm() {
             Alterar
           </button>
 
-          <p className="text-[9px] font-bold uppercase tracking-luxury-wide text-petroleum/70 mb-1">
+          <p className="text-[9px] font-bold uppercase tracking-luxury-wide text-petroleum/70">
             Plano selecionado
           </p>
 
@@ -261,7 +261,7 @@ export function StepConfirm() {
 
       {/* ── Dados de faturamento ── */}
       <SheetSection title="Dados de faturamento">
-        <div className="relative px-3.5 py-1.5 rounded-luxury border border-slate-100 bg-white shadow-sm">
+        <div className="relative px-3.5 py-1 rounded-luxury border border-slate-100 bg-white shadow-sm">
           <button
             onClick={() => setStep('personal')}
             className="absolute top-3.5 right-3.5 text-[10px] font-semibold text-gold hover:underline"
@@ -318,7 +318,7 @@ export function StepConfirm() {
       {/* ── Resumo do pagamento (COM forma de pagamento integrada) ── */}
       {showFinancialSummary ? (
         <SheetSection title="Resumo do pagamento">
-          <div className="px-3.5 py-1.5 rounded-luxury border border-slate-100 bg-white shadow-sm space-y-2">
+          <div className="px-3.5 py-1 rounded-luxury border border-slate-100 bg-white shadow-sm space-y-2">
             {calcLoading && (
               <div className="flex items-center gap-2 text-[11px] text-petroleum/80 mb-1.5">
                 <div className="w-3.5 h-3.5 border-2 border-emerald-200 border-t-emerald-500 rounded-full animate-spin" />
@@ -408,7 +408,7 @@ export function StepConfirm() {
 
             {/* Próxima fatura */}
             {nextBillingDateFormatted && (
-              <div className="mt-2 p-2 rounded bg-slate-50 border border-slate-100 flex items-start gap-2 text-petroleum/80">
+              <div className="mt-1 p-2 rounded bg-slate-50 border border-slate-100 flex items-start gap-2 text-petroleum/80">
                 <PaymentIcon size={12} className="mt-0.5 shrink-0" />
                 <p className="text-[12px] leading-tight font-medium">
                   {isZeroPayment
@@ -492,9 +492,9 @@ export function StepConfirm() {
       {/* ── Aviso de abertura mão do estorno (downgrade com crédito dentro dos 7 dias) ── */}
       {isDowngradeWithCredit && (
         <SheetSection>
-          <p className="text-[10px] text-petroleum/50 leading-snug text-center px-1">
+          <p className="text-[10px] text-petroleum leading-snug px-1">
             Ao confirmar, você abre mão do direito de estorno e opta por aplicar
-            o crédito pro-rata ao novo plano, conforme a{' '}
+            o crédito novo plano, conforme a{' '}
             <a
               href="/politica-cancelamento"
               target="_blank"

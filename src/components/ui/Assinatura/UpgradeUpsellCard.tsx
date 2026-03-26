@@ -120,9 +120,9 @@ export function UpgradeUpsellCard({
         <button
           type="button"
           onClick={() => onUpgrade(nextPlanKey)}
-          className="btn-luxury-primary h-8 w-full"
+          className="btn-luxury-primary"
         >
-          <Zap size={12} strokeWidth={2.5} />
+          <Zap size={16} />
           Assinar Plano {nextPlanInfo.name ?? nextPlanKey}
           <ChevronRight size={12} />
         </button>
@@ -130,10 +130,10 @@ export function UpgradeUpsellCard({
           href="/planos"
           target="_blank"
           rel="noopener noreferrer"
-          className="w-full flex items-center justify-center gap-1.5 py-1.5 text-petroleum/70 hover:text-petroleum font-semibold text-[9px] uppercase tracking-wider transition-colors border border-petroleum/20 rounded-lg hover:border-petroleum/40"
+          className="btn-secondary-white !border-petroleum !border-1"
         >
           Comparar planos
-          <ExternalLink size={11} />
+          <ExternalLink size={16} />
         </a>
       </div>
     </div>

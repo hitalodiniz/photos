@@ -1,34 +1,16 @@
 // src/app/api/cron/cancel-expired-pending-upgrades/route.ts
 import { createClient } from '@supabase/supabase-js';
+import { now as nowFn, utcIsoFrom } from '@/core/utils/data-helpers';
 import { NextResponse } from 'next/server';
+import { deleteAsaasPayment } from '@/core/services/asaas';
+import { appendBillingNotesBlock } from '@/core/services/asaas/utils/billing-notes-doc';
 
-/** Solicitações pendentes (não-BOLETO) mais antigas que este valor são canceladas (24h). */
-const PENDING_MAX_AGE_MS = 24 * 60 * 60 * 1000;
-
-/** Mínimo de dias úteis para cobranças BOLETO antes de marcar como expirada (evita cancelar antes da compensação). */
-const BOLETO_MIN_BUSINESS_DAYS = 3;
-
-/**
- * Retorna uma data N dias úteis atrás a partir de hoje (exclui sábado e domingo).
- */
-function subtractBusinessDays(fromDate: Date, days: number): Date {
-  const d = new Date(fromDate);
-  let remaining = days;
-  while (remaining > 0) {
-    d.setDate(d.getDate() - 1);
-    const day = d.getDay();
-    if (day !== 0 && day !== 6) remaining--;
-  }
-  return d;
-}
-
-/**
- * True se created_at é anterior a (agora - N dias úteis).
- */
-function isOlderThanBusinessDays(createdAtIso: string, businessDays: number): boolean {
-  const threshold = subtractBusinessDays(new Date(), businessDays);
-  return new Date(createdAtIso) < threshold;
-}
+// Prazos diferenciados (em milissegundos)
+const AGE_LIMITS = {
+  CREDIT_CARD: 2 * 60 * 60 * 1000, // 2 horas
+  PIX: 48 * 60 * 60 * 1000, // 2 dias
+  BOLETO: 5 * 24 * 60 * 60 * 1000, // 5 dias
+};
 
 export async function GET(request: Request) {
   const authHeader = request.headers.get('authorization');
@@ -41,62 +23,132 @@ export async function GET(request: Request) {
     process.env.SUPABASE_SERVICE_ROLE_KEY!,
   );
 
+  const now = nowFn();
   try {
-    const since24h = new Date(Date.now() - PENDING_MAX_AGE_MS).toISOString();
-
+    // Buscamos apenas o que está pendente
     const { data: rows, error: selectError } = await supabase
       .from('tb_upgrade_requests')
-      .select('id, billing_type, created_at')
+      .select(
+        'id, profile_id, created_at, asaas_payment_id, notes, billing_type, plan_key_current',
+      ) // Importante trazer o billing_type
       .eq('status', 'pending');
 
     if (selectError) {
-      console.error('[cancel-expired-pending-upgrades] Select error:', selectError);
+      console.error(
+        '[cancel-expired-pending-upgrades] Select error:',
+        selectError,
+      );
       return NextResponse.json({ error: selectError.message }, { status: 500 });
     }
 
-    const now = new Date();
-    const idsToCancel: string[] = [];
-    for (const r of rows ?? []) {
-      const createdAt = r.created_at as string;
-      const billingType = (r.billing_type as string) || '';
-      if (billingType === 'BOLETO') {
-        if (isOlderThanBusinessDays(createdAt, BOLETO_MIN_BUSINESS_DAYS)) {
-          idsToCancel.push(r.id);
+    // 🎯 Lógica de Filtragem Inteligente
+    const rowsToCancel = (rows ?? []).filter((r) => {
+      const createdAt = new Date(r.created_at).getTime();
+      const type = (r.billing_type as keyof typeof AGE_LIMITS) || 'PIX'; // Default para PIX se nulo
+      const limit = AGE_LIMITS[type] || AGE_LIMITS.PIX;
+
+      return now.getTime() - createdAt > limit;
+    });
+
+    const cancelledIds: string[] = [];
+    const errors: string[] = [];
+    let skipped = 0;
+
+    for (const row of rowsToCancel) {
+      const requestId = String(row.id);
+      const paymentId = String(row.asaas_payment_id ?? '').trim();
+      const billingType =
+        (row.billing_type as keyof typeof AGE_LIMITS) || 'PIX';
+      const limitMs = AGE_LIMITS[billingType] || AGE_LIMITS.PIX;
+      const limitHours = Math.round(limitMs / (60 * 60 * 1000));
+      const hasCreditCarryover =
+        /aproveitamento de crédito|aproveitamento de credito/i.test(
+          row.notes ?? '',
+        );
+
+      if (paymentId) {
+        const cancelAsaas = await deleteAsaasPayment(paymentId);
+        if (!cancelAsaas.success) {
+          errors.push(
+            `[${requestId}] Falha ao cancelar cobrança no Asaas (${paymentId}): ${cancelAsaas.error ?? 'erro desconhecido'}`,
+          );
+          continue;
         }
       } else {
-        if (createdAt < since24h) {
-          idsToCancel.push(r.id);
+        skipped++;
+      }
+
+      // Se o pending expirado foi gerado por aproveitamento de crédito, restaura
+      // o plano anterior (já pago) para não penalizar o usuário.
+      if (hasCreditCarryover && row.profile_id && row.plan_key_current) {
+        const { error: restorePlanError } = await supabase
+          .from('tb_profiles')
+          .update({
+            plan_key: row.plan_key_current,
+            updated_at: utcIsoFrom(now),
+          })
+          .eq('id', row.profile_id);
+        if (restorePlanError) {
+          errors.push(
+            `[${requestId}] Falha ao restaurar plano anterior (${row.plan_key_current}): ${restorePlanError.message}`,
+          );
+          continue;
         }
       }
+
+      const noteLine = `[Cron cancel-expired-pending-upgrades] ${utcIsoFrom(now)} - Cancelamento automático por falta de pagamento no prazo (${limitHours}h, billing_type=${billingType}). Solicitação pendente expirada e cobrança cancelada no Asaas${paymentId ? ` (payment_id=${paymentId})` : ' (sem payment_id no registro)'}.`;
+      const restorePlanLine =
+        hasCreditCarryover && row.plan_key_current
+          ? ` [Plano restaurado: ${row.plan_key_current} devido a aproveitamento de crédito.]`
+          : '';
+      const mergedNotes = appendBillingNotesBlock(
+        row.notes,
+        `${noteLine}${restorePlanLine}`,
+      );
+      const { error: updateOneError } = await supabase
+        .from('tb_upgrade_requests')
+        .update({
+          status: 'cancelled',
+          notes: mergedNotes,
+          updated_at: utcIsoFrom(now),
+          processed_at: utcIsoFrom(now),
+        })
+        .eq('id', requestId);
+
+      if (updateOneError) {
+        errors.push(
+          `[${requestId}] Falha ao atualizar status local: ${updateOneError.message}`,
+        );
+        continue;
+      }
+
+      cancelledIds.push(requestId);
     }
 
-    if (idsToCancel.length === 0) {
+    if (rowsToCancel.length === 0) {
       return NextResponse.json({
         success: true,
         cancelled: 0,
-        timestamp: now.toISOString(),
+        skipped,
+        errors,
+        timestamp: utcIsoFrom(now),
       });
     }
-
-    const { error: updateError } = await supabase
-      .from('tb_upgrade_requests')
-      .update({
-        status: 'cancelled',
-        notes: `Cancelamento automático: solicitação pendente expirada (não paga dentro do prazo). Registros mantidos no banco; apenas status atualizado.`,
-        updated_at: new Date().toISOString(),
-      })
-      .in('id', idsToCancel);
-
-    if (updateError) {
-      console.error('[cancel-expired-pending-upgrades] Update error:', updateError);
-      return NextResponse.json({ error: updateError.message }, { status: 500 });
+    if (errors.length > 0) {
+      console.error(
+        '[cancel-expired-pending-upgrades] Partial errors:',
+        errors,
+      );
     }
-
-    console.log(`[cancel-expired-pending-upgrades] Cancelled ${idsToCancel.length} pending request(s)`);
+    console.log(
+      `[cancel-expired-pending-upgrades] Cancelled ${cancelledIds.length}/${rowsToCancel.length} expired pending request(s)`,
+    );
     return NextResponse.json({
       success: true,
-      cancelled: idsToCancel.length,
-      timestamp: new Date().toISOString(),
+      cancelled: cancelledIds.length,
+      skipped,
+      errors,
+      timestamp: utcIsoFrom(now),
     });
   } catch (error) {
     console.error('[cancel-expired-pending-upgrades] Unexpected error:', error);

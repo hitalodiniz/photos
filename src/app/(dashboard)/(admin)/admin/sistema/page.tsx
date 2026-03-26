@@ -434,7 +434,7 @@ export default function AdminSistemaPage() {
                   }
                 />
                 <Btn
-                  label="Cancelar pendentes expirados"
+                  label="Cancelar pagamentos pendentes expirados"
                   loading={loadingExpiredPending}
                   loadingLabel="Cancelando…"
                   onClick={() =>

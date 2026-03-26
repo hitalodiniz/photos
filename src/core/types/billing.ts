@@ -68,6 +68,10 @@ export interface UpgradeRequest {
   amount_final: number;
   /** Número de parcelas (1 para PIX/BOLETO ou mensal; 1-3 semestral CC; 1-6 anual CC). */
   installments: number;
+  /**
+   * JSON v1 (`BillingNotesDocV1` em `billing-notes-doc.ts`): `log[]` e flags
+   * `noRefundCreditProRata` / `noRefundFreeCreditUpgrade`.
+   */
   notes?: string;
   processed_at?: string;
   /** Data efetiva do cancelamento agendado (espelha endDate no Asaas). */

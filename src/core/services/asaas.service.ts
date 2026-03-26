@@ -9,6 +9,12 @@ import {
   createSupabaseAdmin,
   createSupabaseServerClient,
 } from '@/lib/supabase.server';
+import {
+  getSaoPauloDateString,
+  now as nowFn,
+  utcIsoFrom,
+  utcIsoOffsetFromNowMs,
+} from '@/core/utils/data-helpers';
 import { getAuthenticatedUser } from '@/core/services/auth-context.service';
 import { revalidateUserCache } from '@/actions/revalidate.actions';
 import { revalidatePath } from 'next/cache';
@@ -45,7 +51,13 @@ import {
 import {
   formatSnapshotAddress,
   buildCancellationNotes,
+  notesIndicateProRataOrCreditUpgrade,
 } from './asaas/utils/formatters';
+import {
+  appendBillingNotesBlock,
+  createBillingNotesForNewUpgradeRequest,
+  parseBillingNotesDoc,
+} from './asaas/utils/billing-notes-doc';
 import {
   billingPeriodToCommercialDays,
   calculateProRataCredit as calculateProRataCreditImpl,
@@ -72,7 +84,6 @@ import {
 } from './asaas/api/payments';
 import { getPixQrCodeFromPayment } from './asaas/api/pix';
 import { reactivateAutoArchivedGalleries as reactivateAutoArchivedGalleriesImpl } from './asaas/gallery/adjustments';
-import { toSaoPauloIso } from '@/core/utils/date-time';
 
 /** Renovação de ciclo (mesmo plano no Asaas) — valor do enum em `tb_upgrade_requests.status`. */
 export async function isRenewalUpgradeRequestStatus(
@@ -199,13 +210,17 @@ async function resolveCouponForAmount(
   if (!coupon) return { error: 'Cupom inválido.' };
   if (coupon.active === false) return { error: 'Cupom inativo.' };
 
-  const now = new Date();
+  const now = nowFn();
   const startsAt = new Date(coupon.starts_at);
   const expiresAt = coupon.expires_at ? new Date(coupon.expires_at) : null;
-  if (!Number.isNaN(startsAt.getTime()) && startsAt > now) {
+  if (!Number.isNaN(startsAt.getTime()) && startsAt.getTime() > now.getTime()) {
     return { error: 'Cupom ainda não está vigente.' };
   }
-  if (expiresAt && !Number.isNaN(expiresAt.getTime()) && expiresAt < now) {
+  if (
+    expiresAt &&
+    !Number.isNaN(expiresAt.getTime()) &&
+    expiresAt.getTime() < now.getTime()
+  ) {
     return { error: 'Cupom expirado.' };
   }
   if (
@@ -334,7 +349,7 @@ export async function getCurrentActiveRequest(
   const list = (rows ?? []) as CurrentActiveRequestRow[];
   if (!list.length) return null;
 
-  const now = new Date();
+  const now = nowFn();
   for (const row of list) {
     const referenceDate = row?.processed_at ?? row?.created_at ?? null;
     if (!referenceDate) continue;
@@ -343,7 +358,7 @@ export async function getCurrentActiveRequest(
     let end = addMonths(start, billingPeriodToMonths(row.billing_period));
     const fromNotes = parseExpiryFromNotes(row.notes);
     if (fromNotes) end = fromNotes;
-    if (end >= now) return row;
+    if (end.getTime() >= now.getTime()) return row;
   }
   return list[0];
 }
@@ -379,7 +394,7 @@ export async function getPendingUpgradeRequest(
   supabase?: Awaited<ReturnType<typeof createSupabaseServerClient>>,
 ): Promise<PendingUpgradeRow | null> {
   const db = supabase ?? (await createSupabaseServerClient());
-  const since = new Date(Date.now() - PENDING_UPGRADE_MAX_AGE_MS).toISOString();
+  const since = utcIsoOffsetFromNowMs(-PENDING_UPGRADE_MAX_AGE_MS);
   const { data } = await db
     .from('tb_upgrade_requests')
     .select(
@@ -422,9 +437,11 @@ async function cancelPendingUpgradeInAsaasAndDb(
           .from('tb_upgrade_requests')
           .update({
             status: 'cancelled',
-            notes:
+            notes: appendBillingNotesBlock(
+              null,
               'Invalidado para nova solicitação (pagamento já identificado no Asaas; valor será utilizado como crédito).',
-            updated_at: new Date().toISOString(),
+            ),
+            updated_at: utcIsoFrom(),
           })
           .eq('id', pending.id);
         return error
@@ -448,9 +465,11 @@ async function cancelPendingUpgradeInAsaasAndDb(
     .from('tb_upgrade_requests')
     .update({
       status: 'cancelled',
-      notes:
+      notes: appendBillingNotesBlock(
+        null,
         'Invalidado para nova solicitação (usuário alterou plano/ciclo/método de pagamento).',
-      updated_at: new Date().toISOString(),
+      ),
+      updated_at: utcIsoFrom(),
     })
     .eq('id', pending.id);
   return error
@@ -471,7 +490,7 @@ export async function calculateUpgradePrice(
   lastPaidAmountForProRata?: number,
 ): Promise<UpgradePriceCalculation> {
   const planInfo = PLANS_BY_SEGMENT[segment]?.[targetPlanKey];
-  const now = new Date();
+  const now = nowFn();
 
   if (!planInfo || planInfo.price <= 0) {
     return {
@@ -480,11 +499,10 @@ export async function calculateUpgradePrice(
       amount_discount: 0,
       amount_final: 0,
       residual_credit: 0,
-      current_plan_expires_at: now.toISOString(),
-      new_expiry_date: addMonths(
-        now,
-        billingPeriodToMonths(targetPeriod),
-      ).toISOString(), // ✅
+      current_plan_expires_at: utcIsoFrom(now),
+      new_expiry_date: utcIsoFrom(
+        addMonths(now, billingPeriodToMonths(targetPeriod)),
+      ), // ✅
     };
   }
 
@@ -505,11 +523,10 @@ export async function calculateUpgradePrice(
       amount_final: Math.round((totalPriceNew - pixDiscount) * 100) / 100,
       residual_credit: 0,
       pix_discount_amount: pixDiscount,
-      current_plan_expires_at: now.toISOString(),
-      new_expiry_date: addMonths(
-        now,
-        billingPeriodToMonths(targetPeriod),
-      ).toISOString(),
+      current_plan_expires_at: utcIsoFrom(now),
+      new_expiry_date: utcIsoFrom(
+        addMonths(now, billingPeriodToMonths(targetPeriod)),
+      ),
     };
   }
 
@@ -526,17 +543,19 @@ export async function calculateUpgradePrice(
       amount_final: Math.round((totalPriceNew - pixDiscount) * 100) / 100,
       residual_credit: 0,
       pix_discount_amount: pixDiscount,
-      current_plan_expires_at: now.toISOString(),
-      new_expiry_date: addMonths(
-        now,
-        billingPeriodToMonths(targetPeriod),
-      ).toISOString(),
+      current_plan_expires_at: utcIsoFrom(now),
+      new_expiry_date: utcIsoFrom(
+        addMonths(now, billingPeriodToMonths(targetPeriod)),
+      ),
     };
   }
   const monthsCurrent = billingPeriodToMonths(currentRequest.billing_period);
   let currentPlanExpiresAt = addMonths(startDate, monthsCurrent);
   const expiryFromNotes = parseExpiryFromNotes(currentRequest.notes);
-  if (expiryFromNotes && expiryFromNotes > currentPlanExpiresAt)
+  if (
+    expiryFromNotes &&
+    expiryFromNotes.getTime() > currentPlanExpiresAt.getTime()
+  )
     currentPlanExpiresAt = expiryFromNotes;
 
   const totalMsCurrent = currentPlanExpiresAt.getTime() - startDate.getTime();
@@ -586,8 +605,8 @@ export async function calculateUpgradePrice(
       amount_discount: 0,
       amount_final: 0,
       residual_credit: 0,
-      current_plan_expires_at: currentPlanExpiresAt.toISOString(),
-      new_expiry_date: currentPlanExpiresAt.toISOString(),
+      current_plan_expires_at: utcIsoFrom(currentPlanExpiresAt),
+      new_expiry_date: utcIsoFrom(currentPlanExpiresAt),
     };
   }
 
@@ -601,11 +620,13 @@ export async function calculateUpgradePrice(
   if (isDowngrade) {
     const isWithdrawalWindow =
       daysSincePurchase <= 7 && currentRequest.amount_final > 0;
-    const notesLower = (currentRequest.notes ?? '').toLowerCase();
-    const isProRataDiscount =
-      notesLower.includes('aproveitamento de crédito') ||
-      notesLower.includes('credito pro-rata') ||
-      notesLower.includes('crédito pro-rata');
+    let isProRataDiscount = false;
+    try {
+      const doc = parseBillingNotesDoc(currentRequest.notes ?? null);
+      isProRataDiscount = doc.noRefundCreditProRata === true;
+    } catch {
+      isProRataDiscount = false;
+    }
     let previousCredit = 0;
     if (
       isWithdrawalWindow &&
@@ -645,11 +666,11 @@ export async function calculateUpgradePrice(
           amount_discount: creditForDowngrade,
           amount_final: 0,
           residual_credit: creditForDowngrade,
-          current_plan_expires_at: currentPlanExpiresAt.toISOString(),
-          downgrade_effective_at: now.toISOString(),
+          current_plan_expires_at: utcIsoFrom(currentPlanExpiresAt),
+          downgrade_effective_at: utcIsoFrom(now),
           is_downgrade_withdrawal_window: true,
           days_since_purchase: daysSincePurchase,
-          new_expiry_date: newExpiry.toISOString(),
+          new_expiry_date: utcIsoFrom(newExpiry),
           free_upgrade_days_extended: daysCoveredByCredit,
           free_upgrade_months_covered: Math.floor(daysCoveredByCredit / 30),
         };
@@ -663,11 +684,11 @@ export async function calculateUpgradePrice(
         amount_discount: creditForDowngrade,
         amount_final: amountToPay,
         residual_credit: creditForDowngrade,
-        current_plan_expires_at: currentPlanExpiresAt.toISOString(),
-        downgrade_effective_at: now.toISOString(),
+        current_plan_expires_at: utcIsoFrom(currentPlanExpiresAt),
+        downgrade_effective_at: utcIsoFrom(now),
         is_downgrade_withdrawal_window: true,
         days_since_purchase: daysSincePurchase,
-        new_expiry_date: newExpiry.toISOString(),
+        new_expiry_date: utcIsoFrom(newExpiry),
         free_upgrade_days_extended: targetCommercialDays,
         free_upgrade_months_covered: Math.floor(targetCommercialDays / 30),
       };
@@ -679,8 +700,8 @@ export async function calculateUpgradePrice(
       amount_discount: creditForDowngrade,
       amount_final: 0,
       residual_credit: creditForDowngrade,
-      current_plan_expires_at: currentPlanExpiresAt.toISOString(),
-      downgrade_effective_at: currentPlanExpiresAt.toISOString(),
+      current_plan_expires_at: utcIsoFrom(currentPlanExpiresAt),
+      downgrade_effective_at: utcIsoFrom(currentPlanExpiresAt),
       is_downgrade_withdrawal_window: false,
       days_since_purchase: daysSincePurchase,
     };
@@ -705,8 +726,8 @@ export async function calculateUpgradePrice(
       amount_discount: totalPriceNew,
       amount_final: 0,
       residual_credit: residualCredit,
-      current_plan_expires_at: currentPlanExpiresAt.toISOString(),
-      new_expiry_date: newExpiry.toISOString(), // ✅ Data real
+      current_plan_expires_at: utcIsoFrom(currentPlanExpiresAt),
+      new_expiry_date: utcIsoFrom(newExpiry), // ✅ Data real
       free_upgrade_months_covered: monthsCovered,
       free_upgrade_days_extended: Math.max(targetCommercialDays, daysCovered),
     };
@@ -742,18 +763,19 @@ export async function calculateUpgradePrice(
     amount_final: Math.round((amountToPayBeforePix - pixDiscount) * 100) / 100,
     residual_credit: residualCredit,
     pix_discount_amount: pixDiscount,
-    current_plan_expires_at: currentPlanExpiresAt.toISOString(),
-    new_expiry_date: addMonths(
-      now,
-      billingPeriodToMonths(targetPeriod),
-    ).toISOString(),
+    current_plan_expires_at: utcIsoFrom(currentPlanExpiresAt),
+    new_expiry_date: utcIsoFrom(
+      addMonths(now, billingPeriodToMonths(targetPeriod)),
+    ),
   };
 }
 
 function normalizeProfilePlanKeyForPreview(
   planKey: string | null | undefined,
 ): PlanKey {
-  const raw = String(planKey ?? 'FREE').trim().toUpperCase() as PlanKey;
+  const raw = String(planKey ?? 'FREE')
+    .trim()
+    .toUpperCase() as PlanKey;
   return planOrder.includes(raw) ? raw : 'FREE';
 }
 
@@ -790,8 +812,7 @@ export async function getUpgradePreview(
       .order('created_at', { ascending: false })
       .limit(1)
       .maybeSingle();
-    const latestRequestCancelled =
-      latestRequestRow?.status === 'cancelled';
+    const latestRequestCancelled = latestRequestRow?.status === 'cancelled';
 
     // ── Verifica pending normal (pagamento em processamento) ────────────────
     const pending = await getPendingUpgradeRequest(userId, supabase);
@@ -833,7 +854,9 @@ export async function getUpgradePreview(
       .maybeSingle();
 
     const currentPlanKeyFromProfile =
-      profilePlanKeyForPreview !== 'FREE' ? profilePlanKeyForPreview : undefined;
+      profilePlanKeyForPreview !== 'FREE'
+        ? profilePlanKeyForPreview
+        : undefined;
 
     let current: CurrentActiveRequestRow | null = null;
     if (currentPlanKeyFromProfile) {
@@ -1108,11 +1131,12 @@ export async function updateSubscriptionBillingMethod(
 
     // 2) Atualiza tb_upgrade_requests (registro mais recente da assinatura)
     const previous = (currentReq.billing_type as string | null) ?? null;
-    const nowIso = new Date().toISOString();
+    const nowIso = utcIsoFrom();
     const historyLine = `[PaymentMethodChange ${nowIso}] ${previous ?? 'UNKNOWN'} -> ${newMethod}`;
-    const nextNotes = [currentReq.notes, historyLine]
-      .filter(Boolean)
-      .join('\n');
+    const nextNotes = appendBillingNotesBlock(
+      currentReq.notes as string | null | undefined,
+      historyLine,
+    );
 
     const updatePatch: Record<string, unknown> = {
       billing_type: newMethod,
@@ -1169,6 +1193,7 @@ export async function performDowngradeToFree(
   upgradeRequestId: string | null,
   reason: string,
   supabaseClient?: Awaited<ReturnType<typeof createSupabaseServerClient>>,
+  options?: { skipRevalidatePath?: boolean },
 ): Promise<{
   success: boolean;
   needs_adjustment: boolean;
@@ -1192,6 +1217,8 @@ export async function performDowngradeToFree(
   const newMetadata = {
     ...(profile?.metadata ?? {}),
     last_downgrade_alert_viewed: false,
+    downgrade_reason: reason,
+    downgrade_at: utcIsoFrom(),
   };
 
   const { error: planError } = await supabase
@@ -1199,7 +1226,7 @@ export async function performDowngradeToFree(
     .update({
       plan_key: 'FREE',
       metadata: newMetadata,
-      updated_at: new Date().toISOString(),
+      updated_at: utcIsoFrom(),
     })
     .eq('id', profileId);
   if (planError) {
@@ -1220,13 +1247,18 @@ export async function performDowngradeToFree(
   });
 
   if (upgradeRequestId) {
+    const { data: reqNotesRow } = await supabase
+      .from('tb_upgrade_requests')
+      .select('notes')
+      .eq('id', upgradeRequestId)
+      .maybeSingle();
     await supabase
       .from('tb_upgrade_requests')
       .update({
         status: 'cancelled',
-        notes: reason,
-        processed_at: new Date().toISOString(),
-        updated_at: new Date().toISOString(),
+        notes: appendBillingNotesBlock(reqNotesRow?.notes ?? null, reason),
+        processed_at: utcIsoFrom(),
+        updated_at: utcIsoFrom(),
       })
       .eq('id', upgradeRequestId);
   }
@@ -1240,7 +1272,7 @@ export async function performDowngradeToFree(
       .update({
         is_public: false,
         auto_archived: true,
-        updated_at: new Date().toISOString(),
+        updated_at: utcIsoFrom(),
       })
       .in('id', excessIds);
     if (hideError)
@@ -1250,7 +1282,9 @@ export async function performDowngradeToFree(
       );
   }
 
-  revalidatePath('/dashboard', 'layout');
+  if (!options?.skipRevalidatePath) {
+    revalidatePath('/dashboard', 'layout');
+  }
 
   return { success: true, ...adjustment };
 }
@@ -1258,11 +1292,6 @@ export async function performDowngradeToFree(
 /**
  * Cancela a assinatura do usuário autenticado.
  */
-import {
-  getEndOfDaySaoPauloIso,
-  getSaoPauloDateString,
-} from '../utils/data-helpers';
-
 export async function handleSubscriptionCancellation(
   opts:
     | { reason?: string | null; comment?: string }
@@ -1296,6 +1325,7 @@ export async function handleSubscriptionCancellation(
     .in('status', [
       'pending',
       'approved',
+      'renewed',
       'pending_cancellation',
       'pending_downgrade',
     ])
@@ -1309,7 +1339,7 @@ export async function handleSubscriptionCancellation(
   const purchaseDate = request.processed_at
     ? new Date(request.processed_at as string)
     : new Date(request.created_at);
-  const now = new Date();
+  const now = nowFn();
   const daysSincePurchase = Math.floor(
     (now.getTime() - purchaseDate.getTime()) / (1000 * 60 * 60 * 24),
   );
@@ -1322,12 +1352,22 @@ export async function handleSubscriptionCancellation(
           purchaseDate,
           billingPeriodToMonths(request.billing_period as string | null),
         );
-  const notesLower = String(request.notes ?? '').toLowerCase();
-  const hasProRataCreditInNotes =
-    notesLower.includes('aproveitamento de crédito') ||
-    notesLower.includes('credito pro-rata') ||
-    notesLower.includes('crédito pro-rata') ||
-    notesLower.includes('upgrade gratuito');
+  let hasProRataCreditInNotes = notesIndicateProRataOrCreditUpgrade(
+    request.notes,
+  );
+  const subIdForProRata = String(
+    request.asaas_subscription_id ?? '',
+  ).trim();
+  if (!hasProRataCreditInNotes && subIdForProRata) {
+    const { data: subHistoryRows } = await supabase
+      .from('tb_upgrade_requests')
+      .select('notes')
+      .eq('profile_id', userId)
+      .eq('asaas_subscription_id', subIdForProRata);
+    hasProRataCreditInNotes = (subHistoryRows ?? []).some((row) =>
+      notesIndicateProRataOrCreditUpgrade(row.notes),
+    );
+  }
 
   if (
     request.status === 'pending_downgrade' ||
@@ -1336,12 +1376,15 @@ export async function handleSubscriptionCancellation(
     return {
       success: true,
       type: 'scheduled_cancellation',
-      access_ends_at: accessEndsAt.toISOString(),
+      access_ends_at: utcIsoFrom(accessEndsAt),
     };
   }
 
-  const accessEndsAtIso = getEndOfDaySaoPauloIso(accessEndsAt);
-  const endDateStr = getSaoPauloDateString(accessEndsAt);
+  /** Fim do dia (America/Sao_Paulo) como instante UTC — sempre via `utcIsoFrom`. */
+  const accessEndsAtIso = utcIsoFrom(
+    new Date(`${getSaoPauloDateString(accessEndsAt)}T23:59:59-03:00`),
+  );
+  const endDateStr = utcIsoFrom(accessEndsAt).split('T')[0];
   let amountPaid =
     typeof (request as any).amount_final === 'number' &&
     (request as any).amount_final > 0
@@ -1354,6 +1397,11 @@ export async function handleSubscriptionCancellation(
       amountPaid = lastPaid.amount_final;
     }
   }
+
+  const amountPaidFormatted = new Intl.NumberFormat('pt-BR', {
+    style: 'currency',
+    currency: 'BRL',
+  }).format(Math.max(0, amountPaid));
 
   if (
     daysSincePurchase <= 7 &&
@@ -1402,7 +1450,7 @@ export async function handleSubscriptionCancellation(
         .from('tb_profiles')
         .update({
           metadata: { ...currentMetadata, credit_balance: newBalance },
-          updated_at: now.toISOString(),
+          updated_at: utcIsoFrom(now),
         })
         .eq('id', userId);
     }
@@ -1411,7 +1459,7 @@ export async function handleSubscriptionCancellation(
       userId,
       request.id,
       buildCancellationNotes(
-        `Cancelamento com direito de arrependimento (${daysSincePurchase}d após compra)`,
+        `Cancelamento com direito de arrependimento (${daysSincePurchase}d após compra). Estorno: SIM (${amountPaidFormatted}).`,
         reason,
         comment,
       ),
@@ -1451,12 +1499,15 @@ export async function handleSubscriptionCancellation(
       status: 'pending_downgrade',
       processed_at: accessEndsAtIso,
       scheduled_cancel_at: accessEndsAtIso,
-      notes: buildCancellationNotes(
-        `Cancelamento solicitado em ${now.toISOString()}. Acesso até ${accessEndsAtIso}.`,
-        reason,
-        comment,
+      notes: appendBillingNotesBlock(
+        request.notes as string | null | undefined,
+        buildCancellationNotes(
+          `Cancelamento solicitado em ${utcIsoFrom(now)}. Acesso até ${accessEndsAtIso}. Estorno: NÃO.`,
+          reason,
+          comment,
+        ),
       ),
-      updated_at: now.toISOString(),
+      updated_at: utcIsoFrom(now),
     })
     .eq('id', request.id)
     .select('id, scheduled_cancel_at, status')
@@ -1480,7 +1531,7 @@ export async function handleSubscriptionCancellation(
       .from('tb_upgrade_requests')
       .update({
         scheduled_cancel_at: accessEndsAtIso,
-        updated_at: now.toISOString(),
+        updated_at: utcIsoFrom(now),
       })
       .eq('id', request.id)
       .eq('profile_id', userId)
@@ -1567,14 +1618,15 @@ export async function checkAndApplyExpiredSubscriptions(
     billingPeriodToMonths(pendingCancel.billing_period as string | null),
   );
 
-  if (new Date() < accessEndsAt)
+  if (nowFn().getTime() < accessEndsAt.getTime())
     return { applied: false, needs_adjustment: false, excess_galleries: [] };
 
   const result = await performDowngradeToFree(
     profileId,
     pendingCancel.id,
-    `Downgrade automático após término do período pago (expirou em ${accessEndsAt.toISOString()})`,
+    `Downgrade automático após término do período pago (expirou em ${utcIsoFrom(accessEndsAt)})`,
     supabase,
+    { skipRevalidatePath: true },
   );
   return {
     applied: result.success,
@@ -1707,7 +1759,7 @@ export async function requestUpgrade(
 
   // ── Upgrade Gratuito ──────────────────────────────────────────────────────
   if (calculation.is_free_upgrade && calculation.amount_final === 0) {
-    const now = new Date().toISOString();
+    const nowStr = utcIsoFrom();
     const planDescription = `Plano ${planInfo.name}`;
     const nextDueStr = calculation.new_expiry_date?.split('T')[0];
     const asaasCycle: 'MONTHLY' | 'SEMIANNUALLY' | 'YEARLY' =
@@ -1801,8 +1853,11 @@ export async function requestUpgrade(
         amount_final: 0,
         installments: 1,
         status: 'approved',
-        processed_at: now,
-        notes,
+        processed_at: nowStr,
+        notes: createBillingNotesForNewUpgradeRequest({
+          logBody: notes,
+          noRefundFreeCreditUpgrade: true,
+        }),
       })
       .select('id')
       .single();
@@ -1815,7 +1870,7 @@ export async function requestUpgrade(
 
     await supabase
       .from('tb_profiles')
-      .update({ plan_key: planKey, updated_at: now })
+      .update({ plan_key: planKey, updated_at: nowStr })
       .eq('id', userId);
 
     await reactivateAutoArchivedGalleries(userId, planKey, supabase);
@@ -1866,7 +1921,7 @@ export async function requestUpgrade(
         ? 'SEMIANNUALLY'
         : 'MONTHLY';
   const planPricePerPeriod = getPeriodPrice(planInfo, billingPeriod).totalPrice;
-  const immediateDueDate = toSaoPauloIso().split('T')[0];
+  const immediateDueDate = utcIsoFrom(nowFn()).split('T')[0];
   // Regra:
   // - Upgrade sem crédito: valor cheio do plano para cobrança imediata.
   // - Upgrade com crédito: respeita amountFinal calculado (evita cobrar valor cheio indevido).
@@ -1980,7 +2035,7 @@ export async function requestUpgrade(
     .from('tb_billing_profiles')
     .update({
       asaas_customer_id: asaasCustomerId,
-      updated_at: new Date().toISOString(),
+      updated_at: utcIsoFrom(),
     })
     .eq('id', userId);
 
@@ -2173,7 +2228,10 @@ export async function requestUpgrade(
       amount_final: amountFinalWithCoupon,
       installments,
       status: 'pending',
-      notes: [requestNotes, couponNotes].filter(Boolean).join('\n'),
+      notes: createBillingNotesForNewUpgradeRequest({
+        logBody: [requestNotes, couponNotes].filter(Boolean).join('\n'),
+        noRefundCreditProRata: Boolean(notesCredit?.trim()),
+      }),
     })
     .select('id')
     .single();

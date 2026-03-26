@@ -33,6 +33,13 @@ import type { NextRequest } from 'next/server';
 import { createServerClient } from '@supabase/ssr';
 import { fetchProfileDirectDB } from '@/core/services/profile.service';
 import { resolveGalleryUrl } from '@/core/utils/url-helper';
+import { PERMISSIONS_BY_PLAN, type PlanKey } from '@/core/config/plans';
+
+function isSubdomainAllowedByCurrentPlan(planKey: unknown): boolean {
+  const normalized = String(planKey ?? 'FREE').toUpperCase() as PlanKey;
+  const perms = PERMISSIONS_BY_PLAN[normalized];
+  return perms?.useSubdomain === true;
+}
 
 export async function middleware(req: NextRequest) {
   const SITE_URL = process.env.NEXT_PUBLIC_BASE_URL || 'http://localhost:3000';
@@ -170,11 +177,14 @@ export async function middleware(req: NextRequest) {
       const profile = await fetchProfileDirectDB(subdomain);
 
       if (!profile) return NextResponse.redirect(new URL(SITE_URL));
+      const canUseSubdomain =
+        profile.use_subdomain === true &&
+        isSubdomainAllowedByCurrentPlan(profile.plan_key);
 
       // Se perdeu direito ao subdomínio: hitalo.site.com -> site.com/hitalo
       // 🎯 SE NÃO EXISTE OU NÃO TEM PERMISSÃO -> 404
       // Não corrigimos a URL, apenas dizemos que não existe.
-      if (!profile || !profile.use_subdomain) {
+      if (!profile || !canUseSubdomain) {
         // Fazemos um rewrite para uma rota que não existe ou para o próprio 404 do Next
         const url = req.nextUrl.clone();
         url.pathname = '/404';
@@ -215,9 +225,12 @@ export async function middleware(req: NextRequest) {
     ) {
       // 🎯 MIDDLEWARE: Usa fetchProfileDirectDB (sem cache) pois Middleware não suporta unstable_cache
       const profile = await fetchProfileDirectDB(potentialUsername);
+      const canUseSubdomain =
+        profile?.use_subdomain === true &&
+        isSubdomainAllowedByCurrentPlan(profile?.plan_key);
 
       // REDIRECT: site.com/hitalo -> hitalo.site.com/
-      if (profile?.use_subdomain) {
+      if (canUseSubdomain) {
         const correctUrl = resolveGalleryUrl(
           profile.username,
           pathname, // A função vai limpar o "/hitalo" daqui

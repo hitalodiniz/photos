@@ -48,6 +48,7 @@ import { handleError } from '@supabase/auth-js/dist/module/lib/fetch';
 import { createPortal } from 'react-dom';
 import { is } from 'date-fns/locale';
 import { PlanPermissions } from '@/core/config/plans';
+import { PlanGuard } from '@/components/auth/PlanGuard';
 
 interface GaleriaCardProps {
   galeria: Galeria;
@@ -368,40 +369,37 @@ export default function GaleriaCard({
             <Tag size={16} />
           )}
         </button>
-
-        <button
-          onClick={(e) => {
-            e.stopPropagation();
-            // 🎯 FIX: featureKey correto para o botão de Leads
-            if (!canViewLeads) {
-              setUpsell({
-                label: 'Relatório de Visitantes',
-                featureKey: 'canCaptureLeads',
-              });
-              return;
-            }
-            navigate(
-              `/dashboard/galerias/${galeria.id}/leads`,
-              'Gerando relatório de visitantes...',
-            );
-          }}
-          className={btnBaseClass}
-          disabled={
-            canViewLeads &&
-            (isNavigating ||
-              (!galeria.leads_enabled && (galeria.leads_count ?? 0) <= 0))
-          }
+        <PlanGuard
+          feature="canCaptureLeads"
+          label="Relatório de Visitantes"
+          variant="tiny"
         >
-          {!canViewLeads ? (
-            <div className="relative">
-              <Users size={16} className="opacity-40" />
-              <Lock size={8} className="absolute -top-1 -right-1 text-gold" />
-            </div>
-          ) : (
+          <button
+            onClick={(e) => {
+              e.stopPropagation();
+              // 🎯 FIX: featureKey correto para o botão de Leads
+              if (!canViewLeads) {
+                setUpsell({
+                  label: 'Relatório de Visitantes',
+                  featureKey: 'canCaptureLeads',
+                });
+                return;
+              }
+              navigate(
+                `/dashboard/galerias/${galeria.id}/leads`,
+                'Gerando relatório de visitantes...',
+              );
+            }}
+            className={btnBaseClass}
+            disabled={
+              canViewLeads &&
+              (isNavigating ||
+                (!galeria.leads_enabled && (galeria.leads_count ?? 0) <= 0))
+            }
+          >
             <Users size={16} />
-          )}
-        </button>
-
+          </button>
+        </PlanGuard>
         <button
           onClick={(e) => {
             e.stopPropagation();

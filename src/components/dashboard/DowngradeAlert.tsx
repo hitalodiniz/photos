@@ -1,6 +1,6 @@
 'use client';
 
-import { useMemo, useState, useTransition } from 'react';
+import { useState, useTransition } from 'react';
 import {
   AlertTriangle,
   Archive,
@@ -26,9 +26,57 @@ interface DowngradeAlertProps {
     plan_key?: PlanKey | null;
     is_trial?: boolean | null;
     plan_trial_expires?: string | null;
-    metadata?: { last_downgrade_alert_viewed?: boolean } | null;
+    metadata?: {
+      last_downgrade_alert_viewed?: boolean;
+      downgrade_reason?: string | null;
+      downgrade_at?: string | null;
+    } | null;
   } | null;
   galerias: Galeria[];
+}
+
+function inferDowngradeTypeLabel(reason?: string | null) {
+  const r = (reason ?? '').toLowerCase();
+  if (!r) return 'Downgrade automático';
+
+  if (
+    r.includes('trial') ||
+    r.includes('período de teste') ||
+    r.includes('teste')
+  )
+    return 'Fim do trial';
+
+  if (
+    r.includes('pendant_change') ||
+    r.includes('mudança agendada') ||
+    r.includes('pending_change') ||
+    r.includes('agendada')
+  )
+    return 'Downgrade agendado';
+
+  if (
+    r.includes('pagamento em atraso') ||
+    r.includes('overdue') ||
+    r.includes('carência') ||
+    r.includes('inadimpl')
+  )
+    return 'Downgrade por atraso';
+
+  if (
+    r.includes('período pago encerrado') ||
+    r.includes('pagamento encerrado') ||
+    r.includes('expirou')
+  )
+    return 'Fim do período pago';
+
+  if (r.includes('arrependimento') || r.includes('direito de arrependimento'))
+    return 'Cancelamento com arrependimento';
+
+  if (r.includes('cancelamento')) return 'Cancelamento de assinatura';
+  if (r.includes('limite') || r.includes('quota') || r.includes('cota'))
+    return 'Adequação de limite';
+
+  return 'Downgrade automático';
 }
 
 export function DowngradeAlert({ profile, galerias }: DowngradeAlertProps) {
@@ -39,10 +87,19 @@ export function DowngradeAlert({ profile, galerias }: DowngradeAlertProps) {
   if (!profile) return null;
 
   const metadata = profile.metadata as
-    | { last_downgrade_alert_viewed?: boolean }
+    | {
+        last_downgrade_alert_viewed?: boolean;
+        downgrade_reason?: string | null;
+        downgrade_at?: string | null;
+      }
     | null
     | undefined;
   const shouldShow = metadata?.last_downgrade_alert_viewed === false;
+  const showSignatureExpiredBanner = shouldShow;
+
+  const downgradeTypeLabel = inferDowngradeTypeLabel(
+    metadata?.downgrade_reason,
+  );
 
   const autoArchived = galerias.filter(
     (g) =>
@@ -50,18 +107,6 @@ export function DowngradeAlert({ profile, galerias }: DowngradeAlertProps) {
       g.is_archived === false &&
       g.is_deleted === false,
   );
-
-  const trialExpired = useMemo(() => {
-    if (!profile?.is_trial) return false;
-    if (!profile.plan_trial_expires) return false;
-    const base = profile.plan_trial_expires.includes('T')
-      ? profile.plan_trial_expires
-      : profile.plan_trial_expires.replace(' ', 'T');
-    const normalized = base.replace(/([+-]\d{2})$/, '$1:00');
-    const expiresAt = new Date(normalized).getTime();
-    if (isNaN(expiresAt)) return false;
-    return expiresAt <= Date.now();
-  }, [profile?.is_trial, profile?.plan_trial_expires]);
 
   const shouldRenderAlert = shouldShow && !dismissed;
 
@@ -97,7 +142,7 @@ export function DowngradeAlert({ profile, galerias }: DowngradeAlertProps) {
         <BaseModal
           isOpen
           onClose={handleDismissAlert}
-          title="Notificação de Plano"
+          title="Adequação de Plano"
           subtitle="Ajuste automático por mudança de assinatura"
           maxWidth="3xl"
           headerIcon={<AlertTriangle size={18} />}
@@ -130,14 +175,17 @@ export function DowngradeAlert({ profile, galerias }: DowngradeAlertProps) {
           }
         >
           <div className="space-y-4">
-            {(trialExpired || total === 0) && (
+            {(showSignatureExpiredBanner || total === 0) && (
               <div className="bg-rose-50 border border-rose-200 rounded-lg p-4">
                 <p className="text-[13px] font-semibold text-rose-900 mb-1">
-                  Seu periodo de teste terminou
+                  O período da sua assinatura expirou.
+                </p>
+                <p className="text-[11px] text-rose-700 leading-relaxed mt-2">
+                  Tipo de downgrade: <strong>{downgradeTypeLabel}</strong>
                 </p>
                 <p className="text-[12px] text-rose-700 leading-relaxed">
-                  Para manter os recursos do plano atual sem interrupcoes,
-                  assine um plano pago agora.
+                  Para manter os recursos do plano expirado, assine o plano
+                  novamente.
                 </p>
               </div>
             )}
@@ -157,7 +205,7 @@ export function DowngradeAlert({ profile, galerias }: DowngradeAlertProps) {
                     <p className="text-[12px] text-amber-700 leading-relaxed">
                       Sua assinatura foi alterada e estas galerias foram movidas
                       para a seção <strong>"Arquivadas"</strong> para se adequar
-                      ao novo limite do plano.
+                      ao novo limite do plano atual.
                     </p>
                   </div>
                 </div>

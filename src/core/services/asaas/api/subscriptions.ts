@@ -7,13 +7,14 @@ import {
   normalizeCreditCardHolderInfo,
 } from '../utils/formatters';
 import type { CreateSubscriptionData } from '../types';
-import { toSaoPauloIso } from '@/core/utils/date-time';
+import { now as nowFn, utcIsoFrom } from '@/core/utils/data-helpers';
 import { createSupabaseServerClient } from '@/lib/supabase.server';
 import { getAuthenticatedUser } from '@/core/services/auth-context.service';
+import { appendBillingNotesBlock } from '@/core/services/asaas/utils/billing-notes-doc';
 
 export async function createAsaasSubscription(data: CreateSubscriptionData) {
   try {
-    const today = toSaoPauloIso().split('T')[0];
+    const today = utcIsoFrom(nowFn()).split('T')[0];
     const nextDueDate =
       data.nextDueDate && /^\d{4}-\d{2}-\d{2}$/.test(data.nextDueDate)
         ? data.nextDueDate
@@ -323,69 +324,62 @@ export async function reactivateSubscription(
     const auth = await getAuthenticatedUser();
     if (auth.success && auth.userId) {
       const supabase = await createSupabaseServerClient();
-      const nowIso = toSaoPauloIso();
-      const nowBr = new Date(nowIso).toLocaleString('pt-BR', {
+      const nowDate = nowFn();
+      const nowIso = utcIsoFrom(nowDate);
+      const nowBr = nowDate.toLocaleString('pt-BR', {
         timeZone: 'America/Sao_Paulo',
       });
       const noteLine = `[Reactivation ${nowIso}] Assinatura reativada em ${nowBr}.`;
-      const { data: bySubscription } = await supabase
+
+      // Uma única linha de histórico para esta assinatura: prioriza cancelamento
+      // agendado na mesma subscription; senão a entrada mais recente (approved /
+      // cancelled / renewed). Não replicar [Reactivation] em todo o histórico.
+      const { data: pendingForSub } = await supabase
         .from('tb_upgrade_requests')
         .select('id, status, notes')
         .eq('profile_id', auth.userId)
         .eq('asaas_subscription_id', subscriptionId)
-        .in('status', [
-          'approved',
-          'pending_cancellation',
-          'pending_downgrade',
-          'cancelled',
-        ])
-        .order('created_at', { ascending: false })
-        .limit(10);
-
-      const { data: latestPendingCancel } = await supabase
-        .from('tb_upgrade_requests')
-        .select('id, status, notes')
-        .eq('profile_id', auth.userId)
         .in('status', ['pending_cancellation', 'pending_downgrade'])
         .order('created_at', { ascending: false })
         .limit(1)
         .maybeSingle();
 
-      for (const req of bySubscription ?? []) {
-        const mergedNotes = req.notes
-          ? `${req.notes}\n${noteLine}`
-          : noteLine;
+      let primaryRow = pendingForSub;
+      if (!primaryRow?.id) {
+        const { data: latestForSub } = await supabase
+          .from('tb_upgrade_requests')
+          .select('id, status, notes')
+          .eq('profile_id', auth.userId)
+          .eq('asaas_subscription_id', subscriptionId)
+          .in('status', ['approved', 'cancelled', 'renewed'])
+          .order('created_at', { ascending: false })
+          .limit(1)
+          .maybeSingle();
+        primaryRow = latestForSub ?? null;
+      }
+
+      if (primaryRow?.id) {
+        const mergedNotes = appendBillingNotesBlock(
+          primaryRow.notes,
+          noteLine,
+        );
+        const nextStatus =
+          primaryRow.status === 'pending_cancellation' ||
+          primaryRow.status === 'pending_downgrade'
+            ? 'approved'
+            : primaryRow.status;
         await supabase
           .from('tb_upgrade_requests')
           .update({
-            status: req.status,
+            status: nextStatus,
             notes: mergedNotes,
             scheduled_cancel_at: null,
             updated_at: nowIso,
           })
-          .eq('id', req.id);
+          .eq('id', primaryRow.id);
       }
 
-      // Regra de negócio: ao reativar, o ÚLTIMO registro de cancelamento pendente
-      // volta para approved para refletir assinatura reativada.
-      if (latestPendingCancel?.id) {
-        const mergedNotes = latestPendingCancel.notes
-          ? `${latestPendingCancel.notes}\n${noteLine}`
-          : noteLine;
-        await supabase
-          .from('tb_upgrade_requests')
-          .update({
-            status: 'approved',
-            notes: mergedNotes,
-            asaas_subscription_id: subscriptionId,
-            scheduled_cancel_at: null,
-            updated_at: nowIso,
-          })
-          .eq('id', latestPendingCancel.id);
-      }
-
-      // Defesa adicional: limpa scheduled_cancel_at em todas as linhas da
-      // assinatura reativada (independente do status) para evitar resíduos.
+      // Limpa scheduled_cancel_at nas demais linhas desta assinatura (sem duplicar nota).
       await supabase
         .from('tb_upgrade_requests')
         .update({
@@ -394,21 +388,6 @@ export async function reactivateSubscription(
         })
         .eq('profile_id', auth.userId)
         .eq('asaas_subscription_id', subscriptionId)
-        .not('scheduled_cancel_at', 'is', null);
-
-      // Fallback: linhas pendentes sem asaas_subscription_id também devem ser limpas.
-      await supabase
-        .from('tb_upgrade_requests')
-        .update({
-          scheduled_cancel_at: null,
-          updated_at: nowIso,
-        })
-        .eq('profile_id', auth.userId)
-        .in('status', [
-          'pending_cancellation',
-          'pending_downgrade',
-          'approved',
-        ])
         .not('scheduled_cancel_at', 'is', null);
     }
 

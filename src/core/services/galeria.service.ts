@@ -5,6 +5,7 @@ import { redirect } from 'next/navigation';
 import slugify from 'slugify';
 import { revalidatePath, revalidateTag, unstable_cache } from 'next/cache';
 import { GLOBAL_CACHE_REVALIDATE } from '@/core/utils/url-helper';
+import { now as nowFn, utcIsoFrom } from '@/core/utils/data-helpers';
 
 import {
   DrivePhoto,
@@ -793,7 +794,7 @@ export async function syncGaleriaPhotoCount(
       .from('tb_galerias')
       .update({
         photo_count: count,
-        updated_at: new Date().toISOString(),
+        updated_at: utcIsoFrom(nowFn()),
       })
       .eq('id', galeria.id)
       .eq('user_id', userId);
@@ -855,7 +856,7 @@ export async function syncGaleriaPhotoCountByGaleriaId(
       .from('tb_galerias')
       .update({
         photo_count: count,
-        updated_at: new Date().toISOString(),
+        updated_at: utcIsoFrom(nowFn()),
       })
       .eq('id', galeriaId);
 
@@ -1067,7 +1068,7 @@ export async function toggleShowOnProfile(id: string, currentStatus: boolean) {
 export async function moveToTrash(id: string) {
   return updateGaleriaStatus(id, {
     is_deleted: true,
-    deleted_at: new Date().toISOString(),
+    deleted_at: utcIsoFrom(nowFn()),
   });
 }
 
@@ -1281,7 +1282,7 @@ export async function purgeOldDeletedGalleries(supabaseClient?: any) {
   const supabase = supabaseClient || (await createSupabaseServerClient());
 
   // Calcula a data de corte (30 dias atrás)
-  const cutoffDate = new Date();
+  const cutoffDate = nowFn();
   cutoffDate.setDate(cutoffDate.getDate() - 30);
 
   // 1. Busca galerias para exclusão (apenas para log e revalidação se necessário)
@@ -1289,7 +1290,7 @@ export async function purgeOldDeletedGalleries(supabaseClient?: any) {
     .from('tb_galerias')
     .select('id, user_id, slug')
     .eq('is_deleted', true)
-    .lt('deleted_at', cutoffDate.toISOString());
+    .lt('deleted_at', utcIsoFrom(cutoffDate));
 
   if (fetchError) throw fetchError;
 
@@ -1331,7 +1332,7 @@ export async function updateGaleriaTagsAction(
           typeof gallery_tags === 'string'
             ? JSON.parse(gallery_tags)
             : gallery_tags,
-        updated_at: new Date().toISOString(),
+        updated_at: utcIsoFrom(nowFn()),
       })
       .eq('id', galeria.id);
 
@@ -1415,7 +1416,7 @@ export async function saveGaleriaSelectionAction(
         // Garante que estamos enviando um array limpo
         selection_ids: Array.isArray(selectionIds) ? selectionIds : [],
         selection_metadata: metadata,
-        updated_at: new Date().toISOString(),
+        updated_at: utcIsoFrom(nowFn()),
       })
       .eq('id', galeria.id)
       .select(); // Adicionamos select para confirmar que houve alteração

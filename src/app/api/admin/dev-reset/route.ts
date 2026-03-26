@@ -1,5 +1,6 @@
 // src/app/api/admin/dev-reset/route.ts
 import { NextRequest, NextResponse } from 'next/server';
+import { now as nowFn, utcIsoFrom } from '@/core/utils/data-helpers';
 import { revalidateTag } from 'next/cache';
 import { createSupabaseAdmin } from '@/lib/supabase.server';
 import { getAuthenticatedUser } from '@/core/services/auth-context.service';
@@ -434,9 +435,9 @@ export async function POST(req: NextRequest) {
         const { error } = await supabase
           .from('tb_upgrade_requests')
           .update({
-            processed_at: '2026-02-10 14:00:00+00',
-            created_at: '2026-02-10 13:55:00+00',
-            updated_at: '2026-02-10 14:00:00+00',
+            processed_at: utcIsoFrom(new Date('2026-02-10T14:00:00.000Z')),
+            created_at: utcIsoFrom(new Date('2026-02-10T13:55:00.000Z')),
+            updated_at: utcIsoFrom(new Date('2026-02-10T14:00:00.000Z')),
           })
           .eq('profile_id', profile.id);
         if (error) throw error;
@@ -578,9 +579,9 @@ export async function POST(req: NextRequest) {
           })
           .eq('username', username);
 
-        const overdueSince = new Date(
-          Date.now() - 5 * 24 * 60 * 60 * 1000,
-        ).toISOString();
+        const overdueSince = utcIsoFrom(
+          new Date(nowFn().getTime() - 5 * 24 * 60 * 60 * 1000),
+        );
         const { error } = await supabase
           .from('tb_upgrade_requests')
           .update({ overdue_since: overdueSince, status: 'pending' })

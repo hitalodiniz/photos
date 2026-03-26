@@ -1,5 +1,6 @@
 // core/services/token-cleanup.service.ts
 import { createSupabaseServerClient } from '@/lib/supabase.server';
+import { now as nowFn, utcIsoFrom } from '@/core/utils/data-helpers';
 
 interface TokenCleanupResult {
   success: boolean;
@@ -96,7 +97,7 @@ export async function cleanupGoogleTokens(options: {
       };
     }
 
-    const now = Date.now();
+    const now = nowFn().getTime();
     const expiredThreshold = removeExpiredAccessTokensDays > 0
       ? now - (removeExpiredAccessTokensDays * 24 * 60 * 60 * 1000)
       : 0;

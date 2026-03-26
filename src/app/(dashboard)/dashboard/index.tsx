@@ -26,7 +26,6 @@ import DashboardHeader from './components/DashboardHeader';
 import GalleryList from './components/GalleryList';
 import DashboardFooter from './components/DashboardFooter';
 import { PlanProvider } from '@/core/context/PlanContext';
-import { DowngradeAlert } from '@/components/dashboard/DowngradeAlert';
 import { useSyncInternalTraffic } from '@/hooks/useSyncInternalTraffic';
 import { GaleriaSyncObserver } from '@/features/galeria/GaleriaSyncObserver';
 import {
@@ -169,7 +168,6 @@ export default function Dashboard({
         userId={initialProfile?.id}
         onSynced={handleGaleriaSynced}
       />
-      <DowngradeAlert profile={initialProfile} galerias={galerias} />
       <div className="mx-auto flex flex-col lg:flex-row max-w-[1600px] gap-4 px-2 bg-luxury-bg min-h-screen pb-24 lg:pb-6">
         <Sidebar
           counts={filters.counts}

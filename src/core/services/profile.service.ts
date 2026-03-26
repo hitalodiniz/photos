@@ -10,6 +10,7 @@ import {
 import { suggestUsernameFromEmail } from '@/core/utils/user-helpers';
 import { cache } from 'react';
 import { PROFILE_CACHE_REVALIDATE } from '@/core/utils/url-helper';
+import { now as nowFn, utcIsoFrom } from '@/core/utils/data-helpers';
 import { MessageTemplates, UserSettings } from '../types/profile';
 import { PlanKey } from '../config/plans';
 
@@ -264,7 +265,7 @@ export async function upsertProfile(formData: FormData, supabaseClient?: any) {
     const ip = (headersList.get('x-forwarded-for') ?? '127.0.0.1').split(
       ',',
     )[0];
-    termsData.accepted_at = new Date().toISOString();
+    termsData.accepted_at = utcIsoFrom(nowFn());
     termsData.accepted_ip = ip;
   } else if (existingProfile?.accepted_ip) {
     // Preserva os dados originais se já existirem
@@ -295,7 +296,7 @@ export async function upsertProfile(formData: FormData, supabaseClient?: any) {
     profile_picture_url: profilePictureUrl,
     ...termsData,
     background_url: backgroundUrls,
-    updated_at: new Date().toISOString(),
+    updated_at: utcIsoFrom(nowFn()),
     specialty: parseOperatingCities(formFields.specialty),
     custom_specialties: parseOperatingCities(formFields.custom_specialties),
     ...(formFields.theme_key ? { theme_key: formFields.theme_key } : {}),
@@ -345,7 +346,7 @@ export async function updateProfileSettings(data: {
     .update({
       settings: data.settings,
       message_templates: data.message_templates,
-      updated_at: new Date().toISOString(),
+      updated_at: utcIsoFrom(nowFn()),
     })
     .eq('id', user.id);
 
@@ -426,7 +427,7 @@ export async function updateCustomCategories(categories: string[]) {
     .from('tb_profiles')
     .update({
       custom_categories: categories,
-      updated_at: new Date().toISOString(),
+      updated_at: utcIsoFrom(nowFn()),
     })
     .eq('id', user.id);
 
@@ -540,7 +541,7 @@ export async function processSubscriptionAction(
     .update({
       plan_key: newPlan,
       is_trial: false, // 🛡️ SEMPRE desativa trial ao mudar de plano manualmente ou via pagamento
-      updated_at: new Date().toISOString(),
+      updated_at: utcIsoFrom(nowFn()),
     })
     .eq('id', profileId)
     .select()
@@ -579,7 +580,7 @@ async function logPlanChange(
     old_plan: oldPlan,
     new_plan: newPlan,
     reason: reason,
-    created_at: new Date().toISOString(),
+    created_at: utcIsoFrom(nowFn()),
   });
 }
 

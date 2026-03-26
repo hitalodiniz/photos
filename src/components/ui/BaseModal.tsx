@@ -145,7 +145,7 @@ export default function BaseModal({
         </div>
 
         {/* CONTEÚDO — fundo branco, sem interferência do tema */}
-        <div className="bg-white flex-1 overflow-y-auto no-scrollbar">
+        <div className="bg-white flex-1 overflow-y-auto">
           {topBanner && (
             <div className="border-b border-petroleum/10">{topBanner}</div>
           )}

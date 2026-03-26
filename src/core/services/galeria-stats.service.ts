@@ -7,6 +7,7 @@ import {
 import { cookies, headers } from 'next/headers';
 import { createInternalNotification } from './notification.service';
 import { UAParser } from 'ua-parser-js';
+import { now as nowFn, utcIsoFrom } from '@/core/utils/data-helpers';
 import { Galeria } from '../types/galeria';
 import { getPublicGalleryUrl } from '../utils/url-helper';
 
@@ -123,7 +124,9 @@ export async function emitGaleriaEvent({
 
   // 3. Trava de Duplicidade (Apenas para View)
   if (eventType === 'view') {
-    const timeLimit = new Date(Date.now() - 24 * 60 * 60 * 1000).toISOString();
+    const timeLimit = utcIsoFrom(
+      new Date(nowFn().getTime() - 24 * 60 * 60 * 1000),
+    );
     const { data: recent } = await supabase
       .from('tb_galeria_stats')
       .select('id')
@@ -190,7 +193,7 @@ export async function emitGaleriaEvent({
 
   const eventForNotification = {
     ...statRow,
-    created_at: new Date().toISOString(),
+    created_at: utcIsoFrom(nowFn()),
     event_label: EVENT_LABELS[eventType] ?? eventType,
     location: statRow.metadata.location,
   };
