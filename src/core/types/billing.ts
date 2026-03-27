@@ -40,6 +40,14 @@ export type UpgradeRequestStatus =
 /** Valor do enum no Postgres para linhas de renovação (webhook / histórico financeiro). */
 export const UPGRADE_REQUEST_STATUS_RENEWED = 'renewed' as const satisfies UpgradeRequestStatus;
 
+/** Webhook/RPC marcam upgrade como `approved` e renovação de ciclo como `renewed` — ambos são “pago”. */
+export function isUpgradeRequestPaymentComplete(
+  status: string | null | undefined,
+): boolean {
+  const s = String(status ?? '').toLowerCase();
+  return s === 'approved' || s === UPGRADE_REQUEST_STATUS_RENEWED;
+}
+
 export type BillingType = 'PIX' | 'BOLETO' | 'CREDIT_CARD';
 
 export interface UpgradeRequest {

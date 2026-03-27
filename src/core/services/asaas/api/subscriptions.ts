@@ -12,7 +12,7 @@ import { createSupabaseServerClient } from '@/lib/supabase.server';
 import { getAuthenticatedUser } from '@/core/services/auth-context.service';
 import { appendBillingNotesBlock } from '@/core/services/asaas/utils/billing-notes-doc';
 
-const BOLETO_VALIDITY_DAYS_AFTER_DUE = 3;
+const BOLETO_VALIDITY_DAYS_AFTER_DUE = 30;
 
 export async function createAsaasSubscription(data: CreateSubscriptionData) {
   try {
@@ -135,8 +135,7 @@ export async function updateAsaasSubscriptionPlanAndDueDate(
     cycle,
     updatePendingPayments,
     discount,
-  } =
-    params;
+  } = params;
   if (!/^\d{4}-\d{2}-\d{2}$/.test(nextDueDate))
     return { success: false, error: 'nextDueDate deve ser YYYY-MM-DD' };
   const body: Record<string, unknown> = {
@@ -197,10 +196,9 @@ export async function cancelAsaasSubscriptionById(
   const path = deletePendingPayments
     ? `/subscriptions/${subscriptionId}?deletePendingPayments=true`
     : `/subscriptions/${subscriptionId}`;
-  const { ok, data } = await asaasRequest<{ errors?: unknown[] }>(
-    path,
-    { method: 'DELETE' },
-  );
+  const { ok, data } = await asaasRequest<{ errors?: unknown[] }>(path, {
+    method: 'DELETE',
+  });
   return ok
     ? { success: true }
     : {
@@ -387,6 +385,40 @@ export async function reactivateSubscription(
   } catch (e) {
     console.error('[Asaas] reactivateSubscription:', e);
     return { success: false, error: 'Erro de conexão ao reativar assinatura' };
+  }
+}
+
+/**
+ * Re-dispara a cobrança pendente usando o cartão já salvo na assinatura (sem enviar PAN/CCV).
+ * Equivale a PUT com `billingType: CREDIT_CARD` + `updatePendingPayments: true` sem payload de cartão.
+ */
+export async function retryPendingCreditCardSubscription(
+  subscriptionId: string,
+): Promise<{ success: boolean; error?: string }> {
+  try {
+    const body: Record<string, unknown> = {
+      billingType: 'CREDIT_CARD',
+      updatePendingPayments: true,
+    };
+    const { ok, data } = await asaasRequest<{ errors?: unknown[] }>(
+      `/subscriptions/${subscriptionId}`,
+      { method: 'PUT', body: JSON.stringify(body) },
+    );
+    return ok
+      ? { success: true }
+      : {
+          success: false,
+          error: asaasError(
+            data as Record<string, unknown>,
+            'Erro ao retentar cobrança no cartão',
+          ),
+        };
+  } catch (e) {
+    console.error('[Asaas] retryPendingCreditCardSubscription:', e);
+    return {
+      success: false,
+      error: 'Erro de conexão ao retentar cobrança',
+    };
   }
 }
 

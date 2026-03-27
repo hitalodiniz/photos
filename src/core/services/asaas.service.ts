@@ -74,6 +74,7 @@ import {
   getAsaasSubscription,
   getActiveSubscriptionIdForCustomer,
   updateSubscriptionBillingMethod as updateAsaasSubscriptionBillingMethod,
+  retryPendingCreditCardSubscription,
 } from './asaas/api/subscriptions';
 import {
   getFirstPaymentFromSubscription,
@@ -1068,7 +1069,12 @@ export async function updateSubscriptionBillingMethod(
     phone: string;
     mobilePhone: string;
   } | null,
-  options?: { targetRequestId?: string | null },
+  options?: {
+    targetRequestId?: string | null;
+    cardUpdateOnly?: boolean;
+    /** PUT só com subscriptionId: retenta cobrança pendente com cartão salvo no Asaas */
+    retrySavedCardOnly?: boolean;
+  },
 ): Promise<{
   success: boolean;
   requestId?: string;
@@ -1105,6 +1111,8 @@ export async function updateSubscriptionBillingMethod(
       'id, billing_type, status, notes, asaas_payment_id, asaas_subscription_id, asaas_raw_status, overdue_since, plan_key_current, plan_key_requested, billing_period, snapshot_name, snapshot_cpf_cnpj, snapshot_email, snapshot_whatsapp, snapshot_address, asaas_customer_id, amount_original, amount_discount, amount_final, installments';
 
     const targetRequestId = options?.targetRequestId?.trim() || null;
+    const cardUpdateOnly = options?.cardUpdateOnly === true;
+    const retrySavedCardOnly = options?.retrySavedCardOnly === true;
     let currentReq: any = null;
     let currentReqErr: any = null;
     if (targetRequestId) {
@@ -1176,27 +1184,44 @@ export async function updateSubscriptionBillingMethod(
       Boolean((currentReq as any).overdue_since) ||
       String((currentReq as any).asaas_raw_status ?? '').toUpperCase() ===
         'OVERDUE';
-    if (isOverdueRequest && newMethod === 'BOLETO') {
-      return {
-        success: false,
-        error:
-          'Não é possível gerar boleto para faturas vencidas. Escolha PIX ou Cartão.',
-      };
-    }
 
-    // 1) Atualiza no Asaas (inclui updatePendingPayments:true no módulo API)
-    const asaasRes = await updateAsaasSubscriptionBillingMethod(
-      subscriptionId,
-      newMethod,
-      creditCard ?? null,
-      creditCardHolderInfo ?? null,
-    );
+    // 1) Atualiza no Asaas
+    let asaasRes: { success: boolean; error?: string };
+    if (retrySavedCardOnly) {
+      if (newMethod !== 'CREDIT_CARD') {
+        return { success: false, error: 'Retentativa inválida para este método.' };
+      }
+      asaasRes = await retryPendingCreditCardSubscription(subscriptionId);
+    } else {
+      asaasRes = await updateAsaasSubscriptionBillingMethod(
+        subscriptionId,
+        newMethod,
+        creditCard ?? null,
+        creditCardHolderInfo ?? null,
+      );
+    }
     if (!asaasRes.success) return asaasRes;
+
+    // 1.1) Correção de pro-rata: se a fatura atual tinha desconto pro-rata,
+    // o updatePendingPayments: true do Asaas sobrescreveu o valor da fatura pendente
+    // com o valor cheio da assinatura. Precisamos restaurar o valor pro-rata.
+    const amountFinal = Number(currentReq.amount_final ?? 0);
+    const amountOriginal = Number(currentReq.amount_original ?? 0);
+    if (amountFinal > 0 && amountFinal < amountOriginal) {
+      const pendingPayment = await getLatestPendingPaymentFromSubscription(subscriptionId);
+      if (pendingPayment.success && pendingPayment.paymentId) {
+        await updateAsaasPaymentValue(pendingPayment.paymentId, amountFinal);
+      }
+    }
 
     // 2) Atualiza tb_upgrade_requests (registro mais recente da assinatura)
     const previous = (currentReq.billing_type as string | null) ?? null;
     const nowIso = utcIsoFrom();
-    const historyLine = `[PaymentMethodChange ${nowIso}] ${previous ?? 'UNKNOWN'} -> ${newMethod}`;
+    const historyLine = retrySavedCardOnly
+      ? `[PendingCaptureRetry ${nowIso}] Retentativa de cobrança com cartão salvo (updatePendingPayments).`
+      : cardUpdateOnly
+        ? `[CardUpdate ${nowIso}] Cartão atualizado mantendo método CREDIT_CARD.`
+        : `[PaymentMethodChange ${nowIso}] ${previous ?? 'UNKNOWN'} -> ${newMethod}`;
     const nextNotes = appendBillingNotesBlock(
       currentReq.notes as string | null | undefined,
       historyLine,
@@ -1261,6 +1286,7 @@ export async function updateSubscriptionBillingMethod(
       // Hardening: em transição PIX/BOLETO -> CARTÃO em fatura vencida/rejeitada,
       // garantimos que a cobrança efetiva esteja no cartão.
       if (
+        !retrySavedCardOnly &&
         newMethod === 'CREDIT_CARD' &&
         isOverdueRequest &&
         shouldCreateReplacementRequest
@@ -1314,7 +1340,7 @@ export async function updateSubscriptionBillingMethod(
           replacedPreviousPaymentId = previousPaymentId;
         }
       }
-    } else if (shouldCreateReplacementRequest) {
+    } else if (!retrySavedCardOnly && shouldCreateReplacementRequest) {
       const amount = Number(currentReq.amount_final ?? 0);
         const customerId = asaasCustomerIdForWrite;
       if (!(amount > 0) || !customerId) {
@@ -2280,6 +2306,21 @@ export async function requestUpgrade(
       success: false,
       error:
         'Há um cancelamento com downgrade agendado. Não é possível contratar um novo plano até essa solicitação ser concluída ou alterada.',
+    };
+  }
+
+  const { data: overdueBlock } = await supabase
+    .from('tb_upgrade_requests')
+    .select('id')
+    .eq('profile_id', userId)
+    .not('overdue_since', 'is', null)
+    .limit(1)
+    .maybeSingle();
+  if (overdueBlock) {
+    return {
+      success: false,
+      error:
+        'Você possui uma fatura em atraso. Por favor, acesse a aba Assinatura e regularize o pagamento pendente antes de alterar seu plano.',
     };
   }
 

@@ -18,7 +18,12 @@ import {
 } from 'lucide-react';
 import { useRouter } from 'next/navigation';
 import { getUpgradeRequestStatus } from '@/core/services/asaas.service';
-import { formatBRL, formatDateLong, formatDatePtBr } from '@/components/ui/Upgradesheet/utils';
+import { isUpgradeRequestPaymentComplete } from '@/core/types/billing';
+import {
+  formatBRL,
+  formatDateLong,
+  formatDatePtBr,
+} from '@/components/ui/Upgradesheet/utils';
 import LoadingSpinner from '@/components/ui/LoadingSpinner';
 
 type StepDoneStatus = 'pending' | 'approved' | 'rejected' | 'overdue';
@@ -76,9 +81,7 @@ function SecurityBadge() {
 }
 
 function SupportLink() {
-  const msg = encodeURIComponent(
-    'Ola! Preciso de ajuda com meu pagamento.',
-  );
+  const msg = encodeURIComponent('Ola! Preciso de ajuda com meu pagamento.');
   return (
     <a
       href={`https://wa.me/${WHATSAPP_SUPPORT}?text=${msg}`}
@@ -112,7 +115,9 @@ function OrderSummary({
           Plano {name} · {mapPeriodLabel(period)}
         </p>
         {typeof amount === 'number' && amount > 0 && (
-          <p className="text-[14px] font-bold text-petroleum">{formatBRL(amount)}</p>
+          <p className="text-[14px] font-bold text-petroleum">
+            {formatBRL(amount)}
+          </p>
         )}
       </div>
     </div>
@@ -129,7 +134,9 @@ export function StepDoneWrapper({
 }: StepDoneWrapperProps) {
   const router = useRouter();
   const [runtimeStatus, setRuntimeStatus] = useState<StepDoneStatus>(status);
-  const [copyState, setCopyState] = useState<'idle' | 'copied' | 'error'>('idle');
+  const [copyState, setCopyState] = useState<'idle' | 'copied' | 'error'>(
+    'idle',
+  );
   const [pixRuntimeData, setPixRuntimeData] = useState<{
     qrCode?: string;
     copyPaste?: string;
@@ -144,13 +151,15 @@ export function StepDoneWrapper({
 
   useEffect(() => {
     if (!upgradeRequestId || runtimeStatus === 'approved') return;
-    const interval = setInterval(async () => {
+    const check = async () => {
       const result = await getUpgradeRequestStatus(upgradeRequestId);
-      if (result.success && result.status === 'approved') {
+      if (result.success && isUpgradeRequestPaymentComplete(result.status)) {
         setRuntimeStatus('approved');
         router.refresh();
       }
-    }, 5000);
+    };
+    check();
+    const interval = setInterval(check, 5000);
     return () => clearInterval(interval);
   }, [upgradeRequestId, runtimeStatus, router]);
 
@@ -164,9 +173,9 @@ export function StepDoneWrapper({
         { cache: 'no-store' },
       );
       if (!res.ok) {
-        const body = (await res.json().catch(() => null)) as
-          | { error?: string }
-          | null;
+        const body = (await res.json().catch(() => null)) as {
+          error?: string;
+        } | null;
         const apiError = String(body?.error ?? '').trim();
         setPixLoadError(
           apiError &&
@@ -225,13 +234,7 @@ export function StepDoneWrapper({
       loadPixData();
     }, 1500);
     return () => clearTimeout(t);
-  }, [
-    billingType,
-    upgradeRequestId,
-    pixLoadError,
-    pixRetryCount,
-    loadPixData,
-  ]);
+  }, [billingType, upgradeRequestId, pixLoadError, pixRetryCount, loadPixData]);
 
   const dueDateText = useMemo(() => {
     if (!paymentData.paymentDueDate) return null;
@@ -245,7 +248,9 @@ export function StepDoneWrapper({
   );
 
   const copyPix = useCallback(async () => {
-    const content = (pixRuntimeData?.copyPaste ?? paymentData.pixData?.copyPaste)?.trim();
+    const content = (
+      pixRuntimeData?.copyPaste ?? paymentData.pixData?.copyPaste
+    )?.trim();
     if (!content) return;
     try {
       await navigator.clipboard.writeText(content);
@@ -329,7 +334,11 @@ export function StepDoneWrapper({
         </p>
       </div>
 
-      <OrderSummary name={planInfo.name} period={planInfo.period} amount={paymentData.amount} />
+      <OrderSummary
+        name={planInfo.name}
+        period={planInfo.period}
+        amount={paymentData.amount}
+      />
 
       {paymentData.errorMessage && (
         <div className="rounded-luxury border border-red-300 bg-red-50 px-3 py-2 flex items-start gap-2">
@@ -346,7 +355,7 @@ export function StepDoneWrapper({
               Regularizacao pendente.
             </p>
             <p className="text-[11px] text-amber-800">
-              O plano so sera mantido apos a confirmacao do pagamento.
+              O plano atual será mantido após a confirmação do pagamento.
             </p>
           </div>
         </div>
@@ -354,7 +363,11 @@ export function StepDoneWrapper({
 
       {billingType === 'PIX' && pixLoading && (
         <div className="py-2">
-          <LoadingSpinner size="sm" message="Gerando QR Code PIX..." variant="light" />
+          <LoadingSpinner
+            size="sm"
+            message="Gerando QR Code PIX..."
+            variant="light"
+          />
         </div>
       )}
       {billingType === 'PIX' && !pixLoading && pixLoadError && (
@@ -386,36 +399,44 @@ export function StepDoneWrapper({
       {billingType === 'PIX' &&
         !pixLoading &&
         (pixRuntimeData?.qrCode || paymentData.pixData?.qrCode) && (
-        <div className="flex flex-col items-center gap-2">
-          <img
-            src={`data:image/png;base64,${pixRuntimeData?.qrCode ?? paymentData.pixData?.qrCode}`}
-            alt="QR Code PIX"
-            className="w-[180px] h-[180px] rounded-lg border border-slate-200 bg-white p-2"
-          />
-          {!!(pixRuntimeData?.copyPaste ?? paymentData.pixData?.copyPaste) && (
-            <button
-              type="button"
-              onClick={copyPix}
-              className="inline-flex items-center gap-2 rounded-md border border-champagne bg-champagne/10 px-3 py-2 text-[11px] font-semibold text-petroleum"
-            >
-              <Copy size={13} />
-              {copyState === 'copied'
-                ? 'Copiado!'
-                : copyState === 'error'
-                  ? 'Falha ao copiar'
-                  : 'Copiar código PIX'}
-            </button>
-          )}
-          <div className="rounded-luxury border border-slate-100 bg-slate-50 px-3.5 py-1.5 space-y-2 w-full">
-            <p className="text-[9px] font-bold uppercase tracking-luxury-wide text-petroleum/70 mb-1">
-              Como pagar
-            </p>
-            <p className="text-[11px] text-petroleum/90">1. Abra o app do seu banco.</p>
-            <p className="text-[11px] text-petroleum/90">2. Escaneie o QR Code ou use copia e cola.</p>
-            <p className="text-[11px] text-petroleum/90">3. Confirme o pagamento.</p>
+          <div className="flex flex-col items-center gap-2">
+            <img
+              src={`data:image/png;base64,${pixRuntimeData?.qrCode ?? paymentData.pixData?.qrCode}`}
+              alt="QR Code PIX"
+              className="w-[180px] h-[180px] rounded-lg border border-slate-200 bg-white p-2"
+            />
+            {!!(
+              pixRuntimeData?.copyPaste ?? paymentData.pixData?.copyPaste
+            ) && (
+              <button
+                type="button"
+                onClick={copyPix}
+                className="inline-flex items-center gap-2 rounded-md border border-champagne bg-champagne/10 px-3 py-2 text-[11px] font-semibold text-petroleum"
+              >
+                <Copy size={13} />
+                {copyState === 'copied'
+                  ? 'Copiado!'
+                  : copyState === 'error'
+                    ? 'Falha ao copiar'
+                    : 'Copiar código PIX'}
+              </button>
+            )}
+            <div className="rounded-luxury border border-slate-100 bg-slate-50 px-3.5 py-1.5 space-y-2 w-full">
+              <p className="text-[9px] font-bold uppercase tracking-luxury-wide text-petroleum/70 mb-1">
+                Como pagar
+              </p>
+              <p className="text-[11px] text-petroleum/90">
+                1. Abra o app do seu banco.
+              </p>
+              <p className="text-[11px] text-petroleum/90">
+                2. Escaneie o QR Code ou use copia e cola.
+              </p>
+              <p className="text-[11px] text-petroleum/90">
+                3. Confirme o pagamento.
+              </p>
+            </div>
           </div>
-        </div>
-      )}
+        )}
 
       {billingType === 'BOLETO' && (
         <div className="space-y-2">
@@ -456,14 +477,18 @@ export function StepDoneWrapper({
               O que acontece agora
             </p>
             <p className="text-[11px] font-medium text-petroleum/90 leading-snug inline-flex gap-1 items-center">
-              <Sparkles size={12} className="text-gold" />
-              O plano e ativado automaticamente apos aprovacao.
+              <Sparkles size={12} className="text-gold" />O plano e ativado
+              automaticamente apos aprovacao.
             </p>
           </div>
         </div>
       )}
 
-      <button type="button" onClick={onClose} className="btn-luxury-primary w-full">
+      <button
+        type="button"
+        onClick={onClose}
+        className="btn-luxury-primary w-full"
+      >
         Fechar
       </button>
       <SecurityBadge />

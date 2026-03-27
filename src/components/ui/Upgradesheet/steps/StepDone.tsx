@@ -19,6 +19,7 @@ import {
 } from 'lucide-react';
 import { useUpgradeSheetContext } from '../UpgradeSheetContext';
 import { getUpgradeRequestStatus } from '@/core/services/asaas.service';
+import { isUpgradeRequestPaymentComplete } from '@/core/types/billing';
 import { useRouter } from 'next/navigation';
 import { formatBRL, formatDatePtBr, formatDateLong } from '../utils';
 
@@ -166,7 +167,8 @@ function StepDonePix({
     if (!upgradeRequestId || paymentConfirmed) return;
     const check = async () => {
       const res = await getUpgradeRequestStatus(upgradeRequestId);
-      if (res.success && res.status === 'approved') setPaymentConfirmed(true);
+      if (res.success && isUpgradeRequestPaymentComplete(res.status))
+        setPaymentConfirmed(true);
     };
     check();
     const interval = setInterval(check, 5000);
@@ -451,7 +453,8 @@ function StepDoneCreditCard({
     if (!upgradeRequestId || paymentConfirmed) return;
     const check = async () => {
       const res = await getUpgradeRequestStatus(upgradeRequestId);
-      if (res.success && res.status === 'approved') setPaymentConfirmed(true);
+      if (res.success && isUpgradeRequestPaymentComplete(res.status))
+        setPaymentConfirmed(true);
     };
     check();
     const interval = setInterval(check, 5_000);

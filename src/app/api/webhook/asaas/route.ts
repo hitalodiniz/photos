@@ -538,7 +538,7 @@ export async function POST(request: NextRequest) {
             if (paymentId || subscriptionId) {
               const { data: targetForClear } = await supabase
                 .from('tb_upgrade_requests')
-                .select('id')
+                .select('id, profile_id')
                 .or(
                   [
                     paymentId ? `asaas_payment_id.eq.${paymentId}` : null,
@@ -560,6 +560,48 @@ export async function POST(request: NextRequest) {
                     updated_at: utcIsoFrom(nowFn()),
                   })
                   .eq('id', targetForClear.id);
+
+                // Reativação automática se o perfil estiver no plano FREE e tiver last_paid_plan
+                if (targetForClear.profile_id) {
+                  const { data: profile } = await supabase
+                    .from('tb_profiles')
+                    .select('plan_key, last_paid_plan')
+                    .eq('id', targetForClear.profile_id)
+                    .single();
+                  
+                  if (profile?.plan_key === 'FREE' && profile?.last_paid_plan) {
+                    const restoredPlan = profile.last_paid_plan;
+                    
+                    // Restaura o plan_key e limpa last_paid_plan
+                    await supabase
+                      .from('tb_profiles')
+                      .update({
+                        plan_key: restoredPlan,
+                        last_paid_plan: null,
+                        updated_at: utcIsoFrom(nowFn())
+                      })
+                      .eq('id', targetForClear.profile_id);
+
+                    // Desarquiva galerias que foram ocultadas no downgrade
+                    await reactivateAutoArchivedGalleries(
+                      targetForClear.profile_id,
+                      restoredPlan as PlanKey,
+                      supabase
+                    );
+
+                    // Registra no histórico
+                    await supabase.from('tb_plan_history').insert({
+                      profile_id: targetForClear.profile_id,
+                      old_plan: 'FREE',
+                      new_plan: restoredPlan,
+                      reason: 'Reativação automática após compensação de pagamento pendente.'
+                    });
+
+                    await revalidateUserCache(targetForClear.profile_id).catch((err) =>
+                      console.warn('[Webhook Asaas] revalidateUserCache:', err),
+                    );
+                  }
+                }
               }
             }
           }

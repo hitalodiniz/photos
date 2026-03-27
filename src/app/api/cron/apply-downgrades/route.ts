@@ -254,6 +254,20 @@ export async function GET(req: NextRequest) {
         }
       }
 
+      // Salva o last_paid_plan antes do downgrade
+      const { data: profileData } = await supabase
+        .from('tb_profiles')
+        .select('plan_key')
+        .eq('id', row.profile_id)
+        .single();
+      
+      if (profileData?.plan_key && profileData.plan_key !== 'FREE') {
+        await supabase
+          .from('tb_profiles')
+          .update({ last_paid_plan: profileData.plan_key })
+          .eq('id', row.profile_id);
+      }
+
       const result = await performDowngradeToFree(
         row.profile_id,
         row.id,

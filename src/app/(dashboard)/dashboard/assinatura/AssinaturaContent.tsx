@@ -55,7 +55,6 @@ import { billingNotesDisplayText } from '@/core/services/asaas/utils/billing-not
 import { UpgradeUpsellCard } from '@/components/ui/Assinatura/UpgradeUpsellCard';
 import { RelatorioTable } from '@/components/ui/RelatorioTable';
 import { UpgradeRequestNotesSheet } from './UpgradeRequestNotesSheet';
-import { PaymentPixModal } from '@/components/ui/PaymentPixModal';
 
 // ─── Constantes ───────────────────────────────────────────────────────────────
 
@@ -729,8 +728,6 @@ export default function AssinaturaContent({
   >();
   const [notesSheetRequest, setNotesSheetRequest] =
     useState<UpgradeRequest | null>(null);
-  const [showPixModal, setShowPixModal] = useState(false);
-  const [pixRequestId, setPixRequestId] = useState<string | null>(null);
 
   const { showToast, ToastElement } = useToast();
 
@@ -820,11 +817,6 @@ export default function AssinaturaContent({
     } finally {
       setReactivateLoading(false);
     }
-  };
-
-  const handleOpenPixPayment = (requestId: string) => {
-    setPixRequestId(requestId);
-    setShowPixModal(true);
   };
 
   // ─── Colunas da tabela ────────────────────────────────────────────────────
@@ -1098,20 +1090,18 @@ export default function AssinaturaContent({
           billingType === 'BOLETO';
         const invoiceUrl = `/api/dashboard/payment-invoice-url?requestId=${encodeURIComponent(item.id)}`;
         const boletoUrl = `/api/dashboard/payment-boleto-url?requestId=${encodeURIComponent(item.id)}`;
-        const url = isPendingPix
+        const url = isPendingPix || isPendingBoleto
           ? null
-          : isPendingBoleto
-            ? boletoUrl
-            : isRejectedCard
-              ? null
-              : hasOpenPayment
-                ? item.payment_url?.startsWith('http')
-                  ? item.payment_url
-                  : invoiceUrl
-                : isPaidOrCancelled
-                  ? invoiceUrl
-                  : null;
-        if (isRejectedCurrentPending || isRejectedCard) {
+          : isRejectedCard
+            ? null
+            : hasOpenPayment
+              ? item.payment_url?.startsWith('http')
+                ? item.payment_url
+                : invoiceUrl
+              : isPaidOrCancelled
+                ? invoiceUrl
+                : null;
+        if (isRejectedCurrentPending || isRejectedCard || isPendingPix || isPendingBoleto || (isLatestPendingRow && (itemStatus === 'pending' || itemStatus === 'processing' || isOverdueLike))) {
           return (
             <button
               type="button"
@@ -1122,40 +1112,21 @@ export default function AssinaturaContent({
                 setShowManagePayment(true);
               }}
             >
-              Regularizar pagamento
+              {isRejectedCurrentPending || isRejectedCard ? 'Regularizar pagamento' : 'Pagar agora'}
               <ExternalLink size={14} />
             </button>
           );
         }
-        if (isPendingPix) {
-          return (
-            <button
-              type="button"
-              className="inline-flex items-center gap-1 text-[11px] font-medium text-gold hover:underline"
-              onClick={(e) => {
-                e.stopPropagation();
-                handleOpenPixPayment(item.id);
-              }}
-            >
-              Pagar agora
-              <ExternalLink size={14} />
-            </button>
-          );
-        }
+
         if (!url)
           return (
             <span className="text-slate-500 text-[11px] font-medium">—</span>
           );
-        const actionLabel =
-          isLatestPendingRow &&
-          (itemStatus === 'pending' ||
-            itemStatus === 'processing' ||
-            itemStatus === 'rejected' ||
-            isOverdueLike)
-            ? 'Pagar agora'
-            : itemStatus === 'approved' || itemStatus === 'renewed'
+        
+        const actionLabel = itemStatus === 'approved' || itemStatus === 'renewed'
               ? 'Comprovante de pagamento'
               : 'Ver pagamento';
+              
         return (
           <a
             href={url}
@@ -1546,7 +1517,34 @@ export default function AssinaturaContent({
           latestPendingRequest?.amount_final ??
           0
         }
-        dueDate={null}
+        dueDate={
+          (managePaymentTarget as any)?.due_date ??
+          (latestPendingRequest as any)?.due_date ??
+          null
+        }
+        existingInvoice={
+          managePaymentTarget
+            ? {
+                billingType: (managePaymentTarget?.billing_type ?? null) as any,
+                paymentUrl: managePaymentTarget?.payment_url ?? null,
+                dueDate:
+                  (managePaymentTarget as any)?.due_date ??
+                  (latestPendingRequest as any)?.due_date ??
+                  null,
+                amount:
+                  managePaymentTarget?.amount_final ??
+                  latestPendingRequest?.amount_final ??
+                  undefined,
+              }
+            : latestPendingRequest
+              ? {
+                  billingType: (latestPendingRequest?.billing_type ?? null) as any,
+                  paymentUrl: latestPendingRequest?.payment_url ?? null,
+                  dueDate: (latestPendingRequest as any)?.due_date ?? null,
+                  amount: latestPendingRequest?.amount_final ?? undefined,
+                }
+              : null
+        }
         planName={planDisplayName(planKey)}
         planPeriod={managePaymentTarget?.billing_period ?? 'monthly'}
         onSuccess={(_newPaymentId) => router.refresh()}
@@ -1587,15 +1585,6 @@ export default function AssinaturaContent({
         request={notesSheetRequest}
         isAdmin={profile.roles?.includes('admin') === true}
         onClose={() => setNotesSheetRequest(null)}
-      />
-
-      <PaymentPixModal
-        isOpen={showPixModal}
-        onClose={() => setShowPixModal(false)}
-        requestId={pixRequestId}
-        onCopySuccess={() => showToast('Código PIX copiado.', 'success')}
-        onCopyError={() => showToast('Não foi possível copiar o PIX.', 'error')}
-        onPaidConfirmed={() => router.refresh()}
       />
 
       {ToastElement}

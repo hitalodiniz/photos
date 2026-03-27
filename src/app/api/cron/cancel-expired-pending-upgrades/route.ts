@@ -2,7 +2,10 @@
 import { createClient } from '@supabase/supabase-js';
 import { now as nowFn, utcIsoFrom } from '@/core/utils/data-helpers';
 import { NextResponse } from 'next/server';
-import { deleteAsaasPayment } from '@/core/services/asaas';
+import {
+  cancelAsaasSubscriptionById,
+  deleteAsaasPayment,
+} from '@/core/services/asaas';
 import { appendBillingNotesBlock } from '@/core/services/asaas/utils/billing-notes-doc';
 
 // Prazos diferenciados (em milissegundos)
@@ -11,6 +14,7 @@ const AGE_LIMITS = {
   PIX: 48 * 60 * 60 * 1000, // 2 dias
   BOLETO: 5 * 24 * 60 * 60 * 1000, // 5 dias
 };
+const CRITICAL_OVERDUE_DAYS = 30;
 
 export async function GET(request: Request) {
   const authHeader = request.headers.get('authorization');
@@ -25,21 +29,36 @@ export async function GET(request: Request) {
 
   const now = nowFn();
   try {
-    // Buscamos apenas o que está pendente
-    const { data: rows, error: selectError } = await supabase
-      .from('tb_upgrade_requests')
-      .select(
-        'id, profile_id, created_at, asaas_payment_id, notes, billing_type, plan_key_current',
-      ) // Importante trazer o billing_type
-      .eq('status', 'pending');
+    const criticalOverdueCutoff = new Date(
+      now.getTime() - CRITICAL_OVERDUE_DAYS * 24 * 60 * 60 * 1000,
+    );
+    const [pendingQuery, criticalOverdueQuery] = await Promise.all([
+      supabase
+        .from('tb_upgrade_requests')
+        .select(
+          'id, profile_id, created_at, asaas_payment_id, notes, billing_type, plan_key_current',
+        )
+        .eq('status', 'pending'),
+      supabase
+        .from('tb_upgrade_requests')
+        .select(
+          'id, profile_id, notes, asaas_subscription_id, overdue_since, plan_key_current',
+        )
+        .eq('status', 'approved')
+        .not('overdue_since', 'is', null)
+        .lte('overdue_since', utcIsoFrom(criticalOverdueCutoff)),
+    ]);
 
-    if (selectError) {
-      console.error(
-        '[cancel-expired-pending-upgrades] Select error:',
-        selectError,
-      );
-      return NextResponse.json({ error: selectError.message }, { status: 500 });
+    if (pendingQuery.error || criticalOverdueQuery.error) {
+      const queryError =
+        pendingQuery.error?.message ??
+        criticalOverdueQuery.error?.message ??
+        'Erro ao buscar registros para cancelamento';
+      console.error('[cancel-expired-pending-upgrades] Select error:', queryError);
+      return NextResponse.json({ error: queryError }, { status: 500 });
     }
+    const rows = pendingQuery.data ?? [];
+    const criticalOverdueRows = criticalOverdueQuery.data ?? [];
 
     // 🎯 Lógica de Filtragem Inteligente
     const rowsToCancel = (rows ?? []).filter((r) => {
@@ -51,6 +70,7 @@ export async function GET(request: Request) {
     });
 
     const cancelledIds: string[] = [];
+    const overdueExpiredIds: string[] = [];
     const errors: string[] = [];
     let skipped = 0;
 
@@ -78,9 +98,9 @@ export async function GET(request: Request) {
         skipped++;
       }
 
-      // Se o pending expirado foi gerado por aproveitamento de crédito, restaura
-      // o plano anterior (já pago) para não penalizar o usuário.
-      if (hasCreditCarryover && row.profile_id && row.plan_key_current) {
+      // Se uma tentativa de mudança expirar, restaura o plano anterior com
+      // plan_key_current para evitar perfil sem plano por checkout abandonado.
+      if (row.profile_id && row.plan_key_current) {
         const { error: restorePlanError } = await supabase
           .from('tb_profiles')
           .update({
@@ -96,10 +116,12 @@ export async function GET(request: Request) {
         }
       }
 
-      const noteLine = `[Cron cancel-expired-pending-upgrades] ${utcIsoFrom(now)} - Cancelamento automático por falta de pagamento no prazo (${limitHours}h, billing_type=${billingType}). Solicitação pendente expirada e cobrança cancelada no Asaas${paymentId ? ` (payment_id=${paymentId})` : ' (sem payment_id no registro)'}.`;
+      const noteLine = `[Cron cancel-expired-pending-upgrades] ${utcIsoFrom(now)} - Upgrade não concluído no prazo (${limitHours}h, billing_type=${billingType}). Solicitação pendente expirada e cobrança cancelada no Asaas${paymentId ? ` (payment_id=${paymentId})` : ' (sem payment_id no registro)'}.`;
       const restorePlanLine =
-        hasCreditCarryover && row.plan_key_current
-          ? ` [Plano restaurado: ${row.plan_key_current} devido a aproveitamento de crédito.]`
+        row.plan_key_current
+          ? hasCreditCarryover
+            ? ` [Plano restaurado: ${row.plan_key_current} devido a aproveitamento de crédito.]`
+            : ` [Plano restaurado para ${row.plan_key_current} após expiração de checkout.]`
           : '';
       const mergedNotes = appendBillingNotesBlock(
         row.notes,
@@ -125,15 +147,82 @@ export async function GET(request: Request) {
       cancelledIds.push(requestId);
     }
 
-    if (rowsToCancel.length === 0) {
-      return NextResponse.json({
-        success: true,
-        cancelled: 0,
-        skipped,
-        errors,
-        timestamp: utcIsoFrom(now),
-      });
+    for (const row of criticalOverdueRows) {
+      const requestId = String(row.id);
+      const subscriptionId = String(row.asaas_subscription_id ?? '').trim();
+      try {
+        if (subscriptionId) {
+          const cancelSubscription = await cancelAsaasSubscriptionById(
+            subscriptionId,
+            {
+              deletePendingPayments: true,
+            },
+          );
+          if (!cancelSubscription.success) {
+            errors.push(
+              `[critical_overdue ${requestId}] Falha ao encerrar assinatura no Asaas (${subscriptionId}): ${cancelSubscription.error ?? 'erro desconhecido'}`,
+            );
+            continue;
+          }
+        }
+
+        if (row.profile_id) {
+          const profilePatchBase = {
+            plan_key: 'FREE',
+            last_paid_plan: null,
+            updated_at: utcIsoFrom(now),
+          };
+          const profileWithOverdue = await supabase
+            .from('tb_profiles')
+            .update({
+              ...profilePatchBase,
+              overdue_since: null,
+            } as Record<string, unknown>)
+            .eq('id', row.profile_id);
+
+          // Compatibilidade: se tb_profiles não tiver overdue_since, aplica patch sem a coluna.
+          if (profileWithOverdue.error) {
+            const fallbackProfilePatch = await supabase
+              .from('tb_profiles')
+              .update(profilePatchBase)
+              .eq('id', row.profile_id);
+            if (fallbackProfilePatch.error) {
+              errors.push(
+                `[critical_overdue ${requestId}] Falha ao atualizar perfil para FREE: ${fallbackProfilePatch.error.message}`,
+              );
+              continue;
+            }
+          }
+        }
+
+        const overdueNote = appendBillingNotesBlock(
+          row.notes,
+          `[Cron cancel-expired-pending-upgrades] ${utcIsoFrom(now)} - Assinatura encerrada e removida por inadimplência superior a 30 dias.`,
+        );
+        const { error: expireErr } = await supabase
+          .from('tb_upgrade_requests')
+          .update({
+            status: 'expired',
+            notes: overdueNote,
+            updated_at: utcIsoFrom(now),
+            processed_at: utcIsoFrom(now),
+            overdue_since: null,
+          })
+          .eq('id', requestId);
+        if (expireErr) {
+          errors.push(
+            `[critical_overdue ${requestId}] Falha ao expirar request: ${expireErr.message}`,
+          );
+          continue;
+        }
+        overdueExpiredIds.push(requestId);
+      } catch (e) {
+        errors.push(
+          `[critical_overdue ${requestId}] ${e instanceof Error ? e.message : String(e)}`,
+        );
+      }
     }
+
     if (errors.length > 0) {
       console.error(
         '[cancel-expired-pending-upgrades] Partial errors:',
@@ -145,7 +234,10 @@ export async function GET(request: Request) {
     );
     return NextResponse.json({
       success: true,
-      cancelled: cancelledIds.length,
+      cancelled_pending: cancelledIds.length,
+      cancelled_critical_overdue: overdueExpiredIds.length,
+      scanned_pending: rows.length,
+      scanned_critical_overdue: criticalOverdueRows.length,
       skipped,
       errors,
       timestamp: utcIsoFrom(now),

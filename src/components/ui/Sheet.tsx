@@ -174,7 +174,7 @@ export function SheetFooter({
 }) {
   return (
     <div
-      className={`shrink-0 px-6 py-3 bg-slate-50 border-t border-slate-200 ${className}`}
+      className={`shrink-0 px-6 py-3 border-t border-slate-200 ${className}`}
     >
       {children}
     </div>
