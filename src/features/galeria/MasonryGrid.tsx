@@ -110,13 +110,7 @@ const SafeImage = memo(
       w: number;
       h: number;
     } | null>(null);
-    const [userAuthenticated, setUserAuthenticated] = useState<boolean>(false);
     const localImgRef = useRef<HTMLImageElement | null>(null);
-
-    const searchParams = useSearchParams();
-    const showDebugForce = searchParams.get('v') === 's';
-
-    const { isAuthenticated, isLoading: authLoading } = useSupabaseSession();
 
     const {
       imgSrc,
@@ -131,7 +125,7 @@ const SafeImage = memo(
       width: '500',
       priority,
       fallbackToProxy: true,
-      index, // 🎯 Passando o index para o delay do hook
+      index,
     });
 
     const combinedRef = useCallback(
@@ -142,103 +136,33 @@ const SafeImage = memo(
       [imgRef],
     );
 
-    useEffect(() => {
-      if (!authLoading) {
-        setUserAuthenticated(isAuthenticated);
-      }
-    }, [isAuthenticated, authLoading]);
-
-    useEffect(() => {
-      const subscription = authService.onAuthStateChange((_event, session) => {
-        setUserAuthenticated(!!session?.user);
-      });
-      return () => subscription.unsubscribe();
-    }, []);
-
-    useEffect(() => {
-      let cancelled = false;
-
-      const handleMetadata = async () => {
-        const hasPermission = showDebugForce || userAuthenticated;
-
-        // 🎯 AJUSTE CRÍTICO: Se for modo admin (organizador de fotos),
-        // cancelamos a busca de metadados em massa para economizar requisições.
-        /// Isso remove 50% das requisições que causam o 429.
-        if (!hasPermission || !imgSrc || !isLoaded || mode === 'admin') {
-          if (!cancelled) {
-            setImageSize(null);
-            setRealResolution(null);
-          }
-          return;
-        }
-
-        try {
-          // Mesmo no público, vamos dar um fôlego para o Google
-          await new Promise((resolve) => setTimeout(resolve, index * 20));
-          if (cancelled) return;
-
-          if (cancelled) return;
-
-          const response = await fetch(imgSrc, {
-            method: 'HEAD',
-            mode: 'cors',
-            cache: 'force-cache',
-          });
-
-          const size = response.headers.get('content-length');
-
-          if (!cancelled) {
-            if (size) {
-              const kb = parseInt(size, 10) / 1024;
-              setImageSize(
-                kb > 1024
-                  ? `${(kb / 1024).toFixed(1)}MB`
-                  : `${Math.round(kb)}KB`,
-              );
-            } else {
-              setImageSize('OK');
-            }
-          }
-        } catch {
-          if (!cancelled) setImageSize('---');
-        }
-
-        if (!cancelled && localImgRef.current) {
-          const checkRes = () => {
-            if (localImgRef.current?.naturalWidth) {
-              if (!cancelled) {
-                setRealResolution({
-                  w: localImgRef.current.naturalWidth,
-                  h: localImgRef.current.naturalHeight,
-                });
-              }
-            } else if (!cancelled) {
-              setTimeout(checkRes, 100);
-            }
-          };
-          checkRes();
-        }
-      };
-
-      handleMetadata();
-      return () => {
-        cancelled = true;
-      };
-    }, [
-      imgSrc,
-      isLoaded,
-      userAuthenticated,
-      showDebugForce,
-      photoId,
-      mode,
-      index,
-    ]);
-
+    // 🎯 Callback de carregamento que resolve o problema de fotos invertidas
     const onInternalLoad = (e: React.SyntheticEvent<HTMLImageElement>) => {
       const { naturalWidth, naturalHeight } = e.currentTarget;
+
+      // Atualiza estado local para a badge de debug
+      setRealResolution({ w: naturalWidth, h: naturalHeight });
+
+      // Notifica o MasonryItem para corrigir o layout (importante!)
       if (onImageDimensionsDetected) {
         onImageDimensionsDetected(naturalWidth, naturalHeight);
       }
+
+      // Tenta ler o tamanho via Performance API (Sem fazer Fetch)
+      try {
+        const perf = performance.getEntriesByName(
+          e.currentTarget.src,
+        )[0] as PerformanceResourceTiming;
+        if (perf && perf.encodedBodySize > 0) {
+          const kb = perf.encodedBodySize / 1024;
+          setImageSize(
+            kb > 1024 ? `${(kb / 1024).toFixed(1)}MB` : `${Math.round(kb)}KB`,
+          );
+        }
+      } catch (err) {
+        // Silencioso: Se não conseguir ler, a badge apenas não mostra o tamanho
+      }
+
       handleLoad();
     };
 
@@ -254,7 +178,7 @@ const SafeImage = memo(
           <img
             ref={combinedRef}
             src={imgSrc}
-            onLoad={onInternalLoad}
+            onLoad={onInternalLoad} // 🎯 Aqui acontece a mágica da correção
             onError={handleError}
             alt=""
             className={`${className} object-cover w-full h-full transition-opacity duration-700 ${isLoaded ? 'opacity-100' : 'opacity-0'}`}
@@ -262,18 +186,20 @@ const SafeImage = memo(
           />
         )}
 
-        {isLoaded && imageSize && (userAuthenticated || showDebugForce) && (
+        {/* Badge de Debug - Agora 100% segura contra Bloqueios do Workspace */}
+        {isLoaded && (
           <div
             className="absolute bottom-1.5 left-1.5 z-[30] bg-black/60 backdrop-blur-md px-1.5 py-0.5 rounded border border-white/10 flex items-center gap-1.5 shadow-lg"
-            title={`Resolução: ${realResolution?.w}x${realResolution?.h}px | Origem: ${usingProxy ? 'Servidor' : 'Drive'}`}
+            title={`Origem: ${usingProxy ? 'Proxy/Servidor' : 'Google Drive'}`}
           >
             <span
               className={`text-[9px] font-bold ${usingProxy ? 'text-blue-400' : 'text-green-500'}`}
             >
               {usingProxy ? 'A' : 'D'}
             </span>
-            <span className="text-champagne text-[9px] font-mono font-medium">
-              {imageSize}
+            <span className="text-white text-[9px] font-mono font-medium">
+              {realResolution ? `${realResolution.w}x${realResolution.h}` : ''}
+              {imageSize && ` | ${imageSize}`}
             </span>
           </div>
         )}
