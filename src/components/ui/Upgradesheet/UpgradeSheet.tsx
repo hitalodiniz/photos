@@ -5,7 +5,6 @@ import {
   Crown,
   ArrowRight,
   CheckCircle2,
-  ChevronRight,
   ArrowLeft,
   CreditCard,
 } from 'lucide-react';
@@ -63,7 +62,7 @@ function UpgradeSheetContent({
 
   const [showExemptConfirm, setShowExemptConfirm] = useState(false);
 
-  const SelectedPlanIcon = PLAN_ICONS[selectedPlan] ?? ChevronRight;
+  const SelectedPlanIcon = PLAN_ICONS[selectedPlan] ?? ArrowRight;
   const isExemptSamePlan = isExempt && selectedPlan === planKey;
   const isExemptSuperiorPlan =
     isExempt &&
@@ -82,7 +81,7 @@ function UpgradeSheetContent({
                 if (goBack[step] === 'billing') setRequestError(null);
                 setStep(goBack[step]!);
               }}
-              className="shrink-0 flex items-center gap-1.5 px-4 h-10 rounded-md border-2 border-slate-200 bg-white text-[10px] font-bold uppercase tracking-wider text-petroleum/50 hover:text-petroleum hover:border-slate-300 transition-all"
+              className="btn-secondary-white"
             >
               <ArrowLeft size={12} />
               Voltar
@@ -145,7 +144,7 @@ function UpgradeSheetContent({
                     {isPlanPreviewLoading
                       ? 'Carregando…'
                       : `Assinar Plano ${selectedPlanInfo?.name ?? selectedPlan}`}
-                    {!isPlanPreviewLoading && <ChevronRight size={16} />}
+                    {!isPlanPreviewLoading && <ArrowRight size={16} />}
                   </button>
                 )}
               </>
@@ -159,7 +158,7 @@ function UpgradeSheetContent({
               >
                 <CreditCard size={16} />
                 Próximo: Pagamento
-                <ChevronRight size={16} />
+                <ArrowRight size={16} />
               </button>
             )}
             {step === 'billing' && (
@@ -176,7 +175,7 @@ function UpgradeSheetContent({
               >
                 <CheckCircle2 size={16} />
                 Revisar e Confirmar
-                <ChevronRight size={16} />
+                <ArrowRight size={16} />
               </button>
             )}
             {step === 'confirm' && <ConfirmButton />}
@@ -267,8 +266,8 @@ function ConfirmButton() {
         </>
       ) : (
         <>
-          <ArrowRight size={16} />
           {buttonLabel()}
+          <ArrowRight size={16} />
         </>
       )}
     </button>

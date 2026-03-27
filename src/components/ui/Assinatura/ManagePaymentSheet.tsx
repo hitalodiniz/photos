@@ -8,11 +8,16 @@ import {
   Banknote,
   RefreshCw,
   ArrowLeft,
+  Loader2,
+  CheckCircle2,
 } from 'lucide-react';
 import { Sheet, SheetSection, SheetFooter } from '@/components/ui/Sheet';
 import { useToast } from '@/hooks/useToast';
 import { getBillingProfile } from '@/core/services/billing.service';
-import { updateSubscriptionBillingMethod } from '@/core/services/asaas.service';
+import {
+  deletePendingInvoiceBeforeBillingChange,
+  updateSubscriptionBillingMethod,
+} from '@/core/services/asaas.service';
 import type { BillingType } from '@/core/types/billing';
 import { StepDoneWrapper } from '@/components/ui/Billing/StepDoneWrapper';
 import {
@@ -269,8 +274,12 @@ export function ManagePaymentSheet({
   }, [isOpen, billingType, billingProfile]);
 
   // ── Validação ───────────────────────────────────────────────────────────────
-  const currentBillingUpper = String(currentBillingType).toUpperCase();
-  const selectedBillingUpper = String(billingType).toUpperCase();
+  const normalizeBilling = (value: unknown) =>
+    String(value ?? '')
+      .trim()
+      .toUpperCase();
+  const currentBillingUpper = normalizeBilling(currentBillingType);
+  const selectedBillingUpper = normalizeBilling(billingType);
   /** PIX/Boleto já é o método da assinatura — não há troca; evita chamada redundante ao backend */
   const isRedundantPixOrBoletoConfirm =
     (selectedBillingUpper === 'PIX' && currentBillingUpper === 'PIX') ||
@@ -289,7 +298,7 @@ export function ManagePaymentSheet({
         currentBillingUpper === 'CREDIT_CARD'
       ? 'Atualizar cartão'
       : selectedBillingUpper === 'CREDIT_CARD'
-        ? 'Confirmar alteração para cartão'
+        ? 'Confirmar alteração para cartão de crédito'
         : selectedBillingUpper === 'PIX'
           ? 'Confirmar alteração para PIX'
           : selectedBillingUpper === 'BOLETO'
@@ -299,7 +308,10 @@ export function ManagePaymentSheet({
   // ── Ação confirmar ──────────────────────────────────────────────────────────
   const handleConfirm = async () => {
     if (isRedundantPixOrBoletoConfirm) return;
-    if (hasExistingInvoice && billingType === currentBillingType) {
+    if (
+      hasExistingInvoice &&
+      normalizeBilling(billingType) === normalizeBilling(currentBillingType)
+    ) {
       setMode('show_existing');
       return;
     }
@@ -345,7 +357,34 @@ export function ManagePaymentSheet({
       }
 
       const isCreditCardUpdateOnly =
-        billingType === 'CREDIT_CARD' && currentBillingType === 'CREDIT_CARD';
+        normalizeBilling(billingType) === 'CREDIT_CARD' &&
+        normalizeBilling(currentBillingType) === 'CREDIT_CARD';
+      const hasActivePendingInvoice =
+        !!activeRequestId?.trim() || hasExistingInvoiceData;
+      const isBillingMethodChange =
+        normalizeBilling(billingType) !== normalizeBilling(currentBillingType);
+      const isSwitchingToCreditCard =
+        isBillingMethodChange && billingType === 'CREDIT_CARD';
+      const shouldDeleteOldInvoiceBeforeUpdate =
+        isBillingMethodChange &&
+        hasActivePendingInvoice &&
+        !isSwitchingToCreditCard;
+
+      if (shouldDeleteOldInvoiceBeforeUpdate) {
+        const deleteResult = await deletePendingInvoiceBeforeBillingChange(
+          activeSubscriptionId,
+          { targetRequestId: activeRequestId ?? null },
+        );
+        if (!deleteResult.success) {
+          const friendlyError =
+            deleteResult.error ??
+            'Não foi possível remover a cobrança pendente antiga. Tente novamente.';
+          setInlineError(friendlyError);
+          showToast(friendlyError, 'error');
+          return;
+        }
+      }
+
       const result = await updateSubscriptionBillingMethod(
         activeSubscriptionId,
         billingType,
@@ -354,12 +393,28 @@ export function ManagePaymentSheet({
         {
           targetRequestId: activeRequestId ?? null,
           cardUpdateOnly: isCreditCardUpdateOnly,
+          ensureNewPendingPayment: shouldDeleteOldInvoiceBeforeUpdate,
         },
       );
 
       if (!result.success) {
         setInlineError(result.error ?? 'Erro ao alterar forma de pagamento.');
         showToast(result.error ?? 'Erro ao alterar.', 'error');
+        return;
+      }
+
+      const isCreditCardRejectedOrOverdue =
+        billingType === 'CREDIT_CARD' &&
+        (result.paymentStatus === 'rejected' ||
+          result.paymentStatus === 'overdue');
+
+      if (isCreditCardRejectedOrOverdue) {
+        const rejectedCardMessage =
+          result.error ??
+          'Cartão não aprovado. Revise os dados e tente novamente.';
+        setInlineError(rejectedCardMessage);
+        showToast(rejectedCardMessage, 'error');
+        setMode('select_method');
         return;
       }
 
@@ -427,8 +482,17 @@ export function ManagePaymentSheet({
           <div className="flex gap-2 w-full">
             <button
               type="button"
+              onClick={dismissSheet}
+              disabled={loading || verifyingPayment}
+              className="btn-secondary-white basis-1/4 grow-0 shrink-0"
+            >
+              Fechar
+            </button>
+            <button
+              type="button"
               onClick={() => setMode('select_method')}
-              className="btn-luxury-primary flex-1 flex items-center justify-center gap-1.5"
+              disabled={loading || verifyingPayment}
+              className="btn-luxury-primary basis-3/4 grow-0 shrink-0 flex items-center justify-center gap-1.5"
             >
               <RefreshCw size={14} />
               Trocar método de pagamento
@@ -438,7 +502,20 @@ export function ManagePaymentSheet({
       );
     }
 
-    if (mode === 'show_new') return null;
+    if (mode === 'show_new') {
+      return (
+        <SheetFooter className="bg-petroleum border-t border-petroleum/10">
+          <button
+            type="button"
+            onClick={dismissSheet}
+            disabled={loading || verifyingPayment}
+            className="btn-secondary-white w-full"
+          >
+            Fechar
+          </button>
+        </SheetFooter>
+      );
+    }
 
     // select_method
     return (
@@ -469,11 +546,18 @@ export function ManagePaymentSheet({
           >
             {loading ? (
               <span className="inline-flex items-center gap-1.5">
-                <span className="w-3 h-3 border-2 border-white/30 border-t-white rounded-full animate-spin" />
+                <Loader2 size={16} />
+                <span className="w-3 h-3 border-2 border-white/30 border-t-white rounded-full" />
                 Salvando…
               </span>
             ) : (
-              confirmButtonLabel
+              <>
+                <CheckCircle2 size={16} />
+                <span className="inline-flex items-center gap-1.5">
+                  {' '}
+                  {confirmButtonLabel}
+                </span>
+              </>
             )}
           </button>
         </div>
@@ -528,7 +612,6 @@ export function ManagePaymentSheet({
                 nextBillingDate: null,
               }}
               upgradeRequestId={activeRequestId ?? ''}
-              onClose={dismissSheet}
             />
           )}
 
@@ -552,10 +635,7 @@ export function ManagePaymentSheet({
                 period: planPeriod,
                 nextBillingDate: null,
               }}
-              upgradeRequestId={
-                newInvoice.requestId ?? activeRequestId ?? ''
-              }
-              onClose={dismissSheet}
+              upgradeRequestId={newInvoice.requestId ?? activeRequestId ?? ''}
             />
           )}
 
@@ -576,7 +656,7 @@ export function ManagePaymentSheet({
                   {currentBillingType === 'BOLETO' && (
                     <Banknote size={18} className="text-petroleum" />
                   )}
-                  <span className="text-[12px] font-semibold text-petroleum uppercase tracking-wide">
+                  <span className="text-[10px] font-semibold text-petroleum uppercase tracking-wide">
                     {currentBillingType === 'CREDIT_CARD'
                       ? 'Cartão de Crédito'
                       : currentBillingType}
@@ -628,14 +708,15 @@ export function ManagePaymentSheet({
                   ).map(({ value, label, Icon }) => {
                     const isSelected = billingType === value;
                     const isLockedCurrentMethodChip =
-                      (value === 'PIX' || value === 'BOLETO') &&
-                      currentBillingUpper === value;
+                      currentBillingUpper === normalizeBilling(value);
                     return (
                       <button
                         key={value}
                         type="button"
                         disabled={
-                          isLockedCurrentMethodChip || loading || verifyingPayment
+                          isLockedCurrentMethodChip ||
+                          loading ||
+                          verifyingPayment
                         }
                         title={
                           isLockedCurrentMethodChip
@@ -651,7 +732,7 @@ export function ManagePaymentSheet({
                             ? 'border-slate-200 bg-slate-100 text-petroleum/35 cursor-not-allowed opacity-60'
                             : isSelected
                               ? 'border-gold bg-gold/10 text-petroleum'
-                              : 'border-slate-200 bg-slate-50 text-petroleum/50 hover:border-gold/40'
+                              : 'border-slate-200 bg-slate-50 text-petroleum/90 hover:border-gold'
                         }`}
                       >
                         <Icon

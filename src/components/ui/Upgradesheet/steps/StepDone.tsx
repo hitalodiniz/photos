@@ -22,6 +22,7 @@ import { getUpgradeRequestStatus } from '@/core/services/asaas.service';
 import { isUpgradeRequestPaymentComplete } from '@/core/types/billing';
 import { useRouter } from 'next/navigation';
 import { formatBRL, formatDatePtBr, formatDateLong } from '../utils';
+import { SheetFooter } from '@/components/ui/Sheet';
 
 // ─── Constantes ───────────────────────────────────────────────────────────────
 
@@ -381,7 +382,7 @@ function StepDonePix({
       {/* Copy Button (se não tiver QR Code) */}
       {!pixData.qrCode && paymentUrl && (
         <div className="w-full space-y-2">
-          <div className="rounded-luxury border border-amber-200 bg-amber-50 px-3 py-2">
+          <div className="rounded-luxury border border-amber-200 bg-amber-50 px-3 py-2 ">
             <p className="text-[11px] text-amber-900 leading-snug font-medium">
               Nao foi possivel gerar o QR Code agora. Voce pode concluir o
               pagamento abrindo a cobranca direto no Asaas.
@@ -654,24 +655,6 @@ function StepDoneBoleto({
         />
       </div>
 
-      {/* Download Boleto */}
-      {paymentUrl && (
-        <div className="space-y-2">
-          <p className="text-[10px] text-petroleum/90 text-center leading-snug">
-            O download do PDF será iniciado. Caso não ocorra, clique no botão
-            abaixo.
-          </p>
-          <a
-            href={paymentUrl}
-            target="_blank"
-            rel="noopener noreferrer"
-            className="btn-luxury-primary flex items-center justify-center gap-2"
-          >
-            <FileText size={13} /> Baixar boleto
-          </a>
-        </div>
-      )}
-
       {/* Security + Support */}
       <SecurityBadge />
       <SupportLink />
@@ -779,15 +762,6 @@ function StepDoneScheduledChange({
         </p>
       </div>
 
-      {/* Button */}
-      <button
-        type="button"
-        onClick={handleClose}
-        className="btn-luxury-primary w-full"
-      >
-        Fechar
-      </button>
-
       {/* Support */}
       <SupportLink />
     </div>
@@ -840,15 +814,6 @@ function StepDoneImmediateDowngrade({
           saldo e aplicado ao novo plano.
         </p>
       </div>
-
-      {/* Button */}
-      <button
-        type="button"
-        onClick={handleClose}
-        className="btn-luxury-primary w-full"
-      >
-        Fechar
-      </button>
 
       {/* Support */}
       <SupportLink />
@@ -907,6 +872,30 @@ export function StepDone() {
     router.refresh();
   };
 
+  const [footerCopyState, setFooterCopyState] = useState<
+    'idle' | 'copied' | 'error'
+  >('idle');
+  const isPix = billingType === 'PIX';
+  const pixCopyText = pixData?.copyPaste || paymentUrl || '';
+  const hasPixCopyAction = isPix && !!pixCopyText;
+  const pixCopyLabel = pixData?.copyPaste
+    ? 'Copiar código PIX'
+    : 'Copiar link da cobrança';
+  const isBoleto = billingType === 'BOLETO';
+  const hasBoletoDownload = isBoleto && !!paymentUrl;
+
+  const handleFooterCopyPix = async () => {
+    if (!pixCopyText || footerCopyState !== 'idle') return;
+    try {
+      await navigator.clipboard.writeText(pixCopyText);
+      setFooterCopyState('copied');
+      setTimeout(() => setFooterCopyState('idle'), 2500);
+    } catch {
+      setFooterCopyState('error');
+      setTimeout(() => setFooterCopyState('idle'), 2500);
+    }
+  };
+
   // ── 1. Downgrade agendado ──
   if (isScheduledChange) {
     return (
@@ -916,6 +905,15 @@ export function StepDone() {
           effectiveAt={downgradeEffectiveAt!}
           handleClose={handleCloseAndRefresh}
         />
+        <SheetFooter className="bg-petroleum border-t border-petroleum/10">
+          <button
+            type="button"
+            onClick={handleCloseAndRefresh}
+            className="btn-secondary-white w-full"
+          >
+            Fechar
+          </button>
+        </SheetFooter>
       </div>
     );
   }
@@ -929,6 +927,15 @@ export function StepDone() {
           nextBillingDate={nextBillingDateFormatted}
           handleClose={handleCloseAndRefresh}
         />
+        <SheetFooter className="bg-petroleum border-t border-petroleum/10">
+          <button
+            type="button"
+            onClick={handleCloseAndRefresh}
+            className="btn-secondary-white w-full"
+          >
+            Fechar
+          </button>
+        </SheetFooter>
       </div>
     );
   }
@@ -941,15 +948,15 @@ export function StepDone() {
           planName={planName}
           nextBillingDate={nextBillingDateFormatted}
         />
-        <div className="flex justify-center pb-4 px-4">
+        <SheetFooter className="bg-petroleum border-t border-petroleum/10">
           <button
             type="button"
             onClick={handleCloseAndRefresh}
-            className="btn-luxury-primary w-full"
+            className="btn-secondary-white w-full"
           >
             Fechar
           </button>
-        </div>
+        </SheetFooter>
       </div>
     );
   }
@@ -1001,15 +1008,48 @@ export function StepDone() {
         />
       )}
 
-      <div className="flex justify-center pb-4 px-4">
-        <button
-          type="button"
-          onClick={handleCloseAndRefresh}
-          className="btn-luxury-primary w-full"
-        >
-          Fechar
-        </button>
-      </div>
+      <SheetFooter className="bg-petroleum border-t border-petroleum/10">
+        <div className="flex w-full gap-2">
+          {hasPixCopyAction && (
+            <button
+              type="button"
+              onClick={handleFooterCopyPix}
+              disabled={footerCopyState !== 'idle'}
+              className={`flex-1 min-w-0 px-3 h-10 rounded-md border text-[11px] font-semibold uppercase tracking-wide transition-colors ${
+                footerCopyState === 'copied'
+                  ? 'border-emerald-400 bg-emerald-50 text-emerald-700'
+                  : footerCopyState === 'error'
+                    ? 'border-red-300 bg-red-50 text-red-600'
+                    : 'border-champagne bg-champagne text-petroleum hover:bg-champagne/80'
+              }`}
+            >
+              {footerCopyState === 'copied'
+                ? 'Copiado!'
+                : footerCopyState === 'error'
+                  ? 'Erro ao copiar'
+                  : pixCopyLabel}
+            </button>
+          )}
+          {hasBoletoDownload && (
+            <a
+              href={paymentUrl!}
+              target="_blank"
+              rel="noopener noreferrer"
+              className="btn-luxury-primary flex-1 min-w-0 flex items-center justify-center gap-2"
+            >
+              <FileText size={13} />
+              Baixar boleto
+            </a>
+          )}
+          <button
+            type="button"
+            onClick={handleCloseAndRefresh}
+            className="btn-secondary-white flex-1 min-w-0"
+          >
+            Fechar
+          </button>
+        </div>
+      </SheetFooter>
     </div>
   );
 }

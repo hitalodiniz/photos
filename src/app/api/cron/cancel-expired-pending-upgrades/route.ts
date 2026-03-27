@@ -7,6 +7,7 @@ import {
   deleteAsaasPayment,
 } from '@/core/services/asaas';
 import { appendBillingNotesBlock } from '@/core/services/asaas/utils/billing-notes-doc';
+import { logSystemEvent } from '@/core/services/src/core/utils/telemetry';
 
 // Prazos diferenciados (em milissegundos)
 const AGE_LIMITS = {
@@ -54,7 +55,10 @@ export async function GET(request: Request) {
         pendingQuery.error?.message ??
         criticalOverdueQuery.error?.message ??
         'Erro ao buscar registros para cancelamento';
-      console.error('[cancel-expired-pending-upgrades] Select error:', queryError);
+      console.error(
+        '[cancel-expired-pending-upgrades] Select error:',
+        queryError,
+      );
       return NextResponse.json({ error: queryError }, { status: 500 });
     }
     const rows = pendingQuery.data ?? [];
@@ -117,12 +121,11 @@ export async function GET(request: Request) {
       }
 
       const noteLine = `[Cron cancel-expired-pending-upgrades] ${utcIsoFrom(now)} - Upgrade não concluído no prazo (${limitHours}h, billing_type=${billingType}). Solicitação pendente expirada e cobrança cancelada no Asaas${paymentId ? ` (payment_id=${paymentId})` : ' (sem payment_id no registro)'}.`;
-      const restorePlanLine =
-        row.plan_key_current
-          ? hasCreditCarryover
-            ? ` [Plano restaurado: ${row.plan_key_current} devido a aproveitamento de crédito.]`
-            : ` [Plano restaurado para ${row.plan_key_current} após expiração de checkout.]`
-          : '';
+      const restorePlanLine = row.plan_key_current
+        ? hasCreditCarryover
+          ? ` [Plano restaurado: ${row.plan_key_current} devido a aproveitamento de crédito.]`
+          : ` [Plano restaurado para ${row.plan_key_current} após expiração de checkout.]`
+        : '';
       const mergedNotes = appendBillingNotesBlock(
         row.notes,
         `${noteLine}${restorePlanLine}`,
@@ -232,6 +235,15 @@ export async function GET(request: Request) {
     console.log(
       `[cancel-expired-pending-upgrades] Cancelled ${cancelledIds.length}/${rowsToCancel.length} expired pending request(s)`,
     );
+
+    await logSystemEvent({
+      serviceName: 'cancel-expired-pending-upgrades',
+      status: errors.length > 0 ? 'partial' : 'success',
+      executionTimeMs: Date.now() - now.getTime(),
+      payload: { cancelledIds, skipped, errorCount: errors.length },
+      errorMessage: errors.length > 0 ? errors.join(' | ') : undefined,
+    });
+
     return NextResponse.json({
       success: true,
       cancelled_pending: cancelledIds.length,
@@ -244,6 +256,15 @@ export async function GET(request: Request) {
     });
   } catch (error) {
     console.error('[cancel-expired-pending-upgrades] Unexpected error:', error);
+    await logSystemEvent({
+      serviceName: 'cancel-expired-pending-upgrades',
+      status: 'error',
+      executionTimeMs: Date.now() - now.getTime(),
+      payload: {
+        error: error instanceof Error ? error.message : String(error),
+      },
+      errorMessage: error instanceof Error ? error.message : String(error),
+    });
     return NextResponse.json({ error: 'Internal error' }, { status: 500 });
   }
 }

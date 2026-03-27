@@ -76,17 +76,25 @@ export function Sheet({
   const sheetContent = (
     <div
       className={`fixed inset-0 z-[9999] animate-in fade-in duration-200 flex ${positionClasses[position].container}`}
+      onMouseDown={(e) => e.stopPropagation()}
+      onClick={(e) => e.stopPropagation()}
       {...(dataTheme ? { 'data-theme': dataTheme } : {})}
     >
       {/* Backdrop */}
       <div
         className="absolute inset-0 bg-black/60 backdrop-blur-sm"
-        onClick={onClose}
+        onMouseDown={(e) => e.stopPropagation()}
+        onClick={(e) => {
+          e.stopPropagation();
+          onClose();
+        }}
       />
 
       {/* Sheet Panel */}
       <div
         className={`relative z-10 bg-white shadow-2xl flex flex-col w-full max-h-[90vh] animate-in slide-in-from-bottom duration-300 ${maxWidthClasses[maxWidth]} sm:max-h-full sm:h-full ${positionClasses[position].sheet}`}
+        onMouseDown={(e) => e.stopPropagation()}
+        onClick={(e) => e.stopPropagation()}
       >
         {/* Mobile: Pull Indicator */}
         <div className="sm:hidden flex justify-center pt-3 pb-1 shrink-0 pub-bar-bg">
@@ -174,7 +182,7 @@ export function SheetFooter({
 }) {
   return (
     <div
-      className={`shrink-0 px-6 py-3 border-t border-slate-200 ${className}`}
+      className={`shrink-0 px-6 py-3 bg-petroleum border-t border-slate-200 ${className}`}
     >
       {children}
     </div>

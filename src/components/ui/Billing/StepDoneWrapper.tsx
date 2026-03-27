@@ -41,7 +41,6 @@ export interface StepDoneWrapperProps {
   };
   planInfo: { name: string; period: string; nextBillingDate?: string | null };
   upgradeRequestId: string;
-  onClose: () => void;
 }
 
 function mapPeriodLabel(period: string) {
@@ -68,12 +67,12 @@ function SecurityBadge() {
   return (
     <div className="flex flex-col items-center gap-1 pt-2">
       <div className="flex items-center justify-center gap-1.5 text-petroleum/60">
-        <ShieldCheck size={11} className="text-emerald-600" />
-        <span className="text-[9px] font-bold uppercase tracking-wider">
+        <ShieldCheck size={11} className="text-emerald-800" />
+        <span className="text-[10px] font-bold uppercase tracking-wider">
           Pagamento seguro · Processado pela Asaas
         </span>
       </div>
-      <p className="text-[9px] text-petroleum/90 max-w-[350px] text-center leading-tight">
+      <p className="text-[10px] text-petroleum/90 max-w-[350px] text-center leading-tight">
         Seus dados sao protegidos por criptografia SSL.
       </p>
     </div>
@@ -87,9 +86,9 @@ function SupportLink() {
       href={`https://wa.me/${WHATSAPP_SUPPORT}?text=${msg}`}
       target="_blank"
       rel="noopener noreferrer"
-      className="flex items-center justify-center gap-1.5 text-[10px] text-petroleum/80 hover:text-petroleum transition-colors"
+      className="flex items-center justify-center gap-1.5 text-[11px] text-petroleum/80 hover:text-petroleum transition-colors"
     >
-      <MessageCircle size={11} />
+      <MessageCircle size={14} />
       Precisa de ajuda? Fale conosco
       <ChevronRight size={10} />
     </a>
@@ -130,7 +129,6 @@ export function StepDoneWrapper({
   paymentData,
   planInfo,
   upgradeRequestId,
-  onClose,
 }: StepDoneWrapperProps) {
   const router = useRouter();
   const [runtimeStatus, setRuntimeStatus] = useState<StepDoneStatus>(status);
@@ -246,6 +244,10 @@ export function StepDoneWrapper({
     () => safeNextBillingDateLabel(planInfo.nextBillingDate),
     [planInfo.nextBillingDate],
   );
+  const boletoDirectUrl = useMemo(() => {
+    if (!upgradeRequestId?.trim()) return paymentData.paymentUrl ?? null;
+    return `/api/dashboard/payment-boleto-url?requestId=${encodeURIComponent(upgradeRequestId)}`;
+  }, [upgradeRequestId, paymentData.paymentUrl]);
 
   const copyPix = useCallback(async () => {
     const content = (
@@ -297,17 +299,10 @@ export function StepDoneWrapper({
               </p>
             </div>
           )}
-          <SecurityBadge />
-          <SupportLink />
         </div>
         <div className="mt-auto pt-4">
-          <button
-            type="button"
-            onClick={onClose}
-            className="btn-luxury-primary w-full"
-          >
-            Fechar
-          </button>
+          <SecurityBadge />
+          <SupportLink />
         </div>
       </div>
     );
@@ -371,7 +366,7 @@ export function StepDoneWrapper({
         </div>
       )}
       {billingType === 'PIX' && !pixLoading && pixLoadError && (
-        <div className="rounded-luxury border border-amber-300 bg-amber-50 px-3 py-2 flex flex-col gap-2">
+        <div className="rounded-luxury border border-amber-300 bg-amber-50 px-3 py-2 flex flex-col gap-2 items-center text-center">
           <p className="text-[11px] text-amber-900">{pixLoadError}</p>
           <button
             type="button"
@@ -439,20 +434,20 @@ export function StepDoneWrapper({
         )}
 
       {billingType === 'BOLETO' && (
-        <div className="space-y-2">
+        <div className="space-y-2 items-center justify-center text-center">
           <p className="text-[11px] text-petroleum/80 text-center">
             {dueDateText
               ? `Vencimento em ${dueDateText}.`
-              : 'A cobrança vence em até 3 dias.'}
+              : 'A cobrança vence hoje.'}
           </p>
-          {paymentData.paymentUrl && (
+          {boletoDirectUrl && (
             <a
-              href={paymentData.paymentUrl}
+              href={boletoDirectUrl}
               target="_blank"
               rel="noopener noreferrer"
-              className="btn-luxury-primary w-full inline-flex items-center justify-center gap-2"
+              className="btn-luxury-primary inline-flex items-center justify-center gap-2"
             >
-              <FileText size={14} />
+              <FileText size={16} />
               Abrir boleto
             </a>
           )}
@@ -460,8 +455,8 @@ export function StepDoneWrapper({
       )}
 
       {billingType === 'CREDIT_CARD' && (
-        <div className="space-y-2">
-          <div className="rounded-luxury bg-amber-50 border border-amber-200/60 px-3 py-2 flex items-start gap-2">
+        <div className="space-y-2 text-center">
+          <div className="rounded-luxury bg-amber-50 border border-amber-200/60 px-3 py-2 flex items-start gap-2 text-left">
             <Clock size={13} className="text-amber-500 shrink-0 mt-0.5" />
             <div>
               <p className="text-[11px] font-bold text-amber-800">
@@ -472,7 +467,7 @@ export function StepDoneWrapper({
               </p>
             </div>
           </div>
-          <div className="space-y-2">
+          <div className="space-y-2 flex flex-col items-center">
             <p className="text-[9px] font-bold uppercase tracking-luxury-wide text-petroleum/70">
               O que acontece agora
             </p>
@@ -483,14 +478,6 @@ export function StepDoneWrapper({
           </div>
         </div>
       )}
-
-      <button
-        type="button"
-        onClick={onClose}
-        className="btn-luxury-primary w-full"
-      >
-        Fechar
-      </button>
       <SecurityBadge />
       <SupportLink />
     </div>

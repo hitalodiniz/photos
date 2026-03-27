@@ -564,14 +564,18 @@ export default function AssinaturaContent({
     sortedHistory
       .find((r) => (r.asaas_subscription_id?.trim() ?? '').length > 0)
       ?.asaas_subscription_id?.trim() ?? null;
+
   const effectiveSubscriptionId =
     activeSubscriptionId ??
     (latestApprovedRequest?.asaas_subscription_id?.trim() || null) ??
     fallbackSubscriptionId;
+
   const approvedSubForReactivate =
     latestApprovedRequest?.asaas_subscription_id?.trim() ?? '';
+
   const pendingSubForReactivate =
     latestPendingCancelRow?.asaas_subscription_id?.trim() ?? '';
+
   const reactivationSubscriptionId =
     approvedSubForReactivate &&
     pendingSubForReactivate &&
@@ -580,6 +584,7 @@ export default function AssinaturaContent({
       : pendingSubForReactivate ||
         approvedSubForReactivate ||
         effectiveSubscriptionId;
+
   const pendingCancellationRequest = sortedHistory.find((r) => {
     const isPendingCancelStatus =
       r.status === 'pending_cancellation' || r.status === 'pending_downgrade';
@@ -590,18 +595,22 @@ export default function AssinaturaContent({
     if (!requestSubId) return true;
     return requestSubId === effectiveSubscriptionId;
   });
+
   const hasPendingCancellation =
     !!pendingCancellationRequest || !!localCancellationEndsAt;
+
   const hasFutureAccess =
     expiresAtFromData != null &&
     !Number.isNaN(new Date(expiresAtFromData).getTime()) &&
     new Date(expiresAtFromData).getTime() > Date.now();
+
   const hasCancelledRecordForActiveSub = sortedHistory.some(
     (r) =>
       r.status === 'cancelled' &&
       !!effectiveSubscriptionId &&
       (r.asaas_subscription_id?.trim() ?? '') === effectiveSubscriptionId,
   );
+
   const hasNoPaymentCancellationForActiveSub = sortedHistory.some((r) => {
     const sameSubscription =
       !!effectiveSubscriptionId &&
@@ -612,16 +621,19 @@ export default function AssinaturaContent({
       r.notes ?? '',
     );
   });
+
   const canReactivateSubscription =
     !!reactivationSubscriptionId &&
     !hasNoPaymentCancellationForActiveSub &&
     (hasPendingCancellation ||
       (hasFutureAccess && hasCancelledRecordForActiveSub));
-  const hasVigenteSubscriptionInRequests =
-    planKey !== 'FREE' && vigenteHistoryId != null;
+
+  const hasVigenteSubscriptionInRequests = vigenteHistoryId != null;
+
   const hasAnyAwaitingPaymentRecord = sortedHistory.some(
     isAwaitingPaymentHistoryStatus,
   );
+
   const cancellationEndsAt =
     localCancellationEndsAt ??
     formatDateOnlyPtBrBilling(
@@ -907,8 +919,7 @@ export default function AssinaturaContent({
           (notesLower.includes('renovação') ||
             notesLower.includes('cobrança de renovação') ||
             isRenewedStatus(item.status));
-        const isTableVigente =
-          planKey !== 'FREE' && item.id === vigenteHistoryId;
+        const isTableVigente = item.id === vigenteHistoryId;
         if (isTableVigente) {
           return (
             <div className="flex flex-col gap-0.5 min-w-24 font-medium">
@@ -1090,30 +1101,45 @@ export default function AssinaturaContent({
           billingType === 'BOLETO';
         const invoiceUrl = `/api/dashboard/payment-invoice-url?requestId=${encodeURIComponent(item.id)}`;
         const boletoUrl = `/api/dashboard/payment-boleto-url?requestId=${encodeURIComponent(item.id)}`;
-        const url = isPendingPix || isPendingBoleto
-          ? null
-          : isRejectedCard
+        const url =
+          isPendingPix || isPendingBoleto
             ? null
-            : hasOpenPayment
-              ? item.payment_url?.startsWith('http')
-                ? item.payment_url
-                : invoiceUrl
-              : isPaidOrCancelled
-                ? invoiceUrl
-                : null;
-        if (isRejectedCurrentPending || isRejectedCard || isPendingPix || isPendingBoleto || (isLatestPendingRow && (itemStatus === 'pending' || itemStatus === 'processing' || isOverdueLike))) {
+            : isRejectedCard
+              ? null
+              : hasOpenPayment
+                ? item.payment_url?.startsWith('http')
+                  ? item.payment_url
+                  : invoiceUrl
+                : isPaidOrCancelled
+                  ? invoiceUrl
+                  : null;
+        if (
+          isRejectedCurrentPending ||
+          isRejectedCard ||
+          isPendingPix ||
+          isPendingBoleto ||
+          (isLatestPendingRow &&
+            (itemStatus === 'pending' ||
+              itemStatus === 'processing' ||
+              isOverdueLike))
+        ) {
           return (
             <button
               type="button"
-              className="inline-flex items-center gap-1 text-[11px] font-medium text-gold hover:underline"
+              className={`inline-flex h-7 items-center gap-1 rounded-md p-1 text-[9px] font-semibold uppercase tracking-wide text-petroleum transition-colors ${
+                isRejectedCurrentPending || isRejectedCard
+                  ? 'bg-red-400 hover:bg-red-300'
+                  : 'bg-amber-500 hover:bg-amber-400'
+              }`}
               onClick={(e) => {
                 e.stopPropagation();
                 setManagePaymentTarget(item);
                 setShowManagePayment(true);
               }}
             >
-              {isRejectedCurrentPending || isRejectedCard ? 'Regularizar pagamento' : 'Pagar agora'}
-              <ExternalLink size={14} />
+              {isRejectedCurrentPending || isRejectedCard
+                ? 'Regularizar pagamento'
+                : 'Pagar agora'}
             </button>
           );
         }
@@ -1122,11 +1148,12 @@ export default function AssinaturaContent({
           return (
             <span className="text-slate-500 text-[11px] font-medium">—</span>
           );
-        
-        const actionLabel = itemStatus === 'approved' || itemStatus === 'renewed'
-              ? 'Comprovante de pagamento'
-              : 'Ver pagamento';
-              
+
+        const actionLabel =
+          itemStatus === 'approved' || itemStatus === 'renewed'
+            ? 'Comprovante de pagamento'
+            : 'Ver pagamento';
+
         return (
           <a
             href={url}
@@ -1172,9 +1199,8 @@ export default function AssinaturaContent({
           </p>
         )}
       </div>
-      {planKey !== 'FREE' &&
-        hasVigenteSubscriptionInRequests &&
-        (canReactivateSubscription ? (
+      {(hasVigenteSubscriptionInRequests || hasAnyAwaitingPaymentRecord) &&
+        (canReactivateSubscription && !hasAnyAwaitingPaymentRecord ? (
           /* CONTAINER DE REATIVAÇÃO */
           <div className="flex flex-col items-end gap-1.5 shrink-0">
             <span className="text-[9px] font-semibold uppercase tracking-wider text-gold/80">
@@ -1194,7 +1220,7 @@ export default function AssinaturaContent({
               {reactivateLoading ? 'Processando...' : 'Reativar Plano'}
             </button>
           </div>
-        ) : hasAnyAwaitingPaymentRecord ? null : (
+        ) : (
           /* BOTÃO CANCELAR COM BORDA */
           <button
             type="button"
@@ -1202,7 +1228,9 @@ export default function AssinaturaContent({
             className="inline-flex items-center gap-1.5 px-3 py-2 rounded-md bg-red-500 hover:bg-red-600 text-white font-semibold text-[10px] uppercase tracking-widest transition-all active:scale-[0.98] disabled:opacity-50 shadow-lg shadow-red-900/30"
           >
             <AlertTriangle size={14} />
-            Cancelar assinatura
+            {hasAnyAwaitingPaymentRecord
+              ? 'Cancelar assinatura pendente de pagamento'
+              : 'Cancelar assinatura'}
           </button>
         ))}
     </div>
@@ -1279,7 +1307,9 @@ export default function AssinaturaContent({
                     Ciclo
                   </p>
                   <p className="text-[10px] font-semibold text-petroleum">
-                    {billingPeriodLabel(latestChargedVigenteRequest?.billing_period)}
+                    {billingPeriodLabel(
+                      latestChargedVigenteRequest?.billing_period,
+                    )}
                   </p>
                 </div>
               </div>
@@ -1538,7 +1568,8 @@ export default function AssinaturaContent({
               }
             : latestPendingRequest
               ? {
-                  billingType: (latestPendingRequest?.billing_type ?? null) as any,
+                  billingType: (latestPendingRequest?.billing_type ??
+                    null) as any,
                   paymentUrl: latestPendingRequest?.payment_url ?? null,
                   dueDate: (latestPendingRequest as any)?.due_date ?? null,
                   amount: latestPendingRequest?.amount_final ?? undefined,

@@ -103,11 +103,17 @@ export default function BaseModal({
     */
     <div
       className={`fixed inset-0 z-[1100] ${overlayColor}/${overlayOpacity} ${blurClasses[blurLevel]} flex items-center justify-center ${containerPadding} animate-in fade-in duration-500 ${className || ''}`}
+      onMouseDown={(e) => e.stopPropagation()}
+      onClick={(e) => e.stopPropagation()}
       {...(dataTheme ? { 'data-theme': dataTheme } : {})}
     >
       <div
         className="absolute inset-0"
-        onClick={() => showCloseButton && onClose()}
+        onMouseDown={(e) => e.stopPropagation()}
+        onClick={(e) => {
+          e.stopPropagation();
+          if (showCloseButton) onClose();
+        }}
       />
 
       <div

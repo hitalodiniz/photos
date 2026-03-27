@@ -374,31 +374,36 @@ export default function GaleriaCard({
           label="Relatório de Visitantes"
           variant="tiny"
         >
-          <button
-            onClick={(e) => {
-              e.stopPropagation();
-              // 🎯 FIX: featureKey correto para o botão de Leads
-              if (!canViewLeads) {
-                setUpsell({
-                  label: 'Relatório de Visitantes',
-                  featureKey: 'canCaptureLeads',
-                });
-                return;
-              }
-              navigate(
-                `/dashboard/galerias/${galeria.id}/leads`,
-                'Gerando relatório de visitantes...',
-              );
-            }}
-            className={btnBaseClass}
-            disabled={
-              canViewLeads &&
-              (isNavigating ||
-                (!galeria.leads_enabled && (galeria.leads_count ?? 0) <= 0))
-            }
+          <div
+            onMouseDown={(e) => e.stopPropagation()}
+            onClick={(e) => e.stopPropagation()}
           >
-            <Users size={16} />
-          </button>
+            <button
+              onClick={(e) => {
+                e.stopPropagation();
+                // 🎯 FIX: featureKey correto para o botão de Leads
+                if (!canViewLeads) {
+                  setUpsell({
+                    label: 'Relatório de Visitantes',
+                    featureKey: 'canCaptureLeads',
+                  });
+                  return;
+                }
+                navigate(
+                  `/dashboard/galerias/${galeria.id}/leads`,
+                  'Gerando relatório de visitantes...',
+                );
+              }}
+              className={btnBaseClass}
+              disabled={
+                canViewLeads &&
+                (isNavigating ||
+                  (!galeria.leads_enabled && (galeria.leads_count ?? 0) <= 0))
+              }
+            >
+              <Users size={16} />
+            </button>
+          </div>
         </PlanGuard>
         <button
           onClick={(e) => {

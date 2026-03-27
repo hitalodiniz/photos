@@ -30,12 +30,14 @@ import { ConfirmationModal, Toast } from '@/components/ui';
 import { saveGaleriaSelectionAction } from '@/core/services/galeria.service';
 import { div } from 'framer-motion/client';
 import { GaleriaTour } from './ToolBarDesktopTour';
+import { useIsMobile } from '@/hooks/use-breakpoint';
 
 export default function PhotoGrid({
   photos,
   galeria,
   canStartTour = true,
 }: any) {
+  const isMobile = useIsMobile();
   const { planKey, permissions } = usePlan();
 
   const [selectedPhotoIndex, setSelectedPhotoIndex] = useState<number | null>(
@@ -497,13 +499,15 @@ export default function PhotoGrid({
       {...(themeKey ? { 'data-theme': themeKey } : {})}
     >
       {/* TOOLBARS — cada uma é sticky e carrega seu próprio data-theme */}
-      <GaleriaTour
-        galeriaId={galeria.id}
-        canUseFavorites={canUseFavorites}
-        hasTags={hasRealTags}
-        canStartTour={canStartTour}
-        onOpenDrawer={setOpenDrawer}
-      />
+      {!isMobile && (
+        <GaleriaTour
+          galeriaId={galeria.id}
+          canUseFavorites={canUseFavorites}
+          hasTags={hasRealTags}
+          canStartTour={canStartTour}
+          onOpenDrawer={setOpenDrawer}
+        />
+      )}
       <ToolBarDesktop
         {...{
           galeria,

@@ -77,6 +77,7 @@ import {
   retryPendingCreditCardSubscription,
 } from './asaas/api/subscriptions';
 import {
+  getSubscriptionPayments,
   getFirstPaymentFromSubscription,
   getLatestPendingPaymentFromSubscription,
   createAsaasReplacementPayment,
@@ -941,7 +942,7 @@ export async function getUpgradeRequestStatus(
   requestId: string,
 ): Promise<{ success: boolean; status?: string; error?: string }> {
   try {
-    const { success, userId } = await getAuthenticatedUser();
+    const { success, userId, email, profile } = await getAuthenticatedUser();
     if (!success || !userId)
       return { success: false, error: 'Não autenticado' };
 
@@ -972,7 +973,7 @@ export async function getCurrentPaymentMethodSummary(): Promise<{
   error?: string;
 }> {
   try {
-    const { success, userId } = await getAuthenticatedUser();
+    const { success, userId, email, profile } = await getAuthenticatedUser();
     if (!success || !userId)
       return { success: false, error: 'Usuário não autenticado' };
 
@@ -1043,11 +1044,22 @@ export async function getCurrentPaymentMethodSummary(): Promise<{
 /**
  * Troca a forma de pagamento da assinatura vigente (server action).
  *
- * Regra crítica de negócio: ao "fugir" do cartão (BOLETO/PIX), o Asaas deve
- * esquecer imediatamente os dados do cartão para evitar recorrência fantasma.
+ * Fluxo por método:
  *
- * Também atualiza tb_upgrade_requests (billing_type + histórico em notes) e,
- * ao migrar para BOLETO/PIX, limpa asaas_payment_id travado de tentativa de cartão.
+ * PIX / BOLETO:
+ *   1. Atualiza método no Asaas (remove cartão, updatePendingPayments: true)
+ *   2. Deleta cobranças pendentes antigas de outros métodos
+ *   3. Busca/cria cobrança pendente no novo método
+ *   4. Atualiza tb_upgrade_requests
+ *
+ * CREDIT_CARD:
+ *   1. Tenta cobrar imediatamente (createAsaasReplacementPayment)
+ *   2. Se cartão REJEITADO → rollback no Asaas, retorna erro, NÃO altera banco
+ *   3. Se cartão APROVADO/PENDING →
+ *      a. Atualiza método da assinatura no Asaas
+ *      b. Deleta cobranças pendentes antigas de PIX/BOLETO
+ *      c. Mantém a cobrança aprovada/pending do cartão
+ *      d. Atualiza tb_upgrade_requests
  */
 export async function updateSubscriptionBillingMethod(
   subscriptionId: string,
@@ -1071,9 +1083,6 @@ export async function updateSubscriptionBillingMethod(
   } | null,
   options?: {
     targetRequestId?: string | null;
-    cardUpdateOnly?: boolean;
-    /** PUT só com subscriptionId: retenta cobrança pendente com cartão salvo no Asaas */
-    retrySavedCardOnly?: boolean;
   },
 ): Promise<{
   success: boolean;
@@ -1087,43 +1096,37 @@ export async function updateSubscriptionBillingMethod(
   error?: string;
 }> {
   try {
-    const isCardCaptureRefusedError = (message?: string | null): boolean => {
-      const text = String(message ?? '').toLowerCase();
-      return (
-        text.includes('capture refused') ||
-        text.includes('captura recusada') ||
-        text.includes('cartão recusado') ||
-        text.includes('cartao recusado') ||
-        text.includes('recusad')
-      );
-    };
-    const { success, userId } = await getAuthenticatedUser();
+    const { success, userId, email, profile } = await getAuthenticatedUser();
     if (!success || !userId)
       return { success: false, error: 'Não autenticado' };
 
     const supabase = await createSupabaseServerClient();
     const admin = createSupabaseAdmin();
 
-    // Registro alvo para atualização:
-    // A tabela do /dashboard/assinatura usa `history[0]` (getUpgradeHistory ordena por created_at DESC),
-    // então aqui atualizamos o registro mais recente daquela assinatura.
+    // ── 1. Busca o registro da assinatura ─────────────────────────────────────
     const baseSelect =
-      'id, billing_type, status, notes, asaas_payment_id, asaas_subscription_id, asaas_raw_status, overdue_since, plan_key_current, plan_key_requested, billing_period, snapshot_name, snapshot_cpf_cnpj, snapshot_email, snapshot_whatsapp, snapshot_address, asaas_customer_id, amount_original, amount_discount, amount_final, installments';
+      'id, billing_type, status, notes, asaas_payment_id, asaas_subscription_id, ' +
+      'asaas_raw_status, overdue_since, plan_key_current, plan_key_requested, ' +
+      'billing_period, snapshot_name, snapshot_cpf_cnpj, snapshot_email, ' +
+      'snapshot_whatsapp, snapshot_address, asaas_customer_id, ' +
+      'amount_original, amount_discount, amount_final, installments, payment_url';
 
     const targetRequestId = options?.targetRequestId?.trim() || null;
-    const cardUpdateOnly = options?.cardUpdateOnly === true;
-    const retrySavedCardOnly = options?.retrySavedCardOnly === true;
     let currentReq: any = null;
-    let currentReqErr: any = null;
+
     if (targetRequestId) {
-      const byId = await supabase
+      const { data, error } = await supabase
         .from('tb_upgrade_requests')
         .select(baseSelect)
         .eq('profile_id', userId)
         .eq('id', targetRequestId)
         .maybeSingle();
-      currentReq = byId.data;
-      currentReqErr = byId.error;
+      if (error)
+        return {
+          success: false,
+          error: 'Erro ao carregar registro da assinatura.',
+        };
+      currentReq = data;
       if (
         currentReq &&
         String(currentReq.asaas_subscription_id ?? '').trim() !==
@@ -1132,7 +1135,7 @@ export async function updateSubscriptionBillingMethod(
         return { success: false, error: 'Assinatura inválida.' };
       }
     } else {
-      const latest = await supabase
+      const { data, error } = await supabase
         .from('tb_upgrade_requests')
         .select(baseSelect)
         .eq('profile_id', userId)
@@ -1140,17 +1143,15 @@ export async function updateSubscriptionBillingMethod(
         .order('created_at', { ascending: false })
         .limit(1)
         .maybeSingle();
-      currentReq = latest.data;
-      currentReqErr = latest.error;
+      if (error)
+        return {
+          success: false,
+          error: 'Erro ao carregar registro da assinatura.',
+        };
+      currentReq = data;
     }
-    if (currentReqErr) {
-      return {
-        success: false,
-        error: 'Erro ao carregar registro da assinatura.',
-      };
-    }
+
     if (!currentReq?.id) {
-      // Sem um row para atualizar, não faz sentido retornar success (foi a causa da tabela "não gravar").
       return {
         success: false,
         error:
@@ -1158,485 +1159,461 @@ export async function updateSubscriptionBillingMethod(
       };
     }
 
-    // Permite troca mesmo com pending_downgrade (o alerta é UI; aqui não alteramos esse request)
-    const { data: pendingDowngrade } = await supabase
-      .from('tb_upgrade_requests')
-      .select('id')
-      .eq('profile_id', userId)
-      .eq('status', 'pending_downgrade')
-      .order('created_at', { ascending: false })
-      .limit(1)
-      .maybeSingle();
-    void pendingDowngrade; // apenas para deixar explícito que não bloqueamos
-
-    let asaasSubscriptionId =
-      (currentReq.asaas_subscription_id as string | null) ?? subscriptionId;
-    let asaasCustomerIdForWrite = String(
-      currentReq.asaas_customer_id ?? '',
+    const asaasSubscriptionId = String(
+      currentReq.asaas_subscription_id ?? subscriptionId,
     ).trim();
-
-    if (!asaasSubscriptionId || asaasSubscriptionId !== subscriptionId) {
-      // Segurança: só permite operar na assinatura vigente do usuário.
-      return { success: false, error: 'Assinatura inválida.' };
-    }
-
-    const isOverdueRequest =
-      Boolean((currentReq as any).overdue_since) ||
-      String((currentReq as any).asaas_raw_status ?? '').toUpperCase() ===
-        'OVERDUE';
-
-    // 1) Atualiza no Asaas
-    let asaasRes: { success: boolean; error?: string };
-    if (retrySavedCardOnly) {
-      if (newMethod !== 'CREDIT_CARD') {
-        return { success: false, error: 'Retentativa inválida para este método.' };
-      }
-      asaasRes = await retryPendingCreditCardSubscription(subscriptionId);
-    } else {
-      asaasRes = await updateAsaasSubscriptionBillingMethod(
-        subscriptionId,
-        newMethod,
-        creditCard ?? null,
-        creditCardHolderInfo ?? null,
-      );
-    }
-    if (!asaasRes.success) return asaasRes;
-
-    // 1.1) Correção de pro-rata: se a fatura atual tinha desconto pro-rata,
-    // o updatePendingPayments: true do Asaas sobrescreveu o valor da fatura pendente
-    // com o valor cheio da assinatura. Precisamos restaurar o valor pro-rata.
+    const asaasCustomerId = String(currentReq.asaas_customer_id ?? '').trim();
     const amountFinal = Number(currentReq.amount_final ?? 0);
-    const amountOriginal = Number(currentReq.amount_original ?? 0);
-    if (amountFinal > 0 && amountFinal < amountOriginal) {
-      const pendingPayment = await getLatestPendingPaymentFromSubscription(subscriptionId);
-      if (pendingPayment.success && pendingPayment.paymentId) {
-        await updateAsaasPaymentValue(pendingPayment.paymentId, amountFinal);
-      }
-    }
-
-    // 2) Atualiza tb_upgrade_requests (registro mais recente da assinatura)
-    const previous = (currentReq.billing_type as string | null) ?? null;
+    const previousMethod = String(currentReq.billing_type ?? '')
+      .trim()
+      .toUpperCase() as 'PIX' | 'BOLETO' | 'CREDIT_CARD';
     const nowIso = utcIsoFrom();
-    const historyLine = retrySavedCardOnly
-      ? `[PendingCaptureRetry ${nowIso}] Retentativa de cobrança com cartão salvo (updatePendingPayments).`
-      : cardUpdateOnly
-        ? `[CardUpdate ${nowIso}] Cartão atualizado mantendo método CREDIT_CARD.`
-        : `[PaymentMethodChange ${nowIso}] ${previous ?? 'UNKNOWN'} -> ${newMethod}`;
-    const nextNotes = appendBillingNotesBlock(
-      currentReq.notes as string | null | undefined,
-      historyLine,
-    );
-    const shouldCreateReplacementRequest =
-      String(currentReq.status ?? '').toLowerCase() === 'rejected';
-
-    const updatePatch: Record<string, unknown> = {
-      notes: nextNotes,
-      updated_at: nowIso,
+    const isOpenPaymentStatus = (status: string | null | undefined) => {
+      const s = String(status ?? '').toUpperCase();
+      return s === 'PENDING' || s === 'OVERDUE' || s === 'AWAITING_RISK_ANALYSIS';
     };
-    const currentStatus = String(currentReq.status ?? '').toLowerCase();
-    const isFinishedRecord =
-      currentStatus === 'approved' ||
-      currentStatus === 'renewed' ||
-      currentStatus === 'cancelled' ||
-      currentStatus === 'pending_cancellation' ||
-      currentStatus === 'pending_downgrade' ||
-      currentStatus === 'free';
-    const shouldMutateCurrentPaymentFields =
-      !isFinishedRecord && !shouldCreateReplacementRequest;
-    if (shouldMutateCurrentPaymentFields) {
-      updatePatch.billing_type = newMethod;
-    }
 
-    let newPaymentId: string | undefined;
-    let responseRequestId: string | undefined = currentReq.id as string;
-    let paymentUrl: string | undefined;
-    let paymentDueDate: string | undefined;
-    let hasPendingPayment = false;
-    let paymentStatus:
-      | 'pending'
-      | 'approved'
-      | 'rejected'
-      | 'overdue'
-      | undefined;
-    let pixData: { qrCode?: string; copyPaste?: string } | undefined;
-    let replacedPreviousPaymentId: string | null = null;
+    // ── 2. Fluxo CREDIT_CARD ──────────────────────────────────────────────────
+    if (newMethod === 'CREDIT_CARD') {
+      if (!creditCard || !creditCardHolderInfo) {
+        return { success: false, error: 'Dados do cartão são obrigatórios.' };
+      }
+      if (!(amountFinal > 0) || !asaasCustomerId) {
+        return {
+          success: false,
+          error: 'Dados da assinatura incompletos para cobrar no cartão.',
+        };
+      }
 
-    // Em rejected, a regularização precisa de cobrança NOVA pagável (PENDING).
-    // updatePendingPayments sozinho pode não criar novo payment quando o antigo já está inválido.
-    const pendingPayment = await getLatestPendingPaymentFromSubscription(
-      subscriptionId,
-    );
-    if (!pendingPayment.success) {
+      const holderEmailCandidates = [
+        String(creditCardHolderInfo.email ?? '').trim(),
+        String(email ?? '').trim(),
+        String(currentReq.snapshot_email ?? '').trim(),
+      ].filter(Boolean);
+      const holderEmail = holderEmailCandidates[0] ?? '';
+      const isHolderEmailValid = /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(holderEmail);
+      if (!isHolderEmailValid) {
+        return {
+          success: false,
+          paymentStatus: 'rejected',
+          error:
+            'Informe um e-mail válido do titular do cartão para processar a cobrança.',
+        };
+      }
+
+      const holderPhoneCandidates = [
+        String(creditCardHolderInfo.phone ?? '').replace(/\D/g, ''),
+        String(creditCardHolderInfo.mobilePhone ?? '').replace(/\D/g, ''),
+        String(currentReq.snapshot_whatsapp ?? '').replace(/\D/g, ''),
+        String(profile?.phone_contact ?? '').replace(/\D/g, ''),
+      ].filter((value) => value.length >= 10);
+      const holderPhone = holderPhoneCandidates[0] ?? '';
+      if (!holderPhone) {
+        return {
+          success: false,
+          paymentStatus: 'rejected',
+          error:
+            'Informe o número de contato com DDD do titular do cartão para processar a cobrança.',
+        };
+      }
+      const normalizedCreditCardHolderInfo = {
+        ...creditCardHolderInfo,
+        email: holderEmail,
+        phone: holderPhone,
+        mobilePhone: holderPhone,
+      };
+
+      // 2a. Tenta cobrar imediatamente no cartão
+      const dueDate = nowIso.split('T')[0];
+      const cardCharge = await createAsaasReplacementPayment({
+        customerId: asaasCustomerId,
+        subscriptionId: asaasSubscriptionId,
+        billingType: 'CREDIT_CARD',
+        value: amountFinal,
+        dueDate,
+        description: `Pagamento de assinatura ${String(currentReq.plan_key_requested ?? '').trim() || 'plano'}`,
+        creditCard,
+        creditCardHolderInfo: normalizedCreditCardHolderInfo,
+      });
+
+      // 2b. Cartão rejeitado → não altera nada
+      if (!cardCharge.success || !cardCharge.paymentId) {
+        return {
+          success: false,
+          paymentStatus: 'rejected',
+          error:
+            cardCharge.error ??
+            'Cartão não aprovado. Nenhuma alteração foi realizada.',
+        };
+      }
+
+      // Verifica status real da cobrança
+      const statusRes = await getAsaasPaymentStatus(cardCharge.paymentId);
+      const gatewayStatus = String(statusRes.status ?? '').toUpperCase();
+      const isRejected =
+        gatewayStatus === 'REFUSED' ||
+        gatewayStatus === 'FAILED' ||
+        gatewayStatus === 'OVERDUE';
+
+      if (isRejected) {
+        // Tenta apagar a cobrança recém-criada (cleanup)
+        await deleteAsaasPayment(cardCharge.paymentId).catch(() => {});
+        return {
+          success: false,
+          paymentStatus: 'rejected',
+          error: 'Cartão não aprovado. Nenhuma alteração foi realizada.',
+        };
+      }
+
+      // 2c. Cartão aprovado/pendente → atualiza método da assinatura no Asaas
+      const asaasUpdate = await updateAsaasSubscriptionBillingMethod(
+        asaasSubscriptionId,
+        'CREDIT_CARD',
+        creditCard,
+        normalizedCreditCardHolderInfo,
+      );
+      if (!asaasUpdate.success) {
+        // Cleanup: remove a cobrança avulsa criada pois não conseguimos atualizar a assinatura
+        await deleteAsaasPayment(cardCharge.paymentId).catch(() => {});
+        return {
+          success: false,
+          error:
+            asaasUpdate.error ?? 'Erro ao atualizar assinatura no gateway.',
+        };
+      }
+
+      // 2d. Apaga cobranças pendentes antigas de PIX/BOLETO
+      if (previousMethod !== 'CREDIT_CARD') {
+        const oldPendings = await getSubscriptionPayments(asaasSubscriptionId);
+        if (oldPendings.success && Array.isArray(oldPendings.payments)) {
+          for (const p of oldPendings.payments) {
+            const pid = String(p.id ?? '').trim();
+            if (!pid || pid === cardCharge.paymentId) continue;
+            if (!isOpenPaymentStatus(p.status)) continue;
+            const info = await getPaymentBillingInfo(pid);
+            const pType = String(info.billingType ?? '').toUpperCase();
+            if (pType !== 'CREDIT_CARD') {
+              await deleteAsaasPayment(pid).catch(() => {});
+            }
+          }
+        }
+      }
+
+      // 2e. Atualiza tb_upgrade_requests
+      const isApproved =
+        gatewayStatus === 'RECEIVED' ||
+        gatewayStatus === 'CONFIRMED' ||
+        gatewayStatus === 'RECEIVED_IN_CASH';
+
+      const historyLine = `[PaymentMethodChange ${nowIso}] ${previousMethod} -> CREDIT_CARD`;
+      const nextNotes = appendBillingNotesBlock(currentReq.notes, historyLine);
+
+      const updatePatch: Record<string, unknown> = {
+        billing_type: 'CREDIT_CARD',
+        asaas_payment_id: cardCharge.paymentId,
+        payment_url: cardCharge.invoiceUrl ?? null,
+        asaas_raw_status: isApproved ? 'RECEIVED' : 'PENDING',
+        status: isApproved ? 'approved' : 'pending',
+        notes: nextNotes,
+        updated_at: nowIso,
+      };
+
+      const { error: updErr } = await admin
+        .from('tb_upgrade_requests')
+        .update(updatePatch)
+        .eq('id', currentReq.id)
+        .eq('profile_id', userId);
+
+      if (updErr) {
+        return {
+          success: false,
+          error:
+            'Pagamento processado no Asaas, mas falhou ao salvar no sistema.',
+        };
+      }
+
+      revalidatePath('/dashboard/assinatura');
+      await revalidateUserCache(userId);
+
       return {
-        success: false,
-        error:
-          pendingPayment.error ??
-          'Falha ao localizar cobrança pendente no gateway.',
+        success: true,
+        requestId: currentReq.id,
+        newPaymentId: cardCharge.paymentId,
+        paymentUrl: cardCharge.invoiceUrl ?? undefined,
+        paymentDueDate: cardCharge.dueDate ?? undefined,
+        hasPendingPayment: !isApproved,
+        paymentStatus: isApproved ? 'approved' : 'pending',
       };
     }
 
-    if (pendingPayment.paymentId) {
-      newPaymentId = pendingPayment.paymentId;
-      paymentUrl =
-        pendingPayment.invoiceUrl ?? pendingPayment.bankSlipUrl ?? paymentUrl;
-      paymentDueDate = pendingPayment.dueDate ?? paymentDueDate;
-      hasPendingPayment = true;
-      paymentStatus = 'pending';
+    // ── 3. Fluxo PIX / BOLETO ─────────────────────────────────────────────────
 
-      // Hardening: em transição PIX/BOLETO -> CARTÃO em fatura vencida/rejeitada,
-      // garantimos que a cobrança efetiva esteja no cartão.
-      if (
-        !retrySavedCardOnly &&
-        newMethod === 'CREDIT_CARD' &&
-        isOverdueRequest &&
-        shouldCreateReplacementRequest
-      ) {
-        const billingInfo = await getPaymentBillingInfo(newPaymentId);
-        const pendingBillingType = String(
-          billingInfo.billingType ?? '',
-        ).toUpperCase();
-        const pendingLooksCard = pendingBillingType === 'CREDIT_CARD';
-
-        if (!pendingLooksCard) {
-          const previousPaymentId = newPaymentId;
-          const amount = Number(currentReq.amount_final ?? 0);
-          const customerId = asaasCustomerIdForWrite;
-          if (!(amount > 0) || !customerId) {
-            return {
-              success: false,
-              error:
-                'Nao foi possível reciclar cobrança para cartão: dados incompletos da assinatura.',
-            };
-          }
-
-          const dueDate = utcIsoFrom().split('T')[0];
-          const recreatedCardPayment = await createAsaasReplacementPayment({
-            customerId,
-            subscriptionId,
-            billingType: 'CREDIT_CARD',
-            value: amount,
-            dueDate,
-            description: `Regularização de assinatura ${String(currentReq.plan_key_requested ?? '').trim() || 'plano'}`,
-            creditCard: creditCard ?? null,
-            creditCardHolderInfo: creditCardHolderInfo ?? null,
-          });
-
-          if (!recreatedCardPayment.success || !recreatedCardPayment.paymentId) {
-            return {
-              success: false,
-              error: isCardCaptureRefusedError(recreatedCardPayment.error)
-                ? recreatedCardPayment.error
-                : (recreatedCardPayment.error ??
-                  'Nao foi possível gerar cobrança no cartão para regularização.'),
-            };
-          }
-
-          newPaymentId = recreatedCardPayment.paymentId;
-          paymentUrl =
-            recreatedCardPayment.invoiceUrl ??
-            recreatedCardPayment.bankSlipUrl ??
-            paymentUrl;
-          paymentDueDate = recreatedCardPayment.dueDate ?? paymentDueDate;
-          replacedPreviousPaymentId = previousPaymentId;
-        }
-      }
-    } else if (!retrySavedCardOnly && shouldCreateReplacementRequest) {
-      const amount = Number(currentReq.amount_final ?? 0);
-        const customerId = asaasCustomerIdForWrite;
-      if (!(amount > 0) || !customerId) {
-        return {
-          success: false,
-          error:
-            'Nao foi possível gerar nova cobrança de regularização: dados da assinatura incompletos.',
-        };
-      }
-      const dueDate = utcIsoFrom().split('T')[0];
-      let createdReplacement = await createAsaasReplacementPayment({
-        customerId,
-        subscriptionId,
-        billingType: newMethod,
-        value: amount,
-        dueDate,
-        description: `Regularização de assinatura ${String(currentReq.plan_key_requested ?? '').trim() || 'plano'}`,
-        creditCard: newMethod === 'CREDIT_CARD' ? creditCard ?? null : null,
-        creditCardHolderInfo:
-          newMethod === 'CREDIT_CARD' ? creditCardHolderInfo ?? null : null,
-      });
-      const replacementErr = String(createdReplacement.error ?? '').toLowerCase();
-      const shouldRecoverWithNewSubscription =
-        !createdReplacement.success &&
-        (replacementErr.includes('cliente removido') ||
-          replacementErr.includes('removed customer') ||
-          replacementErr.includes('assinatura') ||
-          replacementErr.includes('subscription'));
-
-      if (shouldRecoverWithNewSubscription) {
-        const billingProfileRes = await supabase
-          .from('tb_billing_profiles')
-          .select(
-            'full_name, cpf_cnpj, postal_code, address, address_number, complement, province, city, state',
-          )
-          .eq('id', userId)
-          .maybeSingle();
-        const billingProfile = billingProfileRes.data;
-        const cpfCnpj =
-          String(
-            billingProfile?.cpf_cnpj ??
-              currentReq.snapshot_cpf_cnpj ??
-              '',
-          ).trim() || '';
-        const name =
-          String(
-            billingProfile?.full_name ?? currentReq.snapshot_name ?? 'Cliente',
-          ).trim() || 'Cliente';
-        const email =
-          String(currentReq.snapshot_email ?? '').trim() || 'no-reply@email.com';
-        const phone = String(currentReq.snapshot_whatsapp ?? '').trim() || '31900000000';
-
-        if (!cpfCnpj) {
-          return {
-            success: false,
-            error:
-              'Nao foi possível regularizar: CPF/CNPJ indisponível para recriar cliente no gateway.',
-          };
-        }
-
-        const recreatedCustomer = await createOrUpdateAsaasCustomer(
-          {
-            name,
-            email,
-            cpfCnpj,
-            phone,
-            postalCode: String(billingProfile?.postal_code ?? '').trim() || '30110000',
-            address: String(billingProfile?.address ?? '').trim() || 'Endereco',
-            addressNumber:
-              String(billingProfile?.address_number ?? '').trim() || '1',
-            complement:
-              String(billingProfile?.complement ?? '').trim() || undefined,
-            province: String(billingProfile?.province ?? '').trim() || 'Centro',
-            city: String(billingProfile?.city ?? '').trim() || 'Belo Horizonte',
-            state: String(billingProfile?.state ?? '').trim() || 'MG',
-          },
-          null,
-        );
-        if (!recreatedCustomer.success || !recreatedCustomer.customerId) {
-          return {
-            success: false,
-            error:
-              recreatedCustomer.error ??
-              'Falha ao recriar cliente no gateway para regularizacao.',
-          };
-        }
-
-        const asaasCycle: 'MONTHLY' | 'SEMIANNUALLY' | 'YEARLY' =
-          currentReq.billing_period === 'annual'
-            ? 'YEARLY'
-            : currentReq.billing_period === 'semiannual'
-              ? 'SEMIANNUALLY'
-              : 'MONTHLY';
-
-        const recreatedSubscription = await createAsaasSubscription({
-          customerId: recreatedCustomer.customerId,
-          billingType: newMethod,
-          cycle: asaasCycle,
-          value: amount,
-          description: `Regularizacao de assinatura ${String(currentReq.plan_key_requested ?? '').trim() || 'plano'}`,
-          nextDueDate: dueDate,
-          updatePendingPayments: true,
-          installmentCount: Number(currentReq.installments ?? 1) > 1
-            ? Number(currentReq.installments)
-            : undefined,
-          ...(newMethod === 'CREDIT_CARD' && creditCard
-            ? { creditCardDetails: creditCard }
-            : {}),
-          ...(newMethod === 'CREDIT_CARD' && creditCardHolderInfo
-            ? { creditCardHolderInfo }
-            : {}),
-        });
-        if (!recreatedSubscription.success || !recreatedSubscription.subscriptionId) {
-          return {
-            success: false,
-            error:
-              recreatedSubscription.error ??
-              'Falha ao recriar assinatura no gateway para regularizacao.',
-          };
-        }
-
-        asaasSubscriptionId = recreatedSubscription.subscriptionId;
-        asaasCustomerIdForWrite = recreatedCustomer.customerId;
-        await admin
-          .from('tb_billing_profiles')
-          .update({
-            asaas_customer_id: recreatedCustomer.customerId,
-            updated_at: nowIso,
-          })
-          .eq('id', userId);
-
-        const firstPayment = await getFirstPaymentFromSubscription(
-          recreatedSubscription.subscriptionId,
-        );
-        if (!firstPayment.success || !firstPayment.paymentId) {
-          return {
-            success: false,
-            error:
-              firstPayment.error ??
-              'Assinatura recriada, mas sem cobranca pendente no gateway.',
-          };
-        }
-        createdReplacement = {
-          success: true,
-          paymentId: firstPayment.paymentId,
-          dueDate: firstPayment.dueDate,
-          invoiceUrl: firstPayment.invoiceUrl ?? firstPayment.paymentUrl,
-          bankSlipUrl: firstPayment.bankSlipUrl,
-        };
-      }
-
-      if (!createdReplacement.success || !createdReplacement.paymentId) {
-        return {
-          success: false,
-          error:
-            createdReplacement.error ??
-            'Nao foi possível criar nova cobrança no gateway.',
-        };
-      }
-      newPaymentId = createdReplacement.paymentId;
-      paymentUrl =
-        createdReplacement.invoiceUrl ??
-        createdReplacement.bankSlipUrl ??
-        paymentUrl;
-      paymentDueDate = createdReplacement.dueDate ?? paymentDueDate;
-      hasPendingPayment = true;
-      paymentStatus = 'pending';
+    // 3a. Atualiza método no Asaas (remove cartão se havia, gera nova cobrança)
+    const asaasUpdate = await updateAsaasSubscriptionBillingMethod(
+      asaasSubscriptionId,
+      newMethod,
+      null,
+      null,
+    );
+    if (!asaasUpdate.success) {
+      return {
+        success: false,
+        error: asaasUpdate.error ?? 'Erro ao atualizar método no gateway.',
+      };
     }
 
-    if (newPaymentId && shouldMutateCurrentPaymentFields) {
+    // 3b. Deleta cobranças em aberto de outros métodos (PENDING/OVERDUE/etc)
+    const oldPendings = await getSubscriptionPayments(asaasSubscriptionId);
+    if (oldPendings.success && Array.isArray(oldPendings.payments)) {
+      for (const p of oldPendings.payments) {
+        const pid = String(p.id ?? '').trim();
+        if (!pid) continue;
+        if (!isOpenPaymentStatus(p.status)) continue;
+        const info = await getPaymentBillingInfo(pid);
+        const pType = String(info.billingType ?? '').toUpperCase();
+        // Mantém apenas cobranças do novo método
+        if (pType !== newMethod) {
+          await deleteAsaasPayment(pid).catch(() => {});
+        }
+      }
+    }
+
+    // 3c. Busca a cobrança pendente gerada pelo Asaas
+    let newPaymentId: string | undefined;
+    let paymentUrl: string | undefined;
+    let paymentDueDate: string | undefined;
+
+    const pendingPayment =
+      await getLatestPendingPaymentFromSubscription(asaasSubscriptionId);
+    if (pendingPayment.success && pendingPayment.paymentId) {
+      newPaymentId = pendingPayment.paymentId;
+      paymentUrl =
+        newMethod === 'BOLETO'
+          ? (pendingPayment.bankSlipUrl ?? pendingPayment.invoiceUrl)
+          : (pendingPayment.invoiceUrl ?? pendingPayment.bankSlipUrl);
+      paymentDueDate = pendingPayment.dueDate;
+    } else {
+      // Fallback: cria nova cobrança manualmente
+      if (amountFinal > 0 && asaasCustomerId) {
+        const dueDate = nowIso.split('T')[0];
+        const created = await createAsaasReplacementPayment({
+          customerId: asaasCustomerId,
+          subscriptionId: asaasSubscriptionId,
+          billingType: newMethod,
+          value: amountFinal,
+          dueDate,
+          description: `Pagamento de assinatura ${String(currentReq.plan_key_requested ?? '').trim() || 'plano'}`,
+          creditCard: null,
+          creditCardHolderInfo: null,
+        });
+        if (created.success && created.paymentId) {
+          newPaymentId = created.paymentId;
+          paymentUrl =
+            newMethod === 'BOLETO'
+              ? (created.bankSlipUrl ?? created.invoiceUrl)
+              : (created.invoiceUrl ?? created.bankSlipUrl);
+          paymentDueDate = created.dueDate;
+        }
+      }
+    }
+
+    // 3d. Corrige valor pro-rata se havia desconto
+    if (newPaymentId) {
+      const amountOriginal = Number(currentReq.amount_original ?? 0);
+      if (amountFinal > 0 && amountFinal < amountOriginal) {
+        await updateAsaasPaymentValue(newPaymentId, amountFinal).catch(
+          () => {},
+        );
+      }
+    }
+
+    // 3e. Busca dados PIX / URL boleto
+    let pixData: { qrCode?: string; copyPaste?: string } | undefined;
+
+    if (newMethod === 'PIX' && newPaymentId) {
+      const pixQr = await getPixQrCodeFromPayment(newPaymentId);
+      if (pixQr.success) {
+        pixData = { qrCode: pixQr.encodedImage, copyPaste: pixQr.payload };
+      }
+    }
+
+    if (newMethod === 'BOLETO' && newPaymentId && !paymentUrl) {
+      const checkout = await getAsaasPaymentCheckoutUrls(newPaymentId);
+      if (checkout.success) {
+        paymentUrl = checkout.bankSlipUrl ?? checkout.invoiceUrl;
+        paymentDueDate = checkout.dueDate ?? paymentDueDate;
+      }
+    }
+
+    // 3f. Atualiza tb_upgrade_requests
+    const historyLine = `[PaymentMethodChange ${nowIso}] ${previousMethod} -> ${newMethod}`;
+    const nextNotes = appendBillingNotesBlock(currentReq.notes, historyLine);
+
+    const updatePatch: Record<string, unknown> = {
+      billing_type: newMethod,
+      notes: nextNotes,
+      updated_at: nowIso,
+    };
+
+    if (newPaymentId) {
       updatePatch.asaas_payment_id = newPaymentId;
       updatePatch.payment_url = paymentUrl ?? null;
       updatePatch.asaas_raw_status = 'PENDING';
       updatePatch.status = 'pending';
     }
 
-    if (replacedPreviousPaymentId && replacedPreviousPaymentId !== newPaymentId) {
-      await deleteAsaasPayment(replacedPreviousPaymentId);
-      updatePatch.notes = appendBillingNotesBlock(
-        updatePatch.notes as string | null | undefined,
-        `[PaymentRecycle ${nowIso}] Cobrança anterior removida (${replacedPreviousPaymentId}) após geração da nova cobrança (${newPaymentId}).`,
-      );
+    const { error: updErr } = await admin
+      .from('tb_upgrade_requests')
+      .update(updatePatch)
+      .eq('id', currentReq.id)
+      .eq('profile_id', userId);
+
+    if (updErr) {
+      return {
+        success: false,
+        error:
+          'Pagamento atualizado no Asaas, mas falhou ao salvar no sistema.',
+      };
     }
 
-    if (newMethod === 'PIX' && newPaymentId) {
-      const pixQr = await getPixQrCodeFromPayment(newPaymentId);
-      if (pixQr.success) {
-        pixData = {
-          qrCode: pixQr.encodedImage,
-          copyPaste: pixQr.payload,
-        };
-      }
-    }
-    if (newMethod === 'BOLETO' && newPaymentId && !paymentUrl) {
-      const checkout = await getAsaasPaymentCheckoutUrls(newPaymentId);
-      if (checkout.success) {
-        paymentUrl = checkout.bankSlipUrl ?? checkout.invoiceUrl ?? paymentUrl;
-        paymentDueDate = checkout.dueDate ?? paymentDueDate;
-      }
-    }
-
-    if (shouldCreateReplacementRequest && newPaymentId) {
-      const replacementNotes = createBillingNotesForNewUpgradeRequest({
-        logBody: [
-          'Nova cobrança gerada para regularização após rejeição.',
-          historyLine,
-        ].join('\n'),
-      });
-      const { data: replacementRow, error: replacementErr } = await admin
-        .from('tb_upgrade_requests')
-        .insert({
-          profile_id: userId,
-          plan_key_current: currentReq.plan_key_current,
-          plan_key_requested: currentReq.plan_key_requested,
-          billing_type: newMethod,
-          billing_period: currentReq.billing_period,
-          snapshot_name: currentReq.snapshot_name,
-          snapshot_cpf_cnpj: currentReq.snapshot_cpf_cnpj,
-          snapshot_email: currentReq.snapshot_email,
-          snapshot_whatsapp: currentReq.snapshot_whatsapp,
-          snapshot_address: currentReq.snapshot_address,
-          asaas_customer_id: asaasCustomerIdForWrite || null,
-          asaas_subscription_id: asaasSubscriptionId,
-          asaas_payment_id: newPaymentId,
-          payment_url: paymentUrl ?? null,
-          asaas_raw_status: 'PENDING',
-          amount_original: currentReq.amount_original,
-          amount_discount: currentReq.amount_discount,
-          amount_final: currentReq.amount_final,
-          installments: currentReq.installments,
-          status: 'pending',
-          notes: replacementNotes,
-        })
-        .select('id')
-        .single();
-      if (replacementErr || !replacementRow?.id) {
-        return {
-          success: false,
-          error:
-            'Pagamento atualizado no Asaas, mas não foi possível criar o novo registro de cobrança.',
-        };
-      }
-      responseRequestId = replacementRow.id as string;
-
-      await admin
-        .from('tb_upgrade_requests')
-        .update({
-          notes: appendBillingNotesBlock(
-            currentReq.notes as string | null | undefined,
-            `[PaymentRecycle ${nowIso}] Rejeitada substituída por nova cobrança (${replacementRow.id}).`,
-          ),
-          updated_at: nowIso,
-        })
-        .eq('id', currentReq.id)
-        .eq('profile_id', userId);
-    } else {
-      const { data: updatedRow, error: updErr } = await admin
-        .from('tb_upgrade_requests')
-        .update(updatePatch)
-        .eq('id', currentReq.id)
-        .eq('profile_id', userId)
-        .select('id')
-        .maybeSingle();
-      if (updErr) {
-        return {
-          success: false,
-          error:
-            'Pagamento atualizado no Asaas, mas falhou ao salvar no sistema.',
-        };
-      }
-      if (!updatedRow?.id) {
-        return {
-          success: false,
-          error:
-            'Pagamento atualizado no Asaas, mas o sistema não conseguiu registrar a mudança.',
-        };
-      }
-    }
-
-    // 3) Revalida para tabela "Comprovante/Abrir Pagamento" apontar para o novo boleto/PIX
     revalidatePath('/dashboard/assinatura');
     await revalidateUserCache(userId);
 
     return {
       success: true,
-      ...(responseRequestId ? { requestId: responseRequestId } : {}),
-      ...(newPaymentId ? { newPaymentId } : {}),
-      ...(paymentUrl ? { paymentUrl } : {}),
-      ...(paymentDueDate ? { paymentDueDate } : {}),
-      ...(typeof hasPendingPayment === 'boolean' ? { hasPendingPayment } : {}),
-      ...(paymentStatus ? { paymentStatus } : {}),
-      ...(pixData ? { pixData } : {}),
+      requestId: currentReq.id,
+      ...(newPaymentId && { newPaymentId }),
+      ...(paymentUrl && { paymentUrl }),
+      ...(paymentDueDate && { paymentDueDate }),
+      hasPendingPayment: !!newPaymentId,
+      paymentStatus: 'pending',
+      ...(pixData && { pixData }),
     };
   } catch (e) {
     console.error('[updateSubscriptionBillingMethod] Error:', e);
     return { success: false, error: 'Erro ao alterar forma de pagamento.' };
+  }
+}
+
+export async function deletePendingInvoiceBeforeBillingChange(
+  subscriptionId: string,
+  options?: { targetRequestId?: string | null },
+): Promise<{ success: boolean; deleted: boolean; error?: string }> {
+  try {
+    const { success, userId } = await getAuthenticatedUser();
+    if (!success || !userId) {
+      return { success: false, deleted: false, error: 'Não autenticado.' };
+    }
+
+    const supabase = await createSupabaseServerClient();
+    const admin = createSupabaseAdmin();
+    const targetRequestId = options?.targetRequestId?.trim() || null;
+    const subId = String(subscriptionId ?? '').trim();
+    if (!subId) {
+      return {
+        success: false,
+        deleted: false,
+        error: 'Assinatura inválida para remover cobrança pendente.',
+      };
+    }
+
+    const baseSelect = 'id, asaas_payment_id, asaas_subscription_id';
+    let currentReq: any = null;
+    if (targetRequestId) {
+      const byId = await supabase
+        .from('tb_upgrade_requests')
+        .select(baseSelect)
+        .eq('profile_id', userId)
+        .eq('id', targetRequestId)
+        .maybeSingle();
+      if (byId.error) {
+        return {
+          success: false,
+          deleted: false,
+          error: 'Não foi possível localizar a cobrança pendente.',
+        };
+      }
+      currentReq = byId.data;
+      if (
+        currentReq &&
+        String(currentReq.asaas_subscription_id ?? '').trim() !== subId
+      ) {
+        return {
+          success: false,
+          deleted: false,
+          error: 'Assinatura inválida.',
+        };
+      }
+    } else {
+      const latest = await supabase
+        .from('tb_upgrade_requests')
+        .select(baseSelect)
+        .eq('profile_id', userId)
+        .eq('asaas_subscription_id', subId)
+        .order('created_at', { ascending: false })
+        .limit(1)
+        .maybeSingle();
+      if (latest.error) {
+        return {
+          success: false,
+          deleted: false,
+          error: 'Não foi possível localizar a cobrança pendente.',
+        };
+      }
+      currentReq = latest.data;
+    }
+
+    let paymentId = String(currentReq?.asaas_payment_id ?? '').trim() || null;
+    if (!paymentId) {
+      const pending = await getLatestPendingPaymentFromSubscription(subId);
+      if (!pending.success) {
+        return {
+          success: false,
+          deleted: false,
+          error:
+            pending.error ??
+            'Não foi possível localizar cobrança pendente no gateway.',
+        };
+      }
+      paymentId = pending.paymentId ?? null;
+    }
+
+    if (!paymentId) {
+      return { success: true, deleted: false };
+    }
+
+    const deleted = await deleteAsaasPayment(paymentId);
+    if (!deleted.success) {
+      return {
+        success: false,
+        deleted: false,
+        error:
+          deleted.error ??
+          'Não foi possível remover a cobrança pendente antiga.',
+      };
+    }
+
+    if (currentReq?.id) {
+      await admin
+        .from('tb_upgrade_requests')
+        .update({
+          asaas_payment_id: null,
+          payment_url: null,
+          updated_at: utcIsoFrom(),
+        })
+        .eq('id', currentReq.id)
+        .eq('profile_id', userId);
+    }
+
+    return { success: true, deleted: true };
+  } catch (e) {
+    console.error('[deletePendingInvoiceBeforeBillingChange] Error:', e);
+    return {
+      success: false,
+      deleted: false,
+      error:
+        'Erro ao remover cobrança pendente antiga. Tente novamente em instantes.',
+    };
   }
 }
 
