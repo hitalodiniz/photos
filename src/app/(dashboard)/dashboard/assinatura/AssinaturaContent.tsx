@@ -326,13 +326,37 @@ function isTerminalHistoryStatus(status: string): boolean {
   return status === 'cancelled' || status === 'rejected';
 }
 
+/** Mesma frase gravada em `rollbackPendingUpgradeOnAsaas` / `cancelUpgradeRequest`. */
+function notesIndicatePendingUpgradeRollback(
+  notes: string | null | undefined,
+): boolean {
+  return /Rollback executado:\s*upgrade cancelado antes do pagamento/i.test(
+    notes ?? '',
+  );
+}
+
 /** Solicitações ainda não pagas nunca devem ser marcadas como plano vigente. */
 function isAwaitingPaymentHistoryStatus(item: UpgradeRequest): boolean {
   const domainStatus = String(item.status ?? '').toLowerCase();
   if (domainStatus === 'pending' || domainStatus === 'processing') return true;
 
   const rawStatus = String(item.asaas_raw_status ?? '').toUpperCase();
-  return rawStatus === 'PENDING';
+  if (rawStatus !== 'PENDING') return false;
+
+  const cur = String(item.plan_key_current ?? '').trim().toUpperCase();
+  const req = String(item.plan_key_requested ?? '').trim().toUpperCase();
+  const isPaidCycleRow =
+    domainStatus === 'approved' ||
+    domainStatus === 'renewed' ||
+    isRenewedStatus(item.status);
+
+  if (isPaidCycleRow && cur === req && cur !== '') {
+    return false;
+  }
+
+  if (/renova[cç][aã]o/i.test(item.notes ?? '')) return false;
+
+  return true;
 }
 
 /**
@@ -622,9 +646,30 @@ export default function AssinaturaContent({
     );
   });
 
+  const latestRollbackCancelledRequest = sortedHistory.find(
+    (r) =>
+      r.status === 'cancelled' &&
+      notesIndicatePendingUpgradeRollback(r.notes) &&
+      (!effectiveSubscriptionId ||
+        (r.asaas_subscription_id?.trim() ?? '') === effectiveSubscriptionId),
+  );
+  const pendingCancellationNewerThanRollback =
+    !!pendingCancellationRequest &&
+    !!latestRollbackCancelledRequest &&
+    new Date(pendingCancellationRequest.created_at).getTime() >
+      new Date(
+        latestRollbackCancelledRequest.updated_at ??
+          latestRollbackCancelledRequest.created_at,
+      ).getTime();
+
+  /** Rollback de upgrade não pago: assinatura já voltou ao plano anterior — sem “reativar”. */
+  const suppressReactivateForPendingUpgradeRollback =
+    !!latestRollbackCancelledRequest && !pendingCancellationNewerThanRollback;
+
   const canReactivateSubscription =
     !!reactivationSubscriptionId &&
     !hasNoPaymentCancellationForActiveSub &&
+    !suppressReactivateForPendingUpgradeRollback &&
     (hasPendingCancellation ||
       (hasFutureAccess && hasCancelledRecordForActiveSub));
 
@@ -633,6 +678,11 @@ export default function AssinaturaContent({
   const hasAnyAwaitingPaymentRecord = sortedHistory.some(
     isAwaitingPaymentHistoryStatus,
   );
+  /** Upgrade PIX/boleto em aberto — modal só de rollback, não cancelamento de ciclo. */
+  const isRollbackPendingUpgradeCancel =
+    !!latestPendingRequest &&
+    (latestPendingRequest.status === 'pending' ||
+      latestPendingRequest.status === 'processing');
 
   const cancellationEndsAt =
     localCancellationEndsAt ??
@@ -769,7 +819,9 @@ export default function AssinaturaContent({
       const json = await res.json();
       if (json.success) {
         setShowCancelModal(false);
-        if (json.type === 'refund_immediate') {
+        if (json.type === 'pending_upgrade_rolled_back') {
+          setLocalCancellationEndsAt(null);
+        } else if (json.type === 'refund_immediate') {
           setLocalCancellationEndsAt(null);
         } else if (json.access_ends_at) {
           setLocalCancellationEndsAt(
@@ -788,7 +840,12 @@ export default function AssinaturaContent({
         if (typeof window !== 'undefined') {
           window.setTimeout(() => window.location.reload(), 120);
         }
-        if (json.type === 'refund_immediate') {
+        if (json.type === 'pending_upgrade_rolled_back') {
+          showToast(
+            'Pagamento do upgrade cancelado. Seu plano anterior foi restaurado.',
+            'success',
+          );
+        } else if (json.type === 'refund_immediate') {
           showToast(
             'Assinatura cancelada. O estorno será processado em até 72h.',
             'success',
@@ -1599,8 +1656,18 @@ export default function AssinaturaContent({
         processedAt={cancelProcessedAt}
         createdAt={cancelCreatedAt}
         hasRefundRight={hasRefundRight}
+        variant={
+          isRollbackPendingUpgradeCancel
+            ? 'rollback_pending_upgrade'
+            : 'cancel_subscription'
+        }
         accessEndsAt={expiresAtFromData}
-        planName={planDisplayName(planKey)}
+        planName={
+          isRollbackPendingUpgradeCancel &&
+          latestPendingRequest?.plan_key_requested
+            ? planDisplayName(latestPendingRequest.plan_key_requested)
+            : planDisplayName(planKey)
+        }
         isLoading={cancelLoading}
         freeMaxGalleries={PERMISSIONS_BY_PLAN['FREE'].maxGalleriesHardCap ?? 3}
         freePhotoCredits={PERMISSIONS_BY_PLAN['FREE'].photoCredits ?? 500}

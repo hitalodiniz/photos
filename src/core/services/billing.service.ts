@@ -6,10 +6,30 @@ import { now as nowFn, utcIsoFrom } from '@/core/utils/data-helpers';
 import { getAuthenticatedUser } from '@/core/services/auth-context.service';
 import type {
   BillingProfile,
+  BillingPeriod,
+  BillingType,
   UpgradeRequest,
   UpgradeRequestStatus,
 } from '@/core/types/billing';
-import { billingNotesDisplayText } from '@/core/services/asaas/utils/billing-notes-doc';
+import {
+  appendBillingNotesBlock,
+  billingNotesDisplayText,
+} from '@/core/services/asaas/utils/billing-notes-doc';
+import {
+  clearAsaasSubscriptionScheduledEnd,
+  deleteAsaasPayment,
+  getAsaasSubscription,
+  updateAsaasSubscriptionPlanAndDueDate,
+} from '@/core/services/asaas';
+import {
+  PLANS_BY_SEGMENT,
+  getPeriodPrice,
+  getPixAdjustedTotal,
+  type PlanKey,
+  type SegmentType,
+} from '@/core/config/plans';
+import { logSystemEvent } from '@/core/utils/telemetry';
+import { revalidateUserCache } from '@/actions/revalidate.actions';
 
 /**
  * Carrega tb_billing_profiles do usuário atual.
@@ -113,12 +133,186 @@ export async function getLastChargeAmount(
   return withCharge?.amount_final;
 }
 
+function defaultSegment(): SegmentType {
+  const s = process.env.NEXT_PUBLIC_APP_SEGMENT as SegmentType | undefined;
+  return s && s in PLANS_BY_SEGMENT ? s : 'PHOTOGRAPHER';
+}
+
+function billingPeriodToAsaasCycle(
+  period: BillingPeriod,
+): 'MONTHLY' | 'SEMIANNUALLY' | 'YEARLY' {
+  if (period === 'annual') return 'YEARLY';
+  if (period === 'semiannual') return 'SEMIANNUALLY';
+  return 'MONTHLY';
+}
+
+/** Valor recorrente do plano anterior (equivale a restaurar cobrança antes do upgrade). */
+function recurringValueForPlanAndBilling(
+  planKey: PlanKey,
+  period: BillingPeriod,
+  billingType: BillingType,
+  segment: SegmentType,
+): number {
+  const planInfo = PLANS_BY_SEGMENT[segment]?.[planKey];
+  if (!planInfo) return 0;
+  if (billingType === 'PIX' && period !== 'monthly') {
+    return getPixAdjustedTotal(planInfo, period).totalWithPixDiscount;
+  }
+  return getPeriodPrice(planInfo, period).totalPrice;
+}
+
+/**
+ * Plano anterior ao upgrade: `plan_key_current` na linha pendente (equivalente a `old_plan_key` quando existir no banco).
+ * Remove cobrança pendente e restaura valor/plano/ciclo da assinatura no Asaas (PIX, boleto ou cartão).
+ */
+export async function rollbackPendingUpgradeOnAsaas(params: {
+  supabase: Awaited<ReturnType<typeof createSupabaseServerClient>>;
+  userId: string;
+  requestId: string;
+  row: Pick<
+    UpgradeRequest,
+    | 'notes'
+    | 'asaas_subscription_id'
+    | 'asaas_payment_id'
+    | 'plan_key_current'
+    | 'billing_period'
+    | 'billing_type'
+  >;
+}): Promise<{ success: boolean; error?: string; notes?: string | null }> {
+  const { supabase, userId, requestId, row } = params;
+  const subId = row.asaas_subscription_id?.trim();
+  if (!subId) {
+    return { success: true, notes: row.notes };
+  }
+
+  const segment = defaultSegment();
+  const oldPlanKey = String(row.plan_key_current ?? '').toUpperCase() as PlanKey;
+  if (!oldPlanKey || !PLANS_BY_SEGMENT[segment]?.[oldPlanKey]) {
+    return {
+      success: false,
+      error: 'Plano anterior inválido para rollback.',
+    };
+  }
+
+  const { data: prevPaid } = await supabase
+    .from('tb_upgrade_requests')
+    .select('billing_type, billing_period, amount_final')
+    .eq('profile_id', userId)
+    .eq('asaas_subscription_id', subId)
+    .in('status', ['approved', 'renewed'])
+    .neq('id', requestId)
+    .order('created_at', { ascending: false })
+    .limit(1)
+    .maybeSingle();
+
+  const { data: prevSamePlan } = await supabase
+    .from('tb_upgrade_requests')
+    .select('billing_type, billing_period, amount_final')
+    .eq('profile_id', userId)
+    .eq('plan_key_requested', oldPlanKey)
+    .in('status', ['approved', 'renewed'])
+    .order('created_at', { ascending: false })
+    .limit(1)
+    .maybeSingle();
+
+  const billingSource = prevPaid ?? prevSamePlan;
+  const previousBillingType = (billingSource?.billing_type ??
+    row.billing_type ??
+    'CREDIT_CARD') as BillingType;
+  const periodForRecurring = (billingSource?.billing_period ??
+    row.billing_period) as BillingPeriod;
+
+  const payId = row.asaas_payment_id?.trim();
+  if (payId) {
+    const del = await deleteAsaasPayment(payId);
+    if (!del.success) {
+      return {
+        success: false,
+        error:
+          del.error ??
+          'Não foi possível remover a cobrança pendente no gateway.',
+      };
+    }
+  }
+
+  const sub = await getAsaasSubscription(subId);
+  if (!sub.success) {
+    return {
+      success: false,
+      error: sub.error ?? 'Não foi possível ler a assinatura no Asaas.',
+    };
+  }
+  const nextDueRaw = String(sub.nextDueDate ?? '');
+  const nextDueDate = nextDueRaw.includes('T')
+    ? nextDueRaw.split('T')[0]
+    : nextDueRaw.slice(0, 10);
+  if (!/^\d{4}-\d{2}-\d{2}$/.test(nextDueDate)) {
+    return {
+      success: false,
+      error: 'Data de vencimento da assinatura inválida no Asaas.',
+    };
+  }
+
+  const planInfo = PLANS_BY_SEGMENT[segment][oldPlanKey];
+  const catalogRecurring = recurringValueForPlanAndBilling(
+    oldPlanKey,
+    periodForRecurring,
+    previousBillingType,
+    segment,
+  );
+  const lastPaidCycle =
+    typeof billingSource?.amount_final === 'number' &&
+    billingSource.amount_final > 0
+      ? billingSource.amount_final
+      : null;
+  const recurringValue = lastPaidCycle ?? catalogRecurring;
+  if (!(recurringValue > 0)) {
+    return {
+      success: false,
+      error: 'Não foi possível calcular o valor da assinatura para rollback.',
+    };
+  }
+
+  const put = await updateAsaasSubscriptionPlanAndDueDate(subId, {
+    value: recurringValue,
+    description: `Plano ${planInfo.name}`,
+    nextDueDate,
+    billingType: previousBillingType,
+    cycle: billingPeriodToAsaasCycle(periodForRecurring),
+    updatePendingPayments: true,
+  });
+  if (!put.success) {
+    return {
+      success: false,
+      error: put.error ?? 'Falha ao reverter assinatura no Asaas.',
+    };
+  }
+
+  const clearEnd = await clearAsaasSubscriptionScheduledEnd(subId, nextDueDate);
+  if (!clearEnd.success) {
+    return {
+      success: false,
+      error:
+        clearEnd.error ??
+        'Assinatura revertida parcialmente: não foi possível remover encerramento agendado no gateway.',
+    };
+  }
+
+  const auditLine =
+    'Rollback executado: upgrade cancelado antes do pagamento';
+  return {
+    success: true,
+    notes: appendBillingNotesBlock(row.notes, auditLine),
+  };
+}
+
 /**
  * Permite ao usuário cancelar uma solicitação 'pending'.
  */
 export async function cancelUpgradeRequest(
   requestId: string,
 ): Promise<{ success: boolean; error?: string }> {
+  const startedAt = Date.now();
   const { success, userId } = await getAuthenticatedUser();
   if (!success || !userId) {
     return { success: false, error: 'Não autenticado' };
@@ -126,31 +320,79 @@ export async function cancelUpgradeRequest(
 
   const supabase = await createSupabaseServerClient();
 
-  const { data: existing, error: fetchError } = await supabase
+  const { data: row, error: fetchError } = await supabase
     .from('tb_upgrade_requests')
-    .select('id, status, profile_id')
+    .select(
+      'id, status, profile_id, billing_type, plan_key_current, asaas_subscription_id, asaas_payment_id, billing_period, notes',
+    )
     .eq('id', requestId)
     .single();
 
-  if (fetchError || !existing) {
+  if (fetchError || !row) {
     return { success: false, error: 'Solicitação não encontrada' };
   }
 
-  if (existing.profile_id !== userId) {
+  if (row.profile_id !== userId) {
     return { success: false, error: 'Solicitação não pertence ao usuário' };
   }
 
-  if ((existing.status as UpgradeRequestStatus) !== 'pending') {
+  const st = row.status as UpgradeRequestStatus;
+  if (st !== 'pending' && st !== 'processing') {
     return {
       success: false,
       error: 'Apenas solicitações pendentes podem ser canceladas',
     };
   }
 
+  let mergedNotes: string | null | undefined = row.notes ?? null;
+
+  const subIdForRollback = String(row.asaas_subscription_id ?? '').trim();
+  if (subIdForRollback) {
+    const rollback = await rollbackPendingUpgradeOnAsaas({
+      supabase,
+      userId,
+      requestId,
+      row: {
+        notes: row.notes,
+        asaas_subscription_id: row.asaas_subscription_id,
+        asaas_payment_id: row.asaas_payment_id,
+        plan_key_current: row.plan_key_current,
+        billing_period: row.billing_period as BillingPeriod,
+        billing_type: row.billing_type,
+      },
+    });
+    if (!rollback.success) {
+      return {
+        success: false,
+        error: rollback.error ?? 'Falha ao reverter assinatura no gateway.',
+      };
+    }
+    mergedNotes = rollback.notes ?? row.notes;
+  }
+
+  const restorePlanKey = String(row.plan_key_current ?? '').trim();
+  if (restorePlanKey) {
+    const { error: profileErr } = await supabase
+      .from('tb_profiles')
+      .update({
+        plan_key: restorePlanKey,
+        updated_at: utcIsoFrom(nowFn()),
+      })
+      .eq('id', userId);
+    if (profileErr) {
+      console.error('[billing] cancelUpgradeRequest profile restore:', profileErr);
+      return {
+        success: false,
+        error: 'Não foi possível restaurar o plano no perfil após o rollback.',
+      };
+    }
+  }
+
   const { error: updateError } = await supabase
     .from('tb_upgrade_requests')
     .update({
       status: 'cancelled',
+      ...(mergedNotes !== undefined ? { notes: mergedNotes } : {}),
       updated_at: utcIsoFrom(nowFn()),
     })
     .eq('id', requestId)
@@ -160,6 +402,22 @@ export async function cancelUpgradeRequest(
     console.error('[billing] cancelUpgradeRequest:', updateError);
     return { success: false, error: 'Erro ao cancelar solicitação' };
   }
+
+  await logSystemEvent({
+    serviceName: 'billing/cancel-upgrade-request',
+    status: 'success',
+    executionTimeMs: Date.now() - startedAt,
+    payload: {
+      profileId: userId,
+      upgradeRequestId: requestId,
+      restoredPlanKey: restorePlanKey || null,
+      gatewayRollback: Boolean(subIdForRollback),
+    },
+  });
+
+  revalidateUserCache(userId).catch((e) =>
+    console.warn('[billing] cancelUpgradeRequest revalidateUserCache:', e),
+  );
 
   return { success: true };
 }

@@ -227,7 +227,11 @@ export interface UpgradePreviewResult {
 // ─── Retorno de handleSubscriptionCancellation ───────────────────────────────
 export interface CancellationResult {
   success: boolean;
-  type?: 'refund_immediate' | 'scheduled_cancellation';
+  type?:
+    | 'refund_immediate'
+    | 'scheduled_cancellation'
+    /** Upgrade PIX/boleto/cartão não pago — rollback no gateway e request cancelled */
+    | 'pending_upgrade_rolled_back';
   access_ends_at?: string;
   needs_adjustment?: boolean;
   excess_galleries?: Array<{ id: string; title: string }>;

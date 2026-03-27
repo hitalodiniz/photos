@@ -14,6 +14,7 @@ import { getAsaasSubscription } from '@/core/services/asaas/api/subscriptions';
 import type { PlanKey } from '@/core/config/plans';
 import { enforcePhotoQuotaByArchivingOldest } from '@/core/services/asaas/gallery/quota-enforcement';
 import { appendBillingNotesBlock } from '@/core/services/asaas/utils/billing-notes-doc';
+import { logSystemEvent } from '@/core/utils/telemetry';
 
 const OVERDUE_GRACE_DAYS = 5;
 
@@ -60,11 +61,13 @@ function extractLatestCancelWindowFromNotes(
 }
 
 export async function GET(req: NextRequest) {
+  const startTime = Date.now();
   const auth = req.headers.get('authorization');
   if (auth !== `Bearer ${process.env.CRON_SECRET}`) {
     return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
   }
 
+  try {
   const supabase = createSupabaseAdmin();
   const now = nowFn();
   const results = {
@@ -97,6 +100,17 @@ export async function GET(req: NextRequest) {
       scheduledPendingDowngradeErr?.message ??
       scheduledPendingCancellationErr?.message ??
       'Erro ao buscar downgrades agendados';
+    await logSystemEvent({
+      serviceName: 'cron/apply-downgrades',
+      status: 'error',
+      executionTimeMs: Date.now() - startTime,
+      errorMessage: msg,
+      payload: {
+        scheduledPendingDowngradeErr: scheduledPendingDowngradeErr?.message,
+        scheduledPendingCancellationErr:
+          scheduledPendingCancellationErr?.message,
+      },
+    });
     return NextResponse.json({ error: msg }, { status: 500 });
   }
 
@@ -476,9 +490,38 @@ export async function GET(req: NextRequest) {
 
   console.log('[apply-downgrades]', results);
 
+  await logSystemEvent({
+    serviceName: 'cron/apply-downgrades',
+    status: results.errors.length > 0 ? 'partial' : 'success',
+    executionTimeMs: Date.now() - startTime,
+    payload: {
+      processed: results.processed,
+      skipped: results.skipped,
+      quota_adjusted: results.quota_adjusted,
+      errorCount: results.errors.length,
+      errors: results.errors,
+    },
+    errorMessage:
+      results.errors.length > 0 ? results.errors.join(' | ') : undefined,
+  });
+
   return NextResponse.json({
     ok: true,
     timestamp: utcIsoFrom(now),
     ...results,
   });
+  } catch (error) {
+    const err = error instanceof Error ? error : new Error(String(error));
+    await logSystemEvent({
+      serviceName: 'cron/apply-downgrades',
+      status: 'error',
+      executionTimeMs: Date.now() - startTime,
+      errorMessage: err.message,
+      payload: { stack: err.stack },
+    });
+    return NextResponse.json(
+      { ok: false, error: 'Internal Server Error' },
+      { status: 500 },
+    );
+  }
 }

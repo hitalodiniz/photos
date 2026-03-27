@@ -49,6 +49,11 @@ export interface CancelSubscriptionModalProps {
    * Quando false: modal mostra fluxo "cancelar e manter até o fim do ciclo".
    */
   hasRefundRight?: boolean;
+  /**
+   * Solicitação de upgrade com PIX/boleto ainda não pago — apenas rollback,
+   * sem fluxo de cancelamento agendado no fim do ciclo.
+   */
+  variant?: 'cancel_subscription' | 'rollback_pending_upgrade';
 }
 
 // ─── Motivos ─────────────────────────────────────────────────────────────────
@@ -106,6 +111,7 @@ export function CancelSubscriptionModal({
   freePhotoCredits = 500,
   premiumFeatureLabels = [],
   hasRefundRight = false,
+  variant = 'cancel_subscription',
 }: CancelSubscriptionModalProps) {
   const [step, setStep] = useState<1 | 2 | 3>(1);
   const [reason, setReason] = useState<CancelReason | null>(null);
@@ -138,6 +144,85 @@ export function CancelSubscriptionModal({
       : 'Perfil Profissional, Estatísticas avançadas e mais';
 
   const selectedReason = CANCEL_REASONS.find((r) => r.value === reason);
+
+  // ── Rollback: desistência do upgrade (não é cancelamento de ciclo pago) ───
+
+  if (variant === 'rollback_pending_upgrade') {
+    const rollbackFooter = (
+      <div className="flex gap-2 py-3">
+        <button
+          type="button"
+          onClick={handleClose}
+          disabled={isLoading}
+          className="btn-secondary-white min-w-0 flex-[1] basis-0"
+        >
+          Fechar
+        </button>
+        <button
+          type="button"
+          onClick={() =>
+            onConfirm(
+              'other',
+              comment.trim() ||
+                'Desistência do upgrade com pagamento ainda não concluído.',
+            )
+          }
+          disabled={isLoading}
+          className="flex min-w-0 flex-[3] basis-0 items-center justify-center gap-2 py-2.5 rounded-md bg-amber-600 hover:bg-amber-700 text-white font-semibold text-[10px] uppercase tracking-widest disabled:opacity-50 shadow-lg shadow-amber-900/20"
+        >
+          {isLoading ? (
+            <>
+              <RefreshCw size={16} className="animate-spin" /> Processando…
+            </>
+          ) : (
+            <>
+              <Clock size={16} /> Desistir do upgrade
+            </>
+          )}
+        </button>
+      </div>
+    );
+
+    return (
+      <BaseModal
+        isOpen={isOpen}
+        onClose={handleClose}
+        title="Cancelar pagamento do upgrade"
+        subtitle="Sua assinatura atual não será encerrada"
+        maxWidth="lg"
+        showCloseButton={!isLoading}
+        footer={rollbackFooter}
+      >
+        <div className={`${BODY_HEIGHT} flex flex-col gap-4`}>
+          <p className="text-[12px] text-petroleum/90 leading-relaxed">
+            Você solicitou upgrade para <strong>{planName}</strong>, mas o
+            pagamento ainda não foi concluído. Ao confirmar, a cobrança deste
+            upgrade será <strong>cancelada no gateway</strong>, a assinatura
+            volta ao <strong>plano e valor anteriores</strong> e{' '}
+            <strong>não haverá</strong> cancelamento ou downgrade agendado para
+            o próximo vencimento.
+          </p>
+          <div className="rounded-lg border border-amber-200/80 bg-amber-50/90 px-3 py-2.5 text-[11px] text-amber-950 leading-snug">
+            Isto não é o mesmo que &quot;cancelar assinatura&quot; no fim do
+            ciclo: você apenas desiste da mudança de plano pendente.
+          </div>
+          <div className="flex flex-col gap-1.5">
+            <label className="text-[9px] font-semibold uppercase tracking-wider text-slate-800">
+              Comentário{' '}
+              <span className="font-normal normal-case">(opcional)</span>
+            </label>
+            <textarea
+              value={comment}
+              onChange={(e) => setComment(e.target.value)}
+              placeholder="Se quiser, conte por que desistiu do upgrade…"
+              maxLength={400}
+              className="w-full min-h-[88px] px-3 py-2.5 bg-slate-50 border border-slate-200 rounded-xl text-[11px] text-petroleum outline-none resize-none focus:border-slate-300"
+            />
+          </div>
+        </div>
+      </BaseModal>
+    );
+  }
 
   // ── Footer ────────────────────────────────────────────────────────────────
 

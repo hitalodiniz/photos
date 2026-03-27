@@ -90,6 +90,7 @@ import {
 } from './asaas/api/payments';
 import { getPixQrCodeFromPayment } from './asaas/api/pix';
 import { reactivateAutoArchivedGalleries as reactivateAutoArchivedGalleriesImpl } from './asaas/gallery/adjustments';
+import { cancelUpgradeRequest } from '@/core/services/billing.service';
 
 /** Renovação de ciclo (mesmo plano no Asaas) — valor do enum em `tb_upgrade_requests.status`. */
 export async function isRenewalUpgradeRequestStatus(
@@ -331,7 +332,8 @@ export async function reactivateAutoArchivedGalleries(
 }
 
 /**
- * Busca a solicitação aprovada que representa o plano ativo do usuário.
+ * Busca a solicitação que representa o plano ativo do usuário (`approved` ou `renewed`).
+ * Renovações de ciclo gravam linha `renewed`; sem ela o pro-rata usaria o ciclo antigo.
  */
 export async function getCurrentActiveRequest(
   userId: string,
@@ -347,7 +349,7 @@ export async function getCurrentActiveRequest(
       'id, amount_final, amount_discount, billing_type, processed_at, created_at, billing_period, plan_key_requested, asaas_subscription_id, notes',
     )
     .eq('profile_id', userId)
-    .eq('status', 'approved')
+    .in('status', ['approved', UPGRADE_REQUEST_STATUS_RENEWED])
     .eq('plan_key_requested', currentPlanKey)
     .order('processed_at', { ascending: false })
     .limit(10);
@@ -370,7 +372,7 @@ export async function getCurrentActiveRequest(
 }
 
 /**
- * Último request aprovado com pagamento efetivo (amount_final > 0).
+ * Último request pago (approved ou renewed) com amount_final > 0 — base para pro-rata quando o ciclo atual tem valor zero no registro.
  */
 export async function getLastPaidUpgradeRequest(
   userId: string,
@@ -384,7 +386,7 @@ export async function getLastPaidUpgradeRequest(
     .from('tb_upgrade_requests')
     .select('amount_final, asaas_subscription_id')
     .eq('profile_id', userId)
-    .eq('status', 'approved')
+    .in('status', ['approved', UPGRADE_REQUEST_STATUS_RENEWED])
     .gt('amount_final', 0)
     .order('processed_at', { ascending: false })
     .limit(1)
@@ -1941,6 +1943,24 @@ export async function handleSubscriptionCancellation(
 
   if (!request)
     return { success: false, error: 'Nenhuma assinatura ativa encontrada.' };
+
+  /** Upgrade com pagamento em aberto: rollback no Asaas — não agendale encerramento no ciclo. */
+  if (request.status === 'pending' || request.status === 'processing') {
+    const rolled = await cancelUpgradeRequest(request.id as string);
+    if (!rolled.success) {
+      return {
+        success: false,
+        error:
+          rolled.error ??
+          'Não foi possível cancelar a solicitação de upgrade pendente.',
+      };
+    }
+    revalidatePath('/dashboard/assinatura');
+    await revalidateUserCache(userId).catch((err) =>
+      console.warn('[Cancellation] revalidateUserCache:', err),
+    );
+    return { success: true, type: 'pending_upgrade_rolled_back' };
+  }
 
   const purchaseDate = request.processed_at
     ? new Date(request.processed_at as string)

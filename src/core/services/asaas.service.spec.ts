@@ -14,9 +14,13 @@ import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
 import { now as nowFn, utcIsoFrom } from '@/core/utils/data-helpers';
 import { createSupabaseServerClient } from '@/lib/supabase.server';
 import { getAuthenticatedUser } from '@/core/services/auth-context.service';
+import { cancelUpgradeRequest } from '@/core/services/billing.service';
 
 vi.mock('@/core/services/auth-context.service', () => ({
   getAuthenticatedUser: vi.fn(),
+}));
+vi.mock('@/core/services/billing.service', () => ({
+  cancelUpgradeRequest: vi.fn().mockResolvedValue({ success: true }),
 }));
 vi.mock('./asaas/api/subscriptions', async () => {
   const actual = await vi.importActual('./asaas/api/subscriptions');
@@ -617,6 +621,7 @@ describe('handleSubscriptionCancellation', () => {
   beforeEach(() => {
     vi.clearAllMocks();
     vi.mocked(getAuthenticatedUser).mockResolvedValue(AUTH_RESULT as never);
+    vi.mocked(cancelUpgradeRequest).mockResolvedValue({ success: true });
   });
 
   const setMockSupabase = (fromFn: ReturnType<typeof vi.fn>) => {
@@ -644,6 +649,32 @@ describe('handleSubscriptionCancellation', () => {
 
     expect(result.success).toBe(false);
     expect(result.error).toMatch(/assinatura/i);
+  });
+
+  it('✅ request pending: rollback via cancelUpgradeRequest — não agenda pending_downgrade', async () => {
+    const pendingRequest = {
+      id: 'req-pending-upgrade',
+      status: 'pending',
+      asaas_payment_id: 'pay-up',
+      asaas_subscription_id: 'sub-up',
+      created_at: daysAgo(1),
+      processed_at: null,
+      billing_period: 'monthly',
+      plan_key_requested: 'PREMIUM',
+    };
+
+    const fromFn = vi.fn().mockReturnValue(makeSelectSingle(pendingRequest));
+
+    setMockSupabase(fromFn);
+
+    const result = await handleSubscriptionCancellation();
+
+    expect(result.success).toBe(true);
+    expect(result.type).toBe('pending_upgrade_rolled_back');
+    expect(vi.mocked(cancelUpgradeRequest)).toHaveBeenCalledWith(
+      'req-pending-upgrade',
+    );
+    expect(fromFn).toHaveBeenCalledTimes(1);
   });
 
   it('✅ arrependimento ≤7d: cancela assinatura no Asaas e rebaixa imediatamente (sem estorno via API)', async () => {

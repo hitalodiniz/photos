@@ -215,12 +215,16 @@ export async function getAsaasSubscription(subscriptionId: string): Promise<{
   nextDueDate?: string;
   status?: string;
   endDate?: string | null;
+  billingType?: string;
+  value?: number;
   error?: string;
 }> {
   const { ok, data } = await asaasRequest<{
     nextDueDate?: string;
     status?: string;
     endDate?: string | null;
+    billingType?: string;
+    value?: number;
     errors?: unknown[];
   }>(`/subscriptions/${subscriptionId}`);
   if (!ok)
@@ -236,6 +240,8 @@ export async function getAsaasSubscription(subscriptionId: string): Promise<{
     nextDueDate: data.nextDueDate,
     status: data.status,
     endDate: data.endDate ?? null,
+    billingType: data.billingType,
+    value: typeof data.value === 'number' ? data.value : undefined,
   };
 }
 
@@ -513,6 +519,37 @@ export async function updateSubscriptionBillingMethod(
  * Envia endDate: null via PUT — o Asaas aceita null para limpar o campo.
  * Mantém nextDueDate inalterado para não perturbar o ciclo de cobrança.
  */
+/**
+ * Remove agendamento de fim de assinatura e força ACTIVE (ex.: após rollback de upgrade não pago).
+ */
+export async function clearAsaasSubscriptionScheduledEnd(
+  subscriptionId: string,
+  nextDueDateYYYYMMDD: string,
+): Promise<{ success: boolean; error?: string }> {
+  if (!/^\d{4}-\d{2}-\d{2}$/.test(nextDueDateYYYYMMDD))
+    return { success: false, error: 'nextDueDate deve ser YYYY-MM-DD' };
+  const { ok, data } = await asaasRequest<{ errors?: unknown[] }>(
+    `/subscriptions/${subscriptionId}`,
+    {
+      method: 'PUT',
+      body: JSON.stringify({
+        status: 'ACTIVE',
+        endDate: null,
+        nextDueDate: nextDueDateYYYYMMDD,
+      }),
+    },
+  );
+  return ok
+    ? { success: true }
+    : {
+        success: false,
+        error: asaasError(
+          data as Record<string, unknown>,
+          'Erro ao remover encerramento agendado da assinatura',
+        ),
+      };
+}
+
 export async function removeAsaasSubscriptionEndDate(
   subscriptionId: string,
 ): Promise<{ success: boolean; error?: string }> {

@@ -1,6 +1,7 @@
 import { performDowngradeToFree } from '@/core/services/asaas.service';
 import { createClient } from '@supabase/supabase-js';
 import { now as nowFn, utcIsoFrom } from '@/core/utils/data-helpers';
+import { logSystemEvent } from '@/core/utils/telemetry';
 import { NextResponse } from 'next/server';
 import { enforcePhotoQuotaByArchivingOldest } from '@/core/services/asaas/gallery/quota-enforcement';
 
@@ -8,6 +9,7 @@ import { enforcePhotoQuotaByArchivingOldest } from '@/core/services/asaas/galler
 export const dynamic = 'force-dynamic';
 
 export async function GET(request: Request) {
+  const startTime = Date.now();
   try {
     // 1. Validação de Segurança (Vercel Cron ou Manual com Secret)
     const authHeader = request.headers.get('authorization');
@@ -44,6 +46,15 @@ export async function GET(request: Request) {
     }
 
     if (!expiredProfiles || expiredProfiles.length === 0) {
+      await logSystemEvent({
+        serviceName: 'cron/expire-trials',
+        status: 'success',
+        executionTimeMs: Date.now() - startTime,
+        payload: {
+          processedCount: 0,
+          message: 'Nenhum trial expirado encontrado para processamento.',
+        },
+      });
       return NextResponse.json({
         success: true,
         message: 'Nenhum trial expirado encontrado para processamento.',
@@ -115,19 +126,44 @@ export async function GET(request: Request) {
       });
     }
 
-    // 5. Retorno de sucesso
+    const successCount = results.filter((r) => r.success).length;
+    const failCount = results.length - successCount;
+    await logSystemEvent({
+      serviceName: 'cron/expire-trials',
+      status: failCount === 0 ? 'success' : successCount > 0 ? 'partial' : 'error',
+      executionTimeMs: Date.now() - startTime,
+      payload: {
+        processedCount: expiredProfiles.length,
+        successCount,
+        failCount,
+        details: results,
+      },
+      errorMessage:
+        failCount > 0
+          ? `${failCount} falha(s) em ${expiredProfiles.length} processamento(s)`
+          : undefined,
+    });
+
     return NextResponse.json({
       success: true,
       processedCount: expiredProfiles.length,
       details: results,
       timestamp: utcIsoFrom(nowFn()),
     });
-  } catch (error: any) {
+  } catch (error: unknown) {
+    const err = error instanceof Error ? error : new Error(String(error));
     console.error('[Cron] Erro crítico na rota de expiração:', error);
+    await logSystemEvent({
+      serviceName: 'cron/expire-trials',
+      status: 'error',
+      executionTimeMs: Date.now() - startTime,
+      errorMessage: err.message,
+      payload: { stack: err.stack },
+    });
     return NextResponse.json(
       {
         success: false,
-        error: error.message || 'Internal Server Error',
+        error: err.message || 'Internal Server Error',
       },
       { status: 500 },
     );

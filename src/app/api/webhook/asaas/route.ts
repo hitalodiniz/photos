@@ -20,6 +20,16 @@ import {
   createBillingNotesForNewUpgradeRequest,
 } from '@/core/services/asaas/utils/billing-notes-doc';
 
+/**
+ * Linhas que representam ciclo pago/vigente no Asaas.
+ * Não usar `cancelled` / `pending` / `rejected` como âncora — o último `created_at`
+ * sem filtro pode ser um upgrade cancelado (ex.: Premium) em vez do Pro vigente.
+ */
+const SUBSCRIPTION_ANCHOR_STATUSES = [
+  'approved',
+  UPGRADE_REQUEST_STATUS_RENEWED,
+] as const;
+
 export async function POST(request: NextRequest) {
   try {
     // 1. Verificar token de segurança do webhook
@@ -159,6 +169,7 @@ export async function POST(request: NextRequest) {
           .from('tb_upgrade_requests')
           .select('profile_id')
           .eq('asaas_subscription_id', p_subscriptionId)
+          .in('status', [...SUBSCRIPTION_ANCHOR_STATUSES])
           .order('created_at', { ascending: false })
           .limit(1)
           .maybeSingle();
@@ -263,6 +274,7 @@ export async function POST(request: NextRequest) {
                   'profile_id, plan_key_current, plan_key_requested, billing_type, billing_period, snapshot_name, snapshot_cpf_cnpj, snapshot_email, snapshot_whatsapp, snapshot_address, asaas_customer_id, notes',
                 )
                 .eq('asaas_subscription_id', subscriptionIdFromPayment)
+                .in('status', [...SUBSCRIPTION_ANCHOR_STATUSES])
                 .order('created_at', { ascending: false })
                 .limit(1)
                 .maybeSingle();
@@ -869,6 +881,7 @@ export async function POST(request: NextRequest) {
         `,
                   )
                   .eq('asaas_subscription_id', subscriptionFromPayload)
+                  .in('status', [...SUBSCRIPTION_ANCHOR_STATUSES])
                   .order('created_at', { ascending: false })
                   .limit(1)
                   .maybeSingle();
@@ -893,6 +906,7 @@ export async function POST(request: NextRequest) {
                     )
                     .eq('asaas_customer_id', customerId)
                     .not('asaas_subscription_id', 'is', null)
+                    .in('status', [...SUBSCRIPTION_ANCHOR_STATUSES])
                     .order('created_at', { ascending: false })
                     .limit(1)
                     .maybeSingle();

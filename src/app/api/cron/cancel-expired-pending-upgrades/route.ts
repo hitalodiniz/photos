@@ -2,12 +2,11 @@
 import { createClient } from '@supabase/supabase-js';
 import { now as nowFn, utcIsoFrom } from '@/core/utils/data-helpers';
 import { NextResponse } from 'next/server';
-import {
-  cancelAsaasSubscriptionById,
-  deleteAsaasPayment,
-} from '@/core/services/asaas';
+import { cancelAsaasSubscriptionById, deleteAsaasPayment } from '@/core/services/asaas';
 import { appendBillingNotesBlock } from '@/core/services/asaas/utils/billing-notes-doc';
-import { logSystemEvent } from '@/core/services/src/core/utils/telemetry';
+import { logSystemEvent } from '@/core/utils/telemetry';
+import { rollbackPendingUpgradeOnAsaas } from '@/core/services/billing.service';
+import type { BillingPeriod, BillingType } from '@/core/types/billing';
 
 // Prazos diferenciados (em milissegundos)
 const AGE_LIMITS = {
@@ -18,6 +17,7 @@ const AGE_LIMITS = {
 const CRITICAL_OVERDUE_DAYS = 30;
 
 export async function GET(request: Request) {
+  const startTime = Date.now();
   const authHeader = request.headers.get('authorization');
   if (authHeader !== `Bearer ${process.env.CRON_SECRET}`) {
     return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
@@ -37,7 +37,7 @@ export async function GET(request: Request) {
       supabase
         .from('tb_upgrade_requests')
         .select(
-          'id, profile_id, created_at, asaas_payment_id, notes, billing_type, plan_key_current',
+          'id, profile_id, created_at, asaas_payment_id, asaas_subscription_id, notes, billing_type, billing_period, plan_key_current',
         )
         .eq('status', 'pending'),
       supabase
@@ -59,6 +59,16 @@ export async function GET(request: Request) {
         '[cancel-expired-pending-upgrades] Select error:',
         queryError,
       );
+      await logSystemEvent({
+        serviceName: 'cron/cancel-expired-pending-upgrades',
+        status: 'error',
+        executionTimeMs: Date.now() - startTime,
+        errorMessage: queryError,
+        payload: {
+          pendingQueryError: pendingQuery.error?.message,
+          criticalOverdueQueryError: criticalOverdueQuery.error?.message,
+        },
+      });
       return NextResponse.json({ error: queryError }, { status: 500 });
     }
     const rows = pendingQuery.data ?? [];
@@ -81,6 +91,7 @@ export async function GET(request: Request) {
     for (const row of rowsToCancel) {
       const requestId = String(row.id);
       const paymentId = String(row.asaas_payment_id ?? '').trim();
+      const subscriptionId = String(row.asaas_subscription_id ?? '').trim();
       const billingType =
         (row.billing_type as keyof typeof AGE_LIMITS) || 'PIX';
       const limitMs = AGE_LIMITS[billingType] || AGE_LIMITS.PIX;
@@ -90,7 +101,27 @@ export async function GET(request: Request) {
           row.notes ?? '',
         );
 
-      if (paymentId) {
+      if (subscriptionId) {
+        const gatewayRollback = await rollbackPendingUpgradeOnAsaas({
+          supabase,
+          userId: row.profile_id,
+          requestId,
+          row: {
+            notes: row.notes,
+            asaas_subscription_id: row.asaas_subscription_id,
+            asaas_payment_id: row.asaas_payment_id,
+            plan_key_current: row.plan_key_current,
+            billing_period: row.billing_period as BillingPeriod,
+            billing_type: row.billing_type as BillingType,
+          },
+        });
+        if (!gatewayRollback.success) {
+          errors.push(
+            `[${requestId}] Rollback gateway (expirado): ${gatewayRollback.error ?? 'erro desconhecido'}`,
+          );
+          continue;
+        }
+      } else if (paymentId) {
         const cancelAsaas = await deleteAsaasPayment(paymentId);
         if (!cancelAsaas.success) {
           errors.push(
@@ -237,10 +268,19 @@ export async function GET(request: Request) {
     );
 
     await logSystemEvent({
-      serviceName: 'cancel-expired-pending-upgrades',
+      serviceName: 'cron/cancel-expired-pending-upgrades',
       status: errors.length > 0 ? 'partial' : 'success',
-      executionTimeMs: Date.now() - now.getTime(),
-      payload: { cancelledIds, skipped, errorCount: errors.length },
+      executionTimeMs: Date.now() - startTime,
+      payload: {
+        cancelledIds,
+        overdueExpiredIds,
+        skipped,
+        scannedPending: rows.length,
+        scannedCriticalOverdue: criticalOverdueRows.length,
+        rowsToCancel: rowsToCancel.length,
+        errorCount: errors.length,
+        errors,
+      },
       errorMessage: errors.length > 0 ? errors.join(' | ') : undefined,
     });
 
@@ -255,15 +295,16 @@ export async function GET(request: Request) {
       timestamp: utcIsoFrom(now),
     });
   } catch (error) {
+    const err = error instanceof Error ? error : new Error(String(error));
     console.error('[cancel-expired-pending-upgrades] Unexpected error:', error);
     await logSystemEvent({
-      serviceName: 'cancel-expired-pending-upgrades',
+      serviceName: 'cron/cancel-expired-pending-upgrades',
       status: 'error',
-      executionTimeMs: Date.now() - now.getTime(),
+      executionTimeMs: Date.now() - startTime,
       payload: {
-        error: error instanceof Error ? error.message : String(error),
+        stack: err.stack,
       },
-      errorMessage: error instanceof Error ? error.message : String(error),
+      errorMessage: err.message,
     });
     return NextResponse.json({ error: 'Internal error' }, { status: 500 });
   }
