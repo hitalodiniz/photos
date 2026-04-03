@@ -37,6 +37,10 @@ export interface Profile {
   specialty?: string;
   custom_specialties?: string[];
   theme_key?: string; // PHOTOGRAPHER | DARK_CINEMA | EDITORIAL_WHITE | NATURE | NOCTURNAL_LUXURY | OFF_WHITE | PLATINUM | WARM_BLUSH
+  /** Plano pago anterior (ex.: antes de downgrade por inadimplência), para reativação. */
+  last_paid_plan?: PlanKey | string | null;
+  /** Último tema Elite antes de downgrade; usado na reativação PRO/PREMIUM. */
+  last_paid_theme_key?: string | null;
   /** Campo JSONB para metadados diversos (ex.: last_downgrade_alert_viewed). */
   metadata?: Record<string, unknown> | null;
 }

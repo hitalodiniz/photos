@@ -11,6 +11,10 @@ import type {
   AsaasWebhookEvent,
 } from '@/core/types/billing';
 import { performDowngradeToFree } from '@/core/services/asaas.service';
+import {
+  planSupportsEliteThemes,
+  restoreGalleryThemesFromLastPaid,
+} from '@/core/services/theme-rollback.service';
 import { reactivateAutoArchivedGalleries } from '@/core/services/asaas';
 import type { PlanKey } from '@/core/config/plans';
 import { UPGRADE_REQUEST_STATUS_RENEWED } from '@/core/types/billing';
@@ -112,6 +116,10 @@ export async function POST(request: NextRequest) {
       if (paidValue === undefined || paidValue === null) {
         return { valid: true }; // no value to compare
       }
+      const paidNum = Number(paidValue);
+      if (!Number.isFinite(paidNum)) {
+        return { valid: true };
+      }
       const { data: req } = await supabase
         .from('tb_upgrade_requests')
         .select('amount_final, amount_original, id')
@@ -126,9 +134,9 @@ export async function POST(request: NextRequest) {
       const tolerance = 0.01;
       const amountFinal = Number(req.amount_final ?? 0);
       const amountOriginal = Number(req.amount_original ?? 0);
-      const matchesAmountFinal = Math.abs(amountFinal - paidValue) <= tolerance;
+      const matchesAmountFinal = Math.abs(amountFinal - paidNum) <= tolerance;
       const matchesAmountOriginal =
-        Math.abs(amountOriginal - paidValue) <= tolerance;
+        Math.abs(amountOriginal - paidNum) <= tolerance;
 
       if (!matchesAmountFinal && !matchesAmountOriginal) {
         console.info(
@@ -137,15 +145,15 @@ export async function POST(request: NextRequest) {
             request_id: req.id,
             amount_final_registrado: amountFinal,
             amount_original_registrado: amountOriginal,
-            valor_pago: paidValue,
-            diff_amount_final: Math.abs(amountFinal - paidValue),
-            diff_amount_original: Math.abs(amountOriginal - paidValue),
+            valor_pago: paidNum,
+            diff_amount_final: Math.abs(amountFinal - paidNum),
+            diff_amount_original: Math.abs(amountOriginal - paidNum),
             tolerance,
           },
         );
         return {
           valid: false,
-          reason: `Valor pago (R$ ${paidValue}) diverge do registrado (amount_final R$ ${amountFinal} / amount_original R$ ${amountOriginal}) para request ${req.id}`,
+          reason: `Valor pago (R$ ${paidNum}) diverge do registrado (amount_final R$ ${amountFinal} / amount_original R$ ${amountOriginal}) para request ${req.id}`,
         };
       }
       return { valid: true };
@@ -388,7 +396,14 @@ export async function POST(request: NextRequest) {
               payment?.subscription ?? body.subscription?.id ?? null;
             const paidStatus = payment?.status ?? 'CONFIRMED';
             if (!isRenewalInsert) {
-              await handlePaymentRpc(paidStatus, subscriptionId);
+              try {
+                await handlePaymentRpc(paidStatus, subscriptionId);
+              } catch (rpcErr) {
+                console.error(
+                  '[Webhook Asaas] activate_plan_from_payment (continua para fallback):',
+                  rpcErr,
+                );
+              }
             }
 
             // Fallback de segurança: se a RPC não refletir status no request, atualiza diretamente.
@@ -503,6 +518,29 @@ export async function POST(request: NextRequest) {
               .eq('asaas_payment_id', paymentId)
               .in('status', ['pending', 'processing', 'pending_change']);
 
+            // Garante tb_profiles alinhado ao request deste pagamento após RPC + fallback
+            // (evita estado em que o request aprovou mas o perfil ficou no plano anterior).
+            if (paymentId && !isRenewalInsert) {
+              const { data: syncReq } = await supabase
+                .from('tb_upgrade_requests')
+                .select('profile_id, plan_key_requested, status')
+                .eq('asaas_payment_id', paymentId)
+                .maybeSingle();
+              if (
+                syncReq?.profile_id &&
+                syncReq.plan_key_requested &&
+                (syncReq.status === 'approved' ||
+                  syncReq.status === UPGRADE_REQUEST_STATUS_RENEWED)
+              ) {
+                await supabase.from('tb_profiles').update({
+                  plan_key: syncReq.plan_key_requested,
+                  is_trial: false,
+                  plan_trial_expires: null,
+                  updated_at: utcIsoFrom(nowFn()),
+                }).eq('id', syncReq.profile_id);
+              }
+            }
+
             // 2. Busca os dados da requisição de upgrade vinculada a este pagamento
             // Buscamos sem o filtro de 'approved' para garantir que pegamos a req.
             // Se o RPC funcionou, ela já deve estar aprovada ou em processamento.
@@ -577,22 +615,38 @@ export async function POST(request: NextRequest) {
                 if (targetForClear.profile_id) {
                   const { data: profile } = await supabase
                     .from('tb_profiles')
-                    .select('plan_key, last_paid_plan')
+                    .select('plan_key, last_paid_plan, last_paid_theme_key')
                     .eq('id', targetForClear.profile_id)
                     .single();
                   
                   if (profile?.plan_key === 'FREE' && profile?.last_paid_plan) {
                     const restoredPlan = profile.last_paid_plan;
-                    
-                    // Restaura o plan_key e limpa last_paid_plan
+                    const savedTheme = profile.last_paid_theme_key?.trim();
+                    const restoreEliteThemes =
+                      planSupportsEliteThemes(String(restoredPlan)) &&
+                      Boolean(savedTheme);
+
+                    const profileUpdate: Record<string, unknown> = {
+                      plan_key: restoredPlan,
+                      last_paid_plan: null,
+                      updated_at: utcIsoFrom(nowFn()),
+                    };
+                    if (restoreEliteThemes && savedTheme) {
+                      profileUpdate.theme_key = savedTheme;
+                      profileUpdate.last_paid_theme_key = null;
+                    }
+
                     await supabase
                       .from('tb_profiles')
-                      .update({
-                        plan_key: restoredPlan,
-                        last_paid_plan: null,
-                        updated_at: utcIsoFrom(nowFn())
-                      })
+                      .update(profileUpdate)
                       .eq('id', targetForClear.profile_id);
+
+                    if (restoreEliteThemes) {
+                      await restoreGalleryThemesFromLastPaid(
+                        supabase,
+                        targetForClear.profile_id,
+                      );
+                    }
 
                     // Desarquiva galerias que foram ocultadas no downgrade
                     await reactivateAutoArchivedGalleries(
@@ -609,8 +663,13 @@ export async function POST(request: NextRequest) {
                       reason: 'Reativação automática após compensação de pagamento pendente.'
                     });
 
-                    await revalidateUserCache(targetForClear.profile_id).catch((err) =>
-                      console.warn('[Webhook Asaas] revalidateUserCache:', err),
+                    await revalidateProfileCachesForBilling(
+                      targetForClear.profile_id,
+                    ).catch((err) =>
+                      console.warn(
+                        '[Webhook Asaas] revalidateProfileCachesForBilling:',
+                        err,
+                      ),
                     );
                   }
                 }

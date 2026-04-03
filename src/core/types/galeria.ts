@@ -90,6 +90,8 @@ export interface GaleriaBase {
   enable_slideshow: boolean;
   /** Tema visual da galeria (EDITORIAL_WHITE, PHOTOGRAPHER, DARK_CINEMA, etc.) */
   theme_key?: string | null;
+  /** Último tema Elite antes de downgrade; usado na reativação PRO/PREMIUM. */
+  last_paid_theme_key?: string | null;
   google_refresh_token: string | null;
   gallery_tags: string | null;
   photo_tags: string | null;

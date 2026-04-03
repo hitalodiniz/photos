@@ -15,6 +15,7 @@ import type { PlanKey } from '@/core/config/plans';
 import { enforcePhotoQuotaByArchivingOldest } from '@/core/services/asaas/gallery/quota-enforcement';
 import { appendBillingNotesBlock } from '@/core/services/asaas/utils/billing-notes-doc';
 import { logSystemEvent } from '@/core/utils/telemetry';
+import { applyThemeRollbackForLowerPlan } from '@/core/services/theme-rollback.service';
 
 const OVERDUE_GRACE_DAYS = 5;
 
@@ -352,6 +353,8 @@ export async function GET(req: NextRequest) {
         downgrade_reason: `Mudança agendada aplicada (cron). Registro: ${row.id}`,
         downgrade_at: utcIsoFrom(now),
       };
+
+      await applyThemeRollbackForLowerPlan(supabase, profileId, newPlanKey);
 
       const { error: planError } = await supabase
         .from('tb_profiles')

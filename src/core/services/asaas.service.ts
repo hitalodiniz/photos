@@ -63,6 +63,7 @@ import {
   calculateProRataCredit as calculateProRataCreditImpl,
 } from './asaas/billing/pro-rata';
 import { PENDING_UPGRADE_MAX_AGE_MS } from './asaas/utils/constants';
+import { applyThemeRollbackForLowerPlan } from '@/core/services/theme-rollback.service';
 import { upsertBillingProfile } from './asaas/billing/billing-profile';
 import { createOrUpdateAsaasCustomer } from './asaas/api/customers';
 import {
@@ -1810,6 +1811,8 @@ export async function performDowngradeToFree(
         'Não foi possível localizar a assinatura no gateway para encerramento antes do downgrade.',
     };
   }
+
+  await applyThemeRollbackForLowerPlan(supabase, profileId, 'FREE');
 
   const newMetadata = {
     ...(profile?.metadata ?? {}),

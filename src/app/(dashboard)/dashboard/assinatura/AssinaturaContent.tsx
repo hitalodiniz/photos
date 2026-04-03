@@ -662,9 +662,16 @@ export default function AssinaturaContent({
           latestRollbackCancelledRequest.created_at,
       ).getTime();
 
-  /** Rollback de upgrade não pago: assinatura já voltou ao plano anterior — sem “reativar”. */
+  /**
+   * Rollback de upgrade não pago: assinatura já voltou ao plano anterior — sem “reativar”
+   * só para esse estado isolado. Se existe cancelamento/downgrade **agendado** vigente
+   * (`hasPendingCancellation`), o botão “Reativar” deve aparecer para desfazer o
+   * agendamento, mesmo que o último registro criado seja um `cancelled` de rollback.
+   */
   const suppressReactivateForPendingUpgradeRollback =
-    !!latestRollbackCancelledRequest && !pendingCancellationNewerThanRollback;
+    !!latestRollbackCancelledRequest &&
+    !pendingCancellationNewerThanRollback &&
+    !hasPendingCancellation;
 
   const canReactivateSubscription =
     !!reactivationSubscriptionId &&

@@ -197,8 +197,9 @@ export function CancelSubscriptionModal({
           <p className="text-[12px] text-petroleum/90 leading-relaxed">
             Você solicitou upgrade para <strong>{planName}</strong>, mas o
             pagamento ainda não foi concluído. Ao confirmar, a cobrança deste
-            upgrade será <strong>cancelada no gateway</strong>, a assinatura
-            volta ao <strong>plano e valor anteriores</strong> e{' '}
+            upgrade será{' '}
+            <strong>cancelada no provedor de pagamento (Asaas)</strong>, a
+            assinatura volta ao <strong>plano e valor anteriores</strong> e{' '}
             <strong>não haverá</strong> cancelamento ou downgrade agendado para
             o próximo vencimento.
           </p>
