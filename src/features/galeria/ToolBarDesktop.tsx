@@ -287,34 +287,35 @@ export const ToolBarDesktop = ({
               </button>
             )}
 
-            <button
-              onClick={handleShare}
-              data-tour="share"
-              className="flex items-center justify-center rounded-md h-8 border pub-bar-btn w-28 gap-2 hover:bg-green-600 hover:text-white hover:border-green-600 transition-all"
-            >
-              <WhatsAppIcon className="w-[15px] h-[15px] pub-bar-icon" />
-              <span className="text-[10px] font-semibold uppercase tracking-wide">
-                Whatsapp
-              </span>
-            </button>
+            <div data-tour="share" className="flex items-center gap-2">
+              <button
+                onClick={handleShare}
+                className="flex items-center justify-center rounded-md h-8 border pub-bar-btn w-28 gap-2 hover:bg-green-600 hover:text-white hover:border-green-600 transition-all"
+              >
+                <WhatsAppIcon className="w-[15px] h-[15px] pub-bar-icon" />
+                <span className="text-[10px] font-semibold uppercase tracking-wide">
+                  Whatsapp
+                </span>
+              </button>
 
-            <button
-              onClick={() => {
-                navigator.clipboard.writeText(window.location.href);
-                setCopied(true);
-                setTimeout(() => setCopied(false), 2000);
-              }}
-              className="flex items-center justify-center rounded-md h-8 border pub-bar-btn w-28 gap-2 hover:bg-white hover:text-black hover:border-white transition-all"
-            >
-              {copied ? (
-                <Check size={15} className="text-green-500" />
-              ) : (
-                <LinkIcon size={15} className="pub-bar-icon" />
-              )}
-              <span className="text-[10px] font-semibold uppercase tracking-wide">
-                Copiar Link
-              </span>
-            </button>
+              <button
+                onClick={() => {
+                  navigator.clipboard.writeText(window.location.href);
+                  setCopied(true);
+                  setTimeout(() => setCopied(false), 2000);
+                }}
+                className="flex items-center justify-center rounded-md h-8 border pub-bar-btn w-28 gap-2 hover:bg-white hover:text-black hover:border-white transition-all"
+              >
+                {copied ? (
+                  <Check size={15} className="text-green-500" />
+                ) : (
+                  <LinkIcon size={15} className="pub-bar-icon" />
+                )}
+                <span className="text-[10px] font-semibold uppercase tracking-wide">
+                  Copiar Link
+                </span>
+              </button>
+            </div>
 
             <div className="pl-2 border-l pub-bar-drawer-border ml-1">
               <button

@@ -14,6 +14,8 @@ import {
   Crown,
   User,
   TrendingUp,
+  SlidersHorizontal,
+  X,
 } from 'lucide-react';
 import { useEffect, useState, useMemo, useRef } from 'react';
 
@@ -48,7 +50,18 @@ export default function Navbar() {
     PlanKey | undefined
   >(undefined);
   const [adminModalOpen, setAdminModalOpen] = useState(false);
+  const [mobileFiltersExpanded, setMobileFiltersExpanded] = useState(false);
   const trialRef = useRef<HTMLDivElement>(null);
+
+  useEffect(() => {
+    const handleStateChange = (e: Event) => {
+      const customEvent = e as CustomEvent;
+      setMobileFiltersExpanded(customEvent.detail.isExpanded);
+    };
+    window.addEventListener('mobile-filters-state', handleStateChange);
+    return () =>
+      window.removeEventListener('mobile-filters-state', handleStateChange);
+  }, []);
 
   const plan = usePlan();
   const isTrial = plan.planKey === 'PRO' && plan.permissions.isTrial;
@@ -143,7 +156,7 @@ export default function Navbar() {
   return (
     <>
       <nav className="fixed top-0 left-0 right-0 z-[110] h-12 glass-surface border-b border-white/5 shadow-xl transition-all duration-300">
-        <div className="max-w-[1600px] mx-auto h-full flex items-center justify-between px-4 md:px-8">
+        <div className="max-w-[1600px] mx-auto h-full flex items-center justify-between px-2 md:px-8">
           {/* Lado Esquerdo: Branding & Navegação */}
           <div className="flex items-center overflow-hidden">
             {/* Botão Menu Mobile (Apenas Home Dashboard) */}
@@ -349,6 +362,26 @@ export default function Navbar() {
               overdueSince={overdueBadge.overdueSince}
               paymentHref={overdueBadge.paymentHref}
             />
+            {/* Botão de filtros no mobile */}
+            {pathname === '/dashboard' && (
+              <button
+                onClick={() =>
+                  window.dispatchEvent(new CustomEvent('toggle-mobile-filters'))
+                }
+                className={`md:hidden p-2 rounded-lg transition-colors flex items-center justify-center ${
+                  mobileFiltersExpanded
+                    ? 'text-gold bg-white/5'
+                    : 'text-white/60 hover:text-gold hover:bg-white/5'
+                }`}
+                aria-label="Alternar filtros"
+              >
+                {mobileFiltersExpanded ? (
+                  <X size={18} />
+                ) : (
+                  <SlidersHorizontal size={18} />
+                )}
+              </button>
+            )}
             {user && <NotificationMenu userId={user.id} />}
             <UserMenu
               session={user}

@@ -18,6 +18,7 @@ import {
   Type,
   FolderSync,
   Tag,
+  FileText,
   Layout,
   Eye,
   CheckCircle2,
@@ -782,65 +783,92 @@ export default function GaleriaFormContent({
             title="Galeria & Sincronização"
             icon={<FolderSync size={16} className="text-gold" />}
           >
-            <fieldset>
-              <div className="grid grid-cols-1 md:grid-cols-12 gap-3 items-end mb-3">
-                <div className="md:col-span-6">
-                  <label className="mb-1.5">
-                    <Type size={12} className="text-gold" /> Título
-                  </label>
-                  <input
-                    name="title"
-                    defaultValue={initialData?.title}
-                    required
-                    placeholder="Ex: Wedding Day"
-                    onChange={(e) => {
-                      setTitleValue(e.target.value);
-                      onTitleChange?.(e.target.value);
-                    }}
-                    className="w-full px-3 h-10 bg-white border border-slate-200 rounded-luxury text-petroleum/90 text-[13px] font-medium outline-none focus:border-gold transition-all"
-                  />
+            <fieldset className="grid grid-cols-1 lg:grid-cols-12 gap-6">
+              {/* COLUNA ESQUERDA: Dados Técnicos (6 de 12 colunas) */}
+              <div className="lg:col-span-6 space-y-4">
+                {/* Linha: Título e Categoria */}
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+                  <div>
+                    <label className="mb-1.5 flex items-center gap-1.5 text-[10px] font-bold uppercase tracking-wider text-petroleum">
+                      <Type size={12} className="text-gold" /> Título
+                    </label>
+                    <input
+                      name="title"
+                      defaultValue={initialData?.title}
+                      required
+                      placeholder="Ex: Wedding Day"
+                      onChange={(e) => {
+                        setTitleValue(e.target.value);
+                        onTitleChange?.(e.target.value);
+                      }}
+                      className="w-full px-3 h-10 bg-white border border-slate-200 rounded-luxury text-petroleum/90 text-[13px] font-medium outline-none focus:border-gold transition-all"
+                    />
+                  </div>
+                  <div>
+                    <label className="mb-1.5 flex items-center gap-1.5 text-[10px] font-bold uppercase tracking-wider text-petroleum">
+                      <Tag size={12} className="text-gold" /> Categoria
+                    </label>
+                    <CategorySelect
+                      value={category}
+                      onChange={setCategory}
+                      initialCustomCategories={customCategoriesFromProfile}
+                    />
+                  </div>
                 </div>
-                <div className="md:col-span-6">
-                  <label className="mb-1.5">
-                    <Tag size={12} className="text-gold" /> Categoria
-                  </label>
-                  <CategorySelect
-                    value={category}
-                    onChange={setCategory}
-                    initialCustomCategories={customCategoriesFromProfile}
-                  />
+
+                {/* Linha: Data e Local */}
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+                  <div>
+                    <label className="mb-1.5 flex items-center gap-1.5 text-[10px] font-bold uppercase tracking-wider text-petroleum">
+                      <Calendar
+                        size={12}
+                        strokeWidth={2}
+                        className="text-gold"
+                      />{' '}
+                      Data
+                    </label>
+                    <input
+                      name="date"
+                      type="date"
+                      defaultValue={initialData?.date}
+                      required
+                      className="input-luxury w-full"
+                    />
+                  </div>
+                  <div>
+                    <label className="mb-1.5 flex items-center gap-1.5 text-[10px] font-bold uppercase tracking-wider text-petroleum">
+                      <MapPin size={12} className="text-gold" /> Local
+                    </label>
+                    <input
+                      name="location"
+                      defaultValue={initialData?.location}
+                      placeholder="Cidade/UF"
+                      className="input-luxury w-full"
+                    />
+                  </div>
                 </div>
               </div>
 
-              <div className="grid grid-cols-1 md:grid-cols-12 gap-3 items-end mb-3">
-                <div className="md:col-span-6">
-                  <label className="mb-1.5">
-                    <Calendar size={12} strokeWidth={2} className="text-gold" />{' '}
-                    Data
-                  </label>
-                  <input
-                    name="date"
-                    type="date"
-                    defaultValue={initialData?.date}
-                    required
-                    className="input-luxury"
-                  />
-                </div>
-                <div className="md:col-span-6">
-                  <label className="mb-1.5">
-                    <MapPin size={12} className="text-gold" /> Local
-                  </label>
-                  <input
-                    name="location"
-                    defaultValue={initialData?.location}
-                    placeholder="Cidade/UF"
-                    className="input-luxury"
-                  />
-                </div>
+              {/* COLUNA DIREITA: Descrição (6 de 12 colunas) */}
+              <div className="lg:col-span-6 flex flex-col">
+                <label className="mb-1.5 flex items-center gap-1.5">
+                  <FileText size={12} className="text-gold shrink-0" />
+                  <span className="text-[10px] font-bold uppercase tracking-wider text-petroleum">
+                    Descrição
+                  </span>
+                </label>
+                <textarea
+                  {...register('description')}
+                  placeholder="Escreva uma breve introdução ou detalhes sobre esta galeria"
+                  className="flex-1 w-full px-3 py-2.5 bg-slate-50 border border-slate-200 rounded-luxury text-petroleum/90 text-[13px] font-light leading-relaxed outline-none focus:border-gold focus:ring-4 focus:ring-gold/5 transition-all resize-none min-h-[120px] placeholder:text-slate-400"
+                />
+                <p className="mt-2 text-[10px] text-slate-400 italic">
+                  A descrição aparecerá no topo da galeria pública, abaixo do
+                  título.
+                </p>
               </div>
             </fieldset>
           </FormSection>
-
           {/* SEÇÃO 3: PRIVACIDADE */}
           <FormSection
             title="Privacidade"

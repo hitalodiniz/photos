@@ -28,7 +28,6 @@ import {
 } from '@/core/config/plans';
 import { ConfirmationModal, Toast } from '@/components/ui';
 import { saveGaleriaSelectionAction } from '@/core/services/galeria.service';
-import { div } from 'framer-motion/client';
 import { GaleriaTour } from './ToolBarDesktopTour';
 import { useIsMobile } from '@/hooks/use-breakpoint';
 
@@ -562,6 +561,43 @@ export default function PhotoGrid({
         handleShare={handleShare}
       />
 
+      {/* SEÇÃO EDITORIAL: DESCRIÇÃO DA GALERIA */}
+      {typeof galeria.description === 'string' &&
+        galeria.description.trim() !== '' && (
+          <section
+            className="relative w-full bg-white px-6 md:px-12 pt-6 pb-4 overflow-hidden"
+            aria-label="Sobre esta galeria"
+          >
+            <div className="mx-auto max-w-[1200px] flex flex-col w-full">
+              <div className="relative w-full py-2">
+                <p className="relative text-left text-base md:text-[18px] leading-[1.8] tracking-tight animate-in fade-in duration-1000">
+                  <span
+                    className="inline font-serif text-[1.1em] md:text-[2em] leading-[1.8] text-gold/50 select-none mr-px align-top -top-10"
+                    aria-hidden="true"
+                  >
+                    “
+                  </span>
+                  <span className="inline-block max-w-[calc(100%-1rem)] align-top font-sans font-light text-petroleum/80 whitespace-pre-line first-letter:text-6xl first-letter:font-serif first-letter:font-normal first-letter:mr-2 first-letter:float-left first-letter:text-gold first-letter:leading-[0.7] first-letter:mt-2">
+                    {galeria.description.trim()}
+                    <span
+                      className="inline font-serif text-[1.1em] md:text-[1.15em] leading-[1.8] text-gold select-none ml-px align-baseline"
+                      aria-hidden="true"
+                    >
+                      ”
+                    </span>
+                  </span>
+                </p>
+              </div>
+
+              {/* 2. Divisor Final Total (Separação das Fotos) */}
+              {/* Atravessa toda a largura do contêiner de 800px */}
+              <div className="mt-1 w-full h-[1px] bg-gold/50 animate-in fade-in duration-1000 delay-300" />
+            </div>
+
+            {/* Espaçamento final refinado antes do grid de fotos */}
+            <div className="w-full h-2" />
+          </section>
+        )}
       {/* GRID */}
       <div ref={gridRef} className="mt-1">
         <MasonryGrid

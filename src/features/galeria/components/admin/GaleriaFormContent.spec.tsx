@@ -62,6 +62,9 @@ vi.mock('@/hooks/useGoogleDriveImage', () => ({
 const GaleriaFormContentWrapper = (props: any) => {
   const methods = useForm({
     defaultValues: {
+      description: props.initialData?.description
+        ? String(props.initialData.description)
+        : '',
       leads_enabled:
         props.profile?.settings?.defaults?.enable_guest_registration ?? false,
       lead_purpose:

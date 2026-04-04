@@ -115,6 +115,7 @@ export default function GaleriaFormPage({
   } = useForm({
     mode: 'onBlur',
     defaultValues: {
+      description: galeria?.description ? String(galeria.description) : '',
       expires_at: galeria?.expires_at
         ? String(galeria.expires_at).slice(0, 10)
         : '',

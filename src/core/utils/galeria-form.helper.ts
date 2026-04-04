@@ -43,6 +43,11 @@ export function extractGalleryFormData(formData: FormData) {
     client_whatsapp: normalizePhone(formData.get('client_whatsapp') as string),
     location: (formData.get('location') as string) || '',
     category: (formData.get('category') as string) || 'evento',
+    description: (() => {
+      const raw = formData.get('description') as string | null;
+      if (raw == null || String(raw).trim() === '') return null;
+      return String(raw).trim();
+    })(),
 
     // Campos de capa
     cover_image_ids: coverIdsPostgres,

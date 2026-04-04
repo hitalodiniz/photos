@@ -260,9 +260,9 @@ export function NotificationMenu({ userId }: { userId: string }) {
             onClick={() => setIsOpen(false)}
           />
 
-          <div className="absolute right-0 mt-3 w-[400px] bg-petroleum border border-white/10 rounded-xl shadow-[0_20px_50px_rgba(0,0,0,0.5)] z-50 overflow-hidden animate-in fade-in zoom-in-95 duration-200">
+          <div className="fixed left-4 right-4 top-16 md:absolute md:left-auto md:right-0 md:top-auto md:mt-3 md:w-[400px] bg-petroleum border border-white/10 rounded-xl shadow-[0_20px_50px_rgba(0,0,0,0.5)] z-50 overflow-hidden animate-in fade-in zoom-in-95 duration-200">
             {/* Header */}
-            <div className="p-5 bg-white/5 border-b border-white/5 flex items-center justify-between gap-4">
+            <div className="p-4 md:p-5 bg-white/5 border-b border-white/5 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
               {/* LADO ESQUERDO: ÍCONE E TÍTULO */}
               <div className="flex items-center gap-3 shrink-0">
                 <div
@@ -288,7 +288,7 @@ export function NotificationMenu({ userId }: { userId: string }) {
 
               {/* LADO DIREITO: BOTÕES ALINHADOS */}
               {permissions.canAccessNotifyEvents && (
-                <div className="flex items-center gap-2">
+                <div className="flex items-center gap-2 w-full sm:w-auto overflow-x-auto custom-scrollbar pb-1 sm:pb-0">
                   {/* Botão Marcar Todas - Agora alinhado horizontalmente */}
                   {unreadCount > 0 && (
                     <button
@@ -320,7 +320,7 @@ export function NotificationMenu({ userId }: { userId: string }) {
             </div>
 
             {/* Listagem */}
-            <div className="max-h-[450px] overflow-y-auto custom-scrollbar bg-white">
+            <div className="max-h-[calc(100vh-140px)] md:max-h-[450px] overflow-y-auto custom-scrollbar bg-white">
               {/* 🎯 INSERÇÃO DO HELP TIP FIXO NO TOPO */}
               {!permissions.canAccessNotifyEvents ? (
                 // Gate inline — mais compacto que a tela inteira

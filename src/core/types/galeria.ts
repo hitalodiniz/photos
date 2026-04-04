@@ -49,6 +49,8 @@ export function normalizeContractType(
 export interface GaleriaBase {
   id: string;
   title: string;
+  /** Texto editorial exibido na galeria pública (abaixo da toolbar, acima do grid) */
+  description?: string | null;
   client_name: string;
   date: string;
   location: string;

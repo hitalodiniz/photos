@@ -23,6 +23,7 @@ import { useSidebar } from '@/components/providers/SidebarProvider';
 import Sidebar from './components/Sidebar';
 import BulkActionsBar from './components/BulkActionsBar';
 import DashboardHeader from './components/DashboardHeader';
+import Filters from './Filters';
 import GalleryList from './components/GalleryList';
 import DashboardFooter from './components/DashboardFooter';
 import { PlanProvider } from '@/core/context/PlanContext';
@@ -231,6 +232,26 @@ export default function Dashboard({
             toggleSidebar={toggleSidebar}
             currentView={filters.currentView}
           />
+
+          <div className="md:hidden">
+            <Filters
+              filterName={filters.filterName}
+              filterLocation={filters.filterLocation}
+              filterCategory={filters.filterCategory}
+              filterType={filters.filterType}
+              filterDateStart={filters.filterDateStart}
+              filterDateEnd={filters.filterDateEnd}
+              setFilterName={filters.setFilterName}
+              setFilterLocation={filters.setFilterLocation}
+              setFilterDateStart={filters.setFilterDateStart}
+              setFilterDateEnd={filters.setFilterDateEnd}
+              setFilterCategory={filters.setFilterCategory}
+              setFilterType={filters.setFilterType}
+              resetFilters={filters.resetFilters}
+              variant="full"
+              isMobileInstance={true}
+            />
+          </div>
           <div className="flex-1">
             <GalleryList
               galerias={filters.visibleGalerias}

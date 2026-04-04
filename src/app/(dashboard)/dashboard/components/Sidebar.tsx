@@ -217,6 +217,19 @@ export default function Sidebar({
 
         {/* Navegação Principal */}
         <nav className="flex-1 flex flex-col gap-2 overflow-y-auto no-scrollbar p-2">
+          <SidebarGalerias
+            isSidebarCollapsed={isSidebarCollapsed}
+            counts={counts}
+            currentView={currentView}
+            setCurrentView={setCurrentView}
+            setCardsToShow={setCardsToShow}
+          />
+          {/* O SidebarStorage já recebe galeriasCount e pode internamente comparar com permissions.maxGalleries */}
+          <SidebarStorage
+            isSidebarCollapsed={isSidebarCollapsed}
+            galeriasCount={galeriasCount}
+            totalPhotosUsed={totalPhotosUsed} // vem do hook/query que você já tem
+          />
           {/* Badge do Plano Atual */}
           {(!isSidebarCollapsed || isMobile) && (
             <div className="px-2 py-1 mb-2">
@@ -363,19 +376,6 @@ export default function Sidebar({
               <span className="absolute -top-0.5 -right-0.5 h-2.5 w-2.5 rounded-full bg-red-500 animate-pulse" />
             </button>
           )}
-          <SidebarGalerias
-            isSidebarCollapsed={isSidebarCollapsed}
-            counts={counts}
-            currentView={currentView}
-            setCurrentView={setCurrentView}
-            setCardsToShow={setCardsToShow}
-          />
-          {/* O SidebarStorage já recebe galeriasCount e pode internamente comparar com permissions.maxGalleries */}
-          <SidebarStorage
-            isSidebarCollapsed={isSidebarCollapsed}
-            galeriasCount={galeriasCount}
-            totalPhotosUsed={totalPhotosUsed} // vem do hook/query que você já tem
-          />
 
           <SidebarGoogleDrive
             isSidebarCollapsed={isSidebarCollapsed}
@@ -395,7 +395,7 @@ export default function Sidebar({
 
           <button
             onClick={toggleSidebar}
-            className="!px-1 !py-1 flex absolute -right-3 top-20 bg-champagne border border-white/10 rounded-full p-1 shadow-xl hover:bg-slate-700 z-10 text-petroleum/70 hover:text-champagne transition-colors"
+            className="!px-1 !py-1 flex absolute -right-3 top-10 bg-champagne border border-white/10 rounded-full p-1 shadow-xl hover:bg-slate-700 z-10 text-petroleum/70 hover:text-champagne transition-colors"
             title={isSidebarCollapsed ? 'Expandir Menu' : 'Recolher Menu'}
           >
             {isSidebarCollapsed ? (
