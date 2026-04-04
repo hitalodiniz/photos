@@ -343,8 +343,12 @@ function isAwaitingPaymentHistoryStatus(item: UpgradeRequest): boolean {
   const rawStatus = String(item.asaas_raw_status ?? '').toUpperCase();
   if (rawStatus !== 'PENDING') return false;
 
-  const cur = String(item.plan_key_current ?? '').trim().toUpperCase();
-  const req = String(item.plan_key_requested ?? '').trim().toUpperCase();
+  const cur = String(item.plan_key_current ?? '')
+    .trim()
+    .toUpperCase();
+  const req = String(item.plan_key_requested ?? '')
+    .trim()
+    .toUpperCase();
   const isPaidCycleRow =
     domainStatus === 'approved' ||
     domainStatus === 'renewed' ||
@@ -1253,7 +1257,7 @@ export default function AssinaturaContent({
           )}
           {profile.is_exempt && !profile.is_trial && (
             <span className="ml-2 px-2 py-0.5 rounded-full bg-emerald-500/10 border border-emerald-500/20 text-[10px] font-semibold text-emerald-600 align-middle">
-              Isento
+              Assinatura Cortesia
             </span>
           )}
         </h2>

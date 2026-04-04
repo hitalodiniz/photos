@@ -905,7 +905,7 @@ export function StepDone() {
           effectiveAt={downgradeEffectiveAt!}
           handleClose={handleCloseAndRefresh}
         />
-        <SheetFooter className="bg-petroleum border-t border-petroleum/10">
+        <SheetFooter className="bg-petroleum border-t border-petroleum/10 sticky bottom-0 z-10 mt-auto p-4">
           <button
             type="button"
             onClick={handleCloseAndRefresh}
@@ -927,7 +927,7 @@ export function StepDone() {
           nextBillingDate={nextBillingDateFormatted}
           handleClose={handleCloseAndRefresh}
         />
-        <SheetFooter className="bg-petroleum border-t border-petroleum/10">
+        <SheetFooter className="bg-petroleum border-t border-petroleum/10 sticky bottom-0 z-10 mt-auto p-4">
           <button
             type="button"
             onClick={handleCloseAndRefresh}
@@ -948,7 +948,7 @@ export function StepDone() {
           planName={planName}
           nextBillingDate={nextBillingDateFormatted}
         />
-        <SheetFooter className="bg-petroleum border-t border-petroleum/10">
+        <SheetFooter className="bg-petroleum border-t border-petroleum/10 sticky bottom-0 z-10 mt-auto p-4">
           <button
             type="button"
             onClick={handleCloseAndRefresh}
@@ -1008,7 +1008,7 @@ export function StepDone() {
         />
       )}
 
-      <SheetFooter className="bg-petroleum border-t border-petroleum/10">
+      <SheetFooter className="bg-petroleum border-t border-petroleum/10 sticky bottom-0 z-10 mt-auto p-4">
         <div className="flex w-full gap-2">
           {hasPixCopyAction && (
             <button

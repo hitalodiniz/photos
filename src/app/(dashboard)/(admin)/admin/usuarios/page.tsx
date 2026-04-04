@@ -45,8 +45,8 @@ const STATUS_BADGE = {
   exempt: {
     bg: '#F3E8FF',
     text: '#6B21A8',
-    label: 'Isento',
-    title: 'Benefício manual (VIP)',
+    label: 'Assinatura Cortesia',
+    title: 'Benefício (VIP)',
   },
   expired: {
     bg: '#FEE2E2',

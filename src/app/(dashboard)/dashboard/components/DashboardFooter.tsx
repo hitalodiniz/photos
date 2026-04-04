@@ -20,7 +20,7 @@ export default function DashboardFooter({
   const isComplete = visibleCount >= totalCount;
 
   return (
-    <div className="w-full mt-4">
+    <div className="w-full mt-4 mb-8">
       {/* 🎯 Barra de Progresso Compacta */}
       <div className="mb-2">
         <div className="flex items-center justify-between mb-1">

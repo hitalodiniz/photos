@@ -151,9 +151,9 @@ export const ProfileToolBar = ({
                       {/* CIDADES */}
                       {barCities.length > 0 && (
                         <div className="flex items-center gap-1 shrink-0 ">
-                          <span className="text-[11px] font-semibold uppercase tracking-widest pub-bar-text flex items-center transition-colors group-hover:pub-bar-accent">
+                          <span className="text-[10px] font-semibold uppercase tracking-widest pub-bar-text flex items-center transition-colors group-hover:pub-bar-accent">
                             <MapPin
-                              size={15}
+                              size={14}
                               className="mr-1.5 pub-bar-icon transition-colors group-hover:pub-bar-accent"
                             />
                             <span className="hidden xl:inline-block">
@@ -204,9 +204,9 @@ export const ProfileToolBar = ({
                       {/* ESPECIALIDADES */}
                       {barSpecs.length > 0 && (
                         <div className="flex items-center gap-1 shrink-0 pl-3">
-                          <span className="text-[11px] font-semibold uppercase tracking-widest pub-bar-text flex items-center gap-1.5 transition-colors group-hover:pub-bar-accent">
+                          <span className="text-[10px] font-semibold uppercase tracking-widest pub-bar-text flex items-center gap-1.5 transition-colors group-hover:pub-bar-accent">
                             <Tag
-                              size={15}
+                              size={14}
                               className="pub-bar-icon transition-colors group-hover:pub-bar-accent"
                             />
                             <span className="hidden xl:inline-block">

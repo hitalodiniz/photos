@@ -164,7 +164,7 @@ export default function UserMenu({
                   </span>
                   {profile?.is_exempt && (
                     <span className="px-1.5 py-0.5 rounded-md bg-emerald-500/20 border border-emerald-500/30 text-[9px] font-semibold text-emerald-300">
-                      Isento
+                      Ass. Cortesia
                     </span>
                   )}
                 </p>

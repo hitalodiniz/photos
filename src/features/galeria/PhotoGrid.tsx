@@ -30,6 +30,7 @@ import { ConfirmationModal, Toast } from '@/components/ui';
 import { saveGaleriaSelectionAction } from '@/core/services/galeria.service';
 import { GaleriaTour } from './ToolBarDesktopTour';
 import { useIsMobile } from '@/hooks/use-breakpoint';
+import { span } from 'framer-motion/client';
 
 export default function PhotoGrid({
   photos,
@@ -648,23 +649,22 @@ export default function PhotoGrid({
       {/* BOTÃO FLUTUANTE FAVORITOS */}
       {favorites.length > 0 && !showVolumeDashboard && canShowFavButton && (
         <div
-          className="fixed bottom-6 left-1/2 -translate-x-1/2 z-[150] animate-in fade-in zoom-in slide-in-from-bottom-5 duration-300 w-fit"
+          className="fixed bottom-2 left-1/2 -translate-x-1/2 z-[150] animate-in fade-in zoom-in slide-in-from-bottom-5 duration-300 w-fit"
           {...(themeKey ? { 'data-theme': themeKey } : {})}
         >
           {galeria.has_contracting_client === 'ES' ? (
-            <div className="flex items-center gap-2 p-1.5">
+            <div className="flex items-center gap-2">
               {!showOnlyFavorites ? (
                 <button
                   onClick={() => setShowOnlyFavorites(true)}
-                  className="btn-luxury-primary h-12"
+                  className="btn-luxury-primary"
                 >
-                  <Eye size={18} className="text-petroleum" />
-                  <div className="flex flex-col">
-                    Ver Selecionados
-                    <span className="font-medium">
-                      {favorites.length}{' '}
-                      {favorites.length === 1 ? 'foto' : 'fotos'}
-                    </span>
+                  <Eye size={18} />
+                  <div className="flex">
+                    Ver {favorites.length}{' '}
+                    {favorites.length === 1
+                      ? 'foto selecionada'
+                      : 'fotos selecionadas'}
                   </div>
                 </button>
               ) : (
@@ -675,7 +675,7 @@ export default function PhotoGrid({
                     className="btn-secondary-white"
                   >
                     <ArrowLeft size={18} />
-                    Ver todas as fotos
+                    <div className="flex">Ver todas as fotos</div>
                   </button>
                   {galeria.selection_ids?.length === 0 && (
                     <button
@@ -684,7 +684,7 @@ export default function PhotoGrid({
                       className="btn-luxury-primary"
                     >
                       <CheckCircle2 size={18} strokeWidth={2.5} />
-                      Enviar seleção
+                      <div className="flex">Enviar seleção</div>
                     </button>
                   )}
                 </div>
@@ -694,18 +694,16 @@ export default function PhotoGrid({
             <button
               onClick={handleDownloadFavorites}
               disabled={isDownloadingFavs}
-              className="btn-luxury-primary h-12"
+              className="btn-luxury-primary"
             >
               {isDownloadingFavs ? (
                 <Loader2 size={18} className="animate-spin" />
               ) : (
                 <Download size={18} />
               )}
-              <div className="flex flex-col">
-                Baixar Favoritas
-                <span className="font-medium">
-                  {favorites.length} {favorites.length === 1 ? 'foto' : 'fotos'}
-                </span>
+              <div className="flex">
+                Baixar {favorites.length}{' '}
+                {favorites.length === 1 ? 'foto favorita' : 'fotos favoritas'}
               </div>
             </button>
           )}

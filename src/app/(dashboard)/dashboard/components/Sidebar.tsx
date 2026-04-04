@@ -287,7 +287,7 @@ export default function Sidebar({
                 {profile?.is_exempt && (
                   <div className="flex">
                     <span className="px-1.5 py-0.5 rounded-md bg-emerald-500/20 border border-emerald-500/30 text-[10px] font-semibold text-emerald-300">
-                      Isento
+                      Assinatura Cortesia
                     </span>
                   </div>
                 )}

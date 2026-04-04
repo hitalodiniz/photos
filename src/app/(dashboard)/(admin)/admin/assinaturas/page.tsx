@@ -185,7 +185,7 @@ export default function AdminAssinaturasPage() {
           </span>
           {u.is_exempt && (
             <span className="text-[9px] px-1 py-0.5 bg-violet-100 text-violet-700 rounded font-bold">
-              Isento
+              Assinatura Cortesia
             </span>
           )}
         </div>

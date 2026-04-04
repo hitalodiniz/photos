@@ -43,22 +43,23 @@ export const ProfileBio = ({ miniBio, isExpanded }: ProfileBioProps) => {
     <div className="flex flex-col items-start w-full">
       {miniBio && (
         <div
-          className={`flex items-start text-white font-medium gap-1.5 italic transition-all duration-1000 w-full max-w-7xl mb-2 ${
+          className={`flex items-start text-white font-medium gap-1.5 italic transition-all duration-1000 w-full max-w-7xl ${
             isExpanded
-              ? 'text-[14px] md:text-[22px] mb-2'
-              : 'text-[12px] md:text-[18px] mb-1'
+              ? 'text-[14px] md:text-[22px] mb-2 leading-relaxed'
+              : 'text-[12px] md:text-[18px] mb-1 leading-tight' // 🎯 leading-tight evita o corte vertical
           }`}
         >
           <Sparkles
             size={isExpanded ? 18 : 14}
-            className="text-champagne shrink-0 mt-1"
+            className={`text-champagne shrink-0 ${isExpanded ? 'mt-1.5' : 'mt-1'}`}
           />
           <span
-            className={
-              isExpanded
-                ? 'opacity-100 line-clamp-[8]'
-                : 'line-clamp-2 md:line-clamp-5 opacity-80'
-            }
+            className={`
+              transition-all duration-1000
+              ${
+                isExpanded ? 'opacity-100 line-clamp-none' : 'line-clamp-2 pr-4' // 🎯 Reduzi para 2 linhas fixas no minimizado
+              }
+            `}
           >
             {miniBio}
           </span>

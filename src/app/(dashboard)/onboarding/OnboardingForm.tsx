@@ -1063,7 +1063,7 @@ export default function OnboardingForm({
                               }
                               className="rounded border-slate-300 text-gold focus:ring-gold"
                             />
-                            <span className="text-[11px] font-medium text-petroleum/90">
+                            <span className="text-[9px] font-medium text-petroleum/90">
                               Ocultar WhatsApp no perfil público
                             </span>
                           </label>
