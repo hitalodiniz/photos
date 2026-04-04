@@ -92,6 +92,7 @@ import {
 import { getPixQrCodeFromPayment } from './asaas/api/pix';
 import { reactivateAutoArchivedGalleries as reactivateAutoArchivedGalleriesImpl } from './asaas/gallery/adjustments';
 import { cancelUpgradeRequest } from '@/core/services/billing.service';
+import { setUpgradeRequestAsCurrent } from '@/core/services/billing/upgrade-request-current';
 
 /** Renovação de ciclo (mesmo plano no Asaas) — valor do enum em `tb_upgrade_requests.status`. */
 export async function isRenewalUpgradeRequestStatus(
@@ -1335,6 +1336,20 @@ export async function updateSubscriptionBillingMethod(
         };
       }
 
+      if (isApproved && currentReq.id) {
+        const { error: curErr } = await setUpgradeRequestAsCurrent(
+          admin,
+          userId,
+          currentReq.id,
+        );
+        if (curErr) {
+          console.warn(
+            '[updateSubscriptionBillingMethod] setUpgradeRequestAsCurrent:',
+            curErr,
+          );
+        }
+      }
+
       revalidatePath('/dashboard/assinatura');
       await revalidateUserCache(userId);
 
@@ -1854,6 +1869,7 @@ export async function performDowngradeToFree(
       .from('tb_upgrade_requests')
       .update({
         status: 'cancelled',
+        is_current: false,
         notes: appendBillingNotesBlock(reqNotesRow?.notes ?? null, reason),
         processed_at: utcIsoFrom(),
         updated_at: utcIsoFrom(),
@@ -2515,6 +2531,21 @@ export async function requestUpgrade(
         success: false,
         error: 'Erro ao registrar upgrade gratuito. Tente novamente.',
       };
+
+    if (freeRow?.id) {
+      const adminFree = createSupabaseAdmin();
+      const { error: curErr } = await setUpgradeRequestAsCurrent(
+        adminFree,
+        userId,
+        freeRow.id,
+      );
+      if (curErr) {
+        console.warn(
+          '[Upgrade gratuito] setUpgradeRequestAsCurrent:',
+          curErr,
+        );
+      }
+    }
 
     await supabase
       .from('tb_profiles')

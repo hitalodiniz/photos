@@ -16,6 +16,7 @@ import { enforcePhotoQuotaByArchivingOldest } from '@/core/services/asaas/galler
 import { appendBillingNotesBlock } from '@/core/services/asaas/utils/billing-notes-doc';
 import { logSystemEvent } from '@/core/utils/telemetry';
 import { applyThemeRollbackForLowerPlan } from '@/core/services/theme-rollback.service';
+import { setUpgradeRequestAsCurrent } from '@/core/services/billing/upgrade-request-current';
 
 const OVERDUE_GRACE_DAYS = 5;
 
@@ -389,6 +390,19 @@ export async function GET(req: NextRequest) {
           updated_at: utcIsoFrom(now),
         })
         .eq('id', row.id);
+
+      {
+        const { error: curErr } = await setUpgradeRequestAsCurrent(
+          supabase,
+          profileId,
+          row.id,
+        );
+        if (curErr) {
+          console.warn(
+            `[pending_change] setUpgradeRequestAsCurrent: ${curErr}`,
+          );
+        }
+      }
 
       // Arquiva galerias excedentes se necessário
       const adjustment = await getNeedsAdjustment(

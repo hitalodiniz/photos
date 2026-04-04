@@ -8,7 +8,11 @@ import {
 } from '../utils/formatters';
 import type { CreateSubscriptionData } from '../types';
 import { now as nowFn, utcIsoFrom } from '@/core/utils/data-helpers';
-import { createSupabaseServerClient } from '@/lib/supabase.server';
+import {
+  createSupabaseAdmin,
+  createSupabaseServerClient,
+} from '@/lib/supabase.server';
+import { setUpgradeRequestAsCurrent } from '@/core/services/billing/upgrade-request-current';
 import { getAuthenticatedUser } from '@/core/services/auth-context.service';
 import { appendBillingNotesBlock } from '@/core/services/asaas/utils/billing-notes-doc';
 
@@ -373,6 +377,19 @@ export async function reactivateSubscription(
             updated_at: nowIso,
           })
           .eq('id', pendingForSub.id);
+
+        const admin = createSupabaseAdmin();
+        const { error: curErr } = await setUpgradeRequestAsCurrent(
+          admin,
+          auth.userId,
+          pendingForSub.id,
+        );
+        if (curErr) {
+          console.warn(
+            '[reactivateSubscription] setUpgradeRequestAsCurrent:',
+            curErr,
+          );
+        }
       }
 
       // Limpa scheduled_cancel_at nas demais linhas desta assinatura (sem duplicar nota).

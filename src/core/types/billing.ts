@@ -68,6 +68,8 @@ export interface UpgradeRequest {
   payment_url?: string;
   asaas_raw_status?: string;
   status: UpgradeRequestStatus;
+  /** Linha que representa o ciclo de assinatura vigente (um `true` por perfil). */
+  is_current?: boolean;
   /** Preço base (effectiveMonthly × months), sem descontos. */
   amount_original: number;
   /** Desconto aplicado (ex: 10% PIX em períodos não-mensais). */

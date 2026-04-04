@@ -5,6 +5,7 @@ import {
   getUpgradeHistory,
   getSubscriptionExpiresAt,
   getLastChargeAmount,
+  getCurrentUpgradeRequestFromHistory,
 } from '@/core/services/billing.service';
 import { getAsaasSubscription, getAsaasSubscriptionStatus } from '@/core/services/asaas';
 import { getPhotographerPoolStats } from '@/core/services/galeria.service';
@@ -39,6 +40,8 @@ export interface AssinaturaPageData {
       endDate: string | null;
     }
   >;
+  /** Existe linha em tb_upgrade_requests com is_current = true (ciclo vigente). */
+  hasPaidSubscriptionRecord: boolean;
 }
 
 function isRenewedHistoryStatus(status: unknown): boolean {
@@ -80,19 +83,25 @@ async function getAssinaturaPageData(
   ]);
 
   const latest = history[0];
-  const hasPaidPlan = profile.plan_key !== 'FREE';
+  const currentUpgradeRequest = getCurrentUpgradeRequestFromHistory(
+    history as UpgradeRequest[],
+  );
+  const hasPaidSubscriptionRecord = !!currentUpgradeRequest;
 
-  // Se o usuário está atualmente no plano FREE, o status mostrado deve ser "Gratuito",
-  // independentemente do que o Asaas retornar para assinaturas antigas.
   let subscriptionStatus: string;
-  if (!hasPaidPlan) {
+  if (!hasPaidSubscriptionRecord) {
     subscriptionStatus = 'FREE';
   } else {
-    subscriptionStatus = (latest?.status as string) ?? 'ACTIVE';
+    subscriptionStatus =
+      (currentUpgradeRequest?.asaas_raw_status as string) ??
+      (currentUpgradeRequest?.status as string) ??
+      'ACTIVE';
   }
 
-  const activeSubscriptionId = hasPaidPlan
-    ? resolveActiveSubscriptionId(history as UpgradeRequest[])
+  const activeSubscriptionId = hasPaidSubscriptionRecord
+    ? (currentUpgradeRequest?.asaas_subscription_id?.trim() ||
+        resolveActiveSubscriptionId(history as UpgradeRequest[])) ??
+      null
     : null;
 
   const latestRequestStatus = latest?.status ?? null;
@@ -147,6 +156,7 @@ async function getAssinaturaPageData(
     activeSubscriptionId,
     latestRequestStatus,
     asaasDatesBySubscriptionId,
+    hasPaidSubscriptionRecord,
   };
 }
 

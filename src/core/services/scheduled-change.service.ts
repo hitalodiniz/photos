@@ -439,16 +439,11 @@ export async function cancelScheduledChange(): Promise<{
   }
 
   // ── 2. Remove endDate da assinatura atual ────────────────────────────────
-  // Busca a assinatura atual (approved) para encontrar o asaas_subscription_id
-  const planKeyCurrent = pendingChange.plan_key_current as PlanKey;
   const { data: currentRows } = await supabase
     .from('tb_upgrade_requests')
     .select('asaas_subscription_id')
     .eq('profile_id', userId)
-    .eq('status', 'approved')
-    .eq('plan_key_requested', planKeyCurrent)
-    .order('processed_at', { ascending: false })
-    .limit(1)
+    .eq('is_current', true)
     .maybeSingle();
 
   const currentSubId = currentRows?.asaas_subscription_id?.trim();

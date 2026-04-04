@@ -321,11 +321,6 @@ function getPlanStartAt(item: UpgradeRequest): string | null {
   });
 }
 
-/** Cancelado / rejeitado: linha encerrada para efeito de “vigente”. */
-function isTerminalHistoryStatus(status: string): boolean {
-  return status === 'cancelled' || status === 'rejected';
-}
-
 /** Mesma frase gravada em `rollbackPendingUpgradeOnAsaas` / `cancelUpgradeRequest`. */
 function notesIndicatePendingUpgradeRollback(
   notes: string | null | undefined,
@@ -361,72 +356,6 @@ function isAwaitingPaymentHistoryStatus(item: UpgradeRequest): boolean {
   if (/renova[cç][aã]o/i.test(item.notes ?? '')) return false;
 
   return true;
-}
-
-/**
- * Linha ainda dá acesso ou representa assinatura atual? Se expirada/vencida/atrasada,
- * o “vigente” passa para o próximo registro mais antigo na ordenação.
- */
-function isHistoryRowExpiredOrOverdue(
-  item: UpgradeRequest,
-  asaasDates?: { endDate?: string | null; nextDueDate?: string | null },
-): boolean {
-  const raw = String(item.asaas_raw_status ?? '').toUpperCase();
-  if (raw === 'EXPIRED' || raw === 'OVERDUE') return true;
-
-  const now = Date.now();
-
-  if (
-    item.status === 'pending_downgrade' ||
-    item.status === 'pending_cancellation'
-  ) {
-    const endSrc =
-      item.scheduled_cancel_at?.trim() ||
-      (asaasDates?.endDate ? `${asaasDates.endDate}T12:00:00.000Z` : '');
-    if (endSrc) {
-      const d = new Date(endSrc);
-      if (!Number.isNaN(d.getTime()) && d.getTime() < now) return true;
-    }
-    return false;
-  }
-
-  if (item.status === 'approved' || isRenewedStatus(item.status)) {
-    if (asaasDates?.endDate) {
-      const d = new Date(`${asaasDates.endDate}T23:59:59.999Z`);
-      if (!Number.isNaN(d.getTime()) && d.getTime() < now) return true;
-    }
-    const calcEnd = calculateNextBillingDate(item);
-    if (calcEnd && calcEnd.getTime() < now) {
-      if (asaasDates?.nextDueDate) {
-        const nd = new Date(`${asaasDates.nextDueDate}T23:59:59.999Z`);
-        if (!Number.isNaN(nd.getTime()) && nd.getTime() >= now) return false;
-      }
-      return true;
-    }
-    return false;
-  }
-
-  return false;
-}
-
-/**
- * Plano vigente na tabela: o registro mais recente (`created_at` DESC) que não está
- * cancelado/rejeitado e ainda não está expirado, vencido ou em atraso — inclui
- * `pending_downgrade` e `pending_cancellation` enquanto o acesso não acabou.
- */
-function resolveVigenteHistoryRequest(
-  sortedHistory: UpgradeRequest[],
-  asaasDatesBySubscriptionId: AssinaturaPageData['asaasDatesBySubscriptionId'],
-): UpgradeRequest | null {
-  for (const row of sortedHistory) {
-    if (isTerminalHistoryStatus(row.status)) continue;
-    if (isAwaitingPaymentHistoryStatus(row)) continue;
-    const subId = row.asaas_subscription_id?.trim() ?? '';
-    const asaasDates = subId ? asaasDatesBySubscriptionId[subId] : undefined;
-    if (isHistoryRowExpiredOrOverdue(row, asaasDates)) continue;
-    return row;
-  }
-  return null;
 }
 
 function formatNotesDisplay(notes: string | null | undefined): string {
@@ -540,6 +469,7 @@ export default function AssinaturaContent({
     activeSubscriptionId,
     latestRequestStatus,
     asaasDatesBySubscriptionId,
+    hasPaidSubscriptionRecord,
   } = data;
   const sortedHistory = useMemo(
     () =>
@@ -550,16 +480,18 @@ export default function AssinaturaContent({
     [history],
   );
   const vigenteHistoryRequest = useMemo(
-    () =>
-      resolveVigenteHistoryRequest(sortedHistory, asaasDatesBySubscriptionId),
-    [sortedHistory, asaasDatesBySubscriptionId],
+    () => sortedHistory.find((r) => r.is_current === true) ?? null,
+    [sortedHistory],
   );
   const vigenteHistoryId = vigenteHistoryRequest?.id ?? null;
   const [localCancellationEndsAt, setLocalCancellationEndsAt] = useState<
     string | null
   >(null);
 
-  const planKey = (profile.plan_key || 'FREE') as PlanKey;
+  const planKeyFromProfile = (profile.plan_key || 'FREE') as PlanKey;
+  const planKey = (
+    hasPaidSubscriptionRecord ? planKeyFromProfile : 'FREE'
+  ) as PlanKey;
   const permissions = PERMISSIONS_BY_PLAN[planKey];
   const photoCreditsLimit = permissions.photoCredits ?? 0;
   const photoCreditsUsed = poolStats.totalPhotosUsed ?? 0;
@@ -987,7 +919,7 @@ export default function AssinaturaContent({
           (notesLower.includes('renovação') ||
             notesLower.includes('cobrança de renovação') ||
             isRenewedStatus(item.status));
-        const isTableVigente = item.id === vigenteHistoryId;
+        const isTableVigente = item.is_current === true;
         if (isTableVigente) {
           return (
             <div className="flex flex-col gap-0.5 min-w-24 font-medium">
@@ -1067,10 +999,10 @@ export default function AssinaturaContent({
         const isCurrentVigenteWithScheduledChange =
           hasScheduledChange &&
           (item.status === 'approved' || isRenewedStatus(item.status)) &&
-          item.id === vigenteHistoryId;
+          item.is_current === true;
         const isClosedCycle =
           (item.status === 'approved' || isRenewedStatus(item.status)) &&
-          item.id !== vigenteHistoryId;
+          item.is_current !== true;
         const asaasSubscriptionId = item.asaas_subscription_id?.trim() ?? '';
         const asaasDates = asaasSubscriptionId
           ? asaasDatesBySubscriptionId[asaasSubscriptionId]
@@ -1308,15 +1240,17 @@ export default function AssinaturaContent({
   const pendingChangeRequest = sortedHistory.find(
     (r) => r.status === 'pending_change',
   );
-  /** Mais recente com cobrança efetiva (>0): inclui plano atual agendado para downgrade/cancelamento (último plano contratado). */
-  const latestChargedVigenteRequest = sortedHistory.find(
-    (r) =>
-      (r.status === 'approved' ||
-        isRenewedStatus(r.status) ||
-        r.status === 'pending_downgrade' ||
-        r.status === 'pending_cancellation') &&
-      (r.amount_final ?? 0) > 0,
-  );
+  /** Ciclo vigente (is_current); fallback legado se coluna ainda não populada. */
+  const latestChargedVigenteRequest =
+    vigenteHistoryRequest ??
+    sortedHistory.find(
+      (r) =>
+        (r.status === 'approved' ||
+          isRenewedStatus(r.status) ||
+          r.status === 'pending_downgrade' ||
+          r.status === 'pending_cancellation') &&
+        (r.amount_final ?? 0) > 0,
+    );
   const nextCycleAmount = hasScheduledChange
     ? (pendingChangeRequest?.amount_original ??
       pendingChangeRequest?.amount_final ??

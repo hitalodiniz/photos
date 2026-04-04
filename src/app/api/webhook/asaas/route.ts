@@ -23,6 +23,7 @@ import {
   billingNotesForRenewalFromParent,
   createBillingNotesForNewUpgradeRequest,
 } from '@/core/services/asaas/utils/billing-notes-doc';
+import { setUpgradeRequestAsCurrent } from '@/core/services/billing/upgrade-request-current';
 
 /**
  * Linhas que representam ciclo pago/vigente no Asaas.
@@ -301,35 +302,38 @@ export async function POST(request: NextRequest) {
                   const effectivePlanKey =
                     subRow.plan_key_requested ?? subRow.plan_key_current;
                   const renewalLine = `${billingPeriodLabel(subRow.billing_period)} via webhook Asaas (paymentId: ${paymentId}, subscriptionId: ${subscriptionIdFromPayment})`;
-                  const { error: insertErr } = await supabase
-                    .from('tb_upgrade_requests')
-                    .insert({
-                      profile_id: subRow.profile_id,
-                      plan_key_current: effectivePlanKey,
-                      plan_key_requested: effectivePlanKey,
-                      billing_type: subRow.billing_type,
-                      billing_period: subRow.billing_period,
-                      snapshot_name: subRow.snapshot_name,
-                      snapshot_cpf_cnpj: subRow.snapshot_cpf_cnpj,
-                      snapshot_email: subRow.snapshot_email,
-                      snapshot_whatsapp: subRow.snapshot_whatsapp,
-                      snapshot_address: subRow.snapshot_address,
-                      asaas_customer_id: subRow.asaas_customer_id ?? undefined,
-                      asaas_subscription_id: subscriptionIdFromPayment,
-                      asaas_payment_id: paymentId,
-                      amount_original: paidValue,
-                      amount_discount: 0,
-                      amount_final: paidValue,
-                      installments: 1,
-                      status: UPGRADE_REQUEST_STATUS_RENEWED,
-                      asaas_raw_status: payment?.status ?? 'RECEIVED',
-                      processed_at: now,
-                      notes: billingNotesForRenewalFromParent(
-                        subRow.notes as string | null | undefined,
-                        renewalLine,
-                      ),
-                      updated_at: now,
-                    });
+                  const { data: insertedRenewal, error: insertErr } =
+                    await supabase
+                      .from('tb_upgrade_requests')
+                      .insert({
+                        profile_id: subRow.profile_id,
+                        plan_key_current: effectivePlanKey,
+                        plan_key_requested: effectivePlanKey,
+                        billing_type: subRow.billing_type,
+                        billing_period: subRow.billing_period,
+                        snapshot_name: subRow.snapshot_name,
+                        snapshot_cpf_cnpj: subRow.snapshot_cpf_cnpj,
+                        snapshot_email: subRow.snapshot_email,
+                        snapshot_whatsapp: subRow.snapshot_whatsapp,
+                        snapshot_address: subRow.snapshot_address,
+                        asaas_customer_id: subRow.asaas_customer_id ?? undefined,
+                        asaas_subscription_id: subscriptionIdFromPayment,
+                        asaas_payment_id: paymentId,
+                        amount_original: paidValue,
+                        amount_discount: 0,
+                        amount_final: paidValue,
+                        installments: 1,
+                        status: UPGRADE_REQUEST_STATUS_RENEWED,
+                        asaas_raw_status: payment?.status ?? 'RECEIVED',
+                        processed_at: now,
+                        notes: billingNotesForRenewalFromParent(
+                          subRow.notes as string | null | undefined,
+                          renewalLine,
+                        ),
+                        updated_at: now,
+                      })
+                      .select('id')
+                      .single();
                   if (insertErr) {
                     console.error(
                       '[Webhook Asaas] Falha ao inserir request de renovação:',
@@ -340,6 +344,20 @@ export async function POST(request: NextRequest) {
                     renewalProfileId = subRow.profile_id;
                     renewalPlanKey = effectivePlanKey;
                     renewalBillingPeriod = subRow.billing_period ?? 'monthly';
+                    if (insertedRenewal?.id) {
+                      const { error: curInsErr } =
+                        await setUpgradeRequestAsCurrent(
+                          supabase,
+                          subRow.profile_id,
+                          insertedRenewal.id,
+                        );
+                      if (curInsErr) {
+                        console.warn(
+                          '[Webhook Asaas] setUpgradeRequestAsCurrent (renovação):',
+                          curInsErr,
+                        );
+                      }
+                    }
                   }
                 }
               }
@@ -523,7 +541,7 @@ export async function POST(request: NextRequest) {
             if (paymentId && !isRenewalInsert) {
               const { data: syncReq } = await supabase
                 .from('tb_upgrade_requests')
-                .select('profile_id, plan_key_requested, status')
+                .select('id, profile_id, plan_key_requested, status')
                 .eq('asaas_payment_id', paymentId)
                 .maybeSingle();
               if (
@@ -538,6 +556,20 @@ export async function POST(request: NextRequest) {
                   plan_trial_expires: null,
                   updated_at: utcIsoFrom(nowFn()),
                 }).eq('id', syncReq.profile_id);
+                if (syncReq.id) {
+                  const { error: syncCurErr } =
+                    await setUpgradeRequestAsCurrent(
+                      supabase,
+                      syncReq.profile_id,
+                      syncReq.id,
+                    );
+                  if (syncCurErr) {
+                    console.warn(
+                      '[Webhook Asaas] setUpgradeRequestAsCurrent (sync):',
+                      syncCurErr,
+                    );
+                  }
+                }
               }
             }
 

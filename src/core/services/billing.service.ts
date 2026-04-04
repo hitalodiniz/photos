@@ -30,6 +30,9 @@ import {
 } from '@/core/config/plans';
 import { logSystemEvent } from '@/core/utils/telemetry';
 import { revalidateUserCache } from '@/actions/revalidate.actions';
+import { getCurrentUpgradeRequestFromHistory } from '@/core/services/billing/upgrade-request-current';
+
+export { getCurrentUpgradeRequestFromHistory };
 
 /**
  * Carrega tb_billing_profiles do usuário atual.
@@ -103,15 +106,15 @@ function parseExpiryFromNotes(notes: string | null | undefined): Date | null {
 export async function getSubscriptionExpiresAt(
   history: UpgradeRequest[],
 ): Promise<string | null> {
-  const approved = history.find((r) => r.status === 'approved');
-  if (!approved) return null;
+  const current = getCurrentUpgradeRequestFromHistory(history);
+  if (!current) return null;
 
-  const fromNotes = parseExpiryFromNotes(approved.notes);
+  const fromNotes = parseExpiryFromNotes(current.notes);
   if (fromNotes) return utcIsoFrom(fromNotes);
 
-  if (!approved.processed_at) return null;
-  const start = new Date(approved.processed_at);
-  const months = billingPeriodToMonths(approved.billing_period);
+  if (!current.processed_at) return null;
+  const start = new Date(current.processed_at);
+  const months = billingPeriodToMonths(current.billing_period);
   const endsAt = addMonths(start, months);
   return utcIsoFrom(endsAt);
 }
@@ -123,9 +126,9 @@ export async function getSubscriptionExpiresAt(
 export async function getLastChargeAmount(
   history: UpgradeRequest[],
 ): Promise<number | undefined> {
-  const approved = history.find((r) => r.status === 'approved');
-  if (approved?.amount_final != null && approved.amount_final > 0) {
-    return approved.amount_final;
+  const current = getCurrentUpgradeRequestFromHistory(history);
+  if (current?.amount_final != null && current.amount_final > 0) {
+    return current.amount_final;
   }
   const withCharge = history.find(
     (r) => r.amount_final != null && r.amount_final > 0,
