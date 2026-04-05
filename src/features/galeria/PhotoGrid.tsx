@@ -563,25 +563,37 @@ export default function PhotoGrid({
       />
 
       {/* SEÇÃO EDITORIAL: DESCRIÇÃO DA GALERIA */}
+      {/* SEÇÃO EDITORIAL: DESCRIÇÃO DA GALERIA */}
       {typeof galeria.description === 'string' &&
         galeria.description.trim() !== '' && (
           <section
-            className="relative w-full bg-white px-6 md:px-12 pt-6 pb-4 overflow-hidden"
+            className="relative w-full bg-white overflow-hidden"
             aria-label="Sobre esta galeria"
           >
-            <div className="mx-auto max-w-[1200px] flex flex-col w-full">
+            {/* Ajuste de Margem: 
+          max-w-[1600px] mx-auto px-6 garante o alinhamento com a ToolBarDesktop 
+      */}
+            <div className="max-w-[1600px] mx-auto px-12 flex flex-col w-full pt-8 pb-4">
               <div className="relative w-full py-2">
                 <p className="relative text-left text-base md:text-[18px] leading-[1.8] tracking-tight animate-in fade-in duration-1000">
+                  {/* Aspa de abertura: 'Hanging' (pendurada) para fora do alinhamento do texto */}
                   <span
-                    className="inline font-serif text-[1.1em] md:text-[2em] leading-[1.8] text-gold/50 select-none mr-px align-top -top-10"
+                    className="absolute -left-4 md:-left-10 -top-2 font-serif text-[2em] md:text-[3em] text-gold/30 select-none pointer-events-none"
                     aria-hidden="true"
                   >
                     “
                   </span>
-                  <span className="inline-block max-w-[calc(100%-1rem)] align-top font-sans font-light text-petroleum/80 whitespace-pre-line first-letter:text-6xl first-letter:font-serif first-letter:font-normal first-letter:mr-2 first-letter:float-left first-letter:text-gold first-letter:leading-[0.7] first-letter:mt-2">
+
+                  <span
+                    className="inline-block w-full font-sans font-light text-petroleum/80 whitespace-pre-line 
+              first-letter:text-6xl first-letter:font-serif first-letter:font-normal 
+              first-letter:mr-3 first-letter:float-left first-letter:text-gold 
+              first-letter:leading-[0.7] first-letter:mt-2"
+                  >
                     {galeria.description.trim()}
+
                     <span
-                      className="inline font-serif text-[1.1em] md:text-[1.15em] leading-[1.8] text-gold select-none ml-px align-baseline"
+                      className="inline font-serif text-[1.1em] md:text-[1.5em] text-gold/50 select-none ml-1 align-baseline"
                       aria-hidden="true"
                     >
                       ”
@@ -590,13 +602,9 @@ export default function PhotoGrid({
                 </p>
               </div>
 
-              {/* 2. Divisor Final Total (Separação das Fotos) */}
-              {/* Atravessa toda a largura do contêiner de 800px */}
-              <div className="mt-1 w-full h-[1px] bg-gold/50 animate-in fade-in duration-1000 delay-300" />
+              {/* Divisor alinhado com a largura do conteúdo */}
+              <div className="mt-6 w-full h-[1px] bg-gold/30 animate-in fade-in duration-1000 delay-300" />
             </div>
-
-            {/* Espaçamento final refinado antes do grid de fotos */}
-            <div className="w-full h-2" />
           </section>
         )}
       {/* GRID */}
